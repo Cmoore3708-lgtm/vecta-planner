@@ -1,18 +1,19 @@
-# Vecta Planner v1.6 Vehicle Lookup Display
+# Vecta Planner v1.4 Ideas Build
 
 ## Added
-- Lookup Vehicle button in New Job form
-- Vehicle details panel: make, model, engine size, fuel type
-- MOT due display
-- Tax status display
-- Green / amber / red vehicle status badges
-- MOT/Tax badges on job cards
-- Vehicle history panel now shows MOT/Tax/engine/fuel
-- Invoice includes MOT and tax status
-- Database schema fields prepared for DVLA/DVSA API connection
+- Find Availability button
+- Availability check compares job type hours against mechanic and ramp capacity
+- Create booking directly from Find Availability
+- Vehicle History panel foundation
+- History button on job cards
+- Dashboard includes completed today
+- Invoice table foundation added to database schema
+- Roadmap updated with more of the bigger ideas
 
-## Note
-The live DVLA/DVSA API is not connected yet. This release adds the display and structure ready for API keys.
-A demo lookup is included for KV70 UOS and YD18 ABC so you can see how it will work.
+## Still coming next
+- Website bookings into Unallocated
+- Full customer and vehicle history storage
+- Book next service reminder
+- Supabase-backed settings across all devices
 
 Upload extracted contents to GitHub. Vercel redeploys automatically.
