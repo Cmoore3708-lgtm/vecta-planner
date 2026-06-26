@@ -1,15 +1,16 @@
-# Vecta Planner v1.1.1
+# Vecta Planner v1.1.2
 
-This is a complete Vite/React project release.
+Fixed release.
 
-## Changes
-- Two mechanic columns only: Jordan and Alfie
-- Ramp utilisation across the top for Ramp 1, Ramp 2, Ramp 3
+## Fix
+- Supabase saves now use proper UUIDs instead of short local IDs.
+- This fixes Add Job, Notes and Tasks not saving in cloud mode.
+
+## Layout
+- Two mechanic columns: Jordan and Alfie
+- Ramp utilisation across the top
 - Left side: New / Unallocated, Waiting Jobs, Notes
 - Bottom panel: Tasks
-- Status workflow and coloured job cards
-- Job type estimated hours
-- Supabase/Vercel-ready
 
-## Update GitHub
-Extract this ZIP. Upload the extracted contents to GitHub, not the ZIP itself.
+## Update
+Extract this ZIP and upload the extracted contents to GitHub, not the ZIP itself.

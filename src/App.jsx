@@ -43,7 +43,7 @@ const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 const supabase = supabaseUrl && supabaseKey ? createClient(supabaseUrl, supabaseKey) : null;
 
-function uid() { return Math.random().toString(36).slice(2, 10); }
+function uid() { return crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).slice(2, 10); }
 function todayISO() { const d = new Date(); d.setMinutes(d.getMinutes() - d.getTimezoneOffset()); return d.toISOString().slice(0, 10); }
 function addDaysISO(iso, days) { const d = new Date(`${iso}T00:00:00`); d.setDate(d.getDate() + days); return d.toISOString().slice(0, 10); }
 function monthStartISO(iso) { const d = new Date(`${iso}T00:00:00`); d.setDate(1); return d.toISOString().slice(0, 10); }
