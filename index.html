@@ -18,13 +18,6 @@
 
 .invoiceSheet{margin-top:18px;background:#fff;border:1px solid var(--line);border-radius:14px;padding:24px;box-shadow:0 12px 35px rgba(15,23,42,.06)}
 .invoiceTop{display:flex;justify-content:space-between;gap:20px;border-bottom:2px solid #0f172a;padding-bottom:16px;margin-bottom:18px}.invoiceTop h2{margin:0 0 6px;font-size:34px}.invoiceGrid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:18px}.invoiceBox{border:1px solid var(--line);border-radius:10px;background:#f8fafc;padding:14px}.invoiceBox h3{margin:0 0 8px;font-size:13px;text-transform:uppercase;color:#64748b}.invoiceTable{width:100%;border-collapse:collapse;margin-top:10px}.invoiceTable th{background:#111827;color:#fff;text-align:left;padding:12px;font-size:13px}.invoiceTable td{border-bottom:1px solid var(--line);padding:12px;vertical-align:top}.invoiceTable input,.invoiceTable textarea,.invoiceTable select{width:100%;border:1px solid var(--line);border-radius:8px;padding:8px;font:inherit}.invoiceTable textarea{min-height:54px;resize:vertical}.invoiceSummary{margin-top:14px;display:flex;justify-content:flex-end}.invoiceSummary table{min-width:320px;border-collapse:collapse}.invoiceSummary td{padding:8px;border-bottom:1px solid var(--line)}.invoiceSummary td:last-child{text-align:right;font-weight:950}.vatMode{display:flex;gap:10px;align-items:center;justify-content:flex-end;margin-top:10px;font-weight:900}.vatMode select{border:1px solid var(--line);border-radius:9px;padding:9px}.invoiceActions{display:flex;justify-content:flex-end;gap:10px;margin-top:18px}.invoiceActions button{border:0;background:var(--red);color:#fff;border-radius:10px;padding:12px 16px;font-weight:950;cursor:pointer}.invoiceActions .ghost{background:#fff;color:#0f172a;border:1px solid var(--line)}
-
-/* V24 mobile, week/list and settings polish */
-.mobileWeek,.mobileList{display:none;background:#fff;border:1px solid var(--line);border-radius:12px;padding:14px;margin-top:12px}.mobileWeek.active,.mobileList.active{display:block}.weekGrid{display:grid;grid-template-columns:repeat(7,1fr);gap:10px}.weekDay{border:1px solid var(--line);border-radius:10px;padding:12px;background:#f8fafc;min-height:150px;cursor:pointer}.weekDay.today{outline:3px solid #fecdd3;background:#fff}.weekDay h3{margin:0 0 8px;font-size:13px}.weekJob{border-left:4px solid var(--red);background:#fff;border-radius:8px;padding:8px;margin:6px 0;font-size:12px}.listJob{display:grid;grid-template-columns:80px 1fr auto;gap:12px;align-items:center;border:1px solid var(--line);border-left:4px solid var(--red);border-radius:10px;background:#fff;padding:12px;margin-bottom:8px;cursor:pointer}.settingsGrid{display:grid;grid-template-columns:1fr 1fr;gap:14px;max-width:980px}.settingsBox{border:1px solid var(--line);border-radius:12px;background:#f8fafc;padding:14px}.settingsBox h3{margin:0 0 10px}.settingsBox label{display:block;font-weight:900;margin:10px 0}.settingsBox input,.settingsBox select,.settingsBox textarea{width:100%;margin-top:6px;border:1px solid #dbe3ee;border-radius:10px;padding:11px}.templateRow{display:grid;grid-template-columns:1.2fr 95px 115px 1.5fr 42px;gap:8px;margin-bottom:8px;align-items:start}.businessGrid{display:grid;grid-template-columns:1fr 1fr;gap:10px}.businessGrid .wide{grid-column:1/-1}.templateRow button{border:0;background:#fee2e2;color:#b91c1c;border-radius:8px;font-weight:950}.jobTemplateLine{display:grid;grid-template-columns:1fr auto;gap:10px;align-items:end}.jobTemplateLine button{height:46px}.mobileOnly{display:none}
-@media(max-width:820px){
-  body{font-size:14px}.app{display:block}.side{position:sticky;top:0;z-index:30;display:block;padding:10px;background:#0d1728}.brand{padding:0 4px 10px}.logoTxt{font-size:20px}.tag,.sideFoot{display:none}.nav{display:flex;flex-direction:row;gap:6px;overflow-x:auto;padding-bottom:4px}.nav button{white-space:nowrap;padding:10px 12px;font-size:13px}.top{height:auto;min-height:70px;flex-wrap:wrap;gap:8px;padding:10px;position:sticky;top:80px;z-index:20}.dateCtl{margin-left:0;order:1}.pillBtn,.printBtn,.addJob{height:40px;padding:0 12px;font-size:13px}.seg button{height:40px;padding:0 12px}.user{display:none}.content{padding:10px}.metrics{grid-template-columns:repeat(2,1fr)!important}.metric{padding:10px;min-height:65px}.metric strong{font-size:18px}.plannerWrap{display:block}.panelCol{margin-top:12px}.grid{min-width:720px}.plannerCard{overflow-x:auto;-webkit-overflow-scrolling:touch}.lane{min-height:608px}.quickAddHint{align-items:start;gap:10px}.dashboardHero{padding:20px}.dashboardHero h1{font-size:28px}.dashboardHero input{font-size:26px;width:100%;max-width:100%}.cardPage{max-height:96vh;border-radius:12px}.cardBody{grid-template-columns:1fr;padding:16px}.cardHeader{padding:16px}.cardHeader h2{font-size:22px}.cardFooter{position:sticky;bottom:0;flex-wrap:wrap}.cardFooter button{flex:1 1 auto}.settingsGrid{grid-template-columns:1fr}.weekGrid{grid-template-columns:1fr}.listJob{grid-template-columns:70px 1fr}.listJob .statusBadge{grid-column:1/-1;width:max-content}.invoiceGrid{grid-template-columns:1fr}.invoiceTable{display:block;overflow-x:auto}.mobileOnly{display:inline-block}.taskGrid{grid-template-columns:1fr}.job{left:8px;right:8px;padding:12px}.job .car{padding-right:48px}.job .work{font-size:13px}.top{top:73px}
-}
-
 </style>
 </head>
 <body>
@@ -33,7 +26,7 @@
     <div class="brand"><div class="hamb">☰</div><div><div class="logoTxt">VECTA<span>PLANNER</span></div><div class="tag">WORKSHOP COMMAND CENTRE</div></div></div>
     <nav class="nav">
       <button data-view="dash">⌂ &nbsp; Dashboard</button><button class="active" data-view="planner">▣ &nbsp; Workshop Planner</button><button data-view="jobs">▤ &nbsp; Job Cards</button><button data-view="invoiceQueue">✓ &nbsp; Ready to Invoice</button><button data-view="customers">♙ &nbsp; Customers</button><button data-view="vehicles">▤ &nbsp; Vehicles</button><button data-view="invoices">£ &nbsp; Invoices</button><button data-view="reports">▥ &nbsp; Reports</button><button data-view="settings">⚙ &nbsp; Settings</button>
-    </nav><div class="sideFoot"><b>🚗 Vecta Motors</b><br><small>Workshop Command Centre</small><br><br><small>v24 mobile</small></div>
+    </nav><div class="sideFoot"><b>🚗 Vecta Motors</b><br><small>Workshop Command Centre</small><br><br><small>v12.0.0</small></div>
   </aside>
   <main class="main">
     <header class="top"><div class="dateCtl"><button id="prevDay">‹</button><div>📅 &nbsp; <span id="dateText">Today</span></div><button id="nextDay">›</button></div><button class="pillBtn" id="todayBtn">Today</button><div class="seg"><button class="active" id="dayViewBtn">Day</button><button id="weekViewBtn">Week</button><button id="listViewBtn">List</button></div><button class="printBtn" id="printBtn">🖨 Print Day Plan</button><div class="user"><b>Chris</b>Administrator</div><button class="addJob" id="topAddJob">＋ Add Job Card</button></header>
@@ -60,16 +53,9 @@
       <section id="planner" class="view active">
         <div class="metrics"><div class="metric"><small>Jobs booked in</small><strong id="mJobs">8</strong></div><div class="metric"><small>Completed today</small><strong id="mCompleted" style="color:#16a34a">0</strong></div><div class="metric"><small>Ready to invoice</small><strong id="mToInvoice" style="color:#dc2626">0</strong></div><div class="metric"><small>Ramp left</small><strong>68%</strong><div class="bar"><span style="width:68%;background:#16a34a"></span></div></div><div class="metric"><small>Ramp middle</small><strong>45%</strong><div class="bar"><span style="width:45%;background:#f59e0b"></span></div></div><div class="metric"><small>Ramp right</small><strong>90%</strong><div class="bar"><span style="width:90%;background:#dc2626"></span></div></div><div class="metric"><small>Alfie</small><strong>60%</strong><div class="bar"><span style="width:60%;background:#7c3aed"></span></div></div><div class="metric"><small>Jordan</small><strong>75%</strong><div class="bar"><span style="width:75%;background:#2563eb"></span></div></div></div>
         <div class="quickAddHint"><span>Tap <b>Add Job Card</b> to open the full job card page. Tap any existing job card to open and edit it.</span><button id="openAddFromHint">＋ Add Job Card</button></div>
-        <div class="plannerWrap"><div><div class="plannerCard"><div class="grid"><div class="head"></div><div class="head mechanic hAlfie">👤&nbsp;&nbsp;<div id="headAlfie">ALFIE</div></div><div class="head mechanic hJordan">👤&nbsp;&nbsp;<div id="headJordan">JORDAN</div></div><div class="timeCol" id="times"></div><div class="lane" id="laneAlfie"></div><div class="lane" id="laneJordan"></div></div><div class="legend"><span>🔧 Ramp left</span><span>🔧 Ramp middle</span><span>🔧 Ramp right</span></div></div><div class="tasks"><h3>Tasks for today <button id="addTaskBtn" style="float:right;border:0;background:transparent;color:#06c;font-weight:900;cursor:pointer">＋ Add Task</button></h3><div class="taskGrid" id="taskGrid"></div></div></div><div class="panelCol"><div class="panel"><h3>Unallocated jobs <span class="badge" id="unallocCount">0</span></h3><div id="unallocatedPanel"></div></div><div class="panel"><h3>Waiting jobs <span class="badge" id="waitingCount" style="background:#2563eb">0</span></h3><div id="waitingPanel"></div></div><div class="panel"><h3>Notes (Chris only)</h3><textarea placeholder="Add notes, reminders or anything important for today..."></textarea></div></div></div><div id="weekPanel" class="mobileWeek"><h2 style="margin-top:0">Week view</h2><div id="weekGrid" class="weekGrid"></div></div><div id="listPanel" class="mobileList"><h2 style="margin-top:0">List view</h2><div id="listJobs"></div></div>
+        <div class="plannerWrap"><div><div class="plannerCard"><div class="grid"><div class="head"></div><div class="head mechanic hAlfie">👤&nbsp;&nbsp;<div id="headAlfie">ALFIE</div></div><div class="head mechanic hJordan">👤&nbsp;&nbsp;<div id="headJordan">JORDAN</div></div><div class="timeCol" id="times"></div><div class="lane" id="laneAlfie"></div><div class="lane" id="laneJordan"></div></div><div class="legend"><span>🔧 Ramp left</span><span>🔧 Ramp middle</span><span>🔧 Ramp right</span></div></div><div class="tasks"><h3>Tasks for today <button id="addTaskBtn" style="float:right;border:0;background:transparent;color:#06c;font-weight:900;cursor:pointer">＋ Add Task</button></h3><div class="taskGrid" id="taskGrid"></div></div></div><div class="panelCol"><div class="panel"><h3>Unallocated jobs <span class="badge" id="unallocCount">0</span></h3><div id="unallocatedPanel"></div></div><div class="panel"><h3>Waiting jobs <span class="badge" id="waitingCount" style="background:#2563eb">0</span></h3><div id="waitingPanel"></div></div><div class="panel"><h3>Notes (Chris only)</h3><textarea placeholder="Add notes, reminders or anything important for today..."></textarea></div></div></div>
       </section>
-      <section id="jobs" class="view"><div class="dummy"><h1>Job Cards</h1><p>Job card list ready for the next build.</p></div></section><section id="invoiceQueue" class="view"><div class="dummy"><h1>Complete — Ready to Invoice</h1><p style="color:#64748b;font-weight:700">Completed jobs appear here first. Click Create invoice to open a fully populated invoice, check it, then mark it invoiced.</p><div id="invoiceQueueList"></div><div id="invoiceDetail"></div></div></section><section id="customers" class="view"><div class="dummy"><h1>Customers</h1></div></section><section id="vehicles" class="view"><div class="dummy"><h1>Vehicles</h1></div></section><section id="invoices" class="view"><div class="dummy"><h1>Invoices</h1></div></section><section id="reports" class="view"><div class="dummy"><h1>Reports</h1></div></section><section id="settings" class="view"><div class="dummy"><h1>Settings</h1><p style="color:#64748b;font-weight:700">Control the whole planner from here: technicians, working day, ramps, job templates, invoice details and business information.</p><div class="settingsGrid">
-  <div class="settingsBox"><h3>Technicians</h3><label>Left column name<input id="setAlfie" value="Alfie"></label><label>Right column name<input id="setJordan" value="Jordan"></label></div>
-  <div class="settingsBox"><h3>Workshop day</h3><label>Start time<select id="setDayStart"><option value="7">07:00</option><option value="8">08:00</option><option value="9">09:00</option></select></label><label>Finish time<select id="setDayEnd"><option value="15">15:00</option><option value="16">16:00</option><option value="17">17:00</option><option value="18">18:00</option></select></label><label>Slot length<select id="setSlotLength"><option value="15">15 minutes</option><option value="30">30 minutes</option><option value="60">60 minutes</option></select></label></div>
-  <div class="settingsBox"><h3>Ramps</h3><label>Left ramp name<input id="setRampLeft" value="Left"></label><label>Middle ramp name<input id="setRampMiddle" value="Middle"></label><label>Right ramp name<input id="setRampRight" value="Right"></label></div>
-  <div class="settingsBox"><h3>Invoice defaults</h3><label>VAT rate %<input id="setVatRate" inputmode="decimal" value="20"></label><label>Invoice prefix<input id="setInvoicePrefix" value="INV"></label><label>Payment terms<input id="setPaymentTerms" value="Payment due on collection"></label><label>Bank details<textarea id="setBankDetails" rows="3"></textarea></label><label>Invoice footer<textarea id="setInvoiceFooter" rows="3"></textarea></label></div>
-  <div class="settingsBox" style="grid-column:1/-1"><h3>Business details</h3><div class="businessGrid"><label>Business name<input id="setBusinessName" value="VECTA MOTORS"></label><label>Phone<input id="setBusinessPhone"></label><label>Email<input id="setBusinessEmail"></label><label>VAT number<input id="setVatNumber"></label><label>Company number<input id="setCompanyNumber"></label><label class="wide">Address<textarea id="setBusinessAddress" rows="3"></textarea></label></div></div>
-  <div class="settingsBox" style="grid-column:1/-1"><h3>Common job descriptions, estimated times and defaults</h3><p style="color:#64748b;font-weight:700;margin-top:0">These appear in the Job Type dropdown when creating a job card. Add default checklist items and an optional default invoice price.</p><div id="templateList"></div><button class="ghost" id="addTemplate" type="button">＋ Add job type</button></div>
-</div><div style="margin-top:16px"><button id="saveSettings" class="primary">Save Settings</button></div></div></section>
+      <section id="jobs" class="view"><div class="dummy"><h1>Job Cards</h1><p>Job card list ready for the next build.</p></div></section><section id="invoiceQueue" class="view"><div class="dummy"><h1>Complete — Ready to Invoice</h1><p style="color:#64748b;font-weight:700">Completed jobs appear here first. Click Create invoice to open a fully populated invoice, check it, then mark it invoiced.</p><div id="invoiceQueueList"></div><div id="invoiceDetail"></div></div></section><section id="customers" class="view"><div class="dummy"><h1>Customers</h1></div></section><section id="vehicles" class="view"><div class="dummy"><h1>Vehicles</h1></div></section><section id="invoices" class="view"><div class="dummy"><h1>Invoices</h1></div></section><section id="reports" class="view"><div class="dummy"><h1>Reports</h1></div></section><section id="settings" class="view"><div class="dummy"><h1>Settings</h1><p style="color:#64748b;font-weight:700">Change the names shown on the planner. Existing jobs stay safely attached to the left or right column.</p><div style="display:grid;grid-template-columns:1fr 1fr auto;gap:12px;max-width:760px;align-items:end"><label style="font-weight:900">Left column name<input id="setAlfie" style="display:block;width:100%;margin-top:8px;border:1px solid #dbe3ee;border-radius:10px;padding:12px" value="Alfie"></label><label style="font-weight:900">Right column name<input id="setJordan" style="display:block;width:100%;margin-top:8px;border:1px solid #dbe3ee;border-radius:10px;padding:12px" value="Jordan"></label><button id="saveSettings" class="primary">Save Settings</button></div></div></section>
     </div>
   </main>
 </div>
@@ -82,7 +68,7 @@
       <div><label>Phone<input id="phone" placeholder="Phone number"></label></div>
       <div><label>Registration<input id="reg" placeholder="AB12 CDE"></label></div>
       <div><label>Vehicle / make model<input id="vehicle" placeholder="Vehicle / make model"></label></div>
-      <div class="wide"><label>Job type<select id="jobTemplate"></select></label></div><div class="wide"><label>Work required<textarea id="work" placeholder="Describe the work required"></textarea></label></div>
+      <div class="wide"><label>Work required<textarea id="work" placeholder="Describe the work required"></textarea></label></div>
       <div><label>Mechanic<select id="mech"><option value="Alfie" id="mechOptAlfie">Alfie</option><option value="Jordan" id="mechOptJordan">Jordan</option></select></label></div>
       <div><label>Ramp<select id="ramp"><option value="Ramp left">Left</option><option value="Ramp middle">Middle</option><option value="Ramp right">Right</option></select></label></div>
       <div><label>Start time<select id="startTime"></select></label></div>
@@ -95,46 +81,8 @@
 </div>
 <section class="printSheet"><div class="printHeader"><div><div class="printLogo">VECTA <span>PLANNER</span></div><b>DAILY WORKSHOP PLAN</b></div><div class="printDate"><div id="pDate">Today</div><div>Printed by Chris</div></div></div><div class="printGrid"><div class="printCol"><h2 id="printHeadAlfie">ALFIE</h2><div id="printAlfie"></div></div><div class="printCol"><h2 id="printHeadJordan">JORDAN</h2><div id="printJordan"></div></div></div><div class="printBottom"><div class="printBox"><h3>Waiting / unallocated jobs</h3><p>NU18 REG – Nissan Qashqai – Major Service</p><p>FV67 ABC – Ford Transit – Clutch Replacement</p><p>MA19 XYZ – BMW 1 Series – Diagnostics</p></div><div class="printBox"><h3>Notes</h3><div class="line"></div><div class="line"></div><div class="line"></div></div></div></section>
 <script>
-const slotHeight=76; let dayStart=8, dayEnd=16, times=[];
-const defaultSettings={
-  alfieName:'Alfie',jordanName:'Jordan',dayStart:8,dayEnd:16,slotLength:30,
-  rampLeft:'Left',rampMiddle:'Middle',rampRight:'Right',vatRate:20,
-  invoicePrefix:'INV',paymentTerms:'Payment due on collection',bankDetails:'',invoiceFooter:'Thank you for using Vecta Motors.',
-  businessName:'VECTA MOTORS',businessAddress:'Nissan Manufacturing Site, Sunderland',businessPhone:'',businessEmail:'',vatNumber:'',companyNumber:'',
-  jobTemplates:[
-    {desc:'Minor Service',duration:1.5,price:'',checklist:'Check oil and filters
-Reset service light'},
-    {desc:'Major Service',duration:2.5,price:'',checklist:'Oil and filter
-Air filter
-Cabin filter
-Full inspection'},
-    {desc:'MOT',duration:1,price:'',checklist:'Pre-MOT check
-Lights
-Tyres'},
-    {desc:'Diagnostics',duration:1,price:'',checklist:'Scan fault codes
-Record live data
-Advise customer'},
-    {desc:'Front brake pads',duration:1,price:'',checklist:'Replace front pads
-Road test'},
-    {desc:'Brake discs & pads',duration:2,price:'',checklist:'Replace discs and pads
-Clean hubs
-Road test'},
-    {desc:'Clutch replacement',duration:5,price:'',checklist:'Remove gearbox
-Replace clutch kit
-Road test'},
-    {desc:'Air conditioning service',duration:1,price:'',checklist:'Recover gas
-Vacuum test
-Recharge system'}
-  ]
-};
-function getSettings(){
-  try{
-    const stored=JSON.parse(localStorage.getItem('vecta-settings')||'{}');
-    return {...clone(defaultSettings),...stored,jobTemplates:stored.jobTemplates||clone(defaultSettings.jobTemplates)};
-  }catch(e){return clone(defaultSettings)}
-}
-function saveSettingsObj(s){localStorage.setItem('vecta-settings',JSON.stringify(s));}
-function refreshPlannerSettings(){const s=getSettings();dayStart=Number(s.dayStart||8);dayEnd=Number(s.dayEnd||16);times=[];for(let h=dayStart;h<=dayEnd;h++)times.push(String(h).padStart(2,'0')+':00');document.documentElement.style.setProperty('--laneRows',Math.max(1,dayEnd-dayStart));}
+const slotHeight=76, dayStart=8;
+const times=['08:00','09:00','10:00','11:00','12:00','13:00','14:00','15:00','16:00'];
 const colours=['green','blue','purple','orange'];
 let currentDate=new Date();
 let draggedId=null, editingId=null, didMove=false, currentSourceId=null;
@@ -189,7 +137,7 @@ function saveJobs(){localStorage.setItem('vecta-jobs-'+dateKey(),JSON.stringify(
 function toMinutes(t){const [h,m]=t.split(':').map(Number);return h*60+m}
 function fromMinutes(total){const h=Math.floor(total/60),m=total%60;return String(h).padStart(2,'0')+':'+String(m).padStart(2,'0')}
 function topFor(t){return ((toMinutes(t)-dayStart*60)/60)*slotHeight+14}
-function timeForTop(px){let mins=Math.round(((px-14)/slotHeight)*2)*30 + dayStart*60;mins=Math.max(dayStart*60,Math.min(dayEnd*60,mins));return fromMinutes(mins)}
+function timeForTop(px){let mins=Math.round(((px-14)/slotHeight)*2)*30 + dayStart*60;mins=Math.max(dayStart*60,Math.min(16*60,mins));return fromMinutes(mins)}
 function heightFor(d){return Math.max(72,d*slotHeight-8)}
 function endTime(j){return fromMinutes(toMinutes(j.start)+Math.round(Number(j.duration||1)*60))}
 function fullTime(j){return `${j.start} – ${endTime(j)} (${Number(j.duration||1).toFixed(1)} hrs)`}
@@ -239,6 +187,9 @@ function normaliseJob(j){
   return j;
 }
 function normaliseJobs(){ jobs = jobs.map(normaliseJob); }
+function getSettings(){
+  try{return JSON.parse(localStorage.getItem('vecta-settings')||'{}')}catch(e){return {}}
+}
 function applyNames(){
   const settings=getSettings();
   const left=settings.alfieName||'Alfie';
@@ -251,18 +202,9 @@ function applyNames(){
   if(window.mechOptJordan) mechOptJordan.textContent=right;
   if(window.setAlfie) setAlfie.value=left;
   if(window.setJordan) setJordan.value=right;
-  if(window.setDayStart) setDayStart.value=String(settings.dayStart||8);
-  if(window.setDayEnd) setDayEnd.value=String(settings.dayEnd||16);
-  renderTemplateSettings();
-  populateJobTemplates();
 }
-
 function renderDate(){dateText.textContent=niceDate();pDate.textContent=niceDate();}
-function populateTimes(){
-  if(!window.startTime) return;
-  const opts=[]; for(let mins=dayStart*60; mins<=dayEnd*60; mins+=30) opts.push(fromMinutes(mins));
-  const current=startTime.value||'08:30'; startTime.innerHTML=opts.map(t=>`<option>${t}</option>`).join(''); startTime.value=opts.includes(current)?current:opts[0];
-}
+function populateTimes(){startTime.innerHTML=['08:00','08:30','09:00','09:30','10:00','10:30','11:00','11:30','12:00','12:30','13:00','13:30','14:00','14:30','15:00','15:30','16:00'].map(t=>`<option>${t}</option>`).join('');startTime.value='08:30'}
 function statusText(s){return s==='waitingTech'?'Waiting tech':s==='waitingParts'?'Waiting parts':s==='workComplete'?'Work complete':s==='complete'?'Ready to invoice':s==='inProgress'?'In progress':s==='invoiced'?'Invoiced':s==='collected'?'Collected':'Booked'}
 function timeValue(t){
   const m=String(t||'00:00').match(/^(\d{1,2}):(\d{2})/);
@@ -309,67 +251,6 @@ function attachSideHandlers(){
   });
 }
 
-
-function renderTemplateSettings(){
-  const holder=document.getElementById('templateList'); if(!holder) return;
-  const s=getSettings();
-  holder.innerHTML=(s.jobTemplates||[]).map((t,i)=>`<div class="templateRow"><input data-template-desc="${i}" value="${esc(t.desc)}" placeholder="Job description"><input data-template-duration="${i}" value="${esc(t.duration)}" inputmode="decimal" placeholder="Hours"><input data-template-price="${i}" value="${esc(t.price||'')}" inputmode="decimal" placeholder="Default £"><textarea data-template-checklist="${i}" rows="2" placeholder="Default checklist, one item per line">${esc(t.checklist||'')}</textarea><button type="button" data-template-del="${i}">×</button></div>`).join('') || '<p style="color:#64748b">No job types added.</p>';
-  holder.querySelectorAll('[data-template-del]').forEach(btn=>btn.onclick=()=>{const st=getSettings();st.jobTemplates.splice(Number(btn.dataset.templateDel),1);saveSettingsObj(st);renderTemplateSettings();populateJobTemplates();});
-}
-function collectTemplatesFromSettings(){
-  const holder=document.getElementById('templateList'); const s=getSettings(); if(!holder) return s.jobTemplates||[];
-  const rows=[...holder.querySelectorAll('.templateRow')];
-  return rows.map(row=>({
-    desc:row.querySelector('[data-template-desc]')?.value.trim()||'',
-    duration:Number(row.querySelector('[data-template-duration]')?.value||1),
-    price:row.querySelector('[data-template-price]')?.value.trim()||'',
-    checklist:row.querySelector('[data-template-checklist]')?.value||''
-  })).filter(t=>t.desc);
-}
-function populateJobTemplates(){
-  const el=document.getElementById('jobTemplate'); if(!el) return;
-  const s=getSettings();
-  el.innerHTML='<option value="">Choose common job type...</option>'+ (s.jobTemplates||[]).map((t,i)=>`<option value="${i}">${esc(t.desc)} — ${Number(t.duration||1).toFixed(1)} hr</option>`).join('');
-}
-function applyTemplateToJob(){
-  const el=document.getElementById('jobTemplate'); if(!el || el.value==='') return;
-  const t=(getSettings().jobTemplates||[])[Number(el.value)]; if(!t) return;
-  if(window.work) work.value=t.desc;
-  if(window.duration) duration.value=String(t.duration||1);
-  if(window.notes && t.checklist && !notes.value) notes.value='Checklist:
-'+t.checklist;
-}
-function getJobsForDate(d){
-  const key='vecta-jobs-'+d.toISOString().slice(0,10); const raw=localStorage.getItem(key);
-  if(raw) {try{return JSON.parse(raw).map(normaliseJob)}catch(e){return []}}
-  return d.toISOString().slice(0,10)===new Date().toISOString().slice(0,10)?clone(seedJobs).map(normaliseJob):[];
-}
-function renderWeekView(){
-  const grid=document.getElementById('weekGrid'); if(!grid) return;
-  const start=new Date(currentDate); const day=(start.getDay()+6)%7; start.setDate(start.getDate()-day);
-  const todayKey=new Date().toISOString().slice(0,10);
-  grid.innerHTML=Array.from({length:7},(_,i)=>{const d=new Date(start); d.setDate(start.getDate()+i); const key=d.toISOString().slice(0,10); const list=jobsByTime(getJobsForDate(d)); return `<div class="weekDay ${key===todayKey?'today':''}" data-weekdate="${key}"><h3>${d.toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'short'})}</h3>${list.length?list.map(j=>`<div class="weekJob"><b>${esc(j.start)} ${esc(j.reg)}</b><br>${esc(j.car||'Vehicle')}<br>${esc(j.work)}</div>`).join(''):'<p style="color:#64748b;margin:0">No jobs</p>'}</div>`}).join('');
-  grid.querySelectorAll('[data-weekdate]').forEach(el=>el.onclick=()=>{currentDate=new Date(el.dataset.weekdate+'T12:00:00'); loadJobs(); loadTasks(); setPlannerMode('day'); render();});
-}
-function renderListView(){
-  const el=document.getElementById('listJobs'); if(!el) return;
-  const ordered=jobsByTime(jobs);
-  el.innerHTML=ordered.length?ordered.map(j=>`<div class="listJob" data-openjob="${j.id}"><b>${esc(j.start)}<br><small>${esc(endTime(j))}</small></b><div><span class="reg">${esc(j.reg)}</span><br><b>${esc(j.car||'Vehicle')}</b><br>${esc(j.work)}<br><small>${esc(j.m)} • ${esc(shortRamp(j.ramp))}</small></div><span class="statusBadge status-${esc(j.status||'booked')}">${esc(statusText(j.status))}</span></div>`).join(''):'<p style="color:#64748b">No jobs booked for this day.</p>';
-}
-let plannerMode='day';
-function setPlannerMode(mode){
-  plannerMode=mode;
-  document.querySelectorAll('.seg button').forEach(b=>b.classList.remove('active'));
-  if(mode==='day' && window.dayViewBtn) dayViewBtn.classList.add('active');
-  if(mode==='week' && window.weekViewBtn) weekViewBtn.classList.add('active');
-  if(mode==='list' && window.listViewBtn) listViewBtn.classList.add('active');
-  const wrap=document.querySelector('#planner .plannerWrap');
-  if(wrap) wrap.style.display=mode==='day'?'grid':'none';
-  if(window.weekPanel) weekPanel.classList.toggle('active',mode==='week');
-  if(window.listPanel) listPanel.classList.toggle('active',mode==='list');
-  renderWeekView(); renderListView();
-}
-
 function renderInvoiceQueue(){
   const el=document.getElementById('invoiceQueueList'); const detail=document.getElementById('invoiceDetail'); if(!el) return;
   const list=jobs.filter(j=>j.status==='complete');
@@ -392,13 +273,12 @@ function invoiceLine(desc, price='', vatMode='inc'){
   return `<tr class="invoiceLine"><td><textarea data-line-desc>${esc(desc||'')}</textarea></td><td style="width:150px"><input data-line-price inputmode="decimal" placeholder="£" value="${esc(price||'')}"></td><td style="width:155px"><select data-line-vat><option value="inc" ${vatMode==='inc'?'selected':''}>Inc VAT</option><option value="ex" ${vatMode==='ex'?'selected':''}>Ex VAT</option></select></td></tr>`;
 }
 function invoiceHtml(j){
-  const settings=getSettings();
-  const invNo=(settings.invoicePrefix||'INV')+'-'+String(j.id).slice(-5).toUpperCase();
+  const invNo='INV-'+String(j.id).slice(-5).toUpperCase();
   const completed=(j.tasks||[]).filter(t=>t.done).map(t=>t.text);
   const descriptions=completed.length?completed:[j.work||'Workshop labour and parts'];
   const rows=descriptions.map(d=>invoiceLine(d)).join('');
   const notes=j.notes?invoiceLine('Technician notes: '+j.notes):'';
-  return `<div class="invoiceSheet"><div class="invoiceTop"><div><h2>Invoice</h2><b>${esc(settings.businessName||'VECTA MOTORS')}</b><br><span style="color:#64748b">${esc(settings.businessAddress||'')}</span><br><span style="color:#64748b">${esc(settings.businessPhone||'')} ${esc(settings.businessEmail||'')}</span><br><span style="color:#64748b">Fully populated from job card — edit every description and price before marking invoiced</span></div><div style="text-align:right"><b>${invNo}</b><br>${formatDate(currentDate)}<br>Status: Ready to invoice</div></div><div class="invoiceGrid"><div class="invoiceBox"><h3>Customer</h3><b>${esc(j.customer||'Customer not entered')}</b><br>${esc(j.phone||'Phone not entered')}</div><div class="invoiceBox"><h3>Vehicle</h3><span class="reg">${esc(j.reg)}</span><br><b>${esc(j.car||'Vehicle')}</b><br>Mechanic: ${esc(j.m)}<br>Ramp: ${esc(shortRamp(j.ramp))}<br>Booked time: ${esc(j.start)} • ${esc(j.duration)} hr</div></div><table class="invoiceTable"><thead><tr><th>Description</th><th style="width:150px">Price</th><th style="width:155px">VAT</th></tr></thead><tbody id="invoiceRows">${rows}${notes}</tbody></table><div class="invoiceActions" style="justify-content:space-between"><button class="ghost" data-addline="${j.id}">＋ Add invoice line</button><div><button class="ghost" data-printinvoice="${j.id}">Print invoice</button><button data-invoiced="${j.id}">Mark invoiced</button></div></div><div class="invoiceSummary"><table><tr><td>Net</td><td id="invNet">£0.00</td></tr><tr><td>VAT @ ${Number(settings.vatRate||20)}%</td><td id="invVat">£0.00</td></tr><tr><td>Total</td><td id="invTotal">£0.00</td></tr></table>${settings.paymentTerms?`<p><b>Payment terms:</b> ${esc(settings.paymentTerms)}</p>`:''}${settings.bankDetails?`<p><b>Bank details:</b><br>${esc(settings.bankDetails).replace(/\n/g,'<br>')}</p>`:''}${settings.invoiceFooter?`<p style="color:#64748b">${esc(settings.invoiceFooter)}</p>`:''}</div></div>`;
+  return `<div class="invoiceSheet"><div class="invoiceTop"><div><h2>Invoice</h2><b>VECTA MOTORS</b><br><span style="color:#64748b">Fully populated from job card — edit every description and price before marking invoiced</span></div><div style="text-align:right"><b>${invNo}</b><br>${formatDate(currentDate)}<br>Status: Ready to invoice</div></div><div class="invoiceGrid"><div class="invoiceBox"><h3>Customer</h3><b>${esc(j.customer||'Customer not entered')}</b><br>${esc(j.phone||'Phone not entered')}</div><div class="invoiceBox"><h3>Vehicle</h3><span class="reg">${esc(j.reg)}</span><br><b>${esc(j.car||'Vehicle')}</b><br>Mechanic: ${esc(j.m)}<br>Ramp: ${esc(shortRamp(j.ramp))}<br>Booked time: ${esc(j.start)} • ${esc(j.duration)} hr</div></div><table class="invoiceTable"><thead><tr><th>Description</th><th style="width:150px">Price</th><th style="width:155px">VAT</th></tr></thead><tbody id="invoiceRows">${rows}${notes}</tbody></table><div class="invoiceActions" style="justify-content:space-between"><button class="ghost" data-addline="${j.id}">＋ Add invoice line</button><div><button class="ghost" data-printinvoice="${j.id}">Print invoice</button><button data-invoiced="${j.id}">Mark invoiced</button></div></div><div class="invoiceSummary"><table><tr><td>Net</td><td id="invNet">£0.00</td></tr><tr><td>VAT @ 20%</td><td id="invVat">£0.00</td></tr><tr><td>Total</td><td id="invTotal">£0.00</td></tr></table></div></div>`;
 }
 function moneyToNumber(v){return Number(String(v||'').replace(/[^0-9.\-]/g,''))||0}
 function money(v){return '£'+(Math.round(v*100)/100).toFixed(2)}
@@ -409,14 +289,12 @@ function recalcInvoice(){
     const mode=row.querySelector('[data-line-vat]')?.value||'inc';
     if(mode==='inc'){
       const lineTotal=price;
-      const rate=(Number(getSettings().vatRate||20)/100);
-      const lineNet=lineTotal/(1+rate);
+      const lineNet=lineTotal/1.2;
       const lineVat=lineTotal-lineNet;
       net+=lineNet; vat+=lineVat; total+=lineTotal;
     }else{
       const lineNet=price;
-      const rate=(Number(getSettings().vatRate||20)/100);
-      const lineVat=lineNet*rate;
+      const lineVat=lineNet*0.2;
       net+=lineNet; vat+=lineVat; total+=lineNet+lineVat;
     }
   });
@@ -437,15 +315,13 @@ function addInvoiceLine(){
 function openInvoiceForJob(id){selectedInvoiceId=id; saveJobs(); document.querySelectorAll('.nav button').forEach(b=>b.classList.remove('active')); const nb=document.querySelector('.nav button[data-view="invoiceQueue"]'); if(nb)nb.classList.add('active'); document.querySelectorAll('.view').forEach(v=>v.classList.remove('active')); invoiceQueue.classList.add('active'); render();}
 
 function render(){
-  refreshPlannerSettings();
-  populateTimes();
   normaliseJobs();
   applyNames();
   renderDate();
   if(timesEl) timesEl.innerHTML=times.map(t=>`<div class="time">${t}</div>`).join('');
   ['Alfie','Jordan'].forEach(n=>{const lane=document.getElementById('lane'+n); if(lane) lane.innerHTML=jobs.filter(j=>normaliseMechanicName(j.m)===n).map(jobHtml).join('')});
   if(window.mJobs) mJobs.textContent=jobs.length; const completed=jobs.filter(j=>(j.status==='complete'||j.status==='invoiced')).length; const toInvoice=jobs.filter(j=>j.status==='complete').length; if(window.mCompleted)mCompleted.textContent=completed; if(window.mToInvoice)mToInvoice.textContent=toInvoice;
-  renderTasks(); renderSidePanels(); renderInvoiceQueue(); renderWeekView(); renderListView();
+  renderTasks(); renderSidePanels(); renderInvoiceQueue();
   if(window.dashJobsToday){const ordered=jobsByTime(jobs);dashJobsToday.textContent=jobs.length;dashOpenJobs.textContent=jobs.length;dashVehicles.textContent=new Set(jobs.map(j=>j.reg)).size;dashToInvoice.textContent=jobs.filter(j=>j.status==='complete').length;dashTodayList.innerHTML=ordered.length?ordered.map(j=>`<div class="sideJob" data-openjob="${j.id}"><div class="row"><span class="reg">${esc(j.reg)}</span><b>${esc(j.car||j.customer||'Vehicle')}</b></div><p>${esc(j.work)} <small>${j.start} ${esc(j.m)}</small></p><p>${esc(shortRamp(j.ramp))}</p></div>`).join(''):'<p>No jobs booked today.</p>';}
   if(window.printJordan) printJordan.innerHTML=jobs.filter(j=>normaliseMechanicName(j.m)==='Jordan').map(printJob).join('')||'<div style="padding:10px">No jobs booked.</div>';
   if(window.printAlfie) printAlfie.innerHTML=jobs.filter(j=>normaliseMechanicName(j.m)==='Alfie').map(printJob).join('')||'<div style="padding:10px">No jobs booked.</div>';
@@ -454,7 +330,7 @@ function render(){
 function printJob(j){return `<div class="printJob"><div class="pTime">${j.start}</div><div><div class="pReg">${esc(j.reg)}</div><b>${esc(j.car||j.customer||'Vehicle')}</b><br>${esc(j.work)}</div><div class="pRamp">${esc(shortRamp(j.ramp))}</div></div>`}
 function openJobModal(job){
   editingId=job?.id||null; modalTitle.textContent=editingId?'Job Card':'Add / Assign Job Card'; deleteModal.style.display=editingId?'inline-block':'none'; currentSourceId=job?.sourceId||null;
-  cust.value=job?.customer||''; phone.value=job?.phone||''; reg.value=formatRegistration(job?.reg||''); vehicle.value=job?.car||''; work.value=job?.work||''; mech.value=job?.m||'Jordan'; ramp.value=job?.ramp||'Ramp left'; startTime.value=job?.start||'08:30'; duration.value=String(job?.duration||2); notes.value=job?.notes||''; status.value=job?.status||'booked'; if(window.jobTemplate) jobTemplate.value='';
+  cust.value=job?.customer||''; phone.value=job?.phone||''; reg.value=formatRegistration(job?.reg||''); vehicle.value=job?.car||''; work.value=job?.work||''; mech.value=job?.m||'Jordan'; ramp.value=job?.ramp||'Ramp left'; startTime.value=job?.start||'08:30'; duration.value=String(job?.duration||2); notes.value=job?.notes||''; status.value=job?.status||'booked';
   jobModal.classList.add('open'); setTimeout(()=>reg.focus(),50);
 }
 function closeJobModal(){jobModal.classList.remove('open'); editingId=null; currentSourceId=null;}
@@ -492,38 +368,14 @@ jobForm.onsubmit=e=>{e.preventDefault();saveJobFromModal();};
 closeModal.onclick=cancelModal.onclick=closeJobModal; deleteModal.onclick=deleteCurrentJob; markCompleteModal.onclick=()=>{status.value='complete'; const id=saveJobFromModal(); if(id) openInvoiceForJob(id);}; if(window.moveModal){moveModal.onclick=()=>alert('To move this job, change Mechanic, Start time or Ramp on this card, then press Save Job Card. You can also drag it on the planner with a mouse.');}
 topAddJob.onclick=()=>openJobModal(); openAddFromHint.onclick=()=>openJobModal(); printBtn.onclick=()=>{render();window.print();}; if(window.addTaskBtn){addTaskBtn.onclick=addTask;}
 prevDay.onclick=()=>{currentDate.setDate(currentDate.getDate()-1);loadJobs();loadTasks();render();}; nextDay.onclick=()=>{currentDate.setDate(currentDate.getDate()+1);loadJobs();loadTasks();render();}; todayBtn.onclick=()=>{currentDate=new Date();loadJobs();loadTasks();render();};
-dayViewBtn.onclick=()=>setPlannerMode('day'); weekViewBtn.onclick=()=>setPlannerMode('week'); listViewBtn.onclick=()=>setPlannerMode('list');
+dayViewBtn.onclick=()=>{document.querySelectorAll('.seg button').forEach(b=>b.classList.remove('active'));dayViewBtn.classList.add('active')}; weekViewBtn.onclick=()=>alert('Week view is coming next.'); listViewBtn.onclick=()=>alert('List view is coming next.');
 if(window.dashOpenPlanner){dashOpenPlanner.onclick=()=>document.querySelector('[data-view=\"planner\"]').click();}
 if(window.dashPrint){dashPrint.onclick=()=>{render();window.print();};}
 if(window.dashCreateJob){dashCreateJob.onclick=()=>openJobModal();}
 if(window.dashNewJob){dashNewJob.onclick=()=>openJobModal({reg:formatRegistration(dashReg.value)});}
 if(window.dashLookup){dashLookup.onclick=()=>openJobModal({reg:formatRegistration(dashReg.value),car:'Vehicle lookup demo'});}
-document.querySelectorAll('.nav button').forEach(b=>b.onclick=()=>{document.querySelectorAll('.nav button').forEach(x=>x.classList.remove('active'));b.classList.add('active');document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));document.getElementById(b.dataset.view).classList.add('active'); if(b.dataset.view==='settings'){loadSettingsForm(); renderTemplateSettings();}});
-function loadSettingsForm(){
-  const s=getSettings();
-  if(window.setAlfie) setAlfie.value=s.alfieName||'Alfie';
-  if(window.setJordan) setJordan.value=s.jordanName||'Jordan';
-  if(window.setDayStart) setDayStart.value=String(s.dayStart||8);
-  if(window.setDayEnd) setDayEnd.value=String(s.dayEnd||16);
-  if(window.setSlotLength) setSlotLength.value=String(s.slotLength||30);
-  if(window.setRampLeft) setRampLeft.value=s.rampLeft||'Left';
-  if(window.setRampMiddle) setRampMiddle.value=s.rampMiddle||'Middle';
-  if(window.setRampRight) setRampRight.value=s.rampRight||'Right';
-  if(window.setVatRate) setVatRate.value=s.vatRate||20;
-  if(window.setInvoicePrefix) setInvoicePrefix.value=s.invoicePrefix||'INV';
-  if(window.setPaymentTerms) setPaymentTerms.value=s.paymentTerms||'';
-  if(window.setBankDetails) setBankDetails.value=s.bankDetails||'';
-  if(window.setInvoiceFooter) setInvoiceFooter.value=s.invoiceFooter||'';
-  if(window.setBusinessName) setBusinessName.value=s.businessName||'VECTA MOTORS';
-  if(window.setBusinessPhone) setBusinessPhone.value=s.businessPhone||'';
-  if(window.setBusinessEmail) setBusinessEmail.value=s.businessEmail||'';
-  if(window.setVatNumber) setVatNumber.value=s.vatNumber||'';
-  if(window.setCompanyNumber) setCompanyNumber.value=s.companyNumber||'';
-  if(window.setBusinessAddress) setBusinessAddress.value=s.businessAddress||'';
-}
-if(window.saveSettings){saveSettings.onclick=()=>{const s=getSettings(); s.alfieName=setAlfie.value||'Alfie'; s.jordanName=setJordan.value||'Jordan'; s.dayStart=Number(setDayStart.value||8); s.dayEnd=Number(setDayEnd.value||16); s.slotLength=Number(setSlotLength?.value||30); s.rampLeft=setRampLeft?.value||'Left'; s.rampMiddle=setRampMiddle?.value||'Middle'; s.rampRight=setRampRight?.value||'Right'; s.vatRate=Number(setVatRate?.value||20); s.invoicePrefix=setInvoicePrefix?.value||'INV'; s.paymentTerms=setPaymentTerms?.value||''; s.bankDetails=setBankDetails?.value||''; s.invoiceFooter=setInvoiceFooter?.value||''; s.businessName=setBusinessName?.value||'VECTA MOTORS'; s.businessPhone=setBusinessPhone?.value||''; s.businessEmail=setBusinessEmail?.value||''; s.vatNumber=setVatNumber?.value||''; s.companyNumber=setCompanyNumber?.value||''; s.businessAddress=setBusinessAddress?.value||''; s.jobTemplates=collectTemplatesFromSettings(); saveSettingsObj(s); refreshPlannerSettings(); applyNames(); populateTimes(); render(); alert('Settings saved.');}}
-if(window.addTemplate){addTemplate.onclick=()=>{const s=getSettings(); s.jobTemplates=s.jobTemplates||[]; s.jobTemplates.push({desc:'New job type',duration:1,price:'',checklist:''}); saveSettingsObj(s); renderTemplateSettings(); populateJobTemplates();};}
-if(window.jobTemplate){jobTemplate.onchange=applyTemplateToJob;}
+document.querySelectorAll('.nav button').forEach(b=>b.onclick=()=>{document.querySelectorAll('.nav button').forEach(x=>x.classList.remove('active'));b.classList.add('active');document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));document.getElementById(b.dataset.view).classList.add('active')});
+if(window.saveSettings){saveSettings.onclick=()=>{localStorage.setItem('vecta-settings',JSON.stringify({alfieName:setAlfie.value||'Alfie',jordanName:setJordan.value||'Jordan'})); applyNames(); alert('Settings saved.');}}
 
 bindRegInput(window.dashReg); bindRegInput(window.reg);
 if(window.dashReg){
@@ -532,7 +384,7 @@ if(window.dashReg){
     if(e.key==='Enter'){e.preventDefault(); openJobModal({reg:formatRegistration(dashReg.value),car:'Vehicle lookup demo'});}
   });
 }
-const timesEl=document.getElementById('times'); loadSettingsForm(); refreshPlannerSettings(); populateTimes(); populateJobTemplates(); loadJobs(); loadTasks(); render();
+const timesEl=document.getElementById('times'); populateTimes(); loadJobs(); loadTasks(); render();
 </script>
 </body>
 </html>
