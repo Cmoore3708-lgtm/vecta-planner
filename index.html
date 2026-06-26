@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Vecta Planner</title>
+<title>Vecta Planner V20</title>
 <style>
 :root{
   --nav:#0d1728;--nav2:#111f35;--red:#e11d2e;--red2:#b91421;--line:#e5e7eb;--text:#0f172a;--muted:#64748b;--bg:#f6f8fb;--card:#fff;--yellow:#ffd83d;--green:#16a34a;--blue:#2563eb;--purple:#7c3aed;--orange:#f59e0b;
@@ -85,7 +85,7 @@ const slotHeight=76, dayStart=8;
 const times=['08:00','09:00','10:00','11:00','12:00','13:00','14:00','15:00','16:00'];
 const colours=['green','blue','purple','orange'];
 let currentDate=new Date();
-let draggedId=null, editingId=null, didMove=false, currentSourceId=null;
+let draggedId=null, editingId=null, didMove=false, currentSourceId=null, dragOffsetY=0;
 let selectedInvoiceId=null;
 const seedJobs=[
  {id:'j1',m:'Jordan',start:'08:00',duration:2.5,reg:'AJ68 LZD',car:'Nissan Qashqai',customer:'',work:'Major Service',ramp:'Ramp left',c:'green',phone:'',notes:'',status:'booked'},
@@ -137,11 +137,28 @@ function saveJobs(){localStorage.setItem('vecta-jobs-'+dateKey(),JSON.stringify(
 function toMinutes(t){const [h,m]=t.split(':').map(Number);return h*60+m}
 function fromMinutes(total){const h=Math.floor(total/60),m=total%60;return String(h).padStart(2,'0')+':'+String(m).padStart(2,'0')}
 function topFor(t){return ((toMinutes(t)-dayStart*60)/60)*slotHeight+14}
-function timeForTop(px){let mins=Math.round(((px-14)/slotHeight)*2)*30 + dayStart*60;mins=Math.max(dayStart*60,Math.min(16*60,mins));return fromMinutes(mins)}
+function timeForTop(px){let mins=Math.round((px/slotHeight)*2)*30 + dayStart*60;mins=Math.max(dayStart*60,Math.min(16*60,mins));return fromMinutes(mins)}
 function heightFor(d){return Math.max(72,d*slotHeight-8)}
 function endTime(j){return fromMinutes(toMinutes(j.start)+Math.round(Number(j.duration||1)*60))}
 function fullTime(j){return `${j.start} – ${endTime(j)} (${Number(j.duration||1).toFixed(1)} hrs)`}
 function esc(v){return String(v||'').replace(/[&<>\"]/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]))}
+function formatRegistration(value){
+  let raw=String(value||'').toUpperCase().replace(/[^A-Z0-9]/g,'');
+  if(raw.length>3) raw=raw.slice(0,-3)+' '+raw.slice(-3);
+  return raw.trim();
+}
+function bindRegInput(el){
+  if(!el) return;
+  el.setAttribute('autocomplete','off');
+  el.setAttribute('autocapitalize','characters');
+  el.setAttribute('inputmode','text');
+  el.addEventListener('input',()=>{
+    const pos=el.selectionStart;
+    el.value=formatRegistration(el.value);
+    try{el.setSelectionRange(el.value.length, el.value.length);}catch(e){}
+  });
+  el.addEventListener('blur',()=>{el.value=formatRegistration(el.value);});
+}
 
 function shortRamp(r){
   const v=String(r||'').toLowerCase();
@@ -218,7 +235,7 @@ function attachSideHandlers(){
   document.querySelectorAll('[data-assign]').forEach(btn=>btn.onclick=e=>{e.stopPropagation();openAssignFromSide(btn.dataset.assign)});
   document.querySelectorAll('[data-side]').forEach(el=>{
     el.onclick=e=>{ if(e.target.closest('button')) return; openAssignFromSide(el.dataset.side); };
-    el.addEventListener('dragstart',e=>{draggedId='side:'+el.dataset.side; el.classList.add('dragging'); e.dataTransfer.effectAllowed='move';});
+    el.addEventListener('dragstart',e=>{draggedId='side:'+el.dataset.side; dragOffsetY=0; el.classList.add('dragging'); e.dataTransfer.effectAllowed='move';});
     el.addEventListener('dragend',()=>{el.classList.remove('dragging'); draggedId=null; document.querySelectorAll('.lane').forEach(l=>l.classList.remove('dropHint'));});
     let sx=0,sy=0,active=false,moved=false;
     el.addEventListener('pointerdown',e=>{ if(e.target.closest('button')) return; sx=e.clientX; sy=e.clientY; active=true; moved=false; el.setPointerCapture?.(e.pointerId); });
@@ -267,12 +284,12 @@ function render(){
 function printJob(j){return `<div class="printJob"><div class="pTime">${j.start}</div><div><div class="pReg">${esc(j.reg)}</div><b>${esc(j.car||j.customer||'Vehicle')}</b><br>${esc(j.work)}</div><div class="pRamp">${esc(shortRamp(j.ramp))}</div></div>`}
 function openJobModal(job){
   editingId=job?.id||null; modalTitle.textContent=editingId?'Job Card':'Add / Assign Job Card'; deleteModal.style.display=editingId?'inline-block':'none'; currentSourceId=job?.sourceId||null;
-  cust.value=job?.customer||''; phone.value=job?.phone||''; reg.value=job?.reg||''; vehicle.value=job?.car||''; work.value=job?.work||''; mech.value=job?.m||'Jordan'; ramp.value=job?.ramp||'Ramp left'; startTime.value=job?.start||'08:30'; duration.value=String(job?.duration||2); notes.value=job?.notes||''; status.value=job?.status||'booked';
+  cust.value=job?.customer||''; phone.value=job?.phone||''; reg.value=formatRegistration(job?.reg||''); vehicle.value=job?.car||''; work.value=job?.work||''; mech.value=job?.m||'Jordan'; ramp.value=job?.ramp||'Ramp left'; startTime.value=job?.start||'08:30'; duration.value=String(job?.duration||2); notes.value=job?.notes||''; status.value=job?.status||'booked';
   jobModal.classList.add('open'); setTimeout(()=>reg.focus(),50);
 }
 function closeJobModal(){jobModal.classList.remove('open'); editingId=null; currentSourceId=null;}
 function saveJobFromModal(){
-  const data={m:mech.value,start:startTime.value,duration:parseFloat(duration.value),reg:(reg.value||'NEW REG').toUpperCase(),car:vehicle.value||cust.value||'Vehicle',customer:cust.value,phone:phone.value,work:work.value||'Work required',ramp:ramp.value,notes:notes.value,status:status.value,sourceId:currentSourceId};
+  const data={m:mech.value,start:startTime.value,duration:parseFloat(duration.value),reg:formatRegistration(reg.value||'NEW REG'),car:vehicle.value||cust.value||'Vehicle',customer:cust.value,phone:phone.value,work:work.value||'Work required',ramp:ramp.value,notes:notes.value,status:status.value,sourceId:currentSourceId};
   let savedId=editingId;
   if(editingId){const j=jobs.find(x=>x.id===editingId); if(j) Object.assign(j,data);} else {savedId='j'+Date.now(); jobs.push({id:savedId,...data,c:colours[jobs.length%colours.length]});}
   normaliseJobs();
@@ -289,7 +306,7 @@ function moveJobToPoint(id, clientX, clientY){
 function attachHandlers(){
   document.querySelectorAll('.job').forEach(el=>{
     el.addEventListener('click',e=>{ if(didMove){didMove=false; return;} if(e.target.closest('[data-del]')) return; const j=jobs.find(x=>x.id===el.dataset.id); if(j) openJobModal(j); });
-    el.addEventListener('dragstart',e=>{draggedId=el.dataset.id;el.classList.add('dragging');e.dataTransfer.effectAllowed='move'});
+    el.addEventListener('dragstart',e=>{draggedId=el.dataset.id; const rect=el.getBoundingClientRect(); dragOffsetY=Math.max(0,e.clientY-rect.top); el.classList.add('dragging'); e.dataTransfer.effectAllowed='move'});
     el.addEventListener('dragend',()=>{el.classList.remove('dragging');draggedId=null;document.querySelectorAll('.lane').forEach(l=>l.classList.remove('dropHint'))});
     let startX=0,startY=0,active=false;
     el.addEventListener('pointerdown',e=>{ if(e.target.closest('button')) return; startX=e.clientX; startY=e.clientY; active=true; didMove=false; el.setPointerCapture?.(e.pointerId); });
@@ -308,11 +325,18 @@ dayViewBtn.onclick=()=>{document.querySelectorAll('.seg button').forEach(b=>b.cl
 if(window.dashOpenPlanner){dashOpenPlanner.onclick=()=>document.querySelector('[data-view=\"planner\"]').click();}
 if(window.dashPrint){dashPrint.onclick=()=>{render();window.print();};}
 if(window.dashCreateJob){dashCreateJob.onclick=()=>openJobModal();}
-if(window.dashNewJob){dashNewJob.onclick=()=>openJobModal({reg:dashReg.value});}
-if(window.dashLookup){dashLookup.onclick=()=>openJobModal({reg:dashReg.value,car:'Vehicle lookup demo'});}
+if(window.dashNewJob){dashNewJob.onclick=()=>openJobModal({reg:formatRegistration(dashReg.value)});}
+if(window.dashLookup){dashLookup.onclick=()=>openJobModal({reg:formatRegistration(dashReg.value),car:'Vehicle lookup demo'});}
 document.querySelectorAll('.nav button').forEach(b=>b.onclick=()=>{document.querySelectorAll('.nav button').forEach(x=>x.classList.remove('active'));b.classList.add('active');document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));document.getElementById(b.dataset.view).classList.add('active')});
 if(window.saveSettings){saveSettings.onclick=()=>{localStorage.setItem('vecta-settings',JSON.stringify({alfieName:setAlfie.value||'Alfie',jordanName:setJordan.value||'Jordan'})); applyNames(); alert('Settings saved.');}}
 
+bindRegInput(window.dashReg); bindRegInput(window.reg);
+if(window.dashReg){
+  setTimeout(()=>dashReg.focus(),250);
+  dashReg.addEventListener('keydown',e=>{
+    if(e.key==='Enter'){e.preventDefault(); openJobModal({reg:formatRegistration(dashReg.value),car:'Vehicle lookup demo'});}
+  });
+}
 const timesEl=document.getElementById('times'); populateTimes(); loadJobs(); loadTasks(); render();
 </script>
 </body>
