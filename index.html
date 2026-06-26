@@ -83,6 +83,7 @@ const times=['08:00','09:00','10:00','11:00','12:00','13:00','14:00','15:00','16
 const colours=['green','blue','purple','orange'];
 let currentDate=new Date();
 let draggedId=null, editingId=null, didMove=false, currentSourceId=null;
+let selectedInvoiceId=null;
 const seedJobs=[
  {id:'j1',m:'Jordan',start:'08:00',duration:2.5,reg:'AJ68 LZD',car:'Nissan Qashqai',customer:'',work:'Major Service',ramp:'Ramp left',c:'green',phone:'',notes:'',status:'booked'},
  {id:'j2',m:'Jordan',start:'11:00',duration:2,reg:'BT19 KLM',car:'Ford Focus',customer:'',work:'Clutch Replacement',ramp:'Ramp left',c:'blue',phone:'',notes:'',status:'booked'},
@@ -126,6 +127,7 @@ let jobs=[];
 function $(id){return document.getElementById(id)}
 function dateKey(){return currentDate.toISOString().slice(0,10)}
 function niceDate(){return currentDate.toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long',year:'numeric'})}
+function formatDate(d){return new Date(d).toLocaleDateString('en-GB',{day:'2-digit',month:'2-digit',year:'numeric'})}
 function clone(v){return JSON.parse(JSON.stringify(v))}
 function loadJobs(){const key='vecta-jobs-'+dateKey(); const raw=localStorage.getItem(key); jobs=raw?JSON.parse(raw):(dateKey()===new Date().toISOString().slice(0,10)?clone(seedJobs):[]); normaliseJobs(); localStorage.setItem(key,JSON.stringify(jobs));}
 function saveJobs(){localStorage.setItem('vecta-jobs-'+dateKey(),JSON.stringify(jobs));}
@@ -246,13 +248,16 @@ function invoiceHtml(j){
 function openInvoiceForJob(id){selectedInvoiceId=id; document.querySelectorAll('.nav button').forEach(b=>b.classList.remove('active')); const nb=document.querySelector('.nav button[data-view="invoiceQueue"]'); if(nb)nb.classList.add('active'); document.querySelectorAll('.view').forEach(v=>v.classList.remove('active')); invoiceQueue.classList.add('active'); render();}
 
 function render(){
+  normaliseJobs();
   applyNames();
-  renderDate(); mJobs.textContent=jobs.length; const completed=jobs.filter(j=>(j.status==='complete'||j.status==='invoiced')).length; const toInvoice=jobs.filter(j=>j.status==='complete').length; if(window.mCompleted)mCompleted.textContent=completed; if(window.mToInvoice)mToInvoice.textContent=toInvoice; renderTasks(); renderSidePanels(); renderInvoiceQueue();
-  if(window.dashJobsToday){dashJobsToday.textContent=jobs.length;dashOpenJobs.textContent=jobs.length;dashVehicles.textContent=new Set(jobs.map(j=>j.reg)).size;dashToInvoice.textContent=jobs.filter(j=>j.status==='complete').length;dashTodayList.innerHTML=jobs.length?jobs.map(j=>`<div class="sideJob" data-openjob="${j.id}"><div class="row"><span class="reg">${esc(j.reg)}</span><b>${esc(j.car||j.customer||'Vehicle')}</b></div><p>${esc(j.work)} <small>${j.start} ${esc(j.m)}</small></p><p>${esc(shortRamp(j.ramp))}</p></div>`).join(''):'<p>No jobs booked today.</p>';}
-  timesEl.innerHTML=times.map(t=>`<div class="time">${t}</div>`).join('');
+  renderDate();
+  if(timesEl) timesEl.innerHTML=times.map(t=>`<div class="time">${t}</div>`).join('');
   ['Alfie','Jordan'].forEach(n=>{const lane=document.getElementById('lane'+n); if(lane) lane.innerHTML=jobs.filter(j=>normaliseMechanicName(j.m)===n).map(jobHtml).join('')});
-  printJordan.innerHTML=jobs.filter(j=>j.m==='Jordan').map(printJob).join('')||'<div style="padding:10px">No jobs booked.</div>';
-  printAlfie.innerHTML=jobs.filter(j=>j.m==='Alfie').map(printJob).join('')||'<div style="padding:10px">No jobs booked.</div>';
+  if(window.mJobs) mJobs.textContent=jobs.length; const completed=jobs.filter(j=>(j.status==='complete'||j.status==='invoiced')).length; const toInvoice=jobs.filter(j=>j.status==='complete').length; if(window.mCompleted)mCompleted.textContent=completed; if(window.mToInvoice)mToInvoice.textContent=toInvoice;
+  renderTasks(); renderSidePanels(); renderInvoiceQueue();
+  if(window.dashJobsToday){dashJobsToday.textContent=jobs.length;dashOpenJobs.textContent=jobs.length;dashVehicles.textContent=new Set(jobs.map(j=>j.reg)).size;dashToInvoice.textContent=jobs.filter(j=>j.status==='complete').length;dashTodayList.innerHTML=jobs.length?jobs.map(j=>`<div class="sideJob" data-openjob="${j.id}"><div class="row"><span class="reg">${esc(j.reg)}</span><b>${esc(j.car||j.customer||'Vehicle')}</b></div><p>${esc(j.work)} <small>${j.start} ${esc(j.m)}</small></p><p>${esc(shortRamp(j.ramp))}</p></div>`).join(''):'<p>No jobs booked today.</p>';}
+  if(window.printJordan) printJordan.innerHTML=jobs.filter(j=>normaliseMechanicName(j.m)==='Jordan').map(printJob).join('')||'<div style="padding:10px">No jobs booked.</div>';
+  if(window.printAlfie) printAlfie.innerHTML=jobs.filter(j=>normaliseMechanicName(j.m)==='Alfie').map(printJob).join('')||'<div style="padding:10px">No jobs booked.</div>';
   attachHandlers(); attachSideHandlers(); saveJobs();
 }
 function printJob(j){return `<div class="printJob"><div class="pTime">${j.start}</div><div><div class="pReg">${esc(j.reg)}</div><b>${esc(j.car||j.customer||'Vehicle')}</b><br>${esc(j.work)}</div><div class="pRamp">${esc(shortRamp(j.ramp))}</div></div>`}
@@ -264,7 +269,9 @@ function openJobModal(job){
 function closeJobModal(){jobModal.classList.remove('open'); editingId=null; currentSourceId=null;}
 function saveJobFromModal(){
   const data={m:mech.value,start:startTime.value,duration:parseFloat(duration.value),reg:(reg.value||'NEW REG').toUpperCase(),car:vehicle.value||cust.value||'Vehicle',customer:cust.value,phone:phone.value,work:work.value||'Work required',ramp:ramp.value,notes:notes.value,status:status.value,sourceId:currentSourceId};
-  if(editingId){const j=jobs.find(x=>x.id===editingId); if(j) Object.assign(j,data);} else {jobs.push({id:'j'+Date.now(),...data,c:colours[jobs.length%colours.length]});}
+  let savedId=editingId;
+  if(editingId){const j=jobs.find(x=>x.id===editingId); if(j) Object.assign(j,data);} else {savedId='j'+Date.now(); jobs.push({id:savedId,...data,c:colours[jobs.length%colours.length]});}
+  normaliseJobs();
   closeJobModal(); render(); return savedId;
 }
 function deleteCurrentJob(){if(!editingId)return; if(confirm('Delete this job card?')){jobs=jobs.filter(j=>j.id!==editingId); closeJobModal(); render();}}
