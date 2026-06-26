@@ -33,15 +33,25 @@ create table if not exists tasks (
   created_at timestamptz not null default now()
 );
 
+create table if not exists notes (
+  id uuid primary key default gen_random_uuid(),
+  note_text text not null,
+  created_at timestamptz not null default now()
+);
+
 create index if not exists jobs_booking_date_idx on jobs(booking_date);
 create index if not exists jobs_registration_idx on jobs(registration);
 create index if not exists jobs_status_idx on jobs(status);
 
 alter table jobs enable row level security;
 alter table tasks enable row level security;
+alter table notes enable row level security;
 
 drop policy if exists "authenticated can manage jobs" on jobs;
 create policy "authenticated can manage jobs" on jobs for all to authenticated using (true) with check (true);
 
 drop policy if exists "authenticated can manage tasks" on tasks;
 create policy "authenticated can manage tasks" on tasks for all to authenticated using (true) with check (true);
+
+drop policy if exists "authenticated can manage notes" on notes;
+create policy "authenticated can manage notes" on notes for all to authenticated using (true) with check (true);

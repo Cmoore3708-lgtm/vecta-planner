@@ -1,10 +1,7 @@
-# Vecta Planner Roadmap
+# Roadmap
 
-## v1.0
-Dashboard, daily planner, 7-day planner, month view, utilisation bars, job workflow, waiting jobs, Chris tasks, search, print.
+## Current
+Two mechanic layout, ramp utilisation, waiting jobs, notes, tasks.
 
-## v1.1
-Website bookings into Unallocated, customer late warning, vehicle history, customer history, technician suggestions.
-
-## v2.0
-Parts waiting, turnover dashboard, labour targets, MOT reminders, customer reminders, TV display, number plate scanner.
+## Next
+Website bookings into Unallocated, Find Availability, customer and vehicle history.
