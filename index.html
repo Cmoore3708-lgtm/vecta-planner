@@ -265,12 +265,12 @@ function renderInvoiceQueue(){
     detail.querySelectorAll('[data-invoiced]').forEach(btn=>btn.onclick=()=>{const j=jobs.find(x=>x.id===btn.dataset.invoiced); if(j && confirm('Mark this invoice as invoiced?')){j.status='invoiced'; selectedInvoiceId=null; saveJobs(); render();}});
     const pb=detail.querySelector('[data-printinvoice]'); if(pb) pb.onclick=()=>window.print();
     const add=detail.querySelector('[data-addline]'); if(add) add.onclick=()=>addInvoiceLine();
-    detail.querySelectorAll('[data-line-price], #vatMode').forEach(el=>el.oninput=recalcInvoice);
+    detail.querySelectorAll('[data-line-price], [data-line-vat]').forEach(el=>{el.oninput=recalcInvoice; el.onchange=recalcInvoice;});
     recalcInvoice();
   }
 }
-function invoiceLine(desc, price=''){
-  return `<tr class="invoiceLine"><td><textarea data-line-desc>${esc(desc||'')}</textarea></td><td><input data-line-price inputmode="decimal" placeholder="£" value="${esc(price||'')}"></td></tr>`;
+function invoiceLine(desc, price='', vatMode='inc'){
+  return `<tr class="invoiceLine"><td><textarea data-line-desc>${esc(desc||'')}</textarea></td><td style="width:150px"><input data-line-price inputmode="decimal" placeholder="£" value="${esc(price||'')}"></td><td style="width:155px"><select data-line-vat><option value="inc" ${vatMode==='inc'?'selected':''}>Inc VAT</option><option value="ex" ${vatMode==='ex'?'selected':''}>Ex VAT</option></select></td></tr>`;
 }
 function invoiceHtml(j){
   const invNo='INV-'+String(j.id).slice(-5).toUpperCase();
@@ -278,24 +278,37 @@ function invoiceHtml(j){
   const descriptions=completed.length?completed:[j.work||'Workshop labour and parts'];
   const rows=descriptions.map(d=>invoiceLine(d)).join('');
   const notes=j.notes?invoiceLine('Technician notes: '+j.notes):'';
-  return `<div class="invoiceSheet"><div class="invoiceTop"><div><h2>Invoice</h2><b>VECTA MOTORS</b><br><span style="color:#64748b">Fully populated from job card — edit every description and price before marking invoiced</span></div><div style="text-align:right"><b>${invNo}</b><br>${formatDate(currentDate)}<br>Status: Ready to invoice</div></div><div class="invoiceGrid"><div class="invoiceBox"><h3>Customer</h3><b>${esc(j.customer||'Customer not entered')}</b><br>${esc(j.phone||'Phone not entered')}</div><div class="invoiceBox"><h3>Vehicle</h3><span class="reg">${esc(j.reg)}</span><br><b>${esc(j.car||'Vehicle')}</b><br>Mechanic: ${esc(j.m)}<br>Ramp: ${esc(shortRamp(j.ramp))}<br>Booked time: ${esc(j.start)} • ${esc(j.duration)} hr</div></div><div class="vatMode">Prices entered are <select id="vatMode"><option value="inc">Including VAT</option><option value="ex">Excluding VAT</option></select></div><table class="invoiceTable"><thead><tr><th>Description</th><th style="width:170px">Price</th></tr></thead><tbody id="invoiceRows">${rows}${notes}</tbody></table><div class="invoiceActions" style="justify-content:space-between"><button class="ghost" data-addline="${j.id}">＋ Add invoice line</button><div><button class="ghost" data-printinvoice="${j.id}">Print invoice</button><button data-invoiced="${j.id}">Mark invoiced</button></div></div><div class="invoiceSummary"><table><tr><td>Net</td><td id="invNet">£0.00</td></tr><tr><td>VAT @ 20%</td><td id="invVat">£0.00</td></tr><tr><td>Total</td><td id="invTotal">£0.00</td></tr></table></div></div>`;
+  return `<div class="invoiceSheet"><div class="invoiceTop"><div><h2>Invoice</h2><b>VECTA MOTORS</b><br><span style="color:#64748b">Fully populated from job card — edit every description and price before marking invoiced</span></div><div style="text-align:right"><b>${invNo}</b><br>${formatDate(currentDate)}<br>Status: Ready to invoice</div></div><div class="invoiceGrid"><div class="invoiceBox"><h3>Customer</h3><b>${esc(j.customer||'Customer not entered')}</b><br>${esc(j.phone||'Phone not entered')}</div><div class="invoiceBox"><h3>Vehicle</h3><span class="reg">${esc(j.reg)}</span><br><b>${esc(j.car||'Vehicle')}</b><br>Mechanic: ${esc(j.m)}<br>Ramp: ${esc(shortRamp(j.ramp))}<br>Booked time: ${esc(j.start)} • ${esc(j.duration)} hr</div></div><table class="invoiceTable"><thead><tr><th>Description</th><th style="width:150px">Price</th><th style="width:155px">VAT</th></tr></thead><tbody id="invoiceRows">${rows}${notes}</tbody></table><div class="invoiceActions" style="justify-content:space-between"><button class="ghost" data-addline="${j.id}">＋ Add invoice line</button><div><button class="ghost" data-printinvoice="${j.id}">Print invoice</button><button data-invoiced="${j.id}">Mark invoiced</button></div></div><div class="invoiceSummary"><table><tr><td>Net</td><td id="invNet">£0.00</td></tr><tr><td>VAT @ 20%</td><td id="invVat">£0.00</td></tr><tr><td>Total</td><td id="invTotal">£0.00</td></tr></table></div></div>`;
 }
 function moneyToNumber(v){return Number(String(v||'').replace(/[^0-9.\-]/g,''))||0}
 function money(v){return '£'+(Math.round(v*100)/100).toFixed(2)}
 function recalcInvoice(){
-  const mode=document.getElementById('vatMode')?.value||'inc';
-  let entered=0; document.querySelectorAll('[data-line-price]').forEach(i=>entered+=moneyToNumber(i.value));
-  let net,vat,total;
-  if(mode==='inc'){total=entered; net=total/1.2; vat=total-net;} else {net=entered; vat=net*0.2; total=net+vat;}
+  let net=0, vat=0, total=0;
+  document.querySelectorAll('#invoiceRows .invoiceLine').forEach(row=>{
+    const price=moneyToNumber(row.querySelector('[data-line-price]')?.value||'');
+    const mode=row.querySelector('[data-line-vat]')?.value||'inc';
+    if(mode==='inc'){
+      const lineTotal=price;
+      const lineNet=lineTotal/1.2;
+      const lineVat=lineTotal-lineNet;
+      net+=lineNet; vat+=lineVat; total+=lineTotal;
+    }else{
+      const lineNet=price;
+      const lineVat=lineNet*0.2;
+      net+=lineNet; vat+=lineVat; total+=lineNet+lineVat;
+    }
+  });
   if(document.getElementById('invNet')) invNet.textContent=money(net);
   if(document.getElementById('invVat')) invVat.textContent=money(vat);
   if(document.getElementById('invTotal')) invTotal.textContent=money(total);
 }
 function addInvoiceLine(){
   const body=document.getElementById('invoiceRows'); if(!body) return;
-  const wrap=document.createElement('tbody'); wrap.innerHTML=invoiceLine('', '');
+  const wrap=document.createElement('tbody'); wrap.innerHTML=invoiceLine('', '', 'inc');
   const row=wrap.firstElementChild; body.appendChild(row);
   row.querySelector('[data-line-price]').oninput=recalcInvoice;
+  row.querySelector('[data-line-vat]').oninput=recalcInvoice;
+  row.querySelector('[data-line-vat]').onchange=recalcInvoice;
   row.querySelector('textarea').focus(); recalcInvoice();
 }
 
