@@ -1,7 +1,19 @@
-# Roadmap
+# Vecta Planner Roadmap
 
-## Current
-Two mechanic layout, ramp utilisation, waiting jobs, notes, tasks.
+## Built / in progress
+- Planner
+- Ramp utilisation
+- Quick job buttons
+- Admin settings
+- Find Availability
+- Invoice module
+- Vehicle lookup display
+- MOT/Tax badges
 
 ## Next
-Website bookings into Unallocated, Find Availability, customer and vehicle history.
+- Connect real DVLA Vehicle Enquiry API
+- Connect DVSA MOT History API
+- Save invoices permanently to Supabase
+- PDF invoice generation
+- Website bookings into Unallocated
+- Customer/vehicle history

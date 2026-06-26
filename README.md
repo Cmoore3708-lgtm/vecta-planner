@@ -1,16 +1,18 @@
-# Vecta Planner v1.1.2
+# Vecta Planner v1.6 Vehicle Lookup Display
 
-Fixed release.
+## Added
+- Lookup Vehicle button in New Job form
+- Vehicle details panel: make, model, engine size, fuel type
+- MOT due display
+- Tax status display
+- Green / amber / red vehicle status badges
+- MOT/Tax badges on job cards
+- Vehicle history panel now shows MOT/Tax/engine/fuel
+- Invoice includes MOT and tax status
+- Database schema fields prepared for DVLA/DVSA API connection
 
-## Fix
-- Supabase saves now use proper UUIDs instead of short local IDs.
-- This fixes Add Job, Notes and Tasks not saving in cloud mode.
+## Note
+The live DVLA/DVSA API is not connected yet. This release adds the display and structure ready for API keys.
+A demo lookup is included for KV70 UOS and YD18 ABC so you can see how it will work.
 
-## Layout
-- Two mechanic columns: Jordan and Alfie
-- Ramp utilisation across the top
-- Left side: New / Unallocated, Waiting Jobs, Notes
-- Bottom panel: Tasks
-
-## Update
-Extract this ZIP and upload the extracted contents to GitHub, not the ZIP itself.
+Upload extracted contents to GitHub. Vercel redeploys automatically.
