@@ -1,30 +1,19 @@
 # Vecta Planner Roadmap
 
 ## Built / in progress
-- Two mechanic planner
+- Planner
 - Ramp utilisation
-- Waiting Jobs
-- Notes
-- Tasks
 - Quick job buttons
-- Simple statuses
-- Dashboard metrics
-- Admin Settings
+- Admin settings
 - Find Availability
-- Vehicle History foundation
-- Invoice history foundation
+- Invoice module
+- Vehicle lookup display
+- MOT/Tax badges
 
 ## Next
+- Connect real DVLA Vehicle Enquiry API
+- Connect DVSA MOT History API
+- Save invoices permanently to Supabase
+- PDF invoice generation
 - Website bookings into Unallocated
-- Customer/vehicle history stored properly in Supabase
-- Book next service reminder
-- Supabase-backed settings across all devices
-- Customer late warning
-
-## Future
-- Parts waiting workflow
-- Turnover dashboard
-- TV display
-- Number plate scanner
-- Customer reminders
-- MOT reminders
+- Customer/vehicle history

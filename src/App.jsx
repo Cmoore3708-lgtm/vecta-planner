@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { createRoot } from "react-dom/client";
 import { createClient } from "@supabase/supabase-js";
-import { CalendarDays, ChevronLeft, ChevronRight, Menu, Plus, Search, Printer } from "lucide-react";
+import { Plus, Printer, Search, CalendarDays, CalendarRange, LayoutDashboard, Settings, History, Wand2, FileText, Mail, PoundSterling, ShieldCheck, Car } from "lucide-react";
 import "./style.css";
 
 const TECHS = ["Jordan", "Alfie"];
@@ -87,6 +87,69 @@ const supabase = supabaseUrl && supabaseKey ? createClient(supabaseUrl, supabase
 
 function uuid() {
   return crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).slice(2, 10);
+}
+
+function daysUntil(dateString) {
+  if (!dateString) return null;
+  const today = new Date();
+  const target = new Date(`${dateString}T00:00:00`);
+  return Math.ceil((target - today) / (1000 * 60 * 60 * 24));
+}
+
+function statusClassForDate(dateString) {
+  const days = daysUntil(dateString);
+  if (days === null) return "unknown";
+  if (days < 0) return "bad";
+  if (days <= 30) return "warning";
+  return "good";
+}
+
+function formatDate(dateString) {
+  if (!dateString) return "Unknown";
+  return new Date(`${dateString}T00:00:00`).toLocaleDateString("en-GB");
+}
+
+function fakeVehicleLookup(reg) {
+  const clean = (reg || "").replace(/\s/g, "").toUpperCase();
+  const sample = {
+    KV70UOS: {
+      vehicle: "BMW 2 Series 218i Sport Gran Coupe",
+      make: "BMW",
+      model: "2 SERIES 218I SPORT GRAN COUPE",
+      fuel_type: "Petrol",
+      engine_size: "1499cc",
+      colour: "Grey",
+      year: "2020",
+      mot_due: "2027-03-14",
+      tax_due: "2026-09-01",
+      tax_status: "Taxed"
+    },
+    YD18ABC: {
+      vehicle: "Ford Transit 2.0 EcoBlue",
+      make: "Ford",
+      model: "Transit",
+      fuel_type: "Diesel",
+      engine_size: "1995cc",
+      colour: "White",
+      year: "2018",
+      mot_due: "2026-11-20",
+      tax_due: "2026-08-01",
+      tax_status: "Taxed"
+    }
+  };
+
+  return sample[clean] || {
+    vehicle: "",
+    make: "",
+    model: "",
+    fuel_type: "",
+    engine_size: "",
+    colour: "",
+    year: "",
+    mot_due: "",
+    tax_due: "",
+    tax_status: ""
+  };
 }
 function todayISO() {
   const d = new Date();
@@ -420,6 +483,21 @@ function RampUtilisation({ jobs, onRamp }) {
   );
 }
 
+
+function VehicleBadges({ job }) {
+  const motClass = statusClassForDate(job.mot_due);
+  const taxClass = job.tax_status === "Taxed" ? "good" : job.tax_due ? statusClassForDate(job.tax_due) : "unknown";
+
+  if (!job.mot_due && !job.tax_due && !job.tax_status) return null;
+
+  return (
+    <div className="vehicle-badges">
+      <span className={`mini-status ${motClass}`}>MOT {formatDate(job.mot_due)}</span>
+      <span className={`mini-status ${taxClass}`}>Tax {job.tax_status || formatDate(job.tax_due)}</span>
+    </div>
+  );
+}
+
 function SmallJobCard({ job, onEdit, onDragStart }) {
   return (
     <div className={`small-card ${RAMP_CLASS[job.ramp] || "ramp-left"}`} draggable onDragStart={e => onDragStart(e, job)} onDoubleClick={() => onEdit(job)}>
@@ -427,6 +505,7 @@ function SmallJobCard({ job, onEdit, onDragStart }) {
         <b>{job.registration || "NO REG"}</b>
         <span>{job.vehicle || ""}</span>
       </div>
+      <VehicleBadges job={job} />
       <p>{job.work_required || ""}</p>
       {job.customer_name && <small>{job.customer_name} · {job.customer_phone}</small>}
       <div className="small-card-bottom">
@@ -437,12 +516,13 @@ function SmallJobCard({ job, onEdit, onDragStart }) {
   );
 }
 
-function ScheduleCard({ job, onEdit, onDragStart, onHistory }) {
+function ScheduleCard({ job, onEdit, onDragStart, onHistory, onInvoice }) {
   return (
     <div className={`schedule-card ${RAMP_CLASS[job.ramp] || ""} status-${job.status}`} draggable onDragStart={e => onDragStart(e, job)} onDoubleClick={() => onEdit(job)}>
-      <div className="card-actions"><button title="History" onClick={(e)=>{e.stopPropagation(); onHistory(job)}}><History size={14}/></button></div>
+      <div className="card-actions"><button title="History" onClick={(e)=>{e.stopPropagation(); onHistory(job)}}><History size={14}/></button><button title="Invoice" onClick={(e)=>{e.stopPropagation(); onInvoice(job)}}><FileText size={14}/></button></div>
       <strong>{job.registration || "NO REG"}</strong>
       <h4>{job.vehicle || ""}</h4>
+      <VehicleBadges job={job} />
       <p>{job.work_required || ""}</p>
       {job.customer_name && <small>{job.customer_name} · {job.customer_phone}</small>}
       <span>{job.drop_time ? String(job.drop_time).slice(0, 5) : "--:--"} · {Number(job.estimated_hours || 1).toFixed(1)} hrs</span>
@@ -462,6 +542,15 @@ function JobDialog({ job, date, jobTypes = JOB_TYPES, onClose, onSave, onDelete 
       customer_name: "",
       customer_phone: "",
       vehicle: "",
+      make: "",
+      model: "",
+      engine_size: "",
+      fuel_type: "",
+      colour: "",
+      year: "",
+      mot_due: "",
+      tax_due: "",
+      tax_status: "",
       work_required: "",
       customer_note: "",
       drop_time: "",
@@ -477,6 +566,34 @@ function JobDialog({ job, date, jobTypes = JOB_TYPES, onClose, onSave, onDelete 
   function update(field, value) {
     if (field === "registration") value = value.toUpperCase();
     setForm(f => ({ ...f, [field]: value }));
+  }
+
+  function lookupVehicle() {
+    if (!form.registration) {
+      alert("Enter a registration first.");
+      return;
+    }
+
+    const result = fakeVehicleLookup(form.registration);
+
+    if (!result.vehicle) {
+      alert("Vehicle lookup display is ready. Live DVLA/DVSA connection still needs API access. For now, enter vehicle details manually.");
+      return;
+    }
+
+    setForm(f => ({
+      ...f,
+      vehicle: result.vehicle || f.vehicle,
+      make: result.make,
+      model: result.model,
+      engine_size: result.engine_size,
+      fuel_type: result.fuel_type,
+      colour: result.colour,
+      year: result.year,
+      mot_due: result.mot_due,
+      tax_due: result.tax_due,
+      tax_status: result.tax_status
+    }));
   }
 
   function applyQuickJob(typeName) {
@@ -532,13 +649,39 @@ function JobDialog({ job, date, jobTypes = JOB_TYPES, onClose, onSave, onDelete 
           ))}
         </div>
 
-        <div className="two">
-          <label>Registration *
-            <input autoFocus value={form.registration || ""} onChange={e => update("registration", e.target.value)} />
-          </label>
-          <label>Vehicle *
-            <input value={form.vehicle || ""} onChange={e => update("vehicle", e.target.value)} />
-          </label>
+        <div className="vehicle-lookup-box">
+          <div className="two">
+            <label>Registration *
+              <input autoFocus value={form.registration || ""} onChange={e => update("registration", e.target.value)} />
+            </label>
+            <label>Vehicle *
+              <input value={form.vehicle || ""} onChange={e => update("vehicle", e.target.value)} />
+            </label>
+          </div>
+
+          <button type="button" className="lookup-button" onClick={lookupVehicle}>
+            <Car size={16} /> Lookup Vehicle
+          </button>
+
+          <div className="vehicle-status-grid">
+            <div className={`status-pill ${statusClassForDate(form.mot_due)}`}>
+              <ShieldCheck size={15} />
+              <strong>MOT</strong>
+              <span>{formatDate(form.mot_due)}</span>
+            </div>
+            <div className={`status-pill ${form.tax_status === "Taxed" ? "good" : form.tax_due ? statusClassForDate(form.tax_due) : "unknown"}`}>
+              <ShieldCheck size={15} />
+              <strong>Tax</strong>
+              <span>{form.tax_status || formatDate(form.tax_due)}</span>
+            </div>
+          </div>
+
+          <div className="vehicle-extra-grid">
+            <label>Make<input value={form.make || ""} onChange={e => update("make", e.target.value)} /></label>
+            <label>Model<input value={form.model || ""} onChange={e => update("model", e.target.value)} /></label>
+            <label>Engine<input value={form.engine_size || ""} onChange={e => update("engine_size", e.target.value)} /></label>
+            <label>Fuel<input value={form.fuel_type || ""} onChange={e => update("fuel_type", e.target.value)} /></label>
+          </div>
         </div>
 
         <div className="two">
@@ -597,6 +740,7 @@ function JobDialog({ job, date, jobTypes = JOB_TYPES, onClose, onSave, onDelete 
         <div className="dialog-actions">
           <button className="secondary" onClick={onClose}>Cancel</button>
           {form.id && <button className="danger-button" onClick={() => onDelete(form.id)}>Delete</button>}
+          {form.id && <button className="secondary" onClick={() => { onClose(); setTimeout(() => window.dispatchEvent(new CustomEvent("open-invoice", { detail: form })), 50); }}>Create Invoice</button>}
           <button onClick={validateAndSave}>Save</button>
         </div>
       </div>
@@ -635,6 +779,154 @@ function TasksPanel({ tasks, onSave, onDelete }) {
   );
 }
 
+
+
+
+function InvoicePanel({ job, settings, onClose, onMarkPaid }) {
+  const labourRate = 40;
+  const [invoiceNumber, setInvoiceNumber] = useState(`V${new Date().getFullYear().toString().slice(-2)}${String(Date.now()).slice(-5)}`);
+  const [paymentMethod, setPaymentMethod] = useState("Transfer");
+  const [paid, setPaid] = useState(false);
+  const [lines, setLines] = useState([
+    {
+      id: uuid(),
+      type: "Labour",
+      description: job.work_required || "Labour",
+      qty: Number(job.estimated_hours || 1),
+      unit_price: labourRate
+    }
+  ]);
+
+  function updateLine(id, field, value) {
+    setLines(rows => rows.map(row => row.id === id ? { ...row, [field]: field === "qty" || field === "unit_price" ? Number(value) : value } : row));
+  }
+
+  function addLine(type = "Parts") {
+    setLines(rows => [...rows, { id: uuid(), type, description: "", qty: 1, unit_price: 0 }]);
+  }
+
+  function removeLine(id) {
+    setLines(rows => rows.filter(row => row.id !== id));
+  }
+
+  const subtotal = lines.reduce((sum, row) => sum + Number(row.qty || 0) * Number(row.unit_price || 0), 0);
+  const vat = subtotal * 0.2;
+  const total = subtotal + vat;
+
+  function printInvoice() {
+    window.print();
+  }
+
+  function emailInvoice() {
+    const subject = encodeURIComponent(`Invoice ${invoiceNumber} - ${job.registration || ""}`);
+    const body = encodeURIComponent(`Hi ${job.customer_name || ""},\n\nPlease find your invoice details below:\n\nInvoice: ${invoiceNumber}\nVehicle: ${job.vehicle || ""}\nRegistration: ${job.registration || ""}\nTotal: £${total.toFixed(2)}\n\nPlease use your registration number as the payment reference.\n\nRegards,\nVecta`);
+    window.location.href = `mailto:?subject=${subject}&body=${body}`;
+  }
+
+  async function markPaid() {
+    setPaid(true);
+    await onMarkPaid(job);
+  }
+
+  return (
+    <div className="invoice-screen">
+      <div className="invoice-toolbar no-print">
+        <button className="secondary" onClick={onClose}>Back to Planner</button>
+        <button onClick={printInvoice}><Printer size={16}/> Print</button>
+        <button onClick={emailInvoice}><Mail size={16}/> Email</button>
+        <button onClick={markPaid}><PoundSterling size={16}/> Mark as Paid</button>
+      </div>
+
+      <section className="invoice-page">
+        <header className="invoice-header">
+          <div>
+            <h1>INVOICE</h1>
+            <div className="business-details">
+              <b>VECTA - Fleet Support</b>
+              <span>Contractors Compound</span>
+              <span>Nissan Motor Manufacturing</span>
+              <span>Nissan Way, Washington, SR5 3NS</span>
+              <span>Tel: 07721722622</span>
+              <span>VAT No. 169170002</span>
+            </div>
+          </div>
+          <div className="invoice-brand">
+            <div className="fake-logo"><b>VECTA</b><span>Vehicle Servicing and repairs</span></div>
+            <div className={`paid-badge ${paid ? "paid" : "unpaid"}`}>{paid ? "PAID" : "UNPAID"}</div>
+          </div>
+        </header>
+
+        <section className="invoice-meta">
+          <div>
+            <h3>Customer Details</h3>
+            <p><b>{job.customer_name || "Customer"}</b></p>
+            <p>Phone: {job.customer_phone || ""}</p>
+          </div>
+
+          <div className="vehicle-details">
+            <h3>Vehicle Details</h3>
+            <p><span>Vehicle:</span><b>{job.vehicle || ""}</b></p>
+            <p><span>Registration:</span><b className="plate">{job.registration || ""}</b></p>
+            <p><span>Invoice Reference:</span><b>{invoiceNumber}</b></p>
+            <p><span>Invoice Date:</span><b>{new Date().toLocaleDateString("en-GB")}</b></p>
+            <p><span>Technician:</span><b>{job.technician || ""}</b></p>
+            <p><span>MOT Due:</span><b>{formatDate(job.mot_due)}</b></p>
+            <p><span>Tax:</span><b>{job.tax_status || formatDate(job.tax_due)}</b></p>
+          </div>
+        </section>
+
+        <section className="invoice-lines">
+          <div className="invoice-line-head">
+            <b>Type</b><b>Description</b><b>Qty</b><b>Unit Price</b><b>Item Cost</b><b className="no-print"></b>
+          </div>
+
+          {lines.map(row => (
+            <div className="invoice-line" key={row.id}>
+              <select value={row.type} onChange={e => updateLine(row.id, "type", e.target.value)}>
+                <option>Labour</option>
+                <option>Parts</option>
+                <option>Other</option>
+              </select>
+              <input value={row.description} onChange={e => updateLine(row.id, "description", e.target.value)} />
+              <input type="number" step="0.1" value={row.qty} onChange={e => updateLine(row.id, "qty", e.target.value)} />
+              <input type="number" step="0.01" value={row.unit_price} onChange={e => updateLine(row.id, "unit_price", e.target.value)} />
+              <strong>£{(Number(row.qty || 0) * Number(row.unit_price || 0)).toFixed(2)}</strong>
+              <button className="secondary no-print" onClick={() => removeLine(row.id)}>×</button>
+            </div>
+          ))}
+
+          <div className="invoice-add-buttons no-print">
+            <button className="secondary" onClick={() => addLine("Parts")}>+ Add Parts</button>
+            <button className="secondary" onClick={() => addLine("Labour")}>+ Add Labour</button>
+          </div>
+        </section>
+
+        <section className="invoice-bottom">
+          <div className="bank-details">
+            <h2>Online Banking Details</h2>
+            <p>Account Name: Vecta (Some banks require Ken Moore)</p>
+            <p>Sort Code: 208369</p>
+            <p>Account Number: 93418774</p>
+            <p className="reference-note">Please use your registration number as the Reference.</p>
+          </div>
+
+          <div className="invoice-totals">
+            <p><span>Sub-Total</span><b>£{subtotal.toFixed(2)}</b></p>
+            <p><span>VAT</span><b>£{vat.toFixed(2)}</b></p>
+            <p className="grand-total"><span>Total</span><b>£{total.toFixed(2)}</b></p>
+
+            <div className="payment-method">
+              <h3>Payment Method</h3>
+              {["Cash", "Card", "Transfer", "Account", "Cheque"].map(method => (
+                <label key={method}><input type="radio" checked={paymentMethod === method} onChange={() => setPaymentMethod(method)} /> {method}</label>
+              ))}
+            </div>
+          </div>
+        </section>
+      </section>
+    </div>
+  );
+}
 
 
 function AvailabilityPanel({ jobs, settings, onClose, onAddJob }) {
@@ -720,6 +1012,19 @@ function VehicleHistoryPanel({ job, allJobs, onClose }) {
           <strong>{reg || "No Registration"}</strong>
           <span>{job?.vehicle || ""}</span>
           <em>{job?.customer_name || ""} {job?.customer_phone ? "· " + job.customer_phone : ""}</em>
+        </div>
+
+        <div className="history-vehicle-status">
+          <div className={`status-pill ${statusClassForDate(job?.mot_due)}`}>
+            <strong>MOT Due</strong>
+            <span>{formatDate(job?.mot_due)}</span>
+          </div>
+          <div className={`status-pill ${job?.tax_status === "Taxed" ? "good" : job?.tax_due ? statusClassForDate(job?.tax_due) : "unknown"}`}>
+            <strong>Tax</strong>
+            <span>{job?.tax_status || formatDate(job?.tax_due)}</span>
+          </div>
+          <div><b>Engine</b><span>{job?.engine_size || "Unknown"}</span></div>
+          <div><b>Fuel</b><span>{job?.fuel_type || "Unknown"}</span></div>
         </div>
 
         <h3>Previous / Current Visits</h3>
@@ -868,6 +1173,7 @@ function App() {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [availabilityOpen, setAvailabilityOpen] = useState(false);
   const [historyJob, setHistoryJob] = useState(null);
+  const [invoiceJob, setInvoiceJob] = useState(null);
 
   const mechanicNames = settings.mechanics.map(m => m.name);
   const jobTypes = settings.jobTypes;
@@ -902,6 +1208,12 @@ function App() {
     return () => supabase.removeChannel(channel);
   }, [date]);
 
+  useEffect(() => {
+    const handler = (event) => setInvoiceJob(event.detail);
+    window.addEventListener("open-invoice", handler);
+    return () => window.removeEventListener("open-invoice", handler);
+  }, []);
+
   const waiting = globalJobs.filter(j => j.card_type === "waiting" || j.technician === "Waiting");
   const unallocated = globalJobs.filter(j => j.card_type !== "waiting" && j.technician !== "Waiting");
   const techJobs = tech => jobs.filter(j => j.technician === tech && !j.archived);
@@ -918,6 +1230,19 @@ function App() {
     const found = [...jobs, ...globalJobs].find(j => j.id === data.id);
     if (found) await saveJob({ ...found, technician: tech, card_type: "job", booking_date: date }, date);
     refresh();
+  }
+
+  if (invoiceJob) {
+    return <InvoicePanel
+      job={invoiceJob}
+      settings={settings}
+      onClose={() => setInvoiceJob(null)}
+      onMarkPaid={async (jobToPay) => {
+        await saveJob({ ...jobToPay, status: "completed", archived: true }, date);
+        setInvoiceJob(null);
+        refresh();
+      }}
+    />;
   }
 
   return (
@@ -987,7 +1312,7 @@ function App() {
                   </div>
 
                   <div className="job-stack" onDragOver={e => e.preventDefault()} onDrop={e => dropOnTech(e, tech)}>
-                    {techJobs(tech).map(j => <ScheduleCard key={j.id} job={j} onEdit={setDialogJob} onDragStart={dragStart} onHistory={setHistoryJob} />)}
+                    {techJobs(tech).map(j => <ScheduleCard key={j.id} job={j} onEdit={setDialogJob} onDragStart={dragStart} onHistory={setHistoryJob} onInvoice={setInvoiceJob} />)}
                   </div>
                 </section>
               );

@@ -151,3 +151,80 @@ button{cursor:pointer;border:0;border-radius:10px;background:#111827;color:white
 @media(max-width:760px){
   .availability-grid,.history-row{grid-template-columns:1fr}
 }
+
+
+/* v1.5 invoice */
+.invoice-screen{background:#f3f4f6;min-height:100vh;padding:20px}
+.invoice-toolbar{display:flex;gap:8px;justify-content:center;margin-bottom:18px}
+.invoice-toolbar button{display:inline-flex;gap:6px;align-items:center}
+.invoice-page{background:white;max-width:1100px;margin:0 auto;border:2px solid #222;padding:28px;color:#7b2148;min-height:780px}
+.invoice-header{display:flex;justify-content:space-between;gap:20px}
+.invoice-header h1{text-align:center;margin:0 0 28px;color:#7b2148;letter-spacing:.05em}
+.business-details{display:grid;gap:3px;font-size:17px}
+.invoice-brand{text-align:right;display:grid;justify-items:end;gap:16px}
+.fake-logo{border-radius:8px;padding:12px 22px;text-align:center}
+.fake-logo b{display:block;font-size:44px;color:#d71920;text-shadow:1px 1px 0 #999;letter-spacing:-2px}
+.fake-logo span{display:block;color:#111;font-size:13px}
+.paid-badge{display:inline-block;border:2px solid #7b2148;border-radius:8px;padding:8px 14px;font-weight:950}
+.paid-badge.paid{background:#ecfdf5;color:#15803d;border-color:#15803d}
+.paid-badge.unpaid{background:#fff7ed;color:#c2410c;border-color:#c2410c}
+.invoice-meta{display:grid;grid-template-columns:1fr 1fr;gap:40px;margin:28px 0 46px}
+.invoice-meta h3{text-align:center;margin:0 0 22px}
+.invoice-meta p{margin:7px 0;font-size:16px}
+.vehicle-details{text-align:right}
+.vehicle-details p{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.plate{display:inline-block;background:#ffd84d;color:#111;border-radius:4px;padding:3px 8px;letter-spacing:.06em}
+.invoice-lines{margin-top:20px}
+.invoice-line-head,.invoice-line{display:grid;grid-template-columns:110px 1fr 80px 120px 120px 44px;gap:8px;align-items:center}
+.invoice-line-head{font-weight:900;margin-bottom:8px}
+.invoice-line{margin-bottom:8px}
+.invoice-line input,.invoice-line select{border:1px solid #d1d5db;border-radius:6px;padding:8px}
+.invoice-line strong{text-align:right}
+.invoice-add-buttons{display:flex;gap:8px;margin:10px 0 24px}
+.invoice-bottom{display:grid;grid-template-columns:1.4fr .8fr;gap:40px;margin-top:42px}
+.bank-details h2{margin:0 0 18px}
+.bank-details p{font-size:20px;margin:7px 0}
+.reference-note{margin-top:28px!important}
+.invoice-totals{font-size:20px}
+.invoice-totals p{display:flex;justify-content:space-between;margin:10px 0}
+.grand-total{font-size:28px;font-weight:950}
+.payment-method{margin-top:28px;font-size:15px;display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.payment-method h3{grid-column:1/-1;text-align:center;margin:0 0 6px}
+@media print{
+  .no-print,.invoice-toolbar{display:none!important}
+  body{background:white}
+  .invoice-screen{padding:0;background:white}
+  .invoice-page{border:1px solid #222;max-width:none;width:100%;min-height:100vh;margin:0;box-shadow:none}
+  @page{size:A4;margin:8mm}
+}
+@media(max-width:800px){
+  .invoice-meta,.invoice-bottom{grid-template-columns:1fr}
+  .invoice-line-head{display:none}
+  .invoice-line{grid-template-columns:1fr}
+  .vehicle-details{text-align:left}
+}
+
+
+/* v1.6 vehicle lookup */
+.vehicle-lookup-box{border:1px solid #e5e7eb;border-radius:14px;padding:12px;background:#f9fafb;display:grid;gap:10px}
+.lookup-button{justify-self:start;display:inline-flex;gap:6px;align-items:center;background:#1f2937}
+.vehicle-status-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.status-pill{border-radius:10px;padding:9px 10px;display:flex;align-items:center;gap:7px;font-size:13px;border:1px solid #d1d5db;background:white}
+.status-pill strong{margin-right:auto}
+.status-pill.good{background:#ecfdf5;border-color:#86efac;color:#166534}
+.status-pill.warning{background:#fffbeb;border-color:#fcd34d;color:#92400e}
+.status-pill.bad{background:#fef2f2;border-color:#fca5a5;color:#991b1b}
+.status-pill.unknown{background:#f3f4f6;border-color:#d1d5db;color:#4b5563}
+.vehicle-extra-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.vehicle-badges{display:flex;gap:5px;flex-wrap:wrap;margin:6px 0}
+.mini-status{display:inline-flex;border-radius:999px;padding:3px 7px;font-size:10px;font-weight:900}
+.mini-status.good{background:#dcfce7;color:#166534}
+.mini-status.warning{background:#fef3c7;color:#92400e}
+.mini-status.bad{background:#fee2e2;color:#991b1b}
+.mini-status.unknown{background:#e5e7eb;color:#4b5563}
+.history-vehicle-status{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:8px;margin:12px 0 18px}
+.history-vehicle-status>div:not(.status-pill){border:1px solid #e5e7eb;border-radius:10px;padding:9px;background:#f9fafb;display:grid;font-size:13px}
+.history-vehicle-status span{color:#4b5563}
+@media(max-width:760px){
+  .vehicle-status-grid,.vehicle-extra-grid,.history-vehicle-status{grid-template-columns:1fr}
+}

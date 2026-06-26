@@ -6,6 +6,14 @@ create table if not exists jobs (
   card_type text not null default 'job',
   registration text,
   vehicle text,
+  tax_status text,
+  tax_due date,
+  mot_due date,
+  year text,
+  fuel_type text,
+  engine_size text,
+  model text,
+  make text,
   work_required text,
   customer_name text,
   customer_phone text,
@@ -122,3 +130,37 @@ alter table invoices enable row level security;
 
 drop policy if exists "anon can manage invoices" on invoices;
 create policy "anon can manage invoices" on invoices for all to anon using (true) with check (true);
+
+
+create table if not exists invoice_lines (
+  id uuid primary key default gen_random_uuid(),
+  invoice_id uuid,
+  type text,
+  description text,
+  qty numeric,
+  unit_price numeric,
+  created_at timestamptz not null default now()
+);
+
+alter table invoice_lines enable row level security;
+
+drop policy if exists "anon can manage invoice lines" on invoice_lines;
+create policy "anon can manage invoice lines" on invoice_lines for all to anon using (true) with check (true);
+
+
+create table if not exists mot_history (
+  id uuid primary key default gen_random_uuid(),
+  registration text,
+  test_date date,
+  expiry_date date,
+  result text,
+  mileage integer,
+  advisories text,
+  failures text,
+  created_at timestamptz not null default now()
+);
+
+alter table mot_history enable row level security;
+
+drop policy if exists "anon can manage mot history" on mot_history;
+create policy "anon can manage mot history" on mot_history for all to anon using (true) with check (true);

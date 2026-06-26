@@ -1,19 +1,7 @@
-# Vecta Planner v1.4 Ideas Build
+# Vecta Planner v1.6.1 Crash Fix
 
-## Added
-- Find Availability button
-- Availability check compares job type hours against mechanic and ramp capacity
-- Create booking directly from Find Availability
-- Vehicle History panel foundation
-- History button on job cards
-- Dashboard includes completed today
-- Invoice table foundation added to database schema
-- Roadmap updated with more of the bigger ideas
+## Fixed
+- Blank page caused by missing Wand2 icon import.
+- Keeps the vehicle lookup/MOT/tax display work from v1.6.
 
-## Still coming next
-- Website bookings into Unallocated
-- Full customer and vehicle history storage
-- Book next service reminder
-- Supabase-backed settings across all devices
-
-Upload extracted contents to GitHub. Vercel redeploys automatically.
+Upload the extracted contents to GitHub. Vercel redeploys automatically.
