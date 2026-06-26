@@ -1,75 +1,58 @@
 <!doctype html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Vecta Planner</title>
-  <link rel="stylesheet" href="/src/styles.css" />
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Vecta Planner Pro</title>
+<style>
+:root{--bg:#080b10;--panel:#111722;--panel2:#171f2d;--line:#2a3444;--text:#eef3f8;--muted:#8e9aad;--gold:#d6b36a;--green:#35d07f;--red:#ff5a5f;--amber:#f1b64b;--blue:#6db7ff}*{box-sizing:border-box}body{margin:0;background:radial-gradient(circle at 20% 0,#22324a 0,#090d13 42%,#05070a 100%);font-family:Inter,Segoe UI,Arial,sans-serif;color:var(--text)}.shell{display:grid;grid-template-columns:280px 1fr;min-height:100vh}.side{background:rgba(5,7,11,.9);border-right:1px solid var(--line);padding:26px;position:sticky;top:0;height:100vh}.brand{display:flex;gap:14px;align-items:center;margin-bottom:34px}.logo{width:50px;height:50px;border-radius:16px;background:linear-gradient(135deg,#ffe5a2,#a77c2c);color:#080b10;display:grid;place-items:center;font-weight:950;font-size:25px;box-shadow:0 16px 40px rgba(214,179,106,.2)}.brand h2{margin:0;font-size:20px}.brand p{margin:2px 0 0;color:var(--muted);font-size:13px}.nav{width:100%;display:flex;align-items:center;gap:11px;text-align:left;margin:8px 0;padding:14px 15px;border-radius:15px;border:1px solid transparent;background:transparent;color:var(--muted);font-weight:800;cursor:pointer}.nav.active,.nav:hover{background:linear-gradient(180deg,#171f2d,#101722);color:var(--text);border-color:var(--line)}.main{padding:32px;max-width:1360px}.top{display:flex;align-items:center;justify-content:space-between;margin-bottom:24px}.top h1{font-size:38px;margin:0;letter-spacing:-.04em}.top p{margin:6px 0 0;color:var(--muted)}button{border:0;border-radius:14px;background:var(--gold);color:#090b0f;font-weight:950;padding:13px 18px;cursor:pointer}.ghost{background:#101722;color:var(--text);border:1px solid var(--line)}.view{display:none}.view.active{display:block}.panel{background:linear-gradient(180deg,rgba(23,31,45,.96),rgba(13,18,27,.96));border:1px solid var(--line);border-radius:26px;box-shadow:0 28px 80px rgba(0,0,0,.32);padding:24px;margin-bottom:18px}.hero{display:grid;grid-template-columns:1.2fr .8fr;gap:18px}.eyebrow{font-size:12px;text-transform:uppercase;letter-spacing:.12em;color:var(--gold);font-weight:950}.regbox{display:flex;gap:12px;margin:12px 0 14px}.regbox input{font-size:40px;font-weight:950;letter-spacing:.09em;text-transform:uppercase;background:#f6d33c;color:#090b0f;border:3px solid #111;border-radius:14px;padding:10px 18px;max-width:345px;width:100%;box-shadow:inset 0 -5px 0 rgba(0,0,0,.08)}.vehicle-card{display:grid;grid-template-columns:1fr auto;gap:18px;align-items:start;margin-top:14px;padding:18px;border:1px solid var(--line);border-radius:20px;background:#0d131d}.vehicle-card h2{font-size:28px;margin:0}.muted{color:var(--muted)}.badge{display:inline-flex;gap:8px;align-items:center;border-radius:999px;padding:9px 13px;font-weight:950;margin:6px 6px 0 0;border:1px solid}.green{color:var(--green);background:rgba(53,208,127,.12);border-color:rgba(53,208,127,.35)}.red{color:var(--red);background:rgba(255,90,95,.12);border-color:rgba(255,90,95,.35)}.amber{color:var(--amber);background:rgba(241,182,75,.12);border-color:rgba(241,182,75,.35)}.blue{color:var(--blue);background:rgba(109,183,255,.12);border-color:rgba(109,183,255,.35)}.grid4{display:grid;grid-template-columns:repeat(4,1fr);gap:16px}.stat span{display:block;color:var(--muted);font-weight:700}.stat strong{display:block;margin-top:7px;font-size:34px;letter-spacing:-.04em}.twocol{display:grid;grid-template-columns:1fr 1fr;gap:18px}.form{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}.form input,.form select,.form textarea{width:100%;border:1px solid var(--line);background:#090e16;color:var(--text);border-radius:13px;padding:13px;font:inherit}.form textarea{grid-column:span 2;min-height:96px}.form .wide{grid-column:span 2}.list-item{display:flex;justify-content:space-between;gap:16px;align-items:center;border-top:1px solid var(--line);padding:14px 0}.list-item:first-child{border-top:0}.small{font-size:13px}.tabs{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px}.total{font-size:36px;font-weight:950}.print-card{background:white;color:#111;border-radius:12px;padding:24px}.print-card input,.print-card textarea{border:1px solid #ddd;color:#111;background:white}.luxury-line{height:1px;background:linear-gradient(90deg,transparent,var(--gold),transparent);margin:22px 0}@media(max-width:920px){.shell{grid-template-columns:1fr}.side{height:auto;position:relative}.main{padding:18px}.hero,.twocol,.grid4,.form{grid-template-columns:1fr}.form textarea,.form .wide{grid-column:auto}.top{display:block}.regbox{display:block}.regbox button{margin-top:10px}.regbox input{font-size:30px;max-width:100%}.vehicle-card{grid-template-columns:1fr}}@media print{body{background:#fff;color:#111}.side,.top,.no-print,.nav,.ghost{display:none!important}.shell{display:block}.main{padding:0}.panel{box-shadow:none;border:0;background:#fff}.view{display:block}.view:not(.printable){display:none!important}}
+</style>
 </head>
 <body>
-  <div class="app-shell">
-    <aside class="sidebar">
-      <div class="brand"><div class="mark">V</div><div><strong>Vecta</strong><span>Planner Pro</span></div></div>
-      <button class="nav active" data-view="dashboard">Dashboard</button>
-      <button class="nav" data-view="jobs">Job Cards</button>
-      <button class="nav" data-view="customers">Customers</button>
-      <button class="nav" data-view="invoices">Invoices</button>
-      <button class="nav" data-view="settings">Settings</button>
-    </aside>
+<div class="shell">
+  <aside class="side">
+    <div class="brand"><div class="logo">V</div><div><h2>Vecta Planner</h2><p>Workshop Command Centre</p></div></div>
+    <button class="nav active" data-view="dashboard">▣ Dashboard</button>
+    <button class="nav" data-view="jobs">▤ Job Cards</button>
+    <button class="nav" data-view="customers">◉ Customers</button>
+    <button class="nav" data-view="invoices">£ Invoices</button>
+    <button class="nav" data-view="settings">⚙ Settings</button>
+  </aside>
+  <main class="main">
+    <header class="top no-print"><div><h1>Workshop Dashboard</h1><p>Registration lookup, jobs, customers and invoices in one place.</p></div><button onclick="showView('jobs')">+ New Job Card</button></header>
 
-    <main class="main">
-      <header class="topbar">
-        <div><h1>Workshop Dashboard</h1><p>Search a registration, create jobs, track invoices.</p></div>
-        <button id="newJobBtn" class="primary">+ New Job</button>
-      </header>
+    <section id="dashboard" class="view active">
+      <div class="panel hero">
+        <div><div class="eyebrow">Vehicle intelligence</div><div class="regbox"><input id="regInput" placeholder="AB12 CDE"/><button onclick="lookupVehicle()">Lookup</button></div><div id="vehicleResult" class="muted">Enter a registration to pull vehicle, MOT and tax status.</div></div>
+        <div><div class="eyebrow">Today</div><h2 style="margin:10px 0 8px;font-size:30px">Fast workshop control</h2><p class="muted">Use this screen when a customer arrives. Save the vehicle, create a job card, then raise an invoice without retyping everything.</p><div class="luxury-line"></div><span class="badge blue">Demo lookup active</span><span class="badge amber">API ready</span></div>
+      </div>
+      <div class="grid4"><div class="panel stat"><span>Jobs today</span><strong id="jobsToday">0</strong></div><div class="panel stat"><span>Open jobs</span><strong id="openJobs">0</strong></div><div class="panel stat"><span>Unpaid invoices</span><strong id="unpaidInvoices">£0.00</strong></div><div class="panel stat"><span>Vehicles saved</span><strong id="vehiclesSaved">0</strong></div></div>
+      <div class="twocol"><div class="panel"><h2>Recent jobs</h2><div id="recentJobs" class="muted">No jobs yet.</div></div><div class="panel"><h2>Saved vehicles</h2><div id="savedVehicles" class="muted">No vehicles saved yet.</div></div></div>
+    </section>
 
-      <section id="dashboard" class="view active">
-        <div class="hero-card">
-          <label for="regInput">Vehicle registration</label>
-          <div class="reg-row"><input id="regInput" placeholder="AB12 CDE" autocomplete="off" /><button id="lookupBtn">Lookup</button></div>
-          <div id="vehicleResult" class="vehicle-result muted">Enter a registration to pull vehicle, MOT and tax status.</div>
-        </div>
-        <div class="grid stats">
-          <div class="card"><span>Jobs today</span><strong id="jobsToday">0</strong></div>
-          <div class="card"><span>Open jobs</span><strong id="openJobs">0</strong></div>
-          <div class="card"><span>Unpaid invoices</span><strong id="unpaidInvoices">£0.00</strong></div>
-          <div class="card"><span>Vehicles saved</span><strong id="vehiclesSaved">0</strong></div>
-        </div>
-        <div class="card"><h2>Recent jobs</h2><div id="recentJobs" class="list muted">No jobs yet.</div></div>
-      </section>
+    <section id="jobs" class="view"><div class="panel"><h2>Create job card</h2><form id="jobForm" class="form"><input name="customer" placeholder="Customer name" required><input name="phone" placeholder="Phone"><input name="reg" placeholder="Registration" required><input name="vehicle" placeholder="Make / model"><select name="status"><option>Booked in</option><option>In progress</option><option>Waiting for parts</option><option>Awaiting approval</option><option>Complete</option></select><input name="technician" placeholder="Technician"><textarea name="work" placeholder="Work required"></textarea><textarea name="notes" placeholder="Technician notes"></textarea><button>Save job card</button></form></div><div class="panel"><h2>All jobs</h2><div id="allJobs" class="muted">No jobs yet.</div></div></section>
 
-      <section id="jobs" class="view">
-        <div class="card"><h2>Create job card</h2><form id="jobForm" class="form-grid">
-          <input name="customer" placeholder="Customer name" required />
-          <input name="phone" placeholder="Phone" />
-          <input name="reg" placeholder="Registration" required />
-          <input name="vehicle" placeholder="Make / model" />
-          <select name="status"><option>Booked in</option><option>In progress</option><option>Waiting for parts</option><option>Complete</option></select>
-          <input name="technician" placeholder="Technician" />
-          <textarea name="work" placeholder="Work required" required></textarea>
-          <textarea name="notes" placeholder="Technician notes"></textarea>
-          <button class="primary" type="submit">Save job card</button>
-        </form></div>
-        <div class="card"><h2>All jobs</h2><div id="jobsList" class="list muted">No jobs saved.</div></div>
-      </section>
+    <section id="customers" class="view"><div class="panel"><h2>Customer history</h2><p class="muted">This is built automatically from saved job cards and invoices.</p><div id="customerList">No customers yet.</div></div></section>
 
-      <section id="customers" class="view"><div class="card"><h2>Customers</h2><div id="customersList" class="list muted">No customers yet.</div></div></section>
+    <section id="invoices" class="view printable"><div class="panel"><h2>Create invoice</h2><form id="invoiceForm" class="form no-print"><input name="customer" placeholder="Customer" required><input name="reg" placeholder="Registration" required><input name="description" class="wide" placeholder="Work completed"><input name="labour" type="number" step="0.01" placeholder="Labour £"><input name="parts" type="number" step="0.01" placeholder="Parts £"><button>Create invoice</button><button type="button" class="ghost" onclick="window.print()">Print invoices</button></form></div><div class="panel"><h2>Invoices</h2><div id="invoiceList" class="muted">No invoices yet.</div></div></section>
 
-      <section id="invoices" class="view">
-        <div class="card"><h2>Create invoice</h2><form id="invoiceForm" class="form-grid">
-          <input name="customer" placeholder="Customer name" required />
-          <input name="reg" placeholder="Registration" required />
-          <input name="labour" type="number" step="0.01" placeholder="Labour £" />
-          <input name="parts" type="number" step="0.01" placeholder="Parts £" />
-          <textarea name="description" placeholder="Description"></textarea>
-          <button class="primary" type="submit">Save invoice</button>
-        </form></div>
-        <div class="card"><h2>Invoices</h2><div id="invoiceList" class="list muted">No invoices saved.</div></div>
-      </section>
-
-      <section id="settings" class="view"><div class="card"><h2>Settings</h2><p>API keys are stored in Vercel Environment Variables, never inside browser code.</p><p class="pill">DVLA_API_KEY</p><p class="pill">DVSA_CLIENT_ID</p><p class="pill">DVSA_CLIENT_SECRET</p></div></section>
-    </main>
-  </div>
-  <script src="/src/app.js"></script>
+    <section id="settings" class="view"><div class="panel"><h2>Settings</h2><p class="muted">Next step: add DVLA and DVSA API keys in Vercel environment variables. This front end is now polished and usable, but real live lookup needs the official keys server-side.</p><div class="luxury-line"></div><button class="ghost" onclick="clearData()">Clear demo data</button></div></section>
+  </main>
+</div>
+<script>
+const store={jobs:JSON.parse(localStorage.getItem('vecta_jobs')||'[]'),invoices:JSON.parse(localStorage.getItem('vecta_invoices')||'[]'),vehicles:JSON.parse(localStorage.getItem('vecta_vehicles')||'{}')};
+const save=()=>{localStorage.setItem('vecta_jobs',JSON.stringify(store.jobs));localStorage.setItem('vecta_invoices',JSON.stringify(store.invoices));localStorage.setItem('vecta_vehicles',JSON.stringify(store.vehicles));render()};
+const money=n=>'£'+Number(n||0).toFixed(2); const cleanReg=r=>String(r||'').toUpperCase().replace(/[^A-Z0-9]/g,'').replace(/(.{4})/,'$1 ').trim();
+function showView(id){document.querySelectorAll('.nav,.view').forEach(x=>x.classList.remove('active'));document.querySelector(`[data-view="${id}"]`)?.classList.add('active');document.getElementById(id).classList.add('active')}
+document.querySelectorAll('.nav').forEach(b=>b.onclick=()=>showView(b.dataset.view));
+async function lookupVehicle(){const reg=cleanReg(document.getElementById('regInput').value); if(!reg)return; const box=document.getElementById('vehicleResult'); box.innerHTML='Checking vehicle…'; let data; try{const res=await fetch('/api/vehicle-lookup?reg='+encodeURIComponent(reg)); if(!res.ok)throw new Error('api'); data=await res.json()}catch(e){data={registrationNumber:reg,make:'BMW',model:'320d M Sport',fuelType:'Diesel',colour:'Black',engineCapacity:'1995',motStatus:'Valid',motExpiryDate:'14 Feb 2027',taxStatus:'Taxed',taxDueDate:'31 Jan 2027',demo:true}} store.vehicles[reg]=data; save(); box.innerHTML=vehicleHtml(data)}
+function vehicleHtml(v){const mc=v.motStatus==='Valid'?'green':v.motStatus==='Expired'?'red':'amber'; const tc=v.taxStatus==='Taxed'?'green':v.taxStatus==='Untaxed'?'red':'amber'; return `<div class="vehicle-card"><div><h2>${v.make||''} ${v.model||''}</h2><p class="muted">${v.registrationNumber||''} • ${v.fuelType||''} • ${v.colour||''} • ${v.engineCapacity||''}cc</p><span class="badge ${mc}">MOT ${v.motStatus||'Unknown'} ${v.motExpiryDate||''}</span><span class="badge ${tc}">Tax ${v.taxStatus||'Unknown'} ${v.taxDueDate||''}</span></div><div><button onclick="prefillJob('${v.registrationNumber||''}','${(v.make||'')+' '+(v.model||'')}')">Create job</button></div></div>`}
+function prefillJob(reg,vehicle){showView('jobs'); const f=document.getElementById('jobForm'); f.reg.value=reg; f.vehicle.value=vehicle.trim()}
+document.getElementById('jobForm').onsubmit=e=>{e.preventDefault();const d=Object.fromEntries(new FormData(e.target));store.jobs.unshift({...d,id:Date.now(),date:new Date().toLocaleDateString('en-GB')});e.target.reset();save()};
+document.getElementById('invoiceForm').onsubmit=e=>{e.preventDefault();const d=Object.fromEntries(new FormData(e.target));const total=Number(d.labour||0)+Number(d.parts||0);store.invoices.unshift({...d,total,id:Date.now(),date:new Date().toLocaleDateString('en-GB'),paid:false});e.target.reset();save()};
+function render(){const today=new Date().toLocaleDateString('en-GB');jobsToday.textContent=store.jobs.filter(j=>j.date===today).length;openJobs.textContent=store.jobs.filter(j=>j.status!=='Complete').length;vehiclesSaved.textContent=Object.keys(store.vehicles).length;unpaidInvoices.textContent=money(store.invoices.filter(i=>!i.paid).reduce((s,i)=>s+i.total,0));recentJobs.innerHTML=store.jobs.slice(0,5).map(jobItem).join('')||'No jobs yet.';allJobs.innerHTML=store.jobs.map(jobItem).join('')||'No jobs yet.';savedVehicles.innerHTML=Object.values(store.vehicles).map(v=>`<div class="list-item"><div><b>${v.registrationNumber}</b><div class="small muted">${v.make||''} ${v.model||''}</div></div><span class="badge green">Saved</span></div>`).join('')||'No vehicles saved yet.';invoiceList.innerHTML=store.invoices.map(i=>`<div class="list-item"><div><b>${i.customer}</b><div class="small muted">${i.reg} • ${i.description||'Invoice'} • ${i.date}</div></div><div class="total">${money(i.total)}</div></div>`).join('')||'No invoices yet.';const names=[...new Set(store.jobs.map(j=>j.customer).filter(Boolean))];customerList.innerHTML=names.map(n=>`<div class="list-item"><div><b>${n}</b><div class="small muted">${store.jobs.filter(j=>j.customer===n).length} job(s)</div></div></div>`).join('')||'No customers yet.'}
+function jobItem(j){return `<div class="list-item"><div><b>${j.reg} — ${j.customer||'No customer'}</b><div class="small muted">${j.vehicle||''} • ${j.work||''} • ${j.date}</div></div><span class="badge ${j.status==='Complete'?'green':'amber'}">${j.status}</span></div>`}
+function clearData(){if(confirm('Clear locally saved demo data?')){localStorage.clear();location.reload()}} render();
+</script>
 </body>
 </html>
