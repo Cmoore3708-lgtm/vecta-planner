@@ -1,267 +1,75 @@
 <!doctype html>
 <html lang="en">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Vecta Planner</title>
-<script src="https://unpkg.com/@supabase/supabase-js@2"></script>
-<style>
-*{box-sizing:border-box}
-body{margin:0;font-family:Arial,Helvetica,sans-serif;background:#f6f7fb;color:#111827}
-button,select,input,textarea{font:inherit}
-button{cursor:pointer;border:0;border-radius:10px;background:#111827;color:white;padding:9px 12px;font-weight:800}
-button.secondary{background:#e5e7eb;color:#111827}
-button.danger{background:#b42318}
-.topbar{min-height:76px;background:white;border-bottom:1px solid #e5e7eb;display:flex;align-items:center;justify-content:space-between;padding:12px 24px;gap:16px;flex-wrap:wrap}
-.brand-row{display:flex;align-items:center;gap:16px}
-.brand{line-height:.9;font-size:24px;font-weight:950;letter-spacing:-1px}
-.brand span{display:block}.brand b{display:block;color:#d92d20}
-.date-pill{height:44px;display:flex;align-items:center;gap:8px;background:white;border:1px solid #e5e7eb;border-radius:10px;padding:0 18px;font-weight:900}
-.date-nav,.top-actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
-.date-nav button,.top-actions button{background:white;color:#111827;border:1px solid #e5e7eb}
-.ramp-strip{min-height:78px;background:white;border-bottom:1px solid #e5e7eb;display:grid;grid-template-columns:250px repeat(3,1fr) 170px;align-items:center}
-.ramp-title{height:100%;display:flex;align-items:center;padding-left:28px;font-weight:950;text-transform:uppercase;border-right:1px solid #e5e7eb}
-.ramp-summary{height:100%;background:white;color:#111827;border-radius:0;border-right:1px solid #e5e7eb;display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:16px;text-align:left;padding:0 34px}
-.ramp-summary strong{font-size:13px}.ramp-summary span{font-size:13px;color:#4b5563}
-.progress{height:11px;background:#eef0f4;border-radius:99px;overflow:hidden}.progress i{display:block;height:100%;border-radius:99px}
-.ramp-summary.good i,.dot.good{background:#22c55e}.ramp-summary.warning i,.dot.warning{background:#f59e0b}.ramp-summary.danger i,.dot.danger{background:#ef4444}
-.legend{font-size:12px;display:grid;gap:5px;padding:0 18px;color:#374151}.dot{width:10px;height:10px;border-radius:99px;display:inline-block;margin-right:5px}
-.planner-layout{display:grid;grid-template-columns:310px 1fr;min-height:calc(100vh - 154px)}
-.left-panel{background:white;border-right:1px solid #e5e7eb;display:grid;grid-template-rows:auto auto 1fr}
-.left-panel section{padding:20px;border-bottom:1px solid #e5e7eb}
-.left-panel h3{margin:0 0 14px;text-transform:uppercase;font-size:14px;font-weight:950}
-.left-panel h3 span{background:#ef4444;color:white;border-radius:999px;padding:3px 8px;margin-left:7px}
-.panel-list{display:grid;gap:12px}
-.small-card{background:white;border:1px solid #e5e7eb;border-left:5px solid #10b981;border-radius:10px;padding:12px;box-shadow:0 2px 8px #00000008}
-.small-card-top{display:flex;align-items:center;gap:10px}
-.small-card b,.schedule-card strong{display:inline-flex;background:#ffd84d;border-radius:5px;padding:3px 8px;font-size:12px}
-.small-card-top span{font-size:13px;color:#374151}.small-card p{margin:10px 0 6px;font-size:13px}.small-card-bottom{display:flex;justify-content:space-between;color:#374151;font-size:12px}
-.vehicle-badges{display:flex;gap:5px;flex-wrap:wrap;margin:6px 0}
-.mini-status{display:inline-flex;border-radius:999px;padding:3px 7px;font-size:10px;font-weight:900}
-.mini-status.good,.status-pill.good{background:#dcfce7;color:#166534}
-.mini-status.warning,.status-pill.warning{background:#fef3c7;color:#92400e}
-.mini-status.bad,.status-pill.bad{background:#fee2e2;color:#991b1b}
-.mini-status.unknown,.status-pill.unknown{background:#e5e7eb;color:#4b5563}
-.notes-panel textarea{width:100%;height:120px;border:1px solid #e5e7eb;border-radius:10px;padding:12px;resize:vertical;margin-bottom:8px}
-.notes-panel button,.tasks-head button{background:white;color:#2563eb}
-.note-row{margin-top:8px;background:#f3f4f6;border-radius:8px;padding:8px;display:flex;justify-content:space-between;font-size:13px}
-.main-board{padding:0}.board-tools{height:0;position:relative;z-index:2}
-.search-box{position:absolute;right:18px;top:12px;display:flex;align-items:center;gap:7px;background:white;border:1px solid #e5e7eb;border-radius:10px;padding:7px 10px}
-.search-box input{border:0;outline:0;width:260px}
-.search-results{position:absolute;right:18px;top:52px;background:white;border:1px solid #e5e7eb;border-radius:12px;padding:8px;display:grid;gap:6px;width:340px;box-shadow:0 12px 40px #0002;z-index:5}
-.search-results button{background:#f3f4f6;color:#111827;text-align:left}
-.schedule{display:grid;grid-template-columns:78px repeat(2,1fr);min-height:640px}
-.time-rail{border-right:1px solid #e5e7eb;background:#fafafa;padding-top:84px;display:grid;grid-template-rows:repeat(10,1fr)}
-.time-rail span{font-size:13px;color:#374151;text-align:right;padding-right:12px;border-top:1px solid #e5e7eb}
-.tech-column{border-right:1px solid #e5e7eb;background:white}
-.tech-head{height:84px;border-bottom:1px solid #e5e7eb;display:flex;align-items:center;gap:14px;padding:0 28px}
-.avatar{width:42px;height:42px;border-radius:999px;background:linear-gradient(135deg,#2563eb,#8b5cf6);color:white;display:grid;place-items:center;font-weight:950}
-.tech-head h2{margin:0;font-size:18px}.tech-head span{font-size:13px;color:#4b5563}
-.job-stack{padding:20px 26px;display:flex;flex-direction:column;gap:18px;min-height:556px;background:white}
-.schedule-card{position:relative;border:1px solid #dbeafe;border-left:5px solid #3b82f6;border-radius:10px;padding:16px 16px 16px 18px;min-height:112px;background:#eff6ff;box-shadow:0 2px 8px #00000006}
-.schedule-card.ramp-Middle{background:#f5f0ff;border-color:#ddd6fe;border-left-color:#8b5cf6}
-.schedule-card.ramp-Right{background:#fffbeb;border-color:#fde68a;border-left-color:#f59e0b}
-.schedule-card.status-ready_to_invoice{background:#fff7ed;border-color:#fed7aa}
-.schedule-card.status-completed{background:#ecfdf5;border-color:#bbf7d0}
-.card-actions{position:absolute;right:14px;top:12px;display:flex;gap:4px}
-.card-actions button{background:white;color:#111827;border:1px solid #d1d5db;border-radius:8px;padding:4px 6px}
-.schedule-card h4{margin:12px 0 8px}.schedule-card p{margin:0 0 10px}.schedule-card span{font-size:13px;color:#374151}
-.tasks-panel{margin:16px;border-radius:12px;padding:18px;background:white;border:1px solid #e5e7eb}
-.tasks-head{display:flex;justify-content:space-between;align-items:center}.tasks-head h3{margin:0;text-transform:uppercase}
-.tasks-panel input{width:100%;border:1px solid #e5e7eb;border-radius:9px;padding:9px;margin:10px 0}
-.task-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px 40px}.task-row{font-size:13px}
-.backdrop{position:fixed;inset:0;background:#0008;display:grid;place-items:center;padding:20px;z-index:50}
-.dialog{background:white;border-radius:16px;padding:18px;width:min(560px,96vw);max-height:95vh;overflow:auto;display:grid;gap:10px}
-.wide-dialog,.settings-dialog,.availability-dialog,.history-dialog{width:min(900px,96vw)}
-.dialog-head{display:flex;justify-content:space-between;align-items:center}.dialog h2,.dialog h3{margin:0}
-.dialog label{display:grid;gap:4px;font-weight:800;font-size:13px}
-.dialog input,.dialog select,.dialog textarea{border:1px solid #d1d5db;border-radius:8px;padding:9px}
-.dialog textarea{min-height:70px}
-.two{display:grid;grid-template-columns:1fr 1fr;gap:10px}.three{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px}
-.dialog-actions{display:flex;justify-content:flex-end;gap:8px;flex-wrap:wrap}
-.quick-job-area,.vehicle-lookup-box,.settings-section{border:1px solid #e5e7eb;border-radius:14px;padding:12px;background:#f9fafb;display:grid;gap:10px}
-.quick-group strong{display:block;font-size:12px;color:#374151;margin-bottom:6px}.quick-group div{display:flex;gap:6px;flex-wrap:wrap}
-.quick-job{background:white;color:#111827;border:1px solid #d1d5db;padding:7px 10px;font-size:12px}
-.lookup-button{justify-self:start;display:inline-flex;gap:6px;align-items:center;background:#1f2937}
-.vehicle-status-grid,.vehicle-extra-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}.vehicle-extra-grid{grid-template-columns:repeat(4,1fr)}
-.status-pill{border-radius:10px;padding:9px 10px;display:flex;align-items:center;gap:7px;font-size:13px;border:1px solid #d1d5db;background:white}.status-pill strong{margin-right:auto}
-.settings-row{display:grid;grid-template-columns:1fr 120px;gap:8px;margin:8px 0}
-.job-type-settings{display:grid;gap:8px;max-height:320px;overflow:auto}.job-type-row{display:grid;grid-template-columns:120px 1fr 1.5fr 90px;gap:8px}
-.availability-result{border-radius:14px;padding:14px;margin:10px 0;display:grid;gap:4px}.availability-result.good{background:#ecfdf5;border:1px solid #86efac}.availability-result.bad{background:#fff7ed;border:1px solid #fdba74}
-.availability-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}.availability-grid section{border:1px solid #e5e7eb;border-radius:12px;padding:12px;background:#f9fafb}
-.capacity-row{display:grid;grid-template-columns:1fr auto;gap:4px;border-bottom:1px solid #e5e7eb;padding:8px 0}
-.history-title{border:1px solid #e5e7eb;border-radius:14px;padding:14px;background:#f9fafb;display:grid;gap:4px;margin-bottom:10px}.history-title strong{font-size:24px}
-.history-vehicle-status{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:12px 0 18px}
-.history-vehicle-status>div:not(.status-pill){border:1px solid #e5e7eb;border-radius:10px;padding:9px;background:#f9fafb;display:grid;font-size:13px}
-.history-row{display:grid;grid-template-columns:130px 1fr auto;gap:8px;border-bottom:1px solid #e5e7eb;padding:10px 0}
-.invoice-screen{background:#f3f4f6;min-height:100vh;padding:20px}.invoice-toolbar{display:flex;gap:8px;justify-content:center;margin-bottom:18px}
-.invoice-page{background:white;max-width:1100px;margin:0 auto;border:2px solid #222;padding:28px;color:#7b2148;min-height:780px}
-.invoice-header{display:flex;justify-content:space-between;gap:20px}.invoice-header h1{text-align:center;margin:0 0 28px;color:#7b2148}
-.business-details{display:grid;gap:3px;font-size:17px}.invoice-brand{text-align:right;display:grid;justify-items:end;gap:16px}
-.fake-logo b{display:block;font-size:44px;color:#d71920;text-shadow:1px 1px 0 #999;letter-spacing:-2px}.fake-logo span{display:block;color:#111;font-size:13px}
-.paid-badge{display:inline-block;border:2px solid #7b2148;border-radius:8px;padding:8px 14px;font-weight:950}.paid-badge.paid{background:#ecfdf5;color:#15803d;border-color:#15803d}.paid-badge.unpaid{background:#fff7ed;color:#c2410c;border-color:#c2410c}
-.invoice-meta{display:grid;grid-template-columns:1fr 1fr;gap:40px;margin:28px 0 46px}.invoice-meta h3{text-align:center;margin:0 0 22px}.invoice-meta p{margin:7px 0;font-size:16px}.vehicle-details{text-align:right}.vehicle-details p{display:grid;grid-template-columns:1fr 1fr;gap:12px}
-.plate{display:inline-block;background:#ffd84d;color:#111;border-radius:4px;padding:3px 8px;letter-spacing:.06em}
-.invoice-line-head,.invoice-line{display:grid;grid-template-columns:110px 1fr 80px 120px 120px 44px;gap:8px;align-items:center}.invoice-line input,.invoice-line select{border:1px solid #d1d5db;border-radius:6px;padding:8px}
-.invoice-add-buttons{display:flex;gap:8px;margin:10px 0 24px}.invoice-bottom{display:grid;grid-template-columns:1.4fr .8fr;gap:40px;margin-top:42px}.bank-details p{font-size:20px;margin:7px 0}.invoice-totals{font-size:20px}.invoice-totals p{display:flex;justify-content:space-between}.grand-total{font-size:28px;font-weight:950}.payment-method{margin-top:28px;font-size:15px;display:grid;grid-template-columns:1fr 1fr;gap:8px}.payment-method h3{grid-column:1/-1;text-align:center;margin:0 0 6px}
-@media(max-width:1000px){.planner-layout{grid-template-columns:1fr}.ramp-strip{grid-template-columns:1fr}.ramp-title,.legend{display:none}.schedule{grid-template-columns:1fr}.time-rail{display:none}.vehicle-extra-grid,.history-vehicle-status{grid-template-columns:1fr 1fr}}
-@media(max-width:700px){.topbar{align-items:flex-start;flex-direction:column}.date-nav,.top-actions{flex-wrap:wrap}.task-grid,.two,.three,.availability-grid,.history-row,.invoice-meta,.invoice-bottom{grid-template-columns:1fr}.vehicle-status-grid,.vehicle-extra-grid,.history-vehicle-status{grid-template-columns:1fr}.invoice-line{grid-template-columns:1fr}.invoice-line-head{display:none}}
-@media print{.no-print,.invoice-toolbar{display:none!important}.invoice-screen{padding:0;background:white}.invoice-page{border:1px solid #222;max-width:none;width:100%;min-height:100vh;margin:0}.topbar,.ramp-strip,.left-panel,.tasks-panel,.board-tools{display:none!important}@page{size:A4;margin:8mm}}
-</style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Vecta Planner</title>
+  <link rel="stylesheet" href="/src/styles.css" />
 </head>
 <body>
-<div id="app"></div>
-<script>
-const DEFAULT_SETTINGS = {
-  mechanics: [{ name: "Jordan", capacity: 8 }, { name: "Alfie", capacity: 8 }],
-  ramps: [{ key: "Left", label: "Ramp 1", capacity: 8 }, { key: "Middle", label: "Ramp 2", capacity: 8 }, { key: "Right", label: "Ramp 3", capacity: 8 }],
-  labourRate: 40,
-  jobTypes: [
-    { group: "SERVICE", name: "Small Service", description: "Small Service", hours: 1.2, colour: "service" },
-    { group: "SERVICE", name: "Interim Service", description: "Interim Service", hours: 1.5, colour: "service" },
-    { group: "SERVICE", name: "Major Service", description: "Major Service", hours: 2.5, colour: "service" },
-    { group: "BRAKES", name: "Front Pads", description: "Front Brake Pads", hours: 1, colour: "brakes" },
-    { group: "BRAKES", name: "Rear Pads", description: "Rear Brake Pads", hours: 1, colour: "brakes" },
-    { group: "BRAKES", name: "Front Discs & Pads", description: "Front Brake Discs & Pads", hours: 1.5, colour: "brakes" },
-    { group: "BRAKES", name: "Rear Discs & Pads", description: "Rear Brake Discs & Pads", hours: 1.5, colour: "brakes" },
-    { group: "GENERAL", name: "MOT", description: "MOT", hours: 1, colour: "mot" },
-    { group: "GENERAL", name: "Diagnostics", description: "Diagnostics", hours: 2, colour: "diagnostics" },
-    { group: "GENERAL", name: "Clutch", description: "Clutch Replacement", hours: 6, colour: "bigjob" },
-    { group: "GENERAL", name: "Timing Belt", description: "Timing Belt Replacement", hours: 4.5, colour: "bigjob" },
-    { group: "GENERAL", name: "Other", description: "", hours: 1, colour: "other" }
-  ]
-};
-const STATUS = { in_progress: "In Progress", ready_to_invoice: "Ready to Invoice", completed: "Completed" };
-let state = {
-  date: todayISO(),
-  jobs: [],
-  globalJobs: [],
-  tasks: [],
-  notes: [],
-  settings: loadSettings(),
-  query: "",
-  modal: null,
-  selectedJob: null,
-  invoiceJob: null,
-  historyJob: null,
-  rampModal: null
-};
-function uuid(){return crypto.randomUUID ? crypto.randomUUID() : Date.now()+"-"+Math.random().toString(36).slice(2)}
-function todayISO(){const d=new Date();d.setMinutes(d.getMinutes()-d.getTimezoneOffset());return d.toISOString().slice(0,10)}
-function addDaysISO(iso,days){const d=new Date(iso+"T00:00:00");d.setDate(d.getDate()+days);return d.toISOString().slice(0,10)}
-function friendlyDate(iso){return new Date(iso+"T00:00:00").toLocaleDateString("en-GB",{weekday:"long",day:"2-digit",month:"short",year:"numeric"})}
-function formatDate(v){if(!v)return"Unknown";return new Date(v+"T00:00:00").toLocaleDateString("en-GB")}
-function daysUntil(v){if(!v)return null;return Math.ceil((new Date(v+"T00:00:00")-new Date())/86400000)}
-function dateStatus(v){const d=daysUntil(v);if(d===null)return"unknown";if(d<0)return"bad";if(d<=30)return"warning";return"good"}
-function loadSettings(){try{return JSON.parse(localStorage.getItem("vecta:single:settings"))||DEFAULT_SETTINGS}catch{return DEFAULT_SETTINGS}}
-function saveSettingsLocal(s){localStorage.setItem("vecta:single:settings",JSON.stringify(s))}
-function key(d){return"vecta:single:jobs:"+d}
-const globalKey="vecta:single:global",taskKey="vecta:single:tasks",noteKey="vecta:single:notes";
-function read(k){try{return JSON.parse(localStorage.getItem(k)||"[]")}catch{return[]}}
-function write(k,v){localStorage.setItem(k,JSON.stringify(v))}
-function fakeVehicleLookup(reg){
- const clean=(reg||"").replace(/\s/g,"").toUpperCase();
- const samples={
-  KV70UOS:{vehicle:"BMW 2 Series 218i Sport Gran Coupe",make:"BMW",model:"2 SERIES 218I SPORT GRAN COUPE",engine_size:"1499cc",fuel_type:"Petrol",colour:"Grey",year:"2020",mot_due:"2027-03-14",tax_due:"2026-09-01",tax_status:"Taxed"},
-  YD18ABC:{vehicle:"Ford Transit 2.0 EcoBlue",make:"Ford",model:"Transit",engine_size:"1995cc",fuel_type:"Diesel",colour:"White",year:"2018",mot_due:"2026-11-20",tax_due:"2026-08-01",tax_status:"Taxed"}
- };
- return samples[clean]||null;
-}
-function seed(){
- const d=todayISO();
- if(!localStorage.getItem(key(d))) write(key(d),[
-  {id:uuid(),booking_date:d,registration:"AJ68 LZD",customer_name:"Neil",customer_phone:"07826244231",vehicle:"Nissan Qashqai",work_required:"Major Service",drop_time:"08:00",technician:"Jordan",ramp:"Left",status:"in_progress",job_type:"Major Service",estimated_hours:2.5,mot_due:"2027-03-14",tax_status:"Taxed",tax_due:"2026-09-01"},
-  {id:uuid(),booking_date:d,registration:"KV70 UOS",customer_name:"Neil",customer_phone:"07826244231",vehicle:"BMW 2 Series 218i Sport",work_required:"Brake Discs & Pads",drop_time:"08:30",technician:"Alfie",ramp:"Right",status:"ready_to_invoice",job_type:"Front Brakes",estimated_hours:4,mot_due:"2027-03-14",tax_status:"Taxed",tax_due:"2026-09-01"}
- ]);
- if(!localStorage.getItem(globalKey)) write(globalKey,[{id:uuid(),card_type:"job",registration:"NU18 REG",customer_name:"Customer",customer_phone:"07000000000",vehicle:"Nissan Qashqai",work_required:"Major Service",customer_note:"Customer waiting",technician:"Unallocated",status:"in_progress",estimated_hours:2.5}]);
- if(!localStorage.getItem(taskKey)) write(taskKey,[{id:uuid(),task_text:"Print invoices for today's work",done:false}]);
- if(!localStorage.getItem(noteKey)) write(noteKey,[{id:uuid(),note_text:"Use notes for reminders and admin jobs."}]);
-}
-function loadData(){state.jobs=read(key(state.date)).filter(j=>!j.archived);state.globalJobs=read(globalKey).filter(j=>!j.archived);state.tasks=read(taskKey).filter(t=>!t.done);state.notes=read(noteKey)}
-function saveJob(job){
- const p={...job,id:job.id||uuid(),registration:(job.registration||"").toUpperCase(),status:job.status||"in_progress"};
- if(p.status==="completed")p.archived=true;
- if(p.technician==="Unallocated"||p.technician==="Waiting"||p.card_type==="waiting")p.booking_date=null;else p.booking_date=p.booking_date||state.date;
- Object.keys(localStorage).forEach(k=>{if(k.startsWith("vecta:single:jobs:"))write(k,read(k).filter(j=>j.id!==p.id))});
- write(globalKey,read(globalKey).filter(j=>j.id!==p.id));
- if(p.booking_date)write(key(p.booking_date),[...read(key(p.booking_date)),p]);else write(globalKey,[...read(globalKey),p]);
- loadData();render();
-}
-function deleteJob(id){
- Object.keys(localStorage).forEach(k=>{if(k.startsWith("vecta:single:"))write(k,read(k).filter(x=>x.id!==id))});
- loadData();render();
-}
-function saveTask(t){write(taskKey,[...read(taskKey).filter(x=>x.id!==t.id),{...t,id:t.id||uuid(),done:false}]);loadData();render()}
-function completeTask(id){write(taskKey,read(taskKey).filter(t=>t.id!==id));loadData();render()}
-function saveNote(n){write(noteKey,[...read(noteKey).filter(x=>x.id!==n.id),{...n,id:n.id||uuid()}]);loadData();render()}
-function deleteNote(id){write(noteKey,read(noteKey).filter(n=>n.id!==id));loadData();render()}
-function esc(s){return String(s??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[m]))}
-function badges(job){
- if(!job.mot_due&&!job.tax_due&&!job.tax_status)return"";
- return `<div class="vehicle-badges"><span class="mini-status ${dateStatus(job.mot_due)}">MOT ${formatDate(job.mot_due)}</span><span class="mini-status ${job.tax_status==="Taxed"?"good":dateStatus(job.tax_due)}">Tax ${esc(job.tax_status||formatDate(job.tax_due))}</span></div>`;
-}
-function smallCard(job){
- return `<div class="small-card" draggable="true" data-drag="${job.id}" ondblclick="openJob('${job.id}')"><div class="small-card-top"><b>${esc(job.registration||"NO REG")}</b><span>${esc(job.vehicle||"")}</span></div>${badges(job)}<p>${esc(job.work_required||"")}</p><div class="small-card-bottom"><span>${esc(job.customer_note||job.customer_name||"")}</span><em>Est: ${Number(job.estimated_hours||1).toFixed(1)} hrs</em></div></div>`;
-}
-function scheduleCard(job){
- return `<div class="schedule-card ramp-${esc(job.ramp||"Left")} status-${esc(job.status)}" draggable="true" data-drag="${job.id}" ondblclick="openJob('${job.id}')"><div class="card-actions"><button onclick="event.stopPropagation();openHistory('${job.id}')">H</button><button onclick="event.stopPropagation();openInvoice('${job.id}')">£</button></div><strong>${esc(job.registration||"NO REG")}</strong><h4>${esc(job.vehicle||"")}</h4>${badges(job)}<p>${esc(job.work_required||"")}</p><span>${job.drop_time?esc(String(job.drop_time).slice(0,5)):"--:--"} · ${Number(job.estimated_hours||1).toFixed(1)} hrs</span></div>`;
-}
-function render(){
- const waiting=state.globalJobs.filter(j=>j.card_type==="waiting"||j.technician==="Waiting");
- const unallocated=state.globalJobs.filter(j=>j.card_type!=="waiting"&&j.technician!=="Waiting");
- const searchRows=[...state.jobs,...state.globalJobs].filter(j=>`${j.registration} ${j.vehicle} ${j.work_required} ${j.customer_note} ${j.customer_name} ${j.customer_phone}`.toUpperCase().includes(state.query.toUpperCase()));
- let html=`<div class="app-shell"><header class="topbar"><div class="brand-row"><span>☰</span><div class="brand"><span>VECTA</span><b>PLANNER</b></div></div><div class="date-nav"><button onclick="changeDate(-1)">‹</button><div class="date-pill">📅 ${friendlyDate(state.date)}</div><button onclick="changeDate(1)">›</button></div><div class="top-actions"><button onclick="today()">Today</button><button onclick="state.modal='availability';render()">✨ Find Availability</button><button onclick="state.modal='settings';render()">⚙ Settings</button><button onclick="newJob()">+ Add Job</button></div></header>`;
- html+=`<section class="ramp-strip"><div class="ramp-title">Ramp Utilisation</div>`;
- state.settings.ramps.forEach(r=>{const used=state.jobs.filter(j=>j.ramp===r.key).reduce((s,j)=>s+Number(j.estimated_hours||1),0);const pct=Math.min(100,Math.round(used/Number(r.capacity||8)*100));const cls=pct>=86?"danger":pct>=61?"warning":"good";html+=`<button class="ramp-summary ${cls}" onclick="state.rampModal='${r.key}';render()"><strong>${esc(r.label)}</strong><div class="progress"><i style="width:${pct}%"></i></div><span>${used.toFixed(1)} / ${Number(r.capacity||8).toFixed(1)} hrs</span></button>`});
- html+=`<div class="legend"><span class="dot good"></span>0-60% <span class="dot warning"></span>61-85% <span class="dot danger"></span>86-100%</div></section>`;
- html+=`<div class="planner-layout"><aside class="left-panel"><section><h3>Unallocated Jobs <span>${unallocated.length}</span></h3><div class="panel-list">${unallocated.map(smallCard).join("")}</div></section><section><h3>Waiting Jobs <span>${waiting.length}</span></h3><div class="panel-list">${waiting.map(smallCard).join("")}</div></section><section class="notes-panel"><h3>Notes</h3><textarea id="newNote" placeholder="Add notes, reminders or anything important..."></textarea><button onclick="addNote()">Add Note</button>${state.notes.map(n=>`<div class="note-row"><span>${esc(n.note_text)}</span><button onclick="deleteNote('${n.id}')">×</button></div>`).join("")}</section></aside>`;
- html+=`<main class="main-board"><div class="board-tools"><div class="search-box">🔍 <input placeholder="Search registration, surname, phone, vehicle..." value="${esc(state.query)}" oninput="state.query=this.value;render()"></div>${state.query?`<div class="search-results">${searchRows.map(j=>`<button onclick="openJob('${j.id}')">${esc(j.registration)} — ${esc(j.work_required)}</button>`).join("")}</div>`:""}</div><section class="schedule"><div class="time-rail">${["08:00","09:00","10:00","11:00","12:00","13:00","14:00","15:00","16:00","17:00"].map(t=>`<span>${t}</span>`).join("")}</div>`;
- state.settings.mechanics.forEach(m=>{const tj=state.jobs.filter(j=>j.technician===m.name&&!j.archived);const hrs=tj.reduce((s,j)=>s+Number(j.estimated_hours||1),0);html+=`<section class="tech-column"><div class="tech-head"><div class="avatar">${esc(m.name[0]||"M")}</div><div><h2>${esc(m.name)}</h2><span>${hrs.toFixed(1)} / ${Number(m.capacity||8).toFixed(1)} hrs</span></div></div><div class="job-stack" data-drop-tech="${esc(m.name)}">${tj.map(scheduleCard).join("")}</div></section>`});
- html+=`</section><section class="tasks-panel"><div class="tasks-head"><h3>Tasks</h3><button onclick="addTask()">+ Add Task</button></div><input id="newTask" placeholder="Add task..."><div class="task-grid">${state.tasks.map(t=>`<label class="task-row"><input type="checkbox" onchange="completeTask('${t.id}')"> ${esc(t.task_text)}</label>`).join("")}</div></section></main></div>`;
- if(state.modal==="job")html+=jobModal();
- if(state.invoiceJob)html+=invoiceScreen();
- if(state.historyJob)html+=historyModal();
- if(state.modal==="settings")html+=settingsModal();
- if(state.modal==="availability")html+=availabilityModal();
- if(state.rampModal)html+=rampModal();
- html+=`</div>`;
- document.getElementById("app").innerHTML=html;
- attachDnD();
-}
-function attachDnD(){
- document.querySelectorAll("[data-drag]").forEach(el=>el.addEventListener("dragstart",e=>e.dataTransfer.setData("id",el.dataset.drag)));
- document.querySelectorAll("[data-drop-tech]").forEach(el=>{
-  el.addEventListener("dragover",e=>e.preventDefault());
-  el.addEventListener("drop",e=>{e.preventDefault();const id=e.dataTransfer.getData("id");const found=[...state.jobs,...state.globalJobs].find(j=>j.id===id);if(found)saveJob({...found,technician:el.dataset.dropTech,card_type:"job",booking_date:state.date})});
- });
-}
-function findJob(id){return[...state.jobs,...state.globalJobs].find(j=>j.id===id)}
-function newJob(){state.selectedJob={id:"",card_type:"job",registration:"",customer_name:"",customer_phone:"",vehicle:"",make:"",model:"",engine_size:"",fuel_type:"",mot_due:"",tax_due:"",tax_status:"",work_required:"",drop_time:"",technician:"Unallocated",ramp:"",status:"in_progress",estimated_hours:1};state.modal="job";render()}
-function openJob(id){state.selectedJob={...findJob(id)};state.modal="job";render()}
-function openInvoice(id){state.invoiceJob={...findJob(id)};render()}
-function openHistory(id){state.historyJob={...findJob(id)};render()}
-function closeModal(){state.modal=null;state.selectedJob=null;state.invoiceJob=null;state.historyJob=null;state.rampModal=null;render()}
-function changeDate(n){state.date=addDaysISO(state.date,n);loadData();render()}
-function today(){state.date=todayISO();loadData();render()}
-function addTask(){const el=document.getElementById("newTask");if(el.value.trim())saveTask({task_text:el.value.trim(),done:false})}
-function addNote(){const el=document.getElementById("newNote");if(el.value.trim())saveNote({note_text:el.value.trim()})}
-function jobModal(){
- const f=state.selectedJob||{};const groups=[...new Set(state.settings.jobTypes.map(j=>j.group))];
- return `<div class="backdrop"><div class="dialog wide-dialog"><div class="dialog-head"><h2>${f.id?"Edit Job":"Add Job"}</h2><button class="icon-btn" onclick="closeModal()">×</button></div><section class="quick-job-area"><h3>Quick Job Buttons</h3>${groups.map(g=>`<div class="quick-group"><strong>${esc(g)}</strong><div>${state.settings.jobTypes.filter(j=>j.group===g).map(j=>`<button class="quick-job ${esc(j.colour)}" onclick="applyQuickJob('${esc(j.name)}')">${esc(j.name)}</button>`).join("")}</div></div>`).join("")}</section><section class="vehicle-lookup-box"><div class="two"><label>Registration *<input id="registration" value="${esc(f.registration||"")}" oninput="state.selectedJob.registration=this.value.toUpperCase()"></label><label>Vehicle *<input id="vehicle" value="${esc(f.vehicle||"")}" oninput="state.selectedJob.vehicle=this.value"></label></div><button class="lookup-button" onclick="lookupVehicle()">🚗 Lookup Vehicle</button><div class="vehicle-status-grid"><div class="status-pill ${dateStatus(f.mot_due)}"><strong>MOT</strong><span>${formatDate(f.mot_due)}</span></div><div class="status-pill ${f.tax_status==="Taxed"?"good":dateStatus(f.tax_due)}"><strong>Tax</strong><span>${esc(f.tax_status||formatDate(f.tax_due))}</span></div></div><div class="vehicle-extra-grid"><label>Make<input value="${esc(f.make||"")}" oninput="state.selectedJob.make=this.value"></label><label>Model<input value="${esc(f.model||"")}" oninput="state.selectedJob.model=this.value"></label><label>Engine<input value="${esc(f.engine_size||"")}" oninput="state.selectedJob.engine_size=this.value"></label><label>Fuel<input value="${esc(f.fuel_type||"")}" oninput="state.selectedJob.fuel_type=this.value"></label></div></section><div class="two"><label>Customer name *<input value="${esc(f.customer_name||"")}" oninput="state.selectedJob.customer_name=this.value"></label><label>Phone number *<input value="${esc(f.customer_phone||"")}" oninput="state.selectedJob.customer_phone=this.value"></label></div><label>Work required *<textarea oninput="state.selectedJob.work_required=this.value">${esc(f.work_required||"")}</textarea></label><div class="three"><label>Status<select onchange="state.selectedJob.status=this.value">${Object.entries(STATUS).map(([k,v])=>`<option value="${k}" ${f.status===k?"selected":""}>${v}</option>`).join("")}</select></label><label>Estimated Hours *<input type="number" step="0.5" value="${esc(f.estimated_hours||1)}" oninput="state.selectedJob.estimated_hours=Number(this.value)"></label><label>Drop-off<input type="time" value="${esc(String(f.drop_time||"").slice(0,5))}" oninput="state.selectedJob.drop_time=this.value"></label></div><div class="three"><label>Technician *<select onchange="state.selectedJob.technician=this.value"><option>Unallocated</option><option>Waiting</option>${state.settings.mechanics.map(m=>`<option ${f.technician===m.name?"selected":""}>${esc(m.name)}</option>`).join("")}</select></label><label>Ramp<select onchange="state.selectedJob.ramp=this.value"><option value="">No ramp</option>${state.settings.ramps.map(r=>`<option value="${r.key}" ${f.ramp===r.key?"selected":""}>${esc(r.label)}</option>`).join("")}</select></label><label>Card Type<select onchange="state.selectedJob.card_type=this.value"><option value="job" ${f.card_type!=="waiting"?"selected":""}>Job</option><option value="waiting" ${f.card_type==="waiting"?"selected":""}>Waiting Job</option></select></label></div><label>Notes<input value="${esc(f.customer_note||"")}" oninput="state.selectedJob.customer_note=this.value"></label><div class="dialog-actions"><button class="secondary" onclick="closeModal()">Cancel</button>${f.id?`<button class="danger" onclick="deleteJob('${f.id}');closeModal()">Delete</button><button class="secondary" onclick="state.invoiceJob=state.selectedJob;state.modal=null;render()">Create Invoice</button>`:""}<button onclick="saveJobFromModal()">Save</button></div></div></div>`;
-}
-function applyQuickJob(name){const t=state.settings.jobTypes.find(j=>j.name===name);if(t){state.selectedJob.job_type=t.name;state.selectedJob.work_required=t.description||state.selectedJob.work_required;state.selectedJob.estimated_hours=t.hours;state.selectedJob.job_colour=t.colour;render()}}
-function lookupVehicle(){const res=fakeVehicleLookup(state.selectedJob.registration);if(!res){alert("Lookup display is ready. Live DVLA/DVSA API still needs API access. Enter details manually for now.");return}state.selectedJob={...state.selectedJob,...res};render()}
-function saveJobFromModal(){const f=state.selectedJob;for(const [k,l] of [["registration","Registration"],["customer_name","Customer name"],["customer_phone","Phone number"],["vehicle","Vehicle"],["work_required","Work required"],["technician","Technician"],["estimated_hours","Estimated hours"]]){if(!String(f[k]||"").trim()){alert(l+" is required.");return}}state.modal=null;saveJob(f)}
-function invoiceScreen(){
- const j=state.invoiceJob; if(!j)return""; const labour=Number(state.settings.labourRate||40), qty=Number(j.estimated_hours||1), subtotal=qty*labour, vat=subtotal*.2,total=subtotal+vat, inv="V"+String(new Date().getFullYear()).slice(-2)+String(Date.now()).slice(-5);
- return `<div class="invoice-screen"><div class="invoice-toolbar no-print"><button class="secondary" onclick="state.invoiceJob=null;render()">Back to Planner</button><button onclick="window.print()">🖨 Print</button><button onclick="emailInvoice('${inv}',${total.toFixed(2)})">Email</button><button onclick="saveJob({...state.invoiceJob,status:'completed',archived:true});state.invoiceJob=null">Mark as Paid</button></div><section class="invoice-page"><header class="invoice-header"><div><h1>INVOICE</h1><div class="business-details"><b>VECTA - Fleet Support</b><span>Contractors Compound</span><span>Nissan Motor Manufacturing</span><span>Nissan Way, Washington, SR5 3NS</span><span>Tel: 07721722622</span><span>VAT No. 169170002</span></div></div><div class="invoice-brand"><div class="fake-logo"><b>VECTA</b><span>Vehicle Servicing and repairs</span></div><div class="paid-badge unpaid">UNPAID</div></div></header><section class="invoice-meta"><div><h3>Customer Details</h3><p><b>${esc(j.customer_name||"Customer")}</b></p><p>Phone: ${esc(j.customer_phone||"")}</p></div><div class="vehicle-details"><h3>Vehicle Details</h3><p><span>Vehicle:</span><b>${esc(j.vehicle||"")}</b></p><p><span>Registration:</span><b class="plate">${esc(j.registration||"")}</b></p><p><span>Invoice Reference:</span><b>${inv}</b></p><p><span>Invoice Date:</span><b>${new Date().toLocaleDateString("en-GB")}</b></p><p><span>Technician:</span><b>${esc(j.technician||"")}</b></p><p><span>MOT Due:</span><b>${formatDate(j.mot_due)}</b></p><p><span>Tax:</span><b>${esc(j.tax_status||formatDate(j.tax_due))}</b></p></div></section><section class="invoice-lines"><div class="invoice-line-head"><b>Type</b><b>Description</b><b>Qty</b><b>Unit Price</b><b>Item Cost</b><b></b></div><div class="invoice-line"><select><option>Labour</option></select><input value="${esc(j.work_required||"Labour")}"><input type="number" value="${qty}" step="0.1"><input type="number" value="${labour}" step="0.01"><strong>£${subtotal.toFixed(2)}</strong><span></span></div></section><section class="invoice-bottom"><div class="bank-details"><h2>Online Banking Details</h2><p>Account Name: Vecta (Some banks require Ken Moore)</p><p>Sort Code: 208369</p><p>Account Number: 93418774</p><p class="reference-note">Please use your registration number as the Reference.</p></div><div class="invoice-totals"><p><span>Sub-Total</span><b>£${subtotal.toFixed(2)}</b></p><p><span>VAT</span><b>£${vat.toFixed(2)}</b></p><p class="grand-total"><span>Total</span><b>£${total.toFixed(2)}</b></p><div class="payment-method"><h3>Payment Method</h3>${["Cash","Card","Transfer","Account","Cheque"].map(m=>`<label><input type="radio" ${m==="Transfer"?"checked":""}> ${m}</label>`).join("")}</div></div></section></section></div>`;
-}
-function emailInvoice(inv,total){const j=state.invoiceJob;window.location.href=`mailto:?subject=${encodeURIComponent("Invoice "+inv+" - "+(j.registration||""))}&body=${encodeURIComponent("Hi "+(j.customer_name||"")+",\\n\\nInvoice: "+inv+"\\nVehicle: "+(j.vehicle||"")+"\\nRegistration: "+(j.registration||"")+"\\nTotal: £"+Number(total).toFixed(2)+"\\n\\nPlease use your registration number as the payment reference.\\n\\nRegards,\\nVecta")}`}
-function historyModal(){const j=state.historyJob;const matches=[...state.jobs,...state.globalJobs].filter(x=>(x.registration||"").toUpperCase()===(j.registration||"").toUpperCase());return `<div class="backdrop"><div class="dialog history-dialog"><div class="dialog-head"><h2>Vehicle History</h2><button class="icon-btn" onclick="closeModal()">×</button></div><div class="history-title"><strong>${esc(j.registration||"No Reg")}</strong><span>${esc(j.vehicle||"")}</span><em>${esc(j.customer_name||"")} ${j.customer_phone?"· "+esc(j.customer_phone):""}</em></div><div class="history-vehicle-status"><div class="status-pill ${dateStatus(j.mot_due)}"><strong>MOT Due</strong><span>${formatDate(j.mot_due)}</span></div><div class="status-pill ${j.tax_status==="Taxed"?"good":dateStatus(j.tax_due)}"><strong>Tax</strong><span>${esc(j.tax_status||formatDate(j.tax_due))}</span></div><div><b>Engine</b><span>${esc(j.engine_size||"Unknown")}</span></div><div><b>Fuel</b><span>${esc(j.fuel_type||"Unknown")}</span></div></div><h3>Previous / Current Visits</h3>${matches.map(x=>`<div class="history-row"><b>${esc(x.registration)}</b><span>${esc(x.work_required)}</span><em>${esc(x.status)} · ${esc(x.estimated_hours)} hrs</em></div>`).join("")}</div></div>`}
-function settingsModal(){return `<div class="backdrop"><div class="dialog settings-dialog"><div class="dialog-head"><h2>Workshop Settings</h2><button class="icon-btn" onclick="closeModal()">×</button></div><section class="settings-section"><h3>Mechanics & Capacity</h3>${state.settings.mechanics.map((m,i)=>`<div class="settings-row"><input value="${esc(m.name)}" onchange="state.settings.mechanics[${i}].name=this.value"><input type="number" value="${esc(m.capacity)}" onchange="state.settings.mechanics[${i}].capacity=Number(this.value)"></div>`).join("")}<button class="secondary" onclick="state.settings.mechanics.push({name:'New Mechanic',capacity:8});render()">+ Add Mechanic</button></section><section class="settings-section"><h3>Job Types & Hours</h3><div class="job-type-settings">${state.settings.jobTypes.map((j,i)=>`<div class="job-type-row"><input value="${esc(j.group)}" onchange="state.settings.jobTypes[${i}].group=this.value.toUpperCase()"><input value="${esc(j.name)}" onchange="state.settings.jobTypes[${i}].name=this.value"><input value="${esc(j.description)}" onchange="state.settings.jobTypes[${i}].description=this.value"><input type="number" value="${esc(j.hours)}" step="0.5" onchange="state.settings.jobTypes[${i}].hours=Number(this.value)"></div>`).join("")}</div><button class="secondary" onclick="state.settings.jobTypes.push({group:'GENERAL',name:'New Job',description:'New Job',hours:1,colour:'other'});render()">+ Add Job Type</button></section><div class="dialog-actions"><button class="secondary" onclick="closeModal()">Cancel</button><button onclick="saveSettingsLocal(state.settings);closeModal()">Save Settings</button></div></div></div>`}
-function availabilityModal(){const selected=state.settings.jobTypes[0];const mechanics=state.settings.mechanics.map(m=>{const used=state.jobs.filter(j=>j.technician===m.name).reduce((s,j)=>s+Number(j.estimated_hours||1),0);return{...m,used,free:Number(m.capacity||8)-used}});const ramps=state.settings.ramps.map(r=>{const used=state.jobs.filter(j=>j.ramp===r.key).reduce((s,j)=>s+Number(j.estimated_hours||1),0);return{...r,used,free:Number(r.capacity||8)-used}});return `<div class="backdrop"><div class="dialog availability-dialog"><div class="dialog-head"><h2>Find Availability</h2><button class="icon-btn" onclick="closeModal()">×</button></div><div class="availability-result good"><strong>Availability check</strong><span>Shows today's free hours by mechanic and ramp.</span></div><div class="availability-grid"><section><h3>Mechanics</h3>${mechanics.map(m=>`<div class="capacity-row"><b>${esc(m.name)}</b><span>${m.used.toFixed(1)} used / ${m.capacity} hrs</span><em>${m.free.toFixed(1)} hrs free</em></div>`).join("")}</section><section><h3>Ramps</h3>${ramps.map(r=>`<div class="capacity-row"><b>${esc(r.label)}</b><span>${r.used.toFixed(1)} used / ${r.capacity} hrs</span><em>${r.free.toFixed(1)} hrs free</em></div>`).join("")}</section></div><div class="dialog-actions"><button class="secondary" onclick="closeModal()">Close</button></div></div></div>`}
-function rampModal(){const r=state.settings.ramps.find(x=>x.key===state.rampModal);const rows=state.jobs.filter(j=>j.ramp===state.rampModal);return `<div class="backdrop"><div class="dialog"><div class="dialog-head"><h2>${esc(r?.label||state.rampModal)}</h2><button class="icon-btn" onclick="closeModal()">×</button></div>${rows.length?rows.map(j=>`<button class="ramp-modal-row" onclick="openJob('${j.id}')">${esc(j.drop_time||"--:--")} — ${esc(j.registration)} — ${esc(j.technician)}</button>`).join(""):"<p>No jobs on this ramp.</p>"}</div></div>`}
-seed();loadData();render();
-</script>
+  <div class="app-shell">
+    <aside class="sidebar">
+      <div class="brand"><div class="mark">V</div><div><strong>Vecta</strong><span>Planner Pro</span></div></div>
+      <button class="nav active" data-view="dashboard">Dashboard</button>
+      <button class="nav" data-view="jobs">Job Cards</button>
+      <button class="nav" data-view="customers">Customers</button>
+      <button class="nav" data-view="invoices">Invoices</button>
+      <button class="nav" data-view="settings">Settings</button>
+    </aside>
+
+    <main class="main">
+      <header class="topbar">
+        <div><h1>Workshop Dashboard</h1><p>Search a registration, create jobs, track invoices.</p></div>
+        <button id="newJobBtn" class="primary">+ New Job</button>
+      </header>
+
+      <section id="dashboard" class="view active">
+        <div class="hero-card">
+          <label for="regInput">Vehicle registration</label>
+          <div class="reg-row"><input id="regInput" placeholder="AB12 CDE" autocomplete="off" /><button id="lookupBtn">Lookup</button></div>
+          <div id="vehicleResult" class="vehicle-result muted">Enter a registration to pull vehicle, MOT and tax status.</div>
+        </div>
+        <div class="grid stats">
+          <div class="card"><span>Jobs today</span><strong id="jobsToday">0</strong></div>
+          <div class="card"><span>Open jobs</span><strong id="openJobs">0</strong></div>
+          <div class="card"><span>Unpaid invoices</span><strong id="unpaidInvoices">£0.00</strong></div>
+          <div class="card"><span>Vehicles saved</span><strong id="vehiclesSaved">0</strong></div>
+        </div>
+        <div class="card"><h2>Recent jobs</h2><div id="recentJobs" class="list muted">No jobs yet.</div></div>
+      </section>
+
+      <section id="jobs" class="view">
+        <div class="card"><h2>Create job card</h2><form id="jobForm" class="form-grid">
+          <input name="customer" placeholder="Customer name" required />
+          <input name="phone" placeholder="Phone" />
+          <input name="reg" placeholder="Registration" required />
+          <input name="vehicle" placeholder="Make / model" />
+          <select name="status"><option>Booked in</option><option>In progress</option><option>Waiting for parts</option><option>Complete</option></select>
+          <input name="technician" placeholder="Technician" />
+          <textarea name="work" placeholder="Work required" required></textarea>
+          <textarea name="notes" placeholder="Technician notes"></textarea>
+          <button class="primary" type="submit">Save job card</button>
+        </form></div>
+        <div class="card"><h2>All jobs</h2><div id="jobsList" class="list muted">No jobs saved.</div></div>
+      </section>
+
+      <section id="customers" class="view"><div class="card"><h2>Customers</h2><div id="customersList" class="list muted">No customers yet.</div></div></section>
+
+      <section id="invoices" class="view">
+        <div class="card"><h2>Create invoice</h2><form id="invoiceForm" class="form-grid">
+          <input name="customer" placeholder="Customer name" required />
+          <input name="reg" placeholder="Registration" required />
+          <input name="labour" type="number" step="0.01" placeholder="Labour £" />
+          <input name="parts" type="number" step="0.01" placeholder="Parts £" />
+          <textarea name="description" placeholder="Description"></textarea>
+          <button class="primary" type="submit">Save invoice</button>
+        </form></div>
+        <div class="card"><h2>Invoices</h2><div id="invoiceList" class="list muted">No invoices saved.</div></div>
+      </section>
+
+      <section id="settings" class="view"><div class="card"><h2>Settings</h2><p>API keys are stored in Vercel Environment Variables, never inside browser code.</p><p class="pill">DVLA_API_KEY</p><p class="pill">DVSA_CLIENT_ID</p><p class="pill">DVSA_CLIENT_SECRET</p></div></section>
+    </main>
+  </div>
+  <script src="/src/app.js"></script>
 </body>
 </html>
