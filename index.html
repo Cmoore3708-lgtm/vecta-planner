@@ -90,7 +90,7 @@
       <div><label>Workflow status<select id="status"><option value="booked">Booked In</option><option value="waitingTech">Waiting for Technician</option><option value="inProgress">In Progress</option><option value="waitingParts">Waiting for Parts</option><option value="workComplete">Work Complete</option><option value="complete">Ready to Invoice</option><option value="invoiced">Invoiced</option><option value="collected">Collected</option></select></label></div>
       <div class="wide"><label>Technician notes<textarea id="notes" placeholder="Notes, parts required, customer waiting, etc."></textarea></label></div>
     </div>
-    <div class="cardFooter"><button type="button" class="danger" id="deleteModal">Delete job</button><button type="button" class="ghost" id="markCompleteModal">Complete — send to invoicing</button><button type="button" class="ghost" id="cancelModal">Cancel</button><button class="primary" type="submit">Save job card</button></div>
+    <div class="cardFooter"><button type="button" class="danger" id="deleteModal">Delete job</button><button type="button" class="ghost" id="motModalBtn">View MOT History</button><button type="button" class="ghost" id="markCompleteModal">Complete — send to invoicing</button><button type="button" class="ghost" id="cancelModal">Cancel</button><button class="primary" type="submit">Save job card</button></div>
   </form>
 </div>
 <section class="printSheet"><div class="printHeader"><div><div class="printLogo">VECTA <span>PLANNER</span></div><b>DAILY WORKSHOP PLAN</b></div><div class="printDate"><div id="pDate">Today</div><div>Printed by Chris</div></div></div><div class="printGrid"><div class="printCol"><h2 id="printHeadAlfie">ALFIE</h2><div id="printAlfie"></div></div><div class="printCol"><h2 id="printHeadJordan">JORDAN</h2><div id="printJordan"></div></div></div><div class="printBottom"><div class="printBox"><h3>Waiting / unallocated jobs</h3><p>NU18 REG – Nissan Qashqai – Major Service</p><p>FV67 ABC – Ford Transit – Clutch Replacement</p><p>MA19 XYZ – BMW 1 Series – Diagnostics</p></div><div class="printBox"><h3>Notes</h3><div class="line"></div><div class="line"></div><div class="line"></div></div></div></section>
@@ -161,6 +161,10 @@ function formatRegistration(value){
   let raw=String(value||'').toUpperCase().replace(/[^A-Z0-9]/g,'');
   if(raw.length>3) raw=raw.slice(0,-3)+' '+raw.slice(-3);
   return raw.trim();
+}
+function motHistoryUrl(reg){
+  const clean=String(reg||'').toUpperCase().replace(/[^A-Z0-9]/g,'');
+  return 'https://www.check-mot.service.gov.uk/results?registration='+encodeURIComponent(clean);
 }
 function bindRegInput(el){
   if(!el) return;
@@ -266,12 +270,12 @@ function confirmOverlap(candidate, list, ignoreId){
   if(!jobOverlaps(candidate, list, ignoreId)) return true;
   return confirm('This booking overlaps another job for '+normaliseMechanicName(candidate.m)+'.\n\nContinue anyway?');
 }
-function jobHtml(j){const st=j.status||'booked';return `<div class="job ${j.c}" draggable="true" data-id="${j.id}" style="top:${topFor(j.start)}px;height:${heightFor(j.duration)}px"><span class="reg">${esc(j.reg)}</span><span class="car">${esc(j.car||j.customer||'Vehicle')}</span><span class="ramp">${esc(shortRamp(j.ramp)).toUpperCase()}</span><button class="dots" data-del="${j.id}" title="Delete job">⋮</button><a class="motLink" href="${motHistoryUrl(j.reg)}" target="_blank" rel="noopener" title="Open MOT history">MOT</a><div class="work">${esc(j.work)}</div><div class="t">${fullTime(j)}</div><span class="statusBadge status-${st}">${statusText(st)}</span>${st!=='complete'&&st!=='invoiced'?`<button type="button" class="completeBtn" data-complete="${j.id}">Complete</button>`:''}</div>`}
+function jobHtml(j){const st=j.status||'booked';return `<div class="job ${j.c}" draggable="true" data-id="${j.id}" style="top:${topFor(j.start)}px;height:${heightFor(j.duration)}px"><span class="reg">${esc(j.reg)}</span><span class="car">${esc(j.car||j.customer||'Vehicle')}</span><span class="ramp">${esc(shortRamp(j.ramp)).toUpperCase()}</span><button class="dots" data-del="${j.id}" title="Delete job">⋮</button><a class="motLink" href="${motHistoryUrl(j.reg)}" target="_blank" rel="noopener" title="Open MOT history" onclick="event.stopPropagation()">MOT</a><div class="work">${esc(j.work)}</div><div class="t">${fullTime(j)}</div><span class="statusBadge status-${st}">${statusText(st)}</span>${st!=='complete'&&st!=='invoiced'?`<button type="button" class="completeBtn" data-complete="${j.id}">Complete</button>`:''}</div>`}
 
 function assignedSideIds(){return new Set(jobs.map(j=>j.sourceId).filter(Boolean));}
 function sideJobHtml(j){
   const blue = j.type==='waiting' ? ' style="border-left-color:#3b82f6"' : '';
-  return `<div class="sideJob" draggable="true" data-side="${esc(j.sideId)}"${blue}><div class="row"><span class="reg">${esc(j.reg)}</span><b>${esc(j.car)}</b></div><p>${esc(j.work)} <small>Est: ${Number(j.duration||1).toFixed(1)} hrs</small></p><p>${esc(j.notes||'')}</p><button type="button" class="assignBtn" data-assign="${esc(j.sideId)}">Assign / open job card</button><a href="${motHistoryUrl(j.reg)}" target="_blank" rel="noopener" style="display:block;text-align:center;margin-top:8px;font-weight:950;color:#0f172a;text-decoration:underline" onclick="event.stopPropagation()">View MOT history</a></div>`;
+  return `<div class="sideJob" draggable="true" data-side="${esc(j.sideId)}"${blue}><div class="row"><span class="reg">${esc(j.reg)}</span><b>${esc(j.car)}</b></div><p>${esc(j.work)} <small>Est: ${Number(j.duration||1).toFixed(1)} hrs</small></p><p>${esc(j.notes||'')}</p><button type="button" class="assignBtn" data-assign="${esc(j.sideId)}">Assign / open job card</button></div>`;
 }
 function renderSidePanels(){
   const used=assignedSideIds();
@@ -448,7 +452,7 @@ function attachHandlers(){
 }
 ['Alfie','Jordan'].forEach(n=>{const lane=document.getElementById('lane'+n); if(!lane) return; lane.addEventListener('dragover',e=>{e.preventDefault();lane.classList.add('dropHint')});lane.addEventListener('dragleave',()=>lane.classList.remove('dropHint'));lane.addEventListener('drop',e=>{e.preventDefault();lane.classList.remove('dropHint');if(draggedId)moveJobToPoint(draggedId,e.clientX,e.clientY);}); lane.addEventListener('click',e=>{ if(e.target.closest('.job')) return; const r=lane.getBoundingClientRect(); openJobModal({date:dateKey(),m:n,start:timeForTop(e.clientY-r.top),ramp:'Ramp left',duration:1,status:'booked'}); });});
 jobForm.onsubmit=e=>{e.preventDefault();saveJobFromModal();};
-closeModal.onclick=cancelModal.onclick=closeJobModal; deleteModal.onclick=deleteCurrentJob; markCompleteModal.onclick=()=>{status.value='complete'; const id=saveJobFromModal(); if(id) openInvoiceForJob(id);}; if(window.motModalBtn){motModalBtn.onclick=()=>window.open(motHistoryUrl(reg.value),'_blank','noopener');} if(window.moveModal){moveModal.onclick=()=>alert('To move this job, change Mechanic, Start time or Ramp on this card, then press Save Job Card. You can also drag it on the planner with a mouse.');}
+closeModal.onclick=cancelModal.onclick=closeJobModal; deleteModal.onclick=deleteCurrentJob; markCompleteModal.onclick=()=>{status.value='complete'; const id=saveJobFromModal(); if(id) openInvoiceForJob(id);}; const motBtn=document.getElementById('motModalBtn'); if(motBtn) motBtn.onclick=()=>window.open(motHistoryUrl(reg.value),'_blank','noopener'); if(window.moveModal){moveModal.onclick=()=>alert('To move this job, change Mechanic, Start time or Ramp on this card, then press Save Job Card. You can also drag it on the planner with a mouse.');}
 if(window.jobType){jobType.onchange=()=>applyTemplate(jobType.value);}
 topAddJob.onclick=()=>openJobModal(); openAddFromHint.onclick=()=>openJobModal(); printBtn.onclick=()=>{render();window.print();}; if(window.addTaskBtn){addTaskBtn.onclick=addTask;}
 prevDay.onclick=()=>{currentDate.setDate(currentDate.getDate()-1);loadJobs();loadTasks();render();}; nextDay.onclick=()=>{currentDate.setDate(currentDate.getDate()+1);loadJobs();loadTasks();render();}; todayBtn.onclick=()=>{currentDate=new Date();loadJobs();loadTasks();render();};
