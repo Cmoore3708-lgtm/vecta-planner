@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>VECTA Workshop Pro v39.3</title>
+<title>VECTA Workshop Pro v39.4</title>
 <style>
 :root{
   --nav:#0d1728;--nav2:#111f35;--red:#e11d2e;--red2:#b91421;--line:#e5e7eb;--text:#0f172a;--muted:#64748b;--bg:#f6f8fb;--card:#fff;--yellow:#ffd83d;--green:#16a34a;--blue:#2563eb;--purple:#7c3aed;--orange:#f59e0b;
@@ -105,7 +105,7 @@ img.brandLogo,img.dashBrandLogo,img.documentLogo,img.sheetLogo,.topBrand img,.in
 
 @media(max-width:1200px){.top{gap:8px!important}.dateCtl{width:152px!important;flex-basis:152px!important}.dateCtl #dateLabel{width:76px!important;min-width:76px!important}.user{display:none!important}.addJob{min-width:120px!important;font-size:14px!important}.printBtn{font-size:14px!important}.seg button{padding:0 10px!important}}
 
-/* V39.3 UI polish: compact dashboard header and remove redundant planner hint */
+/* V39.4 UI polish: compact dashboard header and remove redundant planner hint */
 .compactHero{padding:18px 22px!important;border-radius:14px!important;min-height:0!important}
 .compactHero h1{font-size:28px!important;margin:0 0 4px!important;line-height:1.05!important}
 .compactHero p{margin:0 0 12px!important;color:#dbeafe!important;font-weight:700!important}
@@ -114,6 +114,13 @@ img.brandLogo,img.dashBrandLogo,img.documentLogo,img.sheetLogo,.topBrand img,.in
 .compactHero input{font-size:24px!important;letter-spacing:2px!important;padding:8px 14px!important;max-width:250px!important}
 .compactHero .addJob{height:42px!important;padding:0 16px!important;font-size:14px!important}
 .quickAddHint{display:none!important}
+
+/* V39.4 list/modal plate layout fixes */
+.metricJob{display:grid!important;grid-template-columns:150px minmax(280px,1fr) 145px 125px!important;gap:14px!important;align-items:center!important;overflow:hidden!important;}
+.metricJob .reg{min-width:132px!important;width:132px!important;max-width:132px!important;flex:0 0 132px!important;font-size:17px!important;}
+.metricJob>div{min-width:0!important;}
+.metricJob b,.metricJob div{overflow-wrap:break-word;}
+@media(max-width:900px){.metricJob{grid-template-columns:1fr!important}.metricJob .reg{width:150px!important;max-width:150px!important}}
 </style>
 </head>
 <body>
@@ -122,7 +129,7 @@ img.brandLogo,img.dashBrandLogo,img.documentLogo,img.sheetLogo,.topBrand img,.in
     <div class="brand"><div class="vectaLogoBlock"><div class="vectaLogoWord">VECTA</div><div class="vectaLogoSub">Vehicle Servicing and repairs</div><div class="productName">VECTA Workshop Pro</div></div></div>
     <nav class="nav">
       <button data-view="dash">⌂ &nbsp; Dashboard</button><button class="active" data-view="planner">▣ &nbsp; Workshop Planner</button><button data-view="jobs">▤ &nbsp; Job Cards</button><button data-view="service">🛠 &nbsp; Service Module</button><button data-view="invoiceQueue">✓ &nbsp; Ready to Invoice</button><button data-view="customers">♙ &nbsp; Customers</button><button data-view="vehicles">▤ &nbsp; Vehicles</button><button data-view="invoices">£ &nbsp; Invoices</button><button data-view="reports">▥ &nbsp; Reports</button><button data-view="settings">⚙ &nbsp; Settings</button>
-    </nav><div class="sideFoot"><b>🚗 Vecta Motors</b><br><br><small>v39.3 Stability</small></div>
+    </nav><div class="sideFoot"><b>🚗 Vecta Motors</b><br><br><small>v39.4 Stability</small></div>
   </aside>
   <main class="main">
     <header class="top"><div class="dateCtl"><button id="prevDay">‹</button><div id="dateLabel" title="Click to choose a date"></div><button id="nextDay">›</button></div><input id="datePicker" type="date" style="position:absolute;opacity:0;pointer-events:none;width:1px;height:1px" aria-label="Pick planner date"><button class="pillBtn" id="todayBtn">Today</button><div class="seg"><button class="active" id="dayViewBtn">Day</button><button id="weekViewBtn">Week</button><button id="listViewBtn">List</button></div><button class="printBtn" id="printBtn">🖨 Print Day Plan</button><div class="user"><b>Chris</b>Administrator</div><button class="addJob" id="topAddJob">＋ Add Job Card</button></header>
@@ -130,10 +137,10 @@ img.brandLogo,img.dashBrandLogo,img.documentLogo,img.sheetLogo,.topBrand img,.in
       <section id="dash" class="view">
         <div class="dashboardHero compactHero"><h1>Workshop Dashboard</h1><p>Today’s jobs, invoices and workshop status.</p><div class="dashLookupRow"><input id="dashReg" value="AB12 CDE"><button class="addJob" id="dashLookup">Lookup</button><button class="addJob" id="dashNewJob">＋ New Job Card</button></div></div>
         <div class="metrics" style="margin-top:14px;grid-template-columns:repeat(4,1fr)">
-          <div class="metric"><small>Jobs today</small><strong id="dashJobsToday">0</strong></div>
-          <div class="metric"><small>Open jobs</small><strong id="dashOpenJobs">0</strong></div>
-          <div class="metric"><small>Ready to invoice</small><strong id="dashToInvoice">0</strong></div>
-          <div class="metric"><small>Vehicles saved</small><strong id="dashVehicles">0</strong></div>
+          <div class="metric clickable" data-dashmetric="jobsToday"><small>Jobs today</small><strong id="dashJobsToday">0</strong></div>
+          <div class="metric clickable" data-dashmetric="openJobs"><small>Open jobs</small><strong id="dashOpenJobs">0</strong></div>
+          <div class="metric clickable" data-dashmetric="readyInvoice"><small>Ready to invoice</small><strong id="dashToInvoice">0</strong></div>
+          <div class="metric clickable" data-dashmetric="vehiclesSaved"><small>Vehicles saved</small><strong id="dashVehicles">0</strong></div>
         </div>
         <div class="plannerWrap" style="margin-top:14px">
           <div>
@@ -640,6 +647,35 @@ function openMetricBreakdown(type){
   body.querySelectorAll('[data-openmetricjob]').forEach(el=>el.onclick=()=>{const j=jobs.find(x=>x.id===el.dataset.openmetricjob); modal.classList.remove('open'); if(j) openJobModal(j);});
   modal.classList.add('open');
 }
+
+function dashboardMetricTitle(type){
+  return ({jobsToday:'Jobs today',openJobs:'Open jobs',readyInvoice:'Ready to invoice',vehiclesSaved:'Vehicles saved'})[type]||'Dashboard details';
+}
+function openDashboardBreakdown(type){
+  const modal=document.getElementById('metricModal'), title=document.getElementById('metricTitle'), body=document.getElementById('metricBody');
+  if(!modal||!title||!body) return;
+  let list=[];
+  let isVehicle=false;
+  if(type==='jobsToday') list=jobsByTime(jobs);
+  if(type==='openJobs') list=jobsByTime(jobs.filter(j=>!['invoiced','collected'].includes(j.status||'booked')));
+  if(type==='readyInvoice') list=jobsByTime(jobs.filter(j=>(j.status||'booked')==='complete'));
+  if(type==='vehiclesSaved'){
+    isVehicle=true;
+    const map=new Map();
+    jobsByTime(jobs).forEach(j=>{const key=String(j.reg||'').replace(/\s+/g,'').toUpperCase(); if(key&&!map.has(key)) map.set(key,j);});
+    list=[...map.values()];
+  }
+  const totalHours=list.reduce((sum,j)=>sum+Number(j.duration||0),0);
+  title.textContent=dashboardMetricTitle(type);
+  body.innerHTML=`<div class="metricSummary"><span>${list.length} ${isVehicle?'vehicle':'job'}${list.length===1?'':'s'}</span>${!isVehicle?`<span>${totalHours.toFixed(1)} booked hour${totalHours===1?'':'s'}</span>`:''}<span>${formatDate(currentDate)}</span></div>`+
+    (list.length?list.map(j=>`<div class="metricJob" data-openmetricjob="${j.id}"><span class="reg">${esc(j.reg)}</span><div><b>${esc(j.car||j.customer||'Vehicle')}</b><br>${esc(j.work||'Work required')}</div><div>${esc(j.start||'')} ${j.duration?`• ${Number(j.duration||0).toFixed(1)} hr`:''}</div><div>${esc(normaliseMechanicName(j.m||''))}<br><small>${esc(shortRamp(j.ramp||''))}</small></div></div>`).join(''):`<div class="metricEmpty">Nothing currently showing for this box.</div>`);
+  body.querySelectorAll('[data-openmetricjob]').forEach(el=>el.onclick=()=>{const j=jobs.find(x=>x.id===el.dataset.openmetricjob); modal.classList.remove('open'); if(j) openJobModal(j);});
+  modal.classList.add('open');
+}
+function attachDashboardMetricHandlers(){
+  document.querySelectorAll('[data-dashmetric]').forEach(el=>{el.onclick=()=>openDashboardBreakdown(el.dataset.dashmetric);});
+}
+
 function attachMetricHandlers(){
   document.querySelectorAll('[data-metric]').forEach(el=>{el.onclick=()=>openMetricBreakdown(el.dataset.metric);});
   const close=document.getElementById('metricClose'), modal=document.getElementById('metricModal');
@@ -657,7 +693,7 @@ function render(){
   if(window.dashJobsToday){const ordered=jobsByTime(jobs);dashJobsToday.textContent=jobs.length;dashOpenJobs.textContent=jobs.length;dashVehicles.textContent=new Set(jobs.map(j=>j.reg)).size;dashToInvoice.textContent=jobs.filter(j=>j.status==='complete').length;dashTodayList.innerHTML=ordered.length?ordered.map(j=>`<div class="sideJob" data-openjob="${j.id}"><div class="row"><span class="reg">${esc(j.reg)}</span><b>${esc(j.car||j.customer||'Vehicle')}</b></div><p>${esc(j.work)} <small>${j.start} ${esc(j.m)}</small></p><p>${esc(shortRamp(j.ramp))}</p></div>`).join(''):'<p>No jobs booked today.</p>';}
   if(window.printJordan) printJordan.innerHTML=jobs.filter(j=>normaliseMechanicName(j.m)==='Jordan').map(printJob).join('')||'<div style="padding:10px">No jobs booked.</div>';
   if(window.printAlfie) printAlfie.innerHTML=jobs.filter(j=>normaliseMechanicName(j.m)==='Alfie').map(printJob).join('')||'<div style="padding:10px">No jobs booked.</div>';
-  attachHandlers(); attachSideHandlers(); attachMetricHandlers(); saveJobs();
+  attachHandlers(); attachSideHandlers(); attachMetricHandlers(); attachDashboardMetricHandlers(); saveJobs();
 }
 function printJob(j){return `<div class="printJob"><div class="pTime">${j.start}</div><div><div class="pReg">${esc(j.reg)}</div><b>${esc(j.car||j.customer||'Vehicle')}</b><br>${esc(j.work)}</div><div class="pRamp">${esc(shortRamp(j.ramp))}</div></div>`}
 function openJobModal(job){
@@ -897,7 +933,7 @@ const timesEl=document.getElementById('times'); populateTimes(); populateJobType
 })();
 
 
-// V39.3 safety patch: restore sidebar navigation and calendar picker if any earlier handler fails.
+// V39.4 safety patch: restore sidebar navigation and calendar picker if any earlier handler fails.
 (function(){
   function switchView(viewId, btn){
     try{
