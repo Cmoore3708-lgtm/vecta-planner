@@ -689,7 +689,7 @@ function render(){
   if(timesEl) timesEl.innerHTML=times.map(t=>`<div class="time">${t}</div>`).join('');
   ['Alfie','Jordan'].forEach(n=>{const lane=document.getElementById('lane'+n); if(lane) lane.innerHTML=jobs.filter(j=>normaliseMechanicName(j.m)===n).map(jobHtml).join('')});
   if(window.mJobs) mJobs.textContent=jobs.length; const completed=jobs.filter(j=>(j.status==='complete'||j.status==='invoiced')).length; const toInvoice=jobs.filter(j=>j.status==='complete').length; if(window.mCompleted)mCompleted.textContent=completed; if(window.mToInvoice)mToInvoice.textContent=toInvoice; updatePlannerMetrics();
-  renderTasks(); renderSidePanels(); renderInvoiceQueue(); renderWeekAndList(); renderJobCards(); renderReports(); renderCustomerVehiclePages(); attachJobCardTabHandlers();
+  renderTasks(); renderSidePanels(); renderInvoiceQueue(); renderWeekAndList(); renderJobCards(); renderReports(); renderCustomerVehiclePages(); attachJobCardTabHandlers(); if(typeof renderServiceModule==='function') renderServiceModule();
   if(window.dashJobsToday){const ordered=jobsByTime(jobs);dashJobsToday.textContent=jobs.length;dashOpenJobs.textContent=jobs.length;dashVehicles.textContent=new Set(jobs.map(j=>j.reg)).size;dashToInvoice.textContent=jobs.filter(j=>j.status==='complete').length;dashTodayList.innerHTML=ordered.length?ordered.map(j=>`<div class="sideJob" data-openjob="${j.id}"><div class="row"><span class="reg">${esc(j.reg)}</span><b>${esc(j.car||j.customer||'Vehicle')}</b></div><p>${esc(j.work)} <small>${j.start} ${esc(j.m)}</small></p><p>${esc(shortRamp(j.ramp))}</p></div>`).join(''):'<p>No jobs booked today.</p>';}
   if(window.printJordan) printJordan.innerHTML=jobs.filter(j=>normaliseMechanicName(j.m)==='Jordan').map(printJob).join('')||'<div style="padding:10px">No jobs booked.</div>';
   if(window.printAlfie) printAlfie.innerHTML=jobs.filter(j=>normaliseMechanicName(j.m)==='Alfie').map(printJob).join('')||'<div style="padding:10px">No jobs booked.</div>';
@@ -1042,6 +1042,26 @@ const timesEl=document.getElementById('times'); populateTimes(); populateJobType
 })();
 
 
+
+
+// V40.3 controlled patch: ensure the four Service Module summary boxes are always clickable.
+(function(){
+  function bindServiceSummaryCards(){
+    document.querySelectorAll('[data-svcmetric]').forEach(function(card){
+      card.style.cursor='pointer';
+      card.onclick=function(){
+        if(typeof openServiceMetric==='function') openServiceMetric(card.dataset.svcmetric);
+      };
+    });
+  }
+  bindServiceSummaryCards();
+  document.querySelectorAll('.nav button[data-view="service"]').forEach(function(btn){
+    btn.addEventListener('click',function(){
+      if(typeof renderServiceModule==='function') renderServiceModule();
+      bindServiceSummaryCards();
+    });
+  });
+})();
 
 // V40.2 service-module logic is implemented in the main functions above.
 </script>
