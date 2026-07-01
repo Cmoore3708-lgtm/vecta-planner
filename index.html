@@ -129,7 +129,7 @@ img.brandLogo,img.dashBrandLogo,img.documentLogo,img.sheetLogo,.topBrand img,.in
     <div class="brand"><div class="vectaLogoBlock"><div class="vectaLogoWord">VECTA</div><div class="vectaLogoSub">Vehicle Servicing and repairs</div><div class="productName">VECTA Workshop Pro</div></div></div>
     <nav class="nav">
       <button data-view="dash">⌂ &nbsp; Dashboard</button><button class="active" data-view="planner">▣ &nbsp; Workshop Planner</button><button data-view="jobs">▤ &nbsp; Job Cards</button><button data-view="service">🛠 &nbsp; Service Module</button><button data-view="invoiceQueue">✓ &nbsp; Ready to Invoice</button><button data-view="customers">♙ &nbsp; Customers</button><button data-view="vehicles">▤ &nbsp; Vehicles</button><button data-view="invoices">£ &nbsp; Invoices</button><button data-view="reports">▥ &nbsp; Reports</button><button data-view="settings">⚙ &nbsp; Settings</button>
-    </nav><div class="sideFoot"><b>🚗 Vecta Motors</b><br><br><small>v40.4 Service Print</small></div>
+    </nav><div class="sideFoot"><b>🚗 Vecta Motors</b><br><br><small>v40.6 Job Card Service</small></div>
   </aside>
   <main class="main">
     <header class="top"><div class="dateCtl"><button id="prevDay">‹</button><div id="dateLabel" title="Click to choose a date"></div><button id="nextDay">›</button></div><input id="datePicker" type="date" style="position:absolute;opacity:0;pointer-events:none;width:1px;height:1px" aria-label="Pick planner date"><button class="pillBtn" id="todayBtn">Today</button><div class="seg"><button class="active" id="dayViewBtn">Day</button><button id="weekViewBtn">Week</button><button id="listViewBtn">List</button></div><button class="printBtn" id="printBtn">🖨 Print Day Plan</button><div class="user"><b>Chris</b>Administrator</div><button class="addJob" id="topAddJob">＋ Add Job Card</button></header>
@@ -877,26 +877,27 @@ function serviceSheetHtml(job,data){
   const brakeRows=corners.map(c=>`<tr><td><b>${c}</b></td><td>${esc(data.brakes?.[c]?.pads||'')}</td><td>${esc(data.brakes?.[c]?.discs||'')}</td><td>${esc(data.brakes?.[c]?.notes||'')}</td></tr>`).join('');
   const tyreRows=corners.map(c=>`<tr><td><b>${c}</b></td><td>${esc(data.tyres?.[c]?.tread||'')}</td><td>${esc(data.tyres?.[c]?.pressure||'')}</td><td>${esc(data.tyres?.[c]?.condition||'')}</td></tr>`).join('');
   const road=['Steering','Brakes','Clutch','Gear selection','Warning lights','Noise / vibration'].map(r=>`<span>□ ${r}</span>`).join('');
-  const adv=(data.advisories||[]).slice(0,6).map(a=>`<li>${esc(a)}</li>`).join('') || '<li>No customer advisories recorded.</li>';
+  const adv=(data.advisories||[]).slice(0,5).map(a=>`<li>${esc(a)}</li>`).join('') || '<li>No customer advisories recorded.</li>';
   const score=esc(data.score||'100');
   return `<!doctype html><html><head><title>Service Sheet ${esc(job.reg||'')}</title><style>
     @page{size:A4 portrait;margin:7mm}
-    *{box-sizing:border-box} body{font-family:Arial,sans-serif;color:#111827;font-size:10px;margin:0}.page{min-height:283mm;page-break-after:always}.page:last-child{page-break-after:auto}
-    .top{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:2px solid #111827;padding-bottom:5px;margin-bottom:6px}.brand{font-weight:950;font-size:25px;line-height:.85;letter-spacing:-.5px}.brand span{color:#dc2626;display:block}.subtitle{font-size:9px;color:#64748b;margin-top:3px;font-weight:800}.reg{background:#ffd400;border:2px solid #111;padding:5px 10px;font-weight:950;font-size:20px;display:inline-block;letter-spacing:1px}.sheetTitle{text-align:right;font-weight:950;font-size:16px;margin-bottom:3px}.grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:5px}.grid2{display:grid;grid-template-columns:1fr 1fr;gap:5px}.box{border:1px solid #cbd5e1;border-radius:6px;padding:5px;margin-bottom:5px;break-inside:avoid}.box h3{margin:0 0 4px;font-size:10px;text-transform:uppercase;letter-spacing:.4px}.box b{font-size:10px}.muted{color:#64748b}.score{font-size:28px;font-weight:950;color:#16a34a;line-height:1}table{width:100%;border-collapse:collapse}th{background:#111827;color:#fff;text-align:left;font-size:9px}th,td{border:1px solid #cbd5e1;padding:3px 4px;vertical-align:top}td.tick{width:20px;text-align:center;font-weight:950}.compact td{padding:2.5px 4px}.checks td:first-child{width:70%}.road{display:grid;grid-template-columns:1fr 1fr 1fr;gap:3px 8px}.lines{min-height:38px;border-bottom:1px solid #94a3b8;white-space:pre-wrap}.adv{background:#fff7ed;border-color:#fed7aa}.sign{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-top:5px}.sigline{border-bottom:1px solid #111;height:22px}.small{font-size:9px}.backTitle{font-size:14px;font-weight:950;margin:0 0 5px}.noPrintDuplicate{display:none}
+    *{box-sizing:border-box} body{font-family:Arial,sans-serif;color:#111827;font-size:9.6px;margin:0}.page{height:283mm;page-break-after:always;overflow:hidden}.page:last-child{page-break-after:auto}
+    .top{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:2px solid #111827;padding-bottom:5px;margin-bottom:6px}.brand{font-weight:950;font-size:24px;line-height:.85;letter-spacing:-.5px}.brand span{color:#dc2626;display:block}.subtitle{font-size:8.5px;color:#64748b;margin-top:3px;font-weight:800}.reg{background:#ffd400;border:2px solid #111;padding:5px 10px;font-weight:950;font-size:20px;display:inline-block;letter-spacing:1px}.sheetTitle{text-align:right;font-weight:950;font-size:16px;margin-bottom:3px}.grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:5px}.grid2{display:grid;grid-template-columns:1fr 1fr;gap:5px}.box{border:1px solid #cbd5e1;border-radius:6px;padding:5px;margin-bottom:5px;break-inside:avoid}.box h3{margin:0 0 4px;font-size:9.5px;text-transform:uppercase;letter-spacing:.35px}.box b{font-size:10px}.muted{color:#64748b}.score{font-size:25px;font-weight:950;color:#16a34a;line-height:1}table{width:100%;border-collapse:collapse}th{background:#111827;color:#fff;text-align:left;font-size:8.5px}th,td{border:1px solid #cbd5e1;padding:2.6px 3.5px;vertical-align:top}td.tick{width:18px;text-align:center;font-weight:950}.compact td{padding:2.1px 3.5px}.checks{columns:2}.checksTable td:first-child{width:72%}.road{display:grid;grid-template-columns:1fr 1fr 1fr;gap:3px 8px}.lines{min-height:31px;border-bottom:1px solid #94a3b8;white-space:pre-wrap}.adv{background:#fff7ed;border-color:#fed7aa}.sign{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-top:5px}.sigline{border-bottom:1px solid #111;height:20px}.small{font-size:8.6px}.noteBox{min-height:58px;white-space:pre-wrap}.opsWrap{display:grid;grid-template-columns:1fr 1fr;gap:5px}.opsWrap table{height:100%}ul{margin:4px 0 0 16px;padding:0}li{margin:0 0 2px}
   </style></head><body>
   <section class="page">
-    <div class="top"><div><div class="brand">VECTA<span>Workshop Pro</span></div><div class="subtitle">Condensed service worksheet — front side</div></div><div><div class="sheetTitle">SERVICE SHEET</div><span class="reg">${esc(job.reg||'')}</span></div></div>
+    <div class="top"><div><div class="brand">VECTA<span>Workshop Pro</span></div><div class="subtitle">Service worksheet — front side</div></div><div><div class="sheetTitle">SERVICE SHEET</div><span class="reg">${esc(job.reg||'')}</span></div></div>
     <div class="grid3"><div class="box"><h3>Vehicle</h3><b>${esc(job.car||'Vehicle')}</b><br>Mileage: ${esc(data.mileage||'')}</div><div class="box"><h3>Customer</h3><b>${esc(job.customer||'Customer not entered')}</b><br>${esc(job.phone||'')}</div><div class="box"><h3>Workshop</h3>Tech: <b>${esc(job.m||'')}</b><br>Ramp: ${esc(shortRamp(job.ramp||''))}<br>Time: ${esc(job.start||'')}</div></div>
     <div class="grid3"><div class="box"><h3>Oil spec</h3>${esc(data.oilSpec||'')}</div><div class="box"><h3>Oil qty</h3>${esc(data.oilQty||'')}</div><div class="box"><h3>Oil brand</h3>${esc(data.oilBrand||'')}</div></div>
-    <div class="grid2"><div class="box"><h3>Service operations</h3><table class="compact"><tbody>${ops}</tbody></table></div><div class="box"><h3>Health check</h3><table class="compact checks"><thead><tr><th>Item</th><th>Status</th></tr></thead><tbody>${checks}</tbody></table></div></div>
+    <div class="box"><h3>Service operations completed / required</h3><div class="opsWrap"><table class="compact"><tbody>${ops}</tbody></table></div></div>
+    <div class="grid2"><div class="box"><h3>Previous MOT / service notes</h3><div class="noteBox">${esc(data.motNotes||'')}</div></div><div class="box"><h3>Technician notes</h3><div class="lines"></div><div class="lines"></div></div></div>
+    <div class="sign"><div><b>Technician signature</b><div class="sigline"></div></div><div><b>Start time</b><div class="sigline"></div></div><div><b>Date</b><div class="sigline"></div></div></div>
   </section>
   <section class="page">
-    <div class="top"><div><div class="brand">VECTA<span>Workshop Pro</span></div><div class="subtitle">Condensed service worksheet — reverse side</div></div><div><div class="sheetTitle">MEASUREMENTS & NOTES</div><span class="reg">${esc(job.reg||'')}</span></div></div>
+    <div class="top"><div><div class="brand">VECTA<span>Workshop Pro</span></div><div class="subtitle">Service worksheet — reverse side</div></div><div><div class="sheetTitle">HEALTH CHECK & MEASUREMENTS</div><span class="reg">${esc(job.reg||'')}</span></div></div>
+    <div class="box"><h3>Health check</h3><table class="compact checksTable"><thead><tr><th>Item</th><th>Status</th></tr></thead><tbody>${checks}</tbody></table></div>
     <div class="grid2"><div class="box"><h3>Brake measurements</h3><table><thead><tr><th>Position</th><th>Pads mm</th><th>Discs mm</th><th>Notes</th></tr></thead><tbody>${brakeRows}</tbody></table></div><div class="box"><h3>Tyre measurements</h3><table><thead><tr><th>Position</th><th>Tread mm</th><th>Pressure</th><th>Condition</th></tr></thead><tbody>${tyreRows}</tbody></table></div></div>
-    <div class="grid2"><div class="box"><h3>Road test</h3><div class="road">${road}</div><div class="lines">${esc(data.roadTest||'')}</div></div><div class="box"><h3>Previous MOT / service notes</h3><div class="lines">${esc(data.motNotes||'')}</div></div></div>
-    <div class="grid2"><div class="box adv"><h3>Customer advisories</h3><ul>${adv}</ul></div><div class="box"><h3>Health score</h3><div class="score">${score}%</div><div class="muted small">Generated from inspection failures and advisories.</div></div></div>
-    <div class="box"><h3>Technician notes / internal workshop notes</h3><div class="lines"></div><div class="lines"></div></div>
-    <div class="sign"><div><b>Technician signature</b><div class="sigline"></div></div><div><b>Completion time</b><div class="sigline"></div></div><div><b>Date</b><div class="sigline"></div></div></div>
+    <div class="grid2"><div class="box"><h3>Road test</h3><div class="road">${road}</div><div class="lines">${esc(data.roadTest||'')}</div></div><div class="box adv"><h3>Customer advisories</h3><ul>${adv}</ul></div></div>
+    <div class="grid2"><div class="box"><h3>Health score</h3><div class="score">${score}%</div><div class="muted small">Generated from inspection failures and advisories.</div></div><div class="box"><h3>Completion</h3><div class="sign"><div><b>Signed</b><div class="sigline"></div></div><div><b>Time</b><div class="sigline"></div></div><div><b>Date</b><div class="sigline"></div></div></div></div></div>
   </section>
   </body></html>`;
 }
@@ -925,10 +926,10 @@ function printServicePack(){
   const job=jobs.find(j=>j.id===currentServiceJobId); if(!job)return;
   const data=getServiceData(currentServiceJobId);
   const w=window.open('','_blank'); if(!w){alert('Pop-up blocked. Allow pop-ups to print the service pack.');return;}
-  const sheet=serviceSheetHtml(job,data).replace('</body></html>','');
-  const report=serviceReportHtml(job,data).replace(/^[\s\S]*?<body>/,'').replace('</body></html>','');
+  // V40.5: Service Pack now prints the same two-sided service sheet only.
+  // The old pages 3 and 4 were the duplicated health report and have been removed.
   w.document.open();
-  w.document.write(sheet+'<div style="page-break-before:always"></div>'+report+'</body></html>');
+  w.document.write(serviceSheetHtml(job,data));
   w.document.close();
   setTimeout(()=>w.print(),400);
 }
@@ -1068,5 +1069,162 @@ const timesEl=document.getElementById('times'); populateTimes(); populateJobType
 
 // V40.4 service-module print logic is implemented in the main functions above.
 </script>
+
+<style id="v406-job-card-service-css">
+/* V40.6 controlled patch: job card becomes the centre for servicing. */
+.nav button[data-view="service"]{display:none!important}
+.jobCoreTabs{display:flex;gap:8px;flex-wrap:wrap;padding:0 26px 14px;border-bottom:1px solid var(--line);background:#fff}
+.jobCoreTabs button{border:1px solid var(--line);background:#f8fafc;color:#334155;border-radius:999px;padding:9px 13px;font-weight:900;cursor:pointer;font-size:13px}
+.jobCoreTabs button.active{background:var(--red);border-color:var(--red);color:#fff;box-shadow:0 8px 18px rgba(220,38,38,.18)}
+.jobCorePanel{display:none;padding:0 26px 18px;background:#fff}
+.jobCorePanel.active{display:block}
+.jobServiceHub{border:1px solid var(--line);border-radius:18px;background:linear-gradient(180deg,#fff,#f8fafc);padding:16px;margin-top:14px;box-shadow:0 8px 22px rgba(15,23,42,.05)}
+.jobServiceHub h3{margin:0 0 6px;font-size:18px}.jobServiceHub p{margin:0 0 14px;color:#64748b;font-weight:750;line-height:1.35}
+.jobServiceGrid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}.jobServiceCard{border:1px solid var(--line);border-radius:14px;background:#fff;padding:14px;min-height:116px;display:flex;flex-direction:column;gap:8px}.jobServiceCard b{font-size:15px}.jobServiceCard small{color:#64748b;font-weight:750;line-height:1.35}.jobServiceCard button{margin-top:auto;border:0;border-radius:10px;padding:10px 12px;font-weight:950;cursor:pointer;background:#111827;color:#fff}.jobServiceCard button.ghost{background:#fff;color:#0f172a;border:1px solid var(--line)}
+.jobCardServiceSummary{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-top:12px}.jobCardServiceSummary div{background:#fff;border:1px solid var(--line);border-radius:12px;padding:11px}.jobCardServiceSummary small{display:block;color:#64748b;font-weight:800}.jobCardServiceSummary strong{font-size:18px}
+@media(max-width:900px){.jobServiceGrid,.jobCardServiceSummary{grid-template-columns:1fr}.jobCoreTabs{padding:0 18px 12px}.jobCorePanel{padding:0 18px 14px}}
+</style>
+<script id="v406-job-card-service-patch">
+(function(){
+  'use strict';
+  function byId(id){return document.getElementById(id);}
+  function escText(v){return String(v==null?'':v).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
+  function currentModalJobId(){return window.editingId || null;}
+  function saveOrGetJobId(){
+    if(window.editingId) return window.editingId;
+    if(typeof window.saveJobFromModal==='function') return window.saveJobFromModal();
+    return null;
+  }
+  function getModalJob(){
+    var id=currentModalJobId();
+    if(id && Array.isArray(window.jobs)) return window.jobs.find(function(j){return j.id===id;})||null;
+    return {
+      id:id,
+      reg:byId('reg')?.value||'',
+      car:byId('vehicle')?.value||'',
+      customer:byId('cust')?.value||'',
+      m:byId('mech')?.value||'',
+      work:byId('work')?.value||'',
+      notes:byId('notes')?.value||''
+    };
+  }
+  function serviceDataFor(id){
+    try{
+      if(id && typeof window.getServiceData==='function') return window.getServiceData(id) || {};
+    }catch(e){}
+    return {};
+  }
+  function buildServicePanel(){
+    var id=currentModalJobId();
+    var j=getModalJob()||{};
+    var d=serviceDataFor(id);
+    var advCount=Array.isArray(d.advisories)?d.advisories.length:0;
+    var complete=d.completedAt?'Complete':'Not complete';
+    return '<div class="jobServiceHub">'+
+      '<h3>Service and inspection inside this job card</h3>'+
+      '<p>This replaces the separate Service Module workflow. The technician opens one job card and completes the service, health check, measurements, advisories and print pack from here.</p>'+
+      '<div class="jobCardServiceSummary">'+
+        '<div><small>Registration</small><strong>'+escText(j.reg||byId('reg')?.value||'—')+'</strong></div>'+
+        '<div><small>Vehicle</small><strong>'+escText(j.car||byId('vehicle')?.value||'—')+'</strong></div>'+
+        '<div><small>Service status</small><strong>'+escText(complete)+'</strong></div>'+
+        '<div><small>Advisories</small><strong>'+escText(advCount)+'</strong></div>'+
+      '</div>'+
+      '<div class="jobServiceGrid">'+
+        '<div class="jobServiceCard"><b>Service schedule</b><small>Oil details, mileage, service operations and technician service card.</small><button type="button" data-job-service-action="service">Open service card</button></div>'+
+        '<div class="jobServiceCard"><b>Inspection / health check</b><small>Brakes, tyres, fluid checks, battery, road test notes and advisories.</small><button type="button" data-job-service-action="inspection">Open inspection</button></div>'+
+        '<div class="jobServiceCard"><b>Print customer pack</b><small>Print the service sheet/health report for this job without leaving the job card.</small><button type="button" data-job-service-action="print" class="ghost">Print service pack</button></div>'+
+      '</div>'+
+    '</div>';
+  }
+  function buildPlaceholder(title, body){
+    return '<div class="jobServiceHub"><h3>'+escText(title)+'</h3><p>'+escText(body)+'</p></div>';
+  }
+  function ensureJobCardTabs(){
+    var form=byId('jobForm'); if(!form) return;
+    var body=form.querySelector('.cardBody'); if(!body) return;
+    var existing=form.querySelector('.jobCoreTabs');
+    if(!existing){
+      var tabs=document.createElement('div'); tabs.className='jobCoreTabs';
+      tabs.innerHTML='<button type="button" class="active" data-job-core-tab="details">Job Details</button><button type="button" data-job-core-tab="service">Service</button><button type="button" data-job-core-tab="inspection">Inspection</button><button type="button" data-job-core-tab="diagnostics">Diagnostics</button><button type="button" data-job-core-tab="photos">Photos</button><button type="button" data-job-core-tab="invoice">Invoice / Print</button>';
+      body.parentNode.insertBefore(tabs, body);
+      var panel=document.createElement('div'); panel.className='jobCorePanel'; panel.id='jobCorePanel';
+      body.parentNode.insertBefore(panel, body.nextSibling);
+    }
+    refreshJobCorePanel('details');
+    bindJobCoreTabs();
+  }
+  function refreshJobCorePanel(tab){
+    var form=byId('jobForm'); if(!form) return;
+    var body=form.querySelector('.cardBody'); var panel=byId('jobCorePanel'); if(!body||!panel) return;
+    if(tab==='details'){
+      body.style.display='grid'; panel.classList.remove('active'); panel.innerHTML='';
+    }else{
+      body.style.display='none'; panel.classList.add('active');
+      if(tab==='service' || tab==='inspection') panel.innerHTML=buildServicePanel();
+      else if(tab==='diagnostics') panel.innerHTML=buildPlaceholder('Diagnostics', 'Diagnostic notes and fault-code workflow should live here on the job card. For now, use Technician notes on the Job Details tab until we build the dedicated diagnostics section.');
+      else if(tab==='photos') panel.innerHTML=buildPlaceholder('Photos and videos', 'Photo/video evidence should be attached to this job card. This is a placeholder for the next controlled patch.');
+      else if(tab==='invoice') panel.innerHTML='<div class="jobServiceHub"><h3>Invoice and print</h3><p>Complete the job, send it to invoicing, or print service paperwork directly from this job card.</p><div class="jobServiceGrid"><div class="jobServiceCard"><b>Ready to invoice</b><small>Save this job and open the invoice screen.</small><button type="button" data-job-service-action="invoice">Create invoice</button></div><div class="jobServiceCard"><b>Service pack</b><small>Print the service sheet and health report for this job.</small><button type="button" data-job-service-action="print" class="ghost">Print service pack</button></div><div class="jobServiceCard"><b>MOT history</b><small>Open the government MOT history for the registration.</small><button type="button" data-job-service-action="mot" class="ghost">View MOT</button></div></div></div>';
+    }
+    bindJobServiceActions();
+  }
+  function bindJobCoreTabs(){
+    document.querySelectorAll('[data-job-core-tab]').forEach(function(btn){
+      btn.onclick=function(){
+        document.querySelectorAll('[data-job-core-tab]').forEach(function(b){b.classList.remove('active');});
+        btn.classList.add('active');
+        refreshJobCorePanel(btn.dataset.jobCoreTab);
+      };
+    });
+  }
+  function openServiceTab(tabId){
+    var id=saveOrGetJobId(); if(!id) return;
+    if(typeof window.openServiceForJob==='function') window.openServiceForJob(id);
+    setTimeout(function(){
+      if(tabId){
+        var btn=document.querySelector('[data-service-tab="'+tabId+'"]');
+        if(btn) btn.click();
+      }
+    },80);
+  }
+  function bindJobServiceActions(){
+    document.querySelectorAll('[data-job-service-action]').forEach(function(btn){
+      btn.onclick=function(){
+        var action=btn.dataset.jobServiceAction;
+        if(action==='service') openServiceTab('svcOps');
+        if(action==='inspection') openServiceTab('svcHealthCheck');
+        if(action==='print'){
+          var id=saveOrGetJobId(); if(!id) return;
+          if(typeof window.openServiceForJob==='function') window.openServiceForJob(id);
+          setTimeout(function(){ if(typeof window.printServicePack==='function') window.printServicePack(); },120);
+        }
+        if(action==='invoice'){
+          var statusEl=byId('status'); if(statusEl) statusEl.value='complete';
+          var id2=saveOrGetJobId(); if(id2 && typeof window.openInvoiceForJob==='function') window.openInvoiceForJob(id2);
+        }
+        if(action==='mot'){
+          var r=byId('reg')?.value||'';
+          if(typeof window.motHistoryUrl==='function') window.open(window.motHistoryUrl(r),'_blank','noopener');
+        }
+      };
+    });
+  }
+  function patchNavigation(){
+    document.querySelectorAll('.nav button[data-view="service"]').forEach(function(btn){btn.style.display='none';});
+    var foot=document.querySelector('.sideFoot small'); if(foot) foot.textContent='v40.6 Job Card Service';
+  }
+  function wrapOpenJobModal(){
+    if(typeof window.openJobModal!=='function' || window.openJobModal.__v406Wrapped) return;
+    var original=window.openJobModal;
+    window.openJobModal=function(job){
+      original.apply(this,arguments);
+      setTimeout(function(){ensureJobCardTabs();},30);
+    };
+    window.openJobModal.__v406Wrapped=true;
+  }
+  function boot(){patchNavigation(); wrapOpenJobModal(); ensureJobCardTabs();}
+  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',boot); else boot();
+})();
+</script>
+
 </body>
 </html>
