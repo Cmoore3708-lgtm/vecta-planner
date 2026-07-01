@@ -129,7 +129,7 @@ img.brandLogo,img.dashBrandLogo,img.documentLogo,img.sheetLogo,.topBrand img,.in
     <div class="brand"><div class="vectaLogoBlock"><div class="vectaLogoWord">VECTA</div><div class="vectaLogoSub">Vehicle Servicing and repairs</div><div class="productName">VECTA Workshop Pro</div></div></div>
     <nav class="nav">
       <button data-view="dash">⌂ &nbsp; Dashboard</button><button class="active" data-view="planner">▣ &nbsp; Workshop Planner</button><button data-view="jobs">▤ &nbsp; Job Cards</button><button data-view="service">🛠 &nbsp; Service Module</button><button data-view="invoiceQueue">✓ &nbsp; Ready to Invoice</button><button data-view="customers">♙ &nbsp; Customers</button><button data-view="vehicles">▤ &nbsp; Vehicles</button><button data-view="invoices">£ &nbsp; Invoices</button><button data-view="reports">▥ &nbsp; Reports</button><button data-view="settings">⚙ &nbsp; Settings</button>
-    </nav><div class="sideFoot"><b>🚗 Vecta Motors</b><br><br><small>v40.9 Service Sheet Layout</small></div>
+    </nav><div class="sideFoot"><b>🚗 Vecta Motors</b><br><br><small>v40.15 Job Card Print</small></div>
   </aside>
   <main class="main">
     <header class="top"><div class="dateCtl"><button id="prevDay">‹</button><div id="dateLabel" title="Click to choose a date"></div><button id="nextDay">›</button></div><input id="datePicker" type="date" style="position:absolute;opacity:0;pointer-events:none;width:1px;height:1px" aria-label="Pick planner date"><button class="pillBtn" id="todayBtn">Today</button><div class="seg"><button class="active" id="dayViewBtn">Day</button><button id="weekViewBtn">Week</button><button id="listViewBtn">List</button></div><button class="printBtn" id="printBtn">🖨 Print Day Plan</button><div class="user"><b>Chris</b>Administrator</div><button class="addJob" id="topAddJob">＋ Add Job Card</button></header>
@@ -193,7 +193,7 @@ img.brandLogo,img.dashBrandLogo,img.documentLogo,img.sheetLogo,.topBrand img,.in
       <div><label>Workflow status<select id="status"><option value="booked">Booked In</option><option value="waitingTech">Waiting for Technician</option><option value="inProgress">In Progress</option><option value="waitingParts">Waiting for Parts</option><option value="workComplete">Work Complete</option><option value="complete">Ready to Invoice</option><option value="invoiced">Invoiced</option><option value="collected">Collected</option></select></label></div>
       <div class="wide"><label>Technician notes<textarea id="notes" placeholder="Notes, parts required, customer waiting, etc."></textarea></label></div>
     </div>
-    <div class="cardFooter"><button type="button" class="danger" id="deleteModal">Delete job</button><button type="button" class="ghost" id="serviceModalBtn">Service Job Card</button><button type="button" class="ghost" id="motModalBtn">View MOT History</button><button type="button" class="ghost" id="markCompleteModal">Complete — send to invoicing</button><button type="button" class="ghost" id="cancelModal">Cancel</button><button class="primary" type="submit">Save job card</button></div>
+    <div class="cardFooter"><button type="button" class="danger" id="deleteModal" title="Delete this job card permanently">🗑 Delete Job</button><button type="button" class="ghost" id="serviceModalBtn">Service Job Card</button><button type="button" class="ghost" id="motModalBtn">View MOT History</button><button type="button" class="ghost" id="markCompleteModal">Complete — send to invoicing</button><button type="button" class="ghost" id="cancelModal">Cancel</button><button class="primary" type="submit">Save job card</button></div>
   </form>
 </div>
 
@@ -650,7 +650,7 @@ function printJobsBookedInList(){
       .header{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:3px solid #111827;padding-bottom:8px;margin-bottom:10px}
       h1{margin:0;font-size:22px;letter-spacing:.2px}.meta{text-align:right;font-size:12px;line-height:1.5;color:#334155}.summary{display:flex;gap:8px;margin:8px 0 10px}.summary span{border:1px solid #cbd5e1;background:#f8fafc;border-radius:999px;padding:6px 10px;font-weight:900}
       table{width:100%;border-collapse:collapse}th{background:#111827;color:#fff;text-align:left;padding:7px 8px;font-size:11px;text-transform:uppercase;letter-spacing:.3px}td{border:1px solid #cbd5e1;padding:7px 8px;vertical-align:top}tr:nth-child(even) td{background:#f8fafc}.reg{display:inline-block;background:#ffd84d!important;border:1px solid #111827;border-radius:4px;padding:4px 8px;font-weight:950;letter-spacing:1px;color:#111827}.footer{margin-top:8px;font-size:10px;color:#64748b;text-align:right}
-    </style></head><body><div class="header"><div><h1>Jobs Booked In</h1><div>${esc(formatDate(currentDate))}</div></div><div class="meta"><b>VECTA Motors</b><br>Workshop Planner<br>Printed ${new Date().toLocaleString('en-GB')}</div></div><div class="summary"><span>${list.length} job${list.length===1?'':'s'}</span><span>${totalHours.toFixed(1)} booked hours</span></div><table><thead><tr><th style="width:70px">Time</th><th style="width:115px">Reg</th><th>Vehicle</th><th>Work Required</th><th style="width:95px">Technician</th><th style="width:85px">Ramp</th><th style="width:75px">Hours</th></tr></thead><tbody>${rows}</tbody></table><div class="footer">V40.13 planner print</div></body></html>`;
+    </style></head><body><div class="header"><div><h1>Jobs Booked In</h1><div>${esc(formatDate(currentDate))}</div></div><div class="meta"><b>VECTA Motors</b><br>Workshop Planner<br>Printed ${new Date().toLocaleString('en-GB')}</div></div><div class="summary"><span>${list.length} job${list.length===1?'':'s'}</span><span>${totalHours.toFixed(1)} booked hours</span></div><table><thead><tr><th style="width:70px">Time</th><th style="width:115px">Reg</th><th>Vehicle</th><th>Work Required</th><th style="width:95px">Technician</th><th style="width:85px">Ramp</th><th style="width:75px">Hours</th></tr></thead><tbody>${rows}</tbody></table><div class="footer">V40.14 planner print</div></body></html>`;
     if(typeof printHtmlDirect==='function') printHtmlDirect(html);
     else { const w=window.open('','_blank'); if(!w){alert('Pop-up blocked. Allow pop-ups to print.');return;} w.document.open(); w.document.write(html); w.document.close(); setTimeout(()=>w.print(),300); }
   }catch(err){ console.error(err); alert('Unable to print jobs booked in list.'); }
@@ -749,7 +749,22 @@ function saveJobFromModal(){
   normaliseJobs();
   closeJobModal(); render(); return savedId;
 }
-function deleteCurrentJob(){if(!editingId)return; if(confirm('Delete this job card?')){jobs=jobs.filter(j=>j.id!==editingId); closeJobModal(); render();}}
+function deleteCurrentJob(){
+  if(!editingId)return;
+  const job=jobs.find(j=>j.id===editingId);
+  const label=[job?.reg, job?.customer||job?.car, job?.work].filter(Boolean).join(' • ');
+  const msg='Delete this job card?\n\n'+(label?label+'\n\n':'')+'This will permanently remove the job card from today\'s planner and job card list. This action cannot be undone.';
+  if(!confirm(msg)) return;
+  try{localStorage.removeItem(serviceStorageKey(editingId));}catch(e){}
+  try{localStorage.removeItem(invoiceStorageKey(editingId));}catch(e){}
+  jobs=jobs.filter(j=>j.id!==editingId);
+  const deletedDate=job?.date||dateKey();
+  saveJobs();
+  closeJobModal();
+  setView('planner');
+  render();
+  alert('Job card deleted.');
+}
 function moveJobToPoint(id, clientX, clientY){
   const lane = document.elementFromPoint(clientX, clientY)?.closest?.('.lane');
   if(!lane) return false;
@@ -964,7 +979,7 @@ function serviceSheetHtml(job,data){
     <div class="footerRow"><div class="box"><h3>Road test</h3><div class="road">${road}</div><div class="noteLines">${esc(data.roadTest||'')}</div></div><div class="box"><h3>Technician notes</h3><div class="noteLines"></div></div></div>
     <div class="sign"><div><b>Technician signature</b><div class="sigline"></div></div><div><b>Date</b><div class="sigline"></div></div></div>
     <div class="contactFooter"><span>07721722622</span><span>chris@vectamotors.co.uk</span><span>www.vectamotors.co.uk</span></div>
-    <div class="printNote">V40.13 planner print</div>
+    <div class="printNote">V40.14 planner print</div>
   </section>
   </body></html>`;
 }
@@ -1311,7 +1326,7 @@ const timesEl=document.getElementById('times'); populateTimes(); populateJobType
   }
   function patchNavigation(){
     document.querySelectorAll('.nav button[data-view="service"]').forEach(function(btn){btn.style.display='none';});
-    var foot=document.querySelector('.sideFoot small'); if(foot) foot.textContent='v40.13 Planner Print';
+    var foot=document.querySelector('.sideFoot small'); if(foot) foot.textContent='v40.15 Job Card Print';
   }
   function wrapOpenJobModal(){
     if(typeof window.openJobModal!=='function' || window.openJobModal.__v406Wrapped) return;
@@ -1323,6 +1338,100 @@ const timesEl=document.getElementById('times'); populateTimes(); populateJobType
     window.openJobModal.__v406Wrapped=true;
   }
   function boot(){patchNavigation(); wrapOpenJobModal(); ensureJobCardTabs();}
+  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',boot); else boot();
+})();
+</script>
+
+
+<script id="v4015-job-card-print-cleanup">
+(function(){
+  'use strict';
+  function byId(id){return document.getElementById(id);}
+  function esc(v){return String(v==null?'':v).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
+  function fmtDate(v){
+    if(!v) return '';
+    try{var d=new Date(v+'T12:00:00'); return d.toLocaleDateString('en-GB',{weekday:'short',day:'2-digit',month:'short',year:'numeric'});}catch(e){return v;}
+  }
+  function stripJobCardTabs(){
+    document.querySelectorAll('.jobCoreTabs,#jobCorePanel').forEach(function(el){el.remove();});
+    var body=document.querySelector('#jobForm .cardBody'); if(body) body.style.display='grid';
+    ['serviceModalBtn'].forEach(function(id){var el=byId(id); if(el) el.remove();});
+    document.querySelectorAll('#jobForm button').forEach(function(btn){
+      var t=(btn.textContent||'').trim().toLowerCase();
+      if(t.indexOf('duplicate')!==-1 || t==='service' || t==='inspection' || t==='diagnostics' || t==='photos') btn.remove();
+    });
+    var footer=document.querySelector('#jobForm .cardFooter');
+    if(footer && !byId('jobCardPrintBtn')){
+      var print=document.createElement('button');
+      print.type='button'; print.className='ghost'; print.id='jobCardPrintBtn'; print.textContent='🖨 Print';
+      print.onclick=printCurrentJobCard;
+      var del=byId('deleteModal');
+      if(del && del.parentNode===footer) footer.insertBefore(print, del.nextSibling); else footer.insertBefore(print, footer.firstChild);
+    }
+    var foot=document.querySelector('.sideFoot small'); if(foot) foot.textContent='v40.15 Job Card Print';
+  }
+  function currentJobValues(){
+    var id=window.editingId||null;
+    var existing=null;
+    try{ if(id && Array.isArray(window.jobs)) existing=window.jobs.find(function(j){return j.id===id;})||null; }catch(e){}
+    return {
+      id:id,
+      customer:byId('cust')?.value || existing?.customer || '',
+      phone:byId('phone')?.value || existing?.phone || '',
+      reg:byId('reg')?.value || existing?.reg || '',
+      car:byId('vehicle')?.value || existing?.car || '',
+      date:byId('bookingDate')?.value || existing?.date || '',
+      work:byId('work')?.value || existing?.work || '',
+      amountQuoted:byId('amountQuoted')?.value || existing?.amountQuoted || '',
+      quoteAccepted:byId('quoteAccepted')?.value || existing?.quoteAccepted || '',
+      mechanic:byId('mech')?.value || existing?.m || '',
+      ramp:byId('ramp')?.value || existing?.ramp || '',
+      start:byId('startTime')?.value || existing?.start || '',
+      duration:byId('duration')?.value || existing?.duration || '',
+      status:byId('status')?.value || existing?.status || '',
+      notes:byId('notes')?.value || existing?.notes || ''
+    };
+  }
+  function buildJobCardPrintHtml(job){
+    var quoted=job.amountQuoted ? '£'+esc(job.amountQuoted) : '';
+    return '<!doctype html><html><head><title>Job Card '+esc(job.reg)+'</title><style>'+ 
+      '@page{size:A4 portrait;margin:10mm}*{box-sizing:border-box}body{font-family:Arial,Helvetica,sans-serif;margin:0;color:#111827;font-size:13px;-webkit-print-color-adjust:exact;print-color-adjust:exact}.sheet{width:100%}.head{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:3px solid #111827;padding-bottom:8px;margin-bottom:10px}.brand{font-weight:950;font-size:26px;letter-spacing:.5px}.brand span{color:#d71920}.title{text-align:right}.title h1{font-size:22px;margin:0 0 6px}.reg{display:inline-block;background:#facc15!important;border:2px solid #111;border-radius:4px;padding:8px 16px;font-family:Arial Black,Impact,Arial,sans-serif;font-size:24px;letter-spacing:1.5px}.grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px}.box{border:1.8px solid #111827;border-radius:8px;padding:8px;min-height:48px}.box h3{margin:0 0 6px;font-size:13px;text-transform:uppercase;background:#111827;color:#fff;padding:5px 7px;border-radius:5px}.line{display:grid;grid-template-columns:130px 1fr;gap:8px;padding:3px 0;border-bottom:1px solid #e5e7eb}.label{font-weight:900;color:#374151}.wide{grid-column:1/-1}.big{min-height:90px;white-space:pre-wrap}.signGrid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px}.sign{height:70px;border:1.8px solid #111827;border-radius:8px;padding:8px}.foot{margin-top:8px;text-align:center;font-weight:800;font-size:11px;color:#374151}'+
+      '</style></head><body><div class="sheet"><div class="head"><div><div class="brand">VECTA <span>MOTORS</span></div><div>Workshop Job Card</div></div><div class="title"><h1>JOB CARD</h1><div class="reg">'+esc(job.reg||'')+'</div></div></div>'+ 
+      '<div class="grid"><div class="box"><h3>Customer</h3><div class="line"><div class="label">Name</div><div>'+esc(job.customer)+'</div></div><div class="line"><div class="label">Phone</div><div>'+esc(job.phone)+'</div></div></div>'+ 
+      '<div class="box"><h3>Vehicle</h3><div class="line"><div class="label">Vehicle</div><div>'+esc(job.car)+'</div></div><div class="line"><div class="label">Registration</div><div>'+esc(job.reg)+'</div></div></div>'+ 
+      '<div class="box"><h3>Booking</h3><div class="line"><div class="label">Date</div><div>'+esc(fmtDate(job.date))+'</div></div><div class="line"><div class="label">Start</div><div>'+esc(job.start)+'</div></div><div class="line"><div class="label">Duration</div><div>'+esc(job.duration)+' hour(s)</div></div></div>'+ 
+      '<div class="box"><h3>Workshop</h3><div class="line"><div class="label">Technician</div><div>'+esc(job.mechanic)+'</div></div><div class="line"><div class="label">Ramp</div><div>'+esc(job.ramp)+'</div></div><div class="line"><div class="label">Status</div><div>'+esc(job.status)+'</div></div></div>'+ 
+      '<div class="box wide"><h3>Work Required</h3><div class="big">'+esc(job.work)+'</div></div>'+ 
+      '<div class="box"><h3>Price / Authorisation</h3><div class="line"><div class="label">Amount quoted</div><div>'+quoted+'</div></div><div class="line"><div class="label">Quote accepted</div><div>'+esc(job.quoteAccepted)+'</div></div></div>'+ 
+      '<div class="box"><h3>Parts / Labour Notes</h3><div class="big"></div></div>'+ 
+      '<div class="box wide"><h3>Technician Notes</h3><div class="big">'+esc(job.notes)+'</div></div></div>'+ 
+      '<div class="signGrid"><div class="sign"><b>Technician signature:</b></div><div class="sign"><b>Customer / collection signature:</b></div></div><div class="foot">07721722622 • chris@vectamotors.co.uk • www.vectamotors.co.uk</div></div></body></html>';
+  }
+  function printHtml(html){
+    var old=byId('vectaJobPrintFrame'); if(old) old.remove();
+    var frame=document.createElement('iframe'); frame.id='vectaJobPrintFrame'; frame.style.position='fixed'; frame.style.right='0'; frame.style.bottom='0'; frame.style.width='0'; frame.style.height='0'; frame.style.border='0'; frame.style.opacity='0';
+    document.body.appendChild(frame);
+    var doc=frame.contentWindow.document;
+    doc.open(); doc.write(html); doc.close();
+    setTimeout(function(){try{frame.contentWindow.focus(); frame.contentWindow.print();}catch(e){window.print();} setTimeout(function(){frame.remove();},1000);},150);
+  }
+  function printCurrentJobCard(){
+    var job=currentJobValues();
+    printHtml(buildJobCardPrintHtml(job));
+  }
+  function wrapOpenJobModalV4015(){
+    if(typeof window.openJobModal!=='function' || window.openJobModal.__v4015Wrapped) return;
+    var original=window.openJobModal;
+    window.openJobModal=function(){
+      original.apply(this,arguments);
+      setTimeout(stripJobCardTabs,90);
+    };
+    window.openJobModal.__v4015Wrapped=true;
+  }
+  function boot(){
+    stripJobCardTabs(); wrapOpenJobModalV4015();
+    document.addEventListener('click',function(e){ if(e.target && e.target.id==='jobCardPrintBtn') printCurrentJobCard(); });
+  }
   if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',boot); else boot();
 })();
 </script>
