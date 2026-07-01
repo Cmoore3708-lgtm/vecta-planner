@@ -171,7 +171,7 @@ img.brandLogo,img.dashBrandLogo,img.documentLogo,img.sheetLogo,.topBrand img,.in
 </div>
 
 
-<div class="metricModal" id="metricModal"><div class="metricModalCard"><div class="metricModalHead"><h2 id="metricTitle">Metric details</h2><button class="closeBtn" id="metricClose">Close</button></div><div class="metricModalBody" id="metricBody"></div></div></div>
+<div class="metricModal" id="metricModal"><div class="metricModalCard"><div class="metricModalHead"><h2 id="metricTitle">Metric details</h2><div style="display:flex;gap:10px;align-items:center"><button class="primary" id="metricPrintBtn" style="display:none;padding:10px 14px">🖨 Print</button><button class="closeBtn" id="metricClose">Close</button></div></div><div class="metricModalBody" id="metricBody"></div></div></div>
 <div class="appError" id="appError"><button type="button" onclick="this.parentElement.style.display='none'">Close</button><span id="appErrorText"></span></div>
 <div class="modal" id="jobModal">
   <form class="cardPage" id="jobForm">
@@ -637,9 +637,33 @@ function jobMatchesMetric(job,type){
 function metricTitle(type){
   return ({booked:'Jobs booked in today',completed:'Completed today',toInvoice:'Ready to invoice',alfie:'Jobs allocated to Alfie',jordan:'Jobs allocated to Jordan',rampLeft:'Jobs on left ramp',rampMiddle:'Jobs on middle ramp',rampRight:'Jobs on right ramp'})[type]||'Metric details';
 }
+
+function printJobsBookedInList(){
+  try{
+    const list=jobsByTime(jobs.filter(j=>jobMatchesMetric(j,'booked')));
+    const totalHours=list.reduce((sum,j)=>sum+Number(j.duration||0),0);
+    const rows=list.map(j=>`<tr><td>${esc(j.start||'')}</td><td><span class="reg">${esc(j.reg||'')}</span></td><td><b>${esc(j.car||j.customer||'Vehicle')}</b><br><small>${esc(j.customer||'')}</small></td><td>${esc(j.work||'')}</td><td>${esc(normaliseMechanicName(j.m||''))}</td><td>${esc(shortRamp(j.ramp||''))}</td><td>${Number(j.duration||0).toFixed(1)} hr</td></tr>`).join('') || '<tr><td colspan="7" style="text-align:center;color:#64748b;font-weight:800;padding:20px">No jobs booked in for this date.</td></tr>';
+    const html=`<!doctype html><html><head><meta charset="utf-8"><title>Jobs Booked In - ${esc(formatDate(currentDate))}</title><style>
+      *{box-sizing:border-box;-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}
+      @page{size:A4 landscape;margin:10mm}
+      body{font-family:Inter,Arial,Helvetica,sans-serif;margin:0;color:#0f172a;font-size:12px}
+      .header{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:3px solid #111827;padding-bottom:8px;margin-bottom:10px}
+      h1{margin:0;font-size:22px;letter-spacing:.2px}.meta{text-align:right;font-size:12px;line-height:1.5;color:#334155}.summary{display:flex;gap:8px;margin:8px 0 10px}.summary span{border:1px solid #cbd5e1;background:#f8fafc;border-radius:999px;padding:6px 10px;font-weight:900}
+      table{width:100%;border-collapse:collapse}th{background:#111827;color:#fff;text-align:left;padding:7px 8px;font-size:11px;text-transform:uppercase;letter-spacing:.3px}td{border:1px solid #cbd5e1;padding:7px 8px;vertical-align:top}tr:nth-child(even) td{background:#f8fafc}.reg{display:inline-block;background:#ffd84d!important;border:1px solid #111827;border-radius:4px;padding:4px 8px;font-weight:950;letter-spacing:1px;color:#111827}.footer{margin-top:8px;font-size:10px;color:#64748b;text-align:right}
+    </style></head><body><div class="header"><div><h1>Jobs Booked In</h1><div>${esc(formatDate(currentDate))}</div></div><div class="meta"><b>VECTA Motors</b><br>Workshop Planner<br>Printed ${new Date().toLocaleString('en-GB')}</div></div><div class="summary"><span>${list.length} job${list.length===1?'':'s'}</span><span>${totalHours.toFixed(1)} booked hours</span></div><table><thead><tr><th style="width:70px">Time</th><th style="width:115px">Reg</th><th>Vehicle</th><th>Work Required</th><th style="width:95px">Technician</th><th style="width:85px">Ramp</th><th style="width:75px">Hours</th></tr></thead><tbody>${rows}</tbody></table><div class="footer">V40.13 planner print</div></body></html>`;
+    if(typeof printHtmlDirect==='function') printHtmlDirect(html);
+    else { const w=window.open('','_blank'); if(!w){alert('Pop-up blocked. Allow pop-ups to print.');return;} w.document.open(); w.document.write(html); w.document.close(); setTimeout(()=>w.print(),300); }
+  }catch(err){ console.error(err); alert('Unable to print jobs booked in list.'); }
+}
+
 function openMetricBreakdown(type){
   const modal=document.getElementById('metricModal'), title=document.getElementById('metricTitle'), body=document.getElementById('metricBody');
+  const printButton=document.getElementById('metricPrintBtn');
   if(!modal||!title||!body) return;
+  if(printButton){
+    printButton.style.display=(type==='booked')?'inline-flex':'none';
+    printButton.onclick=(type==='booked')?printJobsBookedInList:null;
+  }
   const list=jobsByTime(jobs.filter(j=>jobMatchesMetric(j,type)));
   const totalHours=list.reduce((sum,j)=>sum+Number(j.duration||0),0);
   title.textContent=metricTitle(type);
@@ -940,7 +964,7 @@ function serviceSheetHtml(job,data){
     <div class="footerRow"><div class="box"><h3>Road test</h3><div class="road">${road}</div><div class="noteLines">${esc(data.roadTest||'')}</div></div><div class="box"><h3>Technician notes</h3><div class="noteLines"></div></div></div>
     <div class="sign"><div><b>Technician signature</b><div class="sigline"></div></div><div><b>Date</b><div class="sigline"></div></div></div>
     <div class="contactFooter"><span>07721722622</span><span>chris@vectamotors.co.uk</span><span>www.vectamotors.co.uk</span></div>
-    <div class="printNote">V40.12 single-click print</div>
+    <div class="printNote">V40.13 planner print</div>
   </section>
   </body></html>`;
 }
@@ -1287,7 +1311,7 @@ const timesEl=document.getElementById('times'); populateTimes(); populateJobType
   }
   function patchNavigation(){
     document.querySelectorAll('.nav button[data-view="service"]').forEach(function(btn){btn.style.display='none';});
-    var foot=document.querySelector('.sideFoot small'); if(foot) foot.textContent='v40.12 Print Flow';
+    var foot=document.querySelector('.sideFoot small'); if(foot) foot.textContent='v40.13 Planner Print';
   }
   function wrapOpenJobModal(){
     if(typeof window.openJobModal!=='function' || window.openJobModal.__v406Wrapped) return;
