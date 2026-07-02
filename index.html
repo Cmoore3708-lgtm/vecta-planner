@@ -2046,5 +2046,79 @@ const timesEl=document.getElementById('times'); populateTimes(); populateJobType
 })();
 </script>
 
+
+
+<script id="v4027-planner-status-display-safe-patch">
+(function(){
+  'use strict';
+  function htmlEscape(v){
+    try{ if(typeof esc==='function') return esc(v); }catch(e){}
+    return String(v==null?'':v).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});
+  }
+  function getStatus(job){ return String((job && job.status) || 'booked'); }
+  function statusLabel(st){
+    st=String(st||'booked');
+    if(typeof window.statusText==='function'){
+      try{ return window.statusText(st); }catch(e){}
+    }
+    return ({booked:'Booked In',waitingTech:'Waiting tech',inProgress:'In progress',waitingParts:'Waiting parts',workComplete:'Work complete',complete:'Ready to invoice',invoiced:'Invoiced',collected:'Collected'})[st] || 'Booked In';
+  }
+  function statusClass(st){ return 'v4027-status-'+String(st||'booked').replace(/[^a-zA-Z0-9_-]/g,''); }
+  function injectCss(){
+    if(document.getElementById('v4027-status-css')) return;
+    var css=document.createElement('style');
+    css.id='v4027-status-css';
+    css.textContent='\n.job .v4027StatusBadge,.weekJob .v4027StatusBadge,.listJob .v4027StatusBadge,.sideJob .v4027StatusBadge{display:inline-flex;align-items:center;width:max-content;margin-top:6px;border-radius:999px;padding:4px 8px;font-size:10px;font-weight:950;text-transform:uppercase;letter-spacing:.25px;border:1px solid transparent}\n.job .v4027StatusBadge{position:absolute;left:14px;bottom:9px;max-width:calc(100% - 110px);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}\n.job .t{padding-bottom:20px}.job .completeBtn{position:absolute;right:12px;bottom:9px;margin-top:0}\n.v4027-status-booked{background:#eef2ff;color:#3730a3;border-color:#c7d2fe}.v4027-status-waitingTech{background:#e0f2fe;color:#0369a1;border-color:#bae6fd}.v4027-status-inProgress{background:#fff7ed;color:#c2410c;border-color:#fed7aa}.v4027-status-waitingParts{background:#fef3c7;color:#92400e;border-color:#fde68a}.v4027-status-workComplete{background:#ecfeff;color:#0e7490;border-color:#a5f3fc}.v4027-status-complete{background:#fef2f2;color:#b91c1c;border-color:#fecaca}.v4027-status-invoiced{background:#ecfdf5;color:#15803d;border-color:#bbf7d0}.v4027-status-collected{background:#f1f5f9;color:#334155;border-color:#cbd5e1}\n';
+    document.head.appendChild(css);
+  }
+  function buildJobCard(job){
+    var st=getStatus(job), cls=statusClass(st), label=statusLabel(st);
+    var top=(typeof topFor==='function'?topFor(job.start):0), height=(typeof heightFor==='function'?heightFor(job.duration):80);
+    var ramp=(typeof shortRamp==='function'?shortRamp(job.ramp):job.ramp||'');
+    var mot=(typeof motHistoryUrl==='function'?motHistoryUrl(job.reg):'#');
+    var full=(typeof fullTime==='function'?fullTime(job):((job.start||'')+' • '+(job.duration||'')+' hr'));
+    return '<div class="job '+htmlEscape(job.c||'')+'" draggable="true" data-id="'+htmlEscape(job.id)+'" style="top:'+top+'px;height:'+height+'px">'+
+      '<span class="reg">'+htmlEscape(job.reg)+'</span>'+
+      '<span class="car">'+htmlEscape(job.car||job.customer||'Vehicle')+'</span>'+
+      '<span class="ramp">'+htmlEscape(String(ramp).toUpperCase())+'</span>'+
+      '<button class="dots" data-del="'+htmlEscape(job.id)+'" title="Delete job">⋮</button>'+
+      '<a class="motLink" href="'+htmlEscape(mot)+'" target="_blank" rel="noopener" title="Open MOT history" onclick="event.stopPropagation()">MOT</a>'+
+      '<div class="work">'+htmlEscape(job.work||'')+'</div>'+
+      '<div class="t">'+htmlEscape(full)+'</div>'+
+      '<span class="v4027StatusBadge '+cls+'">'+htmlEscape(label)+'</span>'+
+      ((st!=='complete'&&st!=='invoiced')?'<button type="button" class="completeBtn" data-complete="'+htmlEscape(job.id)+'">Complete</button>':'')+
+      '</div>';
+  }
+  function patchJobHtml(){ try{ window.jobHtml=function(j){return buildJobCard(j||{});}; }catch(e){} }
+  function enhanceOtherPlannerStatus(){
+    try{
+      document.querySelectorAll('.weekJob,.listJob,.sideJob').forEach(function(el){
+        if(el.querySelector('.v4027StatusBadge')) return;
+        var id=el.getAttribute('data-openjob') || el.getAttribute('data-openmetricjob') || el.getAttribute('data-id');
+        if(!id || !Array.isArray(window.jobs)) return;
+        var job=window.jobs.find(function(j){return j.id===id;});
+        if(!job) return;
+        var st=getStatus(job);
+        var span=document.createElement('span');
+        span.className='v4027StatusBadge '+statusClass(st);
+        span.textContent=statusLabel(st);
+        el.appendChild(span);
+      });
+    }catch(e){}
+  }
+  function patchRender(){
+    try{
+      if(typeof window.render==='function' && !window.render.__v4027StatusWrapped){
+        var original=window.render;
+        window.render=function(){ patchJobHtml(); var result=original.apply(this, arguments); enhanceOtherPlannerStatus(); return result; };
+        window.render.__v4027StatusWrapped=true;
+      }
+    }catch(e){}
+  }
+  function boot(){ injectCss(); patchJobHtml(); patchRender(); try{ if(typeof render==='function') render(); }catch(e){} try{ var foot=document.querySelector('.sideFoot small'); if(foot) foot.textContent='v40.27 Planner Status Fix'; document.title='VECTA Workshop Pro v40.27'; }catch(e){} }
+  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded', boot); else boot();
+})();
+</script>
+
 </body>
 </html>
