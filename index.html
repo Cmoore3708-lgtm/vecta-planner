@@ -2397,6 +2397,182 @@ const timesEl=document.getElementById('times'); populateTimes(); populateJobType
 })();
 </script>
 
+
+<script id="v4033-mot-no-vat-patch">
+(function(){
+  'use strict';
+  var VERSION='v40.33 MOT No VAT Auto Price';
+  function byId(id){return document.getElementById(id);}
+  function clean(v){return String(v==null?'':v).trim();}
+  function isMotText(v){return /\bM\.?O\.?T\.?\b/i.test(clean(v));}
+  function jobIsMot(job){
+    try{
+      if(!job) return isMotText(byId('work')&&byId('work').value) || isMotText(byId('jobType')&&byId('jobType').value);
+      return isMotText(job.jobType) || isMotText(job.type) || isMotText(job.work) || isMotText(job.description);
+    }catch(e){return false;}
+  }
+  function normalPrice(v){return String(v==null?'':v).replace(/[^0-9.\-]/g,'').trim();}
+  function setMotPriceIfNeeded(){
+    try{
+      var work=byId('work'), type=byId('jobType'), amount=byId('amountQuoted');
+      if(!amount) return;
+      if(isMotText(work&&work.value) || isMotText(type&&type.value)){
+        amount.value='65';
+        amount.dataset.motAutoPrice='1';
+      }
+    }catch(e){}
+  }
+  function bindMotInputs(){
+    try{
+      var work=byId('work'), type=byId('jobType');
+      [work,type].forEach(function(el){
+        if(el && !el.__v4033MotBound){
+          el.__v4033MotBound=true;
+          el.addEventListener('input', setMotPriceIfNeeded);
+          el.addEventListener('change', setMotPriceIfNeeded);
+        }
+      });
+      setMotPriceIfNeeded();
+    }catch(e){}
+  }
+  function patchOpenJobModal(){
+    try{
+      if(typeof window.openJobModal==='function' && !window.openJobModal.__v4033MotWrapped){
+        var original=window.openJobModal;
+        window.openJobModal=function(job){
+          var result=original.apply(this, arguments);
+          setTimeout(function(){
+            try{
+              if(jobIsMot(job)){
+                var amount=byId('amountQuoted');
+                if(amount) amount.value='65';
+              }
+              bindMotInputs();
+            }catch(e){}
+          },0);
+          return result;
+        };
+        window.openJobModal.__v4033MotWrapped=true;
+      }
+    }catch(e){}
+  }
+  function patchSaveJob(){
+    try{
+      if(typeof window.saveJobFromModal==='function' && !window.saveJobFromModal.__v4033MotWrapped){
+        var original=window.saveJobFromModal;
+        window.saveJobFromModal=function(){
+          setMotPriceIfNeeded();
+          var id=original.apply(this, arguments);
+          try{
+            if(id && typeof jobs!=='undefined' && Array.isArray(jobs)){
+              var j=jobs.find(function(x){return String(x.id)===String(id);});
+              if(j && jobIsMot(j)){
+                j.amountQuoted='65';
+                j.vatMode='none';
+                j.noVat=true;
+                if(typeof saveJobs==='function') saveJobs();
+              }
+            }
+          }catch(e){}
+          return id;
+        };
+        window.saveJobFromModal.__v4033MotWrapped=true;
+      }
+    }catch(e){}
+  }
+  function patchInvoiceLine(){
+    try{
+      window.invoiceLine=function(desc, price, vatMode){
+        price=(price==null?'':price); vatMode=vatMode||'inc';
+        var sel=function(v){return vatMode===v?' selected':'';};
+        var escFn=(typeof esc==='function')?esc:function(x){return String(x==null?'':x).replace(/[&<>\"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;',"'":'&#39;'}[c];});};
+        return '<tr class="invoiceLine"><td><textarea data-line-desc>'+escFn(desc||'')+'</textarea></td><td style="width:150px"><input data-line-price inputmode="decimal" placeholder="£" value="'+escFn(price||'')+'"></td><td style="width:155px"><select data-line-vat><option value="inc"'+sel('inc')+'>Inc VAT</option><option value="ex"'+sel('ex')+'>Ex VAT</option><option value="none"'+sel('none')+'>No VAT</option></select></td></tr>';
+      };
+    }catch(e){}
+  }
+  function patchInvoiceCalculations(){
+    try{
+      window.currentInvoiceRows=function(){
+        var rows=[], net=0, vat=0, total=0;
+        document.querySelectorAll('#invoiceRows .invoiceLine').forEach(function(row){
+          var desc=(row.querySelector('[data-line-desc]')||{}).value||'';
+          var raw=(row.querySelector('[data-line-price]')||{}).value||'';
+          var price=(typeof moneyToNumber==='function'?moneyToNumber(raw):Number(String(raw).replace(/[^0-9.\-]/g,''))||0);
+          var mode=(row.querySelector('[data-line-vat]')||{}).value||'inc';
+          var lineNet=0,lineVat=0,lineTotal=0;
+          if(mode==='none'){lineNet=price; lineVat=0; lineTotal=price;}
+          else if(mode==='inc'){lineTotal=price; lineNet=lineTotal/1.2; lineVat=lineTotal-lineNet;}
+          else{lineNet=price; lineVat=lineNet*0.2; lineTotal=lineNet+lineVat;}
+          net+=lineNet; vat+=lineVat; total+=lineTotal;
+          rows.push({desc:desc,price:price,vatMode:mode,net:lineNet,vat:lineVat,total:lineTotal});
+        });
+        return {rows:rows,net:net,vat:vat,total:total};
+      };
+      window.recalcInvoice=function(){
+        var net=0, vat=0, total=0;
+        document.querySelectorAll('#invoiceRows .invoiceLine').forEach(function(row){
+          var raw=(row.querySelector('[data-line-price]')||{}).value||'';
+          var price=(typeof moneyToNumber==='function'?moneyToNumber(raw):Number(String(raw).replace(/[^0-9.\-]/g,''))||0);
+          var mode=(row.querySelector('[data-line-vat]')||{}).value||'inc';
+          if(mode==='none'){net+=price; total+=price;}
+          else if(mode==='inc'){var n=price/1.2; net+=n; vat+=price-n; total+=price;}
+          else{net+=price; vat+=price*0.2; total+=price*1.2;}
+        });
+        var moneyFn=(typeof money==='function')?money:function(v){return '£'+(Math.round(v*100)/100).toFixed(2);};
+        var nEl=byId('invNet'), vEl=byId('invVat'), tEl=byId('invTotal');
+        if(nEl) nEl.textContent=moneyFn(net);
+        if(vEl) vEl.textContent=moneyFn(vat);
+        if(tEl) tEl.textContent=moneyFn(total);
+      };
+    }catch(e){}
+  }
+  function applyMotToOpenInvoice(){
+    try{
+      var j=null;
+      if(typeof selectedInvoiceId!=='undefined' && selectedInvoiceId && typeof jobs!=='undefined' && Array.isArray(jobs)) j=jobs.find(function(x){return String(x.id)===String(selectedInvoiceId);});
+      document.querySelectorAll('#invoiceRows [data-line-vat]').forEach(function(sel){
+        if(!sel.querySelector('option[value="none"]')){var opt=document.createElement('option'); opt.value='none'; opt.textContent='No VAT'; sel.appendChild(opt);}
+        sel.oninput=window.recalcInvoice; sel.onchange=window.recalcInvoice;
+      });
+      document.querySelectorAll('#invoiceRows [data-line-price]').forEach(function(inp){inp.oninput=window.recalcInvoice;});
+      if(j && jobIsMot(j)){
+        var firstPrice=document.querySelector('#invoiceRows .invoiceLine [data-line-price]');
+        var firstVat=document.querySelector('#invoiceRows .invoiceLine [data-line-vat]');
+        if(firstPrice) firstPrice.value='65';
+        if(firstVat) firstVat.value='none';
+      }
+      if(typeof window.recalcInvoice==='function') window.recalcInvoice();
+    }catch(e){}
+  }
+  function patchInvoiceRender(){
+    try{
+      if(typeof window.renderInvoiceQueue==='function' && !window.renderInvoiceQueue.__v4033MotWrapped){
+        var original=window.renderInvoiceQueue;
+        window.renderInvoiceQueue=function(){
+          patchInvoiceLine();
+          var result=original.apply(this, arguments);
+          setTimeout(applyMotToOpenInvoice,0);
+          return result;
+        };
+        window.renderInvoiceQueue.__v4033MotWrapped=true;
+      }
+    }catch(e){}
+  }
+  function patchAddInvoiceLine(){
+    try{
+      if(typeof window.addInvoiceLine==='function' && !window.addInvoiceLine.__v4033MotWrapped){
+        var original=window.addInvoiceLine;
+        window.addInvoiceLine=function(){patchInvoiceLine(); var r=original.apply(this,arguments); setTimeout(applyMotToOpenInvoice,0); return r;};
+        window.addInvoiceLine.__v4033MotWrapped=true;
+      }
+    }catch(e){}
+  }
+  function version(){try{var foot=document.querySelector('.sideFoot small'); if(foot) foot.textContent=VERSION; document.title='VECTA Workshop Pro v40.33';}catch(e){}}
+  function boot(){patchOpenJobModal(); patchSaveJob(); patchInvoiceLine(); patchInvoiceCalculations(); patchInvoiceRender(); patchAddInvoiceLine(); bindMotInputs(); version(); try{if(typeof render==='function') render();}catch(e){}}
+  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',boot); else boot();
+})();
+</script>
+
 </body>
 </html>
 
