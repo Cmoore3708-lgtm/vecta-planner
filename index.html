@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>VECTA Workshop Pro v40.25</title>
+<title>VECTA Workshop Pro v40.26</title>
 <style>
 :root{
   --nav:#0d1728;--nav2:#111f35;--red:#e11d2e;--red2:#b91421;--line:#e5e7eb;--text:#0f172a;--muted:#64748b;--bg:#f6f8fb;--card:#fff;--yellow:#ffd83d;--green:#16a34a;--blue:#2563eb;--purple:#7c3aed;--orange:#f59e0b;
@@ -160,7 +160,7 @@ img.brandLogo,img.dashBrandLogo,img.documentLogo,img.sheetLogo,.topBrand img,.in
     <div class="brand"><div class="vectaLogoBlock"><div class="vectaLogoWord">VECTA</div><div class="vectaLogoSub">Vehicle Servicing and repairs</div><div class="productName">VECTA Workshop Pro</div></div></div>
     <nav class="nav">
       <button data-view="dash">⌂ &nbsp; Dashboard</button><button class="active" data-view="planner">▣ &nbsp; Workshop Planner</button><button data-view="jobs">▤ &nbsp; Job Cards</button><button data-view="service">🛠 &nbsp; Service Module</button><button data-view="invoiceQueue">✓ &nbsp; Ready to Invoice</button><button data-view="customers">♙ &nbsp; Customers</button><button data-view="vehicles">▤ &nbsp; Vehicles</button><button data-view="invoices">£ &nbsp; Invoices</button><button data-view="reports">▥ &nbsp; Reports</button><button data-view="settings">⚙ &nbsp; Settings</button>
-    </nav><div class="sideFoot"><b>🚗 Vecta Motors</b><br><br><small>v40.25 Stable Amendments</small></div>
+    </nav><div class="sideFoot"><b>🚗 Vecta Motors</b><br><br><small>v40.26 Invoice Price Fix</small></div>
   </aside>
   <main class="main">
     <header class="top"><div class="dateCtl"><button id="prevDay">‹</button><div id="dateLabel" title="Click to choose a date"></div><button id="nextDay">›</button></div><input id="datePicker" type="date" style="position:absolute;opacity:0;pointer-events:none;width:1px;height:1px" aria-label="Pick planner date"><button class="pillBtn" id="todayBtn">Today</button><div class="seg"><button class="active" id="dayViewBtn">Day</button><button id="weekViewBtn">Week</button><button id="listViewBtn">List</button></div><button class="printBtn" id="printBtn">🖨 Print Day Plan</button><div class="user"><b>Chris</b>Administrator</div><button class="addJob" id="topAddJob">＋ Add Job Card</button></header>
@@ -754,13 +754,13 @@ function render(){
 function printJob(j){return `<div class="printJob"><div class="pTime">${j.start}</div><div><div class="pReg">${esc(j.reg)}</div><b>${esc(j.car||j.customer||'Vehicle')}</b><br>${esc(j.work)}</div><div class="pRamp">${esc(shortRamp(j.ramp))}</div></div>`}
 function openJobModal(job){
   editingId=job?.id||null; modalTitle.textContent=editingId?'Job Card':'Add / Assign Job Card'; deleteModal.style.display=editingId?'inline-block':'none'; currentSourceId=job?.sourceId||null;
-  populateJobTypes(); cust.value=job?.customer||''; phone.value=job?.phone||''; reg.value=formatRegistration(job?.reg||''); vehicle.value=job?.car||''; if(window.bookingDate) bookingDate.value=job?.date||dateKey(); work.value=job?.work||''; jobType.value=''; mech.value=job?.m||'Jordan'; ramp.value=job?.ramp||'Ramp left'; startTime.value=job?.start||'08:30'; duration.value=String(job?.duration||1); if(window.amountQuoted) amountQuoted.value=(job?.amountQuoted??''); if(window.quoteAccepted) quoteAccepted.value=job?.quoteAccepted||''; notes.value=job?.notes||''; status.value=job?.status||'booked';
+  populateJobTypes(); cust.value=job?.customer||''; phone.value=job?.phone||''; reg.value=formatRegistration(job?.reg||''); vehicle.value=job?.car||''; if(window.bookingDate) bookingDate.value=job?.date||dateKey(); work.value=job?.work||''; jobType.value=''; mech.value=job?.m||'Jordan'; ramp.value=job?.ramp||'Ramp left'; startTime.value=job?.start||'08:30'; duration.value=String(job?.duration||1); var amountQuotedEl=document.getElementById('amountQuoted'); if(amountQuotedEl) amountQuotedEl.value=(job?.amountQuoted??''); if(window.quoteAccepted) quoteAccepted.value=job?.quoteAccepted||''; notes.value=job?.notes||''; status.value=job?.status||'booked';
   jobModal.classList.add('open'); setTimeout(()=>reg.focus(),50);
 }
 function closeJobModal(){jobModal.classList.remove('open'); editingId=null; currentSourceId=null;}
 function saveJobFromModal(){
   const targetDate=(window.bookingDate&&bookingDate.value)||dateKey();
-  const data={date:targetDate,m:mech.value,start:startTime.value,duration:Number(duration.value)||1,reg:formatRegistration(reg.value||'NEW REG'),car:vehicle.value||cust.value||'Vehicle',customer:cust.value,phone:phone.value,work:work.value||'Work required',ramp:ramp.value,amountQuoted:(window.amountQuoted?amountQuoted.value:''),quoteAccepted:(window.quoteAccepted?quoteAccepted.value:''),notes:notes.value,status:status.value,sourceId:currentSourceId};
+  const data={date:targetDate,m:mech.value,start:startTime.value,duration:Number(duration.value)||1,reg:formatRegistration(reg.value||'NEW REG'),car:vehicle.value||cust.value||'Vehicle',customer:cust.value,phone:phone.value,work:work.value||'Work required',ramp:ramp.value,amountQuoted:(document.getElementById('amountQuoted')?document.getElementById('amountQuoted').value:''),quoteAccepted:(window.quoteAccepted?quoteAccepted.value:''),notes:notes.value,status:status.value,sourceId:currentSourceId};
   let savedId=editingId||('j'+Date.now());
   const currentKey=dateKey();
   const checkList = targetDate===currentKey ? jobs : jobsForDateKey(targetDate);
@@ -1358,7 +1358,7 @@ const timesEl=document.getElementById('times'); populateTimes(); populateJobType
   }
   function patchNavigation(){
     document.querySelectorAll('.nav button[data-view="service"]').forEach(function(btn){btn.style.display='none';});
-    var foot=document.querySelector('.sideFoot small'); if(foot) foot.textContent='v40.25 Stable Amendments';
+    var foot=document.querySelector('.sideFoot small'); if(foot) foot.textContent='v40.26 Invoice Price Fix';
   }
   function wrapOpenJobModal(){
     if(typeof window.openJobModal!=='function' || window.openJobModal.__v406Wrapped) return;
@@ -1400,7 +1400,7 @@ const timesEl=document.getElementById('times'); populateTimes(); populateJobType
       var del=byId('deleteModal');
       if(del && del.parentNode===footer) footer.insertBefore(print, del.nextSibling); else footer.insertBefore(print, footer.firstChild);
     }
-    var foot=document.querySelector('.sideFoot small'); if(foot) foot.textContent='v40.25 Stable Amendments';
+    var foot=document.querySelector('.sideFoot small'); if(foot) foot.textContent='v40.26 Invoice Price Fix';
   }
   function currentJobValues(){
     var id=window.editingId||null;
@@ -1481,9 +1481,9 @@ const timesEl=document.getElementById('times'); populateTimes(); populateJobType
 
   function v4016RefreshVersion(){
     try{
-      document.title = 'VECTA Workshop Pro v40.25';
+      document.title = 'VECTA Workshop Pro v40.26';
       var foot = document.querySelector('.sideFoot small');
-      if(foot) foot.textContent = 'v40.25 Stable Amendments';
+      if(foot) foot.textContent = 'v40.26 Invoice Price Fix';
     }catch(e){}
   }
 
@@ -1628,8 +1628,8 @@ const timesEl=document.getElementById('times'); populateTimes(); populateJobType
   'use strict';
   function byId(id){return document.getElementById(id);} 
   function refreshV4017Version(){
-    try{ document.title='VECTA Workshop Pro v40.25'; }catch(e){}
-    try{ var foot=document.querySelector('.sideFoot small'); if(foot) foot.textContent='v40.25 Stable Amendments'; }catch(e){}
+    try{ document.title='VECTA Workshop Pro v40.26'; }catch(e){}
+    try{ var foot=document.querySelector('.sideFoot small'); if(foot) foot.textContent='v40.26 Invoice Price Fix'; }catch(e){}
   }
   function notifyDeleted(){
     try{
@@ -1741,8 +1741,8 @@ const timesEl=document.getElementById('times'); populateTimes(); populateJobType
 (function(){
   'use strict';
   function v4020RefreshVersion(){
-    try{ document.title='VECTA Workshop Pro v40.25'; }catch(e){}
-    try{ var foot=document.querySelector('.sideFoot small'); if(foot) foot.textContent='v40.25 Stable Amendments'; }catch(e){}
+    try{ document.title='VECTA Workshop Pro v40.26'; }catch(e){}
+    try{ var foot=document.querySelector('.sideFoot small'); if(foot) foot.textContent='v40.26 Invoice Price Fix'; }catch(e){}
   }
   function v4020Money(v){
     try{ if(typeof money === 'function') return money(Number(v||0)); }catch(e){}
@@ -1882,8 +1882,8 @@ const timesEl=document.getElementById('times'); populateTimes(); populateJobType
     return 'Service type: Not selected';
   };
   function refreshVersion(){
-    try{document.title='VECTA Workshop Pro v40.25';}catch(e){}
-    try{var f=document.querySelector('.sideFoot small'); if(f) f.textContent='v40.25 Stable Amendments';}catch(e){}
+    try{document.title='VECTA Workshop Pro v40.26';}catch(e){}
+    try{var f=document.querySelector('.sideFoot small'); if(f) f.textContent='v40.26 Invoice Price Fix';}catch(e){}
   }
   function ensureServiceTypeField(job){
     var jt=byId('jobType');
@@ -1973,6 +1973,75 @@ const timesEl=document.getElementById('times'); populateTimes(); populateJobType
     }catch(e){}
   }
   function boot(){ refreshVersion(); wrapOpenJobModal(); wrapSaveJob(); bindJobModalActions(); }
+  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded', boot); else boot();
+})();
+</script>
+
+
+<script id="v4026-invoice-price-safe-patch">
+(function(){
+  'use strict';
+  function byId(id){return document.getElementById(id);}
+  function getQuotedValue(job){
+    var v='';
+    try{ var el=byId('amountQuoted'); if(el && el.value) v=el.value; }catch(e){}
+    if(!v && job){ v = job.amountQuoted || job.price || job.quotedPrice || job.quote || job.total || ''; }
+    return String(v||'').replace(/[^0-9.\-]/g,'').trim();
+  }
+  function ensureInvoiceFirstLinePrice(job){
+    try{
+      var price=getQuotedValue(job);
+      if(!price) return;
+      var first=document.querySelector('#invoiceRows .invoiceLine [data-line-price]');
+      if(first && !String(first.value||'').trim()){
+        first.value=price;
+        if(typeof recalcInvoice==='function') recalcInvoice();
+      }
+    }catch(e){}
+  }
+  function patchSaveJobFromModal(){
+    try{
+      if(typeof window.saveJobFromModal==='function' && !window.saveJobFromModal.__v4026PriceWrapped){
+        var original=window.saveJobFromModal;
+        window.saveJobFromModal=function(){
+          var id=original.apply(this, arguments);
+          try{
+            var q=getQuotedValue(null);
+            if(id && q && Array.isArray(window.jobs)){
+              var j=window.jobs.find(function(x){return x.id===id;});
+              if(j){ j.amountQuoted=q; if(typeof saveJobs==='function') saveJobs(); }
+            }
+          }catch(e){}
+          return id;
+        };
+        window.saveJobFromModal.__v4026PriceWrapped=true;
+      }
+    }catch(e){}
+  }
+  function patchInvoiceRender(){
+    try{
+      if(typeof window.renderInvoiceQueue==='function' && !window.renderInvoiceQueue.__v4026PriceWrapped){
+        var original=window.renderInvoiceQueue;
+        window.renderInvoiceQueue=function(){
+          var result=original.apply(this, arguments);
+          try{
+            var job=null;
+            if(typeof selectedInvoiceId!=='undefined' && selectedInvoiceId && Array.isArray(window.jobs)){
+              job=window.jobs.find(function(x){return x.id===selectedInvoiceId;})||null;
+            }
+            ensureInvoiceFirstLinePrice(job);
+          }catch(e){}
+          return result;
+        };
+        window.renderInvoiceQueue.__v4026PriceWrapped=true;
+      }
+    }catch(e){}
+  }
+  function boot(){
+    patchSaveJobFromModal();
+    patchInvoiceRender();
+    try{ var foot=document.querySelector('.sideFoot small'); if(foot) foot.textContent='v40.26 Invoice Price Fix'; document.title='VECTA Workshop Pro v40.26'; }catch(e){}
+  }
   if(document.readyState==='loading') document.addEventListener('DOMContentLoaded', boot); else boot();
 })();
 </script>
