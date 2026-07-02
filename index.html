@@ -2250,3 +2250,98 @@ const timesEl=document.getElementById('times'); populateTimes(); populateJobType
 
 </body>
 </html>
+
+<script id="v4030-planner-resize-duration">
+(function(){
+  'use strict';
+  var PATCH_ID='v4030-planner-resize-duration';
+  function getJob(id){
+    try{ if(Array.isArray(window.jobs)) return window.jobs.find(function(j){return String(j.id)===String(id);}); }catch(e){}
+    return null;
+  }
+  function mins(t){
+    try{ if(typeof window.toMinutes==='function') return window.toMinutes(t); }catch(e){}
+    var p=String(t||'08:00').split(':').map(Number); return (p[0]||0)*60+(p[1]||0);
+  }
+  function fromM(total){
+    try{ if(typeof window.fromMinutes==='function') return window.fromMinutes(total); }catch(e){}
+    var h=Math.floor(total/60),m=total%60; return String(h).padStart(2,'0')+':'+String(m).padStart(2,'0');
+  }
+  function jobEnd(job){ return fromM(mins(job.start||'08:00')+Math.round(Number(job.duration||1)*60)); }
+  function full(job){
+    try{ if(typeof window.fullTime==='function') return window.fullTime(job); }catch(e){}
+    return (job.start||'')+' – '+jobEnd(job)+' ('+Number(job.duration||1).toFixed(1)+' hrs)';
+  }
+  function hFor(d){
+    try{ if(typeof window.heightFor==='function') return window.heightFor(d); }catch(e){}
+    return Math.max(72, Number(d||1)*76-8);
+  }
+  function save(){ try{ if(typeof window.saveJobs==='function') window.saveJobs(); }catch(e){} }
+  function finishMinutes(){
+    try{ var s=(typeof getSettings==='function') ? getSettings() : null; if(s && s.finishTime) return mins(s.finishTime); }catch(e){}
+    return 16*60;
+  }
+  function addCss(){
+    if(document.getElementById(PATCH_ID+'-css')) return;
+    var style=document.createElement('style');
+    style.id=PATCH_ID+'-css';
+    style.textContent='\n.lane .job,.plannerCard .job{position:absolute!important}.plannerResizeHandle{position:absolute;left:0;right:0;bottom:0;height:12px;cursor:ns-resize;z-index:6;background:linear-gradient(to bottom,transparent,rgba(15,23,42,.08));border-bottom-left-radius:8px;border-bottom-right-radius:8px}.plannerResizeHandle:after{content:"";position:absolute;left:50%;bottom:3px;width:42px;height:3px;transform:translateX(-50%);border-radius:99px;background:rgba(15,23,42,.32)}.plannerResizeHandle:hover:after{background:rgba(15,23,42,.65)}.job.resizing{cursor:ns-resize!important;box-shadow:0 12px 32px rgba(15,23,42,.18)!important;outline:2px solid rgba(37,99,235,.45)!important}.job.resizing .t{font-weight:950!important;color:#111827!important}\n';
+    document.head.appendChild(style);
+  }
+  function bindTile(tile){
+    if(!tile || tile.__v4030Resizable) return;
+    tile.__v4030Resizable=true;
+    var handle=document.createElement('div');
+    handle.className='plannerResizeHandle';
+    handle.title='Drag to change job duration';
+    tile.appendChild(handle);
+    var startY=0,startDuration=1,job=null,active=false;
+    handle.addEventListener('pointerdown',function(e){
+      e.preventDefault(); e.stopPropagation(); if(e.stopImmediatePropagation) e.stopImmediatePropagation();
+      job=getJob(tile.getAttribute('data-id')); if(!job) return;
+      active=true; startY=e.clientY; startDuration=Number(job.duration||1)||1; tile.classList.add('resizing');
+      try{handle.setPointerCapture(e.pointerId);}catch(err){}
+    }, true);
+    handle.addEventListener('pointermove',function(e){
+      if(!active || !job) return;
+      e.preventDefault(); e.stopPropagation(); if(e.stopImmediatePropagation) e.stopImmediatePropagation();
+      var slot=(typeof window.slotHeight==='number' ? window.slotHeight : 76);
+      var deltaMins=Math.round(((e.clientY-startY)/slot)*2)*30;
+      var newMins=Math.max(30, Math.round(startDuration*60)+deltaMins);
+      var maxMins=Math.max(30, finishMinutes()-mins(job.start||'08:00'));
+      newMins=Math.min(newMins,maxMins);
+      var newDuration=newMins/60;
+      job.duration=newDuration;
+      tile.style.height=hFor(newDuration)+'px';
+      var timeEl=tile.querySelector('.t'); if(timeEl) timeEl.textContent=full(job);
+    }, true);
+    function end(e){
+      if(!active) return;
+      if(e){ e.preventDefault(); e.stopPropagation(); if(e.stopImmediatePropagation) e.stopImmediatePropagation(); }
+      active=false; tile.classList.remove('resizing'); save();
+      try{ if(typeof updatePlannerMetrics==='function') updatePlannerMetrics(); }catch(err){}
+      try{ if(typeof renderSidePanels==='function') renderSidePanels(); }catch(err){}
+    }
+    handle.addEventListener('pointerup',end,true);
+    handle.addEventListener('pointercancel',end,true);
+  }
+  function bindAll(){
+    addCss();
+    try{ document.querySelectorAll('.lane .job[data-id], .plannerCard .job[data-id]').forEach(bindTile); }catch(e){}
+  }
+  function patchRender(){
+    try{
+      if(typeof window.render==='function' && !window.render.__v4030ResizeWrapped){
+        var original=window.render;
+        window.render=function(){ var result=original.apply(this, arguments); setTimeout(bindAll,0); return result; };
+        window.render.__v4030ResizeWrapped=true;
+      }
+    }catch(e){}
+  }
+  function version(){
+    try{ var foot=document.querySelector('.sideFoot small'); if(foot) foot.textContent='v40.30 Planner Resize Duration'; document.title='VECTA Workshop Pro v40.30'; }catch(e){}
+  }
+  function boot(){ patchRender(); bindAll(); version(); }
+  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded', boot); else boot();
+})();
+</script>
