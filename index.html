@@ -2248,9 +2248,6 @@ const timesEl=document.getElementById('times'); populateTimes(); populateJobType
 })();
 </script>
 
-</body>
-</html>
-
 <script id="v4030-planner-resize-duration">
 (function(){
   'use strict';
@@ -2294,12 +2291,16 @@ const timesEl=document.getElementById('times'); populateTimes(); populateJobType
     var handle=document.createElement('div');
     handle.className='plannerResizeHandle';
     handle.title='Drag to change job duration';
+    ['click','mousedown','mouseup','touchstart','touchend'].forEach(function(type){
+      handle.addEventListener(type,function(e){ e.preventDefault(); e.stopPropagation(); if(e.stopImmediatePropagation) e.stopImmediatePropagation(); }, true);
+      handle.addEventListener(type,function(e){ e.preventDefault(); e.stopPropagation(); if(e.stopImmediatePropagation) e.stopImmediatePropagation(); }, false);
+    });
     tile.appendChild(handle);
     var startY=0,startDuration=1,job=null,active=false;
     handle.addEventListener('pointerdown',function(e){
       e.preventDefault(); e.stopPropagation(); if(e.stopImmediatePropagation) e.stopImmediatePropagation();
       job=getJob(tile.getAttribute('data-id')); if(!job) return;
-      active=true; startY=e.clientY; startDuration=Number(job.duration||1)||1; tile.classList.add('resizing');
+      active=true; window.__plannerResizeActive=true; startY=e.clientY; startDuration=Number(job.duration||1)||1; tile.classList.add('resizing');
       try{handle.setPointerCapture(e.pointerId);}catch(err){}
     }, true);
     handle.addEventListener('pointermove',function(e){
@@ -2318,7 +2319,7 @@ const timesEl=document.getElementById('times'); populateTimes(); populateJobType
     function end(e){
       if(!active) return;
       if(e){ e.preventDefault(); e.stopPropagation(); if(e.stopImmediatePropagation) e.stopImmediatePropagation(); }
-      active=false; tile.classList.remove('resizing'); save();
+      active=false; setTimeout(function(){window.__plannerResizeActive=false;},80); tile.classList.remove('resizing'); save();
       try{ if(typeof updatePlannerMetrics==='function') updatePlannerMetrics(); }catch(err){}
       try{ if(typeof renderSidePanels==='function') renderSidePanels(); }catch(err){}
     }
@@ -2339,9 +2340,63 @@ const timesEl=document.getElementById('times'); populateTimes(); populateJobType
     }catch(e){}
   }
   function version(){
-    try{ var foot=document.querySelector('.sideFoot small'); if(foot) foot.textContent='v40.30 Planner Resize Duration'; document.title='VECTA Workshop Pro v40.30'; }catch(e){}
+    try{ var foot=document.querySelector('.sideFoot small'); if(foot) foot.textContent='v40.31 Resize Click Fix'; document.title='VECTA Workshop Pro v40.31'; }catch(e){}
   }
   function boot(){ patchRender(); bindAll(); version(); }
   if(document.readyState==='loading') document.addEventListener('DOMContentLoaded', boot); else boot();
 })();
 </script>
+
+<script id="v4031-resize-click-fix">
+(function(){
+  'use strict';
+  function stop(e){
+    if(e && e.target && e.target.closest && e.target.closest('.plannerResizeHandle')){
+      e.preventDefault(); e.stopPropagation(); if(e.stopImmediatePropagation) e.stopImmediatePropagation(); return false;
+    }
+  }
+  ['click','mousedown','mouseup','pointerdown','pointerup','touchstart','touchend'].forEach(function(type){
+    document.addEventListener(type, stop, true);
+  });
+  function patchOpen(){
+    try{
+      if(typeof window.openJobModal==='function' && !window.openJobModal.__v4031ResizeGuard){
+        var original=window.openJobModal;
+        window.openJobModal=function(){
+          if(window.__plannerResizeActive) return;
+          return original.apply(this, arguments);
+        };
+        window.openJobModal.__v4031ResizeGuard=true;
+      }
+    }catch(e){}
+  }
+  function patchTileClicks(){
+    try{
+      document.querySelectorAll('.lane .job[data-id], .plannerCard .job[data-id]').forEach(function(tile){
+        if(tile.__v4031ClickGuard) return; tile.__v4031ClickGuard=true;
+        tile.addEventListener('click',function(e){
+          if(window.__plannerResizeActive || (e.target && e.target.closest && e.target.closest('.plannerResizeHandle'))){
+            e.preventDefault(); e.stopPropagation(); if(e.stopImmediatePropagation) e.stopImmediatePropagation();
+          }
+        }, true);
+      });
+    }catch(e){}
+  }
+  function patchRender(){
+    try{
+      if(typeof window.render==='function' && !window.render.__v4031GuardWrapped){
+        var original=window.render;
+        window.render=function(){ var r=original.apply(this, arguments); setTimeout(patchTileClicks,0); return r; };
+        window.render.__v4031GuardWrapped=true;
+      }
+    }catch(e){}
+  }
+  function version(){try{var foot=document.querySelector('.sideFoot small'); if(foot) foot.textContent='v40.31 Resize Click Fix'; document.title='VECTA Workshop Pro v40.31';}catch(e){}}
+  function boot(){patchOpen(); patchRender(); patchTileClicks(); version(); setTimeout(patchTileClicks,100);}
+  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',boot); else boot();
+})();
+</script>
+
+</body>
+</html>
+
