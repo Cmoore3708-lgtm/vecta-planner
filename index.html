@@ -2115,10 +2115,69 @@ const timesEl=document.getElementById('times'); populateTimes(); populateJobType
       }
     }catch(e){}
   }
-  function boot(){ injectCss(); patchJobHtml(); patchRender(); try{ if(typeof render==='function') render(); }catch(e){} try{ var foot=document.querySelector('.sideFoot small'); if(foot) foot.textContent='v40.27 Planner Status Fix'; document.title='VECTA Workshop Pro v40.27'; }catch(e){} }
+  function boot(){ injectCss(); patchJobHtml(); patchRender(); try{ if(typeof render==='function') render(); }catch(e){} try{ var foot=document.querySelector('.sideFoot small'); if(foot) foot.textContent='v40.28 Planner Status Fix'; document.title='VECTA Workshop Pro v40.28'; }catch(e){} }
   if(document.readyState==='loading') document.addEventListener('DOMContentLoaded', boot); else boot();
 })();
 </script>
 
+
+<script id="v4028-planner-tile-cleaner">
+(function(){
+  'use strict';
+  var LABELS={booked:'Booked In',waitingTech:'Waiting Tech',inProgress:'In Progress',waitingParts:'Waiting Parts',workComplete:'Work Complete',complete:'Ready To Invoice',invoiced:'Invoiced',collected:'Collected'};
+  function cleanPlannerTiles(){
+    try{
+      var allJobs=(typeof jobs!=='undefined' && Array.isArray(jobs))?jobs:((window.jobs&&Array.isArray(window.jobs))?window.jobs:[]);
+      document.querySelectorAll('.plannerCard .job[data-id], .lane .job[data-id]').forEach(function(tile){
+        var id=tile.getAttribute('data-id');
+        var job=allJobs.find(function(j){return j && String(j.id)===String(id);});
+        var status=(job&&(job.status||job.workflowStatus||job.jobStatus))||'booked';
+        tile.querySelectorAll('.motLink,.completeBtn,.v4027StatusBadge').forEach(function(el){el.remove();});
+        var badge=tile.querySelector('.statusBadge');
+        if(!badge){badge=document.createElement('span'); badge.className='statusBadge'; tile.appendChild(badge);}
+        badge.className='statusBadge status-'+String(status).replace(/[^a-zA-Z0-9_-]/g,'');
+        badge.textContent=LABELS[status] || status;
+      });
+    }catch(e){console.warn('V40.28 planner tile cleaner failed',e);}
+  }
+  function patchSaves(){
+    try{
+      if(typeof saveJobFromModal==='function' && !saveJobFromModal.__v4028Wrapped){
+        var oldSave=saveJobFromModal;
+        saveJobFromModal=function(){
+          var id=oldSave.apply(this,arguments);
+          try{
+            if(id && typeof jobs!=='undefined'){
+              var j=jobs.find(function(x){return x.id===id;});
+              if(j){j.workflowStatus=j.status; j.jobStatus=j.status;}
+              if(typeof saveJobs==='function') saveJobs();
+            }
+          }catch(e){}
+          setTimeout(cleanPlannerTiles,0);
+          return id;
+        };
+        saveJobFromModal.__v4028Wrapped=true;
+      }
+      if(typeof render==='function' && !render.__v4028Wrapped){
+        var oldRender=render;
+        render=function(){var r=oldRender.apply(this,arguments); cleanPlannerTiles(); return r;};
+        render.__v4028Wrapped=true;
+      }
+    }catch(e){}
+  }
+  function addCss(){
+    if(document.getElementById('v4028-planner-tile-cleaner-css')) return;
+    var style=document.createElement('style');
+    style.id='v4028-planner-tile-cleaner-css';
+    style.textContent='.plannerCard .job .motLink,.plannerCard .job .completeBtn,.lane .job .motLink,.lane .job .completeBtn{display:none!important}.plannerCard .job,.lane .job{padding-bottom:32px!important}.plannerCard .job .work,.lane .job .work{margin:6px 0 4px!important}.plannerCard .job .t,.lane .job .t{padding-right:0!important;font-size:12px!important}.plannerCard .job .statusBadge,.lane .job .statusBadge{position:absolute!important;left:14px!important;bottom:9px!important;display:inline-flex!important;align-items:center!important;width:max-content!important;max-width:calc(100% - 28px)!important;white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important;border-radius:999px!important;padding:4px 8px!important;font-size:10px!important;font-weight:950!important;text-transform:uppercase!important;letter-spacing:.25px!important}.status-booked{background:#eef2ff!important;color:#3730a3!important}.status-waitingTech{background:#e0f2fe!important;color:#0369a1!important}.status-inProgress{background:#fff7ed!important;color:#c2410c!important}.status-waitingParts{background:#fef3c7!important;color:#92400e!important}.status-workComplete{background:#ecfeff!important;color:#0e7490!important}.status-complete{background:#fef2f2!important;color:#b91c1c!important}.status-invoiced{background:#ecfdf5!important;color:#15803d!important}.status-collected{background:#f1f5f9!important;color:#334155!important}';
+    document.head.appendChild(style);
+  }
+  function boot(){
+    addCss(); patchSaves(); cleanPlannerTiles();
+    try{var foot=document.querySelector('.sideFoot small'); if(foot) foot.textContent='v40.28 Planner Status Clean Fix'; document.title='VECTA Workshop Pro v40.28';}catch(e){}
+  }
+  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',boot); else boot();
+})();
+</script>
 </body>
 </html>
