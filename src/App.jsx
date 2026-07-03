@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { createRoot } from "react-dom/client";
 import { createClient } from "@supabase/supabase-js";
-import { CalendarDays, Car, ChevronLeft, ChevronRight, FileText, History, Mail, Menu, Plus, PoundSterling, Printer, Search, Settings, ShieldCheck, Wand2 } from "lucide-react";
+import { Plus, Printer, Search, CalendarDays, CalendarRange, LayoutDashboard, Settings, History, Wand2, FileText, Mail, PoundSterling, ShieldCheck, Car } from "lucide-react";
 import "./style.css";
 
 const TECHS = ["Jordan", "Alfie"];
@@ -516,46 +516,16 @@ function SmallJobCard({ job, onEdit, onDragStart }) {
   );
 }
 
-function workflowLabel(status) {
-  return STATUS[status] || status || "Booked In";
-}
-
-function endTimeFrom(start, hours) {
-  if (!start) return "--:--";
-  const [h, m] = String(start).slice(0, 5).split(":").map(Number);
-  if (Number.isNaN(h) || Number.isNaN(m)) return String(start).slice(0, 5);
-  const d = new Date(2000, 0, 1, h, m);
-  d.setMinutes(d.getMinutes() + Math.round(Number(hours || 1) * 60));
-  return d.toTimeString().slice(0, 5);
-}
-
 function ScheduleCard({ job, onEdit, onDragStart, onHistory, onInvoice }) {
-  const statusText = workflowLabel(job.status);
-  const start = job.drop_time ? String(job.drop_time).slice(0, 5) : "--:--";
-  const hours = Number(job.estimated_hours || 1);
-  const end = endTimeFrom(start, hours);
-
   return (
-    <div className={`schedule-card ${RAMP_CLASS[job.ramp] || ""} status-${job.status || "booked"}`} draggable onDragStart={e => onDragStart(e, job)} onDoubleClick={() => onEdit(job)}>
-      <div className="schedule-card-header">
-        <strong className="reg-plate">{job.registration || "NO REG"}</strong>
-        {job.ramp && <span className="ramp-badge">{job.ramp.toUpperCase()}</span>}
-      </div>
-
-      <button className="card-menu" title="Open actions" onClick={(e) => { e.stopPropagation(); onEdit(job); }}>⋮</button>
-
-      <h4>{job.vehicle || "Vehicle"}</h4>
-      <p className="job-work">{job.work_required || "Work required"}</p>
+    <div className={`schedule-card ${RAMP_CLASS[job.ramp] || ""} status-${job.status}`} draggable onDragStart={e => onDragStart(e, job)} onDoubleClick={() => onEdit(job)}>
+      <div className="card-actions"><button title="History" onClick={(e)=>{e.stopPropagation(); onHistory(job)}}><History size={14}/></button><button title="Invoice" onClick={(e)=>{e.stopPropagation(); onInvoice(job)}}><FileText size={14}/></button></div>
+      <strong>{job.registration || "NO REG"}</strong>
+      <h4>{job.vehicle || ""}</h4>
+      <VehicleBadges job={job} />
+      <p>{job.work_required || ""}</p>
       {job.customer_name && <small>{job.customer_name} · {job.customer_phone}</small>}
-      <div className="job-time">{start} – {end} ({hours.toFixed(1)} hrs)</div>
-
-      <div className="schedule-card-footer">
-        <span className={`workflow-badge workflow-${job.status || "booked"}`}>{statusText}</span>
-        <span className="card-actions">
-          <button title="History" onClick={(e)=>{e.stopPropagation(); onHistory(job)}}><History size={14}/></button>
-          <button title="Invoice" onClick={(e)=>{e.stopPropagation(); onInvoice(job)}}><FileText size={14}/></button>
-        </span>
-      </div>
+      <span>{job.drop_time ? String(job.drop_time).slice(0, 5) : "--:--"} · {Number(job.estimated_hours || 1).toFixed(1)} hrs</span>
     </div>
   );
 }
