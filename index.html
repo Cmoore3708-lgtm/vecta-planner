@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>VECTA Workshop Pro v40.35</title>
+<title>VECTA Workshop Pro v40.36</title>
 <style>
 :root{
   --nav:#0d1728;--nav2:#111f35;--red:#e11d2e;--red2:#b91421;--line:#e5e7eb;--text:#0f172a;--muted:#64748b;--bg:#f6f8fb;--card:#fff;--yellow:#ffd83d;--green:#16a34a;--blue:#2563eb;--purple:#7c3aed;--orange:#f59e0b;
@@ -160,7 +160,7 @@ img.brandLogo,img.dashBrandLogo,img.documentLogo,img.sheetLogo,.topBrand img,.in
     <div class="brand"><div class="vectaLogoBlock"><div class="vectaLogoWord">VECTA</div><div class="vectaLogoSub">Vehicle Servicing and repairs</div><div class="productName">VECTA Workshop Pro</div></div></div>
     <nav class="nav">
       <button data-view="dash">⌂ &nbsp; Dashboard</button><button class="active" data-view="planner">▣ &nbsp; Workshop Planner</button><button data-view="jobs">▤ &nbsp; Job Cards</button><button data-view="service">🛠 &nbsp; Service Module</button><button data-view="invoiceQueue">✓ &nbsp; Ready to Invoice</button><button data-view="customers">♙ &nbsp; Customers</button><button data-view="vehicles">▤ &nbsp; Vehicles</button><button data-view="invoices">£ &nbsp; Invoices</button><button data-view="reports">▥ &nbsp; Reports</button><button data-view="settings">⚙ &nbsp; Settings</button>
-    </nav><div class="sideFoot"><b>🚗 Vecta Motors</b><br><br><small>v40.35 Invoice Module Rewrite</small></div>
+    </nav><div class="sideFoot"><b>🚗 Vecta Motors</b><br><br><small>v40.36 Invoice Payment Bottom</small></div>
   </aside>
   <main class="main">
     <header class="top"><div class="dateCtl"><button id="prevDay">‹</button><div id="dateLabel" title="Click to choose a date"></div><button id="nextDay">›</button></div><input id="datePicker" type="date" style="position:absolute;opacity:0;pointer-events:none;width:1px;height:1px" aria-label="Pick planner date"><button class="pillBtn" id="todayBtn">Today</button><div class="seg"><button class="active" id="dayViewBtn">Day</button><button id="weekViewBtn">Week</button><button id="listViewBtn">List</button></div><button class="printBtn" id="printBtn">🖨 Print Day Plan</button><div class="user"><b>Chris</b>Administrator</div><button class="addJob" id="topAddJob">＋ Add Job Card</button></header>
@@ -1358,7 +1358,7 @@ const timesEl=document.getElementById('times'); populateTimes(); populateJobType
   }
   function patchNavigation(){
     document.querySelectorAll('.nav button[data-view="service"]').forEach(function(btn){btn.style.display='none';});
-    var foot=document.querySelector('.sideFoot small'); if(foot) foot.textContent='v40.35 Invoice Module Rewrite';
+    var foot=document.querySelector('.sideFoot small'); if(foot) foot.textContent='v40.36 Invoice Payment Bottom';
   }
   function wrapOpenJobModal(){
     if(typeof window.openJobModal!=='function' || window.openJobModal.__v406Wrapped) return;
@@ -1400,7 +1400,7 @@ const timesEl=document.getElementById('times'); populateTimes(); populateJobType
       var del=byId('deleteModal');
       if(del && del.parentNode===footer) footer.insertBefore(print, del.nextSibling); else footer.insertBefore(print, footer.firstChild);
     }
-    var foot=document.querySelector('.sideFoot small'); if(foot) foot.textContent='v40.35 Invoice Module Rewrite';
+    var foot=document.querySelector('.sideFoot small'); if(foot) foot.textContent='v40.36 Invoice Payment Bottom';
   }
   function currentJobValues(){
     var id=window.editingId||null;
@@ -1481,9 +1481,9 @@ const timesEl=document.getElementById('times'); populateTimes(); populateJobType
 
   function v4016RefreshVersion(){
     try{
-      document.title = 'VECTA Workshop Pro v40.35';
+      document.title = 'VECTA Workshop Pro v40.36';
       var foot = document.querySelector('.sideFoot small');
-      if(foot) foot.textContent = 'v40.35 Invoice Module Rewrite';
+      if(foot) foot.textContent = 'v40.36 Invoice Payment Bottom';
     }catch(e){}
   }
 
@@ -1628,8 +1628,8 @@ const timesEl=document.getElementById('times'); populateTimes(); populateJobType
   'use strict';
   function byId(id){return document.getElementById(id);} 
   function refreshV4017Version(){
-    try{ document.title='VECTA Workshop Pro v40.35'; }catch(e){}
-    try{ var foot=document.querySelector('.sideFoot small'); if(foot) foot.textContent='v40.35 Invoice Module Rewrite'; }catch(e){}
+    try{ document.title='VECTA Workshop Pro v40.36'; }catch(e){}
+    try{ var foot=document.querySelector('.sideFoot small'); if(foot) foot.textContent='v40.36 Invoice Payment Bottom'; }catch(e){}
   }
   function notifyDeleted(){
     try{
@@ -1741,8 +1741,8 @@ const timesEl=document.getElementById('times'); populateTimes(); populateJobType
 (function(){
   'use strict';
   function v4020RefreshVersion(){
-    try{ document.title='VECTA Workshop Pro v40.35'; }catch(e){}
-    try{ var foot=document.querySelector('.sideFoot small'); if(foot) foot.textContent='v40.35 Invoice Module Rewrite'; }catch(e){}
+    try{ document.title='VECTA Workshop Pro v40.36'; }catch(e){}
+    try{ var foot=document.querySelector('.sideFoot small'); if(foot) foot.textContent='v40.36 Invoice Payment Bottom'; }catch(e){}
   }
   function v4020Money(v){
     try{ if(typeof money === 'function') return money(Number(v||0)); }catch(e){}
@@ -1882,8 +1882,8 @@ const timesEl=document.getElementById('times'); populateTimes(); populateJobType
     return 'Service type: Not selected';
   };
   function refreshVersion(){
-    try{document.title='VECTA Workshop Pro v40.35';}catch(e){}
-    try{var f=document.querySelector('.sideFoot small'); if(f) f.textContent='v40.35 Invoice Module Rewrite';}catch(e){}
+    try{document.title='VECTA Workshop Pro v40.36';}catch(e){}
+    try{var f=document.querySelector('.sideFoot small'); if(f) f.textContent='v40.36 Invoice Payment Bottom';}catch(e){}
   }
   function ensureServiceTypeField(job){
     var jt=byId('jobType');
@@ -2040,7 +2040,7 @@ const timesEl=document.getElementById('times'); populateTimes(); populateJobType
   function boot(){
     patchSaveJobFromModal();
     patchInvoiceRender();
-    try{ var foot=document.querySelector('.sideFoot small'); if(foot) foot.textContent='v40.35 Invoice Module Rewrite'; document.title='VECTA Workshop Pro v40.35'; }catch(e){}
+    try{ var foot=document.querySelector('.sideFoot small'); if(foot) foot.textContent='v40.36 Invoice Payment Bottom'; document.title='VECTA Workshop Pro v40.36'; }catch(e){}
   }
   if(document.readyState==='loading') document.addEventListener('DOMContentLoaded', boot); else boot();
 })();
@@ -2677,7 +2677,7 @@ const timesEl=document.getElementById('times'); populateTimes(); populateJobType
     }
     var title = 'Invoice ' + safeEsc((job && job.reg) || '');
     return '<!doctype html><html><head><meta charset="utf-8"><title>'+title+'</title><style>'+
-      '*{box-sizing:border-box;-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important} @page{size:A4;margin:12mm} body{font-family:Inter,Arial,Helvetica,sans-serif;margin:0;color:#0f172a;font-size:12px;background:#fff}.invoiceSheet{background:#fff;border:0!important;border-radius:0!important;padding:0!important;box-shadow:none!important;margin:0!important}.invoiceTop{display:flex;justify-content:space-between;gap:20px;border-bottom:2px solid #0f172a;padding-bottom:12px;margin-bottom:14px}.invoiceTop img{width:190px!important;height:auto!important;display:block;margin-bottom:6px}.invoiceTop h2{margin:0 0 4px;font-size:28px}.invoiceGrid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px}.invoiceBox{border:1px solid #cbd5e1;border-radius:8px;background:#f8fafc;padding:10px}.invoiceBox h3{margin:0 0 6px;font-size:11px;text-transform:uppercase;color:#64748b}.reg{display:inline-block;background:#ffd84d!important;border:1px solid #111827;border-radius:4px;padding:4px 8px;font-weight:950;letter-spacing:1px}.invoiceTable{width:100%;border-collapse:collapse;margin-top:8px}.invoiceTable th{background:#111827!important;color:#fff!important;text-align:left;padding:8px;font-size:11px}.invoiceTable td{border:1px solid #cbd5e1;padding:8px;vertical-align:top}.invoiceSummary{margin-top:10px;display:flex;justify-content:flex-end}.invoiceSummary table{min-width:260px;border-collapse:collapse}.invoiceSummary td{border-bottom:1px solid #cbd5e1;padding:6px 8px}.invoiceSummary td:last-child{text-align:right;font-weight:950}.invoicePaymentDetails{margin-top:12px;width:52%;border:2px solid #111827;border-radius:10px;background:#fffbea!important;padding:10px 12px;break-inside:avoid;page-break-inside:avoid}.invoicePaymentDetails h3{margin:0 0 6px;font-size:13px;text-transform:uppercase}.invoicePaymentGrid{display:grid!important;grid-template-columns:max-content 1fr!important;gap:4px 10px!important;font-size:12px}.invoicePaymentGrid>div:nth-child(1){grid-column:1/-1}.invoicePaymentGrid>div:nth-child(2){display:none}.invoicePaymentRef{margin-top:8px;border:1px solid #f59e0b;background:#fff7ed!important;border-radius:8px;padding:7px;font-weight:950;color:#9a3412;font-size:12px}' +
+      '*{box-sizing:border-box;-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important} @page{size:A4;margin:12mm} body{font-family:Inter,Arial,Helvetica,sans-serif;margin:0;color:#0f172a;font-size:12px;background:#fff}.invoiceSheet{background:#fff;border:0!important;border-radius:0!important;padding:0!important;box-shadow:none!important;margin:0!important}.invoiceTop{display:flex;justify-content:space-between;gap:20px;border-bottom:2px solid #0f172a;padding-bottom:12px;margin-bottom:14px}.invoiceTop img{width:190px!important;height:auto!important;display:block;margin-bottom:6px}.invoiceTop h2{margin:0 0 4px;font-size:28px}.invoiceGrid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px}.invoiceBox{border:1px solid #cbd5e1;border-radius:8px;background:#f8fafc;padding:10px}.invoiceBox h3{margin:0 0 6px;font-size:11px;text-transform:uppercase;color:#64748b}.reg{display:inline-block;background:#ffd84d!important;border:1px solid #111827;border-radius:4px;padding:4px 8px;font-weight:950;letter-spacing:1px}.invoiceTable{width:100%;border-collapse:collapse;margin-top:8px}.invoiceTable th{background:#111827!important;color:#fff!important;text-align:left;padding:8px;font-size:11px}.invoiceTable td{border:1px solid #cbd5e1;padding:8px;vertical-align:top}.invoiceSummary{margin-top:10px;display:flex;justify-content:flex-end}.invoiceSummary table{min-width:260px;border-collapse:collapse}.invoiceSummary td{border-bottom:1px solid #cbd5e1;padding:6px 8px}.invoiceSummary td:last-child{text-align:right;font-weight:950}.invoiceSheet{min-height:273mm;display:flex;flex-direction:column}.invoicePaymentDetails{margin-top:auto!important;width:100%!important;max-width:none!important;border:2px solid #111827;border-radius:8px;background:#fffbea!important;padding:6px 8px!important;break-inside:avoid;page-break-inside:avoid;display:grid;grid-template-columns:115px 1fr;gap:4px 10px;align-items:center}.invoicePaymentDetails h3{margin:0!important;font-size:11px!important;text-transform:uppercase;line-height:1.05}.invoicePaymentGrid{display:grid!important;grid-template-columns:max-content 1fr max-content max-content max-content max-content!important;gap:2px 8px!important;font-size:10.5px!important;align-items:baseline}.invoicePaymentGrid>div:nth-child(1),.invoicePaymentGrid>div:nth-child(2){display:none!important}.invoicePaymentGrid b{font-weight:950}.invoicePaymentRef{grid-column:1/-1;margin-top:2px!important;border:1px solid #f59e0b;background:#fff7ed!important;border-radius:6px;padding:3px 6px!important;font-weight:950;color:#9a3412;font-size:10.5px!important;line-height:1.1}' +
       '</style></head><body>' + (content ? content.outerHTML : '<h1>Invoice</h1><p>Invoice could not be rendered.</p>') + '</body></html>';
   }
   window.printInvoiceOnly = function(jobId){
@@ -2721,12 +2721,25 @@ const timesEl=document.getElementById('times'); populateTimes(); populateJobType
     window.renderInvoiceQueue.__v4035CleanRewrite = true;
   }
   function boot(){
-    try{ document.title='VECTA Workshop Pro v40.35'; }catch(e){}
-    try{ var f=document.querySelector('.sideFoot small'); if(f) f.textContent='v40.35 Invoice Module Rewrite'; }catch(e){}
+    try{ document.title='VECTA Workshop Pro v40.36'; }catch(e){}
+    try{ var f=document.querySelector('.sideFoot small'); if(f) f.textContent='v40.36 Invoice Payment Bottom'; }catch(e){}
     setTimeout(refreshInvoiceAfterRender, 0);
   }
   if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot); else boot();
 })();
+</script>
+
+<style id="v4036-invoice-payment-bottom-css">
+/* V40.36 - compact full-width payment details; fixed to bottom in invoice print */
+.invoicePaymentDetails{width:100%!important;max-width:none!important;padding:8px 10px!important;border-radius:8px!important;}
+.invoicePaymentDetails h3{font-size:12px!important;margin:0 0 4px!important;}
+.invoicePaymentGrid{grid-template-columns:max-content 1fr max-content max-content max-content max-content!important;gap:3px 10px!important;font-size:12px!important;}
+.invoicePaymentGrid>div:nth-child(1),.invoicePaymentGrid>div:nth-child(2){display:none!important;}
+.invoicePaymentRef{font-size:12px!important;padding:5px 7px!important;margin-top:5px!important;}
+@media print{.invoiceSheet{min-height:273mm!important;display:flex!important;flex-direction:column!important}.invoicePaymentDetails{margin-top:auto!important;width:100%!important;max-width:none!important;}}
+</style>
+<script id="v4036-version">
+(function(){function v(){try{document.title='VECTA Workshop Pro v40.36';var f=document.querySelector('.sideFoot small');if(f)f.textContent='v40.36 Invoice Payment Bottom';}catch(e){}} if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',v);else v();})();
 </script>
 </body>
 </html>
