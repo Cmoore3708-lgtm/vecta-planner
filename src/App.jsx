@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { createRoot } from "react-dom/client";
 import { createClient } from "@supabase/supabase-js";
-import { Plus, Printer, Search, CalendarDays, CalendarRange, LayoutDashboard, Settings, History, Wand2, FileText, Mail, PoundSterling, ShieldCheck, Car } from "lucide-react";
+import { CalendarDays, Car, ChevronLeft, ChevronRight, FileText, History, Mail, Menu, Plus, PoundSterling, Printer, Search, Settings, ShieldCheck, Wand2 } from "lucide-react";
 import "./style.css";
 
 const TECHS = ["Jordan", "Alfie"];
@@ -77,8 +77,14 @@ const JOB_TYPES = [
 
 const JOB_TYPE_GROUPS = [...new Set(JOB_TYPES.map(j => j.group))];
 
-function findJobType(name) {
-  return JOB_TYPES.find(j => j.name === name) || JOB_TYPES[JOB_TYPES.length - 1];
+function findJobType(name, jobTypes = JOB_TYPES) {
+  return jobTypes.find(j => j.name === name) || jobTypes[jobTypes.length - 1] || JOB_TYPES[JOB_TYPES.length - 1];
+}
+function rampClass(key) {
+  return `ramp-${String(key || "").toLowerCase()}`;
+}
+function rampLabel(key, settings) {
+  return settings?.ramps?.find(r => r.key === key)?.label || RAMP_LABEL[key] || key || "No ramp";
 }
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
@@ -462,19 +468,21 @@ function hoursForRamp(jobs, ramp) {
   return jobs.filter(j => j.ramp === ramp).reduce((sum, j) => sum + Number(j.estimated_hours || 1), 0);
 }
 
-function RampUtilisation({ jobs, onRamp }) {
+function RampUtilisation({ jobs, settings, onRamp }) {
+  const rampList = settings?.ramps?.length ? settings.ramps : DEFAULT_SETTINGS.ramps;
   return (
     <section className="ramp-strip">
       <div className="ramp-title">RAMP UTILISATION</div>
-      {RAMPS.map(ramp => {
-        const hours = hoursForRamp(jobs, ramp);
-        const pct = Math.min(100, Math.round((hours / RAMP_CAPACITY) * 100));
+      {rampList.map(ramp => {
+        const hours = hoursForRamp(jobs, ramp.key);
+        const capacity = Number(ramp.capacity || RAMP_CAPACITY);
+        const pct = Math.min(100, Math.round((hours / capacity) * 100));
         const colour = pct >= 86 ? "danger" : pct >= 61 ? "warning" : "good";
         return (
-          <button key={ramp} className={`ramp-summary ${colour}`} onClick={() => onRamp(ramp)}>
-            <strong>{RAMP_LABEL[ramp]}</strong>
+          <button key={ramp.key} className={`ramp-summary ${colour}`} onClick={() => onRamp(ramp.key)}>
+            <strong>{ramp.label}</strong>
             <div className="progress"><i style={{ width: `${pct}%` }} /></div>
-            <span>{hours.toFixed(1)} / {RAMP_CAPACITY}.0 hrs</span>
+            <span>{hours.toFixed(1)} / {capacity.toFixed(1)} hrs</span>
           </button>
         );
       })}
@@ -500,7 +508,7 @@ function VehicleBadges({ job }) {
 
 function SmallJobCard({ job, onEdit, onDragStart }) {
   return (
-    <div className={`small-card ${RAMP_CLASS[job.ramp] || "ramp-left"}`} draggable onDragStart={e => onDragStart(e, job)} onDoubleClick={() => onEdit(job)}>
+    <div className={`small-card ${rampClass(job.ramp) || "ramp-left"}`} draggable onDragStart={e => onDragStart(e, job)} onDoubleClick={() => onEdit(job)}>
       <div className="small-card-top">
         <b>{job.registration || "NO REG"}</b>
         <span>{job.vehicle || ""}</span>
@@ -516,22 +524,52 @@ function SmallJobCard({ job, onEdit, onDragStart }) {
   );
 }
 
-function ScheduleCard({ job, onEdit, onDragStart, onHistory, onInvoice }) {
+function workflowLabel(status) {
+  return STATUS[status] || status || "Booked In";
+}
+
+function endTimeFrom(start, hours) {
+  if (!start) return "--:--";
+  const [h, m] = String(start).slice(0, 5).split(":").map(Number);
+  if (Number.isNaN(h) || Number.isNaN(m)) return String(start).slice(0, 5);
+  const d = new Date(2000, 0, 1, h, m);
+  d.setMinutes(d.getMinutes() + Math.round(Number(hours || 1) * 60));
+  return d.toTimeString().slice(0, 5);
+}
+
+function ScheduleCard({ job, settings, onEdit, onDragStart, onHistory, onInvoice }) {
+  const statusText = workflowLabel(job.status);
+  const start = job.drop_time ? String(job.drop_time).slice(0, 5) : "--:--";
+  const hours = Number(job.estimated_hours || 1);
+  const end = endTimeFrom(start, hours);
+
   return (
-    <div className={`schedule-card ${RAMP_CLASS[job.ramp] || ""} status-${job.status}`} draggable onDragStart={e => onDragStart(e, job)} onDoubleClick={() => onEdit(job)}>
-      <div className="card-actions"><button title="History" onClick={(e)=>{e.stopPropagation(); onHistory(job)}}><History size={14}/></button><button title="Invoice" onClick={(e)=>{e.stopPropagation(); onInvoice(job)}}><FileText size={14}/></button></div>
-      <strong>{job.registration || "NO REG"}</strong>
-      <h4>{job.vehicle || ""}</h4>
-      <VehicleBadges job={job} />
-      <p>{job.work_required || ""}</p>
+    <div className={`schedule-card ${rampClass(job.ramp) || ""} status-${job.status || "booked"}`} draggable onDragStart={e => onDragStart(e, job)} onDoubleClick={() => onEdit(job)}>
+      <div className="schedule-card-header">
+        <strong className="reg-plate">{job.registration || "NO REG"}</strong>
+        {job.ramp && <span className="ramp-badge">{rampLabel(job.ramp, settings)}</span>}
+      </div>
+
+      <button className="card-menu" title="Open actions" onClick={(e) => { e.stopPropagation(); onEdit(job); }}>⋮</button>
+
+      <h4>{job.vehicle || "Vehicle"}</h4>
+      <p className="job-work">{job.work_required || "Work required"}</p>
       {job.customer_name && <small>{job.customer_name} · {job.customer_phone}</small>}
-      <span>{job.drop_time ? String(job.drop_time).slice(0, 5) : "--:--"} · {Number(job.estimated_hours || 1).toFixed(1)} hrs</span>
+      <div className="job-time">{start} – {end} ({hours.toFixed(1)} hrs)</div>
+
+      <div className="schedule-card-footer">
+        <span className={`workflow-badge workflow-${job.status || "booked"}`}>{statusText}</span>
+        <span className="card-actions">
+          <button title="History" onClick={(e)=>{e.stopPropagation(); onHistory(job)}}><History size={14}/></button>
+          <button title="Invoice" onClick={(e)=>{e.stopPropagation(); onInvoice(job)}}><FileText size={14}/></button>
+        </span>
+      </div>
     </div>
   );
 }
 
 
-function JobDialog({ job, date, jobTypes = JOB_TYPES, onClose, onSave, onDelete }) {
+function JobDialog({ job, date, settings, jobTypes = JOB_TYPES, onClose, onSave, onDelete }) {
   const [form, setForm] = useState(job || {});
 
   useEffect(() => {
@@ -597,7 +635,7 @@ function JobDialog({ job, date, jobTypes = JOB_TYPES, onClose, onSave, onDelete 
   }
 
   function applyQuickJob(typeName) {
-    const selected = findJobType(typeName);
+    const selected = findJobType(typeName, jobTypes);
     setForm(f => ({
       ...f,
       job_type: selected.name,
@@ -722,7 +760,7 @@ function JobDialog({ job, date, jobTypes = JOB_TYPES, onClose, onSave, onDelete 
           <label>Ramp
             <select value={form.ramp || ""} onChange={e => update("ramp", e.target.value)}>
               <option value="">No ramp</option>
-              {RAMPS.map(r => <option key={r} value={r}>{RAMP_LABEL[r]}</option>)}
+              {(settings?.ramps || DEFAULT_SETTINGS.ramps).map(r => <option key={r.key} value={r.key}>{r.label}</option>)}
             </select>
           </label>
           <label>Card Type
@@ -1270,7 +1308,7 @@ function App() {
         </div>
       </header>
 
-      <RampUtilisation jobs={jobs} onRamp={setRampModal} />
+      <RampUtilisation jobs={jobs} settings={settings} onRamp={setRampModal} />
 
       <div className="planner-layout">
         <aside className="left-panel">
@@ -1312,7 +1350,7 @@ function App() {
                   </div>
 
                   <div className="job-stack" onDragOver={e => e.preventDefault()} onDrop={e => dropOnTech(e, tech)}>
-                    {techJobs(tech).map(j => <ScheduleCard key={j.id} job={j} onEdit={setDialogJob} onDragStart={dragStart} onHistory={setHistoryJob} onInvoice={setInvoiceJob} />)}
+                    {techJobs(tech).map(j => <ScheduleCard key={j.id} job={j} settings={settings} onEdit={setDialogJob} onDragStart={dragStart} onHistory={setHistoryJob} onInvoice={setInvoiceJob} />)}
                   </div>
                 </section>
               );
@@ -1354,15 +1392,15 @@ function App() {
       {rampModal && (
         <div className="backdrop">
           <div className="dialog">
-            <h2>{RAMP_LABEL[rampModal]}</h2>
+            <h2>{rampLabel(rampModal, settings)}</h2>
             {rampRows.length === 0 && <p>No jobs on this ramp.</p>}
-            {rampRows.map(j => <button className={`ramp-modal-row ${RAMP_CLASS[j.ramp]}`} key={j.id} onClick={() => { setRampModal(null); setDialogJob(j); }}>{j.drop_time || "--:--"} — {j.registration} — {j.technician}</button>)}
+            {rampRows.map(j => <button className={`ramp-modal-row ${rampClass(j.ramp)}`} key={j.id} onClick={() => { setRampModal(null); setDialogJob(j); }}>{j.drop_time || "--:--"} — {j.registration} — {j.technician}</button>)}
             <button onClick={() => setRampModal(null)}>Close</button>
           </div>
         </div>
       )}
 
-      {dialogJob !== undefined && <JobDialog job={dialogJob} date={date} jobTypes={settings.jobTypes} onClose={() => setDialogJob(undefined)} onDelete={async id => { await deleteJob(id); setDialogJob(undefined); refresh(); }} onSave={async j => { await saveJob(j, date); setDialogJob(undefined); refresh(); }} />}
+      {dialogJob !== undefined && <JobDialog job={dialogJob} date={date} settings={settings} jobTypes={settings.jobTypes} onClose={() => setDialogJob(undefined)} onDelete={async id => { await deleteJob(id); setDialogJob(undefined); refresh(); }} onSave={async j => { await saveJob(j, date); setDialogJob(undefined); refresh(); }} />}
     </div>
   );
 }
