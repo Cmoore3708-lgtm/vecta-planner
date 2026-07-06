@@ -1,0 +1,10 @@
+Vecta Planner clean recovery build
+
+What changed:
+- Removed stale package-lock.json because it did not match package.json.
+- Replaced unstable/latest package versions with fixed stable versions.
+- Added missing @supabase/supabase-js dependency.
+- Added .npmrc to stop Vercel/npm using a broken stale lockfile.
+
+Upload instruction:
+Upload the CONTENTS of this folder to GitHub, not the folder itself and not the ZIP itself.
