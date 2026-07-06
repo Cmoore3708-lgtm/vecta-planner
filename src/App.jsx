@@ -81,8 +81,14 @@ function findJobType(name) {
   return JOB_TYPES.find(j => j.name === name) || JOB_TYPES[JOB_TYPES.length - 1];
 }
 
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+const defaultSupabaseUrl = "https://jywufozycuwuoshlulwl.supabase.co";
+function readSupabaseConfig() {
+  try { return JSON.parse(localStorage.getItem("vecta:supabase:config") || "{}"); }
+  catch { return {}; }
+}
+const savedSupabaseConfig = readSupabaseConfig();
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || savedSupabaseConfig.url || defaultSupabaseUrl;
+const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY || savedSupabaseConfig.anonKey || "";
 const supabase = supabaseUrl && supabaseKey ? createClient(supabaseUrl, supabaseKey) : null;
 
 function uuid() {
@@ -178,144 +184,10 @@ function readLS(key) { return JSON.parse(localStorage.getItem(key) || "[]"); }
 function writeLS(key, value) { localStorage.setItem(key, JSON.stringify(value)); }
 
 async function seedLocal() {
-  if (supabase) return;
-  const date = todayISO();
-
-  if (!localStorage.getItem(localKey(date))) {
-    writeLS(localKey(date), [
-      {
-        id: uuid(),
-        booking_date: date,
-        registration: "AJ68 LZD",
-        vehicle: "Nissan Qashqai",
-        work_required: "Major Service",
-        drop_time: "08:00",
-        technician: "Jordan",
-        ramp: "Left",
-        status: "in_progress",
-        job_type: "Major Service",
-        estimated_hours: 2.5
-      },
-      {
-        id: uuid(),
-        booking_date: date,
-        registration: "BT19 KLM",
-        vehicle: "Ford Focus",
-        work_required: "Clutch Replacement",
-        drop_time: "11:00",
-        technician: "Jordan",
-        ramp: "Left",
-        status: "in_progress",
-        job_type: "Clutch",
-        estimated_hours: 2
-      },
-      {
-        id: uuid(),
-        booking_date: date,
-        registration: "DP20 VWX",
-        vehicle: "Mercedes C Class",
-        work_required: "Diagnostics",
-        drop_time: "14:00",
-        technician: "Jordan",
-        ramp: "Middle",
-        status: "in_progress",
-        job_type: "Diagnostics",
-        estimated_hours: 1.5
-      },
-      {
-        id: uuid(),
-        booking_date: date,
-        registration: "KV70 UOS",
-        vehicle: "BMW 2 Series",
-        work_required: "Brake Discs & Pads",
-        drop_time: "08:30",
-        technician: "Alfie",
-        ramp: "Right",
-        status: "in_progress",
-        job_type: "Front & Rear Brakes",
-        estimated_hours: 4
-      },
-      {
-        id: uuid(),
-        booking_date: date,
-        registration: "FD22 PQR",
-        vehicle: "Audi A4",
-        work_required: "Diagnostics",
-        drop_time: "13:00",
-        technician: "Alfie",
-        ramp: "Right",
-        status: "in_progress",
-        job_type: "Diagnostics",
-        estimated_hours: 2
-      },
-      {
-        id: uuid(),
-        booking_date: date,
-        registration: "YP69 STU",
-        vehicle: "Range Rover Evoque",
-        work_required: "Service + MOT",
-        drop_time: "15:30",
-        technician: "Alfie",
-        ramp: "Right",
-        status: "in_progress",
-        job_type: "Minor Service",
-        estimated_hours: 2
-      }
-    ]);
-  }
-
-  if (!localStorage.getItem(globalKey)) {
-    writeLS(globalKey, [
-      {
-        id: uuid(),
-        card_type: "job",
-        registration: "NU18 REG",
-        vehicle: "Nissan Qashqai",
-        work_required: "Major Service",
-        customer_note: "Customer waiting",
-        technician: "Unallocated",
-        status: "in_progress",
-        estimated_hours: 2.5,
-        job_type: "Major Service"
-      },
-      {
-        id: uuid(),
-        card_type: "job",
-        registration: "FV67 ABC",
-        vehicle: "Ford Transit",
-        work_required: "Clutch Replacement",
-        customer_note: "Customer waiting",
-        technician: "Unallocated",
-        status: "in_progress",
-        estimated_hours: 5,
-        job_type: "Clutch"
-      },
-      {
-        id: uuid(),
-        card_type: "waiting",
-        registration: "YG19 DEF",
-        vehicle: "Vauxhall Astra",
-        work_required: "Brake Pads Fitted",
-        customer_note: "Waiting for collection",
-        technician: "Waiting",
-        status: "work_complete",
-        estimated_hours: 1
-      }
-    ]);
-  }
-
-  if (!localStorage.getItem(tasksKey)) {
-    writeLS(tasksKey, [
-      { id: uuid(), task_text: "Order brake pads for Transit", done: false },
-      { id: uuid(), task_text: "Print invoices for today's work", done: false },
-      { id: uuid(), task_text: "Check stock levels — oil, filters, bulbs", done: false }
-    ]);
-  }
-
-  if (!localStorage.getItem(notesKey)) {
-    writeLS(notesKey, [{ id: uuid(), note_text: "Add notes, reminders or anything important for today." }]);
-  }
+  // Production safety: do not seed fake/demo jobs and do not fall back to browser storage.
+  return;
 }
+
 
 async function listDate(date) {
   if (supabase) {
@@ -330,7 +202,7 @@ async function listDate(date) {
     if (error) throw error;
     return data || [];
   }
-  return readLS(localKey(date)).filter(j => !j.archived && j.technician !== "Unallocated" && j.technician !== "Waiting");
+  return [];
 }
 
 async function listGlobal() {
@@ -344,7 +216,7 @@ async function listGlobal() {
     if (error) throw error;
     return data || [];
   }
-  return readLS(globalKey);
+  return [];
 }
 
 async function listTasks() {
@@ -353,7 +225,7 @@ async function listTasks() {
     if (error) throw error;
     return data || [];
   }
-  return readLS(tasksKey).filter(t => !t.done);
+  return [];
 }
 
 async function listNotes() {
@@ -365,7 +237,41 @@ async function listNotes() {
       return [];
     }
   }
-  return readLS(notesKey);
+  return [];
+}
+
+async function syncMasterRecords(job) {
+  if (!supabase) return;
+  const registration = (job.registration || "").replace(/\s+/g, "").toUpperCase();
+  let customerId = null;
+
+  if (job.customer_phone || job.customer_email || job.customer_name) {
+    let existing = null;
+    if (job.customer_phone) {
+      const { data } = await supabase.from("customers").select("id").eq("phone", job.customer_phone).limit(1).maybeSingle();
+      existing = data;
+    }
+    if (!existing && job.customer_email) {
+      const { data } = await supabase.from("customers").select("id").eq("email", job.customer_email).limit(1).maybeSingle();
+      existing = data;
+    }
+    if (existing?.id) {
+      customerId = existing.id;
+      await supabase.from("customers").update({ name: job.customer_name || null, phone: job.customer_phone || null, email: job.customer_email || null }).eq("id", customerId);
+    } else {
+      const { data } = await supabase.from("customers").insert({ name: job.customer_name || null, phone: job.customer_phone || null, email: job.customer_email || null }).select("id").single();
+      customerId = data?.id || null;
+    }
+  }
+
+  if (registration) {
+    await supabase.from("vehicles").upsert({
+      registration,
+      customer_id: customerId,
+      vehicle: job.vehicle || [job.make, job.model].filter(Boolean).join(" ") || null,
+      notes: job.customer_note || null
+    }, { onConflict: "registration" });
+  }
 }
 
 async function saveJob(job, date) {
@@ -383,6 +289,7 @@ async function saveJob(job, date) {
   }
 
   if (supabase) {
+    await syncMasterRecords(payload);
     const { error } = await supabase.from("jobs").upsert(payload);
     if (error) {
       alert(error.message);
@@ -390,6 +297,9 @@ async function saveJob(job, date) {
     }
     return;
   }
+
+  alert("Supabase is not connected. Nothing has been saved.");
+  throw new Error("Supabase is not connected");
 
   for (const key of Object.keys(localStorage)) {
     if (key.startsWith("vecta:v113:") && key !== globalKey && key !== tasksKey && key !== notesKey) {
@@ -424,7 +334,7 @@ async function saveTask(task) {
     }
     return;
   }
-  writeLS(tasksKey, [...readLS(tasksKey).filter(t => t.id !== payload.id), payload]);
+  alert("Supabase is not connected. Task not saved."); throw new Error("Supabase is not connected");
 }
 
 async function deleteTask(id) {
@@ -446,7 +356,7 @@ async function saveNote(note) {
     }
     return;
   }
-  writeLS(notesKey, [...readLS(notesKey).filter(n => n.id !== payload.id), payload]);
+  alert("Supabase is not connected. Note not saved."); throw new Error("Supabase is not connected");
 }
 
 async function deleteNote(id) {
@@ -1159,7 +1069,40 @@ function SettingsPanel({ settings, onSave, onClose }) {
 }
 
 
+function SupabaseSetup() {
+  const [url, setUrl] = useState(supabaseUrl || defaultSupabaseUrl);
+  const [anonKey, setAnonKey] = useState("");
+
+  function saveConnection() {
+    if (!url || !anonKey) {
+      alert("Paste the Supabase project URL and anon public key first.");
+      return;
+    }
+    localStorage.setItem("vecta:supabase:config", JSON.stringify({ url: url.trim(), anonKey: anonKey.trim() }));
+    window.location.reload();
+  }
+
+  return (
+    <div className="app-shell">
+      <div className="cloud-setup" style={{maxWidth: 760, margin: "60px auto", background: "#fff", padding: 28, borderRadius: 18, boxShadow: "0 20px 50px rgba(15,23,42,.12)"}}>
+        <div className="brand"><span>VECTA</span><b>PLANNER</b></div>
+        <h1>Cloud database not connected</h1>
+        <p>This version is locked for safety. It will not use fake jobs and it will not save live garage data in browser storage.</p>
+        <p>Connect Supabase once, then the planner will read and write to your real database tables.</p>
+        <label>Supabase Project URL</label>
+        <input value={url} onChange={e => setUrl(e.target.value)} placeholder="https://your-project.supabase.co" />
+        <label>Supabase anon public key</label>
+        <textarea value={anonKey} onChange={e => setAnonKey(e.target.value)} placeholder="Paste anon public key here" rows={4} />
+        <div className="dialog-actions">
+          <button onClick={saveConnection}>Connect Supabase</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function App() {
+  if (!supabase) return <SupabaseSetup />;
   const [date, setDate] = useState(todayISO());
   const [mode, setMode] = useState("day");
   const [jobs, setJobs] = useState([]);

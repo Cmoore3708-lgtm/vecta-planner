@@ -1,13 +1,12 @@
-# Vecta Planner 2.0 - Cloud Safe Starter
+# Vecta Planner v1.8 Production Safe
 
-Static deploy: upload all contents to GitHub. Vercel can serve this without npm install.
+Production-safe recovery based on the real Vecta source project.
 
-Before live use:
-1. Run `supabase/schema.sql` in Supabase SQL Editor.
-2. Open the site.
-3. Go to Settings.
-4. Paste Supabase Project URL and anon public key.
-5. Create one fake customer, vehicle and job.
-6. Confirm records appear in Supabase tables.
+Changes:
+- Removes demo/fake job seeding.
+- Blocks local browser job storage for live data.
+- Adds missing lucide icons that caused blank screens.
+- Requires Supabase connection before use.
+- Saves jobs to Supabase `jobs` and also syncs basic customer/vehicle records.
 
-This version refuses to save garage data unless Supabase is connected.
+Deploy: upload the contents of this folder to GitHub. Vercel will build with Vite.
