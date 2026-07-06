@@ -1,7 +1,8 @@
-# Vecta Planner v1.6.1 Crash Fix
+# VECTA Workshop Pro v40.40 Recovery Full UI
 
-## Fixed
-- Blank page caused by missing Wand2 icon import.
-- Keeps the vehicle lookup/MOT/tax display work from v1.6.
+This package restores the single-file v40.40 UI that includes the fuller workshop navigation.
 
-Upload the extracted contents to GitHub. Vercel redeploys automatically.
+Important:
+- This version stores data in browser localStorage.
+- It is useful for recovering the full interface, but it is not yet safe for live customer/vehicle/job data.
+- Next step is wiring these screens to Supabase tables.
