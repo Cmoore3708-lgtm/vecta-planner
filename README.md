@@ -1,8 +1,7 @@
-# VECTA Workshop Pro v40.40 Recovery Full UI
+Vecta Workshop Pro v40.40 Supabase Connected Recovery
 
-This package restores the single-file v40.40 UI that includes the fuller workshop navigation.
+Static deployment. Upload the contents of this folder to GitHub.
 
-Important:
-- This version stores data in browser localStorage.
-- It is useful for recovering the full interface, but it is not yet safe for live customer/vehicle/job data.
-- Next step is wiring these screens to Supabase tables.
+On first launch, click the green/red database status badge at the bottom-right or go Settings > Connect / update Supabase key, then paste the Supabase anon public key.
+
+Jobs sync to Supabase jobs, customers and vehicles tables. Keep using fake data until you confirm records appear in Supabase.

@@ -1,10 +1,1 @@
-{
-  "name": "vecta-workshop-pro-v40-40-recovery",
-  "version": "40.40.2",
-  "private": true,
-  "scripts": {
-    "build": "mkdir -p dist && cp index.html dist/index.html"
-  },
-  "dependencies": {},
-  "devDependencies": {}
-}
+{"scripts":{"build":"echo static site - no build needed"},"dependencies":{},"devDependencies":{}}
