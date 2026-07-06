@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { createRoot } from "react-dom/client";
 import { createClient } from "@supabase/supabase-js";
-import { Plus, Printer, Search, CalendarDays, CalendarRange, LayoutDashboard, Settings, History, Wand2, FileText, Mail, PoundSterling, ShieldCheck, Car } from "lucide-react";
+import { Plus, Printer, Search, CalendarDays, CalendarRange, LayoutDashboard, Settings, History, Wand2, FileText, Mail, PoundSterling, ShieldCheck, Car, Menu, ChevronLeft, ChevronRight } from "lucide-react";
 import "./style.css";
 
 const TECHS = ["Jordan", "Alfie"];

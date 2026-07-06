@@ -1,10 +1,8 @@
-Vecta Planner clean recovery build
+Vecta Planner Clean Recovery - Runtime Fix
 
-What changed:
-- Removed stale package-lock.json because it did not match package.json.
-- Replaced unstable/latest package versions with fixed stable versions.
-- Added missing @supabase/supabase-js dependency.
-- Added .npmrc to stop Vercel/npm using a broken stale lockfile.
+Fixes included:
+- Added missing lucide-react imports: Menu, ChevronLeft, ChevronRight.
+- Keeps previous clean package setup with pinned dependencies and Supabase package.
+- Removed broken package-lock dependency mismatch.
 
-Upload instruction:
-Upload the CONTENTS of this folder to GitHub, not the folder itself and not the ZIP itself.
+Upload the contents of this ZIP to GitHub, then let Vercel redeploy.
