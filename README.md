@@ -1,3 +1,10 @@
-Vecta Workshop Pro v40.41 Cloud Safe
+# Vecta Planner Production Safe v1.7.0
 
-Upload contents to GitHub. This static release disables demo sample data and prompts for the Supabase anon public key. Jobs/tasks then save to Supabase.
+Static no-install deployment.
+
+- No demo jobs are seeded.
+- The app will not save locally if Supabase is not connected.
+- On first load, paste the Supabase anon public key when prompted.
+- The Supabase project URL is pre-filled for Vecta Planner.
+
+Tables expected: jobs, tasks, notes.

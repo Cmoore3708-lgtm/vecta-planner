@@ -1,1 +1,9 @@
-{"scripts":{"build":"echo static site - no build needed"},"dependencies":{},"devDependencies":{}}
+{
+  "name": "vecta-planner-production-safe-static",
+  "version": "1.7.0",
+  "private": true,
+  "scripts": {
+    "build": "echo static deployment ready"
+  },
+  "dependencies": {}
+}
