@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { createRoot } from "react-dom/client";
 import { createClient } from "@supabase/supabase-js";
-import { Plus, Printer, Search, CalendarDays, CalendarRange, LayoutDashboard, Settings, History, Wand2, FileText, Mail, PoundSterling, ShieldCheck, Car, Menu, ChevronLeft, ChevronRight } from "lucide-react";
+import { CalendarDays, Car, ChevronLeft, ChevronRight, FileText, History, Mail, Menu, Plus, PoundSterling, Printer, Search, Settings, ShieldCheck, Wand2 } from "lucide-react";
 import "./style.css";
 
 const TECHS = ["Jordan", "Alfie"];
@@ -77,18 +77,18 @@ const JOB_TYPES = [
 
 const JOB_TYPE_GROUPS = [...new Set(JOB_TYPES.map(j => j.group))];
 
-function findJobType(name) {
-  return JOB_TYPES.find(j => j.name === name) || JOB_TYPES[JOB_TYPES.length - 1];
+function findJobType(name, jobTypes = JOB_TYPES) {
+  return jobTypes.find(j => j.name === name) || jobTypes[jobTypes.length - 1] || JOB_TYPES[JOB_TYPES.length - 1];
+}
+function rampClass(key) {
+  return `ramp-${String(key || "").toLowerCase()}`;
+}
+function rampLabel(key, settings) {
+  return settings?.ramps?.find(r => r.key === key)?.label || RAMP_LABEL[key] || key || "No ramp";
 }
 
-const defaultSupabaseUrl = "https://jywufozycuwuoshlulwl.supabase.co";
-function readSupabaseConfig() {
-  try { return JSON.parse(localStorage.getItem("vecta:supabase:config") || "{}"); }
-  catch { return {}; }
-}
-const savedSupabaseConfig = readSupabaseConfig();
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || savedSupabaseConfig.url || defaultSupabaseUrl;
-const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY || savedSupabaseConfig.anonKey || "";
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 const supabase = supabaseUrl && supabaseKey ? createClient(supabaseUrl, supabaseKey) : null;
 
 function uuid() {
@@ -184,10 +184,144 @@ function readLS(key) { return JSON.parse(localStorage.getItem(key) || "[]"); }
 function writeLS(key, value) { localStorage.setItem(key, JSON.stringify(value)); }
 
 async function seedLocal() {
-  // Production safety: do not seed fake/demo jobs and do not fall back to browser storage.
-  return;
-}
+  if (supabase) return;
+  const date = todayISO();
 
+  if (!localStorage.getItem(localKey(date))) {
+    writeLS(localKey(date), [
+      {
+        id: uuid(),
+        booking_date: date,
+        registration: "AJ68 LZD",
+        vehicle: "Nissan Qashqai",
+        work_required: "Major Service",
+        drop_time: "08:00",
+        technician: "Jordan",
+        ramp: "Left",
+        status: "in_progress",
+        job_type: "Major Service",
+        estimated_hours: 2.5
+      },
+      {
+        id: uuid(),
+        booking_date: date,
+        registration: "BT19 KLM",
+        vehicle: "Ford Focus",
+        work_required: "Clutch Replacement",
+        drop_time: "11:00",
+        technician: "Jordan",
+        ramp: "Left",
+        status: "in_progress",
+        job_type: "Clutch",
+        estimated_hours: 2
+      },
+      {
+        id: uuid(),
+        booking_date: date,
+        registration: "DP20 VWX",
+        vehicle: "Mercedes C Class",
+        work_required: "Diagnostics",
+        drop_time: "14:00",
+        technician: "Jordan",
+        ramp: "Middle",
+        status: "in_progress",
+        job_type: "Diagnostics",
+        estimated_hours: 1.5
+      },
+      {
+        id: uuid(),
+        booking_date: date,
+        registration: "KV70 UOS",
+        vehicle: "BMW 2 Series",
+        work_required: "Brake Discs & Pads",
+        drop_time: "08:30",
+        technician: "Alfie",
+        ramp: "Right",
+        status: "in_progress",
+        job_type: "Front & Rear Brakes",
+        estimated_hours: 4
+      },
+      {
+        id: uuid(),
+        booking_date: date,
+        registration: "FD22 PQR",
+        vehicle: "Audi A4",
+        work_required: "Diagnostics",
+        drop_time: "13:00",
+        technician: "Alfie",
+        ramp: "Right",
+        status: "in_progress",
+        job_type: "Diagnostics",
+        estimated_hours: 2
+      },
+      {
+        id: uuid(),
+        booking_date: date,
+        registration: "YP69 STU",
+        vehicle: "Range Rover Evoque",
+        work_required: "Service + MOT",
+        drop_time: "15:30",
+        technician: "Alfie",
+        ramp: "Right",
+        status: "in_progress",
+        job_type: "Minor Service",
+        estimated_hours: 2
+      }
+    ]);
+  }
+
+  if (!localStorage.getItem(globalKey)) {
+    writeLS(globalKey, [
+      {
+        id: uuid(),
+        card_type: "job",
+        registration: "NU18 REG",
+        vehicle: "Nissan Qashqai",
+        work_required: "Major Service",
+        customer_note: "Customer waiting",
+        technician: "Unallocated",
+        status: "in_progress",
+        estimated_hours: 2.5,
+        job_type: "Major Service"
+      },
+      {
+        id: uuid(),
+        card_type: "job",
+        registration: "FV67 ABC",
+        vehicle: "Ford Transit",
+        work_required: "Clutch Replacement",
+        customer_note: "Customer waiting",
+        technician: "Unallocated",
+        status: "in_progress",
+        estimated_hours: 5,
+        job_type: "Clutch"
+      },
+      {
+        id: uuid(),
+        card_type: "waiting",
+        registration: "YG19 DEF",
+        vehicle: "Vauxhall Astra",
+        work_required: "Brake Pads Fitted",
+        customer_note: "Waiting for collection",
+        technician: "Waiting",
+        status: "work_complete",
+        estimated_hours: 1
+      }
+    ]);
+  }
+
+  if (!localStorage.getItem(tasksKey)) {
+    writeLS(tasksKey, [
+      { id: uuid(), task_text: "Order brake pads for Transit", done: false },
+      { id: uuid(), task_text: "Print invoices for today's work", done: false },
+      { id: uuid(), task_text: "Check stock levels — oil, filters, bulbs", done: false }
+    ]);
+  }
+
+  if (!localStorage.getItem(notesKey)) {
+    writeLS(notesKey, [{ id: uuid(), note_text: "Add notes, reminders or anything important for today." }]);
+  }
+}
 
 async function listDate(date) {
   if (supabase) {
@@ -202,7 +336,7 @@ async function listDate(date) {
     if (error) throw error;
     return data || [];
   }
-  return [];
+  return readLS(localKey(date)).filter(j => !j.archived && j.technician !== "Unallocated" && j.technician !== "Waiting");
 }
 
 async function listGlobal() {
@@ -216,7 +350,7 @@ async function listGlobal() {
     if (error) throw error;
     return data || [];
   }
-  return [];
+  return readLS(globalKey);
 }
 
 async function listTasks() {
@@ -225,7 +359,7 @@ async function listTasks() {
     if (error) throw error;
     return data || [];
   }
-  return [];
+  return readLS(tasksKey).filter(t => !t.done);
 }
 
 async function listNotes() {
@@ -237,41 +371,7 @@ async function listNotes() {
       return [];
     }
   }
-  return [];
-}
-
-async function syncMasterRecords(job) {
-  if (!supabase) return;
-  const registration = (job.registration || "").replace(/\s+/g, "").toUpperCase();
-  let customerId = null;
-
-  if (job.customer_phone || job.customer_email || job.customer_name) {
-    let existing = null;
-    if (job.customer_phone) {
-      const { data } = await supabase.from("customers").select("id").eq("phone", job.customer_phone).limit(1).maybeSingle();
-      existing = data;
-    }
-    if (!existing && job.customer_email) {
-      const { data } = await supabase.from("customers").select("id").eq("email", job.customer_email).limit(1).maybeSingle();
-      existing = data;
-    }
-    if (existing?.id) {
-      customerId = existing.id;
-      await supabase.from("customers").update({ name: job.customer_name || null, phone: job.customer_phone || null, email: job.customer_email || null }).eq("id", customerId);
-    } else {
-      const { data } = await supabase.from("customers").insert({ name: job.customer_name || null, phone: job.customer_phone || null, email: job.customer_email || null }).select("id").single();
-      customerId = data?.id || null;
-    }
-  }
-
-  if (registration) {
-    await supabase.from("vehicles").upsert({
-      registration,
-      customer_id: customerId,
-      vehicle: job.vehicle || [job.make, job.model].filter(Boolean).join(" ") || null,
-      notes: job.customer_note || null
-    }, { onConflict: "registration" });
-  }
+  return readLS(notesKey);
 }
 
 async function saveJob(job, date) {
@@ -289,7 +389,6 @@ async function saveJob(job, date) {
   }
 
   if (supabase) {
-    await syncMasterRecords(payload);
     const { error } = await supabase.from("jobs").upsert(payload);
     if (error) {
       alert(error.message);
@@ -297,9 +396,6 @@ async function saveJob(job, date) {
     }
     return;
   }
-
-  alert("Supabase is not connected. Nothing has been saved.");
-  throw new Error("Supabase is not connected");
 
   for (const key of Object.keys(localStorage)) {
     if (key.startsWith("vecta:v113:") && key !== globalKey && key !== tasksKey && key !== notesKey) {
@@ -334,7 +430,7 @@ async function saveTask(task) {
     }
     return;
   }
-  alert("Supabase is not connected. Task not saved."); throw new Error("Supabase is not connected");
+  writeLS(tasksKey, [...readLS(tasksKey).filter(t => t.id !== payload.id), payload]);
 }
 
 async function deleteTask(id) {
@@ -356,7 +452,7 @@ async function saveNote(note) {
     }
     return;
   }
-  alert("Supabase is not connected. Note not saved."); throw new Error("Supabase is not connected");
+  writeLS(notesKey, [...readLS(notesKey).filter(n => n.id !== payload.id), payload]);
 }
 
 async function deleteNote(id) {
@@ -372,19 +468,21 @@ function hoursForRamp(jobs, ramp) {
   return jobs.filter(j => j.ramp === ramp).reduce((sum, j) => sum + Number(j.estimated_hours || 1), 0);
 }
 
-function RampUtilisation({ jobs, onRamp }) {
+function RampUtilisation({ jobs, settings, onRamp }) {
+  const rampList = settings?.ramps?.length ? settings.ramps : DEFAULT_SETTINGS.ramps;
   return (
     <section className="ramp-strip">
       <div className="ramp-title">RAMP UTILISATION</div>
-      {RAMPS.map(ramp => {
-        const hours = hoursForRamp(jobs, ramp);
-        const pct = Math.min(100, Math.round((hours / RAMP_CAPACITY) * 100));
+      {rampList.map(ramp => {
+        const hours = hoursForRamp(jobs, ramp.key);
+        const capacity = Number(ramp.capacity || RAMP_CAPACITY);
+        const pct = Math.min(100, Math.round((hours / capacity) * 100));
         const colour = pct >= 86 ? "danger" : pct >= 61 ? "warning" : "good";
         return (
-          <button key={ramp} className={`ramp-summary ${colour}`} onClick={() => onRamp(ramp)}>
-            <strong>{RAMP_LABEL[ramp]}</strong>
+          <button key={ramp.key} className={`ramp-summary ${colour}`} onClick={() => onRamp(ramp.key)}>
+            <strong>{ramp.label}</strong>
             <div className="progress"><i style={{ width: `${pct}%` }} /></div>
-            <span>{hours.toFixed(1)} / {RAMP_CAPACITY}.0 hrs</span>
+            <span>{hours.toFixed(1)} / {capacity.toFixed(1)} hrs</span>
           </button>
         );
       })}
@@ -410,7 +508,7 @@ function VehicleBadges({ job }) {
 
 function SmallJobCard({ job, onEdit, onDragStart }) {
   return (
-    <div className={`small-card ${RAMP_CLASS[job.ramp] || "ramp-left"}`} draggable onDragStart={e => onDragStart(e, job)} onDoubleClick={() => onEdit(job)}>
+    <div className={`small-card ${rampClass(job.ramp) || "ramp-left"}`} draggable onDragStart={e => onDragStart(e, job)} onDoubleClick={() => onEdit(job)}>
       <div className="small-card-top">
         <b>{job.registration || "NO REG"}</b>
         <span>{job.vehicle || ""}</span>
@@ -426,22 +524,52 @@ function SmallJobCard({ job, onEdit, onDragStart }) {
   );
 }
 
-function ScheduleCard({ job, onEdit, onDragStart, onHistory, onInvoice }) {
+function workflowLabel(status) {
+  return STATUS[status] || status || "Booked In";
+}
+
+function endTimeFrom(start, hours) {
+  if (!start) return "--:--";
+  const [h, m] = String(start).slice(0, 5).split(":").map(Number);
+  if (Number.isNaN(h) || Number.isNaN(m)) return String(start).slice(0, 5);
+  const d = new Date(2000, 0, 1, h, m);
+  d.setMinutes(d.getMinutes() + Math.round(Number(hours || 1) * 60));
+  return d.toTimeString().slice(0, 5);
+}
+
+function ScheduleCard({ job, settings, onEdit, onDragStart, onHistory, onInvoice }) {
+  const statusText = workflowLabel(job.status);
+  const start = job.drop_time ? String(job.drop_time).slice(0, 5) : "--:--";
+  const hours = Number(job.estimated_hours || 1);
+  const end = endTimeFrom(start, hours);
+
   return (
-    <div className={`schedule-card ${RAMP_CLASS[job.ramp] || ""} status-${job.status}`} draggable onDragStart={e => onDragStart(e, job)} onDoubleClick={() => onEdit(job)}>
-      <div className="card-actions"><button title="History" onClick={(e)=>{e.stopPropagation(); onHistory(job)}}><History size={14}/></button><button title="Invoice" onClick={(e)=>{e.stopPropagation(); onInvoice(job)}}><FileText size={14}/></button></div>
-      <strong>{job.registration || "NO REG"}</strong>
-      <h4>{job.vehicle || ""}</h4>
-      <VehicleBadges job={job} />
-      <p>{job.work_required || ""}</p>
+    <div className={`schedule-card ${rampClass(job.ramp) || ""} status-${job.status || "booked"}`} draggable onDragStart={e => onDragStart(e, job)} onDoubleClick={() => onEdit(job)}>
+      <div className="schedule-card-header">
+        <strong className="reg-plate">{job.registration || "NO REG"}</strong>
+        {job.ramp && <span className="ramp-badge">{rampLabel(job.ramp, settings)}</span>}
+      </div>
+
+      <button className="card-menu" title="Open actions" onClick={(e) => { e.stopPropagation(); onEdit(job); }}>⋮</button>
+
+      <h4>{job.vehicle || "Vehicle"}</h4>
+      <p className="job-work">{job.work_required || "Work required"}</p>
       {job.customer_name && <small>{job.customer_name} · {job.customer_phone}</small>}
-      <span>{job.drop_time ? String(job.drop_time).slice(0, 5) : "--:--"} · {Number(job.estimated_hours || 1).toFixed(1)} hrs</span>
+      <div className="job-time">{start} – {end} ({hours.toFixed(1)} hrs)</div>
+
+      <div className="schedule-card-footer">
+        <span className={`workflow-badge workflow-${job.status || "booked"}`}>{statusText}</span>
+        <span className="card-actions">
+          <button title="History" onClick={(e)=>{e.stopPropagation(); onHistory(job)}}><History size={14}/></button>
+          <button title="Invoice" onClick={(e)=>{e.stopPropagation(); onInvoice(job)}}><FileText size={14}/></button>
+        </span>
+      </div>
     </div>
   );
 }
 
 
-function JobDialog({ job, date, jobTypes = JOB_TYPES, onClose, onSave, onDelete }) {
+function JobDialog({ job, date, settings, jobTypes = JOB_TYPES, onClose, onSave, onDelete }) {
   const [form, setForm] = useState(job || {});
 
   useEffect(() => {
@@ -507,7 +635,7 @@ function JobDialog({ job, date, jobTypes = JOB_TYPES, onClose, onSave, onDelete 
   }
 
   function applyQuickJob(typeName) {
-    const selected = findJobType(typeName);
+    const selected = findJobType(typeName, jobTypes);
     setForm(f => ({
       ...f,
       job_type: selected.name,
@@ -632,7 +760,7 @@ function JobDialog({ job, date, jobTypes = JOB_TYPES, onClose, onSave, onDelete 
           <label>Ramp
             <select value={form.ramp || ""} onChange={e => update("ramp", e.target.value)}>
               <option value="">No ramp</option>
-              {RAMPS.map(r => <option key={r} value={r}>{RAMP_LABEL[r]}</option>)}
+              {(settings?.ramps || DEFAULT_SETTINGS.ramps).map(r => <option key={r.key} value={r.key}>{r.label}</option>)}
             </select>
           </label>
           <label>Card Type
@@ -1069,40 +1197,7 @@ function SettingsPanel({ settings, onSave, onClose }) {
 }
 
 
-function SupabaseSetup() {
-  const [url, setUrl] = useState(supabaseUrl || defaultSupabaseUrl);
-  const [anonKey, setAnonKey] = useState("");
-
-  function saveConnection() {
-    if (!url || !anonKey) {
-      alert("Paste the Supabase project URL and anon public key first.");
-      return;
-    }
-    localStorage.setItem("vecta:supabase:config", JSON.stringify({ url: url.trim(), anonKey: anonKey.trim() }));
-    window.location.reload();
-  }
-
-  return (
-    <div className="app-shell">
-      <div className="cloud-setup" style={{maxWidth: 760, margin: "60px auto", background: "#fff", padding: 28, borderRadius: 18, boxShadow: "0 20px 50px rgba(15,23,42,.12)"}}>
-        <div className="brand"><span>VECTA</span><b>PLANNER</b></div>
-        <h1>Cloud database not connected</h1>
-        <p>This version is locked for safety. It will not use fake jobs and it will not save live garage data in browser storage.</p>
-        <p>Connect Supabase once, then the planner will read and write to your real database tables.</p>
-        <label>Supabase Project URL</label>
-        <input value={url} onChange={e => setUrl(e.target.value)} placeholder="https://your-project.supabase.co" />
-        <label>Supabase anon public key</label>
-        <textarea value={anonKey} onChange={e => setAnonKey(e.target.value)} placeholder="Paste anon public key here" rows={4} />
-        <div className="dialog-actions">
-          <button onClick={saveConnection}>Connect Supabase</button>
-        </div>
-      </div>
-    </div>
-  );
-}
-
 function App() {
-  if (!supabase) return <SupabaseSetup />;
   const [date, setDate] = useState(todayISO());
   const [mode, setMode] = useState("day");
   const [jobs, setJobs] = useState([]);
@@ -1213,7 +1308,7 @@ function App() {
         </div>
       </header>
 
-      <RampUtilisation jobs={jobs} onRamp={setRampModal} />
+      <RampUtilisation jobs={jobs} settings={settings} onRamp={setRampModal} />
 
       <div className="planner-layout">
         <aside className="left-panel">
@@ -1255,7 +1350,7 @@ function App() {
                   </div>
 
                   <div className="job-stack" onDragOver={e => e.preventDefault()} onDrop={e => dropOnTech(e, tech)}>
-                    {techJobs(tech).map(j => <ScheduleCard key={j.id} job={j} onEdit={setDialogJob} onDragStart={dragStart} onHistory={setHistoryJob} onInvoice={setInvoiceJob} />)}
+                    {techJobs(tech).map(j => <ScheduleCard key={j.id} job={j} settings={settings} onEdit={setDialogJob} onDragStart={dragStart} onHistory={setHistoryJob} onInvoice={setInvoiceJob} />)}
                   </div>
                 </section>
               );
@@ -1297,15 +1392,15 @@ function App() {
       {rampModal && (
         <div className="backdrop">
           <div className="dialog">
-            <h2>{RAMP_LABEL[rampModal]}</h2>
+            <h2>{rampLabel(rampModal, settings)}</h2>
             {rampRows.length === 0 && <p>No jobs on this ramp.</p>}
-            {rampRows.map(j => <button className={`ramp-modal-row ${RAMP_CLASS[j.ramp]}`} key={j.id} onClick={() => { setRampModal(null); setDialogJob(j); }}>{j.drop_time || "--:--"} — {j.registration} — {j.technician}</button>)}
+            {rampRows.map(j => <button className={`ramp-modal-row ${rampClass(j.ramp)}`} key={j.id} onClick={() => { setRampModal(null); setDialogJob(j); }}>{j.drop_time || "--:--"} — {j.registration} — {j.technician}</button>)}
             <button onClick={() => setRampModal(null)}>Close</button>
           </div>
         </div>
       )}
 
-      {dialogJob !== undefined && <JobDialog job={dialogJob} date={date} jobTypes={settings.jobTypes} onClose={() => setDialogJob(undefined)} onDelete={async id => { await deleteJob(id); setDialogJob(undefined); refresh(); }} onSave={async j => { await saveJob(j, date); setDialogJob(undefined); refresh(); }} />}
+      {dialogJob !== undefined && <JobDialog job={dialogJob} date={date} settings={settings} jobTypes={settings.jobTypes} onClose={() => setDialogJob(undefined)} onDelete={async id => { await deleteJob(id); setDialogJob(undefined); refresh(); }} onSave={async j => { await saveJob(j, date); setDialogJob(undefined); refresh(); }} />}
     </div>
   );
 }

@@ -1,5 +1,18 @@
-# Vecta Planner v1.8 Static Deploy
+# Vecta Planner v1.6 Vehicle Lookup Display
 
-Upload the contents of this ZIP directly to the root of the GitHub repository.
+## Added
+- Lookup Vehicle button in New Job form
+- Vehicle details panel: make, model, engine size, fuel type
+- MOT due display
+- Tax status display
+- Green / amber / red vehicle status badges
+- MOT/Tax badges on job cards
+- Vehicle history panel now shows MOT/Tax/engine/fuel
+- Invoice includes MOT and tax status
+- Database schema fields prepared for DVLA/DVSA API connection
 
-This package contains the pre-built app only, so Vercel should not run npm install.
+## Note
+The live DVLA/DVSA API is not connected yet. This release adds the display and structure ready for API keys.
+A demo lookup is included for KV70 UOS and YD18 ABC so you can see how it will work.
+
+Upload extracted contents to GitHub. Vercel redeploys automatically.
