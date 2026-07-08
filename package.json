@@ -1,20 +1,21 @@
 {
   "name": "vecta-planner-v2",
-  "version": "2.0.1",
+  "version": "2.0.2",
   "private": true,
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "vite build",
+    "build": "npx vite build",
     "preview": "vite preview"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.49.8",
-    "@vitejs/plugin-react": "5.0.1",
-    "vite": "7.1.3",
     "react": "19.1.1",
     "react-dom": "19.1.1",
-    "lucide-react": "0.468.0"
+    "lucide-react": "^0.468.0"
   },
-  "devDependencies": {}
+  "devDependencies": {
+    "vite": "^7.1.3",
+    "@vitejs/plugin-react": "^5.0.1"
+  }
 }
