@@ -1,14 +1,14 @@
 {
   "name": "vecta-planner-v40-41",
-  "version": "40.41.1",
+  "version": "40.41.2",
   "private": true,
   "type": "module",
   "engines": {
-    "node": "24.x"
+    "node": ">=20.20.0"
   },
   "scripts": {
     "dev": "vite",
-    "build": "npm install && npx vite build",
+    "build": "npx vite build",
     "preview": "vite preview"
   },
   "dependencies": {
