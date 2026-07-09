@@ -184,143 +184,11 @@ function readLS(key) { return JSON.parse(localStorage.getItem(key) || "[]"); }
 function writeLS(key, value) { localStorage.setItem(key, JSON.stringify(value)); }
 
 async function seedLocal() {
-  if (supabase) return;
-  const date = todayISO();
-
-  if (!localStorage.getItem(localKey(date))) {
-    writeLS(localKey(date), [
-      {
-        id: uuid(),
-        booking_date: date,
-        registration: "AJ68 LZD",
-        vehicle: "Nissan Qashqai",
-        work_required: "Major Service",
-        drop_time: "08:00",
-        technician: "Jordan",
-        ramp: "Left",
-        status: "in_progress",
-        job_type: "Major Service",
-        estimated_hours: 2.5
-      },
-      {
-        id: uuid(),
-        booking_date: date,
-        registration: "BT19 KLM",
-        vehicle: "Ford Focus",
-        work_required: "Clutch Replacement",
-        drop_time: "11:00",
-        technician: "Jordan",
-        ramp: "Left",
-        status: "in_progress",
-        job_type: "Clutch",
-        estimated_hours: 2
-      },
-      {
-        id: uuid(),
-        booking_date: date,
-        registration: "DP20 VWX",
-        vehicle: "Mercedes C Class",
-        work_required: "Diagnostics",
-        drop_time: "14:00",
-        technician: "Jordan",
-        ramp: "Middle",
-        status: "in_progress",
-        job_type: "Diagnostics",
-        estimated_hours: 1.5
-      },
-      {
-        id: uuid(),
-        booking_date: date,
-        registration: "KV70 UOS",
-        vehicle: "BMW 2 Series",
-        work_required: "Brake Discs & Pads",
-        drop_time: "08:30",
-        technician: "Alfie",
-        ramp: "Right",
-        status: "in_progress",
-        job_type: "Front & Rear Brakes",
-        estimated_hours: 4
-      },
-      {
-        id: uuid(),
-        booking_date: date,
-        registration: "FD22 PQR",
-        vehicle: "Audi A4",
-        work_required: "Diagnostics",
-        drop_time: "13:00",
-        technician: "Alfie",
-        ramp: "Right",
-        status: "in_progress",
-        job_type: "Diagnostics",
-        estimated_hours: 2
-      },
-      {
-        id: uuid(),
-        booking_date: date,
-        registration: "YP69 STU",
-        vehicle: "Range Rover Evoque",
-        work_required: "Service + MOT",
-        drop_time: "15:30",
-        technician: "Alfie",
-        ramp: "Right",
-        status: "in_progress",
-        job_type: "Minor Service",
-        estimated_hours: 2
-      }
-    ]);
-  }
-
-  if (!localStorage.getItem(globalKey)) {
-    writeLS(globalKey, [
-      {
-        id: uuid(),
-        card_type: "job",
-        registration: "NU18 REG",
-        vehicle: "Nissan Qashqai",
-        work_required: "Major Service",
-        customer_note: "Customer waiting",
-        technician: "Unallocated",
-        status: "in_progress",
-        estimated_hours: 2.5,
-        job_type: "Major Service"
-      },
-      {
-        id: uuid(),
-        card_type: "job",
-        registration: "FV67 ABC",
-        vehicle: "Ford Transit",
-        work_required: "Clutch Replacement",
-        customer_note: "Customer waiting",
-        technician: "Unallocated",
-        status: "in_progress",
-        estimated_hours: 5,
-        job_type: "Clutch"
-      },
-      {
-        id: uuid(),
-        card_type: "waiting",
-        registration: "YG19 DEF",
-        vehicle: "Vauxhall Astra",
-        work_required: "Brake Pads Fitted",
-        customer_note: "Waiting for collection",
-        technician: "Waiting",
-        status: "work_complete",
-        estimated_hours: 1
-      }
-    ]);
-  }
-
-  if (!localStorage.getItem(tasksKey)) {
-    writeLS(tasksKey, [
-      { id: uuid(), task_text: "Order brake pads for Transit", done: false },
-      { id: uuid(), task_text: "Print invoices for today's work", done: false },
-      { id: uuid(), task_text: "Check stock levels — oil, filters, bulbs", done: false }
-    ]);
-  }
-
-  if (!localStorage.getItem(notesKey)) {
-    writeLS(notesKey, [{ id: uuid(), note_text: "Add notes, reminders or anything important for today." }]);
-  }
+  // Production-safe: do not create fake/demo jobs automatically.
+  // If Supabase is configured, data comes from the database.
+  // If Supabase is not configured, the app can still use existing local records,
+  // but it will not inject sample jobs like AJ68 LZD / KV70 UOS.
+  return;
 }
 
 async function listDate(date) {
@@ -374,26 +242,93 @@ async function listNotes() {
   return readLS(notesKey);
 }
 
-async function saveJob(job, date) {
-  const payload = {
-    ...job,
-    id: job.id || uuid(),
-    registration: (job.registration || "").toUpperCase()
-  };
 
-  if (payload.status === "archived") payload.archived = true;
-  if (payload.technician === "Unallocated" || payload.technician === "Waiting" || payload.card_type === "waiting") {
-    payload.booking_date = null;
-  } else {
-    payload.booking_date = payload.booking_date || date;
+function cleanDate(value) {
+  return value ? value : null;
+}
+
+function cleanTime(value) {
+  return value ? String(value).slice(0, 5) : null;
+}
+
+function jobPayloadForSupabase(job, date) {
+  const id = job.id || uuid();
+  const technician = job.technician || "Unallocated";
+  const isGlobal = technician === "Unallocated" || technician === "Waiting" || job.card_type === "waiting";
+
+  return {
+    id,
+    booking_date: isGlobal ? null : cleanDate(job.booking_date || date),
+    card_type: job.card_type || (technician === "Waiting" ? "waiting" : "job"),
+    registration: (job.registration || "").toUpperCase().trim(),
+    vehicle: job.vehicle || null,
+    tax_status: job.tax_status || null,
+    tax_due: cleanDate(job.tax_due),
+    mot_due: cleanDate(job.mot_due),
+    year: job.year || null,
+    fuel_type: job.fuel_type || null,
+    engine_size: job.engine_size || null,
+    model: job.model || null,
+    make: job.make || null,
+    work_required: job.work_required || null,
+    customer_name: job.customer_name || null,
+    customer_phone: job.customer_phone || null,
+    customer_email: job.customer_email || null,
+    customer_note: job.customer_note || null,
+    drop_time: cleanTime(job.drop_time),
+    technician,
+    ramp: job.ramp || null,
+    status: job.status || "in_progress",
+    job_type: job.job_type || null,
+    job_colour: job.job_colour || job.colour || "other",
+    estimated_hours: Number(job.estimated_hours || 1),
+    source: job.source || "manual",
+    sort_order: Number(job.sort_order || 0),
+    archived: Boolean(job.archived || job.status === "archived")
+  };
+}
+
+async function syncCustomerAndVehicle(job) {
+  if (!supabase) return;
+  const registration = (job.registration || "").toUpperCase().trim();
+  if (!registration) return;
+
+  let customerId = null;
+  if (job.customer_name || job.customer_phone || job.customer_email) {
+    const { data: existingCustomer } = await supabase
+      .from("customers")
+      .select("id")
+      .or(`phone.eq.${job.customer_phone || "__none__"},email.eq.${job.customer_email || "__none__"}`)
+      .maybeSingle();
+
+    customerId = existingCustomer?.id || uuid();
+    await supabase.from("customers").upsert({
+      id: customerId,
+      name: job.customer_name || null,
+      phone: job.customer_phone || null,
+      email: job.customer_email || null
+    });
   }
 
+  await supabase.from("vehicles").upsert({
+    registration,
+    customer_id: customerId,
+    vehicle: job.vehicle || null,
+    notes: job.customer_note || null
+  }, { onConflict: "registration" });
+}
+
+async function saveJob(job, date) {
+  const payload = jobPayloadForSupabase(job, date);
+
   if (supabase) {
-    const { error } = await supabase.from("jobs").upsert(payload);
+    const { error } = await supabase.from("jobs").upsert(payload, { onConflict: "id" });
     if (error) {
-      alert(error.message);
+      console.error("Supabase job save failed", error, payload);
+      alert(`Could not save job to Supabase: ${error.message}`);
       throw error;
     }
+    await syncCustomerAndVehicle(payload);
     return;
   }
 
