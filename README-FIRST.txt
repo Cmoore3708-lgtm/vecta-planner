@@ -41,3 +41,9 @@ The app works even if Supabase is not connected. It saves to the browser first.
 That is intentional. A broken database connection should never again give you a blank screen.
 
 If you already have real data in Supabase, do not run random old SQL files. Use only the safe v41 schema in this package.
+
+
+V41.1 CONTROLLED FIXES
+- Created after v41 was confirmed working with Supabase.
+- Visual/layout patch only: no database schema change required.
+- Fixes: fallback preserved, dashboard label restored to Unallocated Jobs, schedule row time overlap improved, tasks moved to bottom of planner, compact job card modal, preset job template editor restored in Settings.
