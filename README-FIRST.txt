@@ -1,4 +1,4 @@
-VECTA Workshop Pro v41.4 Service Sheet One Page
+VECTA Workshop Pro v41.5 Planner Features
 
 Controlled patch from v41.3.
 
