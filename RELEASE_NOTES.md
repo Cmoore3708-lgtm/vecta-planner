@@ -27,3 +27,9 @@ This release is a clean Vite + React master build based on `vecta-source-v1-7-pl
 
 ## Deployment
 Upload the complete project folder to GitHub/Vercel. Do not upload just `index.html`.
+
+
+## v41.1a Invoice Hotfix
+- Fixed invoice creation JavaScript error: fieldInv is now defined.
+- Restored editable invoice fields and line item rendering.
+- Payment details remain fixed in the professional invoice layout.
