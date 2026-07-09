@@ -1,5 +1,10 @@
-VECTA Workshop Pro v41.8 Compact Planner Cards
+VECTA Workshop Pro v41.12 - Remove Service Menu
 
-Upload these files to the root of the GitHub repo. No Supabase SQL changes needed.
+Controlled patch from v41.11.
 
-This patch tightens planner job cards: smaller text, time in the top-right corner, ramp centred in the card, and compact spacing for shorter jobs.
+Changes:
+- Removed Service Module from the left-hand menu.
+- No Supabase schema changes.
+- Do not run SQL.
+
+Upload index.html, vercel.json and this README-FIRST.txt to the root of the GitHub repo.
