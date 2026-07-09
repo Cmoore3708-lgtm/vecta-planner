@@ -18,3 +18,6 @@ Upload to GitHub root:
 - README-FIRST.txt
 
 Keep v41 Known Good Fallback safe before replacing anything.
+
+
+v41.3 changes: Add preset job button in Settings, allocated planner jobs open on click, and new/edit job card uses a tighter 4-column layout. No SQL changes.
