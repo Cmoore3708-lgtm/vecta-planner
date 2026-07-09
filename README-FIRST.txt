@@ -1,11 +1,5 @@
-VECTA Workshop Pro v41.7 Resizable Planner Jobs
+VECTA Workshop Pro v41.8 Compact Planner Cards
 
-Controlled patch from v41.6.
+Upload these files to the root of the GitHub repo. No Supabase SQL changes needed.
 
-Changes:
-- Planner jobs can be resized by dragging the small handle at the bottom of each allocated job card.
-- Resize snaps to 30-minute increments.
-- Estimated hours are updated and saved to Supabase.
-- Existing drag-and-drop allocation remains unchanged.
-
-No Supabase SQL required. Upload index.html, vercel.json and this README to the GitHub root.
+This patch tightens planner job cards: smaller text, time in the top-right corner, ramp centred in the card, and compact spacing for shorter jobs.
