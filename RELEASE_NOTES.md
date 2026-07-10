@@ -1,9 +1,7 @@
-# VECTA Workshop Pro v41.1g
+# VECTA Workshop Pro v41.1j
 
-- Compact invoice payment footer
-- Light grey printed payment strip
-- Removed payment instruction sentence
-- Payment reference now shows registration only
-
-
-V41.1i: Genuine planner card correction: narrower attached GB strip, larger readable registration, fixed full-width time box, status underneath time, ramp badge retained in centre.
+Real planner card fix:
+- Kept registration plate and time sizing from v41.1i.
+- Moved status directly underneath the time.
+- Moved ramp badge underneath the status.
+- Kept the registration plate blue strip attached to yellow plate and same height.
