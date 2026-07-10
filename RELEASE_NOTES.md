@@ -10,3 +10,10 @@ Changes:
 - Added a top resize handle to planner job cards.
 - Dragging the top edge now moves the job start time earlier/later and adjusts duration while keeping the end time fixed.
 - Bottom resize still changes the job finish time/duration as before.
+
+
+## v41.1e Planner Card Layout
+- Improved planner job card layout.
+- Number plate is compact and clickable to open vehicle/job details.
+- Ramp badge centred, time/status on the right.
+- Customer, work required and vehicle now sit in a cleaner stacked layout.
