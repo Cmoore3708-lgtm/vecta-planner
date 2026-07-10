@@ -1,35 +1,12 @@
-# Vecta Planner v40.41 Stable Master
+# VECTA Workshop Pro v41.1b Stable Professional
 
-This release is a clean Vite + React master build based on `vecta-source-v1-7-planner-tile-clean`.
+Changes:
+- Added full UK-style registration plates with blue GB strip on planner job cards.
+- Added full UK-style registration plate input on the job card registration field.
+- Kept customer and vehicle lists subtle: compact registration/count badges with no GB strip and no bright yellow background.
+- Preserved the v41.1a invoice creation fix and professional invoice/payment layout.
 
-## Fixed
-- Settings now correctly feed into the Add/Edit Job dialog.
-- Custom job templates now work from Settings instead of falling back to the hard-coded default list.
-- Custom mechanic names now appear in the job form without causing a runtime crash.
-- Custom ramp labels and capacities now feed the ramp utilisation strip.
-- Vercel configuration added so the project builds from source and outputs `dist`.
-
-## Included
-- Workshop planner board.
-- Unallocated and waiting jobs.
-- Technician columns.
-- Ramp utilisation.
-- Job cards.
-- Quick job templates.
-- Vehicle lookup placeholder display.
-- MOT/tax status display.
-- Notes and tasks.
-- Workshop settings.
-- Availability finder.
-- Vehicle history.
-- Invoice screen with print/email workflow.
-- Supabase-ready schema and localStorage fallback.
-
-## Deployment
-Upload the complete project folder to GitHub/Vercel. Do not upload just `index.html`.
-
-
-## v41.1a Invoice Hotfix
-- Fixed invoice creation JavaScript error: fieldInv is now defined.
-- Restored editable invoice fields and line item rendering.
-- Payment details remain fixed in the professional invoice layout.
+## v41.1d - Planner upward resize
+- Added a top resize handle to planner job cards.
+- Dragging the top edge now moves the job start time earlier/later and adjusts duration while keeping the end time fixed.
+- Bottom resize still changes the job finish time/duration as before.
