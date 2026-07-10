@@ -1,3 +1,10 @@
+# VECTA Workshop Pro v41.1l
+
+- Planner job card: status is stacked directly under the time.
+- Ramp badge is stacked directly under the status.
+- Registration and time sizes preserved.
+- GB strip remains attached to the yellow plate at the same height.
+
 # v41.1k Stable Planner Card Source Fix
 
 - Moved booking status directly underneath the time on planner job cards.

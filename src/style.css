@@ -451,3 +451,100 @@ button{cursor:pointer;border:0;border-radius:10px;background:#111827;color:white
   .schedule-card .job-time{width:100px!important;max-width:100px!important;font-size:9.5px!important;}
   .schedule-card .workflow-badge,.schedule-card .planner-card-right .ramp-badge{max-width:100px!important;}
 }
+
+
+/* v41.1l REAL planner card stack fix - status and ramp under time */
+.jobTop{
+  display:grid!important;
+  grid-template-columns:132px minmax(8px,1fr) 118px!important;
+  gap:6px!important;
+  align-items:start!important;
+}
+.jobRight{
+  display:flex!important;
+  flex-direction:column!important;
+  align-items:flex-end!important;
+  justify-content:flex-start!important;
+  gap:3px!important;
+  min-width:118px!important;
+  max-width:118px!important;
+  width:118px!important;
+  justify-self:end!important;
+  overflow:visible!important;
+  z-index:3!important;
+}
+.job .jobTime{
+  display:block!important;
+  width:112px!important;
+  max-width:112px!important;
+  text-align:center!important;
+  font-size:10px!important;
+  font-weight:1000!important;
+  line-height:1!important;
+  padding:3px 5px!important;
+  white-space:nowrap!important;
+  overflow:visible!important;
+}
+.job .compactStatus{
+  display:inline-flex!important;
+  align-items:center!important;
+  justify-content:center!important;
+  align-self:flex-end!important;
+  width:auto!important;
+  max-width:112px!important;
+  margin:0!important;
+  font-size:8.5px!important;
+  line-height:1!important;
+  padding:3px 6px!important;
+  white-space:nowrap!important;
+  overflow:hidden!important;
+  text-overflow:ellipsis!important;
+}
+.jobRight .rampBadge{
+  display:inline-flex!important;
+  align-items:center!important;
+  justify-content:center!important;
+  align-self:flex-end!important;
+  width:auto!important;
+  max-width:112px!important;
+  min-width:44px!important;
+  margin:0!important;
+  font-size:9px!important;
+  line-height:1!important;
+  padding:3px 7px!important;
+  white-space:nowrap!important;
+  overflow:hidden!important;
+  text-overflow:ellipsis!important;
+}
+.job .ukPlate{
+  width:132px!important;
+  max-width:132px!important;
+  height:30px!important;
+  min-height:30px!important;
+  display:grid!important;
+  grid-template-columns:20px 1fr!important;
+  gap:0!important;
+  overflow:hidden!important;
+}
+.job .ukStrip{
+  width:20px!important;
+  height:30px!important;
+  min-height:30px!important;
+  margin:0!important;
+}
+.job .ukPlate b{
+  height:30px!important;
+  font-size:15px!important;
+  line-height:1!important;
+  margin:0!important;
+  padding:0 6px!important;
+}
+@media(max-width:768px){
+  .jobTop{grid-template-columns:124px minmax(6px,1fr) 108px!important;gap:5px!important;}
+  .jobRight{width:108px!important;min-width:108px!important;max-width:108px!important;}
+  .job .jobTime{width:104px!important;max-width:104px!important;font-size:9.5px!important;}
+  .job .compactStatus,.jobRight .rampBadge{max-width:104px!important;}
+  .job .ukPlate{width:124px!important;max-width:124px!important;height:28px!important;min-height:28px!important;grid-template-columns:18px 1fr!important;}
+  .job .ukStrip{width:18px!important;height:28px!important;min-height:28px!important;}
+  .job .ukPlate b{height:28px!important;font-size:14px!important;}
+}
