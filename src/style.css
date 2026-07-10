@@ -332,3 +332,122 @@ button{cursor:pointer;border:0;border-radius:10px;background:#111827;color:white
   padding:3px 5px;
 }
 .schedule-card .vehicle-badges{display:none}
+
+/* v41.1k planner card actual React source fix */
+.schedule-card{
+  padding:10px 12px 10px 12px!important;
+  gap:4px!important;
+}
+.schedule-card-header.planner-card-v41k{
+  display:grid!important;
+  grid-template-columns:132px minmax(8px,1fr) 112px!important;
+  align-items:start!important;
+  gap:8px!important;
+  padding-right:26px!important;
+}
+.uk-reg-plate{
+  display:grid!important;
+  grid-template-columns:18px 1fr!important;
+  width:132px!important;
+  height:30px!important;
+  min-height:30px!important;
+  overflow:hidden!important;
+  border:1px solid #1f2937!important;
+  border-radius:5px!important;
+  background:#e2bf3f!important;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.45),0 1px 2px rgba(15,23,42,.10)!important;
+  color:#111827!important;
+  line-height:1!important;
+}
+.uk-reg-plate .gb-strip{
+  width:18px!important;
+  height:30px!important;
+  min-height:30px!important;
+  display:flex!important;
+  align-items:center!important;
+  justify-content:center!important;
+  background:#1d4ed8!important;
+  color:#fff!important;
+  font-size:6px!important;
+  font-weight:900!important;
+  letter-spacing:0!important;
+  margin:0!important;
+}
+.uk-reg-plate strong{
+  display:flex!important;
+  align-items:center!important;
+  justify-content:center!important;
+  height:30px!important;
+  padding:0 5px!important;
+  margin:0!important;
+  font-size:15px!important;
+  font-weight:1000!important;
+  letter-spacing:.075em!important;
+  white-space:nowrap!important;
+  overflow:hidden!important;
+  text-overflow:clip!important;
+}
+.planner-card-right{
+  grid-column:3!important;
+  display:flex!important;
+  flex-direction:column!important;
+  align-items:flex-end!important;
+  gap:3px!important;
+  width:112px!important;
+  min-width:112px!important;
+  max-width:112px!important;
+}
+.schedule-card .job-time{
+  margin:0!important;
+  width:108px!important;
+  max-width:108px!important;
+  text-align:center!important;
+  background:#fff!important;
+  border:1px solid #cbd5e1!important;
+  border-radius:5px!important;
+  padding:3px 5px!important;
+  color:#111827!important;
+  font-size:10px!important;
+  font-weight:1000!important;
+  line-height:1!important;
+  white-space:nowrap!important;
+  overflow:hidden!important;
+}
+.schedule-card .workflow-badge{
+  min-height:0!important;
+  max-width:108px!important;
+  padding:3px 6px!important;
+  border-radius:5px!important;
+  font-size:8.5px!important;
+  line-height:1!important;
+  white-space:nowrap!important;
+  overflow:hidden!important;
+  text-overflow:ellipsis!important;
+}
+.schedule-card .planner-card-right .ramp-badge{
+  display:inline-flex!important;
+  align-items:center!important;
+  justify-content:center!important;
+  max-width:108px!important;
+  padding:3px 7px!important;
+  border-radius:5px!important;
+  font-size:9px!important;
+  line-height:1!important;
+  white-space:nowrap!important;
+  overflow:hidden!important;
+  text-overflow:ellipsis!important;
+}
+.schedule-card h4{font-size:13px!important;margin:3px 0 0!important;line-height:1.12!important;white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important;}
+.schedule-card .job-work{font-size:11px!important;line-height:1.12!important;white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important;}
+.schedule-card small{font-size:10px!important;line-height:1.12!important;white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important;}
+.schedule-card-footer{justify-content:flex-end!important;margin-top:2px!important;}
+.schedule-card-footer .card-actions{margin-left:auto!important;}
+@media(max-width:768px){
+  .schedule-card-header.planner-card-v41k{grid-template-columns:124px minmax(6px,1fr) 104px!important;gap:6px!important;padding-right:24px!important;}
+  .uk-reg-plate{width:124px!important;height:28px!important;min-height:28px!important;grid-template-columns:16px 1fr!important;}
+  .uk-reg-plate .gb-strip{width:16px!important;height:28px!important;min-height:28px!important;font-size:5.5px!important;}
+  .uk-reg-plate strong{height:28px!important;font-size:14px!important;padding:0 4px!important;}
+  .planner-card-right{width:104px!important;min-width:104px!important;max-width:104px!important;}
+  .schedule-card .job-time{width:100px!important;max-width:100px!important;font-size:9.5px!important;}
+  .schedule-card .workflow-badge,.schedule-card .planner-card-right .ramp-badge{max-width:100px!important;}
+}

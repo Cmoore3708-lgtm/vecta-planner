@@ -480,9 +480,13 @@ function ScheduleCard({ job, settings, onEdit, onDragStart, onHistory, onInvoice
 
   return (
     <div className={`schedule-card ${rampClass(job.ramp) || ""} status-${job.status || "booked"}`} draggable onDragStart={e => onDragStart(e, job)} onDoubleClick={() => onEdit(job)}>
-      <div className="schedule-card-header">
-        <strong className="reg-plate">{job.registration || "NO REG"}</strong>
-        {job.ramp && <span className="ramp-badge">{rampLabel(job.ramp, settings)}</span>}
+      <div className="schedule-card-header planner-card-v41k">
+        <span className="uk-reg-plate" title="Vehicle registration"><span className="gb-strip">GB</span><strong>{job.registration || "NO REG"}</strong></span>
+        <span className="planner-card-right">
+          <span className="job-time">{start} – {end}</span>
+          <span className={`workflow-badge workflow-${job.status || "booked"}`}>{statusText}</span>
+          <span className="ramp-badge">{job.ramp ? rampLabel(job.ramp, settings) : "No ramp"}</span>
+        </span>
       </div>
 
       <button className="card-menu" title="Open actions" onClick={(e) => { e.stopPropagation(); onEdit(job); }}>⋮</button>
@@ -490,10 +494,8 @@ function ScheduleCard({ job, settings, onEdit, onDragStart, onHistory, onInvoice
       <h4>{job.vehicle || "Vehicle"}</h4>
       <p className="job-work">{job.work_required || "Work required"}</p>
       {job.customer_name && <small>{job.customer_name} · {job.customer_phone}</small>}
-      <div className="job-time">{start} – {end} ({hours.toFixed(1)} hrs)</div>
 
       <div className="schedule-card-footer">
-        <span className={`workflow-badge workflow-${job.status || "booked"}`}>{statusText}</span>
         <span className="card-actions">
           <button title="History" onClick={(e)=>{e.stopPropagation(); onHistory(job)}}><History size={14}/></button>
           <button title="Invoice" onClick={(e)=>{e.stopPropagation(); onInvoice(job)}}><FileText size={14}/></button>

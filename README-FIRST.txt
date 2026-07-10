@@ -1,1 +1,4 @@
-Upload this full ZIP to GitHub. This is v41.1j and includes the planner card fix requested after v41.1i.
+VECTA Workshop Pro v41.1k
+
+Upload this complete project ZIP to GitHub.
+This build applies the planner card layout fix in the actual source files and rebuilt dist output.
