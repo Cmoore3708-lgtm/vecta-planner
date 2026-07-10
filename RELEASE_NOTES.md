@@ -1,5 +1,6 @@
-# VECTA Workshop Pro v41.1m
+# v41.1n - Planner Card Stack Fix
 
-- Planner job card: status is now directly under the time.
-- Ramp badge is directly under the status.
-- Registration plate and time sizing retained.
+- Keeps the registration and time sizing.
+- Forces the booking status directly underneath the time.
+- Forces the ramp badge directly underneath the status.
+- Applies the fix to both the root static `index.html` and `dist/index.html`.
