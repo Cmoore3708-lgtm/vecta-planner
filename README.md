@@ -1,3 +1,3 @@
-# VECTA Workshop Pro v41.1f Stable
+# VECTA Workshop Pro v41.1g
 
-Compact planner job card layout fix.
+Stable compact invoice payment footer build.

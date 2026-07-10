@@ -477,23 +477,32 @@ function ScheduleCard({ job, settings, onEdit, onDragStart, onHistory, onInvoice
   const start = job.drop_time ? String(job.drop_time).slice(0, 5) : "--:--";
   const hours = Number(job.estimated_hours || 1);
   const end = endTimeFrom(start, hours);
+  const registration = (job.registration || "NO REG").replace(/\s+/g, "").toUpperCase();
+  const rampText = job.ramp ? rampLabel(job.ramp, settings).replace(/^Ramp\s*/i, "") : "–";
 
   return (
     <div className={`schedule-card ${rampClass(job.ramp) || ""} status-${job.status || "booked"}`} draggable onDragStart={e => onDragStart(e, job)} onDoubleClick={() => onEdit(job)}>
-      <div className="schedule-card-header">
-        <strong className="reg-plate">{job.registration || "NO REG"}</strong>
-        {job.ramp && <span className="ramp-badge">{rampLabel(job.ramp, settings)}</span>}
+      <div className="planner-card-top">
+        <button className="planner-reg-plate" title="Open vehicle / job" onClick={(e) => { e.stopPropagation(); onEdit(job); }}>
+          <span className="planner-reg-gb">GB</span><span className="planner-reg-text">{registration}</span>
+        </button>
+        <span className={`ramp-badge ${job.ramp ? rampClass(job.ramp) : "ramp-none"}`}>{rampText}</span>
+        <div className="planner-time-block">
+          <span className="job-time">{start} - {end}</span>
+          <span className={`workflow-badge workflow-${job.status || "booked"}`}>{statusText}</span>
+        </div>
       </div>
 
       <button className="card-menu" title="Open actions" onClick={(e) => { e.stopPropagation(); onEdit(job); }}>⋮</button>
 
-      <h4>{job.vehicle || "Vehicle"}</h4>
-      <p className="job-work">{job.work_required || "Work required"}</p>
-      {job.customer_name && <small>{job.customer_name} · {job.customer_phone}</small>}
-      <div className="job-time">{start} – {end} ({hours.toFixed(1)} hrs)</div>
+      <div className="planner-card-details">
+        {job.customer_name && <h4>{job.customer_name}</h4>}
+        <p className="job-work">{job.work_required || "Work required"}</p>
+        <small>{job.vehicle || "Vehicle"}</small>
+      </div>
 
       <div className="schedule-card-footer">
-        <span className={`workflow-badge workflow-${job.status || "booked"}`}>{statusText}</span>
+        <span />
         <span className="card-actions">
           <button title="History" onClick={(e)=>{e.stopPropagation(); onHistory(job)}}><History size={14}/></button>
           <button title="Invoice" onClick={(e)=>{e.stopPropagation(); onInvoice(job)}}><FileText size={14}/></button>
