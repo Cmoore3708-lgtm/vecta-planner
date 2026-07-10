@@ -129,6 +129,25 @@ html,body{font-size:14px;background:var(--bg);color:var(--text)}.app{grid-templa
 .resizeTopHandle,.resizeHandle{height:4px!important;opacity:.55!important}
 @media (max-width:768px){.job .ukPlate{width:108px;max-width:108px;grid-template-columns:16px 1fr;height:24px}.jobTop{grid-template-columns:108px minmax(28px,1fr) 66px!important;gap:5px!important}.job .ukPlate b{font-size:11px}.job .ukStrip{font-size:6.5px}.job .jobTime{font-size:8.5px!important;max-width:66px!important}.jobRight{min-width:62px!important;max-width:66px!important}}
 .professionalPayment .paymentGrid{display:flex;flex-wrap:wrap;gap:4px 14px;align-items:center;font-size:10.5px;line-height:1.3}.professionalPayment .paymentGrid b{font-weight:950}.professionalPayment .paymentGrid span{font-weight:700}.professionalPayment .payPair{white-space:nowrap}
+
+
+/* v41.1i real planner card plate/time correction */
+.job{padding:7px 9px 9px!important;background:#fff!important;border-color:#d6dde8!important;display:flex!important;flex-direction:column!important;gap:4px!important;min-height:58px!important}
+.jobTop{display:grid!important;grid-template-columns:132px 50px 108px!important;gap:8px!important;align-items:start!important}
+.jobMid{display:flex!important;justify-content:center!important;align-items:flex-start!important;min-width:50px!important;overflow:hidden!important}
+.jobRight{display:flex!important;flex-direction:column!important;align-items:flex-end!important;gap:4px!important;min-width:108px!important;max-width:108px!important;overflow:visible!important;justify-self:end!important}
+.job .ukPlate{height:30px!important;width:132px!important;max-width:132px!important;min-height:30px!important;display:grid!important;grid-template-columns:20px 1fr!important;gap:0!important;padding:0!important;border:1px solid #222!important;border-radius:5px!important;overflow:hidden!important;background:#e2bf3f!important;box-shadow:inset 0 1px 0 rgba(255,255,255,.45),0 1px 2px rgba(15,23,42,.10)!important;color:#111827!important;font-family:Arial,Helvetica,sans-serif!important;text-decoration:none!important}
+.job .ukStrip{width:20px!important;height:30px!important;min-height:30px!important;background:#1d4ed8!important;color:#fff!important;display:flex!important;align-items:center!important;justify-content:center!important;font-size:6.5px!important;font-weight:900!important;letter-spacing:0!important;line-height:1!important;margin:0!important;border:0!important}
+.job .ukPlate b{height:30px!important;display:flex!important;align-items:center!important;justify-content:center!important;margin:0!important;padding:0 6px!important;font-size:15px!important;font-weight:1000!important;letter-spacing:.08em!important;line-height:1!important;white-space:nowrap!important;overflow:hidden!important;text-overflow:clip!important}
+.job .jobTime{font-size:10.5px!important;font-weight:1000!important;padding:4px 6px!important;border-radius:5px!important;background:#fff!important;color:#111827!important;border:1px solid #cbd5e1!important;line-height:1!important;width:108px!important;max-width:108px!important;white-space:nowrap!important;overflow:visible!important;text-overflow:clip!important;text-align:center!important}
+.job .compactStatus{font-size:8.5px!important;font-weight:950!important;padding:3px 6px!important;border-radius:5px!important;line-height:1!important;width:auto!important;max-width:108px!important;white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important;align-self:flex-end!important;margin-top:0!important}
+.job .rampBadge{max-width:50px!important;min-width:34px!important;padding:4px 6px!important;font-size:8.5px!important;border-radius:5px!important;line-height:1!important;overflow:hidden!important;text-overflow:ellipsis!important;white-space:nowrap!important}
+.jobBody{display:grid!important;gap:1px!important;padding-top:0!important;min-width:0!important}
+.jobCustomer{font-size:11px!important;line-height:1.08!important;margin:0!important;color:#111827!important;white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important}
+.jobWork{font-size:10px!important;font-weight:850!important;color:#334155!important;white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important;line-height:1.1!important}
+.jobVehicle{font-size:9.5px!important;color:#64748b!important;white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important;line-height:1.1!important}
+@media (max-width:768px){.jobTop{grid-template-columns:124px 42px 98px!important;gap:6px!important}.job .ukPlate{width:124px!important;max-width:124px!important;grid-template-columns:18px 1fr!important;height:28px!important;min-height:28px!important}.job .ukStrip{width:18px!important;height:28px!important;min-height:28px!important;font-size:6px!important}.job .ukPlate b{height:28px!important;font-size:14px!important;padding:0 5px!important}.jobRight{min-width:98px!important;max-width:98px!important}.job .jobTime{width:98px!important;max-width:98px!important;font-size:9.5px!important}.job .compactStatus{max-width:98px!important;font-size:8px!important}.job .rampBadge{max-width:42px!important}}
+
 </style>
 </head>
 <body>
@@ -137,7 +156,7 @@ html,body{font-size:14px;background:var(--bg);color:var(--text)}.app{grid-templa
   <aside class="side">
     <div class="logo"><div class="logoMark">VECTA</div><div class="logoSub">Vehicle servicing and repairs</div><div class="product">Workshop Pro</div></div>
     <nav class="nav" id="nav"></nav>
-    <div class="sideFoot"><b>V41.1 Stable Professional</b><br>Professional theme + invoice restore<br>Supabase connected safely.</div>
+    <div class="sideFoot"><b>V41.1i Stable Professional</b><br>Planner card final spacing + invoice footer<br>Supabase connected safely.</div>
   </aside>
   <main class="main">
     <header class="top">

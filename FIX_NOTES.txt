@@ -6,3 +6,6 @@ Fixes included:
 - Removed broken package-lock dependency mismatch.
 
 Upload the contents of this ZIP to GitHub, then let Vercel redeploy.
+
+
+V41.1i: Genuine planner card correction: narrower attached GB strip, larger readable registration, fixed full-width time box, status underneath time, ramp badge retained in centre.

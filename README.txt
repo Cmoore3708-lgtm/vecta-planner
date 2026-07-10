@@ -12,3 +12,6 @@ Files included:
 - README.txt
 
 The reg lookup is currently demo mode. Real DVLA/DVSA integration needs API keys added to Vercel Environment Variables.
+
+
+V41.1i: Genuine planner card correction: narrower attached GB strip, larger readable registration, fixed full-width time box, status underneath time, ramp badge retained in centre.

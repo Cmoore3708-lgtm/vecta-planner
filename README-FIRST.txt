@@ -8,3 +8,6 @@ Changes:
 - Do not run SQL.
 
 Upload index.html, vercel.json and this README-FIRST.txt to the root of the GitHub repo.
+
+
+V41.1i: Genuine planner card correction: narrower attached GB strip, larger readable registration, fixed full-width time box, status underneath time, ramp badge retained in centre.
