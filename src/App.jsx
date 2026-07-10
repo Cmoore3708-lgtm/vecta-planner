@@ -482,7 +482,7 @@ function ScheduleCard({ job, settings, onEdit, onDragStart, onHistory, onInvoice
     <div className={`schedule-card ${rampClass(job.ramp) || ""} status-${job.status || "booked"}`} draggable onDragStart={e => onDragStart(e, job)} onDoubleClick={() => onEdit(job)}>
       <div className="schedule-card-header planner-card-v41k">
         <span className="uk-reg-plate" title="Vehicle registration"><span className="gb-strip">GB</span><strong>{job.registration || "NO REG"}</strong></span>
-        <span className="planner-card-right">
+        <span className="planner-card-right jobControls">
           <span className="job-time">{start} – {end}</span>
           <span className={`workflow-badge workflow-${job.status || "booked"}`}>{statusText}</span>
           <span className="ramp-badge">{job.ramp ? rampLabel(job.ramp, settings) : "No ramp"}</span>

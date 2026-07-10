@@ -453,98 +453,90 @@ button{cursor:pointer;border:0;border-radius:10px;background:#111827;color:white
 }
 
 
-/* v41.1l REAL planner card stack fix - status and ramp under time */
+/* v41.1m REAL planner card controls fix */
 .jobTop{
   display:grid!important;
-  grid-template-columns:132px minmax(8px,1fr) 118px!important;
+  grid-template-columns:132px minmax(12px,1fr) 118px!important;
   gap:6px!important;
   align-items:start!important;
 }
-.jobRight{
+.jobSpacer{display:block!important;min-width:0!important;}
+.jobControls{
+  grid-column:3!important;
   display:flex!important;
   flex-direction:column!important;
   align-items:flex-end!important;
   justify-content:flex-start!important;
-  gap:3px!important;
+  gap:4px!important;
+  width:118px!important;
   min-width:118px!important;
   max-width:118px!important;
-  width:118px!important;
-  justify-self:end!important;
   overflow:visible!important;
+  justify-self:end!important;
   z-index:3!important;
 }
-.job .jobTime{
-  display:block!important;
+.jobControls .jobTime{
+  display:flex!important;
+  align-items:center!important;
+  justify-content:center!important;
   width:112px!important;
   max-width:112px!important;
-  text-align:center!important;
+  margin:0!important;
+  padding:3px 5px!important;
   font-size:10px!important;
   font-weight:1000!important;
   line-height:1!important;
+  color:#111827!important;
+  background:#fff!important;
+  border:1px solid #cbd5e1!important;
+  border-radius:5px!important;
+  white-space:nowrap!important;
+  overflow:hidden!important;
+  text-overflow:clip!important;
+}
+.jobControls .compactStatus{
+  display:flex!important;
+  align-items:center!important;
+  justify-content:center!important;
+  width:112px!important;
+  max-width:112px!important;
+  min-height:17px!important;
+  margin:0!important;
   padding:3px 5px!important;
-  white-space:nowrap!important;
-  overflow:visible!important;
-}
-.job .compactStatus{
-  display:inline-flex!important;
-  align-items:center!important;
-  justify-content:center!important;
-  align-self:flex-end!important;
-  width:auto!important;
-  max-width:112px!important;
-  margin:0!important;
-  font-size:8.5px!important;
+  font-size:8px!important;
+  font-weight:950!important;
   line-height:1!important;
-  padding:3px 6px!important;
+  border-radius:5px!important;
   white-space:nowrap!important;
   overflow:hidden!important;
   text-overflow:ellipsis!important;
+  opacity:1!important;
+  visibility:visible!important;
 }
-.jobRight .rampBadge{
-  display:inline-flex!important;
+.jobControls .rampBadge{
+  display:flex!important;
   align-items:center!important;
   justify-content:center!important;
-  align-self:flex-end!important;
   width:auto!important;
-  max-width:112px!important;
   min-width:44px!important;
+  max-width:112px!important;
   margin:0!important;
-  font-size:9px!important;
-  line-height:1!important;
   padding:3px 7px!important;
+  font-size:9px!important;
+  font-weight:950!important;
+  line-height:1!important;
+  border-radius:5px!important;
   white-space:nowrap!important;
   overflow:hidden!important;
   text-overflow:ellipsis!important;
+  align-self:flex-end!important;
 }
-.job .ukPlate{
-  width:132px!important;
-  max-width:132px!important;
-  height:30px!important;
-  min-height:30px!important;
-  display:grid!important;
-  grid-template-columns:20px 1fr!important;
-  gap:0!important;
-  overflow:hidden!important;
-}
-.job .ukStrip{
-  width:20px!important;
-  height:30px!important;
-  min-height:30px!important;
-  margin:0!important;
-}
-.job .ukPlate b{
-  height:30px!important;
-  font-size:15px!important;
-  line-height:1!important;
-  margin:0!important;
-  padding:0 6px!important;
-}
-@media(max-width:768px){
-  .jobTop{grid-template-columns:124px minmax(6px,1fr) 108px!important;gap:5px!important;}
-  .jobRight{width:108px!important;min-width:108px!important;max-width:108px!important;}
-  .job .jobTime{width:104px!important;max-width:104px!important;font-size:9.5px!important;}
-  .job .compactStatus,.jobRight .rampBadge{max-width:104px!important;}
-  .job .ukPlate{width:124px!important;max-width:124px!important;height:28px!important;min-height:28px!important;grid-template-columns:18px 1fr!important;}
-  .job .ukStrip{width:18px!important;height:28px!important;min-height:28px!important;}
-  .job .ukPlate b{height:28px!important;font-size:14px!important;}
+.job .ukPlate{height:30px!important;width:132px!important;max-width:132px!important;min-height:30px!important;grid-template-columns:20px 1fr!important;gap:0!important;}
+.job .ukStrip{height:30px!important;min-height:30px!important;width:20px!important;margin:0!important;}
+.job .ukPlate b{height:30px!important;font-size:15px!important;padding:0 6px!important;}
+@media (max-width:768px){
+  .jobTop{grid-template-columns:124px minmax(8px,1fr) 108px!important;}
+  .jobControls{width:108px!important;min-width:108px!important;max-width:108px!important;}
+  .jobControls .jobTime,.jobControls .compactStatus{width:104px!important;max-width:104px!important;}
+  .jobControls .rampBadge{max-width:104px!important;}
 }
