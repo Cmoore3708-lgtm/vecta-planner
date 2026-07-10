@@ -1,19 +1,9 @@
-# VECTA Workshop Pro v41.1b Stable Professional
+# VECTA Workshop Pro v41.1f Stable – Compact Planner Cards
 
-Changes:
-- Added full UK-style registration plates with blue GB strip on planner job cards.
-- Added full UK-style registration plate input on the job card registration field.
-- Kept customer and vehicle lists subtle: compact registration/count badges with no GB strip and no bright yellow background.
-- Preserved the v41.1a invoice creation fix and professional invoice/payment layout.
+- Reduced planner job card text sizes.
+- Reduced GB strip width and font size on planner plates.
+- Reduced registration plate height/width on planner cards so registrations no longer get cut off.
+- Tightened time/status/ramp badges so the card has room for customer, job and vehicle text.
+- Keeps the full plate style on planner/job/invoice, while customer and vehicle lists remain subtle.
 
-## v41.1d - Planner upward resize
-- Added a top resize handle to planner job cards.
-- Dragging the top edge now moves the job start time earlier/later and adjusts duration while keeping the end time fixed.
-- Bottom resize still changes the job finish time/duration as before.
-
-
-## v41.1e Planner Card Layout
-- Improved planner job card layout.
-- Number plate is compact and clickable to open vehicle/job details.
-- Ramp badge centred, time/status on the right.
-- Customer, work required and vehicle now sit in a cleaner stacked layout.
+Use this build instead of v41.1e.

@@ -109,24 +109,25 @@ html,body{font-size:14px;background:var(--bg);color:var(--text)}.app{grid-templa
 @media(max-width:420px){.mobileActions{grid-template-columns:repeat(2,1fr)}.gridMetrics{grid-template-columns:1fr}.top{top:52px}}
 
 
-/* v41.1e planner card polish */
-.job{padding:10px 12px 12px!important;background:#fff!important;border-color:#d6dde8!important;display:flex;flex-direction:column;gap:6px;min-height:70px}
-.jobTop{display:grid!important;grid-template-columns:minmax(92px,38%) 1fr auto!important;gap:9px!important;align-items:start!important}
-.jobMid{display:flex;justify-content:center;align-items:flex-start;min-width:54px}
-.jobRight{align-items:flex-end!important;gap:4px!important;min-width:86px!important}
-.job .ukPlate{border:1px solid #2d3035;border-radius:6px;box-shadow:inset 0 1px 0 rgba(255,255,255,.5),0 1px 2px rgba(15,23,42,.12);height:32px;max-width:142px;width:100%;padding:0;display:grid;grid-template-columns:31px 1fr;overflow:hidden;background:#e2bf3f;cursor:pointer;text-decoration:none;color:#111827;font-family:Arial,Helvetica,sans-serif}
-.job .ukPlate:hover{filter:brightness(1.03);outline:2px solid rgba(37,99,235,.25)}
-.job .ukStrip{background:#1d4ed8;color:#fff;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:900;letter-spacing:.02em;height:100%}
-.job .ukPlate b{display:flex;align-items:center;justify-content:center;margin:0!important;padding:0 6px;font-size:16px;letter-spacing:.12em;line-height:1;white-space:nowrap;overflow:hidden;text-overflow:clip}
-.job .jobTime{font-size:12px!important;padding:4px 7px!important;border-radius:7px!important;background:#f8fafc!important;color:#1f2937!important}
-.job .compactStatus{font-size:9px!important;padding:3px 7px!important;max-width:112px!important;border-radius:7px!important}
-.job .rampBadge{min-width:58px!important;padding:5px 8px!important;font-size:10px!important;border-radius:7px!important}
-.jobBody{display:grid;gap:2px;padding-top:1px;min-width:0}
-.jobCustomer{font-size:13px!important;line-height:1.1!important;margin:0!important;color:#111827!important;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.jobWork{font-size:12px;font-weight:900;color:#334155;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-transform:none}
-.jobVehicle{font-size:11px;color:#64748b;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+/* v41.1f planner card compact polish - real applied fix */
+.job{padding:7px 9px 9px!important;background:#fff!important;border-color:#d6dde8!important;display:flex;flex-direction:column;gap:4px;min-height:58px}
+.jobTop{display:grid!important;grid-template-columns:118px minmax(34px,1fr) 72px!important;gap:6px!important;align-items:start!important}
+.jobMid{display:flex;justify-content:center;align-items:flex-start;min-width:34px;overflow:hidden}
+.jobRight{align-items:flex-end!important;gap:2px!important;min-width:68px!important;max-width:72px!important;overflow:hidden}
+.job .ukPlate{border:1px solid #2d3035;border-radius:5px;box-shadow:inset 0 1px 0 rgba(255,255,255,.45),0 1px 2px rgba(15,23,42,.10);height:26px;max-width:118px;width:118px;padding:0;display:grid;grid-template-columns:18px 1fr;overflow:hidden;background:#e2bf3f;cursor:pointer;text-decoration:none;color:#111827;font-family:Arial,Helvetica,sans-serif}
+.job .ukPlate:hover{filter:brightness(1.03);outline:2px solid rgba(37,99,235,.22)}
+.job .ukStrip{background:#1d4ed8;color:#fff;display:flex;align-items:center;justify-content:center;font-size:7px;font-weight:900;letter-spacing:0;height:100%;line-height:1}
+.job .ukPlate b{display:flex;align-items:center;justify-content:center;margin:0!important;padding:0 4px;font-size:12px;letter-spacing:.10em;line-height:1;white-space:nowrap;overflow:hidden;text-overflow:clip}
+.job .jobTime{font-size:9px!important;padding:3px 4px!important;border-radius:5px!important;background:#f8fafc!important;color:#1f2937!important;line-height:1!important;max-width:72px!important;white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important}
+.job .compactStatus{font-size:7.5px!important;padding:2px 4px!important;max-width:72px!important;border-radius:5px!important;line-height:1!important;white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important}
+.job .rampBadge{min-width:0!important;max-width:54px!important;padding:3px 5px!important;font-size:8px!important;border-radius:5px!important;line-height:1!important;overflow:hidden!important;text-overflow:ellipsis!important}
+.jobBody{display:grid;gap:1px;padding-top:0;min-width:0}
+.jobCustomer{font-size:11px!important;line-height:1.08!important;margin:0!important;color:#111827!important;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.jobWork{font-size:10px;font-weight:850;color:#334155;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-transform:none;line-height:1.1}
+.jobVehicle{font-size:9.5px;color:#64748b;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.1}
 .jobTitle,.jobMeta{display:none!important}
-@media (max-width:768px){.job .ukPlate{max-width:132px}.jobTop{grid-template-columns:minmax(90px,42%) 1fr auto!important}.job .ukPlate b{font-size:14px}.job .jobTime{font-size:11px!important}}
+.resizeTopHandle,.resizeHandle{height:4px!important;opacity:.55!important}
+@media (max-width:768px){.job .ukPlate{width:108px;max-width:108px;grid-template-columns:16px 1fr;height:24px}.jobTop{grid-template-columns:108px minmax(28px,1fr) 66px!important;gap:5px!important}.job .ukPlate b{font-size:11px}.job .ukStrip{font-size:6.5px}.job .jobTime{font-size:8.5px!important;max-width:66px!important}.jobRight{min-width:62px!important;max-width:66px!important}}
 </style>
 </head>
 <body>
