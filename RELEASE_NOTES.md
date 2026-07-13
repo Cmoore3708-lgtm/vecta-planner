@@ -1,12 +1,9 @@
-# VECTA Workshop Pro v1.10
+# VECTA Workshop Pro v1.17
 
-- Planner job cards now show vehicle make/model directly below the registration.
-- Vehicle make/model is larger and bold.
-- Customer name is shown underneath the vehicle.
-- Job type/work required is shown underneath the customer.
-- Time, status and ramp remain stacked on the right.
-
-## v1.16 — Invoice/service logo and Settings field correction
-- Added the supplied VECTA logo to on-screen and printed invoices.
-- Added the supplied VECTA logo to printed service sheets.
-- Restored the preset template layout and only widened Name, Hours and Price fields.
+- Restored the supplied VECTA logo in the planner sidebar.
+- Added the supplied logo to invoice screen/print and service sheet print.
+- Planner cards now show Job Type on the right beneath Time, Status and Ramp.
+- Removed Work Required text from planner cards.
+- Repaired preset job template layout in Settings.
+- Removed the up/down arrow controls; drag handle reordering remains.
+- Widened and aligned Name, Description, Hours and Price fields.
