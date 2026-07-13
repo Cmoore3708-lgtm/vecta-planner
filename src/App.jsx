@@ -485,6 +485,7 @@ function ScheduleCard({ job, settings, onEdit, onDragStart, onHistory, onInvoice
         <span className="planner-card-right">
           <span className="job-time">{start} – {end}</span>
           <span className={`workflow-badge workflow-${job.status || "booked"}`}>{statusText}</span>
+          <span className="planner-job-type">{job.job_type || "Other"}</span>
           <span className="ramp-badge">{job.ramp ? rampLabel(job.ramp, settings) : "No ramp"}</span>
         </span>
       </div>
@@ -493,7 +494,6 @@ function ScheduleCard({ job, settings, onEdit, onDragStart, onHistory, onInvoice
 
       <h4 className="planner-vehicle-title">{job.vehicle || "Vehicle"}</h4>
       {job.customer_name && <div className="planner-customer-name">{job.customer_name}</div>}
-      <p className="job-work">{job.work_required || "Work required"}</p>
 
       <div className="schedule-card-footer">
         <span className="card-actions">
@@ -826,7 +826,7 @@ function InvoicePanel({ job, settings, onClose, onMarkPaid }) {
             </div>
           </div>
           <div className="invoice-brand">
-            <div className="fake-logo"><b>VECTA</b><span>Vehicle Servicing and repairs</span></div>
+            <img className="invoice-logo-image" src="/assets/vecta-logo.png" alt="VECTA Vehicle Servicing and repairs" />
             <div className={`paid-badge ${paid ? "paid" : "unpaid"}`}>{paid ? "PAID" : "UNPAID"}</div>
           </div>
         </header>
@@ -1225,7 +1225,7 @@ function App() {
       <header className="topbar">
         <div className="brand-row">
           <Menu size={20} />
-          <div className="brand"><span>VECTA</span><b>PLANNER</b></div>
+          <div className="brand"><img className="vecta-brand-logo" src="/assets/vecta-logo.png" alt="VECTA Vehicle Servicing and repairs" /></div>
         </div>
 
         <div className="date-nav">

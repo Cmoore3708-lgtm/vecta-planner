@@ -632,3 +632,9 @@ button{cursor:pointer;border:0;border-radius:10px;background:#111827;color:white
   line-height:1.15!important;
   color:#4b5563!important;
 }
+
+/* v1.14 branding and planner job type */
+.vecta-brand-logo{display:block;width:210px;max-width:100%;height:auto;object-fit:contain}
+.invoice-logo-image{display:block;width:245px;max-width:100%;height:auto;object-fit:contain}
+.schedule-card .planner-job-type{font-size:12px;font-weight:950;color:#1455a0;line-height:1.05;max-width:120px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-align:right}
+.schedule-card .planner-vehicle-title{margin-top:1px!important}
