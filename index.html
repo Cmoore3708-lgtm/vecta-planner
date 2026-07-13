@@ -309,7 +309,70 @@ html,body{font-size:14px;background:var(--bg);color:var(--text)}.app{grid-templa
   .jobBody{padding-right:108px!important;}
 }
 
-.templateRow.reorderableTemplate{grid-template-columns:36px 1fr .45fr .55fr 82px!important;align-items:start}.templateDragHandle{height:34px;border:1px solid var(--line);border-radius:8px;background:#eef2f7;font-weight:1000;cursor:grab}.templateMoveBtns{display:flex;gap:5px}.templateMoveBtns .btn{padding:8px 9px;min-width:34px}.templateRow.dragging{opacity:.55;border-style:dashed}.templatePanelHead .muted:after{content:" Drag the handle or use ↑ ↓ to change the order."}@media(max-width:1160px){.templateRow.reorderableTemplate{grid-template-columns:1fr!important}.templateMoveBtns{justify-content:flex-start}}</style>
+.templateRow.reorderableTemplate{grid-template-columns:36px 1fr .45fr .55fr 82px!important;align-items:start}.templateDragHandle{height:34px;border:1px solid var(--line);border-radius:8px;background:#eef2f7;font-weight:1000;cursor:grab}.templateMoveBtns{display:flex;gap:5px}.templateMoveBtns .btn{padding:8px 9px;min-width:34px}.templateRow.dragging{opacity:.55;border-style:dashed}.templatePanelHead .muted:after{content:" Drag the handle or use ↑ ↓ to change the order."}@media(max-width:1160px){.templateRow.reorderableTemplate{grid-template-columns:1fr!important}.templateMoveBtns{justify-content:flex-start}}
+/* v1.9 unified registration plates */
+.uniformRegPlate{
+  display:grid!important;
+  grid-template-columns:18px 1fr!important;
+  align-items:stretch!important;
+  width:132px!important;
+  max-width:132px!important;
+  height:30px!important;
+  min-height:30px!important;
+  padding:0!important;
+  margin:0!important;
+  border:1px solid #222!important;
+  border-radius:5px!important;
+  overflow:hidden!important;
+  background:#e2bf3f!important;
+  color:#111827!important;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.45),0 1px 2px rgba(15,23,42,.10)!important;
+  font-family:Arial,Helvetica,sans-serif!important;
+  text-decoration:none!important;
+  line-height:1!important;
+  vertical-align:middle!important;
+}
+.uniformRegPlate .ukStrip{
+  width:18px!important;
+  height:30px!important;
+  min-height:30px!important;
+  margin:0!important;
+  padding:0!important;
+  border:0!important;
+  display:flex!important;
+  align-items:center!important;
+  justify-content:center!important;
+  background:#1d4ed8!important;
+  color:#fff!important;
+  font-size:6px!important;
+  font-weight:900!important;
+  letter-spacing:0!important;
+  line-height:1!important;
+}
+.uniformRegPlate b{
+  height:30px!important;
+  min-width:0!important;
+  margin:0!important;
+  padding:0 5px!important;
+  display:flex!important;
+  align-items:center!important;
+  justify-content:center!important;
+  background:#e2bf3f!important;
+  color:#111827!important;
+  font-size:15px!important;
+  font-weight:1000!important;
+  letter-spacing:.08em!important;
+  line-height:1!important;
+  white-space:nowrap!important;
+  overflow:hidden!important;
+  text-overflow:clip!important;
+  text-align:center!important;
+}
+.rowCard .uniformRegPlate,.sideJob .uniformRegPlate{justify-self:start!important;}
+.plateInputWrap{grid-template-columns:18px 1fr!important;background:#e2bf3f!important;}
+.plateInputWrap>span{width:18px!important;min-width:18px!important;background:#1d4ed8!important;font-size:6px!important;}
+.plateInputWrap input.plateField{background:#e2bf3f!important;text-align:center!important;font-size:26px!important;font-weight:1000!important;letter-spacing:.10em!important;}
+</style>
 </head>
 <body>
 <div id="fatal" class="fatal"></div>
@@ -407,8 +470,8 @@ function dashboardHtml(){var d=selectedIso(), jobs=jobsForDate(), open=app.jobs.
 function metricsHtml(items){return '<div class="gridMetrics">'+items.map(function(m){return '<div class="metric clickable '+esc(m.cls||'')+'" data-jump="'+esc(m.view||'')+'" '+(m.filterType?'data-filter-type="'+esc(m.filterType)+'" data-filter-name="'+esc(m.filterName||m.label)+'"':'')+'><small>'+esc(m.label)+'</small><strong>'+esc(m.value)+'</strong>'+(m.bar!=null?'<div class="bar"><span style="width:'+m.bar+'%"></span></div>':'')+'</div>'}).join('')+'</div>'}
 function rampClass(r){r=String(r||'').toLowerCase();if(r.indexOf('left')>-1)return 'ramp-left';if(r.indexOf('middle')>-1)return 'ramp-middle';if(r.indexOf('right')>-1)return 'ramp-right';return 'ramp-none'}
 function rampBadge(r){var raw=r?String(r):'';var label=raw?raw.replace(/\s*ramp\s*$/i,''):'—';return '<span class="rampBadge '+rampClass(r)+'">'+esc(label)+'</span>'}
-function fullPlate(reg){var r=normReg(reg||'');return '<button type="button" class="ukPlate" data-open-vehicle-reg="'+esc(r)+'" title="Open vehicle details"><span class="ukStrip">GB</span><b>'+esc(r||'NO REG')+'</b></button>'}
-function listPlate(reg){return '<span class="listRegBadge">'+esc(reg||'NO REG')+'</span>'}
+function fullPlate(reg){var r=normReg(reg||'');return '<button type="button" class="ukPlate uniformRegPlate" data-open-vehicle-reg="'+esc(r)+'" title="Open vehicle details"><span class="ukStrip">GB</span><b>'+esc(r||'NO REG')+'</b></button>'}
+function listPlate(reg){var r=normReg(reg||'');return '<span class="ukPlate uniformRegPlate"><span class="ukStrip">GB</span><b>'+esc(r||'NO REG')+'</b></span>'}
 function scheduleMini(jobs){if(!jobs.length)return '<div class="empty">No jobs booked for this day yet.</div>';return '<div class="tableList">'+jobs.sort(byTime).map(function(j){return '<div class="rowCard scheduleRow" data-open-job="'+j.id+'"><span class="timeBadge">'+esc(j.drop_time||'08:00')+'</span>'+listPlate(j.registration)+'<div><b>'+esc(j.vehicle||'Vehicle')+'</b><br><span class="muted">'+esc(j.work_required||'')+'</span></div><span>'+esc(j.technician||'Unallocated')+'</span><span class="pill">'+statusText(j.status)+'</span></div>'}).join('')+'</div>'}
 function unallocatedMini(){var p=app.jobs.filter(function(j){return !j.archived&&(!j.technician||j.technician==='Unallocated')}).slice(0,8); if(!p.length)return '<div class="ok">No unallocated jobs.</div>';return p.map(function(j){return '<div class="sideJob" data-open-job="'+j.id+'">'+fullPlate(j.registration)+'<b>'+esc(j.vehicle||'Vehicle')+'</b><p>'+esc(j.work_required||'')+'</p></div>'}).join('')}
 function plannerMetricsHtml(mechanics,jobs){var open=app.jobs.filter(function(j){return !j.archived&&j.status!=='completed'});var ready=app.jobs.filter(function(j){return !j.archived&&j.status==='ready_to_invoice'});var items=[{label:'Jobs Scheduled',value:jobs.length,view:'jobs'},{label:'Open Jobs',value:open.length,view:'jobs'},{label:'Ready To Invoice',value:ready.length,view:'invoices'}];(app.settings.ramps||['Left','Middle','Right']).forEach(function(r){var h=jobs.filter(function(j){return j.ramp===r}).reduce(function(a,j){return a+Number(j.estimated_hours||1)},0);items.push({label:r+' Ramp',value:Math.min(100,Math.round(h/8*100))+'%',bar:Math.min(100,Math.round(h/8*100)),view:'planner',cls:'ramp '+rampClass(r),filterType:'ramp',filterName:r});});mechanics.forEach(function(m){var h=mechanicHours(jobs,m);items.push({label:m,value:Math.min(100,Math.round(h/8*100))+'%',bar:Math.min(100,Math.round(h/8*100)),view:'planner',cls:'tech',filterType:'technician',filterName:m});});return metricsHtml(items).replace('gridMetrics','gridMetrics plannerMetrics')}

@@ -1,3 +1,10 @@
+# VECTA Workshop Pro v1.9
+
+- Unified yellow registration plate styling across Planner, Jobs, Vehicles and Invoices.
+- Narrow blue GB strip flush to the left edge.
+- Larger centred registration lettering.
+- Matching registration input styling on job cards.
+
 # v41.1n - Planner Card Stack Fix
 
 - Keeps the registration and time sizing.

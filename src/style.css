@@ -539,3 +539,67 @@ button{cursor:pointer;border:0;border-radius:10px;background:#111827;color:white
 .template-row-actions{display:flex;gap:6px;justify-content:flex-end}
 .template-row-actions button{min-width:34px;padding:8px 9px}
 @media(max-width:760px){.job-type-row.reorderable-template{grid-template-columns:1fr}.template-row-actions{justify-content:flex-start}}
+
+
+/* v1.9 unified registration plates */
+.uniformRegPlate{
+  display:grid!important;
+  grid-template-columns:18px 1fr!important;
+  align-items:stretch!important;
+  width:132px!important;
+  max-width:132px!important;
+  height:30px!important;
+  min-height:30px!important;
+  padding:0!important;
+  margin:0!important;
+  border:1px solid #222!important;
+  border-radius:5px!important;
+  overflow:hidden!important;
+  background:#e2bf3f!important;
+  color:#111827!important;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.45),0 1px 2px rgba(15,23,42,.10)!important;
+  font-family:Arial,Helvetica,sans-serif!important;
+  text-decoration:none!important;
+  line-height:1!important;
+  vertical-align:middle!important;
+}
+.uniformRegPlate .ukStrip{
+  width:18px!important;
+  height:30px!important;
+  min-height:30px!important;
+  margin:0!important;
+  padding:0!important;
+  border:0!important;
+  display:flex!important;
+  align-items:center!important;
+  justify-content:center!important;
+  background:#1d4ed8!important;
+  color:#fff!important;
+  font-size:6px!important;
+  font-weight:900!important;
+  letter-spacing:0!important;
+  line-height:1!important;
+}
+.uniformRegPlate b{
+  height:30px!important;
+  min-width:0!important;
+  margin:0!important;
+  padding:0 5px!important;
+  display:flex!important;
+  align-items:center!important;
+  justify-content:center!important;
+  background:#e2bf3f!important;
+  color:#111827!important;
+  font-size:15px!important;
+  font-weight:1000!important;
+  letter-spacing:.08em!important;
+  line-height:1!important;
+  white-space:nowrap!important;
+  overflow:hidden!important;
+  text-overflow:clip!important;
+  text-align:center!important;
+}
+.rowCard .uniformRegPlate,.sideJob .uniformRegPlate{justify-self:start!important;}
+.plateInputWrap{grid-template-columns:18px 1fr!important;background:#e2bf3f!important;}
+.plateInputWrap>span{width:18px!important;min-width:18px!important;background:#1d4ed8!important;font-size:6px!important;}
+.plateInputWrap input.plateField{background:#e2bf3f!important;text-align:center!important;font-size:26px!important;font-weight:1000!important;letter-spacing:.10em!important;}
