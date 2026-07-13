@@ -463,11 +463,6 @@ function workflowLabel(status) {
   return STATUS[status] || status || "Booked In";
 }
 
-function isServiceJob(job) {
-  const value = `${job?.job_type || ""} ${job?.work_required || ""}`.toLowerCase();
-  return value.includes("service");
-}
-
 function endTimeFrom(start, hours) {
   if (!start) return "--:--";
   const [h, m] = String(start).slice(0, 5).split(":").map(Number);
@@ -477,7 +472,7 @@ function endTimeFrom(start, hours) {
   return d.toTimeString().slice(0, 5);
 }
 
-function ScheduleCard({ job, settings, onEdit, onDragStart, onHistory, onInvoice, onService }) {
+function ScheduleCard({ job, settings, onEdit, onDragStart, onHistory, onInvoice }) {
   const statusText = workflowLabel(job.status);
   const start = job.drop_time ? String(job.drop_time).slice(0, 5) : "--:--";
   const hours = Number(job.estimated_hours || 1);
@@ -490,7 +485,6 @@ function ScheduleCard({ job, settings, onEdit, onDragStart, onHistory, onInvoice
         <span className="planner-card-right">
           <span className="job-time">{start} – {end}</span>
           <span className={`workflow-badge workflow-${job.status || "booked"}`}>{statusText}</span>
-          <span className="planner-job-type">{job.job_type || "Other"}</span>
           <span className="ramp-badge">{job.ramp ? rampLabel(job.ramp, settings) : "No ramp"}</span>
         </span>
       </div>
@@ -499,11 +493,11 @@ function ScheduleCard({ job, settings, onEdit, onDragStart, onHistory, onInvoice
 
       <h4 className="planner-vehicle-title">{job.vehicle || "Vehicle"}</h4>
       {job.customer_name && <div className="planner-customer-name">{job.customer_name}</div>}
+      <p className="job-work">{job.work_required || "Work required"}</p>
 
       <div className="schedule-card-footer">
         <span className="card-actions">
           <button title="History" onClick={(e)=>{e.stopPropagation(); onHistory(job)}}><History size={14}/></button>
-          {isServiceJob(job) && <button title="Open Service Sheet" onClick={(e)=>{e.stopPropagation(); onService(job)}}><ShieldCheck size={14}/></button>}
           <button title="Invoice" onClick={(e)=>{e.stopPropagation(); onInvoice(job)}}><FileText size={14}/></button>
         </span>
       </div>
@@ -512,7 +506,7 @@ function ScheduleCard({ job, settings, onEdit, onDragStart, onHistory, onInvoice
 }
 
 
-function JobDialog({ job, date, settings, jobTypes = JOB_TYPES, onClose, onSave, onDelete, onService }) {
+function JobDialog({ job, date, settings, jobTypes = JOB_TYPES, onClose, onSave, onDelete }) {
   const [form, setForm] = useState(job || {});
 
   useEffect(() => {
@@ -721,7 +715,6 @@ function JobDialog({ job, date, settings, jobTypes = JOB_TYPES, onClose, onSave,
         <div className="dialog-actions">
           <button className="secondary" onClick={onClose}>Cancel</button>
           {form.id && <button className="danger-button" onClick={() => onDelete(form.id)}>Delete</button>}
-          {form.id && isServiceJob(form) && <button className="service-sheet-button" onClick={() => onService(form)}><ShieldCheck size={16}/> Open Service Sheet</button>}
           {form.id && <button className="secondary" onClick={() => { onClose(); setTimeout(() => window.dispatchEvent(new CustomEvent("open-invoice", { detail: form })), 50); }}>Create Invoice</button>}
           <button onClick={validateAndSave}>Save</button>
         </div>
@@ -762,59 +755,6 @@ function TasksPanel({ tasks, onSave, onDelete }) {
 }
 
 
-
-
-function ServiceSheetPanel({ job, onClose }) {
-  const [checks, setChecks] = useState({
-    warningLights: false, bodywork: false, oilLevel: false, roadTest: false,
-    engineOil: true, oilFilter: true, airFilter: false, fuelFilter: false, pollenFilter: false,
-    battery: "Good", brakes: "Good", tyres: "Good", lights: "Good", wipers: "Good", suspension: "Good", exhaust: "Good"
-  });
-  const [notes, setNotes] = useState("");
-  const update = (key, value) => setChecks(c => ({ ...c, [key]: value }));
-  return (
-    <div className="service-sheet-screen">
-      <div className="service-sheet-toolbar no-print">
-        <button className="secondary" onClick={onClose}>Back to Job</button>
-        <button onClick={() => window.print()}><Printer size={16}/> Print Service Sheet</button>
-      </div>
-      <section className="service-sheet-page">
-        <header className="service-sheet-header">
-          <img src="/assets/vecta-logo.png" alt="VECTA Vehicle Servicing and repairs" />
-          <div><h1>SERVICE SHEET</h1><p>{job.job_type || "Vehicle Service"}</p></div>
-        </header>
-        <section className="service-vehicle-summary">
-          <div><span>Customer</span><b>{job.customer_name || ""}</b></div>
-          <div><span>Vehicle</span><b>{job.vehicle || ""}</b></div>
-          <div><span>Registration</span><b className="plate">{job.registration || ""}</b></div>
-          <div><span>Mileage</span><b>{job.mileage || ""}</b></div>
-          <div><span>Date</span><b>{new Date().toLocaleDateString("en-GB")}</b></div>
-          <div><span>Technician</span><b>{job.technician || ""}</b></div>
-        </section>
-        <div className="service-sheet-grid">
-          <section className="service-box">
-            <h3>Pre-service Inspection</h3>
-            {[['warningLights','Warning lights on dash'],['bodywork','Bodywork damage'],['oilLevel','Oil level checked']].map(([k,l]) => <label key={k}><input type="checkbox" checked={checks[k]} onChange={e=>update(k,e.target.checked)}/>{l}</label>)}
-          </section>
-          <section className="service-box">
-            <h3>Service Operations</h3>
-            {[['engineOil','Engine oil changed'],['oilFilter','Oil filter'],['airFilter','Air filter'],['fuelFilter','Fuel filter'],['pollenFilter','Pollen filter']].map(([k,l]) => <label key={k}><input type="checkbox" checked={checks[k]} onChange={e=>update(k,e.target.checked)}/>{l}</label>)}
-          </section>
-          <section className="service-box health-check">
-            <h3>Vehicle Health Check</h3>
-            {[['battery','Battery'],['brakes','Brakes'],['tyres','Tyres'],['lights','Lights'],['wipers','Wipers'],['suspension','Suspension'],['exhaust','Exhaust']].map(([k,l]) => <label key={k}><span>{l}</span><select value={checks[k]} onChange={e=>update(k,e.target.value)}><option>Good</option><option>Advisory</option><option>Urgent</option></select></label>)}
-          </section>
-          <section className="service-box service-notes">
-            <h3>Technician Advisories / Notes</h3>
-            <textarea value={notes} onChange={e=>setNotes(e.target.value)} placeholder="Enter advisories and observations..."/>
-            <label><input type="checkbox" checked={checks.roadTest} onChange={e=>update('roadTest',e.target.checked)}/> Road test completed</label>
-          </section>
-        </div>
-        <footer className="service-signatures"><div>Technician signature</div><div>Customer signature</div></footer>
-      </section>
-    </div>
-  );
-}
 
 
 function InvoicePanel({ job, settings, onClose, onMarkPaid }) {
@@ -886,7 +826,7 @@ function InvoicePanel({ job, settings, onClose, onMarkPaid }) {
             </div>
           </div>
           <div className="invoice-brand">
-            <img className="invoice-logo-image" src="/assets/vecta-logo.png" alt="VECTA Vehicle Servicing and repairs" />
+            <div className="fake-logo"><b>VECTA</b><span>Vehicle Servicing and repairs</span></div>
             <div className={`paid-badge ${paid ? "paid" : "unpaid"}`}>{paid ? "PAID" : "UNPAID"}</div>
           </div>
         </header>
@@ -1209,7 +1149,6 @@ function App() {
   const [availabilityOpen, setAvailabilityOpen] = useState(false);
   const [historyJob, setHistoryJob] = useState(null);
   const [invoiceJob, setInvoiceJob] = useState(null);
-  const [serviceJob, setServiceJob] = useState(null);
 
   const mechanicNames = settings.mechanics.map(m => m.name);
   const jobTypes = settings.jobTypes;
@@ -1268,10 +1207,6 @@ function App() {
     refresh();
   }
 
-  if (serviceJob) {
-    return <ServiceSheetPanel job={serviceJob} onClose={() => setServiceJob(null)} />;
-  }
-
   if (invoiceJob) {
     return <InvoicePanel
       job={invoiceJob}
@@ -1290,7 +1225,7 @@ function App() {
       <header className="topbar">
         <div className="brand-row">
           <Menu size={20} />
-          <div className="brand"><img className="vecta-brand-logo" src="/assets/vecta-logo.png" alt="VECTA Vehicle Servicing and repairs" /></div>
+          <div className="brand"><span>VECTA</span><b>PLANNER</b></div>
         </div>
 
         <div className="date-nav">
@@ -1352,7 +1287,7 @@ function App() {
                   </div>
 
                   <div className="job-stack" onDragOver={e => e.preventDefault()} onDrop={e => dropOnTech(e, tech)}>
-                    {techJobs(tech).map(j => <ScheduleCard key={j.id} job={j} settings={settings} onEdit={setDialogJob} onDragStart={dragStart} onHistory={setHistoryJob} onInvoice={setInvoiceJob} onService={setServiceJob} />)}
+                    {techJobs(tech).map(j => <ScheduleCard key={j.id} job={j} settings={settings} onEdit={setDialogJob} onDragStart={dragStart} onHistory={setHistoryJob} onInvoice={setInvoiceJob} />)}
                   </div>
                 </section>
               );
@@ -1402,7 +1337,7 @@ function App() {
         </div>
       )}
 
-      {dialogJob !== undefined && <JobDialog job={dialogJob} date={date} settings={settings} jobTypes={settings.jobTypes} onClose={() => setDialogJob(undefined)} onService={(jobToService) => { setDialogJob(undefined); setServiceJob(jobToService); }} onDelete={async id => { await deleteJob(id); setDialogJob(undefined); refresh(); }} onSave={async j => { await saveJob(j, date); setDialogJob(undefined); refresh(); }} />}
+      {dialogJob !== undefined && <JobDialog job={dialogJob} date={date} settings={settings} jobTypes={settings.jobTypes} onClose={() => setDialogJob(undefined)} onDelete={async id => { await deleteJob(id); setDialogJob(undefined); refresh(); }} onSave={async j => { await saveJob(j, date); setDialogJob(undefined); refresh(); }} />}
     </div>
   );
 }
