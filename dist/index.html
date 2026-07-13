@@ -372,6 +372,12 @@ html,body{font-size:14px;background:var(--bg);color:var(--text)}.app{grid-templa
 .plateInputWrap{grid-template-columns:18px 1fr!important;background:#e2bf3f!important;}
 .plateInputWrap>span{width:18px!important;min-width:18px!important;background:#1d4ed8!important;font-size:6px!important;}
 .plateInputWrap input.plateField{background:#e2bf3f!important;text-align:center!important;font-size:26px!important;font-weight:1000!important;letter-spacing:.10em!important;}
+
+/* v1.10 planner card information hierarchy */
+.job .jobBody{display:grid!important;gap:2px!important;padding-top:3px!important;min-width:0!important}
+.job .jobVehicle{display:block!important;font-size:14px!important;line-height:1.12!important;font-weight:950!important;color:#111827!important;white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important}
+.job .jobCustomer{display:block!important;font-size:11px!important;line-height:1.1!important;font-weight:750!important;color:#374151!important;margin:0!important;white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important}
+.job .jobWork{display:block!important;font-size:10px!important;line-height:1.1!important;font-weight:800!important;color:#64748b!important;white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important}
 </style>
 </head>
 <body>
@@ -487,7 +493,7 @@ function laneHtml(mech,jobs){return '<div class="lane" data-tech="'+esc(mech)+'"
 function addMinutes(t,mins){var p=String(t||'08:00').split(':');var total=(Number(p[0]||8)*60)+Number(p[1]||0)+Number(mins||60);return String(Math.floor(total/60)).padStart(2,'0')+':'+String(total%60).padStart(2,'0')}
 function timeRange(j){var start=String(j.drop_time||'08:00');var end=addMinutes(start,Number(j.estimated_hours||1)*60);return start+' - '+end}
 function jobTitle(j){return j.work_required||j.job_type||'Job'}
-function jobCardHtml(j){var st=String(j.status||'booked');return '<div draggable="true" class="job '+esc(j.job_colour||j.job_type||'')+'" data-job-id="'+j.id+'" style="top:'+topFor(j)+'px;height:'+heightFor(j)+'px"><div class="resizeTopHandle" title="Drag up/down to change job start time"></div><div class="jobTop">'+fullPlate(j.registration)+'<div class="jobSpacer"></div><div class="jobRight jobRightStack"><span class="jobTime">'+esc(timeRange(j))+'</span><span class="status compactStatus '+st+'">'+statusText(st)+'</span>'+rampBadge(j.ramp)+'</div></div><div class="jobBody"><b class="jobCustomer">'+esc(j.customer_name||'No customer')+'</b><span class="jobWork">'+esc(jobTitle(j))+'</span><span class="jobVehicle">'+esc(j.vehicle||'Vehicle')+'</span></div><div class="resizeHandle" title="Drag down/up to change job length"></div></div>'}
+function jobCardHtml(j){var st=String(j.status||'booked');return '<div draggable="true" class="job '+esc(j.job_colour||j.job_type||'')+'" data-job-id="'+j.id+'" style="top:'+topFor(j)+'px;height:'+heightFor(j)+'px"><div class="resizeTopHandle" title="Drag up/down to change job start time"></div><div class="jobTop">'+fullPlate(j.registration)+'<div class="jobSpacer"></div><div class="jobRight jobRightStack"><span class="jobTime">'+esc(timeRange(j))+'</span><span class="status compactStatus '+st+'">'+statusText(st)+'</span>'+rampBadge(j.ramp)+'</div></div><div class="jobBody"><b class="jobVehicle">'+esc(j.vehicle||'Vehicle')+'</b><span class="jobCustomer">'+esc(j.customer_name||'No customer')+'</span><span class="jobWork">'+esc(jobTitle(j))+'</span></div><div class="resizeHandle" title="Drag down/up to change job length"></div></div>'}
 function sideJobsHtml(list){if(!list.length)return '<div class="empty">Nothing waiting. Good.</div>';return list.map(function(j){return '<div draggable="true" class="sideJob" data-job-id="'+j.id+'">'+fullPlate(j.registration)+'<b>'+esc(jobTitle(j))+'</b><p>'+esc(j.vehicle||'Vehicle')+' · '+esc(timeRange(j))+'</p><span class="pill">'+statusText(j.status)+'</span></div>'}).join('')}
 function tasksHtml(){if(!app.tasks.length)return '<div class="empty">No tasks added.</div>';return app.tasks.map(function(t){return '<label><input type="checkbox" data-task="'+t.id+'" '+(t.done?'checked':'')+'> <span class="'+(t.done?'muted':'')+'">'+esc(t.task_text)+'</span></label>'}).join('')}
 function times(){return ['08:00','09:00','10:00','11:00','12:00','13:00','14:00','15:00','16:00']}

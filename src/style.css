@@ -603,3 +603,32 @@ button{cursor:pointer;border:0;border-radius:10px;background:#111827;color:white
 .plateInputWrap{grid-template-columns:18px 1fr!important;background:#e2bf3f!important;}
 .plateInputWrap>span{width:18px!important;min-width:18px!important;background:#1d4ed8!important;font-size:6px!important;}
 .plateInputWrap input.plateField{background:#e2bf3f!important;text-align:center!important;font-size:26px!important;font-weight:1000!important;letter-spacing:.10em!important;}
+
+
+/* v1.10 planner card content order */
+.schedule-card .planner-vehicle-title{
+  margin:4px 0 0!important;
+  font-size:16px!important;
+  line-height:1.15!important;
+  font-weight:950!important;
+  color:#111827!important;
+  white-space:nowrap!important;
+  overflow:hidden!important;
+  text-overflow:ellipsis!important;
+}
+.schedule-card .planner-customer-name{
+  margin:0!important;
+  font-size:12px!important;
+  line-height:1.15!important;
+  font-weight:750!important;
+  color:#374151!important;
+  white-space:nowrap!important;
+  overflow:hidden!important;
+  text-overflow:ellipsis!important;
+}
+.schedule-card .job-work{
+  margin:0!important;
+  font-size:11px!important;
+  line-height:1.15!important;
+  color:#4b5563!important;
+}
