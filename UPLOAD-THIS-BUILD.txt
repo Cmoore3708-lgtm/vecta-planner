@@ -1,0 +1,5 @@
+VECTA Workshop Pro v1.8 rebuilt clean upload package.
+The invalid duplicate root App.jsx file has been removed.
+The real application source remains at src/App.jsx.
+No node_modules folder is included.
+Upload the contents of this folder to the root of the GitHub repository.

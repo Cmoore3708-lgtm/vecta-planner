@@ -528,3 +528,14 @@ button{cursor:pointer;border:0;border-radius:10px;background:#111827;color:white
   font-size:15px!important;
   padding:0 6px!important;
 }
+
+
+/* v41.1r - preset job template reordering */
+.settings-help{margin:0 0 10px;color:#6b7280;font-size:13px}
+.job-type-row.reorderable-template{grid-template-columns:42px 120px 1fr 1.5fr 90px 126px;align-items:center;background:#fff;border:1px solid #e5e7eb;border-radius:10px;padding:8px}
+.job-type-row.reorderable-template.is-dragging{opacity:.55;border-style:dashed}
+.drag-handle{cursor:grab;background:#f3f4f6;color:#374151;border:1px solid #d1d5db;border-radius:8px;height:36px;font-weight:800}
+.drag-handle:active{cursor:grabbing}
+.template-row-actions{display:flex;gap:6px;justify-content:flex-end}
+.template-row-actions button{min-width:34px;padding:8px 9px}
+@media(max-width:760px){.job-type-row.reorderable-template{grid-template-columns:1fr}.template-row-actions{justify-content:flex-start}}
