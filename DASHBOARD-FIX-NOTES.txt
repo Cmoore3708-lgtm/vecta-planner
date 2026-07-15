@@ -1,0 +1,14 @@
+Dashboard interaction fix
+Date: 15 July 2026
+
+Fixed:
+- Dashboard navigation tab now renders the dashboard rather than failing silently.
+- Renamed the local dashboard money panel variable so it no longer overwrites the global currency formatter.
+- Dashboard 'Due in today' rows now open the selected job correctly.
+- Applied the same corrected live index to dist/index.html for deployment consistency.
+
+Checks completed:
+- Main JavaScript passes Node syntax validation.
+- Dashboard route is present in navigation and render switching.
+- Dashboard jump buttons, task checkboxes and job-row handlers are bound in bindView().
+- ZIP archive integrity verified after packaging.
