@@ -558,13 +558,33 @@ html,body{font-size:14px;background:var(--bg);color:var(--text)}.app{grid-templa
  .servicePrint .ssScore{font-size:30px!important}
  .servicePrint .ssScoreNote{padding-bottom:3px!important}
 }
+
+/* V24 footer anchored to the true A4 print bottom without changing content flow */
+@media print{
+  .servicePrint{
+    height:auto!important;
+    min-height:0!important;
+    max-height:none!important;
+    display:block!important;
+    overflow:visible!important;
+  }
+  .servicePrint .ssFooter{
+    position:fixed!important;
+    left:0!important;
+    right:0!important;
+    bottom:0!important;
+    margin:0!important;
+    padding:3px!important;
+    z-index:20!important;
+  }
+}
 </style>
 </head>
 <body>
 <div id="fatal" class="fatal"></div>
 <div class="app">
   <aside class="side">
-    <div class="logo"><img class="vectaBrandLogo sidebarBrandLogo" src="assets/vecta-logo.png" alt="VECTA Vehicle Servicing and repairs"><div class="product">Workshop Pro</div></div>
+    <div class="logo"><img class="vectaBrandLogo sidebarBrandLogo" src="/assets/vecta-logo-BdBQYtce.png" alt="VECTA Vehicle Servicing and repairs"><div class="product">Workshop Pro</div></div>
     <nav class="nav" id="nav"></nav>
     <div class="sideFoot"><b>V41.1i Stable Professional</b><br>Planner card final spacing + invoice footer<br>Supabase connected safely.</div>
   </aside>

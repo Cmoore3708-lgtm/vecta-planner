@@ -558,6 +558,26 @@ html,body{font-size:14px;background:var(--bg);color:var(--text)}.app{grid-templa
  .servicePrint .ssScore{font-size:30px!important}
  .servicePrint .ssScoreNote{padding-bottom:3px!important}
 }
+
+/* V24 footer anchored to the true A4 print bottom without changing content flow */
+@media print{
+  .servicePrint{
+    height:auto!important;
+    min-height:0!important;
+    max-height:none!important;
+    display:block!important;
+    overflow:visible!important;
+  }
+  .servicePrint .ssFooter{
+    position:fixed!important;
+    left:0!important;
+    right:0!important;
+    bottom:0!important;
+    margin:0!important;
+    padding:3px!important;
+    z-index:20!important;
+  }
+}
 </style>
 </head>
 <body>
