@@ -1,0 +1,34 @@
+VECTA Workshop Pro - Planner Task and Dashboard Amendments
+Date: 15 July 2026
+
+Applied to vecta-planner-main (24)(2):
+
+1. Normal planner job cards
+- Restored Job Type beneath the fixed time display.
+- Removed Job Status from the visible planner tile so it no longer replaces/hides Job Type.
+- Job status remains stored and editable in the job record.
+
+2. Tasks dragged onto the planner
+- Removed the registration number from the allocated task tile.
+- Changed the full task tile to a separate light-grey design.
+- Shows TASK, allocated time, duration and task description.
+- Allocated tasks are removed from the outstanding task sidebar.
+
+3. Dashboard Tasks
+- Outstanding tasks now display in Dashboard > My Tasks.
+- Includes both unallocated tasks and tasks already allocated onto the planner.
+- Allocated tasks show the mechanic and time.
+- Added compatibility for task data from earlier VECTA planner storage versions.
+
+4. Dashboard checks
+- Fixed the workload-value panel so it displays the calculated £ value rather than JavaScript function text.
+- Internal mini-tasks show a grey TASK badge in Due In Today, not a registration number.
+
+Testing completed
+- Main inline JavaScript syntax validation passed.
+- Vite production build passed.
+- Browser-tested normal job card layout.
+- Browser-tested light-grey allocated mini-task without registration.
+- Browser-tested allocated task removal from planner sidebar.
+- Browser-tested Dashboard My Tasks with allocated and unallocated tasks.
+- Browser-tested dashboard workload calculation and Due In Today task display.
