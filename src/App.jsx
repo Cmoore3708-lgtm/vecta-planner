@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { createRoot } from "react-dom/client";
 import { createClient } from "@supabase/supabase-js";
-import { AlertTriangle, CalendarDays, Car, CheckCircle2, ChevronLeft, ChevronRight, CircleAlert, ClipboardList, FileText, Gauge, History, Mail, Menu, Plus, PoundSterling, Printer, Search, Settings, ShieldCheck, Truck, Wand2 } from "lucide-react";
+import { AlertTriangle, CalendarDays, Car, CheckCircle2, ChevronLeft, ChevronRight, ClipboardList, FileText, History, LayoutDashboard, Mail, Menu, Plus, PoundSterling, Printer, Search, Settings, ShieldCheck, Users, Wand2 } from "lucide-react";
 import "./style.css";
 
 const TECHS = ["Jordan", "Alfie"];
@@ -1134,90 +1134,121 @@ function SettingsPanel({ settings, onSave, onClose }) {
 }
 
 
-function DashboardPanel({ jobs, globalJobs, tasks, settings, date, onOpenPlanner, onEditJob, onCompleteTask, onAddJob }) {
-  const allJobs = [...jobs, ...globalJobs];
-  const activeJobs = jobs.filter(j => !j.archived);
-  const completed = activeJobs.filter(j => j.status === "completed");
-  const ready = activeJobs.filter(j => j.status === "ready_to_invoice");
-  const inProgress = activeJobs.filter(j => j.status === "in_progress");
-  const overdueJobs = globalJobs.filter(j => j.booking_date && j.booking_date < todayISO());
-  const dueToday = activeJobs.filter(j => j.booking_date === date);
-  const upcomingMots = allJobs.filter(j => { const d = daysUntil(j.mot_due); return d !== null && d >= 0 && d <= 14; });
-  const upcomingTax = allJobs.filter(j => { const d = daysUntil(j.tax_due); return d !== null && d >= 0 && d <= 30; });
-  const awaitingApproval = allJobs.filter(j => /approval|authoris/i.test(`${j.customer_note || ""} ${j.work_required || ""}`));
-  const waitingParts = globalJobs.filter(j => j.card_type === "waiting" || j.technician === "Waiting");
-  const totalHours = activeJobs.reduce((sum, j) => sum + Number(j.estimated_hours || 1), 0);
+function Dashboard({ jobs, globalJobs, tasks, settings, date, onOpenJob, onOpenPlanner, onCompleteTask }) {
+  const allOpenJobs = [...jobs, ...globalJobs].filter(j => !j.archived);
+  const waiting = globalJobs.filter(j => j.card_type === "waiting" || j.technician === "Waiting");
+  const unallocated = globalJobs.filter(j => j.card_type !== "waiting" && j.technician !== "Waiting");
+  const ready = allOpenJobs.filter(j => j.status === "ready_to_invoice");
+  const inProgress = jobs.filter(j => j.status === "in_progress" || !j.status);
+  const completed = jobs.filter(j => j.status === "completed");
+  const motDueSoon = allOpenJobs.filter(j => { const d = daysUntil(j.mot_due); return d !== null && d >= 0 && d <= 30; });
+  const motOverdue = allOpenJobs.filter(j => { const d = daysUntil(j.mot_due); return d !== null && d < 0; });
+  const taxDueSoon = allOpenJobs.filter(j => { const d = daysUntil(j.tax_due); return d !== null && d >= 0 && d <= 30; });
+  const labourBooked = jobs.reduce((sum, j) => sum + Number(j.estimated_hours || 1) * 40, 0);
   const mechanicRows = settings.mechanics.map(m => {
-    const hours = activeJobs.filter(j => j.technician === m.name).reduce((sum, j) => sum + Number(j.estimated_hours || 1), 0);
-    return { ...m, hours, pct: Math.min(100, Math.round((hours / Number(m.capacity || 8)) * 100)) };
+    const hours = jobs.filter(j => j.technician === m.name).reduce((sum, j) => sum + Number(j.estimated_hours || 1), 0);
+    return { ...m, hours, percent: Math.min(100, Math.round((hours / Number(m.capacity || 8)) * 100)) };
   });
   const rampRows = settings.ramps.map(r => {
-    const hours = hoursForRamp(activeJobs, r.key);
-    const capacity = Number(r.capacity || 8);
-    return { ...r, hours, pct: Math.min(100, Math.round((hours / capacity) * 100)) };
+    const hours = jobs.filter(j => j.ramp === r.key).reduce((sum, j) => sum + Number(j.estimated_hours || 1), 0);
+    const percent = Math.min(100, Math.round((hours / Number(r.capacity || 8)) * 100));
+    return { ...r, hours, percent, state: percent >= 90 ? "Full" : percent >= 45 ? "Busy" : "Available" };
   });
   const attention = [
-    { label: "Jobs ready to invoice", count: ready.length, rows: ready },
-    { label: "Waiting jobs / parts", count: waitingParts.length, rows: waitingParts },
-    { label: "Awaiting customer approval", count: awaitingApproval.length, rows: awaitingApproval },
-    { label: "MOT due within 14 days", count: upcomingMots.length, rows: upcomingMots },
-  ].filter(x => x.count);
+    { label: "Overdue MOT records", count: motOverdue.length },
+    { label: "Jobs waiting", count: waiting.length },
+    { label: "Jobs not allocated", count: unallocated.length },
+    { label: "Ready to invoice", count: ready.length }
+  ].filter(x => x.count > 0);
+  const sortedJobs = [...jobs].sort((a,b) => String(a.drop_time || "99:99").localeCompare(String(b.drop_time || "99:99")));
 
-  return <main className="dashboard-page">
-    <section className="dashboard-welcome">
-      <div><span className="dashboard-kicker">WORKSHOP CONTROL CENTRE</span><h1>Good morning, Chris</h1><p>{activeJobs.length} jobs booked for {friendlyDate(date)} · {totalHours.toFixed(1)} workshop hours allocated · {tasks.length} tasks outstanding</p></div>
-      <button onClick={onAddJob}><Plus size={17}/> New Job</button>
-    </section>
+  const MetricRow = ({ label, value, tone = "blue", onClick }) => (
+    <button className="dashboard-metric-row" onClick={onClick} disabled={!onClick}>
+      <span>{label}</span><b className={`metric-count ${tone}`}>{value}</b><ChevronRight size={16}/>
+    </button>
+  );
 
-    <section className="dashboard-grid dashboard-grid-top">
-      <article className="dash-card priorities-card">
-        <div className="dash-card-title"><CircleAlert size={19}/><h2>Today’s Priorities</h2></div>
-        {[
-          ["Overdue jobs", overdueJobs.length, "danger"],
-          ["Vehicles due in today", dueToday.length, "blue"],
-          ["Jobs ready to invoice", ready.length, "green"],
-          ["Waiting for approval", awaitingApproval.length, "amber"],
-          ["Waiting jobs / parts", waitingParts.length, "purple"]
-        ].map(([label,count,tone]) => <button className="dash-list-row" key={label} onClick={onOpenPlanner}><span>{label}</span><b className={`count-pill ${tone}`}>{count}</b><ChevronRight size={16}/></button>)}
-        <button className="dash-link" onClick={onOpenPlanner}>Open planner</button>
-      </article>
+  return (
+    <main className="dashboard-page">
+      <section className="dashboard-welcome">
+        <div>
+          <span className="eyebrow">WORKSHOP CONTROL CENTRE</span>
+          <h1>Good morning Chris</h1>
+          <p>{jobs.length} jobs booked today · {ready.length} ready to invoice · {tasks.length} tasks outstanding</p>
+        </div>
+        <button className="dashboard-primary" onClick={onOpenPlanner}>Open today’s planner <ChevronRight size={18}/></button>
+      </section>
 
-      <article className="dash-card">
-        <div className="dash-card-title"><Truck size={19}/><h2>Fleet Reminders</h2></div>
-        <div className="dash-list-row static"><span>MOTs due in next 14 days</span><b className="count-pill blue">{upcomingMots.length}</b></div>
-        <div className="dash-list-row static"><span>Road tax due in next 30 days</span><b className="count-pill amber">{upcomingTax.length}</b></div>
-        <div className="dash-list-row static"><span>Vehicles waiting to be allocated</span><b className="count-pill purple">{globalJobs.filter(j => j.technician === "Unallocated").length}</b></div>
-        <p className="dash-empty-note">Fleet service reminders will populate here as your fleet vehicle records are added.</p>
-      </article>
+      <div className="dashboard-grid dashboard-grid-top">
+        <section className="dashboard-card">
+          <header><AlertTriangle size={19}/><h2>Today’s priorities</h2></header>
+          <MetricRow label="Jobs ready to invoice" value={ready.length} tone="green" onClick={ready[0] ? () => onOpenJob(ready[0]) : null}/>
+          <MetricRow label="Waiting jobs" value={waiting.length} tone="amber" onClick={waiting[0] ? () => onOpenJob(waiting[0]) : null}/>
+          <MetricRow label="Unallocated jobs" value={unallocated.length} tone="red" onClick={unallocated[0] ? () => onOpenJob(unallocated[0]) : null}/>
+          <MetricRow label="MOTs due within 30 days" value={motDueSoon.length} tone="blue" onClick={motDueSoon[0] ? () => onOpenJob(motDueSoon[0]) : null}/>
+        </section>
 
-      <article className="dash-card tasks-card">
-        <div className="dash-card-title"><CheckCircle2 size={19}/><h2>My Tasks</h2><span>{tasks.length}</span></div>
-        <div className="dash-task-list">{tasks.slice(0,6).map(task => <label key={task.id}><input type="checkbox" onChange={() => onCompleteTask(task.id)}/><span>{task.text || task.title || task.description || "Untitled task"}</span><small>{task.due_date ? formatDate(task.due_date) : ""}</small></label>)}{!tasks.length && <p className="dash-empty-note">No outstanding tasks.</p>}</div>
-      </article>
-    </section>
+        <section className="dashboard-card">
+          <header><Car size={19}/><h2>Fleet reminders</h2></header>
+          <MetricRow label="MOT due soon" value={motDueSoon.length} tone="amber" onClick={motDueSoon[0] ? () => onOpenJob(motDueSoon[0]) : null}/>
+          <MetricRow label="MOT overdue" value={motOverdue.length} tone="red" onClick={motOverdue[0] ? () => onOpenJob(motOverdue[0]) : null}/>
+          <MetricRow label="Road tax due within 30 days" value={taxDueSoon.length} tone="blue" onClick={taxDueSoon[0] ? () => onOpenJob(taxDueSoon[0]) : null}/>
+          <div className="dashboard-empty-note">Fleet spreadsheet imports can feed this panel when that module is added.</div>
+        </section>
 
-    <section className="dashboard-grid">
-      <article className="dash-card snapshot-card">
-        <div className="dash-card-title"><Gauge size={19}/><h2>Workshop Snapshot</h2></div>
-        <div className="snapshot-layout"><div className="snapshot-numbers"><div><span>Booked</span><b>{activeJobs.length}</b></div><div><span>Completed</span><b>{completed.length}</b></div><div><span>In progress</span><b>{inProgress.length}</b></div></div>
-        <div className="utilisation-list">{mechanicRows.map(m => <div key={m.name}><span>{m.name}</span><div className="mini-progress"><i style={{width:`${m.pct}%`}}/></div><b>{m.hours.toFixed(1)}h</b></div>)}</div></div>
-        <div className="ramp-status-list">{rampRows.map(r => <div key={r.key}><span>{r.label}</span><b className={r.pct >= 85 ? "busy" : r.pct ? "used" : "free"}>{r.pct >= 85 ? "Busy" : r.pct ? `${r.hours.toFixed(1)}h` : "Free"}</b></div>)}</div>
-        <button className="dash-link" onClick={onOpenPlanner}>View planner</button>
-      </article>
+        <section className="dashboard-card dashboard-tasks-card">
+          <header><CheckCircle2 size={19}/><h2>My tasks</h2><span className="card-total">{tasks.length}</span></header>
+          <div className="dashboard-task-list">
+            {tasks.slice(0,6).map(t => <label key={t.id}><input type="checkbox" onChange={() => onCompleteTask(t.id)}/><span>{t.task_text}</span></label>)}
+            {!tasks.length && <div className="dashboard-empty">No outstanding tasks.</div>}
+          </div>
+          <button className="text-link" onClick={onOpenPlanner}>Manage tasks in planner</button>
+        </section>
+      </div>
 
-      <article className="dash-card due-card">
-        <div className="dash-card-title"><CalendarDays size={19}/><h2>Due In Today</h2></div>
-        <div className="due-table">{activeJobs.slice().sort((a,b)=>(a.drop_time||"").localeCompare(b.drop_time||"")).slice(0,7).map(j => <button key={j.id} onClick={() => onEditJob(j)}><time>{j.drop_time || "--:--"}</time><strong>{j.registration || "No reg"}</strong><span>{j.work_required || j.job_type || "Job"}</span><em>{j.technician}</em></button>)}{!activeJobs.length && <p className="dash-empty-note">No jobs booked for this day.</p>}</div>
-      </article>
+      <div className="dashboard-grid dashboard-grid-middle">
+        <section className="dashboard-card workshop-snapshot">
+          <header><Users size={19}/><h2>Workshop snapshot</h2></header>
+          <div className="snapshot-numbers">
+            <div><span>Booked today</span><strong>{jobs.length}</strong></div>
+            <div><span>In progress</span><strong>{inProgress.length}</strong></div>
+            <div><span>Completed</span><strong>{completed.length}</strong></div>
+          </div>
+          <div className="capacity-list">
+            {mechanicRows.map(m => <div key={m.name} className="capacity-row"><span>{m.name}</span><div className="capacity-bar"><i style={{width:`${m.percent}%`}}/></div><b>{m.hours.toFixed(1)} hrs</b></div>)}
+          </div>
+          <div className="ramp-status-list">
+            {rampRows.map(r => <div key={r.key}><span>{r.label}</span><b className={`ramp-state ${r.state.toLowerCase()}`}>{r.state}</b></div>)}
+          </div>
+        </section>
 
-      <article className="dash-card attention-card">
-        <div className="dash-card-title"><AlertTriangle size={19}/><h2>Attention Required</h2></div>
-        {attention.map(item => <button className="dash-list-row" key={item.label} onClick={() => item.rows[0] && onEditJob(item.rows[0])}><span>{item.label}</span><b className="count-pill danger">{item.count}</b><ChevronRight size={16}/></button>)}
-        {!attention.length && <div className="all-clear"><ShieldCheck size={32}/><strong>Nothing urgent</strong><span>No immediate issues need your attention.</span></div>}
-      </article>
-    </section>
-  </main>;
+        <section className="dashboard-card money-card">
+          <header><PoundSterling size={19}/><h2>Today’s workload value</h2></header>
+          <div className="money-hero"><span>Booked labour at £40/hr</span><strong>£{labourBooked.toLocaleString("en-GB", {minimumFractionDigits:2, maximumFractionDigits:2})}</strong></div>
+          <div className="money-row"><span>Ready to invoice</span><b>{ready.length}</b></div>
+          <div className="money-row"><span>Estimated hours booked</span><b>{jobs.reduce((s,j)=>s+Number(j.estimated_hours||1),0).toFixed(1)}</b></div>
+          <p className="dashboard-footnote">This is booked labour only. Parts and final invoice totals are not stored centrally yet.</p>
+        </section>
+
+        <section className="dashboard-card attention-card">
+          <header><AlertTriangle size={19}/><h2>Attention required</h2></header>
+          {attention.map((a,i) => <div className="attention-row" key={a.label}><span className="attention-icon">!</span><span>{a.label}</span><b>{a.count}</b></div>)}
+          {!attention.length && <div className="dashboard-clear"><CheckCircle2 size={28}/><b>Nothing urgent</b><span>The workshop is under control.</span></div>}
+        </section>
+      </div>
+
+      <section className="dashboard-card due-today-card">
+        <header><ClipboardList size={19}/><h2>Due in today</h2><button className="text-link" onClick={onOpenPlanner}>View full planner</button></header>
+        <div className="due-table">
+          <div className="due-table-head"><span>Time</span><span>Registration</span><span>Vehicle</span><span>Work required</span><span>Technician</span><span>Ramp</span></div>
+          {sortedJobs.map(j => <button className="due-table-row" key={j.id} onClick={() => onOpenJob(j)}><span>{String(j.drop_time || "--:--").slice(0,5)}</span><strong>{j.registration || "NO REG"}</strong><span>{j.vehicle || "—"}</span><span>{j.work_required || "—"}</span><span>{j.technician || "Unallocated"}</span><span>{j.ramp ? rampLabel(j.ramp, settings) : "—"}</span></button>)}
+          {!sortedJobs.length && <div className="dashboard-empty">No jobs booked for {friendlyDate(date)}.</div>}
+        </div>
+      </section>
+    </main>
+  );
 }
+
 
 function App() {
   const [date, setDate] = useState(todayISO());
@@ -1330,17 +1361,18 @@ function App() {
         </div>
       </header>
 
-      {mode === "dashboard" ? <DashboardPanel
-        jobs={jobs}
-        globalJobs={globalJobs}
-        tasks={tasks}
-        settings={settings}
-        date={date}
-        onOpenPlanner={() => setMode("day")}
-        onEditJob={setDialogJob}
-        onCompleteTask={async id => { await deleteTask(id); refresh(); }}
-        onAddJob={() => setDialogJob(null)}
-      /> : <>
+      {mode === "dashboard" ? (
+        <Dashboard
+          jobs={jobs}
+          globalJobs={globalJobs}
+          tasks={tasks}
+          settings={settings}
+          date={date}
+          onOpenJob={setDialogJob}
+          onOpenPlanner={() => setMode("day")}
+          onCompleteTask={async id => { await deleteTask(id); refresh(); }}
+        />
+      ) : (<>
       <RampUtilisation jobs={jobs} settings={settings} onRamp={setRampModal} />
 
       <div className="planner-layout">
@@ -1393,7 +1425,7 @@ function App() {
           <TasksPanel tasks={tasks} onSave={async t => { await saveTask(t); refresh(); }} onDelete={async id => { await deleteTask(id); refresh(); }} />
         </main>
       </div>
-      </>}
+      </>)}
 
       {availabilityOpen && <AvailabilityPanel
           jobs={jobs}
