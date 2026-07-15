@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { createRoot } from "react-dom/client";
 import { createClient } from "@supabase/supabase-js";
-import { CalendarDays, Car, ChevronLeft, ChevronRight, FileText, History, Mail, Menu, Plus, PoundSterling, Printer, Search, Settings, ShieldCheck, Wand2 } from "lucide-react";
+import { AlertTriangle, CalendarDays, Car, CheckCircle2, ChevronLeft, ChevronRight, CircleAlert, ClipboardList, FileText, Gauge, History, Mail, Menu, Plus, PoundSterling, Printer, Search, Settings, ShieldCheck, Truck, Wand2 } from "lucide-react";
 import "./style.css";
 
 const TECHS = ["Jordan", "Alfie"];
@@ -1134,6 +1134,91 @@ function SettingsPanel({ settings, onSave, onClose }) {
 }
 
 
+function DashboardPanel({ jobs, globalJobs, tasks, settings, date, onOpenPlanner, onEditJob, onCompleteTask, onAddJob }) {
+  const allJobs = [...jobs, ...globalJobs];
+  const activeJobs = jobs.filter(j => !j.archived);
+  const completed = activeJobs.filter(j => j.status === "completed");
+  const ready = activeJobs.filter(j => j.status === "ready_to_invoice");
+  const inProgress = activeJobs.filter(j => j.status === "in_progress");
+  const overdueJobs = globalJobs.filter(j => j.booking_date && j.booking_date < todayISO());
+  const dueToday = activeJobs.filter(j => j.booking_date === date);
+  const upcomingMots = allJobs.filter(j => { const d = daysUntil(j.mot_due); return d !== null && d >= 0 && d <= 14; });
+  const upcomingTax = allJobs.filter(j => { const d = daysUntil(j.tax_due); return d !== null && d >= 0 && d <= 30; });
+  const awaitingApproval = allJobs.filter(j => /approval|authoris/i.test(`${j.customer_note || ""} ${j.work_required || ""}`));
+  const waitingParts = globalJobs.filter(j => j.card_type === "waiting" || j.technician === "Waiting");
+  const totalHours = activeJobs.reduce((sum, j) => sum + Number(j.estimated_hours || 1), 0);
+  const mechanicRows = settings.mechanics.map(m => {
+    const hours = activeJobs.filter(j => j.technician === m.name).reduce((sum, j) => sum + Number(j.estimated_hours || 1), 0);
+    return { ...m, hours, pct: Math.min(100, Math.round((hours / Number(m.capacity || 8)) * 100)) };
+  });
+  const rampRows = settings.ramps.map(r => {
+    const hours = hoursForRamp(activeJobs, r.key);
+    const capacity = Number(r.capacity || 8);
+    return { ...r, hours, pct: Math.min(100, Math.round((hours / capacity) * 100)) };
+  });
+  const attention = [
+    { label: "Jobs ready to invoice", count: ready.length, rows: ready },
+    { label: "Waiting jobs / parts", count: waitingParts.length, rows: waitingParts },
+    { label: "Awaiting customer approval", count: awaitingApproval.length, rows: awaitingApproval },
+    { label: "MOT due within 14 days", count: upcomingMots.length, rows: upcomingMots },
+  ].filter(x => x.count);
+
+  return <main className="dashboard-page">
+    <section className="dashboard-welcome">
+      <div><span className="dashboard-kicker">WORKSHOP CONTROL CENTRE</span><h1>Good morning, Chris</h1><p>{activeJobs.length} jobs booked for {friendlyDate(date)} · {totalHours.toFixed(1)} workshop hours allocated · {tasks.length} tasks outstanding</p></div>
+      <button onClick={onAddJob}><Plus size={17}/> New Job</button>
+    </section>
+
+    <section className="dashboard-grid dashboard-grid-top">
+      <article className="dash-card priorities-card">
+        <div className="dash-card-title"><CircleAlert size={19}/><h2>Today’s Priorities</h2></div>
+        {[
+          ["Overdue jobs", overdueJobs.length, "danger"],
+          ["Vehicles due in today", dueToday.length, "blue"],
+          ["Jobs ready to invoice", ready.length, "green"],
+          ["Waiting for approval", awaitingApproval.length, "amber"],
+          ["Waiting jobs / parts", waitingParts.length, "purple"]
+        ].map(([label,count,tone]) => <button className="dash-list-row" key={label} onClick={onOpenPlanner}><span>{label}</span><b className={`count-pill ${tone}`}>{count}</b><ChevronRight size={16}/></button>)}
+        <button className="dash-link" onClick={onOpenPlanner}>Open planner</button>
+      </article>
+
+      <article className="dash-card">
+        <div className="dash-card-title"><Truck size={19}/><h2>Fleet Reminders</h2></div>
+        <div className="dash-list-row static"><span>MOTs due in next 14 days</span><b className="count-pill blue">{upcomingMots.length}</b></div>
+        <div className="dash-list-row static"><span>Road tax due in next 30 days</span><b className="count-pill amber">{upcomingTax.length}</b></div>
+        <div className="dash-list-row static"><span>Vehicles waiting to be allocated</span><b className="count-pill purple">{globalJobs.filter(j => j.technician === "Unallocated").length}</b></div>
+        <p className="dash-empty-note">Fleet service reminders will populate here as your fleet vehicle records are added.</p>
+      </article>
+
+      <article className="dash-card tasks-card">
+        <div className="dash-card-title"><CheckCircle2 size={19}/><h2>My Tasks</h2><span>{tasks.length}</span></div>
+        <div className="dash-task-list">{tasks.slice(0,6).map(task => <label key={task.id}><input type="checkbox" onChange={() => onCompleteTask(task.id)}/><span>{task.text || task.title || task.description || "Untitled task"}</span><small>{task.due_date ? formatDate(task.due_date) : ""}</small></label>)}{!tasks.length && <p className="dash-empty-note">No outstanding tasks.</p>}</div>
+      </article>
+    </section>
+
+    <section className="dashboard-grid">
+      <article className="dash-card snapshot-card">
+        <div className="dash-card-title"><Gauge size={19}/><h2>Workshop Snapshot</h2></div>
+        <div className="snapshot-layout"><div className="snapshot-numbers"><div><span>Booked</span><b>{activeJobs.length}</b></div><div><span>Completed</span><b>{completed.length}</b></div><div><span>In progress</span><b>{inProgress.length}</b></div></div>
+        <div className="utilisation-list">{mechanicRows.map(m => <div key={m.name}><span>{m.name}</span><div className="mini-progress"><i style={{width:`${m.pct}%`}}/></div><b>{m.hours.toFixed(1)}h</b></div>)}</div></div>
+        <div className="ramp-status-list">{rampRows.map(r => <div key={r.key}><span>{r.label}</span><b className={r.pct >= 85 ? "busy" : r.pct ? "used" : "free"}>{r.pct >= 85 ? "Busy" : r.pct ? `${r.hours.toFixed(1)}h` : "Free"}</b></div>)}</div>
+        <button className="dash-link" onClick={onOpenPlanner}>View planner</button>
+      </article>
+
+      <article className="dash-card due-card">
+        <div className="dash-card-title"><CalendarDays size={19}/><h2>Due In Today</h2></div>
+        <div className="due-table">{activeJobs.slice().sort((a,b)=>(a.drop_time||"").localeCompare(b.drop_time||"")).slice(0,7).map(j => <button key={j.id} onClick={() => onEditJob(j)}><time>{j.drop_time || "--:--"}</time><strong>{j.registration || "No reg"}</strong><span>{j.work_required || j.job_type || "Job"}</span><em>{j.technician}</em></button>)}{!activeJobs.length && <p className="dash-empty-note">No jobs booked for this day.</p>}</div>
+      </article>
+
+      <article className="dash-card attention-card">
+        <div className="dash-card-title"><AlertTriangle size={19}/><h2>Attention Required</h2></div>
+        {attention.map(item => <button className="dash-list-row" key={item.label} onClick={() => item.rows[0] && onEditJob(item.rows[0])}><span>{item.label}</span><b className="count-pill danger">{item.count}</b><ChevronRight size={16}/></button>)}
+        {!attention.length && <div className="all-clear"><ShieldCheck size={32}/><strong>Nothing urgent</strong><span>No immediate issues need your attention.</span></div>}
+      </article>
+    </section>
+  </main>;
+}
+
 function App() {
   const [date, setDate] = useState(todayISO());
   const [mode, setMode] = useState("day");
@@ -1245,6 +1330,17 @@ function App() {
         </div>
       </header>
 
+      {mode === "dashboard" ? <DashboardPanel
+        jobs={jobs}
+        globalJobs={globalJobs}
+        tasks={tasks}
+        settings={settings}
+        date={date}
+        onOpenPlanner={() => setMode("day")}
+        onEditJob={setDialogJob}
+        onCompleteTask={async id => { await deleteTask(id); refresh(); }}
+        onAddJob={() => setDialogJob(null)}
+      /> : <>
       <RampUtilisation jobs={jobs} settings={settings} onRamp={setRampModal} />
 
       <div className="planner-layout">
@@ -1297,6 +1393,7 @@ function App() {
           <TasksPanel tasks={tasks} onSave={async t => { await saveTask(t); refresh(); }} onDelete={async id => { await deleteTask(id); refresh(); }} />
         </main>
       </div>
+      </>}
 
       {availabilityOpen && <AvailabilityPanel
           jobs={jobs}
