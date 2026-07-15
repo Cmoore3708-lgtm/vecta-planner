@@ -3,6 +3,7 @@ import { createRoot } from "react-dom/client";
 import { createClient } from "@supabase/supabase-js";
 import { AlertTriangle, CalendarDays, Car, CheckCircle2, ChevronLeft, ChevronRight, ClipboardList, FileText, History, LayoutDashboard, Mail, Menu, Plus, PoundSterling, Printer, Search, Settings, ShieldCheck, Users, Wand2 } from "lucide-react";
 import "./style.css";
+import vectaLogo from "../assets/vecta-logo.png";
 
 const TECHS = ["Jordan", "Alfie"];
 const RAMPS = ["Left", "Middle", "Right"];
@@ -1341,7 +1342,7 @@ function App() {
       <header className="topbar">
         <div className="brand-row">
           <Menu size={20} />
-          <div className="brand"><span>VECTA</span><b>PLANNER</b></div>
+          <div className="brand brand-logo"><img src={vectaLogo} alt="Vecta Vehicle Servicing and Repairs" /><div><span>Planner</span><b>Workshop Management</b></div></div>
         </div>
 
         <div className="date-nav">
