@@ -32,3 +32,27 @@ Testing completed
 - Browser-tested allocated task removal from planner sidebar.
 - Browser-tested Dashboard My Tasks with allocated and unallocated tasks.
 - Browser-tested dashboard workload calculation and Due In Today task display.
+
+5. Invoice layout and job mapping
+- Moved customer name and phone into the top-right invoice area beneath the invoice date.
+- Removed the Type field and Type column from the invoice editor and printed invoice.
+- Replaced the separate description/type layout with one large Work field.
+- New invoices now populate Work from the job type, for example Service, MOT or Diagnostics, rather than copying the longer Work Required description.
+- Customer phone is retained when an invoice is saved and reopened.
+
+6. Editable mechanics
+- Added a Mechanics section to Settings.
+- Existing mechanic names can be renamed.
+- Additional mechanics can be added as required.
+- Mechanics can be removed; their existing jobs are safely returned to Unallocated.
+- Renaming a mechanic automatically updates existing assigned jobs and allocated tasks.
+- The planner now creates a correctly sized column for every mechanic, including a third or subsequent mechanic.
+
+Additional testing completed
+- Production Vite build passed.
+- Inline JavaScript syntax validation passed.
+- Browser-tested invoice customer placement and Work-only layout.
+- Browser-tested job type auto-population, invoice saving/reopening and print output.
+- Browser-tested mechanic rename/add controls and dynamic planner columns.
+- Browser-tested migration of an existing assigned job after a mechanic rename.
+- No browser page errors detected.
