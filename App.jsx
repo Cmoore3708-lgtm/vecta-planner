@@ -91,6 +91,11 @@ const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 const supabase = supabaseUrl && supabaseKey ? createClient(supabaseUrl, supabaseKey) : null;
 
+function requireSupabase() {
+  if (!supabase) throw new Error("Cloud database is not configured. This device cannot safely load or save workshop data.");
+  return supabase;
+}
+
 function uuid() {
   return crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).slice(2, 10);
 }
@@ -204,7 +209,7 @@ async function listDate(date) {
     if (error) throw error;
     return data || [];
   }
-  return readLS(localKey(date)).filter(j => !j.archived && j.technician !== "Unallocated" && j.technician !== "Waiting");
+  throw new Error("Supabase is not configured; jobs cannot be loaded safely.");
 }
 
 async function listGlobal() {
@@ -218,7 +223,7 @@ async function listGlobal() {
     if (error) throw error;
     return data || [];
   }
-  return readLS(globalKey);
+  throw new Error("Supabase is not configured; unallocated jobs cannot be loaded safely.");
 }
 
 async function listTasks() {
@@ -227,7 +232,7 @@ async function listTasks() {
     if (error) throw error;
     return data || [];
   }
-  return readLS(tasksKey).filter(t => !t.done);
+  throw new Error("Supabase is not configured; tasks cannot be loaded safely.");
 }
 
 async function listNotes() {
@@ -239,7 +244,7 @@ async function listNotes() {
       return [];
     }
   }
-  return readLS(notesKey);
+  throw new Error("Supabase is not configured; notes cannot be loaded safely.");
 }
 
 
@@ -332,15 +337,9 @@ async function saveJob(job, date) {
     return;
   }
 
-  for (const key of Object.keys(localStorage)) {
-    if (key.startsWith("vecta:v113:") && key !== globalKey && key !== tasksKey && key !== notesKey) {
-      writeLS(key, readLS(key).filter(j => j.id !== payload.id));
-    }
-  }
-
-  writeLS(globalKey, readLS(globalKey).filter(j => j.id !== payload.id));
-  if (payload.booking_date) writeLS(localKey(payload.booking_date), [...readLS(localKey(payload.booking_date)), payload]);
-  else writeLS(globalKey, [...readLS(globalKey), payload]);
+  const error = new Error("Job not saved: the cloud database is offline or not configured.");
+  alert(error.message);
+  throw error;
 }
 
 async function deleteJob(id) {
@@ -350,9 +349,9 @@ async function deleteJob(id) {
     return;
   }
 
-  for (const key of Object.keys(localStorage)) {
-    if (key.startsWith("vecta:v113:")) writeLS(key, readLS(key).filter(x => x.id !== id));
-  }
+  const error = new Error("Job not deleted: the cloud database is offline or not configured.");
+  alert(error.message);
+  throw error;
 }
 
 async function saveTask(task) {
@@ -365,7 +364,9 @@ async function saveTask(task) {
     }
     return;
   }
-  writeLS(tasksKey, [...readLS(tasksKey).filter(t => t.id !== payload.id), payload]);
+  const error = new Error("Task not saved: the cloud database is offline or not configured.");
+  alert(error.message);
+  throw error;
 }
 
 async function deleteTask(id) {
@@ -374,7 +375,9 @@ async function deleteTask(id) {
     if (error) throw error;
     return;
   }
-  writeLS(tasksKey, readLS(tasksKey).filter(t => t.id !== id));
+  const error = new Error("Task not updated: the cloud database is offline or not configured.");
+  alert(error.message);
+  throw error;
 }
 
 async function saveNote(note) {
@@ -387,7 +390,9 @@ async function saveNote(note) {
     }
     return;
   }
-  writeLS(notesKey, [...readLS(notesKey).filter(n => n.id !== payload.id), payload]);
+  const error = new Error("Note not saved: the cloud database is offline or not configured.");
+  alert(error.message);
+  throw error;
 }
 
 async function deleteNote(id) {
@@ -396,7 +401,9 @@ async function deleteNote(id) {
     if (error) throw error;
     return;
   }
-  writeLS(notesKey, readLS(notesKey).filter(n => n.id !== id));
+  const error = new Error("Note not deleted: the cloud database is offline or not configured.");
+  alert(error.message);
+  throw error;
 }
 
 function hoursForRamp(jobs, ramp) {
@@ -1265,6 +1272,8 @@ function App() {
   const [availabilityOpen, setAvailabilityOpen] = useState(false);
   const [historyJob, setHistoryJob] = useState(null);
   const [invoiceJob, setInvoiceJob] = useState(null);
+  const [connectionStatus, setConnectionStatus] = useState(supabase ? "connecting" : "offline");
+  const [lastCloudSync, setLastCloudSync] = useState(null);
 
   const mechanicNames = settings.mechanics.map(m => m.name);
   const jobTypes = settings.jobTypes;
@@ -1280,23 +1289,72 @@ function App() {
   }
 
   async function refresh() {
-    setJobs(await listDate(date));
-    setGlobalJobs(await listGlobal());
-    setTasks(await listTasks());
-    setNotes(await listNotes());
+    if (!supabase || !navigator.onLine) {
+      setConnectionStatus("offline");
+      return false;
+    }
+    try {
+      const [dateJobs, allGlobalJobs, openTasks, allNotes] = await Promise.all([
+        listDate(date), listGlobal(), listTasks(), listNotes()
+      ]);
+      setJobs(dateJobs);
+      setGlobalJobs(allGlobalJobs);
+      setTasks(openTasks);
+      setNotes(allNotes);
+      setConnectionStatus("connected");
+      setLastCloudSync(new Date());
+      return true;
+    } catch (error) {
+      console.error("Cloud refresh failed", error);
+      setConnectionStatus("offline");
+      return false;
+    }
   }
 
   useEffect(() => { seedLocal().then(refresh); }, []);
   useEffect(() => { refresh(); }, [date]);
 
   useEffect(() => {
-    if (!supabase) return;
+    const handleOnline = () => { setConnectionStatus("connecting"); refresh(); };
+    const handleOffline = () => setConnectionStatus("offline");
+    window.addEventListener("online", handleOnline);
+    window.addEventListener("offline", handleOffline);
+    return () => {
+      window.removeEventListener("online", handleOnline);
+      window.removeEventListener("offline", handleOffline);
+    };
+  }, [date]);
+
+  useEffect(() => {
+    if (!supabase) {
+      setConnectionStatus("offline");
+      return;
+    }
+    setConnectionStatus("connecting");
     const channel = supabase.channel("vecta-live")
-      .on("postgres_changes", { event: "*", schema: "public", table: "jobs" }, refresh)
-      .on("postgres_changes", { event: "*", schema: "public", table: "tasks" }, refresh)
-      .on("postgres_changes", { event: "*", schema: "public", table: "notes" }, refresh)
-      .subscribe();
-    return () => supabase.removeChannel(channel);
+      .on("postgres_changes", { event: "*", schema: "public", table: "jobs" }, () => refresh())
+      .on("postgres_changes", { event: "*", schema: "public", table: "tasks" }, () => refresh())
+      .on("postgres_changes", { event: "*", schema: "public", table: "notes" }, () => refresh())
+      .subscribe(status => {
+        if (status === "SUBSCRIBED") setConnectionStatus("connected");
+        else if (status === "CHANNEL_ERROR" || status === "TIMED_OUT" || status === "CLOSED") setConnectionStatus("connecting");
+      });
+
+    // Reliable fallback: refresh every 5 seconds even if Realtime is not enabled on a table.
+    const poll = window.setInterval(() => {
+      if (document.visibilityState === "visible" && navigator.onLine) refresh();
+    }, 5000);
+
+    const onVisible = () => {
+      if (document.visibilityState === "visible") refresh();
+    };
+    document.addEventListener("visibilitychange", onVisible);
+
+    return () => {
+      window.clearInterval(poll);
+      document.removeEventListener("visibilitychange", onVisible);
+      supabase.removeChannel(channel);
+    };
   }, [date]);
 
   useEffect(() => {
@@ -1351,6 +1409,10 @@ function App() {
         </div>
 
         <div className="top-actions">
+          <div className={`cloud-status ${connectionStatus}`} title={lastCloudSync ? `Last cloud sync: ${lastCloudSync.toLocaleTimeString("en-GB")}` : "Waiting for cloud connection"}>
+            <span className="cloud-status-dot" />
+            {connectionStatus === "connected" ? "Connected" : connectionStatus === "connecting" ? "Reconnecting…" : "Offline"}
+          </div>
           <button onClick={() => setDate(todayISO())}>Today</button>
           <button onClick={() => window.print()}><Printer size={16} /> Print</button>
           <select value={mode} onChange={e => setMode(e.target.value)}>

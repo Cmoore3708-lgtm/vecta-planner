@@ -650,3 +650,15 @@ button{cursor:pointer;border:0;border-radius:10px;background:#111827;color:white
 @media(max-width:1200px){.dashboard-grid-top,.dashboard-grid-middle{grid-template-columns:1fr 1fr}.dashboard-tasks-card,.attention-card{grid-column:span 2}}
 @media(max-width:760px){.dashboard-page{padding:12px}.dashboard-welcome{align-items:flex-start;flex-direction:column;padding:20px}.dashboard-welcome h1{font-size:25px}.dashboard-grid-top,.dashboard-grid-middle{grid-template-columns:1fr}.dashboard-tasks-card,.attention-card{grid-column:auto}.snapshot-numbers,.ramp-status-list{grid-template-columns:1fr}.topbar{height:auto;flex-wrap:wrap;padding:12px}.top-actions{overflow-x:auto;width:100%}}
 @media print{.dashboard-page{padding:0}.dashboard-welcome{background:white!important;color:#111827;border:1px solid #ddd;box-shadow:none}.dashboard-welcome p{color:#444}.dashboard-primary,.text-link{display:none!important}.dashboard-card{box-shadow:none;break-inside:avoid}.dashboard-grid{gap:10px}}
+
+/* Cloud connection indicator */
+.cloud-status{height:40px;display:inline-flex;align-items:center;gap:8px;border:1px solid #d1d5db;border-radius:999px;padding:0 12px;font-size:12px;font-weight:900;white-space:nowrap;background:#fff;color:#374151}
+.cloud-status-dot{width:9px;height:9px;border-radius:50%;background:#9ca3af;box-shadow:0 0 0 3px #f3f4f6}
+.cloud-status.connected{color:#166534;border-color:#bbf7d0;background:#f0fdf4}
+.cloud-status.connected .cloud-status-dot{background:#22c55e;box-shadow:0 0 0 3px #dcfce7}
+.cloud-status.connecting{color:#92400e;border-color:#fde68a;background:#fffbeb}
+.cloud-status.connecting .cloud-status-dot{background:#f59e0b;box-shadow:0 0 0 3px #fef3c7;animation:cloudPulse 1.2s infinite}
+.cloud-status.offline{color:#991b1b;border-color:#fecaca;background:#fef2f2}
+.cloud-status.offline .cloud-status-dot{background:#ef4444;box-shadow:0 0 0 3px #fee2e2}
+@keyframes cloudPulse{50%{opacity:.35}}
+@media(max-width:700px){.cloud-status{order:-1}}

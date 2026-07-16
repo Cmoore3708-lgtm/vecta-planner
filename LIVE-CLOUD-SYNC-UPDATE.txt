@@ -1,0 +1,15 @@
+VECTA PLANNER - LIVE CLOUD SYNC UPDATE
+16 July 2026
+
+Changes made:
+- Added Supabase Realtime listeners for jobs, tasks and notes.
+- Added a reliable 5-second cloud refresh fallback when Realtime is not enabled.
+- Refreshes automatically when returning to the browser tab or reconnecting to the internet.
+- Added Connected / Reconnecting / Offline status indicator in the top bar.
+- Removed silent local-browser fallback for jobs, tasks and notes.
+- Database failures now prevent false local-only saves.
+- Planner layout and existing features were left unchanged.
+
+Testing completed:
+- npm install completed successfully.
+- Production build completed successfully with Vite.
