@@ -870,7 +870,31 @@ async function deleteRemote(table,id){if(!remoteClient)return; try{await remoteC
 async function saveAll(){saveLocal(); if(remoteClient){try{await remoteClient.from('workshop_settings').upsert({id:'main',value:app.settings,updated_at:new Date().toISOString()});}catch(e){}}}
 function navItems(){return [['planner','Planner'],['dashboard','Dashboard'],['jobs','Jobs'],['customers','Customers'],['vehicles','Vehicles'],['invoices','Invoices'],['settings','Settings']];}
 function renderNav(){var n=document.getElementById('nav'); n.innerHTML=navItems().map(function(it){return '<button data-view="'+it[0]+'" class="'+(view===it[0]?'active':'')+'">'+it[1]+'</button>'}).join(''); n.querySelectorAll('button').forEach(function(b){b.onclick=function(){view=b.dataset.view;render();}})}
-function init(){safe(async function(){loadLocal();bindTop();render();var configured=await loadCloudConfig();if(!configured)return;ensureSupabase(async function(ok){if(!ok){showFatal('Supabase library could not be loaded.');return;}if(connectSupabase()){try{await pullRemote();render();}catch(e){console.error('Supabase startup failed',e);showFatal('Supabase startup failed: '+(e.message||e));}}});},null)}
+var cloudSyncChannel=null,cloudSyncTimer=null,cloudRefreshBusy=false;
+async function refreshCloudAndRender(){
+  if(!remoteClient||cloudRefreshBusy||!navigator.onLine)return;
+  cloudRefreshBusy=true;
+  try{await pullRemote();render();}
+  catch(e){console.warn('Live cloud refresh failed',e)}
+  finally{cloudRefreshBusy=false}
+}
+function startCloudSync(){
+  if(!remoteClient)return;
+  if(cloudSyncChannel){try{remoteClient.removeChannel(cloudSyncChannel)}catch(e){}}
+  cloudSyncChannel=remoteClient.channel('vecta-workshop-live-'+uid())
+    .on('postgres_changes',{event:'*',schema:'public',table:'jobs'},refreshCloudAndRender)
+    .on('postgres_changes',{event:'*',schema:'public',table:'tasks'},refreshCloudAndRender)
+    .on('postgres_changes',{event:'*',schema:'public',table:'customers'},refreshCloudAndRender)
+    .on('postgres_changes',{event:'*',schema:'public',table:'vehicles'},refreshCloudAndRender)
+    .on('postgres_changes',{event:'*',schema:'public',table:'invoices'},refreshCloudAndRender)
+    .on('postgres_changes',{event:'*',schema:'public',table:'service_records'},refreshCloudAndRender)
+    .subscribe(function(status){console.log('Supabase live sync:',status)});
+  if(cloudSyncTimer)clearInterval(cloudSyncTimer);
+  cloudSyncTimer=setInterval(function(){if(document.visibilityState==='visible')refreshCloudAndRender()},3000);
+  document.addEventListener('visibilitychange',function(){if(document.visibilityState==='visible')refreshCloudAndRender()});
+  window.addEventListener('online',refreshCloudAndRender);
+}
+function init(){safe(async function(){loadLocal();bindTop();render();var configured=await loadCloudConfig();if(!configured)return;ensureSupabase(async function(ok){if(!ok){showFatal('Supabase library could not be loaded.');return;}if(connectSupabase()){try{await pullRemote();render();startCloudSync();}catch(e){console.error('Supabase startup failed',e);showFatal('Supabase startup failed: '+(e.message||e));}}});},null)}
 function bindTop(){document.getElementById('currentDate').value=selectedIso();document.getElementById('currentDate').onchange=function(){selectedDate=new Date(this.value+'T12:00:00');render()};document.getElementById('prevDay').onclick=function(){selectedDate.setDate(selectedDate.getDate()-1);render()};document.getElementById('nextDay').onclick=function(){selectedDate.setDate(selectedDate.getDate()+1);render()};document.getElementById('todayBtn').onclick=function(){selectedDate=new Date();selectedDate.setHours(0,0,0,0);render()};document.getElementById('newJobTop').onclick=function(){openJobModal()};document.getElementById('printBtn').onclick=function(){printDay()};}
 function render(){safe(function(){document.getElementById('currentDate').value=selectedIso();renderNav();var navMatch=navItems().find(function(x){return x[0]===view}); if(!navMatch){view='planner';navMatch=navItems()[0];} document.getElementById('viewTitle').textContent=navMatch[1];var c=document.getElementById('content'); if(view==='dashboard') c.innerHTML=dashboardHtml(); if(view==='planner') c.innerHTML=plannerHtml(); if(view==='jobs') c.innerHTML=jobsHtml(); if(view==='service') c.innerHTML=serviceHtml(); if(view==='customers') c.innerHTML=customersHtml(); if(view==='vehicles') c.innerHTML=vehiclesHtml(); if(view==='invoices') c.innerHTML=invoicesHtml(); if(view==='settings') c.innerHTML=settingsHtml(); bindView();},null)}
 function jobsForDate(){var d=selectedIso();return app.jobs.filter(function(j){return !j.archived && (j.booking_date||todayIso())===d})}
