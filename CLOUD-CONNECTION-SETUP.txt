@@ -1,0 +1,16 @@
+VECTA PLANNER - ONE-TIME VERCEL SETUP
+
+In Vercel, open the vecta-planner project:
+Settings > Environment Variables
+
+Add these two variables for Production, Preview and Development:
+
+VITE_SUPABASE_URL
+Value: your Supabase Project URL
+
+VITE_SUPABASE_ANON_KEY
+Value: your Supabase Publishable key beginning sb_publishable_
+
+Do NOT use the Supabase secret key.
+
+After adding them, redeploy the latest deployment. Every computer will then connect automatically.
