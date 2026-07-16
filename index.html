@@ -860,11 +860,16 @@ async function pullRemote(){
   saveLocal();
 }
 function fromRemote(row){var r=Object.assign({},row); if(r.booking_date) r.booking_date=String(r.booking_date).slice(0,10); return r;}
-async function upsertRemote(table,row){
-  if(!remoteClient){throw new Error('Supabase is not connected. Open Settings and connect using the publishable key.');}
+async function upsertRemote(table,row,options){
+  options=options||{};
+  if(!remoteClient){throw new Error('Supabase is not connected. Please check the internet connection and try again.');}
   var data=Object.assign({},row);
   var res=await remoteClient.from(table).upsert(data,{onConflict:'id'}).select('id');
-  if(res.error){console.error('Remote save failed',table,res.error,data);alert('Supabase did not save this '+table.slice(0,-1)+': '+res.error.message);throw res.error;}
+  if(res.error){
+    console.error('Remote save failed',table,res.error,data);
+    if(!options.silent) alert('Supabase did not save this '+table.slice(0,-1)+': '+res.error.message);
+    throw res.error;
+  }
   return res.data;
 }
 async function deleteRemote(table,id){if(!remoteClient)return; try{await remoteClient.from(table).delete().eq('id',id)}catch(e){console.warn(e)}}
@@ -1026,8 +1031,73 @@ function inp(label,key,val,type,cls){if(cls==='plateField'){return '<div class="
 function select(label,key,val,opts){return '<div class="field"><label>'+label+'</label><select id="job_'+key+'">'+opts.map(function(o){return '<option value="'+esc(o)+'" '+(String(o)===String(val)?'selected':'')+'>'+esc(o||'None')+'</option>'}).join('')+'</select></div>'}
 function applyTemplate(name){var t=(app.settings.jobTemplates||templates)[name]||{};Object.keys(t).forEach(function(k){var el=document.getElementById('job_'+k);if(el)el.value=t[k]});}
 function gatherJob(id){var fields=['registration','customer_name','customer_phone','customer_email','vehicle','booking_date','drop_time','technician','ramp','estimated_hours','amount_quoted','vat_mode','status','job_type','work_required','technician_notes','customer_note'];var j=app.jobs.find(function(x){return x.id===id})||{id:id,created_at:new Date().toISOString()};fields.forEach(function(k){var el=document.getElementById('job_'+k);if(el)j[k]=k==='registration'?normReg(el.value):el.value});j.job_colour=j.job_type;j.estimated_hours=Number(j.estimated_hours||1);j.amount_quoted=j.amount_quoted===''?null:Number(j.amount_quoted||0);j.updated_at=new Date().toISOString();return j}
-async function saveJob(id){var j=gatherJob(id);j.archived=j.status==='completed';syncTaskFromMiniJob(j);var ix=app.jobs.findIndex(function(x){return x.id===id});if(ix>=0)app.jobs[ix]=j;else app.jobs.push(j);saveLinkedCustomerVehicle(j);await saveAll();try{await upsertRemote('jobs',j);}catch(e){return;}closeModals();render();}
-function saveLinkedCustomerVehicle(j){var c=null;if(j.customer_name||j.customer_phone){c=app.customers.find(function(x){return (j.customer_phone&&x.phone===j.customer_phone)||(j.customer_name&&String(x.name).toLowerCase()===String(j.customer_name).toLowerCase())});if(!c){c={id:uid(),name:j.customer_name||'',surname:(j.customer_name||'').split(' ').slice(-1)[0]||'',phone:j.customer_phone||'',email:j.customer_email||'',created_at:new Date().toISOString()};app.customers.push(c)}else{c.name=j.customer_name||c.name;c.phone=j.customer_phone||c.phone;c.email=j.customer_email||c.email}upsertRemote('customers',c)}if(j.registration){var v=app.vehicles.find(function(x){return x.registration===j.registration});if(!v){v={id:uid(),registration:j.registration,vehicle:j.vehicle||'',customer_id:c?c.id:null,created_at:new Date().toISOString()};app.vehicles.push(v)}else{v.vehicle=j.vehicle||v.vehicle;if(c)v.customer_id=c.id}upsertRemote('vehicles',v)}}
+async function saveJob(id){
+  var button=document.getElementById('saveJob');
+  if(button){button.disabled=true;button.textContent='Saving...';}
+  var j=gatherJob(id);
+  j.archived=j.status==='completed';
+  var linked=null;
+  try{
+    linked=await saveLinkedCustomerVehicle(j);
+    await upsertRemote('jobs',j,{silent:true});
+
+    if(linked&&linked.customer){
+      var ci=app.customers.findIndex(function(x){return x.id===linked.customer.id});
+      if(ci>=0)app.customers[ci]=linked.customer;else app.customers.push(linked.customer);
+    }
+    if(linked&&linked.vehicle){
+      var vi=app.vehicles.findIndex(function(x){return x.id===linked.vehicle.id});
+      if(vi>=0)app.vehicles[vi]=linked.vehicle;else app.vehicles.push(linked.vehicle);
+    }
+    syncTaskFromMiniJob(j);
+    var ix=app.jobs.findIndex(function(x){return x.id===id});
+    if(ix>=0)app.jobs[ix]=j;else app.jobs.push(j);
+    await saveAll();
+    closeModals();
+    render();
+  }catch(e){
+    console.error('Complete job save failed',e);
+    if(linked){
+      if(linked.newVehicle&&linked.vehicle)try{await deleteRemote('vehicles',linked.vehicle.id)}catch(cleanVehicleError){}
+      if(linked.newCustomer&&linked.customer)try{await deleteRemote('customers',linked.customer.id)}catch(cleanCustomerError){}
+    }
+    alert('The job was not saved. No planner job has been created. Please check the customer and vehicle details, then try again.\n\n'+(e&&e.message?e.message:'Database save failed.'));
+    if(button){button.disabled=false;button.textContent='Save Job';}
+  }
+}
+async function saveLinkedCustomerVehicle(j){
+  var result={customer:null,vehicle:null,newCustomer:false,newVehicle:false};
+  var c=null;
+  if(j.customer_name||j.customer_phone||j.customer_email){
+    var wantedName=String(j.customer_name||'').trim().toLowerCase();
+    var wantedPhone=String(j.customer_phone||'').trim();
+    c=app.customers.find(function(x){
+      return (wantedPhone&&String(x.phone||'').trim()===wantedPhone)||(wantedName&&String(x.name||'').trim().toLowerCase()===wantedName);
+    });
+    if(c){
+      c=Object.assign({},c,{name:j.customer_name||c.name||'',surname:(j.customer_name||c.name||'').split(' ').slice(-1)[0]||c.surname||'',phone:j.customer_phone||c.phone||'',email:j.customer_email||c.email||'',updated_at:new Date().toISOString()});
+    }else{
+      result.newCustomer=true;
+      c={id:uid(),name:j.customer_name||'',surname:(j.customer_name||'').split(' ').slice(-1)[0]||'',phone:j.customer_phone||'',email:j.customer_email||'',created_at:new Date().toISOString(),updated_at:new Date().toISOString()};
+    }
+    await upsertRemote('customers',c,{silent:true});
+    result.customer=c;
+  }
+  if(j.registration){
+    var reg=normReg(j.registration);
+    var existing=app.vehicles.find(function(x){return normReg(x.registration||'')===reg});
+    var v;
+    if(existing){
+      v=Object.assign({},existing,{registration:reg,vehicle:j.vehicle||existing.vehicle||'',customer_id:c?c.id:(existing.customer_id||null),updated_at:new Date().toISOString()});
+    }else{
+      result.newVehicle=true;
+      v={id:uid(),registration:reg,vehicle:j.vehicle||'',customer_id:c?c.id:null,created_at:new Date().toISOString(),updated_at:new Date().toISOString()};
+    }
+    await upsertRemote('vehicles',v,{silent:true});
+    result.vehicle=v;
+  }
+  return result;
+}
 function closeModals(){document.querySelectorAll('.modal').forEach(function(m){m.classList.remove('open');m.setAttribute('aria-hidden','true');m.innerHTML=''})}
 function editCustomer(id){var c=id?(app.customers.find(function(x){return x.id===id})||{}):{id:uid(),name:'',surname:'',phone:'',email:''};var name=prompt('Customer name',c.name||'');if(name==null)return;c.name=name;c.surname=(name||'').split(' ').slice(-1)[0]||c.surname||'';c.phone=prompt('Phone',c.phone||'')||c.phone||'';c.email=prompt('Email',c.email||'')||c.email||'';if(!id)app.customers.push(c);saveAll();upsertRemote('customers',c);render()}
 function openVehicleFromReg(reg){reg=normReg(reg||'');if(!reg)return;var v=app.vehicles.find(function(x){return normReg(x.registration||'')===reg});if(v){editVehicle(v.id);return}var j=app.jobs.find(function(x){return normReg(x.registration||'')===reg});if(j){openJobModal(j.id);return}alert('No vehicle record found for '+reg)}
