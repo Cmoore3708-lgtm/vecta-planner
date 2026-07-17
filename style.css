@@ -662,14 +662,3 @@ button{cursor:pointer;border:0;border-radius:10px;background:#111827;color:white
 .cloud-status.offline .cloud-status-dot{background:#ef4444;box-shadow:0 0 0 3px #fee2e2}
 @keyframes cloudPulse{50%{opacity:.35}}
 @media(max-width:700px){.cloud-status{order:-1}}
-
-/* Stability release: tasks, preset ordering and resize */
-.task-row[draggable="true"]{cursor:grab;display:flex;align-items:center;gap:8px;padding:8px;border-radius:8px}
-.task-row[draggable="true"]:hover{background:#f3f4f6}
-.task-schedule-card{background:#f3f4f6!important;border-color:#9ca3af!important;border-left-color:#111827!important}
-.task-schedule-card .uk-reg-plate strong{font-size:11px!important}
-.resize-handle{position:absolute;left:50%;bottom:2px;transform:translateX(-50%) rotate(90deg);width:44px;height:18px;padding:0;border:0;background:transparent!important;color:#6b7280!important;cursor:ns-resize;font-size:20px;line-height:12px;touch-action:none;z-index:5}
-.resize-handle:hover{color:#111827!important}
-.task-dialog{max-width:650px}
-.task-dialog textarea{min-height:130px;font-size:16px}
-.task-card-label{display:inline-flex;align-items:center;justify-content:center;height:30px;padding:0 12px;border-radius:6px;background:#111827;color:#fff;font-size:12px;font-weight:950;letter-spacing:.08em}

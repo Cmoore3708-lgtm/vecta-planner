@@ -1,0 +1,17 @@
+VECTA PLANNER LIVE INDEX STABILITY REPAIR
+17 July 2026
+
+This repair was applied directly to the standalone index.html implementation used by the deployed website.
+
+Fixed:
+- Cloud refresh no longer replaces local tasks with an empty task table response.
+- Local jobs/tasks with newer updated_at values are protected from stale cloud refreshes.
+- Planner times are normalised to HH:MM with no seconds.
+- Job and task moves wait for the Supabase save and restore the original position if saving fails.
+- Resize uses pointer capture, 15-minute snapping, a larger handle, and waits for Supabase before refreshing.
+- Planner tasks open a compact Task editor rather than a full Job Card.
+- Preset template order is persisted immediately after drag or arrow movement.
+
+Validation:
+- Inline JavaScript syntax checked with Node.
+- Production Vite build completed successfully.

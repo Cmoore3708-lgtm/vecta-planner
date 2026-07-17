@@ -227,17 +227,12 @@ async function listGlobal() {
 }
 
 async function listTasks() {
-  const cached = readLS(tasksKey);
   if (supabase) {
     const { data, error } = await supabase.from("tasks").select("*").eq("done", false).order("created_at");
     if (error) throw error;
-    const cloud = data || [];
-    // Never let a delayed empty cloud response wipe tasks already visible on this device.
-    const merged = cloud.length ? cloud : cached;
-    writeLS(tasksKey, merged);
-    return merged;
+    return data || [];
   }
-  return cached;
+  throw new Error("Supabase is not configured; tasks cannot be loaded safely.");
 }
 
 async function listNotes() {
@@ -361,8 +356,6 @@ async function deleteJob(id) {
 
 async function saveTask(task) {
   const payload = { ...task, id: task.id || uuid(), done: false };
-  const cached = readLS(tasksKey).filter(t => t.id !== payload.id);
-  writeLS(tasksKey, [...cached, payload]);
   if (supabase) {
     const { error } = await supabase.from("tasks").upsert(payload);
     if (error) {
@@ -377,7 +370,6 @@ async function saveTask(task) {
 }
 
 async function deleteTask(id) {
-  writeLS(tasksKey, readLS(tasksKey).filter(t => t.id !== id));
   if (supabase) {
     const { error } = await supabase.from("tasks").update({ done: true }).eq("id", id);
     if (error) throw error;
@@ -487,76 +479,39 @@ function endTimeFrom(start, hours) {
   return d.toTimeString().slice(0, 5);
 }
 
-function ScheduleCard({ job, settings, onEdit, onDragStart, onHistory, onInvoice, onResize }) {
+function ScheduleCard({ job, settings, onEdit, onDragStart, onHistory, onInvoice }) {
   const statusText = workflowLabel(job.status);
   const start = job.drop_time ? String(job.drop_time).slice(0, 5) : "--:--";
   const hours = Number(job.estimated_hours || 1);
   const end = endTimeFrom(start, hours);
 
-  const isTask = job.card_type === "task";
-  function beginResize(e) {
-    e.preventDefault();
-    e.stopPropagation();
-    const startY = e.clientY;
-    const startHours = hours;
-    e.currentTarget.setPointerCapture?.(e.pointerId);
-    const move = ev => {
-      const next = Math.max(0.25, Math.round((startHours + (ev.clientY - startY) / 64) * 4) / 4);
-      ev.currentTarget.dataset.previewHours = String(next);
-    };
-    const up = ev => {
-      const next = Number(ev.currentTarget.dataset.previewHours || startHours);
-      ev.currentTarget.releasePointerCapture?.(ev.pointerId);
-      ev.currentTarget.removeEventListener("pointermove", move);
-      ev.currentTarget.removeEventListener("pointerup", up);
-      onResize(job, next);
-    };
-    e.currentTarget.addEventListener("pointermove", move);
-    e.currentTarget.addEventListener("pointerup", up);
-  }
-
   return (
-    <div className={`schedule-card ${isTask ? "task-schedule-card" : ""} ${rampClass(job.ramp) || ""} status-${job.status || "booked"}`} style={{minHeight: `${Math.max(112, hours * 64)}px`}} draggable onDragStart={e => onDragStart(e, job)} onDoubleClick={() => onEdit(job)}>
+    <div className={`schedule-card ${rampClass(job.ramp) || ""} status-${job.status || "booked"}`} draggable onDragStart={e => onDragStart(e, job)} onDoubleClick={() => onEdit(job)}>
       <div className="schedule-card-header planner-card-v41k">
-        {isTask ? <span className="task-card-label">TASK</span> : <span className="uk-reg-plate" title="Vehicle registration"><span className="gb-strip">GB</span><strong>{job.registration || "NO REG"}</strong></span>}
+        <span className="uk-reg-plate" title="Vehicle registration"><span className="gb-strip">GB</span><strong>{job.registration || "NO REG"}</strong></span>
         <span className="planner-card-right">
           <span className="job-time">{start} – {end}</span>
           <span className={`workflow-badge workflow-${job.status || "booked"}`}>{statusText}</span>
-          {!isTask && <span className="ramp-badge">{job.ramp ? rampLabel(job.ramp, settings) : "No ramp"}</span>}
+          <span className="ramp-badge">{job.ramp ? rampLabel(job.ramp, settings) : "No ramp"}</span>
         </span>
       </div>
 
       <button className="card-menu" title="Open actions" onClick={(e) => { e.stopPropagation(); onEdit(job); }}>⋮</button>
 
-      <h4 className="planner-vehicle-title">{isTask ? "TASK" : (job.vehicle || "Vehicle")}</h4>
-      {!isTask && job.customer_name && <div className="planner-customer-name">{job.customer_name}</div>}
+      <h4 className="planner-vehicle-title">{job.vehicle || "Vehicle"}</h4>
+      {job.customer_name && <div className="planner-customer-name">{job.customer_name}</div>}
       <p className="job-work">{job.work_required || "Work required"}</p>
 
       <div className="schedule-card-footer">
-        {!isTask && <span className="card-actions">
+        <span className="card-actions">
           <button title="History" onClick={(e)=>{e.stopPropagation(); onHistory(job)}}><History size={14}/></button>
           <button title="Invoice" onClick={(e)=>{e.stopPropagation(); onInvoice(job)}}><FileText size={14}/></button>
-        </span>}
+        </span>
       </div>
-      <button type="button" className="resize-handle" aria-label="Resize duration" onPointerDown={beginResize}>⋮</button>
     </div>
   );
 }
 
-
-function TaskDialog({ task, settings, onClose, onSave, onDelete }) {
-  const [form, setForm] = useState(task);
-  return <div className="backdrop"><div className="dialog task-dialog">
-    <h2>Edit Task</h2>
-    <label>Task<textarea autoFocus value={form.work_required || ""} onChange={e => setForm({...form, work_required:e.target.value})}/></label>
-    <div className="three">
-      <label>Assigned to<select value={form.technician || "Unallocated"} onChange={e => setForm({...form, technician:e.target.value})}>{settings.mechanics.map(m => <option key={m.name}>{m.name}</option>)}</select></label>
-      <label>Start time<input type="time" value={String(form.drop_time || "").slice(0,5)} onChange={e => setForm({...form, drop_time:e.target.value})}/></label>
-      <label>Duration<input type="number" min="0.25" step="0.25" value={form.estimated_hours || 1} onChange={e => setForm({...form, estimated_hours:Number(e.target.value)})}/></label>
-    </div>
-    <div className="dialog-actions"><button className="danger" onClick={() => onDelete(form.id)}>Delete</button><button className="secondary" onClick={onClose}>Cancel</button><button onClick={() => onSave(form)}>Save Task</button></div>
-  </div></div>;
-}
 
 function JobDialog({ job, date, settings, jobTypes = JOB_TYPES, onClose, onSave, onDelete }) {
   const [form, setForm] = useState(job || {});
@@ -800,7 +755,7 @@ function TasksPanel({ tasks, onSave, onDelete }) {
       </div>
       <input placeholder="Add task..." value={text} onChange={e => setText(e.target.value)} />
       <div className="task-grid">
-        {tasks.map(t => <label key={t.id} className="task-row" draggable onDragStart={e => onTaskDragStart(e, t)} title="Drag this task onto a technician"><input type="checkbox" onChange={() => onDelete(t.id)} /> <span>{t.task_text}</span></label>)}
+        {tasks.map(t => <label key={t.id} className="task-row"><input type="checkbox" onChange={() => onDelete(t.id)} /> {t.task_text}</label>)}
       </div>
     </section>
   );
@@ -1081,17 +1036,6 @@ function VehicleHistoryPanel({ job, allJobs, onClose }) {
 
 function SettingsPanel({ settings, onSave, onClose }) {
   const [draft, setDraft] = useState(settings);
-  const [draggedJobType, setDraggedJobType] = useState(null);
-
-  function moveJobType(from, to) {
-    if (from === null || from === to) return;
-    setDraft(s => {
-      const jobTypes = [...s.jobTypes];
-      const [item] = jobTypes.splice(from, 1);
-      jobTypes.splice(to, 0, item);
-      return { ...s, jobTypes };
-    });
-  }
 
   function updateMechanic(index, field, value) {
     setDraft(s => {
@@ -1167,13 +1111,12 @@ function SettingsPanel({ settings, onSave, onClose }) {
           <h3>Job Types & Default Hours</h3>
           <div className="job-type-settings">
             {draft.jobTypes.map((j, i) => (
-              <div className={`job-type-row reorderable-template ${draggedJobType === i ? "is-dragging" : ""}`} key={`${j.name}-${i}`} draggable onDragStart={() => setDraggedJobType(i)} onDragOver={e => e.preventDefault()} onDrop={() => { moveJobType(draggedJobType, i); setDraggedJobType(null); }} onDragEnd={() => setDraggedJobType(null)}>
-                <button type="button" className="drag-handle" title="Drag to reorder">↕</button>
+              <div className="job-type-row" key={`${j.name}-${i}`}>
                 <input value={j.group} onChange={e => updateJobType(i, "group", e.target.value.toUpperCase())} />
                 <input value={j.name} onChange={e => updateJobType(i, "name", e.target.value)} />
                 <input value={j.description} onChange={e => updateJobType(i, "description", e.target.value)} />
                 <input type="number" step="0.5" value={j.hours} onChange={e => updateJobType(i, "hours", e.target.value)} />
-                <div className="template-row-actions"><button type="button" className="secondary" onClick={() => moveJobType(i, Math.max(0,i-1))}>↑</button><button type="button" className="secondary" onClick={() => moveJobType(i, Math.min(draft.jobTypes.length-1,i+1))}>↓</button><button type="button" className="secondary" onClick={() => removeJobType(i)}>×</button></div>
+                <button className="secondary" onClick={() => removeJobType(i)}>×</button>
               </div>
             ))}
           </div>
@@ -1319,7 +1262,7 @@ function App() {
   const [mode, setMode] = useState("day");
   const [jobs, setJobs] = useState([]);
   const [globalJobs, setGlobalJobs] = useState([]);
-  const [tasks, setTasks] = useState(() => readLS(tasksKey));
+  const [tasks, setTasks] = useState([]);
   const [notes, setNotes] = useState([]);
   const [dialogJob, setDialogJob] = useState(undefined);
   const [query, setQuery] = useState("");
@@ -1356,11 +1299,7 @@ function App() {
       ]);
       setJobs(dateJobs);
       setGlobalJobs(allGlobalJobs);
-      setTasks(current => {
-        const next = openTasks.length ? openTasks : current;
-        writeLS(tasksKey, next);
-        return next;
-      });
+      setTasks(openTasks);
       setNotes(allNotes);
       setConnectionStatus("connected");
       setLastCloudSync(new Date());
@@ -1431,28 +1370,14 @@ function App() {
   const rampRows = rampModal ? jobs.filter(j => j.ramp === rampModal) : [];
 
   function dragStart(e, job, fromDate = date) {
-    e.dataTransfer.effectAllowed = "move";
-    e.dataTransfer.setData("application/json", JSON.stringify({ kind: "job", id: job.id, fromDate }));
-  }
-
-  function taskDragStart(e, task) {
-    e.dataTransfer.effectAllowed = "move";
-    e.dataTransfer.setData("application/json", JSON.stringify({ kind: "task", id: task.id }));
+    e.dataTransfer.setData("application/json", JSON.stringify({ id: job.id, fromDate }));
   }
 
   async function dropOnTech(e, tech) {
     e.preventDefault();
     const data = JSON.parse(e.dataTransfer.getData("application/json") || "{}");
-    if (data.kind === "task") {
-      const task = tasks.find(t => t.id === data.id);
-      if (task) {
-        await saveJob({ id: uuid(), card_type: "task", registration: "", vehicle: "", work_required: task.task_text, technician: tech, booking_date: date, drop_time: "08:00", estimated_hours: 1, status: "in_progress", source: "task" }, date);
-        await deleteTask(task.id);
-      }
-    } else {
-      const found = [...jobs, ...globalJobs].find(j => j.id === data.id);
-      if (found) await saveJob({ ...found, technician: tech, booking_date: date }, date);
-    }
+    const found = [...jobs, ...globalJobs].find(j => j.id === data.id);
+    if (found) await saveJob({ ...found, technician: tech, card_type: "job", booking_date: date }, date);
     refresh();
   }
 
@@ -1552,14 +1477,14 @@ function App() {
                   </div>
 
                   <div className="job-stack" onDragOver={e => e.preventDefault()} onDrop={e => dropOnTech(e, tech)}>
-                    {techJobs(tech).map(j => <ScheduleCard key={j.id} job={j} settings={settings} onEdit={setDialogJob} onDragStart={dragStart} onHistory={setHistoryJob} onInvoice={setInvoiceJob} onResize={async (job, estimated_hours) => { await saveJob({ ...job, estimated_hours }, date); refresh(); }} />)}
+                    {techJobs(tech).map(j => <ScheduleCard key={j.id} job={j} settings={settings} onEdit={setDialogJob} onDragStart={dragStart} onHistory={setHistoryJob} onInvoice={setInvoiceJob} />)}
                   </div>
                 </section>
               );
             })}
           </section>
 
-          <TasksPanel tasks={tasks} onTaskDragStart={taskDragStart} onSave={async t => { setTasks(current => [...current.filter(x => x.id !== t.id), t]); await saveTask(t); refresh(); }} onDelete={async id => { setTasks(current => current.filter(x => x.id !== id)); await deleteTask(id); refresh(); }} />
+          <TasksPanel tasks={tasks} onSave={async t => { await saveTask(t); refresh(); }} onDelete={async id => { await deleteTask(id); refresh(); }} />
         </main>
       </div>
       </>)}
@@ -1603,8 +1528,7 @@ function App() {
         </div>
       )}
 
-      {dialogJob?.card_type === "task" && <TaskDialog task={dialogJob} settings={settings} onClose={() => setDialogJob(undefined)} onSave={async updated => { await saveJob(updated, date); setDialogJob(undefined); refresh(); }} onDelete={async id => { await deleteJob(id); setDialogJob(undefined); refresh(); }} />}
-      {dialogJob !== undefined && dialogJob?.card_type !== "task" && <JobDialog job={dialogJob} date={date} settings={settings} jobTypes={settings.jobTypes} onClose={() => setDialogJob(undefined)} onDelete={async id => { await deleteJob(id); setDialogJob(undefined); refresh(); }} onSave={async j => { await saveJob(j, date); setDialogJob(undefined); refresh(); }} />}
+      {dialogJob !== undefined && <JobDialog job={dialogJob} date={date} settings={settings} jobTypes={settings.jobTypes} onClose={() => setDialogJob(undefined)} onDelete={async id => { await deleteJob(id); setDialogJob(undefined); refresh(); }} onSave={async j => { await saveJob(j, date); setDialogJob(undefined); refresh(); }} />}
     </div>
   );
 }
