@@ -1,0 +1,16 @@
+Vecta Planner v35 - planner workflow and layout polish
+
+Changes:
+- Planner remains the default landing page and now clearly displays "Today's Jobs".
+- Added planner workflow tabs for Today's Jobs, Open Jobs, Ready to Invoice and Completed.
+- Planner tabs open the correct filtered Jobs page.
+- Job cards now show job type and work required prominently between vehicle details and time/status.
+- Completed jobs are archived automatically and removed from the live planner while remaining visible in Completed Jobs.
+- Completing a planner task also archives its linked mini-job.
+- Dragging now uses a lifted card effect instead of hiding the card.
+- Drop columns highlight more clearly and drag/cloud refresh conflicts remain paused during interaction.
+- Added subtle premium hover and movement effects without changing the working resize logic.
+
+Validation:
+- Inline JavaScript syntax checked successfully.
+- Vite production build completed successfully.
