@@ -662,3 +662,14 @@ button{cursor:pointer;border:0;border-radius:10px;background:#111827;color:white
 .cloud-status.offline .cloud-status-dot{background:#ef4444;box-shadow:0 0 0 3px #fee2e2}
 @keyframes cloudPulse{50%{opacity:.35}}
 @media(max-width:700px){.cloud-status{order:-1}}
+
+/* v1.11 reliable planner drag and resize */
+.schedule-card{transition:transform .12s ease,box-shadow .12s ease,opacity .12s ease}
+.schedule-card.is-dragging{opacity:.72;transform:scale(1.012);box-shadow:0 14px 30px rgba(15,23,42,.22);cursor:grabbing!important}
+.job-stack{transition:background-color .12s ease,box-shadow .12s ease}
+.job-stack.is-drag-over{background-color:#eff6ff!important;box-shadow:inset 0 0 0 3px #60a5fa}
+.job-resize-handle{position:absolute;left:10px;right:10px;bottom:0;height:14px;padding:0;border:0;background:transparent!important;cursor:ns-resize;touch-action:none;z-index:6}
+.job-resize-handle span{display:block;width:54px;height:4px;margin:5px auto;border-radius:999px;background:#94a3b8;opacity:.75}
+.job-resize-handle:hover span,.schedule-card.is-resizing .job-resize-handle span{background:#2563eb;opacity:1}
+.schedule-card.is-resizing{box-shadow:0 12px 28px rgba(15,23,42,.20);user-select:none}
+body.planner-resizing,body.planner-resizing *{cursor:ns-resize!important;user-select:none!important}

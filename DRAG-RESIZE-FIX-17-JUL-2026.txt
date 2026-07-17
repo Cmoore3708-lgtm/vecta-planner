@@ -1,0 +1,14 @@
+Planner drag and resize reliability update
+
+- Jobs now use a stronger drag payload with a text fallback.
+- The destination mechanic column highlights while dragging.
+- Job moves update immediately, then confirm against Supabase.
+- Failed moves restore the original job and show a clear warning.
+- Added a larger dedicated resize handle at the bottom of each planner card.
+- Resizing snaps to 15-minute increments from 0.25 to 12 hours.
+- The displayed finish time updates live while resizing.
+- Failed duration saves restore the original duration.
+- Planner start and finish times are displayed as HH:MM with no seconds.
+- Added subtle lift, opacity and shadow feedback while dragging.
+
+Build test: npm run build completed successfully on 17 July 2026.
