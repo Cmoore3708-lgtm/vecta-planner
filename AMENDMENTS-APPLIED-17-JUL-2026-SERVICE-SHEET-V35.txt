@@ -1,0 +1,6 @@
+Service sheet fixes:
+- Service sheet now closes the job modal and opens fully in the foreground.
+- Any remaining modal layer is hidden while the service sheet is open.
+- Service operation checkboxes retain an identical fixed size when selected.
+- Tick marks are drawn with CSS rather than inserted text, preventing rows below moving upward.
+- Production build completed successfully.

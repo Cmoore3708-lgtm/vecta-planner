@@ -611,6 +611,10 @@ html,body{font-size:14px;background:var(--bg);color:var(--text)}.app{grid-templa
 .miniTaskFoot b{margin:0!important;font-size:10px!important;color:#594300}
 
 
+
+/* v37 service sheet text alignment */
+.servicePrint .ssMotTable td:first-child[contenteditable="true"]{text-align:left!important;justify-content:flex-start!important}
+.servicePrint .ssNotesArea[contenteditable="true"]{text-align:left!important;justify-content:flex-start!important;align-items:flex-start!important}
 </style>
 
 <style id="v42-premium-refinement">
@@ -727,6 +731,18 @@ body{background:var(--premium-soft)!important}.app{grid-template-columns:220px m
 .servicePrint div[contenteditable="true"]{display:flex;align-items:center;justify-content:center;white-space:pre-wrap;overflow-wrap:anywhere}
 .servicePrint .ssNotesArea[contenteditable="true"],.servicePrint .ssBoxNotes[contenteditable="true"],.servicePrint .ssBrakeNotes[contenteditable="true"]{justify-content:center;text-align:center!important}
 .servicePreviewControls .savePreview{background:#167447!important;color:#fff!important}
+
+/* v35 service sheet foreground and stable checkbox layout */
+body.servicePreviewing{overflow:auto!important}
+body.servicePreviewing .modal{display:none!important}
+body.servicePreviewing .printSheet{position:relative!important;z-index:1001!important}
+body.servicePreviewing .servicePreviewControls{position:relative!important;z-index:1002!important;padding-top:14px}
+.servicePrint .ssOps tr,.servicePrint .ssOps td{height:19px!important;min-height:19px!important;max-height:19px!important}
+.servicePrint .ssDone{line-height:0!important;vertical-align:middle!important;padding-top:1px!important;padding-bottom:1px!important}
+.servicePrint .ssCheck,.servicePrint .ssTickBox{box-sizing:border-box!important;display:inline-flex!important;flex:0 0 15px!important;width:15px!important;min-width:15px!important;max-width:15px!important;height:15px!important;min-height:15px!important;max-height:15px!important;line-height:1!important;vertical-align:middle!important;align-items:center!important;justify-content:center!important;padding:0!important;margin-top:0!important;margin-bottom:0!important;overflow:hidden!important}
+.servicePrint .ssCheck::after,.servicePrint .ssTickBox::after{content:"";display:block;width:7px;height:4px;border-left:2px solid transparent;border-bottom:2px solid transparent;transform:rotate(-45deg) translateY(-1px)}
+.servicePrint .ssCheck.selected::after,.servicePrint .ssTickBox.selected::after{border-left-color:#087a21;border-bottom-color:#087a21}
+@media print{body.servicePreviewing .servicePreviewControls{display:none!important}}
 </style>
 
 
@@ -746,7 +762,7 @@ body{background:var(--premium-soft)!important}.app{grid-template-columns:220px m
 <div id="fatal" class="fatal"></div>
 <div class="app">
   <aside class="side">
-    <div class="logo"><img class="vectaBrandLogo sidebarBrandLogo" src="assets/vecta-logo.png" alt="VECTA Vehicle Servicing and repairs"><div class="product">Workshop Pro</div></div>
+    <div class="logo"><img class="vectaBrandLogo sidebarBrandLogo" src="/assets/vecta-logo-BdBQYtce.png" alt="VECTA Vehicle Servicing and repairs"><div class="product">Workshop Pro</div></div>
     <nav class="nav" id="nav"></nav>
     <div class="sideFoot"><b>V41.1i Stable Professional</b><br>Invoice work layout + editable mechanics<br>Supabase connected safely.</div>
   </aside>
@@ -1161,13 +1177,13 @@ function printJob(j){document.getElementById('printSheet').innerHTML='<div class
 function closeServicePreview(){document.body.classList.remove('servicePreviewing');var controls=document.getElementById('servicePreviewControls');if(controls)controls.remove();var sheet=document.getElementById('printSheet');if(sheet){sheet.style.display='';sheet.innerHTML=''}}
 function updateServiceHealthScore(){var groups={};Array.prototype.forEach.call(document.querySelectorAll('.servicePrint .ssRagDot.selected'),function(el){groups[el.getAttribute('data-group')]=Number(el.getAttribute('data-score')||0)});var vals=Object.keys(groups).map(function(k){return groups[k]});var out=document.getElementById('serviceHealthPercent');var panel=document.querySelector('.servicePrint .ssHealth');if(!out)return;var score=vals.length?Math.round(vals.reduce(function(a,b){return a+b},0)/vals.length):null;out.textContent=score===null?'—%':score+'%';if(panel){panel.classList.remove('scorePass','scoreAdvisory','scoreFail');if(score!==null)panel.classList.add(score>=80?'scorePass':score>=60?'scoreAdvisory':'scoreFail')}}
 function selectServiceRag(el){var group=el.getAttribute('data-group');Array.prototype.forEach.call(document.querySelectorAll('.servicePrint .ssRagDot[data-group="'+group+'"]'),function(x){x.classList.remove('selected')});el.classList.add('selected');updateServiceHealthScore()}
-function toggleServiceCheck(el){el.classList.toggle('selected');el.textContent=el.classList.contains('selected')?'✓':''}
+function toggleServiceCheck(el){el.classList.toggle('selected');el.setAttribute('aria-checked',el.classList.contains('selected')?'true':'false')}
 var activeServiceRegistration='';
 function serviceStorageKey(reg){return 'vecta_service_sheet_'+normReg(reg||'')}
 function saveServiceSheet(){var sheet=document.querySelector('#printSheet .servicePrint');if(!sheet||!activeServiceRegistration){alert('Unable to save this service sheet.');return}Array.prototype.forEach.call(sheet.querySelectorAll('input'),function(input){input.setAttribute('value',input.value)});var record={registration:normReg(activeServiceRegistration),saved_at:new Date().toISOString(),html:sheet.outerHTML};try{localStorage.setItem(serviceStorageKey(activeServiceRegistration),JSON.stringify(record));alert('Service sheet saved against '+normReg(activeServiceRegistration)+'.')}catch(e){alert('The service sheet could not be saved on this device. '+(e&&e.message?e.message:''))}}
 function loadSavedServiceSheet(reg){try{var raw=localStorage.getItem(serviceStorageKey(reg));if(!raw)return null;var record=JSON.parse(raw);return record&&record.html?record:null}catch(e){return null}}
 window.selectServiceRag=selectServiceRag;window.toggleServiceCheck=toggleServiceCheck;window.printWhenImagesReady=printWhenImagesReady;window.closeServicePreview=closeServicePreview;window.saveServiceSheet=saveServiceSheet;
-function openServicePreview(){var old=document.getElementById('servicePreviewControls');if(old)old.remove();var controls=document.createElement('div');controls.id='servicePreviewControls';controls.className='servicePreviewControls';controls.innerHTML='<button class="closePreview" onclick="closeServicePreview()">Close</button><button class="savePreview" onclick="saveServiceSheet()">Save Service Sheet</button><button class="printPreview" onclick="printWhenImagesReady()">Print Service Sheet</button>';document.body.insertBefore(controls,document.getElementById('printSheet'));document.body.classList.add('servicePreviewing');window.scrollTo(0,0);updateServiceHealthScore()}
+function openServicePreview(){closeModals();var old=document.getElementById('servicePreviewControls');if(old)old.remove();var controls=document.createElement('div');controls.id='servicePreviewControls';controls.className='servicePreviewControls';controls.innerHTML='<button class="closePreview" onclick="closeServicePreview()">Close</button><button class="savePreview" onclick="saveServiceSheet()">Save Service Sheet</button><button class="printPreview" onclick="printWhenImagesReady()">Print Service Sheet</button>';document.body.insertBefore(controls,document.getElementById('printSheet'));document.body.classList.add('servicePreviewing');window.scrollTo(0,0);updateServiceHealthScore()}
 function printService(id){
 var j=app.jobs.find(function(x){return x.id===id});if(!j)return;activeServiceRegistration=normReg(j.registration||'');var savedService=loadSavedServiceSheet(activeServiceRegistration);if(savedService){document.getElementById('printSheet').innerHTML=savedService.html;openServicePreview();return;}
 var ops=['Engine oil & filter change','Air filter','Pollen filter','Fuel filter','Spark plugs','Brake fluid check','Coolant level / antifreeze','Power steering fluid','Screenwash level','Battery condition','Tyre pressures set'];
@@ -1176,7 +1192,7 @@ var reg=esc(j.registration||''),vehicle=esc(j.vehicle||''),date=esc(j.booking_da
 function rag(group){return '<span class="ssRagDot green" data-group="'+group+'" data-score="100" onclick="selectServiceRag(this)"></span><span class="ssRagDot amber" data-group="'+group+'" data-score="50" onclick="selectServiceRag(this)"></span><span class="ssRagDot red" data-group="'+group+'" data-score="0" onclick="selectServiceRag(this)"></span>'}
 var opRows=ops.map(function(x){return '<tr><td>'+esc(x)+'</td><td class="ssDone"><span class="ssCheck" role="checkbox" tabindex="0" onclick="toggleServiceCheck(this)"></span></td></tr>'}).join('');
 var checkRows=checks.map(function(x,i){return '<tr><td>'+esc(x)+'</td><td class="center">'+rag('health'+i)+'</td></tr>'}).join('');
-function brakeTable(prefix){return '<table><tr><th>Position</th><th class="center">Left</th><th class="center">Right</th></tr><tr><th>Front</th><td class="center">'+rag(prefix+'fl')+'</td><td class="center">'+rag(prefix+'fr')+'</td></tr><tr><th>Rear</th><td class="center">'+rag(prefix+'rl')+'</td><td class="center">'+rag(prefix+'rr')+'</td></tr></table><div class="ssBrakeNotes editable" contenteditable="true">Notes:</div>'}
+function brakeTable(prefix){return '<table><tr><th>Position</th><th class="center">Front</th><th class="center">Rear</th></tr><tr><th>Left</th><td class="center">'+rag(prefix+'fl')+'</td><td class="center">'+rag(prefix+'rl')+'</td></tr><tr><th>Right</th><td class="center">'+rag(prefix+'fr')+'</td><td class="center">'+rag(prefix+'rr')+'</td></tr></table><div class="ssBrakeNotes editable" contenteditable="true">Notes:</div>'}
 var tyreRows=['Front Left','Front Right','Rear Left','Rear Right','Spare'].map(function(w,i){var key=['tfl','tfr','trl','trr','tsp'][i];return '<tr><th>'+w+'</th><td contenteditable="true"></td><td contenteditable="true"></td><td contenteditable="true"></td><td class="ssPressure" contenteditable="true"></td><td class="ssCondition">'+rag(key)+'</td></tr>'}).join('');
 var motRows=[0,1,2,3].map(function(){return '<tr><td contenteditable="true"></td><td class="ssCompleteCol"><span class="ssCheck" onclick="toggleServiceCheck(this)"></span></td></tr>'}).join('');
 var html='<div class="servicePrint">'
