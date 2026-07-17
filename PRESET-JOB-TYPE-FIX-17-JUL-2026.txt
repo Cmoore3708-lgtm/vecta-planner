@@ -1,0 +1,4 @@
+Preset Job Type Fix
+
+When any preset job button is selected on the Job Card, the Job Type field is now populated with the exact preset name.
+Custom preset names are also added to the Job Type dropdown automatically, so they save correctly and display on the planner card.
