@@ -860,17 +860,38 @@ async function pullRemote(){
   saveLocal();
 }
 function fromRemote(row){var r=Object.assign({},row); if(r.booking_date) r.booking_date=String(r.booking_date).slice(0,10); return r;}
+function schemaColumnFromError(message,table){
+  message=String(message||'');
+  var escaped=String(table||'').replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
+  var patterns=[
+    new RegExp("Could not find the '([^']+)' column of '"+escaped+"'",'i'),
+    new RegExp('column [\"\']?'+escaped+'[\"\']?\.([a-zA-Z0-9_]+) does not exist','i'),
+    /column ["']?([a-zA-Z0-9_]+)["']? does not exist/i
+  ];
+  for(var i=0;i<patterns.length;i++){var m=message.match(patterns[i]);if(m&&m[1])return m[1];}
+  return '';
+}
 async function upsertRemote(table,row,options){
   options=options||{};
   if(!remoteClient){throw new Error('Supabase is not connected. Please check the internet connection and try again.');}
-  var data=Object.assign({},row);
-  var res=await remoteClient.from(table).upsert(data,{onConflict:'id'}).select('id');
-  if(res.error){
+  var data=Object.assign({},row),removed=[],res=null;
+  /* Customer and vehicle timestamps are optional in older Vecta schemas. */
+  if(table==='customers'||table==='vehicles'){delete data.updated_at;}
+  for(var attempt=0;attempt<8;attempt++){
+    res=await remoteClient.from(table).upsert(data,{onConflict:'id'}).select('id');
+    if(!res.error)return res.data;
+    var missing=schemaColumnFromError(res.error.message,table);
+    if(missing&&Object.prototype.hasOwnProperty.call(data,missing)){
+      removed.push(missing);delete data[missing];
+      console.warn('Supabase schema compatibility: omitted missing '+table+'.'+missing);
+      continue;
+    }
     console.error('Remote save failed',table,res.error,data);
     if(!options.silent) alert('Supabase did not save this '+table.slice(0,-1)+': '+res.error.message);
     throw res.error;
   }
-  return res.data;
+  var err=new Error('Supabase could not save '+table+' after removing incompatible fields: '+removed.join(', '));
+  console.error(err,data);throw err;
 }
 async function deleteRemote(table,id){if(!remoteClient)return; try{await remoteClient.from(table).delete().eq('id',id)}catch(e){console.warn(e)}}
 async function saveAll(){saveLocal(); if(remoteClient){try{await remoteClient.from('workshop_settings').upsert({id:'main',value:app.settings,updated_at:new Date().toISOString()});}catch(e){}}}
@@ -1075,10 +1096,10 @@ async function saveLinkedCustomerVehicle(j){
       return (wantedPhone&&String(x.phone||'').trim()===wantedPhone)||(wantedName&&String(x.name||'').trim().toLowerCase()===wantedName);
     });
     if(c){
-      c=Object.assign({},c,{name:j.customer_name||c.name||'',surname:(j.customer_name||c.name||'').split(' ').slice(-1)[0]||c.surname||'',phone:j.customer_phone||c.phone||'',email:j.customer_email||c.email||'',updated_at:new Date().toISOString()});
+      c=Object.assign({},c,{name:j.customer_name||c.name||'',surname:(j.customer_name||c.name||'').split(' ').slice(-1)[0]||c.surname||'',phone:j.customer_phone||c.phone||'',email:j.customer_email||c.email||''});
     }else{
       result.newCustomer=true;
-      c={id:uid(),name:j.customer_name||'',surname:(j.customer_name||'').split(' ').slice(-1)[0]||'',phone:j.customer_phone||'',email:j.customer_email||'',created_at:new Date().toISOString(),updated_at:new Date().toISOString()};
+      c={id:uid(),name:j.customer_name||'',surname:(j.customer_name||'').split(' ').slice(-1)[0]||'',phone:j.customer_phone||'',email:j.customer_email||'',created_at:new Date().toISOString()};
     }
     await upsertRemote('customers',c,{silent:true});
     result.customer=c;
@@ -1088,10 +1109,10 @@ async function saveLinkedCustomerVehicle(j){
     var existing=app.vehicles.find(function(x){return normReg(x.registration||'')===reg});
     var v;
     if(existing){
-      v=Object.assign({},existing,{registration:reg,vehicle:j.vehicle||existing.vehicle||'',customer_id:c?c.id:(existing.customer_id||null),updated_at:new Date().toISOString()});
+      v=Object.assign({},existing,{registration:reg,vehicle:j.vehicle||existing.vehicle||'',customer_id:c?c.id:(existing.customer_id||null)});
     }else{
       result.newVehicle=true;
-      v={id:uid(),registration:reg,vehicle:j.vehicle||'',customer_id:c?c.id:null,created_at:new Date().toISOString(),updated_at:new Date().toISOString()};
+      v={id:uid(),registration:reg,vehicle:j.vehicle||'',customer_id:c?c.id:null,created_at:new Date().toISOString()};
     }
     await upsertRemote('vehicles',v,{silent:true});
     result.vehicle=v;

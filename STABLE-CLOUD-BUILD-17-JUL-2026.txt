@@ -1,0 +1,9 @@
+VECTA WORKSHOP PRO - STABLE CLOUD BUILD
+
+Changes in this build:
+- Customer -> vehicle -> job records save in strict order.
+- Removed the unsupported customers.updated_at and vehicles.updated_at fields.
+- Added safe schema-compatibility handling: if an older Supabase table lacks a non-critical field, the save retries without that field instead of failing the complete job.
+- Existing live multi-computer sync retained.
+- Jobs page tabs and completed-job archiving retained.
+- No planner layout changes.
