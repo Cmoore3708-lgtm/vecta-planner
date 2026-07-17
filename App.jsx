@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { createRoot } from "react-dom/client";
 import { createClient } from "@supabase/supabase-js";
 import { AlertTriangle, CalendarDays, Car, CheckCircle2, ChevronLeft, ChevronRight, ClipboardList, FileText, History, LayoutDashboard, Mail, Menu, Plus, PoundSterling, Printer, Search, Settings, ShieldCheck, Users, Wand2 } from "lucide-react";
@@ -479,53 +479,14 @@ function endTimeFrom(start, hours) {
   return d.toTimeString().slice(0, 5);
 }
 
-function ScheduleCard({ job, settings, onEdit, onDragStart, onDragEnd, onHistory, onInvoice, onResize }) {
+function ScheduleCard({ job, settings, onEdit, onDragStart, onHistory, onInvoice }) {
   const statusText = workflowLabel(job.status);
   const start = job.drop_time ? String(job.drop_time).slice(0, 5) : "--:--";
-  const [previewHours, setPreviewHours] = useState(null);
-  const resizingRef = useRef(null);
-  const hours = previewHours ?? Number(job.estimated_hours || 1);
+  const hours = Number(job.estimated_hours || 1);
   const end = endTimeFrom(start, hours);
 
-  function beginResize(e) {
-    e.preventDefault();
-    e.stopPropagation();
-    const startY = e.clientY;
-    const originalHours = Number(job.estimated_hours || 1);
-    resizingRef.current = { startY, originalHours };
-    setPreviewHours(originalHours);
-    document.body.classList.add("planner-resizing");
-
-    const move = (event) => {
-      if (!resizingRef.current) return;
-      const delta = event.clientY - startY;
-      const quarterHours = Math.round(delta / 12);
-      const nextHours = Math.max(0.25, Math.min(12, originalHours + quarterHours * 0.25));
-      setPreviewHours(nextHours);
-    };
-
-    const finish = async (event) => {
-      const state = resizingRef.current;
-      resizingRef.current = null;
-      window.removeEventListener("pointermove", move);
-      window.removeEventListener("pointerup", finish);
-      window.removeEventListener("pointercancel", finish);
-      document.body.classList.remove("planner-resizing");
-      if (!state) return;
-      const delta = event.clientY - state.startY;
-      const quarterHours = Math.round(delta / 12);
-      const nextHours = Math.max(0.25, Math.min(12, state.originalHours + quarterHours * 0.25));
-      setPreviewHours(null);
-      if (nextHours !== state.originalHours) await onResize(job, nextHours);
-    };
-
-    window.addEventListener("pointermove", move);
-    window.addEventListener("pointerup", finish, { once: true });
-    window.addEventListener("pointercancel", finish, { once: true });
-  }
-
   return (
-    <div className={`schedule-card ${rampClass(job.ramp) || ""} status-${job.status || "booked"} ${previewHours !== null ? "is-resizing" : ""}`} draggable={previewHours === null} onDragStart={e => onDragStart(e, job)} onDragEnd={onDragEnd} onDoubleClick={() => onEdit(job)}>
+    <div className={`schedule-card ${rampClass(job.ramp) || ""} status-${job.status || "booked"}`} draggable onDragStart={e => onDragStart(e, job)} onDoubleClick={() => onEdit(job)}>
       <div className="schedule-card-header planner-card-v41k">
         <span className="uk-reg-plate" title="Vehicle registration"><span className="gb-strip">GB</span><strong>{job.registration || "NO REG"}</strong></span>
         <span className="planner-card-right">
@@ -547,7 +508,6 @@ function ScheduleCard({ job, settings, onEdit, onDragStart, onDragEnd, onHistory
           <button title="Invoice" onClick={(e)=>{e.stopPropagation(); onInvoice(job)}}><FileText size={14}/></button>
         </span>
       </div>
-      <button className="job-resize-handle" type="button" aria-label="Resize job duration" title="Drag to change job duration" onPointerDown={beginResize}><span /></button>
     </div>
   );
 }
@@ -1314,8 +1274,6 @@ function App() {
   const [invoiceJob, setInvoiceJob] = useState(null);
   const [connectionStatus, setConnectionStatus] = useState(supabase ? "connecting" : "offline");
   const [lastCloudSync, setLastCloudSync] = useState(null);
-  const [draggingJobId, setDraggingJobId] = useState(null);
-  const [dragOverTech, setDragOverTech] = useState(null);
 
   const mechanicNames = settings.mechanics.map(m => m.name);
   const jobTypes = settings.jobTypes;
@@ -1412,67 +1370,15 @@ function App() {
   const rampRows = rampModal ? jobs.filter(j => j.ramp === rampModal) : [];
 
   function dragStart(e, job, fromDate = date) {
-    const transfer = JSON.stringify({ id: job.id, fromDate });
-    e.dataTransfer.effectAllowed = "move";
-    e.dataTransfer.setData("application/json", transfer);
-    e.dataTransfer.setData("text/plain", transfer);
-    setDraggingJobId(job.id);
-    requestAnimationFrame(() => e.currentTarget?.classList.add("is-dragging"));
-  }
-
-  function dragEnd(e) {
-    e.currentTarget?.classList.remove("is-dragging");
-    setDraggingJobId(null);
-    setDragOverTech(null);
+    e.dataTransfer.setData("application/json", JSON.stringify({ id: job.id, fromDate }));
   }
 
   async function dropOnTech(e, tech) {
     e.preventDefault();
-    e.stopPropagation();
-    setDragOverTech(null);
-    let data = {};
-    try {
-      const raw = e.dataTransfer.getData("application/json") || e.dataTransfer.getData("text/plain") || "{}";
-      data = JSON.parse(raw);
-    } catch (error) {
-      console.error("Could not read dragged job", error);
-      setDraggingJobId(null);
-      return;
-    }
-    const found = [...jobs, ...globalJobs].find(j => String(j.id) === String(data.id));
-    if (!found) {
-      setDraggingJobId(null);
-      return;
-    }
-
-    const previousJobs = jobs;
-    const previousGlobalJobs = globalJobs;
-    const moved = { ...found, technician: tech, card_type: "job", booking_date: date };
-    setJobs(current => [...current.filter(j => j.id !== found.id), moved]);
-    setGlobalJobs(current => current.filter(j => j.id !== found.id));
-    setDraggingJobId(null);
-
-    try {
-      await saveJob(moved, date);
-      await refresh();
-    } catch (error) {
-      setJobs(previousJobs);
-      setGlobalJobs(previousGlobalJobs);
-      alert("The job could not be moved. It has been put back in its original position.");
-    }
-  }
-
-  async function resizeJob(job, nextHours) {
-    const previousJobs = jobs;
-    const updated = { ...job, estimated_hours: nextHours };
-    setJobs(current => current.map(j => j.id === job.id ? updated : j));
-    try {
-      await saveJob(updated, date);
-      await refresh();
-    } catch (error) {
-      setJobs(previousJobs);
-      alert("The new job duration could not be saved. The original duration has been restored.");
-    }
+    const data = JSON.parse(e.dataTransfer.getData("application/json") || "{}");
+    const found = [...jobs, ...globalJobs].find(j => j.id === data.id);
+    if (found) await saveJob({ ...found, technician: tech, card_type: "job", booking_date: date }, date);
+    refresh();
   }
 
   if (invoiceJob) {
@@ -1570,8 +1476,8 @@ function App() {
                     <div><h2>{tech}</h2><span>{hours.toFixed(1)} / 8.0 hrs</span></div>
                   </div>
 
-                  <div className={`job-stack ${dragOverTech === tech ? "is-drag-over" : ""}`} onDragEnter={() => setDragOverTech(tech)} onDragLeave={(e) => { if (!e.currentTarget.contains(e.relatedTarget)) setDragOverTech(null); }} onDragOver={e => { e.preventDefault(); e.dataTransfer.dropEffect = "move"; setDragOverTech(tech); }} onDrop={e => dropOnTech(e, tech)}>
-                    {techJobs(tech).map(j => <ScheduleCard key={j.id} job={j} settings={settings} onEdit={setDialogJob} onDragStart={dragStart} onDragEnd={dragEnd} onHistory={setHistoryJob} onInvoice={setInvoiceJob} onResize={resizeJob} />)}
+                  <div className="job-stack" onDragOver={e => e.preventDefault()} onDrop={e => dropOnTech(e, tech)}>
+                    {techJobs(tech).map(j => <ScheduleCard key={j.id} job={j} settings={settings} onEdit={setDialogJob} onDragStart={dragStart} onHistory={setHistoryJob} onInvoice={setInvoiceJob} />)}
                   </div>
                 </section>
               );
