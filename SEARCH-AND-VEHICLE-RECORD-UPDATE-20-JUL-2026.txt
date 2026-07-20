@@ -5,6 +5,8 @@ VECTA Workshop Pro - Search and Vehicle Record update
 - Removed the + Vehicle button from the search workflow.
 - Added Vehicle registration and Customer details search modes.
 - Fixed filtered search results so they remain clickable.
+- Fixed the search typing crash caused by the input handler retaining a shared
+  variable that was later overwritten with null.
 - Added vehicles found in job history even when a separate vehicle row is missing.
 - Registration clicks now open a read-only Vehicle Record.
 - Added vehicle information, MOT/tax status, customer details and chronological history.
