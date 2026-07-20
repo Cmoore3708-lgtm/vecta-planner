@@ -1,0 +1,9 @@
+VEHICLE PAGE / HISTORY UPDATE
+
+- Clicking a vehicle row or registration now opens a read-only vehicle record first.
+- Vehicle record shows registration, vehicle, mileage, MOT due, tax due and linked customer.
+- MOT and tax cards show clear good / due soon / overdue status.
+- Full history is grouped into Job Sheets, Invoices and Service Sheets.
+- Each history item can be opened directly.
+- Vehicle details can still be amended using the dedicated Edit Vehicle Details button.
+- The + Vehicle button continues to create a new vehicle.
