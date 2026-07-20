@@ -1,0 +1,19 @@
+VECTA Workshop Pro - Search and Vehicle Record update
+
+- Removed the separate Customers navigation tab.
+- Renamed Vehicles to Search.
+- Removed the + Vehicle button from the search workflow.
+- Added Vehicle registration and Customer details search modes.
+- Fixed filtered search results so they remain clickable.
+- Added vehicles found in job history even when a separate vehicle row is missing.
+- Registration clicks now open a read-only Vehicle Record.
+- Added vehicle information, MOT/tax status, customer details and chronological history.
+- Added direct actions for Edit Vehicle, Create New Job, Print Vehicle History,
+  View Service Sheet and View Invoice (when records exist).
+- Job cards, service sheets/health checks and invoices open directly from history.
+
+Validation:
+- Embedded application JavaScript syntax check passed.
+- Production dependency installation was attempted but the package registry returned
+  a temporary 502 error. The application itself is a static Vercel build and the
+  updated index.html passed its direct JavaScript parse check.
