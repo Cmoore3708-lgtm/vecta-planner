@@ -10,6 +10,12 @@ VECTA Workshop Pro - Search and Vehicle Record update
 - Prevented the three-second cloud synchronisation refresh from replacing the
   active search box and clearing the search text.
 - Search text is now preserved across later page refreshes.
+- Redesigned Print Day Plan as clear mechanic columns without the redundant
+  time rail.
+- Every printed job now has a readable minimum-height card showing registration,
+  vehicle, work required, booking time, ramp and a large job type.
+- Removed job status from printed planner cards to release space for useful work
+  information.
 - Added vehicles found in job history even when a separate vehicle row is missing.
 - Registration clicks now open a read-only Vehicle Record.
 - Added vehicle information, MOT/tax status, customer details and chronological history.
