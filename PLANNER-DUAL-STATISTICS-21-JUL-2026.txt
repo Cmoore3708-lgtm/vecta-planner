@@ -1,0 +1,9 @@
+Planner mechanic statistics update
+
+- Kept each mechanic header at its existing 84px height.
+- Moved booked-capacity progress to a bar above the mechanic name.
+- Added work-completed progress in the lower bar position.
+- Added booked and complete percentages side-by-side.
+- Booked capacity includes completed/archived jobs from the selected date.
+- Work completed is calculated as completed booked hours divided by total booked hours.
+- Completed jobs remain hidden from the live planner cards but continue to count in the day's statistics.

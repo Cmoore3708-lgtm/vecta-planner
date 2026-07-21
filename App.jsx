@@ -212,6 +212,21 @@ async function listDate(date) {
   throw new Error("Supabase is not configured; jobs cannot be loaded safely.");
 }
 
+async function listDateAll(date) {
+  if (supabase) {
+    const { data, error } = await supabase
+      .from("jobs")
+      .select("*")
+      .eq("booking_date", date)
+      .neq("technician", "Unallocated")
+      .neq("technician", "Waiting")
+      .order("drop_time");
+    if (error) throw error;
+    return data || [];
+  }
+  throw new Error("Supabase is not configured; job statistics cannot be loaded safely.");
+}
+
 async function listGlobal() {
   if (supabase) {
     const { data, error } = await supabase
@@ -1261,6 +1276,7 @@ function App() {
   const [date, setDate] = useState(todayISO());
   const [mode, setMode] = useState("day");
   const [jobs, setJobs] = useState([]);
+  const [dayStatsJobs, setDayStatsJobs] = useState([]);
   const [globalJobs, setGlobalJobs] = useState([]);
   const [tasks, setTasks] = useState([]);
   const [notes, setNotes] = useState([]);
@@ -1294,10 +1310,11 @@ function App() {
       return false;
     }
     try {
-      const [dateJobs, allGlobalJobs, openTasks, allNotes] = await Promise.all([
-        listDate(date), listGlobal(), listTasks(), listNotes()
+      const [dateJobs, allDateJobs, allGlobalJobs, openTasks, allNotes] = await Promise.all([
+        listDate(date), listDateAll(date), listGlobal(), listTasks(), listNotes()
       ]);
       setJobs(dateJobs);
+      setDayStatsJobs(allDateJobs);
       setGlobalJobs(allGlobalJobs);
       setTasks(openTasks);
       setNotes(allNotes);
@@ -1468,12 +1485,35 @@ function App() {
             </div>
 
             {mechanicNames.map(tech => {
-              const hours = techJobs(tech).reduce((s, j) => s + Number(j.estimated_hours || 1), 0);
+              const mechanic = settings.mechanics.find(m => m.name === tech);
+              const capacity = Number(mechanic?.capacity || 8);
+              const bookedHours = dayStatsJobs
+                .filter(j => j.technician === tech)
+                .reduce((s, j) => s + Number(j.estimated_hours || 1), 0);
+              const completedHours = dayStatsJobs
+                .filter(j => j.technician === tech && (j.status === "completed" || j.archived))
+                .reduce((s, j) => s + Number(j.estimated_hours || 1), 0);
+              const bookedPercent = Math.min(100, Math.round((bookedHours / capacity) * 100));
+              const completedPercent = bookedHours > 0
+                ? Math.min(100, Math.round((completedHours / bookedHours) * 100))
+                : 0;
               return (
                 <section className="tech-column" key={tech}>
                   <div className="tech-head">
-                    <div className="avatar">{tech[0]}</div>
-                    <div><h2>{tech}</h2><span>{hours.toFixed(1)} / 8.0 hrs</span></div>
+                    <div className="tech-booked-bar" title={`${bookedHours.toFixed(1)} of ${capacity.toFixed(1)} hours booked`}>
+                      <i style={{ width: `${bookedPercent}%` }} />
+                    </div>
+                    <div className="tech-head-main">
+                      <div className="avatar">{tech[0]}</div>
+                      <div className="tech-head-copy"><h2>{tech}</h2><span>{bookedHours.toFixed(1)} / {capacity.toFixed(1)} hrs</span></div>
+                    </div>
+                    <div className="tech-completed-bar" title={`${completedHours.toFixed(1)} of ${bookedHours.toFixed(1)} booked hours completed`}>
+                      <i style={{ width: `${completedPercent}%` }} />
+                    </div>
+                    <div className="tech-percentages">
+                      <span><b>{bookedPercent}%</b> booked</span>
+                      <span><b>{completedPercent}%</b> complete</span>
+                    </div>
                   </div>
 
                   <div className="job-stack" onDragOver={e => e.preventDefault()} onDrop={e => dropOnTech(e, tech)}>
