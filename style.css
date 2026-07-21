@@ -662,3 +662,10 @@ button{cursor:pointer;border:0;border-radius:10px;background:#111827;color:white
 .cloud-status.offline .cloud-status-dot{background:#ef4444;box-shadow:0 0 0 3px #fee2e2}
 @keyframes cloudPulse{50%{opacity:.35}}
 @media(max-width:700px){.cloud-status{order:-1}}
+
+/* 21 Jul 2026 - prevent blank first page on invoice/job-sheet printing */
+@media print{
+  html,body,#root{margin:0!important;padding:0!important;min-height:0!important;height:auto!important;overflow:visible!important}
+  .invoice-screen{position:absolute!important;left:0!important;top:0!important;width:100%!important;min-height:0!important;height:auto!important;margin:0!important;padding:0!important}
+  .invoice-page{min-height:0!important;height:auto!important;margin:0!important;padding:8mm!important;break-before:auto!important;page-break-before:auto!important;break-inside:auto!important;page-break-inside:auto!important}
+}

@@ -957,6 +957,44 @@ body.servicePreviewing .servicePreviewControls{position:relative!important;z-ind
   .invoicePrintPage .printPayment{margin-top:6mm!important;padding:4px 0!important;background:transparent!important}
 }
 </style>
+
+<style id="vecta-print-first-page-fix">
+@media print {
+  html, body {
+    margin: 0 !important;
+    padding: 0 !important;
+    min-height: 0 !important;
+    height: auto !important;
+    overflow: visible !important;
+  }
+  body > *:not(#printSheet) {
+    display: none !important;
+  }
+  #printSheet.printSheet {
+    display: block !important;
+    position: absolute !important;
+    inset: 0 auto auto 0 !important;
+    width: 100% !important;
+    height: auto !important;
+    min-height: 0 !important;
+    max-height: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    overflow: visible !important;
+    break-before: auto !important;
+    page-break-before: auto !important;
+  }
+  #printSheet > :first-child,
+  #printSheet .invoicePrintPage,
+  #printSheet .servicePrint,
+  #printSheet .printPlannerDay {
+    margin-top: 0 !important;
+    break-before: auto !important;
+    page-break-before: auto !important;
+  }
+}
+</style>
+
 </head>
 <body>
 <div id="fatal" class="fatal"></div>
