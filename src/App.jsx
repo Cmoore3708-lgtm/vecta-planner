@@ -446,8 +446,8 @@ function SmallJobCard({ job, onEdit, onDragStart }) {
   return (
     <div className={`small-card ${rampClass(job.ramp) || "ramp-left"}`} draggable onDragStart={e => onDragStart(e, job)} onDoubleClick={() => onEdit(job)}>
       <div className="small-card-top">
-        <b>{job.registration || "NO REG"}</b>
-        <span>{job.vehicle || ""}</span>
+        <span className="uk-reg-plate small-reg-plate" title="Vehicle registration"><span className="gb-strip">GB</span><strong>{job.registration || "NO REG"}</strong></span>
+        <span className="small-card-vehicle">{job.vehicle || ""}</span>
       </div>
       <VehicleBadges job={job} />
       <p>{job.work_required || ""}</p>
@@ -479,10 +479,12 @@ function ScheduleCard({ job, settings, onEdit, onDragStart, onHistory, onInvoice
   const hours = Number(job.estimated_hours || 1);
   const end = endTimeFrom(start, hours);
 
+  const isTaskCard = job.card_type === "task" || String(job.registration || "").toUpperCase() === "TASK";
+
   return (
-    <div className={`schedule-card ${rampClass(job.ramp) || ""} status-${job.status || "booked"}`} draggable onDragStart={e => onDragStart(e, job)} onDoubleClick={() => onEdit(job)}>
+    <div className={`schedule-card ${isTaskCard ? "planner-task-card" : ""} ${rampClass(job.ramp) || ""} status-${job.status || "booked"}`} draggable onDragStart={e => onDragStart(e, job)} onDoubleClick={() => onEdit(job)}>
       <div className="schedule-card-header planner-card-v41k">
-        <span className="uk-reg-plate" title="Vehicle registration"><span className="gb-strip">GB</span><strong>{job.registration || "NO REG"}</strong></span>
+        {isTaskCard ? <span className="task-label">TASK</span> : <span className="uk-reg-plate" title="Vehicle registration"><span className="gb-strip">GB</span><strong>{job.registration || "NO REG"}</strong></span>}
         <span className="planner-card-right">
           <span className="job-time">{start} – {end}</span>
           <span className={`workflow-badge workflow-${job.status || "booked"}`}>{statusText}</span>
@@ -492,16 +494,16 @@ function ScheduleCard({ job, settings, onEdit, onDragStart, onHistory, onInvoice
 
       <button className="card-menu" title="Open actions" onClick={(e) => { e.stopPropagation(); onEdit(job); }}>⋮</button>
 
-      <h4 className="planner-vehicle-title">{job.vehicle || "Vehicle"}</h4>
-      {job.customer_name && <div className="planner-customer-name">{job.customer_name}</div>}
+      {!isTaskCard && <h4 className="planner-vehicle-title">{job.vehicle || "Vehicle"}</h4>}
+      {!isTaskCard && job.customer_name && <div className="planner-customer-name">{job.customer_name}</div>}
       <p className="job-work">{job.work_required || "Work required"}</p>
 
-      <div className="schedule-card-footer">
+      {!isTaskCard && <div className="schedule-card-footer">
         <span className="card-actions">
           <button title="History" onClick={(e)=>{e.stopPropagation(); onHistory(job)}}><History size={14}/></button>
           <button title="Invoice" onClick={(e)=>{e.stopPropagation(); onInvoice(job)}}><FileText size={14}/></button>
         </span>
-      </div>
+      </div>}
     </div>
   );
 }

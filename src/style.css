@@ -732,3 +732,55 @@ body{background:var(--vecta-soft);color:var(--vecta-text)}
 @media print{
   .topbar{background:#fff!important;color:#111!important;box-shadow:none!important;border-bottom:1px solid #bbb!important}.top-actions,.date-nav,.brand-row>svg{display:none!important}.brand-logo img{filter:none}.brand-logo div{display:block!important}.brand-logo span{color:#111!important}.ramp-strip{box-shadow:none!important}.schedule-card{box-shadow:none!important;transform:none!important}
 }
+
+/* 21 Jul 2026 - compact unallocated plates and planner task cards */
+.small-card-top{align-items:flex-start!important;gap:8px!important;flex-wrap:wrap}
+.small-card-top .small-reg-plate{width:132px!important;height:30px!important;min-height:30px!important;flex:0 0 132px!important}
+.small-card-top .small-reg-plate .gb-strip{height:30px!important;min-height:30px!important}
+.small-card-top .small-reg-plate strong{height:30px!important;font-size:15px!important}
+.small-card-vehicle{display:block;width:100%;font-size:12px!important;color:#475467!important;margin-top:1px}
+
+.schedule-card.planner-task-card{
+  min-height:44px!important;
+  height:44px!important;
+  padding:7px 12px!important;
+  display:grid!important;
+  grid-template-columns:1fr!important;
+  gap:2px!important;
+  background:#fffaf0!important;
+  border-left-color:#d99a24!important;
+  overflow:hidden!important;
+}
+.planner-task-card .schedule-card-header.planner-card-v41k{
+  display:flex!important;
+  align-items:center!important;
+  justify-content:space-between!important;
+  grid-template-columns:none!important;
+  padding-right:22px!important;
+  gap:8px!important;
+}
+.planner-task-card .task-label{
+  display:inline-flex!important;
+  align-items:center!important;
+  height:18px!important;
+  padding:0 7px!important;
+  border-radius:4px!important;
+  background:#eceff3!important;
+  color:#475467!important;
+  font-size:9px!important;
+  font-weight:900!important;
+  letter-spacing:.7px!important;
+}
+.planner-task-card .planner-card-right{display:flex!important;align-items:center!important;gap:6px!important;margin-left:auto!important}
+.planner-task-card .workflow-badge,.planner-task-card .ramp-badge{display:none!important}
+.planner-task-card .job-time{font-size:10px!important;white-space:nowrap!important}
+.planner-task-card .job-work{
+  margin:0!important;
+  font-size:11px!important;
+  line-height:1.15!important;
+  color:#344054!important;
+  white-space:nowrap!important;
+  overflow:hidden!important;
+  text-overflow:ellipsis!important;
+}
+.planner-task-card .card-menu{top:5px!important;right:5px!important}

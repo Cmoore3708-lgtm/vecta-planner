@@ -625,6 +625,33 @@ html,body{font-size:14px;background:var(--bg);color:var(--text)}.app{grid-templa
 .job .resizeHandle:after,.job .resizeTopHandle:after{height:3px!important;width:38px!important;background:rgba(15,23,42,.48)!important}
 .job.resizing{cursor:ns-resize!important;outline:2px solid #e11d2e!important;box-shadow:0 16px 32px rgba(15,23,42,.18)!important}
 .searchPage{max-width:1280px;margin:0 auto}.searchPageHead h1{margin:0 0 4px;font-size:28px}.searchPageHead{margin-bottom:18px}.searchTabs{display:flex;gap:8px;border-bottom:1px solid var(--line);margin-bottom:16px}.searchTab{border:0;background:transparent;padding:12px 18px;font-weight:950;color:#64748b;border-bottom:3px solid transparent}.searchTab.active{color:#b91421;border-bottom-color:#e11d2e}.searchHero{background:#fff;border:1px solid var(--line);border-radius:14px;padding:18px;margin-bottom:16px;box-shadow:0 8px 25px rgba(15,23,42,.04)}.searchHero label{display:block;font-size:12px;text-transform:uppercase;letter-spacing:.04em;font-weight:950;color:#475569;margin-bottom:8px}.searchHero .search{width:100%;font-size:19px;padding:14px 16px}.searchResultHead{display:flex;justify-content:space-between;align-items:center;margin:18px 0 10px}.searchResultHead b{font-size:18px}.searchResultHead span{color:#64748b;font-weight:800}.vehicleListRow,.customerSearchRow{width:100%;text-align:left;font-family:inherit}.customerSearchRow{grid-template-columns:120px minmax(220px,1.5fr) minmax(160px,1fr) 130px}.vehicleActionBar{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px}.vehicleInfoGrid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}.vehicleInfoItem{border:1px solid var(--line);border-radius:10px;padding:11px;background:#fff}.vehicleInfoItem span{display:block;color:#64748b;font-size:10px;font-weight:950;text-transform:uppercase;margin-bottom:5px}.vehicleInfoItem b{display:block;overflow-wrap:anywhere}@media(max-width:760px){.searchTabs{overflow:auto}.searchTab{white-space:nowrap}.customerSearchRow{grid-template-columns:1fr}.vehicleInfoGrid{grid-template-columns:1fr 1fr}}
+
+/* 21 Jul 2026 final sidebar/task corrections */
+.unallocatedDropHint{display:none!important}
+.unallocatedSideJob .uniformRegPlate{
+  display:grid!important;grid-template-columns:16px 1fr!important;
+  width:126px!important;max-width:126px!important;height:28px!important;min-height:28px!important;
+  padding:0!important;margin:0 0 4px!important;overflow:hidden!important;border-radius:5px!important;
+}
+.unallocatedSideJob .uniformRegPlate .ukStrip{
+  display:flex!important;align-items:center!important;justify-content:center!important;
+  width:16px!important;height:28px!important;min-height:28px!important;padding:0!important;margin:0!important;font-size:5.5px!important;
+}
+.unallocatedSideJob .uniformRegPlate .compactPlateText{
+  display:flex!important;align-items:center!important;justify-content:center!important;
+  height:28px!important;min-width:0!important;padding:0 4px!important;margin:0!important;
+  background:#f5c400!important;color:#111827!important;font-size:13px!important;font-weight:1000!important;
+  letter-spacing:.07em!important;line-height:1!important;white-space:nowrap!important;overflow:hidden!important;
+}
+.plannerGrid .lane .job.miniPlannerTask{
+  height:max(40px,var(--task-height,40px))!important;min-height:40px!important;
+  padding:5px 8px!important;border-left-width:4px!important;border-radius:7px!important;
+}
+.plannerGrid .miniPlannerTask .miniTaskTop{display:flex!important;align-items:center!important;justify-content:space-between!important;gap:6px!important}
+.plannerGrid .miniPlannerTask .miniTaskLabel{padding:2px 6px!important;font-size:8px!important}
+.plannerGrid .miniPlannerTask .miniTaskTime{font-size:9px!important;white-space:nowrap!important}
+.plannerGrid .miniPlannerTask .miniTaskWork{margin-top:2px!important;font-size:10px!important;line-height:1.05!important;white-space:nowrap!important;text-overflow:ellipsis!important;overflow:hidden!important}
+
 </style>
 
 <style id="v43-task-return-and-plate-fix">
@@ -1087,7 +1114,7 @@ function listPlate(reg){var r=normReg(reg||'');return '<span class="ukPlate unif
 function scheduleMini(jobs){if(!jobs.length)return '<div class="empty">No jobs booked for this day yet.</div>';return '<div class="tableList">'+jobs.sort(byTime).map(function(j){return '<div class="rowCard scheduleRow" data-open-job="'+j.id+'"><span class="timeBadge">'+esc(j.drop_time||'08:00')+'</span>'+listPlate(j.registration)+'<div><b>'+esc(j.vehicle||'Vehicle')+'</b><br><span class="muted">'+esc(j.work_required||'')+'</span></div><span>'+esc(j.technician||'Unallocated')+'</span><span class="pill">'+statusText(j.status)+'</span></div>'}).join('')+'</div>'}
 function unallocatedJobs(){return app.jobs.filter(function(j){return !j.archived&&j.status!=='completed'&&(!j.technician||j.technician==='Unallocated')}).slice().sort(function(a,b){var dateCompare=String(a.booking_date||'9999-12-31').localeCompare(String(b.booking_date||'9999-12-31'));return dateCompare||byTime(a,b)})}
 function unallocatedMini(){var p=unallocatedJobs().slice(0,8);if(!p.length)return '<div class="ok">No unallocated jobs.</div>';return p.map(function(j){return '<div class="sideJob" data-open-job="'+j.id+'">'+fullPlate(j.registration)+'<b>'+esc(j.vehicle||'Vehicle')+'</b><p>'+esc(j.work_required||'')+'</p></div>'}).join('')}
-function unallocatedPanelHtml(){var rows=unallocatedJobs();return '<aside class="panel unallocatedPanel" data-unallocated-drop="true"><div class="unallocatedHead"><h3>Unallocated Jobs <span class="pill">'+rows.length+'</span></h3></div><div class="unallocatedDropHint">Drag a planner job here if it does not arrive</div><div class="unallocatedJobList">'+(rows.length?rows.map(function(j){return '<div draggable="true" class="sideJob unallocatedSideJob" data-job-id="'+j.id+'">'+compactUnallocatedPlate(j.registration||'NO REG')+'<b>'+esc(jobTitle(j))+'</b><p>'+esc(j.vehicle||'Vehicle')+'</p></div>'}).join(''):'<div class="empty">No unallocated jobs.</div>')+'</div></aside>'}
+function unallocatedPanelHtml(){var rows=unallocatedJobs();return '<aside class="panel unallocatedPanel" data-unallocated-drop="true"><div class="unallocatedHead"><h3>Unallocated Jobs <span class="pill">'+rows.length+'</span></h3></div><div class="unallocatedJobList">'+(rows.length?rows.map(function(j){return '<div draggable="true" class="sideJob unallocatedSideJob" data-job-id="'+j.id+'">'+compactUnallocatedPlate(j.registration||'NO REG')+'<b>'+esc(jobTitle(j))+'</b><p>'+esc(j.vehicle||'Vehicle')+'</p></div>'}).join(''):'<div class="empty">No unallocated jobs.</div>')+'</div></aside>'}
 function plannerMetricsHtml(mechanics,jobs){var open=app.jobs.filter(function(j){return !j.archived&&j.status!=='completed'});var ready=app.jobs.filter(function(j){return !j.archived&&j.status==='ready_to_invoice'});var items=[{label:'Jobs Scheduled',value:jobs.length,view:'jobs'},{label:'Open Jobs',value:open.length,view:'jobs'},{label:'Ready To Invoice',value:ready.length,view:'invoices'}];(app.settings.ramps||['Left','Middle','Right']).forEach(function(r){var h=jobs.filter(function(j){return j.ramp===r}).reduce(function(a,j){return a+Number(j.estimated_hours||1)},0);items.push({label:r+' Ramp',value:Math.min(100,Math.round(h/8*100))+'%',bar:Math.min(100,Math.round(h/8*100)),view:'planner',cls:'ramp '+rampClass(r),filterType:'ramp',filterName:r});});mechanics.forEach(function(m){var h=mechanicHours(jobs,m);items.push({label:m,value:Math.min(100,Math.round(h/8*100))+'%',bar:Math.min(100,Math.round(h/8*100)),view:'planner',cls:'tech',filterType:'technician',filterName:m});});return metricsHtml(items).replace('gridMetrics','gridMetrics plannerMetrics')}
 
 function taskMeta(t){var d={priority:'normal',due:'',notes:'',pinned:false,allocated:false,allocated_to:'',allocated_time:'',mini_job_id:'',registration:'',vehicle:''};try{if(t.priority&&String(t.priority).charAt(0)==='{')d=Object.assign(d,JSON.parse(t.priority));else if(t.priority)d.priority=t.priority==='urgent'?'high':(t.priority==='today'?'normal':t.priority)}catch(e){}return d}
