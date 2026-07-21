@@ -34,6 +34,9 @@ VECTA Workshop Pro - Search and Vehicle Record update
   opening the existing New Task form directly without affecting desktop layout.
 - Flattened and narrowed registration plates in Unallocated Jobs.
 - Removed the unallocated-card date/time footer and reduced card height further.
+- Restored dragging tasks from My Tasks onto mechanic planner lanes.
+- Aligned task drag/drop modes for Edge and prevented a completed drag from
+  accidentally opening the task editor.
 - Added vehicles found in job history even when a separate vehicle row is missing.
 - Registration clicks now open a read-only Vehicle Record.
 - Added vehicle information, MOT/tax status, customer details and chronological history.
