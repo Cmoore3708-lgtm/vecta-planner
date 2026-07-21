@@ -1,0 +1,12 @@
+Amendments applied to the supplied latest ZIP:
+- Added “Booking came from” beside Job Type with Email, Telephone, Called in, Text message, WhatsApp and Website booking.
+- Reduced job-card modal spacing and dimensions so footer actions remain visible more easily.
+- Changed Archive Job action wording to Completed and made it complete/archive the job.
+- Removed sticky positioning from the dashboard welcome/top three cards.
+- Reworked invoice print layout to avoid a leading blank page.
+- Removed printed invoice box outlines.
+- Moved VAT to the right of Amount in invoice entry and print columns.
+- Right-aligned Subtotal, VAT and Total and positioned the totals at the lower-right of the printed page.
+- Added Brake Lines to Service Sheet health checks.
+- Removed General Mechanical from Service Sheet health checks.
+- Inline JavaScript syntax checked successfully with Node.
