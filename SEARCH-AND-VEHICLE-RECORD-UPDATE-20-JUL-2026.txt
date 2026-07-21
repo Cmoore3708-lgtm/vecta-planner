@@ -16,6 +16,14 @@ VECTA Workshop Pro - Search and Vehicle Record update
   vehicle, work required, booking time, ramp and a large job type.
 - Removed job status from printed planner cards to release space for useful work
   information.
+- Rebuilt the planner control rail as two side-by-side columns for My Tasks and
+  Unallocated Jobs on desktop screens.
+- Preserved the task and unallocated-list scroll positions during live Supabase
+  refreshes, preventing the lists from snapping back to the top.
+- Condensed task cards, moved Edit/Delete controls to the top-right and reduced
+  unallocated job-card height.
+- Reduced the desktop navigation width to release more room for the planner and
+  control rail.
 - Added vehicles found in job history even when a separate vehicle row is missing.
 - Registration clicks now open a read-only Vehicle Record.
 - Added vehicle information, MOT/tax status, customer details and chronological history.
