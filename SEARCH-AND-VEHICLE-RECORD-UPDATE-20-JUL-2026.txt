@@ -24,6 +24,12 @@ VECTA Workshop Pro - Search and Vehicle Record update
   unallocated job-card height.
 - Reduced the desktop navigation width to release more room for the planner and
   control rail.
+- Reduced the combined planner control rail from 500px to 380px to restore the
+  main mechanic columns.
+- Reordered the control rail to show Unallocated Jobs on the left and My Tasks
+  on the right.
+- Removed the separate task Edit button; clicking a task card now opens it while
+  checkbox, pin and Delete remain independent controls.
 - Added vehicles found in job history even when a separate vehicle row is missing.
 - Registration clicks now open a read-only Vehicle Record.
 - Added vehicle information, MOT/tax status, customer details and chronological history.
