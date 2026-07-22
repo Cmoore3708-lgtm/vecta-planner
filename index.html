@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>VECTA Workshop Pro v41.5 Live Planner & Job Colours</title>
+  <title>VECTA Workshop Pro v41.6 Smart Live Planner</title>
   <meta name="description" content="VECTA Workshop Pro - stable static workshop planner" />
   <style>
     :root{
@@ -682,6 +682,17 @@ html,body{font-size:14px;background:var(--bg);color:var(--text)}.app{grid-templa
 .currentTimeLine{position:absolute;left:0;right:0;height:0;border-top:2px solid #dc2626;z-index:25;pointer-events:none;filter:drop-shadow(0 1px 1px rgba(127,29,29,.3))}
 .currentTimeLine:after{content:"";position:absolute;right:0;top:-5px;width:10px;height:10px;border-radius:50%;background:#dc2626}
 .currentTimeLabel{position:absolute;left:3px;top:-10px;padding:2px 4px;border-radius:4px;background:#dc2626;color:#fff;font-size:7px;font-weight:1000;line-height:1;letter-spacing:.02em}
+/* V41.6 live-window alignment: preserve real clock grid when the window starts mid-hour. */
+.plannerGrid.liveWindow .timeCol{position:relative;min-height:var(--planner-body-height,0)!important;background:#f8fafc!important}
+.plannerGrid.liveWindow .timeCol .time{height:56px!important;min-height:0!important;padding-top:7px!important}
+.plannerGrid.liveWindow .timeCol .time.partial{height:var(--partial-height,0px)!important;padding:0!important;border-bottom:1px solid #edf1f5!important}
+.plannerGrid.liveWindow .lane{
+  background-color:#fff!important;
+  background-image:linear-gradient(to bottom,transparent 55px,#edf1f5 55px,#edf1f5 56px)!important;
+  background-size:100% 56px!important;
+  background-position:0 var(--planner-grid-position,0px)!important;
+  background-repeat:repeat-y!important;
+}
 .printPlannerJob.jobTypeCoded{border-top:5px solid var(--job-type-color)!important}
 .printPlannerType{padding:4px 7px!important;border-radius:5px;background:var(--job-type-color)!important;color:var(--job-type-contrast)!important}
 .jobTypePrintLabel{display:inline-flex;padding:2px 6px;border-radius:4px;background:var(--job-type-color);color:var(--job-type-contrast);font-weight:900}
@@ -1357,7 +1368,7 @@ body.servicePreviewing .servicePreviewControls{position:relative!important;z-ind
   <aside class="side">
     <div class="logo"><img class="vectaBrandLogo sidebarBrandLogo" src="/assets/vecta-logo.png" alt="VECTA Vehicle Servicing and repairs"><div class="product">Workshop Pro</div></div>
     <nav class="nav" id="nav"></nav>
-    <div class="sideFoot"><b>V41.5 Live Planner</b><br>Colour-coded job types<br>Automatic live-day view.</div>
+    <div class="sideFoot"><b>V41.6 Smart Live Planner</b><br>Colour-coded job types<br>Automatic unfinished-job tracking.</div>
   </aside>
   <main class="main">
     <header class="top">
@@ -1377,7 +1388,7 @@ body.servicePreviewing .servicePreviewControls{position:relative!important;z-ind
 <script>
 (function(){
 'use strict';
-var VERSION='v41.4-planner-alignment-fix';
+var VERSION='v41.6-smart-live-planner';
 var BRAND_LOGO_SRC='/assets/vecta-logo.png';
 function printWhenImagesReady(){
   var root=document.getElementById('printSheet');
@@ -1659,20 +1670,46 @@ function createMiniTaskFromDrop(t,tech,time){var m=taskMeta(t),reg=normReg(m.reg
 
 function clockMinutes(value){var p=String(value||'08:00').split(':');return (Number(p[0]||8)*60)+Number(p[1]||0)}
 function currentClockMinutes(){var d=new Date();return d.getHours()*60+d.getMinutes()}
-function plannerWindowConfig(jobs){
-  var dayStart=8*60,dayLast=17*60,isToday=selectedIso()===todayIso(),now=currentClockMinutes(),start=dayStart;
+function plannerWindowConfig(jobs,mechanics){
+  var dayStart=8*60,dayLast=17*60,isToday=selectedIso()===todayIso(),now=currentClockMinutes(),start=dayStart,mode='full';
   if(isToday&&!plannerShowFullDay&&now>=dayStart){
-    var unfinishedPast=(jobs||[]).filter(function(j){return j.card_type!=='multi_day'&&clockMinutes(j.drop_time||'08:00')<=now});
-    var anchor=unfinishedPast.length?Math.min.apply(null,unfinishedPast.map(function(j){return clockMinutes(j.drop_time||'08:00')})):Math.min(now,16*60);
-    start=Math.max(dayStart,Math.min(15*60,(Math.floor(anchor/60)-1)*60));
+    var allowed={};(mechanics||[]).forEach(function(m){allowed[String(m)]=true});
+    var unfinishedPast=(jobs||[]).filter(function(j){
+      return j.card_type!=='multi_day'&&allowed[String(j.technician||'')]&&clockMinutes(j.drop_time||'08:00')<=now;
+    });
+    if(unfinishedPast.length){
+      var anchor=Math.min.apply(null,unfinishedPast.map(function(j){return clockMinutes(j.drop_time||'08:00')}));
+      start=Math.max(dayStart,Math.floor(anchor/60)*60);
+      mode='unfinished';
+    }else{
+      start=Math.max(dayStart,Math.min(now,16*60));
+      mode='now';
+    }
   }
-  return {startMinutes:start,isToday:isToday,now:now,cropped:start>dayStart,dayLast:dayLast};
+  var minutePart=start%60;
+  var firstHourOffset=minutePart===0?PLANNER_PX_PER_HOUR:((60-minutePart)/60)*PLANNER_PX_PER_HOUR;
+  return {startMinutes:start,isToday:isToday,now:now,cropped:start>dayStart,dayLast:dayLast,mode:mode,gridPosition:firstHourOffset-PLANNER_PX_PER_HOUR};
 }
-function plannerTimes(startMinutes){var out=[];for(var mins=startMinutes;mins<=16*60;mins+=60)out.push(timeFromMinutes(mins));return out}
+function plannerTimeRows(startMinutes,dayLast){
+  var html='',minutePart=startMinutes%60,nextHour=minutePart===0?startMinutes:startMinutes+(60-minutePart);
+  if(minutePart){
+    var partialHeight=((nextHour-startMinutes)/60)*PLANNER_PX_PER_HOUR;
+    html+='<div class="time partial" style="--partial-height:'+partialHeight+'px" aria-hidden="true"></div>';
+  }
+  for(var mins=nextHour;mins<dayLast;mins+=60)html+='<div class="time">'+timeFromMinutes(mins)+'</div>';
+  return html;
+}
 function currentTimeLineHtml(config){if(!config.isToday||config.now<config.startMinutes||config.now>config.dayLast)return '';var top=48+((config.now-config.startMinutes)/60)*PLANNER_PX_PER_HOUR;return '<div class="currentTimeLine" id="currentTimeLine" style="top:'+top+'px"><span class="currentTimeLabel" id="currentTimeLabel">NOW '+esc(timeFromMinutes(config.now))+'</span></div>'}
-function updateCurrentTimeLine(){var line=document.getElementById('currentTimeLine'),label=document.getElementById('currentTimeLabel');if(!line||selectedIso()!==todayIso())return;var now=currentClockMinutes(),top=48+((now-plannerStartMinutes)/60)*PLANNER_PX_PER_HOUR;line.style.top=top+'px';if(label)label.textContent='NOW '+timeFromMinutes(now)}
-function plannerLiveControlsHtml(config){if(!config.isToday)return '';var text=config.cropped?'Live view starts at '+timeFromMinutes(config.startMinutes)+' — completed blank hours are hidden':'Live view — unfinished work stays visible above the red time line';var button=plannerShowFullDay?'<button id="plannerFollowLive" type="button">Follow current time</button>':'<button id="plannerFullDay" type="button">Show full day</button>';return '<div class="plannerLiveControls"><span class="plannerLiveStatus"><i class="plannerLiveDot"></i>'+esc(text)+'</span>'+button+'</div>'}
-function plannerHtml(){var mechanics=(app.settings.mechanics&&app.settings.mechanics.length?app.settings.mechanics:['Alfie','Jordan']);var jobs=jobsForDate(),dayJobs=allJobsForDate();var live=plannerWindowConfig(jobs);plannerStartMinutes=live.startMinutes;var mechanicColumns='62px repeat('+mechanics.length+','+(mechanics.length>2?'minmax(260px,1fr)':'minmax(0,1fr)')+')';var mechanicMinWidth=mechanics.length>2?(62+(mechanics.length*260))+'px':'';var bodyHeight=((live.dayLast-plannerStartMinutes)/60)*PLANNER_PX_PER_HOUR;var gridStyle='grid-template-columns:'+mechanicColumns+';--planner-body-height:'+bodyHeight+'px;'+(mechanicMinWidth?'min-width:'+mechanicMinWidth+';':'');var desktop='<div class="mobileTasksTop">'+myTasksHtml('mobile')+'</div>'+plannerMetricsHtml(mechanics,jobs,dayJobs)+'<div class="mobilePlannerNotice">Mobile planner mode: drag-and-drop is disabled so the page scrolls properly. Use the buttons on each job to move, time, ramp or status.</div>'+mobilePlannerHtml(mechanics,jobs)+'<div class="plannerLayout"><div class="plannerCard">'+plannerLiveControlsHtml(live)+'<div class="plannerGrid liveWindow" style="'+gridStyle+'"><div class="head">Time</div>'+mechanics.map(function(m){return '<div class="head"><div>'+esc(m)+'<small>'+mechanicHours(dayJobs,m)+' hrs booked</small></div></div>'}).join('')+currentTimeLineHtml(live)+'<div class="timeCol">'+plannerTimes(plannerStartMinutes).map(function(t){return '<div class="time">'+t+'</div>'}).join('')+'</div>'+mechanics.map(function(m){return laneHtml(m,jobs)}).join('')+'</div></div><div class="plannerSidebar">'+unallocatedPanelHtml()+myTasksHtml('desktop')+'</div></div>';return desktop}
+function updateCurrentTimeLine(){
+  if(selectedIso()!==todayIso())return;
+  var mechanics=(app.settings.mechanics&&app.settings.mechanics.length?app.settings.mechanics:['Alfie','Jordan']);
+  var live=plannerWindowConfig(jobsForDate(),mechanics);
+  if(!plannerShowFullDay&&live.startMinutes!==plannerStartMinutes){render();return}
+  var line=document.getElementById('currentTimeLine'),label=document.getElementById('currentTimeLabel');if(!line)return;
+  var top=48+((live.now-plannerStartMinutes)/60)*PLANNER_PX_PER_HOUR;line.style.top=top+'px';if(label)label.textContent='NOW '+timeFromMinutes(live.now)
+}
+function plannerLiveControlsHtml(config){if(!config.isToday)return '';var text=config.mode==='unfinished'?'Live view starts at '+timeFromMinutes(config.startMinutes)+' — earliest unfinished job remains visible':config.mode==='now'?'Live view follows the current time — no unfinished jobs remain above the red line':'Full-day view';var button=plannerShowFullDay?'<button id="plannerFollowLive" type="button">Follow current time</button>':'<button id="plannerFullDay" type="button">Show full day</button>';return '<div class="plannerLiveControls"><span class="plannerLiveStatus"><i class="plannerLiveDot"></i>'+esc(text)+'</span>'+button+'</div>'}
+function plannerHtml(){var mechanics=(app.settings.mechanics&&app.settings.mechanics.length?app.settings.mechanics:['Alfie','Jordan']);var jobs=jobsForDate(),dayJobs=allJobsForDate();var live=plannerWindowConfig(jobs,mechanics);plannerStartMinutes=live.startMinutes;var mechanicColumns='62px repeat('+mechanics.length+','+(mechanics.length>2?'minmax(260px,1fr)':'minmax(0,1fr)')+')';var mechanicMinWidth=mechanics.length>2?(62+(mechanics.length*260))+'px':'';var bodyHeight=((live.dayLast-plannerStartMinutes)/60)*PLANNER_PX_PER_HOUR;var gridStyle='grid-template-columns:'+mechanicColumns+';--planner-body-height:'+bodyHeight+'px;--planner-grid-position:'+live.gridPosition+'px;'+(mechanicMinWidth?'min-width:'+mechanicMinWidth+';':'');var desktop='<div class="mobileTasksTop">'+myTasksHtml('mobile')+'</div>'+plannerMetricsHtml(mechanics,jobs,dayJobs)+'<div class="mobilePlannerNotice">Mobile planner mode: drag-and-drop is disabled so the page scrolls properly. Use the buttons on each job to move, time, ramp or status.</div>'+mobilePlannerHtml(mechanics,jobs)+'<div class="plannerLayout"><div class="plannerCard">'+plannerLiveControlsHtml(live)+'<div class="plannerGrid liveWindow" style="'+gridStyle+'"><div class="head">Time</div>'+mechanics.map(function(m){return '<div class="head"><div>'+esc(m)+'<small>'+mechanicHours(dayJobs,m)+' hrs booked</small></div></div>'}).join('')+currentTimeLineHtml(live)+'<div class="timeCol" style="height:'+bodyHeight+'px">'+plannerTimeRows(plannerStartMinutes,live.dayLast)+'</div>'+mechanics.map(function(m){return laneHtml(m,jobs)}).join('')+'</div></div><div class="plannerSidebar">'+unallocatedPanelHtml()+myTasksHtml('desktop')+'</div></div>';return desktop}
 function mobilePlannerHtml(mechanics,jobs){var groups=[];mechanics.forEach(function(m){groups.push({name:m,list:jobs.filter(function(j){return j.technician===m}).sort(byTime)})});groups.push({name:'Unallocated / Here for a few days',list:app.jobs.filter(function(j){return !j.archived&&(!j.technician||j.technician==='Unallocated'||j.card_type==='multi_day')}).sort(byTime)});return '<div class="mobilePlanner">'+groups.map(function(g){return '<div class="mobileGroup"><div class="mobileGroupHead"><span>'+esc(g.name)+'</span><span class="pill">'+g.list.length+'</span></div>'+(g.list.length?g.list.map(mobileJobCardHtml).join(''):'<div class="empty">No jobs here.</div>')+'</div>'}).join('')+'<div class="panel"><h3>General Notes</h3><textarea class="notesArea" id="notesArea" placeholder="Workshop notes...">'+esc(app.notes||'')+'</textarea></div></div>'}
 function mobileJobCardHtml(j){var st=String(j.status||'booked');return '<div class="mobileJob jobTypeCoded" style="'+jobTypeInlineStyle(j)+'" data-open-job="'+j.id+'"><div class="mobileJobTop">'+plannerPlate(j)+'<span class="status '+st+'">'+statusText(st)+'</span></div><div class="sideJobType">'+jobTypeChip(j)+'</div><b>'+esc(j.work_required||'No work required entered')+'</b><div class="mobileJobMeta">'+esc(j.vehicle||'Vehicle')+(j.customer_name?' · '+esc(j.customer_name):'')+'<br>'+esc(j.technician||'Unallocated')+' · '+esc(timeRange(j))+' · '+esc(j.ramp||'No ramp')+'</div><div class="mobileActions"><button data-mobile-move="'+j.id+'">Move</button><button data-mobile-time="'+j.id+'">Time</button><button data-mobile-ramp="'+j.id+'">Ramp</button><button data-mobile-status="'+j.id+'">Status</button></div></div>'}
 function updateJobQuick(j){j.archived=j.status==='completed';j.updated_at=new Date().toISOString();syncTaskFromMiniJob(j);saveAll();upsertRemote('jobs',j);render()}
