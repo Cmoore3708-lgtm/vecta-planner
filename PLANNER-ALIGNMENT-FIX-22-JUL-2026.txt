@@ -1,0 +1,9 @@
+V41.4 PLANNER ALIGNMENT FIX
+
+- Registration plate is on the top-left of each standard planner job.
+- Job type is on the same row, immediately to the right, with a slightly larger font.
+- Vehicle make/model is directly beneath the registration plate.
+- Booking time is right-aligned on the same row as the vehicle.
+- Work required remains immediately below the two-column header on one-hour-or-longer jobs.
+- 15, 30 and 45-minute compact layouts remain proportional and do not overlap adjacent jobs.
+- Updated the live root index.html and React source for future rebuilds.

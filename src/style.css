@@ -798,3 +798,28 @@ body{background:var(--vecta-soft);color:var(--vecta-text)}
   padding:0!important;
   border-top:0!important;
 }
+
+
+/* v41.4 planner alignment: registration/vehicle left, job type/time right. */
+.schedule-card:not(.planner-task-card) .schedule-card-header.planner-card-v41k{
+  display:grid!important;
+  grid-template-columns:92px minmax(0,1fr)!important;
+  column-gap:7px!important;
+  align-items:start!important;
+}
+.schedule-card:not(.planner-task-card) .planner-card-left,
+.schedule-card:not(.planner-task-card) .planner-card-right-text{
+  display:grid!important;
+  grid-template-rows:21px 11px!important;
+  row-gap:1px!important;
+  min-width:0!important;
+}
+.schedule-card:not(.planner-task-card) .planner-card-left .planner-vehicle-title{
+  display:block!important;margin:0!important;max-width:92px!important;font-size:8.5px!important;min-height:0!important;height:8.5px!important;line-height:8.5px!important;white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important;
+}
+.schedule-card:not(.planner-task-card) .planner-card-right-text .planner-job-type{
+  align-self:center!important;margin:0!important;font-size:11.5px!important;font-weight:1000!important;line-height:1!important;text-transform:capitalize!important;white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important;
+}
+.schedule-card:not(.planner-task-card) .planner-card-right-text .job-time{
+  align-self:center!important;justify-self:end!important;position:static!important;margin:0!important;padding:0!important;border:0!important;background:transparent!important;font-size:8.5px!important;line-height:1!important;white-space:nowrap!important;
+}

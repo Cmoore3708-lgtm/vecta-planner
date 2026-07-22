@@ -483,17 +483,24 @@ function ScheduleCard({ job, settings, onEdit, onDragStart, onHistory, onInvoice
   return (
     <div className={`schedule-card ${isTaskCard ? "planner-task-card" : ""} ${rampClass(job.ramp) || ""} status-${job.status || "booked"}`} draggable onDragStart={e => onDragStart(e, job)} onDoubleClick={() => onEdit(job)}>
       <div className="schedule-card-header planner-card-v41k">
-        {isTaskCard ? <span className="task-label">TASK</span> : <span className="uk-reg-plate" title="Vehicle registration"><span className="gb-strip">GB</span><strong>{job.registration || "NO REG"}</strong></span>}
-        <span className="planner-card-right">
-          <span className="job-time">{start} – {end}</span>
-          <span className={`workflow-badge workflow-${job.status || "booked"}`}>{statusText}</span>
-          <span className="ramp-badge">{job.ramp ? rampLabel(job.ramp, settings) : "No ramp"}</span>
-        </span>
+        {isTaskCard ? (
+          <span className="task-label">TASK</span>
+        ) : (
+          <>
+            <span className="planner-card-left">
+              <span className="uk-reg-plate" title="Vehicle registration"><span className="gb-strip">GB</span><strong>{job.registration || "NO REG"}</strong></span>
+              <span className="planner-vehicle-title">{job.vehicle || "Vehicle"}</span>
+            </span>
+            <span className="planner-card-right-text">
+              <strong className="planner-job-type">{String(job.job_type || "General").replaceAll("_", " ")}</strong>
+              <span className="job-time">{start} – {end}</span>
+            </span>
+          </>
+        )}
       </div>
 
       <button className="card-menu" title="Open actions" onClick={(e) => { e.stopPropagation(); onEdit(job); }}>⋮</button>
 
-      {!isTaskCard && <h4 className="planner-vehicle-title">{job.vehicle || "Vehicle"}</h4>}
       <p className="job-work">{job.work_required || "Work required"}</p>
       {!isTaskCard && job.customer_name && <div className="planner-customer-name">{job.customer_name}</div>}
 
