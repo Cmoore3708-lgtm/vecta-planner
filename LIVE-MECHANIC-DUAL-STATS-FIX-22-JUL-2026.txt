@@ -1,0 +1,10 @@
+Corrected live planner mechanic statistics
+
+- Applied the change directly to the standalone index.html served by Vercel.
+- Booked Capacity bar now appears at the top of each mechanic summary card.
+- Work Completed bar remains at the bottom in the former graph position.
+- Booked and Completed percentages display side by side.
+- Booked Capacity continues to include jobs completed and archived on that date.
+- Work Completed is completed hours divided by booked hours.
+- Completed jobs remain hidden from the live planner lanes.
+- Summary cards retain their existing 58px height.
