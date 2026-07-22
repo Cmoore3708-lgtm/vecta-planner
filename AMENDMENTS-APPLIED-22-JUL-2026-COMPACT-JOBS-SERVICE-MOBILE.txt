@@ -1,0 +1,23 @@
+VECTA WORKSHOP PRO – AMENDMENTS APPLIED 22 JULY 2026
+
+1. Planner jobs and vertical hour grid reduced by 20% (70px to 56px per hour).
+2. Drag, drop and resize calculations now use the same compact scale.
+3. Service sheet includes Tick All Green and Service Light Reset buttons.
+4. Service-sheet action buttons are excluded from printing.
+5. My Tasks is visible below the mobile planner; duplicate mobile unallocated panel remains hidden.
+6. Entering a known registration auto-fills vehicle, customer name, phone, email and latest mileage.
+7. Work Required is mandatory before a job can be saved.
+8. Settings no longer re-render every three seconds while being edited.
+9. Preset template label changed from Description to Work Required.
+
+The live standalone index.html was amended because that is the file actually served by this build.
+
+VALIDATION COMPLETED
+- JavaScript syntax check passed.
+- Root and dist copies synchronised.
+- Chromium browser test confirmed 56px hourly grid and 52px one-hour job card with no clipped content.
+- Registration autofill confirmed for vehicle, customer name, phone and email.
+- Work Required validation confirmed to block saving and highlight the field.
+- Tick All Green selected all 25 service-sheet condition groups.
+- Service controls confirmed hidden under print media.
+- My Tasks confirmed visible on a 390px mobile viewport.
