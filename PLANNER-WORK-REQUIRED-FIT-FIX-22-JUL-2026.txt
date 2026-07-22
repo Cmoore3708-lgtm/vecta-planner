@@ -1,0 +1,5 @@
+Planner one-hour job-card fit amendment
+
+- Removed the horizontal divider above Work Required.
+- Removed the extra top spacing so Work Required sits directly beneath the vehicle make/model.
+- Left planner sizing, timing, drag/drop and resize behaviour unchanged.

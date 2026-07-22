@@ -494,8 +494,8 @@ function ScheduleCard({ job, settings, onEdit, onDragStart, onHistory, onInvoice
       <button className="card-menu" title="Open actions" onClick={(e) => { e.stopPropagation(); onEdit(job); }}>⋮</button>
 
       {!isTaskCard && <h4 className="planner-vehicle-title">{job.vehicle || "Vehicle"}</h4>}
-      {!isTaskCard && job.customer_name && <div className="planner-customer-name">{job.customer_name}</div>}
       <p className="job-work">{job.work_required || "Work required"}</p>
+      {!isTaskCard && job.customer_name && <div className="planner-customer-name">{job.customer_name}</div>}
 
       {!isTaskCard && <div className="schedule-card-footer">
         <span className="card-actions">
