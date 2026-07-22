@@ -1,0 +1,22 @@
+VECTA Workshop Pro — Planner display final fix
+22 July 2026
+
+Changes applied to the live static application and dist/index.html:
+- Job type fixed to the top-left of each planner card.
+- Vehicle displayed directly to the right of the registration plate.
+- Work required displayed immediately below the registration row on one-hour cards.
+- Planner cards now use their true proportional duration instead of forcing short jobs to a one-hour height.
+- 15, 30 and 45 minute jobs use dedicated compact layouts and do not overlap the next booking.
+- Intrusive horizontal resize bars are hidden at rest and appear subtly on interaction.
+- Removed hover movement from planner cards to prevent visual wobble.
+- Parts-status dot remains in the bottom-right corner.
+
+Validation completed:
+- Desktop rendered at 1440 x 1000 with 15, 30, 45 and 60 minute bookings.
+- Confirmed no job-card overlaps in either mechanic column.
+- Confirmed one-hour card text remains inside the card and Work Required is visible.
+- Confirmed vehicle begins to the right of the registration plate.
+- Confirmed no desktop horizontal page overflow.
+- Mobile rendered at 390 x 844.
+- Confirmed My Tasks appears first, only two mechanic statistic cards are visible, and no horizontal overflow occurs.
+- Browser console and page error checks passed.
