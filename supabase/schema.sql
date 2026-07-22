@@ -164,3 +164,20 @@ alter table mot_history enable row level security;
 
 drop policy if exists "anon can manage mot history" on mot_history;
 create policy "anon can manage mot history" on mot_history for all to anon using (true) with check (true);
+
+-- Shared service sheet records (added 22 July 2026)
+create table if not exists service_records (
+  id uuid primary key default gen_random_uuid(),
+  registration text not null,
+  html text not null,
+  saved_at timestamptz not null default now(),
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+create index if not exists service_records_registration_idx on service_records (registration);
+
+alter table service_records enable row level security;
+
+drop policy if exists "anon can manage service records" on service_records;
+create policy "anon can manage service records" on service_records for all to anon using (true) with check (true);
