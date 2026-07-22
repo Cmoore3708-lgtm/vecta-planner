@@ -669,23 +669,3 @@ button{cursor:pointer;border:0;border-radius:10px;background:#111827;color:white
   .invoice-screen{position:absolute!important;left:0!important;top:0!important;width:100%!important;min-height:0!important;height:auto!important;margin:0!important;padding:0!important}
   .invoice-page{min-height:0!important;height:auto!important;margin:0!important;padding:8mm!important;break-before:auto!important;page-break-before:auto!important;break-inside:auto!important;page-break-inside:auto!important}
 }
-
-/* Dual mechanic statistics: same header height, booked capacity above and completed work below. */
-.tech-head{
-  height:84px;
-  padding:7px 28px 6px;
-  display:grid;
-  grid-template-rows:7px 1fr 7px 15px;
-  gap:3px;
-  align-items:center;
-}
-.tech-head-main{display:flex;align-items:center;gap:12px;min-height:0}
-.tech-head-copy{min-width:0;display:flex;align-items:baseline;gap:8px}
-.tech-head-copy h2{white-space:nowrap}
-.tech-booked-bar,.tech-completed-bar{height:7px;background:#e5e7eb;border-radius:999px;overflow:hidden}
-.tech-booked-bar i,.tech-completed-bar i{display:block;height:100%;border-radius:999px}
-.tech-booked-bar i{background:#2563eb}
-.tech-completed-bar i{background:#16a34a}
-.tech-percentages{display:flex;justify-content:space-between;align-items:center;font-size:10px;color:#6b7280;line-height:1}
-.tech-percentages span{font-size:10px;color:#6b7280;white-space:nowrap}
-.tech-percentages b{font-size:12px;color:#111827;margin-right:3px}

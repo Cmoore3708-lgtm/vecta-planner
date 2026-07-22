@@ -198,14 +198,13 @@ async function listDate(date) {
       .from("jobs")
       .select("*")
       .eq("booking_date", date)
-      .eq("archived", false)
       .neq("technician", "Unallocated")
       .neq("technician", "Waiting")
       .order("drop_time");
     if (error) throw error;
     return data || [];
   }
-  return readLS(localKey(date)).filter(j => !j.archived && j.technician !== "Unallocated" && j.technician !== "Waiting");
+  return readLS(localKey(date)).filter(j => j.technician !== "Unallocated" && j.technician !== "Waiting");
 }
 
 async function listGlobal() {
@@ -1312,7 +1311,7 @@ function App() {
   const unallocated = globalJobs.filter(j => j.card_type !== "waiting" && j.technician !== "Waiting");
   const techJobs = tech => jobs.filter(j => j.technician === tech && !j.archived);
   const searchRows = [...jobs, ...globalJobs].filter(j => `${j.registration} ${j.vehicle} ${j.work_required} ${j.customer_note} ${j.customer_name} ${j.customer_phone}`.toUpperCase().includes(query.toUpperCase()));
-  const rampRows = rampModal ? jobs.filter(j => j.ramp === rampModal) : [];
+  const rampRows = rampModal ? jobs.filter(j => j.ramp === rampModal && !j.archived) : [];
 
   function dragStart(e, job, fromDate = date) {
     e.dataTransfer.setData("application/json", JSON.stringify({ id: job.id, fromDate }));
@@ -1409,12 +1408,31 @@ function App() {
             </div>
 
             {mechanicNames.map(tech => {
-              const hours = techJobs(tech).reduce((s, j) => s + Number(j.estimated_hours || 1), 0);
+              const mechanic = settings.mechanics.find(m => m.name === tech);
+              const capacity = Number(mechanic?.capacity || 8);
+              const bookedJobs = jobs.filter(j => j.technician === tech);
+              const bookedHours = bookedJobs.reduce((s, j) => s + Number(j.estimated_hours || 1), 0);
+              const completedHours = bookedJobs
+                .filter(j => j.status === "completed" || j.archived)
+                .reduce((s, j) => s + Number(j.estimated_hours || 1), 0);
+              const bookedPercent = capacity > 0 ? Math.min(100, Math.round((bookedHours / capacity) * 100)) : 0;
+              const completedPercent = bookedHours > 0 ? Math.min(100, Math.round((completedHours / bookedHours) * 100)) : 0;
               return (
                 <section className="tech-column" key={tech}>
                   <div className="tech-head">
-                    <div className="avatar">{tech[0]}</div>
-                    <div><h2>{tech}</h2><span>{hours.toFixed(1)} / 8.0 hrs</span></div>
+                    <div className="tech-booked-bar" aria-label={`Booked capacity ${bookedPercent}%`}>
+                      <i style={{ width: `${bookedPercent}%` }} />
+                    </div>
+                    <div className="tech-summary-line">
+                      <h2>{tech}</h2>
+                      <div className="tech-completed-bar" aria-label={`Work completed ${completedPercent}%`}>
+                        <i style={{ width: `${completedPercent}%` }} />
+                      </div>
+                      <div className="tech-percentages">
+                        <span title="Booked capacity">{bookedPercent}%</span>
+                        <span title="Work completed">{completedPercent}%</span>
+                      </div>
+                    </div>
                   </div>
 
                   <div className="job-stack" onDragOver={e => e.preventDefault()} onDrop={e => dropOnTech(e, tech)}>

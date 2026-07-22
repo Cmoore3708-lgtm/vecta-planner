@@ -703,12 +703,12 @@ body{background:var(--vecta-soft);color:var(--vecta-text)}
 .time-rail{background:#f8fafc!important;padding-top:52px!important}.time-rail span{color:#475569!important;font-size:11px!important;font-weight:750!important}
 .tech-column{background:#fff!important;border-right:1px solid var(--vecta-line)!important}
 .tech-head{
-  height:52px!important;padding:0 18px!important;justify-content:center!important;
+  height:52px!important;padding:7px 18px 6px!important;justify-content:center!important;flex-direction:column!important;gap:6px!important;
   background:linear-gradient(180deg,var(--vecta-blue),var(--vecta-blue-dark))!important;
   color:#fff!important;border-bottom:1px solid #063c92!important;
   box-shadow:inset 0 1px 0 rgba(255,255,255,.16)!important;
 }
-.tech-head .avatar{display:none!important}.tech-head>div:last-child{display:flex;align-items:center;gap:13px}.tech-head h2{font-size:14px!important;letter-spacing:.5px;text-transform:uppercase;color:#fff!important}.tech-head span{font-size:10px!important;color:#dbeafe!important;font-weight:800!important}
+.tech-head .avatar{display:none!important}.tech-head h2{font-size:13px!important;line-height:1!important;letter-spacing:.5px;text-transform:uppercase;color:#fff!important;white-space:nowrap}.tech-booked-bar,.tech-completed-bar{height:5px;background:rgba(255,255,255,.22);border-radius:99px;overflow:hidden}.tech-booked-bar{width:100%}.tech-booked-bar i,.tech-completed-bar i{display:block;height:100%;border-radius:99px}.tech-booked-bar i{background:#60a5fa}.tech-completed-bar i{background:#34d399}.tech-summary-line{width:100%;display:grid;grid-template-columns:auto minmax(55px,1fr) auto;align-items:center;gap:9px}.tech-percentages{display:flex;align-items:center;gap:7px}.tech-percentages span{font-size:10px!important;line-height:1!important;color:#fff!important;font-weight:900!important;min-width:31px;text-align:right}.tech-percentages span+span{color:#a7f3d0!important;border-left:1px solid rgba(255,255,255,.32);padding-left:7px}
 .job-stack{padding:13px 16px!important;gap:12px!important;min-height:598px!important;background:repeating-linear-gradient(to bottom,#fff 0,#fff 58px,#edf1f5 59px)!important}
 .schedule-card{
   min-height:101px!important;background:#fff!important;border:1px solid #d9e0e8!important;
