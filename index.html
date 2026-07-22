@@ -1361,6 +1361,22 @@ body.servicePreviewing .servicePreviewControls{position:relative!important;z-ind
 .plannerGrid .lane .job.jobTypeCoded .plannerJobType{background:transparent!important;color:var(--job-type-color)!important;padding:0!important;border-radius:0!important;font-weight:1000!important}
 .plannerGrid .lane .job.jobTypeCoded:before{background:var(--job-type-color)!important}
 </style>
+
+<style id="v417-unallocated-type-text-and-planner-font">
+/* Unallocated jobs: retain the job-type colour as text only, without a filled badge. */
+.unallocatedPanel .unallocatedSideJob .jobTypeChip{
+  background:transparent!important;
+  color:var(--job-type-color)!important;
+  padding:0!important;
+  border-radius:0!important;
+  box-shadow:none!important;
+}
+/* Main planner: make job titles slightly easier to read without changing card geometry. */
+.plannerGrid .lane .plannerJobFull .plannerJobType{font-size:12.25px!important}
+.plannerGrid .lane .plannerJobMedium .plannerJobType{font-size:10.75px!important}
+.plannerGrid .lane .plannerJobCompact .plannerJobType{font-size:8.5px!important}
+.plannerGrid .lane .plannerJobMicro .plannerJobType{font-size:6.9px!important}
+</style>
 </head>
 <body>
 <div id="fatal" class="fatal"></div>
@@ -1368,7 +1384,7 @@ body.servicePreviewing .servicePreviewControls{position:relative!important;z-ind
   <aside class="side">
     <div class="logo"><img class="vectaBrandLogo sidebarBrandLogo" src="/assets/vecta-logo.png" alt="VECTA Vehicle Servicing and repairs"><div class="product">Workshop Pro</div></div>
     <nav class="nav" id="nav"></nav>
-    <div class="sideFoot"><b>V41.6 Smart Live Planner</b><br>Colour-coded job types<br>Automatic unfinished-job tracking.</div>
+    <div class="sideFoot"><b>V41.7 Compact Visual Patch</b><br>Colour-coded job types<br>Automatic unfinished-job tracking.</div>
   </aside>
   <main class="main">
     <header class="top">
