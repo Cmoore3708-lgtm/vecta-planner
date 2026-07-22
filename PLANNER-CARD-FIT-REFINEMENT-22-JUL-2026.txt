@@ -1,0 +1,12 @@
+Planner card layout refinement — 22 July 2026
+
+- Registration plate and parts-status dot remain on the left.
+- Job type is centred in the available top-row space.
+- Time remains aligned on the far right.
+- Vehicle is shown on a compact second line.
+- Work Required is shown across the bottom in a smaller 8px font with ellipsis when needed.
+- Customer and ramp remain hidden from planner cards.
+- Planner card height, grid spacing, task cards and all other layouts are unchanged.
+- Removed the old 86px right-side padding that caused overlap and compressed content.
+- Root and dist index files are synchronised.
+- Inline JavaScript passes Node syntax validation.
