@@ -1,0 +1,16 @@
+Planner display definitive fix
+
+- Corrected the live root index.html used by the deployed planner.
+- Removed the visible horizontal resize bars from job-card content while retaining the resize hit areas.
+- One-hour jobs now show job type, time, registration, vehicle and work required without collision.
+- Job cards now use true proportional heights for 15, 30, 45 and 60+ minute bookings.
+- Added dedicated compact layouts for short bookings so adjacent jobs cannot overlap.
+- Kept drag, resize, parts-status, planner scale and mobile planner behaviour intact.
+- Updated visible build marker to V41.3 Planner Card Fix.
+
+Validation completed:
+- JavaScript syntax checked for root and dist index files.
+- Desktop render tested with consecutive 15, 45 and 60-minute bookings.
+- Confirmed no card overlaps and all one-hour card content remains inside its card.
+- Confirmed resize-bar opacity is zero.
+- Mobile render checked at 390px: no horizontal overflow, My Tasks shown first, only Alfie and Jordan statistics displayed.
