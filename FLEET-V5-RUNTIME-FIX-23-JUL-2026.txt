@@ -1,0 +1,1 @@
+Fleet v5 fixes were applied to the actual runtime index.html, not only the unused React source files. Includes contractor colour coding, WPC consolidation, working search with retained focus, and website-style yellow/blue registration plates.

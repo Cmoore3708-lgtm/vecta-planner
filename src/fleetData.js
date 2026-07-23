@@ -753,7 +753,7 @@ export const INITIAL_FLEET_VEHICLES = [
   {
     "id": "CONTRACTOR|MH24WHP",
     "fleetGroup": "Contractor Fleet",
-    "customer": "WPC ALAN",
+    "customer": "WPC",
     "registration": "MH24 WHP",
     "model": "PEUGEOT PARTNER",
     "assetNo": "",
@@ -768,7 +768,7 @@ export const INITIAL_FLEET_VEHICLES = [
   {
     "id": "CONTRACTOR|MH24WHT",
     "fleetGroup": "Contractor Fleet",
-    "customer": "WPC JAKE",
+    "customer": "WPC",
     "registration": "MH24 WHT",
     "model": "PEUGEOT PARTNER",
     "assetNo": "",
@@ -783,7 +783,7 @@ export const INITIAL_FLEET_VEHICLES = [
   {
     "id": "CONTRACTOR|MH24WHL",
     "fleetGroup": "Contractor Fleet",
-    "customer": "WPC KEV",
+    "customer": "WPC",
     "registration": "MH24 WHL",
     "model": "PEUGEOT PARTNER",
     "assetNo": "",
