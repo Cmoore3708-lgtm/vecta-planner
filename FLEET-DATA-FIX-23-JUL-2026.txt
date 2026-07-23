@@ -1,0 +1,13 @@
+VECTA Workshop Pro — Fleet Manager data fix
+
+Fixes:
+- Embedded the imported fleet seed data directly into the standalone application.
+- Repairs browsers that saved an empty Fleet array during the first build.
+- Automatically seeds 276 vehicles and 536 maintenance plans on first load.
+- Preserves genuine user-edited Fleet data when it contains records.
+
+Expected opening totals:
+- Nissan Internal: 158
+- Nissan Pool Cars: 65
+- Contractor Fleet: 53
+- Total: 276

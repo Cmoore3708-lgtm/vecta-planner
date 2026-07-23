@@ -1267,7 +1267,16 @@ const FLEET_COMPLETIONS_KEY = "vecta:fleet:completions:v1";
 function loadFleetValue(key, fallback) {
   try {
     const saved = localStorage.getItem(key);
-    return saved ? JSON.parse(saved) : fallback;
+    const parsed = saved ? JSON.parse(saved) : null;
+    // Repair the first Fleet build, which could persist an empty array before
+    // the imported seed data had loaded. Empty saved arrays now reseed from
+    // the supplied workbook data instead of leaving the dashboard at zero.
+    if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+    if (Array.isArray(fallback) && fallback.length > 0) {
+      localStorage.setItem(key, JSON.stringify(fallback));
+      return fallback;
+    }
+    return Array.isArray(parsed) ? parsed : fallback;
   } catch {
     return fallback;
   }
