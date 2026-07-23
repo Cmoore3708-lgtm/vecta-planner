@@ -1,8 +1,10 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { createRoot } from "react-dom/client";
 import { createClient } from "@supabase/supabase-js";
-import { AlertTriangle, CalendarDays, Car, CheckCircle2, ChevronLeft, ChevronRight, ClipboardList, FileText, History, LayoutDashboard, Mail, Menu, Plus, PoundSterling, Printer, Search, Settings, ShieldCheck, Users, Wand2 } from "lucide-react";
+import { AlertTriangle, CalendarDays, Car, CheckCircle2, ChevronLeft, ChevronRight, ClipboardList, FileText, History, LayoutDashboard, Mail, Menu, Plus, PoundSterling, Printer, Search, Settings, ShieldCheck, Users, Wand2, Building2, Gauge, Wrench, X } from "lucide-react";
 import "./style.css";
+import vectaLogo from "../assets/vecta-logo.png";
+import { INITIAL_FLEET_VEHICLES, INITIAL_MAINTENANCE_PLANS } from "./fleetData";
 
 const TECHS = ["Jordan", "Alfie"];
 const RAMPS = ["Left", "Middle", "Right"];
@@ -90,11 +92,6 @@ function rampLabel(key, settings) {
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 const supabase = supabaseUrl && supabaseKey ? createClient(supabaseUrl, supabaseKey) : null;
-
-function requireSupabase() {
-  if (!supabase) throw new Error("Cloud database is not configured. This device cannot safely load or save workshop data.");
-  return supabase;
-}
 
 function uuid() {
   return crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).slice(2, 10);
@@ -202,14 +199,13 @@ async function listDate(date) {
       .from("jobs")
       .select("*")
       .eq("booking_date", date)
-      .eq("archived", false)
       .neq("technician", "Unallocated")
       .neq("technician", "Waiting")
       .order("drop_time");
     if (error) throw error;
     return data || [];
   }
-  throw new Error("Supabase is not configured; jobs cannot be loaded safely.");
+  return readLS(localKey(date)).filter(j => j.technician !== "Unallocated" && j.technician !== "Waiting");
 }
 
 async function listGlobal() {
@@ -223,7 +219,7 @@ async function listGlobal() {
     if (error) throw error;
     return data || [];
   }
-  throw new Error("Supabase is not configured; unallocated jobs cannot be loaded safely.");
+  return readLS(globalKey);
 }
 
 async function listTasks() {
@@ -232,7 +228,7 @@ async function listTasks() {
     if (error) throw error;
     return data || [];
   }
-  throw new Error("Supabase is not configured; tasks cannot be loaded safely.");
+  return readLS(tasksKey).filter(t => !t.done);
 }
 
 async function listNotes() {
@@ -244,7 +240,7 @@ async function listNotes() {
       return [];
     }
   }
-  throw new Error("Supabase is not configured; notes cannot be loaded safely.");
+  return readLS(notesKey);
 }
 
 
@@ -337,9 +333,15 @@ async function saveJob(job, date) {
     return;
   }
 
-  const error = new Error("Job not saved: the cloud database is offline or not configured.");
-  alert(error.message);
-  throw error;
+  for (const key of Object.keys(localStorage)) {
+    if (key.startsWith("vecta:v113:") && key !== globalKey && key !== tasksKey && key !== notesKey) {
+      writeLS(key, readLS(key).filter(j => j.id !== payload.id));
+    }
+  }
+
+  writeLS(globalKey, readLS(globalKey).filter(j => j.id !== payload.id));
+  if (payload.booking_date) writeLS(localKey(payload.booking_date), [...readLS(localKey(payload.booking_date)), payload]);
+  else writeLS(globalKey, [...readLS(globalKey), payload]);
 }
 
 async function deleteJob(id) {
@@ -349,9 +351,9 @@ async function deleteJob(id) {
     return;
   }
 
-  const error = new Error("Job not deleted: the cloud database is offline or not configured.");
-  alert(error.message);
-  throw error;
+  for (const key of Object.keys(localStorage)) {
+    if (key.startsWith("vecta:v113:")) writeLS(key, readLS(key).filter(x => x.id !== id));
+  }
 }
 
 async function saveTask(task) {
@@ -364,9 +366,7 @@ async function saveTask(task) {
     }
     return;
   }
-  const error = new Error("Task not saved: the cloud database is offline or not configured.");
-  alert(error.message);
-  throw error;
+  writeLS(tasksKey, [...readLS(tasksKey).filter(t => t.id !== payload.id), payload]);
 }
 
 async function deleteTask(id) {
@@ -375,9 +375,7 @@ async function deleteTask(id) {
     if (error) throw error;
     return;
   }
-  const error = new Error("Task not updated: the cloud database is offline or not configured.");
-  alert(error.message);
-  throw error;
+  writeLS(tasksKey, readLS(tasksKey).filter(t => t.id !== id));
 }
 
 async function saveNote(note) {
@@ -390,9 +388,7 @@ async function saveNote(note) {
     }
     return;
   }
-  const error = new Error("Note not saved: the cloud database is offline or not configured.");
-  alert(error.message);
-  throw error;
+  writeLS(notesKey, [...readLS(notesKey).filter(n => n.id !== payload.id), payload]);
 }
 
 async function deleteNote(id) {
@@ -401,9 +397,7 @@ async function deleteNote(id) {
     if (error) throw error;
     return;
   }
-  const error = new Error("Note not deleted: the cloud database is offline or not configured.");
-  alert(error.message);
-  throw error;
+  writeLS(notesKey, readLS(notesKey).filter(n => n.id !== id));
 }
 
 function hoursForRamp(jobs, ramp) {
@@ -452,8 +446,8 @@ function SmallJobCard({ job, onEdit, onDragStart }) {
   return (
     <div className={`small-card ${rampClass(job.ramp) || "ramp-left"}`} draggable onDragStart={e => onDragStart(e, job)} onDoubleClick={() => onEdit(job)}>
       <div className="small-card-top">
-        <b>{job.registration || "NO REG"}</b>
-        <span>{job.vehicle || ""}</span>
+        <span className="uk-reg-plate small-reg-plate" title="Vehicle registration"><span className="gb-strip">GB</span><strong>{job.registration || "NO REG"}</strong></span>
+        <span className="small-card-vehicle">{job.vehicle || ""}</span>
       </div>
       <VehicleBadges job={job} />
       <p>{job.work_required || ""}</p>
@@ -485,29 +479,38 @@ function ScheduleCard({ job, settings, onEdit, onDragStart, onHistory, onInvoice
   const hours = Number(job.estimated_hours || 1);
   const end = endTimeFrom(start, hours);
 
+  const isTaskCard = job.card_type === "task" || String(job.registration || "").toUpperCase() === "TASK";
+
   return (
-    <div className={`schedule-card ${rampClass(job.ramp) || ""} status-${job.status || "booked"}`} draggable onDragStart={e => onDragStart(e, job)} onDoubleClick={() => onEdit(job)}>
+    <div className={`schedule-card ${isTaskCard ? "planner-task-card" : ""} ${rampClass(job.ramp) || ""} status-${job.status || "booked"}`} draggable onDragStart={e => onDragStart(e, job)} onDoubleClick={() => onEdit(job)}>
       <div className="schedule-card-header planner-card-v41k">
-        <span className="uk-reg-plate" title="Vehicle registration"><span className="gb-strip">GB</span><strong>{job.registration || "NO REG"}</strong></span>
-        <span className="planner-card-right">
-          <span className="job-time">{start} – {end}</span>
-          <span className={`workflow-badge workflow-${job.status || "booked"}`}>{statusText}</span>
-          <span className="ramp-badge">{job.ramp ? rampLabel(job.ramp, settings) : "No ramp"}</span>
-        </span>
+        {isTaskCard ? (
+          <span className="task-label">TASK</span>
+        ) : (
+          <>
+            <span className="planner-card-left">
+              <span className="uk-reg-plate" title="Vehicle registration"><span className="gb-strip">GB</span><strong>{job.registration || "NO REG"}</strong></span>
+              <span className="planner-vehicle-title">{job.vehicle || "Vehicle"}</span>
+            </span>
+            <span className="planner-card-right-text">
+              <strong className="planner-job-type">{String(job.job_type || "General").replaceAll("_", " ")}</strong>
+              <span className="job-time">{start} – {end}</span>
+            </span>
+          </>
+        )}
       </div>
 
       <button className="card-menu" title="Open actions" onClick={(e) => { e.stopPropagation(); onEdit(job); }}>⋮</button>
 
-      <h4 className="planner-vehicle-title">{job.vehicle || "Vehicle"}</h4>
       <p className="job-work">{job.work_required || "Work required"}</p>
-      {job.customer_name && <div className="planner-customer-name">{job.customer_name}</div>}
+      {!isTaskCard && job.customer_name && <div className="planner-customer-name">{job.customer_name}</div>}
 
-      <div className="schedule-card-footer">
+      {!isTaskCard && <div className="schedule-card-footer">
         <span className="card-actions">
           <button title="History" onClick={(e)=>{e.stopPropagation(); onHistory(job)}}><History size={14}/></button>
           <button title="Invoice" onClick={(e)=>{e.stopPropagation(); onInvoice(job)}}><FileText size={14}/></button>
         </span>
-      </div>
+      </div>}
     </div>
   );
 }
@@ -1257,6 +1260,193 @@ function Dashboard({ jobs, globalJobs, tasks, settings, date, onOpenJob, onOpenP
 }
 
 
+const FLEET_VEHICLES_KEY = "vecta:fleet:vehicles:v1";
+const FLEET_PLANS_KEY = "vecta:fleet:plans:v1";
+const FLEET_COMPLETIONS_KEY = "vecta:fleet:completions:v1";
+
+function loadFleetValue(key, fallback) {
+  try {
+    const saved = localStorage.getItem(key);
+    return saved ? JSON.parse(saved) : fallback;
+  } catch {
+    return fallback;
+  }
+}
+
+function saveFleetValue(key, value) {
+  localStorage.setItem(key, JSON.stringify(value));
+}
+
+function addMonthsISO(iso, months) {
+  const d = iso ? new Date(`${iso}T00:00:00`) : new Date();
+  d.setMonth(d.getMonth() + Number(months || 0));
+  d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
+  return d.toISOString().slice(0, 10);
+}
+
+function planDueDate(plan) {
+  if (plan.currentDueDate) return plan.currentDueDate;
+  if (!plan.targetMonth) return "";
+  const now = new Date();
+  let year = now.getFullYear();
+  const month = Number(plan.targetMonth) - 1;
+  if (month < now.getMonth()) year += 1;
+  return `${year}-${String(month + 1).padStart(2, "0")}-01`;
+}
+
+function dueTone(date) {
+  const days = daysUntil(date);
+  if (days === null) return "unknown";
+  if (days < 0) return "overdue";
+  if (days <= 30) return "soon";
+  return "future";
+}
+
+function FleetManager({ onBookJob }) {
+  const [vehicles, setVehicles] = useState(() => loadFleetValue(FLEET_VEHICLES_KEY, INITIAL_FLEET_VEHICLES));
+  const [plans, setPlans] = useState(() => loadFleetValue(FLEET_PLANS_KEY, INITIAL_MAINTENANCE_PLANS));
+  const [completions, setCompletions] = useState(() => loadFleetValue(FLEET_COMPLETIONS_KEY, []));
+  const [selectedId, setSelectedId] = useState(null);
+  const [query, setQuery] = useState("");
+  const [group, setGroup] = useState("All");
+  const [showDueOnly, setShowDueOnly] = useState(false);
+  const [newPlan, setNewPlan] = useState({ type: "DPF Renewal", intervalMonths: 3, targetMonth: "" });
+
+  const plansByVehicle = useMemo(() => {
+    const map = {};
+    plans.forEach(plan => {
+      if (!map[plan.vehicleId]) map[plan.vehicleId] = [];
+      map[plan.vehicleId].push(plan);
+    });
+    return map;
+  }, [plans]);
+
+  const enriched = useMemo(() => vehicles.map(vehicle => {
+    const vehiclePlans = (plansByVehicle[vehicle.id] || []).filter(p => p.status === "Active");
+    const dueDates = vehiclePlans.map(p => planDueDate(p)).filter(Boolean).sort();
+    const nextDue = dueDates[0] || "";
+    return { ...vehicle, vehiclePlans, nextDue, tone: dueTone(nextDue) };
+  }), [vehicles, plansByVehicle]);
+
+  const filtered = enriched.filter(v => {
+    const haystack = `${v.registration} ${v.model} ${v.customer} ${v.contactEmail} ${v.department}`.toLowerCase();
+    const groupMatch = group === "All" || v.fleetGroup === group || v.customer === group;
+    const dueMatch = !showDueOnly || v.tone === "overdue" || v.tone === "soon";
+    return haystack.includes(query.toLowerCase()) && groupMatch && dueMatch;
+  });
+
+  const selected = enriched.find(v => v.id === selectedId);
+  const totals = {
+    vehicles: enriched.length,
+    overdue: enriched.filter(v => v.tone === "overdue").length,
+    dueSoon: enriched.filter(v => v.tone === "soon").length,
+    missingEmail: enriched.filter(v => !v.contactEmail).length
+  };
+  const groupCards = [
+    ["Nissan Internal", enriched.filter(v => v.fleetGroup === "Nissan Internal").length],
+    ["Nissan Pool Cars", enriched.filter(v => v.fleetGroup === "Nissan Pool Cars").length],
+    ["Contractor Fleet", enriched.filter(v => v.fleetGroup === "Contractor Fleet").length]
+  ];
+  const customerOptions = [...new Set(enriched.filter(v => v.fleetGroup === "Contractor Fleet").map(v => v.customer))].sort();
+
+  function updateVehicle(patch) {
+    const next = vehicles.map(v => v.id === selectedId ? { ...v, ...patch } : v);
+    setVehicles(next);
+    saveFleetValue(FLEET_VEHICLES_KEY, next);
+  }
+
+  function addPlan() {
+    if (!selected || !newPlan.type.trim()) return;
+    const plan = {
+      id: uuid(), vehicleId: selected.id, type: newPlan.type.trim(),
+      intervalMonths: Number(newPlan.intervalMonths || 12),
+      targetMonth: Number(newPlan.targetMonth || 0) || null,
+      currentDueDate: "", notes: "Custom maintenance plan", status: "Active", source: "Fleet Manager"
+    };
+    const next = [...plans, plan];
+    setPlans(next);
+    saveFleetValue(FLEET_PLANS_KEY, next);
+    setNewPlan({ type: "DPF Renewal", intervalMonths: 3, targetMonth: "" });
+  }
+
+  function completePlan(plan) {
+    const completedDate = todayISO();
+    const nextDue = addMonthsISO(completedDate, plan.intervalMonths);
+    const nextPlans = plans.map(p => p.id === plan.id ? { ...p, currentDueDate: nextDue } : p);
+    const nextCompletions = [...completions, {
+      id: uuid(), vehicleId: plan.vehicleId, planId: plan.id, type: plan.type,
+      completedDate, nextDue
+    }];
+    setPlans(nextPlans); setCompletions(nextCompletions);
+    saveFleetValue(FLEET_PLANS_KEY, nextPlans);
+    saveFleetValue(FLEET_COMPLETIONS_KEY, nextCompletions);
+  }
+
+  function removePlan(planId) {
+    const next = plans.map(p => p.id === planId ? { ...p, status: "Paused" } : p);
+    setPlans(next);
+    saveFleetValue(FLEET_PLANS_KEY, next);
+  }
+
+  return (
+    <main className="fleet-page">
+      <section className="fleet-hero">
+        <div><span className="eyebrow">FLEET ENGINE</span><h1>Fleet Manager</h1><p>Maintenance schedules, contacts and due work in one place.</p></div>
+        <div className="fleet-hero-actions"><button className="secondary" onClick={() => { localStorage.removeItem(FLEET_VEHICLES_KEY); localStorage.removeItem(FLEET_PLANS_KEY); location.reload(); }}>Reset imported data</button></div>
+      </section>
+
+      <section className="fleet-kpis">
+        <div><Car/><span>Vehicles</span><strong>{totals.vehicles}</strong></div>
+        <div className="danger"><AlertTriangle/><span>Overdue</span><strong>{totals.overdue}</strong></div>
+        <div className="warning"><CalendarDays/><span>Due within 30 days</span><strong>{totals.dueSoon}</strong></div>
+        <div><Mail/><span>Missing email</span><strong>{totals.missingEmail}</strong></div>
+      </section>
+
+      <section className="fleet-group-grid">
+        {groupCards.map(([name,count]) => <button key={name} className={group === name ? "active" : ""} onClick={() => setGroup(group === name ? "All" : name)}><Building2/><span>{name}</span><strong>{count}</strong></button>)}
+      </section>
+
+      <section className="fleet-card fleet-list-card">
+        <div className="fleet-toolbar">
+          <div className="search-box"><Search size={16}/><input value={query} onChange={e => setQuery(e.target.value)} placeholder="Search registration, model, customer or email..."/></div>
+          <select value={group} onChange={e => setGroup(e.target.value)}><option>All</option><option>Nissan Internal</option><option>Nissan Pool Cars</option><option>Contractor Fleet</option>{customerOptions.map(c => <option key={c}>{c}</option>)}</select>
+          <label><input type="checkbox" checked={showDueOnly} onChange={e => setShowDueOnly(e.target.checked)}/> Due work only</label>
+          <span className="fleet-result-count">{filtered.length} vehicles</span>
+        </div>
+        <div className="fleet-table">
+          <div className="fleet-table-head"><span>Registration</span><span>Vehicle</span><span>Fleet / customer</span><span>Contact</span><span>Maintenance</span><span>Next due</span></div>
+          {filtered.map(v => <button className="fleet-table-row" key={v.id} onClick={() => setSelectedId(v.id)}>
+            <strong>{v.registration}</strong><span>{v.model || "—"}</span><span>{v.fleetGroup === "Contractor Fleet" ? v.customer : v.fleetGroup}</span>
+            <span className={!v.contactEmail ? "missing" : ""}>{v.contactEmail || "Email needed"}</span><span>{v.vehiclePlans.length} plans</span>
+            <span className={`due-pill ${v.tone}`}>{v.nextDue ? formatDate(v.nextDue) : "Not scheduled"}</span>
+          </button>)}
+        </div>
+      </section>
+
+      {selected && <div className="fleet-drawer-backdrop" onMouseDown={() => setSelectedId(null)}>
+        <aside className="fleet-drawer" onMouseDown={e => e.stopPropagation()}>
+          <header><div><span className="eyebrow">VEHICLE PROFILE</span><h2>{selected.registration}</h2><p>{selected.model}</p></div><button className="icon-button" onClick={() => setSelectedId(null)}><X/></button></header>
+          <section className="fleet-profile-grid">
+            <label>Fleet<input value={selected.fleetGroup} readOnly/></label>
+            <label>Customer<input value={selected.customer} readOnly/></label>
+            <label className="wide">Contact email<input value={selected.contactEmail || ""} onChange={e => updateVehicle({ contactEmail: e.target.value })} placeholder="Email address required"/></label>
+            <label>Road going<select value={selected.roadGoing ? "Yes" : "No"} onChange={e => updateVehicle({ roadGoing: e.target.value === "Yes" })}><option>Yes</option><option>No</option></select></label>
+            <label>Billing<input value={selected.billingMethod} readOnly/></label>
+          </section>
+          <section className="maintenance-section"><div className="section-title"><Wrench/><h3>Maintenance plans</h3></div>
+            {(plansByVehicle[selected.id] || []).filter(p => p.status === "Active").map(plan => {
+              const due = planDueDate(plan); return <article className="maintenance-plan" key={plan.id}><div><strong>{plan.type}</strong><span>Every {plan.intervalMonths} months · {plan.notes}</span></div><div className="maintenance-actions"><span className={`due-pill ${dueTone(due)}`}>{due ? formatDate(due) : "Month not set"}</span><button onClick={() => onBookJob(selected, plan, due)}>Book</button><button className="secondary" onClick={() => completePlan(plan)}>Complete</button><button className="text-link danger-link" onClick={() => removePlan(plan.id)}>Pause</button></div></article>
+            })}
+            <div className="add-plan-row"><input value={newPlan.type} onChange={e => setNewPlan({...newPlan,type:e.target.value})} placeholder="Maintenance type"/><input type="number" min="1" value={newPlan.intervalMonths} onChange={e => setNewPlan({...newPlan,intervalMonths:e.target.value})}/><select value={newPlan.targetMonth} onChange={e => setNewPlan({...newPlan,targetMonth:e.target.value})}><option value="">Any month</option>{["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"].map((m,i)=><option value={i+1} key={m}>{m}</option>)}</select><button onClick={addPlan}><Plus size={16}/> Add plan</button></div>
+          </section>
+          <section className="maintenance-section"><div className="section-title"><History/><h3>Recent completions</h3></div>{completions.filter(c => c.vehicleId === selected.id).slice(-6).reverse().map(c => <div className="completion-row" key={c.id}><span>{c.type}</span><b>{formatDate(c.completedDate)}</b><small>Next due {formatDate(c.nextDue)}</small></div>)}{!completions.some(c => c.vehicleId === selected.id) && <p className="empty-state">No work has been completed through Fleet Manager yet.</p>}</section>
+        </aside>
+      </div>}
+    </main>
+  );
+}
+
+
 function App() {
   const [date, setDate] = useState(todayISO());
   const [mode, setMode] = useState("day");
@@ -1272,8 +1462,6 @@ function App() {
   const [availabilityOpen, setAvailabilityOpen] = useState(false);
   const [historyJob, setHistoryJob] = useState(null);
   const [invoiceJob, setInvoiceJob] = useState(null);
-  const [connectionStatus, setConnectionStatus] = useState(supabase ? "connecting" : "offline");
-  const [lastCloudSync, setLastCloudSync] = useState(null);
 
   const mechanicNames = settings.mechanics.map(m => m.name);
   const jobTypes = settings.jobTypes;
@@ -1289,72 +1477,23 @@ function App() {
   }
 
   async function refresh() {
-    if (!supabase || !navigator.onLine) {
-      setConnectionStatus("offline");
-      return false;
-    }
-    try {
-      const [dateJobs, allGlobalJobs, openTasks, allNotes] = await Promise.all([
-        listDate(date), listGlobal(), listTasks(), listNotes()
-      ]);
-      setJobs(dateJobs);
-      setGlobalJobs(allGlobalJobs);
-      setTasks(openTasks);
-      setNotes(allNotes);
-      setConnectionStatus("connected");
-      setLastCloudSync(new Date());
-      return true;
-    } catch (error) {
-      console.error("Cloud refresh failed", error);
-      setConnectionStatus("offline");
-      return false;
-    }
+    setJobs(await listDate(date));
+    setGlobalJobs(await listGlobal());
+    setTasks(await listTasks());
+    setNotes(await listNotes());
   }
 
   useEffect(() => { seedLocal().then(refresh); }, []);
   useEffect(() => { refresh(); }, [date]);
 
   useEffect(() => {
-    const handleOnline = () => { setConnectionStatus("connecting"); refresh(); };
-    const handleOffline = () => setConnectionStatus("offline");
-    window.addEventListener("online", handleOnline);
-    window.addEventListener("offline", handleOffline);
-    return () => {
-      window.removeEventListener("online", handleOnline);
-      window.removeEventListener("offline", handleOffline);
-    };
-  }, [date]);
-
-  useEffect(() => {
-    if (!supabase) {
-      setConnectionStatus("offline");
-      return;
-    }
-    setConnectionStatus("connecting");
+    if (!supabase) return;
     const channel = supabase.channel("vecta-live")
-      .on("postgres_changes", { event: "*", schema: "public", table: "jobs" }, () => refresh())
-      .on("postgres_changes", { event: "*", schema: "public", table: "tasks" }, () => refresh())
-      .on("postgres_changes", { event: "*", schema: "public", table: "notes" }, () => refresh())
-      .subscribe(status => {
-        if (status === "SUBSCRIBED") setConnectionStatus("connected");
-        else if (status === "CHANNEL_ERROR" || status === "TIMED_OUT" || status === "CLOSED") setConnectionStatus("connecting");
-      });
-
-    // Reliable fallback: refresh every 5 seconds even if Realtime is not enabled on a table.
-    const poll = window.setInterval(() => {
-      if (document.visibilityState === "visible" && navigator.onLine) refresh();
-    }, 5000);
-
-    const onVisible = () => {
-      if (document.visibilityState === "visible") refresh();
-    };
-    document.addEventListener("visibilitychange", onVisible);
-
-    return () => {
-      window.clearInterval(poll);
-      document.removeEventListener("visibilitychange", onVisible);
-      supabase.removeChannel(channel);
-    };
+      .on("postgres_changes", { event: "*", schema: "public", table: "jobs" }, refresh)
+      .on("postgres_changes", { event: "*", schema: "public", table: "tasks" }, refresh)
+      .on("postgres_changes", { event: "*", schema: "public", table: "notes" }, refresh)
+      .subscribe();
+    return () => supabase.removeChannel(channel);
   }, [date]);
 
   useEffect(() => {
@@ -1367,7 +1506,7 @@ function App() {
   const unallocated = globalJobs.filter(j => j.card_type !== "waiting" && j.technician !== "Waiting");
   const techJobs = tech => jobs.filter(j => j.technician === tech && !j.archived);
   const searchRows = [...jobs, ...globalJobs].filter(j => `${j.registration} ${j.vehicle} ${j.work_required} ${j.customer_note} ${j.customer_name} ${j.customer_phone}`.toUpperCase().includes(query.toUpperCase()));
-  const rampRows = rampModal ? jobs.filter(j => j.ramp === rampModal) : [];
+  const rampRows = rampModal ? jobs.filter(j => j.ramp === rampModal && !j.archived) : [];
 
   function dragStart(e, job, fromDate = date) {
     e.dataTransfer.setData("application/json", JSON.stringify({ id: job.id, fromDate }));
@@ -1379,6 +1518,19 @@ function App() {
     const found = [...jobs, ...globalJobs].find(j => j.id === data.id);
     if (found) await saveJob({ ...found, technician: tech, card_type: "job", booking_date: date }, date);
     refresh();
+  }
+
+  function bookFleetPlan(vehicle, plan, dueDate) {
+    setDate(dueDate || todayISO());
+    setMode("day");
+    setDialogJob({
+      id: "", card_type: "job", registration: vehicle.registration,
+      customer_name: vehicle.customer, customer_phone: "", vehicle: vehicle.model,
+      work_required: plan.type, technician: "Unallocated", ramp: "", status: "in_progress",
+      job_type: plan.type === "MOT" ? "MOT" : plan.type.includes("Service") ? "Major Service" : "Other",
+      estimated_hours: plan.type === "MOT" ? 1 : 1.5, job_colour: plan.type === "MOT" ? "mot" : "service",
+      customer_note: `Fleet: ${vehicle.fleetGroup}${vehicle.contactEmail ? ` · ${vehicle.contactEmail}` : " · EMAIL NEEDED"}`
+    });
   }
 
   if (invoiceJob) {
@@ -1399,7 +1551,7 @@ function App() {
       <header className="topbar">
         <div className="brand-row">
           <Menu size={20} />
-          <div className="brand"><span>VECTA</span><b>PLANNER</b></div>
+          <div className="brand brand-logo"><img src={vectaLogo} alt="Vecta Vehicle Servicing and Repairs" /><div><span>Planner</span><b>Workshop Management</b></div></div>
         </div>
 
         <div className="date-nav">
@@ -1409,21 +1561,20 @@ function App() {
         </div>
 
         <div className="top-actions">
-          <div className={`cloud-status ${connectionStatus}`} title={lastCloudSync ? `Last cloud sync: ${lastCloudSync.toLocaleTimeString("en-GB")}` : "Waiting for cloud connection"}>
-            <span className="cloud-status-dot" />
-            {connectionStatus === "connected" ? "Connected" : connectionStatus === "connecting" ? "Reconnecting…" : "Offline"}
-          </div>
           <button onClick={() => setDate(todayISO())}>Today</button>
           <button onClick={() => window.print()}><Printer size={16} /> Print</button>
           <select value={mode} onChange={e => setMode(e.target.value)}>
             <option value="day">Day</option>
             <option value="dashboard">Dashboard</option>
+            <option value="fleet">Fleet Manager</option>
           </select>
           <button onClick={() => setAvailabilityOpen(true)}><Wand2 size={16} /> Find Availability</button><button onClick={() => setSettingsOpen(true)}><Settings size={16} /> Settings</button><button onClick={() => setDialogJob(null)}><Plus size={16} /> Add Job</button>
         </div>
       </header>
 
-      {mode === "dashboard" ? (
+      {mode === "fleet" ? (
+        <FleetManager onBookJob={bookFleetPlan} />
+      ) : mode === "dashboard" ? (
         <Dashboard
           jobs={jobs}
           globalJobs={globalJobs}
@@ -1468,12 +1619,31 @@ function App() {
             </div>
 
             {mechanicNames.map(tech => {
-              const hours = techJobs(tech).reduce((s, j) => s + Number(j.estimated_hours || 1), 0);
+              const mechanic = settings.mechanics.find(m => m.name === tech);
+              const capacity = Number(mechanic?.capacity || 8);
+              const bookedJobs = jobs.filter(j => j.technician === tech);
+              const bookedHours = bookedJobs.reduce((s, j) => s + Number(j.estimated_hours || 1), 0);
+              const completedHours = bookedJobs
+                .filter(j => j.status === "completed" || j.archived)
+                .reduce((s, j) => s + Number(j.estimated_hours || 1), 0);
+              const bookedPercent = capacity > 0 ? Math.min(100, Math.round((bookedHours / capacity) * 100)) : 0;
+              const completedPercent = bookedHours > 0 ? Math.min(100, Math.round((completedHours / bookedHours) * 100)) : 0;
               return (
                 <section className="tech-column" key={tech}>
                   <div className="tech-head">
-                    <div className="avatar">{tech[0]}</div>
-                    <div><h2>{tech}</h2><span>{hours.toFixed(1)} / 8.0 hrs</span></div>
+                    <div className="tech-booked-bar" aria-label={`Booked capacity ${bookedPercent}%`}>
+                      <i style={{ width: `${bookedPercent}%` }} />
+                    </div>
+                    <div className="tech-summary-line">
+                      <h2>{tech}</h2>
+                      <div className="tech-completed-bar" aria-label={`Work completed ${completedPercent}%`}>
+                        <i style={{ width: `${completedPercent}%` }} />
+                      </div>
+                      <div className="tech-percentages">
+                        <span title="Booked capacity">{bookedPercent}%</span>
+                        <span title="Work completed">{completedPercent}%</span>
+                      </div>
+                    </div>
                   </div>
 
                   <div className="job-stack" onDragOver={e => e.preventDefault()} onDrop={e => dropOnTech(e, tech)}>

@@ -1,0 +1,21 @@
+VECTA Workshop Pro — Fleet Manager first working build
+
+Added to the live standalone index.html and React source:
+- Fleet Manager navigation item
+- 276 imported fleet vehicles
+- 536 maintenance plans
+- Dashboard KPIs for overdue, due-soon and missing email records
+- Fleet/customer filtering and search
+- Vehicle profile drawer
+- Editable contact email and road-going status
+- Flexible maintenance plans including DPF Renewal every 3 months
+- Book maintenance into the workshop planner
+- Complete maintenance and automatically calculate the next due date
+- Pause maintenance plans
+- Local persistence in browser storage
+
+Data rules applied:
+- Sheet1 ignored
+- Legacy Contractors. sheet ignored
+- Vehicles absent from Pool Cars TAX are accepted as non-road-going
+- Missing emails remain visible as genuine data gaps
