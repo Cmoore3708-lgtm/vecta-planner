@@ -1,0 +1,10 @@
+FLEET MANAGER v4 — 23 JULY 2026
+
+Changes:
+- Contractor names beginning with WPC are automatically consolidated under WPC.
+  This migrates existing browser-saved data, including WPC ALAN, WPC JAKE and WPC KEV.
+- Each contractor is displayed with a consistent colour-coded badge.
+- Fleet search now searches registration, vehicle, contractor/fleet, email, department and asset number.
+  Multi-word searches are supported and a clear button has been added.
+- Registration numbers now use the same yellow UK number plate with blue GB strip used elsewhere in the website.
+- Vehicle profile headers also display the standard registration plate and contractor colour.

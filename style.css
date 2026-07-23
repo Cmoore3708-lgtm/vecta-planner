@@ -651,17 +651,139 @@ button{cursor:pointer;border:0;border-radius:10px;background:#111827;color:white
 @media(max-width:760px){.dashboard-page{padding:12px}.dashboard-welcome{align-items:flex-start;flex-direction:column;padding:20px}.dashboard-welcome h1{font-size:25px}.dashboard-grid-top,.dashboard-grid-middle{grid-template-columns:1fr}.dashboard-tasks-card,.attention-card{grid-column:auto}.snapshot-numbers,.ramp-status-list{grid-template-columns:1fr}.topbar{height:auto;flex-wrap:wrap;padding:12px}.top-actions{overflow-x:auto;width:100%}}
 @media print{.dashboard-page{padding:0}.dashboard-welcome{background:white!important;color:#111827;border:1px solid #ddd;box-shadow:none}.dashboard-welcome p{color:#444}.dashboard-primary,.text-link{display:none!important}.dashboard-card{box-shadow:none;break-inside:avoid}.dashboard-grid{gap:10px}}
 
-/* Cloud connection indicator */
-.cloud-status{height:40px;display:inline-flex;align-items:center;gap:8px;border:1px solid #d1d5db;border-radius:999px;padding:0 12px;font-size:12px;font-weight:900;white-space:nowrap;background:#fff;color:#374151}
-.cloud-status-dot{width:9px;height:9px;border-radius:50%;background:#9ca3af;box-shadow:0 0 0 3px #f3f4f6}
-.cloud-status.connected{color:#166534;border-color:#bbf7d0;background:#f0fdf4}
-.cloud-status.connected .cloud-status-dot{background:#22c55e;box-shadow:0 0 0 3px #dcfce7}
-.cloud-status.connecting{color:#92400e;border-color:#fde68a;background:#fffbeb}
-.cloud-status.connecting .cloud-status-dot{background:#f59e0b;box-shadow:0 0 0 3px #fef3c7;animation:cloudPulse 1.2s infinite}
-.cloud-status.offline{color:#991b1b;border-color:#fecaca;background:#fef2f2}
-.cloud-status.offline .cloud-status-dot{background:#ef4444;box-shadow:0 0 0 3px #fee2e2}
-@keyframes cloudPulse{50%{opacity:.35}}
-@media(max-width:700px){.cloud-status{order:-1}}
+/* v42 premium visual refinement — layout only, no workflow changes */
+:root{
+  --vecta-ink:#07111d;
+  --vecta-ink-2:#0d1b2a;
+  --vecta-blue:#0f58c9;
+  --vecta-blue-dark:#0b46a5;
+  --vecta-line:#dfe5ec;
+  --vecta-soft:#f4f6f9;
+  --vecta-text:#172033;
+  --vecta-muted:#647083;
+}
+body{background:var(--vecta-soft);color:var(--vecta-text)}
+.app-shell{background:var(--vecta-soft)}
+.topbar{
+  height:82px!important;
+  background:linear-gradient(100deg,var(--vecta-ink),var(--vecta-ink-2))!important;
+  border-bottom:1px solid #243345!important;
+  box-shadow:0 5px 18px rgba(7,17,29,.22)!important;
+  padding:0 22px!important;
+  color:#fff!important;
+  position:relative;
+  z-index:20;
+}
+.brand-row{min-width:290px;gap:14px!important}.brand-row>svg{color:#b9c5d3}
+.brand-logo{display:flex!important;align-items:center!important;gap:13px!important;line-height:1!important;letter-spacing:0!important}
+.brand-logo img{width:154px;height:50px;object-fit:contain;object-position:left center;filter:drop-shadow(0 2px 2px rgba(0,0,0,.3))}
+.brand-logo div{border-left:1px solid #334155;padding-left:13px}
+.brand-logo span{display:block!important;color:#fff!important;font-size:17px;font-weight:900;letter-spacing:-.2px}
+.brand-logo b{display:block!important;color:#90a0b4!important;font-size:9px!important;font-weight:800!important;letter-spacing:.9px!important;text-transform:uppercase;margin-top:6px}
+.date-nav{gap:6px!important}.date-nav button,.top-actions button,.top-actions select,.date-pill{
+  background:#111e2e!important;color:#fff!important;border:1px solid #2a394b!important;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.035)!important;
+}
+.date-nav button:hover,.top-actions button:hover{background:#1a2b3f!important;border-color:#42536a!important}
+.date-pill{height:42px!important;min-width:178px;justify-content:center;border-radius:7px!important}
+.top-actions{gap:7px!important}.top-actions button{height:40px;border-radius:7px!important;padding:8px 11px!important;font-size:12px}.top-actions select{height:40px;border-radius:7px!important;padding:0 11px!important;font-size:12px}
+.ramp-strip{height:70px!important;background:#fff!important;border-bottom:1px solid var(--vecta-line)!important;box-shadow:0 2px 9px rgba(15,23,42,.05)}
+.ramp-title{font-size:12px!important;color:#334155!important;background:#fafbfc!important}
+.ramp-summary{padding:0 26px!important;gap:12px!important}.ramp-summary strong{font-size:11px!important;letter-spacing:.4px}.ramp-summary span{font-weight:850!important;color:#293548!important}
+.progress{height:9px!important;background:#e9edf2!important;box-shadow:inset 0 1px 2px rgba(15,23,42,.08)}
+.planner-layout{grid-template-columns:292px 1fr!important;min-height:calc(100vh - 152px)!important}
+.left-panel{background:#f9fafc!important;border-right:1px solid var(--vecta-line)!important;box-shadow:5px 0 16px rgba(15,23,42,.035)}
+.left-panel section{padding:17px!important;border-bottom:1px solid var(--vecta-line)!important}
+.left-panel h3{font-size:11px!important;letter-spacing:.6px!important;color:#344054!important;margin-bottom:12px!important}
+.left-panel h3 span{background:#172033!important;padding:3px 7px!important}
+.small-card{border:1px solid #dce3ea!important;border-left:4px solid #16a34a!important;border-radius:8px!important;padding:11px!important;box-shadow:0 2px 7px rgba(15,23,42,.05)!important}
+.small-card:hover{border-color:#b8c5d3!important;box-shadow:0 5px 14px rgba(15,23,42,.08)!important}
+.main-board{background:#fff!important}
+.schedule{grid-template-columns:70px 1fr 1fr!important;min-height:650px!important}
+.time-rail{background:#f8fafc!important;padding-top:52px!important}.time-rail span{color:#475569!important;font-size:11px!important;font-weight:750!important}
+.tech-column{background:#fff!important;border-right:1px solid var(--vecta-line)!important}
+.tech-head{
+  height:52px!important;padding:7px 18px 6px!important;justify-content:center!important;flex-direction:column!important;gap:6px!important;
+  background:linear-gradient(180deg,var(--vecta-blue),var(--vecta-blue-dark))!important;
+  color:#fff!important;border-bottom:1px solid #063c92!important;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.16)!important;
+}
+.tech-head .avatar{display:none!important}.tech-head h2{font-size:13px!important;line-height:1!important;letter-spacing:.5px;text-transform:uppercase;color:#fff!important;white-space:nowrap}.tech-booked-bar,.tech-completed-bar{height:5px;background:rgba(255,255,255,.22);border-radius:99px;overflow:hidden}.tech-booked-bar{width:100%}.tech-booked-bar i,.tech-completed-bar i{display:block;height:100%;border-radius:99px}.tech-booked-bar i{background:#60a5fa}.tech-completed-bar i{background:#34d399}.tech-summary-line{width:100%;display:grid;grid-template-columns:auto minmax(55px,1fr) auto;align-items:center;gap:9px}.tech-percentages{display:flex;align-items:center;gap:7px}.tech-percentages span{font-size:10px!important;line-height:1!important;color:#fff!important;font-weight:900!important;min-width:31px;text-align:right}.tech-percentages span+span{color:#a7f3d0!important;border-left:1px solid rgba(255,255,255,.32);padding-left:7px}
+.job-stack{padding:13px 16px!important;gap:12px!important;min-height:598px!important;background:repeating-linear-gradient(to bottom,#fff 0,#fff 58px,#edf1f5 59px)!important}
+.schedule-card{
+  min-height:101px!important;background:#fff!important;border:1px solid #d9e0e8!important;
+  border-left-width:6px!important;border-radius:8px!important;padding:12px 13px!important;
+  box-shadow:0 3px 9px rgba(15,23,42,.075)!important;transition:transform .12s ease,box-shadow .12s ease,border-color .12s ease;
+}
+.schedule-card:hover{transform:translateY(-1px);box-shadow:0 7px 17px rgba(15,23,42,.12)!important;border-color:#bec9d6!important}
+.schedule-card.ramp-left{border-left-color:#2563eb!important}.schedule-card.ramp-middle{border-left-color:#8b5cf6!important}.schedule-card.ramp-right{border-left-color:#f59e0b!important}
+.schedule-card.status-in_progress,.schedule-card.status-ready_to_invoice{background:#fff!important}
+.schedule-card .planner-vehicle-title{font-size:15px!important;letter-spacing:-.15px!important;color:#101828!important}.schedule-card .planner-customer-name{font-size:11px!important;color:#475467!important;margin-top:2px!important}
+.schedule-card .job-work{font-size:10.5px!important;color:#1849a9!important;font-weight:850!important}
+.schedule-card .job-time{background:transparent!important;border:0!important;text-align:right!important;padding:0!important;color:#101828!important;font-size:11px!important}
+.schedule-card .workflow-badge,.schedule-card .planner-card-right .ramp-badge{border-radius:4px!important;padding:3px 6px!important;font-size:8.5px!important;box-shadow:none!important}
+.uniformRegPlate{border-color:#262626!important;background:#f5c400!important;box-shadow:0 1px 2px rgba(15,23,42,.16)!important}.uniformRegPlate b{background:#f5c400!important}
+.tasks-panel{background:#f8fafc!important;border:1px solid var(--vecta-line)!important;border-radius:10px!important;box-shadow:none!important}
+.tasks-head h3{font-size:12px!important;letter-spacing:.5px!important;color:#344054!important}
+.dialog{border-radius:12px!important;box-shadow:0 24px 70px rgba(7,17,29,.28)!important;border:1px solid #dce3ea!important}.backdrop{background:rgba(3,10,20,.70)!important;backdrop-filter:blur(2px)}
+.dashboard-page{padding:22px!important}.dashboard-welcome{background:linear-gradient(110deg,var(--vecta-ink),#132338)!important;border-radius:13px!important;box-shadow:0 8px 22px rgba(7,17,29,.17)!important}.dashboard-card{border-color:var(--vecta-line)!important;border-radius:10px!important;box-shadow:0 2px 8px rgba(15,23,42,.05)!important}.dashboard-card>header{border-color:#e8edf2!important}.dashboard-card>header svg{color:var(--vecta-blue)!important}.dashboard-primary{background:var(--vecta-blue)!important;border-radius:7px!important}
+@media(max-width:1050px){.brand-logo div{display:none}.brand-row{min-width:190px}.brand-logo img{width:142px}.topbar{height:auto!important;padding:12px!important}.planner-layout{grid-template-columns:1fr!important}}
+@media(max-width:700px){.brand-row{width:100%;min-width:0}.top-actions{width:100%;overflow-x:auto;flex-wrap:nowrap!important}.date-nav{width:100%;justify-content:center}.ramp-strip{height:auto!important}.schedule{grid-template-columns:1fr!important}.tech-head{position:sticky;top:0;z-index:2}}
+@media print{
+  .topbar{background:#fff!important;color:#111!important;box-shadow:none!important;border-bottom:1px solid #bbb!important}.top-actions,.date-nav,.brand-row>svg{display:none!important}.brand-logo img{filter:none}.brand-logo div{display:block!important}.brand-logo span{color:#111!important}.ramp-strip{box-shadow:none!important}.schedule-card{box-shadow:none!important;transform:none!important}
+}
+
+/* 21 Jul 2026 - compact unallocated plates and planner task cards */
+.small-card-top{align-items:flex-start!important;gap:8px!important;flex-wrap:wrap}
+.small-card-top .small-reg-plate{width:132px!important;height:30px!important;min-height:30px!important;flex:0 0 132px!important}
+.small-card-top .small-reg-plate .gb-strip{height:30px!important;min-height:30px!important}
+.small-card-top .small-reg-plate strong{height:30px!important;font-size:15px!important}
+.small-card-vehicle{display:block;width:100%;font-size:12px!important;color:#475467!important;margin-top:1px}
+
+.schedule-card.planner-task-card{
+  min-height:44px!important;
+  height:44px!important;
+  padding:7px 12px!important;
+  display:grid!important;
+  grid-template-columns:1fr!important;
+  gap:2px!important;
+  background:#fffaf0!important;
+  border-left-color:#d99a24!important;
+  overflow:hidden!important;
+}
+.planner-task-card .schedule-card-header.planner-card-v41k{
+  display:flex!important;
+  align-items:center!important;
+  justify-content:space-between!important;
+  grid-template-columns:none!important;
+  padding-right:22px!important;
+  gap:8px!important;
+}
+.planner-task-card .task-label{
+  display:inline-flex!important;
+  align-items:center!important;
+  height:18px!important;
+  padding:0 7px!important;
+  border-radius:4px!important;
+  background:#eceff3!important;
+  color:#475467!important;
+  font-size:9px!important;
+  font-weight:900!important;
+  letter-spacing:.7px!important;
+}
+.planner-task-card .planner-card-right{display:flex!important;align-items:center!important;gap:6px!important;margin-left:auto!important}
+.planner-task-card .workflow-badge,.planner-task-card .ramp-badge{display:none!important}
+.planner-task-card .job-time{font-size:10px!important;white-space:nowrap!important}
+.planner-task-card .job-work{
+  margin:0!important;
+  font-size:11px!important;
+  line-height:1.15!important;
+  color:#344054!important;
+  white-space:nowrap!important;
+  overflow:hidden!important;
+  text-overflow:ellipsis!important;
+}
+.planner-task-card .card-menu{top:5px!important;right:5px!important}
 
 /* 21 Jul 2026 - prevent blank first page on invoice/job-sheet printing */
 @media print{
@@ -676,3 +798,57 @@ button{cursor:pointer;border:0;border-radius:10px;background:#111827;color:white
   padding:0!important;
   border-top:0!important;
 }
+
+
+/* v41.4 planner alignment: registration/vehicle left, job type/time right. */
+.schedule-card:not(.planner-task-card) .schedule-card-header.planner-card-v41k{
+  display:grid!important;
+  grid-template-columns:92px minmax(0,1fr)!important;
+  column-gap:7px!important;
+  align-items:start!important;
+}
+.schedule-card:not(.planner-task-card) .planner-card-left,
+.schedule-card:not(.planner-task-card) .planner-card-right-text{
+  display:grid!important;
+  grid-template-rows:21px 11px!important;
+  row-gap:1px!important;
+  min-width:0!important;
+}
+.schedule-card:not(.planner-task-card) .planner-card-left .planner-vehicle-title{
+  display:block!important;margin:0!important;max-width:92px!important;font-size:8.5px!important;min-height:0!important;height:8.5px!important;line-height:8.5px!important;white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important;
+}
+.schedule-card:not(.planner-task-card) .planner-card-right-text .planner-job-type{
+  align-self:center!important;margin:0!important;font-size:11.5px!important;font-weight:1000!important;line-height:1!important;text-transform:capitalize!important;white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important;
+}
+.schedule-card:not(.planner-task-card) .planner-card-right-text .job-time{
+  align-self:center!important;justify-self:end!important;position:static!important;margin:0!important;padding:0!important;border:0!important;background:transparent!important;font-size:8.5px!important;line-height:1!important;white-space:nowrap!important;
+}
+
+/* Fleet Manager — first working fleet-engine milestone */
+.fleet-page{padding:24px;max-width:1600px;margin:0 auto;color:#172033}
+.fleet-hero{display:flex;align-items:flex-end;justify-content:space-between;gap:20px;margin-bottom:18px}
+.fleet-hero h1{font-size:30px;margin:4px 0}.fleet-hero p{margin:0;color:#667085}.eyebrow{font-size:10px;letter-spacing:1.3px;font-weight:900;color:#3560a8}
+.fleet-kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px;margin-bottom:14px}
+.fleet-kpis>div{display:grid;grid-template-columns:38px 1fr auto;align-items:center;gap:8px;padding:16px;border:1px solid #dce3ee;border-radius:14px;background:#fff;box-shadow:0 3px 12px #14213d0d}
+.fleet-kpis svg{padding:8px;border-radius:10px;background:#eaf2ff;color:#315fa8}.fleet-kpis span{font-size:12px;color:#667085}.fleet-kpis strong{font-size:27px}.fleet-kpis .danger svg{background:#feeceb;color:#b42318}.fleet-kpis .warning svg{background:#fff4df;color:#b86b00}
+.fleet-group-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;margin-bottom:14px}.fleet-group-grid button{display:grid;grid-template-columns:34px 1fr auto;align-items:center;text-align:left;padding:14px;border:1px solid #dce3ee;border-radius:13px;background:#f9fbfe;color:#344054}.fleet-group-grid button.active{border-color:#315fa8;background:#edf4ff}.fleet-group-grid strong{font-size:22px}.fleet-group-grid span{font-weight:800}
+.fleet-card{background:#fff;border:1px solid #dce3ee;border-radius:14px;box-shadow:0 3px 14px #14213d0d;overflow:hidden}.fleet-toolbar{display:flex;align-items:center;gap:12px;padding:13px;border-bottom:1px solid #e4e9f0}.fleet-toolbar .search-box{flex:1;max-width:none}.fleet-toolbar select{min-width:190px}.fleet-toolbar label{display:flex;align-items:center;gap:7px;font-size:12px;font-weight:700}.fleet-result-count{margin-left:auto;color:#667085;font-size:12px}
+.fleet-table-head,.fleet-table-row{display:grid;grid-template-columns:130px minmax(180px,1.4fr) minmax(160px,1fr) minmax(230px,1.5fr) 90px 130px;gap:12px;align-items:center}.fleet-table-head{padding:10px 14px;background:#f3f6fa;color:#667085;font-size:10px;font-weight:900;text-transform:uppercase;letter-spacing:.5px}.fleet-table-row{width:100%;border:0;border-top:1px solid #edf0f4;background:#fff;padding:11px 14px;text-align:left;color:#344054}.fleet-table-row:hover{background:#f8fbff}.fleet-table-row strong{font-size:14px;color:#172033}.fleet-table-row span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px}.fleet-table-row .missing{color:#b42318;font-weight:800}
+.due-pill{display:inline-flex!important;justify-content:center;padding:5px 8px;border-radius:999px;font-weight:800!important;font-size:10px!important}.due-pill.overdue{background:#feeceb;color:#b42318}.due-pill.soon{background:#fff3d6;color:#a15c00}.due-pill.future{background:#eaf7ee;color:#167044}.due-pill.unknown{background:#eef1f5;color:#667085}
+.fleet-drawer-backdrop{position:fixed;inset:0;z-index:1000;background:#10182866;display:flex;justify-content:flex-end}.fleet-drawer{width:min(720px,94vw);height:100%;overflow:auto;background:#f7f9fc;box-shadow:-20px 0 50px #10182833;padding:22px}.fleet-drawer>header{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:1px solid #dce3ee;padding-bottom:16px}.fleet-drawer h2{font-size:28px;margin:3px 0}.fleet-drawer header p{margin:0;color:#667085}.icon-button{width:38px;height:38px;padding:7px;border-radius:50%;background:#fff;color:#344054;border:1px solid #dce3ee}
+.fleet-profile-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;padding:18px 0}.fleet-profile-grid label{font-size:11px;font-weight:900;color:#667085}.fleet-profile-grid label.wide{grid-column:1/-1}.fleet-profile-grid input,.fleet-profile-grid select{width:100%;margin-top:5px}.maintenance-section{background:#fff;border:1px solid #dce3ee;border-radius:13px;padding:15px;margin-bottom:14px}.section-title{display:flex;align-items:center;gap:8px;margin-bottom:10px}.section-title h3{margin:0}.maintenance-plan{display:flex;justify-content:space-between;gap:16px;align-items:center;padding:12px 0;border-top:1px solid #edf0f4}.maintenance-plan>div:first-child{display:flex;flex-direction:column;gap:3px}.maintenance-plan span{font-size:11px;color:#667085}.maintenance-actions{display:flex;align-items:center;gap:7px}.maintenance-actions button{padding:7px 10px;font-size:11px}.danger-link{color:#b42318!important}.add-plan-row{display:grid;grid-template-columns:1fr 85px 110px auto;gap:8px;border-top:1px solid #edf0f4;padding-top:13px;margin-top:4px}.add-plan-row button{display:flex;align-items:center;gap:5px}.completion-row{display:grid;grid-template-columns:1fr 110px 170px;gap:12px;padding:9px 0;border-top:1px solid #edf0f4;font-size:12px}.completion-row small{color:#667085}.empty-state{color:#667085;font-size:12px}
+@media(max-width:1000px){.fleet-kpis{grid-template-columns:1fr 1fr}.fleet-table-head,.fleet-table-row{grid-template-columns:110px 1.2fr 1fr 110px}.fleet-table-head span:nth-child(4),.fleet-table-row span:nth-child(4),.fleet-table-head span:nth-child(5),.fleet-table-row span:nth-child(5){display:none}}@media(max-width:700px){.fleet-page{padding:12px}.fleet-hero,.fleet-toolbar{align-items:stretch;flex-direction:column}.fleet-kpis,.fleet-group-grid{grid-template-columns:1fr}.fleet-table-head,.fleet-table-row{grid-template-columns:100px 1fr 105px}.fleet-table-head span:nth-child(3),.fleet-table-row span:nth-child(3){display:none}.fleet-profile-grid{grid-template-columns:1fr}.add-plan-row{grid-template-columns:1fr 80px}.add-plan-row select,.add-plan-row button{grid-column:auto}.maintenance-plan{align-items:flex-start;flex-direction:column}.maintenance-actions{flex-wrap:wrap}}
+
+/* Fleet Manager v4 — contractor colours, working search and standard UK plates */
+.fleet-reg-plate{width:118px!important;height:30px!important;min-height:30px!important;justify-self:start}
+.fleet-reg-plate strong{font-size:13px!important;letter-spacing:.065em!important}
+.contractor-badge{display:inline-flex;align-items:center;width:max-content;max-width:100%;padding:5px 9px;border:1px solid;border-radius:999px;font-size:11px;font-weight:900;line-height:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.fleet-search-box{position:relative;display:flex;align-items:center}
+.fleet-search-box input{width:100%;padding-right:38px!important}
+.fleet-search-clear{position:absolute;right:7px;width:26px;height:26px;display:grid;place-items:center;padding:0;border:0;border-radius:50%;background:#eef2f6;color:#475467}
+.fleet-search-clear:hover{background:#dde4ec;color:#172033}
+.fleet-drawer-title{display:flex;align-items:center;gap:10px;margin:7px 0 5px}
+.fleet-drawer-title .fleet-reg-plate{width:150px!important;height:36px!important;min-height:36px!important}
+.fleet-drawer-title .fleet-reg-plate .gb-strip{height:36px!important;min-height:36px!important}
+.fleet-drawer-title .fleet-reg-plate strong{height:36px!important;font-size:17px!important}
+@media(max-width:700px){.fleet-reg-plate{width:105px!important}.contractor-badge{font-size:10px;padding:4px 7px}.fleet-drawer-title{align-items:flex-start;flex-direction:column}}

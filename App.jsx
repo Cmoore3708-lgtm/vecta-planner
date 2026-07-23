@@ -1311,8 +1311,43 @@ function dueTone(date) {
   return "future";
 }
 
+const CONTRACTOR_COLOURS = [
+  ["#E8F1FF", "#1D4ED8", "#93C5FD"],
+  ["#ECFDF3", "#166534", "#86EFAC"],
+  ["#FFF7E6", "#9A5800", "#F6C453"],
+  ["#F5EEFF", "#6D28D9", "#C4B5FD"],
+  ["#FFF0F3", "#BE123C", "#FDA4AF"],
+  ["#EAFBFB", "#0F766E", "#5EEAD4"],
+  ["#F3F4F6", "#374151", "#CBD5E1"],
+  ["#FFF4ED", "#C2410C", "#FDBA74"]
+];
+
+function normaliseFleetCustomer(customer) {
+  const value = String(customer || "").trim().replace(/\s+/g, " ");
+  return /^WPC(?:\s|$)/i.test(value) ? "WPC" : value;
+}
+
+function normaliseFleetVehicles(list) {
+  return (Array.isArray(list) ? list : []).map(vehicle => ({
+    ...vehicle,
+    customer: normaliseFleetCustomer(vehicle.customer)
+  }));
+}
+
+function contractorColour(customer) {
+  const name = normaliseFleetCustomer(customer);
+  let hash = 0;
+  for (let i = 0; i < name.length; i += 1) hash = ((hash << 5) - hash + name.charCodeAt(i)) | 0;
+  const [background, colour, border] = CONTRACTOR_COLOURS[Math.abs(hash) % CONTRACTOR_COLOURS.length];
+  return { background, color: colour, borderColor: border };
+}
+
+function FleetRegistrationPlate({ registration, className = "" }) {
+  return <span className={`uk-reg-plate fleet-reg-plate ${className}`.trim()} title="Vehicle registration"><span className="gb-strip">GB</span><strong>{registration || "NO REG"}</strong></span>;
+}
+
 function FleetManager({ onBookJob }) {
-  const [vehicles, setVehicles] = useState(() => loadFleetValue(FLEET_VEHICLES_KEY, INITIAL_FLEET_VEHICLES));
+  const [vehicles, setVehicles] = useState(() => normaliseFleetVehicles(loadFleetValue(FLEET_VEHICLES_KEY, INITIAL_FLEET_VEHICLES)));
   const [plans, setPlans] = useState(() => loadFleetValue(FLEET_PLANS_KEY, INITIAL_MAINTENANCE_PLANS));
   const [completions, setCompletions] = useState(() => loadFleetValue(FLEET_COMPLETIONS_KEY, []));
   const [selectedId, setSelectedId] = useState(null);
@@ -1337,12 +1372,17 @@ function FleetManager({ onBookJob }) {
     return { ...vehicle, vehiclePlans, nextDue, tone: dueTone(nextDue) };
   }), [vehicles, plansByVehicle]);
 
-  const filtered = enriched.filter(v => {
-    const haystack = `${v.registration} ${v.model} ${v.customer} ${v.contactEmail} ${v.department}`.toLowerCase();
-    const groupMatch = group === "All" || v.fleetGroup === group || v.customer === group;
-    const dueMatch = !showDueOnly || v.tone === "overdue" || v.tone === "soon";
-    return haystack.includes(query.toLowerCase()) && groupMatch && dueMatch;
-  });
+  const filtered = useMemo(() => {
+    const terms = query.trim().toLowerCase().split(/\s+/).filter(Boolean);
+    return enriched.filter(v => {
+      const haystack = [v.registration, v.model, v.customer, v.fleetGroup, v.contactEmail, v.department, v.assetNo]
+        .filter(Boolean).join(" ").toLowerCase();
+      const searchMatch = terms.every(term => haystack.includes(term));
+      const groupMatch = group === "All" || v.fleetGroup === group || v.customer === group;
+      const dueMatch = !showDueOnly || v.tone === "overdue" || v.tone === "soon";
+      return searchMatch && groupMatch && dueMatch;
+    });
+  }, [enriched, query, group, showDueOnly]);
 
   const selected = enriched.find(v => v.id === selectedId);
   const totals = {
@@ -1357,6 +1397,15 @@ function FleetManager({ onBookJob }) {
     ["Contractor Fleet", enriched.filter(v => v.fleetGroup === "Contractor Fleet").length]
   ];
   const customerOptions = [...new Set(enriched.filter(v => v.fleetGroup === "Contractor Fleet").map(v => v.customer))].sort();
+
+  useEffect(() => {
+    // One-time migration for existing browser data: WPC ALAN/Jake/Kev are all WPC.
+    const normalised = normaliseFleetVehicles(vehicles);
+    if (JSON.stringify(normalised) !== JSON.stringify(vehicles)) {
+      setVehicles(normalised);
+      saveFleetValue(FLEET_VEHICLES_KEY, normalised);
+    }
+  }, []);
 
   function updateVehicle(patch) {
     const next = vehicles.map(v => v.id === selectedId ? { ...v, ...patch } : v);
@@ -1417,15 +1466,15 @@ function FleetManager({ onBookJob }) {
 
       <section className="fleet-card fleet-list-card">
         <div className="fleet-toolbar">
-          <div className="search-box"><Search size={16}/><input value={query} onChange={e => setQuery(e.target.value)} placeholder="Search registration, model, customer or email..."/></div>
+          <div className="search-box fleet-search-box"><Search size={16}/><input type="search" autoComplete="off" value={query} onInput={e => setQuery(e.currentTarget.value)} onChange={e => setQuery(e.currentTarget.value)} placeholder="Search registration, model, customer or email..." aria-label="Search fleet vehicles"/>{query && <button type="button" className="fleet-search-clear" onClick={() => setQuery("")} aria-label="Clear fleet search"><X size={14}/></button>}</div>
           <select value={group} onChange={e => setGroup(e.target.value)}><option>All</option><option>Nissan Internal</option><option>Nissan Pool Cars</option><option>Contractor Fleet</option>{customerOptions.map(c => <option key={c}>{c}</option>)}</select>
           <label><input type="checkbox" checked={showDueOnly} onChange={e => setShowDueOnly(e.target.checked)}/> Due work only</label>
           <span className="fleet-result-count">{filtered.length} vehicles</span>
         </div>
         <div className="fleet-table">
           <div className="fleet-table-head"><span>Registration</span><span>Vehicle</span><span>Fleet / customer</span><span>Contact</span><span>Maintenance</span><span>Next due</span></div>
-          {filtered.map(v => <button className="fleet-table-row" key={v.id} onClick={() => setSelectedId(v.id)}>
-            <strong>{v.registration}</strong><span>{v.model || "—"}</span><span>{v.fleetGroup === "Contractor Fleet" ? v.customer : v.fleetGroup}</span>
+          {filtered.map(v => <button type="button" className="fleet-table-row" key={v.id} onClick={() => setSelectedId(v.id)}>
+            <FleetRegistrationPlate registration={v.registration}/><span>{v.model || "—"}</span><span>{v.fleetGroup === "Contractor Fleet" ? <b className="contractor-badge" style={contractorColour(v.customer)}>{v.customer}</b> : v.fleetGroup}</span>
             <span className={!v.contactEmail ? "missing" : ""}>{v.contactEmail || "Email needed"}</span><span>{v.vehiclePlans.length} plans</span>
             <span className={`due-pill ${v.tone}`}>{v.nextDue ? formatDate(v.nextDue) : "Not scheduled"}</span>
           </button>)}
@@ -1434,7 +1483,7 @@ function FleetManager({ onBookJob }) {
 
       {selected && <div className="fleet-drawer-backdrop" onMouseDown={() => setSelectedId(null)}>
         <aside className="fleet-drawer" onMouseDown={e => e.stopPropagation()}>
-          <header><div><span className="eyebrow">VEHICLE PROFILE</span><h2>{selected.registration}</h2><p>{selected.model}</p></div><button className="icon-button" onClick={() => setSelectedId(null)}><X/></button></header>
+          <header><div><span className="eyebrow">VEHICLE PROFILE</span><div className="fleet-drawer-title"><FleetRegistrationPlate registration={selected.registration}/>{selected.fleetGroup === "Contractor Fleet" && <b className="contractor-badge" style={contractorColour(selected.customer)}>{selected.customer}</b>}</div><p>{selected.model}</p></div><button type="button" className="icon-button" onClick={() => setSelectedId(null)}><X/></button></header>
           <section className="fleet-profile-grid">
             <label>Fleet<input value={selected.fleetGroup} readOnly/></label>
             <label>Customer<input value={selected.customer} readOnly/></label>
