@@ -11926,6 +11926,12 @@ function renderNav(){var n=document.getElementById('nav'); n.innerHTML=navItems(
 var cloudSyncChannel=null,cloudSyncTimer=null,cloudRefreshBusy=false,plannerInteractionBusy=false;
 async function refreshCloudAndRender(){
   var active=document.activeElement;
+  /* Fleet Manager is an interactive local workspace. The three-second cloud
+     polling render used by the workshop planner was rebuilding this screen,
+     closing drawers and interrupting clicks/typing. Pause visual cloud refreshes
+     while Fleet Manager is open; normal syncing resumes as soon as another
+     section is selected. */
+  if(view==='fleet')return;
   if(view==='settings'||(active&&active.closest&&active.closest('.settingsGrid')))return;
   if(!remoteClient||cloudRefreshBusy||plannerInteractionBusy||!navigator.onLine)return;
   cloudRefreshBusy=true;
