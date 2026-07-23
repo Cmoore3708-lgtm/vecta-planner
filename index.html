@@ -1415,6 +1415,17 @@ body.servicePreviewing .servicePreviewControls{position:relative!important;z-ind
   .printPlannerJob.miniPlannerTask .printTaskHead,.printPlannerJob.miniPlannerTask .printTaskText{color:#202631!important}
 }
 </style>
+
+<style id="v4111-compact-carried-over-cards">
+/* Carried-over jobs: compact, clearly distinct, without repeated metadata. */
+.carryOverMeta{display:none!important}
+.carryOverSideJob{
+  background:#fff1f2!important;
+  border-color:#fecaca!important;
+  border-left-color:var(--job-type-color)!important;
+}
+.carryOverSideJob:hover{background:#ffe4e6!important}
+</style>
 </head>
 <body>
 <div id="fatal" class="fatal"></div>
@@ -1422,7 +1433,7 @@ body.servicePreviewing .servicePreviewControls{position:relative!important;z-ind
   <aside class="side">
     <div class="logo"><img class="vectaBrandLogo sidebarBrandLogo" src="/assets/vecta-logo.webp" alt="VECTA Vehicle Servicing and repairs"><div class="product">Workshop Pro</div></div>
     <nav class="nav" id="nav"></nav>
-    <div class="sideFoot"><b>V41.10 Unified Job Colours</b><br>Consistent job colours across<br>planner, lists and print.</div>
+    <div class="sideFoot"><b>V41.11 Compact Carry Over</b><br>Cleaner carried-over cards<br>with light red highlighting.</div>
   </aside>
   <main class="main">
     <header class="top">
@@ -1597,13 +1608,7 @@ function carryOverDateLabel(value){
   try{return new Date(value+'T12:00:00').toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'short'})}catch(e){return value}
 }
 function carryOverBadgeHtml(j){
-  if(!isUnallocatedJob(j))return '';
-  var meta=carryOverMeta(j);if(!meta)return '';
-  var days=carryOverDays(meta),detail=carryOverDateLabel(meta.last_date||meta.original_date);
-  if(meta.technician)detail+=' · '+meta.technician;
-  if(meta.time)detail+=' · '+normaliseClock(meta.time);
-  detail+=' · '+(days===1?'1 day overdue':days+' days overdue');
-  return '<div class="carryOverMeta">'+esc(detail)+'</div>';
+  return '';
 }
 function shouldCarryOverJob(j,today){
   if(!j||j.archived||j.status==='completed'||j.status==='ready_to_invoice')return false;
