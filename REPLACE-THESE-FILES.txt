@@ -1,0 +1,15 @@
+VECTA FLEET MANAGER V7 - SMALL UPDATE
+
+Replace these two files in your current project:
+
+1. index.html
+2. dist/index.html
+
+Both files contain the same updated runtime build. Replacing both keeps the project root and deployed dist folder in sync.
+
+This update contains:
+- Plain fleet customer and next-due labels without coloured curved backgrounds.
+- Save Email button on vehicle profiles.
+- Contractor customer profiles with contact, telephone, operational email and invoice email.
+- Save Customer Details button.
+- Operational email can be applied to all vehicles for that contractor.
