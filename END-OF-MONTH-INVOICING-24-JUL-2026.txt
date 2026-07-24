@@ -1,0 +1,22 @@
+END OF MONTH INVOICING - 24 JULY 2026
+
+Added to Fleet Manager:
+- End of month invoicing tab
+- Calendar month selector
+- Every contractor fleet customer listed
+- Completed job count and ex-VAT total per customer
+- Completion date, registration, work required and ex-VAT value per job
+- Downloadable customer CSV
+- Consolidated invoice using the existing invoice screen
+- Prepared email addressed to the saved fleet contact/invoice email
+- Actual completed_at timestamp recorded when a job is completed
+- Older completed jobs use completed_at, updated_at, booking_date or created_at in that order
+- Quoted amount (ex. VAT) field added to job cards
+
+DATABASE STEP
+Run MONTH-END-INVOICING-SUPABASE-MIGRATION.sql once in Supabase SQL Editor.
+This adds completed_at and quoted_amount_ex_vat to public.jobs and backfills existing completed records.
+
+BROWSER LIMITATION
+The prepared email cannot automatically attach files generated in the browser.
+Download the CSV and print/save the consolidated invoice as PDF, then attach both to the prepared email.
