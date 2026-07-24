@@ -1,0 +1,22 @@
+VECTA Workshop Pro v41.21
+
+Changes applied to the corrected month-end invoicing build:
+
+1. Completing job cards
+- A job cannot be saved as Completed unless Amount quoted is filled in.
+- The red Completed button now uses the normal save path, so current edits, completion date, cloud save, and validation all run together.
+- £0 remains valid when a job is genuinely no-charge; a blank field is blocked.
+
+2. Navigation
+- Removed the old Dashboard page from the navigation.
+- Renamed Planner to Dashboard.
+- Any stale browser state pointing at the removed Dashboard redirects to the planner-based Dashboard.
+
+3. Fleet Manager typography
+- Reduced excessive bold text across body copy, rows, controls, due dates, and customer information.
+- Kept headings, table headings, KPI labels, totals, and number plates appropriately emphasised.
+
+4. Contractor presentation
+- Removed underlines from contractor customer names.
+- Each normalised contractor is assigned a distinct solid colour: red, blue, green, black, orange, purple, teal, or slate.
+- The same contractor colour is used in the vehicle list, customer directory, customer profile, and month-end invoicing screen.
