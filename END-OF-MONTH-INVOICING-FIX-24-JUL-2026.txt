@@ -1,0 +1,19 @@
+END OF MONTH INVOICING — LIVE FILE FIX
+
+The previous attempt placed the interface in an unused React source file. This corrected build puts the feature directly into index.html, which is the file Vercel serves for this project.
+
+Visible location:
+Fleet Manager > End of month invoicing
+
+Included:
+- calendar month selector
+- every contractor fleet customer
+- completed job count and ex-VAT total
+- completion date, registration, vehicle, work required and ex-VAT value
+- per-customer CSV download
+- consolidated invoice using the existing invoice editor
+- prepared email using the saved fleet invoice email
+- actual completed_at timestamp for newly completed jobs
+- fallback to updated_at / booking_date for older jobs
+
+Run MONTH-END-INVOICING-SUPABASE-MIGRATION.sql once in Supabase for the completed_at field to sync permanently across devices.

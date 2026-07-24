@@ -222,33 +222,6 @@ async function listGlobal() {
   return readLS(globalKey);
 }
 
-async function listAllJobs() {
-  if (supabase) {
-    const { data, error } = await supabase.from("jobs").select("*").order("created_at", { ascending: false });
-    if (error) throw error;
-    return data || [];
-  }
-  const rows = [];
-  const seen = new Set();
-  for (const key of Object.keys(localStorage)) {
-    if ((key.startsWith("vecta:v113:") && key !== tasksKey && key !== notesKey) || key === globalKey) {
-      for (const job of readLS(key)) if (!seen.has(job.id)) { seen.add(job.id); rows.push(job); }
-    }
-  }
-  return rows;
-}
-
-function jobCompletionISO(job) {
-  const raw = job.completed_at || job.completed_date || job.updated_at || job.booking_date || job.created_at;
-  return raw ? String(raw).slice(0, 10) : "";
-}
-
-function jobExVat(job) {
-  const direct = Number(job.quoted_amount_ex_vat || job.quoted_amount || job.price_ex_vat || 0);
-  if (direct) return direct;
-  return Number(job.estimated_hours || 0) * 40;
-}
-
 async function listTasks() {
   if (supabase) {
     const { data, error } = await supabase.from("tasks").select("*").eq("done", false).order("created_at");
@@ -312,11 +285,7 @@ function jobPayloadForSupabase(job, date) {
     estimated_hours: Number(job.estimated_hours || 1),
     source: job.source || "manual",
     sort_order: Number(job.sort_order || 0),
-    archived: Boolean(job.archived || job.status === "archived" || job.status === "completed"),
-    quoted_amount_ex_vat: Number(job.quoted_amount_ex_vat || job.quoted_amount || 0),
-    completed_at: job.status === "completed" || job.archived
-      ? (job.completed_at || new Date().toISOString())
-      : (job.completed_at || null)
+    archived: Boolean(job.archived || job.status === "archived")
   };
 }
 
@@ -354,15 +323,7 @@ async function saveJob(job, date) {
   const payload = jobPayloadForSupabase(job, date);
 
   if (supabase) {
-    let { error } = await supabase.from("jobs").upsert(payload, { onConflict: "id" });
-    // Older databases may not yet have the month-end fields. Keep normal job
-    // saving operational, while the included SQL migration enables full sync.
-    if (error && /completed_at|quoted_amount_ex_vat/i.test(error.message || "")) {
-      const legacyPayload = { ...payload };
-      delete legacyPayload.completed_at;
-      delete legacyPayload.quoted_amount_ex_vat;
-      ({ error } = await supabase.from("jobs").upsert(legacyPayload, { onConflict: "id" }));
-    }
+    const { error } = await supabase.from("jobs").upsert(payload, { onConflict: "id" });
     if (error) {
       console.error("Supabase job save failed", error, payload);
       alert(`Could not save job to Supabase: ${error.message}`);
@@ -721,7 +682,7 @@ function JobDialog({ job, date, settings, jobTypes = JOB_TYPES, onClose, onSave,
           <textarea value={form.work_required || ""} onChange={e => update("work_required", e.target.value)} />
         </label>
 
-        <div className="four">
+        <div className="three">
           <label>Status
             <select value={form.status || "in_progress"} onChange={e => update("status", e.target.value)}>
               {Object.entries(STATUS).map(([key, label]) => <option key={key} value={key}>{label}</option>)}
@@ -732,9 +693,6 @@ function JobDialog({ job, date, settings, jobTypes = JOB_TYPES, onClose, onSave,
           </label>
           <label>Drop-off
             <input type="time" value={String(form.drop_time || "").slice(0, 5)} onChange={e => update("drop_time", e.target.value)} />
-          </label>
-          <label>Quoted amount (ex. VAT)
-            <input type="number" min="0" step="0.01" value={form.quoted_amount_ex_vat || ""} onChange={e => update("quoted_amount_ex_vat", Number(e.target.value))} />
           </label>
         </div>
 
@@ -814,13 +772,13 @@ function InvoicePanel({ job, settings, onClose, onMarkPaid }) {
   const [invoiceNumber, setInvoiceNumber] = useState(`V${new Date().getFullYear().toString().slice(-2)}${String(Date.now()).slice(-5)}`);
   const [paymentMethod, setPaymentMethod] = useState("Transfer");
   const [paid, setPaid] = useState(false);
-  const [lines, setLines] = useState(job.invoice_lines?.length ? job.invoice_lines : [
+  const [lines, setLines] = useState([
     {
       id: uuid(),
       type: "Labour",
       description: job.work_required || "Labour",
       qty: Number(job.estimated_hours || 1),
-      unit_price: Number(job.quoted_amount_ex_vat || 0) || labourRate
+      unit_price: labourRate
     }
   ]);
 
@@ -847,7 +805,7 @@ function InvoicePanel({ job, settings, onClose, onMarkPaid }) {
   function emailInvoice() {
     const subject = encodeURIComponent(`Invoice ${invoiceNumber} - ${job.registration || ""}`);
     const body = encodeURIComponent(`Hi ${job.customer_name || ""},\n\nPlease find your invoice details below:\n\nInvoice: ${invoiceNumber}\nVehicle: ${job.vehicle || ""}\nRegistration: ${job.registration || ""}\nTotal: £${total.toFixed(2)}\n\nPlease use your registration number as the payment reference.\n\nRegards,\nVecta`);
-    window.location.href = `mailto:${encodeURIComponent(job.invoice_email || job.customer_email || "")}?subject=${subject}&body=${body}`;
+    window.location.href = `mailto:?subject=${subject}&body=${body}`;
   }
 
   async function markPaid() {
@@ -1388,78 +1346,7 @@ function FleetRegistrationPlate({ registration, className = "" }) {
   return <span className={`uk-reg-plate fleet-reg-plate ${className}`.trim()} title="Vehicle registration"><span className="gb-strip">GB</span><strong>{registration || "NO REG"}</strong></span>;
 }
 
-
-function monthValueToday() {
-  return todayISO().slice(0, 7);
-}
-
-function downloadTextFile(filename, content, type = "text/csv;charset=utf-8") {
-  const blob = new Blob([content], { type });
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement("a");
-  link.href = url;
-  link.download = filename;
-  link.click();
-  URL.revokeObjectURL(url);
-}
-
-function EndOfMonthInvoicing({ vehicles, allJobs, onOpenInvoice }) {
-  const [month, setMonth] = useState(monthValueToday());
-  const contractorVehicles = vehicles.filter(v => v.fleetGroup === "Contractor Fleet");
-  const customers = [...new Set(contractorVehicles.map(v => normaliseFleetCustomer(v.customer)).filter(Boolean))].sort();
-  const registrationsByCustomer = Object.fromEntries(customers.map(customer => [customer, new Set(contractorVehicles.filter(v => normaliseFleetCustomer(v.customer) === customer).map(v => String(v.registration || "").replace(/\s/g, "").toUpperCase()))]));
-
-  const summaries = customers.map(customer => {
-    const regs = registrationsByCustomer[customer];
-    const jobs = allJobs.filter(job => {
-      const completed = job.status === "completed" || job.archived;
-      const completedDate = jobCompletionISO(job);
-      const reg = String(job.registration || "").replace(/\s/g, "").toUpperCase();
-      return completed && completedDate.startsWith(month) && (normaliseFleetCustomer(job.customer_name) === customer || regs.has(reg));
-    }).sort((a,b) => jobCompletionISO(a).localeCompare(jobCompletionISO(b)));
-    const email = contractorVehicles.find(v => normaliseFleetCustomer(v.customer) === customer && v.contactEmail)?.contactEmail || "";
-    return { customer, jobs, email, total: jobs.reduce((sum, job) => sum + jobExVat(job), 0) };
-  });
-
-  function csvFor(summary) {
-    const escape = value => `"${String(value ?? "").replace(/"/g, '""')}"`;
-    const rows = [["Completion date","Registration","Work required","Amount ex VAT"], ...summary.jobs.map(job => [jobCompletionISO(job), job.registration || "", job.work_required || job.job_type || "", jobExVat(job).toFixed(2)])];
-    return rows.map(row => row.map(escape).join(",")).join("\r\n");
-  }
-
-  function openInvoice(summary) {
-    onOpenInvoice({
-      id: `month-${summary.customer}-${month}`,
-      customer_name: summary.customer,
-      customer_email: summary.email,
-      invoice_email: summary.email,
-      vehicle: `Fleet account · ${month}`,
-      registration: "CONSOLIDATED",
-      technician: "Fleet Manager",
-      work_required: `Consolidated fleet work for ${month}`,
-      invoice_lines: summary.jobs.map(job => ({ id: uuid(), type: "Labour", description: `${jobCompletionISO(job)} · ${job.registration || ""} · ${job.work_required || job.job_type || "Work completed"}`, qty: 1, unit_price: jobExVat(job) }))
-    });
-  }
-
-  function emailCustomer(summary) {
-    const subject = encodeURIComponent(`Vecta fleet invoice - ${summary.customer} - ${month}`);
-    const body = encodeURIComponent(`Hello,\n\nYour consolidated fleet invoice for ${month} is ready.\n\nCompleted jobs: ${summary.jobs.length}\nTotal excluding VAT: £${summary.total.toFixed(2)}\n\nPlease attach the downloaded CSV and the saved invoice PDF before sending.\n\nRegards,\nVecta`);
-    window.location.href = `mailto:${encodeURIComponent(summary.email)}?subject=${subject}&body=${body}`;
-  }
-
-  return <section className="month-end-panel">
-    <div className="month-end-heading"><div><span className="eyebrow">ACCOUNTS</span><h2>End of month invoicing</h2><p>Completed contractor fleet work, consolidated by customer.</p></div><label>Calendar month<input type="month" value={month} onChange={e => setMonth(e.target.value)} /></label></div>
-    <div className="month-end-customers">
-      {summaries.map(summary => <article className="month-end-customer" key={summary.customer}>
-        <header><div><h3>{summary.customer}</h3><span>{summary.email || "Invoice email not saved"}</span></div><div className="month-end-totals"><b>{summary.jobs.length} jobs</b><strong>£{summary.total.toFixed(2)} ex. VAT</strong></div></header>
-        {summary.jobs.length ? <><div className="month-end-job-head"><span>Date</span><span>Registration</span><span>Work required</span><span>Ex. VAT</span></div>{summary.jobs.map(job => <div className="month-end-job" key={job.id}><span>{formatDate(jobCompletionISO(job))}</span><b>{job.registration || "—"}</b><span>{job.work_required || job.job_type || "—"}</span><strong>£{jobExVat(job).toFixed(2)}</strong></div>)}</> : <p className="empty-state">No completed jobs for this customer in the selected month.</p>}
-        <footer><button disabled={!summary.jobs.length} onClick={() => downloadTextFile(`${summary.customer}-${month}-fleet-jobs.csv`, csvFor(summary))}>Download CSV</button><button disabled={!summary.jobs.length} onClick={() => openInvoice(summary)}>Generate invoice</button><button className="secondary" disabled={!summary.jobs.length || !summary.email} onClick={() => emailCustomer(summary)}><Mail size={15}/> Prepare email</button></footer>
-      </article>)}
-    </div>
-  </section>;
-}
-
-function FleetManager({ onBookJob, allJobs, onOpenInvoice }) {
+function FleetManager({ onBookJob }) {
   const [vehicles, setVehicles] = useState(() => normaliseFleetVehicles(loadFleetValue(FLEET_VEHICLES_KEY, INITIAL_FLEET_VEHICLES)));
   const [plans, setPlans] = useState(() => loadFleetValue(FLEET_PLANS_KEY, INITIAL_MAINTENANCE_PLANS));
   const [completions, setCompletions] = useState(() => loadFleetValue(FLEET_COMPLETIONS_KEY, []));
@@ -1468,7 +1355,6 @@ function FleetManager({ onBookJob, allJobs, onOpenInvoice }) {
   const [group, setGroup] = useState("All");
   const [showDueOnly, setShowDueOnly] = useState(false);
   const [newPlan, setNewPlan] = useState({ type: "DPF Renewal", intervalMonths: 3, targetMonth: "" });
-  const [fleetView, setFleetView] = useState("vehicles");
 
   const plansByVehicle = useMemo(() => {
     const map = {};
@@ -1567,12 +1453,6 @@ function FleetManager({ onBookJob, allJobs, onOpenInvoice }) {
         <div className="fleet-hero-actions"><button className="secondary" onClick={() => { localStorage.removeItem(FLEET_VEHICLES_KEY); localStorage.removeItem(FLEET_PLANS_KEY); location.reload(); }}>Reset imported data</button></div>
       </section>
 
-      <nav className="fleet-tabs">
-        <button className={fleetView === "vehicles" ? "active" : ""} onClick={() => setFleetView("vehicles")}>Fleet overview</button>
-        <button className={fleetView === "month-end" ? "active" : ""} onClick={() => setFleetView("month-end")}>End of month invoicing</button>
-      </nav>
-
-      {fleetView === "month-end" ? <EndOfMonthInvoicing vehicles={enriched} allJobs={allJobs} onOpenInvoice={onOpenInvoice} /> : <>
       <section className="fleet-kpis">
         <div><Car/><span>Vehicles</span><strong>{totals.vehicles}</strong></div>
         <div className="danger"><AlertTriangle/><span>Overdue</span><strong>{totals.overdue}</strong></div>
@@ -1601,9 +1481,7 @@ function FleetManager({ onBookJob, allJobs, onOpenInvoice }) {
         </div>
       </section>
 
-      </>}
-
-      {selected && fleetView === "vehicles" && <div className="fleet-drawer-backdrop" onMouseDown={() => setSelectedId(null)}>
+      {selected && <div className="fleet-drawer-backdrop" onMouseDown={() => setSelectedId(null)}>
         <aside className="fleet-drawer" onMouseDown={e => e.stopPropagation()}>
           <header><div><span className="eyebrow">VEHICLE PROFILE</span><div className="fleet-drawer-title"><FleetRegistrationPlate registration={selected.registration}/>{selected.fleetGroup === "Contractor Fleet" && <b className="contractor-badge" style={contractorColour(selected.customer)}>{selected.customer}</b>}</div><p>{selected.model}</p></div><button type="button" className="icon-button" onClick={() => setSelectedId(null)}><X/></button></header>
           <section className="fleet-profile-grid">
@@ -1632,7 +1510,6 @@ function App() {
   const [mode, setMode] = useState("day");
   const [jobs, setJobs] = useState([]);
   const [globalJobs, setGlobalJobs] = useState([]);
-  const [allJobs, setAllJobs] = useState([]);
   const [tasks, setTasks] = useState([]);
   const [notes, setNotes] = useState([]);
   const [dialogJob, setDialogJob] = useState(undefined);
@@ -1660,7 +1537,6 @@ function App() {
   async function refresh() {
     setJobs(await listDate(date));
     setGlobalJobs(await listGlobal());
-    setAllJobs(await listAllJobs());
     setTasks(await listTasks());
     setNotes(await listNotes());
   }
@@ -1755,7 +1631,7 @@ function App() {
       </header>
 
       {mode === "fleet" ? (
-        <FleetManager onBookJob={bookFleetPlan} allJobs={allJobs} onOpenInvoice={setInvoiceJob} />
+        <FleetManager onBookJob={bookFleetPlan} />
       ) : mode === "dashboard" ? (
         <Dashboard
           jobs={jobs}
