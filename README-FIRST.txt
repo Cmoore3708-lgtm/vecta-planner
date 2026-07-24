@@ -1,10 +1,12 @@
-Vecta Planner consolidated v7
+VECTA PLANNER CONSOLIDATED V8
 
-Fixes in this release:
-- Fleet maintenance Complete now marks the item complete immediately, with no completion-date prompt.
-- The existing maintenance due date is used as the completion date.
-- The next due date rolls forward by the plan interval from the existing due date.
-- Due dates remain editable with Save due date.
-- A render re-entry guard prevents the Maximum call stack size exceeded fault from disabling the page.
+Upload the CONTENTS of this folder to the repository root.
 
-Deploy the contents of this folder to the repository root, redeploy on Vercel, then hard refresh once (Ctrl+F5).
+Fixes in this build:
+- Fleet Complete never asks for a date. It uses the existing due date automatically.
+- Imported 2026 service completions clear both Annual Service and MOT overdue items.
+- Imported MOT and Safety completions also clear their matching overdue items.
+- Existing due dates are not changed by imported history.
+
+After deployment, use Ctrl+F5 once.
+Build marker: V8 quick-complete-import-clearing
