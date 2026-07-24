@@ -1,19 +1,6 @@
-VECTA WORKSHOP PRO — CONSOLIDATED STATIC RELEASE
+VECTA Workshop Pro — consolidated v5
 
-This package deliberately does not include package.json or the old React/Vite source.
-Vercel was detecting that stale source and rebuilding an older version of the app, which caused the old logo/dashboard and missing Fleet amendments.
+This release fixes the Maximum call stack error by rebuilding from the stable v3 baseline.
+It safely imports the photographed 2026 historical completion records into existing browser data, does not alter due dates, removes matching completed maintenance from overdue calculations, and adds Edit/Delete controls to completion history.
 
-Upload the CONTENTS of this folder to the repository root and redeploy.
-Run MONTH-END-INVOICING-SUPABASE-MIGRATION.sql once in Supabase if it has not already been run.
-After deployment use Ctrl+F5 once.
-
-Included:
-- Planner renamed Dashboard; old Dashboard removed
-- Fleet search restored
-- End of month invoicing
-- NMUK, Staff and all contractor income streams
-- required Customer / Income Stream on every job card
-- actual completion dates and quoted ex-VAT amounts
-- CSV, consolidated invoice and prepared email
-- fleet due-date editing
-- maintenance completion rolls from the existing due date, not the date entered
+Deploy the contents of this folder to the repository root, then redeploy Vercel and press Ctrl+F5 once.
