@@ -1,6 +1,10 @@
-VECTA Workshop Pro — consolidated v5
+Vecta Planner consolidated v7
 
-This release fixes the Maximum call stack error by rebuilding from the stable v3 baseline.
-It safely imports the photographed 2026 historical completion records into existing browser data, does not alter due dates, removes matching completed maintenance from overdue calculations, and adds Edit/Delete controls to completion history.
+Fixes in this release:
+- Fleet maintenance Complete now marks the item complete immediately, with no completion-date prompt.
+- The existing maintenance due date is used as the completion date.
+- The next due date rolls forward by the plan interval from the existing due date.
+- Due dates remain editable with Save due date.
+- A render re-entry guard prevents the Maximum call stack size exceeded fault from disabling the page.
 
-Deploy the contents of this folder to the repository root, then redeploy Vercel and press Ctrl+F5 once.
+Deploy the contents of this folder to the repository root, redeploy on Vercel, then hard refresh once (Ctrl+F5).
