@@ -1,0 +1,5 @@
+Fleet Manager v6
+
+Nissan Internal vehicles now use a red GB strip on every registration plate rendered by the live site.
+The red strip identifies site-only vehicles that do not travel on public roads.
+The rule is registration-based and follows the vehicle across Fleet Manager, Planner, Search, vehicle history and other shared plate displays.
