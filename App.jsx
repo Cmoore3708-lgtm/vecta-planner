@@ -1286,6 +1286,54 @@ function saveFleetValue(key, value) {
   localStorage.setItem(key, JSON.stringify(value));
 }
 
+const HISTORIC_FLEET_CUTOFF = "2026-07-01";
+
+function sameDayMonthNextFutureYear(iso, now = new Date()) {
+  if (!iso) return "";
+  const [, month, day] = iso.split("-").map(Number);
+  if (!month || !day) return "";
+  let year = now.getFullYear();
+  const candidate = new Date(year, month - 1, day);
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  if (candidate <= today) year += 1;
+  return `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+}
+
+function migrateHistoricFleetSchedules(inputPlans, inputCompletions) {
+  const plans = Array.isArray(inputPlans) ? inputPlans : [];
+  const completions = Array.isArray(inputCompletions) ? inputCompletions : [];
+  const existingKeys = new Set(completions.map(c => `${c.planId}|${c.completedDate}|historic-overdue-migration`));
+  const migratedCompletions = [...completions];
+  let changed = false;
+
+  const migratedPlans = plans.map(plan => {
+    const due = plan.currentDueDate;
+    if (!due || due >= HISTORIC_FLEET_CUTOFF) return plan;
+
+    const nextDue = sameDayMonthNextFutureYear(due);
+    if (!nextDue) return plan;
+    changed = true;
+
+    const completionKey = `${plan.id}|${due}|historic-overdue-migration`;
+    if (!existingKeys.has(completionKey)) {
+      migratedCompletions.push({
+        id: `historic-${plan.id}-${due}`,
+        vehicleId: plan.vehicleId,
+        planId: plan.id,
+        type: plan.type,
+        completedDate: due,
+        nextDue,
+        source: "historic-overdue-migration"
+      });
+      existingKeys.add(completionKey);
+    }
+
+    return { ...plan, currentDueDate: nextDue };
+  });
+
+  return { plans: migratedPlans, completions: migratedCompletions, changed };
+}
+
 function addMonthsISO(iso, months) {
   const d = iso ? new Date(`${iso}T00:00:00`) : new Date();
   d.setMonth(d.getMonth() + Number(months || 0));
@@ -1347,9 +1395,20 @@ function FleetRegistrationPlate({ registration, className = "" }) {
 }
 
 function FleetManager({ onBookJob }) {
-  const [vehicles, setVehicles] = useState(() => normaliseFleetVehicles(loadFleetValue(FLEET_VEHICLES_KEY, INITIAL_FLEET_VEHICLES)));
-  const [plans, setPlans] = useState(() => loadFleetValue(FLEET_PLANS_KEY, INITIAL_MAINTENANCE_PLANS));
-  const [completions, setCompletions] = useState(() => loadFleetValue(FLEET_COMPLETIONS_KEY, []));
+  const [initialFleetData] = useState(() => {
+    const vehicles = normaliseFleetVehicles(loadFleetValue(FLEET_VEHICLES_KEY, INITIAL_FLEET_VEHICLES));
+    const savedPlans = loadFleetValue(FLEET_PLANS_KEY, INITIAL_MAINTENANCE_PLANS);
+    const savedCompletions = loadFleetValue(FLEET_COMPLETIONS_KEY, []);
+    const migrated = migrateHistoricFleetSchedules(savedPlans, savedCompletions);
+    if (migrated.changed) {
+      saveFleetValue(FLEET_PLANS_KEY, migrated.plans);
+      saveFleetValue(FLEET_COMPLETIONS_KEY, migrated.completions);
+    }
+    return { vehicles, plans: migrated.plans, completions: migrated.completions };
+  });
+  const [vehicles, setVehicles] = useState(initialFleetData.vehicles);
+  const [plans, setPlans] = useState(initialFleetData.plans);
+  const [completions, setCompletions] = useState(initialFleetData.completions);
   const [selectedId, setSelectedId] = useState(null);
   const [query, setQuery] = useState("");
   const [group, setGroup] = useState("All");
