@@ -1,4 +1,4 @@
-VECTA Workshop Pro V41.22
+VECTA Workshop Pro V41.23
 
 Upload the CONTENTS of this folder to the root of the existing GitHub repository.
 No npm install or build command is required. index.html is the live application.
