@@ -1,5 +1,6 @@
-VECTA Workshop Pro v1.8 rebuilt clean upload package.
-The invalid duplicate root App.jsx file has been removed.
-The real application source remains at src/App.jsx.
-No node_modules folder is included.
-Upload the contents of this folder to the root of the GitHub repository.
+VECTA Workshop Pro V41.21
+
+Upload the CONTENTS of this folder to the root of the existing GitHub repository.
+No npm install or build command is required. index.html is the live application.
+
+After Vercel deploys, press Ctrl+F5 once.
