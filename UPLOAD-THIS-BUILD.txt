@@ -1,9 +1,11 @@
-VECTA Workshop Pro v41.28
+VECTA Workshop Pro v41.29
 
 Upload the contents of this folder to the root of the GitHub repository.
 
 Changes in this build:
-- Annual Service and six-month safety inspection dates snap to the MOT date when within 40 days.
-- Service, MOT and safety work remain separate badges in the Due next 30 days list.
-- Historical completions no longer hide a later due cycle in the same calendar year.
-- NG18 VNU displays both SER and MOT on 18/08/2026.
+- Vehicles with multiple items due on the same visit show the badges side by side with one shared date.
+- Fleet vehicle descriptions are shortened to model, engine size and fuel type where available.
+- Every NMUK pool car is assigned laura.ridley@nissan-nmuk.co.uk.
+- New job-card registration boxes turn bright red when service, MOT, six-month inspection or tax is due within 30 days.
+- Fleet servicing now alternates between Major Service and Interim Service. The SER badge remains compact, while the vehicle details show the exact service due.
+- Service and six-month inspection dates continue to align to the MOT date when within 40 days.
