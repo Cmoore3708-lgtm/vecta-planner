@@ -1,9 +1,8 @@
-VECTA Workshop Pro v41.37
+VECTA Workshop Pro v41.41 — SMALL DEPLOYMENT BUILD
 
-Upload the contents of this folder to the root of the GitHub repository.
+Upload all files in this folder to the root of the GitHub repository.
+Vercel will deploy automatically.
 
-Changes in this build:
-- NMUK Internal vehicles now receive one Internal Service every 12 months.
-- Existing Internal vehicle service plans and completion history are migrated automatically.
-- Internal services never alternate between Major and Interim.
-- Add Maintenance Record has been restored to vehicle details for custom schedules such as a 3-month DPF clean.
+Changes:
+- Financial summary bar added to the bottom of the Invoices tab.
+- Today, month-to-date, financial-year-to-date from 1 April, and future booked totals.

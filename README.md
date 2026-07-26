@@ -1,10 +1,8 @@
-# VECTA Workshop Pro v41.39
+# VECTA Workshop Pro v41.41
 
-- Unified vehicle record now shows a large registration plate directly beneath “Vehicle Record”.
-- Removed the duplicate registration plate from the MOT/Tax/Service summary row.
-- MOT, Tax and Next Service summary boxes remain together in one compact row.
+Small Vercel deployment build.
 
-
-## v41.39
-- Fleet summary filters toggle off when clicked again.
-- Fleet group and contractor dropdown selections show the complete matching fleet, independent of due-status filters.
+## This update
+- Added financial summary cards to the bottom of the Invoices tab.
+- Displays today's booked work, month-to-date completed work, financial-year-to-date completed work from 1 April, and future booked work.
+- Uses Amount Quoted, falling back to estimated hours multiplied by the configured labour rate.
