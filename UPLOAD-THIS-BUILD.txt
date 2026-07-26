@@ -1,11 +1,9 @@
-VECTA Workshop Pro v41.30
+VECTA Workshop Pro v41.33
 
 Upload the contents of this folder to the root of the GitHub repository.
 
 Changes in this build:
-- Vehicles with multiple items due on the same visit show the badges side by side with one shared date.
-- Fleet vehicle descriptions are shortened to model, engine size and fuel type where available.
-- Every NMUK pool car is assigned laura.ridley@nissan-nmuk.co.uk.
-- New job-card registration boxes turn bright red when service, MOT, six-month inspection or tax is due within 30 days.
-- Fleet servicing now alternates between Major Service and Interim Service. The SER badge remains compact, while the vehicle details show the exact service due.
-- Service and six-month inspection dates continue to align to the MOT date when within 40 days.
+- Vehicle Search displays MOT due and Tax due dates from Fleet Manager even when the workshop vehicle record has blank date fields.
+- Vehicle Search displays the next service type and next service date.
+- Opening a vehicle from Search shows MOT due, Tax due and Next service together.
+- NMUK Internal vehicles continue to show Not Required for MOT and Tax.
