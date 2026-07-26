@@ -1,16 +1,11 @@
-# VECTA Workshop Pro — V41.30
+# VECTA Workshop Pro — V41.37
 
 Lean static deployment package. `index.html` is the live application.
 
-Retained runtime files only:
-- `index.html`
-- `assets/vecta-logo.webp`
-- `api/`
-- `vercel.json`
-- `package.json`
-
-
-## v41.36
-- Unified vehicle record top row: registration plate, MOT, Tax and Next Service in one compact line.
-- Duplicate maintenance plans are consolidated by type, retaining the earliest active due date.
-- Added New Job Card action to every maintenance plan, prefilled for that exact maintenance item.
+## v41.37
+- NMUK Internal vehicles use one fixed `Internal Service` every 12 months.
+- Major/Interim alternation is disabled for NMUK Internal vehicles only.
+- Existing NMUK Internal service plans and historical completion labels migrate automatically.
+- Completing an Internal Service schedules another Internal Service 12 months later.
+- Restored `Add Maintenance Record` on the unified vehicle page, including maintenance name, interval in months and next due date.
+- Custom plans such as `DPF clean` every 3 months support Save Date, New Job Card and Mark Complete.

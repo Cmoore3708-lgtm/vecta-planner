@@ -1,9 +1,9 @@
-VECTA Workshop Pro v41.34
+VECTA Workshop Pro v41.37
 
 Upload the contents of this folder to the root of the GitHub repository.
 
 Changes in this build:
-- Vehicle Search displays MOT due and Tax due dates from Fleet Manager even when the workshop vehicle record has blank date fields.
-- Vehicle Search displays the next service type and next service date.
-- Opening a vehicle from Search shows MOT due, Tax due and Next service together.
-- NMUK Internal vehicles continue to show Not Required for MOT and Tax.
+- NMUK Internal vehicles now receive one Internal Service every 12 months.
+- Existing Internal vehicle service plans and completion history are migrated automatically.
+- Internal services never alternate between Major and Interim.
+- Add Maintenance Record has been restored to vehicle details for custom schedules such as a 3-month DPF clean.
