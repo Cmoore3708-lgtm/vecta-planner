@@ -1,18 +1,9 @@
-VECTA Workshop Pro V41.26 — SMALL DEPLOYMENT BUILD
+VECTA Workshop Pro v41.28
 
-Upload the CONTENTS of this folder to the root of the existing GitHub repository.
-No npm install or manual build is required. index.html is the live application.
-
-After Vercel deploys, press Ctrl+F5 once.
+Upload the contents of this folder to the root of the GitHub repository.
 
 Changes in this build:
-- The Due next 30 days list now shows one main entry per vehicle.
-- The vehicle's earliest due item remains on the main row.
-- Any additional work due within 30 days appears immediately underneath as a smaller badge-and-date row.
-- The Due next 30 days count now reflects vehicles rather than duplicated work rows.
-- Selecting Staff on a job card opens a required Name field.
-- A new CONTRACTOR option is available in the Customer / Income Stream menu.
-- Selecting CONTRACTOR opens a required Name field for the new contractor company.
-- Generic contractor jobs are grouped under the entered contractor name for end-of-month invoicing.
-- Generic contractor invoice emails can use the email saved on the job card.
-- All V41.25 fleet colour, badge, sorting and invoice behaviour remains in place.
+- Annual Service and six-month safety inspection dates snap to the MOT date when within 40 days.
+- Service, MOT and safety work remain separate badges in the Due next 30 days list.
+- Historical completions no longer hide a later due cycle in the same calendar year.
+- NG18 VNU displays both SER and MOT on 18/08/2026.
