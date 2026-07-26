@@ -1,4 +1,4 @@
-VECTA Workshop Pro v41.33
+VECTA Workshop Pro v41.34
 
 Upload the contents of this folder to the root of the GitHub repository.
 
