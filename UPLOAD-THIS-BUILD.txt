@@ -1,6 +1,15 @@
-VECTA Workshop Pro V41.23
+VECTA Workshop Pro V41.24 — SMALL DEPLOYMENT BUILD
 
 Upload the CONTENTS of this folder to the root of the existing GitHub repository.
-No npm install or build command is required. index.html is the live application.
+No npm install or manual build is required. index.html is the live application.
 
 After Vercel deploys, press Ctrl+F5 once.
+
+Changes in this build:
+- WPC vehicle records are consolidated under the single name WPC.
+- Existing locally stored WPC-labelled records and customer profiles are migrated automatically.
+- NMUK registration strip colours: Internal red, Pool dark red, MVOS light red.
+- Staff registration strips remain blue.
+- Every current contractor has a fixed, unique, non-blue colour.
+- Next-due badges: MOT, SER, TAX and 6 mo, each with a distinct colour.
+- Fleet Manager vehicle lists sort by the displayed due date, earliest first.
