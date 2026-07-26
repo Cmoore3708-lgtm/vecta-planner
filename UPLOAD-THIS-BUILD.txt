@@ -1,4 +1,4 @@
-VECTA Workshop Pro V41.25 — SMALL DEPLOYMENT BUILD
+VECTA Workshop Pro V41.26 — SMALL DEPLOYMENT BUILD
 
 Upload the CONTENTS of this folder to the root of the existing GitHub repository.
 No npm install or manual build is required. index.html is the live application.
@@ -6,14 +6,13 @@ No npm install or manual build is required. index.html is the live application.
 After Vercel deploys, press Ctrl+F5 once.
 
 Changes in this build:
-- Fleet Manager always opens on all individual work due in the next 30 days.
-- Each due MOT, service, tax item and six-month safety check appears as its own row, sorted earliest first.
-- Vehicles is renamed Total vehicles and moved alongside the fleet category boxes.
-- Nissan Internal is displayed as NMUK Internal.
-- Nissan Pool Cars is displayed as NMUK pool cars.
-- Fleet category boxes are narrower.
-- Top due boxes use the same MOT, SER, TAX and 6 mo colour system as the list badges.
-- Contractor end-of-month invoices list every completed job in date order.
-- Contractors still have a separate date-ordered downloadable job list.
-- NMUK invoices use one consolidated total; the detailed NMUK job list remains separate.
-- WPC records remain consolidated under the single name WPC.
+- The Due next 30 days list now shows one main entry per vehicle.
+- The vehicle's earliest due item remains on the main row.
+- Any additional work due within 30 days appears immediately underneath as a smaller badge-and-date row.
+- The Due next 30 days count now reflects vehicles rather than duplicated work rows.
+- Selecting Staff on a job card opens a required Name field.
+- A new CONTRACTOR option is available in the Customer / Income Stream menu.
+- Selecting CONTRACTOR opens a required Name field for the new contractor company.
+- Generic contractor jobs are grouped under the entered contractor name for end-of-month invoicing.
+- Generic contractor invoice emails can use the email saved on the job card.
+- All V41.25 fleet colour, badge, sorting and invoice behaviour remains in place.
