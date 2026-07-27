@@ -1,9 +1,10 @@
-# VECTA Workshop Pro v41.43
+# VECTA Workshop Pro v41.45
 
-Small deployment build.
+Deployment build.
 
-## Changes
-- Added an explicit **No Vehicle** option to job cards.
-- No-vehicle work remains assigned to the selected contractor/customer and is included in financial and month-end totals.
-- No fake vehicle record is created.
-- Existing imported jobs without a registration are migrated to No Vehicle.
+Changes:
+- Imported contractor spreadsheet jobs now appear in each matching vehicle history.
+- Spreadsheet Summary of work maps to Work required.
+- Spreadsheet Cost maps to Amount quoted.
+- Job type is inferred only when the wording is clear; otherwise it remains blank.
+- Imported history is de-duplicated against Supabase/browser records.
