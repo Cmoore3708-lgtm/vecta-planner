@@ -1,8 +1,1 @@
-VECTA Workshop Pro v41.41 — SMALL DEPLOYMENT BUILD
-
-Upload all files in this folder to the root of the GitHub repository.
-Vercel will deploy automatically.
-
-Changes:
-- Financial summary bar added to the bottom of the Invoices tab.
-- Today, month-to-date, financial-year-to-date from 1 April, and future booked totals.
+VECTA v41.42 — upload these files to the repository root.

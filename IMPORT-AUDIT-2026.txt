@@ -1,0 +1,35 @@
+VECTA Contractor Spreadsheet Import — 2026
+
+Imported completed work rows: 264
+Imported value (ex VAT): £38,385.00
+Potential new fleet vehicle identifiers added: 44
+
+Monthly totals:
+  2026-01: £4,120.00
+  2026-02: £5,160.00
+  2026-03: £3,440.00
+  2026-04: £5,540.00
+  2026-05: £5,890.00
+  2026-06: £6,315.00
+  2026-07: £7,920.00
+
+Contractor totals:
+  BIDVEST: £9,320.00
+  E4: £1,810.00
+  FMS: £1,595.00
+  JEB: £770.00
+  NGK: £210.00
+  NKC: £455.00
+  OWBEN: £5,295.00
+  RAMS: £2,970.00
+  RAMS SCAFFOLDING: £70.00
+  SPORTS & SOCIAL: £155.00
+  TEMPLEMAN: £1,940.00
+  UNIPRESS: £1,010.00
+  WPC: £12,785.00
+
+Data issues / assumptions:
+  - Row 69 has £395 of FMS work but no date, contractor or registration. It was linked to the preceding FMS entry dated 27 February; no vehicle registration was assigned.
+  - 24 work rows have no registration. They were imported into contractor/month-end financial totals but cannot appear against a vehicle.
+  - Non-vehicle references such as N/A, wheels, trailers, pumps, spares and oil were kept in job history/financial totals but were not created as fleet vehicles.
+  - Several registrations look like possible typing variations of existing vehicles and were imported exactly as written rather than silently merged: PF17 XTY/PF17 XJY, YM67 YOM/YN67 YOM, WGZ 7572/WGZ 7527, NH22 UHV/HN22 UHV, TD23 TFF/YD23 TFF, MA72 YFN/MA72 YFZ or YFW, and TYD23 TFY/YD23 TFY.
