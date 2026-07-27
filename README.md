@@ -1,7 +1,8 @@
-VECTA Workshop Pro v41.51
+# VECTA Workshop Pro v41.50
 
-Financial report correction update:
-- Every financial summary line now has an Edit button.
-- Correct allocation between NMUK, Staff, Contractor and Needs review.
-- Correct NMUK subtype, registration, completion date, work required and amount.
-- Live job corrections update the underlying job record; historical imports retain a saved correction.
+Applies the user-reviewed full vehicle allocation spreadsheet corrections, including Fire Maintenance consolidation, vehicle models, contact emails and the HN22 UHV registration correction.
+
+
+## v41.52
+- Financial breakdown: Contractors total and each contractor total; NMUK total split into Internal, Pool and MVOS; one combined Staff total.
+- Staff and NMUK remain separate from contractors.
