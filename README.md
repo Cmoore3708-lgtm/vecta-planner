@@ -1,9 +1,7 @@
-# VECTA Workshop Pro v41.49
+VECTA Workshop Pro v41.51
 
-Small deployment build.
-
-- Corrects legacy financial classification on the Invoices page.
-- Uses explicit customer account and vehicle allocation before classifying work.
-- Treats legacy named individuals as Staff instead of Contractors.
-- Consolidates contractor aliases such as E4 Electrical/E4, RAMS Scaffolding/RAMS, Fire Maintenance/FMS and WPC variants.
-- Places genuinely ambiguous or blank legacy jobs in a separate Needs review section.
+Financial report correction update:
+- Every financial summary line now has an Edit button.
+- Correct allocation between NMUK, Staff, Contractor and Needs review.
+- Correct NMUK subtype, registration, completion date, work required and amount.
+- Live job corrections update the underlying job record; historical imports retain a saved correction.
