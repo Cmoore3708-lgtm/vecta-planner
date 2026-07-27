@@ -1,8 +1,6 @@
-# VECTA Workshop Pro v41.50
+VECTA v41.53 small deployment build
 
-Applies the user-reviewed full vehicle allocation spreadsheet corrections, including Fire Maintenance consolidation, vehicle models, contact emails and the HN22 UHV registration correction.
-
-
-## v41.52
-- Financial breakdown: Contractors total and each contractor total; NMUK total split into Internal, Pool and MVOS; one combined Staff total.
-- Staff and NMUK remain separate from contractors.
+- Financial summary contains totals only.
+- Staff appears once as a single combined total.
+- Individual jobs are hidden until View jobs is clicked.
+- Contractor and NMUK rows each have their own View jobs link.
