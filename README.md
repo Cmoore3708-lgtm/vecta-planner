@@ -1,10 +1,3 @@
-# VECTA Workshop Pro v41.45
+VECTA Workshop Pro v41.46 small deployment build.
 
-Deployment build.
-
-Changes:
-- Imported contractor spreadsheet jobs now appear in each matching vehicle history.
-- Spreadsheet Summary of work maps to Work required.
-- Spreadsheet Cost maps to Amount quoted.
-- Job type is inferred only when the wording is clear; otherwise it remains blank.
-- Imported history is de-duplicated against Supabase/browser records.
+Fixes contractor vehicle opening after imported-history merge. Imported spreadsheet jobs now appear in vehicle history and can be opened safely as read-only historical job cards.
