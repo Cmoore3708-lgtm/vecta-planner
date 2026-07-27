@@ -1,3 +1,4 @@
-VECTA Workshop Pro v41.46 small deployment build.
+VECTA Workshop Pro v41.47
 
-Fixes contractor vehicle opening after imported-history merge. Imported spreadsheet jobs now appear in vehicle history and can be opened safely as read-only historical job cards.
+Small deployment build.
+Financial summary cards on the Invoices tab are clickable and open a detailed breakdown grouped by contractor, NMUK and Staff, including individual jobs and totals.
