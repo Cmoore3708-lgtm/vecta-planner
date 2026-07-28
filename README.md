@@ -1,6 +1,5 @@
-VECTA v41.62 financial dashboard stability fix
+VECTA v41.64 financial performance update
 
-- Stops routine cloud refreshes from clearing the dashboard cache.
-- Keeps completed performance figures visible during app redraws.
-- Prevents the repeated Loading performance figures loop.
-- Recalculates after actual job or settings changes only.
+- Combined business performance now includes NMUK, Contractors and Staff.
+- Current month, financial year to date and 2026 trend include Staff work.
+- Historic comparison and 10% target remain based on NMUK and contractor history until Staff history exists.
