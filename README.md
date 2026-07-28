@@ -1,6 +1,7 @@
-VECTA v41.58 small deployment build
+VECTA v41.61 performance optimisation build
 
-- Imports contractor financial history for 2023, 2024 and 2025.
-- Adds contractor month-to-date, prior month, prior year and 10% target dashboard.
-- Adds contractor financial-year comparison and monthly trend graph.
-- Keeps contractor history separate from NMUK history.
+- Financial graphs no longer run during normal page navigation.
+- Invoice performance dashboards load asynchronously after the page opens.
+- Calculated dashboards are cached for fast repeat viewing.
+- Cache is cleared when jobs or cloud data are saved/refreshed.
+- Navigation away from Invoices cancels pending graph work.
