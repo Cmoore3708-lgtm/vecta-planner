@@ -1,5 +1,5 @@
-VECTA v41.55 small deployment build
+VECTA v41.56 small deployment build
 
-- Adds Various as a fourth NMUK category.
-- Migrates unallocated NMUK work to Various.
-- Various is available on new job cards and finance correction screens.
+- Fixed NMUK 2026 import placement so the browser executes it.
+- Overall invoice summary cards now include contractor and NMUK imported history.
+- Imported records remain de-duplicated by job ID.
