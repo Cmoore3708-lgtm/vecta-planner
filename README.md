@@ -1,7 +1,6 @@
-VECTA v41.61 performance optimisation build
+VECTA v41.62 financial dashboard stability fix
 
-- Financial graphs no longer run during normal page navigation.
-- Invoice performance dashboards load asynchronously after the page opens.
-- Calculated dashboards are cached for fast repeat viewing.
-- Cache is cleared when jobs or cloud data are saved/refreshed.
-- Navigation away from Invoices cancels pending graph work.
+- Stops routine cloud refreshes from clearing the dashboard cache.
+- Keeps completed performance figures visible during app redraws.
+- Prevents the repeated Loading performance figures loop.
+- Recalculates after actual job or settings changes only.

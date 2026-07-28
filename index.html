@@ -7944,7 +7944,7 @@ function mergeRemoteRows(localRows,remoteRows){
   });
   return Object.keys(map).map(function(id){return map[id]});
 }
-async function pullRemote(){invalidateFinanceDashboardCache();
+async function pullRemote(){
   if(!connectSupabase()) return;
   var tables=['jobs','customers','vehicles','tasks','invoices','service_records'];
   for(var i=0;i<tables.length;i++){
@@ -8081,7 +8081,7 @@ var fleetVehicles=loadFleetSeed('vecta:fleet:vehicles:v1',window.INITIAL_FLEET_V
 var fleetPlans=loadFleetSeed('vecta:fleet:plans:v1',window.INITIAL_MAINTENANCE_PLANS||[]);
 var fleetCompletions=JSON.parse(localStorage.getItem('vecta:fleet:completions:v1')||'[]');
 var fleetCustomerProfiles={};try{fleetCustomerProfiles=JSON.parse(localStorage.getItem('vecta:fleet:customers:v1')||'{}')||{}}catch(e){fleetCustomerProfiles={}}
-/* V41.61: Financial tracker spreadsheets are history, not the active fleet list.
+/* V41.62: Financial tracker spreadsheets are history, not the active fleet list.
    Remove only vehicles that were auto-created from the 2026 NMUK monthly tracker.
    Manually entered vehicles and the authoritative fleet seed remain untouched. */
 function fleetRemoveTrackerCreatedNmukVehicles(){
@@ -8098,7 +8098,7 @@ function fleetRemoveTrackerCreatedNmukVehicles(){
     localStorage.setItem('vecta:fleet:vehicles:v1',JSON.stringify(fleetVehicles));
     localStorage.setItem('vecta:fleet:plans:v1',JSON.stringify(fleetPlans));
     localStorage.setItem('vecta:fleet:completions:v1',JSON.stringify(fleetCompletions));
-    localStorage.setItem('vecta:fleet:tracker-vehicle-cleanup:v41.61',String(before-fleetVehicles.length));
+    localStorage.setItem('vecta:fleet:tracker-vehicle-cleanup:v41.62',String(before-fleetVehicles.length));
   }catch(e){}
   return before-fleetVehicles.length;
 }
@@ -8715,7 +8715,7 @@ function invalidateFinanceDashboardCache(){
 }
 function buildFinancialPerformanceDashboards(){
   var key=financeDashboardCacheKey(),now=Date.now();
-  if(financeDashboardCache.key===key&&financeDashboardCache.html&&(now-financeDashboardCache.created)<60000){
+  if(financeDashboardCache.key===key&&financeDashboardCache.html){
     return financeDashboardCache.html;
   }
   var out=combinedPerformanceHtml()+nmukPerformanceHtml()+contractorPerformanceHtml()+staffPerformanceHtml();
@@ -8723,6 +8723,8 @@ function buildFinancialPerformanceDashboards(){
   return out;
 }
 function scheduleFinancialPerformanceDashboards(){
+  var key=financeDashboardCacheKey(),hostNow=document.getElementById('financialPerformanceDashboards');
+  if(financeDashboardCache.key===key&&financeDashboardCache.html){if(hostNow)hostNow.innerHTML=financeDashboardCache.html;return}
   if(financeDashboardTimer)clearTimeout(financeDashboardTimer);
   financeDashboardTimer=setTimeout(function(){
     financeDashboardTimer=null;
@@ -8740,7 +8742,7 @@ function scheduleFinancialPerformanceDashboards(){
     else setTimeout(renderDashboards,20);
   },0);
 }
-function invoicesHtml(){var ready=app.jobs.filter(function(j){return !j.archived&&(j.status==='ready_to_invoice'||j.status==='completed')});return '<div class="listToolbar"><button class="btn red" id="newBlankInvoice">+ Blank Invoice</button></div><div class="two"><div class="card panel"><h3>Jobs ready for invoice</h3>'+(ready.length?ready.map(function(j){return '<div class="sideJob">'+fullPlate(j.registration)+'<b>'+esc(j.vehicle||'Vehicle')+'</b><p>'+esc(j.work_required||'')+'</p><button class="btn dark" data-invoice-job="'+j.id+'">Create Invoice</button></div>'}).join(''):'<div class="empty">No completed / ready jobs.</div>')+'</div><div class="card panel"><h3>Saved invoices</h3>'+invoiceRows()+'</div></div>'+invoiceFinanceHtml()+'<div id="financialPerformanceDashboards" class="financeDashboardLazy"><div class="card panel financeDashboardLoading"><strong>Loading performance figures…</strong><p>The financial graphs load separately so the rest of VECTA stays fast.</p></div></div>'}
+function invoicesHtml(){var ready=app.jobs.filter(function(j){return !j.archived&&(j.status==='ready_to_invoice'||j.status==='completed')}),key=financeDashboardCacheKey(),cached=financeDashboardCache.key===key&&financeDashboardCache.html?financeDashboardCache.html:'',performance=cached?cached:'<div class="card panel financeDashboardLoading"><strong>Loading performance figures…</strong><p>The figures will remain visible once loaded.</p></div>';return '<div class="listToolbar"><button class="btn red" id="newBlankInvoice">+ Blank Invoice</button></div><div class="two"><div class="card panel"><h3>Jobs ready for invoice</h3>'+(ready.length?ready.map(function(j){return '<div class="sideJob">'+fullPlate(j.registration)+'<b>'+esc(j.vehicle||'Vehicle')+'</b><p>'+esc(j.work_required||'')+'</p><button class="btn dark" data-invoice-job="'+j.id+'">Create Invoice</button></div>'}).join(''):'<div class="empty">No completed / ready jobs.</div>')+'</div><div class="card panel"><h3>Saved invoices</h3>'+invoiceRows()+'</div></div>'+invoiceFinanceHtml()+'<div id="financialPerformanceDashboards" class="financeDashboardLazy">'+performance+'</div>'}
 function invoiceRows(){if(!app.invoices.length)return '<div class="empty">No invoices saved yet.</div>';return app.invoices.slice().reverse().map(function(inv){return '<div class="sideJob" data-open-invoice="'+inv.id+'">'+fullPlate(inv.registration||'INVOICE')+'<b>'+esc(inv.invoice_number||'Draft')+' · '+money(inv.total||0)+'</b><p>'+esc(inv.customer_name||'')+' · '+esc(inv.invoice_date||'')+'</p></div>'}).join('')}
 function settingsHtml(){return '<div class="settingsGrid"><div class="card panel"><h3>Business Details</h3><div class="formGrid">'+field('Business name','businessName',app.settings.businessName)+field('Labour rate','labourRate',app.settings.labourRate,'number')+field('VAT number','vatNumber',app.settings.vatNumber)+field('VAT rate %','vatRate',app.settings.vatRate,'number')+field('Invoice prefix','invoicePrefix',app.settings.invoicePrefix)+field('Next invoice number','nextInvoiceNumber',app.settings.nextInvoiceNumber,'number')+'</div><button class="btn red" id="saveSettings">Save Settings</button></div><div class="card panel mechanicsPanel"><div class="mechanicsPanelHead"><div><h3>Mechanics</h3><p class="muted">Rename an existing mechanic or add another workshop column. Renamed jobs are moved to the new name automatically.</p></div><button class="btn dark" id="addMechanic" type="button">+ Add Mechanic</button></div><div class="mechanicSettings" id="mechanicSettings">'+mechanicSettingsHtml()+'</div><div class="mechanicSettingsActions"><button class="btn red" id="saveMechanics" type="button">Save Mechanics</button></div></div><div class="card panel"><h3>Cloud Database</h3><p class="muted">The Supabase connection is securely loaded from Vercel for every computer. No key needs entering on this page.</p><p><b>Status:</b> '+(remoteClient?'Connected':'Checking connection…')+'</p><button class="btn dark" id="testSupabase">Test Cloud Connection</button></div><div class="card panel"><h3>Payment Details</h3><div class="formGrid">'+field('Bank name','bankName',app.settings.bankName)+field('Account name','accountName',app.settings.accountName)+field('Sort code','sortCode',app.settings.sortCode)+field('Account number','accountNumber',app.settings.accountNumber)+'<div class="field wide"><label>Payment note</label><textarea id="set_paymentNote">'+esc(app.settings.paymentNote||'')+'</textarea></div></div><button class="btn red" id="savePayment">Save Payment Details</button></div><div class="card panel templatePanel"><div class="templatePanelHead"><div><h3>Preset Job Templates</h3><p class="muted">Edit the default hours, price and work required used by the quick job buttons.</p></div><button class="btn dark" id="addTemplate" type="button">+ Add Preset Job</button></div><div class="templateSettings">'+templateSettingsHtml()+'</div><button class="btn red" id="saveTemplates">Save Presets</button></div><div class="card panel dangerPanel"><h3>Danger Zone</h3><p class="muted">Export before wiping. This only clears this browser storage, not Supabase tables.</p><button class="btn" id="exportData">Export Backup</button> <button class="danger" id="wipeLocal">Clear Local Browser Data</button></div></div>'}
 function mechanicSettingsHtml(){var mechanics=(app.settings.mechanics&&app.settings.mechanics.length?app.settings.mechanics:['Alfie','Jordan']);return mechanics.map(function(name){return mechanicSettingsRowHtml(name,name)}).join('')}
