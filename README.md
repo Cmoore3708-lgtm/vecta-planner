@@ -1,5 +1,6 @@
-VECTA v41.56 small deployment build
+VECTA v41.57 small deployment build
 
-- Fixed NMUK 2026 import placement so the browser executes it.
-- Overall invoice summary cards now include contractor and NMUK imported history.
-- Imported records remain de-duplicated by job ID.
+- Imported NMUK financial history for 2023, 2024 and 2025.
+- Added NMUK month-to-date comparison against the same time last month and last year.
+- Added editable 10% growth target status display.
+- Added financial-year-to-date comparison and 2023-2026 monthly trend graph.
