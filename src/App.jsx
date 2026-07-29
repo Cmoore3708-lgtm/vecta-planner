@@ -516,6 +516,92 @@ function ScheduleCard({ job, settings, onEdit, onDragStart, onHistory, onInvoice
 }
 
 
+
+const WEBSITE_REQUESTS_KEY = "vecta:website-booking-requests:v1";
+
+async function listWebsiteRequests() {
+  if (supabase) {
+    const { data, error } = await supabase.from("website_booking_requests").select("*").order("created_at", { ascending: false });
+    if (error) { console.error("Website request load failed", error); return []; }
+    return data || [];
+  }
+  return JSON.parse(localStorage.getItem(WEBSITE_REQUESTS_KEY) || "[]");
+}
+
+async function saveWebsiteRequest(request) {
+  const payload = { ...request, registration: String(request.registration || "").toUpperCase().replace(/\s+/g, " ").trim() };
+  if (supabase) {
+    const { error } = await supabase.from("website_booking_requests").upsert(payload, { onConflict: "id" });
+    if (error) throw error;
+    return payload;
+  }
+  const rows = JSON.parse(localStorage.getItem(WEBSITE_REQUESTS_KEY) || "[]");
+  localStorage.setItem(WEBSITE_REQUESTS_KEY, JSON.stringify([payload, ...rows.filter(r => r.id !== payload.id)]));
+  return payload;
+}
+
+function PublicBookingApp() {
+  const blank = { id: "", customer_name: "", email: "", phone: "", registration: "", vehicle: "", mileage: "", job_types: [], work_required: "", preferred_date_1: "", preferred_date_2: "", preferred_date_3: "", completion_deadline: "", contact_preference: "Email", status: "awaiting_review" };
+  const [form, setForm] = useState(blank);
+  const [step, setStep] = useState(1);
+  const [sending, setSending] = useState(false);
+  const [done, setDone] = useState(false);
+  const options = ["Service", "MOT", "Brakes", "Diagnostics / warning light", "Tyres", "Repair", "Other"];
+  const minDate = addDaysISO(todayISO(), 1);
+  const update = (field, value) => setForm(f => ({ ...f, [field]: field === "registration" ? value.toUpperCase() : value }));
+  const toggleType = type => setForm(f => ({ ...f, job_types: f.job_types.includes(type) ? f.job_types.filter(x => x !== type) : [...f.job_types, type] }));
+  function validStep() {
+    if (step === 1) return form.registration.trim() && form.vehicle.trim();
+    if (step === 2) return form.job_types.length && form.work_required.trim();
+    if (step === 3) return form.preferred_date_1;
+    if (step === 4) return form.customer_name.trim() && form.email.trim() && form.phone.trim();
+    return true;
+  }
+  async function submit() {
+    setSending(true);
+    try {
+      await saveWebsiteRequest({ ...form, id: uuid(), created_at: new Date().toISOString(), source: "Website booking", status: "awaiting_review" });
+      setDone(true);
+    } catch (error) {
+      console.error(error); alert("We could not send your booking request. Please try again or contact Vecta Motors.");
+    } finally { setSending(false); }
+  }
+  if (done) return <main className="public-booking-shell"><section className="booking-success"><CheckCircle2 size={54}/><span>REQUEST RECEIVED</span><h1>Thank you</h1><p>We have received your booking request. We will review your preferred dates and email you with a confirmed date and approximate cost.</p><strong>Your vehicle is not booked in until you receive confirmation from Vecta Motors.</strong></section></main>;
+  return <main className="public-booking-shell">
+    <header className="public-booking-header"><div className="public-vecta">VECTA</div><div><b>Vehicle servicing & repairs</b><span>Online booking request</span></div></header>
+    <section className="booking-card">
+      <div className="booking-progress">{[1,2,3,4,5].map(n => <i key={n} className={n <= step ? "active" : ""}/>)}</div>
+      {step === 1 && <div className="booking-step"><span className="booking-kicker">STEP 1 OF 5</span><h1>Your vehicle</h1><p>Enter the vehicle details so we know exactly what is coming into the workshop.</p><label>Registration number *<input className="public-reg-input" autoFocus value={form.registration} onChange={e=>update("registration",e.target.value)} placeholder="AB12 CDE"/></label><div className="two"><label>Make and model *<input value={form.vehicle} onChange={e=>update("vehicle",e.target.value)} placeholder="Nissan Qashqai"/></label><label>Current mileage<input inputMode="numeric" value={form.mileage} onChange={e=>update("mileage",e.target.value)} placeholder="42,000"/></label></div></div>}
+      {step === 2 && <div className="booking-step"><span className="booking-kicker">STEP 2 OF 5</span><h1>Work required</h1><p>Select everything that applies, then tell us what you need us to investigate or complete.</p><div className="booking-type-grid">{options.map(type=><button type="button" key={type} className={form.job_types.includes(type)?"selected":""} onClick={()=>toggleType(type)}>{type}</button>)}</div><label>Describe the work or symptoms *<textarea value={form.work_required} onChange={e=>update("work_required",e.target.value)} placeholder="Tell us about any warning lights, noises, faults or work required..."/></label></div>}
+      {step === 3 && <div className="booking-step"><span className="booking-kicker">STEP 3 OF 5</span><h1>Preferred dates</h1><p>Provide up to three suitable weekdays. We will confirm one after checking workshop capacity.</p><div className="three booking-dates"><label>First choice *<input type="date" min={minDate} value={form.preferred_date_1} onChange={e=>update("preferred_date_1",e.target.value)}/></label><label>Second choice<input type="date" min={minDate} value={form.preferred_date_2} onChange={e=>update("preferred_date_2",e.target.value)}/></label><label>Third choice<input type="date" min={minDate} value={form.preferred_date_3} onChange={e=>update("preferred_date_3",e.target.value)}/></label></div><label>Does the vehicle need to be completed by a particular time?<input value={form.completion_deadline} onChange={e=>update("completion_deadline",e.target.value)} placeholder="For example: before the end of my shift"/></label><div className="booking-notice"><AlertTriangle size={18}/><span>Submitting preferred dates does not confirm your booking.</span></div></div>}
+      {step === 4 && <div className="booking-step"><span className="booking-kicker">STEP 4 OF 5</span><h1>Your details</h1><div className="two"><label>Full name *<input value={form.customer_name} onChange={e=>update("customer_name",e.target.value)}/></label><label>Telephone *<input type="tel" value={form.phone} onChange={e=>update("phone",e.target.value)}/></label></div><label>Email address *<input type="email" value={form.email} onChange={e=>update("email",e.target.value)}/></label><label>Preferred contact method<select value={form.contact_preference} onChange={e=>update("contact_preference",e.target.value)}><option>Email</option><option>Telephone</option><option>WhatsApp</option></select></label></div>}
+      {step === 5 && <div className="booking-step"><span className="booking-kicker">STEP 5 OF 5</span><h1>Review your request</h1><div className="booking-review"><div><span>Vehicle</span><b>{form.registration} · {form.vehicle}</b></div><div><span>Work required</span><b>{form.job_types.join(", ")}</b><p>{form.work_required}</p></div><div><span>Preferred dates</span><b>{[form.preferred_date_1,form.preferred_date_2,form.preferred_date_3].filter(Boolean).map(formatDate).join(" · ")}</b></div><div><span>Contact</span><b>{form.customer_name}</b><p>{form.email} · {form.phone}</p></div></div><p className="booking-terms">By submitting this request, you understand that your booking is only confirmed when Vecta Motors emails you with an agreed date.</p></div>}
+      <footer className="booking-actions">{step>1?<button className="secondary" onClick={()=>setStep(s=>s-1)}>Back</button>:<span/>}{step<5?<button disabled={!validStep()} onClick={()=>setStep(s=>s+1)}>Continue</button>:<button disabled={sending} onClick={submit}>{sending?"Sending...":"Send booking request"}</button>}</footer>
+    </section>
+  </main>;
+}
+
+function WebsiteRequests({ requests, settings, onRefresh, onCreateJob }) {
+  const [selected, setSelected] = useState(null);
+  const [confirm, setConfirm] = useState({ date: "", technician: "Unallocated", drop_time: "08:00", estimated_hours: 1, approximate_cost: "", job_type: "Other" });
+  const pending = requests.filter(r => r.status === "awaiting_review");
+  function open(r) { setSelected(r); setConfirm(c => ({...c, date:r.preferred_date_1||"", technician:"Unallocated", drop_time:"08:00", estimated_hours:1, approximate_cost:"", job_type:(r.job_types||[]).includes("MOT")?"MOT":"Other"})); }
+  async function confirmBooking() {
+    if (!confirm.date || confirm.technician === "Unallocated" || !confirm.approximate_cost) { alert("Choose a booking date, technician and approximate cost."); return; }
+    const job = { id: uuid(), card_type:"job", booking_date:confirm.date, registration:selected.registration, vehicle:selected.vehicle, customer_name:selected.customer_name, customer_phone:selected.phone, customer_email:selected.email, work_required:selected.work_required, technician:confirm.technician, ramp:"", status:"in_progress", job_type:confirm.job_type, estimated_hours:Number(confirm.estimated_hours), drop_time:confirm.drop_time, amount_quoted:Number(confirm.approximate_cost), booking_source:"Website booking", customer_note:`Website request · Preferred dates: ${[selected.preferred_date_1,selected.preferred_date_2,selected.preferred_date_3].filter(Boolean).map(formatDate).join(", ")}` };
+    await onCreateJob(job, confirm.date);
+    await saveWebsiteRequest({...selected,status:"confirmed",confirmed_date:confirm.date,confirmed_at:new Date().toISOString(),job_id:job.id,approximate_cost:Number(confirm.approximate_cost)});
+    const subject=encodeURIComponent(`Your Vecta Motors booking is confirmed – ${selected.registration}`);
+    const body=encodeURIComponent(`Hello ${selected.customer_name},\n\nYour booking with Vecta Motors has been confirmed.\n\nVehicle: ${selected.registration} – ${selected.vehicle}\nBooking date: ${formatDate(confirm.date)}\nDrop-off time: ${confirm.drop_time}\nWork requested: ${selected.work_required}\nApproximate cost: £${Number(confirm.approximate_cost).toFixed(2)}\n\nThe approximate cost is based on the information currently available. We will contact you before carrying out additional work that would increase the agreed amount.\n\nThank you,\nVecta Motors`);
+    window.open(`mailto:${selected.email}?subject=${subject}&body=${body}`);
+    setSelected(null); onRefresh();
+  }
+  return <main className="requests-page"><div className="requests-hero"><div><span className="eyebrow">CUSTOMER BOOKINGS</span><h1>Website Requests</h1><p>Review each request, allocate the job and confirm the date and approximate cost.</p></div><div className="request-count"><strong>{pending.length}</strong><span>awaiting review</span></div></div>
+    <section className="requests-list">{pending.map(r=><button key={r.id} className="request-row" onClick={()=>open(r)}><div className="fleet-reg-plate"><span className="gb-strip">GB</span><strong>{r.registration}</strong></div><div><b>{r.customer_name}</b><span>{r.vehicle}</span></div><div><b>{(r.job_types||[]).join(", ")}</b><span>{r.work_required}</span></div><div><span>Preferred</span><b>{[r.preferred_date_1,r.preferred_date_2,r.preferred_date_3].filter(Boolean).map(formatDate).join(" · ")}</b></div><ChevronRight size={18}/></button>)}{!pending.length&&<div className="requests-empty"><CheckCircle2 size={40}/><h2>No requests awaiting review</h2><p>New website bookings will appear here automatically.</p></div>}</section>
+    {selected&&<div className="backdrop"><div className="dialog wide-dialog request-dialog"><button className="request-close" onClick={()=>setSelected(null)}><X/></button><span className="eyebrow">WEBSITE BOOKING REQUEST</span><h2>{selected.registration} · {selected.vehicle}</h2><div className="request-detail-grid"><div><span>Customer</span><b>{selected.customer_name}</b><p>{selected.email}<br/>{selected.phone}</p></div><div><span>Work required</span><b>{(selected.job_types||[]).join(", ")}</b><p>{selected.work_required}</p></div><div><span>Preferred dates</span>{[selected.preferred_date_1,selected.preferred_date_2,selected.preferred_date_3].filter(Boolean).map(d=><button key={d} className={confirm.date===d?"date-choice active":"date-choice"} onClick={()=>setConfirm(c=>({...c,date:d}))}>{formatDate(d)}</button>)}</div><div><span>Completion requirement</span><b>{selected.completion_deadline||"No particular time"}</b></div></div><h3>Confirm and allocate</h3><div className="three"><label>Confirmed date<input type="date" value={confirm.date} onChange={e=>setConfirm(c=>({...c,date:e.target.value}))}/></label><label>Technician<select value={confirm.technician} onChange={e=>setConfirm(c=>({...c,technician:e.target.value}))}><option>Unallocated</option>{settings.mechanics.map(m=><option key={m.name}>{m.name}</option>)}</select></label><label>Drop-off time<input type="time" value={confirm.drop_time} onChange={e=>setConfirm(c=>({...c,drop_time:e.target.value}))}/></label></div><div className="three"><label>Job type<select value={confirm.job_type} onChange={e=>setConfirm(c=>({...c,job_type:e.target.value}))}>{settings.jobTypes.map(j=><option key={j.name}>{j.name}</option>)}</select></label><label>Estimated hours<input type="number" step="0.5" value={confirm.estimated_hours} onChange={e=>setConfirm(c=>({...c,estimated_hours:e.target.value}))}/></label><label>Approximate cost (£)<input type="number" step="0.01" value={confirm.approximate_cost} onChange={e=>setConfirm(c=>({...c,approximate_cost:e.target.value}))}/></label></div><div className="dialog-actions"><button className="secondary" onClick={()=>setSelected(null)}>Cancel</button><button onClick={confirmBooking}><Mail size={16}/> Confirm booking & prepare email</button></div></div></div>}
+  </main>;
+}
+
 function JobDialog({ job, date, settings, jobTypes = JOB_TYPES, onClose, onSave, onDelete }) {
   const [form, setForm] = useState(job || {});
 
@@ -1286,6 +1372,54 @@ function saveFleetValue(key, value) {
   localStorage.setItem(key, JSON.stringify(value));
 }
 
+const HISTORIC_FLEET_CUTOFF = "2026-07-01";
+
+function sameDayMonthNextFutureYear(iso, now = new Date()) {
+  if (!iso) return "";
+  const [, month, day] = iso.split("-").map(Number);
+  if (!month || !day) return "";
+  let year = now.getFullYear();
+  const candidate = new Date(year, month - 1, day);
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  if (candidate <= today) year += 1;
+  return `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+}
+
+function migrateHistoricFleetSchedules(inputPlans, inputCompletions) {
+  const plans = Array.isArray(inputPlans) ? inputPlans : [];
+  const completions = Array.isArray(inputCompletions) ? inputCompletions : [];
+  const existingKeys = new Set(completions.map(c => `${c.planId}|${c.completedDate}|historic-overdue-migration`));
+  const migratedCompletions = [...completions];
+  let changed = false;
+
+  const migratedPlans = plans.map(plan => {
+    const due = plan.currentDueDate;
+    if (!due || due >= HISTORIC_FLEET_CUTOFF) return plan;
+
+    const nextDue = sameDayMonthNextFutureYear(due);
+    if (!nextDue) return plan;
+    changed = true;
+
+    const completionKey = `${plan.id}|${due}|historic-overdue-migration`;
+    if (!existingKeys.has(completionKey)) {
+      migratedCompletions.push({
+        id: `historic-${plan.id}-${due}`,
+        vehicleId: plan.vehicleId,
+        planId: plan.id,
+        type: plan.type,
+        completedDate: due,
+        nextDue,
+        source: "historic-overdue-migration"
+      });
+      existingKeys.add(completionKey);
+    }
+
+    return { ...plan, currentDueDate: nextDue };
+  });
+
+  return { plans: migratedPlans, completions: migratedCompletions, changed };
+}
+
 function addMonthsISO(iso, months) {
   const d = iso ? new Date(`${iso}T00:00:00`) : new Date();
   d.setMonth(d.getMonth() + Number(months || 0));
@@ -1347,9 +1481,20 @@ function FleetRegistrationPlate({ registration, className = "" }) {
 }
 
 function FleetManager({ onBookJob }) {
-  const [vehicles, setVehicles] = useState(() => normaliseFleetVehicles(loadFleetValue(FLEET_VEHICLES_KEY, INITIAL_FLEET_VEHICLES)));
-  const [plans, setPlans] = useState(() => loadFleetValue(FLEET_PLANS_KEY, INITIAL_MAINTENANCE_PLANS));
-  const [completions, setCompletions] = useState(() => loadFleetValue(FLEET_COMPLETIONS_KEY, []));
+  const [initialFleetData] = useState(() => {
+    const vehicles = normaliseFleetVehicles(loadFleetValue(FLEET_VEHICLES_KEY, INITIAL_FLEET_VEHICLES));
+    const savedPlans = loadFleetValue(FLEET_PLANS_KEY, INITIAL_MAINTENANCE_PLANS);
+    const savedCompletions = loadFleetValue(FLEET_COMPLETIONS_KEY, []);
+    const migrated = migrateHistoricFleetSchedules(savedPlans, savedCompletions);
+    if (migrated.changed) {
+      saveFleetValue(FLEET_PLANS_KEY, migrated.plans);
+      saveFleetValue(FLEET_COMPLETIONS_KEY, migrated.completions);
+    }
+    return { vehicles, plans: migrated.plans, completions: migrated.completions };
+  });
+  const [vehicles, setVehicles] = useState(initialFleetData.vehicles);
+  const [plans, setPlans] = useState(initialFleetData.plans);
+  const [completions, setCompletions] = useState(initialFleetData.completions);
   const [selectedId, setSelectedId] = useState(null);
   const [query, setQuery] = useState("");
   const [group, setGroup] = useState("All");
@@ -1520,6 +1665,7 @@ function App() {
   const [availabilityOpen, setAvailabilityOpen] = useState(false);
   const [historyJob, setHistoryJob] = useState(null);
   const [invoiceJob, setInvoiceJob] = useState(null);
+  const [websiteRequests, setWebsiteRequests] = useState([]);
 
   const mechanicNames = settings.mechanics.map(m => m.name);
   const jobTypes = settings.jobTypes;
@@ -1539,6 +1685,7 @@ function App() {
     setGlobalJobs(await listGlobal());
     setTasks(await listTasks());
     setNotes(await listNotes());
+    setWebsiteRequests(await listWebsiteRequests());
   }
 
   useEffect(() => { seedLocal().then(refresh); }, []);
@@ -1550,6 +1697,7 @@ function App() {
       .on("postgres_changes", { event: "*", schema: "public", table: "jobs" }, refresh)
       .on("postgres_changes", { event: "*", schema: "public", table: "tasks" }, refresh)
       .on("postgres_changes", { event: "*", schema: "public", table: "notes" }, refresh)
+      .on("postgres_changes", { event: "*", schema: "public", table: "website_booking_requests" }, refresh)
       .subscribe();
     return () => supabase.removeChannel(channel);
   }, [date]);
@@ -1625,6 +1773,7 @@ function App() {
             <option value="day">Day</option>
             <option value="dashboard">Dashboard</option>
             <option value="fleet">Fleet Manager</option>
+            <option value="requests">Website Requests ({websiteRequests.filter(r => r.status === "awaiting_review").length})</option>
           </select>
           <button onClick={() => setAvailabilityOpen(true)}><Wand2 size={16} /> Find Availability</button><button onClick={() => setSettingsOpen(true)}><Settings size={16} /> Settings</button><button onClick={() => setDialogJob(null)}><Plus size={16} /> Add Job</button>
         </div>
@@ -1632,6 +1781,8 @@ function App() {
 
       {mode === "fleet" ? (
         <FleetManager onBookJob={bookFleetPlan} />
+      ) : mode === "requests" ? (
+        <WebsiteRequests requests={websiteRequests} settings={settings} onRefresh={refresh} onCreateJob={saveJob} />
       ) : mode === "dashboard" ? (
         <Dashboard
           jobs={jobs}
@@ -1761,4 +1912,5 @@ function App() {
   );
 }
 
-createRoot(document.getElementById("root")).render(<App />);
+const isPublicBooking = window.location.pathname.toLowerCase().includes("booking") || window.location.hostname.toLowerCase().startsWith("book.") || new URLSearchParams(window.location.search).has("booking");
+createRoot(document.getElementById("root")).render(isPublicBooking ? <PublicBookingApp /> : <App />);

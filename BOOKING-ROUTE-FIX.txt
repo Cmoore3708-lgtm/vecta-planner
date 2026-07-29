@@ -1,0 +1,9 @@
+BOOKING ROUTE FIX - 29 JULY 2026
+
+This build fixes /booking by routing it to booking.html before the Workshop Pro catch-all route.
+The booking form submits securely to /api/website-booking, which uses the existing Vercel Supabase environment variables.
+
+After pushing this build, open:
+https://vecta-planner.vercel.app/booking
+
+Do not run the Supabase migration again if it already completed successfully.
