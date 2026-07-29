@@ -5,5 +5,18 @@
     { "source": "/booking/", "destination": "/booking.html" },
     { "source": "/(.*)", "destination": "/index.html" }
   ],
-  "headers": [{ "source": "/(.*)", "headers": [{ "key": "Cache-Control", "value": "no-store, no-cache, must-revalidate" }] }]
+  "headers": [
+    {
+      "source": "/booking.html",
+      "headers": [
+        { "key": "Cache-Control", "value": "no-store, no-cache, must-revalidate" }
+      ]
+    },
+    {
+      "source": "/(.*)",
+      "headers": [
+        { "key": "Cache-Control", "value": "no-cache" }
+      ]
+    }
+  ]
 }

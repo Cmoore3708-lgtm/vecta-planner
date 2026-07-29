@@ -1,0 +1,5 @@
+Definitive booking route fix - 29 July 2026
+
+The public booking page is now stored in public/booking.html.
+Vite copies files from public/ into the deployed dist folder.
+Vercel rewrites /booking to /booking.html before the SPA fallback.
