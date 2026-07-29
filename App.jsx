@@ -541,12 +541,52 @@ async function saveWebsiteRequest(request) {
 }
 
 function PublicBookingApp() {
-  const blank = { id: "", customer_name: "", email: "", phone: "", registration: "", vehicle: "", mileage: "", job_types: [], work_required: "", preferred_date_1: "", preferred_date_2: "", preferred_date_3: "", completion_deadline: "", contact_preference: "Email", status: "awaiting_review" };
+  const blank = { id: "", customer_name: "", email: "", phone: "", registration: "", vehicle: "", mileage: "", mot_due: "", mot_advisories: [], job_types: [], work_required: "", preferred_date_1: "", preferred_date_2: "", preferred_date_3: "", completion_deadline: "", contact_preference: "Email", status: "awaiting_review" };
   const [form, setForm] = useState(blank);
   const [step, setStep] = useState(1);
   const [sending, setSending] = useState(false);
   const [done, setDone] = useState(false);
+  const [lookupState, setLookupState] = useState({ status: "idle", message: "" });
   const options = ["Service", "MOT", "Brakes", "Diagnostics / warning light", "Tyres", "Repair", "Other"];
+
+  useEffect(() => {
+    const registration = String(form.registration || "").toUpperCase().replace(/[^A-Z0-9]/g, "");
+    if (registration.length < 5) {
+      setLookupState({ status: "idle", message: "" });
+      return undefined;
+    }
+
+    const controller = new AbortController();
+    const timer = window.setTimeout(async () => {
+      setLookupState({ status: "loading", message: "Checking DVSA MOT records…" });
+      try {
+        const response = await fetch(`/api/vehicle-lookup?reg=${encodeURIComponent(registration)}`, { signal: controller.signal });
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok) throw new Error(data.error || "Vehicle not found");
+
+        setForm(current => {
+          const currentRegistration = String(current.registration || "").toUpperCase().replace(/[^A-Z0-9]/g, "");
+          if (currentRegistration !== registration) return current;
+          return {
+            ...current,
+            vehicle: data.vehicle || data.make || current.vehicle,
+            mileage: data.latestMileage ? String(data.latestMileage) : current.mileage,
+            mot_due: data.motExpiryDate || "",
+            mot_advisories: Array.isArray(data.advisories) ? data.advisories : []
+          };
+        });
+        setLookupState({ status: "success", message: "Vehicle found" });
+      } catch (error) {
+        if (error?.name === "AbortError") return;
+        setLookupState({ status: "error", message: error?.message || "DVSA lookup unavailable. Please enter the vehicle details manually." });
+      }
+    }, 650);
+
+    return () => {
+      window.clearTimeout(timer);
+      controller.abort();
+    };
+  }, [form.registration]);
   const minDate = addDaysISO(todayISO(), 1);
   const update = (field, value) => setForm(f => ({ ...f, [field]: field === "registration" ? value.toUpperCase() : value }));
   const toggleType = type => setForm(f => ({ ...f, job_types: f.job_types.includes(type) ? f.job_types.filter(x => x !== type) : [...f.job_types, type] }));
@@ -571,7 +611,7 @@ function PublicBookingApp() {
     <header className="public-booking-header"><div className="public-vecta">VECTA</div><div><b>Vehicle servicing & repairs</b><span>Online booking request</span></div></header>
     <section className="booking-card">
       <div className="booking-progress">{[1,2,3,4,5].map(n => <i key={n} className={n <= step ? "active" : ""}/>)}</div>
-      {step === 1 && <div className="booking-step"><span className="booking-kicker">STEP 1 OF 5</span><h1>Your vehicle</h1><p>Enter the vehicle details so we know exactly what is coming into the workshop.</p><label>Registration number *<input className="public-reg-input" autoFocus value={form.registration} onChange={e=>update("registration",e.target.value)} placeholder="AB12 CDE"/></label><div className="two"><label>Make and model *<input value={form.vehicle} onChange={e=>update("vehicle",e.target.value)} placeholder="Nissan Qashqai"/></label><label>Current mileage<input inputMode="numeric" value={form.mileage} onChange={e=>update("mileage",e.target.value)} placeholder="42,000"/></label></div></div>}
+      {step === 1 && <div className="booking-step"><span className="booking-kicker">STEP 1 OF 5</span><h1>Your vehicle</h1><p>Enter your registration and we will check the DVSA record automatically.</p><label>Registration number *<input className="public-reg-input" autoFocus value={form.registration} onChange={e=>update("registration",e.target.value)} placeholder="AB12 CDE"/></label>{lookupState.status === "loading" && <div className="booking-vehicle-lookup loading"><span className="lookup-spinner"/><b>{lookupState.message}</b></div>}{lookupState.status === "success" && <div className="booking-vehicle-lookup success"><div className="booking-vehicle-found"><CheckCircle2 size={22}/><div><span>VEHICLE FOUND</span><strong>{form.vehicle || form.registration}</strong></div></div><div className="booking-vehicle-facts"><div><span>Last MOT mileage</span><b>{form.mileage ? `${Number(String(form.mileage).replace(/,/g, "")).toLocaleString("en-GB")} miles` : "Not recorded"}</b></div><div><span>MOT due</span><b>{form.mot_due ? formatDate(form.mot_due) : "Not available"}</b></div></div>{form.mot_advisories?.length > 0 && <div className="booking-advisories"><span>Latest advisories</span><ul>{form.mot_advisories.map((item,index)=><li key={`${item}-${index}`}>{item}</li>)}</ul></div>}</div>}{lookupState.status === "error" && <div className="booking-vehicle-lookup error"><AlertTriangle size={18}/><span>{lookupState.message}</span></div>}<div className="two"><label>Make and model *<input value={form.vehicle} onChange={e=>update("vehicle",e.target.value)} placeholder="Nissan Qashqai"/></label><label>Last MOT mileage<input inputMode="numeric" value={form.mileage} onChange={e=>update("mileage",e.target.value)} placeholder="42,000"/></label></div><label>MOT due date<input type="date" value={form.mot_due || ""} onChange={e=>update("mot_due",e.target.value)}/></label></div>}
       {step === 2 && <div className="booking-step"><span className="booking-kicker">STEP 2 OF 5</span><h1>Work required</h1><p>Select everything that applies, then tell us what you need us to investigate or complete.</p><div className="booking-type-grid">{options.map(type=><button type="button" key={type} className={form.job_types.includes(type)?"selected":""} onClick={()=>toggleType(type)}>{type}</button>)}</div><label>Describe the work or symptoms *<textarea value={form.work_required} onChange={e=>update("work_required",e.target.value)} placeholder="Tell us about any warning lights, noises, faults or work required..."/></label></div>}
       {step === 3 && <div className="booking-step"><span className="booking-kicker">STEP 3 OF 5</span><h1>Preferred dates</h1><p>Provide up to three suitable weekdays. We will confirm one after checking workshop capacity.</p><div className="three booking-dates"><label>First choice *<input type="date" min={minDate} value={form.preferred_date_1} onChange={e=>update("preferred_date_1",e.target.value)}/></label><label>Second choice<input type="date" min={minDate} value={form.preferred_date_2} onChange={e=>update("preferred_date_2",e.target.value)}/></label><label>Third choice<input type="date" min={minDate} value={form.preferred_date_3} onChange={e=>update("preferred_date_3",e.target.value)}/></label></div><label>Does the vehicle need to be completed by a particular time?<input value={form.completion_deadline} onChange={e=>update("completion_deadline",e.target.value)} placeholder="For example: before the end of my shift"/></label><div className="booking-notice"><AlertTriangle size={18}/><span>Submitting preferred dates does not confirm your booking.</span></div></div>}
       {step === 4 && <div className="booking-step"><span className="booking-kicker">STEP 4 OF 5</span><h1>Your details</h1><div className="two"><label>Full name *<input value={form.customer_name} onChange={e=>update("customer_name",e.target.value)}/></label><label>Telephone *<input type="tel" value={form.phone} onChange={e=>update("phone",e.target.value)}/></label></div><label>Email address *<input type="email" value={form.email} onChange={e=>update("email",e.target.value)}/></label><label>Preferred contact method<select value={form.contact_preference} onChange={e=>update("contact_preference",e.target.value)}><option>Email</option><option>Telephone</option><option>WhatsApp</option></select></label></div>}

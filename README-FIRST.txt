@@ -1,12 +1,12 @@
-VECTA PLANNER CONSOLIDATED V8
+VECTA booking page DVSA confirmation amendment
 
-Upload the CONTENTS of this folder to the repository root.
+Replace the matching files in the GitHub project, preserving the folder structure.
 
-Fixes in this build:
-- Fleet Complete never asks for a date. It uses the existing due date automatically.
-- Imported 2026 service completions clear both Annual Service and MOT overdue items.
-- Imported MOT and Safety completions also clear their matching overdue items.
-- Existing due dates are not changed by imported history.
+Changes:
+- Automatic DVSA lookup after registration entry pauses.
+- Populates vehicle make/model, Last MOT Mileage and MOT due date.
+- Displays a Vehicle Found panel with latest advisories.
+- Saves mot_due with the website booking request.
+- Allows manual entry if DVSA cannot find the vehicle.
 
-After deployment, use Ctrl+F5 once.
-Build marker: V8 quick-complete-import-clearing
+The Supabase column must be named mot_due (lowercase, unquoted).

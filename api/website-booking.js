@@ -15,6 +15,7 @@ export default async function handler(req, res) {
       registration: String(body.registration).toUpperCase().replace(/\s+/g,' ').trim(),
       vehicle: String(body.vehicle).trim(),
       mileage: String(body.mileage || '').trim(),
+      mot_due: body.mot_due || null,
       job_types: Array.isArray(body.job_types) ? body.job_types : [],
       work_required: String(body.work_required).trim(),
       preferred_date_1: body.preferred_date_1,
