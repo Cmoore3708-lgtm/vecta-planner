@@ -1,0 +1,15 @@
+VECTA booking page update
+
+Replace these files in the GitHub repository, keeping the same folder structure:
+- booking.html
+- public/booking.html
+- dist/booking.html
+
+Changes:
+- Registration field reduced to 240px desktop / 220px mobile.
+- Automatic DVSA lookup after a short typing pause.
+- Loading spinner and "Looking up vehicle..." status.
+- Green Vehicle identified panel.
+- Vehicle make/model, Last MOT mileage, MOT due and latest advisories displayed.
+- MOT due included in booking submission as mot_due.
+- Manual entry remains possible if lookup fails.
