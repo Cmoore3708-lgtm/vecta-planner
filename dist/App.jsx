@@ -1,0 +1,1916 @@
+import React, { useEffect, useMemo, useState } from "react";
+import { createRoot } from "react-dom/client";
+import { createClient } from "@supabase/supabase-js";
+import { AlertTriangle, CalendarDays, Car, CheckCircle2, ChevronLeft, ChevronRight, ClipboardList, FileText, History, LayoutDashboard, Mail, Menu, Plus, PoundSterling, Printer, Search, Settings, ShieldCheck, Users, Wand2, Building2, Gauge, Wrench, X } from "lucide-react";
+import "./style.css";
+import vectaLogo from "../assets/vecta-logo.png";
+import { INITIAL_FLEET_VEHICLES, INITIAL_MAINTENANCE_PLANS } from "./fleetData";
+
+const TECHS = ["Jordan", "Alfie"];
+const RAMPS = ["Left", "Middle", "Right"];
+const RAMP_LABEL = { Left: "RAMP 1", Middle: "RAMP 2", Right: "RAMP 3" };
+const RAMP_CLASS = { Left: "ramp-left", Middle: "ramp-middle", Right: "ramp-right" };
+const RAMP_CAPACITY = 8;
+
+const DEFAULT_SETTINGS = {
+  mechanics: [
+    { name: "Jordan", capacity: 8 },
+    { name: "Alfie", capacity: 8 }
+  ],
+  ramps: [
+    { key: "Left", label: "Ramp 1", capacity: 8 },
+    { key: "Middle", label: "Ramp 2", capacity: 8 },
+    { key: "Right", label: "Ramp 3", capacity: 8 }
+  ],
+  statuses: ["In Progress", "Ready to Invoice", "Completed"],
+  workingDays: ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"],
+  jobTypes: [
+    { group: "SERVICE", name: "Small Service", description: "Small Service", hours: 1.2, colour: "service" },
+    { group: "SERVICE", name: "Interim Service", description: "Interim Service", hours: 1.5, colour: "service" },
+    { group: "SERVICE", name: "Major Service", description: "Major Service", hours: 2.5, colour: "service" },
+    { group: "BRAKES", name: "Front Pads", description: "Front Brake Pads", hours: 1.0, colour: "brakes" },
+    { group: "BRAKES", name: "Rear Pads", description: "Rear Brake Pads", hours: 1.0, colour: "brakes" },
+    { group: "BRAKES", name: "Front Discs & Pads", description: "Front Brake Discs & Pads", hours: 1.5, colour: "brakes" },
+    { group: "BRAKES", name: "Rear Discs & Pads", description: "Rear Brake Discs & Pads", hours: 1.5, colour: "brakes" },
+    { group: "BRAKES", name: "Front & Rear Brakes", description: "Front & Rear Brake Discs & Pads", hours: 3.0, colour: "brakes" },
+    { group: "GENERAL", name: "MOT", description: "MOT", hours: 1.0, colour: "mot" },
+    { group: "GENERAL", name: "Diagnostics", description: "Diagnostics", hours: 2.0, colour: "diagnostics" },
+    { group: "GENERAL", name: "Clutch", description: "Clutch Replacement", hours: 6.0, colour: "bigjob" },
+    { group: "GENERAL", name: "Timing Belt", description: "Timing Belt Replacement", hours: 4.5, colour: "bigjob" },
+    { group: "GENERAL", name: "Suspension", description: "Suspension Work", hours: 2.0, colour: "suspension" },
+    { group: "GENERAL", name: "Air Conditioning", description: "Air Conditioning Service / Repair", hours: 1.0, colour: "aircon" },
+    { group: "GENERAL", name: "Other", description: "", hours: 1.0, colour: "other" }
+  ]
+};
+
+const settingsKey = "vecta:settings:v1";
+
+function loadLocalSettings() {
+  return JSON.parse(localStorage.getItem(settingsKey) || JSON.stringify(DEFAULT_SETTINGS));
+}
+
+function saveLocalSettings(settings) {
+  localStorage.setItem(settingsKey, JSON.stringify(settings));
+}
+
+const STATUS = {
+  in_progress: "In Progress",
+  ready_to_invoice: "Ready to Invoice",
+  completed: "Completed"
+};
+
+const JOB_TYPES = [
+  { group: "SERVICE", name: "Small Service", description: "Small Service", hours: 1.2, colour: "service" },
+  { group: "SERVICE", name: "Interim Service", description: "Interim Service", hours: 1.5, colour: "service" },
+  { group: "SERVICE", name: "Major Service", description: "Major Service", hours: 2.5, colour: "service" },
+  { group: "BRAKES", name: "Front Pads", description: "Front Brake Pads", hours: 1.0, colour: "brakes" },
+  { group: "BRAKES", name: "Rear Pads", description: "Rear Brake Pads", hours: 1.0, colour: "brakes" },
+  { group: "BRAKES", name: "Front Discs & Pads", description: "Front Brake Discs & Pads", hours: 1.5, colour: "brakes" },
+  { group: "BRAKES", name: "Rear Discs & Pads", description: "Rear Brake Discs & Pads", hours: 1.5, colour: "brakes" },
+  { group: "BRAKES", name: "Front & Rear Brakes", description: "Front & Rear Brake Discs & Pads", hours: 3.0, colour: "brakes" },
+  { group: "GENERAL", name: "MOT", description: "MOT", hours: 1.0, colour: "mot" },
+  { group: "GENERAL", name: "Diagnostics", description: "Diagnostics", hours: 2.0, colour: "diagnostics" },
+  { group: "GENERAL", name: "Clutch", description: "Clutch Replacement", hours: 6.0, colour: "bigjob" },
+  { group: "GENERAL", name: "Timing Belt", description: "Timing Belt Replacement", hours: 4.5, colour: "bigjob" },
+  { group: "GENERAL", name: "Suspension", description: "Suspension Work", hours: 2.0, colour: "suspension" },
+  { group: "GENERAL", name: "Air Conditioning", description: "Air Conditioning Service / Repair", hours: 1.0, colour: "aircon" },
+  { group: "GENERAL", name: "Other", description: "", hours: 1.0, colour: "other" }
+];
+
+const JOB_TYPE_GROUPS = [...new Set(JOB_TYPES.map(j => j.group))];
+
+function findJobType(name, jobTypes = JOB_TYPES) {
+  return jobTypes.find(j => j.name === name) || jobTypes[jobTypes.length - 1] || JOB_TYPES[JOB_TYPES.length - 1];
+}
+function rampClass(key) {
+  return `ramp-${String(key || "").toLowerCase()}`;
+}
+function rampLabel(key, settings) {
+  return settings?.ramps?.find(r => r.key === key)?.label || RAMP_LABEL[key] || key || "No ramp";
+}
+
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+const supabase = supabaseUrl && supabaseKey ? createClient(supabaseUrl, supabaseKey) : null;
+
+function uuid() {
+  return crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).slice(2, 10);
+}
+
+function daysUntil(dateString) {
+  if (!dateString) return null;
+  const today = new Date();
+  const target = new Date(`${dateString}T00:00:00`);
+  return Math.ceil((target - today) / (1000 * 60 * 60 * 24));
+}
+
+function statusClassForDate(dateString) {
+  const days = daysUntil(dateString);
+  if (days === null) return "unknown";
+  if (days < 0) return "bad";
+  if (days <= 30) return "warning";
+  return "good";
+}
+
+function formatDate(dateString) {
+  if (!dateString) return "Unknown";
+  return new Date(`${dateString}T00:00:00`).toLocaleDateString("en-GB");
+}
+
+function fakeVehicleLookup(reg) {
+  const clean = (reg || "").replace(/\s/g, "").toUpperCase();
+  const sample = {
+    KV70UOS: {
+      vehicle: "BMW 2 Series 218i Sport Gran Coupe",
+      make: "BMW",
+      model: "2 SERIES 218I SPORT GRAN COUPE",
+      fuel_type: "Petrol",
+      engine_size: "1499cc",
+      colour: "Grey",
+      year: "2020",
+      mot_due: "2027-03-14",
+      tax_due: "2026-09-01",
+      tax_status: "Taxed"
+    },
+    YD18ABC: {
+      vehicle: "Ford Transit 2.0 EcoBlue",
+      make: "Ford",
+      model: "Transit",
+      fuel_type: "Diesel",
+      engine_size: "1995cc",
+      colour: "White",
+      year: "2018",
+      mot_due: "2026-11-20",
+      tax_due: "2026-08-01",
+      tax_status: "Taxed"
+    }
+  };
+
+  return sample[clean] || {
+    vehicle: "",
+    make: "",
+    model: "",
+    fuel_type: "",
+    engine_size: "",
+    colour: "",
+    year: "",
+    mot_due: "",
+    tax_due: "",
+    tax_status: ""
+  };
+}
+function todayISO() {
+  const d = new Date();
+  d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
+  return d.toISOString().slice(0, 10);
+}
+function addDaysISO(iso, days) {
+  const d = new Date(`${iso}T00:00:00`);
+  d.setDate(d.getDate() + days);
+  return d.toISOString().slice(0, 10);
+}
+function friendlyDate(iso) {
+  return new Date(`${iso}T00:00:00`).toLocaleDateString("en-GB", {
+    weekday: "long",
+    day: "2-digit",
+    month: "short",
+    year: "numeric"
+  });
+}
+function localKey(date) { return `vecta:v113:${date}`; }
+const globalKey = "vecta:v113:global";
+const tasksKey = "vecta:v113:tasks";
+const notesKey = "vecta:v113:notes";
+
+function readLS(key) { return JSON.parse(localStorage.getItem(key) || "[]"); }
+function writeLS(key, value) { localStorage.setItem(key, JSON.stringify(value)); }
+
+async function seedLocal() {
+  // Production-safe: do not create fake/demo jobs automatically.
+  // If Supabase is configured, data comes from the database.
+  // If Supabase is not configured, the app can still use existing local records,
+  // but it will not inject sample jobs like AJ68 LZD / KV70 UOS.
+  return;
+}
+
+async function listDate(date) {
+  if (supabase) {
+    const { data, error } = await supabase
+      .from("jobs")
+      .select("*")
+      .eq("booking_date", date)
+      .neq("technician", "Unallocated")
+      .neq("technician", "Waiting")
+      .order("drop_time");
+    if (error) throw error;
+    return data || [];
+  }
+  return readLS(localKey(date)).filter(j => j.technician !== "Unallocated" && j.technician !== "Waiting");
+}
+
+async function listGlobal() {
+  if (supabase) {
+    const { data, error } = await supabase
+      .from("jobs")
+      .select("*")
+      .is("booking_date", null)
+      .eq("archived", false)
+      .order("created_at", { ascending: false });
+    if (error) throw error;
+    return data || [];
+  }
+  return readLS(globalKey);
+}
+
+async function listTasks() {
+  if (supabase) {
+    const { data, error } = await supabase.from("tasks").select("*").eq("done", false).order("created_at");
+    if (error) throw error;
+    return data || [];
+  }
+  return readLS(tasksKey).filter(t => !t.done);
+}
+
+async function listNotes() {
+  if (supabase) {
+    try {
+      const { data } = await supabase.from("notes").select("*").order("created_at", { ascending: false });
+      return data || [];
+    } catch {
+      return [];
+    }
+  }
+  return readLS(notesKey);
+}
+
+
+function cleanDate(value) {
+  return value ? value : null;
+}
+
+function cleanTime(value) {
+  return value ? String(value).slice(0, 5) : null;
+}
+
+function jobPayloadForSupabase(job, date) {
+  const id = job.id || uuid();
+  const technician = job.technician || "Unallocated";
+  const isGlobal = technician === "Unallocated" || technician === "Waiting" || job.card_type === "waiting";
+
+  return {
+    id,
+    booking_date: isGlobal ? null : cleanDate(job.booking_date || date),
+    card_type: job.card_type || (technician === "Waiting" ? "waiting" : "job"),
+    registration: (job.registration || "").toUpperCase().trim(),
+    vehicle: job.vehicle || null,
+    tax_status: job.tax_status || null,
+    tax_due: cleanDate(job.tax_due),
+    mot_due: cleanDate(job.mot_due),
+    year: job.year || null,
+    fuel_type: job.fuel_type || null,
+    engine_size: job.engine_size || null,
+    model: job.model || null,
+    make: job.make || null,
+    work_required: job.work_required || null,
+    customer_name: job.customer_name || null,
+    customer_phone: job.customer_phone || null,
+    customer_email: job.customer_email || null,
+    customer_note: job.customer_note || null,
+    drop_time: cleanTime(job.drop_time),
+    technician,
+    ramp: job.ramp || null,
+    status: job.status || "in_progress",
+    job_type: job.job_type || null,
+    job_colour: job.job_colour || job.colour || "other",
+    estimated_hours: Number(job.estimated_hours || 1),
+    source: job.source || "manual",
+    sort_order: Number(job.sort_order || 0),
+    archived: Boolean(job.archived || job.status === "archived")
+  };
+}
+
+async function syncCustomerAndVehicle(job) {
+  if (!supabase) return;
+  const registration = (job.registration || "").toUpperCase().trim();
+  if (!registration) return;
+
+  let customerId = null;
+  if (job.customer_name || job.customer_phone || job.customer_email) {
+    const { data: existingCustomer } = await supabase
+      .from("customers")
+      .select("id")
+      .or(`phone.eq.${job.customer_phone || "__none__"},email.eq.${job.customer_email || "__none__"}`)
+      .maybeSingle();
+
+    customerId = existingCustomer?.id || uuid();
+    await supabase.from("customers").upsert({
+      id: customerId,
+      name: job.customer_name || null,
+      phone: job.customer_phone || null,
+      email: job.customer_email || null
+    });
+  }
+
+  await supabase.from("vehicles").upsert({
+    registration,
+    customer_id: customerId,
+    vehicle: job.vehicle || null,
+    notes: job.customer_note || null
+  }, { onConflict: "registration" });
+}
+
+async function saveJob(job, date) {
+  const payload = jobPayloadForSupabase(job, date);
+
+  if (supabase) {
+    const { error } = await supabase.from("jobs").upsert(payload, { onConflict: "id" });
+    if (error) {
+      console.error("Supabase job save failed", error, payload);
+      alert(`Could not save job to Supabase: ${error.message}`);
+      throw error;
+    }
+    await syncCustomerAndVehicle(payload);
+    return;
+  }
+
+  for (const key of Object.keys(localStorage)) {
+    if (key.startsWith("vecta:v113:") && key !== globalKey && key !== tasksKey && key !== notesKey) {
+      writeLS(key, readLS(key).filter(j => j.id !== payload.id));
+    }
+  }
+
+  writeLS(globalKey, readLS(globalKey).filter(j => j.id !== payload.id));
+  if (payload.booking_date) writeLS(localKey(payload.booking_date), [...readLS(localKey(payload.booking_date)), payload]);
+  else writeLS(globalKey, [...readLS(globalKey), payload]);
+}
+
+async function deleteJob(id) {
+  if (supabase) {
+    const { error } = await supabase.from("jobs").delete().eq("id", id);
+    if (error) throw error;
+    return;
+  }
+
+  for (const key of Object.keys(localStorage)) {
+    if (key.startsWith("vecta:v113:")) writeLS(key, readLS(key).filter(x => x.id !== id));
+  }
+}
+
+async function saveTask(task) {
+  const payload = { ...task, id: task.id || uuid(), done: false };
+  if (supabase) {
+    const { error } = await supabase.from("tasks").upsert(payload);
+    if (error) {
+      alert(error.message);
+      throw error;
+    }
+    return;
+  }
+  writeLS(tasksKey, [...readLS(tasksKey).filter(t => t.id !== payload.id), payload]);
+}
+
+async function deleteTask(id) {
+  if (supabase) {
+    const { error } = await supabase.from("tasks").update({ done: true }).eq("id", id);
+    if (error) throw error;
+    return;
+  }
+  writeLS(tasksKey, readLS(tasksKey).filter(t => t.id !== id));
+}
+
+async function saveNote(note) {
+  const payload = { ...note, id: note.id || uuid() };
+  if (supabase) {
+    const { error } = await supabase.from("notes").upsert(payload);
+    if (error) {
+      alert(error.message);
+      throw error;
+    }
+    return;
+  }
+  writeLS(notesKey, [...readLS(notesKey).filter(n => n.id !== payload.id), payload]);
+}
+
+async function deleteNote(id) {
+  if (supabase) {
+    const { error } = await supabase.from("notes").delete().eq("id", id);
+    if (error) throw error;
+    return;
+  }
+  writeLS(notesKey, readLS(notesKey).filter(n => n.id !== id));
+}
+
+function hoursForRamp(jobs, ramp) {
+  return jobs.filter(j => j.ramp === ramp).reduce((sum, j) => sum + Number(j.estimated_hours || 1), 0);
+}
+
+function RampUtilisation({ jobs, settings, onRamp }) {
+  const rampList = settings?.ramps?.length ? settings.ramps : DEFAULT_SETTINGS.ramps;
+  return (
+    <section className="ramp-strip">
+      <div className="ramp-title">RAMP UTILISATION</div>
+      {rampList.map(ramp => {
+        const hours = hoursForRamp(jobs, ramp.key);
+        const capacity = Number(ramp.capacity || RAMP_CAPACITY);
+        const pct = Math.min(100, Math.round((hours / capacity) * 100));
+        const colour = pct >= 86 ? "danger" : pct >= 61 ? "warning" : "good";
+        return (
+          <button key={ramp.key} className={`ramp-summary ${colour}`} onClick={() => onRamp(ramp.key)}>
+            <strong>{ramp.label}</strong>
+            <div className="progress"><i style={{ width: `${pct}%` }} /></div>
+            <span>{hours.toFixed(1)} / {capacity.toFixed(1)} hrs</span>
+          </button>
+        );
+      })}
+      <div className="legend"><span className="dot good" />0 - 60% <span className="dot warning" />61 - 85% <span className="dot danger" />86 - 100%</div>
+    </section>
+  );
+}
+
+
+function VehicleBadges({ job }) {
+  const motClass = statusClassForDate(job.mot_due);
+  const taxClass = job.tax_status === "Taxed" ? "good" : job.tax_due ? statusClassForDate(job.tax_due) : "unknown";
+
+  if (!job.mot_due && !job.tax_due && !job.tax_status) return null;
+
+  return (
+    <div className="vehicle-badges">
+      <span className={`mini-status ${motClass}`}>MOT {formatDate(job.mot_due)}</span>
+      <span className={`mini-status ${taxClass}`}>Tax {job.tax_status || formatDate(job.tax_due)}</span>
+    </div>
+  );
+}
+
+function SmallJobCard({ job, onEdit, onDragStart }) {
+  return (
+    <div className={`small-card ${rampClass(job.ramp) || "ramp-left"}`} draggable onDragStart={e => onDragStart(e, job)} onDoubleClick={() => onEdit(job)}>
+      <div className="small-card-top">
+        <span className="uk-reg-plate small-reg-plate" title="Vehicle registration"><span className="gb-strip">GB</span><strong>{job.registration || "NO REG"}</strong></span>
+        <span className="small-card-vehicle">{job.vehicle || ""}</span>
+      </div>
+      <VehicleBadges job={job} />
+      <p>{job.work_required || ""}</p>
+      {job.customer_name && <small>{job.customer_name} · {job.customer_phone}</small>}
+      <div className="small-card-bottom">
+        <span>{job.customer_note || ""}</span>
+        <em>Est: {Number(job.estimated_hours || 1).toFixed(1)} hrs</em>
+      </div>
+    </div>
+  );
+}
+
+function workflowLabel(status) {
+  return STATUS[status] || status || "Booked In";
+}
+
+function endTimeFrom(start, hours) {
+  if (!start) return "--:--";
+  const [h, m] = String(start).slice(0, 5).split(":").map(Number);
+  if (Number.isNaN(h) || Number.isNaN(m)) return String(start).slice(0, 5);
+  const d = new Date(2000, 0, 1, h, m);
+  d.setMinutes(d.getMinutes() + Math.round(Number(hours || 1) * 60));
+  return d.toTimeString().slice(0, 5);
+}
+
+function ScheduleCard({ job, settings, onEdit, onDragStart, onHistory, onInvoice }) {
+  const statusText = workflowLabel(job.status);
+  const start = job.drop_time ? String(job.drop_time).slice(0, 5) : "--:--";
+  const hours = Number(job.estimated_hours || 1);
+  const end = endTimeFrom(start, hours);
+
+  const isTaskCard = job.card_type === "task" || String(job.registration || "").toUpperCase() === "TASK";
+
+  return (
+    <div className={`schedule-card ${isTaskCard ? "planner-task-card" : ""} ${rampClass(job.ramp) || ""} status-${job.status || "booked"}`} draggable onDragStart={e => onDragStart(e, job)} onDoubleClick={() => onEdit(job)}>
+      <div className="schedule-card-header planner-card-v41k">
+        {isTaskCard ? (
+          <span className="task-label">TASK</span>
+        ) : (
+          <>
+            <span className="planner-card-left">
+              <span className="uk-reg-plate" title="Vehicle registration"><span className="gb-strip">GB</span><strong>{job.registration || "NO REG"}</strong></span>
+              <span className="planner-vehicle-title">{job.vehicle || "Vehicle"}</span>
+            </span>
+            <span className="planner-card-right-text">
+              <strong className="planner-job-type">{String(job.job_type || "General").replaceAll("_", " ")}</strong>
+              <span className="job-time">{start} – {end}</span>
+            </span>
+          </>
+        )}
+      </div>
+
+      <button className="card-menu" title="Open actions" onClick={(e) => { e.stopPropagation(); onEdit(job); }}>⋮</button>
+
+      <p className="job-work">{job.work_required || "Work required"}</p>
+      {!isTaskCard && job.customer_name && <div className="planner-customer-name">{job.customer_name}</div>}
+
+      {!isTaskCard && <div className="schedule-card-footer">
+        <span className="card-actions">
+          <button title="History" onClick={(e)=>{e.stopPropagation(); onHistory(job)}}><History size={14}/></button>
+          <button title="Invoice" onClick={(e)=>{e.stopPropagation(); onInvoice(job)}}><FileText size={14}/></button>
+        </span>
+      </div>}
+    </div>
+  );
+}
+
+
+
+const WEBSITE_REQUESTS_KEY = "vecta:website-booking-requests:v1";
+
+async function listWebsiteRequests() {
+  if (supabase) {
+    const { data, error } = await supabase.from("website_booking_requests").select("*").order("created_at", { ascending: false });
+    if (error) { console.error("Website request load failed", error); return []; }
+    return data || [];
+  }
+  return JSON.parse(localStorage.getItem(WEBSITE_REQUESTS_KEY) || "[]");
+}
+
+async function saveWebsiteRequest(request) {
+  const payload = { ...request, registration: String(request.registration || "").toUpperCase().replace(/\s+/g, " ").trim() };
+  if (supabase) {
+    const { error } = await supabase.from("website_booking_requests").upsert(payload, { onConflict: "id" });
+    if (error) throw error;
+    return payload;
+  }
+  const rows = JSON.parse(localStorage.getItem(WEBSITE_REQUESTS_KEY) || "[]");
+  localStorage.setItem(WEBSITE_REQUESTS_KEY, JSON.stringify([payload, ...rows.filter(r => r.id !== payload.id)]));
+  return payload;
+}
+
+function PublicBookingApp() {
+  const blank = { id: "", customer_name: "", email: "", phone: "", registration: "", vehicle: "", mileage: "", job_types: [], work_required: "", preferred_date_1: "", preferred_date_2: "", preferred_date_3: "", completion_deadline: "", contact_preference: "Email", status: "awaiting_review" };
+  const [form, setForm] = useState(blank);
+  const [step, setStep] = useState(1);
+  const [sending, setSending] = useState(false);
+  const [done, setDone] = useState(false);
+  const options = ["Service", "MOT", "Brakes", "Diagnostics / warning light", "Tyres", "Repair", "Other"];
+  const minDate = addDaysISO(todayISO(), 1);
+  const update = (field, value) => setForm(f => ({ ...f, [field]: field === "registration" ? value.toUpperCase() : value }));
+  const toggleType = type => setForm(f => ({ ...f, job_types: f.job_types.includes(type) ? f.job_types.filter(x => x !== type) : [...f.job_types, type] }));
+  function validStep() {
+    if (step === 1) return form.registration.trim() && form.vehicle.trim();
+    if (step === 2) return form.job_types.length && form.work_required.trim();
+    if (step === 3) return form.preferred_date_1;
+    if (step === 4) return form.customer_name.trim() && form.email.trim() && form.phone.trim();
+    return true;
+  }
+  async function submit() {
+    setSending(true);
+    try {
+      await saveWebsiteRequest({ ...form, id: uuid(), created_at: new Date().toISOString(), source: "Website booking", status: "awaiting_review" });
+      setDone(true);
+    } catch (error) {
+      console.error(error); alert("We could not send your booking request. Please try again or contact Vecta Motors.");
+    } finally { setSending(false); }
+  }
+  if (done) return <main className="public-booking-shell"><section className="booking-success"><CheckCircle2 size={54}/><span>REQUEST RECEIVED</span><h1>Thank you</h1><p>We have received your booking request. We will review your preferred dates and email you with a confirmed date and approximate cost.</p><strong>Your vehicle is not booked in until you receive confirmation from Vecta Motors.</strong></section></main>;
+  return <main className="public-booking-shell">
+    <header className="public-booking-header"><div className="public-vecta">VECTA</div><div><b>Vehicle servicing & repairs</b><span>Online booking request</span></div></header>
+    <section className="booking-card">
+      <div className="booking-progress">{[1,2,3,4,5].map(n => <i key={n} className={n <= step ? "active" : ""}/>)}</div>
+      {step === 1 && <div className="booking-step"><span className="booking-kicker">STEP 1 OF 5</span><h1>Your vehicle</h1><p>Enter the vehicle details so we know exactly what is coming into the workshop.</p><label>Registration number *<input className="public-reg-input" autoFocus value={form.registration} onChange={e=>update("registration",e.target.value)} placeholder="AB12 CDE"/></label><div className="two"><label>Make and model *<input value={form.vehicle} onChange={e=>update("vehicle",e.target.value)} placeholder="Nissan Qashqai"/></label><label>Current mileage<input inputMode="numeric" value={form.mileage} onChange={e=>update("mileage",e.target.value)} placeholder="42,000"/></label></div></div>}
+      {step === 2 && <div className="booking-step"><span className="booking-kicker">STEP 2 OF 5</span><h1>Work required</h1><p>Select everything that applies, then tell us what you need us to investigate or complete.</p><div className="booking-type-grid">{options.map(type=><button type="button" key={type} className={form.job_types.includes(type)?"selected":""} onClick={()=>toggleType(type)}>{type}</button>)}</div><label>Describe the work or symptoms *<textarea value={form.work_required} onChange={e=>update("work_required",e.target.value)} placeholder="Tell us about any warning lights, noises, faults or work required..."/></label></div>}
+      {step === 3 && <div className="booking-step"><span className="booking-kicker">STEP 3 OF 5</span><h1>Preferred dates</h1><p>Provide up to three suitable weekdays. We will confirm one after checking workshop capacity.</p><div className="three booking-dates"><label>First choice *<input type="date" min={minDate} value={form.preferred_date_1} onChange={e=>update("preferred_date_1",e.target.value)}/></label><label>Second choice<input type="date" min={minDate} value={form.preferred_date_2} onChange={e=>update("preferred_date_2",e.target.value)}/></label><label>Third choice<input type="date" min={minDate} value={form.preferred_date_3} onChange={e=>update("preferred_date_3",e.target.value)}/></label></div><label>Does the vehicle need to be completed by a particular time?<input value={form.completion_deadline} onChange={e=>update("completion_deadline",e.target.value)} placeholder="For example: before the end of my shift"/></label><div className="booking-notice"><AlertTriangle size={18}/><span>Submitting preferred dates does not confirm your booking.</span></div></div>}
+      {step === 4 && <div className="booking-step"><span className="booking-kicker">STEP 4 OF 5</span><h1>Your details</h1><div className="two"><label>Full name *<input value={form.customer_name} onChange={e=>update("customer_name",e.target.value)}/></label><label>Telephone *<input type="tel" value={form.phone} onChange={e=>update("phone",e.target.value)}/></label></div><label>Email address *<input type="email" value={form.email} onChange={e=>update("email",e.target.value)}/></label><label>Preferred contact method<select value={form.contact_preference} onChange={e=>update("contact_preference",e.target.value)}><option>Email</option><option>Telephone</option><option>WhatsApp</option></select></label></div>}
+      {step === 5 && <div className="booking-step"><span className="booking-kicker">STEP 5 OF 5</span><h1>Review your request</h1><div className="booking-review"><div><span>Vehicle</span><b>{form.registration} · {form.vehicle}</b></div><div><span>Work required</span><b>{form.job_types.join(", ")}</b><p>{form.work_required}</p></div><div><span>Preferred dates</span><b>{[form.preferred_date_1,form.preferred_date_2,form.preferred_date_3].filter(Boolean).map(formatDate).join(" · ")}</b></div><div><span>Contact</span><b>{form.customer_name}</b><p>{form.email} · {form.phone}</p></div></div><p className="booking-terms">By submitting this request, you understand that your booking is only confirmed when Vecta Motors emails you with an agreed date.</p></div>}
+      <footer className="booking-actions">{step>1?<button className="secondary" onClick={()=>setStep(s=>s-1)}>Back</button>:<span/>}{step<5?<button disabled={!validStep()} onClick={()=>setStep(s=>s+1)}>Continue</button>:<button disabled={sending} onClick={submit}>{sending?"Sending...":"Send booking request"}</button>}</footer>
+    </section>
+  </main>;
+}
+
+function WebsiteRequests({ requests, settings, onRefresh, onCreateJob }) {
+  const [selected, setSelected] = useState(null);
+  const [confirm, setConfirm] = useState({ date: "", technician: "Unallocated", drop_time: "08:00", estimated_hours: 1, approximate_cost: "", job_type: "Other" });
+  const pending = requests.filter(r => r.status === "awaiting_review");
+  function open(r) { setSelected(r); setConfirm(c => ({...c, date:r.preferred_date_1||"", technician:"Unallocated", drop_time:"08:00", estimated_hours:1, approximate_cost:"", job_type:(r.job_types||[]).includes("MOT")?"MOT":"Other"})); }
+  async function confirmBooking() {
+    if (!confirm.date || confirm.technician === "Unallocated" || !confirm.approximate_cost) { alert("Choose a booking date, technician and approximate cost."); return; }
+    const job = { id: uuid(), card_type:"job", booking_date:confirm.date, registration:selected.registration, vehicle:selected.vehicle, customer_name:selected.customer_name, customer_phone:selected.phone, customer_email:selected.email, work_required:selected.work_required, technician:confirm.technician, ramp:"", status:"in_progress", job_type:confirm.job_type, estimated_hours:Number(confirm.estimated_hours), drop_time:confirm.drop_time, amount_quoted:Number(confirm.approximate_cost), booking_source:"Website booking", customer_note:`Website request · Preferred dates: ${[selected.preferred_date_1,selected.preferred_date_2,selected.preferred_date_3].filter(Boolean).map(formatDate).join(", ")}` };
+    await onCreateJob(job, confirm.date);
+    await saveWebsiteRequest({...selected,status:"confirmed",confirmed_date:confirm.date,confirmed_at:new Date().toISOString(),job_id:job.id,approximate_cost:Number(confirm.approximate_cost)});
+    const subject=encodeURIComponent(`Your Vecta Motors booking is confirmed – ${selected.registration}`);
+    const body=encodeURIComponent(`Hello ${selected.customer_name},\n\nYour booking with Vecta Motors has been confirmed.\n\nVehicle: ${selected.registration} – ${selected.vehicle}\nBooking date: ${formatDate(confirm.date)}\nDrop-off time: ${confirm.drop_time}\nWork requested: ${selected.work_required}\nApproximate cost: £${Number(confirm.approximate_cost).toFixed(2)}\n\nThe approximate cost is based on the information currently available. We will contact you before carrying out additional work that would increase the agreed amount.\n\nThank you,\nVecta Motors`);
+    window.open(`mailto:${selected.email}?subject=${subject}&body=${body}`);
+    setSelected(null); onRefresh();
+  }
+  return <main className="requests-page"><div className="requests-hero"><div><span className="eyebrow">CUSTOMER BOOKINGS</span><h1>Website Requests</h1><p>Review each request, allocate the job and confirm the date and approximate cost.</p></div><div className="request-count"><strong>{pending.length}</strong><span>awaiting review</span></div></div>
+    <section className="requests-list">{pending.map(r=><button key={r.id} className="request-row" onClick={()=>open(r)}><div className="fleet-reg-plate"><span className="gb-strip">GB</span><strong>{r.registration}</strong></div><div><b>{r.customer_name}</b><span>{r.vehicle}</span></div><div><b>{(r.job_types||[]).join(", ")}</b><span>{r.work_required}</span></div><div><span>Preferred</span><b>{[r.preferred_date_1,r.preferred_date_2,r.preferred_date_3].filter(Boolean).map(formatDate).join(" · ")}</b></div><ChevronRight size={18}/></button>)}{!pending.length&&<div className="requests-empty"><CheckCircle2 size={40}/><h2>No requests awaiting review</h2><p>New website bookings will appear here automatically.</p></div>}</section>
+    {selected&&<div className="backdrop"><div className="dialog wide-dialog request-dialog"><button className="request-close" onClick={()=>setSelected(null)}><X/></button><span className="eyebrow">WEBSITE BOOKING REQUEST</span><h2>{selected.registration} · {selected.vehicle}</h2><div className="request-detail-grid"><div><span>Customer</span><b>{selected.customer_name}</b><p>{selected.email}<br/>{selected.phone}</p></div><div><span>Work required</span><b>{(selected.job_types||[]).join(", ")}</b><p>{selected.work_required}</p></div><div><span>Preferred dates</span>{[selected.preferred_date_1,selected.preferred_date_2,selected.preferred_date_3].filter(Boolean).map(d=><button key={d} className={confirm.date===d?"date-choice active":"date-choice"} onClick={()=>setConfirm(c=>({...c,date:d}))}>{formatDate(d)}</button>)}</div><div><span>Completion requirement</span><b>{selected.completion_deadline||"No particular time"}</b></div></div><h3>Confirm and allocate</h3><div className="three"><label>Confirmed date<input type="date" value={confirm.date} onChange={e=>setConfirm(c=>({...c,date:e.target.value}))}/></label><label>Technician<select value={confirm.technician} onChange={e=>setConfirm(c=>({...c,technician:e.target.value}))}><option>Unallocated</option>{settings.mechanics.map(m=><option key={m.name}>{m.name}</option>)}</select></label><label>Drop-off time<input type="time" value={confirm.drop_time} onChange={e=>setConfirm(c=>({...c,drop_time:e.target.value}))}/></label></div><div className="three"><label>Job type<select value={confirm.job_type} onChange={e=>setConfirm(c=>({...c,job_type:e.target.value}))}>{settings.jobTypes.map(j=><option key={j.name}>{j.name}</option>)}</select></label><label>Estimated hours<input type="number" step="0.5" value={confirm.estimated_hours} onChange={e=>setConfirm(c=>({...c,estimated_hours:e.target.value}))}/></label><label>Approximate cost (£)<input type="number" step="0.01" value={confirm.approximate_cost} onChange={e=>setConfirm(c=>({...c,approximate_cost:e.target.value}))}/></label></div><div className="dialog-actions"><button className="secondary" onClick={()=>setSelected(null)}>Cancel</button><button onClick={confirmBooking}><Mail size={16}/> Confirm booking & prepare email</button></div></div></div>}
+  </main>;
+}
+
+function JobDialog({ job, date, settings, jobTypes = JOB_TYPES, onClose, onSave, onDelete }) {
+  const [form, setForm] = useState(job || {});
+
+  useEffect(() => {
+    setForm(job || {
+      id: "",
+      card_type: "job",
+      registration: "",
+      customer_name: "",
+      customer_phone: "",
+      vehicle: "",
+      make: "",
+      model: "",
+      engine_size: "",
+      fuel_type: "",
+      colour: "",
+      year: "",
+      mot_due: "",
+      tax_due: "",
+      tax_status: "",
+      work_required: "",
+      customer_note: "",
+      drop_time: "",
+      technician: "Unallocated",
+      ramp: "",
+      status: "in_progress",
+      job_type: "Other",
+      estimated_hours: 1,
+      job_colour: "other"
+    });
+  }, [job]);
+
+  function update(field, value) {
+    if (field === "registration") value = value.toUpperCase();
+    setForm(f => ({ ...f, [field]: value }));
+  }
+
+  function lookupVehicle() {
+    if (!form.registration) {
+      alert("Enter a registration first.");
+      return;
+    }
+
+    const result = fakeVehicleLookup(form.registration);
+
+    if (!result.vehicle) {
+      alert("Vehicle lookup display is ready. Live DVLA/DVSA connection still needs API access. For now, enter vehicle details manually.");
+      return;
+    }
+
+    setForm(f => ({
+      ...f,
+      vehicle: result.vehicle || f.vehicle,
+      make: result.make,
+      model: result.model,
+      engine_size: result.engine_size,
+      fuel_type: result.fuel_type,
+      colour: result.colour,
+      year: result.year,
+      mot_due: result.mot_due,
+      tax_due: result.tax_due,
+      tax_status: result.tax_status
+    }));
+  }
+
+  function applyQuickJob(typeName) {
+    const selected = findJobType(typeName, jobTypes);
+    setForm(f => ({
+      ...f,
+      job_type: selected.name,
+      work_required: selected.description || f.work_required,
+      estimated_hours: selected.hours,
+      job_colour: selected.colour
+    }));
+  }
+
+  function validateAndSave() {
+    const required = [
+      ["registration", "Registration"],
+      ["customer_name", "Customer name"],
+      ["customer_phone", "Phone number"],
+      ["vehicle", "Vehicle"],
+      ["work_required", "Work required"],
+      ["technician", "Technician"],
+      ["estimated_hours", "Estimated hours"]
+    ];
+
+    for (const [field, label] of required) {
+      if (!String(form[field] || "").trim()) {
+        alert(`${label} is required.`);
+        return;
+      }
+    }
+
+    onSave({ ...form, id: form.id || uuid() });
+  }
+
+  return (
+    <div className="backdrop">
+      <div className="dialog wide-dialog">
+        <h2>{form.id ? "Edit Job" : "Add Job"}</h2>
+
+        <div className="quick-job-area">
+          <h3>Quick Job Buttons</h3>
+          {[...new Set(jobTypes.map(j => j.group))].map(group => (
+            <div className="quick-group" key={group}>
+              <strong>{group}</strong>
+              <div>
+                {jobTypes.filter(j => j.group === group).map(j => (
+                  <button key={j.name} type="button" className={`quick-job ${j.colour}`} onClick={() => applyQuickJob(j.name)}>
+                    {j.name}
+                  </button>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+
+        <div className="vehicle-lookup-box">
+          <div className="two">
+            <label>Registration *
+              <input autoFocus value={form.registration || ""} onChange={e => update("registration", e.target.value)} />
+            </label>
+            <label>Vehicle *
+              <input value={form.vehicle || ""} onChange={e => update("vehicle", e.target.value)} />
+            </label>
+          </div>
+
+          <button type="button" className="lookup-button" onClick={lookupVehicle}>
+            <Car size={16} /> Lookup Vehicle
+          </button>
+
+          <div className="vehicle-status-grid">
+            <div className={`status-pill ${statusClassForDate(form.mot_due)}`}>
+              <ShieldCheck size={15} />
+              <strong>MOT</strong>
+              <span>{formatDate(form.mot_due)}</span>
+            </div>
+            <div className={`status-pill ${form.tax_status === "Taxed" ? "good" : form.tax_due ? statusClassForDate(form.tax_due) : "unknown"}`}>
+              <ShieldCheck size={15} />
+              <strong>Tax</strong>
+              <span>{form.tax_status || formatDate(form.tax_due)}</span>
+            </div>
+          </div>
+
+          <div className="vehicle-extra-grid">
+            <label>Make<input value={form.make || ""} onChange={e => update("make", e.target.value)} /></label>
+            <label>Model<input value={form.model || ""} onChange={e => update("model", e.target.value)} /></label>
+            <label>Engine<input value={form.engine_size || ""} onChange={e => update("engine_size", e.target.value)} /></label>
+            <label>Fuel<input value={form.fuel_type || ""} onChange={e => update("fuel_type", e.target.value)} /></label>
+          </div>
+        </div>
+
+        <div className="two">
+          <label>Customer name *
+            <input value={form.customer_name || ""} onChange={e => update("customer_name", e.target.value)} />
+          </label>
+          <label>Phone number *
+            <input value={form.customer_phone || ""} onChange={e => update("customer_phone", e.target.value)} />
+          </label>
+        </div>
+
+        <label>Work required *
+          <textarea value={form.work_required || ""} onChange={e => update("work_required", e.target.value)} />
+        </label>
+
+        <div className="three">
+          <label>Status
+            <select value={form.status || "in_progress"} onChange={e => update("status", e.target.value)}>
+              {Object.entries(STATUS).map(([key, label]) => <option key={key} value={key}>{label}</option>)}
+            </select>
+          </label>
+          <label>Estimated Hours *
+            <input type="number" step="0.5" value={form.estimated_hours || 1} onChange={e => update("estimated_hours", Number(e.target.value))} />
+          </label>
+          <label>Drop-off
+            <input type="time" value={String(form.drop_time || "").slice(0, 5)} onChange={e => update("drop_time", e.target.value)} />
+          </label>
+        </div>
+
+        <div className="three">
+          <label>Technician *
+            <select value={form.technician || "Unallocated"} onChange={e => update("technician", e.target.value)}>
+              <option>Unallocated</option>
+              <option>Waiting</option>
+              {settings.mechanics.map(m => <option key={m.name}>{m.name}</option>)}
+            </select>
+          </label>
+          <label>Ramp
+            <select value={form.ramp || ""} onChange={e => update("ramp", e.target.value)}>
+              <option value="">No ramp</option>
+              {(settings?.ramps || DEFAULT_SETTINGS.ramps).map(r => <option key={r.key} value={r.key}>{r.label}</option>)}
+            </select>
+          </label>
+          <label>Card Type
+            <select value={form.card_type || "job"} onChange={e => update("card_type", e.target.value)}>
+              <option value="job">Job</option>
+              <option value="waiting">Waiting Job</option>
+            </select>
+          </label>
+        </div>
+
+        <label>Notes
+          <input value={form.customer_note || ""} onChange={e => update("customer_note", e.target.value)} />
+        </label>
+
+        <div className="dialog-actions">
+          <button className="secondary" onClick={onClose}>Cancel</button>
+          {form.id && <button className="danger-button" onClick={() => onDelete(form.id)}>Delete</button>}
+          {form.id && <button className="secondary" onClick={() => { onClose(); setTimeout(() => window.dispatchEvent(new CustomEvent("open-invoice", { detail: form })), 50); }}>Create Invoice</button>}
+          <button onClick={validateAndSave}>Save</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+
+function NotesPanel({ notes, onSave, onDelete }) {
+  const [text, setText] = useState("");
+
+  return (
+    <section className="notes-panel">
+      <h3>Notes</h3>
+      <textarea placeholder="Add notes, reminders or anything important for today..." value={text} onChange={e => setText(e.target.value)} />
+      <button onClick={() => { if (text.trim()) { onSave({ id: uuid(), note_text: text.trim() }); setText(""); } }}>Add Note</button>
+      {notes.map(n => <div className="note-row" key={n.id}><span>{n.note_text}</span><button onClick={() => onDelete(n.id)}>×</button></div>)}
+    </section>
+  );
+}
+
+function TasksPanel({ tasks, onSave, onDelete }) {
+  const [text, setText] = useState("");
+
+  return (
+    <section className="tasks-panel">
+      <div className="tasks-head">
+        <h3>Tasks</h3>
+        <button onClick={() => { if (text.trim()) { onSave({ id: uuid(), task_text: text.trim(), done: false }); setText(""); } }}>+ Add Task</button>
+      </div>
+      <input placeholder="Add task..." value={text} onChange={e => setText(e.target.value)} />
+      <div className="task-grid">
+        {tasks.map(t => <label key={t.id} className="task-row"><input type="checkbox" onChange={() => onDelete(t.id)} /> {t.task_text}</label>)}
+      </div>
+    </section>
+  );
+}
+
+
+
+
+function InvoicePanel({ job, settings, onClose, onMarkPaid }) {
+  const labourRate = 40;
+  const [invoiceNumber, setInvoiceNumber] = useState(`V${new Date().getFullYear().toString().slice(-2)}${String(Date.now()).slice(-5)}`);
+  const [paymentMethod, setPaymentMethod] = useState("Transfer");
+  const [paid, setPaid] = useState(false);
+  const [lines, setLines] = useState([
+    {
+      id: uuid(),
+      type: "Labour",
+      description: job.work_required || "Labour",
+      qty: Number(job.estimated_hours || 1),
+      unit_price: labourRate
+    }
+  ]);
+
+  function updateLine(id, field, value) {
+    setLines(rows => rows.map(row => row.id === id ? { ...row, [field]: field === "qty" || field === "unit_price" ? Number(value) : value } : row));
+  }
+
+  function addLine(type = "Parts") {
+    setLines(rows => [...rows, { id: uuid(), type, description: "", qty: 1, unit_price: 0 }]);
+  }
+
+  function removeLine(id) {
+    setLines(rows => rows.filter(row => row.id !== id));
+  }
+
+  const subtotal = lines.reduce((sum, row) => sum + Number(row.qty || 0) * Number(row.unit_price || 0), 0);
+  const vat = subtotal * 0.2;
+  const total = subtotal + vat;
+
+  function printInvoice() {
+    window.print();
+  }
+
+  function emailInvoice() {
+    const subject = encodeURIComponent(`Invoice ${invoiceNumber} - ${job.registration || ""}`);
+    const body = encodeURIComponent(`Hi ${job.customer_name || ""},\n\nPlease find your invoice details below:\n\nInvoice: ${invoiceNumber}\nVehicle: ${job.vehicle || ""}\nRegistration: ${job.registration || ""}\nTotal: £${total.toFixed(2)}\n\nPlease use your registration number as the payment reference.\n\nRegards,\nVecta`);
+    window.location.href = `mailto:?subject=${subject}&body=${body}`;
+  }
+
+  async function markPaid() {
+    setPaid(true);
+    await onMarkPaid(job);
+  }
+
+  return (
+    <div className="invoice-screen">
+      <div className="invoice-toolbar no-print">
+        <button className="secondary" onClick={onClose}>Back to Planner</button>
+        <button onClick={printInvoice}><Printer size={16}/> Print</button>
+        <button onClick={emailInvoice}><Mail size={16}/> Email</button>
+        <button onClick={markPaid}><PoundSterling size={16}/> Mark as Paid</button>
+      </div>
+
+      <section className="invoice-page">
+        <header className="invoice-header">
+          <div>
+            <h1>INVOICE</h1>
+            <div className="business-details">
+              <b>VECTA - Fleet Support</b>
+              <span>Contractors Compound</span>
+              <span>Nissan Motor Manufacturing</span>
+              <span>Nissan Way, Washington, SR5 3NS</span>
+              <span>Tel: 07721722622</span>
+              <span>VAT No. 169170002</span>
+            </div>
+          </div>
+          <div className="invoice-brand">
+            <div className="fake-logo"><b>VECTA</b><span>Vehicle Servicing and repairs</span></div>
+            <div className={`paid-badge ${paid ? "paid" : "unpaid"}`}>{paid ? "PAID" : "UNPAID"}</div>
+          </div>
+        </header>
+
+        <section className="invoice-meta">
+          <div>
+            <h3>Customer Details</h3>
+            <p><b>{job.customer_name || "Customer"}</b></p>
+            <p>Phone: {job.customer_phone || ""}</p>
+          </div>
+
+          <div className="vehicle-details">
+            <h3>Vehicle Details</h3>
+            <p><span>Vehicle:</span><b>{job.vehicle || ""}</b></p>
+            <p><span>Registration:</span><b className="plate">{job.registration || ""}</b></p>
+            <p><span>Invoice Reference:</span><b>{invoiceNumber}</b></p>
+            <p><span>Invoice Date:</span><b>{new Date().toLocaleDateString("en-GB")}</b></p>
+            <p><span>Technician:</span><b>{job.technician || ""}</b></p>
+            <p><span>MOT Due:</span><b>{formatDate(job.mot_due)}</b></p>
+            <p><span>Tax:</span><b>{job.tax_status || formatDate(job.tax_due)}</b></p>
+          </div>
+        </section>
+
+        <section className="invoice-lines">
+          <div className="invoice-line-head">
+            <b>Type</b><b>Description</b><b>Qty</b><b>Unit Price</b><b>Item Cost</b><b className="no-print"></b>
+          </div>
+
+          {lines.map(row => (
+            <div className="invoice-line" key={row.id}>
+              <select value={row.type} onChange={e => updateLine(row.id, "type", e.target.value)}>
+                <option>Labour</option>
+                <option>Parts</option>
+                <option>Other</option>
+              </select>
+              <input value={row.description} onChange={e => updateLine(row.id, "description", e.target.value)} />
+              <input type="number" step="0.1" value={row.qty} onChange={e => updateLine(row.id, "qty", e.target.value)} />
+              <input type="number" step="0.01" value={row.unit_price} onChange={e => updateLine(row.id, "unit_price", e.target.value)} />
+              <strong>£{(Number(row.qty || 0) * Number(row.unit_price || 0)).toFixed(2)}</strong>
+              <button className="secondary no-print" onClick={() => removeLine(row.id)}>×</button>
+            </div>
+          ))}
+
+          <div className="invoice-add-buttons no-print">
+            <button className="secondary" onClick={() => addLine("Parts")}>+ Add Parts</button>
+            <button className="secondary" onClick={() => addLine("Labour")}>+ Add Labour</button>
+          </div>
+        </section>
+
+        <section className="invoice-bottom">
+          <div className="bank-details">
+            <h2>Online Banking Details</h2>
+            <p>Account Name: Vecta (Some banks require Ken Moore)</p>
+            <p>Sort Code: 208369</p>
+            <p>Account Number: 93418774</p>
+            <p className="reference-note">Please use your registration number as the Reference.</p>
+          </div>
+
+          <div className="invoice-totals">
+            <p><span>Sub-Total</span><b>£{subtotal.toFixed(2)}</b></p>
+            <p><span>VAT</span><b>£{vat.toFixed(2)}</b></p>
+            <p className="grand-total"><span>Total</span><b>£{total.toFixed(2)}</b></p>
+
+            <div className="payment-method">
+              <h3>Payment Method</h3>
+              {["Cash", "Card", "Transfer", "Account", "Cheque"].map(method => (
+                <label key={method}><input type="radio" checked={paymentMethod === method} onChange={() => setPaymentMethod(method)} /> {method}</label>
+              ))}
+            </div>
+          </div>
+        </section>
+      </section>
+    </div>
+  );
+}
+
+
+function AvailabilityPanel({ jobs, settings, onClose, onAddJob }) {
+  const [jobTypeName, setJobTypeName] = useState(settings.jobTypes?.[0]?.name || "MOT");
+  const selected = settings.jobTypes.find(j => j.name === jobTypeName) || settings.jobTypes[0];
+  const hoursNeeded = Number(selected?.hours || 1);
+
+  const mechanicRows = settings.mechanics.map(m => {
+    const used = jobs.filter(j => j.technician === m.name).reduce((s, j) => s + Number(j.estimated_hours || 1), 0);
+    return { ...m, used, free: Math.max(0, Number(m.capacity || 8) - used) };
+  });
+
+  const rampRows = settings.ramps.map(r => {
+    const used = jobs.filter(j => j.ramp === r.key).reduce((s, j) => s + Number(j.estimated_hours || 1), 0);
+    return { ...r, used, free: Math.max(0, Number(r.capacity || 8) - used) };
+  });
+
+  const bestMechanic = [...mechanicRows].sort((a,b)=>b.free-a.free)[0];
+  const bestRamp = [...rampRows].sort((a,b)=>b.free-a.free)[0];
+  const canFit = bestMechanic?.free >= hoursNeeded && bestRamp?.free >= hoursNeeded;
+
+  return (
+    <div className="backdrop">
+      <div className="dialog availability-dialog">
+        <h2>Find Availability</h2>
+        <p className="muted">Quick check for whether today can take another job.</p>
+
+        <label>Job Type
+          <select value={jobTypeName} onChange={e => setJobTypeName(e.target.value)}>
+            {settings.jobTypes.map(j => <option key={j.name}>{j.name}</option>)}
+          </select>
+        </label>
+
+        <div className={`availability-result ${canFit ? "good" : "bad"}`}>
+          <strong>{canFit ? "Can fit today" : "Today is tight"}</strong>
+          <span>{selected?.name} needs about {hoursNeeded.toFixed(1)} hrs</span>
+          {bestMechanic && bestRamp && (
+            <em>Best option: {bestMechanic.name} on {bestRamp.label}</em>
+          )}
+        </div>
+
+        <div className="availability-grid">
+          <section>
+            <h3>Mechanics</h3>
+            {mechanicRows.map(m => (
+              <div key={m.name} className="capacity-row">
+                <b>{m.name}</b>
+                <span>{m.used.toFixed(1)} used / {m.capacity} hrs</span>
+                <em>{m.free.toFixed(1)} hrs free</em>
+              </div>
+            ))}
+          </section>
+          <section>
+            <h3>Ramps</h3>
+            {rampRows.map(r => (
+              <div key={r.key} className="capacity-row">
+                <b>{r.label}</b>
+                <span>{r.used.toFixed(1)} used / {r.capacity} hrs</span>
+                <em>{r.free.toFixed(1)} hrs free</em>
+              </div>
+            ))}
+          </section>
+        </div>
+
+        <div className="dialog-actions">
+          <button className="secondary" onClick={onClose}>Close</button>
+          <button onClick={() => onAddJob(selected, bestMechanic, bestRamp)}>Create Booking From This</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function VehicleHistoryPanel({ job, allJobs, onClose }) {
+  const reg = job?.registration || "";
+  const matches = allJobs.filter(j => (j.registration || "").toUpperCase() === reg.toUpperCase());
+
+  return (
+    <div className="backdrop">
+      <div className="dialog history-dialog">
+        <h2>Vehicle History</h2>
+        <div className="history-title">
+          <strong>{reg || "No Registration"}</strong>
+          <span>{job?.vehicle || ""}</span>
+          <em>{job?.customer_name || ""} {job?.customer_phone ? "· " + job.customer_phone : ""}</em>
+        </div>
+
+        <div className="history-vehicle-status">
+          <div className={`status-pill ${statusClassForDate(job?.mot_due)}`}>
+            <strong>MOT Due</strong>
+            <span>{formatDate(job?.mot_due)}</span>
+          </div>
+          <div className={`status-pill ${job?.tax_status === "Taxed" ? "good" : job?.tax_due ? statusClassForDate(job?.tax_due) : "unknown"}`}>
+            <strong>Tax</strong>
+            <span>{job?.tax_status || formatDate(job?.tax_due)}</span>
+          </div>
+          <div><b>Engine</b><span>{job?.engine_size || "Unknown"}</span></div>
+          <div><b>Fuel</b><span>{job?.fuel_type || "Unknown"}</span></div>
+        </div>
+
+        <h3>Previous / Current Visits</h3>
+        {matches.length === 0 && <p className="muted">No history yet. Future completed jobs will appear here.</p>}
+        {matches.map(j => (
+          <div className="history-row" key={j.id}>
+            <b>{j.registration}</b>
+            <span>{j.work_required}</span>
+            <em>{j.status || "In Progress"} · {j.estimated_hours || 1} hrs</em>
+          </div>
+        ))}
+
+        <h3>Notes</h3>
+        <p className="muted">{job?.customer_note || "No notes yet."}</p>
+
+        <h3>Invoices</h3>
+        <p className="muted">Invoice links will be shown here once invoicing integration is added.</p>
+
+        <div className="dialog-actions">
+          <button onClick={onClose}>Close</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+
+function SettingsPanel({ settings, onSave, onClose }) {
+  const [draft, setDraft] = useState(settings);
+
+  function updateMechanic(index, field, value) {
+    setDraft(s => {
+      const mechanics = [...s.mechanics];
+      mechanics[index] = { ...mechanics[index], [field]: field === "capacity" ? Number(value) : value };
+      return { ...s, mechanics };
+    });
+  }
+
+  function updateRamp(index, field, value) {
+    setDraft(s => {
+      const ramps = [...s.ramps];
+      ramps[index] = { ...ramps[index], [field]: field === "capacity" ? Number(value) : value };
+      return { ...s, ramps };
+    });
+  }
+
+  function updateJobType(index, field, value) {
+    setDraft(s => {
+      const jobTypes = [...s.jobTypes];
+      jobTypes[index] = { ...jobTypes[index], [field]: field === "hours" ? Number(value) : value };
+      return { ...s, jobTypes };
+    });
+  }
+
+  function addJobType() {
+    setDraft(s => ({
+      ...s,
+      jobTypes: [...s.jobTypes, { group: "GENERAL", name: "New Job Type", description: "New Job Type", hours: 1, colour: "other" }]
+    }));
+  }
+
+  function removeJobType(index) {
+    setDraft(s => ({ ...s, jobTypes: s.jobTypes.filter((_, i) => i !== index) }));
+  }
+
+  function addMechanic() {
+    setDraft(s => ({ ...s, mechanics: [...s.mechanics, { name: "New Mechanic", capacity: 8 }] }));
+  }
+
+  function removeMechanic(index) {
+    setDraft(s => ({ ...s, mechanics: s.mechanics.filter((_, i) => i !== index) }));
+  }
+
+  return (
+    <div className="backdrop">
+      <div className="dialog settings-dialog">
+        <h2>Workshop Settings</h2>
+
+        <section className="settings-section">
+          <h3>Mechanics & Daily Capacity</h3>
+          {draft.mechanics.map((m, i) => (
+            <div className="settings-row" key={i}>
+              <input value={m.name} onChange={e => updateMechanic(i, "name", e.target.value)} />
+              <input type="number" step="0.5" value={m.capacity} onChange={e => updateMechanic(i, "capacity", e.target.value)} />
+              <button className="secondary" onClick={() => removeMechanic(i)}>Remove</button>
+            </div>
+          ))}
+          <button className="secondary" onClick={addMechanic}>+ Add Mechanic</button>
+        </section>
+
+        <section className="settings-section">
+          <h3>Ramps & Daily Capacity</h3>
+          {draft.ramps.map((r, i) => (
+            <div className="settings-row" key={r.key}>
+              <input value={r.label} onChange={e => updateRamp(i, "label", e.target.value)} />
+              <input type="number" step="0.5" value={r.capacity} onChange={e => updateRamp(i, "capacity", e.target.value)} />
+            </div>
+          ))}
+        </section>
+
+        <section className="settings-section">
+          <h3>Job Types & Default Hours</h3>
+          <div className="job-type-settings">
+            {draft.jobTypes.map((j, i) => (
+              <div className="job-type-row" key={`${j.name}-${i}`}>
+                <input value={j.group} onChange={e => updateJobType(i, "group", e.target.value.toUpperCase())} />
+                <input value={j.name} onChange={e => updateJobType(i, "name", e.target.value)} />
+                <input value={j.description} onChange={e => updateJobType(i, "description", e.target.value)} />
+                <input type="number" step="0.5" value={j.hours} onChange={e => updateJobType(i, "hours", e.target.value)} />
+                <button className="secondary" onClick={() => removeJobType(i)}>×</button>
+              </div>
+            ))}
+          </div>
+          <button className="secondary" onClick={addJobType}>+ Add Job Type</button>
+        </section>
+
+        <section className="settings-section">
+          <h3>Working Days</h3>
+          <input
+            value={draft.workingDays.join(", ")}
+            onChange={e => setDraft(s => ({ ...s, workingDays: e.target.value.split(",").map(x => x.trim()).filter(Boolean) }))}
+          />
+        </section>
+
+        <div className="dialog-actions">
+          <button className="secondary" onClick={onClose}>Cancel</button>
+          <button onClick={() => onSave(draft)}>Save Settings</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+
+function Dashboard({ jobs, globalJobs, tasks, settings, date, onOpenJob, onOpenPlanner, onCompleteTask }) {
+  const allOpenJobs = [...jobs, ...globalJobs].filter(j => !j.archived);
+  const waiting = globalJobs.filter(j => j.card_type === "waiting" || j.technician === "Waiting");
+  const unallocated = globalJobs.filter(j => j.card_type !== "waiting" && j.technician !== "Waiting");
+  const ready = allOpenJobs.filter(j => j.status === "ready_to_invoice");
+  const inProgress = jobs.filter(j => j.status === "in_progress" || !j.status);
+  const completed = jobs.filter(j => j.status === "completed");
+  const motDueSoon = allOpenJobs.filter(j => { const d = daysUntil(j.mot_due); return d !== null && d >= 0 && d <= 30; });
+  const motOverdue = allOpenJobs.filter(j => { const d = daysUntil(j.mot_due); return d !== null && d < 0; });
+  const taxDueSoon = allOpenJobs.filter(j => { const d = daysUntil(j.tax_due); return d !== null && d >= 0 && d <= 30; });
+  const labourBooked = jobs.reduce((sum, j) => sum + Number(j.estimated_hours || 1) * 40, 0);
+  const mechanicRows = settings.mechanics.map(m => {
+    const hours = jobs.filter(j => j.technician === m.name).reduce((sum, j) => sum + Number(j.estimated_hours || 1), 0);
+    return { ...m, hours, percent: Math.min(100, Math.round((hours / Number(m.capacity || 8)) * 100)) };
+  });
+  const rampRows = settings.ramps.map(r => {
+    const hours = jobs.filter(j => j.ramp === r.key).reduce((sum, j) => sum + Number(j.estimated_hours || 1), 0);
+    const percent = Math.min(100, Math.round((hours / Number(r.capacity || 8)) * 100));
+    return { ...r, hours, percent, state: percent >= 90 ? "Full" : percent >= 45 ? "Busy" : "Available" };
+  });
+  const attention = [
+    { label: "Overdue MOT records", count: motOverdue.length },
+    { label: "Jobs waiting", count: waiting.length },
+    { label: "Jobs not allocated", count: unallocated.length },
+    { label: "Ready to invoice", count: ready.length }
+  ].filter(x => x.count > 0);
+  const sortedJobs = [...jobs].sort((a,b) => String(a.drop_time || "99:99").localeCompare(String(b.drop_time || "99:99")));
+
+  const MetricRow = ({ label, value, tone = "blue", onClick }) => (
+    <button className="dashboard-metric-row" onClick={onClick} disabled={!onClick}>
+      <span>{label}</span><b className={`metric-count ${tone}`}>{value}</b><ChevronRight size={16}/>
+    </button>
+  );
+
+  return (
+    <main className="dashboard-page">
+      <section className="dashboard-welcome">
+        <div>
+          <span className="eyebrow">WORKSHOP CONTROL CENTRE</span>
+          <h1>Good morning Chris</h1>
+          <p>{jobs.length} jobs booked today · {ready.length} ready to invoice · {tasks.length} tasks outstanding</p>
+        </div>
+        <button className="dashboard-primary" onClick={onOpenPlanner}>Open today’s planner <ChevronRight size={18}/></button>
+      </section>
+
+      <div className="dashboard-grid dashboard-grid-top">
+        <section className="dashboard-card">
+          <header><AlertTriangle size={19}/><h2>Today’s priorities</h2></header>
+          <MetricRow label="Jobs ready to invoice" value={ready.length} tone="green" onClick={ready[0] ? () => onOpenJob(ready[0]) : null}/>
+          <MetricRow label="Waiting jobs" value={waiting.length} tone="amber" onClick={waiting[0] ? () => onOpenJob(waiting[0]) : null}/>
+          <MetricRow label="Unallocated jobs" value={unallocated.length} tone="red" onClick={unallocated[0] ? () => onOpenJob(unallocated[0]) : null}/>
+          <MetricRow label="MOTs due within 30 days" value={motDueSoon.length} tone="blue" onClick={motDueSoon[0] ? () => onOpenJob(motDueSoon[0]) : null}/>
+        </section>
+
+        <section className="dashboard-card">
+          <header><Car size={19}/><h2>Fleet reminders</h2></header>
+          <MetricRow label="MOT due soon" value={motDueSoon.length} tone="amber" onClick={motDueSoon[0] ? () => onOpenJob(motDueSoon[0]) : null}/>
+          <MetricRow label="MOT overdue" value={motOverdue.length} tone="red" onClick={motOverdue[0] ? () => onOpenJob(motOverdue[0]) : null}/>
+          <MetricRow label="Road tax due within 30 days" value={taxDueSoon.length} tone="blue" onClick={taxDueSoon[0] ? () => onOpenJob(taxDueSoon[0]) : null}/>
+          <div className="dashboard-empty-note">Fleet spreadsheet imports can feed this panel when that module is added.</div>
+        </section>
+
+        <section className="dashboard-card dashboard-tasks-card">
+          <header><CheckCircle2 size={19}/><h2>My tasks</h2><span className="card-total">{tasks.length}</span></header>
+          <div className="dashboard-task-list">
+            {tasks.slice(0,6).map(t => <label key={t.id}><input type="checkbox" onChange={() => onCompleteTask(t.id)}/><span>{t.task_text}</span></label>)}
+            {!tasks.length && <div className="dashboard-empty">No outstanding tasks.</div>}
+          </div>
+          <button className="text-link" onClick={onOpenPlanner}>Manage tasks in planner</button>
+        </section>
+      </div>
+
+      <div className="dashboard-grid dashboard-grid-middle">
+        <section className="dashboard-card workshop-snapshot">
+          <header><Users size={19}/><h2>Workshop snapshot</h2></header>
+          <div className="snapshot-numbers">
+            <div><span>Booked today</span><strong>{jobs.length}</strong></div>
+            <div><span>In progress</span><strong>{inProgress.length}</strong></div>
+            <div><span>Completed</span><strong>{completed.length}</strong></div>
+          </div>
+          <div className="capacity-list">
+            {mechanicRows.map(m => <div key={m.name} className="capacity-row"><span>{m.name}</span><div className="capacity-bar"><i style={{width:`${m.percent}%`}}/></div><b>{m.hours.toFixed(1)} hrs</b></div>)}
+          </div>
+          <div className="ramp-status-list">
+            {rampRows.map(r => <div key={r.key}><span>{r.label}</span><b className={`ramp-state ${r.state.toLowerCase()}`}>{r.state}</b></div>)}
+          </div>
+        </section>
+
+        <section className="dashboard-card money-card">
+          <header><PoundSterling size={19}/><h2>Today’s workload value</h2></header>
+          <div className="money-hero"><span>Booked labour at £40/hr</span><strong>£{labourBooked.toLocaleString("en-GB", {minimumFractionDigits:2, maximumFractionDigits:2})}</strong></div>
+          <div className="money-row"><span>Ready to invoice</span><b>{ready.length}</b></div>
+          <div className="money-row"><span>Estimated hours booked</span><b>{jobs.reduce((s,j)=>s+Number(j.estimated_hours||1),0).toFixed(1)}</b></div>
+          <p className="dashboard-footnote">This is booked labour only. Parts and final invoice totals are not stored centrally yet.</p>
+        </section>
+
+        <section className="dashboard-card attention-card">
+          <header><AlertTriangle size={19}/><h2>Attention required</h2></header>
+          {attention.map((a,i) => <div className="attention-row" key={a.label}><span className="attention-icon">!</span><span>{a.label}</span><b>{a.count}</b></div>)}
+          {!attention.length && <div className="dashboard-clear"><CheckCircle2 size={28}/><b>Nothing urgent</b><span>The workshop is under control.</span></div>}
+        </section>
+      </div>
+
+      <section className="dashboard-card due-today-card">
+        <header><ClipboardList size={19}/><h2>Due in today</h2><button className="text-link" onClick={onOpenPlanner}>View full planner</button></header>
+        <div className="due-table">
+          <div className="due-table-head"><span>Time</span><span>Registration</span><span>Vehicle</span><span>Work required</span><span>Technician</span><span>Ramp</span></div>
+          {sortedJobs.map(j => <button className="due-table-row" key={j.id} onClick={() => onOpenJob(j)}><span>{String(j.drop_time || "--:--").slice(0,5)}</span><strong>{j.registration || "NO REG"}</strong><span>{j.vehicle || "—"}</span><span>{j.work_required || "—"}</span><span>{j.technician || "Unallocated"}</span><span>{j.ramp ? rampLabel(j.ramp, settings) : "—"}</span></button>)}
+          {!sortedJobs.length && <div className="dashboard-empty">No jobs booked for {friendlyDate(date)}.</div>}
+        </div>
+      </section>
+    </main>
+  );
+}
+
+
+const FLEET_VEHICLES_KEY = "vecta:fleet:vehicles:v1";
+const FLEET_PLANS_KEY = "vecta:fleet:plans:v1";
+const FLEET_COMPLETIONS_KEY = "vecta:fleet:completions:v1";
+
+function loadFleetValue(key, fallback) {
+  try {
+    const saved = localStorage.getItem(key);
+    const parsed = saved ? JSON.parse(saved) : null;
+    // Repair the first Fleet build, which could persist an empty array before
+    // the imported seed data had loaded. Empty saved arrays now reseed from
+    // the supplied workbook data instead of leaving the dashboard at zero.
+    if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+    if (Array.isArray(fallback) && fallback.length > 0) {
+      localStorage.setItem(key, JSON.stringify(fallback));
+      return fallback;
+    }
+    return Array.isArray(parsed) ? parsed : fallback;
+  } catch {
+    return fallback;
+  }
+}
+
+function saveFleetValue(key, value) {
+  localStorage.setItem(key, JSON.stringify(value));
+}
+
+const HISTORIC_FLEET_CUTOFF = "2026-07-01";
+
+function sameDayMonthNextFutureYear(iso, now = new Date()) {
+  if (!iso) return "";
+  const [, month, day] = iso.split("-").map(Number);
+  if (!month || !day) return "";
+  let year = now.getFullYear();
+  const candidate = new Date(year, month - 1, day);
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  if (candidate <= today) year += 1;
+  return `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+}
+
+function migrateHistoricFleetSchedules(inputPlans, inputCompletions) {
+  const plans = Array.isArray(inputPlans) ? inputPlans : [];
+  const completions = Array.isArray(inputCompletions) ? inputCompletions : [];
+  const existingKeys = new Set(completions.map(c => `${c.planId}|${c.completedDate}|historic-overdue-migration`));
+  const migratedCompletions = [...completions];
+  let changed = false;
+
+  const migratedPlans = plans.map(plan => {
+    const due = plan.currentDueDate;
+    if (!due || due >= HISTORIC_FLEET_CUTOFF) return plan;
+
+    const nextDue = sameDayMonthNextFutureYear(due);
+    if (!nextDue) return plan;
+    changed = true;
+
+    const completionKey = `${plan.id}|${due}|historic-overdue-migration`;
+    if (!existingKeys.has(completionKey)) {
+      migratedCompletions.push({
+        id: `historic-${plan.id}-${due}`,
+        vehicleId: plan.vehicleId,
+        planId: plan.id,
+        type: plan.type,
+        completedDate: due,
+        nextDue,
+        source: "historic-overdue-migration"
+      });
+      existingKeys.add(completionKey);
+    }
+
+    return { ...plan, currentDueDate: nextDue };
+  });
+
+  return { plans: migratedPlans, completions: migratedCompletions, changed };
+}
+
+function addMonthsISO(iso, months) {
+  const d = iso ? new Date(`${iso}T00:00:00`) : new Date();
+  d.setMonth(d.getMonth() + Number(months || 0));
+  d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
+  return d.toISOString().slice(0, 10);
+}
+
+function planDueDate(plan) {
+  if (plan.currentDueDate) return plan.currentDueDate;
+  if (!plan.targetMonth) return "";
+  const now = new Date();
+  let year = now.getFullYear();
+  const month = Number(plan.targetMonth) - 1;
+  if (month < now.getMonth()) year += 1;
+  return `${year}-${String(month + 1).padStart(2, "0")}-01`;
+}
+
+function dueTone(date) {
+  const days = daysUntil(date);
+  if (days === null) return "unknown";
+  if (days < 0) return "overdue";
+  if (days <= 30) return "soon";
+  return "future";
+}
+
+const CONTRACTOR_COLOURS = [
+  ["#E8F1FF", "#1D4ED8", "#93C5FD"],
+  ["#ECFDF3", "#166534", "#86EFAC"],
+  ["#FFF7E6", "#9A5800", "#F6C453"],
+  ["#F5EEFF", "#6D28D9", "#C4B5FD"],
+  ["#FFF0F3", "#BE123C", "#FDA4AF"],
+  ["#EAFBFB", "#0F766E", "#5EEAD4"],
+  ["#F3F4F6", "#374151", "#CBD5E1"],
+  ["#FFF4ED", "#C2410C", "#FDBA74"]
+];
+
+function normaliseFleetCustomer(customer) {
+  const value = String(customer || "").trim().replace(/\s+/g, " ");
+  return /^WPC(?:\s|$)/i.test(value) ? "WPC" : value;
+}
+
+function normaliseFleetVehicles(list) {
+  return (Array.isArray(list) ? list : []).map(vehicle => ({
+    ...vehicle,
+    customer: normaliseFleetCustomer(vehicle.customer)
+  }));
+}
+
+function contractorColour(customer) {
+  const name = normaliseFleetCustomer(customer);
+  let hash = 0;
+  for (let i = 0; i < name.length; i += 1) hash = ((hash << 5) - hash + name.charCodeAt(i)) | 0;
+  const [background, colour, border] = CONTRACTOR_COLOURS[Math.abs(hash) % CONTRACTOR_COLOURS.length];
+  return { background, color: colour, borderColor: border };
+}
+
+function FleetRegistrationPlate({ registration, className = "" }) {
+  return <span className={`uk-reg-plate fleet-reg-plate ${className}`.trim()} title="Vehicle registration"><span className="gb-strip">GB</span><strong>{registration || "NO REG"}</strong></span>;
+}
+
+function FleetManager({ onBookJob }) {
+  const [initialFleetData] = useState(() => {
+    const vehicles = normaliseFleetVehicles(loadFleetValue(FLEET_VEHICLES_KEY, INITIAL_FLEET_VEHICLES));
+    const savedPlans = loadFleetValue(FLEET_PLANS_KEY, INITIAL_MAINTENANCE_PLANS);
+    const savedCompletions = loadFleetValue(FLEET_COMPLETIONS_KEY, []);
+    const migrated = migrateHistoricFleetSchedules(savedPlans, savedCompletions);
+    if (migrated.changed) {
+      saveFleetValue(FLEET_PLANS_KEY, migrated.plans);
+      saveFleetValue(FLEET_COMPLETIONS_KEY, migrated.completions);
+    }
+    return { vehicles, plans: migrated.plans, completions: migrated.completions };
+  });
+  const [vehicles, setVehicles] = useState(initialFleetData.vehicles);
+  const [plans, setPlans] = useState(initialFleetData.plans);
+  const [completions, setCompletions] = useState(initialFleetData.completions);
+  const [selectedId, setSelectedId] = useState(null);
+  const [query, setQuery] = useState("");
+  const [group, setGroup] = useState("All");
+  const [showDueOnly, setShowDueOnly] = useState(false);
+  const [newPlan, setNewPlan] = useState({ type: "DPF Renewal", intervalMonths: 3, targetMonth: "" });
+
+  const plansByVehicle = useMemo(() => {
+    const map = {};
+    plans.forEach(plan => {
+      if (!map[plan.vehicleId]) map[plan.vehicleId] = [];
+      map[plan.vehicleId].push(plan);
+    });
+    return map;
+  }, [plans]);
+
+  const enriched = useMemo(() => vehicles.map(vehicle => {
+    const vehiclePlans = (plansByVehicle[vehicle.id] || []).filter(p => p.status === "Active");
+    const dueDates = vehiclePlans.map(p => planDueDate(p)).filter(Boolean).sort();
+    const nextDue = dueDates[0] || "";
+    return { ...vehicle, vehiclePlans, nextDue, tone: dueTone(nextDue) };
+  }), [vehicles, plansByVehicle]);
+
+  const filtered = useMemo(() => {
+    const terms = query.trim().toLowerCase().split(/\s+/).filter(Boolean);
+    return enriched.filter(v => {
+      const haystack = [v.registration, v.model, v.customer, v.fleetGroup, v.contactEmail, v.department, v.assetNo]
+        .filter(Boolean).join(" ").toLowerCase();
+      const searchMatch = terms.every(term => haystack.includes(term));
+      const groupMatch = group === "All" || v.fleetGroup === group || v.customer === group;
+      const dueMatch = !showDueOnly || v.tone === "overdue" || v.tone === "soon";
+      return searchMatch && groupMatch && dueMatch;
+    });
+  }, [enriched, query, group, showDueOnly]);
+
+  const selected = enriched.find(v => v.id === selectedId);
+  const totals = {
+    vehicles: enriched.length,
+    overdue: enriched.filter(v => v.tone === "overdue").length,
+    dueSoon: enriched.filter(v => v.tone === "soon").length,
+    missingEmail: enriched.filter(v => !v.contactEmail).length
+  };
+  const groupCards = [
+    ["Nissan Internal", enriched.filter(v => v.fleetGroup === "Nissan Internal").length],
+    ["Nissan Pool Cars", enriched.filter(v => v.fleetGroup === "Nissan Pool Cars").length],
+    ["Contractor Fleet", enriched.filter(v => v.fleetGroup === "Contractor Fleet").length]
+  ];
+  const customerOptions = [...new Set(enriched.filter(v => v.fleetGroup === "Contractor Fleet").map(v => v.customer))].sort();
+
+  useEffect(() => {
+    // One-time migration for existing browser data: WPC ALAN/Jake/Kev are all WPC.
+    const normalised = normaliseFleetVehicles(vehicles);
+    if (JSON.stringify(normalised) !== JSON.stringify(vehicles)) {
+      setVehicles(normalised);
+      saveFleetValue(FLEET_VEHICLES_KEY, normalised);
+    }
+  }, []);
+
+  function updateVehicle(patch) {
+    const next = vehicles.map(v => v.id === selectedId ? { ...v, ...patch } : v);
+    setVehicles(next);
+    saveFleetValue(FLEET_VEHICLES_KEY, next);
+  }
+
+  function addPlan() {
+    if (!selected || !newPlan.type.trim()) return;
+    const plan = {
+      id: uuid(), vehicleId: selected.id, type: newPlan.type.trim(),
+      intervalMonths: Number(newPlan.intervalMonths || 12),
+      targetMonth: Number(newPlan.targetMonth || 0) || null,
+      currentDueDate: "", notes: "Custom maintenance plan", status: "Active", source: "Fleet Manager"
+    };
+    const next = [...plans, plan];
+    setPlans(next);
+    saveFleetValue(FLEET_PLANS_KEY, next);
+    setNewPlan({ type: "DPF Renewal", intervalMonths: 3, targetMonth: "" });
+  }
+
+  function completePlan(plan) {
+    const completedDate = todayISO();
+    const nextDue = addMonthsISO(completedDate, plan.intervalMonths);
+    const nextPlans = plans.map(p => p.id === plan.id ? { ...p, currentDueDate: nextDue } : p);
+    const nextCompletions = [...completions, {
+      id: uuid(), vehicleId: plan.vehicleId, planId: plan.id, type: plan.type,
+      completedDate, nextDue
+    }];
+    setPlans(nextPlans); setCompletions(nextCompletions);
+    saveFleetValue(FLEET_PLANS_KEY, nextPlans);
+    saveFleetValue(FLEET_COMPLETIONS_KEY, nextCompletions);
+  }
+
+  function removePlan(planId) {
+    const next = plans.map(p => p.id === planId ? { ...p, status: "Paused" } : p);
+    setPlans(next);
+    saveFleetValue(FLEET_PLANS_KEY, next);
+  }
+
+  return (
+    <main className="fleet-page">
+      <section className="fleet-hero">
+        <div><span className="eyebrow">FLEET ENGINE</span><h1>Fleet Manager</h1><p>Maintenance schedules, contacts and due work in one place.</p></div>
+        <div className="fleet-hero-actions"><button className="secondary" onClick={() => { localStorage.removeItem(FLEET_VEHICLES_KEY); localStorage.removeItem(FLEET_PLANS_KEY); location.reload(); }}>Reset imported data</button></div>
+      </section>
+
+      <section className="fleet-kpis">
+        <div><Car/><span>Vehicles</span><strong>{totals.vehicles}</strong></div>
+        <div className="danger"><AlertTriangle/><span>Overdue</span><strong>{totals.overdue}</strong></div>
+        <div className="warning"><CalendarDays/><span>Due within 30 days</span><strong>{totals.dueSoon}</strong></div>
+        <div><Mail/><span>Missing email</span><strong>{totals.missingEmail}</strong></div>
+      </section>
+
+      <section className="fleet-group-grid">
+        {groupCards.map(([name,count]) => <button key={name} className={group === name ? "active" : ""} onClick={() => setGroup(group === name ? "All" : name)}><Building2/><span>{name}</span><strong>{count}</strong></button>)}
+      </section>
+
+      <section className="fleet-card fleet-list-card">
+        <div className="fleet-toolbar">
+          <div className="search-box fleet-search-box"><Search size={16}/><input type="search" autoComplete="off" value={query} onInput={e => setQuery(e.currentTarget.value)} onChange={e => setQuery(e.currentTarget.value)} placeholder="Search registration, model, customer or email..." aria-label="Search fleet vehicles"/>{query && <button type="button" className="fleet-search-clear" onClick={() => setQuery("")} aria-label="Clear fleet search"><X size={14}/></button>}</div>
+          <select value={group} onChange={e => setGroup(e.target.value)}><option>All</option><option>Nissan Internal</option><option>Nissan Pool Cars</option><option>Contractor Fleet</option>{customerOptions.map(c => <option key={c}>{c}</option>)}</select>
+          <label><input type="checkbox" checked={showDueOnly} onChange={e => setShowDueOnly(e.target.checked)}/> Due work only</label>
+          <span className="fleet-result-count">{filtered.length} vehicles</span>
+        </div>
+        <div className="fleet-table">
+          <div className="fleet-table-head"><span>Registration</span><span>Vehicle</span><span>Fleet / customer</span><span>Contact</span><span>Maintenance</span><span>Next due</span></div>
+          {filtered.map(v => <button type="button" className="fleet-table-row" key={v.id} onClick={() => setSelectedId(v.id)}>
+            <FleetRegistrationPlate registration={v.registration}/><span>{v.model || "—"}</span><span>{v.fleetGroup === "Contractor Fleet" ? <b className="contractor-badge" style={contractorColour(v.customer)}>{v.customer}</b> : v.fleetGroup}</span>
+            <span className={!v.contactEmail ? "missing" : ""}>{v.contactEmail || "Email needed"}</span><span>{v.vehiclePlans.length} plans</span>
+            <span className={`due-pill ${v.tone}`}>{v.nextDue ? formatDate(v.nextDue) : "Not scheduled"}</span>
+          </button>)}
+        </div>
+      </section>
+
+      {selected && <div className="fleet-drawer-backdrop" onMouseDown={() => setSelectedId(null)}>
+        <aside className="fleet-drawer" onMouseDown={e => e.stopPropagation()}>
+          <header><div><span className="eyebrow">VEHICLE PROFILE</span><div className="fleet-drawer-title"><FleetRegistrationPlate registration={selected.registration}/>{selected.fleetGroup === "Contractor Fleet" && <b className="contractor-badge" style={contractorColour(selected.customer)}>{selected.customer}</b>}</div><p>{selected.model}</p></div><button type="button" className="icon-button" onClick={() => setSelectedId(null)}><X/></button></header>
+          <section className="fleet-profile-grid">
+            <label>Fleet<input value={selected.fleetGroup} readOnly/></label>
+            <label>Customer<input value={selected.customer} readOnly/></label>
+            <label className="wide">Contact email<input value={selected.contactEmail || ""} onChange={e => updateVehicle({ contactEmail: e.target.value })} placeholder="Email address required"/></label>
+            <label>Road going<select value={selected.roadGoing ? "Yes" : "No"} onChange={e => updateVehicle({ roadGoing: e.target.value === "Yes" })}><option>Yes</option><option>No</option></select></label>
+            <label>Billing<input value={selected.billingMethod} readOnly/></label>
+          </section>
+          <section className="maintenance-section"><div className="section-title"><Wrench/><h3>Maintenance plans</h3></div>
+            {(plansByVehicle[selected.id] || []).filter(p => p.status === "Active").map(plan => {
+              const due = planDueDate(plan); return <article className="maintenance-plan" key={plan.id}><div><strong>{plan.type}</strong><span>Every {plan.intervalMonths} months · {plan.notes}</span></div><div className="maintenance-actions"><span className={`due-pill ${dueTone(due)}`}>{due ? formatDate(due) : "Month not set"}</span><button onClick={() => onBookJob(selected, plan, due)}>Book</button><button className="secondary" onClick={() => completePlan(plan)}>Complete</button><button className="text-link danger-link" onClick={() => removePlan(plan.id)}>Pause</button></div></article>
+            })}
+            <div className="add-plan-row"><input value={newPlan.type} onChange={e => setNewPlan({...newPlan,type:e.target.value})} placeholder="Maintenance type"/><input type="number" min="1" value={newPlan.intervalMonths} onChange={e => setNewPlan({...newPlan,intervalMonths:e.target.value})}/><select value={newPlan.targetMonth} onChange={e => setNewPlan({...newPlan,targetMonth:e.target.value})}><option value="">Any month</option>{["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"].map((m,i)=><option value={i+1} key={m}>{m}</option>)}</select><button onClick={addPlan}><Plus size={16}/> Add plan</button></div>
+          </section>
+          <section className="maintenance-section"><div className="section-title"><History/><h3>Recent completions</h3></div>{completions.filter(c => c.vehicleId === selected.id).slice(-6).reverse().map(c => <div className="completion-row" key={c.id}><span>{c.type}</span><b>{formatDate(c.completedDate)}</b><small>Next due {formatDate(c.nextDue)}</small></div>)}{!completions.some(c => c.vehicleId === selected.id) && <p className="empty-state">No work has been completed through Fleet Manager yet.</p>}</section>
+        </aside>
+      </div>}
+    </main>
+  );
+}
+
+
+function App() {
+  const [date, setDate] = useState(todayISO());
+  const [mode, setMode] = useState("day");
+  const [jobs, setJobs] = useState([]);
+  const [globalJobs, setGlobalJobs] = useState([]);
+  const [tasks, setTasks] = useState([]);
+  const [notes, setNotes] = useState([]);
+  const [dialogJob, setDialogJob] = useState(undefined);
+  const [query, setQuery] = useState("");
+  const [rampModal, setRampModal] = useState(null);
+  const [settings, setSettings] = useState(loadLocalSettings());
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [availabilityOpen, setAvailabilityOpen] = useState(false);
+  const [historyJob, setHistoryJob] = useState(null);
+  const [invoiceJob, setInvoiceJob] = useState(null);
+  const [websiteRequests, setWebsiteRequests] = useState([]);
+
+  const mechanicNames = settings.mechanics.map(m => m.name);
+  const jobTypes = settings.jobTypes;
+  const jobTypeGroups = [...new Set(jobTypes.map(j => j.group))];
+  const rampSettings = settings.ramps;
+  const rampLabelByKey = Object.fromEntries(rampSettings.map(r => [r.key, r.label]));
+  const rampCapacityByKey = Object.fromEntries(rampSettings.map(r => [r.key, r.capacity]));
+
+  function saveSettings(updated) {
+    saveLocalSettings(updated);
+    setSettings(updated);
+    setSettingsOpen(false);
+  }
+
+  async function refresh() {
+    setJobs(await listDate(date));
+    setGlobalJobs(await listGlobal());
+    setTasks(await listTasks());
+    setNotes(await listNotes());
+    setWebsiteRequests(await listWebsiteRequests());
+  }
+
+  useEffect(() => { seedLocal().then(refresh); }, []);
+  useEffect(() => { refresh(); }, [date]);
+
+  useEffect(() => {
+    if (!supabase) return;
+    const channel = supabase.channel("vecta-live")
+      .on("postgres_changes", { event: "*", schema: "public", table: "jobs" }, refresh)
+      .on("postgres_changes", { event: "*", schema: "public", table: "tasks" }, refresh)
+      .on("postgres_changes", { event: "*", schema: "public", table: "notes" }, refresh)
+      .on("postgres_changes", { event: "*", schema: "public", table: "website_booking_requests" }, refresh)
+      .subscribe();
+    return () => supabase.removeChannel(channel);
+  }, [date]);
+
+  useEffect(() => {
+    const handler = (event) => setInvoiceJob(event.detail);
+    window.addEventListener("open-invoice", handler);
+    return () => window.removeEventListener("open-invoice", handler);
+  }, []);
+
+  const waiting = globalJobs.filter(j => j.card_type === "waiting" || j.technician === "Waiting");
+  const unallocated = globalJobs.filter(j => j.card_type !== "waiting" && j.technician !== "Waiting");
+  const techJobs = tech => jobs.filter(j => j.technician === tech && !j.archived);
+  const searchRows = [...jobs, ...globalJobs].filter(j => `${j.registration} ${j.vehicle} ${j.work_required} ${j.customer_note} ${j.customer_name} ${j.customer_phone}`.toUpperCase().includes(query.toUpperCase()));
+  const rampRows = rampModal ? jobs.filter(j => j.ramp === rampModal && !j.archived) : [];
+
+  function dragStart(e, job, fromDate = date) {
+    e.dataTransfer.setData("application/json", JSON.stringify({ id: job.id, fromDate }));
+  }
+
+  async function dropOnTech(e, tech) {
+    e.preventDefault();
+    const data = JSON.parse(e.dataTransfer.getData("application/json") || "{}");
+    const found = [...jobs, ...globalJobs].find(j => j.id === data.id);
+    if (found) await saveJob({ ...found, technician: tech, card_type: "job", booking_date: date }, date);
+    refresh();
+  }
+
+  function bookFleetPlan(vehicle, plan, dueDate) {
+    setDate(dueDate || todayISO());
+    setMode("day");
+    setDialogJob({
+      id: "", card_type: "job", registration: vehicle.registration,
+      customer_name: vehicle.customer, customer_phone: "", vehicle: vehicle.model,
+      work_required: plan.type, technician: "Unallocated", ramp: "", status: "in_progress",
+      job_type: plan.type === "MOT" ? "MOT" : plan.type.includes("Service") ? "Major Service" : "Other",
+      estimated_hours: plan.type === "MOT" ? 1 : 1.5, job_colour: plan.type === "MOT" ? "mot" : "service",
+      customer_note: `Fleet: ${vehicle.fleetGroup}${vehicle.contactEmail ? ` · ${vehicle.contactEmail}` : " · EMAIL NEEDED"}`
+    });
+  }
+
+  if (invoiceJob) {
+    return <InvoicePanel
+      job={invoiceJob}
+      settings={settings}
+      onClose={() => setInvoiceJob(null)}
+      onMarkPaid={async (jobToPay) => {
+        await saveJob({ ...jobToPay, status: "completed", archived: true }, date);
+        setInvoiceJob(null);
+        refresh();
+      }}
+    />;
+  }
+
+  return (
+    <div className="app-shell">
+      <header className="topbar">
+        <div className="brand-row">
+          <Menu size={20} />
+          <div className="brand brand-logo"><img src={vectaLogo} alt="Vecta Vehicle Servicing and Repairs" /><div><span>Planner</span><b>Workshop Management</b></div></div>
+        </div>
+
+        <div className="date-nav">
+          <button onClick={() => setDate(addDaysISO(date, -1))}><ChevronLeft size={18} /></button>
+          <div className="date-pill"><CalendarDays size={17} /> {friendlyDate(date)}</div>
+          <button onClick={() => setDate(addDaysISO(date, 1))}><ChevronRight size={18} /></button>
+        </div>
+
+        <div className="top-actions">
+          <button onClick={() => setDate(todayISO())}>Today</button>
+          <button onClick={() => window.print()}><Printer size={16} /> Print</button>
+          <select value={mode} onChange={e => setMode(e.target.value)}>
+            <option value="day">Day</option>
+            <option value="dashboard">Dashboard</option>
+            <option value="fleet">Fleet Manager</option>
+            <option value="requests">Website Requests ({websiteRequests.filter(r => r.status === "awaiting_review").length})</option>
+          </select>
+          <button onClick={() => setAvailabilityOpen(true)}><Wand2 size={16} /> Find Availability</button><button onClick={() => setSettingsOpen(true)}><Settings size={16} /> Settings</button><button onClick={() => setDialogJob(null)}><Plus size={16} /> Add Job</button>
+        </div>
+      </header>
+
+      {mode === "fleet" ? (
+        <FleetManager onBookJob={bookFleetPlan} />
+      ) : mode === "requests" ? (
+        <WebsiteRequests requests={websiteRequests} settings={settings} onRefresh={refresh} onCreateJob={saveJob} />
+      ) : mode === "dashboard" ? (
+        <Dashboard
+          jobs={jobs}
+          globalJobs={globalJobs}
+          tasks={tasks}
+          settings={settings}
+          date={date}
+          onOpenJob={setDialogJob}
+          onOpenPlanner={() => setMode("day")}
+          onCompleteTask={async id => { await deleteTask(id); refresh(); }}
+        />
+      ) : (<>
+      <RampUtilisation jobs={jobs} settings={settings} onRamp={setRampModal} />
+
+      <div className="planner-layout">
+        <aside className="left-panel">
+          <section>
+            <h3>Unallocated Jobs <span>{unallocated.length}</span></h3>
+            <div className="panel-list">
+              {unallocated.map(j => <SmallJobCard key={j.id} job={j} onEdit={setDialogJob} onDragStart={dragStart} />)}
+            </div>
+          </section>
+
+          <section>
+            <h3>Waiting Jobs <span>{waiting.length}</span></h3>
+            <div className="panel-list waiting">
+              {waiting.map(j => <SmallJobCard key={j.id} job={j} onEdit={setDialogJob} onDragStart={dragStart} />)}
+            </div>
+          </section>
+
+          <NotesPanel notes={notes} onSave={async n => { await saveNote(n); refresh(); }} onDelete={async id => { await deleteNote(id); refresh(); }} />
+        </aside>
+
+        <main className="main-board">
+          <div className="board-tools">
+            <div className="search-box"><Search size={16} /><input value={query} onChange={e => setQuery(e.target.value)} placeholder="Search registration..." /></div>
+            {query && <div className="search-results">{searchRows.map(j => <button key={j.id} onClick={() => setDialogJob(j)}>{j.registration} — {j.work_required}</button>)}</div>}
+          </div>
+
+          <section className="schedule">
+            <div className="time-rail">
+              {["08:00", "09:00", "10:00", "11:00", "12:00", "13:00", "14:00", "15:00", "16:00", "17:00"].map(t => <span key={t}>{t}</span>)}
+            </div>
+
+            {mechanicNames.map(tech => {
+              const mechanic = settings.mechanics.find(m => m.name === tech);
+              const capacity = Number(mechanic?.capacity || 8);
+              const bookedJobs = jobs.filter(j => j.technician === tech);
+              const bookedHours = bookedJobs.reduce((s, j) => s + Number(j.estimated_hours || 1), 0);
+              const completedHours = bookedJobs
+                .filter(j => j.status === "completed" || j.archived)
+                .reduce((s, j) => s + Number(j.estimated_hours || 1), 0);
+              const bookedPercent = capacity > 0 ? Math.min(100, Math.round((bookedHours / capacity) * 100)) : 0;
+              const completedPercent = bookedHours > 0 ? Math.min(100, Math.round((completedHours / bookedHours) * 100)) : 0;
+              return (
+                <section className="tech-column" key={tech}>
+                  <div className="tech-head">
+                    <div className="tech-booked-bar" aria-label={`Booked capacity ${bookedPercent}%`}>
+                      <i style={{ width: `${bookedPercent}%` }} />
+                    </div>
+                    <div className="tech-summary-line">
+                      <h2>{tech}</h2>
+                      <div className="tech-completed-bar" aria-label={`Work completed ${completedPercent}%`}>
+                        <i style={{ width: `${completedPercent}%` }} />
+                      </div>
+                      <div className="tech-percentages">
+                        <span title="Booked capacity">{bookedPercent}%</span>
+                        <span title="Work completed">{completedPercent}%</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="job-stack" onDragOver={e => e.preventDefault()} onDrop={e => dropOnTech(e, tech)}>
+                    {techJobs(tech).map(j => <ScheduleCard key={j.id} job={j} settings={settings} onEdit={setDialogJob} onDragStart={dragStart} onHistory={setHistoryJob} onInvoice={setInvoiceJob} />)}
+                  </div>
+                </section>
+              );
+            })}
+          </section>
+
+          <TasksPanel tasks={tasks} onSave={async t => { await saveTask(t); refresh(); }} onDelete={async id => { await deleteTask(id); refresh(); }} />
+        </main>
+      </div>
+      </>)}
+
+      {availabilityOpen && <AvailabilityPanel
+          jobs={jobs}
+          settings={settings}
+          onClose={() => setAvailabilityOpen(false)}
+          onAddJob={(selected, mech, ramp) => {
+            setAvailabilityOpen(false);
+            setDialogJob({
+              id: "",
+              card_type: "job",
+              registration: "",
+              customer_name: "",
+              customer_phone: "",
+              vehicle: "",
+              work_required: selected?.description || selected?.name || "",
+              technician: mech?.name || "Unallocated",
+              ramp: ramp?.key || "",
+              status: "in_progress",
+              job_type: selected?.name || "Other",
+              estimated_hours: selected?.hours || 1,
+              job_colour: selected?.colour || "other"
+            });
+          }}
+        />}
+
+      {historyJob && <VehicleHistoryPanel job={historyJob} allJobs={[...jobs, ...globalJobs]} onClose={() => setHistoryJob(null)} />}
+
+      {settingsOpen && <SettingsPanel settings={settings} onSave={saveSettings} onClose={() => setSettingsOpen(false)} />}
+
+      {rampModal && (
+        <div className="backdrop">
+          <div className="dialog">
+            <h2>{rampLabel(rampModal, settings)}</h2>
+            {rampRows.length === 0 && <p>No jobs on this ramp.</p>}
+            {rampRows.map(j => <button className={`ramp-modal-row ${rampClass(j.ramp)}`} key={j.id} onClick={() => { setRampModal(null); setDialogJob(j); }}>{j.drop_time || "--:--"} — {j.registration} — {j.technician}</button>)}
+            <button onClick={() => setRampModal(null)}>Close</button>
+          </div>
+        </div>
+      )}
+
+      {dialogJob !== undefined && <JobDialog job={dialogJob} date={date} settings={settings} jobTypes={settings.jobTypes} onClose={() => setDialogJob(undefined)} onDelete={async id => { await deleteJob(id); setDialogJob(undefined); refresh(); }} onSave={async j => { await saveJob(j, date); setDialogJob(undefined); refresh(); }} />}
+    </div>
+  );
+}
+
+const isPublicBooking = window.location.pathname.toLowerCase().includes("booking") || window.location.hostname.toLowerCase().startsWith("book.") || new URLSearchParams(window.location.search).has("booking");
+createRoot(document.getElementById("root")).render(isPublicBooking ? <PublicBookingApp /> : <App />);

@@ -1,0 +1,10 @@
+SAVE WORKFLOW FIX
+
+- Customer is saved to Supabase first.
+- Vehicle is saved only after Supabase confirms the customer exists.
+- Job is saved only after both linked records are confirmed.
+- Local planner data is committed only after the complete cloud save succeeds.
+- New linked records are cleaned up on a failed save where possible.
+- The Save Job button is disabled while saving to prevent duplicate submissions.
+- Database errors now show a clearer job-save warning.
+- No planner layout changes were made.

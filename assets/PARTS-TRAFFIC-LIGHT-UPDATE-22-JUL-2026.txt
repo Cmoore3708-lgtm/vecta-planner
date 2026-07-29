@@ -1,0 +1,14 @@
+VECTA Workshop Pro - Parts Traffic Light Update
+22 July 2026
+
+Changes applied to the live standalone application:
+- Added a Parts status dropdown to the job card:
+  - Parts need ordering = red
+  - Waiting for parts = amber
+  - Parts here = green
+- Added a compact traffic-light dot immediately to the right of the registration plate on desktop and mobile planner cards.
+- The dot is absolutely positioned so the registration, vehicle, time, job type and ramp layout do not move.
+- Removed the visible Customer note / authorisation field from the job card.
+- Removed the visible Job type dropdown from the job card; preset buttons still set and preserve the job type shown across the planner card.
+- Parts status is stored compatibly inside the existing customer_note cloud field, while any historic note text is preserved. No Supabase schema change is required.
+- Jobs without a previously selected parts status default to Parts need ordering (red).

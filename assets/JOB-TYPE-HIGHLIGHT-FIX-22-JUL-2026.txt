@@ -1,0 +1,9 @@
+JOB TYPE HIGHLIGHT FIX — 22 JULY 2026
+
+- The selected preset job type is highlighted across the top of the job card.
+- Reopening an existing job highlights its saved job type automatically.
+- Selecting a different job type moves the highlight immediately.
+- The highlighted selection continues to save through the existing hidden job_type field.
+- No planner layout or job card fields were moved.
+- Root and dist/index.html were updated identically.
+- JavaScript syntax checks passed.

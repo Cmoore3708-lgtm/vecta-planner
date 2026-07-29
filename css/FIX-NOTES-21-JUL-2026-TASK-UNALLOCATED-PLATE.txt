@@ -1,0 +1,8 @@
+VECTA Planner - 21 July 2026 correction
+
+- Rebuilt allocated planner tasks as one compact horizontal row:
+  TASK badge | task description | time and duration.
+- The description now remains visible on a 30-minute task instead of being cut off below the card.
+- Reduced the registration lettering and overall plate size only inside Unallocated Jobs.
+- Planner job registration plates were left unchanged.
+- Production build completed successfully with Vite.

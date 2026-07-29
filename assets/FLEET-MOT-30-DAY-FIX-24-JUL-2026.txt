@@ -1,0 +1,9 @@
+FLEET MOT / DUE-30-DAYS FIX — 24 JULY 2026
+
+1. Future MOT schedules are no longer hidden by an Annual Service completion.
+   Example verified in imported data: NG18 VNU MOT due 18/08/2026 remains outstanding and falls within 30 days of 24/07/2026.
+
+2. Clicking any Fleet Manager KPI card now clears an old customer group, search query, due-only toggle and open vehicle drawer before opening the selected list.
+   This fixes the Due 30 days card showing a count but opening an empty list.
+
+3. Production index.html JavaScript syntax checked successfully with Node.

@@ -1,0 +1,12 @@
+Planner job-card layout update — 22 July 2026
+
+- Registration plate and parts-status traffic-light remain at the upper left.
+- Job type is now displayed prominently in the upper centre.
+- Time remains at the upper right.
+- Customer name has been removed from planner cards.
+- Ramp status has been removed from planner cards.
+- Vehicle description remains beneath the registration.
+- Work Required is displayed across the lower width of the planner card.
+- Mini task cards are unchanged.
+- Root and dist/index.html are synchronised.
+- JavaScript syntax validation passed.

@@ -1,0 +1,15 @@
+VECTA PLANNER STABILITY RELEASE
+
+Fixed:
+- Tasks no longer disappear after cloud refresh returns an empty list.
+- Tasks are cached locally and cloud results are merged safely.
+- Planner times are consistently displayed as HH:MM without seconds.
+- Preset job types can be dragged into a new order; up/down controls are also provided.
+- Preset order saves permanently through Workshop Settings.
+- Tasks can be dragged onto a technician column.
+- Planner tasks open in a compact Task editor, not the full Job card.
+- Job and task cards have an isolated pointer-based resize handle.
+- Resize duration snaps to 15-minute increments and saves to Supabase.
+
+Build verification:
+- npm run build completed successfully.

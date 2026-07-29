@@ -1,0 +1,23 @@
+VECTA WORKSHOP PRO — AMENDMENTS APPLIED 22 JULY 2026
+
+PLANNER
+- Job type moved to the top-left of each planner card.
+- Vehicle make/model moved directly to the right of the registration plate.
+- Work required moved directly beneath the registration row so it remains visible on one-hour jobs.
+
+MOBILE PLANNER
+- Daily summary statistic boxes are hidden on mobile.
+- Only the two mechanic statistic cards remain visible.
+- My Tasks is displayed at the top of the mobile planner.
+- The duplicated desktop sidebar is hidden on mobile to prevent excess page width.
+
+SERVICE SHEETS
+- Service sheets now save to the shared Supabase data store so they can be opened on another device.
+- A compatibility fallback stores shared sheets in workshop_settings when the new service_records table has not yet been installed.
+- supabase/schema.sql now includes the service_records table for future database setup.
+- Mileage entry font, weight, size and baseline match the surrounding service-sheet text.
+- Service-sheet action buttons are smaller and fit on one line.
+- Clicking an already-selected green, amber or red circle now clears that selection.
+
+IMPORTANT FOR AN EXISTING IPAD-ONLY SHEET
+A sheet saved before this update exists only in that iPad browser. After deploying this build, open that sheet on the iPad and press Save once more to upload it to the shared database. It will then appear on the computer.

@@ -1,0 +1,36 @@
+VECTA Workshop Pro V41.21 — 25 July 2026
+
+SERVICE SHEETS
+- Restored a reliable plain VECTA wordmark in red, bold and non-italic.
+- Added a compact top row showing:
+  - MOT due
+  - Tax due
+  - Next service due
+  - Current service type
+- The current service type also shows the next alternating service type.
+- Existing saved service sheets are upgraded when opened, so the new header information appears on older records too.
+
+MAJOR / MINOR SERVICE ALTERNATION
+- Added Major Service and Minor Service preset job types.
+- Completing a Major Service schedules a Minor Service 12 months later.
+- Completing a Minor Service schedules a Major Service 12 months later.
+- The matching Fleet Manager service plan is updated automatically.
+- Fleet Manager quick-complete follows the same alternation.
+- Booking a service from Fleet Manager carries the actual Major/Minor type into the job card.
+
+RECURRING WORKSHOP TASKS
+- Every Friday at 15:00 — Alfie: Clean & tidy workshop. Wash floor.
+- Every Friday at 15:00 — Chris: Consumable inventory.
+- Every Monday at 09:15 — Chris: Fill oil drums.
+- Completing a recurring task creates its next weekly occurrence.
+- Task cards display the assigned person, time and recurrence.
+
+WORDMARK
+- Restored VECTA at the top of the main application.
+- Wordmark is plain red, bold and non-italic.
+
+VALIDATION
+- JavaScript syntax check passed.
+- Browser test passed with no application errors.
+- Major-to-Minor and Minor-to-Major scheduling were both tested.
+- Service sheet visually checked at desktop and print layout size.

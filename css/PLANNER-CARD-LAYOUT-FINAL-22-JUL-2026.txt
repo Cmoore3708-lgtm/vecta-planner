@@ -1,0 +1,9 @@
+Planner card refinement applied — 22 July 2026
+
+- Registration plate reduced by approximately 30% in width and height.
+- Registration lettering reduced by approximately 30%.
+- Job type now uses the full top row.
+- Vehicle and smaller time range now share the second row beside the plate.
+- Parts-status traffic light moved to the bottom-right of allocated job cards.
+- Parts-status traffic light added to unallocated job cards using the same saved parts-status logic.
+- Planner card height, hourly scale, spacing, resizing and drag/drop code were not changed.

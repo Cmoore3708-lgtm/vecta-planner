@@ -1,0 +1,8 @@
+Mechanic summary cards update
+
+- Added a Booked Capacity bar across the top of each mechanic card.
+- Added a Work Completed bar and a second percentage beside Booked %.
+- Booked % uses all allocated hours for the selected day, including completed/archived jobs.
+- Completed % uses completed hours divided by booked hours.
+- Completed jobs remain hidden from the live planner while continuing to count in both statistics.
+- Mechanic card/header height remains unchanged at 52px.

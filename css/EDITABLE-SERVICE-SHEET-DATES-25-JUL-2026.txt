@@ -1,0 +1,7 @@
+VECTA Workshop Pro V41.22
+
+Change made:
+- MOT due, Tax due and Next service due are editable date fields on Service Sheets.
+- Existing Fleet Manager / vehicle values still populate the fields automatically.
+- Edited dates are retained when the Service Sheet is saved and reopened.
+- Printed service sheets show the selected dates without the calendar control.

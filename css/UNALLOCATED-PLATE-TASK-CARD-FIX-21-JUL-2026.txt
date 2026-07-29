@@ -1,0 +1,5 @@
+Changes applied:
+- Removed the instruction area beneath Unallocated Jobs (no instruction is rendered).
+- Fixed registration plates in Unallocated Jobs so they use the same compact UK plate layout as planner jobs.
+- Reduced planner task cards to a compact 44px row with TASK label, description and time.
+- Rebuilt the production site successfully.

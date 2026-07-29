@@ -1,0 +1,16 @@
+VECTA Workshop Pro - My Tasks Update
+
+Added to the deployed standalone index.html:
+- My Tasks panel on the right-hand side of the planner
+- New/edit task form with optional deadline, priority, notes and pinning
+- Overdue highlighting and completed task history
+- Collapsible task panel
+- Drag tasks onto Alfie or Jordan's planner lane
+- Creates a separate internal mini task, not a full customer job card
+- Registration extraction from task text, e.g. UPUK1
+- Duration prompt when allocating a mini task
+- Allocated mechanic/time shown on the original task
+- Completing the mini task completes the linked task
+- Existing Supabase tasks schema remains compatible
+
+No service-sheet, invoice, customer, vehicle, settings or existing planner job-card code was deliberately altered.

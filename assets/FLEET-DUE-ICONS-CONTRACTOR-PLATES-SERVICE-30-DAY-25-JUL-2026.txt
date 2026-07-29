@@ -1,0 +1,12 @@
+Fleet Manager update — 25 July 2026
+
+Applied to the uploaded build:
+- Main Fleet Manager table now shows a small due-type marker beside the date:
+  - spanner for Service
+  - MOT badge for MOT
+  - ££ badge for Tax
+- The GB strip on registration plates now uses the assigned contractor colour.
+  OWBEN / OBEN is explicitly kept green to match the allocated contractor colour.
+- Added a clickable “Service due 30 days” summary box immediately to the right of “Tax due 30 days”.
+- The new Service box filters the table to services due within the next 30 days.
+- MOT, Tax and Service filtered views now show the correct due date, due type and colour state for that specific maintenance item.

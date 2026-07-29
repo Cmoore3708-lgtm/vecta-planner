@@ -1,0 +1,14 @@
+VECTA PLANNER UPDATE — 20 JUL 2026
+
+1. Drag to Unallocated Jobs
+- Preserves the booking date and time.
+- Sets Technician to Unallocated.
+- Sets Ramp to Unallocated.
+- Keeps the existing booked/status value.
+- Avoids clearing database fields that may be required by Supabase.
+
+2. Planner drag and resize stability
+- Cloud refresh is suspended for the full duration of a drag or resize interaction.
+- This prevents the three-second cloud refresh from rebuilding the planner midway through resizing.
+- A move or resize is rendered only after the Supabase save finishes.
+- Failed saves restore the original job position or duration.

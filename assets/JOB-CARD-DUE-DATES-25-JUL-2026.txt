@@ -1,0 +1,8 @@
+VECTA Workshop Pro V41.23
+
+JOB CARD VEHICLE SCHEDULE LOOKUP
+- Entering a stored registration now displays the next service due date and whether the next service is Major or Minor.
+- The same panel displays MOT due and road tax due dates when stored.
+- The lookup uses Fleet Manager plans first, then saved editable service-sheet dates, then completed job-card history.
+- Unknown registrations, or vehicles with no stored schedule data, do not show an empty panel.
+- Major and Minor service history is alternated automatically for the displayed next service type.

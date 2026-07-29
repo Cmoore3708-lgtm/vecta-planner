@@ -1,0 +1,28 @@
+VECTA WORKSHOP PRO — V41.22 NMUK & FLEET UPDATE
+24 July 2026
+
+CHANGES INCLUDED
+
+1. NMUK vehicle categories
+- Selecting NMUK on a job card opens a required second dropdown.
+- Available types: Internal, Pool and MVOS.
+- The selected type is saved with the job and shown in End of Month invoicing.
+- Existing known NMUK vehicles infer Internal or Pool where Fleet Manager already contains that classification.
+
+2. Fleet Manager search and filter repair
+- Search now works across every fleet vehicle, not only the currently selected due-date list.
+- Registration searches work with or without spaces.
+- Search covers registration, make/model, customer, fleet group, department, asset number and maintenance plan.
+- The customer/type dropdown now displays its selected value correctly and filters the vehicle list.
+
+3. Branding
+- Removed the logo panel from the upper-left sidebar.
+- Added a red VECTA wordmark in the black top bar between the page title and date.
+- The existing logo asset remains only for printed documents.
+
+4. Lean deployment package
+- Removed obsolete source copies, old build folders, duplicate assets and historical amendment notes.
+- This ZIP contains only the live index, Vercel configuration, API handlers, print logo and the existing month-end migration.
+
+DEPLOYMENT
+Upload the contents of the vecta-planner-main folder as the project root. No node_modules or generated build folder is required.

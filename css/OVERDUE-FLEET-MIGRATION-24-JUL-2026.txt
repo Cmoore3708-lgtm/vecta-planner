@@ -1,0 +1,9 @@
+OVERDUE FLEET SCHEDULE MIGRATION — 24 JULY 2026
+
+Applied across every Fleet Manager maintenance plan and vehicle:
+- Any active schedule with a current due date before 1 July 2026 is treated as completed.
+- A completion-history record is added using the original overdue due date as the completion date.
+- The new due date keeps the same day and month and moves to the next future year (currently 2027).
+- Dates from 1 July 2026 onward are not changed.
+- The migration also updates data already saved in the browser, not only the imported seed data.
+- The migration is idempotent, so refreshing/reopening the app does not create duplicate completion records.

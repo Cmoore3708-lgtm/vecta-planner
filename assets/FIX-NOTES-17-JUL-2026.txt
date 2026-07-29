@@ -1,0 +1,16 @@
+Planner reliability update - 17 July 2026
+
+Fixed:
+- Tasks no longer disappear when the Supabase refresh finishes.
+- Existing local tasks are merged with cloud tasks rather than overwritten.
+- Local-only tasks are migrated to Supabase automatically.
+- Job resizing now uses pointer capture, preventing the handle losing the mouse release.
+- Resize changes save before the planner rerenders; failed saves restore the original time.
+- Dragged jobs save reliably; failed saves return the job to its original position.
+- Dragging and resizing temporarily pause the three-second cloud refresh to prevent interference.
+- Planner time ranges are always displayed as HH:MM without seconds.
+- Resize handles are larger and easier to grab.
+
+Validation:
+- Inline JavaScript syntax checked successfully.
+- Vite production build completed successfully.

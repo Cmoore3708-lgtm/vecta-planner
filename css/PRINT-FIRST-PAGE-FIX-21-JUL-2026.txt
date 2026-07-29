@@ -1,0 +1,3 @@
+Fixed blank first printed page for job sheets and invoices.
+The printable sheet is now removed from normal document flow and anchored to the top-left of the first printed page.
+Conflicting min-height, margins, and page-break rules are overridden for print only.

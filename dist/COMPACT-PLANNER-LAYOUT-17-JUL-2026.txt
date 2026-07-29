@@ -1,0 +1,7 @@
+Compact planner layout update:
+- Removed the secondary Add Job and Copy Yesterday toolbar buttons.
+- Removed the duplicate in-page Print Day Plan button and date label.
+- Kept date navigation, Today, Print Day Plan and + New Job in the black header.
+- Compressed all planner summary tiles into one short desktop row.
+- Reduced tile padding, heading size, figures, gaps and progress-bar thickness.
+- No planner job-card sizing or positioning logic was changed.

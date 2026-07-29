@@ -1,0 +1,15 @@
+VECTA Planner amendments applied - 16 July 2026
+
+1. Restored Unallocated Jobs beneath My Tasks in the planner right-hand column.
+2. Reduced the space used by the Tasks panel and added internal scrolling for longer task lists.
+3. Made High, Normal and Low priority boxes clickable filters.
+   - Click a priority once to show only that priority.
+   - Click the selected priority again to show all tasks.
+4. Unallocated jobs remain clickable and draggable onto mechanic planner columns.
+
+Browser interaction tests passed for:
+- Compact Tasks and Unallocated Jobs layout.
+- All three priority filters.
+- Opening an unallocated job.
+- Dragging an unallocated job onto a mechanic and removing it from the list.
+- No fatal application errors during testing.

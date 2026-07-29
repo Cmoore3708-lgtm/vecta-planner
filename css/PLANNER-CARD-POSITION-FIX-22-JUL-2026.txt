@@ -1,0 +1,8 @@
+Planner card position fix — 22 July 2026
+
+- Vehicle make/model now sits directly beneath the registration plate.
+- Job type now sits to the right of the registration plate on the same top line.
+- Time has been moved down onto the second line to maximise space for the job type.
+- Registration plate size, parts-status dot, card height, planner spacing, drag/drop and resize logic were not changed.
+- Root index.html and dist/index.html are synchronised.
+- Inline JavaScript syntax validation passed.

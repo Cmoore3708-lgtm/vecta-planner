@@ -1,0 +1,7 @@
+FLEET MANAGER INTERACTION FIX — 23 JULY 2026
+
+Problem:
+The existing Supabase cloud polling refreshed and re-rendered the whole page every 3 seconds. In Fleet Manager this interrupted clicks, typing, filters and the vehicle drawer.
+
+Fix:
+Visual cloud polling is paused only while Fleet Manager is open. It resumes automatically when the user moves to Planner, Dashboard, Jobs, Search, Invoices or Settings. Fleet edits continue to save to browser storage normally.

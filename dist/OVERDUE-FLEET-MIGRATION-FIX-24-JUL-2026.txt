@@ -1,0 +1,15 @@
+OVERDUE FLEET MIGRATION — PRODUCTION FIX
+
+The previous amendment was added to an unused React source file. The deployed site runs from index.html.
+
+This build now runs the migration inside the production Fleet Manager code:
+- Every active maintenance plan with a current due date before 1 July 2026 is recorded as completed.
+- Its original due date is retained as the completion date.
+- Its next due date uses the same day and month in the first future year (2027 at present).
+- Existing browser-saved Fleet Manager data is migrated automatically.
+- Duplicate completion records are prevented.
+- The same migration is applied after using Reset Fleet Data.
+
+Validation against the imported seed data:
+- 221 active maintenance plans qualify and are moved forward.
+- Only dates from 1 July 2026 onward can remain overdue.

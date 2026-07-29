@@ -1,0 +1,7 @@
+SERVICE SHEET UPDATE
+
+- Increased typed text size on editable service-sheet fields.
+- Centred typed text vertically and horizontally within its box.
+- Added a Save Service Sheet button to the service-sheet preview.
+- Completed sheets are stored against the vehicle registration and automatically reopened next time the service sheet is opened for that registration on the same browser/device.
+- Production build tested successfully.
