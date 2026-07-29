@@ -1,0 +1,11 @@
+AUTOMATIC DVSA VEHICLE LOOKUP
+
+- Removed the manual "Lookup DVSA MOT" button from the job card.
+- Vehicle lookup now starts automatically after a valid-looking registration has been entered and typing has paused.
+- A faster lookup also runs when the registration field is changed or left.
+- Automatically fills the vehicle description and latest MOT mileage where available.
+- Automatically stores make, model, fuel type, colour, engine size, MOT expiry/status, MOT history and current advisories on the job.
+- Current MOT advisories and MOT expiry continue to populate Major, Interim and 6-month paperwork.
+- Repeated requests for the same registration are suppressed.
+- Stale responses are ignored if the registration is changed while a lookup is running.
+- A failed DVSA lookup does not block manual job-card completion.
