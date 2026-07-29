@@ -1652,7 +1652,7 @@ body.servicePreviewing .servicePreviewControls{position:relative!important;z-ind
 }
 
 /* V41.45: explicit No Vehicle jobs */
-.noVehicleToggle{display:flex;align-items:center;gap:9px;min-height:42px;padding:9px 12px;border:1px solid #d4d8df;border-radius:8px;background:#f7f8fa;font-weight:800;color:#263143}
+.noVehicleToggle{display:inline-flex;align-items:center;align-self:end;gap:7px;min-height:42px;padding:0 2px;border:0;border-radius:0;background:transparent;font-weight:800;color:#263143;white-space:nowrap}
 .noVehicleToggle input{width:18px;height:18px;accent-color:#d71920}
 .noVehicleActive{opacity:.55;pointer-events:none}
 .noVehicleBadge{display:inline-flex;align-items:center;justify-content:center;min-width:92px;padding:6px 10px;border-radius:6px;background:#333b48;color:#fff;font-size:11px;font-weight:900;letter-spacing:.06em;text-transform:uppercase}
@@ -1698,14 +1698,14 @@ body.servicePreviewing .servicePreviewControls{position:relative!important;z-ind
 .jobFormSectionHead p{margin-top:1px!important}
 .jobSectionGrid{padding:10px 12px!important}
 .jobModalCard .jobFormGrid{grid-template-columns:repeat(6,minmax(0,1fr))!important;gap:7px 9px!important}
-.jobVehicleSection .jobSectionGrid{grid-template-columns:1.05fr 1.7fr 1fr 1fr 1fr 1fr!important}
+.jobVehicleSection .jobSectionGrid{grid-template-columns:minmax(220px,1.35fr) max-content minmax(360px,2.35fr) minmax(175px,1fr)!important}
 .jobContactSection .jobSectionGrid{grid-template-columns:repeat(5,minmax(0,1fr))!important}
 .jobBookingSection .jobSectionGrid{grid-template-columns:repeat(6,minmax(0,1fr))!important}
 .jobWorkSection .jobSectionGrid{display:block!important}
 .jobWorkSection .wide{grid-column:1/-1!important;width:100%!important}
 .jobWorkSection #job_work_required{min-height:92px!important}
 .jobModalCard .field textarea{min-height:72px!important}
-@media(max-width:1000px){.jobModalCard .jobFormGrid,.jobVehicleSection .jobSectionGrid,.jobContactSection .jobSectionGrid,.jobBookingSection .jobSectionGrid{grid-template-columns:repeat(3,minmax(0,1fr))!important}}
+@media(max-width:1000px){.jobModalCard .jobFormGrid,.jobContactSection .jobSectionGrid,.jobBookingSection .jobSectionGrid{grid-template-columns:repeat(3,minmax(0,1fr))!important}.jobVehicleSection .jobSectionGrid{grid-template-columns:minmax(190px,1.2fr) max-content minmax(260px,2fr) minmax(155px,1fr)!important}}
 @media(max-width:680px){.jobModalCard .jobFormGrid,.jobVehicleSection .jobSectionGrid,.jobContactSection .jobSectionGrid,.jobBookingSection .jobSectionGrid{grid-template-columns:1fr!important}.jobModalCard{width:98vw!important}}
 </style>
 </head>
