@@ -1,15 +1,14 @@
 VECTA combined update
 
-Replace all four files in GitHub, keeping the same folder locations:
+Replace these files in GitHub, keeping their existing locations:
+/index.html
+/booking.html
+/public/booking.html
+/dist/booking.html
 
-1. /index.html
-2. /booking.html
-3. /public/booking.html
-4. /dist/booking.html
-
-This package includes:
-- definitive website-booking deletion and linked-job cleanup
-- registration label above the yellow box, aligned left
-- red outlines on Work Required choices
-- Work Required choices arranged into two rows
-- automatic vehicle information retained throughout the booking process
+Changes:
+- Wider Diagnostics / warning light button so the text remains on one line.
+- All work options remain on exactly two rows.
+- Website request deletion now verifies the Supabase record is actually gone.
+- Deleting a website request also removes any linked planner job and linked records.
+- The website booking list is refreshed from Supabase after deletion.

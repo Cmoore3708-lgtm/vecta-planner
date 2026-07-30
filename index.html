@@ -8058,7 +8058,7 @@ async function upsertRemote(table,row,options){
   var err=new Error('Supabase could not save '+table+' after removing incompatible fields: '+removed.join(', '));
   console.error(err,data);throw err;
 }
-async function deleteRemote(table,id){if(!remoteClient)return true;var res=await remoteClient.from(table).delete().eq('id',id);if(res&&res.error)throw new Error(res.error.message||('Could not delete from '+table));return true}
+async function deleteRemote(table,id){if(!remoteClient)return true;var res=await remoteClient.from(table).delete().eq('id',id).select('id');if(res&&res.error)throw new Error(res.error.message||('Could not delete from '+table));var check=await remoteClient.from(table).select('id').eq('id',id).limit(1);if(check&&check.error)throw new Error(check.error.message||('Could not verify deletion from '+table));if(check&&Array.isArray(check.data)&&check.data.length)throw new Error('The record is still present in '+table+'. Supabase may be blocking deletes through its security policy.');return true}
 async function saveAll(){invalidateFinanceDashboardCache();saveLocal(); if(remoteClient){try{await remoteClient.from('workshop_settings').upsert({id:'main',value:app.settings,updated_at:new Date().toISOString()});}catch(e){}}}
 function navItems(){var newCount=(app.websiteRequests||[]).filter(function(r){return !r.status||r.status==='awaiting_review'}).length;return [['planner','Dashboard'],['fleet','Fleet Manager'],['jobs','Jobs'],['search','Search'],['invoices','Invoices'],['websiteRequests','Website Bookings'+(newCount?' ('+newCount+')':'')],['settings','Settings']];}
 function renderNav(){var n=document.getElementById('nav');n.innerHTML=navItems().map(function(it){return '<button data-view="'+it[0]+'" class="'+(view===it[0]?'active':'')+'">'+it[1]+'</button>'}).join('');n.querySelectorAll('button').forEach(function(b){b.onclick=function(){if(b.dataset.view!=='invoices'&&financeDashboardTimer){clearTimeout(financeDashboardTimer);financeDashboardTimer=null}if(b.dataset.view==='fleet'){fleetSection='maintenance';fleetListMode='due30';fleetFilter='All';fleetQuery='';fleetDueOnly=false;activeFleetVehicleId=''}view=b.dataset.view;render()}})}
@@ -8602,14 +8602,33 @@ async function createJobFromWebsiteRequest(id){
 async function deleteWebsiteRequestCompletely(id){
   var row=(app.websiteRequests||[]).find(function(r){return String(r.id)===String(id)});
   if(!row)return;
-  if(!confirm('Permanently delete this website booking request?\n\nIt will be removed from Website Bookings and cannot be restored.'))return;
+  if(!confirm('Permanently delete this website booking request?\n\nAny planner job created from it will also be removed from the Dashboard, Jobs and vehicle history. This cannot be restored.'))return;
+  var linkedJobs=(app.jobs||[]).filter(function(j){return websiteRequestMatchesJob(row,j)});
   try{
+    for(var i=0;i<linkedJobs.length;i++){
+      var job=linkedJobs[i],jobId=job.id;
+      var invoices=(app.invoices||[]).filter(function(inv){return String(inv.job_id||'')===String(jobId)});
+      var records=(app.serviceRecords||[]).filter(function(rec){return String(rec.job_id||'')===String(jobId)});
+      for(var a=0;a<invoices.length;a++)await deleteRemote('invoices',invoices[a].id);
+      for(var b=0;b<records.length;b++){
+        await deleteRemote('service_records',records[b].id);
+        try{await deleteRemote('workshop_settings',records[b].id)}catch(ignore){}
+      }
+      await deleteRemote('jobs',jobId);
+    }
     await deleteRemote('website_booking_requests',id);
+    var linkedIds=linkedJobs.map(function(j){return String(j.id)});
+    app.jobs=(app.jobs||[]).filter(function(j){return linkedIds.indexOf(String(j.id))===-1});
+    app.invoices=(app.invoices||[]).filter(function(inv){return linkedIds.indexOf(String(inv.job_id||''))===-1});
+    app.serviceRecords=(app.serviceRecords||[]).filter(function(rec){return linkedIds.indexOf(String(rec.job_id||''))===-1});
     app.websiteRequests=(app.websiteRequests||[]).filter(function(r){return String(r.id)!==String(id)});
-    saveLocal();render();
+    saveLocal();
+    await pullRemote();
+    render();
   }catch(e){
     console.error('Website request deletion failed',e);
-    alert('The website booking was not deleted from the database.\n\n'+(e&&e.message?e.message:'Database deletion failed.'));
+    alert('The website booking was not fully deleted from the database.\n\n'+(e&&e.message?e.message:'Database deletion failed.'));
+    await pullRemote();render();
   }
 }
 function bindWebsiteRequests(){var e;if(e=document.getElementById('refreshWebsiteRequests'))e.onclick=async function(){await pullRemote();render()};document.querySelectorAll('[data-request-filter]').forEach(function(b){b.onclick=function(){websiteRequestFilter=b.dataset.requestFilter;render()}});document.querySelectorAll('[data-request-contact]').forEach(function(b){b.onclick=function(){updateWebsiteRequest(b.dataset.requestContact,{status:'contacted'})}});document.querySelectorAll('[data-request-archive]').forEach(function(b){b.onclick=function(){if(confirm('Archive this website booking request?'))updateWebsiteRequest(b.dataset.requestArchive,{status:'archived'})}});document.querySelectorAll('[data-request-delete]').forEach(function(b){b.onclick=function(){deleteWebsiteRequestCompletely(b.dataset.requestDelete)}});document.querySelectorAll('[data-request-create]').forEach(function(b){b.onclick=function(){if(confirm('Create an unallocated job from this request?'))createJobFromWebsiteRequest(b.dataset.requestCreate)}})}
