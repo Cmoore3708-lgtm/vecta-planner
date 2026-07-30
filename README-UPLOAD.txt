@@ -1,12 +1,15 @@
-VECTA booking form update
+VECTA combined update
 
-Replace these three files in the same locations in GitHub:
-- booking.html
-- public/booking.html
-- dist/booking.html
+Replace all four files in GitHub, keeping the same folder locations:
 
-Changes:
-- Registration is no longer compulsory when make/model is entered.
-- Continue activates when either registration or make/model has been provided.
-- Main heading changed to "Booking Form".
-- Intro sentence below the heading removed.
+1. /index.html
+2. /booking.html
+3. /public/booking.html
+4. /dist/booking.html
+
+This package includes:
+- definitive website-booking deletion and linked-job cleanup
+- registration label above the yellow box, aligned left
+- red outlines on Work Required choices
+- Work Required choices arranged into two rows
+- automatic vehicle information retained throughout the booking process
