@@ -8543,10 +8543,10 @@ function fleetBind(){var e;if(e=document.getElementById('fleetOpenEom'))e.onclic
 
 var websiteRequestFilter='all';
 function requestDate(value){if(!value)return 'Not provided';try{return new Date(String(value).slice(0,10)+'T00:00:00').toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'})}catch(e){return String(value)}}
-function requestStatusLabel(status){return ({awaiting_review:'New',contacted:'Contacted',booked:'Booked',declined:'Declined',archived:'Archived'})[status]||'New'}
+function requestStatusLabel(status){return ({awaiting_review:'New',contacted:'Contacted',booked:'Booked',declined:'Declined',archived:'Archived',deleted:'Deleted'})[status]||'New'}
 function websiteRequestsHtml(){
   // A website request is only an inbox item. Once it has produced a planner job it must no longer appear here.
-  var all=(app.websiteRequests||[]).filter(function(r){return String(r.status||'awaiting_review').toLowerCase()!=='booked'}).slice().sort(function(a,b){return String(b.created_at||'').localeCompare(String(a.created_at||''))});
+  var all=(app.websiteRequests||[]).filter(function(r){var st=String(r.status||'awaiting_review').toLowerCase();return st!=='booked'&&st!=='deleted'}).slice().sort(function(a,b){return String(b.created_at||'').localeCompare(String(a.created_at||''))});
   var counts={all:all.length,awaiting_review:0,contacted:0,archived:0};all.forEach(function(r){var st=r.status||'awaiting_review';if(counts[st]!==undefined)counts[st]++});
   var rows=websiteRequestFilter==='all'?all:all.filter(function(r){var st=r.status||'awaiting_review';return websiteRequestFilter==='archived'?(st==='archived'||st==='declined'):st===websiteRequestFilter});
   if(websiteRequestFilter==='booked'){websiteRequestFilter='all';rows=all;}
@@ -8594,15 +8594,25 @@ async function createJobFromWebsiteRequest(id){
   var bookingDate=r.preferred_date_1||selectedIso(),types=Array.isArray(r.job_types)?r.job_types:[],jobType=types[0]||'General';
   var j={id:uid(),booking_date:String(bookingDate).slice(0,10),drop_time:'08:00',registration:normReg(r.registration||''),vehicle:r.vehicle||'',mileage:(r.mileage===null||r.mileage===undefined||String(r.mileage).trim()===''?null:Number(r.mileage)),customer_account:'Staff',customer_name:r.customer_name||'',customer_phone:r.phone||'',customer_email:r.email||'',work_required:r.work_required||types.join(', ')||'Website booking request',job_type:types.join(', ')||jobType,job_colour:/mot/i.test(jobType)?'MOT':(/service/i.test(jobType)?'Service':'General'),estimated_hours:1,amount_quoted:null,technician:'Unallocated',ramp:'',status:'booked',card_type:'job',source:'website booking',booking_source:'Website booking',website_request_id:String(r.id||''),customer_note:websiteRequestNote(r),created_at:new Date().toISOString(),updated_at:new Date().toISOString()};
   app.jobs.push(j);saveLocal();try{await upsertRemote('jobs',j)}catch(e){app.jobs=app.jobs.filter(function(x){return x.id!==j.id});saveLocal();return}
-  // The request has now become a job, so remove the inbox record entirely rather than keeping a duplicate under Website Bookings.
-  try{await deleteRemote('website_booking_requests',id)}catch(e){console.error('Website request deletion failed',e);alert('The planner job was created, but the website request could not be removed. Refresh and try deleting the duplicate request.');}
+  // The request has now become a planner job. Mark it as booked so it leaves the Website Bookings inbox immediately.
+  // This uses UPDATE rather than DELETE because the current Supabase security policy permits request updates but blocks browser deletes.
+  if(remoteClient){
+    var bookedResult=await remoteClient.from('website_booking_requests').update({status:'booked',updated_at:new Date().toISOString()}).eq('id',id);
+    if(bookedResult.error){
+      console.error('Website request could not be marked as booked',bookedResult.error);
+      app.jobs=app.jobs.filter(function(x){return String(x.id)!==String(j.id)});saveLocal();
+      try{await deleteRemote('jobs',j.id)}catch(ignore){}
+      alert('The planner job could not be finalised because the website request could not be closed: '+bookedResult.error.message);
+      return;
+    }
+  }
   app.websiteRequests=(app.websiteRequests||[]).filter(function(x){return String(x.id)!==String(id)});saveLocal();
   selectedDate=new Date(j.booking_date+'T00:00:00');view='planner';render();openJobModal(j.id);
 }
 async function deleteWebsiteRequestCompletely(id){
   var row=(app.websiteRequests||[]).find(function(r){return String(r.id)===String(id)});
   if(!row)return;
-  if(!confirm('Permanently delete this website booking request?\n\nAny planner job created from it will also be removed from the Dashboard, Jobs and vehicle history. This cannot be restored.'))return;
+  if(!confirm('Permanently remove this website booking request?\n\nAny planner job created from it will also be removed from the Dashboard, Jobs and vehicle history.'))return;
   var linkedJobs=(app.jobs||[]).filter(function(j){return websiteRequestMatchesJob(row,j)});
   try{
     for(var i=0;i<linkedJobs.length;i++){
@@ -8616,7 +8626,16 @@ async function deleteWebsiteRequestCompletely(id){
       }
       await deleteRemote('jobs',jobId);
     }
-    await deleteRemote('website_booking_requests',id);
+    // Try a true database delete first. If Supabase RLS blocks browser deletes, soft-delete it instead.
+    var requestRemoved=false;
+    try{await deleteRemote('website_booking_requests',id);requestRemoved=true}catch(deleteError){
+      console.warn('Supabase blocked website request DELETE; applying hidden deleted status instead.',deleteError);
+      if(!remoteClient)throw deleteError;
+      var soft=await remoteClient.from('website_booking_requests').update({status:'deleted',updated_at:new Date().toISOString()}).eq('id',id);
+      if(soft.error)throw soft.error;
+      requestRemoved=true;
+    }
+    if(!requestRemoved)throw new Error('The website request could not be removed.');
     var linkedIds=linkedJobs.map(function(j){return String(j.id)});
     app.jobs=(app.jobs||[]).filter(function(j){return linkedIds.indexOf(String(j.id))===-1});
     app.invoices=(app.invoices||[]).filter(function(inv){return linkedIds.indexOf(String(inv.job_id||''))===-1});
@@ -8626,8 +8645,8 @@ async function deleteWebsiteRequestCompletely(id){
     await pullRemote();
     render();
   }catch(e){
-    console.error('Website request deletion failed',e);
-    alert('The website booking was not fully deleted from the database.\n\n'+(e&&e.message?e.message:'Database deletion failed.'));
+    console.error('Website request removal failed',e);
+    alert('The website booking could not be removed.\n\n'+(e&&e.message?e.message:'Database update failed.'));
     await pullRemote();render();
   }
 }
