@@ -1,14 +1,10 @@
-VECTA combined update
+ND70 GUG ready-to-invoice and contact-details fix
 
-Replace these files in GitHub, keeping their existing locations:
-/index.html
-/booking.html
-/public/booking.html
-/dist/booking.html
+Replace the root /index.html in GitHub with the index.html in this folder.
+The booking-form files are included unchanged so this package remains compatible with the latest combined update.
 
 Changes:
-- Wider Diagnostics / warning light button so the text remains on one line.
-- All work options remain on exactly two rows.
-- Website request deletion now verifies the Supabase record is actually gone.
-- Deleting a website request also removes any linked planner job and linked records.
-- The website booking list is refreshed from Supabase after deletion.
+- Ready-to-invoice jobs no longer remain visible on the Dashboard planner.
+- They remain available under Invoices and Jobs > Ready to Invoice.
+- Saved customer name, phone and email are restored from the linked vehicle/customer record when a job card is reopened.
+- If an older job has no vehicle/customer link, the system uses the latest saved contact details for the same registration.
