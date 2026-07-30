@@ -8029,7 +8029,12 @@ async function upsertRemote(table,row,options){
   if(table==='customers'||table==='vehicles'){delete data.updated_at;}
   /* Parts status is mirrored inside customer_note for compatibility with the live jobs table. */
   if(table==='jobs'){delete data.parts_status;}
-  for(var attempt=0;attempt<8;attempt++){
+  /* Keep retrying after each unsupported column is removed. Some older live
+     databases are missing more than eight newer fields, so a fixed eight-pass
+     limit can stop immediately after removing the final incompatible field,
+     before the clean payload gets its chance to save. */
+  var maxAttempts=Math.max(20,Object.keys(data).length+1);
+  for(var attempt=0;attempt<maxAttempts;attempt++){
     res=await remoteClient.from(table).upsert(data,{onConflict:'id'}).select('id');
     if(!res.error)return res.data;
     var missing=schemaColumnFromError(res.error.message,table);
@@ -8990,7 +8995,7 @@ async function deleteJobCompletely(id){
   var j=(app.jobs||[]).find(function(x){return String(x.id)===String(id)});
   if(!j){alert('This job could not be found. Refresh the page and try again.');return;}
   var label=jobVehicleLabel(j),date=j.booking_date?niceDate(j.booking_date):'no booking date';
-  if(!confirm('Permanently delete this job for '+label+' ('+date+')?\n\nThis removes it from the planner, Jobs, vehicle history and the shared database. Any invoice or saved service paperwork linked only to this job will also be deleted. This cannot be undone.'))return;
+  if(!confirm('Permanently delete this job for '+label+' ('+date+')?\n\nThis removes it from the planner, Jobs, vehicle history and the shared database. Any linked website booking, invoice or saved service paperwork will also be deleted. This cannot be undone.'))return;
   var button=document.getElementById('deleteJob');if(button){button.disabled=true;button.textContent='Deleting...';}
   var relatedInvoices=(app.invoices||[]).filter(function(inv){return String(inv.job_id||'')===String(id)});
   var relatedRecords=(app.serviceRecords||[]).filter(function(rec){return String(rec.job_id||'')===String(id)});
@@ -9006,13 +9011,16 @@ async function deleteJobCompletely(id){
       try{localStorage.removeItem(serviceStorageKey(rec.registration||j.registration,serviceRecordKind(rec),rec.job_id||id))}catch(e){}
     }
     for(var q=0;q<relatedRequests.length;q++){
-      try{await updateWebsiteRequest(relatedRequests[q].id,{status:'new',job_id:null,confirmed_date:null,confirmed_at:null})}catch(e){console.warn('Website request reset failed',e)}
+      try{await deleteRemote('website_booking_requests',relatedRequests[q].id)}catch(e){console.warn('Linked website booking deletion failed',e);throw e}
     }
     if(taskId){var task=(app.tasks||[]).find(function(x){return String(x.id)===taskId});if(task){var meta=taskMeta(task);meta.allocated=false;meta.allocated_to='';meta.allocated_time='';meta.mini_job_id='';task.done=false;task.priority=packTaskMeta(meta);try{await upsertRemote('tasks',task,{silent:true})}catch(e){console.warn('Linked task reset failed',e)}}}
     app.jobs=(app.jobs||[]).filter(function(x){return String(x.id)!==String(id)});
     app.invoices=(app.invoices||[]).filter(function(inv){return String(inv.job_id||'')!==String(id)});
     app.serviceRecords=(app.serviceRecords||[]).filter(function(rec){return String(rec.job_id||'')!==String(id)});
-    relatedRequests.forEach(function(req){var local=(app.websiteRequests||[]).find(function(x){return String(x.id)===String(req.id)});if(local){local.status='new';local.job_id=null;local.confirmed_date=null;local.confirmed_at=null;}});
+    if(relatedRequests.length){
+      var deletedRequestIds=relatedRequests.map(function(req){return String(req.id)});
+      app.websiteRequests=(app.websiteRequests||[]).filter(function(req){return deletedRequestIds.indexOf(String(req.id))===-1});
+    }
     await saveAll();
     closeModals();render();
   }catch(e){
