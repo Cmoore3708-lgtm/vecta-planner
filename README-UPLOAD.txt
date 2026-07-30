@@ -1,10 +1,10 @@
-ND70 GUG ready-to-invoice and contact-details fix
+VECTA website booking deletion schema fix
 
-Replace the root /index.html in GitHub with the index.html in this folder.
-The booking-form files are included unchanged so this package remains compatible with the latest combined update.
+Replace these files in GitHub, keeping the same locations:
 
-Changes:
-- Ready-to-invoice jobs no longer remain visible on the Dashboard planner.
-- They remain available under Invoices and Jobs > Ready to Invoice.
-- Saved customer name, phone and email are restored from the linked vehicle/customer record when a job card is reopened.
-- If an older job has no vehicle/customer link, the system uses the latest saved contact details for the same registration.
+/index.html
+/booking.html
+/public/booking.html
+/dist/booking.html
+
+The key correction is in index.html: Website Booking requests are now marked Booked or Deleted using only the existing status column. The missing updated_at column is no longer sent to Supabase.

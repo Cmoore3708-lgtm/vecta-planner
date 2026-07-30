@@ -8597,7 +8597,7 @@ async function createJobFromWebsiteRequest(id){
   // The request has now become a planner job. Mark it as booked so it leaves the Website Bookings inbox immediately.
   // This uses UPDATE rather than DELETE because the current Supabase security policy permits request updates but blocks browser deletes.
   if(remoteClient){
-    var bookedResult=await remoteClient.from('website_booking_requests').update({status:'booked',updated_at:new Date().toISOString()}).eq('id',id);
+    var bookedResult=await remoteClient.from('website_booking_requests').update({status:'booked'}).eq('id',id);
     if(bookedResult.error){
       console.error('Website request could not be marked as booked',bookedResult.error);
       app.jobs=app.jobs.filter(function(x){return String(x.id)!==String(j.id)});saveLocal();
@@ -8631,7 +8631,7 @@ async function deleteWebsiteRequestCompletely(id){
     try{await deleteRemote('website_booking_requests',id);requestRemoved=true}catch(deleteError){
       console.warn('Supabase blocked website request DELETE; applying hidden deleted status instead.',deleteError);
       if(!remoteClient)throw deleteError;
-      var soft=await remoteClient.from('website_booking_requests').update({status:'deleted',updated_at:new Date().toISOString()}).eq('id',id);
+      var soft=await remoteClient.from('website_booking_requests').update({status:'deleted'}).eq('id',id);
       if(soft.error)throw soft.error;
       requestRemoved=true;
     }
@@ -8646,7 +8646,7 @@ async function deleteWebsiteRequestCompletely(id){
     render();
   }catch(e){
     console.error('Website request removal failed',e);
-    alert('The website booking could not be removed.\n\n'+(e&&e.message?e.message:'Database update failed.'));
+    alert('The website booking could not be removed.\n\n'+(e&&e.message?e.message:'Database update failed.')+'\n\nNo unsupported timestamp fields are now sent.');
     await pullRemote();render();
   }
 }
