@@ -8545,11 +8545,13 @@ var websiteRequestFilter='all';
 function requestDate(value){if(!value)return 'Not provided';try{return new Date(String(value).slice(0,10)+'T00:00:00').toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'})}catch(e){return String(value)}}
 function requestStatusLabel(status){return ({awaiting_review:'New',contacted:'Contacted',booked:'Booked',declined:'Declined',archived:'Archived'})[status]||'New'}
 function websiteRequestsHtml(){
-  var all=(app.websiteRequests||[]).slice().sort(function(a,b){return String(b.created_at||'').localeCompare(String(a.created_at||''))});
-  var counts={all:all.length,awaiting_review:0,contacted:0,booked:0,archived:0};all.forEach(function(r){var st=r.status||'awaiting_review';if(counts[st]!==undefined)counts[st]++});
+  // A website request is only an inbox item. Once it has produced a planner job it must no longer appear here.
+  var all=(app.websiteRequests||[]).filter(function(r){return String(r.status||'awaiting_review').toLowerCase()!=='booked'}).slice().sort(function(a,b){return String(b.created_at||'').localeCompare(String(a.created_at||''))});
+  var counts={all:all.length,awaiting_review:0,contacted:0,archived:0};all.forEach(function(r){var st=r.status||'awaiting_review';if(counts[st]!==undefined)counts[st]++});
   var rows=websiteRequestFilter==='all'?all:all.filter(function(r){var st=r.status||'awaiting_review';return websiteRequestFilter==='archived'?(st==='archived'||st==='declined'):st===websiteRequestFilter});
+  if(websiteRequestFilter==='booked'){websiteRequestFilter='all';rows=all;}
   function tab(key,label){return '<button class="'+(websiteRequestFilter===key?'active':'')+'" data-request-filter="'+key+'">'+label+' ('+(counts[key]||0)+')</button>'}
-  return '<div class="websiteRequestsHead"><div><h2>Website Bookings</h2><p>Review requests sent from the customer booking page and turn accepted requests into unallocated jobs.</p></div><button class="btn" id="refreshWebsiteRequests">Refresh requests</button></div><div class="requestFilters">'+tab('all','All')+tab('awaiting_review','New')+tab('contacted','Contacted')+tab('booked','Booked')+tab('archived','Archived')+'</div><div class="requestList">'+(rows.length?rows.map(websiteRequestCardHtml).join(''):'<div class="requestEmpty"><b>No website bookings in this section.</b><p>New customer requests will appear here automatically.</p></div>')+'</div>';
+  return '<div class="websiteRequestsHead"><div><h2>Website Bookings</h2><p>Review new requests and create planner jobs from them.</p></div><button class="btn" id="refreshWebsiteRequests">Refresh requests</button></div><div class="requestFilters">'+tab('all','All')+tab('awaiting_review','New')+tab('contacted','Contacted')+tab('archived','Archived')+'</div><div class="requestList">'+(rows.length?rows.map(websiteRequestCardHtml).join(''):'<div class="requestEmpty"><b>No website bookings in this section.</b><p>New customer requests will appear here automatically.</p></div>')+'</div>';
 }
 function websiteRequestCardHtml(r){
   var st=r.status||'awaiting_review',types=Array.isArray(r.job_types)?r.job_types.join(', '):String(r.job_types||''),dates=[r.preferred_date_1,r.preferred_date_2,r.preferred_date_3].filter(Boolean).map(requestDate).join(' · ');
@@ -8558,7 +8560,22 @@ function websiteRequestCardHtml(r){
 async function updateWebsiteRequest(id,changes){var row=(app.websiteRequests||[]).find(function(r){return r.id===id});if(!row)return;Object.assign(row,changes,{updated_at:new Date().toISOString()});saveLocal();if(remoteClient){var res=await remoteClient.from('website_booking_requests').update(changes).eq('id',id);if(res.error){console.error(res.error);alert('The website request could not be updated: '+res.error.message);return false}}render();return true}
 function websiteRequestNote(r){
   var dates=[r.preferred_date_1,r.preferred_date_2,r.preferred_date_3].filter(Boolean).map(function(x){return String(x).slice(0,10)});
-  return 'Website booking dates: '+dates.join(' | ')+' || Completion deadline: '+String(r.completion_deadline||'Not provided')+' || Contact preference: '+String(r.contact_preference||'Not provided');
+  return 'Website request ID: '+String(r.id||'')+' || Website booking dates: '+dates.join(' | ')+' || Completion deadline: '+String(r.completion_deadline||'Not provided')+' || Contact preference: '+String(r.contact_preference||'Not provided');
+}
+function websiteRequestIdFromJob(j){
+  var direct=String(j&&j.website_request_id||'').trim();if(direct)return direct;
+  var match=String(j&&j.customer_note||'').match(/Website request ID:\s*([^|]+?)(?:\s*\|\||$)/i);
+  return match?String(match[1]||'').trim():'';
+}
+function websiteRequestMatchesJob(req,j){
+  if(!req||!j)return false;
+  var linked=websiteRequestIdFromJob(j);if(linked&&String(req.id)===linked)return true;
+  if(req.job_id&&String(req.job_id)===String(j.id))return true;
+  if(String(j.source||'').toLowerCase()!=='website booking')return false;
+  var sameReg=normReg(req.registration||'')&&normReg(req.registration||'')===normReg(j.registration||'');
+  var sameName=String(req.customer_name||'').trim().toLowerCase()&&String(req.customer_name||'').trim().toLowerCase()===String(j.customer_name||'').trim().toLowerCase();
+  var sameWork=String(req.work_required||'').trim()&&String(req.work_required||'').trim()===String(j.work_required||'').trim();
+  return (sameReg&&sameName)||(sameReg&&sameWork)||(sameName&&sameWork);
 }
 function websiteJobDetails(j){
   var note=String(j&&j.customer_note||''),match=note.match(/Website booking dates:\s*([^|][\s\S]*?)\s*\|\|/i),dates=[];
@@ -8575,9 +8592,11 @@ function websiteBookingPanelHtml(j){
 async function createJobFromWebsiteRequest(id){
   var r=(app.websiteRequests||[]).find(function(x){return x.id===id});if(!r)return;
   var bookingDate=r.preferred_date_1||selectedIso(),types=Array.isArray(r.job_types)?r.job_types:[],jobType=types[0]||'General';
-  var j={id:uid(),booking_date:String(bookingDate).slice(0,10),drop_time:'08:00',registration:normReg(r.registration||''),vehicle:r.vehicle||'',mileage:(r.mileage===null||r.mileage===undefined||String(r.mileage).trim()===''?null:Number(r.mileage)),customer_account:'Staff',customer_name:r.customer_name||'',customer_phone:r.phone||'',customer_email:r.email||'',work_required:r.work_required||types.join(', ')||'Website booking request',job_type:types.join(', ')||jobType,job_colour:/mot/i.test(jobType)?'MOT':(/service/i.test(jobType)?'Service':'General'),estimated_hours:1,amount_quoted:null,technician:'Unallocated',ramp:'',status:'booked',card_type:'job',source:'website booking',booking_source:'Website booking',customer_note:websiteRequestNote(r),created_at:new Date().toISOString(),updated_at:new Date().toISOString()};
+  var j={id:uid(),booking_date:String(bookingDate).slice(0,10),drop_time:'08:00',registration:normReg(r.registration||''),vehicle:r.vehicle||'',mileage:(r.mileage===null||r.mileage===undefined||String(r.mileage).trim()===''?null:Number(r.mileage)),customer_account:'Staff',customer_name:r.customer_name||'',customer_phone:r.phone||'',customer_email:r.email||'',work_required:r.work_required||types.join(', ')||'Website booking request',job_type:types.join(', ')||jobType,job_colour:/mot/i.test(jobType)?'MOT':(/service/i.test(jobType)?'Service':'General'),estimated_hours:1,amount_quoted:null,technician:'Unallocated',ramp:'',status:'booked',card_type:'job',source:'website booking',booking_source:'Website booking',website_request_id:String(r.id||''),customer_note:websiteRequestNote(r),created_at:new Date().toISOString(),updated_at:new Date().toISOString()};
   app.jobs.push(j);saveLocal();try{await upsertRemote('jobs',j)}catch(e){app.jobs=app.jobs.filter(function(x){return x.id!==j.id});saveLocal();return}
-  await updateWebsiteRequest(id,{status:'booked',job_id:j.id,confirmed_date:j.booking_date,confirmed_at:new Date().toISOString()});
+  // The request has now become a job, so remove the inbox record entirely rather than keeping a duplicate under Website Bookings.
+  try{await deleteRemote('website_booking_requests',id)}catch(e){console.error('Website request deletion failed',e);alert('The planner job was created, but the website request could not be removed. Refresh and try deleting the duplicate request.');}
+  app.websiteRequests=(app.websiteRequests||[]).filter(function(x){return String(x.id)!==String(id)});saveLocal();
   selectedDate=new Date(j.booking_date+'T00:00:00');view='planner';render();openJobModal(j.id);
 }
 function bindWebsiteRequests(){var e;if(e=document.getElementById('refreshWebsiteRequests'))e.onclick=async function(){await pullRemote();render()};document.querySelectorAll('[data-request-filter]').forEach(function(b){b.onclick=function(){websiteRequestFilter=b.dataset.requestFilter;render()}});document.querySelectorAll('[data-request-contact]').forEach(function(b){b.onclick=function(){updateWebsiteRequest(b.dataset.requestContact,{status:'contacted'})}});document.querySelectorAll('[data-request-archive]').forEach(function(b){b.onclick=function(){if(confirm('Archive this website booking request?'))updateWebsiteRequest(b.dataset.requestArchive,{status:'archived'})}});document.querySelectorAll('[data-request-create]').forEach(function(b){b.onclick=function(){if(confirm('Create an unallocated job from this request?'))createJobFromWebsiteRequest(b.dataset.requestCreate)}})}
@@ -9009,7 +9028,9 @@ async function deleteJobCompletely(id){
   var button=document.getElementById('deleteJob');if(button){button.disabled=true;button.textContent='Deleting...';}
   var relatedInvoices=(app.invoices||[]).filter(function(inv){return String(inv.job_id||'')===String(id)});
   var relatedRecords=(app.serviceRecords||[]).filter(function(rec){return String(rec.job_id||'')===String(id)});
-  var relatedRequests=(app.websiteRequests||[]).filter(function(req){return String(req.job_id||'')===String(id)});
+  var relatedRequests=(app.websiteRequests||[]).filter(function(req){return websiteRequestMatchesJob(req,j)});
+  var linkedWebsiteRequestId=websiteRequestIdFromJob(j);
+  if(linkedWebsiteRequestId&&!relatedRequests.some(function(req){return String(req.id)===linkedWebsiteRequestId}))relatedRequests.push({id:linkedWebsiteRequestId});
   var source=String(j.source||''),taskId=source.indexOf('task:')===0?source.slice(5):'';
   try{
     await deleteRemote('jobs',id);
