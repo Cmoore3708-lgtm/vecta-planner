@@ -9236,6 +9236,17 @@ function applyTemplate(name){
     }else if(!exists&&typeWork){
       var currentKey=current.toLowerCase().replace(/\s+/g,' ').trim(),typeKey=typeWork.toLowerCase().replace(/\s+/g,' ').trim();
       if(typeKey&&currentKey.indexOf(typeKey)===-1)work.value=current.replace(/\s+$/,'')+(current.trim()?'\n':'')+typeWork;
+    }else if(exists&&typeWork){
+      /* When a selected job type is unticked, remove only the exact template text
+         that selection added. Leave every other line (including manual notes) alone. */
+      if(current===typeWork)work.value='';
+      else if(current.indexOf(typeWork+'\n')===0)work.value=current.slice(typeWork.length+1);
+      else if(current.slice(-(typeWork.length+1))==='\n'+typeWork)work.value=current.slice(0,-(typeWork.length+1));
+      else{
+        var marker='\n'+typeWork+'\n',pos=current.indexOf(marker);
+        if(pos!==-1)work.value=current.slice(0,pos)+'\n'+current.slice(pos+marker.length);
+      }
+      work.value=String(work.value||'').replace(/^\n+|\n+$/g,'').replace(/\n{3,}/g,'\n\n');
     }
     work.dataset.autoTemplateText=newAuto;
   }
