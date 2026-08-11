@@ -9220,6 +9220,11 @@ async function deleteJobCompletely(id){
   if(linkedWebsiteRequestId&&!relatedRequests.some(function(req){return String(req.id)===linkedWebsiteRequestId}))relatedRequests.push({id:linkedWebsiteRequestId});
   var source=String(j.source||''),taskId=source.indexOf('task:')===0?source.slice(5):'';
   try{
+    // Website requests are linked records: remove them first so a blocked child delete
+    // can never leave the main job half-deleted.
+    for(var q=0;q<relatedRequests.length;q++){
+      await deleteRemote('website_booking_requests',relatedRequests[q].id);
+    }
     await deleteRemote('jobs',id);
     for(var i=0;i<relatedInvoices.length;i++){try{await deleteRemote('invoices',relatedInvoices[i].id)}catch(e){console.warn('Linked invoice deletion failed',e)}}
     for(var r=0;r<relatedRecords.length;r++){
@@ -9227,9 +9232,6 @@ async function deleteJobCompletely(id){
       try{await deleteRemote('service_records',rec.id)}catch(e){console.warn('Linked service record deletion failed',e)}
       try{await deleteRemote('workshop_settings',rec.id)}catch(e){console.warn('Linked paperwork setting deletion failed',e)}
       try{localStorage.removeItem(serviceStorageKey(rec.registration||j.registration,serviceRecordKind(rec),rec.job_id||id))}catch(e){}
-    }
-    for(var q=0;q<relatedRequests.length;q++){
-      try{await deleteRemote('website_booking_requests',relatedRequests[q].id)}catch(e){console.warn('Linked website booking deletion failed',e);throw e}
     }
     if(taskId){var task=(app.tasks||[]).find(function(x){return String(x.id)===taskId});if(task){var meta=taskMeta(task);meta.allocated=false;meta.allocated_to='';meta.allocated_time='';meta.mini_job_id='';task.done=false;task.priority=packTaskMeta(meta);try{await upsertRemote('tasks',task,{silent:true})}catch(e){console.warn('Linked task reset failed',e)}}}
     app.jobs=(app.jobs||[]).filter(function(x){return String(x.id)!==String(id)});
