@@ -1749,7 +1749,7 @@ body.servicePreviewing .servicePreviewControls{position:relative!important;z-ind
   <aside class="side">
     <div class="logo"><div class="logoMark">VECTA</div><div class="product" style="font-size:18px!important;font-weight:900!important;letter-spacing:.03em!important;color:#fff!important;text-transform:none!important">Workshop Pro</div></div>
     <nav class="nav" id="nav"></nav>
-    <div class="sideFoot"><b>V41.52 Mobile Calendar Fix</b><br>Complete fleet search, optional Staff names<br>and correct completion routing.</div>
+    <div class="sideFoot"><b>V41.54 Website Service Fix</b><br>Service-choice prompt and reliable<br>job-type description removal.</div>
   </aside>
   <main class="main">
     <header class="top">
@@ -8690,7 +8690,7 @@ function websiteRequestMatchesJob(req,j){
   if(!req||!j)return false;
   var linked=websiteRequestIdFromJob(j);if(linked&&String(req.id)===linked)return true;
   if(req.job_id&&String(req.job_id)===String(j.id))return true;
-  if(String(j.source||'').toLowerCase()!=='website booking')return false;
+  if(!isWebsiteBookingJob(j))return false;
   var sameReg=normReg(req.registration||'')&&normReg(req.registration||'')===normReg(j.registration||'');
   var sameName=String(req.customer_name||'').trim().toLowerCase()&&String(req.customer_name||'').trim().toLowerCase()===String(j.customer_name||'').trim().toLowerCase();
   var sameWork=String(req.work_required||'').trim()&&String(req.work_required||'').trim()===String(j.work_required||'').trim();
@@ -8703,8 +8703,13 @@ function websiteJobDetails(j){
   var contact=(note.match(/Contact preference:\s*([^|]*?)(?:\s*\|\||$)/i)||[])[1]||'';
   return {dates:dates,deadline:String(deadline).trim(),contact:String(contact).trim()};
 }
+function isWebsiteBookingJob(j){
+  if(!j)return false;
+  var source=String(j.source||'').trim().toLowerCase().replace(/[_-]+/g,' '),bookingSource=String(j.booking_source||'').trim().toLowerCase().replace(/[_-]+/g,' '),note=String(j.customer_note||'');
+  return source==='website booking'||bookingSource==='website booking'||!!String(j.website_request_id||'').trim()||/Website request ID:/i.test(note)||/Website booking dates:/i.test(note);
+}
 function isUnresolvedWebsiteService(j){
-  if(String(j&&j.source||'').toLowerCase()!=='website booking')return false;
+  if(!isWebsiteBookingJob(j))return false;
   var types=jobTypeValues(j),hasGeneric=types.some(function(t){return normaliseJobTypeKey(t)==='service'}),hasResolved=types.some(function(t){var k=normaliseJobTypeKey(t);return k==='interim service'||k==='major service'});
   return hasGeneric&&!hasResolved;
 }
@@ -8726,7 +8731,7 @@ function resolveWebsiteServiceChoice(choice){
   var prompt=document.getElementById('websiteServiceResolve');if(prompt)prompt.remove();
 }
 function websiteBookingPanelHtml(j){
-  if(String(j&&j.source||'').toLowerCase()!=='website booking')return '';
+  if(!isWebsiteBookingJob(j))return '';
   var details=websiteJobDetails(j),buttons=details.dates.map(function(d,i){return '<button type="button" class="websiteDateChoice" data-website-date="'+esc(d)+'"><b>Option '+(i+1)+'</b><span>'+esc(requestDate(d))+'</span></button>'}).join('');
   return websiteServiceResolveHtml(j)+'<section class="websiteJobRequestPanel"><div><strong>Website booking request</strong><p>Choose one of the customer’s suggested dates to copy it into the booking date.</p></div><div class="websiteDateChoices">'+(buttons||'<span>No suggested dates were supplied.</span>')+'</div><div class="websiteRequestMeta"><span><b>Needed by:</b> '+esc(details.deadline||'Not provided')+'</span><span><b>Preferred contact:</b> '+esc(details.contact||'Not provided')+'</span></div></section>';
 }
@@ -9239,6 +9244,11 @@ function applyTemplate(name){
     }else if(!exists&&typeWork){
       var currentKey=current.toLowerCase().replace(/\s+/g,' ').trim(),typeKey=typeWork.toLowerCase().replace(/\s+/g,' ').trim();
       if(typeKey&&currentKey.indexOf(typeKey)===-1)work.value=current.replace(/\s+$/,'')+(current.trim()?'\n':'')+typeWork;
+    }else if(exists&&typeWork){
+      /* Remove only the exact wording supplied by this job-type template.
+         Keep every other selected template and all customer/manual notes. */
+      var escapedTypeWork=typeWork.replace(/[.*+?^${}()|[\]\\]/g,'\\$&'),blockPattern=new RegExp('(?:^|\\n)\\s*'+escapedTypeWork+'\\s*(?=\\n|$)','i');
+      work.value=current.replace(blockPattern,'').replace(/^\s*\n|\n\s*$/g,'').replace(/\n{3,}/g,'\n\n');
     }
     work.dataset.autoTemplateText=newAuto;
   }
