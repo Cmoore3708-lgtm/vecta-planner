@@ -1,9 +1,17 @@
 {
   "version": 2,
+  "crons": [
+    { "path": "/api/fleet-nightly-refresh", "schedule": "30 22 * * *" }
+  ],
+  "functions": {
+    "api/fleet-nightly-refresh.js": { "maxDuration": 300 }
+  },
   "rewrites": [
     { "source": "/booking", "destination": "/booking.html" },
     { "source": "/booking/", "destination": "/booking.html" },
     { "source": "/(.*)", "destination": "/index.html" }
   ],
-  "headers": [{ "source": "/(.*)", "headers": [{ "key": "Cache-Control", "value": "no-store, no-cache, must-revalidate" }] }]
+  "headers": [
+    { "source": "/(.*)", "headers": [{ "key": "Cache-Control", "value": "no-store, no-cache, must-revalidate" }] }
+  ]
 }

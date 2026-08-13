@@ -53,6 +53,27 @@ async function getAccessToken() {
   return tokenCache.accessToken;
 }
 
+
+async function lookupTax(registration) {
+  const apiKey = process.env.DVLA_API_KEY;
+  if (!apiKey) return null;
+  const url = process.env.DVLA_API_URL || 'https://driver-vehicle-licensing.api.gov.uk/vehicle-enquiry/v1/vehicles';
+  const response = await fetch(url, {
+    method: 'POST',
+    headers: { 'x-api-key': apiKey, 'content-type': 'application/json', Accept: 'application/json' },
+    body: JSON.stringify({ registrationNumber: registration })
+  });
+  const payload = await response.json().catch(() => ({}));
+  if (!response.ok) throw new Error(payload.message || `DVLA request failed (${response.status})`);
+  return {
+    taxStatus: payload.taxStatus || '',
+    taxDueDate: payload.taxDueDate || '',
+    dvlaMotStatus: payload.motStatus || '',
+    dvlaMotExpiryDate: payload.motExpiryDate || '',
+    dvlaFetchedAt: new Date().toISOString()
+  };
+}
+
 export default async function handler(req, res) {
   if (req.method !== 'GET') {
     res.setHeader('Allow', 'GET');
@@ -94,6 +115,8 @@ export default async function handler(req, res) {
       .map(defect => String(defect?.text || '').trim())
       .filter(Boolean);
 
+    const tax = await lookupTax(registration);
+
     return res.status(200).json({
       registration: vehicle?.registration || registration,
       make: vehicle?.make || '',
@@ -112,6 +135,11 @@ export default async function handler(req, res) {
       advisories,
       currentDefects,
       motTests,
+      taxStatus: tax?.taxStatus || '',
+      taxDueDate: tax?.taxDueDate || '',
+      dvlaMotStatus: tax?.dvlaMotStatus || '',
+      dvlaMotExpiryDate: tax?.dvlaMotExpiryDate || '',
+      taxApiConfigured: Boolean(process.env.DVLA_API_KEY),
       fetchedAt: new Date().toISOString()
     });
   } catch (error) {
