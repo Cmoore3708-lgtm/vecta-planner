@@ -8,12 +8,6 @@
   <!-- VECTA V41.27: MOT/service date alignment and Fleet summary layout -->
 <title>VECTA Workshop Pro v77 Automatic MOT & Tax Refresh</title>
   <meta name="description" content="VECTA Workshop Pro - stable static workshop planner" />
-  <!-- V41.55: financial page performance fix; unified financial reporting rules.
-   Today = all scheduled work today, whether completed or not.
-   Future Work Booked = all open future-dated work + all open unallocated jobs.
-   MTD/FYTD/performance/EOM = financially completed work only.
-   Staff Ready to Invoice is treated as financially completed.
-   All reporting values are shown Ex VAT. -->
 <style>
     :root{
       --red:#e11d2e;--red2:#b91421;--black:#0b1220;--nav:#0d1728;--line:#e5e7eb;--muted:#64748b;--bg:#f6f8fb;--card:#fff;--text:#0f172a;--yellow:#ffd83d;--green:#16a34a;--blue:#2563eb;--purple:#7c3aed;--orange:#f59e0b;--shadow:0 16px 40px rgba(15,23,42,.08)
@@ -1077,7 +1071,7 @@ body.servicePreviewing .servicePreviewControls{position:relative!important;z-ind
   .invoicePrintPage .printTable{margin-top:14px!important}
   .invoicePrintPage .printTable th{border-bottom:1px solid #777!important;background:transparent!important;color:#111!important}
   .invoicePrintPage .printTable td{border-bottom:1px solid #ddd!important}
-  .invoicePrintPage .printTotals{margin-top:auto!important;margin-left:auto!important;margin-bottom:9mm!important;width:76mm!important;padding:0!important;text-align:right!important;line-height:1.7!important}
+  .invoicePrintPage .printTotals{margin-top:auto!important;margin-left:auto!important;margin-bottom:18mm!important;width:76mm!important;padding:0!important;text-align:right!important;line-height:1.7!important}
   .invoicePrintPage .printTotals b{display:inline-block!important;min-width:28mm!important;text-align:right!important;margin-right:8mm!important}
   .invoicePrintPage .printPayment{margin-top:6mm!important;padding:4px 0!important;background:transparent!important}
 }
@@ -8191,6 +8185,9 @@ async function refreshCloudAndRender(){
     await pullRemote();
     rollOverOutstandingJobs();
     await syncPendingCarryOvers();
+    /* A live cloud pull can reintroduce bookings saved simultaneously on
+       different devices. Re-run slot allocation after every refresh. */
+    await repairExistingPlannerOverlaps({persistRemote:true});
     active=document.activeElement;
     if(view==='search'&&active&&active.id==='mainSearch')return;
     if(view==='jobs'&&active&&active.id==='jobSearch')return;
@@ -9417,7 +9414,7 @@ async function deleteJobCompletely(id){
 function roundPlannerMinutesUp(minutes){return Math.ceil(Number(minutes||0)/15)*15}
 function plannerIsoDate(date){return date.getFullYear()+'-'+String(date.getMonth()+1).padStart(2,'0')+'-'+String(date.getDate()).padStart(2,'0')}
 function nextWorkshopDate(isoDate){var d=new Date(String(isoDate)+'T12:00:00');if(isNaN(d.getTime()))return isoDate;do{d.setDate(d.getDate()+1)}while(d.getDay()===0||d.getDay()===6);return plannerIsoDate(d)}
-function mechanicBookingIntervals(date,technician,excludeId){return (app.jobs||[]).filter(function(x){return x&&String(x.id)!==String(excludeId||'')&&String(x.booking_date||'')===String(date||'')&&String(x.technician||'')===String(technician||'')&&String(x.technician||'')!=='Unallocated'&&String(x.status||'').toLowerCase()!=='cancelled'}).map(function(x){var start=clockMinutes(x.drop_time||'08:00'),duration=Math.max(15,Math.round(Number(x.estimated_hours||1)*60));return {start:start,end:start+duration,id:x.id}}).sort(function(a,b){return a.start-b.start})}
+function mechanicBookingIntervals(date,technician,excludeId){return (app.jobs||[]).filter(function(x){var status=String(x&&x.status||'').toLowerCase();return x&&String(x.id)!==String(excludeId||'')&&!x.archived&&status!=='completed'&&status!=='cancelled'&&status!=='ready_to_invoice'&&!isJobInvoiced(x)&&String(x.booking_date||'')===String(date||'')&&String(x.technician||'')===String(technician||'')&&String(x.technician||'')!=='Unallocated'}).map(function(x){var start=clockMinutes(x.drop_time||'08:00'),duration=Math.max(15,Math.round(Number(x.estimated_hours||1)*60));return {start:start,end:start+duration,id:x.id}}).sort(function(a,b){return a.start-b.start})}
 function findNextMechanicSlot(job,excludeId){
   if(!job||!job.booking_date||!job.technician||job.technician==='Unallocated')return null;
   var duration=Math.max(15,roundPlannerMinutesUp(Number(job.estimated_hours||1)*60)),date=String(job.booking_date),requested=roundPlannerMinutesUp(clockMinutes(job.drop_time||'08:00')),dayStart=8*60,dayEnd=17*60;
