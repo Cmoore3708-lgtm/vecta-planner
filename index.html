@@ -1790,6 +1790,26 @@ body.servicePreviewing .servicePreviewControls{position:relative!important;z-ind
 @media(max-width:700px){.privatePricingRow{grid-template-columns:1fr 120px 42px}.privatePricingLock{margin-left:0}.privatePricingTotal{width:100%;min-width:0}}
 </style>
 
+
+<style id="v93-fleet-booked-tick-spacing">
+/* V93: keep each due badge and its booked tick together, with predictable spacing. */
+.fleetDueBadgeBooked{display:inline-flex;align-items:center;gap:4px;flex:0 0 auto}
+.fleetDueIcons{gap:7px!important}
+.fleetBookedTick{margin-left:0!important;width:12px;min-width:12px;font-size:14px!important}
+.fleetTableHead,.fleetRow{grid-template-columns:125px minmax(140px,1.15fr) minmax(110px,.9fr) 218px!important}
+.fleetDueSubRow{grid-template-columns:125px minmax(150px,1.25fr) minmax(130px,1fr) 148px!important}
+@media(max-width:950px){
+  .fleetTableHead,.fleetRow{grid-template-columns:110px minmax(125px,1.05fr) minmax(100px,.85fr) 202px!important}
+  .fleetDueSubRow{grid-template-columns:110px minmax(130px,1.2fr) minmax(110px,1fr) 135px!important}
+}
+@media(max-width:700px){
+  .fleetTableHead,.fleetRow{grid-template-columns:96px minmax(100px,1fr) minmax(90px,.8fr) 190px!important}
+  .fleetDueSubRow{grid-template-columns:96px minmax(105px,1fr) minmax(95px,1fr) 125px!important}
+  .fleetDueIcons{gap:5px!important}
+  .fleetDueBadgeBooked{gap:3px}
+}
+</style>
+
 </head>
 <body>
 <div id="fatal" class="fatal"></div>
@@ -8616,7 +8636,7 @@ function fleetDueGroupCell(items){
   items=(items||[]).slice().sort(function(a,b){return String(a.due||'').localeCompare(String(b.due||''))||String(a.plan&&a.plan.type||'').localeCompare(String(b.plan&&b.plan.type||''))});
   if(!items.length)return fleetDueCell('','', 'unknown');
   var first=items[0],seen={},icons=[],details=[];
-  items.forEach(function(item){var key=String(item.typeKey||item.plan&&item.plan.type||'').toLowerCase();if(!seen[key]){seen[key]=true;icons.push(fleetDueIcon(item.plan&&item.plan.type||'')+fleetBookedTick(item.bookedJob))}details.push(String(item.plan&&item.plan.type||'Maintenance')+' '+fleetFormat(item.due)+(item.bookedJob?' — booked '+niceDate(item.bookedJob.booking_date):''))});
+  items.forEach(function(item){var key=String(item.typeKey||item.plan&&item.plan.type||'').toLowerCase();if(!seen[key]){seen[key]=true;icons.push('<span class="fleetDueBadgeBooked">'+fleetDueIcon(item.plan&&item.plan.type||'')+fleetBookedTick(item.bookedJob)+'</span>')}details.push(String(item.plan&&item.plan.type||'Maintenance')+' '+fleetFormat(item.due)+(item.bookedJob?' — booked '+niceDate(item.bookedJob.booking_date):''))});
   return '<span class="fleetDueCell fleetDueMultiCell" title="'+esc(details.join(' · '))+'"><span class="fleetDueIcons">'+icons.join('')+'</span><span class="fleetDueText '+esc(fleetTone(first.due))+'">'+fleetFormat(first.due)+'</span></span>';
 }
 function fleetPlanDueByType(v,type){var matches=(v.plans||[]).map(function(p){return {date:String(p.type||'').toLowerCase().indexOf(String(type||'').toLowerCase())>-1?(fleetDate(p)||''):''}}).filter(function(x){return !!x.date}).sort(function(a,b){return a.date.localeCompare(b.date)});return matches.length?matches[0].date:''}
