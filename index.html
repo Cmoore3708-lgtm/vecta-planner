@@ -8867,7 +8867,7 @@ function websiteJobDetails(j){
   var note=String(j&&j.customer_note||''),match=note.match(/Website booking dates:\s*([^|][\s\S]*?)\s*\|\|/i),dates=[];
   if(match)dates=(match[1].match(/\d{4}-\d{2}-\d{2}/g)||[]).slice(0,3);
   var deadline=(note.match(/Completion deadline:\s*([^|]*?)(?:\s*\|\||$)/i)||[])[1]||'';
-  var contact=(note.match(/Contact preference:\s*([^|]*?)(?:\s*\|\||$)/i)||[])[1]||'';
+  var contact=(note.match(/Contact preference:\s*([^|]*?)(?=\s*\|\||\s*\[\[|$)/i)||[])[1]||'';
   return {dates:dates,deadline:String(deadline).trim(),contact:String(contact).trim()};
 }
 function isWebsiteBookingJob(j){
