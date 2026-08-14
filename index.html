@@ -1,6 +1,7 @@
 <!doctype html>
 <html lang="en">
 <head>
+  <!-- VECTA V93: Fleet due list shows every outstanding due item per vehicle -->
   <!-- VECTA V92: Fleet due-work booked ticks -->
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -1647,7 +1648,7 @@ body.servicePreviewing .servicePreviewControls{position:relative!important;z-ind
 
 /* V41.29: compact shared-date due badges, clean model display and urgent job-card registration warning. */
 .fleetTableHead,.fleetRow{grid-template-columns:125px minmax(140px,1.15fr) minmax(110px,.9fr) 188px}
-.fleetDueMultiCell{gap:7px!important}.fleetDueIcons{display:inline-flex;align-items:center;justify-content:flex-end;gap:3px;min-width:0}.fleetDueMultiCell .fleetDueText{min-width:74px}.fleetDueGroup>.fleetRow{border-top:1px solid #eef2f6}
+.fleetDueMultiCell{gap:7px!important;justify-content:flex-end}.fleetDueIcons{display:inline-flex;align-items:center;justify-content:flex-end;gap:3px;min-width:0}.fleetDueMultiCell .fleetDueText{min-width:74px}.fleetDueItems{display:flex;flex-direction:column;align-items:flex-end;gap:3px;min-width:0}.fleetDueItem{display:flex;align-items:center;justify-content:flex-end;gap:6px;white-space:nowrap}.fleetDueItem .fleetDueText{min-width:74px}.fleetDueGroup>.fleetRow{border-top:1px solid #eef2f6}
 .fleetBookedTick{display:inline-flex;align-items:center;justify-content:center;color:#dc2626;font-size:15px;font-weight:1000;line-height:1;margin-left:2px;flex:0 0 auto}.fleetBookedTick[title]{cursor:help}.fleetBookedLegend{display:inline-flex;align-items:center;gap:5px;color:#991b1b;font-size:11px;font-weight:800;margin-left:8px}
 .plateInputWrap.vehicleDueSoon{border-color:#111827!important;background:#e2bf3f!important;box-shadow:none!important}.plateInputWrap.vehicleDueSoon>span{background:#1d4ed8!important}.plateInputWrap.vehicleDueSoon input.plateField{background:#e2bf3f!important;color:#111827!important;text-shadow:none!important}
 .jobVehicleDuePanel{grid-template-columns:repeat(4,minmax(0,1fr))}
@@ -8710,9 +8711,14 @@ function fleetDueCell(type,due,tone,booked){return '<span class="fleetDueCell">'
 function fleetDueGroupCell(items){
   items=(items||[]).slice().sort(function(a,b){return String(a.due||'').localeCompare(String(b.due||''))||String(a.plan&&a.plan.type||'').localeCompare(String(b.plan&&b.plan.type||''))});
   if(!items.length)return fleetDueCell('','', 'unknown');
-  var first=items[0],seen={},icons=[],details=[];
-  items.forEach(function(item){var key=String(item.typeKey||item.plan&&item.plan.type||'').toLowerCase();if(!seen[key]){seen[key]=true;icons.push('<span class="fleetDueBadgeBooked">'+fleetDueIcon(item.plan&&item.plan.type||'')+fleetBookedTick(item.bookedJob)+'</span>')}details.push(String(item.plan&&item.plan.type||'Maintenance')+' '+fleetFormat(item.due)+(item.bookedJob?' — booked '+niceDate(item.bookedJob.booking_date):''))});
-  return '<span class="fleetDueCell fleetDueMultiCell" title="'+esc(details.join(' · '))+'"><span class="fleetDueIcons">'+icons.join('')+'</span><span class="fleetDueText '+esc(fleetTone(first.due))+'">'+fleetFormat(first.due)+'</span></span>';
+  var seen={},rows=[],details=[];
+  items.forEach(function(item){
+    var key=String(item.typeKey||item.plan&&item.plan.type||'').toLowerCase();
+    details.push(String(item.plan&&item.plan.type||'Maintenance')+' '+fleetFormat(item.due)+(item.bookedJob?' — booked '+niceDate(item.bookedJob.booking_date):''));
+    if(seen[key])return;seen[key]=true;
+    rows.push('<span class="fleetDueItem">'+fleetDueIcon(item.plan&&item.plan.type||'')+fleetBookedTick(item.bookedJob)+'<span class="fleetDueText '+esc(fleetTone(item.due))+'">'+fleetFormat(item.due)+'</span></span>');
+  });
+  return '<span class="fleetDueCell fleetDueMultiCell" title="'+esc(details.join(' · '))+'"><span class="fleetDueItems">'+rows.join('')+'</span></span>';
 }
 function fleetPlanDueByType(v,type){var matches=(v.plans||[]).map(function(p){return {date:String(p.type||'').toLowerCase().indexOf(String(type||'').toLowerCase())>-1?(fleetDate(p)||''):''}}).filter(function(x){return !!x.date}).sort(function(a,b){return a.date.localeCompare(b.date)});return matches.length?matches[0].date:''}
 function fleetDisplayedDue(v,mode){if(mode==='mot30')return fleetPlanDueByType(v,'MOT');if(mode==='tax30')return fleetPlanDueByType(v,'Tax');if(mode==='service30')return fleetPlanDueByType(v,'Service');return v.nextDue||''}
@@ -8849,7 +8855,7 @@ function fleetMaintenanceHtml(){
     if(value.indexOf('tax')>-1)return 'tax';
     return 'other';
   }
-  function isDueInWindow(date){if(!date)return false;var d=new Date(date+'T00:00:00');return d>=today&&d<=limit}
+  function isDueInWindow(date){if(!date)return false;var d=new Date(date+'T00:00:00');return d<=limit}
   function rowMatches(v){
     var hay=[v.registration,v.model,fleetDisplayModel(v.model),v.customer,v.fleetGroup,v.contactEmail,v.department,v.assetNo].join(' ').toLowerCase(),
       searchOk=terms.every(function(term){return hay.indexOf(term)>-1}),

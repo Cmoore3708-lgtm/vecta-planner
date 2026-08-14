@@ -66,9 +66,17 @@ async function lookupTax(registration) {
   if (!response.ok) throw new Error(body.message || `DVLA ${response.status}`);
   return { taxDueDate: isoDate(body.taxDueDate), taxStatus: body.taxStatus || '', dvlaMotExpiryDate: isoDate(body.motExpiryDate), dvlaMotStatus: body.motStatus || '' };
 }
+function maintenanceCategory(value) {
+  const t = String(value || '').toLowerCase();
+  if (/six[- ]?month|6[- ]?month|safety check/.test(t)) return 'safety';
+  if (/\bmot\b/.test(t)) return 'mot';
+  if (/\btax\b|road tax/.test(t)) return 'tax';
+  if (/service/.test(t) && !/on[- ]?site/.test(t)) return 'service';
+  return t.trim();
+}
 function planFor(plans, vehicleId, type) {
-  const t = type.toLowerCase();
-  return plans.find(p=>String(p?.vehicleId||'')===String(vehicleId) && String(p?.status||'Active').toLowerCase()!=='paused' && String(p?.type||'').toLowerCase()===t) || null;
+  const category = maintenanceCategory(type);
+  return plans.find(p=>String(p?.vehicleId||'')===String(vehicleId) && String(p?.status||'Active').toLowerCase()!=='paused' && maintenanceCategory(p?.type)===category) || null;
 }
 function shouldScanVehicle(vehicle, plans, full) {
   if (full) return true;
