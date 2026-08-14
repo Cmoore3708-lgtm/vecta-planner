@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="en">
 <head>
-  <!-- VECTA V98: Nissan pool contact emails + tax references + one-click service email -->
+  <!-- VECTA V100: preserve spreadsheet-specific Nissan contacts; stop Pool default email overwrite -->
   <!-- VECTA V93: Fleet due list shows every outstanding due item per vehicle -->
   <!-- VECTA V92: Fleet due-work booked ticks -->
   <meta charset="utf-8" />
@@ -8572,8 +8572,9 @@ function fleetDisplayModel(value){
   return [pretty,engine,fuel].filter(Boolean).join(' ');
 }
 function fleetAssignPoolEmail(){
+  /* V100: do not overwrite per-vehicle contacts imported from the Nissan contact spreadsheet. */
   var email='laura.ridley@nissan-nmuk.co.uk',changed=false;
-  (fleetVehicles||[]).forEach(function(v){if(v&&v.fleetGroup==='Nissan Pool Cars'&&v.contactEmail!==email){v.contactEmail=email;changed=true}});
+  (fleetVehicles||[]).forEach(function(v){if(v&&v.fleetGroup==='Nissan Pool Cars'&&!String(v.contactEmail||'').trim()){v.contactEmail=email;changed=true}});
   if(changed)localStorage.setItem('vecta:fleet:vehicles:v1',JSON.stringify(fleetVehicles));
   return changed;
 }
@@ -10504,7 +10505,7 @@ function applyVehicleAllocationSpreadsheetCorrections(){
   function patchVehicle(v){if(!v)return;var k=key(v.registration);if(k==='VN22UHV'){v.registration='HN22 UHV';k='HN22UHV';if(v.id&&String(v.id).indexOf('CONTRACTOR|')===0)v.id='CONTRACTOR|HN22UHV'}var c=corrections[k];if(c)Object.keys(c).forEach(function(f){v[f]=c[f]})}
   (fleetVehicles||[]).forEach(patchVehicle);
   var seen={};fleetVehicles=(fleetVehicles||[]).filter(function(v){var k=key(v.registration);if(!k||seen[k])return false;seen[k]=true;return true});
-  try{localStorage.setItem('vecta:fleet:vehicles:v1',JSON.stringify(fleetVehicles))}catch(e){}
+  try{localStorage.setItem('vecta:fleet:vehicles:v1',JSON.stringify(fleetVehicles));if(remoteClient&&typeof persistFleetCloudSnapshot==='function')persistFleetCloudSnapshot()}catch(e){}
   (app.vehicles||[]).forEach(patchVehicle);
   (app.jobs||[]).forEach(function(j){if(key(j.registration)==='VN22UHV')j.registration='HN22 UHV';if(key(j.registration)==='HN22UHV'&&!j.vehicle)j.vehicle='Ford Ranger'});
   try{if(typeof saveLocal==='function')saveLocal()}catch(e){}
