@@ -421,17 +421,19 @@ html,body{font-size:14px;background:var(--bg);color:var(--text)}.app{grid-templa
 .job .jobLeft .jobVehicle{margin:0!important;font-size:14px!important;line-height:1.05!important;font-weight:950!important;color:#111827!important}
 .job .jobLeft .jobCustomer{margin:0!important;font-size:11px!important;line-height:1.05!important}
 .jobTypeBadge{font-size:12px!important;padding:4px 5px!important}
-.templateSettings{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:12px!important}
-.templateRow.reorderableTemplate{display:grid!important;grid-template-columns:42px minmax(190px,1.1fr) minmax(240px,1.8fr) 92px 105px!important;gap:10px!important;align-items:end!important;padding:12px!important;background:#f8fafc!important;border:1px solid var(--line)!important;border-radius:10px!important;min-width:0!important}
+.templateSettings{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:16px!important;min-width:0!important;overflow:hidden!important}
+.templateRow.reorderableTemplate{display:grid!important;grid-template-columns:32px minmax(0,.82fr) minmax(0,1.28fr) 58px 68px!important;gap:6px!important;align-items:end!important;padding:9px!important;background:#f8fafc!important;border:1px solid var(--line)!important;border-radius:10px!important;min-width:0!important;max-width:100%!important;overflow:hidden!important}
 .templateRow .desc{grid-column:auto!important}
-.templateRow .field{min-width:0!important}
-.templateRow .field input,.templateRow .field textarea{width:100%!important;min-width:0!important;padding:9px 10px!important}
+.templateRow>*{min-width:0!important;max-width:100%!important;box-sizing:border-box!important}
+.templateRow .field{min-width:0!important;max-width:100%!important;overflow:hidden!important}
+.templateRow .field input,.templateRow .field textarea{display:block!important;width:100%!important;max-width:100%!important;min-width:0!important;padding:8px 7px!important;box-sizing:border-box!important}
 .templateRow .field textarea{height:42px!important;min-height:42px!important;resize:vertical!important}
-.templateRow .tplName input{font-size:14px!important;font-weight:800!important}
-.templateRow .tplHours input,.templateRow .tplPrice input{font-size:14px!important;text-align:center!important}
+.templateRow .tplName input{font-size:13px!important;font-weight:800!important}
+.templateRow .tplHours input,.templateRow .tplPrice input{font-size:13px!important;text-align:center!important}
+.templateRow .templateDragHandle{width:32px!important;padding:0!important}
 .templateMoveBtns{display:none!important}
 .templatePanelHead .muted:after{content:" Drag the handle to change the order."!important}
-@media(max-width:1350px){.templateSettings{grid-template-columns:1fr!important}}
+@media(max-width:1280px){.templateSettings{grid-template-columns:1fr!important}}
 @media(max-width:800px){.templateRow.reorderableTemplate{grid-template-columns:42px 1fr!important}.templateRow .desc,.templateRow .tplHours,.templateRow .tplPrice{grid-column:2!important}.job .jobBody{padding-right:108px!important}.jobTypeBadge{width:104px!important;max-width:104px!important}}
 @media print{.printBrandLogo{width:190px!important;max-height:62px!important}.invoiceBrandLogo{width:210px!important}}
 
