@@ -66,6 +66,7 @@ async function lookupTax(registration) {
   const payload = await response.json().catch(() => ({}));
   if (!response.ok) throw new Error(payload.message || `DVLA request failed (${response.status})`);
   return {
+    engineCapacity: payload.engineCapacity || '',
     taxStatus: payload.taxStatus || '',
     taxDueDate: payload.taxDueDate || '',
     dvlaMotStatus: payload.motStatus || '',
@@ -124,7 +125,11 @@ export default async function handler(req, res) {
       vehicle: [vehicle?.make, vehicle?.model].filter(Boolean).join(' '),
       fuelType: vehicle?.fuelType || '',
       primaryColour: vehicle?.primaryColour || '',
-      engineSize: vehicle?.engineSize || '',
+      // The DVSA MOT history response does not reliably include engine size.
+      // DVLA Vehicle Enquiry supplies engineCapacity, so prefer that value for
+      // automatic service pricing and retain the DVSA value as a fallback.
+      engineSize: tax?.engineCapacity || vehicle?.engineSize || '',
+      engineCapacity: tax?.engineCapacity || vehicle?.engineSize || '',
       firstUsedDate: vehicle?.firstUsedDate || vehicle?.registrationDate || '',
       manufactureDate: vehicle?.manufactureDate || '',
       lastMotTestDate: vehicle?.lastMotTestDate || lastTest?.completedDate || '',
