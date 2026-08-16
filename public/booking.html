@@ -43,7 +43,7 @@ function engineLabel(value){let cc=engineCc(value||state.form.engine_size_manual
 function serviceGuidePrices(value){let cc=engineCc(value||state.form.engine_size_manual);if(!cc)return null;if(cc<=1200)return{band:'Up to 1.2L',oil:80,full:140,major:195};if(cc<=1600)return{band:'1.3–1.6L',oil:85,full:155,major:210};if(cc<=2000)return{band:'1.7–2.0L',oil:90,full:165,major:220};if(cc<=2500)return{band:'2.1–2.5L',oil:95,full:180,major:230};if(cc<=3000)return{band:'2.6–3.0L',oil:105,full:195,major:250};return{band:'Over 3.0L',individual:true}}
 
 function serviceChoicePrice(choice,band){
-  if(!band)return 'Price confirmed after vehicle check';
+  if(!band)return 'Enter your engine size for a price estimate';
   if(band.individual)return 'Price individually';
   if(choice==='Interim Service')return `£${band.oil}`;
   if(choice==='Full Service')return `£${band.full}`;
