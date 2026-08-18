@@ -2376,7 +2376,7 @@ body.servicePreviewing .servicePreviewControls{position:relative!important;z-ind
   <aside class="side">
     <div class="logo"><div class="logoMark">VECTA</div><div class="product" style="font-size:18px!important;font-weight:900!important;letter-spacing:.03em!important;color:#fff!important;text-transform:none!important">Workshop Pro</div></div>
     <nav class="nav" id="nav"></nav>
-    <div class="sideFoot"><b>V179 Workshop Pro</b><br>Ready-to-invoice validation<br>and preset editor sizing fix.</div>
+    <div class="sideFoot"><b>V181 Workshop Pro</b><br>Registration matching + historical<br>On-Site Service label fix.</div>
   </aside>
   <main class="main">
     <header class="top">
@@ -8403,7 +8403,7 @@ function todayIso(){return iso(new Date())}
 function emailLinkHtml(email,emptyText){email=String(email||'').trim();if(!email)return esc(emptyText||'Not recorded');return '<a class="contactEmailLink" href="mailto:'+encodeURIComponent(email)+'" title="Email '+esc(email)+'">'+esc(email)+'</a>'}
 function money(n){return '£'+(Number(n||0)).toFixed(2)}
 function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
-function normReg(s){return String(s||'').toUpperCase().replace(/\s+/g,'').slice(0,10)}
+function normReg(s){return String(s||'').toUpperCase().replace(/[^A-Z0-9]/g,'').slice(0,10)}
 function allVehicleHistoryJobs(regValue){
   var reg=normReg(regValue||''),seen={},out=[];
   function add(raw){var j=String(raw&&raw.booking_source||'').indexOf('Contractor spreadsheet import')>-1?normaliseContractorImportedJob(raw):raw;if(!j||normReg(j.registration||'')!==reg)return;var id=String(j.id||[j.booking_date,j.registration,j.work_required,j.amount_quoted].join('|'));if(seen[id])return;seen[id]=true;out.push(j)}
@@ -8492,9 +8492,8 @@ function formatJobTypeLabel(raw,work,inferFromWork){
   var source=(raw+' '+(inferFromWork?String(work||''):'' )).toLowerCase();
   if(/full\s+service/.test(source))return 'Full Service';
   if(/interim\s+service/.test(source))return 'Full Service';
-  /* Explicit On-Site Service wording is stronger than a generic mention of a safety check.
-     Some historic on-site service descriptions include "Full safety check", which must not
-     relabel the job as a Six Month Safety Check. */
+  /* Explicit On-Site Service wording takes priority over generic safety-check wording.
+     This applies when rendering current and historical jobs. */
   if(/on[\s-]*site\s+service/.test(source))return 'On-Site Service';
   if(/(?:six|6)[\s-]*months?\s+safety\s+check|safety\s+check/.test(source))return 'Six Month Safety Check';
   if(normaliseJobTypeKey(raw)==='general'&&/\binspection\b/.test(source))return 'Inspection';
@@ -8699,9 +8698,6 @@ function loadLocal(){
     }catch(e){console.warn('Legacy task migration skipped',key,e)}
   });
   migrateLegacyTasksLocal();
-  /* Registration comparisons use normReg(), so spaces/case never split vehicle history.
-     Correct historical On-Site Service labels locally as well as after cloud sync. */
-  migrateHistoricalVehicleIdentityAndJobLabels().catch(function(e){console.warn('Local historical job label migration skipped',e)});
   purgeDeletedWebsiteTestBookingH4uxm().catch(function(e){console.warn('H4UXM local purge failed',e)});
   applyTaskStateOverrides();
   if(importedLegacy||raw)saveLocal();
@@ -8781,35 +8777,6 @@ async function migrateNk16CyoVehicleTaxJob(){
   if(remoteClient){for(var i=0;i<changed.length;i++){try{await upsertRemote('jobs',changed[i],{silent:true})}catch(e){console.warn('NK16 CYO Vehicle Tax migration could not sync',e)}}}
   return true;
 }
-async function migrateHistoricalVehicleIdentityAndJobLabels(){
-  var changed=[];
-  (app.jobs||[]).forEach(function(j){
-    if(!j)return;
-    var work=String(j.work_required||j.summary_of_work||'').replace(/\s+/g,' ').trim();
-    var rawTypes=jobTypeValues(j),hasExplicitOnSite=/\bon[\s-]*site\s+service\b/i.test(work);
-    if(hasExplicitOnSite){
-      var next=rawTypes.map(function(type){
-        var key=normaliseJobTypeKey(type);
-        return (key==='general'||key==='service'||key==='six month safety check'||key==='safety check')?'On-Site Service':type;
-      });
-      if(!next.some(function(type){return normaliseJobTypeKey(type)==='on site service'}))next.unshift('On-Site Service');
-      var newType=jobTypeStorageValue(next);
-      if(String(j.job_type||'')!==newType){j.job_type=newType;j.job_types=jobTypeValues(newType);j.updated_at=new Date().toISOString();changed.push(j)}
-    }
-  });
-  if(changed.length){
-    saveLocal();
-    if(remoteClient){
-      for(var i=0;i<changed.length;i++){
-        try{await upsertRemote('jobs',changed[i],{silent:true})}
-        catch(e){console.warn('Historical On-Site Service label migration could not sync',changed[i]&&changed[i].id,e)}
-      }
-    }
-  }
-  return changed.length;
-}
-function sameRegistration(a,b){return !!normReg(a||'')&&normReg(a||'')===normReg(b||'')}
-
 async function pullRemote(){
   if(!connectSupabase()) return;
   var tables=['jobs','customers','vehicles','tasks','invoices','service_records','website_booking_requests'];
@@ -8822,7 +8789,6 @@ async function pullRemote(){
   await pullInvoicePaymentMethods();
   try{var ts=await remoteClient.from('workshop_settings').select('*').eq('id','task_state_overrides_v50').single();if(!ts.error&&ts.data&&ts.data.value){app.settings.taskStateOverrides=mergeTaskStateMaps(hydrateIndependentTaskState(),ts.data.value);writeIndependentTaskState(app.settings.taskStateOverrides)}}catch(e){console.warn('Shared task state pull failed',e)}
   try{var jc=await remoteClient.from('workshop_settings').select('id,value,updated_at').like('id','jobcustomer:%').limit(1000);if(!jc.error&&Array.isArray(jc.data)){app.jobCustomerMemory=app.jobCustomerMemory||{};jc.data.forEach(function(row){var id=String(row.id||'').replace(/^jobcustomer:/,'');if(id&&row.value&&typeof row.value==='object'){var current=app.jobCustomerMemory[id],ct=Date.parse(current&&current.updated_at||0)||0,rt=Date.parse(row.updated_at||row.value.updated_at||0)||0;if(!current||rt>=ct)app.jobCustomerMemory[id]=Object.assign({},row.value,{updated_at:row.updated_at||row.value.updated_at||''})}})}}catch(e){console.warn('Shared job customer memory pull failed',e)}
-  await migrateHistoricalVehicleIdentityAndJobLabels();
   await migrateNk16CyoVehicleTaxJob();
   await purgeDeletedWebsiteTestBookingH4uxm();
   applyTaskStateOverrides();
@@ -9411,20 +9377,7 @@ function fleetPrintCurrentView(){
   var titles={due30:'All work due in the next 30 days',overdue:'Overdue fleet work',mot30:'MOTs due in the next 30 days',service30:'Services due in the next 30 days',tax30:'Tax due in the next 30 days',safety30:'Six-month safety checks due in the next 30 days'};
   var generated=new Date().toLocaleString('en-GB'),rangeText=mode==='overdue'?'Overdue as at '+niceDate(todayIso()):niceDate(todayIso())+' to '+niceDate(new Date(limit.getTime()-limit.getTimezoneOffset()*60000).toISOString().slice(0,10));
   var vehicleCount=new Set(rows.map(function(r){return r.vehicle.id||normReg(r.vehicle.registration||'')})).size;
-  var html='<!doctype html><html><head><meta charset="utf-8"><title>'+esc(titles[mode])+'</title><style>@page{size:A4 portrait;margin:12mm}*{box-sizing:border-box}body{font-family:Arial,Helvetica,sans-serif;color:#111827;margin:0;font-size:11px}.head{display:flex;justify-content:space-between;align-items:flex-end;border-bottom:3px solid #111827;padding-bottom:8px;margin-bottom:12px}.brand{font-size:28px;font-weight:900;letter-spacing:.08em;color:#b91c1c}.head h1{margin:0;font-size:20px}.meta{text-align:right;color:#475569;font-size:10px}.summary{display:flex;gap:8px;margin:0 0 10px}.summary div{border:1px solid #cbd5e1;border-radius:6px;padding:6px 9px}.summary b{font-size:16px;display:block}table{width:100%;border-collapse:collapse}thead{display:table-header-group}th{background:#f1f5f9;text-align:left;font-size:9px;text-transform:uppercase;letter-spacing:.04em;padding:7px 6px;border-bottom:2px solid #94a3b8}td{padding:7px 6px;border-bottom:1px solid #e2e8f0;vertical-align:top}.reg{font-weight:800;white-space:nowrap}.due{font-weight:800;white-space:nowrap}.type{font-weight:700}.customer{white-space:nowrap}.foot{margin-top:10px;color:#64748b;font-size:9px}</style></head><body><div class="head"><div><div class="brand">VECTA</div><h1>'+esc(titles[mode])+'</h1></div><div class="meta">'+esc(rangeText)+'<br>Printed '+esc(generated)+'</div></div><div class="summary"><div><b>'+rows.length+'</b>work items</div><div><b>'+vehicleCount+'</b>vehicles</div></div><table><thead><tr><th>Due date</th><th>Registration</th><th>Vehicle</th><th>Fleet / customer</th><th>Work due</th></tr></thead><tbody>'+rows.map(function(r){var v=r.vehicle,customer=v.fleetGroup==='Contractor Fleet'?fleetNormaliseCustomer(v.customer):fleetGroupLabel(v.fleetGroup);return '<tr><td class="due">'+esc(niceDate(r.due))+'</td><td class="reg">'+esc(normReg(v.registration||''))+'</td><td>'+esc(fleetDisplayModel(v.model))+'</td><td class="customer">'+esc(customer)+'</td><td class="type">'+esc(r.type)+(r.bookedJob?' <b style="color:#dc2626">✓ BOOKED</b>':'')+'</td></tr>'}).join('')+(rows.length?'':'<tr><td colspan="5">No matching fleet work is currently listed in this view.</td></tr>')+'</tbody></table><div class="foot">Generated from the currently selected Fleet Manager tab and filters.</div><script>window.onload=function(){setTimeout(function(){window.print()},150)}<\/script>
-<script id="v180-registration-history-onsite-fix">
-(function(){
-  function setVersion(){
-    try{
-      var foot=document.querySelector('.sideFoot small');
-      if(foot)foot.textContent='v180 Registration History + On-Site Service Fix';
-      document.title='VECTA Workshop Pro v180';
-    }catch(e){}
-  }
-  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',setVersion);else setVersion();
-})();
-</script>
-</body></html>';
+  var html='<!doctype html><html><head><meta charset="utf-8"><title>'+esc(titles[mode])+'</title><style>@page{size:A4 portrait;margin:12mm}*{box-sizing:border-box}body{font-family:Arial,Helvetica,sans-serif;color:#111827;margin:0;font-size:11px}.head{display:flex;justify-content:space-between;align-items:flex-end;border-bottom:3px solid #111827;padding-bottom:8px;margin-bottom:12px}.brand{font-size:28px;font-weight:900;letter-spacing:.08em;color:#b91c1c}.head h1{margin:0;font-size:20px}.meta{text-align:right;color:#475569;font-size:10px}.summary{display:flex;gap:8px;margin:0 0 10px}.summary div{border:1px solid #cbd5e1;border-radius:6px;padding:6px 9px}.summary b{font-size:16px;display:block}table{width:100%;border-collapse:collapse}thead{display:table-header-group}th{background:#f1f5f9;text-align:left;font-size:9px;text-transform:uppercase;letter-spacing:.04em;padding:7px 6px;border-bottom:2px solid #94a3b8}td{padding:7px 6px;border-bottom:1px solid #e2e8f0;vertical-align:top}.reg{font-weight:800;white-space:nowrap}.due{font-weight:800;white-space:nowrap}.type{font-weight:700}.customer{white-space:nowrap}.foot{margin-top:10px;color:#64748b;font-size:9px}</style></head><body><div class="head"><div><div class="brand">VECTA</div><h1>'+esc(titles[mode])+'</h1></div><div class="meta">'+esc(rangeText)+'<br>Printed '+esc(generated)+'</div></div><div class="summary"><div><b>'+rows.length+'</b>work items</div><div><b>'+vehicleCount+'</b>vehicles</div></div><table><thead><tr><th>Due date</th><th>Registration</th><th>Vehicle</th><th>Fleet / customer</th><th>Work due</th></tr></thead><tbody>'+rows.map(function(r){var v=r.vehicle,customer=v.fleetGroup==='Contractor Fleet'?fleetNormaliseCustomer(v.customer):fleetGroupLabel(v.fleetGroup);return '<tr><td class="due">'+esc(niceDate(r.due))+'</td><td class="reg">'+esc(normReg(v.registration||''))+'</td><td>'+esc(fleetDisplayModel(v.model))+'</td><td class="customer">'+esc(customer)+'</td><td class="type">'+esc(r.type)+(r.bookedJob?' <b style="color:#dc2626">✓ BOOKED</b>':'')+'</td></tr>'}).join('')+(rows.length?'':'<tr><td colspan="5">No matching fleet work is currently listed in this view.</td></tr>')+'</tbody></table><div class="foot">Generated from the currently selected Fleet Manager tab and filters.</div><script>window.onload=function(){setTimeout(function(){window.print()},150)}<\/script></body></html>';
   var w=window.open('','_blank');if(!w){alert('Please allow pop-ups to print this Fleet Manager list.');return}try{w.document.open();w.document.write(html);w.document.close();w.focus()}catch(err){try{w.close()}catch(e){}alert('The Fleet Manager print page could not be prepared. Please try again.');console.error('Fleet print failed',err)}
 }
 function fleetPrintDue30Page(){fleetPrintCurrentView()}
