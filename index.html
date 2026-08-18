@@ -9761,7 +9761,7 @@ function unallocatedJobs(){return app.jobs.filter(function(j){return !isVehicleT
 function unallocatedMini(){var p=unallocatedJobs().slice(0,8);if(!p.length)return '<div class="ok">No unallocated jobs.</div>';return p.map(function(j){return '<div class="sideJob" data-open-job="'+j.id+'">'+carryOverBadgeHtml(j)+fullPlate(j.registration)+'<b>'+esc(j.vehicle||'Vehicle')+'</b><p>'+esc(j.work_required||'')+'</p></div>'}).join('')}
 function unallocatedJobCardHtml(j){var carried=!!carryOverMeta(j);return '<div draggable="true" class="sideJob unallocatedSideJob jobTypeCoded '+(carried?'carryOverSideJob':'')+'" style="'+jobTypeInlineStyle(j)+'" data-job-id="'+j.id+'" data-open-unallocated="'+j.id+'" title="Click to open job card">'+carryOverBadgeHtml(j)+compactUnallocatedPlate(j.registration||'NO REG',j)+'<div class="sideJobType">'+jobTypeChip(j)+'</div><b>'+esc(j.work_required||'No work required entered')+'</b><p>'+esc(j.vehicle||'Vehicle')+'</p>'+partsStatusDot(j)+'</div>'}
 function unallocatedPanelHtml(){var rows=unallocatedJobs(),carried=rows.filter(function(j){return !!carryOverMeta(j)}),regular=rows.filter(function(j){return !carryOverMeta(j)});var body='';if(carried.length)body+='<section class="carryOverSection"><div class="carryOverSectionHead">Carried over</div>'+carried.map(unallocatedJobCardHtml).join('')+'</section>';if(regular.length){if(carried.length)body+='<div class="unallocatedRegularHead">Other unallocated jobs</div>';body+=regular.map(unallocatedJobCardHtml).join('')}if(!body)body='<div class="empty">No unallocated jobs.</div>';return '<aside class="panel unallocatedPanel" data-unallocated-drop="true"><div class="unallocatedHead"><h3>Unallocated Jobs <span class="pill">'+rows.length+'</span></h3></div><div class="unallocatedJobList">'+body+'</div></aside>'}
-function plannerMetricsHtml(mechanics,liveJobs,dayJobs){var open=app.jobs.filter(function(j){return !j.archived&&j.status!=='completed'});var ready=app.jobs.filter(function(j){return !j.archived&&j.status==='ready_to_invoice'&&!savedInvoiceForJobId(j.id)});var items=[{label:'Jobs Scheduled',value:dayJobs.length,view:'jobs'},{label:'Open Jobs',value:open.length,view:'jobs'},{label:'Ready To Invoice',value:ready.length,view:'invoices'}];(app.settings.ramps||['Left','Middle','Right']).forEach(function(r){var h=dayJobs.filter(function(j){return j.ramp===r}).reduce(function(a,j){return a+Number(j.estimated_hours||1)},0);items.push({label:r+' Ramp',value:Math.min(100,Math.round(h/8*100))+'%',bar:Math.min(100,Math.round(h/8*100)),view:'planner',cls:'ramp '+rampClass(r),filterType:'ramp',filterName:r});});mechanics.forEach(function(m){var bookedHours=mechanicHours(dayJobs,m),completedHours=dayJobs.filter(function(j){return j.technician===m&&(j.status==='completed'||j.archived)}).reduce(function(a,j){return a+Number(j.estimated_hours||1)},0),bookedPercent=Math.min(100,Math.round(bookedHours/8*100)),completedPercent=bookedHours?Math.min(100,Math.round(completedHours/bookedHours*100)):0;items.push({label:m,dual:true,bookedValue:bookedPercent+'%',bookedBar:bookedPercent,completedValue:completedPercent+'%',completedBar:completedPercent,view:'planner',cls:'tech',filterType:'technician',filterName:m});});return metricsHtml(items).replace('gridMetrics','gridMetrics plannerMetrics')}
+function plannerMetricsHtml(mechanics,liveJobs,dayJobs){var open=app.jobs.filter(function(j){return !j.archived&&j.status!=='completed'});var ready=app.jobs.filter(function(j){return !j.archived&&j.status==='ready_to_invoice'});var items=[{label:'Jobs Scheduled',value:dayJobs.length,view:'jobs'},{label:'Open Jobs',value:open.length,view:'jobs'},{label:'Ready To Invoice',value:ready.length,view:'invoices'}];(app.settings.ramps||['Left','Middle','Right']).forEach(function(r){var h=dayJobs.filter(function(j){return j.ramp===r}).reduce(function(a,j){return a+Number(j.estimated_hours||1)},0);items.push({label:r+' Ramp',value:Math.min(100,Math.round(h/8*100))+'%',bar:Math.min(100,Math.round(h/8*100)),view:'planner',cls:'ramp '+rampClass(r),filterType:'ramp',filterName:r});});mechanics.forEach(function(m){var bookedHours=mechanicHours(dayJobs,m),completedHours=dayJobs.filter(function(j){return j.technician===m&&(j.status==='completed'||j.archived)}).reduce(function(a,j){return a+Number(j.estimated_hours||1)},0),bookedPercent=Math.min(100,Math.round(bookedHours/8*100)),completedPercent=bookedHours?Math.min(100,Math.round(completedHours/bookedHours*100)):0;items.push({label:m,dual:true,bookedValue:bookedPercent+'%',bookedBar:bookedPercent,completedValue:completedPercent+'%',completedBar:completedPercent,view:'planner',cls:'tech',filterType:'technician',filterName:m});});return metricsHtml(items).replace('gridMetrics','gridMetrics plannerMetrics')}
 
 function taskMeta(t){var d={priority:'normal',due:'',notes:'',pinned:false,allocated:false,allocated_to:'',allocated_time:'',mini_job_id:'',registration:'',vehicle:'',owner:'',scheduled_time:'',recurrence_id:'',recurrence_label:''};try{if(t.priority&&String(t.priority).charAt(0)==='{')d=Object.assign(d,JSON.parse(t.priority));else if(t.priority)d.priority=t.priority==='urgent'?'high':(t.priority==='today'?'normal':t.priority)}catch(e){}return d}
 function packTaskMeta(m){return JSON.stringify({priority:m.priority||'normal',due:m.due||'',notes:m.notes||'',pinned:!!m.pinned,allocated:!!m.allocated,allocated_to:m.allocated_to||'',allocated_time:m.allocated_time||'',mini_job_id:m.mini_job_id||'',registration:normReg(m.registration||''),vehicle:m.vehicle||'',owner:m.owner||'',scheduled_time:m.scheduled_time||'',recurrence_id:m.recurrence_id||'',recurrence_label:m.recurrence_label||''})}
@@ -10119,7 +10119,7 @@ function scheduleFinancialPerformanceDashboards(){
   },0);
 }
 function invoicesHtml(){
-  var ready=app.jobs.filter(function(j){return !j.archived&&j.status==='ready_to_invoice'&&!savedInvoiceForJobId(j.id)}),
+  var ready=app.jobs.filter(function(j){return !j.archived&&j.status==='ready_to_invoice'}),
       performance='<div class="card panel"><p class="muted">Loading performance figures…</p></div>',
       key=financeDashboardCacheKey();
   if(financeDashboardCache.key===key&&financeDashboardCache.html)performance=financeDashboardCache.html;
@@ -10151,15 +10151,52 @@ function nextInvoiceSequence(){var max=(app.invoices||[]).reduce(function(n,inv)
 function nextInvoiceNumberText(){return (app.settings.invoicePrefix||'VECTA')+'-'+String(nextInvoiceSequence()).padStart(5,'0')}
 async function deleteInvoiceCompletely(id){
   var inv=(app.invoices||[]).find(function(x){return String(x.id)===String(id)});if(!inv)return;
-  if(!confirm('Delete invoice '+String(inv.invoice_number||'')+' permanently? This removes the invoice completely.'))return;
   var linkedJob=inv.job_id&&(app.jobs||[]).find(function(j){return String(j.id)===String(inv.job_id)});
+  var warning=linkedJob
+    ? 'Permanently delete invoice '+String(inv.invoice_number||'')+' AND the entire linked job for '+jobVehicleLabel(linkedJob)+'?\n\nThis removes the invoice, job, planner/history entry, linked website booking and saved service paperwork. Nothing from this job will return to Ready to Invoice. This cannot be undone.'
+    : 'Delete invoice '+String(inv.invoice_number||'')+' permanently? This removes the invoice completely and cannot be undone.';
+  if(!confirm(warning))return;
   try{
-    await deleteRemote('invoices',inv.id);
-    app.invoices=(app.invoices||[]).filter(function(x){return String(x.id)!==String(inv.id)});
-    if(linkedJob){linkedJob.status='ready_to_invoice';linkedJob.archived=false;linkedJob.invoice_id='';linkedJob.invoiced_at='';linkedJob.updated_at=new Date().toISOString();await upsertRemote('jobs',linkedJob,{silent:true})}
+    if(!linkedJob){
+      await deleteRemote('invoices',inv.id);
+      app.invoices=(app.invoices||[]).filter(function(x){return String(x.id)!==String(inv.id)});
+    }else{
+      var jobId=linkedJob.id;
+      var relatedInvoices=(app.invoices||[]).filter(function(x){return String(x.job_id||'')===String(jobId)});
+      var relatedRecords=(app.serviceRecords||[]).filter(function(rec){return String(rec.job_id||'')===String(jobId)});
+      var relatedRequests=(app.websiteRequests||[]).filter(function(req){return websiteRequestMatchesJob(req,linkedJob)});
+      var linkedWebsiteRequestId=websiteRequestIdFromJob(linkedJob);
+      if(linkedWebsiteRequestId&&!relatedRequests.some(function(req){return String(req.id)===linkedWebsiteRequestId}))relatedRequests.push({id:linkedWebsiteRequestId});
+      var source=String(linkedJob.source||''),taskId=source.indexOf('task:')===0?source.slice(5):'';
+      for(var q=0;q<relatedRequests.length;q++){
+        var requestId=relatedRequests[q].id;
+        try{await deleteRemote('website_booking_requests',requestId)}catch(requestDeleteError){
+          console.warn('Supabase blocked linked website request DELETE; applying hidden deleted status instead.',requestDeleteError);
+          if(!remoteClient)throw requestDeleteError;
+          var softRequest=await remoteClient.from('website_booking_requests').update({status:'deleted'}).eq('id',requestId);
+          if(softRequest.error)throw new Error(softRequest.error.message||'Could not hide linked website booking request');
+        }
+      }
+      await deleteRemote('jobs',jobId);
+      for(var i=0;i<relatedInvoices.length;i++){try{await deleteRemote('invoices',relatedInvoices[i].id)}catch(e){console.warn('Linked invoice deletion failed',e)}}
+      for(var r=0;r<relatedRecords.length;r++){
+        var rec=relatedRecords[r];
+        try{await deleteRemote('service_records',rec.id)}catch(e){console.warn('Linked service record deletion failed',e)}
+        try{await deleteRemote('workshop_settings',rec.id)}catch(e){console.warn('Linked paperwork setting deletion failed',e)}
+        try{localStorage.removeItem(serviceStorageKey(rec.registration||linkedJob.registration,serviceRecordKind(rec),rec.job_id||jobId))}catch(e){}
+      }
+      if(taskId){
+        var task=(app.tasks||[]).find(function(x){return String(x.id)===taskId});
+        if(task){var meta=taskMeta(task);meta.allocated=false;meta.allocated_to='';meta.allocated_time='';meta.mini_job_id='';task.done=false;task.priority=packTaskMeta(meta);try{await upsertRemote('tasks',task,{silent:true})}catch(e){console.warn('Linked task reset failed',e)}}
+      }
+      app.jobs=(app.jobs||[]).filter(function(x){return String(x.id)!==String(jobId)});
+      app.invoices=(app.invoices||[]).filter(function(x){return String(x.job_id||'')!==String(jobId)});
+      app.serviceRecords=(app.serviceRecords||[]).filter(function(rec){return String(rec.job_id||'')!==String(jobId)});
+      if(relatedRequests.length){var deletedRequestIds=relatedRequests.map(function(req){return String(req.id)});app.websiteRequests=(app.websiteRequests||[]).filter(function(req){return deletedRequestIds.indexOf(String(req.id))===-1})}
+    }
     app.settings.nextInvoiceNumber=nextInvoiceSequence();
     await saveAll();financeDashboardCache={key:'',html:'',created:0};closeModals();render()
-  }catch(err){console.error('Invoice delete failed',err);alert('The invoice could not be deleted. No further changes were made.\n\n'+(err&&err.message?err.message:'Database delete failed.'))}
+  }catch(err){console.error('Invoice/job delete failed',err);alert('The invoice and linked job could not be fully deleted. Please check the connection and try again.\n\n'+(err&&err.message?err.message:'Database delete failed.'))}
 }
 function invoiceArchiveRows(query){
   query=String(query||'').trim().toLowerCase();
