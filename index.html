@@ -1934,6 +1934,34 @@ body.servicePreviewing .servicePreviewControls{position:relative!important;z-ind
   width:9px!important;height:9px!important;min-width:9px!important;min-height:9px!important;
 }
 </style>
+
+<style id="v156-parts-ordering-worklist">
+.partsWorkPage{display:grid;gap:18px}
+.partsWorkSection{background:#f7f8fa;border:1px solid #d9dee6;border-radius:12px;padding:14px}
+.partsWorkSectionHead{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+.partsWorkSectionHead h2{margin:0;font-size:17px}
+.partsWorkSectionHead span{min-width:28px;text-align:center;background:#202631;color:#fff;border-radius:999px;padding:4px 8px;font-weight:900}
+.partsWorkCard{background:#fff;border:1px solid #d9dee6;border-radius:10px;margin:10px 0;overflow:hidden;box-shadow:0 2px 7px rgba(15,23,42,.05)}
+.partsWorkHead{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:13px 15px;background:#fbfcfd;border-bottom:1px solid #e4e8ee}
+.partsVehicleIdentity{display:flex;align-items:center;gap:13px;min-width:0}
+.partsVehicleIdentity h3{margin:0;font-size:16px;color:#202631}
+.partsVehicleIdentity p{margin:3px 0 0;color:#64748b;font-size:12px;font-weight:800}
+.partsWorkStatus{display:inline-flex;align-items:center;gap:7px;font-size:12px;font-weight:900;white-space:nowrap}
+.partsWorkStatus i{width:11px;height:11px;border-radius:50%;display:inline-block}
+.partsWorkStatus.parts-red i{background:#dc2626}.partsWorkStatus.parts-amber i{background:#f59e0b}.partsWorkStatus.parts-green i{background:#16a34a}
+.partsWorkList{padding:2px 15px 8px}
+.partsWorkRow{display:grid;grid-template-columns:minmax(240px,1fr) 135px 135px;gap:12px;align-items:center;min-height:48px;border-bottom:1px solid #edf0f4}
+.partsWorkRow:last-child{border-bottom:0}
+.partsWorkPart b{font-size:14px}.partsWorkPart small{display:block;color:#64748b;margin-top:2px}
+.partsWorkCheck{display:flex;align-items:center;gap:8px;font-size:12px;font-weight:900;cursor:pointer}
+.partsWorkCheck input{width:20px;height:20px;accent-color:#202631}
+.partsHereCheck input{accent-color:#16a34a}
+@media(max-width:768px){
+ .partsWorkHead{align-items:flex-start;flex-direction:column}
+ .partsWorkRow{grid-template-columns:1fr 110px;gap:8px;padding:9px 0}
+ .partsWorkPart{grid-column:1/-1}
+}
+</style>
 </head>
 <body>
 <div id="fatal" class="fatal"></div>
@@ -8161,24 +8189,37 @@ function shouldCarryOverJob(j,today){
   if(!j.technician||j.technician==='Unallocated'||j.technician==='Waiting')return false;
   return true;
 }
+function carryOverWorkshopDate(today){var d=new Date(String(today||todayIso())+'T12:00:00');if(isNaN(d.getTime()))return today||todayIso();if(d.getDay()===0||d.getDay()===6)return nextWorkshopDate(plannerIsoDate(d));return plannerIsoDate(d)}
+function carryOverAvailableSlot(job,date,mechanic){if(!job||!date||!mechanic||mechanic==='Unallocated')return null;var duration=Math.max(15,roundPlannerMinutesUp(Number(job.estimated_hours||1)*60)),dayStart=8*60,dayEnd=17*60,intervals=mechanicBookingIntervals(date,mechanic,job.id),candidate=dayStart,guard=0;while(candidate+duration<=dayEnd&&guard++<100){var conflict=null;for(var i=0;i<intervals.length;i++){var occupied=intervals[i];if(candidate<occupied.end&&candidate+duration>occupied.start){conflict=occupied;break}}if(!conflict)return timeFromMinutes(candidate);candidate=roundPlannerMinutesUp(conflict.end)}return null}
 function rollOverOutstandingJobs(){
-  var today=todayIso(),now=new Date().toISOString(),changed=[];
+  var today=todayIso(),targetDate=carryOverWorkshopDate(today),now=new Date().toISOString(),changed=[],mechanics=(app.settings&&app.settings.mechanics||['Alfie','Other']).filter(function(m){return m&&m!=='Unallocated'&&m!=='Waiting'});
   (app.jobs||[]).forEach(function(j){
     if(!shouldCarryOverJob(j,today))return;
-    var existing=carryOverMeta(j)||{};
+    var existing=carryOverMeta(j)||{},originalMechanic=j.technician||existing.technician||'',preferred=[];
+    if(originalMechanic&&mechanics.indexOf(originalMechanic)>-1)preferred.push(originalMechanic);
+    mechanics.forEach(function(m){if(preferred.indexOf(m)===-1)preferred.push(m)});
+    var assignedMechanic='',assignedTime='';
+    for(var mi=0;mi<preferred.length;mi++){var slot=carryOverAvailableSlot(j,targetDate,preferred[mi]);if(slot){assignedMechanic=preferred[mi];assignedTime=slot;break}}
     var meta={
       original_date:existing.original_date||j.booking_date,
       last_date:j.booking_date,
-      technician:j.technician||existing.technician||'',
+      technician:originalMechanic,
       time:normaliseClock(j.drop_time||existing.time||'08:00'),
       ramp:j.ramp||existing.ramp||'',
       rollovers:Number(existing.rollovers||0)+1,
       rolled_at:now
     };
     j.customer_note=setCarryOverMeta(j.customer_note,meta);
-    j.technician='Unallocated';
-    j.ramp='';
-    j.booking_date=null;
+    if(assignedMechanic){
+      j.technician=assignedMechanic;
+      j.booking_date=targetDate;
+      j.drop_time=assignedTime;
+      if(!j.ramp&&existing.ramp)j.ramp=existing.ramp;
+    }else{
+      j.technician='Unallocated';
+      j.ramp='';
+      j.booking_date=null;
+    }
     if(!j.status)j.status='booked';
     j.updated_at=now;
     carryOverPendingSync[j.id]=true;
@@ -8247,6 +8288,7 @@ function loadLocal(){
     }catch(e){console.warn('Legacy task migration skipped',key,e)}
   });
   migrateLegacyTasksLocal();
+  purgeDeletedWebsiteTestBookingH4uxm().catch(function(e){console.warn('H4UXM local purge failed',e)});
   applyTaskStateOverrides();
   if(importedLegacy||raw)saveLocal();
 }
@@ -8288,6 +8330,29 @@ function mergeRemoteRows(localRows,remoteRows){
   });
   return Object.keys(map).map(function(id){return map[id]});
 }
+function isDeletedH4uxmTestBooking(row){
+  if(!row)return false;
+  var reg=normReg(row.registration||'').replace(/\s/g,''),text=[row.customer_name,row.work_required,row.comments,row.notes,row.job_type,row.source,row.booking_source].join(' ').toLowerCase();
+  return reg==='H4UXM'&&/\btest\b/.test(text);
+}
+async function purgeDeletedWebsiteTestBookingH4uxm(){
+  var changed=false,jobIds=[];
+  (app.jobs||[]).forEach(function(j){if(isDeletedH4uxmTestBooking(j))jobIds.push(String(j.id||''))});
+  if(jobIds.length){app.jobs=(app.jobs||[]).filter(function(j){return jobIds.indexOf(String(j.id||''))===-1});changed=true}
+  var requestIds=[];
+  (app.websiteRequests||[]).forEach(function(r){if(isDeletedH4uxmTestBooking(r))requestIds.push(String(r.id||''))});
+  if(requestIds.length){app.websiteRequests=(app.websiteRequests||[]).filter(function(r){return requestIds.indexOf(String(r.id||''))===-1});changed=true}
+  if(changed)saveLocal();
+  if(remoteClient){
+    for(var i=0;i<requestIds.length;i++){
+      try{var res=await remoteClient.from('website_booking_requests').update({status:'deleted'}).eq('id',requestIds[i]);if(res.error)console.warn('H4UXM request tombstone failed',res.error)}catch(e){console.warn('H4UXM request tombstone failed',e)}
+    }
+    for(var j=0;j<jobIds.length;j++){
+      try{await deleteRemote('jobs',jobIds[j])}catch(e){console.warn('H4UXM test job remote delete failed',e)}
+    }
+  }
+  return changed;
+}
 async function migrateNk16CyoVehicleTaxJob(){
   var changed=[];
   (app.jobs||[]).forEach(function(j){
@@ -8315,6 +8380,7 @@ async function pullRemote(){
   try{var ts=await remoteClient.from('workshop_settings').select('*').eq('id','task_state_overrides_v50').single();if(!ts.error&&ts.data&&ts.data.value){app.settings.taskStateOverrides=mergeTaskStateMaps(hydrateIndependentTaskState(),ts.data.value);writeIndependentTaskState(app.settings.taskStateOverrides)}}catch(e){console.warn('Shared task state pull failed',e)}
   try{var jc=await remoteClient.from('workshop_settings').select('id,value,updated_at').like('id','jobcustomer:%').limit(1000);if(!jc.error&&Array.isArray(jc.data)){app.jobCustomerMemory=app.jobCustomerMemory||{};jc.data.forEach(function(row){var id=String(row.id||'').replace(/^jobcustomer:/,'');if(id&&row.value&&typeof row.value==='object'){var current=app.jobCustomerMemory[id],ct=Date.parse(current&&current.updated_at||0)||0,rt=Date.parse(row.updated_at||row.value.updated_at||0)||0;if(!current||rt>=ct)app.jobCustomerMemory[id]=Object.assign({},row.value,{updated_at:row.updated_at||row.value.updated_at||''})}})}}catch(e){console.warn('Shared job customer memory pull failed',e)}
   await migrateNk16CyoVehicleTaxJob();
+  await purgeDeletedWebsiteTestBookingH4uxm();
   applyTaskStateOverrides();
   await pullFleetCloudState();
   await migrateContractorsIntoMasterList();
@@ -9157,7 +9223,7 @@ async function deleteWebsiteRequestCompletely(id){
 }
 function bindWebsiteRequests(){var e;if(e=document.getElementById('refreshWebsiteRequests'))e.onclick=async function(){await pullRemote();render()};document.querySelectorAll('[data-request-filter]').forEach(function(b){b.onclick=function(){websiteRequestFilter=b.dataset.requestFilter;render()}});document.querySelectorAll('[data-request-contact]').forEach(function(b){b.onclick=function(){updateWebsiteRequest(b.dataset.requestContact,{status:'contacted'})}});document.querySelectorAll('[data-request-archive]').forEach(function(b){b.onclick=function(){if(confirm('Archive this website booking request?'))updateWebsiteRequest(b.dataset.requestArchive,{status:'archived'})}});document.querySelectorAll('[data-request-delete]').forEach(function(b){b.onclick=function(){deleteWebsiteRequestCompletely(b.dataset.requestDelete)}});document.querySelectorAll('[data-request-create]').forEach(function(b){b.onclick=function(){if(confirm('Create an unallocated job from this request?'))createJobFromWebsiteRequest(b.dataset.requestCreate)}})}
 
-var renderInProgress=false;function render(){if(renderInProgress)return;renderInProgress=true;try{safe(function(){var oldTaskList=document.querySelector('.taskList'),oldUnallocated=document.querySelector('.unallocatedJobList'),taskScroll=oldTaskList?oldTaskList.scrollTop:0,unallocatedScroll=oldUnallocated?oldUnallocated.scrollTop:0;document.getElementById('currentDate').value=selectedIso();if(view==='dashboard')view='planner';if(view==='customers'||view==='vehicles')view='search';renderNav();var navMatch=navItems().find(function(x){return x[0]===view});if(!navMatch){view='planner';navMatch=navItems()[0];}document.getElementById('viewTitle').textContent=navMatch[1];var dayNameEl=document.getElementById('dashboardDayName');if(dayNameEl){if(view==='planner'){var dayDate=new Date(selectedIso()+'T12:00:00');dayNameEl.textContent=dayDate.toLocaleDateString('en-GB',{weekday:'long'});dayNameEl.classList.add('show')}else{dayNameEl.textContent='';dayNameEl.classList.remove('show')}}var bookedTodayEl=document.getElementById('dashboardBookedToday'),bookedTodayValue=document.getElementById('dashboardBookedTodayValue');if(bookedTodayEl){if(view==='planner'){var bookedTodayTotal=0;try{bookedTodayTotal=invoiceFinancialSummary().today}catch(e){console.warn('Dashboard booked-today total unavailable',e)}if(bookedTodayValue)bookedTodayValue.textContent=money(bookedTodayTotal);bookedTodayEl.classList.add('show');bookedTodayEl.onclick=function(){openInvoiceFinanceReport('today')}}else{bookedTodayEl.classList.remove('show');bookedTodayEl.onclick=null}}var c=document.getElementById('content');if(view==='dashboard')c.innerHTML=dashboardHtml();if(view==='planner')c.innerHTML=plannerHtml();if(view==='fleet')c.innerHTML=fleetHtml();if(view==='jobs')c.innerHTML=jobsHtml();if(view==='service')c.innerHTML=serviceHtml();if(view==='search')c.innerHTML=searchHtml();if(view==='invoices')c.innerHTML=invoicesHtml();if(view==='invoiceArchive')c.innerHTML=invoiceArchiveHtml();if(view==='websiteRequests')c.innerHTML=websiteRequestsHtml();if(view==='parts')c.innerHTML=partsOrderingHtml();if(view==='settings')c.innerHTML=settingsHtml();bindView();if(view==='websiteRequests')bindWebsiteRequests();if(view==='parts')bindPartsOrdering();var newTaskList=document.querySelector('.taskList'),newUnallocated=document.querySelector('.unallocatedJobList');if(newTaskList)newTaskList.scrollTop=taskScroll;if(newUnallocated)newUnallocated.scrollTop=unallocatedScroll;},null)}finally{renderInProgress=false}}
+var renderInProgress=false;function render(){if(renderInProgress)return;hydrateAutomaticPartsDefaults();renderInProgress=true;try{safe(function(){var oldTaskList=document.querySelector('.taskList'),oldUnallocated=document.querySelector('.unallocatedJobList'),taskScroll=oldTaskList?oldTaskList.scrollTop:0,unallocatedScroll=oldUnallocated?oldUnallocated.scrollTop:0;document.getElementById('currentDate').value=selectedIso();if(view==='dashboard')view='planner';if(view==='customers'||view==='vehicles')view='search';renderNav();var navMatch=navItems().find(function(x){return x[0]===view});if(!navMatch){view='planner';navMatch=navItems()[0];}document.getElementById('viewTitle').textContent=navMatch[1];var dayNameEl=document.getElementById('dashboardDayName');if(dayNameEl){if(view==='planner'){var dayDate=new Date(selectedIso()+'T12:00:00');dayNameEl.textContent=dayDate.toLocaleDateString('en-GB',{weekday:'long'});dayNameEl.classList.add('show')}else{dayNameEl.textContent='';dayNameEl.classList.remove('show')}}var bookedTodayEl=document.getElementById('dashboardBookedToday'),bookedTodayValue=document.getElementById('dashboardBookedTodayValue');if(bookedTodayEl){if(view==='planner'){var bookedTodayTotal=0;try{bookedTodayTotal=invoiceFinancialSummary().today}catch(e){console.warn('Dashboard booked-today total unavailable',e)}if(bookedTodayValue)bookedTodayValue.textContent=money(bookedTodayTotal);bookedTodayEl.classList.add('show');bookedTodayEl.onclick=function(){openInvoiceFinanceReport('today')}}else{bookedTodayEl.classList.remove('show');bookedTodayEl.onclick=null}}var c=document.getElementById('content');if(view==='dashboard')c.innerHTML=dashboardHtml();if(view==='planner')c.innerHTML=plannerHtml();if(view==='fleet')c.innerHTML=fleetHtml();if(view==='jobs')c.innerHTML=jobsHtml();if(view==='service')c.innerHTML=serviceHtml();if(view==='search')c.innerHTML=searchHtml();if(view==='invoices')c.innerHTML=invoicesHtml();if(view==='invoiceArchive')c.innerHTML=invoiceArchiveHtml();if(view==='websiteRequests')c.innerHTML=websiteRequestsHtml();if(view==='parts')c.innerHTML=partsOrderingHtml();if(view==='settings')c.innerHTML=settingsHtml();bindView();if(view==='websiteRequests')bindWebsiteRequests();if(view==='parts')bindPartsOrdering();var newTaskList=document.querySelector('.taskList'),newUnallocated=document.querySelector('.unallocatedJobList');if(newTaskList)newTaskList.scrollTop=taskScroll;if(newUnallocated)newUnallocated.scrollTop=unallocatedScroll;},null)}finally{renderInProgress=false}}
 function isJobInvoiced(j){if(!j)return false;if(j.invoice_id||j.invoiced_at)return true;return (app.invoices||[]).some(function(inv){return String(inv.job_id||'')===String(j.id||'')&&String(inv.status||'saved')!=='draft'})}
 function allJobsForDate(){var d=selectedIso();return app.jobs.filter(function(j){return !isVehicleTaxJob(j)&&!!j.booking_date&&String(j.booking_date)===d&&!isUnallocatedJob(j)})}
 function plannerTechnicianName(job,mechanics){var raw=String(job&&job.technician||'').trim(),list=mechanics&&mechanics.length?mechanics:(app.settings.mechanics||[]);if(!raw||raw.toLowerCase()==='unallocated')return raw;var exact=list.find(function(name){return String(name||'').trim().toLowerCase()===raw.toLowerCase()});if(exact)return exact;var other=list.find(function(name){return String(name||'').trim().toLowerCase()==='other'});if(other)return other;return raw}
@@ -9193,18 +9259,31 @@ function rampClass(r){r=String(r||'').toLowerCase();if(r.indexOf('left')>-1)retu
 function rampBadge(r){var raw=r?String(r):'';var label=raw?raw.replace(/\s*ramp\s*$/i,''):'—';return '<span class="rampBadge '+rampClass(r)+'">'+esc(label)+'</span>'}
 function fullPlate(reg,job){var r=normReg(reg||''),internal=fleetIsInternalRegistration(r,job);return '<button type="button" class="ukPlate uniformRegPlate '+(internal?'internalRoadPlate':'')+'" data-open-vehicle-reg="'+esc(r)+'" title="'+(internal?'Site-only vehicle — not for public-road use':'Open vehicle details')+'"><span class="ukStrip"'+fleetPlateStripStyle(r,job)+'>GB</span><b>'+esc(r||'NO REG')+'</b></button>'}
 function invoicePlate(reg,extraClass){var r=normReg(reg||'');return '<span class="invoiceUkPlate '+esc(extraClass||'')+'"><span class="invoiceUkStrip">GB</span><b>'+esc(r||'NO REG')+'</b></span>'}
-var PARTS_STATUS_VALUES=['Parts need ordering','Waiting for parts','Parts here'];
+var PARTS_STATUS_VALUES=['Parts need ordering','Awaiting parts','Parts here'];
 function jobParts(j){j=j||{};var m=String(j.customer_note||'').match(/\[\[JOB_PARTS_URI:([^\]]*)\]\]/i);if(!m)return [];try{var rows=JSON.parse(decodeURIComponent(m[1]));return Array.isArray(rows)?rows.filter(function(p){return p&&String(p.description||'').trim()}).map(function(p){return{id:String(p.id||uid()),description:String(p.description||'').trim(),quantity:Math.max(1,Number(p.quantity)||1),ordered:!!p.ordered,arrived:!!p.arrived}}):[]}catch(e){return []}}
 function noteWithJobParts(note,parts){var clean=String(note||'').replace(/\s*\[\[JOB_PARTS_URI:[^\]]*\]\]\s*/ig,'\n').replace(/^\s+|\s+$/g,''),rows=(parts||[]).filter(function(p){return String(p.description||'').trim()}).map(function(p){return{id:String(p.id||uid()),description:String(p.description||'').trim(),quantity:Math.max(1,Number(p.quantity)||1),ordered:!!p.ordered,arrived:!!p.arrived}});return clean+(rows.length?(clean?'\n':'')+'[[JOB_PARTS_URI:'+encodeURIComponent(JSON.stringify(rows))+']]':'')}
-function calculatedPartsStatus(parts){parts=parts||[];if(!parts.length)return '';if(parts.every(function(p){return p.arrived}))return 'Parts here';if(parts.every(function(p){return p.ordered}))return 'Waiting for parts';return 'Parts need ordering'}
-function normalisePartsStatus(value){var raw=String(value||'').trim().toLowerCase();if(raw==='waiting for parts'||raw==='waiting')return 'Waiting for parts';if(raw==='parts here'||raw==='here')return 'Parts here';return 'Parts need ordering'}
+function automaticPartsForJob(j){j=j||{};var rawTypes=jobTypeValues(j).map(function(x){return normaliseJobTypeKey(x)}),work=normaliseJobTypeKey(j.work_required||''),typeText=rawTypes.join(' '),text=(typeText+' '+work),parts=[];
+  function add(x){if(parts.indexOf(x)===-1)parts.push(x)}
+  if(rawTypes.indexOf('major service')>-1||(!/interim service|full service/.test(typeText)&&/major service/.test(work))){add('Engine Oil');add('Oil filter');add('Cabin Filter');add('Air Filter');var fuel=normaliseJobTypeKey(j.fuel_type||'');if(/diesel/.test(fuel))add('Fuel filter');if(/petrol|gasoline/.test(fuel))add('Spark plugs')}
+  else if(rawTypes.indexOf('full service')>-1||(!/interim service|major service/.test(typeText)&&/full service/.test(work))){add('Engine Oil');add('Oil filter');add('Cabin Filter')}
+  else if(rawTypes.indexOf('interim service')>-1||(!/full service|major service/.test(typeText)&&/interim service/.test(work))){add('Engine Oil');add('Oil filter')}
+  if(/\bbrake|brakes\b/.test(text)){add('Brake pads');add('Brake discs');add('Pad wear sensor')}
+  if(/\btyre|tyres\b/.test(text))add('Tyres');
+  return parts
+}
+function ensureAutomaticPartsDefaults(j){if(!j||jobParts(j).length)return false;var defaults=automaticPartsForJob(j);if(!defaults.length)return false;var rows=defaults.map(function(description){return{id:uid(),description:description,quantity:1,ordered:false,arrived:false}});j.customer_note=noteWithJobParts(j.customer_note,rows);j.parts_status='Parts need ordering';j.customer_note=partsStatusNote(j.customer_note,j.parts_status);j.updated_at=new Date().toISOString();return true}
+function hydrateAutomaticPartsDefaults(){var changed=[];(app.jobs||[]).forEach(function(j){if(!j.archived&&j.status!=='completed'&&j.status!=='ready_to_invoice'&&ensureAutomaticPartsDefaults(j))changed.push(j)});if(changed.length){saveLocal();if(remoteClient)changed.forEach(function(j){upsertRemote('jobs',j,{silent:true}).catch(function(e){console.warn('Automatic parts defaults sync failed',j.id,e)})})}return changed.length}
+function calculatedPartsStatus(parts){parts=parts||[];if(!parts.length)return '';if(parts.every(function(p){return p.arrived}))return 'Parts here';if(parts.every(function(p){return p.ordered}))return 'Awaiting parts';return 'Parts need ordering'}
+function normalisePartsStatus(value){var raw=String(value||'').trim().toLowerCase();if(raw==='waiting for parts'||raw==='waiting'||raw==='awaiting parts'||raw==='awaiting')return 'Awaiting parts';if(raw==='parts here'||raw==='here')return 'Parts here';return 'Parts need ordering'}
 function partsStatusFromJob(j){j=j||{};var parts=jobParts(j);if(!parts.length)return '';return calculatedPartsStatus(parts)}
 function partsStatusNote(note,status){var clean=String(note||'').replace(/\s*\[\[PARTS_STATUS:[^\]]+\]\]\s*/ig,'\n').replace(/^\s+|\s+$/g,'');return (clean?clean+'\n':'')+'[[PARTS_STATUS:'+normalisePartsStatus(status)+']]'}
-function partsStatusClass(status){status=normalisePartsStatus(status);return status==='Parts here'?'parts-green':(status==='Waiting for parts'?'parts-amber':'parts-red')}
+function partsStatusClass(status){status=normalisePartsStatus(status);return status==='Parts here'?'parts-green':(status==='Awaiting parts'?'parts-amber':'parts-red')}
 function partsStatusDot(j){var status=partsStatusFromJob(j);return status?'<span class="partsStatusDot cardPartsStatusDot '+partsStatusClass(status)+'" title="'+esc(status)+'" aria-label="'+esc(status)+'"></span>':''}
 function nextWorkshopIso(from){var d=new Date((from||todayIso())+'T12:00:00');do{d.setDate(d.getDate()+1)}while(d.getDay()===0||d.getDay()===6);return d.toISOString().slice(0,10)}
-function partsJobCardHtml(j){var parts=jobParts(j),status=partsStatusFromJob(j);return '<div class="partsJob"><div class="partsJobTop"><i class="partsTraffic '+partsStatusClass(status)+'"></i>'+listPlate(j.registration)+'<button class="btn" data-open-job="'+esc(j.id)+'">Open job</button></div><p class="partsJobMeta"><b>'+esc(niceDate(j.booking_date||''))+(j.drop_time?' · '+esc(j.drop_time):'')+'</b><br>'+esc(j.work_required||'')+'</p>'+(parts.length?parts.map(function(p){return '<div class="partsItem"><span>'+esc(String(p.quantity||1))+'×</span><span>'+esc(p.description)+'</span><label><input type="checkbox" data-part-ordered="'+esc(j.id)+'" data-part-id="'+esc(p.id)+'" '+(p.ordered?'checked':'')+'> Ordered</label><label><input type="checkbox" data-part-arrived="'+esc(j.id)+'" data-part-id="'+esc(p.id)+'" '+(p.arrived?'checked':'')+'> Arrived</label></div>'}).join(''):'<div class="partsEmpty"><b>Parts list not entered yet.</b><br>Open this job and add the parts required.</div>')+'</div>'}
-function partsOrderingHtml(){var today=todayIso(),tomorrow=nextWorkshopIso(today),now=new Date(today+'T12:00:00'),weekEnd=new Date(now),day=now.getDay()||7;weekEnd.setDate(now.getDate()+(5-day));var end=weekEnd.toISOString().slice(0,10),jobs=(app.jobs||[]).filter(function(j){return !!partsStatusFromJob(j)&&!j.archived&&j.status!=='completed'&&j.status!=='ready_to_invoice'}).sort(function(a,b){return String(a.booking_date||'9999').localeCompare(String(b.booking_date||'9999'))||byTime(a,b)}),groups=[{title:'Parts needed today',rows:jobs.filter(function(j){return j.booking_date===today})},{title:'Parts needed tomorrow',rows:jobs.filter(function(j){return j.booking_date===tomorrow})},{title:'Rest of this week',rows:jobs.filter(function(j){return j.booking_date>tomorrow&&j.booking_date<=end})}];function col(g){return '<section class="partsUrgency"><div class="partsUrgencyHead"><h3>'+g.title+'</h3><b>'+g.rows.length+'</b></div>'+(g.rows.length?g.rows.map(partsJobCardHtml).join(''):'<div class="partsEmpty">No parts required.</div>')+'</section>'}return '<div class="partsPageHead"><div><h2>Parts Ordering</h2><p>Only jobs with a Parts list entered appear here. No Parts list means no parts need ordering.</p></div><div class="partsLegend"><span><i class="parts-red"></i>To order</span><span><i class="parts-amber"></i>Ordered</span><span><i class="parts-green"></i>Ready</span></div></div><div class="partsUrgencyGrid">'+groups.map(col).join('')+'</div>'}
+function partsBookingType(j){return jobTypeLabels(j).join(' + ')||'General'}
+function partsVehicleName(j){var named=[j.make,j.model].filter(Boolean).join(' ').trim();return named||j.vehicle||'Vehicle'}
+function partsJobCardHtml(j){var parts=jobParts(j),status=partsStatusFromJob(j);return '<article class="partsWorkCard"><header class="partsWorkHead"><div class="partsVehicleIdentity">'+listPlate(j.registration)+'<div><h3>'+esc(partsVehicleName(j))+'</h3><p>'+esc(partsBookingType(j))+(j.booking_date?' · '+esc(niceDate(j.booking_date)):'')+'</p></div></div><span class="partsWorkStatus '+partsStatusClass(status)+'"><i></i>'+esc(status==='Awaiting parts'?'Awaiting parts':status)+'</span></header><div class="partsWorkList">'+parts.map(function(p){return '<div class="partsWorkRow"><div class="partsWorkPart"><b>'+esc(p.description)+'</b>'+(Number(p.quantity||1)>1?'<small>Qty '+esc(String(p.quantity))+'</small>':'')+'</div><label class="partsWorkCheck"><input type="checkbox" data-part-ordered="'+esc(j.id)+'" data-part-id="'+esc(p.id)+'" '+(p.ordered?'checked':'')+'><span>Ordered</span></label><label class="partsWorkCheck partsHereCheck"><input type="checkbox" data-part-arrived="'+esc(j.id)+'" data-part-id="'+esc(p.id)+'" '+(p.arrived?'checked':'')+'><span>Parts here</span></label></div>'}).join('')+'</div></article>'}
+function partsOrderingHtml(){hydrateAutomaticPartsDefaults();var today=todayIso(),tomorrow=nextWorkshopIso(today),jobs=(app.jobs||[]).filter(function(j){return !!partsStatusFromJob(j)&&!j.archived&&j.status!=='completed'&&j.status!=='ready_to_invoice'}).sort(function(a,b){return String(a.booking_date||'9999').localeCompare(String(b.booking_date||'9999'))||byTime(a,b)}),todayRows=jobs.filter(function(j){return j.booking_date===today}),tomorrowRows=jobs.filter(function(j){return j.booking_date===tomorrow}),laterRows=jobs.filter(function(j){return j.booking_date!==today&&j.booking_date!==tomorrow});function section(title,rows){return '<section class="partsWorkSection"><div class="partsWorkSectionHead"><h2>'+esc(title)+'</h2><span>'+rows.length+'</span></div>'+(rows.length?rows.map(partsJobCardHtml).join(''):'<div class="partsEmpty">No parts required.</div>')+'</section>'}return '<div class="partsPageHead"><div><h2>Parts Ordering</h2><p>Order directly from this page. Tick <b>Ordered</b> and the job changes to <b>Awaiting parts</b>; tick <b>Parts here</b> when they arrive.</p></div><div class="partsLegend"><span><i class="parts-red"></i>To order</span><span><i class="parts-amber"></i>Awaiting parts</span><span><i class="parts-green"></i>Parts here</span></div></div><div class="partsWorkPage">'+section('Needed today',todayRows)+section('Needed tomorrow',tomorrowRows)+section('Later bookings',laterRows)+'</div>'}
 async function updatePartState(jobId,partId,key,value){var j=(app.jobs||[]).find(function(x){return String(x.id)===String(jobId)});if(!j)return;var parts=jobParts(j),part=parts.find(function(p){return String(p.id)===String(partId)});if(!part)return;part[key]=!!value;if(key==='arrived'&&value)part.ordered=true;if(key==='ordered'&&!value)part.arrived=false;j.customer_note=noteWithJobParts(j.customer_note,parts);j.parts_status=calculatedPartsStatus(parts);j.customer_note=partsStatusNote(j.customer_note,j.parts_status);j.updated_at=new Date().toISOString();saveLocal();render();try{await upsertRemote('jobs',j,{silent:true})}catch(e){alert('The part status could not be saved to the cloud. Please try again.')}}
 function bindPartsOrdering(){document.querySelectorAll('[data-part-ordered]').forEach(function(x){x.onchange=function(){updatePartState(x.dataset.partOrdered,x.dataset.partId,'ordered',x.checked)}});document.querySelectorAll('[data-part-arrived]').forEach(function(x){x.onchange=function(){updatePartState(x.dataset.partArrived,x.dataset.partId,'arrived',x.checked)}})}
 function jobPartsEditorHtml(j){var rows=jobParts(j);function row(p){return '<div class="jobPartRow" data-job-part data-part-id="'+esc(p.id||uid())+'"><input type="text" data-part-description placeholder="Part description" value="'+esc(p.description||'')+'"><input type="number" data-part-quantity min="1" step="1" value="'+esc(p.quantity||1)+'"><label class="jobPartCheck"><input type="checkbox" data-part-ordered-edit '+(p.ordered?'checked':'')+'>Ordered</label><label class="jobPartCheck"><input type="checkbox" data-part-arrived-edit '+(p.arrived?'checked':'')+'>Arrived</label><button type="button" class="jobPartRemove" data-remove-job-part>×</button></div>'}return '<section class="jobFormSection"><div class="jobFormSectionHead"><span class="jobSectionNumber">P</span><div><h3>Parts required</h3><p>These feed the Parts Ordering page automatically</p></div></div><div class="jobPartsEditor" id="jobPartsEditor">'+rows.map(row).join('')+'</div><button type="button" class="btn" id="addJobPart">+ Add part</button><p class="jobPartsHint">Red = still to order · Amber = ordered, waiting to arrive · Green = all parts here.</p></section>'}
@@ -9398,7 +9477,9 @@ function financeIsRecognisedJob(j){if(!financeValidJob(j))return false;var st=fi
 function financeCompletedDate(j){if(!financeIsRecognisedJob(j))return '';return String(j.completed_at||j.booking_date||'').slice(0,10)}
 function financeIsUnallocated(j){return typeof isUnallocatedJob==='function'?isUnallocatedJob(j):(!j.technician||j.technician==='Unallocated')}
 function financeExVatValue(j){j=j||{};var mode=String(j.vat_mode||'ex_vat').toLowerCase();function exVat(n){n=Number(n);if(!Number.isFinite(n))return null;return mode==='inc_vat'?n/1.2:n}var privateItems=privatePricingItemsFromNote(j.customer_note),privateHasPrice=privateItems.some(function(x){return Number.isFinite(Number(x&&x.price))&&Number(x.price)!==0});if(privateHasPrice){var privateTotal=privateItems.reduce(function(sum,x){var n=Number(x&&x.price);return sum+(Number.isFinite(n)?n:0)},0),privateEx=exVat(privateTotal);if(privateEx!==null)return privateEx}var quoted=j.amount_quoted,hasQuoted=quoted!==null&&quoted!==undefined&&String(quoted).trim()!=='';if(hasQuoted){var n=Number(quoted);if(Number.isFinite(n)&&n!==0){var q=exVat(n);if(q!==null)return q}}var presetItems=privatePricingPresetItemsForTypes(j.job_type),presetTotal=presetItems.reduce(function(sum,x){var n=Number(x&&x.price);return sum+(Number.isFinite(n)?n:0)},0);if(presetTotal!==0){var p=exVat(presetTotal);if(p!==null)return p}var serviceQuote=servicePricingQuote(j.engine_size,j.job_type);if(serviceQuote&&serviceQuote.price!=null){var sq=exVat(serviceQuote.price);if(sq!==null)return sq}if(hasQuoted&&Number(quoted)===0){var noteText=String(j.customer_note||'').toLowerCase(),workText=String(j.work_required||'').toLowerCase();if(/no[ -]?charge|free of charge|foc/.test(noteText+' '+workText))return 0}var rate=Number(app.settings&&app.settings.labourRate||40),hours=Number(j.estimated_hours);if(!Number.isFinite(hours)||hours<0)hours=1;if(!Number.isFinite(rate)||rate<0)rate=40;return hours*rate}
-function financeRevenueExVatValue(j){return isVehicleTaxJob(j)?0:financeExVatValue(j)}
+function financeSavedInvoiceForJob(j){if(!j)return null;var jobId=String(j.id||''),invoiceId=String(j.invoice_id||'');var matches=(app.invoices||[]).filter(function(inv){if(!inv)return false;if(String(inv.status||'saved').toLowerCase()==='draft')return false;return (invoiceId&&String(inv.id||'')===invoiceId)||(jobId&&String(inv.job_id||'')===jobId)});if(!matches.length)return null;matches.sort(function(a,b){return String(b.updated_at||b.created_at||b.invoice_date||'').localeCompare(String(a.updated_at||a.created_at||a.invoice_date||''))});return matches[0]}
+function financeInvoiceExVatValue(inv){if(!inv)return null;var subtotal=Number(inv.subtotal);if(Number.isFinite(subtotal))return subtotal;if(Array.isArray(inv.lines)&&inv.lines.length){var t=invoiceTotals(inv.lines);if(t&&Number.isFinite(Number(t.subtotal)))return Number(t.subtotal)}var total=Number(inv.total);if(Number.isFinite(total)){var vat=Number(inv.vat);if(Number.isFinite(vat))return total-vat}return null}
+function financeRevenueExVatValue(j){if(isVehicleTaxJob(j))return 0;var inv=financeSavedInvoiceForJob(j),invoiceValue=financeInvoiceExVatValue(inv);return invoiceValue!==null?invoiceValue:financeExVatValue(j)}
 function financeAllJobs(){var byId={},jobs=[];function add(j){j=financeEffectiveJob(j);if(!financeValidJob(j))return;var id=String(j.id||'');if(id&&byId[id])return;if(id)byId[id]=1;jobs.push(j)}(app.jobs||[]).forEach(add);(window.CONTRACTOR_2026_JOBS||[]).forEach(add);return jobs}
 function invoiceFinancialSummary(){var today=todayIso(),plannerDate=typeof selectedIso==='function'?selectedIso():today,now=new Date(today+'T12:00:00'),year=now.getFullYear(),month=now.getMonth()+1,fyStart=(month>=4?year:year-1)+'-04-01',monthStart=today.slice(0,7)+'-01',weekDate=new Date(today+'T12:00:00'),weekDay=weekDate.getDay(),weekOffset=(weekDay+6)%7;weekDate.setDate(weekDate.getDate()-weekOffset);var weekStart=iso(weekDate),jobs=financeAllJobs(),todayTotal=jobs.filter(function(j){return !financeIsUnallocated(j)&&String(j.booking_date||'').slice(0,10)===plannerDate}).reduce(function(sum,j){return sum+financeRevenueExVatValue(j)},0),completed=jobs.filter(financeIsRecognisedJob),weekTotal=completed.filter(function(j){var d=financeCompletedDate(j);return d>=weekStart&&d<=today}).reduce(function(sum,j){return sum+financeRevenueExVatValue(j)},0),monthTotal=completed.filter(function(j){var d=financeCompletedDate(j);return d>=monthStart&&d<=today}).reduce(function(sum,j){return sum+financeRevenueExVatValue(j)},0),fyTotal=completed.filter(function(j){var d=financeCompletedDate(j);return d>=fyStart&&d<=today}).reduce(function(sum,j){return sum+financeRevenueExVatValue(j)},0),futureTotal=jobs.filter(function(j){if(financeIsRecognisedJob(j))return false;if(financeIsUnallocated(j))return true;return String(j.booking_date||'').slice(0,10)>today}).reduce(function(sum,j){return sum+financeRevenueExVatValue(j)},0);return {today:todayTotal,selectedDate:plannerDate,week:weekTotal,weekStart:weekStart,month:monthTotal,fy:fyTotal,future:futureTotal,fyStart:fyStart,jobCount:jobs.length,importedCount:(window.CONTRACTOR_2026_JOBS||[]).length}}
 function contractorAllFinanceJobs(){var byId={},out=[];function add(j){j=financeEffectiveJob(j);if(!j||j.card_type==='mini_task')return;var id=String(j.id||'');if(id&&byId[id])return;if(id)byId[id]=1;var a=financeLegacyAllocation(j);if(a.type==='Contractor')out.push(j)}(app.jobs||[]).forEach(add);(window.CONTRACTOR_2026_JOBS||[]).forEach(add);return out}
@@ -9583,7 +9664,11 @@ function invoiceArchiveSearchText(inv){
 }
 function invoiceArchiveRows(query){
   query=String(query||'').trim().toLowerCase();
-  var list=(app.invoices||[]).slice().reverse().filter(function(inv){return !query||invoiceArchiveSearchText(inv).indexOf(query)>-1});
+  var list=(app.invoices||[]).slice().sort(function(a,b){
+    var au=!String(a&&a.payment_method||'').trim(),bu=!String(b&&b.payment_method||'').trim();
+    if(au!==bu)return au?-1:1;
+    return String(b&&b.updated_at||b&&b.created_at||b&&b.invoice_date||'').localeCompare(String(a&&a.updated_at||a&&a.created_at||a&&a.invoice_date||''));
+  }).filter(function(inv){return !query||invoiceArchiveSearchText(inv).indexOf(query)>-1});
   if(!list.length)return '<div class="empty">'+(query?'No invoices match your search.':'No invoices saved yet.')+'</div>';
   return '<div class="invoiceArchiveTable"><div class="invoiceArchiveHead"><span>Invoice</span><span>Registration</span><span>Customer</span><span>Date</span><span>Invoice Total</span><span>Payment Method</span></div>'+ 
     list.map(function(inv){return '<div class="invoiceArchiveRow" data-open-invoice="'+inv.id+'"><span class="invoiceArchiveNumber">'+esc(inv.invoice_number||'Draft')+'</span><span>'+fullPlate(inv.registration||'INVOICE')+'</span><span class="invoiceArchiveCustomer">'+esc(inv.customer_name||'—')+'</span><span>'+esc(inv.invoice_date?niceDate(String(inv.invoice_date).slice(0,10)):'—')+'</span><strong class="invoiceArchiveTotal">'+money(inv.total||0)+'</strong><span class="invoicePaymentQuick"><select class="'+invoicePaymentMethodClass(inv.payment_method)+'" data-payment-method="'+esc(inv.id)+'" aria-label="Payment method for '+esc(inv.invoice_number||'invoice')+'">'+invoicePaymentMethodOptions(inv.payment_method)+'</select></span></div>'}).join('')+
