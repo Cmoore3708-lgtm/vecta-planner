@@ -2166,7 +2166,198 @@ body.servicePreviewing .servicePreviewControls{position:relative!important;z-ind
 </style>
 <style id="v170-completion-time">
 .jobCompletedStampValue{min-height:39px;display:flex;align-items:center;padding:8px 10px;border:1px solid var(--line);border-radius:8px;background:#f0fdf4;color:#166534;font-weight:900}
-</style></head>
+</style>
+<style id="v171-dashboard-header-final-layout">
+/* Final desktop planner header layout.
+   Designed for the actual content width beside the sidebar. */
+@media(min-width:901px){
+  .top{
+    display:grid!important;
+    grid-template-columns:
+      minmax(105px,1fr)
+      118px
+      132px
+      188px
+      64px
+      100px
+      92px!important;
+    grid-template-areas:"title day booked date today print newjob"!important;
+    gap:7px!important;
+    align-items:center!important;
+    min-height:64px!important;
+    padding:8px 12px!important;
+    overflow:hidden!important;
+  }
+
+  #viewTitle{
+    grid-area:title!important;
+    margin:0!important;
+    min-width:0!important;
+    max-width:none!important;
+    font-size:18px!important;
+    line-height:1!important;
+    white-space:nowrap!important;
+    overflow:hidden!important;
+    text-overflow:ellipsis!important;
+  }
+
+  #dashboardDayName{
+    grid-area:day!important;
+    display:none!important;
+    position:static!important;
+    width:118px!important;
+    min-width:118px!important;
+    max-width:118px!important;
+    height:39px!important;
+    margin:0!important;
+    padding:0 5px!important;
+    box-sizing:border-box!important;
+    font-size:18px!important;
+    line-height:39px!important;
+    text-align:center!important;
+    white-space:nowrap!important;
+    overflow:hidden!important;
+    text-overflow:clip!important;
+    transform:none!important;
+  }
+  #dashboardDayName.show{display:block!important}
+
+  #dashboardBookedToday{
+    grid-area:booked!important;
+    position:static!important;
+    width:132px!important;
+    min-width:132px!important;
+    max-width:132px!important;
+    height:39px!important;
+    min-height:39px!important;
+    margin:0!important;
+    padding:0 8px!important;
+    box-sizing:border-box!important;
+    display:none!important;
+    align-items:center!important;
+    justify-content:center!important;
+    gap:6px!important;
+    overflow:hidden!important;
+    transform:none!important;
+  }
+  #dashboardBookedToday.show{display:flex!important}
+  #dashboardBookedToday small{
+    display:block!important;
+    flex:0 0 auto!important;
+    font-size:8px!important;
+    line-height:1!important;
+    white-space:nowrap!important;
+  }
+  #dashboardBookedToday strong{
+    flex:0 0 auto!important;
+    font-size:15px!important;
+    line-height:1!important;
+    white-space:nowrap!important;
+  }
+
+  .top .dateCtl{
+    grid-area:date!important;
+    position:static!important;
+    width:188px!important;
+    min-width:188px!important;
+    max-width:188px!important;
+    height:39px!important;
+    margin:0!important;
+    grid-template-columns:30px minmax(0,1fr) 30px!important;
+    overflow:hidden!important;
+  }
+  .top .dateCtl button{
+    width:30px!important;
+    min-width:30px!important;
+    max-width:30px!important;
+  }
+  .top .dateCtl input{
+    min-width:0!important;
+    width:100%!important;
+    padding:0 5px!important;
+    font-size:12px!important;
+  }
+
+  #todayBtn{
+    grid-area:today!important;
+    width:64px!important;
+    min-width:64px!important;
+    max-width:64px!important;
+    height:39px!important;
+    margin:0!important;
+    padding:0!important;
+    display:flex!important;
+    align-items:center!important;
+    justify-content:center!important;
+    font-size:12px!important;
+  }
+  #printBtn{
+    grid-area:print!important;
+    width:100px!important;
+    min-width:100px!important;
+    max-width:100px!important;
+    height:39px!important;
+    margin:0!important;
+    padding:0 6px!important;
+    display:flex!important;
+    align-items:center!important;
+    justify-content:center!important;
+    text-align:center!important;
+    font-size:11px!important;
+    line-height:1.05!important;
+  }
+  #newJobTop{
+    grid-area:newjob!important;
+    width:92px!important;
+    min-width:92px!important;
+    max-width:92px!important;
+    height:39px!important;
+    margin:0!important;
+    padding:0 6px!important;
+    display:flex!important;
+    align-items:center!important;
+    justify-content:center!important;
+    text-align:center!important;
+    font-size:11px!important;
+  }
+  .mobileCalendarBtn,#newTaskTop{display:none!important}
+}
+
+/* Tighter laptop/smaller desktop layout: keep every control on one line. */
+@media(min-width:901px) and (max-width:1180px){
+  .top{
+    grid-template-columns:
+      minmax(92px,1fr)
+      106px
+      118px
+      174px
+      58px
+      88px
+      82px!important;
+    gap:5px!important;
+    padding-left:9px!important;
+    padding-right:9px!important;
+  }
+  #viewTitle{font-size:16px!important}
+  #dashboardDayName{
+    width:106px!important;min-width:106px!important;max-width:106px!important;
+    font-size:16px!important;
+  }
+  #dashboardBookedToday{
+    width:118px!important;min-width:118px!important;max-width:118px!important;
+    gap:4px!important;
+  }
+  #dashboardBookedToday small{font-size:7px!important}
+  #dashboardBookedToday strong{font-size:14px!important}
+  .top .dateCtl{
+    width:174px!important;min-width:174px!important;max-width:174px!important;
+  }
+  #todayBtn{width:58px!important;min-width:58px!important;max-width:58px!important;font-size:11px!important}
+  #printBtn{width:88px!important;min-width:88px!important;max-width:88px!important;font-size:10px!important}
+  #newJobTop{width:82px!important;min-width:82px!important;max-width:82px!important;font-size:10px!important}
+}
+</style>
+</head>
 <body>
 <div id="fatal" class="fatal"></div>
 <div class="app">
