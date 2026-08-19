@@ -11551,5 +11551,72 @@ setTimeout(applyVehicleAllocationSpreadsheetCorrections,1800);
 
 try{setTimeout(function(){if(window.app&&Array.isArray(app.jobs))migrateNoVehicleJobs()},1200)}catch(e){}
 </script>
+
+<script id="v194-registration-customer-autofill-fix">
+(function(){
+  'use strict';
+  function newestJobForRegistration(reg){
+    reg=normReg(reg||'');
+    return (app.jobs||[]).filter(function(j){return normReg(j.registration||'')===reg;}).sort(function(a,b){
+      return String(b.updated_at||b.completed_at||b.booking_date||b.created_at||'').localeCompare(String(a.updated_at||a.completed_at||a.booking_date||a.created_at||''));
+    })[0]||null;
+  }
+  window.knownRegistrationDetails=function(regValue){
+    var reg=normReg(regValue||'');
+    if(reg.length<4)return null;
+    var vehicle=(app.vehicles||[]).find(function(v){return normReg(v.registration||'')===reg;})||null;
+    var fleetVehicle=(typeof fleetVehicleForRegistration==='function'?fleetVehicleForRegistration(reg):null);
+    var previous=newestJobForRegistration(reg);
+    if(!vehicle&&!fleetVehicle&&!previous)return null;
+    var customer=null;
+    if(vehicle&&vehicle.customer_id){
+      customer=(app.customers||[]).find(function(c){return String(c.id)===String(vehicle.customer_id);})||null;
+    }
+    var account='';
+    if(customer||vehicle&&vehicle.customer_id)account='Staff';
+    if(previous&&String(previous.customer_account||'').trim())account=previous.customer_account;
+    if(!account&&typeof fleetIncomeCustomerFromVehicle==='function')account=fleetIncomeCustomerFromVehicle(reg)||'';
+    if(!account&&(customer||String((previous&&previous.customer_name)||'').trim()))account='Staff';
+    return {
+      registration:(vehicle&&vehicle.registration)||(fleetVehicle&&fleetVehicle.registration)||(previous&&previous.registration)||storedRegistrationValue(reg),
+      vehicle:(vehicle&&vehicle.vehicle)||(fleetVehicle&&typeof fleetDisplayModel==='function'&&fleetDisplayModel(fleetVehicle.model))||(previous&&previous.vehicle)||'',
+      customer_id:(customer&&customer.id)||(vehicle&&vehicle.customer_id)||(previous&&previous.customer_id)||'',
+      customer_account:account,
+      customer_name:(customer&&(customer.name||customer.surname))||(previous&&previous.customer_name)||(fleetVehicle&&typeof searchFleetCustomerName==='function'&&searchFleetCustomerName(fleetVehicle))||'',
+      customer_phone:(customer&&customer.phone)||(previous&&previous.customer_phone)||'',
+      customer_email:(customer&&customer.email)||(previous&&previous.customer_email)||(fleetVehicle&&fleetVehicle.contactEmail)||'',
+      nmuk_vehicle_type:(previous&&previous.nmuk_vehicle_type)||(fleetVehicle&&typeof fleetNmukTypeFromVehicle==='function'&&fleetNmukTypeFromVehicle(reg))||'',
+      mileage:(vehicle&&vehicle.mileage)||(previous&&previous.mileage)||''
+    };
+  };
+  window.autofillKnownRegistration=function(regValue){
+    var found=window.knownRegistrationDetails(regValue);
+    if(!found)return false;
+    var reg=document.getElementById('job_registration');
+    if(reg&&found.registration)reg.value=found.registration;
+    [['vehicle',found.vehicle],['customer_id',found.customer_id],['customer_name',found.customer_name],['customer_phone',found.customer_phone],['customer_email',found.customer_email],['mileage',found.mileage],['nmuk_vehicle_type',found.nmuk_vehicle_type]].forEach(function(pair){
+      var el=document.getElementById('job_'+pair[0]);
+      if(el&&pair[1]!==null&&pair[1]!==undefined&&String(pair[1]).trim()!=='')el.value=pair[1];
+    });
+    var account=document.getElementById('job_customer_account');
+    if(account&&found.customer_account){
+      var wanted=String(found.customer_account||'').trim(), options=Array.from(account.options||[]), exact=options.find(function(o){return String(o.value||'').toUpperCase()===wanted.toUpperCase();});
+      if(exact)account.value=exact.value;
+      else if(wanted.toUpperCase()==='STAFF')account.value='Staff';
+      else if(wanted.toUpperCase()==='NMUK')account.value='NMUK';
+      else if(wanted.toUpperCase()==='CONTRACTOR')account.value='CONTRACTOR';
+      account.dispatchEvent(new Event('change',{bubbles:true}));
+    }
+    var email=document.getElementById('job_customer_email');
+    if(email)email.dispatchEvent(new Event('change',{bubbles:true}));
+    return true;
+  };
+  try{
+    var foot=document.querySelector('.sideFoot small');
+    if(foot)foot.textContent='v194 Workshop Pro';
+    document.title='VECTA Workshop Pro v194';
+  }catch(e){}
+})();
+</script>
 </body>
 </html>
