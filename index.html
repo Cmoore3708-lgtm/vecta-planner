@@ -8771,6 +8771,7 @@ async function syncPendingCarryOvers(){
 async function checkForNewWorkshopDay(){var nowDay=todayIso();if(nowDay===lastKnownTodayIso)return;var previousDay=lastKnownTodayIso;lastKnownTodayIso=nowDay;rollOverOutstandingJobs();ensureRecurringWorkshopTasks();if(selectedIso()===previousDay){selectedDate=new Date();selectedDate.setHours(0,0,0,0);plannerShowFullDay=false}await syncPendingCarryOvers();render()}
 
 var VECTA_PENDING_SYNC_KEY='vecta:offline:pending-sync:v1';
+var VECTA_SYNC_QUARANTINE_KEY='vecta:offline:sync-quarantine:v2';
 var VECTA_BACKUP_DB='vecta-workshop-backups';
 var VECTA_BACKUP_STORE='snapshots';
 var VECTA_BACKUP_RETENTION=30;
@@ -8778,7 +8779,10 @@ var vectaCloudReachable=null;
 var vectaLastCloudSuccess='';
 function vectaPendingSync(){try{var q=JSON.parse(localStorage.getItem(VECTA_PENDING_SYNC_KEY)||'[]');return Array.isArray(q)?q.map(vectaNormaliseQueuedItem):[]}catch(e){return []}}
 function vectaSavePendingSync(q){try{localStorage.setItem(VECTA_PENDING_SYNC_KEY,JSON.stringify((q||[]).map(vectaNormaliseQueuedItem)))}catch(e){console.warn('Could not save offline sync queue',e)}updateConnectivityUI()}
-function queueRemoteOperation(operation,table,payload){var q=vectaPendingSync(),key=operation+':'+table+':'+String((payload&&payload.id)||payload||'');q=q.filter(function(x){return x.key!==key});q.push({key:key,operation:operation,table:table,payload:payload,queued_at:new Date().toISOString(),attempts:0});vectaSavePendingSync(q);console.warn('Queued for later cloud sync',operation,table,payload&&payload.id||payload);return {queued:true}}
+function queueRemoteOperation(operation,table,payload){var q=vectaPendingSync(),key=operation+':'+table+':'+String((payload&&payload.id)||payload||'');q=q.filter(function(x){return x.key!==key});q.push({key:key,operation:operation,table:table,payload:payload,queued_at:new Date().toISOString(),attempts:0,next_retry_at:''});vectaSavePendingSync(q);console.warn('Queued for later cloud sync',operation,table,payload&&payload.id||payload);return {queued:true}}
+function vectaSyncQuarantine(){try{var q=JSON.parse(localStorage.getItem(VECTA_SYNC_QUARANTINE_KEY)||'[]');return Array.isArray(q)?q:[]}catch(e){return []}}
+function vectaArchiveSyncItems(items,reason){if(!items||!items.length)return;try{var q=vectaSyncQuarantine(),stamp=new Date().toISOString();items.forEach(function(item){q.push(Object.assign({},item,{quarantined_at:stamp,quarantine_reason:reason||'stuck legacy sync item'}))});if(q.length>500)q=q.slice(q.length-500);localStorage.setItem(VECTA_SYNC_QUARANTINE_KEY,JSON.stringify(q))}catch(e){console.warn('Could not archive stuck sync items',e)}}
+function vectaRecoverLegacyStuckQueue(){var q=vectaPendingSync();if(q.length<20)return 0;var now=Date.now(),stuck=q.filter(function(item){var age=now-(Date.parse(item.queued_at||0)||0);return Number(item.attempts||0)>=2&&!!item.last_error&&age>10*60*1000});if(stuck.length<Math.max(20,Math.floor(q.length*.8)))return 0;vectaArchiveSyncItems(stuck,'Recovered from repeated legacy offline-sync failure');var keys={};stuck.forEach(function(x){keys[x.key]=true});var remaining=q.filter(function(x){return !keys[x.key]});vectaSavePendingSync(remaining);console.warn('Recovered '+stuck.length+' stuck legacy sync items. A recovery copy is retained locally.');return stuck.length}
 var vectaSyncInFlight=false,vectaSyncProgress=null;
 function updateConnectivityUI(state){var el=document.getElementById('vectaConnectivity'),txt=document.getElementById('vectaConnectivityText'),banner=document.getElementById('vectaOfflineBanner');if(!el||!txt)return;var pending=vectaPendingSync().length;if(state==='syncing'){el.className='vectaConnectivity syncing';var done=vectaSyncProgress&&Number(vectaSyncProgress.done||0),total=vectaSyncProgress&&Number(vectaSyncProgress.total||0);txt.textContent=total?('Synchronising workshop data… '+done+' of '+total):'Synchronising workshop data…';if(banner)banner.classList.remove('show');return}if(state==='checking'||vectaCloudReachable===null){el.className='vectaConnectivity syncing';txt.textContent='Checking cloud connection…';if(banner)banner.classList.remove('show');return}var online=navigator.onLine&&vectaCloudReachable;if(online){el.className='vectaConnectivity online';var failed=pending&&vectaPendingSync().some(function(x){return Number(x.attempts||0)>0&&x.last_error});txt.textContent=pending?('Online · '+pending+' change'+(pending===1?'':'s')+(failed?' still need sync — retrying':' waiting to sync')):'Online · workshop data protected';if(banner)banner.classList.remove('show')}else{el.className='vectaConnectivity offline';txt.textContent='Offline workshop mode'+(pending?' · '+pending+' queued':'');if(banner)banner.classList.add('show')}}
 function vectaOpenBackupDb(){return new Promise(function(resolve,reject){if(!window.indexedDB)return reject(new Error('IndexedDB is unavailable.'));var req=indexedDB.open(VECTA_BACKUP_DB,1);req.onupgradeneeded=function(){var db=req.result;if(!db.objectStoreNames.contains(VECTA_BACKUP_STORE))db.createObjectStore(VECTA_BACKUP_STORE,{keyPath:'id'})};req.onsuccess=function(){resolve(req.result)};req.onerror=function(){reject(req.error||new Error('Could not open backup store.'))}})}
@@ -8793,11 +8797,39 @@ async function vectaBackupHealthHtml(){var rows=await vectaListBackups(),last=ro
 async function vectaRefreshBackupPanel(){var host=document.getElementById('vectaBackupPanelHost');if(host)host.innerHTML=await vectaBackupHealthHtml()}
 function vectaBindBackupPanel(){var a=document.getElementById('backupNow');if(a)a.onclick=async function(){await vectaCreateDailyBackup(true,'manual');await vectaRefreshBackupPanel();vectaBindBackupPanel();alert('Offline backup created on this computer.')};var d=document.getElementById('downloadLatestBackup');if(d)d.onclick=vectaDownloadLatestBackup;var s=document.getElementById('syncOfflineChanges');if(s)s.onclick=async function(){await flushPendingSync();await vectaRefreshBackupPanel();vectaBindBackupPanel()}}
 function shouldQueueRemoteFailure(err){var msg=String(err&&err.message||err||'').toLowerCase();return !navigator.onLine||!vectaCloudReachable||/fetch|network|timeout|timed out|failed to fetch|connection|503|502|504|unavailable/.test(msg)}
-async function flushPendingSync(){if(vectaSyncInFlight)return false;if(!navigator.onLine||!remoteClient)return false;var q=vectaPendingSync();if(!q.length){vectaCloudReachable=true;vectaSyncProgress=null;updateConnectivityUI();return true}vectaSyncInFlight=true;vectaSyncProgress={done:0,total:q.length};updateConnectivityUI('syncing');var remaining=q.slice(),failed=[];try{for(var i=0;i<q.length;i++){var item=vectaNormaliseQueuedItem(q[i]),ok=false;try{if(item.operation==='upsert'){var rows=Array.isArray(item.payload)?item.payload:[item.payload];if(!rows.length)throw new Error('Queued upsert has no record data.');for(var r=0;r<rows.length;r++)await upsertRemote(item.table,rows[r],{silent:true,skipQueue:true});ok=true}else if(item.operation==='delete'){await deleteRemote(item.table,(item.payload&&item.payload.id)||item.payload,{skipQueue:true});ok=true}else throw new Error('Unknown queued operation: '+String(item.operation||'missing'));}catch(e){item.attempts=Number(item.attempts||0)+1;item.last_attempt_at=new Date().toISOString();item.last_error=String(e&&e.message||e);failed.push(item);console.warn('Offline sync item retained for retry',item.table,item.operation,item.last_error)}if(ok){remaining=remaining.filter(function(x){return x.key!==item.key});vectaSavePendingSync(remaining)}else{remaining=remaining.filter(function(x){return x.key!==item.key});remaining.push(item);vectaSavePendingSync(remaining)}vectaSyncProgress.done=i+1;updateConnectivityUI('syncing')}}finally{vectaSyncInFlight=false;vectaSyncProgress=null}vectaCloudReachable=true;vectaLastCloudSuccess=new Date().toISOString();vectaSavePendingSync(remaining);updateConnectivityUI();if(!remaining.length){try{await pullRemote()}catch(e){console.warn('Post-sync cloud refresh skipped',e)}return true}return false}
+async function flushPendingSync(){
+  if(vectaSyncInFlight)return false;if(!navigator.onLine||!remoteClient)return false;
+  vectaRecoverLegacyStuckQueue();
+  var q=vectaPendingSync();if(!q.length){vectaCloudReachable=true;vectaSyncProgress=null;updateConnectivityUI();return true}
+  var now=Date.now(),eligible=q.filter(function(item){return !item.next_retry_at||(Date.parse(item.next_retry_at)||0)<=now});
+  if(!eligible.length){vectaCloudReachable=true;updateConnectivityUI();return false}
+  vectaSyncInFlight=true;vectaSyncProgress={done:0,total:eligible.length};updateConnectivityUI('syncing');
+  var remaining=q.slice(),quarantined=[];
+  try{for(var i=0;i<eligible.length;i++){
+    var item=vectaNormaliseQueuedItem(eligible[i]),ok=false;
+    try{
+      if(item.operation==='upsert'){var rows=Array.isArray(item.payload)?item.payload:[item.payload];if(!rows.length)throw new Error('Queued upsert has no record data.');for(var r=0;r<rows.length;r++)await upsertRemote(item.table,rows[r],{silent:true,skipQueue:true});ok=true}
+      else if(item.operation==='delete'){await deleteRemote(item.table,(item.payload&&item.payload.id)||item.payload,{skipQueue:true});ok=true}
+      else throw new Error('Unknown queued operation: '+String(item.operation||'missing'));
+    }catch(e){
+      item.attempts=Number(item.attempts||0)+1;item.last_attempt_at=new Date().toISOString();item.last_error=String(e&&e.message||e);
+      var networkFailure=shouldQueueRemoteFailure(e);
+      if(!networkFailure&&item.attempts>=3){quarantined.push(item);console.warn('Stuck sync item archived instead of retrying forever',item.table,item.operation,item.last_error)}
+      else{var delay=Math.min(30,Math.max(2,Math.pow(2,Math.min(item.attempts,4))))*60*1000;item.next_retry_at=new Date(Date.now()+delay).toISOString();console.warn('Offline sync item retained with backoff',item.table,item.operation,item.last_error)}
+    }
+    remaining=remaining.filter(function(x){return x.key!==item.key});
+    if(!ok&&quarantined.indexOf(item)===-1)remaining.push(item);
+    vectaSavePendingSync(remaining);vectaSyncProgress.done=i+1;updateConnectivityUI('syncing');
+  }}finally{vectaSyncInFlight=false;vectaSyncProgress=null}
+  if(quarantined.length)vectaArchiveSyncItems(quarantined,'Permanent sync failure after 3 attempts');
+  vectaCloudReachable=true;vectaLastCloudSuccess=new Date().toISOString();vectaSavePendingSync(remaining);updateConnectivityUI();
+  if(!remaining.length){try{await pullRemote()}catch(e){console.warn('Post-sync cloud refresh skipped',e)}return true}
+  return false
+}
 function registerVectaServiceWorker(){if('serviceWorker' in navigator){window.addEventListener('load',function(){navigator.serviceWorker.register('/service-worker.js').catch(function(e){console.warn('Offline app install failed',e)})})}}
 window.addEventListener('online',function(){updateConnectivityUI('syncing');setTimeout(async function(){try{var configured=await loadCloudConfig({silent:true});if(configured){await new Promise(function(resolve){ensureSupabase(function(){connectSupabase();resolve()})});if(remoteClient){var test=await remoteClient.from('jobs').select('id').limit(1);if(!test.error){vectaCloudReachable=true;await flushPendingSync();await pullRemote();await vectaCreateDailyBackup(false,'cloud-synchronised');render()}}}}catch(e){vectaCloudReachable=false}updateConnectivityUI()},500)});
 window.addEventListener('offline',function(){vectaCloudReachable=false;updateConnectivityUI()});
-setInterval(function(){if(navigator.onLine&&vectaCloudReachable&&vectaPendingSync().length&&!vectaSyncInFlight){flushPendingSync().catch(function(e){console.warn('Background offline-sync retry failed',e)})}},20000);
+setInterval(function(){if(navigator.onLine&&vectaCloudReachable&&vectaPendingSync().length&&!vectaSyncInFlight){flushPendingSync().catch(function(e){console.warn('Background offline-sync retry failed',e)})}},5*60*1000);
 registerVectaServiceWorker();
 
 function saveLocal(){localStorage.setItem(STORE_KEY,JSON.stringify(app));vectaCreateDailyBackup(false,'local-save').catch(function(e){console.warn('Daily local backup skipped',e)})}
