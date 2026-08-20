@@ -12164,3 +12164,99 @@ try{setTimeout(function(){if(window.app&&Array.isArray(app.jobs))migrateNoVehicl
 
 </body>
 </html>
+<script>
+/* v218: fast unified search. Build one lightweight in-memory index when Search opens,
+   then filter that index while typing instead of repeatedly rebuilding vehicle/customer
+   relationships and Fleet due-data for every keystroke. */
+(function(){
+'use strict';
+var fastSearchIndex=null;
+var fastSearchKey='';
+var fastSearchTimer=null;
+function compactReg(v){return String(v||'').toUpperCase().replace(/[^A-Z0-9]/g,'');}
+function dataKey(){
+  return [(app.jobs||[]).length,(app.vehicles||[]).length,(app.customers||[]).length,(window.fleetVehicles||[]).length].join(':');
+}
+function buildFastSearchIndex(){
+  var vehiclesByReg=Object.create(null), customersByKey=Object.create(null), customerRegs=Object.create(null);
+  function addVehicle(reg,src){
+    var nr=typeof normReg==='function'?normReg(reg||''):String(reg||'').trim().toUpperCase();
+    if(!nr)return null;
+    var key=compactReg(nr), row=vehiclesByReg[key];
+    if(!row)row=vehiclesByReg[key]={registration:nr,vehicle:'',customer_name:'',customer_id:'',mot_due:'',tax_due:''};
+    src=src||{};
+    if(!row.vehicle)row.vehicle=src.vehicle||src.model||'';
+    if(!row.customer_name)row.customer_name=src.customer_name||src.customer||'';
+    if(!row.customer_id)row.customer_id=src.customer_id||'';
+    if(!row.mot_due)row.mot_due=src.mot_due||'';
+    if(!row.tax_due)row.tax_due=src.tax_due||'';
+    return row;
+  }
+  function contactKey(c){
+    var email=String(c.email||'').trim().toLowerCase(), phone=String(c.phone||'').replace(/\s/g,''), name=String(c.name||c.surname||'').trim().toLowerCase();
+    return email?'e:'+email:(phone?'p:'+phone:(name?'n:'+name:''));
+  }
+  function addCustomer(c){
+    if(!c)return null;
+    var key=contactKey(c); if(!key)return null;
+    var row=customersByKey[key];
+    if(!row)row=customersByKey[key]={id:c.id||('fast:'+key),name:c.name||c.surname||'Customer',surname:c.surname||'',phone:c.phone||'',email:c.email||'',_key:key};
+    if(!row.phone&&c.phone)row.phone=c.phone;
+    if(!row.email&&c.email)row.email=c.email;
+    return row;
+  }
+  function link(key,reg){
+    if(!key||!reg)return;
+    var nr=typeof normReg==='function'?normReg(reg||''):String(reg||'').trim().toUpperCase(); if(!nr)return;
+    var bucket=customerRegs[key]||(customerRegs[key]=Object.create(null)); bucket[nr]=true;
+  }
+  (app.customers||[]).forEach(function(c){addCustomer(c);});
+  (app.vehicles||[]).forEach(function(v){
+    var vr=addVehicle(v.registration,v); if(!vr)return;
+    var c=(app.customers||[]).find(function(x){return String(x.id||'')===String(v.customer_id||'')});
+    if(c){var cr=addCustomer(c); if(cr){vr.customer_name=vr.customer_name||cr.name;vr.customer_id=vr.customer_id||cr.id;link(cr._key,vr.registration);}}
+  });
+  (window.fleetVehicles||[]).forEach(function(fv){
+    var name='';
+    try{name=typeof searchFleetCustomerName==='function'?searchFleetCustomerName(fv):(fv.customer||fv.fleetGroup||'');}catch(e){name=fv.customer||fv.fleetGroup||'';}
+    var vr=addVehicle(fv.registration,{model:(typeof fleetDisplayModel==='function'?fleetDisplayModel(fv.model):fv.model),customer_name:name});
+    if(name){var fc=addCustomer({id:'fleetcustomer:'+String(name).toLowerCase(),name:name,email:fv.contactEmail||''});if(fc&&vr)link(fc._key,vr.registration);}
+  });
+  (app.jobs||[]).forEach(function(j){
+    var vr=addVehicle(j.registration,j);
+    var c=addCustomer({id:'jobcustomer:'+String(j.customer_email||j.customer_phone||j.customer_name||'').toLowerCase(),name:j.customer_name||'Customer',phone:j.customer_phone||'',email:j.customer_email||''});
+    if(c&&vr)link(c._key,vr.registration);
+  });
+  var vehicles=Object.keys(vehiclesByReg).map(function(k){return vehiclesByReg[k];}).sort(function(a,b){return compactReg(a.registration).localeCompare(compactReg(b.registration));});
+  var customers=Object.keys(customersByKey).map(function(k){var c=customersByKey[k];c._regs=Object.keys(customerRegs[k]||{}).sort();return c;}).sort(function(a,b){return String(a.name||'').localeCompare(String(b.name||''));});
+  fastSearchIndex={vehicles:vehicles,customers:customers}; fastSearchKey=dataKey(); return fastSearchIndex;
+}
+function getIndex(){return (!fastSearchIndex||fastSearchKey!==dataKey())?buildFastSearchIndex():fastSearchIndex;}
+window.invalidateFastSearchIndex=function(){fastSearchIndex=null;fastSearchKey='';};
+window.searchHtml=function(){
+  buildFastSearchIndex();
+  return '<div class="searchPage"><div class="searchPageHead"><h1>Search</h1><p class="muted">Search vehicles and customers from one place.</p></div><div class="searchHero unifiedSearchHero"><label>Registration, name, phone or email</label><input class="search" id="mainSearch" autocomplete="off" value="'+esc(searchQuery)+'" placeholder="e.g. AB12 CDE, Smith, 07721 or email address"></div><div id="searchResults">'+window.searchResultsHtml(searchQuery)+'</div></div>';
+};
+window.searchResultsHtml=function(q){
+  q=String(q||'').trim();
+  if(!q)return '<div class="empty">Start typing a registration, customer name, phone number or email address.</div>';
+  var idx=getIndex(), lower=q.toLowerCase(), compact=compactReg(q).toLowerCase();
+  var vs=idx.vehicles.filter(function(v){var r=compactReg(v.registration).toLowerCase();return (compact&&r.indexOf(compact)>-1)||[v.registration,v.vehicle,v.customer_name].join(' ').toLowerCase().indexOf(lower)>-1;}).slice(0,60);
+  vs.sort(function(a,b){var ar=compactReg(a.registration).toLowerCase(),br=compactReg(b.registration).toLowerCase(),ae=compact&&ar===compact,be=compact&&br===compact;if(ae!==be)return ae?-1:1;var as=compact&&ar.indexOf(compact)===0,bs=compact&&br.indexOf(compact)===0;if(as!==bs)return as?-1:1;return ar.localeCompare(br);});
+  var cs=idx.customers.filter(function(c){var text=[c.name,c.surname,c.phone,c.email].join(' ').toLowerCase();if(text.indexOf(lower)>-1)return true;return compact&&c._regs.some(function(r){return compactReg(r).toLowerCase().indexOf(compact)>-1;});}).slice(0,40);
+  var html='';
+  if(vs.length)html+='<div class="searchResultHead"><b>Vehicles</b><span>'+vs.length+' result'+(vs.length===1?'':'s')+'</span></div>'+vehicleRows(vs);
+  if(cs.length)html+='<div class="searchResultHead"><b>Customers</b><span>'+cs.length+' result'+(cs.length===1?'':'s')+'</span></div>'+cs.map(function(c){var regHtml=c._regs.length?c._regs.map(function(r){return '<span class="customerRegChip">'+esc(r)+'</span>';}).join(''):'<span class="muted">No vehicle recorded</span>';return '<button type="button" class="rowCard customerSearchRow unifiedCustomerRow" data-open-customer="'+esc(c.id)+'"><div class="customerRegs">'+regHtml+'</div><div><b>'+esc(c.name||c.surname||'Customer')+'</b><br><span class="muted">'+esc(c.email||'No email recorded')+'</span></div><span>'+esc(c.phone||'No phone recorded')+'</span><span class="pill">View Customer</span></button>';}).join('');
+  if(compact){var exact=vs.find(function(v){return compactReg(v.registration).toLowerCase()===compact;});if(exact){var reg=typeof normReg==='function'?normReg(exact.registration):exact.registration,jobs=(app.jobs||[]).filter(function(j){return (typeof normReg==='function'?normReg(j.registration||''):j.registration)===reg;}).sort(function(a,b){return String(b.booking_date||b.created_at||'').localeCompare(String(a.booking_date||a.created_at||''));});html+='<div class="searchResultHead searchAssociatedHead"><b>Jobs associated with '+esc(reg)+'</b><span>'+jobs.length+' job'+(jobs.length===1?'':'s')+'</span></div>'+(jobs.length?jobs.map(function(j){return '<button type="button" class="rowCard searchJobRow" data-search-open-job="'+esc(j.id)+'"><span>'+listPlate(j.registration)+'</span><div><b>'+esc(jobTitle(j))+'</b><br><span class="muted">'+esc(j.work_required||'')+'</span></div><span>'+esc(j.customer_name||exact.customer_name||'No customer recorded')+'</span><span>'+esc(j.booking_date?niceDate(String(j.booking_date).slice(0,10)):'No date')+'</span><span class="status '+esc(j.status||'booked')+'">'+esc(statusText(j.status||'booked'))+'</span></button>';}).join(''):'<div class="empty">No jobs recorded for this vehicle.</div>');}}
+  return html||'<div class="empty">No matching vehicles or customers found.</div>';
+};
+/* Replace per-keystroke heavy rendering with a short debounce. Capture-phase listener suppresses the older handler. */
+document.addEventListener('input',function(ev){
+  if(!ev.target||ev.target.id!=='mainSearch')return;
+  ev.stopImmediatePropagation();
+  searchQuery=ev.target.value;
+  clearTimeout(fastSearchTimer);
+  fastSearchTimer=setTimeout(function(){var results=document.getElementById('searchResults');if(results)results.innerHTML=window.searchResultsHtml(searchQuery);},90);
+},true);
+})();
+</script>
