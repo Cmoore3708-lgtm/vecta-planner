@@ -10647,28 +10647,36 @@ function vehicleTaxRowsHtml(rows){
 
 /* v227 integrated streamlined Vehicle Tax workflow */
 
+  function taxPlanTypeKey(p){
+    var value=String(p&&p.type||'').toLowerCase();
+    if(value.indexOf('tax')>-1)return 'tax';
+    if(value.indexOf('mot')>-1)return 'mot';
+    if(value.indexOf('safety')>-1||value.indexOf('six month')>-1||value.indexOf('six-month')>-1||value.indexOf('6 month')>-1||value.indexOf('6-month')>-1)return 'safety';
+    if(value.indexOf('service')>-1)return 'service';
+    return 'other';
+  }
   function taxPlanForVehicle(v){
     if(!v)return null;
-    /* Use the same live Fleet Manager arrays as the Due in 30 days screen. */
-    var plans=(fleetPlans||[]).filter(function(p){return p&&p.vehicleId===v.id&&fleetMaintenanceCategory(p.type)==='tax'&&String(p.status||'Active')!=='Paused';});
+    var plans=(fleetVehiclePlans(v.id)||[]).filter(function(p){return taxPlanTypeKey(p)==='tax'&&String(p.status||'Active')!=='Paused';});
     plans.sort(function(a,b){return String(fleetDate(a)||'9999').localeCompare(String(fleetDate(b)||'9999'));});
     return plans[0]||null;
   }
   function taxDueDateForVehicle(v){var p=taxPlanForVehicle(v);return p?fleetDate(p):String(v&&v.taxDueDate||'').slice(0,10)}
   function taxDueVehicles30(){
-    /* IMPORTANT: derive this list from fleetEnriched().plans — exactly the same outstanding
-       maintenance-plan source used by Fleet Manager's TAX Due 30 days KPI/list. This prevents
-       the Vehicle Tax page and Fleet Manager from ever disagreeing about which vehicles are due. */
-    var today=new Date();today.setHours(0,0,0,0);var limit=new Date(today);limit.setDate(limit.getDate()+30),seen={},rows=[];
+    /* Mirror Fleet Manager's due-within-30-days rule exactly. */
+    var today=new Date();today.setHours(0,0,0,0);
+    var limit=new Date(today);limit.setDate(limit.getDate()+30);
+    var taxSeen={},rows=[];
     (fleetEnriched()||[]).forEach(function(v){
-      if(!v||v.status==='Inactive'||v.roadGoing===false)return;
       (v.plans||[]).forEach(function(p){
-        if(fleetMaintenanceCategory(p.type)!=='tax')return;
-        var d=fleetDate(p)||'',dt=d?new Date(d+'T00:00:00'):null;
-        if(!dt||isNaN(dt.getTime())||dt>limit)return;
-        var key=String(v.id||normReg(v.registration||''));
-        if(seen[key])return;seen[key]=1;
-        rows.push({vehicle:v,plan:p,due:d});
+        var date=fleetDate(p)||'',typeKey=taxPlanTypeKey(p);
+        if(typeKey!=='tax'||!date)return;
+        var dt=new Date(date+'T00:00:00');
+        if(isNaN(dt.getTime())||dt>limit)return;
+        var dueKey=String(v.id||normReg(v.registration||''))+'|tax|'+date;
+        if(taxSeen[dueKey])return;
+        taxSeen[dueKey]=true;
+        rows.push({vehicle:v,plan:p,due:date});
       });
     });
     rows.sort(function(a,b){return a.due.localeCompare(b.due)||String(a.vehicle.registration||'').localeCompare(String(b.vehicle.registration||''));});
