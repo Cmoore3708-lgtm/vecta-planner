@@ -2458,6 +2458,14 @@ body.servicePreviewing .servicePreviewControls{position:relative!important;z-ind
 <style>
 .fleetTaxConfirmBar{margin:14px 0;padding:14px 16px;border:2px solid #16a34a;background:#f0fdf4;border-radius:12px;display:flex;align-items:center;gap:12px;flex-wrap:wrap}.fleetTaxConfirmBar .primary{font-size:15px;padding:11px 16px}.fleetTaxConfirmBar small{font-weight:700;color:#166534;max-width:620px}@media(max-width:700px){.fleetTaxConfirmBar{align-items:stretch}.fleetTaxConfirmBar .primary{width:100%}}
 </style>
+<style id="v227-streamlined-tax-css">
+.vehicleTaxDueSection,.vehicleTaxCompletedSection{background:#fff;border:1px solid var(--line);border-radius:14px;overflow:hidden}
+.vehicleTaxSectionHead{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 16px;border-bottom:1px solid var(--line)}
+.vehicleTaxSectionHead h3{margin:0;font-size:18px}.vehicleTaxSectionHead p{margin:3px 0 0;color:#64748b;font-size:12px}.vehicleTaxDueCount{display:inline-flex;min-width:34px;height:28px;padding:0 9px;border-radius:999px;align-items:center;justify-content:center;font-weight:1000;background:#fee2e2;color:#991b1b}
+.vehicleTaxDueHead,.vehicleTaxDueRow{display:grid;grid-template-columns:145px minmax(180px,1fr) 160px 150px;gap:12px;align-items:center;padding:11px 14px}.vehicleTaxDueHead{background:#f8fafc;font-size:10px;text-transform:uppercase;font-weight:1000;color:#64748b}.vehicleTaxDueRow{border-top:1px solid #eef2f7;background:#fff}.vehicleTaxDueRow:hover{background:#fffaf0}.vehicleTaxDueReg{border:0;background:transparent;padding:0;text-align:left;cursor:pointer}.vehicleTaxDueReg .plate{pointer-events:none}.vehicleTaxDueDate{font-weight:950;color:#92400e}
+.taxQuickModal{width:min(600px,94vw)}.taxQuickHero{background:#07111f;color:#fff;border-radius:14px;padding:16px 18px;margin-bottom:14px}.taxQuickHero h2{margin:3px 0 0}.taxQuickGrid{display:grid;grid-template-columns:1fr 1fr;gap:12px}.taxQuickGrid .wide{grid-column:1/-1}.taxQuickSummary{background:#f8fafc;border:1px solid var(--line);border-radius:10px;padding:12px;font-size:13px}.taxQuickActions{display:flex;gap:10px;justify-content:flex-end;margin-top:16px}.taxCompleteDate{font-weight:950;color:#166534}
+@media(max-width:700px){.vehicleTaxDueHead{display:none}.vehicleTaxDueRow{grid-template-columns:1fr 1fr}.taxQuickGrid{grid-template-columns:1fr}.taxQuickGrid .wide{grid-column:auto}}
+</style>
 </head>
 <body>
 <!-- VECTA v200: unfinished jobs stay allocated; no carried-over column -->
@@ -10636,16 +10644,59 @@ function vehicleTaxRowsHtml(rows){
   if(!rows.length)return '<div class="empty">No NMUK vehicle tax entries for this month.</div>';
   return '<div class="vehicleTaxTable"><div class="vehicleTaxTableHead"><span>Date</span><span>Registration</span><span>Reference / vehicle</span><span>Status</span><span>Amount</span><span></span></div>'+rows.map(function(j){var marker=vehicleTaxInvoiceMarker(j),fv=fleetVehicleForRegistration(j.registration)||{},label=marker?'Invoiced':'Awaiting month-end invoice';return '<div class="vehicleTaxRow"><span>'+esc(niceDate(vehicleTaxJobDate(j)))+'</span><span>'+listPlate(j.registration||'')+'</span><span><b>'+esc(fv.taxReference||j.vehicle||'—')+'</b><small>'+esc(j.work_required||'Vehicle Tax')+'</small></span><span class="vehicleTaxState '+(marker?'done':'open')+'">'+esc(label)+'</span><strong>'+money(vehicleTaxAmount(j))+'</strong><button type="button" class="btn" data-tax-open-job="'+esc(j.id)+'">Open</button></div>'}).join('')+'</div>'
 }
-function vehicleTaxHtml(){
-  var totals=vehicleTaxTotalsForMonth(vehicleTaxSelectedMonth),monthLabel=new Date(vehicleTaxSelectedMonth+'-01T12:00:00').toLocaleDateString('en-GB',{month:'long',year:'numeric'});
-  return '<div class="vehicleTaxPage"><div class="vehicleTaxHero"><div><span>NMUK ADMIN</span><h2>Vehicle Tax</h2><p>Record every vehicle taxed for NMUK here. Tax values are kept separate from normal workshop revenue and consolidated into one dedicated invoice at month end.</p></div><button type="button" class="primary" id="newVehicleTaxJob">+ Tax a Vehicle</button></div><div class="vehicleTaxToolbar"><label>Month <input id="vehicleTaxMonth" type="month" value="'+esc(vehicleTaxSelectedMonth)+'"></label><div><small>'+esc(monthLabel)+' total</small><strong>'+money(totals.total)+'</strong></div><div><small>Awaiting invoice</small><strong>'+money(totals.uninvoicedTotal)+'</strong></div><button type="button" class="btn dark" id="createVehicleTaxInvoice" '+(!totals.uninvoiced.length?'disabled':'')+'>Create Month-End Tax Invoice ('+totals.uninvoiced.length+')</button></div><div class="vehicleTaxNotice"><b>Separate ledger:</b> these amounts do not count towards VECTA servicing/repair revenue, growth or performance totals. The dedicated month-end invoice is created only from entries not already invoiced.</div>'+vehicleTaxRowsHtml(totals.all)+'</div>'
-}
-function bindVehicleTax(){
-  var month=document.getElementById('vehicleTaxMonth');if(month){month.onchange=function(){vehicleTaxSelectedMonth=month.value||todayIso().slice(0,7);render()}}
-  var add=document.getElementById('newVehicleTaxJob');if(add)add.onclick=function(){openJobModal(null,{customer_account:'NMUK',customer_name:'NMUK',nmuk_vehicle_type:'Pool Car Tax',job_type:'Vehicle Tax',work_required:'Pool Car Tax',technician:'Unallocated',ramp:'',estimated_hours:0,status:'completed',vat_mode:'no_vat',booking_date:todayIso(),parts_status:'Not required'})};
-  document.querySelectorAll('[data-tax-open-job]').forEach(function(b){b.onclick=function(){openJobModal(b.dataset.taxOpenJob)}});
-  var make=document.getElementById('createVehicleTaxInvoice');if(make)make.onclick=createVehicleTaxMonthInvoice
-}
+
+/* v227 integrated streamlined Vehicle Tax workflow */
+
+  function taxPlanForVehicle(v){
+    if(!v)return null;
+    var plans=(window.fleetPlans||[]).filter(function(p){return p&&p.vehicleId===v.id&&typeof fleetMaintenanceCategory==='function'&&fleetMaintenanceCategory(p.type)==='tax'&&String(p.status||'Active')!=='Paused';});
+    plans.sort(function(a,b){return String((typeof fleetDate==='function'?fleetDate(a):a.currentDueDate)||'9999').localeCompare(String((typeof fleetDate==='function'?fleetDate(b):b.currentDueDate)||'9999'));});
+    return plans[0]||null;
+  }
+  function taxDueDateForVehicle(v){var p=taxPlanForVehicle(v);return p?(typeof fleetDate==='function'?fleetDate(p):String(p.currentDueDate||'')):String(v&&v.taxDueDate||'').slice(0,10)}
+  function taxDueVehicles30(){
+    var today=todayIso(), end=new Date(today+'T00:00:00');end.setDate(end.getDate()+30);var endIso=end.getFullYear()+'-'+String(end.getMonth()+1).padStart(2,'0')+'-'+String(end.getDate()).padStart(2,'0');
+    return (window.fleetVehicles||[]).filter(function(v){if(!v||v.status==='Inactive'||v.roadGoing===false)return false;var d=taxDueDateForVehicle(v);return /^\d{4}-\d{2}-\d{2}$/.test(d)&&d<=endIso;}).sort(function(a,b){return taxDueDateForVehicle(a).localeCompare(taxDueDateForVehicle(b))||String(a.registration||'').localeCompare(String(b.registration||''));});
+  }
+  function dueTaxRowsHtml(){
+    var rows=taxDueVehicles30();
+    var head='<section class="vehicleTaxDueSection"><div class="vehicleTaxSectionHead"><div><h3>Vehicles requiring tax in the next 30 days</h3><p>Click a registration to tax the vehicle and record the amount.</p></div><span class="vehicleTaxDueCount">'+rows.length+'</span></div>';
+    if(!rows.length)return head+'<div class="empty">No vehicles require taxing in the next 30 days.</div></section>';
+    return head+'<div class="vehicleTaxDueHead"><span>Registration</span><span>Vehicle</span><span>Tax due</span><span>Fleet</span></div>'+rows.map(function(v){var d=taxDueDateForVehicle(v);return '<div class="vehicleTaxDueRow"><button type="button" class="vehicleTaxDueReg" data-tax-due-reg="'+esc(v.registration||'')+'">'+listPlate(v.registration||'')+'</button><span><b>'+esc(typeof fleetDisplayModel==='function'?fleetDisplayModel(v.model):v.model||'Vehicle')+'</b></span><span class="vehicleTaxDueDate">'+esc(niceDate(d))+'</span><span>'+esc(v.fleetGroup==='Nissan Pool Cars'?'NMUK pool cars':(v.customer||v.fleetGroup||''))+'</span></div>';}).join('')+'</section>';
+  }
+  function completedTaxRowsHtml(rows){
+    if(!rows.length)return '<div class="empty">No completed vehicle tax entries for this month.</div>';
+    return '<div class="vehicleTaxTable"><div class="vehicleTaxTableHead"><span>Completed</span><span>Registration</span><span>Reference / vehicle</span><span>Status</span><span>Amount</span><span></span></div>'+rows.map(function(j){var marker=vehicleTaxInvoiceMarker(j),fv=fleetVehicleForRegistration(j.registration)||{},label=marker?'Invoiced':'Awaiting month-end invoice';return '<div class="vehicleTaxRow"><span class="taxCompleteDate">'+esc(niceDate(vehicleTaxJobDate(j)))+'</span><span>'+listPlate(j.registration||'')+'</span><span><b>'+esc(fv.taxReference||j.vehicle||'—')+'</b><small>'+esc(j.work_required||'Vehicle Tax')+'</small></span><span class="vehicleTaxState '+(marker?'done':'open')+'">'+esc(label)+'</span><strong>'+money(vehicleTaxAmount(j))+'</strong><button type="button" class="btn" data-tax-open-job="'+esc(j.id)+'">Open</button></div>';}).join('')+'</div>';
+  }
+  function vehicleTaxHtmlV226(){
+    var totals=vehicleTaxTotalsForMonth(vehicleTaxSelectedMonth),monthLabel=new Date(vehicleTaxSelectedMonth+'-01T12:00:00').toLocaleDateString('en-GB',{month:'long',year:'numeric'});
+    return '<div class="vehicleTaxPage"><div class="vehicleTaxHero"><div><span>NMUK ADMIN</span><h2>Vehicle Tax</h2><p>Tax due vehicles are shown first. Complete each one here; completed tax is kept separate from normal workshop revenue.</p></div><button type="button" class="primary" id="newVehicleTaxJob">+ Tax a Vehicle</button></div>'+dueTaxRowsHtml()+'<div class="vehicleTaxToolbar"><label>Completed month <input id="vehicleTaxMonth" type="month" value="'+esc(vehicleTaxSelectedMonth)+'"></label><div><small>'+esc(monthLabel)+' total</small><strong>'+money(totals.total)+'</strong></div><div><small>Awaiting invoice</small><strong>'+money(totals.uninvoicedTotal)+'</strong></div><button type="button" class="btn dark" id="createVehicleTaxInvoice" '+(!totals.uninvoiced.length?'disabled':'')+'>Create Month-End Tax Invoice ('+totals.uninvoiced.length+')</button></div><div class="vehicleTaxNotice"><b>Separate ledger:</b> vehicle tax stays outside workshop revenue. Marking a vehicle complete removes it from the due list and adds it to the completed ledger below.</div><section class="vehicleTaxCompletedSection"><div class="vehicleTaxSectionHead"><div><h3>Completed vehicle tax — '+esc(monthLabel)+'</h3><p>The completed date is the date the tax was confirmed in Workshop Pro.</p></div><strong>'+money(totals.total)+'</strong></div>'+completedTaxRowsHtml(totals.all)+'</section></div>';
+  };
+  function taxVehicleDetails(reg){var n=normReg(reg||''),v=fleetVehicleForRegistration(n);return {reg:n,v:v,model:v?(typeof fleetDisplayModel==='function'?fleetDisplayModel(v.model):v.model||''):''};}
+  function openStreamlinedTaxModalV226(reg){
+    var d=taxVehicleDetails(reg),v=d.v,due=v?taxDueDateForVehicle(v):'',html='<div class="modalCard taxQuickModal"><div class="modalHead"><div><span class="vehicleDetailEyebrow">VEHICLE TAX</span><h2>Tax a vehicle</h2></div><button class="btn" data-close-modal>Close</button></div><div class="modalBody"><div class="taxQuickHero"><small>STREAMLINED TAX ENTRY</small><h2>'+(d.reg?esc(d.reg):'New vehicle tax')+'</h2></div><div class="taxQuickGrid"><div class="field"><label>Registration</label><input id="taxQuickReg" value="'+esc(d.reg)+'" placeholder="Registration"></div><div class="field"><label>Vehicle</label><input id="taxQuickVehicle" value="'+esc(d.model)+'" placeholder="Vehicle" readonly></div><div class="field"><label>Tax due</label><input id="taxQuickDue" value="'+esc(due?niceDate(due):'Not recorded')+'" readonly></div><div class="field"><label>Tax reference</label><input id="taxQuickRef" value="'+esc(v&&v.taxReference||'')+'" readonly></div><div class="field wide"><label>Tax amount (£)</label><input id="taxQuickAmount" type="number" min="0" step="0.01" inputmode="decimal" placeholder="0.00"></div></div><div class="taxQuickSummary">Completion date: <b>'+esc(niceDate(todayIso()))+'</b>. Tax is recorded as <b>NO VAT</b> and kept outside workshop turnover.</div><div class="taxQuickActions"><button class="btn" data-close-modal>Cancel</button><button class="primary" id="taxQuickComplete">Mark tax complete</button></div></div></div>';
+    var modal=document.getElementById('jobModal');modal.innerHTML=html;modal.classList.add('open');modal.setAttribute('aria-hidden','false');modal.querySelectorAll('[data-close-modal]').forEach(function(b){b.onclick=closeModals});
+    var regEl=document.getElementById('taxQuickReg');if(regEl)regEl.onchange=regEl.onblur=function(){var x=taxVehicleDetails(regEl.value);regEl.value=x.reg;var ve=document.getElementById('taxQuickVehicle'),du=document.getElementById('taxQuickDue'),rf=document.getElementById('taxQuickRef');if(ve)ve.value=x.model||'';if(du)du.value=x.v&&taxDueDateForVehicle(x.v)?niceDate(taxDueDateForVehicle(x.v)):'Not recorded';if(rf)rf.value=x.v&&x.v.taxReference||'';};
+    var done=document.getElementById('taxQuickComplete');if(done)done.onclick=async function(){var r=normReg((document.getElementById('taxQuickReg')||{}).value||''),raw=String((document.getElementById('taxQuickAmount')||{}).value||'').trim(),amount=Number(raw);if(!r){alert('Enter a registration number.');return}if(!Number.isFinite(amount)||amount<0){alert('Enter the tax amount.');return}done.disabled=true;done.textContent='Saving...';try{await completeStreamlinedVehicleTaxV226(r,amount);closeModals();vehicleTaxSelectedMonth=todayIso().slice(0,7);view='vehicleTax';render()}catch(err){console.error('Vehicle tax completion failed',err);alert('The vehicle tax entry could not be saved.\n\n'+(err&&err.message?err.message:'Save failed'));done.disabled=false;done.textContent='Mark tax complete';}};
+  };
+  async function completeStreamlinedVehicleTaxV226(reg,amount){
+    var n=normReg(reg),today=todayIso(),v=fleetVehicleForRegistration(n);if(!v)throw new Error('This registration is not linked to a Fleet Manager vehicle.');
+    var existing=(app.jobs||[]).find(function(j){return isVehicleTaxJob(j)&&normReg(j.registration||'')===n&&vehicleTaxJobDate(j)===today});if(existing)throw new Error(n+' already has a Vehicle Tax entry dated today.');
+    var now=new Date().toISOString(),job={id:uid(),booking_date:today,drop_time:'',technician:'Unallocated',ramp:'',status:'completed',job_type:'Vehicle Tax',job_types:['Vehicle Tax'],job_colour:'general',estimated_hours:0,card_type:'job',source:'vehicle_tax_admin',booking_source:'Vehicle Tax page',registration:v.registration||n,vehicle:typeof fleetDisplayModel==='function'?fleetDisplayModel(v.model):v.model||'',customer_account:'NMUK',customer_name:'NMUK',customer_email:v.contactEmail||'',nmuk_vehicle_type:'Pool Car Tax',work_required:'Vehicle Tax',amount_quoted:Number(Number(amount).toFixed(2)),vat_mode:'no_vat',parts_status:'Not required',completed_at:now,created_at:now,updated_at:now,customer_note:'Vehicle tax completed on '+today+'.'};
+    app.jobs.push(job);if(typeof saveAll==='function')await saveAll();if(typeof upsertRemote==='function')await upsertRemote('jobs',job,{silent:true});
+    var p=taxPlanForVehicle(v),next=(typeof fleetAddMonthsFromDue==='function'?fleetAddMonthsFromDue(today,12):'');if(p){p.type='Road Tax';p.intervalMonths=12;p.currentDueDate=next;p.targetMonth=Number(next.slice(5,7));p.status='Active';p.notes='Updated from Vehicle Tax page '+today+'.';}else{p={id:'plan-tax-'+v.id,vehicleId:v.id,type:'Road Tax',intervalMonths:12,targetMonth:Number(next.slice(5,7)),currentDueDate:next,notes:'Created from Vehicle Tax page '+today+'.',status:'Active',source:'Vehicle Tax ledger'};(window.fleetPlans||[]).push(p)}
+    v.taxDueDate=next;v.taxLastChecked=now;var cid='job-tax-'+job.id;if(!(window.fleetCompletions||[]).some(function(c){return c.id===cid}))(window.fleetCompletions||[]).push({id:cid,vehicleId:v.id,planId:p.id,type:'Road Tax',completedDate:today,datePrecision:'day',nextDue:next,source:'job:'+job.id,notes:'Vehicle tax completed in Vehicle Tax page. Next tax due '+next+'.'});if(typeof saveFleet==='function')saveFleet();return job;
+  };
+  function bindVehicleTaxV226(){
+    var month=document.getElementById('vehicleTaxMonth');if(month)month.onchange=function(){vehicleTaxSelectedMonth=month.value||todayIso().slice(0,7);render()};
+    var add=document.getElementById('newVehicleTaxJob');if(add)add.onclick=function(){openStreamlinedTaxModalV226('')};
+    document.querySelectorAll('[data-tax-due-reg]').forEach(function(b){b.onclick=function(){openStreamlinedTaxModalV226(b.dataset.taxDueReg)}});
+    document.querySelectorAll('[data-tax-open-job]').forEach(function(b){b.onclick=function(){openJobModal(b.dataset.taxOpenJob)}});
+    var make=document.getElementById('createVehicleTaxInvoice');if(make)make.onclick=createVehicleTaxMonthInvoice;
+  };
+
+function vehicleTaxHtml(){return vehicleTaxHtmlV226();}
+function bindVehicleTax(){return bindVehicleTaxV226();}
 function createVehicleTaxMonthInvoice(){
   var totals=vehicleTaxTotalsForMonth(vehicleTaxSelectedMonth),jobs=totals.uninvoiced;if(!jobs.length){alert('There are no uninvoiced vehicle tax entries for this month.');return}
   var monthLabel=new Date(vehicleTaxSelectedMonth+'-01T12:00:00').toLocaleDateString('en-GB',{month:'long',year:'numeric'}),lines=jobs.map(function(j){j.vat_mode='no_vat';return {description:'Vehicle tax — '+String(j.registration||'No registration')+' — '+niceDate(vehicleTaxJobDate(j)),type:'Work',amount:vehicleTaxAmount(j),vat_mode:'no_vat'}}),id=uid();
@@ -12178,70 +12229,13 @@ try{setTimeout(function(){if(window.app&&Array.isArray(app.jobs))migrateNoVehicl
     fleetBind.__v213TaxWrapped=true;
   }
   setTimeout(repairTaxDue,1200);setTimeout(repairTaxDue,5000);
-  try{var foot=document.querySelector('.sideFoot small');if(foot)foot.textContent='v213 Workshop Pro · Tax due repair';}catch(e){}
+  try{var foot=document.querySelector('.sideFoot small');if(foot)foot.textContent='v227 Workshop Pro · Vehicle Tax workflow fixed';}catch(e){}
 })();
 </script>
 
 
-<style id="v226-streamlined-tax-css">
-.vehicleTaxDueSection,.vehicleTaxCompletedSection{background:#fff;border:1px solid var(--line);border-radius:14px;overflow:hidden}
-.vehicleTaxSectionHead{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 16px;border-bottom:1px solid var(--line)}
-.vehicleTaxSectionHead h3{margin:0;font-size:18px}.vehicleTaxSectionHead p{margin:3px 0 0;color:#64748b;font-size:12px}.vehicleTaxDueCount{display:inline-flex;min-width:34px;height:28px;padding:0 9px;border-radius:999px;align-items:center;justify-content:center;font-weight:1000;background:#fee2e2;color:#991b1b}
-.vehicleTaxDueHead,.vehicleTaxDueRow{display:grid;grid-template-columns:145px minmax(180px,1fr) 160px 150px;gap:12px;align-items:center;padding:11px 14px}.vehicleTaxDueHead{background:#f8fafc;font-size:10px;text-transform:uppercase;font-weight:1000;color:#64748b}.vehicleTaxDueRow{border-top:1px solid #eef2f7;background:#fff}.vehicleTaxDueRow:hover{background:#fffaf0}.vehicleTaxDueReg{border:0;background:transparent;padding:0;text-align:left;cursor:pointer}.vehicleTaxDueReg .plate{pointer-events:none}.vehicleTaxDueDate{font-weight:950;color:#92400e}
-.taxQuickModal{width:min(600px,94vw)}.taxQuickHero{background:#07111f;color:#fff;border-radius:14px;padding:16px 18px;margin-bottom:14px}.taxQuickHero h2{margin:3px 0 0}.taxQuickGrid{display:grid;grid-template-columns:1fr 1fr;gap:12px}.taxQuickGrid .wide{grid-column:1/-1}.taxQuickSummary{background:#f8fafc;border:1px solid var(--line);border-radius:10px;padding:12px;font-size:13px}.taxQuickActions{display:flex;gap:10px;justify-content:flex-end;margin-top:16px}.taxCompleteDate{font-weight:950;color:#166534}
-@media(max-width:700px){.vehicleTaxDueHead{display:none}.vehicleTaxDueRow{grid-template-columns:1fr 1fr}.taxQuickGrid{grid-template-columns:1fr}.taxQuickGrid .wide{grid-column:auto}}
-</style>
-<script id="v226-streamlined-tax-workflow">
-(function(){
-  function taxPlanForVehicle(v){
-    if(!v)return null;
-    var plans=(window.fleetPlans||[]).filter(function(p){return p&&p.vehicleId===v.id&&typeof fleetMaintenanceCategory==='function'&&fleetMaintenanceCategory(p.type)==='tax'&&String(p.status||'Active')!=='Paused';});
-    plans.sort(function(a,b){return String((typeof fleetDate==='function'?fleetDate(a):a.currentDueDate)||'9999').localeCompare(String((typeof fleetDate==='function'?fleetDate(b):b.currentDueDate)||'9999'));});
-    return plans[0]||null;
-  }
-  function taxDueDateForVehicle(v){var p=taxPlanForVehicle(v);return p?(typeof fleetDate==='function'?fleetDate(p):String(p.currentDueDate||'')):String(v&&v.taxDueDate||'').slice(0,10)}
-  function taxDueVehicles30(){
-    var today=todayIso(), end=new Date(today+'T00:00:00');end.setDate(end.getDate()+30);var endIso=end.getFullYear()+'-'+String(end.getMonth()+1).padStart(2,'0')+'-'+String(end.getDate()).padStart(2,'0');
-    return (window.fleetVehicles||[]).filter(function(v){if(!v||v.status==='Inactive'||v.roadGoing===false)return false;var d=taxDueDateForVehicle(v);return /^\d{4}-\d{2}-\d{2}$/.test(d)&&d<=endIso;}).sort(function(a,b){return taxDueDateForVehicle(a).localeCompare(taxDueDateForVehicle(b))||String(a.registration||'').localeCompare(String(b.registration||''));});
-  }
-  function dueTaxRowsHtml(){
-    var rows=taxDueVehicles30();
-    var head='<section class="vehicleTaxDueSection"><div class="vehicleTaxSectionHead"><div><h3>Vehicles requiring tax in the next 30 days</h3><p>Click a registration to tax the vehicle and record the amount.</p></div><span class="vehicleTaxDueCount">'+rows.length+'</span></div>';
-    if(!rows.length)return head+'<div class="empty">No vehicles require taxing in the next 30 days.</div></section>';
-    return head+'<div class="vehicleTaxDueHead"><span>Registration</span><span>Vehicle</span><span>Tax due</span><span>Fleet</span></div>'+rows.map(function(v){var d=taxDueDateForVehicle(v);return '<div class="vehicleTaxDueRow"><button type="button" class="vehicleTaxDueReg" data-tax-due-reg="'+esc(v.registration||'')+'">'+listPlate(v.registration||'')+'</button><span><b>'+esc(typeof fleetDisplayModel==='function'?fleetDisplayModel(v.model):v.model||'Vehicle')+'</b></span><span class="vehicleTaxDueDate">'+esc(niceDate(d))+'</span><span>'+esc(v.fleetGroup==='Nissan Pool Cars'?'NMUK pool cars':(v.customer||v.fleetGroup||''))+'</span></div>';}).join('')+'</section>';
-  }
-  function completedTaxRowsHtml(rows){
-    if(!rows.length)return '<div class="empty">No completed vehicle tax entries for this month.</div>';
-    return '<div class="vehicleTaxTable"><div class="vehicleTaxTableHead"><span>Completed</span><span>Registration</span><span>Reference / vehicle</span><span>Status</span><span>Amount</span><span></span></div>'+rows.map(function(j){var marker=vehicleTaxInvoiceMarker(j),fv=fleetVehicleForRegistration(j.registration)||{},label=marker?'Invoiced':'Awaiting month-end invoice';return '<div class="vehicleTaxRow"><span class="taxCompleteDate">'+esc(niceDate(vehicleTaxJobDate(j)))+'</span><span>'+listPlate(j.registration||'')+'</span><span><b>'+esc(fv.taxReference||j.vehicle||'—')+'</b><small>'+esc(j.work_required||'Vehicle Tax')+'</small></span><span class="vehicleTaxState '+(marker?'done':'open')+'">'+esc(label)+'</span><strong>'+money(vehicleTaxAmount(j))+'</strong><button type="button" class="btn" data-tax-open-job="'+esc(j.id)+'">Open</button></div>';}).join('')+'</div>';
-  }
-  window.vehicleTaxHtml=function(){
-    var totals=vehicleTaxTotalsForMonth(vehicleTaxSelectedMonth),monthLabel=new Date(vehicleTaxSelectedMonth+'-01T12:00:00').toLocaleDateString('en-GB',{month:'long',year:'numeric'});
-    return '<div class="vehicleTaxPage"><div class="vehicleTaxHero"><div><span>NMUK ADMIN</span><h2>Vehicle Tax</h2><p>Tax due vehicles are shown first. Complete each one here; completed tax is kept separate from normal workshop revenue.</p></div><button type="button" class="primary" id="newVehicleTaxJob">+ Tax a Vehicle</button></div>'+dueTaxRowsHtml()+'<div class="vehicleTaxToolbar"><label>Completed month <input id="vehicleTaxMonth" type="month" value="'+esc(vehicleTaxSelectedMonth)+'"></label><div><small>'+esc(monthLabel)+' total</small><strong>'+money(totals.total)+'</strong></div><div><small>Awaiting invoice</small><strong>'+money(totals.uninvoicedTotal)+'</strong></div><button type="button" class="btn dark" id="createVehicleTaxInvoice" '+(!totals.uninvoiced.length?'disabled':'')+'>Create Month-End Tax Invoice ('+totals.uninvoiced.length+')</button></div><div class="vehicleTaxNotice"><b>Separate ledger:</b> vehicle tax stays outside workshop revenue. Marking a vehicle complete removes it from the due list and adds it to the completed ledger below.</div><section class="vehicleTaxCompletedSection"><div class="vehicleTaxSectionHead"><div><h3>Completed vehicle tax — '+esc(monthLabel)+'</h3><p>The completed date is the date the tax was confirmed in Workshop Pro.</p></div><strong>'+money(totals.total)+'</strong></div>'+completedTaxRowsHtml(totals.all)+'</section></div>';
-  };
-  function taxVehicleDetails(reg){var n=normReg(reg||''),v=fleetVehicleForRegistration(n);return {reg:n,v:v,model:v?(typeof fleetDisplayModel==='function'?fleetDisplayModel(v.model):v.model||''):''};}
-  window.openStreamlinedTaxModal=function(reg){
-    var d=taxVehicleDetails(reg),v=d.v,due=v?taxDueDateForVehicle(v):'',html='<div class="modalCard taxQuickModal"><div class="modalHead"><div><span class="vehicleDetailEyebrow">VEHICLE TAX</span><h2>Tax a vehicle</h2></div><button class="btn" data-close-modal>Close</button></div><div class="modalBody"><div class="taxQuickHero"><small>STREAMLINED TAX ENTRY</small><h2>'+(d.reg?esc(d.reg):'New vehicle tax')+'</h2></div><div class="taxQuickGrid"><div class="field"><label>Registration</label><input id="taxQuickReg" value="'+esc(d.reg)+'" placeholder="Registration"></div><div class="field"><label>Vehicle</label><input id="taxQuickVehicle" value="'+esc(d.model)+'" placeholder="Vehicle" readonly></div><div class="field"><label>Tax due</label><input id="taxQuickDue" value="'+esc(due?niceDate(due):'Not recorded')+'" readonly></div><div class="field"><label>Tax reference</label><input id="taxQuickRef" value="'+esc(v&&v.taxReference||'')+'" readonly></div><div class="field wide"><label>Tax amount (£)</label><input id="taxQuickAmount" type="number" min="0" step="0.01" inputmode="decimal" placeholder="0.00"></div></div><div class="taxQuickSummary">Completion date: <b>'+esc(niceDate(todayIso()))+'</b>. Tax is recorded as <b>NO VAT</b> and kept outside workshop turnover.</div><div class="taxQuickActions"><button class="btn" data-close-modal>Cancel</button><button class="primary" id="taxQuickComplete">Mark tax complete</button></div></div></div>';
-    var modal=document.getElementById('jobModal');modal.innerHTML=html;modal.classList.add('open');modal.setAttribute('aria-hidden','false');modal.querySelectorAll('[data-close-modal]').forEach(function(b){b.onclick=closeModals});
-    var regEl=document.getElementById('taxQuickReg');if(regEl)regEl.onchange=regEl.onblur=function(){var x=taxVehicleDetails(regEl.value);regEl.value=x.reg;var ve=document.getElementById('taxQuickVehicle'),du=document.getElementById('taxQuickDue'),rf=document.getElementById('taxQuickRef');if(ve)ve.value=x.model||'';if(du)du.value=x.v&&taxDueDateForVehicle(x.v)?niceDate(taxDueDateForVehicle(x.v)):'Not recorded';if(rf)rf.value=x.v&&x.v.taxReference||'';};
-    var done=document.getElementById('taxQuickComplete');if(done)done.onclick=async function(){var r=normReg((document.getElementById('taxQuickReg')||{}).value||''),raw=String((document.getElementById('taxQuickAmount')||{}).value||'').trim(),amount=Number(raw);if(!r){alert('Enter a registration number.');return}if(!Number.isFinite(amount)||amount<0){alert('Enter the tax amount.');return}done.disabled=true;done.textContent='Saving...';try{await completeStreamlinedVehicleTax(r,amount);closeModals();vehicleTaxSelectedMonth=todayIso().slice(0,7);view='vehicleTax';render()}catch(err){console.error('Vehicle tax completion failed',err);alert('The vehicle tax entry could not be saved.\n\n'+(err&&err.message?err.message:'Save failed'));done.disabled=false;done.textContent='Mark tax complete';}};
-  };
-  window.completeStreamlinedVehicleTax=async function(reg,amount){
-    var n=normReg(reg),today=todayIso(),v=fleetVehicleForRegistration(n);if(!v)throw new Error('This registration is not linked to a Fleet Manager vehicle.');
-    var existing=(app.jobs||[]).find(function(j){return isVehicleTaxJob(j)&&normReg(j.registration||'')===n&&vehicleTaxJobDate(j)===today});if(existing)throw new Error(n+' already has a Vehicle Tax entry dated today.');
-    var now=new Date().toISOString(),job={id:uid(),booking_date:today,drop_time:'',technician:'Unallocated',ramp:'',status:'completed',job_type:'Vehicle Tax',job_types:['Vehicle Tax'],job_colour:'general',estimated_hours:0,card_type:'job',source:'vehicle_tax_admin',booking_source:'Vehicle Tax page',registration:v.registration||n,vehicle:typeof fleetDisplayModel==='function'?fleetDisplayModel(v.model):v.model||'',customer_account:'NMUK',customer_name:'NMUK',customer_email:v.contactEmail||'',nmuk_vehicle_type:'Pool Car Tax',work_required:'Vehicle Tax',amount_quoted:Number(Number(amount).toFixed(2)),vat_mode:'no_vat',parts_status:'Not required',completed_at:now,created_at:now,updated_at:now,customer_note:'Vehicle tax completed on '+today+'.'};
-    app.jobs.push(job);if(typeof saveAll==='function')await saveAll();if(typeof upsertRemote==='function')await upsertRemote('jobs',job,{silent:true});
-    var p=taxPlanForVehicle(v),next=(typeof fleetAddMonthsFromDue==='function'?fleetAddMonthsFromDue(today,12):'');if(p){p.type='Road Tax';p.intervalMonths=12;p.currentDueDate=next;p.targetMonth=Number(next.slice(5,7));p.status='Active';p.notes='Updated from Vehicle Tax page '+today+'.';}else{p={id:'plan-tax-'+v.id,vehicleId:v.id,type:'Road Tax',intervalMonths:12,targetMonth:Number(next.slice(5,7)),currentDueDate:next,notes:'Created from Vehicle Tax page '+today+'.',status:'Active',source:'Vehicle Tax ledger'};(window.fleetPlans||[]).push(p)}
-    v.taxDueDate=next;v.taxLastChecked=now;var cid='job-tax-'+job.id;if(!(window.fleetCompletions||[]).some(function(c){return c.id===cid}))(window.fleetCompletions||[]).push({id:cid,vehicleId:v.id,planId:p.id,type:'Road Tax',completedDate:today,datePrecision:'day',nextDue:next,source:'job:'+job.id,notes:'Vehicle tax completed in Vehicle Tax page. Next tax due '+next+'.'});if(typeof saveFleet==='function')saveFleet();return job;
-  };
-  window.bindVehicleTax=function(){
-    var month=document.getElementById('vehicleTaxMonth');if(month)month.onchange=function(){vehicleTaxSelectedMonth=month.value||todayIso().slice(0,7);render()};
-    var add=document.getElementById('newVehicleTaxJob');if(add)add.onclick=function(){openStreamlinedTaxModal('')};
-    document.querySelectorAll('[data-tax-due-reg]').forEach(function(b){b.onclick=function(){openStreamlinedTaxModal(b.dataset.taxDueReg)}});
-    document.querySelectorAll('[data-tax-open-job]').forEach(function(b){b.onclick=function(){openJobModal(b.dataset.taxOpenJob)}});
-    var make=document.getElementById('createVehicleTaxInvoice');if(make)make.onclick=createVehicleTaxMonthInvoice;
-  };
-})();
-</script>
+
+
 </body>
 </html>
 <script>
