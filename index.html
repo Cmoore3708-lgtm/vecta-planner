@@ -11938,5 +11938,224 @@ try{setTimeout(function(){if(window.app&&Array.isArray(app.jobs))migrateNoVehicl
   try{var foot=document.querySelector('.sideFoot small');if(foot)foot.textContent='v207 Workshop Pro · Fleet MOT/service completion sync';}catch(e){}
 })();
 </script>
+
+<script id="v212-fleet-safety-service-anchor-rule">
+(function(){
+  'use strict';
+  function iso(raw){raw=String(raw||'').slice(0,10);return /^\d{4}-\d{2}-\d{2}$/.test(raw)?raw:'';}
+  function doneDate(j){
+    if(typeof v207CompletedJobDate==='function')return v207CompletedJobDate(j);
+    var fields=[j&&j.completed_at,j&&j.completedAt,j&&j.booking_date,j&&j.updated_at,j&&j.created_at];
+    for(var i=0;i<fields.length;i++){var d=iso(fields[i]);if(d)return d;}
+    return '';
+  }
+  function isCompletedSafety(j){
+    if(!j)return false;
+    if(typeof completedJobCanUpdateFleet==='function'&&!completedJobCanUpdateFleet(j))return false;
+    if(typeof isOnSiteService==='function'&&isOnSiteService(j))return false;
+    if(typeof isSixMonthSafetyCheck==='function'&&isSixMonthSafetyCheck(j))return true;
+    var cats=typeof fleetPlannerJobCategories==='function'?fleetPlannerJobCategories(j):null;
+    return !!(cats&&cats.safety);
+  }
+  function isCompletedService(j){
+    if(!j)return false;
+    if(typeof completedJobCanUpdateFleet==='function'&&!completedJobCanUpdateFleet(j))return false;
+    if(typeof isSixMonthSafetyCheck==='function'&&isSixMonthSafetyCheck(j))return false;
+    if(typeof isOnSiteService==='function'&&isOnSiteService(j))return false;
+    var cats=typeof fleetPlannerJobCategories==='function'?fleetPlannerJobCategories(j):null;
+    return !!(cats&&cats.service);
+  }
+  function latestServiceForVehicle(vehicle){
+    if(!vehicle)return null;
+    var reg=typeof normReg==='function'?normReg(vehicle.registration||''):String(vehicle.registration||'').replace(/\s+/g,'').toUpperCase();
+    var list=(app.jobs||[]).filter(function(j){
+      var jr=typeof normReg==='function'?normReg(j.registration||''):String(j.registration||'').replace(/\s+/g,'').toUpperCase();
+      return jr===reg&&isCompletedService(j)&&doneDate(j);
+    }).sort(function(a,b){return doneDate(a).localeCompare(doneDate(b));});
+    return list.length?list[list.length-1]:null;
+  }
+  function anchorSafetyToLatestService(vehicle,saveNow){
+    try{
+      if(!vehicle)return null;
+      var serviceJob=latestServiceForVehicle(vehicle);if(!serviceJob)return null;
+      var serviceDate=doneDate(serviceJob);if(!serviceDate)return null;
+      var due=typeof fleetAddMonthsFromDue==='function'?fleetAddMonthsFromDue(serviceDate,6):'';if(!due)return null;
+      var plan=typeof fleetPlanMatching==='function'?fleetPlanMatching(vehicle.id,'safety'):null;
+      /* Preserve the existing product rule: Nissan Internal vehicles do not gain a new
+         six-month plan merely because a service was completed. If a safety plan already
+         exists, however, its date is still corrected to the service anchor. */
+      if(!plan&&vehicle.fleetGroup==='Nissan Internal')return null;
+      if(plan){
+        plan.type='Six-month Safety Check';plan.intervalMonths=6;plan.currentDueDate=due;plan.status='Active';
+        plan.notes='Due 6 months after the most recent completed service ('+serviceDate+'). Safety-check completion does not move this date.';
+      }else{
+        plan={id:'plan-safety-'+vehicle.id,vehicleId:vehicle.id,type:'Six-month Safety Check',intervalMonths:6,targetMonth:null,currentDueDate:due,notes:'Due 6 months after the most recent completed service ('+serviceDate+'). Safety-check completion does not move this date.',status:'Active',source:'Workshop service cycle'};
+        fleetPlans.push(plan);
+      }
+      if(saveNow!==false&&typeof saveFleet==='function')saveFleet();
+      return plan;
+    }catch(e){console.warn('Safety service-anchor sync skipped',e);return null;}
+  }
+  function recordSafetyCompletion(j,saveNow){
+    try{
+      if(!isCompletedSafety(j))return null;
+      var vehicle=typeof fleetVehicleForRegistration==='function'?fleetVehicleForRegistration(j.registration||''):null;if(!vehicle)return null;
+      /* The plan date is always derived from the latest service, never from this check. */
+      var plan=anchorSafetyToLatestService(vehicle,false)|| (typeof fleetPlanMatching==='function'?fleetPlanMatching(vehicle.id,'safety'):null);
+      if(!plan)return null;
+      var completed=doneDate(j);if(!completed)return null;
+      var cycleDue=typeof fleetDate==='function'?fleetDate(plan):String(plan.currentDueDate||'');
+      var cid='job-safety-'+String(j.id||''),record={id:cid,vehicleId:vehicle.id,planId:plan.id,type:'Six-month Safety Check',completedDate:completed,datePrecision:'day',cycleDue:cycleDue,nextDue:cycleDue,source:'job:'+String(j.id||''),notes:'Six-month safety check completed on '+completed+' for the cycle anchored to service and due '+cycleDue+'. Completion does not alter future safety-check dates.'},existing=(fleetCompletions||[]).find(function(c){return c.id===cid;});
+      if(existing)Object.assign(existing,record);else fleetCompletions.push(record);
+      if(saveNow!==false&&typeof saveFleet==='function')saveFleet();
+      return record;
+    }catch(e){console.warn('Safety completion record skipped',e);return null;}
+  }
+  window.v212RecordFleetSafetyCompletion=recordSafetyCompletion;
+  window.v212AnchorSafetyToLatestService=anchorSafetyToLatestService;
+
+  /* Rebuild the maintenance sync without the old v211 behaviour that advanced safety
+     by six months from the safety-check completion date. */
+  syncFleetMaintenanceFromJob=function(j){
+    if(typeof completedJobCanUpdateFleet==='function'&&!completedJobCanUpdateFleet(j))return false;
+    var changed=false,cats=typeof fleetPlannerJobCategories==='function'?fleetPlannerJobCategories(j):{};
+    if(cats.service&&!(typeof isSixMonthSafetyCheck==='function'&&isSixMonthSafetyCheck(j))&&!(typeof isOnSiteService==='function'&&isOnSiteService(j))){
+      if(typeof syncFleetServiceScheduleFromJob==='function'&&syncFleetServiceScheduleFromJob(j))changed=true;
+      var sv=typeof fleetVehicleForRegistration==='function'?fleetVehicleForRegistration(j.registration||''):null;if(sv&&anchorSafetyToLatestService(sv,false))changed=true;
+    }
+    if(cats.mot&&typeof syncFleetMotScheduleFromJob==='function'){if(syncFleetMotScheduleFromJob(j,false))changed=true;}
+    if(isCompletedSafety(j)){if(recordSafetyCompletion(j,false))changed=true;}
+    if(changed&&typeof saveFleet==='function')saveFleet();
+    return changed;
+  };
+
+  /* A safety completion clears only the service-anchored cycle that was current when
+     it was completed. Once the next service moves the due date, the old completion no
+     longer clears the new cycle. */
+  fleetPlanCompletedForCurrentCycle=function(p){
+    var due=typeof fleetDate==='function'?fleetDate(p):String(p&&p.currentDueDate||''),planCategory=typeof fleetMaintenanceCategory==='function'?fleetMaintenanceCategory(p.type):'';
+    return (fleetCompletions||[]).some(function(c){
+      if(c.vehicleId!==p.vehicleId)return false;
+      var completed=String(c.completedDate||c.completedMonth||'');if(!completed)return false;
+      if(c.planId){
+        if(c.planId!==p.id)return false;
+        if(planCategory==='safety'){
+          var cycle=String(c.cycleDue||c.nextDue||'');
+          if(cycle)return cycle===due;
+          return !due||completed.slice(0,7)>=due.slice(0,7);
+        }
+        return !due||completed.slice(0,7)>=due.slice(0,7);
+      }
+      var raw=String(c.serviceType||c.type||''),categories=['service','mot','tax','safety'].filter(function(cat){return (typeof fleetMaintenanceCategory==='function'&&fleetMaintenanceCategory(raw)===cat)||(cat==='mot'&&/\bmot\b/i.test(raw))||(cat==='tax'&&/\btax\b|road tax/i.test(raw))||(cat==='safety'&&/six[- ]?month|6[- ]?month|safety check/i.test(raw))||(cat==='service'&&/service/i.test(raw))});
+      categories=categories.filter(function(v,i,a){return a.indexOf(v)===i});if(categories.length!==1||categories[0]!==planCategory)return false;
+      return !due||completed.slice(0,7)>=due.slice(0,7);
+    });
+  };
+
+  function repair(){
+    try{
+      var changed=0;
+      (fleetVehicles||[]).forEach(function(v){
+        var before=(typeof fleetPlanMatching==='function'?fleetPlanMatching(v.id,'safety'):null),old=before&&typeof fleetDate==='function'?fleetDate(before):'';
+        var plan=anchorSafetyToLatestService(v,false),now=plan&&typeof fleetDate==='function'?fleetDate(plan):'';
+        if(plan&&old!==now)changed++;
+      });
+      (app.jobs||[]).filter(isCompletedSafety).forEach(function(j){if(recordSafetyCompletion(j,false))changed++;});
+      if(changed&&typeof saveFleet==='function')saveFleet();
+      return changed;
+    }catch(e){console.warn('Safety service-anchor repair skipped',e);return 0;}
+  }
+  window.v212RepairSafetyServiceAnchors=repair;
+
+  if(typeof pullFleetCloudState==='function'&&!pullFleetCloudState.__v212SafetyWrapped){
+    var oldPull=pullFleetCloudState;
+    pullFleetCloudState=async function(){var r=await oldPull.apply(this,arguments);repair();return r;};
+    pullFleetCloudState.__v212SafetyWrapped=true;
+  }
+  if(typeof fleetBind==='function'&&!fleetBind.__v212SafetyWrapped){
+    var oldBind=fleetBind;
+    fleetBind=function(){var r=oldBind.apply(this,arguments);setTimeout(function(){var n=repair();if(n&&typeof render==='function'&&view==='fleet')render();},0);return r;};
+    fleetBind.__v212SafetyWrapped=true;
+  }
+  setTimeout(repair,1200);setTimeout(repair,5000);
+  try{var foot=document.querySelector('.sideFoot small');if(foot)foot.textContent='v212 Workshop Pro · Safety checks anchored to last service';}catch(e){}
+})();
+</script>
+
+<script id="v213-tax-due-repair">
+(function(){
+  'use strict';
+  function iso(raw){raw=String(raw||'').slice(0,10);return /^\d{4}-\d{2}-\d{2}$/.test(raw)?raw:'';}
+  function taxDate(j){return iso(j&&j.completed_at)||iso(j&&j.completedAt)||iso(j&&j.booking_date)||iso(j&&j.updated_at)||iso(j&&j.created_at)||'';}
+  function latestTaxJobs(){
+    var byReg={};
+    (app.jobs||[]).forEach(function(j){
+      try{
+        if(typeof isVehicleTaxJob!=='function'||!isVehicleTaxJob(j))return;
+        var reg=typeof normReg==='function'?normReg(j.registration||''):String(j.registration||'').replace(/\s+/g,'').toUpperCase();
+        var d=taxDate(j);if(!reg||!d||d>todayIso())return;
+        var prev=byReg[reg];if(!prev||d>prev.date)byReg[reg]={job:j,date:d};
+      }catch(e){}
+    });
+    return byReg;
+  }
+  function repairTaxDue(){
+    try{
+      var latest=latestTaxJobs(),changed=0;
+      Object.keys(latest).forEach(function(reg){
+        var item=latest[reg],vehicle=typeof fleetVehicleForRegistration==='function'?fleetVehicleForRegistration(reg):null;
+        if(!vehicle)return;
+        var next=typeof fleetAddMonthsFromDue==='function'?fleetAddMonthsFromDue(item.date,12):'';if(!next)return;
+        var plan=typeof fleetPlanMatching==='function'?fleetPlanMatching(vehicle.id,'tax'):null;
+        if(!plan){
+          plan={id:'plan-tax-'+vehicle.id,vehicleId:vehicle.id,type:'Road Tax',intervalMonths:12,targetMonth:Number(next.slice(5,7)),currentDueDate:next,notes:'Updated from latest Vehicle Tax entry '+String(item.job.id||'')+'.',status:'Active',source:'Vehicle Tax ledger'};
+          fleetPlans.push(plan);changed++;
+        }else{
+          var old=typeof fleetDate==='function'?fleetDate(plan):String(plan.currentDueDate||'');
+          /* Never move a known later tax date backwards, but always advance a stale date. */
+          if(!old||old<next){plan.type='Road Tax';plan.intervalMonths=12;plan.currentDueDate=next;plan.targetMonth=Number(next.slice(5,7));plan.status='Active';plan.notes='Updated from latest Vehicle Tax entry '+String(item.job.id||'')+'.';changed++;}
+        }
+        var cid='job-tax-'+String(item.job.id||''),record={id:cid,vehicleId:vehicle.id,planId:plan.id,type:'Road Tax',completedDate:item.date,datePrecision:'day',nextDue:(typeof fleetDate==='function'?fleetDate(plan):next),source:'job:'+String(item.job.id||''),notes:'Vehicle tax recorded on '+item.date+'.'},existing=(fleetCompletions||[]).find(function(c){return c.id===cid});
+        if(existing)Object.assign(existing,record);else{fleetCompletions.push(record);changed++;}
+      });
+      if(changed&&typeof saveFleet==='function')saveFleet();
+      return changed;
+    }catch(e){console.warn('Vehicle-tax due repair skipped',e);return 0;}
+  }
+  window.v213RepairVehicleTaxDue=repairTaxDue;
+
+  /* Run after cloud Fleet state and whenever Fleet Manager is opened. */
+  if(typeof pullFleetCloudState==='function'&&!pullFleetCloudState.__v213TaxWrapped){
+    var oldPull=pullFleetCloudState;
+    pullFleetCloudState=async function(){var r=await oldPull.apply(this,arguments);repairTaxDue();return r;};
+    pullFleetCloudState.__v213TaxWrapped=true;
+  }
+  if(typeof fleetBind==='function'&&!fleetBind.__v213TaxWrapped){
+    var oldBind=fleetBind;
+    fleetBind=function(){var r=oldBind.apply(this,arguments);setTimeout(function(){var n=repairTaxDue();if(n&&typeof render==='function'&&view==='fleet')render();},0);return r;};
+    fleetBind.__v213TaxWrapped=true;
+  }
+  setTimeout(repairTaxDue,1200);setTimeout(repairTaxDue,5000);
+  try{var foot=document.querySelector('.sideFoot small');if(foot)foot.textContent='v213 Workshop Pro · Tax due repair';}catch(e){}
+})();
+</script>
+
+<script id="v214-reliable-mot-due-refresh">
+(function(){
+'use strict';
+function iso(v){v=String(v||'').slice(0,10);return /^\d{4}-\d{2}-\d{2}$/.test(v)?v:''}
+function soon(v,days){var d=iso(v);if(!d)return false;var n=new Date();n.setHours(0,0,0,0);var x=new Date(d+'T00:00:00');return !isNaN(x.getTime())&&x.getTime()<=n.getTime()+(days||45)*86400000}
+function rk(v){return String(v||'').toUpperCase().replace(/[^A-Z0-9]/g,'')}
+async function reliableMotRefresh(force){
+ if(typeof fetchDvsaVehicle!=='function')return 0;
+ var candidates=(window.fleetVehicles||[]).filter(function(v){if(!v||v.fleetGroup==='Nissan Internal'||v.roadGoing===false||!rk(v.registration))return false;var p=typeof fleetPlanMatching==='function'?fleetPlanMatching(v.id,'mot'):null,d=p&&typeof fleetDate==='function'?fleetDate(p):'';return soon(d,45)}),updated=0;
+ for(var i=0;i<candidates.length;i++){var v=candidates[i],key='vecta:v214:mot:'+rk(v.registration),last=Number(localStorage.getItem(key)||0);if(!force&&Date.now()-last<21600000)continue;try{var data=await fetchDvsaVehicle(v.registration||'');localStorage.setItem(key,String(Date.now()));var fresh=iso(data&&data.motExpiryDate);if(!fresh)continue;var plan=typeof fleetPlanMatching==='function'?fleetPlanMatching(v.id,'mot'):null,old=plan&&typeof fleetDate==='function'?fleetDate(plan):'';if(old&&fresh<=old)continue;if(plan){plan.currentDueDate=fresh;plan.type='MOT';plan.intervalMonths=12;plan.status='Active';plan.notes='Refreshed from live MOT data.'}else if(window.fleetPlans){fleetPlans.push({id:'plan-mot-'+v.id,vehicleId:v.id,type:'MOT',intervalMonths:12,targetMonth:null,currentDueDate:fresh,notes:'Refreshed from live MOT data.',status:'Active',source:'DVSA live lookup'})}var kv=(window.app&&app.vehicles||[]).find(function(x){return rk(x.registration)===rk(v.registration)});if(kv)kv.mot_due=fresh;updated++}catch(e){console.warn('MOT refresh will retry for '+String(v.registration||''),e)}}
+ if(updated){try{if(typeof saveFleet==='function')saveFleet()}catch(e){}try{if(typeof saveLocal==='function')saveLocal()}catch(e){}}return updated
+}
+window.v214ReliableMotRefresh=reliableMotRefresh;window.refreshDueMots=function(){return reliableMotRefresh(false)};window.v207RefreshDueFleetMots=window.refreshDueMots;
+setTimeout(function(){reliableMotRefresh(false).then(function(n){if(n&&typeof render==='function'&&window.view==='fleet')render()})},2500);setTimeout(function(){reliableMotRefresh(false)},8000);
+try{var foot=document.querySelector('.sideFoot small');if(foot)foot.textContent='v214 Workshop Pro · reliable MOT due refresh'}catch(e){}
+})();
+</script>
 </body>
 </html>
