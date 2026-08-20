@@ -9023,7 +9023,7 @@ async function deleteRemote(table,id,options){options=options||{};if(!remoteClie
 async function saveAll(){invalidateFinanceDashboardCache();saveLocal(); if(remoteClient){try{await remoteClient.from('workshop_settings').upsert({id:'main',value:app.settings,updated_at:new Date().toISOString()});}catch(e){}}}
 function navItems(){var newCount=(app.websiteRequests||[]).filter(function(r){return !r.status||r.status==='awaiting_review'}).length,partsCount=(app.jobs||[]).filter(function(j){var ps=partsStatusFromJob(j);return !!ps&&ps!=='Parts here'&&ps!=='Not required'&&!j.archived&&j.status!=='completed'&&j.status!=='ready_to_invoice'}).length,paymentWarnCount=typeof overduePaymentMethodInvoices==='function'?overduePaymentMethodInvoices().length:0;return [['planner','Dashboard'],['fleet','Fleet Manager'],['jobs','Jobs'],['vehicleTax','Vehicle Tax'],['search','Search'],['invoices','Financial'],['invoiceArchive','Invoices'+(paymentWarnCount?' ⚠ '+paymentWarnCount:'')],['websiteRequests','Website Bookings'+(newCount?' ('+newCount+')':'')],['parts','Parts'+(partsCount?' ('+partsCount+')':'')],['settings','Settings']];}
 function renderNav(){var n=document.getElementById('nav');n.innerHTML=navItems().map(function(it){return '<button data-view="'+it[0]+'" class="'+(view===it[0]?'active':'')+'">'+it[1]+'</button>'}).join('');n.querySelectorAll('button').forEach(function(b){b.onclick=function(){if(b.dataset.view!=='invoices'&&financeDashboardTimer){clearTimeout(financeDashboardTimer);financeDashboardTimer=null}if(b.dataset.view==='fleet'){fleetSection='maintenance';fleetListMode='due30';fleetFilter='All';fleetQuery='';fleetDueOnly=false;activeFleetVehicleId=''}if(b.dataset.view==='jobs'){jobsListMode='open';jobsSearchQuery=''}view=b.dataset.view;render()}})}
-var cloudSyncChannel=null,cloudSyncTimer=null,cloudRefreshBusy=false,plannerInteractionBusy=false;
+var cloudSyncChannel=null,cloudSyncTimer=null,cloudRefreshBusy=false,plannerInteractionBusy=false,cloudRefreshDebounce=null,cloudLastRefreshAt=0;
 async function refreshCloudAndRender(){
   var active=document.activeElement;
   /* Fleet Manager is an interactive local workspace. The three-second cloud
@@ -9048,25 +9048,36 @@ async function refreshCloudAndRender(){
     render();
   }
   catch(e){console.warn('Live cloud refresh failed',e)}
-  finally{cloudRefreshBusy=false}
+  finally{cloudLastRefreshAt=Date.now();cloudRefreshBusy=false}
+}
+function scheduleCloudRefresh(){
+  if(cloudRefreshDebounce)clearTimeout(cloudRefreshDebounce);
+  cloudRefreshDebounce=setTimeout(function(){cloudRefreshDebounce=null;refreshCloudAndRender()},1200);
 }
 function startCloudSync(){
   if(!remoteClient)return;
   if(cloudSyncChannel){try{remoteClient.removeChannel(cloudSyncChannel)}catch(e){}}
+  cloudLastRefreshAt=Date.now();
   cloudSyncChannel=remoteClient.channel('vecta-workshop-live-'+uid())
-    .on('postgres_changes',{event:'*',schema:'public',table:'jobs'},refreshCloudAndRender)
-    .on('postgres_changes',{event:'*',schema:'public',table:'tasks'},refreshCloudAndRender)
-    .on('postgres_changes',{event:'*',schema:'public',table:'customers'},refreshCloudAndRender)
-    .on('postgres_changes',{event:'*',schema:'public',table:'vehicles'},refreshCloudAndRender)
-    .on('postgres_changes',{event:'*',schema:'public',table:'invoices'},refreshCloudAndRender)
-    .on('postgres_changes',{event:'*',schema:'public',table:'service_records'},refreshCloudAndRender)
-    .on('postgres_changes',{event:'*',schema:'public',table:'website_booking_requests'},refreshCloudAndRender)
-    .on('postgres_changes',{event:'*',schema:'public',table:'workshop_settings'},refreshCloudAndRender)
+    .on('postgres_changes',{event:'*',schema:'public',table:'jobs'},scheduleCloudRefresh)
+    .on('postgres_changes',{event:'*',schema:'public',table:'tasks'},scheduleCloudRefresh)
+    .on('postgres_changes',{event:'*',schema:'public',table:'customers'},scheduleCloudRefresh)
+    .on('postgres_changes',{event:'*',schema:'public',table:'vehicles'},scheduleCloudRefresh)
+    .on('postgres_changes',{event:'*',schema:'public',table:'invoices'},scheduleCloudRefresh)
+    .on('postgres_changes',{event:'*',schema:'public',table:'service_records'},scheduleCloudRefresh)
+    .on('postgres_changes',{event:'*',schema:'public',table:'website_booking_requests'},scheduleCloudRefresh)
+    .on('postgres_changes',{event:'*',schema:'public',table:'workshop_settings'},scheduleCloudRefresh)
     .subscribe(function(status){console.log('Supabase live sync:',status)});
   if(cloudSyncTimer)clearInterval(cloudSyncTimer);
-  cloudSyncTimer=setInterval(function(){if(document.visibilityState==='visible')refreshCloudAndRender()},3000);
-  document.addEventListener('visibilitychange',function(){if(document.visibilityState==='visible')refreshCloudAndRender()});
-  window.addEventListener('online',refreshCloudAndRender);
+  /* Realtime is the primary sync path. This slow safety refresh replaces the old
+     3-second full-database poll that was generating excessive PostgREST egress. */
+  cloudSyncTimer=setInterval(function(){
+    if(document.visibilityState==='visible'&&Date.now()-cloudLastRefreshAt>=15*60*1000)refreshCloudAndRender();
+  },60*1000);
+  document.addEventListener('visibilitychange',function(){
+    if(document.visibilityState==='visible'&&Date.now()-cloudLastRefreshAt>=2*60*1000)refreshCloudAndRender();
+  });
+  window.addEventListener('online',function(){cloudLastRefreshAt=0;refreshCloudAndRender()});
 }
 function init(){safe(async function(){loadLocal();await vectaCreateDailyBackup(false,'startup-local');importContractor2026Spreadsheet();ensureServiceTemplates();ensureRecurringWorkshopTasks();rollOverOutstandingJobs();normaliseLegacyCarryOverJobs();normaliseUnallocatedBookingDates();await restoreAug13JobsMovedByOldOverlapRule();await repairExistingPlannerOverlaps({persistRemote:false});bindTop();render();updateConnectivityUI('checking');setInterval(function(){checkForNewWorkshopDay();if(view==='planner')updateCurrentTimeLine()},30000);var configured=await loadCloudConfig({silent:true});if(!navigator.onLine){vectaCloudReachable=false;updateConnectivityUI();return}ensureSupabase(async function(ok){if(!ok){vectaCloudReachable=false;updateConnectivityUI();return;}if(connectSupabase()){try{var ping=await remoteClient.from('jobs').select('id').limit(1);if(ping.error)throw ping.error;vectaCloudReachable=true;updateConnectivityUI('syncing');await flushPendingSync();await pullRemote();importContractor2026Spreadsheet();ensureServiceTemplates();ensureRecurringWorkshopTasks();rollOverOutstandingJobs();normaliseLegacyCarryOverJobs();normaliseUnallocatedBookingDates();await syncPendingCarryOvers();await restoreAug13JobsMovedByOldOverlapRule();await repairExistingPlannerOverlaps({persistRemote:true});render();startCloudSync();syncContractor2026SpreadsheetRemote();updateConnectivityUI();}catch(e){console.warn('Supabase startup unavailable; continuing in offline workshop mode.',e);vectaCloudReachable=false;updateConnectivityUI();render();}}else{vectaCloudReachable=false;updateConnectivityUI()}});},null)}
 function bindTop(){const currentDateInput=document.getElementById('currentDate');const mobileDateInput=document.getElementById('mobileDateInput');const todayBtn=document.getElementById('todayBtn');currentDateInput.value=selectedIso();currentDateInput.onchange=function(){if(!this.value)return;selectedDate=new Date(this.value+'T12:00:00');plannerShowFullDay=false;render()};if(mobileDateInput){mobileDateInput.value=selectedIso();mobileDateInput.onchange=function(){if(!this.value)return;selectedDate=new Date(this.value+'T12:00:00');plannerShowFullDay=false;render()}}document.getElementById('prevDay').onclick=function(){selectedDate.setDate(selectedDate.getDate()-1);plannerShowFullDay=false;render()};document.getElementById('nextDay').onclick=function(){selectedDate.setDate(selectedDate.getDate()+1);plannerShowFullDay=false;render()};todayBtn.textContent='Today';todayBtn.setAttribute('aria-label','Go to today');todayBtn.onclick=function(){selectedDate=new Date();selectedDate.setHours(0,0,0,0);plannerShowFullDay=false;render()};document.getElementById('newJobTop').onclick=function(){openJobModal()};document.getElementById('newTaskTop').onclick=function(){openTaskModal()};document.getElementById('printBtn').onclick=function(){printDay()};}
