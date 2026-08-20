@@ -12032,7 +12032,7 @@ try{setTimeout(function(){if(window.app&&Array.isArray(app.jobs))migrateNoVehicl
   /* A safety completion clears only the service-anchored cycle that was current when
      it was completed. Once the next service moves the due date, the old completion no
      longer clears the new cycle. */
-  fleetPlanCompletedForCurrentCycle=function(p){
+  window.fleetPlanCompletedForCurrentCycle=function(p){
     var due=typeof fleetDate==='function'?fleetDate(p):String(p&&p.currentDueDate||''),planCategory=typeof fleetMaintenanceCategory==='function'?fleetMaintenanceCategory(p.type):'';
     return (fleetCompletions||[]).some(function(c){
       if(c.vehicleId!==p.vehicleId)return false;
