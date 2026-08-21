@@ -2651,7 +2651,7 @@ body.servicePreviewing .servicePreviewControls{position:relative!important;z-ind
   <aside class="side">
     <div class="logo"><div class="logoMark">VECTA</div><div class="product" style="font-size:18px!important;font-weight:900!important;letter-spacing:.03em!important;color:#fff!important;text-transform:none!important">Workshop Pro</div></div>
     <nav class="nav" id="nav"></nav>
-    <div class="sideFoot"><b>V262 Workshop Pro</b><br>Four-lane planner · unified search · manual MOT check · My Tasks sidebar.</div>
+    <div class="sideFoot"><b>V263 Workshop Pro</b><br>Four-lane planner · unified search · manual MOT check · My Tasks sidebar.</div>
   </aside>
   <main class="main">
     <header class="top">
@@ -9227,7 +9227,7 @@ async function upsertRemote(table,row,options){
     /* PostgreSQL date/timestamp columns reject an empty string. Job cards keep
        optional dates blank in the browser, so convert those blanks to NULL in
        the Supabase payload while leaving the local job unchanged. */
-    ['booking_date','mot_due','completed_at','created_at','updated_at','dvsa_last_checked'].forEach(function(key){
+    ['booking_date','mot_due','completed_at','created_at','updated_at','dvsa_last_checked','drop_time','mot_time','completed_time'].forEach(function(key){
       if(Object.prototype.hasOwnProperty.call(data,key)&&String(data[key]===null||data[key]===undefined?'':data[key]).trim()==='')data[key]=null;
     });
   }
@@ -9920,7 +9920,7 @@ function confirmFleetVehicleTaxed(){
   if(raw===null)return;raw=String(raw||'').replace(/£|,/g,'').trim();var amount=Number(raw);
   if(!Number.isFinite(amount)||amount<0){alert('Please enter a valid tax amount.');return;}
   if(!confirm('Confirm '+reg+' was taxed today ('+niceDate(today)+') for '+money(amount)+'?'))return;
-  var now=new Date().toISOString(),job={id:uid(),booking_date:today,drop_time:'',technician:'Unallocated',ramp:'',status:'completed',job_type:'Vehicle Tax',job_types:['Vehicle Tax'],job_colour:'general',estimated_hours:0,card_type:'job',source:'vehicle_tax_admin',booking_source:'Fleet Manager tax confirmation',registration:v.registration||reg,vehicle:fleetDisplayModel(v.model),customer_account:'NMUK',customer_name:'NMUK',customer_email:v.contactEmail||'',nmuk_vehicle_type:'Pool Car Tax',work_required:'Vehicle Tax',amount_quoted:Number(amount.toFixed(2)),vat_mode:'no_vat',parts_status:'Not required',completed_at:now,created_at:now,updated_at:now,customer_note:'Vehicle tax confirmed from Fleet Manager on '+today+'.'};
+  var now=new Date().toISOString(),job={id:uid(),booking_date:today,drop_time:null,technician:'Unallocated',ramp:'',status:'completed',job_type:'Vehicle Tax',job_types:['Vehicle Tax'],job_colour:'general',estimated_hours:0,card_type:'job',source:'vehicle_tax_admin',booking_source:'Fleet Manager tax confirmation',registration:v.registration||reg,vehicle:fleetDisplayModel(v.model),customer_account:'NMUK',customer_name:'NMUK',customer_email:v.contactEmail||'',nmuk_vehicle_type:'Pool Car Tax',work_required:'Vehicle Tax',amount_quoted:Number(amount.toFixed(2)),vat_mode:'no_vat',parts_status:'Not required',completed_at:now,created_at:now,updated_at:now,customer_note:'Vehicle tax confirmed from Fleet Manager on '+today+'.'};
   app.jobs.push(job);saveAll();try{upsertRemote('jobs',job)}catch(e){console.warn('Vehicle tax cloud save queued/failed',e)}
   var p=(fleetPlans||[]).find(function(x){return x.vehicleId===v.id&&fleetMaintenanceCategory(x.type)==='tax'}),next=fleetAddMonthsFromDue(today,12);
   if(p){p.type='Road Tax';p.intervalMonths=12;p.currentDueDate=next;p.targetMonth=Number(next.slice(5,7));p.status='Active';p.notes='Updated from Fleet Manager tax confirmation '+today+'.'}
@@ -11407,7 +11407,7 @@ function vehicleTaxRowsHtml(rows){
   async function completeStreamlinedVehicleTaxV226(reg,amount){
     var n=normReg(reg),today=todayIso(),v=fleetVehicleForRegistration(n);if(!v)throw new Error('This registration is not linked to a Fleet Manager vehicle.');
     var existing=(app.jobs||[]).find(function(j){return isVehicleTaxJob(j)&&normReg(j.registration||'')===n&&vehicleTaxJobDate(j)===today});if(existing)throw new Error(n+' already has a Vehicle Tax entry dated today.');
-    var now=new Date().toISOString(),job={id:uid(),booking_date:today,drop_time:'',technician:'Unallocated',ramp:'',status:'completed',job_type:'Vehicle Tax',job_types:['Vehicle Tax'],job_colour:'general',estimated_hours:0,card_type:'job',source:'vehicle_tax_admin',booking_source:'Vehicle Tax page',registration:v.registration||n,vehicle:typeof fleetDisplayModel==='function'?fleetDisplayModel(v.model):v.model||'',customer_account:'NMUK',customer_name:'NMUK',customer_email:v.contactEmail||'',nmuk_vehicle_type:'Pool Car Tax',work_required:'Vehicle Tax',amount_quoted:Number(Number(amount).toFixed(2)),vat_mode:'no_vat',parts_status:'Not required',completed_at:now,created_at:now,updated_at:now,customer_note:'Vehicle tax completed on '+today+'.'};
+    var now=new Date().toISOString(),job={id:uid(),booking_date:today,drop_time:null,technician:'Unallocated',ramp:'',status:'completed',job_type:'Vehicle Tax',job_types:['Vehicle Tax'],job_colour:'general',estimated_hours:0,card_type:'job',source:'vehicle_tax_admin',booking_source:'Vehicle Tax page',registration:v.registration||n,vehicle:typeof fleetDisplayModel==='function'?fleetDisplayModel(v.model):v.model||'',customer_account:'NMUK',customer_name:'NMUK',customer_email:v.contactEmail||'',nmuk_vehicle_type:'Pool Car Tax',work_required:'Vehicle Tax',amount_quoted:Number(Number(amount).toFixed(2)),vat_mode:'no_vat',parts_status:'Not required',completed_at:now,created_at:now,updated_at:now,customer_note:'Vehicle tax completed on '+today+'.'};
     app.jobs.push(job);if(typeof saveAll==='function')await saveAll();if(typeof upsertRemote==='function')await upsertRemote('jobs',job,{silent:true});
     var p=taxPlanForVehicle(v),next=(typeof fleetAddMonthsFromDue==='function'?fleetAddMonthsFromDue(today,12):'');if(p){p.type='Road Tax';p.intervalMonths=12;p.currentDueDate=next;p.targetMonth=Number(next.slice(5,7));p.status='Active';p.notes='Updated from Vehicle Tax page '+today+'.';}else{p={id:'plan-tax-'+v.id,vehicleId:v.id,type:'Road Tax',intervalMonths:12,targetMonth:Number(next.slice(5,7)),currentDueDate:next,notes:'Created from Vehicle Tax page '+today+'.',status:'Active',source:'Vehicle Tax ledger'};fleetPlans.push(p)}
     v.taxDueDate=next;v.taxLastChecked=now;var cid='job-tax-'+job.id;if(!(fleetCompletions||[]).some(function(c){return c.id===cid}))fleetCompletions.push({id:cid,vehicleId:v.id,planId:p.id,type:'Road Tax',completedDate:today,datePrecision:'day',nextDue:next,source:'job:'+job.id,notes:'Vehicle tax completed in Vehicle Tax page. Next tax due '+next+'.'});if(typeof saveFleet==='function')saveFleet();return job;
@@ -12017,11 +12017,11 @@ function gatherJob(id){
   j.nmuk_vehicle_type=j.customer_account==='NMUK'?String(j.nmuk_vehicle_type||fleetNmukTypeFromVehicle(j.registration)||''):'';
   if(j.customer_account==='NMUK'){j.customer_phone='';j.customer_email='';if(j.nmuk_vehicle_type!=='MVOS')j.customer_name='NMUK';}
   j.job_type=jobTypeStorageValue(j.job_type);
-  if(j.customer_account==='NMUK'&&String(j.nmuk_vehicle_type||'').toUpperCase()==='POOL CAR TAX'){if(!String(j.work_required||'').trim())j.work_required='Pool Car Tax';j.job_type='Vehicle Tax';j.source='vehicle_tax_admin';j.technician='Unallocated';j.ramp='';j.estimated_hours=0;}
-  else if(isVehicleTaxJob(j)){j.job_type='Vehicle Tax';j.source='vehicle_tax_admin';j.technician='Unallocated';j.ramp='';j.estimated_hours=0;}
+  if(j.customer_account==='NMUK'&&String(j.nmuk_vehicle_type||'').toUpperCase()==='POOL CAR TAX'){if(!String(j.work_required||'').trim())j.work_required='Pool Car Tax';j.job_type='Vehicle Tax';j.source='vehicle_tax_admin';j.technician='Unallocated';j.ramp='';j.estimated_hours=0;j.drop_time=null;}
+  else if(isVehicleTaxJob(j)){j.job_type='Vehicle Tax';j.source='vehicle_tax_admin';j.technician='Unallocated';j.ramp='';j.estimated_hours=0;j.drop_time=null;}
   if(j.parts_status)j.customer_note=partsStatusNote(j.customer_note,j.parts_status);else j.customer_note=String(j.customer_note||'').replace(/\s*\[\[PARTS_STATUS:[^\]]+\]\]\s*/ig,'\n').trim();
   var motInput=document.getElementById('job_mot_time'),motTime=hasMotJobType(j)?normaliseMotTime(motInput&&motInput.value):'';
-  j.mot_time=motTime;
+  j.mot_time=motTime||null;
   j.customer_note=setMotTimeOnNote(j.customer_note,motTime);
   j.job_colour=jobTypeValues(j)[0]||'general';
   j.estimated_hours=Number(j.estimated_hours||1);
