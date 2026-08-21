@@ -1,6 +1,7 @@
 <!doctype html>
 <html lang="en">
 <head>
+  <!-- VECTA V253: stale recurring MOT due dates roll into current cycle; fixes missing NK72 KTD / NK72 KTJ -->
   <!-- VECTA V100: preserve spreadsheet-specific Nissan contacts; stop Pool default email overwrite -->
   <!-- VECTA V93: Fleet due list shows every outstanding due item per vehicle -->
   <!-- VECTA V92: Fleet due-work booked ticks -->
@@ -9797,7 +9798,7 @@ function fleetAutoRefreshBanner(){
   return '<div class="fleetAutoRefreshBar"><div><b>Government vehicle data</b><span>'+(when?'Last check '+esc(new Date(when).toLocaleString('en-GB')):'Automatic nightly checking enabled')+'</span></div><div class="fleetAutoRefreshStats"><button type="button" class="btn" id="fleetManualMotCheck" title="Run a live MOT lookup now">'+checked+' Checked</button><span>'+updated+' MOT dates updated</span>'+(errors?'<span class="warn">'+errors+' errors</span>':'')+(hasReport?'<button type="button" class="btn" id="fleetManualMotReport">View results</button>':'')+'<span>Tax '+(taxConfigured?'DVLA connected':'DVLA API ready — key pending')+'</span></div></div>';
 }
 
-function fleetDate(plan){if(plan.currentDueDate)return plan.currentDueDate;if(!plan.targetMonth)return '';var d=new Date(),y=d.getFullYear(),m=Number(plan.targetMonth)-1;if(m<d.getMonth())y++;return y+'-'+String(m+1).padStart(2,'0')+'-01'}
+function fleetDate(plan){var raw=String(plan&&plan.currentDueDate||'').slice(0,10),interval=Math.max(1,Number(plan&&plan.intervalMonths||12));if(raw&&/^\d{4}-\d{2}-\d{2}$/.test(raw)){var due=new Date(raw+'T00:00:00'),today=new Date();today.setHours(0,0,0,0);if(!isNaN(due.getTime())){var staleCutoff=new Date(today);staleCutoff.setMonth(staleCutoff.getMonth()-interval);if(due<staleCutoff){var guard=0;while(due<today&&guard++<120){var day=due.getDate();due.setDate(1);due.setMonth(due.getMonth()+interval);var last=new Date(due.getFullYear(),due.getMonth()+1,0).getDate();due.setDate(Math.min(day,last))}return due.getFullYear()+'-'+String(due.getMonth()+1).padStart(2,'0')+'-'+String(due.getDate()).padStart(2,'0')}return raw}}if(!plan||!plan.targetMonth)return '';var d=new Date(),y=d.getFullYear(),m=Number(plan.targetMonth)-1;if(m<d.getMonth())y++;return y+'-'+String(m+1).padStart(2,'0')+'-01'}
 function fleetTone(date){if(!date)return 'unknown';var today=new Date();today.setHours(0,0,0,0);var due=new Date(date+'T00:00:00'),days=Math.ceil((due-today)/86400000);return days<0?'overdue':days<=30?'soon':'future'}
 function fleetFormat(date){if(!date)return 'Not scheduled';return new Date(date+'T00:00:00').toLocaleDateString('en-GB')}
 function fleetMaintenanceCategory(value){var t=String(value||'').toLowerCase();if(/six[- ]?month|6[- ]?month|safety check/.test(t))return 'safety';if(/\bmot\b/.test(t))return 'mot';if(/\btax\b|road tax/.test(t))return 'tax';if(/service/.test(t)&&!/on[- ]?site/.test(t))return 'service';return t.trim()}
