@@ -2605,7 +2605,7 @@ body.servicePreviewing .servicePreviewControls{position:relative!important;z-ind
 @media (max-width:760px){
 .mobileGroup-other{background:#eaf5ff!important;border:1px solid #bfdbfe!important;border-radius:16px;padding:10px!important}
 .mobileGroup-other .mobileGroupHead{background:#dbeeff!important;border-radius:12px!important}
-.mobileGroup-other .mobileJob{background:#f2f8ff!important}
+.mobileGroup-other .mobileJob,.mobileJob.mobileOtherJob{background:#eaf5ff!important}
 .mobileActions{display:none!important}
 }
 </style>
@@ -2619,7 +2619,7 @@ body.servicePreviewing .servicePreviewControls{position:relative!important;z-ind
   <aside class="side">
     <div class="logo"><div class="logoMark">VECTA</div><div class="product" style="font-size:18px!important;font-weight:900!important;letter-spacing:.03em!important;color:#fff!important;text-transform:none!important">Workshop Pro</div></div>
     <nav class="nav" id="nav"></nav>
-    <div class="sideFoot"><b>V249 Workshop Pro</b><br>Four-lane planner · unified search · manual MOT check · My Tasks sidebar.</div>
+    <div class="sideFoot"><b>V250 Workshop Pro</b><br>Four-lane planner · unified search · manual MOT check · My Tasks sidebar.</div>
   </aside>
   <main class="main">
     <header class="top">
@@ -10645,7 +10645,7 @@ function updateCurrentTimeLine(){
   var top=48+((live.now-plannerStartMinutes)/60)*PLANNER_PX_PER_HOUR;line.style.top=top+'px';if(label)label.textContent='NOW '+timeFromMinutes(live.now)
 }
 function plannerLiveControlsHtml(config){if(!config.isToday)return '';var text=config.mode==='unfinished'?'Live view starts at '+timeFromMinutes(config.startMinutes)+' — earliest unfinished job remains visible':config.mode==='now'?'Live view follows the current time — no unfinished jobs remain above the red line':'Full-day view';var button=plannerShowFullDay?'<button id="plannerFollowLive" type="button">Follow current time</button>':'<button id="plannerFullDay" type="button">Show full day</button>';return '<div class="plannerLiveControls"><span class="plannerLiveStatus"><i class="plannerLiveDot"></i>'+esc(text)+'</span>'+button+'</div>'}
-function mobilePlannerHtml(mechanics,jobs){var groups=[];mechanics.forEach(function(m){groups.push({name:m,list:jobs.filter(function(j){return plannerTechnicianName(j,mechanics)===m}).sort(byTime),off:(typeof mobileTimeOffHtml==='function'?mobileTimeOffHtml(m,selectedIso()):'')})});groups.push({name:'Unallocated Jobs',list:unallocatedJobs().concat(app.jobs.filter(function(j){return !j.archived&&j.status!=='completed'&&j.card_type==='multi_day'&&!isUnallocatedJob(j)}).sort(byTime)),off:''});return '<div class="mobilePlanner">'+groups.map(function(g){var groupClass='mobileGroup mobileGroup-'+String(g.name||'').toLowerCase().replace(/[^a-z0-9]+/g,'-');return '<div class="'+groupClass+'"><div class="mobileGroupHead"><span>'+esc(g.name)+'</span><span class="pill">'+g.list.length+'</span></div>'+g.off+(g.list.length?g.list.map(mobileJobCardHtml).join(''):'<div class="empty">No jobs here.</div>')+'</div>'}).join('')+'<div class="panel"><h3>General Notes</h3><textarea class="notesArea" id="notesArea" placeholder="Workshop notes...">'+esc(app.notes||'')+'</textarea></div></div>'}
+function mobilePlannerHtml(mechanics,jobs){var groups=[];mechanics.forEach(function(m){groups.push({name:m,list:jobs.filter(function(j){return plannerTechnicianName(j,mechanics)===m}).sort(byTime),off:(typeof mobileTimeOffHtml==='function'?mobileTimeOffHtml(m,selectedIso()):'')})});groups.push({name:'Unallocated Jobs',list:unallocatedJobs().concat(app.jobs.filter(function(j){return !j.archived&&j.status!=='completed'&&j.card_type==='multi_day'&&!isUnallocatedJob(j)}).sort(byTime)),off:''});return '<div class="mobilePlanner">'+groups.map(function(g){var groupClass='mobileGroup mobileGroup-'+String(g.name||'').toLowerCase().replace(/[^a-z0-9]+/g,'-');return '<div class="'+groupClass+'"><div class="mobileGroupHead"><span>'+esc(g.name)+'</span><span class="pill">'+g.list.length+'</span></div>'+g.off+(g.list.length?g.list.map(function(j){return mobileJobCardHtml(j,g.name)}).join(''):'<div class="empty">No jobs here.</div>')+'</div>'}).join('')+'<div class="panel"><h3>General Notes</h3><textarea class="notesArea" id="notesArea" placeholder="Workshop notes...">'+esc(app.notes||'')+'</textarea></div></div>'}
 function laneHtml(mech,jobs){var mechanics=(app.settings.mechanics&&app.settings.mechanics.length?app.settings.mechanics:['Alfie','Other','Anyone']);return '<div class="lane" data-tech="'+esc(mech)+'">'+(typeof timeOffBlocksHtml==='function'?timeOffBlocksHtml(mech,selectedIso()):'')+jobs.filter(function(j){return plannerTechnicianName(j,mechanics)===mech}).map(jobCardHtml).join('')+'</div>'}
 function plannerHtml(){
   if(!app.settings)app.settings={};
@@ -10660,7 +10660,7 @@ function plannerHtml(){
 
 
 /* v236: restored original core planner/job-card helpers removed during layout amendments */
-function mobileJobCardHtml(j){var st=String(j.status||'booked');return '<div class="mobileJob jobTypeCoded" style="'+jobTypeInlineStyle(j)+'" data-open-job="'+j.id+'"><div class="mobileJobTop">'+plannerPlate(j)+'<span class="status '+st+'">'+statusText(st)+'</span></div>'+carryOverBadgeHtml(j)+'<div class="sideJobType">'+jobTypeChip(j)+'</div><b>'+esc(j.work_required||'No work required entered')+'</b><div class="mobileJobMeta">'+esc(j.vehicle||'Vehicle')+(j.customer_name?' · '+esc(j.customer_name):'')+'<br>'+esc(j.technician||'Unallocated')+' · '+esc(timeRange(j))+' · '+esc(j.ramp||'No ramp')+'</div></div>'}
+function mobileJobCardHtml(j,groupName){var st=String(j.status||'booked'),isOther=String(groupName||j.technician||'').trim().toLowerCase()==='other';return '<div class="mobileJob jobTypeCoded'+(isOther?' mobileOtherJob':'')+'" style="'+jobTypeInlineStyle(j)+(isOther?'background:#eaf5ff!important;':'')+'" data-open-job="'+j.id+'"><div class="mobileJobTop">'+plannerPlate(j)+'<span class="status '+st+'">'+statusText(st)+'</span></div>'+carryOverBadgeHtml(j)+'<div class="sideJobType">'+jobTypeChip(j)+'</div><b>'+esc(j.work_required||'No work required entered')+'</b><div class="mobileJobMeta">'+esc(j.vehicle||'Vehicle')+(j.customer_name?' · '+esc(j.customer_name):'')+'<br>'+esc(j.technician||'Unallocated')+' · '+esc(timeRange(j))+' · '+esc(j.ramp||'No ramp')+'</div></div>'}
 
 function updateJobQuick(j){j.archived=j.status==='completed';if(j.status==='completed'&&!j.completed_at)j.completed_at=new Date().toISOString();j.updated_at=new Date().toISOString();syncTaskFromMiniJob(j);if(j.status==='completed'||j.status==='ready_to_invoice')syncFleetMaintenanceFromJob(j);saveAll();upsertRemote('jobs',j);render()}
 
