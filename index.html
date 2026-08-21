@@ -2651,7 +2651,7 @@ body.servicePreviewing .servicePreviewControls{position:relative!important;z-ind
   <aside class="side">
     <div class="logo"><div class="logoMark">VECTA</div><div class="product" style="font-size:18px!important;font-weight:900!important;letter-spacing:.03em!important;color:#fff!important;text-transform:none!important">Workshop Pro</div></div>
     <nav class="nav" id="nav"></nav>
-    <div class="sideFoot"><b>V259 Workshop Pro</b><br>Four-lane planner · unified search · manual MOT check · My Tasks sidebar.</div>
+    <div class="sideFoot"><b>V260 Workshop Pro</b><br>Four-lane planner · unified search · manual MOT check · My Tasks sidebar.</div>
   </aside>
   <main class="main">
     <header class="top">
@@ -9731,11 +9731,55 @@ function fleetEomHtml(){var month=fleetEomMonth||todayIso().slice(0,7),rows=flee
 
 var fleetFilter='All',fleetQuery='',fleetDueOnly=false,fleetListMode='due30',activeFleetVehicleId='';
 var fleetCloudStateId='fleet_state_v77',fleetAutoRefreshStatus=null;
+var FLEET_MOT_AUTHORITY_KEY='vecta:fleet:mot-authority:v260',FLEET_MOT_AUTHORITY_CLOUD_ID='fleet_mot_authority_v260';
+function fleetMotAuthorityLoadLocal(){try{var x=JSON.parse(localStorage.getItem(FLEET_MOT_AUTHORITY_KEY)||'{}');return x&&typeof x==='object'?x:{}}catch(e){return {}}}
+var fleetMotAuthority=fleetMotAuthorityLoadLocal();
+function fleetMotAuthoritySaveLocal(){try{localStorage.setItem(FLEET_MOT_AUTHORITY_KEY,JSON.stringify(fleetMotAuthority||{}))}catch(e){console.warn('MOT authority local save skipped',e)}}
+async function persistFleetMotAuthority(){if(!remoteClient)return false;try{var stamp=new Date().toISOString(),res=await remoteClient.from('workshop_settings').upsert({id:FLEET_MOT_AUTHORITY_CLOUD_ID,value:{version:260,records:fleetMotAuthority||{},updated_at:stamp},updated_at:stamp},{onConflict:'id'});if(res.error)throw res.error;return true}catch(e){console.warn('MOT authority cloud save failed',e);return false}}
+function fleetRecordMotAuthority(vehicle,freshExpiry,checkedAt){
+  if(!vehicle||!freshExpiry)return false;
+  var reg=normReg(vehicle.registration||''),expiry=dvsaIsoDate(freshExpiry),stamp=String(checkedAt||new Date().toISOString());if(!reg||!expiry)return false;
+  var prev=fleetMotAuthority[reg]||{},prevExpiry=dvsaIsoDate(prev.expiry),prevStamp=String(prev.checked_at||'');
+  /* A newer live expiry always wins. For the same expiry, keep the newest check timestamp. Never regress to an older expiry. */
+  if(prevExpiry&&expiry<prevExpiry)return false;
+  if(prevExpiry===expiry&&prevStamp&&stamp<=prevStamp)return false;
+  fleetMotAuthority[reg]={registration:reg,expiry:expiry,checked_at:stamp,source:'DVSA live lookup'};
+  fleetMotAuthoritySaveLocal();
+  persistFleetMotAuthority();
+  return true;
+}
+function fleetApplyMotAuthority(){
+  var changed=0,records=fleetMotAuthority||{};
+  Object.keys(records).forEach(function(key){
+    var rec=records[key]||{},reg=normReg(rec.registration||key),expiry=dvsaIsoDate(rec.expiry);if(!reg||!expiry)return;
+    var vehicle=(fleetVehicles||[]).find(function(v){return normReg(v.registration||'')===reg});if(!vehicle)return;
+    var plans=(fleetPlans||[]).filter(function(p){return p&&String(p.vehicleId)===String(vehicle.id)&&fleetMaintenanceCategory(p.type)==='mot'&&String(p.status||'Active')==='Active'});
+    var canonical=plans.find(function(p){return dvsaIsoDate(fleetDate(p))===expiry})||plans[0];
+    if(!canonical){canonical={id:'plan-mot-'+vehicle.id,vehicleId:vehicle.id,type:'MOT',intervalMonths:12,targetMonth:null,currentDueDate:expiry,notes:'Authoritative MOT record restored after sync.',status:'Active',source:'DVSA authoritative'};fleetPlans.push(canonical);changed++}
+    if(dvsaIsoDate(fleetDate(canonical))!==expiry||canonical.status!=='Active'){canonical.currentDueDate=expiry;canonical.status='Active';canonical.type='MOT';canonical.intervalMonths=12;changed++}
+    plans.forEach(function(p){if(p!==canonical&&p.status==='Active'){p.status='Superseded';p.notes='Superseded by authoritative MOT due date '+expiry+'.';changed++}});
+    if(vehicle.motDue!==expiry||vehicle.mot_due!==expiry){vehicle.motDue=expiry;vehicle.mot_due=expiry;changed++}
+    vehicle.motLastChecked=rec.checked_at||vehicle.motLastChecked||'';
+    var av=(app.vehicles||[]).find(function(x){return normReg(x.registration||'')===reg});if(av){if(av.mot_due!==expiry){av.mot_due=expiry;changed++}if(rec.checked_at)av.dvsa_last_checked=rec.checked_at}
+  });
+  return changed;
+}
+function fleetCaptureCurrentMotAuthority(){
+  (fleetVehicles||[]).forEach(function(v){
+    if(!v||v.fleetGroup==='Nissan Internal'||v.roadGoing===false)return;
+    var active=(fleetPlans||[]).filter(function(p){return p&&String(p.vehicleId)===String(v.id)&&fleetMaintenanceCategory(p.type)==='mot'&&String(p.status||'Active')==='Active'});
+    var dates=active.map(function(p){return dvsaIsoDate(fleetDate(p))}).filter(Boolean).sort();
+    var expiry=dates.length?dates[dates.length-1]:dvsaIsoDate(v.motDue||v.mot_due);if(!expiry)return;
+    var checked=v.motLastChecked||((app.vehicles||[]).find(function(x){return normReg(x.registration||'')===normReg(v.registration||'')})||{}).dvsa_last_checked||'';
+    /* Only capture as authoritative when we have proof this came from a live MOT check. */
+    if(checked)fleetRecordMotAuthority(v,expiry,checked);
+  });
+}
 function fleetSnapshot(){return {version:77,vehicles:fleetVehicles||[],plans:fleetPlans||[],completions:fleetCompletions||[],customers:fleetCustomerProfiles||{},updated_at:new Date().toISOString()}}
 async function persistFleetCloudSnapshot(){if(!remoteClient)return false;try{var snap=fleetSnapshot(),res=await remoteClient.from('workshop_settings').upsert({id:fleetCloudStateId,value:snap,updated_at:snap.updated_at},{onConflict:'id'});if(res.error)throw res.error;try{localStorage.setItem('vecta:fleet:cloud-updated:v77',snap.updated_at)}catch(e){}return true}catch(e){console.warn('Fleet cloud snapshot save failed',e);return false}}
-function applyFleetCloudSnapshot(value){if(!value||typeof value!=='object')return false;var changed=false;if(Array.isArray(value.vehicles)&&value.vehicles.length){fleetVehicles=value.vehicles;changed=true}if(Array.isArray(value.plans)){fleetPlans=value.plans;changed=true}if(Array.isArray(value.completions)){fleetCompletions=value.completions;changed=true}if(value.customers&&typeof value.customers==='object'){fleetCustomerProfiles=value.customers;changed=true}if(changed){try{localStorage.setItem('vecta:fleet:vehicles:v1',JSON.stringify(fleetVehicles));localStorage.setItem('vecta:fleet:plans:v1',JSON.stringify(fleetPlans));localStorage.setItem('vecta:fleet:completions:v1',JSON.stringify(fleetCompletions));localStorage.setItem('vecta:fleet:customers:v1',JSON.stringify(fleetCustomerProfiles));if(value.updated_at)localStorage.setItem('vecta:fleet:cloud-updated:v77',value.updated_at)}catch(e){}}return changed}
-async function pullFleetCloudState(){if(!remoteClient)return false;try{var rows=await remoteClient.from('workshop_settings').select('id,value,updated_at').in('id',[fleetCloudStateId,'fleet_auto_refresh_status_v77']);if(rows.error)throw rows.error;var state=null,status=null;(rows.data||[]).forEach(function(row){if(row.id===fleetCloudStateId)state=row;if(row.id==='fleet_auto_refresh_status_v77')status=row});if(status&&status.value)fleetAutoRefreshStatus=status.value;if(state&&state.value){applyFleetCloudSnapshot(Object.assign({},state.value,{updated_at:state.updated_at||state.value.updated_at||''}));return true}await persistFleetCloudSnapshot();return false}catch(e){console.warn('Fleet cloud state pull failed',e);return false}}
-function saveFleet(){fleetEnsureServicePlanTypes();fleetAlignServiceDatesToMot();fleetAssignPoolEmail();localStorage.setItem('vecta:fleet:vehicles:v1',JSON.stringify(fleetVehicles));localStorage.setItem('vecta:fleet:plans:v1',JSON.stringify(fleetPlans));localStorage.setItem('vecta:fleet:completions:v1',JSON.stringify(fleetCompletions));localStorage.setItem('vecta:fleet:customers:v1',JSON.stringify(fleetCustomerProfiles));if(remoteClient)persistFleetCloudSnapshot()}
+function applyFleetCloudSnapshot(value){if(!value||typeof value!=='object')return false;fleetCaptureCurrentMotAuthority();var changed=false;if(Array.isArray(value.vehicles)&&value.vehicles.length){fleetVehicles=value.vehicles;changed=true}if(Array.isArray(value.plans)){fleetPlans=value.plans;changed=true}if(Array.isArray(value.completions)){fleetCompletions=value.completions;changed=true}if(value.customers&&typeof value.customers==='object'){fleetCustomerProfiles=value.customers;changed=true}if(fleetApplyMotAuthority())changed=true;if(changed){try{localStorage.setItem('vecta:fleet:vehicles:v1',JSON.stringify(fleetVehicles));localStorage.setItem('vecta:fleet:plans:v1',JSON.stringify(fleetPlans));localStorage.setItem('vecta:fleet:completions:v1',JSON.stringify(fleetCompletions));localStorage.setItem('vecta:fleet:customers:v1',JSON.stringify(fleetCustomerProfiles));if(value.updated_at)localStorage.setItem('vecta:fleet:cloud-updated:v77',value.updated_at)}catch(e){}}return changed}
+async function pullFleetCloudState(){if(!remoteClient)return false;try{var rows=await remoteClient.from('workshop_settings').select('id,value,updated_at').in('id',[fleetCloudStateId,'fleet_auto_refresh_status_v77',FLEET_MOT_AUTHORITY_CLOUD_ID]);if(rows.error)throw rows.error;var state=null,status=null,authority=null;(rows.data||[]).forEach(function(row){if(row.id===fleetCloudStateId)state=row;if(row.id==='fleet_auto_refresh_status_v77')status=row;if(row.id===FLEET_MOT_AUTHORITY_CLOUD_ID)authority=row});if(status&&status.value)fleetAutoRefreshStatus=status.value;if(authority&&authority.value&&authority.value.records){var remoteRecords=authority.value.records||{};Object.keys(remoteRecords).forEach(function(k){var rec=remoteRecords[k]||{},reg=normReg(rec.registration||k),expiry=dvsaIsoDate(rec.expiry),prev=fleetMotAuthority[reg]||{},prevExpiry=dvsaIsoDate(prev.expiry);if(reg&&expiry&&(!prevExpiry||expiry>prevExpiry||(expiry===prevExpiry&&String(rec.checked_at||'')>String(prev.checked_at||''))))fleetMotAuthority[reg]=rec});fleetMotAuthoritySaveLocal()}if(state&&state.value){applyFleetCloudSnapshot(Object.assign({},state.value,{updated_at:state.updated_at||state.value.updated_at||''}));return true}fleetApplyMotAuthority();await persistFleetCloudSnapshot();return false}catch(e){console.warn('Fleet cloud state pull failed',e);fleetApplyMotAuthority();return false}}
+function saveFleet(){fleetEnsureServicePlanTypes();fleetAlignServiceDatesToMot();fleetAssignPoolEmail();fleetApplyMotAuthority();localStorage.setItem('vecta:fleet:vehicles:v1',JSON.stringify(fleetVehicles));localStorage.setItem('vecta:fleet:plans:v1',JSON.stringify(fleetPlans));localStorage.setItem('vecta:fleet:completions:v1',JSON.stringify(fleetCompletions));localStorage.setItem('vecta:fleet:customers:v1',JSON.stringify(fleetCustomerProfiles));if(remoteClient){persistFleetMotAuthority();persistFleetCloudSnapshot()}}
 function fleetAutoRefreshBanner(){
   var st=fleetAutoRefreshStatus||{},when=st.finishedAt||st.startedAt||'',checked=Number(st.checked||0),updated=Number(st.updated||0),errors=Number(st.errors||0),taxConfigured=st.taxConfigured===true,hasReport=!!window.lastFleetManualMotReport;
   return '<div class="fleetAutoRefreshBar"><div><b>Government vehicle data</b><span>'+(when?'Last check '+esc(new Date(when).toLocaleString('en-GB')):'Automatic nightly checking enabled')+'</span></div><div class="fleetAutoRefreshStats"><button type="button" class="btn" id="fleetManualMotCheck" title="Run a live MOT lookup now">'+checked+' Checked</button><span>'+updated+' MOT dates updated</span>'+(errors?'<span class="warn">'+errors+' errors</span>':'')+(hasReport?'<button type="button" class="btn" id="fleetManualMotReport">View results</button>':'')+'<span>Tax '+(taxConfigured?'DVLA connected':'DVLA API ready — key pending')+'</span></div></div>';
@@ -9746,7 +9790,7 @@ function fleetTone(date){if(!date)return 'unknown';var today=new Date();today.se
 function fleetFormat(date){if(!date)return 'Not scheduled';return new Date(date+'T00:00:00').toLocaleDateString('en-GB')}
 function fleetMaintenanceCategory(value){var t=String(value||'').toLowerCase();if(/six[- ]?month|6[- ]?month|safety check/.test(t))return 'safety';if(/\bmot\b/.test(t))return 'mot';if(/\btax\b|road tax/.test(t))return 'tax';if(/service/.test(t)&&!/on[- ]?site/.test(t))return 'service';return t.trim()}
 function fleetPlanCompletedForCurrentCycle(p){var due=fleetDate(p),planCategory=fleetMaintenanceCategory(p.type);return fleetCompletions.some(function(c){if(c.vehicleId!==p.vehicleId)return false;var completed=String(c.completedDate||c.completedMonth||'');if(!completed)return false;/* A completion tied to a plan can only complete that exact plan. */if(c.planId)return c.planId===p.id&&(!due||completed.slice(0,7)>=due.slice(0,7));/* Legacy unlinked records only match one explicit maintenance category. Combined Service/MOT records do not clear either automatically. */var raw=String(c.serviceType||c.type||''),categories=['service','mot','tax','safety'].filter(function(cat){return fleetMaintenanceCategory(raw)===cat||(cat==='mot'&&/\bmot\b/i.test(raw))||(cat==='tax'&&/\btax\b|road tax/i.test(raw))||(cat==='safety'&&/six[- ]?month|6[- ]?month|safety check/i.test(raw))||(cat==='service'&&/service/i.test(raw))});categories=categories.filter(function(v,i,a){return a.indexOf(v)===i});if(categories.length!==1||categories[0]!==planCategory)return false;return !due||completed.slice(0,7)>=due.slice(0,7)})}
-function fleetVehiclePlans(id){return fleetPlans.filter(function(p){return p.vehicleId===id&&p.status==='Active'})}
+function fleetVehiclePlans(id){var active=fleetPlans.filter(function(p){return p.vehicleId===id&&p.status==='Active'}),mot=active.filter(function(p){return fleetMaintenanceCategory(p.type)==='mot'});if(mot.length>1){mot.sort(function(a,b){return String(fleetDate(b)||'').localeCompare(String(fleetDate(a)||''))});var keep=mot[0];active=active.filter(function(p){return fleetMaintenanceCategory(p.type)!=='mot'||p===keep})}return active}
 function fleetOutstandingPlans(id){return fleetVehiclePlans(id).filter(function(p){return !fleetPlanCompletedForCurrentCycle(p)})}
 
 function importContractor2026Spreadsheet(){
@@ -10222,6 +10266,7 @@ function fleetConsolidateMotPlans(vehicle,freshExpiry,sourceNote){
   vehicle.motDue=freshExpiry;
   vehicle.mot_due=freshExpiry;
   vehicle.motLastChecked=stamp;
+  fleetRecordMotAuthority(vehicle,freshExpiry,stamp);
   return {changed:changed,retired:retired};
 }
 function fleetManualMotReportHtml(result){
@@ -13337,6 +13382,7 @@ try{setTimeout(function(){if(window.app&&Array.isArray(app.jobs))migrateNoVehicl
         var av=(app.vehicles||[]).find(function(x){return normReg(x.registration||'')===normReg(v.registration||'')});
         if(av){av.mot_due=fresh;av.dvsa_last_checked=(data&&data.fetchedAt)||new Date().toISOString();}
         v.motDue=fresh; v.mot_due=fresh;
+        if(typeof fleetRecordMotAuthority==='function')fleetRecordMotAuthority(v,fresh,(data&&data.fetchedAt)||new Date().toISOString());
         changed++;
       }catch(e){errors++;console.warn('V234 MOT reconciliation failed for '+String(v.registration||''),e);}
     }
@@ -13665,6 +13711,7 @@ window.v240ManualFleetMotCheck=async function(button){
           changed++;
         }
         v.motDue=fresh;v.mot_due=fresh;
+        if(typeof fleetRecordMotAuthority==='function')fleetRecordMotAuthority(v,fresh,new Date().toISOString());
         var av=(app.vehicles||[]).find(function(x){return normReg(x.registration||'')===normReg(v.registration||'')});
         if(av){av.mot_due=fresh;av.dvsa_last_checked=new Date().toISOString()}
       }catch(err){errors++;console.warn('Manual MOT check failed for '+String(v.registration||''),err)}
