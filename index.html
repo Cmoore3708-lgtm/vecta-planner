@@ -9469,6 +9469,13 @@ function fleetHistoricalDisplay(c){
 var fleetVehicles=loadFleetSeed('vecta:fleet:vehicles:v1',window.INITIAL_FLEET_VEHICLES||[]);
 var fleetPlans=loadFleetSeed('vecta:fleet:plans:v1',window.INITIAL_MAINTENANCE_PLANS||[]);
 var fleetCompletions=JSON.parse(localStorage.getItem('vecta:fleet:completions:v1')||'[]');
+/* V257: expose live Fleet Manager state to later repair scripts without relying on cross-script lexical globals. */
+window.__vectaFleetState=function(next){
+  if(next&&Array.isArray(next.vehicles))fleetVehicles=next.vehicles;
+  if(next&&Array.isArray(next.plans))fleetPlans=next.plans;
+  if(next&&Array.isArray(next.completions))fleetCompletions=next.completions;
+  return {vehicles:fleetVehicles,plans:fleetPlans,completions:fleetCompletions,app:app};
+};
 var fleetCustomerProfiles={};try{fleetCustomerProfiles=JSON.parse(localStorage.getItem('vecta:fleet:customers:v1')||'{}')||{}}catch(e){fleetCustomerProfiles={}}
 /* V41.64: Financial tracker spreadsheets are history, not the active fleet list.
    Remove only vehicles that were auto-created from the 2026 NMUK monthly tracker.
@@ -13990,8 +13997,13 @@ function v255IsMotPlan(plan){
   if(typeof fleetMaintenanceCategory==='function')return fleetMaintenanceCategory(plan.type)==='mot';
   return /\bmot\b/i.test(String(plan.type||''));
 }
+function v255State(){
+  if(typeof window.__vectaFleetState==='function')return window.__vectaFleetState();
+  return {vehicles:Array.isArray(window.fleetVehicles)?window.fleetVehicles:[],plans:Array.isArray(window.fleetPlans)?window.fleetPlans:[],completions:Array.isArray(window.fleetCompletions)?window.fleetCompletions:[],app:window.app||null};
+}
 function v255ActiveMotPlans(vehicleId){
-  return (fleetPlans||[]).filter(function(plan){
+  var state=v255State();
+  return (state.plans||[]).filter(function(plan){
     return plan && String(plan.vehicleId)===String(vehicleId) && String(plan.status||'Active')==='Active' && v255IsMotPlan(plan);
   }).sort(function(a,b){
     var ad=typeof fleetDate==='function'?String(fleetDate(a)||''):String(a.currentDueDate||'');
@@ -14000,11 +14012,11 @@ function v255ActiveMotPlans(vehicleId){
   });
 }
 function v255CandidateVehicles(){
-  var byId={};
-  (fleetVehicles||[]).forEach(function(v){if(v&&v.id!==undefined&&v.id!==null)byId[String(v.id)]=v;});
+  var state=v255State(),byId={};
+  (state.vehicles||[]).forEach(function(v){if(v&&v.id!==undefined&&v.id!==null)byId[String(v.id)]=v;});
   /* Drive eligibility from maintenance records, not from due dates or vehicle classifications. */
   var ids={};
-  (fleetPlans||[]).forEach(function(p){
+  (state.plans||[]).forEach(function(p){
     if(p && String(p.status||'Active')==='Active' && v255IsMotPlan(p))ids[String(p.vehicleId)]=true;
   });
   return Object.keys(ids).map(function(id){return byId[id]||null;}).filter(function(v){return !!v;});
@@ -14056,17 +14068,20 @@ function v255StrictMotJob(job){
   return !serviceOnly;
 }
 function v255RemoveFalseMotCompletions(vehicle){
-  if(!vehicle||!Array.isArray(fleetCompletions))return 0;
+  var state=v255State(),completions=state.completions||[],workshopApp=state.app||window.app||null;
+  if(!vehicle||!Array.isArray(completions))return 0;
   var removed=0,reg=v255NormReg(vehicle.registration||'');
-  fleetCompletions=fleetCompletions.filter(function(c){
+  completions=completions.filter(function(c){
     if(!c||String(c.vehicleId)!==String(vehicle.id)||String(c.type||'').toUpperCase()!=='MOT')return true;
     var source=String(c.source||'');
     if(source.indexOf('job:')!==0)return true;
-    var jobId=source.slice(4),job=(app&&Array.isArray(app.jobs))?app.jobs.find(function(j){return String(j.id)===String(jobId);}):null;
+    var jobId=source.slice(4),job=(workshopApp&&Array.isArray(workshopApp.jobs))?workshopApp.jobs.find(function(j){return String(j.id)===String(jobId);}):null;
     if(job && v255NormReg(job.registration||'')===reg && v255StrictMotJob(job))return true;
     /* This completion was generated from a non-MOT/missing workshop job and is not authoritative. */
     removed++;return false;
   });
+  if(typeof window.__vectaFleetState==='function')window.__vectaFleetState({completions:completions});
+  else window.fleetCompletions=completions;
   return removed;
 }
 function v255ApplyGovernmentDate(vehicle,fresh,stamp){
@@ -14079,8 +14094,9 @@ function v255ApplyGovernmentDate(vehicle,fresh,stamp){
   plans.slice(1).forEach(function(p){p.status='Superseded';p.notes='Superseded by authoritative MOT maintenance record '+fresh+' on '+stamp+'.';retired++;});
   vehicle.motDue=fresh;vehicle.mot_due=fresh;vehicle.motLastChecked=stamp;
   if(typeof fleetRecordMotAuthority==='function')fleetRecordMotAuthority(vehicle,fresh,stamp);
-  if(app&&Array.isArray(app.vehicles)){
-    var av=app.vehicles.find(function(x){return v255NormReg(x.registration||'')===v255NormReg(vehicle.registration||'');});
+  var state=v255State(),workshopApp=state.app||window.app||null;
+  if(workshopApp&&Array.isArray(workshopApp.vehicles)){
+    var av=workshopApp.vehicles.find(function(x){return v255NormReg(x.registration||'')===v255NormReg(vehicle.registration||'');});
     if(av){av.mot_due=fresh;av.dvsa_last_checked=stamp;}
   }
   return {changed:changed,retired:retired};
@@ -14140,6 +14156,6 @@ document.addEventListener('click',function(ev){
   v255Manual(button);
 },true);
 
-try{var foot=document.querySelector('.sideFoot small');if(foot)foot.textContent='v255 Workshop Pro · All MOT maintenance records authoritative check';}catch(e){}
+try{var foot=document.querySelector('.sideFoot small');if(foot)foot.textContent='v257 Workshop Pro · Manual MOT check scope fix';}catch(e){}
 })();
 </script>
