@@ -2651,7 +2651,7 @@ body.servicePreviewing .servicePreviewControls{position:relative!important;z-ind
   <aside class="side">
     <div class="logo"><div class="logoMark">VECTA</div><div class="product" style="font-size:18px!important;font-weight:900!important;letter-spacing:.03em!important;color:#fff!important;text-transform:none!important">Workshop Pro</div></div>
     <nav class="nav" id="nav"></nav>
-    <div class="sideFoot"><b>V261 Workshop Pro</b><br>Four-lane planner · unified search · manual MOT check · My Tasks sidebar.</div>
+    <div class="sideFoot"><b>V262 Workshop Pro</b><br>Four-lane planner · unified search · manual MOT check · My Tasks sidebar.</div>
   </aside>
   <main class="main">
     <header class="top">
@@ -9802,7 +9802,7 @@ function fleetTone(date){if(!date)return 'unknown';var today=new Date();today.se
 function fleetFormat(date){if(!date)return 'Not scheduled';return new Date(date+'T00:00:00').toLocaleDateString('en-GB')}
 function fleetMaintenanceCategory(value){var t=String(value||'').toLowerCase();if(/six[- ]?month|6[- ]?month|safety check/.test(t))return 'safety';if(/\bmot\b/.test(t))return 'mot';if(/\btax\b|road tax/.test(t))return 'tax';if(/service/.test(t)&&!/on[- ]?site/.test(t))return 'service';return t.trim()}
 function fleetPlanCompletedForCurrentCycle(p){var due=fleetDate(p),planCategory=fleetMaintenanceCategory(p.type);return fleetCompletions.some(function(c){if(c.vehicleId!==p.vehicleId)return false;var completed=String(c.completedDate||c.completedMonth||'');if(!completed)return false;/* A completion tied to a plan can only complete that exact plan. */if(c.planId)return c.planId===p.id&&(!due||completed.slice(0,7)>=due.slice(0,7));/* Legacy unlinked records only match one explicit maintenance category. Combined Service/MOT records do not clear either automatically. */var raw=String(c.serviceType||c.type||''),categories=['service','mot','tax','safety'].filter(function(cat){return fleetMaintenanceCategory(raw)===cat||(cat==='mot'&&/\bmot\b/i.test(raw))||(cat==='tax'&&/\btax\b|road tax/i.test(raw))||(cat==='safety'&&/six[- ]?month|6[- ]?month|safety check/i.test(raw))||(cat==='service'&&/service/i.test(raw))});categories=categories.filter(function(v,i,a){return a.indexOf(v)===i});if(categories.length!==1||categories[0]!==planCategory)return false;return !due||completed.slice(0,7)>=due.slice(0,7)})}
-function fleetVehiclePlans(id){var active=fleetPlans.filter(function(p){return p.vehicleId===id&&p.status==='Active'}),mot=active.filter(function(p){return fleetMaintenanceCategory(p.type)==='mot'});if(mot.length>1){mot.sort(function(a,b){return String(fleetDate(b)||'').localeCompare(String(fleetDate(a)||''))});var keep=mot[0];active=active.filter(function(p){return fleetMaintenanceCategory(p.type)!=='mot'||p===keep})}return active}
+function fleetVehiclePlans(id){var active=fleetPlans.filter(function(p){return p&&String(p.vehicleId)===String(id)&&String(p.status||'Active')==='Active'}),mot=active.filter(function(p){return fleetMaintenanceCategory(p.type)==='mot'});if(mot.length>1){mot.sort(function(a,b){return String(fleetDate(b)||'').localeCompare(String(fleetDate(a)||''))});var keep=mot[0];active=active.filter(function(p){return fleetMaintenanceCategory(p.type)!=='mot'||p===keep})}return active}
 function fleetOutstandingPlans(id){return fleetVehiclePlans(id).filter(function(p){if(fleetMaintenanceCategory(p.type)==='mot')return true;return !fleetPlanCompletedForCurrentCycle(p)})}
 
 function importContractor2026Spreadsheet(){
@@ -10253,7 +10253,7 @@ function fleetManualLatestMotExpiry(data){
 }
 function fleetActiveMotPlans(vehicleId){
   return (fleetPlans||[]).filter(function(p){
-    return p&&p.vehicleId===vehicleId&&String(p.status||'Active')==='Active'&&fleetMaintenanceCategory(p.type)==='mot';
+    return p&&String(p.vehicleId)===String(vehicleId)&&String(p.status||'Active')==='Active'&&fleetMaintenanceCategory(p.type)==='mot';
   }).sort(function(a,b){return String(fleetDate(a)||'9999-12-31').localeCompare(String(fleetDate(b)||'9999-12-31'))});
 }
 function fleetConsolidateMotPlans(vehicle,freshExpiry,sourceNote){
