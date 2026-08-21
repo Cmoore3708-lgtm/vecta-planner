@@ -1,6 +1,7 @@
 <!doctype html>
 <html lang="en">
 <head>
+  <!-- VECTA V254: authoritative MOT lookup checks EVERY active MOT plan and may correct dates backwards or forwards -->
   <!-- VECTA V253: stale recurring MOT due dates roll into current cycle; fixes missing NK72 KTD / NK72 KTJ -->
   <!-- VECTA V100: preserve spreadsheet-specific Nissan contacts; stop Pool default email overwrite -->
   <!-- VECTA V93: Fleet due list shows every outstanding due item per vehicle -->
@@ -13808,3 +13809,152 @@ document.addEventListener('click',function(ev){
   .mobileJobTop .status{display:none!important}
 }
 </style>
+
+
+<script id="v254-authoritative-mot-override">
+/* V254 CRITICAL MOT SAFETY FIX
+   The live government MOT result is authoritative.
+   - Every Fleet vehicle with an ACTIVE MOT maintenance plan is checked, regardless of the locally stored due date.
+   - A live date may move the local date BACKWARDS or forwards. This is essential when bad local completion data
+     has incorrectly pushed an MOT into a future year.
+   - A Service completion must never make a vehicle ineligible for an MOT lookup.
+   - Removing/pausing the MOT maintenance plan remains the only way to remove a vehicle from MOT monitoring. */
+(function(){
+'use strict';
+function v254Iso(value){
+  value=String(value||'').slice(0,10);
+  return /^\d{4}-\d{2}-\d{2}$/.test(value)?value:'';
+}
+function v254MotPlan(vehicle){
+  if(!vehicle)return null;
+  if(typeof fleetPlanMatching==='function')return fleetPlanMatching(vehicle.id,'mot');
+  return (fleetPlans||[]).filter(function(p){
+    return p&&p.vehicleId===vehicle.id&&p.status==='Active'&&/\bmot\b/i.test(String(p.type||''));
+  })[0]||null;
+}
+function v254Candidate(vehicle){
+  /* Product rule: an active MOT maintenance record means this vehicle MUST be monitored.
+     Do not trust the stored due date to decide whether it deserves a live check. */
+  return !!(vehicle&&v254MotPlan(vehicle));
+}
+function v254LatestGovernmentExpiry(data){
+  data=data||{};
+  /* DVLA Vehicle Enquiry is preferred whenever it is present. The MOT History response is the fallback. */
+  var dvla=v254Iso(data.dvlaMotExpiryDate||data.dvla_mot_expiry_date);
+  if(dvla)return dvla;
+  if(typeof window.v234LatestMotExpiry==='function'){
+    var known=v254Iso(window.v234LatestMotExpiry(data));
+    if(known)return known;
+  }
+  var values=[];
+  function add(v){v=v254Iso(v);if(v)values.push(v)}
+  add(data.motExpiryDate);add(data.mot_expiry_date);add(data.motDue);add(data.mot_due);
+  (Array.isArray(data.motTests)?data.motTests:[]).forEach(function(t){
+    add(t&&t.expiryDate);add(t&&t.expiry_date);add(t&&t.motExpiryDate);add(t&&t.mot_expiry_date);
+  });
+  values.sort();return values.length?values[values.length-1]:'';
+}
+async function v254FetchFresh(reg){
+  reg=typeof normReg==='function'?normReg(reg||''):String(reg||'').toUpperCase().replace(/[^A-Z0-9]/g,'');
+  if(!reg)throw new Error('Registration missing');
+  var response=await fetch('/api/vehicle-lookup?reg='+encodeURIComponent(reg)+'&manual=1&_ts='+Date.now(),{
+    cache:'no-store',headers:{Accept:'application/json','Cache-Control':'no-cache, no-store, max-age=0','Pragma':'no-cache'}
+  });
+  var data=await response.json().catch(function(){return {}});
+  if(!response.ok)throw new Error(data.error||'Vehicle lookup failed');
+  return data;
+}
+async function v254Reconcile(options){
+  options=options||{};
+  if(!Array.isArray(fleetVehicles))return {checked:0,changed:0,errors:0,total:0};
+  var candidates=fleetVehicles.filter(v254Candidate),checked=0,changed=0,errors=0;
+  for(var i=0;i<candidates.length;i++){
+    var v=candidates[i],button=options.button;
+    if(button)button.textContent='Checking '+(i+1)+' / '+candidates.length+'…';
+    try{
+      var data=await v254FetchFresh(v.registration||'');checked++;
+      var fresh=v254LatestGovernmentExpiry(data),plan=v254MotPlan(v);
+      if(!plan||!fresh)continue;
+      var old=typeof fleetDate==='function'?v254Iso(fleetDate(plan)):v254Iso(plan.currentDueDate);
+      /* CRITICAL: government data overrides local data in EITHER direction. */
+      if(fresh!==old){
+        plan.currentDueDate=fresh;
+        plan.targetMonth=Number(fresh.slice(5,7));
+        plan.type='MOT';plan.intervalMonths=12;plan.status='Active';
+        plan.notes='Authoritative government MOT date '+fresh+' checked '+new Date().toISOString()+'.';
+        changed++;
+      }
+      var stamp=(data&&data.fetchedAt)||new Date().toISOString();
+      v.motDue=fresh;v.mot_due=fresh;v.motLastChecked=stamp;
+      if(typeof fleetRecordMotAuthority==='function')fleetRecordMotAuthority(v,fresh,stamp);
+      if(app&&Array.isArray(app.vehicles)){
+        var av=app.vehicles.find(function(x){return typeof normReg==='function'?normReg(x.registration||'')===normReg(v.registration||''):String(x.registration||'')===String(v.registration||'')});
+        if(av){av.mot_due=fresh;av.dvsa_last_checked=stamp;}
+      }
+    }catch(err){errors++;console.warn('V254 authoritative MOT check failed for '+String(v.registration||''),err);}
+  }
+  if(typeof saveFleet==='function')saveFleet();
+  if(typeof saveLocal==='function')saveLocal();
+  var result={checked:checked,changed:changed,errors:errors,total:candidates.length,finishedAt:new Date().toISOString(),authoritative:true};
+  window.v254MotStatus=result;window.v234MotReconcileStatus=result;
+  return result;
+}
+window.v254ReconcileAllFleetMots=v254Reconcile;
+
+/* Replace the manual control completely. */
+window.v240ManualFleetMotCheck=async function(button){
+  if(window.__v254ManualMotRunning)return;
+  window.__v254ManualMotRunning=true;
+  try{
+    if(button){button.classList.add('v240Checking');button.disabled=true;button.textContent='Checking all MOT plans…';}
+    var r=await v254Reconcile({button:button,manual:true});
+    if(typeof render==='function'&&typeof view!=='undefined'&&view==='fleet')render();
+    alert('Authoritative MOT check complete. '+r.checked+' of '+r.total+' active MOT vehicles checked; '+r.changed+' due date'+(r.changed===1?'':'s')+' corrected.'+(r.errors?' '+r.errors+' lookup error'+(r.errors===1?'':'s')+'.':'')+' Government MOT dates now override locally stored dates.');
+  }finally{
+    window.__v254ManualMotRunning=false;
+    if(button){button.classList.remove('v240Checking');button.disabled=false;}
+  }
+};
+
+/* Any older code that asks for a Fleet MOT refresh now gets the authoritative all-plan check. */
+window.v207RefreshDueFleetMots=function(){return v254Reconcile({manual:false}).then(function(r){return r.changed||0;});};
+window.v234ReconcileOutstandingMots=function(force){return v254Reconcile({manual:!!force});};
+
+/* Run after Fleet/cloud state has loaded. This deliberately checks ALL active MOT plans, not only ones
+   whose possibly-wrong local date happens to be near today. */
+var v254LastOpenRun=0;
+function v254RunOnFleetOpen(){
+  if(Date.now()-v254LastOpenRun<30000)return;
+  v254LastOpenRun=Date.now();
+  v254Reconcile({manual:false}).then(function(r){
+    if(r.changed&&typeof render==='function'&&typeof view!=='undefined'&&view==='fleet')render();
+  });
+}
+if(typeof fleetBind==='function'&&!fleetBind.__v254Wrapped){
+  var v254OldFleetBind=fleetBind;
+  fleetBind=function(){var result=v254OldFleetBind.apply(this,arguments);setTimeout(v254RunOnFleetOpen,250);return result;};
+  fleetBind.__v254Wrapped=true;
+}
+
+/* Extra protection: a pure Service completion can update Service/Safety dates only.
+   It cannot call the MOT schedule updater unless the job itself explicitly contains MOT work. */
+if(typeof syncFleetMaintenanceFromJob==='function'&&!syncFleetMaintenanceFromJob.__v254Wrapped){
+  var v254OldSync=syncFleetMaintenanceFromJob;
+  syncFleetMaintenanceFromJob=function(j){
+    var cats=typeof fleetPlannerJobCategories==='function'?fleetPlannerJobCategories(j):{service:false,mot:false};
+    if(cats.service&&!cats.mot){
+      if(typeof completedJobCanUpdateFleet==='function'&&!completedJobCanUpdateFleet(j))return false;
+      var changed=false;
+      if(typeof isSixMonthSafetyCheck==='function'&&isSixMonthSafetyCheck(j))return v254OldSync.apply(this,arguments);
+      if(typeof isOnSiteService==='function'&&isOnSiteService(j))return v254OldSync.apply(this,arguments);
+      if(typeof syncFleetServiceScheduleFromJob==='function'){if(syncFleetServiceScheduleFromJob(j))changed=true;}
+      return changed;
+    }
+    return v254OldSync.apply(this,arguments);
+  };
+  syncFleetMaintenanceFromJob.__v254Wrapped=true;
+}
+
+try{var foot=document.querySelector('.sideFoot small');if(foot)foot.textContent='v254 Workshop Pro · Authoritative MOT protection';}catch(e){}
+})();
+</script>
