@@ -2476,7 +2476,7 @@ body.servicePreviewing .servicePreviewControls{position:relative!important;z-ind
   <aside class="side">
     <div class="logo"><div class="logoMark">VECTA</div><div class="product" style="font-size:18px!important;font-weight:900!important;letter-spacing:.03em!important;color:#fff!important;text-transform:none!important">Workshop Pro</div></div>
     <nav class="nav" id="nav"></nav>
-    <div class="sideFoot"><b>V230 Workshop Pro</b><br>Capacity booking · planner search · 3 mechanic layout.</div>
+    <div class="sideFoot"><b>V232 Workshop Pro</b><br>Capacity booking · planner search · 3 mechanic layout.</div>
   </aside>
   <main class="main">
     <header class="top">
@@ -8464,7 +8464,7 @@ var plannerStartMinutes=8*60;
 var carryOverPendingSync={};
 var lastKnownTodayIso=todayIso();
 var remoteClient=null;
-var app={jobs:[],customers:[],vehicles:[],tasks:[],notes:'',settings:{businessName:'Vecta Motors',labourRate:40,bankName:'',accountName:'Vecta Motors',sortCode:'',accountNumber:'',paymentNote:'Please use vehicle registration as payment reference.',supabaseUrl:'https://jywufozycuwuoshlulwl.supabase.co',supabaseAnonKey:'',vatRate:20,vatNumber:'',invoicePrefix:'VECTA',nextInvoiceNumber:1,mechanics:['Alfie','Other'],ramps:['Left','Middle','Right'],jobTemplates:templates},invoices:[],serviceRecords:[],websiteRequests:[]};
+var app={jobs:[],customers:[],vehicles:[],tasks:[],notes:'',settings:{businessName:'Vecta Motors',labourRate:40,bankName:'',accountName:'Vecta Motors',sortCode:'',accountNumber:'',paymentNote:'Please use vehicle registration as payment reference.',supabaseUrl:'https://jywufozycuwuoshlulwl.supabase.co',supabaseAnonKey:'',vatRate:20,vatNumber:'',invoicePrefix:'VECTA',nextInvoiceNumber:1,mechanics:['Alfie','Other','Anyone'],ramps:['Left','Middle','Right'],jobTemplates:templates},invoices:[],serviceRecords:[],websiteRequests:[]};
 var templates={
   Service:{job_type:'service',work_required:'Service - check service history and select the correct service level.',estimated_hours:2,job_colour:'service'},
   'Major Service':{job_type:'Major Service',work_required:'Major Service - in-depth scheduled service including Full Service checks plus spark plugs and fuel filter replacements where scheduled.',estimated_hours:2.5,job_colour:'service',default_parts:['Oil filter','Air filter','Cabin filter','Spark plugs','Fuel filter']},
@@ -10223,7 +10223,7 @@ function updateCurrentTimeLine(){
   var top=48+((live.now-plannerStartMinutes)/60)*PLANNER_PX_PER_HOUR;line.style.top=top+'px';if(label)label.textContent='NOW '+timeFromMinutes(live.now)
 }
 function plannerLiveControlsHtml(config){if(!config.isToday)return '';var text=config.mode==='unfinished'?'Live view starts at '+timeFromMinutes(config.startMinutes)+' — earliest unfinished job remains visible':config.mode==='now'?'Live view follows the current time — no unfinished jobs remain above the red line':'Full-day view';var button=plannerShowFullDay?'<button id="plannerFollowLive" type="button">Follow current time</button>':'<button id="plannerFullDay" type="button">Show full day</button>';return '<div class="plannerLiveControls"><span class="plannerLiveStatus"><i class="plannerLiveDot"></i>'+esc(text)+'</span>'+button+'</div>'}
-function plannerHtml(){var mechanics=(app.settings.mechanics&&app.settings.mechanics.length?app.settings.mechanics:['Alfie','Other']);var jobs=jobsForDate(),dayJobs=allJobsForDate();var live=plannerWindowConfig(jobs,mechanics);plannerStartMinutes=live.startMinutes;var mechanicColumns='62px repeat('+mechanics.length+','+(mechanics.length>2?'minmax(260px,1fr)':'minmax(0,1fr)')+')';var mechanicMinWidth=mechanics.length>2?(62+(mechanics.length*260))+'px':'';var bodyHeight=((live.dayLast-plannerStartMinutes)/60)*PLANNER_PX_PER_HOUR;var gridStyle='grid-template-columns:'+mechanicColumns+';--planner-body-height:'+bodyHeight+'px;--planner-grid-position:'+live.gridPosition+'px;'+(mechanicMinWidth?'min-width:'+mechanicMinWidth+';':'');var desktop='<div class="mobileTasksTop">'+myTasksHtml('mobile')+'</div>'+plannerMetricsHtml(mechanics,jobs,dayJobs)+'<div class="mobilePlannerNotice">Mobile planner mode: drag-and-drop is disabled so the page scrolls properly. Use the buttons on each job to move, time, ramp or status.</div>'+mobilePlannerHtml(mechanics,jobs)+'<div class="plannerLayout"><div class="plannerCard">'+plannerLiveControlsHtml(live)+'<div class="plannerGrid liveWindow" style="'+gridStyle+'"><div class="head">Time</div>'+mechanics.map(function(m){return '<div class="head"><div>'+esc(m)+'<small>'+mechanicHours(dayJobs,m)+' hrs booked</small></div></div>'}).join('')+currentTimeLineHtml(live)+'<div class="timeCol" style="height:'+bodyHeight+'px">'+plannerTimeRows(plannerStartMinutes,live.dayLast)+'</div>'+mechanics.map(function(m){return laneHtml(m,jobs)}).join('')+'</div></div><div class="plannerSidebar">'+unallocatedPanelHtml()+myTasksHtml('desktop')+'</div></div>';return desktop}
+function plannerHtml(){if(!app.settings)app.settings={};var existing=(app.settings.mechanics||[]).filter(Boolean),first=existing[0]||'Alfie',second=existing[1]||'Jordan';app.settings.mechanics=[first,second,'Anyone'];var mechanics=app.settings.mechanics.slice(0,3),jobs=jobsForDate(),dayJobs=allJobsForDate();var live=plannerWindowConfig(jobs,mechanics);plannerStartMinutes=live.startMinutes;var bodyHeight=((live.dayLast-plannerStartMinutes)/60)*PLANNER_PX_PER_HOUR;var gridStyle='grid-template-columns:62px minmax(225px,1fr) minmax(225px,1fr) minmax(180px,.72fr);--planner-body-height:'+bodyHeight+'px;--planner-grid-position:'+live.gridPosition+'px;min-width:720px;';var desktop='<div class="mobileTasksTop">'+myTasksHtml('mobile')+'</div>'+plannerMetricsHtml(mechanics,jobs,dayJobs)+'<div class="mobilePlannerNotice">Mobile planner mode: drag-and-drop is disabled so the page scrolls properly. Use the buttons on each job to move, time, ramp or status.</div>'+mobilePlannerHtml(mechanics,jobs)+'<div class="horizontalUnallocated">'+unallocatedPanelHtml()+'</div><div class="plannerLayout v230Planner"><div class="plannerCard">'+plannerLiveControlsHtml(live)+'<div class="plannerGrid liveWindow" style="'+gridStyle+'"><div class="head">Time</div>'+mechanics.map(function(m,i){return '<div class="head"><div>'+esc(m)+(i===2?' <small>Flexible / anyone</small>':'')+'<small>'+mechanicHours(dayJobs,m)+' hrs booked</small></div></div>'}).join('')+currentTimeLineHtml(live)+'<div class="timeCol" style="height:'+bodyHeight+'px">'+plannerTimeRows(plannerStartMinutes,live.dayLast)+'</div>'+mechanics.map(function(m){return laneHtml(m,jobs)}).join('')+'</div></div></div><div class="plannerTasksBelow">'+myTasksHtml('desktop')+'</div>';return desktop}
 function mobilePlannerHtml(mechanics,jobs){var groups=[];mechanics.forEach(function(m){groups.push({name:m,list:jobs.filter(function(j){return j.technician===m}).sort(byTime),unallocated:false})});groups.push({name:'Unallocated Jobs / Carry Over',list:unallocatedJobs().concat(app.jobs.filter(function(j){return !j.archived&&j.status!=='completed'&&j.card_type==='multi_day'&&!isUnallocatedJob(j)}).sort(byTime)),unallocated:true});return '<div class="mobilePlanner">'+groups.map(function(g){return '<div class="mobileGroup '+(g.unallocated?'mobileUnallocatedGroup':'')+'"><div class="mobileGroupHead"><span>'+esc(g.name)+'</span><span class="pill">'+g.list.length+'</span></div>'+(g.list.length?g.list.map(mobileJobCardHtml).join(''):'<div class="empty">No jobs here.</div>')+'</div>'}).join('')+'<div class="panel"><h3>General Notes</h3><textarea class="notesArea" id="notesArea" placeholder="Workshop notes...">'+esc(app.notes||'')+'</textarea></div></div>'}
 function mobileJobCardHtml(j){var st=String(j.status||'booked');return '<div class="mobileJob jobTypeCoded" style="'+jobTypeInlineStyle(j)+'" data-open-job="'+j.id+'"><div class="mobileJobTop">'+plannerPlate(j)+'<span class="status '+st+'">'+statusText(st)+'</span></div>'+carryOverBadgeHtml(j)+'<div class="sideJobType">'+jobTypeChip(j)+'</div><b>'+esc(j.work_required||'No work required entered')+'</b><div class="mobileJobMeta">'+esc(j.vehicle||'Vehicle')+(j.customer_name?' · '+esc(j.customer_name):'')+'<br>'+esc(j.technician||'Unallocated')+' · '+esc(timeRange(j))+' · '+esc(j.ramp||'No ramp')+'</div><div class="mobileActions"><button data-mobile-move="'+j.id+'">Move</button><button data-mobile-time="'+j.id+'">Time</button><button data-mobile-ramp="'+j.id+'">Ramp</button><button data-mobile-status="'+j.id+'">Status</button></div></div>'}
 function updateJobQuick(j){j.archived=j.status==='completed';if(j.status==='completed'&&!j.completed_at)j.completed_at=new Date().toISOString();j.updated_at=new Date().toISOString();syncTaskFromMiniJob(j);if(j.status==='completed'||j.status==='ready_to_invoice')syncFleetMaintenanceFromJob(j);saveAll();upsertRemote('jobs',j);render()}
@@ -12325,6 +12325,94 @@ try{setTimeout(function(){if(window.app&&Array.isArray(app.jobs))migrateNoVehicl
 })();
 </script>
 
+
+<style id="v232-header-search-booked-fix">
+/* v232: fixed desktop header positions. Search owns a permanent slot between title and weekday. */
+@media(min-width:901px){
+  .top{
+    display:grid!important;
+    grid-template-columns:minmax(110px,1fr) 225px 92px 140px 174px 58px 90px 84px!important;
+    grid-template-areas:"title search day booked date today print newjob"!important;
+    gap:6px!important;
+    align-items:center!important;
+    min-height:64px!important;
+    padding:8px 10px!important;
+    overflow:hidden!important;
+  }
+  #viewTitle{grid-area:title!important;margin:0!important;min-width:0!important;max-width:none!important;white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important}
+  .plannerGlobalSearchWrap{grid-area:search!important;width:225px!important;min-width:225px!important;max-width:225px!important;margin:0!important;align-self:center!important}
+  .plannerGlobalSearchWrap input{width:100%!important;height:39px!important;padding:0 12px!important;border-radius:8px!important;border:1px solid #43566d!important;background:#fff!important;color:#111827!important;font-size:12px!important;box-sizing:border-box!important}
+  .plannerGlobalSearchWrap input::placeholder{color:#64748b!important}
+  #dashboardDayName{grid-area:day!important;width:92px!important;min-width:92px!important;max-width:92px!important;height:39px!important;margin:0!important;padding:0!important;font-size:17px!important;line-height:39px!important;text-align:center!important;white-space:nowrap!important;overflow:visible!important;text-overflow:clip!important}
+  #dashboardBookedToday{grid-area:booked!important;width:140px!important;min-width:140px!important;max-width:140px!important;height:43px!important;min-height:43px!important;margin:0!important;padding:4px 9px!important;display:none!important;flex-direction:column!important;align-items:center!important;justify-content:center!important;gap:2px!important;overflow:hidden!important;box-sizing:border-box!important}
+  #dashboardBookedToday.show{display:flex!important}
+  #dashboardBookedToday small{display:block!important;width:100%!important;font-size:7.5px!important;line-height:1!important;text-align:center!important;white-space:nowrap!important}
+  #dashboardBookedToday strong{display:block!important;width:100%!important;font-size:14px!important;line-height:1.05!important;text-align:center!important;white-space:nowrap!important;overflow:hidden!important;text-overflow:clip!important}
+  .top .dateCtl{grid-area:date!important;width:174px!important;min-width:174px!important;max-width:174px!important;height:39px!important;margin:0!important}
+  #todayBtn{grid-area:today!important;width:58px!important;min-width:58px!important;max-width:58px!important;margin:0!important}
+  #printBtn{grid-area:print!important;width:90px!important;min-width:90px!important;max-width:90px!important;margin:0!important;font-size:10px!important}
+  #newJobTop{grid-area:newjob!important;width:84px!important;min-width:84px!important;max-width:84px!important;margin:0!important;font-size:10px!important}
+  .mobileCalendarBtn,#newTaskTop{display:none!important}
+}
+@media(min-width:901px) and (max-width:1180px){
+  .top{grid-template-columns:minmax(82px,1fr) 190px 82px 128px 164px 54px 82px 76px!important;gap:5px!important;padding-left:8px!important;padding-right:8px!important}
+  .plannerGlobalSearchWrap{width:190px!important;min-width:190px!important;max-width:190px!important}
+  .plannerGlobalSearchWrap input{font-size:11px!important;padding:0 10px!important}
+  #dashboardDayName{width:82px!important;min-width:82px!important;max-width:82px!important;font-size:15px!important}
+  #dashboardBookedToday{width:128px!important;min-width:128px!important;max-width:128px!important}
+  .top .dateCtl{width:164px!important;min-width:164px!important;max-width:164px!important}
+  #todayBtn{width:54px!important;min-width:54px!important;max-width:54px!important;font-size:10px!important}
+  #printBtn{width:82px!important;min-width:82px!important;max-width:82px!important;font-size:9px!important}
+  #newJobTop{width:76px!important;min-width:76px!important;max-width:76px!important;font-size:9px!important}
+}
+</style>
+<script id="v232-search-runtime-fix">
+(function(){
+  function workshopApp(){
+    try{ if(typeof app!=='undefined' && app) return app; }catch(e){}
+    return window.app||{jobs:[],customers:[],vehicles:[]};
+  }
+  function safeEsc(v){return String(v==null?'':v).replace(/[&<>\"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;',"'":'&#39;'}[c]})}
+  function norm(v){return String(v||'').toLowerCase().replace(/\s+/g,' ').trim()}
+  function compact(v){return String(v||'').toLowerCase().replace(/[^a-z0-9]/g,'')}
+  function plate(v){return '<span class="plate">'+safeEsc(String(v||'').toUpperCase())+'</span>'}
+  function getMatches(q){
+    var a=workshopApp(),needle=norm(q),tight=compact(q),jobs=Array.isArray(a.jobs)?a.jobs:[],customers=Array.isArray(a.customers)?a.customers:[],vehicles=Array.isArray(a.vehicles)?a.vehicles:[];
+    var vehicleMap={};
+    vehicles.forEach(function(v){var r=String(v.registration||'').trim();if(r)vehicleMap[compact(r)]={registration:r,vehicle:v.vehicle||v.make_model||'',customer_id:v.customer_id||'',customer_name:v.customer_name||''}});
+    jobs.forEach(function(j){var r=String(j.registration||'').trim();if(!r)return;var k=compact(r);if(!vehicleMap[k])vehicleMap[k]={registration:r,vehicle:j.vehicle||'',customer_name:j.customer_name||''};});
+    var vs=Object.keys(vehicleMap).map(function(k){return vehicleMap[k]}).filter(function(v){var hay=norm([v.registration,v.vehicle,v.customer_name].join(' ')),hayT=compact([v.registration,v.vehicle,v.customer_name].join(' '));return hay.indexOf(needle)>-1||(tight&&hayT.indexOf(tight)>-1)}).slice(0,12);
+    var cs=customers.filter(function(c){var hay=norm([c.name,c.surname,c.phone,c.email].join(' ')),hayT=compact([c.name,c.surname,c.phone,c.email].join(' '));return hay.indexOf(needle)>-1||(tight&&hayT.indexOf(tight)>-1)}).slice(0,10);
+    var js=jobs.filter(function(j){var hay=norm([j.registration,j.vehicle,j.customer_name,j.customer_phone,j.customer_email,j.work_required].join(' ')),hayT=compact([j.registration,j.customer_name,j.customer_phone,j.customer_email].join(' '));return hay.indexOf(needle)>-1||(tight&&hayT.indexOf(tight)>-1)}).sort(function(x,y){return String(y.booking_date||y.created_at||'').localeCompare(String(x.booking_date||x.created_at||''))}).slice(0,12);
+    return {vehicles:vs,customers:cs,jobs:js};
+  }
+  function resultsHtml(q){
+    var m=getMatches(q),html='<div class="globalSearchPopupHead"><h3>Search results</h3><button type="button" class="globalSearchPopupClose">Close</button></div>';
+    if(!m.vehicles.length&&!m.customers.length&&!m.jobs.length)return html+'<div class="empty">No matching vehicles, customers or jobs.</div>';
+    if(m.vehicles.length){html+='<div class="searchResultHead"><b>Vehicles</b><span>'+m.vehicles.length+' result'+(m.vehicles.length===1?'':'s')+'</span></div>';m.vehicles.forEach(function(v){html+='<button type="button" class="rowCard" data-v232-vehicle="'+safeEsc(v.registration)+'">'+plate(v.registration)+'<div><b>'+safeEsc(v.vehicle||'Vehicle record')+'</b><br><span class="muted">'+safeEsc(v.customer_name||'')+'</span></div><span></span><span class="pill">Open vehicle</span></button>'})}
+    if(m.customers.length){html+='<div class="searchResultHead"><b>Customers</b><span>'+m.customers.length+' result'+(m.customers.length===1?'':'s')+'</span></div>';m.customers.forEach(function(c){html+='<button type="button" class="rowCard" data-v232-customer="'+safeEsc(c.id||'')+'"><span></span><div><b>'+safeEsc(c.name||c.surname||'Customer')+'</b><br><span class="muted">'+safeEsc(c.email||'')+'</span></div><span>'+safeEsc(c.phone||'')+'</span><span class="pill">Open customer</span></button>'})}
+    if(m.jobs.length){html+='<div class="searchResultHead"><b>Jobs</b><span>'+m.jobs.length+' result'+(m.jobs.length===1?'':'s')+'</span></div>';m.jobs.forEach(function(j){html+='<button type="button" class="rowCard" data-v232-job="'+safeEsc(j.id||'')+'">'+plate(j.registration||'NO REG')+'<div><b>'+safeEsc(j.work_required||j.job_type||'Job')+'</b><br><span class="muted">'+safeEsc(j.customer_name||'')+'</span></div><span>'+safeEsc(j.booking_date||'')+'</span><span class="pill">Open job</span></button>'})}
+    return html;
+  }
+  function close(){var p=document.getElementById('globalSearchPopup');if(p){p.classList.remove('open');p.setAttribute('aria-hidden','true')}}
+  function bind(){
+    var old=document.getElementById('plannerGlobalSearch'),popup=document.getElementById('globalSearchPopup');if(!old||!popup)return;
+    /* Clone the input so all listeners from the broken v230 search are removed. */
+    var input=old.cloneNode(true);old.parentNode.replaceChild(input,old);input.dataset.v232Bound='1';
+    var timer=null;
+    input.addEventListener('input',function(){clearTimeout(timer);timer=setTimeout(function(){var q=String(input.value||'').trim();if(!q){close();return}popup.innerHTML=resultsHtml(q);popup.classList.add('open');popup.setAttribute('aria-hidden','false')},60)});
+    input.addEventListener('keydown',function(e){if(e.key==='Escape'){input.value='';close()}});
+    popup.addEventListener('click',function(e){
+      var closeBtn=e.target.closest('.globalSearchPopupClose');if(closeBtn){close();return}
+      var vb=e.target.closest('[data-v232-vehicle]');if(vb){close();if(typeof window.openVehicleFromReg==='function')window.openVehicleFromReg(vb.dataset.v232Vehicle);else if(typeof openVehicleFromReg==='function')openVehicleFromReg(vb.dataset.v232Vehicle);return}
+      var jb=e.target.closest('[data-v232-job]');if(jb){close();if(typeof window.openJobModal==='function')window.openJobModal(jb.dataset.v232Job);else if(typeof openJobModal==='function')openJobModal(jb.dataset.v232Job);return}
+      var cb=e.target.closest('[data-v232-customer]');if(cb){close();if(typeof window.openCustomerDetails==='function')window.openCustomerDetails(cb.dataset.v232Customer);else if(typeof openCustomerDetails==='function')openCustomerDetails(cb.dataset.v232Customer);}
+    });
+  }
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',bind,{once:true});else bind();
+  setTimeout(bind,1200);
+})();
+</script>
 </body>
 </html>
 <script>
