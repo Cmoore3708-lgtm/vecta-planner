@@ -12423,6 +12423,102 @@ try{setTimeout(function(){if(window.app&&Array.isArray(app.jobs))migrateNoVehicl
   setTimeout(bind,1200);
 })();
 </script>
+
+<script id="v234-authoritative-mot-reconciliation">
+(function(){
+  'use strict';
+  function iso(v){
+    v=String(v||'').slice(0,10);
+    return /^\d{4}-\d{2}-\d{2}$/.test(v)?v:'';
+  }
+  function latestMotExpiry(data){
+    var dates=[];
+    function add(v){var d=iso(v);if(d)dates.push(d)}
+    if(!data||typeof data!=='object')return '';
+    add(data.motExpiryDate); add(data.mot_expiry_date); add(data.motDue); add(data.mot_due);
+    var tests=Array.isArray(data.motTests)?data.motTests:(Array.isArray(data.mot_tests)?data.mot_tests:[]);
+    tests.forEach(function(t){
+      if(!t||typeof t!=='object')return;
+      var result=String(t.testResult||t.test_result||t.result||t.status||'').toUpperCase();
+      /* A supplied expiry date is authoritative. If a result is supplied, only accept a pass. */
+      if(result && result.indexOf('PASS')===-1)return;
+      add(t.expiryDate); add(t.expiry_date); add(t.motExpiryDate); add(t.mot_expiry_date);
+    });
+    dates.sort();
+    return dates.length?dates[dates.length-1]:'';
+  }
+  window.v234LatestMotExpiry=latestMotExpiry;
+
+  function motPlan(vehicle){
+    return (typeof fleetPlanMatching==='function')?fleetPlanMatching(vehicle.id,'mot'):null;
+  }
+  function dueNeedsLiveCheck(vehicle){
+    if(!vehicle||vehicle.fleetGroup==='Nissan Internal'||vehicle.roadGoing===false)return false;
+    var p=motPlan(vehicle),d=p&&typeof fleetDate==='function'?iso(fleetDate(p)):'';
+    if(!d)return true;
+    var today=new Date();today.setHours(0,0,0,0);
+    var limit=new Date(today.getTime()+60*86400000),x=new Date(d+'T00:00:00');
+    return !isNaN(x.getTime()) && x<=limit;
+  }
+  async function reconcile(force){
+    if(typeof fetchDvsaVehicle!=='function'||!Array.isArray(fleetVehicles))return {checked:0,changed:0,errors:0};
+    var candidates=fleetVehicles.filter(dueNeedsLiveCheck),checked=0,changed=0,errors=0;
+    for(var i=0;i<candidates.length;i++){
+      var v=candidates[i],key='vecta:v234:mot-live:'+normReg(v.registration||''),last=Number(localStorage.getItem(key)||0);
+      if(!force&&last&&Date.now()-last<5*60*1000)continue;
+      try{
+        var data=await fetchDvsaVehicle(v.registration||''); checked++;
+        localStorage.setItem(key,String(Date.now()));
+        var fresh=latestMotExpiry(data); if(!fresh)continue;
+        var p=motPlan(v),old=p&&typeof fleetDate==='function'?iso(fleetDate(p)):'';
+        /* Never move a valid MOT due date backwards, but always accept a newer expiry. */
+        if(old && fresh<=old)continue;
+        if(p){
+          p.currentDueDate=fresh;p.type='MOT';p.intervalMonths=12;p.status='Active';
+          p.notes='Authoritative live MOT reconciliation '+new Date().toISOString()+'.';
+        }else{
+          fleetPlans.push({id:'plan-mot-'+v.id,vehicleId:v.id,type:'MOT',intervalMonths:12,targetMonth:null,currentDueDate:fresh,notes:'Authoritative live MOT reconciliation '+new Date().toISOString()+'.',status:'Active',source:'DVSA live lookup'});
+        }
+        var av=(app.vehicles||[]).find(function(x){return normReg(x.registration||'')===normReg(v.registration||'')});
+        if(av){av.mot_due=fresh;av.dvsa_last_checked=(data&&data.fetchedAt)||new Date().toISOString();}
+        v.motDue=fresh; v.mot_due=fresh;
+        changed++;
+      }catch(e){errors++;console.warn('V234 MOT reconciliation failed for '+String(v.registration||''),e);}
+    }
+    if(changed){
+      if(typeof saveFleet==='function')saveFleet();
+      if(typeof saveLocal==='function')saveLocal();
+    }
+    window.v234MotReconcileStatus={checked:checked,changed:changed,errors:errors,finishedAt:new Date().toISOString()};
+    return window.v234MotReconcileStatus;
+  }
+  window.v234ReconcileOutstandingMots=reconcile;
+
+  /* Replace the older due-MOT refresher so manual/Fleet-open refresh uses the same authoritative rule. */
+  window.v207RefreshDueFleetMots=function(){return reconcile(true).then(function(r){return r.changed||0})};
+
+  function runWhenFleetOpens(){
+    reconcile(false).then(function(r){
+      if((r.changed||0)>0 && typeof render==='function' && typeof view!=='undefined' && view==='fleet')render();
+    });
+  }
+  if(typeof fleetBind==='function'&&!fleetBind.__v234Wrapped){
+    var old=fleetBind;
+    fleetBind=function(){var r=old.apply(this,arguments);setTimeout(runWhenFleetOpens,50);return r};
+    fleetBind.__v234Wrapped=true;
+  }
+
+  /* The old banner's "updated" figure is the overnight service report, not proof that a due date changed.
+     Label it accurately, and show what this browser reconciliation really changed. */
+  if(typeof fleetAutoRefreshBanner==='function'){
+    fleetAutoRefreshBanner=function(){
+      var st=fleetAutoRefreshStatus||{},when=st.finishedAt||st.startedAt||'',checked=Number(st.checked||0),errors=Number(st.errors||0),taxConfigured=st.taxConfigured===true;
+      var live=window.v234MotReconcileStatus||null;
+      return '<div class="fleetAutoRefreshBar"><div><b>Government vehicle data</b><span>'+(when?'Last automatic check '+esc(new Date(when).toLocaleString('en-GB')):'Automatic nightly checking enabled')+'</span></div><div class="fleetAutoRefreshStats"><span>'+checked+' overnight checks</span>'+(live?'<span>'+Number(live.changed||0)+' MOT due dates changed</span>':'')+(errors?'<span class="warn">'+errors+' overnight errors</span>':'')+(live&&live.errors?'<span class="warn">'+Number(live.errors)+' live errors</span>':'')+'<span>Tax '+(taxConfigured?'DVLA connected':'DVLA API ready — key pending')+'</span></div></div>';
+    };
+  }
+})();
+</script>
 </body>
 </html>
 <script>
