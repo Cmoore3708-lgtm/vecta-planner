@@ -2511,7 +2511,7 @@ body.servicePreviewing .servicePreviewControls{position:relative!important;z-ind
   <aside class="side">
     <div class="logo"><div class="logoMark">VECTA</div><div class="product" style="font-size:18px!important;font-weight:900!important;letter-spacing:.03em!important;color:#fff!important;text-transform:none!important">Workshop Pro</div></div>
     <nav class="nav" id="nav"></nav>
-    <div class="sideFoot"><b>V240 Workshop Pro</b><br>Four-lane planner · unified search · manual MOT check · My Tasks sidebar.</div>
+    <div class="sideFoot"><b>V241 Workshop Pro</b><br>Four-lane planner · unified search · manual MOT check · My Tasks sidebar.</div>
   </aside>
   <main class="main">
     <header class="top">
@@ -12896,6 +12896,8 @@ window.v240OpenCapacityChooser=function(){
   };
 };
 function v240InstallCapacityLauncher(){
+  /* V241: superseded by the inline + New Job calendar. */
+  return;
   var field=document.getElementById('job_booking_date');
   if(!field||field.disabled)return;
   var section=field.closest('.jobSectionGrid')||field.parentElement;
@@ -12921,7 +12923,8 @@ document.addEventListener('click',function(ev){
   if(launcher){ev.preventDefault();ev.stopImmediatePropagation();window.v240OpenCapacityChooser();return}
   var dateField=ev.target.closest('#job_booking_date');
   if(dateField&&!dateField.disabled){
-    ev.preventDefault();ev.stopImmediatePropagation();window.v240OpenCapacityChooser();
+    /* V241: keep the normal Booking Date input; availability is inline in + New Job. */
+    return;
   }
 },true);
 
@@ -12989,6 +12992,167 @@ document.addEventListener('click',function(ev){
   ev.preventDefault();ev.stopImmediatePropagation();
   window.v240ManualFleetMotCheck(button);
 },true);
+
+})();
+</script>
+
+
+<style id="v241-new-job-inline-calendar">
+/* V241: availability calendar belongs inside + New Job > Booking details. */
+.v241InlineAvailability{
+  grid-column:1/-1;
+  margin-top:4px;
+  border:1px solid #d7dee8;
+  border-radius:12px;
+  background:#f8fafc;
+  padding:12px;
+}
+.v241AvailabilityHead{display:flex;align-items:flex-end;justify-content:space-between;gap:12px;margin-bottom:10px}
+.v241AvailabilityHead h4{margin:0;font-size:14px}
+.v241AvailabilityHead p{margin:3px 0 0;color:#64748b;font-size:11px}
+.v241AvailabilityDays{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px}
+.v241AvailabilityDay{
+  border:1px solid #dbe2ea;
+  background:#fff;
+  border-radius:10px;
+  padding:8px;
+  text-align:left;
+  cursor:pointer;
+  min-width:0;
+}
+.v241AvailabilityDay:hover,.v241AvailabilityDay.selected{border-color:#e11d2e;box-shadow:0 0 0 2px rgba(225,29,46,.15)}
+.v241AvailabilityDay>strong{display:block;font-size:11px;margin-bottom:5px;white-space:nowrap}
+.v241DayPct{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:2px 5px;font-size:9px;margin-top:3px}
+.v241DayPct span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.v241DayPct i{grid-column:1/-1;height:4px;background:#e5e7eb;border-radius:99px;overflow:hidden}
+.v241DayPct i span{display:block;height:100%;background:#334155}
+.v241InlineMini{margin-top:12px;padding-top:11px;border-top:1px solid #dbe2ea}
+.v241InlineMini h4{margin:0 0 8px}
+.v241MiniGrid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.v241MiniLane{border:1px solid #dbe2ea;border-radius:10px;background:#fff;padding:8px;min-height:150px}
+.v241MiniLane h5{margin:0 0 6px;font-size:11px}
+.v241MiniJob{border:1px solid #e2e8f0;border-left:4px solid #2563eb;border-radius:7px;padding:6px;margin:5px 0;font-size:9.5px}
+.v241MiniJob b{display:block}
+.v241MiniActions{display:flex;justify-content:flex-end;gap:8px;margin-top:10px}
+@media(max-width:1000px){.v241AvailabilityDays{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media(max-width:680px){.v241AvailabilityDays{grid-template-columns:repeat(2,minmax(0,1fr))}.v241MiniGrid{grid-template-columns:1fr}}
+</style>
+
+<script id="v241-new-job-inline-calendar">
+(function(){
+'use strict';
+
+function v241Mechanics(){
+  return ((app.settings&&app.settings.mechanics)||['Alfie','Other','Anyone']).filter(Boolean).slice(0,3);
+}
+function v241Pct(date,mech){
+  var hours=(app.jobs||[]).filter(function(j){
+    var st=String(j.status||'').toLowerCase();
+    return !j.archived&&st!=='completed'&&st!=='cancelled'&&st!=='ready_to_invoice'&&
+      String(j.booking_date||'')===date&&String(j.technician||'')===mech;
+  }).reduce(function(sum,j){return sum+Number(j.estimated_hours||1)},0);
+  return Math.min(100,Math.round(hours/8*100));
+}
+function v241Dates(start,count){
+  var out=[],d=new Date(String(start||todayIso()).slice(0,10)+'T12:00:00'),guard=0;
+  if(isNaN(d.getTime()))d=new Date(todayIso()+'T12:00:00');
+  while(out.length<count&&guard++<60){
+    if(d.getDay()!==0&&d.getDay()!==6){
+      out.push(d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'));
+    }
+    d.setDate(d.getDate()+1);
+  }
+  return out;
+}
+function v241Mini(date){
+  var mechs=v241Mechanics();
+  return '<div class="v241InlineMini"><h4>'+esc(niceDate(date))+' — workshop mini planner</h4><div class="v241MiniGrid">'+mechs.map(function(mech){
+    var rows=(app.jobs||[]).filter(function(j){
+      var st=String(j.status||'').toLowerCase();
+      return !j.archived&&st!=='completed'&&st!=='cancelled'&&
+        String(j.booking_date||'')===date&&String(j.technician||'')===mech;
+    }).sort(byTime);
+    return '<div class="v241MiniLane"><h5>'+esc(mech)+' · '+v241Pct(date,mech)+'%</h5>'+
+      (rows.length?rows.map(function(j){
+        return '<div class="v241MiniJob"><b>'+esc((j.drop_time||'08:00')+' · '+(j.registration||'NO REG'))+'</b>'+esc(j.work_required||jobTitle(j))+'</div>';
+      }).join(''):'<div class="empty">No jobs booked.</div>')+'</div>';
+  }).join('')+'</div><div class="v241MiniActions"><button type="button" class="btn" data-v241-clear-day>Choose another day</button><button type="button" class="primary" data-v241-confirm-day>Confirm this date</button></div></div>';
+}
+function v241IsNewJobModal(){
+  var modal=document.getElementById('jobModal');
+  if(!modal||!modal.classList.contains('open'))return false;
+  var h=modal.querySelector('.jobModalHead h2,.modalHead h2');
+  return !!h && String(h.textContent||'').trim()==='New Job';
+}
+function v241Install(){
+  var field=document.getElementById('job_booking_date');
+  if(!field)return;
+
+  /* Undo the v240 placement behaviour: normal Booking Date remains a normal date input. */
+  field.readOnly=false;
+  field.removeAttribute('readonly');
+
+  var oldLauncher=document.querySelector('.v240CapacityLauncher');
+  if(oldLauncher)oldLauncher.remove();
+
+  if(!v241IsNewJobModal())return;
+  var section=field.closest('.jobSectionGrid');
+  if(!section||section.querySelector('.v241InlineAvailability'))return;
+
+  var dates=v241Dates(field.value||selectedIso(),15),mechs=v241Mechanics();
+  var box=document.createElement('div');
+  box.className='v241InlineAvailability';
+  box.innerHTML='<div class="v241AvailabilityHead"><div><h4>Workshop availability</h4><p>Choose a day below. Percentages show how full each mechanic is.</p></div></div>'+
+    '<div class="v241AvailabilityDays">'+dates.map(function(date){
+      return '<button type="button" class="v241AvailabilityDay" data-v241-day="'+date+'"><strong>'+esc(niceDate(date))+'</strong>'+
+        mechs.map(function(mech){var pct=v241Pct(date,mech);return '<div class="v241DayPct"><span>'+esc(mech)+'</span><b>'+pct+'%</b><i><span style="width:'+pct+'%"></span></i></div>'}).join('')+
+      '</button>';
+    }).join('')+'</div><div data-v241-mini-host></div>';
+  section.appendChild(box);
+
+  var chosen='';
+  box.addEventListener('click',function(ev){
+    var day=ev.target.closest('[data-v241-day]');
+    if(day){
+      chosen=day.dataset.v241Day;
+      box.querySelectorAll('[data-v241-day]').forEach(function(x){x.classList.toggle('selected',x===day)});
+      var host=box.querySelector('[data-v241-mini-host]');
+      if(host)host.innerHTML=v241Mini(chosen);
+      return;
+    }
+    if(ev.target.closest('[data-v241-clear-day]')){
+      chosen='';
+      box.querySelectorAll('[data-v241-day]').forEach(function(x){x.classList.remove('selected')});
+      var host=box.querySelector('[data-v241-mini-host]');if(host)host.innerHTML='';
+      return;
+    }
+    if(ev.target.closest('[data-v241-confirm-day]')){
+      if(!chosen)return;
+      field.value=chosen;
+      field.dispatchEvent(new Event('change',{bubbles:true}));
+      box.querySelectorAll('[data-v241-day]').forEach(function(x){x.classList.toggle('selected',x.dataset.v241Day===chosen)});
+    }
+  });
+}
+
+/* Prevent v240 from hijacking clicks on the normal date field. */
+document.addEventListener('click',function(ev){
+  var field=ev.target.closest('#job_booking_date');
+  if(field){
+    /* Do not stop the browser's normal date input. This handler exists after v240
+       and is paired with the v240 guard below. */
+    field.readOnly=false;
+  }
+},true);
+
+/* Install after every New Job modal render, without wrapping openJobModal again. */
+var v241Observer=new MutationObserver(function(){setTimeout(v241Install,0)});
+function v241Start(){
+  var modal=document.getElementById('jobModal');
+  if(modal)v241Observer.observe(modal,{childList:true,subtree:true,attributes:true,attributeFilter:['class']});
+  setTimeout(v241Install,0);
+}
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',v241Start,{once:true});else v241Start();
 
 })();
 </script>
