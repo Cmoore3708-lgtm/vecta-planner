@@ -10070,9 +10070,11 @@ function reconcileFleetMaintenanceFromCompletedJobs(){
     var vehicle=fleetVehicleForRegistration(j.registration||'');if(!vehicle)return;
     var completed=completedJobDateForFleet(j),cats=fleetPlannerJobCategories(j);
     if(cats.service&&!isSixMonthSafetyCheck(j)&&!isOnSiteService(j)){
-      var sp=fleetPlanMatching(vehicle.id,'service'),sd=sp&&fleetDate(sp)||'';
-      /* Only repair a stale cycle. Never drag a genuinely later manually-entered due date backwards. */
-      if(!sd||sd<=fleetAddMonthsFromDue(completed,1)){syncFleetServiceScheduleFromJob(j);changed++;}
+      var sp=fleetPlanMatching(vehicle.id,'service'),sd=sp&&fleetDate(sp)||'',expected=fleetAddMonthsFromDue(completed,12);
+      /* A completed service is authoritative. Any service due date earlier than the
+         next annual cycle is stale and must be advanced. Keep a genuinely later
+         manually-entered date rather than dragging it backwards. */
+      if(!sd||sd<expected){syncFleetServiceScheduleFromJob(j);changed++;}
     }
     if(cats.mot&&isActualCompletedMotJob(j)){
       var mp=fleetPlanMatching(vehicle.id,'mot'),md=mp&&fleetDate(mp)||'';
@@ -10081,8 +10083,40 @@ function reconcileFleetMaintenanceFromCompletedJobs(){
   });
   return changed;
 }
+
+function reconcileLatestCompletedServiceAuthority(){
+  if(!Array.isArray(app.jobs)||!Array.isArray(fleetVehicles))return 0;
+  var latestByReg={};
+  app.jobs.forEach(function(j){
+    if(!j||!completedJobCanUpdateFleet(j)||isSixMonthSafetyCheck(j)||isOnSiteService(j))return;
+    var cats=fleetPlannerJobCategories(j);if(!cats.service)return;
+    var reg=normReg(j.registration||''),done=completedJobDateForFleet(j);if(!reg||!done)return;
+    var prev=latestByReg[reg];if(!prev||done>prev.done)latestByReg[reg]={job:j,done:done};
+  });
+  var changed=0;
+  Object.keys(latestByReg).forEach(function(reg){
+    var item=latestByReg[reg],vehicle=fleetVehicleForRegistration(reg);if(!vehicle)return;
+    var expected=fleetAddMonthsFromDue(item.done,12),plan=fleetPlanMatching(vehicle.id,'service'),due=plan&&fleetDate(plan)||'';
+    if(!due||due<expected){
+      if(syncFleetServiceScheduleFromJob(item.job)){changed++;}
+    }
+  });
+  return changed;
+}
 setTimeout(function(){try{reconcileFleetMaintenanceFromCompletedJobs();render();}catch(e){console.warn('Fleet maintenance reconciliation skipped',e)}},1800);
 setTimeout(function(){try{reconcileFleetMaintenanceFromCompletedJobs();render();}catch(e){console.warn('Fleet maintenance reconciliation retry skipped',e)}},6500);
+if(typeof pullFleetCloudState==='function'&&!pullFleetCloudState.__serviceAuthorityWrapped){
+  var oldPullFleetCloudStateServiceAuthority=pullFleetCloudState;
+  pullFleetCloudState=async function(){
+    var result=await oldPullFleetCloudStateServiceAuthority.apply(this,arguments);
+    var repaired=reconcileLatestCompletedServiceAuthority();
+    if(repaired&&typeof saveFleet==='function')saveFleet();
+    return result;
+  };
+  pullFleetCloudState.__serviceAuthorityWrapped=true;
+}
+setTimeout(function(){try{var n=reconcileLatestCompletedServiceAuthority();if(n){saveFleet();render();}}catch(e){console.warn('Latest completed service authority repair skipped',e)}},2600);
+
 
 function fleetPrintCurrentView(){
   var mode=fleetListMode||'due30';
