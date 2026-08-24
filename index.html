@@ -15023,7 +15023,7 @@ function v278EnsureFleetVehicle(){
   return changed;
 }
 function v278EnsureWorkshopVehicle(){
-  if(!window.app||!Array.isArray(app.vehicles))return false;
+  if(typeof app==='undefined'||!app||!Array.isArray(app.vehicles))return false;
   var v=app.vehicles.find(function(x){return x&&v278IsMainSec(x.registration);}),changed=false;
   if(!v){
     v={id:'vehicle-mainsec-internal',registration:V278_DISPLAY,vehicle:'',customer_id:null};
@@ -15041,6 +15041,9 @@ function v278PatchJob(j){
   return changed;
 }
 async function v278RepairAllMainSec(){
+  /* Do not touch Workshop data until the main app state exists.  This migration
+     is loaded as an add-on and must never be able to break planner startup. */
+  if(typeof app==='undefined'||!app||!Array.isArray(app.jobs)){return {deferred:true};}
   var changedFleet=v278EnsureFleetVehicle(),changedVehicle=v278EnsureWorkshopVehicle(),live=[];
   (app.jobs||[]).forEach(function(j){if(v278PatchJob(j))live.push(j);});
   /* Historical imported bookings are immutable source rows, so persist a financial
@@ -15076,9 +15079,10 @@ try{
     applyFleetCloudSnapshot.__v278MainSec=true;
   }
 }catch(e){console.warn('V278 Fleet snapshot guard skipped',e);}
-setTimeout(v278RepairAllMainSec,500);
-setTimeout(v278RepairAllMainSec,2600);
-setTimeout(v278RepairAllMainSec,7000);
+function v278SafeRun(){try{var r=v278RepairAllMainSec();if(r&&typeof r.catch==='function')r.catch(function(e){console.warn('V278 MAIN SEC deferred repair failed',e);});}catch(e){console.warn('V278 MAIN SEC deferred repair skipped',e);}}
+setTimeout(v278SafeRun,500);
+setTimeout(v278SafeRun,2600);
+setTimeout(v278SafeRun,7000);
 try{var foot=document.querySelector('.sideFoot small');if(foot)foot.textContent='v278 Workshop Pro · MAIN SEC Internal master correction';}catch(e){}
 })();
 </script>
