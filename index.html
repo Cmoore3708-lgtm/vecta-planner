@@ -9668,7 +9668,7 @@ function fleetAlignServiceDatesToMot(){
     return safety||(type.indexOf('service')>-1&&type.indexOf('onsite')===-1&&type.indexOf('on-site')===-1);
   }
   (fleetVehicles||[]).forEach(function(vehicle){
-    var active=(fleetPlans||[]).filter(function(plan){return plan&&plan.vehicleId===vehicle.id&&plan.status==='Active'}),
+    var active=(fleetPlans||[]).filter(function(plan){return plan&&String(plan.vehicleId)===String(vehicle.id)&&String(plan.status||'Active')==='Active'&&!fleetIsMaintenanceRemoved(plan.vehicleId,plan.type)}),
       mots=active.filter(function(plan){return isMotPlan(plan)&&validPlanDate(plan)}),
       linked=active.filter(function(plan){return isServiceOrSafetyPlan(plan)&&validPlanDate(plan)});
     if(!mots.length||!linked.length)return;
@@ -9919,7 +9919,7 @@ function fleetApplyMotAuthority(){
 }
 function fleetCaptureCurrentMotAuthority(){
   (fleetVehicles||[]).forEach(function(v){
-    if(!v||v.fleetGroup==='Nissan Internal'||v.roadGoing===false)return;
+    if(!v)return;
     var active=(fleetPlans||[]).filter(function(p){return p&&String(p.vehicleId)===String(v.id)&&fleetMaintenanceCategory(p.type)==='mot'&&String(p.status||'Active')==='Active'});
     var dates=active.map(function(p){return dvsaIsoDate(fleetDate(p))}).filter(Boolean).sort();
     var expiry=dates.length?dates[dates.length-1]:dvsaIsoDate(v.motDue||v.mot_due);if(!expiry)return;
@@ -10000,6 +10000,10 @@ function fleetCompletedJobForPlanCycle(p){
       var dueDate=new Date(due+'T00:00:00'),doneDate=new Date(done+'T00:00:00');
       return doneDate>=new Date(dueDate.getTime()-62*86400000);
     }
+    if(cat==='tax'){
+      var taxDueDate=new Date(due+'T00:00:00'),taxDoneDate=new Date(done+'T00:00:00');
+      return !isNaN(taxDueDate.getTime())&&!isNaN(taxDoneDate.getTime())&&taxDoneDate>=new Date(taxDueDate.getTime()-40*86400000);
+    }
     return done>=due;
   })||null;
 }
@@ -10036,6 +10040,7 @@ function fleetPlanCompletedForCurrentCycle(p){
     if(categories.length!==1||categories[0]!==planCategory)return false;
     if(planCategory==='service')return !due||String(due).slice(0,10)<fleetAddMonthsFromDue(String(completed).slice(0,10),12);
     if(planCategory==='safety'&&due){var d1=new Date(String(due).slice(0,10)+'T00:00:00'),d2=new Date(String(completed).slice(0,10)+'T00:00:00');return d2>=new Date(d1.getTime()-62*86400000);}
+    if(planCategory==='tax'&&due){var taxDue=new Date(String(due).slice(0,10)+'T00:00:00'),taxDone=new Date(String(completed).slice(0,10)+'T00:00:00');return !isNaN(taxDue.getTime())&&!isNaN(taxDone.getTime())&&taxDone>=new Date(taxDue.getTime()-40*86400000);}
     return !due||completed.slice(0,7)>=due.slice(0,7);
   });
 }
@@ -10157,6 +10162,17 @@ function fleetGovernmentDataHtml(v){
   return '<section class="fleetGovData"><h3>Government vehicle data</h3><div class="fleetGovGrid"><div class="fleetGovStat"><small>Tax status</small><strong class="'+cls+'">'+esc(status||'Awaiting DVLA API')+'</strong></div><div class="fleetGovStat"><small>Tax due</small><strong>'+esc(due?fleetFormat(due):'Awaiting DVLA API')+'</strong></div><div class="fleetGovStat"><small>Last DVLA check</small><strong>'+esc(checked)+'</strong></div></div><div class="fleetGovNote">The DVLA Vehicle Enquiry Service connector is installed. Until DVLA issues the production API key, existing manually stored tax dates remain in use and no tax lookup is attempted.</div></section>';
 }
 function fleetDrawerHtml(){var v=fleetVehicles.find(function(x){return x.id===activeFleetVehicleId});if(!v)return '';var plans=fleetVehiclePlans(v.id),done=fleetCompletions.filter(function(x){return x.vehicleId===v.id}).sort(function(a,b){return String(b.completedDate||'').localeCompare(String(a.completedDate||''))}),taxPlan=plans.find(function(p){return fleetMaintenanceCategory(p.type)==='tax'}),showTaxConfirm=!!(taxPlan||v.roadGoing||String(v.taxDueDate||'').trim()||String(v.taxStatus||'').trim()),taxConfirm=showTaxConfirm?'<div class="fleetTaxConfirmBar"><button type="button" class="primary" id="fleetConfirmTaxed">✓ Confirm vehicle has been taxed</button><small>Use this immediately after you have taxed the vehicle. It will log today&#39;s date and add it to the Vehicle Tax ledger.</small></div>':'';function planRow(p){var due=fleetDate(p),tone=fleetTone(due);return '<div class="fleetPlan"><div class="fleetPlanInfo"><b>'+esc(p.type||'Maintenance')+'</b><small>Due '+fleetFormat(due)+' · every '+esc(String(p.intervalMonths||12))+' months'+(p.status&&p.status!=='Active'?' · '+esc(p.status):'')+'</small><div class="fleetDueEdit"><label>Due date <input type="date" data-fleet-due-input="'+esc(p.id)+'" value="'+esc(due||'')+'"></label><button type="button" class="btn" data-fleet-save-due="'+esc(p.id)+'">Save due date</button></div></div><div class="fleetPlanActions"><button type="button" class="btn" data-fleet-book="'+esc(p.id)+'">Book</button><button type="button" class="btn" data-fleet-complete="'+esc(p.id)+'">Complete</button><button type="button" class="btn" data-fleet-pause="'+esc(p.id)+'">Pause</button><button type="button" class="btn danger" data-fleet-remove-plan="'+esc(p.id)+'">Remove maintenance record</button></div></div>'}return '<aside class="fleetDrawer" role="dialog" aria-modal="true" aria-label="Fleet vehicle details"><div class="fleetDrawerHead"><div><span class="fleetEyebrow">FLEET VEHICLE</span><h2>'+fleetPlate(v.registration)+'</h2><p>'+esc(fleetDisplayModel(v.model))+' · '+esc(v.fleetGroup==='Contractor Fleet'?fleetNormaliseCustomer(v.customer):fleetGroupLabel(v.fleetGroup))+'</p></div><div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;justify-content:flex-end"><button type="button" class="fleetDrawerClose" id="fleetClose" aria-label="Close">×</button></div></div>'+taxConfirm+'<div class="fleetProfile"><div class="field"><label>Fleet / customer</label><div>'+(v.fleetGroup==='Contractor Fleet'?fleetCustomerBadge(v):'<b>'+esc(fleetGroupLabel(v.fleetGroup))+'</b>')+'</div></div><div class="field"><label>Road going</label><select id="fleetRoad"><option '+(v.roadGoing?'selected':'')+'>Yes</option><option '+(!v.roadGoing?'selected':'')+'>No</option></select></div><div class="field"><label>Contact name</label><input id="fleetContactName" value="'+esc(v.contactName||'')+'" placeholder="Contact name"></div><div class="field"><label>Telephone</label><input id="fleetContactPhone" value="'+esc(v.contactPhone||'')+'" placeholder="Telephone"></div><div class="field wide"><label>Contact email</label>'+vehicleEmailLinkHtml(v.contactEmail||'',v.registration,v.model||'')+'<div class="fleetContactSaveRow"><input class="vehicleEmailEditInput" id="fleetEmail" type="email" value="'+esc(v.contactEmail||'')+'" placeholder="Edit email address"><a class="btn" href="'+(v.contactEmail?serviceReminderMailto(emailAddressList(v.contactEmail)[0]||v.contactEmail,v.registration,v.model):'#')+'">Email</a><button type="button" class="primary" id="fleetSaveVehicleEmail">Save contact</button></div><small id="fleetVehicleEmailSaved" class="fleetSaveNotice"></small></div></div>'+fleetGovernmentDataHtml(v)+'<section class="fleetMaintenance"><h3>Maintenance plans</h3>'+(plans.length?plans.map(planRow).join(''):'<div class="fleetEmpty">No maintenance plans are recorded.</div>')+'<div class="fleetAddPlan"><input id="fleetPlanType" placeholder="New plan e.g. DPF Renewal"><input id="fleetPlanInterval" type="number" min="1" value="12" title="Interval in months"><select id="fleetPlanMonth"><option value="">Any month</option>'+Array.from({length:12},function(_,i){return '<option value="'+(i+1)+'">'+new Date(2026,i,1).toLocaleString('en-GB',{month:'short'})+'</option>'}).join('')+'</select><button type="button" class="primary" id="fleetAddPlan">Add plan</button></div></section><section class="fleetMaintenance"><h3>Completion history</h3>'+(done.length?done.slice(0,50).map(function(x){var imported=String(x.source||'').indexOf('historical/imported')===0;return '<div class="fleetCompletion"><div><b>'+esc(x.type||'Maintenance')+'</b><small>'+(imported?'Historical / imported · ':'')+esc(x.notes||'')+'</small></div><span>'+esc(fleetHistoricalDisplay(x))+'</span><div class="fleetCompletionActions"><button type="button" class="btn" data-fleet-edit-completion="'+esc(x.id)+'">Edit</button><button type="button" class="btn danger" data-fleet-delete-completion="'+esc(x.id)+'">Delete</button></div></div>'}).join(''):'<div class="fleetEmpty">No completed maintenance has been recorded.</div>')+'</section><section class="fleetRemoveVehicleSection"><h3>Remove vehicle from our records</h3><p>This permanently removes the vehicle and all Workshop Pro records linked to this registration.</p><button type="button" class="btn danger" id="fleetRemoveVehicle">Remove vehicle from our records</button></section></aside>'}
+
+function fleetNextAnnualDueFromCycle(previousDue,completedDate){
+  var completed=String(completedDate||todayIso()).slice(0,10),
+      previous=String(previousDue||'').slice(0,10);
+  if(!/^\d{4}-\d{2}-\d{2}$/.test(previous))return fleetAddMonthsFromDue(completed,12);
+  /* Completing the current tax cycle always moves to the following annual cycle,
+     even when tax is purchased before the current due date. */
+  var next=fleetAddMonthsFromDue(previous,12);
+  while(next<=completed)next=fleetAddMonthsFromDue(next,12);
+  return next;
+}
 function confirmFleetVehicleTaxed(){
   var v=(fleetVehicles||[]).find(function(x){return x.id===activeFleetVehicleId});if(!v)return;
   var reg=normReg(v.registration||''),today=todayIso(),existing=(app.jobs||[]).find(function(j){return isVehicleTaxJob(j)&&normReg(j.registration||'')===reg&&vehicleTaxJobDate(j)===today});
@@ -10167,7 +10183,7 @@ function confirmFleetVehicleTaxed(){
   if(!confirm('Confirm '+reg+' was taxed today ('+niceDate(today)+') for '+money(amount)+'?'))return;
   var now=new Date().toISOString(),job={id:uid(),booking_date:today,drop_time:null,technician:'Unallocated',ramp:'',status:'completed',job_type:'Vehicle Tax',job_types:['Vehicle Tax'],job_colour:'general',estimated_hours:0,card_type:'job',source:'vehicle_tax_admin',booking_source:'Fleet Manager tax confirmation',registration:v.registration||reg,vehicle:fleetDisplayModel(v.model),customer_account:'NMUK',customer_name:'NMUK',customer_email:v.contactEmail||'',nmuk_vehicle_type:'Pool Car Tax',work_required:'Vehicle Tax',amount_quoted:Number(amount.toFixed(2)),vat_mode:'no_vat',parts_status:'Not required',completed_at:now,created_at:now,updated_at:now,customer_note:'Vehicle tax confirmed from Fleet Manager on '+today+'.'};
   app.jobs.push(job);saveAll();try{upsertRemote('jobs',job)}catch(e){console.warn('Vehicle tax cloud save queued/failed',e)}
-  var p=(fleetPlans||[]).find(function(x){return x.vehicleId===v.id&&fleetMaintenanceCategory(x.type)==='tax'}),next=fleetAddMonthsFromDue(today,12);
+  var p=(fleetPlans||[]).find(function(x){return x&&String(x.vehicleId)===String(v.id)&&String(x.status||'Active')==='Active'&&!fleetIsMaintenanceRemoved(x.vehicleId,x.type)&&fleetMaintenanceCategory(x.type)==='tax'}),previousTaxDue=p?fleetDate(p):'',next=fleetNextAnnualDueFromCycle(previousTaxDue,today);
   if(p){p.type='Road Tax';p.intervalMonths=12;p.currentDueDate=next;p.targetMonth=Number(next.slice(5,7));p.status='Active';p.notes='Updated from Fleet Manager tax confirmation '+today+'.'}
   else{p={id:'plan-tax-'+v.id,vehicleId:v.id,type:'Road Tax',intervalMonths:12,targetMonth:Number(next.slice(5,7)),currentDueDate:next,notes:'Created from Fleet Manager tax confirmation '+today+'.',status:'Active',source:'Vehicle Tax ledger'};fleetPlans.push(p)}
   var cid='job-tax-'+job.id;if(!(fleetCompletions||[]).some(function(c){return c.id===cid}))fleetCompletions.push({id:cid,vehicleId:v.id,planId:p.id,type:'Road Tax',completedDate:today,datePrecision:'day',nextDue:next,source:'job:'+job.id,notes:'Vehicle tax confirmed in Fleet Manager. Next tax due '+next+'.'});
@@ -10182,7 +10198,7 @@ function fleetEnsureServicePlanTypes(){
   var changed=false;
   (fleetPlans||[]).forEach(function(plan){
     if(!plan||plan.status!=='Active'||serviceTypeFromValue(plan.type)!=='Service')return;
-    var explicitCompletion=(fleetCompletions||[]).filter(function(c){return c.vehicleId===plan.vehicleId&&serviceTypeFromValue(c.serviceType||c.type)!=='Service'&&serviceTypeFromValue(c.serviceType||c.type)}).sort(function(a,b){return String(b.completedDate||b.completedMonth||'').localeCompare(String(a.completedDate||a.completedMonth||''))})[0]||null;
+    var explicitCompletion=(fleetCompletions||[]).filter(function(c){var d=String(c.completedDate||c.completedMonth||'').slice(0,10);return c.vehicleId===plan.vehicleId&&(!d||d<=todayIso())&&serviceTypeFromValue(c.serviceType||c.type)!=='Service'&&serviceTypeFromValue(c.serviceType||c.type)}).sort(function(a,b){return String(b.completedDate||b.completedMonth||'').localeCompare(String(a.completedDate||a.completedMonth||''))})[0]||null;
     var previousType=serviceTypeFromValue(explicitCompletion&&(explicitCompletion.serviceType||explicitCompletion.type)||'');
     var dueType=previousType?alternateServiceType(previousType):'Major Service';
     plan.type=dueType;
@@ -10445,6 +10461,31 @@ function fleetFutureCompletionDiagnostic(){
   });
   return out;
 }
+
+function fleetDueIntegrityAudit(){
+  var today=todayIso(),limitDate=new Date(today+'T00:00:00');limitDate.setDate(limitDate.getDate()+30);
+  var limit=limitDate.getFullYear()+'-'+String(limitDate.getMonth()+1).padStart(2,'0')+'-'+String(limitDate.getDate()).padStart(2,'0'),
+      categories={service:0,mot:0,tax:0,safety:0},futureCompletions=[],removedPlanLeaks=[],rows=[];
+  (fleetCompletions||[]).forEach(function(c){
+    var d=String(c&& (c.completedDate||c.completedMonth) ||'').slice(0,10);
+    if(/^\d{4}-\d{2}-\d{2}$/.test(d)&&d>today)futureCompletions.push({vehicleId:c.vehicleId,type:c.type,date:d,id:c.id});
+  });
+  (fleetPlans||[]).forEach(function(p){
+    if(!p||String(p.status||'Active')!=='Active')return;
+    if(fleetIsMaintenanceRemoved(p.vehicleId,p.type))removedPlanLeaks.push({vehicleId:p.vehicleId,type:p.type,id:p.id});
+  });
+  (fleetVehicles||[]).forEach(function(v){
+    fleetOutstandingPlans(v.id).forEach(function(p){
+      var due=String(fleetDate(p)||'').slice(0,10),cat=fleetMaintenanceCategory(p.type);
+      if(/^\d{4}-\d{2}-\d{2}$/.test(due)&&due<=limit){
+        if(Object.prototype.hasOwnProperty.call(categories,cat))categories[cat]++;
+        rows.push({registration:v.registration||'',vehicleId:v.id,type:p.type,category:cat,due:due});
+      }
+    });
+  });
+  return {today:today,limit:limit,categories:categories,dueRows:rows,futureCompletions:futureCompletions,removedPlanLeaks:removedPlanLeaks};
+}
+window.v280FleetDueIntegrityAudit=fleetDueIntegrityAudit;
 function fleetMaintenanceHtml(){
   fleetApplyMaintenanceTombstones();
   fleetEnsureServicePlanTypes();
@@ -10598,7 +10639,7 @@ function fleetManualLatestMotExpiry(data){
 }
 function fleetActiveMotPlans(vehicleId){
   return (fleetPlans||[]).filter(function(p){
-    return p&&String(p.vehicleId)===String(vehicleId)&&String(p.status||'Active')==='Active'&&fleetMaintenanceCategory(p.type)==='mot';
+    return p&&String(p.vehicleId)===String(vehicleId)&&String(p.status||'Active')==='Active'&&!fleetIsMaintenanceRemoved(p.vehicleId,p.type)&&fleetMaintenanceCategory(p.type)==='mot';
   }).sort(function(a,b){return String(fleetDate(a)||'9999-12-31').localeCompare(String(fleetDate(b)||'9999-12-31'))});
 }
 function fleetConsolidateMotPlans(vehicle,freshExpiry,sourceNote){
@@ -10644,7 +10685,7 @@ async function fleetRunManualMotCheck(button){
   window.__fleetManualMotBusy=true;
   var today=new Date();today.setHours(0,0,0,0);var limit=new Date(today.getTime()+60*86400000);
   var candidates=(fleetVehicles||[]).filter(function(v){
-    if(!v||v.fleetGroup==='Nissan Internal'||v.roadGoing===false)return false;
+    if(!v)return false;
     var plans=fleetActiveMotPlans(v.id);if(!plans.length)return false;
     var dates=plans.map(function(p){return dvsaIsoDate(fleetDate(p))}).filter(Boolean).sort(),d=dates[0]||'';
     if(!d)return true;
@@ -13439,7 +13480,7 @@ try{setTimeout(function(){if(window.app&&Array.isArray(app.jobs))migrateNoVehicl
   async function refreshDueMots(){
     if(typeof fetchDvsaVehicle!=='function'||typeof fleetVehicleForRegistration!=='function')return 0;
     var candidates=(fleetVehicles||[]).filter(function(v){
-      if(!v||v.fleetGroup==='Nissan Internal'||v.roadGoing===false)return false;
+      if(!v)return false;
       var p=typeof fleetPlanMatching==='function'?fleetPlanMatching(v.id,'mot'):null;if(!p)return false;var d=typeof fleetDate==='function'?fleetDate(p):'';
       return dueSoon(d,45);
     }),updated=0;
@@ -13451,7 +13492,7 @@ try{setTimeout(function(){if(window.app&&Array.isArray(app.jobs))migrateNoVehicl
         localStorage.setItem(vehicleCacheKey,String(Date.now()));
         var fresh=validIso(data&&data.motExpiryDate);if(!fresh)continue;
         var plan=typeof fleetPlanMatching==='function'?fleetPlanMatching(v.id,'mot'):null,old=plan&&typeof fleetDate==='function'?fleetDate(plan):'';
-        if(old&&fresh<=old)continue;
+        if(old&&fresh===old)continue;
         if(!plan)continue;
         plan.currentDueDate=fresh;plan.type='MOT';plan.intervalMonths=12;plan.status='Active';plan.notes='Refreshed from live MOT data.';
         var kv=(app.vehicles||[]).find(function(x){return normReg(x.registration||'')===normReg(v.registration||'')});if(kv)kv.mot_due=fresh;
@@ -13526,13 +13567,14 @@ try{setTimeout(function(){if(window.app&&Array.isArray(app.jobs))migrateNoVehicl
     var reg=typeof normReg==='function'?normReg(vehicle.registration||''):String(vehicle.registration||'').replace(/\s+/g,'').toUpperCase();
     var list=(app.jobs||[]).filter(function(j){
       var jr=typeof normReg==='function'?normReg(j.registration||''):String(j.registration||'').replace(/\s+/g,'').toUpperCase();
-      return jr===reg&&isCompletedService(j)&&doneDate(j);
+      var d=doneDate(j);return jr===reg&&isCompletedService(j)&&d&&d<=todayIso();
     }).sort(function(a,b){return doneDate(a).localeCompare(doneDate(b));});
     return list.length?list[list.length-1]:null;
   }
   function anchorSafetyToLatestService(vehicle,saveNow){
     try{
       if(!vehicle)return null;
+      if(typeof fleetIsMaintenanceRemoved==='function'&&fleetIsMaintenanceRemoved(vehicle.id,'safety'))return null;
       var serviceJob=latestServiceForVehicle(vehicle);if(!serviceJob)return null;
       var serviceDate=doneDate(serviceJob);if(!serviceDate)return null;
       var due=typeof fleetAddMonthsFromDue==='function'?fleetAddMonthsFromDue(serviceDate,6):'';if(!due)return null;
@@ -13559,7 +13601,7 @@ try{setTimeout(function(){if(window.app&&Array.isArray(app.jobs))migrateNoVehicl
       /* The plan date is always derived from the latest service, never from this check. */
       var plan=anchorSafetyToLatestService(vehicle,false)|| (typeof fleetPlanMatching==='function'?fleetPlanMatching(vehicle.id,'safety'):null);
       if(!plan)return null;
-      var completed=doneDate(j);if(!completed)return null;
+      var completed=doneDate(j);if(!completed||completed>todayIso())return null;
       var cycleDue=typeof fleetDate==='function'?fleetDate(plan):String(plan.currentDueDate||'');
       var cid='job-safety-'+String(j.id||''),record={id:cid,vehicleId:vehicle.id,planId:plan.id,type:'Six-month Safety Check',completedDate:completed,datePrecision:'day',cycleDue:cycleDue,nextDue:cycleDue,source:'job:'+String(j.id||''),notes:'Six-month safety check completed on '+completed+' for the cycle anchored to service and due '+cycleDue+'. Completion does not alter future safety-check dates.'},existing=(fleetCompletions||[]).find(function(c){return c.id===cid;});
       if(existing)Object.assign(existing,record);else fleetCompletions.push(record);
@@ -13629,6 +13671,7 @@ try{setTimeout(function(){if(window.app&&Array.isArray(app.jobs))migrateNoVehicl
       if(categories.length!==1||categories[0]!==planCategory)return false;
       if(planCategory==='service'&&typeof fleetAddMonthsFromDue==='function')return !due||String(due).slice(0,10)<fleetAddMonthsFromDue(String(completed).slice(0,10),12);
       if(planCategory==='safety'&&due){var d1=new Date(String(due).slice(0,10)+'T00:00:00'),d2=new Date(String(completed).slice(0,10)+'T00:00:00');return !isNaN(d1.getTime())&&!isNaN(d2.getTime())&&d2>=new Date(d1.getTime()-62*86400000);}
+      if(planCategory==='tax'&&due){var taxDue=new Date(String(due).slice(0,10)+'T00:00:00'),taxDone=new Date(String(completed).slice(0,10)+'T00:00:00');return !isNaN(taxDue.getTime())&&!isNaN(taxDone.getTime())&&taxDone>=new Date(taxDue.getTime()-40*86400000);}
       return !due||completed.slice(0,7)>=String(due).slice(0,7);
     });
   };
@@ -13904,7 +13947,7 @@ try{setTimeout(function(){if(window.app&&Array.isArray(app.jobs))migrateNoVehicl
     return (typeof fleetPlanMatching==='function')?fleetPlanMatching(vehicle.id,'mot'):null;
   }
   function dueNeedsLiveCheck(vehicle){
-    if(!vehicle||vehicle.fleetGroup==='Nissan Internal'||vehicle.roadGoing===false)return false;
+    if(!vehicle)return false;
     var p=motPlan(vehicle);if(!p)return false;var d=typeof fleetDate==='function'?iso(fleetDate(p)):'';
     if(!d)return true;
     var today=new Date();today.setHours(0,0,0,0);
@@ -13922,8 +13965,8 @@ try{setTimeout(function(){if(window.app&&Array.isArray(app.jobs))migrateNoVehicl
         localStorage.setItem(key,String(Date.now()));
         var fresh=latestMotExpiry(data); if(!fresh)continue;
         var p=motPlan(v),old=p&&typeof fleetDate==='function'?iso(fleetDate(p)):'';
-        /* Never move a valid MOT due date backwards, but always accept a newer expiry. */
-        if(old && fresh<=old)continue;
+        /* DVLA is authoritative. Accept any different valid expiry, including an earlier date. */
+        if(old && fresh===old)continue;
         if(!p)continue;
         p.currentDueDate=fresh;p.type='MOT';p.intervalMonths=12;p.status='Active';
         p.notes='Authoritative live MOT reconciliation '+new Date().toISOString()+'.';
@@ -14221,7 +14264,7 @@ document.addEventListener('click',function(ev){
 function v240Iso(v){v=String(v||'').slice(0,10);return /^\d{4}-\d{2}-\d{2}$/.test(v)?v:''}
 function v240MotPlan(vehicle){return typeof fleetPlanMatching==='function'?fleetPlanMatching(vehicle.id,'mot'):null}
 function v240ManualCandidate(vehicle){
-  if(!vehicle||vehicle.fleetGroup==='Nissan Internal'||vehicle.roadGoing===false)return false;
+  if(!vehicle)return false;
   var p=v240MotPlan(vehicle);if(!p)return false;var d=typeof fleetDate==='function'?v240Iso(fleetDate(p)):'';
   if(!d)return true;
   var now=new Date();now.setHours(0,0,0,0);
