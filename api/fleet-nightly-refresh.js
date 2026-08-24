@@ -78,12 +78,21 @@ function planFor(plans, vehicleId, type) {
   const category = maintenanceCategory(type);
   return plans.find(p=>String(p?.vehicleId||'')===String(vehicleId) && String(p?.status||'Active').toLowerCase()!=='paused' && maintenanceCategory(p?.type)===category) || null;
 }
-function shouldScanVehicle(vehicle, plans, full) {
-  if (full) return true;
+function shouldScanMot(vehicle, plans, full) {
   const mot = planFor(plans, vehicle.id, 'MOT');
-  const tax = planFor(plans, vehicle.id, 'Tax');
-  return [mot,tax].filter(Boolean).some(p=>daysFromNow(p.currentDueDate || p.dueDate || '') <= 60);
+  if (!mot) return false;
+  if (full) return true;
+  const due = mot.currentDueDate || mot.dueDate || vehicle.motDueDate || vehicle.motDue || vehicle.mot_due || '';
+  // Missing MOT dates are always refreshed so an empty/stale local record cannot hide a vehicle.
+  return !due || daysFromNow(due) <= 60;
 }
+function shouldScanTax(vehicle, plans) {
+  const tax = planFor(plans, vehicle.id, 'Tax');
+  if (!tax) return false;
+  const due = tax.currentDueDate || tax.dueDate || vehicle.taxDueDate || '';
+  return !due || daysFromNow(due) <= 60;
+}
+
 function completionExists(completions, vehicleId, type, date) {
   return completions.some(c=>String(c?.vehicleId||'')===String(vehicleId) && String(c?.type||'').toLowerCase()===type.toLowerCase() && isoDate(c?.completedDate)===date);
 }
@@ -129,30 +138,46 @@ export default async function handler(req,res){
     const vehicles = Array.isArray(state.vehicles)?state.vehicles:[];
     const plans = Array.isArray(state.plans)?state.plans:[];
     const completions = Array.isArray(state.completions)?state.completions:[];
-    const sunday = new Date().getUTCDay()===0;
-    const full = req.query.full==='1' || sunday;
+    // MOT policy: daily = active MOT records due within 60 days (plus missing dates).
+    // On the 1st of every month = every active MOT maintenance record as a reconciliation backup.
+    // ?full=1 remains available for an authorised forced server-side audit.
+    const firstOfMonth = new Date().getUTCDate()===1;
+    const full = req.query.full==='1' || firstOfMonth;
     status.fullScan = full;
-    const candidates = vehicles.filter(v=>v && String(v.status||'Active').toLowerCase()!=='inactive' && v.roadGoing!==false && reg(v.registration).length>=2 && reg(v.registration).length<=8 && shouldScanVehicle(v,plans,full));
+    status.monthlyMotAudit = firstOfMonth;
+    status.motChecked = 0;
+    status.taxChecked = 0;
+    const baseEligible = v=>v && String(v.status||'Active').toLowerCase()!=='inactive' && reg(v.registration).length>=2 && reg(v.registration).length<=8;
+    const candidates = vehicles.filter(v=>baseEligible(v) && (shouldScanMot(v,plans,full) || shouldScanTax(v,plans)));
     for(const v of candidates){
       const registration=reg(v.registration);
-      try{
-        const mot=await lookupMot(registration);
-        let changed=false;
-        if(mot.motExpiryDate) changed = updatePlanDate(plans,v.id,'MOT',mot.motExpiryDate) || changed;
-        const oldTest=isoDate(v.lastMotTestDate);
-        if(mot.lastMotTestDate && mot.lastMotTestDate!==oldTest && !completionExists(completions,v.id,'MOT',mot.lastMotTestDate)){
-          completions.push({id:`auto-mot-${String(v.id).replace(/[^A-Za-z0-9_-]/g,'')}-${mot.lastMotTestDate}`,vehicleId:v.id,type:'MOT',completedDate:mot.lastMotTestDate,datePrecision:'day',notes:`Automatically detected from DVSA${mot.latestMileage?` · ${mot.latestMileage} miles`:''}`,source:'DVSA automatic nightly refresh',created_at:new Date().toISOString()});
-          changed=true;
-        }
-        Object.assign(v,{motDueDate:mot.motExpiryDate||v.motDueDate||'',motStatus:mot.motStatus,lastMotTestDate:mot.lastMotTestDate||v.lastMotTestDate||'',lastMotMileage:mot.latestMileage||v.lastMotMileage||'',motAdvisories:mot.advisories,motLastChecked:new Date().toISOString()});
-        const tax=await lookupTax(registration);
-        if(tax){
-          if(tax.taxDueDate) changed = updatePlanDate(plans,v.id,'Tax',tax.taxDueDate) || changed;
-          Object.assign(v,{taxDueDate:tax.taxDueDate||v.taxDueDate||'',taxStatus:tax.taxStatus||'',taxLastChecked:new Date().toISOString()});
-        }
-        status.checked++;
-        if(changed)status.updated++;
-      }catch(e){status.errors++;if(status.errorSamples.length<10)status.errorSamples.push({registration,error:String(e?.message||e)});}
+      let changed=false, hadSuccess=false;
+      if(shouldScanMot(v,plans,full)){
+        try{
+          const mot=await lookupMot(registration);
+          hadSuccess=true;status.motChecked++;
+          if(mot.motExpiryDate) changed = updatePlanDate(plans,v.id,'MOT',mot.motExpiryDate) || changed;
+          const oldTest=isoDate(v.lastMotTestDate);
+          if(mot.lastMotTestDate && mot.lastMotTestDate!==oldTest && !completionExists(completions,v.id,'MOT',mot.lastMotTestDate)){
+            completions.push({id:`auto-mot-${String(v.id).replace(/[^A-Za-z0-9_-]/g,'')}-${mot.lastMotTestDate}`,vehicleId:v.id,type:'MOT',completedDate:mot.lastMotTestDate,datePrecision:'day',notes:`Automatically detected from DVSA${mot.latestMileage?` · ${mot.latestMileage} miles`:''}`,source:'DVSA automatic nightly refresh',created_at:new Date().toISOString()});
+            changed=true;
+          }
+          // Government MOT data is authoritative. Local/workshop activity never advances this date.
+          Object.assign(v,{motDueDate:mot.motExpiryDate||'',motDue:mot.motExpiryDate||'',mot_due:mot.motExpiryDate||'',motStatus:mot.motStatus,lastMotTestDate:mot.lastMotTestDate||'',lastMotMileage:mot.latestMileage||'',motAdvisories:mot.advisories,motLastChecked:new Date().toISOString()});
+        }catch(e){status.errors++;if(status.errorSamples.length<10)status.errorSamples.push({registration,kind:'MOT',error:String(e?.message||e)});}
+      }
+      if(shouldScanTax(v,plans)){
+        try{
+          const tax=await lookupTax(registration);
+          if(tax){
+            hadSuccess=true;status.taxChecked++;
+            if(tax.taxDueDate) changed = updatePlanDate(plans,v.id,'Tax',tax.taxDueDate) || changed;
+            Object.assign(v,{taxDueDate:tax.taxDueDate||v.taxDueDate||'',taxStatus:tax.taxStatus||'',taxLastChecked:new Date().toISOString()});
+          }
+        }catch(e){status.errors++;if(status.errorSamples.length<10)status.errorSamples.push({registration,kind:'Tax',error:String(e?.message||e)});}
+      }
+      if(hadSuccess)status.checked++;
+      if(changed)status.updated++;
       await sleep(120);
     }
     status.skipped=Math.max(0,vehicles.length-candidates.length);

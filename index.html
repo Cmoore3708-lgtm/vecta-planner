@@ -13462,7 +13462,7 @@ try{setTimeout(function(){if(window.app&&Array.isArray(app.jobs))migrateNoVehicl
   }
 })();
 </script>
-\n<script id="v261-repair-missing-tax-amount-nk16cyo">\n(function(){\n  'use strict';\n  var TARGET_REG='NK16CYO', TARGET_DATE='2026-08-21', TARGET_AMOUNT=360;\n  async function repairMissingTaxEntry(){\n    try{\n      if(!window.app||!Array.isArray(app.jobs)||typeof isVehicleTaxJob!=='function')return false;\n      var matches=app.jobs.filter(function(j){\n        return isVehicleTaxJob(j)&&normReg(j.registration||'')===TARGET_REG&&vehicleTaxJobDate(j)===TARGET_DATE;\n      });\n      if(!matches.length)return false;\n      var changed=false;\n      for(var i=0;i<matches.length;i++){\n        var j=matches[i];\n        if(Number(vehicleTaxAmount(j)||0)>0)continue;\n        j.amount_quoted=TARGET_AMOUNT;\n        j.vat_mode='no_vat';\n        j.status='completed';\n        if(!j.completed_at)j.completed_at=TARGET_DATE+'T12:00:00.000Z';\n        j.updated_at=new Date().toISOString();\n        changed=true;\n        try{if(typeof upsertRemote==='function')await upsertRemote('jobs',j,{silent:true});}catch(e){console.warn('Tax repair cloud sync failed',e);}\n      }\n      if(changed){\n        if(typeof saveLocal==='function')saveLocal();\n        else if(typeof saveAll==='function')await saveAll();\n        if(typeof v213RepairVehicleTaxDue==='function')v213RepairVehicleTaxDue();\n        if(typeof render==='function'&&view==='vehicleTax')render();\n      }\n      return changed;\n    }catch(e){console.warn('Missing Vehicle Tax amount repair skipped',e);return false;}\n  }\n  window.v261RepairMissingTaxAmount=repairMissingTaxEntry;\n  setTimeout(repairMissingTaxEntry,1500);\n  setTimeout(repairMissingTaxEntry,5000);\n})();\n</script>\n</body>
+</body>
 </html>
 <script>
 /* v218: fast unified search. Build one lightweight in-memory index when Search opens,
@@ -14157,5 +14157,102 @@ document.addEventListener('click',function(ev){
 },true);
 
 try{var foot=document.querySelector('.sideFoot small');if(foot)foot.textContent='v257 Workshop Pro · Manual MOT check scope fix';}catch(e){}
+})();
+</script>
+<script id="v264-dvsa-mot-single-source-of-truth">
+/* V264 MOT SINGLE SOURCE OF TRUTH
+   - Workshop Pro cannot manually change/complete an MOT maintenance date.
+   - Completing workshop jobs cannot advance an MOT maintenance record.
+   - MOT due dates are changed only by government lookups (manual or automatic).
+   - Removing an MOT maintenance record remains available, because that is the opt-out from MOT monitoring. */
+(function(){
+'use strict';
+function v264IsMotPlan(p){
+  if(!p)return false;
+  try{if(typeof fleetMaintenanceCategory==='function')return fleetMaintenanceCategory(p.type)==='mot';}catch(e){}
+  return /\bmot\b/i.test(String(p.type||''));
+}
+function v264Plan(id){
+  try{return (fleetPlans||[]).find(function(p){return String(p.id)===String(id);})||null;}catch(e){return null;}
+}
+function v264MotReadOnlyMessage(){alert('MOT records are read-only. The MOT due date is controlled by the government MOT database. Use the manual DVLA/DVSA check to refresh it.');}
+
+/* Universal safety net: even if a legacy Complete button survives in a view, it cannot complete an MOT plan. */
+try{
+  if(typeof fleetCompletePlanNow==='function'&&!fleetCompletePlanNow.__v264MotLocked){
+    var v264OldCompletePlan=fleetCompletePlanNow;
+    fleetCompletePlanNow=function(planId){var p=v264Plan(planId);if(v264IsMotPlan(p)){v264MotReadOnlyMessage();return false;}return v264OldCompletePlan.apply(this,arguments);};
+    fleetCompletePlanNow.__v264MotLocked=true;
+  }
+}catch(e){}
+
+/* Workshop job completion may record the job, invoice and service history, but must never advance an MOT plan. */
+try{
+  if(typeof syncFleetMaintenanceFromJob==='function'&&!syncFleetMaintenanceFromJob.__v264MotLocked){
+    var v264OldSyncMaintenance=syncFleetMaintenanceFromJob;
+    syncFleetMaintenanceFromJob=function(){
+      var motSnapshots=[];
+      try{(fleetPlans||[]).forEach(function(p){if(v264IsMotPlan(p))motSnapshots.push({p:p,currentDueDate:p.currentDueDate,dueDate:p.dueDate,targetMonth:p.targetMonth,status:p.status,notes:p.notes,type:p.type,intervalMonths:p.intervalMonths});});}catch(e){}
+      var beforeIds={};
+      try{(fleetCompletions||[]).forEach(function(c){beforeIds[String(c.id)]=true;});}catch(e){}
+      var result=v264OldSyncMaintenance.apply(this,arguments);
+      motSnapshots.forEach(function(s){s.p.currentDueDate=s.currentDueDate;s.p.dueDate=s.dueDate;s.p.targetMonth=s.targetMonth;s.p.status=s.status;s.p.notes=s.notes;s.p.type=s.type;s.p.intervalMonths=s.intervalMonths;});
+      try{
+        fleetCompletions=(fleetCompletions||[]).filter(function(c){
+          if(beforeIds[String(c.id)])return true;
+          if(String(c.type||'').toUpperCase()!=='MOT')return true;
+          return String(c.source||'').indexOf('job:')!==0 && String(c.source||'').indexOf('manual/quick-complete')!==0;
+        });
+      }catch(e){}
+      return result;
+    };
+    syncFleetMaintenanceFromJob.__v264MotLocked=true;
+  }
+}catch(e){}
+try{
+  if(typeof syncFleetMotScheduleFromJob==='function'&&!syncFleetMotScheduleFromJob.__v264Disabled){
+    syncFleetMotScheduleFromJob=function(){return false;};
+    syncFleetMotScheduleFromJob.__v264Disabled=true;
+  }
+}catch(e){}
+
+function v264LockMotControls(root){
+  root=root||document;
+  function lockPlan(id,input,save,complete){
+    var p=v264Plan(id);if(!v264IsMotPlan(p))return;
+    if(input){input.disabled=true;input.readOnly=true;input.title='Government MOT date — read only';}
+    if(save){save.disabled=true;save.style.display='none';}
+    if(complete){complete.disabled=true;complete.style.display='none';}
+  }
+  root.querySelectorAll('[data-fleet-due-input]').forEach(function(input){var id=input.getAttribute('data-fleet-due-input');lockPlan(id,input,root.querySelector('[data-fleet-save-due="'+CSS.escape(id)+'"]'),root.querySelector('[data-fleet-complete="'+CSS.escape(id)+'"]'));});
+  root.querySelectorAll('[data-unified-plan-date]').forEach(function(input){var id=input.getAttribute('data-unified-plan-date');lockPlan(id,input,root.querySelector('[data-unified-save-plan="'+CSS.escape(id)+'"]'),root.querySelector('[data-unified-complete-plan="'+CSS.escape(id)+'"]'));});
+  root.querySelectorAll('[data-search-plan-date]').forEach(function(input){var id=input.getAttribute('data-search-plan-date');lockPlan(id,input,root.querySelector('[data-search-save-plan="'+CSS.escape(id)+'"]'),root.querySelector('[data-search-complete-plan="'+CSS.escape(id)+'"]'));});
+  /* MOT completion history is government-derived/read-only in Fleet Manager. */
+  root.querySelectorAll('[data-fleet-edit-completion],[data-fleet-delete-completion]').forEach(function(btn){
+    var id=btn.getAttribute('data-fleet-edit-completion')||btn.getAttribute('data-fleet-delete-completion'),c=null;
+    try{c=(fleetCompletions||[]).find(function(x){return String(x.id)===String(id);});}catch(e){}
+    if(c&&String(c.type||'').toUpperCase()==='MOT'){btn.disabled=true;btn.style.display='none';}
+  });
+  /* If a screen offers a due date while adding a new MOT maintenance record, do not accept a local date. */
+  var t=root.querySelector('#recordPlanType'),d=root.querySelector('#recordPlanDue');
+  if(t&&d){var sync=function(){var mot=/\bmot\b/i.test(String(t.value||''));if(mot){d.value='';d.disabled=true;d.title='MOT date will be populated from the government MOT database';}else{d.disabled=false;d.title='';}};t.addEventListener('input',sync);t.addEventListener('change',sync);sync();}
+}
+window.v264LockMotControls=v264LockMotControls;
+
+/* Block legacy handlers in every Fleet/vehicle-record view before they can write an MOT date. */
+document.addEventListener('click',function(ev){
+  var b=ev.target&&ev.target.closest?ev.target.closest('[data-fleet-save-due],[data-fleet-complete],[data-unified-save-plan],[data-unified-complete-plan],[data-search-save-plan],[data-search-complete-plan]'):null;
+  if(!b)return;
+  var id=b.getAttribute('data-fleet-save-due')||b.getAttribute('data-fleet-complete')||b.getAttribute('data-unified-save-plan')||b.getAttribute('data-unified-complete-plan')||b.getAttribute('data-search-save-plan')||b.getAttribute('data-search-complete-plan');
+  if(v264IsMotPlan(v264Plan(id))){ev.preventDefault();ev.stopImmediatePropagation();v264MotReadOnlyMessage();}
+},true);
+
+/* Re-apply read-only presentation after every render/open. */
+try{
+  if(typeof render==='function'&&!render.__v264MotLocked){var v264OldRender=render;render=function(){var r=v264OldRender.apply(this,arguments);setTimeout(function(){v264LockMotControls(document);},0);return r;};render.__v264MotLocked=true;}
+}catch(e){}
+new MutationObserver(function(){v264LockMotControls(document);}).observe(document.documentElement,{childList:true,subtree:true});
+setTimeout(function(){v264LockMotControls(document);},0);
+try{var foot=document.querySelector('.sideFoot small');if(foot)foot.textContent='v264 Workshop Pro · Government MOT authority';}catch(e){}
 })();
 </script>
