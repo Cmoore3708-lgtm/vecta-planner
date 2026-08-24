@@ -12707,9 +12707,7 @@ async function saveJob(id){
   j.archived=j.status==='completed';
   var linked=null;
   try{
-    linked=await saveLinkedCustomerVehicle(j);
-    await rememberJobCustomer(j);
-    await upsertRemote('jobs',j,{silent:true});
+    linked=prepareLinkedCustomerVehicleLocal(j);
     if(linked&&linked.customer){var ci=app.customers.findIndex(function(x){return x.id===linked.customer.id});if(ci>=0)app.customers[ci]=linked.customer;else app.customers.push(linked.customer)}
     if(linked&&linked.vehicle){var vi=app.vehicles.findIndex(function(x){return x.id===linked.vehicle.id});if(vi>=0)app.vehicles[vi]=linked.vehicle;else app.vehicles.push(linked.vehicle)}
     syncTaskFromMiniJob(j);
@@ -12718,37 +12716,37 @@ async function saveJob(id){
     if(window.__vectaMotCompletionDecision)delete window.__vectaMotCompletionDecision[String(id)];
     ensureContractorSavedFromJob(j);
     if(j.status==='completed')syncFleetMaintenanceFromJob(j);
-    await saveAll();
+    invalidateFinanceDashboardCache();
+    saveLocal();
+    syncSavedJobBundleInBackground(Object.assign({},j),linked);
+
     if(String(j.source||'').toLowerCase()==='website booking'&&/^\d{4}-\d{2}-\d{2}$/.test(String(j.booking_date||''))){selectedDate=new Date(j.booking_date+'T00:00:00');view='planner';}
     closeModals();
-    invalidateFinanceDashboardCache();
     render();
     if(autoSlotNotice)alert(autoSlotNotice);
     if(firstWebsiteConfirmation){openWebsiteBookingConfirmationEmail(j);}
     if(j.status==='completed'&&j.customer_account==='Staff'&&!wasCompleted){openInvoiceForJob(j.id);return true;}
-    if(openPaperworkAfterSave)await printService(j.id);
+    if(openPaperworkAfterSave)printService(j.id);
     return true;
   }catch(e){
-    console.error('Complete job save failed',e);
-    if(linked){
-      if(linked.newVehicle&&linked.vehicle)try{await deleteRemote('vehicles',linked.vehicle.id)}catch(cleanVehicleError){}
-      if(linked.newCustomer&&linked.customer)try{await deleteRemote('customers',linked.customer.id)}catch(cleanCustomerError){}
-    }
-    alert('The job was not saved. No planner job has been created. Please check the customer and vehicle details, then try again.\n\n'+(e&&e.message?e.message:'Database save failed.'));
-    if(button){button.disabled=false;button.textContent='Save Job';}
+    console.error('Local job save failed',e);
+    alert('The job could not be saved on this device.\n\n'+(e&&e.message?e.message:'Local save failed.'));
+    if(button){button.disabled=false;button.textContent='Save & Close';}
     return false;
   }
 }
-async function saveLinkedCustomerVehicle(j){
+function prepareLinkedCustomerVehicleLocal(j){
   var result={customer:null,vehicle:null,newCustomer:false,newVehicle:false};
   var c=null;
   if(j.customer_name||j.customer_phone||j.customer_email||j.customer_id){
     if(j.customer_id)c=app.customers.find(function(x){return String(x.id)===String(j.customer_id)});
-    var wantedName=String(j.customer_name||'').trim().toLowerCase();
-    var wantedPhone=String(j.customer_phone||'').trim();
-    var wantedEmail=String(j.customer_email||'').trim().toLowerCase();
+    var wantedName=String(j.customer_name||'').trim().toLowerCase(),
+        wantedPhone=String(j.customer_phone||'').trim(),
+        wantedEmail=String(j.customer_email||'').trim().toLowerCase();
     if(!c)c=app.customers.find(function(x){
-      return (wantedPhone&&String(x.phone||'').trim()===wantedPhone)||(wantedEmail&&String(x.email||'').trim().toLowerCase()===wantedEmail)||(wantedName&&String(x.name||'').trim().toLowerCase()===wantedName);
+      return (wantedPhone&&String(x.phone||'').trim()===wantedPhone)||
+             (wantedEmail&&String(x.email||'').trim().toLowerCase()===wantedEmail)||
+             (wantedName&&String(x.name||'').trim().toLowerCase()===wantedName);
     });
     if(c){
       c=Object.assign({},c,{name:j.customer_name||c.name||'',surname:(j.customer_name||c.name||'').split(' ').slice(-1)[0]||c.surname||'',phone:j.customer_phone||c.phone||'',email:j.customer_email||c.email||''});
@@ -12756,25 +12754,43 @@ async function saveLinkedCustomerVehicle(j){
       result.newCustomer=true;
       c={id:uid(),name:j.customer_name||'',surname:(j.customer_name||'').split(' ').slice(-1)[0]||'',phone:j.customer_phone||'',email:j.customer_email||'',created_at:new Date().toISOString()};
     }
-    await upsertRemote('customers',c,{silent:true});
     result.customer=c;
     j.customer_id=c.id;
   }
   if(j.registration){
-    var reg=normReg(j.registration);
-    var existing=app.vehicles.find(function(x){return normReg(x.registration||'')===reg});
-    var v;
+    var reg=normReg(j.registration),
+        existing=app.vehicles.find(function(x){return normReg(x.registration||'')===reg}),
+        v;
     if(existing){
       v=Object.assign({},existing,{registration:reg,vehicle:j.vehicle||existing.vehicle||'',customer_id:c?c.id:(existing.customer_id||null)});
     }else{
       result.newVehicle=true;
       v={id:uid(),registration:reg,vehicle:j.vehicle||'',customer_id:c?c.id:null,created_at:new Date().toISOString()};
     }
-    await upsertRemote('vehicles',v,{silent:true});
     result.vehicle=v;
   }
   return result;
 }
+function syncSavedJobBundleInBackground(j,linked){
+  if(!j)return;
+  Promise.resolve().then(async function(){
+    try{
+      if(linked&&linked.customer)await upsertRemote('customers',linked.customer,{silent:true});
+      if(linked&&linked.vehicle)await upsertRemote('vehicles',linked.vehicle,{silent:true});
+      await upsertRemote('jobs',j,{silent:true});
+      await rememberJobCustomer(j);
+      if(remoteClient){
+        try{await remoteClient.from('workshop_settings').upsert({id:'main',value:app.settings,updated_at:new Date().toISOString()})}
+        catch(e){console.warn('Background settings sync failed',e)}
+      }
+      vectaCloudReachable=true;updateConnectivityUI();
+    }catch(e){
+      console.warn('Background job sync incomplete; queued where possible.',e);
+      updateConnectivityUI();
+    }
+  });
+}
+
 function closeModals(){document.querySelectorAll('.modal').forEach(function(m){m.classList.remove('open');m.setAttribute('aria-hidden','true');m.innerHTML=''})}
 function editCustomer(id){var c=id?(app.customers.find(function(x){return x.id===id})||{}):{id:uid(),name:'',surname:'',phone:'',email:''};var name=prompt('Customer name',c.name||'');if(name==null)return;c.name=name;c.surname=(name||'').split(' ').slice(-1)[0]||c.surname||'';c.phone=prompt('Phone',c.phone||'')||c.phone||'';c.email=prompt('Email',c.email||'')||c.email||'';if(!id)app.customers.push(c);saveAll();upsertRemote('customers',c);render()}
 function dueStatusHtml(label,date){if(!date)return '<div class="vehicleDueCard unknown"><span>'+esc(label)+'</span><b>Not recorded</b></div>';var days=dateDays(date),cls=days===null?'unknown':days<0?'overdue':days<=30?'soon':'good';var note=days===null?'':days<0?Math.abs(days)+' days overdue':days===0?'Due today':days<=30?'Due in '+days+' days':'Due '+niceDate(date);return '<div class="vehicleDueCard '+cls+'"><span>'+esc(label)+'</span><b>'+esc(niceDate(date))+'</b><small>'+esc(note)+'</small></div>'}
