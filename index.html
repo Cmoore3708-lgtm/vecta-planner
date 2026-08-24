@@ -12068,6 +12068,17 @@ function plannerSafeStackStart(job,cursor){var start=Math.max(8*60,Math.round(Nu
 function plannerCompactLane(date,tech,orderedIds,anchorMinutes){if(!date||!tech||tech==='Unallocated')return [];var jobs=plannerLaneActiveJobs(date,tech),rank={};(orderedIds||[]).forEach(function(id,i){rank[String(id)]=i});if(orderedIds&&orderedIds.length)jobs.sort(function(a,b){var ar=Object.prototype.hasOwnProperty.call(rank,String(a.id))?rank[String(a.id)]:999999,br=Object.prototype.hasOwnProperty.call(rank,String(b.id))?rank[String(b.id)]:999999;return ar-br||clockMinutes(a.drop_time||'08:00')-clockMinutes(b.drop_time||'08:00')});if(!jobs.length)return [];var earliest=Math.min.apply(null,jobs.map(function(x){return clockMinutes(x.drop_time||'08:00')}));var cursor=Math.max(8*60,Number.isFinite(Number(anchorMinutes))?Math.min(earliest,Number(anchorMinutes)):earliest),changed=[];jobs.forEach(function(j){var before=normaliseClock(j.drop_time||'08:00'),start=plannerSafeStackStart(j,cursor),after=timeFromMinutes(start),duration=Math.max(15,roundPlannerMinutesUp(Number(j.estimated_hours||1)*60));j.drop_time=after;if(after!==before){j.updated_at=new Date().toISOString();changed.push(j)}cursor=start+duration});return changed}
 function plannerDropOrder(date,tech,excludeId,rawMinutes){var jobs=plannerLaneActiveJobs(date,tech,excludeId),index=jobs.length;for(var i=0;i<jobs.length;i++){var start=clockMinutes(jobs[i].drop_time||'08:00'),dur=Math.max(15,roundPlannerMinutesUp(Number(jobs[i].estimated_hours||1)*60)),mid=start+(dur/2);if(rawMinutes<mid){index=i;break}}return {jobs:jobs,index:index}}
 async function persistPlannerJobs(jobs){var seen={};for(var i=0;i<(jobs||[]).length;i++){var j=jobs[i];if(!j||seen[j.id])continue;seen[j.id]=1;j.updated_at=j.updated_at||new Date().toISOString();await upsertRemote('jobs',j,{silent:true});syncTaskFromMiniJob(j)}}
+function persistPlannerJobsInBackground(jobs,label){
+  var snapshot=(jobs||[]).filter(Boolean).map(function(j){return Object.assign({},j)});
+  if(!snapshot.length){plannerInteractionBusy=false;return}
+  cloudRefreshBusy=true;
+  Promise.resolve().then(async function(){
+    try{await persistPlannerJobs(snapshot)}
+    catch(err){console.warn((label||'Planner change')+' cloud sync incomplete; pending sync will retry where possible.',err)}
+    finally{cloudRefreshBusy=false;plannerInteractionBusy=false}
+  });
+}
+
 function bindResize(el){
   var handles=[['.resizeHandle','bottom'],['.resizeTopHandle','top']];
   handles.forEach(function(pair){var handle=el.querySelector(pair[0]);if(!handle)return;handle.onpointerdown=function(ev){
@@ -12077,7 +12088,7 @@ function bindResize(el){
     var original={estimated_hours:baseHours,drop_time:baseStart};plannerInteractionBusy=true;el.classList.add('resizing');el.draggable=false;document.body.classList.add('resizingJob');
     try{handle.setPointerCapture(ev.pointerId)}catch(e){}
     function move(e){e.preventDefault();var delta=e.clientY-startY,closingMinutes=17*60;if(edge==='bottom'){var requested=Math.round((baseHours*60+(delta/PLANNER_PX_PER_HOUR)*60)/15)*15,maxToClose=Math.max(15,closingMinutes-baseStartM),mins=Math.max(15,Math.min(maxToClose,requested));j.estimated_hours=mins/60}else{var shift=Math.round(((delta/PLANNER_PX_PER_HOUR)*60)/15)*15;var newStart=Math.max(plannerStartMinutes,Math.min(baseEndM-15,baseStartM+shift));j.drop_time=timeFromMinutes(newStart);j.estimated_hours=(baseEndM-newStart)/60}el.style.top=topFor(j)+'px';el.style.height=heightFor(j)+'px';el.style.setProperty('--task-height',heightFor(j)+'px');var time=el.querySelector('.jobTime');if(time)time.textContent=timeRange(j);var mini=el.querySelector('.miniTaskTime');if(mini)mini.textContent=normaliseClock(j.drop_time)+' · '+Math.round(j.estimated_hours*60)+' min'}
-    async function end(e){if(e)e.preventDefault();handle.removeEventListener('pointermove',move);handle.removeEventListener('pointerup',end);handle.removeEventListener('pointercancel',cancel);document.body.classList.remove('resizingJob');el.classList.remove('resizing');el.draggable=true;el.dataset.justResized='1';setTimeout(function(){delete el.dataset.justResized},250);j.drop_time=normaliseClock(j.drop_time);var absence=window.vectaTimeOffConflict&&window.vectaTimeOffConflict(j,j.id);if(absence){j.estimated_hours=original.estimated_hours;j.drop_time=original.drop_time;plannerInteractionBusy=false;alert('That change would run into recorded time off. The job has been put back where it was.');render();return}j.updated_at=new Date().toISOString();var changed=[j].concat(plannerCompactLane(j.booking_date,j.technician,null,clockMinutes(j.drop_time||'08:00')));saveLocal();cloudRefreshBusy=true;try{await persistPlannerJobs(changed)}catch(err){j.estimated_hours=original.estimated_hours;j.drop_time=original.drop_time;saveLocal();alert('The new job size could not be saved. Please try again.')}finally{cloudRefreshBusy=false;plannerInteractionBusy=false;render()}}
+    async function end(e){if(e)e.preventDefault();handle.removeEventListener('pointermove',move);handle.removeEventListener('pointerup',end);handle.removeEventListener('pointercancel',cancel);document.body.classList.remove('resizingJob');el.classList.remove('resizing');el.draggable=true;el.dataset.justResized='1';setTimeout(function(){delete el.dataset.justResized},250);j.drop_time=normaliseClock(j.drop_time);var absence=window.vectaTimeOffConflict&&window.vectaTimeOffConflict(j,j.id);if(absence){j.estimated_hours=original.estimated_hours;j.drop_time=original.drop_time;plannerInteractionBusy=false;alert('That change would run into recorded time off. The job has been put back where it was.');render();return}j.updated_at=new Date().toISOString();var changed=[j].concat(plannerCompactLane(j.booking_date,j.technician,null,clockMinutes(j.drop_time||'08:00')));saveLocal();plannerInteractionBusy=false;render();persistPlannerJobsInBackground(changed,'Planner resize')}
     function cancel(e){j.estimated_hours=original.estimated_hours;j.drop_time=original.drop_time;end(e)}
     handle.addEventListener('pointermove',move);handle.addEventListener('pointerup',end);handle.addEventListener('pointercancel',cancel);
   }});
@@ -12142,16 +12153,9 @@ function bindLane(lane){
           if(changed.indexOf(targetJob)===-1)changed.push(targetJob);
 
           saveLocal();
-          cloudRefreshBusy=true;
-          try{
-            await persistPlannerJobs(changed);
-          }catch(err){
-            alert('The job swap could not be saved. Please refresh and try again.');
-          }finally{
-            cloudRefreshBusy=false;
-            plannerInteractionBusy=false;
-            render();
-          }
+          plannerInteractionBusy=false;
+          render();
+          persistPlannerJobsInBackground(changed,'Planner job swap');
           return;
         }
       }
@@ -12175,23 +12179,12 @@ function bindLane(lane){
     changed=changed.concat(plannerCompactLane(targetDate,targetTech,order,rawMinutes));
 
     saveLocal();
-    cloudRefreshBusy=true;
-    try{
-      await persistPlannerJobs(changed);
-    }catch(err){
-      j.technician=old.technician;
-      j.booking_date=old.booking_date;
-      j.drop_time=old.drop_time;
-      saveLocal();
-      alert('The job move could not be saved. Please try again.');
-    }finally{
-      cloudRefreshBusy=false;
-      plannerInteractionBusy=false;
-      render();
-    }
+    plannerInteractionBusy=false;
+    render();
+    persistPlannerJobsInBackground(changed,'Planner job move')
   };
 }
-function bindUnallocatedDrop(panel){panel.ondragover=function(ev){var types=Array.from(ev.dataTransfer.types||[]);if(types.indexOf('text/plain')===-1)return;ev.preventDefault();ev.dataTransfer.dropEffect='move';panel.classList.add('unallocatedDropActive')};panel.ondragleave=function(ev){if(!panel.contains(ev.relatedTarget))panel.classList.remove('unallocatedDropActive')};panel.ondrop=async function(ev){ev.preventDefault();panel.classList.remove('unallocatedDropActive');var id=ev.dataTransfer.getData('text/plain');var j=app.jobs.find(function(x){return x.id===id});if(!j)return;if(j.card_type==='mini_task'||String(j.source||'').indexOf('task:')===0){plannerInteractionBusy=false;alert('Tasks cannot be moved into Unallocated Jobs.');return}var old={technician:j.technician,ramp:j.ramp,status:j.status,booking_date:j.booking_date};j.technician='Unallocated';j.ramp='Unallocated';j.booking_date=null;j.status=j.status||'booked';j.updated_at=new Date().toISOString();var shifted=plannerCompactLane(old.booking_date,old.technician);saveLocal();cloudRefreshBusy=true;try{await upsertRemote('jobs',j,{silent:true});await persistPlannerJobs(shifted)}catch(err){j.technician=old.technician;j.ramp=old.ramp;j.status=old.status;j.booking_date=old.booking_date;saveLocal();alert('The job could not be moved to Unallocated Jobs. Please try again.')}finally{cloudRefreshBusy=false;plannerInteractionBusy=false;render()}}}
+function bindUnallocatedDrop(panel){panel.ondragover=function(ev){var types=Array.from(ev.dataTransfer.types||[]);if(types.indexOf('text/plain')===-1)return;ev.preventDefault();ev.dataTransfer.dropEffect='move';panel.classList.add('unallocatedDropActive')};panel.ondragleave=function(ev){if(!panel.contains(ev.relatedTarget))panel.classList.remove('unallocatedDropActive')};panel.ondrop=function(ev){ev.preventDefault();panel.classList.remove('unallocatedDropActive');var id=ev.dataTransfer.getData('text/plain');var j=app.jobs.find(function(x){return x.id===id});if(!j)return;if(j.card_type==='mini_task'||String(j.source||'').indexOf('task:')===0){plannerInteractionBusy=false;alert('Tasks cannot be moved into Unallocated Jobs.');return}var old={technician:j.technician,ramp:j.ramp,status:j.status,booking_date:j.booking_date};j.technician='Unallocated';j.ramp='Unallocated';j.booking_date=null;j.status=j.status||'booked';j.updated_at=new Date().toISOString();var shifted=plannerCompactLane(old.booking_date,old.technician),changed=[j].concat(shifted);saveLocal();plannerInteractionBusy=false;render();persistPlannerJobsInBackground(changed,'Move to Unallocated')}}
 function bindTaskReturnDrop(panel){panel.ondragover=function(ev){var types=Array.from(ev.dataTransfer.types||[]);if(types.indexOf('text/plain')===-1)return;ev.preventDefault();ev.stopPropagation();ev.dataTransfer.dropEffect='move';panel.classList.add('taskReturnActive')};panel.ondragleave=function(ev){if(!panel.contains(ev.relatedTarget))panel.classList.remove('taskReturnActive')};panel.ondrop=async function(ev){ev.preventDefault();ev.stopPropagation();panel.classList.remove('taskReturnActive');var id=ev.dataTransfer.getData('text/plain'),j=app.jobs.find(function(x){return x.id===id});if(!j||(j.card_type!=='mini_task'&&String(j.source||'').indexOf('task:')!==0)){plannerInteractionBusy=false;return}var taskId=String(j.source||'').indexOf('task:')===0?String(j.source).slice(5):'',t=taskId&&app.tasks.find(function(x){return x.id===taskId});if(!t){plannerInteractionBusy=false;alert('The original task could not be found.');return}var m=taskMeta(t);m.allocated=false;m.allocated_to='';m.allocated_time='';m.mini_job_id='';t.done=false;t.priority=packTaskMeta(m);app.jobs=app.jobs.filter(function(x){return x.id!==j.id});saveLocal();cloudRefreshBusy=true;try{await deleteRemote('jobs',j.id);await upsertRemote('tasks',t,{silent:true})}catch(err){alert('The task was returned on this screen, but the cloud update could not be confirmed. Please refresh and try again.')}finally{cloudRefreshBusy=false;plannerInteractionBusy=false;render()}}}
 
 /* v41.23: show stored service, MOT and tax schedule on the job card */
@@ -12554,51 +12547,62 @@ async function deleteJobCompletely(id){
   if(!j){alert('This job could not be found. Refresh the page and try again.');return;}
   var label=jobVehicleLabel(j),date=j.booking_date?niceDate(j.booking_date):'no booking date';
   if(!confirm('Permanently delete this job for '+label+' ('+date+')?\n\nThis removes it from the planner, Jobs, vehicle history and the shared database. Any linked website booking, invoice or saved service paperwork will also be deleted. This cannot be undone.'))return;
-  var button=document.getElementById('deleteJob');if(button){button.disabled=true;button.textContent='Deleting...';}
-  var relatedInvoices=(app.invoices||[]).filter(function(inv){return String(inv.job_id||'')===String(id)});
-  var relatedRecords=(app.serviceRecords||[]).filter(function(rec){return String(rec.job_id||'')===String(id)});
-  var relatedRequests=(app.websiteRequests||[]).filter(function(req){return websiteRequestMatchesJob(req,j)});
-  var linkedWebsiteRequestId=websiteRequestIdFromJob(j);
+
+  var relatedInvoices=(app.invoices||[]).filter(function(inv){return String(inv.job_id||'')===String(id)}),
+      relatedRecords=(app.serviceRecords||[]).filter(function(rec){return String(rec.job_id||'')===String(id)}),
+      relatedRequests=(app.websiteRequests||[]).filter(function(req){return websiteRequestMatchesJob(req,j)}),
+      linkedWebsiteRequestId=websiteRequestIdFromJob(j),
+      source=String(j.source||''),taskId=source.indexOf('task:')===0?source.slice(5):'';
+
   if(linkedWebsiteRequestId&&!relatedRequests.some(function(req){return String(req.id)===linkedWebsiteRequestId}))relatedRequests.push({id:linkedWebsiteRequestId});
-  var source=String(j.source||''),taskId=source.indexOf('task:')===0?source.slice(5):'';
-  try{
-    // Website booking rows are protected by the current Supabase RLS policy: anon can UPDATE
-    // them but cannot DELETE them. Try a true delete first; if RLS blocks it, mark the request
-    // deleted so it disappears from Website Bookings, then continue deleting the workshop job.
-    for(var q=0;q<relatedRequests.length;q++){
-      var requestId=relatedRequests[q].id;
-      try{
-        await deleteRemote('website_booking_requests',requestId);
-      }catch(requestDeleteError){
-        console.warn('Supabase blocked linked website request DELETE; applying hidden deleted status instead.',requestDeleteError);
-        if(!remoteClient)throw requestDeleteError;
-        var softRequest=await remoteClient.from('website_booking_requests').update({status:'deleted'}).eq('id',requestId);
-        if(softRequest.error)throw new Error(softRequest.error.message||'Could not hide linked website booking request');
-      }
-    }
-    await deleteRemote('jobs',id);
-    for(var i=0;i<relatedInvoices.length;i++){try{await deleteRemote('invoices',relatedInvoices[i].id)}catch(e){console.warn('Linked invoice deletion failed',e)}}
-    for(var r=0;r<relatedRecords.length;r++){
-      var rec=relatedRecords[r];
-      try{await deleteRemote('service_records',rec.id)}catch(e){console.warn('Linked service record deletion failed',e)}
-      try{await deleteRemote('workshop_settings',rec.id)}catch(e){console.warn('Linked paperwork setting deletion failed',e)}
-      try{localStorage.removeItem(serviceStorageKey(rec.registration||j.registration,serviceRecordKind(rec),rec.job_id||id))}catch(e){}
-    }
-    if(taskId){var task=(app.tasks||[]).find(function(x){return String(x.id)===taskId});if(task){var meta=taskMeta(task);meta.allocated=false;meta.allocated_to='';meta.allocated_time='';meta.mini_job_id='';task.done=false;task.priority=packTaskMeta(meta);try{await upsertRemote('tasks',task,{silent:true})}catch(e){console.warn('Linked task reset failed',e)}}}
-    app.jobs=(app.jobs||[]).filter(function(x){return String(x.id)!==String(id)});
-    app.invoices=(app.invoices||[]).filter(function(inv){return String(inv.job_id||'')!==String(id)});
-    app.serviceRecords=(app.serviceRecords||[]).filter(function(rec){return String(rec.job_id||'')!==String(id)});
-    if(relatedRequests.length){
-      var deletedRequestIds=relatedRequests.map(function(req){return String(req.id)});
-      app.websiteRequests=(app.websiteRequests||[]).filter(function(req){return deletedRequestIds.indexOf(String(req.id))===-1});
-    }
-    await saveAll();
-    closeModals();render();
-  }catch(e){
-    console.error('Delete job failed',e);
-    alert('The job was not deleted. Please check the connection and try again.\n\n'+(e&&e.message?e.message:'Database deletion failed.'));
-    if(button){button.disabled=false;button.textContent='Delete Job';}
+
+  /* V283: remove from the local application immediately. Remote deletion and
+     verification continue in the background so Delete never waits on Supabase. */
+  app.jobs=(app.jobs||[]).filter(function(x){return String(x.id)!==String(id)});
+  app.invoices=(app.invoices||[]).filter(function(inv){return String(inv.job_id||'')!==String(id)});
+  app.serviceRecords=(app.serviceRecords||[]).filter(function(rec){return String(rec.job_id||'')!==String(id)});
+  if(relatedRequests.length){
+    var deletedRequestIds=relatedRequests.map(function(req){return String(req.id)});
+    app.websiteRequests=(app.websiteRequests||[]).filter(function(req){return deletedRequestIds.indexOf(String(req.id))===-1});
   }
+  if(taskId){
+    var localTask=(app.tasks||[]).find(function(x){return String(x.id)===taskId});
+    if(localTask){var localMeta=taskMeta(localTask);localMeta.allocated=false;localMeta.allocated_to='';localMeta.allocated_time='';localMeta.mini_job_id='';localTask.done=false;localTask.priority=packTaskMeta(localMeta)}
+  }
+  relatedRecords.forEach(function(rec){try{localStorage.removeItem(serviceStorageKey(rec.registration||j.registration,serviceRecordKind(rec),rec.job_id||id))}catch(e){}});
+  invalidateFinanceDashboardCache();saveLocal();closeModals();render();
+
+  cloudRefreshBusy=true;
+  Promise.resolve().then(async function(){
+    try{
+      for(var q=0;q<relatedRequests.length;q++){
+        var requestId=relatedRequests[q].id;
+        try{await deleteRemote('website_booking_requests',requestId)}
+        catch(requestDeleteError){
+          console.warn('Supabase blocked linked website request DELETE; applying hidden deleted status instead.',requestDeleteError);
+          if(remoteClient){
+            var softRequest=await remoteClient.from('website_booking_requests').update({status:'deleted'}).eq('id',requestId);
+            if(softRequest.error)throw new Error(softRequest.error.message||'Could not hide linked website booking request');
+          }
+        }
+      }
+      await deleteRemote('jobs',id);
+      for(var i=0;i<relatedInvoices.length;i++){try{await deleteRemote('invoices',relatedInvoices[i].id)}catch(e){console.warn('Linked invoice deletion failed',e)}}
+      for(var r=0;r<relatedRecords.length;r++){
+        var rec=relatedRecords[r];
+        try{await deleteRemote('service_records',rec.id)}catch(e){console.warn('Linked service record deletion failed',e)}
+        try{await deleteRemote('workshop_settings',rec.id)}catch(e){console.warn('Linked paperwork setting deletion failed',e)}
+      }
+      if(taskId){
+        var task=(app.tasks||[]).find(function(x){return String(x.id)===taskId});
+        if(task)try{await upsertRemote('tasks',task,{silent:true})}catch(e){console.warn('Linked task reset failed',e)}
+      }
+    }catch(e){
+      console.error('Background job deletion incomplete; pending sync will retry where possible.',e);
+    }finally{
+      cloudRefreshBusy=false;
+    }
+  });
 }
 function roundPlannerMinutesUp(minutes){return Math.ceil(Number(minutes||0)/15)*15}
 function plannerIsoDate(date){return date.getFullYear()+'-'+String(date.getMonth()+1).padStart(2,'0')+'-'+String(date.getDate()).padStart(2,'0')}
