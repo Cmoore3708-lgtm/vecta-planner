@@ -8771,12 +8771,18 @@ function vehicleEmailLinkHtml(rawEmail,registration,vehicleModel){
     return '<a class="contactEmailLink vehicleEmailPrimary" href="'+serviceReminderMailto(email,registration||'',vehicleModel||'')+'" title="Email '+esc(email)+'">'+esc(email)+'</a>';
   }).join('')+'</div>';
 }
+function vectaEmailSignatureText(){
+  return 'Kind regards,\n\nChris\nVECTA Motors\n07721 722622\nwww.vectamotors.co.uk';
+}
+function appendVectaEmailSignature(body){
+  return String(body||'').replace(/\s+$/,'');
+}
 function serviceReminderMailto(email,regHint,vehicleHint){
   email=String(email||'').trim();if(!email)return '#';
   var ctx=vehicleEmailContext(email,regHint,vehicleHint),reg=String(ctx.registration||'').trim(),vehicle=String(ctx.vehicle||'').trim(),
       first=emailFirstNameFromAddress(email),subject=reg||'Vehicle Service',
-      vehicleText=[reg,vehicle].filter(Boolean).join(', '),
-      body='Hi '+(first||'there')+',\n\nYour vehicle'+(vehicleText?' '+vehicleText:'')+' is due its annual Service. Can we book it in for one day next week please?';
+      vehicleText=[vehicle,reg].filter(Boolean).join(', '),
+      body=appendVectaEmailSignature('Hi '+(first||'there')+',\n\nYour vehicle'+(vehicleText?' '+vehicleText:'')+' is due its annual Service. Can we book it in for one day next week please?');
   return 'mailto:'+encodeURIComponent(email)+'?subject='+encodeURIComponent(subject)+'&body='+encodeURIComponent(body);
 }
 function emailLinkHtml(email,emptyText,regHint,vehicleHint){
@@ -9833,7 +9839,7 @@ function fleetEomInvoice(name,month,rows){rows=(rows||[]).slice().sort(function(
 function fleetDownloadEomCsv(name,month,rows){var lines=[['Date','Registration','NMUK type','Work / Item','Price ex VAT']];(rows||[]).forEach(function(r){fleetEomLineItems(r.job).forEach(function(item,i){lines.push([i?'':niceDate(r.date),i?'':fleetEomRegistrationText(r.job),i?'':fleetNmukTypeForJob(r.job),item.description,Number(item.price||0).toFixed(2)])});lines.push(['','','','Job total:',Number(r.amount||0).toFixed(2)])});var total=rows.reduce(function(s,r){return s+r.amount},0);lines.push(['','','','Total:',total.toFixed(2)]);if(fleetNormaliseCustomer(name)==='NMUK'){var internal=rows.reduce(function(s,r){return fleetNmukIsInternalJob(r.job)?s+r.amount:s},0),other=total-internal;lines.push(['','','','Internal Vehicles:',internal.toFixed(2)]);lines.push(['','','','MVOS and other work:',other.toFixed(2)])}var csv=lines.map(function(row){return row.map(function(v){return '"'+String(v==null?'':v).replace(/"/g,'""')+'"'}).join(',')}).join('\r\n'),blob=new Blob([csv],{type:'text/csv;charset=utf-8'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=name.replace(/[^a-z0-9]+/gi,'-')+'-'+month+'-fleet-work.csv';document.body.appendChild(a);a.click();a.remove();setTimeout(function(){URL.revokeObjectURL(url)},1000)}
 function fleetMonthName(month){try{var parts=String(month||'').split('-'),d=new Date(Number(parts[0]),Number(parts[1]||1)-1,1);return d.toLocaleString('en-GB',{month:'long'})}catch(e){return String(month||'')}}
 function fleetInvoiceEmailFirstName(email){var local=String(email||'').split('@')[0]||'',first=(local.split('.')[0]||local).replace(/[^A-Za-z'-]/g,' ' ).trim();if(!first)return '';return first.charAt(0).toUpperCase()+first.slice(1).toLowerCase()}
-function fleetEmailEom(name,month,rows,inv){var email=fleetEomCustomerEmail(name);if(!email){alert('Please save an invoice email on the '+name+' customer profile first.');return}var first=fleetInvoiceEmailFirstName(email),monthName=fleetMonthName(month),subject=monthName+' Invoice',body='Hi '+(first||'there')+',\n\nPlease find attached our '+monthName+' Invoice.';window.location.href='mailto:'+encodeURIComponent(email)+'?subject='+encodeURIComponent(subject)+'&body='+encodeURIComponent(body)}
+function fleetEmailEom(name,month,rows,inv){var email=fleetEomCustomerEmail(name);if(!email){alert('Please save an invoice email on the '+name+' customer profile first.');return}var first=fleetInvoiceEmailFirstName(email),monthName=fleetMonthName(month),subject=monthName+' Invoice',body=appendVectaEmailSignature('Hi '+(first||'there')+',\n\nPlease find attached our '+monthName+' Invoice.');window.location.href='mailto:'+encodeURIComponent(email)+'?subject='+encodeURIComponent(subject)+'&body='+encodeURIComponent(body)}
 /* VECTA v198 — safe month-end preview/check/finalise workflow */
 function fleetEomHoldMarker(month){return '[[EOM_HOLD:'+String(month||'')+']]'}
 function fleetEomIsHeld(j,month){return String(j&&j.customer_note||'').indexOf(fleetEomHoldMarker(month))>-1}
@@ -10919,6 +10925,7 @@ function openWebsiteBookingConfirmationEmail(j){
     'Please park your car in the parking spaces outside our Workshop in the morning before your shift and remember to leave your Service book (if required) and locking wheel nut key on the passenger seat.\n\n'+
     'Click here for directions:\nhttps://www.vectamotors.co.uk/find-us\n\n'+
     'If we discover any additional work that requires doing we will contact you for authorisation first, so please check your phone/email when possible.';
+  body=appendVectaEmailSignature(body);
   window.location.href='mailto:'+encodeURIComponent(email)+'?subject='+encodeURIComponent(subject)+'&body='+encodeURIComponent(body);
   return true;
 }
@@ -12261,9 +12268,11 @@ function fleetContactFirstName(email){
 function openPoolServiceEmailFromJob(){
   var regEl=document.getElementById('job_registration'),emailEl=document.getElementById('job_customer_email'),typeEl=document.getElementById('job_nmuk_vehicle_type'),reg=normReg(regEl&&regEl.value||''),emails=fleetContactEmailAddresses(emailEl&&emailEl.value||''),nmukType=String(typeEl&&typeEl.value||'').toUpperCase(),vehicleLabel=nmukType==='INTERNAL'?'Internal car':'Pool car',firstName=fleetContactFirstName(emails[0]),types=jobTypeValues((document.getElementById('job_job_type')||{}).value||''),work=String((document.getElementById('job_work_required')||{}).value||''),isSafety=types.some(function(t){return normaliseJobTypeKey(t)==='6 month safety check'})||/6\s*month|six[- ]month safety/i.test(work),dueLabel=isSafety?'6 Month Safety Check':'Service';
   if(!emails.length){alert('There is no contact email saved for '+(reg||('this '+vehicleLabel))+'.');return}
+  var vehicleInput=document.getElementById('job_vehicle'),makeModel=String(vehicleInput&&vehicleInput.value||'').trim();
   var subject='Your '+vehicleLabel+' '+reg+' is due its '+dueLabel;
   var greeting='Hi'+(firstName?' '+firstName:'')+'.';
-  var body=greeting+'\n\nYour '+vehicleLabel+' '+reg+' is due its '+dueLabel+'. Could we book it in for one day next week please';
+  var vehicleDescription=[makeModel,reg].filter(Boolean).join(', ');
+  var body=appendVectaEmailSignature(greeting+'\n\nYour '+vehicleLabel+(vehicleDescription?' '+vehicleDescription:'')+' is due its '+dueLabel+'. Could we book it in for one day next week please');
   window.location.href='mailto:'+emails.join(',')+'?subject='+encodeURIComponent(subject)+'&body='+encodeURIComponent(body)
 }
 
