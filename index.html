@@ -14988,3 +14988,97 @@ setTimeout(function(){v264LockMotControls(document);},0);
 try{var foot=document.querySelector('.sideFoot small');if(foot)foot.textContent='v264 Workshop Pro · Government MOT authority';}catch(e){}
 })();
 </script>
+
+<script id="v278-mainsec-master-vehicle-migration">
+(function(){
+'use strict';
+/* V278: MAIN SEC is an NMUK Internal vehicle. Ensure it exists in Fleet Manager
+   and repair every current/historical MAIN SEC booking so a stale Pool label can
+   never reclassify it in Financial. */
+var V278_REG='MAINSEC', V278_DISPLAY='MAIN SEC';
+function v278Key(v){return String(v||'').toUpperCase().replace(/[^A-Z0-9]/g,'');}
+function v278IsMainSec(v){return v278Key(v)===V278_REG;}
+function v278EnsureFleetVehicle(){
+  if(!Array.isArray(window.fleetVehicles))return false;
+  var rows=window.fleetVehicles.filter(function(v){return v&&v278IsMainSec(v.registration);});
+  var v=rows[0], changed=false;
+  if(!v){
+    v={id:'INTERNAL|MAINSEC',fleetGroup:'Nissan Internal',customer:'Nissan',registration:V278_DISPLAY,model:'',assetNo:'',roadGoing:false,billingMethod:'Monthly consolidated',contactEmail:'',department:'',taxReference:'',status:'Active',source:'Workshop Pro correction 24 Aug 2026',nmukType:'Internal'};
+    window.fleetVehicles.push(v);changed=true;
+  }
+  if(v.registration!==V278_DISPLAY){v.registration=V278_DISPLAY;changed=true;}
+  if(v.fleetGroup!=='Nissan Internal'){v.fleetGroup='Nissan Internal';changed=true;}
+  if(v.customer!=='Nissan'){v.customer='Nissan';changed=true;}
+  if(v.roadGoing!==false){v.roadGoing=false;changed=true;}
+  if(v.billingMethod!=='Monthly consolidated'){v.billingMethod='Monthly consolidated';changed=true;}
+  if(v.nmukType!=='Internal'){v.nmukType='Internal';changed=true;}
+  if(!v.status){v.status='Active';changed=true;}
+  /* Remove only exact MAIN SEC duplicates. MAIN SEC 2 and MAIN SECURITY are separate vehicles. */
+  var kept=false;
+  window.fleetVehicles=window.fleetVehicles.filter(function(x){
+    if(!x||!v278IsMainSec(x.registration))return true;
+    if(!kept){kept=true;return x===v;}
+    changed=true;return false;
+  });
+  return changed;
+}
+function v278EnsureWorkshopVehicle(){
+  if(!window.app||!Array.isArray(app.vehicles))return false;
+  var v=app.vehicles.find(function(x){return x&&v278IsMainSec(x.registration);}),changed=false;
+  if(!v){
+    v={id:'vehicle-mainsec-internal',registration:V278_DISPLAY,vehicle:'',customer_id:null};
+    app.vehicles.push(v);changed=true;
+  }else if(v.registration!==V278_DISPLAY){v.registration=V278_DISPLAY;changed=true;}
+  return changed;
+}
+function v278PatchJob(j){
+  if(!j||!v278IsMainSec(j.registration))return false;
+  var changed=false;
+  if(j.registration!==V278_DISPLAY){j.registration=V278_DISPLAY;changed=true;}
+  if(j.customer_account!=='NMUK'){j.customer_account='NMUK';changed=true;}
+  if(j.nmuk_vehicle_type!=='Internal'){j.nmuk_vehicle_type='Internal';changed=true;}
+  if(!/^NMUK(?:\s+Internal)?$/i.test(String(j.customer_name||''))){j.customer_name='NMUK';changed=true;}
+  return changed;
+}
+async function v278RepairAllMainSec(){
+  var changedFleet=v278EnsureFleetVehicle(),changedVehicle=v278EnsureWorkshopVehicle(),live=[];
+  (app.jobs||[]).forEach(function(j){if(v278PatchJob(j))live.push(j);});
+  /* Historical imported bookings are immutable source rows, so persist a financial
+     correction as well as correcting the in-memory row. */
+  var historical=[].concat(window.NMUK_2026_JOBS||[],window.CONTRACTOR_2026_JOBS||[]);
+  historical.forEach(function(j){
+    if(!j||!v278IsMainSec(j.registration))return;
+    v278PatchJob(j);
+    if(typeof financeCorrectionMap==='function'){
+      var map=financeCorrectionMap(),k=String(j.id||'');
+      if(k)map[k]=Object.assign({},map[k]||{},{registration:V278_DISPLAY,customer_account:'NMUK',customer_name:'NMUK',nmuk_vehicle_type:'Internal'});
+    }
+  });
+  try{
+    if(changedFleet&&typeof saveFleet==='function')saveFleet();
+    if((changedVehicle||live.length||historical.some(function(j){return j&&v278IsMainSec(j.registration);}))&&typeof saveLocal==='function')saveLocal();
+  }catch(e){console.warn('V278 MAIN SEC local save skipped',e);}
+  if(window.remoteClient&&typeof upsertRemote==='function'){
+    for(var i=0;i<live.length;i++){try{await upsertRemote('jobs',live[i],{silent:true});}catch(e){console.warn('V278 MAIN SEC booking sync failed',live[i]&&live[i].id,e);}}
+  }
+  try{if(typeof persistFleetCloudSnapshot==='function')await persistFleetCloudSnapshot();}catch(e){console.warn('V278 MAIN SEC fleet sync failed',e);}
+  try{if(typeof invalidateFinanceDashboardCache==='function')invalidateFinanceDashboardCache();if(typeof render==='function')render();}catch(e){}
+  return {fleetChanged:changedFleet,workshopVehicleChanged:changedVehicle,liveBookingsChanged:live.length};
+}
+window.v278RepairAllMainSec=v278RepairAllMainSec;
+
+/* A cloud Fleet snapshot can replace the local array after startup. Re-apply the
+   correction immediately after every snapshot so MAIN SEC cannot disappear again. */
+try{
+  if(typeof applyFleetCloudSnapshot==='function'&&!applyFleetCloudSnapshot.__v278MainSec){
+    var v278OriginalApplyFleetCloudSnapshot=applyFleetCloudSnapshot;
+    applyFleetCloudSnapshot=function(value){var result=v278OriginalApplyFleetCloudSnapshot(value);setTimeout(function(){v278RepairAllMainSec();},0);return result;};
+    applyFleetCloudSnapshot.__v278MainSec=true;
+  }
+}catch(e){console.warn('V278 Fleet snapshot guard skipped',e);}
+setTimeout(v278RepairAllMainSec,500);
+setTimeout(v278RepairAllMainSec,2600);
+setTimeout(v278RepairAllMainSec,7000);
+try{var foot=document.querySelector('.sideFoot small');if(foot)foot.textContent='v278 Workshop Pro · MAIN SEC Internal master correction';}catch(e){}
+})();
+</script>
