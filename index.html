@@ -9946,7 +9946,7 @@ function fleetMaintenanceCategory(value){var t=String(value||'').toLowerCase();i
 function fleetLatestCompletedEvidenceDate(vehicle,category){
   if(!vehicle)return '';
   var reg=normReg(vehicle.registration||''),dates=[];
-  function addDate(raw){var d=String(raw||'').slice(0,10);if(/^\d{4}-\d{2}-\d{2}$/.test(d))dates.push(d)}
+  function addDate(raw){var d=String(raw||'').slice(0,10),today=todayIso();if(/^\d{4}-\d{2}-\d{2}$/.test(d)&&d<=today)dates.push(d)}
   if(reg){
     (app.jobs||[]).forEach(function(j){
       if(!j||normReg(j.registration||'')!==reg)return;
@@ -9979,7 +9979,7 @@ function fleetCompletedJobForPlanCycle(p){
   if(!reg||!cat||cat==='mot')return null;
   var candidates=app.jobs.filter(function(j){
     if(!j||normReg(j.registration||'')!==reg||!completedJobCanUpdateFleet(j))return false;
-    var done=completedJobDateForFleet(j);if(!done)return false;
+    var done=completedJobDateForFleet(j);if(!done||String(done).slice(0,10)>todayIso())return false;
     var cats=fleetPlannerJobCategories(j);
     if(cat==='service')return !!cats.service&&!isSixMonthSafetyCheck(j)&&!isOnSiteService(j);
     if(cat==='safety')return !!cats.safety||isSixMonthSafetyCheck(j);
@@ -10015,7 +10015,7 @@ function fleetPlanCompletedForCurrentCycle(p){
   if(planCategory!=='mot'&&fleetCompletedJobForPlanCycle(p))return true;
   return fleetCompletions.some(function(c){
     if(String(c.vehicleId)!==String(p.vehicleId))return false;
-    var completed=String(c.completedDate||c.completedMonth||'');if(!completed)return false;
+    var completed=String(c.completedDate||c.completedMonth||'');if(!completed)return false;if(String(completed).slice(0,10)>todayIso())return false;
     if(c.planId){
       if(String(c.planId)!==String(p.id))return false;
       if(planCategory==='safety'){
@@ -10436,6 +10436,15 @@ function fleetPrintCurrentView(){
 }
 function fleetPrintDue30Page(){fleetPrintCurrentView()}
 
+
+function fleetFutureCompletionDiagnostic(){
+  var today=todayIso(),out=[];
+  (fleetCompletions||[]).forEach(function(c){
+    var d=String(c&& (c.completedDate||c.completedMonth) ||'').slice(0,10);
+    if(/^\d{4}-\d{2}-\d{2}$/.test(d)&&d>today)out.push(c);
+  });
+  return out;
+}
 function fleetMaintenanceHtml(){
   fleetApplyMaintenanceTombstones();
   fleetEnsureServicePlanTypes();
@@ -13600,7 +13609,7 @@ try{setTimeout(function(){if(window.app&&Array.isArray(app.jobs))migrateNoVehicl
 
     return (fleetCompletions||[]).some(function(c){
       if(String(c.vehicleId)!==String(p.vehicleId))return false;
-      var completed=String(c.completedDate||c.completedMonth||'');if(!completed)return false;
+      var completed=String(c.completedDate||c.completedMonth||'');if(!completed)return false;if(String(completed).slice(0,10)>todayIso())return false;
       if(c.planId){
         if(String(c.planId)!==String(p.id))return false;
         if(planCategory==='safety'){
