@@ -2697,6 +2697,7 @@ body.servicePreviewing .servicePreviewControls{position:relative!important;z-ind
 .websiteBookingStat strong{font-size:25px;line-height:1;color:#111827}
 @media(max-width:650px){.websiteBookingStats{grid-template-columns:1fr 1fr}.websiteBookingStat{padding:9px 10px;gap:8px}.websiteBookingStat span{font-size:10px}.websiteBookingStat strong{font-size:22px}}
 </style>
+  <!-- VECTA V289: planner moves are cloud-verified and retried to prevent stale date/technician reversion -->
 </head>
 <body class="vectaStartupLoading">
 <!-- VECTA v200: unfinished jobs stay allocated; no carried-over column -->
@@ -12478,14 +12479,36 @@ function plannerLaneActiveJobs(date,tech,excludeId){return (app.jobs||[]).filter
 function plannerSafeStackStart(job,cursor){var start=Math.max(8*60,Math.round(Number(cursor||8*60)/15)*15),guard=0;while(guard++<80){job.drop_time=timeFromMinutes(start);var conflict=window.vectaTimeOffConflict&&window.vectaTimeOffConflict(job,job.id);if(!conflict)return start;start+=15}return start}
 function plannerCompactLane(date,tech,orderedIds,anchorMinutes){if(!date||!tech||tech==='Unallocated')return [];var jobs=plannerLaneActiveJobs(date,tech),rank={};(orderedIds||[]).forEach(function(id,i){rank[String(id)]=i});if(orderedIds&&orderedIds.length)jobs.sort(function(a,b){var ar=Object.prototype.hasOwnProperty.call(rank,String(a.id))?rank[String(a.id)]:999999,br=Object.prototype.hasOwnProperty.call(rank,String(b.id))?rank[String(b.id)]:999999;return ar-br||clockMinutes(a.drop_time||'08:00')-clockMinutes(b.drop_time||'08:00')});if(!jobs.length)return [];var earliest=Math.min.apply(null,jobs.map(function(x){return clockMinutes(x.drop_time||'08:00')}));var cursor=Math.max(8*60,Number.isFinite(Number(anchorMinutes))?Math.min(earliest,Number(anchorMinutes)):earliest),changed=[];jobs.forEach(function(j){var before=normaliseClock(j.drop_time||'08:00'),start=plannerSafeStackStart(j,cursor),after=timeFromMinutes(start),duration=Math.max(15,roundPlannerMinutesUp(Number(j.estimated_hours||1)*60));j.drop_time=after;if(after!==before){j.updated_at=new Date().toISOString();changed.push(j)}cursor=start+duration});return changed}
 function plannerDropOrder(date,tech,excludeId,rawMinutes){var jobs=plannerLaneActiveJobs(date,tech,excludeId),index=jobs.length;for(var i=0;i<jobs.length;i++){var start=clockMinutes(jobs[i].drop_time||'08:00'),dur=Math.max(15,roundPlannerMinutesUp(Number(jobs[i].estimated_hours||1)*60)),mid=start+(dur/2);if(rawMinutes<mid){index=i;break}}return {jobs:jobs,index:index}}
-async function persistPlannerJobs(jobs){var seen={};for(var i=0;i<(jobs||[]).length;i++){var j=jobs[i];if(!j||seen[j.id])continue;seen[j.id]=1;j.updated_at=j.updated_at||new Date().toISOString();await upsertRemote('jobs',j,{silent:true});syncTaskFromMiniJob(j)}}
+async function vectaVerifyPlannerJobSaved(j){
+  if(!remoteClient||!navigator.onLine||!j||!j.id)return true;
+  var expectedDate=j.booking_date?String(j.booking_date).slice(0,10):null,
+      expectedTech=String(j.technician||''),
+      expectedTime=j.drop_time?normaliseClock(j.drop_time):null;
+  for(var attempt=0;attempt<3;attempt++){
+    var check=await vectaWithTimeout(remoteClient.from('jobs').select('id,booking_date,technician,drop_time,updated_at').eq('id',j.id).maybeSingle(),8000,'Planner save verification');
+    if(check&&!check.error&&check.data){
+      var actualDate=check.data.booking_date?String(check.data.booking_date).slice(0,10):null,
+          actualTech=String(check.data.technician||''),
+          actualTime=check.data.drop_time?normaliseClock(check.data.drop_time):null;
+      if(actualDate===expectedDate&&actualTech===expectedTech&&actualTime===expectedTime)return true;
+    }
+    /* A planner move is an explicit user amendment. Re-apply the three scheduling
+       fields directly if an older cloud value won a race with the first write. */
+    var stamp=new Date().toISOString(),patch={booking_date:expectedDate,technician:expectedTech,drop_time:expectedTime,updated_at:stamp};
+    var retry=await remoteClient.from('jobs').update(patch).eq('id',j.id).select('id');
+    if(retry&&retry.error)throw retry.error;
+    j.updated_at=stamp;
+  }
+  throw new Error('The cloud database did not retain the new planner date / technician for '+(j.registration||j.id)+'.');
+}
+async function persistPlannerJobs(jobs){var seen={};for(var i=0;i<(jobs||[]).length;i++){var j=jobs[i];if(!j||seen[j.id])continue;seen[j.id]=1;j.updated_at=j.updated_at||new Date().toISOString();await upsertRemote('jobs',j,{silent:true});await vectaVerifyPlannerJobSaved(j);syncTaskFromMiniJob(j)}}
 function persistPlannerJobsInBackground(jobs,label){
   var snapshot=(jobs||[]).filter(Boolean).map(function(j){return Object.assign({},j)});
   if(!snapshot.length){plannerInteractionBusy=false;return}
   cloudRefreshBusy=true;
   Promise.resolve().then(async function(){
     try{await persistPlannerJobs(snapshot)}
-    catch(err){console.warn((label||'Planner change')+' cloud sync incomplete; pending sync will retry where possible.',err)}
+    catch(err){console.warn((label||'Planner change')+' cloud sync incomplete.',err);alert((label||'Planner change')+' was not confirmed by the cloud database. The job has NOT been silently accepted. Please try the move again.\n\n'+(err&&err.message?err.message:err))}
     finally{cloudRefreshBusy=false;plannerInteractionBusy=false}
   });
 }
