@@ -825,6 +825,15 @@ html,body{font-size:14px;background:var(--bg);color:var(--text)}.app{grid-templa
 .servicePrint.interimServicePrint .ssInterimNotCompleted:after{content:"NOT COMPLETED";position:absolute;left:50%;top:50%;transform:translate(-50%,-50%) rotate(-8deg);z-index:8;border:4px solid #991b1b;color:#991b1b;background:rgba(255,255,255,.88);padding:8px 16px;border-radius:8px;font-size:20px;font-weight:1000;letter-spacing:.08em;white-space:nowrap}
 .servicePrint.interimServicePrint .ssInterimTyreNote{display:block;margin:8px 0 0;padding:7px 10px;background:#f8fafc;border:1px solid #cbd5e1;border-radius:7px;color:#475569;font-weight:800;font-size:11px}
 @media print{.servicePrint.interimServicePrint .ssInterimNotCompleted:after{background:#fff!important}}
+
+    /* V288: never expose stale local planner/tasks while an online authoritative startup is in progress. */
+    #vectaStartupGate{display:none;min-height:calc(100vh - 110px);align-items:center;justify-content:center;padding:30px;text-align:center}
+    body.vectaStartupLoading #vectaStartupGate{display:flex}
+    body.vectaStartupLoading #content{display:none}
+    .vectaStartupCard{width:min(520px,92vw);background:#fff;border:1px solid var(--line);border-radius:18px;padding:30px;box-shadow:0 18px 55px rgba(15,23,42,.10)}
+    .vectaStartupSpinner{width:34px;height:34px;margin:0 auto 16px;border:4px solid #e2e8f0;border-top-color:#e11d2e;border-radius:50%;animation:vectaStartupSpin .8s linear infinite}
+    .vectaStartupCard strong{display:block;font-size:21px;color:#0f172a}.vectaStartupCard span{display:block;margin-top:8px;color:#64748b;font-weight:750}
+    @keyframes vectaStartupSpin{to{transform:rotate(360deg)}}
 </style>
 
 <style id="v43-task-return-and-plate-fix">
@@ -2689,7 +2698,7 @@ body.servicePreviewing .servicePreviewControls{position:relative!important;z-ind
 @media(max-width:650px){.websiteBookingStats{grid-template-columns:1fr 1fr}.websiteBookingStat{padding:9px 10px;gap:8px}.websiteBookingStat span{font-size:10px}.websiteBookingStat strong{font-size:22px}}
 </style>
 </head>
-<body>
+<body class="vectaStartupLoading">
 <!-- VECTA v200: unfinished jobs stay allocated; no carried-over column -->
 <div id="vectaOfflineBanner" class="vectaOfflineBanner">OFFLINE WORKSHOP MODE — live cloud data is unavailable. Changes made here will be saved on this device and queued for synchronisation.</div>
 <div id="vectaConnectivity" class="vectaConnectivity syncing"><span class="dot"></span><span id="vectaConnectivityText">Checking cloud connection…</span></div>
@@ -2710,6 +2719,7 @@ body.servicePreviewing .servicePreviewControls{position:relative!important;z-ind
       <button class="primary" id="newJobTop">+ New Job</button>
       <button class="mobileTaskTop" id="newTaskTop">+ Task</button>
     </header>
+    <div id="vectaStartupGate"><div class="vectaStartupCard"><div class="vectaStartupSpinner"></div><strong id="vectaStartupTitle">Loading workshop…</strong><span id="vectaStartupDetail">Checking live jobs and tasks before showing the dashboard.</span></div></div>
     <section class="content" id="content"></section>
   </main>
 </div>
@@ -9497,12 +9507,12 @@ async function vectaRecoverGhostJobsFromTrustedBackups(){
       }
     }
     window.vectaV286Recovery={completed:completedRepairs.length,deleted:removed.length,ran_at:new Date().toISOString()};
-    if(completedRepairs.length||removed.length)console.warn('V287 lifecycle recovery: '+completedRepairs.length+' completed job(s) restored; '+removed.length+' deleted ghost job(s) removed.');
+    if(completedRepairs.length||removed.length)console.warn('V288 lifecycle recovery: '+completedRepairs.length+' completed job(s) restored; '+removed.length+' deleted ghost job(s) removed.');
     return completedRepairs.length+removed.length;
-  }catch(e){console.warn('V287 historical job recovery skipped',e);return 0;}
+  }catch(e){console.warn('V288 historical job recovery skipped',e);return 0;}
 }
 async function vectaRepairConfirmedNk72KtfCompletion(){
-  /* V287 one-time data repair. The workshop has explicitly confirmed that the live
+  /* V288 one-time data repair. The workshop has explicitly confirmed that the live
      NK72 KTF booking currently showing on 25/08/2026 was completed previously.
      This migration touches only active NK72 KTF rows dated on/before 25/08/2026 and
      will never affect a later genuine booking for the vehicle. */
@@ -9521,10 +9531,53 @@ async function vectaRepairConfirmedNk72KtfCompletion(){
   return candidates.length;
 }
 
-async function pullRemote(){
+function vectaSetStartupLoading(on,title,detail){
+  try{
+    document.body.classList.toggle('vectaStartupLoading',!!on);
+    var t=document.getElementById('vectaStartupTitle'),d=document.getElementById('vectaStartupDetail');
+    if(t&&title)t.textContent=title;if(d&&detail)d.textContent=detail;
+  }catch(e){}
+}
+function vectaReconcileTasksFromCloud(remoteRows){
+  remoteRows=Array.isArray(remoteRows)?remoteRows.map(fromRemote):[];
+  var remoteById={},localById={},queued={};
+  remoteRows.forEach(function(t){if(t&&t.id)remoteById[String(t.id)]=t});
+  (app.tasks||[]).forEach(function(t){if(t&&t.id)localById[String(t.id)]=t});
+  vectaPendingSync().forEach(function(raw){var item=vectaNormaliseQueuedItem(raw);if(item.table!=='tasks')return;var id=String((item.payload&&item.payload.id)||item.payload||'');if(id)queued[id]=item});
+  var next=Object.keys(remoteById).map(function(id){return remoteById[id]});
+  Object.keys(queued).forEach(function(id){var item=queued[id],local=localById[id];if(item.operation==='delete'){next=next.filter(function(t){return String(t.id)!==id});return}if(item.operation==='upsert'&&local&&!remoteById[id])next.push(local)});
+  app.tasks=next;
+  applyTaskStateOverrides();
+  return next;
+}
+async function vectaPrimeAuthoritativeDashboard(){
+  if(!remoteClient)return false;
+  var started=performance.now();
+  vectaSetStartupLoading(true,'Loading workshop…','Checking live jobs and tasks before showing the dashboard.');
+  var jobsP=vectaFetchAllRemoteRows('jobs',9000);
+  var tasksP=vectaFetchAllRemoteRows('tasks',9000);
+  var terminalP=vectaLoadTerminalJobStatesFromCloud();
+  var overridesP=vectaWithTimeout(remoteClient.from('workshop_settings').select('id,value,updated_at').eq('id','task_state_overrides_v50').limit(1),9000,'Task state download');
+  var results=await Promise.allSettled([jobsP,tasksP,terminalP,overridesP]);
+  if(results[0].status!=='fulfilled')throw results[0].reason||new Error('Live jobs could not be loaded.');
+  if(results[1].status!=='fulfilled')throw results[1].reason||new Error('Live tasks could not be loaded.');
+  vectaReconcileJobsFromCloud(results[0].value);
+  if(results[2].status==='fulfilled')vectaApplyTerminalJobStates();
+  if(results[3].status==='fulfilled'){
+    var rr=results[3].value;
+    if(rr&&!rr.error&&Array.isArray(rr.data)&&rr.data[0]&&rr.data[0].value){app.settings.taskStateOverrides=mergeTaskStateMaps(hydrateIndependentTaskState(),rr.data[0].value);writeIndependentTaskState(app.settings.taskStateOverrides)}
+  }
+  vectaReconcileTasksFromCloud(results[1].value);
+  vectaApplyTerminalJobStates();applyTaskStateOverrides();
+  vectaCloudReachable=true;vectaLastCloudSuccess=new Date().toISOString();
+  try{window.vectaStartupDashboardPullMs=Math.round(performance.now()-started);console.info('Authoritative dashboard ready in '+window.vectaStartupDashboardPullMs+'ms')}catch(e){}
+  return true;
+}
+async function pullRemote(options){
+  options=options||{};
   var __pullStarted=performance.now();
   if(!connectSupabase()) return;
-  var tables=['jobs','customers','vehicles','tasks','invoices','service_records','website_booking_requests'];
+  var tables=options.skipDashboardCore?['customers','vehicles','invoices','service_records','website_booking_requests']:['jobs','customers','vehicles','tasks','invoices','service_records','website_booking_requests'];
   /* Startup performance: these tables are independent. The old code downloaded all seven
      one after another, so mobile startup paid the sum of every Supabase round trip. Fetch
      them concurrently and merge only after each individual request completes. */
@@ -9538,14 +9591,14 @@ async function pullRemote(){
     var t=result.table,key=t==='service_records'?'serviceRecords':(t==='website_booking_requests'?'websiteRequests':t);
     if(t==='jobs')vectaReconcileJobsFromCloud(result.rows);else app[key]=mergeRemoteRows(app[key],result.rows);anyCloudSuccess=true;
   });
-  await vectaLoadTerminalJobStatesFromCloud();vectaApplyTerminalJobStates();
+  if(!options.skipDashboardCore){await vectaLoadTerminalJobStatesFromCloud();vectaApplyTerminalJobStates();}
   if(anyCloudSuccess){vectaCloudReachable=true;vectaLastCloudSuccess=new Date().toISOString();updateConnectivityUI()}
   /* Every cloud job has now passed through the completion-date audit. Persist only
      the high-confidence legacy repairs identified by the old 17:00 sentinel rule. */
   await persistCompletionDateRepairs();
   try{var st=await remoteClient.from('workshop_settings').select('*').eq('id','main').single(); if(!st.error&&st.data&&st.data.value){app.settings=merge(app.settings,st.data.value)}}catch(e){}
   await pullInvoicePaymentMethods();
-  try{var ts=await remoteClient.from('workshop_settings').select('*').eq('id','task_state_overrides_v50').single();if(!ts.error&&ts.data&&ts.data.value){app.settings.taskStateOverrides=mergeTaskStateMaps(hydrateIndependentTaskState(),ts.data.value);writeIndependentTaskState(app.settings.taskStateOverrides)}}catch(e){console.warn('Shared task state pull failed',e)}
+  if(!options.skipDashboardCore){try{var ts=await remoteClient.from('workshop_settings').select('*').eq('id','task_state_overrides_v50').single();if(!ts.error&&ts.data&&ts.data.value){app.settings.taskStateOverrides=mergeTaskStateMaps(hydrateIndependentTaskState(),ts.data.value);writeIndependentTaskState(app.settings.taskStateOverrides)}}catch(e){console.warn('Shared task state pull failed',e)}}
   try{var jc=await remoteClient.from('workshop_settings').select('id,value,updated_at').like('id','jobcustomer:%').limit(1000);if(!jc.error&&Array.isArray(jc.data)){app.jobCustomerMemory=app.jobCustomerMemory||{};jc.data.forEach(function(row){var id=String(row.id||'').replace(/^jobcustomer:/,'');if(id&&row.value&&typeof row.value==='object'){var current=app.jobCustomerMemory[id],ct=Date.parse(current&&current.updated_at||0)||0,rt=Date.parse(row.updated_at||row.value.updated_at||0)||0;if(!current||rt>=ct)app.jobCustomerMemory[id]=Object.assign({},row.value,{updated_at:row.updated_at||row.value.updated_at||''})}})}}catch(e){console.warn('Shared job customer memory pull failed',e)}
   await migrateNk16CyoVehicleTaxJob();
   await purgeDeletedWebsiteTestBookingH4uxm();
@@ -9677,7 +9730,49 @@ function startCloudSync(){
   });
   window.addEventListener('online',function(){cloudLastRefreshAt=0;refreshCloudAndRender()});
 }
-function init(){safe(async function(){loadLocal();await vectaCreateDailyBackup(false,'startup-local');bindTop();updateConnectivityUI('checking');setInterval(function(){checkForNewWorkshopDay();if(view==='planner')updateCurrentTimeLine()},30000);var configured=await loadCloudConfig({silent:true});if(!navigator.onLine||!configured){vectaCloudReachable=false;/* Offline mode may use the local snapshot, but it must not auto-move jobs between mechanics while cloud truth is unavailable. */importContractor2026Spreadsheet();ensureServiceTemplates();ensureRecurringWorkshopTasks();render();updateConnectivityUI();return}ensureSupabase(async function(ok){if(!ok){vectaCloudReachable=false;updateConnectivityUI();render();return}if(connectSupabase()){try{var ping=await vectaWithTimeout(remoteClient.from('jobs').select('id').limit(1),8000,'Cloud connection check');if(ping.error)throw ping.error;vectaCloudReachable=true;updateConnectivityUI('syncing');/* V284 critical ordering: download authoritative jobs BEFORE any rollover, overlap repair or queued write can mutate stale browser data. */await vectaPrimeJobsFromCloud();await vectaLoadTerminalJobStatesFromCloud();vectaApplyTerminalJobStates();await flushPendingSync();/* Re-read jobs after queued operations, then re-apply irreversible lifecycle truth. */await vectaPrimeJobsFromCloud();await vectaLoadTerminalJobStatesFromCloud();vectaApplyTerminalJobStates();await vectaPrimeCompletionEvidenceFromCloud();await vectaRecoverGhostJobsFromTrustedBackups();importContractor2026Spreadsheet();ensureServiceTemplates();ensureRecurringWorkshopTasks();rollOverOutstandingJobs();normaliseLegacyCarryOverJobs();normaliseUnallocatedBookingDates();await syncPendingCarryOvers();await restoreAug13JobsMovedByOldOverlapRule();await repairExistingPlannerOverlaps({persistRemote:true});render();/* Load the slower non-job workshop datasets only after the correct planner is visible. */await pullRemote();await vectaRepairConfirmedNk72KtfCompletion();vectaApplyTerminalJobStates();render();startCloudSync();syncContractor2026SpreadsheetRemote();updateConnectivityUI()}catch(e){console.warn('Supabase startup unavailable; continuing in offline workshop mode.',e);vectaCloudReachable=false;updateConnectivityUI();render()}}else{vectaCloudReachable=false;updateConnectivityUI();render()}})},null)}
+function init(){safe(async function(){
+  loadLocal();
+  bindTop();
+  vectaSetStartupLoading(true,'Loading workshop…','Checking live jobs and tasks before showing the dashboard.');
+  updateConnectivityUI('checking');
+  /* Backups must never block startup. */
+  vectaCreateDailyBackup(false,'startup-local').catch(function(e){console.warn('Startup backup skipped',e)});
+  setInterval(function(){checkForNewWorkshopDay();if(view==='planner')updateCurrentTimeLine()},30000);
+  var configured=await loadCloudConfig({silent:true});
+  if(!navigator.onLine||!configured){
+    vectaCloudReachable=false;
+    importContractor2026Spreadsheet();ensureServiceTemplates();ensureRecurringWorkshopTasks();
+    vectaSetStartupLoading(false);render();updateConnectivityUI();return;
+  }
+  ensureSupabase(async function(ok){
+    if(!ok){vectaCloudReachable=false;updateConnectivityUI();vectaSetStartupLoading(false);render();return}
+    if(!connectSupabase()){vectaCloudReachable=false;updateConnectivityUI();vectaSetStartupLoading(false);render();return}
+    try{
+      var ping=await vectaWithTimeout(remoteClient.from('jobs').select('id').limit(1),7000,'Cloud connection check');if(ping.error)throw ping.error;
+      vectaCloudReachable=true;updateConnectivityUI('syncing');
+      /* V288: jobs + tasks + terminal states are fetched in parallel, reconciled in memory,
+         and only then is the dashboard exposed. Stale local cards can no longer flash first. */
+      await vectaPrimeAuthoritativeDashboard();
+      importContractor2026Spreadsheet();ensureServiceTemplates();ensureRecurringWorkshopTasks();
+      vectaSetStartupLoading(false);render();updateConnectivityUI();
+      /* Everything below is background work. It must not hold the first correct dashboard hostage. */
+      setTimeout(async function(){
+        try{
+          await flushPendingSync();
+          await vectaPrimeJobsFromCloud();await vectaLoadTerminalJobStatesFromCloud();vectaApplyTerminalJobStates();
+          await vectaPrimeCompletionEvidenceFromCloud();await vectaRecoverGhostJobsFromTrustedBackups();await vectaRepairConfirmedNk72KtfCompletion();vectaApplyTerminalJobStates();
+          rollOverOutstandingJobs();normaliseLegacyCarryOverJobs();normaliseUnallocatedBookingDates();await syncPendingCarryOvers();
+          await restoreAug13JobsMovedByOldOverlapRule();await repairExistingPlannerOverlaps({persistRemote:true});
+          render();
+          await pullRemote({skipDashboardCore:true});
+          startCloudSync();syncContractor2026SpreadsheetRemote();updateConnectivityUI();
+        }catch(e){console.warn('Background workshop synchronisation incomplete',e);updateConnectivityUI()}
+      },0);
+    }catch(e){
+      console.warn('Supabase startup unavailable; continuing in offline workshop mode.',e);vectaCloudReachable=false;updateConnectivityUI();vectaSetStartupLoading(false);render();
+    }
+  })
+},null)}
 
 function plannerSearchNormaliseText(v){return String(v||'').toLowerCase().replace(/\s+/g,' ').trim()}
 function plannerSearchCompact(v){return String(v||'').toLowerCase().replace(/[^a-z0-9]/g,'')}

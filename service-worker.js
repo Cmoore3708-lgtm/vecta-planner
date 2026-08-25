@@ -1,4 +1,4 @@
-const CACHE='vecta-v287-terminal-job-ledger';
+const CACHE='vecta-v288-authoritative-dashboard-startup';
 const CORE=['/','/index.html','/manifest.webmanifest','/icons/vecta-192.png','/icons/vecta-512.png'];
 
 self.addEventListener('install',event=>{
