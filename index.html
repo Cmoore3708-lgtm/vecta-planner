@@ -9141,6 +9141,15 @@ function shouldQueueRemoteFailure(err){var msg=String(err&&err.message||err||'')
 async function flushPendingSync(){
   if(vectaSyncInFlight)return false;if(!navigator.onLine||!remoteClient)return false;
   vectaRecoverLegacyStuckQueue();
+  /* Recovery hold: never replay historical queued job deletions. */
+  var recoveryQueue=vectaPendingSync(),safeQueue=recoveryQueue.filter(function(raw){
+    var item=vectaNormaliseQueuedItem(raw);
+    return !(item.table==='jobs'&&item.operation==='delete');
+  });
+  if(safeQueue.length!==recoveryQueue.length){
+    vectaArchiveSyncItems(recoveryQueue.filter(function(raw){var item=vectaNormaliseQueuedItem(raw);return item.table==='jobs'&&item.operation==='delete';}),'25-Aug emergency hold: blocked queued job deletion');
+    vectaSavePendingSync(safeQueue);
+  }
   var q=vectaPendingSync();if(!q.length){vectaCloudReachable=true;vectaSyncProgress=null;updateConnectivityUI();return true}
   var now=Date.now(),eligible=q.filter(function(item){return !item.next_retry_at||(Date.parse(item.next_retry_at)||0)<=now});
   if(!eligible.length){vectaCloudReachable=true;updateConnectivityUI();return false}
@@ -9420,7 +9429,7 @@ function vectaReconcileJobsFromCloud(remoteRows){
   remoteRows.forEach(function(row){if(!row||!row.id)return;var id=String(row.id),status=String(row.status||'').toLowerCase();if(status==='deleted'){vectaSetTerminalJobStateLocal(id,{state:'deleted',job_id:id,registration:normReg(row.registration||''),updated_at:row.updated_at||new Date().toISOString()});return;}remoteById[id]=normaliseCompletedJobState(row)});
   (app.jobs||[]).forEach(function(row){if(row&&row.id)localById[String(row.id)]=row});
   var next=[],staleQueueKeys=[];
-  Object.keys(remoteById).forEach(function(id){var remote=remoteById[id],local=localById[id],pending=queued[id],terminal=vectaTerminalJobState(id);if(terminal&&terminal.state==='deleted')return;if(vectaIsDeletedJobTombstone(id)){return;}if(pending&&pending.operation==='delete')return;if(terminal&&terminal.state==='completed'){remote.status='completed';remote.archived=true;remote.completed_at=remote.completed_at||terminal.completed_at||null;}if(pending&&pending.operation==='upsert'&&local)next.push(normaliseCompletedJobState(mergeRemoteRows([local],[remote])[0]||remote));else next.push(normaliseCompletedJobState(remote))});
+  Object.keys(remoteById).forEach(function(id){var remote=remoteById[id],local=localById[id],pending=queued[id],terminal=vectaTerminalJobState(id);/* 25-Aug recovery: old deletion ledgers/tombstones are not trusted. */if(terminal&&terminal.state==='completed'){remote.status='completed';remote.archived=true;remote.completed_at=remote.completed_at||terminal.completed_at||null;}if(pending&&pending.operation==='upsert'&&local)next.push(normaliseCompletedJobState(mergeRemoteRows([local],[remote])[0]||remote));else next.push(normaliseCompletedJobState(remote))});
   Object.keys(queued).forEach(function(id){if(remoteById[id])return;var item=queued[id],local=localById[id];if(item.operation==='delete')return;if(item.operation==='upsert'&&local&&vectaLikelyNewOfflineJob(item)){next.push(normaliseCompletedJobState(local));return}if(item.operation==='upsert')staleQueueKeys.push(item.key)});
   if(staleQueueKeys.length){var q=vectaPendingSync(),stale=q.filter(function(x){return staleQueueKeys.indexOf(vectaNormaliseQueuedItem(x).key)!==-1});vectaArchiveSyncItems(stale,'Cloud-authoritative startup removed stale job upserts for jobs no longer present');vectaSavePendingSync(q.filter(function(x){return staleQueueKeys.indexOf(vectaNormaliseQueuedItem(x).key)===-1}));console.warn('Removed '+staleQueueKeys.length+' stale queued job change(s) that would have resurrected deleted cloud jobs.')}
   app.jobs=next;saveLocal();return next;
@@ -9447,81 +9456,11 @@ async function vectaPrimeCompletionEvidenceFromCloud(){
 }
 
 async function vectaRecoverGhostJobsFromTrustedBackups(){
-  /* V286 recovery for the already-corrupted live database.
-
-     V285 never actually had usable "cloud-synchronised" history on most workshop PCs:
-     the daily backup is created at startup and vectaCreateDailyBackup() refuses to create
-     another snapshot with the same date later in the day. So yesterday's otherwise useful
-     snapshots were normally labelled "startup-local" / "local-save", and V285 ignored them.
-
-     V286 uses safer historical evidence instead of trusting a single missing snapshot:
-       1) COMPLETION IS IRREVERSIBLE. If an older snapshot contains this same job ID as
-          completed/archived, restore that completed state and push it back to Supabase.
-       2) DELETION requires a state transition: the exact same job ID must be PRESENT in an
-          older snapshot and then ABSENT in a later snapshot. That proves this workshop had
-          the job and subsequently removed it; a merely stale startup cache cannot satisfy
-          both sides of that transition.
-       3) Any historical queued/quarantined DELETE is also explicit deletion evidence.
-
-     This is deliberately ID-based. Registrations are not unique jobs and must never be used
-     to delete records automatically. */
-  try{
-    var rows=await vectaListBackups(),today=todayIso();
-    var history=(rows||[]).filter(function(b){return b&&String(b.id||'')<=today&&b.app&&Array.isArray(b.app.jobs)}).sort(function(a,b){return String(a.created_at||a.id||'').localeCompare(String(b.created_at||b.id||''))});
-    var explicitDeletes={};
-    vectaPendingSync().concat(vectaSyncQuarantine()).forEach(function(raw){
-      var item=vectaNormaliseQueuedItem(raw);if(item.operation!=='delete'||item.table!=='jobs')return;
-      var id=String((item.payload&&item.payload.id)||item.payload||'');if(id)explicitDeletes[id]=true;
-    });
-    var completedRepairs=[],removed=[],remoteDeletes=[];
-    (app.jobs||[]).slice().forEach(function(j){
-      if(!j||!j.id)return;
-      var id=String(j.id),snapshots=[];
-      history.forEach(function(b){
-        var match=(b.app.jobs||[]).find(function(x){return String(x&&x.id||'')===id});
-        snapshots.push({backup:b,job:match||null,present:!!match});
-      });
-
-      /* Recover an irreversible completed state before considering deletion. */
-      if(!jobCompletionEvidence(j)){
-        var priorCompleted=snapshots.filter(function(x){return x.present&&jobCompletionEvidence(x.job)}).sort(function(a,b){return String(b.backup.created_at||b.backup.id||'').localeCompare(String(a.backup.created_at||a.backup.id||''))})[0];
-        if(priorCompleted){
-          var old=priorCompleted.job||{};
-          j.status='completed';j.archived=true;
-          j.completed_at=old.completed_at||old.completedAt||j.completed_at||null;
-          if(old.completed_time&&!j.completed_time)j.completed_time=old.completed_time;
-          j.updated_at=new Date().toISOString();completedRepairs.push(j);return;
-        }
-      }
-
-      if(vectaIsDeletedJobTombstone(id)||explicitDeletes[id]){vectaRememberDeletedJob(id);removed.push(j);remoteDeletes.push(id);return;}
-
-      /* Historical present -> later absent transition = strong deletion proof. */
-      var seenPresentAt=-1,provedDeleted=false;
-      for(var si=0;si<snapshots.length;si++){
-        if(snapshots[si].present){seenPresentAt=si;continue;}
-        if(seenPresentAt>=0){provedDeleted=true;break;}
-      }
-      if(provedDeleted){vectaRememberDeletedJob(id);removed.push(j);remoteDeletes.push(id);}
-    });
-
-    if(completedRepairs.length||removed.length){
-      var removedIds={};removed.forEach(function(j){removedIds[String(j.id)]=true});
-      if(removed.length)app.jobs=(app.jobs||[]).filter(function(j){return !removedIds[String(j&&j.id||'')]});
-      saveLocal();
-    }
-    if(remoteClient){
-      for(var ci=0;ci<completedRepairs.length;ci++){
-        try{await upsertRemote('jobs',completedRepairs[ci],{silent:true})}catch(e){console.warn('Recovered completed job sync failed',completedRepairs[ci]&&completedRepairs[ci].id,e)}
-      }
-      for(var di=0;di<remoteDeletes.length;di++){
-        try{await deleteRemote('jobs',remoteDeletes[di])}catch(e){console.warn('Recovered ghost-job delete queued',remoteDeletes[di],e)}
-      }
-    }
-    window.vectaV286Recovery={completed:completedRepairs.length,deleted:removed.length,ran_at:new Date().toISOString()};
-    if(completedRepairs.length||removed.length)console.warn('V288 lifecycle recovery: '+completedRepairs.length+' completed job(s) restored; '+removed.length+' deleted ghost job(s) removed.');
-    return completedRepairs.length+removed.length;
-  }catch(e){console.warn('V288 historical job recovery skipped',e);return 0;}
+  /* EMERGENCY DATA-SAFETY FIX 25-AUG-2026:
+     Historical/local snapshots are NEVER evidence that a live job was deleted.
+     This routine is intentionally disabled. Only an explicit user Delete Job action
+     may ever create a deletion state. */
+  return 0;
 }
 async function vectaRepairConfirmedNk72KtfCompletion(){
   /* V288 one-time data repair. The workshop has explicitly confirmed that the live
@@ -9682,7 +9621,11 @@ async function upsertRemote(table,row,options){
   var err=new Error('Supabase could not save '+table+' after removing incompatible fields: '+removed.join(', '));
   console.error(err,data);throw err;
 }
-async function deleteRemote(table,id,options){options=options||{};if(!remoteClient||!navigator.onLine){if(!options.skipQueue){queueRemoteOperation('delete',table,id);return true}throw new Error('Supabase is not connected.')}if(table==='tasks'&&!isUuid(id)){console.warn('Skipped remote delete for legacy non-UUID task id',id);return true;}try{var res=await remoteClient.from(table).delete().eq('id',id).select('id');if(res&&res.error)throw new Error(res.error.message||('Could not delete from '+table));var check=await remoteClient.from(table).select('id').eq('id',id).limit(1);if(check&&check.error)throw new Error(check.error.message||('Could not verify deletion from '+table));if(check&&Array.isArray(check.data)&&check.data.length)throw new Error('The record is still present in '+table+'. Supabase may be blocking deletes through its security policy.');return true}catch(e){if(!options.skipQueue&&shouldQueueRemoteFailure(e)){vectaCloudReachable=false;updateConnectivityUI();queueRemoteOperation('delete',table,id);return true}throw e}}
+async function deleteRemote(table,id,options){options=options||{};
+  if(table==='jobs'){
+    console.warn('25-Aug recovery hold blocked a job DELETE',id);
+    return true;
+  }if(!remoteClient||!navigator.onLine){if(!options.skipQueue){queueRemoteOperation('delete',table,id);return true}throw new Error('Supabase is not connected.')}if(table==='tasks'&&!isUuid(id)){console.warn('Skipped remote delete for legacy non-UUID task id',id);return true;}try{var res=await remoteClient.from(table).delete().eq('id',id).select('id');if(res&&res.error)throw new Error(res.error.message||('Could not delete from '+table));var check=await remoteClient.from(table).select('id').eq('id',id).limit(1);if(check&&check.error)throw new Error(check.error.message||('Could not verify deletion from '+table));if(check&&Array.isArray(check.data)&&check.data.length)throw new Error('The record is still present in '+table+'. Supabase may be blocking deletes through its security policy.');return true}catch(e){if(!options.skipQueue&&shouldQueueRemoteFailure(e)){vectaCloudReachable=false;updateConnectivityUI();queueRemoteOperation('delete',table,id);return true}throw e}}
 async function saveAll(){invalidateFinanceDashboardCache();saveLocal(); if(remoteClient){try{await remoteClient.from('workshop_settings').upsert({id:'main',value:app.settings,updated_at:new Date().toISOString()});}catch(e){}}}
 function navItems(){var newCount=(app.websiteRequests||[]).filter(function(r){return !r.status||r.status==='awaiting_review'}).length,partsCount=(app.jobs||[]).filter(function(j){var ps=partsStatusFromJob(j);return !!ps&&ps!=='Parts here'&&ps!=='Not required'&&!j.archived&&j.status!=='completed'&&j.status!=='ready_to_invoice'}).length,paymentWarnCount=typeof overduePaymentMethodInvoices==='function'?overduePaymentMethodInvoices().length:0;return [['planner','Dashboard'],['fleet','Fleet Manager'],['jobs','Jobs'],['invoices','Financial'],['invoiceArchive','Invoices'+(paymentWarnCount?' ⚠ '+paymentWarnCount:'')],['websiteRequests','Website Bookings'+(newCount?' ('+newCount+')':'')],['parts','Parts'+(partsCount?' ('+partsCount+')':'')],['settings','Settings']];}
 function renderNav(){var n=document.getElementById('nav');n.innerHTML=navItems().map(function(it){return '<button data-view="'+it[0]+'" class="'+(view===it[0]?'active':'')+'">'+it[1]+'</button>'}).join('');n.querySelectorAll('button').forEach(function(b){b.onclick=function(){if(b.dataset.view!=='invoices'&&financeDashboardTimer){clearTimeout(financeDashboardTimer);financeDashboardTimer=null}if(b.dataset.view==='fleet'){fleetSection='maintenance';fleetListMode='due30';fleetFilter='All';fleetQuery='';fleetDueOnly=false;activeFleetVehicleId=''}if(b.dataset.view==='jobs'){jobsListMode='open';jobsSearchQuery=''}if(b.dataset.view==='invoices')financialSection='main';if(b.dataset.view==='invoiceArchive'){openFinancialInvoiceList();return}view=b.dataset.view;render()}})}
@@ -12986,6 +12929,9 @@ function gatherJob(id){
   return j;
 }
 var VECTA_DELETED_JOB_IDS_KEY='vecta:jobs:deleted-tombstones:v284';
+/* 25-Aug emergency recovery: local deletion tombstones created by the faulty
+   snapshot routine are unsafe. Clear them locally so recovered cloud rows can display. */
+try{localStorage.removeItem(VECTA_DELETED_JOB_IDS_KEY)}catch(e){}
 function vectaDeletedJobTombstones(){try{var x=JSON.parse(localStorage.getItem(VECTA_DELETED_JOB_IDS_KEY)||'{}');return x&&typeof x==='object'?x:{}}catch(e){return {}}}
 function vectaRememberDeletedJob(id){if(!id)return;var x=vectaDeletedJobTombstones();x[String(id)]={deleted_at:new Date().toISOString()};try{localStorage.setItem(VECTA_DELETED_JOB_IDS_KEY,JSON.stringify(x))}catch(e){}var q=vectaPendingSync(),key='delete:jobs:'+String(id);if(!q.some(function(item){return vectaNormaliseQueuedItem(item).key===key}))queueRemoteOperation('delete','jobs',String(id));}
 function vectaIsDeletedJobTombstone(id){return !!vectaDeletedJobTombstones()[String(id||'')]}
@@ -13029,7 +12975,7 @@ async function vectaLoadTerminalJobStatesFromCloud(){
       if(res.error)throw res.error;
       var page=Array.isArray(res.data)?res.data:[];rows=rows.concat(page);if(page.length<pageSize)break;from+=pageSize;
     }
-    rows.forEach(function(row){var id=String(row.id||'').slice(VECTA_TERMINAL_JOB_PREFIX.length),state=vectaNormaliseTerminalState(row.value);if(id&&state){state.updated_at=row.updated_at||state.updated_at;vectaSetTerminalJobStateLocal(id,state)}});
+    rows.forEach(function(row){var id=String(row.id||'').slice(VECTA_TERMINAL_JOB_PREFIX.length),state=vectaNormaliseTerminalState(row.value);if(id&&state&&state.state!=='deleted'){state.updated_at=row.updated_at||state.updated_at;vectaSetTerminalJobStateLocal(id,state)}});
     return true;
   }catch(e){console.warn('Job lifecycle ledger could not be loaded',e);return false}
 }
@@ -13063,6 +13009,8 @@ async function vectaSoftDeleteRemoteJob(jobOrId){
   return true;
 }
 async function deleteJobCompletely(id){
+  alert('Job deletion is temporarily disabled while the 25 August data recovery is completed.');
+  return;
   var j=(app.jobs||[]).find(function(x){return String(x.id)===String(id)});
   if(!j){alert('This job could not be found. Refresh the page and try again.');return;}
   var label=jobVehicleLabel(j),date=j.booking_date?niceDate(j.booking_date):'no booking date';
