@@ -9330,25 +9330,34 @@ async function persistCompletionDateRepairs(){
   }
   return saved;
 }
+function vectaCompletionStampIsSynthetic(value){return /T(?:12|17):00:00(?:\.000)?Z$/i.test(String(value||''))}
+function vectaChooseCompletionStamp(a,b){
+  a=String(a||'').trim();b=String(b||'').trim();
+  if(!a)return b;if(!b)return a;if(a===b)return a;
+  var as=vectaCompletionStampIsSynthetic(a),bs=vectaCompletionStampIsSynthetic(b);
+  if(as!==bs)return as?b:a;
+  var at=Date.parse(a),bt=Date.parse(b);
+  if(Number.isFinite(at)&&Number.isFinite(bt))return at<=bt?a:b;
+  return a;
+}
 function mergeRemoteRows(localRows,remoteRows){
   localRows=Array.isArray(localRows)?localRows:[];remoteRows=Array.isArray(remoteRows)?remoteRows:[];
   var map={};
-  localRows.forEach(function(row){if(row&&row.id)map[row.id]=row});
-  remoteRows.map(fromRemote).forEach(function(remote){
+  localRows.forEach(function(row){if(row&&row.id)map[row.id]=normaliseCompletedJobState(row)});
+  remoteRows.forEach(function(remote){
     if(!remote||!remote.id)return;
     var local=map[remote.id];
     if(!local){map[remote.id]=normaliseCompletedJobState(remote);return;}
-    /* Completion is irreversible in Workshop Pro. If either copy proves the job
-       was completed, an older/stale open copy must never put it back on the planner. */
     if(jobCompletionEvidence(local)||jobCompletionEvidence(remote)){
-      var winner=jobCompletionEvidence(local)?Object.assign({},remote,local):Object.assign({},local,remote);
-      if(jobCompletionEvidence(local)){winner.status='completed';winner.archived=true;winner.completed_at=local.completed_at||remote.completed_at||winner.completed_at}
-      if(jobCompletionEvidence(remote)){winner.status='completed';winner.archived=true;winner.completed_at=remote.completed_at||local.completed_at||winner.completed_at}
+      var lt=Date.parse(local.updated_at||local.created_at||0)||0,rt=Date.parse(remote.updated_at||remote.created_at||0)||0;
+      var winner=lt>=rt?Object.assign({},remote,local):Object.assign({},local,remote);
+      winner.status='completed';winner.archived=true;
+      winner.completed_at=vectaChooseCompletionStamp(local.completed_at,remote.completed_at)||winner.completed_at;
       map[remote.id]=normaliseCompletedJobState(winner);
       return;
     }
-    var lt=Date.parse(local.updated_at||local.created_at||0)||0,rt=Date.parse(remote.updated_at||remote.created_at||0)||0;
-    map[remote.id]=lt>rt?local:remote;
+    var lt2=Date.parse(local.updated_at||local.created_at||0)||0,rt2=Date.parse(remote.updated_at||remote.created_at||0)||0;
+    map[remote.id]=lt2>rt2?local:remote;
   });
   return Object.keys(map).map(function(id){return normaliseCompletedJobState(map[id])});
 }
@@ -10794,7 +10803,10 @@ function fleetPrintCurrentView(){
   var titles={due30:'All work due in the next 30 days',overdue:'Overdue fleet work',mot30:'MOTs due in the next 30 days',service30:'Services due in the next 30 days',tax30:'Tax due in the next 30 days',safety30:'Six-month safety checks due in the next 30 days'};
   var generated=new Date().toLocaleString('en-GB'),rangeText=mode==='overdue'?'Overdue as at '+niceDate(todayIso()):niceDate(todayIso())+' to '+niceDate(new Date(limit.getTime()-limit.getTimezoneOffset()*60000).toISOString().slice(0,10));
   var vehicleCount=new Set(rows.map(function(r){return r.vehicle.id||normReg(r.vehicle.registration||'')})).size;
-  var html='<!doctype html><html><head><meta charset="utf-8"><title>'+esc(titles[mode])+'</title><style>@page{size:A4 portrait;margin:12mm}*{box-sizing:border-box}body{font-family:Arial,Helvetica,sans-serif;color:#111827;margin:0;font-size:11px}.head{display:flex;justify-content:space-between;align-items:flex-end;border-bottom:3px solid #111827;padding-bottom:8px;margin-bottom:12px}.brand{font-size:28px;font-weight:900;letter-spacing:.08em;color:#b91c1c}.head h1{margin:0;font-size:20px}.meta{text-align:right;color:#475569;font-size:10px}.summary{display:flex;gap:8px;margin:0 0 10px}.summary div{border:1px solid #cbd5e1;border-radius:6px;padding:6px 9px}.summary b{font-size:16px;display:block}table{width:100%;border-collapse:collapse}thead{display:table-header-group}th{background:#f1f5f9;text-align:left;font-size:9px;text-transform:uppercase;letter-spacing:.04em;padding:7px 6px;border-bottom:2px solid #94a3b8}td{padding:7px 6px;border-bottom:1px solid #e2e8f0;vertical-align:top}.reg{font-weight:800;white-space:nowrap}.due{font-weight:800;white-space:nowrap}.type{font-weight:700}.customer{white-space:nowrap}.foot{margin-top:10px;color:#64748b;font-size:9px}</style></head><body><div class="head"><div><div class="brand">VECTA</div><h1>'+esc(titles[mode])+'</h1></div><div class="meta">'+esc(rangeText)+'<br>Printed '+esc(generated)+'</div></div><div class="summary"><div><b>'+rows.length+'</b>work items</div><div><b>'+vehicleCount+'</b>vehicles</div></div><table><thead><tr><th>Due date</th><th>Registration</th><th>Vehicle</th><th>Fleet / customer</th><th>Work due</th></tr></thead><tbody>'+rows.map(function(r){var v=r.vehicle,customer=v.fleetGroup==='Contractor Fleet'?fleetNormaliseCustomer(v.customer):fleetGroupLabel(v.fleetGroup);return '<tr><td class="due">'+esc(niceDate(r.due))+'</td><td class="reg">'+esc(normReg(v.registration||''))+'</td><td>'+esc(fleetDisplayModel(v.model))+'</td><td class="customer">'+esc(customer)+'</td><td class="type">'+esc(r.type)+(r.bookedJob?' <b style="color:#dc2626">✓ BOOKED</b>':'')+'</td></tr>'}).join('')+(rows.length?'':'<tr><td colspan="5">No matching fleet work is currently listed in this view.</td></tr>')+'</tbody></table><div class="foot">Generated from the currently selected Fleet Manager tab and filters.</div><script>window.onload=function(){setTimeout(function(){window.print()},150)}<\/script></body></html>';
+  var html='<!doctype html><html><head><meta charset="utf-8"><title>'+esc(titles[mode])+'</title><style>@page{size:A4 portrait;margin:12mm}*{box-sizing:border-box}body{font-family:Arial,Helvetica,sans-serif;color:#111827;margin:0;font-size:11px}.head{display:flex;justify-content:space-between;align-items:flex-end;border-bottom:3px solid #111827;padding-bottom:8px;margin-bottom:12px}.brand{font-size:28px;font-weight:900;letter-spacing:.08em;color:#b91c1c}.head h1{margin:0;font-size:20px}.meta{text-align:right;color:#475569;font-size:10px}.summary{display:flex;gap:8px;margin:0 0 10px}.summary div{border:1px solid #cbd5e1;border-radius:6px;padding:6px 9px}.summary b{font-size:16px;display:block}table{width:100%;border-collapse:collapse}thead{display:table-header-group}th{background:#f1f5f9;text-align:left;font-size:9px;text-transform:uppercase;letter-spacing:.04em;padding:7px 6px;border-bottom:2px solid #94a3b8}td{padding:7px 6px;border-bottom:1px solid #e2e8f0;vertical-align:top}.reg{font-weight:800;white-space:nowrap}.due{font-weight:800;white-space:nowrap}.type{font-weight:700}.customer{white-space:nowrap}.foot{margin-top:10px;color:#64748b;font-size:9px}</style></head><body><div class="head"><div><div class="brand">VECTA</div><h1>'+esc(titles[mode])+'</h1></div><div class="meta">'+esc(rangeText)+'<br>Printed '+esc(generated)+'</div></div><div class="summary"><div><b>'+rows.length+'</b>work items</div><div><b>'+vehicleCount+'</b>vehicles</div></div><table><thead><tr><th>Due date</th><th>Registration</th><th>Vehicle</th><th>Fleet / customer</th><th>Work due</th></tr></thead><tbody>'+rows.map(function(r){var v=r.vehicle,customer=v.fleetGroup==='Contractor Fleet'?fleetNormaliseCustomer(v.customer):fleetGroupLabel(v.fleetGroup);return '<tr><td class="due">'+esc(niceDate(r.due))+'</td><td class="reg">'+esc(normReg(v.registration||''))+'</td><td>'+esc(fleetDisplayModel(v.model))+'</td><td class="customer">'+esc(customer)+'</td><td class="type">'+esc(r.type)+(r.bookedJob?' <b style="color:#dc2626">✓ BOOKED</b>':'')+'</td></tr>'}).join('')+(rows.length?'':'<tr><td colspan="5">No matching fleet work is currently listed in this view.</td></tr>')+'</tbody></table><div class="foot">Generated from the currently selected Fleet Manager tab and filters.</div><script>window.onload=function(){setTimeout(function(){window.print()},150)}<\/script>
+
+
+</body></html>';
   var w=window.open('','_blank');if(!w){alert('Please allow pop-ups to print this Fleet Manager list.');return}try{w.document.open();w.document.write(html);w.document.close();w.focus()}catch(err){try{w.close()}catch(e){}alert('The Fleet Manager print page could not be prepared. Please try again.');console.error('Fleet print failed',err)}
 }
 function fleetPrintDue30Page(){fleetPrintCurrentView()}
@@ -13567,7 +13579,7 @@ function latestServiceMileage(regValue){
   return '';
 }
 function storeServiceRecordLocal(record){if(!record||!record.html)return null;var reg=normReg(record.registration||''),kind=serviceRecordKind(record),jobId=String(record.job_id||'');if(!reg)return null;record=Object.assign({},record,{id:record.id||serviceRemoteKey(reg,kind,jobId),registration:reg,sheet_type:kind,job_id:jobId});app.serviceRecords=(app.serviceRecords||[]).filter(function(r){return String(r.id||'')!==String(record.id)});app.serviceRecords.push(record);try{localStorage.setItem(serviceStorageKey(reg,kind,jobId),JSON.stringify(record));saveLocal()}catch(e){console.warn('Local paperwork cache failed',e)}return record}
-async function saveServiceSheet(){var sheet=document.querySelector('#printSheet .servicePrint');if(!sheet||!activeServiceRegistration){alert('Unable to save this paperwork.');return}var mileageCheck=sheet.querySelector('.ssMileageEntry');var mileageValue=mileageCheck?String((mileageCheck.value!==undefined?mileageCheck.value:mileageCheck.textContent)||'').trim():'';if(!mileageValue||!/[0-9]/.test(mileageValue)){alert('Please enter the vehicle mileage before saving the service sheet.');if(mileageCheck){try{mileageCheck.focus()}catch(e){};if(mileageCheck.select)try{mileageCheck.select()}catch(e){}}return}Array.prototype.forEach.call(sheet.querySelectorAll('input,textarea'),function(input){input.setAttribute('value',input.value)});var storedSheet=sheet.cloneNode(true);Array.prototype.forEach.call(storedSheet.querySelectorAll('.ssBrand img'),function(img){img.setAttribute('src',BRAND_LOGO_FILE_SRC)});var reg=normReg(activeServiceRegistration),kind=normalisePaperworkKind(activeServiceKind),jobId=String(activeServiceJobId||sheet.getAttribute('data-job-id')||''),now=new Date().toISOString(),existing=latestSavedServiceSheet(reg,kind,jobId),mileageEl=sheet.querySelector('.ssMileageEntry'),sheetMileage=mileageEl?String(mileageEl.textContent||'').trim():'',record={id:serviceRemoteKey(reg,kind,jobId),registration:reg,job_id:jobId,sheet_type:kind,title:paperworkTitle(kind),mileage:sheetMileage,saved_at:now,updated_at:now,created_at:(existing&&existing.created_at)||now,html:storedSheet.outerHTML};storeServiceRecordLocal(record);try{var linkedPaperworkJob=(app.jobs||[]).find(function(x){return String(x.id||'')===String(jobId)});if(linkedPaperworkJob&&financeIsRecognisedJob(linkedPaperworkJob)){var paperDate=String(now).slice(0,10),oldDone=String(linkedPaperworkJob.completed_at||'').slice(0,10),oldBooked=String(linkedPaperworkJob.booking_date||'').slice(0,10);if(!oldDone||paperDate<oldDone)linkedPaperworkJob.completed_at=now;if(oldBooked&&paperDate<oldBooked)linkedPaperworkJob.booking_date=paperDate;linkedPaperworkJob.updated_at=now;saveLocal();if(remoteClient)upsertRemote('jobs',linkedPaperworkJob,{silent:true}).catch(function(e){console.warn('Paperwork completion-date sync failed',e)})}}catch(e){console.warn('Paperwork completion-date link skipped',e)}if(!remoteClient){console.warn(record.title+' saved locally; cloud database is not connected.');return}try{var confirmed=await saveServiceRecordRemote(record);storeServiceRecordLocal(confirmed||record)}catch(e){alert('The shared paperwork save failed: '+(e&&e.message?e.message:'Unknown error')+'. Please check the connection and save again.')}}
+async function saveServiceSheet(){var sheet=document.querySelector('#printSheet .servicePrint');if(!sheet||!activeServiceRegistration){alert('Unable to save this paperwork.');return}var mileageCheck=sheet.querySelector('.ssMileageEntry');var mileageValue=mileageCheck?String((mileageCheck.value!==undefined?mileageCheck.value:mileageCheck.textContent)||'').trim():'';if(!mileageValue||!/[0-9]/.test(mileageValue)){alert('Please enter the vehicle mileage before saving the service sheet.');if(mileageCheck){try{mileageCheck.focus()}catch(e){};if(mileageCheck.select)try{mileageCheck.select()}catch(e){}}return}Array.prototype.forEach.call(sheet.querySelectorAll('input,textarea'),function(input){input.setAttribute('value',input.value)});var storedSheet=sheet.cloneNode(true);Array.prototype.forEach.call(storedSheet.querySelectorAll('.ssBrand img'),function(img){img.setAttribute('src',BRAND_LOGO_FILE_SRC)});var reg=normReg(activeServiceRegistration),kind=normalisePaperworkKind(activeServiceKind),jobId=String(activeServiceJobId||sheet.getAttribute('data-job-id')||''),now=new Date().toISOString(),existing=latestSavedServiceSheet(reg,kind,jobId),mileageEl=sheet.querySelector('.ssMileageEntry'),sheetMileage=mileageEl?String(mileageEl.textContent||'').trim():'',record={id:serviceRemoteKey(reg,kind,jobId),registration:reg,job_id:jobId,sheet_type:kind,title:paperworkTitle(kind),mileage:sheetMileage,saved_at:now,updated_at:now,created_at:(existing&&existing.created_at)||now,html:storedSheet.outerHTML};storeServiceRecordLocal(record);try{var linkedPaperworkJob=(app.jobs||[]).find(function(x){return String(x.id||'')===String(jobId)});if(linkedPaperworkJob&&financeIsRecognisedJob(linkedPaperworkJob)){var paperDate=todayIso(),oldDone=String(linkedPaperworkJob.completed_at||'').slice(0,10),oldBooked=String(linkedPaperworkJob.booking_date||'').slice(0,10);if(!oldDone||paperDate<oldDone)linkedPaperworkJob.completed_at=now;if(oldBooked&&paperDate<oldBooked)linkedPaperworkJob.booking_date=paperDate;linkedPaperworkJob.updated_at=now;saveLocal();if(remoteClient)upsertRemote('jobs',linkedPaperworkJob,{silent:true}).catch(function(e){console.warn('Paperwork completion-date sync failed',e)})}}catch(e){console.warn('Paperwork completion-date link skipped',e)}if(!remoteClient){console.warn(record.title+' saved locally; cloud database is not connected.');return}try{var confirmed=await saveServiceRecordRemote(record);storeServiceRecordLocal(confirmed||record)}catch(e){alert('The shared paperwork save failed: '+(e&&e.message?e.message:'Unknown error')+'. Please check the connection and save again.')}}
 function loadSavedServiceSheet(reg,kind,jobId){kind=normalisePaperworkKind(kind);try{var keys=[serviceStorageKey(reg,kind,jobId)];if(kind==='service')keys.push('vecta_service_sheet_'+normReg(reg||''));for(var i=0;i<keys.length;i++){var raw=localStorage.getItem(keys[i]);if(raw){var record=JSON.parse(raw);if(record&&record.html)return record}}return null}catch(e){return null}}
 function latestSavedServiceSheet(reg,kind,jobId){reg=normReg(reg||'');kind=normalisePaperworkKind(kind);var all=(app.serviceRecords||[]).filter(function(r){return normReg(r.registration||'')===reg&&r.html&&serviceRecordKind(r)===kind}),rows=jobId?all.filter(function(r){return String(r.job_id||'')===String(jobId)}):all.slice();if(!rows.length&&jobId&&kind==='service')rows=all.filter(function(r){return !r.job_id});var local=loadSavedServiceSheet(reg,kind,jobId);if(local&&(!jobId||String(local.job_id||'')===String(jobId)||kind==='service'&&!local.job_id))rows.push(local);rows.sort(function(a,b){return serviceRecordTime(b)-serviceRecordTime(a)});return rows[0]||null}
 function serviceRecordJobId(record){var direct=String(record&&record.job_id||'');if(direct)return direct;var match=String(record&&record.html||'').match(/data-job-id=[\"']([^\"']+)[\"']/i);return match?String(match[1]||''):''}
@@ -15490,5 +15502,35 @@ try{
 function v278SafeRun(){try{var r=v278RepairAllMainSec();if(r&&typeof r.catch==='function')r.catch(function(e){console.warn('V278 MAIN SEC deferred repair failed',e);});}catch(e){console.warn('V278 MAIN SEC deferred repair skipped',e);}}
 setTimeout(v278SafeRun,1800);
 try{var foot=document.querySelector('.sideFoot small');if(foot)foot.textContent='v278 Workshop Pro · MAIN SEC Internal master correction';}catch(e){}
+})();
+</script>
+<script id="v285-completion-date-authority-repair">
+(function(){
+'use strict';
+function validDate(v){v=String(v||'').slice(0,10);return /^\d{4}-\d{2}-\d{2}$/.test(v)?v:''}
+function synthetic(v){return typeof vectaCompletionStampIsSynthetic==='function'?vectaCompletionStampIsSynthetic(v):/T(?:12|17):00:00(?:\.000)?Z$/i.test(String(v||''))}
+function choose(a,b){return typeof vectaChooseCompletionStamp==='function'?vectaChooseCompletionStamp(a,b):(a||b||'')}
+function completionEvidence(j){return !!j&&(String(j.status||'').toLowerCase()==='completed'||!!j.archived||!!String(j.completed_at||'').trim())}
+async function repairFromBackups(){
+  if(typeof vectaListBackups!=='function'||!window.app||!Array.isArray(app.jobs))return {checked:0,repaired:0};
+  var backups=await vectaListBackups();if(!backups.length)return {checked:0,repaired:0};
+  var evidence=Object.create(null),checked=0;
+  backups.slice().sort(function(a,b){return String(a.created_at||'').localeCompare(String(b.created_at||''))}).forEach(function(snap){
+    var rows=snap&&snap.app&&Array.isArray(snap.app.jobs)?snap.app.jobs:[];
+    rows.forEach(function(j){if(!j||!j.id||!completionEvidence(j)||!j.completed_at)return;checked++;var id=String(j.id),stamp=String(j.completed_at||'');evidence[id]=evidence[id]?choose(evidence[id],stamp):stamp;});
+  });
+  var changed=[];
+  (app.jobs||[]).forEach(function(j){
+    if(!j||!j.id||!completionEvidence(j))return;var old=String(j.completed_at||''),historic=evidence[String(j.id)]||'';if(!historic)return;
+    var best=choose(old,historic);if(!best||best===old)return;var od=validDate(old),bd=validDate(best);if(old&&!synthetic(old)&&od&&bd&&bd>od)return;
+    j.completed_at=best;j.updated_at=new Date().toISOString();changed.push(j);
+  });
+  if(changed.length){try{saveLocal()}catch(e){}if(remoteClient){for(var i=0;i<changed.length;i++){try{await upsertRemote('jobs',changed[i],{silent:true})}catch(e){console.warn('Completion date authority repair cloud save failed',changed[i]&&changed[i].id,e)}}}try{if(typeof invalidateFinanceDashboardCache==='function')invalidateFinanceDashboardCache()}catch(e){}try{if(typeof render==='function')render()}catch(e){}}
+  window.v285CompletionRepairStatus={checked:checked,repaired:changed.length,finishedAt:new Date().toISOString()};return window.v285CompletionRepairStatus;
+}
+window.v285RepairCompletionDates=repairFromBackups;
+if(typeof updateJobQuick==='function'&&!updateJobQuick.__v285CompletionGuard){var oldQuick=updateJobQuick;updateJobQuick=function(j){var existing=(app.jobs||[]).find(function(x){return j&&String(x.id||'')===String(j.id||'')});var prior=existing&&existing.completed_at;var result=oldQuick.apply(this,arguments);if(j&&String(j.status||'').toLowerCase()==='completed'&&prior&&j.completed_at!==prior){j.completed_at=choose(prior,j.completed_at);try{saveLocal()}catch(e){}}return result;};updateJobQuick.__v285CompletionGuard=true;}
+setTimeout(function(){repairFromBackups().catch(function(e){console.warn('Completion date audit skipped',e)})},2600);
+setTimeout(function(){repairFromBackups().catch(function(e){console.warn('Completion date audit skipped',e)})},8000);
 })();
 </script>
