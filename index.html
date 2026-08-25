@@ -9073,16 +9073,15 @@ function rollOverOutstandingJobs(){
   return changed;
 }
 function normaliseLegacyCarryOverJobs(){
-  var today=carryOverWorkshopDate(todayIso()),mechanics=(app.settings&&app.settings.mechanics||['Alfie','Other']).filter(function(m){return m&&m!=='Unallocated'&&m!=='Waiting'}),changed=[];
+  /* V284: legacy carry-over markers are cleanup metadata only. Older builds used this
+     function to take an Unallocated job and silently assign it to Other/Alfie during
+     startup. That made stale/deleted jobs look like genuine bookings. Never allocate
+     an Unallocated job from a legacy marker; leave its planner position untouched. */
+  var changed=[];
   (app.jobs||[]).forEach(function(j){
     var meta=carryOverMeta(j);if(!meta)return;
     j.customer_note=clearCarryOverMeta(j.customer_note);
-    if(isUnallocatedJob(j)&&!j.archived&&j.status!=='completed'&&j.status!=='ready_to_invoice'&&!isJobInvoiced(j)){
-      var preferred=[];var original=String(meta.technician||'');if(original&&mechanics.indexOf(original)>-1)preferred.push(original);var other=mechanics.find(function(m){return String(m).toLowerCase()==='other'});if(other&&preferred.indexOf(other)===-1)preferred.push(other);mechanics.forEach(function(m){if(preferred.indexOf(m)===-1)preferred.push(m)});
-      var mech='',slot='';for(var i=0;i<preferred.length;i++){var s=carryOverAvailableSlot(j,today,preferred[i]);if(s){mech=preferred[i];slot=s;break}}
-      if(!mech){mech=other||preferred[0]||'Alfie';slot=carryOverFallbackTime(j,today,mech)}
-      j.technician=mech;j.booking_date=today;j.drop_time=slot||'08:00';
-    }
+    if(isUnallocatedJob(j))j.booking_date=null;
     j.updated_at=new Date().toISOString();carryOverPendingSync[j.id]=true;changed.push(j);
   });
   if(changed.length)saveLocal();
@@ -9157,7 +9156,7 @@ async function flushPendingSync(){
   return false
 }
 function registerVectaServiceWorker(){if('serviceWorker' in navigator){window.addEventListener('load',function(){navigator.serviceWorker.register('/service-worker.js').catch(function(e){console.warn('Offline app install failed',e)})})}}
-window.addEventListener('online',function(){updateConnectivityUI('syncing');setTimeout(async function(){try{var configured=await loadCloudConfig({silent:true});if(configured){await new Promise(function(resolve){ensureSupabase(function(){connectSupabase();resolve()})});if(remoteClient){var test=await vectaWithTimeout(remoteClient.from('jobs').select('id').limit(1),8000,'Cloud connection check');if(!test.error){vectaCloudReachable=true;await flushPendingSync();await pullRemote();await vectaCreateDailyBackup(false,'cloud-synchronised');render()}}}}catch(e){vectaCloudReachable=false}updateConnectivityUI()},500)});
+window.addEventListener('online',function(){updateConnectivityUI('syncing');setTimeout(async function(){try{var configured=await loadCloudConfig({silent:true});if(configured){await new Promise(function(resolve){ensureSupabase(function(){connectSupabase();resolve()})});if(remoteClient){var test=await vectaWithTimeout(remoteClient.from('jobs').select('id').limit(1),8000,'Cloud connection check');if(!test.error){vectaCloudReachable=true;/* V284: cloud jobs must be read BEFORE any queued writes are replayed. This prevents stale browser jobs being re-created/re-allocated when a computer reconnects. */await vectaPrimeJobsFromCloud();await flushPendingSync();await pullRemote();rollOverOutstandingJobs();normaliseUnallocatedBookingDates();await syncPendingCarryOvers();await vectaCreateDailyBackup(false,'cloud-synchronised');render()}}}}catch(e){vectaCloudReachable=false}updateConnectivityUI()},500)});
 window.addEventListener('offline',function(){vectaCloudReachable=false;updateConnectivityUI()});
 setInterval(function(){if(navigator.onLine&&vectaCloudReachable&&vectaPendingSync().length&&!vectaSyncInFlight){flushPendingSync().catch(function(e){console.warn('Background offline-sync retry failed',e)})}},5*60*1000);
 registerVectaServiceWorker();
@@ -9377,23 +9376,47 @@ async function migrateNk16CyoVehicleTaxJob(){
   if(remoteClient){for(var i=0;i<changed.length;i++){try{await upsertRemote('jobs',changed[i],{silent:true})}catch(e){console.warn('NK16 CYO Vehicle Tax migration could not sync',e)}}}
   return true;
 }
+async function vectaFetchAllRemoteRows(table,timeoutMs){
+  var all=[],from=0,pageSize=1000;
+  while(true){
+    var res=await vectaWithTimeout(remoteClient.from(table).select('*').range(from,from+pageSize-1),timeoutMs||12000,'Cloud '+table+' download');
+    if(res.error)throw res.error;
+    var rows=Array.isArray(res.data)?res.data:[];all=all.concat(rows);
+    if(rows.length<pageSize)break;from+=pageSize;
+    if(from>100000)throw new Error('Safety limit reached while downloading '+table);
+  }
+  return all;
+}
+function vectaQueuedJobOperations(){var map={};vectaPendingSync().forEach(function(raw){var item=vectaNormaliseQueuedItem(raw);if(item.table!=='jobs')return;var id=String((item.payload&&item.payload.id)||item.payload||'');if(id)map[id]=item});return map}
+function vectaLikelyNewOfflineJob(item){if(!item||item.operation!=='upsert'||!item.payload||Array.isArray(item.payload))return false;var created=Date.parse(item.payload.created_at||0)||0,queued=Date.parse(item.queued_at||0)||0;if(!created||!queued)return false;return Math.abs(queued-created)<=30*60*1000}
+function vectaReconcileJobsFromCloud(remoteRows){
+  remoteRows=Array.isArray(remoteRows)?remoteRows.map(fromRemote):[];
+  var remoteById={},queued=vectaQueuedJobOperations(),localById={};
+  remoteRows.forEach(function(row){if(row&&row.id)remoteById[String(row.id)]=normaliseCompletedJobState(row)});
+  (app.jobs||[]).forEach(function(row){if(row&&row.id)localById[String(row.id)]=row});
+  var next=[],staleQueueKeys=[];
+  Object.keys(remoteById).forEach(function(id){var remote=remoteById[id],local=localById[id],pending=queued[id];if(vectaIsDeletedJobTombstone(id)){if(!pending||pending.operation!=='delete')queueRemoteOperation('delete','jobs',id);return;}if(pending&&pending.operation==='delete')return;if(pending&&pending.operation==='upsert'&&local)next.push(normaliseCompletedJobState(mergeRemoteRows([local],[remote])[0]||remote));else next.push(normaliseCompletedJobState(remote))});
+  Object.keys(queued).forEach(function(id){if(remoteById[id])return;var item=queued[id],local=localById[id];if(item.operation==='delete')return;if(item.operation==='upsert'&&local&&vectaLikelyNewOfflineJob(item)){next.push(normaliseCompletedJobState(local));return}if(item.operation==='upsert')staleQueueKeys.push(item.key)});
+  if(staleQueueKeys.length){var q=vectaPendingSync(),stale=q.filter(function(x){return staleQueueKeys.indexOf(vectaNormaliseQueuedItem(x).key)!==-1});vectaArchiveSyncItems(stale,'Cloud-authoritative startup removed stale job upserts for jobs no longer present');vectaSavePendingSync(q.filter(function(x){return staleQueueKeys.indexOf(vectaNormaliseQueuedItem(x).key)===-1}));console.warn('Removed '+staleQueueKeys.length+' stale queued job change(s) that would have resurrected deleted cloud jobs.')}
+  app.jobs=next;saveLocal();return next;
+}
+async function vectaPrimeJobsFromCloud(){if(!remoteClient)return false;var started=performance.now(),rows=await vectaFetchAllRemoteRows('jobs',8000);vectaReconcileJobsFromCloud(rows);vectaCloudReachable=true;vectaLastCloudSuccess=new Date().toISOString();try{window.vectaStartupJobsPullMs=Math.round(performance.now()-started);console.info('Authoritative jobs refresh completed in '+window.vectaStartupJobsPullMs+'ms')}catch(e){}updateConnectivityUI();return true}
 async function pullRemote(){
   var __pullStarted=performance.now();
   if(!connectSupabase()) return;
   var tables=['jobs','customers','vehicles','tasks','invoices','service_records','website_booking_requests'];
-  async function fetchAllRows(table){var all=[],from=0,pageSize=1000;while(true){var res=await vectaWithTimeout(remoteClient.from(table).select('*').range(from,from+pageSize-1),12000,'Cloud '+table+' download');if(res.error)throw res.error;var rows=Array.isArray(res.data)?res.data:[];all=all.concat(rows);if(rows.length<pageSize)break;from+=pageSize;if(from>100000)throw new Error('Safety limit reached while backing up '+table)}return all}
   /* Startup performance: these tables are independent. The old code downloaded all seven
      one after another, so mobile startup paid the sum of every Supabase round trip. Fetch
      them concurrently and merge only after each individual request completes. */
   var anyCloudSuccess=false;
   var tableResults=await Promise.all(tables.map(async function(t){
-    try{return {table:t,rows:await fetchAllRows(t),ok:true};}
+    try{return {table:t,rows:await vectaFetchAllRemoteRows(t,12000),ok:true};}
     catch(e){console.warn('Remote pull failed for '+t,e);return {table:t,rows:[],ok:false};}
   }));
   tableResults.forEach(function(result){
     if(!result.ok)return;
     var t=result.table,key=t==='service_records'?'serviceRecords':(t==='website_booking_requests'?'websiteRequests':t);
-    app[key]=mergeRemoteRows(app[key],result.rows);anyCloudSuccess=true;
+    if(t==='jobs')vectaReconcileJobsFromCloud(result.rows);else app[key]=mergeRemoteRows(app[key],result.rows);anyCloudSuccess=true;
   });
   if(anyCloudSuccess){vectaCloudReachable=true;vectaLastCloudSuccess=new Date().toISOString();updateConnectivityUI()}
   /* Every cloud job has now passed through the completion-date audit. Persist only
@@ -9533,7 +9556,7 @@ function startCloudSync(){
   });
   window.addEventListener('online',function(){cloudLastRefreshAt=0;refreshCloudAndRender()});
 }
-function init(){safe(async function(){loadLocal();await vectaCreateDailyBackup(false,'startup-local');importContractor2026Spreadsheet();ensureServiceTemplates();ensureRecurringWorkshopTasks();rollOverOutstandingJobs();normaliseLegacyCarryOverJobs();normaliseUnallocatedBookingDates();await restoreAug13JobsMovedByOldOverlapRule();await repairExistingPlannerOverlaps({persistRemote:false});bindTop();render();updateConnectivityUI('checking');setInterval(function(){checkForNewWorkshopDay();if(view==='planner')updateCurrentTimeLine()},30000);var configured=await loadCloudConfig({silent:true});if(!navigator.onLine){vectaCloudReachable=false;updateConnectivityUI();return}ensureSupabase(async function(ok){if(!ok){vectaCloudReachable=false;updateConnectivityUI();return;}if(connectSupabase()){try{var ping=await vectaWithTimeout(remoteClient.from('jobs').select('id').limit(1),8000,'Cloud connection check');if(ping.error)throw ping.error;vectaCloudReachable=true;updateConnectivityUI('syncing');await flushPendingSync();await pullRemote();importContractor2026Spreadsheet();ensureServiceTemplates();ensureRecurringWorkshopTasks();rollOverOutstandingJobs();normaliseLegacyCarryOverJobs();normaliseUnallocatedBookingDates();await syncPendingCarryOvers();await restoreAug13JobsMovedByOldOverlapRule();await repairExistingPlannerOverlaps({persistRemote:true});render();startCloudSync();syncContractor2026SpreadsheetRemote();updateConnectivityUI();}catch(e){console.warn('Supabase startup unavailable; continuing in offline workshop mode.',e);vectaCloudReachable=false;updateConnectivityUI();render();}}else{vectaCloudReachable=false;updateConnectivityUI()}});},null)}
+function init(){safe(async function(){loadLocal();await vectaCreateDailyBackup(false,'startup-local');bindTop();updateConnectivityUI('checking');setInterval(function(){checkForNewWorkshopDay();if(view==='planner')updateCurrentTimeLine()},30000);var configured=await loadCloudConfig({silent:true});if(!navigator.onLine||!configured){vectaCloudReachable=false;/* Offline mode may use the local snapshot, but it must not auto-move jobs between mechanics while cloud truth is unavailable. */importContractor2026Spreadsheet();ensureServiceTemplates();ensureRecurringWorkshopTasks();render();updateConnectivityUI();return}ensureSupabase(async function(ok){if(!ok){vectaCloudReachable=false;updateConnectivityUI();render();return}if(connectSupabase()){try{var ping=await vectaWithTimeout(remoteClient.from('jobs').select('id').limit(1),8000,'Cloud connection check');if(ping.error)throw ping.error;vectaCloudReachable=true;updateConnectivityUI('syncing');/* V284 critical ordering: download authoritative jobs BEFORE any rollover, overlap repair or queued write can mutate stale browser data. */await vectaPrimeJobsFromCloud();await flushPendingSync();/* Re-read jobs after queued deletes/upserts so the planner reflects the result of those operations, not the pre-sync snapshot. */await vectaPrimeJobsFromCloud();importContractor2026Spreadsheet();ensureServiceTemplates();ensureRecurringWorkshopTasks();rollOverOutstandingJobs();normaliseLegacyCarryOverJobs();normaliseUnallocatedBookingDates();await syncPendingCarryOvers();await restoreAug13JobsMovedByOldOverlapRule();await repairExistingPlannerOverlaps({persistRemote:true});render();/* Load the slower non-job workshop datasets only after the correct planner is visible. */await pullRemote();render();startCloudSync();syncContractor2026SpreadsheetRemote();updateConnectivityUI()}catch(e){console.warn('Supabase startup unavailable; continuing in offline workshop mode.',e);vectaCloudReachable=false;updateConnectivityUI();render()}}else{vectaCloudReachable=false;updateConnectivityUI();render()}})},null)}
 
 function plannerSearchNormaliseText(v){return String(v||'').toLowerCase().replace(/\s+/g,' ').trim()}
 function plannerSearchCompact(v){return String(v||'').toLowerCase().replace(/[^a-z0-9]/g,'')}
@@ -12707,11 +12730,18 @@ function gatherJob(id){
   j.updated_at=new Date().toISOString();
   return j;
 }
+var VECTA_DELETED_JOB_IDS_KEY='vecta:jobs:deleted-tombstones:v284';
+function vectaDeletedJobTombstones(){try{var x=JSON.parse(localStorage.getItem(VECTA_DELETED_JOB_IDS_KEY)||'{}');return x&&typeof x==='object'?x:{}}catch(e){return {}}}
+function vectaRememberDeletedJob(id){if(!id)return;var x=vectaDeletedJobTombstones();x[String(id)]={deleted_at:new Date().toISOString()};try{localStorage.setItem(VECTA_DELETED_JOB_IDS_KEY,JSON.stringify(x))}catch(e){}var q=vectaPendingSync(),key='delete:jobs:'+String(id);if(!q.some(function(item){return vectaNormaliseQueuedItem(item).key===key}))queueRemoteOperation('delete','jobs',String(id));}
+function vectaIsDeletedJobTombstone(id){return !!vectaDeletedJobTombstones()[String(id||'')]}
 async function deleteJobCompletely(id){
   var j=(app.jobs||[]).find(function(x){return String(x.id)===String(id)});
   if(!j){alert('This job could not be found. Refresh the page and try again.');return;}
   var label=jobVehicleLabel(j),date=j.booking_date?niceDate(j.booking_date):'no booking date';
   if(!confirm('Permanently delete this job for '+label+' ('+date+')?\n\nThis removes it from the planner, Jobs, vehicle history and the shared database. Any linked website booking, invoice or saved service paperwork will also be deleted. This cannot be undone.'))return;
+
+  /* V284: record the deletion before touching Supabase. If the network drops or a security policy blocks DELETE, this job stays deleted locally and the queued delete is retried instead of being resurrected on startup. */
+  vectaRememberDeletedJob(id);
 
   var relatedInvoices=(app.invoices||[]).filter(function(inv){return String(inv.job_id||'')===String(id)}),
       relatedRecords=(app.serviceRecords||[]).filter(function(rec){return String(rec.job_id||'')===String(id)}),

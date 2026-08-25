@@ -1,4 +1,4 @@
-const CACHE='vecta-workshop-pro-offline-v4';
+const CACHE='vecta-workshop-pro-offline-v284-authoritative-delete';
 const CORE=['/','/index.html','/manifest.webmanifest','/icons/vecta-192.png','/icons/vecta-512.png'];
 
 self.addEventListener('install',event=>{
