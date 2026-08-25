@@ -1,4 +1,4 @@
-const CACHE='vecta-workshop-pro-offline-v289-date-authority';
+const CACHE='vecta-workshop-pro-offline-v290-startup-date-fix';
 const CORE=['/','/index.html','/manifest.webmanifest','/icons/vecta-192.png','/icons/vecta-512.png'];
 
 self.addEventListener('install',event=>{

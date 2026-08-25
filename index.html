@@ -9344,10 +9344,12 @@ function mergeRemoteRows(localRows,remoteRows){
   localRows=Array.isArray(localRows)?localRows:[];remoteRows=Array.isArray(remoteRows)?remoteRows:[];
   var map={};
   localRows.forEach(function(row){if(row&&row.id)map[row.id]=normaliseCompletedJobState(row)});
-  remoteRows.forEach(function(remote){
+  remoteRows.map(fromRemote).forEach(function(remote){
     if(!remote||!remote.id)return;
     var local=map[remote.id];
     if(!local){map[remote.id]=normaliseCompletedJobState(remote);return;}
+    /* Completion is irreversible. If either copy proves completion, preserve that
+       state and retain the earliest trustworthy completion timestamp. */
     if(jobCompletionEvidence(local)||jobCompletionEvidence(remote)){
       var lt=Date.parse(local.updated_at||local.created_at||0)||0,rt=Date.parse(remote.updated_at||remote.created_at||0)||0;
       var winner=lt>=rt?Object.assign({},remote,local):Object.assign({},local,remote);
@@ -9743,6 +9745,11 @@ function init(){safe(async function(){
   loadLocal();
   bindTop();
   vectaSetStartupLoading(true,'Loading workshop…','Checking live jobs and tasks before showing the dashboard.');
+  /* V290 fail-open watchdog: a slow or failed cloud request must never leave the
+     workshop hidden behind the loading gate. Cloud sync can continue afterwards. */
+  var vectaStartupWatchdog=setTimeout(function(){
+    try{if(document.body.classList.contains('vectaStartupLoading')){console.warn('Startup cloud check exceeded 12 seconds; showing cached workshop while sync continues.');clearTimeout(vectaStartupWatchdog);vectaSetStartupLoading(false);render();updateConnectivityUI();}}catch(e){}
+  },12000);
   updateConnectivityUI('checking');
   /* Backups must never block startup. */
   vectaCreateDailyBackup(false,'startup-local').catch(function(e){console.warn('Startup backup skipped',e)});
@@ -9751,11 +9758,11 @@ function init(){safe(async function(){
   if(!navigator.onLine||!configured){
     vectaCloudReachable=false;
     importContractor2026Spreadsheet();ensureServiceTemplates();ensureRecurringWorkshopTasks();
-    vectaSetStartupLoading(false);render();updateConnectivityUI();return;
+    clearTimeout(vectaStartupWatchdog);vectaSetStartupLoading(false);render();updateConnectivityUI();return;
   }
   ensureSupabase(async function(ok){
-    if(!ok){vectaCloudReachable=false;updateConnectivityUI();vectaSetStartupLoading(false);render();return}
-    if(!connectSupabase()){vectaCloudReachable=false;updateConnectivityUI();vectaSetStartupLoading(false);render();return}
+    if(!ok){vectaCloudReachable=false;updateConnectivityUI();clearTimeout(vectaStartupWatchdog);vectaSetStartupLoading(false);render();return}
+    if(!connectSupabase()){vectaCloudReachable=false;updateConnectivityUI();clearTimeout(vectaStartupWatchdog);vectaSetStartupLoading(false);render();return}
     try{
       var ping=await vectaWithTimeout(remoteClient.from('jobs').select('id').limit(1),7000,'Cloud connection check');if(ping.error)throw ping.error;
       vectaCloudReachable=true;updateConnectivityUI('syncing');
@@ -9763,7 +9770,7 @@ function init(){safe(async function(){
          and only then is the dashboard exposed. Stale local cards can no longer flash first. */
       await vectaPrimeAuthoritativeDashboard();
       importContractor2026Spreadsheet();ensureServiceTemplates();ensureRecurringWorkshopTasks();
-      vectaSetStartupLoading(false);render();updateConnectivityUI();
+      clearTimeout(vectaStartupWatchdog);vectaSetStartupLoading(false);render();updateConnectivityUI();
       /* Everything below is background work. It must not hold the first correct dashboard hostage. */
       setTimeout(async function(){
         try{
@@ -10803,10 +10810,7 @@ function fleetPrintCurrentView(){
   var titles={due30:'All work due in the next 30 days',overdue:'Overdue fleet work',mot30:'MOTs due in the next 30 days',service30:'Services due in the next 30 days',tax30:'Tax due in the next 30 days',safety30:'Six-month safety checks due in the next 30 days'};
   var generated=new Date().toLocaleString('en-GB'),rangeText=mode==='overdue'?'Overdue as at '+niceDate(todayIso()):niceDate(todayIso())+' to '+niceDate(new Date(limit.getTime()-limit.getTimezoneOffset()*60000).toISOString().slice(0,10));
   var vehicleCount=new Set(rows.map(function(r){return r.vehicle.id||normReg(r.vehicle.registration||'')})).size;
-  var html='<!doctype html><html><head><meta charset="utf-8"><title>'+esc(titles[mode])+'</title><style>@page{size:A4 portrait;margin:12mm}*{box-sizing:border-box}body{font-family:Arial,Helvetica,sans-serif;color:#111827;margin:0;font-size:11px}.head{display:flex;justify-content:space-between;align-items:flex-end;border-bottom:3px solid #111827;padding-bottom:8px;margin-bottom:12px}.brand{font-size:28px;font-weight:900;letter-spacing:.08em;color:#b91c1c}.head h1{margin:0;font-size:20px}.meta{text-align:right;color:#475569;font-size:10px}.summary{display:flex;gap:8px;margin:0 0 10px}.summary div{border:1px solid #cbd5e1;border-radius:6px;padding:6px 9px}.summary b{font-size:16px;display:block}table{width:100%;border-collapse:collapse}thead{display:table-header-group}th{background:#f1f5f9;text-align:left;font-size:9px;text-transform:uppercase;letter-spacing:.04em;padding:7px 6px;border-bottom:2px solid #94a3b8}td{padding:7px 6px;border-bottom:1px solid #e2e8f0;vertical-align:top}.reg{font-weight:800;white-space:nowrap}.due{font-weight:800;white-space:nowrap}.type{font-weight:700}.customer{white-space:nowrap}.foot{margin-top:10px;color:#64748b;font-size:9px}</style></head><body><div class="head"><div><div class="brand">VECTA</div><h1>'+esc(titles[mode])+'</h1></div><div class="meta">'+esc(rangeText)+'<br>Printed '+esc(generated)+'</div></div><div class="summary"><div><b>'+rows.length+'</b>work items</div><div><b>'+vehicleCount+'</b>vehicles</div></div><table><thead><tr><th>Due date</th><th>Registration</th><th>Vehicle</th><th>Fleet / customer</th><th>Work due</th></tr></thead><tbody>'+rows.map(function(r){var v=r.vehicle,customer=v.fleetGroup==='Contractor Fleet'?fleetNormaliseCustomer(v.customer):fleetGroupLabel(v.fleetGroup);return '<tr><td class="due">'+esc(niceDate(r.due))+'</td><td class="reg">'+esc(normReg(v.registration||''))+'</td><td>'+esc(fleetDisplayModel(v.model))+'</td><td class="customer">'+esc(customer)+'</td><td class="type">'+esc(r.type)+(r.bookedJob?' <b style="color:#dc2626">✓ BOOKED</b>':'')+'</td></tr>'}).join('')+(rows.length?'':'<tr><td colspan="5">No matching fleet work is currently listed in this view.</td></tr>')+'</tbody></table><div class="foot">Generated from the currently selected Fleet Manager tab and filters.</div><script>window.onload=function(){setTimeout(function(){window.print()},150)}<\/script>
-
-
-</body></html>';
+  var html='<!doctype html><html><head><meta charset="utf-8"><title>'+esc(titles[mode])+'</title><style>@page{size:A4 portrait;margin:12mm}*{box-sizing:border-box}body{font-family:Arial,Helvetica,sans-serif;color:#111827;margin:0;font-size:11px}.head{display:flex;justify-content:space-between;align-items:flex-end;border-bottom:3px solid #111827;padding-bottom:8px;margin-bottom:12px}.brand{font-size:28px;font-weight:900;letter-spacing:.08em;color:#b91c1c}.head h1{margin:0;font-size:20px}.meta{text-align:right;color:#475569;font-size:10px}.summary{display:flex;gap:8px;margin:0 0 10px}.summary div{border:1px solid #cbd5e1;border-radius:6px;padding:6px 9px}.summary b{font-size:16px;display:block}table{width:100%;border-collapse:collapse}thead{display:table-header-group}th{background:#f1f5f9;text-align:left;font-size:9px;text-transform:uppercase;letter-spacing:.04em;padding:7px 6px;border-bottom:2px solid #94a3b8}td{padding:7px 6px;border-bottom:1px solid #e2e8f0;vertical-align:top}.reg{font-weight:800;white-space:nowrap}.due{font-weight:800;white-space:nowrap}.type{font-weight:700}.customer{white-space:nowrap}.foot{margin-top:10px;color:#64748b;font-size:9px}</style></head><body><div class="head"><div><div class="brand">VECTA</div><h1>'+esc(titles[mode])+'</h1></div><div class="meta">'+esc(rangeText)+'<br>Printed '+esc(generated)+'</div></div><div class="summary"><div><b>'+rows.length+'</b>work items</div><div><b>'+vehicleCount+'</b>vehicles</div></div><table><thead><tr><th>Due date</th><th>Registration</th><th>Vehicle</th><th>Fleet / customer</th><th>Work due</th></tr></thead><tbody>'+rows.map(function(r){var v=r.vehicle,customer=v.fleetGroup==='Contractor Fleet'?fleetNormaliseCustomer(v.customer):fleetGroupLabel(v.fleetGroup);return '<tr><td class="due">'+esc(niceDate(r.due))+'</td><td class="reg">'+esc(normReg(v.registration||''))+'</td><td>'+esc(fleetDisplayModel(v.model))+'</td><td class="customer">'+esc(customer)+'</td><td class="type">'+esc(r.type)+(r.bookedJob?' <b style="color:#dc2626">✓ BOOKED</b>':'')+'</td></tr>'}).join('')+(rows.length?'':'<tr><td colspan="5">No matching fleet work is currently listed in this view.</td></tr>')+'</tbody></table><div class="foot">Generated from the currently selected Fleet Manager tab and filters.</div><script>window.onload=function(){setTimeout(function(){window.print()},150)}<\/script></body></html>';
   var w=window.open('','_blank');if(!w){alert('Please allow pop-ups to print this Fleet Manager list.');return}try{w.document.open();w.document.write(html);w.document.close();w.focus()}catch(err){try{w.close()}catch(e){}alert('The Fleet Manager print page could not be prepared. Please try again.');console.error('Fleet print failed',err)}
 }
 function fleetPrintDue30Page(){fleetPrintCurrentView()}
@@ -14610,6 +14614,29 @@ try{var foot=document.querySelector('.sideFoot small');if(foot)foot.textContent=
 setTimeout(function(){try{if(typeof vectaRepairCompletionDatesFromLinkedEvidence==='function')vectaRepairCompletionDatesFromLinkedEvidence();}catch(e){console.warn('Linked completion-date audit skipped',e)}},2400);
 })();
 </script>
+
+<script id="v290-completion-date-repair-helper">
+(function(){
+'use strict';
+function completionEvidence(j){return !!j&&(String(j.status||'').toLowerCase()==='completed'||!!j.archived||!!String(j.completed_at||'').trim())}
+async function repairFromBackups(){
+  if(typeof vectaListBackups!=='function'||!window.app||!Array.isArray(app.jobs))return {checked:0,repaired:0};
+  var backups=await vectaListBackups();if(!backups.length)return {checked:0,repaired:0};
+  var evidence=Object.create(null),checked=0;
+  backups.slice().sort(function(a,b){return String(a.created_at||'').localeCompare(String(b.created_at||''))}).forEach(function(snap){
+    var rows=snap&&snap.app&&Array.isArray(snap.app.jobs)?snap.app.jobs:[];
+    rows.forEach(function(j){if(!j||!j.id||!completionEvidence(j)||!j.completed_at)return;checked++;var id=String(j.id),stamp=String(j.completed_at||'');evidence[id]=evidence[id]?vectaChooseCompletionStamp(evidence[id],stamp):stamp;});
+  });
+  var changed=[];
+  (app.jobs||[]).forEach(function(j){if(!j||!j.id||!completionEvidence(j))return;var historic=evidence[String(j.id)]||'',old=String(j.completed_at||'');if(!historic)return;var best=vectaChooseCompletionStamp(old,historic);if(best&&best!==old){j.completed_at=best;j.updated_at=new Date().toISOString();changed.push(j)}});
+  if(changed.length){saveLocal();if(remoteClient){for(var i=0;i<changed.length;i++){try{await upsertRemote('jobs',changed[i],{silent:true})}catch(e){console.warn('Completion-date repair save failed',e)}}}try{if(typeof invalidateFinanceDashboardCache==='function')invalidateFinanceDashboardCache()}catch(e){}try{render()}catch(e){}}
+  return window.v290CompletionRepairStatus={checked:checked,repaired:changed.length,finishedAt:new Date().toISOString()};
+}
+window.v290RepairCompletionDates=repairFromBackups;
+/* Deliberately NOT auto-started: reading every backup during startup previously
+   competed with the authoritative cloud load and could leave the loading gate stuck. */
+})();
+</script>
 </body>
 </html>
 <script>
@@ -15502,35 +15529,5 @@ try{
 function v278SafeRun(){try{var r=v278RepairAllMainSec();if(r&&typeof r.catch==='function')r.catch(function(e){console.warn('V278 MAIN SEC deferred repair failed',e);});}catch(e){console.warn('V278 MAIN SEC deferred repair skipped',e);}}
 setTimeout(v278SafeRun,1800);
 try{var foot=document.querySelector('.sideFoot small');if(foot)foot.textContent='v278 Workshop Pro · MAIN SEC Internal master correction';}catch(e){}
-})();
-</script>
-<script id="v285-completion-date-authority-repair">
-(function(){
-'use strict';
-function validDate(v){v=String(v||'').slice(0,10);return /^\d{4}-\d{2}-\d{2}$/.test(v)?v:''}
-function synthetic(v){return typeof vectaCompletionStampIsSynthetic==='function'?vectaCompletionStampIsSynthetic(v):/T(?:12|17):00:00(?:\.000)?Z$/i.test(String(v||''))}
-function choose(a,b){return typeof vectaChooseCompletionStamp==='function'?vectaChooseCompletionStamp(a,b):(a||b||'')}
-function completionEvidence(j){return !!j&&(String(j.status||'').toLowerCase()==='completed'||!!j.archived||!!String(j.completed_at||'').trim())}
-async function repairFromBackups(){
-  if(typeof vectaListBackups!=='function'||!window.app||!Array.isArray(app.jobs))return {checked:0,repaired:0};
-  var backups=await vectaListBackups();if(!backups.length)return {checked:0,repaired:0};
-  var evidence=Object.create(null),checked=0;
-  backups.slice().sort(function(a,b){return String(a.created_at||'').localeCompare(String(b.created_at||''))}).forEach(function(snap){
-    var rows=snap&&snap.app&&Array.isArray(snap.app.jobs)?snap.app.jobs:[];
-    rows.forEach(function(j){if(!j||!j.id||!completionEvidence(j)||!j.completed_at)return;checked++;var id=String(j.id),stamp=String(j.completed_at||'');evidence[id]=evidence[id]?choose(evidence[id],stamp):stamp;});
-  });
-  var changed=[];
-  (app.jobs||[]).forEach(function(j){
-    if(!j||!j.id||!completionEvidence(j))return;var old=String(j.completed_at||''),historic=evidence[String(j.id)]||'';if(!historic)return;
-    var best=choose(old,historic);if(!best||best===old)return;var od=validDate(old),bd=validDate(best);if(old&&!synthetic(old)&&od&&bd&&bd>od)return;
-    j.completed_at=best;j.updated_at=new Date().toISOString();changed.push(j);
-  });
-  if(changed.length){try{saveLocal()}catch(e){}if(remoteClient){for(var i=0;i<changed.length;i++){try{await upsertRemote('jobs',changed[i],{silent:true})}catch(e){console.warn('Completion date authority repair cloud save failed',changed[i]&&changed[i].id,e)}}}try{if(typeof invalidateFinanceDashboardCache==='function')invalidateFinanceDashboardCache()}catch(e){}try{if(typeof render==='function')render()}catch(e){}}
-  window.v285CompletionRepairStatus={checked:checked,repaired:changed.length,finishedAt:new Date().toISOString()};return window.v285CompletionRepairStatus;
-}
-window.v285RepairCompletionDates=repairFromBackups;
-if(typeof updateJobQuick==='function'&&!updateJobQuick.__v285CompletionGuard){var oldQuick=updateJobQuick;updateJobQuick=function(j){var existing=(app.jobs||[]).find(function(x){return j&&String(x.id||'')===String(j.id||'')});var prior=existing&&existing.completed_at;var result=oldQuick.apply(this,arguments);if(j&&String(j.status||'').toLowerCase()==='completed'&&prior&&j.completed_at!==prior){j.completed_at=choose(prior,j.completed_at);try{saveLocal()}catch(e){}}return result;};updateJobQuick.__v285CompletionGuard=true;}
-setTimeout(function(){repairFromBackups().catch(function(e){console.warn('Completion date audit skipped',e)})},2600);
-setTimeout(function(){repairFromBackups().catch(function(e){console.warn('Completion date audit skipped',e)})},8000);
 })();
 </script>
