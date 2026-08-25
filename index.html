@@ -2697,6 +2697,17 @@ body.servicePreviewing .servicePreviewControls{position:relative!important;z-ind
 @media(max-width:650px){.websiteBookingStats{grid-template-columns:1fr 1fr}.websiteBookingStat{padding:9px 10px;gap:8px}.websiteBookingStat span{font-size:10px}.websiteBookingStat strong{font-size:22px}}
 </style>
   <!-- VECTA V289: planner moves are cloud-verified and retried to prevent stale date/technician reversion -->
+
+<style id="vecta-print-day-job-type-fix-20260825">
+@media print{
+  .printPlannerFlow .printPlannerMiddle{display:flex!important;flex-direction:column!important;align-items:stretch!important;min-width:82px!important;max-width:104px!important;text-align:center!important}
+  .printPlannerFlow .printPlannerTime{width:100%!important;box-sizing:border-box!important;margin:0 0 3px!important}
+  .printPlannerFlow .printPlannerTypeList{display:flex!important;flex-direction:column!important;align-items:center!important;width:100%!important;max-width:100%!important;gap:1px!important}
+  .printPlannerFlow .printPlannerTypeLine{display:flex!important;justify-content:center!important;width:100%!important;max-width:100%!important;margin:0!important;padding:0!important;background:transparent!important;border:0!important;border-radius:0!important;font-size:6.5px!important;line-height:1.05!important;font-weight:900!important;text-align:center!important;white-space:normal!important;overflow:visible!important;text-overflow:clip!important;overflow-wrap:anywhere!important;word-break:normal!important}
+  .printPlannerFlow .printPlannerTypeName{width:100%!important;white-space:normal!important;overflow:visible!important;text-overflow:clip!important}
+  .printPlannerFlow .printPlannerJob .rampBadge{display:none!important}
+}
+</style>
 </head>
 <body class="vectaStartupLoading">
 <!-- VECTA v200: unfinished jobs stay allocated; no carried-over column -->
@@ -8974,7 +8985,22 @@ function plannerJobTypesHtml(j,sizeClass){
   if(more){var m=jobTypeMetaForLabel(labels[shown.length]||labels[0]);rows+='<span class="plannerJobType plannerJobTypeLine plannerJobTypeMore" style="--job-type-color:'+m.colour+'"><span class="plannerJobTypeName">+'+more+' more</span></span>'}
   return '<span class="plannerJobTypes" title="'+esc(labels.join(' • '))+'">'+rows+'</span>';
 }
-function printJobTypesHtml(j){var motTime=motTimeFromJob(j);return '<span class="printPlannerTypeList">'+jobTypeLabels(j).map(function(label){var m=jobTypeMetaForLabel(label),time=normaliseJobTypeKey(label)==='mot'&&motTime?'<span class="printMotTime">'+esc(motTime)+'</span>':'';return '<b class="printPlannerType printPlannerTypeLine" style="--job-type-color:'+m.colour+'"><span class="printPlannerTypeName">'+esc(label)+'</span>'+time+'</b>'}).join('')+'</span>'}
+function printDayJobTypeLabels(j){
+  var labels=jobTypeLabels(j).filter(function(label){return normaliseJobTypeKey(label)!=='general'});
+  if(labels.length)return labels;
+  var text=String((j&&j.work_required)||'').toLowerCase();
+  var inferred=[];
+  function add(label,re){if(re.test(text)&&inferred.indexOf(label)===-1)inferred.push(label)}
+  add('MOT',/\bmot\b/);
+  add('Service',/\bservice\b|oil\s*(?:&|and)\s*filter/);
+  add('Six Month Safety Check',/(?:six|6)\s*months?\s+safety\s+check|safety\s+check/);
+  add('Tyres',/\btyres?\b|tread|puncture/);
+  add('Brakes',/\bbrakes?\b|brake\s+(?:pads?|discs?)/);
+  add('Diagnostics',/diagnos|fault\s*code|warning\s*light/);
+  add('Inspection',/inspection|check\s+over/);
+  return inferred.length?inferred:['General'];
+}
+function printJobTypesHtml(j){var motTime=motTimeFromJob(j);return '<span class="printPlannerTypeList">'+printDayJobTypeLabels(j).map(function(label){var m=jobTypeMetaForLabel(label),time=normaliseJobTypeKey(label)==='mot'&&motTime?'<span class="printMotTime">'+esc(motTime)+'</span>':'';return '<b class="printPlannerType printPlannerTypeLine" style="--job-type-color:'+m.colour+'"><span class="printPlannerTypeName">'+esc(label)+'</span>'+time+'</b>'}).join('')+'</span>'}
 function templateDataForType(name){
   var all=(app.settings&&app.settings.jobTemplates)||templates||{},found=null,key=normaliseJobTypeKey(name);
   Object.keys(all).some(function(k){if(normaliseJobTypeKey(k)===key){found=all[k]||{};return true}return false});
