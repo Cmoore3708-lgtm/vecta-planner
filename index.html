@@ -12557,20 +12557,24 @@ function applyTemplate(name){
   jobType.value=jobTypeStorageValue(after);
   updateMotTimeField(!exists&&key==='mot');
   document.querySelectorAll('.jobModalCard .templateBtns [data-template]').forEach(function(btn){btn.classList.toggle('selected',after.some(function(v){return normaliseJobTypeKey(v)===normaliseJobTypeKey(btn.dataset.template)}))});
-  var work=document.getElementById('job_work_required'),oldAuto=templateWorkForTypes(before),newAuto=templateWorkForTypes(after);
+  var work=document.getElementById('job_work_required'),newAuto=templateWorkForTypes(after);
   if(work){
-    var current=String(work.value||''),stored=String(work.dataset.autoTemplateText||''),typeWork=String((t&&t.work_required)||'').trim();
-    if(!current.trim()||current===stored||current===oldAuto){
-      work.value=newAuto;
-    }else if(!exists&&typeWork){
-      var currentKey=current.toLowerCase().replace(/\s+/g,' ').trim(),typeKey=typeWork.toLowerCase().replace(/\s+/g,' ').trim();
-      if(typeKey&&currentKey.indexOf(typeKey)===-1)work.value=current.replace(/\s+$/,'')+(current.trim()?'\n':'')+typeWork;
-    }else if(exists&&typeWork){
-      /* Remove only the exact wording supplied by this job-type template.
-         Keep every other selected template and all customer/manual notes. */
-      var escapedTypeWork=typeWork.replace(/[.*+?^${}()|[\]\\]/g,'\\$&'),blockPattern=new RegExp('(?:^|\\n)\\s*'+escapedTypeWork+'\\s*(?=\\n|$)','i');
-      work.value=current.replace(blockPattern,'').replace(/^\s*\n|\n\s*$/g,'').replace(/\n{3,}/g,'\n\n');
+    /* Work required is technician/customer instruction text. Job-type presets may
+       ADD useful wording, but must never replace or remove anything already there. */
+    var current=String(work.value||''),typeWork=String((t&&t.work_required)||'').trim();
+    if(!exists&&typeWork){
+      var normaliseWorkLine=function(v){return String(v||'').toLowerCase().replace(/\s+/g,' ').trim()},
+          serviceType=!!servicePricingType([name]),
+          nameKey=normaliseWorkLine(name),
+          typeKey=normaliseWorkLine(typeWork),
+          typeAlreadyNamesJob=!!(nameKey&&typeKey.indexOf(nameKey)===0),
+          block=(serviceType&&!typeAlreadyNamesJob?(name+'\n'):'')+typeWork,
+          blockKey=normaliseWorkLine(block),
+          currentKey=normaliseWorkLine(current),
+          hasSame=!!(blockKey&&currentKey.indexOf(blockKey)>-1);
+      if(blockKey&&!hasSame)work.value=current.replace(/\s+$/,'')+(current.trim()?'\n':'')+block;
     }
+    /* Kept only as a hint for legacy code; it no longer gives permission to overwrite. */
     work.dataset.autoTemplateText=newAuto;
   }
   syncPresetPricingToPrivateBreakdown(before,after);
