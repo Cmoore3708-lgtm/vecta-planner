@@ -1,4 +1,4 @@
-const CACHE='vecta-v286-historical-recovery';
+const CACHE='vecta-v287-terminal-job-ledger';
 const CORE=['/','/index.html','/manifest.webmanifest','/icons/vecta-192.png','/icons/vecta-512.png'];
 
 self.addEventListener('install',event=>{

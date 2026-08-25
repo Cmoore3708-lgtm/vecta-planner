@@ -9138,8 +9138,8 @@ async function flushPendingSync(){
   try{for(var i=0;i<eligible.length;i++){
     var item=vectaNormaliseQueuedItem(eligible[i]),ok=false;
     try{
-      if(item.operation==='upsert'){var rows=Array.isArray(item.payload)?item.payload:[item.payload];if(!rows.length)throw new Error('Queued upsert has no record data.');for(var r=0;r<rows.length;r++)await upsertRemote(item.table,rows[r],{silent:true,skipQueue:true});ok=true}
-      else if(item.operation==='delete'){await deleteRemote(item.table,(item.payload&&item.payload.id)||item.payload,{skipQueue:true});ok=true}
+      if(item.operation==='upsert'){var rows=Array.isArray(item.payload)?item.payload:[item.payload];if(!rows.length)throw new Error('Queued upsert has no record data.');for(var r=0;r<rows.length;r++){var qrow=rows[r],qid=String(qrow&&qrow.id||''),terminal=(item.table==='jobs'&&qid)?vectaTerminalJobState(qid):null;if(terminal&&terminal.state==='deleted'){continue}if(terminal&&terminal.state==='completed'){qrow=Object.assign({},qrow,{status:'completed',archived:true,completed_at:qrow.completed_at||terminal.completed_at||null})}await upsertRemote(item.table,qrow,{silent:true,skipQueue:true})}ok=true}
+      else if(item.operation==='delete'){var did=(item.payload&&item.payload.id)||item.payload;if(item.table==='jobs'){var localDeleted=(app.jobs||[]).find(function(x){return String(x.id)===String(did)});await vectaSoftDeleteRemoteJob(localDeleted||String(did));ok=true}else{await deleteRemote(item.table,did,{skipQueue:true});ok=true}}
       else throw new Error('Unknown queued operation: '+String(item.operation||'missing'));
     }catch(e){
       item.attempts=Number(item.attempts||0)+1;item.last_attempt_at=new Date().toISOString();item.last_error=String(e&&e.message||e);
@@ -9159,7 +9159,7 @@ async function flushPendingSync(){
   return false
 }
 function registerVectaServiceWorker(){if('serviceWorker' in navigator){window.addEventListener('load',function(){navigator.serviceWorker.register('/service-worker.js').catch(function(e){console.warn('Offline app install failed',e)})})}}
-window.addEventListener('online',function(){updateConnectivityUI('syncing');setTimeout(async function(){try{var configured=await loadCloudConfig({silent:true});if(configured){await new Promise(function(resolve){ensureSupabase(function(){connectSupabase();resolve()})});if(remoteClient){var test=await vectaWithTimeout(remoteClient.from('jobs').select('id').limit(1),8000,'Cloud connection check');if(!test.error){vectaCloudReachable=true;/* V284: cloud jobs must be read BEFORE any queued writes are replayed. This prevents stale browser jobs being re-created/re-allocated when a computer reconnects. */await vectaPrimeJobsFromCloud();await flushPendingSync();await vectaPrimeJobsFromCloud();await vectaPrimeCompletionEvidenceFromCloud();await vectaRecoverGhostJobsFromTrustedBackups();await pullRemote();rollOverOutstandingJobs();normaliseUnallocatedBookingDates();await syncPendingCarryOvers();await vectaCreateDailyBackup(false,'cloud-synchronised');render()}}}}catch(e){vectaCloudReachable=false}updateConnectivityUI()},500)});
+window.addEventListener('online',function(){updateConnectivityUI('syncing');setTimeout(async function(){try{var configured=await loadCloudConfig({silent:true});if(configured){await new Promise(function(resolve){ensureSupabase(function(){connectSupabase();resolve()})});if(remoteClient){var test=await vectaWithTimeout(remoteClient.from('jobs').select('id').limit(1),8000,'Cloud connection check');if(!test.error){vectaCloudReachable=true;/* V284: cloud jobs must be read BEFORE any queued writes are replayed. This prevents stale browser jobs being re-created/re-allocated when a computer reconnects. */await vectaPrimeJobsFromCloud();await vectaLoadTerminalJobStatesFromCloud();vectaApplyTerminalJobStates();await flushPendingSync();await vectaPrimeJobsFromCloud();await vectaLoadTerminalJobStatesFromCloud();vectaApplyTerminalJobStates();await vectaPrimeCompletionEvidenceFromCloud();await vectaRecoverGhostJobsFromTrustedBackups();await pullRemote();await vectaRepairConfirmedNk72KtfCompletion();vectaApplyTerminalJobStates();rollOverOutstandingJobs();normaliseUnallocatedBookingDates();await syncPendingCarryOvers();await vectaCreateDailyBackup(false,'cloud-synchronised');render()}}}}catch(e){vectaCloudReachable=false}updateConnectivityUI()},500)});
 window.addEventListener('offline',function(){vectaCloudReachable=false;updateConnectivityUI()});
 setInterval(function(){if(navigator.onLine&&vectaCloudReachable&&vectaPendingSync().length&&!vectaSyncInFlight){flushPendingSync().catch(function(e){console.warn('Background offline-sync retry failed',e)})}},5*60*1000);
 registerVectaServiceWorker();
@@ -9395,15 +9395,15 @@ function vectaLikelyNewOfflineJob(item){if(!item||item.operation!=='upsert'||!it
 function vectaReconcileJobsFromCloud(remoteRows){
   remoteRows=Array.isArray(remoteRows)?remoteRows.map(fromRemote):[];
   var remoteById={},queued=vectaQueuedJobOperations(),localById={};
-  remoteRows.forEach(function(row){if(row&&row.id)remoteById[String(row.id)]=normaliseCompletedJobState(row)});
+  remoteRows.forEach(function(row){if(!row||!row.id)return;var id=String(row.id),status=String(row.status||'').toLowerCase();if(status==='deleted'){vectaSetTerminalJobStateLocal(id,{state:'deleted',job_id:id,registration:normReg(row.registration||''),updated_at:row.updated_at||new Date().toISOString()});return;}remoteById[id]=normaliseCompletedJobState(row)});
   (app.jobs||[]).forEach(function(row){if(row&&row.id)localById[String(row.id)]=row});
   var next=[],staleQueueKeys=[];
-  Object.keys(remoteById).forEach(function(id){var remote=remoteById[id],local=localById[id],pending=queued[id];if(vectaIsDeletedJobTombstone(id)){if(!pending||pending.operation!=='delete')queueRemoteOperation('delete','jobs',id);return;}if(pending&&pending.operation==='delete')return;if(pending&&pending.operation==='upsert'&&local)next.push(normaliseCompletedJobState(mergeRemoteRows([local],[remote])[0]||remote));else next.push(normaliseCompletedJobState(remote))});
+  Object.keys(remoteById).forEach(function(id){var remote=remoteById[id],local=localById[id],pending=queued[id],terminal=vectaTerminalJobState(id);if(terminal&&terminal.state==='deleted')return;if(vectaIsDeletedJobTombstone(id)){return;}if(pending&&pending.operation==='delete')return;if(terminal&&terminal.state==='completed'){remote.status='completed';remote.archived=true;remote.completed_at=remote.completed_at||terminal.completed_at||null;}if(pending&&pending.operation==='upsert'&&local)next.push(normaliseCompletedJobState(mergeRemoteRows([local],[remote])[0]||remote));else next.push(normaliseCompletedJobState(remote))});
   Object.keys(queued).forEach(function(id){if(remoteById[id])return;var item=queued[id],local=localById[id];if(item.operation==='delete')return;if(item.operation==='upsert'&&local&&vectaLikelyNewOfflineJob(item)){next.push(normaliseCompletedJobState(local));return}if(item.operation==='upsert')staleQueueKeys.push(item.key)});
   if(staleQueueKeys.length){var q=vectaPendingSync(),stale=q.filter(function(x){return staleQueueKeys.indexOf(vectaNormaliseQueuedItem(x).key)!==-1});vectaArchiveSyncItems(stale,'Cloud-authoritative startup removed stale job upserts for jobs no longer present');vectaSavePendingSync(q.filter(function(x){return staleQueueKeys.indexOf(vectaNormaliseQueuedItem(x).key)===-1}));console.warn('Removed '+staleQueueKeys.length+' stale queued job change(s) that would have resurrected deleted cloud jobs.')}
   app.jobs=next;saveLocal();return next;
 }
-async function vectaPrimeJobsFromCloud(){if(!remoteClient)return false;var started=performance.now(),rows=await vectaFetchAllRemoteRows('jobs',8000);vectaReconcileJobsFromCloud(rows);vectaCloudReachable=true;vectaLastCloudSuccess=new Date().toISOString();try{window.vectaStartupJobsPullMs=Math.round(performance.now()-started);console.info('Authoritative jobs refresh completed in '+window.vectaStartupJobsPullMs+'ms')}catch(e){}updateConnectivityUI();return true}
+async function vectaPrimeJobsFromCloud(){if(!remoteClient)return false;var started=performance.now(),rows=await vectaFetchAllRemoteRows('jobs',8000);vectaReconcileJobsFromCloud(rows);vectaApplyTerminalJobStates();vectaCloudReachable=true;vectaLastCloudSuccess=new Date().toISOString();try{window.vectaStartupJobsPullMs=Math.round(performance.now()-started);console.info('Authoritative jobs refresh completed in '+window.vectaStartupJobsPullMs+'ms')}catch(e){}updateConnectivityUI();return true}
 async function vectaPrimeCompletionEvidenceFromCloud(){
   if(!remoteClient)return false;
   try{
@@ -9445,7 +9445,7 @@ async function vectaRecoverGhostJobsFromTrustedBackups(){
      to delete records automatically. */
   try{
     var rows=await vectaListBackups(),today=todayIso();
-    var history=(rows||[]).filter(function(b){return b&&String(b.id||'')<today&&b.app&&Array.isArray(b.app.jobs)}).sort(function(a,b){return String(a.created_at||a.id||'').localeCompare(String(b.created_at||b.id||''))});
+    var history=(rows||[]).filter(function(b){return b&&String(b.id||'')<=today&&b.app&&Array.isArray(b.app.jobs)}).sort(function(a,b){return String(a.created_at||a.id||'').localeCompare(String(b.created_at||b.id||''))});
     var explicitDeletes={};
     vectaPendingSync().concat(vectaSyncQuarantine()).forEach(function(raw){
       var item=vectaNormaliseQueuedItem(raw);if(item.operation!=='delete'||item.table!=='jobs')return;
@@ -9497,10 +9497,30 @@ async function vectaRecoverGhostJobsFromTrustedBackups(){
       }
     }
     window.vectaV286Recovery={completed:completedRepairs.length,deleted:removed.length,ran_at:new Date().toISOString()};
-    if(completedRepairs.length||removed.length)console.warn('V286 historical recovery: '+completedRepairs.length+' completed job(s) restored; '+removed.length+' deleted ghost job(s) removed.');
+    if(completedRepairs.length||removed.length)console.warn('V287 lifecycle recovery: '+completedRepairs.length+' completed job(s) restored; '+removed.length+' deleted ghost job(s) removed.');
     return completedRepairs.length+removed.length;
-  }catch(e){console.warn('V286 historical job recovery skipped',e);return 0;}
+  }catch(e){console.warn('V287 historical job recovery skipped',e);return 0;}
 }
+async function vectaRepairConfirmedNk72KtfCompletion(){
+  /* V287 one-time data repair. The workshop has explicitly confirmed that the live
+     NK72 KTF booking currently showing on 25/08/2026 was completed previously.
+     This migration touches only active NK72 KTF rows dated on/before 25/08/2026 and
+     will never affect a later genuine booking for the vehicle. */
+  var candidates=(app.jobs||[]).filter(function(j){return j&&normReg(j.registration||'').replace(/\s/g,'')==='NK72KTF'&&String(j.status||'').toLowerCase()!=='completed'&&String(j.status||'').toLowerCase()!=='deleted'&&!j.archived&&(!j.booking_date||String(j.booking_date).slice(0,10)<='2026-08-25')});
+  if(!candidates.length)return 0
+  for(var i=0;i<candidates.length;i++){
+    var j=candidates[i],evidenceDate='';
+    var inv=(app.invoices||[]).filter(function(x){return normReg(x.registration||'').replace(/\s/g,'')==='NK72KTF'&&String(x.status||'saved').toLowerCase()!=='draft'}).sort(function(a,b){return String(b.invoice_date||b.created_at||'').localeCompare(String(a.invoice_date||a.created_at||''))})[0];
+    if(inv)evidenceDate=vectaValidJobDate(inv.invoice_date||inv.created_at)||'';
+    if(!evidenceDate){var rec=(app.serviceRecords||[]).filter(function(x){return normReg(x.registration||'').replace(/\s/g,'')==='NK72KTF'}).sort(function(a,b){return String(b.completed_at||b.service_date||b.date||b.updated_at||'').localeCompare(String(a.completed_at||a.service_date||a.date||a.updated_at||''))})[0];if(rec)evidenceDate=vectaValidJobDate(rec.completed_at||rec.service_date||rec.date||rec.updated_at)||'';}
+    j.status='completed';j.archived=true;if(!j.completed_at&&evidenceDate)j.completed_at=evidenceDate+'T17:00:00.000Z';j.updated_at=new Date().toISOString();
+    await vectaWriteTerminalJobState(j,'completed',{completed_at:j.completed_at||null,booking_date:j.booking_date||null,confirmed_repair:'NK72 KTF completed before 25/08/2026'});
+    try{await upsertRemote('jobs',j,{silent:true})}catch(e){console.warn('NK72 KTF confirmed completion repair cloud save failed',e)}
+  }
+  saveLocal();
+  return candidates.length;
+}
+
 async function pullRemote(){
   var __pullStarted=performance.now();
   if(!connectSupabase()) return;
@@ -9518,6 +9538,7 @@ async function pullRemote(){
     var t=result.table,key=t==='service_records'?'serviceRecords':(t==='website_booking_requests'?'websiteRequests':t);
     if(t==='jobs')vectaReconcileJobsFromCloud(result.rows);else app[key]=mergeRemoteRows(app[key],result.rows);anyCloudSuccess=true;
   });
+  await vectaLoadTerminalJobStatesFromCloud();vectaApplyTerminalJobStates();
   if(anyCloudSuccess){vectaCloudReachable=true;vectaLastCloudSuccess=new Date().toISOString();updateConnectivityUI()}
   /* Every cloud job has now passed through the completion-date audit. Persist only
      the high-confidence legacy repairs identified by the old 17:00 sentinel rule. */
@@ -9656,7 +9677,7 @@ function startCloudSync(){
   });
   window.addEventListener('online',function(){cloudLastRefreshAt=0;refreshCloudAndRender()});
 }
-function init(){safe(async function(){loadLocal();await vectaCreateDailyBackup(false,'startup-local');bindTop();updateConnectivityUI('checking');setInterval(function(){checkForNewWorkshopDay();if(view==='planner')updateCurrentTimeLine()},30000);var configured=await loadCloudConfig({silent:true});if(!navigator.onLine||!configured){vectaCloudReachable=false;/* Offline mode may use the local snapshot, but it must not auto-move jobs between mechanics while cloud truth is unavailable. */importContractor2026Spreadsheet();ensureServiceTemplates();ensureRecurringWorkshopTasks();render();updateConnectivityUI();return}ensureSupabase(async function(ok){if(!ok){vectaCloudReachable=false;updateConnectivityUI();render();return}if(connectSupabase()){try{var ping=await vectaWithTimeout(remoteClient.from('jobs').select('id').limit(1),8000,'Cloud connection check');if(ping.error)throw ping.error;vectaCloudReachable=true;updateConnectivityUI('syncing');/* V284 critical ordering: download authoritative jobs BEFORE any rollover, overlap repair or queued write can mutate stale browser data. */await vectaPrimeJobsFromCloud();await flushPendingSync();/* Re-read jobs after queued deletes/upserts so the planner reflects the result of those operations, not the pre-sync snapshot. */await vectaPrimeJobsFromCloud();await vectaPrimeCompletionEvidenceFromCloud();await vectaRecoverGhostJobsFromTrustedBackups();importContractor2026Spreadsheet();ensureServiceTemplates();ensureRecurringWorkshopTasks();rollOverOutstandingJobs();normaliseLegacyCarryOverJobs();normaliseUnallocatedBookingDates();await syncPendingCarryOvers();await restoreAug13JobsMovedByOldOverlapRule();await repairExistingPlannerOverlaps({persistRemote:true});render();/* Load the slower non-job workshop datasets only after the correct planner is visible. */await pullRemote();render();startCloudSync();syncContractor2026SpreadsheetRemote();updateConnectivityUI()}catch(e){console.warn('Supabase startup unavailable; continuing in offline workshop mode.',e);vectaCloudReachable=false;updateConnectivityUI();render()}}else{vectaCloudReachable=false;updateConnectivityUI();render()}})},null)}
+function init(){safe(async function(){loadLocal();await vectaCreateDailyBackup(false,'startup-local');bindTop();updateConnectivityUI('checking');setInterval(function(){checkForNewWorkshopDay();if(view==='planner')updateCurrentTimeLine()},30000);var configured=await loadCloudConfig({silent:true});if(!navigator.onLine||!configured){vectaCloudReachable=false;/* Offline mode may use the local snapshot, but it must not auto-move jobs between mechanics while cloud truth is unavailable. */importContractor2026Spreadsheet();ensureServiceTemplates();ensureRecurringWorkshopTasks();render();updateConnectivityUI();return}ensureSupabase(async function(ok){if(!ok){vectaCloudReachable=false;updateConnectivityUI();render();return}if(connectSupabase()){try{var ping=await vectaWithTimeout(remoteClient.from('jobs').select('id').limit(1),8000,'Cloud connection check');if(ping.error)throw ping.error;vectaCloudReachable=true;updateConnectivityUI('syncing');/* V284 critical ordering: download authoritative jobs BEFORE any rollover, overlap repair or queued write can mutate stale browser data. */await vectaPrimeJobsFromCloud();await vectaLoadTerminalJobStatesFromCloud();vectaApplyTerminalJobStates();await flushPendingSync();/* Re-read jobs after queued operations, then re-apply irreversible lifecycle truth. */await vectaPrimeJobsFromCloud();await vectaLoadTerminalJobStatesFromCloud();vectaApplyTerminalJobStates();await vectaPrimeCompletionEvidenceFromCloud();await vectaRecoverGhostJobsFromTrustedBackups();importContractor2026Spreadsheet();ensureServiceTemplates();ensureRecurringWorkshopTasks();rollOverOutstandingJobs();normaliseLegacyCarryOverJobs();normaliseUnallocatedBookingDates();await syncPendingCarryOvers();await restoreAug13JobsMovedByOldOverlapRule();await repairExistingPlannerOverlaps({persistRemote:true});render();/* Load the slower non-job workshop datasets only after the correct planner is visible. */await pullRemote();await vectaRepairConfirmedNk72KtfCompletion();vectaApplyTerminalJobStates();render();startCloudSync();syncContractor2026SpreadsheetRemote();updateConnectivityUI()}catch(e){console.warn('Supabase startup unavailable; continuing in offline workshop mode.',e);vectaCloudReachable=false;updateConnectivityUI();render()}}else{vectaCloudReachable=false;updateConnectivityUI();render()}})},null)}
 
 function plannerSearchNormaliseText(v){return String(v||'').toLowerCase().replace(/\s+/g,' ').trim()}
 function plannerSearchCompact(v){return String(v||'').toLowerCase().replace(/[^a-z0-9]/g,'')}
@@ -12834,6 +12855,79 @@ var VECTA_DELETED_JOB_IDS_KEY='vecta:jobs:deleted-tombstones:v284';
 function vectaDeletedJobTombstones(){try{var x=JSON.parse(localStorage.getItem(VECTA_DELETED_JOB_IDS_KEY)||'{}');return x&&typeof x==='object'?x:{}}catch(e){return {}}}
 function vectaRememberDeletedJob(id){if(!id)return;var x=vectaDeletedJobTombstones();x[String(id)]={deleted_at:new Date().toISOString()};try{localStorage.setItem(VECTA_DELETED_JOB_IDS_KEY,JSON.stringify(x))}catch(e){}var q=vectaPendingSync(),key='delete:jobs:'+String(id);if(!q.some(function(item){return vectaNormaliseQueuedItem(item).key===key}))queueRemoteOperation('delete','jobs',String(id));}
 function vectaIsDeletedJobTombstone(id){return !!vectaDeletedJobTombstones()[String(id||'')]}
+var VECTA_TERMINAL_JOB_PREFIX='job_terminal:';
+var vectaTerminalJobStates={};
+function vectaTerminalJobState(id){return vectaTerminalJobStates[String(id||'')]||null}
+function vectaTerminalJobSettingId(id){return VECTA_TERMINAL_JOB_PREFIX+String(id||'')}
+function vectaNormaliseTerminalState(value){
+  if(!value||typeof value!=='object')return null;
+  var state=String(value.state||'').toLowerCase();
+  if(state!=='deleted'&&state!=='completed')return null;
+  return Object.assign({},value,{state:state});
+}
+function vectaSetTerminalJobStateLocal(id,value){
+  var state=vectaNormaliseTerminalState(value);if(!id||!state)return null;
+  state.job_id=String(id);state.updated_at=state.updated_at||new Date().toISOString();
+  vectaTerminalJobStates[String(id)]=state;
+  if(state.state==='deleted')vectaRememberDeletedJob(String(id));
+  return state;
+}
+async function vectaWriteTerminalJobState(jobOrId,state,extra){
+  var job=(jobOrId&&typeof jobOrId==='object')?jobOrId:null,id=String(job?job.id:jobOrId||'');
+  if(!id)return false;
+  var value=Object.assign({job_id:id,state:String(state||'').toLowerCase(),registration:job?normReg(job.registration||''):'',updated_at:new Date().toISOString()},extra||{});
+  if(job&&job.completed_at&&!value.completed_at)value.completed_at=job.completed_at;
+  vectaSetTerminalJobStateLocal(id,value);
+  if(!remoteClient)return true;
+  try{
+    var row={id:vectaTerminalJobSettingId(id),value:value,updated_at:new Date().toISOString()};
+    var res=await remoteClient.from('workshop_settings').upsert(row);
+    if(res&&res.error)throw res.error;
+    return true;
+  }catch(e){console.warn('Terminal job ledger write failed',id,state,e);return false}
+}
+async function vectaLoadTerminalJobStatesFromCloud(){
+  if(!remoteClient)return false;
+  try{
+    var rows=[],from=0,pageSize=1000;
+    while(true){
+      var res=await vectaWithTimeout(remoteClient.from('workshop_settings').select('id,value,updated_at').like('id',VECTA_TERMINAL_JOB_PREFIX+'%').range(from,from+pageSize-1),8000,'Job lifecycle ledger');
+      if(res.error)throw res.error;
+      var page=Array.isArray(res.data)?res.data:[];rows=rows.concat(page);if(page.length<pageSize)break;from+=pageSize;
+    }
+    rows.forEach(function(row){var id=String(row.id||'').slice(VECTA_TERMINAL_JOB_PREFIX.length),state=vectaNormaliseTerminalState(row.value);if(id&&state){state.updated_at=row.updated_at||state.updated_at;vectaSetTerminalJobStateLocal(id,state)}});
+    return true;
+  }catch(e){console.warn('Job lifecycle ledger could not be loaded',e);return false}
+}
+function vectaApplyTerminalJobStates(){
+  var changed=false,next=[];
+  (app.jobs||[]).forEach(function(j){
+    if(!j||!j.id)return;
+    var terminal=vectaTerminalJobState(j.id),status=String(j.status||'').toLowerCase();
+    if(status==='deleted'){
+      vectaSetTerminalJobStateLocal(j.id,{state:'deleted',job_id:String(j.id),registration:normReg(j.registration||''),updated_at:j.updated_at||new Date().toISOString()});changed=true;return;
+    }
+    if(terminal&&terminal.state==='deleted'){changed=true;return}
+    if(terminal&&terminal.state==='completed'&&status!=='completed'){
+      j.status='completed';j.archived=true;j.completed_at=j.completed_at||terminal.completed_at||null;j.booking_date=j.booking_date||terminal.booking_date||j.booking_date;j.updated_at=new Date().toISOString();changed=true;
+    }
+    next.push(j);
+  });
+  if(changed){app.jobs=next;saveLocal()}
+  return changed;
+}
+async function vectaSoftDeleteRemoteJob(jobOrId){
+  var job=(jobOrId&&typeof jobOrId==='object')?jobOrId:null,id=String(job?job.id:jobOrId||'');if(!id)return false;
+  await vectaWriteTerminalJobState(job||id,'deleted',{deleted_at:new Date().toISOString(),registration:job?normReg(job.registration||''):''});
+  if(!remoteClient)return true;
+  var patch={status:'deleted',archived:true,booking_date:null,technician:'Unallocated',ramp:'',updated_at:new Date().toISOString()};
+  var res=await remoteClient.from('jobs').update(patch).eq('id',id).select('id,status');
+  if(res&&res.error)throw new Error(res.error.message||'Could not soft-delete job');
+  var check=await remoteClient.from('jobs').select('id,status,archived').eq('id',id).limit(1);
+  if(check&&check.error)throw new Error(check.error.message||'Could not verify soft-delete');
+  if(check&&Array.isArray(check.data)&&check.data.length&&String(check.data[0].status||'').toLowerCase()!=='deleted')throw new Error('Job remained active after delete update');
+  return true;
+}
 async function deleteJobCompletely(id){
   var j=(app.jobs||[]).find(function(x){return String(x.id)===String(id)});
   if(!j){alert('This job could not be found. Refresh the page and try again.');return;}
@@ -12881,7 +12975,7 @@ async function deleteJobCompletely(id){
           }
         }
       }
-      await deleteRemote('jobs',id);
+      await vectaSoftDeleteRemoteJob(j);
       for(var i=0;i<relatedInvoices.length;i++){try{await deleteRemote('invoices',relatedInvoices[i].id)}catch(e){console.warn('Linked invoice deletion failed',e)}}
       for(var r=0;r<relatedRecords.length;r++){
         var rec=relatedRecords[r];
@@ -12902,7 +12996,7 @@ async function deleteJobCompletely(id){
 function roundPlannerMinutesUp(minutes){return Math.ceil(Number(minutes||0)/15)*15}
 function plannerIsoDate(date){return date.getFullYear()+'-'+String(date.getMonth()+1).padStart(2,'0')+'-'+String(date.getDate()).padStart(2,'0')}
 function nextWorkshopDate(isoDate){var d=new Date(String(isoDate)+'T12:00:00');if(isNaN(d.getTime()))return isoDate;do{d.setDate(d.getDate()+1)}while(d.getDay()===0||d.getDay()===6);return plannerIsoDate(d)}
-function mechanicBookingIntervals(date,technician,excludeId){return (app.jobs||[]).filter(function(x){var status=String(x&&x.status||'').toLowerCase();return x&&String(x.id)!==String(excludeId||'')&&!x.archived&&status!=='completed'&&status!=='cancelled'&&status!=='ready_to_invoice'&&!isJobInvoiced(x)&&String(x.booking_date||'')===String(date||'')&&String(x.technician||'')===String(technician||'')&&String(x.technician||'')!=='Unallocated'}).map(function(x){var start=clockMinutes(x.drop_time||'08:00'),duration=Math.max(15,Math.round(Number(x.estimated_hours||1)*60));return {start:start,end:start+duration,id:x.id}}).sort(function(a,b){return a.start-b.start})}
+function mechanicBookingIntervals(date,technician,excludeId){return (app.jobs||[]).filter(function(x){var status=String(x&&x.status||'').toLowerCase();return x&&String(x.id)!==String(excludeId||'')&&!x.archived&&status!=='completed'&&status!=='cancelled'&&status!=='deleted'&&status!=='ready_to_invoice'&&!isJobInvoiced(x)&&String(x.booking_date||'')===String(date||'')&&String(x.technician||'')===String(technician||'')&&String(x.technician||'')!=='Unallocated'}).map(function(x){var start=clockMinutes(x.drop_time||'08:00'),duration=Math.max(15,Math.round(Number(x.estimated_hours||1)*60));return {start:start,end:start+duration,id:x.id}}).sort(function(a,b){return a.start-b.start})}
 function findNextMechanicSlot(job,excludeId){
   if(!job||!job.booking_date||!job.technician||job.technician==='Unallocated')return null;
   var duration=Math.max(15,roundPlannerMinutesUp(Number(job.estimated_hours||1)*60)),date=String(job.booking_date),requested=roundPlannerMinutesUp(clockMinutes(job.drop_time||'08:00')),dayStart=8*60,intervals=mechanicBookingIntervals(date,job.technician,excludeId),candidate=Math.max(dayStart,requested),guard=0;
@@ -12920,7 +13014,7 @@ function plannerJobConflict(job,excludeId){
 async function repairExistingPlannerOverlaps(options){
   options=options||{};
   var changed=[],changedIds={};
-  var active=(app.jobs||[]).filter(function(j){return j&&!j.archived&&String(j.status||'').toLowerCase()!=='completed'&&String(j.status||'').toLowerCase()!=='cancelled'&&j.booking_date&&j.technician&&j.technician!=='Unallocated'}).sort(function(a,b){
+  var active=(app.jobs||[]).filter(function(j){return j&&!j.archived&&String(j.status||'').toLowerCase()!=='completed'&&String(j.status||'').toLowerCase()!=='cancelled'&&String(j.status||'').toLowerCase()!=='deleted'&&j.booking_date&&j.technician&&j.technician!=='Unallocated'}).sort(function(a,b){
     var ak=String(a.booking_date||'')+'|'+String(a.technician||'')+'|'+String(normaliseClock(a.drop_time||'08:00'))+'|'+String(a.created_at||'');
     var bk=String(b.booking_date||'')+'|'+String(b.technician||'')+'|'+String(normaliseClock(b.drop_time||'08:00'))+'|'+String(b.created_at||'');
     return ak.localeCompare(bk);
@@ -13076,6 +13170,7 @@ function syncSavedJobBundleInBackground(j,linked){
       if(linked&&linked.customer)await upsertRemote('customers',linked.customer,{silent:true});
       if(linked&&linked.vehicle)await upsertRemote('vehicles',linked.vehicle,{silent:true});
       await upsertRemote('jobs',j,{silent:true});
+      if(String(j.status||'').toLowerCase()==='completed')await vectaWriteTerminalJobState(j,'completed',{completed_at:j.completed_at||null,booking_date:j.booking_date||null});
       await rememberJobCustomer(j);
       if(remoteClient){
         try{await remoteClient.from('workshop_settings').upsert({id:'main',value:app.settings,updated_at:new Date().toISOString()})}
@@ -13230,7 +13325,7 @@ async function saveInvoice(id){
   }
   try{await persistInvoicePaymentMethod(inv)}catch(err){secondaryErrors.push('Payment method sync: '+((err&&err.message)||'failed'))}
   if(linkedJob){
-    try{await upsertRemote('jobs',linkedJob,{silent:true})}
+    try{await upsertRemote('jobs',linkedJob,{silent:true});await vectaWriteTerminalJobState(linkedJob,'completed',{completed_at:linkedJob.completed_at||null,booking_date:linkedJob.booking_date||null})}
     catch(err){secondaryErrors.push('Linked job sync: '+((err&&err.message)||'failed'));console.warn('Linked job sync failed after invoice save',err)}
   }
   try{await saveAll()}catch(err){secondaryErrors.push('Workshop settings sync: '+((err&&err.message)||'failed'))}
