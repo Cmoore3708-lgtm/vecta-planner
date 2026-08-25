@@ -1015,11 +1015,10 @@ body.servicePreviewing .servicePreviewControls{position:relative!important;z-ind
   .printPlannerFlow .printPlannerHead{border-right:1px solid #cbd5e1}.printPlannerFlow .printPlannerHead:nth-child(2){border-right:0}
   .printPlannerFlow .printPlannerLane{position:static;height:auto;min-height:560px;padding:6px;background:#f8fafc;overflow:visible;display:flex;flex-direction:column;gap:6px}
   .printPlannerFlow .printPlannerJob{position:relative!important;left:auto!important;right:auto!important;top:auto!important;height:auto!important;min-height:74px;padding:7px 8px;box-shadow:none;break-inside:avoid}
-  .printPlannerFlow .printPlannerJobTop{display:grid;grid-template-columns:minmax(125px,1fr) auto minmax(110px,1fr);gap:8px;align-items:start}
+  .printPlannerFlow .printPlannerJobTop{display:grid;grid-template-columns:minmax(125px,1fr) minmax(95px,auto);gap:8px;align-items:start}
   .printPlannerFlow .printVehicleIdentity{min-width:0}.printPlannerFlow .printPlate{display:inline-block;font-size:12px;padding:4px 7px}
   .printPlannerFlow .printPlannerVehicle{font-size:10px;font-weight:900;margin-top:4px;color:#263244;white-space:normal}
-  .printPlannerFlow .printPlannerMiddle{text-align:center}.printPlannerFlow .printPlannerTime{display:block;font-size:9px;padding:3px 5px;margin-bottom:4px}.printPlannerFlow .rampBadge{font-size:8px;padding:3px 7px}
-  .printPlannerFlow .printPlannerType{margin:0;text-align:right;font-size:15px;line-height:1.05;text-transform:uppercase;overflow-wrap:anywhere}
+  .printPlannerFlow .printPlannerMiddle{text-align:center;min-width:0}.printPlannerFlow .printPlannerTime{display:block;font-size:9px;padding:3px 5px;margin-bottom:4px}.printPlannerFlow .printPlannerTypeList{display:flex;flex-direction:column;align-items:center;gap:1px;max-width:110px}.printPlannerFlow .printPlannerType{margin:0;text-align:center;font-size:7px;line-height:1.05;text-transform:uppercase;overflow-wrap:anywhere;word-break:break-word;white-space:normal}.printPlannerFlow .printMotTime{font-size:6.5px}
   .printPlannerFlow .printWorkRequired{margin:7px 0 0;padding-top:6px;border-top:1px solid rgba(100,116,139,.25);font-size:10px;line-height:1.25;color:#1e293b;white-space:normal;overflow:visible}
   .printPlannerFlow .printWorkRequired b{font-size:8px;text-transform:uppercase;color:#64748b;margin-right:5px}
   .printPlannerFlow .miniPlannerTask{min-height:54px}
@@ -13447,7 +13446,7 @@ function printDay(){
   function printCard(j){
     var colour=esc(j.job_colour||j.job_type||'general'),isTask=j.card_type==='mini_task',title=isTask?(j.work_required||'Task'):(j.job_type||j.work_required||'Job');
     if(isTask){var sourceId=String(j.source||'').indexOf('task:')===0?String(j.source).slice(5):'',sourceTask=sourceId&&app.tasks.find(function(t){return t.id===sourceId}),priority=sourceTask?taskMeta(sourceTask).priority:'normal';return '<div class="printPlannerJob miniPlannerTask priority-'+esc(priority)+'"><div class="printTaskHead"><span>Task</span><b>'+esc(timeRange(j))+'</b></div><div class="printTaskText">'+esc(title)+'</div></div>'}
-    return '<div class="printPlannerJob jobTypeCoded" style="'+jobTypeInlineStyle(j)+'"><div class="printPlannerJobTop"><div class="printVehicleIdentity"><span class="printPlate">'+esc(j.registration||'NO REG')+'</span><div class="printPlannerVehicle">'+esc(j.vehicle||'Vehicle not recorded')+'</div></div><div class="printPlannerMiddle"><span class="printPlannerTime">'+esc(timeRange(j))+'</span>'+rampBadge(j.ramp)+'</div>'+printJobTypesHtml(j)+'</div><p class="printWorkRequired"><b>Work required</b>'+esc(j.work_required||'No work description recorded')+'</p></div>'
+    return '<div class="printPlannerJob jobTypeCoded" style="'+jobTypeInlineStyle(j)+'"><div class="printPlannerJobTop"><div class="printVehicleIdentity"><span class="printPlate">'+esc(j.registration||'NO REG')+'</span><div class="printPlannerVehicle">'+esc(j.vehicle||'Vehicle not recorded')+'</div></div><div class="printPlannerMiddle"><span class="printPlannerTime">'+esc(timeRange(j))+'</span>'+printJobTypesHtml(j)+'</div></div><p class="printWorkRequired"><b>Work required</b>'+esc(j.work_required||'No work description recorded')+'</p></div>'
   }
   var head='<div class="printPlannerHeader"><img class="vectaBrandLogo printBrandLogo" src="'+BRAND_LOGO_SRC+'" alt="VECTA Vehicle Servicing and repairs"><div><h1>Daily Workshop Planner</h1><strong>'+niceDate(selectedIso())+'</strong></div></div>';
   var cols='repeat('+mechanics.length+',minmax(0,1fr))';
