@@ -9151,11 +9151,13 @@ async function flushPendingSync(){
   }}finally{vectaSyncInFlight=false;vectaSyncProgress=null}
   if(quarantined.length)vectaArchiveSyncItems(quarantined,'Permanent sync failure after 3 attempts');
   vectaCloudReachable=true;vectaLastCloudSuccess=new Date().toISOString();vectaSavePendingSync(remaining);updateConnectivityUI();
-  if(!remaining.length){try{await pullRemote()}catch(e){console.warn('Post-sync cloud refresh skipped',e)}return true}
+  /* Do not call pullRemote() from here. pullRemote() itself flushes the queue,
+     so the old two-way call path could recurse forever once the queue became empty. */
+  if(!remaining.length)return true;
   return false
 }
 function registerVectaServiceWorker(){if('serviceWorker' in navigator){window.addEventListener('load',function(){navigator.serviceWorker.register('/service-worker.js').catch(function(e){console.warn('Offline app install failed',e)})})}}
-window.addEventListener('online',function(){updateConnectivityUI('syncing');setTimeout(async function(){try{var configured=await loadCloudConfig({silent:true});if(configured){await new Promise(function(resolve){ensureSupabase(function(){connectSupabase();resolve()})});if(remoteClient){var test=await remoteClient.from('jobs').select('id').limit(1);if(!test.error){vectaCloudReachable=true;await flushPendingSync();await pullRemote();await vectaCreateDailyBackup(false,'cloud-synchronised');render()}}}}catch(e){vectaCloudReachable=false}updateConnectivityUI()},500)});
+window.addEventListener('online',function(){updateConnectivityUI('syncing');setTimeout(async function(){try{var configured=await loadCloudConfig({silent:true});if(configured){await new Promise(function(resolve){ensureSupabase(function(){connectSupabase();resolve()})});if(remoteClient){var test=await vectaWithTimeout(remoteClient.from('jobs').select('id').limit(1),8000,'Cloud connection check');if(!test.error){vectaCloudReachable=true;await flushPendingSync();await pullRemote();await vectaCreateDailyBackup(false,'cloud-synchronised');render()}}}}catch(e){vectaCloudReachable=false}updateConnectivityUI()},500)});
 window.addEventListener('offline',function(){vectaCloudReachable=false;updateConnectivityUI()});
 setInterval(function(){if(navigator.onLine&&vectaCloudReachable&&vectaPendingSync().length&&!vectaSyncInFlight){flushPendingSync().catch(function(e){console.warn('Background offline-sync retry failed',e)})}},5*60*1000);
 registerVectaServiceWorker();
@@ -9218,19 +9220,33 @@ function loadLocal(){
 }
 function merge(base,extra){for(var k in extra){if(extra&&Object.prototype.hasOwnProperty.call(extra,k)){if(extra[k]&&typeof extra[k]==='object'&&!Array.isArray(extra[k])&&base[k]) base[k]=merge(base[k],extra[k]); else base[k]=extra[k];}} return base;}
 function selectedIso(){return iso(selectedDate)}
+function vectaWithTimeout(value,ms,label){
+  var timer;
+  return Promise.race([
+    Promise.resolve(value),
+    new Promise(function(_resolve,reject){timer=setTimeout(function(){reject(new Error((label||'Cloud request')+' timed out after '+Math.round(ms/1000)+' seconds.'));},ms);})
+  ]).finally(function(){if(timer)clearTimeout(timer)});
+}
 function ensureSupabase(cb){
   if(window.supabase){cb(true);return;}
+  var finished=false;
+  function done(ok){if(finished)return;finished=true;clearTimeout(timer);cb(!!ok)}
+  var timer=setTimeout(function(){done(false)},6000);
   var existing=document.getElementById('supabaseScript');
-  if(existing){existing.addEventListener('load',function(){cb(true)});existing.addEventListener('error',function(){cb(false)});return;}
-  var s=document.createElement('script');s.id='supabaseScript';s.src='https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2';s.async=true;s.onload=function(){cb(true)};s.onerror=function(){cb(false)};document.head.appendChild(s);
+  if(existing){existing.addEventListener('load',function(){done(true)},{once:true});existing.addEventListener('error',function(){done(false)},{once:true});return;}
+  var s=document.createElement('script');s.id='supabaseScript';s.src='https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2';s.async=true;s.onload=function(){done(true)};s.onerror=function(){done(false)};document.head.appendChild(s);
 }
 async function loadCloudConfig(options){
   options=options||{};
   try{
     if(!navigator.onLine)throw new Error('This computer is offline.');
-    var response=await fetch('/api/supabase-config',{cache:'no-store'});
+    var controller=typeof AbortController!=='undefined'?new AbortController():null;
+    var request=fetch('/api/supabase-config',{cache:'no-store',signal:controller?controller.signal:undefined});
+    var response;
+    try{response=await vectaWithTimeout(request,6000,'Cloud configuration');}
+    catch(e){if(controller)try{controller.abort()}catch(_e){}throw e}
     if(!response.ok) throw new Error('Configuration endpoint returned '+response.status);
-    var cfg=await response.json();
+    var cfg=await vectaWithTimeout(response.json(),3000,'Cloud configuration response');
     if(!cfg.supabaseUrl||!cfg.supabasePublishableKey) throw new Error('Supabase environment variables are missing in Vercel.');
     app.settings.supabaseUrl=cfg.supabaseUrl;
     app.settings.supabaseAnonKey=cfg.supabasePublishableKey;
@@ -9365,7 +9381,7 @@ async function pullRemote(){
   var __pullStarted=performance.now();
   if(!connectSupabase()) return;
   var tables=['jobs','customers','vehicles','tasks','invoices','service_records','website_booking_requests'];
-  async function fetchAllRows(table){var all=[],from=0,pageSize=1000;while(true){var res=await remoteClient.from(table).select('*').range(from,from+pageSize-1);if(res.error)throw res.error;var rows=Array.isArray(res.data)?res.data:[];all=all.concat(rows);if(rows.length<pageSize)break;from+=pageSize;if(from>100000)throw new Error('Safety limit reached while backing up '+table)}return all}
+  async function fetchAllRows(table){var all=[],from=0,pageSize=1000;while(true){var res=await vectaWithTimeout(remoteClient.from(table).select('*').range(from,from+pageSize-1),12000,'Cloud '+table+' download');if(res.error)throw res.error;var rows=Array.isArray(res.data)?res.data:[];all=all.concat(rows);if(rows.length<pageSize)break;from+=pageSize;if(from>100000)throw new Error('Safety limit reached while backing up '+table)}return all}
   /* Startup performance: these tables are independent. The old code downloaded all seven
      one after another, so mobile startup paid the sum of every Supabase round trip. Fetch
      them concurrently and merge only after each individual request completes. */
@@ -9517,7 +9533,7 @@ function startCloudSync(){
   });
   window.addEventListener('online',function(){cloudLastRefreshAt=0;refreshCloudAndRender()});
 }
-function init(){safe(async function(){loadLocal();await vectaCreateDailyBackup(false,'startup-local');importContractor2026Spreadsheet();ensureServiceTemplates();ensureRecurringWorkshopTasks();rollOverOutstandingJobs();normaliseLegacyCarryOverJobs();normaliseUnallocatedBookingDates();await restoreAug13JobsMovedByOldOverlapRule();await repairExistingPlannerOverlaps({persistRemote:false});bindTop();render();updateConnectivityUI('checking');setInterval(function(){checkForNewWorkshopDay();if(view==='planner')updateCurrentTimeLine()},30000);var configured=await loadCloudConfig({silent:true});if(!navigator.onLine){vectaCloudReachable=false;updateConnectivityUI();return}ensureSupabase(async function(ok){if(!ok){vectaCloudReachable=false;updateConnectivityUI();return;}if(connectSupabase()){try{var ping=await remoteClient.from('jobs').select('id').limit(1);if(ping.error)throw ping.error;vectaCloudReachable=true;updateConnectivityUI('syncing');await flushPendingSync();await pullRemote();importContractor2026Spreadsheet();ensureServiceTemplates();ensureRecurringWorkshopTasks();rollOverOutstandingJobs();normaliseLegacyCarryOverJobs();normaliseUnallocatedBookingDates();await syncPendingCarryOvers();await restoreAug13JobsMovedByOldOverlapRule();await repairExistingPlannerOverlaps({persistRemote:true});render();startCloudSync();syncContractor2026SpreadsheetRemote();updateConnectivityUI();}catch(e){console.warn('Supabase startup unavailable; continuing in offline workshop mode.',e);vectaCloudReachable=false;updateConnectivityUI();render();}}else{vectaCloudReachable=false;updateConnectivityUI()}});},null)}
+function init(){safe(async function(){loadLocal();await vectaCreateDailyBackup(false,'startup-local');importContractor2026Spreadsheet();ensureServiceTemplates();ensureRecurringWorkshopTasks();rollOverOutstandingJobs();normaliseLegacyCarryOverJobs();normaliseUnallocatedBookingDates();await restoreAug13JobsMovedByOldOverlapRule();await repairExistingPlannerOverlaps({persistRemote:false});bindTop();render();updateConnectivityUI('checking');setInterval(function(){checkForNewWorkshopDay();if(view==='planner')updateCurrentTimeLine()},30000);var configured=await loadCloudConfig({silent:true});if(!navigator.onLine){vectaCloudReachable=false;updateConnectivityUI();return}ensureSupabase(async function(ok){if(!ok){vectaCloudReachable=false;updateConnectivityUI();return;}if(connectSupabase()){try{var ping=await vectaWithTimeout(remoteClient.from('jobs').select('id').limit(1),8000,'Cloud connection check');if(ping.error)throw ping.error;vectaCloudReachable=true;updateConnectivityUI('syncing');await flushPendingSync();await pullRemote();importContractor2026Spreadsheet();ensureServiceTemplates();ensureRecurringWorkshopTasks();rollOverOutstandingJobs();normaliseLegacyCarryOverJobs();normaliseUnallocatedBookingDates();await syncPendingCarryOvers();await restoreAug13JobsMovedByOldOverlapRule();await repairExistingPlannerOverlaps({persistRemote:true});render();startCloudSync();syncContractor2026SpreadsheetRemote();updateConnectivityUI();}catch(e){console.warn('Supabase startup unavailable; continuing in offline workshop mode.',e);vectaCloudReachable=false;updateConnectivityUI();render();}}else{vectaCloudReachable=false;updateConnectivityUI()}});},null)}
 
 function plannerSearchNormaliseText(v){return String(v||'').toLowerCase().replace(/\s+/g,' ').trim()}
 function plannerSearchCompact(v){return String(v||'').toLowerCase().replace(/[^a-z0-9]/g,'')}
