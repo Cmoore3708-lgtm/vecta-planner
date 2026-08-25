@@ -1,7 +1,6 @@
 <!doctype html>
 <html lang="en">
 <head>
-  <!-- VECTA V291: non-blocking cloud sync; planner moves remain verified without automatic overlap-write storms -->
   <!-- VECTA V255: combined Service + MOT completion asks whether MOT was actually completed; No keeps MOT outstanding -->
   <!-- VECTA V254: authoritative MOT lookup checks EVERY active MOT plan and may correct dates backwards or forwards -->
   <!-- VECTA V253: stale recurring MOT due dates roll into current cycle; fixes missing NK72 KTD / NK72 KTJ -->
@@ -9150,10 +9149,7 @@ async function flushPendingSync(){
   try{for(var i=0;i<eligible.length;i++){
     var item=vectaNormaliseQueuedItem(eligible[i]),ok=false;
     try{
-      if(item.operation==='upsert'){var rows=Array.isArray(item.payload)?item.payload:[item.payload];if(!rows.length)throw new Error('Queued upsert has no record data.');for(var r=0;r<rows.length;r++){var qrow=rows[r],qid=String(qrow&&qrow.id||''),terminal=(item.table==='jobs'&&qid)?vectaTerminalJobState(qid):null;if(terminal&&terminal.state==='deleted'){continue}if(terminal&&terminal.state==='completed'){qrow=Object.assign({},qrow,{status:'completed',archived:true,completed_at:qrow.completed_at||terminal.completed_at||null})}
-        /* Never let an old offline copy overwrite a newer job amendment made since it was queued. */
-        if(item.table==='jobs'&&qid){var localJob=(app.jobs||[]).find(function(x){return String(x&&x.id||'')===qid});var queuedTime=Date.parse(qrow&&qrow.updated_at||item.queued_at||0)||0,localTime=Date.parse(localJob&&localJob.updated_at||0)||0;if(localJob&&localTime>queuedTime){console.info('Skipped stale queued job payload for '+qid+'; a newer local amendment exists.');continue}}
-        await upsertRemote(item.table,qrow,{silent:true,skipQueue:true})}ok=true}
+      if(item.operation==='upsert'){var rows=Array.isArray(item.payload)?item.payload:[item.payload];if(!rows.length)throw new Error('Queued upsert has no record data.');for(var r=0;r<rows.length;r++){var qrow=rows[r],qid=String(qrow&&qrow.id||''),terminal=(item.table==='jobs'&&qid)?vectaTerminalJobState(qid):null;if(terminal&&terminal.state==='deleted'){continue}if(terminal&&terminal.state==='completed'){qrow=Object.assign({},qrow,{status:'completed',archived:true,completed_at:qrow.completed_at||terminal.completed_at||null})}await upsertRemote(item.table,qrow,{silent:true,skipQueue:true})}ok=true}
       else if(item.operation==='delete'){var did=(item.payload&&item.payload.id)||item.payload;if(item.table==='jobs'){var localDeleted=(app.jobs||[]).find(function(x){return String(x.id)===String(did)});await vectaSoftDeleteRemoteJob(localDeleted||String(did));ok=true}else{await deleteRemote(item.table,did,{skipQueue:true});ok=true}}
       else throw new Error('Unknown queued operation: '+String(item.operation||'missing'));
     }catch(e){
@@ -9165,8 +9161,6 @@ async function flushPendingSync(){
     remaining=remaining.filter(function(x){return x.key!==item.key});
     if(!ok&&quarantined.indexOf(item)===-1)remaining.push(item);
     vectaSavePendingSync(remaining);vectaSyncProgress.done=i+1;updateConnectivityUI('syncing');
-    /* Keep the browser responsive while old offline changes are being replayed. */
-    await new Promise(function(resolve){setTimeout(resolve,25)});
   }}finally{vectaSyncInFlight=false;vectaSyncProgress=null}
   if(quarantined.length)vectaArchiveSyncItems(quarantined,'Permanent sync failure after 3 attempts');
   vectaCloudReachable=true;vectaLastCloudSuccess=new Date().toISOString();vectaSavePendingSync(remaining);updateConnectivityUI();
@@ -9708,9 +9702,9 @@ async function refreshCloudAndRender(){
     await pullRemote();
     rollOverOutstandingJobs();
     await syncPendingCarryOvers();
-    /* V291: cloud refresh is read-only for planner allocations. Automatic overlap
-       repair here caused write -> realtime event -> refresh -> write cascades and could
-       freeze the dashboard. Explicit user planner moves remain cloud-verified. */
+    /* A live cloud pull can reintroduce bookings saved simultaneously on
+       different devices. Re-run slot allocation after every refresh. */
+    await repairExistingPlannerOverlaps({persistRemote:true});
     active=document.activeElement;
     if(view==='search'&&active&&active.id==='mainSearch')return;
     if(view==='jobs'&&active&&active.id==='jobSearch')return;
@@ -9785,14 +9779,12 @@ function init(){safe(async function(){
           await vectaPrimeJobsFromCloud();await vectaLoadTerminalJobStatesFromCloud();vectaApplyTerminalJobStates();
           await vectaPrimeCompletionEvidenceFromCloud();await vectaRecoverGhostJobsFromTrustedBackups();await vectaRepairConfirmedNk72KtfCompletion();vectaApplyTerminalJobStates();
           rollOverOutstandingJobs();normaliseLegacyCarryOverJobs();normaliseUnallocatedBookingDates();await syncPendingCarryOvers();
-          await restoreAug13JobsMovedByOldOverlapRule();
-          /* V291: do not rewrite the entire planner during startup. */
-          await new Promise(function(resolve){setTimeout(resolve,50)});
+          await restoreAug13JobsMovedByOldOverlapRule();await repairExistingPlannerOverlaps({persistRemote:true});
           render();
           await pullRemote({skipDashboardCore:true});
           startCloudSync();syncContractor2026SpreadsheetRemote();updateConnectivityUI();
         }catch(e){console.warn('Background workshop synchronisation incomplete',e);updateConnectivityUI()}
-      },750);
+      },0);
     }catch(e){
       console.warn('Supabase startup unavailable; continuing in offline workshop mode.',e);vectaCloudReachable=false;updateConnectivityUI();vectaSetStartupLoading(false);render();
     }
@@ -12509,17 +12501,7 @@ async function vectaVerifyPlannerJobSaved(j){
   }
   throw new Error('The cloud database did not retain the new planner date / technician for '+(j.registration||j.id)+'.');
 }
-function vectaDiscardQueuedJobUpserts(jobId,reason){
-  jobId=String(jobId||'');if(!jobId)return 0;
-  var q=vectaPendingSync(),removed=q.filter(function(raw){var item=vectaNormaliseQueuedItem(raw),qid=String((item.payload&&item.payload.id)||item.id||'');return item.table==='jobs'&&item.operation==='upsert'&&qid===jobId});
-  if(!removed.length)return 0;
-  var keys={};removed.forEach(function(item){keys[vectaNormaliseQueuedItem(item).key]=true});
-  vectaSavePendingSync(q.filter(function(item){return !keys[vectaNormaliseQueuedItem(item).key]}));
-  vectaArchiveSyncItems(removed,reason||'Superseded by a newer confirmed planner amendment');
-  console.info('Removed '+removed.length+' stale queued job save(s) for '+jobId+' after newer planner save was confirmed.');
-  return removed.length;
-}
-async function persistPlannerJobs(jobs){var seen={};for(var i=0;i<(jobs||[]).length;i++){var j=jobs[i];if(!j||seen[j.id])continue;seen[j.id]=1;j.updated_at=j.updated_at||new Date().toISOString();await upsertRemote('jobs',j,{silent:true});await vectaVerifyPlannerJobSaved(j);vectaDiscardQueuedJobUpserts(j.id,'Superseded by confirmed planner allocation '+String(j.booking_date||'')+' / '+String(j.technician||''));syncTaskFromMiniJob(j)}}
+async function persistPlannerJobs(jobs){var seen={};for(var i=0;i<(jobs||[]).length;i++){var j=jobs[i];if(!j||seen[j.id])continue;seen[j.id]=1;j.updated_at=j.updated_at||new Date().toISOString();await upsertRemote('jobs',j,{silent:true});await vectaVerifyPlannerJobSaved(j);syncTaskFromMiniJob(j)}}
 function persistPlannerJobsInBackground(jobs,label){
   var snapshot=(jobs||[]).filter(Boolean).map(function(j){return Object.assign({},j)});
   if(!snapshot.length){plannerInteractionBusy=false;return}
