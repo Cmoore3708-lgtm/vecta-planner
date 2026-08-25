@@ -9425,30 +9425,81 @@ async function vectaPrimeCompletionEvidenceFromCloud(){
 }
 
 async function vectaRecoverGhostJobsFromTrustedBackups(){
-  /* V285 recovery for jobs deleted before durable tombstones existed. A cloud-synchronised
-     local backup is evidence of what this workshop computer actually had after a successful
-     cloud refresh. If a cloud row was created before that backup but is absent from it, it
-     had already been deleted by that point. Only trusted cloud-synchronised backups from
-     previous days are used, avoiding false positives for newly-created jobs. */
+  /* V286 recovery for the already-corrupted live database.
+
+     V285 never actually had usable "cloud-synchronised" history on most workshop PCs:
+     the daily backup is created at startup and vectaCreateDailyBackup() refuses to create
+     another snapshot with the same date later in the day. So yesterday's otherwise useful
+     snapshots were normally labelled "startup-local" / "local-save", and V285 ignored them.
+
+     V286 uses safer historical evidence instead of trusting a single missing snapshot:
+       1) COMPLETION IS IRREVERSIBLE. If an older snapshot contains this same job ID as
+          completed/archived, restore that completed state and push it back to Supabase.
+       2) DELETION requires a state transition: the exact same job ID must be PRESENT in an
+          older snapshot and then ABSENT in a later snapshot. That proves this workshop had
+          the job and subsequently removed it; a merely stale startup cache cannot satisfy
+          both sides of that transition.
+       3) Any historical queued/quarantined DELETE is also explicit deletion evidence.
+
+     This is deliberately ID-based. Registrations are not unique jobs and must never be used
+     to delete records automatically. */
   try{
     var rows=await vectaListBackups(),today=todayIso();
-    var trusted=(rows||[]).filter(function(b){return b&&b.source==='cloud-synchronised'&&String(b.id||'')<today&&b.app&&Array.isArray(b.app.jobs)}).slice(0,3);
-    if(!trusted.length)return 0;
-    var removed=[];
-    (app.jobs||[]).slice().forEach(function(j){
-      if(!j||!j.id||vectaIsDeletedJobTombstone(j.id))return;
-      var created=Date.parse(j.created_at||0)||0;if(!created)return;
-      var proof=trusted.find(function(b){var bt=Date.parse(b.created_at||0)||0;if(!bt||created>=bt)return false;return !b.app.jobs.some(function(x){return String(x&&x.id||'')===String(j.id)})});
-      if(!proof)return;
-      vectaRememberDeletedJob(j.id);removed.push(j);
+    var history=(rows||[]).filter(function(b){return b&&String(b.id||'')<today&&b.app&&Array.isArray(b.app.jobs)}).sort(function(a,b){return String(a.created_at||a.id||'').localeCompare(String(b.created_at||b.id||''))});
+    var explicitDeletes={};
+    vectaPendingSync().concat(vectaSyncQuarantine()).forEach(function(raw){
+      var item=vectaNormaliseQueuedItem(raw);if(item.operation!=='delete'||item.table!=='jobs')return;
+      var id=String((item.payload&&item.payload.id)||item.payload||'');if(id)explicitDeletes[id]=true;
     });
-    if(!removed.length)return 0;
-    var ids={};removed.forEach(function(j){ids[String(j.id)]=true});
-    app.jobs=(app.jobs||[]).filter(function(j){return !ids[String(j.id)]});saveLocal();
-    for(var i=0;i<removed.length;i++){try{await deleteRemote('jobs',removed[i].id)}catch(e){console.warn('Recovered ghost-job delete queued',removed[i].id,e)}}
-    console.warn('Recovered and removed '+removed.length+' ghost job(s) using trusted prior cloud backup evidence.');
-    return removed.length;
-  }catch(e){console.warn('Ghost-job backup recovery skipped',e);return 0;}
+    var completedRepairs=[],removed=[],remoteDeletes=[];
+    (app.jobs||[]).slice().forEach(function(j){
+      if(!j||!j.id)return;
+      var id=String(j.id),snapshots=[];
+      history.forEach(function(b){
+        var match=(b.app.jobs||[]).find(function(x){return String(x&&x.id||'')===id});
+        snapshots.push({backup:b,job:match||null,present:!!match});
+      });
+
+      /* Recover an irreversible completed state before considering deletion. */
+      if(!jobCompletionEvidence(j)){
+        var priorCompleted=snapshots.filter(function(x){return x.present&&jobCompletionEvidence(x.job)}).sort(function(a,b){return String(b.backup.created_at||b.backup.id||'').localeCompare(String(a.backup.created_at||a.backup.id||''))})[0];
+        if(priorCompleted){
+          var old=priorCompleted.job||{};
+          j.status='completed';j.archived=true;
+          j.completed_at=old.completed_at||old.completedAt||j.completed_at||null;
+          if(old.completed_time&&!j.completed_time)j.completed_time=old.completed_time;
+          j.updated_at=new Date().toISOString();completedRepairs.push(j);return;
+        }
+      }
+
+      if(vectaIsDeletedJobTombstone(id)||explicitDeletes[id]){vectaRememberDeletedJob(id);removed.push(j);remoteDeletes.push(id);return;}
+
+      /* Historical present -> later absent transition = strong deletion proof. */
+      var seenPresentAt=-1,provedDeleted=false;
+      for(var si=0;si<snapshots.length;si++){
+        if(snapshots[si].present){seenPresentAt=si;continue;}
+        if(seenPresentAt>=0){provedDeleted=true;break;}
+      }
+      if(provedDeleted){vectaRememberDeletedJob(id);removed.push(j);remoteDeletes.push(id);}
+    });
+
+    if(completedRepairs.length||removed.length){
+      var removedIds={};removed.forEach(function(j){removedIds[String(j.id)]=true});
+      if(removed.length)app.jobs=(app.jobs||[]).filter(function(j){return !removedIds[String(j&&j.id||'')]});
+      saveLocal();
+    }
+    if(remoteClient){
+      for(var ci=0;ci<completedRepairs.length;ci++){
+        try{await upsertRemote('jobs',completedRepairs[ci],{silent:true})}catch(e){console.warn('Recovered completed job sync failed',completedRepairs[ci]&&completedRepairs[ci].id,e)}
+      }
+      for(var di=0;di<remoteDeletes.length;di++){
+        try{await deleteRemote('jobs',remoteDeletes[di])}catch(e){console.warn('Recovered ghost-job delete queued',remoteDeletes[di],e)}
+      }
+    }
+    window.vectaV286Recovery={completed:completedRepairs.length,deleted:removed.length,ran_at:new Date().toISOString()};
+    if(completedRepairs.length||removed.length)console.warn('V286 historical recovery: '+completedRepairs.length+' completed job(s) restored; '+removed.length+' deleted ghost job(s) removed.');
+    return completedRepairs.length+removed.length;
+  }catch(e){console.warn('V286 historical job recovery skipped',e);return 0;}
 }
 async function pullRemote(){
   var __pullStarted=performance.now();
@@ -14353,7 +14404,7 @@ window.v277RepairMainSecCompletion=v277RepairMainSecCompletion;
 
 async function v277Run(){await v277RepairNmukTypes();await v277RepairMainSecCompletion();try{if(typeof render==='function')render();}catch(e){}}
 setTimeout(v277Run,1600);
-try{var foot=document.querySelector('.sideFoot small');if(foot)foot.textContent='v285 Workshop Pro · ghost-job recovery + safe carry-over';}catch(e){}
+try{var foot=document.querySelector('.sideFoot small');if(foot)foot.textContent='v286 Workshop Pro · historical recovery + permanent deletion protection';}catch(e){}
 setTimeout(function(){try{if(typeof vectaRepairCompletionDatesFromLinkedEvidence==='function')vectaRepairCompletionDatesFromLinkedEvidence();}catch(e){console.warn('Linked completion-date audit skipped',e)}},2400);
 })();
 </script>

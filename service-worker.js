@@ -1,4 +1,4 @@
-const CACHE='vecta-v285-ghost-job-recovery';
+const CACHE='vecta-v286-historical-recovery';
 const CORE=['/','/index.html','/manifest.webmanifest','/icons/vecta-192.png','/icons/vecta-512.png'];
 
 self.addEventListener('install',event=>{
@@ -17,7 +17,7 @@ self.addEventListener('install',event=>{
 self.addEventListener('activate',event=>{
   event.waitUntil((async()=>{
     const keys=await caches.keys();
-    await Promise.all(keys.filter(k=>k!==CACHE && k.startsWith('vecta-workshop-pro-offline-')).map(k=>caches.delete(k)));
+    await Promise.all(keys.filter(k=>k!==CACHE && k.startsWith('vecta-')).map(k=>caches.delete(k)));
     await self.clients.claim();
   })());
 });
