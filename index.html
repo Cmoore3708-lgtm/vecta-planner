@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="en">
 <head>
-  <!-- VECTA V286: planner allocation persistence - stale offline job upserts can never overwrite newer confirmed planner moves -->
+  <!-- VECTA V291: non-blocking cloud sync; planner moves remain verified without automatic overlap-write storms -->
   <!-- VECTA V255: combined Service + MOT completion asks whether MOT was actually completed; No keeps MOT outstanding -->
   <!-- VECTA V254: authoritative MOT lookup checks EVERY active MOT plan and may correct dates backwards or forwards -->
   <!-- VECTA V253: stale recurring MOT due dates roll into current cycle; fixes missing NK72 KTD / NK72 KTJ -->
@@ -9165,6 +9165,8 @@ async function flushPendingSync(){
     remaining=remaining.filter(function(x){return x.key!==item.key});
     if(!ok&&quarantined.indexOf(item)===-1)remaining.push(item);
     vectaSavePendingSync(remaining);vectaSyncProgress.done=i+1;updateConnectivityUI('syncing');
+    /* Keep the browser responsive while old offline changes are being replayed. */
+    await new Promise(function(resolve){setTimeout(resolve,25)});
   }}finally{vectaSyncInFlight=false;vectaSyncProgress=null}
   if(quarantined.length)vectaArchiveSyncItems(quarantined,'Permanent sync failure after 3 attempts');
   vectaCloudReachable=true;vectaLastCloudSuccess=new Date().toISOString();vectaSavePendingSync(remaining);updateConnectivityUI();
@@ -9706,9 +9708,9 @@ async function refreshCloudAndRender(){
     await pullRemote();
     rollOverOutstandingJobs();
     await syncPendingCarryOvers();
-    /* A live cloud pull can reintroduce bookings saved simultaneously on
-       different devices. Re-run slot allocation after every refresh. */
-    await repairExistingPlannerOverlaps({persistRemote:true});
+    /* V291: cloud refresh is read-only for planner allocations. Automatic overlap
+       repair here caused write -> realtime event -> refresh -> write cascades and could
+       freeze the dashboard. Explicit user planner moves remain cloud-verified. */
     active=document.activeElement;
     if(view==='search'&&active&&active.id==='mainSearch')return;
     if(view==='jobs'&&active&&active.id==='jobSearch')return;
@@ -9783,12 +9785,14 @@ function init(){safe(async function(){
           await vectaPrimeJobsFromCloud();await vectaLoadTerminalJobStatesFromCloud();vectaApplyTerminalJobStates();
           await vectaPrimeCompletionEvidenceFromCloud();await vectaRecoverGhostJobsFromTrustedBackups();await vectaRepairConfirmedNk72KtfCompletion();vectaApplyTerminalJobStates();
           rollOverOutstandingJobs();normaliseLegacyCarryOverJobs();normaliseUnallocatedBookingDates();await syncPendingCarryOvers();
-          await restoreAug13JobsMovedByOldOverlapRule();await repairExistingPlannerOverlaps({persistRemote:true});
+          await restoreAug13JobsMovedByOldOverlapRule();
+          /* V291: do not rewrite the entire planner during startup. */
+          await new Promise(function(resolve){setTimeout(resolve,50)});
           render();
           await pullRemote({skipDashboardCore:true});
           startCloudSync();syncContractor2026SpreadsheetRemote();updateConnectivityUI();
         }catch(e){console.warn('Background workshop synchronisation incomplete',e);updateConnectivityUI()}
-      },0);
+      },750);
     }catch(e){
       console.warn('Supabase startup unavailable; continuing in offline workshop mode.',e);vectaCloudReachable=false;updateConnectivityUI();vectaSetStartupLoading(false);render();
     }
