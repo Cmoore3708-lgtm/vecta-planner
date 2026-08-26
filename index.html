@@ -14633,6 +14633,76 @@ window.v290RepairCompletionDates=repairFromBackups;
    competed with the authoritative cloud load and could leave the loading gate stuck. */
 })();
 </script>
+
+
+<!-- VECTA V294: planner header uses the existing Workshop availability calendar, not the browser picker -->
+<style id="vecta-v294-planner-calendar-hook-css">
+#currentDate[readonly]{cursor:pointer!important;opacity:1!important;color:inherit!important;-webkit-text-fill-color:currentColor!important}
+</style>
+<script id="vecta-v294-planner-calendar-hook-js">
+(function(){
+  function v294CapacityPercent(date,mech){
+    var h=(app.jobs||[]).filter(function(j){return !j.archived&&j.status!=='completed'&&j.status!=='cancelled'&&j.status!=='ready_to_invoice'&&String(j.booking_date||'')===date&&String(j.technician||'')===mech}).reduce(function(t,j){return t+Number(j.estimated_hours||1)},0);
+    return {hours:h,percent:Math.min(100,Math.round(h/8*100))};
+  }
+  function v294WorkingDates(start,count){
+    var out=[],d=new Date((start||todayIso())+'T12:00:00'),guard=0;
+    while(out.length<count&&guard++<50){
+      if(d.getDay()!==0&&d.getDay()!==6)out.push(d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'));
+      d.setDate(d.getDate()+1);
+    }
+    return out;
+  }
+  function v294MiniPlanner(date){
+    var mechs=(app.settings.mechanics||[]).slice(0,3);
+    return '<div class="capacityMini"><h3>'+esc(niceDate(date))+' mini planner</h3><div class="capacityMiniGrid">'+mechs.map(function(m){
+      var rows=(app.jobs||[]).filter(function(j){return !j.archived&&j.status!=='cancelled'&&String(j.booking_date||'')===date&&String(j.technician||'')===m}).sort(byTime);
+      return '<div class="capacityMiniLane"><h4>'+esc(m)+' · '+v294CapacityPercent(date,m).percent+'% booked</h4>'+(rows.length?rows.map(function(j){return '<div class="capacityMiniJob"><b>'+esc((j.drop_time||'08:00')+' · '+(j.registration||'NO REG'))+'</b>'+esc(j.work_required||jobTitle(j))+'</div>'}).join(''):'<div class="empty">No jobs booked.</div>')+'</div>';
+    }).join('')+'</div><div class="capacityConfirmRow"><button class="btn" id="capacityBack">Choose another day</button><button class="primary" id="capacityConfirm">Go to this date</button></div></div>';
+  }
+  window.openPlannerCapacityChooser=function(){
+    var start=selectedIso(),dates=v294WorkingDates(start,20),modal=document.getElementById('capacityModal'),chosen=start;
+    if(!modal)return;
+    function dayCards(){
+      return '<div class="capacityDays">'+dates.map(function(d){
+        var ps=(app.settings.mechanics||[]).slice(0,3).map(function(m){var c=v294CapacityPercent(d,m);return '<div class="capacityMech"><span>'+esc(m)+'</span><b>'+c.percent+'%</b><i><span style="width:'+c.percent+'%"></span></i></div>'}).join('');
+        return '<button type="button" class="capacityDay '+(d===chosen?'selected':'')+'" data-capacity-day="'+d+'"><strong>'+esc(niceDate(d))+'</strong>'+ps+'</button>';
+      }).join('')+'</div>';
+    }
+    function renderDays(){
+      modal.innerHTML='<div class="modalCard capacityModalCard"><div class="modalHead"><div><h2>Workshop availability</h2><p class="muted" style="margin:4px 0 0">Choose a day, inspect the mini planner, then go straight to that planner date.</p></div><button class="btn" id="capacityClose">Close</button></div><div class="modalBody">'+dayCards()+'<div id="capacityMiniHost"></div></div></div>';
+      modal.classList.add('open');modal.setAttribute('aria-hidden','false');
+      var close=document.getElementById('capacityClose');if(close)close.onclick=function(){modal.classList.remove('open');modal.setAttribute('aria-hidden','true')};
+      modal.querySelectorAll('[data-capacity-day]').forEach(function(b){b.onclick=function(){
+        chosen=b.dataset.capacityDay;
+        modal.querySelectorAll('.capacityDay').forEach(function(x){x.classList.toggle('selected',x===b)});
+        var host=document.getElementById('capacityMiniHost');if(!host)return;
+        host.innerHTML=v294MiniPlanner(chosen);
+        var back=document.getElementById('capacityBack');if(back)back.onclick=function(){host.innerHTML=''};
+        var confirm=document.getElementById('capacityConfirm');if(confirm)confirm.onclick=function(){
+          selectedDate=new Date(chosen+'T12:00:00');plannerShowFullDay=false;
+          modal.classList.remove('open');modal.setAttribute('aria-hidden','true');render();
+        };
+      }});
+    }
+    renderDays();
+  };
+  function hookPlannerDate(){
+    var el=document.getElementById('currentDate');if(!el)return;
+    el.readOnly=true;el.setAttribute('aria-label','Open VECTA workshop availability calendar');el.title='Open workshop availability';
+    if(el.dataset.vectaCapacityHook==='1')return;el.dataset.vectaCapacityHook='1';
+    var lastOpen=0;
+    function open(e){if(e){e.preventDefault();e.stopPropagation()}var now=Date.now();if(now-lastOpen<350)return;lastOpen=now;window.openPlannerCapacityChooser();}
+    el.addEventListener('pointerdown',open,true);
+    el.addEventListener('click',open,true);
+    el.addEventListener('keydown',function(e){if(e.key==='Enter'||e.key===' '){open(e)}});
+  }
+  hookPlannerDate();
+  var oldRender=window.render;
+  if(typeof oldRender==='function')window.render=function(){var r=oldRender.apply(this,arguments);setTimeout(hookPlannerDate,0);return r};
+  setTimeout(hookPlannerDate,250);
+})();
+</script>
 </body>
 </html>
 <script>
