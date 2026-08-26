@@ -15527,3 +15527,145 @@ setTimeout(v278SafeRun,1800);
 try{var foot=document.querySelector('.sideFoot small');if(foot)foot.textContent='v278 Workshop Pro · MAIN SEC Internal master correction';}catch(e){}
 })();
 </script>
+<style id="v291-unified-planner-calendar-and-mobile-other">
+/* V291 — one workshop calendar across desktop/mobile planner + job booking. */
+#v291UnifiedPlannerCalendar{z-index:190}
+#v291UnifiedPlannerCalendar .v243CalendarModalCard{width:min(1180px,97vw);max-height:94vh;overflow:auto}
+.v291DayStats{display:grid;gap:1px;margin-top:3px}
+.v291DayStat{display:flex;justify-content:space-between;gap:3px;font-size:7.5px;line-height:1.1;color:#475569}
+.v291DayStat b{font-size:7.5px;color:#0f172a}
+.v291DayStat.total{margin-top:1px;padding-top:2px;border-top:1px solid #e2e8f0;font-weight:950}
+.v291CalendarDay.hasJobs{background:#f8fafc}
+.v291CalendarDay.selected{border-color:#e11d2e!important;box-shadow:0 0 0 2px rgba(225,29,46,.15)!important}
+.v291MiniJob.status-completed{opacity:.62}
+@media(max-width:680px){
+  #v291UnifiedPlannerCalendar .v243CalendarModalCard{width:98vw}
+  #v291UnifiedPlannerCalendar .v243CalendarBody{grid-template-columns:1fr!important}
+  #v291UnifiedPlannerCalendar .v243PlannerPane{margin-top:12px}
+  .v291DayStat{font-size:7px}.v291DayStat b{font-size:7px}
+}
+@media(max-width:768px){
+  .mobilePlanner .mobileGroup.mobileGroup-other{background:#dff0ff!important;border-color:#bfdbfe!important}
+  .mobilePlanner .mobileGroup.mobileGroup-other>.mobileGroupHead{background:#dbeeff!important}
+  .mobilePlanner .mobileGroup.mobileGroup-other .mobileJob,
+  .mobilePlanner .mobileJob.mobileOtherJob{background:#dff0ff!important;background-image:linear-gradient(#dff0ff,#dff0ff)!important}
+}
+</style>
+<script id="v291-unified-planner-calendar-and-mobile-other">
+(function(){
+'use strict';
+function iso(v){v=String(v||'').slice(0,10);return /^\d{4}-\d{2}-\d{2}$/.test(v)?v:''}
+function mechanics(){
+  var list=(app&&app.settings&&app.settings.mechanics)||['Alfie','Other'];
+  return list.filter(function(m){return m&&m!=='Unallocated'&&m!=='Waiting'}).slice(0,3);
+}
+function dayJobs(date,includeCompleted){
+  return (app.jobs||[]).filter(function(j){
+    var st=String(j&&j.status||'').toLowerCase();
+    if(!j||String(j.booking_date||'').slice(0,10)!==date)return false;
+    if(typeof isVehicleTaxJob==='function'&&isVehicleTaxJob(j))return false;
+    if(typeof isUnallocatedJob==='function'&&isUnallocatedJob(j))return false;
+    if(st==='cancelled'||st==='ready_to_invoice')return false;
+    if(!includeCompleted&&(j.archived||st==='completed'))return false;
+    return true;
+  });
+}
+function mechHours(rows,mech){
+  return rows.filter(function(j){return String(j.technician||'')===String(mech)}).reduce(function(s,j){return s+Number(j.estimated_hours||1)},0);
+}
+function mechPct(date,mech,includeCompleted){return Math.min(100,Math.round(mechHours(dayJobs(date,includeCompleted),mech)/8*100))}
+function totalPct(date,includeCompleted){
+  var rows=dayJobs(date,includeCompleted),ms=mechanics(),cap=Math.max(1,ms.length)*8,hrs=ms.reduce(function(sum,m){return sum+mechHours(rows,m)},0);
+  return Math.min(100,Math.round(hrs/cap*100));
+}
+function dateLabel(date){try{return niceDate(date)}catch(e){return date}}
+function titleMonth(d){return d.toLocaleDateString('en-GB',{month:'long',year:'numeric'})}
+function dateIso(y,m,d){return y+'-'+String(m+1).padStart(2,'0')+'-'+String(d).padStart(2,'0')}
+function modal(){
+  var el=document.getElementById('v291UnifiedPlannerCalendar');
+  if(!el){el=document.createElement('div');el.id='v291UnifiedPlannerCalendar';el.className='modal';el.setAttribute('aria-hidden','true');document.body.appendChild(el)}
+  return el;
+}
+function openCalendar(opts){
+  opts=opts||{};
+  var chosen=iso(opts.value)||selectedIso(),monthDate=new Date(chosen+'T12:00:00'),el=modal(),booking=opts.mode==='booking';
+  if(isNaN(monthDate.getTime()))monthDate=new Date(selectedIso()+'T12:00:00');
+  function disabled(date){
+    if(!booking)return false;
+    var d=new Date(date+'T12:00:00'),dow=d.getDay();
+    return date<todayIso()||dow===0||dow===6;
+  }
+  function calendarHtml(){
+    var y=monthDate.getFullYear(),m=monthDate.getMonth(),first=new Date(y,m,1,12),last=new Date(y,m+1,0,12).getDate(),offset=(first.getDay()+6)%7,ms=mechanics(),out='';
+    out+='<div class="v243MonthHead"><button type="button" class="btn small" data-v291-prev>‹</button><strong>'+esc(titleMonth(monthDate))+'</strong><button type="button" class="btn small" data-v291-next>›</button></div>';
+    out+='<div class="v243Weekdays"><span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span><span>Sat</span><span>Sun</span></div><div class="v243MonthGrid">';
+    for(var b=0;b<offset;b++)out+='<span class="v243DayBlank"></span>';
+    for(var d=1;d<=last;d++){
+      var date=dateIso(y,m,d),off=disabled(date),rows=dayJobs(date,!booking),stats=ms.map(function(mech){return '<span class="v291DayStat"><span>'+esc(mech)+'</span><b>'+mechPct(date,mech,!booking)+'%</b></span>'}).join('');
+      stats+='<span class="v291DayStat total"><span>Total</span><b>'+totalPct(date,!booking)+'%</b></span>';
+      out+='<button type="button" class="v243CalendarDay v291CalendarDay '+(date===chosen?'selected ':'')+(rows.length?'hasJobs ':'')+(off?'disabled':'')+'" '+(off?'disabled':'data-v291-day="'+date+'"')+'><b>'+d+'</b><span class="v291DayStats">'+stats+'</span></button>';
+    }
+    return out+'</div>';
+  }
+  function plannerHtml(date){
+    var ms=mechanics(),start=8,end=17,px=44,height=(end-start)*px,rows=dayJobs(date,!booking);
+    function top(time){var p=String(time||'08:00').split(':'),mins=(Number(p[0]||8)*60+Number(p[1]||0))-start*60;return Math.max(0,mins/60*px)}
+    function h(j){return Math.max(28,Number(j.estimated_hours||1)*px-4)}
+    var times='';for(var hr=start;hr<=end;hr++)times+='<div class="v243MiniTime" style="top:'+((hr-start)*px)+'px">'+String(hr).padStart(2,'0')+':00</div>';
+    var stats=ms.map(function(mech){return '<div><small>'+esc(mech.toUpperCase())+'</small><strong>'+mechPct(date,mech,!booking)+'%</strong></div>'}).join('')+'<div><small>TOTAL</small><strong>'+totalPct(date,!booking)+'%</strong></div>';
+    return '<div class="v243PlannerTitle"><div><h3>'+esc(dateLabel(date))+'</h3><p>Mechanic loading and mini planner for this date.</p></div><button type="button" class="primary" data-v291-use>'+(booking?'Use this date':'Go to this date')+'</button></div>'+
+      '<div class="v245CalendarStats">'+stats+'</div>'+
+      '<div class="v243PlannerGrid" style="--v243-mini-height:'+height+'px"><div class="v243PlannerHead">Time</div>'+ms.map(function(mech){return '<div class="v243PlannerHead">'+esc(mech)+' <small>'+mechPct(date,mech,!booking)+'%</small></div>'}).join('')+
+      '<div class="v243TimeLane" style="height:'+height+'px">'+times+'</div>'+
+      ms.map(function(mech){var list=rows.filter(function(j){return String(j.technician||'')===String(mech)}).sort(byTime);return '<div class="v243PlannerLane" style="height:'+height+'px">'+list.map(function(j){var st=String(j.status||'').toLowerCase();return '<div class="v243PlannerJob v291MiniJob status-'+esc(st)+'" style="top:'+top(j.drop_time)+'px;height:'+h(j)+'px"><b>'+esc(j.registration||'NO REG')+'</b><span>'+esc(j.work_required||(typeof jobTitle==='function'?jobTitle(j):j.job_type)||'Job')+'</span><small>'+esc(j.drop_time||'08:00')+'</small></div>'}).join('')+'</div>'}).join('')+'</div>';
+  }
+  function renderModal(){
+    el.innerHTML='<div class="modalCard v243CalendarModalCard"><div class="modalHead"><div><h2>'+(booking?'Choose booking date':'Workshop calendar')+'</h2><p class="muted" style="margin:4px 0 0">Every date shows each mechanic’s loading. Select a day to inspect the same mini planner before continuing.</p></div><button type="button" class="btn" data-v291-close>Close</button></div><div class="modalBody v243CalendarBody"><div class="v243CalendarPane">'+calendarHtml()+'<div class="v243Legend">Percentages are based on an 8-hour mechanic day.</div></div><div class="v243PlannerPane">'+plannerHtml(chosen)+'</div></div></div>';
+    el.classList.add('open');el.setAttribute('aria-hidden','false');
+  }
+  el.onclick=function(ev){
+    if(ev.target.closest('[data-v291-close]')){el.classList.remove('open');el.setAttribute('aria-hidden','true');return}
+    if(ev.target.closest('[data-v291-prev]')){monthDate.setMonth(monthDate.getMonth()-1);renderModal();return}
+    if(ev.target.closest('[data-v291-next]')){monthDate.setMonth(monthDate.getMonth()+1);renderModal();return}
+    var day=ev.target.closest('[data-v291-day]');if(day){chosen=day.dataset.v291Day;renderModal();return}
+    if(ev.target.closest('[data-v291-use]')){
+      if(typeof opts.onSelect==='function')opts.onSelect(chosen);
+      el.classList.remove('open');el.setAttribute('aria-hidden','true');
+    }
+  };
+  renderModal();
+}
+window.vectaOpenUnifiedPlannerCalendar=openCalendar;
+function bindPlannerField(field){
+  if(!field||field.dataset.v291Unified==='1')return;
+  field.dataset.v291Unified='1';
+  try{field.type='text'}catch(e){}
+  field.readOnly=true;field.inputMode='none';field.setAttribute('inputmode','none');field.setAttribute('autocomplete','off');field.setAttribute('title','Open workshop calendar');
+  function open(ev){if(ev){ev.preventDefault();ev.stopPropagation()}openCalendar({mode:'planner',value:field.value||selectedIso(),onSelect:function(date){selectedDate=new Date(date+'T12:00:00');plannerShowFullDay=false;var main=document.getElementById('currentDate'),mobile=document.getElementById('mobileDateInput');if(main)main.value=date;if(mobile)mobile.value=date;render()}})}
+  field.onclick=open;field.onkeydown=function(ev){if(ev.key==='Enter'||ev.key===' '){open(ev)}};
+}
+function bindPlannerCalendars(){bindPlannerField(document.getElementById('currentDate'));bindPlannerField(document.getElementById('mobileDateInput'))}
+/* Rebind after every render, because the app reuses the date controls across desktop/mobile layouts. */
+var originalRender=window.render;
+if(typeof originalRender==='function'){window.render=function(){var r=originalRender.apply(this,arguments);setTimeout(bindPlannerCalendars,0);return r}}
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',bindPlannerCalendars,{once:true});else bindPlannerCalendars();
+/* Make + New Job use the exact same shared calendar rather than a separate implementation. */
+window.installNewJobAvailabilityCalendar=function(){
+  var field=document.getElementById('job_booking_date');if(!field)return;
+  try{field.type='text'}catch(e){}field.readOnly=true;field.inputMode='none';field.setAttribute('inputmode','none');field.setAttribute('autocomplete','off');field.setAttribute('title','Open workshop availability calendar');
+  function open(ev){if(ev){ev.preventDefault();ev.stopPropagation()}openCalendar({mode:'booking',value:field.value||selectedIso(),onSelect:function(date){field.value=date;field.dispatchEvent(new Event('change',{bubbles:true}))}})}
+  field.onclick=open;field.onkeydown=function(ev){if(ev.key==='Enter'||ev.key===' '){open(ev)}};
+};
+/* Root-cause fix for mobile Other: do not pass Array.map's index as groupName. */
+window.mobilePlannerHtml=function(mechs,jobs){
+  var groups=[];
+  mechs.forEach(function(m){groups.push({name:m,list:jobs.filter(function(j){return typeof plannerTechnicianName==='function'?plannerTechnicianName(j,mechs)===m:String(j.technician||'')===String(m)}).sort(byTime),off:(typeof mobileTimeOffHtml==='function'?mobileTimeOffHtml(m,selectedIso()):'')})});
+  groups.push({name:'Unallocated Jobs',list:unallocatedJobs().concat(app.jobs.filter(function(j){return !j.archived&&j.status!=='completed'&&j.card_type==='multi_day'&&!isUnallocatedJob(j)}).sort(byTime)),off:''});
+  return '<div class="mobilePlanner">'+groups.map(function(g){
+    var other=String(g.name||'').trim().toLowerCase()==='other',groupClass='mobileGroup mobileGroup-'+String(g.name||'').toLowerCase().replace(/[^a-z0-9]+/g,'-');
+    return '<div class="'+groupClass+'"><div class="mobileGroupHead"><span>'+esc(g.name)+'</span><span class="pill">'+g.list.length+'</span></div>'+g.off+(g.list.length?g.list.map(function(j){return mobileJobCardHtml(j,g.name)}).join(''):'<div class="empty">No jobs here.</div>')+'</div>';
+  }).join('')+'<div class="panel"><h3>General Notes</h3><textarea class="notesArea" id="notesArea" placeholder="Workshop notes...">'+esc(app.notes||'')+'</textarea></div></div>';
+};
+})();
+</script>
+
