@@ -15669,3 +15669,65 @@ window.mobilePlannerHtml=function(mechs,jobs){
 })();
 </script>
 
+<style id="v292-planner-calendar-trigger-repair">
+/* V292 — restore the planner header date control without replacing the real date input. */
+#currentDate.v292NativeDateAnchor{display:none!important}
+.dateCtl #v292PlannerCalendarButton{
+  width:100%!important;min-width:0!important;max-width:none!important;height:100%!important;
+  padding:0 8px!important;border:0!important;border-left:1px solid #33455a!important;border-right:1px solid #33455a!important;
+  border-radius:0!important;background:#111f30!important;color:#fff!important;font-size:12px!important;font-weight:950!important;
+  display:flex!important;align-items:center!important;justify-content:center!important;gap:5px!important;white-space:nowrap!important;overflow:hidden!important;
+}
+.dateCtl #v292PlannerCalendarButton:hover{background:#1b2e45!important}
+@media(max-width:768px){.dateCtl #v292PlannerCalendarButton{font-size:11px!important;padding:0 4px!important}}
+</style>
+<script id="v292-planner-calendar-trigger-repair">
+(function(){
+'use strict';
+function prettyDate(iso){
+  try{return new Date(String(iso||'').slice(0,10)+'T12:00:00').toLocaleDateString('en-GB',{day:'2-digit',month:'short'});}catch(e){return String(iso||'').slice(0,10)}
+}
+function selectPlannerDate(date){
+  if(!/^\d{4}-\d{2}-\d{2}$/.test(String(date||'')))return;
+  selectedDate=new Date(date+'T12:00:00');plannerShowFullDay=false;
+  var nativeField=document.getElementById('currentDate'),mobile=document.getElementById('mobileDateInput');
+  if(nativeField)nativeField.value=date;if(mobile)mobile.value=date;
+  render();
+}
+function openPlannerCalendar(ev){
+  if(ev){ev.preventDefault();ev.stopPropagation();}
+  if(typeof window.vectaOpenUnifiedPlannerCalendar==='function'){
+    window.vectaOpenUnifiedPlannerCalendar({mode:'planner',value:selectedIso(),onSelect:selectPlannerDate});
+  }
+}
+function install(){
+  var ctl=document.querySelector('.dateCtl'),field=document.getElementById('currentDate'),next=document.getElementById('nextDay');
+  if(!ctl||!field||!next)return;
+  /* Keep the original date input alive for existing Workshop Pro state/bindings. */
+  try{field.type='date'}catch(e){}
+  field.readOnly=false;field.removeAttribute('inputmode');field.classList.add('v292NativeDateAnchor');
+  field.onclick=null;field.onkeydown=null;
+  var btn=document.getElementById('v292PlannerCalendarButton');
+  if(!btn){
+    btn=document.createElement('button');btn.type='button';btn.id='v292PlannerCalendarButton';
+    btn.setAttribute('aria-label','Open workshop calendar');btn.title='Open workshop calendar with mechanic loading';
+    btn.addEventListener('click',openPlannerCalendar);
+    ctl.insertBefore(btn,next);
+  }
+  btn.innerHTML='<span aria-hidden="true">📅</span><span>'+prettyDate(selectedIso())+'</span>';
+  /* Mobile calendar button launches the same shared workshop calendar, not the native picker. */
+  var mobileWrap=document.querySelector('.mobileCalendarBtn'),mobile=document.getElementById('mobileDateInput');
+  if(mobile){try{mobile.type='date'}catch(e){}mobile.readOnly=false;mobile.onclick=null;mobile.onkeydown=null;}
+  if(mobileWrap&&!mobileWrap.dataset.v292Bound){
+    mobileWrap.dataset.v292Bound='1';
+    mobileWrap.addEventListener('click',function(ev){openPlannerCalendar(ev);});
+  }
+}
+var previousRender=window.render;
+if(typeof previousRender==='function'&&!previousRender.__v292CalendarRepair){
+  var wrapped=function(){var r=previousRender.apply(this,arguments);setTimeout(install,0);return r;};
+  wrapped.__v292CalendarRepair=true;window.render=wrapped;
+}
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',function(){setTimeout(install,0)},{once:true});else setTimeout(install,0);
+})();
+</script>
