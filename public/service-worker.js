@@ -1,4 +1,4 @@
-const CACHE='vecta-workshop-pro-offline-v2';
+const CACHE='vecta-workshop-pro-offline-v5-finance-v290';
 const CORE=['/','/index.html','/manifest.webmanifest','/icons/vecta-192.png','/icons/vecta-512.png'];
 
 self.addEventListener('install',event=>{
@@ -34,7 +34,7 @@ self.addEventListener('fetch',event=>{
     if(req.mode==='navigate'){
       event.respondWith((async()=>{
         try{
-          const fresh=await fetch(req);
+          const fresh=await fetch(req,{cache:'no-store'});
           if(fresh && fresh.ok){
             const cache=await caches.open(CACHE);
             await cache.put('/index.html',fresh.clone());
@@ -52,7 +52,7 @@ self.addEventListener('fetch',event=>{
       const cached=await caches.match(req);
       if(cached) return cached;
       try{
-        const fresh=await fetch(req);
+        const fresh=await fetch(req,{cache:'no-store'});
         if(fresh && fresh.ok){
           const cache=await caches.open(CACHE);
           await cache.put(req,fresh.clone());
@@ -71,7 +71,7 @@ self.addEventListener('fetch',event=>{
       const cached=await caches.match(req);
       if(cached) return cached;
       try{
-        const fresh=await fetch(req);
+        const fresh=await fetch(req,{cache:'no-store'});
         if(fresh && fresh.ok){
           const cache=await caches.open(CACHE);
           await cache.put(req,fresh.clone());

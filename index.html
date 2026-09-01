@@ -27,8 +27,7 @@
   <!-- VECTA V84: DVLA Vehicle Enquiry Service tax API ready -->
   <!-- VECTA V87: Planner description raised for one-hour cards + 30-minute MOT appointment selector -->
   <!-- VECTA V86: Existing job cards retain their planner-allocated drop-off time -->
-  <!-- VECTA V85: 30-minute drop-off times + NMUK Pool Car Tax admin workflow -->
-  <!-- VECTA FINANCE ROOT FIX 01-SEP-2026: root production file; canonical Vehicle Tax + NMUK/Staff reconciliation -->
+  <!-- VECTA V85: 30-minute drop-off times + NMUK Vehicle Tax admin workflow -->
   <!-- VECTA V83: Drop-off 07:00-15:00 + NK16 CYO migrated to Vehicle Tax admin -->
   <!-- VECTA V81: Job sheet 15-minute drop-off, 0.5-hour estimates, ramp label and pricing prefill -->
   <!-- VECTA V80: Same-day job reflow; no automatic next-day moves -->
@@ -2721,7 +2720,7 @@ body.servicePreviewing .servicePreviewControls{position:relative!important;z-ind
   <aside class="side">
     <div class="logo"><div class="logoMark">VECTA</div><div class="product" style="font-size:18px!important;font-weight:900!important;letter-spacing:.03em!important;color:#fff!important;text-transform:none!important">Workshop Pro</div></div>
     <nav class="nav" id="nav"></nav>
-    <div class="sideFoot"><b>V263 Workshop Pro</b><br>Four-lane planner · unified search · manual MOT check · My Tasks sidebar.</div>
+    <div class="sideFoot"><b>V290 Finance Integrity</b><br>NMUK ownership lock · Vehicle Tax canonicalisation · production verification build.</div>
   </aside>
   <main class="main">
     <header class="top">
@@ -6015,7 +6014,7 @@ window.INITIAL_MAINTENANCE_PLANS = [
   {
     "id": "plan-298",
     "vehicleId": "POOL|DX69XNR",
-    "type": "Road Tax",
+    "type": "Vehicle Tax",
     "intervalMonths": 12,
     "targetMonth": 10,
     "currentDueDate": "2022-10-31",
@@ -6059,7 +6058,7 @@ window.INITIAL_MAINTENANCE_PLANS = [
   {
     "id": "plan-302",
     "vehicleId": "POOL|DX69XNS",
-    "type": "Road Tax",
+    "type": "Vehicle Tax",
     "intervalMonths": 12,
     "targetMonth": 1,
     "currentDueDate": "2022-01-31",
@@ -6169,7 +6168,7 @@ window.INITIAL_MAINTENANCE_PLANS = [
   {
     "id": "plan-312",
     "vehicleId": "POOL|FY18SFV",
-    "type": "Road Tax",
+    "type": "Vehicle Tax",
     "intervalMonths": 12,
     "targetMonth": 2,
     "currentDueDate": "2026-02-01",
@@ -6213,7 +6212,7 @@ window.INITIAL_MAINTENANCE_PLANS = [
   {
     "id": "plan-316",
     "vehicleId": "POOL|KX15FWF",
-    "type": "Road Tax",
+    "type": "Vehicle Tax",
     "intervalMonths": 12,
     "targetMonth": 7,
     "currentDueDate": "2025-07-01",
@@ -6257,7 +6256,7 @@ window.INITIAL_MAINTENANCE_PLANS = [
   {
     "id": "plan-320",
     "vehicleId": "POOL|KX18EYC",
-    "type": "Road Tax",
+    "type": "Vehicle Tax",
     "intervalMonths": 12,
     "targetMonth": 10,
     "currentDueDate": "2022-10-31",
@@ -6301,7 +6300,7 @@ window.INITIAL_MAINTENANCE_PLANS = [
   {
     "id": "plan-324",
     "vehicleId": "POOL|KX18EYF",
-    "type": "Road Tax",
+    "type": "Vehicle Tax",
     "intervalMonths": 12,
     "targetMonth": 10,
     "currentDueDate": "2022-10-31",
@@ -6345,7 +6344,7 @@ window.INITIAL_MAINTENANCE_PLANS = [
   {
     "id": "plan-328",
     "vehicleId": "POOL|KX60NDY",
-    "type": "Road Tax",
+    "type": "Vehicle Tax",
     "intervalMonths": 12,
     "targetMonth": 3,
     "currentDueDate": "2025-03-01",
@@ -6389,7 +6388,7 @@ window.INITIAL_MAINTENANCE_PLANS = [
   {
     "id": "plan-332",
     "vehicleId": "POOL|KX64FRN",
-    "type": "Road Tax",
+    "type": "Vehicle Tax",
     "intervalMonths": 12,
     "targetMonth": 10,
     "currentDueDate": "2022-10-31",
@@ -6433,7 +6432,7 @@ window.INITIAL_MAINTENANCE_PLANS = [
   {
     "id": "plan-336",
     "vehicleId": "POOL|KX65FPK",
-    "type": "Road Tax",
+    "type": "Vehicle Tax",
     "intervalMonths": 12,
     "targetMonth": 7,
     "currentDueDate": "2022-07-05",
@@ -6477,7 +6476,7 @@ window.INITIAL_MAINTENANCE_PLANS = [
   {
     "id": "plan-340",
     "vehicleId": "POOL|KX67DJJ",
-    "type": "Road Tax",
+    "type": "Vehicle Tax",
     "intervalMonths": 12,
     "targetMonth": 2,
     "currentDueDate": "2026-02-01",
@@ -6510,7 +6509,7 @@ window.INITIAL_MAINTENANCE_PLANS = [
   {
     "id": "plan-343",
     "vehicleId": "POOL|KX68ENT",
-    "type": "Road Tax",
+    "type": "Vehicle Tax",
     "intervalMonths": 12,
     "targetMonth": 10,
     "currentDueDate": "2025-10-01",
@@ -6543,7 +6542,7 @@ window.INITIAL_MAINTENANCE_PLANS = [
   {
     "id": "plan-346",
     "vehicleId": "POOL|KX72CWV",
-    "type": "Road Tax",
+    "type": "Vehicle Tax",
     "intervalMonths": 12,
     "targetMonth": 12,
     "currentDueDate": "2025-12-01",
@@ -6576,7 +6575,7 @@ window.INITIAL_MAINTENANCE_PLANS = [
   {
     "id": "plan-349",
     "vehicleId": "POOL|NA72KNW",
-    "type": "Road Tax",
+    "type": "Vehicle Tax",
     "intervalMonths": 12,
     "targetMonth": 9,
     "currentDueDate": "2024-09-01",
@@ -6609,7 +6608,7 @@ window.INITIAL_MAINTENANCE_PLANS = [
   {
     "id": "plan-352",
     "vehicleId": "POOL|NK16CYO",
-    "type": "Road Tax",
+    "type": "Vehicle Tax",
     "intervalMonths": 12,
     "targetMonth": 8,
     "currentDueDate": "2022-08-31",
@@ -6653,7 +6652,7 @@ window.INITIAL_MAINTENANCE_PLANS = [
   {
     "id": "plan-356",
     "vehicleId": "POOL|NK65CTF",
-    "type": "Road Tax",
+    "type": "Vehicle Tax",
     "intervalMonths": 12,
     "targetMonth": 2,
     "currentDueDate": "2026-02-01",
@@ -6697,7 +6696,7 @@ window.INITIAL_MAINTENANCE_PLANS = [
   {
     "id": "plan-360",
     "vehicleId": "POOL|NK71DHJ",
-    "type": "Road Tax",
+    "type": "Vehicle Tax",
     "intervalMonths": 12,
     "targetMonth": 1,
     "currentDueDate": "2022-01-31",
@@ -6741,7 +6740,7 @@ window.INITIAL_MAINTENANCE_PLANS = [
   {
     "id": "plan-364",
     "vehicleId": "POOL|NK71DHL",
-    "type": "Road Tax",
+    "type": "Vehicle Tax",
     "intervalMonths": 12,
     "targetMonth": 1,
     "currentDueDate": "2022-01-31",
@@ -6785,7 +6784,7 @@ window.INITIAL_MAINTENANCE_PLANS = [
   {
     "id": "plan-368",
     "vehicleId": "POOL|NK71DHM",
-    "type": "Road Tax",
+    "type": "Vehicle Tax",
     "intervalMonths": 12,
     "targetMonth": 1,
     "currentDueDate": "2022-01-31",
@@ -6829,7 +6828,7 @@ window.INITIAL_MAINTENANCE_PLANS = [
   {
     "id": "plan-372",
     "vehicleId": "POOL|NK71DHO",
-    "type": "Road Tax",
+    "type": "Vehicle Tax",
     "intervalMonths": 12,
     "targetMonth": 1,
     "currentDueDate": "2022-01-31",
@@ -6873,7 +6872,7 @@ window.INITIAL_MAINTENANCE_PLANS = [
   {
     "id": "plan-376",
     "vehicleId": "POOL|NK71DHP",
-    "type": "Road Tax",
+    "type": "Vehicle Tax",
     "intervalMonths": 12,
     "targetMonth": 1,
     "currentDueDate": "2022-01-31",
@@ -6917,7 +6916,7 @@ window.INITIAL_MAINTENANCE_PLANS = [
   {
     "id": "plan-380",
     "vehicleId": "POOL|NK71DHU",
-    "type": "Road Tax",
+    "type": "Vehicle Tax",
     "intervalMonths": 12,
     "targetMonth": 1,
     "currentDueDate": "2023-01-31",
@@ -6961,7 +6960,7 @@ window.INITIAL_MAINTENANCE_PLANS = [
   {
     "id": "plan-384",
     "vehicleId": "POOL|NK71DHV",
-    "type": "Road Tax",
+    "type": "Vehicle Tax",
     "intervalMonths": 12,
     "targetMonth": 1,
     "currentDueDate": "2022-01-31",
@@ -7005,7 +7004,7 @@ window.INITIAL_MAINTENANCE_PLANS = [
   {
     "id": "plan-388",
     "vehicleId": "POOL|NK71DHX",
-    "type": "Road Tax",
+    "type": "Vehicle Tax",
     "intervalMonths": 12,
     "targetMonth": 1,
     "currentDueDate": "2022-01-31",
@@ -7049,7 +7048,7 @@ window.INITIAL_MAINTENANCE_PLANS = [
   {
     "id": "plan-392",
     "vehicleId": "POOL|NK72KRV",
-    "type": "Road Tax",
+    "type": "Vehicle Tax",
     "intervalMonths": 12,
     "targetMonth": 10,
     "currentDueDate": "2024-10-01",
@@ -7093,7 +7092,7 @@ window.INITIAL_MAINTENANCE_PLANS = [
   {
     "id": "plan-396",
     "vehicleId": "POOL|NK72KRX",
-    "type": "Road Tax",
+    "type": "Vehicle Tax",
     "intervalMonths": 12,
     "targetMonth": 10,
     "currentDueDate": "2024-10-01",
@@ -7137,7 +7136,7 @@ window.INITIAL_MAINTENANCE_PLANS = [
   {
     "id": "plan-400",
     "vehicleId": "POOL|NK72KRZ",
-    "type": "Road Tax",
+    "type": "Vehicle Tax",
     "intervalMonths": 12,
     "targetMonth": 10,
     "currentDueDate": "2024-10-01",
@@ -7181,7 +7180,7 @@ window.INITIAL_MAINTENANCE_PLANS = [
   {
     "id": "plan-404",
     "vehicleId": "POOL|NK72KSE",
-    "type": "Road Tax",
+    "type": "Vehicle Tax",
     "intervalMonths": 12,
     "targetMonth": 10,
     "currentDueDate": "2024-10-01",
@@ -7225,7 +7224,7 @@ window.INITIAL_MAINTENANCE_PLANS = [
   {
     "id": "plan-408",
     "vehicleId": "POOL|NK72KSV",
-    "type": "Road Tax",
+    "type": "Vehicle Tax",
     "intervalMonths": 12,
     "targetMonth": 9,
     "currentDueDate": "2022-09-01",
@@ -7269,7 +7268,7 @@ window.INITIAL_MAINTENANCE_PLANS = [
   {
     "id": "plan-412",
     "vehicleId": "POOL|NK72KTD",
-    "type": "Road Tax",
+    "type": "Vehicle Tax",
     "intervalMonths": 12,
     "targetMonth": 9,
     "currentDueDate": "2022-09-01",
@@ -7313,7 +7312,7 @@ window.INITIAL_MAINTENANCE_PLANS = [
   {
     "id": "plan-416",
     "vehicleId": "POOL|NK72KTE",
-    "type": "Road Tax",
+    "type": "Vehicle Tax",
     "intervalMonths": 12,
     "targetMonth": 9,
     "currentDueDate": "2022-09-01",
@@ -7357,7 +7356,7 @@ window.INITIAL_MAINTENANCE_PLANS = [
   {
     "id": "plan-420",
     "vehicleId": "POOL|NK72KTF",
-    "type": "Road Tax",
+    "type": "Vehicle Tax",
     "intervalMonths": 12,
     "targetMonth": 9,
     "currentDueDate": "2022-09-01",
@@ -7401,7 +7400,7 @@ window.INITIAL_MAINTENANCE_PLANS = [
   {
     "id": "plan-424",
     "vehicleId": "POOL|NK72KTG",
-    "type": "Road Tax",
+    "type": "Vehicle Tax",
     "intervalMonths": 12,
     "targetMonth": 10,
     "currentDueDate": "2024-10-01",
@@ -7445,7 +7444,7 @@ window.INITIAL_MAINTENANCE_PLANS = [
   {
     "id": "plan-428",
     "vehicleId": "POOL|NK72KTJ",
-    "type": "Road Tax",
+    "type": "Vehicle Tax",
     "intervalMonths": 12,
     "targetMonth": 9,
     "currentDueDate": "2022-09-01",
@@ -7489,7 +7488,7 @@ window.INITIAL_MAINTENANCE_PLANS = [
   {
     "id": "plan-432",
     "vehicleId": "POOL|NL63XDB",
-    "type": "Road Tax",
+    "type": "Vehicle Tax",
     "intervalMonths": 12,
     "targetMonth": 4,
     "currentDueDate": "2022-04-01",
@@ -7533,7 +7532,7 @@ window.INITIAL_MAINTENANCE_PLANS = [
   {
     "id": "plan-436",
     "vehicleId": "POOL|NL63XDC",
-    "type": "Road Tax",
+    "type": "Vehicle Tax",
     "intervalMonths": 12,
     "targetMonth": 3,
     "currentDueDate": "2022-03-31",
@@ -7577,7 +7576,7 @@ window.INITIAL_MAINTENANCE_PLANS = [
   {
     "id": "plan-440",
     "vehicleId": "POOL|NL63XDF",
-    "type": "Road Tax",
+    "type": "Vehicle Tax",
     "intervalMonths": 12,
     "targetMonth": 3,
     "currentDueDate": "2022-03-31",
@@ -7621,7 +7620,7 @@ window.INITIAL_MAINTENANCE_PLANS = [
   {
     "id": "plan-444",
     "vehicleId": "POOL|NL63XDN",
-    "type": "Road Tax",
+    "type": "Vehicle Tax",
     "intervalMonths": 12,
     "targetMonth": 3,
     "currentDueDate": "2022-03-31",
@@ -7665,7 +7664,7 @@ window.INITIAL_MAINTENANCE_PLANS = [
   {
     "id": "plan-448",
     "vehicleId": "POOL|NL63XDR",
-    "type": "Road Tax",
+    "type": "Vehicle Tax",
     "intervalMonths": 12,
     "targetMonth": 8,
     "currentDueDate": "2025-08-01",
@@ -7709,7 +7708,7 @@ window.INITIAL_MAINTENANCE_PLANS = [
   {
     "id": "plan-452",
     "vehicleId": "POOL|NL63XDS",
-    "type": "Road Tax",
+    "type": "Vehicle Tax",
     "intervalMonths": 12,
     "targetMonth": 3,
     "currentDueDate": "2022-03-31",
@@ -7753,7 +7752,7 @@ window.INITIAL_MAINTENANCE_PLANS = [
   {
     "id": "plan-456",
     "vehicleId": "POOL|NL63XDT",
-    "type": "Road Tax",
+    "type": "Vehicle Tax",
     "intervalMonths": 12,
     "targetMonth": 10,
     "currentDueDate": "2022-10-01",
@@ -7797,7 +7796,7 @@ window.INITIAL_MAINTENANCE_PLANS = [
   {
     "id": "plan-460",
     "vehicleId": "POOL|NL63XDW",
-    "type": "Road Tax",
+    "type": "Vehicle Tax",
     "intervalMonths": 12,
     "targetMonth": 3,
     "currentDueDate": "2022-03-31",
@@ -7874,7 +7873,7 @@ window.INITIAL_MAINTENANCE_PLANS = [
   {
     "id": "plan-467",
     "vehicleId": "POOL|OU73ZNM",
-    "type": "Road Tax",
+    "type": "Vehicle Tax",
     "intervalMonths": 12,
     "targetMonth": 1,
     "currentDueDate": "2024-01-01",
@@ -8314,7 +8313,7 @@ window.INITIAL_MAINTENANCE_PLANS = [
   {
     "id": "plan-507",
     "vehicleId": "POOL|VK68UBR",
-    "type": "Road Tax",
+    "type": "Vehicle Tax",
     "intervalMonths": 12,
     "targetMonth": 4,
     "currentDueDate": "2022-04-01",
@@ -8358,7 +8357,7 @@ window.INITIAL_MAINTENANCE_PLANS = [
   {
     "id": "plan-511",
     "vehicleId": "POOL|VN17VWE",
-    "type": "Road Tax",
+    "type": "Vehicle Tax",
     "intervalMonths": 12,
     "targetMonth": 7,
     "currentDueDate": "2024-07-01",
@@ -8402,7 +8401,7 @@ window.INITIAL_MAINTENANCE_PLANS = [
   {
     "id": "plan-515",
     "vehicleId": "POOL|VN17VXV",
-    "type": "Road Tax",
+    "type": "Vehicle Tax",
     "intervalMonths": 12,
     "targetMonth": 7,
     "currentDueDate": "2024-07-01",
@@ -8446,7 +8445,7 @@ window.INITIAL_MAINTENANCE_PLANS = [
   {
     "id": "plan-519",
     "vehicleId": "POOL|VN68FPJ",
-    "type": "Road Tax",
+    "type": "Vehicle Tax",
     "intervalMonths": 12,
     "targetMonth": 4,
     "currentDueDate": "2022-04-01",
@@ -8490,7 +8489,7 @@ window.INITIAL_MAINTENANCE_PLANS = [
   {
     "id": "plan-523",
     "vehicleId": "POOL|VN68FYV",
-    "type": "Road Tax",
+    "type": "Vehicle Tax",
     "intervalMonths": 12,
     "targetMonth": 4,
     "currentDueDate": "2022-04-01",
@@ -8534,7 +8533,7 @@ window.INITIAL_MAINTENANCE_PLANS = [
   {
     "id": "plan-527",
     "vehicleId": "POOL|VO20FYA",
-    "type": "Road Tax",
+    "type": "Vehicle Tax",
     "intervalMonths": 12,
     "targetMonth": 3,
     "currentDueDate": "2025-03-01",
@@ -8578,7 +8577,7 @@ window.INITIAL_MAINTENANCE_PLANS = [
   {
     "id": "plan-531",
     "vehicleId": "POOL|VO20GXG",
-    "type": "Road Tax",
+    "type": "Vehicle Tax",
     "intervalMonths": 12,
     "targetMonth": 3,
     "currentDueDate": "2023-03-01",
@@ -8622,7 +8621,7 @@ window.INITIAL_MAINTENANCE_PLANS = [
   {
     "id": "plan-535",
     "vehicleId": "POOL|YY65UAX",
-    "type": "Road Tax",
+    "type": "Vehicle Tax",
     "intervalMonths": 12,
     "targetMonth": 2,
     "currentDueDate": "2026-02-01",
@@ -8927,19 +8926,19 @@ function jobTypeValues(value){
 }
 function jobTypeStorageValue(values){return jobTypeValues(values).join(JOB_TYPE_SEPARATOR)}
 migrateLegacyServiceNamesOnce();
+function vehicleTaxAliasKey(value){return String(value||'').toLowerCase().replace(/[._-]+/g,' ').replace(/\s+/g,' ').trim()}
+function isVehicleTaxAlias(value){var key=vehicleTaxAliasKey(value);return ['tax','road tax','vehicle tax','pool car tax','road fund licence','road fund license','ved','vehicle excise duty'].indexOf(key)>-1}
+function canonicalVehicleTaxLabel(){return 'Vehicle Tax'}
+function financeBaseJob(j){return j&&j.__financeBase?j.__financeBase:j}
 function isVehicleTaxJob(j){
   j=j||{};
-  var account=String(j.customer_account||'').trim().toUpperCase(),
-      subtype=String(j.nmuk_vehicle_type||j.nmuk_subtype||'').trim().toUpperCase(),
-      source=String(j.source||'').trim().toLowerCase(),
-      types=jobTypeValues(j).map(normaliseJobTypeKey).filter(function(type){return type&&type!=='general'}),
-      work=String(j.work_required||'').toLowerCase().replace(/\s+/g,' ').trim();
-  if(source==='vehicle_tax_admin')return true;
-  if(account==='NMUK'&&(subtype==='POOL CAR TAX'||subtype==='VEHICLE TAX'||subtype==='ROAD TAX'||subtype==='TAX'))return true;
-  var taxAliases={'tax':1,'vehicle tax':1,'road tax':1,'pool car tax':1,'car tax':1,'road fund licence':1,'road fund license':1,'vehicle excise duty':1,'ved':1};
-  if(types.length===1&&taxAliases[types[0]])return true;
-  if(/^(?:tax|vehicle tax|road tax|pool car tax|car tax|road fund licen[cs]e|vehicle excise duty|ved)(?:\b|\s*[-–—:])/.test(work)&&!/(?:service|mot|repair|tyre|brake|diagnostic|inspection|safety check)/.test(work))return true;
-  return false;
+  if(String(j.customer_account||'').toUpperCase()==='NMUK'&&String(j.nmuk_vehicle_type||'').toUpperCase()==='POOL CAR TAX')return true;
+  var types=jobTypeValues(j).filter(function(type){return normaliseJobTypeKey(type)!=='general'});
+  if(types.length===1&&isVehicleTaxAlias(types[0]))return true;
+  if(String(j.source||'').toLowerCase()==='vehicle_tax_admin')return true;
+  var work=vehicleTaxAliasKey(j.work_required||'');
+  if(isVehicleTaxAlias(work))return true;
+  return /^(?:tax(?:ing)?(?: the)? vehicle|vehicle tax(?:ed)?|road tax(?:ed)?)$/.test(work);
 }
 var MOT_TIME_MARKER=/\[\[MOT_TIME:([^\]]+)\]\]/i;
 function normaliseMotTime(value){var m=String(value||'').trim().match(/^(\d{1,2}):(\d{2})$/);if(!m)return '';var h=Number(m[1]),mins=Number(m[2]);if(h<0||h>23||mins<0||mins>59)return '';return String(h).padStart(2,'0')+':'+String(mins).padStart(2,'0')}
@@ -9205,7 +9204,7 @@ async function flushPendingSync(){
   if(!remaining.length)return true;
   return false
 }
-function registerVectaServiceWorker(){if('serviceWorker' in navigator){window.addEventListener('load',function(){Promise.resolve(window.__vectaCacheResetPromise).finally(function(){navigator.serviceWorker.register('/service-worker.js?v=20260901-refresh2',{updateViaCache:'none'}).then(function(reg){try{reg.update()}catch(_e){}}).catch(function(e){console.warn('Offline app install failed',e)})})})}}
+function registerVectaServiceWorker(){if('serviceWorker' in navigator){window.addEventListener('load',function(){Promise.resolve(window.__vectaCacheResetPromise).finally(function(){navigator.serviceWorker.register('/service-worker.js?v=20260901-finance-v290',{updateViaCache:'none'}).then(function(reg){try{reg.update()}catch(_e){}}).catch(function(e){console.warn('Offline app install failed',e)})})})}}
 window.addEventListener('online',function(){updateConnectivityUI('syncing');setTimeout(async function(){try{var configured=await loadCloudConfig({silent:true});if(configured){await new Promise(function(resolve){ensureSupabase(function(){connectSupabase();resolve()})});if(remoteClient){var test=await vectaWithTimeout(remoteClient.from('jobs').select('id').limit(1),8000,'Cloud connection check');if(!test.error){vectaCloudReachable=true;/* V284: cloud jobs must be read BEFORE any queued writes are replayed. This prevents stale browser jobs being re-created/re-allocated when a computer reconnects. */await vectaPrimeJobsFromCloud();await vectaLoadTerminalJobStatesFromCloud();vectaApplyTerminalJobStates();await flushPendingSync();await vectaPrimeJobsFromCloud();await vectaLoadTerminalJobStatesFromCloud();vectaApplyTerminalJobStates();await vectaPrimeCompletionEvidenceFromCloud();await vectaRecoverGhostJobsFromTrustedBackups();await pullRemote();await vectaRepairConfirmedNk72KtfCompletion();vectaApplyTerminalJobStates();rollOverOutstandingJobs();normaliseUnallocatedBookingDates();await syncPendingCarryOvers();await vectaCreateDailyBackup(false,'cloud-synchronised');render()}}}}catch(e){vectaCloudReachable=false}updateConnectivityUI()},500)});
 window.addEventListener('offline',function(){vectaCloudReachable=false;updateConnectivityUI()});
 setInterval(function(){if(navigator.onLine&&vectaCloudReachable&&vectaPendingSync().length&&!vectaSyncInFlight){flushPendingSync().catch(function(e){console.warn('Background offline-sync retry failed',e)})}},5*60*1000);
@@ -9425,6 +9424,22 @@ async function purgeDeletedWebsiteTestBookingH4uxm(){
   }
   return changed;
 }
+async function canonicaliseLegacyVehicleTaxJobs(){
+  var changed=[];
+  (app.jobs||[]).forEach(function(j){
+    if(!j||!isVehicleTaxJob(j))return;
+    var types=jobTypeValues(j).filter(function(x){return normaliseJobTypeKey(x)!=='general'}),legacyType=types.length===1&&isVehicleTaxAlias(types[0]),legacyWork=isVehicleTaxAlias(j.work_required||'');
+    var dirty=false;
+    if(legacyType&&String(j.job_type||'')!=='Vehicle Tax'){j.job_type='Vehicle Tax';j.job_types=['Vehicle Tax'];dirty=true}
+    if(legacyWork&&String(j.work_required||'')!=='Vehicle Tax'){j.work_required='Vehicle Tax';dirty=true}
+    if(String(j.nmuk_vehicle_type||'').toUpperCase()==='POOL CAR TAX'){j.nmuk_vehicle_type='Pool';dirty=true}if(String(j.source||'').toLowerCase()!=='vehicle_tax_admin'){j.source='vehicle_tax_admin';dirty=true}
+    if(dirty){j.updated_at=new Date().toISOString();changed.push(j)}
+  });
+  if(!changed.length)return 0;
+  saveLocal();
+  if(remoteClient){for(var i=0;i<changed.length;i++){try{await upsertRemote('jobs',changed[i],{silent:true})}catch(e){console.warn('Vehicle Tax wording migration could not sync',changed[i]&&changed[i].id,e)}}}
+  return changed.length;
+}
 async function migrateNk16CyoVehicleTaxJob(){
   var changed=[];
   (app.jobs||[]).forEach(function(j){
@@ -9580,7 +9595,7 @@ async function pullRemote(options){
   await pullInvoicePaymentMethods();
   if(!options.skipDashboardCore){try{var ts=await remoteClient.from('workshop_settings').select('*').eq('id','task_state_overrides_v50').single();if(!ts.error&&ts.data&&ts.data.value){app.settings.taskStateOverrides=mergeTaskStateMaps(hydrateIndependentTaskState(),ts.data.value);writeIndependentTaskState(app.settings.taskStateOverrides)}}catch(e){console.warn('Shared task state pull failed',e)}}
   try{var jc=await remoteClient.from('workshop_settings').select('id,value,updated_at').like('id','jobcustomer:%').limit(1000);if(!jc.error&&Array.isArray(jc.data)){app.jobCustomerMemory=app.jobCustomerMemory||{};jc.data.forEach(function(row){var id=String(row.id||'').replace(/^jobcustomer:/,'');if(id&&row.value&&typeof row.value==='object'){var current=app.jobCustomerMemory[id],ct=Date.parse(current&&current.updated_at||0)||0,rt=Date.parse(row.updated_at||row.value.updated_at||0)||0;if(!current||rt>=ct)app.jobCustomerMemory[id]=Object.assign({},row.value,{updated_at:row.updated_at||row.value.updated_at||''})}})}}catch(e){console.warn('Shared job customer memory pull failed',e)}
-  await migrateNk16CyoVehicleTaxJob();
+  await migrateNk16CyoVehicleTaxJob();await canonicaliseLegacyVehicleTaxJobs();
   await purgeDeletedWebsiteTestBookingH4uxm();
   applyTaskStateOverrides();
   await pullFleetCloudState();
@@ -10212,13 +10227,26 @@ function fleetEomJobs(month){
   /* Preserve the proven V6 calculation for NMUK and contractors byte-for-byte
      in behaviour. Staff recovery is added afterwards and cannot remove or
      revalue an existing NMUK row. */
-  var rows=(app.jobs||[]).map(financeEffectiveJob).filter(function(j){if(!financeValidJob(j)||!financeIsRecognisedJob(j))return false;var date=financeCompletedDate(j);if(!date)return false;return date.slice(0,7)===month&&!!fleetCustomerForJob(j)&&!fleetEomIsHeld(j,month)}).map(function(j){var customer=fleetCustomerForJob(j);return {job:j,customer:customer,date:financeCompletedDate(j),amount:customer==='Staff'?financeRevenueExVatValue(j):financeExVatValue(j)}}),seen={};
+  var rows=(app.jobs||[]).map(financeEffectiveJob).filter(function(j){if(!financeValidJob(j)||isVehicleTaxJob(j)||isVehicleTaxJob(financeBaseJob(j))||!financeIsRecognisedJob(j))return false;var date=financeCompletedDate(j);if(!date)return false;return date.slice(0,7)===month&&!!fleetCustomerForJob(j)&&!fleetEomIsHeld(j,month)}).map(function(j){var customer=fleetCustomerForJob(j);return {job:j,customer:customer,date:financeCompletedDate(j),amount:customer==='Staff'?financeRevenueExVatValue(j):financeExVatValue(j)}}),seen={};
   rows.forEach(function(r){if(r.job&&r.job.id)seen[String(r.job.id)]=true});
   financeAllJobs().map(financeEffectiveJob).forEach(function(j){
-    if(!j||seen[String(j.id||'')]||financeLegacyAllocation(j).type!=='Staff'||!fleetEomRecognisedJob(j)||fleetEomIsHeld(j,month))return;
+    if(!j||seen[String(j.id||'')]||isVehicleTaxJob(j)||isVehicleTaxJob(financeBaseJob(j))||financeLegacyAllocation(j).type!=='Staff'||!fleetEomRecognisedJob(j)||fleetEomIsHeld(j,month))return;
     var direct=String(j.completed_at||'').slice(0,10),inv=financeSavedInvoiceForJob(j),invoiceDate=String(inv&&(inv.invoice_date||inv.created_at)||'').slice(0,10),date=/^\d{4}-\d{2}-\d{2}$/.test(direct)?direct:(/^\d{4}-\d{2}-\d{2}$/.test(invoiceDate)?invoiceDate:String(j.booking_date||'').slice(0,10));
     if(date.slice(0,7)!==month)return;
     rows.push({job:j,customer:'Staff',date:date,amount:financeRevenueExVatValue(j)});if(j.id)seen[String(j.id)]=true;
+  });
+  /* Final finance firewall: even if another future code path adds a row incorrectly,
+     tax-only work and source-confirmed NMUK work can never survive inside Staff. */
+  rows=rows.filter(function(r){
+    var j=r&&r.job,base=financeBaseJob(j);
+    if(!j||isVehicleTaxJob(j)||isVehicleTaxJob(base))return false;
+    if(r.customer==='Staff'){
+      var evidence=financeRawAllocationEvidence(base,financeKnownContractors());
+      if(evidence&&evidence.type==='NMUK')return false;
+      var reg=normReg(base&&base.registration||j.registration||''),fv=reg&&typeof fleetVehicleForRegistration==='function'?fleetVehicleForRegistration(reg):null;
+      if(fv&&(fv.fleetGroup==='Nissan Internal'||fv.fleetGroup==='Nissan Pool Cars'))return false;
+    }
+    return true;
   });
   return rows.sort(function(a,b){return a.date.localeCompare(b.date)||String(a.job.registration||'').localeCompare(String(b.job.registration||''))});
 }
@@ -10589,12 +10617,12 @@ function confirmFleetVehicleTaxed(){
   if(raw===null)return;raw=String(raw||'').replace(/£|,/g,'').trim();var amount=Number(raw);
   if(!Number.isFinite(amount)||amount<0){alert('Please enter a valid tax amount.');return;}
   if(!confirm('Confirm '+reg+' was taxed today ('+niceDate(today)+') for '+money(amount)+'?'))return;
-  var now=new Date().toISOString(),job={id:uid(),booking_date:today,drop_time:null,technician:'Unallocated',ramp:'',status:'completed',job_type:'Vehicle Tax',job_types:['Vehicle Tax'],job_colour:'general',estimated_hours:0,card_type:'job',source:'vehicle_tax_admin',booking_source:'Fleet Manager tax confirmation',registration:v.registration||reg,vehicle:fleetDisplayModel(v.model),customer_account:'NMUK',customer_name:'NMUK',customer_email:v.contactEmail||'',nmuk_vehicle_type:'Pool Car Tax',work_required:'Vehicle Tax',amount_quoted:Number(amount.toFixed(2)),vat_mode:'no_vat',parts_status:'Not required',completed_at:now,created_at:now,updated_at:now,customer_note:'Vehicle tax confirmed from Fleet Manager on '+today+'.'};
+  var now=new Date().toISOString(),job={id:uid(),booking_date:today,drop_time:null,technician:'Unallocated',ramp:'',status:'completed',job_type:'Vehicle Tax',job_types:['Vehicle Tax'],job_colour:'general',estimated_hours:0,card_type:'job',source:'vehicle_tax_admin',booking_source:'Fleet Manager tax confirmation',registration:v.registration||reg,vehicle:fleetDisplayModel(v.model),customer_account:'NMUK',customer_name:'NMUK',customer_email:v.contactEmail||'',nmuk_vehicle_type:'Pool',work_required:'Vehicle Tax',amount_quoted:Number(amount.toFixed(2)),vat_mode:'no_vat',parts_status:'Not required',completed_at:now,created_at:now,updated_at:now,customer_note:'Vehicle tax confirmed from Fleet Manager on '+today+'.'};
   app.jobs.push(job);saveAll();try{upsertRemote('jobs',job)}catch(e){console.warn('Vehicle tax cloud save queued/failed',e)}
   var p=(fleetPlans||[]).find(function(x){return x&&String(x.vehicleId)===String(v.id)&&String(x.status||'Active')==='Active'&&!fleetIsMaintenanceRemoved(x.vehicleId,x.type)&&fleetMaintenanceCategory(x.type)==='tax'}),previousTaxDue=p?fleetDate(p):'',next=fleetNextAnnualDueFromCycle(previousTaxDue,today);
-  if(p){p.type='Road Tax';p.intervalMonths=12;p.currentDueDate=next;p.targetMonth=Number(next.slice(5,7));p.status='Active';p.notes='Updated from Fleet Manager tax confirmation '+today+'.'}
-  else{p={id:'plan-tax-'+v.id,vehicleId:v.id,type:'Road Tax',intervalMonths:12,targetMonth:Number(next.slice(5,7)),currentDueDate:next,notes:'Created from Fleet Manager tax confirmation '+today+'.',status:'Active',source:'Vehicle Tax ledger'};fleetPlans.push(p)}
-  var cid='job-tax-'+job.id;if(!(fleetCompletions||[]).some(function(c){return c.id===cid}))fleetCompletions.push({id:cid,vehicleId:v.id,planId:p.id,type:'Road Tax',completedDate:today,datePrecision:'day',nextDue:next,source:'job:'+job.id,notes:'Vehicle tax confirmed in Fleet Manager. Next tax due '+next+'.'});
+  if(p){p.type='Vehicle Tax';p.intervalMonths=12;p.currentDueDate=next;p.targetMonth=Number(next.slice(5,7));p.status='Active';p.notes='Updated from Fleet Manager tax confirmation '+today+'.'}
+  else{p={id:'plan-tax-'+v.id,vehicleId:v.id,type:'Vehicle Tax',intervalMonths:12,targetMonth:Number(next.slice(5,7)),currentDueDate:next,notes:'Created from Fleet Manager tax confirmation '+today+'.',status:'Active',source:'Vehicle Tax ledger'};fleetPlans.push(p)}
+  var cid='job-tax-'+job.id;if(!(fleetCompletions||[]).some(function(c){return c.id===cid}))fleetCompletions.push({id:cid,vehicleId:v.id,planId:p.id,type:'Vehicle Tax',completedDate:today,datePrecision:'day',nextDue:next,source:'job:'+job.id,notes:'Vehicle tax confirmed in Fleet Manager. Next tax due '+next+'.'});
   saveFleet();vehicleTaxSelectedMonth=today.slice(0,7);activeFleetVehicleId='';view='vehicleTax';render();
 }
 function fleetCompletePlanNow(planId){var p=fleetPlans.find(function(x){return x.id===planId});if(!p)return false;var vehicle=(fleetVehicles||[]).find(function(v){return v.id===p.vehicleId}),internal=vehicle&&vehicle.fleetGroup==='Nissan Internal',previousDue=fleetDate(p),done=previousDue||todayIso(),next=previousDue?fleetAddMonthsFromDue(previousDue,p.intervalMonths):'',currentType=serviceTypeFromValue(p.type),nextType=currentType?alternateServiceType(currentType):'';if(next)p.currentDueDate=next;p.manualDueDate=false;delete p.manualDueDateUpdatedAt;if(currentType){if(internal){currentType='Internal Service';nextType='Internal Service';p.type='Internal Service';p.intervalMonths=12;p.notes='NMUK Internal service every 12 months. No Major/Full alternation.'}else{if(currentType==='Service')currentType='Major Service';nextType=alternateServiceType(currentType);p.type=nextType;p.intervalMonths=12;p.notes='Alternates Major and Full services every 12 months.'}}fleetCompletions.push({id:'done-'+Date.now()+'-'+Math.random().toString(36).slice(2,7),vehicleId:p.vehicleId,planId:p.id,type:currentType||p.type,serviceType:currentType||'',nextServiceType:nextType||'',completedDate:done,datePrecision:'day',nextDue:next,previousDue:previousDue,source:'manual/quick-complete',notes:currentType?(currentType+' completed. '+nextType+' scheduled next.'):(previousDue?'Marked complete automatically using the existing due date.':'No due date was recorded, so today was used.')});saveFleet();activeFleetVehicleId='';render();return false}
@@ -11937,7 +11965,7 @@ function customerRows(list){if(!list.length)return '<div class="empty">No custom
 function vehiclesHtml(){return searchHtml()}
 function vehicleRows(list){if(!list.length)return '<div class="empty">No matching vehicles found.</div>';return list.map(function(v){var c=app.customers.find(function(x){return x.id===v.customer_id})||{};return '<button type="button" class="rowCard vehicleListRow" data-open-vehicle-reg="'+esc(v.registration)+'">'+listPlate(v.registration)+'<div><b>'+esc(v.vehicle||'Vehicle')+'</b><br><span class="muted">'+esc(v.customer_name||c.name||'No customer recorded')+'</span></div><span><small class="vehicleListLabel">MOT</small>'+esc(v.mot_due||'Not recorded')+'</span><span class="hideSmall"><small class="vehicleListLabel">Tax</small>'+esc(v.tax_due||'Not recorded')+'</span><span class="pill">View Record</span></button>'}).join('')}
 function financeStatusKey(j){return String(j&&j.status||'').trim().toLowerCase().replace(/[ -]+/g,'_')}
-function financeValidJob(j){return !!j&&!j.finance_deleted&&j.card_type!=='mini_task'&&!isVehicleTaxJob(j)&&(!isSoftDeletedJob(j)||vectaSoftDeletedRevenueRecord(j))}
+function financeValidJob(j){if(!j||j.finance_deleted||j.card_type==='mini_task')return false;if(isVehicleTaxJob(j)||isVehicleTaxJob(financeBaseJob(j)))return false;return !isSoftDeletedJob(j)||vectaSoftDeletedRevenueRecord(j)}
 function financeIsStaffJob(j){return financeLegacyAllocation(j).type==='Staff'}
 function financeIsRecognisedJob(j){if(!financeValidJob(j))return false;var st=financeStatusKey(j);return st==='completed'||(financeIsStaffJob(j)&&(st==='ready_to_invoice'||st==='ready'))}
 function financeCompletedDate(j){if(!financeIsRecognisedJob(j))return '';return String(j.completed_at||j.booking_date||'').slice(0,10)}
@@ -11993,7 +12021,7 @@ function financeRevenueExVatValue(j){if(isVehicleTaxJob(j))return 0;var inv=fina
 function financeAllJobs(){var byId={},jobs=[];function add(j){j=financeEffectiveJob(j);if(!financeValidJob(j))return;var id=String(j.id||'');if(id&&byId[id])return;if(id)byId[id]=1;jobs.push(j)}(app.jobs||[]).forEach(add);(window.CONTRACTOR_2026_JOBS||[]).forEach(add);return jobs}
 function financeDateForDailyView(j){return financeIsRecognisedJob(j)?financeCompletedDate(j):String(j&&j.booking_date||'').slice(0,10)}
 function invoiceFinancialSummary(){var today=todayIso(),plannerDate=typeof selectedIso==='function'?selectedIso():today,now=new Date(today+'T12:00:00'),year=now.getFullYear(),month=now.getMonth()+1,fyStart=(month>=4?year:year-1)+'-04-01',monthStart=today.slice(0,7)+'-01',weekDate=new Date(today+'T12:00:00'),weekDay=weekDate.getDay(),weekOffset=(weekDay+6)%7;weekDate.setDate(weekDate.getDate()-weekOffset);var weekStart=iso(weekDate),jobs=financeAllJobs(),todayTotal=jobs.filter(function(j){return !financeIsUnallocated(j)&&financeDateForDailyView(j)===plannerDate}).reduce(function(sum,j){return sum+financeRevenueExVatValue(j)},0),completed=jobs.filter(financeIsRecognisedJob),weekTotal=completed.filter(function(j){var d=financeCompletedDate(j);return d>=weekStart&&d<=today}).reduce(function(sum,j){return sum+financeRevenueExVatValue(j)},0),monthTotal=completed.filter(function(j){var d=financeCompletedDate(j);return d>=monthStart&&d<=today}).reduce(function(sum,j){return sum+financeRevenueExVatValue(j)},0),fyTotal=completed.filter(function(j){var d=financeCompletedDate(j);return d>=fyStart&&d<=today}).reduce(function(sum,j){return sum+financeRevenueExVatValue(j)},0),futureTotal=jobs.filter(function(j){if(financeIsRecognisedJob(j))return false;if(financeIsUnallocated(j))return true;return String(j.booking_date||'').slice(0,10)>today}).reduce(function(sum,j){return sum+financeRevenueExVatValue(j)},0);return {today:todayTotal,selectedDate:plannerDate,week:weekTotal,weekStart:weekStart,month:monthTotal,fy:fyTotal,future:futureTotal,fyStart:fyStart,jobCount:jobs.length,importedCount:(window.CONTRACTOR_2026_JOBS||[]).length}}
-function contractorAllFinanceJobs(){var byId={},out=[];function add(j){j=financeEffectiveJob(j);if(!financeValidJob(j))return;var id=String(j.id||'');if(id&&byId[id])return;if(id)byId[id]=1;var a=financeLegacyAllocation(j);if(a.type==='Contractor')out.push(j)}(app.jobs||[]).forEach(add);(window.CONTRACTOR_2026_JOBS||[]).forEach(add);return out}
+function contractorAllFinanceJobs(){var byId={},out=[];function add(j){j=financeEffectiveJob(j);if(!j||j.card_type==='mini_task')return;var id=String(j.id||'');if(id&&byId[id])return;if(id)byId[id]=1;var a=financeLegacyAllocation(j);if(a.type==='Contractor')out.push(j)}(app.jobs||[]).forEach(add);(window.CONTRACTOR_2026_JOBS||[]).forEach(add);return out}
 function contractorJobDate(j){return financeCompletedDate(j)}
 function contractorValue(j){return financeRevenueExVatValue(j)}
 function contractorRangeTotal(start,end){return contractorAllFinanceJobs().reduce(function(s,j){var d=contractorJobDate(j);return s+(financeIsRecognisedJob(j)&&d>=start&&d<=end?contractorValue(j):0)},0)}
@@ -12009,7 +12037,7 @@ function combinedPerformanceData(){var n=nmukPerformanceData(),c=contractorPerfo
 function combinedMonthTotal(year,month){return nmukMonthTotal(year,month)+contractorMonthTotal(year,month)+(year>=2026?staffMonthTotal(year,month):0)}
 function combinedLineChartSvg(){var years=[2023,2024,2025,2026],months=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'],series=years.map(function(y){return {year:y,values:months.map(function(_,i){return combinedMonthTotal(y,i+1)})}}),max=Math.max.apply(null,series.reduce(function(a,s){return a.concat(s.values)},[1])),w=900,h=290,pL=58,pR=20,pT=24,pB=42,iw=w-pL-pR,ih=h-pT-pB,colors=['#2563eb','#f59e0b','#7c3aed','#16a34a'];function x(i){return pL+i*(iw/11)}function yy(v){return pT+ih-(v/max*ih)}var grid='';for(var g=0;g<=4;g++){var val=max*g/4,y=pT+ih-g*ih/4;grid+='<line x1="'+pL+'" y1="'+y+'" x2="'+(w-pR)+'" y2="'+y+'" stroke="#e5e7eb"/><text x="'+(pL-8)+'" y="'+(y+4)+'" text-anchor="end" font-size="10" fill="#6b7280">£'+Math.round(val/1000)+'k</text>'}var labels=months.map(function(m,i){return '<text x="'+x(i)+'" y="'+(h-14)+'" text-anchor="middle" font-size="10" fill="#6b7280">'+m+'</text>'}).join(''),lines=series.map(function(s,si){var pts=s.values.map(function(v,i){return x(i)+','+yy(v)}).join(' ');return '<polyline points="'+pts+'" fill="none" stroke="'+colors[si]+'" stroke-width="'+(s.year===2026?4:2)+'" stroke-linecap="round" stroke-linejoin="round"/>'+s.values.map(function(v,i){return v?'<circle cx="'+x(i)+'" cy="'+yy(v)+'" r="'+(s.year===2026?4:2.5)+'" fill="'+colors[si]+'"/>':''}).join('')}).join(''),legend=years.map(function(y,i){return '<span><i style="background:'+colors[i]+'"></i>'+y+'</span>'}).join('');return '<div class="nmukChartLegend">'+legend+'</div><svg class="nmukLineChart" viewBox="0 0 '+w+' '+h+'" role="img" aria-label="Combined NMUK and contractor monthly revenue by year">'+grid+labels+lines+'</svg>'}
 function combinedPerformanceHtml(){var d=combinedPerformanceData(),status=d.pct>=100?'on':d.pct>=95?'near':'off',statusText=status==='on'?'ON TARGET':status==='near'?'CLOSE TO TARGET':'BEHIND TARGET',max=Math.max(d.current,d.prevMonth,d.lastYear,d.target,1);function bar(label,val,cls){return '<div class="nmukCompareRow"><span>'+label+'</span><div><i class="'+cls+'" style="width:'+Math.max(2,val/max*100)+'%"></i></div><b>'+money(val)+'</b></div>'}return '<section class="nmukPerformance combinedPerformance"><div class="nmukPerfHead"><div><small>COMBINED BUSINESS PERFORMANCE</small><h3>'+new Date(d.year,d.month-1,1).toLocaleDateString('en-GB',{month:'long',year:'numeric'})+'</h3><p>All NMUK, contractor and Staff work. Historic comparisons use NMUK and contractor figures because Staff history is only starting now.</p></div><div class="nmukTargetStatus '+status+'"><strong>'+statusText+'</strong><span>'+money(Math.abs(d.diff))+' '+(d.diff>=0?'ahead':'behind')+' the 10% target</span></div></div><div class="nmukKpis"><div><small>This month</small><strong>'+money(d.current)+'</strong></div><div><small>Same time last month</small><strong>'+money(d.prevMonth)+'</strong></div><div><small>Same time last year</small><strong>'+money(d.lastYear)+'</strong></div><div class="target"><small>10% growth target</small><strong>'+money(d.target)+'</strong></div></div><div class="nmukPerfGrid"><div class="nmukCompare"><h4>Current month progress</h4>'+bar('This month',d.current,'current')+bar('Last month',d.prevMonth,'previous')+bar('Last year',d.lastYear,'previous')+bar('10% target',d.target,'target')+'</div><div class="nmukFy"><h4>Financial year to date</h4><strong>'+money(d.fyCurrent)+'</strong><p>Same point last year: '+money(d.fyLast)+'</p><p>10% target: '+money(d.fyTarget)+'</p><span class="'+(d.fyCurrent>=d.fyTarget?'good':'bad')+'">'+money(Math.abs(d.fyCurrent-d.fyTarget))+' '+(d.fyCurrent>=d.fyTarget?'ahead':'behind')+'</span></div></div><div class="nmukTrend"><h4>Combined monthly revenue: 2023–2026</h4>'+combinedLineChartSvg()+'</div><div class="invoiceFinanceNote">Current 2026 totals include Staff work. Previous-year and 10% target comparisons use NMUK and contractor history only until Staff has a full comparison period.</div></section>'}
-function staffAllFinanceJobs(){var byId={},out=[];function add(j){j=financeEffectiveJob(j);if(!financeValidJob(j))return;var id=String(j.id||'');if(id&&byId[id])return;if(id)byId[id]=1;var a=financeLegacyAllocation(j);if(a.type==='Staff')out.push(j)}(app.jobs||[]).forEach(add);return out}
+function staffAllFinanceJobs(){var byId={},out=[];function add(j){j=financeEffectiveJob(j);if(!j||j.card_type==='mini_task')return;var id=String(j.id||'');if(id&&byId[id])return;if(id)byId[id]=1;var a=financeLegacyAllocation(j);if(a.type==='Staff')out.push(j)}(app.jobs||[]).forEach(add);return out}
 function staffJobDate(j){return financeCompletedDate(j)}
 function staffValue(j){return financeRevenueExVatValue(j)}
 function staffRangeTotal(start,end){return staffAllFinanceJobs().reduce(function(s,j){var d=staffJobDate(j);return s+(financeIsRecognisedJob(j)&&d>=start&&d<=end?staffValue(j):0)},0)}
@@ -12017,7 +12045,7 @@ function staffMonthTotal(year,month){var last=new Date(year,month,0).getDate();r
 function staffPerformanceData(){var t=todayIso(),dt=new Date(t+'T12:00:00'),y=dt.getFullYear(),m=dt.getMonth()+1,day=dt.getDate(),curStart=y+'-'+String(m).padStart(2,'0')+'-01',fyStart=(m>=4?y:y-1),recognised=staffAllFinanceJobs().filter(financeIsRecognisedJob);return {today:t,year:y,month:m,day:day,current:staffRangeTotal(curStart,t),fyCurrent:staffRangeTotal(fyStart+'-04-01',t),allTime:recognised.reduce(function(s,j){return s+staffValue(j)},0),jobCount:recognised.length}}
 function staffLineChartSvg(){var d=staffPerformanceData(),months=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'],values=months.map(function(_,i){return staffMonthTotal(d.year,i+1)}),max=Math.max.apply(null,values.concat([1])),w=900,h=250,pL=58,pR=20,pT=24,pB=42,iw=w-pL-pR,ih=h-pT-pB;function x(i){return pL+i*(iw/11)}function yy(v){return pT+ih-(v/max*ih)}var grid='';for(var g=0;g<=4;g++){var val=max*g/4,y=pT+ih-g*ih/4;grid+='<line x1="'+pL+'" y1="'+y+'" x2="'+(w-pR)+'" y2="'+y+'" stroke="#e5e7eb"/><text x="'+(pL-8)+'" y="'+(y+4)+'" text-anchor="end" font-size="10" fill="#6b7280">£'+Math.round(val/1000)+'k</text>'}var labels=months.map(function(m,i){return '<text x="'+x(i)+'" y="'+(h-14)+'" text-anchor="middle" font-size="10" fill="#6b7280">'+m+'</text>'}).join(''),pts=values.map(function(v,i){return x(i)+','+yy(v)}).join(' '),line='<polyline points="'+pts+'" fill="none" stroke="#16a34a" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>'+values.map(function(v,i){return v?'<circle cx="'+x(i)+'" cy="'+yy(v)+'" r="4" fill="#16a34a"/>':''}).join('');return '<svg class="nmukLineChart" viewBox="0 0 '+w+' '+h+'" role="img" aria-label="Staff monthly revenue for current year">'+grid+labels+line+'</svg>'}
 function staffPerformanceHtml(){var d=staffPerformanceData();return '<section class="nmukPerformance staffPerformance"><div class="nmukPerfHead"><div><small>STAFF PERFORMANCE</small><h3>'+new Date(d.year,d.month-1,1).toLocaleDateString('en-GB',{month:'long',year:'numeric'})+'</h3><p>Staff work starts from the current system, so there is no historic comparison yet.</p></div><div class="nmukTargetStatus on"><strong>CURRENT ACTIVITY</strong><span>'+d.jobCount+' completed staff job'+(d.jobCount===1?'':'s')+' recorded</span></div></div><div class="nmukKpis staffKpis"><div><small>This month</small><strong>'+money(d.current)+'</strong></div><div><small>Financial year to date</small><strong>'+money(d.fyCurrent)+'</strong></div><div><small>All recorded staff work</small><strong>'+money(d.allTime)+'</strong></div><div class="target"><small>Historic comparison</small><strong>Not available yet</strong></div></div><div class="nmukTrend"><h4>Staff monthly revenue: '+d.year+'</h4>'+staffLineChartSvg()+'</div><div class="invoiceFinanceNote">Year-on-year and 10% target comparisons will become available once there is enough staff history to compare fairly.</div></section>'}
-function nmukAllFinanceJobs(){var byId={},out=[];function add(j){j=financeEffectiveJob(j);if(!financeValidJob(j))return;var id=String(j.id||'');if(id&&byId[id])return;if(id)byId[id]=1;var a=financeLegacyAllocation(j);if(a.type==='NMUK')out.push(j)}(app.jobs||[]).forEach(add);(window.CONTRACTOR_2026_JOBS||[]).forEach(add);return out}
+function nmukAllFinanceJobs(){var byId={},out=[];function add(j){j=financeEffectiveJob(j);if(!j||j.card_type==='mini_task')return;var id=String(j.id||'');if(id&&byId[id])return;if(id)byId[id]=1;var a=financeLegacyAllocation(j);if(a.type==='NMUK')out.push(j)}(app.jobs||[]).forEach(add);(window.CONTRACTOR_2026_JOBS||[]).forEach(add);return out}
 function nmukJobDate(j){return financeCompletedDate(j)}
 function nmukValue(j){return financeRevenueExVatValue(j)}
 function nmukRangeTotal(start,end){return nmukAllFinanceJobs().reduce(function(s,j){var d=nmukJobDate(j);return s+(financeIsRecognisedJob(j)&&d>=start&&d<=end?nmukValue(j):0)},0)}
@@ -12048,19 +12076,11 @@ function financeKnownContractors(){
 function financeCorrectionMap(){if(!app.settings)app.settings={};if(!app.settings.financeCorrections||typeof app.settings.financeCorrections!=='object')app.settings.financeCorrections={};return app.settings.financeCorrections}
 function financeEffectiveJob(j){
   if(!j)return j;
+  if(j.__financeBase)return j;
   var correction=financeCorrectionMap()[String(j.id||'')];
   if(!correction)return j;
-  var correctedAt=Date.parse(correction.finance_corrected_at||'')||0,
-      jobChangedAt=Math.max(Date.parse(j.updated_at||'')||0,Date.parse(j.completed_at||'')||0,Date.parse(j.created_at||'')||0);
-  if(correctedAt&&jobChangedAt&&correctedAt<jobChangedAt)return j;
-  var merged=Object.assign({},j,correction),
-      rawAccount=String(j.customer_account||'').trim().toUpperCase(),
-      rawName=String(j.customer_name||'').trim().toUpperCase(),
-      rawSub=String(j.nmuk_vehicle_type||j.nmuk_subtype||j.fleet_group||'').trim().toUpperCase(),
-      rawNmuk=rawAccount==='NMUK'||rawName==='NMUK'||rawName.indexOf('NMUK')>-1||rawName.indexOf('NISSAN')>-1||/(^|\b)(NMUK|MVOS|POOL|INTERNAL|VARIOUS|GENERAL)(\b|$)/.test(rawSub),
-      reg=normReg(j.registration||''),fv=reg&&typeof fleetVehicleForRegistration==='function'?fleetVehicleForRegistration(reg):null;
-  if(fv&&(fv.fleetGroup==='Nissan Internal'||fv.fleetGroup==='Nissan Pool Cars'))rawNmuk=true;
-  if(rawNmuk){merged.customer_account='NMUK';merged.customer_name=j.customer_name||'NMUK';merged.nmuk_vehicle_type=j.nmuk_vehicle_type||j.nmuk_subtype||(fv&&fv.nmukType)||((fv&&fv.fleetGroup==='Nissan Internal')?'Internal':'Pool')}
+  var merged=Object.assign({},j,correction);
+  try{Object.defineProperty(merged,'__financeBase',{value:j,enumerable:false,configurable:false,writable:false})}catch(e){merged.__financeBase=j}
   return merged;
 }
 function financeSaveCorrection(id,values){var map=financeCorrectionMap();map[String(id||'')]=Object.assign({},map[String(id||'')]||{},values,{finance_corrected_at:new Date().toISOString()});saveAll()}
@@ -12094,23 +12114,48 @@ function financeHistoricalNmukAllocation(reg,currentId){
   }
   return {type:'NMUK',name:'NMUK'};
 }
-function financeLegacyAllocation(j){j=financeEffectiveJob(j);var account=financeCanonicalCustomer(j.customer_account||''),rawName=String(j.customer_name||j.fleet_customer||j.contractor_name||j.customer||'').trim(),name=financeCanonicalCustomer(rawName),sub=String(j.nmuk_vehicle_type||j.nmuk_subtype||j.fleet_group||'').trim(),accountUpper=account.toUpperCase(),nameUpper=name.toUpperCase(),subUpper=sub.toUpperCase(),known=financeKnownContractors(),reg=normReg(j.registration||''),fv=reg&&typeof fleetVehicleForRegistration==='function'?fleetVehicleForRegistration(reg):null;
-/* Fleet Manager is the source of truth for registrations already allocated to a fleet. This prevents stale legacy Staff/Contractor labels from moving NMUK vehicles into the wrong financial totals. */
-if(fv){if(fv.fleetGroup==='Nissan Internal')return {type:'NMUK',name:'NMUK Internal'};if(fv.fleetGroup==='Nissan Pool Cars')return {type:'NMUK',name:'NMUK Pool'};if(fv.fleetGroup==='Contractor Fleet'){var fc=financeCanonicalCustomer(fv.customer||'');if(fc==='NMUK')return {type:'NMUK',name:'NMUK'};if(fc)return {type:'Contractor',name:known[fc.toUpperCase()]||fc}}}
-if(accountUpper==='NMUK'||nameUpper==='NMUK'||subUpper.indexOf('NMUK')>-1||subUpper.indexOf('INTERNAL')>-1||subUpper.indexOf('POOL')>-1||subUpper.indexOf('MVOS')>-1)return {type:'NMUK',name:'NMUK'+(sub?(' '+sub.replace(/^NMUK\s*/i,'')):'')};
-/* If the current job has a stale Staff/Contractor label but this registration has an
-   established NMUK history, keep it in the correct NMUK financial stream. */
-var historicalNmuk=financeHistoricalNmukAllocation(reg,j.id);
-if(historicalNmuk)return historicalNmuk;
-if(accountUpper==='STAFF')return {type:'Staff',name:name&&nameUpper!=='STAFF'?name:'Staff'};
-if(accountUpper==='CONTRACTOR')return {type:'Contractor',name:name||'Contractor name missing'};
-if(account&&known[accountUpper])return {type:'Contractor',name:known[accountUpper]};
-/* A named account that is not NMUK/Staff is a contractor account. This makes Settings-created contractors future-proof instead of depending on a hard-coded name list. */
-if(account&&accountUpper!=='NMUK'&&accountUpper!=='STAFF'&&accountUpper!=='NISSAN')return {type:'Contractor',name:financeCanonicalCustomer(account)};
-if(name&&known[nameUpper])return {type:'Contractor',name:known[nameUpper]};
-if(nameUpper.indexOf('NMUK')>-1||nameUpper.indexOf('NISSAN')>-1)return {type:'NMUK',name:name||'NMUK'};
-if(name&&nameUpper!=='UNASSIGNED'&&nameUpper!=='CUSTOMER')return {type:'Staff',name:name};
-return {type:'Needs review',name:'Unassigned'} }
+function financeNmukImportId(id){
+  id=String(id||'');if(!id)return false;
+  return (window.NMUK_2026_JOBS||[]).some(function(x){return x&&String(x.id||'')===id});
+}
+function financeRawAllocationEvidence(raw,known){
+  raw=raw||{};known=known||financeKnownContractors();
+  var account=financeCanonicalCustomer(raw.customer_account||''),name=financeCanonicalCustomer(raw.customer_name||raw.fleet_customer||raw.contractor_name||raw.customer||''),sub=String(raw.nmuk_vehicle_type||raw.nmuk_subtype||raw.fleet_group||'').trim(),au=account.toUpperCase(),nu=name.toUpperCase(),su=sub.toUpperCase();
+  if(financeNmukImportId(raw.id)||au==='NMUK'||nu==='NMUK'||/^(?:NMUK|INTERNAL|POOL|POOL CAR TAX|MVOS|VARIOUS|GENERAL)(?:\b|\s)/.test(su)||String(raw.booking_source||'').toUpperCase().indexOf('NMUK MONTHLY')>-1)return {type:'NMUK',name:'NMUK'+(sub&&su!=='POOL CAR TAX'?(' '+sub.replace(/^NMUK\s*/i,'')):'')};
+  if(au==='STAFF')return {type:'Staff',name:name&&nu!=='STAFF'?name:'Staff'};
+  if(au==='CONTRACTOR')return {type:'Contractor',name:name||'Contractor name missing'};
+  if(account&&known[au])return {type:'Contractor',name:known[au]};
+  if(account&&au!=='NMUK'&&au!=='STAFF'&&au!=='NISSAN')return {type:'Contractor',name:financeCanonicalCustomer(account)};
+  return null;
+}
+function financeLegacyAllocation(j){
+  var effective=financeEffectiveJob(j),raw=financeBaseJob(effective)||effective||{},known=financeKnownContractors();
+  /* Registration ownership in Fleet Manager is authoritative and is checked against
+     the raw job registration first so a stale finance correction cannot redirect it. */
+  var rawReg=normReg(raw.registration||''),effectiveReg=normReg(effective&&effective.registration||''),reg=rawReg||effectiveReg,fv=reg&&typeof fleetVehicleForRegistration==='function'?fleetVehicleForRegistration(reg):null;
+  if(fv){
+    if(fv.fleetGroup==='Nissan Internal')return {type:'NMUK',name:'NMUK Internal'};
+    if(fv.fleetGroup==='Nissan Pool Cars')return {type:'NMUK',name:'NMUK Pool'};
+    if(fv.fleetGroup==='Contractor Fleet'){var fc=financeCanonicalCustomer(fv.customer||'');if(fc==='NMUK')return {type:'NMUK',name:'NMUK'};if(fc)return {type:'Contractor',name:known[fc.toUpperCase()]||fc}}
+  }
+  /* The actual job card/source row is next. This is the critical guard: a saved
+     report correction is never allowed to turn an explicitly NMUK/MVOS job into Staff. */
+  var rawEvidence=financeRawAllocationEvidence(raw,known);if(rawEvidence)return rawEvidence;
+  /* Only when the source job itself is ambiguous may a saved finance correction
+     provide its classification. */
+  var account=financeCanonicalCustomer(effective&&effective.customer_account||''),rawName=String(effective&&effective.customer_name||effective&&effective.fleet_customer||effective&&effective.contractor_name||effective&&effective.customer||'').trim(),name=financeCanonicalCustomer(rawName),sub=String(effective&&effective.nmuk_vehicle_type||effective&&effective.nmuk_subtype||effective&&effective.fleet_group||'').trim(),accountUpper=account.toUpperCase(),nameUpper=name.toUpperCase(),subUpper=sub.toUpperCase();
+  if(accountUpper==='NMUK'||nameUpper==='NMUK'||subUpper.indexOf('NMUK')>-1||subUpper.indexOf('INTERNAL')>-1||subUpper.indexOf('POOL')>-1||subUpper.indexOf('MVOS')>-1)return {type:'NMUK',name:'NMUK'+(sub?(' '+sub.replace(/^NMUK\s*/i,'')):'')};
+  if(accountUpper==='STAFF')return {type:'Staff',name:name&&nameUpper!=='STAFF'?name:'Staff'};
+  if(accountUpper==='CONTRACTOR')return {type:'Contractor',name:name||'Contractor name missing'};
+  if(account&&known[accountUpper])return {type:'Contractor',name:known[accountUpper]};
+  if(account&&accountUpper!=='NMUK'&&accountUpper!=='STAFF'&&accountUpper!=='NISSAN')return {type:'Contractor',name:financeCanonicalCustomer(account)};
+  if(name&&known[nameUpper])return {type:'Contractor',name:known[nameUpper]};
+  if(nameUpper.indexOf('NMUK')>-1||nameUpper.indexOf('NISSAN')>-1)return {type:'NMUK',name:name||'NMUK'};
+  if(name&&nameUpper!=='UNASSIGNED'&&nameUpper!=='CUSTOMER')return {type:'Staff',name:name};
+  /* History is fallback only. It can no longer override a current explicit Staff job. */
+  var historicalNmuk=financeHistoricalNmukAllocation(reg,effective&&effective.id);if(historicalNmuk)return historicalNmuk;
+  return {type:'Needs review',name:'Unassigned'};
+}
 function financeCustomerName(j){return financeLegacyAllocation(j).name}
 function financeCustomerType(j){return financeLegacyAllocation(j).type}
 function financeJobDate(j,period){if(period==='today'||String(period||'').indexOf('date:')===0)return financeDateForDailyView(j);if(period==='future')return financeIsUnallocated(j)?'Unallocated':String(j&&j.booking_date||'').slice(0,10);return financeCompletedDate(j)}
@@ -12309,7 +12354,7 @@ function vehicleTaxFinanceHtml(){
 }
 function vehicleTaxRowsHtml(rows){
   if(!rows.length)return '<div class="empty">No NMUK vehicle tax entries for this month.</div>';
-  return '<div class="vehicleTaxTable"><div class="vehicleTaxTableHead"><span>Date</span><span>Registration</span><span>Reference / vehicle</span><span>Status</span><span>Amount</span><span></span></div>'+rows.map(function(j){var marker=vehicleTaxInvoiceMarker(j),fv=fleetVehicleForRegistration(j.registration)||{},label=marker?'Invoiced':'Awaiting month-end invoice';return '<div class="vehicleTaxRow"><span>'+esc(niceDate(vehicleTaxJobDate(j)))+'</span><span>'+listPlate(j.registration||'')+'</span><span><b>'+esc(fv.taxReference||j.vehicle||'—')+'</b><small>'+esc(j.work_required||'Vehicle Tax')+'</small></span><span class="vehicleTaxState '+(marker?'done':'open')+'">'+esc(label)+'</span><strong>'+money(vehicleTaxAmount(j))+'</strong><button type="button" class="btn" data-tax-open-job="'+esc(j.id)+'">Open</button></div>'}).join('')+'</div>'
+  return '<div class="vehicleTaxTable"><div class="vehicleTaxTableHead"><span>Date</span><span>Registration</span><span>Reference / vehicle</span><span>Status</span><span>Amount</span><span></span></div>'+rows.map(function(j){var marker=vehicleTaxInvoiceMarker(j),fv=fleetVehicleForRegistration(j.registration)||{},label=marker?'Invoiced':'Awaiting month-end invoice';return '<div class="vehicleTaxRow"><span>'+esc(niceDate(vehicleTaxJobDate(j)))+'</span><span>'+listPlate(j.registration||'')+'</span><span><b>'+esc(fv.taxReference||j.vehicle||'—')+'</b><small>'+esc(canonicalVehicleTaxLabel())+'</small></span><span class="vehicleTaxState '+(marker?'done':'open')+'">'+esc(label)+'</span><strong>'+money(vehicleTaxAmount(j))+'</strong><button type="button" class="btn" data-tax-open-job="'+esc(j.id)+'">Open</button></div>'}).join('')+'</div>'
 }
 
 /* v227 integrated streamlined Vehicle Tax workflow */
@@ -12379,7 +12424,7 @@ function vehicleTaxRowsHtml(rows){
   }
   function completedTaxRowsHtml(rows){
     if(!rows.length)return '<div class="empty">No completed vehicle tax entries for this month.</div>';
-    return '<div class="vehicleTaxTable"><div class="vehicleTaxTableHead"><span>Completed</span><span>Registration</span><span>Reference / vehicle</span><span>Status</span><span>Amount</span><span></span></div>'+rows.map(function(j){var marker=vehicleTaxInvoiceMarker(j),fv=fleetVehicleForRegistration(j.registration)||{},label=marker?'Invoiced':'Awaiting month-end invoice';return '<div class="vehicleTaxRow"><span class="taxCompleteDate">'+esc(niceDate(vehicleTaxJobDate(j)))+'</span><span>'+listPlate(j.registration||'')+'</span><span><b>'+esc(fv.taxReference||j.vehicle||'—')+'</b><small>'+esc(j.work_required||'Vehicle Tax')+'</small></span><span class="vehicleTaxState '+(marker?'done':'open')+'">'+esc(label)+'</span><strong>'+money(vehicleTaxAmount(j))+'</strong><button type="button" class="btn" data-tax-open-job="'+esc(j.id)+'">Open</button></div>';}).join('')+'</div>';
+    return '<div class="vehicleTaxTable"><div class="vehicleTaxTableHead"><span>Completed</span><span>Registration</span><span>Reference / vehicle</span><span>Status</span><span>Amount</span><span></span></div>'+rows.map(function(j){var marker=vehicleTaxInvoiceMarker(j),fv=fleetVehicleForRegistration(j.registration)||{},label=marker?'Invoiced':'Awaiting month-end invoice';return '<div class="vehicleTaxRow"><span class="taxCompleteDate">'+esc(niceDate(vehicleTaxJobDate(j)))+'</span><span>'+listPlate(j.registration||'')+'</span><span><b>'+esc(fv.taxReference||j.vehicle||'—')+'</b><small>'+esc(canonicalVehicleTaxLabel())+'</small></span><span class="vehicleTaxState '+(marker?'done':'open')+'">'+esc(label)+'</span><strong>'+money(vehicleTaxAmount(j))+'</strong><button type="button" class="btn" data-tax-open-job="'+esc(j.id)+'">Open</button></div>';}).join('')+'</div>';
   }
   function vehicleTaxHtmlV226(){
     var totals=vehicleTaxTotalsForMonth(vehicleTaxSelectedMonth),monthLabel=new Date(vehicleTaxSelectedMonth+'-01T12:00:00').toLocaleDateString('en-GB',{month:'long',year:'numeric'});
@@ -12408,13 +12453,13 @@ function vehicleTaxRowsHtml(rows){
     var p=taxPlanForVehicle(v),currentDue=p?taxDueDateForVehicle(v):'',dueDate=String(opts.dueDate||currentDue||'').slice(0,10),reference=String(opts.reference||v.taxReference||'').trim();
     var duplicate=(app.jobs||[]).find(function(j){if(!isVehicleTaxJob(j)||normReg(j.registration||'')!==n)return false;var marker=vehicleTaxDueMarker(j);if(dueDate&&marker)return marker===dueDate;return vehicleTaxJobDate(j)===completedDate});if(duplicate)throw new Error(n+' already has a completed Vehicle Tax record for this tax cycle/date.');
     var now=new Date().toISOString(),note='Vehicle tax completed on '+completedDate+'.'+(dueDate?' [[TAX_DUE:'+dueDate+']]':'')+(opts.manual?' [[MANUAL_TAX_RECORD]]':'');
-    var job={id:uid(),booking_date:completedDate,drop_time:null,technician:'Unallocated',ramp:'',status:'completed',job_type:'Vehicle Tax',job_types:['Vehicle Tax'],job_colour:'general',estimated_hours:0,card_type:'job',source:'vehicle_tax_admin',booking_source:opts.manual?'Manual Vehicle Tax record':'Vehicle Tax page',registration:v.registration||n,vehicle:typeof fleetDisplayModel==='function'?fleetDisplayModel(v.model):v.model||'',customer_account:'NMUK',customer_name:'NMUK',customer_email:v.contactEmail||'',nmuk_vehicle_type:'Pool Car Tax',work_required:'Vehicle Tax',amount_quoted:Number(amount.toFixed(2)),vat_mode:'no_vat',parts_status:'Not required',completed_at:completedDate+'T12:00:00.000Z',created_at:now,updated_at:now,customer_note:note};
+    var job={id:uid(),booking_date:completedDate,drop_time:null,technician:'Unallocated',ramp:'',status:'completed',job_type:'Vehicle Tax',job_types:['Vehicle Tax'],job_colour:'general',estimated_hours:0,card_type:'job',source:'vehicle_tax_admin',booking_source:opts.manual?'Manual Vehicle Tax record':'Vehicle Tax page',registration:v.registration||n,vehicle:typeof fleetDisplayModel==='function'?fleetDisplayModel(v.model):v.model||'',customer_account:'NMUK',customer_name:'NMUK',customer_email:v.contactEmail||'',nmuk_vehicle_type:'Pool',work_required:'Vehicle Tax',amount_quoted:Number(amount.toFixed(2)),vat_mode:'no_vat',parts_status:'Not required',completed_at:completedDate+'T12:00:00.000Z',created_at:now,updated_at:now,customer_note:note};
     app.jobs.push(job);if(typeof saveAll==='function')await saveAll();if(typeof upsertRemote==='function')await upsertRemote('jobs',job,{silent:true});
     if(reference)v.taxReference=reference;
     var next=dueDate&&typeof fleetAddMonthsFromDue==='function'?fleetAddMonthsFromDue(dueDate,12):(typeof fleetAddMonthsFromDue==='function'?fleetAddMonthsFromDue(completedDate,12):'');
     var shouldAdvance=!currentDue||!dueDate||currentDue===dueDate||Math.abs(taxDateDistanceDays(completedDate,currentDue))<=62;
-    if(shouldAdvance&&next){if(p){p.type='Road Tax';p.intervalMonths=12;p.currentDueDate=next;p.targetMonth=Number(next.slice(5,7));p.status='Active';p.notes='Updated from Vehicle Tax '+(opts.manual?'manual record ':'page ')+completedDate+'.';}else{p={id:'plan-tax-'+v.id,vehicleId:v.id,type:'Road Tax',intervalMonths:12,targetMonth:Number(next.slice(5,7)),currentDueDate:next,notes:'Created from Vehicle Tax ledger '+completedDate+'.',status:'Active',source:'Vehicle Tax ledger'};fleetPlans.push(p)}v.taxDueDate=next;v.taxLastChecked=now;}
-    var cid='job-tax-'+job.id;if(!(fleetCompletions||[]).some(function(c){return c.id===cid}))fleetCompletions.push({id:cid,vehicleId:v.id,planId:p&&p.id||'',type:'Road Tax',completedDate:completedDate,datePrecision:'day',nextDue:shouldAdvance?next:'',source:'job:'+job.id,notes:'Vehicle tax completed in Vehicle Tax ledger.'+(next&&shouldAdvance?' Next tax due '+next+'.':'')});if(typeof saveFleet==='function')saveFleet();return job;
+    if(shouldAdvance&&next){if(p){p.type='Vehicle Tax';p.intervalMonths=12;p.currentDueDate=next;p.targetMonth=Number(next.slice(5,7));p.status='Active';p.notes='Updated from Vehicle Tax '+(opts.manual?'manual record ':'page ')+completedDate+'.';}else{p={id:'plan-tax-'+v.id,vehicleId:v.id,type:'Vehicle Tax',intervalMonths:12,targetMonth:Number(next.slice(5,7)),currentDueDate:next,notes:'Created from Vehicle Tax ledger '+completedDate+'.',status:'Active',source:'Vehicle Tax ledger'};fleetPlans.push(p)}v.taxDueDate=next;v.taxLastChecked=now;}
+    var cid='job-tax-'+job.id;if(!(fleetCompletions||[]).some(function(c){return c.id===cid}))fleetCompletions.push({id:cid,vehicleId:v.id,planId:p&&p.id||'',type:'Vehicle Tax',completedDate:completedDate,datePrecision:'day',nextDue:shouldAdvance?next:'',source:'job:'+job.id,notes:'Vehicle tax completed in Vehicle Tax ledger.'+(next&&shouldAdvance?' Next tax due '+next+'.':'')});if(typeof saveFleet==='function')saveFleet();return job;
   };
   function bindVehicleTaxV226(){
     var month=document.getElementById('vehicleTaxMonth');if(month)month.onchange=function(){vehicleTaxSelectedMonth=month.value||todayIso().slice(0,7);render()};
@@ -12958,7 +13003,7 @@ function updatePreviousVehicleWorkPanel(reg,currentJobId){
   var fresh=holder.firstElementChild;if(fresh)old.replaceWith(fresh);
 }
 
-function openJobModal(id,preset){editingJobId=id||null;var liveJob=id?(app.jobs||[]).find(function(x){return x.id===id}):null,importedJob=id?(window.CONTRACTOR_2026_JOBS||[]).find(function(x){return x.id===id}):null;var j=id?hydrateJobContactDetails(Object.assign({},liveJob||importedJob||{})):Object.assign({id:uid(),booking_date:selectedIso(),drop_time:'08:00',technician:'Alfie',ramp:'',status:'booked',job_type:'general',job_colour:'general',estimated_hours:1,card_type:'job',source:'manual',booking_source:'',created_at:new Date().toISOString()},preset||{});var mechanics=['Unallocated'].concat(app.settings.mechanics||['Alfie','Other']);if(!id&&mechanics.indexOf(j.technician)<0)j.technician=mechanics.indexOf('Alfie')>=0?'Alfie':(mechanics[1]||'Unallocated');var ramps=[''].concat(app.settings.ramps||['Left','Middle','Right']);var templateSource=Object.assign({},templates,app.settings.jobTemplates||{}),templateNames=Object.keys(templateSource).filter(function(name){var key=normaliseJobTypeKey(name);return key!=='vehicle tax'&&key!=='road tax'});applyWebsiteDefaultMajorService(j);var selectedTypes=jobTypeValues(j);if(!id)j.parts_status=newBookingPartsStatusForTypes(selectedTypes);var initialTemplateWork=templateWorkForTypes(selectedTypes);if(!String(j.work_required||'').trim()&&initialTemplateWork)j.work_required=initialTemplateWork;var motTime=motTimeFromJob(j);var paperworkKind=paperworkKindForJob(j),isSafety=paperworkKind==='safety',isOnsite=paperworkKind==='onsite';var completedStamp=j.completed_at?new Date(j.completed_at):null,completedStampText=completedStamp&&!isNaN(completedStamp.getTime())?completedStamp.toLocaleString('en-GB',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit',hour12:false}):'';var incomeCustomers=fleetIncomeCustomers(),selectedAccount=fleetNormaliseCustomer(j.customer_account||''),storedContractorName=fleetNormaliseCustomer(j.customer_name||''),selectedContractorIncome=(String(selectedAccount).toUpperCase()==='CONTRACTOR'&&fleetIsContractorIncome(storedContractorName)&&String(storedContractorName).toUpperCase()!=='CONTRACTOR')?storedContractorName:'',selectedIncome=(String(selectedAccount).toUpperCase()==='STAFF'?'Staff':String(selectedAccount).toUpperCase()==='NMUK'?'NMUK':String(selectedAccount).toUpperCase()==='CONTRACTOR'?(selectedContractorIncome||'CONTRACTOR'):selectedAccount)||fleetIncomeCustomerFromVehicle(j.registration)||'',selectedNmukType=(isVehicleTaxJob(j)&&String(selectedIncome).toUpperCase()==='NMUK')?'Pool Car Tax':(fleetNmukTypeForJob(j)||''),showCustomerName=selectedIncome==='Staff'||selectedIncome==='CONTRACTOR'||(selectedIncome==='NMUK'&&selectedNmukType==='MVOS'),customerNameValue=showCustomerName&&fleetNormaliseCustomer(j.customer_name||'')!==selectedIncome?(j.customer_name||''):'',selectedFleetContact=fleetVehicleForRegistration(j.registration),selectedTaxReference=(selectedFleetContact&&selectedFleetContact.taxReference)||'';var defaultJobVatMode=String(j.vat_mode||'')==='no_vat'?'no_vat':(String(selectedIncome).toUpperCase()==='STAFF'?'inc_vat':'ex_vat');var isHistoricalImport=!!importedJob&&!liveJob;var showService=!!id&&!isHistoricalImport&&(isSafety||isOnsite||/service/i.test(j.job_type||'')||/service/i.test(j.work_required||''));var paperworkLabel=isSafety?'Open 6 Month Safety Check':isOnsite?'Open On-Site Service':'Open Service Sheet';var html='<div class="modalCard jobModalCard"><div class="modalHead jobModalHead"><h2>'+(id?'Edit Job':'New Job')+'</h2><div class="jobModalHeadActions"><button class="btn jobPrintSmall" id="printJobCard">Print Job Card</button><button class="btn" data-close-modal>Close</button></div></div><div class="modalBody jobModalBody">'+
+function openJobModal(id,preset){editingJobId=id||null;var liveJob=id?(app.jobs||[]).find(function(x){return x.id===id}):null,importedJob=id?(window.CONTRACTOR_2026_JOBS||[]).find(function(x){return x.id===id}):null;var j=id?hydrateJobContactDetails(Object.assign({},liveJob||importedJob||{})):Object.assign({id:uid(),booking_date:selectedIso(),drop_time:'08:00',technician:'Alfie',ramp:'',status:'booked',job_type:'general',job_colour:'general',estimated_hours:1,card_type:'job',source:'manual',booking_source:'',created_at:new Date().toISOString()},preset||{});var mechanics=['Unallocated'].concat(app.settings.mechanics||['Alfie','Other']);if(!id&&mechanics.indexOf(j.technician)<0)j.technician=mechanics.indexOf('Alfie')>=0?'Alfie':(mechanics[1]||'Unallocated');var ramps=[''].concat(app.settings.ramps||['Left','Middle','Right']);var templateSource=Object.assign({},templates,app.settings.jobTemplates||{}),templateNames=Object.keys(templateSource).filter(function(name){var key=normaliseJobTypeKey(name);return key!=='vehicle tax'&&key!=='road tax'});applyWebsiteDefaultMajorService(j);var selectedTypes=jobTypeValues(j);if(!id)j.parts_status=newBookingPartsStatusForTypes(selectedTypes);var initialTemplateWork=templateWorkForTypes(selectedTypes);if(!String(j.work_required||'').trim()&&initialTemplateWork)j.work_required=initialTemplateWork;var motTime=motTimeFromJob(j);var paperworkKind=paperworkKindForJob(j),isSafety=paperworkKind==='safety',isOnsite=paperworkKind==='onsite';var completedStamp=j.completed_at?new Date(j.completed_at):null,completedStampText=completedStamp&&!isNaN(completedStamp.getTime())?completedStamp.toLocaleString('en-GB',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit',hour12:false}):'';var incomeCustomers=fleetIncomeCustomers(),selectedAccount=fleetNormaliseCustomer(j.customer_account||''),storedContractorName=fleetNormaliseCustomer(j.customer_name||''),selectedContractorIncome=(String(selectedAccount).toUpperCase()==='CONTRACTOR'&&fleetIsContractorIncome(storedContractorName)&&String(storedContractorName).toUpperCase()!=='CONTRACTOR')?storedContractorName:'',selectedIncome=(String(selectedAccount).toUpperCase()==='STAFF'?'Staff':String(selectedAccount).toUpperCase()==='NMUK'?'NMUK':String(selectedAccount).toUpperCase()==='CONTRACTOR'?(selectedContractorIncome||'CONTRACTOR'):selectedAccount)||fleetIncomeCustomerFromVehicle(j.registration)||'',selectedNmukType=(isVehicleTaxJob(j)&&String(selectedIncome).toUpperCase()==='NMUK')?'Pool':(fleetNmukTypeForJob(j)||''),showCustomerName=selectedIncome==='Staff'||selectedIncome==='CONTRACTOR'||(selectedIncome==='NMUK'&&selectedNmukType==='MVOS'),customerNameValue=showCustomerName&&fleetNormaliseCustomer(j.customer_name||'')!==selectedIncome?(j.customer_name||''):'',selectedFleetContact=fleetVehicleForRegistration(j.registration),selectedTaxReference=(selectedFleetContact&&selectedFleetContact.taxReference)||'';var defaultJobVatMode=String(j.vat_mode||'')==='no_vat'?'no_vat':(String(selectedIncome).toUpperCase()==='STAFF'?'inc_vat':'ex_vat');var isHistoricalImport=!!importedJob&&!liveJob;var showService=!!id&&!isHistoricalImport&&(isSafety||isOnsite||/service/i.test(j.job_type||'')||/service/i.test(j.work_required||''));var paperworkLabel=isSafety?'Open 6 Month Safety Check':isOnsite?'Open On-Site Service':'Open Service Sheet';var html='<div class="modalCard jobModalCard"><div class="modalHead jobModalHead"><h2>'+(id?'Edit Job':'New Job')+'</h2><div class="jobModalHeadActions"><button class="btn jobPrintSmall" id="printJobCard">Print Job Card</button><button class="btn" data-close-modal>Close</button></div></div><div class="modalBody jobModalBody">'+
 '<div class="jobTypeSelectHelp"><b>Job types</b><span>Select every type of work included in this booking.</span></div><div class="templateBtns multiSelect">'+templateNames.map(function(k){var templateData=templateSource[k]||{},typeJob={job_type:k,work_required:templateData.work_required||''};return '<button class="jobTypeTemplate '+(selectedTypes.some(function(type){return normaliseJobTypeKey(type)===normaliseJobTypeKey(k)})?'selected':'')+'" style="'+jobTypeInlineStyle(typeJob)+'" data-template="'+esc(k)+'">'+esc(k)+'</button>'}).join('')+'</div>'+
 '<div class="jobCardSections">'+
 '<section class="jobFormSection jobVehicleSection"><div class="jobFormSectionHead"><span class="jobSectionNumber">1</span><div><h3>Vehicle details</h3><p>Registration, vehicle identity and current due dates</p></div></div><div class="formGrid jobFormGrid jobSectionGrid">'+
@@ -12968,11 +13013,11 @@ inp('Registration','registration',j.registration,'text','plateField')+'<label cl
 '<section class="jobFormSection jobWorkSection"><div class="jobFormSectionHead"><span class="jobSectionNumber">2</span><div><h3>Work required</h3><p>Clear instructions for the technician</p></div></div><div class="formGrid jobFormGrid jobSectionGrid"><div class="field wide"><label>Work required <b class="requiredMark">*</b></label><textarea id="job_work_required" required>'+esc(j.work_required||'')+'</textarea></div></div>'+jobPartsRangeWorkHtml(j)+'</section>'+previousVehicleWorkPanelHtml(j.registration,id)+jobPartsEditorHtml(j)+privatePricingSectionHtml(j)+
 
 '<section class="jobFormSection jobContactSection"><div class="jobFormSectionHead"><span class="jobSectionNumber">3</span><div><h3>Customer & contact details</h3><p>Who the booking belongs to and how to contact them</p></div></div><div class="formGrid jobFormGrid jobSectionGrid">'+
-select('Customer / Income Stream <b class="requiredMark">*</b>','customer_account',selectedIncome,incomeCustomers)+'<div class="field existingCustomerLookupField"><label class="existingCustomerToggle"><input type="checkbox" id="job_existing_customer"> Existing customer / another vehicle</label><small class="existingCustomerHelp">Use this when an existing customer brings a different car or changes vehicle.</small><div class="existingCustomerSearchPanel" id="existingCustomerSearchPanel" hidden><div class="existingCustomerSearchWrap"><input id="job_existing_customer_search" type="search" placeholder="Search customer name, phone or email" autocomplete="off"><input type="hidden" id="job_customer_id" value="'+esc(j.customer_id||'')+'"><div class="existingCustomerResults" id="existingCustomerResults"></div><div class="existingCustomerSelected" id="existingCustomerSelected"></div></div></div></div><div class="field '+(showCustomerName?'':'customerNameHidden')+'" id="jobCustomerNameField"><label id="jobCustomerNameLabel">Name'+(selectedIncome==='CONTRACTOR'?' <b class="requiredMark">*</b>':' <small class="optionalFieldLabel">(optional)</small>')+'</label><input id="job_customer_name" value="'+esc(customerNameValue)+'" autocomplete="name"></div><div class="field '+(selectedIncome==='NMUK'?'':'nmukTypeHidden')+'" id="nmukVehicleTypeField"><label>NMUK vehicle type <b class="requiredMark">*</b></label><select id="job_nmuk_vehicle_type"><option value="">Select NMUK type...</option>'+['Internal','Pool','Pool Car Tax','MVOS','Various'].map(function(o){return '<option value="'+o+'" '+(o===selectedNmukType?'selected':'')+'>'+o+'</option>'}).join('')+'</select></div><div class="field '+(selectedIncome==='NMUK'?'customerNameHidden':'')+'" id="jobCustomerPhoneField"><label>Phone</label><input id="job_customer_phone" value="'+esc(j.customer_phone||'')+'"></div><div class="field '+(selectedIncome==='NMUK'&&['INTERNAL','POOL','POOL CAR TAX'].indexOf(String(selectedNmukType||'').toUpperCase())<0?'customerNameHidden':'')+'" id="jobCustomerEmailField"><label>Email</label><div class="jobEmailInputWrap"><input id="job_customer_email" type="text" value="'+esc(j.customer_email||(selectedFleetContact&&selectedFleetContact.contactEmail)||'')+'"><a class="jobEmailOpenLink" id="job_customer_email_link" href="'+(String(j.customer_email||(selectedFleetContact&&selectedFleetContact.contactEmail)||'').trim()?serviceReminderMailto(emailAddressList(String(j.customer_email||(selectedFleetContact&&selectedFleetContact.contactEmail)||'').trim())[0]||String(j.customer_email||(selectedFleetContact&&selectedFleetContact.contactEmail)||'').trim(),j.registration,j.vehicle):'#')+'" title="Open new email">Email</a></div><button type="button" class="btn poolServiceEmailBtn" id="job_pool_service_email" '+(selectedIncome==='NMUK'&&['INTERNAL','POOL','POOL CAR TAX'].indexOf(String(selectedNmukType||'').toUpperCase())>=0?'':'hidden')+'>Email service request</button></div><div class="field taxReferenceField '+(selectedIncome==='NMUK'&&['POOL','POOL CAR TAX'].indexOf(String(selectedNmukType||'').toUpperCase())>=0?'':'customerNameHidden')+'" id="jobTaxReferenceField"><label>Tax reference</label><input id="job_tax_reference" type="text" readonly value="'+esc(selectedTaxReference)+'"></div></div></section>'+
+select('Customer / Income Stream <b class="requiredMark">*</b>','customer_account',selectedIncome,incomeCustomers)+'<div class="field existingCustomerLookupField"><label class="existingCustomerToggle"><input type="checkbox" id="job_existing_customer"> Existing customer / another vehicle</label><small class="existingCustomerHelp">Use this when an existing customer brings a different car or changes vehicle.</small><div class="existingCustomerSearchPanel" id="existingCustomerSearchPanel" hidden><div class="existingCustomerSearchWrap"><input id="job_existing_customer_search" type="search" placeholder="Search customer name, phone or email" autocomplete="off"><input type="hidden" id="job_customer_id" value="'+esc(j.customer_id||'')+'"><div class="existingCustomerResults" id="existingCustomerResults"></div><div class="existingCustomerSelected" id="existingCustomerSelected"></div></div></div></div><div class="field '+(showCustomerName?'':'customerNameHidden')+'" id="jobCustomerNameField"><label id="jobCustomerNameLabel">Name'+(selectedIncome==='CONTRACTOR'?' <b class="requiredMark">*</b>':' <small class="optionalFieldLabel">(optional)</small>')+'</label><input id="job_customer_name" value="'+esc(customerNameValue)+'" autocomplete="name"></div><div class="field '+(selectedIncome==='NMUK'?'':'nmukTypeHidden')+'" id="nmukVehicleTypeField"><label>NMUK vehicle type <b class="requiredMark">*</b></label><select id="job_nmuk_vehicle_type"><option value="">Select NMUK type...</option>'+['Internal','Pool','MVOS','Various'].map(function(o){return '<option value="'+o+'" '+(o===selectedNmukType?'selected':'')+'>'+o+'</option>'}).join('')+'</select></div><div class="field '+(selectedIncome==='NMUK'?'customerNameHidden':'')+'" id="jobCustomerPhoneField"><label>Phone</label><input id="job_customer_phone" value="'+esc(j.customer_phone||'')+'"></div><div class="field '+(selectedIncome==='NMUK'&&['INTERNAL','POOL'].indexOf(String(selectedNmukType||'').toUpperCase())<0?'customerNameHidden':'')+'" id="jobCustomerEmailField"><label>Email</label><div class="jobEmailInputWrap"><input id="job_customer_email" type="text" value="'+esc(j.customer_email||(selectedFleetContact&&selectedFleetContact.contactEmail)||'')+'"><a class="jobEmailOpenLink" id="job_customer_email_link" href="'+(String(j.customer_email||(selectedFleetContact&&selectedFleetContact.contactEmail)||'').trim()?serviceReminderMailto(emailAddressList(String(j.customer_email||(selectedFleetContact&&selectedFleetContact.contactEmail)||'').trim())[0]||String(j.customer_email||(selectedFleetContact&&selectedFleetContact.contactEmail)||'').trim(),j.registration,j.vehicle):'#')+'" title="Open new email">Email</a></div><button type="button" class="btn poolServiceEmailBtn" id="job_pool_service_email" '+(selectedIncome==='NMUK'&&['INTERNAL','POOL'].indexOf(String(selectedNmukType||'').toUpperCase())>=0?'':'hidden')+'>Email service request</button></div><div class="field taxReferenceField '+(selectedIncome==='NMUK'&&['POOL'].indexOf(String(selectedNmukType||'').toUpperCase())>=0?'':'customerNameHidden')+'" id="jobTaxReferenceField"><label>Tax reference</label><input id="job_tax_reference" type="text" readonly value="'+esc(selectedTaxReference)+'"></div></div></section>'+
 websiteBookingPanelHtml(j)+
 '<section class="jobFormSection jobBookingSection"><div class="jobFormSectionHead"><span class="jobSectionNumber">4</span><div><h3>Booking details</h3><p>Date, allocation, time and commercial information</p></div></div><div class="formGrid jobFormGrid jobSectionGrid">'+
 inp('Booking date','booking_date',j.booking_date||selectedIso(),'date')+halfHourTimeSelect('Drop-off time','drop_time',j.drop_time||'08:00')+select('Technician','technician',j.technician,mechanics)+select('Ramp','ramp',j.ramp,ramps)+inp('Estimated hours','estimated_hours',j.estimated_hours,'number')+(completedStampText?'<div class="field jobCompletedStamp"><label>Completed</label><div class="jobCompletedStampValue">'+esc(completedStampText)+'</div></div>':'')+select('VAT mode','vat_mode',defaultJobVatMode,['inc_vat','ex_vat','no_vat'])+'<input type="hidden" id="job_status" value="'+esc(j.status||'booked')+'">'+select('Parts status','parts_status',partsStatusFromJob(j),PARTS_STATUS_VALUES)+select('Booking came from','booking_source',j.booking_source||(isWebsiteBookingJob(j)?'Website booking':''),['','Email','Telephone','Called in','Text message','WhatsApp','Website booking'])+'<div class="field motTimeField '+(hasMotJobType(selectedTypes)?'':'motTimeHidden')+'" id="motTimeField" aria-hidden="'+(hasMotJobType(selectedTypes)?'false':'true')+'"><label>MOT appointment time</label>'+halfHourMotTimeOptions(motTime)+'</div><input type="hidden" id="job_job_type" value="'+esc(jobTypeStorageValue(selectedTypes))+'"><input type="hidden" id="job_customer_note" value="'+esc(j.customer_note||'')+'"></div></section>'+
-'</div></div><div class="modalFoot">'+(id&&!isHistoricalImport?'<button class="btn danger" id="deleteJob">Delete Job</button>':'')+(id&&String(j.status||'').toLowerCase()==='work_complete'?'<button class="btn v280ReturnMechanic" id="returnToMechanic">↩ Return to mechanic</button>':'')+(id?'<button class="btn green" id="markComplete">Mark as complete</button>':'')+(showService?'<button class="btn dark" id="openServiceSheet">'+paperworkLabel+'</button>':'')+(id&&j.status==='ready_to_invoice'?'<button class="btn dark" id="createInvoiceFromJob">Create Invoice</button>':'<button class="btn green" id="markReady">Ready to invoice</button>')+(id?'<button class="primary" id="saveJob">Save & Close</button>':'<button class="primary" id="saveJob">Create Job</button>')+'</div></div>';var m=document.getElementById('jobModal');m.innerHTML=html;m.classList.add('open');m.setAttribute('aria-hidden','false');if(!isHistoricalImport)installNewJobAvailabilityCalendar();bindPrivatePricing();refreshServicePricingAdvisor();if(isHistoricalImport){m.querySelectorAll('input,textarea,select').forEach(function(el){el.disabled=true});var saveBtn=m.querySelector('#saveJob'),readyBtn=m.querySelector('#markReady'),completeBtn=m.querySelector('#markComplete');if(saveBtn)saveBtn.style.display='none';if(readyBtn)readyBtn.style.display='none';if(completeBtn)completeBtn.style.display='none';}var jobCloseButton=m.querySelector('[data-close-modal]');if(jobCloseButton)jobCloseButton.onclick=function(){closeModals()};m.querySelectorAll('[data-template]').forEach(function(b){b.onclick=function(){applyTemplate(b.dataset.template);if(!editingJobId){var jt=document.getElementById('job_job_type');applyNewBookingPartsStatusPreset(jt?jt.value:'general')}}});m.querySelectorAll('[data-website-date]').forEach(function(b){b.onclick=function(){var dateField=document.getElementById('job_booking_date');if(dateField){dateField.value=b.dataset.websiteDate;m.querySelectorAll('[data-website-date]').forEach(function(x){x.classList.toggle('selected',x===b)})}}});m.querySelectorAll('[data-website-service-choice]').forEach(function(b){b.onclick=function(){resolveWebsiteServiceChoice(b.dataset.websiteServiceChoice)}});updateMotTimeField(false);updateJobVehicleDuePanel(j.registration);var workInput=document.getElementById('job_work_required');if(workInput)workInput.dataset.autoTemplateText=templateWorkForTypes(selectedTypes);var saveJobButton=document.getElementById('saveJob');if(saveJobButton)saveJobButton.onclick=function(){saveJob(j.id)};var deleteButton=document.getElementById('deleteJob');if(deleteButton)deleteButton.onclick=function(){deleteJobCompletely(j.id)};var returnToMechanicButton=document.getElementById('returnToMechanic');if(returnToMechanicButton)returnToMechanicButton.onclick=async function(){var live=(app.jobs||[]).find(function(x){return String(x.id)===String(j.id)});if(!live)return;var draft=gatherJob(j.id);Object.keys(draft||{}).forEach(function(k){live[k]=draft[k]});live.status='booked';live.archived=false;live.completed_at='';live.updated_at=new Date().toISOString();try{await upsertRemote('jobs',live,{silent:true});saveLocal();if(typeof closeModals==='function')closeModals();if(typeof render==='function')render();}catch(e){console.error('Could not return job to mechanic',e);alert('Could not return this job to the mechanic. Please try again.')}};var completeButton=document.getElementById('markComplete');if(completeButton)completeButton.onclick=function(){var draft=gatherJob(j.id);if(!confirmServiceBookStampedBeforeComplete(draft))return;var cats=fleetPlannerJobCategories(draft),motAnswer;/* Only combined Service + MOT jobs need the extra question. */if(cats&&cats.service&&cats.mot){motAnswer=confirm('Has the MOT been completed?\n\nSelect OK for Yes.\nSelect Cancel for No — only the service will be marked complete and the MOT will remain outstanding.');window.__vectaMotCompletionDecision=window.__vectaMotCompletionDecision||{};window.__vectaMotCompletionDecision[String(j.id)]=motAnswer;}var status=document.getElementById('job_status');if(status)status.value='completed';saveJob(j.id)};var readyButton=document.getElementById('markReady');if(readyButton)readyButton.onclick=async function(){var draft=gatherJob(j.id);if(draft.amount_quoted===null){alert('Enter a price before marking this job Ready to Invoice.');var priceInput=document.querySelector('#privatePricingRows .privatePriceAmount');if(priceInput){priceInput.classList.add('requiredMissing');priceInput.focus();priceInput.scrollIntoView({behavior:'smooth',block:'center'});}return;}var status=document.getElementById('job_status');if(status)status.value='ready_to_invoice';var savedOk=await saveJob(j.id);if(savedOk!==true)return;var savedJob=app.jobs.find(function(x){return String(x.id)===String(j.id)});if(savedJob&&savedJob.status==='ready_to_invoice'){closeModals();openInvoiceForJob(savedJob.id)}};var createInvoiceButton=document.getElementById('createInvoiceFromJob');if(createInvoiceButton)createInvoiceButton.onclick=function(){closeModals();openInvoiceForJob(j.id)};var serviceButton=document.getElementById('openServiceSheet');if(serviceButton)serviceButton.onclick=function(){printService(j.id)};var printJobButton=document.getElementById('printJobCard');if(printJobButton)printJobButton.onclick=function(){printJob(gatherJob(j.id));};var jobEmailInput=document.getElementById('job_customer_email'),jobEmailLink=document.getElementById('job_customer_email_link');function syncJobEmailLink(){if(!jobEmailLink)return;var email=String(jobEmailInput&&jobEmailInput.value||'').trim(),address=emailAddressList(email)[0]||email,regInput=document.getElementById('job_registration'),vehicleInput=document.getElementById('job_vehicle');jobEmailLink.href=email?serviceReminderMailto(address,regInput&&regInput.value||j.registration,vehicleInput&&vehicleInput.value||j.vehicle):'#';jobEmailLink.classList.toggle('disabled',!email)}if(jobEmailInput){jobEmailInput.addEventListener('input',syncJobEmailLink);jobEmailInput.addEventListener('change',syncJobEmailLink)}syncJobEmailLink();var customerSelect=document.getElementById('job_customer_account');function updateCustomerFields(focusName){var nmukField=document.getElementById('nmukVehicleTypeField'),type=document.getElementById('job_nmuk_vehicle_type'),nameField=document.getElementById('jobCustomerNameField'),nameInput=document.getElementById('job_customer_name'),phoneField=document.getElementById('jobCustomerPhoneField'),emailField=document.getElementById('jobCustomerEmailField'),phoneInput=document.getElementById('job_customer_phone'),emailInput=document.getElementById('job_customer_email'),rawAccount=customerSelect?String(customerSelect.value||'').trim():'',accountKey=rawAccount.toUpperCase(),isNmuk=accountKey==='NMUK';if(nmukField){nmukField.classList.toggle('nmukTypeHidden',!isNmuk);nmukField.hidden=!isNmuk}if(isNmuk&&type&&!type.value){var regEl=document.getElementById('job_registration');type.value=fleetNmukTypeFromVehicle(regEl&&regEl.value||'')}var nmukTypeValue=isNmuk&&type?String(type.value||'').toUpperCase():'',isMvos=nmukTypeValue==='MVOS',isPool=isNmuk&&(nmukTypeValue==='POOL'||nmukTypeValue==='POOL CAR TAX'),isInternal=isNmuk&&nmukTypeValue==='INTERNAL',isServiceEmailVehicle=isPool||isInternal,isStaff=accountKey==='STAFF',isContractor=fleetIsContractorIncome(rawAccount),isGenericContractor=accountKey==='CONTRACTOR',showName=isStaff||isGenericContractor||isMvos,taxField=document.getElementById('jobTaxReferenceField'),taxInput=document.getElementById('job_tax_reference'),serviceEmailButton=document.getElementById('job_pool_service_email'),regValue=((document.getElementById('job_registration')||{}).value||''),fleetContact=fleetVehicleForRegistration(regValue);if(nameField){nameField.classList.toggle('customerNameHidden',!showName);nameField.hidden=!showName;nameField.setAttribute('aria-hidden',showName?'false':'true')}if(phoneField){phoneField.classList.toggle('customerNameHidden',isNmuk);phoneField.hidden=isNmuk}if(emailField){emailField.classList.toggle('customerNameHidden',isNmuk&&!isServiceEmailVehicle);emailField.hidden=isNmuk&&!isServiceEmailVehicle}if(taxField){taxField.classList.toggle('customerNameHidden',!isPool);taxField.hidden=!isPool}if(isServiceEmailVehicle&&fleetContact){if(emailInput&&fleetContact.contactEmail)emailInput.value=fleetContact.contactEmail;if(isPool&&taxInput)taxInput.value=fleetContact.taxReference||''}if(serviceEmailButton){serviceEmailButton.hidden=!isServiceEmailVehicle;serviceEmailButton.onclick=openPoolServiceEmailFromJob}if(isNmuk){if(phoneInput)phoneInput.value='';if(!isServiceEmailVehicle&&emailInput)emailInput.value='';if(!isMvos&&nameInput)nameInput.value=''}var nameLabel=document.getElementById('jobCustomerNameLabel');if(nameLabel)nameLabel.innerHTML=(isGenericContractor||isMvos)?'Name <b class="requiredMark">*</b>':'Name <small class="optionalFieldLabel">(optional)</small>';if(showName&&nameInput&&['STAFF','CONTRACTOR','NMUK'].indexOf(String(nameInput.value||'').trim().toUpperCase())>=0)nameInput.value='';if(showName&&focusName&&nameInput)setTimeout(function(){try{nameInput.focus()}catch(e){}},0);var vatMode=document.getElementById('job_vat_mode');if(vatMode&&String(vatMode.value||'')!=='no_vat')vatMode.value=isStaff?'inc_vat':'ex_vat';var readyButton=document.getElementById('markReady'),completeButton=document.getElementById('markComplete'),isFleet=isNmuk||isContractor;if(readyButton)readyButton.style.display=isStaff?'':'none';if(completeButton)completeButton.style.display=isFleet?'':'none'}if(customerSelect){var handleCustomerChange=function(){customerSelect.classList.remove('requiredMissing');updateCustomerFields(true)};customerSelect.onchange=handleCustomerChange;customerSelect.addEventListener('input',handleCustomerChange)};var nmukTypeSelect=document.getElementById('job_nmuk_vehicle_type');function applyNmukTypeWorkflow(){if(!nmukTypeSelect)return;var isTax=String(nmukTypeSelect.value||'').toUpperCase()==='POOL CAR TAX',jobType=document.getElementById('job_job_type'),work=document.getElementById('job_work_required'),tech=document.getElementById('job_technician'),ramp=document.getElementById('job_ramp'),hours=document.getElementById('job_estimated_hours');if(isTax){if(jobType)jobType.value='Vehicle Tax';if(work&&(!String(work.value||'').trim()||String(work.dataset.autoTemplateText||'')===String(work.value||'')))work.value='Pool Car Tax';if(tech)tech.value='Unallocated';if(ramp)ramp.value='';if(hours)hours.value='0';syncWorkRequiredToPrivatePricing()}}if(nmukTypeSelect)nmukTypeSelect.onchange=function(){this.classList.remove('requiredMissing');updateCustomerFields(this.value==='MVOS');applyNmukTypeWorkflow()};updateCustomerFields(false);applyNmukTypeWorkflow();setupExistingCustomerPicker();var reg=document.getElementById('job_registration');if(reg){var autofillTimer=null;dvsaLastAutomaticRegistration=id?normReg(j.registration||''):'';reg.oninput=function(){var typed=cleanStoredRegistration(reg.value),resolved=storedRegistrationValue(typed);reg.value=resolved||typed;clearTimeout(autofillTimer);autofillTimer=setTimeout(function(){applyStoredRegistrationToInput(reg);autofillKnownRegistration(reg.value);updateJobVehicleDuePanel(reg.value);updatePreviousVehicleWorkPanel(reg.value,id)},220);scheduleAutomaticDvsaLookup(reg.value,650)};reg.onchange=function(){applyStoredRegistrationToInput(reg);autofillKnownRegistration(reg.value);updateJobVehicleDuePanel(reg.value);updatePreviousVehicleWorkPanel(reg.value,id);var a=document.getElementById('job_customer_account'),known=fleetIncomeCustomerFromVehicle(reg.value);if(a&&known&&!a.value)a.value=known;updateCustomerFields(false);scheduleAutomaticDvsaLookup(reg.value,80)};reg.onblur=function(){applyStoredRegistrationToInput(reg);autofillKnownRegistration(reg.value);updateJobVehicleDuePanel(reg.value);updatePreviousVehicleWorkPanel(reg.value,id);var a=document.getElementById('job_customer_account'),known=fleetIncomeCustomerFromVehicle(reg.value);if(a&&known&&!a.value)a.value=known;updateCustomerFields(false);scheduleAutomaticDvsaLookup(reg.value,80)}}var noVehicleToggle=document.getElementById('job_no_vehicle');function applyNoVehicleState(){var active=!!(noVehicleToggle&&noVehicleToggle.checked),vehicleEl=document.getElementById('job_vehicle'),mileageEl=document.getElementById('job_mileage'),plateWrap=reg&&reg.closest('.field');if(reg){reg.disabled=active;if(active)reg.value=''}if(vehicleEl){vehicleEl.disabled=active;if(active)vehicleEl.value='No Vehicle';else if(vehicleEl.value==='No Vehicle')vehicleEl.value=''}if(mileageEl){mileageEl.disabled=active;if(active)mileageEl.value=''}if(plateWrap)plateWrap.classList.toggle('noVehicleActive',active);if(active)updateJobVehicleDuePanel('')}if(noVehicleToggle)noVehicleToggle.onchange=applyNoVehicleState;applyNoVehicleState();if(!id&&j.registration&&!j.no_vehicle){autofillKnownRegistration(j.registration);updateJobVehicleDuePanel(j.registration);scheduleAutomaticDvsaLookup(j.registration,80)}}
+'</div></div><div class="modalFoot">'+(id&&!isHistoricalImport?'<button class="btn danger" id="deleteJob">Delete Job</button>':'')+(id&&String(j.status||'').toLowerCase()==='work_complete'?'<button class="btn v280ReturnMechanic" id="returnToMechanic">↩ Return to mechanic</button>':'')+(id?'<button class="btn green" id="markComplete">Mark as complete</button>':'')+(showService?'<button class="btn dark" id="openServiceSheet">'+paperworkLabel+'</button>':'')+(id&&j.status==='ready_to_invoice'?'<button class="btn dark" id="createInvoiceFromJob">Create Invoice</button>':'<button class="btn green" id="markReady">Ready to invoice</button>')+(id?'<button class="primary" id="saveJob">Save & Close</button>':'<button class="primary" id="saveJob">Create Job</button>')+'</div></div>';var m=document.getElementById('jobModal');m.innerHTML=html;m.classList.add('open');m.setAttribute('aria-hidden','false');if(!isHistoricalImport)installNewJobAvailabilityCalendar();bindPrivatePricing();refreshServicePricingAdvisor();if(isHistoricalImport){m.querySelectorAll('input,textarea,select').forEach(function(el){el.disabled=true});var saveBtn=m.querySelector('#saveJob'),readyBtn=m.querySelector('#markReady'),completeBtn=m.querySelector('#markComplete');if(saveBtn)saveBtn.style.display='none';if(readyBtn)readyBtn.style.display='none';if(completeBtn)completeBtn.style.display='none';}var jobCloseButton=m.querySelector('[data-close-modal]');if(jobCloseButton)jobCloseButton.onclick=function(){closeModals()};m.querySelectorAll('[data-template]').forEach(function(b){b.onclick=function(){applyTemplate(b.dataset.template);if(!editingJobId){var jt=document.getElementById('job_job_type');applyNewBookingPartsStatusPreset(jt?jt.value:'general')}}});m.querySelectorAll('[data-website-date]').forEach(function(b){b.onclick=function(){var dateField=document.getElementById('job_booking_date');if(dateField){dateField.value=b.dataset.websiteDate;m.querySelectorAll('[data-website-date]').forEach(function(x){x.classList.toggle('selected',x===b)})}}});m.querySelectorAll('[data-website-service-choice]').forEach(function(b){b.onclick=function(){resolveWebsiteServiceChoice(b.dataset.websiteServiceChoice)}});updateMotTimeField(false);updateJobVehicleDuePanel(j.registration);var workInput=document.getElementById('job_work_required');if(workInput)workInput.dataset.autoTemplateText=templateWorkForTypes(selectedTypes);var saveJobButton=document.getElementById('saveJob');if(saveJobButton)saveJobButton.onclick=function(){saveJob(j.id)};var deleteButton=document.getElementById('deleteJob');if(deleteButton)deleteButton.onclick=function(){deleteJobCompletely(j.id)};var returnToMechanicButton=document.getElementById('returnToMechanic');if(returnToMechanicButton)returnToMechanicButton.onclick=async function(){var live=(app.jobs||[]).find(function(x){return String(x.id)===String(j.id)});if(!live)return;var draft=gatherJob(j.id);Object.keys(draft||{}).forEach(function(k){live[k]=draft[k]});live.status='booked';live.archived=false;live.completed_at='';live.updated_at=new Date().toISOString();try{await upsertRemote('jobs',live,{silent:true});saveLocal();if(typeof closeModals==='function')closeModals();if(typeof render==='function')render();}catch(e){console.error('Could not return job to mechanic',e);alert('Could not return this job to the mechanic. Please try again.')}};var completeButton=document.getElementById('markComplete');if(completeButton)completeButton.onclick=function(){var draft=gatherJob(j.id);if(!confirmServiceBookStampedBeforeComplete(draft))return;var cats=fleetPlannerJobCategories(draft),motAnswer;/* Only combined Service + MOT jobs need the extra question. */if(cats&&cats.service&&cats.mot){motAnswer=confirm('Has the MOT been completed?\n\nSelect OK for Yes.\nSelect Cancel for No — only the service will be marked complete and the MOT will remain outstanding.');window.__vectaMotCompletionDecision=window.__vectaMotCompletionDecision||{};window.__vectaMotCompletionDecision[String(j.id)]=motAnswer;}var status=document.getElementById('job_status');if(status)status.value='completed';saveJob(j.id)};var readyButton=document.getElementById('markReady');if(readyButton)readyButton.onclick=async function(){var draft=gatherJob(j.id);if(draft.amount_quoted===null){alert('Enter a price before marking this job Ready to Invoice.');var priceInput=document.querySelector('#privatePricingRows .privatePriceAmount');if(priceInput){priceInput.classList.add('requiredMissing');priceInput.focus();priceInput.scrollIntoView({behavior:'smooth',block:'center'});}return;}var status=document.getElementById('job_status');if(status)status.value='ready_to_invoice';var savedOk=await saveJob(j.id);if(savedOk!==true)return;var savedJob=app.jobs.find(function(x){return String(x.id)===String(j.id)});if(savedJob&&savedJob.status==='ready_to_invoice'){closeModals();openInvoiceForJob(savedJob.id)}};var createInvoiceButton=document.getElementById('createInvoiceFromJob');if(createInvoiceButton)createInvoiceButton.onclick=function(){closeModals();openInvoiceForJob(j.id)};var serviceButton=document.getElementById('openServiceSheet');if(serviceButton)serviceButton.onclick=function(){printService(j.id)};var printJobButton=document.getElementById('printJobCard');if(printJobButton)printJobButton.onclick=function(){printJob(gatherJob(j.id));};var jobEmailInput=document.getElementById('job_customer_email'),jobEmailLink=document.getElementById('job_customer_email_link');function syncJobEmailLink(){if(!jobEmailLink)return;var email=String(jobEmailInput&&jobEmailInput.value||'').trim(),address=emailAddressList(email)[0]||email,regInput=document.getElementById('job_registration'),vehicleInput=document.getElementById('job_vehicle');jobEmailLink.href=email?serviceReminderMailto(address,regInput&&regInput.value||j.registration,vehicleInput&&vehicleInput.value||j.vehicle):'#';jobEmailLink.classList.toggle('disabled',!email)}if(jobEmailInput){jobEmailInput.addEventListener('input',syncJobEmailLink);jobEmailInput.addEventListener('change',syncJobEmailLink)}syncJobEmailLink();var customerSelect=document.getElementById('job_customer_account');function updateCustomerFields(focusName){var nmukField=document.getElementById('nmukVehicleTypeField'),type=document.getElementById('job_nmuk_vehicle_type'),nameField=document.getElementById('jobCustomerNameField'),nameInput=document.getElementById('job_customer_name'),phoneField=document.getElementById('jobCustomerPhoneField'),emailField=document.getElementById('jobCustomerEmailField'),phoneInput=document.getElementById('job_customer_phone'),emailInput=document.getElementById('job_customer_email'),rawAccount=customerSelect?String(customerSelect.value||'').trim():'',accountKey=rawAccount.toUpperCase(),isNmuk=accountKey==='NMUK';if(nmukField){nmukField.classList.toggle('nmukTypeHidden',!isNmuk);nmukField.hidden=!isNmuk}if(isNmuk&&type&&!type.value){var regEl=document.getElementById('job_registration');type.value=fleetNmukTypeFromVehicle(regEl&&regEl.value||'')}var nmukTypeValue=isNmuk&&type?String(type.value||'').toUpperCase():'',isMvos=nmukTypeValue==='MVOS',isPool=isNmuk&&(nmukTypeValue==='POOL'||nmukTypeValue==='POOL CAR TAX'),isInternal=isNmuk&&nmukTypeValue==='INTERNAL',isServiceEmailVehicle=isPool||isInternal,isStaff=accountKey==='STAFF',isContractor=fleetIsContractorIncome(rawAccount),isGenericContractor=accountKey==='CONTRACTOR',showName=isStaff||isGenericContractor||isMvos,taxField=document.getElementById('jobTaxReferenceField'),taxInput=document.getElementById('job_tax_reference'),serviceEmailButton=document.getElementById('job_pool_service_email'),regValue=((document.getElementById('job_registration')||{}).value||''),fleetContact=fleetVehicleForRegistration(regValue);if(nameField){nameField.classList.toggle('customerNameHidden',!showName);nameField.hidden=!showName;nameField.setAttribute('aria-hidden',showName?'false':'true')}if(phoneField){phoneField.classList.toggle('customerNameHidden',isNmuk);phoneField.hidden=isNmuk}if(emailField){emailField.classList.toggle('customerNameHidden',isNmuk&&!isServiceEmailVehicle);emailField.hidden=isNmuk&&!isServiceEmailVehicle}if(taxField){taxField.classList.toggle('customerNameHidden',!isPool);taxField.hidden=!isPool}if(isServiceEmailVehicle&&fleetContact){if(emailInput&&fleetContact.contactEmail)emailInput.value=fleetContact.contactEmail;if(isPool&&taxInput)taxInput.value=fleetContact.taxReference||''}if(serviceEmailButton){serviceEmailButton.hidden=!isServiceEmailVehicle;serviceEmailButton.onclick=openPoolServiceEmailFromJob}if(isNmuk){if(phoneInput)phoneInput.value='';if(!isServiceEmailVehicle&&emailInput)emailInput.value='';if(!isMvos&&nameInput)nameInput.value=''}var nameLabel=document.getElementById('jobCustomerNameLabel');if(nameLabel)nameLabel.innerHTML=(isGenericContractor||isMvos)?'Name <b class="requiredMark">*</b>':'Name <small class="optionalFieldLabel">(optional)</small>';if(showName&&nameInput&&['STAFF','CONTRACTOR','NMUK'].indexOf(String(nameInput.value||'').trim().toUpperCase())>=0)nameInput.value='';if(showName&&focusName&&nameInput)setTimeout(function(){try{nameInput.focus()}catch(e){}},0);var vatMode=document.getElementById('job_vat_mode');if(vatMode&&String(vatMode.value||'')!=='no_vat')vatMode.value=isStaff?'inc_vat':'ex_vat';var readyButton=document.getElementById('markReady'),completeButton=document.getElementById('markComplete'),isFleet=isNmuk||isContractor;if(readyButton)readyButton.style.display=isStaff?'':'none';if(completeButton)completeButton.style.display=isFleet?'':'none'}if(customerSelect){var handleCustomerChange=function(){customerSelect.classList.remove('requiredMissing');updateCustomerFields(true)};customerSelect.onchange=handleCustomerChange;customerSelect.addEventListener('input',handleCustomerChange)};var nmukTypeSelect=document.getElementById('job_nmuk_vehicle_type');function applyNmukTypeWorkflow(){if(!nmukTypeSelect)return;var isTax=String(nmukTypeSelect.value||'').toUpperCase()==='POOL CAR TAX',jobType=document.getElementById('job_job_type'),work=document.getElementById('job_work_required'),tech=document.getElementById('job_technician'),ramp=document.getElementById('job_ramp'),hours=document.getElementById('job_estimated_hours');if(isTax){if(jobType)jobType.value='Vehicle Tax';if(work&&(!String(work.value||'').trim()||String(work.dataset.autoTemplateText||'')===String(work.value||'')))work.value='Vehicle Tax';if(tech)tech.value='Unallocated';if(ramp)ramp.value='';if(hours)hours.value='0';syncWorkRequiredToPrivatePricing()}}if(nmukTypeSelect)nmukTypeSelect.onchange=function(){this.classList.remove('requiredMissing');updateCustomerFields(this.value==='MVOS');applyNmukTypeWorkflow()};updateCustomerFields(false);applyNmukTypeWorkflow();setupExistingCustomerPicker();var reg=document.getElementById('job_registration');if(reg){var autofillTimer=null;dvsaLastAutomaticRegistration=id?normReg(j.registration||''):'';reg.oninput=function(){var typed=cleanStoredRegistration(reg.value),resolved=storedRegistrationValue(typed);reg.value=resolved||typed;clearTimeout(autofillTimer);autofillTimer=setTimeout(function(){applyStoredRegistrationToInput(reg);autofillKnownRegistration(reg.value);updateJobVehicleDuePanel(reg.value);updatePreviousVehicleWorkPanel(reg.value,id)},220);scheduleAutomaticDvsaLookup(reg.value,650)};reg.onchange=function(){applyStoredRegistrationToInput(reg);autofillKnownRegistration(reg.value);updateJobVehicleDuePanel(reg.value);updatePreviousVehicleWorkPanel(reg.value,id);var a=document.getElementById('job_customer_account'),known=fleetIncomeCustomerFromVehicle(reg.value);if(a&&known&&!a.value)a.value=known;updateCustomerFields(false);scheduleAutomaticDvsaLookup(reg.value,80)};reg.onblur=function(){applyStoredRegistrationToInput(reg);autofillKnownRegistration(reg.value);updateJobVehicleDuePanel(reg.value);updatePreviousVehicleWorkPanel(reg.value,id);var a=document.getElementById('job_customer_account'),known=fleetIncomeCustomerFromVehicle(reg.value);if(a&&known&&!a.value)a.value=known;updateCustomerFields(false);scheduleAutomaticDvsaLookup(reg.value,80)}}var noVehicleToggle=document.getElementById('job_no_vehicle');function applyNoVehicleState(){var active=!!(noVehicleToggle&&noVehicleToggle.checked),vehicleEl=document.getElementById('job_vehicle'),mileageEl=document.getElementById('job_mileage'),plateWrap=reg&&reg.closest('.field');if(reg){reg.disabled=active;if(active)reg.value=''}if(vehicleEl){vehicleEl.disabled=active;if(active)vehicleEl.value='No Vehicle';else if(vehicleEl.value==='No Vehicle')vehicleEl.value=''}if(mileageEl){mileageEl.disabled=active;if(active)mileageEl.value=''}if(plateWrap)plateWrap.classList.toggle('noVehicleActive',active);if(active)updateJobVehicleDuePanel('')}if(noVehicleToggle)noVehicleToggle.onchange=applyNoVehicleState;applyNoVehicleState();if(!id&&j.registration&&!j.no_vehicle){autofillKnownRegistration(j.registration);updateJobVehicleDuePanel(j.registration);scheduleAutomaticDvsaLookup(j.registration,80)}}
 function knownRegistrationDetails(regValue){var reg=normReg(regValue||'');if(String(reg).replace(/\s/g,'').length<4)return null;var vehicle=(app.vehicles||[]).find(function(x){return normReg(x.registration||'')===reg})||null;var previous=(app.jobs||[]).filter(function(x){return normReg(x.registration||'')===reg}).sort(function(a,b){return String(b.updated_at||b.booking_date||b.created_at||'').localeCompare(String(a.updated_at||a.booking_date||a.created_at||''))})[0]||null;if(!vehicle&&!previous)return null;var customer=null;if(vehicle&&vehicle.customer_id)customer=(app.customers||[]).find(function(x){return x.id===vehicle.customer_id})||null;return {vehicle:(vehicle&&vehicle.vehicle)||(previous&&previous.vehicle)||'',customer_id:(customer&&customer.id)||(previous&&previous.customer_id)||'',customer_name:(customer&&(customer.name||customer.surname))||(previous&&previous.customer_name)||'',customer_phone:(customer&&customer.phone)||(previous&&previous.customer_phone)||'',customer_email:(customer&&customer.email)||(previous&&previous.customer_email)||'',mileage:(vehicle&&vehicle.mileage)||(previous&&previous.mileage)||''}}
 function autofillKnownRegistration(regValue){var found=knownRegistrationDetails(regValue);if(!found)return false;[['vehicle',found.vehicle],['customer_id',found.customer_id],['customer_name',found.customer_name],['customer_phone',found.customer_phone],['customer_email',found.customer_email],['mileage',found.mileage]].forEach(function(pair){var el=document.getElementById('job_'+pair[0]);if(el&&pair[1]!==null&&pair[1]!==undefined&&String(pair[1])!=='')el.value=pair[1]});return true}
 function halfHourMotTimeOptions(val){var current=String(val||'').slice(0,5),times=[];for(var mins=9*60;mins<=16*60;mins+=30){var h=String(Math.floor(mins/60)).padStart(2,'0'),m=String(mins%60).padStart(2,'0');times.push(h+':'+m)}if(current&&times.indexOf(current)<0){var total=clockMinutes(current);if(Number.isFinite(total)){var rounded=Math.round(total/30)*30%(24*60),rh=String(Math.floor(rounded/60)).padStart(2,'0'),rm=String(rounded%60).padStart(2,'0');current=rh+':'+rm}else current=''}var opts='<option value=""'+(!current?' selected':'')+'>Select time...</option>'+times.map(function(t){return '<option value="'+t+'"'+(t===current?' selected':'')+'>'+t+'</option>'}).join('');return '<select id="job_mot_time">'+opts+'</select>'}
@@ -13068,7 +13113,7 @@ function gatherJob(id){
   j.nmuk_vehicle_type=j.customer_account==='NMUK'?String(j.nmuk_vehicle_type||fleetNmukTypeFromVehicle(j.registration)||''):'';
   if(j.customer_account==='NMUK'){j.customer_phone='';j.customer_email='';if(j.nmuk_vehicle_type!=='MVOS')j.customer_name='NMUK';}
   j.job_type=jobTypeStorageValue(j.job_type);
-  if(j.customer_account==='NMUK'&&String(j.nmuk_vehicle_type||'').toUpperCase()==='POOL CAR TAX'){if(!String(j.work_required||'').trim())j.work_required='Pool Car Tax';j.job_type='Vehicle Tax';j.source='vehicle_tax_admin';j.technician='Unallocated';j.ramp='';j.estimated_hours=0;j.drop_time=null;}
+  if(j.customer_account==='NMUK'&&String(j.nmuk_vehicle_type||'').toUpperCase()==='POOL CAR TAX'){if(!String(j.work_required||'').trim())j.work_required='Vehicle Tax';j.job_type='Vehicle Tax';j.source='vehicle_tax_admin';j.technician='Unallocated';j.ramp='';j.estimated_hours=0;j.drop_time=null;}
   else if(isVehicleTaxJob(j)){j.job_type='Vehicle Tax';j.source='vehicle_tax_admin';j.technician='Unallocated';j.ramp='';j.estimated_hours=0;j.drop_time=null;}
   if(j.parts_status)j.customer_note=partsStatusNote(j.customer_note,j.parts_status);else j.customer_note=String(j.customer_note||'').replace(/\s*\[\[PARTS_STATUS:[^\]]+\]\]\s*/ig,'\n').trim();
   var motInput=document.getElementById('job_mot_time'),motTime=hasMotJobType(j)?normaliseMotTime(motInput&&motInput.value):'';
@@ -13254,7 +13299,7 @@ async function saveJob(id){
   if(isUnresolvedWebsiteService(j)){applyWebsiteDefaultMajorService(j);}
   if(!j.customer_account){alert('Please select a customer before saving this job card.');var customerField=document.getElementById('job_customer_account');if(customerField){customerField.classList.add('requiredMissing');customerField.focus();customerField.onchange=function(){if(this.value)this.classList.remove('requiredMissing')}}return;}
   if(j.customer_account==='CONTRACTOR'&&!String(j.customer_name||'').trim()){alert('Please enter the contractor name before saving this job card.');var nameField=document.getElementById('job_customer_name');if(nameField){nameField.classList.add('requiredMissing');nameField.focus();nameField.oninput=function(){if(String(this.value||'').trim())this.classList.remove('requiredMissing')}}return;}
-  if(j.customer_account==='NMUK'&&!j.nmuk_vehicle_type){alert('Please select the NMUK type: Internal, Pool, Pool Car Tax, MVOS or Various.');var nmukField=document.getElementById('job_nmuk_vehicle_type');if(nmukField){nmukField.classList.add('requiredMissing');nmukField.focus();nmukField.onchange=function(){if(this.value)this.classList.remove('requiredMissing')}}return;}
+  if(j.customer_account==='NMUK'&&!j.nmuk_vehicle_type){alert('Please select the NMUK type: Internal, Pool, MVOS or Various.');var nmukField=document.getElementById('job_nmuk_vehicle_type');if(nmukField){nmukField.classList.add('requiredMissing');nmukField.focus();nmukField.onchange=function(){if(this.value)this.classList.remove('requiredMissing')}}return;}
   if(j.customer_account==='NMUK'&&j.nmuk_vehicle_type==='MVOS'&&!String(j.customer_name||'').trim()){alert('Please enter the name for this MVOS job before saving.');var mvosNameField=document.getElementById('job_customer_name');if(mvosNameField){mvosNameField.classList.add('requiredMissing');mvosNameField.focus();mvosNameField.oninput=function(){if(String(this.value||'').trim())this.classList.remove('requiredMissing')}}return;}
   if(firstWebsiteConfirmation){
     if(!String(j.customer_email||'').trim()){alert('This website booking does not have a customer email address. Add the email address before saving the confirmed booking.');var emailField=document.getElementById('job_customer_email');if(emailField){emailField.classList.add('requiredMissing');emailField.focus();}return;}
@@ -13837,7 +13882,7 @@ function openFleetSearchVehicleRecord(reg){var fv=fleetVehicleForRegistration(re
 function openVehicleFromReg(reg){reg=normReg(reg||'');if(!reg)return;var exists=(app.vehicles||[]).some(function(x){return normReg(x.registration||'')===reg})||(app.jobs||[]).some(function(x){return normReg(x.registration||'')===reg})||!!fleetVehicleForRegistration(reg);if(exists){openVehicleRecord(reg);return}alert('No vehicle record found for '+reg)}
 function knownRegistrationDetails(regValue){var reg=normReg(regValue||'');if(String(reg).replace(/\s/g,'').length<4)return null;var vehicle=(app.vehicles||[]).find(function(x){return normReg(x.registration||'')===reg})||null,fleetVehicle=fleetVehicleForRegistration(reg),previous=(app.jobs||[]).filter(function(x){return normReg(x.registration||'')===reg}).sort(function(a,b){return String(b.updated_at||b.booking_date||b.created_at||'').localeCompare(String(a.updated_at||a.booking_date||a.created_at||''))})[0]||null;if(!vehicle&&!fleetVehicle&&!previous)return null;var customer=null;if(vehicle&&vehicle.customer_id)customer=(app.customers||[]).find(function(x){return x.id===vehicle.customer_id})||null;return {vehicle:(vehicle&&vehicle.vehicle)||(fleetVehicle&&fleetDisplayModel(fleetVehicle.model))||(previous&&previous.vehicle)||'',customer_name:(customer&&(customer.name||customer.surname))||(previous&&previous.customer_name)||(fleetVehicle&&searchFleetCustomerName(fleetVehicle))||'',customer_phone:(customer&&customer.phone)||(previous&&previous.customer_phone)||'',customer_email:(customer&&customer.email)||(previous&&previous.customer_email)||(fleetVehicle&&fleetVehicle.contactEmail)||'',mileage:(vehicle&&vehicle.mileage)||(previous&&previous.mileage)||''}}
 function jobVehicleDueItem(label,dateValue,detail){if(!dateValue&&!detail)return '';var tone=jobVehicleDateTone(dateValue),urgent=jobVehicleDueWithinDays(dateValue,30);return '<div class="jobVehicleDueItem '+esc(tone)+(urgent?' urgent':'')+'"><span>'+esc(label)+'</span><b>'+esc(dateValue?fleetFormat(String(dateValue).slice(0,10)):detail)+'</b>'+(dateValue&&detail&&detail!==label?'<small>'+esc(detail)+'</small>':'')+'</div>'}
-function jobVehicleDueMarkup(data){return jobVehicleDueItem(data.serviceType||'Service',data.serviceDue,data.serviceType||'')+jobVehicleDueItem('MOT',data.motDue,'')+jobVehicleDueItem('6 Month Safety Check',data.safetyDue,'')+jobVehicleDueItem('Road Tax',data.taxDue,'')}
+function jobVehicleDueMarkup(data){return jobVehicleDueItem(data.serviceType||'Service',data.serviceDue,data.serviceType||'')+jobVehicleDueItem('MOT',data.motDue,'')+jobVehicleDueItem('6 Month Safety Check',data.safetyDue,'')+jobVehicleDueItem('Vehicle Tax',data.taxDue,'')}
 function jobVehicleDuePanelHtml(regValue){var data=jobVehicleDueData(regValue);return '<div class="jobVehicleDuePanel" id="jobVehicleDuePanel" '+(data?'':'hidden')+'>'+(data?jobVehicleDueMarkup(data):'')+'</div>'}
 function updateJobRegistrationDueAlert(){var input=document.getElementById('job_registration'),wrap=input&&input.closest('.plateInputWrap');if(!wrap)return;wrap.classList.remove('vehicleDueSoon');wrap.removeAttribute('title')}
 function updateJobVehicleDuePanel(regValue){var panel=document.getElementById('jobVehicleDuePanel'),data=jobVehicleDueData(regValue);updateJobRegistrationDueAlert();if(!panel)return;if(!data){panel.innerHTML='';panel.hidden=true;return}panel.innerHTML=jobVehicleDueMarkup(data);panel.hidden=false}
@@ -14167,12 +14212,12 @@ try{setTimeout(function(){if(window.app&&Array.isArray(app.jobs))migrateNoVehicl
       if(plan){
         var old=typeof fleetDate==='function'?fleetDate(plan):String(plan.currentDueDate||'');
         if(old&&old>next)return false;
-        plan.type='Road Tax';plan.intervalMonths=12;plan.currentDueDate=next;plan.status='Active';plan.notes='Updated from completed vehicle-tax job '+String(j.id||'')+'.';
+        plan.type='Vehicle Tax';plan.intervalMonths=12;plan.currentDueDate=next;plan.status='Active';plan.notes='Updated from completed vehicle-tax job '+String(j.id||'')+'.';
       }else{
-        plan={id:'plan-tax-'+vehicle.id,vehicleId:vehicle.id,type:'Road Tax',intervalMonths:12,targetMonth:null,currentDueDate:next,notes:'Updated from completed vehicle-tax job '+String(j.id||'')+'.',status:'Active',source:'Vehicle Tax ledger'};
+        plan={id:'plan-tax-'+vehicle.id,vehicleId:vehicle.id,type:'Vehicle Tax',intervalMonths:12,targetMonth:null,currentDueDate:next,notes:'Updated from completed vehicle-tax job '+String(j.id||'')+'.',status:'Active',source:'Vehicle Tax ledger'};
         fleetPlans.push(plan);
       }
-      var cid='job-tax-'+String(j.id||''),record={id:cid,vehicleId:vehicle.id,planId:plan.id,type:'Road Tax',completedDate:completed,datePrecision:'day',nextDue:next,source:'job:'+String(j.id||''),notes:'Vehicle tax completed. Next tax due '+next+'.'},existing=(fleetCompletions||[]).find(function(c){return c.id===cid});
+      var cid='job-tax-'+String(j.id||''),record={id:cid,vehicleId:vehicle.id,planId:plan.id,type:'Vehicle Tax',completedDate:completed,datePrecision:'day',nextDue:next,source:'job:'+String(j.id||''),notes:'Vehicle tax completed. Next tax due '+next+'.'},existing=(fleetCompletions||[]).find(function(c){return c.id===cid});
       if(existing)Object.assign(existing,record);else fleetCompletions.push(record);
       return true;
     }catch(e){console.warn('Tax cycle sync skipped',e);return false;}
@@ -14489,14 +14534,14 @@ try{setTimeout(function(){if(window.app&&Array.isArray(app.jobs))migrateNoVehicl
         var next=typeof fleetAddMonthsFromDue==='function'?fleetAddMonthsFromDue(item.date,12):'';if(!next)return;
         var plan=typeof fleetPlanMatching==='function'?fleetPlanMatching(vehicle.id,'tax'):null;
         if(!plan){
-          plan={id:'plan-tax-'+vehicle.id,vehicleId:vehicle.id,type:'Road Tax',intervalMonths:12,targetMonth:Number(next.slice(5,7)),currentDueDate:next,notes:'Updated from latest Vehicle Tax entry '+String(item.job.id||'')+'.',status:'Active',source:'Vehicle Tax ledger'};
+          plan={id:'plan-tax-'+vehicle.id,vehicleId:vehicle.id,type:'Vehicle Tax',intervalMonths:12,targetMonth:Number(next.slice(5,7)),currentDueDate:next,notes:'Updated from latest Vehicle Tax entry '+String(item.job.id||'')+'.',status:'Active',source:'Vehicle Tax ledger'};
           fleetPlans.push(plan);changed++;
         }else{
           var old=typeof fleetDate==='function'?fleetDate(plan):String(plan.currentDueDate||'');
           /* Never move a known later tax date backwards, but always advance a stale date. */
-          if(!old||old<next){plan.type='Road Tax';plan.intervalMonths=12;plan.currentDueDate=next;plan.targetMonth=Number(next.slice(5,7));plan.status='Active';plan.notes='Updated from latest Vehicle Tax entry '+String(item.job.id||'')+'.';changed++;}
+          if(!old||old<next){plan.type='Vehicle Tax';plan.intervalMonths=12;plan.currentDueDate=next;plan.targetMonth=Number(next.slice(5,7));plan.status='Active';plan.notes='Updated from latest Vehicle Tax entry '+String(item.job.id||'')+'.';changed++;}
         }
-        var cid='job-tax-'+String(item.job.id||''),record={id:cid,vehicleId:vehicle.id,planId:plan.id,type:'Road Tax',completedDate:item.date,datePrecision:'day',nextDue:(typeof fleetDate==='function'?fleetDate(plan):next),source:'job:'+String(item.job.id||''),notes:'Vehicle tax recorded on '+item.date+'.'},existing=(fleetCompletions||[]).find(function(c){return c.id===cid});
+        var cid='job-tax-'+String(item.job.id||''),record={id:cid,vehicleId:vehicle.id,planId:plan.id,type:'Vehicle Tax',completedDate:item.date,datePrecision:'day',nextDue:(typeof fleetDate==='function'?fleetDate(plan):next),source:'job:'+String(item.job.id||''),notes:'Vehicle tax recorded on '+item.date+'.'},existing=(fleetCompletions||[]).find(function(c){return c.id===cid});
         if(existing)Object.assign(existing,record);else{fleetCompletions.push(record);changed++;}
       });
       if(changed&&typeof saveFleet==='function')saveFleet();
@@ -14979,6 +15024,7 @@ window.v290RepairCompletionDates=repairFromBackups;
 })();
 
 </script>
+<script>console.info("VECTA_BUILD: V290-FINANCE-INTEGRITY-2026-09-01");</script>
 </body>
 </html>
 <script>
