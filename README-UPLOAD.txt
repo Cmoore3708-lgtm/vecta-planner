@@ -10,3 +10,6 @@ V291 changes:
 - End-of-month final reconciliation REASSIGNS NMUK rows instead of merely dropping them from Staff.
 - Vehicle Tax is excluded before ownership; legacy multi-type TAX tokens are recognised.
 - NK16 CYO legacy 13 Aug 2026 pool-car tax row is explicitly excluded from workshop income.
+
+
+V292: Removed per-job “Job total” rows from End of Month pages, preview and CSV. Overall totals remain. V291 finance classification logic is unchanged.
