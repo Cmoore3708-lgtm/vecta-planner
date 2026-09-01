@@ -1,4 +1,4 @@
-const CACHE='vecta-workshop-pro-offline-v5-finance-v297';
+const CACHE='vecta-workshop-pro-offline-v5-finance-v298';
 const CORE=['/','/index.html','/manifest.webmanifest','/icons/vecta-192.png','/icons/vecta-512.png'];
 
 self.addEventListener('install',event=>{
