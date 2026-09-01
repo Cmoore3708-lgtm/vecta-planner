@@ -2720,7 +2720,7 @@ body.servicePreviewing .servicePreviewControls{position:relative!important;z-ind
   <aside class="side">
     <div class="logo"><div class="logoMark">VECTA</div><div class="product" style="font-size:18px!important;font-weight:900!important;letter-spacing:.03em!important;color:#fff!important;text-transform:none!important">Workshop Pro</div></div>
     <nav class="nav" id="nav"></nav>
-    <div class="sideFoot"><b>V290 Finance Integrity</b><br>NMUK ownership lock · Vehicle Tax canonicalisation · production verification build.</div>
+    <div class="sideFoot"><b>V291 Authoritative Finance</b><br>NMUK ownership lock · Vehicle Tax canonicalisation · production verification build.</div>
   </aside>
   <main class="main">
     <header class="top">
@@ -8932,11 +8932,18 @@ function canonicalVehicleTaxLabel(){return 'Vehicle Tax'}
 function financeBaseJob(j){return j&&j.__financeBase?j.__financeBase:j}
 function isVehicleTaxJob(j){
   j=j||{};
+  var reg=normReg(j.registration||''),date=String(j.booking_date||j.completed_at||'').slice(0,10);
+  /* V291: known August pool-car tax record. This record existed before the dedicated
+     tax-admin workflow and must never enter workshop/NMUK income, whatever stale
+     customer or job-type fields happen to be stored against it. */
+  if(reg==='NK16CYO'&&date==='2026-08-13')return true;
   if(String(j.customer_account||'').toUpperCase()==='NMUK'&&String(j.nmuk_vehicle_type||'').toUpperCase()==='POOL CAR TAX')return true;
   var types=jobTypeValues(j).filter(function(type){return normaliseJobTypeKey(type)!=='general'});
-  if(types.length===1&&isVehicleTaxAlias(types[0]))return true;
+  /* A legacy tax row may have acquired an extra old job-type token. Any explicit
+     tax token still makes it a tax-admin record; do not require it to be the only type. */
+  if(types.some(isVehicleTaxAlias))return true;
   if(String(j.source||'').toLowerCase()==='vehicle_tax_admin')return true;
-  var work=vehicleTaxAliasKey(j.work_required||'');
+  var work=vehicleTaxAliasKey(j.work_required||j.summary_of_work||j.description||'');
   if(isVehicleTaxAlias(work))return true;
   return /^(?:tax(?:ing)?(?: the)? vehicle|vehicle tax(?:ed)?|road tax(?:ed)?)$/.test(work);
 }
@@ -10235,19 +10242,10 @@ function fleetEomJobs(month){
     if(date.slice(0,7)!==month)return;
     rows.push({job:j,customer:'Staff',date:date,amount:financeRevenueExVatValue(j)});if(j.id)seen[String(j.id)]=true;
   });
-  /* Final finance firewall: even if another future code path adds a row incorrectly,
-     tax-only work and source-confirmed NMUK work can never survive inside Staff. */
-  rows=rows.filter(function(r){
-    var j=r&&r.job,base=financeBaseJob(j);
-    if(!j||isVehicleTaxJob(j)||isVehicleTaxJob(base))return false;
-    if(r.customer==='Staff'){
-      var evidence=financeRawAllocationEvidence(base,financeKnownContractors());
-      if(evidence&&evidence.type==='NMUK')return false;
-      var reg=normReg(base&&base.registration||j.registration||''),fv=reg&&typeof fleetVehicleForRegistration==='function'?fleetVehicleForRegistration(reg):null;
-      if(fv&&(fv.fleetGroup==='Nissan Internal'||fv.fleetGroup==='Nissan Pool Cars'))return false;
-    }
-    return true;
-  });
+  /* V291 final reconciliation. Do not merely remove a wrongly-classified NMUK row
+     from Staff (V290 did that and could lose revenue). Reassign it to NMUK, then remove
+     tax-admin rows completely. Every surviving row therefore has exactly one owner. */
+  rows=rows.filter(function(r){var j=r&&r.job,base=financeBaseJob(j);return !!j&&!isVehicleTaxJob(j)&&!isVehicleTaxJob(base)}).map(function(r){var nmuk=financeAuthoritativeNmukAllocation(financeBaseJob(r.job)||r.job);if(nmuk)r.customer='NMUK';else{var a=financeLegacyAllocation(r.job);if(a.type==='Staff')r.customer='Staff';else if(a.type==='Contractor')r.customer=financeCanonicalCustomer(a.name||'CONTRACTOR');}return r;});
   return rows.sort(function(a,b){return a.date.localeCompare(b.date)||String(a.job.registration||'').localeCompare(String(b.job.registration||''))});
 }
 function fleetEomCustomerEmail(name){var p=fleetCustomerProfiles[name]||{};if(p.invoiceEmail)return p.invoiceEmail;if(p.contactEmail)return p.contactEmail;var v=fleetVehicles.find(function(x){var account=(x.fleetGroup==='Nissan Internal'||x.fleetGroup==='Nissan Pool Cars')?'NMUK':(x.fleetGroup==='Contractor Fleet'?fleetNormaliseCustomer(x.customer):'');return account===name&&x.contactEmail});if(v)return v.contactEmail||'';var j=(app.jobs||[]).find(function(x){return fleetCustomerForJob(x)===name&&x.customer_email});return j?j.customer_email:''}
@@ -12118,6 +12116,27 @@ function financeNmukImportId(id){
   id=String(id||'');if(!id)return false;
   return (window.NMUK_2026_JOBS||[]).some(function(x){return x&&String(x.id||'')===id});
 }
+/* V291 single-source financial ownership. Strong NMUK evidence is authoritative
+   even when an old finance edit or damaged live row says Staff. This resolver uses
+   the immutable fleet master, the current fleet snapshot, the saved job-card memory,
+   the embedded NMUK tracker history and other explicit NMUK jobs for the same reg. */
+function financeAuthoritativeNmukAllocation(j){
+  j=financeBaseJob(j)||j||{};
+  var reg=normReg(j.registration||''),sub=String(j.nmuk_vehicle_type||j.nmuk_subtype||'').trim().toUpperCase();
+  function result(kind){kind=String(kind||'').toUpperCase();if(kind==='MVOS')return {type:'NMUK',name:'NMUK MVOS'};if(kind==='INTERNAL')return {type:'NMUK',name:'NMUK Internal'};if(kind==='POOL'||kind==='POOL CAR TAX')return {type:'NMUK',name:'NMUK Pool'};if(kind==='VARIOUS'||kind==='GENERAL')return {type:'NMUK',name:'NMUK Various'};return {type:'NMUK',name:'NMUK'};}
+  var acct=String(j.customer_account||'').trim().toUpperCase(),name=String(j.customer_name||'').trim().toUpperCase();
+  if(acct==='NMUK'||name==='NMUK'||['MVOS','INTERNAL','POOL','POOL CAR TAX','VARIOUS','GENERAL'].indexOf(sub)>-1)return result(sub);
+  if(j.id&&app&&app.jobCustomerMemory){var mem=app.jobCustomerMemory[String(j.id)]||null;if(mem){var ma=String(mem.customer_account||'').trim().toUpperCase(),ms=String(mem.nmuk_vehicle_type||'').trim().toUpperCase(),mn=String(mem.customer_name||'').trim().toUpperCase();if(ma==='NMUK'||mn==='NMUK'||['MVOS','INTERNAL','POOL','POOL CAR TAX','VARIOUS','GENERAL'].indexOf(ms)>-1)return result(ms);}}
+  if(reg){
+    var immutable=(window.INITIAL_FLEET_VEHICLES||[]).find(function(v){return normReg(v&&v.registration||'')===reg});
+    if(immutable){if(immutable.fleetGroup==='Nissan Internal')return result('INTERNAL');if(immutable.fleetGroup==='Nissan Pool Cars')return result('POOL');}
+    var current=typeof fleetVehicleForRegistration==='function'?fleetVehicleForRegistration(reg):null;
+    if(current){if(current.fleetGroup==='Nissan Internal')return result('INTERNAL');if(current.fleetGroup==='Nissan Pool Cars')return result('POOL');}
+    var history=[].concat(window.NMUK_2026_JOBS||[],app&&Array.isArray(app.jobs)?app.jobs:[]).filter(function(h){if(!h||String(h.id||'')===String(j.id||''))return false;if(normReg(h.registration||'')!==reg)return false;var ha=String(h.customer_account||'').trim().toUpperCase(),hn=String(h.customer_name||'').trim().toUpperCase(),hs=String(h.nmuk_vehicle_type||h.nmuk_subtype||'').trim().toUpperCase();return ha==='NMUK'||hn==='NMUK'||['MVOS','INTERNAL','POOL','POOL CAR TAX','VARIOUS','GENERAL'].indexOf(hs)>-1;});
+    if(history.length){history.sort(function(a,b){return String(b.completed_at||b.booking_date||b.updated_at||b.created_at||'').localeCompare(String(a.completed_at||a.booking_date||a.updated_at||a.created_at||''))});for(var i=0;i<history.length;i++){var hs=String(history[i].nmuk_vehicle_type||history[i].nmuk_subtype||'').trim().toUpperCase();if(['MVOS','INTERNAL','POOL','POOL CAR TAX','VARIOUS','GENERAL'].indexOf(hs)>-1)return result(hs);}return result('');}
+  }
+  return null;
+}
 function financeRawAllocationEvidence(raw,known){
   raw=raw||{};known=known||financeKnownContractors();
   var account=financeCanonicalCustomer(raw.customer_account||''),name=financeCanonicalCustomer(raw.customer_name||raw.fleet_customer||raw.contractor_name||raw.customer||''),sub=String(raw.nmuk_vehicle_type||raw.nmuk_subtype||raw.fleet_group||'').trim(),au=account.toUpperCase(),nu=name.toUpperCase(),su=sub.toUpperCase();
@@ -12138,8 +12157,9 @@ function financeLegacyAllocation(j){
     if(fv.fleetGroup==='Nissan Pool Cars')return {type:'NMUK',name:'NMUK Pool'};
     if(fv.fleetGroup==='Contractor Fleet'){var fc=financeCanonicalCustomer(fv.customer||'');if(fc==='NMUK')return {type:'NMUK',name:'NMUK'};if(fc)return {type:'Contractor',name:known[fc.toUpperCase()]||fc}}
   }
-  /* The actual job card/source row is next. This is the critical guard: a saved
-     report correction is never allowed to turn an explicitly NMUK/MVOS job into Staff. */
+  /* V291: resolve strong NMUK ownership before accepting any Staff label. Previous
+     versions did this in the opposite order, so a corrupted Staff value could win. */
+  var authoritativeNmuk=financeAuthoritativeNmukAllocation(raw);if(authoritativeNmuk)return authoritativeNmuk;
   var rawEvidence=financeRawAllocationEvidence(raw,known);if(rawEvidence)return rawEvidence;
   /* Only when the source job itself is ambiguous may a saved finance correction
      provide its classification. */
@@ -15024,7 +15044,7 @@ window.v290RepairCompletionDates=repairFromBackups;
 })();
 
 </script>
-<script>console.info("VECTA_BUILD: V290-FINANCE-INTEGRITY-2026-09-01");</script>
+<script>console.info("VECTA_BUILD: V291-AUTHORITATIVE-FINANCE-2026-09-01");</script>
 </body>
 </html>
 <script>
