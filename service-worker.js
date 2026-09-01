@@ -1,5 +1,5 @@
-const CACHE='vecta-workshop-pro-offline-v291-booking-badge';
-const CORE=['/','/index.html','/manifest.webmanifest','/icons/vecta-180.png','/icons/vecta-192.png','/icons/vecta-512.png','/icons/vecta-badge-96.png'];
+const CACHE='vecta-workshop-pro-offline-v292-local-supabase-client';
+const CORE=['/','/index.html','/manifest.webmanifest','/supabase.min.js','/icons/vecta-180.png','/icons/vecta-192.png','/icons/vecta-512.png','/icons/vecta-badge-96.png'];
 
 self.addEventListener('install',event=>{
   event.waitUntil((async()=>{

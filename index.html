@@ -9255,10 +9255,12 @@ function ensureSupabase(cb){
   if(window.supabase){cb(true);return;}
   var finished=false;
   function done(ok){if(finished)return;finished=true;clearTimeout(timer);cb(!!ok)}
-  var timer=setTimeout(function(){done(false)},6000);
+  /* V292: load the Supabase client from this deployment instead of relying on
+     a third-party CDN. A slow CDN was falsely putting every device into offline mode. */
+  var timer=setTimeout(function(){done(false)},15000);
   var existing=document.getElementById('supabaseScript');
   if(existing){existing.addEventListener('load',function(){done(true)},{once:true});existing.addEventListener('error',function(){done(false)},{once:true});return;}
-  var s=document.createElement('script');s.id='supabaseScript';s.src='https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2';s.async=true;s.onload=function(){done(true)};s.onerror=function(){done(false)};document.head.appendChild(s);
+  var s=document.createElement('script');s.id='supabaseScript';s.src='/supabase.min.js';s.async=true;s.onload=function(){done(!!window.supabase)};s.onerror=function(){done(false)};document.head.appendChild(s);
 }
 async function loadCloudConfig(options){
   options=options||{};
