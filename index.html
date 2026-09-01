@@ -12032,12 +12032,24 @@ function financeKnownContractors(){
   financeKnownContractorsCache={key:key,map:map};return map
 }
 function financeCorrectionMap(){if(!app.settings)app.settings={};if(!app.settings.financeCorrections||typeof app.settings.financeCorrections!=='object')app.settings.financeCorrections={};return app.settings.financeCorrections}
-function financeEffectiveJob(j){if(!j)return j;var correction=financeCorrectionMap()[String(j.id||'')];return correction?Object.assign({},j,correction):j}
+function financeEffectiveJob(j){
+  if(!j)return j;
+  var correction=financeCorrectionMap()[String(j.id||'')];
+  if(!correction)return j;
+  /* A finance correction is only allowed to shadow the live job while it is at least
+     as new as that job. Previously an old saved correction could permanently override
+     a later job-card change (for example NMUK MVOS being changed correctly on the job
+     card but still counted as Staff in Financial). */
+  var liveStamp=String(j.updated_at||j.completed_at||j.created_at||'');
+  var correctionStamp=String(correction.finance_corrected_at||correction.updated_at||'');
+  if(liveStamp&&correctionStamp&&liveStamp>correctionStamp)return j;
+  return Object.assign({},j,correction)
+}
 function financeSaveCorrection(id,values){var map=financeCorrectionMap();map[String(id||'')]=Object.assign({},map[String(id||'')]||{},values,{finance_corrected_at:new Date().toISOString()});saveAll()}
-/* Find an established NMUK allocation for a registration from its saved job history.
-   This is deliberately used before stale Staff/Contractor labels in financial reports.
-   MVOS is not represented as a separate Fleet Manager group, so its historical NMUK
-   job allocation is the safest source of truth for future-work classification. */
+/* Find an established NMUK allocation for a registration from saved job history.
+   This is a fallback only when the current job and Fleet Manager do not provide an
+   explicit allocation. MVOS is not represented as a separate Fleet Manager group,
+   so history remains useful for genuinely unallocated legacy rows. */
 function financeHistoricalNmukAllocation(reg,currentId){
   reg=normReg(reg||'');if(!reg)return null;
   var history=[].concat(app.jobs||[],window.NMUK_2026_JOBS||[]);
@@ -12068,16 +12080,17 @@ function financeLegacyAllocation(j){j=financeEffectiveJob(j);var account=finance
 /* Fleet Manager is the source of truth for registrations already allocated to a fleet. This prevents stale legacy Staff/Contractor labels from moving NMUK vehicles into the wrong financial totals. */
 if(fv){if(fv.fleetGroup==='Nissan Internal')return {type:'NMUK',name:'NMUK Internal'};if(fv.fleetGroup==='Nissan Pool Cars')return {type:'NMUK',name:'NMUK Pool'};if(fv.fleetGroup==='Contractor Fleet'){var fc=financeCanonicalCustomer(fv.customer||'');if(fc==='NMUK')return {type:'NMUK',name:'NMUK'};if(fc)return {type:'Contractor',name:known[fc.toUpperCase()]||fc}}}
 if(accountUpper==='NMUK'||nameUpper==='NMUK'||subUpper.indexOf('NMUK')>-1||subUpper.indexOf('INTERNAL')>-1||subUpper.indexOf('POOL')>-1||subUpper.indexOf('MVOS')>-1)return {type:'NMUK',name:'NMUK'+(sub?(' '+sub.replace(/^NMUK\s*/i,'')):'')};
-/* If the current job has a stale Staff/Contractor label but this registration has an
-   established NMUK history, keep it in the correct NMUK financial stream. */
-var historicalNmuk=financeHistoricalNmukAllocation(reg,j.id);
-if(historicalNmuk)return historicalNmuk;
+/* Explicit current job allocation must beat historical inference. A registration may
+   legitimately move between NMUK, Staff and Contractor ownership; history is only a
+   fallback for genuinely unallocated/legacy rows. */
 if(accountUpper==='STAFF')return {type:'Staff',name:name&&nameUpper!=='STAFF'?name:'Staff'};
 if(accountUpper==='CONTRACTOR')return {type:'Contractor',name:name||'Contractor name missing'};
 if(account&&known[accountUpper])return {type:'Contractor',name:known[accountUpper]};
 /* A named account that is not NMUK/Staff is a contractor account. This makes Settings-created contractors future-proof instead of depending on a hard-coded name list. */
 if(account&&accountUpper!=='NMUK'&&accountUpper!=='STAFF'&&accountUpper!=='NISSAN')return {type:'Contractor',name:financeCanonicalCustomer(account)};
 if(name&&known[nameUpper])return {type:'Contractor',name:known[nameUpper]};
+var historicalNmuk=financeHistoricalNmukAllocation(reg,j.id);
+if(historicalNmuk)return historicalNmuk;
 if(nameUpper.indexOf('NMUK')>-1||nameUpper.indexOf('NISSAN')>-1)return {type:'NMUK',name:name||'NMUK'};
 if(name&&nameUpper!=='UNASSIGNED'&&nameUpper!=='CUSTOMER')return {type:'Staff',name:name};
 return {type:'Needs review',name:'Unassigned'} }
