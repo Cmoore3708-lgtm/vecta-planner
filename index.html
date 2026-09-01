@@ -8926,7 +8926,7 @@ function jobTypeValues(value){
 }
 function jobTypeStorageValue(values){return jobTypeValues(values).join(JOB_TYPE_SEPARATOR)}
 migrateLegacyServiceNamesOnce();
-function isVehicleTaxJob(j){j=j||{};if(String(j.customer_account||'').toUpperCase()==='NMUK'&&String(j.nmuk_vehicle_type||'').toUpperCase()==='POOL CAR TAX')return true;var types=jobTypeValues(j).map(normaliseJobTypeKey).filter(function(type){return type&&type!=='general'}),taxOnly=types.length===1&&(types[0]==='vehicle tax'||types[0]==='road tax');if(taxOnly)return true;if(String(j.source||'').toLowerCase()==='vehicle_tax_admin'&&!types.length)return true;var work=String(j.work_required||'').toLowerCase().replace(/\s+/g,' ').trim();return /^(?:road tax|vehicle tax|tax(?:ing)?(?: the)? vehicle)\b/.test(work)&&!/(?:service|mot|repair|tyre|brake|diagnostic|inspection|safety check)/.test(work)}
+function isVehicleTaxJob(j){j=j||{};if(String(j.customer_account||'').toUpperCase()==='NMUK'&&String(j.nmuk_vehicle_type||'').toUpperCase()==='POOL CAR TAX')return true;if(String(j.source||'').toLowerCase()==='vehicle_tax_admin')return true;var types=jobTypeValues(j).map(normaliseJobTypeKey).filter(Boolean),taxTypes=types.filter(function(type){return type==='vehicle tax'||type==='road tax'}),nonTaxTypes=types.filter(function(type){return type!=='general'&&type!=='other'&&type!=='vehicle tax'&&type!=='road tax'});if(taxTypes.length&&!nonTaxTypes.length)return true;var fields=[j.work_required,j.summary_of_work,j.description,j.invoice_description,j.job_description].map(function(v){return String(v||'').toLowerCase().replace(/\s+/g,' ').trim()}).filter(Boolean),hasTax=fields.some(function(v){return /^(?:road tax|vehicle tax|tax(?:ing)?(?: the)? vehicle)(?:\b|$)/.test(v)}),hasWorkshop=fields.some(function(v){return /(?:service|mot|repair|tyre|brake|diagnostic|inspection|safety check)/.test(v)});return hasTax&&!hasWorkshop}
 var MOT_TIME_MARKER=/\[\[MOT_TIME:([^\]]+)\]\]/i;
 function normaliseMotTime(value){var m=String(value||'').trim().match(/^(\d{1,2}):(\d{2})$/);if(!m)return '';var h=Number(m[1]),mins=Number(m[2]);if(h<0||h>23||mins<0||mins>59)return '';return String(h).padStart(2,'0')+':'+String(mins).padStart(2,'0')}
 function hasMotJobType(value){return jobTypeValues(value).some(function(type){return normaliseJobTypeKey(type)==='mot'})}
@@ -10195,13 +10195,13 @@ function fleetIncomeCustomerForJob(j){
 }
 function fleetCustomerForJob(j){return fleetIncomeCustomerForJob(j)}
 function fleetEomJobs(month){
-  /* Preserve the proven V6 calculation for NMUK and contractors byte-for-byte
-     in behaviour. Staff recovery is added afterwards and cannot remove or
-     revalue an existing NMUK row. */
-  var rows=(app.jobs||[]).map(financeEffectiveJob).filter(function(j){if(!financeValidJob(j)||!financeIsRecognisedJob(j))return false;var date=financeCompletedDate(j);if(!date)return false;return date.slice(0,7)===month&&!!fleetCustomerForJob(j)&&!fleetEomIsHeld(j,month)}).map(function(j){var customer=fleetCustomerForJob(j);return {job:j,customer:customer,date:financeCompletedDate(j),amount:customer==='Staff'?financeRevenueExVatValue(j):financeExVatValue(j)}}),seen={};
+  /* Month-end is invoiceable workshop work only. Vehicle Tax is administered and
+     reported in the dedicated Vehicle Tax section and must never enter NMUK, Staff
+     or Contractor end-of-month invoicing — even if its vehicle belongs to NMUK. */
+  var rows=(app.jobs||[]).map(financeEffectiveJob).filter(function(j){if(!financeValidJob(j)||!financeIsRecognisedJob(j)||isVehicleTaxJob(j))return false;var date=financeCompletedDate(j);if(!date)return false;return date.slice(0,7)===month&&!!fleetCustomerForJob(j)&&!fleetEomIsHeld(j,month)}).map(function(j){var customer=fleetCustomerForJob(j);return {job:j,customer:customer,date:financeCompletedDate(j),amount:customer==='Staff'?financeRevenueExVatValue(j):financeExVatValue(j)}}),seen={};
   rows.forEach(function(r){if(r.job&&r.job.id)seen[String(r.job.id)]=true});
   financeAllJobs().map(financeEffectiveJob).forEach(function(j){
-    if(!j||seen[String(j.id||'')]||financeLegacyAllocation(j).type!=='Staff'||!fleetEomRecognisedJob(j)||fleetEomIsHeld(j,month))return;
+    if(!j||seen[String(j.id||'')]||isVehicleTaxJob(j)||financeLegacyAllocation(j).type!=='Staff'||!fleetEomRecognisedJob(j)||fleetEomIsHeld(j,month))return;
     var direct=String(j.completed_at||'').slice(0,10),inv=financeSavedInvoiceForJob(j),invoiceDate=String(inv&&(inv.invoice_date||inv.created_at)||'').slice(0,10),date=/^\d{4}-\d{2}-\d{2}$/.test(direct)?direct:(/^\d{4}-\d{2}-\d{2}$/.test(invoiceDate)?invoiceDate:String(j.booking_date||'').slice(0,10));
     if(date.slice(0,7)!==month)return;
     rows.push({job:j,customer:'Staff',date:date,amount:financeRevenueExVatValue(j)});if(j.id)seen[String(j.id)]=true;
@@ -12032,24 +12032,26 @@ function financeKnownContractors(){
   financeKnownContractorsCache={key:key,map:map};return map
 }
 function financeCorrectionMap(){if(!app.settings)app.settings={};if(!app.settings.financeCorrections||typeof app.settings.financeCorrections!=='object')app.settings.financeCorrections={};return app.settings.financeCorrections}
+function financeTimestampMs(v){var n=Date.parse(String(v||''));return Number.isFinite(n)?n:0}
 function financeEffectiveJob(j){
   if(!j)return j;
   var correction=financeCorrectionMap()[String(j.id||'')];
   if(!correction)return j;
-  /* A finance correction is only allowed to shadow the live job while it is at least
-     as new as that job. Previously an old saved correction could permanently override
-     a later job-card change (for example NMUK MVOS being changed correctly on the job
-     card but still counted as Staff in Financial). */
-  var liveStamp=String(j.updated_at||j.completed_at||j.created_at||'');
-  var correctionStamp=String(correction.finance_corrected_at||correction.updated_at||'');
-  if(liveStamp&&correctionStamp&&liveStamp>correctionStamp)return j;
-  return Object.assign({},j,correction)
+  /* A finance correction is a snapshot, not a permanent override. If the live job
+     has subsequently been edited, the newer job card must win. This prevents an
+     old Staff correction from continuing to classify a job as Staff after the
+     job card has been corrected to NMUK/MVOS (and vice versa). Imported historic
+     records still retain their saved correction because they have no newer live edit. */
+  var correctionAt=financeTimestampMs(correction.finance_corrected_at||correction.updated_at),
+      jobAt=financeTimestampMs(j.updated_at||j.modified_at||j.completed_at||j.created_at);
+  if(correctionAt&&jobAt&&jobAt>correctionAt)return j;
+  return Object.assign({},j,correction);
 }
 function financeSaveCorrection(id,values){var map=financeCorrectionMap();map[String(id||'')]=Object.assign({},map[String(id||'')]||{},values,{finance_corrected_at:new Date().toISOString()});saveAll()}
 /* Find an established NMUK allocation for a registration from saved job history.
-   This is a fallback only when the current job and Fleet Manager do not provide an
-   explicit allocation. MVOS is not represented as a separate Fleet Manager group,
-   so history remains useful for genuinely unallocated legacy rows. */
+   This is fallback evidence only, used when the current job has no explicit allocation.
+   MVOS is not represented as a separate Fleet Manager group, so history remains useful
+   for genuinely ambiguous legacy records without overriding a current Staff/Contractor job. */
 function financeHistoricalNmukAllocation(reg,currentId){
   reg=normReg(reg||'');if(!reg)return null;
   var history=[].concat(app.jobs||[],window.NMUK_2026_JOBS||[]);
@@ -12080,17 +12082,17 @@ function financeLegacyAllocation(j){j=financeEffectiveJob(j);var account=finance
 /* Fleet Manager is the source of truth for registrations already allocated to a fleet. This prevents stale legacy Staff/Contractor labels from moving NMUK vehicles into the wrong financial totals. */
 if(fv){if(fv.fleetGroup==='Nissan Internal')return {type:'NMUK',name:'NMUK Internal'};if(fv.fleetGroup==='Nissan Pool Cars')return {type:'NMUK',name:'NMUK Pool'};if(fv.fleetGroup==='Contractor Fleet'){var fc=financeCanonicalCustomer(fv.customer||'');if(fc==='NMUK')return {type:'NMUK',name:'NMUK'};if(fc)return {type:'Contractor',name:known[fc.toUpperCase()]||fc}}}
 if(accountUpper==='NMUK'||nameUpper==='NMUK'||subUpper.indexOf('NMUK')>-1||subUpper.indexOf('INTERNAL')>-1||subUpper.indexOf('POOL')>-1||subUpper.indexOf('MVOS')>-1)return {type:'NMUK',name:'NMUK'+(sub?(' '+sub.replace(/^NMUK\s*/i,'')):'')};
-/* Explicit current job allocation must beat historical inference. A registration may
-   legitimately move between NMUK, Staff and Contractor ownership; history is only a
-   fallback for genuinely unallocated/legacy rows. */
+/* Current explicit allocation beats historical allocation. History is fallback
+   evidence only; it must never drag a genuinely current Staff/Contractor job into
+   NMUK after a vehicle changes ownership or billing stream. */
 if(accountUpper==='STAFF')return {type:'Staff',name:name&&nameUpper!=='STAFF'?name:'Staff'};
 if(accountUpper==='CONTRACTOR')return {type:'Contractor',name:name||'Contractor name missing'};
 if(account&&known[accountUpper])return {type:'Contractor',name:known[accountUpper]};
+var historicalNmuk=financeHistoricalNmukAllocation(reg,j.id);
+if(historicalNmuk)return historicalNmuk;
 /* A named account that is not NMUK/Staff is a contractor account. This makes Settings-created contractors future-proof instead of depending on a hard-coded name list. */
 if(account&&accountUpper!=='NMUK'&&accountUpper!=='STAFF'&&accountUpper!=='NISSAN')return {type:'Contractor',name:financeCanonicalCustomer(account)};
 if(name&&known[nameUpper])return {type:'Contractor',name:known[nameUpper]};
-var historicalNmuk=financeHistoricalNmukAllocation(reg,j.id);
-if(historicalNmuk)return historicalNmuk;
 if(nameUpper.indexOf('NMUK')>-1||nameUpper.indexOf('NISSAN')>-1)return {type:'NMUK',name:name||'NMUK'};
 if(name&&nameUpper!=='UNASSIGNED'&&nameUpper!=='CUSTOMER')return {type:'Staff',name:name};
 return {type:'Needs review',name:'Unassigned'} }
@@ -13974,13 +13976,13 @@ window.CONTRACTOR_2026_JOBS=(window.CONTRACTOR_2026_JOBS||[]).concat(window.NMUK
    job card so a backdated August entry cannot accidentally land in September. */
 var fleetEomHtmlWithoutAddJob=fleetEomHtml;
 function fleetEomAudit(month){
-  var included=fleetEomJobs(month),unassigned=(app.jobs||[]).map(financeEffectiveJob).filter(function(j){return financeIsRecognisedJob(j)&&financeCompletedDate(j).slice(0,7)===month&&!fleetCustomerForJob(j)&&!fleetEomIsHeld(j,month)}),unpriced=included.filter(function(r){var j=r.job||{},q=j.amount_quoted,blank=q===null||q===undefined||String(q).trim()==='',invoice=financeSavedInvoiceForJob(j);return blank&&financeInvoiceExVatValue(invoice)===null});
-  return {finalised:included.length+unassigned.length,unassigned:unassigned.length,unpriced:unpriced.length};
+  var effective=(app.jobs||[]).map(financeEffectiveJob),included=fleetEomJobs(month),unassigned=effective.filter(function(j){return financeIsRecognisedJob(j)&&!isVehicleTaxJob(j)&&financeCompletedDate(j).slice(0,7)===month&&!fleetCustomerForJob(j)&&!fleetEomIsHeld(j,month)}),taxExcluded=effective.filter(function(j){return financeIsRecognisedJob(j)&&isVehicleTaxJob(j)&&financeCompletedDate(j).slice(0,7)===month}).length,unpriced=included.filter(function(r){var j=r.job||{},q=j.amount_quoted,blank=q===null||q===undefined||String(q).trim()==='',invoice=financeSavedInvoiceForJob(j);return blank&&financeInvoiceExVatValue(invoice)===null});
+  return {finalised:included.length+unassigned.length,unassigned:unassigned.length,unpriced:unpriced.length,taxExcluded:taxExcluded};
 }
 fleetEomHtml=function(){
   var html=fleetEomHtmlWithoutAddJob.apply(this,arguments);
   if(html.indexOf('id="fleetEomAddJob"')<0)html=html.replace('<div class="fleetEomControls">','<div class="fleetEomControls"><button type="button" class="primary" id="fleetEomAddJob">Add New Job</button>');
-  var month=String(fleetEomMonth||todayIso().slice(0,7)).slice(0,7),audit=fleetEomAudit(month),auditHtml='<div class="fleetEomNotice"><b>Month integrity check:</b> '+audit.finalised+' finalised jobs found. '+(audit.unassigned?'<b>'+audit.unassigned+' need an income stream.</b> ':'All are assigned to an income stream. ')+(audit.unpriced?'<b>'+audit.unpriced+' have no saved price.</b>':'All have a saved job or invoice value.')+'</div>';
+  var month=String(fleetEomMonth||todayIso().slice(0,7)).slice(0,7),audit=fleetEomAudit(month),auditHtml='<div class="fleetEomNotice"><b>Month integrity check:</b> '+audit.finalised+' invoiceable finalised jobs found. '+(audit.taxExcluded?'<b>'+audit.taxExcluded+' Vehicle Tax '+(audit.taxExcluded===1?'entry':'entries')+' excluded from month-end invoicing.</b> ':'No Vehicle Tax entries found in this month. ')+(audit.unassigned?'<b>'+audit.unassigned+' need an income stream.</b> ':'All invoiceable jobs are assigned to an income stream. ')+(audit.unpriced?'<b>'+audit.unpriced+' have no saved price.</b>':'All included jobs have a saved job or invoice value.')+'</div>';
   if(html.indexOf('Month integrity check:')<0){if(html.indexOf('<div class="fleetEomSummary">')>-1)html=html.replace('<div class="fleetEomSummary">',auditHtml+'<div class="fleetEomSummary">');else html=html.replace('<div class="fleetEomJobs">',auditHtml+'<div class="fleetEomJobs">')}
   return html;
 };
