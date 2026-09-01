@@ -10183,7 +10183,22 @@ function fleetNmukIsInternalJob(j){
   }
   return false;
 }
-function fleetIncomeCustomerForJob(j){var allocation=financeLegacyAllocation(j);if(allocation.type==='NMUK')return 'NMUK';if(allocation.type==='Staff')return 'Staff';if(allocation.type==='Contractor'){var contractor=fleetNormaliseCustomer(allocation.name||j.customer_name||j.customer_account||'');return contractor&&String(contractor).toUpperCase()!=='CONTRACTOR'?contractor:'CONTRACTOR'}return ''}
+function fleetIncomeCustomerForJob(j){
+  /* Month-end invoices must follow the income stream deliberately saved on the
+     job card. Fleet ownership is only a fallback for old jobs with no usable
+     account; allowing it to override the job moved five August NMUK jobs into
+     other streams in V7. */
+  var selected=fleetNormaliseCustomer(j&&j.customer_account||''),upper=String(selected||'').toUpperCase();
+  if(upper==='NMUK'||upper==='NISSAN')return 'NMUK';
+  if(upper==='STAFF')return 'Staff';
+  if(upper==='CONTRACTOR'){var named=fleetNormaliseCustomer(j&&j.customer_name||'');return named&&String(named).toUpperCase()!=='CONTRACTOR'?named:'CONTRACTOR'}
+  if(selected)return selected;
+  var allocation=financeLegacyAllocation(j);
+  if(allocation.type==='NMUK')return 'NMUK';
+  if(allocation.type==='Staff')return 'Staff';
+  if(allocation.type==='Contractor'){var contractor=fleetNormaliseCustomer(allocation.name||j.customer_name||'');return contractor&&String(contractor).toUpperCase()!=='CONTRACTOR'?contractor:'CONTRACTOR'}
+  return '';
+}
 function fleetCustomerForJob(j){return fleetIncomeCustomerForJob(j)}
 function fleetEomJobs(month){return financeAllJobs().map(financeEffectiveJob).filter(function(j){if(!fleetEomRecognisedJob(j)||isVehicleTaxJob(j))return false;var date=fleetJobDate(j);if(!date)return false;return date.slice(0,7)===month&&!!fleetCustomerForJob(j)&&!fleetEomIsHeld(j,month)}).map(function(j){return {job:j,customer:fleetCustomerForJob(j),date:fleetJobDate(j),amount:fleetQuotedExVat(j)}}).sort(function(a,b){return a.date.localeCompare(b.date)||String(a.job.registration||'').localeCompare(String(b.job.registration||''))})}
 function fleetEomCustomerEmail(name){var p=fleetCustomerProfiles[name]||{};if(p.invoiceEmail)return p.invoiceEmail;if(p.contactEmail)return p.contactEmail;var v=fleetVehicles.find(function(x){var account=(x.fleetGroup==='Nissan Internal'||x.fleetGroup==='Nissan Pool Cars')?'NMUK':(x.fleetGroup==='Contractor Fleet'?fleetNormaliseCustomer(x.customer):'');return account===name&&x.contactEmail});if(v)return v.contactEmail||'';var j=(app.jobs||[]).find(function(x){return fleetCustomerForJob(x)===name&&x.customer_email});return j?j.customer_email:''}
@@ -10361,6 +10376,9 @@ function fleetCompletedJobForPlanCycle(p){
   })||null;
 }
 function fleetPlanCompletedForCurrentCycle(p){
+  /* A user-entered active due date is the authoritative outstanding cycle.
+     Historical completion evidence must not hide it from the Fleet list. */
+  if(p&&p.manualDueDate===true)return false;
   var due=fleetDate(p),planCategory=fleetMaintenanceCategory(p.type),
       vehicle=(fleetVehicles||[]).find(function(v){return v&&String(v.id)===String(p.vehicleId)}),
       latestEvidence=vehicle&&fleetLatestCompletedEvidenceDate(vehicle,planCategory);
@@ -10558,7 +10576,7 @@ function confirmFleetVehicleTaxed(){
   var cid='job-tax-'+job.id;if(!(fleetCompletions||[]).some(function(c){return c.id===cid}))fleetCompletions.push({id:cid,vehicleId:v.id,planId:p.id,type:'Road Tax',completedDate:today,datePrecision:'day',nextDue:next,source:'job:'+job.id,notes:'Vehicle tax confirmed in Fleet Manager. Next tax due '+next+'.'});
   saveFleet();vehicleTaxSelectedMonth=today.slice(0,7);activeFleetVehicleId='';view='vehicleTax';render();
 }
-function fleetCompletePlanNow(planId){var p=fleetPlans.find(function(x){return x.id===planId});if(!p)return false;var vehicle=(fleetVehicles||[]).find(function(v){return v.id===p.vehicleId}),internal=vehicle&&vehicle.fleetGroup==='Nissan Internal',previousDue=fleetDate(p),done=previousDue||todayIso(),next=previousDue?fleetAddMonthsFromDue(previousDue,p.intervalMonths):'',currentType=serviceTypeFromValue(p.type),nextType=currentType?alternateServiceType(currentType):'';if(next)p.currentDueDate=next;if(currentType){if(internal){currentType='Internal Service';nextType='Internal Service';p.type='Internal Service';p.intervalMonths=12;p.notes='NMUK Internal service every 12 months. No Major/Full alternation.'}else{if(currentType==='Service')currentType='Major Service';nextType=alternateServiceType(currentType);p.type=nextType;p.intervalMonths=12;p.notes='Alternates Major and Full services every 12 months.'}}fleetCompletions.push({id:'done-'+Date.now()+'-'+Math.random().toString(36).slice(2,7),vehicleId:p.vehicleId,planId:p.id,type:currentType||p.type,serviceType:currentType||'',nextServiceType:nextType||'',completedDate:done,datePrecision:'day',nextDue:next,previousDue:previousDue,source:'manual/quick-complete',notes:currentType?(currentType+' completed. '+nextType+' scheduled next.'):(previousDue?'Marked complete automatically using the existing due date.':'No due date was recorded, so today was used.')});saveFleet();activeFleetVehicleId='';render();return false}
+function fleetCompletePlanNow(planId){var p=fleetPlans.find(function(x){return x.id===planId});if(!p)return false;var vehicle=(fleetVehicles||[]).find(function(v){return v.id===p.vehicleId}),internal=vehicle&&vehicle.fleetGroup==='Nissan Internal',previousDue=fleetDate(p),done=previousDue||todayIso(),next=previousDue?fleetAddMonthsFromDue(previousDue,p.intervalMonths):'',currentType=serviceTypeFromValue(p.type),nextType=currentType?alternateServiceType(currentType):'';if(next)p.currentDueDate=next;p.manualDueDate=false;delete p.manualDueDateUpdatedAt;if(currentType){if(internal){currentType='Internal Service';nextType='Internal Service';p.type='Internal Service';p.intervalMonths=12;p.notes='NMUK Internal service every 12 months. No Major/Full alternation.'}else{if(currentType==='Service')currentType='Major Service';nextType=alternateServiceType(currentType);p.type=nextType;p.intervalMonths=12;p.notes='Alternates Major and Full services every 12 months.'}}fleetCompletions.push({id:'done-'+Date.now()+'-'+Math.random().toString(36).slice(2,7),vehicleId:p.vehicleId,planId:p.id,type:currentType||p.type,serviceType:currentType||'',nextServiceType:nextType||'',completedDate:done,datePrecision:'day',nextDue:next,previousDue:previousDue,source:'manual/quick-complete',notes:currentType?(currentType+' completed. '+nextType+' scheduled next.'):(previousDue?'Marked complete automatically using the existing due date.':'No due date was recorded, so today was used.')});saveFleet();activeFleetVehicleId='';render();return false}
 function fleetAddMonthsFromDue(date,months){if(!date)return '';var d=new Date(date+'T00:00:00');if(isNaN(d.getTime()))return '';var originalDay=d.getDate();d.setDate(1);d.setMonth(d.getMonth()+Number(months||12));var lastDay=new Date(d.getFullYear(),d.getMonth()+1,0).getDate();d.setDate(Math.min(originalDay,lastDay));return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')}
 function fleetPlanMatching(vehicleId,word){word=String(word||'').toLowerCase();return fleetVehiclePlans(vehicleId).filter(function(p){return String(p.type||'').toLowerCase().indexOf(word)>-1}).sort(function(a,b){return String(fleetDate(a)||'9999').localeCompare(String(fleetDate(b)||'9999'))})[0]||null}
 function serviceTypeFromValue(value){var raw=Array.isArray(value)?value.join(' '):String(value||''),key=normaliseJobTypeKey(raw);if(/\binternal\s+service\b/.test(key))return 'Internal Service';if(/\bmajor\s+service\b/.test(key))return 'Major Service';if(/\b(full|minor|small)\s+service\b/.test(key))return 'Full Service';if(/\b(interim|oil(?:\s*&\s*filter)?)\s+service\b/.test(key)||/\boil\s*&?\s*filter\s+change\b/.test(key))return 'Interim Service';if(/\bservice\b/.test(key)&&!/safety|on site/.test(key))return 'Service';return ''}
@@ -10619,8 +10637,11 @@ function syncFleetServiceScheduleFromJob(j){
     return String(fleetDate(b)||'').localeCompare(String(fleetDate(a)||''));
   });
   var plan=allServicePlans[0]||null;
+  var protectedManualDue=plan&&plan.manualDueDate===true?String(plan.currentDueDate||'').slice(0,10):'';
+  if(protectedManualDue&&completed<protectedManualDue)return plan;
   if(plan){
     plan.type=nextType;plan.intervalMonths=12;plan.currentDueDate=nextDue;plan.targetMonth=null;plan.status='Active';
+    plan.manualDueDate=false;delete plan.manualDueDateUpdatedAt;
     plan.notes='Next service is 12 months from the latest completed service ('+completed+').';
   }else{
     plan={id:'plan-service-'+vehicle.id,vehicleId:vehicle.id,type:nextType,intervalMonths:12,targetMonth:null,currentDueDate:nextDue,notes:'Next service is 12 months from the latest completed service ('+completed+').',status:'Active',source:'Workshop job'};
