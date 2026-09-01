@@ -10358,7 +10358,16 @@ function fleetPlanCompletedForCurrentCycle(p){
   if(planCategory!=='mot'&&fleetCompletedJobForPlanCycle(p))return true;
   return fleetCompletions.some(function(c){
     if(String(c.vehicleId)!==String(p.vehicleId))return false;
-    var completed=String(c.completedDate||c.completedMonth||'');if(!completed)return false;if(String(completed).slice(0,10)>todayIso())return false;
+    var completed=String(c.completedDate||c.completedMonth||'');if(!completed)return false;
+    /* Month-only imports describe work somewhere within that month.  They must
+       not count as completed on the first day of the month: that previously
+       hid every September service (including TCS T2-T4) as "Not scheduled".
+       Treat the evidence as complete only after that month has finished. */
+    if(c.datePrecision==='month'&&/^\d{4}-\d{2}$/.test(completed)){
+      var monthParts=completed.split('-'),monthEnd=new Date(Number(monthParts[0]),Number(monthParts[1]),0);
+      completed=monthEnd.getFullYear()+'-'+String(monthEnd.getMonth()+1).padStart(2,'0')+'-'+String(monthEnd.getDate()).padStart(2,'0');
+    }
+    if(String(completed).slice(0,10)>todayIso())return false;
     if(c.planId){
       if(String(c.planId)!==String(p.id))return false;
       if(planCategory==='safety'){
@@ -10383,7 +10392,7 @@ function fleetPlanCompletedForCurrentCycle(p){
     return !due||completed.slice(0,7)>=due.slice(0,7);
   });
 }
-function fleetVehiclePlans(id){var active=fleetPlans.filter(function(p){return p&&String(p.vehicleId)===String(id)&&String(p.status||'Active')==='Active'&&!fleetIsMaintenanceRemoved(p.vehicleId,p.type)}),mot=active.filter(function(p){return fleetMaintenanceCategory(p.type)==='mot'}),service=active.filter(function(p){return fleetMaintenanceCategory(p.type)==='service'});if(mot.length>1){mot.sort(function(a,b){return String(fleetDate(b)||'').localeCompare(String(fleetDate(a)||''))});var keep=mot[0];active=active.filter(function(p){return fleetMaintenanceCategory(p.type)!=='mot'||p===keep})}if(service.length>1){service.sort(function(a,b){return String(fleetDate(b)||'').localeCompare(String(fleetDate(a)||''))});var keepService=service[0];active=active.filter(function(p){return fleetMaintenanceCategory(p.type)!=='service'||p===keepService})}return active}
+function fleetVehiclePlans(id){var active=fleetPlans.filter(function(p){return p&&String(p.vehicleId)===String(id)&&String(p.status||'Active')==='Active'&&!fleetIsMaintenanceRemoved(p.vehicleId,p.type)}),mot=active.filter(function(p){return fleetMaintenanceCategory(p.type)==='mot'}),service=active.filter(function(p){return fleetMaintenanceCategory(p.type)==='service'});if(mot.length>1){mot.sort(function(a,b){return String(fleetDate(b)||'').localeCompare(String(fleetDate(a)||''))});var keep=mot[0];active=active.filter(function(p){return fleetMaintenanceCategory(p.type)!=='mot'||p===keep})}if(service.length>1){/* The next outstanding service is the earliest active date.  Keeping the latest duplicate made a freshly edited date lose to an old later record (TCS T1). */service.sort(function(a,b){return String(fleetDate(a)||'9999-12-31').localeCompare(String(fleetDate(b)||'9999-12-31'))});var keepService=service[0];active=active.filter(function(p){return fleetMaintenanceCategory(p.type)!=='service'||p===keepService})}return active}
 
 function fleetHasActiveMaintenanceRecord(vehicleId,typeKey){
   typeKey=String(typeKey||'').toLowerCase();
@@ -10537,7 +10546,7 @@ function fleetEnsureServicePlanTypes(){
   var changed=false;
   (fleetPlans||[]).forEach(function(plan){
     if(!plan||plan.status!=='Active'||serviceTypeFromValue(plan.type)!=='Service')return;
-    var explicitCompletion=(fleetCompletions||[]).filter(function(c){var d=String(c.completedDate||c.completedMonth||'').slice(0,10);return c.vehicleId===plan.vehicleId&&(!d||d<=todayIso())&&serviceTypeFromValue(c.serviceType||c.type)!=='Service'&&serviceTypeFromValue(c.serviceType||c.type)}).sort(function(a,b){return String(b.completedDate||b.completedMonth||'').localeCompare(String(a.completedDate||a.completedMonth||''))})[0]||null;
+    var explicitCompletion=(fleetCompletions||[]).filter(function(c){var d=String(c.completedDate||c.completedMonth||'').slice(0,10);if(c.datePrecision==='month'&&/^\d{4}-\d{2}$/.test(d)){var parts=d.split('-'),end=new Date(Number(parts[0]),Number(parts[1]),0);d=end.getFullYear()+'-'+String(end.getMonth()+1).padStart(2,'0')+'-'+String(end.getDate()).padStart(2,'0')}return c.vehicleId===plan.vehicleId&&(!d||d<=todayIso())&&serviceTypeFromValue(c.serviceType||c.type)!=='Service'&&serviceTypeFromValue(c.serviceType||c.type)}).sort(function(a,b){return String(b.completedDate||b.completedMonth||'').localeCompare(String(a.completedDate||a.completedMonth||''))})[0]||null;
     var previousType=serviceTypeFromValue(explicitCompletion&&(explicitCompletion.serviceType||explicitCompletion.type)||'');
     var dueType=previousType?alternateServiceType(previousType):'Major Service';
     plan.type=dueType;
