@@ -9604,6 +9604,13 @@ async function upsertRemote(table,row,options){
   var data=vectaStripKnownMissingColumns(table,Object.assign({},row)),removed=[],res=null;
   /* Customer and vehicle timestamps are optional in older Vecta schemas. */
   if(table==='customers'||table==='vehicles'){delete data.updated_at;}
+  /* Optional number inputs are blank for many Fleet vehicles. PostgreSQL integer
+     columns reject an empty string, so preserve "not recorded" as NULL. */
+  if(table==='vehicles'){
+    ['mileage','year'].forEach(function(key){
+      if(Object.prototype.hasOwnProperty.call(data,key)&&String(data[key]===null||data[key]===undefined?'':data[key]).trim()==='')data[key]=null;
+    });
+  }
   /* Parts status is mirrored inside customer_note for compatibility with the live jobs table. */
   if(table==='jobs'){
     delete data.parts_status;
@@ -13336,7 +13343,29 @@ function openVehicleRecord(idOrReg){
   };
   if(e=document.getElementById('recordConfirmFleetTaxed'))e.onclick=function(){var taxFleet=fv||fleetVehicleForRegistration(reg);if(!taxFleet){var acct=String((latest&&latest.customer_account)||customer.name||fleetCustomer||'').toUpperCase(),group=acct==='NMUK'?'Nissan Pool Cars':'Contractor Fleet';taxFleet={id:'fleet-tax-'+reg.replace(/[^A-Z0-9]/g,'')+'-'+Date.now(),fleetGroup:group,customer:acct==='NMUK'?'NMUK':(customer.name||fleetCustomer||''),registration:reg,model:vehicle||'',roadGoing:true,billingMethod:acct==='NMUK'?'Monthly consolidated':'Per job',contactEmail:customer.email||'',taxReference:(document.getElementById('recordVehicleTaxReference')||{}).value||'',status:'Active',source:'Created from tax confirmation'};fleetVehicles.push(taxFleet);saveFleet();fv=taxFleet;}activeFleetVehicleId=taxFleet.id;confirmFleetVehicleTaxed()};if(e=document.getElementById('recordNewJob'))e.onclick=function(){closeModals();openJobModal(null,{registration:reg,vehicle:vehicle,customer_account:fv?fleetIncomeCustomerFromVehicle(reg):'',customer_name:customer.name||fleetCustomer||'',customer_phone:customer.phone||'',customer_email:customer.email||(fv&&fv.contactEmail)||'',nmuk_vehicle_type:fv?fleetNmukTypeFromVehicle(reg):''})};
   modal.querySelectorAll('[data-vehicle-due-action]').forEach(function(link){link.onclick=function(){var action=link.dataset.vehicleDueAction,isMot=action==='mot',rawService=String(serviceType||''),resolvedService=/service type not recorded/i.test(rawService)?'Service':rawService,jobType=isMot?'MOT':resolvedService,work=isMot?'MOT':resolvedService,dueDate=isMot?(due.motDue||v.mot_due||''):(serviceDate||'');closeModals();openJobModal(null,{registration:reg,vehicle:vehicle,customer_account:fv?fleetIncomeCustomerFromVehicle(reg):'',customer_name:customer.name||fleetCustomer||'',customer_phone:customer.phone||'',customer_email:customer.email||(fv&&fv.contactEmail)||'',nmuk_vehicle_type:fv?fleetNmukTypeFromVehicle(reg):'',job_type:jobType,work_required:work,booking_date:dueDate||todayIso()})}});
-  if(e=document.getElementById('recordSaveVehicle'))e.onclick=function(){var model=(document.getElementById('recordVehicleModel')||{}).value||'',email=(document.getElementById('recordVehicleEmail')||{}).value||'',taxReference=(document.getElementById('recordVehicleTaxReference')||{}).value||'',cname=(document.getElementById('recordVehicleCustomer')||{}).value||'',road=((document.getElementById('recordVehicleRoad')||{}).value!=='no');if(!v.id){v={id:uid(),registration:reg,vehicle:model,customer_id:null};app.vehicles.push(v)}v.vehicle=model;v.mileage=(document.getElementById('recordVehicleMileage')||{}).value||'';v.vin=(document.getElementById('recordVehicleVin')||{}).value||'';v.year=(document.getElementById('recordVehicleYear')||{}).value||'';v.colour=(document.getElementById('recordVehicleColour')||{}).value||'';if(fv){fv.model=model;fv.contactEmail=email;fv.taxReference=taxReference;fv.roadGoing=road;if(fv.fleetGroup==='Contractor Fleet')fv.customer=fleetNormaliseCustomer(cname);saveFleet()}saveAll();upsertRemote('vehicles',v);openVehicleRecord(reg)};
+  if(e=document.getElementById('recordSaveVehicle'))e.onclick=async function(){
+    var button=this,model=(document.getElementById('recordVehicleModel')||{}).value||'',email=(document.getElementById('recordVehicleEmail')||{}).value||'',taxReference=(document.getElementById('recordVehicleTaxReference')||{}).value||'',cname=(document.getElementById('recordVehicleCustomer')||{}).value||'',road=((document.getElementById('recordVehicleRoad')||{}).value!=='no'),mileageRaw=String((document.getElementById('recordVehicleMileage')||{}).value||'').replace(/,/g,'').trim(),yearRaw=String((document.getElementById('recordVehicleYear')||{}).value||'').trim();
+    if(mileageRaw&&!/^\d+$/.test(mileageRaw)){alert('Current mileage must be a whole number, or left blank.');return}
+    if(yearRaw&&!/^\d{4}$/.test(yearRaw)){alert('Year must contain four digits, or be left blank.');return}
+    button.disabled=true;button.textContent='Saving…';
+    try{
+      if(!v.id){v={id:uid(),registration:reg,vehicle:model,customer_id:null};app.vehicles.push(v)}
+      v.vehicle=model;v.mileage=mileageRaw?Number(mileageRaw):null;v.vin=(document.getElementById('recordVehicleVin')||{}).value||'';v.year=yearRaw?Number(yearRaw):null;v.colour=(document.getElementById('recordVehicleColour')||{}).value||'';
+      /* "Save vehicle details" saves the complete screen, including any edited
+         maintenance dates. Previously only the small per-row button saved them. */
+      modal.querySelectorAll('[data-unified-plan-date]').forEach(function(input){
+        var p=fleetPlans.find(function(x){return String(x.id)===String(input.dataset.unifiedPlanDate)});if(!p)return;
+        var next=String(input.value||'').slice(0,10);p.currentDueDate=next;p.targetMonth=next?Number(next.slice(5,7)):null;
+      });
+      if(fv){fv.model=model;fv.contactEmail=email;fv.taxReference=taxReference;fv.roadGoing=road;if(fv.fleetGroup==='Contractor Fleet')fv.customer=fleetNormaliseCustomer(cname);saveFleet()}
+      await saveAll();
+      await upsertRemote('vehicles',v);
+      openVehicleRecord(reg);
+    }catch(err){
+      console.error('Vehicle details save failed',err);
+      button.disabled=false;button.textContent='Save vehicle details';
+    }
+  };
   modal.querySelectorAll('[data-unified-save-plan]').forEach(function(b){b.onclick=function(){var p=fleetPlans.find(function(x){return x.id===b.dataset.unifiedSavePlan}),input=modal.querySelector('[data-unified-plan-date="'+b.dataset.unifiedSavePlan+'"]');if(p&&input){p.currentDueDate=input.value||'';p.targetMonth=input.value?Number(input.value.slice(5,7)):p.targetMonth;saveFleet();openVehicleRecord(reg)}}});
   modal.querySelectorAll('[data-unified-new-job]').forEach(function(b){b.onclick=function(){var p=fleetPlans.find(function(x){return x.id===b.dataset.unifiedNewJob});if(!p)return;var type=String(p.type||'Maintenance'),kind=fleetMaintenanceKind(p),jobType=kind==='mot'?'MOT':kind==='safety'?'6 Month Safety Check':kind==='tax'?'Road Tax':(type==='Internal Service'?'On-Site Service':(serviceTypeFromValue(type)||'Service')),work=kind==='mot'?'MOT':kind==='safety'?'6 Month Safety Check':kind==='tax'?'Road Tax':(type==='Internal Service'?'On-Site Service':type);closeModals();openJobModal(null,{registration:reg,vehicle:vehicle,customer_account:fv?fleetIncomeCustomerFromVehicle(reg):'',customer_name:customer.name||fleetCustomer||'',customer_phone:customer.phone||'',customer_email:customer.email||(fv&&fv.contactEmail)||'',nmuk_vehicle_type:fv?fleetNmukTypeFromVehicle(reg):'',job_type:jobType,work_required:work,booking_date:fleetDate(p)||todayIso()})}});
   modal.querySelectorAll('[data-unified-complete-plan]').forEach(function(b){b.onclick=function(){var p=fleetPlans.find(function(x){return x.id===b.dataset.unifiedCompletePlan});if(!p)return;if(!confirm('Mark '+String(p.type||'maintenance')+' complete? This will not complete any other maintenance item.'))return;fleetCompletePlanNow(p.id);openVehicleRecord(reg)}});
