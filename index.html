@@ -9,7 +9,8 @@
   <!-- VECTA V92: Fleet due-work booked ticks -->
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <meta name="theme-color" content="#0b1220" />
+  <meta name="theme-color" content="#df1f32" />
+  <link rel="apple-touch-icon" sizes="180x180" href="/icons/vecta-180.png" />
   <link rel="manifest" href="/manifest.webmanifest" />
   <link rel="icon" href="/icons/vecta-192.png" />
   <!-- VECTA V84: DVLA Vehicle Enquiry Service tax API ready -->
@@ -8686,7 +8687,8 @@ function printWhenImagesReady(){
 }
 
 var STORE_KEY='vecta_workshop_pro_v41_data';
-var view='planner';
+var requestedView=(new URLSearchParams(location.search)).get('view');
+var view=['planner','fleet','jobs','invoices','invoiceArchive','websiteRequests','parts','settings'].indexOf(requestedView)>=0?requestedView:'planner';
 var selectedDate=new Date();
 selectedDate.setHours(0,0,0,0);
 var editingJobId=null;
@@ -9627,8 +9629,25 @@ async function deleteRemote(table,id,options){options=options||{};
     return true;
   }if(!remoteClient||!navigator.onLine){if(!options.skipQueue){queueRemoteOperation('delete',table,id);return true}throw new Error('Supabase is not connected.')}if(table==='tasks'&&!isUuid(id)){console.warn('Skipped remote delete for legacy non-UUID task id',id);return true;}try{var res=await remoteClient.from(table).delete().eq('id',id).select('id');if(res&&res.error)throw new Error(res.error.message||('Could not delete from '+table));var check=await remoteClient.from(table).select('id').eq('id',id).limit(1);if(check&&check.error)throw new Error(check.error.message||('Could not verify deletion from '+table));if(check&&Array.isArray(check.data)&&check.data.length)throw new Error('The record is still present in '+table+'. Supabase may be blocking deletes through its security policy.');return true}catch(e){if(!options.skipQueue&&shouldQueueRemoteFailure(e)){vectaCloudReachable=false;updateConnectivityUI();queueRemoteOperation('delete',table,id);return true}throw e}}
 async function saveAll(){invalidateFinanceDashboardCache();saveLocal(); if(remoteClient){try{await remoteClient.from('workshop_settings').upsert({id:'main',value:app.settings,updated_at:new Date().toISOString()});}catch(e){}}}
-function navItems(){var newCount=(app.websiteRequests||[]).filter(function(r){return !r.status||r.status==='awaiting_review'}).length,partsCount=(app.jobs||[]).filter(function(j){var ps=partsStatusFromJob(j);return !!ps&&ps!=='Parts here'&&ps!=='Not required'&&!j.archived&&j.status!=='completed'&&j.status!=='ready_to_invoice'}).length,paymentWarnCount=typeof overduePaymentMethodInvoices==='function'?overduePaymentMethodInvoices().length:0;return [['planner','Dashboard'],['fleet','Fleet Manager'],['jobs','Jobs'],['invoices','Financial'],['invoiceArchive','Invoices'+(paymentWarnCount?' ⚠ '+paymentWarnCount:'')],['websiteRequests','Website Bookings'+(newCount?' ('+newCount+')':'')],['parts','Parts'+(partsCount?' ('+partsCount+')':'')],['settings','Settings']];}
-function renderNav(){var n=document.getElementById('nav');n.innerHTML=navItems().map(function(it){return '<button data-view="'+it[0]+'" class="'+(view===it[0]?'active':'')+'">'+it[1]+'</button>'}).join('');n.querySelectorAll('button').forEach(function(b){b.onclick=function(){if(b.dataset.view!=='invoices'&&financeDashboardTimer){clearTimeout(financeDashboardTimer);financeDashboardTimer=null}if(b.dataset.view==='fleet'){fleetSection='maintenance';fleetListMode='due30';fleetFilter='All';fleetQuery='';fleetDueOnly=false;activeFleetVehicleId=''}if(b.dataset.view==='jobs'){jobsListMode='open';jobsSearchQuery=''}if(b.dataset.view==='invoices')financialSection='main';if(b.dataset.view==='invoiceArchive'){openFinancialInvoiceList();return}view=b.dataset.view;render()}})}
+function vectaPendingWebsiteBookingCount(){return (app.websiteRequests||[]).filter(function(r){return !r.status||r.status==='awaiting_review'}).length}
+function vectaUpdateAppBadge(){var count=vectaPendingWebsiteBookingCount();if(!('setAppBadge' in navigator))return Promise.resolve(false);return (count?navigator.setAppBadge(count):navigator.clearAppBadge()).then(function(){return true}).catch(function(){return false})}
+function vectaBase64UrlBytes(value){var padding='='.repeat((4-value.length%4)%4),base64=(value+padding).replace(/-/g,'+').replace(/_/g,'/'),raw=atob(base64),bytes=new Uint8Array(raw.length);for(var i=0;i<raw.length;i++)bytes[i]=raw.charCodeAt(i);return bytes}
+async function vectaEnableBookingAlerts(){
+  if(!('serviceWorker' in navigator)||!('PushManager' in window)||!('Notification' in window)){alert('This iPhone does not support Home Screen booking badges.');return false}
+  try{
+    var permission=await Notification.requestPermission();
+    if(permission!=='granted'){alert('Booking alerts were not enabled. Allow notifications to show the red booking number on the VECTA icon.');return false}
+    var configResponse=await fetch('/api/push-config',{cache:'no-store'}),config=await configResponse.json();
+    if(!configResponse.ok)throw new Error(config.error||'Booking alerts are unavailable');
+    var registration=await navigator.serviceWorker.ready,subscription=await registration.pushManager.getSubscription();
+    if(!subscription)subscription=await registration.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:vectaBase64UrlBytes(config.publicKey)});
+    var saveResponse=await fetch('/api/push-subscribe',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({subscription:subscription.toJSON()})});
+    if(!saveResponse.ok){var saveError=await saveResponse.json().catch(function(){return {}});throw new Error(saveError.error||'Could not save notification settings')}
+    localStorage.setItem('vecta:booking-alerts-enabled','1');await vectaUpdateAppBadge();render();alert('Website booking alerts are enabled on this iPhone.');return true;
+  }catch(error){console.error(error);alert('Booking alerts could not be enabled. '+(error&&error.message||''));return false}
+}
+function navItems(){var newCount=vectaPendingWebsiteBookingCount(),partsCount=(app.jobs||[]).filter(function(j){var ps=partsStatusFromJob(j);return !!ps&&ps!=='Parts here'&&ps!=='Not required'&&!j.archived&&j.status!=='completed'&&j.status!=='ready_to_invoice'}).length,paymentWarnCount=typeof overduePaymentMethodInvoices==='function'?overduePaymentMethodInvoices().length:0;return [['planner','Dashboard'],['fleet','Fleet Manager'],['jobs','Jobs'],['invoices','Financial'],['invoiceArchive','Invoices'+(paymentWarnCount?' ⚠ '+paymentWarnCount:'')],['websiteRequests','Website Bookings'+(newCount?' ('+newCount+')':'')],['parts','Parts'+(partsCount?' ('+partsCount+')':'')],['settings','Settings']];}
+function renderNav(){vectaUpdateAppBadge();var n=document.getElementById('nav');n.innerHTML=navItems().map(function(it){return '<button data-view="'+it[0]+'" class="'+(view===it[0]?'active':'')+'">'+it[1]+'</button>'}).join('');n.querySelectorAll('button').forEach(function(b){b.onclick=function(){if(b.dataset.view!=='invoices'&&financeDashboardTimer){clearTimeout(financeDashboardTimer);financeDashboardTimer=null}if(b.dataset.view==='fleet'){fleetSection='maintenance';fleetListMode='due30';fleetFilter='All';fleetQuery='';fleetDueOnly=false;activeFleetVehicleId=''}if(b.dataset.view==='jobs'){jobsListMode='open';jobsSearchQuery=''}if(b.dataset.view==='invoices')financialSection='main';if(b.dataset.view==='invoiceArchive'){openFinancialInvoiceList();return}view=b.dataset.view;render()}})}
 var cloudSyncChannel=null,cloudSyncTimer=null,cloudRefreshBusy=false,plannerInteractionBusy=false,cloudRefreshDebounce=null,cloudLastRefreshAt=0;
 async function refreshCloudAndRender(){
   var active=document.activeElement;
@@ -11211,7 +11230,8 @@ function websiteRequestsHtml(){
   var rows=websiteRequestFilter==='all'?all:all.filter(function(r){var st=r.status||'awaiting_review';return websiteRequestFilter==='archived'?(st==='archived'||st==='declined'):st===websiteRequestFilter});
   if(websiteRequestFilter==='booked'){websiteRequestFilter='all';rows=all;}
   function tab(key,label){return '<button class="'+(websiteRequestFilter===key?'active':'')+'" data-request-filter="'+key+'">'+label+' ('+(counts[key]||0)+')</button>'}
-  return '<div class="websiteRequestsHead"><div><h2>Website Bookings</h2><p>Review new requests and create planner jobs from them.</p></div><button class="btn" id="refreshWebsiteRequests">Refresh requests</button></div>'+websiteBookingStatsHtml()+'<div class="requestFilters">'+tab('all','All')+tab('awaiting_review','New')+tab('contacted','Contacted')+tab('archived','Archived')+'</div><div class="requestList">'+(rows.length?rows.map(websiteRequestCardHtml).join(''):'<div class="requestEmpty"><b>No website bookings in this section.</b><p>New customer requests will appear here automatically.</p></div>')+'</div>';
+  var alertsEnabled=localStorage.getItem('vecta:booking-alerts-enabled')==='1';
+  return '<div class="websiteRequestsHead"><div><h2>Website Bookings</h2><p>Review new requests and create planner jobs from them.</p></div><div><button class="btn" id="refreshWebsiteRequests">Refresh requests</button> <button class="btn red" id="enableBookingAlerts" '+(alertsEnabled?'disabled':'')+'>'+(alertsEnabled?'iPhone alerts enabled':'Enable iPhone booking badge')+'</button></div></div>'+websiteBookingStatsHtml()+'<div class="requestFilters">'+tab('all','All')+tab('awaiting_review','New')+tab('contacted','Contacted')+tab('archived','Archived')+'</div><div class="requestList">'+(rows.length?rows.map(websiteRequestCardHtml).join(''):'<div class="requestEmpty"><b>No website bookings in this section.</b><p>New customer requests will appear here automatically.</p></div>')+'</div>';
 }
 function websiteRequestCardHtml(r){
   var st=r.status||'awaiting_review',types=Array.isArray(r.job_types)?r.job_types.join(', '):String(r.job_types||''),dates=[r.preferred_date_1,r.preferred_date_2,r.preferred_date_3].filter(Boolean).map(requestDate).join(' · ');
@@ -11389,7 +11409,7 @@ async function deleteWebsiteRequestCompletely(id){
     await pullRemote();render();
   }
 }
-function bindWebsiteRequests(){var e;if(e=document.getElementById('refreshWebsiteRequests'))e.onclick=async function(){await pullRemote();render()};document.querySelectorAll('[data-request-filter]').forEach(function(b){b.onclick=function(){websiteRequestFilter=b.dataset.requestFilter;render()}});document.querySelectorAll('[data-request-contact]').forEach(function(b){b.onclick=function(){updateWebsiteRequest(b.dataset.requestContact,{status:'contacted'})}});document.querySelectorAll('[data-request-archive]').forEach(function(b){b.onclick=function(){if(confirm('Archive this website booking request?'))updateWebsiteRequest(b.dataset.requestArchive,{status:'archived'})}});document.querySelectorAll('[data-request-delete]').forEach(function(b){b.onclick=function(){deleteWebsiteRequestCompletely(b.dataset.requestDelete)}});document.querySelectorAll('[data-request-create]').forEach(function(b){b.onclick=function(){createJobFromWebsiteRequest(b.dataset.requestCreate)}})}
+function bindWebsiteRequests(){var e;if(e=document.getElementById('refreshWebsiteRequests'))e.onclick=async function(){await pullRemote();render()};if(e=document.getElementById('enableBookingAlerts'))e.onclick=vectaEnableBookingAlerts;document.querySelectorAll('[data-request-filter]').forEach(function(b){b.onclick=function(){websiteRequestFilter=b.dataset.requestFilter;render()}});document.querySelectorAll('[data-request-contact]').forEach(function(b){b.onclick=function(){updateWebsiteRequest(b.dataset.requestContact,{status:'contacted'})}});document.querySelectorAll('[data-request-archive]').forEach(function(b){b.onclick=function(){if(confirm('Archive this website booking request?'))updateWebsiteRequest(b.dataset.requestArchive,{status:'archived'})}});document.querySelectorAll('[data-request-delete]').forEach(function(b){b.onclick=function(){deleteWebsiteRequestCompletely(b.dataset.requestDelete)}});document.querySelectorAll('[data-request-create]').forEach(function(b){b.onclick=function(){createJobFromWebsiteRequest(b.dataset.requestCreate)}})}
 
 
 function displayedEmailContextForNode(node,email){

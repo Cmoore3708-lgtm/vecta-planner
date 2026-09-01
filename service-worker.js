@@ -1,5 +1,5 @@
-const CACHE='vecta-workshop-pro-offline-v290-startup-date-fix';
-const CORE=['/','/index.html','/manifest.webmanifest','/icons/vecta-192.png','/icons/vecta-512.png'];
+const CACHE='vecta-workshop-pro-offline-v291-booking-badge';
+const CORE=['/','/index.html','/manifest.webmanifest','/icons/vecta-180.png','/icons/vecta-192.png','/icons/vecta-512.png','/icons/vecta-badge-96.png'];
 
 self.addEventListener('install',event=>{
   event.waitUntil((async()=>{
@@ -82,4 +82,33 @@ self.addEventListener('fetch',event=>{
       }
     })());
   }
+});
+
+self.addEventListener('push',event=>{
+  const payload=(()=>{try{return event.data?event.data.json():{}}catch(_e){return {}}})();
+  const count=Math.max(0,Number(payload.count)||0);
+  event.waitUntil((async()=>{
+    if('setAppBadge' in self.navigator){
+      try{if(count)await self.navigator.setAppBadge(count);else await self.navigator.clearAppBadge()}catch(_e){}
+    }
+    await self.registration.showNotification(payload.title||'New VECTA website booking',{
+      body:payload.body||'A new booking is waiting for review.',
+      icon:'/icons/vecta-192.png',badge:'/icons/vecta-badge-96.png',
+      tag:'vecta-website-bookings',renotify:true,
+      data:{url:payload.url||'/?view=websiteRequests'}
+    });
+  })());
+});
+
+self.addEventListener('notificationclick',event=>{
+  event.notification.close();
+  const target=(event.notification.data&&event.notification.data.url)||'/?view=websiteRequests';
+  event.waitUntil((async()=>{
+    const windows=await self.clients.matchAll({type:'window',includeUncontrolled:true});
+    for(const client of windows){
+      if('navigate' in client)await client.navigate(target);
+      if('focus' in client)return client.focus();
+    }
+    return self.clients.openWindow(target);
+  })());
 });

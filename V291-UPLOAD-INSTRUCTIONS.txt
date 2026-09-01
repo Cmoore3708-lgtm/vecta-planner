@@ -1,0 +1,13 @@
+VECTA V291 — red Home Screen icon and website-booking badge
+
+1. Upload this update to the same GitHub repository in the normal way.
+2. In Supabase, open SQL Editor and run V291-WEBSITE-BOOKING-BADGES.sql once.
+3. Wait for Vercel to finish deploying.
+4. On the iPhone, delete the old grey VECTA Home Screen shortcut.
+5. Open Workshop Pro in Safari and use Share > Add to Home Screen.
+6. Open Website Bookings and tap Enable iPhone booking badge.
+7. Choose Allow when the iPhone asks for notification permission.
+
+The icon badge shows the number of website requests still awaiting review.
+Accepting, contacting or archiving a request reduces the badge count.
+Booking submission remains successful if a phone notification is temporarily unavailable.

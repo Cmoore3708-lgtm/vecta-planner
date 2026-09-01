@@ -1,3 +1,5 @@
+import {sendBookingBadges} from './_push.js';
+
 function cfg(){return {url:process.env.VITE_SUPABASE_URL||process.env.SUPABASE_URL,key:process.env.SUPABASE_SERVICE_ROLE_KEY||process.env.VITE_SUPABASE_ANON_KEY||process.env.SUPABASE_ANON_KEY}}
 function reg(v){return String(v||'').toUpperCase().replace(/\s+/g,' ').trim()}
 async function rest(url,key,path,method='GET',body){const r=await fetch(`${url}/rest/v1/${path}`,{method,headers:{apikey:key,Authorization:`Bearer ${key}`,'Content-Type':'application/json',Prefer:'return=representation'},body:body?JSON.stringify(body):undefined});if(!r.ok)throw new Error(await r.text());return r.status===204?null:r.json().catch(()=>null)}
@@ -13,6 +15,7 @@ export default async function handler(req,res){
   if(confirmed&&hasMot(b)&&String(b.appointment_date)<earliestMotDate())return res.status(409).json({error:`MOT appointments require at least 4 weekdays' notice. Please choose a later date.`});
   const request={id,customer_name:String(b.customer_name).trim(),email:String(b.email).trim(),phone:String(b.phone).trim(),registration:reg(b.registration),vehicle:String(b.vehicle).trim(),mileage:String(b.mileage||'').trim(),mot_due:b.mot_due||null,job_types:Array.isArray(b.job_types)?b.job_types:[],work_required:String(b.work_required).trim(),preferred_date_1:b.appointment_date||b.preferred_date_1||new Date().toISOString().slice(0,10),preferred_date_2:null,preferred_date_3:null,completion_deadline:String(b.completion_deadline||'').trim(),contact_preference:String(b.contact_preference||'Email'),source:'Website booking',status:'awaiting_review',created_at:new Date().toISOString()};
   await rest(url,key,'website_booking_requests','POST',request);
+  await sendBookingBadges();
   if(!confirmed)return res.status(201).json({ok:true,confirmed:false,request_id:id});
   const job={id:jobId,booking_date:b.appointment_date,card_type:'job',registration:reg(b.registration),vehicle:String(b.vehicle).trim(),mot_due:b.mot_due||null,engine_size:String(b.engine_size||'')||null,work_required:String(b.work_required).trim(),customer_name:String(b.customer_name).trim(),customer_phone:String(b.phone).trim(),customer_email:String(b.email).trim(),drop_time:String(b.appointment_time).slice(0,5),technician:String(b.technician),ramp:null,status:'in_progress',job_type:primaryType(b),job_colour:/service/i.test(primaryType(b))?'service':(/^mot$/i.test(primaryType(b))?'mot':'other'),estimated_hours:Number(b.estimated_hours||1),source:'Website booking',sort_order:0,archived:false};
   const sameDay=await rest(url,key,`jobs?select=drop_time,estimated_hours&id=neq.${jobId}&booking_date=eq.${encodeURIComponent(job.booking_date)}&technician=eq.${encodeURIComponent(job.technician)}&archived=eq.false`);
