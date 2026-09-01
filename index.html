@@ -10148,13 +10148,13 @@ function fleetNmukTypeForJob(j){
 function fleetNmukIsInternalJob(j){
   if(!j)return false;
   var raw=[j.nmuk_vehicle_type,j.nmuk_type,j.vehicle_type,j.customer_subtype,j.customer_type].filter(Boolean).join(' ').toLowerCase();
-  if(/internal/.test(raw))return true;
+  if(/\binternal\b/.test(raw))return true;
   var nr=normReg(j.registration||'');
   var v=fleetVehicles.find(function(x){return normReg(x.registration||'')===nr});
   if(v){
     if(v.fleetGroup==='Nissan Internal')return true;
     if(String(v.id||'').toUpperCase().indexOf('INTERNAL|')===0)return true;
-    if(/internal/i.test(String(v.nmukType||'')))return true;
+    if(/\binternal\b/i.test(String(v.nmukType||'')))return true;
   }
   return false;
 }
