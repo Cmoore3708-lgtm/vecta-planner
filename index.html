@@ -10147,8 +10147,8 @@ function fleetCustomerBadge(v){var name=fleetNormaliseCustomer(v.customer);retur
 
 var fleetSection='maintenance',fleetEomMonth=(new Date()).toISOString().slice(0,7),fleetEomCustomer='';
 function fleetEomRecognisedJob(j){if(!financeValidJob(j))return false;var st=financeStatusKey(j);return st==='completed'||st==='invoiced'||st==='invoice_created'||(financeLegacyAllocation(j).type==='Staff'&&(st==='ready_to_invoice'||st==='ready'))}
-function fleetJobDate(j){if(!fleetEomRecognisedJob(j))return '';var direct=String(j.completed_at||'').slice(0,10);if(/^\d{4}-\d{2}-\d{2}$/.test(direct))return direct;var inv=financeSavedInvoiceForJob(j),invoiceDate=String(inv&&(inv.invoice_date||inv.created_at)||'').slice(0,10);if(/^\d{4}-\d{2}-\d{2}$/.test(invoiceDate))return invoiceDate;return String(j.booking_date||'').slice(0,10)}
-function fleetQuotedExVat(j){return financeRevenueExVatValue(j)}
+function fleetJobDate(j){return financeCompletedDate(j)}
+function fleetQuotedExVat(j){return financeExVatValue(j)}
 function fleetPricingMismatch(j){j=j||{};var q=j.amount_quoted,n=Number(q);if(q===null||q===undefined||String(q).trim()===''||!Number.isFinite(n))return false;var items=privatePricingItemsFromNote(j.customer_note);if(!items.length)return false;var t=items.reduce(function(s,x){var v=Number(x&&x.price);return s+(Number.isFinite(v)?v:0)},0);return Math.abs(t-n)>0.009}
 function fleetEomLineItems(j){j=j||{};var quoted=Number(j.amount_quoted),hasQuoted=j.amount_quoted!==null&&j.amount_quoted!==undefined&&String(j.amount_quoted).trim()!==''&&Number.isFinite(quoted);var items=privatePricingItemsFromNote(j.customer_note).map(function(x){return {description:String(x&&x.description||'').trim(),price:Number(x&&x.price||0)}}).filter(function(x){return x.description||x.price!==0});if(!items.length){var fallback=invoiceDescriptionText(j);return [{description:fallback,price:hasQuoted?quoted:0}]}if(hasQuoted){var itemTotal=items.reduce(function(s,x){return s+(Number.isFinite(x.price)?x.price:0)},0),diff=Math.round((quoted-itemTotal)*100)/100;if(Math.abs(diff)>0.009)items.push({description:'Adjustment to match job card total',price:diff,adjustment:true})}return items}
 function fleetEomWorkItems(j){return fleetEomLineItems(j).map(function(x){return x.description})}
@@ -10184,23 +10184,30 @@ function fleetNmukIsInternalJob(j){
   return false;
 }
 function fleetIncomeCustomerForJob(j){
-  /* Month-end invoices must follow the income stream deliberately saved on the
-     job card. Fleet ownership is only a fallback for old jobs with no usable
-     account; allowing it to override the job moved five August NMUK jobs into
-     other streams in V7. */
-  var selected=fleetNormaliseCustomer(j&&j.customer_account||''),upper=String(selected||'').toUpperCase();
-  if(upper==='NMUK'||upper==='NISSAN')return 'NMUK';
-  if(upper==='STAFF')return 'Staff';
-  if(upper==='CONTRACTOR'){var named=fleetNormaliseCustomer(j&&j.customer_name||'');return named&&String(named).toUpperCase()!=='CONTRACTOR'?named:'CONTRACTOR'}
-  if(selected)return selected;
+  /* Use the same reconciled allocation shown on the job card. This checks Fleet
+     ownership and explicit NMUK/MVOS evidence before trusting a stale legacy
+     Staff label, so vehicles such as OY75 KKO and OC75 UBJ stay under NMUK. */
   var allocation=financeLegacyAllocation(j);
   if(allocation.type==='NMUK')return 'NMUK';
   if(allocation.type==='Staff')return 'Staff';
-  if(allocation.type==='Contractor'){var contractor=fleetNormaliseCustomer(allocation.name||j.customer_name||'');return contractor&&String(contractor).toUpperCase()!=='CONTRACTOR'?contractor:'CONTRACTOR'}
+  if(allocation.type==='Contractor'){var contractor=fleetNormaliseCustomer(allocation.name||j.customer_name||j.customer_account||'');return contractor&&String(contractor).toUpperCase()!=='CONTRACTOR'?contractor:'CONTRACTOR'}
   return '';
 }
 function fleetCustomerForJob(j){return fleetIncomeCustomerForJob(j)}
-function fleetEomJobs(month){return financeAllJobs().map(financeEffectiveJob).filter(function(j){if(!fleetEomRecognisedJob(j)||isVehicleTaxJob(j))return false;var date=fleetJobDate(j);if(!date)return false;return date.slice(0,7)===month&&!!fleetCustomerForJob(j)&&!fleetEomIsHeld(j,month)}).map(function(j){return {job:j,customer:fleetCustomerForJob(j),date:fleetJobDate(j),amount:fleetQuotedExVat(j)}}).sort(function(a,b){return a.date.localeCompare(b.date)||String(a.job.registration||'').localeCompare(String(b.job.registration||''))})}
+function fleetEomJobs(month){
+  /* Preserve the proven V6 calculation for NMUK and contractors byte-for-byte
+     in behaviour. Staff recovery is added afterwards and cannot remove or
+     revalue an existing NMUK row. */
+  var rows=(app.jobs||[]).map(financeEffectiveJob).filter(function(j){if(!financeValidJob(j)||!financeIsRecognisedJob(j))return false;var date=financeCompletedDate(j);if(!date)return false;return date.slice(0,7)===month&&!!fleetCustomerForJob(j)&&!fleetEomIsHeld(j,month)}).map(function(j){var customer=fleetCustomerForJob(j);return {job:j,customer:customer,date:financeCompletedDate(j),amount:customer==='Staff'?financeRevenueExVatValue(j):financeExVatValue(j)}}),seen={};
+  rows.forEach(function(r){if(r.job&&r.job.id)seen[String(r.job.id)]=true});
+  financeAllJobs().map(financeEffectiveJob).forEach(function(j){
+    if(!j||seen[String(j.id||'')]||financeLegacyAllocation(j).type!=='Staff'||!fleetEomRecognisedJob(j)||fleetEomIsHeld(j,month))return;
+    var direct=String(j.completed_at||'').slice(0,10),inv=financeSavedInvoiceForJob(j),invoiceDate=String(inv&&(inv.invoice_date||inv.created_at)||'').slice(0,10),date=/^\d{4}-\d{2}-\d{2}$/.test(direct)?direct:(/^\d{4}-\d{2}-\d{2}$/.test(invoiceDate)?invoiceDate:String(j.booking_date||'').slice(0,10));
+    if(date.slice(0,7)!==month)return;
+    rows.push({job:j,customer:'Staff',date:date,amount:financeRevenueExVatValue(j)});if(j.id)seen[String(j.id)]=true;
+  });
+  return rows.sort(function(a,b){return a.date.localeCompare(b.date)||String(a.job.registration||'').localeCompare(String(b.job.registration||''))});
+}
 function fleetEomCustomerEmail(name){var p=fleetCustomerProfiles[name]||{};if(p.invoiceEmail)return p.invoiceEmail;if(p.contactEmail)return p.contactEmail;var v=fleetVehicles.find(function(x){var account=(x.fleetGroup==='Nissan Internal'||x.fleetGroup==='Nissan Pool Cars')?'NMUK':(x.fleetGroup==='Contractor Fleet'?fleetNormaliseCustomer(x.customer):'');return account===name&&x.contactEmail});if(v)return v.contactEmail||'';var j=(app.jobs||[]).find(function(x){return fleetCustomerForJob(x)===name&&x.customer_email});return j?j.customer_email:''}
 function fleetEomInvoice(name,month,rows){rows=(rows||[]).slice().sort(function(a,b){return String(a.date||'').localeCompare(String(b.date||''))||String(a.job&&a.job.registration||'').localeCompare(String(b.job&&b.job.registration||''))});var existing=(app.invoices||[]).find(function(i){return i.fleet_customer===name&&i.fleet_month===month});var inv=existing||{id:uid(),invoice_number:nextInvoiceNumberText(),invoice_date:todayIso(),status:'draft'};inv.customer_name=name;inv.customer_phone=(fleetCustomerProfiles[name]||{}).telephone||'';inv.registration='FLEET ACCOUNT';inv.vehicle='Monthly fleet work — '+month;inv.fleet_customer=name;inv.fleet_month=month;inv.fleet_job_ids=rows.map(function(r){return r.job.id});if(name==='NMUK'){var nmukTotal=rows.reduce(function(sum,r){return sum+Number(r.amount||0)},0);inv.lines=[{type:'Work',description:'Fleet work completed during '+month+' — '+rows.length+' jobs. Detailed job list supplied separately.',amount:Number(nmukTotal.toFixed(2)),vat_mode:'ex_vat'}]}else{inv.lines=rows.map(function(r){return {type:'Work',description:niceDate(r.date)+' · '+normReg(r.job.registration||'')+(fleetNmukTypeForJob(r.job)?' · '+fleetNmukTypeForJob(r.job):'')+' · '+invoiceDescriptionText(r.job),amount:Number(r.amount.toFixed(2)),vat_mode:'ex_vat'}})}var totals=invoiceTotals(inv.lines);inv.subtotal=totals.subtotal;inv.vat=totals.vat;inv.total=totals.total;if(!existing){app.invoices.push(inv);app.settings.nextInvoiceNumber=Number(app.settings.nextInvoiceNumber||1)+1}else{var ix=app.invoices.findIndex(function(x){return x.id===existing.id});app.invoices[ix]=inv}saveAll();upsertRemote('invoices',inv);return inv}
 function fleetDownloadEomCsv(name,month,rows){var lines=[['Date','Registration','NMUK type','Work / Item','Price ex VAT']];(rows||[]).forEach(function(r){fleetEomLineItems(r.job).forEach(function(item,i){lines.push([i?'':niceDate(r.date),i?'':fleetEomRegistrationText(r.job),i?'':fleetNmukTypeForJob(r.job),item.description,Number(item.price||0).toFixed(2)])});lines.push(['','','','Job total:',Number(r.amount||0).toFixed(2)])});var total=rows.reduce(function(s,r){return s+r.amount},0);lines.push(['','','','Total:',total.toFixed(2)]);if(fleetNormaliseCustomer(name)==='NMUK'){var internal=rows.reduce(function(s,r){return fleetNmukIsInternalJob(r.job)?s+r.amount:s},0),other=total-internal;lines.push(['','','','Internal Vehicles:',internal.toFixed(2)]);lines.push(['','','','MVOS and other work:',other.toFixed(2)])}var csv=lines.map(function(row){return row.map(function(v){return '"'+String(v==null?'':v).replace(/"/g,'""')+'"'}).join(',')}).join('\r\n'),blob=new Blob([csv],{type:'text/csv;charset=utf-8'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=name.replace(/[^a-z0-9]+/gi,'-')+'-'+month+'-fleet-work.csv';document.body.appendChild(a);a.click();a.remove();setTimeout(function(){URL.revokeObjectURL(url)},1000)}
@@ -13954,8 +13961,8 @@ window.CONTRACTOR_2026_JOBS=(window.CONTRACTOR_2026_JOBS||[]).concat(window.NMUK
    job card so a backdated August entry cannot accidentally land in September. */
 var fleetEomHtmlWithoutAddJob=fleetEomHtml;
 function fleetEomAudit(month){
-  var finalised=financeAllJobs().map(financeEffectiveJob).filter(function(j){return fleetEomRecognisedJob(j)&&!isVehicleTaxJob(j)&&fleetJobDate(j).slice(0,7)===month&&!fleetEomIsHeld(j,month)}),unassigned=finalised.filter(function(j){return !fleetCustomerForJob(j)}),unpriced=finalised.filter(function(j){var q=j.amount_quoted,blank=q===null||q===undefined||String(q).trim()==='',invoice=financeSavedInvoiceForJob(j);return blank&&financeInvoiceExVatValue(invoice)===null});
-  return {finalised:finalised.length,unassigned:unassigned.length,unpriced:unpriced.length};
+  var included=fleetEomJobs(month),unassigned=(app.jobs||[]).map(financeEffectiveJob).filter(function(j){return financeIsRecognisedJob(j)&&financeCompletedDate(j).slice(0,7)===month&&!fleetCustomerForJob(j)&&!fleetEomIsHeld(j,month)}),unpriced=included.filter(function(r){var j=r.job||{},q=j.amount_quoted,blank=q===null||q===undefined||String(q).trim()==='',invoice=financeSavedInvoiceForJob(j);return blank&&financeInvoiceExVatValue(invoice)===null});
+  return {finalised:included.length+unassigned.length,unassigned:unassigned.length,unpriced:unpriced.length};
 }
 fleetEomHtml=function(){
   var html=fleetEomHtmlWithoutAddJob.apply(this,arguments);
