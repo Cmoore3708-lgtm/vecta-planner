@@ -1,6 +1,17 @@
 <!doctype html>
 <html lang="en">
 <head>
+  <!-- VECTA REFRESH RECOVERY 2026-09-01: purge any poisoned old service-worker asset cache before cloud scripts load. -->
+  <script>
+  window.__vectaCacheResetPromise=(async function(){
+    try{
+      if('caches' in window){
+        var keys=await caches.keys();
+        await Promise.all(keys.filter(function(k){return String(k).indexOf('vecta-workshop-pro-offline-')===0;}).map(function(k){return caches.delete(k);}));
+      }
+    }catch(e){console.warn('VECTA cache reset skipped',e)}
+  })();
+  </script>
   <!-- VECTA V255: combined Service + MOT completion asks whether MOT was actually completed; No keeps MOT outstanding -->
   <!-- VECTA V254: authoritative MOT lookup checks EVERY active MOT plan and may correct dates backwards or forwards -->
   <!-- VECTA V253: stale recurring MOT due dates roll into current cycle; fixes missing NK72 KTD / NK72 KTJ -->
@@ -9180,7 +9191,7 @@ async function flushPendingSync(){
   if(!remaining.length)return true;
   return false
 }
-function registerVectaServiceWorker(){if('serviceWorker' in navigator){window.addEventListener('load',function(){navigator.serviceWorker.register('/service-worker.js',{updateViaCache:'none'}).then(function(reg){try{reg.update()}catch(_e){}}).catch(function(e){console.warn('Offline app install failed',e)})})}}
+function registerVectaServiceWorker(){if('serviceWorker' in navigator){window.addEventListener('load',function(){Promise.resolve(window.__vectaCacheResetPromise).finally(function(){navigator.serviceWorker.register('/service-worker.js?v=20260901-refresh2',{updateViaCache:'none'}).then(function(reg){try{reg.update()}catch(_e){}}).catch(function(e){console.warn('Offline app install failed',e)})})})}}
 window.addEventListener('online',function(){updateConnectivityUI('syncing');setTimeout(async function(){try{var configured=await loadCloudConfig({silent:true});if(configured){await new Promise(function(resolve){ensureSupabase(function(){connectSupabase();resolve()})});if(remoteClient){var test=await vectaWithTimeout(remoteClient.from('jobs').select('id').limit(1),8000,'Cloud connection check');if(!test.error){vectaCloudReachable=true;/* V284: cloud jobs must be read BEFORE any queued writes are replayed. This prevents stale browser jobs being re-created/re-allocated when a computer reconnects. */await vectaPrimeJobsFromCloud();await vectaLoadTerminalJobStatesFromCloud();vectaApplyTerminalJobStates();await flushPendingSync();await vectaPrimeJobsFromCloud();await vectaLoadTerminalJobStatesFromCloud();vectaApplyTerminalJobStates();await vectaPrimeCompletionEvidenceFromCloud();await vectaRecoverGhostJobsFromTrustedBackups();await pullRemote();await vectaRepairConfirmedNk72KtfCompletion();vectaApplyTerminalJobStates();rollOverOutstandingJobs();normaliseUnallocatedBookingDates();await syncPendingCarryOvers();await vectaCreateDailyBackup(false,'cloud-synchronised');render()}}}}catch(e){vectaCloudReachable=false}updateConnectivityUI()},500)});
 window.addEventListener('offline',function(){vectaCloudReachable=false;updateConnectivityUI()});
 setInterval(function(){if(navigator.onLine&&vectaCloudReachable&&vectaPendingSync().length&&!vectaSyncInFlight){flushPendingSync().catch(function(e){console.warn('Background offline-sync retry failed',e)})}},5*60*1000);
@@ -9260,7 +9271,7 @@ function ensureSupabase(cb){
   var timer=setTimeout(function(){done(false)},15000);
   var existing=document.getElementById('supabaseScript');
   if(existing){existing.addEventListener('load',function(){done(true)},{once:true});existing.addEventListener('error',function(){done(false)},{once:true});return;}
-  var s=document.createElement('script');s.id='supabaseScript';s.src='/supabase.min.js';s.async=true;s.onload=function(){done(!!window.supabase)};s.onerror=function(){done(false)};document.head.appendChild(s);
+  Promise.resolve(window.__vectaCacheResetPromise).finally(function(){var s=document.createElement('script');s.id='supabaseScript';s.src='/supabase.min.js?v=20260901-refresh2';s.async=true;s.onload=function(){done(!!window.supabase)};s.onerror=function(){done(false)};document.head.appendChild(s);});
 }
 async function loadCloudConfig(options){
   options=options||{};
