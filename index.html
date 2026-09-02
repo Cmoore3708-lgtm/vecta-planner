@@ -9659,6 +9659,55 @@ function vectaNormaliseQueuedItem(item){item=item&&typeof item==='object'?Object
 function vectaMissingColumns(){try{var value=JSON.parse(localStorage.getItem(VECTA_MISSING_COLUMNS_KEY)||'{}');return value&&typeof value==='object'?value:{}}catch(e){return {}}}
 function vectaRememberMissingColumn(table,column){if(!table||!column)return;var all=vectaMissingColumns(),list=Array.isArray(all[table])?all[table]:[];if(list.indexOf(column)===-1){list.push(column);all[table]=list;try{localStorage.setItem(VECTA_MISSING_COLUMNS_KEY,JSON.stringify(all))}catch(e){}}}
 function vectaStripKnownMissingColumns(table,data){var all=vectaMissingColumns(),list=Array.isArray(all[table])?all[table]:[];list.forEach(function(column){if(Object.prototype.hasOwnProperty.call(data,column))delete data[column]});return data}
+
+var VECTA_PROTECTED_JOB_PREFIX='job_protected:';
+function vectaProtectedJobSettingId(id){return VECTA_PROTECTED_JOB_PREFIX+String(id||'')}
+function vectaJobHasFinancialValue(row){
+  if(!row)return false;
+  if(Number(row.amount_quoted||0)!==0)return true;
+  var note=String(row.customer_note||'');
+  try{var m=note.match(/\[\[VECTA_PRIVATE_PRICING:([^\]]+)\]\]/i);if(m){var lines=JSON.parse(decodeURIComponent(m[1]));if(Array.isArray(lines)&&lines.some(function(x){return Number(x&&x.price||0)!==0}))return true}}catch(e){}
+  return false;
+}
+function vectaAdoptRemoteJob(remote,reason){
+  if(!remote||!remote.id)return;
+  var ix=(app.jobs||[]).findIndex(function(x){return String(x&&x.id||'')===String(remote.id)});
+  var safe=normaliseCompletedJobState(Object.assign({},remote));
+  if(ix>=0)app.jobs[ix]=safe;else app.jobs.push(safe);
+  if(jobCompletionEvidence(safe))vectaSetTerminalJobStateLocal(safe.id,{state:'completed',job_id:String(safe.id),registration:normReg(safe.registration||''),completed_at:safe.completed_at||null,booking_date:safe.booking_date||null,updated_at:safe.updated_at||new Date().toISOString()});
+  saveLocal();
+  console.warn('DATA SAFETY: adopted newer cloud job instead of overwriting it',safe.id,reason||'conflict');
+}
+async function vectaProtectJobSnapshot(job,reason){
+  if(!remoteClient||!job||!job.id)return false;
+  if(!jobCompletionEvidence(job)&&!vectaJobHasFinancialValue(job))return false;
+  try{
+    var now=new Date().toISOString(),value={job:JSON.parse(JSON.stringify(job)),reason:reason||'financial-state',protected_at:now};
+    var res=await remoteClient.from('workshop_settings').upsert({id:vectaProtectedJobSettingId(job.id),value:value,updated_at:now},{onConflict:'id'});
+    if(res&&res.error)throw res.error;
+    return true;
+  }catch(e){console.warn('Protected job snapshot could not be written',job&&job.id,e);return false}
+}
+async function vectaGuardJobUpsert(row,options){
+  options=options||{};
+  if(!remoteClient||!row||!row.id||options.skipConflictGuard||!isUuid(String(row.id)))return {allow:true};
+  try{
+    var probe=await remoteClient.from('jobs').select('*').eq('id',row.id).limit(1);
+    if(probe.error)throw probe.error;
+    var remote=probe.data&&probe.data[0]?fromRemote(probe.data[0]):null;
+    if(!remote)return {allow:true};
+    var localDone=jobCompletionEvidence(row),remoteDone=jobCompletionEvidence(remote),lt=Date.parse(row.updated_at||row.created_at||0)||0,rt=Date.parse(remote.updated_at||remote.created_at||0)||0;
+    var downgrade=remoteDone&&!localDone;
+    var financeLoss=remoteDone&&vectaJobHasFinancialValue(remote)&&!vectaJobHasFinancialValue(row);
+    var remoteNewer=!!(rt&&lt&&rt>lt+1000);
+    if(downgrade||financeLoss||remoteNewer){
+      vectaAdoptRemoteJob(remote,downgrade?'blocked completion downgrade':financeLoss?'blocked financial data loss':'blocked stale overwrite of newer cloud record');
+      return {allow:false,remote:remote};
+    }
+    return {allow:true,remote:remote};
+  }catch(e){console.warn('Job conflict pre-check unavailable; normal offline queue rules apply',row&&row.id,e);return {allow:true,check_failed:true}}
+}
+
 var VECTA_MISSING_COLUMNS_KEY='vecta:cloud:missing-columns:v1';
 function vectaMissingColumns(){try{var value=JSON.parse(localStorage.getItem(VECTA_MISSING_COLUMNS_KEY)||'{}');return value&&typeof value==='object'?value:{}}catch(e){return {}}}
 function vectaRememberMissingColumn(table,column){if(!table||!column)return;var all=vectaMissingColumns(),list=Array.isArray(all[table])?all[table]:[];if(list.indexOf(column)===-1){list.push(column);all[table]=list;try{localStorage.setItem(VECTA_MISSING_COLUMNS_KEY,JSON.stringify(all))}catch(e){}}}
@@ -9666,6 +9715,7 @@ function vectaStripKnownMissingColumns(table,data){var all=vectaMissingColumns()
 async function upsertRemote(table,row,options){
   options=options||{};
   if(!remoteClient||!navigator.onLine){if(!options.skipQueue)return queueRemoteOperation('upsert',table,Object.assign({},row));throw new Error('Supabase is not connected.');}
+  if(table==='jobs'){var guard=await vectaGuardJobUpsert(row,options);if(!guard.allow)return [{id:String(row&&row.id||''),vecta_conflict_skipped:true}];}
   if(table==='tasks')ensureTaskUuid(row);
   var data=vectaStripKnownMissingColumns(table,Object.assign({},row)),removed=[],res=null;
   /* Customer and vehicle timestamps are optional in older Vecta schemas. */
@@ -9694,7 +9744,7 @@ async function upsertRemote(table,row,options){
   var maxAttempts=Math.max(20,Object.keys(data).length+1);
   for(var attempt=0;attempt<maxAttempts;attempt++){
     res=await remoteClient.from(table).upsert(data,{onConflict:'id'}).select('id');
-    if(!res.error)return res.data;
+    if(!res.error){if(table==='jobs'&&(jobCompletionEvidence(row)||vectaJobHasFinancialValue(row)))vectaProtectJobSnapshot(row,jobCompletionEvidence(row)?'completed-or-terminal-save':'financial-save').catch(function(e){console.warn('Protected snapshot follow-up failed',e)});return res.data;}
     var missing=schemaColumnFromError(res.error.message,table);
     if(missing&&Object.prototype.hasOwnProperty.call(data,missing)){
       removed.push(missing);vectaRememberMissingColumn(table,missing);delete data[missing];
@@ -13506,6 +13556,7 @@ function syncSavedJobBundleInBackground(j,linked){
     try{
       if(linked&&linked.customer)await upsertRemote('customers',linked.customer,{silent:true});
       if(linked&&linked.vehicle)await upsertRemote('vehicles',linked.vehicle,{silent:true});
+      if(String(j.status||'').toLowerCase()==='completed'||vectaJobHasFinancialValue(j))await vectaProtectJobSnapshot(j,String(j.status||'').toLowerCase()==='completed'?'job-completed':'job-financial-save');
       await upsertRemote('jobs',j,{silent:true});
       if(String(j.status||'').toLowerCase()==='completed')await vectaWriteTerminalJobState(j,'completed',{completed_at:j.completed_at||null,booking_date:j.booking_date||null});
       await rememberJobCustomer(j);
