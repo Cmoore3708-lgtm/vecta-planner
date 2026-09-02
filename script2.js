@@ -579,10 +579,9 @@ function startCloudSync(){
     .on('postgres_changes',{event:'*',schema:'public',table:'invoices'},refreshCloudAndRender)
     .on('postgres_changes',{event:'*',schema:'public',table:'service_records'},refreshCloudAndRender)
     .on('postgres_changes',{event:'*',schema:'public',table:'website_booking_requests'},refreshCloudAndRender)
-    .on('postgres_changes',{event:'*',schema:'public',table:'workshop_settings'},refreshCloudAndRender)
     .subscribe(function(status){console.log('Supabase live sync:',status)});
   if(cloudSyncTimer)clearInterval(cloudSyncTimer);
-  cloudSyncTimer=setInterval(function(){if(document.visibilityState==='visible')refreshCloudAndRender()},3000);
+  cloudSyncTimer=setInterval(function(){if(document.visibilityState==='visible')refreshCloudAndRender()},60000);
   document.addEventListener('visibilitychange',function(){if(document.visibilityState==='visible')refreshCloudAndRender()});
   window.addEventListener('online',refreshCloudAndRender);
 }
