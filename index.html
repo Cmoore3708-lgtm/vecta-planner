@@ -12314,7 +12314,39 @@ function invoiceArchiveSearchText(inv){
 }
 function savedInvoiceForJobId(jobId,excludeInvoiceId){
   jobId=String(jobId||'');excludeInvoiceId=String(excludeInvoiceId||'');if(!jobId)return null;
-  return (app.invoices||[]).find(function(inv){return inv&&String(inv.job_id||'')===jobId&&String(inv.id||'')!==excludeInvoiceId&&String(inv.status||'saved').toLowerCase()!=='draft'})||null
+  var invoices=(app.invoices||[]),exact=invoices.find(function(inv){return inv&&String(inv.job_id||'')===jobId&&String(inv.id||'')!==excludeInvoiceId&&String(inv.status||'saved').toLowerCase()!=='draft'});
+  if(exact)return exact;
+
+  /* Older/manual invoices can exist without job_id. Reconcile them safely to the
+     current job when the registration matches and the invoice is not older than
+     the job booking. This prevents a saved invoice from still showing as
+     "Create Invoice" while avoiding old invoices suppressing later jobs. */
+  var job=(app.jobs||[]).find(function(j){return String(j&&j.id||'')===jobId});
+  if(!job)return null;
+  var reg=normReg(job.registration||'');if(!reg)return null;
+  var jobDate=String(job.booking_date||'').slice(0,10),jobCustomer=String(job.customer_name||'').trim().toLowerCase();
+  var candidates=invoices.filter(function(inv){
+    if(!inv||String(inv.id||'')===excludeInvoiceId||String(inv.status||'saved').toLowerCase()==='draft'||String(inv.job_id||'').trim())return false;
+    if(normReg(inv.registration||'')!==reg)return false;
+    var invDate=String(inv.invoice_date||inv.created_at||inv.updated_at||'').slice(0,10);
+    if(jobDate&&invDate&&invDate<jobDate)return false;
+    var invCustomer=String(inv.customer_name||'').trim().toLowerCase();
+    if(jobCustomer&&invCustomer&&jobCustomer!==invCustomer)return false;
+    return true;
+  }).sort(function(a,b){return String(b.invoice_date||b.updated_at||b.created_at||'').localeCompare(String(a.invoice_date||a.updated_at||a.created_at||''))});
+  var matched=candidates[0]||null;
+  if(matched){
+    matched.job_id=job.id;
+    job.invoice_id=matched.id;
+    job.invoiced_at=job.invoiced_at||matched.updated_at||matched.created_at||new Date().toISOString();
+    job.status='completed';job.archived=true;job.updated_at=new Date().toISOString();
+    saveLocal();
+    if(remoteClient){
+      upsertRemote('invoices',matched,{silent:true}).catch(function(e){console.warn('Invoice/job link repair failed for invoice',matched.invoice_number,e)});
+      upsertRemote('jobs',job,{silent:true}).catch(function(e){console.warn('Invoice/job status repair failed for job',job.id,e)});
+    }
+  }
+  return matched
 }
 function invoiceNumericPart(inv){var m=String(inv&&inv.invoice_number||'').match(/(\d+)$/);return m?Number(m[1]):0}
 function nextInvoiceSequence(){var max=(app.invoices||[]).reduce(function(n,inv){return Math.max(n,invoiceNumericPart(inv))},0);return max+1}
@@ -12643,7 +12675,7 @@ function bindView(){
   document.querySelectorAll('[data-jobs-tab]').forEach(function(btn){btn.onclick=function(){jobsListMode=btn.dataset.jobsTab;render()}});
   if(e=document.getElementById('mainSearch')){e.oninput=function(ev){searchQuery=ev.currentTarget.value;var results=document.getElementById('searchResults');if(results)results.innerHTML=searchResultsHtml(searchQuery)};document.getElementById('searchResults').onclick=function(ev){var vehicle=ev.target.closest('[data-open-vehicle-reg]');if(vehicle){openVehicleFromReg(vehicle.dataset.openVehicleReg);return}var job=ev.target.closest('[data-search-open-job]');if(job){openJobModal(job.dataset.searchOpenJob);return}var customer=ev.target.closest('[data-open-customer]');if(customer)openCustomerDetails(customer.dataset.openCustomer)}}
   document.querySelectorAll('[data-edit-customer]').forEach(function(x){x.onclick=function(){editCustomer(x.dataset.editCustomer)}}); document.querySelectorAll('[data-edit-vehicle]').forEach(function(x){x.onclick=function(){editVehicle(x.dataset.editVehicle)}}); document.querySelectorAll('[data-open-vehicle-id]').forEach(function(x){x.onclick=function(){openVehicleDetails(x.dataset.openVehicleId)}}); document.querySelectorAll('[data-open-vehicle-reg]').forEach(function(x){x.onclick=function(ev){ev.stopPropagation();openVehicleFromReg(x.dataset.openVehicleReg)}}); document.querySelectorAll('[data-open-customer]').forEach(function(x){x.onclick=function(){openCustomerDetails(x.dataset.openCustomer)}});
-  document.querySelectorAll('[data-finance-period]').forEach(function(x){x.onclick=function(){openInvoiceFinanceReport(x.dataset.financePeriod)}}); var financeFutureDate=document.getElementById('financeFutureDate'),financeFutureDateView=document.getElementById('financeFutureDateView');function refreshFinanceFutureDate(){if(!financeFutureDate||!financeFutureDate.value)return;var d=financeFutureDate.value,jobs=invoiceFinanceJobs('date:'+d),total=jobs.reduce(function(sum,j){return sum+financeRevenueExVatValue(j)},0),totalEl=document.getElementById('financeFutureDateTotal'),labelEl=document.getElementById('financeFutureDateLabel');if(totalEl)totalEl.textContent=money(total);if(labelEl)labelEl.textContent=niceDate(d)+' · '+jobs.length+' job'+(jobs.length===1?'':'s')+' booked'}if(financeFutureDate){financeFutureDate.onchange=refreshFinanceFutureDate;financeFutureDate.oninput=refreshFinanceFutureDate}if(financeFutureDateView){financeFutureDateView.onclick=function(){if(financeFutureDate&&financeFutureDate.value)openInvoiceFinanceReport('date:'+financeFutureDate.value)}}; document.querySelectorAll('[data-print-service]').forEach(function(x){x.onclick=function(ev){ev.stopPropagation();printService(x.dataset.printService)}}); document.querySelectorAll('[data-invoice-job]').forEach(function(x){x.onclick=function(){openInvoiceForJob(x.dataset.invoiceJob)}}); document.querySelectorAll('[data-delete-ready-job]').forEach(function(x){x.onclick=function(ev){ev.stopPropagation();deleteJobCompletely(x.dataset.deleteReadyJob)}}); document.querySelectorAll('[data-open-invoice]').forEach(function(x){x.onclick=function(ev){if(ev&&ev.target&&(ev.target.closest('[data-payment-method]')||ev.target.closest('[data-delete-invoice]')))return;openInvoice(x.dataset.openInvoice)}}); document.querySelectorAll('[data-payment-method]').forEach(function(x){x.onclick=function(ev){ev.stopPropagation()};x.onchange=function(ev){ev.stopPropagation();updateInvoicePaymentMethod(x.dataset.paymentMethod,x.value)}});document.querySelectorAll('[data-delete-invoice]').forEach(function(x){x.onclick=function(ev){ev.stopPropagation();deleteInvoiceCompletely(x.dataset.deleteInvoice)}}); 
+  document.querySelectorAll('[data-finance-period]').forEach(function(x){x.onclick=function(){openInvoiceFinanceReport(x.dataset.financePeriod)}}); var financeFutureDate=document.getElementById('financeFutureDate'),financeFutureDateView=document.getElementById('financeFutureDateView');function refreshFinanceFutureDate(){if(!financeFutureDate||!financeFutureDate.value)return;var d=financeFutureDate.value,jobs=invoiceFinanceJobs('date:'+d),total=jobs.reduce(function(sum,j){return sum+financeRevenueExVatValue(j)},0),totalEl=document.getElementById('financeFutureDateTotal'),labelEl=document.getElementById('financeFutureDateLabel');if(totalEl)totalEl.textContent=money(total);if(labelEl)labelEl.textContent=niceDate(d)+' · '+jobs.length+' job'+(jobs.length===1?'':'s')+' booked'}if(financeFutureDate){financeFutureDate.onchange=refreshFinanceFutureDate;financeFutureDate.oninput=refreshFinanceFutureDate}if(financeFutureDateView){financeFutureDateView.onclick=function(){if(financeFutureDate&&financeFutureDate.value)openInvoiceFinanceReport('date:'+financeFutureDate.value)}} document.querySelectorAll('[data-print-service]').forEach(function(x){x.onclick=function(ev){ev.stopPropagation();printService(x.dataset.printService)}}); document.querySelectorAll('[data-invoice-job]').forEach(function(x){x.onclick=function(){openInvoiceForJob(x.dataset.invoiceJob)}}); document.querySelectorAll('[data-delete-ready-job]').forEach(function(x){x.onclick=function(ev){ev.stopPropagation();deleteJobCompletely(x.dataset.deleteReadyJob)}}); document.querySelectorAll('[data-open-invoice]').forEach(function(x){x.onclick=function(ev){if(ev&&ev.target&&(ev.target.closest('[data-payment-method]')||ev.target.closest('[data-delete-invoice]')))return;openInvoice(x.dataset.openInvoice)}}); document.querySelectorAll('[data-payment-method]').forEach(function(x){x.onclick=function(ev){ev.stopPropagation()};x.onchange=function(ev){ev.stopPropagation();updateInvoicePaymentMethod(x.dataset.paymentMethod,x.value)}});document.querySelectorAll('[data-delete-invoice]').forEach(function(x){x.onclick=function(ev){ev.stopPropagation();deleteInvoiceCompletely(x.dataset.deleteInvoice)}}); 
   if(e=document.getElementById('newBlankInvoice'))e.onclick=function(){openInvoice()};
   
   if(e=document.getElementById('archiveBlankInvoice'))e.onclick=function(){openInvoice()};
