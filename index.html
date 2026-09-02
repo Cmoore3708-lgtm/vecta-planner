@@ -2725,7 +2725,7 @@ body.servicePreviewing .servicePreviewControls{position:relative!important;z-ind
 .invoiceFleetAddress label{display:block;font-size:10px;font-weight:900;text-transform:uppercase;color:#64748b;margin-bottom:3px}
 .invoiceFleetAddress div{font-size:12px;font-weight:600;line-height:1.35;white-space:normal}
 .fleetInvoiceEditorRow td:first-child{vertical-align:top}
-.fleetInvoiceLineHeading{font-weight:900;font-size:13px;line-height:1.25;margin:1px 0 4px;text-align:left}
+.fleetInvoiceLineHeading{font-weight:400;font-size:13px;line-height:1.25;margin:1px 0 4px;text-align:left}
 .fleetInvoiceEditorRow textarea[data-fleet-line="1"]{display:block;width:100%;min-height:42px;padding:3px 0;border:0;background:transparent;box-shadow:none;font-weight:400;line-height:1.35;text-align:left;resize:vertical}
 .fleetInvoiceEditorRow textarea[data-fleet-line="1"]:focus{outline:1px solid #cbd5e1;border-radius:4px;padding:3px 5px}
 .fleetPrintWork{display:block!important}
@@ -2735,7 +2735,7 @@ body.servicePreviewing .servicePreviewControls{position:relative!important;z-ind
 .fleetPrintHeading{display:block;font-weight:900!important;line-height:1.25;text-align:left;margin:0 0 3px 0}
 .fleetPrintDescription{display:block;font-weight:400!important;line-height:1.35;text-align:left;margin:0}
 .fleetPrintDescription *{font-weight:400!important}
-.fleetInvoiceLineHeading{font-weight:900!important}
+.fleetInvoiceLineHeading{font-weight:400!important}
 .fleetInvoiceEditorRow textarea[data-fleet-line="1"]{font-weight:400!important}
 .printCustomerAddress{display:block!important;margin-top:5px!important;white-space:normal!important;font-weight:600!important;line-height:1.3!important}
 </style><style id="v302-nmuk-address">
@@ -12535,7 +12535,7 @@ function vehicleTaxHtml(){return vehicleTaxHtmlV226();}
 function bindVehicleTax(){return bindVehicleTaxV226();}
 function createVehicleTaxMonthInvoice(){
   var totals=vehicleTaxTotalsForMonth(vehicleTaxSelectedMonth),jobs=totals.uninvoiced;if(!jobs.length){alert('There are no uninvoiced vehicle tax entries for this month.');return}
-  var monthLabel=new Date(vehicleTaxSelectedMonth+'-01T12:00:00').toLocaleDateString('en-GB',{month:'long',year:'numeric'}),lines=jobs.map(function(j){j.vat_mode='no_vat';return {description:'Vehicle tax — '+String(j.registration||'No registration')+' — '+niceDate(vehicleTaxJobDate(j)),type:'Work',amount:vehicleTaxAmount(j),vat_mode:'no_vat'}}),id=uid();
+  var monthLabel=new Date(vehicleTaxSelectedMonth+'-01T12:00:00').toLocaleDateString('en-GB',{month:'long',year:'numeric'}),lines=jobs.map(function(j){j.vat_mode='no_vat';return {description:'Vehicle tax — '+fleetInvoiceFormatRegistration(j.registration||'')+' — '+niceDate(vehicleTaxJobDate(j)),type:'Work',amount:vehicleTaxAmount(j),vat_mode:'no_vat'}}),id=uid();
   pendingTaxInvoiceJobIds=jobs.map(function(j){return j.id});pendingTaxInvoiceId=id;
   var nmukTaxProfile=fleetInvoiceCustomerProfile('NMUK')||{};openInvoice(null,{id:id,job_id:'',registration:'NMUK TAX',customer_name:'NMUK',customer_phone:'',customer_address:String(nmukTaxProfile.address||'').trim(),fleet_customer:'NMUK',eom_month:vehicleTaxSelectedMonth,source:'vehicle_tax_eom',vehicle:'Vehicle Tax — '+monthLabel,mileage:'',mot_due:'',invoice_number:nextInvoiceNumberText(),invoice_date:todayIso(),payment_method:'',lines:lines,status:'draft',created_at:new Date().toISOString()})
 }
@@ -13632,28 +13632,41 @@ function copyYesterday(){var y=new Date(selectedDate);y.setDate(y.getDate()-1);v
 function exportData(){var blob=new Blob([JSON.stringify(app,null,2)],{type:'application/json'});var a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='vecta-workshop-pro-backup-'+todayIso()+'.json';a.click();setTimeout(function(){URL.revokeObjectURL(a.href)},1000)}
 function fieldInv(label,key,val,type){return '<div class="field"><label>'+esc(label)+'</label><input id="inv_'+key+'" type="'+(type||'text')+'" value="'+esc(val||'')+'"></div>'}
 function lineHtml(l){l=l||{};return '<tr><td><textarea data-line-desc placeholder="Describe the work carried out">'+esc(l.description||'')+'</textarea></td><td class="amountCell"><input data-line-amount type="number" step="5" value="'+esc(l.amount||0)+'"><button class="btn small noPrintControl" data-remove-line type="button">×</button></td><td><select data-line-vat><option value="inc_vat" '+((l.vat_mode||'inc_vat')==='inc_vat'?'selected':'')+'>Inc VAT</option><option value="ex_vat" '+((l.vat_mode||'')==='ex_vat'?'selected':'')+'>Ex VAT</option><option value="no_vat" '+((l.vat_mode||'')==='no_vat'?'selected':'')+'>No VAT</option></select></td></tr>'}
+function fleetInvoiceFormatRegistration(value){
+  var compact=String(value||'').toUpperCase().replace(/[^A-Z0-9]/g,'');
+  if(/^[A-Z]{2}\d{2}[A-Z]{3}$/.test(compact))return compact.slice(0,4)+' '+compact.slice(4);
+  if(/^[A-Z]\d{1,3}[A-Z]{3}$/.test(compact)){var m=compact.match(/^([A-Z]\d{1,3})([A-Z]{3})$/);return m?m[1]+' '+m[2]:compact}
+  return String(value||'').trim().toUpperCase();
+}
 function fleetInvoiceLineParts(value){
-  var raw=String(value||''),parts=raw.split(/\s*·\s*/);
-  if(!parts.length)return {date:'',registration:'No Registration',description:''};
+  var raw=String(value||'').trim();
+  /* Vehicle-tax month-end lines use em dashes rather than the normal fleet middle-dot format. */
+  var tax=raw.match(/^Vehicle\s+tax\s*[—-]\s*([^—-]+?)\s*[—-]\s*(.+)$/i);
+  if(tax){
+    var taxReg=fleetInvoiceFormatRegistration(tax[1]);
+    return {date:String(tax[2]||'').trim(),registration:taxReg,description:'',taxLine:true,heading:'Vehicle tax — '+taxReg+' — '+String(tax[2]||'').trim()};
+  }
+  var parts=raw.split(/\s*·\s*/);
+  if(!parts.length)return {date:'',registration:'',description:''};
   var date=String(parts.shift()||'').trim(),registration='',description='';
   var candidate=String(parts.shift()||'').trim();
   var compact=candidate.toUpperCase().replace(/[^A-Z0-9]/g,'');
   var explicitNoRegistration=/^NO\s*REGISTRATION$/i.test(candidate);
   var looksLikeReg=/^[A-Z]{2}\d{2}[A-Z]{3}$/.test(compact)||/^[A-Z]\d{1,3}[A-Z]{3}$/.test(compact)||/^[A-Z]{1,3}\d{1,4}$/.test(compact)||/^\d{1,4}[A-Z]{1,3}$/.test(compact)||/^[A-Z]{1,3}\d{1,4}[A-Z]{1,3}$/.test(compact);
   if(explicitNoRegistration){
-    registration='No Registration';
-    description=parts.join(' · ').trim()
+    registration='';
+    description=parts.join(' · ').trim();
   }else if(looksLikeReg){
-    registration=candidate;
-    description=parts.join(' · ').trim()
+    registration=fleetInvoiceFormatRegistration(candidate);
+    description=parts.join(' · ').trim();
   }else{
-    registration='No Registration';
-    description=[candidate].concat(parts).filter(Boolean).join(' · ').trim()
+    registration='';
+    description=[candidate].concat(parts).filter(Boolean).join(' · ').trim();
   }
   return {date:date,registration:registration,description:description}
 }
 function fleetInvoiceLineHtml(l){
-  l=l||{};var p=fleetInvoiceLineParts(l.description||''),heading=[p.date,p.registration].filter(Boolean).join(' · ');
+  l=l||{};var p=fleetInvoiceLineParts(l.description||''),heading=p.heading||[p.date,p.registration].filter(Boolean).join(' · ');
   return '<tr class="fleetInvoiceEditorRow"><td><div class="fleetInvoiceLineHeading">'+esc(heading)+'</div><textarea data-line-desc data-fleet-line="1" data-fleet-date="'+esc(p.date)+'" data-fleet-registration="'+esc(p.registration)+'" placeholder="Describe the work carried out">'+esc(p.description)+'</textarea></td><td class="amountCell"><input data-line-amount type="number" step="5" value="'+esc(l.amount||0)+'"><button class="btn small noPrintControl" data-remove-line type="button">×</button></td><td><select data-line-vat><option value="inc_vat" '+((l.vat_mode||'inc_vat')==='inc_vat'?'selected':'')+'>Inc VAT</option><option value="ex_vat" '+((l.vat_mode||'')==='ex_vat'?'selected':'')+'>Ex VAT</option><option value="no_vat" '+((l.vat_mode||'')==='no_vat'?'selected':'')+'>No VAT</option></select></td></tr>'
 }
 function bindInvoiceFields(){document.querySelectorAll('#invoiceModal input,#invoiceModal textarea,#invoiceModal select').forEach(function(x){x.oninput=calcInvoice;x.onchange=calcInvoice});document.querySelectorAll('[data-remove-line]').forEach(function(b){b.onclick=function(){var rows=document.querySelectorAll('#invoiceLines tr');if(rows.length>1){b.closest('tr').remove();calcInvoice()}}})}
