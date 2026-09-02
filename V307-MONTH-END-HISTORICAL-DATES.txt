@@ -1,0 +1,13 @@
+VECTA Workshop Pro v307
+Month-End Historical Date Entry
+
+Change:
+- Fleet Manager > End of Month Invoicing > Add New Job can now select previous weekday dates.
+- The selected month still pre-fills the new job date.
+- Normal Workshop Pro bookings continue to block dates before today.
+- Weekends remain unavailable in the booking calendar.
+- Existing v306 background website booking notification files are retained.
+
+Safety scope:
+- Historical-date permission is only passed by the Fleet Manager month-end Add New Job action.
+- No database deletion, finance classification, invoice total, tax, or completion logic was changed.
