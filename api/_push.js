@@ -25,6 +25,11 @@ export async function supabaseRest(path,{method='GET',body}={}){
   if(response.status===204)return null;
   return response.json().catch(()=>null);
 }
+export async function sendPushSubscription(subscription,payload){
+  pushConfig();
+  return webpush.sendNotification(subscription,typeof payload==='string'?payload:JSON.stringify(payload));
+}
+
 export async function sendBookingBadges(){
   try{
     pushConfig();
