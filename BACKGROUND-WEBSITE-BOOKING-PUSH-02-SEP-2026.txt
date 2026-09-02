@@ -1,0 +1,24 @@
+VECTA WORKSHOP PRO — BACKGROUND WEBSITE BOOKING ALERT FIX
+02 September 2026
+
+What was wrong
+- The server already sent a Web Push message when a website booking was created.
+- Workshop Pro already updated the icon badge when the app itself was open.
+- The service worker did NOT contain a push event handler, so an iPhone with the app closed had nothing listening for the server push.
+
+What is fixed
+- Added a service-worker push handler that runs while the installed PWA is closed/backgrounded.
+- The handler updates the Home Screen badge to the current number of awaiting-review website bookings (where supported by iOS).
+- It also displays a visible "New VECTA website booking" notification.
+- Tapping the notification opens/focuses Workshop Pro and takes the user to Website Bookings.
+- Bumped the service-worker cache/version and registration URL so phones fetch the corrected worker after deployment.
+
+Existing server-side safety retained
+- Website bookings are saved to Supabase before push delivery is attempted.
+- Push delivery failure cannot prevent a booking being saved.
+- Badge count is calculated server-side from awaiting_review bookings, not from whether Workshop Pro happens to be open.
+- Expired push subscriptions are removed after 404/410 responses.
+
+One-time requirement
+- The existing V291-WEBSITE-BOOKING-BADGES.sql must have been run in Supabase.
+- On each iPhone, Website Booking Alerts/notifications must have been enabled once and iOS notification permission granted.

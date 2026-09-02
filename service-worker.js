@@ -1,4 +1,4 @@
-const CACHE='vecta-workshop-pro-offline-v5-finance-v304';
+const CACHE='vecta-workshop-pro-offline-v6-push-v305';
 const CORE=['/','/index.html','/manifest.webmanifest','/icons/vecta-192.png','/icons/vecta-512.png'];
 
 self.addEventListener('install',event=>{
@@ -65,5 +65,45 @@ self.addEventListener('fetch',event=>{
     }catch(_e){
       return (await caches.match(req)) || Response.error();
     }
+  })());
+});
+
+/* Website booking push alerts.
+   This runs even when Workshop Pro is closed, so the Home Screen icon can be
+   updated as soon as the server receives a website booking. */
+self.addEventListener('push',event=>{
+  event.waitUntil((async()=>{
+    let data={};
+    try{ data=event.data?event.data.json():{}; }catch(_e){ data={body:event.data?event.data.text():''}; }
+    const count=Math.max(0,Number(data.count)||0);
+    try{
+      if(self.navigator && typeof self.navigator.setAppBadge==='function'){
+        if(count) await self.navigator.setAppBadge(count);
+        else if(typeof self.navigator.clearAppBadge==='function') await self.navigator.clearAppBadge();
+      }
+    }catch(_e){}
+    await self.registration.showNotification(data.title||'New VECTA website booking',{
+      body:data.body||'A new customer booking is waiting for review.',
+      icon:'/icons/vecta-192.png',
+      badge:'/icons/vecta-192.png',
+      tag:'vecta-website-bookings',
+      renotify:true,
+      data:{url:data.url||'/?view=websiteRequests',count}
+    });
+  })());
+});
+
+self.addEventListener('notificationclick',event=>{
+  event.notification.close();
+  event.waitUntil((async()=>{
+    const target=new URL((event.notification.data&&event.notification.data.url)||'/?view=websiteRequests',self.location.origin).href;
+    const windows=await self.clients.matchAll({type:'window',includeUncontrolled:true});
+    for(const client of windows){
+      if('focus' in client){
+        try{await client.navigate(target)}catch(_e){}
+        return client.focus();
+      }
+    }
+    return self.clients.openWindow?self.clients.openWindow(target):undefined;
   })());
 });
