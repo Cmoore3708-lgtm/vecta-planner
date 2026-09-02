@@ -1,0 +1,18 @@
+VECTA v306 — Background website booking alerts verification
+02 September 2026
+
+Changed files only:
+- index.html
+- service-worker.js
+- api/_push.js
+- api/push-test.js
+
+After deployment:
+1. Open VECTA from the iPhone Home Screen once.
+2. Open Website Bookings.
+3. Tap "Enable background alerts".
+4. Allow notifications if iOS asks.
+5. VECTA now sends a real test push to this exact phone before reporting success.
+6. You should immediately receive: "VECTA alerts are working".
+
+If the test fails, VECTA displays the actual server-side error instead of pretending alerts are enabled.
