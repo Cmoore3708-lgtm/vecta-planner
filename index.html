@@ -14503,9 +14503,8 @@ try{setTimeout(function(){if(window.app&&Array.isArray(app.jobs))migrateNoVehicl
   }
 
   function onFleetOpen(){
-    var changed=repairCompletedHistory();
-    refreshDueMots().then(function(n){if(n&&typeof render==='function'&&view==='fleet')render();});
-    return changed;
+    /* MOT data is refreshed by the nightly server job or the explicit manual check. */
+    return repairCompletedHistory();
   }
   if(typeof fleetBind==='function'&&!fleetBind.__v207Wrapped){
     var oldFleetBind=fleetBind;
@@ -14989,9 +14988,8 @@ try{setTimeout(function(){if(window.app&&Array.isArray(app.jobs))migrateNoVehicl
   }
 
   function runWhenFleetOpens(){
-    reconcile(false).then(function(r){
-      if((r.changed||0)>0 && typeof render==='function' && typeof view!=='undefined' && view==='fleet')render();
-    });
+    /* No automatic MOT network scan on Fleet renders. */
+    return;
   }
   if(typeof fleetBind==='function'&&!fleetBind.__v234Wrapped){
     var old=fleetBind;
@@ -15719,11 +15717,8 @@ window.v234ReconcileOutstandingMots=function(force){return v254Reconcile({manual
    whose possibly-wrong local date happens to be near today. */
 var v254LastOpenRun=0;
 function v254RunOnFleetOpen(){
-  if(Date.now()-v254LastOpenRun<30000)return;
-  v254LastOpenRun=Date.now();
-  v254Reconcile({manual:false}).then(function(r){
-    if(r.changed&&typeof render==='function'&&typeof view!=='undefined'&&view==='fleet')render();
-  });
+  /* Nightly refresh and the explicit manual check are authoritative. */
+  return;
 }
 if(typeof fleetBind==='function'&&!fleetBind.__v254Wrapped){
   var v254OldFleetBind=fleetBind;
