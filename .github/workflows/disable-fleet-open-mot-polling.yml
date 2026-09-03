@@ -40,11 +40,12 @@ jobs:
         run: |
           from pathlib import Path
           text=Path('index.html').read_text(encoding='utf-8')
-          assert "refreshDueMots().then(function(n){if(n&&typeof render==='function'&&view==='fleet')render();});" not in text
-          assert "reconcile(false).then(function(r)" not in text
-          assert "v254Reconcile({manual:false}).then(function(r)" not in text
+          assert 'MOT data is refreshed by the nightly server job or the explicit manual check.' in text
+          assert 'No automatic MOT network scan on Fleet renders.' in text
+          assert 'Nightly refresh and the explicit manual check are authoritative.' in text
           assert "try{fleetRunManualMotCheck=v255Manual;}" in text
-          print('Automatic browser MOT scans removed; manual control preserved')
+          assert "table:'jobs'},scheduleCloudRefresh" in text
+          print('Fleet-open MOT scans removed; manual and normal realtime paths preserved')
 
       - name: Commit fix
         run: |
