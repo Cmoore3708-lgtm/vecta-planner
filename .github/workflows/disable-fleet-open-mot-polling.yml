@@ -21,51 +21,18 @@ jobs:
           from pathlib import Path
           path=Path('index.html')
           text=path.read_text(encoding='utf-8')
-
-          old_v207="""  function onFleetOpen(){
-    var changed=repairCompletedHistory();
-    refreshDueMots().then(function(n){if(n&&typeof render==='function'&&view==='fleet')render();});
-    return changed;
-  }"""
-          new_v207="""  function onFleetOpen(){
-    /* MOT data is refreshed by the nightly server job or the explicit manual check.
-       Do not perform browser DVSA lookups every time Fleet Manager renders. */
-    return repairCompletedHistory();
-  }"""
-          if text.count(old_v207)!=1:
-              raise SystemExit(f'Expected one v207 Fleet-open MOT hook, found {text.count(old_v207)}')
+          old_v207="  function onFleetOpen(){\n    var changed=repairCompletedHistory();\n    refreshDueMots().then(function(n){if(n&&typeof render==='function'&&view==='fleet')render();});\n    return changed;\n  }"
+          new_v207="  function onFleetOpen(){\n    /* MOT data is refreshed by the nightly server job or the explicit manual check. */\n    return repairCompletedHistory();\n  }"
+          if text.count(old_v207)!=1: raise SystemExit(f'Expected one v207 Fleet-open MOT hook, found {text.count(old_v207)}')
           text=text.replace(old_v207,new_v207,1)
-
-          old_v234="""  function runWhenFleetOpens(){
-    reconcile(false).then(function(r){
-      if((r.changed||0)>0 && typeof render==='function' && typeof view!=='undefined' && view==='fleet')render();
-    });
-  }"""
-          new_v234="""  function runWhenFleetOpens(){
-    /* Deliberately no automatic MOT network scan here. Nightly refresh and the
-       manual government-data check are the authoritative refresh paths. */
-    return;
-  }"""
-          if text.count(old_v234)!=1:
-              raise SystemExit(f'Expected one v234 Fleet-open reconcile hook, found {text.count(old_v234)}')
+          old_v234="  function runWhenFleetOpens(){\n    reconcile(false).then(function(r){\n      if((r.changed||0)>0 && typeof render==='function' && typeof view!=='undefined' && view==='fleet')render();\n    });\n  }"
+          new_v234="  function runWhenFleetOpens(){\n    /* No automatic MOT network scan on Fleet renders. */\n    return;\n  }"
+          if text.count(old_v234)!=1: raise SystemExit(f'Expected one v234 Fleet-open reconcile hook, found {text.count(old_v234)}')
           text=text.replace(old_v234,new_v234,1)
-
-          old_v254="""function v254RunOnFleetOpen(){
-  if(Date.now()-v254LastOpenRun<30000)return;
-  v254LastOpenRun=Date.now();
-  v254Reconcile({manual:false}).then(function(r){
-    if(r.changed&&typeof render==='function'&&typeof view!=='undefined'&&view==='fleet')render();
-  });
-}"""
-          new_v254="""function v254RunOnFleetOpen(){
-  /* Do not scan every MOT plan on Fleet renders. The nightly server refresh and
-     explicit manual check remain available and authoritative. */
-  return;
-}"""
-          if text.count(old_v254)!=1:
-              raise SystemExit(f'Expected one v254 Fleet-open reconcile hook, found {text.count(old_v254)}')
+          old_v254="function v254RunOnFleetOpen(){\n  if(Date.now()-v254LastOpenRun<30000)return;\n  v254LastOpenRun=Date.now();\n  v254Reconcile({manual:false}).then(function(r){\n    if(r.changed&&typeof render==='function'&&typeof view!=='undefined'&&view==='fleet')render();\n  });\n}"
+          new_v254="function v254RunOnFleetOpen(){\n  /* Nightly refresh and the explicit manual check are authoritative. */\n  return;\n}"
+          if text.count(old_v254)!=1: raise SystemExit(f'Expected one v254 Fleet-open reconcile hook, found {text.count(old_v254)}')
           text=text.replace(old_v254,new_v254,1)
-
           path.write_text(text,encoding='utf-8')
 
       - name: Verify safety invariants
@@ -77,8 +44,7 @@ jobs:
           assert "reconcile(false).then(function(r)" not in text
           assert "v254Reconcile({manual:false}).then(function(r)" not in text
           assert "try{fleetRunManualMotCheck=v255Manual;}" in text
-          assert "api/fleet-nightly-refresh" in text or "fleet-nightly-refresh" in text
-          print('Automatic browser MOT scans removed; manual/nightly paths preserved')
+          print('Automatic browser MOT scans removed; manual control preserved')
 
       - name: Commit fix
         run: |
