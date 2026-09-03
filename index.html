@@ -11371,24 +11371,21 @@ function requestDate(value){if(!value)return 'Not provided';try{return new Date(
 function requestStatusLabel(status){return ({awaiting_review:'New',contacted:'Contacted',booked:'Booked',declined:'Declined',archived:'Archived',deleted:'Deleted'})[status]||'New'}
 
 function websiteBookingStatisticRecords(){
-  var byId={},anonymous=[];
+  var requestById={},records=[];
   function validDate(raw){var value=String(raw||'').slice(0,10);return /^\d{4}-\d{2}-\d{2}$/.test(value)?value:''}
   (app.websiteRequests||[]).forEach(function(r){
     if(!r||String(r.status||'').toLowerCase()==='deleted')return;
-    var id=String(r.id||'').trim(),date=validDate(r.created_at)||validDate(r.submitted_at)||validDate(r.booking_date)||validDate(r.preferred_date_1);
-    if(id){var rec=byId[id]||(byId[id]={id:id,date:'',request:null,job:null});rec.request=r;if(!rec.date&&date)rec.date=date}
-    else anonymous.push({id:'request:'+String(r.created_at||Math.random()),date:date,request:r,job:null});
+    var id=String(r.id||'').trim();if(id)requestById[id]=r;
   });
   (app.jobs||[]).forEach(function(j){
-    if(!j)return;
+    if(!j||(typeof vectaJobIsDeletedForLists==='function'&&vectaJobIsDeletedForLists(j)))return;
     var isWebsite=String(j.booking_source||'').toLowerCase()==='website booking'||String(j.source||'').toLowerCase()==='website booking'||!!String(j.website_request_id||'').trim();
     if(!isWebsite)return;
     var id=String(j.website_request_id||'').trim();if(!id&&typeof websiteRequestIdFromJob==='function')id=String(websiteRequestIdFromJob(j)||'').trim();
-    var date=validDate(j.created_at)||validDate(j.booking_date);
-    if(id){var rec=byId[id]||(byId[id]={id:id,date:'',request:null,job:null});rec.job=j;if(!rec.date&&date)rec.date=date}
-    else anonymous.push({id:'job:'+String(j.id||Math.random()),date:date,request:null,job:j});
+    var r=id?requestById[id]||null:null,date=validDate(j.created_at)||validDate(r&&r.created_at)||validDate(r&&r.submitted_at)||validDate(j.booking_date);
+    records.push({id:id||('job:'+String(j.id||Math.random())),date:date,request:r,job:j});
   });
-  return Object.keys(byId).map(function(id){return byId[id]}).concat(anonymous).sort(function(a,b){return String(b.date||'').localeCompare(String(a.date||''))});
+  return records.sort(function(a,b){return String(b.date||'').localeCompare(String(a.date||''))});
 }
 function websiteBookingStatistics(){
   var records=websiteBookingStatisticRecords(),now=new Date(),monthKey=now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0'),thisMonth=records.filter(function(x){return String(x.date||'').slice(0,7)===monthKey}).length;
@@ -11406,13 +11403,13 @@ function openWebsiteBookingStatistics(scope){
   if(scope==='month')records=records.filter(function(x){return String(x.date||'').slice(0,7)===stats.monthKey});
   var title=scope==='month'?'Website bookings — this month':'All website bookings';
   var rows=records.map(function(rec){
-    var j=rec.job||{},r=rec.request||{},reg=j.registration||r.registration||'NO REG',customer=j.customer_name||r.customer_name||'Customer',vehicle=j.vehicle||r.vehicle||'',work=j.work_required||(Array.isArray(r.job_types)?r.job_types.join(', '):r.job_types)||r.work_required||'',status=j.id?'Planner job':requestStatusLabel(r.status||'awaiting_review'),action=j.id?'Open Job':'Open Booking';
-    return '<button class="vehicleHistoryRow" data-stat-job="'+esc(j.id||'')+'" data-stat-request="'+esc(r.id||'')+'"><span><b>'+esc(reg)+'</b><small>'+esc(requestDate(rec.date))+' · '+esc(status)+'</small></span><span><b>'+esc(customer)+'</b><small>'+esc(vehicle)+(vehicle&&work?' · ':'')+esc(work)+'</small></span><strong>'+action+'</strong></button>';
-  }).join('')||'<div class="vehicleHistoryEmpty">No website bookings found.</div>';
+    var j=rec.job||{},r=rec.request||{},reg=j.registration||r.registration||'NO REG',customer=j.customer_name||r.customer_name||'Customer',vehicle=j.vehicle||r.vehicle||'',work=j.work_required||(Array.isArray(r.job_types)?r.job_types.join(', '):r.job_types)||r.work_required||'';
+    return '<button class="vehicleHistoryRow" data-stat-job="'+esc(j.id||'')+'"><span><b>'+esc(reg)+'</b><small>'+esc(requestDate(rec.date))+' · Planner job</small></span><span><b>'+esc(customer)+'</b><small>'+esc(vehicle)+(vehicle&&work?' · ':'')+esc(work)+'</small></span><strong>Open Job</strong></button>';
+  }).join('')||'<div class="vehicleHistoryEmpty">No website booking jobs found.</div>';
   var modal=document.getElementById('jobModal');
   modal.innerHTML='<div class="modalCard vehicleDetailsModal"><div class="modalHead vehicleDetailsHead"><div><span class="vehicleDetailEyebrow">Website Bookings</span><h2>'+esc(title)+'</h2><p>'+records.length+' booking'+(records.length===1?'':'s')+'</p></div><button class="btn" data-close-modal>Close</button></div><div class="modalBody vehicleDetailsBody"><section class="vehicleHistorySection"><div class="vehicleHistoryGroup">'+rows+'</div></section></div><div class="modalFoot"><button class="btn" data-close-modal>Close</button></div></div>';
   modal.classList.add('open');modal.setAttribute('aria-hidden','false');modal.querySelectorAll('[data-close-modal]').forEach(function(b){b.onclick=closeModals});
-  modal.querySelectorAll('[data-stat-job],[data-stat-request]').forEach(function(b){b.onclick=function(){var jobId=b.dataset.statJob,requestId=b.dataset.statRequest;if(jobId){openJobModal(jobId);return}if(requestId){closeModals();websiteRequestFilter='all';render();setTimeout(function(){var card=document.querySelector('[data-request-id="'+CSS.escape(requestId)+'"]');if(card){card.scrollIntoView({behavior:'smooth',block:'center'});card.classList.add('new');}},50)}}});
+  modal.querySelectorAll('[data-stat-job]').forEach(function(b){b.onclick=function(){var jobId=b.dataset.statJob;if(jobId)openJobModal(jobId)}});
 }
 function websiteRequestsHtml(){
   // A website request is only an inbox item. Once it has produced a planner job it must no longer appear here.
