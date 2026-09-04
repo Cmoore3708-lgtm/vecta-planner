@@ -10487,7 +10487,7 @@ function fleetLatestCompletedEvidenceDate(vehicle,category){
           completed=completedJobCanUpdateFleet(j)||status==='invoiced'||status==='invoice_created'||status==='ready_for_invoice';
       if(!completed)return;
       var cats=fleetPlannerJobCategories(j);
-      if(category==='service'&&cats.service&&!isSixMonthSafetyCheck(j)&&!isOnSiteService(j))addDate(completedJobDateForFleet(j)||j.booking_date);
+      if(category==='service'&&cats.service&&!isSixMonthSafetyCheck(j)&&(!isOnSiteService(j)||String(vehicle.fleetGroup||'')==='Nissan Internal'))addDate(completedJobDateForFleet(j)||j.booking_date);
       if(category==='safety'&&(cats.safety||isSixMonthSafetyCheck(j)))addDate(completedJobDateForFleet(j)||j.booking_date);
     });
     (app.serviceRecords||[]).forEach(function(rec){
@@ -10514,7 +10514,7 @@ function fleetCompletedJobForPlanCycle(p){
     if(!j||normReg(j.registration||'')!==reg||!completedJobCanUpdateFleet(j))return false;
     var done=completedJobDateForFleet(j);if(!done||String(done).slice(0,10)>todayIso())return false;
     var cats=fleetPlannerJobCategories(j);
-    if(cat==='service')return !!cats.service&&!isSixMonthSafetyCheck(j)&&!isOnSiteService(j);
+    if(cat==='service')return !!cats.service&&!isSixMonthSafetyCheck(j)&&(!isOnSiteService(j)||String(vehicle.fleetGroup||'')==='Nissan Internal');
     if(cat==='safety')return !!cats.safety||isSixMonthSafetyCheck(j);
     if(cat==='tax')return !!cats.tax;
     return false;
@@ -15411,6 +15411,8 @@ try{var foot=document.querySelector('.sideFoot small');if(foot)foot.textContent=
 
 
 <!-- V318: Internal On-Site Service completion persistence repair. Built on working V317. -->
+
+<!-- V319: NMUK Internal On-Site Service counts as annual service completion evidence. -->
 </body>
 </html>
 <script>
