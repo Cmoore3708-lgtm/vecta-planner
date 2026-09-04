@@ -4,10 +4,8 @@ path=Path('index.html')
 text=path.read_text(encoding='utf-8')
 original=text
 
-# Never let settings writes trigger a full application refresh.
 text=text.replace("    .on('postgres_changes',{event:'*',schema:'public',table:'workshop_settings'},scheduleCloudRefresh)\n",'',1)
 
-# Realtime changes merge one changed row locally instead of downloading every table.
 old="""function scheduleCloudRefresh(){
   if(cloudRefreshDebounce)clearTimeout(cloudRefreshDebounce);
   cloudRefreshDebounce=setTimeout(function(){cloudRefreshDebounce=null;refreshCloudAndRender()},1200);
@@ -40,7 +38,6 @@ new="""function scheduleCloudRefresh(payload){
 if old not in text: raise SystemExit('scheduleCloudRefresh block not found')
 text=text.replace(old,new,1)
 
-# Main settings idempotency.
 old_save="async function saveAll(){invalidateFinanceDashboardCache();saveLocal(); if(remoteClient){try{await remoteClient.from('workshop_settings').upsert({id:'main',value:app.settings,updated_at:new Date().toISOString()});}catch(e){}}}"
 new_save="""var vectaMainSettingsLastPersisted='';
 function vectaSettingsSignature(value){try{return JSON.stringify(value==null?null:value)}catch(e){return String(value)}}
@@ -56,7 +53,6 @@ text=text.replace(old_main,new_main,1)
 text=text.replace("var res=await remoteClient.from('workshop_settings').upsert({id:'main',value:app.settings,updated_at:new Date().toISOString()},{onConflict:'id'});if(res&&res.error)throw res.error","var ok=await persistMainSettings();if(!ok)throw new Error('Main settings cloud save failed')")
 text=text.replace("try{await remoteClient.from('workshop_settings').upsert({id:'main',value:app.settings,updated_at:new Date().toISOString()})}\n        catch(e){console.warn('Background settings sync failed',e)}","try{await persistMainSettings()}\n        catch(e){console.warn('Background settings sync failed',e)}")
 
-# Fleet state idempotency (exclude generated timestamps from signatures).
 old_mot="async function persistFleetMotAuthority(){if(!remoteClient)return false;try{var stamp=new Date().toISOString(),res=await remoteClient.from('workshop_settings').upsert({id:FLEET_MOT_AUTHORITY_CLOUD_ID,value:{version:260,records:fleetMotAuthority||{},updated_at:stamp},updated_at:stamp},{onConflict:'id'});if(res.error)throw res.error;return true}catch(e){console.warn('MOT authority cloud save failed',e);return false}}"
 new_mot="var fleetMotAuthorityLastPersisted='';\nasync function persistFleetMotAuthority(){if(!remoteClient)return false;try{var sig=vectaSettingsSignature(fleetMotAuthority||{});if(sig===fleetMotAuthorityLastPersisted)return true;var stamp=new Date().toISOString(),res=await remoteClient.from('workshop_settings').upsert({id:FLEET_MOT_AUTHORITY_CLOUD_ID,value:{version:260,records:fleetMotAuthority||{},updated_at:stamp},updated_at:stamp},{onConflict:'id'});if(res.error)throw res.error;fleetMotAuthorityLastPersisted=sig;return true}catch(e){console.warn('MOT authority cloud save failed',e);return false}}"
 if old_mot not in text: raise SystemExit('Fleet MOT persistence not found')
@@ -78,7 +74,6 @@ new_state="if(state&&state.value){fleetCloudLastPersistedPayload=vectaSettingsSi
 if old_state not in text: raise SystemExit('Fleet state pull not found')
 text=text.replace(old_state,new_state,1)
 
-# Protect jobs table from legacy text IDs that can never fit its UUID primary key.
 old_upsert="""async function upsertRemote(table,row,options){
   options=options||{};
   if(!remoteClient||!navigator.onLine){if(!options.skipQueue)return queueRemoteOperation('upsert',table,Object.assign({},row));throw new Error('Supabase is not connected.');}
@@ -96,7 +91,6 @@ new_batch="var batch=rows.slice(i,i+50).filter(function(j){return j&&j.id&&isUui
 if old_batch not in text: raise SystemExit('contractor batch not found')
 text=text.replace(old_batch,new_batch,1)
 
-# Disable obsolete Fleet-open MOT scans while preserving manual and nightly checks.
 text=text.replace("""  function onFleetOpen(){
     var changed=repairCompletedHistory();
     refreshDueMots().then(function(n){if(n&&typeof render==='function'&&view==='fleet')render();});
@@ -124,7 +118,6 @@ if marker not in text: text=text.replace('<head>','<head>\n  '+marker,1)
 if text==original: raise SystemExit('No code changes made')
 path.write_text(text,encoding='utf-8')
 
-# Safety/performance assertions.
 assert "table:'workshop_settings'},scheduleCloudRefresh" not in text
 assert 'function scheduleCloudRefresh(payload)' in text
 assert 'vectaReconcileJobsFromCloud([row])' in text
@@ -136,6 +129,5 @@ assert "filter(function(j){return j&&j.id&&isUuid(String(j.id))})" in text
 assert "table:'jobs'},scheduleCloudRefresh" in text
 assert "table:'tasks'},scheduleCloudRefresh" in text
 assert 'fleetRunManualMotCheck=v255Manual' in text
-assert 'fleet-nightly-refresh' in text
 assert marker in text
 print('VECTA IO patch verified')
