@@ -1,14 +1,116 @@
-const CACHE='vecta-workshop-pro-offline-v9-last-known-data-v308';
+const CACHE='vecta-workshop-pro-offline-v10-health-debounce-v309';
 const DATA_CACHE='vecta-workshop-pro-data-last-known-v1';
+const HEALTH_CACHE='vecta-workshop-pro-cloud-health-v1';
 const CORE=['/','/index.html','/manifest.webmanifest','/icons/vecta-192.png','/icons/vecta-512.png'];
+const HEALTH_FAILURE_LIMIT=3;
+const RECENT_CLOUD_SUCCESS_MS=120000;
+let consecutiveHealthFailures=0;
+let lastCloudSuccessAt=0;
 
 function isSupabaseRestRequest(url){
   return /\.supabase\.co$/i.test(url.hostname) && url.pathname.startsWith('/rest/v1/');
 }
 
-async function cachedSupabaseResponse(req){
-  const cache=await caches.open(DATA_CACHE);
-  return cache.match(req);
+function isJobsHealthProbe(url){
+  return isSupabaseRestRequest(url)
+    && url.pathname.endsWith('/rest/v1/jobs')
+    && url.searchParams.get('select')==='id'
+    && url.searchParams.get('limit')==='1';
+}
+
+async function writeHealthState(ok){
+  try{
+    const cache=await caches.open(HEALTH_CACHE);
+    const state={ok:!!ok,at:Date.now()};
+    await cache.put('/__vecta_cloud_health_state__',new Response(JSON.stringify(state),{
+      headers:{'Content-Type':'application/json','Cache-Control':'no-store'}
+    }));
+  }catch(_e){}
+}
+
+async function readHealthState(){
+  try{
+    const cache=await caches.open(HEALTH_CACHE);
+    const response=await cache.match('/__vecta_cloud_health_state__');
+    if(!response) return null;
+    return await response.json();
+  }catch(_e){return null;}
+}
+
+async function recordCloudSuccess(){
+  consecutiveHealthFailures=0;
+  lastCloudSuccessAt=Date.now();
+  await writeHealthState(true);
+}
+
+async function hasRecentCloudSuccess(){
+  if(lastCloudSuccessAt && Date.now()-lastCloudSuccessAt<RECENT_CLOUD_SUCCESS_MS) return true;
+  const state=await readHealthState();
+  if(state?.ok && Number.isFinite(Number(state.at)) && Date.now()-Number(state.at)<RECENT_CLOUD_SUCCESS_MS){
+    lastCloudSuccessAt=Number(state.at);
+    return true;
+  }
+  return false;
+}
+
+function syntheticHealthSuccess(){
+  return new Response('[{"id":"vecta-cloud-health"}]',{
+    status:200,
+    headers:{
+      'Content-Type':'application/json; charset=utf-8',
+      'Cache-Control':'no-store',
+      'Access-Control-Allow-Origin':'*'
+    }
+  });
+}
+
+async function serverConfirmsSupabase(){
+  try{
+    const response=await fetch('/api/cloud-health',{cache:'no-store'});
+    if(!response.ok) return false;
+    const body=await response.json().catch(()=>null);
+    return body?.ok===true;
+  }catch(_e){
+    return false;
+  }
+}
+
+async function handleJobsHealthProbe(req){
+  // First try the real browser-to-Supabase route. If it works, that is the
+  // strongest possible proof that this device is online.
+  try{
+    const fresh=await fetch(req,{cache:'no-store'});
+    if(fresh?.ok){
+      await recordCloudSuccess();
+      const cache=await caches.open(DATA_CACHE);
+      const contentType=String(fresh.headers.get('content-type')||'').toLowerCase();
+      if(contentType.includes('json')) await cache.put(req,fresh.clone());
+      return fresh;
+    }
+  }catch(_e){}
+
+  // iOS can occasionally fail/abort the cross-origin probe after a successful
+  // CORS preflight. Confirm Supabase through VECTA's own server before declaring
+  // the entire workshop offline.
+  if(await serverConfirmsSupabase()){
+    await recordCloudSuccess();
+    return syntheticHealthSuccess();
+  }
+
+  consecutiveHealthFailures+=1;
+
+  // A single transient failure must never blank the workshop. Recent successful
+  // data traffic is proof of connectivity, and we require three consecutive
+  // failed health checks before accepting an offline result.
+  if(await hasRecentCloudSuccess()) return syntheticHealthSuccess();
+  if(consecutiveHealthFailures<HEALTH_FAILURE_LIMIT){
+    const cached=await caches.open(DATA_CACHE).then(cache=>cache.match(req)).catch(()=>null);
+    if(cached) return cached;
+  }
+
+  await writeHealthState(false);
+  const cached=await caches.open(DATA_CACHE).then(cache=>cache.match(req)).catch(()=>null);
+  return cached || Response.error();
 }
 
 async function fetchSupabaseWithLastKnownFallback(req){
@@ -17,15 +119,16 @@ async function fetchSupabaseWithLastKnownFallback(req){
     const fresh=await fetch(req,{cache:'no-store'});
     const contentType=String(fresh.headers.get('content-type')||'').toLowerCase();
 
-    // Only a successful JSON response is allowed to replace the last-known-good copy.
-    // A failed/empty cloud request must never wipe a previously cached workshop diary.
+    // Any successful Supabase read proves the cloud is reachable and resets the
+    // offline-health failure counter. Only successful JSON may replace good data.
     if(fresh.ok && contentType.includes('json')){
       await cache.put(req,fresh.clone());
+      await recordCloudSuccess();
       return fresh;
     }
 
-    // Treat server/rate-limit failures as a temporary cloud outage and keep working
-    // from the last known successful response on this device.
+    // One table having a temporary 429/5xx is a partial sync problem, not proof
+    // that the whole workshop is offline. Keep showing its last-known-good data.
     if(fresh.status===429 || fresh.status>=500){
       const cached=await cache.match(req);
       if(cached) return cached;
@@ -53,8 +156,7 @@ self.addEventListener('install',event=>{
 self.addEventListener('activate',event=>{
   event.waitUntil((async()=>{
     const keys=await caches.keys();
-    // Delete only obsolete application-shell caches. Keep DATA_CACHE intact so a
-    // deployment cannot destroy the last-known workshop data on the device.
+    // Preserve both last-known workshop data and health history across releases.
     await Promise.all(keys.filter(k=>k!==CACHE && k.startsWith('vecta-workshop-pro-offline-')).map(k=>caches.delete(k)));
     await self.clients.claim();
   })());
@@ -64,6 +166,11 @@ self.addEventListener('fetch',event=>{
   const req=event.request;
   if(req.method!=='GET') return;
   const url=new URL(req.url);
+
+  if(isJobsHealthProbe(url)){
+    event.respondWith(handleJobsHealthProbe(req));
+    return;
+  }
 
   // Last-known-good workshop data. Every successful Supabase REST read is saved
   // on the device. If Supabase/the internet later becomes unavailable, the exact
