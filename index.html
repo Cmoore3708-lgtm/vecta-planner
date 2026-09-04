@@ -1,6 +1,7 @@
 <!doctype html>
 <html lang="en">
 <head>
+  <!-- VECTA IO-GUARD 2026-09-04: realtime row merge, idempotent settings, legacy UUID protection -->
   <!-- VECTA REFRESH RECOVERY 2026-09-01: purge any poisoned old service-worker asset cache before cloud scripts load. -->
   <script>
   window.__vectaCacheResetPromise=(async function(){
@@ -9652,7 +9653,7 @@ async function pullRemote(options){
   /* Every cloud job has now passed through the completion-date audit. Persist only
      the high-confidence legacy repairs identified by the old 17:00 sentinel rule. */
   await persistCompletionDateRepairs();
-  try{var st=await remoteClient.from('workshop_settings').select('*').eq('id','main').single(); if(!st.error&&st.data&&st.data.value){app.settings=merge(app.settings,st.data.value)}}catch(e){}
+  try{var st=await remoteClient.from('workshop_settings').select('*').eq('id','main').single(); if(!st.error&&st.data&&st.data.value){vectaMainSettingsLastPersisted=vectaSettingsSignature(st.data.value);app.settings=merge(app.settings,st.data.value)}}catch(e){}
   await pullInvoicePaymentMethods();
   if(!options.skipDashboardCore){try{var ts=await remoteClient.from('workshop_settings').select('*').eq('id','task_state_overrides_v50').single();if(!ts.error&&ts.data&&ts.data.value){app.settings.taskStateOverrides=mergeTaskStateMaps(hydrateIndependentTaskState(),ts.data.value);writeIndependentTaskState(app.settings.taskStateOverrides)}}catch(e){console.warn('Shared task state pull failed',e)}}
   try{var jc=await remoteClient.from('workshop_settings').select('id,value,updated_at').like('id','jobcustomer:%').limit(1000);if(!jc.error&&Array.isArray(jc.data)){app.jobCustomerMemory=app.jobCustomerMemory||{};jc.data.forEach(function(row){var id=String(row.id||'').replace(/^jobcustomer:/,'');if(id&&row.value&&typeof row.value==='object'){var current=app.jobCustomerMemory[id],ct=Date.parse(current&&current.updated_at||0)||0,rt=Date.parse(row.updated_at||row.value.updated_at||0)||0;if(!current||rt>=ct)app.jobCustomerMemory[id]=Object.assign({},row.value,{updated_at:row.updated_at||row.value.updated_at||''})}})}}catch(e){console.warn('Shared job customer memory pull failed',e)}
@@ -9738,6 +9739,7 @@ function vectaRememberMissingColumn(table,column){if(!table||!column)return;var 
 function vectaStripKnownMissingColumns(table,data){var all=vectaMissingColumns(),list=Array.isArray(all[table])?all[table]:[];list.forEach(function(column){if(Object.prototype.hasOwnProperty.call(data,column))delete data[column]});return data}
 async function upsertRemote(table,row,options){
   options=options||{};
+  if(table==='jobs'&&row&&row.id&&!isUuid(String(row.id))){console.warn('Legacy imported job retained locally; skipped invalid UUID cloud write',row.id);return [{id:String(row.id),vecta_legacy_local_only:true}];}
   if(!remoteClient||!navigator.onLine){if(!options.skipQueue)return queueRemoteOperation('upsert',table,Object.assign({},row));throw new Error('Supabase is not connected.');}
   if(table==='jobs'){var guard=await vectaGuardJobUpsert(row,options);if(!guard.allow)return [{id:String(row&&row.id||''),vecta_conflict_skipped:true}];}
   if(table==='tasks')ensureTaskUuid(row);
@@ -9788,7 +9790,10 @@ async function deleteRemote(table,id,options){options=options||{};
     console.warn('25-Aug recovery hold blocked a job DELETE',id);
     return true;
   }if(!remoteClient||!navigator.onLine){if(!options.skipQueue){queueRemoteOperation('delete',table,id);return true}throw new Error('Supabase is not connected.')}if(table==='tasks'&&!isUuid(id)){console.warn('Skipped remote delete for legacy non-UUID task id',id);return true;}try{var res=await remoteClient.from(table).delete().eq('id',id).select('id');if(res&&res.error)throw new Error(res.error.message||('Could not delete from '+table));var check=await remoteClient.from(table).select('id').eq('id',id).limit(1);if(check&&check.error)throw new Error(check.error.message||('Could not verify deletion from '+table));if(check&&Array.isArray(check.data)&&check.data.length)throw new Error('The record is still present in '+table+'. Supabase may be blocking deletes through its security policy.');return true}catch(e){if(!options.skipQueue&&shouldQueueRemoteFailure(e)){vectaCloudReachable=false;updateConnectivityUI();queueRemoteOperation('delete',table,id);return true}throw e}}
-async function saveAll(){invalidateFinanceDashboardCache();saveLocal(); if(remoteClient){try{await remoteClient.from('workshop_settings').upsert({id:'main',value:app.settings,updated_at:new Date().toISOString()});}catch(e){}}}
+var vectaMainSettingsLastPersisted='';
+function vectaSettingsSignature(value){try{return JSON.stringify(value==null?null:value)}catch(e){return String(value)}}
+async function persistMainSettings(){if(!remoteClient)return false;var sig=vectaSettingsSignature(app.settings||{});if(sig===vectaMainSettingsLastPersisted)return true;try{var ok=await persistMainSettings();if(!ok)throw new Error('Main settings cloud save failed');vectaMainSettingsLastPersisted=sig;return true}catch(e){console.warn('Main settings cloud save failed',e);return false}}
+async function saveAll(){invalidateFinanceDashboardCache();saveLocal();if(remoteClient)await persistMainSettings()}
 function vectaPendingWebsiteBookingCount(){return (app.websiteRequests||[]).filter(function(r){return !r.status||r.status==='awaiting_review'}).length}
 function vectaUpdateAppBadge(){var count=vectaPendingWebsiteBookingCount();if(!('setAppBadge' in navigator))return Promise.resolve(false);return (count?navigator.setAppBadge(count):navigator.clearAppBadge()).then(function(){return true}).catch(function(){return false})}
 function vectaBase64UrlBytes(value){var padding='='.repeat((4-value.length%4)%4),base64=(value+padding).replace(/-/g,'+').replace(/_/g,'/'),raw=atob(base64),bytes=new Uint8Array(raw.length);for(var i=0;i<raw.length;i++)bytes[i]=raw.charCodeAt(i);return bytes}
@@ -9842,9 +9847,30 @@ async function refreshCloudAndRender(){
   catch(e){console.warn('Live cloud refresh failed',e)}
   finally{cloudLastRefreshAt=Date.now();cloudRefreshBusy=false}
 }
-function scheduleCloudRefresh(){
-  if(cloudRefreshDebounce)clearTimeout(cloudRefreshDebounce);
-  cloudRefreshDebounce=setTimeout(function(){cloudRefreshDebounce=null;refreshCloudAndRender()},1200);
+function scheduleCloudRefresh(payload){
+  if(!payload||!payload.table)return;
+  var table=String(payload.table||''),eventType=String(payload.eventType||payload.event||'').toUpperCase(),row=payload.new&&typeof payload.new==='object'?payload.new:null,oldRow=payload.old&&typeof payload.old==='object'?payload.old:null;
+  if(table==='workshop_settings')return;
+  try{
+    if((eventType==='INSERT'||eventType==='UPDATE')&&row&&row.id){
+      if(table==='jobs'){vectaReconcileJobsFromCloud([row]);vectaApplyTerminalJobStates();}
+      else{
+        var key=table==='service_records'?'serviceRecords':(table==='website_booking_requests'?'websiteRequests':table);
+        if(Object.prototype.hasOwnProperty.call(app,key))app[key]=mergeRemoteRows(app[key]||[],[row]);
+      }
+    }else if(eventType==='DELETE'&&oldRow&&oldRow.id&&table!=='jobs'){
+      var deleteKey=table==='service_records'?'serviceRecords':(table==='website_booking_requests'?'websiteRequests':table);
+      if(Array.isArray(app[deleteKey]))app[deleteKey]=app[deleteKey].filter(function(x){return String(x&&x.id||'')!==String(oldRow.id)});
+    }
+    saveLocal();
+    if(cloudRefreshDebounce)clearTimeout(cloudRefreshDebounce);
+    cloudRefreshDebounce=setTimeout(function(){
+      cloudRefreshDebounce=null;
+      var active=document.activeElement;
+      if(view==='settings'||(active&&active.closest&&active.closest('.settingsGrid'))||plannerInteractionBusy)return;
+      render();
+    },180);
+  }catch(e){console.warn('Realtime row merge skipped; safety refresh will reconcile later.',e)}
 }
 function startCloudSync(){
   if(!remoteClient)return;
@@ -9858,7 +9884,6 @@ function startCloudSync(){
     .on('postgres_changes',{event:'*',schema:'public',table:'invoices'},scheduleCloudRefresh)
     .on('postgres_changes',{event:'*',schema:'public',table:'service_records'},scheduleCloudRefresh)
     .on('postgres_changes',{event:'*',schema:'public',table:'website_booking_requests'},scheduleCloudRefresh)
-    .on('postgres_changes',{event:'*',schema:'public',table:'workshop_settings'},scheduleCloudRefresh)
     .subscribe(function(status){console.log('Supabase live sync:',status)});
   if(cloudSyncTimer)clearInterval(cloudSyncTimer);
   /* Realtime is the primary sync path. This slow safety refresh replaces the old
@@ -10420,7 +10445,8 @@ function fleetApplyMaintenanceTombstones(){
 function fleetMotAuthorityLoadLocal(){try{var x=JSON.parse(localStorage.getItem(FLEET_MOT_AUTHORITY_KEY)||'{}');return x&&typeof x==='object'?x:{}}catch(e){return {}}}
 var fleetMotAuthority=fleetMotAuthorityLoadLocal();
 function fleetMotAuthoritySaveLocal(){try{localStorage.setItem(FLEET_MOT_AUTHORITY_KEY,JSON.stringify(fleetMotAuthority||{}))}catch(e){console.warn('MOT authority local save skipped',e)}}
-async function persistFleetMotAuthority(){if(!remoteClient)return false;try{var stamp=new Date().toISOString(),res=await remoteClient.from('workshop_settings').upsert({id:FLEET_MOT_AUTHORITY_CLOUD_ID,value:{version:260,records:fleetMotAuthority||{},updated_at:stamp},updated_at:stamp},{onConflict:'id'});if(res.error)throw res.error;return true}catch(e){console.warn('MOT authority cloud save failed',e);return false}}
+var fleetMotAuthorityLastPersisted='';
+async function persistFleetMotAuthority(){if(!remoteClient)return false;try{var sig=vectaSettingsSignature(fleetMotAuthority||{});if(sig===fleetMotAuthorityLastPersisted)return true;var stamp=new Date().toISOString(),res=await remoteClient.from('workshop_settings').upsert({id:FLEET_MOT_AUTHORITY_CLOUD_ID,value:{version:260,records:fleetMotAuthority||{},updated_at:stamp},updated_at:stamp},{onConflict:'id'});if(res.error)throw res.error;fleetMotAuthorityLastPersisted=sig;return true}catch(e){console.warn('MOT authority cloud save failed',e);return false}}
 function fleetRecordMotAuthority(vehicle,freshExpiry,checkedAt){
   if(!vehicle||!freshExpiry)return false;
   var reg=normReg(vehicle.registration||''),expiry=dvsaIsoDate(freshExpiry),stamp=String(checkedAt||new Date().toISOString());if(!reg||!expiry)return false;
@@ -10462,9 +10488,11 @@ function fleetCaptureCurrentMotAuthority(){
   });
 }
 function fleetSnapshot(){return {version:268,vehicles:fleetVehicles||[],plans:fleetPlans||[],completions:fleetCompletions||[],customers:fleetCustomerProfiles||{},deletedRegistrations:fleetDeletedRegistrations||[],removedMaintenance:(fleetRemovedMaintenance&&typeof fleetRemovedMaintenance==='object'?fleetRemovedMaintenance:{}),updated_at:new Date().toISOString()}}
-async function persistFleetCloudSnapshot(){if(!remoteClient)return false;try{var snap=fleetSnapshot(),res=await remoteClient.from('workshop_settings').upsert({id:fleetCloudStateId,value:snap,updated_at:snap.updated_at},{onConflict:'id'});if(res.error)throw res.error;try{localStorage.setItem('vecta:fleet:cloud-updated:v77',snap.updated_at)}catch(e){}return true}catch(e){console.warn('Fleet cloud snapshot save failed',e);return false}}
+var fleetCloudLastPersistedPayload='';
+function fleetCloudPersistenceValue(snap){return {version:snap.version,vehicles:snap.vehicles,plans:snap.plans,completions:snap.completions,customers:snap.customers,deletedRegistrations:snap.deletedRegistrations,removedMaintenance:snap.removedMaintenance}}
+async function persistFleetCloudSnapshot(){if(!remoteClient)return false;try{var snap=fleetSnapshot(),sig=vectaSettingsSignature(fleetCloudPersistenceValue(snap));if(sig===fleetCloudLastPersistedPayload)return true;var res=await remoteClient.from('workshop_settings').upsert({id:fleetCloudStateId,value:snap,updated_at:snap.updated_at},{onConflict:'id'});if(res.error)throw res.error;fleetCloudLastPersistedPayload=sig;try{localStorage.setItem('vecta:fleet:cloud-updated:v77',snap.updated_at)}catch(e){}return true}catch(e){console.warn('Fleet cloud snapshot save failed',e);return false}}
 function applyFleetCloudSnapshot(value){if(!value||typeof value!=='object')return false;fleetCaptureCurrentMotAuthority();var changed=false;if(value.removedMaintenance&&typeof value.removedMaintenance==='object'){if(!fleetRemovedMaintenance||typeof fleetRemovedMaintenance!=='object')fleetRemovedMaintenance={};Object.keys(value.removedMaintenance).forEach(function(k){var r=value.removedMaintenance[k];if(!fleetRemovedMaintenance[k]||String(r&&r.removed_at||'')>String(fleetRemovedMaintenance[k].removed_at||''))fleetRemovedMaintenance[k]=r});fleetSaveRemovedMaintenance()}if(Array.isArray(value.deletedRegistrations)){value.deletedRegistrations.forEach(function(r){r=normReg(r);if(r&&fleetDeletedRegistrations.indexOf(r)===-1)fleetDeletedRegistrations.push(r)});fleetSaveDeletedRegistrations()}if(Array.isArray(value.vehicles)){fleetVehicles=value.vehicles;changed=true}if(Array.isArray(value.plans)){fleetPlans=value.plans;changed=true}if(Array.isArray(value.completions)){fleetCompletions=value.completions;changed=true}if(value.customers&&typeof value.customers==='object'){var mergedCustomers=Object.assign({},value.customers||{});Object.keys(fleetCustomerProfiles||{}).forEach(function(customerKey){var localProfile=fleetCustomerProfiles[customerKey]||{},remoteProfile=mergedCustomers[customerKey]||{},mergedProfile=Object.assign({},remoteProfile);Object.keys(localProfile).forEach(function(field){if(String(localProfile[field]||'').trim()&&!String(mergedProfile[field]||'').trim())mergedProfile[field]=localProfile[field]});mergedCustomers[customerKey]=mergedProfile});fleetCustomerProfiles=mergedCustomers;changed=true}if(fleetApplyDeletionTombstones())changed=true;if(fleetApplyMaintenanceTombstones())changed=true;if(fleetApplyMotAuthority())changed=true;if(changed){try{localStorage.setItem('vecta:fleet:vehicles:v1',JSON.stringify(fleetVehicles));localStorage.setItem('vecta:fleet:plans:v1',JSON.stringify(fleetPlans));localStorage.setItem('vecta:fleet:completions:v1',JSON.stringify(fleetCompletions));localStorage.setItem('vecta:fleet:customers:v1',JSON.stringify(fleetCustomerProfiles));if(value.updated_at)localStorage.setItem('vecta:fleet:cloud-updated:v77',value.updated_at)}catch(e){}}return changed}
-async function pullFleetCloudState(){if(!remoteClient)return false;try{var rows=await remoteClient.from('workshop_settings').select('id,value,updated_at').in('id',[fleetCloudStateId,'fleet_auto_refresh_status_v77',FLEET_MOT_AUTHORITY_CLOUD_ID]);if(rows.error)throw rows.error;var state=null,status=null,authority=null;(rows.data||[]).forEach(function(row){if(row.id===fleetCloudStateId)state=row;if(row.id==='fleet_auto_refresh_status_v77')status=row;if(row.id===FLEET_MOT_AUTHORITY_CLOUD_ID)authority=row});if(status&&status.value)fleetAutoRefreshStatus=status.value;if(authority&&authority.value&&authority.value.records){var remoteRecords=authority.value.records||{};Object.keys(remoteRecords).forEach(function(k){var rec=remoteRecords[k]||{},reg=normReg(rec.registration||k),expiry=dvsaIsoDate(rec.expiry),prev=fleetMotAuthority[reg]||{},prevExpiry=dvsaIsoDate(prev.expiry);if(reg&&expiry&&(!prevExpiry||String(rec.checked_at||'')>String(prev.checked_at||'')))fleetMotAuthority[reg]=rec});fleetMotAuthoritySaveLocal()}if(state&&state.value){applyFleetCloudSnapshot(Object.assign({},state.value,{updated_at:state.updated_at||state.value.updated_at||''}));return true}fleetApplyMotAuthority();await persistFleetCloudSnapshot();return false}catch(e){console.warn('Fleet cloud state pull failed',e);fleetApplyMotAuthority();return false}}
+async function pullFleetCloudState(){if(!remoteClient)return false;try{var rows=await remoteClient.from('workshop_settings').select('id,value,updated_at').in('id',[fleetCloudStateId,'fleet_auto_refresh_status_v77',FLEET_MOT_AUTHORITY_CLOUD_ID]);if(rows.error)throw rows.error;var state=null,status=null,authority=null;(rows.data||[]).forEach(function(row){if(row.id===fleetCloudStateId)state=row;if(row.id==='fleet_auto_refresh_status_v77')status=row;if(row.id===FLEET_MOT_AUTHORITY_CLOUD_ID)authority=row});if(status&&status.value)fleetAutoRefreshStatus=status.value;if(authority&&authority.value&&authority.value.records){var remoteRecords=authority.value.records||{};fleetMotAuthorityLastPersisted=vectaSettingsSignature(remoteRecords);Object.keys(remoteRecords).forEach(function(k){var rec=remoteRecords[k]||{},reg=normReg(rec.registration||k),expiry=dvsaIsoDate(rec.expiry),prev=fleetMotAuthority[reg]||{},prevExpiry=dvsaIsoDate(prev.expiry);if(reg&&expiry&&(!prevExpiry||String(rec.checked_at||'')>String(prev.checked_at||'')))fleetMotAuthority[reg]=rec});fleetMotAuthoritySaveLocal()}if(state&&state.value){fleetCloudLastPersistedPayload=vectaSettingsSignature(fleetCloudPersistenceValue(state.value));applyFleetCloudSnapshot(Object.assign({},state.value,{updated_at:state.updated_at||state.value.updated_at||''}));return true}fleetApplyMotAuthority();await persistFleetCloudSnapshot();return false}catch(e){console.warn('Fleet cloud state pull failed',e);fleetApplyMotAuthority();return false}}
 function saveFleet(){fleetApplyMaintenanceTombstones();fleetEnsureServicePlanTypes();fleetAlignServiceDatesToMot();fleetAssignPoolEmail();fleetApplyDeletionTombstones();fleetApplyMaintenanceTombstones();fleetApplyMotAuthority();localStorage.setItem('vecta:fleet:vehicles:v1',JSON.stringify(fleetVehicles));localStorage.setItem('vecta:fleet:plans:v1',JSON.stringify(fleetPlans));localStorage.setItem('vecta:fleet:completions:v1',JSON.stringify(fleetCompletions));localStorage.setItem('vecta:fleet:customers:v1',JSON.stringify(fleetCustomerProfiles));if(remoteClient){persistFleetMotAuthority();persistFleetCloudSnapshot()}}
 function fleetAutoRefreshBanner(){
   var st=fleetAutoRefreshStatus||{},when=st.finishedAt||st.startedAt||'',checked=Number(st.checked||0),updated=Number(st.updated||0),errors=Number(st.errors||0),taxConfigured=st.taxConfigured===true,hasReport=!!window.lastFleetManualMotReport;
@@ -10631,7 +10659,7 @@ async function syncContractor2026SpreadsheetRemote(){
   if(!remoteClient)return;
   var rows=window.CONTRACTOR_2026_JOBS||[];
   for(var i=0;i<rows.length;i+=50){
-    var batch=rows.slice(i,i+50).map(function(j){var x=Object.assign({},j);delete x.booking_source;return x});
+    var batch=rows.slice(i,i+50).filter(function(j){return j&&j.id&&isUuid(String(j.id))}).map(function(j){var x=Object.assign({},j);delete x.booking_source;return x});if(!batch.length)continue;
     try{
       var result=await remoteClient.from('jobs').upsert(batch,{onConflict:'id'});
       if(result.error)throw result.error;
@@ -13487,7 +13515,7 @@ function shouldAutoAllocateJobSlot(existing,job){
 }
 async function restoreAug13JobsMovedByOldOverlapRule(){var affected={'YR74JKU':true,'PO11YFC':true},changed=(app.jobs||[]).filter(function(j){return affected[normReg(j.registration||'').replace(/\s/g,'')]&&String(j.booking_date||'')==='2026-08-14'&&!j.archived&&String(j.status||'').toLowerCase()!=='completed'});if(!changed.length)return 0;changed.forEach(function(j){j.booking_date='2026-08-13';j.updated_at=new Date().toISOString()});saveLocal();await repairExistingPlannerOverlaps({persistRemote:false});if(remoteClient){for(var i=0;i<changed.length;i++)await upsertRemote('jobs',changed[i],{silent:true});await repairExistingPlannerOverlaps({persistRemote:true})}return changed.length}
 function ensureContractorSavedFromJob(job){if(!job||String(job.customer_account||'').toUpperCase()!=='CONTRACTOR')return false;var name=fleetNormaliseCustomer(job.customer_name||'');if(!name||['NMUK','STAFF','CONTRACTOR'].indexOf(name.toUpperCase())>-1)return false;app.settings=app.settings||{};app.settings.contractors=Array.isArray(app.settings.contractors)?app.settings.contractors:[];var exists=app.settings.contractors.some(function(v){return fleetNormaliseCustomer(v).toUpperCase()===name.toUpperCase()});if(exists)return false;app.settings.contractors.push(name);app.settings.contractors.sort(function(a,b){return String(a).localeCompare(String(b))});return true}
-async function migrateContractorsIntoMasterList(){var before=JSON.stringify((app.settings&&app.settings.contractors)||[]),names=contractorMasterNames();app.settings=app.settings||{};app.settings.contractors=names;if(JSON.stringify(names)===before)return false;saveLocal();if(remoteClient){try{var res=await remoteClient.from('workshop_settings').upsert({id:'main',value:app.settings,updated_at:new Date().toISOString()},{onConflict:'id'});if(res&&res.error)throw res.error}catch(e){console.warn('Contractor master-list migration could not sync',e)}}return true}
+async function migrateContractorsIntoMasterList(){var before=JSON.stringify((app.settings&&app.settings.contractors)||[]),names=contractorMasterNames();app.settings=app.settings||{};app.settings.contractors=names;if(JSON.stringify(names)===before)return false;saveLocal();if(remoteClient){try{var ok=await persistMainSettings();if(!ok)throw new Error('Main settings cloud save failed')}catch(e){console.warn('Contractor master-list migration could not sync',e)}}return true}
 async function saveJob(id){
   var button=document.getElementById('saveJob');
   var existingJob=(app.jobs||[]).find(function(x){return x.id===id})||null;
@@ -13621,7 +13649,7 @@ function syncSavedJobBundleInBackground(j,linked){
       if(String(j.status||'').toLowerCase()==='completed')await vectaWriteTerminalJobState(j,'completed',{completed_at:j.completed_at||null,booking_date:j.booking_date||null});
       await rememberJobCustomer(j);
       if(remoteClient){
-        try{await remoteClient.from('workshop_settings').upsert({id:'main',value:app.settings,updated_at:new Date().toISOString()})}
+        try{await persistMainSettings()}
         catch(e){console.warn('Background settings sync failed',e)}
       }
       vectaCloudReachable=true;updateConnectivityUI();
@@ -14542,11 +14570,8 @@ try{setTimeout(function(){if(window.app&&Array.isArray(app.jobs))migrateNoVehicl
     jobRows.__v207Wrapped=true;
   }
 
-  function onFleetOpen(){
-    var changed=repairCompletedHistory();
-    refreshDueMots().then(function(n){if(n&&typeof render==='function'&&view==='fleet')render();});
-    return changed;
-  }
+  function onFleetOpen(){return repairCompletedHistory();}
+
   if(typeof fleetBind==='function'&&!fleetBind.__v207Wrapped){
     var oldFleetBind=fleetBind;
     fleetBind=function(){var r=oldFleetBind.apply(this,arguments);setTimeout(onFleetOpen,0);return r;};
@@ -15028,11 +15053,8 @@ try{setTimeout(function(){if(window.app&&Array.isArray(app.jobs))migrateNoVehicl
     };
   }
 
-  function runWhenFleetOpens(){
-    reconcile(false).then(function(r){
-      if((r.changed||0)>0 && typeof render==='function' && typeof view!=='undefined' && view==='fleet')render();
-    });
-  }
+  function runWhenFleetOpens(){return;}
+
   if(typeof fleetBind==='function'&&!fleetBind.__v234Wrapped){
     var old=fleetBind;
     fleetBind=function(){var r=old.apply(this,arguments);bindManualMotCheck();setTimeout(runWhenFleetOpens,50);return r};
