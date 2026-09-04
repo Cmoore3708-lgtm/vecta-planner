@@ -1,9 +1,107 @@
-const CACHE='vecta-workshop-pro-offline-v9-last-known-data-v308';
+const CACHE='vecta-workshop-pro-offline-v10-health-debounce-v309';
 const DATA_CACHE='vecta-workshop-pro-data-last-known-v1';
+const HEALTH_CACHE='vecta-workshop-pro-cloud-health-v1';
 const CORE=['/','/index.html','/manifest.webmanifest','/icons/vecta-192.png','/icons/vecta-512.png'];
+const HEALTH_FAILURE_LIMIT=3;
+const RECENT_CLOUD_SUCCESS_MS=120000;
+let consecutiveHealthFailures=0;
+let lastCloudSuccessAt=0;
 
 function isSupabaseRestRequest(url){
   return /\.supabase\.co$/i.test(url.hostname) && url.pathname.startsWith('/rest/v1/');
+}
+
+function isJobsHealthProbe(url){
+  return isSupabaseRestRequest(url)
+    && url.pathname.endsWith('/rest/v1/jobs')
+    && url.searchParams.get('select')==='id'
+    && url.searchParams.get('limit')==='1';
+}
+
+async function writeHealthState(ok){
+  try{
+    const cache=await caches.open(HEALTH_CACHE);
+    const state={ok:!!ok,at:Date.now()};
+    await cache.put('/__vecta_cloud_health_state__',new Response(JSON.stringify(state),{
+      headers:{'Content-Type':'application/json','Cache-Control':'no-store'}
+    }));
+  }catch(_e){}
+}
+
+async function readHealthState(){
+  try{
+    const cache=await caches.open(HEALTH_CACHE);
+    const response=await cache.match('/__vecta_cloud_health_state__');
+    if(!response) return null;
+    return await response.json();
+  }catch(_e){return null;}
+}
+
+async function recordCloudSuccess(){
+  consecutiveHealthFailures=0;
+  lastCloudSuccessAt=Date.now();
+  await writeHealthState(true);
+}
+
+async function hasRecentCloudSuccess(){
+  if(lastCloudSuccessAt && Date.now()-lastCloudSuccessAt<RECENT_CLOUD_SUCCESS_MS) return true;
+  const state=await readHealthState();
+  if(state?.ok && Number.isFinite(Number(state.at)) && Date.now()-Number(state.at)<RECENT_CLOUD_SUCCESS_MS){
+    lastCloudSuccessAt=Number(state.at);
+    return true;
+  }
+  return false;
+}
+
+function syntheticHealthSuccess(){
+  return new Response('[{"id":"vecta-cloud-health"}]',{
+    status:200,
+    headers:{
+      'Content-Type':'application/json; charset=utf-8',
+      'Cache-Control':'no-store',
+      'Access-Control-Allow-Origin':'*'
+    }
+  });
+}
+
+async function serverConfirmsSupabase(){
+  try{
+    const response=await fetch('/api/cloud-health',{cache:'no-store'});
+    if(!response.ok) return false;
+    const body=await response.json().catch(()=>null);
+    return body?.ok===true;
+  }catch(_e){
+    return false;
+  }
+}
+
+async function handleJobsHealthProbe(req){
+  try{
+    const fresh=await fetch(req,{cache:'no-store'});
+    if(fresh?.ok){
+      await recordCloudSuccess();
+      const cache=await caches.open(DATA_CACHE);
+      const contentType=String(fresh.headers.get('content-type')||'').toLowerCase();
+      if(contentType.includes('json')) await cache.put(req,fresh.clone());
+      return fresh;
+    }
+  }catch(_e){}
+
+  if(await serverConfirmsSupabase()){
+    await recordCloudSuccess();
+    return syntheticHealthSuccess();
+  }
+
+  consecutiveHealthFailures+=1;
+  if(await hasRecentCloudSuccess()) return syntheticHealthSuccess();
+  if(consecutiveHealthFailures<HEALTH_FAILURE_LIMIT){
+    const cached=await caches.open(DATA_CACHE).then(cache=>cache.match(req)).catch(()=>null);
+    if(cached) return cached;
+  }
+
+  await writeHealthState(false);
+  const cached=await caches.open(DATA_CACHE).then(cache=>cache.match(req)).catch(()=>null);
+  return cached || Response.error();
 }
 
 async function fetchSupabaseWithLastKnownFallback(req){
@@ -13,6 +111,7 @@ async function fetchSupabaseWithLastKnownFallback(req){
     const contentType=String(fresh.headers.get('content-type')||'').toLowerCase();
     if(fresh.ok && contentType.includes('json')){
       await cache.put(req,fresh.clone());
+      await recordCloudSuccess();
       return fresh;
     }
     if(fresh.status===429 || fresh.status>=500){
@@ -50,6 +149,11 @@ self.addEventListener('fetch',event=>{
   const req=event.request;
   if(req.method!=='GET') return;
   const url=new URL(req.url);
+
+  if(isJobsHealthProbe(url)){
+    event.respondWith(handleJobsHealthProbe(req));
+    return;
+  }
 
   if(isSupabaseRestRequest(url)){
     event.respondWith(fetchSupabaseWithLastKnownFallback(req));
