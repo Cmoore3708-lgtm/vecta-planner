@@ -1,4 +1,4 @@
-const CACHE='vecta-workshop-pro-offline-v11-offline-reopen-v310';
+const CACHE='vecta-workshop-pro-shell-v12-offline-reopen-v311';
 const DATA_CACHE='vecta-workshop-pro-data-last-known-v1';
 const HEALTH_CACHE='vecta-workshop-pro-cloud-health-v1';
 const CORE=['/','/index.html','/manifest.webmanifest','/icons/vecta-192.png','/icons/vecta-512.png'];
@@ -126,7 +126,7 @@ function patchAppShellHtml(html){
   let patched=String(html||'');
   patched=patched.replace(
     /<!-- VECTA REFRESH RECOVERY 2026-09-01:[\s\S]*?<\/script>/,
-    '<!-- VECTA V310: offline cache is persistent; old one-time recovery purge removed. --><script>window.__vectaCacheResetPromise=Promise.resolve();</script>'
+    '<!-- VECTA V311: persistent offline shell; destructive cache purge disabled. --><script>window.__vectaCacheResetPromise=Promise.resolve();</script>'
   );
   const oldRegister="function registerVectaServiceWorker(){if('serviceWorker' in navigator){window.addEventListener('load',function(){Promise.resolve(window.__vectaCacheResetPromise).finally(function(){navigator.serviceWorker.register('/service-worker.js?v=20260902-push-verify-v306',{updateViaCache:'none'}).then(function(reg){try{reg.update()}catch(_e){}}).catch(function(e){console.warn('Offline app install failed',e)})})})}}";
   const safeRegister="function registerVectaServiceWorker(){if('serviceWorker' in navigator){window.addEventListener('load',function(){Promise.resolve(window.__vectaCacheResetPromise).finally(function(){navigator.serviceWorker.register('/service-worker.js',{updateViaCache:'none'}).then(function(reg){if(navigator.onLine){Promise.resolve(reg.update()).catch(function(e){console.warn('Service worker update skipped',e)})}}).catch(function(e){console.warn('Offline app install skipped',e)})})})}}";
@@ -180,7 +180,7 @@ self.addEventListener('install',event=>{
 self.addEventListener('activate',event=>{
   event.waitUntil((async()=>{
     const keys=await caches.keys();
-    await Promise.all(keys.filter(k=>k!==CACHE && k.startsWith('vecta-workshop-pro-offline-')).map(k=>caches.delete(k)));
+    await Promise.all(keys.filter(k=>k.startsWith('vecta-workshop-pro-offline-')).map(k=>caches.delete(k)));
     await self.clients.claim();
   })());
 });
