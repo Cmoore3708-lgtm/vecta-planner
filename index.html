@@ -15409,6 +15409,8 @@ try{var foot=document.querySelector('.sideFoot small');if(foot)foot.textContent=
 })();
 </script>
 
+
+<!-- V318: Internal On-Site Service completion persistence repair. Built on working V317. -->
 </body>
 </html>
 <script>
@@ -15890,11 +15892,16 @@ window.v234ReconcileOutstandingMots=function(force){return v254Reconcile({manual
    whose possibly-wrong local date happens to be near today. */
 var v254LastOpenRun=0;
 function v254RunOnFleetOpen(){
+  /* V317: Fleet Manager open uses the same final authoritative reconciliation as the manual DVLA button.
+     This runs only when Fleet Manager is opened; it does not participate in Workshop Pro startup/loading. */
   if(Date.now()-v254LastOpenRun<30000)return;
   v254LastOpenRun=Date.now();
-  v254Reconcile({manual:false}).then(function(r){
-    if(r.changed&&typeof render==='function'&&typeof view!=='undefined'&&view==='fleet')render();
-  });
+  var runner=(typeof window.v255RunAllMotMaintenanceRecords==='function')
+    ? window.v255RunAllMotMaintenanceRecords
+    : v254Reconcile;
+  Promise.resolve(runner({manual:false})).then(function(r){
+    if(r&&(r.changed||r.cleaned||r.retired)&&typeof render==='function'&&typeof view!=='undefined'&&view==='fleet')render();
+  }).catch(function(e){console.warn('Automatic Fleet MOT reconciliation skipped',e);});
 }
 if(typeof fleetBind==='function'&&!fleetBind.__v254Wrapped){
   var v254OldFleetBind=fleetBind;
@@ -16378,21 +16385,98 @@ async function v310DeduplicateAndCanonicalise(){
   return {changed:changed.length,duplicates:duplicates.length};
 }
 function v310RepairInternalServicePlans(){
-  if(typeof app==='undefined'||!app||!Array.isArray(app.jobs)||!Array.isArray(window.fleetPlans)||!Array.isArray(window.fleetVehicles))return 0;
-  var changed=0;
+  /* V318: use the live Fleet Manager lexical state via __vectaFleetState.
+     The old V310 repair looked for window.fleetPlans/window.fleetVehicles, but
+     those arrays are deliberately NOT globals. That made the service repair a
+     no-op after a cloud Fleet snapshot was reapplied, allowing completed
+     On-Site Services to reappear in Due next 30 days. */
+  if(typeof app==='undefined'||!app||!Array.isArray(app.jobs)||typeof window.__vectaFleetState!=='function')return 0;
+  var state=window.__vectaFleetState()||{},
+      vehicles=Array.isArray(state.vehicles)?state.vehicles:[],
+      plans=Array.isArray(state.plans)?state.plans:[],
+      completions=Array.isArray(state.completions)?state.completions:[],
+      changed=0,
+      latest={};
+
   (app.jobs||[]).forEach(function(j){
-    var st=String(j&&j.status||'').toLowerCase();if(!j||!(st==='completed'||j.archived===true)||!v310IsInternalOnsite(j)||v310Deleted(j))return;
-    var v=v310FleetVehicle(j.registration);if(!v||String(v.fleetGroup||'')!=='Nissan Internal')return;
-    var done=v310Iso(j.completed_at)||v310Iso(j.booking_date)||v310Iso(j.updated_at);if(!done)return;var next=v310AddMonths(done,12);
-    var p=(window.fleetPlans||[]).find(function(x){return x&&String(x.vehicleId)===String(v.id)&&/^(internal|annual|on[- ]?site).*service$/i.test(String(x.type||''));});
-    if(!p){p={id:'plan-service-'+v.id,vehicleId:v.id,type:'Internal Service',intervalMonths:12,targetMonth:Number(next.slice(5,7)),currentDueDate:next,notes:'Next Internal Service due 12 months after completed On-Site Service '+done+'.',status:'Active',source:'Workshop completion V310'};window.fleetPlans.push(p);changed++;}
-    else if(v310Iso(p.currentDueDate)!==next||String(p.type)!=='Internal Service'){p.currentDueDate=next;p.type='Internal Service';p.intervalMonths=12;p.targetMonth=Number(next.slice(5,7));p.manualDueDate=false;p.notes='Next Internal Service due 12 months after completed On-Site Service '+done+'.';changed++;}
-    window.fleetCompletions=Array.isArray(window.fleetCompletions)?window.fleetCompletions:[];
-    var cid='job-service-'+String(j.id),c=window.fleetCompletions.find(function(x){return x&&String(x.id)===cid;});
-    if(!c){window.fleetCompletions.push({id:cid,type:'Internal Service',serviceType:'Internal Service',notes:'On-Site Service completed. Next Internal Service due '+next+'.',planId:p.id,source:'job:'+String(j.id),nextDue:next,vehicleId:v.id,completedDate:done,datePrecision:'day'});changed++;}
+    if(!j||v310Deleted(j)||!v310IsInternalOnsite(j))return;
+    var st=String(j.status||'').toLowerCase();
+    if(!(st==='completed'||j.archived===true))return;
+    var reg=v310Norm(j.registration||'');
+    if(!reg)return;
+    var v=vehicles.find(function(x){return x&&v310Norm(x.registration||'')===reg;});
+    if(!v||String(v.fleetGroup||'')!=='Nissan Internal')return;
+    var done=v310Iso(j.completed_at)||v310Iso(j.booking_date)||v310Iso(j.updated_at);
+    if(!done)return;
+    var key=String(v.id),prev=latest[key];
+    if(!prev||done>prev.done)latest[key]={vehicle:v,job:j,done:done};
   });
+
+  Object.keys(latest).forEach(function(key){
+    var item=latest[key],v=item.vehicle,j=item.job,done=item.done,next=v310AddMonths(done,12);
+    if(!next)return;
+
+    var servicePlans=plans.filter(function(x){
+      return x&&String(x.vehicleId)===String(v.id)&&String(x.status||'Active')==='Active'&&
+        (typeof fleetMaintenanceCategory==='function'
+          ? fleetMaintenanceCategory(x.type)==='service'
+          : /service/i.test(String(x.type||'')));
+    });
+
+    servicePlans.sort(function(a,b){
+      var ad=v310Iso(typeof fleetDate==='function'?fleetDate(a):a.currentDueDate)||'9999-12-31',
+          bd=v310Iso(typeof fleetDate==='function'?fleetDate(b):b.currentDueDate)||'9999-12-31';
+      return ad.localeCompare(bd);
+    });
+
+    var p=servicePlans[0]||null;
+    if(!p){
+      p={id:'plan-service-'+v.id,vehicleId:v.id,type:'Internal Service',intervalMonths:12,
+         targetMonth:Number(next.slice(5,7)),currentDueDate:next,
+         notes:'Next Internal Service due 12 months after completed On-Site Service '+done+'.',
+         status:'Active',source:'Workshop completion V318'};
+      plans.push(p);changed++;
+    }else{
+      if(v310Iso(p.currentDueDate)!==next){p.currentDueDate=next;changed++;}
+      if(String(p.type)!=='Internal Service'){p.type='Internal Service';changed++;}
+      p.intervalMonths=12;p.targetMonth=Number(next.slice(5,7));p.manualDueDate=false;
+      p.notes='Next Internal Service due 12 months after completed On-Site Service '+done+'.';
+    }
+
+    /* Retire duplicate active service plans for the same Internal vehicle so an
+       old September 2026 plan cannot remain visible beside the repaired 2027 plan. */
+    servicePlans.slice(1).forEach(function(other){
+      if(String(other.status||'Active')==='Active'){
+        other.status='Superseded';
+        other.notes='Superseded by completed On-Site Service '+done+'. Next due '+next+'.';
+        changed++;
+      }
+    });
+
+    var cid='job-service-'+String(j.id),
+        c=completions.find(function(x){return x&&String(x.id)===cid;});
+    if(!c){
+      completions.push({id:cid,type:'Internal Service',serviceType:'Internal Service',
+        notes:'On-Site Service completed. Next Internal Service due '+next+'.',
+        planId:p.id,source:'job:'+String(j.id),nextDue:next,vehicleId:v.id,
+        completedDate:done,datePrecision:'day'});
+      changed++;
+    }else{
+      c.type='Internal Service';c.serviceType='Internal Service';c.planId=p.id;
+      c.nextDue=next;c.completedDate=done;c.datePrecision='day';
+    }
+  });
+
+  if(changed){
+    window.__vectaFleetState({vehicles:vehicles,plans:plans,completions:completions});
+    try{
+      localStorage.setItem('vecta:fleet:plans:v1',JSON.stringify(plans));
+      localStorage.setItem('vecta:fleet:completions:v1',JSON.stringify(completions));
+    }catch(e){}
+  }
   return changed;
 }
+
 /* MOT completion detection must come from the job TYPE, never from notes such as "MOT booked". */
 function v310StrictMotJob(job){
   if(!job)return false;var types=[];if(Array.isArray(job.job_types))types=types.concat(job.job_types);if(job.job_type)types.push(job.job_type);if(job.type)types.push(job.type);
