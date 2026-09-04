@@ -1,5 +1,41 @@
-const CACHE='vecta-workshop-pro-offline-v8-background-push-v307';
+const CACHE='vecta-workshop-pro-offline-v9-last-known-data-v308';
+const DATA_CACHE='vecta-workshop-pro-data-last-known-v1';
 const CORE=['/','/index.html','/manifest.webmanifest','/icons/vecta-192.png','/icons/vecta-512.png'];
+
+function isSupabaseRestRequest(url){
+  return /\.supabase\.co$/i.test(url.hostname) && url.pathname.startsWith('/rest/v1/');
+}
+
+async function cachedSupabaseResponse(req){
+  const cache=await caches.open(DATA_CACHE);
+  return cache.match(req);
+}
+
+async function fetchSupabaseWithLastKnownFallback(req){
+  const cache=await caches.open(DATA_CACHE);
+  try{
+    const fresh=await fetch(req,{cache:'no-store'});
+    const contentType=String(fresh.headers.get('content-type')||'').toLowerCase();
+
+    // Only a successful JSON response is allowed to replace the last-known-good copy.
+    // A failed/empty cloud request must never wipe a previously cached workshop diary.
+    if(fresh.ok && contentType.includes('json')){
+      await cache.put(req,fresh.clone());
+      return fresh;
+    }
+
+    // Treat server/rate-limit failures as a temporary cloud outage and keep working
+    // from the last known successful response on this device.
+    if(fresh.status===429 || fresh.status>=500){
+      const cached=await cache.match(req);
+      if(cached) return cached;
+    }
+
+    return fresh;
+  }catch(_e){
+    return (await cache.match(req)) || Response.error();
+  }
+}
 
 self.addEventListener('install',event=>{
   event.waitUntil((async()=>{
@@ -17,6 +53,8 @@ self.addEventListener('install',event=>{
 self.addEventListener('activate',event=>{
   event.waitUntil((async()=>{
     const keys=await caches.keys();
+    // Delete only obsolete application-shell caches. Keep DATA_CACHE intact so a
+    // deployment cannot destroy the last-known workshop data on the device.
     await Promise.all(keys.filter(k=>k!==CACHE && k.startsWith('vecta-workshop-pro-offline-')).map(k=>caches.delete(k)));
     await self.clients.claim();
   })());
@@ -26,6 +64,14 @@ self.addEventListener('fetch',event=>{
   const req=event.request;
   if(req.method!=='GET') return;
   const url=new URL(req.url);
+
+  // Last-known-good workshop data. Every successful Supabase REST read is saved
+  // on the device. If Supabase/the internet later becomes unavailable, the exact
+  // same query is answered from the most recent successful copy instead of [].
+  if(isSupabaseRestRequest(url)){
+    event.respondWith(fetchSupabaseWithLastKnownFallback(req));
+    return;
+  }
 
   if(url.origin===self.location.origin){
     if(url.pathname.startsWith('/api/')) return;
