@@ -16443,3 +16443,95 @@ setTimeout(function(){if(typeof view!=='undefined'&&view==='fleet')v310RepairAll
 try{var foot=document.querySelector('.sideFoot small');if(foot)foot.textContent='v310 Workshop Pro · Fleet integrity hardening';}catch(e){}
 })();
 </script>
+<script id="v311-mot-completion-bridge">
+/* V311 — MOT completion bridge
+   A newly passed MOT can legitimately remain on the government's previous expiry
+   for a short period. Workshop-confirmed completion clears the CURRENT due cycle
+   without inventing/replacing the authoritative government expiry date. */
+(function(){
+'use strict';
+function nreg(v){return String(v||'').toUpperCase().replace(/[^A-Z0-9]/g,'');}
+function iso(v){var m=String(v||'').match(/\d{4}-\d{2}-\d{2}/);return m?m[0]:'';}
+function done(j){
+  if(!j)return false;
+  var s=String(j.status||'').toLowerCase().replace(/\s+/g,'_');
+  return s==='completed'||s==='complete'||s==='ready_to_invoice'||s==='ready_for_invoice'||s==='invoiced'||s==='invoice_created'||j.archived===true||!!j.completed_at||!!j.completedAt;
+}
+function doneDate(j){return iso(j&&j.completed_at)||iso(j&&j.completedAt)||iso(j&&j.booking_date)||iso(j&&j.updated_at);}
+function strictMotJob(j){
+  if(!j)return false;
+  var vals=[];
+  if(Array.isArray(j.job_types))vals=vals.concat(j.job_types);
+  if(j.job_type)vals.push(j.job_type);
+  if(j.type)vals.push(j.type);
+  return vals.some(function(v){
+    return String(v||'').split(/\|\||\+|\/|,/).some(function(t){return /^\s*MOT\s*$/i.test(t);});
+  });
+}
+function vehicleForPlan(plan){return (fleetVehicles||[]).find(function(v){return v&&String(v.id)===String(plan&&plan.vehicleId);})||null;}
+function planDue(plan){try{return iso(typeof fleetDate==='function'?fleetDate(plan):plan.currentDueDate);}catch(e){return iso(plan&&plan.currentDueDate);}}
+function dateWithinCurrentCycle(completed,due){
+  completed=iso(completed);due=iso(due);if(!completed||!due)return false;
+  var cm=new Date(completed+'T00:00:00').getTime(),dm=new Date(due+'T00:00:00').getTime();
+  if(isNaN(cm)||isNaN(dm))return false;
+  return cm>=dm-(31*86400000);
+}
+function verifiedCompletion(plan){
+  var due=planDue(plan);
+  return (fleetCompletions||[]).some(function(c){
+    if(!c||String(c.type||'').toUpperCase()!=='MOT')return false;
+    if(String(c.vehicleId||'')!==String(plan.vehicleId||''))return false;
+    var verified=c.verified===true||/^verified:/i.test(String(c.source||''));
+    if(!verified)return false;
+    var d=iso(c.completedDate)||iso(c.completed_at)||iso(c.date);
+    return dateWithinCurrentCycle(d,due);
+  });
+}
+function structuredJobCompletion(plan,vehicle){
+  if(typeof app==='undefined'||!app||!Array.isArray(app.jobs))return false;
+  var due=planDue(plan),reg=nreg(vehicle&&vehicle.registration);if(!due||!reg)return false;
+  return app.jobs.some(function(j){
+    if(!j||!done(j)||!strictMotJob(j)||nreg(j.registration)!==reg)return false;
+    return dateWithinCurrentCycle(doneDate(j),due);
+  });
+}
+function currentMotCycleCompleted(plan){
+  if(!plan)return false;
+  var vehicle=vehicleForPlan(plan);if(!vehicle)return false;
+  return structuredJobCompletion(plan,vehicle)||verifiedCompletion(plan);
+}
+window.v311MotCycleCompleted=currentMotCycleCompleted;
+window.v311StrictMotJob=strictMotJob;
+function install(){
+  if(typeof fleetVehiclePlans!=='function')return false;
+  fleetOutstandingPlans=function(id){
+    return fleetVehiclePlans(id).filter(function(p){
+      var cat='';try{cat=typeof fleetMaintenanceCategory==='function'?fleetMaintenanceCategory(p.type):'';}catch(e){}
+      if(cat==='mot'||/^\s*MOT\s*$/i.test(String(p&&p.type||'')))return !currentMotCycleCompleted(p);
+      return typeof fleetPlanCompletedForCurrentCycle==='function'?!fleetPlanCompletedForCurrentCycle(p):true;
+    });
+  };
+  return true;
+}
+install();
+try{v255StrictMotJob=strictMotJob;window.v255StrictMotJob=strictMotJob;}catch(e){window.v255StrictMotJob=strictMotJob;}
+try{motCycleCompleted=currentMotCycleCompleted;window.v309MotCycleCompleted=currentMotCycleCompleted;}catch(e){window.v309MotCycleCompleted=currentMotCycleCompleted;}
+try{
+  if(typeof applyFleetCloudSnapshot==='function'&&!applyFleetCloudSnapshot.__v311MotBridge){
+    var oldApply=applyFleetCloudSnapshot;
+    applyFleetCloudSnapshot=function(){var r=oldApply.apply(this,arguments);install();setTimeout(function(){install();try{if(typeof render==='function'&&view==='fleet')render();}catch(e){}},0);return r;};
+    applyFleetCloudSnapshot.__v311MotBridge=true;
+  }
+}catch(e){console.warn('V311 snapshot MOT bridge skipped',e);}
+try{
+  if(typeof fleetBind==='function'&&!fleetBind.__v311MotBridge){
+    var oldBind=fleetBind;
+    fleetBind=function(){install();var r=oldBind.apply(this,arguments);install();return r;};
+    fleetBind.__v311MotBridge=true;
+  }
+}catch(e){console.warn('V311 Fleet bind MOT bridge skipped',e);}
+setTimeout(function(){install();try{if(typeof render==='function'&&typeof view!=='undefined'&&view==='fleet')render();}catch(e){}},1400);
+setTimeout(function(){install();try{if(typeof render==='function'&&typeof view!=='undefined'&&view==='fleet')render();}catch(e){}},5200);
+try{var foot=document.querySelector('.sideFoot small');if(foot)foot.textContent='v311 Workshop Pro · MOT completion bridge';}catch(e){}
+})();
+</script>
