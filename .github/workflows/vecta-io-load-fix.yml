@@ -13,7 +13,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Apply validated IO patch
+      - name: Apply corrected validated IO patch
         run: python .github/scripts/vecta_io_patch.py
       - name: Commit fix
         run: |
