@@ -9588,8 +9588,11 @@ async function vectaRepairConfirmedNk72KtfCompletion(){
 }
 
 function vectaSetStartupLoading(on,title,detail){
+  /* V314: fail-open startup. Never hide the workshop behind a cloud-loading gate.
+     The last-known local/IndexedDB workshop remains usable immediately while the
+     authoritative cloud refresh runs in the background. */
   try{
-    document.body.classList.toggle('vectaStartupLoading',!!on);
+    document.body.classList.remove('vectaStartupLoading');
     var t=document.getElementById('vectaStartupTitle'),d=document.getElementById('vectaStartupDetail');
     if(t&&title)t.textContent=title;if(d&&detail)d.textContent=detail;
   }catch(e){}
@@ -9877,6 +9880,10 @@ function init(){safe(async function(){
      a device opened with no internet starts with its last known workshop instead of an empty diary. */
   await vectaRestoreLatestBackupIfNeeded();
   bindTop();
+  /* V314: show the recovered last-known workshop immediately. Cloud data will
+     reconcile on top of it; connectivity must never make the diary unusable. */
+  vectaSetStartupLoading(false);
+  render();
   vectaSetStartupLoading(true,'Loading workshop…','Checking live jobs and tasks before showing the dashboard.');
   /* V290 fail-open watchdog: a slow or failed cloud request must never leave the
      workshop hidden behind the loading gate. Cloud sync can continue afterwards. */
@@ -13534,11 +13541,10 @@ async function saveJob(id){
     if(workField){workField.classList.add('requiredMissing');workField.focus();workField.oninput=function(){if(String(this.value||'').trim())this.classList.remove('requiredMissing')}}
     return;
   }
-  /* V313: Do not block job-card actions because a website booking's original
-     appointment time has already passed. This validation used to run on every
-     save, including status-only actions such as Ready to invoice, which could
-     trap legitimate completed work. Historical appointment times are retained
-     as recorded; users may still edit the booking date/time when appropriate. */
+  if(String(j.source||'').toLowerCase()==='website booking'&&j.booking_date===todayIso()&&j.technician&&j.technician!=='Unallocated'){
+    var now=new Date(),nowMinutes=now.getHours()*60+now.getMinutes(),jobMinutes=clockMinutes(j.drop_time||'08:00');
+    if(jobMinutes<nowMinutes){alert('This website booking is set for a time that has already passed today. Choose a later time, choose one of the customer’s suggested dates, or leave the technician as Unallocated.');var dateField=document.getElementById('job_booking_date'),timeField=document.getElementById('job_drop_time');if(dateField)dateField.focus();else if(timeField)timeField.focus();return;}
+  }
   var autoSlotNotice='';
   if(!isVehicleTaxJob(j)&&shouldAutoAllocateJobSlot(existingJob,j)){
     var nextSlot=findNextMechanicSlot(j,j.id);
