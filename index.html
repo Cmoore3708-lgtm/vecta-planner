@@ -12,7 +12,7 @@
     }catch(e){console.warn('VECTA cache reset skipped',e)}
   })();
   </script>
-  <!-- VECTA V255: combined Service + MOT completion asks whether MOT was actually completed; No keeps MOT outstanding -->
+  <!-- VECTA V320: combined Service + MOT completion asks whether MOT was actually completed; No keeps MOT outstanding -->
   <!-- VECTA V254: authoritative MOT lookup checks EVERY active MOT plan and may correct dates backwards or forwards -->
   <!-- VECTA V253: stale recurring MOT due dates roll into current cycle; fixes missing NK72 KTD / NK72 KTJ -->
   <!-- VECTA V100: preserve spreadsheet-specific Nissan contacts; stop Pool default email overwrite -->
@@ -9195,7 +9195,30 @@ async function vectaStoreBackup(snapshot){var db=await vectaOpenBackupDb();await
 async function vectaListBackups(){try{var db=await vectaOpenBackupDb();var rows=await new Promise(function(resolve,reject){var tx=db.transaction(VECTA_BACKUP_STORE,'readonly'),req=tx.objectStore(VECTA_BACKUP_STORE).getAll();req.onsuccess=function(){resolve(req.result||[])};req.onerror=function(){reject(req.error)}});db.close();return rows.sort(function(a,b){return String(b.created_at||'').localeCompare(String(a.created_at||''))})}catch(e){console.warn('Backup list unavailable',e);return []}}
 async function vectaPruneBackups(){var rows=await vectaListBackups();if(rows.length<=VECTA_BACKUP_RETENTION)return;var db=await vectaOpenBackupDb();await new Promise(function(resolve,reject){var tx=db.transaction(VECTA_BACKUP_STORE,'readwrite'),st=tx.objectStore(VECTA_BACKUP_STORE);rows.slice(VECTA_BACKUP_RETENTION).forEach(function(r){st.delete(r.id)});tx.oncomplete=resolve;tx.onerror=function(){reject(tx.error)}});db.close()}
 function vectaBackupPayload(source){return {id:new Date().toISOString().slice(0,10),created_at:new Date().toISOString(),source:source||'local',version:'offline-continuity-v1',record_counts:{jobs:(app.jobs||[]).length,customers:(app.customers||[]).length,vehicles:(app.vehicles||[]).length,tasks:(app.tasks||[]).length,invoices:(app.invoices||[]).length,serviceRecords:(app.serviceRecords||[]).length,websiteRequests:(app.websiteRequests||[]).length},app:JSON.parse(JSON.stringify(app)),fleetVehicles:(typeof fleetVehicles!=='undefined'&&Array.isArray(fleetVehicles))?JSON.parse(JSON.stringify(fleetVehicles)):[],fleetPlans:(typeof maintenancePlans!=='undefined'&&Array.isArray(maintenancePlans))?JSON.parse(JSON.stringify(maintenancePlans)):[],pendingSync:vectaPendingSync()}}
-async function vectaCreateDailyBackup(force,source){var today=new Date().toISOString().slice(0,10),rows=await vectaListBackups();if(!force&&rows.some(function(r){return r.id===today}))return rows.find(function(r){return r.id===today});var snap=vectaBackupPayload(source||((navigator.onLine&&vectaCloudReachable)?'cloud-synchronised':'offline-local'));await vectaStoreBackup(snap);try{localStorage.setItem('vecta:offline:last-backup',snap.created_at)}catch(e){}return snap}
+function vectaBackupJobCount(snapshot){try{return Number(snapshot&&snapshot.record_counts&&snapshot.record_counts.jobs!=null?snapshot.record_counts.jobs:(snapshot&&snapshot.app&&Array.isArray(snapshot.app.jobs)?snapshot.app.jobs.length:0))||0}catch(e){return 0}}
+function vectaHasUsableWorkshopData(candidate){candidate=candidate||app;return !!(candidate&&Array.isArray(candidate.jobs)&&candidate.jobs.length)}
+async function vectaRestoreLatestBackupIfNeeded(){
+  try{
+    if(vectaHasUsableWorkshopData(app))return false;
+    var rows=await vectaListBackups(),usable=rows.find(function(r){return r&&r.app&&vectaBackupJobCount(r)>0&&Array.isArray(r.app.jobs)});
+    if(!usable)return false;
+    app=merge(app,JSON.parse(JSON.stringify(usable.app)));
+    if(typeof fleetVehicles!=='undefined'&&Array.isArray(usable.fleetVehicles)&&usable.fleetVehicles.length)fleetVehicles=JSON.parse(JSON.stringify(usable.fleetVehicles));
+    if(typeof fleetPlans!=='undefined'&&Array.isArray(usable.fleetPlans)&&usable.fleetPlans.length)fleetPlans=JSON.parse(JSON.stringify(usable.fleetPlans));
+    try{localStorage.setItem(STORE_KEY,JSON.stringify(app));localStorage.setItem('vecta:offline:last-restored-backup',usable.created_at||'')}catch(e){console.warn('Restored workshop could not be copied to localStorage',e)}
+    console.warn('Offline continuity: restored '+vectaBackupJobCount(usable)+' jobs from local snapshot '+String(usable.created_at||usable.id||''));
+    return true;
+  }catch(e){console.warn('Offline snapshot restore skipped',e);return false}
+}
+async function vectaCreateDailyBackup(force,source){
+  var today=new Date().toISOString().slice(0,10),rows=await vectaListBackups(),snap=vectaBackupPayload(source||((navigator.onLine&&vectaCloudReachable)?'cloud-synchronised':'offline-local'));
+  /* Always refresh today's snapshot instead of freezing the first startup copy for the whole day.
+     This is what makes the backup genuinely "last known good" rather than "first state seen today". */
+  if(!force&&vectaBackupJobCount(snap)===0){var usable=rows.find(function(r){return vectaBackupJobCount(r)>0});if(usable)return usable}
+  await vectaStoreBackup(snap);
+  try{localStorage.setItem('vecta:offline:last-backup',snap.created_at)}catch(e){}
+  return snap
+}
 function vectaDownloadObject(data,filename){var blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=filename;document.body.appendChild(a);a.click();a.remove();setTimeout(function(){URL.revokeObjectURL(url)},1000)}
 async function vectaDownloadLatestBackup(){var rows=await vectaListBackups();if(!rows.length){await vectaCreateDailyBackup(true,'manual');rows=await vectaListBackups()}if(rows[0])vectaDownloadObject(rows[0],'VECTA-OFFLINE-BACKUP-'+String(rows[0].id)+'.json')}
 async function vectaBackupHealthHtml(){var rows=await vectaListBackups(),last=rows[0]||null,pending=vectaPendingSync().length,lastText=last?new Date(last.created_at).toLocaleString('en-GB'):'No backup yet',count=last?Object.values(last.record_counts||{}).reduce(function(a,b){return a+Number(b||0)},0):0;return '<div class="card panel"><h3>Offline Backup & Recovery</h3><p class="muted">Workshop Pro keeps a daily offline snapshot on this computer and can open without Supabase. The newest 30 daily snapshots are retained locally.</p><div class="backupHealthGrid"><div class="backupHealthItem"><small>Last local backup</small><b class="'+(last?'backupStatusGood':'backupStatusBad')+'">'+esc(lastText)+'</b></div><div class="backupHealthItem"><small>Records in latest snapshot</small><b>'+count.toLocaleString('en-GB')+'</b></div><div class="backupHealthItem"><small>Cloud status</small><b class="'+((navigator.onLine&&vectaCloudReachable)?'backupStatusGood':'backupStatusBad')+'">'+((navigator.onLine&&vectaCloudReachable)?'Connected':'Offline mode')+'</b></div><div class="backupHealthItem"><small>Changes waiting to sync</small><b class="'+(pending?'backupStatusWarn':'backupStatusGood')+'">'+pending+'</b></div></div><div class="backupActions"><button class="btn dark" id="backupNow">Back Up Now</button><button class="btn" id="downloadLatestBackup">Download Latest Backup</button><button class="btn" id="syncOfflineChanges" '+((navigator.onLine&&vectaCloudReachable)?'':'disabled')+'>Sync Offline Changes</button></div><p class="muted" style="margin-top:10px"><b>Important:</b> this local snapshot protects the workshop during an internet/Supabase outage. A separate physical/off-site copy is the next layer and will be added to the automated backup service.</p></div>'}
@@ -9835,6 +9858,7 @@ function startCloudSync(){
     .on('postgres_changes',{event:'*',schema:'public',table:'invoices'},scheduleCloudRefresh)
     .on('postgres_changes',{event:'*',schema:'public',table:'service_records'},scheduleCloudRefresh)
     .on('postgres_changes',{event:'*',schema:'public',table:'website_booking_requests'},scheduleCloudRefresh)
+    .on('postgres_changes',{event:'*',schema:'public',table:'workshop_settings'},scheduleCloudRefresh)
     .subscribe(function(status){console.log('Supabase live sync:',status)});
   if(cloudSyncTimer)clearInterval(cloudSyncTimer);
   /* Realtime is the primary sync path. This slow safety refresh replaces the old
@@ -9849,6 +9873,9 @@ function startCloudSync(){
 }
 function init(){safe(async function(){
   loadLocal();
+  /* Restore the newest usable IndexedDB snapshot before any cloud request. This means
+     a device opened with no internet starts with its last known workshop instead of an empty diary. */
+  await vectaRestoreLatestBackupIfNeeded();
   bindTop();
   vectaSetStartupLoading(true,'Loading workshop…','Checking live jobs and tasks before showing the dashboard.');
   /* V290 fail-open watchdog: a slow or failed cloud request must never leave the
@@ -9875,6 +9902,8 @@ function init(){safe(async function(){
       /* V288: jobs + tasks + terminal states are fetched in parallel, reconciled in memory,
          and only then is the dashboard exposed. Stale local cards can no longer flash first. */
       await vectaPrimeAuthoritativeDashboard();
+      /* A successful authoritative cloud load becomes the new last-known-good offline copy immediately. */
+      await vectaCreateDailyBackup(true,'cloud-synchronised');
       importContractor2026Spreadsheet();ensureServiceTemplates();ensureRecurringWorkshopTasks();
       clearTimeout(vectaStartupWatchdog);vectaSetStartupLoading(false);render();updateConnectivityUI();
       /* Everything below is background work. It must not hold the first correct dashboard hostage. */
@@ -10391,8 +10420,7 @@ function fleetApplyMaintenanceTombstones(){
 function fleetMotAuthorityLoadLocal(){try{var x=JSON.parse(localStorage.getItem(FLEET_MOT_AUTHORITY_KEY)||'{}');return x&&typeof x==='object'?x:{}}catch(e){return {}}}
 var fleetMotAuthority=fleetMotAuthorityLoadLocal();
 function fleetMotAuthoritySaveLocal(){try{localStorage.setItem(FLEET_MOT_AUTHORITY_KEY,JSON.stringify(fleetMotAuthority||{}))}catch(e){console.warn('MOT authority local save skipped',e)}}
-var fleetMotAuthorityLastPersisted=null;
-async function persistFleetMotAuthority(){if(!remoteClient)return false;try{var payload=JSON.stringify(fleetMotAuthority||{});if(payload===fleetMotAuthorityLastPersisted)return true;var stamp=new Date().toISOString(),res=await remoteClient.from('workshop_settings').upsert({id:FLEET_MOT_AUTHORITY_CLOUD_ID,value:{version:260,records:fleetMotAuthority||{},updated_at:stamp},updated_at:stamp},{onConflict:'id'});if(res.error)throw res.error;fleetMotAuthorityLastPersisted=payload;return true}catch(e){console.warn('MOT authority cloud save failed',e);return false}}
+async function persistFleetMotAuthority(){if(!remoteClient)return false;try{var stamp=new Date().toISOString(),res=await remoteClient.from('workshop_settings').upsert({id:FLEET_MOT_AUTHORITY_CLOUD_ID,value:{version:260,records:fleetMotAuthority||{},updated_at:stamp},updated_at:stamp},{onConflict:'id'});if(res.error)throw res.error;return true}catch(e){console.warn('MOT authority cloud save failed',e);return false}}
 function fleetRecordMotAuthority(vehicle,freshExpiry,checkedAt){
   if(!vehicle||!freshExpiry)return false;
   var reg=normReg(vehicle.registration||''),expiry=dvsaIsoDate(freshExpiry),stamp=String(checkedAt||new Date().toISOString());if(!reg||!expiry)return false;
@@ -10434,8 +10462,7 @@ function fleetCaptureCurrentMotAuthority(){
   });
 }
 function fleetSnapshot(){return {version:268,vehicles:fleetVehicles||[],plans:fleetPlans||[],completions:fleetCompletions||[],customers:fleetCustomerProfiles||{},deletedRegistrations:fleetDeletedRegistrations||[],removedMaintenance:(fleetRemovedMaintenance&&typeof fleetRemovedMaintenance==='object'?fleetRemovedMaintenance:{}),updated_at:new Date().toISOString()}}
-var fleetCloudLastPersistedPayload=null;
-async function persistFleetCloudSnapshot(){if(!remoteClient)return false;try{var snap=fleetSnapshot(),payload=JSON.stringify({version:snap.version,vehicles:snap.vehicles,plans:snap.plans,completions:snap.completions,customers:snap.customers,deletedRegistrations:snap.deletedRegistrations,removedMaintenance:snap.removedMaintenance});if(payload===fleetCloudLastPersistedPayload)return true;var res=await remoteClient.from('workshop_settings').upsert({id:fleetCloudStateId,value:snap,updated_at:snap.updated_at},{onConflict:'id'});if(res.error)throw res.error;fleetCloudLastPersistedPayload=payload;try{localStorage.setItem('vecta:fleet:cloud-updated:v77',snap.updated_at)}catch(e){}return true}catch(e){console.warn('Fleet cloud snapshot save failed',e);return false}}
+async function persistFleetCloudSnapshot(){if(!remoteClient)return false;try{var snap=fleetSnapshot(),res=await remoteClient.from('workshop_settings').upsert({id:fleetCloudStateId,value:snap,updated_at:snap.updated_at},{onConflict:'id'});if(res.error)throw res.error;try{localStorage.setItem('vecta:fleet:cloud-updated:v77',snap.updated_at)}catch(e){}return true}catch(e){console.warn('Fleet cloud snapshot save failed',e);return false}}
 function applyFleetCloudSnapshot(value){if(!value||typeof value!=='object')return false;fleetCaptureCurrentMotAuthority();var changed=false;if(value.removedMaintenance&&typeof value.removedMaintenance==='object'){if(!fleetRemovedMaintenance||typeof fleetRemovedMaintenance!=='object')fleetRemovedMaintenance={};Object.keys(value.removedMaintenance).forEach(function(k){var r=value.removedMaintenance[k];if(!fleetRemovedMaintenance[k]||String(r&&r.removed_at||'')>String(fleetRemovedMaintenance[k].removed_at||''))fleetRemovedMaintenance[k]=r});fleetSaveRemovedMaintenance()}if(Array.isArray(value.deletedRegistrations)){value.deletedRegistrations.forEach(function(r){r=normReg(r);if(r&&fleetDeletedRegistrations.indexOf(r)===-1)fleetDeletedRegistrations.push(r)});fleetSaveDeletedRegistrations()}if(Array.isArray(value.vehicles)){fleetVehicles=value.vehicles;changed=true}if(Array.isArray(value.plans)){fleetPlans=value.plans;changed=true}if(Array.isArray(value.completions)){fleetCompletions=value.completions;changed=true}if(value.customers&&typeof value.customers==='object'){var mergedCustomers=Object.assign({},value.customers||{});Object.keys(fleetCustomerProfiles||{}).forEach(function(customerKey){var localProfile=fleetCustomerProfiles[customerKey]||{},remoteProfile=mergedCustomers[customerKey]||{},mergedProfile=Object.assign({},remoteProfile);Object.keys(localProfile).forEach(function(field){if(String(localProfile[field]||'').trim()&&!String(mergedProfile[field]||'').trim())mergedProfile[field]=localProfile[field]});mergedCustomers[customerKey]=mergedProfile});fleetCustomerProfiles=mergedCustomers;changed=true}if(fleetApplyDeletionTombstones())changed=true;if(fleetApplyMaintenanceTombstones())changed=true;if(fleetApplyMotAuthority())changed=true;if(changed){try{localStorage.setItem('vecta:fleet:vehicles:v1',JSON.stringify(fleetVehicles));localStorage.setItem('vecta:fleet:plans:v1',JSON.stringify(fleetPlans));localStorage.setItem('vecta:fleet:completions:v1',JSON.stringify(fleetCompletions));localStorage.setItem('vecta:fleet:customers:v1',JSON.stringify(fleetCustomerProfiles));if(value.updated_at)localStorage.setItem('vecta:fleet:cloud-updated:v77',value.updated_at)}catch(e){}}return changed}
 async function pullFleetCloudState(){if(!remoteClient)return false;try{var rows=await remoteClient.from('workshop_settings').select('id,value,updated_at').in('id',[fleetCloudStateId,'fleet_auto_refresh_status_v77',FLEET_MOT_AUTHORITY_CLOUD_ID]);if(rows.error)throw rows.error;var state=null,status=null,authority=null;(rows.data||[]).forEach(function(row){if(row.id===fleetCloudStateId)state=row;if(row.id==='fleet_auto_refresh_status_v77')status=row;if(row.id===FLEET_MOT_AUTHORITY_CLOUD_ID)authority=row});if(status&&status.value)fleetAutoRefreshStatus=status.value;if(authority&&authority.value&&authority.value.records){var remoteRecords=authority.value.records||{};Object.keys(remoteRecords).forEach(function(k){var rec=remoteRecords[k]||{},reg=normReg(rec.registration||k),expiry=dvsaIsoDate(rec.expiry),prev=fleetMotAuthority[reg]||{},prevExpiry=dvsaIsoDate(prev.expiry);if(reg&&expiry&&(!prevExpiry||String(rec.checked_at||'')>String(prev.checked_at||'')))fleetMotAuthority[reg]=rec});fleetMotAuthoritySaveLocal()}if(state&&state.value){applyFleetCloudSnapshot(Object.assign({},state.value,{updated_at:state.updated_at||state.value.updated_at||''}));return true}fleetApplyMotAuthority();await persistFleetCloudSnapshot();return false}catch(e){console.warn('Fleet cloud state pull failed',e);fleetApplyMotAuthority();return false}}
 function saveFleet(){fleetApplyMaintenanceTombstones();fleetEnsureServicePlanTypes();fleetAlignServiceDatesToMot();fleetAssignPoolEmail();fleetApplyDeletionTombstones();fleetApplyMaintenanceTombstones();fleetApplyMotAuthority();localStorage.setItem('vecta:fleet:vehicles:v1',JSON.stringify(fleetVehicles));localStorage.setItem('vecta:fleet:plans:v1',JSON.stringify(fleetPlans));localStorage.setItem('vecta:fleet:completions:v1',JSON.stringify(fleetCompletions));localStorage.setItem('vecta:fleet:customers:v1',JSON.stringify(fleetCustomerProfiles));if(remoteClient){persistFleetMotAuthority();persistFleetCloudSnapshot()}}
@@ -11428,8 +11455,8 @@ function websiteRequestCardHtml(r){
 }
 async function updateWebsiteRequest(id,changes){var row=(app.websiteRequests||[]).find(function(r){return r.id===id});if(!row)return;Object.assign(row,changes,{updated_at:new Date().toISOString()});saveLocal();if(remoteClient){var res=await remoteClient.from('website_booking_requests').update(changes).eq('id',id);if(res.error){console.error(res.error);alert('The website request could not be updated: '+res.error.message);return false}}render();return true}
 function websiteRequestNote(r){
-  var dates=[r.preferred_date_1,r.preferred_date_2,r.preferred_date_3].filter(Boolean).map(function(x){return String(x).slice(0,10)});
-  return 'Website request ID: '+String(r.id||'')+' || Website booking dates: '+dates.join(' | ')+' || Completion deadline: '+String(r.completion_deadline||'Not provided')+' || Contact preference: '+String(r.contact_preference||'Not provided');
+  var requestedDate=String(r.preferred_date_1||'').slice(0,10),createdAt=String(r.created_at||''),notes=String(r.work_required||'').replace(/\s+/g,' ').trim();
+  return 'Website request ID: '+String(r.id||'')+' || Website booking made: '+createdAt+' || Website requested date: '+requestedDate+' || Website customer notes: '+notes+' || Completion deadline: '+String(r.completion_deadline||'Not provided')+' || Contact preference: '+String(r.contact_preference||'Not provided');
 }
 function websiteRequestIdFromJob(j){
   var direct=String(j&&j.website_request_id||'').trim();if(direct)return direct;
@@ -11447,11 +11474,17 @@ function websiteRequestMatchesJob(req,j){
   return (sameReg&&sameName)||(sameReg&&sameWork)||(sameName&&sameWork);
 }
 function websiteJobDetails(j){
-  var note=String(j&&j.customer_note||''),match=note.match(/Website booking dates:\s*([^|][\s\S]*?)\s*\|\|/i),dates=[];
-  if(match)dates=(match[1].match(/\d{4}-\d{2}-\d{2}/g)||[]).slice(0,3);
-  var deadline=(note.match(/Completion deadline:\s*([^|]*?)(?:\s*\|\||$)/i)||[])[1]||'';
-  var contact=(note.match(/Contact preference:\s*([^|]*?)(?=\s*\|\||\s*\[\[|$)/i)||[])[1]||'';
-  return {dates:dates,deadline:String(deadline).trim(),contact:String(contact).trim()};
+  var note=String(j&&j.customer_note||''),requestId=websiteRequestIdFromJob(j),req=(app.websiteRequests||[]).find(function(r){return String(r.id||'')===String(requestId||'')})||null;
+  var oldDates=(note.match(/Website booking dates:\s*([^|][\s\S]*?)\s*\|\|/i)||[])[1]||'',oldDate=(oldDates.match(/\d{4}-\d{2}-\d{2}/)||[])[0]||'';
+  var made=(note.match(/Website booking made:\s*([^|]*?)(?:\s*\|\||$)/i)||[])[1]||'',requested=(note.match(/Website requested date:\s*([^|]*?)(?:\s*\|\||$)/i)||[])[1]||'',notes=(note.match(/Website customer notes:\s*([^|]*?)(?:\s*\|\||$)/i)||[])[1]||'';
+  if(req){made=String(req.created_at||made);requested=String(req.preferred_date_1||requested||oldDate).slice(0,10);notes=String(req.work_required||notes).trim()}
+  if(!requested)requested=oldDate||String(j&&j.booking_date||'').slice(0,10);
+  return {made:String(made).trim(),requestedDate:String(requested).trim(),notes:String(notes).trim()};
+}
+function websiteBookingMadeText(value){
+  if(!value)return 'Not available';
+  var d=new Date(value);if(isNaN(d.getTime()))return String(value);
+  try{return new Intl.DateTimeFormat('en-GB',{timeZone:'Europe/London',weekday:'short',day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit',hour12:false}).format(d)}catch(e){return d.toLocaleString('en-GB')}
 }
 function isWebsiteBookingJob(j){
   if(!j)return false;
@@ -11519,8 +11552,8 @@ function resolveWebsiteServiceChoice(choice){
 }
 function websiteBookingPanelHtml(j){
   if(!isWebsiteBookingJob(j))return '';
-  var details=websiteJobDetails(j),buttons=details.dates.map(function(d,i){return '<button type="button" class="websiteDateChoice" data-website-date="'+esc(d)+'"><b>Option '+(i+1)+'</b><span>'+esc(requestDate(d))+'</span></button>'}).join('');
-  return websiteServiceResolveHtml(j)+'<section class="websiteJobRequestPanel"><div><strong>Website booking request</strong><p>Choose one of the customer’s suggested dates to copy it into the booking date.</p></div><div class="websiteDateChoices">'+(buttons||'<span>No suggested dates were supplied.</span>')+'</div><div class="websiteRequestMeta"><span><b>Needed by:</b> '+esc(details.deadline||'Not provided')+'</span><span><b>Preferred contact:</b> '+esc(details.contact||'Not provided')+'</span></div></section>';
+  var details=websiteJobDetails(j),requested=details.requestedDate?requestDate(details.requestedDate):'Not provided';
+  return websiteServiceResolveHtml(j)+'<section class="websiteJobRequestPanel"><div><strong>Website booking request</strong><p>Details supplied when the customer booked online.</p></div><div class="websiteRequestMeta"><span><b>Booking made:</b> '+esc(websiteBookingMadeText(details.made))+'</span><span><b>Requested booking date:</b> '+esc(requested)+'</span></div><div class="websiteRequestMeta"><span style="grid-column:1/-1"><b>Customer notes:</b> '+esc(details.notes||'No additional notes were added.')+'</span></div></section>';
 }
 async function createJobFromWebsiteRequest(id){
   var existingRequest=(app.websiteRequests||[]).find(function(x){return String(x.id)===String(id)});
@@ -14503,8 +14536,9 @@ try{setTimeout(function(){if(window.app&&Array.isArray(app.jobs))migrateNoVehicl
   }
 
   function onFleetOpen(){
-    /* MOT data is refreshed by the nightly server job or the explicit manual check. */
-    return repairCompletedHistory();
+    var changed=repairCompletedHistory();
+    refreshDueMots().then(function(n){if(n&&typeof render==='function'&&view==='fleet')render();});
+    return changed;
   }
   if(typeof fleetBind==='function'&&!fleetBind.__v207Wrapped){
     var oldFleetBind=fleetBind;
@@ -14988,8 +15022,9 @@ try{setTimeout(function(){if(window.app&&Array.isArray(app.jobs))migrateNoVehicl
   }
 
   function runWhenFleetOpens(){
-    /* No automatic MOT network scan on Fleet renders. */
-    return;
+    reconcile(false).then(function(r){
+      if((r.changed||0)>0 && typeof render==='function' && typeof view!=='undefined' && view==='fleet')render();
+    });
   }
   if(typeof fleetBind==='function'&&!fleetBind.__v234Wrapped){
     var old=fleetBind;
@@ -15717,8 +15752,11 @@ window.v234ReconcileOutstandingMots=function(force){return v254Reconcile({manual
    whose possibly-wrong local date happens to be near today. */
 var v254LastOpenRun=0;
 function v254RunOnFleetOpen(){
-  /* Nightly refresh and the explicit manual check are authoritative. */
-  return;
+  if(Date.now()-v254LastOpenRun<30000)return;
+  v254LastOpenRun=Date.now();
+  v254Reconcile({manual:false}).then(function(r){
+    if(r.changed&&typeof render==='function'&&typeof view!=='undefined'&&view==='fleet')render();
+  });
 }
 if(typeof fleetBind==='function'&&!fleetBind.__v254Wrapped){
   var v254OldFleetBind=fleetBind;
