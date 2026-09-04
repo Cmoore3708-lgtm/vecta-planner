@@ -13099,9 +13099,19 @@ function installNewJobAvailabilityCalendar(allowHistoricalDates){
   if(isNaN(monthDate.getTime()))monthDate=new Date(selectedIso()+'T12:00:00');
 
   function mechanics(){return ((app.settings&&app.settings.mechanics)||['Alfie','Other','Anyone']).filter(Boolean).slice(0,3)}
+  /* V308: booking calendar capacity must use the same active jobs shown in the mini planner. */
   function calendarDayJobs(date){
     return (app.jobs||[]).filter(function(j){
-      return !isVehicleTaxJob(j)&&!!j.booking_date&&String(j.booking_date)===date&&!isUnallocatedJob(j);
+      var st=String(j&&j.status||'').toLowerCase();
+      return !isVehicleTaxJob(j)&&
+        !vectaJobIsDeletedForLists(j)&&
+        !j.archived&&
+        st!=='completed'&&
+        st!=='cancelled'&&
+        st!=='ready_to_invoice'&&
+        !!j.booking_date&&
+        String(j.booking_date)===date&&
+        !isUnallocatedJob(j);
     });
   }
   function dayPct(date,mech){
@@ -13136,7 +13146,7 @@ function installNewJobAvailabilityCalendar(allowHistoricalDates){
       '<div class="v243PlannerGrid" style="--v243-mini-height:'+height+'px"><div class="v243PlannerHead">Time</div>'+mechs.map(function(mech){return '<div class="v243PlannerHead">'+esc(mech)+' <small>'+dayPct(date,mech)+'%</small></div>'}).join('')+
       '<div class="v243TimeLane" style="height:'+height+'px">'+times+'</div>'+
       mechs.map(function(mech){
-        var jobs=(app.jobs||[]).filter(function(j){var st=String(j.status||'').toLowerCase();return !j.archived&&st!=='completed'&&st!=='cancelled'&&String(j.booking_date||'')===date&&String(j.technician||'')===mech}).sort(byTime);
+        var jobs=calendarDayJobs(date).filter(function(j){return String(j.technician||'')===mech}).sort(byTime);
         return '<div class="v243PlannerLane" style="height:'+height+'px">'+jobs.map(function(j){
           return '<div class="v243PlannerJob" style="top:'+top(j.drop_time)+'px;height:'+h(j)+'px"><b>'+esc(j.registration||'NO REG')+'</b><span>'+esc(j.work_required||jobTitle(j))+'</span><small>'+esc(j.drop_time||'08:00')+'</small></div>';
         }).join('')+'</div>';
@@ -15271,6 +15281,137 @@ window.v290RepairCompletionDates=repairFromBackups;
 
 </script>
 <script>console.info("VECTA_BUILD: V291-AUTHORITATIVE-FINANCE-2026-09-01");</script>
+<script id="v309-fleet-completion-due-repair">
+(function(){
+'use strict';
+/* V309: completed workshop work must immediately clear the matching Fleet Manager
+   due cycle. In particular, NMUK On-Site Service is a genuine annual service, and
+   a completed MOT must not remain in Due next 30 days while government data catches up. */
+function iso(raw){raw=String(raw||'').slice(0,10);return /^\d{4}-\d{2}-\d{2}$/.test(raw)?raw:'';}
+function doneDate(j){
+  if(!j)return '';
+  var fields=[j.completed_at,j.completedAt,j.completion_time,j.finished_at,j.invoiced_at,j.booking_date,j.created_at];
+  for(var i=0;i<fields.length;i++){var d=iso(fields[i]);if(d&&d<=todayIso())return d;}
+  return '';
+}
+function isDone(j){
+  if(!j)return false;
+  if(typeof completedJobCanUpdateFleet==='function'&&completedJobCanUpdateFleet(j))return true;
+  var s=String(j.status||'').toLowerCase().replace(/\s+/g,'_');
+  return s==='completed'||s==='complete'||s==='ready_to_invoice'||s==='ready_for_invoice'||s==='invoiced'||s==='invoice_created'||!!j.archived||!!j.completed_at||!!j.completedAt;
+}
+function isService(j){
+  if(!j||!isDone(j)||!doneDate(j))return false;
+  if(typeof isSixMonthSafetyCheck==='function'&&isSixMonthSafetyCheck(j))return false;
+  var cats=typeof fleetPlannerJobCategories==='function'?fleetPlannerJobCategories(j):{};
+  if(cats&&cats.service)return true;
+  var text=[j.job_type,j.job_types,j.work_required,j.description,j.notes,j.title,j.service_type].map(function(v){return Array.isArray(v)?v.join(' '):String(v||'');}).join(' ').toLowerCase();
+  return /\b(?:on[ -]?site|internal|annual|full|major)\s+service\b|\boil\s*(?:&|and)?\s*filter(?:\s+change)?\b/.test(text);
+}
+function isMot(j){
+  if(!j||!isDone(j)||!doneDate(j))return false;
+  if(typeof isActualCompletedMotJob==='function')return !!isActualCompletedMotJob(j);
+  var cats=typeof fleetPlannerJobCategories==='function'?fleetPlannerJobCategories(j):{};
+  return !!(cats&&cats.mot);
+}
+function addMonths(date,months){
+  if(typeof fleetAddMonthsFromDue==='function')return fleetAddMonthsFromDue(date,months);
+  var d=new Date(date+'T00:00:00');if(isNaN(d.getTime()))return '';
+  var day=d.getDate();d.setDate(1);d.setMonth(d.getMonth()+Number(months||0));var last=new Date(d.getFullYear(),d.getMonth()+1,0).getDate();d.setDate(Math.min(day,last));
+  return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+}
+function servicePlans(vehicle){
+  return (fleetPlans||[]).filter(function(p){
+    if(!p||String(p.vehicleId)!==String(vehicle.id)||String(p.status||'Active')!=='Active')return false;
+    var cat=typeof fleetMaintenanceCategory==='function'?fleetMaintenanceCategory(p.type):'';
+    return cat==='service'||/service/i.test(String(p.type||''));
+  });
+}
+function repairServices(){
+  if(typeof app==='undefined'||!app||!Array.isArray(app.jobs)||!Array.isArray(fleetVehicles)||!Array.isArray(fleetPlans))return 0;
+  var latest={};
+  app.jobs.forEach(function(j){
+    if(!isService(j))return;
+    var reg=normReg(j.registration||''),d=doneDate(j);if(!reg||!d)return;
+    if(!latest[reg]||d>latest[reg].date)latest[reg]={job:j,date:d};
+  });
+  var changed=0;
+  Object.keys(latest).forEach(function(reg){
+    var item=latest[reg],vehicle=typeof fleetVehicleForRegistration==='function'?fleetVehicleForRegistration(reg):null;if(!vehicle)return;
+    if(typeof fleetIsMaintenanceRemoved==='function'&&fleetIsMaintenanceRemoved(vehicle.id,'service'))return;
+    var next=addMonths(item.date,12);if(!next)return;
+    var plans=servicePlans(vehicle);
+    plans.sort(function(a,b){if(!!a.manualDueDate!==!!b.manualDueDate)return a.manualDueDate?-1:1;return String((typeof fleetDate==='function'?fleetDate(a):a.currentDueDate)||'9999-12-31').localeCompare(String((typeof fleetDate==='function'?fleetDate(b):b.currentDueDate)||'9999-12-31'));});
+    var plan=plans[0]||null;
+    if(plan&&plan.manualDueDate===true&&iso(plan.currentDueDate)>=next)return;
+    if(!plan){
+      plan={id:'plan-service-'+vehicle.id,vehicleId:vehicle.id,type:vehicle.fleetGroup==='Nissan Internal'?'Internal Service':'Annual Service',intervalMonths:12,targetMonth:null,currentDueDate:next,notes:'Next service due 12 months after completed workshop service '+item.date+'.',status:'Active',source:'Workshop completion V309'};
+      fleetPlans.push(plan);changed++;
+    }else{
+      var old=iso(plan.currentDueDate)||(typeof fleetDate==='function'?iso(fleetDate(plan)):'');
+      if(!old||old<next){plan.currentDueDate=next;plan.intervalMonths=12;plan.targetMonth=null;plan.status='Active';plan.manualDueDate=false;plan.notes='Next service due 12 months after completed workshop service '+item.date+'.';changed++;}
+    }
+    plans.forEach(function(other){if(other!==plan&&String(other.status||'Active')==='Active'){other.status='Superseded';other.notes='Superseded by completed service '+item.date+'.';changed++;}});
+    var cid='job-service-'+String(item.job.id||''),existing=(fleetCompletions||[]).find(function(c){return String(c.id)===cid;}),record={id:cid,vehicleId:vehicle.id,planId:plan.id,type:'Annual Service',serviceType:'Annual Service',completedDate:item.date,datePrecision:'day',nextDue:next,source:'job:'+String(item.job.id||''),notes:'Service completed '+item.date+'; next annual service due '+next+'.'};
+    if(existing)Object.assign(existing,record);else{fleetCompletions.push(record);changed++;}
+  });
+  return changed;
+}
+function motCycleCompleted(plan){
+  if(!plan||typeof app==='undefined'||!app||!Array.isArray(app.jobs))return false;
+  var vehicle=(fleetVehicles||[]).find(function(v){return v&&String(v.id)===String(plan.vehicleId);});if(!vehicle)return false;
+  var reg=normReg(vehicle.registration||''),due=iso(typeof fleetDate==='function'?fleetDate(plan):plan.currentDueDate);if(!reg||!due)return false;
+  var dueMs=new Date(due+'T00:00:00').getTime();
+  return app.jobs.some(function(j){
+    if(!isMot(j)||normReg(j.registration||'')!==reg)return false;
+    var d=doneDate(j),ms=new Date(d+'T00:00:00').getTime();if(!d||isNaN(ms)||isNaN(dueMs))return false;
+    /* Passing an MOT up to 31 days early preserves the old anniversary; a late pass
+       also clears that stale cycle. An MOT from the previous year cannot clear it. */
+    return ms>=dueMs-31*86400000;
+  });
+}
+window.v309MotCycleCompleted=motCycleCompleted;
+
+function installOutstandingFilter(){
+  if(typeof fleetVehiclePlans!=='function')return false;
+  fleetOutstandingPlans=function(id){
+    return fleetVehiclePlans(id).filter(function(p){
+      var cat=typeof fleetMaintenanceCategory==='function'?fleetMaintenanceCategory(p.type):'';
+      if(cat==='mot')return !motCycleCompleted(p);
+      return typeof fleetPlanCompletedForCurrentCycle==='function'?!fleetPlanCompletedForCurrentCycle(p):true;
+    });
+  };
+  return true;
+}
+function repair(){
+  var changed=repairServices();installOutstandingFilter();
+  if(changed&&typeof saveFleet==='function')saveFleet();
+  return changed;
+}
+window.v309RepairFleetCompletionDue=repair;
+
+/* Repair immediately after cloud Fleet state is applied, so a stale snapshot cannot
+   put completed service/MOT work back into Due next 30 days. */
+try{
+  if(typeof applyFleetCloudSnapshot==='function'&&!applyFleetCloudSnapshot.__v309Wrapped){
+    var oldApply=applyFleetCloudSnapshot;
+    applyFleetCloudSnapshot=function(value){var r=oldApply.apply(this,arguments);setTimeout(function(){var n=repair();if((n||view==='fleet')&&typeof render==='function')render();},0);return r;};
+    applyFleetCloudSnapshot.__v309Wrapped=true;
+  }
+}catch(e){console.warn('V309 Fleet snapshot guard skipped',e);}
+try{
+  if(typeof fleetBind==='function'&&!fleetBind.__v309Wrapped){
+    var oldBind=fleetBind;
+    fleetBind=function(){var r=oldBind.apply(this,arguments);setTimeout(function(){var n=repair();if(n&&typeof render==='function'&&view==='fleet')render();},0);return r;};
+    fleetBind.__v309Wrapped=true;
+  }
+}catch(e){console.warn('V309 Fleet open repair skipped',e);}
+setTimeout(function(){try{var n=repair();if(n&&typeof render==='function')render();}catch(e){console.warn('V309 initial Fleet repair skipped',e);}},900);
+setTimeout(function(){try{var n=repair();if(n&&typeof render==='function'&&view==='fleet')render();}catch(e){console.warn('V309 delayed Fleet repair skipped',e);}},4200);
+try{var foot=document.querySelector('.sideFoot small');if(foot)foot.textContent='v309 Workshop Pro · Fleet completion due repair';}catch(e){}
+})();
+</script>
+
 </body>
 </html>
 <script>
@@ -16163,5 +16304,142 @@ try{
 function v278SafeRun(){try{var r=v278RepairAllMainSec();if(r&&typeof r.catch==='function')r.catch(function(e){console.warn('V278 MAIN SEC deferred repair failed',e);});}catch(e){console.warn('V278 MAIN SEC deferred repair skipped',e);}}
 setTimeout(v278SafeRun,1800);
 try{var foot=document.querySelector('.sideFoot small');if(foot)foot.textContent='v278 Workshop Pro · MAIN SEC Internal master correction';}catch(e){}
+})();
+</script>
+<script id="v310-fleet-integrity-hardening">
+(function(){
+'use strict';
+var V310_ONSITE_DESC='On-Site Service - health check, tyres, brakes and fluid levels / top-ups.';
+var V310_ONSITE_PRICE=90;
+function v310Norm(v){return String(v||'').toUpperCase().replace(/[^A-Z0-9]/g,'');}
+function v310Iso(v){var m=String(v||'').match(/^\d{4}-\d{2}-\d{2}/);return m?m[0]:'';}
+function v310AddMonths(iso,n){var m=v310Iso(iso);if(!m)return '';var a=m.split('-').map(Number),d=new Date(Date.UTC(a[0],a[1]-1,a[2]));d.setUTCMonth(d.getUTCMonth()+Number(n||0));return d.toISOString().slice(0,10);}
+function v310IsOnsite(j){return !!j && /^(on[- ]?site service|internal service)$/i.test(String(j.job_type||j.type||'').trim());}
+function v310FleetVehicle(reg){try{return typeof fleetVehicleForRegistration==='function'?fleetVehicleForRegistration(reg):null}catch(e){return null;}}
+function v310IsInternalOnsite(j){if(!v310IsOnsite(j))return false;var v=v310FleetVehicle(j.registration);if(v&&String(v.fleetGroup||'')==='Nissan Internal')return true;return String(j.customer_account||'').toUpperCase()==='NMUK'&&String(j.nmuk_vehicle_type||'').toUpperCase()==='INTERNAL';}
+function v310CanonicalPricingNote(note){
+  try{if(typeof noteWithPrivatePricing==='function')return noteWithPrivatePricing(note,[{description:V310_ONSITE_DESC,price:V310_ONSITE_PRICE}]);}catch(e){}
+  var tag='[[VECTA_PRIVATE_PRICING:'+encodeURIComponent(JSON.stringify([{description:V310_ONSITE_DESC,price:V310_ONSITE_PRICE}]))+']]';
+  var clean=String(note||'').replace(/\s*\[\[VECTA_PRIVATE_PRICING:[^\]]+\]\]\s*/ig,'\n').replace(/\n{3,}/g,'\n\n').trim();
+  return (clean?clean+'\n':'')+tag;
+}
+function v310Canonicalise(j){
+  if(!v310IsInternalOnsite(j))return false;var changed=false;
+  function set(k,v){if(String(j[k]??'')!==String(v)){j[k]=v;changed=true;}}
+  set('job_type','On-Site Service');set('work_required',V310_ONSITE_DESC);set('amount_quoted',V310_ONSITE_PRICE);set('vat_mode','ex_vat');
+  if(!Number(j.estimated_hours||0)){j.estimated_hours=1;changed=true;}
+  var note=v310CanonicalPricingNote(j.customer_note);if(String(j.customer_note||'')!==note){j.customer_note=note;changed=true;}
+  return changed;
+}
+function v310InstallTemplate(){
+  try{
+    if(typeof app!=='undefined'&&app&&app.settings){app.settings.jobTemplates=app.settings.jobTemplates||{};app.settings.jobTemplates['On-Site Service']=Object.assign({},app.settings.jobTemplates['On-Site Service']||{},{job_type:'on-site service',work_required:V310_ONSITE_DESC,estimated_hours:1,amount_quoted:V310_ONSITE_PRICE,vat_mode:'ex_vat',job_colour:'service',default_parts:[]});}
+  }catch(e){console.warn('V310 template hardening skipped',e);}
+}
+/* Every path into gatherJob gets the same canonical price/description. */
+try{
+  if(typeof gatherJob==='function'&&!gatherJob.__v310Canonical){
+    var v310OldGather=gatherJob;
+    gatherJob=function(id){var j=v310OldGather.apply(this,arguments);v310Canonicalise(j);return j;};
+    gatherJob.__v310Canonical=true;
+  }
+}catch(e){console.warn('V310 gatherJob guard skipped',e);}
+function v310Deleted(j){try{return typeof vectaJobIsDeletedForLists==='function'&&vectaJobIsDeletedForLists(j)}catch(e){return String(j&&j.status||'').toLowerCase()==='deleted';}}
+function v310DuplicateFor(draft,id){
+  if(!draft||!v310IsInternalOnsite(draft)||!draft.booking_date||!v310Norm(draft.registration)||typeof app==='undefined'||!Array.isArray(app.jobs))return null;
+  return app.jobs.find(function(x){return x&&String(x.id)!==String(id||'')&&!v310Deleted(x)&&v310IsInternalOnsite(x)&&v310Norm(x.registration)===v310Norm(draft.registration)&&String(x.booking_date||'')===String(draft.booking_date||'');})||null;
+}
+try{
+  if(typeof saveJob==='function'&&!saveJob.__v310NoDuplicates){
+    var v310OldSaveJob=saveJob;
+    saveJob=async function(id){
+      try{var draft=gatherJob(id);var dup=v310DuplicateFor(draft,id);if(dup){alert('This vehicle already has an On-Site Service booked for this date.\n\nThe existing job has been kept and a duplicate has NOT been created.');return false;}}
+      catch(e){console.warn('V310 duplicate check skipped',e);}
+      var result=await v310OldSaveJob.apply(this,arguments);
+      setTimeout(function(){v310RepairAll(false);},0);
+      return result;
+    };
+    saveJob.__v310NoDuplicates=true;
+  }
+}catch(e){console.warn('V310 saveJob guard skipped',e);}
+function v310Rank(j){var s=String(j&&j.status||'').toLowerCase();return (s==='completed'?1000:0)+(j&&j.archived?100:0)+(Number(j&&j.amount_quoted||0)===90?20:0)-(Date.parse(j&&j.created_at||0)||0)/1e15;}
+async function v310DeduplicateAndCanonicalise(){
+  if(typeof app==='undefined'||!app||!Array.isArray(app.jobs))return {changed:0,duplicates:0};
+  var changed=[],groups={},duplicates=[];
+  app.jobs.forEach(function(j){if(!j||v310Deleted(j)||!v310IsInternalOnsite(j))return;if(v310Canonicalise(j))changed.push(j);var date=String(j.booking_date||'');if(!date)return;var key=v310Norm(j.registration)+'|'+date;(groups[key]=groups[key]||[]).push(j);});
+  Object.keys(groups).forEach(function(k){var rows=groups[k];if(rows.length<2)return;rows.sort(function(a,b){return v310Rank(b)-v310Rank(a);});rows.slice(1).forEach(function(j){duplicates.push(j);});});
+  for(var i=0;i<changed.length;i++){try{if(typeof upsertRemote==='function')await upsertRemote('jobs',changed[i],{silent:true});}catch(e){console.warn('V310 canonical job sync failed',changed[i]&&changed[i].id,e);}}
+  for(var d=0;d<duplicates.length;d++){
+    var j=duplicates[d];
+    try{
+      if(typeof vectaSoftDeleteRemoteJob==='function')await vectaSoftDeleteRemoteJob(j);
+      j.status='deleted';j.archived=true;j.booking_date=null;
+    }catch(e){console.warn('V310 duplicate retirement failed',j&&j.id,e);}
+  }
+  if(duplicates.length)app.jobs=app.jobs.filter(function(j){return duplicates.indexOf(j)===-1;});
+  try{if((changed.length||duplicates.length)&&typeof saveLocal==='function')saveLocal();}catch(e){}
+  return {changed:changed.length,duplicates:duplicates.length};
+}
+function v310RepairInternalServicePlans(){
+  if(typeof app==='undefined'||!app||!Array.isArray(app.jobs)||!Array.isArray(window.fleetPlans)||!Array.isArray(window.fleetVehicles))return 0;
+  var changed=0;
+  (app.jobs||[]).forEach(function(j){
+    var st=String(j&&j.status||'').toLowerCase();if(!j||!(st==='completed'||j.archived===true)||!v310IsInternalOnsite(j)||v310Deleted(j))return;
+    var v=v310FleetVehicle(j.registration);if(!v||String(v.fleetGroup||'')!=='Nissan Internal')return;
+    var done=v310Iso(j.completed_at)||v310Iso(j.booking_date)||v310Iso(j.updated_at);if(!done)return;var next=v310AddMonths(done,12);
+    var p=(window.fleetPlans||[]).find(function(x){return x&&String(x.vehicleId)===String(v.id)&&/^(internal|annual|on[- ]?site).*service$/i.test(String(x.type||''));});
+    if(!p){p={id:'plan-service-'+v.id,vehicleId:v.id,type:'Internal Service',intervalMonths:12,targetMonth:Number(next.slice(5,7)),currentDueDate:next,notes:'Next Internal Service due 12 months after completed On-Site Service '+done+'.',status:'Active',source:'Workshop completion V310'};window.fleetPlans.push(p);changed++;}
+    else if(v310Iso(p.currentDueDate)!==next||String(p.type)!=='Internal Service'){p.currentDueDate=next;p.type='Internal Service';p.intervalMonths=12;p.targetMonth=Number(next.slice(5,7));p.manualDueDate=false;p.notes='Next Internal Service due 12 months after completed On-Site Service '+done+'.';changed++;}
+    window.fleetCompletions=Array.isArray(window.fleetCompletions)?window.fleetCompletions:[];
+    var cid='job-service-'+String(j.id),c=window.fleetCompletions.find(function(x){return x&&String(x.id)===cid;});
+    if(!c){window.fleetCompletions.push({id:cid,type:'Internal Service',serviceType:'Internal Service',notes:'On-Site Service completed. Next Internal Service due '+next+'.',planId:p.id,source:'job:'+String(j.id),nextDue:next,vehicleId:v.id,completedDate:done,datePrecision:'day'});changed++;}
+  });
+  return changed;
+}
+/* MOT completion detection must come from the job TYPE, never from notes such as "MOT booked". */
+function v310StrictMotJob(job){
+  if(!job)return false;var types=[];if(Array.isArray(job.job_types))types=types.concat(job.job_types);if(job.job_type)types.push(job.job_type);if(job.type)types.push(job.type);
+  return types.some(function(t){var s=String(t||'').trim();if(/^mot$/i.test(s))return true;return s.split(/\|\||\+|\/|,/).some(function(x){return /^mot$/i.test(String(x||'').trim());});});
+}
+try{v255StrictMotJob=v310StrictMotJob;window.v255StrictMotJob=v310StrictMotJob;}catch(e){window.v255StrictMotJob=v310StrictMotJob;}
+function v310PruneFalseMotCompletions(){
+  if(!Array.isArray(window.fleetCompletions)||typeof app==='undefined'||!Array.isArray(app.jobs))return 0;var before=window.fleetCompletions.length;
+  window.fleetCompletions=window.fleetCompletions.filter(function(c){if(!c||String(c.type||'').toUpperCase()!=='MOT'||String(c.source||'').indexOf('job:')!==0)return true;var id=String(c.source).slice(4),j=app.jobs.find(function(x){return String(x.id)===id;});return !!(j&&v310StrictMotJob(j));});
+  return before-window.fleetCompletions.length;
+}
+async function v310RefreshDueMots(){
+  if(window.__v310MotRefresh||!Array.isArray(window.fleetPlans)||!Array.isArray(window.fleetVehicles))return 0;window.__v310MotRefresh=true;
+  var count=0;try{
+    var today=(typeof todayIso==='function'?todayIso():new Date().toISOString().slice(0,10)),end=v310AddMonths(today,1),now=Date.now();
+    var plans=window.fleetPlans.filter(function(p){var due=v310Iso(typeof fleetDate==='function'?fleetDate(p):p.currentDueDate);return p&&String(p.status||'Active')==='Active'&&String(p.type||'').toUpperCase()==='MOT'&&due&&due<=end;});
+    for(var i=0;i<plans.length;i++){
+      var p=plans[i],v=window.fleetVehicles.find(function(x){return x&&String(x.id)===String(p.vehicleId);});if(!v)continue;
+      var stamp=Date.parse(v.motLastChecked||'')||0;if(stamp&&now-stamp<6*60*60*1000)continue;
+      try{
+        var data=typeof v255Fetch==='function'?await v255Fetch(v.registration||''):null;var fresh=typeof v255GovernmentExpiry==='function'?v255GovernmentExpiry(data):'';
+        if(fresh&&typeof v255ApplyGovernmentDate==='function'){v255RemoveFalseMotCompletions&&v255RemoveFalseMotCompletions(v);v255ApplyGovernmentDate(v,fresh,(data&&data.fetchedAt)||new Date().toISOString());count++;}
+      }catch(e){console.warn('V310 due MOT live refresh failed',v.registration,e);}
+    }
+    if(count){try{if(typeof saveFleet==='function')saveFleet();if(typeof saveLocal==='function')saveLocal();}catch(e){}try{if(typeof persistFleetCloudSnapshot==='function')await persistFleetCloudSnapshot();}catch(e){console.warn('V310 MOT snapshot sync failed',e);}}
+  }finally{window.__v310MotRefresh=false;}
+  return count;
+}
+async function v310RepairAll(refreshMots){
+  v310InstallTemplate();var a=await v310DeduplicateAndCanonicalise(),service=v310RepairInternalServicePlans(),pruned=v310PruneFalseMotCompletions();
+  if(service||pruned){try{if(typeof saveFleet==='function')saveFleet();}catch(e){}try{if(typeof persistFleetCloudSnapshot==='function')await persistFleetCloudSnapshot();}catch(e){console.warn('V310 Fleet repair sync failed',e);}}
+  var mot=refreshMots?await v310RefreshDueMots():0;
+  try{if(typeof render==='function'&&typeof view!=='undefined'&&view==='fleet')render();}catch(e){}
+  return {canonical:a.changed,duplicates:a.duplicates,service:service,falseMotCompletions:pruned,motRefreshed:mot};
+}
+window.v310RepairFleetIntegrity=v310RepairAll;
+try{
+  if(typeof applyFleetCloudSnapshot==='function'&&!applyFleetCloudSnapshot.__v310Wrapped){var v310OldApply=applyFleetCloudSnapshot;applyFleetCloudSnapshot=function(value){var r=v310OldApply.apply(this,arguments);setTimeout(function(){v310RepairAll(false);},0);return r;};applyFleetCloudSnapshot.__v310Wrapped=true;}
+}catch(e){console.warn('V310 Fleet snapshot wrapper skipped',e);}
+try{
+  if(typeof fleetBind==='function'&&!fleetBind.__v310Wrapped){var v310OldBind=fleetBind;fleetBind=function(){var r=v310OldBind.apply(this,arguments);setTimeout(function(){v310RepairAll(true);},0);return r;};fleetBind.__v310Wrapped=true;}
+}catch(e){console.warn('V310 Fleet open wrapper skipped',e);}
+setTimeout(function(){v310RepairAll(false).catch(function(e){console.warn('V310 initial integrity repair failed',e);});},1200);
+setTimeout(function(){if(typeof view!=='undefined'&&view==='fleet')v310RepairAll(true).catch(function(e){console.warn('V310 delayed MOT refresh failed',e);});},4500);
+try{var foot=document.querySelector('.sideFoot small');if(foot)foot.textContent='v310 Workshop Pro · Fleet integrity hardening';}catch(e){}
 })();
 </script>
