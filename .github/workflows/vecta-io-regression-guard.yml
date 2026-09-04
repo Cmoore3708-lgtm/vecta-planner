@@ -1,0 +1,55 @@
+name: VECTA IO regression guard
+
+on:
+  push:
+    paths:
+      - 'index.html'
+
+permissions:
+  contents: write
+
+jobs:
+  protect:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check IO protections
+        id: guard
+        run: |
+          if grep -q 'VECTA IO-GUARD 2026-09-04' index.html; then
+            echo "repair=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "repair=true" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Restore IO protections after an older file upload
+        if: steps.guard.outputs.repair == 'true'
+        run: python .github/scripts/vecta_io_patch.py
+      - name: Verify protected build
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          text=Path('index.html').read_text(encoding='utf-8')
+          checks={
+            'IO marker':'VECTA IO-GUARD 2026-09-04' in text,
+            'settings realtime loop removed':"table:'workshop_settings'},scheduleCloudRefresh" not in text,
+            'row-level realtime merge':'function scheduleCloudRefresh(payload)' in text,
+            'idempotent main settings':'persistMainSettings' in text,
+            'idempotent fleet MOT':'fleetMotAuthorityLastPersisted' in text,
+            'idempotent fleet state':'fleetCloudLastPersistedPayload' in text,
+            'legacy UUID protection':'vecta_legacy_local_only' in text,
+          }
+          failed=[name for name,ok in checks.items() if not ok]
+          if failed:
+            raise SystemExit('VECTA IO regression detected: '+', '.join(failed))
+          print('VECTA IO protections verified')
+          PY
+      - name: Commit automatic repair
+        if: steps.guard.outputs.repair == 'true'
+        run: |
+          git config user.name "Vecta IO guard"
+          git config user.email "actions@users.noreply.github.com"
+          git add index.html
+          git diff --cached --check
+          git diff --cached --quiet && exit 0
+          git commit -m "Restore VECTA IO protections after file upload"
+          git push
