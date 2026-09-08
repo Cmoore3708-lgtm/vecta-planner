@@ -9879,7 +9879,10 @@ function scheduleCloudRefresh(payload){
   if(table==='workshop_settings')return;
   try{
     if((eventType==='INSERT'||eventType==='UPDATE')&&row&&row.id){
-      if(table==='jobs'){vectaReconcileJobsFromCloud([row]);vectaApplyTerminalJobStates();}
+      /* A realtime payload is one changed row, not a full-table download. Sending
+         it through vectaReconcileJobsFromCloud triggered the 60% shrink guard and
+         silently discarded legitimate edits made on another device. */
+      if(table==='jobs'){app.jobs=mergeRemoteRows(app.jobs||[],[row]);vectaApplyTerminalJobStates();}
       else{
         var key=table==='service_records'?'serviceRecords':(table==='website_booking_requests'?'websiteRequests':table);
         if(Object.prototype.hasOwnProperty.call(app,key))app[key]=mergeRemoteRows(app[key]||[],[row]);
@@ -9918,7 +9921,10 @@ function startCloudSync(){
     if(document.visibilityState==='visible'&&Date.now()-cloudLastRefreshAt>=15*60*1000)refreshCloudAndRender();
   },60*1000);
   document.addEventListener('visibilitychange',function(){
-    if(document.visibilityState==='visible'&&Date.now()-cloudLastRefreshAt>=2*60*1000)refreshCloudAndRender();
+    /* Mobile browsers suspend realtime sockets in the background and do not
+       replay missed database events. Refresh as soon as Workshop Pro resumes,
+       with a short guard to avoid repeated iOS visibility flicker. */
+    if(document.visibilityState==='visible'&&Date.now()-cloudLastRefreshAt>=30*1000)refreshCloudAndRender();
   });
   window.addEventListener('online',function(){cloudLastRefreshAt=0;refreshCloudAndRender()});
 }
