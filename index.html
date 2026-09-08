@@ -9814,7 +9814,7 @@ async function deleteRemote(table,id,options){options=options||{};
   }if(!remoteClient||!navigator.onLine){if(!options.skipQueue){queueRemoteOperation('delete',table,id);return true}throw new Error('Supabase is not connected.')}if(table==='tasks'&&!isUuid(id)){console.warn('Skipped remote delete for legacy non-UUID task id',id);return true;}try{var res=await remoteClient.from(table).delete().eq('id',id).select('id');if(res&&res.error)throw new Error(res.error.message||('Could not delete from '+table));var check=await remoteClient.from(table).select('id').eq('id',id).limit(1);if(check&&check.error)throw new Error(check.error.message||('Could not verify deletion from '+table));if(check&&Array.isArray(check.data)&&check.data.length)throw new Error('The record is still present in '+table+'. Supabase may be blocking deletes through its security policy.');return true}catch(e){if(!options.skipQueue&&shouldQueueRemoteFailure(e)){vectaCloudReachable=false;updateConnectivityUI();queueRemoteOperation('delete',table,id);return true}throw e}}
 var vectaMainSettingsLastPersisted='';
 function vectaSettingsSignature(value){try{return JSON.stringify(value==null?null:value)}catch(e){return String(value)}}
-async function persistMainSettings(){if(!remoteClient)return false;var sig=vectaSettingsSignature(app.settings||{});if(sig===vectaMainSettingsLastPersisted)return true;try{var ok=await persistMainSettings();if(!ok)throw new Error('Main settings cloud save failed');vectaMainSettingsLastPersisted=sig;return true}catch(e){console.warn('Main settings cloud save failed',e);return false}}
+async function persistMainSettings(){if(!remoteClient)return false;var sig=vectaSettingsSignature(app.settings||{});if(sig===vectaMainSettingsLastPersisted)return true;try{var stamp=new Date().toISOString(),res=await remoteClient.from('workshop_settings').upsert({id:'main',value:app.settings,updated_at:stamp},{onConflict:'id'});if(res&&res.error)throw res.error;vectaMainSettingsLastPersisted=sig;return true}catch(e){console.warn('Main settings cloud save failed',e);return false}}
 async function saveAll(){invalidateFinanceDashboardCache();saveLocal();if(remoteClient)await persistMainSettings()}
 function vectaPendingWebsiteBookingCount(){return (app.websiteRequests||[]).filter(function(r){return !r.status||r.status==='awaiting_review'}).length}
 function vectaUpdateAppBadge(){var count=vectaPendingWebsiteBookingCount();if(!('setAppBadge' in navigator))return Promise.resolve(false);return (count?navigator.setAppBadge(count):navigator.clearAppBadge()).then(function(){return true}).catch(function(){return false})}
@@ -11453,7 +11453,7 @@ function requestDate(value){if(!value)return 'Not provided';try{return new Date(
 function requestStatusLabel(status){return ({awaiting_review:'New',contacted:'Contacted',booked:'Booked',declined:'Declined',archived:'Archived',deleted:'Deleted'})[status]||'New'}
 
 function websiteBookingStatisticRecords(){
-  var requestById={},records=[];
+  var requestById={},recordByKey={};
   function validDate(raw){var value=String(raw||'').slice(0,10);return /^\d{4}-\d{2}-\d{2}$/.test(value)?value:''}
   (app.websiteRequests||[]).forEach(function(r){
     if(!r||String(r.status||'').toLowerCase()==='deleted')return;
@@ -11465,8 +11465,11 @@ function websiteBookingStatisticRecords(){
     if(!isWebsite)return;
     var id=String(j.website_request_id||'').trim();if(!id&&typeof websiteRequestIdFromJob==='function')id=String(websiteRequestIdFromJob(j)||'').trim();
     var r=id?requestById[id]||null:null,date=validDate(j.created_at)||validDate(r&&r.created_at)||validDate(r&&r.submitted_at)||validDate(j.booking_date);
-    records.push({id:id||('job:'+String(j.id||Math.random())),date:date,request:r,job:j});
+    var key=id||('job:'+String(j.id||''));
+    if(!key||recordByKey[key])return;
+    recordByKey[key]={id:key,date:date,request:r,job:j};
   });
+  var records=Object.keys(recordByKey).map(function(key){return recordByKey[key]});
   return records.sort(function(a,b){return String(b.date||'').localeCompare(String(a.date||''))});
 }
 function websiteBookingStatistics(){
@@ -11609,26 +11612,43 @@ function websiteBookingPanelHtml(j){
   var details=websiteJobDetails(j),requested=details.requestedDate?requestDate(details.requestedDate):'Not provided';
   return websiteServiceResolveHtml(j)+'<section class="websiteJobRequestPanel"><div><strong>Website booking request</strong><p>Details supplied when the customer booked online.</p></div><div class="websiteRequestMeta"><span><b>Booking made:</b> '+esc(websiteBookingMadeText(details.made))+'</span><span><b>Requested booking date:</b> '+esc(requested)+'</span></div><div class="websiteRequestMeta"><span style="grid-column:1/-1"><b>Customer notes:</b> '+esc(details.notes||'No additional notes were added.')+'</span></div></section>';
 }
+var websiteRequestCreateBusy={};
 async function createJobFromWebsiteRequest(id){
+  id=String(id||'');
+  if(!id||websiteRequestCreateBusy[id])return;
+  websiteRequestCreateBusy[id]=true;
+  try{
   var existingRequest=(app.websiteRequests||[]).find(function(x){return String(x.id)===String(id)});
-  if(existingRequest&&existingRequest.job_id){
-    var existingJob=(app.jobs||[]).find(function(j){return String(j.id)===String(existingRequest.job_id)});
-    if(existingJob){
-      try{
-        if(remoteClient)await remoteClient.from('website_booking_requests').update({status:'booked'}).eq('id',id);
-      }catch(e){console.warn('Website request status update skipped',e)}
-      app.websiteRequests=(app.websiteRequests||[]).filter(function(x){return String(x.id)!==String(id)});
-      saveLocal();
-      selectedDate=existingJob.booking_date?new Date(existingJob.booking_date+'T00:00:00'):selectedDate;
-      view='planner';render();openJobModal(existingJob.id);
-      return;
+  var existingJob=(app.jobs||[]).find(function(j){return !vectaJobIsDeletedForLists(j)&&websiteRequestIdFromJob(j)===id});
+  if(!existingJob&&existingRequest&&existingRequest.job_id)existingJob=(app.jobs||[]).find(function(j){return String(j.id)===String(existingRequest.job_id)&&!vectaJobIsDeletedForLists(j)});
+  if(!existingJob&&remoteClient){
+    var requestProbe=await remoteClient.from('website_booking_requests').select('job_id,status').eq('id',id).limit(1);
+    var remoteJobId=!requestProbe.error&&requestProbe.data&&requestProbe.data[0]?String(requestProbe.data[0].job_id||''):'';
+    if(remoteJobId){
+      var jobProbe=await remoteClient.from('jobs').select('*').eq('id',remoteJobId).limit(1);
+      if(!jobProbe.error&&jobProbe.data&&jobProbe.data[0]){
+        existingJob=fromRemote(jobProbe.data[0]);
+        app.jobs=mergeRemoteRows(app.jobs||[],[existingJob]);
+      }
     }
+  }
+  if(existingJob){
+    try{
+      if(remoteClient)await remoteClient.from('website_booking_requests').update({status:'booked'}).eq('id',id);
+    }catch(e){console.warn('Website request status update skipped',e)}
+    app.websiteRequests=(app.websiteRequests||[]).filter(function(x){return String(x.id)!==String(id)});
+    saveLocal();
+    selectedDate=existingJob.booking_date?new Date(existingJob.booking_date+'T00:00:00'):selectedDate;
+    view='planner';render();openJobModal(existingJob.id);
+    return;
   }
 
   var r=(app.websiteRequests||[]).find(function(x){return x.id===id});if(!r)return;
   var bookingDate=r.preferred_date_1||selectedIso(),types=Array.isArray(r.job_types)?r.job_types.slice():[];types=types.map(function(t){return normaliseJobTypeKey(t)==='service'?'Major Service':t});var jobType=types[0]||'General';
   var j={id:uid(),booking_date:String(bookingDate).slice(0,10),drop_time:'08:00',registration:normReg(r.registration||''),vehicle:r.vehicle||'',mileage:(r.mileage===null||r.mileage===undefined||String(r.mileage).trim()===''?null:Number(r.mileage)),customer_account:'Staff',customer_name:r.customer_name||'',customer_phone:r.phone||'',customer_email:r.email||'',work_required:r.work_required||types.join(', ')||'Website booking request',job_type:types.join(', ')||jobType,job_colour:/mot/i.test(jobType)?'MOT':(/service/i.test(jobType)?'Service':'General'),estimated_hours:1,amount_quoted:null,technician:'Unallocated',ramp:'',status:'booked',card_type:'job',source:'website booking',booking_source:'Website booking',website_request_id:String(r.id||''),customer_note:websiteRequestNote(r),created_at:new Date().toISOString(),updated_at:new Date().toISOString()};applyWebsiteDefaultMajorService(j);
-  app.jobs.push(j);saveLocal();try{await upsertRemote('jobs',j)}catch(e){app.jobs=app.jobs.filter(function(x){return x.id!==j.id});saveLocal();return}
+  app.jobs.push(j);saveLocal();
+  ['mileage','customer_account','booking_source','website_request_id'].forEach(function(column){vectaRememberMissingColumn('jobs',column)});
+  try{await upsertRemote('jobs',j,{skipConflictGuard:true})}catch(e){app.jobs=app.jobs.filter(function(x){return x.id!==j.id});saveLocal();return}
   // The request has now become a planner job. Mark it as booked so it leaves the Website Bookings inbox immediately.
   // This uses UPDATE rather than DELETE because the current Supabase security policy permits request updates but blocks browser deletes.
   if(remoteClient){
@@ -11643,6 +11663,9 @@ async function createJobFromWebsiteRequest(id){
   }
   app.websiteRequests=(app.websiteRequests||[]).filter(function(x){return String(x.id)!==String(id)});saveLocal();
   selectedDate=new Date(j.booking_date+'T00:00:00');view='planner';render();openJobModal(j.id);
+  }finally{
+    delete websiteRequestCreateBusy[id];
+  }
 }
 async function deleteWebsiteRequestCompletely(id){
   var row=(app.websiteRequests||[]).find(function(r){return String(r.id)===String(id)});
@@ -11685,7 +11708,7 @@ async function deleteWebsiteRequestCompletely(id){
     await pullRemote();render();
   }
 }
-function bindWebsiteRequests(){var e;document.querySelectorAll('[data-website-stat]').forEach(function(b){b.onclick=function(){openWebsiteBookingStatistics(b.dataset.websiteStat)}});if(e=document.getElementById('refreshWebsiteRequests'))e.onclick=async function(){await pullRemote();render()};if(e=document.getElementById('enableBookingAlerts'))e.onclick=vectaEnableBookingAlerts;document.querySelectorAll('[data-request-filter]').forEach(function(b){b.onclick=function(){websiteRequestFilter=b.dataset.requestFilter;render()}});document.querySelectorAll('[data-request-contact]').forEach(function(b){b.onclick=function(){updateWebsiteRequest(b.dataset.requestContact,{status:'contacted'})}});document.querySelectorAll('[data-request-archive]').forEach(function(b){b.onclick=function(){if(confirm('Archive this website booking request?'))updateWebsiteRequest(b.dataset.requestArchive,{status:'archived'})}});document.querySelectorAll('[data-request-delete]').forEach(function(b){b.onclick=function(){deleteWebsiteRequestCompletely(b.dataset.requestDelete)}});document.querySelectorAll('[data-request-create]').forEach(function(b){b.onclick=function(){createJobFromWebsiteRequest(b.dataset.requestCreate)}})}
+function bindWebsiteRequests(){var e;document.querySelectorAll('[data-website-stat]').forEach(function(b){b.onclick=function(){openWebsiteBookingStatistics(b.dataset.websiteStat)}});if(e=document.getElementById('refreshWebsiteRequests'))e.onclick=async function(){await pullRemote();render()};if(e=document.getElementById('enableBookingAlerts'))e.onclick=vectaEnableBookingAlerts;document.querySelectorAll('[data-request-filter]').forEach(function(b){b.onclick=function(){websiteRequestFilter=b.dataset.requestFilter;render()}});document.querySelectorAll('[data-request-contact]').forEach(function(b){b.onclick=function(){updateWebsiteRequest(b.dataset.requestContact,{status:'contacted'})}});document.querySelectorAll('[data-request-archive]').forEach(function(b){b.onclick=function(){if(confirm('Archive this website booking request?'))updateWebsiteRequest(b.dataset.requestArchive,{status:'archived'})}});document.querySelectorAll('[data-request-delete]').forEach(function(b){b.onclick=function(){deleteWebsiteRequestCompletely(b.dataset.requestDelete)}});document.querySelectorAll('[data-request-create]').forEach(function(b){b.onclick=function(){if(b.disabled)return;b.disabled=true;b.textContent='Opening job…';createJobFromWebsiteRequest(b.dataset.requestCreate).finally(function(){if(document.body.contains(b)){b.disabled=false;b.textContent='Accept & create job'}})}})}
 
 
 function displayedEmailContextForNode(node,email){
