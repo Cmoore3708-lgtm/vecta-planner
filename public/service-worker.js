@@ -1,4 +1,5 @@
-const CACHE='vecta-workshop-pro-shell-v12-offline-reopen-v311';
+const CACHE='vecta-workshop-pro-shell-v13-safe-update-v323';
+const APP_VERSION='v323-safe-mobile-refresh';
 const DATA_CACHE='vecta-workshop-pro-data-last-known-v1';
 const HEALTH_CACHE='vecta-workshop-pro-cloud-health-v1';
 const CORE=['/','/index.html','/manifest.webmanifest','/icons/vecta-192.png','/icons/vecta-512.png'];
@@ -180,8 +181,15 @@ self.addEventListener('install',event=>{
 self.addEventListener('activate',event=>{
   event.waitUntil((async()=>{
     const keys=await caches.keys();
-    await Promise.all(keys.filter(k=>k.startsWith('vecta-workshop-pro-offline-')).map(k=>caches.delete(k)));
+    await Promise.all(keys.filter(k=>
+      k!==CACHE && (
+        k.startsWith('vecta-workshop-pro-offline-') ||
+        k.startsWith('vecta-workshop-pro-shell-')
+      )
+    ).map(k=>caches.delete(k)));
     await self.clients.claim();
+    const windows=await self.clients.matchAll({type:'window',includeUncontrolled:true});
+    windows.forEach(client=>client.postMessage({type:'VECTA_APP_UPDATE_READY',version:APP_VERSION}));
   })());
 });
 
@@ -255,6 +263,9 @@ self.addEventListener('fetch',event=>{
 
 self.addEventListener('push',event=>{
   event.waitUntil((async()=>{
+    /* A push can wake an iPhone PWA that has not been opened for days. Ask the
+       browser to check for the newest worker while it is already awake. */
+    try{await self.registration.update()}catch(_e){}
     let data={};
     try{data=event.data?event.data.json():{}}catch(_e){data={body:event.data?event.data.text():''}}
     const count=Math.max(0,Number(data.count)||0);
