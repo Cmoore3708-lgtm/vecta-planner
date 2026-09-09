@@ -11,6 +11,8 @@
 
 - Job cards now recognise a completed six-month safety check in the current maintenance cycle, instead of continuing to show the superseded due date in red.
 - Internal fleet servicing now selects the latest completed service by its actual workshop date before calculating the next annual due date.
+- Printing an invoice now saves it automatically, closes the invoice workflow and returns to the Dashboard.
+- Added Email to Customer beside Print/PDF; it confirms the save, closes the invoice and opens a pre-addressed, pre-written customer email.
 
 ## v1.17
 
