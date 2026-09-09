@@ -141,11 +141,47 @@ function contextWith(names, extras = {}) {
   );
 }
 
+{
+  const app = {
+    jobs: [{ id: 'job-email', customer_email: 'customer@example.com', customer_name: 'Jane Smith' }],
+    customers: []
+  };
+  const window = { location: { href: '' } };
+  const context = contextWith(
+    ['invoiceEmailRecipient', 'openInvoiceCustomerEmail'],
+    {
+      app,
+      window,
+      fleetEomCustomerEmail: () => '',
+      fleetInvoiceFormatRegistration: value => String(value || '').toUpperCase(),
+      appendVectaEmailSignature: body => `${body}\n\nVECTA Motors`,
+      alert: message => { throw new Error(message); }
+    }
+  );
+  const invoice = { job_id: 'job-email', customer_name: 'Jane Smith', vehicle: 'Nissan Juke', registration: 'AB12 CDE' };
+  assert.equal(context.openInvoiceCustomerEmail(invoice), true);
+  assert.match(window.location.href, /^mailto:customer%40example\.com\?/);
+  assert.match(decodeURIComponent(window.location.href), /subject=Invoice for Nissan Juke · AB12 CDE/);
+  assert.match(decodeURIComponent(window.location.href), /Dear Jane Smith,/);
+  assert.match(decodeURIComponent(window.location.href), /We will send a payment link to your phone shortly\./);
+}
+
 assert.match(html, /status==='ready_to_invoice'&&!isJobInvoiced\(j\)/);
 assert.match(
   html,
   /getElementById\('printInvoice'\)\.onclick=async function\(\)\{var savedOk=await saveInvoice\(inv\.id\);if\(savedOk===false\)return;/,
   'Print / PDF must confirm the invoice save before printing'
+);
+assert.match(
+  html,
+  /if\(savedInvoice\)\{printInvoice\(savedInvoice\);financialSection='main';view='planner';render\(\)\}/,
+  'Printing an invoice must close the invoice workflow and return to the dashboard'
+);
+assert.match(html, /id="emailInvoice">Email to Customer<\/button>/);
+assert.match(
+  html,
+  /getElementById\('emailInvoice'\)\.onclick=async function\(\).*var savedOk=await saveInvoice\(inv\.id\).*view='planner';render\(\);openInvoiceCustomerEmail\(savedInvoice\)/s,
+  'Email to Customer must save, close and return to the dashboard before opening the email'
 );
 assert.match(
   html,
