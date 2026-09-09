@@ -10,6 +10,7 @@
 ## 9 September 2026
 
 - Job cards now recognise a completed six-month safety check in the current maintenance cycle, instead of continuing to show the superseded due date in red.
+- Internal fleet servicing now selects the latest completed service by its actual workshop date before calculating the next annual due date.
 
 ## v1.17
 
