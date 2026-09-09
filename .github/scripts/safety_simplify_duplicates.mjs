@@ -77,6 +77,13 @@ function functionEnd(text, start) {
   throw new Error(`Could not find function end at ${start}`);
 }
 
+function replaceFunction(text,name,replacement){
+  const starts=declarationStarts(text,name);
+  if(starts.length!==1)throw new Error(`Safety stop: expected one ${name} definition before extraction, found ${starts.length}`);
+  const start=starts[0],end=functionEnd(text,start);
+  return text.slice(0,start)+replacement+text.slice(end);
+}
+
 let removed = 0;
 for (const name of names) {
   const starts = declarationStarts(source, name);
@@ -95,6 +102,18 @@ for (const name of names) {
   removed += 1;
 }
 
+const moduleTag='<script src="/js/vecta-job-rules.js"></script>';
+if(!source.includes(moduleTag)){
+  const mainMarker="<script>\n(function(){\n'use strict';\nvar VERSION='v41.23-job-card-due-dates';";
+  if(!source.includes(mainMarker))throw new Error('Safety stop: main application script marker was not found');
+  source=source.replace(mainMarker,moduleTag+'\n'+mainMarker);
+  const wrappers={
+    vectaSoftDeleteMeta:"function vectaSoftDeleteMeta(job){return window.VectaJobRules.softDeleteMeta(job)}",
+    isSoftDeletedJob:"function isSoftDeletedJob(job){return window.VectaJobRules.isSoftDeleted(job)}",
+    vectaJobIsDeletedForLists:"function vectaJobIsDeletedForLists(job){return window.VectaJobRules.isDeleted(job,{terminalState:function(id){return typeof vectaTerminalJobState==='function'?vectaTerminalJobState(id):null},isTombstone:function(id){return typeof vectaIsDeletedJobTombstone==='function'&&vectaIsDeletedJobTombstone(id)}})}"
+  };
+  for(const [name,replacement] of Object.entries(wrappers))source=replaceFunction(source,name,replacement);
+}
+
 writeFileSync(file, source, 'utf8');
-if (!removed) throw new Error('Safety stop: no approved duplicate definitions were found');
-console.log(`Safely removed ${removed} overridden function definitions`);
+console.log(`Protected maintenance complete; removed ${removed} overridden function definitions`);
