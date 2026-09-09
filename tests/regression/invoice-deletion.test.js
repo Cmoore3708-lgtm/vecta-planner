@@ -59,3 +59,12 @@ test('cancelled invoice retains its number and full invoice row',()=>{
   assert.equal(cancellation.includes('invoice_number='),false);
   assert.equal(cancellation.includes('app.invoices='),false);
 });
+
+test('cancelling an invoice never returns its job to ready to invoice',()=>{
+  const source=readFileSync(resolve('index.html'),'utf8');
+  const start=source.indexOf('async function deleteInvoiceCompletely');
+  const end=source.indexOf('async function restoreVoidInvoice',start);
+  const cancellation=source.slice(start,end);
+  assert.equal(cancellation.includes("linkedJob.status='ready_to_invoice'"),false);
+  assert.ok(cancellation.includes("linkedJob.status='completed';linkedJob.archived=true"));
+});

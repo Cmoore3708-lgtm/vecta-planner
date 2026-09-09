@@ -12555,7 +12555,10 @@ async function deleteInvoiceCompletely(id){
           linkedJob.status='completed';linkedJob.archived=true;linkedJob.invoice_id=remainingInvoice.id;
           linkedJob.invoiced_at=linkedJob.invoiced_at||remainingInvoice.updated_at||remainingInvoice.created_at||new Date().toISOString();
         }else{
-          linkedJob.status='ready_to_invoice';linkedJob.archived=false;linkedJob.invoice_id='';linkedJob.invoiced_at='';
+          /* Cancelling an invoice must not resurrect completed work in the
+             Ready to Invoice queue. The job and its history stay completed;
+             the void invoice remains the protected accounting record. */
+          linkedJob.status='completed';linkedJob.archived=true;linkedJob.invoice_id=inv.id;linkedJob.invoiced_at=linkedJob.invoiced_at||inv.updated_at;
         }
         linkedJob.updated_at=new Date().toISOString();
         await upsertRemote('jobs',linkedJob,{silent:true});
