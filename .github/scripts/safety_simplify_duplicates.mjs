@@ -13,7 +13,8 @@ const names = [
   'openVehicleFromReg',
   'knownVehicles',
   'knownCustomers',
-  'customerSearchRows'
+  'customerSearchRows',
+  'openCustomerDetails'
 ];
 
 let source = readFileSync(file, 'utf8');
@@ -75,10 +76,12 @@ function functionEnd(text, start) {
   throw new Error(`Could not find function end at ${start}`);
 }
 
+let removed = 0;
 for (const name of names) {
   const starts = declarationStarts(source, name);
+  if (starts.length === 1) continue;
   if (starts.length !== 2) {
-    throw new Error(`Safety stop: expected two ${name} definitions, found ${starts.length}`);
+    throw new Error(`Safety stop: expected one or two ${name} definitions, found ${starts.length}`);
   }
   const start = starts[0];
   let end = functionEnd(source, start);
@@ -88,7 +91,9 @@ for (const name of names) {
   if (declarationStarts(source, name).length !== 1) {
     throw new Error(`Safety stop: ${name} did not resolve to one definition`);
   }
+  removed += 1;
 }
 
 writeFileSync(file, source, 'utf8');
-console.log(`Safely removed ${names.length} overridden function definitions`);
+if (!removed) throw new Error('Safety stop: no approved duplicate definitions were found');
+console.log(`Safely removed ${removed} overridden function definitions`);
