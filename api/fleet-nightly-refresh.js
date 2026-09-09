@@ -106,9 +106,7 @@ function updatePlanDate(plans, vehicleId, type, newDate) {
   return true;
 }
 async function supabaseRequest(path, options={}) {
-  const url = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL;
-  const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.VITE_SUPABASE_ANON_KEY || process.env.SUPABASE_PUBLISHABLE_KEY;
-  if (!url || !key) throw new Error('Supabase server environment variables are missing.');
+  const {url,key}=databaseEnvironment({requireService:true});
   const response = await fetch(String(url).replace(/\/$/,'') + '/rest/v1/' + path, {
     ...options,
     headers:{ apikey:key, Authorization:`Bearer ${key}`, 'content-type':'application/json', Prefer:'return=representation,resolution=merge-duplicates', ...(options.headers||{}) }
@@ -188,3 +186,4 @@ export default async function handler(req,res){
     return res.status(200).json(status);
   }catch(e){status.finishedAt=new Date().toISOString();status.errors++;status.fatal=String(e?.message||e);try{await writeSetting(STATUS_ID,status)}catch(_e){}return res.status(500).json(status);}
 }
+import { databaseEnvironment } from './_database-environment.js';

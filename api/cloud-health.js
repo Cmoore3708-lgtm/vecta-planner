@@ -1,9 +1,7 @@
+import { databaseEnvironment } from './_database-environment.js';
+
 function config() {
-  const url = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL;
-  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  if (!url) throw new Error('SUPABASE_URL is not configured.');
-  if (!key) throw new Error('SUPABASE_SERVICE_ROLE_KEY is not configured.');
-  return { url: String(url).replace(/\/$/, ''), key };
+  return databaseEnvironment({ requireService: true });
 }
 
 export default async function handler(req, res) {

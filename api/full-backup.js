@@ -17,11 +17,7 @@ const TABLES = [
 ];
 
 function baseConfig() {
-  const url = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL;
-  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  if (!url) throw new Error('SUPABASE_URL is not configured.');
-  if (!key) throw new Error('SUPABASE_SERVICE_ROLE_KEY is not configured.');
-  return { url: String(url).replace(/\/$/, ''), key };
+  return databaseEnvironment({ requireService: true });
 }
 
 async function fetchPage(table, offset, limit) {
@@ -103,7 +99,7 @@ export default async function handler(req, res) {
       format: 'VECTA_WORKSHOP_PRO_FULL_BACKUP_V1',
       created_at: finishedAt,
       started_at: startedAt,
-      supabase_project: (process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL || '').replace(/^https?:\/\//, '').split('.')[0],
+      supabase_project: baseConfig().url.replace(/^https?:\/\//, '').split('.')[0],
       counts,
       total_records: totalRecords,
       skipped_optional_tables: skipped,
@@ -119,3 +115,4 @@ export default async function handler(req, res) {
     return res.status(500).json({ error: String(error?.message || error) });
   }
 }
+import { databaseEnvironment } from './_database-environment.js';

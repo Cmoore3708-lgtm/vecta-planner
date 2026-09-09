@@ -1,4 +1,5 @@
-function cfg(){return {url:process.env.VITE_SUPABASE_URL||process.env.SUPABASE_URL,key:process.env.SUPABASE_SERVICE_ROLE_KEY}}
+import { databaseEnvironment } from './_database-environment.js';
+function cfg(){return databaseEnvironment({requireService:true})}
 async function rest(url,key,path,method='GET',body){const r=await fetch(`${url}/rest/v1/${path}`,{method,headers:{apikey:key,Authorization:`Bearer ${key}`,'Content-Type':'application/json',Prefer:'return=representation'},body:body?JSON.stringify(body):undefined});if(!r.ok)throw new Error(await r.text());return r.json().catch(()=>null)}
 export default async function handler(req,res){const {url,key}=cfg();if(!url||!key)return res.status(500).json({error:'Approval service is not configured'});try{
  if(req.method==='GET'){const token=String(req.query.token||'');if(!token)return res.status(400).json({error:'Token required'});const rows=await rest(url,key,`additional_work_approvals?select=id,job_id,registration,vehicle,customer_name,items,total,status,expires_at,decided_at&token=eq.${encodeURIComponent(token)}&limit=1`);const row=rows?.[0];if(!row)return res.status(404).json({error:'Approval request not found'});return res.status(200).json(row)}

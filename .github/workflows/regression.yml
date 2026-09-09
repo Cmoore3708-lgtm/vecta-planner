@@ -3,6 +3,9 @@ name: VECTA regression safety
 on:
   pull_request:
   workflow_dispatch:
+  push:
+    branches:
+      - safety/regression-foundation
 
 jobs:
   regression:
