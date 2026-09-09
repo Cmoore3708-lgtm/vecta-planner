@@ -1,4 +1,5 @@
-function cfg(){return {url:process.env.VITE_SUPABASE_URL||process.env.SUPABASE_URL,key:process.env.SUPABASE_SERVICE_ROLE_KEY}}
+import { databaseEnvironment } from './_database-environment.js';
+function cfg(){return databaseEnvironment({requireService:true})}
 function cleanReg(v){return String(v||'').toUpperCase().replace(/[^A-Z0-9]/g,'')}
 function normPhone(v){return String(v||'').replace(/\D/g,'').replace(/^44/,'0')}
 async function sb(url,key,path){const r=await fetch(`${url}/rest/v1/${path}`,{headers:{apikey:key,Authorization:`Bearer ${key}`}});if(!r.ok)throw new Error(await r.text());return r.json()}
