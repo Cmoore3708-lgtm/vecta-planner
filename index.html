@@ -16495,17 +16495,24 @@ async function v310DeduplicateAndCanonicalise(){
 }
 function v310RepairInternalServicePlans(){
   if(typeof app==='undefined'||!app||!Array.isArray(app.jobs)||!Array.isArray(window.fleetPlans)||!Array.isArray(window.fleetVehicles))return 0;
-  var changed=0;
+  var changed=0,latestByRegistration={},historyByRegistration={};
   (app.jobs||[]).forEach(function(j){
     var st=String(j&&j.status||'').toLowerCase();if(!j||!(st==='completed'||j.archived===true)||!v310IsInternalOnsite(j)||v310Deleted(j))return;
-    var v=v310FleetVehicle(j.registration);if(!v||String(v.fleetGroup||'')!=='Nissan Internal')return;
-    var done=v310Iso(j.completed_at)||v310Iso(j.booking_date)||v310Iso(j.updated_at);if(!done)return;var next=v310AddMonths(done,12);
+    var reg=v310Norm(j.registration),done=v310Iso(j.booking_date)||v310Iso(j.completed_at)||v310Iso(j.updated_at);if(!reg||!done)return;
+    (historyByRegistration[reg]=historyByRegistration[reg]||[]).push({job:j,date:done});
+    if(!latestByRegistration[reg]||done>latestByRegistration[reg].date)latestByRegistration[reg]={job:j,date:done};
+  });
+  Object.keys(latestByRegistration).forEach(function(reg){
+    var item=latestByRegistration[reg],done=item.date,v=v310FleetVehicle(reg);if(!v||String(v.fleetGroup||'')!=='Nissan Internal')return;
+    var next=v310AddMonths(done,12);if(!next)return;
     var p=(window.fleetPlans||[]).find(function(x){return x&&String(x.vehicleId)===String(v.id)&&/^(internal|annual|on[- ]?site).*service$/i.test(String(x.type||''));});
     if(!p){p={id:'plan-service-'+v.id,vehicleId:v.id,type:'Internal Service',intervalMonths:12,targetMonth:Number(next.slice(5,7)),currentDueDate:next,notes:'Next Internal Service due 12 months after completed On-Site Service '+done+'.',status:'Active',source:'Workshop completion V310'};window.fleetPlans.push(p);changed++;}
     else if(v310Iso(p.currentDueDate)!==next||String(p.type)!=='Internal Service'){p.currentDueDate=next;p.type='Internal Service';p.intervalMonths=12;p.targetMonth=Number(next.slice(5,7));p.manualDueDate=false;p.notes='Next Internal Service due 12 months after completed On-Site Service '+done+'.';changed++;}
     window.fleetCompletions=Array.isArray(window.fleetCompletions)?window.fleetCompletions:[];
-    var cid='job-service-'+String(j.id),c=window.fleetCompletions.find(function(x){return x&&String(x.id)===cid;});
-    if(!c){window.fleetCompletions.push({id:cid,type:'Internal Service',serviceType:'Internal Service',notes:'On-Site Service completed. Next Internal Service due '+next+'.',planId:p.id,source:'job:'+String(j.id),nextDue:next,vehicleId:v.id,completedDate:done,datePrecision:'day'});changed++;}
+    (historyByRegistration[reg]||[]).forEach(function(entry){
+      var cid='job-service-'+String(entry.job.id),entryNext=v310AddMonths(entry.date,12),record={id:cid,type:'Internal Service',serviceType:'Internal Service',notes:'On-Site Service completed. Next Internal Service due '+entryNext+'.',planId:p.id,source:'job:'+String(entry.job.id),nextDue:entryNext,vehicleId:v.id,completedDate:entry.date,datePrecision:'day'},c=window.fleetCompletions.find(function(x){return x&&String(x.id)===cid;});
+      if(c)Object.assign(c,record);else{window.fleetCompletions.push(record);changed++;}
+    });
   });
   return changed;
 }

@@ -107,6 +107,40 @@ function contextWith(names, extras = {}) {
   assert.equal(persisted, 1);
 }
 
+{
+  const jobs = [
+    { id: 'service-newer', registration: 'AXLE1', booking_date: '2026-09-04', completed_at: '2026-09-04T11:00:00Z', status: 'completed', job_type: 'On-Site Service' },
+    { id: 'service-backdated', registration: 'AXLE 1', booking_date: '2026-09-01', completed_at: '2026-09-09T14:30:00Z', status: 'completed', job_type: 'On-Site Service' }
+  ];
+  const fleetPlans = [{ id: 'plan-124', vehicleId: 'INTERNAL|AXLE1', type: 'Internal Service', currentDueDate: '', targetMonth: 9, status: 'Active' }];
+  const fleetVehicles = [{ id: 'INTERNAL|AXLE1', registration: 'AXLE 1', fleetGroup: 'Nissan Internal' }];
+  const context = vm.createContext({
+    console, Date, JSON, Math, Number, String, Array, Object, RegExp,
+    app: { jobs }, fleetPlans, fleetVehicles, fleetCompletions: []
+  });
+  context.window = context;
+  context.v310Norm = value => String(value || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
+  context.v310Iso = value => String(value || '').slice(0, 10).match(/^\d{4}-\d{2}-\d{2}$/)?.[0] || '';
+  context.v310AddMonths = (value, months) => {
+    const date = new Date(`${String(value).slice(0, 10)}T00:00:00Z`);
+    date.setUTCMonth(date.getUTCMonth() + months);
+    return date.toISOString().slice(0, 10);
+  };
+  context.v310IsInternalOnsite = job => /on-site service/i.test(job.job_type);
+  context.v310Deleted = () => false;
+  context.v310FleetVehicle = registration => fleetVehicles.find(vehicle => context.v310Norm(vehicle.registration) === context.v310Norm(registration));
+  vm.runInContext(functionSource('v310RepairInternalServicePlans'), context);
+
+  assert.equal(context.v310RepairInternalServicePlans(), 3);
+  assert.equal(fleetPlans[0].currentDueDate, '2027-09-04');
+  assert.equal(fleetPlans[0].targetMonth, 9);
+  assert.equal(context.fleetCompletions.length, 2);
+  assert.deepEqual(
+    Array.from(context.fleetCompletions, completion => completion.completedDate).sort(),
+    ['2026-09-01', '2026-09-04']
+  );
+}
+
 assert.match(html, /status==='ready_to_invoice'&&!isJobInvoiced\(j\)/);
 assert.match(
   html,
