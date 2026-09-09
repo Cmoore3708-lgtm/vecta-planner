@@ -1,5 +1,12 @@
 # VECTA Workshop Pro
 
+## 9 September 2026 — Finance integrity
+
+- Invoice saves now require cloud confirmation, verify the saved number, value and linked job, and retain a protected invoice snapshot.
+- Invoice numbers and job links are unique in the database, preventing reused numbers and duplicate invoices for one job.
+- Payment methods now save directly to the invoice record and update across devices through live synchronisation.
+- Hold over now assigns completed work to the following month instead of merely hiding it from the original month.
+
 ## 9 September 2026
 
 - Job cards now recognise a completed six-month safety check in the current maintenance cycle, instead of continuing to show the superseded due date in red.
