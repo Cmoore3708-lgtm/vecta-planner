@@ -14,7 +14,10 @@ for (const name of [
   'updateJobRegistrationDueAlert',
   'updateJobVehicleDuePanel',
   'knownRegistrationDetails',
-  'openVehicleFromReg'
+  'openVehicleFromReg',
+  'knownVehicles',
+  'knownCustomers',
+  'customerSearchRows'
 ]) {
   test(`${name} has one canonical definition`, () => {
     const matches = source.match(new RegExp(`function\\s+${name}\\s*\\(`, 'g')) || [];
