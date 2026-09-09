@@ -8,7 +8,11 @@ const source = readFileSync(resolve('index.html'), 'utf8');
 for (const name of [
   'vectaMissingColumns',
   'vectaRememberMissingColumn',
-  'vectaStripKnownMissingColumns'
+  'vectaStripKnownMissingColumns',
+  'jobVehicleDueItem',
+  'jobVehicleDuePanelHtml',
+  'updateJobRegistrationDueAlert',
+  'updateJobVehicleDuePanel'
 ]) {
   test(`${name} has one canonical definition`, () => {
     const matches = source.match(new RegExp(`function\\s+${name}\\s*\\(`, 'g')) || [];
