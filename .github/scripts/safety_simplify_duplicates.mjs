@@ -14,7 +14,8 @@ const names = [
   'knownVehicles',
   'knownCustomers',
   'customerSearchRows',
-  'openCustomerDetails'
+  'openCustomerDetails',
+  'vehicleRows'
 ];
 
 let source = readFileSync(file, 'utf8');
