@@ -1,4 +1,6 @@
 const PRODUCTION_PROJECT_REF = 'jywufozycuwuoshlulwl';
+const TEST_PROJECT_URL = 'https://rmbmbpqwvghxuyeykjhh.supabase.co';
+const TEST_PUBLISHABLE_KEY = 'sb_publishable_g_Ey4NLLhW6aZye_bPZWlw_nE7Skh0z';
 
 function cleanUrl(value) {
   return String(value || '').replace(/\/$/, '');
@@ -11,10 +13,10 @@ export function isPreviewEnvironment() {
 export function databaseEnvironment({ requireService = false } = {}) {
   const preview = isPreviewEnvironment();
   const url = cleanUrl(preview
-    ? process.env.VECTA_TEST_SUPABASE_URL
+    ? (process.env.VECTA_TEST_SUPABASE_URL || TEST_PROJECT_URL)
     : (process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL));
   const publishableKey = preview
-    ? process.env.VECTA_TEST_SUPABASE_PUBLISHABLE_KEY
+    ? (process.env.VECTA_TEST_SUPABASE_PUBLISHABLE_KEY || TEST_PUBLISHABLE_KEY)
     : (process.env.VITE_SUPABASE_ANON_KEY || process.env.SUPABASE_PUBLISHABLE_KEY || process.env.SUPABASE_ANON_KEY);
   const serviceKey = preview
     ? process.env.VECTA_TEST_SUPABASE_SERVICE_ROLE_KEY
