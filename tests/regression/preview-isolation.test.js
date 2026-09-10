@@ -28,12 +28,17 @@ function withEnvironment(values, run) {
   }
 }
 
-test('preview fails closed instead of inheriting production credentials', () => {
+test('preview uses the restricted test project but never inherits production service access', () => {
   withEnvironment({
     VERCEL_ENV: 'preview',
     SUPABASE_URL: 'https://jywufozycuwuoshlulwl.supabase.co',
     SUPABASE_SERVICE_ROLE_KEY: 'production-secret'
-  }, () => assert.throws(() => databaseEnvironment({ requireService: true }), /Preview database is not configured/));
+  }, () => {
+    const publicConfig = databaseEnvironment();
+    assert.equal(publicConfig.url, 'https://rmbmbpqwvghxuyeykjhh.supabase.co');
+    assert.equal(publicConfig.preview, true);
+    assert.throws(() => databaseEnvironment({ requireService: true }), /service access is not configured/);
+  });
 });
 
 test('preview rejects the production project even if entered as a test variable', () => {
