@@ -1,5 +1,5 @@
-const CACHE='vecta-workshop-pro-shell-v16-authoritative-phone-resume';
-const APP_VERSION='v326-authoritative-phone-resume';
+const CACHE='vecta-workshop-pro-shell-v17-cloud-authoritative-job-sync';
+const APP_VERSION='v327-cloud-authoritative-job-sync';
 const DATA_CACHE='vecta-workshop-pro-data-last-known-v1';
 const HEALTH_CACHE='vecta-workshop-pro-cloud-health-v1';
 const CORE=[

@@ -9270,7 +9270,7 @@ async function flushPendingSync(){
   if(!remaining.length)return true;
   return false
 }
-var VECTA_APP_VERSION='v326-authoritative-phone-resume';
+var VECTA_APP_VERSION='v327-cloud-authoritative-job-sync';
 var vectaAppUpdateWaiting=false;
 function vectaSafeApplyAppUpdate(){
   vectaAppUpdateWaiting=true;
@@ -9292,7 +9292,7 @@ function registerVectaServiceWorker(){
   navigator.serviceWorker.addEventListener('controllerchange',function(){vectaSafeApplyAppUpdate()});
   window.addEventListener('load',function(){
     Promise.resolve(window.__vectaCacheResetPromise).finally(function(){
-      navigator.serviceWorker.register('/service-worker.js?v=20260910-authoritative-phone-resume-v326',{updateViaCache:'none'}).then(function(reg){
+      navigator.serviceWorker.register('/service-worker.js?v=20260910-cloud-authoritative-job-sync-v327',{updateViaCache:'none'}).then(function(reg){
         if(navigator.onLine)Promise.resolve(reg.update()).catch(function(e){console.warn('Service worker update skipped',e)});
       }).catch(function(e){console.warn('Offline app install skipped',e)});
     });
@@ -9557,22 +9557,12 @@ function vectaQueuedJobOperations(){var map={};vectaPendingSync().forEach(functi
 function vectaLikelyNewOfflineJob(item){if(!item||item.operation!=='upsert'||!item.payload||Array.isArray(item.payload))return false;var created=Date.parse(item.payload.created_at||0)||0,queued=Date.parse(item.queued_at||0)||0;if(!created||!queued)return false;return Math.abs(queued-created)<=30*60*1000}
 function vectaReconcileJobsFromCloud(remoteRows){
   remoteRows=Array.isArray(remoteRows)?remoteRows:[];
-  var currentCount=Array.isArray(app.jobs)?app.jobs.length:0;
-  var lastGood=[];
-  try{lastGood=JSON.parse(localStorage.getItem('vecta:last-good-jobs:v322')||'[]');if(!Array.isArray(lastGood))lastGood=[]}catch(e){lastGood=[]}
-  var reference=Math.max(currentCount,lastGood.length);
-
-  /* V322: a full jobs-table refresh must never collapse a populated planner.
-     Saving one job can trigger a realtime refresh before the following cloud
-     read has finished. Treat an empty or >60% sudden shrink as incomplete. */
-  if(reference>=10 && (remoteRows.length===0 || remoteRows.length<Math.floor(reference*0.40))){
-    console.warn('V322 blocked incomplete jobs refresh: '+remoteRows.length+' rows vs '+reference+' known jobs.');
-    if(currentCount<10 && lastGood.length){
-      app.jobs=lastGood.map(function(x){return normaliseCompletedJobState(x)});
-      saveLocal();
-    }
-    return app.jobs||[];
-  }
+  /* V327: this function is called only after vectaFetchAllRemoteRows has fetched
+     every page successfully. The old row-count guard compared that complete cloud
+     result with an arbitrary phone cache and rejected legitimate deletions or bulk
+     cleanup. That left iPhones showing stale allocations and resurrected jobs.
+     A failed/partial paginated download already throws before reaching here, so a
+     successful cloud collection is the authority even when its row count shrinks. */
 
   remoteRows=Array.isArray(remoteRows)?remoteRows.map(fromRemote):[];
   var remoteById={},queued=vectaQueuedJobOperations(),localById={};
@@ -13461,7 +13451,17 @@ async function vectaLoadTerminalJobStatesFromCloud(){
       if(res.error)throw res.error;
       var page=Array.isArray(res.data)?res.data:[];rows=rows.concat(page);if(page.length<pageSize)break;from+=pageSize;
     }
-    rows.forEach(function(row){var id=String(row.id||'').slice(VECTA_TERMINAL_JOB_PREFIX.length),state=vectaNormaliseTerminalState(row.value);if(id&&state&&state.state!=='deleted'){state.updated_at=row.updated_at||state.updated_at;vectaSetTerminalJobStateLocal(id,state)}});
+    rows.forEach(function(row){
+      var id=String(row.id||'').slice(VECTA_TERMINAL_JOB_PREFIX.length),state=vectaNormaliseTerminalState(row.value);
+      if(!id||!state)return;
+      state.updated_at=row.updated_at||state.updated_at;
+      /* A faulty 25-Aug recovery wrote a batch of false deletion ledgers. Keep
+         quarantining those historical rows, but honour every later explicit
+         deletion so all devices agree that the job is deleted. */
+      var deletionStamp=Date.parse(state.deleted_at||state.updated_at||0)||0;
+      if(state.state==='deleted'&&deletionStamp<Date.parse('2026-08-26T00:00:00Z'))return;
+      vectaSetTerminalJobStateLocal(id,state);
+    });
     return true;
   }catch(e){console.warn('Job lifecycle ledger could not be loaded',e);return false}
 }
@@ -13508,6 +13508,7 @@ async function deleteJobCompletely(id){
   try{
     await upsertRemote('jobs',j,{silent:true});
     if(remoteClient){var check=await remoteClient.from('jobs').select('id,customer_note,archived,status').eq('id',j.id).limit(1);if(check.error)throw check.error;if(!check.data||!check.data.length||!/\[\[VECTA_SOFT_DELETE:/i.test(String(check.data[0].customer_note||''))||check.data[0].archived!==true)throw new Error('Supabase did not confirm the soft deletion.');}
+    await vectaWriteTerminalJobState(j,'deleted',{deleted_at:meta.deleted_at,registration:normReg(j.registration||''),soft_delete:true});
     render();
   }catch(e){Object.assign(j,before);invalidateFinanceDashboardCache();saveLocal();render();alert('The deletion was not confirmed in Supabase, so nothing has been deleted.\n\n'+(e.message||e));}
 }

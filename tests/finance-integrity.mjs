@@ -185,7 +185,7 @@ assert.match(
 );
 assert.match(
   html,
-  /var savedOk=await v187BaseSaveInvoice\(id\);\s*if\(savedOk===false\)return false;/,
+  /var savedSuccessfully=await saveInvoiceBase\(id\);\s*if\(savedSuccessfully===false\)return false;/,
   'Invoice save wrappers must propagate a failed cloud confirmation'
 );
 console.log('Finance integrity regression tests passed.');
