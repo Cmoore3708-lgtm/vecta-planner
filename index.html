@@ -9270,7 +9270,7 @@ async function flushPendingSync(){
   if(!remaining.length)return true;
   return false
 }
-var VECTA_APP_VERSION='v327-cloud-authoritative-job-sync';
+var VECTA_APP_VERSION='v328-cross-device-edit-sync';
 var vectaAppUpdateWaiting=false;
 function vectaSafeApplyAppUpdate(){
   vectaAppUpdateWaiting=true;
@@ -9292,7 +9292,7 @@ function registerVectaServiceWorker(){
   navigator.serviceWorker.addEventListener('controllerchange',function(){vectaSafeApplyAppUpdate()});
   window.addEventListener('load',function(){
     Promise.resolve(window.__vectaCacheResetPromise).finally(function(){
-      navigator.serviceWorker.register('/service-worker.js?v=20260910-cloud-authoritative-job-sync-v327',{updateViaCache:'none'}).then(function(reg){
+      navigator.serviceWorker.register('/service-worker.js?v=20260910-cross-device-edit-sync-v328',{updateViaCache:'none'}).then(function(reg){
         if(navigator.onLine)Promise.resolve(reg.update()).catch(function(e){console.warn('Service worker update skipped',e)});
       }).catch(function(e){console.warn('Offline app install skipped',e)});
     });
@@ -9555,6 +9555,16 @@ async function vectaFetchAllRemoteRows(table,timeoutMs){
 }
 function vectaQueuedJobOperations(){var map={};vectaPendingSync().forEach(function(raw){var item=vectaNormaliseQueuedItem(raw);if(item.table!=='jobs')return;var id=String((item.payload&&item.payload.id)||item.payload||'');if(id)map[id]=item});return map}
 function vectaLikelyNewOfflineJob(item){if(!item||item.operation!=='upsert'||!item.payload||Array.isArray(item.payload))return false;var created=Date.parse(item.payload.created_at||0)||0,queued=Date.parse(item.queued_at||0)||0;if(!created||!queued)return false;return Math.abs(queued-created)<=30*60*1000}
+function vectaPendingUpsertIsNewerThanCloud(item,remote){
+  if(!item||item.operation!=='upsert'||!item.payload||Array.isArray(item.payload)||!remote)return false;
+  /* Compare the time of the actual offline edit, never the cached job's current
+     updated_at. Background PC processing can touch that cached timestamp without
+     changing the mechanic and previously made an obsolete queue entry look newer. */
+  var pendingStamp=Date.parse(item.payload.updated_at||item.queued_at||0)||0;
+  var remoteStamp=Date.parse(remote.updated_at||remote.created_at||0)||0;
+  if(!pendingStamp||!remoteStamp)return true; /* preserve uncertain offline work */
+  return pendingStamp>remoteStamp;
+}
 function vectaReconcileJobsFromCloud(remoteRows){
   remoteRows=Array.isArray(remoteRows)?remoteRows:[];
   /* V327: this function is called only after vectaFetchAllRemoteRows has fetched
@@ -9569,9 +9579,9 @@ function vectaReconcileJobsFromCloud(remoteRows){
   remoteRows.forEach(function(row){if(!row||!row.id)return;var id=String(row.id),status=String(row.status||'').toLowerCase();if(status==='deleted'){vectaSetTerminalJobStateLocal(id,{state:'deleted',job_id:id,registration:normReg(row.registration||''),updated_at:row.updated_at||new Date().toISOString()});return;}remoteById[id]=normaliseCompletedJobState(row)});
   (app.jobs||[]).forEach(function(row){if(row&&row.id)localById[String(row.id)]=row});
   var next=[],staleQueueKeys=[];
-  Object.keys(remoteById).forEach(function(id){var remote=remoteById[id],local=localById[id],pending=queued[id],terminal=vectaTerminalJobState(id);/* 25-Aug recovery: old deletion ledgers/tombstones are not trusted. */if(terminal&&terminal.state==='completed'){remote.status='completed';remote.archived=true;remote.completed_at=remote.completed_at||terminal.completed_at||null;}if(pending&&pending.operation==='upsert'&&local)next.push(normaliseCompletedJobState(mergeRemoteRows([local],[remote])[0]||remote));else next.push(normaliseCompletedJobState(remote))});
+  Object.keys(remoteById).forEach(function(id){var remote=remoteById[id],local=localById[id],pending=queued[id],terminal=vectaTerminalJobState(id);/* 25-Aug recovery: old deletion ledgers/tombstones are not trusted. */if(terminal&&terminal.state==='completed'){remote.status='completed';remote.archived=true;remote.completed_at=remote.completed_at||terminal.completed_at||null;}if(pending&&pending.operation==='upsert'&&local&&vectaPendingUpsertIsNewerThanCloud(pending,remote))next.push(normaliseCompletedJobState(mergeRemoteRows([local],[remote])[0]||remote));else{next.push(normaliseCompletedJobState(remote));if(pending&&pending.operation==='upsert')staleQueueKeys.push(pending.key)}});
   Object.keys(queued).forEach(function(id){if(remoteById[id])return;var item=queued[id],local=localById[id];if(item.operation==='delete')return;if(item.operation==='upsert'&&local&&vectaLikelyNewOfflineJob(item)){next.push(normaliseCompletedJobState(local));return}if(item.operation==='upsert')staleQueueKeys.push(item.key)});
-  if(staleQueueKeys.length){var q=vectaPendingSync(),stale=q.filter(function(x){return staleQueueKeys.indexOf(vectaNormaliseQueuedItem(x).key)!==-1});vectaArchiveSyncItems(stale,'Cloud-authoritative startup removed stale job upserts for jobs no longer present');vectaSavePendingSync(q.filter(function(x){return staleQueueKeys.indexOf(vectaNormaliseQueuedItem(x).key)===-1}));console.warn('Removed '+staleQueueKeys.length+' stale queued job change(s) that would have resurrected deleted cloud jobs.')}
+  if(staleQueueKeys.length){var q=vectaPendingSync(),stale=q.filter(function(x){return staleQueueKeys.indexOf(vectaNormaliseQueuedItem(x).key)!==-1});vectaArchiveSyncItems(stale,'Cloud-authoritative refresh removed stale job upserts superseded by cloud data');vectaSavePendingSync(q.filter(function(x){return staleQueueKeys.indexOf(vectaNormaliseQueuedItem(x).key)===-1}));console.warn('Removed '+staleQueueKeys.length+' stale queued job change(s) superseded by cloud data.')}
   app.jobs=next;saveLocal();
   try{
     if(Array.isArray(next)&&next.length>=10)localStorage.setItem('vecta:last-good-jobs:v322',JSON.stringify(next));

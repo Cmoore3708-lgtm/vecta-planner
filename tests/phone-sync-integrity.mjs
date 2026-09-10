@@ -24,19 +24,23 @@ function functionSource(name) {
   let saves = 0;
   const staleJobs = [
     { id: 'p3', registration: 'P3FOR', booking_date: null, technician: 'Alfie', status: 'booked' },
-    { id: 'deleted-nmuk', registration: 'NMUK', booking_date: null, technician: 'Other', status: 'booked' }
+    { id: 'deleted-nmuk', registration: 'NMUK', booking_date: null, technician: 'Other', status: 'booked' },
+    { id: 'test1', registration: 'TEST1', booking_date: '2026-09-11', technician: 'Alfie', status: 'booked', updated_at: '2026-09-10T09:03:00Z' }
   ];
   const cloudJobs = [
     { id: 'p3', registration: 'P3FOR', booking_date: '2026-09-09', technician: 'Other', status: 'ready_to_invoice' },
-    { id: 'ef19', registration: 'EF19LXC', booking_date: '2026-09-11', technician: 'Alfie', status: 'booked' }
+    { id: 'ef19', registration: 'EF19LXC', booking_date: '2026-09-11', technician: 'Alfie', status: 'booked' },
+    { id: 'test1', registration: 'TEST1', booking_date: '2026-09-11', technician: 'Other', status: 'booked', updated_at: '2026-09-10T09:01:53Z' }
   ];
+  const pending = [{ key: 'upsert:jobs:test1', operation: 'upsert', table: 'jobs', queued_at: '2026-09-10T09:00:30Z', payload: { id: 'test1', technician: 'Alfie', updated_at: '2026-09-10T09:00:30Z' } }];
+  let remainingQueue = pending;
   const context = vm.createContext({
     console, Date, JSON, Math, Number, String, Array, Object,
     app: { jobs: staleJobs },
     localStorage: { setItem() {} },
     fromRemote: row => ({ ...row }),
     normaliseCompletedJobState: row => row,
-    vectaPendingSync: () => [],
+    vectaPendingSync: () => remainingQueue,
     vectaNormaliseQueuedItem: row => row,
     vectaTerminalJobState: () => null,
     vectaSetTerminalJobStateLocal: () => {},
@@ -45,22 +49,25 @@ function functionSource(name) {
     saveLocal: () => { saves += 1; },
     normReg: value => String(value || '').replace(/\s/g, '').toUpperCase(),
     vectaArchiveSyncItems: () => {},
-    vectaSavePendingSync: () => {}
+    vectaSavePendingSync: value => { remainingQueue = value; }
   });
   vm.runInContext(functionSource('vectaQueuedJobOperations'), context);
+  vm.runInContext(functionSource('vectaPendingUpsertIsNewerThanCloud'), context);
   vm.runInContext(functionSource('vectaReconcileJobsFromCloud'), context);
   const result = context.vectaReconcileJobsFromCloud(cloudJobs);
 
-  assert.deepEqual(Array.from(result, row => row.id).sort(), ['ef19', 'p3']);
+  assert.deepEqual(Array.from(result, row => row.id).sort(), ['ef19', 'p3', 'test1']);
   assert.equal(result.find(row => row.id === 'p3').status, 'ready_to_invoice');
   assert.equal(result.find(row => row.id === 'ef19').booking_date, '2026-09-11');
   assert.equal(result.some(row => row.id === 'deleted-nmuk'), false);
+  assert.equal(result.find(row => row.id === 'test1').technician, 'Other');
+  assert.equal(remainingQueue.length, 0);
   assert.equal(saves, 1);
 }
 
 assert.doesNotMatch(html, /blocked incomplete jobs refresh/);
 assert.match(html, /deletionStamp<Date\.parse\('2026-08-26T00:00:00Z'\)/);
 assert.match(html, /await vectaWriteTerminalJobState\(j,'deleted'/);
-assert.match(html, /v327-cloud-authoritative-job-sync/);
+assert.match(html, /v328-cross-device-edit-sync/);
 
 console.log('Phone/cloud sync integrity regression tests passed.');
