@@ -1,0 +1,255 @@
+diff --git a/index.html b/index.html
+index 3cd0df5..4536bab 100644
+--- a/index.html
++++ b/index.html
+@@ -1708,6 +1708,7 @@ body.servicePreviewing .servicePreviewControls{position:relative!important;z-ind
+ .customerNameHidden{display:none!important}
+ .fleetDueGroup{border-top:1px solid #eef2f6;background:#fff}
+ .fleetDueGroup>.fleetRow{border-top:0}
++.fleetEmailSentCheck{display:inline-flex;align-items:center;justify-content:flex-end;gap:8px;font-weight:800;cursor:pointer}.fleetEmailSentCheck input{width:20px;height:20px;accent-color:#16a34a;cursor:pointer}.fleetEmailSentCheck span{font-size:12px!important;color:#475569}.fleetEmailSentCheck input:checked+span{color:#15803d}
+ .fleetDueSubRow{display:grid;grid-template-columns:125px minmax(150px,1.25fr) minmax(130px,1fr) 118px;gap:10px;align-items:center;width:100%;padding:5px 13px 8px;background:#fbfdff;border-top:1px dashed #e2e8f0;cursor:pointer;text-align:left}
+ .fleetDueSubRow:hover{background:#f5f9ff}
+ .fleetDueSubRow>span:empty{min-height:1px}
+@@ -9270,7 +9271,7 @@ async function flushPendingSync(){
+   if(!remaining.length)return true;
+   return false
+ }
+-var VECTA_APP_VERSION='v328-cross-device-edit-sync';
++var VECTA_APP_VERSION='v329-fleet-invoice-email-fixes';
+ var vectaAppUpdateWaiting=false;
+ function vectaSafeApplyAppUpdate(){
+   vectaAppUpdateWaiting=true;
+@@ -9292,7 +9293,7 @@ function registerVectaServiceWorker(){
+   navigator.serviceWorker.addEventListener('controllerchange',function(){vectaSafeApplyAppUpdate()});
+   window.addEventListener('load',function(){
+     Promise.resolve(window.__vectaCacheResetPromise).finally(function(){
+-      navigator.serviceWorker.register('/service-worker.js?v=20260910-cross-device-edit-sync-v328',{updateViaCache:'none'}).then(function(reg){
++      navigator.serviceWorker.register('/service-worker.js?v=20260910-fleet-invoice-email-v329',{updateViaCache:'none'}).then(function(reg){
+         if(navigator.onLine)Promise.resolve(reg.update()).catch(function(e){console.warn('Service worker update skipped',e)});
+       }).catch(function(e){console.warn('Offline app install skipped',e)});
+     });
+@@ -10200,6 +10201,7 @@ window.__vectaFleetState=function(next){
+   return {vehicles:fleetVehicles,plans:fleetPlans,completions:fleetCompletions,app:app};
+ };
+ var fleetCustomerProfiles={};try{fleetCustomerProfiles=JSON.parse(localStorage.getItem('vecta:fleet:customers:v1')||'{}')||{}}catch(e){fleetCustomerProfiles={}}
++var fleetEmailSent={};try{fleetEmailSent=JSON.parse(localStorage.getItem('vecta:fleet:email-sent:v329')||'{}')||{}}catch(e){fleetEmailSent={}}
+ /* V41.64: Financial tracker spreadsheets are history, not the active fleet list.
+    Remove only vehicles that were auto-created from the 2026 NMUK monthly tracker.
+    Manually entered vehicles and the authoritative fleet seed remain untouched. */
+@@ -10581,13 +10583,15 @@ function fleetCaptureCurrentMotAuthority(){
+     if(checked)fleetRecordMotAuthority(v,expiry,checked);
+   });
+ }
+-function fleetSnapshot(){return {version:268,vehicles:fleetVehicles||[],plans:fleetPlans||[],completions:fleetCompletions||[],customers:fleetCustomerProfiles||{},deletedRegistrations:fleetDeletedRegistrations||[],removedMaintenance:(fleetRemovedMaintenance&&typeof fleetRemovedMaintenance==='object'?fleetRemovedMaintenance:{}),updated_at:new Date().toISOString()}}
++function fleetSnapshot(){return {version:329,vehicles:fleetVehicles||[],plans:fleetPlans||[],completions:fleetCompletions||[],customers:fleetCustomerProfiles||{},emailSent:fleetEmailSent||{},deletedRegistrations:fleetDeletedRegistrations||[],removedMaintenance:(fleetRemovedMaintenance&&typeof fleetRemovedMaintenance==='object'?fleetRemovedMaintenance:{}),updated_at:new Date().toISOString()}}
+ var fleetCloudLastPersistedPayload='';
+-function fleetCloudPersistenceValue(snap){return {version:snap.version,vehicles:snap.vehicles,plans:snap.plans,completions:snap.completions,customers:snap.customers,deletedRegistrations:snap.deletedRegistrations,removedMaintenance:snap.removedMaintenance}}
++function fleetCloudPersistenceValue(snap){return {version:snap.version,vehicles:snap.vehicles,plans:snap.plans,completions:snap.completions,customers:snap.customers,emailSent:snap.emailSent,deletedRegistrations:snap.deletedRegistrations,removedMaintenance:snap.removedMaintenance}}
+ async function persistFleetCloudSnapshot(){if(!remoteClient)return false;try{var snap=fleetSnapshot(),sig=vectaSettingsSignature(fleetCloudPersistenceValue(snap));if(sig===fleetCloudLastPersistedPayload)return true;var res=await remoteClient.from('workshop_settings').upsert({id:fleetCloudStateId,value:snap,updated_at:snap.updated_at},{onConflict:'id'});if(res.error)throw res.error;fleetCloudLastPersistedPayload=sig;try{localStorage.setItem('vecta:fleet:cloud-updated:v77',snap.updated_at)}catch(e){}return true}catch(e){console.warn('Fleet cloud snapshot save failed',e);return false}}
++function applyFleetEmailSentSnapshot(value){if(!value||!value.emailSent||typeof value.emailSent!=='object')return false;fleetEmailSent=Object.assign({},fleetEmailSent||{},value.emailSent);try{localStorage.setItem('vecta:fleet:email-sent:v329',JSON.stringify(fleetEmailSent))}catch(e){}return true}
+ function applyFleetCloudSnapshot(value){if(!value||typeof value!=='object')return false;fleetCaptureCurrentMotAuthority();var changed=false;if(value.removedMaintenance&&typeof value.removedMaintenance==='object'){if(!fleetRemovedMaintenance||typeof fleetRemovedMaintenance!=='object')fleetRemovedMaintenance={};Object.keys(value.removedMaintenance).forEach(function(k){var r=value.removedMaintenance[k];if(!fleetRemovedMaintenance[k]||String(r&&r.removed_at||'')>String(fleetRemovedMaintenance[k].removed_at||''))fleetRemovedMaintenance[k]=r});fleetSaveRemovedMaintenance()}if(Array.isArray(value.deletedRegistrations)){value.deletedRegistrations.forEach(function(r){r=normReg(r);if(r&&fleetDeletedRegistrations.indexOf(r)===-1)fleetDeletedRegistrations.push(r)});fleetSaveDeletedRegistrations()}if(Array.isArray(value.vehicles)){fleetVehicles=value.vehicles;changed=true}if(Array.isArray(value.plans)){fleetPlans=value.plans;changed=true}if(Array.isArray(value.completions)){fleetCompletions=value.completions;changed=true}if(value.customers&&typeof value.customers==='object'){var mergedCustomers=Object.assign({},value.customers||{});Object.keys(fleetCustomerProfiles||{}).forEach(function(customerKey){var localProfile=fleetCustomerProfiles[customerKey]||{},remoteProfile=mergedCustomers[customerKey]||{},mergedProfile=Object.assign({},remoteProfile);Object.keys(localProfile).forEach(function(field){if(String(localProfile[field]||'').trim()&&!String(mergedProfile[field]||'').trim())mergedProfile[field]=localProfile[field]});mergedCustomers[customerKey]=mergedProfile});fleetCustomerProfiles=mergedCustomers;changed=true}if(fleetApplyDeletionTombstones())changed=true;if(fleetApplyMaintenanceTombstones())changed=true;if(fleetApplyMotAuthority())changed=true;if(changed){try{localStorage.setItem('vecta:fleet:vehicles:v1',JSON.stringify(fleetVehicles));localStorage.setItem('vecta:fleet:plans:v1',JSON.stringify(fleetPlans));localStorage.setItem('vecta:fleet:completions:v1',JSON.stringify(fleetCompletions));localStorage.setItem('vecta:fleet:customers:v1',JSON.stringify(fleetCustomerProfiles));if(value.updated_at)localStorage.setItem('vecta:fleet:cloud-updated:v77',value.updated_at)}catch(e){}}return changed}
+ async function pullFleetCloudState(){if(!remoteClient)return false;try{var rows=await remoteClient.from('workshop_settings').select('id,value,updated_at').in('id',[fleetCloudStateId,'fleet_auto_refresh_status_v77',FLEET_MOT_AUTHORITY_CLOUD_ID]);if(rows.error)throw rows.error;var state=null,status=null,authority=null;(rows.data||[]).forEach(function(row){if(row.id===fleetCloudStateId)state=row;if(row.id==='fleet_auto_refresh_status_v77')status=row;if(row.id===FLEET_MOT_AUTHORITY_CLOUD_ID)authority=row});if(status&&status.value)fleetAutoRefreshStatus=status.value;if(authority&&authority.value&&authority.value.records){var remoteRecords=authority.value.records||{};fleetMotAuthorityLastPersisted=vectaSettingsSignature(remoteRecords);Object.keys(remoteRecords).forEach(function(k){var rec=remoteRecords[k]||{},reg=normReg(rec.registration||k),expiry=dvsaIsoDate(rec.expiry),prev=fleetMotAuthority[reg]||{},prevExpiry=dvsaIsoDate(prev.expiry);if(reg&&expiry&&(!prevExpiry||String(rec.checked_at||'')>String(prev.checked_at||'')))fleetMotAuthority[reg]=rec});fleetMotAuthoritySaveLocal()}if(state&&state.value){fleetCloudLastPersistedPayload=vectaSettingsSignature(fleetCloudPersistenceValue(state.value));applyFleetCloudSnapshot(Object.assign({},state.value,{updated_at:state.updated_at||state.value.updated_at||''}));return true}fleetApplyMotAuthority();await persistFleetCloudSnapshot();return false}catch(e){console.warn('Fleet cloud state pull failed',e);fleetApplyMotAuthority();return false}}
+ function saveFleet(){fleetApplyMaintenanceTombstones();fleetEnsureServicePlanTypes();fleetAlignServiceDatesToMot();fleetAssignPoolEmail();fleetApplyDeletionTombstones();fleetApplyMaintenanceTombstones();fleetApplyMotAuthority();localStorage.setItem('vecta:fleet:vehicles:v1',JSON.stringify(fleetVehicles));localStorage.setItem('vecta:fleet:plans:v1',JSON.stringify(fleetPlans));localStorage.setItem('vecta:fleet:completions:v1',JSON.stringify(fleetCompletions));localStorage.setItem('vecta:fleet:customers:v1',JSON.stringify(fleetCustomerProfiles));if(remoteClient){persistFleetMotAuthority();persistFleetCloudSnapshot()}}
++var fleetApplyCloudSnapshotBase=applyFleetCloudSnapshot;applyFleetCloudSnapshot=function(value){applyFleetEmailSentSnapshot(value);return fleetApplyCloudSnapshotBase(value)};
+ function fleetAutoRefreshBanner(){
+   var st=fleetAutoRefreshStatus||{},when=st.finishedAt||st.startedAt||'',checked=Number(st.checked||0),updated=Number(st.updated||0),errors=Number(st.errors||0),taxConfigured=st.taxConfigured===true,hasReport=!!window.lastFleetManualMotReport;
+   return '<div class="fleetAutoRefreshBar"><div><b>Government vehicle data</b><span>'+(when?'Last check '+esc(new Date(when).toLocaleString('en-GB')):'Automatic nightly checking enabled')+'</span></div><div class="fleetAutoRefreshStats"><button type="button" class="btn" id="fleetManualMotCheck" title="Run a live MOT lookup now">'+checked+' Checked</button><span>'+updated+' MOT dates updated</span>'+(errors?'<span class="warn">'+errors+' errors</span>':'')+(hasReport?'<button type="button" class="btn" id="fleetManualMotReport">View results</button>':'')+'<span>Tax '+(taxConfigured?'DVLA connected':'DVLA API ready — key pending')+'</span></div></div>';
+@@ -10609,7 +10613,7 @@ function fleetLatestCompletedEvidenceDate(vehicle,category){
+           completed=completedJobCanUpdateFleet(j)||status==='invoiced'||status==='invoice_created'||status==='ready_for_invoice';
+       if(!completed)return;
+       var cats=fleetPlannerJobCategories(j);
+-      if(category==='service'&&cats.service&&!isSixMonthSafetyCheck(j)&&!isOnSiteService(j))addDate(completedJobDateForFleet(j)||j.booking_date);
++      if(category==='service'&&cats.service&&!isSixMonthSafetyCheck(j))addDate(completedJobDateForFleet(j)||j.booking_date);
+       if(category==='safety'&&(cats.safety||isSixMonthSafetyCheck(j)))addDate(completedJobDateForFleet(j)||j.booking_date);
+     });
+     (app.serviceRecords||[]).forEach(function(rec){
+@@ -10636,7 +10640,7 @@ function fleetCompletedJobForPlanCycle(p){
+     if(!j||normReg(j.registration||'')!==reg||!completedJobCanUpdateFleet(j))return false;
+     var done=completedJobDateForFleet(j);if(!done||String(done).slice(0,10)>todayIso())return false;
+     var cats=fleetPlannerJobCategories(j);
+-    if(cat==='service')return !!cats.service&&!isSixMonthSafetyCheck(j)&&!isOnSiteService(j);
++    if(cat==='service')return !!cats.service&&!isSixMonthSafetyCheck(j);
+     if(cat==='safety')return !!cats.safety||isSixMonthSafetyCheck(j);
+     if(cat==='tax')return !!cats.tax;
+     return false;
+@@ -11166,7 +11170,10 @@ function fleetDueIntegrityAudit(){
+   return {today:today,limit:limit,categories:categories,dueRows:rows,futureCompletions:futureCompletions,removedPlanLeaks:removedPlanLeaks};
+ }
+ window.v280FleetDueIntegrityAudit=fleetDueIntegrityAudit;
++function fleetEmailCycleKey(group){var v=group&&group.vehicle||{},items=(group&&group.items||[]).map(function(r){return String(r.plan&&r.plan.id||r.typeKey||'work')+'@'+String(r.due||'')}).sort();return String(v.id||normReg(v.registration||''))+'|'+items.join('|')}
++function fleetEmailSentCell(group){var key=fleetEmailCycleKey(group),checked=!!fleetEmailSent[key];return '<label class="fleetEmailSentCheck" title="Record that the booking email has been sent"><input type="checkbox" data-fleet-email-sent="'+esc(key)+'" '+(checked?'checked':'')+'><span>'+(checked?'Sent':'Not sent')+'</span></label>'}
+ function fleetMaintenanceHtml(){
++  try{if(typeof v310RepairInternalServicePlans==='function'&&v310RepairInternalServicePlans())saveFleet()}catch(e){console.warn('Internal service due-date reconciliation skipped',e)}
+   fleetApplyMaintenanceTombstones();
+   fleetEnsureServicePlanTypes();
+   fleetAlignServiceDatesToMot();
+@@ -11231,13 +11238,13 @@ function fleetMaintenanceHtml(){
+     ],
+     customers=all.filter(function(v){return v.fleetGroup==='Contractor Fleet'}).map(function(v){return fleetNormaliseCustomer(v.customer)}).filter(function(x,i,a){return x&&a.indexOf(x)===i}).sort(),
+     listTitle=fleetListMode==='overdue'?'Overdue vehicles':fleetListMode==='missing'?'Vehicles missing an email':fleetListMode==='all'?'All vehicles':fleetListMode==='mot30'?'MOTs due within 30 days':fleetListMode==='tax30'?'Tax due within 30 days':fleetListMode==='service30'?'Services due within 30 days':fleetListMode==='safety30'?'Six-month safety checks due within 30 days':'All work due within the next 30 days',
+-    dueHeading=fleetListMode==='mot30'?'MOT due':fleetListMode==='tax30'?'Tax due':fleetListMode==='service30'?'Service due':fleetListMode==='safety30'?'6 month check due':'Next due',
++    dueHeading=fleetListMode==='due30'?'Email sent':fleetListMode==='mot30'?'MOT due':fleetListMode==='tax30'?'Tax due':fleetListMode==='service30'?'Service due':fleetListMode==='safety30'?'6 month check due':'Next due',
+     resultCount=fleetListMode==='due30'?dueGroups.length:(workMode?filteredWork.length:filteredVehicles.length),
+     rowsHtml='';
+   if(fleetListMode==='due30'){
+     rowsHtml=dueGroups.map(function(group){
+       var v=group.vehicle;
+-      return '<div class="fleetDueGroup"><div class="fleetRow" role="button" tabindex="0" data-fleet-open="'+esc(v.id)+'">'+fleetPlate(v.registration)+'<span>'+esc(fleetDisplayModel(v.model))+'</span><span>'+fleetCustomerBadge(v)+'</span>'+fleetDueGroupCell(group.items)+'</div></div>';
++      return '<div class="fleetDueGroup"><div class="fleetRow" role="button" tabindex="0" data-fleet-open="'+esc(v.id)+'">'+fleetPlate(v.registration)+'<span>'+esc(fleetDisplayModel(v.model))+'</span><span>'+fleetCustomerBadge(v)+'</span>'+fleetEmailSentCell(group)+'</div></div>';
+     }).join('');
+   }else if(workMode){
+     rowsHtml=filteredWork.map(function(r){var v=r.vehicle;return '<div class="fleetRow" role="button" tabindex="0" data-fleet-open="'+esc(v.id)+'">'+fleetPlate(v.registration)+'<span>'+esc(fleetDisplayModel(v.model))+'</span><span>'+fleetCustomerBadge(v)+'</span>'+fleetDueCell(r.plan.type,r.due,fleetTone(r.due),r.bookedJob)+'</div>'}).join('');
+@@ -12443,7 +12450,7 @@ function invoiceArchiveSearchText(inv){
+ var VECTA_INVOICE_RESTORE_DAYS=30;
+ function vectaInvoiceIsVoid(inv){return window.VectaInvoiceRules.isVoid(inv)}
+ function vectaInvoiceIsActive(inv){return window.VectaInvoiceRules.isActive(inv)}
+-function vectaActiveInvoices(){return (app.invoices||[]).filter(vectaInvoiceIsActive)}
++function vectaActiveInvoices(){var best={};(app.invoices||[]).filter(vectaInvoiceIsActive).forEach(function(inv){var number=String(inv.invoice_number||'').trim().toUpperCase(),key=number?'number:'+number:(inv.job_id?'job:'+String(inv.job_id):'id:'+String(inv.id)),previous=best[key],time=Date.parse(inv.updated_at||inv.created_at||0)||0,previousTime=Date.parse(previous&&(previous.updated_at||previous.created_at)||0)||0;if(!previous||time>=previousTime)best[key]=inv});return Object.keys(best).map(function(key){return best[key]})}
+ function vectaVoidInvoices(){return (app.invoices||[]).filter(vectaInvoiceIsVoid)}
+ function vectaInvoiceVoidAgeDays(inv){return window.VectaInvoiceRules.voidAgeDays(inv)}
+ function vectaInvoiceCanRestore(inv){return window.VectaInvoiceRules.canRestore(inv)}
+@@ -13903,6 +13910,8 @@ function openInvoiceCustomerEmail(inv){
+   if(typeof appendVectaEmailSignature==='function')body=appendVectaEmailSignature(body);
+   window.location.href='mailto:'+encodeURIComponent(recipient.email)+'?subject='+encodeURIComponent(subject)+'&body='+encodeURIComponent(body);return true;
+ }
++function invoiceUsesNmukSender(inv){var customer=fleetNormaliseCustomer(inv&&((inv.fleet_customer||inv.customer_name))||'');return customer==='NMUK'||String(inv&&inv.registration||'').trim().toUpperCase()==='NMUK TAX'}
++function invoiceSenderHtml(inv,printMode){var lines=invoiceUsesNmukSender(inv)?['10 Hunter Close','East Boldon','Tyne and Wear','NE36 0TB','Email: shirken.moore@talktalk.net','Tel: 07721722622','VAT No. 169170002']:['Contractors Compound','Nissan Motor Manufacturing','Nissan Way, Washington, SR5 3NS','Tel: 07721722622','VAT No. 169170002'],tag=printMode?'<br>':'</span><span>';return '<img class="vectaBrandLogo '+(printMode?'printBrandLogo':'invoiceBrandLogo')+'" src="'+BRAND_LOGO_SRC+'" alt="VECTA Vehicle Servicing and repairs"><b>'+esc(app.settings.businessName||'Vecta Motors')+'</b>'+(printMode?'<br>':'<span>')+lines.map(esc).join(tag)+(printMode?'':'</span>')}
+ function openInvoice(id,preset){
+   var inv=id?(app.invoices.find(function(x){return x.id===id})||{}):(preset||{id:uid(),invoice_number:(app.settings.invoicePrefix||'VECTA')+'-'+String(app.settings.nextInvoiceNumber||1).padStart(5,'0'),invoice_date:todayIso(),customer_phone:'',payment_method:'',lines:[{description:'',type:'Work',amount:0,vat_mode:'inc_vat'}],status:'draft'});
+   if(inv.job_id){var linkedInvoiceJob=(app.jobs||[]).find(function(j){return String(j.id)===String(inv.job_id)})||{},invoiceReg=inv.registration||linkedInvoiceJob.registration,invoiceDue=jobVehicleDueData(invoiceReg)||{},invoiceKnown=knownRegistrationDetails(invoiceReg)||{},invoiceServiceMileage=latestServiceMileage(invoiceReg);if(!inv.mileage)inv.mileage=invoiceServiceMileage||linkedInvoiceJob.mileage||invoiceKnown.mileage||'';if(!inv.mot_due)inv.mot_due=linkedInvoiceJob.mot_due||invoiceDue.motDue||'';}
+@@ -13920,6 +13929,7 @@ function vectaNextInvoiceNumberFromRows(rows){var max=(rows||[]).reduce(function
+ async function vectaConfirmInvoiceIdentity(inv,isNew){var rows=await vectaCloudInvoiceRows(),sameJob=inv.job_id&&rows.find(function(row){return String(row.job_id||'')===String(inv.job_id)&&String(row.id||'')!==String(inv.id)});if(sameJob)throw new Error('This job already has invoice '+String(sameJob.invoice_number||'')+' in the cloud register.');var numberOwner=rows.find(function(row){return String(row.invoice_number||'')===String(inv.invoice_number||'')&&String(row.id||'')!==String(inv.id)});if(isNew||numberOwner){var next=vectaNextInvoiceNumberFromRows(rows);if(isNew&&String(inv.invoice_number||'')===next&&!numberOwner)return inv.invoice_number;inv.invoice_number=next}return inv.invoice_number}
+ async function vectaProtectInvoiceSnapshot(inv){if(!remoteClient||!inv||!inv.id)return false;var stamp=new Date().toISOString(),res=await remoteClient.from('workshop_settings').upsert({id:'invoice_protected:'+String(inv.id),value:{invoice:JSON.parse(JSON.stringify(inv)),protected_at:stamp},updated_at:stamp},{onConflict:'id'});if(res&&res.error)throw res.error;return true}
+ async function vectaSaveInvoiceRowConfirmed(inv,isNew){await vectaConfirmInvoiceIdentity(inv,isNew);for(var attempt=0;attempt<2;attempt++){try{var write=await upsertRemote('invoices',inv,{silent:true,skipQueue:true});if(write&&write.queued)throw new Error('Invoice save was queued instead of confirmed.');var check=await vectaWithTimeout(remoteClient.from('invoices').select('*').eq('id',inv.id).single(),8000,'Invoice confirmation');if(check.error)throw check.error;var saved=check.data||{},sameNumber=String(saved.invoice_number||'')===String(inv.invoice_number||''),sameJob=String(saved.job_id||'')===String(inv.job_id||''),sameTotal=Math.abs(Number(saved.total||0)-Number(inv.total||0))<0.005;if(!sameNumber||!sameJob||!sameTotal)throw new Error('The cloud invoice did not match the invoice on screen.');await vectaProtectInvoiceSnapshot(inv);return saved}catch(e){var duplicate=String(e&&e.code||'')==='23505'||/duplicate key|unique constraint/i.test(String(e&&e.message||e));if(attempt===0&&duplicate&&/invoice_number/i.test(String(e&&e.message||e))){inv.invoice_number=vectaNextInvoiceNumberFromRows(await vectaCloudInvoiceRows());continue}throw e}}throw new Error('Invoice confirmation failed.')}
++var openInvoiceV329Base=openInvoice;openInvoice=function(id,preset){var result=openInvoiceV329Base.apply(this,arguments),inv=id?(app.invoices.find(function(x){return String(x.id)===String(id)})||{}):(preset||{}),sender=document.querySelector('#invoiceModal .invoiceBusiness');if(sender)sender.innerHTML=invoiceSenderHtml(inv,false);return result};
+ async function saveInvoiceBase(id){
+   var button=document.getElementById('saveInvoice');
+   if(button){button.disabled=true;button.textContent='Saving...'}
+@@ -14137,6 +14147,8 @@ async function printService(id){
+ }
+ function printInvoice(inv){var isFleet=!!(inv.fleet_customer||inv.fleet_month||inv.eom_month||inv.source==='fleet_eom'||inv.source==='vehicle_tax_eom'||String(inv.registration||'').trim().toUpperCase()==='FLEET ACCOUNT'||String(inv.registration||'').trim().toUpperCase()==='NMUK TAX'||/^Monthly fleet work\s*[—-]/i.test(String(inv.vehicle||''))||/^Vehicle Tax\s*[—-]/i.test(String(inv.vehicle||'')));function fleetPrintDescription(d){var p=fleetInvoiceLineParts(d),heading=[p.date,p.registration].filter(Boolean).join(' · ');return '<div class="fleetPrintWork"><div class="fleetPrintHeading">'+esc(heading)+'</div><div class="fleetPrintDescription">'+esc(p.description)+'</div></div>'}var rows=(inv.lines||[]).map(function(l){return '<tr><td>'+(isFleet?fleetPrintDescription(l.description||''):esc(l.description||''))+'</td><td class="right">'+money(l.amount||0)+'</td><td>'+esc(l.vat_mode||'')+'</td></tr>'}).join('');var profileAddress=String(fleetInvoiceCustomerProfile(inv.fleet_customer||inv.customer_name).address||'').trim(),embeddedAddress=String((inv.lines&&inv.lines[0]&&inv.lines[0].customer_address)||'').trim(),address=String(inv.customer_address||embeddedAddress||profileAddress||'').trim(),customer='<div class="printCustomerTop"><b>Customer Details</b>'+esc(inv.customer_name||'')+(address?'<div class="printCustomerAddress">'+esc(address).replace(/\n/g,'<br>')+'</div>':'')+(inv.customer_phone?'<br>'+esc(inv.customer_phone):'')+'</div>';var linkedJob=inv.job_id&&(app.jobs||[]).find(function(j){return String(j.id)===String(inv.job_id)}),due=jobVehicleDueData(inv.registration||(linkedJob&&linkedJob.registration))||{},known=knownRegistrationDetails(inv.registration||(linkedJob&&linkedJob.registration))||{},mileage=inv.mileage||latestServiceMileage(inv.registration||(linkedJob&&linkedJob.registration))||(linkedJob&&linkedJob.mileage)||known.mileage||'',motDue=inv.mot_due||(linkedJob&&linkedJob.mot_due)||due.motDue||'';document.getElementById('printSheet').innerHTML='<div class="invoicePrintPage"><div class="invoicePrintHeader"><div><img class="vectaBrandLogo printBrandLogo" src="'+BRAND_LOGO_SRC+'" alt="VECTA Vehicle Servicing and repairs"><b>'+esc(app.settings.businessName||'Vecta Motors')+'</b><br>Contractors Compound<br>Nissan Motor Manufacturing<br>Nissan Way, Washington, SR5 3NS<br>Tel: 07721722622<br>VAT No. 169170002</div><div class="printTitle">INVOICE<br><span>'+esc(inv.invoice_number||'')+'</span><br><small>'+esc(inv.invoice_date||'')+'</small>'+customer+'</div></div>'+(isFleet?'':'<div class="printInvoiceVehicle"><div class="printVehicleCell"><h3>Registration</h3>'+invoicePlate(inv.registration,'printInvoicePlate')+'</div><div class="printVehicleCell"><h3>Vehicle</h3><b>'+esc(inv.vehicle||'Not recorded')+'</b></div><div class="printVehicleCell"><h3>Mileage</h3><b>'+esc(mileage!==''&&mileage!==null&&mileage!==undefined?String(mileage)+' miles':'Not recorded')+'</b></div><div class="printVehicleCell"><h3>Next MOT due</h3><b>'+esc(motDue?niceDate(String(motDue).slice(0,10)):'Not recorded')+'</b></div></div>')+'<table class="printTable invoiceWorkPrint"><tr><th>Work</th><th>Amount</th><th>VAT</th></tr>'+rows+'</table><div class="printTotals noBreak"><b>Subtotal:</b> '+money(inv.subtotal||0)+'<br><b>VAT:</b> '+money(inv.vat||0)+'<br><b>Total:</b> '+money(inv.total||0)+'</div><div class="printPayment noBreak"><div><b>Bank:</b> '+esc(app.settings.bankName||'')+' &nbsp; <b>Account Name:</b> '+esc(app.settings.accountName||'Vecta Motors')+' &nbsp; <b>Account Number:</b> '+esc(app.settings.accountNumber||'')+' &nbsp; <b>Sort Code:</b> '+esc(app.settings.sortCode||'')+' &nbsp; <b>Reference:</b> '+esc(inv.registration||'Registration number')+'</div></div></div>';printWhenImagesReady()}
+ 
++var printInvoiceV329Base=printInvoice;printInvoice=function(inv){var result=printInvoiceV329Base.apply(this,arguments),sender=document.querySelector('#printSheet .invoicePrintHeader>div:first-child');if(sender)sender.innerHTML=invoiceSenderHtml(inv||{},true);return result};
++
+ /* V41.30 search and due-status overrides. */
+ function searchFleetCustomerName(v){if(!v)return '';if(v.fleetGroup==='Nissan Internal'||v.fleetGroup==='Nissan Pool Cars')return 'NMUK';if(v.fleetGroup==='Contractor Fleet')return fleetNormaliseCustomer(v.customer);return fleetNormaliseCustomer(v.customer||v.fleetGroup||'')}
+ function searchFleetPlanDate(v,type){var plan=v&&fleetPlanMatching(v.id,type);return plan?fleetDate(plan):''}
+@@ -14385,6 +14397,7 @@ function fleetBind(){
+     else if(customer){defaults.customer_account='CONTRACTOR';defaults.customer_name=customer}
+     openJobModal(null,defaults);
+   };
++  document.querySelectorAll('[data-fleet-email-sent]').forEach(function(box){box.onclick=function(ev){ev.preventDefault();ev.stopPropagation();var key=String(box.dataset.fleetEmailSent||''),next=!fleetEmailSent[key];if(next)fleetEmailSent[key]={sent:true,sent_at:new Date().toISOString()};else delete fleetEmailSent[key];try{localStorage.setItem('vecta:fleet:email-sent:v329',JSON.stringify(fleetEmailSent))}catch(e){}if(remoteClient)persistFleetCloudSnapshot();render()}});
+   return result;
+ }
+ 
+@@ -16381,7 +16394,7 @@ async function v310DeduplicateAndCanonicalise(){
+   return {changed:changed.length,duplicates:duplicates.length};
+ }
+ function v310RepairInternalServicePlans(){
+-  if(typeof app==='undefined'||!app||!Array.isArray(app.jobs)||!Array.isArray(window.fleetPlans)||!Array.isArray(window.fleetVehicles))return 0;
++  if(typeof app==='undefined'||!app||!Array.isArray(app.jobs)||!Array.isArray(fleetPlans)||!Array.isArray(fleetVehicles))return 0;
+   var changed=0,latestByRegistration={},historyByRegistration={};
+   (app.jobs||[]).forEach(function(j){
+     var st=String(j&&j.status||'').toLowerCase();if(!j||!(st==='completed'||j.archived===true)||!v310IsInternalOnsite(j)||v310Deleted(j))return;
+@@ -16392,13 +16405,13 @@ function v310RepairInternalServicePlans(){
+   Object.keys(latestByRegistration).forEach(function(reg){
+     var item=latestByRegistration[reg],done=item.date,v=v310FleetVehicle(reg);if(!v||String(v.fleetGroup||'')!=='Nissan Internal')return;
+     var next=v310AddMonths(done,12);if(!next)return;
+-    var p=(window.fleetPlans||[]).find(function(x){return x&&String(x.vehicleId)===String(v.id)&&/^(internal|annual|on[- ]?site).*service$/i.test(String(x.type||''));});
+-    if(!p){p={id:'plan-service-'+v.id,vehicleId:v.id,type:'Internal Service',intervalMonths:12,targetMonth:Number(next.slice(5,7)),currentDueDate:next,notes:'Next Internal Service due 12 months after completed On-Site Service '+done+'.',status:'Active',source:'Workshop completion V310'};window.fleetPlans.push(p);changed++;}
+-    else if(v310Iso(p.currentDueDate)!==next||String(p.type)!=='Internal Service'){p.currentDueDate=next;p.type='Internal Service';p.intervalMonths=12;p.targetMonth=Number(next.slice(5,7));p.manualDueDate=false;p.notes='Next Internal Service due 12 months after completed On-Site Service '+done+'.';changed++;}
+-    window.fleetCompletions=Array.isArray(window.fleetCompletions)?window.fleetCompletions:[];
++    var p=(fleetPlans||[]).find(function(x){return x&&String(x.vehicleId)===String(v.id)&&/^(internal|annual|on[- ]?site).*service$/i.test(String(x.type||''));});
++    if(!p){p={id:'plan-service-'+v.id,vehicleId:v.id,type:'Internal Service',intervalMonths:12,targetMonth:Number(next.slice(5,7)),currentDueDate:next,notes:'Next Internal Service due 12 months after completed On-Site Service '+done+'.',status:'Active',source:'Workshop completion V329'};fleetPlans.push(p);changed++;}
++    else{var existing=v310Iso(p.currentDueDate);if(!existing||existing<next){p.currentDueDate=next;p.targetMonth=Number(next.slice(5,7));p.manualDueDate=false;p.notes='Next Internal Service due 12 months after completed On-Site Service '+done+'.';changed++;}if(String(p.type)!=='Internal Service'){p.type='Internal Service';p.intervalMonths=12;changed++;}}
++    fleetCompletions=Array.isArray(fleetCompletions)?fleetCompletions:[];
+     (historyByRegistration[reg]||[]).forEach(function(entry){
+-      var cid='job-service-'+String(entry.job.id),entryNext=v310AddMonths(entry.date,12),record={id:cid,type:'Internal Service',serviceType:'Internal Service',notes:'On-Site Service completed. Next Internal Service due '+entryNext+'.',planId:p.id,source:'job:'+String(entry.job.id),nextDue:entryNext,vehicleId:v.id,completedDate:entry.date,datePrecision:'day'},c=window.fleetCompletions.find(function(x){return x&&String(x.id)===cid;});
+-      if(c)Object.assign(c,record);else{window.fleetCompletions.push(record);changed++;}
++      var cid='job-service-'+String(entry.job.id),entryNext=v310AddMonths(entry.date,12),record={id:cid,type:'Internal Service',serviceType:'Internal Service',notes:'On-Site Service completed. Next Internal Service due '+entryNext+'.',planId:p.id,source:'job:'+String(entry.job.id),nextDue:entryNext,vehicleId:v.id,completedDate:entry.date,datePrecision:'day'},c=fleetCompletions.find(function(x){return x&&String(x.id)===cid;});
++      if(c)Object.assign(c,record);else{fleetCompletions.push(record);changed++;}
+     });
+   });
+   return changed;
+diff --git a/package-lock.json b/package-lock.json
+index 683dc9b..92a2730 100644
+--- a/package-lock.json
++++ b/package-lock.json
+@@ -1,12 +1,12 @@
+ {
+   "name": "vecta-planner-v40-41",
+-  "version": "41.39.0",
++  "version": "41.40.0",
+   "lockfileVersion": 3,
+   "requires": true,
+   "packages": {
+     "": {
+       "name": "vecta-planner-v40-41",
+-      "version": "41.39.0",
++      "version": "41.40.0",
+       "dependencies": {
+         "@supabase/supabase-js": "^2.49.8",
+         "lucide-react": "^0.468.0",
+diff --git a/package.json b/package.json
+index 0608684..3728c73 100644
+--- a/package.json
++++ b/package.json
+@@ -1,6 +1,6 @@
+ {
+   "name": "vecta-planner-v40-41",
+-  "version": "41.39.0",
++  "version": "41.40.0",
+   "private": true,
+   "type": "module",
+   "engines": {
+diff --git a/service-worker.js b/service-worker.js
+index 8d808c8..7ba9cd4 100644
+--- a/service-worker.js
++++ b/service-worker.js
+@@ -1,5 +1,5 @@
+ const CACHE='vecta-workshop-pro-shell-v18-cross-device-edit-sync';
+-const APP_VERSION='v328-cross-device-edit-sync';
++const APP_VERSION='v329-fleet-invoice-email-fixes';
+ const DATA_CACHE='vecta-workshop-pro-data-last-known-v1';
+ const HEALTH_CACHE='vecta-workshop-pro-cloud-health-v1';
+ const CORE=[
+diff --git a/tests/finance-integrity.mjs b/tests/finance-integrity.mjs
+index f636cb5..510824a 100644
+--- a/tests/finance-integrity.mjs
++++ b/tests/finance-integrity.mjs
+@@ -139,6 +139,35 @@ function contextWith(names, extras = {}) {
+     Array.from(context.fleetCompletions, completion => completion.completedDate).sort(),
+     ['2026-09-01', '2026-09-04']
+   );
++
++  fleetPlans[0].currentDueDate = '2027-10-01';
++  context.v310RepairInternalServicePlans();
++  assert.equal(fleetPlans[0].currentDueDate, '2027-10-01', 'a later manually scheduled service date must not be pulled backwards');
++}
++
++{
++  const context = contextWith(['vectaInvoiceIsActive', 'vectaActiveInvoices'], {
++    window: { VectaInvoiceRules: { isActive: () => true } },
++    app: { invoices: [
++      { id: 'local-copy', invoice_number: 'VECTA-78751', status: 'saved', updated_at: '2026-09-10T08:43:51Z' },
++      { id: 'cloud-copy', invoice_number: 'vecta-78751', status: 'saved', updated_at: '2026-09-10T08:43:52Z' }
++    ] }
++  });
++  const rows = context.vectaActiveInvoices();
++  assert.equal(rows.length, 1);
++  assert.equal(rows[0].id, 'cloud-copy');
++}
++
++{
++  const context = contextWith(['invoiceUsesNmukSender', 'invoiceSenderHtml'], {
++    fleetNormaliseCustomer: value => String(value || '').trim().toUpperCase(),
++    BRAND_LOGO_SRC: 'logo.png', app: { settings: { businessName: 'VECTA' } },
++    esc: value => String(value || '')
++  });
++  const nmuk = context.invoiceSenderHtml({ customer_name: 'NMUK' }, true);
++  assert.match(nmuk, /10 Hunter Close/);
++  assert.match(nmuk, /shirken\.moore@talktalk\.net/);
++  assert.doesNotMatch(context.invoiceSenderHtml({ customer_name: 'Retail customer' }, true), /10 Hunter Close/);
+ }
+ 
+ {
