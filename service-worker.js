@@ -1,5 +1,5 @@
 const CACHE='vecta-workshop-pro-shell-v18-cross-device-edit-sync';
-const APP_VERSION='v329-fleet-invoice-email-fixes';
+const APP_VERSION='v330-fleet-email-work-columns';
 const DATA_CACHE='vecta-workshop-pro-data-last-known-v1';
 const HEALTH_CACHE='vecta-workshop-pro-cloud-health-v1';
 const CORE=[

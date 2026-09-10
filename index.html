@@ -1708,7 +1708,8 @@ body.servicePreviewing .servicePreviewControls{position:relative!important;z-ind
 .customerNameHidden{display:none!important}
 .fleetDueGroup{border-top:1px solid #eef2f6;background:#fff}
 .fleetDueGroup>.fleetRow{border-top:0}
-.fleetEmailSentCheck{display:inline-flex;align-items:center;justify-content:flex-end;gap:8px;font-weight:800;cursor:pointer}.fleetEmailSentCheck input{width:20px;height:20px;accent-color:#16a34a;cursor:pointer}.fleetEmailSentCheck span{font-size:12px!important;color:#475569}.fleetEmailSentCheck input:checked+span{color:#15803d}
+.fleetEmailSentCheck{display:flex;align-items:center;justify-content:center;cursor:pointer}.fleetEmailSentCheck input{width:20px;height:20px;accent-color:#16a34a;cursor:pointer}.fleetTableHead.due30Columns,.fleetRow.due30Columns{grid-template-columns:125px minmax(140px,1.15fr) minmax(110px,.9fr) 86px 218px!important}
+@media(max-width:950px){.fleetTableHead.due30Columns,.fleetRow.due30Columns{grid-template-columns:110px minmax(125px,1.05fr) minmax(100px,.85fr) 78px 202px!important}}@media(max-width:700px){.fleetTableHead.due30Columns,.fleetRow.due30Columns{grid-template-columns:96px minmax(100px,1fr) minmax(90px,.8fr) 72px 190px!important}}
 .fleetDueSubRow{display:grid;grid-template-columns:125px minmax(150px,1.25fr) minmax(130px,1fr) 118px;gap:10px;align-items:center;width:100%;padding:5px 13px 8px;background:#fbfdff;border-top:1px dashed #e2e8f0;cursor:pointer;text-align:left}
 .fleetDueSubRow:hover{background:#f5f9ff}
 .fleetDueSubRow>span:empty{min-height:1px}
@@ -9271,7 +9272,7 @@ async function flushPendingSync(){
   if(!remaining.length)return true;
   return false
 }
-var VECTA_APP_VERSION='v329-fleet-invoice-email-fixes';
+var VECTA_APP_VERSION='v330-fleet-email-work-columns';
 var vectaAppUpdateWaiting=false;
 function vectaSafeApplyAppUpdate(){
   vectaAppUpdateWaiting=true;
@@ -9293,7 +9294,7 @@ function registerVectaServiceWorker(){
   navigator.serviceWorker.addEventListener('controllerchange',function(){vectaSafeApplyAppUpdate()});
   window.addEventListener('load',function(){
     Promise.resolve(window.__vectaCacheResetPromise).finally(function(){
-      navigator.serviceWorker.register('/service-worker.js?v=20260910-fleet-invoice-email-v329',{updateViaCache:'none'}).then(function(reg){
+      navigator.serviceWorker.register('/service-worker.js?v=20260910-fleet-email-work-columns-v330',{updateViaCache:'none'}).then(function(reg){
         if(navigator.onLine)Promise.resolve(reg.update()).catch(function(e){console.warn('Service worker update skipped',e)});
       }).catch(function(e){console.warn('Offline app install skipped',e)});
     });
@@ -11171,7 +11172,7 @@ function fleetDueIntegrityAudit(){
 }
 window.v280FleetDueIntegrityAudit=fleetDueIntegrityAudit;
 function fleetEmailCycleKey(group){var v=group&&group.vehicle||{},items=(group&&group.items||[]).map(function(r){return String(r.plan&&r.plan.id||r.typeKey||'work')+'@'+String(r.due||'')}).sort();return String(v.id||normReg(v.registration||''))+'|'+items.join('|')}
-function fleetEmailSentCell(group){var key=fleetEmailCycleKey(group),checked=!!fleetEmailSent[key];return '<label class="fleetEmailSentCheck" title="Record that the booking email has been sent"><input type="checkbox" data-fleet-email-sent="'+esc(key)+'" '+(checked?'checked':'')+'><span>'+(checked?'Sent':'Not sent')+'</span></label>'}
+function fleetEmailSentCell(group){var key=fleetEmailCycleKey(group),record=fleetEmailSent[key],checked=record===true||!!(record&&record.sent);return '<label class="fleetEmailSentCheck" title="Record that the booking email has been sent"><input type="checkbox" aria-label="Email sent" data-fleet-email-sent="'+esc(key)+'" '+(checked?'checked':'')+'></label>'}
 function fleetMaintenanceHtml(){
   try{if(typeof v310RepairInternalServicePlans==='function'&&v310RepairInternalServicePlans())saveFleet()}catch(e){console.warn('Internal service due-date reconciliation skipped',e)}
   fleetApplyMaintenanceTombstones();
@@ -11244,7 +11245,7 @@ function fleetMaintenanceHtml(){
   if(fleetListMode==='due30'){
     rowsHtml=dueGroups.map(function(group){
       var v=group.vehicle;
-      return '<div class="fleetDueGroup"><div class="fleetRow" role="button" tabindex="0" data-fleet-open="'+esc(v.id)+'">'+fleetPlate(v.registration)+'<span>'+esc(fleetDisplayModel(v.model))+'</span><span>'+fleetCustomerBadge(v)+'</span>'+fleetEmailSentCell(group)+'</div></div>';
+      return '<div class="fleetDueGroup"><div class="fleetRow due30Columns" role="button" tabindex="0" data-fleet-open="'+esc(v.id)+'">'+fleetPlate(v.registration)+'<span>'+esc(fleetDisplayModel(v.model))+'</span><span>'+fleetCustomerBadge(v)+'</span>'+fleetEmailSentCell(group)+fleetDueGroupCell(group.items)+'</div></div>';
     }).join('');
   }else if(workMode){
     rowsHtml=filteredWork.map(function(r){var v=r.vehicle;return '<div class="fleetRow" role="button" tabindex="0" data-fleet-open="'+esc(v.id)+'">'+fleetPlate(v.registration)+'<span>'+esc(fleetDisplayModel(v.model))+'</span><span>'+fleetCustomerBadge(v)+'</span>'+fleetDueCell(r.plan.type,r.due,fleetTone(r.due),r.bookedJob)+'</div>'}).join('');
@@ -11253,6 +11254,7 @@ function fleetMaintenanceHtml(){
   }
   return '<div class="fleetHero"><div><span class="fleetEyebrow">FLEET ENGINE</span><h2>Fleet Manager</h2><p>Maintenance schedules, contacts and due work in one place.</p></div><div class="fleetTopActions"><button class="primary" id="fleetAddVehicle">+ Add Vehicle</button><button class="btn" id="fleetReset">Reset imported data</button></div></div><div class="fleetKpis"><button type="button" class="fleetKpi dueAll '+(fleetListMode==='due30'?'active':'')+'" data-fleet-mode="due30"><small>Due next 30 days</small><strong>'+dueVehicleCount+'</strong></button><button type="button" class="fleetKpi danger '+(fleetListMode==='overdue'?'active':'')+'" data-fleet-mode="overdue"><small>Overdue</small><strong>'+overdue+'</strong></button><button type="button" class="fleetKpi motAlert '+(fleetListMode==='mot30'?'active':'')+'" data-fleet-mode="mot30"><span class="fleetKpiBadge mot">MOT</span><small>Due 30 days</small><strong>'+mot30+'</strong></button><button type="button" class="fleetKpi serviceAlert '+(fleetListMode==='service30'?'active':'')+'" data-fleet-mode="service30"><span class="fleetKpiBadge service">SER</span><small>Due 30 days</small><strong>'+service30+'</strong></button><button type="button" class="fleetKpi taxAlert '+(fleetListMode==='tax30'?'active':'')+'" data-fleet-mode="tax30"><span class="fleetKpiBadge tax">TAX</span><small>Due 30 days</small><strong>'+tax30+'</strong></button><button type="button" class="fleetKpi safetyAlert '+(fleetListMode==='safety30'?'active':'')+'" data-fleet-mode="safety30"><span class="fleetKpiBadge safety">6 mo</span><small>Due 30 days</small><strong>'+safety30+'</strong></button></div><div class="fleetGroups">'+groups.map(function(g){return '<button class="fleetGroup '+g.cls+' '+(fleetFilter===g.value?'active':'')+'" data-fleet-group="'+esc(g.value)+'"><span>'+esc(g.label)+'</span><b>'+g.count+'</b></button>'}).join('')+'<button type="button" class="fleetGroup missingEmail '+(fleetListMode==='missing'?'active':'')+'" data-fleet-mode="missing"><span>Missing email</span><b>'+missing+'</b></button></div><div class="fleetWorkspace"><div>'+fleetCustomerProfileHtml(all,customers)+'<div class="fleetPanel"><div class="fleetToolbar"><div class="fleetSearchWrap"><input class="search" type="search" autocomplete="off" id="fleetSearch" placeholder="Search registration, vehicle or customer..." value="'+esc(fleetQuery)+'"><button type="button" class="fleetSearchClear" id="fleetSearchClear" '+(fleetQuery?'':'hidden')+'>Clear</button></div><select id="fleetGroup"><option value="All">All</option><option value="Nissan Internal">NMUK Internal</option><option value="Nissan Pool Cars">NMUK pool cars</option><option value="Contractor Fleet">Contractor vehicles</option>'+customers.map(function(c){return '<option value="'+esc(c)+'" '+(fleetFilter===c?'selected':'')+'>'+esc(c)+'</option>'}).join('')+'</select><small>'+resultCount+' '+(fleetListMode==='due30'?'vehicles':(workMode?'work items':'vehicles'))+'</small>'+(['due30','overdue','mot30','service30','tax30','safety30'].indexOf(fleetListMode)>-1?'<button type="button" class="btn dark" id="fleetPrintCurrent">🖨 Print this list</button>':'')+'</div><div class="fleetListTitle">'+esc(listTitle)+(fleetFilter!=='All'?' — '+esc(fleetGroupLabel(fleetFilter)):'')+'<span class="fleetBookedLegend"><span class="fleetBookedTick">✓</span> Already booked in planner</span></div><div class="fleetTableHead"><span>Registration</span><span>Vehicle</span><span>Fleet / customer</span><span>'+esc(dueHeading)+'</span></div>'+rowsHtml+(resultCount?'':'<div class="fleetEmptyList">No vehicles or work match this view.</div>')+'</div></div>'+myTasksHtml('fleet')+'</div><div class="fleetDrawerBack '+(activeFleetVehicleId?'open':'')+'" id="fleetDrawerBack">'+fleetDrawerHtml()+'</div>';
 }
+var fleetMaintenanceHtmlV330Base=fleetMaintenanceHtml;fleetMaintenanceHtml=function(){var html=fleetMaintenanceHtmlV330Base.apply(this,arguments);if(fleetListMode==='due30')html=html.replace('<div class="fleetTableHead"><span>Registration</span><span>Vehicle</span><span>Fleet / customer</span><span>Email sent</span></div>','<div class="fleetTableHead due30Columns"><span>Registration</span><span>Vehicle</span><span>Fleet / customer</span><span>Email sent</span><span>Work due</span></div>');return html};
 function fleetHtml(){try{reconcileCompletedVehicleTaxCyclesV262()}catch(e){console.warn('Vehicle tax reconciliation skipped',e)}return fleetAutoRefreshBanner()+(fleetSection==='invoicing'?fleetEomHtml():fleetMaintenanceHtml())}
 
 function fleetAddVehicleModal(){
@@ -14397,7 +14399,7 @@ function fleetBind(){
     else if(customer){defaults.customer_account='CONTRACTOR';defaults.customer_name=customer}
     openJobModal(null,defaults);
   };
-  document.querySelectorAll('[data-fleet-email-sent]').forEach(function(box){box.onclick=function(ev){ev.preventDefault();ev.stopPropagation();var key=String(box.dataset.fleetEmailSent||''),next=!fleetEmailSent[key];if(next)fleetEmailSent[key]={sent:true,sent_at:new Date().toISOString()};else delete fleetEmailSent[key];try{localStorage.setItem('vecta:fleet:email-sent:v329',JSON.stringify(fleetEmailSent))}catch(e){}if(remoteClient)persistFleetCloudSnapshot();render()}});
+  document.querySelectorAll('[data-fleet-email-sent]').forEach(function(box){box.onclick=function(ev){ev.preventDefault();ev.stopPropagation();var key=String(box.dataset.fleetEmailSent||''),current=fleetEmailSent[key],next=!(current===true||(current&&current.sent));fleetEmailSent[key]={sent:next,updated_at:new Date().toISOString()};try{localStorage.setItem('vecta:fleet:email-sent:v329',JSON.stringify(fleetEmailSent))}catch(e){}if(remoteClient)persistFleetCloudSnapshot();render()}});
   return result;
 }
 

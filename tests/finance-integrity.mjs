@@ -217,4 +217,7 @@ assert.match(
   /var savedSuccessfully=await saveInvoiceBase\(id\);\s*if\(savedSuccessfully===false\)return false;/,
   'Invoice save wrappers must propagate a failed cloud confirmation'
 );
+assert.match(html, /<span>Email sent<\/span><span>Work due<\/span>/, '30-day Fleet view must keep separate Email sent and Work due columns');
+assert.match(html, /fleetEmailSentCell\(group\)\+fleetDueGroupCell\(group\.items\)/, '30-day rows must show both the checkbox and due work');
+assert.doesNotMatch(html, /\(checked\?'Sent':'Not sent'\)/, 'Email sent column must not display Sent / Not sent wording');
 console.log('Finance integrity regression tests passed.');
