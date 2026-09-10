@@ -139,6 +139,35 @@ function contextWith(names, extras = {}) {
     Array.from(context.fleetCompletions, completion => completion.completedDate).sort(),
     ['2026-09-01', '2026-09-04']
   );
+
+  fleetPlans[0].currentDueDate = '2027-10-01';
+  context.v310RepairInternalServicePlans();
+  assert.equal(fleetPlans[0].currentDueDate, '2027-10-01', 'a later manually scheduled service date must not be pulled backwards');
+}
+
+{
+  const context = contextWith(['vectaInvoiceIsActive', 'vectaActiveInvoices'], {
+    window: { VectaInvoiceRules: { isActive: () => true } },
+    app: { invoices: [
+      { id: 'local-copy', invoice_number: 'VECTA-78751', status: 'saved', updated_at: '2026-09-10T08:43:51Z' },
+      { id: 'cloud-copy', invoice_number: 'vecta-78751', status: 'saved', updated_at: '2026-09-10T08:43:52Z' }
+    ] }
+  });
+  const rows = context.vectaActiveInvoices();
+  assert.equal(rows.length, 1);
+  assert.equal(rows[0].id, 'cloud-copy');
+}
+
+{
+  const context = contextWith(['invoiceUsesNmukSender', 'invoiceSenderHtml'], {
+    fleetNormaliseCustomer: value => String(value || '').trim().toUpperCase(),
+    BRAND_LOGO_SRC: 'logo.png', app: { settings: { businessName: 'VECTA' } },
+    esc: value => String(value || '')
+  });
+  const nmuk = context.invoiceSenderHtml({ customer_name: 'NMUK' }, true);
+  assert.match(nmuk, /10 Hunter Close/);
+  assert.match(nmuk, /shirken\.moore@talktalk\.net/);
+  assert.doesNotMatch(context.invoiceSenderHtml({ customer_name: 'Retail customer' }, true), /10 Hunter Close/);
 }
 
 {
