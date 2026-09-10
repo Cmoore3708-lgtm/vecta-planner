@@ -1,5 +1,6 @@
 import crypto from 'node:crypto';
 import webpush from 'web-push';
+import {databaseEnvironment} from './_database-environment.js';
 
 function base64url(value){return Buffer.from(value).toString('base64url')}
 function privateKeyBytes(secret){
@@ -9,7 +10,8 @@ function privateKeyBytes(secret){
   return Buffer.from(scalar.toString(16).padStart(64,'0'),'hex');
 }
 export function pushConfig(){
-  const secret=process.env.VAPID_SECRET||process.env.SUPABASE_SERVICE_ROLE_KEY;
+  const {serviceKey}=databaseEnvironment({requireService:true});
+  const secret=process.env.VAPID_SECRET||serviceKey;
   if(!secret)throw new Error('Push alerts are not configured');
   const privateBytes=privateKeyBytes(secret),ecdh=crypto.createECDH('prime256v1');
   ecdh.setPrivateKey(privateBytes);
@@ -18,8 +20,7 @@ export function pushConfig(){
   return {publicKey};
 }
 export async function supabaseRest(path,{method='GET',body}={}){
-  const url=process.env.VITE_SUPABASE_URL||process.env.SUPABASE_URL,key=process.env.SUPABASE_SERVICE_ROLE_KEY;
-  if(!url||!key)throw new Error('Supabase service access is not configured');
+  const {url,key}=databaseEnvironment({requireService:true});
   const response=await fetch(`${url}/rest/v1/${path}`,{method,headers:{apikey:key,Authorization:`Bearer ${key}`,'Content-Type':'application/json',Prefer:'resolution=merge-duplicates,return=representation'},body:body===undefined?undefined:JSON.stringify(body)});
   if(!response.ok)throw new Error(await response.text());
   if(response.status===204)return null;

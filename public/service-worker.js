@@ -1,8 +1,21 @@
-const CACHE='vecta-workshop-pro-shell-v13-safe-update-v323';
-const APP_VERSION='v323-safe-mobile-refresh';
+const CACHE='vecta-workshop-pro-shell-v16-authoritative-phone-resume';
+const APP_VERSION='v326-authoritative-phone-resume';
 const DATA_CACHE='vecta-workshop-pro-data-last-known-v1';
 const HEALTH_CACHE='vecta-workshop-pro-cloud-health-v1';
-const CORE=['/','/index.html','/manifest.webmanifest','/icons/vecta-192.png','/icons/vecta-512.png'];
+const CORE=[
+  '/',
+  '/index.html',
+  '/manifest.webmanifest',
+  '/icons/vecta-192.png',
+  '/icons/vecta-512.png',
+  '/js/vecta-job-rules.js',
+  '/js/vecta-invoice-rules.js',
+  '/js/vecta-planner-rules.js',
+  '/js/vecta-finance-rules.js',
+  '/js/vecta-fleet-rules.js',
+  '/js/vecta-booking-rules.js',
+  '/js/vecta-offline-sync-rules.js'
+];
 const HEALTH_FAILURE_LIMIT=3;
 const RECENT_CLOUD_SUCCESS_MS=120000;
 let consecutiveHealthFailures=0;
