@@ -1,0 +1,245 @@
+diff --git a/index.html b/index.html
+index 59dd140..84f7a12 100644
+--- a/index.html
++++ b/index.html
+@@ -8677,6 +8677,106 @@ window.INITIAL_MAINTENANCE_PLANS = [
+   }
+ ];
+ 
++</script>
++<script id="v332-completed-service-authority">
++/* V332 — completed service evidence is authoritative only after every cloud source
++   has loaded. This prevents an older Fleet snapshot from putting serviced vehicles
++   back into Due next 30 days. */
++(function(){
++'use strict';
++function reg(value){return String(value||'').toUpperCase().replace(/[^A-Z0-9]/g,'');}
++function iso(value){var match=String(value||'').match(/\d{4}-\d{2}-\d{2}/);return match?match[0]:'';}
++function addMonths(date,months){
++  if(typeof fleetAddMonthsFromDue==='function')return fleetAddMonthsFromDue(date,months);
++  var d=new Date(date+'T00:00:00');if(isNaN(d.getTime()))return '';
++  var day=d.getDate();d.setDate(1);d.setMonth(d.getMonth()+Number(months||0));
++  d.setDate(Math.min(day,new Date(d.getFullYear(),d.getMonth()+1,0).getDate()));
++  return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
++}
++function done(job){
++  if(!job)return false;
++  var status=String(job.status||'').toLowerCase().replace(/\s+/g,'_');
++  return status==='completed'||status==='complete'||status==='ready_to_invoice'||status==='ready_for_invoice'||status==='invoiced'||status==='invoice_created'||job.archived===true||!!job.completed_at||!!job.completedAt;
++}
++function deleted(job){
++  if(!job)return true;
++  try{if(typeof vectaJobIsDeletedForLists==='function'&&vectaJobIsDeletedForLists(job))return true;}catch(e){}
++  return String(job.status||'').toLowerCase()==='deleted'||/\[\[VECTA_SOFT_DELETE:/i.test(String(job.customer_note||''));
++}
++function serviceJob(job){
++  if(!job||deleted(job)||!done(job))return false;
++  try{if(typeof isSixMonthSafetyCheck==='function'&&isSixMonthSafetyCheck(job))return false;}catch(e){}
++  try{var cats=typeof fleetPlannerJobCategories==='function'?fleetPlannerJobCategories(job):{};if(cats&&cats.service)return true;}catch(e){}
++  var values=[];
++  if(Array.isArray(job.job_types))values=values.concat(job.job_types);
++  [job.job_type,job.type,job.service_type,job.work_required].forEach(function(v){if(v)values.push(v);});
++  return /\b(?:on[ -]?site|internal|annual|full|major|interim)\s+service\b|\boil\s*(?:&|and)?\s*filter(?:\s+change)?\b/i.test(values.join(' '));
++}
++function jobDate(job){return iso(job&&job.completed_at)||iso(job&&job.completedAt)||iso(job&&job.booking_date)||iso(job&&job.updated_at)||iso(job&&job.created_at);}
++function recordKind(record){
++  try{if(typeof serviceRecordKind==='function')return String(serviceRecordKind(record)||'').toLowerCase();}catch(e){}
++  return String(record&&(record.sheet_type||record.kind)||'service').toLowerCase();
++}
++function evidenceByRegistration(){
++  var latest={},jobsById={};
++  ((typeof app!=='undefined'&&app&&Array.isArray(app.jobs))?app.jobs:[]).forEach(function(job){
++    if(job&&job.id)jobsById[String(job.id)]=job;
++    if(!serviceJob(job))return;
++    var key=reg(job.registration),date=jobDate(job);if(key&&date&&(!latest[key]||date>latest[key].date))latest[key]={date:date,source:'job:'+String(job.id||'')};
++  });
++  ((typeof app!=='undefined'&&app&&Array.isArray(app.serviceRecords))?app.serviceRecords:[]).forEach(function(record){
++    if(!record)return;var kind=recordKind(record);if(kind!=='service'&&kind!=='onsite'&&kind!=='on-site')return;
++    var linked=jobsById[String(record.job_id||'')],key=reg(record.registration||(linked&&linked.registration)),date=jobDate(linked)||iso(record.completed_at)||iso(record.completedDate)||iso(record.saved_at)||iso(record.updated_at)||iso(record.created_at);
++    if(key&&date&&(!latest[key]||date>latest[key].date))latest[key]={date:date,source:'paperwork:'+String(record.id||record.job_id||'')};
++  });
++  return latest;
++}
++function activeServicePlans(vehicle){
++  return ((typeof fleetPlans!=='undefined'&&Array.isArray(fleetPlans))?fleetPlans:[]).filter(function(plan){
++    if(!plan||String(plan.vehicleId)!==String(vehicle.id)||String(plan.status||'Active')!=='Active')return false;
++    try{if(typeof fleetIsMaintenanceRemoved==='function'&&fleetIsMaintenanceRemoved(plan.vehicleId,plan.type))return false;}catch(e){}
++    try{return typeof fleetMaintenanceCategory==='function'?fleetMaintenanceCategory(plan.type)==='service':/service/i.test(String(plan.type||''));}catch(e){return /service/i.test(String(plan.type||''));}
++  });
++}
++function repair(){
++  if(typeof fleetVehicles==='undefined'||!Array.isArray(fleetVehicles)||typeof fleetPlans==='undefined'||!Array.isArray(fleetPlans))return {changed:0,matched:0};
++  var evidence=evidenceByRegistration(),changed=0,matched=0;
++  fleetVehicles.forEach(function(vehicle){
++    var item=evidence[reg(vehicle&&vehicle.registration)];if(!item)return;
++    var plans=activeServicePlans(vehicle);if(!plans.length)return;matched++;
++    var next=addMonths(item.date,12);if(!next)return;
++    plans.sort(function(a,b){
++      var ad=iso(a.currentDueDate),bd=iso(b.currentDueDate),aProtected=a.manualDueDate===true&&ad>=next,bProtected=b.manualDueDate===true&&bd>=next;
++      if(aProtected!==bProtected)return aProtected?-1:1;
++      return String(ad||'9999-12-31').localeCompare(String(bd||'9999-12-31'));
++    });
++    var plan=plans[0];
++    var current=iso(plan.currentDueDate);
++    /* Never drag a genuinely later user-entered date backwards. */
++    if(!current||current<next){plan.currentDueDate=next;plan.targetMonth=Number(next.slice(5,7));plan.intervalMonths=12;plan.manualDueDate=false;plan.notes='Next service due 12 months after completed service '+item.date+' ('+item.source+').';changed++;}
++    plans.slice(1).forEach(function(other){if(String(other.status||'Active')==='Active'){other.status='Superseded';other.notes='Superseded by completed service evidence dated '+item.date+'.';changed++;}});
++  });
++  if(changed){try{if(typeof saveFleet==='function')saveFleet();}catch(e){console.warn('V332 Fleet save failed',e);}}
++  return {changed:changed,matched:matched};
++}
++window.v332RepairCompletedServices=repair;
++/* pullRemote returns only after jobs, Fleet data and saved paperwork have all loaded. */
++try{
++  if(typeof pullRemote==='function'&&!pullRemote.__v332CompletedService){
++    var oldPull=pullRemote;
++    pullRemote=async function(){var result=await oldPull.apply(this,arguments),audit=repair();if(audit.changed&&typeof render==='function')render();return result;};
++    pullRemote.__v332CompletedService=true;
++  }
++}catch(e){console.warn('V332 completed-service cloud wrapper skipped',e);}
++try{
++  if(typeof fleetBind==='function'&&!fleetBind.__v332CompletedService){
++    var oldBind=fleetBind;
++    fleetBind=function(){var audit=repair(),result=oldBind.apply(this,arguments);if(audit.changed)setTimeout(function(){try{if(typeof render==='function'&&view==='fleet')render();}catch(e){}},0);return result;};
++    fleetBind.__v332CompletedService=true;
++  }
++}catch(e){console.warn('V332 completed-service Fleet wrapper skipped',e);}
++setTimeout(function(){try{var audit=repair();if(audit.changed&&typeof render==='function')render();}catch(e){console.warn('V332 initial completed-service repair failed',e);}},7000);
++})();
+ </script>
+ 
+ <script>
+@@ -16557,3 +16657,27 @@ setTimeout(function(){install();try{if(typeof render==='function'&&typeof view!=
+ try{var foot=document.querySelector('.sideFoot small');if(foot)foot.textContent='v317 Workshop Pro · Government MOT override';}catch(e){}
+ })();
+ </script>
++<script id="v332-completed-service-late-install">
++(function(){
++'use strict';
++function repairAndRender(){
++  var audit=typeof window.v332RepairCompletedServices==='function'?window.v332RepairCompletedServices():{changed:0};
++  if(audit.changed&&typeof render==='function')render();
++  return audit;
++}
++/* Install after the main application has declared these functions. */
++if(typeof pullRemote==='function'&&!pullRemote.__v332CompletedService){
++  var oldPull=pullRemote;
++  pullRemote=async function(){var result=await oldPull.apply(this,arguments);repairAndRender();return result;};
++  pullRemote.__v332CompletedService=true;
++}
++if(typeof fleetBind==='function'&&!fleetBind.__v332CompletedService){
++  var oldBind=fleetBind;
++  fleetBind=function(){repairAndRender();return oldBind.apply(this,arguments);};
++  fleetBind.__v332CompletedService=true;
++}
++setTimeout(repairAndRender,0);
++setTimeout(repairAndRender,8000);
++try{var foot=document.querySelector('.sideFoot small');if(foot)foot.textContent='v332 Workshop Pro · completed-service authority';}catch(e){}
++})();
++</script>
+diff --git a/tests/regression/completed-service-authority.test.js b/tests/regression/completed-service-authority.test.js
+new file mode 100644
+index 0000000..c966acd
+--- /dev/null
++++ b/tests/regression/completed-service-authority.test.js
+@@ -0,0 +1,100 @@
++import test from 'node:test';
++import assert from 'node:assert/strict';
++import fs from 'node:fs';
++import vm from 'node:vm';
++
++function loadRepair(state) {
++  const html = fs.readFileSync(new URL('../../index.html', import.meta.url), 'utf8');
++  const match = html.match(/<script id="v332-completed-service-authority">([\s\S]*?)<\/script>/);
++  assert.ok(match, 'V332 completed-service authority script exists');
++  const context = {
++    ...state,
++    window: null,
++    console,
++    setTimeout() {},
++    render() {},
++    fleetAddMonthsFromDue(date, months) {
++      const d = new Date(`${date}T00:00:00Z`);
++      const day = d.getUTCDate();
++      d.setUTCDate(1);
++      d.setUTCMonth(d.getUTCMonth() + months);
++      d.setUTCDate(Math.min(day, new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth() + 1, 0)).getUTCDate()));
++      return d.toISOString().slice(0, 10);
++    },
++    fleetMaintenanceCategory(type) {
++      return /service/i.test(String(type)) && !/safety/i.test(String(type)) ? 'service' : /safety/i.test(String(type)) ? 'safety' : '';
++    },
++    fleetPlannerJobCategories(job) {
++      return { service: /service|oil\s*(?:&|and)\s*filter/i.test([job.job_type, job.work_required].join(' ')) };
++    },
++    isSixMonthSafetyCheck(job) { return /six|6 month|safety/i.test([job.job_type, job.work_required].join(' ')); },
++    fleetIsMaintenanceRemoved() { return false; },
++    vectaJobIsDeletedForLists(job) { return job.status === 'deleted'; },
++    serviceRecordKind(record) { return record.sheet_type; },
++    saveFleet() { context.saved = (context.saved || 0) + 1; }
++  };
++  context.window = context;
++  vm.runInNewContext(match[1], context);
++  return context;
++}
++
++test('completed On-Site Service moves an internal vehicle to its next annual cycle', () => {
++  const state = loadRepair({
++    app: { jobs: [{ id: 'axle-service', registration: 'AXLE 1', job_type: 'On-Site Service', status: 'completed', booking_date: '2026-09-08' }], serviceRecords: [] },
++    fleetVehicles: [{ id: 'axle', registration: 'AXLE 1', fleetGroup: 'Nissan Internal' }],
++    fleetPlans: [{ id: 'axle-plan', vehicleId: 'axle', type: 'Internal Service', status: 'Active', currentDueDate: '2026-09-01', manualDueDate: true }]
++  });
++  const audit = state.v332RepairCompletedServices();
++  assert.equal(audit.changed, 1);
++  assert.equal(state.fleetPlans[0].currentDueDate, '2027-09-08');
++  assert.equal(state.fleetPlans[0].manualDueDate, false);
++});
++
++test('saved service paperwork repairs a due cycle after the cloud paperwork arrives', () => {
++  const state = loadRepair({
++    app: {
++      jobs: [{ id: 'paper-job', registration: 'KX18 EYC', job_type: 'On-Site Service', status: 'work_complete', booking_date: '2026-09-09' }],
++      serviceRecords: [{ id: 'onsite:KX18EYC:paper-job', job_id: 'paper-job', registration: 'KX18 EYC', sheet_type: 'onsite', saved_at: '2026-09-10T12:00:00Z' }]
++    },
++    fleetVehicles: [{ id: 'eyc', registration: 'KX18 EYC' }],
++    fleetPlans: [{ id: 'eyc-plan', vehicleId: 'eyc', type: 'Annual Service', status: 'Active', currentDueDate: '2026-09-01' }]
++  });
++  state.v332RepairCompletedServices();
++  assert.equal(state.fleetPlans[0].currentDueDate, '2027-09-09');
++});
++
++test('safety paperwork and deleted jobs cannot falsely clear an annual service', () => {
++  const state = loadRepair({
++    app: {
++      jobs: [{ id: 'deleted', registration: 'TEST 1', job_type: 'Major Service', status: 'deleted', booking_date: '2026-09-09' }],
++      serviceRecords: [{ id: 'safety', registration: 'TEST 1', sheet_type: 'safety', saved_at: '2026-09-09' }]
++    },
++    fleetVehicles: [{ id: 'test', registration: 'TEST 1' }],
++    fleetPlans: [{ id: 'test-plan', vehicleId: 'test', type: 'Annual Service', status: 'Active', currentDueDate: '2026-09-01' }]
++  });
++  const audit = state.v332RepairCompletedServices();
++  assert.equal(audit.changed, 0);
++  assert.equal(state.fleetPlans[0].currentDueDate, '2026-09-01');
++});
++
++test('repair does not invent a maintenance plan where none is active', () => {
++  const state = loadRepair({
++    app: { jobs: [{ id: 'done', registration: 'NO PLAN', job_type: 'Major Service', status: 'completed', booking_date: '2026-09-09' }], serviceRecords: [] },
++    fleetVehicles: [{ id: 'none', registration: 'NO PLAN' }],
++    fleetPlans: []
++  });
++  state.v332RepairCompletedServices();
++  assert.equal(state.fleetPlans.length, 0);
++});
++
++test('a genuinely later manual service date is preserved', () => {
++  const state = loadRepair({
++    app: { jobs: [{ id: 'done', registration: 'LATER 1', job_type: 'Major Service', status: 'completed', booking_date: '2026-09-09' }], serviceRecords: [] },
++    fleetVehicles: [{ id: 'later', registration: 'LATER 1' }],
++    fleetPlans: [{ id: 'later-plan', vehicleId: 'later', type: 'Annual Service', status: 'Active', currentDueDate: '2027-10-01', manualDueDate: true }]
++  });
++  const audit = state.v332RepairCompletedServices();
++  assert.equal(audit.changed, 0);
++  assert.equal(state.fleetPlans[0].currentDueDate, '2027-10-01');
++  assert.equal(state.fleetPlans[0].manualDueDate, true);
++});
