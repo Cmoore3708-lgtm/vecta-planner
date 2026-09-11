@@ -22,8 +22,8 @@
       if(reloaded)return;
       reloaded=true;
       try{
-        if(sessionStorage.getItem('vecta-v339-sw-reload')==='1')return;
-        sessionStorage.setItem('vecta-v339-sw-reload','1');
+        if(sessionStorage.getItem('vecta-v341-sw-reload')==='1')return;
+        sessionStorage.setItem('vecta-v341-sw-reload','1');
       }catch(_e){}
       location.reload();
     });
@@ -9365,7 +9365,7 @@ function vectaArchiveSyncItems(items,reason){if(!items||!items.length)return;try
 function vectaRecoverLegacyStuckQueue(){var q=vectaPendingSync();if(q.length<20)return 0;var now=Date.now(),stuck=q.filter(function(item){var age=now-(Date.parse(item.queued_at||0)||0);return Number(item.attempts||0)>=2&&!!item.last_error&&age>10*60*1000});if(stuck.length<Math.max(20,Math.floor(q.length*.8)))return 0;vectaArchiveSyncItems(stuck,'Recovered from repeated legacy offline-sync failure');var keys={};stuck.forEach(function(x){keys[x.key]=true});var remaining=q.filter(function(x){return !keys[x.key]});vectaSavePendingSync(remaining);console.warn('Recovered '+stuck.length+' stuck legacy sync items. A recovery copy is retained locally.');return stuck.length}
 var vectaSyncInFlight=false,vectaSyncProgress=null;
 function updateConnectivityUI(state){var el=document.getElementById('vectaConnectivity'),txt=document.getElementById('vectaConnectivityText'),banner=document.getElementById('vectaOfflineBanner');if(!el||!txt)return;var pending=vectaPendingSync().length;if(state==='syncing'){el.className='vectaConnectivity syncing';var done=vectaSyncProgress&&Number(vectaSyncProgress.done||0),total=vectaSyncProgress&&Number(vectaSyncProgress.total||0);txt.textContent=total?('Synchronising workshop data… '+done+' of '+total):'Synchronising workshop data…';if(banner)banner.classList.remove('show');return}if(state==='checking'||vectaCloudReachable===null){el.className='vectaConnectivity syncing';txt.textContent='Checking cloud connection…';if(banner)banner.classList.remove('show');return}var online=navigator.onLine&&vectaCloudReachable;if(online){el.className='vectaConnectivity online';var failed=pending&&vectaPendingSync().some(function(x){return Number(x.attempts||0)>0&&x.last_error});txt.textContent=pending?('Online · '+pending+' change'+(pending===1?'':'s')+(failed?' still need sync — retrying':' waiting to sync')):'Online · workshop data protected';if(banner)banner.classList.remove('show')}else{el.className='vectaConnectivity offline';txt.textContent='Offline workshop mode'+(pending?' · '+pending+' queued':'');if(banner)banner.classList.add('show')}}
-function vectaOpenBackupDb(){return new Promise(function(resolve,reject){if(!window.indexedDB)return reject(new Error('IndexedDB is unavailable.'));var req=indexedDB.open(VECTA_BACKUP_DB,1);req.onupgradeneeded=function(){var db=req.result;if(!db.objectStoreNames.contains(VECTA_BACKUP_STORE))db.createObjectStore(VECTA_BACKUP_STORE,{keyPath:'id'})};req.onsuccess=function(){resolve(req.result)};req.onerror=function(){reject(req.error||new Error('Could not open backup store.'))}})}
+function vectaOpenBackupDb(){return new Promise(function(resolve,reject){if(!window.indexedDB)return reject(new Error('IndexedDB is unavailable.'));var settled=false,timer=setTimeout(function(){if(settled)return;settled=true;reject(new Error('Backup storage took too long to open.'))},2500),req=indexedDB.open(VECTA_BACKUP_DB,1);function fail(error){if(settled)return;settled=true;clearTimeout(timer);reject(error||new Error('Could not open backup store.'))}req.onupgradeneeded=function(){var db=req.result;if(!db.objectStoreNames.contains(VECTA_BACKUP_STORE))db.createObjectStore(VECTA_BACKUP_STORE,{keyPath:'id'})};req.onsuccess=function(){if(settled){try{req.result.close()}catch(e){}return}settled=true;clearTimeout(timer);resolve(req.result)};req.onerror=function(){fail(req.error)};req.onblocked=function(){fail(new Error('Backup storage is blocked by an older app window.'))}})}
 async function vectaStoreBackup(snapshot){var db=await vectaOpenBackupDb();await new Promise(function(resolve,reject){var tx=db.transaction(VECTA_BACKUP_STORE,'readwrite'),st=tx.objectStore(VECTA_BACKUP_STORE);st.put(snapshot);tx.oncomplete=resolve;tx.onerror=function(){reject(tx.error)}});db.close();await vectaPruneBackups();return snapshot}
 async function vectaListBackups(){try{var db=await vectaOpenBackupDb();var rows=await new Promise(function(resolve,reject){var tx=db.transaction(VECTA_BACKUP_STORE,'readonly'),req=tx.objectStore(VECTA_BACKUP_STORE).getAll();req.onsuccess=function(){resolve(req.result||[])};req.onerror=function(){reject(req.error)}});db.close();return rows.sort(function(a,b){return String(b.created_at||'').localeCompare(String(a.created_at||''))})}catch(e){console.warn('Backup list unavailable',e);return []}}
 async function vectaPruneBackups(){var rows=await vectaListBackups();if(rows.length<=VECTA_BACKUP_RETENTION)return;var db=await vectaOpenBackupDb();await new Promise(function(resolve,reject){var tx=db.transaction(VECTA_BACKUP_STORE,'readwrite'),st=tx.objectStore(VECTA_BACKUP_STORE);rows.slice(VECTA_BACKUP_RETENTION).forEach(function(r){st.delete(r.id)});tx.oncomplete=resolve;tx.onerror=function(){reject(tx.error)}});db.close()}
@@ -9440,7 +9440,7 @@ async function flushPendingSync(){
   if(!remaining.length)return true;
   return false
 }
-var VECTA_APP_VERSION='v338-booked-safety-paperwork';
+var VECTA_APP_VERSION='v341-mobile-startup-fail-open';
 var vectaAppUpdateWaiting=false;
 function vectaSafeApplyAppUpdate(){
   vectaAppUpdateWaiting=true;
@@ -9462,7 +9462,7 @@ function registerVectaServiceWorker(){
   navigator.serviceWorker.addEventListener('controllerchange',function(){vectaSafeApplyAppUpdate()});
   window.addEventListener('load',function(){
     Promise.resolve(window.__vectaCacheResetPromise).finally(function(){
-      navigator.serviceWorker.register('/service-worker.js?v=20260911-booked-safety-paperwork-v338',{updateViaCache:'none'}).then(function(reg){
+      navigator.serviceWorker.register('/service-worker.js?v=20260911-mobile-startup-fail-open-v341',{updateViaCache:'none'}).then(function(reg){
         if(navigator.onLine)Promise.resolve(reg.update()).catch(function(e){console.warn('Service worker update skipped',e)});
       }).catch(function(e){console.warn('Offline app install skipped',e)});
     });
@@ -10158,17 +10158,18 @@ function startCloudSync(){
   window.addEventListener('online',function(){cloudLastRefreshAt=0;refreshCloudAndRender()});
 }
 function init(){safe(async function(){
+  /* V341: install the fail-open timer before touching local or IndexedDB storage.
+     iOS can leave an IndexedDB open request pending indefinitely; the old watchdog
+     was created only after that await and therefore could never release the screen. */
+  var vectaStartupWatchdog=setTimeout(function(){
+    try{if(document.body.classList.contains('vectaStartupLoading')){console.warn('Startup exceeded 12 seconds; showing the last available workshop while sync continues.');vectaSetStartupLoading(false);render();updateConnectivityUI();}}catch(e){}
+  },12000);
   loadLocal();
   /* Restore the newest usable IndexedDB snapshot before any cloud request. This means
      a device opened with no internet starts with its last known workshop instead of an empty diary. */
   await vectaRestoreLatestBackupIfNeeded();
   bindTop();
   vectaSetStartupLoading(true,'Loading workshop…','Checking live jobs and tasks before showing the dashboard.');
-  /* V290 fail-open watchdog: a slow or failed cloud request must never leave the
-     workshop hidden behind the loading gate. Cloud sync can continue afterwards. */
-  var vectaStartupWatchdog=setTimeout(function(){
-    try{if(document.body.classList.contains('vectaStartupLoading')){console.warn('Startup cloud check exceeded 12 seconds; showing cached workshop while sync continues.');clearTimeout(vectaStartupWatchdog);vectaSetStartupLoading(false);render();updateConnectivityUI();}}catch(e){}
-  },12000);
   updateConnectivityUI('checking');
   /* Backups must never block startup. */
   vectaCreateDailyBackup(false,'startup-local').catch(function(e){console.warn('Startup backup skipped',e)});

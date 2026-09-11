@@ -45,3 +45,12 @@ test("Today's tile uses exactly the same jobs as its drill-down", () => {
     /todayTotal=jobs\.filter\(function\(j\)\{return !financeIsUnallocated\(j\)&&financeDateForDailyView\(j\)===plannerDate\}/
   );
 });
+
+test('mobile startup cannot wait forever for IndexedDB before installing its watchdog', () => {
+  const initStart = html.indexOf('function init(){safe(async function(){');
+  const watchdog = html.indexOf('var vectaStartupWatchdog=setTimeout', initStart);
+  const backupRestore = html.indexOf('await vectaRestoreLatestBackupIfNeeded()', initStart);
+  assert.ok(initStart >= 0 && watchdog > initStart && backupRestore > watchdog);
+  assert.match(html, /Backup storage took too long to open/);
+  assert.match(html, /req\.onblocked=function\(\)\{fail\(new Error\('Backup storage is blocked by an older app window\.'\)\)\}/);
+});

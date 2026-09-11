@@ -176,8 +176,8 @@ test('embedded service history repairs EYC before live jobs finish loading', () 
 test('phone shell versions force the current booked-safety repair', () => {
   const html = fs.readFileSync(new URL('../../index.html', import.meta.url), 'utf8');
   const worker = fs.readFileSync(new URL('../../service-worker.js', import.meta.url), 'utf8');
-  assert.match(html, /VECTA_APP_VERSION='v338-booked-safety-paperwork'/);
-  assert.match(html, /service-worker\.js\?v=20260911-booked-safety-paperwork-v338/);
-    assert.match(worker, /APP_VERSION='v340-finance-total-consistency'/);
-    assert.match(worker, /CACHE='vecta-workshop-pro-shell-v25-finance-total-consistency'/);
+  assert.match(html, /VECTA_APP_VERSION='v341-mobile-startup-fail-open'/);
+  assert.match(html, /service-worker\.js\?v=20260911-mobile-startup-fail-open-v341/);
+  assert.match(worker, /APP_VERSION='v341-mobile-startup-fail-open'/);
+  assert.match(worker, /CACHE='vecta-workshop-pro-shell-v26-mobile-startup-fail-open'/);
 });
