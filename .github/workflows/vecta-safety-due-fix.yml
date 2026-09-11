@@ -1,0 +1,26 @@
+name: VECTA booked safety due fix
+
+on:
+  push:
+    paths:
+      - '.github/workflows/vecta-safety-due-fix.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Keep booked safety checks in Fleet due list
+        run: python .github/scripts/vecta_safety_due_patch.py
+      - name: Commit validated application fix
+        run: |
+          git config user.name "Vecta maintenance"
+          git config user.email "actions@users.noreply.github.com"
+          git add index.html
+          git diff --cached --check
+          git diff --cached --quiet && exit 0
+          git commit -m "Keep booked EYC safety check in Fleet due list"
+          git push
