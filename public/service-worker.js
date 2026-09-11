@@ -1,5 +1,5 @@
-const CACHE='vecta-workshop-pro-shell-v23-booked-safety-paperwork';
-const APP_VERSION='v338-booked-safety-paperwork';
+const CACHE='vecta-workshop-pro-shell-v24-safe-document-injection';
+const APP_VERSION='v339-safe-document-injection';
 const DATA_CACHE='vecta-workshop-pro-data-last-known-v1';
 const HEALTH_CACHE='vecta-workshop-pro-cloud-health-v1';
 const CORE=[
@@ -155,7 +155,10 @@ function patchAppShellHtml(html){
   /* Fleet cloud state can finish loading after the page's early repair timers. Keep
      reconciling during startup so the EYC safety item appears without a manual action. */
   if(!patched.includes('vecta-sw-fleet-startup-reconcile')){
-    patched=patched.replace('</body>',`<script id="vecta-sw-fleet-startup-reconcile">(function(){var n=0,t=setInterval(function(){n++;try{if(typeof window.v335RepairServiceCycles==='function')window.v335RepairServiceCycles()}catch(e){}if(n>=20)clearInterval(t)},2500)})();</script></body>`);
+    const closingBodyIndex=patched.toLowerCase().lastIndexOf('</body>');
+    if(closingBodyIndex!==-1){
+      patched=patched.slice(0,closingBodyIndex)+`<script id="vecta-sw-fleet-startup-reconcile">(function(){var n=0,t=setInterval(function(){n++;try{if(typeof window.v335RepairServiceCycles==='function')window.v335RepairServiceCycles()}catch(e){}if(n>=20)clearInterval(t)},2500)})();</script>`+patched.slice(closingBodyIndex);
+    }
   }
   return patched;
 }
