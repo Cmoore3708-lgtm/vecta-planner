@@ -2604,6 +2604,15 @@ body.servicePreviewing .servicePreviewControls{position:relative!important;z-ind
 .v245CalendarStats strong{display:block;font-size:18px;margin-top:2px}
 .financialSectionTabs{gap:8px;flex-wrap:wrap}
 .financialSectionTabs .btn{min-width:150px}
+.financeIntegrityPage{display:grid;gap:14px}
+.financeIntegrityHero{border:1px solid #cbd5e1;border-left:8px solid #b91c1c;border-radius:14px;background:#fff;padding:20px;display:flex;justify-content:space-between;gap:18px;align-items:center}
+.financeIntegrityHero.pass{border-color:#86efac;border-left-color:#15803d;background:#f0fdf4}.financeIntegrityHero.warn{border-color:#fde68a;border-left-color:#d97706;background:#fffbeb}
+.financeIntegrityHero h2{margin:3px 0 6px;font-size:25px}.financeIntegrityHero p{margin:0;color:#475569;max-width:720px}.financeIntegrityEyebrow{font-size:10px;font-weight:900;letter-spacing:.12em;text-transform:uppercase;color:#64748b}
+.financeIntegrityScore{min-width:125px;text-align:center;border-radius:12px;background:#111827;color:#fff;padding:13px}.financeIntegrityScore strong{display:block;font-size:31px}.financeIntegrityScore span{font-size:10px;font-weight:900;text-transform:uppercase;letter-spacing:.06em}
+.financeIntegrityStats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}.financeIntegrityStats>div{background:#fff;border:1px solid #dbe2ea;border-radius:11px;padding:13px}.financeIntegrityStats small{display:block;color:#64748b;font-size:9px;font-weight:900;text-transform:uppercase}.financeIntegrityStats strong{display:block;font-size:21px;margin-top:3px}
+.financeIntegrityRules{display:grid;gap:10px}.financeIntegrityRule{border:1px solid #dbe2ea;border-radius:12px;background:#fff;overflow:hidden}.financeIntegrityRuleHead{display:flex;justify-content:space-between;gap:12px;align-items:center;padding:13px 15px}.financeIntegrityRuleHead h3{font-size:14px;margin:0}.financeIntegrityRuleHead p{font-size:10px;color:#64748b;margin:3px 0 0}.financeIntegrityBadge{border-radius:999px;padding:5px 9px;font-size:9px;font-weight:900;white-space:nowrap}.financeIntegrityBadge.pass{background:#dcfce7;color:#166534}.financeIntegrityBadge.critical{background:#fee2e2;color:#991b1b}.financeIntegrityBadge.warning{background:#fef3c7;color:#92400e}
+.financeIntegrityRows{border-top:1px solid #e2e8f0}.financeIntegrityRow{display:grid;grid-template-columns:110px minmax(120px,.7fr) minmax(220px,1.6fr) 105px;gap:10px;align-items:center;padding:10px 15px;border-top:1px solid #f1f5f9;font-size:10px}.financeIntegrityRow:first-child{border-top:0}.financeIntegrityRow b{font-size:11px}.financeIntegrityRow .btn{padding:7px 9px;font-size:9px}
+@media(max-width:760px){.financeIntegrityHero{align-items:flex-start;flex-direction:column}.financeIntegrityScore{width:100%;box-sizing:border-box}.financeIntegrityStats{grid-template-columns:repeat(2,minmax(0,1fr))}.financeIntegrityRow{grid-template-columns:1fr}.financialSectionTabs .btn{min-width:0;flex:1 1 42%}}
 </style>
 
 <style id="v247-fleet-removal-controls">
@@ -9412,7 +9421,7 @@ async function flushPendingSync(){
   if(!remaining.length)return true;
   return false
 }
-var VECTA_APP_VERSION='v335-safety-service-evidence-repair';
+var VECTA_APP_VERSION='v338-booked-safety-paperwork';
 var vectaAppUpdateWaiting=false;
 function vectaSafeApplyAppUpdate(){
   vectaAppUpdateWaiting=true;
@@ -9434,7 +9443,7 @@ function registerVectaServiceWorker(){
   navigator.serviceWorker.addEventListener('controllerchange',function(){vectaSafeApplyAppUpdate()});
   window.addEventListener('load',function(){
     Promise.resolve(window.__vectaCacheResetPromise).finally(function(){
-      navigator.serviceWorker.register('/service-worker.js?v=20260911-safety-service-evidence-repair-v335',{updateViaCache:'none'}).then(function(reg){
+      navigator.serviceWorker.register('/service-worker.js?v=20260911-booked-safety-paperwork-v338',{updateViaCache:'none'}).then(function(reg){
         if(navigator.onLine)Promise.resolve(reg.update()).catch(function(e){console.warn('Service worker update skipped',e)});
       }).catch(function(e){console.warn('Offline app install skipped',e)});
     });
@@ -12557,8 +12566,48 @@ function financialTabsHtml(){
     '<button class="btn '+(financialSection==='invoiceList'?'red':'dark')+'" id="financialInvoicesTab">Invoices</button>'+
     '<button class="btn '+(financialSection==='eom'?'red':'dark')+'" id="financialEomTab">End of Month Invoicing</button>'+
     '<button class="btn '+(financialSection==='tax'?'red':'dark')+'" id="financialTaxTab">Vehicle Tax</button>'+
+    '<button class="btn '+(financialSection==='integrity'?'red':'dark')+'" id="financialIntegrityTab">Financial Integrity</button>'+
   '</div>';
 }
+function financialIntegrityAudit(){
+  var jobs=(app.jobs||[]).map(financeEffectiveJob).filter(function(j){return j&&j.card_type!=='mini_task'&&!vectaJobIsDeletedForLists(j)}),
+      recognised=jobs.filter(financeIsRecognisedJob),rawInvoices=(app.invoices||[]).filter(vectaInvoiceIsActive),jobById={},checks=[];
+  jobs.forEach(function(j){if(j.id)jobById[String(j.id)]=j});
+  function issue(record,title,detail,kind,id,amount){return {record:record||'Record',title:title,detail:detail||'',kind:kind||'',id:String(id||''),amount:amount}}
+  function add(key,title,description,severity,items){checks.push({key:key,title:title,description:description,severity:items.length?severity:'pass',items:items})}
+  var missingDates=recognised.filter(function(j){return !isVehicleTaxJob(j)&&!/^[0-9]{4}-[0-9]{2}-[0-9]{2}/.test(String(j.completed_at||''))}).map(function(j){return issue(j.registration||'No registration','Completion date missing','Completed work can be omitted from weekly and monthly totals.','job',j.id,financeRevenueExVatValue(j))});
+  add('completion_dates','Completion dates','Every active completed workshop job must have its own completion date.','critical',missingDates);
+  var unpriced=recognised.filter(function(j){if(isVehicleTaxJob(j))return false;var quoted=j.amount_quoted!==null&&j.amount_quoted!==undefined&&String(j.amount_quoted).trim()!=='';var inv=rawInvoices.find(function(i){return String(i.job_id||'')===String(j.id||'')&&String(i.status||'').toLowerCase()!=='draft'});return !quoted&&financeInvoiceExVatValue(inv)===null}).map(function(j){return issue(j.registration||'No registration','Completed job has no value',niceDate(financeCompletedDate(j))+' · '+(j.work_required||'No description'),'job',j.id,null)});
+  add('prices','Completed job values','Completed workshop jobs need either a saved job value or a linked saved invoice.','critical',unpriced);
+  var invoiceCore=rawInvoices.filter(function(i){return String(i.status||'saved').toLowerCase()!=='draft'&&(!String(i.invoice_number||'').trim()||!String(i.invoice_date||'').trim()||!Number.isFinite(Number(i.total)))}).map(function(i){return issue(i.invoice_number||'No number','Invoice record is incomplete','Missing number, date or total.','invoice',i.id,i.total)});
+  add('invoice_core','Invoice essentials','Every saved invoice must have a number, date and numeric total.','critical',invoiceCore);
+  var duplicateNumbers=[],byNumber={};rawInvoices.forEach(function(i){var k=String(i.invoice_number||'').toUpperCase().replace(/[^A-Z0-9]/g,'');if(k)(byNumber[k]||(byNumber[k]=[])).push(i)});Object.keys(byNumber).forEach(function(k){if(byNumber[k].length>1)byNumber[k].forEach(function(i){duplicateNumbers.push(issue(i.invoice_number,'Duplicate active invoice number',byNumber[k].length+' active records use this number.','invoice',i.id,i.total))})});
+  add('invoice_numbers','Invoice number uniqueness','An active invoice number may exist only once.','critical',duplicateNumbers);
+  var multipleLinks=[],byJob={};rawInvoices.forEach(function(i){if(i.job_id)(byJob[String(i.job_id)]||(byJob[String(i.job_id)]=[])).push(i)});Object.keys(byJob).forEach(function(id){var list=byJob[id].filter(function(i){return String(i.status||'').toLowerCase()!=='draft'});if(list.length>1)list.forEach(function(i){multipleLinks.push(issue(i.invoice_number||'Invoice','Job has multiple active invoices',(jobById[id]&&jobById[id].registration)||id,'invoice',i.id,i.total))})});
+  add('invoice_links','One invoice per job','A completed job must not be billed by more than one active invoice.','critical',multipleLinks);
+  var arithmetic=rawInvoices.filter(function(i){return Number.isFinite(Number(i.subtotal))&&Number.isFinite(Number(i.vat))&&Number.isFinite(Number(i.total))&&Math.abs(Number(i.subtotal)+Number(i.vat)-Number(i.total))>.011}).map(function(i){return issue(i.invoice_number||'Invoice','Invoice arithmetic does not balance','Subtotal '+money(i.subtotal)+' + VAT '+money(i.vat)+' does not equal '+money(i.total)+'.','invoice',i.id,i.total)});
+  add('arithmetic','Invoice arithmetic','Subtotal plus VAT must equal the invoice total to the penny.','critical',arithmetic);
+  var vatIssues=[];rawInvoices.forEach(function(i){(Array.isArray(i.lines)?i.lines:[]).forEach(function(line){var label=String((line&&line.type)||'')+' '+String((line&&line.description)||'');if(/(^|\b)(vehicle\s*tax|mot)(\b|$)/i.test(label)&&String(line&&line.vat_mode||'').toLowerCase()!=='no_vat')vatIssues.push(issue(i.invoice_number||'Invoice','Non-VAT item has VAT applied',String(line.description||line.type||'MOT / Vehicle Tax'),'invoice',i.id,line.amount))})});jobs.filter(isVehicleTaxJob).forEach(function(j){if(String(j.vat_mode||'').toLowerCase()!=='no_vat')vatIssues.push(issue(j.registration||'Vehicle Tax','Vehicle Tax source is not marked No VAT','The invoice may be correct, but the source record is inconsistent.','job',j.id,vehicleTaxAmount(j)))});
+  add('vat','MOT and Vehicle Tax VAT','MOT fees and Vehicle Tax pass-through lines must be marked No VAT.','critical',vatIssues);
+  var fleetIssues=[];rawInvoices.filter(function(i){return String(i.source||'')==='fleet_eom'&&i.fleet_month&&i.fleet_customer}).forEach(function(inv){var ids=(Array.isArray(inv.fleet_job_ids)?inv.fleet_job_ids:[]).map(String),eligible=fleetEomJobs(String(inv.fleet_month)).filter(function(r){return r.customer===inv.fleet_customer});eligible.forEach(function(r){if(ids.indexOf(String(r.job.id))<0)fleetIssues.push(issue(r.job.registration||inv.fleet_customer,'Fleet job missing from month-end invoice',inv.fleet_customer+' · '+inv.fleet_month,'job',r.job.id,r.amount))});ids.forEach(function(id){if(!jobById[id])fleetIssues.push(issue(inv.invoice_number||'EOM invoice','Month-end invoice points to a missing/deleted job',id,'invoice',inv.id,inv.total))})});
+  add('fleet','Fleet month-end coverage','Existing fleet month-end invoices must contain every eligible job and no deleted job.','critical',fleetIssues);
+  var duplicates=[],jobGroups={};
+  recognised.filter(function(j){return !isVehicleTaxJob(j)&&j.registration&&financeCompletedDate(j)}).forEach(function(j){
+    var k=normReg(j.registration)+'|'+financeCompletedDate(j)+'|'+Number(financeRevenueExVatValue(j)).toFixed(2)+'|'+String(j.work_required||'').trim().toLowerCase();
+    (jobGroups[k]||(jobGroups[k]=[])).push(j);
+  });
+  Object.keys(jobGroups).forEach(function(k){
+    if(jobGroups[k].length>1)jobGroups[k].forEach(function(j){
+      duplicates.push(issue(j.registration,'Possible duplicate completed job',niceDate(financeCompletedDate(j))+' · '+money(financeRevenueExVatValue(j)),'job',j.id,financeRevenueExVatValue(j)));
+    });
+  });
+  add('duplicates','Duplicate completed jobs','Registration, completion date, description and value must not be duplicated.','warning',duplicates);
+  var unclassified=recognised.filter(function(j){return !isVehicleTaxJob(j)&&String(financeLegacyAllocation(j).type||'').toLowerCase()==='needs review'}).map(function(j){return issue(j.registration||'No registration','Financial allocation needs review',financeCompletedDate(j)+' · '+(j.customer_name||'No customer'),'job',j.id,financeRevenueExVatValue(j))});
+  add('allocation','Financial allocation','Every completed job must resolve to Staff, Contractor or NMUK.','critical',unclassified);
+  var issues=checks.reduce(function(n,c){return n+c.items.length},0),critical=checks.reduce(function(n,c){return n+(c.severity==='critical'?c.items.length:0)},0),warning=issues-critical;
+  return {checks:checks,issues:issues,critical:critical,warning:warning,passed:checks.filter(function(c){return c.severity==='pass'}).length,jobs:recognised.length,invoices:rawInvoices.length,checkedAt:new Date()}
+}
+function financialIntegrityHtml(){var a=financialIntegrityAudit(),state=a.critical?'fail':(a.warning?'warn':'pass'),headline=a.issues?(a.critical+' critical issue'+(a.critical===1?'':'s')+(a.warning?' · '+a.warning+' warning'+(a.warning===1?'':'s'):'')+' found'):'All financial checks passed',sub=a.issues?'These records need review. Until they are cleared, the system is not claiming the figures are complete.':'Every active completed job and invoice passed all automated checks at '+a.checkedAt.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})+'.';return '<div class="financeIntegrityPage"><section class="financeIntegrityHero '+state+'"><div><span class="financeIntegrityEyebrow">Live control check</span><h2>'+esc(headline)+'</h2><p>'+esc(sub)+'</p></div><div class="financeIntegrityScore"><strong>'+a.passed+'/'+a.checks.length+'</strong><span>rules passed</span></div></section><div class="financeIntegrityStats"><div><small>Completed jobs checked</small><strong>'+a.jobs+'</strong></div><div><small>Active invoices checked</small><strong>'+a.invoices+'</strong></div><div><small>Critical issues</small><strong>'+a.critical+'</strong></div><div><small>Warnings</small><strong>'+a.warning+'</strong></div></div><div class="financeIntegrityRules">'+a.checks.map(function(c){return '<section class="financeIntegrityRule"><div class="financeIntegrityRuleHead"><div><h3>'+esc(c.title)+'</h3><p>'+esc(c.description)+'</p></div><span class="financeIntegrityBadge '+c.severity+'">'+(c.items.length?c.items.length+' '+c.severity.toUpperCase():'PASS')+'</span></div>'+(c.items.length?'<div class="financeIntegrityRows">'+c.items.map(function(x){return '<div class="financeIntegrityRow"><b>'+esc(x.record)+'</b><span>'+esc(x.title)+'</span><span>'+esc(x.detail)+'</span>'+(x.kind&&x.id?'<button type="button" class="btn dark" data-integrity-'+x.kind+'="'+esc(x.id)+'">Open '+esc(x.kind)+'</button>':'<span>'+(x.amount===null?'No value':money(x.amount||0))+'</span>')+'</div>'}).join('')+'</div>':'')+'</section>'}).join('')+'</div></div>'}
 function invoicesHtml(){
   if(financialSection==='invoiceList'){
     return financialTabsHtml()+invoiceArchiveHtml();
@@ -12569,6 +12618,9 @@ function invoicesHtml(){
   }
   if(financialSection==='tax'){
     return financialTabsHtml()+vehicleTaxHtml();
+  }
+  if(financialSection==='integrity'){
+    return financialTabsHtml()+financialIntegrityHtml();
   }
   var ready=app.jobs.filter(function(j){return !j.archived&&j.status==='ready_to_invoice'&&!isJobInvoiced(j)}),
       performance='<div class="card panel"><p class="muted">Loading performance figures…</p></div>',
@@ -12961,6 +13013,9 @@ function bindView(){
   var financialInvoicesTab=document.getElementById('financialInvoicesTab');if(financialInvoicesTab)financialInvoicesTab.onclick=openFinancialInvoiceList;
   var financialEomTab=document.getElementById('financialEomTab');if(financialEomTab)financialEomTab.onclick=function(){financialSection='eom';fleetSection='invoicing';fleetEomCustomer='';render()};
   var financialTaxTab=document.getElementById('financialTaxTab');if(financialTaxTab)financialTaxTab.onclick=function(){financialSection='tax';render()};
+  var financialIntegrityTab=document.getElementById('financialIntegrityTab');if(financialIntegrityTab)financialIntegrityTab.onclick=function(){financialSection='integrity';render()};
+  document.querySelectorAll('[data-integrity-job]').forEach(function(b){b.onclick=function(){openJobModal(b.dataset.integrityJob)}});
+  document.querySelectorAll('[data-integrity-invoice]').forEach(function(b){b.onclick=function(){openInvoice(b.dataset.integrityInvoice)}});
   var chaseBtn=document.getElementById('openChaseInvoices');if(chaseBtn)chaseBtn.onclick=openFinancialInvoiceList;var taxBtn=document.getElementById('openVehicleTaxFromFinance');if(taxBtn)taxBtn.onclick=function(){financialSection='tax';view='invoices';render()};
   if(view==='invoices'&&financialSection==='main')scheduleFinancialPerformanceDashboards();
   if(view==='invoices'&&financialSection==='invoiceList'){
