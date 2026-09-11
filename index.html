@@ -13,6 +13,25 @@
     }catch(e){console.warn('VECTA cache reset skipped',e)}
   })();
   </script>
+  <!-- VECTA V339: recover clients trapped behind a stale service worker before the main app runs. -->
+  <script>
+  (function(){
+    if(!('serviceWorker' in navigator))return;
+    var reloaded=false;
+    navigator.serviceWorker.addEventListener('controllerchange',function(){
+      if(reloaded)return;
+      reloaded=true;
+      try{
+        if(sessionStorage.getItem('vecta-v339-sw-reload')==='1')return;
+        sessionStorage.setItem('vecta-v339-sw-reload','1');
+      }catch(_e){}
+      location.reload();
+    });
+    navigator.serviceWorker.register('/service-worker.js',{updateViaCache:'none'})
+      .then(function(reg){return reg.update()})
+      .catch(function(e){console.warn('Early offline repair update skipped',e)});
+  })();
+  </script>
   <!-- VECTA V320: combined Service + MOT completion asks whether MOT was actually completed; No keeps MOT outstanding -->
   <!-- VECTA V254: authoritative MOT lookup checks EVERY active MOT plan and may correct dates backwards or forwards -->
   <!-- VECTA V253: stale recurring MOT due dates roll into current cycle; fixes missing NK72 KTD / NK72 KTJ -->
