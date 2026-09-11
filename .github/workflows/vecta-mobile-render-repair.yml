@@ -13,7 +13,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Remove unsafe nested print script
+      - name: Remove unsafe nested print script and recover stale clients
         run: python .github/scripts/vecta_mobile_render_patch.py
       - name: Validate and commit repaired application
         run: |
