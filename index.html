@@ -10762,7 +10762,7 @@ function fleetLatestCompletedEvidenceDate(vehicle,category){
       if(!rec||normReg(rec.registration||'')!==reg)return;
       var kind=(typeof serviceRecordKind==='function'?serviceRecordKind(rec):String(rec.sheet_type||'service').toLowerCase());
       if(category==='service'&&kind==='service')addDate(rec.saved_at||rec.created_at);
-      if(category==='safety'&&kind==='safety')addDate(rec.saved_at||rec.created_at);
+      if(category==='safety'&&kind==='safety'){var recordJobId=String(rec.job_id||''),linkedSafetyJob=(app.jobs||[]).find(function(j){return j&&String(j.id)===recordJobId;});if(linkedSafetyJob&&completedJobCanUpdateFleet(linkedSafetyJob))addDate(completedJobDateForFleet(linkedSafetyJob)||linkedSafetyJob.booking_date);}
     });
   }
   (fleetCompletions||[]).forEach(function(c){
