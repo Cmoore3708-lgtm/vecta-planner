@@ -1,0 +1,26 @@
+name: VECTA mobile render repair
+
+on:
+  push:
+    paths:
+      - '.github/workflows/vecta-mobile-render-repair.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Remove unsafe nested print script
+        run: python .github/scripts/vecta_mobile_render_patch.py
+      - name: Validate and commit repaired application
+        run: |
+          git config user.name "Vecta maintenance"
+          git config user.email "actions@users.noreply.github.com"
+          git add index.html
+          git diff --cached --check
+          git diff --cached --quiet && exit 0
+          git commit -m "Repair broken mobile planner rendering"
+          git push
