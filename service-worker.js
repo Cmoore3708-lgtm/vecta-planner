@@ -1,5 +1,5 @@
-const CACHE='vecta-workshop-pro-shell-v22-fleet-startup-reconcile';
-const APP_VERSION='v337-fleet-startup-reconcile';
+const CACHE='vecta-workshop-pro-shell-v23-booked-safety-paperwork';
+const APP_VERSION='v338-booked-safety-paperwork';
 const DATA_CACHE='vecta-workshop-pro-data-last-known-v1';
 const HEALTH_CACHE='vecta-workshop-pro-cloud-health-v1';
 const CORE=[
@@ -145,6 +145,13 @@ function patchAppShellHtml(html){
   const oldRegister="function registerVectaServiceWorker(){if('serviceWorker' in navigator){window.addEventListener('load',function(){Promise.resolve(window.__vectaCacheResetPromise).finally(function(){navigator.serviceWorker.register('/service-worker.js?v=20260902-push-verify-v306',{updateViaCache:'none'}).then(function(reg){try{reg.update()}catch(_e){}}).catch(function(e){console.warn('Offline app install failed',e)})})})}}";
   const safeRegister="function registerVectaServiceWorker(){if('serviceWorker' in navigator){window.addEventListener('load',function(){Promise.resolve(window.__vectaCacheResetPromise).finally(function(){navigator.serviceWorker.register('/service-worker.js',{updateViaCache:'none'}).then(function(reg){if(navigator.onLine){Promise.resolve(reg.update()).catch(function(e){console.warn('Service worker update skipped',e)})}}).catch(function(e){console.warn('Offline app install skipped',e)})})})}}";
   if(patched.includes(oldRegister)) patched=patched.replace(oldRegister,safeRegister);
+  /* Saving a safety sheet prepares paperwork; it does not complete the booked job.
+     The old rule treated any saved sheet as completion evidence and hid EYC's due
+     item before its 11:45 booking had been completed. Gate it on the linked job. */
+  patched=patched.replace(
+    "if(category==='safety'&&kind==='safety')addDate(rec.saved_at||rec.created_at);",
+    "if(category==='safety'&&kind==='safety'){var recordJobId=String(rec.job_id||''),linkedSafetyJob=(app.jobs||[]).find(function(j){return j&&String(j.id)===recordJobId;});if(linkedSafetyJob&&completedJobCanUpdateFleet(linkedSafetyJob))addDate(completedJobDateForFleet(linkedSafetyJob)||linkedSafetyJob.booking_date);}"
+  );
   /* Fleet cloud state can finish loading after the page's early repair timers. Keep
      reconciling during startup so the EYC safety item appears without a manual action. */
   if(!patched.includes('vecta-sw-fleet-startup-reconcile')){
