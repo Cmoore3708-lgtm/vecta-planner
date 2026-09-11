@@ -1,0 +1,39 @@
+name: Apply V332 completed service authority repair
+
+on:
+  push:
+    paths:
+      - '.github/workflows/apply-v332.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - name: Apply repair
+        run: |
+          git apply --check .vecta/v332.patch
+          git apply .vecta/v332.patch
+          rm .vecta/v332.patch .github/workflows/apply-v332.yml
+      - name: Verify repair
+        run: |
+          npm ci
+          npm test
+          npm run build
+          git restore --worktree dist
+          git clean -fd -- dist
+      - name: Publish repair
+        run: |
+          git config user.name "Vecta maintenance"
+          git config user.email "actions@users.noreply.github.com"
+          git add -A
+          git diff --cached --check
+          git commit -m "Keep completed services out of fleet due list"
+          git push
