@@ -34,3 +34,14 @@ test('database safeguard rejects undated completed jobs', () => {
   assert.match(migration, /raise exception 'A completed job must have a booking or completion date'/i);
   assert.match(migration, /before insert or update of status, booking_date, completed_at/i);
 });
+
+test("Today's tile uses exactly the same jobs as its drill-down", () => {
+  assert.match(
+    html,
+    /todayTotal=invoiceFinanceJobs\('today'\)\.reduce\(function\(sum,j\)\{return sum\+financeRevenueExVatValue\(j\)\},0\)/
+  );
+  assert.doesNotMatch(
+    html,
+    /todayTotal=jobs\.filter\(function\(j\)\{return !financeIsUnallocated\(j\)&&financeDateForDailyView\(j\)===plannerDate\}/
+  );
+});
