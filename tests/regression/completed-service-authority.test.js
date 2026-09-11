@@ -98,3 +98,18 @@ test('a genuinely later manual service date is preserved', () => {
   assert.equal(state.fleetPlans[0].currentDueDate, '2027-10-01');
   assert.equal(state.fleetPlans[0].manualDueDate, true);
 });
+
+test('an old safety check cannot clear EYC current six-month cycle', () => {
+  const html = fs.readFileSync(new URL('../../index.html', import.meta.url), 'utf8');
+  const match = html.match(/function fleetSafetyCompletionMatchesCycle\(completed,due,cycle\)\{[\s\S]*?\n\}/);
+  assert.ok(match, 'safety-cycle date guard exists');
+  const context = {};
+  vm.runInNewContext(`${match[0]};this.check=fleetSafetyCompletionMatchesCycle;`, context);
+
+  assert.equal(context.check('2026-04-22', '2026-09-11', '2026-09-11'), false,
+    'EYC April check must not clear its September due cycle');
+  assert.equal(context.check('2026-09-01', '2026-09-11', '2026-09-11'), true,
+    'a check completed within the correct cycle window clears it');
+  assert.equal(context.check('2026-09-01', '2027-03-11', '2026-09-11'), false,
+    'a completion attached to a different cycle cannot clear the next one');
+});

@@ -10767,6 +10767,13 @@ function fleetCompletedJobForPlanCycle(p){
     return done>=due;
   })||null;
 }
+function fleetSafetyCompletionMatchesCycle(completed,due,cycle){
+  completed=String(completed||'').slice(0,10);due=String(due||'').slice(0,10);cycle=String(cycle||'').slice(0,10);
+  if(cycle&&cycle!==due)return false;
+  if(!/^\d{4}-\d{2}-\d{2}$/.test(completed)||!/^\d{4}-\d{2}-\d{2}$/.test(due))return false;
+  var dueDate=new Date(due+'T00:00:00'),doneDate=new Date(completed+'T00:00:00');
+  return !isNaN(dueDate.getTime())&&!isNaN(doneDate.getTime())&&doneDate>=new Date(dueDate.getTime()-62*86400000);
+}
 function fleetPlanCompletedForCurrentCycle(p){
   /* A user-entered active due date is the authoritative outstanding cycle.
      Historical completion evidence must not hide it from the Fleet list. */
@@ -10796,10 +10803,7 @@ function fleetPlanCompletedForCurrentCycle(p){
       if(String(c.planId)!==String(p.id))return false;
       if(planCategory==='safety'){
         var cycle=String(c.cycleDue||c.nextDue||'');
-        if(cycle)return cycle===due;
-        if(!due)return true;
-        var dd=new Date(String(due).slice(0,10)+'T00:00:00'),cd=new Date(String(completed).slice(0,10)+'T00:00:00');
-        return cd>=new Date(dd.getTime()-62*86400000);
+        return fleetSafetyCompletionMatchesCycle(completed,due,cycle);
       }
       if(planCategory==='service'){
         var serviceDone=String(completed).slice(0,10);
@@ -10811,7 +10815,7 @@ function fleetPlanCompletedForCurrentCycle(p){
     categories=categories.filter(function(v,i,a){return a.indexOf(v)===i});
     if(categories.length!==1||categories[0]!==planCategory)return false;
     if(planCategory==='service')return !due||String(due).slice(0,10)<fleetAddMonthsFromDue(String(completed).slice(0,10),12);
-    if(planCategory==='safety'&&due){var d1=new Date(String(due).slice(0,10)+'T00:00:00'),d2=new Date(String(completed).slice(0,10)+'T00:00:00');return d2>=new Date(d1.getTime()-62*86400000);}
+    if(planCategory==='safety'&&due)return fleetSafetyCompletionMatchesCycle(completed,due,'');
     if(planCategory==='tax'&&due){var taxDue=new Date(String(due).slice(0,10)+'T00:00:00'),taxDone=new Date(String(completed).slice(0,10)+'T00:00:00');return !isNaN(taxDue.getTime())&&!isNaN(taxDone.getTime())&&taxDone>=new Date(taxDue.getTime()-40*86400000);}
     return !due||completed.slice(0,7)>=due.slice(0,7);
   });
@@ -14799,10 +14803,7 @@ try{setTimeout(function(){if(window.app&&Array.isArray(app.jobs))migrateNoVehicl
         if(String(c.planId)!==String(p.id))return false;
         if(planCategory==='safety'){
           var cycle=String(c.cycleDue||c.nextDue||'');
-          if(cycle)return cycle===due;
-          if(!due)return true;
-          var dd=new Date(String(due).slice(0,10)+'T00:00:00'),cd=new Date(String(completed).slice(0,10)+'T00:00:00');
-          return !isNaN(dd.getTime())&&!isNaN(cd.getTime())&&cd>=new Date(dd.getTime()-62*86400000);
+          return typeof fleetSafetyCompletionMatchesCycle==='function'&&fleetSafetyCompletionMatchesCycle(completed,due,cycle);
         }
         if(planCategory==='service'&&typeof fleetAddMonthsFromDue==='function'){
           return !due||String(due).slice(0,10)<fleetAddMonthsFromDue(String(completed).slice(0,10),12);
@@ -14813,7 +14814,7 @@ try{setTimeout(function(){if(window.app&&Array.isArray(app.jobs))migrateNoVehicl
       categories=categories.filter(function(v,i,a){return a.indexOf(v)===i});
       if(categories.length!==1||categories[0]!==planCategory)return false;
       if(planCategory==='service'&&typeof fleetAddMonthsFromDue==='function')return !due||String(due).slice(0,10)<fleetAddMonthsFromDue(String(completed).slice(0,10),12);
-      if(planCategory==='safety'&&due){var d1=new Date(String(due).slice(0,10)+'T00:00:00'),d2=new Date(String(completed).slice(0,10)+'T00:00:00');return !isNaN(d1.getTime())&&!isNaN(d2.getTime())&&d2>=new Date(d1.getTime()-62*86400000);}
+      if(planCategory==='safety'&&due)return typeof fleetSafetyCompletionMatchesCycle==='function'&&fleetSafetyCompletionMatchesCycle(completed,due,'');
       if(planCategory==='tax'&&due){var taxDue=new Date(String(due).slice(0,10)+'T00:00:00'),taxDone=new Date(String(completed).slice(0,10)+'T00:00:00');return !isNaN(taxDue.getTime())&&!isNaN(taxDone.getTime())&&taxDone>=new Date(taxDue.getTime()-40*86400000);}
       return !due||completed.slice(0,7)>=String(due).slice(0,7);
     });
