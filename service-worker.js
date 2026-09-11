@@ -1,5 +1,5 @@
-const CACHE='vecta-workshop-pro-shell-v18-cross-device-edit-sync';
-const APP_VERSION='v331-fleet-column-alignment';
+const CACHE='vecta-workshop-pro-shell-v19-safety-cycle-refresh';
+const APP_VERSION='v334-safety-cycle-cache-refresh';
 const DATA_CACHE='vecta-workshop-pro-data-last-known-v1';
 const HEALTH_CACHE='vecta-workshop-pro-cloud-health-v1';
 const CORE=[

@@ -113,3 +113,24 @@ test('an old safety check cannot clear EYC current six-month cycle', () => {
   assert.equal(context.check('2026-09-01', '2027-03-11', '2026-09-11'), false,
     'a completion attached to a different cycle cannot clear the next one');
 });
+
+test('EYC six-month due date remains anchored to its service, not its MOT', () => {
+  const html = fs.readFileSync(new URL('../../index.html', import.meta.url), 'utf8');
+  const match = html.match(/function fleetMayAlignPlanToMot\(plan\)\{[\s\S]*?\n\}/);
+  assert.ok(match, 'MOT-alignment eligibility function exists');
+  const context = {};
+  vm.runInNewContext(`${match[0]};this.mayAlign=fleetMayAlignPlanToMot;`, context);
+
+  assert.equal(context.mayAlign({ type: 'Six-month Safety Check' }), false);
+  assert.equal(context.mayAlign({ type: '6 Month Safety Check' }), false);
+  assert.equal(context.mayAlign({ type: 'Annual Service' }), true);
+});
+
+test('phone shell versions force the V334 repair to replace V331', () => {
+  const html = fs.readFileSync(new URL('../../index.html', import.meta.url), 'utf8');
+  const worker = fs.readFileSync(new URL('../../service-worker.js', import.meta.url), 'utf8');
+  assert.match(html, /VECTA_APP_VERSION='v334-safety-cycle-cache-refresh'/);
+  assert.match(html, /service-worker\.js\?v=20260911-safety-cycle-cache-refresh-v334/);
+  assert.match(worker, /APP_VERSION='v334-safety-cycle-cache-refresh'/);
+  assert.match(worker, /CACHE='vecta-workshop-pro-shell-v19-safety-cycle-refresh'/);
+});

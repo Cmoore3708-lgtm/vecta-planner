@@ -9372,7 +9372,7 @@ async function flushPendingSync(){
   if(!remaining.length)return true;
   return false
 }
-var VECTA_APP_VERSION='v331-fleet-column-alignment';
+var VECTA_APP_VERSION='v334-safety-cycle-cache-refresh';
 var vectaAppUpdateWaiting=false;
 function vectaSafeApplyAppUpdate(){
   vectaAppUpdateWaiting=true;
@@ -9394,7 +9394,7 @@ function registerVectaServiceWorker(){
   navigator.serviceWorker.addEventListener('controllerchange',function(){vectaSafeApplyAppUpdate()});
   window.addEventListener('load',function(){
     Promise.resolve(window.__vectaCacheResetPromise).finally(function(){
-      navigator.serviceWorker.register('/service-worker.js?v=20260910-fleet-column-alignment-v331',{updateViaCache:'none'}).then(function(reg){
+      navigator.serviceWorker.register('/service-worker.js?v=20260911-safety-cycle-cache-refresh-v334',{updateViaCache:'none'}).then(function(reg){
         if(navigator.onLine)Promise.resolve(reg.update()).catch(function(e){console.warn('Service worker update skipped',e)});
       }).catch(function(e){console.warn('Offline app install skipped',e)});
     });
@@ -10371,6 +10371,12 @@ fleetMigratePreJuly2026Overdues();
 /* V41.28: Keep annual servicing and six-month safety inspections with the
    MOT whenever their due dates fall within 40 days. The aligned date is saved,
    while each item remains a separate due-work entry and badge. */
+function fleetMayAlignPlanToMot(plan){
+  var type=String(plan&&plan.type||'').toLowerCase();
+  var safety=type.indexOf('safety')>-1||type.indexOf('six month')>-1||type.indexOf('six-month')>-1||type.indexOf('6 month')>-1||type.indexOf('6-month')>-1;
+  /* Six-month checks are always anchored to the last annual service. */
+  return !safety&&type.indexOf('service')>-1&&type.indexOf('onsite')===-1&&type.indexOf('on-site')===-1;
+}
 function fleetAlignServiceDatesToMot(){
   var changed=false;
   function validPlanDate(plan){
@@ -10378,15 +10384,10 @@ function fleetAlignServiceDatesToMot(){
     return /^\d{4}-\d{2}-\d{2}$/.test(date)?date:'';
   }
   function isMotPlan(plan){return /\bmot\b/i.test(String(plan&&plan.type||''))}
-  function isServiceOrSafetyPlan(plan){
-    var type=String(plan&&plan.type||'').toLowerCase();
-    var safety=type.indexOf('safety')>-1||type.indexOf('six month')>-1||type.indexOf('six-month')>-1||type.indexOf('6 month')>-1||type.indexOf('6-month')>-1;
-    return safety||(type.indexOf('service')>-1&&type.indexOf('onsite')===-1&&type.indexOf('on-site')===-1);
-  }
   (fleetVehicles||[]).forEach(function(vehicle){
     var active=(fleetPlans||[]).filter(function(plan){return plan&&String(plan.vehicleId)===String(vehicle.id)&&String(plan.status||'Active')==='Active'&&!fleetIsMaintenanceRemoved(plan.vehicleId,plan.type)}),
       mots=active.filter(function(plan){return isMotPlan(plan)&&validPlanDate(plan)}),
-      linked=active.filter(function(plan){return isServiceOrSafetyPlan(plan)&&validPlanDate(plan)});
+      linked=active.filter(function(plan){return fleetMayAlignPlanToMot(plan)&&validPlanDate(plan)});
     if(!mots.length||!linked.length)return;
     linked.forEach(function(plan){
       /* A service date explicitly entered by the user is authoritative. MOT
