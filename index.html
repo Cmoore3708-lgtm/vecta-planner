@@ -8678,6 +8678,46 @@ window.INITIAL_MAINTENANCE_PLANS = [
 ];
 
 </script>
+<script id="v335-standalone-service-cycle-repair">
+(function(){
+'use strict';
+function reg(v){return String(v||'').toUpperCase().replace(/[^A-Z0-9]/g,'');}
+function iso(v){var m=String(v||'').match(/\d{4}-\d{2}-\d{2}/);return m?m[0]:'';}
+function today(){var d=new Date(),off=d.getTimezoneOffset();return new Date(d.getTime()-off*60000).toISOString().slice(0,10);}
+function addMonths(value,months){var d=new Date(value+'T00:00:00Z'),day=d.getUTCDate();if(isNaN(d.getTime()))return '';d.setUTCDate(1);d.setUTCMonth(d.getUTCMonth()+months);d.setUTCDate(Math.min(day,new Date(Date.UTC(d.getUTCFullYear(),d.getUTCMonth()+1,0)).getUTCDate()));return d.toISOString().slice(0,10);}
+function completedService(j){
+  if(!j)return false;
+  var status=String(j.status||'').toLowerCase().replace(/\s+/g,'_'),text=[j.job_type,j.work_required,j.description,j.notes].join(' ');
+  var done=status==='completed'||status==='complete'||status==='ready_to_invoice'||status==='invoiced'||j.archived===true||!!j.completed_at||!!j.completedAt;
+  return done&&/\bservice|servicing|oil\s*(?:&|and)\s*filter/i.test(text)&&!/safety|(?:six|6)[ -]?month|on[ -]?site/i.test(text);
+}
+function refreshFleetView(){var input=document.getElementById('fleetSearch');if(input)input.dispatchEvent(new Event('input',{bubbles:true}));}
+function repair(){
+  try{
+    if(typeof window.__vectaFleetState!=='function')return 0;
+    var state=window.__vectaFleetState(),vehicles=state.vehicles||[],plans=state.plans||[],completions=state.completions||[],jobs=[],seen={};
+    [state.app&&state.app.jobs,window.NMUK_2026_JOBS,window.CONTRACTOR_2026_JOBS].forEach(function(rows){(Array.isArray(rows)?rows:[]).forEach(function(j){var key=String(j&&j.id||'')+'|'+reg(j&&j.registration);if(!seen[key]){seen[key]=true;jobs.push(j);}});});
+    var changed=0,now=today();
+    vehicles.forEach(function(vehicle){
+      var key=reg(vehicle&&vehicle.registration),dates=[];
+      jobs.forEach(function(j){var d=iso(j&& (j.completed_at||j.completedAt||j.booking_date||j.created_at));if(key&&reg(j&&j.registration)===key&&completedService(j)&&d&&d<=now)dates.push(d);});
+      completions.forEach(function(c){var type=String(c&& (c.serviceType||c.type)||'');if(c&&String(c.vehicleId)===String(vehicle.id)&&/service/i.test(type)&&!/safety/i.test(type)){var d=iso(c.completedDate||c.completedMonth);if(d&&d<=now)dates.push(d);}});
+      dates.sort();var serviceDate=dates[dates.length-1];if(!serviceDate)return;
+      plans.filter(function(p){return p&&String(p.vehicleId)===String(vehicle.id)&&String(p.status||'Active')==='Active';}).forEach(function(plan){
+        var type=String(plan.type||''),isSafety=/safety|(?:six|6)[ -]?month/i.test(type),isService=!isSafety&&/service/i.test(type);if(!isSafety&&!isService)return;
+        var due=addMonths(serviceDate,isSafety?6:12);if(!due)return;
+        if(String(plan.currentDueDate||'').slice(0,10)!==due||plan.targetMonth!==null){plan.currentDueDate=due;plan.targetMonth=null;plan.intervalMonths=isSafety?6:12;plan.notes=(isSafety?'Six-month check':'Next service')+' due from completed service '+serviceDate+'.';changed++;}
+      });
+    });
+    if(changed)refreshFleetView();
+    return changed;
+  }catch(e){console.warn('V335 standalone service-cycle repair skipped',e);return 0;}
+}
+window.v335RepairServiceCycles=repair;
+[0,2500,8000,15000].forEach(function(ms){setTimeout(repair,ms);});
+document.addEventListener('visibilitychange',function(){if(!document.hidden)repair();});
+})();
+</script>
 <script id="v332-completed-service-authority">
 /* V332 — completed service evidence is authoritative only after every cloud source
    has loaded. This prevents an older Fleet snapshot from putting serviced vehicles
@@ -9372,7 +9412,7 @@ async function flushPendingSync(){
   if(!remaining.length)return true;
   return false
 }
-var VECTA_APP_VERSION='v334-safety-cycle-cache-refresh';
+var VECTA_APP_VERSION='v335-safety-service-evidence-repair';
 var vectaAppUpdateWaiting=false;
 function vectaSafeApplyAppUpdate(){
   vectaAppUpdateWaiting=true;
@@ -9394,7 +9434,7 @@ function registerVectaServiceWorker(){
   navigator.serviceWorker.addEventListener('controllerchange',function(){vectaSafeApplyAppUpdate()});
   window.addEventListener('load',function(){
     Promise.resolve(window.__vectaCacheResetPromise).finally(function(){
-      navigator.serviceWorker.register('/service-worker.js?v=20260911-safety-cycle-cache-refresh-v334',{updateViaCache:'none'}).then(function(reg){
+      navigator.serviceWorker.register('/service-worker.js?v=20260911-safety-service-evidence-repair-v335',{updateViaCache:'none'}).then(function(reg){
         if(navigator.onLine)Promise.resolve(reg.update()).catch(function(e){console.warn('Service worker update skipped',e)});
       }).catch(function(e){console.warn('Offline app install skipped',e)});
     });
@@ -14713,18 +14753,40 @@ try{setTimeout(function(){if(window.app&&Array.isArray(app.jobs))migrateNoVehicl
   function latestServiceForVehicle(vehicle){
     if(!vehicle)return null;
     var reg=typeof normReg==='function'?normReg(vehicle.registration||''):String(vehicle.registration||'').replace(/\s+/g,'').toUpperCase();
-    var list=(app.jobs||[]).filter(function(j){
+    /* The embedded historical ledgers remain available even while the live jobs request
+       is starting or temporarily offline. Include them so a stale Fleet snapshot cannot
+       erase the service anchor merely because app.jobs has not loaded yet. */
+    var candidates=[];
+    [typeof app!=='undefined'&&app&&app.jobs,window.NMUK_2026_JOBS,window.CONTRACTOR_2026_JOBS].forEach(function(rows){
+      (Array.isArray(rows)?rows:[]).forEach(function(j){if(candidates.indexOf(j)===-1)candidates.push(j);});
+    });
+    var list=candidates.filter(function(j){
       var jr=typeof normReg==='function'?normReg(j.registration||''):String(j.registration||'').replace(/\s+/g,'').toUpperCase();
-      var d=doneDate(j);return jr===reg&&isCompletedService(j)&&d&&d<=todayIso();
+      var d=doneDate(j),raw=[j&&j.job_type,j&&j.work_required].join(' '),status=String(j&&j.status||'').toLowerCase(),
+          durableHistoricalService=(status==='completed'||j&&j.archived===true||!!(j&&j.completed_at))&&/\bservice\b/i.test(raw)&&!/safety|(?:six|6)[ -]?month|on[ -]?site/i.test(raw);
+      return jr===reg&&(isCompletedService(j)||durableHistoricalService)&&d&&d<=todayIso();
     }).sort(function(a,b){return doneDate(a).localeCompare(doneDate(b));});
     return list.length?list[list.length-1]:null;
+  }
+  function latestServiceDateForVehicle(vehicle){
+    var job=latestServiceForVehicle(vehicle),dates=[],jobDate=job&&doneDate(job);
+    if(jobDate)dates.push(jobDate);
+    /* The Fleet snapshot is loaded independently of workshop jobs. An older phone can
+       therefore write a blank safety date back before the jobs download completes.
+       Recover from the durable completed-service ledger as well as app.jobs. */
+    (typeof fleetCompletions!=='undefined'&&Array.isArray(fleetCompletions)?fleetCompletions:[]).forEach(function(c){
+      if(!c||String(c.vehicleId)!==String(vehicle&&vehicle.id))return;
+      var category=typeof fleetMaintenanceCategory==='function'?fleetMaintenanceCategory(c.serviceType||c.type||''):'';
+      if(category!=='service'||/safety/i.test(String(c.serviceType||c.type||'')))return;
+      var d=iso(c.completedDate||c.completedMonth);if(d&&d<=todayIso())dates.push(d);
+    });
+    dates.sort();return dates.length?dates[dates.length-1]:'';
   }
   function anchorSafetyToLatestService(vehicle,saveNow){
     try{
       if(!vehicle)return null;
       if(typeof fleetIsMaintenanceRemoved==='function'&&fleetIsMaintenanceRemoved(vehicle.id,'safety'))return null;
-      var serviceJob=latestServiceForVehicle(vehicle);if(!serviceJob)return null;
-      var serviceDate=doneDate(serviceJob);if(!serviceDate)return null;
+      var serviceDate=latestServiceDateForVehicle(vehicle);if(!serviceDate)return null;
       var due=typeof fleetAddMonthsFromDue==='function'?fleetAddMonthsFromDue(serviceDate,6):'';if(!due)return null;
       var plan=typeof fleetPlanMatching==='function'?fleetPlanMatching(vehicle.id,'safety'):null;
       /* Preserve the existing product rule: Nissan Internal vehicles do not gain a new
@@ -14732,7 +14794,7 @@ try{setTimeout(function(){if(window.app&&Array.isArray(app.jobs))migrateNoVehicl
          exists, however, its date is still corrected to the service anchor. */
       if(!plan&&vehicle.fleetGroup==='Nissan Internal')return null;
       if(plan){
-        plan.type='Six-month Safety Check';plan.intervalMonths=6;plan.currentDueDate=due;plan.status='Active';
+        plan.type='Six-month Safety Check';plan.intervalMonths=6;plan.currentDueDate=due;plan.targetMonth=null;plan.status='Active';
         plan.notes='Due 6 months after the most recent completed service ('+serviceDate+'). Safety-check completion does not move this date.';
       }else{
         plan={id:'plan-safety-'+vehicle.id,vehicleId:vehicle.id,type:'Six-month Safety Check',intervalMonths:6,targetMonth:null,currentDueDate:due,notes:'Due 6 months after the most recent completed service ('+serviceDate+'). Safety-check completion does not move this date.',status:'Active',source:'Workshop service cycle'};

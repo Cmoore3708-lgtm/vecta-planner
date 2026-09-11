@@ -126,11 +126,58 @@ test('EYC six-month due date remains anchored to its service, not its MOT', () =
   assert.equal(context.mayAlign({ type: 'Annual Service' }), true);
 });
 
-test('phone shell versions force the V334 repair to replace V331', () => {
+test('a stale blank safety date is rebuilt from durable completed-service evidence', () => {
+  const html = fs.readFileSync(new URL('../../index.html', import.meta.url), 'utf8');
+  const match = html.match(/<script id="v212-fleet-safety-service-anchor-rule">([\s\S]*?)<\/script>/);
+  assert.ok(match, 'safety service-anchor repair exists');
+  const context = {
+    window: null, console, setTimeout() {}, todayIso: () => '2026-09-11',
+    app: { jobs: [] },
+    fleetVehicles: [{id:'POOL|KX18EYC', registration:'KX18 EYC', fleetGroup:'Nissan Pool Cars'}],
+    fleetPlans: [{id:'plan-321', vehicleId:'POOL|KX18EYC', type:'Six-month Safety Check', status:'Active', currentDueDate:'', targetMonth:3}],
+    fleetCompletions: [{id:'service', vehicleId:'POOL|KX18EYC', type:'Full Service', completedDate:'2026-03-11'}],
+    fleetMaintenanceCategory: type => /safety/i.test(String(type)) ? 'safety' : /service/i.test(String(type)) ? 'service' : '',
+    fleetIsMaintenanceRemoved: () => false,
+    fleetPlanMatching(id, category) { return context.fleetPlans.find(p => p.vehicleId === id && context.fleetMaintenanceCategory(p.type) === category); },
+    fleetAddMonthsFromDue(date, months) { const d=new Date(`${date}T00:00:00Z`);d.setUTCMonth(d.getUTCMonth()+months);return d.toISOString().slice(0,10); },
+    saveFleet() {}
+  };
+  context.window = context;
+  vm.runInNewContext(match[1], context);
+  context.v212AnchorSafetyToLatestService(context.fleetVehicles[0], false);
+  assert.equal(context.fleetPlans[0].currentDueDate, '2026-09-11');
+  assert.equal(context.fleetPlans[0].targetMonth, null);
+});
+
+test('embedded service history repairs EYC before live jobs finish loading', () => {
+  const html = fs.readFileSync(new URL('../../index.html', import.meta.url), 'utf8');
+  const match = html.match(/<script id="v212-fleet-safety-service-anchor-rule">([\s\S]*?)<\/script>/);
+  const context = {
+    window:null, console, setTimeout(){}, todayIso:()=> '2026-09-11', app:{jobs:[]}, fleetCompletions:[],
+    fleetVehicles:[{id:'POOL|KX18EYC',registration:'KX18 EYC',fleetGroup:'Nissan Pool Cars'}],
+    fleetPlans:[{id:'plan-321',vehicleId:'POOL|KX18EYC',type:'Six-month Safety Check',status:'Active',currentDueDate:'',targetMonth:3}],
+    completedJobCanUpdateFleet:j=>j.status==='completed'||j.archived===true,
+    isSixMonthSafetyCheck:j=>/safety/i.test(`${j.job_type} ${j.work_required}`), isOnSiteService:()=>false,
+    fleetPlannerJobCategories:j=>({service:/service/i.test(`${j.job_type} ${j.work_required}`)}),
+    fleetMaintenanceCategory:t=>/safety/i.test(String(t))?'safety':/service/i.test(String(t))?'service':'',
+    fleetIsMaintenanceRemoved:()=>false,
+    fleetPlanMatching(id,cat){return context.fleetPlans.find(p=>p.vehicleId===id&&context.fleetMaintenanceCategory(p.type)===cat);},
+    fleetDate:p=>p.currentDueDate||'',
+    fleetAddMonthsFromDue(date,months){const d=new Date(`${date}T00:00:00Z`);d.setUTCMonth(d.getUTCMonth()+months);return d.toISOString().slice(0,10);},
+    saveFleet(){}
+  };
+  context.window=context;
+  context.NMUK_2026_JOBS=[{id:'nmuk-2026-march-10',registration:'KX18 EYC',job_type:'Full Service',work_required:'POOL CAR SERVICE',status:'completed',archived:true,completed_at:'2026-03-11T17:00:00.000Z'}];
+  vm.runInNewContext(match[1],context);
+  assert.equal(context.v212RepairSafetyServiceAnchors(),1);
+  assert.equal(context.fleetPlans[0].currentDueDate,'2026-09-11');
+});
+
+test('phone shell versions force the V335 repair to replace V334', () => {
   const html = fs.readFileSync(new URL('../../index.html', import.meta.url), 'utf8');
   const worker = fs.readFileSync(new URL('../../service-worker.js', import.meta.url), 'utf8');
-  assert.match(html, /VECTA_APP_VERSION='v334-safety-cycle-cache-refresh'/);
-  assert.match(html, /service-worker\.js\?v=20260911-safety-cycle-cache-refresh-v334/);
-  assert.match(worker, /APP_VERSION='v334-safety-cycle-cache-refresh'/);
-  assert.match(worker, /CACHE='vecta-workshop-pro-shell-v19-safety-cycle-refresh'/);
+  assert.match(html, /VECTA_APP_VERSION='v335-safety-service-evidence-repair'/);
+  assert.match(html, /service-worker\.js\?v=20260911-safety-service-evidence-repair-v335/);
+  assert.match(worker, /APP_VERSION='v335-safety-service-evidence-repair'/);
+  assert.match(worker, /CACHE='vecta-workshop-pro-shell-v20-safety-service-evidence-repair'/);
 });
