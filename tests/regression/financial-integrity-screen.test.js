@@ -67,3 +67,9 @@ test('mobile startup does not abandon cloud jobs behind a short duplicate ping',
   assert.match(html, /vectaFetchAllRemoteRows\('jobs',25000\)/);
   assert.match(html, /vectaFetchAllRemoteRows\('tasks',25000\)/);
 });
+
+test('completed mobile startup cannot leave an invisible tap-blocking gate', () => {
+  assert.match(html, /gate\.hidden=!on/);
+  assert.match(html, /gate\.style\.pointerEvents=on\?'auto':'none'/);
+  assert.match(html, /\},120000\);/);
+});
