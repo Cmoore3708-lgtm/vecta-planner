@@ -22,8 +22,8 @@
       if(reloaded)return;
       reloaded=true;
       try{
-        if(sessionStorage.getItem('vecta-v348-safari-unfreeze')==='1')return;
-        sessionStorage.setItem('vecta-v348-safari-unfreeze','1');
+        if(sessionStorage.getItem('vecta-v345-sw-reload')==='1')return;
+        sessionStorage.setItem('vecta-v345-sw-reload','1');
       }catch(_e){}
       location.reload();
     });
@@ -9364,10 +9364,7 @@ function vectaSyncQuarantine(){try{var q=JSON.parse(localStorage.getItem(VECTA_S
 function vectaArchiveSyncItems(items,reason){if(!items||!items.length)return;try{var q=vectaSyncQuarantine(),stamp=new Date().toISOString();items.forEach(function(item){q.push(Object.assign({},item,{quarantined_at:stamp,quarantine_reason:reason||'stuck legacy sync item'}))});if(q.length>500)q=q.slice(q.length-500);localStorage.setItem(VECTA_SYNC_QUARANTINE_KEY,JSON.stringify(q))}catch(e){console.warn('Could not archive stuck sync items',e)}}
 function vectaRecoverLegacyStuckQueue(){var q=vectaPendingSync();if(q.length<20)return 0;var now=Date.now(),stuck=q.filter(function(item){var age=now-(Date.parse(item.queued_at||0)||0);return Number(item.attempts||0)>=2&&!!item.last_error&&age>10*60*1000});if(stuck.length<Math.max(20,Math.floor(q.length*.8)))return 0;vectaArchiveSyncItems(stuck,'Recovered from repeated legacy offline-sync failure');var keys={};stuck.forEach(function(x){keys[x.key]=true});var remaining=q.filter(function(x){return !keys[x.key]});vectaSavePendingSync(remaining);console.warn('Recovered '+stuck.length+' stuck legacy sync items. A recovery copy is retained locally.');return stuck.length}
 var vectaSyncInFlight=false,vectaSyncProgress=null;
-function vectaReleaseInteractionGate(){try{document.body.classList.remove('vectaStartupLoading');var gate=document.getElementById('vectaStartupGate');if(gate){gate.hidden=true;gate.style.display='none';gate.style.pointerEvents='none';gate.setAttribute('aria-hidden','true')}document.documentElement.style.pointerEvents='auto';document.body.style.pointerEvents='auto'}catch(e){console.warn('Mobile interaction gate release skipped',e)}}
 function updateConnectivityUI(state){var el=document.getElementById('vectaConnectivity'),txt=document.getElementById('vectaConnectivityText'),banner=document.getElementById('vectaOfflineBanner');if(!el||!txt)return;var pending=vectaPendingSync().length;if(state==='syncing'){el.className='vectaConnectivity syncing';var done=vectaSyncProgress&&Number(vectaSyncProgress.done||0),total=vectaSyncProgress&&Number(vectaSyncProgress.total||0);txt.textContent=total?('Synchronising workshop data… '+done+' of '+total):'Synchronising workshop data…';if(banner)banner.classList.remove('show');return}if(state==='checking'||vectaCloudReachable===null){el.className='vectaConnectivity syncing';txt.textContent='Checking cloud connection…';if(banner)banner.classList.remove('show');return}var online=navigator.onLine&&vectaCloudReachable;if(online){el.className='vectaConnectivity online';var failed=pending&&vectaPendingSync().some(function(x){return Number(x.attempts||0)>0&&x.last_error});txt.textContent=pending?('Online · '+pending+' change'+(pending===1?'':'s')+(failed?' still need sync — retrying':' waiting to sync')):'Online · workshop data protected';if(banner)banner.classList.remove('show')}else{el.className='vectaConnectivity offline';txt.textContent='Offline workshop mode'+(pending?' · '+pending+' queued':'');if(banner)banner.classList.add('show')}}
-var vectaOriginalUpdateConnectivityUI=updateConnectivityUI;
-updateConnectivityUI=function(state){vectaOriginalUpdateConnectivityUI(state);if(state!=='syncing'&&state!=='checking'&&navigator.onLine&&vectaCloudReachable)vectaReleaseInteractionGate()};
 function vectaOpenBackupDb(){return new Promise(function(resolve,reject){if(!window.indexedDB)return reject(new Error('IndexedDB is unavailable.'));var settled=false,timer=setTimeout(function(){if(settled)return;settled=true;reject(new Error('Backup storage took too long to open.'))},2500),req=indexedDB.open(VECTA_BACKUP_DB,1);function fail(error){if(settled)return;settled=true;clearTimeout(timer);reject(error||new Error('Could not open backup store.'))}req.onupgradeneeded=function(){var db=req.result;if(!db.objectStoreNames.contains(VECTA_BACKUP_STORE))db.createObjectStore(VECTA_BACKUP_STORE,{keyPath:'id'})};req.onsuccess=function(){if(settled){try{req.result.close()}catch(e){}return}settled=true;clearTimeout(timer);resolve(req.result)};req.onerror=function(){fail(req.error)};req.onblocked=function(){fail(new Error('Backup storage is blocked by an older app window.'))}})}
 async function vectaStoreBackup(snapshot){var db=await vectaOpenBackupDb();await new Promise(function(resolve,reject){var tx=db.transaction(VECTA_BACKUP_STORE,'readwrite'),st=tx.objectStore(VECTA_BACKUP_STORE);st.put(snapshot);tx.oncomplete=resolve;tx.onerror=function(){reject(tx.error)}});db.close();await vectaPruneBackups();return snapshot}
 async function vectaListBackups(){try{var db=await vectaOpenBackupDb();var rows=await new Promise(function(resolve,reject){var tx=db.transaction(VECTA_BACKUP_STORE,'readonly'),req=tx.objectStore(VECTA_BACKUP_STORE).getAll();req.onsuccess=function(){resolve(req.result||[])};req.onerror=function(){reject(req.error)}});db.close();return rows.sort(function(a,b){return String(b.created_at||'').localeCompare(String(a.created_at||''))})}catch(e){console.warn('Backup list unavailable',e);return []}}
@@ -9443,7 +9440,7 @@ async function flushPendingSync(){
   if(!remaining.length)return true;
   return false
 }
-var VECTA_APP_VERSION='v348-safari-unfreeze';
+var VECTA_APP_VERSION='v345-mobile-interaction-recovery';
 var vectaAppUpdateWaiting=false;
 function vectaSafeApplyAppUpdate(){
   vectaAppUpdateWaiting=true;
@@ -9465,7 +9462,7 @@ function registerVectaServiceWorker(){
   navigator.serviceWorker.addEventListener('controllerchange',function(){vectaSafeApplyAppUpdate()});
   window.addEventListener('load',function(){
     Promise.resolve(window.__vectaCacheResetPromise).finally(function(){
-      navigator.serviceWorker.register('/service-worker.js?v=20260912-safari-unfreeze-v348',{updateViaCache:'none'}).then(function(reg){
+      navigator.serviceWorker.register('/service-worker.js?v=20260912-mobile-interaction-recovery-v345',{updateViaCache:'none'}).then(function(reg){
         if(navigator.onLine)Promise.resolve(reg.update()).catch(function(e){console.warn('Service worker update skipped',e)});
       }).catch(function(e){console.warn('Offline app install skipped',e)});
     });
@@ -16468,14 +16465,7 @@ document.addEventListener('click',function(ev){
 try{
   if(typeof render==='function'&&!render.__v264MotLocked){var v264OldRender=render;render=function(){var r=v264OldRender.apply(this,arguments);setTimeout(function(){v264LockMotControls(document);},0);return r;};render.__v264MotLocked=true;}
 }catch(e){}
-/* V348: never mutate the document from a permanently-connected document-wide
-   observer. That observer observed its own changes and could starve Safari's
-   main thread, leaving the page visibly Online but unable to accept taps. */
-var v264LockObserver=new MutationObserver(function(){
-  v264LockObserver.disconnect();
-  try{v264LockMotControls(document)}finally{v264LockObserver.observe(document.documentElement,{childList:true,subtree:true})}
-});
-v264LockObserver.observe(document.documentElement,{childList:true,subtree:true});
+new MutationObserver(function(){v264LockMotControls(document);}).observe(document.documentElement,{childList:true,subtree:true});
 setTimeout(function(){v264LockMotControls(document);},0);
 try{var foot=document.querySelector('.sideFoot small');if(foot)foot.textContent='v264 Workshop Pro · Government MOT authority';}catch(e){}
 })();
