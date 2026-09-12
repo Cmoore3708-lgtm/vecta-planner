@@ -22,8 +22,8 @@
       if(reloaded)return;
       reloaded=true;
       try{
-        if(sessionStorage.getItem('vecta-v342-sw-reload')==='1')return;
-        sessionStorage.setItem('vecta-v342-sw-reload','1');
+        if(sessionStorage.getItem('vecta-v343-sw-reload')==='1')return;
+        sessionStorage.setItem('vecta-v343-sw-reload','1');
       }catch(_e){}
       location.reload();
     });
@@ -9440,7 +9440,7 @@ async function flushPendingSync(){
   if(!remaining.length)return true;
   return false
 }
-var VECTA_APP_VERSION='v342-mobile-immediate-startup';
+var VECTA_APP_VERSION='v343-mobile-cloud-render';
 var vectaAppUpdateWaiting=false;
 function vectaSafeApplyAppUpdate(){
   vectaAppUpdateWaiting=true;
@@ -9462,7 +9462,7 @@ function registerVectaServiceWorker(){
   navigator.serviceWorker.addEventListener('controllerchange',function(){vectaSafeApplyAppUpdate()});
   window.addEventListener('load',function(){
     Promise.resolve(window.__vectaCacheResetPromise).finally(function(){
-      navigator.serviceWorker.register('/service-worker.js?v=20260912-mobile-immediate-startup-v342',{updateViaCache:'none'}).then(function(reg){
+      navigator.serviceWorker.register('/service-worker.js?v=20260912-mobile-cloud-render-v343',{updateViaCache:'none'}).then(function(reg){
         if(navigator.onLine)Promise.resolve(reg.update()).catch(function(e){console.warn('Service worker update skipped',e)});
       }).catch(function(e){console.warn('Offline app install skipped',e)});
     });
@@ -10189,8 +10189,9 @@ function init(){safe(async function(){
       /* V288: jobs + tasks + terminal states are fetched in parallel, reconciled in memory,
          and only then is the dashboard exposed. Stale local cards can no longer flash first. */
       await vectaPrimeAuthoritativeDashboard();
-      /* A successful authoritative cloud load becomes the new last-known-good offline copy immediately. */
-      await vectaCreateDailyBackup(true,'cloud-synchronised');
+      /* V343: never wait for IndexedDB before displaying downloaded jobs. iOS can
+         leave a backup write pending indefinitely; persistence must be background-only. */
+      vectaCreateDailyBackup(true,'cloud-synchronised').catch(function(e){console.warn('Cloud-synchronised backup skipped',e)});
       importContractor2026Spreadsheet();ensureServiceTemplates();ensureRecurringWorkshopTasks();
       clearTimeout(vectaStartupWatchdog);vectaSetStartupLoading(false);render();updateConnectivityUI();
       /* Everything below is background work. It must not hold the first correct dashboard hostage. */
