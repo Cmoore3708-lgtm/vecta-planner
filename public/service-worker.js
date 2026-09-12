@@ -1,5 +1,5 @@
-const CACHE='vecta-workshop-pro-shell-v34-observer-removed';
-const APP_VERSION='v349-observer-removed';
+const CACHE='vecta-workshop-pro-shell-v35-startup-scan-disabled';
+const APP_VERSION='v350-startup-scan-disabled';
 const DATA_CACHE='vecta-workshop-pro-data-last-known-v1';
 const HEALTH_CACHE='vecta-workshop-pro-cloud-health-v1';
 const CORE=[
@@ -152,14 +152,7 @@ function patchAppShellHtml(html){
     "if(category==='safety'&&kind==='safety')addDate(rec.saved_at||rec.created_at);",
     "if(category==='safety'&&kind==='safety'){var recordJobId=String(rec.job_id||''),linkedSafetyJob=(app.jobs||[]).find(function(j){return j&&String(j.id)===recordJobId;});if(linkedSafetyJob&&completedJobCanUpdateFleet(linkedSafetyJob))addDate(completedJobDateForFleet(linkedSafetyJob)||linkedSafetyJob.booking_date);}"
   );
-  /* Fleet cloud state can finish loading after the page's early repair timers. Keep
-     reconciling during startup so the EYC safety item appears without a manual action. */
-  if(!patched.includes('vecta-sw-fleet-startup-reconcile')){
-    const closingBodyIndex=patched.toLowerCase().lastIndexOf('</body>');
-    if(closingBodyIndex!==-1){
-      patched=patched.slice(0,closingBodyIndex)+`<script id="vecta-sw-fleet-startup-reconcile">(function(){var n=0,t=setInterval(function(){n++;try{if(typeof window.v335RepairServiceCycles==='function')window.v335RepairServiceCycles()}catch(e){}if(n>=20)clearInterval(t)},2500)})();</script>`+patched.slice(closingBodyIndex);
-    }
-  }
+  /* V350: do not inject repeated full-history Fleet repair scans into the phone shell. */
   return patched;
 }
 

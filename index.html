@@ -22,8 +22,8 @@
       if(reloaded)return;
       reloaded=true;
       try{
-        if(sessionStorage.getItem('vecta-v349-observer-removed')==='1')return;
-        sessionStorage.setItem('vecta-v349-observer-removed','1');
+        if(sessionStorage.getItem('vecta-v350-startup-scan-disabled')==='1')return;
+        sessionStorage.setItem('vecta-v350-startup-scan-disabled','1');
       }catch(_e){}
       location.reload();
     });
@@ -8742,8 +8742,8 @@ function repair(){
   }catch(e){console.warn('V335 standalone service-cycle repair skipped',e);return 0;}
 }
 window.v335RepairServiceCycles=repair;
-[0,2500,8000,15000].forEach(function(ms){setTimeout(repair,ms);});
-document.addEventListener('visibilitychange',function(){if(!document.hidden)repair();});
+/* V350: this full vehicle-history scan is intentionally not auto-run at startup
+   or on visibility changes. Overlapping scans starved the phone's event thread. */
 })();
 </script>
 <script id="v332-completed-service-authority">
@@ -9440,7 +9440,7 @@ async function flushPendingSync(){
   if(!remaining.length)return true;
   return false
 }
-var VECTA_APP_VERSION='v349-observer-removed';
+var VECTA_APP_VERSION='v350-startup-scan-disabled';
 var vectaAppUpdateWaiting=false;
 function vectaSafeApplyAppUpdate(){
   vectaAppUpdateWaiting=true;
@@ -9462,7 +9462,7 @@ function registerVectaServiceWorker(){
   navigator.serviceWorker.addEventListener('controllerchange',function(){vectaSafeApplyAppUpdate()});
   window.addEventListener('load',function(){
     Promise.resolve(window.__vectaCacheResetPromise).finally(function(){
-      navigator.serviceWorker.register('/service-worker.js?v=20260912-observer-removed-v349',{updateViaCache:'none'}).then(function(reg){
+      navigator.serviceWorker.register('/service-worker.js?v=20260912-startup-scan-disabled-v350',{updateViaCache:'none'}).then(function(reg){
         if(navigator.onLine)Promise.resolve(reg.update()).catch(function(e){console.warn('Service worker update skipped',e)});
       }).catch(function(e){console.warn('Offline app install skipped',e)});
     });

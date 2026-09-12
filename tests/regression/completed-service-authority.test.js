@@ -173,17 +173,24 @@ test('embedded service history repairs EYC before live jobs finish loading', () 
   assert.equal(context.fleetPlans[0].currentDueDate,'2026-09-11');
 });
 
-test('phone shell versions force the observer removal repair', () => {
+test('phone shell versions force the startup-scan repair', () => {
   const html = fs.readFileSync(new URL('../../index.html', import.meta.url), 'utf8');
   const worker = fs.readFileSync(new URL('../../service-worker.js', import.meta.url), 'utf8');
-  assert.match(html, /VECTA_APP_VERSION='v349-observer-removed'/);
-  assert.match(html, /service-worker\.js\?v=20260912-observer-removed-v349/);
-  assert.match(worker, /APP_VERSION='v349-observer-removed'/);
-  assert.match(worker, /CACHE='vecta-workshop-pro-shell-v34-observer-removed'/);
+  assert.match(html, /VECTA_APP_VERSION='v350-startup-scan-disabled'/);
+  assert.match(html, /service-worker\.js\?v=20260912-startup-scan-disabled-v350/);
+  assert.match(worker, /APP_VERSION='v350-startup-scan-disabled'/);
+  assert.match(worker, /CACHE='vecta-workshop-pro-shell-v35-startup-scan-disabled'/);
 });
 
 test('MOT control observer cannot lock the document', () => {
   const html = fs.readFileSync(new URL('../../index.html', import.meta.url), 'utf8');
   assert.doesNotMatch(html, /new MutationObserver\(function\(\)\{v264LockMotControls\(document\);\}\)/);
   assert.doesNotMatch(html, /v264LockObserver/);
+});
+
+test('phone startup does not repeatedly scan every vehicle against job history', () => {
+  const html = fs.readFileSync(new URL('../../index.html', import.meta.url), 'utf8');
+  const worker = fs.readFileSync(new URL('../../service-worker.js', import.meta.url), 'utf8');
+  assert.doesNotMatch(html, /\[0,2500,8000,15000\]\.forEach\(function\(ms\)\{setTimeout\(repair,ms\);\}\)/);
+  assert.doesNotMatch(worker, /vecta-sw-fleet-startup-reconcile/);
 });
