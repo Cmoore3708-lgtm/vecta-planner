@@ -173,11 +173,11 @@ test('embedded service history repairs EYC before live jobs finish loading', () 
   assert.equal(context.fleetPlans[0].currentDueDate,'2026-09-11');
 });
 
-test('phone shell versions force the current mobile cloud-render repair', () => {
+test('phone shell versions force the current mobile cloud-recovery repair', () => {
   const html = fs.readFileSync(new URL('../../index.html', import.meta.url), 'utf8');
   const worker = fs.readFileSync(new URL('../../service-worker.js', import.meta.url), 'utf8');
-  assert.match(html, /VECTA_APP_VERSION='v343-mobile-cloud-render'/);
-  assert.match(html, /service-worker\.js\?v=20260912-mobile-cloud-render-v343/);
-  assert.match(worker, /APP_VERSION='v343-mobile-cloud-render'/);
-  assert.match(worker, /CACHE='vecta-workshop-pro-shell-v28-mobile-cloud-render'/);
+  assert.match(html, /VECTA_APP_VERSION='v344-mobile-cloud-recovery'/);
+  assert.match(html, /service-worker\.js\?v=20260912-mobile-cloud-recovery-v344/);
+  assert.match(worker, /APP_VERSION='v344-mobile-cloud-recovery'/);
+  assert.match(worker, /CACHE='vecta-workshop-pro-shell-v29-mobile-cloud-recovery'/);
 });
