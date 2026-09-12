@@ -22,8 +22,8 @@
       if(reloaded)return;
       reloaded=true;
       try{
-        if(sessionStorage.getItem('vecta-v352-wrapper-cascade-disabled')==='1')return;
-        sessionStorage.setItem('vecta-v352-wrapper-cascade-disabled','1');
+        if(sessionStorage.getItem('vecta-v353-startup-quiescence')==='1')return;
+        sessionStorage.setItem('vecta-v353-startup-quiescence','1');
       }catch(_e){}
       location.reload();
     });
@@ -9427,7 +9427,7 @@ async function flushPendingSync(){
   if(!remaining.length)return true;
   return false
 }
-var VECTA_APP_VERSION='v352-wrapper-cascade-disabled';
+var VECTA_APP_VERSION='v353-startup-quiescence';
 var vectaAppUpdateWaiting=false;
 function vectaSafeApplyAppUpdate(){
   vectaAppUpdateWaiting=true;
@@ -9449,7 +9449,7 @@ function registerVectaServiceWorker(){
   navigator.serviceWorker.addEventListener('controllerchange',function(){vectaSafeApplyAppUpdate()});
   window.addEventListener('load',function(){
     Promise.resolve(window.__vectaCacheResetPromise).finally(function(){
-      navigator.serviceWorker.register('/service-worker.js?v=20260912-wrapper-cascade-disabled-v352',{updateViaCache:'none'}).then(function(reg){
+      navigator.serviceWorker.register('/service-worker.js?v=20260912-startup-quiescence-v353',{updateViaCache:'none'}).then(function(reg){
         if(navigator.onLine)Promise.resolve(reg.update()).catch(function(e){console.warn('Service worker update skipped',e)});
       }).catch(function(e){console.warn('Offline app install skipped',e)});
     });
@@ -10175,7 +10175,9 @@ function init(){safe(async function(){
     try{
       /* V344: do not spend the mobile startup budget on a duplicate short ping.
          The authoritative jobs/tasks download below is the real connection test. */
-      vectaCloudReachable=true;updateConnectivityUI('syncing');
+      /* Do not advertise Online until the authoritative jobs/tasks request has
+         completed. navigator.onLine only proves that the device has a network. */
+      vectaCloudReachable=null;updateConnectivityUI('syncing');
       /* V288: jobs + tasks + terminal states are fetched in parallel, reconciled in memory,
          and only then is the dashboard exposed. Stale local cards can no longer flash first. */
       await vectaPrimeAuthoritativeDashboard();
@@ -14721,13 +14723,7 @@ try{setTimeout(function(){if(window.app&&Array.isArray(app.jobs))migrateNoVehicl
   }
   window.v207RepairFleetHistory=repairCompletedHistory;
 
-  /* Re-run the repair after the cloud Fleet snapshot arrives. The old timed repair could run
-     before remote jobs/plans had finished loading, leaving genuine completed jobs still due. */
-  if(typeof pullFleetCloudState==='function'&&!pullFleetCloudState.__v207Wrapped){
-    var oldPull=pullFleetCloudState;
-    pullFleetCloudState=async function(){var r=await oldPull.apply(this,arguments);repairCompletedHistory();return r;};
-    pullFleetCloudState.__v207Wrapped=true;
-  }
+  /* V353: legacy history repair is explicit-only. It must not wrap cloud startup. */
 
   function dueSoon(date,days){
     var d=validIso(date);if(!d)return false;
@@ -14776,16 +14772,7 @@ try{setTimeout(function(){if(window.app&&Array.isArray(app.jobs))migrateNoVehicl
     jobRows.__v207Wrapped=true;
   }
 
-  function onFleetOpen(){return repairCompletedHistory();}
-
-  if(typeof fleetBind==='function'&&!fleetBind.__v207Wrapped){
-    var oldFleetBind=fleetBind;
-    fleetBind=function(){var r=oldFleetBind.apply(this,arguments);setTimeout(onFleetOpen,0);return r;};
-    fleetBind.__v207Wrapped=true;
-  }
-
-  setTimeout(repairCompletedHistory,1200);
-  setTimeout(repairCompletedHistory,5000);
+  /* V353: no full-history scans or render work on startup/Fleet navigation. */
   try{var foot=document.querySelector('.sideFoot small');if(foot)foot.textContent='v207 Workshop Pro · Fleet MOT/service completion sync';}catch(e){}
 })();
 </script>
@@ -14964,17 +14951,7 @@ try{setTimeout(function(){if(window.app&&Array.isArray(app.jobs))migrateNoVehicl
   }
   window.v212RepairSafetyServiceAnchors=repair;
 
-  if(typeof pullFleetCloudState==='function'&&!pullFleetCloudState.__v212SafetyWrapped){
-    var oldPull=pullFleetCloudState;
-    pullFleetCloudState=async function(){var r=await oldPull.apply(this,arguments);repair();return r;};
-    pullFleetCloudState.__v212SafetyWrapped=true;
-  }
-  if(typeof fleetBind==='function'&&!fleetBind.__v212SafetyWrapped){
-    var oldBind=fleetBind;
-    fleetBind=function(){var r=oldBind.apply(this,arguments);setTimeout(function(){var n=repair();if(n&&typeof render==='function'&&view==='fleet')render();},0);return r;};
-    fleetBind.__v212SafetyWrapped=true;
-  }
-  setTimeout(repair,1200);setTimeout(repair,5000);
+  /* V353: safety repair remains callable after a relevant save, never during startup. */
   try{var foot=document.querySelector('.sideFoot small');if(foot)foot.textContent='v212 Workshop Pro · Safety checks anchored to last service';}catch(e){}
 })();
 
@@ -15052,18 +15029,7 @@ try{setTimeout(function(){if(window.app&&Array.isArray(app.jobs))migrateNoVehicl
   }
   window.v213RepairVehicleTaxDue=repairTaxDue;
 
-  /* Run after cloud Fleet state and whenever Fleet Manager is opened. */
-  if(typeof pullFleetCloudState==='function'&&!pullFleetCloudState.__v213TaxWrapped){
-    var oldPull=pullFleetCloudState;
-    pullFleetCloudState=async function(){var r=await oldPull.apply(this,arguments);repairTaxDue();return r;};
-    pullFleetCloudState.__v213TaxWrapped=true;
-  }
-  if(typeof fleetBind==='function'&&!fleetBind.__v213TaxWrapped){
-    var oldBind=fleetBind;
-    fleetBind=function(){var r=oldBind.apply(this,arguments);setTimeout(function(){var n=repairTaxDue();if(n&&typeof render==='function'&&view==='fleet')render();},0);return r;};
-    fleetBind.__v213TaxWrapped=true;
-  }
-  setTimeout(repairTaxDue,1200);setTimeout(repairTaxDue,5000);
+  /* V353: tax repair remains explicit-only; no startup timers or navigation wrappers. */
   try{var foot=document.querySelector('.sideFoot small');if(foot)foot.textContent='v227 Workshop Pro · Vehicle Tax workflow fixed';}catch(e){}
 })();
 </script>
@@ -15360,9 +15326,10 @@ async function v277RepairMainSecCompletion(){
 window.v277RepairMainSecCompletion=v277RepairMainSecCompletion;
 
 async function v277Run(){await v277RepairNmukTypes();await v277RepairMainSecCompletion();try{if(typeof render==='function')render();}catch(e){}}
-setTimeout(v277Run,1600);
+window.v277RunHistoricalRepairs=v277Run;
+/* V353: historical data migrations are manual-only and never run while the UI starts. */
 try{var foot=document.querySelector('.sideFoot small');if(foot)foot.textContent='v286 Workshop Pro · historical recovery + permanent deletion protection';}catch(e){}
-setTimeout(function(){try{if(typeof vectaRepairCompletionDatesFromLinkedEvidence==='function')vectaRepairCompletionDatesFromLinkedEvidence();}catch(e){console.warn('Linked completion-date audit skipped',e)}},2400);
+/* V353: linked completion-date audit is available from Financial integrity tools only. */
 })();
 </script>
 

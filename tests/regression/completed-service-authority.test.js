@@ -173,13 +173,13 @@ test('embedded service history repairs EYC before live jobs finish loading', () 
   assert.equal(context.fleetPlans[0].currentDueDate,'2026-09-11');
 });
 
-test('phone shell versions force the wrapper-cascade shutdown', () => {
+test('phone shell versions force startup quiescence', () => {
   const html = fs.readFileSync(new URL('../../index.html', import.meta.url), 'utf8');
   const worker = fs.readFileSync(new URL('../../service-worker.js', import.meta.url), 'utf8');
-  assert.match(html, /VECTA_APP_VERSION='v352-wrapper-cascade-disabled'/);
-  assert.match(html, /service-worker\.js\?v=20260912-wrapper-cascade-disabled-v352/);
-  assert.match(worker, /APP_VERSION='v352-wrapper-cascade-disabled'/);
-  assert.match(worker, /CACHE='vecta-workshop-pro-shell-v37-wrapper-cascade-disabled'/);
+  assert.match(html, /VECTA_APP_VERSION='v353-startup-quiescence'/);
+  assert.match(html, /service-worker\.js\?v=20260912-startup-quiescence-v353/);
+  assert.match(worker, /APP_VERSION='v353-startup-quiescence'/);
+  assert.match(worker, /CACHE='vecta-workshop-pro-shell-v38-startup-quiescence'/);
 });
 
 test('MOT control observer cannot lock the document', () => {
@@ -208,4 +208,19 @@ test('legacy repairs cannot wrap cloud loading or Fleet navigation', () => {
   assert.doesNotMatch(html, /applyFleetCloudSnapshot\.__v278MainSec/);
   assert.doesNotMatch(html, /applyFleetCloudSnapshot\.__v310Wrapped/);
   assert.doesNotMatch(html, /pullRemote\.__v332CompletedService/);
+  assert.doesNotMatch(html, /pullFleetCloudState\.__v207Wrapped/);
+  assert.doesNotMatch(html, /fleetBind\.__v207Wrapped/);
+  assert.doesNotMatch(html, /pullFleetCloudState\.__v212SafetyWrapped/);
+  assert.doesNotMatch(html, /fleetBind\.__v212SafetyWrapped/);
+  assert.doesNotMatch(html, /pullFleetCloudState\.__v213TaxWrapped/);
+  assert.doesNotMatch(html, /fleetBind\.__v213TaxWrapped/);
+  assert.doesNotMatch(html, /setTimeout\(repairCompletedHistory,/);
+  assert.doesNotMatch(html, /setTimeout\(repairTaxDue,/);
+  assert.doesNotMatch(html, /setTimeout\(v277Run,/);
+});
+
+test('Online status waits for the authoritative dashboard download', () => {
+  const html = fs.readFileSync(new URL('../../index.html', import.meta.url), 'utf8');
+  assert.match(html, /vectaCloudReachable=null;updateConnectivityUI\('syncing'\);[\s\S]{0,500}await vectaPrimeAuthoritativeDashboard\(\)/);
+  assert.doesNotMatch(html, /vectaCloudReachable=true;updateConnectivityUI\('syncing'\);[\s\S]{0,500}await vectaPrimeAuthoritativeDashboard\(\)/);
 });
