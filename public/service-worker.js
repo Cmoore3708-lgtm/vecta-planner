@@ -1,5 +1,5 @@
-const CACHE='vecta-workshop-pro-shell-v38-startup-quiescence';
-const APP_VERSION='v353-startup-quiescence';
+const CACHE='vecta-workshop-pro-shell-v39-single-refresh';
+const APP_VERSION='v354-single-refresh';
 const DATA_CACHE='vecta-workshop-pro-data-last-known-v1';
 const HEALTH_CACHE='vecta-workshop-pro-cloud-health-v1';
 const CORE=[

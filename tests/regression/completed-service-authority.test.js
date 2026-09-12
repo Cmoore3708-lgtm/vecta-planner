@@ -173,13 +173,13 @@ test('embedded service history repairs EYC before live jobs finish loading', () 
   assert.equal(context.fleetPlans[0].currentDueDate,'2026-09-11');
 });
 
-test('phone shell versions force startup quiescence', () => {
+test('phone shell versions force the single-refresh startup', () => {
   const html = fs.readFileSync(new URL('../../index.html', import.meta.url), 'utf8');
   const worker = fs.readFileSync(new URL('../../service-worker.js', import.meta.url), 'utf8');
-  assert.match(html, /VECTA_APP_VERSION='v353-startup-quiescence'/);
-  assert.match(html, /service-worker\.js\?v=20260912-startup-quiescence-v353/);
-  assert.match(worker, /APP_VERSION='v353-startup-quiescence'/);
-  assert.match(worker, /CACHE='vecta-workshop-pro-shell-v38-startup-quiescence'/);
+  assert.match(html, /VECTA_APP_VERSION='v354-single-refresh'/);
+  assert.match(html, /service-worker\.js\?v=20260912-single-refresh-v354/);
+  assert.match(worker, /APP_VERSION='v354-single-refresh'/);
+  assert.match(worker, /CACHE='vecta-workshop-pro-shell-v39-single-refresh'/);
 });
 
 test('MOT control observer cannot lock the document', () => {
@@ -217,6 +217,18 @@ test('legacy repairs cannot wrap cloud loading or Fleet navigation', () => {
   assert.doesNotMatch(html, /setTimeout\(repairCompletedHistory,/);
   assert.doesNotMatch(html, /setTimeout\(repairTaxDue,/);
   assert.doesNotMatch(html, /setTimeout\(v277Run,/);
+  assert.doesNotMatch(html, /pullFleetCloudState\.__serviceAuthorityWrapped/);
+  assert.doesNotMatch(html, /pullFleetCloudState\.__allEvidenceServiceWrapped/);
+  assert.doesNotMatch(html, /setTimeout\(applyVehicleAllocationSpreadsheetCorrections,/);
+  assert.doesNotMatch(html, /setTimeout\(async function\(\)\{ensureThreeMechanics/);
+  assert.doesNotMatch(html, /render\.__v264MotLocked/);
+});
+
+test('reconnect performs one guarded foreground dashboard refresh', () => {
+  const html = fs.readFileSync(new URL('../../index.html', import.meta.url), 'utf8');
+  assert.equal((html.match(/addEventListener\('online'/g) || []).length, 1);
+  assert.match(html, /addEventListener\('online',[\s\S]{0,300}refreshPlannerCoreFromCloudAndRender\(\)/);
+  assert.doesNotMatch(html, /await vectaPrimeJobsFromCloud\(\);await vectaLoadTerminalJobStatesFromCloud\(\);vectaApplyTerminalJobStates\(\);await flushPendingSync\(\);await vectaPrimeJobsFromCloud\(\)/);
 });
 
 test('Online status waits for the authoritative dashboard download', () => {
