@@ -1,5 +1,5 @@
-const CACHE='vecta-workshop-pro-shell-v26-mobile-startup-fail-open';
-const APP_VERSION='v341-mobile-startup-fail-open';
+const CACHE='vecta-workshop-pro-shell-v27-mobile-immediate-startup';
+const APP_VERSION='v342-mobile-immediate-startup';
 const DATA_CACHE='vecta-workshop-pro-data-last-known-v1';
 const HEALTH_CACHE='vecta-workshop-pro-cloud-health-v1';
 const CORE=[
