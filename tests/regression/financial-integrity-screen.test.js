@@ -61,3 +61,9 @@ test('downloaded cloud jobs render without waiting for an IndexedDB backup', () 
   assert.doesNotMatch(html, /await vectaCreateDailyBackup\(true,'cloud-synchronised'\)/);
   assert.match(html, /vectaCreateDailyBackup\(true,'cloud-synchronised'\)\.catch/);
 });
+
+test('mobile startup does not abandon cloud jobs behind a short duplicate ping', () => {
+  assert.doesNotMatch(html, /var ping=await vectaWithTimeout\(remoteClient\.from\('jobs'\)/);
+  assert.match(html, /vectaFetchAllRemoteRows\('jobs',25000\)/);
+  assert.match(html, /vectaFetchAllRemoteRows\('tasks',25000\)/);
+});
