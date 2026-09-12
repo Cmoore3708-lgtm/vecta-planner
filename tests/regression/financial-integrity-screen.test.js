@@ -46,11 +46,13 @@ test("Today's tile uses exactly the same jobs as its drill-down", () => {
   );
 });
 
-test('mobile startup cannot wait forever for IndexedDB before installing its watchdog', () => {
+test('mobile startup renders before waiting for IndexedDB recovery', () => {
   const initStart = html.indexOf('function init(){safe(async function(){');
   const watchdog = html.indexOf('var vectaStartupWatchdog=setTimeout', initStart);
-  const backupRestore = html.indexOf('await vectaRestoreLatestBackupIfNeeded()', initStart);
-  assert.ok(initStart >= 0 && watchdog > initStart && backupRestore > watchdog);
+  const initialRender = html.indexOf('vectaSetStartupLoading(false);\n  render();', initStart);
+  const backupRestore = html.indexOf('vectaWithTimeout(vectaRestoreLatestBackupIfNeeded()', initStart);
+  assert.ok(initStart >= 0 && watchdog > initStart && initialRender > watchdog && backupRestore > initialRender);
+  assert.doesNotMatch(html, /<body class="vectaStartupLoading">/);
   assert.match(html, /Backup storage took too long to open/);
   assert.match(html, /req\.onblocked=function\(\)\{fail\(new Error\('Backup storage is blocked by an older app window\.'\)\)\}/);
 });
