@@ -12,7 +12,9 @@ export default async function handler(req, res) {
   }
 
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 8000);
+  /* Supabase can take longer than eight seconds to wake/respond. Treat that as
+     slow, not offline, so mobile clients do not abandon the authoritative data. */
+  const timeout = setTimeout(() => controller.abort(), 25000);
 
   try {
     const { url, key } = config();
