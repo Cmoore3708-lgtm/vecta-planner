@@ -22,8 +22,8 @@
       if(reloaded)return;
       reloaded=true;
       try{
-        if(sessionStorage.getItem('vecta-v341-sw-reload')==='1')return;
-        sessionStorage.setItem('vecta-v341-sw-reload','1');
+        if(sessionStorage.getItem('vecta-v342-sw-reload')==='1')return;
+        sessionStorage.setItem('vecta-v342-sw-reload','1');
       }catch(_e){}
       location.reload();
     });
@@ -2774,7 +2774,7 @@ body.servicePreviewing .servicePreviewControls{position:relative!important;z-ind
 </style><style id="v302-nmuk-address">
 .fleetNmukInvoiceHint{margin:8px 0 0;padding:9px 11px;border-radius:8px;background:#f8fafc;border:1px solid #e2e8f0;font-size:12px;color:#475569}
 </style></head>
-<body class="vectaStartupLoading">
+<body>
 <!-- VECTA v200: unfinished jobs stay allocated; no carried-over column -->
 <div id="vectaOfflineBanner" class="vectaOfflineBanner">OFFLINE WORKSHOP MODE — live cloud data is unavailable. Changes made here will be saved on this device and queued for synchronisation.</div>
 <div id="vectaConnectivity" class="vectaConnectivity syncing"><span class="dot"></span><span id="vectaConnectivityText">Checking cloud connection…</span></div>
@@ -9440,7 +9440,7 @@ async function flushPendingSync(){
   if(!remaining.length)return true;
   return false
 }
-var VECTA_APP_VERSION='v341-mobile-startup-fail-open';
+var VECTA_APP_VERSION='v342-mobile-immediate-startup';
 var vectaAppUpdateWaiting=false;
 function vectaSafeApplyAppUpdate(){
   vectaAppUpdateWaiting=true;
@@ -9462,7 +9462,7 @@ function registerVectaServiceWorker(){
   navigator.serviceWorker.addEventListener('controllerchange',function(){vectaSafeApplyAppUpdate()});
   window.addEventListener('load',function(){
     Promise.resolve(window.__vectaCacheResetPromise).finally(function(){
-      navigator.serviceWorker.register('/service-worker.js?v=20260911-mobile-startup-fail-open-v341',{updateViaCache:'none'}).then(function(reg){
+      navigator.serviceWorker.register('/service-worker.js?v=20260912-mobile-immediate-startup-v342',{updateViaCache:'none'}).then(function(reg){
         if(navigator.onLine)Promise.resolve(reg.update()).catch(function(e){console.warn('Service worker update skipped',e)});
       }).catch(function(e){console.warn('Offline app install skipped',e)});
     });
@@ -9828,7 +9828,6 @@ function vectaReconcileTasksFromCloud(remoteRows){
 async function vectaPrimeAuthoritativeDashboard(){
   if(!remoteClient)return false;
   var started=performance.now();
-  vectaSetStartupLoading(true,'Loading workshop…','Checking live jobs and tasks before showing the dashboard.');
   var jobsP=vectaFetchAllRemoteRows('jobs',9000);
   var tasksP=vectaFetchAllRemoteRows('tasks',9000);
   var terminalP=vectaLoadTerminalJobStatesFromCloud();
@@ -10158,19 +10157,20 @@ function startCloudSync(){
   window.addEventListener('online',function(){cloudLastRefreshAt=0;refreshCloudAndRender()});
 }
 function init(){safe(async function(){
-  /* V341: install the fail-open timer before touching local or IndexedDB storage.
-     iOS can leave an IndexedDB open request pending indefinitely; the old watchdog
-     was created only after that await and therefore could never release the screen. */
+  /* V342: the diary must be usable immediately. Cloud and IndexedDB recovery run
+     after the last-known local workshop is rendered and can never cover the UI. */
   var vectaStartupWatchdog=setTimeout(function(){
-    try{if(document.body.classList.contains('vectaStartupLoading')){console.warn('Startup exceeded 12 seconds; showing the last available workshop while sync continues.');vectaSetStartupLoading(false);render();updateConnectivityUI();}}catch(e){}
-  },12000);
+    try{vectaSetStartupLoading(false);render();updateConnectivityUI();}catch(e){}
+  },2500);
   loadLocal();
-  /* Restore the newest usable IndexedDB snapshot before any cloud request. This means
-     a device opened with no internet starts with its last known workshop instead of an empty diary. */
-  await vectaRestoreLatestBackupIfNeeded();
   bindTop();
-  vectaSetStartupLoading(true,'Loading workshop…','Checking live jobs and tasks before showing the dashboard.');
+  vectaSetStartupLoading(false);
+  render();
   updateConnectivityUI('checking');
+  /* IndexedDB recovery is useful when localStorage is empty, but iOS can leave the
+     request pending. Give it a short opportunity without ever blocking the screen
+     or the subsequent live cloud connection. */
+  try{await vectaWithTimeout(vectaRestoreLatestBackupIfNeeded(),1500,'Local backup recovery')}catch(e){console.warn('Local backup recovery continuing in background',e)}
   /* Backups must never block startup. */
   vectaCreateDailyBackup(false,'startup-local').catch(function(e){console.warn('Startup backup skipped',e)});
   setInterval(function(){checkForNewWorkshopDay();if(view==='planner')updateCurrentTimeLine()},30000);
