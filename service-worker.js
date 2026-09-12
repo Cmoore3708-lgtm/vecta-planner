@@ -1,5 +1,5 @@
-const CACHE='vecta-workshop-pro-shell-v32-mobile-interaction-release';
-const APP_VERSION='v347-mobile-interaction-release';
+const CACHE='vecta-workshop-pro-shell-v33-safari-unfreeze';
+const APP_VERSION='v348-safari-unfreeze';
 const DATA_CACHE='vecta-workshop-pro-data-last-known-v1';
 const HEALTH_CACHE='vecta-workshop-pro-cloud-health-v1';
 const CORE=[

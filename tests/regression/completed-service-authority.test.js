@@ -173,11 +173,17 @@ test('embedded service history repairs EYC before live jobs finish loading', () 
   assert.equal(context.fleetPlans[0].currentDueDate,'2026-09-11');
 });
 
-test('phone shell versions force the current mobile interaction release', () => {
+test('phone shell versions force the current Safari unfreeze repair', () => {
   const html = fs.readFileSync(new URL('../../index.html', import.meta.url), 'utf8');
   const worker = fs.readFileSync(new URL('../../service-worker.js', import.meta.url), 'utf8');
-  assert.match(html, /VECTA_APP_VERSION='v347-mobile-interaction-release'/);
-  assert.match(html, /service-worker\.js\?v=20260912-mobile-interaction-release-v347/);
-  assert.match(worker, /APP_VERSION='v347-mobile-interaction-release'/);
-  assert.match(worker, /CACHE='vecta-workshop-pro-shell-v32-mobile-interaction-release'/);
+  assert.match(html, /VECTA_APP_VERSION='v348-safari-unfreeze'/);
+  assert.match(html, /service-worker\.js\?v=20260912-safari-unfreeze-v348/);
+  assert.match(worker, /APP_VERSION='v348-safari-unfreeze'/);
+  assert.match(worker, /CACHE='vecta-workshop-pro-shell-v33-safari-unfreeze'/);
+});
+
+test('MOT control observer disconnects before mutating the document', () => {
+  const html = fs.readFileSync(new URL('../../index.html', import.meta.url), 'utf8');
+  assert.doesNotMatch(html, /new MutationObserver\(function\(\)\{v264LockMotControls\(document\);\}\)/);
+  assert.match(html, /v264LockObserver\.disconnect\(\);\s*try\{v264LockMotControls\(document\)\}/);
 });
