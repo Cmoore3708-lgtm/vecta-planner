@@ -56,3 +56,8 @@ test('mobile startup renders before waiting for IndexedDB recovery', () => {
   assert.match(html, /Backup storage took too long to open/);
   assert.match(html, /req\.onblocked=function\(\)\{fail\(new Error\('Backup storage is blocked by an older app window\.'\)\)\}/);
 });
+
+test('downloaded cloud jobs render without waiting for an IndexedDB backup', () => {
+  assert.doesNotMatch(html, /await vectaCreateDailyBackup\(true,'cloud-synchronised'\)/);
+  assert.match(html, /vectaCreateDailyBackup\(true,'cloud-synchronised'\)\.catch/);
+});
