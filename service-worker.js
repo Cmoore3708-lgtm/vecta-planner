@@ -1,5 +1,5 @@
-const CACHE='vecta-workshop-pro-shell-v35-startup-scan-disabled';
-const APP_VERSION='v350-startup-scan-disabled';
+const CACHE='vecta-workshop-pro-shell-v37-wrapper-cascade-disabled';
+const APP_VERSION='v352-wrapper-cascade-disabled';
 const DATA_CACHE='vecta-workshop-pro-data-last-known-v1';
 const HEALTH_CACHE='vecta-workshop-pro-cloud-health-v1';
 const CORE=[

@@ -22,8 +22,8 @@
       if(reloaded)return;
       reloaded=true;
       try{
-        if(sessionStorage.getItem('vecta-v350-startup-scan-disabled')==='1')return;
-        sessionStorage.setItem('vecta-v350-startup-scan-disabled','1');
+        if(sessionStorage.getItem('vecta-v352-wrapper-cascade-disabled')==='1')return;
+        sessionStorage.setItem('vecta-v352-wrapper-cascade-disabled','1');
       }catch(_e){}
       location.reload();
     });
@@ -8829,21 +8829,8 @@ function repair(){
 }
 window.v332RepairCompletedServices=repair;
 /* pullRemote returns only after jobs, Fleet data and saved paperwork have all loaded. */
-try{
-  if(typeof pullRemote==='function'&&!pullRemote.__v332CompletedService){
-    var oldPull=pullRemote;
-    pullRemote=async function(){var result=await oldPull.apply(this,arguments),audit=repair();if(audit.changed&&typeof render==='function')render();return result;};
-    pullRemote.__v332CompletedService=true;
-  }
-}catch(e){console.warn('V332 completed-service cloud wrapper skipped',e);}
-try{
-  if(typeof fleetBind==='function'&&!fleetBind.__v332CompletedService){
-    var oldBind=fleetBind;
-    fleetBind=function(){var audit=repair(),result=oldBind.apply(this,arguments);if(audit.changed)setTimeout(function(){try{if(typeof render==='function'&&view==='fleet')render();}catch(e){}},0);return result;};
-    fleetBind.__v332CompletedService=true;
-  }
-}catch(e){console.warn('V332 completed-service Fleet wrapper skipped',e);}
-setTimeout(function(){try{var audit=repair();if(audit.changed&&typeof render==='function')render();}catch(e){console.warn('V332 initial completed-service repair failed',e);}},7000);
+/* V352: V332 repair is manual-only and cannot wrap cloud or Fleet functions. */
+/* V351: no automatic full-history repair during interactive startup. */
 })();
 </script>
 
@@ -9440,7 +9427,7 @@ async function flushPendingSync(){
   if(!remaining.length)return true;
   return false
 }
-var VECTA_APP_VERSION='v350-startup-scan-disabled';
+var VECTA_APP_VERSION='v352-wrapper-cascade-disabled';
 var vectaAppUpdateWaiting=false;
 function vectaSafeApplyAppUpdate(){
   vectaAppUpdateWaiting=true;
@@ -9462,7 +9449,7 @@ function registerVectaServiceWorker(){
   navigator.serviceWorker.addEventListener('controllerchange',function(){vectaSafeApplyAppUpdate()});
   window.addEventListener('load',function(){
     Promise.resolve(window.__vectaCacheResetPromise).finally(function(){
-      navigator.serviceWorker.register('/service-worker.js?v=20260912-startup-scan-disabled-v350',{updateViaCache:'none'}).then(function(reg){
+      navigator.serviceWorker.register('/service-worker.js?v=20260912-wrapper-cascade-disabled-v352',{updateViaCache:'none'}).then(function(reg){
         if(navigator.onLine)Promise.resolve(reg.update()).catch(function(e){console.warn('Service worker update skipped',e)});
       }).catch(function(e){console.warn('Offline app install skipped',e)});
     });
@@ -11256,8 +11243,7 @@ function reconcileServicePlansFromAllEvidence(){
   return changed;
 }
 
-setTimeout(function(){try{reconcileFleetMaintenanceFromCompletedJobs();render();}catch(e){console.warn('Fleet maintenance reconciliation skipped',e)}},1800);
-setTimeout(function(){try{reconcileFleetMaintenanceFromCompletedJobs();render();}catch(e){console.warn('Fleet maintenance reconciliation retry skipped',e)}},6500);
+/* V351: Fleet reconciliation runs through explicit cloud/Fleet workflows, not startup timers. */
 if(typeof pullFleetCloudState==='function'&&!pullFleetCloudState.__serviceAuthorityWrapped){
   var oldPullFleetCloudStateServiceAuthority=pullFleetCloudState;
   pullFleetCloudState=async function(){
@@ -11268,8 +11254,7 @@ if(typeof pullFleetCloudState==='function'&&!pullFleetCloudState.__serviceAuthor
   };
   pullFleetCloudState.__serviceAuthorityWrapped=true;
 }
-setTimeout(function(){try{var n=reconcileLatestCompletedServiceAuthority();if(n){saveFleet();render();}}catch(e){console.warn('Latest completed service authority repair skipped',e)}},2600);
-setTimeout(function(){try{var n=reconcileServicePlansFromAllEvidence();if(n)render();}catch(e){console.warn('All-evidence service repair skipped',e)}},3200);
+/* V351: service authority repairs must not rebuild the mobile dashboard during startup. */
 if(typeof pullFleetCloudState==='function'&&!pullFleetCloudState.__allEvidenceServiceWrapped){
   var oldPullFleetCloudStateAllEvidence=pullFleetCloudState;
   pullFleetCloudState=async function(){
@@ -15022,8 +15007,7 @@ try{setTimeout(function(){if(window.app&&Array.isArray(app.jobs))migrateNoVehicl
     }catch(e){console.warn('Final completed-service repair skipped',e);return 0;}
   }
   window.v271RepairCompletedServicePlans=repairCompletedServicePlansFromVisibleHistory;
-  setTimeout(function(){var n=repairCompletedServicePlansFromVisibleHistory();if(n&&typeof render==='function'&&view==='fleet')render();},1400);
-  setTimeout(function(){var n=repairCompletedServicePlansFromVisibleHistory();if(n&&typeof render==='function'&&view==='fleet')render();},5200);
+  /* V351: repair is invoked after a relevant Fleet action, never by startup timers. */
 </script>
 
 <script id="v213-tax-due-repair">
@@ -15651,22 +15635,8 @@ window.v309RepairFleetCompletionDue=repair;
 
 /* Repair immediately after cloud Fleet state is applied, so a stale snapshot cannot
    put completed service/MOT work back into Due next 30 days. */
-try{
-  if(typeof applyFleetCloudSnapshot==='function'&&!applyFleetCloudSnapshot.__v309Wrapped){
-    var oldApply=applyFleetCloudSnapshot;
-    applyFleetCloudSnapshot=function(value){var r=oldApply.apply(this,arguments);setTimeout(function(){var n=repair();if((n||view==='fleet')&&typeof render==='function')render();},0);return r;};
-    applyFleetCloudSnapshot.__v309Wrapped=true;
-  }
-}catch(e){console.warn('V309 Fleet snapshot guard skipped',e);}
-try{
-  if(typeof fleetBind==='function'&&!fleetBind.__v309Wrapped){
-    var oldBind=fleetBind;
-    fleetBind=function(){var r=oldBind.apply(this,arguments);setTimeout(function(){var n=repair();if(n&&typeof render==='function'&&view==='fleet')render();},0);return r;};
-    fleetBind.__v309Wrapped=true;
-  }
-}catch(e){console.warn('V309 Fleet open repair skipped',e);}
-setTimeout(function(){try{var n=repair();if(n&&typeof render==='function')render();}catch(e){console.warn('V309 initial Fleet repair skipped',e);}},900);
-setTimeout(function(){try{var n=repair();if(n&&typeof render==='function'&&view==='fleet')render();}catch(e){console.warn('V309 delayed Fleet repair skipped',e);}},4200);
+/* V352: legacy V309 repair wrappers are manual-only; never chain them into load/navigation. */
+/* V351: disable legacy automatic Fleet repair/render timers. */
 try{var foot=document.querySelector('.sideFoot small');if(foot)foot.textContent='v309 Workshop Pro · Fleet completion due repair';}catch(e){}
 })();
 </script>
@@ -16555,15 +16525,9 @@ window.v278RepairAllMainSec=v278RepairAllMainSec;
 
 /* A cloud Fleet snapshot can replace the local array after startup. Re-apply the
    correction immediately after every snapshot so MAIN SEC cannot disappear again. */
-try{
-  if(typeof applyFleetCloudSnapshot==='function'&&!applyFleetCloudSnapshot.__v278MainSec){
-    var v278OriginalApplyFleetCloudSnapshot=applyFleetCloudSnapshot;
-    applyFleetCloudSnapshot=function(value){var result=v278OriginalApplyFleetCloudSnapshot(value);setTimeout(function(){v278RepairAllMainSec();},0);return result;};
-    applyFleetCloudSnapshot.__v278MainSec=true;
-  }
-}catch(e){console.warn('V278 Fleet snapshot guard skipped',e);}
+/* V352: V278 migration remains callable but is not wrapped into every cloud snapshot. */
 function v278SafeRun(){try{var r=v278RepairAllMainSec();if(r&&typeof r.catch==='function')r.catch(function(e){console.warn('V278 MAIN SEC deferred repair failed',e);});}catch(e){console.warn('V278 MAIN SEC deferred repair skipped',e);}}
-setTimeout(v278SafeRun,1800);
+/* V352: no automatic V278 migration during interactive startup. */
 try{var foot=document.querySelector('.sideFoot small');if(foot)foot.textContent='v278 Workshop Pro · MAIN SEC Internal master correction';}catch(e){}
 })();
 </script>
@@ -16700,14 +16664,8 @@ async function v310RepairAll(refreshMots){
   return {canonical:a.changed,duplicates:a.duplicates,service:service,falseMotCompletions:pruned,motRefreshed:mot};
 }
 window.v310RepairFleetIntegrity=v310RepairAll;
-try{
-  if(typeof applyFleetCloudSnapshot==='function'&&!applyFleetCloudSnapshot.__v310Wrapped){var v310OldApply=applyFleetCloudSnapshot;applyFleetCloudSnapshot=function(value){var r=v310OldApply.apply(this,arguments);setTimeout(function(){v310RepairAll(false);},0);return r;};applyFleetCloudSnapshot.__v310Wrapped=true;}
-}catch(e){console.warn('V310 Fleet snapshot wrapper skipped',e);}
-try{
-  if(typeof fleetBind==='function'&&!fleetBind.__v310Wrapped){var v310OldBind=fleetBind;fleetBind=function(){var r=v310OldBind.apply(this,arguments);setTimeout(function(){v310RepairAll(true);},0);return r;};fleetBind.__v310Wrapped=true;}
-}catch(e){console.warn('V310 Fleet open wrapper skipped',e);}
-setTimeout(function(){v310RepairAll(false).catch(function(e){console.warn('V310 initial integrity repair failed',e);});},1200);
-setTimeout(function(){if(typeof view!=='undefined'&&view==='fleet')v310RepairAll(true).catch(function(e){console.warn('V310 delayed MOT refresh failed',e);});},4500);
+/* V352: integrity repair remains available through window.v310RepairFleetIntegrity,
+   but is never chained into page load, cloud snapshots, or Fleet navigation. */
 try{var foot=document.querySelector('.sideFoot small');if(foot)foot.textContent='v310 Workshop Pro · Fleet integrity hardening';}catch(e){}
 })();
 </script>
@@ -16798,8 +16756,7 @@ try{
     fleetBind.__v311MotBridge=true;
   }
 }catch(e){console.warn('V311 Fleet bind MOT bridge skipped',e);}
-setTimeout(function(){install();try{if(typeof render==='function'&&typeof view!=='undefined'&&view==='fleet')render();}catch(e){}},1400);
-setTimeout(function(){install();try{if(typeof render==='function'&&typeof view!=='undefined'&&view==='fleet')render();}catch(e){}},5200);
+/* V351: installation is handled by cloud/Fleet hooks without startup re-renders. */
 try{var foot=document.querySelector('.sideFoot small');if(foot)foot.textContent='v317 Workshop Pro · Government MOT override';}catch(e){}
 })();
 </script>
@@ -16812,18 +16769,8 @@ function repairAndRender(){
   return audit;
 }
 /* Install after the main application has declared these functions. */
-if(typeof pullRemote==='function'&&!pullRemote.__v332CompletedService){
-  var oldPull=pullRemote;
-  pullRemote=async function(){var result=await oldPull.apply(this,arguments);repairAndRender();return result;};
-  pullRemote.__v332CompletedService=true;
-}
-if(typeof fleetBind==='function'&&!fleetBind.__v332CompletedService){
-  var oldBind=fleetBind;
-  fleetBind=function(){repairAndRender();return oldBind.apply(this,arguments);};
-  fleetBind.__v332CompletedService=true;
-}
-setTimeout(repairAndRender,0);
-setTimeout(repairAndRender,8000);
+/* V352: completed-service repair remains callable, but is not wrapped into
+   cloud loading or Fleet navigation and is not scheduled during startup. */
 try{var foot=document.querySelector('.sideFoot small');if(foot)foot.textContent='v332 Workshop Pro · completed-service authority';}catch(e){}
 })();
 </script>
