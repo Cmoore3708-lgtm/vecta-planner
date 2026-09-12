@@ -22,8 +22,8 @@
       if(reloaded)return;
       reloaded=true;
       try{
-        if(sessionStorage.getItem('vecta-v345-sw-reload')==='1')return;
-        sessionStorage.setItem('vecta-v345-sw-reload','1');
+        if(sessionStorage.getItem('vecta-v349-observer-removed')==='1')return;
+        sessionStorage.setItem('vecta-v349-observer-removed','1');
       }catch(_e){}
       location.reload();
     });
@@ -9440,7 +9440,7 @@ async function flushPendingSync(){
   if(!remaining.length)return true;
   return false
 }
-var VECTA_APP_VERSION='v345-mobile-interaction-recovery';
+var VECTA_APP_VERSION='v349-observer-removed';
 var vectaAppUpdateWaiting=false;
 function vectaSafeApplyAppUpdate(){
   vectaAppUpdateWaiting=true;
@@ -9462,7 +9462,7 @@ function registerVectaServiceWorker(){
   navigator.serviceWorker.addEventListener('controllerchange',function(){vectaSafeApplyAppUpdate()});
   window.addEventListener('load',function(){
     Promise.resolve(window.__vectaCacheResetPromise).finally(function(){
-      navigator.serviceWorker.register('/service-worker.js?v=20260912-mobile-interaction-recovery-v345',{updateViaCache:'none'}).then(function(reg){
+      navigator.serviceWorker.register('/service-worker.js?v=20260912-observer-removed-v349',{updateViaCache:'none'}).then(function(reg){
         if(navigator.onLine)Promise.resolve(reg.update()).catch(function(e){console.warn('Service worker update skipped',e)});
       }).catch(function(e){console.warn('Offline app install skipped',e)});
     });
@@ -16465,7 +16465,8 @@ document.addEventListener('click',function(ev){
 try{
   if(typeof render==='function'&&!render.__v264MotLocked){var v264OldRender=render;render=function(){var r=v264OldRender.apply(this,arguments);setTimeout(function(){v264LockMotControls(document);},0);return r;};render.__v264MotLocked=true;}
 }catch(e){}
-new MutationObserver(function(){v264LockMotControls(document);}).observe(document.documentElement,{childList:true,subtree:true});
+/* V349: removed the document-wide mutation observer. The render wrapper above
+   and initial pass enforce MOT controls without a self-triggering Safari loop. */
 setTimeout(function(){v264LockMotControls(document);},0);
 try{var foot=document.querySelector('.sideFoot small');if(foot)foot.textContent='v264 Workshop Pro · Government MOT authority';}catch(e){}
 })();
