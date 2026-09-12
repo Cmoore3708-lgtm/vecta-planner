@@ -22,8 +22,8 @@
       if(reloaded)return;
       reloaded=true;
       try{
-        if(sessionStorage.getItem('vecta-v343-sw-reload')==='1')return;
-        sessionStorage.setItem('vecta-v343-sw-reload','1');
+        if(sessionStorage.getItem('vecta-v344-sw-reload')==='1')return;
+        sessionStorage.setItem('vecta-v344-sw-reload','1');
       }catch(_e){}
       location.reload();
     });
@@ -9440,7 +9440,7 @@ async function flushPendingSync(){
   if(!remaining.length)return true;
   return false
 }
-var VECTA_APP_VERSION='v343-mobile-cloud-render';
+var VECTA_APP_VERSION='v344-mobile-cloud-recovery';
 var vectaAppUpdateWaiting=false;
 function vectaSafeApplyAppUpdate(){
   vectaAppUpdateWaiting=true;
@@ -9462,7 +9462,7 @@ function registerVectaServiceWorker(){
   navigator.serviceWorker.addEventListener('controllerchange',function(){vectaSafeApplyAppUpdate()});
   window.addEventListener('load',function(){
     Promise.resolve(window.__vectaCacheResetPromise).finally(function(){
-      navigator.serviceWorker.register('/service-worker.js?v=20260912-mobile-cloud-render-v343',{updateViaCache:'none'}).then(function(reg){
+      navigator.serviceWorker.register('/service-worker.js?v=20260912-mobile-cloud-recovery-v344',{updateViaCache:'none'}).then(function(reg){
         if(navigator.onLine)Promise.resolve(reg.update()).catch(function(e){console.warn('Service worker update skipped',e)});
       }).catch(function(e){console.warn('Offline app install skipped',e)});
     });
@@ -9715,7 +9715,7 @@ async function migrateNk16CyoVehicleTaxJob(){
 async function vectaFetchAllRemoteRows(table,timeoutMs){
   var all=[],from=0,pageSize=1000;
   while(true){
-    var res=await vectaWithTimeout(remoteClient.from(table).select('*').range(from,from+pageSize-1),timeoutMs||12000,'Cloud '+table+' download');
+    var res=await vectaWithTimeout(remoteClient.from(table).select('*').range(from,from+pageSize-1),timeoutMs||25000,'Cloud '+table+' download');
     if(res.error)throw res.error;
     var rows=Array.isArray(res.data)?res.data:[];all=all.concat(rows);
     if(rows.length<pageSize)break;from+=pageSize;
@@ -9758,7 +9758,7 @@ function vectaReconcileJobsFromCloud(remoteRows){
   }catch(e){}
   return next;
 }
-async function vectaPrimeJobsFromCloud(){if(!remoteClient)return false;var started=performance.now(),rows=await vectaFetchAllRemoteRows('jobs',8000);vectaReconcileJobsFromCloud(rows);vectaApplyTerminalJobStates();vectaCloudReachable=true;vectaLastCloudSuccess=new Date().toISOString();try{window.vectaStartupJobsPullMs=Math.round(performance.now()-started);console.info('Authoritative jobs refresh completed in '+window.vectaStartupJobsPullMs+'ms')}catch(e){}updateConnectivityUI();return true}
+async function vectaPrimeJobsFromCloud(){if(!remoteClient)return false;var started=performance.now(),rows=await vectaFetchAllRemoteRows('jobs',25000);vectaReconcileJobsFromCloud(rows);vectaApplyTerminalJobStates();vectaCloudReachable=true;vectaLastCloudSuccess=new Date().toISOString();try{window.vectaStartupJobsPullMs=Math.round(performance.now()-started);console.info('Authoritative jobs refresh completed in '+window.vectaStartupJobsPullMs+'ms')}catch(e){}updateConnectivityUI();return true}
 async function vectaPrimeCompletionEvidenceFromCloud(){
   if(!remoteClient)return false;
   try{
@@ -9828,10 +9828,10 @@ function vectaReconcileTasksFromCloud(remoteRows){
 async function vectaPrimeAuthoritativeDashboard(){
   if(!remoteClient)return false;
   var started=performance.now();
-  var jobsP=vectaFetchAllRemoteRows('jobs',9000);
-  var tasksP=vectaFetchAllRemoteRows('tasks',9000);
+  var jobsP=vectaFetchAllRemoteRows('jobs',25000);
+  var tasksP=vectaFetchAllRemoteRows('tasks',25000);
   var terminalP=vectaLoadTerminalJobStatesFromCloud();
-  var overridesP=vectaWithTimeout(remoteClient.from('workshop_settings').select('id,value,updated_at').eq('id','task_state_overrides_v50').limit(1),9000,'Task state download');
+  var overridesP=vectaWithTimeout(remoteClient.from('workshop_settings').select('id,value,updated_at').eq('id','task_state_overrides_v50').limit(1),25000,'Task state download');
   var results=await Promise.allSettled([jobsP,tasksP,terminalP,overridesP]);
   if(results[0].status!=='fulfilled')throw results[0].reason||new Error('Live jobs could not be loaded.');
   if(results[1].status!=='fulfilled')throw results[1].reason||new Error('Live tasks could not be loaded.');
@@ -10184,7 +10184,8 @@ function init(){safe(async function(){
     if(!ok){vectaCloudReachable=false;updateConnectivityUI();clearTimeout(vectaStartupWatchdog);vectaSetStartupLoading(false);render();return}
     if(!connectSupabase()){vectaCloudReachable=false;updateConnectivityUI();clearTimeout(vectaStartupWatchdog);vectaSetStartupLoading(false);render();return}
     try{
-      var ping=await vectaWithTimeout(remoteClient.from('jobs').select('id').limit(1),7000,'Cloud connection check');if(ping.error)throw ping.error;
+      /* V344: do not spend the mobile startup budget on a duplicate short ping.
+         The authoritative jobs/tasks download below is the real connection test. */
       vectaCloudReachable=true;updateConnectivityUI('syncing');
       /* V288: jobs + tasks + terminal states are fetched in parallel, reconciled in memory,
          and only then is the dashboard exposed. Stale local cards can no longer flash first. */
