@@ -1,5 +1,5 @@
-const CACHE='vecta-workshop-pro-shell-v31-safe-paperwork-mobile-details';
-const APP_VERSION='v346-safe-paperwork-mobile-details';
+const CACHE='vecta-workshop-pro-shell-v30-mobile-interaction-recovery';
+const APP_VERSION='v345-mobile-interaction-recovery';
 const DATA_CACHE='vecta-workshop-pro-data-last-known-v1';
 const HEALTH_CACHE='vecta-workshop-pro-cloud-health-v1';
 const CORE=[
