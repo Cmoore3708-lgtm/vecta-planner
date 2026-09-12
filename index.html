@@ -22,8 +22,8 @@
       if(reloaded)return;
       reloaded=true;
       try{
-        if(sessionStorage.getItem('vecta-v344-sw-reload')==='1')return;
-        sessionStorage.setItem('vecta-v344-sw-reload','1');
+        if(sessionStorage.getItem('vecta-v345-sw-reload')==='1')return;
+        sessionStorage.setItem('vecta-v345-sw-reload','1');
       }catch(_e){}
       location.reload();
     });
@@ -9440,7 +9440,7 @@ async function flushPendingSync(){
   if(!remaining.length)return true;
   return false
 }
-var VECTA_APP_VERSION='v344-mobile-cloud-recovery';
+var VECTA_APP_VERSION='v345-mobile-interaction-recovery';
 var vectaAppUpdateWaiting=false;
 function vectaSafeApplyAppUpdate(){
   vectaAppUpdateWaiting=true;
@@ -9462,7 +9462,7 @@ function registerVectaServiceWorker(){
   navigator.serviceWorker.addEventListener('controllerchange',function(){vectaSafeApplyAppUpdate()});
   window.addEventListener('load',function(){
     Promise.resolve(window.__vectaCacheResetPromise).finally(function(){
-      navigator.serviceWorker.register('/service-worker.js?v=20260912-mobile-cloud-recovery-v344',{updateViaCache:'none'}).then(function(reg){
+      navigator.serviceWorker.register('/service-worker.js?v=20260912-mobile-interaction-recovery-v345',{updateViaCache:'none'}).then(function(reg){
         if(navigator.onLine)Promise.resolve(reg.update()).catch(function(e){console.warn('Service worker update skipped',e)});
       }).catch(function(e){console.warn('Offline app install skipped',e)});
     });
@@ -9809,6 +9809,8 @@ async function vectaRepairConfirmedNk72KtfCompletion(){
 function vectaSetStartupLoading(on,title,detail){
   try{
     document.body.classList.toggle('vectaStartupLoading',!!on);
+    var gate=document.getElementById('vectaStartupGate');
+    if(gate){gate.hidden=!on;gate.style.display=on?'flex':'none';gate.style.pointerEvents=on?'auto':'none';}
     var t=document.getElementById('vectaStartupTitle'),d=document.getElementById('vectaStartupDetail');
     if(t&&title)t.textContent=title;if(d&&detail)d.textContent=detail;
   }catch(e){}
@@ -10195,7 +10197,9 @@ function init(){safe(async function(){
       vectaCreateDailyBackup(true,'cloud-synchronised').catch(function(e){console.warn('Cloud-synchronised backup skipped',e)});
       importContractor2026Spreadsheet();ensureServiceTemplates();ensureRecurringWorkshopTasks();
       clearTimeout(vectaStartupWatchdog);vectaSetStartupLoading(false);render();updateConnectivityUI();
-      /* Everything below is background work. It must not hold the first correct dashboard hostage. */
+      startCloudSync();
+      /* V345: allow the iPhone's main thread to remain fully interactive. Heavy
+         repair/synchronisation is delayed instead of starting on the next tick. */
       setTimeout(async function(){
         try{
           await flushPendingSync();
@@ -10205,9 +10209,9 @@ function init(){safe(async function(){
           await restoreAug13JobsMovedByOldOverlapRule();await repairExistingPlannerOverlaps({persistRemote:true});
           render();
           await pullRemote({skipDashboardCore:true});
-          startCloudSync();syncContractor2026SpreadsheetRemote();updateConnectivityUI();
+          syncContractor2026SpreadsheetRemote();updateConnectivityUI();
         }catch(e){console.warn('Background workshop synchronisation incomplete',e);updateConnectivityUI()}
-      },0);
+      },120000);
     }catch(e){
       console.warn('Supabase startup unavailable; continuing in offline workshop mode.',e);vectaCloudReachable=false;updateConnectivityUI();vectaSetStartupLoading(false);render();
     }
