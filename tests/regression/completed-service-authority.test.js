@@ -173,13 +173,21 @@ test('embedded service history repairs EYC before live jobs finish loading', () 
   assert.equal(context.fleetPlans[0].currentDueDate,'2026-09-11');
 });
 
-test('phone shell versions force the single-refresh startup', () => {
+test('phone shell versions force the single-update startup', () => {
   const html = fs.readFileSync(new URL('../../index.html', import.meta.url), 'utf8');
   const worker = fs.readFileSync(new URL('../../service-worker.js', import.meta.url), 'utf8');
-  assert.match(html, /VECTA_APP_VERSION='v354-single-refresh'/);
-  assert.match(html, /service-worker\.js\?v=20260912-single-refresh-v354/);
-  assert.match(worker, /APP_VERSION='v354-single-refresh'/);
-  assert.match(worker, /CACHE='vecta-workshop-pro-shell-v39-single-refresh'/);
+  assert.match(html, /VECTA_APP_VERSION='v355-single-update'/);
+  assert.match(html, /service-worker\.js\?v=20260912-single-update-v355/);
+  assert.match(worker, /APP_VERSION='v355-single-update'/);
+  assert.match(worker, /CACHE='vecta-workshop-pro-shell-v40-single-update'/);
+});
+
+test('service-worker update has one guarded reload owner', () => {
+  const html = fs.readFileSync(new URL('../../index.html', import.meta.url), 'utf8');
+  const worker = fs.readFileSync(new URL('../../service-worker.js', import.meta.url), 'utf8');
+  assert.equal((html.match(/addEventListener\('controllerchange'/g) || []).length, 1);
+  assert.equal((html.match(/serviceWorker\.register\(/g) || []).length, 1);
+  assert.doesNotMatch(worker, /vecta_update/);
 });
 
 test('MOT control observer cannot lock the document', () => {

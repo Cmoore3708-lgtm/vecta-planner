@@ -13,25 +13,8 @@
     }catch(e){console.warn('VECTA cache reset skipped',e)}
   })();
   </script>
-  <!-- VECTA V339: recover clients trapped behind a stale service worker before the main app runs. -->
-  <script>
-  (function(){
-    if(!('serviceWorker' in navigator))return;
-    var reloaded=false;
-    navigator.serviceWorker.addEventListener('controllerchange',function(){
-      if(reloaded)return;
-      reloaded=true;
-      try{
-        if(sessionStorage.getItem('vecta-v354-single-refresh')==='1')return;
-        sessionStorage.setItem('vecta-v354-single-refresh','1');
-      }catch(_e){}
-      location.reload();
-    });
-    navigator.serviceWorker.register('/service-worker.js',{updateViaCache:'none'})
-      .then(function(reg){return reg.update()})
-      .catch(function(e){console.warn('Early offline repair update skipped',e)});
-  })();
-  </script>
+  <!-- V355: service-worker registration and reload are owned by the single
+       guarded update path after application state is available. -->
   <!-- VECTA V320: combined Service + MOT completion asks whether MOT was actually completed; No keeps MOT outstanding -->
   <!-- VECTA V254: authoritative MOT lookup checks EVERY active MOT plan and may correct dates backwards or forwards -->
   <!-- VECTA V253: stale recurring MOT due dates roll into current cycle; fixes missing NK72 KTD / NK72 KTJ -->
@@ -9427,7 +9410,7 @@ async function flushPendingSync(){
   if(!remaining.length)return true;
   return false
 }
-var VECTA_APP_VERSION='v354-single-refresh';
+var VECTA_APP_VERSION='v355-single-update';
 var vectaAppUpdateWaiting=false;
 function vectaSafeApplyAppUpdate(){
   vectaAppUpdateWaiting=true;
@@ -9449,7 +9432,7 @@ function registerVectaServiceWorker(){
   navigator.serviceWorker.addEventListener('controllerchange',function(){vectaSafeApplyAppUpdate()});
   window.addEventListener('load',function(){
     Promise.resolve(window.__vectaCacheResetPromise).finally(function(){
-      navigator.serviceWorker.register('/service-worker.js?v=20260912-single-refresh-v354',{updateViaCache:'none'}).then(function(reg){
+      navigator.serviceWorker.register('/service-worker.js?v=20260912-single-update-v355',{updateViaCache:'none'}).then(function(reg){
         if(navigator.onLine)Promise.resolve(reg.update()).catch(function(e){console.warn('Service worker update skipped',e)});
       }).catch(function(e){console.warn('Offline app install skipped',e)});
     });

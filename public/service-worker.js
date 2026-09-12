@@ -1,5 +1,5 @@
-const CACHE='vecta-workshop-pro-shell-v39-single-refresh';
-const APP_VERSION='v354-single-refresh';
+const CACHE='vecta-workshop-pro-shell-v40-single-update';
+const APP_VERSION='v355-single-update';
 const DATA_CACHE='vecta-workshop-pro-data-last-known-v1';
 const HEALTH_CACHE='vecta-workshop-pro-cloud-health-v1';
 const CORE=[
@@ -210,20 +210,7 @@ self.addEventListener('activate',event=>{
     ).map(k=>caches.delete(k)));
     await self.clients.claim();
     const windows=await self.clients.matchAll({type:'window',includeUncontrolled:true});
-    for(const client of windows){
-      client.postMessage({type:'VECTA_APP_UPDATE_READY',version:APP_VERSION});
-      /* Installed iPhone/iPad apps can resume the existing document without making a
-         navigation request. That left the old V334 shell running even after this worker
-         had installed. Navigate every controlled window once per release so the repaired
-         shell is actually adopted. The marker prevents an activation/reload loop. */
-      try{
-        const target=new URL(client.url);
-        if(target.origin===self.location.origin && target.searchParams.get('vecta_update')!==APP_VERSION){
-          target.searchParams.set('vecta_update',APP_VERSION);
-          await client.navigate(target.href);
-        }
-      }catch(_e){}
-    }
+    for(const client of windows)client.postMessage({type:'VECTA_APP_UPDATE_READY',version:APP_VERSION});
   })());
 });
 
