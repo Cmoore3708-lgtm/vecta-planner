@@ -73,3 +73,23 @@ test('completed mobile startup cannot leave an invisible tap-blocking gate', () 
   assert.match(html, /gate\.style\.pointerEvents=on\?'auto':'none'/);
   assert.match(html, /\},120000\);/);
 });
+
+test('mobile MOT cards show the actual MOT appointment time', () => {
+  assert.match(html, /class="mobileMotAppointment">MOT /);
+  assert.match(html, /hasMotJobType\(j\)&&motTimeFromJob\(j\)/);
+});
+
+test('service and safety paperwork cannot save without mileage', () => {
+  const saveStart = html.indexOf('async function saveServiceSheet()');
+  const saveEnd = html.indexOf('function loadSavedServiceSheet', saveStart);
+  const saveFlow = html.slice(saveStart, saveEnd);
+  assert.match(saveFlow, /mileageCheck=sheet\.querySelector\('\.ssMileageEntry'\)/);
+  assert.match(saveFlow, /Please enter the vehicle mileage before saving the service sheet/);
+  assert.ok(saveFlow.indexOf('mileageCheck=sheet.querySelector') < saveFlow.indexOf("storeServiceRecordLocal(record)"));
+});
+
+test('mobile invoice archive keeps every invoice on one compact screen-width row', () => {
+  assert.match(html, /v346-mobile-mot-and-invoice-density/);
+  assert.match(html, /\.invoiceArchiveRow\{grid-template-columns:60px 54px minmax\(38px,1fr\) 43px 48px 67px!important/);
+  assert.match(html, /\.invoiceArchiveTable\{width:100%!important;min-width:0!important\}/);
+});
