@@ -8881,6 +8881,7 @@ var plannerStartMinutes=8*60;
 var carryOverPendingSync={};
 var lastKnownTodayIso=todayIso();
 var remoteClient=null;
+var VECTA_AUDIT_PREVIEW=/vecta-planner-(?:git-)?audit-system-simplificati/i.test(String(location.hostname||''));
 var app={jobs:[],customers:[],vehicles:[],tasks:[],notes:'',settings:{businessName:'Vecta Motors',labourRate:40,bankName:'',accountName:'Vecta Motors',sortCode:'',accountNumber:'',paymentNote:'Please use vehicle registration as payment reference.',supabaseUrl:'https://jywufozycuwuoshlulwl.supabase.co',supabaseAnonKey:'',vatRate:20,vatNumber:'',invoicePrefix:'VECTA',nextInvoiceNumber:1,mechanics:['Alfie','Other','Anyone'],ramps:['Left','Middle','Right'],jobTemplates:templates},invoices:[],serviceRecords:[],websiteRequests:[]};
 var templates={
   'Major Service':{job_type:'Major Service',work_required:'Major Service - in-depth scheduled service including Full Service checks plus spark plugs and fuel filter replacements where scheduled.',estimated_hours:2.5,job_colour:'service',default_parts:['Oil filter','Air filter','Cabin filter','Spark plugs','Fuel filter']},
@@ -9536,6 +9537,7 @@ async function loadCloudConfig(options){
 }
 function connectSupabase(){
   remoteClient=null;
+  if(VECTA_AUDIT_PREVIEW){console.info('V355 audit preview: cloud database access is disabled.');return false;}
   if(!app.settings.supabaseUrl||!app.settings.supabaseAnonKey||!window.supabase) return false;
   try{remoteClient=window.supabase.createClient(app.settings.supabaseUrl,app.settings.supabaseAnonKey);return true;}catch(e){console.warn(e);return false;}
 }
