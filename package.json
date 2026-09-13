@@ -13,6 +13,9 @@
     "test": "node --test tests/regression/*.test.js",
     "test:regression": "node --test tests/regression/*.test.js",
     "test:integration": "node --test tests/integration/*.test.js",
+    "test:phone-sync": "node tests/phone-sync-integrity.mjs",
+    "test:finance-integrity": "node tests/finance-integrity.mjs",
+    "release:gate": "npm run test:regression && npm run test:phone-sync && npm run test:finance-integrity && npm run build",
     "test:browser-server": "node tests/browser/server.mjs"
   },
   "dependencies": {
