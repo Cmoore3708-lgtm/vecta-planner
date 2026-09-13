@@ -258,7 +258,7 @@ A refactor cannot reach `main` unless all of the following pass:
 - Production Vite build: passed.
 - Local HTTP delivery smoke test: main application, booking, approval, manifest, service worker and invoice rules all returned HTTP 200 with non-empty content.
 - Interactive browser/device test: blocked in this workspace because no browser runtime is installed.
-- Isolated Vercel preview: deployed successfully from commit `2f2ccd4`; Vercel cloned the audit branch, built 87 modules, produced the 2.10 MB application shell and marked the preview `READY`. The `/booking` route returned HTTP 200 from the deployed artifact. Production was not targeted.
+- Isolated Vercel preview: deployed successfully from the latest audit branch commit; Vercel cloned the branch, built 87 modules, produced the 2.10 MB application shell and marked the preview `READY`. The `/booking` route returned HTTP 200 from the deployed artifact. Production was not targeted.
 - The audit preview hostname is explicitly prevented from creating a Supabase client. Its browser storage is origin-isolated, so test edits cannot alter the live workshop database.
 - Interactive preview verification opened all eight main sections successfully. A local-only Full Service test job was created, appeared on the planner and Jobs view, populated Parts, and survived a full browser refresh without duplication. No Vecta application errors were emitted during these navigation and persistence checks.
 
