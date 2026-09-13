@@ -173,13 +173,13 @@ test('embedded service history repairs EYC before live jobs finish loading', () 
   assert.equal(context.fleetPlans[0].currentDueDate,'2026-09-11');
 });
 
-test('phone shell versions force the single-update startup', () => {
+test('phone shell keeps one update owner and advances the source-authoritative cache', () => {
   const html = fs.readFileSync(new URL('../../index.html', import.meta.url), 'utf8');
   const worker = fs.readFileSync(new URL('../../service-worker.js', import.meta.url), 'utf8');
   assert.match(html, /VECTA_APP_VERSION='v355-single-update'/);
   assert.match(html, /service-worker\.js\?v=20260912-single-update-v355/);
-  assert.match(worker, /APP_VERSION='v355-single-update'/);
-  assert.match(worker, /CACHE='vecta-workshop-pro-shell-v40-single-update'/);
+  assert.match(worker, /APP_VERSION='audit-source-authority'/);
+  assert.match(worker, /CACHE='vecta-workshop-pro-shell-v41-source-authority'/);
 });
 
 test('service-worker update has one guarded reload owner', () => {

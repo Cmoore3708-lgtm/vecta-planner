@@ -7,6 +7,15 @@ const worker=fs.readFileSync(new URL('../../service-worker.js',import.meta.url),
 const publicWorker=fs.readFileSync(new URL('../../public/service-worker.js',import.meta.url),'utf8');
 const vercel=fs.readFileSync(new URL('../../vercel.json',import.meta.url),'utf8');
 
+test('audit preview cannot connect to the live workshop database', () => {
+  assert.match(html, /VECTA_AUDIT_PREVIEW=.*audit-system-simplificati/);
+  assert.match(html, /function connectSupabase\(\)[\s\S]*?if\(VECTA_AUDIT_PREVIEW\)[\s\S]*?return false/);
+  assert.match(html, /async function upsertRemote\([\s\S]*?if\(VECTA_AUDIT_PREVIEW\)return/);
+  assert.match(html, /async function deleteRemote\([\s\S]*?if\(VECTA_AUDIT_PREVIEW\)return true/);
+  assert.match(html, /async function vectaSaveInvoiceRowConfirmed\(inv,isNew\)\{if\(VECTA_AUDIT_PREVIEW\)[\s\S]*?return inv/);
+  assert.match(html, /V355 safe test mode/);
+});
+
 function hasAll(source,patterns){
   for(const pattern of patterns)assert.match(source,pattern);
 }
