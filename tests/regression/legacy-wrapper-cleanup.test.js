@@ -37,6 +37,11 @@ test('ordinary job saves cannot launch the bulk Fleet integrity repair', () => {
   assert.match(html, /window\.v310RepairFleetIntegrity\s*=\s*v310RepairAll/);
 });
 
+test('invoice printing uses its canonical sender rule without a late wrapper', () => {
+  assert.match(html, /function printInvoice\(inv\)[\s\S]*?invoiceSenderHtml\(inv\|\|\{\},true\)/);
+  assert.doesNotMatch(html, /printInvoiceV329Base/);
+});
+
 test('v255 is the sole executable authoritative MOT workflow', () => {
   assert.doesNotMatch(html, /function v254Reconcile\s*\(/);
   assert.doesNotMatch(html, /function v254FetchFresh\s*\(/);

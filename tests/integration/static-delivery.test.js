@@ -22,9 +22,7 @@ test('every local script loaded by the production shell exists', () => {
 });
 
 test('PWA shell files and every pre-cached asset exist', () => {
-  const worker = read('service-worker.js');
-  const publicWorker = read('public/service-worker.js');
-  assert.equal(worker, publicWorker, 'root and public service workers must be identical');
+  const worker = read('public/service-worker.js');
   const cacheList = worker.match(/const CORE(?:_FILES)?\s*=\s*\[([\s\S]*?)\];/);
   assert.ok(cacheList, 'service worker must define its core precache list');
   const assets = [...cacheList[1].matchAll(/["'](\/[^"']+)["']/g)].map(match => match[1]);
@@ -35,7 +33,7 @@ test('PWA shell files and every pre-cached asset exist', () => {
 });
 
 test('service worker caches the deployed HTML without rewriting application code', () => {
-  const worker = read('service-worker.js');
+  const worker = read('public/service-worker.js');
   assert.doesNotMatch(worker, /patchAppShellHtml|htmlResponseFrom|cachePatchedShell/);
   assert.doesNotMatch(worker, /patched\.replace|oldRegister|safeRegister/);
   assert.match(worker, /async function cacheShell\(response\)/);
@@ -45,7 +43,7 @@ test('service worker caches the deployed HTML without rewriting application code
 test('Vercel rewrites and cron targets resolve to production files', () => {
   const config = JSON.parse(read('vercel.json'));
   assert.ok(exists('index.html'));
-  assert.ok(exists('booking.html') || exists('public/booking.html'));
+  assert.ok(exists('public/booking.html'));
   for (const cron of config.crons || []) {
     const endpoint = String(cron.path || '').replace(/^\/api\//, 'api/');
     assert.ok(exists(`${endpoint}.js`), `${cron.path} must have a server function`);
@@ -72,9 +70,8 @@ test('Git tracks one production tree and no generated or historical application 
   assert.equal(tracked.filter(path => path.startsWith('node_modules/')).length, 0);
   assert.equal(tracked.filter(path => path.startsWith('dist/')).length, 0);
   assert.equal(tracked.filter(path => path.startsWith('css/')).length, 0);
-  assert.deepEqual(tracked.filter(path => path.startsWith('assets/')).sort(), [
-    'assets/vecta-header.png',
-    'assets/vecta-logo.png',
-    'assets/vecta-logo.webp',
-  ]);
+  assert.equal(tracked.filter(path => path.startsWith('assets/')).length, 0);
+  assert.equal(tracked.filter(path => /^(?:src|icons|js)\//.test(path)).length, 0);
+  assert.equal(tracked.filter(path => /^(?:App\.jsx|schema\.sql|style\.css|service-worker\.js|booking\.html|approval\.html)$/.test(path)).length, 0);
+  assert.equal(tracked.filter(path => /^index(?: \(\d+\))?\.html\.(?:js|tmp)$/.test(path)).length, 0);
 });

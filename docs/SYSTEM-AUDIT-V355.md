@@ -1,6 +1,6 @@
 # VECTA Workshop Pro — V355 System Audit
 
-Status: audit branch only. Production `main` remains pinned to V355 (`9c9f95e`).
+Status: completed audit candidate on `audit/system-simplification-v355`. The production application remains V355; this branch has not been merged or promoted.
 
 ## Safety boundary
 
@@ -13,19 +13,19 @@ Status: audit branch only. Production `main` remains pinned to V355 (`9c9f95e`).
 
 | Area | Production authority | Notes |
 |---|---|---|
-| Main application | `index.html` | 2,106,462 bytes; 16,717 lines; HTML, CSS, data, UI and runtime logic combined |
+| Main application | `index.html` | 2,097,323 bytes; 16,553 lines; HTML, CSS, data, UI and runtime logic combined |
 | Shared browser rules | `public/js/vecta-*-rules.js` | Seven small global modules loaded before the inline application |
-| Offline/PWA | `service-worker.js`, `public/service-worker.js` | Two identical copies; network/cache fallback and update lifecycle |
+| Offline/PWA | `public/service-worker.js` | Single deployed source; network/cache fallback and update lifecycle |
 | Server APIs | `api/*.js` | Supabase, website booking, vehicle lookup, push, backup and nightly Fleet refresh |
-| Public booking | `booking.html` | Separate booking page |
+| Public booking | `public/booking.html` | Separate booking page copied to the deployment root by Vite |
 | Database | Supabase tables plus `supabase/` migrations | Jobs, tasks, customers, vehicles, invoices, service records, website requests and overloaded settings records |
 | Hosting | `vercel.json` | London region; nightly Fleet cron at 22:30; catch-all application rewrite |
 
 ## Quantified complexity
 
-- 188 tracked files after repository hygiene (down from 7,002).
+- 70 tracked files after repository hygiene (down from 7,002).
 - No tracked dependency files under `node_modules` (previously 6,489).
-- Historical copied application trees under `assets/`, `css/` and `dist/` have been removed; only the three runtime brand images remain under `assets/`.
+- Historical copied application trees, root API copies, alternate app sources, generated files and duplicate public assets have been removed.
 - 34 script blocks in `index.html`.
 - 18 named legacy/version repair blocks from v207 through v332 remain in the live document.
 - 74 timer/listener/observer sites across the page and service worker.
@@ -43,7 +43,7 @@ Status: audit branch only. Production `main` remains pinned to V355 (`9c9f95e`).
 | Fleet Manager | Vehicle records, groups, contacts, due/overdue lists, MOT, tax, service, six-month safety, completion history, print, month-end work | Core Fleet engine plus multiple v207-v311 rule/repair layers |
 | Financial | Today/month/year totals, income streams, quoted/completed recognition, integrity screen | Inline Financial logic plus shared Finance rules and DB completion-date trigger |
 | Invoices | Create from jobs, numbering, VAT, payment method, archive, void/restore, printing and email | Inline invoice engine plus shared Invoice rules and protected snapshots |
-| Website bookings | Public booking, availability, inbox, accept/create job, contact/archive/delete, alerts | `booking.html`, API functions, inline inbox and shared Booking rules |
+| Website bookings | Public booking, availability, inbox, accept/create job, contact/archive/delete, alerts | `public/booking.html`, API functions, inline inbox and shared Booking rules |
 | Parts | Automatic service/brake/tyre defaults, ordered/arrived state, traffic-light dots and ordering lists | Inline Parts engine; currently mutates jobs during render |
 | Search/history | Registration/name/phone search, customer and vehicle records, job/invoice/paperwork history | Inline search and record modals |
 | Service paperwork | Service, on-site service and safety sheets, mileage, inspection fields, saved/printed history | Inline paperwork engine; settings-backed canonical records plus optional mirror table |
@@ -86,9 +86,9 @@ Several blocks contain superseded functions, no-op entry points or disabled UI h
 
 Required repair: classify each block as active, partially active or dead; extract active rules, test them, then delete the entire obsolete block.
 
-### 4. Repository and runtime authority are unclear
+### 4. Repository and runtime authority were unclear — resolved on the audit branch
 
-Multiple historical application copies and generated outputs are committed. `schema.sql` is not SQL; it contains an old React application. Root/API files also have copied variants. This makes accidental edits to non-production files likely.
+Multiple historical application copies and generated outputs were committed. `schema.sql` was not SQL; it contained an old React application. Root/API files also had copied variants. These non-runtime alternatives have now been removed, leaving the production manifest and Git history as the authorities.
 
 Required repair: establish a manifest of production inputs, remove generated/dependency/history copies from the refactor branch, correct file naming and document deployment inputs.
 
@@ -190,9 +190,9 @@ NMUK's dedicated invoice address was also copied into local storage during scrip
 
 Reconnect previously downloaded cloud state first and left queued offline changes waiting for a later five-minute retry. It now has one named owner: queued local writes are flushed first, then the guarded authoritative jobs/tasks refresh runs. Tests enforce both the ordering and the single online-listener boundary.
 
-### 7. Service-worker source is duplicated and transforms HTML
+### 7. Service-worker source was duplicated and transformed HTML — resolved on the audit branch
 
-Two service-worker files must remain byte-identical. The worker rewrites fetched application HTML using historical string replacements. This can make the executed document differ from the deployed source.
+The duplicated worker sources and historical HTML transformation made the executed document differ from the deployed source. `public/service-worker.js` is now the sole source and caches the deployed application shell without rewriting it.
 
 Required repair: generate one worker copy from a single source and remove historical HTML rewriting after a controlled cache-transition release.
 
@@ -253,16 +253,16 @@ A refactor cannot reach `main` unless all of the following pass:
 
 - Clean lockfile dependency installation: passed.
 - Dependency vulnerability audit: zero known vulnerabilities.
-- Regression suite: 73 passing, including task and planner lifecycle, invoice numbering/VAT/save/cancel/restore, website-booking duplicate protection, offline queue/reconnect/startup and complete Fleet backup restoration.
+- Regression suite: 78 passing, including task and planner lifecycle, invoice numbering/VAT/save/cancel/restore/print authority, website-booking duplicate protection, offline queue/reconnect/startup and complete Fleet backup restoration.
 - Static delivery/API integration suite: 7 passing, including a permanent single-production-tree check.
 - Production Vite build: passed.
 - Local HTTP delivery smoke test: main application, booking, approval, manifest, service worker and invoice rules all returned HTTP 200 with non-empty content.
 - Interactive browser/device test: blocked in this workspace because no browser runtime is installed.
-- Isolated Vercel preview: the connected Vercel account accepted a preview-only health probe, but the available deployment interface could not transfer the approximately 2.1 MB application shell without truncating its base64 payload. No application preview was created and production has intentionally not been targeted.
+- Isolated Vercel preview: deployed successfully from commit `2f2ccd4`; Vercel cloned the audit branch, built 87 modules, produced the 2.10 MB application shell and marked the preview `READY`. The `/booking` route returned HTTP 200 from the deployed artifact. Production was not targeted.
 - The audit preview hostname is explicitly prevented from creating a Supabase client. Its browser storage is origin-isolated, so test edits cannot alter the live workshop database.
 - Interactive preview verification opened all eight main sections successfully. A local-only Full Service test job was created, appeared on the planner and Jobs view, populated Parts, and survived a full browser refresh without duplication. No Vecta application errors were emitted during these navigation and persistence checks.
 
-The last two items remain mandatory. Passing source/build tests alone is not sufficient grounds to release this branch.
+The current remote browser service timed out before attaching to a tab, so a fresh click-through of the final hosted commit could not be completed in this workspace. The earlier isolated click-through remains valid for the unchanged navigation and local-only boundaries, but production promotion should still wait for one fresh desktop/mobile acceptance pass against the final preview.
 
 ## Initial conclusion
 

@@ -175,7 +175,7 @@ test('embedded service history repairs EYC before live jobs finish loading', () 
 
 test('phone shell keeps one update owner and advances the source-authoritative cache', () => {
   const html = fs.readFileSync(new URL('../../index.html', import.meta.url), 'utf8');
-  const worker = fs.readFileSync(new URL('../../service-worker.js', import.meta.url), 'utf8');
+  const worker = fs.readFileSync(new URL('../../public/service-worker.js', import.meta.url), 'utf8');
   assert.match(html, /VECTA_APP_VERSION='v355-single-update'/);
   assert.match(html, /service-worker\.js\?v=20260912-single-update-v355/);
   assert.match(worker, /APP_VERSION='audit-source-authority'/);
@@ -184,7 +184,7 @@ test('phone shell keeps one update owner and advances the source-authoritative c
 
 test('service-worker update has one guarded reload owner', () => {
   const html = fs.readFileSync(new URL('../../index.html', import.meta.url), 'utf8');
-  const worker = fs.readFileSync(new URL('../../service-worker.js', import.meta.url), 'utf8');
+  const worker = fs.readFileSync(new URL('../../public/service-worker.js', import.meta.url), 'utf8');
   assert.equal((html.match(/addEventListener\('controllerchange'/g) || []).length, 1);
   assert.equal((html.match(/serviceWorker\.register\(/g) || []).length, 1);
   assert.doesNotMatch(worker, /vecta_update/);
@@ -198,7 +198,7 @@ test('MOT control observer cannot lock the document', () => {
 
 test('phone startup does not repeatedly scan every vehicle against job history', () => {
   const html = fs.readFileSync(new URL('../../index.html', import.meta.url), 'utf8');
-  const worker = fs.readFileSync(new URL('../../service-worker.js', import.meta.url), 'utf8');
+  const worker = fs.readFileSync(new URL('../../public/service-worker.js', import.meta.url), 'utf8');
   assert.doesNotMatch(html, /\[0,2500,8000,15000\]\.forEach\(function\(ms\)\{setTimeout\(repair,ms\);\}\)/);
   assert.doesNotMatch(worker, /vecta-sw-fleet-startup-reconcile/);
 });

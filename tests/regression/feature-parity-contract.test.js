@@ -3,7 +3,6 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 
 const html=fs.readFileSync(new URL('../../index.html',import.meta.url),'utf8');
-const worker=fs.readFileSync(new URL('../../service-worker.js',import.meta.url),'utf8');
 const publicWorker=fs.readFileSync(new URL('../../public/service-worker.js',import.meta.url),'utf8');
 const vercel=fs.readFileSync(new URL('../../vercel.json',import.meta.url),'utf8');
 
@@ -110,8 +109,9 @@ test('offline safety mechanisms remain present',()=>{
   ]);
 });
 
-test('service-worker source copies are identical',()=>{
-  assert.equal(publicWorker,worker);
+test('the deployed service worker has one source owner',()=>{
+  assert.match(publicWorker,/async function cacheShell\(response\)/);
+  assert.equal(fs.existsSync(new URL('../../service-worker.js',import.meta.url)),false);
   assert.equal((html.match(/serviceWorker\.register\(/g)||[]).length,1);
   assert.equal((html.match(/addEventListener\('online'/g)||[]).length,1);
 });
