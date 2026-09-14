@@ -29,7 +29,7 @@ The GitHub workflow has read-only repository permission. It can reject unsafe co
 
 Changes to any of the following require explicit upgrade testing from the current stable release:
 
-- `service-worker.js` and `public/service-worker.js`;
+- `public/service-worker.js`, the sole deployed service-worker source;
 - startup, focus, online/offline and reconnection handlers;
 - Supabase reads, writes or reconciliation;
 - invoice numbering, completion dates or financial totals;

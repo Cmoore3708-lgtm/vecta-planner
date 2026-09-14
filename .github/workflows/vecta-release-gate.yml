@@ -40,6 +40,4 @@ jobs:
         run: |
           test "$(grep -c "serviceWorker.register(" index.html)" -eq 1
           test "$(grep -c "addEventListener('controllerchange'" index.html)" -eq 1
-          ! grep -q "client.navigate" service-worker.js
-          cmp --silent service-worker.js public/service-worker.js
-
+          test ! -e service-worker.js

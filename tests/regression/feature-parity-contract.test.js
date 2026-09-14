@@ -1,0 +1,136 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import fs from 'node:fs';
+
+const html=fs.readFileSync(new URL('../../index.html',import.meta.url),'utf8');
+const publicWorker=fs.readFileSync(new URL('../../public/service-worker.js',import.meta.url),'utf8');
+const vercel=fs.readFileSync(new URL('../../vercel.json',import.meta.url),'utf8');
+const configHandler=fs.readFileSync(new URL('../../api/supabase-config.js',import.meta.url),'utf8');
+
+test('audit preview cannot connect to the live workshop database', () => {
+  assert.match(html, /VECTA_AUDIT_PREVIEW=.*audit-system-simplificati/);
+  assert.match(configHandler, /isAuditPreviewEnvironment\(\)/);
+  assert.match(configHandler, /if \(isPreviewEnvironment\(\)\)[\s\S]*?auditPreview: true/);
+  assert.match(html, /if\(cfg\.auditPreview\)[\s\S]*?VECTA_AUDIT_PREVIEW=true[\s\S]*?vectaSavePendingSync\(\[\]\)/);
+  assert.match(html, /function connectSupabase\(\)[\s\S]*?if\(VECTA_AUDIT_PREVIEW\)[\s\S]*?return false/);
+  assert.match(html, /async function upsertRemote\([\s\S]*?if\(VECTA_AUDIT_PREVIEW\)return/);
+  assert.match(html, /async function deleteRemote\([\s\S]*?if\(VECTA_AUDIT_PREVIEW\)return true/);
+  assert.match(html, /async function vectaSaveInvoiceRowConfirmed\(inv,isNew\)\{if\(VECTA_AUDIT_PREVIEW\)[\s\S]*?return inv/);
+  assert.match(html, /V355 safe test mode/);
+});
+
+function hasAll(source,patterns){
+  for(const pattern of patterns)assert.match(source,pattern);
+}
+
+test('primary navigation retains every production workspace',()=>{
+  hasAll(html,[
+    /\['planner','Dashboard'\]/,
+    /\['fleet','Fleet Manager'\]/,
+    /\['jobs','Jobs'\]/,
+    /\['invoices','Financial'\]/,
+    /\['invoiceArchive','Invoices/,
+    /\['websiteRequests','Website Bookings/,
+    /\['parts','Parts/,
+    /\['settings','Settings'\]/
+  ]);
+});
+
+test('planner retains its operational controls',()=>{
+  hasAll(html,[
+    /id="prevDay"/,
+    /id="nextDay"/,
+    /id="todayBtn"/,
+    /id="newJobTop"/,
+    /id="newTaskTop"/,
+    /id="printBtn"/,
+    /function bindDrag\(/,
+    /function bindResize\(/,
+    /function bindLane\(/,
+    /function bindUnallocatedDrop\(/,
+    /function bindTaskReturnDrop\(/
+  ]);
+});
+
+test('mobile job editor keeps its confirmation actions outside the form scroller',()=>{
+  hasAll(html,[
+    /@media\(max-width:760px\)\{[\s\S]*?\.jobModalCard\{[\s\S]*?height:calc\(100dvh - 10px\)!important/,
+    /\.jobModalCard \.modalBody\{[\s\S]*?flex:1 1 auto!important[\s\S]*?overflow-y:auto!important/,
+    /\.jobModalCard \.modalFoot\{[\s\S]*?position:static!important[\s\S]*?safe-area-inset-bottom/
+  ]);
+});
+
+test('jobs retain lifecycle, search and recovery views',()=>{
+  hasAll(html,[
+    /Today's Jobs/,
+    /All Open Jobs/,
+    /Ready to Invoice/,
+    /Completed Jobs/,
+    /Admin Jobs/,
+    /Deleted Jobs/,
+    /function saveJob\(/,
+    /function deleteJobCompletely\(/,
+    /function restoreSoftDeletedJob\(/
+  ]);
+});
+
+test('Fleet retains all four maintenance domains and month-end invoicing',()=>{
+  hasAll(html,[
+    /MOTs due within 30 days/,
+    /Tax due within 30 days/,
+    /Services due within 30 days/,
+    /Six-month safety checks due within 30 days/,
+    /function fleetEomHtml\(/,
+    /function fleetPrintCurrentView\(/,
+    /function fleetAddVehicleModal\(/
+  ]);
+});
+
+test('Financial and invoices retain integrity and payment controls',()=>{
+  hasAll(html,[
+    /function invoiceFinancialSummary\(/,
+    /function financialIntegrityAudit\(/,
+    /function openInvoiceFinanceReport\(/,
+    /function openInvoiceForJob\(/,
+    /function updateInvoicePaymentMethod\(/,
+    /function deleteInvoiceCompletely\(/,
+    /function restoreVoidInvoice\(/
+  ]);
+});
+
+test('website bookings, parts and service paperwork remain present',()=>{
+  hasAll(html,[
+    /function createJobFromWebsiteRequest\(/,
+    /function deleteWebsiteRequestCompletely\(/,
+    /function partsOrderingHtml\(/,
+    /function updatePartState\(/,
+    /function saveServiceSheet\(/,
+    /function openLatestServiceSheet\(/,
+    /function printWhenImagesReady\(/
+  ]);
+});
+
+test('offline safety mechanisms remain present',()=>{
+  hasAll(html,[
+    /VECTA_PENDING_SYNC_KEY/,
+    /VECTA_SYNC_QUARANTINE_KEY/,
+    /function flushPendingSync\(/,
+    /function vectaCreateDailyBackup\(/,
+    /function vectaRestoreLatestBackupIfNeeded\(/,
+    /function vectaWriteTerminalJobState\(/
+  ]);
+});
+
+test('the deployed service worker has one source owner',()=>{
+  assert.match(publicWorker,/async function cacheShell\(response\)/);
+  assert.equal(fs.existsSync(new URL('../../service-worker.js',import.meta.url)),false);
+  assert.equal((html.match(/serviceWorker\.register\(/g)||[]).length,1);
+  assert.equal((html.match(/addEventListener\('online'/g)||[]).length,1);
+});
+
+test('deployment retains booking route, London region and nightly Fleet refresh',()=>{
+  const config=JSON.parse(vercel);
+  assert.deepEqual(config.regions,['lhr1']);
+  assert.ok(config.rewrites.some(row=>row.source==='/booking'&&row.destination==='/booking.html'));
+  assert.ok(config.crons.some(row=>row.path==='/api/fleet-nightly-refresh'&&row.schedule==='30 22 * * *'));
+});
