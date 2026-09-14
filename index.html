@@ -9525,6 +9525,13 @@ async function loadCloudConfig(options){
     catch(e){if(controller)try{controller.abort()}catch(_e){}throw e}
     if(!response.ok) throw new Error('Configuration endpoint returned '+response.status);
     var cfg=await vectaWithTimeout(response.json(),3000,'Cloud configuration response');
+    if(cfg.auditPreview){
+      VECTA_AUDIT_PREVIEW=true;remoteClient=null;
+      app.settings.supabaseUrl='';app.settings.supabaseAnonKey='';
+      vectaSavePendingSync([]);vectaCloudReachable=false;updateConnectivityUI();
+      console.info('V355 audit preview: server-confirmed local-only test mode.');
+      return false;
+    }
     if(!cfg.supabaseUrl||!cfg.supabasePublishableKey) throw new Error('Supabase environment variables are missing in Vercel.');
     app.settings.supabaseUrl=cfg.supabaseUrl;
     app.settings.supabaseAnonKey=cfg.supabasePublishableKey;

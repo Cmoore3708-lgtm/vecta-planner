@@ -5,9 +5,13 @@ import fs from 'node:fs';
 const html=fs.readFileSync(new URL('../../index.html',import.meta.url),'utf8');
 const publicWorker=fs.readFileSync(new URL('../../public/service-worker.js',import.meta.url),'utf8');
 const vercel=fs.readFileSync(new URL('../../vercel.json',import.meta.url),'utf8');
+const configHandler=fs.readFileSync(new URL('../../api/supabase-config.js',import.meta.url),'utf8');
 
 test('audit preview cannot connect to the live workshop database', () => {
   assert.match(html, /VECTA_AUDIT_PREVIEW=.*audit-system-simplificati/);
+  assert.match(configHandler, /isAuditPreviewEnvironment\(\)/);
+  assert.match(configHandler, /if \(isPreviewEnvironment\(\)\)[\s\S]*?auditPreview: true/);
+  assert.match(html, /if\(cfg\.auditPreview\)[\s\S]*?VECTA_AUDIT_PREVIEW=true[\s\S]*?vectaSavePendingSync\(\[\]\)/);
   assert.match(html, /function connectSupabase\(\)[\s\S]*?if\(VECTA_AUDIT_PREVIEW\)[\s\S]*?return false/);
   assert.match(html, /async function upsertRemote\([\s\S]*?if\(VECTA_AUDIT_PREVIEW\)return/);
   assert.match(html, /async function deleteRemote\([\s\S]*?if\(VECTA_AUDIT_PREVIEW\)return true/);
