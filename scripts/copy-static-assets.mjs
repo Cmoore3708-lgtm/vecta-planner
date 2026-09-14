@@ -2,6 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 
 const files = [
+  'app.css',
   'service-worker.js',
   'supabase.min.js',
   'manifest.webmanifest',
