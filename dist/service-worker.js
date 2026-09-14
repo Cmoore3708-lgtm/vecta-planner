@@ -1,5 +1,5 @@
-const CACHE='vecta-workshop-pro-shell-v30-mobile-invoices';
-const APP_VERSION='v345-mobile-invoices';
+const CACHE='vecta-workshop-pro-shell-v31-mobile-sync-unlock';
+const APP_VERSION='v346-mobile-sync-unlock';
 const DATA_CACHE='vecta-workshop-pro-data-last-known-v1';
 const HEALTH_CACHE='vecta-workshop-pro-cloud-health-v1';
 const CORE=[

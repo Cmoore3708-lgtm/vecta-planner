@@ -555,7 +555,7 @@ async function flushPendingSync(){
   if(!remaining.length)return true;
   return false
 }
-var VECTA_APP_VERSION='v345-test-mobile-invoices';
+var VECTA_APP_VERSION='v346-test-mobile-sync-unlock';
 var vectaAppUpdateWaiting=false;
 function vectaSafeApplyAppUpdate(){
   vectaAppUpdateWaiting=true;
@@ -577,7 +577,7 @@ function registerVectaServiceWorker(){
   navigator.serviceWorker.addEventListener('controllerchange',function(){if(!window.VECTA_PUBLIC_SYNTHETIC_TEST)vectaSafeApplyAppUpdate()});
   window.addEventListener('load',function(){
     Promise.resolve(window.__vectaCacheResetPromise).finally(function(){
-      navigator.serviceWorker.register('/service-worker.js?v=20260914-test-mobile-invoices-v345',{updateViaCache:'none'}).then(function(reg){
+      navigator.serviceWorker.register('/service-worker.js?v=20260914-test-mobile-sync-unlock-v346',{updateViaCache:'none'}).then(function(reg){
         if(navigator.onLine)Promise.resolve(reg.update()).catch(function(e){console.warn('Service worker update skipped',e)});
       }).catch(function(e){console.warn('Offline app install skipped',e)});
     });
@@ -586,7 +586,29 @@ function registerVectaServiceWorker(){
     if(document.visibilityState==='visible'&&vectaAppUpdateWaiting)vectaSafeApplyAppUpdate();
   });
 }
-window.addEventListener('online',function(){updateConnectivityUI('syncing');setTimeout(async function(){try{var configured=await loadCloudConfig({silent:true});if(configured){await new Promise(function(resolve){ensureSupabase(function(){connectSupabase();resolve()})});if(remoteClient){var test=await vectaWithTimeout(remoteClient.from('jobs').select('id').limit(1),8000,'Cloud connection check');if(!test.error){vectaCloudReachable=true;/* V284: cloud jobs must be read BEFORE any queued writes are replayed. This prevents stale browser jobs being re-created/re-allocated when a computer reconnects. */await vectaPrimeJobsFromCloud();await vectaLoadTerminalJobStatesFromCloud();vectaApplyTerminalJobStates();await flushPendingSync();await vectaPrimeJobsFromCloud();await vectaLoadTerminalJobStatesFromCloud();vectaApplyTerminalJobStates();await vectaPrimeCompletionEvidenceFromCloud();await vectaRecoverGhostJobsFromTrustedBackups();await pullRemote();await vectaRepairConfirmedNk72KtfCompletion();vectaApplyTerminalJobStates();rollOverOutstandingJobs();normaliseUnallocatedBookingDates();await syncPendingCarryOvers();await vectaCreateDailyBackup(false,'cloud-synchronised');render()}}}}catch(e){vectaCloudReachable=false}updateConnectivityUI()},500)});
+async function vectaReconnectAndRender(){
+  if(vectaReconnectBusy)return false;
+  vectaReconnectBusy=true;updateConnectivityUI('syncing');
+  try{
+    var configured=await loadCloudConfig({silent:true});if(!configured)return false;
+    await new Promise(function(resolve){ensureSupabase(function(){connectSupabase();resolve()})});
+    if(!remoteClient)return false;
+    var test=await vectaWithTimeout(remoteClient.from('jobs').select('id').limit(1),8000,'Cloud connection check');if(test.error)throw test.error;
+    vectaCloudReachable=true;
+    if(window.VECTA_PUBLIC_SYNTHETIC_TEST){
+      await vectaPrimeAuthoritativeDashboard();
+      await flushPendingSync();
+      await pullRemote({skipDashboardCore:true});
+    }else{
+      /* Production retains its existing recovery order. The Test-only branch
+         above deliberately excludes these historical repair passes. */
+      await vectaPrimeJobsFromCloud();await vectaLoadTerminalJobStatesFromCloud();vectaApplyTerminalJobStates();await flushPendingSync();await vectaPrimeJobsFromCloud();await vectaLoadTerminalJobStatesFromCloud();vectaApplyTerminalJobStates();await vectaPrimeCompletionEvidenceFromCloud();await vectaRecoverGhostJobsFromTrustedBackups();await pullRemote();await vectaRepairConfirmedNk72KtfCompletion();vectaApplyTerminalJobStates();rollOverOutstandingJobs();normaliseUnallocatedBookingDates();await syncPendingCarryOvers();await vectaCreateDailyBackup(false,'cloud-synchronised');
+    }
+    render();startCloudSync();return true;
+  }catch(e){console.warn('Reconnect synchronisation incomplete',e);vectaCloudReachable=false;return false}
+  finally{vectaReconnectBusy=false;updateConnectivityUI()}
+}
+window.addEventListener('online',function(){setTimeout(vectaReconnectAndRender,500)});
 window.addEventListener('offline',function(){vectaCloudReachable=false;updateConnectivityUI()});
 setInterval(function(){if(navigator.onLine&&vectaCloudReachable&&vectaPendingSync().length&&!vectaSyncInFlight){flushPendingSync().catch(function(e){console.warn('Background offline-sync retry failed',e)})}},5*60*1000);
 registerVectaServiceWorker();
@@ -983,6 +1005,16 @@ async function pullRemote(options){
   });
   if(!options.skipDashboardCore){await vectaLoadTerminalJobStatesFromCloud();vectaApplyTerminalJobStates();}
   if(anyCloudSuccess){vectaCloudReachable=true;vectaLastCloudSuccess=new Date().toISOString();updateConnectivityUI()}
+  /* Test is already sanitised and backed by a dedicated synthetic database.
+     Stop here instead of running production-only migrations and historical
+     repair writes on every startup, reconnect and Safari resume. */
+  if(window.VECTA_PUBLIC_SYNTHETIC_TEST){
+    applyTaskStateOverrides();saveLocal();
+    await vectaCreateDailyBackup(false,'cloud-synchronised');
+    await flushPendingSync();
+    try{window.vectaLastCloudPullMs=Math.round(performance.now()-__pullStarted);console.info('Synthetic Test cloud refresh completed in '+window.vectaLastCloudPullMs+'ms')}catch(e){}
+    return;
+  }
   /* Every cloud job has now passed through the completion-date audit. Persist only
      the high-confidence legacy repairs identified by the old 17:00 sentinel rule. */
   await persistCompletionDateRepairs();
@@ -1154,7 +1186,7 @@ async function vectaEnableBookingAlerts(){
 }
 function navItems(){var newCount=vectaPendingWebsiteBookingCount(),partsCount=(app.jobs||[]).filter(function(j){var ps=partsStatusFromJob(j);return !vectaJobIsDeletedForLists(j)&&!!ps&&ps!=='Parts here'&&ps!=='Not required'&&!j.archived&&j.status!=='completed'&&j.status!=='ready_to_invoice'}).length,paymentWarnCount=typeof overduePaymentMethodInvoices==='function'?overduePaymentMethodInvoices().length:0;return [['planner','Dashboard'],['fleet','Fleet Manager'],['jobs','Jobs'],['invoices','Financial'],['invoiceArchive','Invoices'+(paymentWarnCount?' ⚠ '+paymentWarnCount:'')],['websiteRequests','Website Bookings'+(newCount?' ('+newCount+')':'')],['parts','Parts'+(partsCount?' ('+partsCount+')':'')],['settings','Settings']];}
 function renderNav(){vectaUpdateAppBadge();var n=document.getElementById('nav');n.innerHTML=navItems().map(function(it){var active=(view===it[0])||(it[0]==='invoiceArchive'&&view==='invoices'&&financialSection==='invoiceList');if(it[0]==='invoices'&&view==='invoices'&&financialSection==='invoiceList')active=false;return '<button data-view="'+it[0]+'" class="'+(active?'active':'')+'">'+it[1]+'</button>'}).join('');n.querySelectorAll('button').forEach(function(b){b.onclick=function(){if(b.dataset.view!=='invoices'&&financeDashboardTimer){clearTimeout(financeDashboardTimer);financeDashboardTimer=null}if(b.dataset.view==='fleet'){fleetSection='maintenance';fleetListMode='due30';fleetFilter='All';fleetQuery='';fleetDueOnly=false;activeFleetVehicleId=''}if(b.dataset.view==='jobs'){jobsListMode='open';jobsSearchQuery=''}if(b.dataset.view==='invoices')financialSection='main';if(b.dataset.view==='invoiceArchive'){openFinancialInvoiceList();return}view=b.dataset.view;render()}})}
-var cloudSyncChannel=null,cloudSyncTimer=null,cloudRefreshBusy=false,plannerInteractionBusy=false,cloudRefreshDebounce=null,cloudLastRefreshAt=0;
+var cloudSyncChannel=null,cloudSyncTimer=null,cloudRefreshBusy=false,plannerInteractionBusy=false,cloudRefreshDebounce=null,cloudLastRefreshAt=0,vectaReconnectBusy=false;
 async function refreshCloudAndRender(){
   if(window.__vectaJobSaveFenceUntil&&Date.now()<window.__vectaJobSaveFenceUntil){
     scheduleCloudRefresh();
@@ -1270,7 +1302,6 @@ function startCloudSync(){
     window.addEventListener('pageshow',resumeRefresh);
     window.addEventListener('focus',resumeRefresh);
   }
-  window.addEventListener('online',function(){cloudLastRefreshAt=0;refreshCloudAndRender()});
 }
 function init(){safe(async function(){
   /* V341: install the fail-open timer before touching local or IndexedDB storage.
@@ -1314,6 +1345,15 @@ function init(){safe(async function(){
       /* Everything below is background work. It must not hold the first correct dashboard hostage. */
       setTimeout(async function(){
         try{
+          /* The public Test environment has its own synthetic database and must not
+             run production-history repair passes. Those sequential passes were
+             overlapping Safari resume/online events and freezing taps on iPhone. */
+          if(window.VECTA_PUBLIC_SYNTHETIC_TEST){
+            await flushPendingSync();
+            await pullRemote({skipDashboardCore:true});
+            render();startCloudSync();updateConnectivityUI();
+            return;
+          }
           await flushPendingSync();
           await vectaPrimeJobsFromCloud();await vectaLoadTerminalJobStatesFromCloud();vectaApplyTerminalJobStates();
           await vectaPrimeCompletionEvidenceFromCloud();await vectaRecoverGhostJobsFromTrustedBackups();await vectaRepairConfirmedNk72KtfCompletion();vectaApplyTerminalJobStates();

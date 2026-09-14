@@ -29,7 +29,7 @@ test('public test build contains no known real customer labels or targeted regis
 
 test('public test build contains the latest integrity repairs', () => {
   assert.match(html, /VECTA_FINANCIAL_AUDIT_V1|financial integrity/i);
-  assert.match(worker, /v345-mobile-invoices/);
+  assert.match(worker, /v346-mobile-sync-unlock/);
   assert.match(
     html,
     /vectaSetStartupLoading\(false\);render\(\);\s*if\(!window\.VECTA_PUBLIC_SYNTHETIC_TEST\)vectaSetStartupLoading\(true/,
@@ -46,4 +46,11 @@ test('public test build contains the latest integrity repairs', () => {
   assert.match(html, /todayTotal=invoiceFinanceJobs\('today'\)\.reduce/);
   assert.match(html, /var vectaStartupWatchdog=setTimeout/);
   assert.match(html, /req\.onblocked=/);
+});
+
+test('public Test sync stays interactive and excludes production-history repair passes', () => {
+  assert.match(html, /if\(window\.VECTA_PUBLIC_SYNTHETIC_TEST\)\{\s*await flushPendingSync\(\);\s*await pullRemote\(\{skipDashboardCore:true\}\);\s*render\(\);startCloudSync\(\);updateConnectivityUI\(\);\s*return;/);
+  assert.match(html, /if\(window\.VECTA_PUBLIC_SYNTHETIC_TEST\)\{\s*applyTaskStateOverrides\(\);saveLocal\(\);[\s\S]*?return;\s*\}\s*\/\* Every cloud job/);
+  assert.match(html, /if\(vectaReconnectBusy\)return false;/);
+  assert.equal((html.match(/window\.addEventListener\('online'/g) || []).length, 1, 'only one guarded online synchronisation handler is permitted');
 });

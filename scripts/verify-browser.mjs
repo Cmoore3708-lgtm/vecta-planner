@@ -5,13 +5,15 @@ import path from 'node:path';
 const target = process.argv[2] || 'http://127.0.0.1:4173';
 const screenshot = process.argv[3] || '/tmp/vecta-test-verification.png';
 const mobile = process.env.VECTA_BROWSER_MODE === 'mobile';
+const settleMs = Math.max(0, Number(process.env.VECTA_BROWSER_SETTLE_MS || 0));
+const allowExternal = process.env.VECTA_BROWSER_ALLOW_EXTERNAL === '1';
 const proxyServer = process.env.HTTPS_PROXY || process.env.HTTP_PROXY || '';
 const localTarget = /127\.0\.0\.1|localhost/.test(target);
 const browser = await chromium.launch({
   headless: true,
-  proxy: proxyServer && !localTarget ? { server: proxyServer } : undefined,
-  args: localTarget ? ['--no-proxy-server'] : [],
-  env: localTarget ? { ...process.env, HTTP_PROXY: '', HTTPS_PROXY: '', ALL_PROXY: '', NO_PROXY: '*' } : process.env
+  proxy: proxyServer && (!localTarget || allowExternal) ? { server: proxyServer } : undefined,
+  args: localTarget && !allowExternal ? ['--no-proxy-server'] : [],
+  env: localTarget && !allowExternal ? { ...process.env, HTTP_PROXY: '', HTTPS_PROXY: '', ALL_PROXY: '', NO_PROXY: '*' } : process.env
 });
 const context = await browser.newContext({
   ignoreHTTPSErrors: true,
@@ -70,6 +72,8 @@ try {
 }
 const startupMs = Date.now() - startupStartedAt;
 const banner = await page.locator('#vectaSyntheticBanner').textContent();
+if (settleMs) await page.waitForTimeout(settleMs);
+const connectivity = (await page.locator('#vectaConnectivityText').textContent() || '').trim();
 const sections = ['Dashboard', 'Jobs', 'Fleet Manager', 'Financial', 'Invoices', 'Website Bookings'];
 const results = [];
 let finance = null;
@@ -97,7 +101,7 @@ await browser.close();
 
 const ignored = localTarget ? /favicon|Failed to load resource.*404|ERR_EMPTY_RESPONSE/i : /favicon|Failed to load resource.*404/i;
 const meaningfulConsoleErrors = consoleErrors.filter(message => !ignored.test(message));
-const report = { target, mode: mobile ? 'mobile' : 'desktop', startupMs, banner, finance, sections: results, overlay, consoleErrors: meaningfulConsoleErrors, pageErrors, screenshot };
+const report = { target, mode: mobile ? 'mobile' : 'desktop', startupMs, settleMs, connectivity, banner, finance, sections: results, overlay, consoleErrors: meaningfulConsoleErrors, pageErrors, screenshot };
 console.log(JSON.stringify(report, null, 2));
 if (!/SYNTHETIC TEST DATA/.test(String(banner)) || (localTarget && startupMs > 3000) || !finance?.matches || overlay || meaningfulConsoleErrors.length || pageErrors.length || results.some(result => !result.visible || result.contentLength < 100)) {
   process.exitCode = 1;
