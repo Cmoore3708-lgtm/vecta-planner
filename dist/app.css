@@ -2632,3 +2632,61 @@ body.servicePreviewing .servicePreviewControls{position:relative!important;z-ind
 /* Fleet Manager selected-filter visibility: active choice is always light green. */
 .fleetKpi.active,.fleetGroup.active{background:#dcfce7!important;border-color:#86efac!important;outline:2px solid #22c55e!important;outline-offset:0!important;color:#14532d!important;box-shadow:0 0 0 1px rgba(34,197,94,.08)!important}
 .fleetKpi.active small,.fleetGroup.active span,.fleetKpi.active strong,.fleetGroup.active b{color:#14532d!important}
+
+/* Proven compact phone invoice archive and MOT appointment badge. */
+.invoiceArchiveNumberMobile,.invoiceArchiveReferenceMobile,.invoiceArchiveDateMobile{display:none}
+.mobileJob .sideJobType{display:flex;align-items:center;justify-content:space-between;gap:7px;min-width:0}
+.mobileMotAppointment{flex:0 0 auto;border:1px solid #fca5a5;border-radius:6px;background:#fff1f2;color:#991b1b;padding:4px 7px;font-size:11px;font-weight:1000;line-height:1;white-space:nowrap}
+@media(max-width:760px){
+  .invoiceArchivePage{gap:6px!important}
+  .invoiceArchiveTop{display:grid!important;grid-template-columns:minmax(0,1fr) auto!important;align-items:center!important;gap:7px!important}
+  .invoiceArchiveTop h2{font-size:19px!important;margin:0!important}
+  .invoiceArchiveTop p{display:none!important}
+  .invoiceArchiveTop .btn{padding:7px 9px!important;font-size:10px!important;white-space:nowrap!important}
+  .invoiceArchiveReady{padding:7px!important;margin:0!important}
+  .invoiceArchiveReady .financialReadyHead{margin:0!important;align-items:center!important}
+  .invoiceArchiveReady .financialReadyHead p{display:none!important}
+  .invoiceArchiveReady .financialReadyHead h3{margin:0!important;font-size:10px!important}
+  .invoiceArchiveReady .invoiceReadyCount{font-size:10px!important;padding:3px 6px!important}
+  .invoiceArchiveReady .empty{padding:6px 8px!important;font-size:10px!important;margin-top:5px!important}
+  .invoiceArchiveReady .financialReadyJob{grid-template-columns:58px minmax(0,1fr) auto!important;gap:5px!important;padding:5px!important;margin:4px 0 0!important}
+  .invoiceArchiveReady .financialReadyJob .uniformRegPlate{width:58px!important;min-width:58px!important;max-width:58px!important}
+  .invoiceArchiveReady .financialReadyBody b,.invoiceArchiveReady .financialReadyBody p{display:block!important;font-size:9px!important;line-height:1.1!important;white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important;margin:0!important}
+  .invoiceArchiveReady .financialReadyActions{grid-column:auto!important;flex-wrap:nowrap!important;gap:3px!important}
+  .invoiceArchiveReady .financialReadyActions .btn{padding:5px!important;font-size:8px!important}
+  .invoiceArchiveSearchCard{padding:6px!important;margin:0!important}
+  .invoiceArchiveSearchCard>label{display:none!important}
+  .invoiceArchiveSearchWrap{display:grid!important;grid-template-columns:minmax(0,1fr) auto!important;gap:5px!important}
+  .invoiceArchiveSearchWrap input{height:32px!important;padding:0 8px!important;font-size:11px!important}
+  .invoiceArchiveSearchWrap>span{font-size:9px!important}
+  .invoicePaymentSummary{display:grid!important;grid-template-columns:repeat(4,minmax(0,1fr))!important;gap:3px!important;margin:0!important}
+  .invoicePaymentSummary>div{display:block!important;min-width:0!important;padding:5px 3px!important;border-radius:6px!important;text-align:center!important}
+  .invoicePaymentSummary small{display:block!important;font-size:7px!important;line-height:1!important;white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important}
+  .invoicePaymentSummary strong{display:block!important;margin-top:2px!important;font-size:10px!important;line-height:1!important;white-space:nowrap!important}
+  .invoiceArchiveResults{overflow:hidden!important;margin:0!important}
+  .invoiceArchiveTable{width:100%!important;min-width:0!important}
+  .invoiceArchiveHead{display:none!important}
+  .invoiceArchiveRow{display:grid!important;grid-template-columns:40px 46px minmax(24px,1fr) 41px 44px 65px!important;gap:3px!important;align-items:center!important;width:100%!important;min-width:0!important;min-height:38px!important;box-sizing:border-box!important;padding:4px 5px!important;font-size:8px!important;line-height:1!important;overflow:hidden!important}
+  .invoiceArchiveRow>span,.invoiceArchiveRow>strong{display:block!important;min-width:0!important;max-width:100%!important;overflow:hidden!important;text-overflow:ellipsis!important;white-space:nowrap!important}
+  .invoiceArchiveNumber{font-size:8px!important}
+  .invoiceArchiveNumberFull,.invoiceArchiveReferenceFull,.invoiceArchiveDateFull{display:none!important}
+  .invoiceArchiveNumberMobile,.invoiceArchiveReferenceMobile,.invoiceArchiveDateMobile{display:block!important;overflow:hidden!important;text-overflow:ellipsis!important;white-space:nowrap!important}
+  .invoiceArchiveReferenceMobile{border-radius:3px;background:#e2bf3f;padding:3px 2px;font-size:7.5px!important;font-weight:1000;text-align:center;letter-spacing:.02em}
+  .invoiceArchiveCustomer{font-size:7.5px!important}
+  .invoiceArchiveDate{font-size:7px!important;text-align:center!important}
+  .invoiceArchiveTotal{display:block!important;font-size:8.5px!important;text-align:right!important}
+  .invoicePaymentQuick{display:grid!important;grid-template-columns:minmax(0,1fr) 18px!important;grid-column:auto!important;gap:2px!important;align-items:center!important;overflow:visible!important}
+  .invoicePaymentQuick select{min-width:0!important;width:100%!important;height:27px!important;padding:2px!important;border-radius:4px!important;font-size:7px!important}
+  .invoicePaymentQuick .invoiceDeleteBtn{width:18px!important;height:27px!important;min-width:0!important;padding:0!important;border-radius:4px!important;font-size:0!important}
+  .invoicePaymentQuick .invoiceDeleteBtn:after{content:"\00d7";font-size:13px!important;line-height:1!important}
+  .invoiceRestoreQuick{font-size:7px!important;text-align:center!important}
+  .invoiceRestoreQuick .btn{width:100%!important;min-width:0!important;padding:4px 2px!important;font-size:7px!important;white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important}
+  .cancelledInvoiceResults>h3{margin:6px 7px 2px!important;font-size:10px!important}
+  .cancelledInvoiceResults>p{display:none!important}
+  .invoiceArchiveRow .contractorTermsBadge,.invoiceArchiveRow .paymentChaseBadge{display:none!important}
+  .invoiceArchiveRow.contractorInvoiceRow{box-shadow:inset 2px 0 0 #1e3a5f!important}
+  .paymentMethodWarning{padding:7px!important;gap:6px!important}
+  .paymentMethodWarning b{font-size:10px!important}
+  .paymentMethodWarning span{font-size:8px!important}
+  .paymentMethodWarning .btn{padding:5px!important;font-size:8px!important}
+}

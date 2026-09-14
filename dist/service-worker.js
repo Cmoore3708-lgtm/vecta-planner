@@ -1,5 +1,5 @@
-const CACHE='vecta-workshop-pro-shell-v29-modular-source';
-const APP_VERSION='v344-modular-source';
+const CACHE='vecta-workshop-pro-shell-v30-mobile-invoices';
+const APP_VERSION='v345-mobile-invoices';
 const DATA_CACHE='vecta-workshop-pro-data-last-known-v1';
 const HEALTH_CACHE='vecta-workshop-pro-cloud-health-v1';
 const CORE=[

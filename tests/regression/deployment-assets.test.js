@@ -37,5 +37,5 @@ test('service worker caches the modular application assets', () => {
   const worker = fs.readFileSync('service-worker.js', 'utf8');
   assert.match(worker, /'\/js\/vecta-app\.js'/);
   assert.match(worker, /'\/assets\/vecta-logo\.webp'/);
-  assert.match(worker, /v344-modular-source/);
+  assert.match(worker, /v345-mobile-invoices/);
 });
