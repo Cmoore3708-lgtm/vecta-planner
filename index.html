@@ -32,11 +32,12 @@
     if(!('serviceWorker' in navigator))return;
     var reloaded=false;
     navigator.serviceWorker.addEventListener('controllerchange',function(){
+      if(window.VECTA_PUBLIC_SYNTHETIC_TEST)return;
       if(reloaded)return;
       reloaded=true;
       try{
-        if(sessionStorage.getItem('vecta-v341-sw-reload')==='1')return;
-        sessionStorage.setItem('vecta-v341-sw-reload','1');
+        if(sessionStorage.getItem('vecta-v343-sw-reload')==='1')return;
+        sessionStorage.setItem('vecta-v343-sw-reload','1');
       }catch(_e){}
       location.reload();
     });
@@ -987,7 +988,7 @@ async function flushPendingSync(){
   if(!remaining.length)return true;
   return false
 }
-var VECTA_APP_VERSION='v341-mobile-startup-fail-open';
+var VECTA_APP_VERSION='v343-test-startup-fail-open';
 var vectaAppUpdateWaiting=false;
 function vectaSafeApplyAppUpdate(){
   vectaAppUpdateWaiting=true;
@@ -1006,10 +1007,10 @@ function registerVectaServiceWorker(){
   navigator.serviceWorker.addEventListener('message',function(event){
     if(event.data&&event.data.type==='VECTA_APP_UPDATE_READY')vectaSafeApplyAppUpdate();
   });
-  navigator.serviceWorker.addEventListener('controllerchange',function(){vectaSafeApplyAppUpdate()});
+  navigator.serviceWorker.addEventListener('controllerchange',function(){if(!window.VECTA_PUBLIC_SYNTHETIC_TEST)vectaSafeApplyAppUpdate()});
   window.addEventListener('load',function(){
     Promise.resolve(window.__vectaCacheResetPromise).finally(function(){
-      navigator.serviceWorker.register('/service-worker.js?v=20260911-mobile-startup-fail-open-v341',{updateViaCache:'none'}).then(function(reg){
+      navigator.serviceWorker.register('/service-worker.js?v=20260914-test-startup-fail-open-v343',{updateViaCache:'none'}).then(function(reg){
         if(navigator.onLine)Promise.resolve(reg.update()).catch(function(e){console.warn('Service worker update skipped',e)});
       }).catch(function(e){console.warn('Offline app install skipped',e)});
     });
@@ -1714,7 +1715,9 @@ function init(){safe(async function(){
   loadLocal();
   /* Restore the newest usable IndexedDB snapshot before any cloud request. This means
      a device opened with no internet starts with its last known workshop instead of an empty diary. */
-  await vectaRestoreLatestBackupIfNeeded();
+  var startupBackupRestore=vectaRestoreLatestBackupIfNeeded();
+  if(!window.VECTA_PUBLIC_SYNTHETIC_TEST)await startupBackupRestore;
+  else startupBackupRestore.then(function(restored){if(restored){render();updateConnectivityUI()}}).catch(function(e){console.warn('Background backup restore skipped',e)});
   bindTop();
   vectaSetStartupLoading(false);render();
   if(!window.VECTA_PUBLIC_SYNTHETIC_TEST)vectaSetStartupLoading(true,'Loading workshop…','Checking live jobs and tasks before showing the dashboard.');

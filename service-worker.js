@@ -1,9 +1,8 @@
-const CACHE='vecta-workshop-pro-shell-v27-test-style-recovery';
-const APP_VERSION='v342-test-style-recovery';
+const CACHE='vecta-workshop-pro-shell-v28-test-startup-fail-open';
+const APP_VERSION='v343-test-startup-fail-open';
 const DATA_CACHE='vecta-workshop-pro-data-last-known-v1';
 const HEALTH_CACHE='vecta-workshop-pro-cloud-health-v1';
 const CORE=[
-  '/',
   '/index.html',
   '/app.css',
   '/manifest.webmanifest',
@@ -226,7 +225,7 @@ self.addEventListener('activate',event=>{
          shell is actually adopted. The marker prevents an activation/reload loop. */
       try{
         const target=new URL(client.url);
-        if(target.origin===self.location.origin && target.searchParams.get('vecta_update')!==APP_VERSION){
+        if(!/vecta-workshop-pro-test/i.test(self.location.hostname) && target.origin===self.location.origin && target.searchParams.get('vecta_update')!==APP_VERSION){
           target.searchParams.set('vecta_update',APP_VERSION);
           await client.navigate(target.href);
         }

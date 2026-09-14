@@ -28,7 +28,7 @@ test('public test build contains no known real customer labels or targeted regis
 
 test('public test build contains the latest integrity repairs', () => {
   assert.match(html, /VECTA_FINANCIAL_AUDIT_V1|financial integrity/i);
-  assert.match(html, /v341-mobile-startup-fail-open/);
+  assert.match(html, /v343-test-startup-fail-open/);
   assert.match(
     html,
     /vectaSetStartupLoading\(false\);render\(\);\s*if\(!window\.VECTA_PUBLIC_SYNTHETIC_TEST\)vectaSetStartupLoading\(true/,
