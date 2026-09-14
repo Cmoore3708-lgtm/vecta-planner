@@ -8710,6 +8710,77 @@ window.INITIAL_MAINTENANCE_PLANS = [
 ];
 
 </script>
+<style id="v356-phone-invoice-mot-paperwork">
+/* V356 test build: make the MOT appointment explicit on the phone planner. */
+.mobileJob .sideJobType{display:flex;align-items:center;justify-content:space-between;gap:7px;min-width:0}
+.mobileMotAppointment{flex:0 0 auto;border:1px solid #fca5a5;border-radius:6px;background:#fff1f2;color:#991b1b;padding:4px 7px;font-size:11px;font-weight:1000;line-height:1;white-space:nowrap}
+
+/* The shared office/mechanic paperwork mileage field visibly enters an error state. */
+.servicePrint .ssMileageEntry.requiredMissing{border:2px solid #dc2626!important;border-radius:3px!important;background:#fff1f2!important;padding:1px 4px!important;outline:none!important}
+
+/* Bank details remain a single line in preview and on the printed A4 invoice. */
+.invoicePrintPage .printPayment>div{font-size:12px!important;line-height:1.25!important;letter-spacing:-.01em!important;white-space:nowrap!important}
+
+.invoiceArchiveNumberMobile,.invoiceArchiveReferenceMobile,.invoiceArchiveDateMobile{display:none}
+@media(max-width:760px){
+  /* All built-in and custom job types stay visible as a compact two-column list. */
+  .jobModalCard .templateBtns.multiSelect{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:5px!important;width:100%!important;max-height:none!important;overflow:visible!important}
+  .jobModalCard .templateBtns.multiSelect button{display:flex!important;align-items:center!important;justify-content:space-between!important;width:100%!important;min-width:0!important;margin:0!important;padding:7px 8px!important;font-size:11px!important;line-height:1.15!important;text-align:left!important;white-space:normal!important}
+
+  /* Keep the whole invoice page compact and every live invoice on one phone-width row. */
+  .invoiceArchivePage{gap:6px!important}
+  .invoiceArchiveTop{display:grid!important;grid-template-columns:minmax(0,1fr) auto!important;align-items:center!important;gap:7px!important}
+  .invoiceArchiveTop h2{font-size:19px!important;margin:0!important}
+  .invoiceArchiveTop p{display:none!important}
+  .invoiceArchiveTop .btn{padding:7px 9px!important;font-size:10px!important;white-space:nowrap!important}
+  .invoiceArchiveReady{padding:7px!important;margin:0!important}
+  .invoiceArchiveReady .financialReadyHead{margin:0!important;align-items:center!important}
+  .invoiceArchiveReady .financialReadyHead p{display:none!important}
+  .invoiceArchiveReady .financialReadyHead h3{margin:0!important;font-size:10px!important}
+  .invoiceArchiveReady .invoiceReadyCount{font-size:10px!important;padding:3px 6px!important}
+  .invoiceArchiveReady .empty{padding:6px 8px!important;font-size:10px!important;margin-top:5px!important}
+  .invoiceArchiveReady .financialReadyJob{grid-template-columns:58px minmax(0,1fr) auto!important;gap:5px!important;padding:5px!important;margin:4px 0 0!important}
+  .invoiceArchiveReady .financialReadyJob .uniformRegPlate{width:58px!important;min-width:58px!important;max-width:58px!important}
+  .invoiceArchiveReady .financialReadyBody b,.invoiceArchiveReady .financialReadyBody p{display:block!important;font-size:9px!important;line-height:1.1!important;white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important;margin:0!important}
+  .invoiceArchiveReady .financialReadyActions{grid-column:auto!important;flex-wrap:nowrap!important;gap:3px!important}
+  .invoiceArchiveReady .financialReadyActions .btn{padding:5px!important;font-size:8px!important}
+  .invoiceArchiveSearchCard{padding:6px!important;margin:0!important}
+  .invoiceArchiveSearchCard>label{display:none!important}
+  .invoiceArchiveSearchWrap{display:grid!important;grid-template-columns:minmax(0,1fr) auto!important;gap:5px!important}
+  .invoiceArchiveSearchWrap input{height:32px!important;padding:0 8px!important;font-size:11px!important}
+  .invoiceArchiveSearchWrap>span{font-size:9px!important}
+  .invoicePaymentSummary{display:grid!important;grid-template-columns:repeat(4,minmax(0,1fr))!important;gap:3px!important;margin:0!important}
+  .invoicePaymentSummary>div{display:block!important;min-width:0!important;padding:5px 3px!important;border-radius:6px!important;text-align:center!important}
+  .invoicePaymentSummary small{display:block!important;font-size:7px!important;line-height:1!important;white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important}
+  .invoicePaymentSummary strong{display:block!important;margin-top:2px!important;font-size:10px!important;line-height:1!important;white-space:nowrap!important}
+  .invoiceArchiveResults{overflow:hidden!important;margin:0!important}
+  .invoiceArchiveTable{width:100%!important;min-width:0!important}
+  .invoiceArchiveHead{display:none!important}
+  .invoiceArchiveRow{display:grid!important;grid-template-columns:40px 46px minmax(24px,1fr) 41px 44px 65px!important;gap:3px!important;align-items:center!important;width:100%!important;min-width:0!important;min-height:38px!important;box-sizing:border-box!important;padding:4px 5px!important;font-size:8px!important;line-height:1!important;overflow:hidden!important}
+  .invoiceArchiveRow>span,.invoiceArchiveRow>strong{display:block!important;min-width:0!important;max-width:100%!important;overflow:hidden!important;text-overflow:ellipsis!important;white-space:nowrap!important}
+  .invoiceArchiveNumber{font-size:8px!important}
+  .invoiceArchiveNumberFull,.invoiceArchiveReferenceFull,.invoiceArchiveDateFull{display:none!important}
+  .invoiceArchiveNumberMobile,.invoiceArchiveReferenceMobile,.invoiceArchiveDateMobile{display:block!important;overflow:hidden!important;text-overflow:ellipsis!important;white-space:nowrap!important}
+  .invoiceArchiveReferenceMobile{border-radius:3px;background:#e2bf3f;padding:3px 2px;font-size:7.5px!important;font-weight:1000;text-align:center;letter-spacing:.02em}
+  .invoiceArchiveCustomer{font-size:7.5px!important}
+  .invoiceArchiveDate{font-size:7px!important;text-align:center!important}
+  .invoiceArchiveTotal{display:block!important;font-size:8.5px!important;text-align:right!important}
+  .invoicePaymentQuick{display:grid!important;grid-template-columns:minmax(0,1fr) 18px!important;grid-column:auto!important;gap:2px!important;align-items:center!important;overflow:visible!important}
+  .invoicePaymentQuick select{min-width:0!important;width:100%!important;height:27px!important;padding:2px!important;border-radius:4px!important;font-size:7px!important}
+  .invoicePaymentQuick .invoiceDeleteBtn{width:18px!important;height:27px!important;min-width:0!important;padding:0!important;border-radius:4px!important;font-size:0!important}
+  .invoicePaymentQuick .invoiceDeleteBtn:after{content:"×";font-size:13px!important;line-height:1!important}
+  .invoiceRestoreQuick{font-size:7px!important;text-align:center!important}
+  .invoiceRestoreQuick .btn{width:100%!important;min-width:0!important;padding:4px 2px!important;font-size:7px!important;white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important}
+  .cancelledInvoiceResults>h3{margin:6px 7px 2px!important;font-size:10px!important}.cancelledInvoiceResults>p{display:none!important}
+  .invoiceArchiveRow .contractorTermsBadge,.invoiceArchiveRow .paymentChaseBadge{display:none!important}
+  .invoiceArchiveRow.contractorInvoiceRow{box-shadow:inset 2px 0 0 #1e3a5f!important}
+  .paymentMethodWarning{padding:7px!important;gap:6px!important}
+  .paymentMethodWarning b{font-size:10px!important}.paymentMethodWarning span{font-size:8px!important}.paymentMethodWarning .btn{padding:5px!important;font-size:8px!important}
+}
+@media print{
+  .invoicePrintPage .printPayment>div{font-size:12px!important;white-space:nowrap!important}
+}
+</style>
 <script id="v335-standalone-service-cycle-repair">
 (function(){
 'use strict';
@@ -8914,16 +8985,28 @@ var remoteClient=null;
 var VECTA_AUDIT_PREVIEW=/vecta-planner-(?:git-)?audit-system-simplificati/i.test(String(location.hostname||''));
 var app={jobs:[],customers:[],vehicles:[],tasks:[],notes:'',settings:{businessName:'Vecta Motors',labourRate:40,bankName:'',accountName:'Vecta Motors',sortCode:'',accountNumber:'',paymentNote:'Please use vehicle registration as payment reference.',supabaseUrl:'https://jywufozycuwuoshlulwl.supabase.co',supabaseAnonKey:'',vatRate:20,vatNumber:'',invoicePrefix:'VECTA',nextInvoiceNumber:1,mechanics:['Alfie','Other','Anyone'],ramps:['Left','Middle','Right'],jobTemplates:templates},invoices:[],serviceRecords:[],websiteRequests:[]};
 var templates={
-  'Major Service':{job_type:'Major Service',work_required:'Major Service - in-depth scheduled service including Full Service checks plus spark plugs and fuel filter replacements where scheduled.',estimated_hours:2.5,job_colour:'service',default_parts:['Oil filter','Air filter','Cabin filter','Spark plugs','Fuel filter']},
-  'Full Service':{job_type:'Full Service',work_required:'Full Service - annual comprehensive service covering oil and filter change, brakes, filters, suspension and full vehicle health check.',estimated_hours:1.5,job_colour:'service',default_parts:['Oil filter','Air filter','Cabin filter']},
-  'Interim Service':{job_type:'Interim Service',work_required:'Interim Service - engine oil & filter change with basic fluid checks / top-ups. Recommended every 6 months or 6,000 miles.',estimated_hours:0.5,job_colour:'service',default_parts:['Oil filter']},
-  '6 Month Safety Check':{job_type:'6 month safety check',work_required:'6 Month Safety Check - health check, tyres, brakes and fluid levels / top-ups.',estimated_hours:1,job_colour:'6 month safety check'},
-  'On-Site Service':{job_type:'on-site service',work_required:'On-Site Service - health check, tyres, brakes and fluid levels / top-ups.',estimated_hours:1,job_colour:'service'},
-  MOT:{job_type:'mot',work_required:'MOT test / MOT preparation.',estimated_hours:1,job_colour:'mot',amount_quoted:65,vat_mode:'no_vat'},
-  Brakes:{job_type:'brakes',work_required:'Brake inspection / pads and discs as required.',estimated_hours:2,job_colour:'brakes'},
-  Diagnostics:{job_type:'diagnostics',work_required:'Diagnostic inspection, fault code scan and report.',estimated_hours:1,job_colour:'diagnostics'},
-  Clutch:{job_type:'clutch',work_required:'Clutch inspection / replacement.',estimated_hours:5,job_colour:'general'},
-  Timing:{job_type:'timing',work_required:'Timing belt / chain inspection or replacement.',estimated_hours:4,job_colour:'general'}
+  'Major Service':{job_type:'Major Service',work_required:'Major Service - in-depth scheduled service including Engine oil, oil filter, air filter, cabin filter. Full health check and detailed report. Service book stamped',estimated_hours:2,job_colour:'service',amount_quoted:220,default_parts:['Oil filter','Air filter','Cabin filter','Spark plugs','Fuel filter']},
+  'Full Service':{job_type:'Full Service',work_required:'Full Service - annual comprehensive service including Engine oil, oil filter, cabin filter. Full health check and detailed report. Service book stamped',estimated_hours:1.5,job_colour:'service',amount_quoted:160,default_parts:['Oil filter','Air filter','Cabin filter']},
+  'Interim Service':{job_type:'Interim Service',work_required:'Interim Service - engine oil & filter change with basic fluid checks / top-ups. Recommended every 6 months or 6,000 miles.',estimated_hours:0.5,job_colour:'service',amount_quoted:110,default_parts:['Oil filter']},
+  'EV Interim Service':{job_type:'general',work_required:'Cabin filter\nFill screen wash\nCheck tyres',estimated_hours:0.5,amount_quoted:80,default_parts:['Cabin filter']},
+  '6 Month Safety Check':{job_type:'6 month safety check',work_required:'6 Month Safety Check - health check, tyres, brakes and fluid levels / top-ups.',estimated_hours:1,job_colour:'6 month safety check',amount_quoted:90,default_parts:[]},
+  'On-Site Service':{job_type:'on-site service',work_required:'On-Site Service - health check, tyres, brakes and fluid levels / top-ups.',estimated_hours:1,job_colour:'service',amount_quoted:90,default_parts:[]},
+  MOT:{job_type:'mot',work_required:'MOT test / MOT preparation.',estimated_hours:1,job_colour:'mot',amount_quoted:65,vat_mode:'no_vat',default_parts:[]},
+  'Pre MOT check':{job_type:'general',work_required:'Pre MOT check',estimated_hours:1,amount_quoted:20,default_parts:[]},
+  Brakes:{job_type:'brakes',work_required:'Brake inspection / pads and discs as required.',estimated_hours:1,job_colour:'brakes',default_parts:[]},
+  Diagnostics:{job_type:'diagnostics',work_required:'Diagnostic inspection, fault code scan and report.',estimated_hours:1,job_colour:'diagnostics',amount_quoted:50,default_parts:[]},
+  'Blocked DPF':{job_type:'general',work_required:'Diagnostic work to check soot content of DPF. Remove sensor from exhaust, clean sensor and full exhaust with high strength DPF cleaner to clean DPF. Carry out Regen and re-check soot content',estimated_hours:1,amount_quoted:90,default_parts:[]},
+  Clutch:{job_type:'clutch',work_required:'Clutch inspection / replacement.',estimated_hours:5,job_colour:'general',default_parts:[]},
+  Timing:{job_type:'timing',work_required:'Timing belt / chain inspection or replacement.',estimated_hours:4,job_colour:'general',default_parts:[]},
+  Tyres:{job_type:'general',work_required:'Tyres',estimated_hours:0.25,amount_quoted:20,default_parts:[]},
+  'Puncture repair':{job_type:'general',work_required:'Puncture repair',estimated_hours:0.25,amount_quoted:20,default_parts:[]},
+  'Tow Bar Fit':{job_type:'clutch',work_required:'Fit tow bar & wiring',estimated_hours:1,job_colour:'general',amount_quoted:220,default_parts:[]},
+  'Tow Bar Removal':{job_type:'general',work_required:'Remove tow bar & wiring. Put name sticker on tow bar',estimated_hours:1,amount_quoted:120,default_parts:[]},
+  'Site Visit':{job_type:'general',work_required:'Special Valet for Site visit',estimated_hours:0.5,amount_quoted:30,default_parts:[]},
+  'Wash & hover':{job_type:'general',work_required:'Wash outside, Hover and clean inside. Check fluids and fill screenwash',estimated_hours:0.5,amount_quoted:30,default_parts:[]},
+  'Driving duties':{job_type:'general',work_required:'Driving duties',estimated_hours:1,amount_quoted:45,default_parts:[]},
+  'Clean Workshop':{job_type:'general',work_required:'Clean Workshop',estimated_hours:1,amount_quoted:0,default_parts:[]},
+  General:{job_type:'general',work_required:'General repair',estimated_hours:1,amount_quoted:50,default_parts:[]}
 };
 function ensureServiceTemplates(){
   var current=app.settings&&app.settings.jobTemplates&&typeof app.settings.jobTemplates==='object'?app.settings.jobTemplates:{};
@@ -12248,7 +12331,8 @@ function plannerHtml(){
 
 
 /* v236: restored original core planner/job-card helpers removed during layout amendments */
-function mobileJobCardHtml(j,groupName){var isOther=String(groupName||j.technician||'').trim().toLowerCase()==='other',vehicleLine=String(j.vehicle||'').trim()||[j.make,j.model].filter(Boolean).join(' ').trim()||'Vehicle';return '<div class="mobileJob jobTypeCoded'+(isOther?' mobileOtherJob':'')+'" style="'+jobTypeInlineStyle(j)+(isOther?'background-color:#dff0ff!important;background-image:linear-gradient(#dff0ff,#dff0ff)!important;':'')+'" data-open-job="'+j.id+'"><div class="mobileJobTop">'+plannerPlate(j)+'<span class="mobileVehicleTop">'+esc(vehicleLine)+'</span></div>'+carryOverBadgeHtml(j)+'<div class="sideJobType">'+jobTypeChip(j)+'</div><b>'+esc(j.work_required||'No work required entered')+'</b><div class="mobileJobMeta">'+(j.customer_name?esc(j.customer_name)+'<br>':'')+esc(j.technician||'Unallocated')+' · '+esc(timeRange(j))+' · '+esc(j.ramp||'No ramp')+'</div></div>'}
+function mobileMotAppointmentHtml(j){var time=motTimeFromJob(j);return hasMotJobType(j)&&time?'<span class="mobileMotAppointment" aria-label="MOT appointment time '+esc(time)+'">MOT '+esc(time)+'</span>':''}
+function mobileJobCardHtml(j,groupName){var isOther=String(groupName||j.technician||'').trim().toLowerCase()==='other',vehicleLine=String(j.vehicle||'').trim()||[j.make,j.model].filter(Boolean).join(' ').trim()||'Vehicle';return '<div class="mobileJob jobTypeCoded'+(isOther?' mobileOtherJob':'')+'" style="'+jobTypeInlineStyle(j)+(isOther?'background-color:#dff0ff!important;background-image:linear-gradient(#dff0ff,#dff0ff)!important;':'')+'" data-open-job="'+j.id+'"><div class="mobileJobTop">'+plannerPlate(j)+'<span class="mobileVehicleTop">'+esc(vehicleLine)+'</span></div>'+carryOverBadgeHtml(j)+'<div class="sideJobType">'+jobTypeChip(j)+mobileMotAppointmentHtml(j)+'</div><b>'+esc(j.work_required||'No work required entered')+'</b><div class="mobileJobMeta">'+(j.customer_name?esc(j.customer_name)+'<br>':'')+esc(j.technician||'Unallocated')+' · '+esc(timeRange(j))+' · '+esc(j.ramp||'No ramp')+'</div></div>'}
 
 function updateJobQuick(j){j.archived=j.status==='completed';if(j.status==='completed'&&!j.completed_at){var _legacyDone=vectaValidJobDate(j.booking_date)||vectaValidJobDate(j.created_at);if(_legacyDone)j.completed_at=_legacyDone+'T17:00:00.000Z';}j.updated_at=new Date().toISOString();syncTaskFromMiniJob(j);if(j.status==='completed'||j.status==='ready_to_invoice')syncFleetMaintenanceFromJob(j);saveAll();upsertRemote('jobs',j);render()}
 
@@ -12841,6 +12925,8 @@ function invoiceArchiveReferenceHtml(inv){
   var reference=String(inv.registration||'CONTRACTOR').trim()||'CONTRACTOR';
   return '<span class="contractorInvoiceRef">'+esc(reference)+'<small>30 day account</small></span>';
 }
+function invoiceArchiveMobileNumber(inv){var raw=String(inv&&inv.invoice_number||'Draft'),match=raw.match(/(\d+)$/);return match?'#'+match[1]:raw}
+function invoiceArchiveMobileDate(inv){var raw=String(inv&&inv.invoice_date||'').slice(0,10),parts=raw.split('-');return parts.length===3?parts[2]+'/'+parts[1]+'/'+parts[0].slice(2):'—'}
 function invoiceArchiveRows(query){
   query=String(query||'').trim().toLowerCase();
   var list=vectaActiveInvoices().slice().sort(function(a,b){
@@ -12850,12 +12936,12 @@ function invoiceArchiveRows(query){
   }).filter(function(inv){return !query||invoiceArchiveSearchText(inv).indexOf(query)>-1});
   if(!list.length)return '<div class="empty">'+(query?'No invoices match your search.':'No invoices saved yet.')+'</div>';
   return '<div class="invoiceArchiveTable"><div class="invoiceArchiveHead"><span>Invoice</span><span>Registration / Account</span><span>Customer</span><span>Date</span><span>Invoice Total</span><span>Payment Method / Action</span></div>'+ 
-    list.map(function(inv){var overdue=isInvoicePaymentMethodOverdue(inv),contractor=isContractorInvoice(inv);return '<div class="invoiceArchiveRow '+(contractor?'contractorInvoiceRow ':'')+(overdue?'paymentMethodOverdue':'')+'" data-open-invoice="'+inv.id+'"><span class="invoiceArchiveNumber">'+esc(inv.invoice_number||'Draft')+(contractor?'<em class="contractorTermsBadge">CONTRACTOR · 30 DAY TERMS</em>':'')+(overdue?'<em class="paymentChaseBadge">CHASE PAYMENT METHOD</em>':'')+'</span><span>'+invoiceArchiveReferenceHtml(inv)+'</span><span class="invoiceArchiveCustomer">'+esc(inv.customer_name||'—')+'</span><span>'+esc(inv.invoice_date?niceDate(String(inv.invoice_date).slice(0,10)):'—')+'</span><strong class="invoiceArchiveTotal">'+money(inv.total||0)+'</strong><span class="invoicePaymentQuick"><select class="'+invoicePaymentMethodClass(inv.payment_method)+'" data-payment-method="'+esc(inv.id)+'" aria-label="Payment method for '+esc(inv.invoice_number||'invoice')+'">'+invoicePaymentMethodOptions(inv.payment_method)+'</select><button type="button" class="btn danger invoiceDeleteBtn" data-delete-invoice="'+esc(inv.id)+'">Cancel</button></span></div>'}).join('')+
+    list.map(function(inv){var overdue=isInvoicePaymentMethodOverdue(inv),contractor=isContractorInvoice(inv);return '<div class="invoiceArchiveRow '+(contractor?'contractorInvoiceRow ':'')+(overdue?'paymentMethodOverdue':'')+'" data-open-invoice="'+inv.id+'"><span class="invoiceArchiveNumber"><span class="invoiceArchiveNumberFull">'+esc(inv.invoice_number||'Draft')+'</span><span class="invoiceArchiveNumberMobile">'+esc(invoiceArchiveMobileNumber(inv))+'</span>'+(contractor?'<em class="contractorTermsBadge">CONTRACTOR · 30 DAY TERMS</em>':'')+(overdue?'<em class="paymentChaseBadge">CHASE PAYMENT METHOD</em>':'')+'</span><span class="invoiceArchiveReference"><span class="invoiceArchiveReferenceFull">'+invoiceArchiveReferenceHtml(inv)+'</span><span class="invoiceArchiveReferenceMobile">'+esc(inv.registration||'ACCOUNT')+'</span></span><span class="invoiceArchiveCustomer">'+esc(inv.customer_name||'—')+'</span><span class="invoiceArchiveDate"><span class="invoiceArchiveDateFull">'+esc(inv.invoice_date?niceDate(String(inv.invoice_date).slice(0,10)):'—')+'</span><span class="invoiceArchiveDateMobile">'+esc(invoiceArchiveMobileDate(inv))+'</span></span><strong class="invoiceArchiveTotal">'+money(inv.total||0)+'</strong><span class="invoicePaymentQuick"><select class="'+invoicePaymentMethodClass(inv.payment_method)+'" data-payment-method="'+esc(inv.id)+'" aria-label="Payment method for '+esc(inv.invoice_number||'invoice')+'">'+invoicePaymentMethodOptions(inv.payment_method)+'</select><button type="button" class="btn danger invoiceDeleteBtn" data-delete-invoice="'+esc(inv.id)+'" aria-label="Cancel '+esc(inv.invoice_number||'invoice')+'">Cancel</button></span></div>'}).join('')+
     '</div>';
 }
 function cancelledInvoiceRowsHtml(){
   var list=vectaVoidInvoices().slice().sort(function(a,b){return String(b.updated_at||'').localeCompare(String(a.updated_at||''))});if(!list.length)return '';
-  return '<div class="card panel invoiceArchiveResults"><h3>Cancelled invoices</h3><p class="muted">Retained for accounting safety and excluded from live totals. Restore is available for 30 days.</p><div class="invoiceArchiveTable">'+list.map(function(inv){var days=Math.max(0,VECTA_INVOICE_RESTORE_DAYS-vectaInvoiceVoidAgeDays(inv));return '<div class="invoiceArchiveRow"><span class="invoiceArchiveNumber">'+esc(inv.invoice_number||'Invoice')+'<em class="paymentChaseBadge">CANCELLED</em></span><span>'+invoiceArchiveReferenceHtml(inv)+'</span><span class="invoiceArchiveCustomer">'+esc(inv.customer_name||'—')+'</span><span>'+esc(inv.invoice_date?niceDate(String(inv.invoice_date).slice(0,10)):'—')+'</span><strong class="invoiceArchiveTotal">'+money(inv.total||0)+'</strong><span>'+(vectaInvoiceCanRestore(inv)?'<button type="button" class="btn" data-restore-invoice="'+esc(inv.id)+'">Restore · '+days+' days left</button>':'Retained record')+'</span></div>'}).join('')+'</div></div>'
+  return '<div class="card panel invoiceArchiveResults cancelledInvoiceResults"><h3>Cancelled invoices</h3><p class="muted">Retained for accounting safety and excluded from live totals. Restore is available for 30 days.</p><div class="invoiceArchiveTable">'+list.map(function(inv){var days=Math.max(0,VECTA_INVOICE_RESTORE_DAYS-vectaInvoiceVoidAgeDays(inv));return '<div class="invoiceArchiveRow"><span class="invoiceArchiveNumber"><span class="invoiceArchiveNumberFull">'+esc(inv.invoice_number||'Invoice')+'</span><span class="invoiceArchiveNumberMobile">'+esc(invoiceArchiveMobileNumber(inv))+'</span><em class="paymentChaseBadge">CANCELLED</em></span><span class="invoiceArchiveReference"><span class="invoiceArchiveReferenceFull">'+invoiceArchiveReferenceHtml(inv)+'</span><span class="invoiceArchiveReferenceMobile">'+esc(inv.registration||'ACCOUNT')+'</span></span><span class="invoiceArchiveCustomer">'+esc(inv.customer_name||'—')+'</span><span class="invoiceArchiveDate"><span class="invoiceArchiveDateFull">'+esc(inv.invoice_date?niceDate(String(inv.invoice_date).slice(0,10)):'—')+'</span><span class="invoiceArchiveDateMobile">'+esc(invoiceArchiveMobileDate(inv))+'</span></span><strong class="invoiceArchiveTotal">'+money(inv.total||0)+'</strong><span class="invoiceRestoreQuick">'+(vectaInvoiceCanRestore(inv)?'<button type="button" class="btn" data-restore-invoice="'+esc(inv.id)+'" aria-label="Restore '+esc(inv.invoice_number||'invoice')+'">Restore · '+days+' days left</button>':'Retained record')+'</span></div>'}).join('')+'</div></div>'
 }
 function invoiceArchiveReadyJobsHtml(){
   var ready=(app.jobs||[]).filter(function(j){return !j.archived&&j.status==='ready_to_invoice'&&!savedInvoiceForJobId(j.id)});
@@ -14399,7 +14485,8 @@ function latestServiceMileage(regValue){
   return '';
 }
 function storeServiceRecordLocal(record){if(!record||!record.html)return null;var reg=normReg(record.registration||''),kind=serviceRecordKind(record),jobId=String(record.job_id||'');if(!reg)return null;record=Object.assign({},record,{id:record.id||serviceRemoteKey(reg,kind,jobId),registration:reg,sheet_type:kind,job_id:jobId});app.serviceRecords=(app.serviceRecords||[]).filter(function(r){return String(r.id||'')!==String(record.id)});app.serviceRecords.push(record);try{localStorage.setItem(serviceStorageKey(reg,kind,jobId),JSON.stringify(record));saveLocal()}catch(e){console.warn('Local paperwork cache failed',e)}return record}
-async function saveServiceSheet(){var sheet=document.querySelector('#printSheet .servicePrint');if(!sheet||!activeServiceRegistration){alert('Unable to save this paperwork.');return}var mileageCheck=sheet.querySelector('.ssMileageEntry');var mileageValue=mileageCheck?String((mileageCheck.value!==undefined?mileageCheck.value:mileageCheck.textContent)||'').trim():'';if(!mileageValue||!/[0-9]/.test(mileageValue)){alert('Please enter the vehicle mileage before saving the service sheet.');if(mileageCheck){try{mileageCheck.focus()}catch(e){};if(mileageCheck.select)try{mileageCheck.select()}catch(e){}}return}Array.prototype.forEach.call(sheet.querySelectorAll('input,textarea'),function(input){input.setAttribute('value',input.value)});var storedSheet=sheet.cloneNode(true);Array.prototype.forEach.call(storedSheet.querySelectorAll('.ssBrand img'),function(img){img.setAttribute('src',BRAND_LOGO_FILE_SRC)});var reg=normReg(activeServiceRegistration),kind=normalisePaperworkKind(activeServiceKind),jobId=String(activeServiceJobId||sheet.getAttribute('data-job-id')||''),now=new Date().toISOString(),existing=latestSavedServiceSheet(reg,kind,jobId),mileageEl=sheet.querySelector('.ssMileageEntry'),sheetMileage=mileageEl?String(mileageEl.textContent||'').trim():'',record={id:serviceRemoteKey(reg,kind,jobId),registration:reg,job_id:jobId,sheet_type:kind,title:paperworkTitle(kind),mileage:sheetMileage,saved_at:now,updated_at:now,created_at:(existing&&existing.created_at)||now,html:storedSheet.outerHTML};storeServiceRecordLocal(record);try{var linkedPaperworkJob=(app.jobs||[]).find(function(x){return String(x.id||'')===String(jobId)});if(linkedPaperworkJob&&financeIsRecognisedJob(linkedPaperworkJob)){var paperDate=todayIso(),oldDone=String(linkedPaperworkJob.completed_at||'').slice(0,10),oldBooked=String(linkedPaperworkJob.booking_date||'').slice(0,10);if(!oldDone||paperDate<oldDone)linkedPaperworkJob.completed_at=now;if(oldBooked&&paperDate<oldBooked)linkedPaperworkJob.booking_date=paperDate;linkedPaperworkJob.updated_at=now;saveLocal();if(remoteClient)upsertRemote('jobs',linkedPaperworkJob,{silent:true}).catch(function(e){console.warn('Paperwork completion-date sync failed',e)})}}catch(e){console.warn('Paperwork completion-date link skipped',e)}if(!remoteClient){console.warn(record.title+' saved locally; cloud database is not connected.');return}try{var confirmed=await saveServiceRecordRemote(record);storeServiceRecordLocal(confirmed||record)}catch(e){alert('The shared paperwork save failed: '+(e&&e.message?e.message:'Unknown error')+'. Please check the connection and save again.')}}
+function requireServiceSheetMileage(sheet){var field=sheet&&sheet.querySelector('.ssMileageEntry'),raw=field?String((field.value!==undefined?field.value:field.textContent)||'').trim():'',digits=raw.replace(/[\s,]/g,'');if(!/^\d+$/.test(digits)||Number(digits)<=0){alert('Enter the vehicle mileage before saving this paperwork.');if(field){field.classList.add('requiredMissing');field.setAttribute('aria-invalid','true');try{field.scrollIntoView({behavior:'smooth',block:'center'})}catch(e){}try{field.focus()}catch(e){}if(field.select)try{field.select()}catch(e){}}return ''}field.classList.remove('requiredMissing');field.removeAttribute('aria-invalid');field.textContent=digits;return digits}
+async function saveServiceSheet(){var sheet=document.querySelector('#printSheet .servicePrint');if(!sheet||!activeServiceRegistration){alert('Unable to save this paperwork.');return}var sheetMileage=requireServiceSheetMileage(sheet);if(!sheetMileage)return false;Array.prototype.forEach.call(sheet.querySelectorAll('input,textarea'),function(input){input.setAttribute('value',input.value)});var storedSheet=sheet.cloneNode(true);Array.prototype.forEach.call(storedSheet.querySelectorAll('.ssBrand img'),function(img){img.setAttribute('src',BRAND_LOGO_FILE_SRC)});var reg=normReg(activeServiceRegistration),kind=normalisePaperworkKind(activeServiceKind),jobId=String(activeServiceJobId||sheet.getAttribute('data-job-id')||''),now=new Date().toISOString(),existing=latestSavedServiceSheet(reg,kind,jobId),record={id:serviceRemoteKey(reg,kind,jobId),registration:reg,job_id:jobId,sheet_type:kind,title:paperworkTitle(kind),mileage:sheetMileage,saved_at:now,updated_at:now,created_at:(existing&&existing.created_at)||now,html:storedSheet.outerHTML};storeServiceRecordLocal(record);try{var linkedPaperworkJob=(app.jobs||[]).find(function(x){return String(x.id||'')===String(jobId)});if(linkedPaperworkJob&&financeIsRecognisedJob(linkedPaperworkJob)){var paperDate=todayIso(),oldDone=String(linkedPaperworkJob.completed_at||'').slice(0,10),oldBooked=String(linkedPaperworkJob.booking_date||'').slice(0,10);if(!oldDone||paperDate<oldDone)linkedPaperworkJob.completed_at=now;if(oldBooked&&paperDate<oldBooked)linkedPaperworkJob.booking_date=paperDate;linkedPaperworkJob.updated_at=now;saveLocal();if(remoteClient)upsertRemote('jobs',linkedPaperworkJob,{silent:true}).catch(function(e){console.warn('Paperwork completion-date sync failed',e)})}}catch(e){console.warn('Paperwork completion-date link skipped',e)}if(!remoteClient){console.warn(record.title+' saved locally; cloud database is not connected.');return true}try{var confirmed=await saveServiceRecordRemote(record);storeServiceRecordLocal(confirmed||record);return true}catch(e){alert('The shared paperwork save failed: '+(e&&e.message?e.message:'Unknown error')+'. Please check the connection and save again.');return false}}
 function loadSavedServiceSheet(reg,kind,jobId){kind=normalisePaperworkKind(kind);try{var keys=[serviceStorageKey(reg,kind,jobId)];if(kind==='service')keys.push('vecta_service_sheet_'+normReg(reg||''));for(var i=0;i<keys.length;i++){var raw=localStorage.getItem(keys[i]);if(raw){var record=JSON.parse(raw);if(record&&record.html)return record}}return null}catch(e){return null}}
 function latestSavedServiceSheet(reg,kind,jobId){reg=normReg(reg||'');kind=normalisePaperworkKind(kind);var all=(app.serviceRecords||[]).filter(function(r){return normReg(r.registration||'')===reg&&r.html&&serviceRecordKind(r)===kind}),rows=jobId?all.filter(function(r){return String(r.job_id||'')===String(jobId)}):all.slice();if(!rows.length&&jobId&&kind==='service')rows=all.filter(function(r){return !r.job_id});var local=loadSavedServiceSheet(reg,kind,jobId);if(local&&(!jobId||String(local.job_id||'')===String(jobId)||kind==='service'&&!local.job_id))rows.push(local);rows.sort(function(a,b){return serviceRecordTime(b)-serviceRecordTime(a)});return rows[0]||null}
 function serviceRecordJobId(record){var direct=String(record&&record.job_id||'');if(direct)return direct;var match=String(record&&record.html||'').match(/data-job-id=[\"']([^\"']+)[\"']/i);return match?String(match[1]||''):''}
