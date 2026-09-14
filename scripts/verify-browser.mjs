@@ -37,7 +37,23 @@ if (localTarget) {
     const candidates = [path.resolve(relative), path.resolve('public', relative)];
     const file = candidates.find(candidate => candidate.startsWith(process.cwd()) && fs.existsSync(candidate) && fs.statSync(candidate).isFile());
     if (!file) return route.fulfill({ status: 404, body: 'Not found' });
-    return route.fulfill({ status: 200, contentType: contentTypes[path.extname(file)] || 'application/octet-stream', body: fs.readFileSync(file) });
+    let body = fs.readFileSync(file);
+    if (mobile && relative === 'js/vecta-app.js') {
+      const source = body.toString('utf8');
+      const closing = source.lastIndexOf('})();');
+      const testHook = `\nwindow.__vectaBrowserTestRenderMot=function(){
+        selectedDate=new Date(2026,8,11,12,0,0);
+        var bookingDate=selectedIso();
+        app.jobs=(app.jobs||[]).filter(function(job){return String(job&&job.id||'').indexOf('browser-mot-')!==0}).concat([
+          {id:'browser-mot-direct',booking_date:bookingDate,registration:'TST26MOT',vehicle:'MOT visibility test',customer_name:'Phone Test',technician:'Alfie',ramp:'Left',drop_time:'12:30',estimated_hours:1,status:'booked',job_type:'MOT',work_required:'MOT test',customer_note:'[[MOT_TIME:12:30]]'},
+          {id:'browser-mot-combined',booking_date:bookingDate,registration:'TST26CMB',vehicle:'Combined booking test',customer_name:'Phone Test',technician:'Other',ramp:'Right',drop_time:'15:00',estimated_hours:1,status:'booked',job_type:'MOT, Full Service || MOT',work_required:'Combined service and MOT',customer_note:'[[MOT_TIME:15:00]]'}
+        ]);
+        view='planner';render();
+      };\n`;
+      if (closing < 0) throw new Error('Could not install browser-only MOT fixture hook');
+      body = Buffer.from(source.slice(0, closing) + testHook + source.slice(closing));
+    }
+    return route.fulfill({ status: 200, contentType: contentTypes[path.extname(file)] || 'application/octet-stream', body });
   });
   await page.route('**/api/supabase-config', route => route.fulfill({
     status: 200,
@@ -77,6 +93,7 @@ const connectivity = (await page.locator('#vectaConnectivityText').textContent()
 const sections = ['Dashboard', 'Jobs', 'Fleet Manager', 'Financial', 'Invoices', 'Website Bookings'];
 const results = [];
 let finance = null;
+let motBadges = null;
 for (const section of sections) {
   const button = page.getByRole('button', { name: new RegExp(`^${section}(?:\\s|$)`, 'i') }).first();
   await button.click();
@@ -95,14 +112,29 @@ for (const section of sections) {
     await page.locator('.financeReportModal [data-close-modal]').first().click();
   }
 }
+if (mobile) {
+  await page.evaluate(() => window.__vectaBrowserTestRenderMot());
+  const expected = [
+    ['browser-mot-direct', 'MOT 12:30'],
+    ['browser-mot-combined', 'MOT 15:00']
+  ];
+  motBadges = [];
+  for (const [id, expectedText] of expected) {
+    const badge = page.locator(`.mobilePlanner .mobileJob[data-open-job="${id}"]:visible .mobileMotAppointment`).first();
+    await badge.waitFor({ state: 'visible' });
+    const box = await badge.boundingBox();
+    const text = (await badge.textContent() || '').trim();
+    motBadges.push({ id, expectedText, text, visible: await badge.isVisible(), withinViewport: !!box && box.x >= 0 && box.x + box.width <= 390 });
+  }
+}
 await page.screenshot({ path: screenshot, fullPage: false });
 const overlay = await page.locator('[data-nextjs-dialog], .vite-error-overlay, #webpack-dev-server-client-overlay').count();
 await browser.close();
 
 const ignored = localTarget ? /favicon|Failed to load resource.*404|ERR_EMPTY_RESPONSE/i : /favicon|Failed to load resource.*404/i;
 const meaningfulConsoleErrors = consoleErrors.filter(message => !ignored.test(message));
-const report = { target, mode: mobile ? 'mobile' : 'desktop', startupMs, settleMs, connectivity, banner, finance, sections: results, overlay, consoleErrors: meaningfulConsoleErrors, pageErrors, screenshot };
+const report = { target, mode: mobile ? 'mobile' : 'desktop', startupMs, settleMs, connectivity, banner, finance, motBadges, sections: results, overlay, consoleErrors: meaningfulConsoleErrors, pageErrors, screenshot };
 console.log(JSON.stringify(report, null, 2));
-if (!/SYNTHETIC TEST DATA/.test(String(banner)) || (localTarget && startupMs > 3000) || !finance?.matches || overlay || meaningfulConsoleErrors.length || pageErrors.length || results.some(result => !result.visible || result.contentLength < 100)) {
+if (!/SYNTHETIC TEST DATA/.test(String(banner)) || (localTarget && startupMs > 3000) || !finance?.matches || (mobile && motBadges.some(result => !result.visible || !result.withinViewport || result.text !== result.expectedText)) || overlay || meaningfulConsoleErrors.length || pageErrors.length || results.some(result => !result.visible || result.contentLength < 100)) {
   process.exitCode = 1;
 }

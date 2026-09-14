@@ -29,6 +29,7 @@ test('desktop invoice values remain available outside the phone layout', () => {
 test('phone planner shows a saved MOT appointment time', () => {
   assert.match(source, /function mobileMotAppointmentHtml\(j\)/);
   assert.match(source, /hasMotJobType\(j\)&&time/);
-  assert.match(source, /jobTypeChip\(j\)\+mobileMotAppointmentHtml\(j\)/);
+  assert.match(source, /jobTypeChip\(j\)\+'<\/div>'\+mobileMotAppointmentHtml\(j\)/);
+  assert.match(css, /\.mobileMotAppointmentRow\{display:flex;justify-content:flex-end/);
   assert.match(css, /\.mobileMotAppointment\{/);
 });

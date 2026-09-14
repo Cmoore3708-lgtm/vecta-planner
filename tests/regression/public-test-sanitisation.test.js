@@ -29,7 +29,7 @@ test('public test build contains no known real customer labels or targeted regis
 
 test('public test build contains the latest integrity repairs', () => {
   assert.match(html, /VECTA_FINANCIAL_AUDIT_V1|financial integrity/i);
-  assert.match(worker, /v346-mobile-sync-unlock/);
+  assert.match(worker, /v347-safari-request-timeouts/);
   assert.match(
     html,
     /vectaSetStartupLoading\(false\);render\(\);\s*if\(!window\.VECTA_PUBLIC_SYNTHETIC_TEST\)vectaSetStartupLoading\(true/,

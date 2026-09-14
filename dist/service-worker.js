@@ -1,5 +1,5 @@
-const CACHE='vecta-workshop-pro-shell-v31-mobile-sync-unlock';
-const APP_VERSION='v346-mobile-sync-unlock';
+const CACHE='vecta-workshop-pro-shell-v32-safari-request-timeouts';
+const APP_VERSION='v347-safari-request-timeouts';
 const DATA_CACHE='vecta-workshop-pro-data-last-known-v1';
 const HEALTH_CACHE='vecta-workshop-pro-cloud-health-v1';
 const CORE=[
@@ -22,6 +22,13 @@ const HEALTH_FAILURE_LIMIT=3;
 const RECENT_CLOUD_SUCCESS_MS=120000;
 let consecutiveHealthFailures=0;
 let lastCloudSuccessAt=0;
+
+function fetchWithTimeout(input,options,timeoutMs){
+  const controller=typeof AbortController!=='undefined'?new AbortController():null;
+  const timer=controller?setTimeout(()=>controller.abort(),timeoutMs||8000):null;
+  const requestOptions=Object.assign({},options||{},controller?{signal:controller.signal}:{});
+  return fetch(input,requestOptions).finally(()=>{if(timer)clearTimeout(timer)});
+}
 
 function isSupabaseRestRequest(url){
   return /\.supabase\.co$/i.test(url.hostname) && url.pathname.startsWith('/rest/v1/');
@@ -82,7 +89,7 @@ function syntheticHealthSuccess(){
 
 async function serverConfirmsSupabase(){
   try{
-    const response=await fetch('/api/cloud-health',{cache:'no-store'});
+    const response=await fetchWithTimeout('/api/cloud-health',{cache:'no-store'},6000);
     if(!response.ok) return false;
     const body=await response.json().catch(()=>null);
     return body?.ok===true;
@@ -91,7 +98,7 @@ async function serverConfirmsSupabase(){
 
 async function handleJobsHealthProbe(req){
   try{
-    const fresh=await fetch(req,{cache:'no-store'});
+    const fresh=await fetchWithTimeout(req,{cache:'no-store'},8000);
     if(fresh?.ok){
       await recordCloudSuccess();
       const cache=await caches.open(DATA_CACHE);
@@ -121,7 +128,7 @@ async function handleJobsHealthProbe(req){
 async function fetchSupabaseWithLastKnownFallback(req){
   const cache=await caches.open(DATA_CACHE);
   try{
-    const fresh=await fetch(req,{cache:'no-store'});
+    const fresh=await fetchWithTimeout(req,{cache:'no-store'},10000);
     const contentType=String(fresh.headers.get('content-type')||'').toLowerCase();
     if(fresh.ok && contentType.includes('json')){
       await cache.put(req,fresh.clone());
@@ -193,7 +200,7 @@ self.addEventListener('install',event=>{
     const cache=await caches.open(CACHE);
     await Promise.allSettled(CORE.map(async url=>{
       try{
-        const response=await fetch(url,{cache:'reload'});
+        const response=await fetchWithTimeout(url,{cache:'reload'},10000);
         if(response && response.ok){
           if(url==='/' || url==='/index.html'){
             const patched=await htmlResponseFrom(response);
@@ -255,16 +262,20 @@ self.addEventListener('fetch',event=>{
     if(url.pathname.startsWith('/api/')) return;
 
     if(req.mode==='navigate'){
-      event.respondWith((async()=>{
+      const refresh=(async()=>{
         try{
-          const fresh=await fetch(req,{cache:'no-store'});
+          const fresh=await fetchWithTimeout(req,{cache:'no-store'},8000);
           if(fresh && fresh.ok) return await cachePatchedShell(fresh);
-          const cached=(await caches.match('/index.html')) || (await caches.match('/'));
-          return cached ? await htmlResponseFrom(cached) : fresh;
-        }catch(_e){
-          const cached=(await caches.match('/index.html')) || (await caches.match('/'));
-          return cached ? await htmlResponseFrom(cached) : Response.error();
-        }
+          return fresh;
+        }catch(_e){return null}
+      })();
+      event.waitUntil(refresh.catch(()=>null));
+      event.respondWith((async()=>{
+        const cached=(await caches.match('/index.html')) || (await caches.match('/'));
+        if(cached) return await htmlResponseFrom(cached);
+        const fresh=await refresh;
+        if(fresh) return fresh;
+        return Response.error();
       })());
       return;
     }
@@ -273,7 +284,7 @@ self.addEventListener('fetch',event=>{
       const cached=await caches.match(req);
       if(cached) return cached;
       try{
-        const fresh=await fetch(req,{cache:'no-store'});
+        const fresh=await fetchWithTimeout(req,{cache:'no-store'},10000);
         if(fresh && fresh.ok){
           const cache=await caches.open(CACHE);
           await cache.put(req,fresh.clone());
@@ -291,7 +302,7 @@ self.addEventListener('fetch',event=>{
       const cached=await caches.match(req);
       if(cached) return cached;
       try{
-        const fresh=await fetch(req,{cache:'no-store'});
+        const fresh=await fetchWithTimeout(req,{cache:'no-store'},10000);
         if(fresh && fresh.ok){
           const cache=await caches.open(CACHE);
           await cache.put(req,fresh.clone());

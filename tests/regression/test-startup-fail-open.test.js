@@ -18,3 +18,10 @@ test('Test service-worker updates do not reload a page during startup', () => {
   assert.match(worker, /!\/vecta-workshop-pro-test\/i\.test\(self\.location\.hostname\)/);
   assert.doesNotMatch(worker, /const CORE=\[\n  '\/'/);
 });
+
+test('service-worker bounds Safari navigation and cloud waits', () => {
+  assert.match(worker, /function fetchWithTimeout\(/);
+  assert.match(worker, /const cached=\(await caches\.match\('\/index\.html'\)\) \|\| \(await caches\.match\('\/'\)\);\s*if\(cached\) return await htmlResponseFrom\(cached\)/);
+  assert.match(worker, /fetchWithTimeout\(req,\{cache:'no-store'\},8000\)/);
+  assert.doesNotMatch(worker, /const fresh=await fetch\(req,\{cache:'no-store'\}\)/);
+});

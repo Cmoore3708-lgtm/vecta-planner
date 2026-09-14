@@ -555,7 +555,7 @@ async function flushPendingSync(){
   if(!remaining.length)return true;
   return false
 }
-var VECTA_APP_VERSION='v346-test-mobile-sync-unlock';
+var VECTA_APP_VERSION='v347-test-safari-request-timeouts';
 var vectaAppUpdateWaiting=false;
 function vectaSafeApplyAppUpdate(){
   vectaAppUpdateWaiting=true;
@@ -577,7 +577,7 @@ function registerVectaServiceWorker(){
   navigator.serviceWorker.addEventListener('controllerchange',function(){if(!window.VECTA_PUBLIC_SYNTHETIC_TEST)vectaSafeApplyAppUpdate()});
   window.addEventListener('load',function(){
     Promise.resolve(window.__vectaCacheResetPromise).finally(function(){
-      navigator.serviceWorker.register('/service-worker.js?v=20260914-test-mobile-sync-unlock-v346',{updateViaCache:'none'}).then(function(reg){
+      navigator.serviceWorker.register('/service-worker.js?v=20260914-test-safari-request-timeouts-v347',{updateViaCache:'none'}).then(function(reg){
         if(navigator.onLine)Promise.resolve(reg.update()).catch(function(e){console.warn('Service worker update skipped',e)});
       }).catch(function(e){console.warn('Offline app install skipped',e)});
     });
@@ -3340,8 +3340,8 @@ function plannerHtml(){
 
 
 /* v236: restored original core planner/job-card helpers removed during layout amendments */
-function mobileMotAppointmentHtml(j){var time=motTimeFromJob(j);return hasMotJobType(j)&&time?'<span class="mobileMotAppointment" aria-label="MOT appointment time '+esc(time)+'">MOT '+esc(time)+'</span>':''}
-function mobileJobCardHtml(j,groupName){var isOther=String(groupName||j.technician||'').trim().toLowerCase()==='other',vehicleLine=String(j.vehicle||'').trim()||[j.make,j.model].filter(Boolean).join(' ').trim()||'Vehicle';return '<div class="mobileJob jobTypeCoded'+(isOther?' mobileOtherJob':'')+'" style="'+jobTypeInlineStyle(j)+(isOther?'background-color:#dff0ff!important;background-image:linear-gradient(#dff0ff,#dff0ff)!important;':'')+'" data-open-job="'+j.id+'"><div class="mobileJobTop">'+plannerPlate(j)+'<span class="mobileVehicleTop">'+esc(vehicleLine)+'</span></div>'+carryOverBadgeHtml(j)+'<div class="sideJobType">'+jobTypeChip(j)+mobileMotAppointmentHtml(j)+'</div><b>'+esc(j.work_required||'No work required entered')+'</b><div class="mobileJobMeta">'+(j.customer_name?esc(j.customer_name)+'<br>':'')+esc(j.technician||'Unallocated')+' · '+esc(timeRange(j))+' · '+esc(j.ramp||'No ramp')+'</div></div>'}
+function mobileMotAppointmentHtml(j){var time=motTimeFromJob(j);return hasMotJobType(j)&&time?'<div class="mobileMotAppointmentRow"><span class="mobileMotAppointment" aria-label="MOT appointment time '+esc(time)+'">MOT '+esc(time)+'</span></div>':''}
+function mobileJobCardHtml(j,groupName){var isOther=String(groupName||j.technician||'').trim().toLowerCase()==='other',vehicleLine=String(j.vehicle||'').trim()||[j.make,j.model].filter(Boolean).join(' ').trim()||'Vehicle';return '<div class="mobileJob jobTypeCoded'+(isOther?' mobileOtherJob':'')+'" style="'+jobTypeInlineStyle(j)+(isOther?'background-color:#dff0ff!important;background-image:linear-gradient(#dff0ff,#dff0ff)!important;':'')+'" data-open-job="'+j.id+'"><div class="mobileJobTop">'+plannerPlate(j)+'<span class="mobileVehicleTop">'+esc(vehicleLine)+'</span></div>'+carryOverBadgeHtml(j)+'<div class="sideJobType">'+jobTypeChip(j)+'</div>'+mobileMotAppointmentHtml(j)+'<b>'+esc(j.work_required||'No work required entered')+'</b><div class="mobileJobMeta">'+(j.customer_name?esc(j.customer_name)+'<br>':'')+esc(j.technician||'Unallocated')+' · '+esc(timeRange(j))+' · '+esc(j.ramp||'No ramp')+'</div></div>'}
 
 function updateJobQuick(j){j.archived=j.status==='completed';if(j.status==='completed'&&!j.completed_at){var _legacyDone=vectaValidJobDate(j.booking_date)||vectaValidJobDate(j.created_at);if(_legacyDone)j.completed_at=_legacyDone+'T17:00:00.000Z';}j.updated_at=new Date().toISOString();syncTaskFromMiniJob(j);if(j.status==='completed'||j.status==='ready_to_invoice')syncFleetMaintenanceFromJob(j);saveAll();upsertRemote('jobs',j);render()}
 
