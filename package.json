@@ -8,7 +8,7 @@
   },
   "scripts": {
     "dev": "vite",
-    "build": "npx vite build",
+    "build": "npx vite build && node scripts/copy-static-assets.mjs",
     "build:test-source": "node scripts/sanitize-test-build.mjs",
     "build:extract-styles": "node scripts/extract-styles.mjs index.html app.css",
     "preview": "vite preview",
