@@ -52,6 +52,14 @@ test('planner retains its operational controls',()=>{
   ]);
 });
 
+test('mobile job editor keeps its confirmation actions outside the form scroller',()=>{
+  hasAll(html,[
+    /@media\(max-width:760px\)\{[\s\S]*?\.jobModalCard\{[\s\S]*?height:calc\(100dvh - 10px\)!important/,
+    /\.jobModalCard \.modalBody\{[\s\S]*?flex:1 1 auto!important[\s\S]*?overflow-y:auto!important/,
+    /\.jobModalCard \.modalFoot\{[\s\S]*?position:static!important[\s\S]*?safe-area-inset-bottom/
+  ]);
+});
+
 test('jobs retain lifecycle, search and recovery views',()=>{
   hasAll(html,[
     /Today's Jobs/,

@@ -1131,6 +1131,36 @@ body.servicePreviewing .servicePreviewControls{position:relative!important;z-ind
 .jobModalCard .jobFormGrid{gap:8px!important}
 .jobModalCard .field input,.jobModalCard .field select{padding:8px!important}
 .jobModalCard .field textarea{min-height:64px!important;padding:8px!important}
+/* Mobile job editor: Safari's visible height changes as its browser chrome and
+   keyboard open. Keep the actions outside the scrolling form so Create Job,
+   Ready to invoice and Save & Close can never fall below the scroll limit. */
+@media(max-width:760px){
+  .jobModalCard{
+    width:100%!important;
+    height:calc(100vh - 10px)!important;
+    height:calc(100dvh - 10px)!important;
+    max-height:calc(100vh - 10px)!important;
+    max-height:calc(100dvh - 10px)!important;
+    overflow:hidden!important;
+    display:flex!important;
+    flex-direction:column!important;
+    min-height:0!important;
+  }
+  .jobModalCard .modalHead{flex:0 0 auto!important}
+  .jobModalCard .modalBody{
+    flex:1 1 auto!important;
+    min-height:0!important;
+    overflow-x:hidden!important;
+    overflow-y:auto!important;
+    -webkit-overflow-scrolling:touch;
+    overscroll-behavior:contain;
+  }
+  .jobModalCard .modalFoot{
+    position:static!important;
+    flex:0 0 auto!important;
+    padding-bottom:calc(10px + env(safe-area-inset-bottom))!important;
+  }
+}
 /* v41.23 job-card vehicle due lookup */
 .jobVehicleDuePanel{grid-column:1/-1;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;padding:9px;border:1px solid #dbe3ec;border-radius:11px;background:#f8fafc}
 .jobVehicleDuePanel[hidden]{display:none!important}
