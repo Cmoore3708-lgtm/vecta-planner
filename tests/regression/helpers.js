@@ -6,7 +6,9 @@ import { fileURLToPath } from 'node:url';
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
 
 export function source(name = 'index.html') {
-  return fs.readFileSync(path.join(root, name), 'utf8');
+  const primary = fs.readFileSync(path.join(root, name), 'utf8');
+  if (name !== 'index.html') return primary;
+  return `${primary}\n${fs.readFileSync(path.join(root, 'js/vecta-app.js'), 'utf8')}`;
 }
 
 export function extractFunction(name, text = source()) {

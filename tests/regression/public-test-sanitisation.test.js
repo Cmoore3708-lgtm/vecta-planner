@@ -1,8 +1,9 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import fs from 'node:fs';
+import { source } from './helpers.js';
 
-const html = fs.readFileSync(new URL('../../index.html', import.meta.url), 'utf8');
+const html = source();
+const worker = source('service-worker.js');
 
 test('public test build declares synthetic-only mode', () => {
   assert.match(html, /VECTA_PUBLIC_SYNTHETIC_TEST\s*=\s*true/);
@@ -28,7 +29,7 @@ test('public test build contains no known real customer labels or targeted regis
 
 test('public test build contains the latest integrity repairs', () => {
   assert.match(html, /VECTA_FINANCIAL_AUDIT_V1|financial integrity/i);
-  assert.match(html, /v343-test-startup-fail-open/);
+  assert.match(worker, /v344-modular-source/);
   assert.match(
     html,
     /vectaSetStartupLoading\(false\);render\(\);\s*if\(!window\.VECTA_PUBLIC_SYNTHETIC_TEST\)vectaSetStartupLoading\(true/,

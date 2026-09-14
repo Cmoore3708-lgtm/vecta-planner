@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import vm from 'node:vm';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
+import { source as applicationSource } from './helpers.js';
 
 const context=vm.createContext({});
 vm.runInContext(readFileSync(resolve('js/vecta-invoice-rules.js'),'utf8'),context);
@@ -26,7 +27,7 @@ test('missing cancellation timestamp fails closed',()=>{
 });
 
 test('production invoice cancellation path contains no database delete',()=>{
-  const source=readFileSync(resolve('index.html'),'utf8');
+  const source=applicationSource();
   const start=source.indexOf('async function deleteInvoiceCompletely');
   const end=source.indexOf('async function restoreVoidInvoice',start);
   const cancellation=source.slice(start,end);
@@ -35,7 +36,7 @@ test('production invoice cancellation path contains no database delete',()=>{
 });
 
 test('customer and vehicle collections are not mutated by invoice cancellation',()=>{
-  const source=readFileSync(resolve('index.html'),'utf8');
+  const source=applicationSource();
   const start=source.indexOf('async function deleteInvoiceCompletely');
   const end=source.indexOf('async function restoreVoidInvoice',start);
   const cancellation=source.slice(start,end);
@@ -44,7 +45,7 @@ test('customer and vehicle collections are not mutated by invoice cancellation',
 });
 
 test('void invoices are excluded from money totals and duplicate-invoice checks',()=>{
-  const source=readFileSync(resolve('index.html'),'utf8');
+  const source=applicationSource();
   assert.match(source,/function invoicePaymentSummaryHtml\(\).*vectaActiveInvoices\(\)/);
   assert.match(source,/function financeSavedInvoiceForJob\(j\).*vectaActiveInvoices\(\)/);
   assert.match(source,/function savedInvoiceForJobId\(jobId,excludeInvoiceId\).*vectaActiveInvoices\(\)/s);
@@ -52,7 +53,7 @@ test('void invoices are excluded from money totals and duplicate-invoice checks'
 });
 
 test('cancelled invoice retains its number and full invoice row',()=>{
-  const source=readFileSync(resolve('index.html'),'utf8');
+  const source=applicationSource();
   const start=source.indexOf('async function deleteInvoiceCompletely');
   const end=source.indexOf('async function restoreVoidInvoice',start);
   const cancellation=source.slice(start,end);
@@ -61,7 +62,7 @@ test('cancelled invoice retains its number and full invoice row',()=>{
 });
 
 test('cancelling an invoice never returns its job to ready to invoice',()=>{
-  const source=readFileSync(resolve('index.html'),'utf8');
+  const source=applicationSource();
   const start=source.indexOf('async function deleteInvoiceCompletely');
   const end=source.indexOf('async function restoreVoidInvoice',start);
   const cancellation=source.slice(start,end);

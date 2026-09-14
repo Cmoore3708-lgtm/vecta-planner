@@ -8,9 +8,10 @@
   },
   "scripts": {
     "dev": "vite",
-    "build": "npx vite build && node scripts/copy-static-assets.mjs",
+    "build": "node scripts/copy-static-assets.mjs",
     "build:test-source": "node scripts/sanitize-test-build.mjs",
     "build:extract-styles": "node scripts/extract-styles.mjs index.html app.css",
+    "build:extract-app": "node scripts/extract-app-script.mjs index.html js/vecta-app.js assets/vecta-logo.webp",
     "preview": "vite preview",
     "verify:browser": "node scripts/verify-browser.mjs http://127.0.0.1:4173",
     "verify:browser:mobile": "VECTA_BROWSER_MODE=mobile node scripts/verify-browser.mjs http://127.0.0.1:4173",

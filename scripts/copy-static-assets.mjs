@@ -2,11 +2,15 @@ import fs from 'node:fs';
 import path from 'node:path';
 
 const files = [
+  'index.html',
+  'approval.html',
+  'booking.html',
   'app.css',
   'service-worker.js',
   'supabase.min.js',
   'manifest.webmanifest',
   'assets/vecta-header.png',
+  'assets/vecta-logo.webp',
   'icons/vecta-180.png',
   'icons/vecta-192.png',
   'icons/vecta-512.png',
@@ -17,8 +21,11 @@ const files = [
   'js/vecta-invoice-rules.js',
   'js/vecta-job-rules.js',
   'js/vecta-offline-sync-rules.js',
-  'js/vecta-planner-rules.js'
+  'js/vecta-planner-rules.js',
+  'js/vecta-app.js'
 ];
+
+fs.rmSync('dist', { recursive: true, force: true });
 
 for (const file of files) {
   if (!fs.existsSync(file)) throw new Error(`Required static asset is missing: ${file}`);
@@ -27,4 +34,4 @@ for (const file of files) {
   fs.copyFileSync(file, destination);
 }
 
-console.log(`Copied ${files.length} required static assets into dist`);
+console.log(`Built ${files.length} canonical static assets into dist`);

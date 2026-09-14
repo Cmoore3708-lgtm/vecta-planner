@@ -1,9 +1,9 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import fs from 'node:fs';
+import { source } from './helpers.js';
 
-const html = fs.readFileSync('index.html', 'utf8');
-const worker = fs.readFileSync('service-worker.js', 'utf8');
+const html = source();
+const worker = source('service-worker.js');
 
 test('synthetic Test startup never waits for IndexedDB before rendering', () => {
   assert.match(html, /var startupBackupRestore=vectaRestoreLatestBackupIfNeeded\(\);/);
@@ -18,4 +18,3 @@ test('Test service-worker updates do not reload a page during startup', () => {
   assert.match(worker, /!\/vecta-workshop-pro-test\/i\.test\(self\.location\.hostname\)/);
   assert.doesNotMatch(worker, /const CORE=\[\n  '\/'/);
 });
-

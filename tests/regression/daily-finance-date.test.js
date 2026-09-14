@@ -1,9 +1,9 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import fs from 'node:fs';
 import vm from 'node:vm';
+import { source } from './helpers.js';
 
-const html = fs.readFileSync('index.html', 'utf8');
+const html = source();
 
 test('planner daily financial total follows the selected calendar date', () => {
   assert.match(html, /function financeDailyReferenceDate\(\)\{return view==='planner'\?selectedIso\(\):todayIso\(\)\}/);

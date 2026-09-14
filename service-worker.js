@@ -1,10 +1,11 @@
-const CACHE='vecta-workshop-pro-shell-v28-test-startup-fail-open';
-const APP_VERSION='v343-test-startup-fail-open';
+const CACHE='vecta-workshop-pro-shell-v29-modular-source';
+const APP_VERSION='v344-modular-source';
 const DATA_CACHE='vecta-workshop-pro-data-last-known-v1';
 const HEALTH_CACHE='vecta-workshop-pro-cloud-health-v1';
 const CORE=[
   '/index.html',
   '/app.css',
+  '/assets/vecta-logo.webp',
   '/manifest.webmanifest',
   '/icons/vecta-192.png',
   '/icons/vecta-512.png',
@@ -14,7 +15,8 @@ const CORE=[
   '/js/vecta-finance-rules.js',
   '/js/vecta-fleet-rules.js',
   '/js/vecta-booking-rules.js',
-  '/js/vecta-offline-sync-rules.js'
+  '/js/vecta-offline-sync-rules.js',
+  '/js/vecta-app.js'
 ];
 const HEALTH_FAILURE_LIMIT=3;
 const RECENT_CLOUD_SUCCESS_MS=120000;

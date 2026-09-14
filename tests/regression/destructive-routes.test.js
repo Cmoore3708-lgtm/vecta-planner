@@ -1,9 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
-import { resolve } from 'node:path';
+import { source as applicationSource } from './helpers.js';
 
-const source=readFileSync(resolve('index.html'),'utf8');
+const source=applicationSource();
 
 function functionSource(name,nextName){
   const start=source.indexOf(`async function ${name}`);
