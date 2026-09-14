@@ -8,6 +8,11 @@ export function isPreviewEnvironment() {
   return process.env.VERCEL_ENV === 'preview';
 }
 
+export function isAuditPreviewEnvironment() {
+  const branch = String(process.env.VERCEL_GIT_COMMIT_REF || '');
+  return isPreviewEnvironment() && /^audit\/system-simplification-v355$/i.test(branch);
+}
+
 export function databaseEnvironment({ requireService = false } = {}) {
   const preview = isPreviewEnvironment();
   const url = cleanUrl(preview

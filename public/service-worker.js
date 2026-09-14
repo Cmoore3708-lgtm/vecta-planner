@@ -1,5 +1,5 @@
-const CACHE='vecta-workshop-pro-shell-v40-single-update';
-const APP_VERSION='v355-single-update';
+const CACHE='vecta-workshop-pro-shell-v41-source-authority';
+const APP_VERSION='audit-source-authority';
 const DATA_CACHE='vecta-workshop-pro-data-last-known-v1';
 const HEALTH_CACHE='vecta-workshop-pro-cloud-health-v1';
 const CORE=[
@@ -136,47 +136,12 @@ async function fetchSupabaseWithLastKnownFallback(req){
   }
 }
 
-function patchAppShellHtml(html){
-  let patched=String(html||'');
-  patched=patched.replace(
-    /<!-- VECTA REFRESH RECOVERY 2026-09-01:[\s\S]*?<\/script>/,
-    '<!-- VECTA V311: persistent offline shell; destructive cache purge disabled. --><script>window.__vectaCacheResetPromise=Promise.resolve();</script>'
-  );
-  const oldRegister="function registerVectaServiceWorker(){if('serviceWorker' in navigator){window.addEventListener('load',function(){Promise.resolve(window.__vectaCacheResetPromise).finally(function(){navigator.serviceWorker.register('/service-worker.js?v=20260902-push-verify-v306',{updateViaCache:'none'}).then(function(reg){try{reg.update()}catch(_e){}}).catch(function(e){console.warn('Offline app install failed',e)})})})}}";
-  const safeRegister="function registerVectaServiceWorker(){if('serviceWorker' in navigator){window.addEventListener('load',function(){Promise.resolve(window.__vectaCacheResetPromise).finally(function(){navigator.serviceWorker.register('/service-worker.js',{updateViaCache:'none'}).then(function(reg){if(navigator.onLine){Promise.resolve(reg.update()).catch(function(e){console.warn('Service worker update skipped',e)})}}).catch(function(e){console.warn('Offline app install skipped',e)})})})}}";
-  if(patched.includes(oldRegister)) patched=patched.replace(oldRegister,safeRegister);
-  /* Saving a safety sheet prepares paperwork; it does not complete the booked job.
-     The old rule treated any saved sheet as completion evidence and hid EYC's due
-     item before its 11:45 booking had been completed. Gate it on the linked job. */
-  patched=patched.replace(
-    "if(category==='safety'&&kind==='safety')addDate(rec.saved_at||rec.created_at);",
-    "if(category==='safety'&&kind==='safety'){var recordJobId=String(rec.job_id||''),linkedSafetyJob=(app.jobs||[]).find(function(j){return j&&String(j.id)===recordJobId;});if(linkedSafetyJob&&completedJobCanUpdateFleet(linkedSafetyJob))addDate(completedJobDateForFleet(linkedSafetyJob)||linkedSafetyJob.booking_date);}"
-  );
-  /* V350: do not inject repeated full-history Fleet repair scans into the phone shell. */
-  return patched;
-}
-
-async function htmlResponseFrom(response){
-  if(!response) return response;
-  const contentType=String(response.headers.get('content-type')||'').toLowerCase();
-  if(!contentType.includes('text/html')) return response;
-  const text=await response.text();
-  const headers=new Headers(response.headers);
-  headers.set('Content-Type','text/html; charset=utf-8');
-  return new Response(patchAppShellHtml(text),{
-    status:response.status,
-    statusText:response.statusText,
-    headers
-  });
-}
-
-async function cachePatchedShell(response){
+async function cacheShell(response){
   if(!response || !response.ok) return response;
-  const patched=await htmlResponseFrom(response);
   const cache=await caches.open(CACHE);
-  await cache.put('/index.html',patched.clone());
-  await cache.put('/',patched.clone());
-  return patched;
+  await cache.put('/index.html',response.clone());
+  await cache.put('/',response.clone());
+  return response;
 }
 
 self.addEventListener('install',event=>{
@@ -187,8 +152,7 @@ self.addEventListener('install',event=>{
         const response=await fetch(url,{cache:'reload'});
         if(response && response.ok){
           if(url==='/' || url==='/index.html'){
-            const patched=await htmlResponseFrom(response);
-            await cache.put(url,patched.clone());
+            await cache.put(url,response.clone());
           }else{
             await cache.put(url,response.clone());
           }
@@ -236,12 +200,12 @@ self.addEventListener('fetch',event=>{
       event.respondWith((async()=>{
         try{
           const fresh=await fetch(req,{cache:'no-store'});
-          if(fresh && fresh.ok) return await cachePatchedShell(fresh);
+          if(fresh && fresh.ok) return await cacheShell(fresh);
           const cached=(await caches.match('/index.html')) || (await caches.match('/'));
-          return cached ? await htmlResponseFrom(cached) : fresh;
+          return cached || fresh;
         }catch(_e){
           const cached=(await caches.match('/index.html')) || (await caches.match('/'));
-          return cached ? await htmlResponseFrom(cached) : Response.error();
+          return cached || Response.error();
         }
       })());
       return;
