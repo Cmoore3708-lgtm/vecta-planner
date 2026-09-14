@@ -253,16 +253,14 @@ A refactor cannot reach `main` unless all of the following pass:
 
 - Clean lockfile dependency installation: passed.
 - Dependency vulnerability audit: zero known vulnerabilities.
-- Regression suite: 78 passing, including task and planner lifecycle, invoice numbering/VAT/save/cancel/restore/print authority, website-booking duplicate protection, offline queue/reconnect/startup and complete Fleet backup restoration.
+- Regression suite: 82 passing, including task and planner lifecycle, invoice numbering/VAT/save/cancel/restore/print authority, website-booking duplicate protection, offline queue/reconnect/startup, complete Fleet backup restoration and preview runtime isolation.
 - Static delivery/API integration suite: 7 passing, including a permanent single-production-tree check.
 - Production Vite build: passed.
 - Local HTTP delivery smoke test: main application, booking, approval, manifest, service worker and invoice rules all returned HTTP 200 with non-empty content.
-- Interactive browser/device test: blocked in this workspace because no browser runtime is installed.
+- Interactive browser test: passed against the protected Vercel deployment and its stable branch alias.
 - Isolated Vercel preview: deployed successfully from the latest audit branch commit; Vercel cloned the branch, built 87 modules, produced the 2.10 MB application shell and marked the preview `READY`. The `/booking` route returned HTTP 200 from the deployed artifact. Production was not targeted.
-- The audit preview hostname is explicitly prevented from creating a Supabase client. Its browser storage is origin-isolated, so test edits cannot alter the live workshop database.
-- Interactive preview verification opened all eight main sections successfully. A local-only Full Service test job was created, appeared on the planner and Jobs view, populated Parts, and survived a full browser refresh without duplication. No Vecta application errors were emitted during these navigation and persistence checks.
-
-The current remote browser service timed out before attaching to a tab, so a fresh click-through of the final hosted commit could not be completed in this workspace. The earlier isolated click-through remains valid for the unchanged navigation and local-only boundaries, but production promotion should still wait for one fresh desktop/mobile acceptance pass against the final preview.
+- The audit branch is identified from Vercel's server-side Git metadata instead of relying on the browser hostname. Any preview without an isolated database also fails into local-only mode and clears its unusable sync queue, so cached browser credentials cannot connect a preview to production.
+- Interactive preview verification opened all eight main sections successfully. The reported invoice-print failure was reproduced and traced to `/api/supabase-config` returning 503 on a generated deployment URL that did not contain the branch name. The corrected preview returns 200, displays `V355 safe test mode`, and finalised and printed a disposable £65 invoice without an alert. The linked job left Ready to Invoice and invoice `VECTA-00001` appeared in the saved invoice list. Production was not targeted.
 
 ## Initial conclusion
 
