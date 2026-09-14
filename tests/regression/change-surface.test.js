@@ -34,5 +34,5 @@ test('no new hidden replacements are added to the current legacy extension surfa
   const replacements = [...source.matchAll(/^([A-Za-z_$][A-Za-z0-9_$]*)\s*=\s*(?:async\s+)?function\s*\(/gm)]
     .map(match => match[1])
     .sort();
-  assert.deepEqual(replacements, ['fleetBind', 'fleetEomHtml', 'openVehicleRecord', 'saveInvoice']);
+  assert.deepEqual(replacements, []);
 });

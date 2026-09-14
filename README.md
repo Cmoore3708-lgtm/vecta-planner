@@ -1,5 +1,17 @@
-VECTA v41.64 financial performance update
+# VECTA Workshop Pro — Synthetic Test System
 
-- Combined business performance now includes NMUK, Contractors and Staff.
-- Current month, financial year to date and 2026 trend include Staff work.
-- Historic comparison and 10% target remain based on NMUK and contractor history until Staff history exists.
+This branch is the isolated public test environment. It must never connect to
+the live VECTA database or be deployed over the live Workshop Pro project.
+
+The application source is at the repository root. `dist/` contains the exact
+static package published by the separate test project. Synthetic records are
+defined in `test-fixtures.sql`.
+
+## Safety checks
+
+Run `npm test` before publishing. The regression suite verifies database
+isolation, synthetic-data sanitisation, finance rules, job and invoice
+lifecycle rules, synchronisation, offline fallback and website bookings.
+
+Run `npm run verify:browser` for the desktop check and
+`npm run verify:browser:mobile` for the phone-sized check.

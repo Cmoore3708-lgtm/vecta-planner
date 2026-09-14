@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { source } from './helpers.js';
 
 const html = source();
-const worker = source('public/service-worker.js');
+const worker = source('service-worker.js');
 
 test('an app update cannot reload over queued or in-progress work', () => {
   assert.match(html, /vectaPendingSync\(\)\.length\|\|vectaSyncInFlight\|\|plannerInteractionBusy/);

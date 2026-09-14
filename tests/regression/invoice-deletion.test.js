@@ -5,7 +5,7 @@ import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 
 const context=vm.createContext({});
-vm.runInContext(readFileSync(resolve('public/js/vecta-invoice-rules.js'),'utf8'),context);
+vm.runInContext(readFileSync(resolve('js/vecta-invoice-rules.js'),'utf8'),context);
 const rules=context.VectaInvoiceRules;
 const day=24*60*60*1000;
 const now=Date.parse('2026-09-09T12:00:00Z');

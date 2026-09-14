@@ -5,7 +5,7 @@ import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 
 const context=vm.createContext({});
-vm.runInContext(readFileSync(resolve('public/js/vecta-job-rules.js'),'utf8'),context);
+vm.runInContext(readFileSync(resolve('js/vecta-job-rules.js'),'utf8'),context);
 const rules=context.VectaJobRules;
 
 test('deleted-job rule recognises every supported deletion signal',()=>{

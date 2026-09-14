@@ -9,7 +9,11 @@
   "scripts": {
     "dev": "vite",
     "build": "npx vite build",
+    "build:test-source": "node scripts/sanitize-test-build.mjs",
+    "build:extract-styles": "node scripts/extract-styles.mjs index.html app.css",
     "preview": "vite preview",
+    "verify:browser": "node scripts/verify-browser.mjs http://127.0.0.1:4173",
+    "verify:browser:mobile": "VECTA_BROWSER_MODE=mobile node scripts/verify-browser.mjs http://127.0.0.1:4173",
     "test": "node --test tests/regression/*.test.js",
     "test:regression": "node --test tests/regression/*.test.js",
     "test:integration": "node --test tests/integration/*.test.js"
@@ -23,6 +27,7 @@
   },
   "devDependencies": {
     "@vitejs/plugin-react": "^5.0.1",
+    "playwright": "1.55.0",
     "vite": "^7.1.3"
   }
 }

@@ -4,6 +4,8 @@ import { databaseEnvironment } from '../../api/_database-environment.js';
 
 const KEYS = [
   'VERCEL_ENV',
+  'VERCEL_PROJECT_NAME',
+  'VERCEL_PROJECT_PRODUCTION_URL',
   'VITE_SUPABASE_URL',
   'SUPABASE_URL',
   'VITE_SUPABASE_ANON_KEY',
@@ -37,6 +39,48 @@ test('preview uses the restricted test project but never inherits production ser
     const publicConfig = databaseEnvironment();
     assert.equal(publicConfig.url, 'https://rmbmbpqwvghxuyeykjhh.supabase.co');
     assert.equal(publicConfig.preview, true);
+    assert.throws(() => databaseEnvironment({ requireService: true }), /service access is not configured/);
+  });
+});
+
+test('dedicated public test project uses the synthetic database in production mode', () => {
+  withEnvironment({
+    VERCEL_ENV: 'production',
+    VERCEL_PROJECT_NAME: 'vecta-workshop-pro-test',
+    SUPABASE_URL: 'https://jywufozycuwuoshlulwl.supabase.co',
+    SUPABASE_SERVICE_ROLE_KEY: 'production-secret'
+  }, () => {
+    const config = databaseEnvironment();
+    assert.equal(config.url, 'https://rmbmbpqwvghxuyeykjhh.supabase.co');
+    assert.equal(config.testProject, true);
+    assert.throws(() => databaseEnvironment({ requireService: true }), /service access is not configured/);
+  });
+});
+
+test('replacement synthetic test project also uses the isolated database', () => {
+  withEnvironment({
+    VERCEL_ENV: 'production',
+    VERCEL_PROJECT_NAME: 'vecta-synthetic-test',
+    SUPABASE_URL: 'https://jywufozycuwuoshlulwl.supabase.co',
+    SUPABASE_SERVICE_ROLE_KEY: 'production-secret'
+  }, () => {
+    const config = databaseEnvironment();
+    assert.equal(config.url, 'https://rmbmbpqwvghxuyeykjhh.supabase.co');
+    assert.equal(config.testProject, true);
+    assert.throws(() => databaseEnvironment({ requireService: true }), /service access is not configured/);
+  });
+});
+
+test('versioned synthetic test projects remain isolated', () => {
+  withEnvironment({
+    VERCEL_ENV: 'production',
+    VERCEL_PROJECT_NAME: 'vecta-synthetic-test-v2',
+    SUPABASE_URL: 'https://jywufozycuwuoshlulwl.supabase.co',
+    SUPABASE_SERVICE_ROLE_KEY: 'production-secret'
+  }, () => {
+    const config = databaseEnvironment();
+    assert.equal(config.url, 'https://rmbmbpqwvghxuyeykjhh.supabase.co');
+    assert.equal(config.testProject, true);
     assert.throws(() => databaseEnvironment({ requireService: true }), /service access is not configured/);
   });
 });
