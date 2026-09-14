@@ -66,3 +66,40 @@ test('unallocated jobs are explicit and tasks cannot leak into that list', () =>
   assert.match(source, /j\.booking_date=null/);
   assert.match(source, /persistPlannerJobsInBackground\(changed,'Move to Unallocated'\)/);
 });
+
+test('legacy technician names collide in the same visible Other lane', () => {
+  const plannerRules = fs.readFileSync(new URL('../../public/js/vecta-planner-rules.js', import.meta.url), 'utf8');
+  const jobs = [
+    { id: 'legacy', booking_date: '2026-09-14', technician: 'Jordan', drop_time: '09:00', estimated_hours: 1, status: 'booked' },
+  ];
+  const context = {
+    app: { settings: { mechanics: ['Alfie', 'Other', 'Anyone'] }, jobs },
+    window: {},
+    globalThis: {},
+    isJobInvoiced: () => false,
+    clockMinutes(value) { const [h, m] = value.split(':').map(Number); return h * 60 + m; },
+    roundPlannerMinutesUp: value => Math.ceil(Number(value || 0) / 15) * 15,
+    timeFromMinutes(value) { return `${String(Math.floor(value / 60)).padStart(2, '0')}:${String(value % 60).padStart(2, '0')}`; },
+    normaliseClock: value => value,
+    Number,
+    String,
+    Math,
+  };
+  context.window.window = context.window;
+  vm.runInNewContext(plannerRules, context.window);
+  vm.runInNewContext([
+    namedFunctionSource('plannerLaneMechanics'),
+    namedFunctionSource('plannerTechnicianName'),
+    namedFunctionSource('plannerTechnicianLane'),
+    namedFunctionSource('mechanicBookingIntervals'),
+    "intervals=mechanicBookingIntervals('2026-09-14','Other','new')",
+  ].join(';'), context);
+  assert.deepEqual(Array.from(context.intervals, row => [row.id, row.start, row.end]), [['legacy', 540, 600]]);
+  assert.match(namedFunctionSource('findNextMechanicSlot'), /mechanicBookingIntervals\(date,job\.technician,excludeId\)/);
+});
+
+test('every job ingress path repairs overlaps before rendering', () => {
+  assert.match(namedFunctionSource('saveJob'), /plannerCompactLane\(j\.booking_date,plannerTechnicianLane\(j\.technician\)\)[\s\S]*?render\(\)/);
+  assert.match(namedFunctionSource('scheduleCloudRefresh'), /table==='jobs'[\s\S]*?repairExistingPlannerOverlaps\(\{persistRemote:true\}\)[\s\S]*?render\(\)/);
+  assert.match(namedFunctionSource('refreshPlannerCoreFromCloudAndRender'), /repairExistingPlannerOverlaps\(\{persistRemote:true\}\)[\s\S]*?render\(\)/);
+});

@@ -10175,6 +10175,7 @@ async function refreshPlannerCoreFromCloudAndRender(){
     if(results[1].status==='fulfilled')vectaReconcileTasksFromCloud(results[1].value);
     if(results[2].status==='fulfilled')vectaApplyTerminalJobStates();
     vectaRunDataIngressMigrations({reason:'foreground-cloud-refresh',parts:true,tax:false});
+    await repairExistingPlannerOverlaps({persistRemote:true});
     saveLocal();
     var active=document.activeElement;
     if(!(document.querySelector('.modal.open')||(active&&active.matches&&active.matches('input,textarea,select'))))render();
@@ -10202,6 +10203,7 @@ function scheduleCloudRefresh(payload){
       if(Array.isArray(app[deleteKey]))app[deleteKey]=app[deleteKey].filter(function(x){return String(x&&x.id||'')!==String(oldRow.id)});
     }
     vectaRunDataIngressMigrations({reason:'realtime-row',parts:true,tax:false});
+    if(table==='jobs')repairExistingPlannerOverlaps({persistRemote:true}).catch(function(e){console.warn('Realtime planner overlap repair could not fully sync',e)});
     saveLocal();
     if(cloudRefreshDebounce)clearTimeout(cloudRefreshDebounce);
     cloudRefreshDebounce=setTimeout(function(){
@@ -12037,7 +12039,9 @@ function linkifyDisplayedEmails(root){
 var renderInProgress=false;function render(){if(renderInProgress)return;renderInProgress=true;try{safe(function(){var oldTaskList=document.querySelector('.taskList'),oldUnallocated=document.querySelector('.unallocatedJobList'),taskScroll=oldTaskList?oldTaskList.scrollTop:0,unallocatedScroll=oldUnallocated?oldUnallocated.scrollTop:0;document.getElementById('currentDate').value=selectedIso();if(view==='dashboard')view='planner';if(view==='customers'||view==='vehicles')view='search';renderNav();var navMatch=navItems().find(function(x){return x[0]===view});if(!navMatch){view='planner';navMatch=navItems()[0];}document.getElementById('viewTitle').textContent=navMatch[1];var dayNameEl=document.getElementById('dashboardDayName');if(dayNameEl){if(view==='planner'){var dayDate=new Date(selectedIso()+'T12:00:00');dayNameEl.textContent=dayDate.toLocaleDateString('en-GB',{weekday:'long'});dayNameEl.classList.add('show')}else{dayNameEl.textContent='';dayNameEl.classList.remove('show')}}var bookedTodayEl=document.getElementById('dashboardBookedToday'),bookedTodayValue=document.getElementById('dashboardBookedTodayValue');if(bookedTodayEl){if(view==='planner'){var bookedTodayTotal=0;try{bookedTodayTotal=invoiceFinancialSummary().today}catch(e){console.warn('Dashboard booked-today total unavailable',e)}if(bookedTodayValue)bookedTodayValue.textContent=Number(bookedTodayTotal||0).toFixed(2);bookedTodayEl.classList.add('show');bookedTodayEl.onclick=function(){openInvoiceFinanceReport('today')}}else{bookedTodayEl.classList.remove('show');bookedTodayEl.onclick=null}}var c=document.getElementById('content');if(view==='dashboard')c.innerHTML=dashboardHtml();if(view==='planner')c.innerHTML=plannerHtml();if(view==='fleet')c.innerHTML=fleetHtml();if(view==='jobs')c.innerHTML=jobsHtml();if(view==='vehicleTax')c.innerHTML=vehicleTaxHtml();if(view==='service')c.innerHTML=serviceHtml();if(view==='search')c.innerHTML=searchHtml();if(view==='invoices')c.innerHTML=invoicesHtml();if(view==='invoiceArchive')c.innerHTML=invoiceArchiveHtml();if(view==='websiteRequests')c.innerHTML=websiteRequestsHtml();if(view==='parts')c.innerHTML=partsOrderingHtml();if(view==='settings')c.innerHTML=settingsHtml();bindView();if(view==='websiteRequests')bindWebsiteRequests();if(view==='parts')bindPartsOrdering();if(view==='vehicleTax')bindVehicleTax();linkifyDisplayedEmails(c);var newTaskList=document.querySelector('.taskList'),newUnallocated=document.querySelector('.unallocatedJobList');if(newTaskList)newTaskList.scrollTop=taskScroll;if(newUnallocated)newUnallocated.scrollTop=unallocatedScroll;},null)}finally{renderInProgress=false}}
 function isJobInvoiced(j){if(!j)return false;var linked=vectaActiveInvoices().some(function(inv){return String(inv.job_id||'')===String(j.id||'')&&String(inv.status||'saved')!=='draft'});if(linked)return true;if(j.invoice_id||j.invoiced_at)return vectaActiveInvoices().some(function(inv){return String(inv.id||'')===String(j.invoice_id||'')});return false}
 function allJobsForDate(){var d=selectedIso();return app.jobs.filter(function(j){return !vectaJobIsDeletedForLists(j)&&!j.archived&&!isVehicleTaxJob(j)&&!!j.booking_date&&String(j.booking_date)===d&&!isUnallocatedJob(j)})}
-function plannerTechnicianName(job,mechanics){var list=mechanics&&mechanics.length?mechanics:(app.settings.mechanics||[]);return window.VectaPlannerRules.technicianName(job,list)}
+function plannerLaneMechanics(){var existing=(app.settings&&app.settings.mechanics||[]).filter(Boolean),first=existing[0]||'Alfie',second=existing[1]||'Other';return [first,second,'Anyone']}
+function plannerTechnicianName(job,mechanics){var list=mechanics&&mechanics.length?mechanics:plannerLaneMechanics();return window.VectaPlannerRules.technicianName(job,list)}
+function plannerTechnicianLane(value){return plannerTechnicianName({technician:value},plannerLaneMechanics())}
 function jobsForDate(){return allJobsForDate().filter(function(j){return !jobCompletionEvidence(j)&&String(j.status||'').toLowerCase()!=='ready_to_invoice'&&!isJobInvoiced(j)})}
 function workloadValueForJob(job,hourlyRate){
   job=job||{};
@@ -12358,7 +12362,7 @@ function myTasksHtml(instance){instance=instance||'desktop';var bodyId='myTasksB
 function taskCardHtml(t){var m=taskMeta(t),overdue=m.due&&m.due<todayIso();return '<div draggable="true" class="taskCard '+esc(m.priority)+(overdue?' overdue':'')+(m.allocated?' allocated':'')+'" data-task-drag="'+t.id+'" data-task-open="'+t.id+'" title="Click to open task"><button class="taskPin" data-task-pin="'+t.id+'" title="Pin task">'+(m.pinned?'★':'☆')+'</button><div class="taskCardTop"><input type="checkbox" data-task="'+t.id+'"><div><div class="taskTitle">'+esc(t.task_text)+'</div><div class="taskMeta"><span>📅 '+esc(taskDueLabel(m.due))+(m.scheduled_time?' · '+esc(m.scheduled_time):'')+'</span>'+(m.owner?'<span>👤 '+esc(m.owner)+'</span>':'')+(m.allocated?'<span>🛠 '+esc(m.allocated_to)+' · '+esc(m.allocated_time)+'</span>':'')+(m.recurrence_label?'<span>↻ '+esc(m.recurrence_label)+'</span>':'')+(m.notes&&!m.recurrence_label?'<span title="'+esc(m.notes)+'">📝 Notes</span>':'')+'</div></div></div><div class="taskActions"><button data-task-delete="'+t.id+'" title="Delete task">Delete</button></div></div>'}
 function tasksHtml(){return myTasksHtml()}
 function byTime(a,b){return String(a.drop_time||'08:00').localeCompare(String(b.drop_time||'08:00'))}
-function mechanicHours(jobs,m){return jobs.filter(function(j){return j.technician===m}).reduce(function(a,j){return a+Number(j.estimated_hours||1)},0)}
+function mechanicHours(jobs,m){return jobs.filter(function(j){return plannerTechnicianLane(j.technician)===plannerTechnicianLane(m)}).reduce(function(a,j){return a+Number(j.estimated_hours||1)},0)}
 var PLANNER_PX_PER_HOUR=56;
 function topFor(j){var mins=clockMinutes(j.drop_time||'08:00')-plannerStartMinutes;return Math.max(0,(mins/60)*PLANNER_PX_PER_HOUR)}
 /* Keep jobs tightly stacked while leaving a small, consistent visual separation between cards. */
@@ -13248,7 +13252,7 @@ function minutesFromTime(t){var p=String(t||'08:00').split(':');return Number(p[
 function timeFromMinutes(total){total=Math.max(0,Math.round(total));return String(Math.floor(total/60)).padStart(2,'0')+':'+String(total%60).padStart(2,'0')}
 /* VECTA stacked planner: the clock is a guide; jobs are ordered and packed together.
    A gap is only introduced when recorded mechanic time-off makes the next position unavailable. */
-function plannerLaneActiveJobs(date,tech,excludeId){return (app.jobs||[]).filter(function(x){var st=String(x&&x.status||'').toLowerCase();return x&&String(x.id)!==String(excludeId||'')&&!x.archived&&!isSoftDeletedJob(x)&&!jobCompletionEvidence(x)&&st!=='cancelled'&&st!=='ready_to_invoice'&&!isJobInvoiced(x)&&String(x.booking_date||'')===String(date||'')&&String(x.technician||'')===String(tech||'')&&String(x.technician||'')!=='Unallocated'}).sort(function(a,b){var d=clockMinutes(a.drop_time||'08:00')-clockMinutes(b.drop_time||'08:00');return d||String(a.created_at||'').localeCompare(String(b.created_at||''))})}
+function plannerLaneActiveJobs(date,tech,excludeId){var wantedLane=plannerTechnicianLane(tech);return (app.jobs||[]).filter(function(x){var st=String(x&&x.status||'').toLowerCase();return x&&String(x.id)!==String(excludeId||'')&&!x.archived&&!isSoftDeletedJob(x)&&!jobCompletionEvidence(x)&&st!=='cancelled'&&st!=='ready_to_invoice'&&!isJobInvoiced(x)&&String(x.booking_date||'')===String(date||'')&&plannerTechnicianLane(x.technician)===wantedLane&&String(x.technician||'')!=='Unallocated'}).sort(function(a,b){var d=clockMinutes(a.drop_time||'08:00')-clockMinutes(b.drop_time||'08:00');return d||String(a.created_at||'').localeCompare(String(b.created_at||''))})}
 function plannerSafeStackStart(job,cursor){var start=Math.max(8*60,Math.round(Number(cursor||8*60)/15)*15),guard=0;while(guard++<80){job.drop_time=timeFromMinutes(start);var conflict=window.vectaTimeOffConflict&&window.vectaTimeOffConflict(job,job.id);if(!conflict)return start;start+=15}return start}
 function plannerCompactLane(date,tech,orderedIds,anchorMinutes){if(!date||!tech||tech==='Unallocated')return [];var jobs=plannerLaneActiveJobs(date,tech),rank={};(orderedIds||[]).forEach(function(id,i){rank[String(id)]=i});if(orderedIds&&orderedIds.length)jobs.sort(function(a,b){var ar=Object.prototype.hasOwnProperty.call(rank,String(a.id))?rank[String(a.id)]:999999,br=Object.prototype.hasOwnProperty.call(rank,String(b.id))?rank[String(b.id)]:999999;return ar-br||clockMinutes(a.drop_time||'08:00')-clockMinutes(b.drop_time||'08:00')});if(!jobs.length)return [];var earliest=Math.min.apply(null,jobs.map(function(x){return clockMinutes(x.drop_time||'08:00')}));var cursor=Math.max(8*60,Number.isFinite(Number(anchorMinutes))?Math.min(earliest,Number(anchorMinutes)):earliest),changed=[];jobs.forEach(function(j){var before=normaliseClock(j.drop_time||'08:00'),start=plannerSafeStackStart(j,cursor),after=timeFromMinutes(start),duration=Math.max(15,roundPlannerMinutesUp(Number(j.estimated_hours||1)*60));j.drop_time=after;if(after!==before){j.updated_at=new Date().toISOString();changed.push(j)}cursor=start+duration});return changed}
 function plannerDropOrder(date,tech,excludeId,rawMinutes){var jobs=plannerLaneActiveJobs(date,tech,excludeId),index=jobs.length;for(var i=0;i<jobs.length;i++){var start=clockMinutes(jobs[i].drop_time||'08:00'),dur=Math.max(15,roundPlannerMinutesUp(Number(jobs[i].estimated_hours||1)*60)),mid=start+(dur/2);if(rawMinutes<mid){index=i;break}}return {jobs:jobs,index:index}}
@@ -13914,7 +13918,7 @@ async function deleteJobCompletely(id){
 function roundPlannerMinutesUp(minutes){return Math.ceil(Number(minutes||0)/15)*15}
 function plannerIsoDate(date){return date.getFullYear()+'-'+String(date.getMonth()+1).padStart(2,'0')+'-'+String(date.getDate()).padStart(2,'0')}
 function nextWorkshopDate(isoDate){var d=new Date(String(isoDate)+'T12:00:00');if(isNaN(d.getTime()))return isoDate;do{d.setDate(d.getDate()+1)}while(d.getDay()===0||d.getDay()===6);return plannerIsoDate(d)}
-function mechanicBookingIntervals(date,technician,excludeId){var booked=(app.jobs||[]).filter(function(x){var status=String(x&&x.status||'').toLowerCase();return x&&String(x.id)!==String(excludeId||'')&&!x.archived&&status!=='completed'&&status!=='cancelled'&&status!=='deleted'&&status!=='ready_to_invoice'&&!isJobInvoiced(x)&&String(x.booking_date||'')===String(date||'')&&String(x.technician||'')===String(technician||'')&&String(x.technician||'')!=='Unallocated'}).map(function(x){var start=clockMinutes(x.drop_time||'08:00'),duration=Math.max(15,Math.round(Number(x.estimated_hours||1)*60));return {start:start,end:start+duration,id:x.id}});var timeOff=window.vectaTimeOffIntervals?window.vectaTimeOffIntervals(date,technician):[];return booked.concat(timeOff).sort(function(a,b){return a.start-b.start})}
+function mechanicBookingIntervals(date,technician,excludeId){var wantedLane=plannerTechnicianLane(technician),booked=(app.jobs||[]).filter(function(x){var status=String(x&&x.status||'').toLowerCase();return x&&String(x.id)!==String(excludeId||'')&&!x.archived&&status!=='completed'&&status!=='cancelled'&&status!=='deleted'&&status!=='ready_to_invoice'&&!isJobInvoiced(x)&&String(x.booking_date||'')===String(date||'')&&plannerTechnicianLane(x.technician)===wantedLane&&String(x.technician||'')!=='Unallocated'}).map(function(x){var start=clockMinutes(x.drop_time||'08:00'),duration=Math.max(15,Math.round(Number(x.estimated_hours||1)*60));return {start:start,end:start+duration,id:x.id}});var timeOff=window.vectaTimeOffIntervals?window.vectaTimeOffIntervals(date,wantedLane):[];return booked.concat(timeOff).sort(function(a,b){return a.start-b.start})}
 function findNextMechanicSlot(job,excludeId){
   if(!job||!job.booking_date||!job.technician||job.technician==='Unallocated')return null;
   var duration=Math.max(15,roundPlannerMinutesUp(Number(job.estimated_hours||1)*60)),date=String(job.booking_date),requested=roundPlannerMinutesUp(clockMinutes(job.drop_time||'08:00')),dayStart=8*60,intervals=mechanicBookingIntervals(date,job.technician,excludeId),candidate=Math.max(dayStart,requested),guard=0;
@@ -13938,7 +13942,7 @@ async function repairExistingPlannerOverlaps(options){
     return ak.localeCompare(bk);
   });
   var cursors={};
-  for(var i=0;i<active.length;i++){var j=active[i],key=String(j.booking_date)+'|'+String(j.technician),requested=roundPlannerMinutesUp(clockMinutes(j.drop_time||'08:00')),start=Math.max(requested,cursors[key]||8*60),duration=Math.max(15,roundPlannerMinutesUp(Number(j.estimated_hours||1)*60));if(start!==requested){j.drop_time=timeFromMinutes(start);j.updated_at=new Date().toISOString();if(!changedIds[j.id]){changedIds[j.id]=true;changed.push(j)}}cursors[key]=start+duration}
+  for(var i=0;i<active.length;i++){var j=active[i],key=String(j.booking_date)+'|'+String(plannerTechnicianLane(j.technician)),requested=roundPlannerMinutesUp(clockMinutes(j.drop_time||'08:00')),start=Math.max(requested,cursors[key]||8*60),duration=Math.max(15,roundPlannerMinutesUp(Number(j.estimated_hours||1)*60));if(start!==requested){j.drop_time=timeFromMinutes(start);j.updated_at=new Date().toISOString();if(!changedIds[j.id]){changedIds[j.id]=true;changed.push(j)}}cursors[key]=start+duration}
   if(changed.length){
     saveLocal();
     if(options.persistRemote&&remoteClient){
@@ -14028,6 +14032,10 @@ async function saveJob(id){
     syncTaskFromMiniJob(j);
     var ix=app.jobs.findIndex(function(x){return String(x.id)===String(id)||String(x.id)===String(originalJobId)||String(x.id)===String(j.id)});
     if(ix>=0)app.jobs[ix]=j;else app.jobs.push(j);
+    /* The screen folds retired/unknown technician names into the visible Other
+       lane. Compact that exact visible lane before rendering so legacy names,
+       concurrent device inserts and same-time bookings can never cover a card. */
+    var overlapShifted=isVehicleTaxJob(j)?[]:plannerCompactLane(j.booking_date,plannerTechnicianLane(j.technician));
     if(window.__vectaMotCompletionDecision)delete window.__vectaMotCompletionDecision[String(id)];
     ensureContractorSavedFromJob(j);
     if(j.status==='completed')syncFleetMaintenanceFromJob(j);
@@ -14037,6 +14045,7 @@ async function saveJob(id){
       if(Array.isArray(app.jobs)&&app.jobs.length>=10)localStorage.setItem('vecta:last-good-jobs:v322',JSON.stringify(app.jobs));
     }catch(e){}
     syncSavedJobBundleInBackground(Object.assign({},j),linked);
+    if(overlapShifted.length)persistPlannerJobsInBackground(overlapShifted.filter(function(x){return String(x.id)!==String(j.id)}),'New job overlap repair');
 
     if(String(j.source||'').toLowerCase()==='website booking'&&/^\d{4}-\d{2}-\d{2}$/.test(String(j.booking_date||''))){selectedDate=new Date(j.booking_date+'T00:00:00');view='planner';}
     closeModals();
