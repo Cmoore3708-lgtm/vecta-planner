@@ -38,7 +38,7 @@ if (localTarget) {
     const file = candidates.find(candidate => candidate.startsWith(process.cwd()) && fs.existsSync(candidate) && fs.statSync(candidate).isFile());
     if (!file) return route.fulfill({ status: 404, body: 'Not found' });
     let body = fs.readFileSync(file);
-    if (mobile && relative === 'js/vecta-app.js') {
+    if (relative === 'js/vecta-app.js') {
       const source = body.toString('utf8');
       const closing = source.lastIndexOf('})();');
       const testHook = `\nwindow.__vectaBrowserTestRenderMot=function(){
@@ -49,6 +49,15 @@ if (localTarget) {
           {id:'browser-mot-combined',booking_date:bookingDate,registration:'TST26CMB',vehicle:'Combined booking test',customer_name:'Phone Test',technician:'Other',ramp:'Right',drop_time:'15:00',estimated_hours:1,status:'booked',job_type:'MOT, Full Service || MOT',work_required:'Combined service and MOT',customer_note:'[[MOT_TIME:15:00]]'}
         ]);
         view='planner';render();
+      };
+      window.__vectaBrowserTestOpenBlankMileageSheet=async function(){
+        var originalRemoteClient=remoteClient,originalFetchDvsaVehicle=fetchDvsaVehicle;
+        remoteClient=null;
+        fetchDvsaVehicle=async function(){return {mileage:65432}};
+        var testJob={id:'browser-service-mileage',booking_date:selectedIso(),registration:'TST26MIL',vehicle:'Mileage test vehicle',customer_name:'Phone Test',technician:'Alfie',ramp:'Left',estimated_hours:1,status:'booked',job_type:'Full Service',work_required:'Full service',mileage:'54321'};
+        app.serviceRecords=(app.serviceRecords||[]).filter(function(record){return String(record&&record.job_id||'')!==testJob.id});
+        app.jobs=(app.jobs||[]).filter(function(job){return job&&job.id!==testJob.id}).concat([testJob]);
+        try{await printService(testJob.id)}finally{fetchDvsaVehicle=originalFetchDvsaVehicle;remoteClient=originalRemoteClient}
       };\n`;
       if (closing < 0) throw new Error('Could not install browser-only MOT fixture hook');
       body = Buffer.from(source.slice(0, closing) + testHook + source.slice(closing));
@@ -94,6 +103,7 @@ const sections = ['Dashboard', 'Jobs', 'Fleet Manager', 'Financial', 'Invoices',
 const results = [];
 let finance = null;
 let motBadges = null;
+let serviceMileage = null;
 for (const section of sections) {
   const button = page.getByRole('button', { name: new RegExp(`^${section}(?:\\s|$)`, 'i') }).first();
   await button.click();
@@ -127,14 +137,25 @@ if (mobile) {
     motBadges.push({ id, expectedText, text, visible: await badge.isVisible(), withinViewport: !!box && box.x >= 0 && box.x + box.width <= 390 });
   }
 }
+await page.evaluate(() => window.__vectaBrowserTestOpenBlankMileageSheet());
+await page.locator('#printSheet .servicePrint .ssMileageEntry').waitFor({ state: 'visible' });
+const inheritedMileage = (await page.locator('#printSheet .ssMileageEntry').textContent() || '').trim();
+const requiredAlert = await page.evaluate(async () => {
+  let message = '';
+  const originalAlert = window.alert;
+  window.alert = value => { message = String(value || ''); };
+  try { await window.saveServiceSheet(); } finally { window.alert = originalAlert; }
+  return message;
+});
+serviceMileage = { inheritedMileage, startsBlank: inheritedMileage === '', requiredAlert };
 await page.screenshot({ path: screenshot, fullPage: false });
 const overlay = await page.locator('[data-nextjs-dialog], .vite-error-overlay, #webpack-dev-server-client-overlay').count();
 await browser.close();
 
 const ignored = localTarget ? /favicon|Failed to load resource.*404|ERR_EMPTY_RESPONSE/i : /favicon|Failed to load resource.*404/i;
 const meaningfulConsoleErrors = consoleErrors.filter(message => !ignored.test(message));
-const report = { target, mode: mobile ? 'mobile' : 'desktop', startupMs, settleMs, connectivity, banner, finance, motBadges, sections: results, overlay, consoleErrors: meaningfulConsoleErrors, pageErrors, screenshot };
+const report = { target, mode: mobile ? 'mobile' : 'desktop', startupMs, settleMs, connectivity, banner, finance, motBadges, serviceMileage, sections: results, overlay, consoleErrors: meaningfulConsoleErrors, pageErrors, screenshot };
 console.log(JSON.stringify(report, null, 2));
-if (!/SYNTHETIC TEST DATA/.test(String(banner)) || (localTarget && startupMs > 3000) || !finance?.matches || (mobile && motBadges.some(result => !result.visible || !result.withinViewport || result.text !== result.expectedText)) || overlay || meaningfulConsoleErrors.length || pageErrors.length || results.some(result => !result.visible || result.contentLength < 100)) {
+if (!/SYNTHETIC TEST DATA/.test(String(banner)) || (localTarget && startupMs > 3000) || !finance?.matches || (mobile && motBadges.some(result => !result.visible || !result.withinViewport || result.text !== result.expectedText)) || !serviceMileage.startsBlank || !/current vehicle mileage as numbers only/i.test(serviceMileage.requiredAlert) || overlay || meaningfulConsoleErrors.length || pageErrors.length || results.some(result => !result.visible || result.contentLength < 100)) {
   process.exitCode = 1;
 }

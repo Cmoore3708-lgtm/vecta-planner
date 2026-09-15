@@ -1,5 +1,5 @@
 const CACHE='vecta-workshop-pro-shell-v32-safari-request-timeouts';
-const APP_VERSION='v347-safari-request-timeouts';
+const APP_VERSION='v348-manual-service-mileage';
 const DATA_CACHE='vecta-workshop-pro-data-last-known-v1';
 const HEALTH_CACHE='vecta-workshop-pro-cloud-health-v1';
 const CORE=[
