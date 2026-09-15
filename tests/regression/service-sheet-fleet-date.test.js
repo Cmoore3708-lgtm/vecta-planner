@@ -45,3 +45,10 @@ test('startup hydrates the Fleet snapshot before imports can save stale local da
   assert.ok(dashboard >= 0 && fleetPull > dashboard, 'Fleet cloud pull must follow the authoritative dashboard pull');
   assert.ok(contractorImport > fleetPull, 'Fleet cloud pull must finish before the first startup contractor import');
 });
+
+test('an active month-based service schedule remains visible until its cycle is completed', () => {
+  const start = html.indexOf('function fleetPlanCompletedForCurrentCycle(p)');
+  const end = html.indexOf('function fleetVehiclePlans(id)', start);
+  const implementation = html.slice(start, end);
+  assert.match(implementation, /p&&p\.targetMonth&&!\/\^\\d\{4\}-\\d\{2\}-\\d\{2\}\$\/\.test\(String\(p\.currentDueDate\|\|''\)\.slice\(0,10\)\)\)return false/);
+});
