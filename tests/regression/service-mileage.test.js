@@ -12,8 +12,21 @@ test('a new service sheet never inherits job or MOT mileage', () => {
 test('saving requires a manually entered numeric current mileage', () => {
   assert.match(app, /function normaliseServiceMileage\(value\)/);
   assert.ok(app.includes("/^\\d{1,7}$/.test(mileage)"));
-  assert.match(app, /Please enter the current vehicle mileage as numbers only before saving the service sheet\./);
+  assert.match(app, /Please enter the current vehicle mileage as numbers only before continuing\./);
+  assert.match(app, /var mileageValue=requireServiceSheetMileage\(\);if\(!mileageValue\)return/);
   assert.match(app, /mileage:mileageValue/);
+});
+
+test('closing service paperwork enforces mileage before the stamp question', () => {
+  assert.match(app, /function closeServicePreviewPrompt\(\)\{if\(!requireServiceSheetMileage\(\)\)return;if\(activeServiceKind==='service'&&!confirm\('Has the Service book been stamped\?'\)\)return;/);
+});
+
+test('service-book completion prompt uses selected job types, never work notes', () => {
+  const start = app.indexOf('function isRoadGoingServiceJob(j)');
+  const end = app.indexOf('function confirmServiceBookStampedBeforeComplete(j)', start);
+  const implementation = app.slice(start, end);
+  assert.match(implementation, /jobTypeValues\(j\)\.join\(' '\)/);
+  assert.doesNotMatch(implementation, /work_required/);
 });
 
 test('previously saved service sheets retain their saved mileage', () => {
