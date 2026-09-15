@@ -10295,6 +10295,9 @@ function init(){safe(async function(){
       /* V288: jobs + tasks + terminal states are fetched in parallel, reconciled in memory,
          and only then is the dashboard exposed. Stale local cards can no longer flash first. */
       await vectaPrimeAuthoritativeDashboard();
+      /* Fleet is a whole-snapshot record. Hydrate it before any startup import can
+         call saveFleet(), otherwise a stale device can overwrite newer manual dates. */
+      await pullFleetCloudState();
       vectaRunDataIngressMigrations({reason:'authoritative-dashboard',parts:true,tax:false});
       /* V343: never wait for IndexedDB before displaying downloaded jobs. iOS can
          leave a backup write pending indefinitely; persistence must be background-only. */

@@ -37,3 +37,11 @@ test('a manually saved Fleet service date wins when paperwork is rebuilt', () =>
   assert.match(implementation, /servicePlan\.manualDueDate===true&&savedFleetNext/);
   assert.match(implementation, /\?savedFleetNext:\(calculatedNext\|\|savedFleetNext\)/);
 });
+
+test('startup hydrates the Fleet snapshot before imports can save stale local dates', () => {
+  const dashboard = html.indexOf('await vectaPrimeAuthoritativeDashboard();');
+  const fleetPull = html.indexOf('await pullFleetCloudState();', dashboard);
+  const contractorImport = html.indexOf('importContractor2026Spreadsheet();', dashboard);
+  assert.ok(dashboard >= 0 && fleetPull > dashboard, 'Fleet cloud pull must follow the authoritative dashboard pull');
+  assert.ok(contractorImport > fleetPull, 'Fleet cloud pull must finish before the first startup contractor import');
+});
