@@ -10917,7 +10917,7 @@ function fleetAutoRefreshBanner(){
   return '<div class="fleetAutoRefreshBar"><div><b>Government vehicle data</b><span>'+(when?'Last check '+esc(new Date(when).toLocaleString('en-GB')):'Automatic nightly checking enabled')+'</span></div><div class="fleetAutoRefreshStats"><button type="button" class="btn" id="fleetManualMotCheck" title="Run a live MOT lookup now">'+checked+' Checked</button><span>'+updated+' MOT dates updated</span>'+(errors?'<span class="warn">'+errors+' errors</span>':'')+(hasReport?'<button type="button" class="btn" id="fleetManualMotReport">View results</button>':'')+'<span>Tax '+(taxConfigured?'DVLA connected':'DVLA API ready — key pending')+'</span></div></div>';
 }
 
-function fleetDate(plan){/* V317: government MOT authority always wins over stale Fleet plan dates. */try{if(plan&&typeof fleetMaintenanceCategory==='function'&&fleetMaintenanceCategory(plan.type)==='mot'&&typeof fleetMotAuthority==='object'&&fleetMotAuthority){var fv=(fleetVehicles||[]).find(function(v){return v&&String(v.id)===String(plan.vehicleId)}),reg=fv&&normReg(fv.registration||''),rec=reg&&fleetMotAuthority[reg],auth=rec&&dvsaIsoDate(rec.expiry);if(auth)return auth}}catch(e){console.warn('V317 MOT authority date fallback',e)}var raw=String(plan&&plan.currentDueDate||'').slice(0,10),interval=Math.max(1,Number(plan&&plan.intervalMonths||12));if(raw&&/^\d{4}-\d{2}-\d{2}$/.test(raw)){var due=new Date(raw+'T00:00:00'),today=new Date();today.setHours(0,0,0,0);if(!isNaN(due.getTime())){var staleCutoff=new Date(today);staleCutoff.setMonth(staleCutoff.getMonth()-interval);if(due<staleCutoff){var guard=0;while(due<today&&guard++<120){var day=due.getDate();due.setDate(1);due.setMonth(due.getMonth()+interval);var last=new Date(due.getFullYear(),due.getMonth()+1,0).getDate();due.setDate(Math.min(day,last))}return due.getFullYear()+'-'+String(due.getMonth()+1).padStart(2,'0')+'-'+String(due.getDate()).padStart(2,'0')}return raw}}if(!plan||!plan.targetMonth)return '';var d=new Date(),y=d.getFullYear(),m=Number(plan.targetMonth)-1;if(m<d.getMonth())y++;return y+'-'+String(m+1).padStart(2,'0')+'-01'}
+function fleetDate(plan){/* Government MOT authority wins over the stored plan date. */try{if(plan&&typeof fleetMaintenanceCategory==='function'&&fleetMaintenanceCategory(plan.type)==='mot'&&typeof fleetMotAuthority==='object'&&fleetMotAuthority){var fv=(fleetVehicles||[]).find(function(v){return v&&String(v.id)===String(plan.vehicleId)}),reg=fv&&normReg(fv.registration||''),rec=reg&&fleetMotAuthority[reg],auth=rec&&dvsaIsoDate(rec.expiry);if(auth)return auth}}catch(e){console.warn('Fleet MOT authority date fallback',e)}var raw=String(plan&&plan.currentDueDate||'').slice(0,10);/* Never roll an overdue stored date forward merely because time passed. Only a confirmed completion or an authoritative MOT lookup may advance a due cycle. */if(/^\d{4}-\d{2}-\d{2}$/.test(raw))return raw;if(!plan||!plan.targetMonth)return '';var d=new Date(),y=d.getFullYear(),m=Number(plan.targetMonth)-1;if(m<d.getMonth())y++;return y+'-'+String(m+1).padStart(2,'0')+'-01'}
 function fleetTone(date){if(!date)return 'unknown';var today=new Date();today.setHours(0,0,0,0);var due=new Date(date+'T00:00:00'),days=Math.ceil((due-today)/86400000);return days<0?'overdue':days<=30?'soon':'future'}
 function fleetFormat(date){if(!date)return 'Not scheduled';return new Date(date+'T00:00:00').toLocaleDateString('en-GB')}
 function fleetMaintenanceCategory(value){return window.VectaFleetRules.maintenanceCategory(value)}
@@ -15072,6 +15072,9 @@ init();
      it was completed. Once the next service moves the due date, the old completion no
      longer clears the new cycle. */
   window.fleetPlanCompletedForCurrentCycle=function(p){
+    /* Keep a deliberately entered active due cycle visible. Completion handlers
+       advance and unprotect the plan when that exact piece of work is finished. */
+    if(p&&p.manualDueDate===true)return false;
     var due=typeof fleetDate==='function'?fleetDate(p):String(p&&p.currentDueDate||''),
         planCategory=typeof fleetMaintenanceCategory==='function'?fleetMaintenanceCategory(p.type):'',
         vehicle=(fleetVehicles||[]).find(function(v){return v&&String(v.id)===String(p&&p.vehicleId)}),
@@ -15092,7 +15095,14 @@ init();
 
     return (fleetCompletions||[]).some(function(c){
       if(String(c.vehicleId)!==String(p.vehicleId))return false;
-      var completed=String(c.completedDate||c.completedMonth||'');if(!completed)return false;if(String(completed).slice(0,10)>todayIso())return false;
+      var completed=String(c.completedDate||c.completedMonth||'');if(!completed)return false;
+      /* Month-only imports are not proof of completion until that month has
+         ended. Treating YYYY-MM as the first day hid still-due work early. */
+      if(c.datePrecision==='month'&&/^\d{4}-\d{2}$/.test(completed)){
+        var monthParts=completed.split('-'),monthEnd=new Date(Number(monthParts[0]),Number(monthParts[1]),0);
+        completed=monthEnd.getFullYear()+'-'+String(monthEnd.getMonth()+1).padStart(2,'0')+'-'+String(monthEnd.getDate()).padStart(2,'0');
+      }
+      if(String(completed).slice(0,10)>todayIso())return false;
       if(c.planId){
         if(String(c.planId)!==String(p.id))return false;
         if(planCategory==='safety'){
