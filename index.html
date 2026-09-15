@@ -10997,10 +10997,6 @@ function fleetPlanCompletedForCurrentCycle(p){
   /* A user-entered active due date is the authoritative outstanding cycle.
      Historical completion evidence must not hide it from the Fleet list. */
   if(p&&p.manualDueDate===true)return false;
-  /* Imported month-based schedules deliberately have no exact currentDueDate.
-     The derived first-of-month date shown in Vehicle Details is still an active
-     scheduled cycle and must not be hidden by unrelated historical evidence. */
-  if(p&&p.targetMonth&&!/^\d{4}-\d{2}-\d{2}$/.test(String(p.currentDueDate||'').slice(0,10)))return false;
   var due=fleetDate(p),planCategory=fleetMaintenanceCategory(p.type),
       vehicle=(fleetVehicles||[]).find(function(v){return v&&String(v.id)===String(p.vehicleId)}),
       latestEvidence=vehicle&&fleetLatestCompletedEvidenceDate(vehicle,planCategory);
