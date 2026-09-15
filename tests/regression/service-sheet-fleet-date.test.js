@@ -29,3 +29,11 @@ test('whole-Fleet cloud saves are serialised so an older snapshot cannot win', (
   assert.match(html, /fleetCloudQueuedSignatures\[sig\]/);
   assert.match(html, /function saveFleet\(\)[\s\S]*?return persistFleetCloudSnapshot\(\)/);
 });
+
+test('a manually saved Fleet service date wins when paperwork is rebuilt', () => {
+  const start = html.indexOf('function serviceSheetDueData(j,kind)');
+  const end = html.indexOf('function serviceSheetDateInput', start);
+  const implementation = html.slice(start, end);
+  assert.match(implementation, /servicePlan\.manualDueDate===true&&savedFleetNext/);
+  assert.match(implementation, /\?savedFleetNext:\(calculatedNext\|\|savedFleetNext\)/);
+});
