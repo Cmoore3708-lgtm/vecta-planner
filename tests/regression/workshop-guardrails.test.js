@@ -15,9 +15,16 @@ test('phone Fleet due list uses a screen-width compact grid',()=>{
 
 test('Fleet due list links booked dates to job cards and dates email audit ticks',()=>{
   assert.match(html,/class="fleetBookedDateLink" data-fleet-booked-job=/);
+  assert.match(html,/shortDate=new Date\([\s\S]*?toLocaleDateString\('en-GB',\{day:'2-digit',month:'2-digit'\}\)/, 'booked dates must omit the year');
+  assert.match(html,/grid-template-columns:125px 76px minmax\(105px,1fr\) 78px 72px minmax\(201px,226px\)!important/, 'Booked must give its spare width to Work due');
+  assert.match(html,/\.fleetBookedDateLink\{[^}]*font-size:9px/, 'booked links must use compact green text');
   assert.match(html,/document\.querySelectorAll\('\[data-fleet-booked-job\]'\)[\s\S]*?openJobModal\(id\)/);
   assert.match(html,/function fleetEmailSentDisplayDate\(record\)[\s\S]*?niceDate\(raw\)/);
-  assert.match(html,/\.contactEmailLink,\.fleetReminderEmailLink[\s\S]*?fleetMarkEmailSentForVehicle\(v\)/);
+  assert.match(html,/data-fleet-email-registration=/, 'vehicle email links must identify their Fleet registration');
+  assert.match(html,/document\.querySelectorAll\('\.fleetReminderEmailLink'\)[\s\S]*?link\.dataset\.fleetEmailRegistration=normReg\(v\.registration/, 'the drawer Email button must inherit the active registration');
+  assert.match(html,/\.contactEmailLink,\.fleetReminderEmailLink[\s\S]*?dataset&&link\.dataset\.fleetEmailRegistration[\s\S]*?fleetMarkEmailSentForVehicle\(v\)/);
+  assert.match(html,/\.fleetTableHead\.due30Columns>span:nth-child\(6\)\{justify-self:end;text-align:right;padding-right:12px\}/);
+  assert.match(html,/\.fleetRow\.due30Columns \.fleetDueItem \.fleetDueText\{margin-left:auto;text-align:right\}/);
 });
 
 test('Alfie is unavailable from 14:30 every Friday',()=>{

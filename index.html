@@ -1731,8 +1731,8 @@ body.servicePreviewing .servicePreviewControls{position:relative!important;z-ind
 .customerNameHidden{display:none!important}
 .fleetDueGroup{border-top:1px solid #eef2f6;background:#fff}
 .fleetDueGroup>.fleetRow{border-top:0}
-.fleetEmailSentCheck{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;cursor:pointer}.fleetEmailSentCheck input{width:20px;height:20px;accent-color:#16a34a;cursor:pointer}.fleetEmailSentCheck small{display:block;color:#64748b;font-size:8px!important;line-height:1;white-space:nowrap}.fleetTableHead.due30Columns,.fleetRow.due30Columns{grid-template-columns:125px 76px minmax(105px,1fr) 78px 108px minmax(165px,190px)!important}.fleetTableHead.due30Columns>span:nth-child(4){text-align:center}.fleetTableHead.due30Columns>span:nth-child(5){text-align:left}.fleetTableHead.due30Columns>span:nth-child(6){text-align:right}.fleetRow.due30Columns>.fleetDueMultiCell{justify-content:flex-end}.fleetRow.due30Columns .fleetDueItems{align-items:flex-end}.fleetRow.due30Columns .fleetDueItem{justify-content:flex-end}.fleetBookedGroupCell{display:flex!important;flex-direction:column;align-items:flex-start;gap:3px;min-width:0;overflow:visible!important}.fleetBookedEntry{display:flex!important;align-items:center;gap:4px;overflow:visible!important}.fleetBookedDateLink{border:0;background:transparent;padding:0;color:#15803d;font:inherit;font-size:11px;font-weight:900;text-decoration:underline;text-underline-offset:2px;white-space:nowrap;cursor:pointer}.fleetBookedDateLink:hover{color:#166534}.fleetBookedEmpty{color:#94a3b8;font-size:11px}
-@media(max-width:950px){.fleetTableHead.due30Columns,.fleetRow.due30Columns{grid-template-columns:110px 68px minmax(92px,1fr) 72px 98px minmax(150px,170px)!important}}
+.fleetEmailSentCheck{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;cursor:pointer}.fleetEmailSentCheck input{width:20px;height:20px;accent-color:#16a34a;cursor:pointer}.fleetEmailSentCheck small{display:block;color:#64748b;font-size:8px!important;line-height:1;white-space:nowrap}.fleetTableHead.due30Columns,.fleetRow.due30Columns{grid-template-columns:125px 76px minmax(105px,1fr) 78px 72px minmax(201px,226px)!important}.fleetTableHead.due30Columns>span:nth-child(4){text-align:center}.fleetTableHead.due30Columns>span:nth-child(5){text-align:left}.fleetTableHead.due30Columns>span:nth-child(6){justify-self:end;text-align:right;padding-right:12px}.fleetRow.due30Columns>.fleetDueMultiCell{width:100%;justify-self:stretch;justify-content:flex-end;padding-right:12px}.fleetRow.due30Columns .fleetDueItems{width:100%;align-items:stretch}.fleetRow.due30Columns .fleetDueItem{width:100%;justify-content:flex-end}.fleetRow.due30Columns .fleetDueItem .fleetDueText{margin-left:auto;text-align:right}.fleetBookedGroupCell{display:flex!important;flex-direction:column;align-items:flex-start;gap:3px;min-width:0;overflow:visible!important}.fleetBookedEntry{display:flex!important;align-items:center;gap:3px;overflow:visible!important}.fleetBookedDateLink{border:0;background:transparent;padding:0;color:#15803d;font:inherit;font-size:9px;font-weight:900;text-decoration:underline;text-underline-offset:2px;white-space:nowrap;cursor:pointer}.fleetBookedDateLink:hover{color:#166534}.fleetBookedEmpty{color:#94a3b8;font-size:9px}
+@media(max-width:950px){.fleetTableHead.due30Columns,.fleetRow.due30Columns{grid-template-columns:110px 68px minmax(92px,1fr) 72px 68px minmax(180px,200px)!important}}
 @media(max-width:700px){
   .fleetPanel{max-width:100%;overflow-x:hidden!important}
   .fleetTableHead.due30Columns{display:none}
@@ -1749,7 +1749,7 @@ body.servicePreviewing .servicePreviewControls{position:relative!important;z-ind
   .fleetRow.due30Columns .fleetDueItem{gap:3px;white-space:nowrap}
   .fleetRow.due30Columns .fleetDueText{min-width:55px!important;font-size:8.5px!important}
   .fleetRow.due30Columns .fleetDueIcon{min-width:26px;padding-left:3px;padding-right:3px}
-  .fleetRow.due30Columns .fleetBookedDateLink{font-size:9px}
+  .fleetRow.due30Columns .fleetBookedDateLink{font-size:8px}
 }
 .fleetDueSubRow{display:grid;grid-template-columns:125px minmax(150px,1.25fr) minmax(130px,1fr) 118px;gap:10px;align-items:center;width:100%;padding:5px 13px 8px;background:#fbfdff;border-top:1px dashed #e2e8f0;cursor:pointer;text-align:left}
 .fleetDueSubRow:hover{background:#f5f9ff}
@@ -9232,7 +9232,7 @@ function vehicleEmailLinkHtml(rawEmail,registration,vehicleModel){
   var emails=emailAddressList(rawEmail||'');
   if(!emails.length)return '<span class="vehicleEmailMissing">Not recorded</span>';
   return '<div class="vehicleEmailLinks">'+emails.map(function(email){
-    return '<a class="contactEmailLink vehicleEmailPrimary" href="'+serviceReminderMailto(email,registration||'',vehicleModel||'')+'" title="Email '+esc(email)+'">'+esc(email)+'</a>';
+    return '<a class="contactEmailLink vehicleEmailPrimary" data-fleet-email-registration="'+esc(normReg(registration||''))+'" href="'+serviceReminderMailto(email,registration||'',vehicleModel||'')+'" title="Email '+esc(email)+'">'+esc(email)+'</a>';
   }).join('')+'</div>';
 }
 function vectaEmailSignatureText(){
@@ -9654,7 +9654,7 @@ async function flushPendingSync(){
   if(!remaining.length)return true;
   return false
 }
-var VECTA_APP_VERSION='v363-pre-july-fleet-baseline';
+var VECTA_APP_VERSION='v364-fleet-booking-display';
 var vectaAppUpdateWaiting=false;
 function vectaSafeApplyAppUpdate(){
   vectaAppUpdateWaiting=true;
@@ -9676,7 +9676,7 @@ function registerVectaServiceWorker(){
   navigator.serviceWorker.addEventListener('controllerchange',function(){vectaSafeApplyAppUpdate()});
   window.addEventListener('load',function(){
     Promise.resolve(window.__vectaCacheResetPromise).finally(function(){
-      navigator.serviceWorker.register('/service-worker.js?v=20260916-fleet-baseline-v363',{updateViaCache:'none'}).then(function(reg){
+      navigator.serviceWorker.register('/service-worker.js?v=20260916-fleet-booking-v364',{updateViaCache:'none'}).then(function(reg){
         if(navigator.onLine)Promise.resolve(reg.update()).catch(function(e){console.warn('Service worker update skipped',e)});
       }).catch(function(e){console.warn('Offline app install skipped',e)});
     });
@@ -11319,8 +11319,8 @@ function fleetBookedTick(booked){
 }
 function fleetBookedLink(booked){
   if(!booked)return '<span class="fleetBookedEmpty">—</span>';
-  var when=niceDate(booked.booking_date),detail=when+(booked.drop_time?' at '+String(booked.drop_time).slice(0,5):'');
-  return '<span class="fleetBookedEntry">'+fleetBookedTick(booked)+'<button type="button" class="fleetBookedDateLink" data-fleet-booked-job="'+esc(booked.id)+'" title="Open job card booked '+esc(detail)+'">'+esc(when)+'</button></span>';
+  var fullDate=niceDate(booked.booking_date),shortDate=new Date(String(booked.booking_date||'').slice(0,10)+'T00:00:00').toLocaleDateString('en-GB',{day:'2-digit',month:'2-digit'}),detail=fullDate+(booked.drop_time?' at '+String(booked.drop_time).slice(0,5):'');
+  return '<span class="fleetBookedEntry">'+fleetBookedTick(booked)+'<button type="button" class="fleetBookedDateLink" data-fleet-booked-job="'+esc(booked.id)+'" title="Open job card booked '+esc(detail)+'">'+esc(shortDate)+'</button></span>';
 }
 function fleetBookedGroupCell(items){
   items=(items||[]).filter(function(item){return !!item.bookedJob}).sort(function(a,b){return String(a.bookedJob.booking_date||'').localeCompare(String(b.bookedJob.booking_date||''))||String(a.bookedJob.drop_time||'').localeCompare(String(b.bookedJob.drop_time||''))});
@@ -15015,7 +15015,8 @@ function fleetBind(){
   };
   document.querySelectorAll('[data-fleet-email-sent]').forEach(function(box){box.onclick=function(ev){ev.preventDefault();ev.stopPropagation();var key=String(box.dataset.fleetEmailSent||''),current=fleetEmailSent[key],next=!(current===true||(current&&current.sent));fleetEmailSent[key]={sent:next,updated_at:new Date().toISOString()};try{localStorage.setItem('vecta:fleet:email-sent:v329',JSON.stringify(fleetEmailSent))}catch(e){}if(remoteClient)persistFleetCloudSnapshot();render()}});
   document.querySelectorAll('[data-fleet-booked-job]').forEach(function(link){link.onclick=function(ev){ev.preventDefault();ev.stopPropagation();var id=String(link.dataset.fleetBookedJob||'');if(id)openJobModal(id)}});
-  document.querySelectorAll('.contactEmailLink,.fleetReminderEmailLink').forEach(function(link){link.addEventListener('click',function(){var row=link.closest&&link.closest('[data-fleet-open]'),id=row&&row.dataset?row.dataset.fleetOpen:activeFleetVehicleId,v=(fleetVehicles||[]).find(function(x){return String(x.id)===String(id||'')});if(v)fleetMarkEmailSentForVehicle(v)})});
+  document.querySelectorAll('.fleetReminderEmailLink').forEach(function(link){if(link.dataset&&link.dataset.fleetEmailRegistration)return;var v=(fleetVehicles||[]).find(function(x){return String(x.id)===String(activeFleetVehicleId||'')});if(v)link.dataset.fleetEmailRegistration=normReg(v.registration||'')});
+  document.querySelectorAll('.contactEmailLink,.fleetReminderEmailLink').forEach(function(link){link.addEventListener('click',function(){var reg=normReg(link.dataset&&link.dataset.fleetEmailRegistration||''),row=link.closest&&link.closest('[data-fleet-open]'),id=row&&row.dataset?row.dataset.fleetOpen:activeFleetVehicleId,v=reg?fleetVehicleForRegistration(reg):(fleetVehicles||[]).find(function(x){return String(x.id)===String(id||'')});if(v)fleetMarkEmailSentForVehicle(v)})});
   return result;
 }
 
