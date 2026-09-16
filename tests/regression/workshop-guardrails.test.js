@@ -13,12 +13,14 @@ test('phone Fleet due list uses a screen-width compact grid',()=>{
   assert.doesNotMatch(html,/@media\(max-width:700px\)\{\.fleetTableHead\.due30Columns,\.fleetRow\.due30Columns\{grid-template-columns:96px minmax\(100px,1fr\) minmax\(90px,\.8fr\) 80px 168px!important\}\}/);
 });
 
-test('Fleet due list links booked dates to job cards and dates email audit ticks',()=>{
+test('Fleet due list links booked dates to planner days and dates email audit ticks',()=>{
   assert.match(html,/class="fleetBookedDateLink" data-fleet-booked-job=/);
+  assert.match(html,/data-fleet-booked-date=/);
   assert.match(html,/shortDate=new Date\([\s\S]*?toLocaleDateString\('en-GB',\{day:'2-digit',month:'2-digit'\}\)/, 'booked dates must omit the year');
   assert.match(html,/grid-template-columns:125px 76px minmax\(105px,1fr\) 78px 72px minmax\(201px,226px\)!important/, 'Booked must give its spare width to Work due');
   assert.match(html,/\.fleetBookedDateLink\{[^}]*font-size:9px/, 'booked links must use compact green text');
-  assert.match(html,/document\.querySelectorAll\('\[data-fleet-booked-job\]'\)[\s\S]*?openJobModal\(id\)/);
+  assert.match(html,/document\.querySelectorAll\('\[data-fleet-booked-job\]'\)[\s\S]*?job&&job\.booking_date\|\|link\.dataset\.fleetBookedDate[\s\S]*?selectedDate=new Date\(date\+'T00:00:00'\);view='planner';render\(\)/);
+  assert.doesNotMatch(html,/document\.querySelectorAll\('\[data-fleet-booked-job\]'\)[\s\S]*?openJobModal\(id\)/);
   assert.match(html,/function fleetEmailSentDisplayDate\(record\)[\s\S]*?niceDate\(raw\)/);
   assert.match(html,/data-fleet-email-registration=/, 'vehicle email links must identify their Fleet registration');
   assert.match(html,/document\.querySelectorAll\('\.fleetReminderEmailLink'\)[\s\S]*?link\.dataset\.fleetEmailRegistration=normReg\(v\.registration/, 'the drawer Email button must inherit the active registration');

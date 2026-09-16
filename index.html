@@ -11320,7 +11320,7 @@ function fleetBookedTick(booked){
 function fleetBookedLink(booked){
   if(!booked)return '<span class="fleetBookedEmpty">—</span>';
   var fullDate=niceDate(booked.booking_date),shortDate=new Date(String(booked.booking_date||'').slice(0,10)+'T00:00:00').toLocaleDateString('en-GB',{day:'2-digit',month:'2-digit'}),detail=fullDate+(booked.drop_time?' at '+String(booked.drop_time).slice(0,5):'');
-  return '<span class="fleetBookedEntry">'+fleetBookedTick(booked)+'<button type="button" class="fleetBookedDateLink" data-fleet-booked-job="'+esc(booked.id)+'" title="Open job card booked '+esc(detail)+'">'+esc(shortDate)+'</button></span>';
+  return '<span class="fleetBookedEntry">'+fleetBookedTick(booked)+'<button type="button" class="fleetBookedDateLink" data-fleet-booked-job="'+esc(booked.id)+'" data-fleet-booked-date="'+esc(String(booked.booking_date||'').slice(0,10))+'" title="Open planner for '+esc(detail)+'">'+esc(shortDate)+'</button></span>';
 }
 function fleetBookedGroupCell(items){
   items=(items||[]).filter(function(item){return !!item.bookedJob}).sort(function(a,b){return String(a.bookedJob.booking_date||'').localeCompare(String(b.bookedJob.booking_date||''))||String(a.bookedJob.drop_time||'').localeCompare(String(b.bookedJob.drop_time||''))});
@@ -15014,7 +15014,7 @@ function fleetBind(){
     openJobModal(null,defaults);
   };
   document.querySelectorAll('[data-fleet-email-sent]').forEach(function(box){box.onclick=function(ev){ev.preventDefault();ev.stopPropagation();var key=String(box.dataset.fleetEmailSent||''),current=fleetEmailSent[key],next=!(current===true||(current&&current.sent));fleetEmailSent[key]={sent:next,updated_at:new Date().toISOString()};try{localStorage.setItem('vecta:fleet:email-sent:v329',JSON.stringify(fleetEmailSent))}catch(e){}if(remoteClient)persistFleetCloudSnapshot();render()}});
-  document.querySelectorAll('[data-fleet-booked-job]').forEach(function(link){link.onclick=function(ev){ev.preventDefault();ev.stopPropagation();var id=String(link.dataset.fleetBookedJob||'');if(id)openJobModal(id)}});
+  document.querySelectorAll('[data-fleet-booked-job]').forEach(function(link){link.onclick=function(ev){ev.preventDefault();ev.stopPropagation();var id=String(link.dataset.fleetBookedJob||''),job=(app.jobs||[]).find(function(j){return String(j.id)===id}),date=String(job&&job.booking_date||link.dataset.fleetBookedDate||'').slice(0,10);if(!/^\d{4}-\d{2}-\d{2}$/.test(date))return;activeFleetVehicleId='';selectedDate=new Date(date+'T00:00:00');view='planner';render()}});
   document.querySelectorAll('.fleetReminderEmailLink').forEach(function(link){if(link.dataset&&link.dataset.fleetEmailRegistration)return;var v=(fleetVehicles||[]).find(function(x){return String(x.id)===String(activeFleetVehicleId||'')});if(v)link.dataset.fleetEmailRegistration=normReg(v.registration||'')});
   document.querySelectorAll('.contactEmailLink,.fleetReminderEmailLink').forEach(function(link){link.addEventListener('click',function(){var reg=normReg(link.dataset&&link.dataset.fleetEmailRegistration||''),row=link.closest&&link.closest('[data-fleet-open]'),id=row&&row.dataset?row.dataset.fleetOpen:activeFleetVehicleId,v=reg?fleetVehicleForRegistration(reg):(fleetVehicles||[]).find(function(x){return String(x.id)===String(id||'')});if(v)fleetMarkEmailSentForVehicle(v)})});
   return result;
