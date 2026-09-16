@@ -28,7 +28,14 @@ test('authoritative MOT date overrides a stale stored MOT date', () => {
   const source = extractFunction('fleetDate');
   const context = { console, fleetVehicles: [{ id: 'v1', registration: 'AB12 CDE' }], fleetMotAuthority: { AB12CDE: { expiry: '2027-04-20' } }, fleetMaintenanceCategory: () => 'mot', normReg: value => String(value).replace(/\s/g, '').toUpperCase(), dvsaIsoDate: value => String(value).slice(0, 10) };
   vm.runInNewContext(`${source};this.fleetDate=fleetDate`, context);
-  assert.equal(context.fleetDate({ vehicleId: 'v1', type: 'MOT', currentDueDate: '2026-04-20' }), '2027-04-20');
+  assert.equal(context.fleetDate({ vehicleId: 'v1', type: 'MOT', currentDueDate: '2026-04-20', updated_at: '2026-01-01T00:00:00Z' }), '2027-04-20');
+});
+
+test('a newer nightly DVSA plan cannot be overridden by an older authority snapshot', () => {
+  const source = extractFunction('fleetDate');
+  const context = { console, fleetVehicles: [{ id: 'v1', registration: 'NL63 XDW' }], fleetMotAuthority: { NL63XDW: { expiry: '2026-10-05', checked_at: '2026-09-07T13:19:48Z' } }, fleetMaintenanceCategory: () => 'mot', normReg: value => String(value).replace(/\s/g, '').toUpperCase(), dvsaIsoDate: value => String(value).slice(0, 10) };
+  vm.runInNewContext(`${source};this.fleetDate=fleetDate`, context);
+  assert.equal(context.fleetDate({ vehicleId: 'v1', type: 'MOT', currentDueDate: '2027-10-05', updated_at: '2026-09-15T22:41:08Z' }), '2027-10-05');
 });
 
 test('date arithmetic clamps month ends and leap days', () => {

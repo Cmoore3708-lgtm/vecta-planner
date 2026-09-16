@@ -2,6 +2,7 @@ let tokenCache = { accessToken: '', expiresAt: 0 };
 
 const FLEET_STATE_ID = 'fleet_state_v77';
 const STATUS_ID = 'fleet_auto_refresh_status_v77';
+const MOT_AUTHORITY_ID = 'fleet_mot_authority_v260';
 
 function reg(value) {
   return String(value || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
@@ -136,6 +137,10 @@ export default async function handler(req,res){
     const vehicles = Array.isArray(state.vehicles)?state.vehicles:[];
     const plans = Array.isArray(state.plans)?state.plans:[];
     const completions = Array.isArray(state.completions)?state.completions:[];
+    const authorityRow = await readSetting(MOT_AUTHORITY_ID);
+    const authorityRecords = authorityRow?.value?.records && typeof authorityRow.value.records === 'object'
+      ? {...authorityRow.value.records}
+      : {};
     // MOT policy: daily = active MOT records due within 60 days (plus missing dates).
     // On the 1st of every month = every active MOT maintenance record as a reconciliation backup.
     // ?full=1 remains available for an authorised forced server-side audit.
@@ -153,6 +158,7 @@ export default async function handler(req,res){
       if(shouldScanMot(v,plans,full)){
         try{
           const mot=await lookupMot(registration);
+          const checkedAt=new Date().toISOString();
           hadSuccess=true;status.motChecked++;
           if(mot.motExpiryDate) changed = updatePlanDate(plans,v.id,'MOT',mot.motExpiryDate) || changed;
           const oldTest=isoDate(v.lastMotTestDate);
@@ -161,7 +167,10 @@ export default async function handler(req,res){
             changed=true;
           }
           // Government MOT data is authoritative. Local/workshop activity never advances this date.
-          Object.assign(v,{motDueDate:mot.motExpiryDate||'',motDue:mot.motExpiryDate||'',mot_due:mot.motExpiryDate||'',motStatus:mot.motStatus,lastMotTestDate:mot.lastMotTestDate||'',lastMotMileage:mot.latestMileage||'',motAdvisories:mot.advisories,motLastChecked:new Date().toISOString()});
+          Object.assign(v,{motDueDate:mot.motExpiryDate||'',motDue:mot.motExpiryDate||'',mot_due:mot.motExpiryDate||'',motStatus:mot.motStatus,lastMotTestDate:mot.lastMotTestDate||'',lastMotMileage:mot.latestMileage||'',motAdvisories:mot.advisories,motLastChecked:checkedAt});
+          if(mot.motExpiryDate){
+            authorityRecords[registration]={registration,expiry:mot.motExpiryDate,checked_at:checkedAt,source:'DVSA automatic nightly refresh'};
+          }
         }catch(e){status.errors++;if(status.errorSamples.length<10)status.errorSamples.push({registration,kind:'MOT',error:String(e?.message||e)});}
       }
       if(shouldScanTax(v,plans)){
@@ -179,8 +188,10 @@ export default async function handler(req,res){
       await sleep(120);
     }
     status.skipped=Math.max(0,vehicles.length-candidates.length);
-    state.vehicles=vehicles;state.plans=plans;state.completions=completions;state.updated_at=new Date().toISOString();state.lastAutomaticRefresh=status.startedAt;
+    const persistenceStamp=new Date().toISOString();
+    state.vehicles=vehicles;state.plans=plans;state.completions=completions;state.updated_at=persistenceStamp;state.lastAutomaticRefresh=status.startedAt;
     await writeSetting(FLEET_STATE_ID,state);
+    await writeSetting(MOT_AUTHORITY_ID,{version:260,records:authorityRecords,updated_at:persistenceStamp});
     status.finishedAt=new Date().toISOString();
     await writeSetting(STATUS_ID,status);
     return res.status(200).json(status);
