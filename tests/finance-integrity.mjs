@@ -217,8 +217,8 @@ assert.match(
   /var savedSuccessfully=await saveInvoiceBase\(id\);\s*if\(savedSuccessfully===false\)return false;/,
   'Invoice save wrappers must propagate a failed cloud confirmation'
 );
-assert.match(html, /dueHeading=fleetListMode==='due30'\?'Email sent'/, '30-day Fleet view must label the email column');
-assert.match(html, /fleetListMode==='due30'\?'<span>Work due<\/span>':''/, '30-day Fleet view must keep a separate Work due column');
-assert.match(html, /fleetEmailSentCell\(group\)\+fleetDueGroupCell\(group\.items\)/, '30-day rows must show both the checkbox and due work');
+assert.match(html, /dueHeading=fleetListMode==='due30'\?'Work due'/, '30-day Fleet view must move Work due to the left');
+assert.match(html, /fleetListMode==='due30'\?'<span>Booking type<\/span><span>Booked<\/span><span>Email sent<\/span>':''/, '30-day Fleet view must keep separate Booking type, Booked and Email sent columns');
+assert.match(html, /fleetWorkDueGroupCell\(group\.items\)\+fleetBookingTypeGroupCell\(group\.items\)\+fleetBookedGroupCell\(group\.items\)\+fleetEmailSentCell\(group\)/, '30-day rows must show Work due, booking type with tick, booked date and email audit in order');
 assert.doesNotMatch(html, /\(checked\?'Sent':'Not sent'\)/, 'Email sent column must not display Sent / Not sent wording');
 console.log('Finance integrity regression tests passed.');
