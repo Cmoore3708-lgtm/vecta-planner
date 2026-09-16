@@ -1,5 +1,5 @@
-const CACHE='vecta-workshop-pro-shell-v48-current-cycle-date-display';
-const APP_VERSION='v362-current-cycle-date-display';
+const CACHE='vecta-workshop-pro-shell-v49-pre-july-fleet-baseline';
+const APP_VERSION='v363-pre-july-fleet-baseline';
 const DATA_CACHE='vecta-workshop-pro-data-last-known-v1';
 const HEALTH_CACHE='vecta-workshop-pro-cloud-health-v1';
 const CORE=[

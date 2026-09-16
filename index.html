@@ -9652,7 +9652,7 @@ async function flushPendingSync(){
   if(!remaining.length)return true;
   return false
 }
-var VECTA_APP_VERSION='v362-current-cycle-date-display';
+var VECTA_APP_VERSION='v363-pre-july-fleet-baseline';
 var vectaAppUpdateWaiting=false;
 function vectaSafeApplyAppUpdate(){
   vectaAppUpdateWaiting=true;
@@ -9674,7 +9674,7 @@ function registerVectaServiceWorker(){
   navigator.serviceWorker.addEventListener('controllerchange',function(){vectaSafeApplyAppUpdate()});
   window.addEventListener('load',function(){
     Promise.resolve(window.__vectaCacheResetPromise).finally(function(){
-      navigator.serviceWorker.register('/service-worker.js?v=20260916-current-cycle-v362',{updateViaCache:'none'}).then(function(reg){
+      navigator.serviceWorker.register('/service-worker.js?v=20260916-fleet-baseline-v363',{updateViaCache:'none'}).then(function(reg){
         if(navigator.onLine)Promise.resolve(reg.update()).catch(function(e){console.warn('Service worker update skipped',e)});
       }).catch(function(e){console.warn('Offline app install skipped',e)});
     });
@@ -10441,10 +10441,10 @@ function init(){safe(async function(){
       /* Fleet is a whole-snapshot record. Hydrate it before any startup import can
          call saveFleet(), otherwise a stale device can overwrite newer manual dates. */
       await pullFleetCloudState();
-      vectaRunDataIngressMigrations({reason:'authoritative-dashboard',parts:true,tax:false});
+      var authoritativeIngress=vectaRunDataIngressMigrations({reason:'authoritative-dashboard',parts:true,tax:false});
       if(typeof window.v359RepairFalseServiceCompletions==='function'){
         var falseServiceAudit=window.v359RepairFalseServiceCompletions();
-        if(falseServiceAudit.changed&&remoteClient)await persistFleetCloudSnapshot();
+        if((authoritativeIngress.preJulyChanged||falseServiceAudit.changed)&&remoteClient)await persistFleetCloudSnapshot();
       }
       /* V343: never wait for IndexedDB before displaying downloaded jobs. iOS can
          leave a backup write pending indefinitely; persistence must be background-only. */
@@ -10658,11 +10658,39 @@ function fleetRemoveTrackerCreatedNmukVehicles(){
 // before 1 July 2026. The live Fleet Manager runs from this production file,
 // so the migration must execute here against the browser-saved fleet arrays.
 function fleetMigratePreJuly2026Overdues(){
-  /* Retired in V359. A due date is not evidence that work was completed. The old
-     migration silently advanced every pre-July date to a future year and created
-     a fictional completion record. Genuine jobs, saved paperwork or an explicit
-     manual completion are the only authorities allowed to advance a cycle. */
-  return false;
+  var cutoff='2026-07-01',source='pre-july-2026-system-baseline',changed=false,created=0,advanced=0,existing={};
+  function valid(date){return /^\d{4}-\d{2}-\d{2}$/.test(String(date||''))}
+  function addMonths(date,months){
+    if(typeof fleetAddMonthsFromDue==='function')return fleetAddMonthsFromDue(date,months);
+    var d=new Date(date+'T00:00:00'),day=d.getDate();if(isNaN(d.getTime()))return '';
+    d.setDate(1);d.setMonth(d.getMonth()+Number(months||12));d.setDate(Math.min(day,new Date(d.getFullYear(),d.getMonth()+1,0).getDate()));
+    return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+  }
+  (fleetCompletions||[]).forEach(function(c){
+    if(c&&c.source===source)existing[String(c.planId||'')+'|'+String(c.completedDate||'').slice(0,10)]=true;
+  });
+  (fleetPlans||[]).forEach(function(p){
+    if(!p||String(p.status||'Active')!=='Active')return;
+    var due=String(p.currentDueDate||'').slice(0,10);if(!valid(due)||due>=cutoff)return;
+    var interval=Math.max(1,Number(p.intervalMonths||12)),anchor=due,guard=0;
+    while(valid(due)&&due<cutoff&&guard++<120){
+      var next=addMonths(anchor,interval*guard),key=String(p.id||'')+'|'+due;
+      if(!valid(next)||next<=due)break;
+      if(!existing[key]){
+        fleetCompletions.push({id:'system-baseline-'+String(p.id||'plan')+'-'+due,vehicleId:p.vehicleId,planId:p.id,type:p.type,completedDate:due,datePrecision:'day',cycleDue:due,nextDue:next,previousDue:due,source:source,notes:'System baseline: due before VECTA Fleet Manager began on 1 July 2026; treated as completed on its recorded due date.'});
+        existing[key]=true;created++;
+      }
+      due=next;
+    }
+    if(valid(due)&&due>=cutoff&&String(p.currentDueDate||'').slice(0,10)!==due){
+      p.currentDueDate=due;p.targetMonth=Number(due.slice(5,7));p.manualDueDate=false;
+      p.notes='Current cycle follows the pre-July 2026 system baseline.';changed=true;advanced++;
+    }
+  });
+  if(changed||created){
+    try{localStorage.setItem('vecta:fleet:plans:v1',JSON.stringify(fleetPlans));localStorage.setItem('vecta:fleet:completions:v1',JSON.stringify(fleetCompletions));}catch(e){}
+  }
+  return {changed:changed||created>0,advanced:advanced,created:created,cutoff:cutoff};
 }
 /* V41.28: Keep annual servicing and six-month safety inspections with the
    MOT whenever their due dates fall within 40 days. The aligned date is saved,
@@ -11096,7 +11124,7 @@ function fleetLatestCompletedEvidenceDate(vehicle,category){
   }
   (fleetCompletions||[]).forEach(function(c){
     if(!c||String(c.vehicleId)!==String(vehicle.id))return;
-    if(c.source==='pre-july-2026-auto-complete'||c.source==='historical/imported/photograph')return;
+    if(c.source==='pre-july-2026-auto-complete'||c.source==='pre-july-2026-system-baseline'||c.source==='historical/imported/photograph')return;
     var cat=fleetMaintenanceCategory(c.serviceType||c.type||'');
     if(cat===category)addDate(c.completedDate||c.completedMonth);
   });
@@ -11160,7 +11188,7 @@ function fleetPlanCompletedForCurrentCycle(p){
   if(planCategory!=='mot'&&fleetCompletedJobForPlanCycle(p))return true;
   return fleetCompletions.some(function(c){
     if(String(c.vehicleId)!==String(p.vehicleId))return false;
-    if(c.source==='pre-july-2026-auto-complete'||c.source==='historical/imported/photograph')return false;
+    if(c.source==='pre-july-2026-auto-complete'||c.source==='pre-july-2026-system-baseline'||c.source==='historical/imported/photograph')return false;
     var completed=String(c.completedDate||c.completedMonth||'');if(!completed)return false;
     /* Month-only imports describe work somewhere within that month.  They must
        not count as completed on the first day of the month: that previously
@@ -12250,7 +12278,7 @@ function ensureAutomaticPartsDefaults(j){if(!j)return false;var storedStatus=par
 function hydrateAutomaticPartsDefaults(){var changed=[];(app.jobs||[]).forEach(function(j){if(!j.archived&&j.status!=='completed'&&j.status!=='ready_to_invoice'&&ensureAutomaticPartsDefaults(j))changed.push(j)});if(changed.length){saveLocal();if(remoteClient)changed.forEach(function(j){upsertRemote('jobs',j,{silent:true}).catch(function(e){console.warn('Automatic parts defaults sync failed',j.id,e)})})}return changed.length}
 function vectaRunDataIngressMigrations(options){
   options=options||{};
-  var result={reason:String(options.reason||'data-ingress'),parts:0,tax:false};
+  var result={reason:String(options.reason||'data-ingress'),parts:0,tax:false,preJulyChanged:false};
   try{fleetEnsureServicePlanTypes()}catch(e){console.warn('Fleet service-type normalisation skipped',e)}
   try{fleetAlignServiceDatesToMot()}catch(e){console.warn('Fleet service-date alignment skipped',e)}
   try{fleetAssignPoolEmail()}catch(e){console.warn('Fleet contact defaulting skipped',e)}
@@ -12263,10 +12291,10 @@ function vectaRunDataIngressMigrations(options){
     try{fleetMigrateCustomerAliases()}catch(e){console.warn('Legacy Fleet customer-alias migration skipped',e)}
     try{migrateLegacyServiceNamesOnce()}catch(e){console.warn('Legacy service-name migration skipped',e)}
     try{fleetRemoveTrackerCreatedNmukVehicles()}catch(e){console.warn('Legacy Fleet tracker cleanup skipped',e)}
-    try{fleetMigratePreJuly2026Overdues()}catch(e){console.warn('Legacy Fleet overdue migration skipped',e)}
     try{fleetMigrateInternalServiceRule()}catch(e){console.warn('Legacy Fleet internal-service migration skipped',e)}
     try{migrateNmukVariousJobs()}catch(e){console.warn('Legacy NMUK classification migration skipped',e)}
   }
+  try{var preJulyAudit=fleetMigratePreJuly2026Overdues();result.preJulyChanged=!!(preJulyAudit&&preJulyAudit.changed)}catch(e){console.warn('Pre-July Fleet baseline migration skipped',e)}
   if(options.parts!==false){try{result.parts=hydrateAutomaticPartsDefaults()}catch(e){console.warn('Parts data-ingress migration skipped',e)}}
   if(options.tax===true){try{result.tax=!!reconcileCompletedVehicleTaxCyclesV262()}catch(e){console.warn('Vehicle Tax data-ingress migration skipped',e)}}
   return result;
@@ -15254,7 +15282,7 @@ init();
 
     return (fleetCompletions||[]).some(function(c){
       if(String(c.vehicleId)!==String(p.vehicleId))return false;
-      if(c.source==='pre-july-2026-auto-complete'||c.source==='historical/imported/photograph')return false;
+      if(c.source==='pre-july-2026-auto-complete'||c.source==='pre-july-2026-system-baseline'||c.source==='historical/imported/photograph')return false;
       var completed=String(c.completedDate||c.completedMonth||'');if(!completed)return false;
       /* Month-only imports are not proof of completion until that month has
          ended. Treating YYYY-MM as the first day hid still-due work early. */

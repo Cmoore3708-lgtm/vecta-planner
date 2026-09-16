@@ -9,6 +9,9 @@ assert.ok(match, 'V359 false-completion repair exists');
 const initialVehicles = JSON.parse(html.match(/window\.INITIAL_FLEET_VEHICLES = (\[[^\n]+\]);/)[1]);
 const initialPlans = JSON.parse(html.match(/window\.INITIAL_MAINTENANCE_PLANS = (\[[\s\S]*?\n\]);/)[1]);
 const historicalSchedule = JSON.parse(html.match(/var HISTORICAL_COMPLETION_SEED=(\[[^\n]+\]);/)[1]);
+const baselineStart = html.indexOf('function fleetMigratePreJuly2026Overdues(){');
+const baselineEnd = html.indexOf('\n/* V41.28:', baselineStart);
+const baselineSource = html.slice(baselineStart, baselineEnd);
 
 function load(overrides = {}) {
   const context = {
@@ -125,6 +128,31 @@ test('the complete isolated Test Fleet renders no legacy 2022 due dates', () => 
   assert.equal(state.fleetDate(lsService), '2026-08-30');
 });
 
+test('the complete Test Fleet has no active stored or displayed due date before the July 2026 baseline', () => {
+  const state = load({
+    fleetVehicles: structuredClone(initialVehicles),
+    fleetPlans: structuredClone(initialPlans),
+    fleetCompletions: [],
+    HISTORICAL_COMPLETION_SEED: structuredClone(historicalSchedule),
+    localStorage: { setItem() {} },
+    fleetMotAuthority: {},
+    normReg: value => String(value || '').toUpperCase().replace(/[^A-Z0-9]/g, ''),
+    dvsaIsoDate: value => String(value || '').slice(0, 10)
+  });
+  vm.runInNewContext(`${baselineSource};this.runBaseline=fleetMigratePreJuly2026Overdues;`, state);
+  const baselineAudit = state.runBaseline();
+  state.v359RepairFalseServiceCompletions();
+  const fleetDateSource = html.slice(html.indexOf('function fleetDate('), html.indexOf('\nfunction fleetTone(', html.indexOf('function fleetDate(')));
+  vm.runInNewContext(`${fleetDateSource};this.fleetDate=fleetDate`, state);
+  const active = state.fleetPlans.filter(plan => String(plan.status || 'Active') === 'Active');
+  assert.ok(baselineAudit.advanced > 0);
+  assert.deepEqual(active.filter(plan => /^\d{4}-\d{2}-\d{2}$/.test(plan.currentDueDate) && plan.currentDueDate < '2026-07-01').map(plan => plan.id), []);
+  assert.deepEqual(active.filter(plan => state.fleetDate(plan) && state.fleetDate(plan) < '2026-07-01').map(plan => plan.id), []);
+  const lsVehicle = state.fleetVehicles.find(vehicle => vehicle.registration === 'LS64 VKM');
+  const lsService = active.find(plan => plan.vehicleId === lsVehicle.id && /service/i.test(plan.type));
+  assert.equal(state.fleetDate(lsService), '2026-08-30');
+});
+
 test('a genuine completed service advances the schedule instead of reappearing overdue', () => {
   const state = load({
     app: { jobs: [{ id: 'done', registration: 'NG69 LLJ', job_type: 'Interim Service', status: 'completed', booking_date: '2026-07-20' }], serviceRecords: [] },
@@ -163,11 +191,35 @@ test('manual service dates are never rewritten', () => {
   assert.equal(state.fleetPlans[0].currentDueDate, '2027-01-01');
 });
 
-test('legacy migration can no longer invent completion records', () => {
-  const functionMatch = html.match(/function fleetMigratePreJuly2026Overdues\(\)\{[\s\S]*?\n\}/);
-  assert.ok(functionMatch);
-  const context = {};
-  vm.runInNewContext(`${functionMatch[0]};this.run=fleetMigratePreJuly2026Overdues;`, context);
-  assert.equal(context.run(), false);
-  assert.doesNotMatch(functionMatch[0], /fleetCompletions\.push/);
+test('pre-July system baseline completes each historical cycle on its due date', () => {
+  assert.ok(baselineStart > -1 && baselineEnd > baselineStart);
+  const context = {
+    fleetPlans: [
+      { id: 'annual', vehicleId: 'v1', type: 'Annual Service', status: 'Active', intervalMonths: 12, currentDueDate: '2025-02-28' },
+      { id: 'safety', vehicleId: 'v2', type: 'Six-month Safety Check', status: 'Active', intervalMonths: 6, currentDueDate: '2025-10-31' },
+      { id: 'ls', vehicleId: 'v3', type: 'Annual Service', status: 'Active', intervalMonths: 12, currentDueDate: '2026-08-30' }
+    ],
+    fleetCompletions: [],
+    localStorage: { setItem() {} }
+  };
+  vm.runInNewContext(`${baselineSource};this.run=fleetMigratePreJuly2026Overdues;`, context);
+  const audit = context.run();
+  assert.equal(audit.changed, true);
+  assert.equal(audit.advanced, 2);
+  assert.equal(context.fleetPlans[0].currentDueDate, '2027-02-28');
+  assert.equal(context.fleetPlans[1].currentDueDate, '2026-10-31');
+  assert.equal(context.fleetPlans[2].currentDueDate, '2026-08-30');
+  assert.deepEqual(Array.from(context.fleetCompletions, row => row.completedDate), ['2025-02-28', '2026-02-28', '2025-10-31', '2026-04-30']);
+  assert.ok(context.fleetCompletions.every(row => row.source === 'pre-july-2026-system-baseline'));
+  const count = context.fleetCompletions.length;
+  const second = context.run();
+  assert.equal(second.changed, false);
+  assert.equal(context.fleetCompletions.length, count);
+});
+
+test('the baseline migration is applied at every data-ingress boundary', () => {
+  const coordinator = html.slice(html.indexOf('function vectaRunDataIngressMigrations('), html.indexOf('\nfunction calculatedPartsStatus(', html.indexOf('function vectaRunDataIngressMigrations(')));
+  assert.match(coordinator, /fleetMigratePreJuly2026Overdues\(\)/);
+  assert.match(coordinator, /preJulyChanged/);
+  assert.ok(coordinator.indexOf('fleetMigratePreJuly2026Overdues()') > coordinator.indexOf("\n  }\n  try{var preJulyAudit="));
 });

@@ -100,7 +100,7 @@ test('render-only functions cannot invoke data migrations', () => {
 test('data migrations run at explicit local, cloud and realtime ingress boundaries', () => {
   assert.match(html, /loadLocal\(\);[\s\S]*?vectaRunDataIngressMigrations\(\{reason:'local-startup',legacyStartup:true,parts:true,tax:true\}\)/);
   assert.equal((html.match(/reason:'local-startup'/g) || []).length, 1, 'local startup migrations must run exactly once');
-  assert.match(html, /await vectaPrimeAuthoritativeDashboard\(\);[\s\S]*?await pullFleetCloudState\(\);\s*vectaRunDataIngressMigrations\(\{reason:'authoritative-dashboard',parts:true,tax:false\}\)/);
+  assert.match(html, /await vectaPrimeAuthoritativeDashboard\(\);[\s\S]*?await pullFleetCloudState\(\);\s*var authoritativeIngress=vectaRunDataIngressMigrations\(\{reason:'authoritative-dashboard',parts:true,tax:false\}\)/);
   assert.match(html, /vectaRunDataIngressMigrations\(\{reason:'cloud-pull',parts:true,tax:true\}\)/);
   assert.match(html, /vectaRunDataIngressMigrations\(\{reason:'realtime-row',parts:true,tax:false\}\)/);
 });
