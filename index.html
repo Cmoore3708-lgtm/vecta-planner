@@ -1731,8 +1731,8 @@ body.servicePreviewing .servicePreviewControls{position:relative!important;z-ind
 .customerNameHidden{display:none!important}
 .fleetDueGroup{border-top:1px solid #eef2f6;background:#fff}
 .fleetDueGroup>.fleetRow{border-top:0}
-.fleetEmailSentCheck{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;cursor:pointer}.fleetEmailSentCheck input{width:20px;height:20px;accent-color:#16a34a;cursor:pointer}.fleetEmailSentCheck small{display:block;color:#64748b;font-size:8px!important;line-height:1;white-space:nowrap}.fleetTableHead.due30Columns,.fleetRow.due30Columns{grid-template-columns:125px 76px minmax(105px,1fr) 78px 72px minmax(201px,226px)!important}.fleetTableHead.due30Columns>span:nth-child(4){text-align:center}.fleetTableHead.due30Columns>span:nth-child(5){text-align:left}.fleetTableHead.due30Columns>span:nth-child(6){justify-self:end;text-align:right;padding-right:12px}.fleetRow.due30Columns>.fleetDueMultiCell{width:100%;justify-self:stretch;justify-content:flex-end;padding-right:12px}.fleetRow.due30Columns .fleetDueItems{width:100%;align-items:stretch}.fleetRow.due30Columns .fleetDueItem{width:100%;justify-content:flex-end}.fleetRow.due30Columns .fleetDueItem .fleetDueText{margin-left:auto;text-align:right}.fleetBookedGroupCell{display:flex!important;flex-direction:column;align-items:flex-start;gap:3px;min-width:0;overflow:visible!important}.fleetBookedEntry{display:flex!important;align-items:center;gap:3px;overflow:visible!important}.fleetBookedDateLink{border:0;background:transparent;padding:0;color:#15803d;font:inherit;font-size:9px;font-weight:900;text-decoration:underline;text-underline-offset:2px;white-space:nowrap;cursor:pointer}.fleetBookedDateLink:hover{color:#166534}.fleetBookedEmpty{color:#94a3b8;font-size:9px}
-@media(max-width:950px){.fleetTableHead.due30Columns,.fleetRow.due30Columns{grid-template-columns:110px 68px minmax(92px,1fr) 72px 68px minmax(180px,200px)!important}}
+.fleetEmailSentCheck{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;cursor:pointer}.fleetEmailSentCheck input{width:20px;height:20px;accent-color:#16a34a;cursor:pointer}.fleetEmailSentCheck small{display:block;color:#64748b;font-size:8px!important;line-height:1;white-space:nowrap}.fleetTableHead.due30Columns,.fleetRow.due30Columns{grid-template-columns:125px 76px minmax(105px,1fr) 72px minmax(201px,226px) 62px!important}.fleetTableHead.due30Columns>span:nth-child(4),.fleetRow.due30Columns>:nth-child(4){grid-column:6}.fleetTableHead.due30Columns>span:nth-child(5),.fleetRow.due30Columns>:nth-child(5){grid-column:4}.fleetTableHead.due30Columns>span:nth-child(6),.fleetRow.due30Columns>:nth-child(6){grid-column:5}.fleetTableHead.due30Columns>span:nth-child(4){text-align:center}.fleetTableHead.due30Columns>span:nth-child(5){text-align:left}.fleetTableHead.due30Columns>span:nth-child(6){justify-self:end;text-align:right;padding-right:12px}.fleetRow.due30Columns>.fleetDueMultiCell{width:100%;justify-self:stretch;justify-content:flex-end;padding-right:12px}.fleetRow.due30Columns .fleetDueItems{width:100%;align-items:stretch}.fleetRow.due30Columns .fleetDueItem{width:100%;justify-content:flex-end}.fleetRow.due30Columns .fleetDueItem .fleetDueText{margin-left:auto;text-align:right}.fleetBookedGroupCell{display:flex!important;flex-direction:column;align-items:flex-start;gap:3px;min-width:0;overflow:visible!important}.fleetBookedEntry{display:flex!important;align-items:center;gap:3px;overflow:visible!important}.fleetBookedDateLink{border:0;background:transparent;padding:0;color:#15803d;font:inherit;font-size:9px;font-weight:900;text-decoration:underline;text-underline-offset:2px;white-space:nowrap;cursor:pointer}.fleetBookedDateLink:hover{color:#166534}.fleetBookedEmpty{color:#94a3b8;font-size:9px}
+@media(max-width:950px){.fleetTableHead.due30Columns,.fleetRow.due30Columns{grid-template-columns:110px 68px minmax(92px,1fr) 68px minmax(180px,200px) 58px!important}}
 @media(max-width:700px){
   .fleetPanel{max-width:100%;overflow-x:hidden!important}
   .fleetTableHead.due30Columns{display:none}
@@ -11688,11 +11688,22 @@ function fleetEmailDueGroupForVehicle(v){
   });
   return items.length?{vehicle:v,items:items}:null;
 }
-function fleetMarkEmailSentForVehicle(v){
+async function fleetMarkEmailSentForVehicle(v){
   var group=fleetEmailDueGroupForVehicle(v);if(!group)return false;
   fleetEmailSent[fleetEmailCycleKey(group)]={sent:true,updated_at:new Date().toISOString()};
   try{localStorage.setItem('vecta:fleet:email-sent:v329',JSON.stringify(fleetEmailSent))}catch(e){}
-  if(remoteClient)persistFleetCloudSnapshot();
+  if(remoteClient)await persistFleetCloudSnapshot();
+  return true;
+}
+async function fleetOpenTrackedEmail(link,ev){
+  var mailto=String(link&&link.getAttribute&&link.getAttribute('href')||'');
+  if(!/^mailto:/i.test(mailto))return false;
+  var reg=normReg(link.dataset&&link.dataset.fleetEmailRegistration||''),row=link.closest&&link.closest('[data-fleet-open]'),id=row&&row.dataset?row.dataset.fleetOpen:activeFleetVehicleId,v=reg?fleetVehicleForRegistration(reg):(fleetVehicles||[]).find(function(x){return String(x.id)===String(id||'')});
+  if(!v)return false;
+  if(ev){ev.preventDefault();ev.stopPropagation()}
+  await fleetMarkEmailSentForVehicle(v);
+  render();
+  window.location.href=mailto;
   return true;
 }
 function fleetEmailSentDisplayDate(record){var raw=record&&record.updated_at?String(record.updated_at).slice(0,10):'';return /^\d{4}-\d{2}-\d{2}$/.test(raw)?niceDate(raw):''}
@@ -15016,7 +15027,7 @@ function fleetBind(){
   document.querySelectorAll('[data-fleet-email-sent]').forEach(function(box){box.onclick=function(ev){ev.preventDefault();ev.stopPropagation();var key=String(box.dataset.fleetEmailSent||''),current=fleetEmailSent[key],next=!(current===true||(current&&current.sent));fleetEmailSent[key]={sent:next,updated_at:new Date().toISOString()};try{localStorage.setItem('vecta:fleet:email-sent:v329',JSON.stringify(fleetEmailSent))}catch(e){}if(remoteClient)persistFleetCloudSnapshot();render()}});
   document.querySelectorAll('[data-fleet-booked-job]').forEach(function(link){link.onclick=function(ev){ev.preventDefault();ev.stopPropagation();var id=String(link.dataset.fleetBookedJob||''),job=(app.jobs||[]).find(function(j){return String(j.id)===id}),date=String(job&&job.booking_date||link.dataset.fleetBookedDate||'').slice(0,10);if(!/^\d{4}-\d{2}-\d{2}$/.test(date))return;activeFleetVehicleId='';selectedDate=new Date(date+'T00:00:00');view='planner';render()}});
   document.querySelectorAll('.fleetReminderEmailLink').forEach(function(link){if(link.dataset&&link.dataset.fleetEmailRegistration)return;var v=(fleetVehicles||[]).find(function(x){return String(x.id)===String(activeFleetVehicleId||'')});if(v)link.dataset.fleetEmailRegistration=normReg(v.registration||'')});
-  document.querySelectorAll('.contactEmailLink,.fleetReminderEmailLink').forEach(function(link){link.addEventListener('click',function(){var reg=normReg(link.dataset&&link.dataset.fleetEmailRegistration||''),row=link.closest&&link.closest('[data-fleet-open]'),id=row&&row.dataset?row.dataset.fleetOpen:activeFleetVehicleId,v=reg?fleetVehicleForRegistration(reg):(fleetVehicles||[]).find(function(x){return String(x.id)===String(id||'')});if(v)fleetMarkEmailSentForVehicle(v)})});
+  document.querySelectorAll('.contactEmailLink,.fleetReminderEmailLink').forEach(function(link){link.onclick=function(ev){fleetOpenTrackedEmail(link,ev)}});
   return result;
 }
 

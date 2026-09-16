@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
+import vm from 'node:vm';
 
 const html=fs.readFileSync(new URL('../../index.html',import.meta.url),'utf8');
 
@@ -17,16 +18,47 @@ test('Fleet due list links booked dates to planner days and dates email audit ti
   assert.match(html,/class="fleetBookedDateLink" data-fleet-booked-job=/);
   assert.match(html,/data-fleet-booked-date=/);
   assert.match(html,/shortDate=new Date\([\s\S]*?toLocaleDateString\('en-GB',\{day:'2-digit',month:'2-digit'\}\)/, 'booked dates must omit the year');
-  assert.match(html,/grid-template-columns:125px 76px minmax\(105px,1fr\) 78px 72px minmax\(201px,226px\)!important/, 'Booked must give its spare width to Work due');
+  assert.match(html,/grid-template-columns:125px 76px minmax\(105px,1fr\) 72px minmax\(201px,226px\) 62px!important/, 'Booked must stay narrow, Work due must remain wide and Email sent must be the far-right column');
   assert.match(html,/\.fleetBookedDateLink\{[^}]*font-size:9px/, 'booked links must use compact green text');
   assert.match(html,/document\.querySelectorAll\('\[data-fleet-booked-job\]'\)[\s\S]*?job&&job\.booking_date\|\|link\.dataset\.fleetBookedDate[\s\S]*?selectedDate=new Date\(date\+'T00:00:00'\);view='planner';render\(\)/);
   assert.doesNotMatch(html,/document\.querySelectorAll\('\[data-fleet-booked-job\]'\)[\s\S]*?openJobModal\(id\)/);
   assert.match(html,/function fleetEmailSentDisplayDate\(record\)[\s\S]*?niceDate\(raw\)/);
   assert.match(html,/data-fleet-email-registration=/, 'vehicle email links must identify their Fleet registration');
   assert.match(html,/document\.querySelectorAll\('\.fleetReminderEmailLink'\)[\s\S]*?link\.dataset\.fleetEmailRegistration=normReg\(v\.registration/, 'the drawer Email button must inherit the active registration');
-  assert.match(html,/\.contactEmailLink,\.fleetReminderEmailLink[\s\S]*?dataset&&link\.dataset\.fleetEmailRegistration[\s\S]*?fleetMarkEmailSentForVehicle\(v\)/);
+  assert.match(html,/async function fleetMarkEmailSentForVehicle\(v\)[\s\S]*?if\(remoteClient\)await persistFleetCloudSnapshot\(\)/, 'email audit must reach cloud storage before Outlook opens');
+  assert.match(html,/async function fleetOpenTrackedEmail\(link,ev\)[\s\S]*?await fleetMarkEmailSentForVehicle\(v\);[\s\S]*?render\(\);[\s\S]*?window\.location\.href=mailto/, 'email click must save and refresh before opening Outlook');
+  assert.match(html,/\.contactEmailLink,\.fleetReminderEmailLink[\s\S]*?fleetOpenTrackedEmail\(link,ev\)/);
+  assert.match(html,/\.fleetTableHead\.due30Columns>span:nth-child\(4\),\.fleetRow\.due30Columns>:nth-child\(4\)\{grid-column:6\}/, 'Email sent must be positioned in the far-right column');
   assert.match(html,/\.fleetTableHead\.due30Columns>span:nth-child\(6\)\{justify-self:end;text-align:right;padding-right:12px\}/);
   assert.match(html,/\.fleetRow\.due30Columns \.fleetDueItem \.fleetDueText\{margin-left:auto;text-align:right\}/);
+});
+
+test('Fleet email clicks finish the audit save before refreshing and opening Outlook',async()=>{
+  const source=html.match(/async function fleetMarkEmailSentForVehicle\(v\)[\s\S]*?(?=function fleetEmailSentDisplayDate)/)?.[0];
+  assert.ok(source,'Fleet email audit functions must remain available');
+  const actions=[],vehicle={id:'dc-kaizen',registration:'DC KAIZEN'};
+  const context={
+    fleetEmailSent:{},
+    fleetEmailDueGroupForVehicle:()=>({vehicle,items:[]}),
+    fleetEmailCycleKey:()=> 'dc-kaizen|service',
+    localStorage:{setItem(){actions.push('local')}},
+    remoteClient:{},
+    persistFleetCloudSnapshot:async()=>{actions.push('cloud-start');await Promise.resolve();actions.push('cloud-finished');return true},
+    normReg:value=>String(value||'').replace(/\s+/g,''),
+    fleetVehicleForRegistration:()=>vehicle,
+    fleetVehicles:[vehicle],
+    activeFleetVehicleId:'dc-kaizen',
+    render:()=>actions.push('render'),
+    window:{location:{set href(value){actions.push('open:'+value)}}}
+  };
+  vm.createContext(context);
+  vm.runInContext(source,context);
+  const link={dataset:{fleetEmailRegistration:'DC KAIZEN'},getAttribute:()=> 'mailto:test@example.com',closest:()=>null};
+  const event={preventDefault(){actions.push('prevent')},stopPropagation(){actions.push('stop')}};
+  await context.fleetOpenTrackedEmail(link,event);
+  assert.ok(actions.indexOf('cloud-finished')<actions.indexOf('render'));
+  assert.ok(actions.indexOf('render')<actions.indexOf('open:mailto:test@example.com'));
+  assert.equal(context.fleetEmailSent['dc-kaizen|service'].sent,true);
 });
 
 test('Alfie is unavailable from 14:30 every Friday',()=>{
