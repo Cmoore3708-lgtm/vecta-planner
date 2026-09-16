@@ -1,5 +1,12 @@
 # VECTA Workshop Pro
 
+## 16 September 2026 — Test build V318
+
+- Fleet maintenance due rows now fit within a phone screen without horizontal scrolling.
+- Alfie is blocked out in red from 14:30 to 17:00 every Friday, including booking-conflict protection.
+- Completing a Tow Bar Removal job now reminds the user: “Have you wrote the name on the towbar?”
+- The production build extracts the three oversized embedded scripts, reducing the deployed `index.html` from about 2.1 MB to about 465 KB while retaining offline caching.
+
 ## 9 September 2026 — Finance integrity
 
 - Invoice saves now require cloud confirmation, verify the saved number, value and linked job, and retain a protected invoice snapshot.
