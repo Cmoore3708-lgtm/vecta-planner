@@ -218,7 +218,7 @@ assert.match(
   'Invoice save wrappers must propagate a failed cloud confirmation'
 );
 assert.match(html, /dueHeading=fleetListMode==='due30'\?'Email sent'/, '30-day Fleet view must label the email column');
-assert.match(html, /fleetListMode==='due30'\?'<span>Work due<\/span>':''/, '30-day Fleet view must keep a separate Work due column');
-assert.match(html, /fleetEmailSentCell\(group\)\+fleetDueGroupCell\(group\.items\)/, '30-day rows must show both the checkbox and due work');
+assert.match(html, /fleetListMode==='due30'\?'<span>Booked<\/span><span>Work due<\/span>':''/, '30-day Fleet view must keep separate Booked and Work due columns');
+assert.match(html, /fleetEmailSentCell\(group\)\+fleetBookedGroupCell\(group\.items\)\+fleetDueGroupCell\(group\.items\)/, '30-day rows must show the email audit, booked date links and due work');
 assert.doesNotMatch(html, /\(checked\?'Sent':'Not sent'\)/, 'Email sent column must not display Sent / Not sent wording');
 console.log('Finance integrity regression tests passed.');

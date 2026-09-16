@@ -109,8 +109,10 @@ test('Fleet snapshot and due-list features are owned by their canonical function
   const snapshot = namedFunctionSource('applyFleetCloudSnapshot');
   const maintenance = namedFunctionSource('fleetMaintenanceHtml');
   assert.match(snapshot, /applyFleetEmailSentSnapshot\s*\(value\)/, 'cloud snapshots must retain email-sent state');
-  assert.match(maintenance, /fleetListMode==='due30'\?'due30Columns'/, 'the due-30 table must retain its five-column layout');
-  assert.match(maintenance, /fleetListMode==='due30'\?'<span>Work due<\/span>'/, 'the due-30 table must retain its Work due heading');
+  assert.match(maintenance, /fleetListMode==='due30'\?'due30Columns'/, 'the due-30 table must retain its compact dedicated layout');
+  assert.match(maintenance, /fleetListMode==='due30'\?'<span>Booked<\/span><span>Work due<\/span>'/, 'the due-30 table must retain its Booked and Work due headings');
+  assert.match(maintenance, /fleetShortVehicle\(v\.model\)/, 'the due-30 vehicle column must show only the first model word');
+  assert.match(maintenance, /fleetBookedGroupCell\(group\.items\)\+fleetDueGroupCell\(group\.items\)/, 'booked job dates must have a dedicated column before work due');
   assert.doesNotMatch(html, /fleetApplyCloudSnapshotBase|fleetMaintenanceHtmlV330Base/, 'Fleet behavior must not be installed through base-function wrappers');
 });
 
