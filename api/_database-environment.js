@@ -15,6 +15,12 @@ export function isPreviewEnvironment() {
   return process.env.VERCEL_ENV === 'preview';
 }
 
+export function isTestProject() {
+  return isPreviewEnvironment()
+    || /vecta-(?:workshop-pro-test|synthetic-test)/.test(String(process.env.VERCEL_PROJECT_PRODUCTION_URL || ''))
+    || /^vecta-(?:workshop-pro-test|synthetic-test)(?:-|$)/.test(String(process.env.VERCEL_PROJECT_NAME || ''));
+}
+
 export function isAuditPreviewEnvironment() {
   const branch = String(process.env.VERCEL_GIT_COMMIT_REF || '');
   return isPreviewEnvironment() && /^audit\/system-simplification-v355$/i.test(branch);
@@ -22,20 +28,21 @@ export function isAuditPreviewEnvironment() {
 
 export function databaseEnvironment({ requireService = false } = {}) {
   const preview = isPreviewEnvironment();
-  const url = cleanUrl(preview
+  const testProject = isTestProject();
+  const url = cleanUrl(testProject
     ? (process.env.VECTA_TEST_SUPABASE_URL || TEST_PROJECT_URL)
     : (process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL));
-  const publishableKey = preview
+  const publishableKey = testProject
     ? (process.env.VECTA_TEST_SUPABASE_PUBLISHABLE_KEY || TEST_PUBLISHABLE_KEY)
     : (process.env.VITE_SUPABASE_ANON_KEY || process.env.SUPABASE_PUBLISHABLE_KEY || process.env.SUPABASE_ANON_KEY);
-  const serviceKey = preview
+  const serviceKey = testProject
     ? process.env.VECTA_TEST_SUPABASE_SERVICE_ROLE_KEY
     : process.env.SUPABASE_SERVICE_ROLE_KEY;
 
-  if (preview) {
+  if (testProject) {
     if (!url) throw new Error('Preview database is not configured. Live data access is blocked.');
     if (url.includes(PRODUCTION_PROJECT_REF)) {
-      throw new Error('Safety lock: a preview deployment cannot use the production database.');
+      throw new Error('Safety lock: a Test deployment cannot use the production database.');
     }
   }
   if (!url) throw new Error('Supabase URL is not configured.');
@@ -47,7 +54,8 @@ export function databaseEnvironment({ requireService = false } = {}) {
     publishableKey,
     serviceKey,
     key: requireService ? serviceKey : (serviceKey || publishableKey),
-    preview
+    preview,
+    testProject
   };
 }
 
