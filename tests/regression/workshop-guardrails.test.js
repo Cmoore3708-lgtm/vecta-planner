@@ -23,5 +23,6 @@ test('towbar removal completion displays the requested reminder in both workflow
   assert.match(html,/alert\('Have you wrote the name on the towbar\?'\)/);
   assert.match(html,/complete\.onclick=function\(\)[\s\S]*?showTowbarRemovalReminder\(current\)[\s\S]*?current\.status=WORK_COMPLETE/);
   assert.match(html,/button\.onclick=function\(event\)[\s\S]*?showTowbarRemovalReminder\(draft\)[\s\S]*?previousClick/);
-  assert.match(html,/function updateJobQuick\(j\)\{if\(\(j\.status==='completed'\|\|j\.status==='work_complete'\)&&typeof showTowbarRemovalReminder/);
+  assert.match(html,/function updateJobQuick\(j\)\{if\(\(j\.status==='completed'\|\|j\.status==='work_complete'\|\|j\.status==='ready_to_invoice'\)&&typeof showTowbarRemovalReminder/);
+  assert.match(html,/readyButton\.onclick=async function\(\)[\s\S]*?savedJob&&savedJob\.status==='ready_to_invoice'[\s\S]*?showTowbarRemovalReminder\(savedJob\)/);
 });
