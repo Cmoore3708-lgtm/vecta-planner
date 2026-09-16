@@ -6,6 +6,9 @@ import vm from 'node:vm';
 const html = fs.readFileSync(new URL('../../index.html', import.meta.url), 'utf8');
 const match = html.match(/<script id="v359-false-service-completion-repair">([\s\S]*?)<\/script>/);
 assert.ok(match, 'V359 false-completion repair exists');
+const initialVehicles = JSON.parse(html.match(/window\.INITIAL_FLEET_VEHICLES = (\[[^\n]+\]);/)[1]);
+const initialPlans = JSON.parse(html.match(/window\.INITIAL_MAINTENANCE_PLANS = (\[[\s\S]*?\n\]);/)[1]);
+const historicalSchedule = JSON.parse(html.match(/var HISTORICAL_COMPLETION_SEED=(\[[^\n]+\]);/)[1]);
 
 function load(overrides = {}) {
   const context = {
@@ -51,6 +54,42 @@ test('LS64 VKM is restored to its overdue schedule when no service was completed
   assert.equal(state.fleetPlans[0].currentDueDate, '2026-08-30');
   assert.deepEqual(Array.from(audit.restored, row => row.registration), ['LS64 VKM']);
   assert.equal(state.fleetCompletions.some(c => c.source === 'pre-july-2026-auto-complete'), false);
+});
+
+test('an isolated Test browser repairs the embedded 2022 plan without a fabricated completion record', () => {
+  const state = load({
+    fleetVehicles: [{ id: 'ls', registration: 'LS64 VKM' }],
+    fleetPlans: [{ id: 'p-ls', vehicleId: 'ls', type: 'Major Service', status: 'Active', currentDueDate: '2022-08-30' }],
+    fleetCompletions: [],
+    HISTORICAL_COMPLETION_SEED: [{ key: 'LS64 VKM', type: 'Annual Service', date: '2026-08-30', datePrecision: 'day' }]
+  });
+  const audit = state.v359RepairFalseServiceCompletions();
+  assert.equal(audit.changed, 1);
+  assert.equal(state.fleetPlans[0].currentDueDate, '2026-08-30');
+});
+
+test('offline startup repairs service cycles before rendering the fallback Fleet', () => {
+  assert.match(html, /if\(!navigator\.onLine\|\|!configured\)\{[\s\S]*?importContractor2026Spreadsheet\(\);ensureServiceTemplates\(\);ensureRecurringWorkshopTasks\(\);[\s\S]*?v359RepairFalseServiceCompletions\(\);[\s\S]*?render\(\)/);
+});
+
+test('the complete isolated Test Fleet exposes no service plan older than its current schedule', () => {
+  const state = load({
+    fleetVehicles: structuredClone(initialVehicles),
+    fleetPlans: structuredClone(initialPlans),
+    fleetCompletions: [],
+    HISTORICAL_COMPLETION_SEED: structuredClone(historicalSchedule)
+  });
+  state.v359RepairFalseServiceCompletions();
+  const scheduled = new Map(historicalSchedule
+    .filter(row => /service/i.test(String(row.type || '')) && row.date)
+    .map(row => [String(row.key).toUpperCase().replace(/[^A-Z0-9]/g, ''), row.date]));
+  const registrations = new Map(initialVehicles.map(vehicle => [vehicle.id, String(vehicle.registration).toUpperCase().replace(/[^A-Z0-9]/g, '')]));
+  const stale = state.fleetPlans.filter(plan => {
+    if (!/service/i.test(String(plan.type || '')) || plan.status === 'Paused' || plan.manualDueDate) return false;
+    const due = scheduled.get(registrations.get(plan.vehicleId));
+    return due && plan.currentDueDate && plan.currentDueDate < due;
+  });
+  assert.deepEqual(stale.map(plan => ({ id: plan.id, due: plan.currentDueDate })), []);
 });
 
 test('a genuine completed service advances the schedule instead of reappearing overdue', () => {

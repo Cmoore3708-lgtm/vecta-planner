@@ -9008,7 +9008,7 @@ function scheduledDueByRegistration(){
   var result={};
   ((typeof HISTORICAL_COMPLETION_SEED!=='undefined'&&Array.isArray(HISTORICAL_COMPLETION_SEED))?HISTORICAL_COMPLETION_SEED:[]).forEach(function(row){
     var date=iso(row&&row.date),key=reg(row&&row.key);
-    if(!key||!date||date>todayIso()||!serviceText(row.type))return;
+    if(!key||!date||!serviceText(row.type))return;
     if(!result[key]||date>result[key])result[key]=date;
   });
   return result;
@@ -9025,7 +9025,11 @@ function repair(){
   fleetVehicles.forEach(function(vehicle){
     var key=reg(vehicle&&vehicle.registration),scheduled=schedules[key],plan=scheduled&&activeServicePlan(vehicle);if(!plan)return;
     var wasAutoAdvanced=(fleetCompletions||[]).some(function(c){return c&&String(c.vehicleId)===String(vehicle.id)&&c.source==='pre-july-2026-auto-complete';});
-    if(!wasAutoAdvanced||plan.manualDueDate===true)return;
+    /* An isolated/offline browser may have the old embedded plan but no persisted
+       auto-completion record. A plan older than the current imported schedule is
+       the same stale condition and must be repaired to the current cycle. */
+    var staleEmbeddedPlan=!!iso(plan.currentDueDate)&&iso(plan.currentDueDate)<scheduled;
+    if((!wasAutoAdvanced&&!staleEmbeddedPlan)||plan.manualDueDate===true)return;
     var evidence=completionEvidence(vehicle),windowStart=subtractDays(scheduled,62),relevant=evidence.filter(function(date){return date>=windowStart;});
     var corrected=scheduled,authority='Imported service schedule '+scheduled+'. No completed service evidence exists for this cycle.';
     if(relevant.length){var done=relevant[relevant.length-1];corrected=addMonths(done,12);authority='Next service due 12 months after confirmed service '+done+'.';}
@@ -9648,7 +9652,7 @@ async function flushPendingSync(){
   if(!remaining.length)return true;
   return false
 }
-var VECTA_APP_VERSION='v359-service-evidence-repair';
+var VECTA_APP_VERSION='v360-current-service-cycle-repair';
 var vectaAppUpdateWaiting=false;
 function vectaSafeApplyAppUpdate(){
   vectaAppUpdateWaiting=true;
@@ -9670,7 +9674,7 @@ function registerVectaServiceWorker(){
   navigator.serviceWorker.addEventListener('controllerchange',function(){vectaSafeApplyAppUpdate()});
   window.addEventListener('load',function(){
     Promise.resolve(window.__vectaCacheResetPromise).finally(function(){
-      navigator.serviceWorker.register('/service-worker.js?v=20260916-service-evidence-v359',{updateViaCache:'none'}).then(function(reg){
+      navigator.serviceWorker.register('/service-worker.js?v=20260916-current-cycle-v360',{updateViaCache:'none'}).then(function(reg){
         if(navigator.onLine)Promise.resolve(reg.update()).catch(function(e){console.warn('Service worker update skipped',e)});
       }).catch(function(e){console.warn('Offline app install skipped',e)});
     });
@@ -10415,6 +10419,7 @@ function init(){safe(async function(){
   if(!navigator.onLine||!configured){
     vectaCloudReachable=false;
     importContractor2026Spreadsheet();ensureServiceTemplates();ensureRecurringWorkshopTasks();
+    if(typeof window.v359RepairFalseServiceCompletions==='function')window.v359RepairFalseServiceCompletions();
     clearTimeout(vectaStartupWatchdog);vectaSetStartupLoading(false);render();updateConnectivityUI();return;
   }
   ensureSupabase(async function(ok){
