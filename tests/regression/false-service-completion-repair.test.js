@@ -72,6 +72,16 @@ test('offline startup repairs service cycles before rendering the fallback Fleet
   assert.match(html, /if\(!navigator\.onLine\|\|!configured\)\{[\s\S]*?importContractor2026Spreadsheet\(\);ensureServiceTemplates\(\);ensureRecurringWorkshopTasks\(\);[\s\S]*?v359RepairFalseServiceCompletions\(\);[\s\S]*?render\(\)/);
 });
 
+test('startup repairs stale service cycles before the first visible render', () => {
+  const source = html.match(/function init\(\)\{safe\(async function\(\)\{([\s\S]*?)\n\},null\)\}/)[1];
+  const repair = source.indexOf('v359RepairFalseServiceCompletions();');
+  const firstRender = source.indexOf('\n  render();');
+  const cloudConfig = source.indexOf('loadCloudConfig');
+  assert.ok(repair > -1, 'startup must run the current-cycle repair');
+  assert.ok(repair < firstRender, 'service dates must be repaired before the first render');
+  assert.ok(repair < cloudConfig, 'repair must not depend on cloud configuration');
+});
+
 test('the complete isolated Test Fleet exposes no service plan older than its current schedule', () => {
   const state = load({
     fleetVehicles: structuredClone(initialVehicles),

@@ -9652,7 +9652,7 @@ async function flushPendingSync(){
   if(!remaining.length)return true;
   return false
 }
-var VECTA_APP_VERSION='v360-current-service-cycle-repair';
+var VECTA_APP_VERSION='v361-pre-render-service-cycle-repair';
 var vectaAppUpdateWaiting=false;
 function vectaSafeApplyAppUpdate(){
   vectaAppUpdateWaiting=true;
@@ -9674,7 +9674,7 @@ function registerVectaServiceWorker(){
   navigator.serviceWorker.addEventListener('controllerchange',function(){vectaSafeApplyAppUpdate()});
   window.addEventListener('load',function(){
     Promise.resolve(window.__vectaCacheResetPromise).finally(function(){
-      navigator.serviceWorker.register('/service-worker.js?v=20260916-current-cycle-v360',{updateViaCache:'none'}).then(function(reg){
+      navigator.serviceWorker.register('/service-worker.js?v=20260916-pre-render-v361',{updateViaCache:'none'}).then(function(reg){
         if(navigator.onLine)Promise.resolve(reg.update()).catch(function(e){console.warn('Service worker update skipped',e)});
       }).catch(function(e){console.warn('Offline app install skipped',e)});
     });
@@ -10404,6 +10404,10 @@ function init(){safe(async function(){
   loadLocal();
   if(VECTA_AUDIT_PREVIEW){vectaSavePendingSync([]);vectaCloudReachable=false;}
   vectaRunDataIngressMigrations({reason:'local-startup',legacyStartup:true,parts:true,tax:true});
+  /* Repair stale embedded/local service cycles before the very first render.
+     Test/offline startup must never expose 2022 fallback dates while waiting
+     for a cloud configuration or Supabase connection that may not exist. */
+  if(typeof window.v359RepairFalseServiceCompletions==='function')window.v359RepairFalseServiceCompletions();
   bindTop();
   vectaSetStartupLoading(false);
   render();
