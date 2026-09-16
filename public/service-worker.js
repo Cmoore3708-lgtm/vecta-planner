@@ -1,5 +1,5 @@
-const CACHE='vecta-workshop-pro-shell-v41-source-authority';
-const APP_VERSION='audit-source-authority';
+const CACHE='vecta-workshop-pro-shell-v42-phone-towbar';
+const APP_VERSION='v356-phone-towbar';
 const DATA_CACHE='vecta-workshop-pro-data-last-known-v1';
 const HEALTH_CACHE='vecta-workshop-pro-cloud-health-v1';
 const CORE=[

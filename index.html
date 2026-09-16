@@ -1736,12 +1736,12 @@ body.servicePreviewing .servicePreviewControls{position:relative!important;z-ind
 @media(max-width:700px){
   .fleetPanel{max-width:100%;overflow:hidden}
   .fleetTableHead.due30Columns{display:none}
-  .fleetRow.due30Columns{box-sizing:border-box;grid-template-columns:86px minmax(0,1fr) 94px!important;grid-template-rows:auto auto;gap:3px 7px;width:100%;max-width:100%;padding:8px!important;overflow:hidden}
-  .fleetRow.due30Columns>:nth-child(1){grid-column:1;grid-row:1/3;align-self:center;min-width:0}
-  .fleetRow.due30Columns>:nth-child(2){grid-column:2;grid-row:1;min-width:0;font-weight:900}
-  .fleetRow.due30Columns>:nth-child(3){grid-column:2;grid-row:2;min-width:0}
-  .fleetRow.due30Columns>:nth-child(4){grid-column:3;grid-row:1;justify-self:end;padding-right:2px}
-  .fleetRow.due30Columns>:nth-child(5){grid-column:3;grid-row:2;min-width:0;justify-self:end}
+  .fleetRow.due30Columns{box-sizing:border-box;grid-template-columns:minmax(0,1fr) 94px!important;grid-template-rows:28px auto auto;column-gap:8px;row-gap:1px;width:100%;max-width:100%;padding:7px 8px!important;overflow:hidden}
+  .fleetRow.due30Columns>:nth-child(1){grid-column:1;grid-row:1;align-self:start;min-width:0}
+  .fleetRow.due30Columns>:nth-child(2){grid-column:1;grid-row:2;min-width:0;font-weight:900;line-height:1.15;padding-left:2px}
+  .fleetRow.due30Columns>:nth-child(3){grid-column:1;grid-row:3;min-width:0;line-height:1.15;padding-left:2px}
+  .fleetRow.due30Columns>:nth-child(4){grid-column:2;grid-row:1;justify-self:end;align-self:start;padding-right:2px}
+  .fleetRow.due30Columns>:nth-child(5){grid-column:2;grid-row:2/4;min-width:0;justify-self:end;align-self:center}
   .fleetRow.due30Columns .fleetDueItems{max-width:94px;gap:2px}
   .fleetRow.due30Columns .fleetDueItem{gap:3px;white-space:nowrap}
   .fleetRow.due30Columns .fleetDueText{font-size:9px!important}
@@ -8726,12 +8726,15 @@ window.INITIAL_MAINTENANCE_PLANS = [
 </script>
 <script id="v318-workshop-guardrails">
 (function(){
+  var remindedTowbarJobs=typeof WeakSet==='function'?new WeakSet():null;
   function towbarRemovalJob(job){
     var text=[job&&job.job_type,job&&job.work_required].concat(Array.isArray(job&&job.job_types)?job.job_types:[]).filter(Boolean).join(' ').toLowerCase();
-    return /\btow\s*bar\b|\btowbar\b/.test(text)&&/\b(remov(?:e|al|ed|ing)|detach(?:ed|ing)?)\b/.test(text);
+    return /\btow[\s-]*bar\b/.test(text)&&/\b(remov(?:e|al|ed|ing)|detach(?:ed|ing)?|take\s+off|taking\s+off)\b/.test(text);
   }
   window.showTowbarRemovalReminder=function(job){
     if(!towbarRemovalJob(job))return false;
+    if(remindedTowbarJobs&&job&&typeof job==='object'&&remindedTowbarJobs.has(job))return false;
+    if(remindedTowbarJobs&&job&&typeof job==='object')remindedTowbarJobs.add(job);
     alert('Have you wrote the name on the towbar?');
     return true;
   };
@@ -9564,7 +9567,7 @@ async function flushPendingSync(){
   if(!remaining.length)return true;
   return false
 }
-var VECTA_APP_VERSION='v355-single-update';
+var VECTA_APP_VERSION='v356-phone-towbar';
 var vectaAppUpdateWaiting=false;
 function vectaSafeApplyAppUpdate(){
   vectaAppUpdateWaiting=true;
@@ -9586,7 +9589,7 @@ function registerVectaServiceWorker(){
   navigator.serviceWorker.addEventListener('controllerchange',function(){vectaSafeApplyAppUpdate()});
   window.addEventListener('load',function(){
     Promise.resolve(window.__vectaCacheResetPromise).finally(function(){
-      navigator.serviceWorker.register('/service-worker.js?v=20260912-single-update-v355',{updateViaCache:'none'}).then(function(reg){
+      navigator.serviceWorker.register('/service-worker.js?v=20260916-phone-towbar-v356',{updateViaCache:'none'}).then(function(reg){
         if(navigator.onLine)Promise.resolve(reg.update()).catch(function(e){console.warn('Service worker update skipped',e)});
       }).catch(function(e){console.warn('Offline app install skipped',e)});
     });
@@ -12397,7 +12400,7 @@ function plannerHtml(){
 function mobileMotAppointmentHtml(j){var time=motTimeFromJob(j);return hasMotJobType(j)&&time?'<span class="mobileMotAppointment" aria-label="MOT appointment time '+esc(time)+'">MOT '+esc(time)+'</span>':''}
 function mobileJobCardHtml(j,groupName){var isOther=String(groupName||j.technician||'').trim().toLowerCase()==='other',vehicleLine=String(j.vehicle||'').trim()||[j.make,j.model].filter(Boolean).join(' ').trim()||'Vehicle';return '<div class="mobileJob jobTypeCoded'+(isOther?' mobileOtherJob':'')+'" style="'+jobTypeInlineStyle(j)+(isOther?'background-color:#dff0ff!important;background-image:linear-gradient(#dff0ff,#dff0ff)!important;':'')+'" data-open-job="'+j.id+'"><div class="mobileJobTop">'+plannerPlate(j)+'<span class="mobileVehicleTop">'+esc(vehicleLine)+'</span></div>'+carryOverBadgeHtml(j)+'<div class="sideJobType">'+jobTypeChip(j)+mobileMotAppointmentHtml(j)+'</div><b>'+esc(j.work_required||'No work required entered')+'</b><div class="mobileJobMeta">'+(j.customer_name?esc(j.customer_name)+'<br>':'')+esc(j.technician||'Unallocated')+' · '+esc(timeRange(j))+' · '+esc(j.ramp||'No ramp')+'</div></div>'}
 
-function updateJobQuick(j){j.archived=j.status==='completed';if(j.status==='completed'&&!j.completed_at){var _legacyDone=vectaValidJobDate(j.booking_date)||vectaValidJobDate(j.created_at);if(_legacyDone)j.completed_at=_legacyDone+'T17:00:00.000Z';}j.updated_at=new Date().toISOString();syncTaskFromMiniJob(j);if(j.status==='completed'||j.status==='ready_to_invoice')syncFleetMaintenanceFromJob(j);saveAll();upsertRemote('jobs',j);render()}
+function updateJobQuick(j){if((j.status==='completed'||j.status==='work_complete')&&typeof showTowbarRemovalReminder==='function')showTowbarRemovalReminder(j);j.archived=j.status==='completed';if(j.status==='completed'&&!j.completed_at){var _legacyDone=vectaValidJobDate(j.booking_date)||vectaValidJobDate(j.created_at);if(_legacyDone)j.completed_at=_legacyDone+'T17:00:00.000Z';}j.updated_at=new Date().toISOString();syncTaskFromMiniJob(j);if(j.status==='completed'||j.status==='ready_to_invoice')syncFleetMaintenanceFromJob(j);saveAll();upsertRemote('jobs',j);render()}
 
 function mobileMoveJob(id){var j=app.jobs.find(function(x){return x.id===id});if(!j)return;var opts=['Unallocated'].concat(app.settings.mechanics||['Alfie','Other']);var ans=prompt('Move job to: '+opts.join(', '),j.technician||'Unallocated');if(ans!==null){var match=opts.find(function(o){return o.toLowerCase()===String(ans).toLowerCase()})||ans,oldTech=j.technician,oldDate=j.booking_date;j.technician=match;j.booking_date=String(match).toLowerCase()==='unallocated'?null:selectedIso();var unavailable=(window.vectaTimeOffConflict&&window.vectaTimeOffConflict(j));if(unavailable){j.technician=oldTech;j.booking_date=oldDate;return alert(match+' is unavailable at that time ('+(unavailable.timeOff.type||'Time off')+').')}updateJobQuick(j)}}
 
