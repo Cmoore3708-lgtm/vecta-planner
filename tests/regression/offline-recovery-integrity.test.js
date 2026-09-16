@@ -72,6 +72,17 @@ test('offline queue blocks job deletion and preserves terminal completion author
   assert.match(flush, /terminal&&terminal\.state==='completed'[\s\S]*?status:'completed',archived:true/);
 });
 
+test('completion authority is persisted before the fallible main job upsert', () => {
+  const source = namedFunctionSource('syncSavedJobBundleInBackground');
+  const ledgerWrite = source.indexOf("vectaWriteTerminalJobState(j,'completed'");
+  const protectedSnapshot = source.indexOf('vectaProtectJobSnapshot(j');
+  const jobUpsert = source.indexOf("upsertRemote('jobs',j");
+  assert.ok(ledgerWrite > -1, 'completed jobs must write a terminal ledger');
+  assert.ok(protectedSnapshot > ledgerWrite, 'the protected snapshot must follow the terminal ledger');
+  assert.ok(jobUpsert > protectedSnapshot, 'the main job upsert must not run before completion evidence is durable');
+  assert.equal(source.indexOf("vectaWriteTerminalJobState(j,'completed'", ledgerWrite + 1), -1, 'the completion ledger should be written once');
+});
+
 test('reconnect flushes local edits before downloading authoritative cloud state', () => {
   const source = namedFunctionSource('vectaHandleReconnect');
   assert.ok(source.indexOf('await flushPendingSync()') < source.indexOf('refreshPlannerCoreFromCloudAndRender()'));

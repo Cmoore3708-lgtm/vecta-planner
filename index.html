@@ -14172,9 +14172,12 @@ function syncSavedJobBundleInBackground(j,linked){
     try{
       if(linked&&linked.customer)await upsertRemote('customers',linked.customer,{silent:true});
       if(linked&&linked.vehicle)await upsertRemote('vehicles',linked.vehicle,{silent:true});
+      /* Persist completion authority before the main job upsert. If that upsert
+         is interrupted, startup reconciliation can still use the terminal
+         ledger and must never replace the completed job with an older cloud row. */
+      if(String(j.status||'').toLowerCase()==='completed')await vectaWriteTerminalJobState(j,'completed',{completed_at:j.completed_at||null,booking_date:j.booking_date||null});
       if(String(j.status||'').toLowerCase()==='completed'||vectaJobHasFinancialValue(j))await vectaProtectJobSnapshot(j,String(j.status||'').toLowerCase()==='completed'?'job-completed':'job-financial-save');
       await upsertRemote('jobs',j,{silent:true});
-      if(String(j.status||'').toLowerCase()==='completed')await vectaWriteTerminalJobState(j,'completed',{completed_at:j.completed_at||null,booking_date:j.booking_date||null});
       await rememberJobCustomer(j);
       if(remoteClient){
         try{await persistMainSettings()}
