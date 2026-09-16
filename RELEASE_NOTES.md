@@ -3,7 +3,7 @@
 ## 16 September 2026 — Test build V318
 
 - Fleet maintenance due rows now fit within a phone screen without horizontal scrolling.
-- Phone due-list rows now stack the vehicle make and fleet directly beneath the registration plate with tighter spacing.
+- Phone due-list rows now place the vehicle make beneath the registration plate, move the owner into the centre gap, and use a narrower overflow-free layout.
 - Alfie is blocked out in red from 14:30 to 17:00 every Friday, including booking-conflict protection.
 - Completing or marking a Tow Bar Removal job Ready to Invoice now reminds the user on desktop and phone: “Have you wrote the name on the towbar?” The check also recognises “towbar” and “tow-bar” wording.
 - The production build extracts the three oversized embedded scripts, reducing the deployed `index.html` from about 2.1 MB to about 465 KB while retaining offline caching.

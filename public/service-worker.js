@@ -1,5 +1,5 @@
-const CACHE='vecta-workshop-pro-shell-v43-phone-ready-towbar';
-const APP_VERSION='v357-phone-ready-towbar';
+const CACHE='vecta-workshop-pro-shell-v44-fleet-owner-grid';
+const APP_VERSION='v358-fleet-owner-grid';
 const DATA_CACHE='vecta-workshop-pro-data-last-known-v1';
 const HEALTH_CACHE='vecta-workshop-pro-cloud-health-v1';
 const CORE=[
