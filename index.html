@@ -11693,7 +11693,7 @@ window.v280FleetDueIntegrityAudit=fleetDueIntegrityAudit;
 function fleetEmailCycleKey(group){var v=group&&group.vehicle||{},items=(group&&group.items||[]).map(function(r){return String(r.plan&&r.plan.id||r.typeKey||'work')+'@'+String(r.due||'')}).sort();return String(v.id||normReg(v.registration||''))+'|'+items.join('|')}
 function fleetEmailDueGroupForVehicle(v){
   if(!v)return null;
-  var today=new Date();today.setHours(0,0,0,0);var limit=new Date(today);limit.setDate(limit.getDate()+30),items=[];
+  var today=new Date();today.setHours(0,0,0,0);var limit=new Date(today),items=[];limit.setDate(limit.getDate()+30);
   fleetOutstandingPlans(v.id).forEach(function(p){
     var due=String(fleetDate(p)||'').slice(0,10),typeKey=fleetMaintenanceCategory(p.type),date=new Date(due+'T00:00:00');
     if(/^\d{4}-\d{2}-\d{2}$/.test(due)&&date<=limit&&fleetHasActiveMaintenanceRecord(v.id,typeKey))items.push({vehicle:v,plan:p,due:due,typeKey:typeKey,bookedJob:fleetBookedPlannerJob(v.registration,typeKey)});

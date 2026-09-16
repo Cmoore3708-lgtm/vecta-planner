@@ -65,6 +65,11 @@ test('Fleet email clicks finish the audit save before refreshing and opening Out
   assert.equal(context.fleetEmailSent['dc-kaizen|service'].sent,true);
 });
 
+test('Fleet email due-group creation declares its items collection before use',()=>{
+  assert.match(html,/function fleetEmailDueGroupForVehicle\(v\)[\s\S]*?var limit=new Date\(today\),items=\[\];limit\.setDate/, 'email clicks must not throw items is not defined');
+  assert.doesNotMatch(html,/limit\.setDate\(limit\.getDate\(\)\+30\),items=\[\]/, 'items must not be assigned through an undeclared comma expression');
+});
+
 test('Alfie is unavailable from 14:30 every Friday',()=>{
   assert.match(html,/function recurringTimeOffForDay\(mechanic,date\)[\s\S]*?toLowerCase\(\)==='alfie'[\s\S]*?getDay\(\)===5[\s\S]*?start_time:'14:30'[\s\S]*?end_time:'17:00'/);
   assert.match(html,/return saved\.concat\(recurringTimeOffForDay\(mechanic,date\)\)/);
