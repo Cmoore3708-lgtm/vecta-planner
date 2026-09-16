@@ -22,13 +22,15 @@ test('Fleet due list links booked dates to planner days and dates email audit ti
   assert.match(html,/\.fleetBookedDateLink\{[^}]*font-size:9px/, 'booked links must use compact green text');
   assert.match(html,/document\.querySelectorAll\('\[data-fleet-booked-job\]'\)[\s\S]*?job&&job\.booking_date\|\|link\.dataset\.fleetBookedDate[\s\S]*?selectedDate=new Date\(date\+'T00:00:00'\);view='planner';render\(\)/);
   assert.doesNotMatch(html,/document\.querySelectorAll\('\[data-fleet-booked-job\]'\)[\s\S]*?openJobModal\(id\)/);
-  assert.match(html,/function fleetEmailSentDisplayDate\(record\)[\s\S]*?niceDate\(raw\)/);
+  assert.match(html,/function fleetEmailSentDisplayDate\(record\)[\s\S]*?toLocaleDateString\('en-GB',\{day:'2-digit',month:'2-digit'\}\)/, 'email audit dates must omit the year');
   assert.match(html,/data-fleet-email-registration=/, 'vehicle email links must identify their Fleet registration');
   assert.match(html,/document\.querySelectorAll\('\.fleetReminderEmailLink'\)[\s\S]*?link\.dataset\.fleetEmailRegistration=normReg\(v\.registration/, 'the drawer Email button must inherit the active registration');
   assert.match(html,/async function fleetMarkEmailSentForVehicle\(v\)[\s\S]*?if\(remoteClient\)await persistFleetCloudSnapshot\(\)/, 'email audit must reach cloud storage before Outlook opens');
   assert.match(html,/async function fleetOpenTrackedEmail\(link,ev\)[\s\S]*?await fleetMarkEmailSentForVehicle\(v\);[\s\S]*?render\(\);[\s\S]*?window\.location\.href=mailto/, 'email click must save and refresh before opening Outlook');
-  assert.match(html,/\.contactEmailLink,\.fleetReminderEmailLink[\s\S]*?fleetOpenTrackedEmail\(link,ev\)/);
-  assert.match(html,/\.fleetTableHead\.due30Columns>span:nth-child\(4\),\.fleetRow\.due30Columns>:nth-child\(4\)\{grid-column:6\}/, 'Email sent must be positioned in the far-right column');
+  assert.match(html,/document\.addEventListener\('click',[\s\S]*?closest\('\.contactEmailLink,\.fleetReminderEmailLink'\)[\s\S]*?fleetOpenTrackedEmail\(link,ev\)[\s\S]*?,true\)/, 'dynamically opened vehicle email links must be captured');
+  assert.match(html,/\.fleetTableHead\.due30Columns>span:nth-child\(4\),\.fleetRow\.due30Columns>:nth-child\(4\)\{grid-column:6;grid-row:1\}/, 'Email sent must be positioned in the far-right column without creating an extra row');
+  assert.match(html,/\.fleetRow\.due30Columns\{padding-top:7px;padding-bottom:7px\}/, 'single-work Fleet rows must remain compact');
+  assert.match(html,/\.fleetEmailSentCheck input\{width:16px!important;height:16px!important\}/, 'the far-right email checkbox must remain compact');
   assert.match(html,/\.fleetTableHead\.due30Columns>span:nth-child\(6\)\{justify-self:end;text-align:right;padding-right:12px\}/);
   assert.match(html,/\.fleetRow\.due30Columns \.fleetDueItem \.fleetDueText\{margin-left:auto;text-align:right\}/);
 });
@@ -49,6 +51,7 @@ test('Fleet email clicks finish the audit save before refreshing and opening Out
     fleetVehicles:[vehicle],
     activeFleetVehicleId:'dc-kaizen',
     render:()=>actions.push('render'),
+    document:{addEventListener(){actions.push('delegated')}},
     window:{location:{set href(value){actions.push('open:'+value)}}}
   };
   vm.createContext(context);
