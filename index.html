@@ -11633,7 +11633,9 @@ function fleetManualLatestMotExpiry(data){
     if(result&&result.indexOf('PASS')===-1)return;
     add(x.expiryDate);add(x.expiry_date);add(x.motExpiryDate);add(x.mot_expiry_date);
   });
-  dates.sort();return dates.length?dates[dates.length-1]:'';
+  dates.sort();if(dates.length)return dates[dates.length-1];
+  var first=dvsaIsoDate(data.firstUsedDate||data.first_used_date||data.registrationDate||data.registration_date);if(!first)return '';
+  var due=new Date(first+'T00:00:00Z');if(isNaN(due.getTime()))return '';due.setUTCFullYear(due.getUTCFullYear()+3);due.setUTCDate(due.getUTCDate()-1);return due.toISOString().slice(0,10);
 }
 function fleetActiveMotPlans(vehicleId){
   return (fleetPlans||[]).filter(function(p){
@@ -15369,7 +15371,9 @@ init();
       add(t.expiryDate); add(t.expiry_date); add(t.motExpiryDate); add(t.mot_expiry_date);
     });
     dates.sort();
-    return dates.length?dates[dates.length-1]:'';
+    if(dates.length)return dates[dates.length-1];
+    var first=iso(data.firstUsedDate||data.first_used_date||data.registrationDate||data.registration_date);if(!first)return '';
+    var due=new Date(first+'T00:00:00Z');if(isNaN(due.getTime()))return '';due.setUTCFullYear(due.getUTCFullYear()+3);due.setUTCDate(due.getUTCDate()-1);return due.toISOString().slice(0,10);
   }
   window.v234LatestMotExpiry=latestMotExpiry;
 
@@ -16273,10 +16277,10 @@ function v255ApplyGovernmentDate(vehicle,fresh,stamp){
   if(!plans.length)return {changed:0,retired:0};
   var canonical=plans[0],old=typeof fleetDate==='function'?v255Iso(fleetDate(canonical)):v255Iso(canonical.currentDueDate),changed=0,retired=0;
   if(old!==fresh){canonical.currentDueDate=fresh;changed=1;}
-  canonical.type='MOT';canonical.intervalMonths=12;canonical.status='Active';canonical.targetMonth=Number(fresh.slice(5,7));
+  canonical.type='MOT';canonical.intervalMonths=12;canonical.status='Active';canonical.targetMonth=Number(fresh.slice(5,7));canonical.updated_at=stamp;
   canonical.notes='Authoritative government MOT date '+fresh+' checked '+stamp+'.';
   plans.slice(1).forEach(function(p){p.status='Superseded';p.notes='Superseded by authoritative MOT maintenance record '+fresh+' on '+stamp+'.';retired++;});
-  vehicle.motDue=fresh;vehicle.mot_due=fresh;vehicle.motLastChecked=stamp;
+  vehicle.motDueDate=fresh;vehicle.motDue=fresh;vehicle.mot_due=fresh;vehicle.motLastChecked=stamp;
   if(typeof fleetRecordMotAuthority==='function')fleetRecordMotAuthority(vehicle,fresh,stamp);
   var state=v255State(),workshopApp=state.app||window.app||null;
   if(workshopApp&&Array.isArray(workshopApp.vehicles)){

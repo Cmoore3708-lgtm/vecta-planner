@@ -13,6 +13,15 @@ function isoDate(value) {
   if (Number.isNaN(d.getTime())) return String(value).slice(0, 10);
   return d.toISOString().slice(0, 10);
 }
+function firstMotDueDate(firstUsedDate) {
+  const raw = isoDate(firstUsedDate);
+  if (!raw) return '';
+  const due = new Date(raw + 'T00:00:00Z');
+  if (Number.isNaN(due.getTime())) return '';
+  due.setUTCFullYear(due.getUTCFullYear() + 3);
+  due.setUTCDate(due.getUTCDate() - 1);
+  return due.toISOString().slice(0, 10);
+}
 function daysFromNow(date) {
   if (!date) return Infinity;
   const target = Date.parse(String(date).slice(0, 10) + 'T12:00:00Z');
@@ -52,6 +61,7 @@ async function lookupMot(registration) {
   return {
     registration,
     motExpiryDate: isoDate(current?.expiryDate),
+    firstUsedDate: isoDate(vehicle?.firstUsedDate || vehicle?.registrationDate),
     lastMotTestDate: isoDate(vehicle?.lastMotTestDate || last?.completedDate),
     latestMileage: last?.odometerValue || '',
     motStatus: current?.expiryDate && Date.parse(current.expiryDate) >= Date.now() ? 'Valid' : (last ? 'Expired' : 'No MOT history'),
@@ -159,17 +169,18 @@ export default async function handler(req,res){
         try{
           const mot=await lookupMot(registration);
           const checkedAt=new Date().toISOString();
+          const motDueDate=mot.motExpiryDate||firstMotDueDate(mot.firstUsedDate);
           hadSuccess=true;status.motChecked++;
-          if(mot.motExpiryDate) changed = updatePlanDate(plans,v.id,'MOT',mot.motExpiryDate) || changed;
+          if(motDueDate) changed = updatePlanDate(plans,v.id,'MOT',motDueDate) || changed;
           const oldTest=isoDate(v.lastMotTestDate);
           if(mot.lastMotTestDate && mot.lastMotTestDate!==oldTest && !completionExists(completions,v.id,'MOT',mot.lastMotTestDate)){
             completions.push({id:`auto-mot-${String(v.id).replace(/[^A-Za-z0-9_-]/g,'')}-${mot.lastMotTestDate}`,vehicleId:v.id,type:'MOT',completedDate:mot.lastMotTestDate,datePrecision:'day',notes:`Automatically detected from DVSA${mot.latestMileage?` · ${mot.latestMileage} miles`:''}`,source:'DVSA automatic nightly refresh',created_at:new Date().toISOString()});
             changed=true;
           }
           // Government MOT data is authoritative. Local/workshop activity never advances this date.
-          Object.assign(v,{motDueDate:mot.motExpiryDate||'',motDue:mot.motExpiryDate||'',mot_due:mot.motExpiryDate||'',motStatus:mot.motStatus,lastMotTestDate:mot.lastMotTestDate||'',lastMotMileage:mot.latestMileage||'',motAdvisories:mot.advisories,motLastChecked:checkedAt});
-          if(mot.motExpiryDate){
-            authorityRecords[registration]={registration,expiry:mot.motExpiryDate,checked_at:checkedAt,source:'DVSA automatic nightly refresh'};
+          Object.assign(v,{motDueDate:motDueDate,motDue:motDueDate,mot_due:motDueDate,motStatus:mot.motStatus,lastMotTestDate:mot.lastMotTestDate||'',lastMotMileage:mot.latestMileage||'',motAdvisories:mot.advisories,motLastChecked:checkedAt});
+          if(motDueDate){
+            authorityRecords[registration]={registration,expiry:motDueDate,checked_at:checkedAt,source:mot.motExpiryDate?'DVSA automatic nightly refresh':'DVSA first-use date automatic calculation'};
           }
         }catch(e){status.errors++;if(status.errorSamples.length<10)status.errorSamples.push({registration,kind:'MOT',error:String(e?.message||e)});}
       }
