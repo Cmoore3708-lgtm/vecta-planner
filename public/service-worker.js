@@ -1,5 +1,5 @@
-const CACHE='vecta-workshop-pro-shell-v47-pre-render-service-cycle';
-const APP_VERSION='v361-pre-render-service-cycle-repair';
+const CACHE='vecta-workshop-pro-shell-v48-current-cycle-date-display';
+const APP_VERSION='v362-current-cycle-date-display';
 const DATA_CACHE='vecta-workshop-pro-data-last-known-v1';
 const HEALTH_CACHE='vecta-workshop-pro-cloud-health-v1';
 const CORE=[

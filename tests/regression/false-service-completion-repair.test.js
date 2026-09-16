@@ -102,6 +102,29 @@ test('the complete isolated Test Fleet exposes no service plan older than its cu
   assert.deepEqual(stale.map(plan => ({ id: plan.id, due: plan.currentDueDate })), []);
 });
 
+test('the complete isolated Test Fleet renders no legacy 2022 due dates', () => {
+  const state = load({
+    fleetVehicles: structuredClone(initialVehicles),
+    fleetPlans: structuredClone(initialPlans),
+    fleetCompletions: [],
+    HISTORICAL_COMPLETION_SEED: structuredClone(historicalSchedule),
+    fleetMotAuthority: {},
+    normReg: value => String(value || '').toUpperCase().replace(/[^A-Z0-9]/g, ''),
+    dvsaIsoDate: value => String(value || '').slice(0, 10)
+  });
+  state.v359RepairFalseServiceCompletions();
+  const fleetDateSource = html.slice(html.indexOf('function fleetDate('), html.indexOf('\nfunction fleetTone(', html.indexOf('function fleetDate(')));
+  vm.runInNewContext(`${fleetDateSource};this.fleetDate=fleetDate`, state);
+  const displayed2022 = state.fleetPlans
+    .filter(plan => String(plan.status || 'Active') === 'Active')
+    .map(plan => ({ id: plan.id, due: state.fleetDate(plan) }))
+    .filter(row => row.due.startsWith('2022-'));
+  assert.deepEqual(displayed2022, []);
+  const lsVehicle = state.fleetVehicles.find(vehicle => vehicle.registration === 'LS64 VKM');
+  const lsService = state.fleetPlans.find(plan => plan.vehicleId === lsVehicle.id && /service/i.test(plan.type) && plan.status === 'Active');
+  assert.equal(state.fleetDate(lsService), '2026-08-30');
+});
+
 test('a genuine completed service advances the schedule instead of reappearing overdue', () => {
   const state = load({
     app: { jobs: [{ id: 'done', registration: 'NG69 LLJ', job_type: 'Interim Service', status: 'completed', booking_date: '2026-07-20' }], serviceRecords: [] },

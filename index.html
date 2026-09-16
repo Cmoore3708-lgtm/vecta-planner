@@ -9652,7 +9652,7 @@ async function flushPendingSync(){
   if(!remaining.length)return true;
   return false
 }
-var VECTA_APP_VERSION='v361-pre-render-service-cycle-repair';
+var VECTA_APP_VERSION='v362-current-cycle-date-display';
 var vectaAppUpdateWaiting=false;
 function vectaSafeApplyAppUpdate(){
   vectaAppUpdateWaiting=true;
@@ -9674,7 +9674,7 @@ function registerVectaServiceWorker(){
   navigator.serviceWorker.addEventListener('controllerchange',function(){vectaSafeApplyAppUpdate()});
   window.addEventListener('load',function(){
     Promise.resolve(window.__vectaCacheResetPromise).finally(function(){
-      navigator.serviceWorker.register('/service-worker.js?v=20260916-pre-render-v361',{updateViaCache:'none'}).then(function(reg){
+      navigator.serviceWorker.register('/service-worker.js?v=20260916-current-cycle-v362',{updateViaCache:'none'}).then(function(reg){
         if(navigator.onLine)Promise.resolve(reg.update()).catch(function(e){console.warn('Service worker update skipped',e)});
       }).catch(function(e){console.warn('Offline app install skipped',e)});
     });
@@ -11038,7 +11038,37 @@ function fleetAutoRefreshBanner(){
   return '<div class="fleetAutoRefreshBar"><div><b>Government vehicle data</b><span>'+(when?'Last check '+esc(new Date(when).toLocaleString('en-GB')):'Automatic nightly checking enabled')+'</span></div><div class="fleetAutoRefreshStats"><button type="button" class="btn" id="fleetManualMotCheck" title="Run a live MOT lookup now">'+checked+' Checked</button><span>'+updated+' MOT dates updated</span>'+(errors?'<span class="warn">'+errors+' errors</span>':'')+(hasReport?'<button type="button" class="btn" id="fleetManualMotReport">View results</button>':'')+'<span>Tax '+(taxConfigured?'DVLA connected':'DVLA API ready — key pending')+'</span></div></div>';
 }
 
-function fleetDate(plan){var raw=String(plan&&plan.currentDueDate||'').slice(0,10);/* Government MOT authority wins unless the stored plan was refreshed later. */try{if(plan&&typeof fleetMaintenanceCategory==='function'&&fleetMaintenanceCategory(plan.type)==='mot'&&typeof fleetMotAuthority==='object'&&fleetMotAuthority){var fv=(fleetVehicles||[]).find(function(v){return v&&String(v.id)===String(plan.vehicleId)}),reg=fv&&normReg(fv.registration||''),rec=reg&&fleetMotAuthority[reg],auth=rec&&dvsaIsoDate(rec.expiry),planStamp=String(plan.updated_at||''),authorityStamp=String(rec&&rec.checked_at||'');if(auth&&(!planStamp||!authorityStamp||authorityStamp>=planStamp))return auth}}catch(e){console.warn('Fleet MOT authority date fallback',e)}/* Never roll an overdue stored date forward merely because time passed. Only a confirmed completion or an authoritative MOT lookup may advance a due cycle. */if(/^\d{4}-\d{2}-\d{2}$/.test(raw))return raw;if(!plan||!plan.targetMonth)return '';var d=new Date(),y=d.getFullYear(),m=Number(plan.targetMonth)-1;if(m<d.getMonth())y++;return y+'-'+String(m+1).padStart(2,'0')+'-01'}
+function fleetDate(plan){
+  var raw=String(plan&&plan.currentDueDate||'').slice(0,10);
+  /* Government MOT authority wins unless the stored plan was refreshed later. */
+  try{
+    if(plan&&typeof fleetMaintenanceCategory==='function'&&fleetMaintenanceCategory(plan.type)==='mot'&&typeof fleetMotAuthority==='object'&&fleetMotAuthority){
+      var fv=(fleetVehicles||[]).find(function(v){return v&&String(v.id)===String(plan.vehicleId)}),reg=fv&&normReg(fv.registration||''),rec=reg&&fleetMotAuthority[reg],auth=rec&&dvsaIsoDate(rec.expiry),planStamp=String(plan.updated_at||''),authorityStamp=String(rec&&rec.checked_at||'');
+      if(auth&&(!planStamp||!authorityStamp||authorityStamp>=planStamp))return auth;
+    }
+  }catch(e){console.warn('Fleet MOT authority date fallback',e)}
+  if(/^\d{4}-\d{2}-\d{2}$/.test(raw)){
+    /* Imported 2022-25 dates are recurring-cycle anchors, not permanently old
+       due dates. Project an anchor only when it is more than one full interval
+       behind today. This keeps genuinely overdue current-cycle work visible —
+       including LS64 VKM due 2026-08-30 — while preventing legacy anchors from
+       filling the live Fleet view with dates from 2022. */
+    if(!plan||plan.manualDueDate===true)return raw;
+    var interval=Math.max(1,Number(plan.intervalMonths||12)),due=new Date(raw+'T00:00:00'),today=new Date();today.setHours(0,0,0,0);
+    if(!isNaN(due.getTime())){
+      var staleCutoff=new Date(today);staleCutoff.setMonth(staleCutoff.getMonth()-interval);
+      if(due<staleCutoff){
+        var guard=0;
+        while(due<today&&guard++<120){var day=due.getDate();due.setDate(1);due.setMonth(due.getMonth()+interval);due.setDate(Math.min(day,new Date(due.getFullYear(),due.getMonth()+1,0).getDate()));}
+        return due.getFullYear()+'-'+String(due.getMonth()+1).padStart(2,'0')+'-'+String(due.getDate()).padStart(2,'0');
+      }
+    }
+    return raw;
+  }
+  if(!plan||!plan.targetMonth)return '';
+  var d=new Date(),y=d.getFullYear(),m=Number(plan.targetMonth)-1;if(m<d.getMonth())y++;
+  return y+'-'+String(m+1).padStart(2,'0')+'-01';
+}
 function fleetTone(date){if(!date)return 'unknown';var today=new Date();today.setHours(0,0,0,0);var due=new Date(date+'T00:00:00'),days=Math.ceil((due-today)/86400000);return days<0?'overdue':days<=30?'soon':'future'}
 function fleetFormat(date){if(!date)return 'Not scheduled';return new Date(date+'T00:00:00').toLocaleDateString('en-GB')}
 function fleetMaintenanceCategory(value){return window.VectaFleetRules.maintenanceCategory(value)}
