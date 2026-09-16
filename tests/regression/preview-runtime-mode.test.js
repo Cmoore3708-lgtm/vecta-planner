@@ -48,22 +48,10 @@ test('the V355 audit branch is local-only even if a test database exists', () =>
   assert.deepEqual(result.body, { auditPreview: true });
 });
 
-test('a non-audit preview with missing environment variables still uses only the isolated Test database', () => {
+test('a preview with no isolated database falls back to local-only mode', () => {
   const result = callHandler({ VERCEL_ENV: 'preview' });
   assert.equal(result.statusCode, 200);
-  assert.equal(result.body.supabaseUrl, 'https://brqsejjykrubxuofavuu.supabase.co');
-  assert.match(result.body.supabasePublishableKey, /^eyJ/);
-  assert.doesNotMatch(result.body.supabaseUrl, /jywufozycuwuoshlulwl/);
-});
-
-test('the Fleet repair branch cannot be mistaken for the local-only audit preview', () => {
-  const result = callHandler({
-    VERCEL_ENV: 'preview',
-    VERCEL_GIT_COMMIT_REF: 'fix/fleet-false-service-completions'
-  });
-  assert.equal(result.statusCode, 200);
-  assert.equal(result.body.supabaseUrl, 'https://brqsejjykrubxuofavuu.supabase.co');
-  assert.equal(result.body.auditPreview, undefined);
+  assert.deepEqual(result.body, { auditPreview: true });
 });
 
 test('a configured non-audit preview receives only its isolated database config', () => {

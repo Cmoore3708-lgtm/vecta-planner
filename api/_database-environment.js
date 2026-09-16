@@ -1,11 +1,4 @@
 const PRODUCTION_PROJECT_REF = 'jywufozycuwuoshlulwl';
-const TEST_PROJECT_REF = 'brqsejjykrubxuofavuu';
-const TEST_PROJECT_URL = `https://${TEST_PROJECT_REF}.supabase.co`;
-/* This is the browser-safe anonymous key for the isolated Test project. It is
-   intentionally a fallback, not a secret: the same key is sent to every Test
-   browser. Keeping the Test identity here prevents a missing Vercel Preview
-   variable from silently switching the app to its stale embedded fleet. */
-const TEST_PUBLISHABLE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJycXNlamp5a3J1Ynh1b2ZhdnV1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODc2NTQyOTAsImV4cCI6MjEwMzIzMDI5MH0.P3Lonmn5yqe7uLDkk--KK9tHgz2AH2Xu70w1PAqObNs';
 
 function cleanUrl(value) {
   return String(value || '').replace(/\/$/, '');
@@ -23,10 +16,10 @@ export function isAuditPreviewEnvironment() {
 export function databaseEnvironment({ requireService = false } = {}) {
   const preview = isPreviewEnvironment();
   const url = cleanUrl(preview
-    ? (process.env.VECTA_TEST_SUPABASE_URL || TEST_PROJECT_URL)
+    ? process.env.VECTA_TEST_SUPABASE_URL
     : (process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL));
   const publishableKey = preview
-    ? (process.env.VECTA_TEST_SUPABASE_PUBLISHABLE_KEY || TEST_PUBLISHABLE_KEY)
+    ? process.env.VECTA_TEST_SUPABASE_PUBLISHABLE_KEY
     : (process.env.VITE_SUPABASE_ANON_KEY || process.env.SUPABASE_PUBLISHABLE_KEY || process.env.SUPABASE_ANON_KEY);
   const serviceKey = preview
     ? process.env.VECTA_TEST_SUPABASE_SERVICE_ROLE_KEY
@@ -52,4 +45,3 @@ export function databaseEnvironment({ requireService = false } = {}) {
 }
 
 export const productionProjectRef = PRODUCTION_PROJECT_REF;
-export const testProjectRef = TEST_PROJECT_REF;

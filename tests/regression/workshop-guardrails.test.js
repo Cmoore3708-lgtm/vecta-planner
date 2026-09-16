@@ -7,17 +7,10 @@ const html=fs.readFileSync(new URL('../../index.html',import.meta.url),'utf8');
 test('phone Fleet due list uses a screen-width compact grid',()=>{
   assert.match(html,/@media\(max-width:700px\)[\s\S]*?\.fleetTableHead\.due30Columns\{display:none\}/);
   assert.match(html,/\.fleetPanel\{max-width:100%;overflow-x:hidden!important\}/);
-  assert.match(html,/\.fleetRow\.due30Columns\{box-sizing:border-box;grid-template-columns:minmax\(104px,118px\) minmax\(72px,1fr\) 96px!important;grid-template-rows:28px auto auto;[\s\S]*?width:calc\(100% - 8px\);max-width:calc\(100% - 8px\)/);
+  assert.match(html,/\.fleetRow\.due30Columns\{box-sizing:border-box;grid-template-columns:minmax\(104px,118px\) minmax\(72px,1fr\) 88px!important;grid-template-rows:28px auto;[\s\S]*?width:calc\(100% - 8px\);max-width:calc\(100% - 8px\)/);
   assert.match(html,/\.fleetRow\.due30Columns>:nth-child\(2\)\{grid-column:1;grid-row:2;[\s\S]*?padding-left:2px\}/);
   assert.match(html,/\.fleetRow\.due30Columns>:nth-child\(3\)\{grid-column:2;grid-row:1\/3;[\s\S]*?align-self:center/);
   assert.doesNotMatch(html,/@media\(max-width:700px\)\{\.fleetTableHead\.due30Columns,\.fleetRow\.due30Columns\{grid-template-columns:96px minmax\(100px,1fr\) minmax\(90px,\.8fr\) 80px 168px!important\}\}/);
-});
-
-test('Fleet due list links booked dates to job cards and dates email audit ticks',()=>{
-  assert.match(html,/class="fleetBookedDateLink" data-fleet-booked-job=/);
-  assert.match(html,/document\.querySelectorAll\('\[data-fleet-booked-job\]'\)[\s\S]*?openJobModal\(id\)/);
-  assert.match(html,/function fleetEmailSentDisplayDate\(record\)[\s\S]*?niceDate\(raw\)/);
-  assert.match(html,/\.contactEmailLink,\.fleetReminderEmailLink[\s\S]*?fleetMarkEmailSentForVehicle\(v\)/);
 });
 
 test('Alfie is unavailable from 14:30 every Friday',()=>{

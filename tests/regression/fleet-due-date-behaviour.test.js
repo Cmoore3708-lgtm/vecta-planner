@@ -17,26 +17,11 @@ function extractFunction(name, after = 0) {
   throw new Error(`Could not extract ${name}`);
 }
 
-test('a current-cycle overdue date remains overdue', () => {
+test('an overdue stored date remains overdue until confirmed work advances it', () => {
   const source = extractFunction('fleetDate');
   const context = { console, fleetVehicles: [], fleetMotAuthority: {}, fleetMaintenanceCategory: () => 'service' };
   vm.runInNewContext(`${source};this.fleetDate=fleetDate`, context);
-  assert.equal(context.fleetDate({ type: 'Annual Service', currentDueDate: '2026-08-30', intervalMonths: 12 }), '2026-08-30');
-});
-
-test('a legacy recurring anchor is displayed in its current cycle', () => {
-  const source = extractFunction('fleetDate');
-  const context = { console, fleetVehicles: [], fleetMotAuthority: {}, fleetMaintenanceCategory: () => 'tax' };
-  vm.runInNewContext(`${source};this.fleetDate=fleetDate`, context);
-  assert.equal(context.fleetDate({ type: 'Vehicle Tax', currentDueDate: '2022-10-31', intervalMonths: 12 }), '2026-10-31');
-  assert.equal(context.fleetDate({ type: 'Six-month Safety Check', currentDueDate: '2022-04-01', intervalMonths: 6 }), '2026-10-01');
-});
-
-test('an explicitly entered manual due date is never projected', () => {
-  const source = extractFunction('fleetDate');
-  const context = { console, fleetVehicles: [], fleetMotAuthority: {}, fleetMaintenanceCategory: () => 'service' };
-  vm.runInNewContext(`${source};this.fleetDate=fleetDate`, context);
-  assert.equal(context.fleetDate({ type: 'Annual Service', currentDueDate: '2022-10-31', intervalMonths: 12, manualDueDate: true }), '2022-10-31');
+  assert.equal(context.fleetDate({ type: 'Annual Service', currentDueDate: '2024-01-31', intervalMonths: 12 }), '2024-01-31');
 });
 
 test('authoritative MOT date overrides a stale stored MOT date', () => {

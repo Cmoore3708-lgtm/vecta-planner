@@ -100,7 +100,7 @@ test('render-only functions cannot invoke data migrations', () => {
 test('data migrations run at explicit local, cloud and realtime ingress boundaries', () => {
   assert.match(html, /loadLocal\(\);[\s\S]*?vectaRunDataIngressMigrations\(\{reason:'local-startup',legacyStartup:true,parts:true,tax:true\}\)/);
   assert.equal((html.match(/reason:'local-startup'/g) || []).length, 1, 'local startup migrations must run exactly once');
-  assert.match(html, /await vectaPrimeAuthoritativeDashboard\(\);[\s\S]*?await pullFleetCloudState\(\);\s*var authoritativeIngress=vectaRunDataIngressMigrations\(\{reason:'authoritative-dashboard',parts:true,tax:false\}\)/);
+  assert.match(html, /await vectaPrimeAuthoritativeDashboard\(\);[\s\S]*?await pullFleetCloudState\(\);\s*vectaRunDataIngressMigrations\(\{reason:'authoritative-dashboard',parts:true,tax:false\}\)/);
   assert.match(html, /vectaRunDataIngressMigrations\(\{reason:'cloud-pull',parts:true,tax:true\}\)/);
   assert.match(html, /vectaRunDataIngressMigrations\(\{reason:'realtime-row',parts:true,tax:false\}\)/);
 });
@@ -109,10 +109,8 @@ test('Fleet snapshot and due-list features are owned by their canonical function
   const snapshot = namedFunctionSource('applyFleetCloudSnapshot');
   const maintenance = namedFunctionSource('fleetMaintenanceHtml');
   assert.match(snapshot, /applyFleetEmailSentSnapshot\s*\(value\)/, 'cloud snapshots must retain email-sent state');
-  assert.match(maintenance, /fleetListMode==='due30'\?'due30Columns'/, 'the due-30 table must retain its compact dedicated layout');
-  assert.match(maintenance, /fleetListMode==='due30'\?'<span>Booked<\/span><span>Work due<\/span>'/, 'the due-30 table must retain its Booked and Work due headings');
-  assert.match(maintenance, /fleetShortVehicle\(v\.model\)/, 'the due-30 vehicle column must show only the first model word');
-  assert.match(maintenance, /fleetBookedGroupCell\(group\.items\)\+fleetDueGroupCell\(group\.items\)/, 'booked job dates must have a dedicated column before work due');
+  assert.match(maintenance, /fleetListMode==='due30'\?'due30Columns'/, 'the due-30 table must retain its five-column layout');
+  assert.match(maintenance, /fleetListMode==='due30'\?'<span>Work due<\/span>'/, 'the due-30 table must retain its Work due heading');
   assert.doesNotMatch(html, /fleetApplyCloudSnapshotBase|fleetMaintenanceHtmlV330Base/, 'Fleet behavior must not be installed through base-function wrappers');
 });
 
