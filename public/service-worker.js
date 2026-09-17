@@ -1,5 +1,5 @@
-const CACHE='vecta-workshop-pro-shell-v44-fleet-owner-grid';
-const APP_VERSION='v358-fleet-owner-grid';
+const CACHE='vecta-workshop-pro-shell-v50-fleet-booking-display';
+const APP_VERSION='v364-fleet-booking-display';
 const DATA_CACHE='vecta-workshop-pro-data-last-known-v1';
 const HEALTH_CACHE='vecta-workshop-pro-cloud-health-v1';
 const CORE=[
@@ -8,9 +8,6 @@ const CORE=[
   '/manifest.webmanifest',
   '/icons/vecta-192.png',
   '/icons/vecta-512.png',
-  '/assets/vecta-inline-02.js',
-  '/assets/vecta-inline-06.js',
-  '/assets/vecta-inline-14.js',
   '/js/vecta-job-rules.js',
   '/js/vecta-invoice-rules.js',
   '/js/vecta-planner-rules.js',

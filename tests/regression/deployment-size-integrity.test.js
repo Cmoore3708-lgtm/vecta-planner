@@ -7,5 +7,7 @@ const serviceWorker=fs.readFileSync(new URL('../../public/service-worker.js',imp
 
 test('production build splits the three oversized inline scripts',()=>{
   assert.match(packageJson.scripts.build,/split-built-html\.mjs/);
-  for(const id of ['02','06','14'])assert.match(serviceWorker,new RegExp(`/assets/vecta-inline-${id}\\.js`));
+  const splitter=fs.readFileSync(new URL('../../scripts/split-built-html.mjs',import.meta.url),'utf8');
+  assert.match(splitter,/createHash\('sha256'\)/, 'split scripts must use content-hashed filenames so service-worker caches cannot serve old application code');
+  assert.doesNotMatch(serviceWorker,/\/assets\/vecta-inline-0[27]\.js|\/assets\/vecta-inline-15\.js/, 'the service worker must not pre-cache fixed script filenames');
 });

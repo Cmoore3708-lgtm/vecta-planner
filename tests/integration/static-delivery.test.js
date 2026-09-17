@@ -28,7 +28,8 @@ test('PWA shell files and every pre-cached asset exist', () => {
   const assets = [...cacheList[1].matchAll(/["'](\/[^"']+)["']/g)].map(match => match[1]);
   for (const asset of assets) {
     if (asset === '/' || asset === '/index.html' || asset === '/booking') continue;
-    assert.ok(exists(`public/${asset.replace(/^\//, '')}`), `${asset} must exist for offline precaching`);
+    const relative = asset.replace(/^\//, '');
+    assert.ok(exists(`public/${relative}`) || exists(`dist/${relative}`), `${asset} must exist for offline precaching`);
   }
 });
 
