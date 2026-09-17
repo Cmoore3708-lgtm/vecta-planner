@@ -7,6 +7,7 @@ const html=fs.readFileSync(new URL('../../index.html',import.meta.url),'utf8');
 test('contractor email is resolved centrally and used by the missing-email view',()=>{
   assert.match(html,/function fleetContractorContactEmail\(name\)/);
   assert.match(html,/function fleetEffectiveContactEmail\(v\)/);
+  assert.match(html,/app&&app\.customers/);
   assert.match(html,/missing=all\.filter\(function\(v\)\{return !fleetEffectiveContactEmail\(v\)\}\)\.length/);
   assert.match(html,/fleetListMode==='missing'&&!fleetEffectiveContactEmail\(v\)/);
 });

@@ -11062,6 +11062,8 @@ function fleetContractorContactEmail(name){
   var profile=fleetCustomerProfiles&&fleetCustomerProfiles[name]||{},email=String(profile.contactEmail||'').trim();if(email)return email;
   var vehicle=(fleetVehicles||[]).find(function(v){return v&&v.fleetGroup==='Contractor Fleet'&&fleetNormaliseCustomer(v.customer)===name&&String(v.contactEmail||'').trim()});
   if(vehicle)return String(vehicle.contactEmail||'').trim();
+  var customer=(app&&app.customers||[]).find(function(c){return c&&fleetNormaliseCustomer(c.name||c.surname||'')===name&&String(c.email||'').trim()});
+  if(customer)return String(customer.email||'').trim();
   var jobs=(app&&app.jobs||[]).slice().sort(function(a,b){return String(b.updated_at||b.booking_date||'').localeCompare(String(a.updated_at||a.booking_date||''))});
   var job=jobs.find(function(j){var account=fleetNormaliseCustomer(j&&j.customer_account||j&&j.customer_name||'');return account===name&&String(j&&j.customer_email||'').trim()});
   return job?String(job.customer_email||'').trim():'';
