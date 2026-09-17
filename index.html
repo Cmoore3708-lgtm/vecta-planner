@@ -11779,7 +11779,7 @@ function fleetMaintenanceHtml(){
   }
   var dueWork=[],dueSeen={};
   all.forEach(function(v){
-    (v.plans||[]).forEach(function(p){
+    (v.allPlans||v.plans||[]).forEach(function(p){
       var date=fleetDate(p)||'',typeKey=planTypeKey(p),dueKey=String(v.id||normReg(v.registration||''))+'|'+typeKey+'|'+date;
       if(!fleetHasActiveMaintenanceRecord(v.id,typeKey))return;
       if(isDueInWindow(date)&&!dueSeen[dueKey]){dueSeen[dueKey]=true;dueWork.push({vehicle:v,plan:p,due:date,typeKey:typeKey,bookedJob:fleetBookedPlannerJob(v.registration,typeKey)})}

@@ -5,7 +5,7 @@ import fs from 'node:fs';
 const html=fs.readFileSync(new URL('../../index.html',import.meta.url),'utf8');
 
 test('the 30-day audit renders every active plan, including cycles hidden by stale completion evidence',()=>{
-  assert.match(html,/\(v\.allPlans\|\|v\.plans\|\|\[\]\)\.forEach/);
+  assert.match(html,/var dueWork=\[\],dueSeen=\{\};[\s\S]*?\(v\.allPlans\|\|v\.plans\|\|\[\]\)\.forEach/);
   assert.match(html,/fleetHasActiveMaintenanceRecord\(v\.id,typeKey\)/);
 });
 
