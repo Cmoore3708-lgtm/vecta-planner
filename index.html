@@ -2824,6 +2824,7 @@ body.servicePreviewing .servicePreviewControls{position:relative!important;z-ind
     <section class="content" id="content"></section>
   </main>
 </div>
+<div id="globalSearchPopup" class="globalSearchPopup" aria-hidden="true"></div>
 <div class="modal" id="jobModal" aria-hidden="true"></div>
 <div class="modal" id="invoiceModal" aria-hidden="true"></div>
 <div class="printSheet" id="printSheet"></div>
@@ -15516,7 +15517,6 @@ init();
 .horizontalUnallocated{margin-bottom:12px}.horizontalUnallocated .unallocatedPanel{margin:0}.horizontalUnallocated .unallocatedJobList{display:flex;flex-wrap:wrap;gap:9px;overflow:visible;padding-bottom:4px}.horizontalUnallocated .sideJob{min-width:210px;max-width:280px;margin:0;flex:1 1 220px}.horizontalUnallocated .carryOverSideJob{order:-1;background:#fff1f2!important;border-color:#fecaca!important}.plannerLayout.v230Planner{display:block}.v230Planner .plannerCard{width:100%;overflow:auto}.v230Planner .plannerGrid{width:100%;min-width:900px}.plannerTasksBelow{margin-top:12px}.plannerTasksBelow .panel{max-width:none}.v230Planner .head{padding-left:10px;padding-right:10px}
 @media(max-width:900px){.plannerGlobalSearchWrap{width:180px}.globalSearchPopup{left:12px;right:12px;top:130px}.capacityDays{grid-template-columns:repeat(2,minmax(0,1fr))}.capacityMiniGrid{grid-template-columns:1fr}.horizontalUnallocated{display:none}}
 </style>
-<div id="globalSearchPopup" class="globalSearchPopup" aria-hidden="true"></div>
 <div class="modal" id="capacityModal" aria-hidden="true"></div>
 <script id="v230-amendments-js">
 (function(){
@@ -15575,9 +15575,11 @@ init();
 
 <style id="v233-planner-three-mechanic-right-tasks-fix">
 @media(min-width:901px){
-  .plannerLayout.v233Planner{display:grid!important;grid-template-columns:minmax(0,1fr) 300px!important;gap:12px!important;align-items:start!important}
+  .plannerLayout.v233Planner{display:grid!important;grid-template-columns:minmax(0,1fr) 210px!important;gap:10px!important;align-items:start!important}
   .v233Planner>.plannerCard{min-width:0!important;width:100%!important;overflow-x:auto!important}
-  .v233Planner .plannerGrid{width:100%!important;min-width:760px!important;grid-template-columns:62px minmax(190px,1fr) minmax(190px,1fr) minmax(155px,.72fr)!important}
+  .v233Planner .plannerGrid{width:100%!important;min-width:560px!important;grid-template-columns:58px minmax(165px,1fr) minmax(165px,1fr) minmax(140px,.78fr)!important}
+  .v233Planner .myTasksPanel{min-width:0!important;padding:10px!important}
+  .v233Planner .taskCard{padding-left:8px!important;padding-right:27px!important}
   .v233Planner>.myTasksPanel{display:block!important;position:sticky!important;top:78px!important;width:300px!important;max-width:300px!important;margin:0!important;align-self:start!important}
   .plannerTasksBelow{display:none!important}
   .v230Planner{display:grid!important}
