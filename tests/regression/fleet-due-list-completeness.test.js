@@ -4,9 +4,15 @@ import fs from 'node:fs';
 
 const html=fs.readFileSync(new URL('../../index.html',import.meta.url),'utf8');
 
-test('the 30-day audit renders every active plan, including cycles hidden by stale completion evidence',()=>{
-  assert.match(html,/var dueWork=\[\],dueSeen=\{\};[\s\S]*?\(v\.allPlans\|\|v\.plans\|\|\[\]\)\.forEach/);
+test('the 30-day audit renders outstanding plans and does not reopen completed cycles',()=>{
+  assert.match(html,/var dueWork=\[\],dueSeen=\{\};[\s\S]*?\(v\.plans\|\|\[\]\)\.forEach/);
+  assert.doesNotMatch(html,/var dueWork=\[\],dueSeen=\{\};[\s\S]{0,160}?v\.allPlans/);
   assert.match(html,/fleetHasActiveMaintenanceRecord\(v\.id,typeKey\)/);
+});
+
+test('a current diary booking keeps its active Fleet cycle visible despite stale completion evidence',()=>{
+  const guards=html.match(/fleetBookedPlannerJob\(vehicle\.registration,planCategory\)\)return false/g)||[];
+  assert.ok(guards.length>=2,'both the base and final runtime completion filters protect booked work');
 });
 
 test('the red booked tick has a dedicated column',()=>{

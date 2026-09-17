@@ -11204,6 +11204,9 @@ function fleetPlanCompletedForCurrentCycle(p){
   var due=fleetDate(p),planCategory=fleetMaintenanceCategory(p.type),
       vehicle=(fleetVehicles||[]).find(function(v){return v&&String(v.id)===String(p.vehicleId)}),
       latestEvidence=vehicle&&fleetLatestCompletedEvidenceDate(vehicle,planCategory);
+  /* A current/future diary booking is direct evidence that this cycle is still
+     outstanding. Older completion history must never hide booked Fleet work. */
+  if(vehicle&&planCategory&&fleetBookedPlannerJob(vehicle.registration,planCategory))return false;
   if(planCategory==='service'&&latestEvidence&&(!due||String(due).slice(0,10)<fleetAddMonthsFromDue(latestEvidence,12)))return true;
   if(planCategory==='safety'&&latestEvidence&&due){
     var safetyDueDate=new Date(String(due).slice(0,10)+'T00:00:00'),safetyDoneDate=new Date(latestEvidence+'T00:00:00');
@@ -11779,7 +11782,7 @@ function fleetMaintenanceHtml(){
   }
   var dueWork=[],dueSeen={};
   all.forEach(function(v){
-    (v.allPlans||v.plans||[]).forEach(function(p){
+    (v.plans||[]).forEach(function(p){
       var date=fleetDate(p)||'',typeKey=planTypeKey(p),dueKey=String(v.id||normReg(v.registration||''))+'|'+typeKey+'|'+date;
       if(!fleetHasActiveMaintenanceRecord(v.id,typeKey))return;
       if(isDueInWindow(date)&&!dueSeen[dueKey]){dueSeen[dueKey]=true;dueWork.push({vehicle:v,plan:p,due:date,typeKey:typeKey,bookedJob:fleetBookedPlannerJob(v.registration,typeKey)})}
@@ -15354,6 +15357,10 @@ init();
         planCategory=typeof fleetMaintenanceCategory==='function'?fleetMaintenanceCategory(p.type):'',
         vehicle=(fleetVehicles||[]).find(function(v){return v&&String(v.id)===String(p&&p.vehicleId)}),
         latestEvidence=(vehicle&&typeof fleetLatestCompletedEvidenceDate==='function')?fleetLatestCompletedEvidenceDate(vehicle,planCategory):'';
+
+    /* The diary is stronger evidence than stale history: if this work is booked
+       now or in the future, the active Fleet cycle is necessarily outstanding. */
+    if(vehicle&&planCategory&&typeof fleetBookedPlannerJob==='function'&&fleetBookedPlannerJob(vehicle.registration,planCategory))return false;
 
     /* FINAL runtime authority: this v212 script loads after the main Fleet code.
        Preserve completed job-card and service-paperwork evidence here. */
