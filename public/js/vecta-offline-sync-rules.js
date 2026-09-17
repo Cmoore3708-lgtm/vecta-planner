@@ -10,7 +10,7 @@
     return item;
   }
 
-  function completionStampIsSynthetic(value){return /T(?:12|17):00:00(?:\.000)?Z$/i.test(String(value||''))}
+  function completionStampIsSynthetic(value){return /T(?:12|17):00:00(?:\.000)?(?:Z|\+00:00)$/i.test(String(value||''))}
   function chooseCompletionStamp(left,right){
     var a=String(left||'').trim(),b=String(right||'').trim();
     if(!a)return b;if(!b)return a;if(a===b)return a;
