@@ -18,7 +18,7 @@ test('Fleet due list links booked dates to planner days and dates email audit ti
   assert.match(html,/class="fleetBookedDateLink" data-fleet-booked-job=/);
   assert.match(html,/data-fleet-booked-date=/);
   assert.match(html,/shortDate=new Date\([\s\S]*?toLocaleDateString\('en-GB',\{day:'2-digit',month:'2-digit'\}\)/, 'booked dates must omit the year');
-  assert.match(html,/grid-template-columns:125px 76px minmax\(105px,1fr\) 88px 76px 58px 54px!important/, 'Work due, booking type, booked date and Email sent must have compact dedicated columns');
+  assert.match(html,/grid-template-columns:125px 76px minmax\(105px,1fr\) 88px 68px 24px 58px 54px!important/, 'Work due, booking type, booked tick, booked date and Email sent must have compact dedicated columns');
   assert.match(html,/\.fleetBookedDateLink\{[^}]*font-size:9px/, 'booked links must use compact green text');
   assert.match(html,/document\.querySelectorAll\('\[data-fleet-booked-job\]'\)[\s\S]*?job&&job\.booking_date\|\|link\.dataset\.fleetBookedDate[\s\S]*?selectedDate=new Date\(date\+'T00:00:00'\);view='planner';render\(\)/);
   assert.doesNotMatch(html,/document\.querySelectorAll\('\[data-fleet-booked-job\]'\)[\s\S]*?openJobModal\(id\)/);
@@ -28,9 +28,9 @@ test('Fleet due list links booked dates to planner days and dates email audit ti
   assert.match(html,/async function fleetMarkEmailSentForVehicle\(v\)[\s\S]*?if\(remoteClient\)await persistFleetCloudSnapshot\(\)/, 'email audit must reach cloud storage before Outlook opens');
   assert.match(html,/async function fleetOpenTrackedEmail\(link,ev\)[\s\S]*?await fleetMarkEmailSentForVehicle\(v\);[\s\S]*?render\(\);[\s\S]*?window\.location\.href=mailto/, 'email click must save and refresh before opening Outlook');
   assert.match(html,/document\.addEventListener\('click',[\s\S]*?closest\('\.contactEmailLink,\.fleetReminderEmailLink'\)[\s\S]*?fleetOpenTrackedEmail\(link,ev\)[\s\S]*?,true\)/, 'dynamically opened vehicle email links must be captured');
-  assert.match(html,/<span>Booking type<\/span><span>Booked<\/span><span>Email sent<\/span>/, 'the due list headers must use the requested order');
-  assert.match(html,/fleetWorkDueGroupCell\(group\.items\)\+fleetBookingTypeGroupCell\(group\.items\)\+fleetBookedGroupCell\(group\.items\)\+fleetEmailSentCell\(group\)/, 'Email sent must remain the far-right cell');
-  assert.match(html,/function fleetBookingTypeGroupCell\(items\)[\s\S]*?fleetDueIcon\(item\.plan&&item\.plan\.type\|\|''\)\+fleetBookedTick\(item\.bookedJob\)/, 'the red booked tick must sit immediately to the right of booking type');
+  assert.match(html,/<span>Booking type<\/span><span>✓<\/span><span>Booked<\/span><span>Email sent<\/span>/, 'the due list headers must keep the booked tick in its own column');
+  assert.match(html,/fleetWorkDueGroupCell\(group\.items\)\+fleetBookingTypeGroupCell\(group\.items\)\+fleetBookedTickGroupCell\(group\.items\)\+fleetBookedGroupCell\(group\.items,v\)\+fleetEmailSentCell\(group\)/, 'Email sent must remain the far-right cell');
+  assert.match(html,/function fleetBookedTickGroupCell\(items\)[\s\S]*?fleetBookedTick\(item\.bookedJob\)/, 'the red booked tick must be rendered by its own dedicated column');
   assert.match(html,/\.fleetRow\.due30Columns\{padding-top:7px;padding-bottom:7px\}/, 'single-work Fleet rows must remain compact');
   assert.match(html,/\.fleetEmailSentCheck input\{width:16px!important;height:16px!important\}/, 'the far-right email checkbox must remain compact');
   assert.match(html,/\.fleetWorkDueGroupCell\{align-items:flex-end\}/);
