@@ -9485,7 +9485,7 @@ function carryOverBadgeHtml(j){
   return '';
 }
 function shouldCarryOverJob(j,today){
-  if(!j||j.archived||j.status==='completed'||j.status==='ready_to_invoice')return false;
+  if(!j||j.archived||j.status==='completed'||j.status==='ready_to_invoice'||isJobInvoiced(j))return false;
   if(j.card_type==='mini_task'||j.card_type==='waiting'||j.card_type==='multi_day')return false;
   if(String(j.source||'').indexOf('task:')===0)return false;
   var status=String(j.status||'booked').toLowerCase();
@@ -13436,7 +13436,7 @@ function field(label,key,val,type){return '<div class="field"><label>'+label+'</
 async function refreshFinancialInvoiceListFromCloud(){
   if(!remoteClient||!navigator.onLine)return false;
   try{
-    var rows=await fetchAllRows('invoices');
+    var rows=await vectaFetchAllRemoteRows('invoices');
     if(Array.isArray(rows)){
       app.invoices=mergeRemoteRows(app.invoices||[],rows);
       saveLocal();
