@@ -2624,6 +2624,8 @@ body.servicePreviewing .servicePreviewControls{position:relative!important;z-ind
 .v243Weekdays span{text-align:center;font-size:8px;font-weight:900;color:#64748b;padding:2px}
 .v243CalendarDay{min-height:45px;border:1px solid #dbe2ea;border-radius:7px;background:#fff;padding:4px;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer}
 .v243CalendarDay b{font-size:12px}.v243CalendarDay small{font-size:8px;color:#64748b;margin-top:2px}
+.v243CalendarDay.past{background:#e5e7eb;border-color:#cbd5e1;color:#64748b}
+.v243CalendarDay.past small{color:#7c8798}
 .v243CalendarDay:hover,.v243CalendarDay.selected{border-color:#e11d2e;box-shadow:0 0 0 2px rgba(225,29,46,.14)}
 .v243CalendarDay.disabled{opacity:.35;cursor:not-allowed}.v243DayBlank{min-height:45px}
 .v243Legend{font-size:9px;color:#64748b;margin-top:8px;text-align:center}
@@ -13880,7 +13882,7 @@ function installNewJobAvailabilityCalendar(allowHistoricalDates,fieldId){
     for(var d=1;d<=lastDay;d++){
       var date=isoDate(y,m,d),dow=new Date(date+'T12:00:00').getDay(),past=date<today,weekend=dow===0||dow===6,disabled=dashboardMode?false:(weekend||(!allowHistoricalDates&&past));
       var total=totalPct(date);
-      html+='<button type="button" class="v243CalendarDay '+(date===chosen?'selected ':'')+(disabled?'disabled':'')+'" '+(disabled?'disabled':'data-v243-calendar-day="'+date+'"')+'><b>'+d+'</b>'+((weekend&&!dashboardMode)?'':('<small>'+total+'%</small>'))+'</button>';
+      html+='<button type="button" class="v243CalendarDay '+(past?'past ':'')+(date===chosen?'selected ':'')+(disabled?'disabled':'')+'" '+(disabled?'disabled':'data-v243-calendar-day="'+date+'"')+'><b>'+d+'</b>'+((weekend&&!dashboardMode)?'':('<small>'+total+'%</small>'))+'</button>';
     }
     return html+'</div>';
   }
