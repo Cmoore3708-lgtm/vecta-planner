@@ -4,6 +4,7 @@ import test from 'node:test';
 
 const html = fs.readFileSync(new URL('../../index.html', import.meta.url), 'utf8');
 const api = fs.readFileSync(new URL('../../api/website-booking.js', import.meta.url), 'utf8');
+const bookingPage = fs.readFileSync(new URL('../../public/booking.html', import.meta.url), 'utf8');
 
 function namedFunctionSource(name) {
   const start = html.indexOf(`function ${name}(`);
@@ -49,11 +50,17 @@ test('manual acceptance closes the request only after the job is saved', () => {
   assert.match(source, /bookedResult\.error[\s\S]*?app\.jobs=app\.jobs\.filter[\s\S]*?deleteRemote\('jobs',j\.id\)/);
 });
 
-test('public confirmed booking rejects a live slot collision', () => {
-  assert.match(api, /booking_date=eq\.\$\{encodeURIComponent\(job\.booking_date\)\}/);
-  assert.match(api, /technician=eq\.\$\{encodeURIComponent\(job\.technician\)\}/);
-  assert.match(api, /if\(clash\)return res\.status\(409\)/);
-  assert.ok(api.indexOf('if(clash)') < api.lastIndexOf("'website_booking_requests','POST',request"), 'collision must be rejected before confirmed booking records are written');
+test('public booking submissions cannot create or allocate planner jobs', () => {
+  assert.match(api, /status:'awaiting_review'/);
+  assert.match(api, /confirmed:false/);
+  assert.match(api, /Accept & create job/);
+  assert.doesNotMatch(api, /rest\(url,key,'jobs','POST'/);
+  assert.doesNotMatch(api, /job_id:/);
+  assert.doesNotMatch(api, /technician:String\(b\.technician\)/);
+  assert.match(bookingPage, /Send booking request/);
+  assert.match(bookingPage, /Booking request received/);
+  assert.match(bookingPage, /will review your request and confirm whether the appointment can be accepted/);
+  assert.doesNotMatch(bookingPage, /Your booking is confirmed/);
 });
 
 test('website request deletion cannot delete customer, vehicle, job or invoice data', () => {
