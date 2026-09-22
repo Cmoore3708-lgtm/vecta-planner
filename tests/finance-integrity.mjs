@@ -217,6 +217,16 @@ assert.match(
   /var savedSuccessfully=await saveInvoiceBase\(id\);\s*if\(savedSuccessfully===false\)return false;/,
   'Invoice save wrappers must propagate a failed cloud confirmation'
 );
+assert.match(
+  html,
+  /if\(table==='invoices'\)[\s\S]*?data\.mot_due=null;[\s\S]*?data\.invoice_date=todayIso\(\);/,
+  'Invoice saves must convert a blank optional MOT date to NULL and repair a blank invoice date'
+);
+assert.match(
+  html,
+  /if\(!\/\^\\d\{4\}-\\d\{2\}-\\d\{2\}\$\/\.test\(String\(inv\.invoice_date\|\|''\)\)\)inv\.invoice_date=todayIso\(\);/,
+  'The invoice editor must never submit an empty or malformed invoice date'
+);
 assert.match(html, /dueHeading=fleetListMode==='due30'\?'Work due'/, '30-day Fleet view must move Work due to the left');
 assert.match(html, /fleetListMode==='due30'\?'<span>Booking type<\/span><span>✓<\/span><span>Booked<\/span><span>Email sent<\/span>':''/, '30-day Fleet view must keep separate Booking type, booked tick, Booked and Email sent columns');
 assert.match(html, /fleetWorkDueGroupCell\(group\.items\)\+fleetBookingTypeGroupCell\(group\.items\)\+fleetBookedTickGroupCell\(group\.items\)\+fleetBookedGroupCell\(group\.items,v\)\+fleetEmailSentCell\(group\)/, '30-day rows must show Work due, booking type, booked tick, booked date and email audit in order');
