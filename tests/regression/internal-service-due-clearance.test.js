@@ -29,3 +29,26 @@ test('an older service or absent completion leaves the next due cycle visible', 
   assert.equal(evaluate('2025-09-24'), false);
   assert.equal(evaluate(null), false);
 });
+
+test('completing an internal On-Site Service advances its Fleet plan by 12 months', () => {
+  const source = html.match(/function syncFleetServiceScheduleFromJob\(j\)\{[\s\S]*?\n\}/);
+  assert.ok(source);
+  const vehicle = { id: 'bs', registration: 'BSKAIZEN', fleetGroup: 'Nissan Internal' };
+  const plan = { id: 'bs-plan', vehicleId: 'bs', type: 'Internal Service', status: 'Active', currentDueDate: '2026-10-01', manualDueDate: true };
+  const context = {
+    fleetPlans: [plan], fleetCompletions: [],
+    completedJobCanUpdateFleet: () => true, isSixMonthSafetyCheck: () => false,
+    isOnSiteService: () => true, fleetVehicleForRegistration: () => vehicle,
+    fleetIsMaintenanceRemoved: () => false, completedJobDateForFleet: () => '2026-09-24',
+    currentServiceTypeForJob: () => 'Service', fleetDate: p => p.currentDueDate,
+    fleetMaintenanceCategory: () => 'service',
+    fleetAddMonthsFromDue: () => '2027-09-24',
+    serviceSheetDate: x => x, saveFleet: () => {},
+  };
+  vm.runInNewContext(source[0], context);
+  const record = context.syncFleetServiceScheduleFromJob({ id: 'bs-job', registration: 'BSKAIZEN', job_type: 'On-Site Service', status: 'completed' });
+  assert.ok(record);
+  assert.equal(plan.currentDueDate, '2027-09-24');
+  assert.equal(plan.manualDueDate, false);
+  assert.equal(record.completedDate, '2026-09-24');
+});
