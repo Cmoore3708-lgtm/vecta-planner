@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {eligible, reminderContent} from '../../api/nmuk-service-reminders.js';
+import {eligible, reminderContent} from '../../lib/nmuk-service-reminders.js';
 
 const date = '2026-09-25';
 const vehicle = {registration:'NK75 BBV',fleetGroup:'Nissan Internal',contactEmail:'driver@example.com'};
@@ -26,7 +26,7 @@ test('subject, key drop wording and red signature are present', () => {
 });
 
 test('cron uses Fleet contact email, sends once and records the result', async () => {
-  const {default:handler}=await import('../../api/nmuk-service-reminders.js');
+  const {default:handler}=await import('../../api/fleet-nightly-refresh.js');
   const originalFetch=globalThis.fetch;
   const OriginalDate=globalThis.Date;
   const originalEnv={CRON_SECRET:process.env.CRON_SECRET,RESEND_API_KEY:process.env.RESEND_API_KEY,SUPABASE_SERVICE_ROLE_KEY:process.env.SUPABASE_SERVICE_ROLE_KEY,VITE_SUPABASE_URL:process.env.VITE_SUPABASE_URL,VERCEL_ENV:process.env.VERCEL_ENV};
@@ -51,7 +51,7 @@ test('cron uses Fleet contact email, sends once and records the result', async (
     };
     const run=async()=>{
       let status,body;
-      await handler({method:'GET',headers:{authorization:'Bearer test-secret'}},{status(code){status=code;return this;},json(value){body=value;return this;}});
+      await handler({method:'GET',query:{task:'nmuk-summer'},headers:{authorization:'Bearer test-secret'}},{status(code){status=code;return this;},json(value){body=value;return this;}});
       return {status,body};
     };
     assert.deepEqual((await run()).body,{date,eligible:1,sent:1,failures:[]});

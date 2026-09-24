@@ -136,6 +136,10 @@ async function writeSetting(id, value) {
 function sleep(ms){return new Promise(r=>setTimeout(r,ms));}
 
 export default async function handler(req,res){
+  if (req.query?.task === 'nmuk-summer' || req.query?.task === 'nmuk-winter') {
+    const {default: sendNmukReminders} = await import('../lib/nmuk-service-reminders.js');
+    return sendNmukReminders(req,res);
+  }
   if(req.method!=='GET'){res.setHeader('Allow','GET');return res.status(405).json({error:'Method not allowed'});}
   if(process.env.CRON_SECRET && req.headers.authorization !== `Bearer ${process.env.CRON_SECRET}`) return res.status(401).json({error:'Unauthorized'});
   const startedAt = new Date().toISOString();

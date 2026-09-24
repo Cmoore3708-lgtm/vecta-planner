@@ -7,14 +7,13 @@
     { "path": "/api/nmuk-service-reminders-winter", "schedule": "0 12 * * *" }
   ],
   "functions": {
-    "api/fleet-nightly-refresh.js": { "maxDuration": 300 },
-    "api/nmuk-service-reminders.js": { "maxDuration": 120 },
-    "api/nmuk-service-reminders-summer.js": { "maxDuration": 120 },
-    "api/nmuk-service-reminders-winter.js": { "maxDuration": 120 }
+    "api/fleet-nightly-refresh.js": { "maxDuration": 300 }
   },
   "rewrites": [
     { "source": "/booking", "destination": "/booking.html" },
     { "source": "/booking/", "destination": "/booking.html" },
+    { "source": "/api/nmuk-service-reminders-summer", "destination": "/api/fleet-nightly-refresh?task=nmuk-summer" },
+    { "source": "/api/nmuk-service-reminders-winter", "destination": "/api/fleet-nightly-refresh?task=nmuk-winter" },
     { "source": "/(.*)", "destination": "/index.html" }
   ],
   "headers": [
