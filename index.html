@@ -11482,12 +11482,14 @@ function confirmServiceBookStampedBeforeComplete(j){
   return window.confirm('SERVICE BOOK REMINDER\n\nHas the Service book been stamped?\n\nPress OK only when it has been stamped.');
 }
 function syncFleetServiceScheduleFromJob(j){
-  if(!j||!completedJobCanUpdateFleet(j)||isSixMonthSafetyCheck(j)||isOnSiteService(j)||!serviceTypeFromValue(jobTypeValues(j).concat([j.work_required||'']).join(' ')))return null;
+  if(!j||!completedJobCanUpdateFleet(j)||isSixMonthSafetyCheck(j))return null;
   var vehicle=fleetVehicleForRegistration(j.registration||'');if(!vehicle||fleetIsMaintenanceRemoved(vehicle.id,'service'))return null;
+  var internalOnSite=vehicle.fleetGroup==='Nissan Internal'&&isOnSiteService(j);
+  if(!internalOnSite&&(isOnSiteService(j)||!serviceTypeFromValue(jobTypeValues(j).concat([j.work_required||'']).join(' '))))return null;
   var completed=completedJobDateForFleet(j)||String(j.completed_at||j.booking_date||todayIso()).slice(0,10);
   if(!completed)return null;
 
-  var currentType=currentServiceTypeForJob(j),
+  var currentType=internalOnSite?'Internal Service':currentServiceTypeForJob(j),
       nextType=vehicle.fleetGroup==='Nissan Internal'?'Internal Service':alternateServiceType(currentType),
       nextDue=fleetAddMonthsFromDue(completed,12),
       safetyDue=fleetAddMonthsFromDue(completed,6),
@@ -11503,7 +11505,7 @@ function syncFleetServiceScheduleFromJob(j){
   });
   var plan=allServicePlans[0]||null;
   var protectedManualDue=plan&&plan.manualDueDate===true?String(plan.currentDueDate||'').slice(0,10):'';
-  if(protectedManualDue&&completed<protectedManualDue)return plan;
+  if(protectedManualDue&&protectedManualDue>=nextDue)return plan;
   if(plan){
     plan.type=nextType;plan.intervalMonths=12;plan.currentDueDate=nextDue;plan.targetMonth=null;plan.status='Active';
     plan.manualDueDate=false;delete plan.manualDueDateUpdatedAt;
@@ -15437,9 +15439,9 @@ init();
   window.syncFleetMaintenanceFromJob=function(j){
     if(typeof completedJobCanUpdateFleet==='function'&&!completedJobCanUpdateFleet(j))return false;
     var changed=false,cats=typeof fleetPlannerJobCategories==='function'?fleetPlannerJobCategories(j):{};
-    if(cats.service&&!(typeof isSixMonthSafetyCheck==='function'&&isSixMonthSafetyCheck(j))&&!(typeof isOnSiteService==='function'&&isOnSiteService(j))){
+    if(cats.service&&!(typeof isSixMonthSafetyCheck==='function'&&isSixMonthSafetyCheck(j))){
       if(typeof syncFleetServiceScheduleFromJob==='function'&&syncFleetServiceScheduleFromJob(j))changed=true;
-      var sv=typeof fleetVehicleForRegistration==='function'?fleetVehicleForRegistration(j.registration||''):null;if(sv&&anchorSafetyToLatestService(sv,false))changed=true;
+      var sv=typeof fleetVehicleForRegistration==='function'?fleetVehicleForRegistration(j.registration||''):null;if(sv&&sv.fleetGroup!=='Nissan Internal'&&anchorSafetyToLatestService(sv,false))changed=true;
     }
     if(cats.mot&&typeof syncFleetMotScheduleFromJob==='function'){if(syncFleetMotScheduleFromJob(j,false))changed=true;}
     if(isCompletedSafety(j)){if(recordSafetyCompletion(j,false))changed=true;}
