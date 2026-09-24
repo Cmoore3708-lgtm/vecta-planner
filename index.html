@@ -11345,7 +11345,7 @@ function fleetPlannerJobsForVehicle(reg){
   return (app.jobs||[]).filter(function(j){
     if(!j||j.archived||normReg(j.registration||'')!==key)return false;
     var status=String(j.status||'').toLowerCase().replace(/\s+/g,'_');
-    if(status==='completed'||status==='cancelled'||status==='deleted'||status==='archived')return false;
+    if(completedJobCanUpdateFleet(j)||status==='cancelled'||status==='deleted'||status==='archived')return false;
     var date=String(j.booking_date||'').slice(0,10);
     if(!/^\d{4}-\d{2}-\d{2}$/.test(date)||date<today)return false;
     return true;
@@ -15453,7 +15453,14 @@ init();
   window.fleetPlanCompletedForCurrentCycle=function(p){
     /* Keep a deliberately entered active due cycle visible. Completion handlers
        advance and unprotect the plan when that exact piece of work is finished. */
-    if(p&&p.manualDueDate===true)return false;
+    if(p&&p.manualDueDate===true){
+      /* A manual date protects an outstanding cycle. A completed service in
+         that cycle must still clear it, including an early service. */
+      var manualDue=String(fleetDate(p)||'').slice(0,10),
+          manualJob=fleetMaintenanceCategory(p.type)==='service'&&fleetCompletedJobForPlanCycle(p),
+          manualDone=manualJob&&completedJobDateForFleet(manualJob)||'';
+      return !!(manualDue&&manualDone&&manualDue<fleetAddMonthsFromDue(manualDone,12));
+    }
     var due=typeof fleetDate==='function'?fleetDate(p):String(p&&p.currentDueDate||''),
         planCategory=typeof fleetMaintenanceCategory==='function'?fleetMaintenanceCategory(p.type):'',
         vehicle=(fleetVehicles||[]).find(function(v){return v&&String(v.id)===String(p&&p.vehicleId)}),
