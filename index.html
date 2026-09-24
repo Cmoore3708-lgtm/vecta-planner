@@ -1872,6 +1872,14 @@ body.servicePreviewing .servicePreviewControls{position:relative!important;z-ind
 .jobModalCard .field textarea{min-height:72px!important}
 @media(max-width:1000px){.jobModalCard .jobFormGrid,.jobContactSection .jobSectionGrid,.jobBookingSection .jobSectionGrid{grid-template-columns:repeat(3,minmax(0,1fr))!important}.jobVehicleSection .jobSectionGrid{grid-template-columns:minmax(190px,1.2fr) max-content minmax(260px,2fr) minmax(155px,1fr)!important}}
 @media(max-width:680px){.jobModalCard .jobFormGrid,.jobVehicleSection .jobSectionGrid,.jobContactSection .jobSectionGrid,.jobBookingSection .jobSectionGrid{grid-template-columns:1fr!important}.jobModalCard{width:98vw!important}}
+/* Keep the job actions in the phone viewport after returning from the booking calendar.
+   The wide-card max-height above must not override the phone's fixed-height flex layout. */
+@media(max-width:760px){
+  #jobModal .jobModalCard{height:calc(100dvh - 10px)!important;max-height:calc(100dvh - 10px)!important;display:flex!important;flex-direction:column!important;overflow:hidden!important}
+  #jobModal .jobModalCard .modalBody{flex:1 1 auto!important;min-height:0!important;overflow-y:auto!important}
+  #jobModal .jobModalCard .modalFoot{flex:0 0 auto!important;position:relative!important;z-index:6!important}
+}
+
 
 .websiteJobRequestPanel{margin:0 0 16px;padding:14px 16px;border:1px solid #b8d7c5;border-radius:12px;background:#f1fbf5;display:grid;gap:10px}.websiteJobRequestPanel strong{font-size:15px;color:#14532d}.websiteJobRequestPanel p{margin:3px 0 0;color:#456057;font-size:12px}.websiteDateChoices{display:flex;gap:8px;flex-wrap:wrap}.websiteDateChoice{border:1px solid #a8cbbb;background:#fff;border-radius:9px;padding:8px 12px;cursor:pointer;display:flex;flex-direction:column;align-items:flex-start;min-width:145px}.websiteDateChoice:hover,.websiteDateChoice.selected{border-color:#16834f;background:#e5f7ec}.websiteDateChoice b{font-size:11px;color:#39705a}.websiteDateChoice span{font-weight:700;color:#183c2c}.websiteRequestMeta{display:flex;gap:18px;flex-wrap:wrap;font-size:12px;color:#344b42}
 </style>
