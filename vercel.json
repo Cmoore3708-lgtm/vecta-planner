@@ -3,11 +3,14 @@
   "regions": ["lhr1"],
   "crons": [
     { "path": "/api/fleet-nightly-refresh", "schedule": "30 22 * * *" },
-    { "path": "/api/nmuk-service-reminders", "schedule": "0 11,12 * * *" }
+    { "path": "/api/nmuk-service-reminders-summer", "schedule": "0 11 * * *" },
+    { "path": "/api/nmuk-service-reminders-winter", "schedule": "0 12 * * *" }
   ],
   "functions": {
     "api/fleet-nightly-refresh.js": { "maxDuration": 300 },
-    "api/nmuk-service-reminders.js": { "maxDuration": 120 }
+    "api/nmuk-service-reminders.js": { "maxDuration": 120 },
+    "api/nmuk-service-reminders-summer.js": { "maxDuration": 120 },
+    "api/nmuk-service-reminders-winter.js": { "maxDuration": 120 }
   },
   "rewrites": [
     { "source": "/booking", "destination": "/booking.html" },
