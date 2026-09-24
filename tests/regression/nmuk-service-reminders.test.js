@@ -8,7 +8,8 @@ const job = {booking_date:date,archived:false,status:'booked',customer_name:'NMU
 
 test('only an NMUK Internal yearly service with a verified contact qualifies', () => {
   assert.equal(eligible(job,date,vehicle),true);
-  assert.equal(eligible({...job,job_type:'On-Site Service'},date,vehicle),false);
+  assert.equal(eligible({...job,job_type:'On-Site Service'},date,vehicle),true);
+  assert.equal(eligible({...job,job_type:'6 Month Safety Check'},date,vehicle),false);
   assert.equal(eligible({...job,recipient:''},date,vehicle),false);
   assert.equal(eligible({...job,status:'completed'},date,vehicle),false);
   assert.equal(eligible({...job,booking_date:'2026-09-26'},date,vehicle),false);
@@ -20,6 +21,7 @@ test('subject, key drop wording and red signature are present', () => {
   const content=reminderContent({...job,customer_name:'Pat'});
   assert.equal(content.subject,'NK75BBV Service tomorrow');
   assert.match(content.text,/Hi Pat,/);
+  assert.match(reminderContent({...job,contact_name:'Alex',customer_name:'NMUK'}).text,/Hi Alex,/);
   assert.match(content.text,/Key Drop letterbox/);
   assert.match(content.html,/color:#c8102e;font-size:24px/);
   assert.match(content.html,/href="https:\/\/www.vectamotors.co.uk\//);
