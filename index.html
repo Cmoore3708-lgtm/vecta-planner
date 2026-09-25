@@ -14549,22 +14549,29 @@ async function syncSavedJobBundleInBackground(j,linked,previous){
     }
     if(String(j.status||'').toLowerCase()==='completed'){
       var completionPreflight=await vectaGuardJobUpsert(j,{expectedRemoteUpdatedAt:previous&&previous.updated_at||'',expectedRemoteRow:previous});
+      if(completionPreflight.check_failed)throw new Error('The workshop server could not check this card for changes. Keep it open and retry.');
       if(!completionPreflight.allow)throw new Error('This card is out of date: refresh the job before completing it again.');
-      await vectaWriteTerminalJobState(j,'completed',{completed_at:j.completed_at||null,booking_date:j.booking_date||null});
-      await vectaProtectJobSnapshot(j,'job-completed');
     }
     var result=await upsertRemote('jobs',j,{silent:true,skipQueue:true,expectedRemoteUpdatedAt:previous&&previous.updated_at||'',expectedRemoteRow:previous});
     if(result&&result.some&&result.some(function(x){return x.vecta_conflict_skipped}))throw new Error('This card is out of date: the server has a newer version. Refresh the job before applying your edit again.');
     if(!result||result.queued)throw new Error('The workshop server did not confirm the job write.');
-    var check=await vectaWithTimeout(remoteClient.from('jobs').select('id,customer_note,amount_quoted,status,technician,booking_date').eq('id',j.id).single(),8000,'Job save confirmation');
+    var check=await vectaWithTimeout(remoteClient.from('jobs').select('id,customer_note,amount_quoted,status,technician,booking_date,completed_at,archived').eq('id',j.id).single(),8000,'Job save confirmation');
     if(check.error)throw check.error;
     var saved=check.data||{};
     if(String(saved.customer_note||'')!==String(j.customer_note||'')||
        Math.abs(Number(saved.amount_quoted||0)-Number(j.amount_quoted||0))>0.005||
        String(saved.status||'')!==String(j.status||'')||
        String(saved.technician||'')!==String(j.technician||'')||
-       String(saved.booking_date||'')!==String(j.booking_date||''))throw new Error('Cloud job details differ from this card.');
-    if(String(j.status||'').toLowerCase()!=='completed'&&vectaJobHasFinancialValue(j))await vectaProtectJobSnapshot(j,'job-financial-save');
+       String(saved.booking_date||'')!==String(j.booking_date||'')||
+       (String(j.status||'').toLowerCase()==='completed'&&
+        (saved.archived!==true||!saved.completed_at||Math.abs(Date.parse(saved.completed_at)-Date.parse(j.completed_at))>1000)))
+      throw new Error('Cloud job details differ from this card.');
+    /* Publish terminal authority only after the job row is confirmed. A failed
+       write must never make a booked job look completed on another device. */
+    if(String(j.status||'').toLowerCase()==='completed'){
+      await vectaWriteTerminalJobState(j,'completed',{completed_at:j.completed_at||null,booking_date:j.booking_date||null});
+      await vectaProtectJobSnapshot(j,'job-completed');
+    }else if(vectaJobHasFinancialValue(j))await vectaProtectJobSnapshot(j,'job-financial-save');
     var localSavedJob=(app.jobs||[]).find(function(x){return String(x.id)===String(j.id)});
     if(localSavedJob&&j.completed_at&&!localSavedJob.completed_at){localSavedJob.completed_at=j.completed_at;saveLocal()}
     await rememberJobCustomer(j);
