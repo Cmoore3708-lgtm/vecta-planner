@@ -339,6 +339,6 @@ assert.doesNotMatch(html, /\(checked\?'Sent':'Not sent'\)/, 'Email sent column m
   assert.equal(job.completed_at, '2026-09-25T13:54:20.561Z');
 }
 
-assert.ok(html.includes('completionPreflight=await vectaGuardJobUpsert') && html.indexOf('completionPreflight=await vectaGuardJobUpsert') < html.indexOf("await vectaWriteTerminalJobState(j,'completed'"), 'completion conflicts must stop before the durable completion ledger is written');
+assert.match(functionSource('syncSavedJobBundleInBackground'), /completionPreflight\s*=\s*await\s+vectaGuardJobUpsert[\s\S]*?await\s+vectaWriteTerminalJobState\(j,\s*'completed'/, 'completion conflicts must stop before the durable completion ledger is written');
 
 console.log('Finance integrity regression tests passed.');
