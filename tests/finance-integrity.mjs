@@ -290,7 +290,7 @@ assert.doesNotMatch(html, /\(checked\?'Sent':'Not sent'\)/, 'Email sent column m
     reads += 1;
     return reads === 1
       ? { data: { completed_at: '2026-09-15T15:54:54.734Z', booking_date: null }, error: null }
-      : { data: { ...job, completed_at: '2026-09-15T15:54:54.734Z' }, error: null };
+      : { data: { ...job, archived: true, completed_at: '2026-09-15T15:54:54.734Z' }, error: null };
   } };
   const context = contextWith(['syncSavedJobBundleInBackground'], {
     app, remoteClient: { from: () => chain }, navigator: { onLine: true }, window: {},
