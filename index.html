@@ -14460,7 +14460,7 @@ async function saveJob(id){
     var savedResult=await syncSavedJobBundleInBackground(Object.assign({},j),linked,savedJobBeforeEdit);
     if(savedResult===false){
       if(button){button.disabled=false;button.textContent='Save & Close';}
-      alert('This job has NOT been confirmed by the workshop server. Keep this card open and retry after refreshing the cloud connection.');
+      alert('This job has NOT been confirmed by the workshop server.\n\n'+String(window.__vectaLastJobSaveFailure||'Please refresh the cloud connection and retry.'));
       return false;
     }
     if(savedResult==='queued')alert('Saved on this device only. The workshop server has not confirmed this change yet; it is queued for sync.');
@@ -14529,9 +14529,17 @@ async function syncSavedJobBundleInBackground(j,linked,previous){
       queueRemoteOperation('upsert','jobs',Object.assign({},j));
       return 'queued';
     }
+    if(String(j.status||'').toLowerCase()==='completed'&&!j.completed_at&&!j.booking_date){
+      var existingCompletion=await vectaWithTimeout(remoteClient.from('jobs').select('completed_at,booking_date').eq('id',j.id).single(),8000,'Existing completion date');
+      if(existingCompletion.error)throw existingCompletion.error;
+      if(!existingCompletion.data||!existingCompletion.data.completed_at&&!existingCompletion.data.booking_date)throw new Error('This completed job has no saved completion date. Please contact the workshop administrator.');
+      j.completed_at=existingCompletion.data.completed_at||null;
+      j.booking_date=existingCompletion.data.booking_date||null;
+    }
     if(String(j.status||'').toLowerCase()==='completed'){await vectaWriteTerminalJobState(j,'completed',{completed_at:j.completed_at||null,booking_date:j.booking_date||null});await vectaProtectJobSnapshot(j,'job-completed')}
     var result=await upsertRemote('jobs',j,{silent:true,skipQueue:true,expectedRemoteUpdatedAt:previous&&previous.updated_at||''});
-    if(!result||result.queued||result.some&&result.some(function(x){return x.vecta_conflict_skipped}))throw new Error('The cloud job changed on another device or was not confirmed.');
+    if(result&&result.some&&result.some(function(x){return x.vecta_conflict_skipped}))throw new Error('This card is out of date: the server has a newer version. Refresh the job before applying your edit again.');
+    if(!result||result.queued)throw new Error('The workshop server did not confirm the job write.');
     var check=await vectaWithTimeout(remoteClient.from('jobs').select('id,customer_note,amount_quoted,status,technician,booking_date').eq('id',j.id).single(),8000,'Job save confirmation');
     if(check.error)throw check.error;
     var saved=check.data||{};
@@ -14541,6 +14549,8 @@ async function syncSavedJobBundleInBackground(j,linked,previous){
        String(saved.technician||'')!==String(j.technician||'')||
        String(saved.booking_date||'')!==String(j.booking_date||''))throw new Error('Cloud job details differ from this card.');
     if(String(j.status||'').toLowerCase()!=='completed'&&vectaJobHasFinancialValue(j))await vectaProtectJobSnapshot(j,'job-financial-save');
+    var localSavedJob=(app.jobs||[]).find(function(x){return String(x.id)===String(j.id)});
+    if(localSavedJob&&j.completed_at&&!localSavedJob.completed_at){localSavedJob.completed_at=j.completed_at;saveLocal()}
     await rememberJobCustomer(j);
     try{await persistMainSettings()}catch(e){console.warn('Background settings sync failed',e)}
     vectaCloudReachable=true;updateConnectivityUI();
@@ -14549,6 +14559,7 @@ async function syncSavedJobBundleInBackground(j,linked,previous){
     return true;
   }catch(e){
     console.warn('Job save was not confirmed by cloud.',j&&j.id,e);
+    window.__vectaLastJobSaveFailure=String(e&&e.message||'The cloud write or read-back failed.');
     updateConnectivityUI();
     window.__vectaJobSaveFenceUntil=0;
     return false;

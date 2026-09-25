@@ -280,4 +280,30 @@ assert.doesNotMatch(html, /\(checked\?'Sent':'Not sent'\)/, 'Email sent column m
   assert.equal(await context.syncSavedJobBundleInBackground(job, null, { updated_at: '' }), false);
 }
 
+{
+  // Completed cards whose planner date was cleared must retain the cloud completion date.
+  const job = { id: 'completed-job', status: 'completed', technician: 'Unallocated', booking_date: null, completed_at: null, amount_quoted: 820, customer_note: 'price' };
+  const app = { jobs: [{ ...job }] };
+  let wrote = null, saves = 0;
+  let reads = 0;
+  const chain = { select: () => chain, eq: () => chain, single: async () => {
+    reads += 1;
+    return reads === 1
+      ? { data: { completed_at: '2026-09-15T15:54:54.734Z', booking_date: null }, error: null }
+      : { data: { ...job, completed_at: '2026-09-15T15:54:54.734Z' }, error: null };
+  } };
+  const context = contextWith(['syncSavedJobBundleInBackground'], {
+    app, remoteClient: { from: () => chain }, navigator: { onLine: true }, window: {},
+    upsertRemote: async (table, row) => { if (table === 'jobs') wrote = { ...row }; return [{ id: row.id }]; },
+    vectaWithTimeout: value => value, vectaWriteTerminalJobState: async () => true,
+    vectaProtectJobSnapshot: async () => true, vectaJobHasFinancialValue: () => true,
+    rememberJobCustomer: async () => {}, persistMainSettings: async () => true,
+    updateConnectivityUI: () => {}, saveLocal: () => { saves += 1; }, setTimeout: () => {}
+  });
+  assert.equal(await context.syncSavedJobBundleInBackground(job, null, { updated_at: '' }), true);
+  assert.equal(wrote.completed_at, '2026-09-15T15:54:54.734Z');
+  assert.equal(app.jobs[0].completed_at, wrote.completed_at);
+  assert.equal(saves, 1);
+}
+
 console.log('Finance integrity regression tests passed.');
