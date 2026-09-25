@@ -306,4 +306,24 @@ assert.doesNotMatch(html, /\(checked\?'Sent':'Not sent'\)/, 'Email sent column m
   assert.equal(saves, 1);
 }
 
+{
+  // A timestamp-only cloud write must not block a deliberate edit, but a changed price must.
+  const old = { id: 'valid-uuid', updated_at: '2026-09-25T12:00:00Z', registration: 'AB12CDE',
+    status: 'booked', booking_date: '2026-09-25', drop_time: '08:00', amount_quoted: 90,
+    customer_note: 'priced line', work_required: 'Service' };
+  const remote = { ...old, updated_at: '2026-09-25T12:05:00Z', drop_time: '08:00:00' };
+  const chain = { select: () => chain, eq: () => chain, limit: async () => ({ data: [remote], error: null }) };
+  let adopted = 0;
+  const context = contextWith(['vectaGuardJobUpsert'], {
+    remoteClient: { from: () => chain }, isUuid: () => true, fromRemote: x => x,
+    jobCompletionEvidence: () => false, vectaJobHasFinancialValue: () => true,
+    vectaUndoStamp: () => 0, vectaAdoptRemoteJob: () => { adopted += 1; }
+  });
+  const edited = { ...old, updated_at: '2026-09-25T12:06:00Z', work_required: 'Service and check brakes' };
+  assert.equal((await context.vectaGuardJobUpsert(edited, { expectedRemoteUpdatedAt: old.updated_at, expectedRemoteRow: old })).allow, true);
+  remote.amount_quoted = 120;
+  assert.equal((await context.vectaGuardJobUpsert(edited, { expectedRemoteUpdatedAt: old.updated_at, expectedRemoteRow: old })).allow, false);
+  assert.equal(adopted, 1);
+}
+
 console.log('Finance integrity regression tests passed.');
