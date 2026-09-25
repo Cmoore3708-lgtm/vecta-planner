@@ -7,7 +7,7 @@ import '../../public/js/vecta-offline-sync-rules.js';
 import traverseModule from '@babel/traverse';
 const traverse=traverseModule.default||traverseModule;
 const html=fs.readFileSync(new URL('../../index.html',import.meta.url),'utf8');
-const names=['vectaWorkCompletedAt','vectaRecordWorkCompleted','vectaCompletionDisplay','vectaUndoStamp','vectaApplyExplicitUndo','vectaMergeExplicitUndo','vectaUndoInvoiceBlock','undoJobCompletion','normaliseCompletedJobState','mergeRemoteRows','vectaNormaliseTerminalState','financeEffectiveJob'];
+const names=['vectaWorkCompletedAt','vectaRecordWorkCompleted','vectaActualWorkCompletionAt','vectaCompletionDisplay','vectaUndoStamp','vectaApplyExplicitUndo','vectaMergeExplicitUndo','vectaUndoInvoiceBlock','undoJobCompletion','normaliseCompletedJobState','mergeRemoteRows','vectaNormaliseTerminalState','financeEffectiveJob'];
 let source='';
 for(const m of html.matchAll(/<script(?:\s[^>]*)?>([\s\S]*?)<\/script>/gi)){
   const script=m[1];if(!names.some(n=>script.includes('function '+n+'(')))continue;
