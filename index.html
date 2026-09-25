@@ -12781,7 +12781,7 @@ function financeStatusKey(j){return window.VectaFinanceRules.statusKey(j)}
 function financeValidJob(j){if(!j||j.finance_deleted||j.card_type==='mini_task'||vectaJobIsDeletedForLists(j))return false;if(isVehicleTaxJob(j)||isVehicleTaxJob(financeBaseJob(j)))return false;return true}
 function financeIsStaffJob(j){return financeLegacyAllocation(j).type==='Staff'}
 function financeIsRecognisedJob(j){if(!financeValidJob(j))return false;var st=financeStatusKey(j);return st==='completed'||(financeIsStaffJob(j)&&(st==='ready_to_invoice'||st==='ready'))}
-function financeCompletedDate(j){if(!financeIsRecognisedJob(j))return '';return String(j.completed_at||j.booking_date||'').slice(0,10)}
+function financeCompletedDate(j){if(!financeIsRecognisedJob(j))return '';var actual=vectaWorkCompletedAt(j);if(actual&&(!j.completed_at||vectaCompletionStampIsSynthetic(j.completed_at)))return String(actual).slice(0,10);return String(j.completed_at||j.booking_date||'').slice(0,10)}
 function vectaLinkedCompletionEvidenceDate(j){
   if(!j)return '';
   var id=String(j.id||''),reg=typeof normReg==='function'?normReg(j.registration||''):String(j.registration||'').trim().toUpperCase(),dates=[];
@@ -13999,6 +13999,11 @@ function vectaWorkCompletedAt(job){
 function vectaRecordWorkCompleted(job){
   if(!vectaWorkCompletedAt(job))job.customer_note=String(job.customer_note||'')+'\n[[VECTA_WORK_COMPLETED:'+new Date().toISOString()+']]';
 }
+function vectaAlignActualCompletion(job){
+  var actual=job&&vectaWorkCompletedAt(job);
+  if(actual&&(!job.completed_at||vectaCompletionStampIsSynthetic(job.completed_at)))job.completed_at=actual;
+  return job;
+}
 function vectaCompletionDisplay(job){
   var value=vectaWorkCompletedAt(job)||(job&&job.completed_at);if(!value)return '';
   var stamp=new Date(value);if(isNaN(stamp.getTime()))return '';
@@ -14441,6 +14446,7 @@ async function saveJob(id){
   }
   if(button){button.disabled=true;button.textContent='Saving...';}
   if(['completed','ready_to_invoice'].indexOf(j.status)>=0)vectaRecordWorkCompleted(j);
+  if(j.status==='completed')vectaAlignActualCompletion(j);
   j.archived=j.status==='completed';
   var linked=null;
   try{
@@ -14541,7 +14547,12 @@ async function syncSavedJobBundleInBackground(j,linked,previous){
       j.completed_at=existingCompletion.data.completed_at||null;
       j.booking_date=existingCompletion.data.booking_date||null;
     }
-    if(String(j.status||'').toLowerCase()==='completed'){await vectaWriteTerminalJobState(j,'completed',{completed_at:j.completed_at||null,booking_date:j.booking_date||null});await vectaProtectJobSnapshot(j,'job-completed')}
+    if(String(j.status||'').toLowerCase()==='completed'){
+      var completionPreflight=await vectaGuardJobUpsert(j,{expectedRemoteUpdatedAt:previous&&previous.updated_at||'',expectedRemoteRow:previous});
+      if(!completionPreflight.allow)throw new Error('This card is out of date: refresh the job before completing it again.');
+      await vectaWriteTerminalJobState(j,'completed',{completed_at:j.completed_at||null,booking_date:j.booking_date||null});
+      await vectaProtectJobSnapshot(j,'job-completed');
+    }
     var result=await upsertRemote('jobs',j,{silent:true,skipQueue:true,expectedRemoteUpdatedAt:previous&&previous.updated_at||'',expectedRemoteRow:previous});
     if(result&&result.some&&result.some(function(x){return x.vecta_conflict_skipped}))throw new Error('This card is out of date: the server has a newer version. Refresh the job before applying your edit again.');
     if(!result||result.queued)throw new Error('The workshop server did not confirm the job write.');
