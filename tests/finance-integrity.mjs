@@ -328,15 +328,35 @@ assert.doesNotMatch(html, /\(checked\?'Sent':'Not sent'\)/, 'Email sent column m
 
 {
   // A real work-complete marker wins over a synthetic future planner completion date.
-  const context = contextWith(['vectaAlignActualCompletion', 'financeCompletedDate'], {
-    vectaWorkCompletedAt: () => '2026-09-25T13:54:20.561Z',
+  const ledgers = {
+    yr: { state: 'completed', completed_at: '2026-09-23T09:37:24.726Z' },
+    ef: { state: 'completed', completed_at: '2026-09-11T17:00:00.000Z' }
+  };
+  const context = contextWith(['vectaActualWorkCompletionAt', 'vectaAlignActualCompletion', 'financeCompletedDate'], {
+    vectaWorkCompletedAt: job => job.marker || '',
+    vectaTerminalJobState: id => ledgers[id] || null,
     vectaCompletionStampIsSynthetic: value => String(value).includes('17:00:00'),
     financeIsRecognisedJob: () => true
   });
-  const job = { status: 'completed', completed_at: '2026-09-30T17:00:00.000Z', booking_date: '2026-09-30' };
+  const job = { status: 'completed', marker: '2026-09-25T13:54:20.561Z',
+    completed_at: '2026-09-30T17:00:00.000Z', booking_date: '2026-09-30' };
   assert.equal(context.financeCompletedDate(job), '2026-09-25');
   context.vectaAlignActualCompletion(job);
   assert.equal(job.completed_at, '2026-09-25T13:54:20.561Z');
+
+  // A later edit marker cannot move YR74 JKU's genuine 23 September completion to today.
+  const yr = { id: 'yr', status: 'completed', marker: '2026-09-25T10:42:11.756Z',
+    completed_at: '2026-09-23T17:00:00.000Z', booking_date: '2026-09-23' };
+  assert.equal(context.financeCompletedDate(yr), '2026-09-23');
+  context.vectaAlignActualCompletion(yr);
+  assert.equal(yr.completed_at, '2026-09-23T09:37:24.726Z');
+
+  // Without an exact ledger, a marker created after the saved completion day is ignored.
+  const ef = { id: 'ef', status: 'completed', marker: '2026-09-17T15:09:58.494Z',
+    completed_at: '2026-09-11T17:00:00.000Z', booking_date: '2026-09-11' };
+  assert.equal(context.financeCompletedDate(ef), '2026-09-11');
+  context.vectaAlignActualCompletion(ef);
+  assert.equal(ef.completed_at, '2026-09-11T17:00:00.000Z');
 }
 
 {
@@ -382,5 +402,7 @@ assert.doesNotMatch(html, /\(checked\?'Sent':'Not sent'\)/, 'Email sent column m
   assert.equal(jobWrites, 0);
   assert.equal(terminalWrites, 0);
 }
+
+assert.match(functionSource('saveJob'), /j\.status\s*===\s*'completed'\s*&&\s*!wasCompleted[\s\S]*?vectaRecordWorkCompleted\(j\)/, 'only a genuine new completion may create a work-finished marker');
 
 console.log('Finance integrity regression tests passed.');

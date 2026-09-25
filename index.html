@@ -12781,7 +12781,7 @@ function financeStatusKey(j){return window.VectaFinanceRules.statusKey(j)}
 function financeValidJob(j){if(!j||j.finance_deleted||j.card_type==='mini_task'||vectaJobIsDeletedForLists(j))return false;if(isVehicleTaxJob(j)||isVehicleTaxJob(financeBaseJob(j)))return false;return true}
 function financeIsStaffJob(j){return financeLegacyAllocation(j).type==='Staff'}
 function financeIsRecognisedJob(j){if(!financeValidJob(j))return false;var st=financeStatusKey(j);return st==='completed'||(financeIsStaffJob(j)&&(st==='ready_to_invoice'||st==='ready'))}
-function financeCompletedDate(j){if(!financeIsRecognisedJob(j))return '';var actual=vectaWorkCompletedAt(j);if(actual&&(!j.completed_at||vectaCompletionStampIsSynthetic(j.completed_at)))return String(actual).slice(0,10);return String(j.completed_at||j.booking_date||'').slice(0,10)}
+function financeCompletedDate(j){if(!financeIsRecognisedJob(j))return '';var actual=vectaActualWorkCompletionAt(j);if(actual&&(!j.completed_at||vectaCompletionStampIsSynthetic(j.completed_at)))return String(actual).slice(0,10);return String(j.completed_at||j.booking_date||'').slice(0,10)}
 function vectaLinkedCompletionEvidenceDate(j){
   if(!j)return '';
   var id=String(j.id||''),reg=typeof normReg==='function'?normReg(j.registration||''):String(j.registration||'').trim().toUpperCase(),dates=[];
@@ -13999,17 +13999,30 @@ function vectaWorkCompletedAt(job){
 function vectaRecordWorkCompleted(job){
   if(!vectaWorkCompletedAt(job))job.customer_note=String(job.customer_note||'')+'\n[[VECTA_WORK_COMPLETED:'+new Date().toISOString()+']]';
 }
+function vectaActualWorkCompletionAt(job){
+  if(!job)return '';
+  /* An exact lifecycle timestamp beats a marker added during a later edit. */
+  var terminal=typeof vectaTerminalJobState==='function'&&job.id?vectaTerminalJobState(job.id):null;
+  var ledger=terminal&&terminal.state==='completed'?String(terminal.completed_at||''):'';
+  if(ledger&&Number.isFinite(Date.parse(ledger))&&!vectaCompletionStampIsSynthetic(ledger))return ledger;
+  var marker=vectaWorkCompletedAt(job),saved=String(job.completed_at||'');
+  /* Legacy Ready-to-Invoice and completed-card edits also wrote markers.
+     A later-day marker cannot redate an already completed job. */
+  if(marker&&saved&&vectaCompletionStampIsSynthetic(saved)&&
+     marker.slice(0,10)>saved.slice(0,10))return '';
+  return marker;
+}
 function vectaAlignActualCompletion(job){
-  var actual=job&&vectaWorkCompletedAt(job);
+  var actual=job&&vectaActualWorkCompletionAt(job);
   if(actual&&(!job.completed_at||vectaCompletionStampIsSynthetic(job.completed_at)))job.completed_at=actual;
   return job;
 }
 function vectaCompletionDisplay(job){
-  var value=vectaWorkCompletedAt(job)||(job&&job.completed_at);if(!value)return '';
+  var value=vectaActualWorkCompletionAt(job)||(job&&job.completed_at);if(!value)return '';
   var stamp=new Date(value);if(isNaN(stamp.getTime()))return '';
   var options={timeZone:'Europe/London',day:'2-digit',month:'2-digit',year:'numeric'};
-  if(vectaWorkCompletedAt(job)||!vectaCompletionStampIsSynthetic(value)){options.hour='2-digit';options.minute='2-digit';options.hour12=false;}
-  return stamp.toLocaleString('en-GB',options)+(!vectaWorkCompletedAt(job)&&vectaCompletionStampIsSynthetic(value)?' · time not recorded':'');
+  if(!vectaCompletionStampIsSynthetic(value)){options.hour='2-digit';options.minute='2-digit';options.hour12=false;}
+  return stamp.toLocaleString('en-GB',options)+(vectaCompletionStampIsSynthetic(value)?' · time not recorded':'');
 }
 function vectaUndoStamp(row){
   var match=String(row&&row.customer_note||'').match(/\[\[VECTA_UNDO_COMPLETION:([^\]]+)\]\]/);
@@ -14445,7 +14458,12 @@ async function saveJob(id){
     }
   }
   if(button){button.disabled=true;button.textContent='Saving...';}
-  if(['completed','ready_to_invoice'].indexOf(j.status)>=0)vectaRecordWorkCompleted(j);
+  if(j.status==='completed'&&!wasCompleted){
+    /* Old Ready-to-Invoice cards can carry a premature marker. Replace it
+       only when this job is genuinely being completed now. */
+    j.customer_note=String(j.customer_note||'').replace(/\s*\[\[VECTA_WORK_COMPLETED:[^\]]+\]\]/g,'');
+    vectaRecordWorkCompleted(j);
+  }
   if(j.status==='completed')vectaAlignActualCompletion(j);
   j.archived=j.status==='completed';
   var linked=null;
