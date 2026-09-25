@@ -14529,7 +14529,7 @@ async function syncSavedJobBundleInBackground(j,linked,previous){
       queueRemoteOperation('upsert','jobs',Object.assign({},j));
       return 'queued';
     }
-    if(String(j.status||'').toLowerCase()==='completed')await vectaWriteTerminalJobState(j,'completed',{completed_at:j.completed_at||null,booking_date:j.booking_date||null});
+    if(String(j.status||'').toLowerCase()==='completed'){await vectaWriteTerminalJobState(j,'completed',{completed_at:j.completed_at||null,booking_date:j.booking_date||null});await vectaProtectJobSnapshot(j,'job-completed')}
     var result=await upsertRemote('jobs',j,{silent:true,skipQueue:true,expectedRemoteUpdatedAt:previous&&previous.updated_at||''});
     if(!result||result.queued||result.some&&result.some(function(x){return x.vecta_conflict_skipped}))throw new Error('The cloud job changed on another device or was not confirmed.');
     var check=await vectaWithTimeout(remoteClient.from('jobs').select('id,customer_note,amount_quoted,status,technician,booking_date').eq('id',j.id).single(),8000,'Job save confirmation');
@@ -14540,7 +14540,7 @@ async function syncSavedJobBundleInBackground(j,linked,previous){
        String(saved.status||'')!==String(j.status||'')||
        String(saved.technician||'')!==String(j.technician||'')||
        String(saved.booking_date||'')!==String(j.booking_date||''))throw new Error('Cloud job details differ from this card.');
-    if(String(j.status||'').toLowerCase()==='completed'||vectaJobHasFinancialValue(j))await vectaProtectJobSnapshot(j,String(j.status||'').toLowerCase()==='completed'?'job-completed':'job-financial-save');
+    if(String(j.status||'').toLowerCase()!=='completed'&&vectaJobHasFinancialValue(j))await vectaProtectJobSnapshot(j,'job-financial-save');
     await rememberJobCustomer(j);
     try{await persistMainSettings()}catch(e){console.warn('Background settings sync failed',e)}
     vectaCloudReachable=true;updateConnectivityUI();
