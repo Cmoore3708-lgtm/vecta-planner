@@ -295,7 +295,7 @@ assert.doesNotMatch(html, /\(checked\?'Sent':'Not sent'\)/, 'Email sent column m
   const context = contextWith(['syncSavedJobBundleInBackground'], {
     app, remoteClient: { from: () => chain }, navigator: { onLine: true }, window: {},
     upsertRemote: async (table, row) => { if (table === 'jobs') wrote = { ...row }; return [{ id: row.id }]; },
-    vectaWithTimeout: value => value, vectaWriteTerminalJobState: async () => true,
+    vectaWithTimeout: value => value, vectaGuardJobUpsert: async () => ({ allow: true }), vectaWriteTerminalJobState: async () => true,
     vectaProtectJobSnapshot: async () => true, vectaJobHasFinancialValue: () => true,
     rememberJobCustomer: async () => {}, persistMainSettings: async () => true,
     updateConnectivityUI: () => {}, saveLocal: () => { saves += 1; }, setTimeout: () => {}
