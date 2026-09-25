@@ -326,4 +326,19 @@ assert.doesNotMatch(html, /\(checked\?'Sent':'Not sent'\)/, 'Email sent column m
   assert.equal(adopted, 1);
 }
 
+{
+  // A real work-complete marker wins over a synthetic future planner completion date.
+  const context = contextWith(['vectaAlignActualCompletion', 'financeCompletedDate'], {
+    vectaWorkCompletedAt: () => '2026-09-25T13:54:20.561Z',
+    vectaCompletionStampIsSynthetic: value => String(value).includes('17:00:00'),
+    financeIsRecognisedJob: () => true
+  });
+  const job = { status: 'completed', completed_at: '2026-09-30T17:00:00.000Z', booking_date: '2026-09-30' };
+  assert.equal(context.financeCompletedDate(job), '2026-09-25');
+  context.vectaAlignActualCompletion(job);
+  assert.equal(job.completed_at, '2026-09-25T13:54:20.561Z');
+}
+
+assert.ok(html.includes('completionPreflight=await vectaGuardJobUpsert') && html.indexOf('completionPreflight=await vectaGuardJobUpsert') < html.indexOf("await vectaWriteTerminalJobState(j,'completed'"), 'completion conflicts must stop before the durable completion ledger is written');
+
 console.log('Finance integrity regression tests passed.');
