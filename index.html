@@ -14360,7 +14360,26 @@ async function saveJob(id){
   var button=document.getElementById('saveJob');
   var existingJob=(app.jobs||[]).find(function(x){return x.id===id})||null;
   var wasCompleted=!!(existingJob&&(existingJob.status==='completed'||existingJob.archived));
+  var savedJobBeforeEdit=existingJob?JSON.parse(JSON.stringify(existingJob)):null;
   var j=gatherJob(id);
+  if(savedJobBeforeEdit){
+    var beforePrices=privatePricingItemsFromNote(savedJobBeforeEdit.customer_note);
+    var afterPrices=privatePricingItemsFromNote(j.customer_note);
+    var remaining=afterPrices.slice(),removedPrices=[];
+    beforePrices.forEach(function(previous){
+      var index=remaining.findIndex(function(current){return String(current.description||'').trim()===String(previous.description||'').trim()&&Number(current.price||0)>=Number(previous.price||0)});
+      if(index>=0)remaining.splice(index,1);else removedPrices.push(previous);
+    });
+    var lowerTotal=Number(j.amount_quoted||0)<Number(savedJobBeforeEdit.amount_quoted||0)-0.005;
+    if(removedPrices.length||lowerTotal){
+      var detail=removedPrices.map(function(item){return String(item.description||'Priced item')+' — £'+Number(item.price||0).toFixed(2)}).join('\n');
+      if(!confirm('This edit removes or reduces priced invoice items.\n\n'+(detail?detail+'\n\n':'')+'Previous total: £'+Number(savedJobBeforeEdit.amount_quoted||0).toFixed(2)+'\nNew total: £'+Number(j.amount_quoted||0).toFixed(2)+'\n\nConfirm this price revision?')){
+        Object.assign(existingJob,savedJobBeforeEdit);
+        return false;
+      }
+      j.customer_note=String(j.customer_note||'').replace(/\s*\[\[VECTA_PRICE_REVISED:[^\]]+\]\]/g,'')+'\n[[VECTA_PRICE_REVISED:'+new Date().toISOString()+']]';
+    }
+  }
   if(typeof v310DuplicateFor==='function'){
     var existingOnsiteDuplicate=v310DuplicateFor(j,id);
     if(existingOnsiteDuplicate){alert('This vehicle already has an On-Site Service booked for this date.\n\nThe existing job has been kept and a duplicate has NOT been created.');return false;}
@@ -14438,7 +14457,13 @@ async function saveJob(id){
     try{
       if(Array.isArray(app.jobs)&&app.jobs.length>=10)localStorage.setItem('vecta:last-good-jobs:v322',JSON.stringify(app.jobs));
     }catch(e){}
-    syncSavedJobBundleInBackground(Object.assign({},j),linked);
+    var savedResult=await syncSavedJobBundleInBackground(Object.assign({},j),linked,savedJobBeforeEdit);
+    if(savedResult===false){
+      if(button){button.disabled=false;button.textContent='Save & Close';}
+      alert('This job has NOT been confirmed by the workshop server. Keep this card open and retry after refreshing the cloud connection.');
+      return false;
+    }
+    if(savedResult==='queued')alert('Saved on this device only. The workshop server has not confirmed this change yet; it is queued for sync.');
     if(overlapShifted.length)persistPlannerJobsInBackground(overlapShifted.filter(function(x){return String(x.id)!==String(j.id)}),'New job overlap repair');
 
     if(String(j.source||'').toLowerCase()==='website booking'&&/^\d{4}-\d{2}-\d{2}$/.test(String(j.booking_date||''))){selectedDate=new Date(j.booking_date+'T00:00:00');view='planner';}
@@ -14495,32 +14520,39 @@ function prepareLinkedCustomerVehicleLocal(j){
   }
   return result;
 }
-function syncSavedJobBundleInBackground(j,linked){
-  if(!j)return;
-  Promise.resolve().then(async function(){
-    try{
-      if(linked&&linked.customer)await upsertRemote('customers',linked.customer,{silent:true});
-      if(linked&&linked.vehicle)await upsertRemote('vehicles',linked.vehicle,{silent:true});
-      /* Persist completion authority before the main job upsert. If that upsert
-         is interrupted, startup reconciliation can still use the terminal
-         ledger and must never replace the completed job with an older cloud row. */
-      if(String(j.status||'').toLowerCase()==='completed')await vectaWriteTerminalJobState(j,'completed',{completed_at:j.completed_at||null,booking_date:j.booking_date||null});
-      if(String(j.status||'').toLowerCase()==='completed'||vectaJobHasFinancialValue(j))await vectaProtectJobSnapshot(j,String(j.status||'').toLowerCase()==='completed'?'job-completed':'job-financial-save');
-      await upsertRemote('jobs',j,{silent:true});
-      await rememberJobCustomer(j);
-      if(remoteClient){
-        try{await persistMainSettings()}
-        catch(e){console.warn('Background settings sync failed',e)}
-      }
-      vectaCloudReachable=true;updateConnectivityUI();
-      window.__vectaJobSaveFenceUntil=0;
-      setTimeout(function(){try{scheduleCloudRefresh()}catch(e){}},300);
-    }catch(e){
-      console.warn('Background job sync incomplete; queued where possible.',e);
-      updateConnectivityUI();
-      setTimeout(function(){window.__vectaJobSaveFenceUntil=0;},6000);
+async function syncSavedJobBundleInBackground(j,linked,previous){
+  if(!j)return false;
+  try{
+    if(linked&&linked.customer)await upsertRemote('customers',linked.customer,{silent:true});
+    if(linked&&linked.vehicle)await upsertRemote('vehicles',linked.vehicle,{silent:true});
+    if(!remoteClient||!navigator.onLine){
+      queueRemoteOperation('upsert','jobs',Object.assign({},j));
+      return 'queued';
     }
-  });
+    if(String(j.status||'').toLowerCase()==='completed')await vectaWriteTerminalJobState(j,'completed',{completed_at:j.completed_at||null,booking_date:j.booking_date||null});
+    var result=await upsertRemote('jobs',j,{silent:true,skipQueue:true,expectedRemoteUpdatedAt:previous&&previous.updated_at||''});
+    if(!result||result.queued||result.some&&result.some(function(x){return x.vecta_conflict_skipped}))throw new Error('The cloud job changed on another device or was not confirmed.');
+    var check=await vectaWithTimeout(remoteClient.from('jobs').select('id,customer_note,amount_quoted,status,technician,booking_date').eq('id',j.id).single(),8000,'Job save confirmation');
+    if(check.error)throw check.error;
+    var saved=check.data||{};
+    if(String(saved.customer_note||'')!==String(j.customer_note||'')||
+       Math.abs(Number(saved.amount_quoted||0)-Number(j.amount_quoted||0))>0.005||
+       String(saved.status||'')!==String(j.status||'')||
+       String(saved.technician||'')!==String(j.technician||'')||
+       String(saved.booking_date||'')!==String(j.booking_date||''))throw new Error('Cloud job details differ from this card.');
+    if(String(j.status||'').toLowerCase()==='completed'||vectaJobHasFinancialValue(j))await vectaProtectJobSnapshot(j,String(j.status||'').toLowerCase()==='completed'?'job-completed':'job-financial-save');
+    await rememberJobCustomer(j);
+    try{await persistMainSettings()}catch(e){console.warn('Background settings sync failed',e)}
+    vectaCloudReachable=true;updateConnectivityUI();
+    window.__vectaJobSaveFenceUntil=0;
+    setTimeout(function(){try{scheduleCloudRefresh()}catch(e){}},300);
+    return true;
+  }catch(e){
+    console.warn('Job save was not confirmed by cloud.',j&&j.id,e);
+    updateConnectivityUI();
+    window.__vectaJobSaveFenceUntil=0;
+    return false;
+  }
 }
 
 function closeModals(){document.querySelectorAll('.modal').forEach(function(m){m.classList.remove('open');m.setAttribute('aria-hidden','true');m.innerHTML=''})}
