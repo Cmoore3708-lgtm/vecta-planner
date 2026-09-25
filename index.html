@@ -10187,6 +10187,11 @@ async function vectaGuardJobUpsert(row,options){
     var localDone=jobCompletionEvidence(row),remoteDone=jobCompletionEvidence(remote),lt=Date.parse(row.updated_at||row.created_at||0)||0,rt=Date.parse(remote.updated_at||remote.created_at||0)||0;
     var expected=String(options.expectedRemoteUpdatedAt||''),remoteStamp=String(remote.updated_at||remote.created_at||''),expectedTime=Date.parse(expected)||0,remoteStampTime=Date.parse(remoteStamp)||0;
     var automaticSourceChanged=!!expected&&((expectedTime&&remoteStampTime)?Math.abs(remoteStampTime-expectedTime)>1000:remoteStamp!==expected);
+    if(automaticSourceChanged&&options.expectedRemoteRow){
+      var compared=['registration','vehicle','customer_name','customer_phone','customer_email','customer_note','work_required','technician_notes','booking_date','drop_time','technician','ramp','status','job_type','estimated_hours','amount_quoted','vat_mode','archived'];
+      var sameSavedJob=compared.every(function(key){var before=options.expectedRemoteRow[key],current=remote[key];if(key==='drop_time'){return String(before||'').slice(0,5)===String(current||'').slice(0,5)}return String(before===null||before===undefined?'':before).trim()===String(current===null||current===undefined?'':current).trim()});
+      if(sameSavedJob)automaticSourceChanged=false;
+    }
     var staleUndo=!!vectaUndoStamp(remote)&&vectaUndoStamp(row)<vectaUndoStamp(remote);
     var downgrade=remoteDone&&!localDone;
     var financeLoss=remoteDone&&vectaJobHasFinancialValue(remote)&&!vectaJobHasFinancialValue(row);
@@ -14537,7 +14542,7 @@ async function syncSavedJobBundleInBackground(j,linked,previous){
       j.booking_date=existingCompletion.data.booking_date||null;
     }
     if(String(j.status||'').toLowerCase()==='completed'){await vectaWriteTerminalJobState(j,'completed',{completed_at:j.completed_at||null,booking_date:j.booking_date||null});await vectaProtectJobSnapshot(j,'job-completed')}
-    var result=await upsertRemote('jobs',j,{silent:true,skipQueue:true,expectedRemoteUpdatedAt:previous&&previous.updated_at||''});
+    var result=await upsertRemote('jobs',j,{silent:true,skipQueue:true,expectedRemoteUpdatedAt:previous&&previous.updated_at||'',expectedRemoteRow:previous});
     if(result&&result.some&&result.some(function(x){return x.vecta_conflict_skipped}))throw new Error('This card is out of date: the server has a newer version. Refresh the job before applying your edit again.');
     if(!result||result.queued)throw new Error('The workshop server did not confirm the job write.');
     var check=await vectaWithTimeout(remoteClient.from('jobs').select('id,customer_note,amount_quoted,status,technician,booking_date').eq('id',j.id).single(),8000,'Job save confirmation');
