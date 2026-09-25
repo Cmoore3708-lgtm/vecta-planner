@@ -47,7 +47,9 @@ test('Vercel rewrites and cron targets resolve to production files', () => {
   assert.ok(exists('public/booking.html'));
   for (const cron of config.crons || []) {
     const endpoint = String(cron.path || '').replace(/^\/api\//, 'api/');
-    assert.ok(exists(`${endpoint}.js`), `${cron.path} must have a server function`);
+    const rewrite = (config.rewrites || []).find(rule => rule.source === cron.path);
+    const target = rewrite ? String(rewrite.destination || '').split('?')[0].replace(/^\/api\//, 'api/') : endpoint;
+    assert.ok(exists(`${target}.js`), `${cron.path} must resolve to a server function`);
   }
 });
 

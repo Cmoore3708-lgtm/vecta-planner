@@ -231,4 +231,53 @@ assert.match(html, /dueHeading=fleetListMode==='due30'\?'Work due'/, '30-day Fle
 assert.match(html, /fleetListMode==='due30'\?'<span>Booking type<\/span><span>✓<\/span><span>Booked<\/span><span>Email sent<\/span>':''/, '30-day Fleet view must keep separate Booking type, booked tick, Booked and Email sent columns');
 assert.match(html, /fleetWorkDueGroupCell\(group\.items\)\+fleetBookingTypeGroupCell\(group\.items\)\+fleetBookedTickGroupCell\(group\.items\)\+fleetBookedGroupCell\(group\.items,v\)\+fleetEmailSentCell\(group\)/, '30-day rows must show Work due, booking type, booked tick, booked date and email audit in order');
 assert.doesNotMatch(html, /\(checked\?'Sent':'Not sent'\)/, 'Email sent column must not display Sent / Not sent wording');
+
+{
+  // Removing a priced line must require an explicit decision before the job can save.
+  const oldNote = '[[VECTA_PRIVATE_PRICING:' + encodeURIComponent(JSON.stringify([
+    { description: 'Safety check', price: 90 },
+    { description: 'Brake pads', price: 70 },
+    { description: 'Brake caliper', price: 120 }
+  ])) + ']]';
+  const reducedNote = '[[VECTA_PRIVATE_PRICING:' + encodeURIComponent(JSON.stringify([
+    { description: 'Safety check', price: 90 },
+    { description: 'Brake pads', price: 70 }
+  ])) + ']]';
+  const original = { id: 'price-job', customer_note: oldNote, amount_quoted: 280, status: 'booked' };
+  const app = { jobs: [original] };
+  let prompted = 0;
+  const context = contextWith(['privatePricingItemsFromNote', 'saveJob'], {
+    app,
+    window: {},
+    document: { getElementById: () => null },
+    gatherJob: () => Object.assign(original, { customer_note: reducedNote, amount_quoted: 160 }),
+    confirm: () => { prompted += 1; return false; },
+    alert: () => {}
+  });
+  assert.equal(await context.saveJob('price-job'), false);
+  assert.equal(prompted, 1);
+  assert.equal(original.amount_quoted, 280);
+  assert.equal(original.customer_note, oldNote);
+}
+
+{
+  // A cloud read-back with fewer priced items must not count as a successful save.
+  const job = { id: 'price-job', status: 'booked', technician: 'Alfie', booking_date: '2026-09-25', amount_quoted: 280, customer_note: 'three priced lines' };
+  const chain = { select: () => chain, eq: () => chain, single: async () => ({ data: { ...job, customer_note: 'two priced lines' }, error: null }) };
+  const context = contextWith(['syncSavedJobBundleInBackground'], {
+    remoteClient: { from: () => chain },
+    navigator: { onLine: true },
+    window: {},
+    upsertRemote: async () => [{ id: job.id }],
+    vectaWithTimeout: value => value,
+    rememberJobCustomer: async () => {},
+    vectaJobHasFinancialValue: () => true,
+    vectaProtectJobSnapshot: async () => true,
+    persistMainSettings: async () => true,
+    updateConnectivityUI: () => {},
+    setTimeout: () => {}
+  });
+  assert.equal(await context.syncSavedJobBundleInBackground(job, null, { updated_at: '' }), false);
+}
+
 console.log('Finance integrity regression tests passed.');
