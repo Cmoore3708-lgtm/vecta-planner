@@ -403,4 +403,6 @@ assert.doesNotMatch(html, /\(checked\?'Sent':'Not sent'\)/, 'Email sent column m
   assert.equal(terminalWrites, 0);
 }
 
-assert.match(functionSource('saveJob'), /j\.status\s*===\s*'completed'\s*&&\s*!wasCompleted[\s\S]*?vectaRecordWorkCompleted\(j\)/, 'only a genuine new completion may create a work-finished marker');\n\nconsole.log('Finance integrity regression tests passed.');
+assert.match(functionSource('saveJob'), /j\.status\s*===\s*'completed'\s*&&\s*!wasCompleted[\s\S]*?vectaRecordWorkCompleted\(j\)/, 'only a genuine new completion may create a work-finished marker');
+
+console.log('Finance integrity regression tests passed.');
