@@ -339,6 +339,48 @@ assert.doesNotMatch(html, /\(checked\?'Sent':'Not sent'\)/, 'Email sent column m
   assert.equal(job.completed_at, '2026-09-25T13:54:20.561Z');
 }
 
-assert.match(functionSource('syncSavedJobBundleInBackground'), /completionPreflight\s*=\s*await\s+vectaGuardJobUpsert[\s\S]*?await\s+vectaWriteTerminalJobState\(j,\s*'completed'/, 'completion conflicts must stop before the durable completion ledger is written');
+{
+  const syncSource = functionSource('syncSavedJobBundleInBackground');
+  const writeJob = syncSource.indexOf("upsertRemote('jobs', j");
+  const readBack = syncSource.indexOf("remoteClient.from('jobs').select('id,customer_note");
+  const writeLedger = syncSource.indexOf("vectaWriteTerminalJobState(j, 'completed'");
+  assert.ok(writeJob > 0 && readBack > writeJob && writeLedger > readBack,
+    'the completed job row must be written and read back before its terminal ledger');
+}
+
+{
+  // A rejected job write must leave no remote completion ledger or protected snapshot.
+  const job = { id: 'failed-completion', status: 'completed', completed_at: '2026-09-25T14:13:49.289Z',
+    booking_date: '2026-09-25', technician: 'Alfie', amount_quoted: 320, customer_note: 'priced work' };
+  let terminalWrites = 0, snapshotWrites = 0;
+  const context = contextWith(['syncSavedJobBundleInBackground'], {
+    remoteClient: {}, navigator: { onLine: true }, window: {},
+    vectaGuardJobUpsert: async () => ({ allow: true }),
+    upsertRemote: async () => { throw new Error('Server rejected the job'); },
+    vectaWriteTerminalJobState: async () => { terminalWrites++; return true; },
+    vectaProtectJobSnapshot: async () => { snapshotWrites++; return true; },
+    updateConnectivityUI: () => {}
+  });
+  assert.equal(await context.syncSavedJobBundleInBackground(job, null, { updated_at: '' }), false);
+  assert.equal(terminalWrites, 0);
+  assert.equal(snapshotWrites, 0);
+}
+
+{
+  // An unavailable conflict check fails closed before any completion write.
+  const job = { id: 'unchecked-completion', status: 'completed', completed_at: '2026-09-25T14:13:49.289Z',
+    booking_date: '2026-09-25', technician: 'Alfie', amount_quoted: 320, customer_note: 'priced work' };
+  let jobWrites = 0, terminalWrites = 0;
+  const context = contextWith(['syncSavedJobBundleInBackground'], {
+    remoteClient: {}, navigator: { onLine: true }, window: {},
+    vectaGuardJobUpsert: async () => ({ allow: true, check_failed: true }),
+    upsertRemote: async () => { jobWrites++; return [{ id: job.id }]; },
+    vectaWriteTerminalJobState: async () => { terminalWrites++; return true; },
+    updateConnectivityUI: () => {}
+  });
+  assert.equal(await context.syncSavedJobBundleInBackground(job, null, { updated_at: '' }), false);
+  assert.equal(jobWrites, 0);
+  assert.equal(terminalWrites, 0);
+}
 
 console.log('Finance integrity regression tests passed.');
