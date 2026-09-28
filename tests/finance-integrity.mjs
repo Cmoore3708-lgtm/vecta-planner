@@ -31,6 +31,18 @@ function contextWith(names, extras = {}) {
 }
 
 {
+  // A device may remember a previously absent column. Main now has this column,
+  // and dropping it would make the database synthesize 17:00 as completion time.
+  const context = contextWith(['vectaStripKnownMissingColumns'], {
+    vectaMissingColumns: () => ({ jobs: ['completed_at', 'some_legacy_field'] })
+  });
+  const actual = '2026-09-28T12:57:34.198Z';
+  const row = context.vectaStripKnownMissingColumns('jobs', { completed_at: actual, some_legacy_field: 'x' });
+  assert.equal(row.completed_at, actual);
+  assert.equal(Object.hasOwn(row, 'some_legacy_field'), false);
+}
+
+{
   let saves = 0;
   let renders = 0;
   const app = { jobs: [] };
