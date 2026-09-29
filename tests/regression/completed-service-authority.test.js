@@ -176,10 +176,10 @@ test('embedded service history repairs EYC before live jobs finish loading', () 
 test('phone shell keeps one update owner and advances the source-authoritative cache', () => {
   const html = fs.readFileSync(new URL('../../index.html', import.meta.url), 'utf8');
   const worker = fs.readFileSync(new URL('../../public/service-worker.js', import.meta.url), 'utf8');
-  assert.match(html, /VECTA_APP_VERSION='v369-completion-note-time-rebase'/);
-  assert.match(html, /service-worker\.js\?v=20260929-completion-note-time-v369/);
-  assert.match(worker, /APP_VERSION='v369-completion-note-time-rebase'/);
-  assert.match(worker, /CACHE='vecta-workshop-pro-shell-v54-completion-note-time'/);
+  assert.match(html, /VECTA_APP_VERSION='v370-job-save-consolidation'/);
+  assert.match(html, /service-worker\.js\?v=20260929-job-save-v370/);
+  assert.match(worker, /APP_VERSION='v370-job-save-consolidation'/);
+  assert.match(worker, /CACHE='vecta-workshop-pro-shell-v55-job-save'/);
   assert.match(html, /vectaSafeApplyAppUpdate\(event\.data\.version\)/);
   assert.match(html, /if\(vectaAppUpdateWaiting\)vectaSafeApplyAppUpdate\(vectaAppUpdateWaiting\)/);
 });
@@ -194,7 +194,7 @@ test('service-worker update has one guarded reload owner', () => {
 
 test('a newer app waits for an open job card and reloads after it closes', async () => {
   const html = fs.readFileSync(new URL('../../index.html', import.meta.url), 'utf8');
-  const start=html.indexOf("var VECTA_APP_VERSION='v369-completion-note-time-rebase'");
+  const start=html.indexOf("var VECTA_APP_VERSION='v370-job-save-consolidation'");
   const end=html.indexOf('function registerVectaServiceWorker()',start);
   const closeStart=html.indexOf('function closeModals(){');
   const closeEnd=html.indexOf('\nfunction editCustomer(',closeStart);
@@ -202,7 +202,7 @@ test('a newer app waits for an open job card and reloads after it closes', async
   let open=true,reloads=0,backups=0;
   const storage=new Map();
   const modal={classList:{remove(){open=false}},setAttribute(){},set innerHTML(value){assert.equal(value,'')}};
-  const context={Promise,document:{querySelector(selector){return selector==='.modal.open'&&open?modal:null},querySelectorAll(){return [modal]}},
+  const context={Promise,window:{},document:{querySelector(selector){return selector==='.modal.open'&&open?modal:null},querySelectorAll(){return [modal]}},
     vectaPendingSync:()=>[],vectaSyncInFlight:false,plannerInteractionBusy:false,
     sessionStorage:{getItem:key=>storage.get(key),setItem:(key,value)=>storage.set(key,value)},
     vectaCreateDailyBackup:()=>{backups++;return Promise.resolve()},location:{reload(){reloads++}}};

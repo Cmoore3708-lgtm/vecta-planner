@@ -24,7 +24,7 @@ async function check(previous,remote,draft){
 function rebase(previous,remote,draft){
   const context={jobCompletionEvidence:x=>x.status==='completed'||!!x.archived||!!x.completed_at,vectaUndoStamp:()=>0};
   vm.runInNewContext(source,context);
-  return context.vectaRebaseCompletionDraft(draft,previous,remote);
+  return context.vectaRebaseJobDraft(draft,previous,remote);
 }
 
 test('a newer timestamp alone does not prevent completing the confirmed card',async()=>{
@@ -99,4 +99,16 @@ test('MTC 3 completion preserves newer cloud parts and time despite editor marke
   assert.match(merged.customer_note,/JOB_PARTS_URI:arrived/);
   assert.match(merged.customer_note,/PARTS_STATUS:Parts here/);
   assert.match(merged.customer_note,/VECTA_WORK_COMPLETED:2026-09-29T13:29:00Z/);
+});
+
+test('ready to invoice keeps an untouched newer cloud note and time',()=>{
+  const previous={id,status:'booked',amount_quoted:70,drop_time:'12:45',customer_note:'[[PARTS_STATUS:Awaiting parts]]'};
+  const remote={...previous,drop_time:'13:00:00',customer_note:'[[PARTS_STATUS:Parts here]]'};
+  const draft={...previous,status:'ready_to_invoice',updated_at:'2026-09-29T14:00:00Z'};
+  const merged=rebase(previous,remote,draft);
+  assert.equal(merged.status,'ready_to_invoice');
+  assert.equal(merged.drop_time,'13:00:00');
+  assert.equal(merged.customer_note,remote.customer_note);
+  assert.equal(rebase(previous,{...remote,amount_quoted:80},draft),null);
+  assert.equal(rebase(previous,{...remote,status:'completed',archived:true},draft),null);
 });
