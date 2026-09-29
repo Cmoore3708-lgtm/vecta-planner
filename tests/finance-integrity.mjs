@@ -273,14 +273,14 @@ assert.doesNotMatch(html, /\(checked\?'Sent':'Not sent'\)/, 'Email sent column m
 }
 
 {
-  // A cloud read-back with fewer priced items must not count as a successful save.
+  // A cloud write response with fewer priced items must not count as a successful save.
   const job = { id: 'price-job', status: 'booked', technician: 'Alfie', booking_date: '2026-09-25', amount_quoted: 280, customer_note: 'three priced lines' };
   const chain = { select: () => chain, eq: () => chain, single: async () => ({ data: { ...job, customer_note: 'two priced lines' }, error: null }) };
   const context = contextWith(['syncSavedJobBundleInBackground'], {
     remoteClient: { from: () => chain },
     navigator: { onLine: true },
     window: {},
-    upsertRemote: async () => [{ id: job.id }],
+    upsertRemote: async () => [{ ...job, customer_note: 'two priced lines' }],
     vectaWithTimeout: value => value,
     rememberJobCustomer: async () => {},
     vectaJobHasFinancialValue: () => true,
@@ -306,7 +306,7 @@ assert.doesNotMatch(html, /\(checked\?'Sent':'Not sent'\)/, 'Email sent column m
   } };
   const context = contextWith(['syncSavedJobBundleInBackground'], {
     app, remoteClient: { from: () => chain }, navigator: { onLine: true }, window: {},
-    upsertRemote: async (table, row) => { if (table === 'jobs') wrote = { ...row }; return [{ id: row.id }]; },
+    upsertRemote: async (table, row) => { if (table === 'jobs') wrote = { ...row }; return [{ ...row, archived: true }]; },
     vectaWithTimeout: value => value, vectaGuardJobUpsert: async () => ({ allow: true }), vectaWriteTerminalJobState: async () => true,
     vectaProtectJobSnapshot: async () => true, vectaJobHasFinancialValue: () => true,
     rememberJobCustomer: async () => {}, persistMainSettings: async () => true,
@@ -374,10 +374,10 @@ assert.doesNotMatch(html, /\(checked\?'Sent':'Not sent'\)/, 'Email sent column m
 {
   const syncSource = functionSource('syncSavedJobBundleInBackground');
   const writeJob = syncSource.indexOf("upsertRemote('jobs', j");
-  const readBack = syncSource.indexOf("remoteClient.from('jobs').select('id,customer_note");
+  const confirmation = syncSource.indexOf('var saved = result.find(');
   const writeLedger = syncSource.indexOf("vectaWriteTerminalJobState(j, 'completed'");
-  assert.ok(writeJob > 0 && readBack > writeJob && writeLedger > readBack,
-    'the completed job row must be written and read back before its terminal ledger');
+  assert.ok(writeJob > 0 && syncSource.includes('confirmJobSave: true') && confirmation > writeJob && writeLedger > confirmation,
+    'the completed job row must be returned and checked before its terminal ledger');
 }
 
 {

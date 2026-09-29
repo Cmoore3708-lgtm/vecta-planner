@@ -7,7 +7,7 @@ import traverseModule from '@babel/traverse';
 
 const traverse=traverseModule.default||traverseModule;
 const html=fs.readFileSync(new URL('../../index.html',import.meta.url),'utf8');
-const names=new Set(['quoteJobs','allJobsForDate','financeValidJob']);
+const names=new Set(['quoteJobs','allJobsForDate','financeValidJob','syncSavedJobBundleInBackground']);
 let source='';
 for(const match of html.matchAll(/<script(?:\s[^>]*)?>([\s\S]*?)<\/script>/gi)){
   if(![...names].some(name=>match[1].includes('function '+name+'(')))continue;
@@ -33,4 +33,22 @@ test('quote actions retain a distinct save and convert path',()=>{
   assert.match(html,/id="convertQuote">Create Job/);
   assert.match(html,/function convertQuoteToJob\(id\)[\s\S]*?status\.value='booked'/);
   assert.match(html,/function saveQuote\(id\)[\s\S]*?saveJob\(id\)/);
+});
+test('a quote confirms the row returned by its own cloud write',async()=>{
+  const job={id:'quote-1',status:'quote',customer_note:'A priced quote',amount_quoted:20,technician:'Unallocated',booking_date:null};
+  let selectCalls=0;
+  const ctx={
+    remoteClient:{from(){selectCalls++;throw Error('A separate readback could race another writer');}},
+    navigator:{onLine:true},window:{},app:{jobs:[job]},
+    upsertRemote:async(table,row,options)=>{
+      assert.equal(table,'jobs');assert.equal(options.confirmJobSave,true);
+      return [{...row}];
+    },
+    vectaJobHasFinancialValue:()=>false,rememberJobCustomer:async()=>{},
+    persistMainSettings:async()=>true,updateConnectivityUI:()=>{},scheduleCloudRefresh:()=>{},
+    setTimeout:()=>{},console,saveLocal:()=>{}
+  };
+  vm.createContext(ctx);vm.runInContext(source,ctx);
+  assert.equal(await ctx.syncSavedJobBundleInBackground({...job},null,null),true);
+  assert.equal(selectCalls,0);
 });

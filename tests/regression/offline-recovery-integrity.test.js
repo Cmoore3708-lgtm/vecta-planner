@@ -77,9 +77,9 @@ test('completed job authority follows a confirmed main row', () => {
   const ledgerWrite = source.indexOf("vectaWriteTerminalJobState(j,'completed'");
   const protectedSnapshot = source.indexOf('vectaProtectJobSnapshot(j');
   const jobUpsert = source.indexOf("upsertRemote('jobs',j");
-  const readBack = source.indexOf("remoteClient.from('jobs').select('id,customer_note");
-  assert.ok(jobUpsert > -1 && readBack > jobUpsert, 'the main job write must be read back');
-  assert.ok(ledgerWrite > readBack, 'the ledger must wait for confirmed job details');
+  const confirmation = source.indexOf('var saved=result.find(');
+  assert.ok(jobUpsert > -1 && source.includes('confirmJobSave:true') && confirmation > jobUpsert, 'the main job write must return its saved row');
+  assert.ok(ledgerWrite > confirmation && source.includes('if(mismatched.length)throw'), 'the ledger must wait for confirmed job details');
   assert.ok(protectedSnapshot > ledgerWrite, 'the protected snapshot must follow the terminal ledger');
   assert.equal(source.indexOf("vectaWriteTerminalJobState(j,'completed'", ledgerWrite + 1), -1, 'the completion ledger should be written once');
 });
