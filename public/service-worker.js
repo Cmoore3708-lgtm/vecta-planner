@@ -1,5 +1,5 @@
-const CACHE='vecta-workshop-pro-shell-v51-job-completion-live-update';
-const APP_VERSION='v365-job-completion-live-update';
+const CACHE='vecta-workshop-pro-shell-v52-manager-gate';
+const APP_VERSION='v366-manager-gate';
 const DATA_CACHE='vecta-workshop-pro-data-last-known-v1';
 const HEALTH_CACHE='vecta-workshop-pro-cloud-health-v1';
 const CORE=[
@@ -144,6 +144,11 @@ async function cacheShell(response){
   return response;
 }
 
+async function clearCachedMain(){
+  const cache=await caches.open(CACHE);
+  await Promise.all([cache.delete('/'),cache.delete('/index.html')]);
+}
+
 self.addEventListener('install',event=>{
   event.waitUntil((async()=>{
     const cache=await caches.open(CACHE);
@@ -172,6 +177,9 @@ self.addEventListener('activate',event=>{
         k.startsWith('vecta-workshop-pro-shell-')
       )
     ).map(k=>caches.delete(k)));
+    // A device that held the old offline shell must not keep opening Main
+    // from cache after the manager challenge has been introduced.
+    await clearCachedMain();
     await self.clients.claim();
     const windows=await self.clients.matchAll({type:'window',includeUncontrolled:true});
     for(const client of windows)client.postMessage({type:'VECTA_APP_UPDATE_READY',version:APP_VERSION});
@@ -201,6 +209,10 @@ self.addEventListener('fetch',event=>{
         try{
           const fresh=await fetch(req,{cache:'no-store'});
           if(fresh && fresh.ok) return await cacheShell(fresh);
+          if(fresh && (fresh.status===401 || fresh.status===403 || fresh.status===503)){
+            await clearCachedMain();
+            return fresh;
+          }
           const cached=(await caches.match('/index.html')) || (await caches.match('/'));
           return cached || fresh;
         }catch(_e){

@@ -9676,7 +9676,7 @@ async function flushPendingSync(){
   if(!remaining.length)return true;
   return false
 }
-var VECTA_APP_VERSION='v365-job-completion-live-update';
+var VECTA_APP_VERSION='v366-manager-gate';
 var vectaAppUpdateWaiting=false;
 function vectaSafeApplyAppUpdate(version){
   var nextVersion=String(version||vectaAppUpdateWaiting||VECTA_APP_VERSION);
@@ -9701,7 +9701,7 @@ function registerVectaServiceWorker(){
   navigator.serviceWorker.addEventListener('controllerchange',function(){vectaSafeApplyAppUpdate()});
   window.addEventListener('load',function(){
     Promise.resolve(window.__vectaCacheResetPromise).finally(function(){
-      navigator.serviceWorker.register('/service-worker.js?v=20260929-job-completion-v365',{updateViaCache:'none'}).then(function(reg){
+      navigator.serviceWorker.register('/service-worker.js?v=20260929-manager-gate-v366',{updateViaCache:'none'}).then(function(reg){
         if(navigator.onLine)Promise.resolve(reg.update()).catch(function(e){console.warn('Service worker update skipped',e)});
       }).catch(function(e){console.warn('Offline app install skipped',e)});
     });
