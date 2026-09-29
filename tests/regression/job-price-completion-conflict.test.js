@@ -79,9 +79,24 @@ test('completion retains the server price-revision audit marker',()=>{
   assert.match(merged.customer_note,/VECTA_WORK_COMPLETED/);
 });
 
-test('completion never rebases a different server price or substantive note',()=>{
+test('completion never rebases a different server price or a competing local note edit',()=>{
   const previous={id,status:'work_complete',amount_quoted:30,customer_note:'original'};
   const draft={...previous,status:'completed',customer_note:'original\n[[VECTA_WORK_COMPLETED:2026-09-29T10:41:00Z]]'};
   assert.equal(rebase(previous,{...previous,amount_quoted:40},draft),null);
-  assert.equal(rebase(previous,{...previous,customer_note:'changed instructions'},draft),null);
+  assert.equal(rebase(previous,{...previous,customer_note:'changed instructions'},{...draft,customer_note:'edited locally\n[[VECTA_WORK_COMPLETED:2026-09-29T10:41:00Z]]'}),null);
+});
+
+test('MTC 3 completion preserves newer cloud parts and time despite editor marker reordering',()=>{
+  const price='[[VECTA_PRIVATE_PRICING:price70]]';
+  const partsOld='[[JOB_PARTS_URI:ordered]]',partsNew='[[JOB_PARTS_URI:arrived]]';
+  const previous={id,status:'booked',amount_quoted:70,drop_time:'12:45',customer_note:`${price}\n${partsOld}\n[[PARTS_STATUS:Awaiting parts]]`};
+  const remote={...previous,drop_time:'13:00:00',customer_note:`${price}\n${partsNew}\n[[PARTS_STATUS:Parts here]]`};
+  const draft={...previous,status:'completed',drop_time:'12:45',customer_note:`${partsOld} ${price}\n[[PARTS_STATUS:Awaiting parts]]\n[[VECTA_WORK_COMPLETED:2026-09-29T13:29:00Z]]`};
+  const merged=rebase(previous,remote,draft);
+  assert.equal(merged.status,'completed');
+  assert.equal(merged.amount_quoted,70);
+  assert.equal(merged.drop_time,'13:00:00');
+  assert.match(merged.customer_note,/JOB_PARTS_URI:arrived/);
+  assert.match(merged.customer_note,/PARTS_STATUS:Parts here/);
+  assert.match(merged.customer_note,/VECTA_WORK_COMPLETED:2026-09-29T13:29:00Z/);
 });
