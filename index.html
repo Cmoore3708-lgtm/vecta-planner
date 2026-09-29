@@ -10188,16 +10188,24 @@ async function vectaGuardJobUpsert(row,options){
     var localDone=jobCompletionEvidence(row),remoteDone=jobCompletionEvidence(remote),lt=Date.parse(row.updated_at||row.created_at||0)||0,rt=Date.parse(remote.updated_at||remote.created_at||0)||0;
     var expected=String(options.expectedRemoteUpdatedAt||''),remoteStamp=String(remote.updated_at||remote.created_at||''),expectedTime=Date.parse(expected)||0,remoteStampTime=Date.parse(remoteStamp)||0;
     var automaticSourceChanged=!!expected&&((expectedTime&&remoteStampTime)?Math.abs(remoteStampTime-expectedTime)>1000:remoteStamp!==expected);
-    if(automaticSourceChanged&&options.expectedRemoteRow){
-      var compared=['registration','vehicle','customer_name','customer_phone','customer_email','customer_note','work_required','technician_notes','booking_date','drop_time','technician','ramp','status','job_type','estimated_hours','amount_quoted','vat_mode','archived'];
-      var sameSavedJob=compared.every(function(key){var before=options.expectedRemoteRow[key],current=remote[key];if(key==='drop_time'){return String(before||'').slice(0,5)===String(current||'').slice(0,5)}return String(before===null||before===undefined?'':before).trim()===String(current===null||current===undefined?'':current).trim()});
+    var remoteChangesCovered=false;
+    if(options.expectedRemoteRow){
+      /* Compare every server field that the whole-row upsert could replace.
+         A newly added field must not silently escape the conflict check. */
+      var compared=Object.keys(remote).filter(function(key){return key!=='updated_at'&&key!=='created_at'});
+      function sameField(a,b,key){if(key==='drop_time')return String(a||'').slice(0,5)===String(b||'').slice(0,5);if(a&&typeof a==='object'||b&&typeof b==='object')return JSON.stringify(a)==JSON.stringify(b);return String(a===null||a===undefined?'':a).trim()===String(b===null||b===undefined?'':b).trim()}
+      var sameSavedJob=compared.every(function(key){return sameField(options.expectedRemoteRow[key],remote[key],key)});
+      /* A background save may advance updated_at or save the price already
+         present in this draft. Permit that exact overlap, but never discard a
+         different server edit or a completion from another device. */
+      remoteChangesCovered=compared.every(function(key){return sameField(options.expectedRemoteRow[key],remote[key],key)||sameField(row[key],remote[key],key)});
       if(sameSavedJob)automaticSourceChanged=false;
     }
     var staleUndo=!!vectaUndoStamp(remote)&&vectaUndoStamp(row)<vectaUndoStamp(remote);
     var downgrade=remoteDone&&!localDone;
     var financeLoss=remoteDone&&vectaJobHasFinancialValue(remote)&&!vectaJobHasFinancialValue(row);
     var remoteNewer=!!(rt&&lt&&rt>lt+1000);
-    if(staleUndo||downgrade||financeLoss||remoteNewer||automaticSourceChanged){
+    if(staleUndo||downgrade||financeLoss||(remoteNewer&&!remoteChangesCovered)||(automaticSourceChanged&&!remoteChangesCovered)){
       vectaAdoptRemoteJob(remote,downgrade?'blocked completion downgrade':financeLoss?'blocked financial data loss':automaticSourceChanged?'blocked automatic write based on a changed cloud row':'blocked stale overwrite of newer cloud record');
       return {allow:false,remote:remote};
     }
