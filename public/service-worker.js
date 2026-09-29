@@ -1,5 +1,5 @@
 const CACHE='vecta-workshop-pro-shell-v55-job-save';
-const APP_VERSION='v370-job-save-consolidation';
+const APP_VERSION='v371-completed-invoice-refresh';
 const DATA_CACHE='vecta-workshop-pro-data-last-known-v1';
 const HEALTH_CACHE='vecta-workshop-pro-cloud-health-v1';
 const CORE=[
