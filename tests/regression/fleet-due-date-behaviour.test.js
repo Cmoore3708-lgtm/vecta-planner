@@ -70,7 +70,7 @@ test('the final runtime completion filter preserves manual dates, booked cycles 
   const assignment = html.slice(functionStart, functionEnd + 5);
   const base = { window: null, todayIso: () => '2026-09-15', fleetVehicles: [{ id: 'v1', registration: 'TCS T2' }], app: { jobs: [] }, fleetDate: p => p.currentDueDate || '2026-09-01', fleetMaintenanceCategory: () => 'service', fleetLatestCompletedEvidenceDate: () => '', fleetCompletedJobForPlanCycle: () => null, fleetSafetyCompletionMatchesCycle: () => false, fleetAddMonthsFromDue: () => '2027-09-01', fleetBookedPlannerJob: () => null };
   base.window = base;
-  vm.runInNewContext(assignment, base);
+  vm.runInNewContext(extractFunction('fleetServiceCompletionMatchesCycle')+';'+assignment, base);
   base.fleetCompletions = [{ vehicleId: 'v1', type: 'Annual Service', completedMonth: '2026-09', datePrecision: 'month' }];
   assert.equal(base.fleetPlanCompletedForCurrentCycle({ id: 'p1', vehicleId: 'v1', type: 'Annual Service', currentDueDate: '2026-09-01' }), false);
   assert.equal(base.fleetPlanCompletedForCurrentCycle({ id: 'p1', vehicleId: 'v1', type: 'Annual Service', currentDueDate: '2026-09-01', manualDueDate: true }), false);
@@ -79,6 +79,29 @@ test('the final runtime completion filter preserves manual dates, booked cycles 
   assert.equal(base.fleetPlanCompletedForCurrentCycle({ id: 'p1', vehicleId: 'v1', type: 'Annual Service', currentDueDate: '2026-09-01' }), true);
   base.fleetBookedPlannerJob = () => ({ id: 'future-service-booking', booking_date: '2026-10-10' });
   assert.equal(base.fleetPlanCompletedForCurrentCycle({ id: 'p1', vehicleId: 'v1', type: 'Annual Service', currentDueDate: '2026-09-01' }), false);
+});
+
+test('an April service cannot hide YAD’s October Major Service when it has no new booking', () => {
+  const start = html.indexOf('window.fleetPlanCompletedForCurrentCycle=function(p)');
+  const end = html.indexOf('\n  };', start);
+  const context = {
+    window: null, todayIso: () => '2026-09-29',
+    fleetVehicles: [{ id: 'yad', registration: 'OY73 YAD' }],
+    fleetCompletions: [{ vehicleId: 'yad', type: 'Full Service', completedDate: '2026-04-22' }],
+    app: { jobs: [] }, fleetDate: p => p.currentDueDate,
+    fleetMaintenanceCategory: type => /service/i.test(type) ? 'service' : 'mot',
+    fleetLatestCompletedEvidenceDate: () => '2026-04-22',
+    fleetCompletedJobForPlanCycle: () => null,
+    fleetBookedPlannerJob: () => null,
+    fleetAddMonthsFromDue: (date, months) => `${Number(date.slice(0, 4)) + months / 12}${date.slice(4)}`,
+  };
+  context.window = context;
+  vm.runInNewContext(extractFunction('fleetServiceCompletionMatchesCycle')+';'+html.slice(start, end + 5), context);
+  const plan = { id: 'yad-service', vehicleId: 'yad', type: 'Major Service', currentDueDate: '2026-10-01' };
+  assert.equal(context.fleetPlanCompletedForCurrentCycle(plan), false);
+  context.fleetLatestCompletedEvidenceDate = () => '2026-09-24';
+  context.fleetCompletions[0].completedDate = '2026-09-24';
+  assert.equal(context.fleetPlanCompletedForCurrentCycle(plan), true);
 });
 
 test('startup cloud hydration happens before every startup Fleet-writing import', () => {

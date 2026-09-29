@@ -17,7 +17,9 @@ function evaluate(done, due = '2026-10-01') {
     completedJobDateForFleet: j => j.completed_at.slice(0, 10),
     fleetAddMonthsFromDue: (date, months) => `${Number(date.slice(0, 4)) + months / 12}${date.slice(4)}`,
   };
-  vm.runInNewContext(match[0], context);
+  const helper = html.match(/function fleetServiceCompletionMatchesCycle\(completed,due\)\{[\s\S]*?\n\}/);
+  assert.ok(helper);
+  vm.runInNewContext(helper[0]+';'+match[0], context);
   return context.window.fleetPlanCompletedForCurrentCycle({ vehicleId: 'bs', type: 'Internal Service', manualDueDate: true, currentDueDate: due });
 }
 
