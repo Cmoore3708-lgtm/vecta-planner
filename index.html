@@ -9676,7 +9676,7 @@ async function flushPendingSync(){
   if(!remaining.length)return true;
   return false
 }
-var VECTA_APP_VERSION='v364-fleet-booking-display';
+var VECTA_APP_VERSION='v365-manager-gate';
 var vectaAppUpdateWaiting=false;
 function vectaSafeApplyAppUpdate(){
   vectaAppUpdateWaiting=true;
@@ -9698,7 +9698,7 @@ function registerVectaServiceWorker(){
   navigator.serviceWorker.addEventListener('controllerchange',function(){vectaSafeApplyAppUpdate()});
   window.addEventListener('load',function(){
     Promise.resolve(window.__vectaCacheResetPromise).finally(function(){
-      navigator.serviceWorker.register('/service-worker.js?v=20260916-fleet-booking-v364',{updateViaCache:'none'}).then(function(reg){
+      navigator.serviceWorker.register('/service-worker.js?v=20260929-manager-gate-v365',{updateViaCache:'none'}).then(function(reg){
         if(navigator.onLine)Promise.resolve(reg.update()).catch(function(e){console.warn('Service worker update skipped',e)});
       }).catch(function(e){console.warn('Offline app install skipped',e)});
     });

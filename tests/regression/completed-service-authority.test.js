@@ -176,10 +176,10 @@ test('embedded service history repairs EYC before live jobs finish loading', () 
 test('phone shell keeps one update owner and advances the source-authoritative cache', () => {
   const html = fs.readFileSync(new URL('../../index.html', import.meta.url), 'utf8');
   const worker = fs.readFileSync(new URL('../../public/service-worker.js', import.meta.url), 'utf8');
-  assert.match(html, /VECTA_APP_VERSION='v364-fleet-booking-display'/);
-  assert.match(html, /service-worker\.js\?v=20260916-fleet-booking-v364/);
-  assert.match(worker, /APP_VERSION='v364-fleet-booking-display'/);
-  assert.match(worker, /CACHE='vecta-workshop-pro-shell-v50-fleet-booking-display'/);
+  assert.match(html, /VECTA_APP_VERSION='v365-manager-gate'/);
+  assert.match(html, /service-worker\.js\?v=20260929-manager-gate-v365/);
+  assert.match(worker, /APP_VERSION='v365-manager-gate'/);
+  assert.match(worker, /CACHE='vecta-workshop-pro-shell-v51-manager-gate'/);
 });
 
 test('service-worker update has one guarded reload owner', () => {
