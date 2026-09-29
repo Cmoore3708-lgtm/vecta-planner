@@ -33,6 +33,14 @@ test('a newer timestamp alone does not prevent completing the confirmed card',as
   assert.deepEqual(await check(previous,remote,{...previous,status:'completed',completed_at:'2026-09-29T10:41:00Z',updated_at:'2026-09-29T10:41:00Z'}),{allow:true,adopted:0});
 });
 
+test('an amended £238 invoice price is accepted against the unchanged £160 cloud card',async()=>{
+  const previous={id,status:'booked',amount_quoted:160,updated_at:'2026-09-29T10:28:15Z'};
+  const remote={...previous,updated_at:'2026-09-29T10:28:18Z'};
+  const draft={...previous,amount_quoted:238,status:'ready_to_invoice',updated_at:'2026-09-29T12:28:00Z'};
+  assert.deepEqual(await check(previous,remote,draft),{allow:true,adopted:0});
+  assert.deepEqual(await check(draft,remote,draft),{allow:false,adopted:1});
+});
+
 test('a price already saved on the server can be completed from the same draft',async()=>{
   const previous={id,status:'work_complete',amount_quoted:30,updated_at:'2026-09-29T10:28:59Z'};
   const remote={...previous,amount_quoted:35,updated_at:'2026-09-29T10:40:00Z'};

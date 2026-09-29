@@ -9683,7 +9683,7 @@ async function flushPendingSync(){
   if(!remaining.length)return true;
   return false
 }
-var VECTA_APP_VERSION='v367-completion-cloud-rebase';
+var VECTA_APP_VERSION='v368-job-amendment-baseline';
 var vectaAppUpdateWaiting=false;
 function vectaSafeApplyAppUpdate(version){
   var nextVersion=String(version||vectaAppUpdateWaiting||VECTA_APP_VERSION);
@@ -9708,7 +9708,7 @@ function registerVectaServiceWorker(){
   navigator.serviceWorker.addEventListener('controllerchange',function(){vectaSafeApplyAppUpdate()});
   window.addEventListener('load',function(){
     Promise.resolve(window.__vectaCacheResetPromise).finally(function(){
-      navigator.serviceWorker.register('/service-worker.js?v=20260929-completion-rebase-v367',{updateViaCache:'none'}).then(function(reg){
+      navigator.serviceWorker.register('/service-worker.js?v=20260929-amendment-baseline-v368',{updateViaCache:'none'}).then(function(reg){
         if(navigator.onLine)Promise.resolve(reg.update()).catch(function(e){console.warn('Service worker update skipped',e)});
       }).catch(function(e){console.warn('Offline app install skipped',e)});
     });
@@ -14271,7 +14271,9 @@ async function restoreSoftDeletedJob(id){
 }
 function gatherJob(id){
   var fields=['registration','customer_account','customer_id','customer_name','nmuk_vehicle_type','customer_phone','customer_email','vehicle','mileage','booking_date','drop_time','technician','ramp','estimated_hours','amount_quoted','vat_mode','status','parts_status','job_type','booking_source','work_required','technician_notes','customer_note','mot_due','mot_status','mot_advisories','make','model','fuel_type','colour','engine_size','dvsa_last_checked','dvsa_mot_tests'];
-  var j=app.jobs.find(function(x){return x.id===id})||{id:id,created_at:new Date().toISOString()};
+  /* A preview for Complete or Ready to Invoice must not mutate the saved
+     baseline used by the cloud conflict check in saveJob(). */
+  var j=Object.assign({},app.jobs.find(function(x){return x.id===id})||{id:id,created_at:new Date().toISOString()});
   fields.forEach(function(k){var el=document.getElementById('job_'+k);if(el)j[k]=k==='registration'?storedRegistrationValue(el.value):el.value});var privatePriceItems=syncPrivatePricingTotal(false);var priceHidden=document.getElementById('job_amount_quoted');if(priceHidden)j.amount_quoted=priceHidden.value;j.customer_note=noteWithPrivatePricing(j.customer_note,privatePriceItems);var editedParts=gatherJobPartsEditor(),partsStatusSelect=document.getElementById('job_parts_status'),selectedPartsStatus=partsStatusSelect?String(partsStatusSelect.value||''):'';if(normalisePartsStatus(selectedPartsStatus)==='Not required'){editedParts=[];j.customer_note=noteWithJobParts(j.customer_note,[]);j.parts_status='Not required'}else if(normalisePartsStatus(selectedPartsStatus)==='Parts here'){editedParts.forEach(function(p){p.ordered=true;p.arrived=true});j.customer_note=noteWithJobParts(j.customer_note,editedParts);j.parts_status='Parts here'}else{j.customer_note=noteWithJobParts(j.customer_note,editedParts);j.parts_status=calculatedPartsStatus(editedParts)||normalisePartsStatus(selectedPartsStatus)||'';}j.mot_advisories=dvsaAdvisoryArray(j.mot_advisories);try{j.dvsa_mot_tests=JSON.parse(j.dvsa_mot_tests||'[]')}catch(e){j.dvsa_mot_tests=[]}
   var noVehicle=document.getElementById('job_no_vehicle');j.no_vehicle=!!(noVehicle&&noVehicle.checked);if(j.no_vehicle){j.registration='';j.vehicle='No Vehicle';j.mileage=null;}
   j.customer_account=fleetNormaliseCustomer(j.customer_account||fleetIncomeCustomerFromVehicle(j.registration)||'');var selectedIncomeValue=j.customer_account,accountKey=String(j.customer_account||'').toUpperCase(),namedContractor=fleetIsContractorIncome(selectedIncomeValue)&&accountKey!=='CONTRACTOR';if(accountKey==='STAFF')j.customer_account='Staff';else if(accountKey==='NMUK')j.customer_account='NMUK';else if(accountKey==='CONTRACTOR')j.customer_account='CONTRACTOR';else if(namedContractor){j.customer_account='CONTRACTOR';j.customer_name=selectedIncomeValue;}
