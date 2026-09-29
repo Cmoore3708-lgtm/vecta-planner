@@ -68,3 +68,12 @@ test('website request deletion cannot delete customer, vehicle, job or invoice d
   assert.match(source, /website_booking_requests/);
   assert.doesNotMatch(source, /deleteRemote\('(jobs|customers|vehicles|invoices|service_records)'/);
 });
+
+
+test('opening Website Bookings refreshes the inbox from cloud before relying on cache', () => {
+  const refresh = namedFunctionSource('refreshWebsiteRequestsFromCloud');
+  const nav = namedFunctionSource('renderNav');
+  assert.match(refresh, /vectaFetchAllRemoteRows\('website_booking_requests',12000\)/);
+  assert.match(refresh, /app\.websiteRequests=rows\.map\(fromRemote\)/);
+  assert.match(nav, /view==='websiteRequests'\)refreshWebsiteRequestsFromCloud\(\)/);
+});

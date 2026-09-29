@@ -10363,7 +10363,7 @@ async function vectaEnableBookingAlerts(){
   }catch(error){console.error(error);alert('Booking alerts could not be enabled. '+(error&&error.message||''));return false}
 }
 function navItems(){var newCount=vectaPendingWebsiteBookingCount(),partsCount=(app.jobs||[]).filter(function(j){var ps=partsStatusFromJob(j);return !vectaJobIsDeletedForLists(j)&&!!ps&&ps!=='Parts here'&&ps!=='Not required'&&!j.archived&&j.status!=='completed'&&j.status!=='ready_to_invoice'}).length,paymentWarnCount=typeof overduePaymentMethodInvoices==='function'?overduePaymentMethodInvoices().length:0;return [['planner','Dashboard'],['fleet','Fleet Manager'],['jobs','Jobs'],['invoices','Financial'],['invoiceArchive','Invoices'+(paymentWarnCount?' ⚠ '+paymentWarnCount:'')],['websiteRequests','Website Bookings'+(newCount?' ('+newCount+')':'')],['parts','Parts'+(partsCount?' ('+partsCount+')':'')],['settings','Settings']];}
-function renderNav(){vectaUpdateAppBadge();var n=document.getElementById('nav');n.innerHTML=navItems().map(function(it){var active=(view===it[0])||(it[0]==='invoiceArchive'&&view==='invoices'&&financialSection==='invoiceList');if(it[0]==='invoices'&&view==='invoices'&&financialSection==='invoiceList')active=false;return '<button data-view="'+it[0]+'" class="'+(active?'active':'')+'">'+it[1]+'</button>'}).join('');n.querySelectorAll('button').forEach(function(b){b.onclick=function(){if(b.dataset.view!=='invoices'&&financeDashboardTimer){clearTimeout(financeDashboardTimer);financeDashboardTimer=null}if(b.dataset.view==='fleet'){fleetSection='maintenance';fleetListMode='due30';fleetFilter='All';fleetQuery='';fleetDueOnly=false;activeFleetVehicleId=''}if(b.dataset.view==='jobs'){jobsListMode='open';jobsSearchQuery=''}if(b.dataset.view==='invoices')financialSection='main';if(b.dataset.view==='invoiceArchive'){openFinancialInvoiceList();return}view=b.dataset.view;render()}})}
+function renderNav(){vectaUpdateAppBadge();var n=document.getElementById('nav');n.innerHTML=navItems().map(function(it){var active=(view===it[0])||(it[0]==='invoiceArchive'&&view==='invoices'&&financialSection==='invoiceList');if(it[0]==='invoices'&&view==='invoices'&&financialSection==='invoiceList')active=false;return '<button data-view="'+it[0]+'" class="'+(active?'active':'')+'">'+it[1]+'</button>'}).join('');n.querySelectorAll('button').forEach(function(b){b.onclick=function(){if(b.dataset.view!=='invoices'&&financeDashboardTimer){clearTimeout(financeDashboardTimer);financeDashboardTimer=null}if(b.dataset.view==='fleet'){fleetSection='maintenance';fleetListMode='due30';fleetFilter='All';fleetQuery='';fleetDueOnly=false;activeFleetVehicleId=''}if(b.dataset.view==='jobs'){jobsListMode='open';jobsSearchQuery=''}if(b.dataset.view==='invoices')financialSection='main';if(b.dataset.view==='invoiceArchive'){openFinancialInvoiceList();return}view=b.dataset.view;render();if(view==='websiteRequests')refreshWebsiteRequestsFromCloud().then(function(ok){if(ok&&view==='websiteRequests')render()})}})}
 var cloudSyncChannel=null,cloudSyncTimer=null,cloudRefreshBusy=false,plannerInteractionBusy=false,cloudRefreshDebounce=null,cloudLastRefreshAt=0;
 async function refreshCloudAndRender(){
   if(window.__vectaJobSaveFenceUntil&&Date.now()<window.__vectaJobSaveFenceUntil){
@@ -12396,6 +12396,18 @@ async function deleteWebsiteRequestCompletely(id){
     console.error('Website request removal failed',e);
     alert('The website booking request could not be removed. No customer, vehicle, job, invoice or service record has been deleted.\n\n'+(e&&e.message?e.message:'Database update failed.'));
     await pullRemote();render();
+  }
+}
+async function refreshWebsiteRequestsFromCloud(){
+  if(!connectSupabase()||!remoteClient)return false;
+  try{
+    var rows=await vectaFetchAllRemoteRows('website_booking_requests',12000);
+    app.websiteRequests=rows.map(fromRemote);
+    saveLocal();
+    return true;
+  }catch(e){
+    console.warn('Website booking inbox refresh failed',e);
+    return false;
   }
 }
 function bindWebsiteRequests(){var e;document.querySelectorAll('[data-website-stat]').forEach(function(b){b.onclick=function(){openWebsiteBookingStatistics(b.dataset.websiteStat)}});if(e=document.getElementById('refreshWebsiteRequests'))e.onclick=async function(){await pullRemote();render()};if(e=document.getElementById('enableBookingAlerts'))e.onclick=vectaEnableBookingAlerts;document.querySelectorAll('[data-request-filter]').forEach(function(b){b.onclick=function(){websiteRequestFilter=b.dataset.requestFilter;render()}});document.querySelectorAll('[data-request-contact]').forEach(function(b){b.onclick=function(){updateWebsiteRequest(b.dataset.requestContact,{status:'contacted'})}});document.querySelectorAll('[data-request-archive]').forEach(function(b){b.onclick=function(){if(confirm('Archive this website booking request?'))updateWebsiteRequest(b.dataset.requestArchive,{status:'archived'})}});document.querySelectorAll('[data-request-delete]').forEach(function(b){b.onclick=function(){deleteWebsiteRequestCompletely(b.dataset.requestDelete)}});document.querySelectorAll('[data-request-create]').forEach(function(b){b.onclick=function(){if(b.disabled)return;b.disabled=true;b.textContent='Opening job…';createJobFromWebsiteRequest(b.dataset.requestCreate).finally(function(){if(document.body.contains(b)){b.disabled=false;b.textContent='Accept & create job'}})}})}
