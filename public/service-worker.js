@@ -1,5 +1,5 @@
-const CACHE='vecta-workshop-pro-shell-v50-fleet-booking-display';
-const APP_VERSION='v364-fleet-booking-display';
+const CACHE='vecta-workshop-pro-shell-v51-job-completion-live-update';
+const APP_VERSION='v365-job-completion-live-update';
 const DATA_CACHE='vecta-workshop-pro-data-last-known-v1';
 const HEALTH_CACHE='vecta-workshop-pro-cloud-health-v1';
 const CORE=[
