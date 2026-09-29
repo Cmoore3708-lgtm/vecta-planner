@@ -12398,6 +12398,18 @@ async function deleteWebsiteRequestCompletely(id){
     await pullRemote();render();
   }
 }
+async function refreshWebsiteRequestsFromCloud(){
+  if(!connectSupabase()||!remoteClient)return false;
+  try{
+    var rows=await vectaFetchAllRemoteRows('website_booking_requests',12000);
+    app.websiteRequests=rows.map(fromRemote);
+    saveLocal();
+    return true;
+  }catch(e){
+    console.warn('Website booking inbox refresh failed',e);
+    return false;
+  }
+}
 function bindWebsiteRequests(){var e;document.querySelectorAll('[data-website-stat]').forEach(function(b){b.onclick=function(){openWebsiteBookingStatistics(b.dataset.websiteStat)}});if(e=document.getElementById('refreshWebsiteRequests'))e.onclick=async function(){await pullRemote();render()};if(e=document.getElementById('enableBookingAlerts'))e.onclick=vectaEnableBookingAlerts;document.querySelectorAll('[data-request-filter]').forEach(function(b){b.onclick=function(){websiteRequestFilter=b.dataset.requestFilter;render()}});document.querySelectorAll('[data-request-contact]').forEach(function(b){b.onclick=function(){updateWebsiteRequest(b.dataset.requestContact,{status:'contacted'})}});document.querySelectorAll('[data-request-archive]').forEach(function(b){b.onclick=function(){if(confirm('Archive this website booking request?'))updateWebsiteRequest(b.dataset.requestArchive,{status:'archived'})}});document.querySelectorAll('[data-request-delete]').forEach(function(b){b.onclick=function(){deleteWebsiteRequestCompletely(b.dataset.requestDelete)}});document.querySelectorAll('[data-request-create]').forEach(function(b){b.onclick=function(){if(b.disabled)return;b.disabled=true;b.textContent='Opening job…';createJobFromWebsiteRequest(b.dataset.requestCreate).finally(function(){if(document.body.contains(b)){b.disabled=false;b.textContent='Accept & create job'}})}})}
 
 
