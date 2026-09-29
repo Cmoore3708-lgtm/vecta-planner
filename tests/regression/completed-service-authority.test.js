@@ -176,10 +176,10 @@ test('embedded service history repairs EYC before live jobs finish loading', () 
 test('phone shell keeps one update owner and advances the source-authoritative cache', () => {
   const html = fs.readFileSync(new URL('../../index.html', import.meta.url), 'utf8');
   const worker = fs.readFileSync(new URL('../../public/service-worker.js', import.meta.url), 'utf8');
-  assert.match(html, /VECTA_APP_VERSION='v365-job-completion-live-update'/);
-  assert.match(html, /service-worker\.js\?v=20260929-job-completion-v365/);
-  assert.match(worker, /APP_VERSION='v365-job-completion-live-update'/);
-  assert.match(worker, /CACHE='vecta-workshop-pro-shell-v51-job-completion-live-update'/);
+  assert.match(html, /VECTA_APP_VERSION='v366-manager-gate'/);
+  assert.match(html, /service-worker\.js\?v=20260929-manager-gate-v366/);
+  assert.match(worker, /APP_VERSION='v366-manager-gate'/);
+  assert.match(worker, /CACHE='vecta-workshop-pro-shell-v52-manager-gate'/);
   assert.match(html, /vectaSafeApplyAppUpdate\(event\.data\.version\)/);
   assert.match(html, /if\(vectaAppUpdateWaiting\)vectaSafeApplyAppUpdate\(vectaAppUpdateWaiting\)/);
 });
@@ -194,7 +194,7 @@ test('service-worker update has one guarded reload owner', () => {
 
 test('a newer app waits for an open job card and reloads after it closes', async () => {
   const html = fs.readFileSync(new URL('../../index.html', import.meta.url), 'utf8');
-  const start=html.indexOf("var VECTA_APP_VERSION='v365-job-completion-live-update'");
+  const start=html.indexOf("var VECTA_APP_VERSION='v366-manager-gate'");
   const end=html.indexOf('function registerVectaServiceWorker()',start);
   const closeStart=html.indexOf('function closeModals(){');
   const closeEnd=html.indexOf('\nfunction editCustomer(',closeStart);

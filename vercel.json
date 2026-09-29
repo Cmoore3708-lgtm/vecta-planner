@@ -12,6 +12,7 @@
   "rewrites": [
     { "source": "/booking", "destination": "/booking.html" },
     { "source": "/booking/", "destination": "/booking.html" },
+    { "source": "/api/cloud-health", "destination": "/api/supabase-config?health=1" },
     { "source": "/api/nmuk-service-reminders-summer", "destination": "/api/fleet-nightly-refresh?task=nmuk-summer" },
     { "source": "/api/nmuk-service-reminders-winter", "destination": "/api/fleet-nightly-refresh?task=nmuk-winter" },
     { "source": "/(.*)", "destination": "/index.html" }
