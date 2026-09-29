@@ -29,3 +29,9 @@ test('previewing an amended price keeps the saved job as the conflict baseline',
   assert.equal(saved.updated_at,'2026-09-29T10:28:15Z');
   assert.notEqual(preview,saved);
 });
+
+test('the editor retains the opened job as the baseline across background refreshes',()=>{
+  assert.match(html,/function openJobModal\(id,preset\)[^\n]*__vectaJobEditorBaseline=liveJob\?\{id:String\(id\),job:JSON\.parse\(JSON\.stringify\(liveJob\)\)\}/);
+  assert.match(html,/var savedJobBeforeEdit=editorBaseline&&String\(editorBaseline\.id\)===String\(id\)\?JSON\.parse\(JSON\.stringify\(editorBaseline\.job\)\)/);
+  assert.match(html,/function closeModals\(\)\{window\.__vectaJobEditorBaseline=null/);
+});

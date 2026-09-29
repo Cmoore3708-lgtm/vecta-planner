@@ -276,11 +276,13 @@ assert.doesNotMatch(html, /\(checked\?'Sent':'Not sent'\)/, 'Email sent column m
   // A cloud write response with fewer priced items must not count as a successful save.
   const job = { id: 'price-job', status: 'booked', technician: 'Alfie', booking_date: '2026-09-25', amount_quoted: 280, customer_note: 'three priced lines' };
   const chain = { select: () => chain, eq: () => chain, single: async () => ({ data: { ...job, customer_note: 'two priced lines' }, error: null }) };
+  let writes = 0;
   const context = contextWith(['syncSavedJobBundleInBackground'], {
     remoteClient: { from: () => chain },
     navigator: { onLine: true },
     window: {},
-    upsertRemote: async () => [{ ...job, customer_note: 'two priced lines' }],
+    vectaGuardJobUpsert: async () => ({ allow: true }),
+    upsertRemote: async () => { writes++; return [{ ...job, customer_note: 'two priced lines' }]; },
     vectaWithTimeout: value => value,
     rememberJobCustomer: async () => {},
     vectaJobHasFinancialValue: () => true,
@@ -290,6 +292,7 @@ assert.doesNotMatch(html, /\(checked\?'Sent':'Not sent'\)/, 'Email sent column m
     setTimeout: () => {}
   });
   assert.equal(await context.syncSavedJobBundleInBackground(job, null, { updated_at: '' }), false);
+  assert.equal(writes, 1);
 }
 
 {
@@ -347,7 +350,7 @@ assert.doesNotMatch(html, /\(checked\?'Sent':'Not sent'\)/, 'Email sent column m
     updated_at: '2026-09-29T11:00:00Z', customer_note: 'price\n[[VECTA_WORK_COMPLETED:2026-09-29T11:00:00Z]]' };
   const app = { jobs: [{ ...draft }] };
   let probes = 0, wrote;
-  const context = contextWith(['vectaSameRemoteJobField', 'vectaRebaseCompletionDraft', 'syncSavedJobBundleInBackground'], {
+  const context = contextWith(['vectaSameRemoteJobField', 'vectaRebaseJobDraft', 'syncSavedJobBundleInBackground'], {
     app, remoteClient: {}, navigator: { onLine: true }, window: {},
     jobCompletionEvidence: row => row.status === 'completed' || !!row.archived,
     vectaUndoStamp: () => 0,
@@ -362,6 +365,34 @@ assert.doesNotMatch(html, /\(checked\?'Sent':'Not sent'\)/, 'Email sent column m
   assert.equal(wrote.technician_notes, 'Finding from mechanic');
   assert.equal(wrote.amount_quoted, 30);
   assert.equal(app.jobs[0].status, 'completed');
+}
+
+{
+  // The same safe merge applies before Ready to Invoice, without creating completion evidence.
+  const previous = { id: 'ready-job', status: 'booked', amount_quoted: 70,
+    technician: 'Alfie', booking_date: '2026-09-29', drop_time: '12:45',
+    customer_note: '[[PARTS_STATUS:Awaiting parts]]', updated_at: '2026-09-29T13:00:00Z' };
+  const remote = { ...previous, drop_time: '13:00:00', customer_note: '[[PARTS_STATUS:Parts here]]', updated_at: '2026-09-29T13:19:00Z' };
+  const draft = { ...previous, status: 'ready_to_invoice', updated_at: '2026-09-29T13:25:00Z' };
+  const app = { jobs: [{ ...draft }] };
+  let probes = 0, wrote, terminalWrites = 0;
+  const context = contextWith(['vectaSameRemoteJobField', 'vectaNoteDraftSignature', 'vectaRebaseJobDraft', 'syncSavedJobBundleInBackground'], {
+    app, remoteClient: {}, navigator: { onLine: true }, window: {},
+    jobCompletionEvidence: row => row.status === 'completed' || !!row.archived,
+    vectaUndoStamp: () => 0,
+    vectaGuardJobUpsert: async () => ++probes === 1 ? { allow: false, remote, conflictingFields: ['customer_note', 'drop_time'] } : { allow: true, remote },
+    upsertRemote: async (table, row) => { wrote = { ...row }; return [{ ...row }]; },
+    vectaWriteTerminalJobState: async () => { terminalWrites++; }, vectaProtectJobSnapshot: async () => true,
+    vectaJobHasFinancialValue: () => true, rememberJobCustomer: async () => {},
+    persistMainSettings: async () => true, updateConnectivityUI: () => {},
+    saveLocal: () => {}, setTimeout: () => {}
+  });
+  assert.equal(await context.syncSavedJobBundleInBackground(draft, null, previous), true);
+  assert.equal(probes, 2);
+  assert.equal(wrote.customer_note, remote.customer_note);
+  assert.equal(wrote.drop_time, remote.drop_time);
+  assert.equal(wrote.status, 'ready_to_invoice');
+  assert.equal(terminalWrites, 0);
 }
 
 {

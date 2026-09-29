@@ -1,5 +1,5 @@
-const CACHE='vecta-workshop-pro-shell-v54-completion-note-time';
-const APP_VERSION='v369-completion-note-time-rebase';
+const CACHE='vecta-workshop-pro-shell-v55-job-save';
+const APP_VERSION='v370-job-save-consolidation';
 const DATA_CACHE='vecta-workshop-pro-data-last-known-v1';
 const HEALTH_CACHE='vecta-workshop-pro-cloud-health-v1';
 const CORE=[
