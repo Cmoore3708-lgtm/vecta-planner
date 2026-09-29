@@ -9683,7 +9683,7 @@ async function flushPendingSync(){
   if(!remaining.length)return true;
   return false
 }
-var VECTA_APP_VERSION='v368-job-amendment-baseline';
+var VECTA_APP_VERSION='v369-completion-note-time-rebase';
 var vectaAppUpdateWaiting=false;
 function vectaSafeApplyAppUpdate(version){
   var nextVersion=String(version||vectaAppUpdateWaiting||VECTA_APP_VERSION);
@@ -9708,7 +9708,7 @@ function registerVectaServiceWorker(){
   navigator.serviceWorker.addEventListener('controllerchange',function(){vectaSafeApplyAppUpdate()});
   window.addEventListener('load',function(){
     Promise.resolve(window.__vectaCacheResetPromise).finally(function(){
-      navigator.serviceWorker.register('/service-worker.js?v=20260929-amendment-baseline-v368',{updateViaCache:'none'}).then(function(reg){
+      navigator.serviceWorker.register('/service-worker.js?v=20260929-completion-note-time-v369',{updateViaCache:'none'}).then(function(reg){
         if(navigator.onLine)Promise.resolve(reg.update()).catch(function(e){console.warn('Service worker update skipped',e)});
       }).catch(function(e){console.warn('Offline app install skipped',e)});
     });
@@ -10196,6 +10196,15 @@ function vectaCompletionConflictFields(result){
   var fields=result&&result.conflictingFields||[];
   return fields.length?' The server differs in: '+fields.join(', ')+'.':'';
 }
+function vectaNoteDraftSignature(note){
+  /* Reading the editor rewrites pricing/parts/status markers in a different
+     order. Compare the actual note and markers before deciding that a person
+     edited the stale card. Completion's new work timestamp is excluded. */
+  var raw=String(note||'').replace(/\s*\[\[VECTA_WORK_COMPLETED:[^\]]+\]\]/g,'');
+  var markers=(raw.match(/\[\[[^\]]+\]\]/g)||[]).sort();
+  var prose=raw.replace(/\[\[[^\]]+\]\]/g,'').replace(/\s+/g,' ').trim();
+  return JSON.stringify([prose,markers]);
+}
 function vectaRebaseCompletionDraft(row,previous,remote){
   if(!row||!previous||!remote||jobCompletionEvidence(remote)||vectaUndoStamp(remote)>vectaUndoStamp(row))return null;
   var merged=Object.assign({},row),blocked=false;
@@ -10204,10 +10213,7 @@ function vectaRebaseCompletionDraft(row,previous,remote){
     if(vectaSameRemoteJobField(previous[key],remote[key],key)||vectaSameRemoteJobField(row[key],remote[key],key))return;
     if(key==='customer_note'){
       var marker=String(row.customer_note||'').match(/\[\[VECTA_WORK_COMPLETED:[^\]]+\]\]/);
-      var withoutMarker=function(note){return String(note||'').replace(/\s*\[\[VECTA_WORK_COMPLETED:[^\]]+\]\]/g,'').trim()};
-      var withoutAudit=function(note){return withoutMarker(note).replace(/\s*\[\[VECTA_PRICE_REVISED:[^\]]+\]\]/g,'').trim()};
-      if(marker&&withoutMarker(row.customer_note)===withoutMarker(previous.customer_note)&&
-         withoutAudit(previous.customer_note)===withoutAudit(remote.customer_note)&&
+      if(marker&&vectaNoteDraftSignature(row.customer_note)===vectaNoteDraftSignature(previous.customer_note)&&
          Number(remote.amount_quoted||0)===Number(row.amount_quoted||0)){
         merged.customer_note=String(remote.customer_note||'').replace(/\s*\[\[VECTA_WORK_COMPLETED:[^\]]+\]\]/g,'')+'\n'+marker[0];
         return;
@@ -14535,7 +14541,7 @@ async function saveJob(id){
   }
   /* V316: past website-booking times do not block save, completion or Ready to invoice. */
   var autoSlotNotice='';
-  if(j.status!=='quote'&&!isVehicleTaxJob(j)&&shouldAutoAllocateJobSlot(existingJob,j)){
+  if(j.status!=='quote'&&j.status!=='completed'&&!isVehicleTaxJob(j)&&shouldAutoAllocateJobSlot(existingJob,j)){
     var nextSlot=findNextMechanicSlot(j,j.id);
     if(nextSlot&&(String(nextSlot.booking_date)!==String(j.booking_date)||normaliseClock(nextSlot.drop_time)!==normaliseClock(j.drop_time))){
       var originalDate=j.booking_date,originalTime=normaliseClock(j.drop_time||'08:00');
