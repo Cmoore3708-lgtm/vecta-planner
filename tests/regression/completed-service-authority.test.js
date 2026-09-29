@@ -176,10 +176,12 @@ test('embedded service history repairs EYC before live jobs finish loading', () 
 test('phone shell keeps one update owner and advances the source-authoritative cache', () => {
   const html = fs.readFileSync(new URL('../../index.html', import.meta.url), 'utf8');
   const worker = fs.readFileSync(new URL('../../public/service-worker.js', import.meta.url), 'utf8');
-  assert.match(html, /VECTA_APP_VERSION='v364-fleet-booking-display'/);
-  assert.match(html, /service-worker\.js\?v=20260916-fleet-booking-v364/);
-  assert.match(worker, /APP_VERSION='v364-fleet-booking-display'/);
-  assert.match(worker, /CACHE='vecta-workshop-pro-shell-v50-fleet-booking-display'/);
+  assert.match(html, /VECTA_APP_VERSION='v365-job-completion-live-update'/);
+  assert.match(html, /service-worker\.js\?v=20260929-job-completion-v365/);
+  assert.match(worker, /APP_VERSION='v365-job-completion-live-update'/);
+  assert.match(worker, /CACHE='vecta-workshop-pro-shell-v51-job-completion-live-update'/);
+  assert.match(html, /vectaSafeApplyAppUpdate\(event\.data\.version\)/);
+  assert.match(html, /if\(vectaAppUpdateWaiting\)vectaSafeApplyAppUpdate\(vectaAppUpdateWaiting\)/);
 });
 
 test('service-worker update has one guarded reload owner', () => {
@@ -188,6 +190,30 @@ test('service-worker update has one guarded reload owner', () => {
   assert.equal((html.match(/addEventListener\('controllerchange'/g) || []).length, 1);
   assert.equal((html.match(/serviceWorker\.register\(/g) || []).length, 1);
   assert.doesNotMatch(worker, /vecta_update/);
+});
+
+test('a newer app waits for an open job card and reloads after it closes', async () => {
+  const html = fs.readFileSync(new URL('../../index.html', import.meta.url), 'utf8');
+  const start=html.indexOf("var VECTA_APP_VERSION='v365-job-completion-live-update'");
+  const end=html.indexOf('function registerVectaServiceWorker()',start);
+  const closeStart=html.indexOf('function closeModals(){');
+  const closeEnd=html.indexOf('\nfunction editCustomer(',closeStart);
+  assert.ok(start>0&&end>start&&closeStart>0&&closeEnd>closeStart);
+  let open=true,reloads=0,backups=0;
+  const storage=new Map();
+  const modal={classList:{remove(){open=false}},setAttribute(){},set innerHTML(value){assert.equal(value,'')}};
+  const context={Promise,document:{querySelector(selector){return selector==='.modal.open'&&open?modal:null},querySelectorAll(){return [modal]}},
+    vectaPendingSync:()=>[],vectaSyncInFlight:false,plannerInteractionBusy:false,
+    sessionStorage:{getItem:key=>storage.get(key),setItem:(key,value)=>storage.set(key,value)},
+    vectaCreateDailyBackup:()=>{backups++;return Promise.resolve()},location:{reload(){reloads++}}};
+  vm.runInNewContext(html.slice(start,end)+html.slice(closeStart,closeEnd),context);
+  assert.equal(context.vectaSafeApplyAppUpdate('v366-future'),false);
+  assert.equal(reloads,0);
+  context.closeModals();
+  await Promise.resolve();await Promise.resolve();
+  assert.equal(reloads,1);
+  assert.equal(backups,1);
+  assert.equal(storage.get('vecta:app-reloaded:v366-future'),'1');
 });
 
 test('MOT control observer cannot lock the document', () => {

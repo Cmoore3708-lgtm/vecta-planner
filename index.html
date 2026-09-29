@@ -9676,35 +9676,38 @@ async function flushPendingSync(){
   if(!remaining.length)return true;
   return false
 }
-var VECTA_APP_VERSION='v364-fleet-booking-display';
+var VECTA_APP_VERSION='v365-job-completion-live-update';
 var vectaAppUpdateWaiting=false;
-function vectaSafeApplyAppUpdate(){
-  vectaAppUpdateWaiting=true;
+function vectaSafeApplyAppUpdate(version){
+  var nextVersion=String(version||vectaAppUpdateWaiting||VECTA_APP_VERSION);
+  if(nextVersion===VECTA_APP_VERSION){vectaAppUpdateWaiting=false;return false}
+  vectaAppUpdateWaiting=nextVersion;
   /* Never reload over offline work, a save, or an open editor. The update stays
      waiting and is applied on a later foreground event when the screen is safe. */
   if(vectaPendingSync().length||vectaSyncInFlight||plannerInteractionBusy||document.querySelector('.modal.open'))return false;
   try{
-    if(sessionStorage.getItem('vecta:app-reloaded:'+VECTA_APP_VERSION)==='1')return false;
-    sessionStorage.setItem('vecta:app-reloaded:'+VECTA_APP_VERSION,'1');
+    if(sessionStorage.getItem('vecta:app-reloaded:'+nextVersion)==='1')return false;
+    sessionStorage.setItem('vecta:app-reloaded:'+nextVersion,'1');
   }catch(_e){}
+  vectaAppUpdateWaiting=false;
   Promise.resolve(vectaCreateDailyBackup(true,'before-app-update')).finally(function(){location.reload()});
   return true;
 }
 function registerVectaServiceWorker(){
   if(!('serviceWorker' in navigator))return;
   navigator.serviceWorker.addEventListener('message',function(event){
-    if(event.data&&event.data.type==='VECTA_APP_UPDATE_READY')vectaSafeApplyAppUpdate();
+    if(event.data&&event.data.type==='VECTA_APP_UPDATE_READY')vectaSafeApplyAppUpdate(event.data.version);
   });
   navigator.serviceWorker.addEventListener('controllerchange',function(){vectaSafeApplyAppUpdate()});
   window.addEventListener('load',function(){
     Promise.resolve(window.__vectaCacheResetPromise).finally(function(){
-      navigator.serviceWorker.register('/service-worker.js?v=20260916-fleet-booking-v364',{updateViaCache:'none'}).then(function(reg){
+      navigator.serviceWorker.register('/service-worker.js?v=20260929-job-completion-v365',{updateViaCache:'none'}).then(function(reg){
         if(navigator.onLine)Promise.resolve(reg.update()).catch(function(e){console.warn('Service worker update skipped',e)});
       }).catch(function(e){console.warn('Offline app install skipped',e)});
     });
   });
   document.addEventListener('visibilitychange',function(){
-    if(document.visibilityState==='visible'&&vectaAppUpdateWaiting)vectaSafeApplyAppUpdate();
+    if(document.visibilityState==='visible'&&vectaAppUpdateWaiting)vectaSafeApplyAppUpdate(vectaAppUpdateWaiting);
   });
 }
 /* V354: reconnects use the single guarded foreground refresh installed below.
@@ -14639,7 +14642,7 @@ async function syncSavedJobBundleInBackground(j,linked,previous){
   }
 }
 
-function closeModals(){document.querySelectorAll('.modal').forEach(function(m){m.classList.remove('open');m.setAttribute('aria-hidden','true');m.innerHTML=''})}
+function closeModals(){document.querySelectorAll('.modal').forEach(function(m){m.classList.remove('open');m.setAttribute('aria-hidden','true');m.innerHTML=''});if(vectaAppUpdateWaiting)vectaSafeApplyAppUpdate(vectaAppUpdateWaiting)}
 function editCustomer(id){var c=id?(app.customers.find(function(x){return x.id===id})||{}):{id:uid(),name:'',surname:'',phone:'',email:''};var name=prompt('Customer name',c.name||'');if(name==null)return;c.name=name;c.surname=(name||'').split(' ').slice(-1)[0]||c.surname||'';c.phone=prompt('Phone',c.phone||'')||c.phone||'';c.email=prompt('Email',c.email||'')||c.email||'';if(!id)app.customers.push(c);saveAll();upsertRemote('customers',c);render()}
 function dueStatusHtml(label,date){if(!date)return '<div class="vehicleDueCard unknown"><span>'+esc(label)+'</span><b>Not recorded</b></div>';var days=dateDays(date),cls=days===null?'unknown':days<0?'overdue':days<=30?'soon':'good';var note=days===null?'':days<0?Math.abs(days)+' days overdue':days===0?'Due today':days<=30?'Due in '+days+' days':'Due '+niceDate(date);return '<div class="vehicleDueCard '+cls+'"><span>'+esc(label)+'</span><b>'+esc(niceDate(date))+'</b><small>'+esc(note)+'</small></div>'}
 function vehicleHistoryDate(row){return row.invoice_date||row.booking_date||row.saved_at||row.created_at||''}
