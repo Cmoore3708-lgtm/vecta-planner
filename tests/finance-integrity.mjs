@@ -326,7 +326,7 @@ assert.doesNotMatch(html, /\(checked\?'Sent':'Not sent'\)/, 'Email sent column m
   const remote = { ...old, updated_at: '2026-09-25T12:05:00Z', drop_time: '08:00:00' };
   const chain = { select: () => chain, eq: () => chain, limit: async () => ({ data: [remote], error: null }) };
   let adopted = 0;
-  const context = contextWith(['vectaGuardJobUpsert'], {
+  const context = contextWith(['vectaSameRemoteJobField', 'vectaGuardJobUpsert'], {
     remoteClient: { from: () => chain }, isUuid: () => true, fromRemote: x => x,
     jobCompletionEvidence: () => false, vectaJobHasFinancialValue: () => true,
     vectaUndoStamp: () => 0, vectaAdoptRemoteJob: () => { adopted += 1; }
@@ -336,6 +336,32 @@ assert.doesNotMatch(html, /\(checked\?'Sent':'Not sent'\)/, 'Email sent column m
   remote.amount_quoted = 120;
   assert.equal((await context.vectaGuardJobUpsert(edited, { expectedRemoteUpdatedAt: old.updated_at, expectedRemoteRow: old })).allow, false);
   assert.equal(adopted, 1);
+}
+
+{
+  // A stale completion draft safely rebases an unrelated cloud note, then confirms the write.
+  const previous = { id: 'valid-uuid', status: 'work_complete', amount_quoted: 30,
+    technician: 'Alfie', booking_date: '2026-09-29', customer_note: 'price', technician_notes: '', updated_at: '2026-09-29T10:28:00Z' };
+  const remote = { ...previous, technician_notes: 'Finding from mechanic', updated_at: '2026-09-29T10:29:00Z' };
+  const draft = { ...previous, status: 'completed', archived: true, completed_at: '2026-09-29T11:00:00Z',
+    updated_at: '2026-09-29T11:00:00Z', customer_note: 'price\n[[VECTA_WORK_COMPLETED:2026-09-29T11:00:00Z]]' };
+  const app = { jobs: [{ ...draft }] };
+  let probes = 0, wrote;
+  const context = contextWith(['vectaSameRemoteJobField', 'vectaRebaseCompletionDraft', 'syncSavedJobBundleInBackground'], {
+    app, remoteClient: {}, navigator: { onLine: true }, window: {},
+    jobCompletionEvidence: row => row.status === 'completed' || !!row.archived,
+    vectaUndoStamp: () => 0,
+    vectaGuardJobUpsert: async () => ++probes === 1 ? { allow: false, remote, conflictingFields: ['technician_notes'] } : { allow: true, remote },
+    upsertRemote: async (table, row) => { wrote = { ...row }; return [{ ...row }]; },
+    vectaWriteTerminalJobState: async () => true, vectaProtectJobSnapshot: async () => true,
+    rememberJobCustomer: async () => {}, persistMainSettings: async () => true,
+    updateConnectivityUI: () => {}, saveLocal: () => {}, setTimeout: () => {}
+  });
+  assert.equal(await context.syncSavedJobBundleInBackground(draft, null, previous), true);
+  assert.equal(probes, 2);
+  assert.equal(wrote.technician_notes, 'Finding from mechanic');
+  assert.equal(wrote.amount_quoted, 30);
+  assert.equal(app.jobs[0].status, 'completed');
 }
 
 {
