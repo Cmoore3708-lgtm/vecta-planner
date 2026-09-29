@@ -28,6 +28,8 @@ test('quotes appear in their own list and cannot occupy a planner day or finance
 });
 test('quote actions retain a distinct save and convert path',()=>{
   assert.match(html,/id="createQuote">Create Quote/);
+  assert.match(html,/function quotePanelHtml\(\)[\s\S]*?'<div class="sideJob unallocatedSideJob quoteCard"[\s\S]*?compactUnallocatedPlate/);
+  assert.doesNotMatch(html,/function quotePanelHtml\(\)[^\n]*'<button type="button" class="sideJob unallocatedSideJob quoteCard"/);
   assert.match(html,/id="convertQuote">Create Job/);
   assert.match(html,/function convertQuoteToJob\(id\)[\s\S]*?status\.value='booked'/);
   assert.match(html,/function saveQuote\(id\)[\s\S]*?saveJob\(id\)/);
