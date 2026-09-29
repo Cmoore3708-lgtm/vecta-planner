@@ -38,3 +38,9 @@ test('a different server price still blocks completion and adopts the cloud row'
   const remote={...previous,amount_quoted:40,updated_at:'2026-09-29T10:40:00Z'};
   assert.deepEqual(await check(previous,remote,{...previous,amount_quoted:35,status:'completed',updated_at:'2026-09-29T10:41:00Z'}),{allow:false,adopted:1});
 });
+
+test('a server edit to another persisted field cannot be overwritten',async()=>{
+  const previous={id,status:'work_complete',amount_quoted:30,technician_notes:'',updated_at:'2026-09-29T10:28:59Z'};
+  const remote={...previous,technician_notes:'Mechanic added a finding',updated_at:'2026-09-29T10:40:00Z'};
+  assert.deepEqual(await check(previous,remote,{...previous,status:'completed',updated_at:'2026-09-29T10:41:00Z'}),{allow:false,adopted:1});
+});

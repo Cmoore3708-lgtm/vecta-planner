@@ -10190,8 +10190,10 @@ async function vectaGuardJobUpsert(row,options){
     var automaticSourceChanged=!!expected&&((expectedTime&&remoteStampTime)?Math.abs(remoteStampTime-expectedTime)>1000:remoteStamp!==expected);
     var remoteChangesCovered=false;
     if(options.expectedRemoteRow){
-      var compared=['registration','vehicle','customer_name','customer_phone','customer_email','customer_note','work_required','technician_notes','booking_date','drop_time','technician','ramp','status','job_type','estimated_hours','amount_quoted','vat_mode','archived','completed_at','mileage','mot_time'];
-      function sameField(a,b,key){if(key==='drop_time')return String(a||'').slice(0,5)===String(b||'').slice(0,5);return String(a===null||a===undefined?'':a).trim()===String(b===null||b===undefined?'':b).trim()}
+      /* Compare every server field that the whole-row upsert could replace.
+         A newly added field must not silently escape the conflict check. */
+      var compared=Object.keys(remote).filter(function(key){return key!=='updated_at'&&key!=='created_at'});
+      function sameField(a,b,key){if(key==='drop_time')return String(a||'').slice(0,5)===String(b||'').slice(0,5);if(a&&typeof a==='object'||b&&typeof b==='object')return JSON.stringify(a)==JSON.stringify(b);return String(a===null||a===undefined?'':a).trim()===String(b===null||b===undefined?'':b).trim()}
       var sameSavedJob=compared.every(function(key){return sameField(options.expectedRemoteRow[key],remote[key],key)});
       /* A background save may advance updated_at or save the price already
          present in this draft. Permit that exact overlap, but never discard a
