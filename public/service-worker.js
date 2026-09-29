@@ -1,5 +1,5 @@
-const CACHE='vecta-workshop-pro-shell-v52-manager-gate';
-const APP_VERSION='v366-manager-gate';
+const CACHE='vecta-workshop-pro-shell-v53-completion-cloud-rebase';
+const APP_VERSION='v367-completion-cloud-rebase';
 const DATA_CACHE='vecta-workshop-pro-data-last-known-v1';
 const HEALTH_CACHE='vecta-workshop-pro-cloud-health-v1';
 const CORE=[
