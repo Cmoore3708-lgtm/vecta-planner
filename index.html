@@ -14501,7 +14501,10 @@ async function saveJob(id){
   j.archived=j.status==='completed';
   var linked=null;
   try{
-    linked=prepareLinkedCustomerVehicleLocal(j);
+    /* A quote is only a proposed job. Save its customer and vehicle details
+       on the quote itself; link master records when it becomes a job. This
+       also avoids a duplicate-registration failure for repeat quotes. */
+    linked=j.status==='quote'?null:prepareLinkedCustomerVehicleLocal(j);
     if(linked&&linked.customer){var ci=app.customers.findIndex(function(x){return x.id===linked.customer.id});if(ci>=0)app.customers[ci]=linked.customer;else app.customers.push(linked.customer)}
     if(linked&&linked.vehicle){var vi=app.vehicles.findIndex(function(x){return x.id===linked.vehicle.id});if(vi>=0)app.vehicles[vi]=linked.vehicle;else app.vehicles.push(linked.vehicle)}
     syncTaskFromMiniJob(j);
@@ -14624,7 +14627,7 @@ async function syncSavedJobBundleInBackground(j,linked,previous){
     }else if(vectaJobHasFinancialValue(j))await vectaProtectJobSnapshot(j,'job-financial-save');
     var localSavedJob=(app.jobs||[]).find(function(x){return String(x.id)===String(j.id)});
     if(localSavedJob&&j.completed_at&&!localSavedJob.completed_at){localSavedJob.completed_at=j.completed_at;saveLocal()}
-    await rememberJobCustomer(j);
+    if(String(j.status||'').toLowerCase()!=='quote')await rememberJobCustomer(j);
     try{await persistMainSettings()}catch(e){console.warn('Background settings sync failed',e)}
     vectaCloudReachable=true;updateConnectivityUI();
     window.__vectaJobSaveFenceUntil=0;

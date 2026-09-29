@@ -33,6 +33,8 @@ test('quote actions retain a distinct save and convert path',()=>{
   assert.match(html,/id="convertQuote">Create Job/);
   assert.match(html,/function convertQuoteToJob\(id\)[\s\S]*?status\.value='booked'/);
   assert.match(html,/function saveQuote\(id\)[\s\S]*?saveJob\(id\)/);
+  assert.match(html,/linked=j\.status==='quote'\?null:prepareLinkedCustomerVehicleLocal\(j\)/);
+  assert.match(html,/if\(String\(j\.status\|\|''\)\.toLowerCase\(\)!=='quote'\)await rememberJobCustomer\(j\)/);
 });
 test('a quote confirms the row returned by its own cloud write',async()=>{
   const job={id:'quote-1',status:'quote',customer_note:'A priced quote',amount_quoted:20,technician:'Unallocated',booking_date:null};
