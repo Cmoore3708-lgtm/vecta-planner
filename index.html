@@ -11224,7 +11224,7 @@ function fleetCompletedJobForPlanCycle(p){
     var done=completedJobDateForFleet(j);
     if(cat==='service'){
       /* A completed annual service owns the following 12-month cycle. */
-      return due<fleetAddMonthsFromDue(done,12);
+      return fleetServiceCompletionMatchesCycle(done,due);
     }
     if(cat==='safety'){
       /* Safety due dates stay anchored to the service. Completing the check clears
@@ -11238,6 +11238,15 @@ function fleetCompletedJobForPlanCycle(p){
     }
     return done>=due;
   })||null;
+}
+function fleetServiceCompletionMatchesCycle(completed,due){
+  completed=String(completed||'').slice(0,10);due=String(due||'').slice(0,10);
+  if(!/^\d{4}-\d{2}-\d{2}$/.test(completed)||!/^\d{4}-\d{2}-\d{2}$/.test(due))return false;
+  var dueTime=new Date(due+'T00:00:00').getTime(),doneTime=new Date(completed+'T00:00:00').getTime();
+  /* A service months before the recorded due date belongs to the prior cycle.
+     Allow early completion within 62 days, then clear that cycle until its
+     next annual due date. */
+  return !isNaN(dueTime)&&!isNaN(doneTime)&&doneTime>=dueTime-62*86400000&&due<fleetAddMonthsFromDue(completed,12);
 }
 function fleetSafetyCompletionMatchesCycle(completed,due,cycle){
   completed=String(completed||'').slice(0,10);due=String(due||'').slice(0,10);cycle=String(cycle||'').slice(0,10);
@@ -11256,7 +11265,7 @@ function fleetPlanCompletedForCurrentCycle(p){
   /* A current/future diary booking is direct evidence that this cycle is still
      outstanding. Older completion history must never hide booked Fleet work. */
   if(vehicle&&planCategory&&fleetBookedPlannerJob(vehicle.registration,planCategory))return false;
-  if(planCategory==='service'&&latestEvidence&&(!due||String(due).slice(0,10)<fleetAddMonthsFromDue(latestEvidence,12)))return true;
+  if(planCategory==='service'&&latestEvidence&&(!due||fleetServiceCompletionMatchesCycle(latestEvidence,due)))return true;
   if(planCategory==='safety'&&latestEvidence&&due){
     var safetyDueDate=new Date(String(due).slice(0,10)+'T00:00:00'),safetyDoneDate=new Date(latestEvidence+'T00:00:00');
     if(safetyDoneDate>=new Date(safetyDueDate.getTime()-62*86400000))return true;
@@ -11283,14 +11292,14 @@ function fleetPlanCompletedForCurrentCycle(p){
       }
       if(planCategory==='service'){
         var serviceDone=String(completed).slice(0,10);
-        return !due||String(due).slice(0,10)<fleetAddMonthsFromDue(serviceDone,12);
+        return !due||fleetServiceCompletionMatchesCycle(serviceDone,due);
       }
       return !due||completed.slice(0,7)>=due.slice(0,7);
     }
     var raw=String(c.serviceType||c.type||''),categories=['service','mot','tax','safety'].filter(function(cat){return fleetMaintenanceCategory(raw)===cat||(cat==='mot'&&/\bmot\b/i.test(raw))||(cat==='tax'&&/\btax\b|road tax/i.test(raw))||(cat==='safety'&&/six[- ]?month|6[- ]?month|safety check/i.test(raw))||(cat==='service'&&/service/i.test(raw))});
     categories=categories.filter(function(v,i,a){return a.indexOf(v)===i});
     if(categories.length!==1||categories[0]!==planCategory)return false;
-    if(planCategory==='service')return !due||String(due).slice(0,10)<fleetAddMonthsFromDue(String(completed).slice(0,10),12);
+    if(planCategory==='service')return !due||fleetServiceCompletionMatchesCycle(completed,due);
     if(planCategory==='safety'&&due)return fleetSafetyCompletionMatchesCycle(completed,due,'');
     if(planCategory==='tax'&&due){var taxDue=new Date(String(due).slice(0,10)+'T00:00:00'),taxDone=new Date(String(completed).slice(0,10)+'T00:00:00');return !isNaN(taxDue.getTime())&&!isNaN(taxDone.getTime())&&taxDone>=new Date(taxDue.getTime()-40*86400000);}
     return !due||completed.slice(0,7)>=due.slice(0,7);
@@ -15575,7 +15584,7 @@ init();
       var manualDue=String(fleetDate(p)||'').slice(0,10),
           manualJob=fleetMaintenanceCategory(p.type)==='service'&&fleetCompletedJobForPlanCycle(p),
           manualDone=manualJob&&completedJobDateForFleet(manualJob)||'';
-      return !!(manualDue&&manualDone&&manualDue<fleetAddMonthsFromDue(manualDone,12));
+      return !!(manualDue&&manualDone&&fleetServiceCompletionMatchesCycle(manualDone,manualDue));
     }
     var due=typeof fleetDate==='function'?fleetDate(p):String(p&&p.currentDueDate||''),
         planCategory=typeof fleetMaintenanceCategory==='function'?fleetMaintenanceCategory(p.type):'',
@@ -15589,8 +15598,7 @@ init();
     /* FINAL runtime authority: this v212 script loads after the main Fleet code.
        Preserve completed job-card and service-paperwork evidence here. */
     if(planCategory==='service'&&latestEvidence&&typeof fleetAddMonthsFromDue==='function'){
-      var nextService=fleetAddMonthsFromDue(latestEvidence,12);
-      if(!due||String(due).slice(0,10)<nextService)return true;
+      if(!due||fleetServiceCompletionMatchesCycle(latestEvidence,due))return true;
     }
     if(planCategory==='safety'&&latestEvidence&&due){
       var safetyDue=new Date(String(due).slice(0,10)+'T00:00:00'),
@@ -15617,14 +15625,14 @@ init();
           return typeof fleetSafetyCompletionMatchesCycle==='function'&&fleetSafetyCompletionMatchesCycle(completed,due,cycle);
         }
         if(planCategory==='service'&&typeof fleetAddMonthsFromDue==='function'){
-          return !due||String(due).slice(0,10)<fleetAddMonthsFromDue(String(completed).slice(0,10),12);
+          return !due||fleetServiceCompletionMatchesCycle(completed,due);
         }
         return !due||completed.slice(0,7)>=String(due).slice(0,7);
       }
       var raw=String(c.serviceType||c.type||''),categories=['service','mot','tax','safety'].filter(function(cat){return (typeof fleetMaintenanceCategory==='function'&&fleetMaintenanceCategory(raw)===cat)||(cat==='mot'&&/\bmot\b/i.test(raw))||(cat==='tax'&&/\btax\b|road tax/i.test(raw))||(cat==='safety'&&/six[- ]?month|6[- ]?month|safety check/i.test(raw))||(cat==='service'&&/service/i.test(raw))});
       categories=categories.filter(function(v,i,a){return a.indexOf(v)===i});
       if(categories.length!==1||categories[0]!==planCategory)return false;
-      if(planCategory==='service'&&typeof fleetAddMonthsFromDue==='function')return !due||String(due).slice(0,10)<fleetAddMonthsFromDue(String(completed).slice(0,10),12);
+      if(planCategory==='service'&&typeof fleetAddMonthsFromDue==='function')return !due||fleetServiceCompletionMatchesCycle(completed,due);
       if(planCategory==='safety'&&due)return typeof fleetSafetyCompletionMatchesCycle==='function'&&fleetSafetyCompletionMatchesCycle(completed,due,'');
       if(planCategory==='tax'&&due){var taxDue=new Date(String(due).slice(0,10)+'T00:00:00'),taxDone=new Date(String(completed).slice(0,10)+'T00:00:00');return !isNaN(taxDue.getTime())&&!isNaN(taxDone.getTime())&&taxDone>=new Date(taxDue.getTime()-40*86400000);}
       return !due||completed.slice(0,7)>=String(due).slice(0,7);
