@@ -14563,7 +14563,7 @@ async function saveJob(id){
   if((j.status==='completed'||j.status==='ready_to_invoice')&&!validatePrivatePricingForFinalStatus())return false;
   /* Record the exact moment the job is actually marked complete.
      Ready-to-invoice is not completion and must not create a completion timestamp. */
-  if(j.status==='completed'&&!wasCompleted)j.completed_at=new Date().toISOString();
+  if(j.status==='completed'&&!wasCompleted){var nowIso=new Date().toISOString(),createdDate=String(existingJob&&existingJob.created_at||j.created_at||'').slice(0,10),bookingDate=String(j.booking_date||'').slice(0,10),todayDate=nowIso.slice(0,10),historicalEntry=!wasCompleted&&bookingDate&&bookingDate<todayDate&&createdDate===todayDate;j.completed_at=historicalEntry?bookingDate+'T17:00:00.000Z':nowIso;}
   else if(j.status==='completed'&&existingJob&&existingJob.completed_at)j.completed_at=existingJob.completed_at;
   if(!String(j.work_required||'').trim()){
     alert('Work required must be filled in before this job can be saved.');
