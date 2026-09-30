@@ -47,5 +47,9 @@ function status(t){$('status').textContent=t}
 async function saveDraft(){if(!contentLoaded)throw Error('Content has not loaded — nothing can be saved or published');status('Saving draft…');const r=await fetch('/api/admin-website',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({draft:values()})});if(!r.ok)throw Error('Draft save failed');status('Draft saved')}
 async function restoreVersion(version){if(!confirm('Restore version '+version+' into the draft? Nothing will be published yet.'))return;status('Restoring…');const r=await fetch('/api/admin-website',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'rollback',version})});if(!r.ok)throw Error('Restore failed');await load();status('Version '+version+' restored to draft')}
 async function publishSite(){if(!contentLoaded)throw Error('Content has not loaded — publishing is blocked');await saveDraft();if(!confirm('Publish these website changes?')){status('Draft saved — not published');return}status('Publishing…');const r=await fetch('/api/admin-website',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'publish'})});if(!r.ok)throw Error('Publish failed');await load();status('Published successfully')}
-fillBuiltInCopy();window.addEventListener('unhandledrejection',e=>status(e.reason?.message||'Something went wrong'));load().catch(e=>{contentLoaded=false;status('LOAD FAILED — '+e.message);document.querySelectorAll('.publish').forEach(b=>b.disabled=true)});
+window.addEventListener('unhandledrejection',e=>status(e.reason?.message||'Something went wrong'));
+document.addEventListener('DOMContentLoaded',()=>{
+  fillBuiltInCopy();
+  load().catch(e=>{contentLoaded=false;status('LOAD FAILED — '+e.message);document.querySelectorAll('.publish').forEach(b=>b.disabled=true)});
+});
 </script></body></html>
