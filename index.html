@@ -10994,14 +10994,24 @@ function fleetIncomeCustomerForJob(j){
 function fleetCustomerForJob(j){return fleetIncomeCustomerForJob(j)}
 function fleetEomNextMonth(month){var m=String(month||'').match(/^(\d{4})-(\d{2})$/);if(!m)return '';var d=new Date(Date.UTC(Number(m[1]),Number(m[2])-1,1));d.setUTCMonth(d.getUTCMonth()+1);return d.toISOString().slice(0,7)}
 function fleetEomBillingMonth(j){var note=String(j&&j.customer_note||''),targets=Array.from(note.matchAll(/\[\[EOM_BILL_MONTH:(\d{4}-\d{2})\]\]/g));if(targets.length)return targets[targets.length-1][1];var legacy=Array.from(note.matchAll(/\[\[EOM_HOLD:(\d{4}-\d{2})\]\]/g));if(legacy.length)return fleetEomNextMonth(legacy[legacy.length-1][1]);return String(financeCompletedDate(j)||'').slice(0,7)}
+function fleetEomLegacyMonthlyCharge(j){
+  if(!j||String(j.booking_source||'').toLowerCase()!=='nmuk monthly tracker import'||!(j.no_vehicle===true||!String(j.registration||'').trim()))return false;
+  var work=String(j.work_required||'').trim().toUpperCase();
+  return /^ADMIN\s*[—-]\s*TRANSFER JOB SHEETS TO MONTHLY TRACKER/.test(work)||
+    /^ADMIN\s*[—-]\s*FLEET MAINTENANCE:/.test(work)||
+    /^WASH\/HOVER\/SAFETY CHECK\s*[—-]/.test(work)||
+    /^PRE MOT CHECK\s*[—-]/.test(work)||
+    /^PUNCTURE\s*[—-]/.test(work)||
+    /^FLAT BATTERY\s*[—-]/.test(work);
+}
 function fleetEomJobs(month){
   /* Preserve the proven V6 calculation for NMUK and contractors byte-for-byte
      in behaviour. Staff recovery is added afterwards and cannot remove or
      revalue an existing NMUK row. */
-  var rows=(app.jobs||[]).map(financeEffectiveJob).filter(function(j){if(!financeValidJob(j)||isVehicleTaxJob(j)||isVehicleTaxJob(financeBaseJob(j))||!financeIsRecognisedJob(j))return false;var date=financeCompletedDate(j);if(!date)return false;return fleetEomBillingMonth(j)===month&&!!fleetCustomerForJob(j)}).map(function(j){var customer=fleetCustomerForJob(j);return {job:j,customer:customer,date:financeCompletedDate(j),amount:customer==='Staff'?financeRevenueExVatValue(j):financeExVatValue(j)}}),seen={};
+  var rows=(app.jobs||[]).map(financeEffectiveJob).filter(function(j){if(!financeValidJob(j)||isVehicleTaxJob(j)||isVehicleTaxJob(financeBaseJob(j))||!financeIsRecognisedJob(j)||fleetEomLegacyMonthlyCharge(financeBaseJob(j)||j))return false;var date=financeCompletedDate(j);if(!date)return false;return fleetEomBillingMonth(j)===month&&!!fleetCustomerForJob(j)}).map(function(j){var customer=fleetCustomerForJob(j);return {job:j,customer:customer,date:financeCompletedDate(j),amount:customer==='Staff'?financeRevenueExVatValue(j):financeExVatValue(j)}}),seen={};
   rows.forEach(function(r){if(r.job&&r.job.id)seen[String(r.job.id)]=true});
   financeAllJobs().map(financeEffectiveJob).forEach(function(j){
-    if(!j||seen[String(j.id||'')]||isVehicleTaxJob(j)||isVehicleTaxJob(financeBaseJob(j))||financeLegacyAllocation(j).type!=='Staff'||!fleetEomRecognisedJob(j))return;
+    if(!j||seen[String(j.id||'')]||isVehicleTaxJob(j)||isVehicleTaxJob(financeBaseJob(j))||fleetEomLegacyMonthlyCharge(financeBaseJob(j)||j)||financeLegacyAllocation(j).type!=='Staff'||!fleetEomRecognisedJob(j))return;
     var direct=String(j.completed_at||'').slice(0,10),inv=financeSavedInvoiceForJob(j),invoiceDate=String(inv&&(inv.invoice_date||inv.created_at)||'').slice(0,10),date=/^\d{4}-\d{2}-\d{2}$/.test(direct)?direct:(/^\d{4}-\d{2}-\d{2}$/.test(invoiceDate)?invoiceDate:String(j.booking_date||'').slice(0,10));
     if(fleetEomBillingMonth(j)!==month)return;
     rows.push({job:j,customer:'Staff',date:date,amount:financeRevenueExVatValue(j)});if(j.id)seen[String(j.id)]=true;
