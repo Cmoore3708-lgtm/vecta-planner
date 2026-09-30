@@ -22,7 +22,10 @@ export default async function handler(req,res){
       return res.status(200).json({content:row.published||{},version:row.published_version||0,publishedAt:row.published_at||null});
     } catch(e) { return res.status(503).json({error:String(e?.message||e)}); }
   }
-  if(!authorised(req)) {res.setHeader('WWW-Authenticate','Basic realm="VECTA Admin"');return res.status(401).json({error:'Manager sign-in required'});}
+  const preview = process.env.VERCEL_ENV === 'preview';
+  // Preview deployments are already protected by Vercel Authentication.
+  // Production still requires the separate VECTA manager credentials.
+  if(!preview && !authorised(req)) {res.setHeader('WWW-Authenticate','Basic realm="VECTA Admin"');return res.status(401).json({error:'Manager sign-in required'});}
   try{
     if(req.method==='GET'){
       const rows=await sb('website_content?id=eq.main&select=*');
