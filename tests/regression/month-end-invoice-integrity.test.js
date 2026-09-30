@@ -26,3 +26,18 @@ test('month-end invoices use the same confirmed cloud register as ordinary invoi
   assert.match(approve, /await fleetEomInvoice\(name,month,rows\)/);
   assert.match(approve, /has NOT been created/);
 });
+
+
+test('NMUK editable monthly charges replace legacy no-vehicle tracker summary rows', () => {
+  const legacyFilter = functionSource('fleetEomLegacyMonthlyCharge');
+  const eomJobs = functionSource('fleetEomJobs');
+  assert.match(legacyFilter, /nmuk monthly tracker import/);
+  assert.match(legacyFilter, /TRANSFER JOB SHEETS TO MONTHLY TRACKER/);
+  assert.match(legacyFilter, /FLEET MAINTENANCE/);
+  assert.match(legacyFilter, /WASH\\\/HOVER\\\/SAFETY CHECK/);
+  assert.match(legacyFilter, /PRE MOT CHECK/);
+  assert.match(legacyFilter, /PUNCTURE/);
+  assert.match(legacyFilter, /FLAT BATTERY/);
+  assert.match(eomJobs, /fleetEomLegacyMonthlyCharge/);
+  assert.match(html, /function fleetNmukMonthlyLines\(month\)/);
+});
