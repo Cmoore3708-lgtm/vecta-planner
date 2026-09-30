@@ -8,7 +8,8 @@ function authorised(req){
   try{const [u,...rest]=Buffer.from(h.slice(6),'base64').toString('utf8').split(':');return safeEqual(u,process.env.VECTA_MAIN_USER)&&safeEqual(rest.join(':'),process.env.VECTA_MAIN_PASSWORD)}catch{return false}
 }
 async function sb(path, options={}){
-  const {url,key}=databaseEnvironment({requireService:true});
+  const preview = process.env.VERCEL_ENV === 'preview';
+  const {url,key}=databaseEnvironment({requireService:!preview});
   const r=await fetch(url+'/rest/v1/'+path,{...options,headers:{apikey:key,Authorization:'Bearer '+key,'Content-Type':'application/json',Prefer:'return=representation',...(options.headers||{})}});
   const body=await r.text(); if(!r.ok) throw new Error('Database '+r.status+': '+body.slice(0,300)); return body?JSON.parse(body):null;
 }
