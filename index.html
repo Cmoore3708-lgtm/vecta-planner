@@ -12995,7 +12995,7 @@ function financeNmukAdjustmentsForPeriod(period){
 function financeNmukAdjustmentTotal(period){return financeNmukAdjustmentsForPeriod(period).reduce(function(s,row){return s+row.amount},0)}
 var financeSharedReports={key:'',reports:{}};
 function financeSharedReport(period){
-  var key=financeDashboardCacheKey()+'|'+JSON.stringify(vectaActiveInvoices())+'|'+financeDailyReferenceDate();
+  var key=financeDashboardCacheKey()+'|'+financeDailyReferenceDate();
   if(financeSharedReports.key!==key)financeSharedReports={key:key,reports:{}};
   if(financeSharedReports.reports[period])return financeSharedReports.reports[period];
   var range=String(period||'').indexOf('range:')===0?String(period).split(':'):null,jobs=range?financeAllJobs().filter(function(j){var date=financeCompletedDate(j);return financeIsRecognisedJob(j)&&date>=range[1]&&date<=range[2]}):invoiceFinanceJobs(period),report={jobs:jobs,total:0,contractors:{},nmukTotals:{Internal:0,Pool:0,MVOS:0,Various:0},nmukCounts:{Internal:0,Pool:0,MVOS:0,Various:0},staffTotal:0,staffCount:0,reviewTotal:0,reviewCount:0,adjustments:range?financeNmukInvoiceAdjustments(range[1],range[2]):financeNmukAdjustmentsForPeriod(period)};
@@ -13198,7 +13198,7 @@ function invoiceFinanceHtml(){var f=invoiceFinancialSummary(),selected=financeNe
 var financeDashboardCache={key:'',html:'',created:0},financeDashboardTimer=null;
 function financeDashboardCacheKey(){
   var jobs=app.jobs||[],signature=jobs.map(function(j){return [j.id||'',j.status||'',j.booking_date||'',j.completed_at||'',j.updated_at||'',j.amount_quoted==null?'':j.amount_quoted,j.customer_account||'',j.customer_name||'',j.nmuk_vehicle_type||'',j.archived?1:0].join('~')}).join('||');
-  return [todayIso(),jobs.length,app.invoices?app.invoices.length:0,window.CONTRACTOR_2026_JOBS?window.CONTRACTOR_2026_JOBS.length:0,signature,app.settings&&app.settings.financeCorrections?JSON.stringify(app.settings.financeCorrections):''].join('|');
+  return [todayIso(),jobs.length,JSON.stringify(vectaActiveInvoices()),window.CONTRACTOR_2026_JOBS?window.CONTRACTOR_2026_JOBS.length:0,signature,app.settings&&app.settings.financeCorrections?JSON.stringify(app.settings.financeCorrections):''].join('|');
 }
 function invalidateFinanceDashboardCache(){
   financeDashboardCache={key:'',html:'',created:0};
