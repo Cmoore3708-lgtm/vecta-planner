@@ -40,7 +40,11 @@ function fill(d){
   for(const k of ['heroTitle','heroSubtitle','phone','email','hours','intro']) if($(k)) $(k).value=d?.[k]||'';
   $('services').value=(d?.services||[]).join('\n');
   const b=d?.booking||{};
-  document.querySelectorAll('#bookingSection input[id^="booking"],#bookingSection textarea[id^="booking"]').forEach(el=>{el.value=b[el.id]??''});
+  document.querySelectorAll('#bookingSection input[id^="booking"],#bookingSection textarea[id^="booking"]').forEach(el=>{
+    const stored=b[el.id];
+    if(stored!=null && String(stored).length>0) el.value=stored;
+    else if(BUILT_IN_BOOKING_COPY[el.id]!=null) el.value=BUILT_IN_BOOKING_COPY[el.id];
+  });
 }
 async function load(){status('Loading…');const r=await fetch('/api/admin-website');if(!r.ok)throw Error('Could not load admin settings');const j=await r.json();record=j.record||{draft:{}};if(!j.record)throw Error('No Admin content was returned');fill(record.draft);contentLoaded=true;$('version').textContent='Published v'+(record.published_version||0);$('history').innerHTML=(j.history||[]).map(h=>'<div>Version '+h.version+' · '+new Date(h.created_at).toLocaleString()+' <button class="btn save" style="padding:6px 9px;margin-left:8px" onclick="restoreVersion('+h.version+')">Restore to draft</button></div>').join('')||'<div>No previous versions yet.</div>';status('Ready')}
 function status(t){$('status').textContent=t}
