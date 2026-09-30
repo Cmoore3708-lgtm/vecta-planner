@@ -44,7 +44,7 @@ test('invoice relink, cancellation and restore preserve a durable completion dat
 test("Today's tile uses exactly the same jobs as its drill-down", () => {
   assert.match(
     html,
-    /todayTotal=invoiceFinanceJobs\('today'\)\.reduce\(function\(sum,j\)\{return sum\+financeRevenueExVatValue\(j\)\},0\)/
+    /today:financeSharedReport\('today'\)\.total/
   );
   assert.doesNotMatch(
     html,
