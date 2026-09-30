@@ -13,3 +13,9 @@ test('dashboard past dates remain selectable for historical viewing', () => {
   assert.match(html, /disabled=dashboardMode\?false:/);
   assert.match(html, /data-v243-calendar-day=/);
 });
+
+
+test('manual job cards can select grey past dates without a special historical flag', () => {
+  assert.match(html, /if\(!isHistoricalImport\)installNewJobAvailabilityCalendar\(true\);/);
+  assert.doesNotMatch(html, /installNewJobAvailabilityCalendar\(!!j\.allow_historical_booking_date\)/);
+});
