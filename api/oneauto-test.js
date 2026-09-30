@@ -12,10 +12,9 @@ export default async function handler(req, res) {
 
   // Intentionally sandbox-only. Never switch this endpoint to the live One Auto host.
   const candidates = [
-    `/api/v1/solifi/vehicle-identification/vrm/${encodeURIComponent(vrm)}`,
-    `/api/v1/solifi/ids-code/vrm/${encodeURIComponent(vrm)}`,
+    `/solifi/vehiclelookupfromvrm?vehicle_registration_mark=${encodeURIComponent(vrm)}`,
+    `/solifi/vehiclelookupfromvrm/v2?vehicle_registration_mark=${encodeURIComponent(vrm)}`,
   ];
-
   const attempts = [];
   for (const path of candidates) {
     const response = await fetch(SANDBOX_BASE + path, {
