@@ -35,6 +35,14 @@ export default async function handler(req,res){
       const rows=await sb('website_content?id=eq.main',{method:'PATCH',body:JSON.stringify({draft,updated_at:new Date().toISOString()})});
       return res.status(200).json({ok:true,record:rows?.[0]||null});
     }
+    if(req.method==='POST'&&req.body?.action==='rollback'){
+      const version=Number(req.body?.version);
+      if(!Number.isInteger(version)||version<1) return res.status(400).json({error:'Valid version required'});
+      const old=await sb('website_content_history?website_id=eq.main&version=eq.'+version+'&select=content&limit=1');
+      if(!old?.[0]) return res.status(404).json({error:'Version not found'});
+      const rows=await sb('website_content?id=eq.main',{method:'PATCH',body:JSON.stringify({draft:old[0].content,updated_at:new Date().toISOString()})});
+      return res.status(200).json({ok:true,record:rows?.[0]||null,restoredVersion:version});
+    }
     if(req.method==='POST'&&req.body?.action==='publish'){
       const rows=await sb('website_content?id=eq.main&select=*');
       const current=rows?.[0]; if(!current) return res.status(404).json({error:'Website content record missing'});
