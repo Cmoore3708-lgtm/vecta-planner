@@ -3,6 +3,7 @@ import { next } from '@vercel/functions';
 // The public booking and approval pages share this deployment with Main.
 // The mechanic dashboard is a separate Vercel project and is unaffected.
 const PUBLIC_PATHS = new Set(['/booking', '/booking/', '/booking.html', '/approval.html']);
+const PREVIEW_ADMIN_PATHS = new Set(['/admin.html', '/site-preview.html', '/booking-preview.html']);
 const PUBLIC_PREFIXES = ['/api/', '/assets/', '/icons/', '/js/'];
 const PUBLIC_FILES = new Set(['/favicon.ico', '/manifest.webmanifest', '/service-worker.js', '/supabase.min.js']);
 
@@ -37,6 +38,9 @@ function matchesBasicCredentials(header, user, password) {
 
 export function managerGate(request, credentials) {
   const pathname = new URL(request.url).pathname;
+  // Vercel Preview Authentication protects these Test-only Admin/preview pages.
+  // Never bypass the manager gate for these paths in production.
+  if (process.env.VERCEL_ENV === 'preview' && PREVIEW_ADMIN_PATHS.has(pathname)) return null;
   if (!requiresManagerLogin(pathname)) return null;
 
   const user = credentials.user;

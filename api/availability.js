@@ -3,7 +3,7 @@ function cfg(){return databaseEnvironment()}
 const DAY_START=8*60,DAY_END=16*60,DAY_MINUTES=DAY_END-DAY_START;
 const PUBLIC_BOOKING_TECHNICIAN='Alfie';
 const MAX_BOOKED_RATIO=.75;
-const MOT_LEAD_WEEKDAYS=4;
+const MOT_LEAD_DAYS=9;
 function mins(t){const [h,m]=String(t||'08:00').slice(0,5).split(':').map(Number);return h*60+(m||0)}
 function hhmm(n){return `${String(Math.floor(n/60)).padStart(2,'0')}:${String(n%60).padStart(2,'0')}`}
 function ymd(d){return d.toISOString().slice(0,10)}
@@ -20,7 +20,7 @@ export default async function handler(req,res){
   const hours=Math.max(.5,Number(req.body?.estimated_hours)||durationFor(req.body?.job_types||[],req.body?.service_choice||''));
   const motBooking=hasMot(req.body?.job_types||[],req.body?.service_choice||'');
   const start=new Date(); start.setUTCDate(start.getUTCDate()+1); let dates=[];for(let i=0;i<50&&dates.length<28;i++){const d=new Date(start);d.setUTCDate(start.getUTCDate()+i);if(weekday(d))dates.push(ymd(d));}
-  if(motBooking)dates=dates.slice(MOT_LEAD_WEEKDAYS);
+  if(motBooking){const cutoff=new Date();cutoff.setUTCHours(0,0,0,0);cutoff.setUTCDate(cutoff.getUTCDate()+MOT_LEAD_DAYS);dates=dates.filter(date=>date>=ymd(cutoff));}
   dates=dates.slice(0,24);
   const rows=await query(url,key,`jobs?select=booking_date,drop_time,estimated_hours,technician,archived,status&booking_date=gte.${dates[0]}&booking_date=lte.${dates[dates.length-1]}&archived=eq.false&technician=eq.${encodeURIComponent(PUBLIC_BOOKING_TECHNICIAN)}`);
   let timeOff=[];try{timeOff=await query(url,key,`mechanic_time_off?select=mechanic,start_date,end_date,start_time,end_time&mechanic=eq.${encodeURIComponent(PUBLIC_BOOKING_TECHNICIAN)}&start_date=lte.${dates[dates.length-1]}&end_date=gte.${dates[0]}`)}catch{}
@@ -36,6 +36,6 @@ export default async function handler(req,res){
    if(s!==null)slots.push({date,time:hhmm(s),technician:PUBLIC_BOOKING_TECHNICIAN,hours,booked_percentage:Math.round(bookedRatio*100)});
    if(slots.length>=12)break;
   }
-  return res.status(200).json({hours,technician:PUBLIC_BOOKING_TECHNICIAN,max_booked_percentage:75,mot_lead_weekdays:motBooking?MOT_LEAD_WEEKDAYS:0,slots});
+  return res.status(200).json({hours,technician:PUBLIC_BOOKING_TECHNICIAN,max_booked_percentage:75,mot_lead_days:motBooking?MOT_LEAD_DAYS:0,slots});
  }catch(e){console.error(e);return res.status(500).json({error:'Unable to calculate workshop availability'});}
 }
