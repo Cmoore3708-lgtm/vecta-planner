@@ -41,3 +41,17 @@ test('NMUK editable monthly charges replace legacy no-vehicle tracker summary ro
   assert.match(eomJobs, /fleetEomLegacyMonthlyCharge/);
   assert.match(html, /function fleetNmukMonthlyLines\(month\)/);
 });
+
+
+test('NMUK monthly charges roll into invoice summary while spreadsheet keeps allocation', () => {
+  const defaults = functionSource('fleetNmukMonthlyDefaults');
+  const create = functionSource('fleetEomInvoice');
+  const csv = functionSource('fleetDownloadEomCsv');
+  assert.match(defaults, /Puncture repairs',amount:0,section:'internal'/);
+  assert.match(defaults, /Flat battery',amount:0,section:'other'/);
+  assert.match(create, /nmuk_monthly_extras:monthlyLines/);
+  assert.match(create, /nmukTotal\+monthlyTotal/);
+  assert.doesNotMatch(create, /\.concat\(monthlyLines\)/);
+  assert.match(csv, /nmuk_monthly_extras/);
+  assert.match(csv, /if\(x\.section==='internal'\)internal\+=Number\(x\.amount\|\|0\);else other\+=Number\(x\.amount\|\|0\)/);
+});
