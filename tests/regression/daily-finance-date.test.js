@@ -39,3 +39,9 @@ test('changing the planner date selects a different set of financial jobs', () =
   context.selected = '2026-09-15';
   assert.deepEqual(Array.from(context.invoiceFinanceJobs('today'), job => job.id), ['tuesday']);
 });
+
+
+test('newly entered historical completions use the selected historical booking date', () => {
+  assert.match(html, /historicalEntry=!wasCompleted&&bookingDate&&bookingDate<todayDate&&createdDate===todayDate/);
+  assert.match(html, /j\.completed_at=historicalEntry\?bookingDate\+'T17:00:00\.000Z':nowIso/);
+});
