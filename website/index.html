@@ -1,0 +1,143 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#080808">
+  <meta name="description" content="Vecta vehicle servicing, MOTs, tyres and repairs at NMUK. Book online while you're at work.">
+  <title>VECTA | Vehicle Servicing & Repairs at NMUK</title>
+  <style>
+    :root{--black:#070707;--charcoal:#121212;--charcoal2:#181818;--line:#2a2a2a;--white:#f7f7f5;--muted:#b9b9b6;--red:#e51d2a;--red2:#b8121d;--plate:#f5cf20;--blue:#1755a6;--max:920px}
+    *{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;background:var(--black);color:var(--white);font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;-webkit-font-smoothing:antialiased}
+    a{color:inherit;text-decoration:none}button,input{font:inherit}.wrap{width:min(calc(100% - 34px),var(--max));margin:auto}.nav{position:sticky;top:0;z-index:50;background:rgba(7,7,7,.94);backdrop-filter:blur(16px);border-bottom:1px solid #191919}.navin{height:72px;display:flex;align-items:center;gap:20px}.brand{font-size:27px;line-height:.8;font-weight:1000;letter-spacing:.04em;color:var(--red)}.brand small{display:block;margin-top:9px;color:#fff;font-size:8px;letter-spacing:.08em;font-weight:800}.navlinks{margin-left:auto;display:flex;align-items:center;gap:26px;font-size:12px;font-weight:850}.cta{display:inline-flex;align-items:center;justify-content:center;gap:8px;border:0;border-radius:8px;background:var(--red);color:#fff;font-weight:900;padding:13px 18px;transition:.2s}.cta:hover{background:#f22635;transform:translateY(-1px)}
+    .hero{padding:34px 0 78px}.heroPhoto{width:100%;aspect-ratio:16/9;object-fit:cover;border-radius:15px;border:1px solid #282828;display:block}.heroText{text-align:center;max-width:720px;margin:38px auto 0}.eyebrow{color:var(--red);font-size:12px;font-weight:950;letter-spacing:.12em;text-transform:uppercase}.hero h1{max-width:650px;font-size:clamp(32px,5vw,50px);line-height:1.04;letter-spacing:-.04em;margin:11px auto 22px}.hero h1 span{display:block}.hero p{max-width:610px;margin:0 auto 24px;color:var(--muted);font-size:clamp(17px,2.4vw,21px);line-height:1.55}.heroLead{display:block;color:var(--white);font-weight:900;font-size:clamp(20px,3vw,27px);line-height:1.2}.heroCards{margin-top:24px}
+    section{padding:54px 0;border-top:1px solid #171717}.sectionHead{text-align:center;max-width:620px;margin:0 auto 24px}.sectionHead h2{font-size:clamp(30px,5vw,48px);letter-spacing:-.035em;line-height:1.02;margin:8px 0 14px}.sectionHead p{color:var(--muted);font-size:16px;line-height:1.6;margin:0}.cards{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;max-width:620px;margin:auto}.card{background:linear-gradient(160deg,#17191d,#111316);border:1px solid #343942;border-radius:14px;padding:17px 10px;text-align:center}.heroCards .bookingWorkCard{cursor:pointer;transition:.18s ease;user-select:none}.heroCards .bookingWorkCard:hover{border-color:#777f89;transform:translateY(-2px)}.heroCards .bookingWorkCard.selected{border:2px solid var(--red);background:linear-gradient(160deg,#211417,#111316);box-shadow:0 0 0 1px rgba(215,25,45,.18)}.cardIcon{width:56px;height:56px;margin:0 auto 10px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:#252a31;color:var(--red)}.cardIcon svg{width:29px;height:29px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}.card h3{margin:0;font-size:16px}.card strong{color:var(--red)}
+    .steps{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}.step{padding:22px 10px;text-align:center}.num{width:34px;height:34px;border-radius:50%;background:var(--red);display:grid;place-items:center;font-weight:950;margin:0 auto 15px}.step h3{font-size:15px;margin:0 0 7px}.step p{font-size:13px;color:var(--muted);line-height:1.45;margin:0}
+    .split{display:grid;grid-template-columns:1fr;gap:26px;align-items:start;max-width:760px;margin:auto}.photo{width:100%;display:block;border-radius:15px;border:1px solid #2b2b2b;max-height:520px;object-fit:cover}.copy h2{font-size:clamp(31px,5vw,49px);line-height:1.02;letter-spacing:-.04em;margin:8px 0 17px}.experience h2{font-size:clamp(27px,4vw,40px);line-height:1.08}.copy p{color:var(--muted);line-height:1.65}.ticks{display:grid;gap:13px;margin-top:22px}.tick{display:flex;gap:12px}.tick:before{content:"✓";color:var(--red);font-weight:1000}.tick b{display:block;font-size:14px}.tick span{display:block;color:var(--muted);font-size:13px;margin-top:2px}
+    .serviceOptions{display:grid;gap:9px;margin:25px 0}.serviceRow{display:grid;grid-template-columns:1fr auto;gap:20px;padding:17px 0;border-bottom:1px solid #2a2a2a}.serviceRow b{font-size:16px}.serviceRow span{color:var(--muted);font-size:13px}.free{color:var(--red)!important;font-weight:900}
+    .regBox{background:#101010;border:1px solid #2d2d2d;border-radius:15px;padding:23px;margin-top:20px}.regBox label{display:block;text-align:center;font-size:13px;font-weight:850;white-space:nowrap;margin-bottom:15px}.plate{display:grid;grid-template-columns:66px 1fr;background:var(--plate);border:3px solid #1a1a1a;border-radius:9px;overflow:hidden;height:68px;max-width:430px;margin:auto;box-shadow:0 6px 22px rgba(0,0,0,.3)}.gb{background:var(--blue);color:#fff;display:flex;align-items:center;justify-content:center;text-align:center;font-size:19px;font-weight:950;line-height:1;letter-spacing:.02em}.gb small{display:none}.plate input{width:100%;min-width:0;border:0;outline:0;background:transparent;text-align:center;text-transform:uppercase;color:#101010;font-weight:1000;letter-spacing:.11em;font-size:clamp(30px,8vw,40px);font-family:Arial,Helvetica,sans-serif;padding:0 12px}.plate input::placeholder{color:#8f8f8f;opacity:.72;font-family:Arial,Helvetica,sans-serif;font-size:1em;font-weight:900;letter-spacing:.10em}.regNote{text-align:center;color:#8d8d8b;font-size:12px;margin-top:12px}
+    .report{display:grid;grid-template-columns:1fr;gap:26px;align-items:start;max-width:760px;margin:auto}.reportPreview{height:auto;overflow:hidden;border-radius:14px;border:1px solid #333;background:#fff;max-width:520px;margin:auto}.reportPreview img{width:100%;height:auto;display:block}.location{background:var(--charcoal);border:1px solid var(--line);border-radius:15px;padding:34px}.location h2{font-size:33px;margin:0 0 12px}.location p{color:var(--muted);line-height:1.6}.location strong{color:#fff}.final{text-align:center;padding-bottom:62px}.final h2{font-size:clamp(34px,6vw,55px);letter-spacing:-.04em;margin:0 0 14px}.final p{color:var(--muted);margin:0 0 25px}.footer{border-top:1px solid #1d1d1d;padding:26px 0 54px;color:#888;font-size:12px}.foot{display:flex;gap:18px;align-items:center}.foot .brand{font-size:20px}.footnav{margin-left:auto;display:flex;gap:18px}
+
+    .siteHeader{background:#000;border-bottom:1px solid #171717;padding:14px 0 12px}
+    .siteHeaderInner{width:min(calc(100% - 28px),760px);margin:auto;text-align:center}
+    .siteHeaderLogo{display:block;width:min(100%,700px);height:auto;margin:0 auto}
+    .siteHeaderTagline{margin-top:4px;color:#fff;font-size:clamp(16px,2.5vw,24px);font-style:italic;line-height:1.2}
+    .siteHeaderTagline strong{font-weight:900}
+    @media(max-width:720px){.wrap{width:min(calc(100% - 28px),var(--max))}.siteHeader{padding:8px 0 9px}.siteHeaderInner{width:min(calc(100% - 18px),760px)}.siteHeaderTagline{font-size:16px;margin-top:1px}.navin{height:64px}.navlinks a:not(.cta){display:none}.navlinks{gap:0}.navlinks .cta{padding:10px 12px;font-size:11px}.brand{font-size:24px}.hero{padding:16px 0 34px}.heroPhoto{aspect-ratio:4/3;border-radius:12px}.heroText{margin-top:20px}.hero h1{font-size:28px;line-height:1.08}.hero p{font-size:16px}.heroLead{font-size:20px}.heroText>.cta{display:none}.regBox{padding:18px 12px}.regBox label{font-size:12px}section{padding:38px 0}.sectionHead{margin-bottom:18px}.cards{grid-template-columns:1fr 1fr;gap:10px}.card{padding:15px 8px}.steps{grid-template-columns:1fr 1fr;gap:9px}.step{background:#0d0d0d;border:1px solid #202020;border-radius:12px;padding:16px 10px}.split,.report{grid-template-columns:1fr;gap:15px}.split .photo{order:-1}.serviceRow{grid-template-columns:1fr}.reportPreview{height:auto;max-width:360px;margin:auto}.location{padding:22px 19px}.foot{align-items:flex-start}.footnav{flex-direction:column;text-align:right}.footer{padding-bottom:34px}}
+    .heroCards .card h3{font-size:18px;letter-spacing:.045em;text-transform:uppercase}
+    .heroCards .card p{margin:7px 2px 0;color:var(--muted);font-size:12px;line-height:1.35}
+    #how{padding-top:26px}
+    #how .sectionHead{margin-bottom:16px}
+    #how .eyebrow{color:var(--white);font-size:20px;letter-spacing:.06em}
+    #how .step h3{font-size:17px;color:var(--white)}
+    #how .step p{font-size:15px;line-height:1.45;color:var(--white)}
+    .locationMap{display:block;width:100%;max-width:620px;height:auto;object-fit:contain;margin:18px auto 22px;border:1px solid #353535;border-radius:13px;box-shadow:0 18px 38px rgba(0,0,0,.35)}
+    .locationMapLink{display:block;width:100%;max-width:620px;margin:18px auto 22px;border-radius:13px}.locationMapLink .locationMap{margin:0}.locationMapLink:focus-visible{outline:3px solid var(--red);outline-offset:4px}.locationMapLink:hover .locationMap{border-color:var(--red);box-shadow:0 20px 44px rgba(0,0,0,.48)}
+    .location .southGate{color:var(--red);font-weight:900}
+    .whatsappLink{display:flex;width:max-content;max-width:100%;align-items:center;gap:9px;margin:16px 0 0;color:#fff;font-size:13px;font-weight:900}.whatsappLogo{width:34px;height:34px;border-radius:50%;display:grid;place-items:center;background:#25d366;box-shadow:0 5px 16px rgba(37,211,102,.25)}.whatsappLogo svg{width:21px;height:21px;fill:none;stroke:#fff;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}.whatsappLink:hover{color:#25d366}.whatsappLink:hover .whatsappLogo{transform:translateY(-1px);box-shadow:0 7px 20px rgba(37,211,102,.38)}
+    .final{padding-bottom:28px}#location{padding-top:24px}
+    .final .bookingPrompt{font-size:13px;font-weight:850;line-height:1.4;color:var(--white);margin-bottom:15px}
+    @media(max-width:720px){#how{padding-top:20px}.final .bookingPrompt{font-size:12px;white-space:nowrap}}
+  </style>
+</head>
+<body>
+<header class="siteHeader">
+  <div class="siteHeaderInner">
+    <img class="siteHeaderLogo" src="https://vecta-website-delta.vercel.app/assets/vecta-header.png" alt="VECTA Vehicle Servicing and repairs">
+    <div class="siteHeaderTagline">For all employees of <strong>NMUK</strong></div>
+  </div>
+</header>
+<main id="top">
+  <div class="hero"><div class="wrap">
+    <img class="heroPhoto" src="https://vecta-website-delta.vercel.app/assets/workshop.jpg" alt="Vecta workshop at NMUK">
+    <div class="heroText"><div class="eyebrow">ON-SITE AT NMUK</div><h1 id="adminHeroTitle"><span>Finally, the garage service</span><span>you’ve been waiting for.</span></h1><p><strong class="heroLead" id="adminHeroSubtitle">We fix your car while you're at work.</strong></p>
+      <div class="cards heroCards">
+        <div class="card bookingWorkCard" data-home-type="Service" role="button" tabindex="0" aria-pressed="false"><div class="cardIcon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v6"/><path d="M8.5 5.5 12 2l3.5 3.5"/><path d="M5 11h14"/><path d="M7 11v8h10v-8"/></svg></div><h3>SERVICING</h3><p>All makes and models</p></div>
+        <div class="card bookingWorkCard" data-home-type="MOT" role="button" tabindex="0" aria-pressed="false"><div class="cardIcon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3h12v18H6z"/><path d="M9 7h6"/><path d="M9 11h6"/><path d="M9 15h4"/></svg></div><h3>MOT’S</h3><p>Done at another garage</p></div>
+        <div class="card bookingWorkCard" data-home-type="Tyres" role="button" tabindex="0" aria-pressed="false"><div class="cardIcon"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3"/><path d="M12 4v3M12 17v3M4 12h3M17 12h3"/></svg></div><h3>TYRES</h3><p>From budget to premium</p></div>
+        <div class="card bookingWorkCard" data-home-type="Brakes" role="button" tabindex="0" aria-pressed="false"><div class="cardIcon"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="2"/><path d="m8.5 5.5 2 3.7M15.5 5.5l-2 3.7M18.5 15.5l-4-1M5.5 15.5l4-1"/></svg></div><h3>BRAKES</h3><p>All makes and models</p></div>
+        <div class="card bookingWorkCard" data-home-type="Other" role="button" tabindex="0" aria-pressed="false"><div class="cardIcon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m14 6 4-4 4 4-4 4"/><path d="M18 6 9 15"/><path d="m5 13 6 6-3 3-6-6z"/></svg></div><h3>REPAIRS</h3><p>Suspension, exhausts, remaps…</p></div>
+        <div class="card bookingWorkCard" data-home-type="Diagnostics / warning light" role="button" tabindex="0" aria-pressed="false"><div class="cardIcon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 7h10l3 4v6H4v-6l3-4Z"/><path d="M8 7V4h8v3"/><path d="M8 17v3M16 17v3"/><circle cx="8" cy="13" r="1"/><circle cx="16" cy="13" r="1"/></svg></div><h3>DIAGNOSTICS</h3><p>Engine management lights, fault finding</p></div>
+      </div>
+      <form class="regBox bookingRegForm"><label>Enter your registration number to make your booking</label><div class="plate"><div class="gb"><span>GB</span></div><input class="bookingRegInput" maxlength="10" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="YOUR REG" aria-label="Vehicle registration" enterkeyhint="go"></div></form>
+    </div>
+  </div></div>
+
+  <section id="how"><div class="wrap"><div class="sectionHead"><div class="eyebrow">HOW IT WORKS</div></div><div class="steps">
+    <div class="step"><div class="num">1</div><h3>Book online</h3><p>Enter your registration and book your car in.</p></div>
+    <div class="step"><div class="num">2</div><h3>Leave your car</h3><p>Park at our workshop before you start your shift.</p></div>
+    <div class="step"><div class="num">3</div><h3>While you work</h3><p>We'll carry out the work and update you throughout.</p></div>
+    <div class="step"><div class="num">4</div><h3>Collect</h3><p>Pay and collect your car at the end of your shift.</p></div>
+  </div></div></section>
+
+  <section><div class="wrap split"><img class="photo" src="https://vecta-website-delta.vercel.app/assets/technician.jpg" alt="Vehicle technician at work"><div class="copy experience"><h2>We are the longest standing contractor at NMUK.</h2><p id="adminIntro">We have been trusted to manage the fleet here at NMUK for over 30 years. Now you get to benefit from our experience and first class service.</p><div class="ticks"><div class="tick"><div><b>All makes and models</b><span>Not just Nissan.</span></div></div><div class="tick"><div><b>No taking time off work</b><span>Your car is being fixed while you're at work.</span></div></div><div class="tick"><div><b>Convenient on-site workshop</b><span>No arranging lifts or waiting around at a garage.</span></div></div></div></div></div></section>
+
+  <section class="final"><div class="wrap"><h2>Need some work doing?</h2><form class="regBox bookingRegForm" style="max-width:560px;margin:20px auto 0"><label>Enter your registration number to make your booking</label><div class="plate"><div class="gb"><span>GB</span></div><input class="bookingRegInput" maxlength="10" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="YOUR REG" aria-label="Vehicle registration" enterkeyhint="go"></div></form></div></section>
+
+  <section id="location"><div class="wrap"><div class="location"><div class="eyebrow">FIND US</div><h2>We're here at NMUK.</h2><p><strong>Vecta Workshop, Contractors Compound</strong></p><a class="locationMapLink" href="https://maps.app.goo.gl/M3d34Pt96byKtDQV6?g_st=ic" target="_blank" rel="noopener noreferrer" aria-label="Open directions to Vecta Workshop in Google Maps"><img class="locationMap" src="https://vecta-website-delta.vercel.app/assets/vecta-location-map.jpg" alt="Map showing Vecta Workshop and the South Gate entrance at NMUK"></a><p>Enter the site via the <span class="southGate">SOUTH GATE security entrance</span>, not the Main Security entrance.</p><p>Park in one of the parking bays outside our workshop. If you're leaving your car before 8am, put your keys through the key-drop letterbox.</p><a class="cta" href="https://maps.app.goo.gl/M3d34Pt96byKtDQV6?g_st=ic" target="_blank" rel="noopener noreferrer">GET DIRECTIONS →</a><a class="whatsappLink" href="https://wa.me/447721722622" target="_blank" rel="noopener noreferrer" aria-label="Message Vecta on WhatsApp"><span class="whatsappLogo" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M20 11.5a8 8 0 0 1-11.9 7L4 20l1.5-4A8 8 0 1 1 20 11.5Z"/><path d="M8.5 7.8c.3-.3.7-.2.9.1l1.1 1.8c.2.3.1.6-.1.8l-.7.7c.8 1.6 1.8 2.6 3.4 3.4l.7-.7c.2-.2.6-.3.8-.1l1.8 1.1c.3.2.4.6.1.9-.6.7-1.4 1-2.2.9-3.7-.5-7-3.8-7.5-7.5-.1-.8.3-1.7 1-2.4Z"/></svg></span><span>WhatsApp 07721 722622</span></a></div></div></section>
+</main>
+<footer class="footer"><div class="wrap foot"><div class="brand">VECTA<small>© 2026 Vecta Motors</small></div><div class="footnav"><a href="/privacy">Privacy</a><a href="/terms">Terms</a><a href="#location">Find Us</a></div></div></footer>
+<script>
+  // Set this to the live customer booking URL when deployed.
+  // The booking page should read ?reg=AB12CDE on load, populate its registration field,
+  // then immediately run the same vehicle lookup it uses when a customer types a reg manually.
+  const BOOKING_URL = '/booking';
+  const regInputs = Array.from(document.querySelectorAll('.bookingRegInput'));
+  const regForms = Array.from(document.querySelectorAll('.bookingRegForm'));
+  const bookingWorkCards = Array.from(document.querySelectorAll('[data-home-type]'));
+  const selectedWorkTypes = new Set();
+
+  function cleanReg(value){
+    return String(value || '').toUpperCase().replace(/\s+/g,'').replace(/[^A-Z0-9]/g,'').slice(0,8);
+  }
+  function displayReg(value){
+    return String(value || '').toUpperCase().replace(/[^A-Z0-9 ]/g,'').slice(0,10);
+  }
+  function syncReg(source){
+    const value = displayReg(source.value);
+    source.value = value;
+    regInputs.forEach(input => { if(input !== source) input.value = value; });
+  }
+  function goToBooking(value){
+    const clean = cleanReg(value);
+    if(clean.length < 2) return false;
+    const joiner = BOOKING_URL.includes('?') ? '&' : '?';
+    const typeParam = selectedWorkTypes.size ? '&types=' + encodeURIComponent(Array.from(selectedWorkTypes).join(',')) : '';
+    window.location.href = BOOKING_URL + joiner + 'reg=' + encodeURIComponent(clean) + typeParam;
+    return true;
+  }
+  function toggleWorkCard(card){
+    const type=card.dataset.homeType;
+    if(selectedWorkTypes.has(type))selectedWorkTypes.delete(type);else selectedWorkTypes.add(type);
+    card.classList.toggle('selected',selectedWorkTypes.has(type));
+    card.setAttribute('aria-pressed',selectedWorkTypes.has(type)?'true':'false');
+  }
+  bookingWorkCards.forEach(card=>{card.addEventListener('click',()=>toggleWorkCard(card));card.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();toggleWorkCard(card)}})});
+  let bookingTimer;
+  regInputs.forEach(input => input.addEventListener('input', () => {
+    syncReg(input);
+    clearTimeout(bookingTimer);
+    const clean = cleanReg(input.value);
+    // Most modern UK registrations contain 7 characters. Once complete, continue automatically.
+    if(clean.length === 7){
+      bookingTimer = setTimeout(() => goToBooking(clean), 550);
+    }
+  }));
+  regForms.forEach(form => form.addEventListener('submit', e => {
+    e.preventDefault();
+    const input = form.querySelector('.bookingRegInput');
+    if(!goToBooking(input.value)) input.focus();
+  }));
+</script>
+<script>
+(async function(){
+  try{
+    const r=await fetch('https://jywufozycuwuoshlulwl.supabase.co/functions/v1/website-content-public',{cache:'no-store'});
+    if(!r.ok)return;
+    const {content={}}=await r.json();
+    if(content.heroTitle) document.getElementById('adminHeroTitle').textContent=content.heroTitle;
+    if(content.heroSubtitle) document.getElementById('adminHeroSubtitle').textContent=content.heroSubtitle;
+    if(content.intro) document.getElementById('adminIntro').textContent=content.intro;
+  }catch(e){ console.warn('VECTA content settings unavailable; using built-in content.'); }
+})();
+</script></body></html>
