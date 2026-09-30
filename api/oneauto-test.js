@@ -1,6 +1,6 @@
 const SANDBOX_BASE = 'https://sandbox.oneautoapi.com';
 
-module.exports = async function handler(req, res) {
+export default async function handler(req, res) {
   res.setHeader('Cache-Control', 'no-store');
   if (req.method !== 'GET') return res.status(405).json({ error: 'Method not allowed' });
 
@@ -29,4 +29,4 @@ module.exports = async function handler(req, res) {
   }
 
   return res.status(502).json({ sandbox: true, vrm, error: 'Sandbox VRM lookup failed', attempts });
-};
+}
