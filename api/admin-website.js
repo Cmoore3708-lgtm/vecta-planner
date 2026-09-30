@@ -14,6 +14,14 @@ async function sb(path, options={}){
 }
 export default async function handler(req,res){
   res.setHeader('Cache-Control','no-store');
+  if(req.method==='GET' && String(req.query?.public||'')==='1') {
+    try {
+      const rows=await sb('website_content?id=eq.main&select=published,published_version,published_at');
+      const row=rows?.[0]||{};
+      res.setHeader('Cache-Control','public, max-age=60, s-maxage=300');
+      return res.status(200).json({content:row.published||{},version:row.published_version||0,publishedAt:row.published_at||null});
+    } catch(e) { return res.status(503).json({error:String(e?.message||e)}); }
+  }
   if(!authorised(req)) {res.setHeader('WWW-Authenticate','Basic realm="VECTA Admin"');return res.status(401).json({error:'Manager sign-in required'});}
   try{
     if(req.method==='GET'){
