@@ -13543,7 +13543,7 @@ function createVehicleTaxMonthInvoice(){
   var totals=vehicleTaxTotalsForMonth(vehicleTaxSelectedMonth),jobs=totals.uninvoiced;if(!jobs.length){alert('There are no uninvoiced vehicle tax entries for this month.');return}
   var monthLabel=new Date(vehicleTaxSelectedMonth+'-01T12:00:00').toLocaleDateString('en-GB',{month:'long',year:'numeric'}),lines=jobs.map(function(j){j.vat_mode='no_vat';return {description:'Vehicle tax — '+fleetInvoiceFormatRegistration(j.registration||'')+' — '+niceDate(vehicleTaxJobDate(j)),type:'Work',amount:vehicleTaxAmount(j),vat_mode:'no_vat'}}),id=uid();
   pendingTaxInvoiceJobIds=jobs.map(function(j){return j.id});pendingTaxInvoiceId=id;
-  var nmukTaxProfile=fleetInvoiceCustomerProfile('NMUK')||{};openInvoice(null,{id:id,job_id:'',registration:'NMUK TAX',customer_name:'NMUK',customer_phone:'',customer_address:String(nmukTaxProfile.address||'').trim(),fleet_customer:'NMUK',eom_month:vehicleTaxSelectedMonth,source:'vehicle_tax_eom',vehicle:'Vehicle Tax — '+monthLabel,mileage:'',mot_due:'',invoice_number:nextInvoiceNumberText(),invoice_date:todayIso(),payment_method:'',lines:lines,status:'draft',created_at:new Date().toISOString()})
+  var nmukTaxProfile=fleetInvoiceCustomerProfile('NMUK')||{};openInvoice(null,{id:id,job_id:'',registration:'NMUK TAX',customer_name:'NMUK',customer_phone:'',customer_address:String(nmukTaxProfile.address||'').trim(),fleet_customer:'NMUK',eom_month:vehicleTaxSelectedMonth,source:'vehicle_tax_eom',vehicle:'Vehicle tax '+monthLabel,mileage:'',mot_due:'',invoice_number:nextInvoiceNumberText(),invoice_date:todayIso(),payment_method:'',lines:lines,status:'draft',created_at:new Date().toISOString()})
 }
 
 var activeSettingsCategory='general';
