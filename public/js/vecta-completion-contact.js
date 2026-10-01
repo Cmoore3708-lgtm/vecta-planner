@@ -31,8 +31,8 @@
       body+='. The total price is £'+total.toFixed(2)+'. I will send you a payment link shortly.';
     }
     body+='\n\nKind regards,\nChris\nVECTA Motors\n07721 722622\nwww.vectamotors.co.uk';
-    if(address.length)return {channel:'email',recipient:address.join(','),url:'mailto:'+address.map(encodeURIComponent).join(',')+'?subject='+encodeURIComponent(subject)+'&body='+encodeURIComponent(body)};
     if(number)return {channel:'whatsapp',recipient:number,url:'https://wa.me/'+number+'?text='+encodeURIComponent(body)};
+    if(address.length)return {channel:'email',recipient:address.join(','),url:'mailto:'+address.map(encodeURIComponent).join(',')+'?subject='+encodeURIComponent(subject)+'&body='+encodeURIComponent(body)};
     return {channel:'missing',recipient:'',url:''};
   }
   root.VectaCompletionContact=Object.freeze({shouldNotify:shouldNotify,phone:phone,plan:plan});
