@@ -12404,6 +12404,7 @@ async function createJobFromWebsiteRequest(id){
   var r=(app.websiteRequests||[]).find(function(x){return x.id===id});if(!r)return;
   var bookingDate=r.preferred_date_1||selectedIso(),types=Array.isArray(r.job_types)?r.job_types.slice():[];types=types.map(function(t){return normaliseJobTypeKey(t)==='service'?'Major Service':t});var jobType=types[0]||'General';
   var j={id:uid(),booking_date:String(bookingDate).slice(0,10),drop_time:'08:00',registration:normReg(r.registration||''),vehicle:r.vehicle||'',mileage:(r.mileage===null||r.mileage===undefined||String(r.mileage).trim()===''?null:Number(r.mileage)),customer_account:'Staff',customer_name:r.customer_name||'',customer_phone:r.phone||'',customer_email:r.email||'',work_required:r.work_required||types.join(', ')||'Website booking request',job_type:types.join(', ')||jobType,job_colour:/mot/i.test(jobType)?'MOT':(/service/i.test(jobType)?'Service':'General'),estimated_hours:1,amount_quoted:null,technician:'Unallocated',ramp:'',status:'booked',card_type:'job',source:'website booking',booking_source:'Website booking',website_request_id:String(r.id||''),customer_note:websiteRequestNote(r),created_at:new Date().toISOString(),updated_at:new Date().toISOString()};applyWebsiteDefaultMajorService(j);
+  if(!await vectaConfirmDuplicateBooking(j,null))return;
   app.jobs.push(j);saveLocal();
   ['mileage','customer_account','booking_source','website_request_id'].forEach(function(column){vectaRememberMissingColumn('jobs',column)});
   try{await upsertRemote('jobs',j,{skipConflictGuard:true})}catch(e){app.jobs=app.jobs.filter(function(x){return x.id!==j.id});saveLocal();return}
@@ -14243,7 +14244,8 @@ function vectaApplyExplicitUndo(row){
   var undo=Math.max(vectaUndoStamp(row),terminal&&terminal.state==='reopened'?(Date.parse(terminal.reopened_at)||0):0);
   if(!undo||isJobInvoiced(row))return row;
   var completed=Date.parse(row.completed_at||0)||0;
-  if(completed>undo&&((Date.parse(vectaWorkCompletedAt(row))||0)>undo||!vectaCompletionStampIsSynthetic(row.completed_at)))return row;
+  // The action timestamp is independent of a backdated accounting date.
+  if((Date.parse(vectaWorkCompletedAt(row))||0)>undo||(completed>undo&&!vectaCompletionStampIsSynthetic(row.completed_at)))return row;
   row.completed_at=null;delete row.completedAt;row.archived=false;
   if(['completed','complete','invoiced'].indexOf(String(row.status||'').toLowerCase())>=0)row.status='booked';
   return row;
@@ -14251,10 +14253,17 @@ function vectaApplyExplicitUndo(row){
 function vectaMergeExplicitUndo(local,remote){
   if(!local||!remote)return null;
   var left=vectaUndoStamp(local),right=vectaUndoStamp(remote);
+  var lastUndo=Math.max(left,right),leftWork=Date.parse(vectaWorkCompletedAt(local))||0,rightWork=Date.parse(vectaWorkCompletedAt(remote))||0;
+  // Preserve the completion action even when a stale copy has the same Undo
+  // marker and a newer sync timestamp. Accounting dates may be historical.
+  if(lastUndo&&Math.max(leftWork,rightWork)>lastUndo){
+    var finished=leftWork>=rightWork?local:remote,other=finished===local?remote:local;
+    if(jobCompletionEvidence(finished))return normaliseCompletedJobState(Object.assign({},other,finished));
+  }
   if(left===right)return null;
   var newer=left>right?local:remote,older=left>right?remote:local,undo=Math.max(left,right);
   // A fresh completion made after UNDO still wins; stale cached completion does not.
-  if((Date.parse(older.completed_at)||0)>undo&&!vectaCompletionStampIsSynthetic(older.completed_at))return null;
+  if((Date.parse(vectaWorkCompletedAt(older))||0)>undo||((Date.parse(older.completed_at)||0)>undo&&!vectaCompletionStampIsSynthetic(older.completed_at)))return null;
   return vectaApplyExplicitUndo(Object.assign({},newer));
 }
 function vectaUndoInvoiceBlock(job,invoices){
@@ -14545,6 +14554,17 @@ async function deleteJobCompletely(id){
   var j=(app.jobs||[]).find(function(x){return String(x.id)===String(id)});
   if(!j){alert('This job could not be found. Refresh the page and try again.');return;}
   if(isSoftDeletedJob(j)){alert('This job is already in Deleted Jobs.');return;}
+  // A stale planner card must never delete its canonical completed history.
+  if(!remoteClient||!navigator.onLine){alert('Connect to the workshop server before deleting a job.');return;}
+  try{
+    var probe=await remoteClient.from('jobs').select('*').eq('id',id).limit(1);
+    if(probe.error)throw probe.error;
+    var current=probe.data&&probe.data[0];if(!current)throw new Error('Job could not be found on the workshop server.');
+    var canonical=normaliseCompletedJobState(fromRemote(current));
+    var staleCompletion=['completed','complete','invoiced','invoice_created'].indexOf(String(canonical.status||'').toLowerCase())>=0&&['completed','complete','invoiced','invoice_created'].indexOf(String(j.status||'').toLowerCase())<0;
+    Object.assign(j,canonical);
+    if(staleCompletion){invalidateFinanceDashboardCache();saveLocal();closeModals();render();alert('This job is already completed on the workshop server. The stale planner card has been refreshed and the completed history has been kept.');return;}
+  }catch(e){alert('The current job could not be checked. Nothing has been deleted.\n\n'+(e.message||e));return;}
   var label=jobVehicleLabel(j),date=j.booking_date?niceDate(j.booking_date):'no booking date';
   var recognised=vectaSoftDeletedRevenueRecord(j);
   if(!confirm('Move this job for '+label+' ('+date+') to Deleted Jobs?\n\nThe job will NOT be removed from Supabase. Linked invoices, service paperwork and financial history will NOT be deleted. You can restore the job later.'))return;
@@ -14607,6 +14627,27 @@ function ensureContractorSavedFromJob(job){if(!job||String(job.customer_account|
 async function migrateContractorsIntoMasterList(){var before=JSON.stringify((app.settings&&app.settings.contractors)||[]),names=contractorMasterNames();app.settings=app.settings||{};app.settings.contractors=names;if(JSON.stringify(names)===before)return false;saveLocal();if(remoteClient){try{var ok=await persistMainSettings();if(!ok)throw new Error('Main settings cloud save failed')}catch(e){console.warn('Contractor master-list migration could not sync',e)}}return true}
 async function convertQuoteToJob(id){var existing=(app.jobs||[]).find(function(x){return String(x.id)===String(id)}),before=existing?JSON.parse(JSON.stringify(existing)):null,status=document.getElementById('job_status');if(status)status.value='booked';var saved=await saveJob(id);if(saved!==true&&before&&existing){Object.assign(existing,before);if(status)status.value='quote';saveLocal()}return saved}
 async function saveQuote(id){window.__vectaSaveAsQuote=true;return saveJob(id)}
+function vectaDuplicateBookingRows(draft,rows){
+  var reg=String(draft&&draft.registration||'').toUpperCase().replace(/[^A-Z0-9]/g,'');
+  if(!reg||draft.no_vehicle||draft.status==='quote')return [];
+  return (rows||[]).filter(function(row){
+    var status=String(row&&row.status||'').toLowerCase();
+    return row&&String(row.id)!==String(draft.id)&&!row.no_vehicle&&String(row.registration||'').toUpperCase().replace(/[^A-Z0-9]/g,'')===reg&&!row.archived&&['completed','complete','invoiced','invoice_created','deleted','cancelled','canceled','quote'].indexOf(status)<0&&!vectaJobIsDeletedForLists(row)&&!isJobInvoiced(row);
+  });
+}
+async function vectaConfirmDuplicateBooking(draft,previous){
+  var reg=function(row){return String(row&&row.registration||'').toUpperCase().replace(/[^A-Z0-9]/g,'')};
+  if(draft.status==='quote'||draft.no_vehicle)return true;
+  if(previous&&previous.status!=='quote'&&reg(previous)===reg(draft)&&String(previous.booking_date||'')===String(draft.booking_date||'')&&String(previous.job_type||'')===String(draft.job_type||''))return true;
+  var rows=app.jobs||[],cloudChecked=false;
+  if(remoteClient&&navigator.onLine){
+    try{var cloud=await vectaFetchAllRemoteRows('jobs',12000);var byId={};rows.forEach(function(row){byId[String(row.id)]=row});cloud.forEach(function(row){byId[String(row.id)]=normaliseCompletedJobState(fromRemote(row))});rows=Object.keys(byId).map(function(id){return byId[id]});cloudChecked=true;}
+    catch(e){alert('Existing bookings could not be checked on the workshop server. Please retry before creating or rescheduling this booking.');return false;}
+  }
+  var matches=vectaDuplicateBookingRows(draft,rows);if(!matches.length)return true;
+  var details=matches.map(function(row){return (row.booking_date?niceDate(row.booking_date):'Unallocated')+' · '+String(row.job_type||'General')+' · '+String(row.work_required||'')+' · '+String(row.status||'booked')}).join('\n');
+  return confirm('Possible duplicate booking for '+draft.registration+'\n\nExisting open jobs:\n'+details+'\n\n'+(cloudChecked?'':'Only this device could be checked while offline.\n\n')+'Create or save another booking for this vehicle anyway?');
+}
 async function saveJob(id){
   var asQuote=!!window.__vectaSaveAsQuote;window.__vectaSaveAsQuote=false;
   /* V322: saving a job is a local merge, never a whole-planner replacement.
@@ -14641,6 +14682,7 @@ async function saveJob(id){
     var existingOnsiteDuplicate=v310DuplicateFor(j,id);
     if(existingOnsiteDuplicate){alert('This vehicle already has an On-Site Service booked for this date.\n\nThe existing job has been kept and a duplicate has NOT been created.');return false;}
   }
+  if(!await vectaConfirmDuplicateBooking(j,savedJobBeforeEdit))return false;
   if(!existingJob){j.parts_status=newBookingPartsStatusForTypes(j.job_type);j.customer_note=partsStatusNote(j.customer_note,j.parts_status);}
   /* Preserve the explicit MOT answer captured by the Complete button. */
   var motDecision=window.__vectaMotCompletionDecision&&window.__vectaMotCompletionDecision[String(id)];

@@ -37,3 +37,13 @@ test('undo fails safely on invoice, offline, concurrent edit and server failure'
 test('work-finished clock is preserved when the invoice is saved later',()=>{const c=context();const job={...done,completed_at:'2026-09-17T13:46:45Z',customer_note:'[[VECTA_WORK_COMPLETED:2026-09-17T13:37:00Z]]'};c.vectaRecordWorkCompleted(job);assert.equal(c.vectaCompletionDisplay(job),'17/09/2026, 14:37')});
 
 test('synthetic completion timestamps from Postgres offsets are recognised',()=>{assert.equal(globalThis.VectaOfflineSyncRules.completionStampIsSynthetic('2026-09-17T17:00:00+00:00'),true);assert.equal(globalThis.VectaOfflineSyncRules.chooseCompletionStamp('2026-09-17T17:00:00+00:00','2026-09-17T13:37:00Z'),'2026-09-17T13:37:00Z')});
+
+test('MICRA backdated completion action supersedes its earlier Undo marker',()=>{
+ const c=context();const micra={...done,completed_at:'2026-09-11T17:00:00Z',customer_note:'[[VECTA_UNDO_COMPLETION:2026-09-30T13:42:41.793Z]] [[VECTA_WORK_COMPLETED:2026-09-30T15:18:21.464Z]]'};
+ const result=c.normaliseCompletedJobState({...micra});assert.equal(result.status,'completed');assert.equal(result.archived,true);assert.equal(result.completed_at,micra.completed_at);
+ const stale={...micra,status:'booked',archived:false,completed_at:null,customer_note:'[[VECTA_UNDO_COMPLETION:2026-09-30T13:42:41.793Z]]'};
+ for(const [a,b] of [[micra,stale],[stale,micra]])assert.equal(c.mergeRemoteRows([{...a}],[{...b}])[0].status,'completed');
+});
+test('a later Undo still reopens a backdated job after its previous completion',()=>{
+ const c=context();const row={...done,completed_at:'2026-09-11T17:00:00Z',customer_note:'[[VECTA_UNDO_COMPLETION:2026-09-30T16:00:00Z]] [[VECTA_WORK_COMPLETED:2026-09-30T15:18:21.464Z]]'};assert.equal(c.vectaApplyExplicitUndo(row).status,'booked');
+});
