@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import { PDFDocument } from 'pdf-lib';
 import { validShareToken,validShare,downloadableInvoice,invoicePdf } from '../../lib/invoice-download.js';
-import { createDownloadHandler } from '../../api/invoice-download.js';
+import { createDownloadHandler } from '../../lib/invoice-download-handler.js';
 const token='11111111-1111-4111-8111-111111111111.22222222-2222-4222-8222-222222222222';
 const inv={id:'33333333-3333-4333-8333-333333333333',status:'saved',invoice_number:'VECTA-12345',customer_name:'Alex Example',registration:'AB12 CDE',vehicle:'Example vehicle',invoice_date:'2026-10-01',lines:[{description:'Replace front brake pads',amount:100,vat_mode:'ex_vat'}],subtotal:100,vat:20,total:120};
 function response(){return {headers:{},setHeader(k,v){this.headers[k]=v},status(n){this.code=n;return this},send(body){this.body=body;return this}}}
@@ -17,3 +17,5 @@ test('bad, missing and expired links never render or expose an invoice',async()=
 test('PDF is valid and paginates long invoices',async()=>{const bytes=await invoicePdf(inv);assert.match(bytes.toString('ascii',0,8),/%PDF/);assert.equal((await PDFDocument.load(bytes)).getPageCount(),1);const many={...inv,lines:Array.from({length:100},()=>({...inv.lines[0],description:'Long item '.repeat(20)}))};assert.ok((await PDFDocument.load(await invoicePdf(many))).getPageCount()>1)});
 const html=fs.readFileSync(new URL('../../index.html',import.meta.url),'utf8');
 test('Staff messages wait for confirmed invoice save and read the saved total',()=>{assert.match(html,/function openJobCompletionContact[\s\S]*?customer_account[\s\S]*?STAFF[\s\S]*?return false/);assert.match(html,/showStaffInvoiceSendPrompt\(inv\)/);assert.match(html,/invoiceTotal:saved.total/);assert.match(html,/Download your invoice:/);assert.match(html,/Save the invoice first/);assert.match(html,/crypto.randomUUID\(\)\+'\.'\+crypto.randomUUID\(\)/)});
+
+test('download route reuses an existing function',async()=>{const config=JSON.parse(await fs.promises.readFile(new URL('../../vercel.json',import.meta.url),'utf8'));assert.ok(config.rewrites.some(r=>r.source==='/api/invoice-download'&&r.destination==='/api/supabase-config?invoiceDownload=1'));const {default:handler}=await import('../../api/supabase-config.js');const res=response();await handler({method:'GET',query:{invoiceDownload:'1',token:'bad'}},res);assert.equal(res.code,404);});
