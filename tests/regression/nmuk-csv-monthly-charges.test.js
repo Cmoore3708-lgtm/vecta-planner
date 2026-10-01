@@ -5,8 +5,9 @@ import vm from 'node:vm';
 const html=fs.readFileSync(new URL('../../index.html',import.meta.url),'utf8');
 function setup(saved){
  let output='',warning='';
- const context={alert:text=>{warning=text},fleetNormaliseCustomer:x=>x,vectaActiveInvoices:()=>saved?[saved]:[],invoiceTotals:lines=>({subtotal:lines.reduce((s,l)=>s+Number(l.amount||0),0)}),fleetNmukMonthlyLines:()=>[],fleetNmukIsInternalJob:j=>j.internal,fleetEomLineItems:j=>[{description:'Workshop work',price:j.price}],niceDate:x=>x,fleetEomRegistrationText:()=>'',fleetNmukTypeForJob:()=>'',Blob:class{constructor(parts){output=parts.join('')}},URL:{createObjectURL:()=>'',revokeObjectURL:()=>{}},document:{createElement:()=>({click(){},remove(){}}),body:{appendChild(){}}},setTimeout:()=>{}};
+ const context={alert:text=>{warning=text},fleetNormaliseCustomer:x=>x,vectaActiveInvoices:()=>saved?[saved]:[],invoiceTotals:lines=>({subtotal:lines.reduce((s,l)=>s+Number(l.amount||0),0)}),fleetNmukIsInternalJob:j=>j.internal,fleetEomLineItems:j=>[{description:'Workshop work',price:j.price}],niceDate:x=>x,fleetEomRegistrationText:()=>'',fleetNmukTypeForJob:()=>'',Blob:class{constructor(parts){output=parts.join('')}},URL:{createObjectURL:()=>'',revokeObjectURL:()=>{}},document:{createElement:()=>({click(){},remove(){}}),body:{appendChild(){}}},setTimeout:()=>{}};
  vm.createContext(context);
+ vm.runInContext(html.slice(html.indexOf('var fleetNmukMonthlyDrafts={}'),html.indexOf('async function fleetEomInvoice(')),context);
  vm.runInContext(html.slice(html.indexOf('function fleetNmukEomExportReport('),html.indexOf('function fleetEomPreviewInvoice(')),context);
  vm.runInContext(html.slice(html.indexOf('function fleetEomCustomerTotal('),html.indexOf('function fleetEomBaseHtml(')),context);
  return {context,csv:()=>output,warning:()=>warning};
@@ -25,7 +26,7 @@ test('CSV includes saved monthly charges once with correct Internal/MVOS totals'
 test('legacy invoice without original breakdown blocks an invented single charge',()=>{
  const s=setup({invoice_number:'78763',fleet_customer:'NMUK',fleet_month:'2026-09',fleet_job_ids:['1','2'],lines:[{amount:12770}]});
  s.context.fleetDownloadEomCsv('NMUK','2026-09',rows);
- assert.equal(s.csv(),'');assert.match(s.warning(),/six individual charges/);
+ assert.equal(s.csv(),'');assert.match(s.warning(),/individual monthly charges/);
 });
 test('monthly entries use final date and their saved individual allocations',()=>{
  const extras=[{description:'Puncture repairs',amount:200,section:'internal'},{description:'Monthly work',amount:2220,section:'other'}];
@@ -48,4 +49,19 @@ test('export does not fabricate charges for a saved invoice with explicitly empt
 test('contractor export retains its job-only total',()=>{
  const s=setup(null);s.context.fleetDownloadEomCsv('E4','2026-09',rows);
  assert.match(s.csv(),/"Total:","10350.00"/);assert.doesNotMatch(s.csv(),/Internal Vehicles|Monthly charges/);
+});
+
+test('new tyre charge is editable, counted under Internal and exported at month end',()=>{
+ const s=setup(null),c=s.context;
+ const defaults=c.fleetNmukMonthlyLines('2026-10');
+ const tyres=defaults.find(x=>x.description==='Fit new tyres');
+ assert.equal(tyres.amount,0);assert.equal(tyres.section,'internal');
+ c.fleetNmukMonthlyDrafts['2026-10']=defaults.map(x=>x.description==='Fit new tyres'?{...x,amount:240}:x);
+ const totals=c.fleetNmukMonthTotals(rows,'2026-10');
+ assert.equal(totals.internal,3280);assert.equal(totals.other,8990);assert.equal(totals.total,12270);
+ c.fleetDownloadEomCsv('NMUK','2026-10',rows);
+ assert.match(s.csv(),/"2026-10-31","","Internal","Fit new tyres","240.00"/);
+ assert.match(s.csv(),/"Total:","12270.00"/);
+ assert.match(s.csv(),/"Internal Vehicles:","3280.00"/);
+ assert.equal((s.csv().match(/Fit new tyres/g)||[]).length,1);
 });
