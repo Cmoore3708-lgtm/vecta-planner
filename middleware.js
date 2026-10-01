@@ -67,5 +67,11 @@ export default function middleware(request) {
     user: process.env.VECTA_MAIN_USER,
     password: process.env.VECTA_MAIN_PASSWORD
   });
-  return result || next();
+  if (result) return result;
+  const response = next();
+  // Only a server-authorised Main response may become an offline planner.
+  if (requiresManagerLogin(new URL(request.url).pathname)) {
+    response.headers.set('X-Vecta-Manager-Authenticated', '1');
+  }
+  return response;
 }

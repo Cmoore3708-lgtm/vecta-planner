@@ -1,7 +1,8 @@
-const CACHE='vecta-workshop-pro-shell-v55-job-save';
-const APP_VERSION='v371-completed-invoice-refresh';
+const CACHE='vecta-workshop-pro-shell-v56-manager-offline';
+const APP_VERSION='v372-manager-offline';
 const DATA_CACHE='vecta-workshop-pro-data-last-known-v1';
 const HEALTH_CACHE='vecta-workshop-pro-cloud-health-v1';
+const MAIN_CACHE='vecta-workshop-pro-manager-shell-v1';
 const CORE=[
   '/',
   '/index.html',
@@ -136,17 +137,61 @@ async function fetchSupabaseWithLastKnownFallback(req){
   }
 }
 
+function isMainNavigation(url){
+  return url.pathname==='/' || url.pathname==='/index.html';
+}
+
 async function cacheShell(response){
-  if(!response || !response.ok) return response;
-  const cache=await caches.open(CACHE);
+  if(!response || !response.ok || response.headers.get('X-Vecta-Manager-Authenticated')!=='1') return response;
+  const cache=await caches.open(MAIN_CACHE);
+  // Save dependencies before the HTML so a newly installed worker can cold-start.
+  const html=await response.clone().text();
+  const assets=new Set(['/supabase.min.js?v=20260901-refresh2', ...CORE.filter(path=>path!=='/' && path!=='/index.html')]);
+  for(const match of html.matchAll(/<(?:script|link)\b[^>]*(?:src|href)=["']([^"']+)["']/gi)){
+    const url=new URL(match[1],self.location.origin);
+    if(url.origin===self.location.origin && /\.(?:js|css)(?:\?|$)/.test(url.href)) assets.add(url.href);
+  }
+  await Promise.all([...assets].map(async path=>{
+    const request=new Request(new URL(path,self.location.origin),{credentials:'include'});
+    const asset=await fetch(request,{cache:'no-store'});
+    if(!asset.ok) throw new Error('Offline dependency unavailable');
+    await cache.put(request,asset);
+  }));
   await cache.put('/index.html',response.clone());
-  await cache.put('/',response.clone());
   return response;
 }
 
+async function cachedMain(){
+  const cache=await caches.open(MAIN_CACHE);
+  const response=await cache.match('/index.html');
+  return response?.headers.get('X-Vecta-Manager-Authenticated')==='1' ? response : null;
+}
+
 async function clearCachedMain(){
+  await caches.delete(MAIN_CACHE);
   const cache=await caches.open(CACHE);
   await Promise.all([cache.delete('/'),cache.delete('/index.html')]);
+}
+
+async function handleMainNavigation(req){
+  if(self.navigator?.onLine===false){
+    const cached=await cachedMain();
+    if(cached) return cached;
+  }
+  try{
+    const fresh=await fetch(req,{cache:'no-store'});
+    if(fresh?.ok){
+      try{await cacheShell(fresh)}catch(_e){}
+      return fresh;
+    }
+    if(fresh && (fresh.status===401 || fresh.status===403)){
+      await clearCachedMain();
+      return fresh;
+    }
+    return (await cachedMain()) || fresh;
+  }catch(_e){
+    return (await cachedMain()) || Response.error();
+  }
 }
 
 self.addEventListener('install',event=>{
@@ -157,7 +202,7 @@ self.addEventListener('install',event=>{
         const response=await fetch(url,{cache:'reload'});
         if(response && response.ok){
           if(url==='/' || url==='/index.html'){
-            await cache.put(url,response.clone());
+            await cacheShell(response);
           }else{
             await cache.put(url,response.clone());
           }
@@ -177,9 +222,8 @@ self.addEventListener('activate',event=>{
         k.startsWith('vecta-workshop-pro-shell-')
       )
     ).map(k=>caches.delete(k)));
-    // A device that held the old offline shell must not keep opening Main
-    // from cache after the manager challenge has been introduced.
-    await clearCachedMain();
+    // The dedicated manager cache contains only server-authorised shells.
+    // Legacy public shells are discarded above; authorised copies survive updates.
     await self.clients.claim();
     const windows=await self.clients.matchAll({type:'window',includeUncontrolled:true});
     for(const client of windows)client.postMessage({type:'VECTA_APP_UPDATE_READY',version:APP_VERSION});
@@ -205,23 +249,11 @@ self.addEventListener('fetch',event=>{
     if(url.pathname.startsWith('/api/')) return;
 
     if(req.mode==='navigate'){
-      event.respondWith((async()=>{
-        try{
-          const fresh=await fetch(req,{cache:'no-store'});
-          if(fresh && fresh.ok) return await cacheShell(fresh);
-          if(fresh && (fresh.status===401 || fresh.status===403 || fresh.status===503)){
-            await clearCachedMain();
-            return fresh;
-          }
-          const cached=(await caches.match('/index.html')) || (await caches.match('/'));
-          return cached || fresh;
-        }catch(_e){
-          const cached=(await caches.match('/index.html')) || (await caches.match('/'));
-          return cached || Response.error();
-        }
-      })());
+      if(isMainNavigation(url)) event.respondWith(handleMainNavigation(req));
+      // Public booking and approval pages never populate or read Main's cache.
       return;
     }
+
 
     event.respondWith((async()=>{
       const cached=await caches.match(req);
