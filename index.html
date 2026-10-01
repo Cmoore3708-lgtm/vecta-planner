@@ -14849,11 +14849,38 @@ function prepareLinkedCustomerVehicleLocal(j){
   }
   return result;
 }
+async function vectaSaveLinkedVehicle(j,linked){
+  var vehicle=linked.vehicle;
+  async function findExisting(){
+    var registration=normReg(vehicle.registration);
+    var result=await remoteClient.from('vehicles').select('*').ilike('registration','%'+registration.split('').join('%')+'%');
+    if(result.error)throw result.error;
+    var matches=(result.data||[]).filter(function(row){return normReg(row.registration)===registration});
+    if(matches.length>1)throw new Error('More than one vehicle record matches this registration. Please contact the workshop administrator.');
+    return matches[0]||null;
+  }
+  function adopt(existing){
+    if(!existing)return;
+    var oldId=vehicle.id;
+    vehicle=Object.assign({},existing,{vehicle:vehicle.vehicle||existing.vehicle||'',customer_id:vehicle.customer_id||existing.customer_id||null});
+    linked.vehicle=vehicle;linked.newVehicle=false;j.vehicle_id=vehicle.id;
+    app.vehicles=(app.vehicles||[]).filter(function(row){return String(row.id)!==String(oldId)&&String(row.id)!==String(vehicle.id)});
+    app.vehicles.push(vehicle);
+  }
+  if(remoteClient&&navigator.onLine)adopt(await findExisting());
+  try{return await upsertRemote('vehicles',vehicle,{silent:true});}
+  catch(error){
+    if(!remoteClient||!navigator.onLine||!(/vehicles_registration_key/.test(String(error.message||''))||String(error.code)==='23505'))throw error;
+    var existing=await findExisting();if(!existing)throw error;
+    adopt(existing);
+    return await upsertRemote('vehicles',vehicle,{silent:true});
+  }
+}
 async function syncSavedJobBundleInBackground(j,linked,previous){
   if(!j)return false;
   try{
     if(linked&&linked.customer)await upsertRemote('customers',linked.customer,{silent:true});
-    if(linked&&linked.vehicle)await upsertRemote('vehicles',linked.vehicle,{silent:true});
+    if(linked&&linked.vehicle)await vectaSaveLinkedVehicle(j,linked);
     if(!remoteClient||!navigator.onLine){
       queueRemoteOperation('upsert','jobs',Object.assign({},j));
       return 'queued';
