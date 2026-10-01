@@ -218,7 +218,8 @@ assert.match(
   /if\(savedInvoice\)\{printInvoice\(savedInvoice\);financialSection='main';view='planner';render\(\)\}/,
   'Printing an invoice must close the invoice workflow and return to the dashboard'
 );
-assert.match(html, /id="emailInvoice">Email to Customer<\/button>/);
+assert.match(html, /id="emailInvoice"/);
+assert.match(html, /vectaStaffInvoiceJob\(inv\)\?'Send to customer':'Email to Customer'/);
 assert.match(
   html,
   /getElementById\('emailInvoice'\)\.onclick=async function\(\).*var savedOk=await saveInvoice\(inv\.id\).*view='planner';render\(\);openInvoiceCustomerEmail\(savedInvoice\)/s,
