@@ -62,10 +62,58 @@ export function managerGate(request, credentials) {
   });
 }
 
-export default function middleware(request) {
-  const result = managerGate(request, {
+const SESSION_COOKIE = '__Host-vecta-manager';
+const SESSION_SECONDS = 30 * 24 * 60 * 60;
+
+async function sessionKey(credentials){
+  return crypto.subtle.importKey('raw',new TextEncoder().encode(
+    'VECTA manager session v1\n'+credentials.user+'\n'+credentials.password
+  ),{name:'HMAC',hash:'SHA-256'},false,['sign','verify']);
+}
+
+function signatureBytes(hex){
+  if(!/^[a-f0-9]{64}$/.test(hex)) return null;
+  return Uint8Array.from(hex.match(/../g),part=>parseInt(part,16));
+}
+
+export async function managerSessionCookie(credentials,now=Date.now()){
+  const expires=Math.floor(now/1000)+SESSION_SECONDS;
+  const payload='v1.'+expires;
+  const signature=await crypto.subtle.sign('HMAC',await sessionKey(credentials),new TextEncoder().encode(payload));
+  const hex=Array.from(new Uint8Array(signature),b=>b.toString(16).padStart(2,'0')).join('');
+  return SESSION_COOKIE+'='+payload+'.'+hex+'; Path=/; Max-Age='+SESSION_SECONDS+'; Secure; HttpOnly; SameSite=Strict';
+}
+
+export async function validManagerSession(request,credentials,now=Date.now()){
+  if(!credentials.user || !credentials.password) return false;
+  const cookies=String(request.headers.get('cookie')||'').split(';').map(value=>value.trim());
+  const found=cookies.filter(value=>value.startsWith(SESSION_COOKIE+'='));
+  if(found.length!==1) return false;
+  const token=found[0].slice(SESSION_COOKIE.length+1);
+  const match=/^v1\.([0-9]{10})\.([a-f0-9]{64})$/.exec(token);
+  if(!match) return false;
+  const expiry=Number(match[1]),current=Math.floor(now/1000);
+  if(expiry<=current || expiry>current+SESSION_SECONDS) return false;
+  try{
+    return await crypto.subtle.verify('HMAC',await sessionKey(credentials),
+      signatureBytes(match[2]),new TextEncoder().encode('v1.'+match[1]));
+  }catch{ return false; }
+}
+
+export default async function middleware(request) {
+  const credentials = {
     user: process.env.VECTA_MAIN_USER,
     password: process.env.VECTA_MAIN_PASSWORD
-  });
-  return result || next();
+  };
+  const protectedPath=requiresManagerLogin(new URL(request.url).pathname);
+  const remembered=protectedPath && await validManagerSession(request,credentials);
+  const result = remembered ? null : managerGate(request,credentials);
+  if (result) return result;
+  const response = next();
+  // Only a server-authorised Main response may become an offline planner.
+  if (requiresManagerLogin(new URL(request.url).pathname)) {
+    response.headers.set('X-Vecta-Manager-Authenticated', '1');
+    response.headers.append('Set-Cookie',await managerSessionCookie(credentials));
+  }
+  return response;
 }

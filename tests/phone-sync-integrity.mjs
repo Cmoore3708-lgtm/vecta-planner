@@ -68,10 +68,11 @@ function functionSource(name) {
 assert.doesNotMatch(html, /blocked incomplete jobs refresh/);
 assert.match(html, /deletionStamp<Date\.parse\('2026-08-26T00:00:00Z'\)/);
 assert.match(html, /await vectaWriteTerminalJobState\(j,'deleted'/);
-assert.match(html, /VECTA_APP_VERSION='v371-completed-invoice-refresh'/);
-assert.match(html, /service-worker\.js\?v=20260929-invoice-refresh-v371/);
+assert.match(html, /VECTA_APP_VERSION='v372-manager-offline'/);
+assert.match(html, /service-worker\.js\?v=20261001-manager-offline-v372/);
 assert.equal((html.match(/serviceWorker\.register\(/g) || []).length, 1);
 assert.equal((html.match(/addEventListener\('controllerchange'/g) || []).length, 1);
 assert.doesNotMatch(html, /navigator\.serviceWorker\.register\('\/service-worker\.js'/);
 
 console.log('Phone/cloud sync integrity regression tests passed.');
+

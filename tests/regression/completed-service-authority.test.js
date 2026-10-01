@@ -176,10 +176,10 @@ test('embedded service history repairs EYC before live jobs finish loading', () 
 test('phone shell keeps one update owner and advances the source-authoritative cache', () => {
   const html = fs.readFileSync(new URL('../../index.html', import.meta.url), 'utf8');
   const worker = fs.readFileSync(new URL('../../public/service-worker.js', import.meta.url), 'utf8');
-  assert.match(html, /VECTA_APP_VERSION='v371-completed-invoice-refresh'/);
-  assert.match(html, /service-worker\.js\?v=20260929-invoice-refresh-v371/);
-  assert.match(worker, /APP_VERSION='v371-completed-invoice-refresh'/);
-  assert.match(worker, /CACHE='vecta-workshop-pro-shell-v55-job-save'/);
+  assert.match(html, /VECTA_APP_VERSION='v372-manager-offline'/);
+  assert.match(html, /service-worker\.js\?v=20261001-manager-offline-v372/);
+  assert.match(worker, /APP_VERSION='v372-manager-offline'/);
+  assert.match(worker, /CACHE='vecta-workshop-pro-shell-v56-manager-offline'/);
   assert.match(html, /vectaSafeApplyAppUpdate\(event\.data\.version\)/);
   assert.match(html, /if\(vectaAppUpdateWaiting\)vectaSafeApplyAppUpdate\(vectaAppUpdateWaiting\)/);
 });
@@ -194,7 +194,7 @@ test('service-worker update has one guarded reload owner', () => {
 
 test('a newer app waits for an open job card and reloads after it closes', async () => {
   const html = fs.readFileSync(new URL('../../index.html', import.meta.url), 'utf8');
-  const start=html.indexOf("var VECTA_APP_VERSION='v371-completed-invoice-refresh'");
+  const start=html.indexOf("var VECTA_APP_VERSION='v372-manager-offline'");
   const end=html.indexOf('function registerVectaServiceWorker()',start);
   const closeStart=html.indexOf('function closeModals(){');
   const closeEnd=html.indexOf('\nfunction editCustomer(',closeStart);
@@ -270,3 +270,4 @@ test('Online status waits for the authoritative dashboard download', () => {
   assert.match(html, /vectaCloudReachable=null;updateConnectivityUI\('syncing'\);[\s\S]{0,500}await vectaPrimeAuthoritativeDashboard\(\)/);
   assert.doesNotMatch(html, /vectaCloudReachable=true;updateConnectivityUI\('syncing'\);[\s\S]{0,500}await vectaPrimeAuthoritativeDashboard\(\)/);
 });
+
