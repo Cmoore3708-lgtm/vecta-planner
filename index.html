@@ -13679,7 +13679,7 @@ function field(label,key,val,type){return '<div class="field"><label>'+label+'</
 async function refreshFinancialInvoiceListFromCloud(){
   if(!remoteClient||!navigator.onLine)return false;
   try{
-    var rows=await fetchAllRows('invoices');
+    var rows=[],offset=0;while(true){var page=await vectaWithTimeout(remoteClient.from('invoices').select('*').order('id').range(offset,offset+499),15000,'Invoice list refresh');if(page.error)throw page.error;var batch=page.data||[];rows=rows.concat(batch);if(batch.length<500)break;offset+=500;}
     if(Array.isArray(rows)){
       app.invoices=mergeRemoteRows(app.invoices||[],rows);
       saveLocal();
