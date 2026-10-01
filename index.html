@@ -15121,7 +15121,7 @@ function openInvoiceCustomerEmail(inv){
   if(typeof appendVectaEmailSignature==='function')body=appendVectaEmailSignature(body);
   window.location.href='mailto:'+encodeURIComponent(recipient.email)+'?subject='+encodeURIComponent(subject)+'&body='+encodeURIComponent(body);return true;
 }
-function vectaStaffInvoiceJob(inv){return inv&&inv.job_id&&(app.jobs||[]).find(function(j){return String(j.id)===String(inv.job_id)&&String(j.customer_account||'').toUpperCase()==='STAFF'})||null}
+function vectaStaffInvoiceJob(inv){var job=inv&&inv.job_id&&(app.jobs||[]).find(function(j){return String(j.id)===String(inv.job_id)});if(!job)return null;var account=job.customer_account||fleetIncomeCustomerFromVehicle(job.registration)||'';return String(account).toUpperCase()==='STAFF'?Object.assign({},job,{customer_account:'STAFF'}):null}
 function showStaffInvoiceSendPrompt(inv){
   if(!vectaStaffInvoiceJob(inv))return;
   var old=document.getElementById('vectaCompletionContactNotice');if(old)old.remove();
