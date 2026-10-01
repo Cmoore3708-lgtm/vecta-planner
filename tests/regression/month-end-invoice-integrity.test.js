@@ -52,6 +52,10 @@ test('NMUK monthly charges roll into invoice summary while spreadsheet keeps all
   assert.match(create, /nmuk_monthly_extras:monthlyLines/);
   assert.match(create, /nmukTotal\+monthlyTotal/);
   assert.doesNotMatch(create, /\.concat\(monthlyLines\)/);
-  assert.match(csv, /nmuk_monthly_extras/);
-  assert.match(csv, /if\(x\.section==='internal'\)internal\+=Number\(x\.amount\|\|0\);else other\+=Number\(x\.amount\|\|0\)/);
+  const report = functionSource('fleetNmukEomExportReport');
+  assert.match(csv, /fleetNmukEomExportReport\(month,rows\)/);
+  assert.match(report, /nmuk_monthly_extras/);
+  assert.match(report, /line\.section==='internal'/);
+  assert.match(report, /other\+=Number\(line\.amount\|\|0\)/);
+  assert.match(report, /fleetEomCustomerTotal\('NMUK',month,rows\)/);
 });
