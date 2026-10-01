@@ -9,6 +9,7 @@ const CORE=[
   '/icons/vecta-192.png',
   '/icons/vecta-512.png',
   '/js/vecta-job-rules.js',
+  '/js/vecta-completion-contact.js',
   '/js/vecta-invoice-rules.js',
   '/js/vecta-planner-rules.js',
   '/js/vecta-finance-rules.js',
