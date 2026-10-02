@@ -1,3 +1,4 @@
+import invoiceDownloadHandler from '../lib/invoice-download-handler.js';
 import {
   databaseEnvironment,
   isAuditPreviewEnvironment,
@@ -42,6 +43,7 @@ async function checkCloudHealth(req, res) {
 
 export default function handler(req, res) {
   res.setHeader('Cache-Control', 'no-store');
+  if (req.query?.invoiceDownload === '1') return invoiceDownloadHandler(req, res);
   if (req.query?.health === '1') return checkCloudHealth(req, res);
   if (isAuditPreviewEnvironment()) {
     return res.status(200).json({ auditPreview: true });

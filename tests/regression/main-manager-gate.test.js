@@ -31,3 +31,22 @@ test('correct manager credentials allow Main; wrong credentials and missing conf
   assert.equal(managerGate(request('/', 'Bearer token'), credentials).status, 401);
   assert.equal(managerGate(request('/', valid), { user: '', password: '' }).status, 503);
 });
+
+test('Test planner uses preview access while production and unknown routes stay protected', () => {
+  const original = process.env.VERCEL_ENV;
+  try {
+    process.env.VERCEL_ENV = 'preview';
+    for (const path of ['/', '/index.html', '/admin.html', '/site-preview.html', '/booking-preview.html']) {
+      assert.equal(managerGate(request(path), { user: '', password: '' }), null, path);
+    }
+    assert.equal(managerGate(request('/finance'), credentials).status, 401);
+    process.env.VERCEL_ENV = 'production';
+    for (const path of ['/', '/index.html', '/admin.html']) {
+      assert.equal(managerGate(request(path), credentials).status, 401, path);
+      assert.equal(managerGate(request(path), { user: '', password: '' }).status, 503, path);
+    }
+  } finally {
+    if (original === undefined) delete process.env.VERCEL_ENV;
+    else process.env.VERCEL_ENV = original;
+  }
+});

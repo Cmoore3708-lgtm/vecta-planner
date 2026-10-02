@@ -41,3 +41,22 @@ test('an active job can proceed after the cloud check', async () => {
   assert.equal(await context.vectaCheckInvoiceActionAgainstCloud('job-2'), true);
   assert.deepEqual(calls, []);
 });
+
+
+test('an unsaved new job does not need a cloud row before its first save', async () => {
+  const { context, calls } = setup({ id: 'existing', status: 'booked' });
+  context.remoteClient = { from() { throw new Error('New job must not be queried before creation'); } };
+  assert.equal(await context.vectaCheckInvoiceActionAgainstCloud(null), true);
+  assert.deepEqual(calls, []);
+  assert.ok(html.includes('readyButton.onclick=async function(){if(!await vectaCheckInvoiceActionAgainstCloud(id))return;'));
+});
+
+test('a missing previously saved job still blocks an invoice action', async () => {
+  const { context, calls } = setup({ id: 'missing', status: 'booked' });
+  context.remoteClient = { from() { return {
+    select() { return this; }, eq() { return this; }, limit() { return this; },
+    then(resolve) { resolve({ data: [], error: null }); }
+  }; } };
+  assert.equal(await context.vectaCheckInvoiceActionAgainstCloud('missing'), false);
+  assert.ok(calls.some(message => message.includes('Could not confirm')));
+});
