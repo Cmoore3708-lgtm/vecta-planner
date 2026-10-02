@@ -8,7 +8,8 @@ import { vehicleResult, HaynesError } from '../../lib/haynes-vehicle.js';
 import { createLookupService } from '../../workers/haynes/service.mjs';
 import { createHandler } from '../../workers/haynes/http.mjs';
 import { readVehicle } from '../../workers/haynes/dom.mjs';
-import proxy from '../../api/haynes-vehicle.js';
+import proxy from '../../lib/haynes-proxy.js';
+import availability from '../../api/availability.js';
 
 const raw = { registration: 'FX69XWU', make: 'NISSAN', model: 'Qashqai (J11)', variant: '1.7 dCi', engineCode: 'R9N-401', modelYears: '2018 - 2020', typeId: 't_619016977', imageUrl: 'https://www.haynespro-assets.com/workshop/images/319004648.svgz' };
 const deferred = () => { let resolve; const promise = new Promise(r => { resolve = r; }); return { promise, resolve }; };
@@ -74,6 +75,13 @@ async function callProxy(reg) {
   const res = { headers: {}, setHeader(k, v) { this.headers[k] = v; }, status(code) { this.code = code; return this; }, json(body) { this.body = body; return this; } };
   await proxy({ method: 'GET', query: { reg } }, res); return res;
 }
+test('Haynes route reuses availability without changing ordinary requests', async () => {
+  const config = JSON.parse(fs.readFileSync(new URL('../../vercel.json', import.meta.url), 'utf8'));
+  assert.deepEqual(config.rewrites.find(r => r.source === '/api/haynes-vehicle'), { source: '/api/haynes-vehicle', destination: '/api/availability?haynes=1' });
+  const res = { status(code) { this.code = code; return this; }, json(body) { this.body = body; } };
+  await availability({ method: 'GET', query: {} }, res);
+  assert.equal(res.code, 405); assert.deepEqual(res.body, { error: 'Method not allowed' });
+});
 test('Vercel proxy stays disabled in production and never exposes worker token or raw errors', async () => {
   const saved = { env: process.env.VERCEL_ENV, url: process.env.HAYNES_WORKER_URL, token: process.env.HAYNES_WORKER_TOKEN, fetch: global.fetch };
   try {

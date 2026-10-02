@@ -1,3 +1,4 @@
+import haynesVehicle from '../lib/haynes-proxy.js';
 import { databaseEnvironment } from './_database-environment.js';
 function cfg(){return databaseEnvironment()}
 const DAY_START=8*60,DAY_END=16*60,DAY_MINUTES=DAY_END-DAY_START;
@@ -15,6 +16,7 @@ function nextSlot(rows,hours){const dur=Math.ceil(hours*60/30)*30;const blocks=(
 function clampDayBlock(start,end){const a=Math.max(DAY_START,mins(start||'08:00'));const b=Math.min(DAY_END,mins(end||'16:00'));return Math.max(0,b-a)}
 function bookedMinutes(rows){return (rows||[]).reduce((sum,j)=>sum+Math.max(0,Math.ceil(Number(j.estimated_hours||1)*60/30)*30),0)}
 export default async function handler(req,res){
+ if(req.query?.haynes==='1')return haynesVehicle(req,res);
  if(req.method!=='POST')return res.status(405).json({error:'Method not allowed'});const {url,key}=cfg();if(!url||!key)return res.status(500).json({error:'Availability service is not configured'});
  try{
   const hours=Math.max(.5,Number(req.body?.estimated_hours)||durationFor(req.body?.job_types||[],req.body?.service_choice||''));

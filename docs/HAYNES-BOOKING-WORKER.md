@@ -4,9 +4,11 @@
 
 `workers/haynes` is a separate Node/Playwright service using a dedicated persistent Chromium profile. It opens the supplier's registration-search UI and reads the visible vehicle overview: make, model/generation, engine description, engine code, model years and representative image. It does not call supplier APIs/internal endpoints, collect passwords, export session cookies, or read service schedules during booking.
 
-`api/haynes-vehicle.js` is a preview-only server-side proxy. `public/haynes-booking-test.html` is a read-only Test copy of the current website booking flow with Haynes enrichment added. Existing production booking pages and `api/vehicle-lookup.js` are untouched. The Test copy cannot submit bookings or retrieve returning-customer contact records. DVSA advisories, customer choices, recorded MOT mileage and pricing engine capacity stay independent of Haynes. Confirmed identity is held in the Test form only; production persistence is a later amendment.
+`lib/haynes-proxy.js` (routed through the existing availability function) is a preview-only server-side proxy. `public/haynes-booking-test.html` is a read-only Test copy of the current website booking flow with Haynes enrichment added. Existing production booking pages and `api/vehicle-lookup.js` are untouched. The Test copy cannot submit bookings or retrieve returning-customer contact records. DVSA advisories, customer choices, recorded MOT mileage and pricing engine capacity stay independent of Haynes. Confirmed identity is held in the Test form only; production persistence is a later amendment.
 
 The matched Haynes model is displayed separately so a customer can confirm or reject it. VIN is never returned. No displacement is inferred from an engine description or used to adjust guide prices. Different make, registration mismatch, incomplete data or multiple results retain the original DVSA information. Broken images are hidden without breaking identification. Supplier login expiry and verification screens stop automatic lookups, never bypass them.
+
+The dedicated `/api/haynes-vehicle` rewrite dispatches to the existing availability function with `haynes=1`, avoiding an additional serverless function on the current Vercel plan. Ordinary availability requests retain their existing behavior.
 
 ## Current deployment limitation
 

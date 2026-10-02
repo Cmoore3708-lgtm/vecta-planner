@@ -8,9 +8,10 @@
   ],
   "functions": {
     "api/fleet-nightly-refresh.js": { "maxDuration": 300 },
-    "api/haynes-vehicle.js": { "maxDuration": 30 }
+    "api/availability.js": { "maxDuration": 30 }
   },
   "rewrites": [
+    { "source": "/api/haynes-vehicle", "destination": "/api/availability?haynes=1" },
     { "source": "/booking", "destination": "/booking.html" },
     { "source": "/booking/", "destination": "/booking.html" },
     { "source": "/api/cloud-health", "destination": "/api/supabase-config?health=1" },
