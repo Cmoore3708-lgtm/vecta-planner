@@ -1,12 +1,12 @@
 import { chromium } from 'playwright';
 import { readVehicle } from './dom.mjs';
+import { profileOptions } from './profile-options.mjs';
 import { HaynesError, vehicleResult } from '../../lib/haynes-vehicle.js';
 
 export const START = 'https://www.workshopdata.com/touch/site/layout/makesOverview';
 export async function openProfile({ headless = true } = {}) {
-  return chromium.launchPersistentContext(process.env.HAYNES_PROFILE_DIR || './profile', {
-    headless, acceptDownloads: false, chromiumSandbox: true
-  });
+  const profile = profileOptions();
+  return chromium.launchPersistentContext(profile.directory, { ...profile.options, headless });
 }
 export function browserLookup(context) {
   return async registration => {

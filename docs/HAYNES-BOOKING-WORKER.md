@@ -12,6 +12,10 @@ The dedicated `/api/haynes-vehicle` rewrite dispatches to the existing availabil
 
 ## Current deployment limitation
 
+Chris has selected his Windows workshop PC with Microsoft Edge instead of a paid worker host. On Windows the worker now uses installed Edge and a separate `%LOCALAPPDATA%\VectaHaynes\EdgeProfile` profile. It does not use the normal Edge profile. Run `workers/haynes/windows-login.cmd` from a complete checkout with Node.js 22 or later installed. This installs pinned worker dependencies if missing and opens the manual Haynes login helper. No separate Playwright Chromium download is needed on Windows.
+
+The Windows login helper is prepared, but has not been run on the workshop PC. It does not install an automatic startup task or connect Test. The PC must remain powered on and online for live uncached lookups. Existing localhost HTTP hosting is not reachable from Vercel: a secure outbound relay is still required before this becomes a working PC-hosted Test deployment. Do not forward router ports or expose the worker publicly to work around this limitation. The Linux hosting instructions below document the previous alternative, not the selected installation plan.
+
 The worker is implemented and tested with DOM fixtures, queue tests, an authenticated HTTP service and the booking-page DOM. A Vercel preview can show the page and its DVSA lookup. Unconfigured Haynes requests return `NOT_CONFIGURED` and display the unavailable fallback; this is not a working unattended Haynes deployment.
 
 No connected persistent server or worker credentials are available in this development session. A persistent worker host, direct supplier login on that host, HTTPS and Vercel Preview environment configuration are required for an end-to-end live test. The earlier Chrome extension PR is separate and is not a substitute for this host.
