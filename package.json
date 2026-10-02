@@ -27,6 +27,7 @@
   },
   "devDependencies": {
     "@vitejs/plugin-react": "^5.0.1",
+    "linkedom": "0.18.12",
     "vite": "^7.1.3"
   }
 }
