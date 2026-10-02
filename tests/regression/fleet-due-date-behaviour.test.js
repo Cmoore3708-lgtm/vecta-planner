@@ -26,7 +26,9 @@ test('a current-cycle overdue date remains overdue', () => {
 
 test('a legacy recurring anchor is displayed in its current cycle', () => {
   const source = extractFunction('fleetDate');
-  const context = { console, fleetVehicles: [], fleetMotAuthority: {}, fleetMaintenanceCategory: () => 'tax' };
+  // This fixture describes the cycle on 1 October, independent of the test runner's clock.
+  class FixtureDate extends Date { constructor(...args) { super(...(args.length ? args : ['2026-10-01T00:00:00'])); } }
+  const context = { Date: FixtureDate, console, fleetVehicles: [], fleetMotAuthority: {}, fleetMaintenanceCategory: () => 'tax' };
   vm.runInNewContext(`${source};this.fleetDate=fleetDate`, context);
   assert.equal(context.fleetDate({ type: 'Vehicle Tax', currentDueDate: '2022-10-31', intervalMonths: 12 }), '2026-10-31');
   assert.equal(context.fleetDate({ type: 'Six-month Safety Check', currentDueDate: '2022-04-01', intervalMonths: 6 }), '2026-10-01');
