@@ -4,9 +4,9 @@ import vm from 'node:vm';
 import test from 'node:test';
 const html=fs.readFileSync(new URL('../../index.html',import.meta.url),'utf8');
 const source=html.slice(html.indexOf('function fleetEomCustomerTotal('),html.indexOf('function fleetEomBaseHtml('));
-function total(invoices,customer='NMUK',month='2026-09'){
- const ctx={invoiceTotals:lines=>({subtotal:lines.reduce((s,l)=>s+Number(l.amount||0),0)}),fleetNormaliseCustomer:x=>x,vectaActiveInvoices:()=>invoices,fleetNmukMonthlyLines:()=>[{amount:1680}]};
- vm.createContext(ctx);vm.runInContext(source,ctx);
+function total(invoices,customer='NMUK',month='2026-09',today='2026-09-30'){
+ const ctx={todayIso:()=>today,invoiceTotals:lines=>({subtotal:lines.reduce((s,l)=>s+Number(l.amount||0),0)}),fleetNormaliseCustomer:x=>x,vectaActiveInvoices:()=>invoices,fleetNmukMonthlyLines:()=>[{amount:1680}]};
+ vm.createContext(ctx);vm.runInContext(html.match(/function fleetNmukMonthlyCostsDue\(month\)\{[^\n]+/)[0],ctx);vm.runInContext(source,ctx);
  return ctx.fleetEomCustomerTotal(customer,month,[{amount:10350}]);
 }
 test('financial summary adds saved consolidated monthly extras exactly once',()=>{
@@ -42,4 +42,15 @@ test('invoice save preserves consolidated monthly details',()=>{
  vm.createContext(ctx);vm.runInContext(gather,ctx);ctx.gatherInvoice('test');
  assert.equal(inv.lines[0].nmuk_monthly_extras[0].amount,2420);
  assert.notEqual(inv.lines[0].nmuk_monthly_extras,original[0].nmuk_monthly_extras);
+});
+
+test('monthly costs enter running totals only on the final calendar date',()=>{
+ for(const [month,last] of [['2026-10','31'],['2026-09','30'],['2027-02','28'],['2028-02','29']]){
+  const before=month+'-'+String(Number(last)-1).padStart(2,'0'),end=month+'-'+last;
+  const saved=[{fleet_customer:'NMUK',fleet_month:month,lines:[{amount:12770,nmuk_monthly_extras:[{amount:2420}]}]}];
+  assert.equal(total([], 'NMUK',month,before),10350);
+  assert.equal(total(saved,'NMUK',month,before),10350);
+  assert.equal(total([], 'NMUK',month,end),12030);
+  assert.equal(total(saved,'NMUK',month,end),12770);
+ }
 });

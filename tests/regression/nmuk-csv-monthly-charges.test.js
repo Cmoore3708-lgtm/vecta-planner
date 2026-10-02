@@ -3,9 +3,9 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import vm from 'node:vm';
 const html=fs.readFileSync(new URL('../../index.html',import.meta.url),'utf8');
-function setup(saved){
+function setup(saved,today='2029-01-01'){
  let output='',warning='';
- const context={alert:text=>{warning=text},fleetNormaliseCustomer:x=>x,vectaActiveInvoices:()=>saved?[saved]:[],invoiceTotals:lines=>({subtotal:lines.reduce((s,l)=>s+Number(l.amount||0),0)}),fleetNmukIsInternalJob:j=>j.internal,fleetEomLineItems:j=>[{description:'Workshop work',price:j.price}],niceDate:x=>x,fleetEomRegistrationText:()=>'',fleetNmukTypeForJob:j=>j.nmuk_type||'',financeBaseJob:j=>j,normReg:x=>String(x||'').replace(/ /g,'').toUpperCase(),app:{jobs:[],jobCustomerMemory:{}},window:{},Blob:class{constructor(parts){output=parts.join('')}},URL:{createObjectURL:()=>'',revokeObjectURL:()=>{}},document:{createElement:()=>({click(){},remove(){}}),body:{appendChild(){}}},setTimeout:()=>{}};
+ const context={todayIso:()=>today,alert:text=>{warning=text},fleetNormaliseCustomer:x=>x,vectaActiveInvoices:()=>saved?[saved]:[],invoiceTotals:lines=>({subtotal:lines.reduce((s,l)=>s+Number(l.amount||0),0)}),fleetNmukIsInternalJob:j=>j.internal,fleetEomLineItems:j=>[{description:'Workshop work',price:j.price}],niceDate:x=>x,fleetEomRegistrationText:()=>'',fleetNmukTypeForJob:j=>j.nmuk_type||'',financeBaseJob:j=>j,normReg:x=>String(x||'').replace(/ /g,'').toUpperCase(),app:{jobs:[],jobCustomerMemory:{}},window:{},Blob:class{constructor(parts){output=parts.join('')}},URL:{createObjectURL:()=>'',revokeObjectURL:()=>{}},document:{createElement:()=>({click(){},remove(){}}),body:{appendChild(){}}},setTimeout:()=>{}};
  vm.createContext(context);
  vm.runInContext(html.match(/function fleetNmukCsvTypeForJob\(job\)\{[\s\S]*?\n\}/)[0],context);
  vm.runInContext(html.slice(html.indexOf('function financeAuthoritativeNmukAllocation('),html.indexOf('function financeRawAllocationEvidence(')),context);
@@ -84,4 +84,19 @@ test('CSV uses saved MVOS subtype and job-customer memory, with Other for remain
  assert.match(s.csv(),/"Pool","Workshop work"/);
  assert.match(s.csv(),/"Other","Workshop work"/);
  assert.match(s.csv(),/"Total:","50.00"/);
+});
+
+test('current month export and category totals exclude monthly costs until month end',()=>{
+ const s=setup(null,'2026-10-30'),c=s.context;
+ c.fleetNmukMonthlyDrafts['2026-10']=[{description:'Puncture repairs',amount:200,section:'internal'},{description:'Fleet Maintenance work',amount:900,section:'other'}];
+ assert.equal(c.fleetNmukMonthTotals(rows,'2026-10').total,10350);
+ c.fleetDownloadEomCsv('NMUK','2026-10',rows);
+ assert.match(s.csv(),/"Total:","10350.00"/);
+ assert.doesNotMatch(s.csv(),/Puncture repairs|Fleet Maintenance work/);
+ assert.equal(c.fleetNmukMonthlyLines('2026-10')[0].amount,200);
+ c.todayIso=()=> '2026-10-31';
+ assert.equal(c.fleetNmukMonthTotals(rows,'2026-10').total,11450);
+ c.fleetDownloadEomCsv('NMUK','2026-10',rows);
+ assert.match(s.csv(),/"2026-10-31","","Internal","Puncture repairs","200.00"/);
+ assert.match(s.csv(),/"Total:","11450.00"/);
 });
