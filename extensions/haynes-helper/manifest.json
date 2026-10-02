@@ -1,0 +1,11 @@
+{
+  "manifest_version":3,
+  "name":"VECTA HaynesPro Helper",
+  "version":"0.1.0",
+  "description":"Import service information into VECTA using your signed-in HaynesPro browser session.",
+  "permissions":["scripting","storage","activeTab"],
+  "host_permissions":["https://www.workshopdata.com/*"],
+  "optional_host_permissions":["https://*/*"],
+  "background":{"service_worker":"background.js","type":"module"},
+  "action":{"default_popup":"popup.html"}
+}
