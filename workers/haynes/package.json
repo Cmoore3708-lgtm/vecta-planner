@@ -1,0 +1,6 @@
+{
+  "name": "vecta-haynes-worker", "private": true, "type": "module",
+  "engines": { "node": ">=22" },
+  "scripts": { "start": "node server.mjs", "login": "node login.mjs" },
+  "dependencies": { "playwright": "1.63.0" }
+}

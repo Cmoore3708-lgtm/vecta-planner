@@ -1,0 +1,40 @@
+-- Rollback-only integration checks. No changes survive this transaction.
+begin;
+do $$
+declare a jsonb; b jsonb; c jsonb; tok text := repeat('a',64);
+begin
+  delete from public.haynes_relay_jobs;
+  update public.haynes_relay_worker set token_hash=null,pair_hash=repeat('b',64),pair_expires=now()+interval '1 hour',last_seen=null,quota_count=0,quota_day=null;
+  a := public.haynes_relay('pull',jsonb_build_object('token_hash',tok));
+  if a->>'status' <> 'UNAUTHORIZED' then raise exception 'missing-token auth failed'; end if;
+  a := public.haynes_relay('pair',jsonb_build_object('pair_hash',repeat('b',64),'token_hash',tok));
+  if a->>'status' <> 'PAIRED' then raise exception 'pair failed'; end if;
+  a := public.haynes_relay('pair',jsonb_build_object('pair_hash',repeat('b',64),'token_hash',tok));
+  if a->>'status' <> 'UNAUTHORIZED' then raise exception 'code reused'; end if;
+  a := public.haynes_relay('enqueue','{"registration":"FX69XWU"}');
+  if a->>'status' <> 'OFFLINE' then raise exception 'offline failed'; end if;
+  a := public.haynes_relay('pull',jsonb_build_object('token_hash',tok));
+  a := public.haynes_relay('enqueue','{"registration":"FX69XWU"}');
+  b := public.haynes_relay('enqueue','{"registration":"FX69XWU"}');
+  if a->>'id' <> b->>'id' then raise exception 'dedup failed'; end if;
+  b := public.haynes_relay('pull',jsonb_build_object('token_hash',tok));
+  c := public.haynes_relay('pull',jsonb_build_object('token_hash',tok));
+  if c->>'status' <> 'IDLE' then raise exception 'serial claim failed'; end if;
+  c := public.haynes_relay('complete',jsonb_build_object('token_hash',tok,'id',b->>'id','lease',gen_random_uuid(),'status','MATCHED','vehicle',jsonb_build_object('registration','FX69XWU')));
+  if c->>'status' <> 'EXPIRED' then raise exception 'wrong lease accepted'; end if;
+  c := public.haynes_relay('complete',jsonb_build_object('token_hash',tok,'id',b->>'id','lease',b->>'lease','status','MATCHED','vehicle',jsonb_build_object('registration','AB12CDE')));
+  if c->>'status' <> 'EXPIRED' then raise exception 'wrong registration accepted'; end if;
+  c := public.haynes_relay('complete',jsonb_build_object('token_hash',tok,'id',b->>'id','lease',b->>'lease','status','MATCHED','vehicle',jsonb_build_object('registration','FX69XWU')));
+  if c->>'status' <> 'SAVED' then raise exception 'completion failed'; end if;
+  c := public.haynes_relay('enqueue','{"registration":"FX69XWU"}');
+  if c->>'status' <> 'MATCHED' then raise exception 'cache failed'; end if;
+  a := public.haynes_relay('enqueue','{"registration":"AB12CDE"}');
+  update public.haynes_relay_jobs set deadline=now()-interval '1 second' where id=(a->>'id')::uuid;
+  c := public.haynes_relay('poll',jsonb_build_object('id',a->>'id'));
+  if c->>'status' <> 'UNAVAILABLE' then raise exception 'expiry failed'; end if;
+  update public.haynes_relay_worker set quota_day=(now() at time zone 'UTC')::date,quota_count=150;
+  c := public.haynes_relay('enqueue','{"registration":"ZZ12ABC"}');
+  if c->>'status' <> 'DAILY_LIMIT' then raise exception 'daily limit failed'; end if;
+end $$;
+select 'relay checks passed' as result;
+rollback;
