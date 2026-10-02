@@ -7,7 +7,8 @@
     { "path": "/api/nmuk-service-reminders-winter", "schedule": "0 12 * * *" }
   ],
   "functions": {
-    "api/fleet-nightly-refresh.js": { "maxDuration": 300 }
+    "api/fleet-nightly-refresh.js": { "maxDuration": 300 },
+    "api/haynes-vehicle.js": { "maxDuration": 30 }
   },
   "rewrites": [
     { "source": "/booking", "destination": "/booking.html" },
