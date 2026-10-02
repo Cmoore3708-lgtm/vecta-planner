@@ -16,9 +16,13 @@ if errorlevel 1 (
 if not exist node_modules\playwright\package.json (
   call npm ci --ignore-scripts
   if errorlevel 1 (
-    echo Dependency installation failed. Please report the error shown above.
-    pause
-    exit /b 1
+    echo Trying direct installation of the pinned worker packages.
+    call npm install --ignore-scripts
+    if errorlevel 1 (
+      echo Dependency installation failed. Please report the error shown above.
+      pause
+      exit /b 1
+    )
   )
 )
 echo This opens a separate Edge window for the Haynes worker.
