@@ -6,6 +6,13 @@ const PUBLIC_PATHS = new Set(['/booking', '/booking/', '/booking.html', '/approv
 const PREVIEW_ADMIN_PATHS = new Set(['/admin.html', '/site-preview.html', '/booking-preview.html']);
 const PUBLIC_PREFIXES = ['/api/', '/assets/', '/icons/', '/js/'];
 const PUBLIC_FILES = new Set(['/favicon.ico', '/manifest.webmanifest', '/service-worker.js', '/supabase.min.js']);
+const PUBLIC_WEBSITE_HOSTS = new Set(['www.vectamotors.co.uk', 'vectamotors.co.uk']);
+const PUBLIC_WEBSITE_PATHS = new Set(['/', '/booking', '/booking/', '/privacy', '/terms', '/vecta-site-index.html', '/vecta-site-booking.html']);
+
+function isPublicWebsiteRequest(request) {
+  const url = new URL(request.url);
+  return PUBLIC_WEBSITE_HOSTS.has(url.hostname.toLowerCase()) && PUBLIC_WEBSITE_PATHS.has(url.pathname);
+}
 
 export function requiresManagerLogin(pathname) {
   return !PUBLIC_PATHS.has(pathname)
@@ -101,6 +108,7 @@ export async function validManagerSession(request,credentials,now=Date.now()){
 }
 
 export default async function middleware(request) {
+  if (isPublicWebsiteRequest(request)) return next();
   const credentials = {
     user: process.env.VECTA_MAIN_USER,
     password: process.env.VECTA_MAIN_PASSWORD
