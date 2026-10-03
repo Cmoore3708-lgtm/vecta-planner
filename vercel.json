@@ -1,23 +1,112 @@
 {
   "version": 2,
-  "regions": ["lhr1"],
+  "regions": [
+    "lhr1"
+  ],
   "crons": [
-    { "path": "/api/fleet-nightly-refresh", "schedule": "30 22 * * *" },
-    { "path": "/api/nmuk-service-reminders-summer", "schedule": "0 11 * * *" },
-    { "path": "/api/nmuk-service-reminders-winter", "schedule": "0 12 * * *" }
+    {
+      "path": "/api/fleet-nightly-refresh",
+      "schedule": "30 22 * * *"
+    },
+    {
+      "path": "/api/nmuk-service-reminders-summer",
+      "schedule": "0 11 * * *"
+    },
+    {
+      "path": "/api/nmuk-service-reminders-winter",
+      "schedule": "0 12 * * *"
+    }
   ],
   "functions": {
-    "api/fleet-nightly-refresh.js": { "maxDuration": 300 }
+    "api/fleet-nightly-refresh.js": {
+      "maxDuration": 300
+    }
   },
   "rewrites": [
-    { "source": "/booking", "destination": "/booking.html" },
-    { "source": "/booking/", "destination": "/booking.html" },
-    { "source": "/api/cloud-health", "destination": "/api/supabase-config?health=1" },
-    { "source": "/api/nmuk-service-reminders-summer", "destination": "/api/fleet-nightly-refresh?task=nmuk-summer" },
-    { "source": "/api/nmuk-service-reminders-winter", "destination": "/api/fleet-nightly-refresh?task=nmuk-winter" },
-    { "source": "/(.*)", "destination": "/index.html" }
+    {
+      "source": "/",
+      "has": [
+        {
+          "type": "host",
+          "value": "www.vectamotors.co.uk"
+        }
+      ],
+      "destination": "/vecta-site-index.html"
+    },
+    {
+      "source": "/booking",
+      "has": [
+        {
+          "type": "host",
+          "value": "www.vectamotors.co.uk"
+        }
+      ],
+      "destination": "/vecta-site-booking.html"
+    },
+    {
+      "source": "/booking/",
+      "has": [
+        {
+          "type": "host",
+          "value": "www.vectamotors.co.uk"
+        }
+      ],
+      "destination": "/vecta-site-booking.html"
+    },
+    {
+      "source": "/privacy",
+      "has": [
+        {
+          "type": "host",
+          "value": "www.vectamotors.co.uk"
+        }
+      ],
+      "destination": "https://vecta-website-4mhfbwna9-vectaplanner.vercel.app/privacy"
+    },
+    {
+      "source": "/terms",
+      "has": [
+        {
+          "type": "host",
+          "value": "www.vectamotors.co.uk"
+        }
+      ],
+      "destination": "https://vecta-website-4mhfbwna9-vectaplanner.vercel.app/terms"
+    },
+    {
+      "source": "/booking",
+      "destination": "/booking.html"
+    },
+    {
+      "source": "/booking/",
+      "destination": "/booking.html"
+    },
+    {
+      "source": "/api/cloud-health",
+      "destination": "/api/supabase-config?health=1"
+    },
+    {
+      "source": "/api/nmuk-service-reminders-summer",
+      "destination": "/api/fleet-nightly-refresh?task=nmuk-summer"
+    },
+    {
+      "source": "/api/nmuk-service-reminders-winter",
+      "destination": "/api/fleet-nightly-refresh?task=nmuk-winter"
+    },
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
+    }
   ],
   "headers": [
-    { "source": "/(.*)", "headers": [{ "key": "Cache-Control", "value": "no-store, no-cache, must-revalidate" }] }
+    {
+      "source": "/(.*)",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "no-store, no-cache, must-revalidate"
+        }
+      ]
+    }
   ]
 }
