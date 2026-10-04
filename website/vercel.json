@@ -3,8 +3,8 @@
   "trailingSlash": false,
   "rewrites": [
     {
-      "source": "/api/:path*",
-      "destination": "https://vecta-website-4mhfbwna9-vectaplanner.vercel.app/api/:path*"
+      "source": "/api/customer-history",
+      "destination": "https://vecta-planner.vercel.app/api/customer-history"
     },
     {
       "source": "/privacy",
