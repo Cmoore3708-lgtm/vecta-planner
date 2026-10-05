@@ -39,7 +39,8 @@ export default async function handler(req,res){
   const start=new Date(); start.setUTCDate(start.getUTCDate()+1); let dates=[];for(let i=0;i<180;i++){const d=new Date(start);d.setUTCDate(start.getUTCDate()+i);if(weekday(d))dates.push(ymd(d));}
   if(motBooking){const cutoff=new Date();cutoff.setUTCHours(0,0,0,0);cutoff.setUTCDate(cutoff.getUTCDate()+MOT_LEAD_DAYS);dates=dates.filter(date=>date>=ymd(cutoff));}
   const rows=await query(url,key,`jobs?select=booking_date,drop_time,estimated_hours,technician,archived,status&booking_date=gte.${dates[0]}&booking_date=lte.${dates[dates.length-1]}&archived=eq.false&technician=eq.${encodeURIComponent(PUBLIC_BOOKING_TECHNICIAN)}`);
-  const timeOff=await query(url,key,`mechanic_time_off?select=mechanic,start_date,end_date,start_time,end_time&mechanic=eq.${encodeURIComponent(PUBLIC_BOOKING_TECHNICIAN)}&start_date=lte.${dates[dates.length-1]}&end_date=gte.${dates[0]}`);
+  const settings=await query(url,key,'workshop_settings?select=time_off:value->mechanicTimeOff&id=eq.main');
+  const timeOff=Array.isArray(settings?.[0]?.time_off)?settings[0].time_off:[];
   const pending=await query(url,key,`website_booking_requests?select=id,confirmed_date,job_types&status=eq.awaiting_review&confirmed_date=gte.${dates[0]}&confirmed_date=lte.${dates[dates.length-1]}`);
   const slots=dates.map(date=>bookingSlot(date,rows,timeOff,pending,hours)).filter(Boolean);
   return res.status(200).json({hours,technician:PUBLIC_BOOKING_TECHNICIAN,max_booked_percentage:75,friday_max_booked_percentage:50,closed_weekdays:[0,1,6],mot_lead_days:motBooking?MOT_LEAD_DAYS:0,slots});

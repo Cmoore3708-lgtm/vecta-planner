@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import vm from 'node:vm';
-import {bookingSlot,durationFor} from '../../api/availability.js';
+import handler,{bookingSlot,durationFor} from '../../api/availability.js';
 
 const friday='2026-10-09',tuesday='2026-10-13';
 const job=(hours,patch={})=>({booking_date:friday,drop_time:'08:00',estimated_hours:hours,technician:'Alfie',status:'booked',archived:false,...patch});
@@ -37,6 +37,24 @@ test('pending service and MOT combinations match customer booking durations',()=
  assert.equal(durationFor(['Oil & Filter Change','MOT']),2);
  assert.equal(durationFor(['Major Service','MOT']),3.5);
  assert.equal(durationFor(['Brakes','Tyres']),3);
+});
+test('availability reads the planner’s persisted settings for time off, not an absent table',async()=>{
+ const fetchBefore=globalThis.fetch,envBefore={...process.env},paths=[];
+ process.env.VERCEL_ENV='production';process.env.VITE_SUPABASE_URL='https://test.invalid';process.env.SUPABASE_SERVICE_ROLE_KEY='test-key';
+ globalThis.fetch=async url=>{
+  const parsed=new URL(url);paths.push(parsed.pathname);
+  assert.notEqual(parsed.pathname,'/rest/v1/mechanic_time_off');
+  if(parsed.pathname==='/rest/v1/workshop_settings'){
+   assert.equal(parsed.searchParams.get('select'),'time_off:value->mechanicTimeOff');
+   return {ok:true,json:async()=>[{time_off:[]}]};
+  }
+  return {ok:true,json:async()=>[]};
+ };
+ const res={status(code){this.code=code;return this;},json(data){this.data=data;return this;}};
+ try{await handler({method:'POST',body:{job_types:['Brakes'],estimated_hours:1.5}},res);
+  assert.equal(res.code,200);assert.ok(res.data.slots.length>12);assert.equal(res.data.friday_max_booked_percentage,50);
+  assert.ok(paths.includes('/rest/v1/workshop_settings'));
+ }finally{globalThis.fetch=fetchBefore;for(const key of Object.keys(process.env))if(!(key in envBefore))delete process.env[key];Object.assign(process.env,envBefore);}
 });
 test('further-ahead calendar enables only checked slots, including no Mondays',()=>{
  const html=fs.readFileSync(new URL('../../website/booking/index.html',import.meta.url),'utf8');
