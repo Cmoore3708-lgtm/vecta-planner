@@ -24,5 +24,5 @@ export default async function handler(req,res){
   }
   if(created)await sendBookingBadges();
   return res.status(created?201:200).json({ok:true,confirmed:false,request_id:id,date:b.appointment_date||null,time:b.appointment_time||null});
- }catch(e){console.error(e);return res.status(500).json({error:'Unable to complete booking'});}
+ }catch(e){if(String(e.message).includes('VECTA_BOOKING_MONDAY'))return res.status(409).json({error:'Mondays are not available for online bookings. Please choose another day.'});if(String(e.message).includes('VECTA_BOOKING_FRIDAY_CAPACITY'))return res.status(409).json({error:'Alfie’s Friday online booking capacity is now full. Please choose another date.'});console.error(e);return res.status(500).json({error:'Unable to complete booking'});}
 }
