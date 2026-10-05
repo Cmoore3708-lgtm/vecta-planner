@@ -2,6 +2,26 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { relayLookup } from '../../lib/haynes-relay.js';
 
+test('scoped website relay does not require or transmit a database administrator key', async () => {
+  const saved = {...process.env}, oldFetch = global.fetch;
+  try {
+    process.env.VERCEL_ENV = 'preview';
+    process.env.HAYNES_RELAY_SITE_TOKEN = 'b'.repeat(64);
+    delete process.env.VECTA_TEST_SUPABASE_SERVICE_ROLE_KEY;
+    delete process.env.VECTA_TEST_SUPABASE_URL;
+    global.fetch = async (url,options) => {
+      assert.equal(url,'https://brqsejjykrubxuofavuu.supabase.co/functions/v1/haynes-pc-relay');
+      assert.equal(options.headers.Authorization,'Bearer '+'b'.repeat(64));
+      assert.equal(options.headers.apikey,undefined);
+      assert.deepEqual(JSON.parse(options.body),{action:'enqueue',registration:'FX69XWU'});
+      return {ok:true,json:async () => ({status:'OFFLINE'})};
+    };
+    assert.deepEqual(await relayLookup('FX69XWU'),{status:'OFFLINE'});
+    process.env.HAYNES_RELAY_SITE_TOKEN = 'bad';
+    await assert.rejects(relayLookup('FX69XWU'),/Invalid scoped relay configuration/);
+  } finally {global.fetch=oldFetch;process.env=saved;}
+});
+
 test('relay polls a deduplicated job and strips private result fields', async () => {
   const saved = {...process.env}, oldFetch = global.fetch;
   try {

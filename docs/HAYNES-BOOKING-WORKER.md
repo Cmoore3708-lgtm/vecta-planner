@@ -18,7 +18,7 @@ Chris reports successful manual login on the workshop PC. The outbound connector
 
 The worker is implemented and tested with DOM fixtures, queue tests, an authenticated HTTP service and the booking-page DOM. A Vercel preview can show the page and its DVSA lookup. Unconfigured Haynes requests return `NOT_CONFIGURED` and display the unavailable fallback; this is not a working unattended Haynes deployment.
 
-The isolated Test Supabase project now has `haynes_relay_worker`, `haynes_relay_jobs` and service-only `haynes_relay` RPC, with an outbound `haynes-pc-relay` Edge Function. The Test branch proxy uses the existing `VECTA_TEST_SUPABASE_SERVICE_ROLE_KEY`; this key never reaches the PC. No new paid worker host is used. The earlier Chrome extension PR remains separate.
+The isolated Test Supabase project now has `haynes_relay_worker`, `haynes_relay_jobs` and service-only `haynes_relay` RPC, with an outbound `haynes-pc-relay` Edge Function. The selected Test branch proxy uses a scoped server-only `HAYNES_RELAY_SITE_TOKEN` through the Edge Function. Its hash is stored in `haynes_relay_worker.site_token_hash`; `haynes_relay_site` only permits enqueue/poll. No database administrator key is required in Vercel for this path. A legacy direct service-key path remains available when explicitly configured; neither token nor database keys reach booking-page JavaScript. No new paid worker host is used. The earlier Chrome extension PR remains separate.
 
 ## Windows outbound connector
 
@@ -76,3 +76,9 @@ For reauthentication, stop the worker, run the login helper on its private deskt
 Run `npm run release:gate`. Automated tests cover model extraction, public field/image allowlists, wrong registration, ambiguous data, serialization, deduplication, cache expiry, queue/quota limits, expired-login circuit, HTTP authentication, production-disabled proxy, missing worker configuration, late client responses, conflicting make and the Test page's preserved DVSA fields/advisories and disabled submit.
 
 Still required: build/run on the selected host, manual supplier login, worker-to-Vercel live registration lookup, a second make, an ambiguous variant, expired login/recovery, image rendering on desktop/iPhone/iPad, and restart/session persistence. Only the supplier UI for FX69 XWU was inspected live earlier; the worker has not yet run an authenticated live lookup. No Main merge or production data changes are part of this task.
+
+## 5 October checkpoint
+
+The laptop is now paired and its heartbeat was verified live. A real FX69XWU relay job was claimed and completed within its deadline, but returned UNAVAILABLE with no vehicle; the supplier lookup is not yet verified. Vercel dashboard inspection confirmed the Haynes branch lacked its Test service credential. A relay-only site token path is now implemented and tested instead. The Preview-only branch secret form is prepared; the new token must be entered and saved by Chris, then the preview redeployed. Main remains untouched.
+
+For supplier diagnostics, stop the connector with Ctrl+C, run `windows-check.cmd` from the updated branch and enter FX69XWU. It opens the separate Edge profile visibly and prints a fixed error code/stage/reason, retaining the failed page until Enter. Return only the terminal status/stage/reason; screenshots of supplier pages may contain a VIN. Standard unattended lookups retain their 23-second page deadline and always close their tab. The manual helper allows inspection after an error and does not bypass login or verification.

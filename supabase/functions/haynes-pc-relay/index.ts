@@ -25,8 +25,9 @@ Deno.serve(async req => {
     for (const chunk of chunks) { bytes.set(chunk,offset); offset += chunk.byteLength; }
     const input = new TextDecoder().decode(bytes);
     const body = JSON.parse(input);
-    if (!['pair','pull','complete'].includes(body.action)) return response({status:'INVALID_ACTION'},400);
+    if (!['pair','pull','complete','enqueue','poll'].includes(body.action)) return response({status:'INVALID_ACTION'},400);
     let payload: Record<string,unknown>;
+    let siteTokenHash: string | undefined;
     if (body.action === 'pair') {
       if (!/^[a-f0-9]{32}$/.test(body.code) || !/^[a-f0-9]{64}$/.test(body.token)) return response({status:'UNAUTHORIZED'},401);
       payload = { pair_hash: await hash(body.code), token_hash: await hash(body.token) };
@@ -34,6 +35,17 @@ Deno.serve(async req => {
       const token = (req.headers.get('authorization') || '').replace(/^Bearer /,'');
       if (!/^[a-f0-9]{64}$/.test(token)) return response({status:'UNAUTHORIZED'},401);
       payload = { token_hash: await hash(token) };
+      if (['enqueue','poll'].includes(body.action)) {
+        siteTokenHash = await hash(token);
+        if (body.action === 'enqueue') {
+          const registration = normaliseReg(body.registration);
+          if (!validReg(registration)) return response({status:'INVALID_REGISTRATION'},400);
+          payload = {registration};
+        } else {
+          if (!/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/.test(body.id)) return response({status:'INVALID_REQUEST'},400);
+          payload = {id:body.id};
+        }
+      }
       if (body.action === 'complete') {
         if (!/^[a-f0-9-]{36}$/.test(body.id) || !/^[a-f0-9-]{36}$/.test(body.lease)) return response({status:'INVALID_RESULT'},400);
         payload.id = body.id; payload.lease = body.lease; payload.status = body.status;
@@ -45,7 +57,9 @@ Deno.serve(async req => {
       }
     }
     const key = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-    const result = await fetch(TEST + '/rest/v1/rpc/haynes_relay', {method:'POST',headers:{apikey:key,Authorization:'Bearer '+key,'Content-Type':'application/json'},body:JSON.stringify({p_action:body.action,p_payload:payload}),signal:AbortSignal.timeout(8000)});
+    const rpc = siteTokenHash ? 'haynes_relay_site' : 'haynes_relay';
+    const args = {p_action:body.action,p_payload:payload,...(siteTokenHash ? {p_token_hash:siteTokenHash} : {})};
+    const result = await fetch(TEST + '/rest/v1/rpc/' + rpc, {method:'POST',headers:{apikey:key,Authorization:'Bearer '+key,'Content-Type':'application/json'},body:JSON.stringify(args),signal:AbortSignal.timeout(8000)});
     if (!result.ok) return response({status:'UNAVAILABLE'},503);
     const data = await result.json();
     return response(data,data.status === 'UNAUTHORIZED' ? 401 : 200);
