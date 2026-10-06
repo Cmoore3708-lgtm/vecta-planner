@@ -40,3 +40,13 @@ test('changing mileage requests a fresh automatic interval and replaces the serv
  assert.match(sheet.querySelector('.ssHaynesStatus').textContent,/75,000/);
  sheet.remove();
 });
+test('compact inspection layout moves existing fields without losing technician entries',async()=>{
+ const {document,window,sheet}=setup(async()=>({status:'MATCHED',result:data}));
+ const sections=document.createElement('div');sections.innerHTML='<div class="ssHealth"></div><div class="ssMeasureGrid"><section><span contenteditable="true">6mm</span></section><div class="ssRightStack"><section>Brake pads</section><section>Brake discs</section></div></div><div class="ssLower"><section>MOT advisory</section><section><span contenteditable="true">Mechanic note</span></section></div><div class="ssBottom"><div class="ssGuide">Condition guide</div></div>';
+ sheet.appendChild(sections);const fields=[...sections.querySelectorAll('[contenteditable]')];
+ await window.initHaynesServiceSheet(sheet,'FX69XWU','service');await settle();
+ assert.equal(sheet.querySelector('.ssHealth .ssGuide').textContent,'Condition guide');
+ assert.equal(sheet.querySelector('.ssHaynesLowerGrid').children.length,3);
+ assert.ok(fields.every(field=>sheet.contains(field)));
+ assert.equal(fields[1].textContent,'Mechanic note');sheet.remove();
+});

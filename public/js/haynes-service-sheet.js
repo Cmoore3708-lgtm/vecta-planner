@@ -9,6 +9,14 @@ root.initHaynesServiceSheet=async function(sheet,registration,kind){
  let config;try{config=await fetch('/api/supabase-config',{cache:'no-store'}).then(r=>r.json());}catch{return;}
  if(!sheet.isConnected||!config.haynesServiceTest)return;
  sheet.classList.add('ssHaynesCompact');
+ const guide=sheet.querySelector('.ssGuide'),health=sheet.querySelector('.ssHealth');
+ if(guide&&health)health.appendChild(guide);
+ const measures=sheet.querySelector('.ssMeasureGrid'),lower=sheet.querySelector('.ssLower');
+ if(measures&&lower&&!sheet.querySelector('.ssHaynesLowerGrid')){
+  const compact=document.createElement('div');compact.className='ssHaynesLowerGrid';measures.replaceWith(compact);
+  const tyres=measures.children[0],brakes=measures.children[1];
+  if(tyres)compact.appendChild(tyres);if(brakes)compact.appendChild(brakes);compact.appendChild(lower);
+ }
  const info=sheet.querySelector('.ssInfo');
  if(info){const columns=Array.from(info.children);if(columns.length===3)columns[2].remove();}
  const pre=sheet.querySelector('.ssPre');

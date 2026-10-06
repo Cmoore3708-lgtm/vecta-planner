@@ -98,3 +98,38 @@
 .servicePrint.ssHaynesCompact .ssHaynesVehicle{position:relative;z-index:2;margin-bottom:-30px!important;align-self:end}
 .servicePrint.ssHaynesCompact .ssHaynesVehicle img{width:240px!important;height:145px!important;transform:scale(1.18);transform-origin:right bottom}
 @media(max-width:650px){.servicePrint.ssHaynesCompact .ssHaynesVehicle img{width:190px!important;height:145px!important;transform:scale(1.1)}}
+
+/* A compact lower inspection block preserves all editable fields. */
+.servicePrint.ssHaynesCompact .ssHaynesLowerGrid{display:grid;grid-template-columns:1.35fr .8fr 1.15fr;gap:4px;align-items:stretch;margin-top:3px}
+.servicePrint.ssHaynesCompact .ssHaynesLowerGrid .ssLower{display:grid;grid-template-columns:1fr;grid-template-rows:auto 1fr;margin:0!important;gap:3px}
+.servicePrint.ssHaynesCompact .ssHaynesLowerGrid .ssRightStack{gap:3px}
+.servicePrint.ssHaynesCompact .ssHaynesLowerGrid .ssSection{margin:0!important}
+.servicePrint.ssHaynesCompact .ssHaynesLowerGrid .ssNotesArea{height:54px!important}
+.servicePrint.ssHaynesCompact .ssHaynesLowerGrid .ssBoxNotes{height:34px!important}
+.servicePrint.ssHaynesCompact .ssHaynesLowerGrid .ssBrakeNotes{height:20px!important}
+.servicePrint.ssHaynesCompact .ssHaynesLowerGrid .ssTyreMeasure tr>*:nth-child(2),.servicePrint.ssHaynesCompact .ssHaynesLowerGrid .ssTyreMeasure tr>*:nth-child(3){width:48px!important}
+.servicePrint.ssHaynesCompact .ssHaynesLowerGrid .ssTyreMeasure tr>*:last-child{width:66px!important}
+.servicePrint.ssHaynesCompact .ssHealth .ssGuide{margin:4px;border-radius:2px}
+.servicePrint.ssHaynesCompact .ssHealth .ssGuideRow{grid-template-columns:54px 1fr;min-height:18px!important;font-size:7px}
+.servicePrint.ssHaynesCompact .ssHealth .ssGuideHead{font-size:9px!important;padding:3px!important}
+.servicePrint.ssHaynesCompact .ssBottom{grid-template-columns:1fr!important;margin-top:3px!important}
+@media print{
+ .servicePrint.ssHaynesCompact{width:100%!important;font-size:8px!important;line-height:1.05!important}
+ .servicePrint.ssHaynesCompact .ssHeader:has(.ssHaynesVehicle){grid-template-columns:minmax(105px,1fr) 165px 150px 210px!important;height:75px!important;margin-bottom:3px!important}
+ .servicePrint.ssHaynesCompact .ssHaynesVehicle img{width:210px!important;height:100px!important;transform:scale(1.1)!important}
+ .servicePrint.ssHaynesCompact .ssHaynesVehicle{margin-bottom:-15px!important}
+ .servicePrint.ssHaynesCompact .ssDocumentTitle{font-size:15px!important;padding:2px 6px!important}
+ .servicePrint.ssHaynesCompact .ssDueSummary>div{min-height:0!important;padding:3px 5px!important}
+ .servicePrint.ssHaynesCompact .ssTopGrid{gap:3px!important}
+ .servicePrint.ssHaynesCompact .ssOps td,.servicePrint.ssHaynesCompact .ssHealthChecks td{height:15px!important;padding:0 3px!important}
+ .servicePrint.ssHaynesCompact .ssHaynesLowerGrid th,.servicePrint.ssHaynesCompact .ssHaynesLowerGrid td{height:15px!important;padding:1px 3px!important}
+ .servicePrint.ssHaynesCompact .ssHaynesLowerGrid{break-inside:avoid;gap:3px!important}
+ .servicePrint.ssHaynesCompact .ssHaynesColumns{font-size:7.5px!important;gap:6px!important}
+ .servicePrint.ssHaynesCompact .ssHealthBand{padding:3px!important}
+ .servicePrint.ssHaynesCompact .ssScoreNote{padding-bottom:3px!important}
+ .servicePrint.ssHaynesCompact .ssRoad{min-height:42px!important}
+ .servicePrint.ssHaynesCompact .ssRoadMain,.servicePrint.ssHaynesCompact .ssRoadChecks{padding:3px!important}
+ .servicePrint.ssHaynesCompact .ssRoadChecks>div{margin-top:4px!important}
+ .servicePrint.ssHaynesCompact .ssFooter{position:static!important;break-inside:avoid;margin-top:2px!important}
+}
+@media screen and (max-width:650px){.servicePrint.ssHaynesCompact .ssHaynesLowerGrid{grid-template-columns:1fr}.servicePrint.ssHaynesCompact .ssHaynesLowerGrid .ssRightStack{grid-template-columns:1fr 1fr;grid-template-rows:auto}}
