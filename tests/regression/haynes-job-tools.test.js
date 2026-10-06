@@ -4,13 +4,25 @@ import vm from 'node:vm';
 import {readFileSync} from 'node:fs';
 import {parseHTML} from 'linkedom';
 const source=readFileSync(new URL('../../public/js/haynes-job-tools.js',import.meta.url),'utf8');
-const vehicle={registration:'FX69XWU',make:'Nissan',model:'Qashqai',variant:'1.7 dCi',typeId:'t_301000368',imageUrl:'https://www.haynespro-assets.com/workshop/images/123.svg'};
+const vehicle={registration:'FX69XWU',make:'Nissan',model:'Qashqai',variant:'1.7 dCi',typeId:'t_301000368',imageUrl:'https://www.haynespro-assets.com/workshop/images/123.svg',fetchedAt:new Date().toISOString()};
 function setup(fetcher){const {window,document}=parseHTML('<html><body><div id="modal"><section class="jobVehicleSection"><input id="job_registration" value="FX69 XWU"><input id="job_make" value="Nissan"><input type="checkbox" id="job_no_vehicle"></section><button id="save">Save</button></div></body></html>');window.fetch=fetcher;vm.runInNewContext(source,{window,document,AbortController,setTimeout,clearTimeout,encodeURIComponent});window.initHaynesJobTools(document.querySelector('#modal'));return {window,document,panel:document.querySelector('.haynesJobTools')};}
 const response=v=>({ok:true,json:async()=>({status:'MATCHED',vehicle:v})});
 test('confirmed vehicle opens a fixed supplier URL, hides broken images and leaves save intact',async()=>{
  const {document,panel}=setup(async()=>response(vehicle));await panel.querySelector('button').onclick();
  const link=panel.querySelector('a');assert.equal(link.href,'https://www.workshopdata.com/touch/site/layout/modelDetail?typeId=t_301000368');assert.equal(link.target,'_blank');assert.equal(link.rel,'noopener noreferrer');
  assert.match(panel.textContent,/Nissan Qashqai/);panel.querySelector('img').onerror();assert.equal(panel.querySelector('img'),null);assert.equal(document.querySelector('#save').textContent,'Save');
+});
+test('invoice receives confirmed image and details without modifying amounts; fleet strips stay unchanged',()=>{
+ const {window,document}=setup(async()=>response(vehicle));window.VectaHaynesJobTools.remember(vehicle);
+ const sheet=document.createElement('div');sheet.innerHTML='<div class="printInvoiceVehicle"><div class="printVehicleCell">Plate</div><div class="printVehicleCell"><b>Nissan</b></div></div><div class="printTotals">£120.00</div>';document.body.appendChild(sheet);
+ const inv={registration:'FX69 XWU',subtotal:100,vat:20,total:120},before=JSON.stringify(inv);window.enrichHaynesInvoice(sheet,inv);assert.equal(sheet.querySelector('.haynesInvoiceImage').src,vehicle.imageUrl);assert.match(sheet.textContent,/Qashqai/);assert.equal(sheet.querySelector('.printTotals').textContent,'£120.00');assert.equal(JSON.stringify(inv),before);
+ const fleet=document.createElement('div');fleet.innerHTML='<div>Fleet account</div>';window.enrichHaynesInvoice(fleet,{registration:'FLEET ACCOUNT'});assert.equal(fleet.querySelector('img'),null);
+});
+test('dashboard decorates full cards only, preserves duration and drag attributes and rejects another make',()=>{
+ const {window,document}=setup(async()=>response(vehicle));window.VectaHaynesJobTools.remember(vehicle);const host=document.createElement('div');host.innerHTML='<div class="job plannerJobFull" draggable="true" data-job-id="1" style="height:100px"><div class="plannerJobLeft">FX69 XWU</div></div><div class="job plannerJobCompact" data-job-id="2"><div class="plannerJobLeft">FX69 XWU</div></div>';document.body.appendChild(host);window.enrichHaynesDashboard(host,[{id:'1',registration:'FX69XWU',make:'Nissan'},{id:'2',registration:'FX69XWU'}]);assert.equal(host.querySelectorAll('img').length,1);assert.equal(host.querySelector('[data-job-id="1"]').style.height,'100px');assert.equal(host.querySelector('[data-job-id="1"]').getAttribute('draggable'),'true');assert.equal(window.VectaHaynesJobTools.snapshot('FX69XWU','Ford'),null);
+});
+test('snapshot cache drops unsafe fields, rejects stale results and survives storage failure',()=>{
+ const {window}=setup(async()=>response(vehicle));window.localStorage={setItem(){throw Error('full');}};const tools=window.VectaHaynesJobTools;assert.ok(tools.remember({...vehicle,vin:'private',cookie:'secret'}));assert.equal(tools.snapshot(vehicle.registration).vin,undefined);assert.equal(tools.snapshot(vehicle.registration).cookie,undefined);assert.equal(tools.remember({...vehicle,registration:'OTHER',fetchedAt:'2020-01-01T00:00:00Z'}),undefined);assert.equal(tools.snapshot('OTHER'),null);
 });
 test('wrong registration, conflicting make and invalid vehicle ID cannot expose technical links',async()=>{
  for(const wrong of [{...vehicle,registration:'OTHER'},{...vehicle,make:'Ford'},{...vehicle,typeId:'https://evil.test'}]){const {panel}=setup(async()=>response(wrong));await panel.querySelector('button').onclick();assert.equal(panel.querySelector('a'),null);assert.match(panel.textContent,/uncertain/);}
