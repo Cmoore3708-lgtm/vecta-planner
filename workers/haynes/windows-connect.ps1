@@ -13,7 +13,7 @@ $configFile = Join-Path $configDir 'relay-token.txt'
 New-Item -ItemType Directory -Force -Path $configDir | Out-Null
 try {
   if (Test-Path $configFile) {
-    $secureToken = Get-Content -Raw $configFile | ConvertTo-SecureString
+    $secureToken = (Get-Content -Raw $configFile).Trim() | ConvertTo-SecureString
     $env:HAYNES_RELAY_TOKEN = (New-Object System.Net.NetworkCredential('', $secureToken)).Password
   } else {
     $pairCode = Read-Host 'Enter your Test pairing code'
@@ -24,7 +24,7 @@ try {
     $body = @{action='pair'; code=$pairCode.Trim(); token=$workerToken} | ConvertTo-Json
     $result = Invoke-RestMethod -Uri 'https://brqsejjykrubxuofavuu.supabase.co/functions/v1/haynes-pc-relay' -Method Post -ContentType 'application/json' -Body $body
     if ($result.status -ne 'PAIRED') { throw 'Pairing failed. Request a new pairing code.' }
-    ConvertTo-SecureString $workerToken -AsPlainText -Force | ConvertFrom-SecureString | Set-Content $configFile
+    ConvertTo-SecureString $workerToken -AsPlainText -Force | ConvertFrom-SecureString | Set-Content -NoNewline $configFile
     $env:HAYNES_RELAY_TOKEN = $workerToken
     Write-Host 'PC paired with Test. Token saved using Windows account encryption.'
   }
