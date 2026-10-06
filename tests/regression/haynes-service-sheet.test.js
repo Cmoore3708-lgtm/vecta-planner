@@ -27,3 +27,16 @@ test('late lookup response cannot populate a changed odometer reading',async()=>
  sheet.querySelector('.ssMileageEntry').textContent='51000';resolve({status:'MATCHED',result:data});await settle();
  assert.equal(sheet.querySelector('.ssHaynesData').textContent,'');assert.equal(sheet.querySelector('.ssField').textContent,'');
 });
+test('changing mileage requests a fresh automatic interval and replaces the service parts',async()=>{
+ const requests=[];
+ const {window,sheet}=setup(async url=>{const q=new URL(url,'https://example.test').searchParams;requests.push({mileage:q.get('mileage'),period:q.get('period')});const miles=Number(q.get('mileage'));return {status:'MATCHED',result:{...data,mileage:miles,period:miles===50000?'mp_1':'mp_2',periods:[{id:'mp_2',label:'75,000 miles/72 months'}],parts:miles===50000?data.parts:['Oil filter','Fuel filter']}};});
+ await window.initHaynesServiceSheet(sheet,'FX69XWU','service');await settle();
+ const field=sheet.querySelector('.ssMileageEntry');field.textContent='75000';field.dispatchEvent(new window.Event('input'));
+ assert.equal(sheet.querySelector('.ssHaynesData').textContent,'');
+ await new Promise(r=>setTimeout(r,1000));await settle();
+ assert.deepEqual(requests.at(-1),{mileage:'75000',period:''});
+ assert.match(sheet.querySelector('.ssHaynesParts').textContent,/Fuel filter/);
+ assert.doesNotMatch(sheet.querySelector('.ssHaynesParts').textContent,/cabin air/);
+ assert.match(sheet.querySelector('.ssHaynesStatus').textContent,/75,000/);
+ sheet.remove();
+});
