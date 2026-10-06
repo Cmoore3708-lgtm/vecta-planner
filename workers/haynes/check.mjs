@@ -12,6 +12,7 @@ try {
     console.log('Lookup status: '+(error.code || 'UNAVAILABLE'));
     console.log('Stage: '+(error.stage || 'OPEN_BROWSER'));
     console.log('Reason: '+(error.reason || 'BROWSER_ERROR'));
+    console.log('Browser detail: '+(error.browserDetail || 'OTHER'));
     console.log('The failed search page remains open in Edge. Do not share passwords or VINs in screenshots.');
   }
   await input.question('Press Enter to close the diagnostic browser. ');

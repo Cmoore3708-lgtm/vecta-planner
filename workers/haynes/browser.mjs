@@ -56,6 +56,15 @@ export function browserLookup(context, { keepFailedPage = false } = {}) {
       const safeError = error instanceof HaynesError ? error : new HaynesError('UNAVAILABLE');
       safeError.stage = stage;
       safeError.reason = error.name === 'TimeoutError' ? 'TIMEOUT' : error instanceof HaynesError ? error.code : 'BROWSER_ERROR';
+      safeError.browserDetail = [
+        ['CONTEXT_CHANGED', /execution context was destroyed|cannot find context/i],
+        ['PAGE_CLOSED', /page, context or browser has been closed|target closed/i],
+        ['SCRIPT_POLICY', /unsafe-eval|content security policy|refused to evaluate/i],
+        ['EMPTY_DOCUMENT', /null.*innerText|innerText.*null|undefined.*innerText/i],
+        ['REFERENCE_ERROR', /ReferenceError/],
+        ['TYPE_ERROR', /TypeError/],
+        ['NAVIGATION_ERROR', /net::ERR_/],
+      ].find(([,pattern]) => pattern.test(error.message || ''))?.[0] || 'OTHER';
       throw safeError;
     } finally { clearTimeout(deadline); if (!failed || !keepFailedPage) await page.close().catch(() => {}); }
   };
