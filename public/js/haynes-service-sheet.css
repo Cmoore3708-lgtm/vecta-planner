@@ -1,0 +1,10 @@
+.servicePrint .ssHeader:has(.ssHaynesVehicle){grid-template-columns:1fr auto 180px!important;align-items:start!important}
+.servicePrint .ssHaynesVehicle{text-align:right;font-size:10px;line-height:1.3;max-width:180px}
+.servicePrint .ssHaynesVehicle img{display:block;width:160px;height:92px;object-fit:contain;margin:0 0 4px auto}
+.servicePrint .ssHaynesVehicle strong,.servicePrint .ssHaynesVehicle span{display:block}
+.servicePrint .ssHaynes{padding:8px;border:1px solid #ccd7df;background:#f5f8fa;break-inside:avoid}
+.servicePrint .ssHaynesStatus{margin:4px 0}.servicePrint .ssHaynesColumns{display:grid;grid-template-columns:1fr 1.25fr;gap:14px}.servicePrint .ssHaynesColumns ul{margin:4px 0 8px;padding-left:17px}.servicePrint .ssHaynesColumns li{margin:3px 0}.servicePrint .ssHaynesColumns p{margin:5px 0 10px}.servicePrint .ssHaynes small{display:block;font-size:9px;color:#52606b}.servicePrint .ssHaynesConfirm{background:#fff3dc;padding:6px;line-height:1.5}.servicePrint .ssHaynesSelect select{font:inherit;margin-left:6px;max-width:70%}.servicePrint .ssHaynesRefresh{cursor:pointer}
+@media(max-width:650px){.servicePrint .ssHeader:has(.ssHaynesVehicle){grid-template-columns:1fr 140px!important}.servicePrint .ssHaynesVehicle{grid-column:2;grid-row:1/3;max-width:140px}.servicePrint .ssHaynesVehicle img{width:135px;height:80px}.servicePrint .ssHaynesColumns{grid-template-columns:1fr}}
+@media print{.servicePrint .ssHaynesRefresh{display:none}.servicePrint .ssHaynesVehicle img{width:130px;height:75px}.servicePrint .ssHeader:has(.ssHaynesVehicle){grid-template-columns:1fr auto 155px!important}.servicePrint .ssHaynesSelect select{appearance:none;border:0;background:none}}
+.servicePrint .ssHasHaynesVehicle{min-width:0}.servicePrint.ssHasHaynesVehicle .ssPlate{width:270px!important}.servicePrint.ssHasHaynesVehicle .ssBrand{min-width:0}.servicePrint.ssHasHaynesVehicle .ssPlateReg{font-size:26px!important}
+@media(max-width:650px){.servicePrint.ssHasHaynesVehicle .ssPlate{width:220px!important;grid-column:1}.servicePrint.ssHasHaynesVehicle .ssPlateReg{font-size:22px!important}}

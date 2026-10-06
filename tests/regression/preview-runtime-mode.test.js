@@ -78,7 +78,8 @@ test('a configured non-audit preview receives only its isolated database config'
   assert.equal(result.statusCode, 200);
   assert.deepEqual(result.body, {
     supabaseUrl: 'https://example.supabase.co',
-    supabasePublishableKey: 'test-key'
+    supabasePublishableKey: 'test-key',
+    haynesServiceTest: true
   });
 });
 

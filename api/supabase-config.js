@@ -49,7 +49,7 @@ export default function handler(req, res) {
   try {
     const { url: supabaseUrl, publishableKey: supabasePublishableKey } = databaseEnvironment();
     if (!supabasePublishableKey) throw new Error('Supabase publishable access is not configured.');
-    return res.status(200).json({ supabaseUrl, supabasePublishableKey });
+    return res.status(200).json({ supabaseUrl, supabasePublishableKey, haynesServiceTest:isPreviewEnvironment() });
   } catch (error) {
     /* A preview without its own database must remain useful for local testing,
        but must never fall back to credentials cached by the browser. */
