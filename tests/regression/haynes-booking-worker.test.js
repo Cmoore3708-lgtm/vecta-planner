@@ -186,7 +186,8 @@ test('Test page shows Haynes without modifying advisories or allowing booking wr
     vm.runInContext(`state.step=${step};render()`, root);
     assert.equal(document.querySelectorAll('.vehicle-photo[data-haynes-slot]').length, 1);
     assert.match(document.querySelector('.vehicle-photo').textContent, /R9N-401/);
-    assert.match(document.querySelector('.vehicle-photo').textContent, /Vehicle details confirmed/);
+    assert.doesNotMatch(document.querySelector('.vehicle-photo').textContent, /Vehicle details confirmed|Representative model image/);
+    if(step>1)assert.match(document.querySelector('.vehicle-summary .advisories').textContent, /Tyre worn/);
   }
 
   assert.doesNotMatch(html, /fetch\('\/api\/website-booking/);
