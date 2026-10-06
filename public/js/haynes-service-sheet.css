@@ -94,3 +94,7 @@
 .servicePrint.ssHaynesCompact .ssTyreMeasure tr>*:nth-child(2),.servicePrint.ssHaynesCompact .ssTyreMeasure tr>*:nth-child(3){width:64px!important}
 .servicePrint.ssHaynesCompact .ssTyreMeasure tr>*:last-child{width:80px!important}
 @media(max-width:650px){.servicePrint.ssHaynesCompact .ssHeader:has(.ssHaynesVehicle){grid-template-columns:1fr 190px!important}.servicePrint.ssHaynesCompact .ssHaynesVehicle img{width:190px!important;height:125px!important}}
+
+.servicePrint.ssHaynesCompact .ssHaynesVehicle{position:relative;z-index:2;margin-bottom:-30px!important;align-self:end}
+.servicePrint.ssHaynesCompact .ssHaynesVehicle img{width:240px!important;height:145px!important;transform:scale(1.18);transform-origin:right bottom}
+@media(max-width:650px){.servicePrint.ssHaynesCompact .ssHaynesVehicle img{width:190px!important;height:145px!important;transform:scale(1.1)}}
