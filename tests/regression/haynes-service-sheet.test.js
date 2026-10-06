@@ -13,8 +13,8 @@ test('service sheet saves a supplier snapshot, preserves mechanic oil edits, and
  await window.initHaynesServiceSheet(sheet,'FX69XWU','service');await settle();
  assert.match(sheet.textContent,/SAE 5W-30/);assert.equal(sheet.querySelector('.ssHaynesVehicle img').getAttribute('src'),vehicle.imageUrl);
  assert.equal(sheet.querySelector('.ssField').textContent,data.oil[0].specification);
- const checkbox=sheet.querySelector('.ssHaynes [role="checkbox"]');checkbox.click();assert.equal(sheet.querySelector('.ssHaynes').getAttribute('data-confirmed'),'true');
- const saved=sheet.outerHTML;assert.match(saved,/5.9/);assert.match(saved,/data-confirmed="true"/);
+ assert.equal(sheet.querySelector('.ssHaynesConfirm'),null);assert.equal(sheet.querySelector('.ssHaynesOilReference'),null);
+ const saved=sheet.outerHTML;assert.match(saved,/5.9/);assert.match(saved,/Scheduled parts/);
  sheet.querySelector('.ssField').textContent='Technician-approved alternative';
  const field=sheet.querySelector('.ssMileageEntry');field.textContent='60000';field.dispatchEvent(new window.Event('input'));
  assert.equal(sheet.querySelector('.ssHaynesData').textContent,'');assert.equal(sheet.querySelectorAll('.ssField')[1].textContent,'');assert.equal(sheet.querySelector('.ssField').textContent,'Technician-approved alternative');
