@@ -87,3 +87,10 @@
 .servicePrint .ssHaynesFluidChecks{display:flex;gap:8px;align-items:center;justify-content:space-between;font-size:8px;white-space:nowrap}
 .servicePrint .ssHaynesFluidChecks label{display:flex;align-items:center;gap:3px}
 @media(max-width:650px){.servicePrint.ssHaynesCompact .ssHeader:has(.ssHaynesVehicle){grid-template-columns:1fr 160px!important}.servicePrint.ssHaynesCompact .ssHaynesHeaderInfo{grid-column:1;grid-row:3}.servicePrint.ssHaynesCompact .ssHaynesVehicle{grid-column:2;grid-row:1/4}.servicePrint.ssHaynesCompact .ssHaynesVehicle img{width:160px!important;height:100px!important}.servicePrint .ssHaynesFluidChecks{flex-wrap:wrap}}
+
+.servicePrint.ssHaynesCompact .ssHeader:has(.ssHaynesVehicle){grid-template-columns:minmax(110px,1fr) 170px 150px 240px!important;gap:5px!important}
+.servicePrint.ssHaynesCompact .ssHaynesVehicle img{width:240px!important;height:125px!important;object-fit:contain}
+.servicePrint.ssHaynesCompact .ssTyreMeasure{table-layout:fixed;width:100%}
+.servicePrint.ssHaynesCompact .ssTyreMeasure tr>*:nth-child(2),.servicePrint.ssHaynesCompact .ssTyreMeasure tr>*:nth-child(3){width:64px!important}
+.servicePrint.ssHaynesCompact .ssTyreMeasure tr>*:last-child{width:80px!important}
+@media(max-width:650px){.servicePrint.ssHaynesCompact .ssHeader:has(.ssHaynesVehicle){grid-template-columns:1fr 190px!important}.servicePrint.ssHaynesCompact .ssHaynesVehicle img{width:190px!important;height:125px!important}}
