@@ -2,7 +2,7 @@ import { START } from './browser.mjs';
 import { readVehicle } from './dom.mjs';
 import { readSchedule, readOil } from './service-dom.mjs';
 import { vehicleResult, HaynesError } from '../../lib/haynes-vehicle.js';
-import { serviceRequest, serviceResult } from '../../lib/haynes-service.js';
+import { serviceRequest, serviceResult, selectServicePeriod } from '../../lib/haynes-service.js';
 export function browserServiceLookup(context) {
   return async raw => {
     const input=serviceRequest(raw), page=await context.newPage();
@@ -23,16 +23,15 @@ export function browserServiceLookup(context) {
       const vehicle=vehicleResult(data,input.registration);
       const conditions='Normal conditions (United Kingdom)';
       const select=page.locator('select').filter({has:page.locator('option',{}).filter({hasText:conditions})});
+      const system=String(await select.locator('option').filter({hasText:conditions}).getAttribute('value')).split(',')[0];
+      if(!/^ms_\d+$/.test(system))throw new HaynesError('SCHEDULE_REQUIRED');
       await select.selectOption({label:conditions});
       await page.locator('a[href*="maintenanceSchedule?"]').first().waitFor({state:'attached'});
       const links=await page.locator('a[href*="maintenanceSchedule?"]').evaluateAll(as=>as.map(a=>({href:a.href,label:a.textContent.replace(/\s+/g,' ').trim()})));
-      const periods=links.filter(x=>/^\d[\d,]* miles\/\d+ months$/.test(x.label));
+      
       const match=String(data.registrationDate||'').match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
       const now=new Date(), ageMonths=match?Math.max(0,(now.getUTCFullYear()-Number(match[3]))*12+now.getUTCMonth()+1-Number(match[2])-(now.getUTCDate()<Number(match[1])?1:0)):null;
-      const agePeriod=ageMonths===null?null:periods.filter(x=>Number(x.label.match(/\/(\d+) months$/)?.[1])<=ageMonths).at(-1);
-      const milePeriod=periods.find(x=>Number(x.label.split(' ')[0].replace(/,/g,''))>=input.mileage);
-      const suggested=agePeriod&&milePeriod&&periods.indexOf(agePeriod)>periods.indexOf(milePeriod)?agePeriod:milePeriod;
-      const selected=input.period?periods.find(x=>new URL(x.href).searchParams.get('maintenancePeriodId')===input.period):suggested;
+      const selected=selectServicePeriod(links,{...input,system,typeId:vehicle.typeId,ageMonths});
       if(selected && new URL(selected.href).searchParams.get('typeId')!==vehicle.typeId)throw new HaynesError('MISMATCH');
       if(!selected)throw new HaynesError('SCHEDULE_REQUIRED');
       await page.goto(selected.href,{waitUntil:'domcontentloaded'});

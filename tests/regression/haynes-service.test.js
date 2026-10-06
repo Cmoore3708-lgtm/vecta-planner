@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { parseHTML } from 'linkedom';
-import { serviceRequest, serviceResult } from '../../lib/haynes-service.js';
+import { serviceRequest, serviceResult, selectServicePeriod } from '../../lib/haynes-service.js';
 import { readSchedule, readOil } from '../../workers/haynes/service-dom.mjs';
 const vehicle={registration:'FX69XWU',typeId:'t_619016977',make:'NISSAN',model:'Qashqai (J11)',variant:'1.7 dCi',imageUrl:'https://www.haynespro-assets.com/workshop/images/123.svg',vin:'SECRET',cookies:'SECRET'};
 test('Service requires actual positive integer mileage and rejects mismatched returned context',()=>{
@@ -21,4 +21,13 @@ test('Haynes parts quantities are not oil capacities; additional intervals stay 
 test('Oil extraction preserves specification, fill context and applicability and excludes coolant',()=>{
  const oil=dom('<div class="filter-lubricant-data"><h2>Engine (except North America)</h2><ul><li><p>Engine oil</p><span class="lube_value1">SAE 5W-30</span><span class="lube_value2">ACEA C3</span></li><li class="note">Engine sump, including filter 5.9 (l)</li></ul></div><div class="filter-lubricant-data"><h2>Cooling system</h2><li><p>Coolant</p><span class="lube_value1">L255N</span></li></div>',readOil);
  assert.deepEqual(oil,[{applicability:'Engine (except North America)',specification:'SAE 5W-30 · ACEA C3',capacity:'Engine sump, including filter 5.9 (l)'}]);
+});
+
+test('duplicate desktop/mobile links cannot let an age interval override a higher mileage interval',()=>{
+ const link=(m,months,id,system='ms_1')=>({label:m+' miles/'+months+' months',href:'https://www.workshopdata.com/touch/site/layout/maintenanceSchedule?typeId=t_1&maintenanceSystemId='+system+'&maintenancePeriodId='+id});
+ const links=[link('50,000',48,'mp_1'),link('87,500',84,'mp_2'),link('200,000',192,'mp_3')];
+ const duplicated=[...links,...links,link('200,000',192,'mp_4','ms_2')];
+ assert.equal(selectServicePeriod(duplicated,{mileage:190000,ageMonths:84,system:'ms_1',typeId:'t_1'}).label,'200,000 miles/192 months');
+ assert.equal(selectServicePeriod(duplicated,{mileage:50000,ageMonths:84,system:'ms_1',typeId:'t_1'}).label,'87,500 miles/84 months');
+ assert.equal(selectServicePeriod(duplicated,{mileage:50000,period:'mp_4',system:'ms_1',typeId:'t_1'}),undefined);
 });
