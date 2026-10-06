@@ -172,6 +172,13 @@ test('Test page shows Haynes without modifying advisories or allowing booking wr
   const yes = document.querySelector('[data-haynes-confirm="yes"]'); yes.onclick();
   assert.equal(vm.runInContext('state.form.haynes_identity.engineCode', root), 'R9N-401');
   assert.deepEqual(Array.from(vm.runInContext('state.form.mot_advisories', root)), ['Tyre worn']);
+  for (let step = 1; step <= 5; step++) {
+    vm.runInContext(`state.step=${step};render()`, root);
+    assert.equal(document.querySelectorAll('.vehicle-photo[data-haynes-slot]').length, 1);
+    assert.match(document.querySelector('.vehicle-photo').textContent, /R9N-401/);
+    assert.match(document.querySelector('.vehicle-photo').textContent, /Vehicle details confirmed/);
+  }
+
   assert.doesNotMatch(html, /fetch\('\/api\/website-booking/);
   assert.match(html, /send.disabled=true/);
 });
