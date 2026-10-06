@@ -66,3 +66,4 @@
 .servicePrint.ssHaynesCompact .ssPlate{width:150px!important}
 .servicePrint.ssHaynesCompact .ssHaynesVehicle img{width:220px!important;height:72px!important}
 @media(max-width:650px){.servicePrint.ssHaynesCompact .ssHeader:has(.ssHaynesVehicle){grid-template-columns:1fr 150px!important}.servicePrint.ssHaynesCompact .ssHaynesVehicle img{width:145px!important;height:70px!important}}
+.servicePrint.ssHaynesCompact .ssPlateReg{font-size:20px!important;letter-spacing:.5px!important;white-space:nowrap!important}
