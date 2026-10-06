@@ -1,3 +1,4 @@
+import { createServiceTaskRunner } from './service-task.mjs';
 import { browserServiceLookup } from './service-browser.mjs';
 import { openProfile, browserLookup } from './browser.mjs';
 import { createLookupService } from './service.mjs';
@@ -19,7 +20,7 @@ await rpc({action:'pull'}).then(data => {
 });
 const context = await openProfile();
 const lookup = createLookupService(browserLookup(context));
-const serviceLookup = browserServiceLookup(context);
+const serviceTasks = createServiceTaskRunner(browserServiceLookup(context),body=>rpc(body,true),()=>console.log('Service connection unavailable. The booking worker continues.'));
 let stopped = false;
 for (const signal of ['SIGTERM','SIGINT']) process.on(signal,() => { stopped = true; context.close().catch(() => {}); });
 console.log('Connected to Haynes Test. Keep this window open. Press Ctrl+C to stop.');
@@ -36,14 +37,9 @@ try {
           console.log('Haynes lookup status: '+result.status);
         }
         await rpc({action:'complete',id:job.id,lease:job.lease,...result});
-      } else {
+      } else if (!serviceTasks.busy) {
         const task = await rpc({action:'pull'},true);
-        if(task.status === 'JOB') {
-          let result;
-          try { result={status:'MATCHED',result:await serviceLookup(task.request)}; }
-          catch(error) { result={status:['LOGIN_REQUIRED','VERIFICATION_REQUIRED','AMBIGUOUS','SCHEDULE_REQUIRED'].includes(error.code)?error.code:'UNAVAILABLE'}; }
-          await rpc({action:'complete',id:task.id,lease:task.lease,request:task.request,...result},true);
-        }
+        if(task.status === 'JOB')serviceTasks.start(task);
       }
     } catch (error) {
       if (error.message === 'PAIRING_REQUIRED') { console.log('Pairing expired or revoked. Run setup again.'); break; }
@@ -51,4 +47,4 @@ try {
     }
     if (!stopped) await new Promise(resolve => setTimeout(resolve,5000));
   }
-} finally { await context.close(); }
+} finally { await context.close(); await serviceTasks.done; }

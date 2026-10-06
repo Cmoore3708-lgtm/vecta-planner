@@ -1,3 +1,4 @@
+import { createServiceTaskRunner } from '../../workers/haynes/service-task.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { parseHTML } from 'linkedom';
@@ -30,4 +31,13 @@ test('duplicate desktop/mobile links cannot let an age interval override a highe
  assert.equal(selectServicePeriod(duplicated,{mileage:190000,ageMonths:84,system:'ms_1',typeId:'t_1'}).label,'200,000 miles/192 months');
  assert.equal(selectServicePeriod(duplicated,{mileage:50000,ageMonths:84,system:'ms_1',typeId:'t_1'}).label,'87,500 miles/84 months');
  assert.equal(selectServicePeriod(duplicated,{mileage:50000,period:'mp_4',system:'ms_1',typeId:'t_1'}),undefined);
+});
+
+test('service reads leave the caller free for booking polling and cannot overlap another service read',async()=>{
+ let release;const reading=new Promise(r=>release=r),completed=[];
+ const runner=createServiceTaskRunner(()=>reading,r=>completed.push(r));
+ assert.equal(runner.start({id:'first',lease:'lease',request:{mileage:50000}}),true);
+ assert.equal(runner.busy,true);assert.equal(runner.start({id:'second'}),false);
+ let bookingPolled=false;await Promise.resolve().then(()=>bookingPolled=true);assert.equal(bookingPolled,true);assert.equal(completed.length,0);
+ release({mileage:50000});await runner.done;assert.equal(completed[0].id,'first');assert.equal(runner.busy,false);
 });
