@@ -1,0 +1,152 @@
+.servicePrint{font-size:10.2px;line-height:1.22}
+.servicePrint .printHead{align-items:center;padding-bottom:5px;margin-bottom:6px;border-bottom:2px solid #111}
+.servicePrint .printLogo{font-size:24px}
+.servicePrint .servicePlate{display:flex;align-items:stretch;height:46px;border:2px solid #111;border-radius:5px;overflow:hidden;box-shadow:0 1px 2px rgba(0,0,0,.18)}
+.servicePrint .servicePlateGb{display:flex;align-items:center;justify-content:center;width:25px;background:#1254a5;color:#fff;font-size:8px;font-weight:900;writing-mode:vertical-rl;transform:rotate(180deg);letter-spacing:.08em}
+.servicePrint .servicePlateReg{display:flex;align-items:center;justify-content:center;min-width:154px;padding:0 13px;background:#f5cf18;color:#111;font-size:25px;font-weight:1000;letter-spacing:2px;line-height:1;font-family:Arial,Helvetica,sans-serif}
+.servicePrint .topInfo{display:grid;grid-template-columns:1.2fr 1fr 1fr;gap:5px;margin-bottom:5px}
+.servicePrint .main3{display:grid;grid-template-columns:1.05fr 1.15fr 1.1fr;gap:5px;align-items:start}
+.servicePrint .stack{display:grid;gap:5px}
+.servicePrint .printBox{padding:5px;min-height:0;border:1.2px solid #111}
+.servicePrint .printBox h3{font-size:10px;margin:0 0 4px;background:#111;color:#fff;padding:3px 5px;text-transform:uppercase;letter-spacing:.02em}
+.servicePrint table{width:100%;border-collapse:collapse}
+.servicePrint th,.servicePrint td{border:1px solid #111;padding:2.6px 3.5px;vertical-align:middle}
+.servicePrint th{background:#f1f1f1;font-size:9.3px}
+.servicePrint .compact td{height:18px}
+.servicePrint .tiny td{height:17px}
+.servicePrint .lineArea{height:44px;border:1px solid #111;background:repeating-linear-gradient(to bottom,#fff 0,#fff 13px,#bbb 14px)}
+.servicePrint .lineArea.small{height:50px}
+.servicePrint .lineArea.tall{height:82px}
+.servicePrint .lineArea.techNotes{height:170px}
+.servicePrint .healthScore{display:grid;grid-template-columns:auto repeat(4,1fr);gap:4px;align-items:center}
+.servicePrint .scoreChoice{border:1px solid #111;padding:6px 4px;text-align:center;font-weight:900}
+.servicePrint .scoreChoice.good{background:#e8f5e9}
+.servicePrint .scoreChoice.fair{background:#fff8dd}
+.servicePrint .scoreChoice.poor{background:#fde8e8}
+.servicePrint .scoreChoice.urgent{background:#f7d6d6}
+.servicePrint .sign{display:grid;grid-template-columns:1fr 1fr 90px;gap:7px;margin-top:12px}
+.servicePrint .signature{border-top:1px solid #111;padding-top:4px;font-size:9.5px}
+.servicePrint .footer{margin-top:6px;text-align:center;font-weight:800;font-size:9.5px}
+.servicePrint .checkbox{font-size:11px;font-weight:900}
+.servicePrint .preGrid{display:grid;grid-template-columns:repeat(4,1fr);gap:4px}
+.servicePrint .miniLine{border-bottom:1px solid #111;min-height:13px}
+.servicePrint .mutedPrint{font-size:8px;color:#333}
+.servicePrint .ragOption{cursor:default}
+.servicePrint{font-size:9.1px!important}
+.servicePrint .ssHeader{margin-bottom:5px}
+.servicePrint .ssSection{margin-bottom:5px}
+.servicePrint .ssRagGrid,.servicePrint .ssLower,.servicePrint .ssBottom{gap:5px;margin-top:5px}
+.servicePrint .ssNotes{margin-top:5px}
+.servicePrint .ssNotesArea{height:112px}
+.servicePrint .ssLines{height:96px}
+.servicePrint .ssBottomBox{min-height:94px}
+.servicePrint .ssFooter{margin-top:2px;margin-top:5px;padding:5px}
+.servicePrint{font-size:8.2px!important;line-height:1.08!important}
+.servicePrint .ssHeader{grid-template-columns:1fr 1.45fr;margin-bottom:4px}
+.servicePrint .ssBrand img{width:205px;max-height:58px}
+.servicePrint .ssPlate{height:58px}
+.servicePrint .ssPlateReg{font-size:30px}
+.servicePrint .ssInfo{margin-bottom:4px}
+.servicePrint .ssInfo>div{padding:5px 8px;min-height:53px}
+.servicePrint .ssInfoRow{grid-template-columns:88px 1fr;margin:1px 0}
+.servicePrint .ssSection{margin-bottom:4px}
+.servicePrint .ssTitle{padding:3px 6px;font-size:11px}
+.servicePrint .ssNum{padding:2px 6px;font-size:12px}
+.servicePrint th,.servicePrint td{padding:2px 4px;height:17px}
+.servicePrint .ssPre{margin:0 4px 4px}
+.servicePrint .ssPre>div{min-height:61px}
+.servicePrint .ssPreHead{padding:3px}
+.servicePrint .ssPreBody{padding:3px;height:41px}
+.servicePrint .dipstick{height:31px}
+.servicePrint .ssTick{width:18px;height:18px;font-size:13px;margin:7px auto}
+.servicePrint .ssMid,.servicePrint .ssRagGrid,.servicePrint .ssLower,.servicePrint .ssBottom{gap:4px;margin-top:4px}
+.servicePrint .ssOps td{height:15px;padding:1px 4px}
+.servicePrint .ssCheck{width:14px;height:14px;font-size:9px}
+.servicePrint .ssFluids{padding:3px 8px}
+.servicePrint .ssFluidRow{padding:4px 0}
+.servicePrint .ssField{min-height:21px;padding:3px}
+.servicePrint .ssHealth{margin:3px 4px 4px}
+.servicePrint .ssHealthHead{font-size:11px;padding:5px}
+.servicePrint .ssScore{font-size:34px;padding:5px 3px 2px}
+.servicePrint .ssScoreNote{padding:2px 5px 6px}
+.servicePrint .ssHealthBand span{padding:4px}
+.servicePrint .ssRagDot{width:17px;height:17px}
+.servicePrint .ssLegend{padding:3px;font-size:7px}
+.servicePrint .ssLegend i{width:9px;height:9px}
+.servicePrint .ssLines{height:72px}
+.servicePrint .ssNotes{margin-top:4px}
+.servicePrint .ssNotesArea{height:75px}
+.servicePrint .ssBottomBox{min-height:72px;padding:5px}
+.servicePrint .ssBottomTitle{font-size:10px;margin-bottom:4px}
+.servicePrint .ssLine{height:16px}
+.servicePrint .ssGuideHead{font-size:10px;padding:5px}
+.servicePrint .ssGuideRow{grid-template-columns:72px 1fr}
+.servicePrint .ssGuideRow b,.servicePrint .ssGuideRow span{padding:5px}
+.servicePrint .ssFooter{margin-top:2px;margin-top:4px;padding:4px;font-size:9px}
+.servicePrint .ssFooter b{font-size:11px}
+.servicePrint .ssPlate{width:325px}
+.servicePrint .ssRagDot{width:10px!important;height:10px!important;margin:0 1.5px}
+.servicePrint .ssTyreMeasure .ssConditionHead,.servicePrint .ssTyreMeasure .ssTyreCondition{width:68px}
+.servicePrint{font-size:8.45px!important}
+.servicePrint .ssRagDot,.servicePrint .ssCheck,.servicePrint .ssTickBox{cursor:default}
+.servicePrint .ssPlate{width:248px!important}
+.servicePrint .ssFluidInline{padding:3px 6px!important}
+.servicePrint .ssField{min-height:18px!important;padding:2px!important}
+.servicePrint .ssMotTable td{height:16px!important;padding:1px 5px!important}
+.servicePrint .ssNotesArea{height:54px!important}
+.servicePrint .ssSection{margin-bottom:4px!important}
+.servicePrint .ssLower,.servicePrint .ssBottom{margin-top:4px!important}
+.servicePrint .ssFooter{margin-top:2px;margin-top:3px!important;padding:3px!important}
+.servicePrint{font-size:8.15px!important;line-height:1.06!important}
+.servicePrint .ssSection{margin-bottom:2px!important}
+.servicePrint .ssTitle{font-size:10.8px!important;padding:2px 5px!important}
+.servicePrint .ssNum{font-size:11px!important;padding:2px 5px!important}
+.servicePrint .ssInfo>div{min-height:46px!important;padding:4px 8px!important}
+.servicePrint .ssPre>div{min-height:54px!important}
+.servicePrint .ssPreBody{height:37px!important;padding:3px!important}
+.servicePrint .dipWrap{height:36px!important}
+.servicePrint .dipstick{height:31px!important}
+.servicePrint .ssOps td,.servicePrint .ssHealthChecks td{height:16px!important;padding-top:1px!important;padding-bottom:1px!important}
+.servicePrint .ssTyreMeasure th,.servicePrint .ssTyreMeasure td{height:17px!important}
+.servicePrint .ssHealthBand{padding:3px 5px!important}
+.servicePrint .ssScore{font-size:30px!important}
+.servicePrint .ssScoreNote{padding-bottom:3px!important}
+.servicePrint{
+    height:auto!important;
+    min-height:0!important;
+    max-height:none!important;
+    display:block!important;
+    overflow:visible!important;
+  }
+.servicePrint .ssFooter{
+    position:fixed!important;
+    left:0!important;
+    right:0!important;
+    bottom:0!important;
+    margin:0!important;
+    padding:3px!important;
+    z-index:20!important;
+  }
+.servicePrint .ssBrand img{width:198px!important;height:auto!important;max-height:none!important}
+.servicePrint .ssNum.ssIconBadge{width:15px!important;height:15px!important;flex-basis:15px!important}
+.servicePrint .ssNum.ssIconBadge svg{width:15px!important;height:15px!important}
+.servicePrint.interimServicePrint .ssInterimNotCompleted:after{background:#fff!important}
+
+#printSheet > :first-child,
+  #printSheet .invoicePrintPage,
+  #printSheet .servicePrint,
+  #printSheet .printPlannerDay {
+    margin-top: 0 !important;
+    break-before: auto !important;
+    page-break-before: auto !important;
+  }
+.vectaWordmark{font-size:43px!important}
+.servicePrint .ssDueSummary>div{min-height:31px!important;padding:3px 6px!important}
+.servicePrint .ssDueSummary{margin-bottom:4px!important}
+.servicePrint .ssDueDateInput{height:16px!important;border:0!important;background:transparent!important;-webkit-appearance:none!important;appearance:none!important}
+.servicePrint .ssDueDateInput::-webkit-calendar-picker-indicator{display:none!important}
+.servicePrint .ssHaynesRefresh{display:none}
+.servicePrint .ssHaynesSelect select{appearance:none;border:0;background:none}
+.servicePrint .ssHaynesColumns{font-size:8px;line-height:1.15}
+.servicePrint .ssHaynesIntegrated{break-inside:auto}
+.servicePrint .ssHaynesColumns li{break-inside:avoid}
