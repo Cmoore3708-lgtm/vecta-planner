@@ -38,3 +38,26 @@
  .servicePrint .ssHaynesIntegrated{break-inside:auto}
  .servicePrint .ssHaynesColumns li{break-inside:avoid}
 }
+/* Compact the current sheet without reducing its inspection and writing areas. */
+.servicePrint.ssHaynesCompact .ssHeader{grid-template-columns:170px 170px minmax(140px,1fr)!important;gap:12px!important;align-items:center!important}
+.servicePrint.ssHaynesCompact .vectaWordmark{font-size:34px!important;line-height:38px!important;letter-spacing:0!important}
+.servicePrint.ssHaynesCompact .ssPlate{width:170px!important;height:38px!important;justify-self:start!important;border-width:2px!important;grid-template-columns:28px 1fr!important;border-radius:5px!important}
+.servicePrint.ssHaynesCompact .ssPlateReg{font-size:23px!important;letter-spacing:1px!important}
+.servicePrint.ssHaynesCompact .ssPlateGb{font-size:9px!important}
+.servicePrint.ssHaynesCompact .ssHaynesVehicle{max-width:none!important;justify-self:end}
+.servicePrint.ssHaynesCompact .ssHaynesVehicle img{width:185px!important;height:58px!important;margin:0!important}
+.servicePrint.ssHaynesCompact .ssDocumentTitle{font-size:17px!important;padding:4px 8px!important;margin:0 0 3px!important}
+.servicePrint.ssHaynesCompact .ssInfo{grid-template-columns:1fr 1fr!important}
+.servicePrint.ssHaynesCompact .ssInfo>div{min-height:0!important;padding:3px 6px!important}
+.servicePrint.ssHaynesCompact .ssInfoRow{margin:0!important;grid-template-columns:82px 1fr!important;line-height:1.15!important}
+.servicePrint.ssHaynesCompact .ssInfoRow span{min-width:0}
+.servicePrint.ssHaynesCompact .ssPre{grid-template-columns:1fr 1fr 1fr!important}
+.servicePrint.ssHaynesCompact .ssFluidsHorizontal{grid-template-columns:1.6fr 1.2fr .85fr .8fr .9fr!important;align-items:center!important}
+.servicePrint.ssHaynesCompact .ssFluidInline{grid-template-columns:auto 1fr!important;align-items:center!important;padding:2px 5px!important;gap:5px!important;min-height:0!important;align-self:stretch}
+.servicePrint.ssHaynesCompact .ssFluidInline:nth-child(-n+2){grid-template-columns:1fr!important;gap:1px!important}
+.servicePrint.ssHaynesCompact .ssFluidsHorizontal .ssField{font-size:9px!important;line-height:1.1!important;min-height:0!important;padding:1px 3px!important;white-space:nowrap!important}
+.servicePrint.ssHaynesCompact .ssHaynesTopUp{width:12px!important;height:12px!important;min-width:12px!important;min-height:12px!important;margin:0!important;justify-self:end;border:1px solid #333!important;border-radius:1px!important;background:white!important;cursor:pointer;display:inline-flex;align-items:center;justify-content:center}
+.servicePrint.ssHaynesCompact .ssHaynesTopUp.selected{color:#087a21!important;background:#e8f5e9!important}
+.servicePrint.ssHaynesCompact .ssHaynesTopUp.selected::after{content:'✓';font-size:11px;line-height:1}
+.servicePrint.ssHaynesCompact .ssHaynesPreviousFluid{grid-column:1/-1;font-size:8px}
+@media(max-width:650px){.servicePrint.ssHaynesCompact .ssHeader{grid-template-columns:1fr 150px!important}.servicePrint.ssHaynesCompact .ssHaynesVehicle{grid-column:2;grid-row:1/3}.servicePrint.ssHaynesCompact .ssHaynesVehicle img{width:145px!important;height:70px!important}.servicePrint.ssHaynesCompact .ssPlate{grid-column:1}.servicePrint.ssHaynesCompact .ssFluidsHorizontal{grid-template-columns:1.6fr 1.2fr .85fr .8fr .9fr!important}}
