@@ -25,13 +25,26 @@ root.initHaynesServiceSheet=async function(sheet,registration,kind){
  for(const tick of sheet.querySelectorAll('.ssHaynesTopUp'))tick.onkeydown=e=>{if(e.key===' '||e.key==='Enter'){e.preventDefault();tick.click();}};
  const savedQuantity=sheet.querySelectorAll('.ssFluidsHorizontal .ssField')[1];
  if(savedQuantity&&savedQuantity.getAttribute('data-haynes-auto')===savedQuantity.textContent){const short=compactCapacity(savedQuantity.textContent);savedQuantity.textContent=short;savedQuantity.setAttribute('data-haynes-auto',short);}
+ for(const cell of Array.from(fluidCells).slice(2,5)){
+  if(cell.querySelector('.ssHaynesReplaced'))continue;
+  const top=cell.querySelector('.ssHaynesTopUp');if(!top)continue;
+  const group=document.createElement('div');group.className='ssHaynesFluidChecks';
+  const topLabel=document.createElement('label');topLabel.textContent='Topped up ';top.replaceWith(group);topLabel.appendChild(top);group.appendChild(topLabel);
+  const replaced=document.createElement('span');replaced.className='ssTickBox ssHaynesTopUp ssHaynesReplaced';replaced.setAttribute('role','checkbox');replaced.setAttribute('tabindex','0');replaced.setAttribute('aria-checked','false');replaced.setAttribute('aria-label',(cell.querySelector('b')?.textContent||'Fluid')+' replaced');replaced.setAttribute('onclick',"this.classList.toggle('selected');this.setAttribute('aria-checked',String(this.classList.contains('selected')))");
+  const replaceLabel=document.createElement('label');replaceLabel.textContent='Replaced ';replaceLabel.appendChild(replaced);group.appendChild(replaceLabel);
+  replaced.onkeydown=e=>{if(e.key===' '||e.key==='Enter'){e.preventDefault();replaced.click();}};
+ }
+ let headerInfo=sheet.querySelector('.ssHaynesHeaderInfo');
+ if(!headerInfo&&info&&info.children.length===2){headerInfo=info.children[1];headerInfo.classList.add('ssHaynesHeaderInfo');sheet.querySelector('.ssHeader')?.appendChild(headerInfo);}
  let panel=sheet.querySelector('.ssHaynes');
  const archived=!!panel?.querySelector('.ssHaynesColumns');
+ for(const footer of panel?.querySelectorAll('.ssHaynesData>small')||[]){if(footer.textContent.startsWith('Retrieved '))footer.remove();}
  if(!panel){panel=document.createElement('section');panel.className='ssSection ssHaynes';panel.innerHTML='<div class="ssTitle">HaynesPro schedule &amp; parts</div><div class="ssHaynesStatus" role="status" aria-live="polite">Enter the current mileage to download service requirements.</div><div class="ssHaynesData"></div>';sheet.querySelector('.ssInfo')?.insertAdjacentElement('afterend',panel);}
  const fluidsSection=sheet.querySelector('.ssFluidsHorizontal')?.closest('.ssSection');
  if(fluidsSection){fluidsSection.appendChild(panel);panel.classList.add('ssHaynesIntegrated');}
  let picture=sheet.querySelector('.ssHaynesVehicle');
  if(!picture){picture=document.createElement('div');picture.className='ssHaynesVehicle';sheet.querySelector('.ssHeader')?.appendChild(picture);}
+ if(headerInfo&&picture.parentNode)picture.parentNode.insertBefore(headerInfo,picture);
  const savedImage=picture.querySelector('img');if(savedImage)picture.replaceChildren(savedImage);else picture.textContent='';
  const showVehicle=v=>{if(v?.registration!==registration)return;const image=safeImage(v.imageUrl);picture.innerHTML=image?'<img src="'+esc(image)+'" alt="'+esc(v.vehicle)+'">':'';sheet.classList.add('ssHasHaynesVehicle');const rows=sheet.querySelectorAll('.ssInfoRow');for(const row of rows){if(row.querySelector('b')?.textContent.trim()==='Vehicle:'){const value=row.querySelector('span');if(value)value.textContent=v.vehicle;}}};
  if(!archived)fetch('/api/haynes-vehicle?reg='+encodeURIComponent(registration),{cache:'no-store'}).then(r=>r.json()).then(d=>{if(sheet.isConnected&&d.status==='MATCHED')showVehicle(d.vehicle);}).catch(()=>{});
@@ -53,9 +66,9 @@ root.initHaynesServiceSheet=async function(sheet,registration,kind){
    }while(Date.now()<until);
    if(d.status!=='MATCHED')throw Error(d.status);
    const data=d.result;if(data.vehicle.registration!==registration||data.mileage!==current)throw Error('MISMATCH');
-   showVehicle(data.vehicle);period=data.period;
+   showVehicle(data.vehicle);period=data.period;panel.setAttribute('data-fetched-at',data.fetchedAt);
    status.textContent='HaynesPro · '+data.conditions+' · Current mileage: '+current.toLocaleString('en-GB')+' miles'+(data.ageMonths!==null?' · '+data.ageMonths+' months since registration':' · Age unavailable');
-   body.innerHTML='<label class="ssHaynesSelect">Service interval <select aria-label="Haynes service interval">'+data.periods.map(p=>'<option value="'+esc(p.id)+'"'+(p.id===period?' selected':'')+'>'+esc(p.label)+'</option>').join('')+'</select></label><p class="ssHaynesConfirm"><span class="ssTickBox" role="checkbox" tabindex="0" aria-checked="false"></span> Interval checked against age, usage and service history before work.</p><div class="ssHaynesColumns"><div><b>Engine oil</b>'+ (data.oil.length?data.oil.map(o=>'<p class="ssHaynesOilReference">'+esc(o.specification||'Specification unavailable')+' · '+esc(o.capacity||'Capacity unavailable')+'<small>'+esc(o.applicability)+'</small></p>').join(''):'<p>Oil specification unavailable. Check Haynes before filling.</p>')+'<b>Scheduled parts / filters</b><p class="ssHaynesParts">'+data.parts.map(esc).join(' · ')+'</p></div><div><b>Additional work — check replacement history</b><ul>'+data.additional.map(p=>'<li>'+esc(p)+'</li>').join('')+'</ul></div></div><small>Retrieved '+esc(new Date(data.fetchedAt).toLocaleString('en-GB'))+' · Saved with this service sheet.</small>';
+   body.innerHTML='<label class="ssHaynesSelect">Service interval <select aria-label="Haynes service interval">'+data.periods.map(p=>'<option value="'+esc(p.id)+'"'+(p.id===period?' selected':'')+'>'+esc(p.label)+'</option>').join('')+'</select></label><p class="ssHaynesConfirm"><span class="ssTickBox" role="checkbox" tabindex="0" aria-checked="false"></span> Interval checked against age, usage and service history before work.</p><div class="ssHaynesColumns"><div><b>Engine oil</b>'+ (data.oil.length?data.oil.map(o=>'<p class="ssHaynesOilReference">'+esc(o.specification||'Specification unavailable')+' · '+esc(o.capacity||'Capacity unavailable')+'<small>'+esc(o.applicability)+'</small></p>').join(''):'<p>Oil specification unavailable. Check Haynes before filling.</p>')+'<b>Scheduled parts / filters</b><p class="ssHaynesParts">'+data.parts.map(esc).join(' · ')+'</p></div><div><b>Additional work — check replacement history</b><ul>'+data.additional.map(p=>'<li>'+esc(p)+'</li>').join('')+'</ul></div></div>';
    body.querySelector('select').onchange=e=>{period=e.target.value;load();};
    const confirm=body.querySelector('[role="checkbox"]');confirm.onclick=()=>{const checked=confirm.getAttribute('aria-checked')!=='true';confirm.setAttribute('aria-checked',String(checked));confirm.classList.toggle('checked',checked);panel.setAttribute('data-confirmed',String(checked));};confirm.onkeydown=e=>{if(e.key===' '||e.key==='Enter'){e.preventDefault();confirm.click();}};
    if(data.oil.length===1){const fields=sheet.querySelectorAll('.ssFluidsHorizontal .ssField');[data.oil[0].specification,compactCapacity(data.oil[0].capacity)].forEach((v,i)=>{if(fields[i]&&!fields[i].textContent.trim()&&v){fields[i].textContent=v;fields[i].setAttribute('data-haynes-auto',v);}});}
