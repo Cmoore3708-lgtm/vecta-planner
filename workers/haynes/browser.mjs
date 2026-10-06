@@ -29,11 +29,24 @@ export function browserLookup(context, { keepFailedPage = false } = {}) {
       stage = 'SUBMIT_SEARCH';
       await page.locator('#licencePlateBtn').click();
       stage = 'WAIT_RESULT';
-      await page.waitForFunction(() => {
-        const text = document.body.innerText || '';
-        return document.querySelector('input[type="password"]') || /Verify you are human|Checking your browser|unusual traffic|automated traffic/.test(text) || /Vehicle Registration Number:/.test(text) || Array.from(document.querySelectorAll('a')).some(a => a.href.includes('/modelDetail?'));
-      });
-      data = await page.evaluate(readVehicle);
+      // Poll through the browser protocol instead of injecting a polling script
+      // into the supplier page (which can reject it under its script policy).
+      const resultDeadline = Date.now() + 12000;
+      while (Date.now() < resultDeadline) {
+        try {
+          data = await page.evaluate(readVehicle);
+          if (data.login || data.blocked || data.registration || data.ambiguous) break;
+        } catch (error) {
+          // Navigation replaces the execution context during a successful search.
+          if (!/Execution context was destroyed|Cannot find context/.test(error.message || '')) throw error;
+        }
+        await new Promise(resolve => setTimeout(resolve, 200));
+      }
+      if (!(data.login || data.blocked || data.registration || data.ambiguous)) {
+        const error = new Error('Result did not become ready');
+        error.name = 'TimeoutError';
+        throw error;
+      }
       if (data.login) throw new HaynesError('LOGIN_REQUIRED');
       if (data.blocked) throw new HaynesError('VERIFICATION_REQUIRED');
       stage = 'VALIDATE_VEHICLE';
