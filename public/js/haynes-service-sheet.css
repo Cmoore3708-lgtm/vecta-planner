@@ -61,3 +61,8 @@
 .servicePrint.ssHaynesCompact .ssHaynesTopUp.selected::after{content:'✓';font-size:11px;line-height:1}
 .servicePrint.ssHaynesCompact .ssHaynesPreviousFluid{grid-column:1/-1;font-size:8px}
 @media(max-width:650px){.servicePrint.ssHaynesCompact .ssHeader{grid-template-columns:1fr 150px!important}.servicePrint.ssHaynesCompact .ssHaynesVehicle{grid-column:2;grid-row:1/3}.servicePrint.ssHaynesCompact .ssHaynesVehicle img{width:145px!important;height:70px!important}.servicePrint.ssHaynesCompact .ssPlate{grid-column:1}.servicePrint.ssHaynesCompact .ssFluidsHorizontal{grid-template-columns:1.6fr 1.2fr .85fr .8fr .9fr!important}}
+.servicePrint.ssHaynesCompact .ssHeader:has(.ssHaynesVehicle){grid-template-columns:140px 150px minmax(140px,1fr)!important;gap:12px!important}
+.servicePrint.ssHaynesCompact .vectaWordmark{font-size:38px!important}
+.servicePrint.ssHaynesCompact .ssPlate{width:150px!important}
+.servicePrint.ssHaynesCompact .ssHaynesVehicle img{width:220px!important;height:72px!important}
+@media(max-width:650px){.servicePrint.ssHaynesCompact .ssHeader:has(.ssHaynesVehicle){grid-template-columns:1fr 150px!important}.servicePrint.ssHaynesCompact .ssHaynesVehicle img{width:145px!important;height:70px!important}}
