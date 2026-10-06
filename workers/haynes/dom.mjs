@@ -1,5 +1,8 @@
 // Read only the visible vehicle overview. No internal supplier endpoints.
 export function readVehicle() {
+  // A navigation may expose a new document before its body is constructed.
+  // Return a pending result so the caller continues waiting for real content.
+  if (!document.body) return { login: false, blocked: false, ambiguous: false, registration: '' };
   const clean = value => String(value || '').replace(/\s+/g, ' ').trim();
   const text = document.body.innerText || document.body.textContent || '';
   const anchors = Array.from(document.querySelectorAll('a'));

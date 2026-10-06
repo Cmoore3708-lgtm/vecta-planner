@@ -14,6 +14,13 @@ import availability from '../../api/availability.js';
 const raw = { registration: 'FX69XWU', make: 'NISSAN', model: 'Qashqai (J11)', variant: '1.7 dCi', engineCode: 'R9N-401', modelYears: '2018 - 2020', typeId: 't_619016977', imageUrl: 'https://www.haynespro-assets.com/workshop/images/319004648.svgz' };
 const deferred = () => { let resolve; const promise = new Promise(r => { resolve = r; }); return { promise, resolve }; };
 
+test('vehicle reader tolerates the empty document during result navigation', () => {
+  const result = vm.runInNewContext('(' + readVehicle.toString() + ')()', { document: { body: null } });
+  assert.equal(result.registration, '');
+  assert.equal(result.login, false);
+  assert.equal(result.ambiguous, false);
+});
+
 test('vehicle extraction uses registration, model breadcrumbs and representative image', () => {
   const { document } = parseHTML(`<html><body><a href="https://www.workshopdata.com/touch/site/layout/makesOverview?makeId=m_500">NISSAN</a><a href="https://www.workshopdata.com/touch/site/layout/modelOverview?modelId=d_1">Qashqai (J11)</a><a href="https://www.workshopdata.com/touch/site/layout/modelTypes?modelId=d_1">1.7 dCi (R9N-401) 2018 - 2020</a><div>Vehicle Registration Number: FX69XWU\nVIN: example\nRegistration Date: 30/09/2019</div><img src="${raw.imageUrl}"></body></html>`);
   Object.defineProperty(document, 'images', { value: document.querySelectorAll('img') });
