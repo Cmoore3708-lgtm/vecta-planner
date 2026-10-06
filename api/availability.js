@@ -1,3 +1,4 @@
+import haynesVehicle from '../lib/haynes-proxy.js';
 import { databaseEnvironment } from './_database-environment.js';
 function cfg(){return databaseEnvironment()}
 const DAY_START=8*60,DAY_END=16*60,DAY_MINUTES=DAY_END-DAY_START;
@@ -32,6 +33,7 @@ export function bookingSlot(date,rows=[],timeOff=[],pending=[],hours=1){
  return start===null?null:{date,time:hhmm(start),technician:PUBLIC_BOOKING_TECHNICIAN,hours,booked_percentage:Math.round(booked/DAY_MINUTES*100),max_booked_percentage:friday?50:75};
 }
 export default async function handler(req,res){
+ if(req.query?.haynes==='1')return haynesVehicle(req,res);
  if(req.method!=='POST')return res.status(405).json({error:'Method not allowed'});const {url,key}=cfg();if(!url||!key)return res.status(500).json({error:'Availability service is not configured'});
  try{
   const hours=Math.max(.5,Number(req.body?.estimated_hours)||durationFor(req.body?.job_types||[],req.body?.service_choice||''));

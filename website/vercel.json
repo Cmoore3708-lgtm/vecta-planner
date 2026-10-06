@@ -3,6 +3,10 @@
   "trailingSlash": false,
   "rewrites": [
     {
+      "source": "/api/haynes-vehicle",
+      "destination": "https://vecta-planner.vercel.app/api/haynes-vehicle"
+    },
+    {
       "source": "/api/customer-history",
       "destination": "https://vecta-planner.vercel.app/api/customer-history"
     },
