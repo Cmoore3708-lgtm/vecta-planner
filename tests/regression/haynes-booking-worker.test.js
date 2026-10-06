@@ -171,6 +171,16 @@ test('Test page shows Haynes without modifying advisories or allowing booking wr
   assert.equal(vm.runInContext('state.form.engine_size', root), 1749);
   const yes = document.querySelector('[data-haynes-confirm="yes"]'); yes.onclick();
   assert.equal(vm.runInContext('state.form.haynes_identity.engineCode', root), 'R9N-401');
+  assert.equal(vm.runInContext('serviceEngineSize()', root), 1700);
+  assert.equal(vm.runInContext('serviceGuidePrices(serviceEngineSize()).full', root), 165);
+  vm.runInContext("haynesState.vehicle.variant='1.6 DiG-T 190';state.form.engine_size=1618;state.form.job_types=['Service'];state.form.service_choice='Full Service'", root);
+  assert.equal(vm.runInContext('estimateCost()', root), 155);
+  vm.runInContext("haynesState.status='unavailable';state.form.engine_size_manual=''", root);
+  assert.equal(vm.runInContext('serviceGuidePrices(serviceEngineSize())', root), null);
+  vm.runInContext("state.form.engine_size_manual=2000", root);
+  assert.equal(vm.runInContext('estimateCost()', root), 165);
+  vm.runInContext("haynesState.status='confirmed';state.form.engine_size_manual=''", root);
+
   assert.deepEqual(Array.from(vm.runInContext('state.form.mot_advisories', root)), ['Tyre worn']);
   for (let step = 1; step <= 5; step++) {
     vm.runInContext(`state.step=${step};render()`, root);
