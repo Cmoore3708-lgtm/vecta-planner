@@ -1,3 +1,4 @@
+param([switch]$Startup)
 $ErrorActionPreference = 'Stop'
 Set-Location $PSScriptRoot
 if (!(Test-Path 'node_modules\playwright\package.json')) {
@@ -12,6 +13,7 @@ $configDir = Join-Path $env:LOCALAPPDATA 'VectaHaynes'
 $configFile = Join-Path $configDir 'relay-token.txt'
 New-Item -ItemType Directory -Force -Path $configDir | Out-Null
 try {
+  if ($Startup -and !(Test-Path $configFile)) { throw 'Pair this PC with windows-connect.cmd before enabling startup.' }
   if (Test-Path $configFile) {
     $secureToken = (Get-Content -Raw $configFile).Trim() | ConvertTo-SecureString
     $env:HAYNES_RELAY_TOKEN = (New-Object System.Net.NetworkCredential('', $secureToken)).Password
@@ -28,6 +30,22 @@ try {
     $env:HAYNES_RELAY_TOKEN = $workerToken
     Write-Host 'PC paired with Test. Token saved using Windows account encryption.'
   }
-  & node relay.mjs
-  if ($LASTEXITCODE -ne 0) { throw 'Worker stopped with an error. Please report the message above.' }
+  $workerMutex = New-Object System.Threading.Mutex($false, 'Local\VectaHaynesTestWorker')
+  $ownsWorker = $false
+  try {
+    try { $ownsWorker = $workerMutex.WaitOne(0) } catch [System.Threading.AbandonedMutexException] { $ownsWorker = $true }
+    if (!$ownsWorker) { Write-Host 'Haynes Test is already running in another window.'; return }
+    do {
+      & node relay.mjs
+      if (!$Startup) {
+        if ($LASTEXITCODE -ne 0) { throw 'Worker stopped with an error. Please report the message above.' }
+        break
+      }
+      Write-Host 'Haynes Test stopped. Retrying in 15 seconds. Close this window to stop.'
+      Start-Sleep -Seconds 15
+    } while ($Startup)
+  } finally {
+    if ($ownsWorker) { $workerMutex.ReleaseMutex() }
+    $workerMutex.Dispose()
+  }
 } finally { Remove-Item Env:HAYNES_RELAY_TOKEN -ErrorAction SilentlyContinue }

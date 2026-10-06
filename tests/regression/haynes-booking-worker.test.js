@@ -109,6 +109,37 @@ test('Vercel proxy stays disabled in production and never exposes worker token o
 });
 
 const client = fs.readFileSync(new URL('../../public/js/vecta-haynes-booking.js', import.meta.url), 'utf8');
+for (const failure of ['offline', 'unknown', 'ambiguous']) {
+  test(`Test form preserves DVSA details and advisories when Haynes is ${failure}`, async () => {
+    const html = fs.readFileSync(new URL('../../public/haynes-booking-test.html', import.meta.url), 'utf8');
+    const { document } = parseHTML(html);
+    const root = { document, URL, URLSearchParams, location: { search: '' }, AbortController, console, setTimeout, clearTimeout, alert() {} };
+    root.window = root;
+    root.fetch = async url => {
+      if (String(url).includes('/api/haynes-vehicle')) {
+        if (failure === 'offline') throw Error('connection unavailable');
+        return { ok: true, json: async () => ({ status: failure === 'ambiguous' ? 'AMBIGUOUS' : 'UNAVAILABLE' }) };
+      }
+      return { ok: true, json: async () => String(url).includes('/api/vehicle-lookup') ? { vehicle: 'NISSAN QASHQAI', make: 'NISSAN', advisories: ['Tyre worn'], latestMileage: 42000, motExpiryDate: '2027-09-30', engineCapacity: 1749 } : {} };
+    };
+    vm.createContext(root); vm.runInContext(client, root);
+    for (const source of [...html.matchAll(/<script(?:\s[^>]*)?>([\s\S]*?)<\/script>/g)].map(m => m[1]).filter(Boolean)) vm.runInContext(source, root);
+    await new Promise(resolve => setImmediate(resolve));
+    await vm.runInContext("state.form.registration='FX69XWU';lookup('FX69XWU')", root);
+    await new Promise(resolve => setImmediate(resolve));
+    assert.equal(vm.runInContext('state.lookup', root), 'success');
+    assert.equal(vm.runInContext('state.form.haynes_identity', root), null);
+    assert.equal(vm.runInContext('state.form.engine_size', root), 1749);
+    assert.match(document.body.textContent, /Tyre worn/);
+    assert.match(document.body.textContent, failure === 'ambiguous' ? /More than one vehicle variant/ : /Detailed vehicle information is unavailable/);
+    assert.equal(document.querySelector('[data-haynes-confirm]'), null);
+    vm.runInContext("state.form.inspect_mot_advisories='yes';render()", root);
+    const next = document.querySelector('#next');
+    assert.equal(next.hasAttribute('disabled'), false);
+    await next.onclick();
+    assert.equal(vm.runInContext('state.step', root), 2);
+  });
+}
 function controller(fetcher, registration = raw.registration, expectedMake = 'NISSAN') {
   const root = { AbortController, setTimeout, clearTimeout, fetch: fetcher }; vm.runInNewContext(client, root);
   let latest, currentReg = registration;
