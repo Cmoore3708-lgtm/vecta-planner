@@ -1,0 +1,20 @@
+// Render the real service-sheet builder with fictional job details. No database or customer access.
+import {readFileSync,writeFileSync} from 'node:fs';
+import vm from 'node:vm';
+import postcss from 'postcss';
+const source=readFileSync('index.html','utf8');
+const old=readFileSync('public/js/haynes-service-preview.html','utf8');
+const fixture=old.slice(old.indexOf('const vehicle='),old.indexOf('window.initHaynesServiceSheet'));
+const extract=(start,end)=>source.slice(source.indexOf(start),source.indexOf(end,source.indexOf(start)));
+const html={innerHTML:''};
+const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const job={id:'layout-example',registration:'FX69 XWU',vehicle:'NISSAN Qashqai',mileage:'50000',customer_name:'Example customer',customer_phone:'',customer_email:'',booking_date:'2026-10-06',technician:'',job_type:'Major Service',work_required:'Carry out major service',mot_advisories:[],technician_notes:''};
+const context={app:{jobs:[job]},normReg:v=>v.replace(/\s/g,''),paperworkKindForJob:()=> 'service',fetchDvsaVehicle:async()=>{throw Error('Example only')},console:{warn:()=>{}},openLatestServiceSheet:async()=>false,esc,selectedIso:()=> '2026-10-06',dvsaAdvisoryArray:v=>v,emailLinkHtml:()=>'',jobTypeInlineStyle:()=>'',jobTypeLabel:()=> 'Major Service',paperworkTitle:()=> 'Service Sheet',document:{getElementById:()=>html},openServicePreview:()=>{},serviceSheetDueData:()=>({motDue:'2027-09-30',taxDue:'2027-09-01',nextServiceDue:'2027-10-06',serviceType:'Major Service',nextServiceType:'Interim Service'})};
+vm.createContext(context);
+vm.runInContext(extract('function serviceSectionIcon(','function serviceStorageKey(')+extract('function serviceSheetDateInput(','function isRoadGoingServiceJob(')+extract('async function printService(','function vehicleTaxInvoiceTitle('),context);
+await context.printService('layout-example');
+const css=postcss.parse([...source.matchAll(/<style[^>]*>([\s\S]*?)<\/style>/g)].map(m=>m[1]).join('\n'));
+css.walkRules(rule=>{if(!/(servicePrint|vectaWordmark)/.test(rule.selector))rule.remove();});
+css.walkAtRules(at=>{if(at.name!=='page'&&(!at.nodes||!at.nodes.length))at.remove();});
+writeFileSync('public/js/haynes-service-current-layout.css',css.toString());
+writeFileSync('public/js/haynes-service-preview.html','<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Haynes — current service sheet layout</title><link rel="stylesheet" href="/js/haynes-service-current-layout.css"><link rel="stylesheet" href="/js/haynes-service-sheet.css"><style>body{margin:0;padding:18px;background:#e9edf0;font:13px Arial}.notice{max-width:740px;margin:0 auto 12px;line-height:1.4}.sheetPage{width:740px;max-width:100%;background:white;margin:auto;padding:12px;box-sizing:border-box}.servicePrint{width:100%}@media print{body{background:white;padding:0}.notice{display:none}.sheetPage{width:100%;padding:0}}</style><script src="/js/haynes-service-sheet.js" defer></script></head><body><p class="notice"><b>Current service sheet + Haynes — layout example.</b> Existing checklist and writing areas, with fictional customer details. Oil data and scheduled parts use the inspected Qashqai example. Automatic job-card downloads still require the updated Workshop PC worker.</p><div class="sheetPage">'+html.innerHTML+'</div><script>'+fixture+'\nwindow.toggleServiceCheck=el=>el.classList.toggle("selected");\nwindow.selectServiceRag=el=>el.classList.toggle("selected");\nwindow.initHaynesServiceSheet(document.querySelector(".servicePrint"),"FX69XWU","service");</script></body></html>');

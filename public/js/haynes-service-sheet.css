@@ -1,10 +1,40 @@
-.servicePrint .ssHeader:has(.ssHaynesVehicle){grid-template-columns:1fr auto 180px!important;align-items:start!important}
-.servicePrint .ssHaynesVehicle{text-align:right;font-size:10px;line-height:1.3;max-width:180px}
-.servicePrint .ssHaynesVehicle img{display:block;width:160px;height:92px;object-fit:contain;margin:0 0 4px auto}
+.servicePrint .ssHeader:has(.ssHaynesVehicle:not(:empty)){grid-template-columns:1fr auto 145px!important;align-items:center!important;gap:10px}
+.servicePrint .ssHaynesVehicle:empty{display:none}
+.servicePrint .ssHaynesVehicle{text-align:right;font-size:8px;line-height:1.15;max-width:145px}
+.servicePrint .ssHaynesVehicle img{display:block;width:115px;height:62px;object-fit:contain;margin:0 0 2px auto}
 .servicePrint .ssHaynesVehicle strong,.servicePrint .ssHaynesVehicle span{display:block}
-.servicePrint .ssHaynes{padding:8px;border:1px solid #ccd7df;background:#f5f8fa;break-inside:avoid}
-.servicePrint .ssHaynesStatus{margin:4px 0}.servicePrint .ssHaynesColumns{display:grid;grid-template-columns:1fr 1.25fr;gap:14px}.servicePrint .ssHaynesColumns ul{margin:4px 0 8px;padding-left:17px}.servicePrint .ssHaynesColumns li{margin:3px 0}.servicePrint .ssHaynesColumns p{margin:5px 0 10px}.servicePrint .ssHaynes small{display:block;font-size:9px;color:#52606b}.servicePrint .ssHaynesConfirm{background:#fff3dc;padding:6px;line-height:1.5}.servicePrint .ssHaynesSelect select{font:inherit;margin-left:6px;max-width:70%}.servicePrint .ssHaynesRefresh{cursor:pointer}
-@media(max-width:650px){.servicePrint .ssHeader:has(.ssHaynesVehicle){grid-template-columns:1fr 140px!important}.servicePrint .ssHaynesVehicle{grid-column:2;grid-row:1/3;max-width:140px}.servicePrint .ssHaynesVehicle img{width:135px;height:80px}.servicePrint .ssHaynesColumns{grid-template-columns:1fr}}
-@media print{.servicePrint .ssHaynesRefresh{display:none}.servicePrint .ssHaynesVehicle img{width:130px;height:75px}.servicePrint .ssHeader:has(.ssHaynesVehicle){grid-template-columns:1fr auto 155px!important}.servicePrint .ssHaynesSelect select{appearance:none;border:0;background:none}}
-.servicePrint .ssHasHaynesVehicle{min-width:0}.servicePrint.ssHasHaynesVehicle .ssPlate{width:270px!important}.servicePrint.ssHasHaynesVehicle .ssBrand{min-width:0}.servicePrint.ssHasHaynesVehicle .ssPlateReg{font-size:26px!important}
-@media(max-width:650px){.servicePrint.ssHasHaynesVehicle .ssPlate{width:220px!important;grid-column:1}.servicePrint.ssHasHaynesVehicle .ssPlateReg{font-size:22px!important}}
+.servicePrint .ssHaynes{padding:4px 6px;border:1px solid #aaa;background:#fff;break-inside:avoid}
+.servicePrint .ssHaynesIntegrated{border:0;border-top:1px solid #aaa;border-radius:0;margin:0!important}
+.servicePrint .ssHaynes .ssTitle{font-size:10px!important;padding:0 0 2px!important}
+.servicePrint .ssHaynesStatus{font-size:8px;line-height:1.2;margin:2px 0;color:#52606b}
+.servicePrint .ssHaynesColumns{display:grid;grid-template-columns:1fr 1.6fr;gap:10px}
+.servicePrint .ssHaynesColumns>div{min-width:0}
+.servicePrint .ssHaynesColumns ul{margin:3px 0;padding-left:12px;columns:2;column-gap:14px}
+.servicePrint .ssHaynesColumns li{margin:0 0 3px;break-inside:avoid;line-height:1.2}
+.servicePrint .ssHaynesColumns p{margin:2px 0 4px;line-height:1.2}
+.servicePrint .ssHaynes small{display:block;font-size:7px;color:#52606b;line-height:1.15}
+.servicePrint .ssHaynesConfirm{margin:3px 0;padding:2px 4px;background:#fff7e8;line-height:1.3}
+.servicePrint .ssHaynesSelect select{font:inherit;margin-left:5px;max-width:70%;padding:0}
+.servicePrint .ssHaynesRefresh{cursor:pointer}
+.servicePrint.ssHasHaynesVehicle .ssPlate{width:240px!important}
+.servicePrint.ssHasHaynesVehicle .ssBrand{min-width:0}
+.servicePrint.ssHasHaynesVehicle .ssPlateReg{font-size:26px!important}
+.servicePrint:has(.ssHaynesIntegrated) .ssFluidsHorizontal{grid-template-columns:1.7fr 1.35fr .85fr .85fr .85fr}
+.servicePrint:has(.ssHaynesIntegrated) .ssFluidInline{grid-template-columns:1fr;gap:2px;text-align:left;align-self:stretch}
+.servicePrint:has(.ssHaynesIntegrated) .ssField{overflow-wrap:anywhere}
+@media(max-width:650px){
+ .servicePrint .ssHeader:has(.ssHaynesVehicle:not(:empty)){grid-template-columns:1fr 125px!important}
+ .servicePrint .ssHaynesVehicle{grid-column:2;grid-row:1/3;max-width:125px}
+ .servicePrint .ssHaynesVehicle img{width:110px;height:60px}
+ .servicePrint.ssHasHaynesVehicle .ssPlate{width:210px!important;grid-column:1}
+ .servicePrint.ssHasHaynesVehicle .ssPlateReg{font-size:22px!important}
+ .servicePrint .ssHaynesColumns{grid-template-columns:1fr}
+ .servicePrint .ssHaynesColumns ul{columns:1}
+}
+@media print{
+ .servicePrint .ssHaynesRefresh{display:none}
+ .servicePrint .ssHaynesSelect select{appearance:none;border:0;background:none}
+ .servicePrint .ssHaynesColumns{font-size:8px;line-height:1.15}
+ .servicePrint .ssHaynesIntegrated{break-inside:auto}
+ .servicePrint .ssHaynesColumns li{break-inside:avoid}
+}
