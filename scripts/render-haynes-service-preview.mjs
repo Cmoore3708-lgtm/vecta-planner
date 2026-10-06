@@ -4,7 +4,7 @@ import vm from 'node:vm';
 import postcss from 'postcss';
 const source=readFileSync('index.html','utf8');
 const old=readFileSync('public/js/haynes-service-preview.html','utf8');
-const fixture=old.slice(old.indexOf('const vehicle='),old.indexOf("window.addEventListener('DOMContentLoaded'"));
+const fixture=old.match(/const vehicle=[^\n]+/)[0]+'\n'+old.match(/window.fetch=async[^\n]+/)[0]+'\n';
 const extract=(start,end)=>source.slice(source.indexOf(start),source.indexOf(end,source.indexOf(start)));
 const html={innerHTML:''};
 const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
