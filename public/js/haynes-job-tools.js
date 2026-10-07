@@ -33,12 +33,12 @@ root.enrichHaynesDashboard=function(container,jobs){
  if(!container)return;const byId=new Map((jobs||[]).filter(j=>!j.no_vehicle&&j.card_type!=='mini_task').map(j=>[String(j.id),j]));
  const groups=new Map();
  for(const card of container.querySelectorAll('.job.plannerJobFull[data-job-id],.mobileJob[data-open-job]')){
-  const j=byId.get(card.dataset.jobId||card.dataset.openJob),target=card.querySelector('.plannerJobLeft,.mobileJobTop');if(!j||!target)continue;
+  const j=byId.get(card.dataset.jobId||card.dataset.openJob),target=card.querySelector('.plannerJobHeader,.mobileJobTop');if(!j||!target)continue;
   const key=reg(j.registration)+'|'+make(j.make);if(!groups.has(key))groups.set(key,{job:j,targets:[]});groups.get(key).targets.push({card,target});
  }
  let queued=0;
  for(const {job:j,targets} of groups.values()){
-  const attach=v=>{for(const {card,target} of targets){if(!card.isConnected||!v||target.querySelector('.haynesDashboardImage'))continue;const img=thumbnail(v,'haynesDashboardImage');if(img)target.prepend(img);}};
+  const attach=v=>{for(const {card,target} of targets){if(!card.isConnected||!v||target.querySelector('.haynesDashboardImage'))continue;const img=thumbnail(v,'haynesDashboardImage');if(img){target.appendChild(img);target.classList.add('hasHaynesDashboardImage');}}};
   const hit=snapshot(j.registration,j.make);if(hit){attach(hit);continue;}
   if(queued++>=12)continue;
   dashboardTail=dashboardTail.then(async()=>{if(!targets.some(x=>x.card.isConnected))return;attach(await lookup(j.registration,j.make));}).catch(()=>{});
