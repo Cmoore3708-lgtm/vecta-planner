@@ -27,6 +27,18 @@ test('body recolour preserves wheels, windows and outlines; plate contains only 
   const next=root.VectaVehicleImage.personaliseSvg(svg,'NU67VSE','RED');
   assert.match(next.svg,/NU67 VSE/);assert.doesNotMatch(next.svg,/FX69/);
 });
+test('newer Illustrator switch wrapper retains the green Qashqai drawing and registration',()=>{
+  const root=browser();
+  const wrapped=svg.replace('<g id="wheels">','<switch><foreignObject><iframe src="https://evil.example"/></foreignObject><g><g id="wheels">').replace('</svg>','</g></switch></svg>');
+  const r=root.VectaVehicleImage.personaliseSvg(wrapped,'CM14KEL','Green','319106279.svgz');
+  const doc=new DOMParser().parseFromString(r.svg,'image/svg+xml');
+  assert.equal(r.recoloured,true);assert.equal(r.plateAdded,true);
+  assert.equal(doc.querySelector('#transparant_colour path').getAttribute('fill'),'#296145');
+  assert.equal(doc.querySelector('#vecta-front-registration text').textContent,'CM14 KEL');
+  assert.equal(doc.querySelector('#vecta-front-registration').getAttribute('transform'),'translate(35.5 141.8) skewY(8)');
+  assert.equal(doc.querySelector('#wheels path').getAttribute('fill'),'#333333');
+  assert.doesNotMatch(r.svg,/switch|foreignObject|iframe|evil|script|onload/);
+});
 test('missing or unknown colour keeps original paint; unsupported drawings do not get a misplaced plate',()=>{
   const root=browser();
   for(const colour of ['', 'MULTI-COLOUR']) {
@@ -49,8 +61,17 @@ test('asset proxy bounds source to numeric supplier SVG IDs and handles gzip and
       const res=response();await haynesImage({method:'GET',query:{asset}},res);assert.equal(res.code,400);
     }
     assert.equal(calls,2);
-    global.fetch=async()=>new Response(Buffer.alloc(1000001));
+    global.fetch=async()=>new Response(Buffer.alloc(2000001));
     const res=response();await haynesImage({method:'GET',query:{asset:'1.svg'}},res);assert.equal(res.code,502);
+  } finally {global.fetch=original;}
+});
+test('proxy accepts a transparently decompressed larger drawing and strips Illustrator editing data',async()=>{
+  const original=global.fetch;
+  try {
+    const source=svg.replace('</svg>','<i:aipgf xmlns:i="http://ns.adobe.com/AdobeIllustrator/10.0/"><![CDATA['+'A'.repeat(1100000)+']]></i:aipgf></svg>');
+    global.fetch=async()=>new Response(source);
+    const res=response();await haynesImage({method:'GET',query:{asset:'319106279.svgz'}},res);
+    assert.equal(res.code,200);assert.equal(res.body.svg,svg);
   } finally {global.fetch=original;}
 });
 test('both website builds use identical image helper',()=>{
