@@ -1,0 +1,249 @@
+[
+  {
+    "model": "Defender",
+    "asset": "319002225.svgz",
+    "boxes": {
+      "transparant_colour": {
+        "x": 20.15,
+        "y": 30.6493,
+        "width": 260.4,
+        "height": 130.532
+      },
+      "windows": {
+        "x": 101.495,
+        "y": 34.8517,
+        "width": 150.228,
+        "height": 53.9982
+      }
+    },
+    "front": "left"
+  },
+  {
+    "model": "Pulsar",
+    "asset": "319004637.svgz",
+    "boxes": {
+      "transparant_colour": {
+        "x": 25.188,
+        "y": 71.4602,
+        "width": 248.862,
+        "height": 115.36
+      },
+      "windows": {
+        "x": 95.1985,
+        "y": 75.0519,
+        "width": 158.553,
+        "height": 34.2986
+      }
+    },
+    "front": "left"
+  },
+  {
+    "model": "Qashqai J11",
+    "asset": "319004648.svgz",
+    "boxes": {
+      "transparant_colour": {
+        "x": 25.6303,
+        "y": 59.0975,
+        "width": 247.204,
+        "height": 110.052
+      },
+      "windows": {
+        "x": 89.6944,
+        "y": 61.8131,
+        "width": 166.91,
+        "height": 35.6369
+      }
+    },
+    "front": "left"
+  },
+  {
+    "model": "Juke",
+    "asset": "319004664.svgz",
+    "boxes": {
+      "transparant_colour": {
+        "x": 24.1912,
+        "y": 55.0162,
+        "width": 248.426,
+        "height": 116.63
+      },
+      "windows": {
+        "x": 95.4109,
+        "y": 58.8811,
+        "width": 154.986,
+        "height": 33.2688
+      }
+    },
+    "front": "left"
+  },
+  {
+    "model": "Yaris",
+    "asset": "319005881.svgz",
+    "boxes": {
+      "transparant_colour": {
+        "x": 36.2078,
+        "y": 58.3402,
+        "width": 227.575,
+        "height": 123.674
+      },
+      "windows": {
+        "x": 87.5058,
+        "y": 63.12,
+        "width": 163.196,
+        "height": 43.6543
+      }
+    },
+    "front": "left"
+  },
+  {
+    "model": "Astra F",
+    "asset": "319008109.svgz",
+    "boxes": {
+      "transparant_colour": {
+        "x": 35.4455,
+        "y": 78.5466,
+        "width": 227.804,
+        "height": 107.655
+      },
+      "windows": {
+        "x": 106.173,
+        "y": 81.7315,
+        "width": 149.67,
+        "height": 33.4184
+      }
+    },
+    "front": "left"
+  },
+  {
+    "model": "Transit Custom",
+    "asset": "319009025.svgz",
+    "boxes": {
+      "transparant_colour": {
+        "x": 4.97378,
+        "y": 26.8449,
+        "width": 289.156,
+        "height": 156.556
+      },
+      "windows": {
+        "x": 51.5021,
+        "y": 30.6396,
+        "width": 157.448,
+        "height": 63.8913
+      }
+    },
+    "front": "left"
+  },
+  {
+    "model": "BMW X5",
+    "asset": "319009038.svgz",
+    "boxes": {
+      "transparant_colour": {
+        "x": 18.6473,
+        "y": 54.9307,
+        "width": 262.13,
+        "height": 132.988
+      },
+      "windows": {
+        "x": 93.05,
+        "y": 59.7348,
+        "width": 172.864,
+        "height": 38.6152
+      }
+    },
+    "front": "left"
+  },
+  {
+    "model": "Ibiza",
+    "asset": "319014196.svgz",
+    "boxes": {
+      "transparant_colour": {
+        "x": 24.3841,
+        "y": 63.2126,
+        "width": 250.165,
+        "height": 121.047
+      },
+      "windows": {
+        "x": 90.85,
+        "y": 65.9697,
+        "width": 164.978,
+        "height": 39.3738
+      }
+    },
+    "front": "left"
+  },
+  {
+    "model": "Qashqai J12",
+    "asset": "319106279.svgz",
+    "boxes": {
+      "transparant_colour": {
+        "x": 24.9653,
+        "y": 49.757,
+        "width": 248.613,
+        "height": 126.7
+      },
+      "windows": {
+        "x": 86.3478,
+        "y": 53.7013,
+        "width": 170.442,
+        "height": 38.7031
+      }
+    },
+    "front": "left"
+  },
+  {
+    "model": "Transit",
+    "asset": "319118141.svgz",
+    "boxes": {
+      "transparant_colour": {
+        "x": 5.16444,
+        "y": 7.79003,
+        "width": 288.115,
+        "height": 179.238
+      },
+      "windows": {
+        "x": 43.3208,
+        "y": 34.6659,
+        "width": 154.059,
+        "height": 74.0401
+      }
+    },
+    "front": "left"
+  },
+  {
+    "model": "Ranger pickup",
+    "asset": "319045505.svgz",
+    "boxes": {
+      "transparant_colour": {
+        "x": 18.61,
+        "y": 49.4309,
+        "width": 263.68,
+        "height": 127.938
+      },
+      "windows": {
+        "x": 84.4101,
+        "y": 57.1763,
+        "width": 171.04,
+        "height": 31.6037
+      }
+    },
+    "front": "left"
+  },
+  {
+    "model": "Mercedes C saloon",
+    "asset": "319002233.svgz",
+    "boxes": {
+      "transparant_colour": {
+        "x": 24.8,
+        "y": 75.504,
+        "width": 248.689,
+        "height": 117.209
+      },
+      "windows": {
+        "x": 103.443,
+        "y": 77.85,
+        "width": 151.109,
+        "height": 33.6479
+      }
+    },
+    "front": "left"
+  }
+]

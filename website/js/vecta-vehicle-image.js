@@ -1,6 +1,12 @@
 (function(root) {
   const NS = 'http://www.w3.org/2000/svg';
   const colours = {BLACK:'#191b20',WHITE:'#f5f5f2',SILVER:'#bfc3c8',GREY:'#626970',GRAY:'#626970',BLUE:'#235b9a',RED:'#ac1727',GREEN:'#296145',YELLOW:'#e5ba20',ORANGE:'#d56b22',BROWN:'#77513b',BEIGE:'#c1ac88',GOLD:'#b59a50',BRONZE:'#98704c',PURPLE:'#654282',PINK:'#cb7a9b',MAROON:'#641f32',CREAM:'#e9dfc6',TURQUOISE:'#368d96'};
+  // Positions verified against these supplier drawings, in SVG viewBox units.
+  const platePositions = {
+    '319106279.svgz': {x:35.5,y:141.8,width:32,height:10,skew:8},
+    '319009025.svgz': {x:26,y:141,width:45,height:11,skew:8},
+    '319118141.svgz': {x:20.5,y:149,width:27,height:10,skew:12}
+  };
   const sources = new Map(), images = new Map();
   const normaliseReg = value => String(value || '').toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0,8);
   // Customer-confirmed illustration correction; leave official MOT records untouched.
@@ -57,14 +63,14 @@
       const body = paint?.getBBox(), windows = svg.querySelector('[id="windows"]')?.getBBox();
       if (registration && body?.width > 0 && windows?.width > 0) {
         const left = windows.x-body.x > body.x+body.width-windows.x-windows.width;
-        // The J12 supplier drawing has a smaller, higher front plate recess.
-        const j12 = asset === '319106279.svgz';
-        const width = j12 ? 32 : body.width*.21, height = j12 ? 10 : body.height*.095;
-        const x = j12 ? 35.5 : left ? body.x+body.width*.055 : body.x+body.width*.735;
-        const y = j12 ? 141.8 : body.y+body.height*.80;
+        const position = platePositions[asset];
+        const width = position?.width ?? body.width*.21, height = position?.height ?? body.height*.095;
+        const x = position?.x ?? (left ? body.x+body.width*.055 : body.x+body.width*.735);
+        const y = position?.y ?? body.y+body.height*.80;
+        const skew = position?.skew ?? (left ? 8 : -8);
         const plate = root.document.createElementNS(NS,'g');
         plate.setAttribute('id','vecta-front-registration');
-        plate.setAttribute('transform',`translate(${x} ${y}) skewY(${left ? 8 : -8})`);
+        plate.setAttribute('transform',`translate(${x} ${y}) skewY(${skew})`);
         const rect = root.document.createElementNS(NS,'rect');
         for (const [key,value] of Object.entries({width,height,rx:height*.1,fill:'#ffffff',stroke:'#202020','stroke-width':'.5'})) rect.setAttribute(key,value);
         const text = root.document.createElementNS(NS,'text');
