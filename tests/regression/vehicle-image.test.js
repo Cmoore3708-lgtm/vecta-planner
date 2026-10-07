@@ -92,3 +92,21 @@ test('confirmed illustration colour corrections and customer choices are registr
   helper.rememberColour('BD53MUD','invalid');
   assert.equal(helper.resolveColour('BD53MUD','Red'),'Blue');
 });
+
+test('measured supplier profiles keep registrations on the front of all 13 audited drawings',()=>{
+  const profiles=JSON.parse(fs.readFileSync('tests/fixtures/vehicle-drawing-profiles.json','utf8'));
+  assert.equal(profiles.length,13);
+  for(const profile of profiles) {
+    const root=browser();
+    root.document.defaultView.Element.prototype.getBBox=function(){return profile.boxes[this.id]||{x:0,y:0,width:0,height:0};};
+    const r=root.VectaVehicleImage.personaliseSvg(svg,'AB12CDE','Blue',profile.asset);
+    const doc=new DOMParser().parseFromString(r.svg,'image/svg+xml');
+    const transform=doc.querySelector('#vecta-front-registration').getAttribute('transform');
+    const [x,y]=transform.match(/translate\(([^ ]+) ([^)]+)\)/).slice(1).map(Number);
+    const body=profile.boxes.transparant_colour||profile.boxes.transparent_colour;
+    assert.ok(x>=body.x&&x<body.x+body.width*.25,profile.model+' plate must be on front, not side');
+    assert.ok(y>body.y+body.height*.55&&y<body.y+body.height,profile.model+' plate must be below windscreen');
+    assert.equal(doc.querySelector('#vecta-front-registration text').textContent,'AB12 CDE');
+    assert.equal(r.recoloured,true);assert.equal(r.plateAdded,true);
+  }
+});
