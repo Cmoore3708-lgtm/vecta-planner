@@ -27,6 +27,10 @@
   },
   "rewrites": [
     {
+      "source": "/api/haynes-image",
+      "destination": "/api/availability?haynesImage=1"
+    },
+    {
       "source": "/api/haynes-vehicle",
       "destination": "/api/availability?haynes=1"
     },
