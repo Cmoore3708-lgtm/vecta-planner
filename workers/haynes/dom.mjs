@@ -20,6 +20,7 @@ export function readVehicle() {
     // A multi-result selection page must never silently select the first result.
     ambiguous: !location.pathname.endsWith('/modelDetail') && anchors.some(a => a.href.includes('/modelDetail?')),
     registration: clean(text.match(/Vehicle Registration Number:\s*([A-Z0-9 ]+?)(?=\s*(?:VIN:|Registration Date:|[\n\r]|$))/)?.[1]).replace(/\s/g, ''),
+    registrationDate: clean(text.match(/Registration Date:\s*(\d{2}\/\d{2}\/\d{4})/)?.[1]),
     typeId: new URL(location.href).searchParams.get('typeId'),
     make, model, variant, engineCode: code, modelYears: years, imageUrl: image?.src || ''
   };

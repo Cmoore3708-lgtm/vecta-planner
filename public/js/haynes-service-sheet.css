@@ -1,0 +1,139 @@
+.servicePrint .ssHeader:has(.ssHaynesVehicle:not(:empty)){grid-template-columns:1fr auto 145px!important;align-items:center!important;gap:10px}
+.servicePrint .ssHaynesVehicle:empty{display:none}
+.servicePrint .ssHaynesVehicle{text-align:right;font-size:8px;line-height:1.15;max-width:145px}
+.servicePrint .ssHaynesVehicle img{display:block;width:115px;height:62px;object-fit:contain;margin:0 0 2px auto}
+.servicePrint .ssHaynesVehicle strong,.servicePrint .ssHaynesVehicle span{display:block}
+.servicePrint .ssHaynes{padding:4px 6px;border:1px solid #aaa;background:#fff;break-inside:avoid}
+.servicePrint .ssHaynesIntegrated{border:0;border-top:1px solid #aaa;border-radius:0;margin:0!important}
+.servicePrint .ssHaynes .ssTitle{font-size:10px!important;padding:0 0 2px!important}
+.servicePrint .ssHaynesStatus{font-size:8px;line-height:1.2;margin:2px 0;color:#52606b}
+.servicePrint .ssHaynesColumns{display:grid;grid-template-columns:1fr 1.6fr;gap:10px}
+.servicePrint .ssHaynesColumns>div{min-width:0}
+.servicePrint .ssHaynesColumns ul{margin:3px 0;padding-left:12px;columns:2;column-gap:14px}
+.servicePrint .ssHaynesColumns li{margin:0 0 3px;break-inside:avoid;line-height:1.2}
+.servicePrint .ssHaynesColumns p{margin:2px 0 4px;line-height:1.2}
+.servicePrint .ssHaynes small{display:block;font-size:7px;color:#52606b;line-height:1.15}
+.servicePrint .ssHaynesConfirm{margin:3px 0;padding:2px 4px;background:#fff7e8;line-height:1.3}
+.servicePrint .ssHaynesSelect select{font:inherit;margin-left:5px;max-width:70%;padding:0}
+.servicePrint .ssHaynesRefresh{cursor:pointer}
+.servicePrint.ssHasHaynesVehicle .ssPlate{width:240px!important}
+.servicePrint.ssHasHaynesVehicle .ssBrand{min-width:0}
+.servicePrint.ssHasHaynesVehicle .ssPlateReg{font-size:26px!important}
+.servicePrint:has(.ssHaynesIntegrated) .ssFluidsHorizontal{grid-template-columns:1.7fr 1.35fr .85fr .85fr .85fr}
+.servicePrint:has(.ssHaynesIntegrated) .ssFluidInline{grid-template-columns:1fr;gap:2px;text-align:left;align-self:stretch}
+.servicePrint:has(.ssHaynesIntegrated) .ssField{overflow-wrap:anywhere}
+@media(max-width:650px){
+ .servicePrint .ssHeader:has(.ssHaynesVehicle:not(:empty)){grid-template-columns:1fr 125px!important}
+ .servicePrint .ssHaynesVehicle{grid-column:2;grid-row:1/3;max-width:125px}
+ .servicePrint .ssHaynesVehicle img{width:110px;height:60px}
+ .servicePrint.ssHasHaynesVehicle .ssPlate{width:210px!important;grid-column:1}
+ .servicePrint.ssHasHaynesVehicle .ssPlateReg{font-size:22px!important}
+ .servicePrint .ssHaynesColumns{grid-template-columns:1fr}
+ .servicePrint .ssHaynesColumns ul{columns:1}
+}
+@media print{
+ .servicePrint .ssHaynesRefresh{display:none}
+ .servicePrint .ssHaynesSelect select{appearance:none;border:0;background:none}
+ .servicePrint .ssHaynesColumns{font-size:8px;line-height:1.15}
+ .servicePrint .ssHaynesIntegrated{break-inside:auto}
+ .servicePrint .ssHaynesColumns li{break-inside:avoid}
+}
+/* Compact the current sheet without reducing its inspection and writing areas. */
+.servicePrint.ssHaynesCompact .ssHeader{grid-template-columns:170px 170px minmax(140px,1fr)!important;gap:12px!important;align-items:center!important}
+.servicePrint.ssHaynesCompact .vectaWordmark{font-size:34px!important;line-height:38px!important;letter-spacing:0!important}
+.servicePrint.ssHaynesCompact .ssPlate{width:170px!important;height:38px!important;justify-self:start!important;border-width:2px!important;grid-template-columns:28px 1fr!important;border-radius:5px!important}
+.servicePrint.ssHaynesCompact .ssPlateReg{font-size:23px!important;letter-spacing:1px!important}
+.servicePrint.ssHaynesCompact .ssPlateGb{font-size:9px!important}
+.servicePrint.ssHaynesCompact .ssHaynesVehicle{max-width:none!important;justify-self:end}
+.servicePrint.ssHaynesCompact .ssHaynesVehicle img{width:185px!important;height:58px!important;margin:0!important}
+.servicePrint.ssHaynesCompact .ssDocumentTitle{font-size:17px!important;padding:4px 8px!important;margin:0 0 3px!important}
+.servicePrint.ssHaynesCompact .ssInfo{grid-template-columns:1fr 1fr!important}
+.servicePrint.ssHaynesCompact .ssInfo>div{min-height:0!important;padding:3px 6px!important}
+.servicePrint.ssHaynesCompact .ssInfoRow{margin:0!important;grid-template-columns:82px 1fr!important;line-height:1.15!important}
+.servicePrint.ssHaynesCompact .ssInfoRow span{min-width:0}
+.servicePrint.ssHaynesCompact .ssPre{grid-template-columns:1fr 1fr 1fr!important}
+.servicePrint.ssHaynesCompact .ssFluidsHorizontal{grid-template-columns:1.6fr 1.2fr .85fr .8fr .9fr!important;align-items:center!important}
+.servicePrint.ssHaynesCompact .ssFluidInline{grid-template-columns:auto 1fr!important;align-items:center!important;padding:2px 5px!important;gap:5px!important;min-height:0!important;align-self:stretch}
+.servicePrint.ssHaynesCompact .ssFluidInline:nth-child(-n+2){grid-template-columns:1fr!important;gap:1px!important}
+.servicePrint.ssHaynesCompact .ssFluidsHorizontal .ssField{font-size:9px!important;line-height:1.1!important;min-height:0!important;padding:1px 3px!important;white-space:nowrap!important}
+.servicePrint.ssHaynesCompact .ssHaynesTopUp{width:12px!important;height:12px!important;min-width:12px!important;min-height:12px!important;margin:0!important;justify-self:end;border:1px solid #333!important;border-radius:1px!important;background:white!important;cursor:pointer;display:inline-flex;align-items:center;justify-content:center}
+.servicePrint.ssHaynesCompact .ssHaynesTopUp.selected{color:#087a21!important;background:#e8f5e9!important}
+.servicePrint.ssHaynesCompact .ssHaynesTopUp.selected::after{content:'✓';font-size:11px;line-height:1}
+.servicePrint.ssHaynesCompact .ssHaynesPreviousFluid{grid-column:1/-1;font-size:8px}
+@media(max-width:650px){.servicePrint.ssHaynesCompact .ssHeader{grid-template-columns:1fr 150px!important}.servicePrint.ssHaynesCompact .ssHaynesVehicle{grid-column:2;grid-row:1/3}.servicePrint.ssHaynesCompact .ssHaynesVehicle img{width:145px!important;height:70px!important}.servicePrint.ssHaynesCompact .ssPlate{grid-column:1}.servicePrint.ssHaynesCompact .ssFluidsHorizontal{grid-template-columns:1.6fr 1.2fr .85fr .8fr .9fr!important}}
+.servicePrint.ssHaynesCompact .ssHeader:has(.ssHaynesVehicle){grid-template-columns:140px 150px minmax(140px,1fr)!important;gap:12px!important}
+.servicePrint.ssHaynesCompact .vectaWordmark{font-size:38px!important}
+.servicePrint.ssHaynesCompact .ssPlate{width:150px!important}
+.servicePrint.ssHaynesCompact .ssHaynesVehicle img{width:220px!important;height:72px!important}
+@media(max-width:650px){.servicePrint.ssHaynesCompact .ssHeader:has(.ssHaynesVehicle){grid-template-columns:1fr 150px!important}.servicePrint.ssHaynesCompact .ssHaynesVehicle img{width:145px!important;height:70px!important}}
+.servicePrint.ssHaynesCompact .ssPlateReg{font-size:20px!important;letter-spacing:.5px!important;white-space:nowrap!important}
+.servicePrint.ssHaynesCompact .ssHeader:has(.ssHaynesVehicle){grid-template-columns:110px 170px minmax(0,1fr) 200px!important;gap:8px!important}
+.servicePrint.ssHaynesCompact .vectaWordmark{font-size:32px!important}
+.servicePrint.ssHaynesCompact .ssPlate{width:170px!important}
+.servicePrint.ssHaynesCompact .ssPlateReg{font-size:22px!important}
+.servicePrint.ssHaynesCompact .ssHaynesVehicle img{width:200px!important;height:100px!important}
+.servicePrint.ssHaynesCompact .ssHaynesHeaderInfo{font-size:8.5px;line-height:1.2;min-width:0}
+.servicePrint.ssHaynesCompact .ssHaynesHeaderInfo .ssInfoRow{grid-template-columns:42px 1fr!important;margin:2px 0!important}
+.servicePrint.ssHaynesCompact .ssInfo{display:block!important}
+.servicePrint.ssHaynesCompact .ssInfo>div{display:flex!important;gap:18px!important;align-items:center!important;min-height:0!important;border:0!important;padding:3px 6px!important;flex-wrap:wrap}
+.servicePrint.ssHaynesCompact .ssInfo .ssInfoRow{display:flex!important;gap:5px!important}
+.servicePrint.ssHaynesCompact .ssPre>div{min-height:32px!important}
+.servicePrint.ssHaynesCompact .ssPreHead{padding:2px!important}
+.servicePrint.ssHaynesCompact .ssPreBody{height:23px!important;min-height:0!important;padding:2px!important}
+.servicePrint.ssHaynesCompact .dipWrap{height:23px!important}
+.servicePrint.ssHaynesCompact .dipstick{height:23px!important}
+.servicePrint.ssHaynesCompact .ssHaynes{background:#f1f1f1!important}
+.servicePrint.ssHaynesCompact .ssFluidInline:nth-child(n+3){grid-template-columns:1fr!important;gap:2px!important}
+.servicePrint .ssHaynesFluidChecks{display:flex;gap:8px;align-items:center;justify-content:space-between;font-size:8px;white-space:nowrap}
+.servicePrint .ssHaynesFluidChecks label{display:flex;align-items:center;gap:3px}
+@media(max-width:650px){.servicePrint.ssHaynesCompact .ssHeader:has(.ssHaynesVehicle){grid-template-columns:1fr 160px!important}.servicePrint.ssHaynesCompact .ssHaynesHeaderInfo{grid-column:1;grid-row:3}.servicePrint.ssHaynesCompact .ssHaynesVehicle{grid-column:2;grid-row:1/4}.servicePrint.ssHaynesCompact .ssHaynesVehicle img{width:160px!important;height:100px!important}.servicePrint .ssHaynesFluidChecks{flex-wrap:wrap}}
+
+.servicePrint.ssHaynesCompact .ssHeader:has(.ssHaynesVehicle){grid-template-columns:minmax(110px,1fr) 170px 150px 240px!important;gap:5px!important}
+.servicePrint.ssHaynesCompact .ssHaynesVehicle img{width:240px!important;height:125px!important;object-fit:contain}
+.servicePrint.ssHaynesCompact .ssTyreMeasure{table-layout:fixed;width:100%}
+.servicePrint.ssHaynesCompact .ssTyreMeasure tr>*:nth-child(2),.servicePrint.ssHaynesCompact .ssTyreMeasure tr>*:nth-child(3){width:64px!important}
+.servicePrint.ssHaynesCompact .ssTyreMeasure tr>*:last-child{width:80px!important}
+@media(max-width:650px){.servicePrint.ssHaynesCompact .ssHeader:has(.ssHaynesVehicle){grid-template-columns:1fr 190px!important}.servicePrint.ssHaynesCompact .ssHaynesVehicle img{width:190px!important;height:125px!important}}
+
+.servicePrint.ssHaynesCompact .ssHaynesVehicle{position:relative;z-index:2;margin-bottom:-30px!important;align-self:end}
+.servicePrint.ssHaynesCompact .ssHaynesVehicle img{width:240px!important;height:145px!important;transform:scale(1.18);transform-origin:right bottom}
+@media(max-width:650px){.servicePrint.ssHaynesCompact .ssHaynesVehicle img{width:190px!important;height:145px!important;transform:scale(1.1)}}
+
+/* A compact lower inspection block preserves all editable fields. */
+.servicePrint.ssHaynesCompact .ssHaynesLowerGrid{display:grid;grid-template-columns:1.35fr .8fr 1.15fr;gap:4px;align-items:stretch;margin-top:3px}
+.servicePrint.ssHaynesCompact .ssHaynesLowerGrid .ssLower{display:grid;grid-template-columns:1fr;grid-template-rows:auto 1fr;margin:0!important;gap:3px}
+.servicePrint.ssHaynesCompact .ssHaynesLowerGrid .ssRightStack{gap:3px}
+.servicePrint.ssHaynesCompact .ssHaynesLowerGrid .ssSection{margin:0!important}
+.servicePrint.ssHaynesCompact .ssHaynesLowerGrid .ssNotesArea{height:54px!important}
+.servicePrint.ssHaynesCompact .ssHaynesLowerGrid .ssBoxNotes{height:34px!important}
+.servicePrint.ssHaynesCompact .ssHaynesLowerGrid .ssBrakeNotes{height:20px!important}
+.servicePrint.ssHaynesCompact .ssHaynesLowerGrid .ssTyreMeasure tr>*:nth-child(2),.servicePrint.ssHaynesCompact .ssHaynesLowerGrid .ssTyreMeasure tr>*:nth-child(3){width:48px!important}
+.servicePrint.ssHaynesCompact .ssHaynesLowerGrid .ssTyreMeasure tr>*:last-child{width:66px!important}
+.servicePrint.ssHaynesCompact .ssHealth .ssGuide{margin:4px;border-radius:2px}
+.servicePrint.ssHaynesCompact .ssHealth .ssGuideRow{grid-template-columns:54px 1fr;min-height:18px!important;font-size:7px}
+.servicePrint.ssHaynesCompact .ssHealth .ssGuideHead{font-size:9px!important;padding:3px!important}
+.servicePrint.ssHaynesCompact .ssBottom{grid-template-columns:1fr!important;margin-top:3px!important}
+@media print{
+ .servicePrint.ssHaynesCompact{width:100%!important;font-size:8px!important;line-height:1.05!important}
+ .servicePrint.ssHaynesCompact .ssHeader:has(.ssHaynesVehicle){grid-template-columns:minmax(105px,1fr) 165px 150px 210px!important;height:75px!important;margin-bottom:3px!important}
+ .servicePrint.ssHaynesCompact .ssHaynesVehicle img{width:210px!important;height:100px!important;transform:scale(1.1)!important}
+ .servicePrint.ssHaynesCompact .ssHaynesVehicle{margin-bottom:-15px!important}
+ .servicePrint.ssHaynesCompact .ssDocumentTitle{font-size:15px!important;padding:2px 6px!important}
+ .servicePrint.ssHaynesCompact .ssDueSummary>div{min-height:0!important;padding:3px 5px!important}
+ .servicePrint.ssHaynesCompact .ssTopGrid{gap:3px!important}
+ .servicePrint.ssHaynesCompact .ssOps td,.servicePrint.ssHaynesCompact .ssHealthChecks td{height:15px!important;padding:0 3px!important}
+ .servicePrint.ssHaynesCompact .ssHaynesLowerGrid th,.servicePrint.ssHaynesCompact .ssHaynesLowerGrid td{height:15px!important;padding:1px 3px!important}
+ .servicePrint.ssHaynesCompact .ssHaynesLowerGrid{break-inside:avoid;gap:3px!important}
+ .servicePrint.ssHaynesCompact .ssHaynesColumns{font-size:7.5px!important;gap:6px!important}
+ .servicePrint.ssHaynesCompact .ssHealthBand{padding:3px!important}
+ .servicePrint.ssHaynesCompact .ssScoreNote{padding-bottom:3px!important}
+ .servicePrint.ssHaynesCompact .ssRoad{min-height:42px!important}
+ .servicePrint.ssHaynesCompact .ssRoadMain,.servicePrint.ssHaynesCompact .ssRoadChecks{padding:3px!important}
+ .servicePrint.ssHaynesCompact .ssRoadChecks>div{margin-top:4px!important}
+ .servicePrint.ssHaynesCompact .ssFooter{position:static!important;break-inside:avoid;margin-top:2px!important}
+}
+@media screen and (max-width:650px){.servicePrint.ssHaynesCompact .ssHaynesLowerGrid{grid-template-columns:1fr}.servicePrint.ssHaynesCompact .ssHaynesLowerGrid .ssRightStack{grid-template-columns:1fr 1fr;grid-template-rows:auto}}
+
+.servicePrint.ssHaynesCompact .ssHaynesRequiredHead,.servicePrint.ssHaynesCompact .ssHaynesRequired{width:40px;text-align:center}
+.servicePrint.ssHaynesCompact .ssHaynesRequired[data-required="true"]{color:#087a21!important;font-weight:900;background:#e8f5e9!important}
+.servicePrint.ssHaynesCompact .ssOps .ssDone{width:48px}
