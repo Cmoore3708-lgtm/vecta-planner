@@ -61,8 +61,17 @@ test('asset proxy bounds source to numeric supplier SVG IDs and handles gzip and
       const res=response();await haynesImage({method:'GET',query:{asset}},res);assert.equal(res.code,400);
     }
     assert.equal(calls,2);
-    global.fetch=async()=>new Response(Buffer.alloc(1000001));
+    global.fetch=async()=>new Response(Buffer.alloc(2000001));
     const res=response();await haynesImage({method:'GET',query:{asset:'1.svg'}},res);assert.equal(res.code,502);
+  } finally {global.fetch=original;}
+});
+test('proxy accepts a transparently decompressed larger drawing and strips Illustrator editing data',async()=>{
+  const original=global.fetch;
+  try {
+    const source=svg.replace('</svg>','<i:aipgf xmlns:i="http://ns.adobe.com/AdobeIllustrator/10.0/"><![CDATA['+'A'.repeat(1100000)+']]></i:aipgf></svg>');
+    global.fetch=async()=>new Response(source);
+    const res=response();await haynesImage({method:'GET',query:{asset:'319106279.svgz'}},res);
+    assert.equal(res.code,200);assert.equal(res.body.svg,svg);
   } finally {global.fetch=original;}
 });
 test('both website builds use identical image helper',()=>{
