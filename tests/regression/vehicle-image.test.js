@@ -27,6 +27,18 @@ test('body recolour preserves wheels, windows and outlines; plate contains only 
   const next=root.VectaVehicleImage.personaliseSvg(svg,'NU67VSE','RED');
   assert.match(next.svg,/NU67 VSE/);assert.doesNotMatch(next.svg,/FX69/);
 });
+test('newer Illustrator switch wrapper retains the green Qashqai drawing and registration',()=>{
+  const root=browser();
+  const wrapped=svg.replace('<g id="wheels">','<switch><foreignObject><iframe src="https://evil.example"/></foreignObject><g><g id="wheels">').replace('</svg>','</g></switch></svg>');
+  const r=root.VectaVehicleImage.personaliseSvg(wrapped,'CM14KEL','Green','319106279.svgz');
+  const doc=new DOMParser().parseFromString(r.svg,'image/svg+xml');
+  assert.equal(r.recoloured,true);assert.equal(r.plateAdded,true);
+  assert.equal(doc.querySelector('#transparant_colour path').getAttribute('fill'),'#296145');
+  assert.equal(doc.querySelector('#vecta-front-registration text').textContent,'CM14 KEL');
+  assert.equal(doc.querySelector('#vecta-front-registration').getAttribute('transform'),'translate(35.5 141.8) skewY(8)');
+  assert.equal(doc.querySelector('#wheels path').getAttribute('fill'),'#333333');
+  assert.doesNotMatch(r.svg,/switch|foreignObject|iframe|evil|script|onload/);
+});
 test('missing or unknown colour keeps original paint; unsupported drawings do not get a misplaced plate',()=>{
   const root=browser();
   for(const colour of ['', 'MULTI-COLOUR']) {

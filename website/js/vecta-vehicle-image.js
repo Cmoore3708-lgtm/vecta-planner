@@ -14,8 +14,10 @@
     const document = new root.DOMParser().parseFromString(source, 'image/svg+xml');
     if (document.querySelector('parsererror') || document.documentElement.localName !== 'svg') throw Error('Invalid SVG');
     function copy(node) {
-      if (!allowedTags.has(node.localName)) return null;
-      const next = root.document.createElementNS(NS, node.localName);
+      // Illustrator switch wrappers contain the drawing plus an unsafe foreignObject fallback.
+      // Retain only allowlisted drawing children inside a neutral group.
+      if (!allowedTags.has(node.localName) && node.localName !== 'switch') return null;
+      const next = root.document.createElementNS(NS, node.localName === 'switch' ? 'g' : node.localName);
       for (const attr of node.attributes) {
         const name = attr.name, value = attr.value;
         if (allowedAttrs.has(name) && !/[<&]/.test(value) && (!/url\s*\(/i.test(value) || /^url\(#[\w.-]+\)$/.test(value))) next.setAttribute(name,value);
@@ -29,7 +31,7 @@
     }
     return copy(document.documentElement);
   }
-  function personaliseSvg(source, registration, colour) {
+  function personaliseSvg(source, registration, colour, asset) {
     const svg = sanitiseSvg(source), paint = svg.querySelector('[id="transparant_colour"], [id="transparent_colour"]');
     const hex = colourHex(colour);
     if (hex && paint) for (const path of paint.querySelectorAll('path, polygon')) {
@@ -44,9 +46,11 @@
       const body = paint?.getBBox(), windows = svg.querySelector('[id="windows"]')?.getBBox();
       if (registration && body?.width > 0 && windows?.width > 0) {
         const left = windows.x-body.x > body.x+body.width-windows.x-windows.width;
-        const width = body.width*.21, height = body.height*.095;
-        const x = left ? body.x+body.width*.055 : body.x+body.width*.735;
-        const y = body.y+body.height*.80;
+        // The J12 supplier drawing has a smaller, higher front plate recess.
+        const j12 = asset === '319106279.svgz';
+        const width = j12 ? 32 : body.width*.21, height = j12 ? 10 : body.height*.095;
+        const x = j12 ? 35.5 : left ? body.x+body.width*.055 : body.x+body.width*.735;
+        const y = j12 ? 141.8 : body.y+body.height*.80;
         const plate = root.document.createElementNS(NS,'g');
         plate.setAttribute('id','vecta-front-registration');
         plate.setAttribute('transform',`translate(${x} ${y}) skewY(${left ? 8 : -8})`);
@@ -81,7 +85,7 @@
       try {
         let result = images.get(key);
         if (!result) {
-          result = personaliseSvg(await sourceFor(match[1]),registration,colour);
+          result = personaliseSvg(await sourceFor(match[1]),registration,colour,match[1]);
           result.url = 'data:image/svg+xml;charset=utf-8,'+encodeURIComponent(result.svg);
           images.set(key,result); if (images.size > 32) images.delete(images.keys().next().value);
         }
