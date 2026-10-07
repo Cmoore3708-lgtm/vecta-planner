@@ -22,7 +22,7 @@ test('opening an existing job automatically looks up and displays its image with
 test('real mobile planner card receives its image and shares one lookup with desktop',async()=>{
  let requests=0;const {window,document}=setup(async()=>{requests++;return response(vehicle);});
  const host=document.createElement('div');host.innerHTML='<div class="mobileJob" data-open-job="1"><div class="mobileJobTop">FX69 XWU</div></div><div class="job plannerJobFull" data-job-id="1"><div class="plannerJobHeader"><div class="plannerJobLeft">FX69 XWU</div><div class="plannerJobRightText">Service</div></div></div>';document.body.appendChild(host);
- window.enrichHaynesDashboard(host,[{id:'1',registration:'FX69XWU',make:'Nissan'}]);await new Promise(r=>setImmediate(r));await new Promise(r=>setImmediate(r));assert.equal(requests,1);assert.equal(host.querySelectorAll('.haynesDashboardImage').length,2);assert.match(host.textContent,/FX69 XWU/);assert.equal(host.querySelector('.mobileJobTop').lastElementChild.className,'haynesDashboardImage');assert.equal(host.querySelector('.plannerJobHeader').lastElementChild.className,'haynesDashboardImage');
+ window.enrichHaynesDashboard(host,[{id:'1',registration:'FX69XWU',make:'Nissan'}]);await new Promise(r=>setImmediate(r));await new Promise(r=>setImmediate(r));assert.equal(requests,1);assert.equal(host.querySelectorAll('.haynesDashboardImage').length,2);assert.match(host.textContent,/FX69 XWU/);assert.equal(host.querySelector('.mobileJob').lastElementChild.className,'haynesDashboardImage');assert.equal(host.querySelector('.plannerJobHeader').lastElementChild.className,'haynesDashboardImage');
 });
 test('unconfigured preview reports the actual lookup issue instead of silently showing an empty image area',async()=>{
  const {panel}=setup(async()=>({ok:true,json:async()=>({status:'NOT_CONFIGURED'})}));await new Promise(r=>setImmediate(r));assert.match(panel.textContent,/not configured for this preview/);assert.equal(panel.querySelector('img'),null);
@@ -53,4 +53,17 @@ test('late response cannot attach another vehicle to an edited or closed job',as
 });
 test('no-vehicle jobs and unsafe images fail closed; unavailable lookup never changes vehicle fields',async()=>{
  const {document,window,panel}=setup(async()=>{throw Error('offline');});await panel.querySelector('button').onclick();assert.match(panel.textContent,/still save/);assert.equal(document.querySelector('#job_registration').value,'FX69 XWU');const toggle=document.querySelector('#job_no_vehicle');toggle.checked=true;toggle.dispatchEvent(new window.Event('change'));assert.equal(panel.querySelector('button').disabled,true);assert.equal(window.VectaHaynesJobTools.safeImage('https://evil.test/car.png'),'');
+});
+
+test('planner looks up vehicles beyond the twelfth card without duplicate work across rerenders',async()=>{
+ const {window,document}=setup(async()=>response(vehicle));await new Promise(r=>setImmediate(r));
+ let requests=0;window.fetch=async url=>{requests++;const registration=new URL(url,'https://test.local').searchParams.get('reg');return response({...vehicle,registration});};
+ const jobs=Array.from({length:15},(_,i)=>({id:String(i),registration:'AB'+String(i).padStart(2,'0')+'XYZ',make:'Nissan'}));
+ const host=document.createElement('div');document.body.appendChild(host);
+ const markup=()=>jobs.map(j=>'<div class="mobileJob" data-open-job="'+j.id+'"><div class="mobileJobTop">'+j.registration+'</div></div>').join('');
+ host.innerHTML=markup();window.enrichHaynesDashboard(host,jobs);
+ host.innerHTML=markup();window.enrichHaynesDashboard(host,jobs);
+ for(let i=0;i<20;i++)await new Promise(r=>setImmediate(r));
+ assert.equal(requests,15);assert.equal(host.querySelectorAll('.haynesDashboardImage').length,15);
+ assert.equal(host.querySelector('[data-open-job="14"]').lastElementChild.className,'haynesDashboardImage');
 });

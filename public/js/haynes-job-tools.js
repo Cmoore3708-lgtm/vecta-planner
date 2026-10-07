@@ -29,19 +29,20 @@ async function lookup(registration,expectedMake){
 }
 function thumbnail(v,className){const src=image(v?.imageUrl);if(!src)return null;const img=document.createElement('img');img.src=src;img.className=className;img.alt='Representative '+v.make+' '+v.model;img.onerror=()=>img.remove();img.draggable=false;return img;}
 let dashboardTail=Promise.resolve();
+const dashboardRequests=new Map();
 root.enrichHaynesDashboard=function(container,jobs){
  if(!container)return;const byId=new Map((jobs||[]).filter(j=>!j.no_vehicle&&j.card_type!=='mini_task').map(j=>[String(j.id),j]));
  const groups=new Map();
  for(const card of container.querySelectorAll('.job.plannerJobFull[data-job-id],.mobileJob[data-open-job]')){
-  const j=byId.get(card.dataset.jobId||card.dataset.openJob),target=card.querySelector('.plannerJobHeader,.mobileJobTop');if(!j||!target)continue;
+  const j=byId.get(card.dataset.jobId||card.dataset.openJob),target=card.matches('.mobileJob')?card:card.querySelector('.plannerJobHeader');if(!j||!target||! /^[A-Z0-9]{2,8}$/.test(reg(j.registration)))continue;
   const key=reg(j.registration)+'|'+make(j.make);if(!groups.has(key))groups.set(key,{job:j,targets:[]});groups.get(key).targets.push({card,target});
  }
- let queued=0;
- for(const {job:j,targets} of groups.values()){
-  const attach=v=>{for(const {card,target} of targets){if(!card.isConnected||!v||target.querySelector('.haynesDashboardImage'))continue;const img=thumbnail(v,'haynesDashboardImage');if(img){target.appendChild(img);target.classList.add('hasHaynesDashboardImage');}}};
-  const hit=snapshot(j.registration,j.make);if(hit){attach(hit);continue;}
-  if(queued++>=12)continue;
-  dashboardTail=dashboardTail.then(async()=>{if(!targets.some(x=>x.card.isConnected))return;attach(await lookup(j.registration,j.make));}).catch(()=>{});
+ const attach=(v,targets)=>{for(const {card,target} of targets){if(!card.isConnected||!v)continue;const img=card.querySelector('.haynesDashboardImage')||thumbnail(v,'haynesDashboardImage');if(img){target.appendChild(img);target.classList.add('hasHaynesDashboardImage');}}};
+ for(const [key,group] of groups){
+  const j=group.job,hit=snapshot(j.registration,j.make);if(hit){attach(hit,group.targets);continue;}
+  const existing=dashboardRequests.get(key);if(existing){existing.targets=group.targets;continue;}
+  dashboardRequests.set(key,group);
+  dashboardTail=dashboardTail.then(async()=>{try{if(!group.targets.some(x=>x.card.isConnected))return;attach(await lookup(j.registration,j.make),group.targets);}finally{dashboardRequests.delete(key);}}).catch(()=>{});
  }
 };
 root.enrichHaynesInvoice=function(sheet,invoice){
