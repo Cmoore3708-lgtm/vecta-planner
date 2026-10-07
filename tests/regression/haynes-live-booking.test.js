@@ -12,7 +12,7 @@ for(const path of ['public/booking.html','website/booking/index.html'])test(`${p
   const data=String(url).includes('/api/haynes-vehicle')?{status:'MATCHED',vehicle:{registration:'NU67VSE',make:'NISSAN',model:'Qashqai',variant:'1.6 DiG-T 190',engineCode:'MR16DDT',vehicle:'NISSAN Qashqai 1.6 DiG-T 190',typeId:'t_1'}}:String(url).includes('/api/vehicle-lookup')?{vehicle:'NISSAN QASHQAI',make:'NISSAN',advisories:['Tyre worn'],engineCapacity:1618}:String(url).includes('/api/website-booking')?{ok:true,request_id:'receipt',confirmed:false}:{};
   return {ok:true,status:200,json:async()=>data};
  };
- vm.createContext(root);vm.runInContext(client,root);
+ vm.createContext(root);vm.runInContext(client,root);vm.runInContext(fs.readFileSync('public/js/vecta-vehicle-image.js','utf8'),root);
  for(const m of html.matchAll(/<script(?:\s[^>]*)?>([\s\S]*?)<\/script>/g))if(m[1])vm.runInContext(m[1],root);
  await new Promise(r=>setImmediate(r));await vm.runInContext("state.form.registration='NU67VSE';lookup('NU67VSE')",root);await new Promise(r=>setImmediate(r));
  assert.equal(vm.runInContext('serviceEngineSize()',root),1600);

@@ -123,7 +123,7 @@ for (const failure of ['offline', 'unknown', 'ambiguous']) {
       }
       return { ok: true, json: async () => String(url).includes('/api/vehicle-lookup') ? { vehicle: 'NISSAN QASHQAI', make: 'NISSAN', advisories: ['Tyre worn'], latestMileage: 42000, motExpiryDate: '2027-09-30', engineCapacity: 1749 } : {} };
     };
-    vm.createContext(root); vm.runInContext(client, root);
+    vm.createContext(root); vm.runInContext(client, root); vm.runInContext(fs.readFileSync('public/js/vecta-vehicle-image.js','utf8'), root);
     for (const source of [...html.matchAll(/<script(?:\s[^>]*)?>([\s\S]*?)<\/script>/g)].map(m => m[1]).filter(Boolean)) vm.runInContext(source, root);
     await new Promise(resolve => setImmediate(resolve));
     await vm.runInContext("state.form.registration='FX69XWU';lookup('FX69XWU')", root);
@@ -163,7 +163,7 @@ test('Test page shows Haynes without modifying advisories or allowing booking wr
   const { document } = parseHTML(html);
   const root = { document, URL, URLSearchParams, location: { search: '' }, AbortController, console, setTimeout, clearTimeout, alert() {} };
   root.window = root; root.fetch = async url => ({ ok: true, json: async () => String(url).includes('/api/haynes-vehicle') ? { status: 'MATCHED', vehicle: vehicleResult(raw, raw.registration) } : String(url).includes('/api/vehicle-lookup') ? { vehicle: 'NISSAN QASHQAI', make: 'NISSAN', advisories: ['Tyre worn'], latestMileage: 42000, motExpiryDate: '2027-09-30', engineCapacity: 1749 } : {} });
-  vm.createContext(root); vm.runInContext(client, root);
+  vm.createContext(root); vm.runInContext(client, root); vm.runInContext(fs.readFileSync('public/js/vecta-vehicle-image.js','utf8'), root);
   for (const source of [...html.matchAll(/<script(?:\s[^>]*)?>([\s\S]*?)<\/script>/g)].map(m => m[1]).filter(Boolean)) vm.runInContext(source, root);
   await new Promise(resolve => setImmediate(resolve));
   await vm.runInContext("state.form.registration='FX69XWU';lookup('FX69XWU')", root);

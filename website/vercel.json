@@ -3,6 +3,10 @@
   "trailingSlash": false,
   "rewrites": [
     {
+      "source": "/api/haynes-image",
+      "destination": "https://vecta-planner.vercel.app/api/haynes-image"
+    },
+    {
       "source": "/api/haynes-vehicle",
       "destination": "https://vecta-planner.vercel.app/api/haynes-vehicle"
     },
