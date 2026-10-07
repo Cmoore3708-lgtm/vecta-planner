@@ -39,7 +39,7 @@ test('invoice save preserves consolidated monthly details',()=>{
  tr.parentNode.children=[tr];
  const inv={id:'test',source:'fleet_eom',fleet_customer:'NMUK',invoice_date:'2026-09-30',lines:original};
  const ctx={app:{invoices:[inv]},document:{querySelector:()=>null,getElementById:()=>null,querySelectorAll:()=>[tr]},todayIso:()=> '2026-09-30',nextInvoiceNumberText:()=> '78763',invoiceTotals:()=>({subtotal:12770,vat:2554,total:15324})};
- vm.createContext(ctx);vm.runInContext(html.slice(html.indexOf('function invoiceEditorLineValue('),html.indexOf('function bindInvoiceFields(')),ctx);vm.runInContext(gather,ctx);ctx.gatherInvoice('test');
+ vm.createContext(ctx);vm.runInContext(html.slice(html.indexOf('function invoiceCustomerAccount('),html.indexOf('function bindInvoiceFields(')),ctx);vm.runInContext(gather,ctx);ctx.gatherInvoice('test');
  assert.equal(inv.lines[0].nmuk_monthly_extras[0].amount,2420);
  assert.notEqual(inv.lines[0].nmuk_monthly_extras,original[0].nmuk_monthly_extras);
 });
