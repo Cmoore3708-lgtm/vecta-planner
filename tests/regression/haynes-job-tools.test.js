@@ -67,3 +67,23 @@ test('planner looks up vehicles beyond the twelfth card without duplicate work a
  assert.equal(requests,15);assert.equal(host.querySelectorAll('.haynesDashboardImage').length,15);
  assert.equal(host.querySelector('[data-open-job="14"]').lastElementChild.className,'haynesDashboardImage');
 });
+
+test('description-only Qashqai receives a generic image on the right without a registration lookup',async()=>{
+ const {window,document}=setup(async()=>response(vehicle));await new Promise(r=>setImmediate(r));let requests=0;window.fetch=async()=>{requests++;throw Error('offline');};
+ const host=document.createElement('div');host.innerHTML='<div class="mobileJob" data-open-job="blank"><div class="mobileJobTop">Qashqai</div></div>';document.body.appendChild(host);
+ const job={id:'blank',registration:'',vehicle:'Nissan Qashqai',work_required:'Brakes'},before=JSON.stringify(job);
+ window.enrichHaynesDashboard(host,[job]);await new Promise(r=>setImmediate(r));
+ const img=host.querySelector('img');assert.ok(img);assert.equal(img.dataset.generic,'true');assert.match(img.alt,/Generic model image.*Qashqai/);assert.equal(img.parentElement,host.firstElementChild);assert.equal(requests,0);assert.equal(JSON.stringify(job),before);
+ assert.equal(window.VectaHaynesJobTools.genericImage({make:'Ford',model:'Qashqai'}),null);
+ assert.equal(window.VectaHaynesJobTools.genericImage({vehicle:'No vehicle'}),null);
+ assert.equal(window.VectaHaynesJobTools.genericImage({vehicle:'Nissan Qashqai',no_vehicle:true}),null);
+ assert.equal(window.VectaHaynesJobTools.genericImage({vehicle:'Nissan Juke'}),null);
+ assert.equal(window.VectaHaynesJobTools.vehicleLink(window.VectaHaynesJobTools.genericImage(job)),'');
+});
+test('unavailable registration keeps generic artwork; generic invoice image preserves vehicle text and totals',async()=>{
+ const {window,document}=setup(async()=>response(vehicle));await new Promise(r=>setImmediate(r));window.fetch=async()=>{throw Error('offline');};
+ const host=document.createElement('div');host.innerHTML='<div class="mobileJob" data-open-job="fallback"><div class="mobileJobTop">Qashqai</div></div>';document.body.appendChild(host);
+ window.enrichHaynesDashboard(host,[{id:'fallback',registration:'AB12XYZ',vehicle:'Nissan Qashqai'}]);await new Promise(r=>setImmediate(r));assert.equal(host.querySelector('img').dataset.generic,'true');
+ const sheet=document.createElement('div');sheet.innerHTML='<div class="printInvoiceVehicle"><div class="printVehicleCell">Plate</div><div class="printVehicleCell"><b>My Qashqai description</b></div></div><div class="printTotals">£120.00</div>';
+ const inv={registration:'AB12XYZ',vehicle:'Nissan Qashqai',total:120},before=JSON.stringify(inv);window.enrichHaynesInvoice(sheet,inv);assert.equal(sheet.querySelector('img').dataset.generic,'true');assert.equal(sheet.querySelector('b').textContent,'My Qashqai description');assert.equal(sheet.querySelector('.haynesInvoiceDetails'),null);assert.equal(sheet.querySelector('.printTotals').textContent,'£120.00');assert.equal(JSON.stringify(inv),before);
+});
