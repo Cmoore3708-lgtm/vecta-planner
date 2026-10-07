@@ -10,6 +10,18 @@ const source=readFileSync(new URL('../../public/js/haynes-job-tools.js',import.m
 const vehicle={registration:'FX69XWU',make:'Nissan',model:'Qashqai',variant:'1.7 dCi',typeId:'t_301000368',imageUrl:'https://www.haynespro-assets.com/workshop/images/123.svg',fetchedAt:new Date().toISOString()};
 function setup(fetcher){const {window,document}=parseHTML('<html><body><div id="modal"><section class="jobVehicleSection"><input id="job_registration" value="FX69 XWU"><input id="job_make" value="Nissan"><input type="checkbox" id="job_no_vehicle"></section><button id="save">Save</button></div></body></html>');window.fetch=fetcher;vm.runInNewContext(source,{window,document,AbortController,setTimeout,clearTimeout,encodeURIComponent});window.initHaynesJobTools(document.querySelector('#modal'));return {window,document,panel:document.querySelector('.haynesJobTools')};}
 const response=v=>({ok:true,json:async()=>({status:'MATCHED',vehicle:v})});
+test('dashboard uses registration-specific vehicle colours, including two generic models without plates',()=>{
+ const {window,document}=setup(async()=>response(vehicle));
+ window.app={vehicles:[{registration:'FX69 XWU',colour:'Green'}]};
+ let painted=0;window.VectaVehicleImage={resolveColour:(_reg,colour)=>colour,mount:target=>{for(const img of target.querySelectorAll('[data-vehicle-image]')){painted++;img.src='data:image/svg+xml,painted';}}};
+ const host=document.createElement('div');host.innerHTML=['1','2','3'].map(id=>'<div class="mobileJob" data-open-job="'+id+'"></div>').join('');document.body.append(host);
+ const jobs=[{id:'1',registration:'FX69XWU',make:'Nissan',model:'Qashqai'},{id:'2',registration:'',make:'Nissan',model:'Qashqai',colour:'White'},{id:'3',registration:'',make:'Nissan',model:'Qashqai',colour:'Black'}];
+ window.VectaHaynesJobTools.remember(vehicle);window.enrichHaynesDashboard(host,jobs);
+ assert.deepEqual([...host.querySelectorAll('img')].map(img=>img.dataset.colour),['Green','White','Black']);
+ const first=host.querySelector('img');window.enrichHaynesDashboard(host,jobs);assert.equal(host.querySelector('img'),first,'repainted data URL must not replace the existing thumbnail');
+ window.app.vehicles[0].colour='Blue';window.enrichHaynesDashboard(host,jobs);assert.equal(host.querySelector('img').dataset.colour,'Blue');assert.notEqual(host.querySelector('img'),first);assert.ok(painted>0);
+ assert.equal(jobs[0].colour,undefined,'visual fallback must not overwrite job records');host.remove();
+});
 test('actual job-editor integration passes a defined modal element to Haynes tools',()=>{
  const html=readFileSync(new URL('../../index.html',import.meta.url),'utf8');let calls=0;
  for(const match of html.matchAll(/<script(?:\s[^>]*)?>([\s\S]*?)<\/script>/gi)){
