@@ -3,10 +3,30 @@ import assert from 'node:assert/strict';
 import vm from 'node:vm';
 import {readFileSync} from 'node:fs';
 import {parseHTML} from 'linkedom';
+import {parse} from '@babel/parser';
+import traverseModule from '@babel/traverse';
+const traverse=traverseModule.default||traverseModule;
 const source=readFileSync(new URL('../../public/js/haynes-job-tools.js',import.meta.url),'utf8');
 const vehicle={registration:'FX69XWU',make:'Nissan',model:'Qashqai',variant:'1.7 dCi',typeId:'t_301000368',imageUrl:'https://www.haynespro-assets.com/workshop/images/123.svg',fetchedAt:new Date().toISOString()};
 function setup(fetcher){const {window,document}=parseHTML('<html><body><div id="modal"><section class="jobVehicleSection"><input id="job_registration" value="FX69 XWU"><input id="job_make" value="Nissan"><input type="checkbox" id="job_no_vehicle"></section><button id="save">Save</button></div></body></html>');window.fetch=fetcher;vm.runInNewContext(source,{window,document,AbortController,setTimeout,clearTimeout,encodeURIComponent});window.initHaynesJobTools(document.querySelector('#modal'));return {window,document,panel:document.querySelector('.haynesJobTools')};}
 const response=v=>({ok:true,json:async()=>({status:'MATCHED',vehicle:v})});
+test('actual job-editor integration passes a defined modal element to Haynes tools',()=>{
+ const html=readFileSync(new URL('../../index.html',import.meta.url),'utf8');let calls=0;
+ for(const match of html.matchAll(/<script(?:\s[^>]*)?>([\s\S]*?)<\/script>/gi)){
+  const ast=parse(match[1],{sourceType:'script'});traverse(ast,{CallExpression(path){const c=path.node.callee;if(c.type!=='MemberExpression'||c.property.name!=='initHaynesJobTools')return;calls++;const arg=path.node.arguments[0];assert.equal(arg.type,'Identifier');const binding=path.scope.getBinding(arg.name);assert.ok(binding,'Job-card integration uses undefined '+arg.name);assert.equal(binding.path.node.init?.callee?.property?.name,'getElementById');assert.equal(binding.path.node.init.arguments[0].value,'jobModal');}});
+ }assert.equal(calls,1);
+});
+test('opening an existing job automatically looks up and displays its image without a separate click',async()=>{
+ let requests=0;const {panel}=setup(async()=>{requests++;return response(vehicle);});await new Promise(r=>setImmediate(r));assert.equal(requests,1);assert.equal(panel.querySelector('img')?.src,vehicle.imageUrl);assert.match(panel.textContent,/Open this vehicle/);
+});
+test('real mobile planner card receives its image and shares one lookup with desktop',async()=>{
+ let requests=0;const {window,document}=setup(async()=>{requests++;return response(vehicle);});
+ const host=document.createElement('div');host.innerHTML='<div class="mobileJob" data-open-job="1"><div class="mobileJobTop">FX69 XWU</div></div><div class="job plannerJobFull" data-job-id="1"><div class="plannerJobLeft">FX69 XWU</div></div>';document.body.appendChild(host);
+ window.enrichHaynesDashboard(host,[{id:'1',registration:'FX69XWU',make:'Nissan'}]);await new Promise(r=>setImmediate(r));await new Promise(r=>setImmediate(r));assert.equal(requests,1);assert.equal(host.querySelectorAll('.haynesDashboardImage').length,2);assert.match(host.textContent,/FX69 XWU/);
+});
+test('unconfigured preview reports the actual lookup issue instead of silently showing an empty image area',async()=>{
+ const {panel}=setup(async()=>({ok:true,json:async()=>({status:'NOT_CONFIGURED'})}));await new Promise(r=>setImmediate(r));assert.match(panel.textContent,/not configured for this preview/);assert.equal(panel.querySelector('img'),null);
+});
 test('confirmed vehicle opens a fixed supplier URL, hides broken images and leaves save intact',async()=>{
  const {document,panel}=setup(async()=>response(vehicle));await panel.querySelector('button').onclick();
  const link=panel.querySelector('a');assert.equal(link.href,'https://www.workshopdata.com/touch/site/layout/modelDetail?typeId=t_301000368');assert.equal(link.target,'_blank');assert.equal(link.rel,'noopener noreferrer');
