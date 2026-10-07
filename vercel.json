@@ -27,6 +27,10 @@
   },
   "rewrites": [
     {
+      "source": "/invoice",
+      "destination": "/api/additional-work?invoicePdf=1"
+    },
+    {
       "source": "/api/haynes-image",
       "destination": "/api/availability?haynesImage=1"
     },

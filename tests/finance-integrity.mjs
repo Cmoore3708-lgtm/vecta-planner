@@ -195,12 +195,13 @@ function contextWith(names, extras = {}) {
       window,
       fleetEomCustomerEmail: () => '',
       fleetInvoiceFormatRegistration: value => String(value || '').toUpperCase(),
+      createInvoiceCustomerLink: async () => 'https://workshop.example/invoice?token=test-token',
       appendVectaEmailSignature: body => `${body}\n\nVECTA Motors`,
       alert: message => { throw new Error(message); }
     }
   );
   const invoice = { job_id: 'job-email', customer_name: 'Jane Smith', vehicle: 'Nissan Juke', registration: 'AB12 CDE' };
-  assert.equal(context.openInvoiceCustomerEmail(invoice), true);
+  assert.equal(await context.openInvoiceCustomerEmail(invoice), true);
   assert.match(window.location.href, /^mailto:customer%40example\.com\?/);
   assert.match(decodeURIComponent(window.location.href), /subject=Invoice for Nissan Juke · AB12 CDE/);
   assert.match(decodeURIComponent(window.location.href), /Dear Jane Smith,/);
@@ -495,4 +496,44 @@ console.log('Finance integrity regression tests passed.');
   let prompts=0;context.saveInvoice=async()=>true;context.promptInvoiceCustomerNotification=()=>{prompts++};
   await context.saveInvoiceAndNotify(inv.id);assert.equal(prompts,0,'Editing saved invoices must not prompt again');
   inv.status='draft';await context.saveInvoiceAndNotify(inv.id);assert.equal(prompts,1,'Newly saved invoices must prompt');
+}
+
+{
+  const app={jobs:[{id:'pdf-job',customer_account:'Staff',customer_phone:'07712345678',customer_name:'Jane Smith',customer_email:'jane@example.com'}],customers:[]};
+  const context=contextWith(['invoiceCustomerAccount','invoiceEmailRecipient','invoiceCustomerNotification'],{app,vehicleTaxInvoiceTitle:()=>'',fleetInvoiceFormatRegistration:v=>v,fleetEomCustomerEmail:()=>''});
+  const link='https://workshop.example/invoice?token=secure-token';
+  const result=context.invoiceCustomerNotification({job_id:'pdf-job',registration:'AB12 CDE',total:174},link);
+  assert.ok(decodeURIComponent(result.whatsapp).includes(link));
+  assert.ok(decodeURIComponent(result.email).includes(link));
+  assert.match(result.body,/View or download your invoice PDF/);
+}
+
+{
+  let submitted;
+  const context=contextWith(['createInvoiceCustomerLink'],{URL,AbortSignal,window:{location:{host:'workshop.example'}},fetch:async(path,options)=>{submitted={path,...options};return {ok:true,json:async()=>({url:'https://workshop.example/invoice?token=test-token'})}}});
+  const link=await context.createInvoiceCustomerLink({id:'saved-invoice'});
+  assert.equal(link,'https://workshop.example/invoice?token=test-token');
+  assert.equal(submitted.path,'/api/additional-work?invoicePdf=1');
+  assert.equal(submitted.credentials,'same-origin');
+  assert.deepEqual(JSON.parse(submitted.body),{invoice_id:'saved-invoice'},'Link service receives only the saved invoice id');
+  context.fetch=async()=>({ok:false,json:async()=>({error:'Manager sign-in required'})});
+  await assert.rejects(context.createInvoiceCustomerLink({id:'saved-invoice'}),/Manager sign-in required/);
+  context.fetch=async()=>({ok:true,json:async()=>({url:'https://attacker.example/invoice?token=test-token'})});
+  await assert.rejects(context.createInvoiceCustomerLink({id:'saved-invoice'}),/Unexpected invoice PDF address/);
+}
+
+{
+  const {parseHTML}=await import('linkedom');
+  const {document}=parseHTML('<html><body><div id="invoiceModal"></div></body></html>');
+  const context=contextWith(['promptInvoiceCustomerNotification'],{document,esc:v=>String(v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/g,'&quot;'),closeModals:()=>document.getElementById('invoiceModal').classList.remove('open'),invoiceCustomerNotification:(inv,url)=>({body:'Hi Jane. Total £174.00.'+(url?'\nPDF: '+url:''),whatsapp:'https://wa.me/447712345678?text='+encodeURIComponent(url||''),email:'mailto:jane@example.com?body='+encodeURIComponent(url||'')}),createInvoiceCustomerLink:async()=>{throw new Error('Link service unavailable')}});
+  const inv={id:'saved-invoice'};
+  assert.equal(await context.promptInvoiceCustomerNotification(inv),false);
+  assert.ok(document.getElementById('retryInvoiceLink'));
+  assert.equal(document.querySelectorAll('#invoiceModal a').length,0,'Never offer a customer message with a missing PDF link');
+  context.createInvoiceCustomerLink=async()=> 'https://workshop.example/invoice?token=test-token';
+  assert.equal(await context.promptInvoiceCustomerNotification(inv),true);
+  assert.equal(document.querySelectorAll('#invoiceModal a').length,2);
+  assert.ok(decodeURIComponent(document.querySelector('#invoiceModal a').getAttribute('href')).includes('token=test-token'));
+  context.createInvoiceCustomerLink=async()=>{document.getElementById('invoiceModal').classList.remove('open');return 'https://workshop.example/invoice?token=test-token'};
+  assert.equal(await context.promptInvoiceCustomerNotification(inv),false,'A closed notification must not reopen after its link finishes loading');
 }

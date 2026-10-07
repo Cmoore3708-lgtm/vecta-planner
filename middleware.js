@@ -2,7 +2,7 @@ import { next } from '@vercel/functions';
 
 // The public booking and approval pages share this deployment with Main.
 // The mechanic dashboard is a separate Vercel project and is unaffected.
-const PUBLIC_PATHS = new Set(['/booking', '/booking/', '/booking.html', '/approval.html', '/vecta-site-index.html', '/vecta-site-booking.html']);
+const PUBLIC_PATHS = new Set(['/invoice', '/booking', '/booking/', '/booking.html', '/approval.html', '/vecta-site-index.html', '/vecta-site-booking.html']);
 const PREVIEW_ADMIN_PATHS = new Set(['/admin.html', '/site-preview.html', '/booking-preview.html']);
 const PUBLIC_PREFIXES = ['/api/', '/assets/', '/icons/', '/js/'];
 const PUBLIC_FILES = new Set(['/favicon.ico', '/manifest.webmanifest', '/service-worker.js', '/supabase.min.js']);
