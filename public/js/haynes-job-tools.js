@@ -43,11 +43,24 @@ async function lookup(registration,expectedMake){
 function thumbnail(v,className){const src=image(v?.imageUrl);if(!src)return null;const img=document.createElement('img');img.src=src;img.className=className;img.alt=(v.generic?'Generic model image: ':'Representative ')+v.make+' '+v.model;img.title=v.generic?'Generic model image — appearance may differ':img.alt;img.dataset.generic=String(!!v.generic);img.onerror=()=>img.remove();img.draggable=false;return img;}
 let dashboardTail=Promise.resolve();
 const dashboardRequests=new Map();
+const colourKey='vecta_dashboard_vehicle_colours_v1',colourCache=new Map(),colourFailures=new Map();
+try{for(const entry of JSON.parse(root.localStorage?.getItem(colourKey)||'[]'))if(/^[A-Z0-9]{2,8}$/.test(entry.registration)&&Date.now()-entry.at<TTL)colourCache.set(entry.registration,entry);}catch{}
 function dashboardColour(job){
  const registration=reg(job.registration),vehicle=registration?(root.app?.vehicles||[]).find(v=>reg(v.registration)===registration):null;
  const fleet=registration?(root.fleetVehicles||[]).find(v=>reg(v.registration)===registration):null;
- const supplied=job.vehicle_colour||job.colour||vehicle?.colour||fleet?.colour||'';
+ const saved=colourCache.get(registration),cached=saved&&Date.now()-saved.at<TTL&&(!job.make||make(saved.make)===make(job.make))?saved.colour:'';
+ const supplied=job.vehicle_colour||job.colour||vehicle?.colour||fleet?.colour||cached||'';
  return root.VectaVehicleImage?.resolveColour(registration,supplied)||supplied;
+}
+async function lookupDashboardColour(job){
+ const registration=reg(job.registration);
+ if(!root.VectaVehicleImage||root.VectaVehicleImage.colourHex(dashboardColour(job))||! /^[A-Z0-9]{5,8}$/.test(registration)||root.navigator?.onLine===false||Date.now()-(colourFailures.get(registration)||0)<300000)return;
+ try{
+  const response=await root.fetch('/api/vehicle-lookup?reg='+encodeURIComponent(registration),{cache:'no-store',signal:AbortSignal.timeout(15000)}),data=await response.json();
+  if(!response.ok||reg(data.registration)!==registration||(job.make&&make(data.make)!==make(job.make))||!root.VectaVehicleImage.colourHex(data.primaryColour))throw Error('Colour unavailable');
+  colourCache.set(registration,{registration,make:data.make,colour:data.primaryColour,at:Date.now()});while(colourCache.size>300)colourCache.delete(colourCache.keys().next().value);
+  try{root.localStorage?.setItem(colourKey,JSON.stringify([...colourCache.values()]));}catch{}
+ }catch{colourFailures.set(registration,Date.now());while(colourFailures.size>300)colourFailures.delete(colourFailures.keys().next().value);}
 }
 root.enrichHaynesDashboard=function(container,jobs){
  if(!container)return;const byId=new Map((jobs||[]).filter(j=>!j.no_vehicle&&j.card_type!=='mini_task').map(j=>[String(j.id),j]));
@@ -58,10 +71,10 @@ root.enrichHaynesDashboard=function(container,jobs){
  }
  const attach=(v,targets,j)=>{for(const {card,target} of targets){if(!card.isConnected||!v)continue;const colour=dashboardColour(j);let img=card.querySelector('.haynesDashboardImage');if(img&&(img.dataset.haynesSource!==v.imageUrl||img.dataset.colour!==colour)){img.remove();img=null;}img=img||thumbnail(v,'haynesDashboardImage');if(img){img.dataset.haynesSource=v.imageUrl;img.dataset.colour=colour;img.dataset.vehicleName=[v.make,v.model].join(' ');img.setAttribute('data-vehicle-image','');target.appendChild(img);target.classList.add('hasHaynesDashboardImage');root.VectaVehicleImage?.mount(target);}}};
  for(const [key,group] of groups){
-  const j=group.job,hit=snapshot(j.registration,j.make),fallback=genericImage(j);attach(hit?.imageUrl?hit:fallback,group.targets,j);if(hit||! /^[A-Z0-9]{2,8}$/.test(reg(j.registration)))continue;
+  const j=group.job,hit=snapshot(j.registration,j.make),fallback=genericImage(j);attach(hit?.imageUrl?hit:fallback,group.targets,j);if((hit&&(!root.VectaVehicleImage||root.VectaVehicleImage.colourHex(dashboardColour(j))))||! /^[A-Z0-9]{2,8}$/.test(reg(j.registration)))continue;
   const existing=dashboardRequests.get(key);if(existing){existing.targets=group.targets;continue;}
   dashboardRequests.set(key,group);
-  dashboardTail=dashboardTail.then(async()=>{try{if(!group.targets.some(x=>x.card.isConnected))return;const v=await lookup(j.registration,j.make);attach(v?.imageUrl?v:genericImage(j),group.targets,j);}finally{dashboardRequests.delete(key);}}).catch(()=>{});
+  dashboardTail=dashboardTail.then(async()=>{try{if(!group.targets.some(x=>x.card.isConnected))return;await lookupDashboardColour(j);const v=await lookup(j.registration,j.make);attach(v?.imageUrl?v:genericImage(j),group.targets,j);}finally{dashboardRequests.delete(key);}}).catch(()=>{});
  }
 };
 root.enrichHaynesInvoice=function(sheet,invoice){

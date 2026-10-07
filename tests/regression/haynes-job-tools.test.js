@@ -2,18 +2,30 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import vm from 'node:vm';
 import {readFileSync} from 'node:fs';
-import {parseHTML} from 'linkedom';
+import {parseHTML,DOMParser} from 'linkedom';
 import {parse} from '@babel/parser';
 import traverseModule from '@babel/traverse';
 const traverse=traverseModule.default||traverseModule;
 const source=readFileSync(new URL('../../public/js/haynes-job-tools.js',import.meta.url),'utf8');
 const vehicle={registration:'FX69XWU',make:'Nissan',model:'Qashqai',variant:'1.7 dCi',typeId:'t_301000368',imageUrl:'https://www.haynespro-assets.com/workshop/images/123.svg',fetchedAt:new Date().toISOString()};
-function setup(fetcher){const {window,document}=parseHTML('<html><body><div id="modal"><section class="jobVehicleSection"><input id="job_registration" value="FX69 XWU"><input id="job_make" value="Nissan"><input type="checkbox" id="job_no_vehicle"></section><button id="save">Save</button></div></body></html>');window.fetch=fetcher;vm.runInNewContext(source,{window,document,AbortController,setTimeout,clearTimeout,encodeURIComponent});window.initHaynesJobTools(document.querySelector('#modal'));return {window,document,panel:document.querySelector('.haynesJobTools')};}
+function setup(fetcher){const {window,document}=parseHTML('<html><body><div id="modal"><section class="jobVehicleSection"><input id="job_registration" value="FX69 XWU"><input id="job_make" value="Nissan"><input type="checkbox" id="job_no_vehicle"></section><button id="save">Save</button></div></body></html>');delete window.VectaVehicleImage;delete window.app;delete window.fleetVehicles;window.fetch=fetcher;vm.runInNewContext(source,{window,document,AbortController,AbortSignal,setTimeout,clearTimeout,encodeURIComponent});window.initHaynesJobTools(document.querySelector('#modal'));return {window,document,panel:document.querySelector('.haynesJobTools')};}
 const response=v=>({ok:true,json:async()=>({status:'MATCHED',vehicle:v})});
+test('dashboard downloads a missing recorded colour and renders grey body paint without altering records',async()=>{
+ const requests=[];
+ const {window,document}=setup(async url=>{requests.push(url);return {ok:true,json:async()=>url.includes('vehicle-lookup')?{registration:vehicle.registration,make:'Nissan',primaryColour:'Grey'}:url.includes('haynes-image')?{svg:'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 299 220"><g id="transparant_colour"><path fill="#ffffff" d="M0 0h100v100z"/></g></svg>'}:{status:'MATCHED',vehicle}};});
+ window.DOMParser=DOMParser;window.XMLSerializer=class{serializeToString(node){return node.outerHTML;}};window.AbortSignal=AbortSignal;
+ window.Element.prototype.getBBox=()=>({x:0,y:0,width:100,height:100});
+ vm.runInNewContext(readFileSync(new URL('../../public/js/vecta-vehicle-image.js',import.meta.url),'utf8'),{window});
+ const host=document.createElement('div');host.innerHTML='<div class="mobileJob" data-open-job="1"></div>';document.body.append(host);const jobs=[{id:'1',registration:vehicle.registration,make:'Nissan',model:'Qashqai'}];
+ window.enrichHaynesDashboard(host,jobs);for(let i=0;i<12;i++)await new Promise(r=>setImmediate(r));
+ const img=host.querySelector('img');assert.equal(img.dataset.colour,'Grey');assert.equal(img.dataset.recoloured,'true');assert.match(decodeURIComponent(img.src),/#626970/);
+ assert.equal(jobs[0].colour,undefined);window.enrichHaynesDashboard(host,jobs);for(let i=0;i<5;i++)await new Promise(r=>setImmediate(r));
+ assert.equal(requests.filter(url=>url.includes('vehicle-lookup')).length,1);host.remove();
+});
 test('dashboard uses registration-specific vehicle colours, including two generic models without plates',()=>{
  const {window,document}=setup(async()=>response(vehicle));
  window.app={vehicles:[{registration:'FX69 XWU',colour:'Green'}]};
- let painted=0;window.VectaVehicleImage={resolveColour:(_reg,colour)=>colour,mount:target=>{for(const img of target.querySelectorAll('[data-vehicle-image]')){painted++;img.src='data:image/svg+xml,painted';}}};
+ let painted=0;window.VectaVehicleImage={resolveColour:(_reg,colour)=>colour,colourHex:colour=>colour,mount:target=>{for(const img of target.querySelectorAll('[data-vehicle-image]')){painted++;img.src='data:image/svg+xml,painted';}}};
  const host=document.createElement('div');host.innerHTML=['1','2','3'].map(id=>'<div class="mobileJob" data-open-job="'+id+'"></div>').join('');document.body.append(host);
  const jobs=[{id:'1',registration:'FX69XWU',make:'Nissan',model:'Qashqai'},{id:'2',registration:'',make:'Nissan',model:'Qashqai',colour:'White'},{id:'3',registration:'',make:'Nissan',model:'Qashqai',colour:'Black'}];
  window.VectaHaynesJobTools.remember(vehicle);window.enrichHaynesDashboard(host,jobs);
