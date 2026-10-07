@@ -133,3 +133,7 @@
  .servicePrint.ssHaynesCompact .ssFooter{position:static!important;break-inside:avoid;margin-top:2px!important}
 }
 @media screen and (max-width:650px){.servicePrint.ssHaynesCompact .ssHaynesLowerGrid{grid-template-columns:1fr}.servicePrint.ssHaynesCompact .ssHaynesLowerGrid .ssRightStack{grid-template-columns:1fr 1fr;grid-template-rows:auto}}
+
+.servicePrint.ssHaynesCompact .ssHaynesRequiredHead,.servicePrint.ssHaynesCompact .ssHaynesRequired{width:40px;text-align:center}
+.servicePrint.ssHaynesCompact .ssHaynesRequired[data-required="true"]{color:#087a21!important;font-weight:900;background:#e8f5e9!important}
+.servicePrint.ssHaynesCompact .ssOps .ssDone{width:48px}

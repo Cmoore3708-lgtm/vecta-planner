@@ -50,3 +50,15 @@ test('compact inspection layout moves existing fields without losing technician 
  assert.ok(fields.every(field=>sheet.contains(field)));
  assert.equal(fields[1].textContent,'Mechanic note');sheet.remove();
 });
+test('Haynes marks scheduled filters as required without marking work completed and clears stale ticks',async()=>{
+ const {document,window,sheet}=setup(async()=>({status:'MATCHED',result:{...data,additional:['Renew air filter every 37,500 miles/36 months']}}));
+ const table=document.createElement('table');table.className='ssOps';table.innerHTML='<tr><th>Item</th><th>Completed</th></tr>'+['Interim service','Air filter','Pollen filter','Fuel filter'].map(label=>'<tr><td>'+label+'</td><td class="ssDone"><span class="ssCheck selected">✓</span></td></tr>').join('');sheet.appendChild(table);
+ const completed=[...table.querySelectorAll('.ssCheck')];
+ await window.initHaynesServiceSheet(sheet,'FX69XWU','service');await settle();
+ const rows=[...table.querySelectorAll('tr')].slice(1);
+ assert.deepEqual(rows.map(row=>row.querySelector('.ssHaynesRequired').textContent),['✓','','✓','']);
+ assert.ok(completed.every(cell=>cell.classList.contains('selected')));
+ const field=sheet.querySelector('.ssMileageEntry');field.textContent='60000';field.dispatchEvent(new window.Event('input'));
+ assert.ok(rows.every(row=>row.querySelector('.ssHaynesRequired').textContent===''));
+ assert.ok(completed.every(cell=>cell.classList.contains('selected')));sheet.remove();await new Promise(r=>setTimeout(r,950));
+});
