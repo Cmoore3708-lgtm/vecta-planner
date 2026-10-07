@@ -85,12 +85,35 @@
     return sources.get(asset);
   }
   function mount(scope = root.document) {
+    if (!root.document.getElementById('vecta-vehicle-swivel-style')) {
+      const style = root.document.createElement('style');
+      style.id = 'vecta-vehicle-swivel-style';
+      style.textContent = `
+        .vehicle-photo img.vectaVehicleSwivel {
+          transform-origin:50% 65%;
+          animation:vectaVehicleSwivel 7s ease-in-out infinite alternate;
+          backface-visibility:hidden;
+        }
+        @keyframes vectaVehicleSwivel {
+          from { transform:perspective(900px) rotateY(-8deg); }
+          to { transform:perspective(900px) rotateY(8deg); }
+        }
+        @media (prefers-reduced-motion:reduce) {
+          .vehicle-photo img.vectaVehicleSwivel { animation:none;transform:none; }
+        }
+        @media print {
+          .vehicle-photo img.vectaVehicleSwivel { animation:none;transform:none; }
+        }
+      `;
+      root.document.head.appendChild(style);
+    }
     scope.querySelectorAll('img[data-vehicle-image]').forEach(async img => {
       if (img.dataset.personalising) return;
       img.dataset.personalising = '1';
       const url = img.getAttribute('src') || '';
       const match = url.match(/^https:\/\/www\.haynespro-assets\.com\/workshop\/images\/(\d+\.svgz?)$/);
       if (!match) return;
+      img.classList.add('vectaVehicleSwivel');
       const registration = normaliseReg(img.dataset.registration), colour = img.dataset.colour || '';
       const key = match[1]+'|'+registration+'|'+colourHex(colour);
       try {
