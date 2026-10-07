@@ -78,7 +78,8 @@ test('a configured non-audit preview receives only its isolated database config'
   assert.equal(result.statusCode, 200);
   assert.deepEqual(result.body, {
     supabaseUrl: 'https://example.supabase.co',
-    supabasePublishableKey: 'test-key'
+    supabasePublishableKey: 'test-key',
+    haynesServiceTest: true
   });
 });
 
@@ -98,4 +99,12 @@ test('production still fails closed when its database config is absent', () => {
   const result = callHandler({ VERCEL_ENV: 'production' });
   assert.equal(result.statusCode, 503);
   assert.match(result.body.error, /not configured/i);
+});
+
+
+test('Main enables Haynes service sheets while retaining its own job database', () => {
+  const result = callHandler({VERCEL_ENV:'production', SUPABASE_URL:'https://main-example.supabase.co', SUPABASE_PUBLISHABLE_KEY:'main-key'});
+  assert.equal(result.statusCode, 200);
+  assert.equal(result.body.supabaseUrl, 'https://main-example.supabase.co');
+  assert.equal(result.body.haynesServiceTest, true);
 });
