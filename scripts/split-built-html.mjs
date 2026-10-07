@@ -23,5 +23,14 @@ html=html.replace(/<script([^>]*)>([\s\S]*?)<\/script>/gi,(whole,attributes,sour
 });
 
 if(written.length!==3)throw new Error(`Expected to extract 3 large inline scripts, extracted ${written.length}`);
+// Give the vehicle helper and its stylesheet the same cache-safe treatment.
+for(const name of ['haynes-job-tools.js','haynes-job-tools.css']){
+  const source=fs.readFileSync(path.resolve('dist/js',name));
+  const hash=crypto.createHash('sha256').update(source).digest('hex').slice(0,10);
+  const ext=path.extname(name),filename=`${path.basename(name,ext)}-${hash}${ext}`;
+  fs.mkdirSync(assetsDir,{recursive:true});
+  fs.writeFileSync(path.join(assetsDir,filename),source);
+  html=html.replaceAll(`/js/${name}`,`/assets/${filename}`);
+}
 fs.writeFileSync(htmlPath,html);
 console.log(JSON.stringify({indexBytes:Buffer.byteLength(html),extractedScripts:written}));
