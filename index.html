@@ -15101,13 +15101,14 @@ function invoiceEmailRecipient(inv){
   if(!email){var customer=(app.customers||[]).find(function(c){return String(c.id||'')===String((linked&&linked.customer_id)||inv.customer_id||'')||(String(c.name||'').trim().toUpperCase()===String(inv.customer_name||'').trim().toUpperCase()&&String(c.email||'').trim())});if(customer)email=String(customer.email||'').trim();}
   return {email:email,name:String(inv.customer_name||(linked&&linked.customer_name)||'Customer').trim()||'Customer'};
 }
-function openInvoiceCustomerEmail(inv){
+async function openInvoiceCustomerEmail(inv){
   var recipient=invoiceEmailRecipient(inv);if(!recipient.email){alert('No customer email address is saved for this invoice. Add it to the customer or job record, then try again.');return false;}
   var details=[String(inv.vehicle||'').trim(),fleetInvoiceFormatRegistration(inv.registration||'')].filter(Boolean).join(' · ')||'your vehicle',subject='Invoice for '+details,body='Dear '+recipient.name+',\n\nYour car ('+details+') is all done and ready to collect.\n\nWe will send a payment link to your phone shortly.';
+  try{body+='\n\nView or download your invoice PDF: '+await createInvoiceCustomerLink(inv)}catch(error){alert('Your invoice is saved, but its PDF link could not be created. Please retry Email to Customer.\n\n'+String(error&&error.message||error));return false;}
   if(typeof appendVectaEmailSignature==='function')body=appendVectaEmailSignature(body);
   window.location.href='mailto:'+encodeURIComponent(recipient.email)+'?subject='+encodeURIComponent(subject)+'&body='+encodeURIComponent(body);return true;
 }
-function invoiceCustomerNotification(inv){
+function invoiceCustomerNotification(inv,invoiceUrl){
   inv=inv||{};var account=invoiceCustomerAccount(inv),job=inv.job_id&&(app.jobs||[]).find(function(j){return String(j.id)===String(inv.job_id)});
   if(inv.source==='fleet_eom'||inv.source==='vehicle_tax_eom'||vehicleTaxInvoiceTitle(inv))return null;
   var subtype=String((job&&job.nmuk_vehicle_type)||inv.nmuk_vehicle_type||'').trim().toUpperCase();
@@ -15117,19 +15118,34 @@ function invoiceCustomerNotification(inv){
   if(phone.indexOf('0044')===0)phone=phone.slice(2);else if(phone.indexOf('0')===0)phone='44'+phone.slice(1);
   var mobile=/^447\d{9}$/.test(phone),first=recipient.name.split(/\s+/)[0]||'Customer',reg=fleetInvoiceFormatRegistration(inv.registration||(job&&job.registration)||'');
   var body='Hi '+first+'. The work on your car ('+reg+') is complete. '+(account==='STAFF'?'The total price is £'+Number(inv.total||0).toFixed(2)+'. I will send you a payment link shortly.':'It is ready to collect from our workshop.');
+  if(invoiceUrl)body+='\n\nView or download your invoice PDF: '+invoiceUrl;
   var emailBody=typeof appendVectaEmailSignature==='function'?appendVectaEmailSignature(body):body;
   return {body:body,whatsapp:account==='STAFF'&&mobile?'https://wa.me/'+phone+'?text='+encodeURIComponent(body):'',email:recipient.email?'mailto:'+encodeURIComponent(recipient.email)+'?subject='+encodeURIComponent(reg+' — work complete')+'&body='+encodeURIComponent(emailBody):''};
 }
-function promptInvoiceCustomerNotification(inv){
+async function createInvoiceCustomerLink(inv){
+  var response=await fetch('/api/additional-work?invoicePdf=1',{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json'},body:JSON.stringify({invoice_id:inv.id}),signal:AbortSignal.timeout(15000)});
+  var data=await response.json();if(!response.ok||!data.url)throw new Error(data.error||'Invoice PDF link unavailable');
+  var link=new URL(data.url);if(link.protocol!=='https:'||link.host!==window.location.host||link.pathname!=='/invoice')throw new Error('Unexpected invoice PDF address');return link.href;
+}
+async function promptInvoiceCustomerNotification(inv){
   var notice=invoiceCustomerNotification(inv);if(!notice)return false;
   var modal=document.getElementById('invoiceModal');if(!modal)return false;
-  modal.innerHTML='<div class="modalCard"><div class="modalHead"><h2>Invoice saved · Notify customer</h2><button class="btn" data-close-notice>Close</button></div><div class="modalBody"><p>'+esc(notice.body)+'</p>'+(!notice.whatsapp&&!notice.email?'<p>No suitable customer contact details are saved. Add a mobile number or email to the job, then use Notify Customer on the invoice.</p>':'<p>Open the message below, then review and send it in WhatsApp or your email app.</p>')+'</div><div class="modalFoot">'+(notice.whatsapp?'<a class="primary" href="'+esc(notice.whatsapp)+'" target="_blank" rel="noopener noreferrer">Open WhatsApp</a>':'')+(notice.email?'<a class="btn" href="'+esc(notice.email)+'">Open Email</a>':'')+'<button class="btn" data-close-notice>Later</button></div></div>';
-  modal.classList.add('open');modal.querySelectorAll('[data-close-notice]').forEach(function(b){b.onclick=closeModals});return true;
+  modal.innerHTML='<div class="modalCard"><div class="modalHead"><h2>Invoice saved</h2><button class="btn" data-close-notice>Close</button></div><div class="modalBody"><p>Preparing your customer invoice PDF link...</p></div></div>';
+  modal.classList.add('open');modal.querySelector('[data-close-notice]').onclick=closeModals;
+  var pending=modal.firstElementChild;
+  try{var invoiceUrl=await createInvoiceCustomerLink(inv);notice=invoiceCustomerNotification(inv,invoiceUrl)}catch(error){
+    if(!modal.classList.contains('open')||modal.firstElementChild!==pending)return false;
+    modal.innerHTML='<div class="modalCard"><div class="modalHead"><h2>Invoice saved</h2></div><div class="modalBody"><p>Your invoice is safely saved, but its PDF link could not be prepared.</p><p>'+esc(error&&error.message||'Please try again.')+'</p></div><div class="modalFoot"><button class="primary" id="retryInvoiceLink">Retry PDF link</button><button class="btn" data-close-notice>Later</button></div></div>';
+    modal.querySelector('#retryInvoiceLink').onclick=function(){return promptInvoiceCustomerNotification(inv)};modal.querySelector('[data-close-notice]').onclick=closeModals;return false;
+  }
+  if(!modal.classList.contains('open')||modal.firstElementChild!==pending)return false;
+  modal.innerHTML='<div class="modalCard"><div class="modalHead"><h2>Invoice saved · Notify customer</h2><button class="btn" data-close-notice>Close</button></div><div class="modalBody"><p style="white-space:pre-wrap;overflow-wrap:anywhere">'+esc(notice.body)+'</p>'+(!notice.whatsapp&&!notice.email?'<p>No suitable customer contact details are saved. Update the job, then use Notify Customer on the invoice.</p>':'<p>Open the message below, then review and send it in WhatsApp or your email app.</p>')+'</div><div class="modalFoot">'+(notice.whatsapp?'<a class="primary" href="'+esc(notice.whatsapp)+'" target="_blank" rel="noopener noreferrer">Open WhatsApp</a>':'')+(notice.email?'<a class="btn" href="'+esc(notice.email)+'">Open Email</a>':'')+'<button class="btn" data-close-notice>Later</button></div></div>';
+  modal.querySelectorAll('[data-close-notice]').forEach(function(b){b.onclick=closeModals});return true;
 }
 async function saveInvoiceAndNotify(id){
   var existing=(app.invoices||[]).find(function(x){return String(x.id)===String(id)}),isNew=!existing||existing.status==='draft';
   var savedOk=await saveInvoice(id);if(savedOk===false)return false;
-  var saved=(app.invoices||[]).find(function(x){return String(x.id)===String(id)});if(saved&&isNew)promptInvoiceCustomerNotification(saved);return savedOk;
+  var saved=(app.invoices||[]).find(function(x){return String(x.id)===String(id)});if(saved&&isNew)await promptInvoiceCustomerNotification(saved);return savedOk;
 }
 function invoiceUsesNmukSender(inv){var customer=fleetNormaliseCustomer(inv&&((inv.fleet_customer||inv.customer_name))||'');return customer==='NMUK'||String(inv&&inv.registration||'').trim().toUpperCase()==='NMUK TAX'}
 function invoiceSenderHtml(inv,printMode){var lines=invoiceUsesNmukSender(inv)?['10 Hunter Close','East Boldon','Tyne and Wear','NE36 0TB','Email: shirken.moore@talktalk.net','Tel: 07721722622','VAT No. 169170002']:['Contractors Compound','Nissan Motor Manufacturing','Nissan Way, Washington, SR5 3NS','Tel: 07721722622','VAT No. 169170002'],tag=printMode?'<br>':'</span><span>';return '<img class="vectaBrandLogo '+(printMode?'printBrandLogo':'invoiceBrandLogo')+'" src="'+BRAND_LOGO_SRC+'" alt="VECTA Vehicle Servicing and repairs"><b>'+esc(app.settings.businessName||'Vecta Motors')+'</b>'+(printMode?'<br>':'<span>')+lines.map(esc).join(tag)+(printMode?'':'</span>')}
