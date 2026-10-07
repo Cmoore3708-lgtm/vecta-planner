@@ -215,14 +215,14 @@ assert.match(
 );
 assert.match(
   html,
-  /if\(savedInvoice\)\{printInvoice\(savedInvoice\);financialSection='main';view='planner';render\(\)\}/,
-  'Printing an invoice must close the invoice workflow and return to the dashboard'
+  /if\(savedInvoice\)\{printInvoice\(savedInvoice\);invoiceReturnAfterSave\(savedInvoice,true\)\}/,
+  'Printing must use the invoice-aware return destination after saving'
 );
 assert.match(html, /id="emailInvoice">Email to Customer<\/button>/);
 assert.match(
   html,
-  /getElementById\('emailInvoice'\)\.onclick=async function\(\).*var savedOk=await saveInvoice\(inv\.id\).*view='planner';render\(\);openInvoiceCustomerEmail\(savedInvoice\)/s,
-  'Email to Customer must save, close and return to the dashboard before opening the email'
+  /getElementById\('emailInvoice'\)\.onclick=async function\(\).*var savedOk=await saveInvoice\(inv\.id\).*invoiceReturnAfterSave\(savedInvoice,true\);openInvoiceCustomerEmail\(savedInvoice\)/s,
+  'Email must save and return to the invoice-aware destination before opening the email'
 );
 assert.match(
   html,

@@ -67,6 +67,24 @@ test('print and email actions save first and abort when confirmation fails', () 
   assert.doesNotMatch(html, /openInvoiceV329Base|openInvoice\s*=\s*function\(id,preset\)/);
 });
 
+test('month-end Save, Print and Email return to the contractor list for the same month', () => {
+  const ctx = {financialSection:'eom',view:'invoices',fleetSection:'invoicing',fleetEomCustomer:'OWBEN',fleetEomMonth:'2026-10',render:()=>{},vehicleTaxInvoiceTitle:inv=>inv.source==='vehicle_tax_eom'?'Vehicle tax':''};
+  vm.runInNewContext(namedFunctionSource('invoiceReturnAfterSave'),ctx);
+  for(const inv of [{source:'fleet_eom',fleet_customer:'OWBEN',fleet_month:'2026-09'},{fleet_customer:'NMUK',eom_month:'2026-09'}]){
+    for(const printOrEmail of [false,true]){
+      ctx.fleetEomCustomer='OWBEN';ctx.invoiceReturnAfterSave(inv,printOrEmail);
+      assert.equal(ctx.financialSection,'eom');assert.equal(ctx.view,'invoices');assert.equal(ctx.fleetSection,'invoicing');assert.equal(ctx.fleetEomCustomer,'');assert.equal(ctx.fleetEomMonth,'2026-09');
+    }
+  }
+  ctx.invoiceReturnAfterSave({job_id:'staff-job'},false);assert.equal(ctx.financialSection,'invoiceList');assert.equal(ctx.view,'invoices');
+  ctx.invoiceReturnAfterSave({job_id:'staff-job'},true);assert.equal(ctx.financialSection,'main');assert.equal(ctx.view,'planner');
+  ctx.invoiceReturnAfterSave({source:'vehicle_tax_eom',fleet_month:'2026-09'},false);assert.equal(ctx.financialSection,'invoiceList');
+  const save=namedFunctionSource('saveInvoiceBase'),open=namedFunctionSource('openInvoice');
+  assert.match(save,/closeModals\(\);\s*invoiceReturnAfterSave\(inv,false\)/);
+  assert.match(open,/printInvoice\(savedInvoice\);invoiceReturnAfterSave\(savedInvoice,true\)/);
+  assert.match(open,/invoiceReturnAfterSave\(savedInvoice,true\);openInvoiceCustomerEmail\(savedInvoice\)/);
+});
+
 test('cancellation and restore retain completed jobs and completion dates', () => {
   const cancel = namedFunctionSource('deleteInvoiceCompletely');
   const restore = namedFunctionSource('restoreVoidInvoice');
