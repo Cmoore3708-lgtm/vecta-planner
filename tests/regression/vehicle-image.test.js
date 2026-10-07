@@ -80,3 +80,15 @@ test('both website builds use identical image helper',()=>{
     const html=fs.readFileSync(path,'utf8');assert.match(html,/vecta-vehicle-image\.js/);assert.match(html,/data-registration=/);assert.match(html,/data-colour=/);
   }
 });
+
+test('confirmed illustration colour corrections and customer choices are registration-specific',()=>{
+  const root=browser(),values=new Map();root.localStorage={getItem:key=>values.get(key),setItem:(key,value)=>values.set(key,value)};
+  const helper=root.VectaVehicleImage;
+  assert.equal(helper.resolveColour('BD53 MUD','Red'),'Black');
+  assert.equal(helper.resolveColour('CM14 KEL','Green'),'Green');
+  helper.rememberColour('BD53 MUD','Blue');
+  assert.equal(helper.resolveColour('BD53MUD','Red'),'Blue');
+  assert.equal(helper.resolveColour('CM14KEL','Green'),'Green');
+  helper.rememberColour('BD53MUD','invalid');
+  assert.equal(helper.resolveColour('BD53MUD','Red'),'Blue');
+});

@@ -3,6 +3,17 @@
   const colours = {BLACK:'#191b20',WHITE:'#f5f5f2',SILVER:'#bfc3c8',GREY:'#626970',GRAY:'#626970',BLUE:'#235b9a',RED:'#ac1727',GREEN:'#296145',YELLOW:'#e5ba20',ORANGE:'#d56b22',BROWN:'#77513b',BEIGE:'#c1ac88',GOLD:'#b59a50',BRONZE:'#98704c',PURPLE:'#654282',PINK:'#cb7a9b',MAROON:'#641f32',CREAM:'#e9dfc6',TURQUOISE:'#368d96'};
   const sources = new Map(), images = new Map();
   const normaliseReg = value => String(value || '').toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0,8);
+  // Customer-confirmed illustration correction; leave official MOT records untouched.
+  const confirmedColours = {BD53MUD:'Black'};
+  function resolveColour(registration, suppliedColour) {
+    const reg = normaliseReg(registration);
+    try { const saved = root.localStorage?.getItem('vecta-image-colour:'+reg); if (colourHex(saved)) return saved; } catch {}
+    return confirmedColours[reg] || suppliedColour || '';
+  }
+  function rememberColour(registration, colour) {
+    if (!colourHex(colour)) return;
+    try { root.localStorage?.setItem('vecta-image-colour:'+normaliseReg(registration),colour); } catch {}
+  }
   const formatReg = value => /^[A-Z]{2}\d{2}[A-Z]{3}$/.test(value) ? value.slice(0,4)+' '+value.slice(4) : value;
   const colourHex = value => colours[String(value || '').trim().toUpperCase()] || '';
   const allowedTags = new Set(['svg','g','defs','path','polygon','polyline','rect','circle','ellipse','line','linearGradient','radialGradient','stop','filter','feGaussianBlur','clipPath']);
@@ -97,5 +108,5 @@
       } catch { /* Keep the original model image; booking remains fully usable. */ }
     });
   }
-  root.VectaVehicleImage = {mount,personaliseSvg,sanitiseSvg,colourHex,normaliseReg};
+  root.VectaVehicleImage = {mount,personaliseSvg,sanitiseSvg,colourHex,normaliseReg,resolveColour,rememberColour,colourNames:Object.keys(colours).filter(name=>name!=='GRAY')};
 })(typeof window === 'undefined' ? globalThis : window);
