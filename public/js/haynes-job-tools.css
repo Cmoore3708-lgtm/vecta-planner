@@ -38,16 +38,23 @@
 .plannerGrid .lane .plannerJobCompact .plannerJobHeader.hasHaynesDashboardImage,.plannerGrid .lane .plannerJobMicro .plannerJobHeader.hasHaynesDashboardImage{height:auto!important}
 
 /* Restore large cars; reserve a separate readable work area beside them. */
-.plannerGrid .lane .job .plannerJobHeader.hasHaynesDashboardImage{width:calc(100% - 176px)!important;grid-template-columns:92px minmax(0,1fr)!important}
+.plannerGrid .lane .job .plannerJobHeader.hasHaynesDashboardImage{width:calc(100% - 170px)!important;grid-template-columns:92px minmax(0,1fr)!important}
 .plannerGrid .lane .job .plannerJobHeader>.haynesDashboardImage{top:1px!important;right:6px!important;width:162px!important;height:min(90px,max(0px,calc(100% - 6px)))!important;object-position:right top!important}
 .plannerGrid .lane .job:not(.miniPlannerTask) .plannerWorkRequired{display:block!important;position:absolute!important;top:37px!important;bottom:5px!important;left:7px!important;right:18px!important;margin:0!important;padding:0!important;font-size:12px!important;line-height:1.2!important;font-weight:600!important;white-space:normal!important;overflow:auto!important;text-overflow:clip!important;overflow-wrap:anywhere!important}
-.plannerGrid .lane .job:has(.haynesDashboardImage) .plannerWorkRequired{right:176px!important}
+.plannerGrid .lane .job:has(.haynesDashboardImage) .plannerWorkRequired{right:170px!important;width:auto!important;max-width:none!important;overflow-wrap:normal!important;word-break:normal!important}
 .plannerGrid .lane .plannerJobMedium .plannerWorkRequired{top:33px!important}
 .plannerGrid .lane .plannerJobCompact .plannerWorkRequired{top:22px!important}
 .plannerGrid .lane .plannerJobMicro .plannerWorkRequired{display:none!important}
-.unallocatedPanel .unallocatedSideJob>b,.unallocatedPanel .unallocatedSideJob>p{white-space:normal!important;overflow:visible!important;text-overflow:clip!important;overflow-wrap:anywhere!important;height:auto!important;max-height:none!important}
+.unallocatedPanel:not(.quotePanel) .unallocatedSideJob{height:88px!important;min-height:88px!important;max-height:88px!important;box-sizing:border-box!important;overflow:hidden!important;align-self:flex-start!important}
+.unallocatedPanel:not(.quotePanel) .unallocatedSideJob>b{display:-webkit-box!important;-webkit-box-orient:vertical;-webkit-line-clamp:2;white-space:normal!important;overflow:hidden!important;text-overflow:ellipsis!important;overflow-wrap:normal!important;height:auto!important;max-height:30px!important}
+.unallocatedPanel:not(.quotePanel) .unallocatedSideJob>p{white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important;height:auto!important;max-height:12px!important}
+@media(max-width:768px){.unallocatedPanel:not(.quotePanel) .unallocatedSideJob{height:76px!important;min-height:76px!important;max-height:76px!important}}
 .unallocatedPanel .unallocatedSideJob>b{font-size:12px!important;line-height:1.25!important}
 .plannerLayout .plannerCard .plannerGrid{min-width:1150px!important;grid-template-columns:58px minmax(360px,1fr) minmax(360px,1fr) minmax(360px,.78fr)!important}
 /* Centre the yellow lookup plate in the gap between title and search. */
 .haynesDashboardLookup,.haynesDashboardLookup input,.haynesDashboardLookup button{background:#f2cf38!important;color:#111!important}
 @media(min-width:901px){.top:has(.haynesDashboardLookup){grid-template-columns:max-content minmax(180px,1fr) 200px 92px 140px 174px 58px 90px 84px!important}.haynesDashboardLookup{justify-self:center}}
+
+/* Use all of the text column, reserving MOT appointment space only when present. */
+.plannerGrid .lane .job.jobTypeCoded .plannerJobTypeName{flex:1 1 auto!important;max-width:none!important;white-space:normal!important;overflow:visible!important;text-overflow:clip!important;overflow-wrap:normal!important}
+.plannerGrid .lane .job.jobTypeCoded .plannerJobTypeLine{white-space:normal!important;overflow:visible!important;align-items:flex-start!important}
