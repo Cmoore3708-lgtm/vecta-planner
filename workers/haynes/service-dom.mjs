@@ -14,7 +14,7 @@ export function readSchedule() {
 }
 export function readOil() {
   const clean=v=>String(v||'').replace(/\s+/g,' ').trim();
-  return Array.from(document.querySelectorAll('.filter-lubricant-data')).filter(e=>!e.hidden && getComputedStyle(e).display!=='none' && /^Engine\b/.test(clean(e.querySelector('h2')?.textContent))).flatMap(e=>{
+  return Array.from(document.querySelectorAll('.filter-lubricant-data')).filter(e=>!e.hidden && getComputedStyle(e).display!=='none').flatMap(e=>{
     const applicability=clean(e.querySelector('h2')?.textContent);
     const capacity=Array.from(e.querySelectorAll('li.note')).map(x=>clean(x.textContent)).filter(x=>/sump.*filter/i.test(x)).join('; ');
     return Array.from(e.querySelectorAll('li')).filter(x=>/^Engine oil$/i.test(clean(x.querySelector('p')?.textContent))).map(x=>({applicability,specification:Array.from(x.querySelectorAll('[class^="lube_value"]')).map(n=>clean(n.textContent)).filter(Boolean).join(' · '),capacity}));
