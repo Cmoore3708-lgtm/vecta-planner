@@ -19,7 +19,7 @@ await rpc({action:'pull'}).then(data => {
   // A first pull may already claim a job: hold it for processing below.
   firstRelayJob = data;
 });
-const context = await openProfile();
+const context = await openProfile({headless:false});
 const lookup = createLookupService(browserLookup(context));
 // Confirm build-specific schedules on this PC; never infer build date from registration.
 const confirmedSchedules=new Map();
