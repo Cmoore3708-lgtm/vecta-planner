@@ -11,6 +11,9 @@ export function browserServiceLookup(context) {
     try {
       await page.route('**/*',r=>['https://www.workshopdata.com','https://www.haynespro-assets.com'].includes(new URL(r.request().url()).origin)?r.continue():r.abort());
       await page.goto(START,{waitUntil:'domcontentloaded'});
+      const initial=await page.evaluate(readVehicle);
+      if(initial.login)throw new HaynesError('LOGIN_REQUIRED');
+      if(initial.blocked)throw new HaynesError('VERIFICATION_REQUIRED');
       await page.locator('#numberPlate,input[name="numberPlate"]').fill(input.registration);
       await page.locator('#licencePlateBtn').click();
       let data;
@@ -23,6 +26,7 @@ export function browserServiceLookup(context) {
       const vehicle=vehicleResult(data,input.registration);
       const conditions='Normal conditions (United Kingdom)';
       const select=page.locator('select').filter({has:page.locator('option',{}).filter({hasText:conditions})});
+      await select.waitFor({state:'attached'});
       const system=String(await select.locator('option').filter({hasText:conditions}).getAttribute('value')).split(',')[0];
       if(!/^ms_\d+$/.test(system))throw new HaynesError('SCHEDULE_REQUIRED');
       await select.selectOption({label:conditions});

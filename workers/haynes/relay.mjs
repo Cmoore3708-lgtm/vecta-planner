@@ -20,7 +20,7 @@ await rpc({action:'pull'}).then(data => {
 });
 const context = await openProfile();
 const lookup = createLookupService(browserLookup(context));
-const serviceTasks = createServiceTaskRunner(browserServiceLookup(context),body=>rpc(body,true),()=>console.log('Service connection unavailable. The booking worker continues.'));
+const serviceTasks = createServiceTaskRunner(browserServiceLookup(context),body=>rpc(body,true),error=>console.log(error.status?'Haynes service status: '+error.status+' · '+error.reason:'Service connection unavailable. The booking worker continues.'));
 let stopped = false;
 for (const signal of ['SIGTERM','SIGINT']) process.on(signal,() => { stopped = true; context.close().catch(() => {}); });
 console.log('Connected to Haynes Test. Keep this window open. Press Ctrl+C to stop.');
@@ -34,7 +34,7 @@ try {
         try { result = {status:'MATCHED',vehicle:vehicleResult(await lookup(job.registration),job.registration)}; }
         catch (error) {
           result = {status:['LOGIN_REQUIRED','VERIFICATION_REQUIRED','AMBIGUOUS','BUSY','DAILY_LIMIT'].includes(error.code) ? error.code : 'UNAVAILABLE'};
-          console.log('Haynes lookup status: '+result.status);
+          console.log('Haynes lookup status: '+result.status+' · '+(error.stage||'LOOKUP')+' · '+(error.reason||error.code||'UNAVAILABLE')+' · '+(error.browserDetail||''));
         }
         await rpc({action:'complete',id:job.id,lease:job.lease,...result});
       } else if (!serviceTasks.busy) {

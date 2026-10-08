@@ -117,5 +117,5 @@ const requested=current(),expectedMake=make(modal.querySelector('#job_make')?.va
  if(!noVehicle?.checked&&/^[A-Z0-9]{2,8}$/.test(current()))button.onclick();
 };
 document.addEventListener('DOMContentLoaded',()=>{if(root.view==='planner')root.enrichHaynesDashboard(document.getElementById('content'),root.app?.jobs);});
-root.VectaHaynesJobTools={vehicleLink,safeImage:image,remember,snapshot,lookup,genericImage};
+root.VectaHaynesJobTools={vehicleLink,safeImage:image,remember,snapshot,lookup,genericImage,dashboardColour,lookupDashboardColour};
 })(window);

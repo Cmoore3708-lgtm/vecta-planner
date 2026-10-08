@@ -75,3 +75,20 @@ test('recommendations move to a separate saved page and clear when mileage chang
  sheet.querySelector('.ssMileageEntry').dispatchEvent(new window.Event('input'));
  assert.equal(sheet.querySelector('.ssHaynesRecommendations'),null);sheet.remove();
 });
+
+test('service image carries registration and job colour through the shared renderer even when schedule fails',async()=>{
+ const {window,sheet}=setup(async()=>({status:'LOGIN_REQUIRED'}));
+ window.app={jobs:[{id:'job-1',registration:'FX69XWU',vehicle_colour:'Blue'}]};sheet.setAttribute('data-job-id','job-1');
+ const calls=[];
+ window.VectaHaynesJobTools={remember(){},dashboardColour:j=>j.vehicle_colour,lookupDashboardColour:async()=>{}};
+ window.VectaVehicleImage={mount:scope=>{const img=scope.querySelector('img');if(img)calls.push({reg:img.dataset.registration,colour:img.dataset.colour,source:img.dataset.haynesSource});}};
+ await window.initHaynesServiceSheet(sheet,'FX69XWU','service');await settle();
+ assert.ok(calls.length);assert.ok(calls.every(c=>c.reg==='FX69XWU'&&c.colour==='Blue'&&c.source===vehicle.imageUrl));
+ assert.match(sheet.querySelector('.ssHaynesStatus').textContent,/Sign in to HaynesPro/);
+ assert.equal(sheet.querySelector('.ssHaynesParts'),null);
+ sheet.remove();
+});
+
+for(const [status,message] of [['OFFLINE',/worker is offline/],['WORKER_UPDATE_REQUIRED',/Update the Workshop PC/],['SCHEDULE_REQUIRED',/No supported UK service schedule/],['NOT_CONFIGURED',/not configured/]])test('service failure explains '+status,async()=>{
+ const {window,sheet}=setup(async()=>({status}));await window.initHaynesServiceSheet(sheet,'FX69XWU','service');await settle();assert.match(sheet.querySelector('.ssHaynesStatus').textContent,message);assert.ok(sheet.querySelector('.ssHaynesRefresh'));sheet.remove();
+});
