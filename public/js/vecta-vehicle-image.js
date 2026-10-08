@@ -3,6 +3,8 @@
   const colours = {BLACK:'#191b20',WHITE:'#f5f5f2',SILVER:'#bfc3c8',GREY:'#626970',GRAY:'#626970',BLUE:'#235b9a',RED:'#ac1727',GREEN:'#296145',YELLOW:'#e5ba20',ORANGE:'#d56b22',BROWN:'#77513b',BEIGE:'#c1ac88',GOLD:'#b59a50',BRONZE:'#98704c',PURPLE:'#654282',PINK:'#cb7a9b',MAROON:'#641f32',CREAM:'#e9dfc6',TURQUOISE:'#368d96'};
   // Positions verified against these supplier drawings, in SVG viewBox units.
   const platePositions = {
+    // Cab-over flatbed: the body includes the load bed, so window offsets misidentify the front.
+    '319011515.svgz': {x:29,y:138,width:44,height:9,skew:8},
     '319106279.svgz': {x:35.5,y:141.8,width:32,height:10,skew:8},
     '319009025.svgz': {x:26,y:141,width:45,height:11,skew:8},
     '319118141.svgz': {x:20.5,y:149,width:27,height:10,skew:12}
