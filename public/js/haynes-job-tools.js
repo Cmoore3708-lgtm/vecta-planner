@@ -65,8 +65,8 @@ async function lookupDashboardColour(job){
 root.enrichHaynesDashboard=function(container,jobs){
  if(!container)return;const byId=new Map((jobs||[]).filter(j=>!j.no_vehicle&&j.card_type!=='mini_task').map(j=>[String(j.id),j]));
  const groups=new Map();
- for(const card of container.querySelectorAll('.job.plannerJobFull[data-job-id],.mobileJob[data-open-job]')){
-  const j=byId.get(card.dataset.jobId||card.dataset.openJob),target=card.matches('.mobileJob')?card:card.querySelector('.plannerJobHeader');if(!j||!target)continue;
+ for(const card of container.querySelectorAll('.job.plannerJobFull[data-job-id],.mobileJob[data-open-job],.unallocatedSideJob[data-open-unallocated]')){
+  const j=byId.get(card.dataset.jobId||card.dataset.openJob),target=card.matches('.mobileJob,.unallocatedSideJob')?card:card.querySelector('.plannerJobHeader');if(!j||!target)continue;
   const key=reg(j.registration)+'|'+make(j.make)+'|'+words(j.model||j.vehicle)+'|'+words(dashboardColour(j));if(!groups.has(key))groups.set(key,{job:j,targets:[]});groups.get(key).targets.push({card,target});
  }
  const attach=(v,targets,j)=>{for(const {card,target} of targets){if(!card.isConnected||!v)continue;const colour=dashboardColour(j);let img=card.querySelector('.haynesDashboardImage');if(img&&(img.dataset.haynesSource!==v.imageUrl||img.dataset.colour!==colour)){img.remove();img=null;}img=img||thumbnail(v,'haynesDashboardImage');if(img){img.dataset.haynesSource=v.imageUrl;img.dataset.colour=colour;img.dataset.vehicleName=[v.make,v.model].join(' ');img.setAttribute('data-vehicle-image','');target.appendChild(img);target.classList.add('hasHaynesDashboardImage');root.VectaVehicleImage?.mount(target);}}};

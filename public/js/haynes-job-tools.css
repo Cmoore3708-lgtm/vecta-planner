@@ -3,3 +3,7 @@
 .haynesDashboardImage{width:54px;height:32px;object-fit:contain;flex-shrink:0;margin:0 0 0 8px;pointer-events:none}.printInvoiceVehicle.hasHaynesImage{grid-template-columns:85px 1.1fr 1.5fr .9fr 1fr}.haynesInvoiceImage{width:80px;height:55px;object-fit:contain}.haynesInvoiceDetails{display:block;font-size:9px;color:#555;margin-top:4px}@media(max-width:768px){.haynesDashboardImage{width:38px;height:25px;margin-left:5px}}@media print{.haynesInvoiceImage{display:block}.printInvoiceVehicle.hasHaynesImage{grid-template-columns:85px 1.1fr 1.5fr .9fr 1fr}}
 
 .plannerGrid .lane .plannerJobFull .plannerJobHeader.hasHaynesDashboardImage{grid-template-columns:92px minmax(0,1fr) 54px!important}.plannerJobHeader>.haynesDashboardImage{grid-column:3;grid-row:1;height:30px;margin:0;align-self:center}.mobileJob.hasHaynesDashboardImage{position:relative}.mobileJob.hasHaynesDashboardImage .mobileJobTop{padding-right:48px}.mobileJob>.haynesDashboardImage{position:absolute;right:12px;top:12px;margin:0;width:42px;height:28px;display:block}
+
+.unallocatedSideJob.hasHaynesDashboardImage{position:relative;padding-right:70px!important;min-height:48px}
+.unallocatedSideJob>.haynesDashboardImage{position:absolute;right:12px;top:10px;margin:0;width:54px;height:34px;display:block}
+@media(max-width:768px){.unallocatedSideJob.hasHaynesDashboardImage{padding-right:58px!important}.unallocatedSideJob>.haynesDashboardImage{width:42px;height:28px;right:10px}}
