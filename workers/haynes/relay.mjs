@@ -1,3 +1,4 @@
+import { createInterface } from 'node:readline/promises';
 import { createServiceTaskRunner } from './service-task.mjs';
 import { browserServiceLookup } from './service-browser.mjs';
 import { openProfile, browserLookup } from './browser.mjs';
@@ -20,7 +21,25 @@ await rpc({action:'pull'}).then(data => {
 });
 const context = await openProfile();
 const lookup = createLookupService(browserLookup(context));
-const serviceTasks = createServiceTaskRunner(browserServiceLookup(context),body=>rpc(body,true),error=>console.log(error.status?'Haynes service status: '+error.status+' · '+error.reason:'Service connection unavailable. The booking worker continues.'));
+// Confirm build-specific schedules on this PC; never infer build date from registration.
+const confirmedSchedules=new Map();
+async function chooseConditions(choices,vehicle) {
+  const key=vehicle.registration+'|'+vehicle.typeId, previous=confirmedSchedules.get(key);
+  if(previous && choices.some(choice=>choice.value===previous.value && choice.label===previous.label))return previous.value;
+  if(!process.stdin.isTTY)return '';
+  console.log('\nHaynes needs a service schedule for '+vehicle.registration+'. Check the build date or DAM/RPO number:');
+  choices.forEach((choice,index)=>console.log(String(index+1)+'. '+choice.label));
+  const terminal=createInterface({input:process.stdin,output:process.stdout});
+  try {
+    const answer=await terminal.question('Enter the correct option number within 20 seconds (Enter cancels): ',{signal:AbortSignal.timeout(20000)});
+    const selected=/^[1-9][0-9]*$/.test(answer.trim())?choices[Number(answer.trim())-1]:null;
+    if(!selected)return '';
+    confirmedSchedules.set(key,selected);
+    return selected.value;
+  } catch { return ''; }
+  finally { terminal.close(); }
+}
+const serviceTasks = createServiceTaskRunner(browserServiceLookup(context,{chooseConditions}),body=>rpc(body,true),error=>console.log(error.status?'Haynes service status: '+error.status+' · '+error.reason:'Service connection unavailable. The booking worker continues.'));
 let stopped = false;
 for (const signal of ['SIGTERM','SIGINT']) process.on(signal,() => { stopped = true; context.close().catch(() => {}); });
 console.log('Connected to Haynes Test. Keep this window open. Press Ctrl+C to stop.');
