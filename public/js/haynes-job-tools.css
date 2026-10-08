@@ -11,3 +11,14 @@
 /* Larger car drawings in the shared planner/dashboard time grid. */
 .plannerGrid .lane .plannerJobFull .plannerJobHeader.hasHaynesDashboardImage{grid-template-columns:92px minmax(0,1fr) 81px!important;height:45px!important;min-height:45px!important}
 .plannerGrid .lane .plannerJobFull .plannerJobHeader>.haynesDashboardImage{width:81px;height:45px;max-width:100%;margin:0;object-fit:contain}
+
+/* Double vehicle artwork; reserve room for job text in the day grid. */
+.plannerGrid .lane .plannerJobFull .plannerJobHeader.hasHaynesDashboardImage{grid-template-columns:92px minmax(0,1fr) 162px!important;height:calc(100% - 12px)!important;min-height:45px!important}
+.plannerGrid .lane .plannerJobFull .plannerJobHeader>.haynesDashboardImage{width:162px;height:90px;max-height:100%;max-width:100%;object-fit:contain;object-position:right center}
+.plannerGrid .lane .plannerJobFull:has(.haynesDashboardImage) .plannerWorkRequired{position:absolute;bottom:7px;left:7px;right:18px;margin:0!important}
+.plannerLayout .plannerCard .plannerGrid{min-width:1060px!important;grid-template-columns:58px minmax(320px,1fr) minmax(320px,1fr) minmax(320px,.78fr)!important}
+.mobileJob.hasHaynesDashboardImage .mobileJobTop{padding-right:96px}
+.mobileJob>.haynesDashboardImage{width:84px;height:56px}
+.unallocatedSideJob.hasHaynesDashboardImage{padding-right:124px!important;min-height:88px}
+.unallocatedSideJob>.haynesDashboardImage{width:108px;height:68px}
+@media(max-width:768px){.unallocatedSideJob.hasHaynesDashboardImage{padding-right:100px!important;min-height:76px}.unallocatedSideJob>.haynesDashboardImage{width:84px;height:56px}}
