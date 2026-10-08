@@ -27,6 +27,11 @@ console.log('Connected to Haynes Test. Keep this window open. Press Ctrl+C to st
 try {
   while (!stopped) {
     try {
+      // Poll service work before slow vehicle lookups so the queue cannot starve it.
+      if (!serviceTasks.busy) {
+        const task = await rpc({action:'pull'},true);
+        if(task.status === 'JOB')serviceTasks.start(task);
+      }
       const job = firstRelayJob || await rpc({action:'pull'});
       firstRelayJob = null;
       if (job.status === 'JOB') {
@@ -37,9 +42,6 @@ try {
           console.log('Haynes lookup status: '+result.status+' · '+(error.stage||'LOOKUP')+' · '+(error.reason||error.code||'UNAVAILABLE')+' · '+(error.browserDetail||''));
         }
         await rpc({action:'complete',id:job.id,lease:job.lease,...result});
-      } else if (!serviceTasks.busy) {
-        const task = await rpc({action:'pull'},true);
-        if(task.status === 'JOB')serviceTasks.start(task);
       }
     } catch (error) {
       if (error.message === 'PAIRING_REQUIRED') { console.log('Pairing expired or revoked. Run setup again.'); break; }

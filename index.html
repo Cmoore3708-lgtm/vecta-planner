@@ -2831,6 +2831,7 @@ body.servicePreviewing .servicePreviewControls{position:relative!important;z-ind
 <link rel="stylesheet" href="/js/haynes-job-tools.css">
 <script src="/js/haynes-job-tools.js" defer></script>
 <script src="/js/vecta-vehicle-image.js" defer></script>
+<link rel="stylesheet" href="/js/job-card-compact.css">
 </head>
 <body>
 <!-- VECTA v200: unfinished jobs stay allocated; no carried-over column -->
@@ -15707,6 +15708,9 @@ document.addEventListener('change',function(ev){
   fleetEomCustomer='';
   render();
 },true);
+
+/* Expose the job editor to dashboard tools before later UI wrappers load. */
+window.openJobModal=function(id,preset){return openJobModal(id,preset);};
 
 init();
 })();
