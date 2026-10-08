@@ -36,3 +36,7 @@
 .plannerGrid .lane .job .plannerJobHeader.hasHaynesDashboardImage{position:static!important;grid-template-columns:92px minmax(0,1fr)!important;width:calc(55% - 6px)!important;height:34px!important;min-height:0!important}
 .plannerGrid .lane .job .plannerJobHeader>.haynesDashboardImage{position:absolute!important;top:3px!important;right:6px!important;bottom:auto!important;width:45%!important;height:max(0px,calc(100% - 22px))!important;max-width:none!important;max-height:none!important;margin:0!important;object-fit:contain!important;object-position:right top!important;align-self:start!important}
 .plannerGrid .lane .plannerJobCompact .plannerJobHeader.hasHaynesDashboardImage,.plannerGrid .lane .plannerJobMicro .plannerJobHeader.hasHaynesDashboardImage{height:auto!important}
+
+/* Centre the yellow lookup plate in the gap between title and search. */
+.haynesDashboardLookup,.haynesDashboardLookup input,.haynesDashboardLookup button{background:#f2cf38!important;color:#111!important}
+@media(min-width:901px){.top:has(.haynesDashboardLookup){grid-template-columns:max-content minmax(180px,1fr) 200px 92px 140px 174px 58px 90px 84px!important}.haynesDashboardLookup{justify-self:center}}
