@@ -36,3 +36,15 @@
 .plannerGrid .lane .job .plannerJobHeader.hasHaynesDashboardImage{position:static!important;grid-template-columns:92px minmax(0,1fr)!important;width:calc(55% - 6px)!important;height:34px!important;min-height:0!important}
 .plannerGrid .lane .job .plannerJobHeader>.haynesDashboardImage{position:absolute!important;top:3px!important;right:6px!important;bottom:auto!important;width:45%!important;height:max(0px,calc(100% - 22px))!important;max-width:none!important;max-height:none!important;margin:0!important;object-fit:contain!important;object-position:right top!important;align-self:start!important}
 .plannerGrid .lane .plannerJobCompact .plannerJobHeader.hasHaynesDashboardImage,.plannerGrid .lane .plannerJobMicro .plannerJobHeader.hasHaynesDashboardImage{height:auto!important}
+
+/* Restore large cars; reserve a separate readable work area beside them. */
+.plannerGrid .lane .job .plannerJobHeader.hasHaynesDashboardImage{width:calc(100% - 176px)!important;grid-template-columns:92px minmax(0,1fr)!important}
+.plannerGrid .lane .job .plannerJobHeader>.haynesDashboardImage{top:1px!important;right:6px!important;width:162px!important;height:min(90px,max(0px,calc(100% - 6px)))!important;object-position:right top!important}
+.plannerGrid .lane .job:not(.miniPlannerTask) .plannerWorkRequired{display:block!important;position:absolute!important;top:37px!important;bottom:5px!important;left:7px!important;right:18px!important;margin:0!important;padding:0!important;font-size:12px!important;line-height:1.2!important;font-weight:600!important;white-space:normal!important;overflow:auto!important;text-overflow:clip!important;overflow-wrap:anywhere!important}
+.plannerGrid .lane .job:has(.haynesDashboardImage) .plannerWorkRequired{right:176px!important}
+.plannerGrid .lane .plannerJobMedium .plannerWorkRequired{top:33px!important}
+.plannerGrid .lane .plannerJobCompact .plannerWorkRequired{top:22px!important}
+.plannerGrid .lane .plannerJobMicro .plannerWorkRequired{display:none!important}
+.unallocatedPanel .unallocatedSideJob>b,.unallocatedPanel .unallocatedSideJob>p{white-space:normal!important;overflow:visible!important;text-overflow:clip!important;overflow-wrap:anywhere!important;height:auto!important;max-height:none!important}
+.unallocatedPanel .unallocatedSideJob>b{font-size:12px!important;line-height:1.25!important}
+.plannerLayout .plannerCard .plannerGrid{min-width:1150px!important;grid-template-columns:58px minmax(360px,1fr) minmax(360px,1fr) minmax(360px,.78fr)!important}
