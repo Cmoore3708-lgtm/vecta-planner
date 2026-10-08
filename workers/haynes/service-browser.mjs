@@ -25,7 +25,7 @@ export function browserServiceLookup(context, { chooseConditions } = {}) {
       if(data?.login)throw new HaynesError('LOGIN_REQUIRED');
       if(data?.blocked)throw new HaynesError('VERIFICATION_REQUIRED');
       const vehicle=vehicleResult(data,input.registration);
-      const select=page.locator('select').filter({has:page.locator('option').filter({hasText:/^Normal conditions.*\(United Kingdom\)/i})}).first();
+      const select=page.locator('select').filter({has:page.locator('option').filter({hasText:/Normal conditions/i})}).first();
       await select.waitFor({state:'attached'});
       const options=await select.locator('option').evaluateAll(items=>items.map(item=>({value:item.value,label:item.textContent})));
       const choice=await chooseSchedule(options,vehicle,chooseConditions);
