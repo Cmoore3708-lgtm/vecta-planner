@@ -118,3 +118,18 @@ test('vehicle artwork remains available when timed card shrinks below one hour',
  await new Promise(r=>setImmediate(r));await new Promise(r=>setImmediate(r));
  assert.equal(host.querySelector('.plannerJobCompact .haynesDashboardImage')?.alt,'Representative Nissan Qashqai');assert.equal(host.querySelector('.miniPlannerTask .haynesDashboardImage'),null);
 });
+
+test('existing generic model artwork avoids new technical lookups for dashboard decoration',async()=>{
+ const {window,document}=setup(async()=>response(vehicle));await new Promise(r=>setImmediate(r));
+ let calls=0;window.fetch=async()=>{calls++;throw Error('should not request Haynes');};
+ const host=document.createElement('div');host.innerHTML='<div class="mobileJob" data-open-job="generic"></div>';document.body.append(host);
+ window.enrichHaynesDashboard(host,[{id:'generic',registration:'AB12XYZ',make:'Nissan',model:'Qashqai',colour:'Grey'}]);
+ for(let i=0;i<5;i++)await new Promise(r=>setImmediate(r));
+ assert.equal(calls,0);assert.equal(host.querySelector('img').dataset.generic,'true');
+});
+test('daily allowance stops background attempts for other registrations while cached data remains usable',async()=>{
+ const {window}=setup(async()=>response(vehicle));await new Promise(r=>setImmediate(r));
+ let calls=0;window.fetch=async()=>{calls++;return {ok:true,json:async()=>({status:'DAILY_LIMIT'})};};
+ await window.VectaHaynesJobTools.lookup('AB12XYZ');await window.VectaHaynesJobTools.lookup('CD34XYZ');
+ assert.equal(calls,1);assert.equal((await window.VectaHaynesJobTools.lookup(vehicle.registration)).model,'Qashqai');
+});
