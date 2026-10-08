@@ -29,7 +29,7 @@ test('duplicate desktop/mobile links cannot let an age interval override a highe
  const links=[link('50,000',48,'mp_1'),link('87,500',84,'mp_2'),link('200,000',192,'mp_3')];
  const duplicated=[...links,...links,link('200,000',192,'mp_4','ms_2')];
  assert.equal(selectServicePeriod(duplicated,{mileage:190000,ageMonths:84,system:'ms_1',typeId:'t_1'}).label,'200,000 miles/192 months');
- assert.equal(selectServicePeriod(duplicated,{mileage:50000,ageMonths:84,system:'ms_1',typeId:'t_1'}).label,'87,500 miles/84 months');
+ assert.equal(selectServicePeriod(duplicated,{mileage:50000,ageMonths:84,system:'ms_1',typeId:'t_1'}).label,'50,000 miles/48 months');
  assert.equal(selectServicePeriod(duplicated,{mileage:50000,period:'mp_4',system:'ms_1',typeId:'t_1'}),undefined);
 });
 

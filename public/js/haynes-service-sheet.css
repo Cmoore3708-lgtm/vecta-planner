@@ -155,3 +155,9 @@
  .servicePrint.ssHaynesCompact .ssHaynesLowerGrid{grid-template-columns:1fr}
  .servicePrint .ssHaynesRecommendations ul{columns:1}
 }
+
+/* Enlarge artwork only; retain header tracks and document flow. */
+.servicePrint.ssHaynesCompact .ssHaynesVehicle img{transform:scale(1.28)!important;transform-origin:right bottom}
+@media(max-width:650px){.servicePrint.ssHaynesCompact .ssHaynesVehicle img{transform:scale(1.17)!important}}
+@media print{.servicePrint.ssHaynesCompact .ssHaynesVehicle img{transform:scale(1.2)!important}}
+.servicePrint .ssHaynesRequiredCheck{cursor:default!important;pointer-events:none;color:#087a21!important}
