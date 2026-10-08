@@ -133,3 +133,27 @@ test('daily allowance stops background attempts for other registrations while ca
  await window.VectaHaynesJobTools.lookup('AB12XYZ');await window.VectaHaynesJobTools.lookup('CD34XYZ');
  assert.equal(calls,1);assert.equal((await window.VectaHaynesJobTools.lookup(vehicle.registration)).model,'Qashqai');
 });
+
+test('timed text follows the rendered car width after loading, resizing and artwork changes',()=>{
+ const {window,document}=setup(async()=>response(vehicle));
+ let notify,disconnected=false;
+ window.ResizeObserver=class{constructor(fn){notify=fn;}observe(){}disconnect(){disconnected=true;}};
+ window.VectaHaynesJobTools.remember(vehicle);
+ const host=document.createElement('div');
+ host.innerHTML='<div class="job plannerJobFull" data-job-id="1"><div class="plannerJobHeader"></div></div>';
+ document.body.append(host);
+ window.enrichHaynesDashboard(host,[{id:'1',registration:vehicle.registration,make:'Nissan'}]);
+ const card=host.querySelector('.job'),img=host.querySelector('img');
+ let height=90;
+ img.getBoundingClientRect=()=>({width:162,height});
+ Object.defineProperties(img,{naturalWidth:{value:299,configurable:true},naturalHeight:{value:220,configurable:true}});
+ img.dispatchEvent(new window.Event('load'));
+ assert.equal(card.style.getPropertyValue('--planner-vehicle-text-inset'),'135px');
+ height=42;notify();
+ assert.equal(card.style.getPropertyValue('--planner-vehicle-text-inset'),'70px');
+ Object.defineProperty(img,'naturalWidth',{value:1000});height=90;
+ img.dispatchEvent(new window.Event('load'));
+ assert.equal(card.style.getPropertyValue('--planner-vehicle-text-inset'),'174px');
+ img.remove();notify();assert.equal(disconnected,true);
+ delete window.ResizeObserver;
+});

@@ -38,10 +38,10 @@
 .plannerGrid .lane .plannerJobCompact .plannerJobHeader.hasHaynesDashboardImage,.plannerGrid .lane .plannerJobMicro .plannerJobHeader.hasHaynesDashboardImage{height:auto!important}
 
 /* Restore large cars; reserve a separate readable work area beside them. */
-.plannerGrid .lane .job .plannerJobHeader.hasHaynesDashboardImage{width:calc(100% - 170px)!important;grid-template-columns:92px minmax(0,1fr)!important}
+.plannerGrid .lane .job .plannerJobHeader.hasHaynesDashboardImage{width:calc(100% - var(--planner-vehicle-text-inset,170px))!important;grid-template-columns:92px minmax(0,1fr)!important}
 .plannerGrid .lane .job .plannerJobHeader>.haynesDashboardImage{top:1px!important;right:6px!important;width:162px!important;height:min(90px,max(0px,calc(100% - 6px)))!important;object-position:right top!important}
 .plannerGrid .lane .job:not(.miniPlannerTask) .plannerWorkRequired{display:block!important;position:absolute!important;top:37px!important;bottom:5px!important;left:7px!important;right:18px!important;margin:0!important;padding:0!important;font-size:12px!important;line-height:1.2!important;font-weight:600!important;white-space:normal!important;overflow:auto!important;text-overflow:clip!important;overflow-wrap:anywhere!important}
-.plannerGrid .lane .job:has(.haynesDashboardImage) .plannerWorkRequired{right:170px!important;width:auto!important;max-width:none!important;overflow-wrap:normal!important;word-break:normal!important}
+.plannerGrid .lane .job:has(.haynesDashboardImage) .plannerWorkRequired{right:var(--planner-vehicle-text-inset,170px)!important;width:auto!important;max-width:none!important;overflow-wrap:normal!important;word-break:normal!important}
 .plannerGrid .lane .plannerJobMedium .plannerWorkRequired{top:33px!important}
 .plannerGrid .lane .plannerJobCompact .plannerWorkRequired{top:22px!important}
 .plannerGrid .lane .plannerJobMicro .plannerWorkRequired{display:none!important}
