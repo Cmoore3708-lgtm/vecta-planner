@@ -1,9 +1,10 @@
+import { chooseSchedule } from './schedule-choice.mjs';
 import { START } from './browser.mjs';
 import { readVehicle } from './dom.mjs';
 import { readSchedule, readOil } from './service-dom.mjs';
 import { vehicleResult, HaynesError } from '../../lib/haynes-vehicle.js';
 import { serviceRequest, serviceResult, selectServicePeriod } from '../../lib/haynes-service.js';
-export function browserServiceLookup(context) {
+export function browserServiceLookup(context, { chooseConditions } = {}) {
   return async raw => {
     const input=serviceRequest(raw), page=await context.newPage();
     page.setDefaultTimeout(12000);
@@ -24,12 +25,12 @@ export function browserServiceLookup(context) {
       if(data?.login)throw new HaynesError('LOGIN_REQUIRED');
       if(data?.blocked)throw new HaynesError('VERIFICATION_REQUIRED');
       const vehicle=vehicleResult(data,input.registration);
-      const conditions='Normal conditions (United Kingdom)';
-      const select=page.locator('select').filter({has:page.locator('option',{}).filter({hasText:conditions})});
+      const select=page.locator('select').filter({has:page.locator('option').filter({hasText:/^Normal conditions.*\(United Kingdom\)/i})}).first();
       await select.waitFor({state:'attached'});
-      const system=String(await select.locator('option').filter({hasText:conditions}).getAttribute('value')).split(',')[0];
-      if(!/^ms_\d+$/.test(system))throw new HaynesError('SCHEDULE_REQUIRED');
-      await select.selectOption({label:conditions});
+      const options=await select.locator('option').evaluateAll(items=>items.map(item=>({value:item.value,label:item.textContent})));
+      const choice=await chooseSchedule(options,vehicle,chooseConditions);
+      const conditions=choice.label, system=choice.system;
+      await select.selectOption({value:choice.value});
       await page.locator('a[href*="maintenanceSchedule?"]').first().waitFor({state:'attached'});
       const links=await page.locator('a[href*="maintenanceSchedule?"]').evaluateAll(as=>as.map(a=>({href:a.href,label:a.textContent.replace(/\s+/g,' ').trim()})));
       
