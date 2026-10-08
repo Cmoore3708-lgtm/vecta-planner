@@ -137,3 +137,21 @@
 .servicePrint.ssHaynesCompact .ssHaynesRequiredHead,.servicePrint.ssHaynesCompact .ssHaynesRequired{width:40px;text-align:center}
 .servicePrint.ssHaynesCompact .ssHaynesRequired[data-required="true"]{color:#087a21!important;font-weight:900;background:#e8f5e9!important}
 .servicePrint.ssHaynesCompact .ssOps .ssDone{width:48px}
+
+/* Keep the inspection on the front and manufacturer reference on the reverse. */
+.servicePrint .ssHaynesColumns{grid-template-columns:1fr!important}
+.servicePrint .ssHaynesRecommendations{margin-top:24px;padding:16px;background:#fff;break-before:page;page-break-before:always}
+.servicePrint .ssHaynesRecommendations ul{columns:2;column-gap:24px;padding-left:18px;font-size:11px;line-height:1.4}
+.servicePrint .ssHaynesRecommendations li{break-inside:avoid;margin-bottom:8px}
+.servicePrint .ssHaynesRecommendationVehicle{font-size:11px;margin:8px 0 16px}
+.servicePrint.ssHaynesCompact .ssHaynesLowerGrid{grid-template-columns:1.5fr .8fr 1fr}
+.servicePrint.ssHaynesCompact .ssHaynesLowerGrid .ssTyreMeasure tr>*:last-child{width:88px!important;white-space:nowrap!important}
+.servicePrint .ssTyreMeasure .ssCondition{white-space:nowrap!important}
+@media print{
+ .servicePrint .ssHaynesRecommendations{margin-top:0;padding:8px;break-inside:auto}
+ .servicePrint .ssHaynesRecommendations .ssTitle{font-size:14px!important}
+}
+@media screen and (max-width:650px){
+ .servicePrint.ssHaynesCompact .ssHaynesLowerGrid{grid-template-columns:1fr}
+ .servicePrint .ssHaynesRecommendations ul{columns:1}
+}

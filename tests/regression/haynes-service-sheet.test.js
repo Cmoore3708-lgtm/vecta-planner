@@ -62,3 +62,16 @@ test('Haynes marks scheduled filters as required without marking work completed 
  assert.ok(rows.every(row=>row.querySelector('.ssHaynesRequired').textContent===''));
  assert.ok(completed.every(cell=>cell.classList.contains('selected')));sheet.remove();await new Promise(r=>setTimeout(r,950));
 });
+
+test('recommendations move to a separate saved page and clear when mileage changes',async()=>{
+ const {window,sheet}=setup(async()=>({status:'MATCHED',result:data}));
+ await window.initHaynesServiceSheet(sheet,'FX69XWU','service');await settle();
+ const page=sheet.querySelector('.ssHaynesRecommendations');
+ assert.ok(page);assert.equal(page.parentNode,sheet);
+ assert.match(page.textContent,/FX69XWU.*50,000/);
+ assert.match(page.textContent,/Renew fuel filter/);
+ assert.doesNotMatch(sheet.querySelector('.ssHaynesData').textContent,/Renew fuel filter/);
+ assert.match(sheet.outerHTML,/ssHaynesRecommendations/);
+ sheet.querySelector('.ssMileageEntry').dispatchEvent(new window.Event('input'));
+ assert.equal(sheet.querySelector('.ssHaynesRecommendations'),null);sheet.remove();
+});
