@@ -92,3 +92,23 @@ test('service image carries registration and job colour through the shared rende
 for(const [status,message] of [['OFFLINE',/worker is offline/],['WORKER_UPDATE_REQUIRED',/Update the Workshop PC/],['SCHEDULE_REQUIRED',/No supported UK service schedule/],['NOT_CONFIGURED',/not configured/]])test('service failure explains '+status,async()=>{
  const {window,sheet}=setup(async()=>({status}));await window.initHaynesServiceSheet(sheet,'FX69XWU','service');await settle();assert.match(sheet.querySelector('.ssHaynesStatus').textContent,message);assert.ok(sheet.querySelector('.ssHaynesRefresh'));sheet.remove();
 });
+
+test('required checkboxes are supplier-selected and do not change completed work',async()=>{
+ const {document,window,sheet}=setup(async()=>({status:'MATCHED',result:data}));const table=document.createElement('table');table.className='ssOps';table.innerHTML='<tr><th>Item</th><th>Completed</th></tr><tr><td>Air filter</td><td><span class="ssCheck selected">✓</span></td></tr><tr><td>Pollen filter</td><td><span class="ssCheck"></span></td></tr>';sheet.append(table);
+ await window.initHaynesServiceSheet(sheet,'FX69XWU','service');await settle();
+ const required=table.querySelectorAll('.ssHaynesRequiredCheck');assert.equal(required[0].getAttribute('aria-checked'),'false');assert.equal(required[1].getAttribute('aria-checked'),'true');assert.equal(required[1].getAttribute('aria-disabled'),'true');assert.equal(table.querySelectorAll('td:last-child .ssCheck.selected').length,1);sheet.remove();
+});
+
+test('mileage selection corrects an older worker age-selected schedule before displaying parts',async()=>{
+ const requests=[];const periods=[{id:'mp_126',label:'126,000 miles/84 months'},{id:'mp_162',label:'162,000 miles/108 months'}];
+ const {window,sheet}=setup(async url=>{const q=new URL(url,'https://example.test').searchParams;requests.push(q.get('period'));return {status:'MATCHED',result:{...data,mileage:121023,period:q.get('period')||'mp_162',periods}};});
+ sheet.querySelector('.ssMileageEntry').textContent='121023';
+ // Return the exact requested odometer, rather than the generic fixture mileage.
+ await window.initHaynesServiceSheet(sheet,'FX69XWU','service');await settle();await settle();assert.deepEqual(requests,['','mp_126']);assert.match(sheet.querySelector('.ssHaynesParts').textContent,/Oil filter/);sheet.remove();
+});
+
+test('All Green marks the three top-ups without marking replacements or completed operations',()=>{
+ const html=readFileSync(new URL('../../index.html',import.meta.url),'utf8');const source=html.slice(html.indexOf('function tickAllServiceGreen()'),html.indexOf('\n',html.indexOf('function tickAllServiceGreen()')));
+ const {document,window}=parseHTML('<div id="printSheet"><div class="servicePrint" data-sheet-type="service"><span class="ssRagDot red selected" data-group="brakes"></span><span class="ssRagDot green" data-group="brakes"></span>'+['Brake Fluid','Coolant','Screenwash'].map(x=>'<span class="ssHaynesTopUp" aria-label="'+x+' topped up"></span><span class="ssHaynesTopUp ssHaynesReplaced"></span>').join('')+'<span class="ssCheck"></span></div></div>');
+ const context={document,updateServiceHealthScore(){}};vm.runInNewContext(source,context);context.tickAllServiceGreen();assert.equal(document.querySelectorAll('.ssHaynesTopUp.selected').length,3);assert.equal(document.querySelectorAll('.ssHaynesReplaced.selected,.ssCheck.selected').length,0);assert.equal(document.querySelectorAll('.ssRagDot.green.selected').length,1);
+});
