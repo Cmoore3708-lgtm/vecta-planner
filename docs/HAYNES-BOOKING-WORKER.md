@@ -30,7 +30,7 @@ The isolated Test Supabase project now has `haynes_relay_worker`, `haynes_relay_
 
 Download and extract the updated branch, then run `workers/haynes/windows-connect.cmd`. Enter the one-use pairing code provided for the current Test. Pairing exchanges that expiring code for a random 256-bit worker token generated on the PC. Only SHA-256 hashes are stored in the database. Windows DPAPI encrypts the local token in `%LOCALAPPDATA%\VectaHaynes\relay-token.txt`, bound to the Windows user. The existing separate Edge profile is reused. The token only permits pull/completion of Haynes jobs through the Edge Function, not direct database access. Authentication is implemented in the function and SQL; gateway JWT verification is deliberately disabled for this scoped, non-JWT worker token. Anonymous and authenticated users have no table or RPC grants.
 
-The connector polls outbound HTTPS every five seconds, processes one job at a time, and sends allowlisted results back. The queue is capped at three active jobs; identical registrations share a job. Requests expire after 28 seconds and require the exact lease and registration to complete. A heartbeat older than 45 seconds reports OFFLINE. Successful cached results are retained up to 24 hours and the 150-per-UTC-day queue limit survives PC restarts. Expired and older cache records are cleaned on authenticated relay calls. It uses existing Supabase/Vercel quotas; do not interpret this as an unlimited free-service guarantee.
+The connector polls outbound HTTPS every five seconds, processes one job at a time, and sends allowlisted results back. The queue is capped at three active jobs; identical registrations share a job. Requests expire after 28 seconds and require the exact lease and registration to complete. A heartbeat older than 45 seconds reports OFFLINE. Successful cached results are retained up to 24 hours and the 500-per-UTC-day queue limit survives PC restarts. Expired and older cache records are cleaned on authenticated relay calls. It uses existing Supabase/Vercel quotas; do not interpret this as an unlimited free-service guarantee.
 
 The outbound path is enabled only on Preview for `amendment/haynes-booking-worker`, with the exact isolated Test database URL. Main remains disabled. The hosted HTTP worker remains an optional legacy path if its URL/token variables are explicitly configured. No router port forwarding, DNS changes, tunnel subscription or supplier password storage is needed.
 
@@ -68,7 +68,7 @@ Redeploy the preview after configuring its environment. Never put either token o
 - Maximum three distinct queued/in-flight requests; identical registrations share one lookup.
 - One supplier tab at a time, closed in all success/failure paths; a 23-second deadline closes hung tabs.
 - Cache successful results for 24 hours, maximum 500 entries, in memory only. Restart clears the cache. Re-fetch after expiry so cherished-plate changes are not trusted indefinitely.
-- Maximum 150 uncached lookups per UTC day; a worker restart resets this development quota. This is a resource guard, not billing accounting.
+- Maximum 500 uncached lookups per UTC day; a worker restart resets this development quota. This is a resource guard, not billing accounting.
 - Login/verification failures suspend new supplier requests for one minute; cached results can still be returned until their TTL expires.
 - No automatic challenge solving, fingerprint modification, login retries or credential entry.
 - `GET /health` requires the bearer token and reports `RUNNING`, not authenticated supplier readiness.
@@ -88,3 +88,11 @@ Still required: build/run on the selected host, manual supplier login, worker-to
 The laptop is now paired and its heartbeat was verified live. A real FX69XWU relay job was claimed and completed within its deadline, but returned UNAVAILABLE with no vehicle; the supplier lookup is not yet verified. Vercel dashboard inspection confirmed the Haynes branch lacked its Test service credential. A relay-only site token path is now implemented and tested instead. The Preview-only branch secret form is prepared; the new token must be entered and saved by Chris, then the preview redeployed. Main remains untouched.
 
 For supplier diagnostics, stop the connector with Ctrl+C, run `windows-check.cmd` from the updated branch and enter FX69XWU. It opens the separate Edge profile visibly and prints a fixed error code/stage/reason, retaining the failed page until Enter. Return only the terminal status/stage/reason; screenshots of supplier pages may contain a VIN. Standard unattended lookups retain their 23-second page deadline and always close their tab. The manual helper allows inspection after an error and does not bypass login or verification.
+
+## Lookup allowance amendment (8 October 2026)
+
+The integration resource guard is 500 uncached requests per UTC day in both the relay and updated PC worker. This is our internal cap; it is not a confirmed HaynesPro subscription allowance. Usage is preserved when raising the relay cap. Successful matches remain cached for 24 hours. Unavailable/ambiguous relay results and failed worker registration lookups receive a five-minute cooldown so repeated failures do not consume fresh quota. Login/verification handling and authentication are unchanged.
+
+Dashboard decoration reuses available generic/model artwork instead of requesting technical identification solely for an image. Explicit registration lookup reuses a valid cached identity and starts DVSA MOT mileage independently of Haynes. A daily-limit response suppresses further background Haynes requests in that browser until the next UTC day.
+
+Apply `docs/sql/haynes-lookup-allowance.sql` to the isolated relay project after running it together with `haynes-lookup-allowance-check.sql` inside a rolled-back transaction. The updated PC worker must be installed and restarted; changing the relay alone cannot raise the old running worker’s in-memory cap.

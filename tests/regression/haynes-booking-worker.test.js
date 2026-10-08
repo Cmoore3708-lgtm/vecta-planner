@@ -194,3 +194,15 @@ test('Test page shows Haynes without modifying advisories or allowing booking wr
   assert.doesNotMatch(html, /fetch\('\/api\/website-booking/);
   assert.match(html, /send.disabled=true/);
 });
+
+test('failed registration cooldown avoids spending quota again and expires for retry',async()=>{
+ let calls=0,clock=Date.now();const service=createLookupService(async()=>{calls++;throw new HaynesError('UNAVAILABLE');},{now:()=>clock,failureTtl:300000});
+ await assert.rejects(service('AB12XYZ'),{code:'UNAVAILABLE'});await assert.rejects(service('AB12XYZ'),{code:'UNAVAILABLE'});assert.equal(calls,1);
+ clock+=300001;await assert.rejects(service('AB12XYZ'),{code:'UNAVAILABLE'});assert.equal(calls,2);
+});
+test('default allowance accepts 500 uncached lookups and resets next UTC day',async()=>{
+ let clock=Date.parse('2026-10-08T10:00:00Z');const service=createLookupService(async registration=>({...raw,registration}),{now:()=>clock});
+ for(let i=0;i<500;i++)await service('AB'+String(i).padStart(3,'0')+'XY');
+ await assert.rejects(service('CD123XY'),{code:'DAILY_LIMIT'});assert.equal((await service('AB000XY')).cached,true);
+ clock=Date.parse('2026-10-09T00:00:01Z');assert.equal((await service('CD123XY')).cached,false);
+});

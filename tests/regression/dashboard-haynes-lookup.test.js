@@ -37,4 +37,33 @@ test('matched lookup opens quote form with unallocated vehicle and no automatic 
 test('mismatched vehicle cannot enable creation buttons',async()=>{const {window,document}=setup(async()=>({ok:true,json:async()=>({status:'MATCHED',vehicle:{...vehicle,registration:'OTHER'}})}));await window.VectaHaynesDashboardLookup.open('FX69 XWU');assert.match(document.querySelector('[data-status]').textContent,/unavailable/);assert.equal(document.querySelector('[data-create]').hasAttribute('disabled'),true);});
 test('last MOT mileage displays its own units and leaves current mileage blank',async()=>{const {window,document}=setup(async url=>({ok:true,json:async()=>url.includes('haynes-vehicle')?{status:'MATCHED',vehicle}:{registration:'FX69XWU',latestMileage:'120,000',latestMileageUnit:'mi',lastMotTestDate:'2026-09-20T10:00:00'}}));await window.VectaHaynesDashboardLookup.open('FX69 XWU');assert.equal(document.querySelector('[data-mot-mileage]').textContent,'120,000 miles');assert.match(document.querySelector('[data-mot-date]').textContent,/2026-09-20/);assert.equal(document.querySelector('[name="mileage"]').value,'');});
 
+test('MOT mileage loads even when Haynes reaches its internal daily allowance',async()=>{
+ const requests=[];const {window,document}=setup(async url=>{requests.push(url);return {ok:true,json:async()=>url.includes('haynes-vehicle')?{status:'DAILY_LIMIT'}:{registration:'FX69XWU',latestMileage:'54000',latestMileageUnit:'mi'}};});
+ await window.VectaHaynesDashboardLookup.open('FX69XWU');
+ assert.equal(requests.filter(x=>x.includes('vehicle-lookup')).length,1);
+ assert.equal(document.querySelector('[data-mot-mileage]').textContent,'54,000 miles');
+ assert.match(document.querySelector('[data-status]').textContent,/internal daily/);
+ assert.equal(document.querySelector('[data-create]').hasAttribute('disabled'),true);
+});
+test('a cached Haynes identity avoids a fresh request while MOT data still loads',async()=>{
+ const requests=[];const {window,document}=setup(async url=>{requests.push(url);return {ok:true,json:async()=>({registration:'FX69XWU'})};});
+ window.VectaHaynesJobTools.snapshot=()=>vehicle;
+ await window.VectaHaynesDashboardLookup.open('FX69XWU');
+ assert.equal(requests.filter(x=>x.includes('haynes-vehicle')).length,0);
+ assert.match(document.querySelector('[data-identity]').textContent,/Qashqai/);
+ assert.equal(document.querySelector('[data-mot-mileage]').textContent,'Not available');
+});
 test('Create Job uses the production editor bridge and preserves the looked-up vehicle',async()=>{const {window,document,preset}=setup(async url=>({ok:true,json:async()=>url.includes('haynes-vehicle')?{status:'MATCHED',vehicle}:{registration:vehicle.registration}}));await window.VectaHaynesDashboardLookup.open(vehicle.registration);const page=document.getElementById('haynesLookupPage');page.querySelector('form').elements={mileage:{value:'85000'}};page.querySelector('[data-create="job"]').onclick();assert.equal(preset().status,'booked');assert.equal(preset().registration,vehicle.registration);assert.equal(preset().vehicle,'Nissan Qashqai');assert.equal(preset().mileage,85000);assert.equal(document.getElementById('haynesLookupPage'),null);});
+
+test('vehicle colour applies with independent MOT and Haynes responses in either order',async()=>{
+ for(const first of ['mot','haynes']){
+  const resolves={};const {window,document}=setup(url=>new Promise(resolve=>{resolves[url.includes('haynes-vehicle')?'haynes':'mot']=resolve;}));
+  window.VectaHaynesJobTools.safeImage=()=>'/car.svg';
+  const painted=[];window.VectaVehicleImage={resolveColour:(_reg,colour)=>colour,mount:host=>painted.push(host.querySelector('img').dataset.colour)};
+  const opened=window.VectaHaynesDashboardLookup.open(vehicle.registration);
+  const responses={mot:{registration:vehicle.registration,primaryColour:'Black'},haynes:{status:'MATCHED',vehicle}};
+  const finish=key=>resolves[key]({ok:true,json:async()=>responses[key]});
+  finish(first);await new Promise(resolve=>setImmediate(resolve));finish(first==='mot'?'haynes':'mot');await opened;
+  assert.equal(document.querySelector('[data-identity] img').dataset.colour,'Black');assert.equal(painted.at(-1),'Black');
+ }
+});
