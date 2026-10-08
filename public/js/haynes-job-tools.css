@@ -48,3 +48,6 @@
 .unallocatedPanel .unallocatedSideJob>b,.unallocatedPanel .unallocatedSideJob>p{white-space:normal!important;overflow:visible!important;text-overflow:clip!important;overflow-wrap:anywhere!important;height:auto!important;max-height:none!important}
 .unallocatedPanel .unallocatedSideJob>b{font-size:12px!important;line-height:1.25!important}
 .plannerLayout .plannerCard .plannerGrid{min-width:1150px!important;grid-template-columns:58px minmax(360px,1fr) minmax(360px,1fr) minmax(360px,.78fr)!important}
+/* Centre the yellow lookup plate in the gap between title and search. */
+.haynesDashboardLookup,.haynesDashboardLookup input,.haynesDashboardLookup button{background:#f2cf38!important;color:#111!important}
+@media(min-width:901px){.top:has(.haynesDashboardLookup){grid-template-columns:max-content minmax(180px,1fr) 200px 92px 140px 174px 58px 90px 84px!important}.haynesDashboardLookup{justify-self:center}}
