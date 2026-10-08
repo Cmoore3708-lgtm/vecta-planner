@@ -58,3 +58,12 @@
 /* Use all of the text column, reserving MOT appointment space only when present. */
 .plannerGrid .lane .job.jobTypeCoded .plannerJobTypeName{flex:1 1 auto!important;max-width:none!important;white-space:normal!important;overflow:visible!important;text-overflow:clip!important;overflow-wrap:normal!important}
 .plannerGrid .lane .job.jobTypeCoded .plannerJobTypeLine{white-space:normal!important;overflow:visible!important;align-items:flex-start!important}
+
+/* Larger artwork on phone cards, with a separate column for readable job details. */
+@media screen and (max-width:768px){
+  .mobileJob.hasHaynesDashboardImage{padding-right:140px;min-height:104px;box-sizing:border-box}
+  .mobileJob.hasHaynesDashboardImage .mobileJobTop{padding-right:0}
+  .mobileJob>.haynesDashboardImage{width:120px;height:80px;right:10px;top:12px;object-fit:contain}
+  .unallocatedSideJob.hasHaynesDashboardImage{padding-right:136px!important}
+  .unallocatedSideJob>.haynesDashboardImage{width:120px;height:64px;right:10px;top:6px;object-fit:contain}
+}
