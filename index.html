@@ -15708,6 +15708,9 @@ document.addEventListener('change',function(ev){
   render();
 },true);
 
+/* Expose the job editor to dashboard tools before later UI wrappers load. */
+window.openJobModal=function(id,preset){return openJobModal(id,preset);};
+
 init();
 })();
 </script>
