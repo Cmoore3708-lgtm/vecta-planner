@@ -161,3 +161,8 @@
 @media(max-width:650px){.servicePrint.ssHaynesCompact .ssHaynesVehicle img{transform:scale(1.17)!important}}
 @media print{.servicePrint.ssHaynesCompact .ssHaynesVehicle img{transform:scale(1.2)!important}}
 .servicePrint .ssHaynesRequiredCheck{cursor:default!important;pointer-events:none;color:#087a21!important}
+
+/* Align artwork with the inspection boxes and enlarge the printed drawing. */
+.servicePrint.ssHaynesCompact .ssHaynesVehicle{justify-self:end!important;text-align:right;margin-right:0!important;padding-right:0!important}
+.servicePrint.ssHaynesCompact .ssHaynesVehicle img{object-position:right bottom;margin-left:auto!important;margin-right:0!important;transform-origin:right bottom}
+@media print{.servicePrint.ssHaynesCompact .ssHaynesVehicle img{transform:scale(1.4)!important;object-position:right bottom}}
