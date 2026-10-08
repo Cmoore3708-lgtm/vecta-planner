@@ -4,6 +4,18 @@ const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&
 const mileage=sheet=>{const value=String(sheet.querySelector('.ssMileageEntry')?.textContent||'').replace(/[\s,]/g,'');return /^\d+$/.test(value)&&Number(value)>0&&Number(value)<=2000000?Number(value):0;};
 const compactCapacity=value=>{const text=String(value||''),match=text.match(/including filter\s+(\d+(?:[.,]\d+)?)\s*\(l\)/i);return match?match[1]+' L (inc. filter)':text;};
 const safeImage=value=>/^https:\/\/www\.haynespro-assets\.com\/workshop\/images\/\d+\.(svgz?|png|jpe?g|webp)$/.test(value||'')?value:'';
+// Freeze the already personalised screen artwork at print resolution.
+root.prepareHaynesServicePrint=async function(scope){
+ const img=scope?.querySelector('.ssHaynesVehicle img');
+ if(!img||!img.src.startsWith('data:image/svg+xml')||img.dataset.printSnapshot)return;
+ const original=img.src;if(typeof img.decode==='function')await img.decode();
+ const canvas=document.createElement('canvas');canvas.width=Math.max(1200,img.naturalWidth*4);canvas.height=Math.round(canvas.width*img.naturalHeight/img.naturalWidth);
+ const context=canvas.getContext('2d');if(!context)return;context.drawImage(img,0,0,canvas.width,canvas.height);
+ img.src=canvas.toDataURL('image/png');img.dataset.printSnapshot='1';
+ const restore=()=>{if(img.dataset.printSnapshot){img.src=original;delete img.dataset.printSnapshot;}root.removeEventListener('afterprint',restore);};
+ root.addEventListener('afterprint',restore,{once:true});
+ if(typeof img.decode==='function')await img.decode();
+};
 root.initHaynesServiceSheet=async function(sheet,registration,kind){
  if(!sheet||kind!=='service')return;
  let config;try{config=await fetch('/api/supabase-config',{cache:'no-store'}).then(r=>r.json());}catch{return;}

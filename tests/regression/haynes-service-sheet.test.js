@@ -112,3 +112,14 @@ test('All Green marks the three top-ups without marking replacements or complete
  const {document,window}=parseHTML('<div id="printSheet"><div class="servicePrint" data-sheet-type="service"><span class="ssRagDot red selected" data-group="brakes"></span><span class="ssRagDot green" data-group="brakes"></span>'+['Brake Fluid','Coolant','Screenwash'].map(x=>'<span class="ssHaynesTopUp" aria-label="'+x+' topped up"></span><span class="ssHaynesTopUp ssHaynesReplaced"></span>').join('')+'<span class="ssCheck"></span></div></div>');
  const context={document,updateServiceHealthScore(){}};vm.runInNewContext(source,context);context.tickAllServiceGreen();assert.equal(document.querySelectorAll('.ssHaynesTopUp.selected').length,3);assert.equal(document.querySelectorAll('.ssHaynesReplaced.selected,.ssCheck.selected').length,0);assert.equal(document.querySelectorAll('.ssRagDot.green.selected').length,1);
 });
+
+test('Save closes paperwork and returns to its linked job only after successful persistence',async()=>{
+ const html=readFileSync(new URL('../../index.html',import.meta.url),'utf8'),start=html.indexOf('async function saveServiceSheetAndClose()'),source=html.slice(start,html.indexOf('\n',start));
+ for(const success of [false,true]){const actions=[];const context={activeServiceJobId:'job-1',app:{jobs:[{id:'job-1'}]},saveServiceSheet:async()=>{actions.push('save');return success;},closeServicePreview:()=>actions.push('close'),openJobModal:id=>actions.push(id)};vm.runInNewContext(source,context);await context.saveServiceSheetAndClose();assert.deepEqual(actions,success?['save','close','job-1']:['save']);}
+});
+
+test('print freezes the personalised image at high resolution and restores its source afterwards',async()=>{
+ const {document,window,sheet}=setup(async()=>({status:'OFFLINE'}));const picture=document.createElement('div');picture.className='ssHaynesVehicle';const img=document.createElement('img');img.src='data:image/svg+xml;charset=utf-8,%3Csvg%2F%3E';picture.append(img);sheet.append(picture);Object.defineProperty(img,'naturalWidth',{value:299});Object.defineProperty(img,'naturalHeight',{value:220});img.decode=async()=>{};
+ let draws=0,canvas;const create=document.createElement.bind(document);document.createElement=name=>{if(name!=='canvas')return create(name);canvas={getContext:()=>({drawImage:()=>draws++}),toDataURL:()=>'data:image/png;base64,test'};return canvas;};
+ const original=img.src;await window.prepareHaynesServicePrint(sheet);assert.equal(draws,1);assert.ok(canvas.width>=1200);assert.match(img.src,/^data:image\/png/);window.dispatchEvent(new window.Event('afterprint'));assert.equal(img.src,original);assert.equal(img.dataset.printSnapshot,undefined);sheet.remove();
+});
