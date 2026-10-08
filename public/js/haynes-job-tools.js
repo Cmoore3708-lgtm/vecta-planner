@@ -65,7 +65,7 @@ async function lookupDashboardColour(job){
 root.enrichHaynesDashboard=function(container,jobs){
  if(!container)return;const byId=new Map((jobs||[]).filter(j=>!j.no_vehicle&&j.card_type!=='mini_task').map(j=>[String(j.id),j]));
  const groups=new Map();
- for(const card of container.querySelectorAll('.job.plannerJobFull[data-job-id],.mobileJob[data-open-job],.unallocatedSideJob[data-open-unallocated]')){
+ for(const card of container.querySelectorAll('.job:not(.miniPlannerTask)[data-job-id],.mobileJob[data-open-job],.unallocatedSideJob[data-open-unallocated]')){
   const j=byId.get(card.dataset.jobId||card.dataset.openJob),target=card.matches('.mobileJob,.unallocatedSideJob')?card:card.querySelector('.plannerJobHeader');if(!j||!target)continue;
   const key=reg(j.registration)+'|'+make(j.make)+'|'+words(j.model||j.vehicle)+'|'+words(dashboardColour(j));if(!groups.has(key))groups.set(key,{job:j,targets:[]});groups.get(key).targets.push({card,target});
  }
