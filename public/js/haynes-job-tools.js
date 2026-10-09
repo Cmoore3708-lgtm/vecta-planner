@@ -44,8 +44,8 @@ function genericImage(description){
  for(const v of candidates){const model=words(v.model);if(model&&text.includes(' '+model+' ')&&(!expectedMake||make(v.make)===expectedMake))return {make:v.make,model:v.model,imageUrl:v.imageUrl,generic:true};}
  return null;
 }
-async function lookup(registration,expectedMake){
- const requested=reg(registration),hit=snapshot(requested,expectedMake);if(hit)return hit;
+async function lookup(registration,expectedMake,{requireImage=false}={}){
+ const requested=reg(registration),hit=snapshot(requested,expectedMake);if(hit&&(!requireImage||hit.imageUrl))return hit;
  if(Date.now()<dailyBlockedUntil){failStatus.set(requested,'DAILY_LIMIT');return null;}
  if(!/^[A-Z0-9]{2,8}$/.test(requested)||root.navigator?.onLine===false||Date.now()-(failed.get(requested)||0)<300000)return null;
  if(!pending.has(requested)){
@@ -57,6 +57,8 @@ async function lookup(registration,expectedMake){
 function thumbnail(v,className){const src=image(v?.imageUrl);if(!src)return null;const img=document.createElement('img');img.src=src;img.className=className;img.alt=(v.generic?'Generic model image: ':'Representative ')+v.make+' '+v.model;img.title=v.generic?'Generic model image — appearance may differ':img.alt;img.dataset.generic=String(!!v.generic);let retries=0;img.onerror=()=>{if(retries>=2)return;const delay=++retries===1?1500:5000;setTimeout(()=>{if(!img.isConnected||img.src.startsWith('data:'))return;img.src=src;delete img.dataset.personalising;root.VectaVehicleImage?.mount(img.parentElement);},delay);};img.draggable=false;return img;}
 let dashboardTail=Promise.resolve();
 const dashboardRequests=new Map();
+const dashboardObservers=new WeakMap();
+function visibleCard(card){if(!card.isConnected)return false;if(!root.innerHeight||!card.getBoundingClientRect)return true;const box=card.getBoundingClientRect();return box.width>0&&box.height>0&&box.bottom>=0&&box.top<root.innerHeight;}
 const colourKey='vecta_dashboard_vehicle_colours_v1',colourCache=new Map(),colourFailures=new Map();
 try{for(const entry of JSON.parse(root.localStorage?.getItem(colourKey)||'[]'))if(/^[A-Z0-9]{2,8}$/.test(entry.registration)&&Date.now()-entry.at<TTL)colourCache.set(entry.registration,entry);}catch{}
 function dashboardColour(job){
@@ -96,6 +98,8 @@ function trackTimedArtwork(card,img){
 }
 root.enrichHaynesDashboard=function(container,jobs){
  if(!container)return;const byId=new Map((jobs||[]).filter(j=>!j.no_vehicle&&j.card_type!=='mini_task').map(j=>[String(j.id),j]));
+ dashboardObservers.get(container)?.disconnect();
+ let observer;if(root.IntersectionObserver){observer=new root.IntersectionObserver(entries=>{if(entries.some(entry=>entry.isIntersecting))root.enrichHaynesDashboard(container,jobs);});dashboardObservers.set(container,observer);}
  const groups=new Map();
  for(const card of container.querySelectorAll('.job:not(.miniPlannerTask)[data-job-id],.mobileJob[data-open-job],.unallocatedSideJob[data-open-unallocated]')){
   const j=byId.get(card.dataset.jobId||card.dataset.openJob),target=card.matches('.mobileJob,.unallocatedSideJob')?card:card.querySelector('.plannerJobHeader');if(!j||!target)continue;
@@ -103,10 +107,14 @@ root.enrichHaynesDashboard=function(container,jobs){
  }
  const attach=(v,targets,j)=>{for(const {card,target} of targets){if(!card.isConnected||!v)continue;const colour=dashboardColour(j);let img=card.querySelector('.haynesDashboardImage');if(img&&(img.dataset.haynesSource!==v.imageUrl||img.dataset.colour!==colour)){img.remove();img=null;}img=img||thumbnail(v,'haynesDashboardImage');if(img){img.dataset.haynesSource=v.imageUrl;img.dataset.colour=colour;img.dataset.vehicleName=[v.make,v.model].join(' ');img.setAttribute('data-vehicle-image','');target.appendChild(img);target.classList.add('hasHaynesDashboardImage');trackTimedArtwork(card,img);root.VectaVehicleImage?.mount(target);}}};
  for(const [key,group] of groups){
-  const j=group.job,hit=snapshot(j.registration,j.make),fallback=artworkSnapshot(j.registration,j.make)||genericImage(j);attach(hit?.imageUrl?hit:fallback,group.targets,j);if((hit&&(!root.VectaVehicleImage||root.VectaVehicleImage.colourHex(dashboardColour(j))))||! /^[A-Z0-9]{2,8}$/.test(reg(j.registration)))continue;
+  const j=group.job,hit=snapshot(j.registration,j.make),fallback=artworkSnapshot(j.registration,j.make)||genericImage(j);attach(hit?.imageUrl?hit:fallback,group.targets,j);if((hit?.imageUrl&&(!root.VectaVehicleImage||root.VectaVehicleImage.colourHex(dashboardColour(j))))||! /^[A-Z0-9]{2,8}$/.test(reg(j.registration)))continue;
+  if(!group.targets.some(x=>visibleCard(x.card))){for(const {card} of group.targets)observer?.observe(card);continue;}
   const existing=dashboardRequests.get(key);if(existing){existing.targets=group.targets;continue;}
   dashboardRequests.set(key,group);
-  dashboardTail=dashboardTail.then(async()=>{try{if(!group.targets.some(x=>x.card.isConnected))return;await lookupDashboardColour(j);const v=hit?.imageUrl?hit:fallback?.imageUrl?fallback:await lookup(j.registration,j.make);attach(v?.imageUrl?v:genericImage(j),group.targets,j);}finally{dashboardRequests.delete(key);}}).catch(()=>{});
+  dashboardTail=dashboardTail.then(async()=>{try{if(!group.targets.some(x=>visibleCard(x.card)))return;const v=hit?.imageUrl?hit:fallback?.imageUrl?fallback:await lookup(j.registration,j.make,{requireImage:true});attach(v?.imageUrl?v:genericImage(j),group.targets,j);
+   // Colour is optional decoration: never hold up this or the next missing picture.
+   lookupDashboardColour(j).then(()=>attach(v?.imageUrl?v:artworkSnapshot(j.registration,j.make)||genericImage(j),group.targets,j)).catch(()=>{});
+  }finally{dashboardRequests.delete(key);}}).catch(()=>{});
  }
 };
 root.enrichHaynesInvoice=function(sheet,invoice){
