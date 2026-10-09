@@ -22,7 +22,15 @@ for(const path of ['public/booking.html','website/booking/index.html'])test(`${p
   vm.runInContext(`state.step=${step};render()`,root);
   assert.equal(document.querySelectorAll('[data-haynes-slot]').length,1);
   assert.match(document.querySelector('[data-haynes-slot]').textContent,/MR16DDT/);
-  if(step===1)assert.match(document.querySelector('.advisories').textContent,/Tyre worn/);
+  if(step===1){
+   assert.match(document.querySelector('.advisories').textContent,/Tyre worn/);
+   const details=document.querySelector('.haynes-vehicle>div');
+   assert.equal(details.querySelector('[data-field="registration"]').value,'NU67VSE');
+   assert.equal(details.querySelector('.haynes-meta').nextElementSibling.className,'vehicle-top');
+   document.querySelector('[data-haynes-confirm="yes"]').onclick();
+   assert.equal(document.querySelectorAll('[data-field="registration"]').length,1);
+   assert.ok(document.querySelector('.haynes-vehicle>div [data-field="registration"]'));
+  }
   else {assert.equal(document.querySelector('.vehicle-summary'),null);assert.doesNotMatch(document.querySelector('[data-haynes-slot]').textContent,/Mileage at last MOT|MOT due|Tyre worn/);}
   assert.equal(document.querySelector('[data-image-colour]'),null);
  }
