@@ -6,13 +6,25 @@ import { gzipSync } from 'node:zlib';
 import { parseHTML, DOMParser } from 'linkedom';
 import haynesImage from '../../lib/haynes-image.js';
 const helper = fs.readFileSync('public/js/vecta-vehicle-image.js','utf8');
-function browser() {
+function browser(storage) {
   const {document,window} = parseHTML('<html><body></body></html>');
   window.Element.prototype.getBBox = function() { return this.id==='windows' ? {x:90,y:62,width:167,height:36} : {x:26,y:59,width:247,height:110}; };
-  const root = {document,DOMParser,XMLSerializer:class {serializeToString(node){return node.outerHTML;}},AbortSignal,console};
+  const root = {document,DOMParser,XMLSerializer:class {serializeToString(node){return node.outerHTML;}},AbortSignal,console,localStorage:storage};
   root.window=root;vm.createContext(root);vm.runInContext(helper,root);return root;
 }
 const svg = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 299 220" onload="alert(1)"><script>alert(1)</script><g id="wheels"><path fill="#333333" d="M0 0"/></g><g id="transparant_colour"><path opacity="0.7" fill="#CCCCCC" d="M0 0"/><path fill="none" stroke="#000000" d="M0 0"/></g><g id="windows"><path fill="#222222" d="M0 0"/></g><foreignObject><iframe src="https://evil.example"/></foreignObject><image href="https://evil.example"/><path style="fill:url(https://evil.example)" d="M0 0"/></svg>';
+test('rendered colour and plate survive offline browser reopening without fetching the supplier',async()=>{
+ const values=new Map(),storage={getItem:key=>values.get(key),setItem:(key,value)=>values.set(key,value)};
+ let calls=0,firstUrl;
+ for(let reopen=0;reopen<2;reopen++){
+  const root=browser(storage);root.fetch=async()=>{calls++;if(reopen)throw Error('offline');return {ok:true,json:async()=>({svg})};};
+  root.document.body.innerHTML='<img data-vehicle-image data-registration="YB11DCE" data-colour="Red" src="https://www.haynespro-assets.com/workshop/images/123.svgz">';
+  await root.VectaVehicleImage.mount();const img=root.document.querySelector('img');
+  assert.match(img.src,/^data:image\/svg\+xml/);assert.match(decodeURIComponent(img.src),/YB11 DCE/);assert.match(decodeURIComponent(img.src),/#ac1727/);
+  if(!reopen)firstUrl=img.src;else assert.equal(img.src,firstUrl);
+ }
+ assert.equal(calls,1);
+});
 test('body recolour preserves wheels, windows and outlines; plate contains only this registration',()=>{
   const root=browser(),r=root.VectaVehicleImage.personaliseSvg(svg,'FX69 XWU','BLUE');
   assert.equal(r.recoloured,true);assert.equal(r.plateAdded,true);

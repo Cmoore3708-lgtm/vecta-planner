@@ -9,12 +9,24 @@ function vehicleLink(v){
 }
 const KEY='vecta_haynes_vehicle_snapshots_v1',TTL=86400000,cache=new Map(),pending=new Map(),failed=new Map(),failStatus=new Map();
 let dailyBlockedUntil=0;
+// Artwork survives technical-data expiry; it must never expose technical links.
+const ART_KEY='vecta_haynes_artwork_v1',artwork=new Map();
+function rememberArtwork(v,persist=true){
+ if(!v||!reg(v.registration)||!image(v.imageUrl)||!v.make||!v.model)return;
+ const clean={registration:reg(v.registration),make:String(v.make).slice(0,100),model:String(v.model).slice(0,180),imageUrl:image(v.imageUrl)};
+ artwork.set(clean.registration,clean);while(artwork.size>300)artwork.delete(artwork.keys().next().value);
+ if(persist)try{root.localStorage?.setItem(ART_KEY,JSON.stringify([...artwork.values()]));}catch{}
+}
+try{for(const v of JSON.parse(root.localStorage?.getItem(ART_KEY)||'[]'))rememberArtwork(v,false);}catch{}
+try{for(const v of JSON.parse(root.localStorage?.getItem(KEY)||'[]'))if(vehicleLink(v))rememberArtwork(v);}catch{}
+function artworkSnapshot(registration,expectedMake){const v=artwork.get(reg(registration));return v&&(!expectedMake||make(v.make)===make(expectedMake))?v:null;}
 try{for(const v of JSON.parse(root.localStorage?.getItem(KEY)||'[]'))remember(v,false);}catch{}
 function valid(v,registration,expectedMake){return !!(v&&reg(v.registration)===reg(registration)&&vehicleLink(v)&&v.make&&v.model&&v.variant&&(!expectedMake||make(v.make)===make(expectedMake))&&Number.isFinite(Date.parse(v.fetchedAt))&&Date.now()-Date.parse(v.fetchedAt)>=0&&Date.now()-Date.parse(v.fetchedAt)<TTL);}
 function remember(v,persist=true){
  if(!valid(v,v?.registration))return;
  const clean={registration:reg(v.registration),make:String(v.make).slice(0,100),model:String(v.model).slice(0,180),variant:String(v.variant).slice(0,180),engineCode:String(v.engineCode||'').slice(0,100),modelYears:String(v.modelYears||'').slice(0,100),typeId:v.typeId,imageUrl:image(v.imageUrl),fetchedAt:v.fetchedAt};
  cache.set(clean.registration,clean);while(cache.size>300)cache.delete(cache.keys().next().value);
+ rememberArtwork(clean);
  if(persist)try{root.localStorage?.setItem(KEY,JSON.stringify([...cache.values()].filter(x=>valid(x,x.registration))));}catch{}
  return clean;
 }
@@ -28,7 +40,7 @@ const words=v=>String(v||'').toUpperCase().replace(/[^A-Z0-9]+/g,' ').trim();
 function genericImage(description){
  if(!description||description.no_vehicle)return null;
  const text=' '+words(description.model||description.vehicle)+' ',expectedMake=make(description.make);
- const candidates=[...modelImages,...cache.values()].filter(v=>image(v.imageUrl)).map(v=>({make:v.make,model:String(v.model).split(/[(/]/)[0].trim(),imageUrl:v.imageUrl})).sort((a,b)=>b.model.length-a.model.length);
+ const candidates=[...modelImages,...artwork.values(),...cache.values()].filter(v=>image(v.imageUrl)).map(v=>({make:v.make,model:String(v.model).split(/[(/]/)[0].trim(),imageUrl:v.imageUrl})).sort((a,b)=>b.model.length-a.model.length);
  for(const v of candidates){const model=words(v.model);if(model&&text.includes(' '+model+' ')&&(!expectedMake||make(v.make)===expectedMake))return {make:v.make,model:v.model,imageUrl:v.imageUrl,generic:true};}
  return null;
 }
@@ -42,7 +54,7 @@ async function lookup(registration,expectedMake){
  }
  const v=await pending.get(requested);return valid(v,requested,expectedMake)?v:null;
 }
-function thumbnail(v,className){const src=image(v?.imageUrl);if(!src)return null;const img=document.createElement('img');img.src=src;img.className=className;img.alt=(v.generic?'Generic model image: ':'Representative ')+v.make+' '+v.model;img.title=v.generic?'Generic model image — appearance may differ':img.alt;img.dataset.generic=String(!!v.generic);img.onerror=()=>img.remove();img.draggable=false;return img;}
+function thumbnail(v,className){const src=image(v?.imageUrl);if(!src)return null;const img=document.createElement('img');img.src=src;img.className=className;img.alt=(v.generic?'Generic model image: ':'Representative ')+v.make+' '+v.model;img.title=v.generic?'Generic model image — appearance may differ':img.alt;img.dataset.generic=String(!!v.generic);let retries=0;img.onerror=()=>{if(retries>=2)return;const delay=++retries===1?1500:5000;setTimeout(()=>{if(!img.isConnected||img.src.startsWith('data:'))return;img.src=src;delete img.dataset.personalising;root.VectaVehicleImage?.mount(img.parentElement);},delay);};img.draggable=false;return img;}
 let dashboardTail=Promise.resolve();
 const dashboardRequests=new Map();
 const colourKey='vecta_dashboard_vehicle_colours_v1',colourCache=new Map(),colourFailures=new Map();
@@ -91,7 +103,7 @@ root.enrichHaynesDashboard=function(container,jobs){
  }
  const attach=(v,targets,j)=>{for(const {card,target} of targets){if(!card.isConnected||!v)continue;const colour=dashboardColour(j);let img=card.querySelector('.haynesDashboardImage');if(img&&(img.dataset.haynesSource!==v.imageUrl||img.dataset.colour!==colour)){img.remove();img=null;}img=img||thumbnail(v,'haynesDashboardImage');if(img){img.dataset.haynesSource=v.imageUrl;img.dataset.colour=colour;img.dataset.vehicleName=[v.make,v.model].join(' ');img.setAttribute('data-vehicle-image','');target.appendChild(img);target.classList.add('hasHaynesDashboardImage');trackTimedArtwork(card,img);root.VectaVehicleImage?.mount(target);}}};
  for(const [key,group] of groups){
-  const j=group.job,hit=snapshot(j.registration,j.make),fallback=genericImage(j);attach(hit?.imageUrl?hit:fallback,group.targets,j);if((hit&&(!root.VectaVehicleImage||root.VectaVehicleImage.colourHex(dashboardColour(j))))||! /^[A-Z0-9]{2,8}$/.test(reg(j.registration)))continue;
+  const j=group.job,hit=snapshot(j.registration,j.make),fallback=artworkSnapshot(j.registration,j.make)||genericImage(j);attach(hit?.imageUrl?hit:fallback,group.targets,j);if((hit&&(!root.VectaVehicleImage||root.VectaVehicleImage.colourHex(dashboardColour(j))))||! /^[A-Z0-9]{2,8}$/.test(reg(j.registration)))continue;
   const existing=dashboardRequests.get(key);if(existing){existing.targets=group.targets;continue;}
   dashboardRequests.set(key,group);
   dashboardTail=dashboardTail.then(async()=>{try{if(!group.targets.some(x=>x.card.isConnected))return;await lookupDashboardColour(j);const v=hit?.imageUrl?hit:fallback?.imageUrl?fallback:await lookup(j.registration,j.make);attach(v?.imageUrl?v:genericImage(j),group.targets,j);}finally{dashboardRequests.delete(key);}}).catch(()=>{});
@@ -99,7 +111,7 @@ root.enrichHaynesDashboard=function(container,jobs){
 };
 root.enrichHaynesInvoice=function(sheet,invoice){
  const strip=sheet?.querySelector('.printInvoiceVehicle');if(!strip||!invoice||sheet.querySelector('.haynesInvoiceImage'))return;
- const matched=snapshot(invoice.registration,invoice.make),v=matched?.imageUrl?matched:genericImage(invoice);if(!v)return;const img=thumbnail(v,'haynesInvoiceImage');if(img){
+ const matched=snapshot(invoice.registration,invoice.make),v=matched?.imageUrl?matched:artworkSnapshot(invoice.registration,invoice.make)||genericImage(invoice);if(!v)return;const img=thumbnail(v,'haynesInvoiceImage');if(img){
   const header=sheet.querySelector('.invoicePrintHeader');
   if(header){
    const picture=document.createElement('div');picture.className='haynesInvoiceHeaderVehicle';
@@ -148,7 +160,7 @@ const requested=current(),expectedMake=make(modal.querySelector('#job_make')?.va
  if(!noVehicle?.checked&&/^[A-Z0-9]{2,8}$/.test(current()))button.onclick();
 };
 document.addEventListener('DOMContentLoaded',()=>{if(root.view==='planner')root.enrichHaynesDashboard(document.getElementById('content'),root.app?.jobs);});
-root.VectaHaynesJobTools={vehicleLink,safeImage:image,remember,snapshot,lookup,genericImage,dashboardColour,lookupDashboardColour};
+root.VectaHaynesJobTools={vehicleLink,safeImage:image,remember,snapshot,artworkSnapshot,lookup,genericImage,dashboardColour,lookupDashboardColour};
 })(window);
 
 /* Dashboard registration lookup: read-only until a job/quote form is saved. */
