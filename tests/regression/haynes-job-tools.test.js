@@ -10,6 +10,36 @@ const source=readFileSync(new URL('../../public/js/haynes-job-tools.js',import.m
 const vehicle={registration:'FX69XWU',make:'Nissan',model:'Qashqai',variant:'1.7 dCi',typeId:'t_301000368',imageUrl:'https://www.haynespro-assets.com/workshop/images/123.svg',fetchedAt:new Date().toISOString()};
 function setup(fetcher){const {window,document}=parseHTML('<html><body><div id="modal"><section class="jobVehicleSection"><input id="job_registration" value="FX69 XWU"><input id="job_make" value="Nissan"><input type="checkbox" id="job_no_vehicle"></section><button id="save">Save</button></div></body></html>');delete window.VectaVehicleImage;delete window.app;delete window.fleetVehicles;window.fetch=fetcher;vm.runInNewContext(source,{window,document,AbortController,AbortSignal,setTimeout,clearTimeout,encodeURIComponent});window.initHaynesJobTools(document.querySelector('#modal'));return {window,document,panel:document.querySelector('.haynesJobTools')};}
 const response=v=>({ok:true,json:async()=>({status:'MATCHED',vehicle:v})});
+test('fresh missing picture loads before an unresolved colour lookup and does not block the next picture',async()=>{
+ const {window,document}=setup(async()=>response(vehicle));await new Promise(r=>setImmediate(r));
+ window.VectaVehicleImage={colourHex:()=>'',resolveColour:(_r,c)=>c,mount:()=>Promise.resolve()};
+ const requested=[];window.fetch=async url=>{requested.push(url);if(url.includes('vehicle-lookup'))return new Promise(()=>{});const registration=new URL(url,'https://test.local').searchParams.get('reg');return response({...vehicle,registration,make:'Toyota',model:'Yaris'});};
+ const host=document.createElement('div');host.innerHTML='<div class="mobileJob" data-open-job="1"></div><div class="mobileJob" data-open-job="2"></div>';document.body.append(host);
+ window.enrichHaynesDashboard(host,[{id:'1',registration:'MK55MLU',make:'Toyota'},{id:'2',registration:'AB12XYZ',make:'Toyota'}]);
+ for(let i=0;i<8;i++)await new Promise(r=>setImmediate(r));
+ assert.equal(host.querySelectorAll('img').length,2);assert.match(requested[0],/haynes-vehicle/);assert.equal(requested.filter(x=>x.includes('haynes-vehicle')).length,2);
+ host.remove();
+});
+test('a fresh technical match without artwork requests the image instead of skipping the card',async()=>{
+ const {window,document}=setup(async()=>response(vehicle));await new Promise(r=>setImmediate(r));
+ window.VectaHaynesJobTools.remember({...vehicle,registration:'MK55MLU',make:'Toyota',model:'Yaris',imageUrl:''});
+ let calls=0;window.fetch=async()=>{calls++;return response({...vehicle,registration:'MK55MLU',make:'Toyota',model:'Yaris'});};
+ const host=document.createElement('div');host.innerHTML='<div class="mobileJob" data-open-job="1"></div>';document.body.append(host);
+ window.enrichHaynesDashboard(host,[{id:'1',registration:'MK55MLU',make:'Toyota',colour:'Grey'}]);
+ for(let i=0;i<8;i++)await new Promise(r=>setImmediate(r));
+ assert.equal(calls,1);assert.ok(host.querySelector('img'));host.remove();
+});
+test('hidden desktop cards do not queue lookups ahead of visible mobile cards',async()=>{
+ const {window,document}=setup(async()=>response(vehicle));await new Promise(r=>setImmediate(r));
+ window.innerHeight=800;let onEntry;window.IntersectionObserver=class{constructor(callback){onEntry=callback;}observe(){}disconnect(){}};
+ const requests=[];window.fetch=async url=>{const registration=new URL(url,'https://test.local').searchParams.get('reg');requests.push(registration);return response({...vehicle,registration,make:'Toyota',model:'Yaris'});};
+ const host=document.createElement('div');host.innerHTML='<div class="mobileJob" data-open-job="hidden"></div><div class="mobileJob" data-open-job="visible"></div>';document.body.append(host);
+ const hidden=host.firstElementChild;let scrolled=false;hidden.getBoundingClientRect=()=>({width:300,height:80,top:scrolled?100:900,bottom:scrolled?180:980});host.lastElementChild.getBoundingClientRect=()=>({width:300,height:80,top:100,bottom:180});
+ const jobs=[{id:'hidden',registration:'ZZ12XYZ',make:'Toyota',colour:'Grey'},{id:'visible',registration:'MK55MLU',make:'Toyota',colour:'Grey'}];
+ window.enrichHaynesDashboard(host,jobs);for(let i=0;i<8;i++)await new Promise(r=>setImmediate(r));assert.deepEqual(requests,['MK55MLU']);
+ scrolled=true;onEntry([{isIntersecting:true}]);for(let i=0;i<8;i++)await new Promise(r=>setImmediate(r));assert.equal(hidden.querySelectorAll('img').length,1);
+ delete window.innerHeight;delete window.IntersectionObserver;host.remove();
+});
 test('dashboard downloads a missing recorded colour and renders grey body paint without altering records',async()=>{
  const requests=[];
  const {window,document}=setup(async url=>{requests.push(url);return {ok:true,json:async()=>url.includes('vehicle-lookup')?{registration:vehicle.registration,make:'Nissan',primaryColour:'Grey'}:url.includes('haynes-image')?{svg:'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 299 220"><g id="transparant_colour"><path fill="#ffffff" d="M0 0h100v100z"/></g></svg>'}:{status:'MATCHED',vehicle}};});
