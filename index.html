@@ -10742,7 +10742,7 @@ window.__vectaFleetState=function(next){
   if(next&&Array.isArray(next.vehicles))fleetVehicles=next.vehicles;
   if(next&&Array.isArray(next.plans))fleetPlans=next.plans;
   if(next&&Array.isArray(next.completions))fleetCompletions=next.completions;
-  return {vehicles:fleetVehicles,plans:fleetPlans,completions:fleetCompletions,app:app};
+  return {vehicles:fleetVehicles,plans:fleetPlans,completions:fleetCompletions,app:app,save:saveFleet,render:render};
 };
 var fleetCustomerProfiles={};try{fleetCustomerProfiles=JSON.parse(localStorage.getItem('vecta:fleet:customers:v1')||'{}')||{}}catch(e){fleetCustomerProfiles={}}
 var fleetEmailSent={};try{fleetEmailSent=JSON.parse(localStorage.getItem('vecta:fleet:email-sent:v329')||'{}')||{}}catch(e){fleetEmailSent={}}
