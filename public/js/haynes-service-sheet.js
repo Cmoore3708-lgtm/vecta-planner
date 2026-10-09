@@ -6,6 +6,8 @@ const compactCapacity=value=>{const text=String(value||''),match=text.match(/inc
 const safeImage=value=>/^https:\/\/www\.haynespro-assets\.com\/workshop\/images\/\d+\.(svgz?|png|jpe?g|webp)$/.test(value||'')?value:'';
 // Freeze the already personalised screen artwork at print resolution.
 root.prepareHaynesServicePrint=async function(scope){
+ const logo=scope?.querySelector('.ssWebsiteLogo');
+ if(logo&&typeof logo.decode==='function')await logo.decode().catch(()=>{});
  const img=scope?.querySelector('.ssHaynesVehicle img');
  if(!img||!img.src.startsWith('data:image/svg+xml')||img.dataset.printSnapshot)return;
  const original=img.src;if(typeof img.decode==='function')await img.decode();
@@ -23,6 +25,10 @@ root.openServiceResetProcedure=function(){
 };
 root.initHaynesServiceSheet=async function(sheet,registration,kind){
  if(!sheet||kind!=='service')return;
+ const brand=sheet.querySelector('.ssBrand');
+ if(brand&&!brand.querySelector('.ssWebsiteLogo')){
+  const logo=document.createElement('img');logo.className='ssWebsiteLogo';logo.src='/assets/vecta-header.png';logo.alt='VECTA Vehicle Servicing and repairs';brand.replaceChildren(logo);
+ }
  let config;try{config=await fetch('/api/supabase-config',{cache:'no-store'}).then(r=>r.json());}catch{return;}
  if(!sheet.isConnected||!config.haynesServiceTest)return;
  sheet.classList.add('ssHaynesCompact');
