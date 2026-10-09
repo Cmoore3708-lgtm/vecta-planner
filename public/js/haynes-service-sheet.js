@@ -26,8 +26,8 @@ root.openServiceResetProcedure=function(){
 root.initHaynesServiceSheet=async function(sheet,registration,kind){
  if(!sheet||kind!=='service')return;
  const brand=sheet.querySelector('.ssBrand');
- if(brand&&!brand.querySelector('.ssWebsiteLogo')){
-  const logo=document.createElement('img');logo.className='ssWebsiteLogo';logo.src='/assets/vecta-header.png';logo.alt='VECTA Vehicle Servicing and repairs';brand.replaceChildren(logo);
+ if(brand&&brand.querySelector('.ssWebsiteLogo')?.getAttribute('src')!=='/assets/vecta-service-logo.webp'){
+  const logo=document.createElement('img');logo.className='ssWebsiteLogo';logo.src='/assets/vecta-service-logo.webp';logo.alt='VECTA Vehicle Servicing and repairs';brand.replaceChildren(logo);
  }
  let config;try{config=await fetch('/api/supabase-config',{cache:'no-store'}).then(r=>r.json());}catch{return;}
  if(!sheet.isConnected||!config.haynesServiceTest)return;
