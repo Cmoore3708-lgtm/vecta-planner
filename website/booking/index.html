@@ -225,3 +225,16 @@ function initialiseBooking(){if(suppliedReg)state.form.registration=suppliedReg;
 .later-step .vehicle-summary{width:100%;min-height:0}
 @media(max-width:600px){.later-step .vehicle-photo .haynes-vehicle{gap:12px}.later-step .vehicle-photo .haynes-image img{height:150px}.later-step .vehicle-photo .haynes-vehicle b{font-size:14px}.later-step .vehicle-summary{width:100%;min-height:0}}
 </style>
+
+<style>
+/* Keep MOT information directly below the taller vehicle column. */
+.step:not(.later-step){display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.15fr);column-gap:18px;align-items:start}
+.step:not(.later-step)>*{grid-column:1/-1}
+.step:not(.later-step)>.kicker{grid-column:1;grid-row:1}
+.step:not(.later-step)>h2{grid-column:1;grid-row:2;max-width:100%}
+.step:not(.later-step)>p{grid-column:1;grid-row:3;max-width:100%}
+.step:not(.later-step)>.vehicle-top{grid-column:1;grid-row:4;grid-template-columns:minmax(0,1fr);min-height:0;margin:12px 0 16px}
+.step:not(.later-step)>.vehicle-photo{grid-column:2;grid-row:1/5;position:static;width:100%;max-width:none;margin-bottom:16px}
+.step:not(.later-step) .vehicle-photo .haynes-image img{margin-top:0;height:220px}
+@media(max-width:600px){.step:not(.later-step){column-gap:14px}.step:not(.later-step) .vehicle-photo .haynes-image img{height:150px}}
+</style>
