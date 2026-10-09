@@ -93,7 +93,7 @@
     return sources.get(asset);
   }
   function mount(scope = root.document) {
-    scope.querySelectorAll('img[data-vehicle-image]').forEach(async img => {
+    return Promise.all(Array.from(scope.querySelectorAll('img[data-vehicle-image]')).map(async img => {
       if (img.dataset.personalising) return;
       img.dataset.personalising = '1';
       const url = img.getAttribute('src') || '';
@@ -114,7 +114,7 @@
         img.dataset.recoloured = String(result.recoloured);
         img.alt = [colour, img.dataset.vehicleName, registration,'model illustration'].filter(Boolean).join(' ');
       } catch { /* Keep the original model image; booking remains fully usable. */ }
-    });
+    }));
   }
   root.VectaVehicleImage = {mount,personaliseSvg,sanitiseSvg,colourHex,normaliseReg,resolveColour,rememberColour,colourNames:Object.keys(colours).filter(name=>name!=='GRAY')};
 })(typeof window === 'undefined' ? globalThis : window);

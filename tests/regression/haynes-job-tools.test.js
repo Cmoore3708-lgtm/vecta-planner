@@ -58,8 +58,8 @@ test('confirmed vehicle opens a fixed supplier URL, hides broken images and leav
 });
 test('invoice receives confirmed image and details without modifying amounts; fleet strips stay unchanged',()=>{
  const {window,document}=setup(async()=>response(vehicle));window.VectaHaynesJobTools.remember(vehicle);
- const sheet=document.createElement('div');sheet.innerHTML='<div class="printInvoiceVehicle"><div class="printVehicleCell">Plate</div><div class="printVehicleCell"><b>Nissan</b></div></div><div class="printTotals">£120.00</div>';document.body.appendChild(sheet);
- const inv={registration:'FX69 XWU',subtotal:100,vat:20,total:120},before=JSON.stringify(inv);window.enrichHaynesInvoice(sheet,inv);assert.equal(sheet.querySelector('.haynesInvoiceImage').src,vehicle.imageUrl);assert.match(sheet.textContent,/Qashqai/);assert.equal(sheet.querySelector('.printTotals').textContent,'£120.00');assert.equal(JSON.stringify(inv),before);
+ const sheet=document.createElement('div');sheet.innerHTML='<div class="invoicePrintHeader"><div>VECTA</div><div class="printTitle">INVOICE</div></div><div class="printInvoiceVehicle"><div class="printVehicleCell">Plate</div><div class="printVehicleCell"><b>Nissan</b></div></div><div class="printTotals">£120.00</div>';document.body.appendChild(sheet);
+ const inv={registration:'FX69 XWU',subtotal:100,vat:20,total:120},before=JSON.stringify(inv);window.enrichHaynesInvoice(sheet,inv);assert.equal(sheet.querySelector('.haynesInvoiceImage').src,vehicle.imageUrl);assert.equal(sheet.querySelector('.haynesInvoiceImage').dataset.registration,'FX69XWU');assert.ok(sheet.querySelector('.invoicePrintHeader .haynesInvoiceImage'));assert.equal(sheet.querySelector('.printInvoiceVehicle img'),null);assert.match(sheet.textContent,/Qashqai/);assert.equal(sheet.querySelector('.printTotals').textContent,'£120.00');assert.equal(JSON.stringify(inv),before);
  const fleet=document.createElement('div');fleet.innerHTML='<div>Fleet account</div>';window.enrichHaynesInvoice(fleet,{registration:'FLEET ACCOUNT'});assert.equal(fleet.querySelector('img'),null);
 });
 test('dashboard decorates timed cards, preserves duration and drag attributes and rejects another make',()=>{
@@ -108,7 +108,7 @@ test('unavailable registration keeps generic artwork; generic invoice image pres
  const {window,document}=setup(async()=>response(vehicle));await new Promise(r=>setImmediate(r));window.fetch=async()=>{throw Error('offline');};
  const host=document.createElement('div');host.innerHTML='<div class="mobileJob" data-open-job="fallback"><div class="mobileJobTop">Qashqai</div></div>';document.body.appendChild(host);
  window.enrichHaynesDashboard(host,[{id:'fallback',registration:'AB12XYZ',vehicle:'Nissan Qashqai'}]);await new Promise(r=>setImmediate(r));assert.equal(host.querySelector('img').dataset.generic,'true');
- const sheet=document.createElement('div');sheet.innerHTML='<div class="printInvoiceVehicle"><div class="printVehicleCell">Plate</div><div class="printVehicleCell"><b>My Qashqai description</b></div></div><div class="printTotals">£120.00</div>';
+ const sheet=document.createElement('div');sheet.innerHTML='<div class="invoicePrintHeader"><div>VECTA</div><div class="printTitle">INVOICE</div></div><div class="printInvoiceVehicle"><div class="printVehicleCell">Plate</div><div class="printVehicleCell"><b>My Qashqai description</b></div></div><div class="printTotals">£120.00</div>';
  const inv={registration:'AB12XYZ',vehicle:'Nissan Qashqai',total:120},before=JSON.stringify(inv);window.enrichHaynesInvoice(sheet,inv);assert.equal(sheet.querySelector('img').dataset.generic,'true');assert.equal(sheet.querySelector('b').textContent,'My Qashqai description');assert.equal(sheet.querySelector('.haynesInvoiceDetails'),null);assert.equal(sheet.querySelector('.printTotals').textContent,'£120.00');assert.equal(JSON.stringify(inv),before);
 });
 test('vehicle artwork remains available when timed card shrinks below one hour',async()=>{

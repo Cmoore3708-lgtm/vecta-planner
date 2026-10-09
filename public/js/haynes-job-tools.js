@@ -99,7 +99,18 @@ root.enrichHaynesDashboard=function(container,jobs){
 };
 root.enrichHaynesInvoice=function(sheet,invoice){
  const strip=sheet?.querySelector('.printInvoiceVehicle');if(!strip||!invoice||sheet.querySelector('.haynesInvoiceImage'))return;
- const matched=snapshot(invoice.registration,invoice.make),v=matched?.imageUrl?matched:genericImage(invoice);if(!v)return;const img=thumbnail(v,'haynesInvoiceImage');if(img){strip.prepend(img);strip.classList.add('hasHaynesImage');}
+ const matched=snapshot(invoice.registration,invoice.make),v=matched?.imageUrl?matched:genericImage(invoice);if(!v)return;const img=thumbnail(v,'haynesInvoiceImage');if(img){
+  const header=sheet.querySelector('.invoicePrintHeader');
+  if(header){
+   const picture=document.createElement('div');picture.className='haynesInvoiceHeaderVehicle';
+   const linked=(root.app?.jobs||[]).find(j=>String(j.id)===String(invoice.job_id));
+   const vehicle=Object.assign({},linked||{},invoice,{registration:invoice.registration||linked?.registration});
+   img.setAttribute('data-vehicle-image','');img.dataset.registration=reg(vehicle.registration);
+   img.dataset.colour=dashboardColour(vehicle);img.dataset.vehicleName=[v.make,v.model].join(' ');
+   picture.appendChild(img);header.insertBefore(picture,header.querySelector('.printTitle'));
+   sheet.invoiceVehicleReady=root.VectaVehicleImage?.mount(picture);
+  }
+ }
  if(!matched)return;const cells=strip.querySelectorAll('.printVehicleCell'),vehicleCell=cells[1];if(vehicleCell){const old=vehicleCell.querySelector('b');if(old)old.textContent=[matched.make,matched.model,matched.variant].join(' ');const extra=document.createElement('small');extra.className='haynesInvoiceDetails';extra.textContent=[matched.engineCode,matched.modelYears].filter(Boolean).join(' · ');vehicleCell.appendChild(extra);}
 };
 root.initHaynesJobTools=function(modal){

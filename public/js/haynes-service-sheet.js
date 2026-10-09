@@ -6,7 +6,7 @@ const compactCapacity=value=>{const text=String(value||''),match=text.match(/inc
 const safeImage=value=>/^https:\/\/www\.haynespro-assets\.com\/workshop\/images\/\d+\.(svgz?|png|jpe?g|webp)$/.test(value||'')?value:'';
 // Freeze the already personalised screen artwork at print resolution.
 root.prepareHaynesServicePrint=async function(scope){
- const img=scope?.querySelector('.ssHaynesVehicle img');
+ const img=scope?.querySelector('.ssHaynesVehicle img, .haynesInvoiceHeaderVehicle img');
  if(!img||!img.src.startsWith('data:image/svg+xml')||img.dataset.printSnapshot)return;
  const original=img.src;if(typeof img.decode==='function')await img.decode();
  const canvas=document.createElement('canvas');canvas.width=Math.max(1200,img.naturalWidth*4);canvas.height=Math.round(canvas.width*img.naturalHeight/img.naturalWidth);
