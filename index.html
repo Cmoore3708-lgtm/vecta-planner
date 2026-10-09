@@ -13707,9 +13707,10 @@ function field(label,key,val,type){return '<div class="field"><label>'+label+'</
 async function refreshFinancialInvoiceListFromCloud(){
   if(!remoteClient||!navigator.onLine)return false;
   try{
-    var rows=await fetchAllRows('invoices');
+    var rows=await vectaFetchAllRemoteRows('invoices',12000);
     if(Array.isArray(rows)){
       app.invoices=mergeRemoteRows(app.invoices||[],rows);
+      await pullInvoicePaymentMethods();
       saveLocal();
       return true;
     }
