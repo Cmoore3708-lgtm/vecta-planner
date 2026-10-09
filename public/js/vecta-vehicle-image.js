@@ -12,7 +12,7 @@
   const sources = new Map(), images = new Map();
   const normaliseReg = value => String(value || '').toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0,8);
   // Customer-confirmed illustration correction; leave official MOT records untouched.
-  const confirmedColours = {BD53MUD:'Black',NA63UKO:'Black',M123WPC:'Black'};
+  const confirmedColours = {BD53MUD:'Black',NA63UKO:'Black'};
   function resolveColour(registration, suppliedColour) {
     const reg = normaliseReg(registration);
     try { const saved = root.localStorage?.getItem('vecta-image-colour:'+reg); if (colourHex(saved)) return saved; } catch {}
