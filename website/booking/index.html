@@ -120,7 +120,7 @@ function haynesHtml(){
  let v=haynesState.vehicle;
  return `<section class="haynes-card" aria-label="Detailed vehicle identification"><div class="haynes-vehicle">${v.imageUrl?`<figure class="haynes-image"><img data-vehicle-image data-registration="${esc(state.form.registration)}" data-colour="${esc(state.form.vehicle_colour)}" data-vehicle-name="${esc(v.make+' '+v.model)}" src="${esc(v.imageUrl)}" alt="${esc(v.make+' '+v.model)} model illustration" referrerpolicy="no-referrer"></figure>`:''}<div><b>${esc(v.vehicle)}</b><p class="haynes-meta">${v.engineCode?`Engine code: ${esc(v.engineCode)}<br>`:''}${v.modelYears?`Model range: ${esc(v.modelYears)}<br>`:''}Vehicle details from HaynesPro</p></div></div>${haynesState.status==='confirmed'?'':'<p>Does this match your vehicle?</p><div class="haynes-actions"><button type="button" data-haynes-confirm="yes">Yes, that’s my vehicle</button><button type="button" data-haynes-confirm="no">No / not sure</button></div>'}</section>`;
 }
-function alignVehicleHeader(){const step=document.querySelector('.step');const details=step?.querySelector('.haynes-vehicle>div');const plate=step?.querySelector('.vehicle-top');if(state.step===1&&details&&plate){details.appendChild(plate);step.classList.add('identified-vehicle');}else step?.classList.remove('identified-vehicle');}
+function alignVehicleHeader(){const step=document.querySelector('.step');const details=step?.querySelector('.haynes-vehicle>div');let plate=step?.querySelector('.vehicle-top');if(details){if(!plate&&state.step>1){plate=document.createElement('div');plate.className='vehicle-top';plate.innerHTML=`<div class="registration-column"><div class="reg-wrap" aria-label="Registration number"><span class="reg-band">GB</span><span class="reg">${esc(state.form.registration)}</span></div></div>`;}if(plate)details.appendChild(plate);step.classList.add('identified-vehicle');}else step?.classList.remove('identified-vehicle');}
 function refreshHaynes(){const plate=document.querySelector('.vehicle-top');if(plate?.closest('[data-haynes-slot]'))document.querySelector('.step').appendChild(plate);if(state.step>1){render();return}updateLookupPanel();document.querySelectorAll('[data-haynes-slot]').forEach(slot=>slot.innerHTML=haynesHtml());alignVehicleHeader();bindHaynes();}
 function bindHaynes(){VectaVehicleImage.mount();document.querySelectorAll('[data-haynes-confirm]').forEach(button=>button.onclick=()=>{if(button.dataset.haynesConfirm==='yes'){haynesState.status='confirmed';state.form.haynes_identity=haynesState.vehicle;}else{haynesState.status='rejected';state.form.haynes_identity=null;}refreshHaynes();});document.querySelectorAll('.haynes-image img').forEach(img=>img.onerror=()=>img.closest('figure').remove());}
 function scheduleLookup(){state.form.engine_size_manual='';state.form.vehicle_colour='';haynesLookup.reset();clearTimeout(state.timer);let reg=state.form.registration.toUpperCase().replace(/[^A-Z0-9]/g,'');if(reg.length<5){state.lookup='idle';updateLookupPanel();return}state.lookup='loading';state.lookupMessage='Looking up vehicle...';updateLookupPanel();state.timer=setTimeout(()=>lookup(reg),650)}
@@ -261,4 +261,11 @@ function initialiseBooking(){if(suppliedReg)state.form.registration=suppliedReg;
 .identified-vehicle .reg-label{margin:0}
 .identified-vehicle .reg-wrap{margin:0;max-width:100%}
 @media(max-width:600px){.step:has(.haynes-vehicle) .vehicle-photo .haynes-vehicle{gap:12px}.step:has(.haynes-vehicle) .vehicle-photo .haynes-image img{height:135px;max-height:135px}.identified-vehicle .reg{font-size:18px;padding:12px 6px}.identified-vehicle .reg-band{width:30px;flex-basis:30px}}
+</style>
+
+<style>
+/* Keep the plate below Haynes details throughout the booking journey. */
+.identified-vehicle.later-step>.kicker,.identified-vehicle.later-step>h2,.identified-vehicle.later-step>p{display:block}
+.identified-vehicle .registration-column .reg{display:block;min-width:0}
+.step:has(.haynes-vehicle) .vehicle-photo .haynes-image img{transform:scale(1.1);transform-origin:center}
 </style>
