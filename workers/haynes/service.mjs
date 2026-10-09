@@ -29,7 +29,7 @@ export function createLookupService(lookup, { now = Date.now, ttl = 86400000, ma
     }).catch(error => {
       if (['UNAVAILABLE','AMBIGUOUS','INCOMPLETE','MISMATCH'].includes(error.code)) {
         if (failures.size >= maxCache) failures.delete(failures.keys().next().value);
-        failures.set(registration, { code: error.code, expires: now() + failureTtl });
+        failures.set(registration, { code: error.code, expires: now() + (error.reason === 'TIMEOUT' || error.reason === 'BROWSER_ERROR' ? Math.min(failureTtl,15000) : failureTtl) });
       }
       if (['LOGIN_REQUIRED', 'VERIFICATION_REQUIRED'].includes(error.code)) {
         circuitUntil = now() + 60000; circuitCode = error.code;
@@ -41,3 +41,4 @@ export function createLookupService(lookup, { now = Date.now, ttl = 86400000, ma
     return promise;
   };
 }
+

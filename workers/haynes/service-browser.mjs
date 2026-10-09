@@ -1,7 +1,7 @@
 import { chooseSchedule } from './schedule-choice.mjs';
 import { START } from './browser.mjs';
 import { readVehicle } from './dom.mjs';
-import { readSchedule, readOil } from './service-dom.mjs';
+import { readSchedule, readOil, readDirectSchedules } from './service-dom.mjs';
 import { vehicleResult, HaynesError } from '../../lib/haynes-vehicle.js';
 import { serviceRequest, serviceResult, selectServicePeriod } from '../../lib/haynes-service.js';
 export function browserServiceLookup(context, { chooseConditions } = {}) {
@@ -19,20 +19,31 @@ export function browserServiceLookup(context, { chooseConditions } = {}) {
       await page.locator('#licencePlateBtn').click();
       let data;
       for (let n=0;n<60;n++) {
-        try { data=await page.evaluate(readVehicle); if(data.registration||data.login||data.blocked||data.ambiguous)break; } catch(e) { if(!/context was destroyed|Cannot find context/i.test(e.message))throw e; }
+        try { data=await page.evaluate(readVehicle); if(String(data.registration||'').replace(/[^A-Z0-9]/gi,'').toUpperCase()===input.registration||data.login||data.blocked||data.ambiguous)break; } catch(e) { if(!/context was destroyed|Cannot find context/i.test(e.message))throw e; }
         await new Promise(r=>setTimeout(r,200));
       }
       if(data?.login)throw new HaynesError('LOGIN_REQUIRED');
       if(data?.blocked)throw new HaynesError('VERIFICATION_REQUIRED');
       const vehicle=vehicleResult(data,input.registration);
-      const select=page.locator('select').filter({has:page.locator('option').filter({hasText:/Normal conditions/i})}).first();
-      await select.waitFor({state:'attached'});
-      const options=await select.locator('option').evaluateAll(items=>items.map(item=>({value:item.value,label:item.textContent})));
-      const choice=await chooseSchedule(options,vehicle,chooseConditions);
-      const conditions=choice.label, system=choice.system;
-      await select.selectOption({value:choice.value});
-      await page.locator('a[href*="maintenanceSchedule?"]').first().waitFor({state:'attached'});
-      const links=await page.locator('a[href*="maintenanceSchedule?"]').evaluateAll(as=>as.map(a=>({href:a.href,label:a.textContent.replace(/\s+/g,' ').trim()})));
+      await page.waitForFunction(()=>Array.from(document.querySelectorAll('select')).some(s=>
+        (s.getAttribute('onchange')||'').includes('/maintenanceSchedule?') ||
+        Array.from(s.options).some(o=>/Normal conditions/i.test(o.textContent))
+      ),null,{timeout:12000});
+      const direct=await page.evaluate(readDirectSchedules);
+      let conditions,system,links;
+      if(direct) {
+        if(direct.ambiguous)throw new HaynesError('SCHEDULE_REQUIRED');
+        if(direct.typeId!==vehicle.typeId)throw new HaynesError('MISMATCH');
+        ({conditions,system,links}=direct);
+      } else {
+        const select=page.locator('select').filter({has:page.locator('option').filter({hasText:/Normal conditions/i})}).first();
+        const options=await select.locator('option').evaluateAll(items=>items.map(item=>({value:item.value,label:item.textContent})));
+        const choice=await chooseSchedule(options,vehicle,chooseConditions);
+        conditions=choice.label;system=choice.system;
+        await select.selectOption({value:choice.value});
+        await page.locator('a[href*="maintenanceSchedule?"]').first().waitFor({state:'attached'});
+        links=await page.locator('a[href*="maintenanceSchedule?"]').evaluateAll(as=>as.map(a=>({href:a.href,label:a.textContent.replace(/\s+/g,' ').trim().replace(/\s*\((?:OEM|OE):\s*[^()]+\)\s*$/i,'')})));
+      }
       
       const match=String(data.registrationDate||'').match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
       const now=new Date(), ageMonths=match?Math.max(0,(now.getUTCFullYear()-Number(match[3]))*12+now.getUTCMonth()+1-Number(match[2])-(now.getUTCDate()<Number(match[1])?1:0)):null;
