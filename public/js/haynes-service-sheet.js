@@ -16,11 +16,23 @@ root.prepareHaynesServicePrint=async function(scope){
  root.addEventListener('afterprint',restore,{once:true});
  if(typeof img.decode==='function')await img.decode();
 };
+root.openServiceResetProcedure=function(){
+ const link=document.querySelector('#printSheet .ssHaynesResetLink');
+ if(link){link.click();return;}
+ root.alert('HaynesPro vehicle details are not loaded yet. Wait for the lookup or retry Haynes, then open the reset instructions.');
+};
 root.initHaynesServiceSheet=async function(sheet,registration,kind){
  if(!sheet||kind!=='service')return;
  let config;try{config=await fetch('/api/supabase-config',{cache:'no-store'}).then(r=>r.json());}catch{return;}
  if(!sheet.isConnected||!config.haynesServiceTest)return;
  sheet.classList.add('ssHaynesCompact');
+ const setResetLink=v=>{
+  if(v?.registration!==registration||!/^t_\d+$/.test(v.typeId||''))return;
+  let link=sheet.querySelector('.ssHaynesResetLink');
+  if(!link){link=document.createElement('a');link.className='ssHaynesResetLink';link.target='_blank';link.rel='noopener noreferrer';link.textContent='Service light reset instructions — HaynesPro';link.title='Open this vehicle in HaynesPro, then select Service indicator reset';sheet.querySelector('.ssDocumentTitle')?.insertAdjacentElement('afterend',link);}
+  link.href='https://www.workshopdata.com/touch/site/layout/modelDetail?typeId='+encodeURIComponent(v.typeId);
+ };
+ setResetLink(root.VectaHaynesJobTools?.snapshot?.(registration));
  const guide=sheet.querySelector('.ssGuide'),health=sheet.querySelector('.ssHealth');
  if(guide&&health)health.appendChild(guide);
  const measures=sheet.querySelector('.ssMeasureGrid'),lower=sheet.querySelector('.ssLower');
@@ -81,7 +93,7 @@ root.initHaynesServiceSheet=async function(sheet,registration,kind){
  const personalise=img=>{if(!img)return;const source=img.dataset.haynesSource||safeImage(img.getAttribute('src'));if(!source)return;img.src=source;img.dataset.haynesSource=source;img.setAttribute('data-vehicle-image','');img.dataset.registration=registration;img.dataset.colour=root.VectaHaynesJobTools?.dashboardColour(vehicleJob())||root.VectaVehicleImage?.resolveColour(registration,'')||'';delete img.dataset.personalising;root.VectaVehicleImage?.mount(picture);};
  const savedImage=picture.querySelector('img');if(savedImage){picture.replaceChildren(savedImage);personalise(savedImage);}else picture.textContent='';
  root.VectaHaynesJobTools?.lookupDashboardColour(vehicleJob()).then(()=>{if(sheet.isConnected)personalise(picture.querySelector('img'));}).catch(()=>{});
- const showVehicle=v=>{if(v?.registration!==registration)return;root.VectaHaynesJobTools?.remember(v);const image=safeImage(v.imageUrl);picture.innerHTML=image?'<img src="'+esc(image)+'" alt="'+esc(v.vehicle)+'">':'';personalise(picture.querySelector('img'));sheet.classList.add('ssHasHaynesVehicle');const rows=sheet.querySelectorAll('.ssInfoRow');for(const row of rows){if(row.querySelector('b')?.textContent.trim()==='Vehicle:'){const value=row.querySelector('span');if(value)value.textContent=v.vehicle;}}};
+ const showVehicle=v=>{if(v?.registration!==registration)return;setResetLink(v);root.VectaHaynesJobTools?.remember(v);const image=safeImage(v.imageUrl);picture.innerHTML=image?'<img src="'+esc(image)+'" alt="'+esc(v.vehicle)+'">':'';personalise(picture.querySelector('img'));sheet.classList.add('ssHasHaynesVehicle');const rows=sheet.querySelectorAll('.ssInfoRow');for(const row of rows){if(row.querySelector('b')?.textContent.trim()==='Vehicle:'){const value=row.querySelector('span');if(value)value.textContent=v.vehicle;}}};
  if(!archived)fetch('/api/haynes-vehicle?reg='+encodeURIComponent(registration),{cache:'no-store'}).then(r=>r.json()).then(d=>{if(sheet.isConnected&&d.status==='MATCHED')showVehicle(d.vehicle);}).catch(()=>{});
  let sequence=0,timer,period='';
  const status=panel.querySelector('.ssHaynesStatus'),body=panel.querySelector('.ssHaynesData');
