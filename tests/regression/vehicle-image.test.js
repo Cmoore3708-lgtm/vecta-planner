@@ -118,6 +118,6 @@ test('Defender Adobe entity references remain parseable while unsafe metadata is
   let parsed='';const Parser=root.DOMParser;root.DOMParser=class extends Parser {parseFromString(source,type){parsed=source;return super.parseFromString(source,type);}};
   const r=root.VectaVehicleImage.personaliseSvg(drawing,'M123WPC',root.VectaVehicleImage.resolveColour('M123WPC','Grey'),'319051761.svgz');
   assert.match(parsed,/xmlns:i="urn:vecta-supplier:ai"/);assert.doesNotMatch(parsed,/&ns_ai;/);
-  assert.equal(r.recoloured,true);assert.equal(r.plateAdded,true);assert.match(r.svg,/#191b20/);assert.match(r.svg,/M123WPC/);
+  assert.equal(r.recoloured,true);assert.equal(r.plateAdded,true);assert.equal(root.VectaVehicleImage.resolveColour('M123WPC','Grey'),'Grey');assert.match(r.svg,/#626970/);assert.match(r.svg,/M123WPC/);
   assert.doesNotMatch(r.svg,/foreignObject|aipgfRef|extraneous|script|onload/);
 });
