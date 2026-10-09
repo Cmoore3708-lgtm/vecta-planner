@@ -171,11 +171,22 @@
 .servicePrint .ssHaynesResetLink{display:block;margin:4px 0 8px;font:600 12px/1.3 Arial;color:#a3121c;text-decoration:underline}
 @media print{
  .servicePrint .ssHaynes,.servicePrint .ssHaynesResetLink{display:none!important}
- .servicePrint.ssHaynesCompact{font-size:9px!important;line-height:1.15!important}
- .servicePrint.ssHaynesCompact .ssOps td,.servicePrint.ssHaynesCompact .ssHealthChecks td{height:23px!important;max-height:none!important;padding:2px 4px!important}
- .servicePrint.ssHaynesCompact .ssHaynesLowerGrid th,.servicePrint.ssHaynesCompact .ssHaynesLowerGrid td{height:24px!important;padding:2px 4px!important}
+ .servicePrint.ssHaynesCompact{padding-top:0!important;box-sizing:border-box!important;font-size:9.5px!important;line-height:1.15!important}
+ .servicePrint.ssHaynesCompact .ssOps td,.servicePrint.ssHaynesCompact .ssHealthChecks td{height:25px!important;max-height:none!important;padding:2px 4px!important}
+ .servicePrint.ssHaynesCompact .ssHaynesLowerGrid th,.servicePrint.ssHaynesCompact .ssHaynesLowerGrid td{height:26px!important;padding:2px 4px!important}
  .servicePrint.ssHaynesCompact .ssHaynesLowerGrid .ssNotesArea{height:90px!important}
  .servicePrint.ssHaynesCompact .ssHaynesLowerGrid .ssBoxNotes{height:60px!important}
  .servicePrint.ssHaynesCompact .ssHaynesLowerGrid .ssBrakeNotes{height:30px!important}
  .servicePrint.ssHaynesCompact .ssRoad{min-height:52px!important}
+}
+
+/* Use the website artwork; give the printed vehicle its own bounded space. */
+.servicePrint .ssBrand img.ssWebsiteLogo{width:100%!important;max-width:190px!important;height:auto!important;max-height:76px!important;object-fit:contain}
+@media print{
+ .servicePrint.ssHaynesCompact .ssHeader:has(.ssHaynesVehicle){grid-template-columns:190px minmax(0,1fr) 330px!important;grid-template-rows:1fr 1fr!important;gap:6px!important;height:170px!important;align-items:center!important}
+ .servicePrint.ssHaynesCompact .ssBrand{grid-column:1;grid-row:1/3}
+ .servicePrint.ssHaynesCompact .ssPlate{grid-column:2;grid-row:1;align-self:end!important;margin-bottom:2px!important}
+ .servicePrint.ssHaynesCompact .ssHaynesHeaderInfo{grid-column:2;grid-row:2;align-self:start!important;font-size:9px!important}
+ .servicePrint.ssHaynesCompact .ssHaynesVehicle{grid-column:3;grid-row:1/3;align-self:center!important;margin-bottom:0!important;max-width:100%!important}
+ .servicePrint.ssHaynesCompact .ssHaynesVehicle img{width:330px!important;max-width:100%!important;height:170px!important;transform:none!important;object-fit:contain!important;object-position:right center!important}
 }
