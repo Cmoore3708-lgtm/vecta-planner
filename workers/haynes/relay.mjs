@@ -3,6 +3,8 @@ import { createServiceTaskRunner } from './service-task.mjs';
 import { browserServiceLookup } from './service-browser.mjs';
 import { openProfile, browserLookup } from './browser.mjs';
 import { createLookupService } from './service.mjs';
+import { pollServiceQueue } from './relay-poll.mjs';
+import { createBrowserRecovery } from './browser-recovery.mjs';
 import { vehicleResult } from '../../lib/haynes-vehicle.js';
 
 const endpoint = 'https://brqsejjykrubxuofavuu.supabase.co/functions/v1/haynes-pc-relay';
@@ -19,8 +21,8 @@ await rpc({action:'pull'}).then(data => {
   // A first pull may already claim a job: hold it for processing below.
   firstRelayJob = data;
 });
-const context = await openProfile({headless:false});
-const lookup = createLookupService(browserLookup(context));
+const browser = createBrowserRecovery(() => openProfile({headless:false}), {onRecovery:() => console.log('Haynes browser restarted automatically. Continuing queued lookups.')});
+const lookup = createLookupService(registration => browser.run(browserLookup, registration, 24000));
 // Confirm build-specific schedules on this PC; never infer build date from registration.
 const confirmedSchedules=new Map();
 async function chooseConditions(choices,vehicle) {
@@ -39,18 +41,19 @@ async function chooseConditions(choices,vehicle) {
   } catch { return ''; }
   finally { terminal.close(); }
 }
-const serviceTasks = createServiceTaskRunner(browserServiceLookup(context,{chooseConditions}),body=>rpc(body,true),error=>console.log(error.status?'Haynes service status: '+error.status+' · '+error.reason:'Service connection unavailable. The booking worker continues.'));
+const serviceTasks = createServiceTaskRunner(request=>browser.run(context=>browserServiceLookup(context,{chooseConditions}),request,62000),body=>rpc(body,true),error=>console.log(error.status?'Haynes service status: '+error.status+' · '+error.reason:'Service connection unavailable. The booking worker continues.'));
 let stopped = false;
-for (const signal of ['SIGTERM','SIGINT']) process.on(signal,() => { stopped = true; context.close().catch(() => {}); });
-console.log('Connected to Haynes Test. Keep this window open. Press Ctrl+C to stop.');
+for (const signal of ['SIGTERM','SIGINT']) process.on(signal,() => { stopped = true; browser.close().catch(() => {}); });
+console.log('Connected to Haynes. Keep this window open. Press Ctrl+C to stop.');
+const servicePolling = pollServiceQueue(rpc, serviceTasks, {
+  isStopped:()=>stopped,
+  stop:()=>{stopped=true;console.log('Pairing expired or revoked. Run setup again.');},
+  onUnavailable:()=>console.log('Service relay unavailable. Vehicle lookups continue.')
+});
 try {
   while (!stopped) {
     try {
-      // Poll service work before slow vehicle lookups so the queue cannot starve it.
-      if (!serviceTasks.busy) {
-        const task = await rpc({action:'pull'},true);
-        if(task.status === 'JOB')serviceTasks.start(task);
-      }
+      // Service polling runs independently: its outage cannot delay this queue.
       const job = firstRelayJob || await rpc({action:'pull'});
       firstRelayJob = null;
       if (job.status === 'JOB') {
@@ -64,8 +67,9 @@ try {
       }
     } catch (error) {
       if (error.message === 'PAIRING_REQUIRED') { console.log('Pairing expired or revoked. Run setup again.'); break; }
-      console.log('Test connection unavailable. Retrying shortly.');
+      console.log('Vehicle relay connection unavailable. Retrying shortly.');
     }
     if (!stopped) await new Promise(resolve => setTimeout(resolve,5000));
   }
-} finally { await context.close(); await serviceTasks.done; }
+} finally { stopped=true; await browser.close(); await Promise.all([serviceTasks.done,servicePolling]); }
+
