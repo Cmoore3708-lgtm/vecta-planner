@@ -110,3 +110,14 @@ test('measured supplier profiles keep registrations on the front of all 13 audit
     assert.equal(r.recoloured,true);assert.equal(r.plateAdded,true);
   }
 });
+
+
+test('Defender Adobe entity references remain parseable while unsafe metadata is removed',()=>{
+  const root=browser();
+  const drawing=svg.replace('<svg ', '<svg xmlns:i="&ns_ai;" ').replace('<g id="wheels">','<switch><foreignObject requiredExtensions="&ns_ai;"><i:aipgfRef/></foreignObject><g i:extraneous="self"><g id="wheels">').replace('</svg>','</g></switch></svg>');
+  let parsed='';const Parser=root.DOMParser;root.DOMParser=class extends Parser {parseFromString(source,type){parsed=source;return super.parseFromString(source,type);}};
+  const r=root.VectaVehicleImage.personaliseSvg(drawing,'M123WPC',root.VectaVehicleImage.resolveColour('M123WPC','Grey'),'319051761.svgz');
+  assert.match(parsed,/xmlns:i="urn:vecta-supplier:ai"/);assert.doesNotMatch(parsed,/&ns_ai;/);
+  assert.equal(r.recoloured,true);assert.equal(r.plateAdded,true);assert.match(r.svg,/#191b20/);assert.match(r.svg,/M123WPC/);
+  assert.doesNotMatch(r.svg,/foreignObject|aipgfRef|extraneous|script|onload/);
+});

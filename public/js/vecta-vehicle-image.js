@@ -12,7 +12,7 @@
   const sources = new Map(), images = new Map();
   const normaliseReg = value => String(value || '').toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0,8);
   // Customer-confirmed illustration correction; leave official MOT records untouched.
-  const confirmedColours = {BD53MUD:'Black',NA63UKO:'Black'};
+  const confirmedColours = {BD53MUD:'Black',NA63UKO:'Black',M123WPC:'Black'};
   function resolveColour(registration, suppliedColour) {
     const reg = normaliseReg(registration);
     try { const saved = root.localStorage?.getItem('vecta-image-colour:'+reg); if (colourHex(saved)) return saved; } catch {}
@@ -27,9 +27,9 @@
   const allowedTags = new Set(['svg','g','defs','path','polygon','polyline','rect','circle','ellipse','line','linearGradient','radialGradient','stop','filter','feGaussianBlur','clipPath']);
   const allowedAttrs = new Set(['id','d','points','viewBox','width','height','x','y','x1','y1','x2','y2','cx','cy','r','rx','ry','fx','fy','fill','stroke','stroke-width','stroke-linecap','stroke-linejoin','stroke-miterlimit','fill-rule','clip-rule','opacity','fill-opacity','stroke-opacity','transform','gradientTransform','gradientUnits','offset','stop-color','stop-opacity','filter','clip-path','stdDeviation','color-interpolation-filters','display']);
   function sanitiseSvg(source) {
-    // Drop the supplier DTD/Adobe entities and rebuild only drawing primitives.
+    // Resolve inert Adobe namespace entities before parsing, then rebuild only drawing primitives.
     const start = String(source).indexOf('<svg'); if (start < 0) throw Error('No SVG');
-    source = String(source).slice(start).replace(/\sxmlns:[\w-]+="&[^"]*"/g,'');
+    source = String(source).slice(start).replace(/&ns_([\w]+);/g,'urn:vecta-supplier:$1');
     const document = new root.DOMParser().parseFromString(source, 'image/svg+xml');
     if (document.querySelector('parsererror') || document.documentElement.localName !== 'svg') throw Error('Invalid SVG');
     function copy(node) {
