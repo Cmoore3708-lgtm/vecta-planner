@@ -29,18 +29,32 @@ for (const path of ['public/booking.html','website/booking/index.html']) {
  });
  test(`${path}: servicing shows last MOT mileage beside current mileage and an accessible checkbox`,()=>{
   const form={job_types:['Service'],last_mot_mileage:'110000',mileage:'',mileage_unknown:true,work_required:''};
-  const context=vm.createContext({state:{step:2,form},esc:String,prettyMiles:value=>`${value} miles`,recommendationsHtml:()=>'',workTypeCardsHtml:()=>'',tyreOptionsHtml:()=>'',serviceOptionsHtml:()=>'',workDescriptionRequired:()=>false});
+  const context=vm.createContext({state:{step:2,form},esc:String,prettyMiles:value=>`${value} miles`,recommendationsHtml:()=>'',workTypeCardsHtml:()=>'',tyreOptionsHtml:()=>'',serviceOptionsHtml:()=>'',workDescriptionRequired:()=>false,prettyDate:value=>value});
+  vm.runInContext(html.slice(html.indexOf('function lastMotMileageLabel(){'),html.indexOf('function lookupHtml(){')),context);
   vm.runInContext(html.slice(html.indexOf('function stepHtml(){'),html.indexOf('function render(){')),context);
   const {document}=parseHTML(context.stepHtml());
   assert.equal(document.querySelector('[aria-label="Mileage at last MOT"]').value,'110000 miles');
   assert.equal(document.querySelector('[data-field="mileage"]').hasAttribute('disabled'),true);
   assert.equal(document.querySelector('[data-mileage-unknown]').hasAttribute('checked'),true);
   assert.match(document.querySelector('.mileage-unknown').textContent,/Unsure of your mileage/);
+  form.last_mot_date='2026-04-09T12:00:00';assert.match(context.stepHtml(),/Mileage at last MOT on 2026-04-09/);
+  assert.match(context.stepHtml(),/We’ll use this to confirm which service items are due for replacement/);
   form.last_mot_mileage='';assert.match(context.stepHtml(),/Not available/);
  });
  test(`${path}: scripts compile and booking notes preserve the workshop instruction`,()=>{
   for(const match of html.matchAll(/<script(?:\s[^>]*)?>([\s\S]*?)<\/script>/gi))new vm.Script(match[1]);
   assert.match(html,/type="checkbox" data-mileage-unknown/);
   assert.match(html,/work_required:\(f\.job_types\.includes\('Service'\)&&f\.mileage_unknown\?'Current mileage unknown\. Check mileage on arrival/);
+ });
+}
+
+for(const path of ['public/booking.html','website/booking/index.html']){
+ test(path+': later steps use Haynes identification and retain NEVOS choice',()=>{
+  const html=fs.readFileSync(path,'utf8');
+  const context=vm.createContext({state:{step:2,lookup:'success',form:{}},haynesState:{status:'matched',vehicle:{}},nevosHtml:()=>'<nevos>'});
+  vm.runInContext(html.slice(html.indexOf('function vehicleSummaryHtml(){'),html.indexOf('function ',html.indexOf('function vehicleSummaryHtml(){')+10)),context);
+  assert.equal(context.vehicleSummaryHtml(),'<nevos>');
+  context.state.step=3;assert.equal(context.vehicleSummaryHtml(),'');
+  context.haynesState.status='confirmed';assert.equal(context.vehicleSummaryHtml(),'');
  });
 }

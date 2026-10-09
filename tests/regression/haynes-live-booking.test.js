@@ -23,7 +23,7 @@ for(const path of ['public/booking.html','website/booking/index.html'])test(`${p
   assert.equal(document.querySelectorAll('[data-haynes-slot]').length,1);
   assert.match(document.querySelector('[data-haynes-slot]').textContent,/MR16DDT/);
   if(step===1)assert.match(document.querySelector('.advisories').textContent,/Tyre worn/);
-  else {assert.equal(document.querySelector('.vehicle-summary .advisories'),null);assert.doesNotMatch(document.querySelector('.vehicle-summary').textContent,/Mileage at last MOT|MOT due|Tyre worn/);}
+  else {assert.equal(document.querySelector('.vehicle-summary'),null);assert.doesNotMatch(document.querySelector('[data-haynes-slot]').textContent,/Mileage at last MOT|MOT due|Tyre worn/);}
   assert.equal(document.querySelector('[data-image-colour]'),null);
  }
  assert.equal(document.querySelector('#send').hasAttribute('disabled'),false);
