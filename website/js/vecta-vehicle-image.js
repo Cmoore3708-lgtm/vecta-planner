@@ -10,6 +10,12 @@
     '319118141.svgz': {x:20.5,y:149,width:27,height:10,skew:12}
   };
   const sources = new Map(), images = new Map();
+  const renderKey='vecta_vehicle_rendered_artwork_v1';
+  try { for(const [key,result] of JSON.parse(root.localStorage?.getItem(renderKey)||'[]')) {
+    if(typeof key==='string'&&typeof result?.url==='string'&&result.url.startsWith('data:image/svg+xml;charset=utf-8,')&&result.url.length<250000)images.set(key,result);
+    if(images.size>=32)break;
+  } } catch {}
+  function saveRenders(){try{const entries=[];let size=0;for(const [key,result] of [...images].reverse()){size+=result.url.length;if(size>2000000)break;entries.push([key,{url:result.url,plateAdded:result.plateAdded,recoloured:result.recoloured}]);}root.localStorage?.setItem(renderKey,JSON.stringify(entries));}catch{}}
   const normaliseReg = value => String(value || '').toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0,8);
   // Customer-confirmed illustration correction; leave official MOT records untouched.
   const confirmedColours = {BD53MUD:'Black',NA63UKO:'Black'};
@@ -107,13 +113,14 @@
           result = personaliseSvg(await sourceFor(match[1]),registration,colour,match[1]);
           result.url = 'data:image/svg+xml;charset=utf-8,'+encodeURIComponent(result.svg);
           images.set(key,result); if (images.size > 32) images.delete(images.keys().next().value);
+          saveRenders();
         }
         if (!img.isConnected) return;
         img.src = result.url;
         img.dataset.personalised = String(result.plateAdded);
         img.dataset.recoloured = String(result.recoloured);
         img.alt = [colour, img.dataset.vehicleName, registration,'model illustration'].filter(Boolean).join(' ');
-      } catch { /* Keep the original model image; booking remains fully usable. */ }
+      } catch { delete img.dataset.personalising; /* Retain the element so a later retry can recover. */ }
     }));
   }
   root.VectaVehicleImage = {mount,personaliseSvg,sanitiseSvg,colourHex,normaliseReg,resolveColour,rememberColour,colourNames:Object.keys(colours).filter(name=>name!=='GRAY')};
