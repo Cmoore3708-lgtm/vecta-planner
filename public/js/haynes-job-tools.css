@@ -69,6 +69,9 @@
 }
 
 /* Customer vehicle occupies the space between sender and invoice title. */
-.invoicePrintHeader .haynesInvoiceHeaderVehicle{flex:1 1 240px;min-width:0;display:flex;justify-content:center;align-items:flex-start;padding:4px 16px 0}
-.invoicePrintHeader .haynesInvoiceImage{display:block;width:240px;max-width:100%;height:150px;object-fit:contain}
+.invoicePrintHeader .haynesInvoiceHeaderVehicle{flex:1 1 288px;min-width:0;display:flex;justify-content:center;align-items:flex-start;padding:4px 16px 0}
+.invoicePrintHeader .haynesInvoiceImage{display:block;width:288px;max-width:100%;height:180px;object-fit:contain}
 .invoicePrintHeader:has(.haynesInvoiceHeaderVehicle)>:first-child,.invoicePrintHeader:has(.haynesInvoiceHeaderVehicle)>.printTitle{flex:0 0 auto}
+
+/* The logo already identifies VECTA; start the sender block at the address. */
+.invoicePrintHeader>div:first-child>b,.invoicePrintHeader>div:first-child>b+br{display:none!important}
