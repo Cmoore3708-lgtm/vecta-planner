@@ -17,7 +17,7 @@ test('shared office and mechanic paperwork save requires positive numeric mileag
 
 test('phone invoices are one compact screen-width row without desktop overflow',()=>{
   assert.match(html,/@media\(max-width:760px\)[\s\S]*?\.invoiceArchiveTable\{width:100%!important;min-width:0!important\}/);
-  assert.match(html,/\.invoiceArchiveRow\{display:grid!important;grid-template-columns:40px 46px minmax\(24px,1fr\) 41px 44px 65px!important/);
+  assert.match(html,/\.invoiceArchiveRow\{display:grid!important;grid-template-columns:34px 44px minmax\(24px,1fr\) minmax\(30px,\.7fr\) 39px 42px 61px!important/);
   assert.match(html,/invoiceArchiveNumberMobile/);
   assert.match(html,/invoiceArchiveReferenceMobile/);
   assert.match(html,/invoiceArchiveDateMobile/);
