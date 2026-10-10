@@ -136,6 +136,10 @@ async function writeSetting(id, value) {
 function sleep(ms){return new Promise(r=>setTimeout(r,ms));}
 
 export default async function handler(req,res){
+  if (req.query?.task === 'reminder-test') {
+    const {default: testReminder} = await import('../lib/booking-reminder-test.js');
+    return testReminder(req,res);
+  }
   if (req.query?.task === 'nmuk-summer' || req.query?.task === 'nmuk-winter') {
     const {default: sendNmukReminders} = await import('../lib/nmuk-service-reminders.js');
     return sendNmukReminders(req,res);
