@@ -515,7 +515,7 @@ console.log('Finance integrity regression tests passed.');
   assert.equal(link,'https://workshop.example/invoice?token=test-token');
   assert.equal(submitted.path,'/api/additional-work?invoicePdf=1');
   assert.equal(submitted.credentials,'same-origin');
-  assert.deepEqual(JSON.parse(submitted.body),{invoice_id:'saved-invoice',shorten:true},'Link service receives only the saved invoice id');
+  assert.deepEqual(JSON.parse(submitted.body),{invoice_id:'saved-invoice'},'Link service receives only the saved invoice id');
   context.fetch=async()=>({ok:false,json:async()=>({error:'Manager sign-in required'})});
   await assert.rejects(context.createInvoiceCustomerLink({id:'saved-invoice'}),/Manager sign-in required/);
   context.fetch=async()=>({ok:true,json:async()=>({url:'https://attacker.example/invoice?token=test-token'})});

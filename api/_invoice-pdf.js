@@ -122,17 +122,6 @@ export async function renderCustomerInvoicePdf(invoice, settings = {}, job = {})
   return Buffer.from(await pdf.save());
 }
 
-export async function shortenInvoiceUrl(url) {
-  try {
-    const response = await fetch('https://tinyurl.com/api-create.php?url=' + encodeURIComponent(url), { signal: AbortSignal.timeout(6000), redirect: 'error' });
-    if (!response.ok) return url;
-    const value = (await response.text()).trim();
-    const short = new URL(value);
-    if (short.protocol !== 'https:' || short.host !== 'tinyurl.com' || short.username || short.password || !/^\/[a-zA-Z0-9_-]+$/.test(short.pathname) || short.search || short.hash) return url;
-    return short.href;
-  } catch { return url; }
-}
-
 export default async function invoicePdfHandler(req, res) {
   res.setHeader('Cache-Control', 'private, no-store');
   res.setHeader('Referrer-Policy', 'no-referrer');
@@ -157,9 +146,7 @@ export default async function invoicePdfHandler(req, res) {
     if (!active(invoice) || (claim && claim.hash !== invoiceFingerprint(invoice))) return res.status(404).json({ error: 'Invoice link is unavailable or has expired' });
     if (req.method === 'POST') {
       const token = issueInvoiceToken(invoice, secret);
-      const url = 'https://' + req.headers.host + '/invoice?token=' + token;
-      const shortUrl = req.body?.shorten === true ? await shortenInvoiceUrl(url) : null;
-      return res.status(201).json({ url, expires_in_days: 90, ...(shortUrl ? { short_url: shortUrl } : {}) });
+      return res.status(201).json({ url: 'https://' + req.headers.host + '/invoice?token=' + token, expires_in_days: 90 });
     }
     const [settingRows, jobRows] = await Promise.all([
       rows(config, 'workshop_settings?select=value&id=eq.main&limit=1'),

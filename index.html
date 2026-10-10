@@ -15174,11 +15174,9 @@ function reserveInvoiceMessageWindow(notice){
 }
 function closeInvoiceMessageWindow(tab){try{if(tab&&!tab.closed)tab.close()}catch(e){}}
 async function createInvoiceCustomerLink(inv){
-  var response=await fetch('/api/additional-work?invoicePdf=1',{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json'},body:JSON.stringify({invoice_id:inv.id,shorten:true}),signal:AbortSignal.timeout(15000)});
+  var response=await fetch('/api/additional-work?invoicePdf=1',{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json'},body:JSON.stringify({invoice_id:inv.id}),signal:AbortSignal.timeout(15000)});
   var data=await response.json();if(!response.ok||!data.url)throw new Error(data.error||'Invoice PDF link unavailable');
-  var link=new URL(data.url);if(link.protocol!=='https:'||link.host!==window.location.host||link.pathname!=='/invoice')throw new Error('Unexpected invoice PDF address');
-  if(data.short_url){try{var short=new URL(data.short_url);if(short.protocol==='https:'&&short.host==='tinyurl.com'&&!short.username&&!short.password&&/^\/[a-zA-Z0-9_-]+$/.test(short.pathname)&&!short.search&&!short.hash)return short.href}catch(e){}}
-  return link.href;
+  var link=new URL(data.url);if(link.protocol!=='https:'||link.host!==window.location.host||link.pathname!=='/invoice')throw new Error('Unexpected invoice PDF address');return link.href;
 }
 async function promptInvoiceCustomerNotification(inv,messageWindow){
   var notice=invoiceCustomerNotification(inv);if(!notice){closeInvoiceMessageWindow(messageWindow);return false;}
