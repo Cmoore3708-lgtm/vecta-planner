@@ -8,7 +8,7 @@ import traverseModule from '@babel/traverse';
 const traverse=traverseModule.default||traverseModule;
 const source=readFileSync(new URL('../../public/js/haynes-job-tools.js',import.meta.url),'utf8');
 const vehicle={registration:'FX69XWU',make:'Nissan',model:'Qashqai',variant:'1.7 dCi',typeId:'t_301000368',imageUrl:'https://www.haynespro-assets.com/workshop/images/123.svg',fetchedAt:new Date().toISOString()};
-function setup(fetcher){const {window,document}=parseHTML('<html><body><div id="modal"><section class="jobVehicleSection"><input id="job_registration" value="FX69 XWU"><input id="job_make" value="Nissan"><input type="checkbox" id="job_no_vehicle"></section><button id="save">Save</button></div></body></html>');delete window.VectaVehicleImage;delete window.app;delete window.fleetVehicles;window.fetch=fetcher;vm.runInNewContext(source,{window,document,AbortController,AbortSignal,setTimeout,clearTimeout,encodeURIComponent});window.initHaynesJobTools(document.querySelector('#modal'));return {window,document,panel:document.querySelector('.haynesJobTools')};}
+function setup(fetcher,artwork){const {window,document}=parseHTML('<html><body><div id="modal"><div class="jobModalHead"><h2>Edit Job</h2><div class="jobModalHeadActions"><button>Close</button></div></div><section class="jobVehicleSection"><input id="job_registration" value="FX69 XWU"><input id="job_make" value="Nissan"><input type="checkbox" id="job_no_vehicle"></section><button id="save">Save</button></div></body></html>');delete window.VectaVehicleImage;delete window.app;delete window.fleetVehicles;window.fetch=fetcher;window.VectaFleetImages={artwork};vm.runInNewContext(source,{window,document,AbortController,AbortSignal,setTimeout,clearTimeout,encodeURIComponent});window.initHaynesJobTools(document.querySelector('#modal'));return {window,document,panel:document.querySelector('.haynesJobTools')};}
 const response=v=>({ok:true,json:async()=>({status:'MATCHED',vehicle:v})});
 test('fresh missing picture loads before an unresolved colour lookup and does not block the next picture',async()=>{
  const {window,document}=setup(async()=>response(vehicle));await new Promise(r=>setImmediate(r));
@@ -186,4 +186,13 @@ test('timed text follows the rendered car width after loading, resizing and artw
  assert.equal(card.style.getPropertyValue('--planner-vehicle-text-inset'),'174px');
  img.remove();notify();assert.equal(disconnected,true);
  delete window.ResizeObserver;
+});
+
+test('job header shows supplier artwork, falls back on image failure and hides for no-vehicle jobs',async()=>{
+ const {document}=setup(async()=>response(vehicle),(name,colour)=>'<svg aria-label="Generic '+name+'" data-colour="'+colour+'"></svg>');
+ await new Promise(r=>setImmediate(r));
+ const picture=document.querySelector('.jobCardHeaderVehicle');assert.equal(picture.parentElement.className,'jobModalHead hasJobCardVehicle');
+ const img=picture.querySelector('img');assert.equal(img.src,vehicle.imageUrl);assert.equal(img.dataset.registration,'FX69XWU');
+ img.onerror();assert.ok(picture.querySelector('svg'));assert.equal(picture.querySelector('img'),null);
+ const noVehicle=document.querySelector('#job_no_vehicle');noVehicle.checked=true;noVehicle.dispatchEvent(new document.defaultView.Event('change'));assert.equal(picture.hidden,true);
 });
