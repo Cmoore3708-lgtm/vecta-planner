@@ -1177,6 +1177,24 @@ body.servicePreviewing .servicePreviewControls{position:relative!important;z-ind
 /* Invoice editor: Amount immediately followed by VAT. */
 .invoiceWorkTable th:nth-child(2){width:170px!important}
 .invoiceWorkTable th:nth-child(3){width:130px!important}
+/* Phone invoice editing: description occupies the full row above pricing. */
+@media screen and (max-width:700px){
+  .invoiceWorkTable,.invoiceWorkTable tbody{display:block;width:100%;min-width:0}
+  .invoiceWorkTable thead{display:none}
+  .invoiceWorkTable tbody tr{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:12px;margin:0 0 16px;padding:14px 0;border-bottom:1px solid var(--line)}
+  .invoiceWorkTable tbody td{display:block;width:auto!important;min-width:0;padding:0;border:0}
+  .invoiceWorkTable tbody td:first-child{grid-column:1/-1}
+  .invoiceWorkTable tbody td::before{display:block;margin-bottom:6px;color:#64748b;font-size:12px;font-weight:800}
+  .invoiceWorkTable tbody td:first-child::before{content:"Work description"}
+  .invoiceWorkTable tbody td:nth-child(2)::before{content:"Amount"}
+  .invoiceWorkTable tbody tr[data-staff-invoice] td:nth-child(2)::before{content:"Amount (ex VAT)"}
+  .invoiceWorkTable tbody td:nth-child(3)::before{content:"VAT"}
+  .invoiceWorkTable textarea[data-line-desc]{display:block;width:100%;min-width:0;min-height:110px;font-size:16px;line-height:1.45;box-sizing:border-box}
+  .invoiceWorkTable .amountCell{white-space:normal}
+  .invoiceWorkTable .amountCell input{width:calc(100% - 38px);min-width:0;font-size:16px;box-sizing:border-box}
+  .invoiceWorkTable .amountCell [data-remove-line]{width:32px;margin-left:4px;padding:8px 0}
+  .invoiceWorkTable select[data-line-vat]{display:block;width:100%;min-width:0;max-width:100%;font-size:16px;box-sizing:border-box}
+}
 /* Printed invoice: one page, no boxes, right-aligned totals at the bottom-right. */
 @media print{
   @page{size:A4 portrait;margin:8mm!important}
