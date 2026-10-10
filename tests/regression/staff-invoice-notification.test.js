@@ -22,7 +22,7 @@ function setup(){
 test('selected Email overrides available WhatsApp; exact message contains gross total and signed link',()=>{
  const {ctx,inv}=setup(),url='https://workshop.example/invoice?token=secure',n=ctx.invoiceCustomerNotification(inv,url);
  assert.equal(n.channel,'email');assert.equal(n.preferredUrl,n.email);
- assert.equal(new URL(n.email).searchParams.get('body'),'We have completed the work on your car. The total price is £175.00. You can view your invoice here '+url+'. We will send you a payment link shortly. Thank you for your custom.');
+ assert.equal(new URL(n.email).searchParams.get('body'),'Hi Jane,\n\nWe have completed the work on your car. The total price is £175.00. You can view your invoice here '+url+'. We will send you a payment link shortly. Thank you for your custom.');
  ctx.app.jobs[0].customer_note='Contact preference: WhatsApp';const w=ctx.invoiceCustomerNotification(inv,url);assert.equal(w.preferredUrl,w.whatsapp);assert.equal(new URL(w.whatsapp).pathname,'/447700123456');
 });
 test('reserve on click before asynchronous save; open only with confirmed invoice and PDF link; repeat saves supported',async()=>{
