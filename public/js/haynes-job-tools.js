@@ -136,6 +136,18 @@ root.enrichHaynesInvoice=function(sheet,invoice){
 root.initHaynesJobTools=function(modal){
  const section=modal?.querySelector('.jobVehicleSection'),input=modal?.querySelector('#job_registration');
  if(!section||!input||section.querySelector('.haynesJobTools'))return;
+ const header=modal.querySelector('.jobModalHead');
+ const picture=document.createElement('div');picture.className='jobCardHeaderVehicle';
+ if(header){header.classList.add('hasJobCardVehicle');header.insertBefore(picture,header.querySelector('.jobModalHeadActions'));}
+ function showHeaderVehicle(drawing){
+  picture.replaceChildren();picture.hidden=!!modal.querySelector('#job_no_vehicle')?.checked;if(picture.hidden)return;
+  const registration=reg(input.value),description={registration,make:modal.querySelector('#job_make')?.value,model:modal.querySelector('#job_model')?.value,vehicle:modal.querySelector('#job_vehicle')?.value};
+  const colour=dashboardColour(description),name=[description.make,description.model||description.vehicle].filter(Boolean).join(' ');
+  const fallback=()=>{picture.innerHTML=root.VectaFleetImages?.artwork?.(name,colour)||'';picture.title='Generic vehicle illustration — appearance may differ';};
+  const v=drawing||snapshot(registration,description.make)||artworkSnapshot(registration,description.make)||genericImage(description),src=image(v?.imageUrl);
+  if(!src){fallback();return;}
+  const img=document.createElement('img');img.src=src;img.alt=[colour,v.make,v.model,registration].filter(Boolean).join(' ');img.dataset.vehicleImage='';img.dataset.registration=registration;img.dataset.colour=colour;img.dataset.vehicleName=name;img.onerror=fallback;picture.appendChild(img);picture.title='';root.VectaVehicleImage?.mount(picture);
+ }
  const panel=document.createElement('div');panel.className='haynesJobTools';
  panel.innerHTML='<button type="button" class="btn">Find vehicle in HaynesPro</button><span role="status" aria-live="polite"></span><div class="haynesJobVehicle"></div>';
  section.appendChild(panel);
@@ -143,7 +155,7 @@ root.initHaynesJobTools=function(modal){
  let sequence=0,refreshTimer;
  function showGeneric(){if(noVehicle?.checked)return;const v=genericImage({make:modal.querySelector('#job_make')?.value,model:modal.querySelector('#job_model')?.value,vehicle:modal.querySelector('#job_vehicle')?.value}),img=thumbnail(v,'haynesJobGenericImage');if(img){body.replaceChildren(img);return true;}return false;}
  const current=()=>reg(input.value);
- function clear(){sequence++;clearTimeout(refreshTimer);body.replaceChildren();status.textContent='';button.disabled=!!noVehicle?.checked;button.textContent='Find vehicle in HaynesPro';if(showGeneric())status.textContent='Generic model image — appearance may differ.';}
+ function clear(){showHeaderVehicle();sequence++;clearTimeout(refreshTimer);body.replaceChildren();status.textContent='';button.disabled=!!noVehicle?.checked;button.textContent='Find vehicle in HaynesPro';if(showGeneric())status.textContent='Generic model image — appearance may differ.';}
  function changed(){clear();if(!noVehicle?.checked&&/^[A-Z0-9]{2,8}$/.test(current()))refreshTimer=setTimeout(()=>button.onclick(),750);}
  input.addEventListener('input',changed);input.addEventListener('change',changed);for(const selector of ['#job_vehicle','#job_model','#job_make']){const field=modal.querySelector(selector);field?.addEventListener('change',changed);}noVehicle?.addEventListener('change',changed);clear();
  button.onclick=async(event)=>{
@@ -156,7 +168,7 @@ const requested=current(),expectedMake=make(modal.querySelector('#job_make')?.va
    const v=await lookup(requested,expectedMake);
    if(run!==sequence||!panel.isConnected||current()!==requested||noVehicle?.checked)return;
    if(!v||reg(v?.registration)!==requested||!v?.model||!v?.variant||!v?.make||!vehicleLink(v)||(expectedMake&&make(v.make)!==expectedMake))throw Error('UNAVAILABLE');
-   remember(v);const link=document.createElement('a');link.className='btn dark';link.href=vehicleLink(v);link.target='_blank';link.rel='noopener noreferrer';link.textContent='Open this vehicle in HaynesPro';
+   remember(v);showHeaderVehicle(v);const link=document.createElement('a');link.className='btn dark';link.href=vehicleLink(v);link.target='_blank';link.rel='noopener noreferrer';link.textContent='Open this vehicle in HaynesPro';
    const details=document.createElement('div'),title=document.createElement('strong'),note=document.createElement('small');
    title.textContent=[v.make,v.model,v.variant].join(' ');note.textContent=[v.engineCode,v.modelYears].filter(Boolean).join(' · ');details.append(title,note);
    body.replaceChildren();const src=image(v.imageUrl);if(src){const img=document.createElement('img');img.src=src;img.alt=(v.generic?'Generic model image: ':'Representative ')+v.make+' '+v.model;img.title=v.generic?'Generic model image — appearance may differ':img.alt;img.dataset.generic=String(!!v.generic);img.onerror=()=>img.remove();body.appendChild(img);}
