@@ -131,7 +131,7 @@ function mountRegistrationLogo(){
  if(!plate||!make)return;
  let row=plate.parentElement;if(!row.classList.contains('registration-brand-row')){row=document.createElement('div');row.className='registration-brand-row';plate.parentNode.insertBefore(row,plate);row.appendChild(plate);}
  const logo=document.createElement('img');logo.className='registration-manufacturer-logo';logo.src='/assets/manufacturers/'+make+'.svg';logo.alt=(haynesState.vehicle?.make||state.form.vehicle_make)+' logo';logo.onerror=()=>logo.remove();row.appendChild(logo);
- const size=()=>{const height=plate.getBoundingClientRect().height;logo.style.height=height+'px';logo.style.width=height+'px';};size();
+ const size=()=>{const height=plate.getBoundingClientRect().height;logo.style.height=height+'px';const ratio=logo.naturalWidth&&logo.naturalHeight?logo.naturalWidth/logo.naturalHeight:1;logo.style.width=(height*Math.min(2,ratio))+'px';};logo.onload=size;size();
  if(window.ResizeObserver){registrationLogoObserver=new ResizeObserver(size);registrationLogoObserver.observe(plate);}
 }
 function bindHaynes(){mountRegistrationLogo();VectaVehicleImage.mount();document.querySelector('[data-haynes-retry]')?.addEventListener('click',()=>haynesLookup.lookup(state.form.registration));document.querySelectorAll('[data-haynes-confirm]').forEach(button=>button.onclick=()=>{if(button.dataset.haynesConfirm==='yes'){haynesState.status='confirmed';state.form.haynes_identity=haynesState.vehicle;}else{haynesState.status='rejected';state.form.haynes_identity=null;}refreshHaynes();});document.querySelectorAll('.haynes-image img').forEach(img=>img.onerror=()=>img.closest('figure').remove());}
@@ -280,7 +280,7 @@ function initialiseBooking(){if(suppliedReg)state.form.registration=suppliedReg;
 .step:has(.haynes-vehicle) .haynes-vehicle>.vehicle-top{grid-column:1/-1;grid-row:2;margin-top:0;width:100%}
 .step:has(.haynes-vehicle) .haynes-image{align-self:start}
 .identified-vehicle .registration-brand-row{width:max-content;max-width:100%;margin:0}
-.identified-vehicle .registration-brand-row .reg-wrap{flex:0 1 230px;width:230px;min-width:190px}
+.identified-vehicle .registration-brand-row .reg-wrap{flex:0 1 200px;width:200px;min-width:180px}
 /* Keep the plate below Haynes details throughout the booking journey. */
 .identified-vehicle.later-step>.kicker,.identified-vehicle.later-step>h2,.identified-vehicle.later-step>p{display:block}
 .identified-vehicle .registration-column .reg{display:block;min-width:0}
