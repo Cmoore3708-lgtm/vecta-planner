@@ -185,3 +185,23 @@ test('separate website badge does not remain embedded under the car',async()=>{
  root.document.body.innerHTML='<img data-vehicle-image data-vehicle-logo="separate" data-vehicle-name="Ford Transit" data-registration="YB11DCE" src="https://www.haynespro-assets.com/workshop/images/123.svgz">';
  await root.VectaVehicleImage.mount();assert.equal(calls,1);assert.doesNotMatch(decodeURIComponent(root.document.querySelector('img').src),/vecta-manufacturer-logo/);
 });
+
+test('Fleet crop removes empty supplier canvas and uses a separate persisted render',async()=>{
+ const values=new Map(),storage={getItem:k=>values.get(k),setItem:(k,v)=>values.set(k,v)};
+ let calls=0;
+ for(let reopen=0;reopen<2;reopen++){
+  const root=browser(storage);root.fetch=async()=>{calls++;assert.equal(reopen,0);return {ok:true,json:async()=>({svg})};};
+  root.document.body.innerHTML='<img data-vehicle-image data-vehicle-logo="separate" data-registration="NK75BBX" src="https://www.haynespro-assets.com/workshop/images/123.svgz"><img data-vehicle-image data-vehicle-logo="separate" data-vehicle-crop="tight" data-registration="NK75BBX" src="https://www.haynespro-assets.com/workshop/images/123.svgz">';
+  await root.VectaVehicleImage.mount();
+  const [normal,cropped]=[...root.document.querySelectorAll('img')].map(img=>new DOMParser().parseFromString(decodeURIComponent(img.src.split(',').slice(1).join(',')),'image/svg+xml'));
+  assert.equal(normal.documentElement.getAttribute('viewBox'),'0 0 299 220');
+  const [x,y,w,h]=cropped.documentElement.getAttribute('viewBox').split(' ').map(Number);
+  assert.ok(y>50,'empty top canvas removed');
+  assert.ok(x<26&&y<59&&x+w>273&&y+h>169,'complete drawing retained with padding');
+  assert.equal(Number(cropped.documentElement.getAttribute('width')),w);
+  assert.equal(Number(cropped.documentElement.getAttribute('height')),h);
+  assert.equal(cropped.documentElement.getAttribute('preserveAspectRatio'),'xMaxYMin meet');
+  assert.equal(cropped.querySelector('#vecta-front-registration text').textContent,'NK75 BBX');
+ }
+ assert.equal(calls,1,'normal and crop share source and both reopen offline');
+});
