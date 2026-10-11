@@ -73,7 +73,7 @@
     }
     return copy(document.documentElement);
   }
-  function personaliseSvg(source, registration, colour, asset, logo) {
+  function personaliseSvg(source, registration, colour, asset, logo, tight = false) {
     const svg = sanitiseSvg(source), paint = svg.querySelector('[id="transparant_colour"], [id="transparent_colour"]');
     const hex = colourHex(colour);
     if (hex && paint) for (const path of paint.querySelectorAll('path, polygon')) {
@@ -102,6 +102,20 @@
         for (const [key,value] of Object.entries({x:width/2,y:height*.75,fill:'#111111','font-family':'Arial, sans-serif','font-weight':'700','font-size':height*.75,'text-anchor':'middle',textLength:width*.87,lengthAdjust:'spacingAndGlyphs'})) text.setAttribute(key,value);
         text.textContent = formatReg(normaliseReg(registration));
         plate.append(rect,text); svg.appendChild(plate); plateAdded = true;
+      }
+      // Supplier canvases include empty space above shorter cars. Fleet opts into
+      // bounds measured from the complete drawing, including wheels and front plate.
+      if (tight) {
+        try {
+          const bounds = svg.getBBox();
+          if ([bounds.x,bounds.y,bounds.width,bounds.height].every(Number.isFinite) && bounds.width > 0 && bounds.height > 0) {
+            const padding = Math.max(bounds.width,bounds.height)*.015;
+            svg.setAttribute('viewBox',[bounds.x-padding,bounds.y-padding,bounds.width+padding*2,bounds.height+padding*2].join(' '));
+            svg.setAttribute('width',bounds.width+padding*2);
+            svg.setAttribute('height',bounds.height+padding*2);
+            svg.setAttribute('preserveAspectRatio','xMaxYMin meet');
+          }
+        } catch { /* Retain the supplier canvas if geometry cannot be measured. */ }
       }
     } finally { host.remove(); }
     // Centre a larger badge below the car, leaving the drawing unobscured.
@@ -135,7 +149,8 @@
       const match = url.match(/^https:\/\/www\.haynespro-assets\.com\/workshop\/images\/(\d+\.svgz?)$/);
       if (!match) return;
       const registration = normaliseReg(img.dataset.registration), colour = img.dataset.colour || '';
-      const baseKey = match[1]+'|'+registration+'|'+colourHex(colour),brand=img.dataset.vehicleLogo==='separate'?'':manufacturer(img.dataset.vehicleMake||img.dataset.vehicleName);
+      const tight=img.dataset.vehicleCrop==='tight';
+      const baseKey = match[1]+'|'+registration+'|'+colourHex(colour)+(tight?'|tight-v1':''),brand=img.dataset.vehicleLogo==='separate'?'':manufacturer(img.dataset.vehicleMake||img.dataset.vehicleName);
       let key=brand?baseKey+'|logo-v2-below:'+brand:baseKey;
       try {
         let result = images.get(key);
@@ -145,7 +160,7 @@
           if(!result){
           if (!rendering.has(key)) {
             const task = sourceFor(match[1]).then(source => {
-              const rendered = personaliseSvg(source,registration,colour,match[1],logo);
+              const rendered = personaliseSvg(source,registration,colour,match[1],logo,tight);
               rendered.url = 'data:image/svg+xml;charset=utf-8,'+encodeURIComponent(rendered.svg);
               images.set(key,rendered); if (images.size > 32) images.delete(images.keys().next().value);
               saveRenders(); return rendered;
