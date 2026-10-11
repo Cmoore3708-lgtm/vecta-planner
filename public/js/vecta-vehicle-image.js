@@ -9,7 +9,7 @@
     '319009025.svgz': {x:26,y:141,width:45,height:11,skew:8},
     '319118141.svgz': {x:20.5,y:149,width:27,height:10,skew:12}
   };
-  const sources = new Map(), images = new Map();
+  const sources = new Map(), images = new Map(), rendering = new Map();
   const renderKey='vecta_vehicle_rendered_artwork_v1';
   try { for(const [key,result] of JSON.parse(root.localStorage?.getItem(renderKey)||'[]')) {
     if(typeof key==='string'&&typeof result?.url==='string'&&result.url.startsWith('data:image/svg+xml;charset=utf-8,')&&result.url.length<250000)images.set(key,result);
@@ -110,10 +110,17 @@
       try {
         let result = images.get(key);
         if (!result) {
-          result = personaliseSvg(await sourceFor(match[1]),registration,colour,match[1]);
-          result.url = 'data:image/svg+xml;charset=utf-8,'+encodeURIComponent(result.svg);
-          images.set(key,result); if (images.size > 32) images.delete(images.keys().next().value);
-          saveRenders();
+          if (!rendering.has(key)) {
+            const task = sourceFor(match[1]).then(source => {
+              const rendered = personaliseSvg(source,registration,colour,match[1]);
+              rendered.url = 'data:image/svg+xml;charset=utf-8,'+encodeURIComponent(rendered.svg);
+              images.set(key,rendered); if (images.size > 32) images.delete(images.keys().next().value);
+              saveRenders(); return rendered;
+            });
+            rendering.set(key,task);
+          }
+          const task = rendering.get(key);
+          try { result = await task; } finally { if (rendering.get(key) === task) rendering.delete(key); }
         }
         if (!img.isConnected) return;
         img.src = result.url;

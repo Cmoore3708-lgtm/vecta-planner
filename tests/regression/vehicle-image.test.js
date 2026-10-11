@@ -133,3 +133,13 @@ test('Defender Adobe entity references remain parseable while unsafe metadata is
   assert.equal(r.recoloured,true);assert.equal(r.plateAdded,true);assert.equal(root.VectaVehicleImage.resolveColour('M123WPC','Grey'),'Grey');assert.match(r.svg,/#626970/);assert.match(r.svg,/M123WPC/);
   assert.doesNotMatch(r.svg,/foreignObject|aipgfRef|extraneous|script|onload/);
 });
+
+test('concurrent copies share the supplier download and personalised render',async()=>{
+ let calls=0,writes=0,complete;const root=browser({getItem:()=>null,setItem:()=>writes++});
+ root.fetch=async()=>{calls++;await new Promise(r=>complete=r);return {ok:true,json:async()=>({svg})};};
+ root.document.body.innerHTML=Array.from({length:5},()=>'<div><img data-vehicle-image data-registration="YB11DCE" data-colour="Red" src="https://www.haynespro-assets.com/workshop/images/123.svgz"></div>').join('');
+ const tasks=[...root.document.querySelectorAll('div')].map(scope=>root.VectaVehicleImage.mount(scope));
+ assert.equal(calls,1);complete();await Promise.all(tasks);
+ assert.equal(writes,1,'one personalised render is persisted for all copies');
+ assert.equal(new Set([...root.document.querySelectorAll('img')].map(img=>img.src)).size,1);
+});

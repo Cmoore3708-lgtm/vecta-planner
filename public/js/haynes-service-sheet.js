@@ -100,7 +100,13 @@ root.initHaynesServiceSheet=async function(sheet,registration,kind){
  const savedImage=picture.querySelector('img');if(savedImage){picture.replaceChildren(savedImage);personalise(savedImage);}else picture.textContent='';
  root.VectaHaynesJobTools?.lookupDashboardColour(vehicleJob()).then(()=>{if(sheet.isConnected)personalise(picture.querySelector('img'));}).catch(()=>{});
  const showVehicle=v=>{if(v?.registration!==registration)return;setResetLink(v);root.VectaHaynesJobTools?.remember(v);const image=safeImage(v.imageUrl);picture.innerHTML=image?'<img src="'+esc(image)+'" alt="'+esc(v.vehicle)+'">':'';personalise(picture.querySelector('img'));sheet.classList.add('ssHasHaynesVehicle');const rows=sheet.querySelectorAll('.ssInfoRow');for(const row of rows){if(row.querySelector('b')?.textContent.trim()==='Vehicle:'){const value=row.querySelector('span');if(value)value.textContent=v.vehicle;}}};
- if(!archived)fetch('/api/haynes-vehicle?reg='+encodeURIComponent(registration),{cache:'no-store'}).then(r=>r.json()).then(d=>{if(sheet.isConnected&&d.status==='MATCHED')showVehicle(d.vehicle);}).catch(()=>{});
+ if(!archived){
+  const tools=root.VectaHaynesJobTools;
+  const saved=tools?.snapshot?.(registration)||tools?.artworkSnapshot?.(registration)||tools?.genericImage?.(vehicleJob());
+  if(saved?.imageUrl){picture.innerHTML='<img src="'+esc(saved.imageUrl)+'" alt="Vehicle illustration">';personalise(picture.querySelector('img'));}
+  const request=tools?.lookup?tools.lookup(registration):fetch('/api/haynes-vehicle?reg='+encodeURIComponent(registration),{cache:'no-store'}).then(r=>r.json()).then(d=>d.status==='MATCHED'?d.vehicle:null);
+  request.then(v=>{if(sheet.isConnected&&v)showVehicle(v);}).catch(()=>{});
+ }
  let sequence=0,timer,period='';
  const status=panel.querySelector('.ssHaynesStatus'),body=panel.querySelector('.ssHaynesData');
  const fillOil=oil=>{if(!Array.isArray(oil)||oil.length!==1)return;const fields=sheet.querySelectorAll('.ssFluidsHorizontal .ssField');[oil[0].specification,compactCapacity(oil[0].capacity)].forEach((v,i)=>{if(fields[i]&&!fields[i].textContent.trim()&&v){fields[i].textContent=v;fields[i].setAttribute('data-haynes-auto',v);}});panel.setAttribute('data-haynes-oil',JSON.stringify(oil));};
