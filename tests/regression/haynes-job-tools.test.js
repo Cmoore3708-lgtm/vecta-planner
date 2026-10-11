@@ -221,3 +221,13 @@ test('a colour learned by the vehicle-details page prevents a separate decorativ
  assert.equal(calls,0);assert.equal(window.VectaHaynesJobTools.dashboardColour({registration:vehicle.registration,make:'Nissan'}),'Blue');
  assert.equal(window.VectaHaynesJobTools.dashboardColour({registration:vehicle.registration,make:'Ford'}),'');
 });
+
+test('unknown models get an immediate local generic picture and a separate plate-height mobile badge',async()=>{
+ const {window,document}=setup(async()=>({ok:false,json:async()=>({status:'OFFLINE'})}),()=>'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 210 130"><path d="M10 10h100v50z"/></svg>');
+ window.VectaVehicleImage={manufacturer:()=> 'toyota',mount:()=>Promise.resolve(),resolveColour:(_r,c)=>c,colourHex:()=>''};
+ const host=document.createElement('div');host.innerHTML='<div class="mobileJob" data-open-job="unknown"><div class="mobileJobTop"><span class="plannerPlateWrap"><span class="ukPlate">AB12XYZ</span></span><span class="mobileVehicleTop">Toyota Yaris</span></div></div>';document.body.append(host);
+ window.enrichHaynesDashboard(host,[{id:'unknown',registration:'AB12XYZ',make:'Toyota',vehicle:'Toyota Yaris'}]);
+ const image=host.querySelector('.haynesDashboardImage');assert.match(image.src,/^data:image\/svg/);assert.equal(image.dataset.generic,'true');
+ const badge=host.querySelector('.mobileManufacturerBadge');assert.equal(badge.parentElement,host.querySelector('.mobileJobTop'));assert.equal(badge.previousElementSibling.className,'plannerPlateWrap');assert.equal(badge.style.height,'30px');
+ await new Promise(r=>setTimeout(r,20));assert.ok(host.querySelector('.haynesDashboardImage'));host.remove();
+});

@@ -104,6 +104,19 @@ function trackTimedArtwork(card,img){
  if(root.ResizeObserver){observer=new root.ResizeObserver(update);observer.observe(img);}
  update();
 }
+function mobileManufacturerBadge(card,j,v){
+ if(!card.matches('.mobileJob'))return;
+ const top=card.querySelector('.mobileJobTop'),plate=top?.querySelector('.ukPlate');if(!plate)return;const anchor=plate.closest('.plannerPlateWrap')||plate;
+ const brand=root.VectaVehicleImage?.manufacturer?.(v?.make||j.make||j.vehicle);if(!brand)return;
+ let badge=top.querySelector('.mobileManufacturerBadge');if(!badge){badge=document.createElement('img');badge.className='mobileManufacturerBadge';anchor.after(badge);}
+ badge.src='/assets/manufacturers/'+brand+'.svg';badge.alt=(v?.make||j.make||brand)+' logo';
+ const height=plate.getBoundingClientRect?.().height||30;badge.style.height=height+'px';badge.style.width=(height*1.8)+'px';badge.onerror=()=>badge.remove();
+}
+function genericDashboardArtwork(card,target,j){
+ const svg=root.VectaFleetImages?.artwork?.(j.model||j.vehicle||j.make,dashboardColour(j));if(!svg)return;
+ let img=card.querySelector('.haynesDashboardImage');if(!img){img=document.createElement('img');img.className='haynesDashboardImage';target.appendChild(img);}
+ img.src='data:image/svg+xml;charset=utf-8,'+encodeURIComponent(svg);img.alt='Generic '+(j.vehicle||j.model||j.make||'vehicle')+' illustration';img.dataset.generic='true';img.title='Generic illustration — appearance may differ';target.classList.add('hasHaynesDashboardImage');mobileManufacturerBadge(card,j);
+}
 root.enrichHaynesDashboard=function(container,jobs){
  if(!container)return;const byId=new Map((jobs||[]).filter(j=>!j.no_vehicle&&j.card_type!=='mini_task').map(j=>[String(j.id),j]));
  dashboardObservers.get(container)?.disconnect();
@@ -113,7 +126,7 @@ root.enrichHaynesDashboard=function(container,jobs){
   const j=byId.get(card.dataset.jobId||card.dataset.openJob),target=card.matches('.mobileJob,.unallocatedSideJob')?card:card.querySelector('.plannerJobHeader');if(!j||!target)continue;
   const key=reg(j.registration)+'|'+make(j.make)+'|'+words(j.model||j.vehicle)+'|'+words(dashboardColour(j));if(!groups.has(key))groups.set(key,{job:j,targets:[]});groups.get(key).targets.push({card,target});
  }
- const attach=(v,targets,j)=>{for(const {card,target} of targets){if(!card.isConnected||!v)continue;const colour=dashboardColour(j);let img=card.querySelector('.haynesDashboardImage');if(img&&(img.dataset.haynesSource!==v.imageUrl||img.dataset.colour!==colour)){img.remove();img=null;}img=img||thumbnail(v,'haynesDashboardImage');if(img){img.dataset.haynesSource=v.imageUrl;img.dataset.colour=colour;img.dataset.vehicleName=[v.make,v.model].join(' ');img.setAttribute('data-vehicle-image','');target.appendChild(img);target.classList.add('hasHaynesDashboardImage');trackTimedArtwork(card,img);root.VectaVehicleImage?.mount(target);}}};
+ const attach=(v,targets,j)=>{for(const {card,target} of targets){if(!card.isConnected)continue;if(!v){genericDashboardArtwork(card,target,j);continue;}const colour=dashboardColour(j);let img=card.querySelector('.haynesDashboardImage');if(img&&(img.dataset.haynesSource!==v.imageUrl||img.dataset.colour!==colour)){img.remove();img=null;}img=img||thumbnail(v,'haynesDashboardImage');if(img){img.dataset.haynesSource=v.imageUrl;img.dataset.colour=colour;img.dataset.vehicleName=[v.make,v.model].join(' ');img.setAttribute('data-vehicle-image','');img.dataset.registration=reg(j.registration);if(card.matches('.mobileJob'))img.dataset.vehicleLogo='separate';target.appendChild(img);mobileManufacturerBadge(card,j,v);img.addEventListener('error',()=>genericDashboardArtwork(card,target,j),{once:true});target.classList.add('hasHaynesDashboardImage');trackTimedArtwork(card,img);root.VectaVehicleImage?.mount(target);}}};
  for(const [key,group] of groups){
   const j=group.job,hit=snapshot(j.registration,j.make),fallback=artworkSnapshot(j.registration,j.make)||genericImage(j);attach(hit?.imageUrl?hit:fallback,group.targets,j);if((hit?.imageUrl&&(!root.VectaVehicleImage||root.VectaVehicleImage.colourHex(dashboardColour(j))))||! /^[A-Z0-9]{2,8}$/.test(reg(j.registration)))continue;
   if(!group.targets.some(x=>visibleCard(x.card))){for(const {card} of group.targets)observer?.observe(card);continue;}
