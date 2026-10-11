@@ -133,3 +133,43 @@ test('Defender Adobe entity references remain parseable while unsafe metadata is
   assert.equal(r.recoloured,true);assert.equal(r.plateAdded,true);assert.equal(root.VectaVehicleImage.resolveColour('M123WPC','Grey'),'Grey');assert.match(r.svg,/#626970/);assert.match(r.svg,/M123WPC/);
   assert.doesNotMatch(r.svg,/foreignObject|aipgfRef|extraneous|script|onload/);
 });
+
+test('concurrent copies share the supplier download and personalised render',async()=>{
+ let calls=0,writes=0,complete;const root=browser({getItem:()=>null,setItem:()=>writes++});
+ root.fetch=async()=>{calls++;await new Promise(r=>complete=r);return {ok:true,json:async()=>({svg})};};
+ root.document.body.innerHTML=Array.from({length:5},()=>'<div><img data-vehicle-image data-registration="YB11DCE" data-colour="Red" src="https://www.haynespro-assets.com/workshop/images/123.svgz"></div>').join('');
+ const tasks=[...root.document.querySelectorAll('div')].map(scope=>root.VectaVehicleImage.mount(scope));
+ assert.equal(calls,1);complete();await Promise.all(tasks);
+ assert.equal(writes,1,'one personalised render is persisted for all copies');
+ assert.equal(new Set([...root.document.querySelectorAll('img')].map(img=>img.src)).size,1);
+});
+
+test('manufacturer identification handles aliases and accents without guessing unknown makes',()=>{
+ const {manufacturer}=browser().VectaVehicleImage;
+ for(const [name,slug] of [['Mercedes-Benz Sprinter','mercedes-benz'],['VW Golf','volkswagen'],['Citroën C3','citroen'],['Land Rover Defender','land-rover'],['Nissan Qashqai','nissan'],['Qashqai',''],['Fordson','']])assert.equal(manufacturer(name),slug);
+});
+test('manufacturer artwork shares one download and render across cards and survives offline reopening',async()=>{
+ const values=new Map(),storage={getItem:k=>values.get(k),setItem:(k,v)=>values.set(k,v)};
+ let supplier=0,logos=0,first;
+ for(let reopen=0;reopen<2;reopen++){
+  const root=browser(storage);root.fetch=async url=>{assert.equal(reopen,0,'cached branded artwork needs no network');if(url.startsWith('/assets/')){logos++;assert.equal(url,'/assets/manufacturers/ford.svg');return {ok:true,text:async()=>fs.readFileSync('public/assets/manufacturers/ford.svg','utf8')};}supplier++;return {ok:true,json:async()=>({svg})};};
+  root.document.body.innerHTML=Array.from({length:4},()=>'<div><img data-vehicle-image data-vehicle-name="Ford Transit" data-registration="YB11DCE" data-colour="Red" src="https://www.haynespro-assets.com/workshop/images/123.svgz"></div>').join('');
+  await Promise.all([...root.document.querySelectorAll('div')].map(scope=>root.VectaVehicleImage.mount(scope)));
+  const urls=[...root.document.querySelectorAll('img')].map(img=>img.src);assert.equal(new Set(urls).size,1);
+  const doc=new DOMParser().parseFromString(decodeURIComponent(urls[0].split(',').slice(1).join(',')),'image/svg+xml');
+  const mark=doc.querySelector('#vecta-manufacturer-logo image');assert.match(mark.getAttribute('href'),/^data:image\/png;base64,/);
+  assert.equal(doc.querySelector('#transparant_colour path').getAttribute('fill'),'#ac1727');
+  assert.ok(Number(doc.documentElement.getAttribute('viewBox').split(' ')[0])<0,'badge sits outside the car drawing');
+  if(!reopen)first=urls[0];else assert.equal(urls[0],first);
+ }
+ assert.equal(logos,1);assert.equal(supplier,1);
+});
+test('unavailable logo retains vehicle artwork and an independent later card retries',async()=>{
+ const root=browser();let logos=0;
+ root.fetch=async url=>url.startsWith('/assets/')?(logos++,{ok:false}):{ok:true,json:async()=>({svg})};
+ for(let i=0;i<2;i++){
+  root.document.body.innerHTML='<img data-vehicle-image data-vehicle-make="Nissan" data-registration="YB11DCE" src="https://www.haynespro-assets.com/workshop/images/123.svgz">';
+  await root.VectaVehicleImage.mount();assert.match(root.document.querySelector('img').src,/^data:image\/svg/);assert.doesNotMatch(decodeURIComponent(root.document.querySelector('img').src),/vecta-manufacturer-logo/);
+ }
+ assert.equal(logos,2);
+});

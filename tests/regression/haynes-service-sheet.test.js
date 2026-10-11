@@ -123,3 +123,12 @@ test('print freezes the personalised image at high resolution and restores its s
  let draws=0,canvas;const create=document.createElement.bind(document);document.createElement=name=>{if(name!=='canvas')return create(name);canvas={getContext:()=>({drawImage:()=>draws++}),toDataURL:()=>'data:image/png;base64,test'};return canvas;};
  const original=img.src;await window.prepareHaynesServicePrint(sheet);assert.equal(draws,1);assert.ok(canvas.width>=1200);assert.match(img.src,/^data:image\/png/);window.dispatchEvent(new window.Event('afterprint'));assert.equal(img.src,original);assert.equal(img.dataset.printSnapshot,undefined);sheet.remove();
 });
+
+test('service sheet uses the shared vehicle loader and displays cached artwork immediately',async()=>{
+ const {window,sheet}=setup(async()=>({status:'OFFLINE'}));let calls=0;
+ const saved={...vehicle,make:'Nissan',model:'Qashqai'};window.VectaVehicleImage={resolveColour:()=>'',mount:()=>{}};
+ window.VectaHaynesJobTools={snapshot:()=>saved,remember:()=>{},lookup:async()=>{calls++;return saved;},dashboardColour:()=>'',lookupDashboardColour:async()=>{}};
+ await window.initHaynesServiceSheet(sheet,'FX69XWU','service');await settle();
+ assert.equal(calls,1);assert.equal(sheet.querySelector('.ssHaynesVehicle img').getAttribute('src'),vehicle.imageUrl);
+ sheet.remove();
+});

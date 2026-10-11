@@ -196,3 +196,28 @@ test('job header shows supplier artwork, falls back on image failure and hides f
  img.onerror();assert.ok(picture.querySelector('svg'));assert.equal(picture.querySelector('img'),null);
  const noVehicle=document.querySelector('#job_no_vehicle');noVehicle.checked=true;noVehicle.dispatchEvent(new document.defaultView.Event('change'));assert.equal(picture.hidden,true);
 });
+
+test('simultaneous colour consumers share one request and cached colours are reused',async()=>{
+ const {window}=setup(async()=>response(vehicle));await new Promise(r=>setImmediate(r));
+ window.VectaVehicleImage={resolveColour:(_reg,c)=>c,colourHex:c=>c==='Green'?'#296145':''};
+ let complete,calls=0;window.fetch=async()=>{calls++;await new Promise(r=>complete=r);return {ok:true,json:async()=>({registration:vehicle.registration,make:'Nissan',primaryColour:'Green'})};};
+ const job={registration:vehicle.registration,make:'Nissan'};
+ const a=window.VectaHaynesJobTools.lookupDashboardColour(job),b=window.VectaHaynesJobTools.lookupDashboardColour({...job,registration:'FX69 XWU'});
+ assert.equal(calls,1);complete();await Promise.all([a,b]);
+ assert.equal(window.VectaHaynesJobTools.dashboardColour(job),'Green');await window.VectaHaynesJobTools.lookupDashboardColour(job);assert.equal(calls,1);
+});
+
+test('shared vehicle snapshot retains full description for service sheets',async()=>{
+ const {window}=setup(async()=>response({...vehicle,vehicle:'Nissan Qashqai 1.7 dCi'}));await new Promise(r=>setImmediate(r));
+ const result=await window.VectaHaynesJobTools.lookup(vehicle.registration);assert.equal(result.vehicle,'Nissan Qashqai 1.7 dCi');
+});
+
+test('a colour learned by the vehicle-details page prevents a separate decorative lookup',async()=>{
+ const {window}=setup(async()=>response(vehicle));await new Promise(r=>setImmediate(r));
+ window.VectaVehicleImage={resolveColour:(_reg,c)=>c,colourHex:c=>c==='Blue'?'#235b9a':''};
+ let calls=0;window.fetch=async()=>{calls++;throw Error('must use cached colour');};
+ assert.equal(window.VectaHaynesJobTools.rememberLookupColour({registration:vehicle.registration,make:'Nissan',primaryColour:'Blue'}),true);
+ await window.VectaHaynesJobTools.lookupDashboardColour({registration:vehicle.registration,make:'Nissan'});
+ assert.equal(calls,0);assert.equal(window.VectaHaynesJobTools.dashboardColour({registration:vehicle.registration,make:'Nissan'}),'Blue');
+ assert.equal(window.VectaHaynesJobTools.dashboardColour({registration:vehicle.registration,make:'Ford'}),'');
+});

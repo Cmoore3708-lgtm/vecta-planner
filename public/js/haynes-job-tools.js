@@ -24,7 +24,7 @@ try{for(const v of JSON.parse(root.localStorage?.getItem(KEY)||'[]'))remember(v,
 function valid(v,registration,expectedMake){return !!(v&&reg(v.registration)===reg(registration)&&vehicleLink(v)&&v.make&&v.model&&v.variant&&(!expectedMake||make(v.make)===make(expectedMake))&&Number.isFinite(Date.parse(v.fetchedAt))&&Date.now()-Date.parse(v.fetchedAt)>=0&&Date.now()-Date.parse(v.fetchedAt)<TTL);}
 function remember(v,persist=true){
  if(!valid(v,v?.registration))return;
- const clean={registration:reg(v.registration),make:String(v.make).slice(0,100),model:String(v.model).slice(0,180),variant:String(v.variant).slice(0,180),engineCode:String(v.engineCode||'').slice(0,100),modelYears:String(v.modelYears||'').slice(0,100),typeId:v.typeId,imageUrl:image(v.imageUrl),fetchedAt:v.fetchedAt};
+ const clean={registration:reg(v.registration),make:String(v.make).slice(0,100),model:String(v.model).slice(0,180),variant:String(v.variant).slice(0,180),engineCode:String(v.engineCode||'').slice(0,100),modelYears:String(v.modelYears||'').slice(0,100),vehicle:String(v.vehicle||[v.make,v.model,v.variant].join(' ')).slice(0,360),typeId:v.typeId,imageUrl:image(v.imageUrl),fetchedAt:v.fetchedAt};
  cache.set(clean.registration,clean);while(cache.size>300)cache.delete(cache.keys().next().value);
  rememberArtwork(clean);
  if(persist)try{root.localStorage?.setItem(KEY,JSON.stringify([...cache.values()].filter(x=>valid(x,x.registration))));}catch{}
@@ -54,12 +54,12 @@ async function lookup(registration,expectedMake,{requireImage=false}={}){
  }
  const v=await pending.get(requested);return valid(v,requested,expectedMake)?v:null;
 }
-function thumbnail(v,className){const src=image(v?.imageUrl);if(!src)return null;const img=document.createElement('img');img.src=src;img.className=className;img.alt=(v.generic?'Generic model image: ':'Representative ')+v.make+' '+v.model;img.title=v.generic?'Generic model image — appearance may differ':img.alt;img.dataset.generic=String(!!v.generic);let retries=0;img.onerror=()=>{if(retries>=2)return;const delay=++retries===1?1500:5000;setTimeout(()=>{if(!img.isConnected||img.src.startsWith('data:'))return;img.src=src;delete img.dataset.personalising;root.VectaVehicleImage?.mount(img.parentElement);},delay);};img.draggable=false;return img;}
+function thumbnail(v,className){const src=image(v?.imageUrl);if(!src)return null;const img=document.createElement('img');img.src=src;img.className=className;img.alt=(v.generic?'Generic model image: ':'Representative ')+v.make+' '+v.model;img.title=v.generic?'Generic model image — appearance may differ':img.alt;img.dataset.generic=String(!!v.generic);img.dataset.vehicleMake=v.make||'';let retries=0;img.onerror=()=>{if(retries>=2)return;const delay=++retries===1?1500:5000;setTimeout(()=>{if(!img.isConnected||img.src.startsWith('data:'))return;img.src=src;delete img.dataset.personalising;root.VectaVehicleImage?.mount(img.parentElement);},delay);};img.draggable=false;return img;}
 let dashboardTail=Promise.resolve();
 const dashboardRequests=new Map();
 const dashboardObservers=new WeakMap();
 function visibleCard(card){if(!card.isConnected)return false;if(!root.innerHeight||!card.getBoundingClientRect)return true;const box=card.getBoundingClientRect();return box.width>0&&box.height>0&&box.bottom>=0&&box.top<root.innerHeight;}
-const colourKey='vecta_dashboard_vehicle_colours_v1',colourCache=new Map(),colourFailures=new Map();
+const colourKey='vecta_dashboard_vehicle_colours_v1',colourCache=new Map(),colourFailures=new Map(),colourPending=new Map();
 try{for(const entry of JSON.parse(root.localStorage?.getItem(colourKey)||'[]'))if(/^[A-Z0-9]{2,8}$/.test(entry.registration)&&Date.now()-entry.at<TTL)colourCache.set(entry.registration,entry);}catch{}
 function dashboardColour(job){
  const registration=reg(job.registration),vehicle=registration?(root.app?.vehicles||[]).find(v=>reg(v.registration)===registration):null;
@@ -68,15 +68,23 @@ function dashboardColour(job){
  const supplied=job.vehicle_colour||job.colour||vehicle?.colour||fleet?.colour||cached||'';
  return root.VectaVehicleImage?.resolveColour(registration,supplied)||supplied;
 }
+function rememberLookupColour(data,expectedMake){
+ const registration=reg(data?.registration);
+ if(!/^[A-Z0-9]{5,8}$/.test(registration)||(expectedMake&&make(data.make)!==make(expectedMake))||!root.VectaVehicleImage?.colourHex(data.primaryColour))return false;
+ colourCache.set(registration,{registration,make:data.make,colour:data.primaryColour,at:Date.now()});while(colourCache.size>300)colourCache.delete(colourCache.keys().next().value);
+ try{root.localStorage?.setItem(colourKey,JSON.stringify([...colourCache.values()]));}catch{}
+ return true;
+}
 async function lookupDashboardColour(job){
  const registration=reg(job.registration);
  if(!root.VectaVehicleImage||root.VectaVehicleImage.colourHex(dashboardColour(job))||! /^[A-Z0-9]{5,8}$/.test(registration)||root.navigator?.onLine===false||Date.now()-(colourFailures.get(registration)||0)<300000)return;
- try{
+ if(colourPending.has(registration))return colourPending.get(registration);
+ const task=(async()=>{try{
   const response=await root.fetch('/api/vehicle-lookup?reg='+encodeURIComponent(registration),{cache:'no-store',signal:AbortSignal.timeout(15000)}),data=await response.json();
-  if(!response.ok||reg(data.registration)!==registration||(job.make&&make(data.make)!==make(job.make))||!root.VectaVehicleImage.colourHex(data.primaryColour))throw Error('Colour unavailable');
-  colourCache.set(registration,{registration,make:data.make,colour:data.primaryColour,at:Date.now()});while(colourCache.size>300)colourCache.delete(colourCache.keys().next().value);
-  try{root.localStorage?.setItem(colourKey,JSON.stringify([...colourCache.values()]));}catch{}
+  if(!response.ok||reg(data.registration)!==registration||!rememberLookupColour(data,job.make))throw Error('Colour unavailable');
  }catch{colourFailures.set(registration,Date.now());while(colourFailures.size>300)colourFailures.delete(colourFailures.keys().next().value);}
+ })();colourPending.set(registration,task);
+ try{await task;}finally{if(colourPending.get(registration)===task)colourPending.delete(registration);}
 }
 // Object-fit can leave unused space to the left of right-aligned artwork.
 // Reserve its rendered width, not the full 162px image element.
@@ -150,7 +158,7 @@ root.initHaynesJobTools=function(modal){
   const fallback=()=>{picture.innerHTML=root.VectaFleetImages?.artwork?.(name,colour)||'';picture.title='Generic vehicle illustration — appearance may differ';};
   const v=drawing||snapshot(registration,description.make)||artworkSnapshot(registration,description.make)||genericImage(description),src=image(v?.imageUrl);
   if(!src){fallback();return;}
-  const img=document.createElement('img');img.src=src;img.alt=[colour,v.make,v.model,registration].filter(Boolean).join(' ');img.dataset.vehicleImage='';img.dataset.registration=registration;img.dataset.colour=colour;img.dataset.vehicleName=name;img.onerror=fallback;picture.appendChild(img);picture.title='';root.VectaVehicleImage?.mount(picture);
+  const img=document.createElement('img');img.src=src;img.alt=[colour,v.make,v.model,registration].filter(Boolean).join(' ');img.dataset.vehicleImage='';img.dataset.registration=registration;img.dataset.colour=colour;img.dataset.vehicleName=name;img.dataset.vehicleMake=v.make||'';img.onerror=fallback;picture.appendChild(img);picture.title='';root.VectaVehicleImage?.mount(picture);
  }
  const panel=document.createElement('div');panel.className='haynesJobTools';
  panel.innerHTML='<button type="button" class="btn">Find vehicle in HaynesPro</button><span role="status" aria-live="polite"></span><div class="haynesJobVehicle"></div>';
@@ -175,7 +183,7 @@ const requested=current(),expectedMake=make(modal.querySelector('#job_make')?.va
    remember(v);showHeaderVehicle(v);const link=document.createElement('a');link.className='btn dark';link.href=vehicleLink(v);link.target='_blank';link.rel='noopener noreferrer';link.textContent='Open this vehicle in HaynesPro';
    const details=document.createElement('div'),title=document.createElement('strong'),note=document.createElement('small');
    title.textContent=[v.make,v.model,v.variant].join(' ');note.textContent=[v.engineCode,v.modelYears].filter(Boolean).join(' · ');details.append(title,note);
-   body.replaceChildren();const src=image(v.imageUrl);if(src){const img=document.createElement('img');img.src=src;img.alt=(v.generic?'Generic model image: ':'Representative ')+v.make+' '+v.model;img.title=v.generic?'Generic model image — appearance may differ':img.alt;img.dataset.generic=String(!!v.generic);img.onerror=()=>img.remove();body.appendChild(img);}
+   body.replaceChildren();const src=image(v.imageUrl);if(src){const img=document.createElement('img');img.src=src;img.alt=(v.generic?'Generic model image: ':'Representative ')+v.make+' '+v.model;img.title=v.generic?'Generic model image — appearance may differ':img.alt;img.dataset.generic=String(!!v.generic);img.dataset.vehicleMake=v.make||'';img.onerror=()=>img.remove();body.appendChild(img);}
    const times=document.createElement('a');times.className='btn';times.href='https://www.workshopdata.com/touch/site/layout/repairTimes?typeId='+encodeURIComponent(v.typeId)+'&groupId=QUICKGUIDES';times.target='_blank';times.rel='noopener noreferrer';times.textContent='Repair times';
    if(!src)showGeneric();body.append(details,link,times);status.textContent='Matched vehicle — check the variant before using technical data.';button.textContent='Refresh HaynesPro vehicle';
   }catch{if(run===sequence&&panel.isConnected&&current()===requested)status.textContent=({NOT_CONFIGURED:'HaynesPro lookup is not configured for this preview.',OFFLINE:'The workshop HaynesPro worker is offline.',LOGIN_REQUIRED:'The workshop HaynesPro login needs renewing.',VERIFICATION_REQUIRED:'HaynesPro needs verification on the workshop PC.',BUSY:'HaynesPro is busy. Try again shortly.',DAILY_LIMIT:'The daily HaynesPro lookup limit has been reached.'}[failStatus.get(requested)]||'HaynesPro unavailable or vehicle match uncertain.')+' You can still save this job.';}
@@ -184,7 +192,7 @@ const requested=current(),expectedMake=make(modal.querySelector('#job_make')?.va
  if(!noVehicle?.checked&&/^[A-Z0-9]{2,8}$/.test(current()))button.onclick();
 };
 document.addEventListener('DOMContentLoaded',()=>{if(root.view==='planner')root.enrichHaynesDashboard(document.getElementById('content'),root.app?.jobs);});
-root.VectaHaynesJobTools={vehicleLink,safeImage:image,remember,snapshot,artworkSnapshot,lookup,genericImage,dashboardColour,lookupDashboardColour};
+root.VectaHaynesJobTools={vehicleLink,safeImage:image,remember,snapshot,artworkSnapshot,lookup,lookupStatus:registration=>failStatus.get(reg(registration))||'UNAVAILABLE',genericImage,dashboardColour,lookupDashboardColour,rememberLookupColour};
 })(window);
 
 /* Dashboard registration lookup: read-only until a job/quote form is saved. */
@@ -209,9 +217,9 @@ async function open(registration){
  page.querySelectorAll('[data-create]').forEach(button=>button.onclick=()=>{if(!vehicle)return;const preset={registration:reg,make:vehicle.make,model:vehicle.model,vehicle:[vehicle.make,vehicle.model].join(' '),mileage:Number(form.elements.mileage.value)||null,engine_code:vehicle.engineCode||'',technician:'Unallocated',status:button.dataset.create==='quote'?'quote':'booked',mot_due:government?.motDueDate||null,tax_due:government?.taxDueDate||null,vehicle_colour:government?.primaryColour||''};close();root.openJobModal(null,preset);});
  function paintLookupVehicle(){const img=identity.querySelector('img');if(!isCurrent()||!vehicle||!img||!root.VectaVehicleImage)return;img.dataset.registration=reg;img.dataset.colour=root.VectaVehicleImage.resolveColour(reg,government?.primaryColour||'');img.dataset.vehicleName=vehicle.make+' '+vehicle.model;img.setAttribute('data-vehicle-image','');root.VectaVehicleImage.mount(identity);}
  const motLookup=(async()=>{
- try{government=await json('/api/vehicle-lookup?reg='+encodeURIComponent(reg));if(normalise(government.registration)!==reg)government=null;const raw=String(government?.latestMileage??'').replace(/[, ]/g,''),available=/^\d+$/.test(raw),unit=String(government?.latestMileageUnit||'').toLowerCase();if(isCurrent()){paintLookupVehicle();page.querySelector('[data-mot-mileage]').textContent=available?Number(raw).toLocaleString('en-GB')+' '+(unit==='mi'?'miles':unit==='km'?'km':unit||'units'):'Not available';page.querySelector('[data-mot-date]').textContent=(government?.lastMotTestDate?'MOT date: '+String(government.lastMotTestDate).slice(0,10)+'. ':'')+'Historical MOT reading; enter current mileage separately.';}}catch{if(isCurrent())page.querySelector('[data-mot-mileage]').textContent='Not available';}
+ try{government=await json('/api/vehicle-lookup?reg='+encodeURIComponent(reg));if(normalise(government.registration)!==reg)government=null;else root.VectaHaynesJobTools.rememberLookupColour?.(government);const raw=String(government?.latestMileage??'').replace(/[, ]/g,''),available=/^\d+$/.test(raw),unit=String(government?.latestMileageUnit||'').toLowerCase();if(isCurrent()){paintLookupVehicle();page.querySelector('[data-mot-mileage]').textContent=available?Number(raw).toLocaleString('en-GB')+' '+(unit==='mi'?'miles':unit==='km'?'km':unit||'units'):'Not available';page.querySelector('[data-mot-date]').textContent=(government?.lastMotTestDate?'MOT date: '+String(government.lastMotTestDate).slice(0,10)+'. ':'')+'Historical MOT reading; enter current mileage separately.';}}catch{if(isCurrent())page.querySelector('[data-mot-mileage]').textContent='Not available';}
  })();
- try{const cached=root.VectaHaynesJobTools.snapshot?.(reg);const d=cached?{status:'MATCHED',vehicle:cached}:await json('/api/haynes-vehicle?reg='+encodeURIComponent(reg));if(!isCurrent())return;if(d.status!=='MATCHED'||normalise(d.vehicle?.registration)!==reg)throw Error(d.status);vehicle=root.VectaHaynesJobTools.remember(d.vehicle);if(!vehicle)throw Error('MISMATCH');identity.innerHTML='<div><h2>'+esc(vehicle.make+' '+vehicle.model)+'</h2><p>'+esc(vehicle.variant)+'</p><dl>'+[['Engine code',vehicle.engineCode],['Model years',vehicle.modelYears]].map(([k,v])=>'<dt>'+k+'</dt><dd>'+esc(v||'Not supplied')+'</dd>').join('')+'</dl><a target="_blank" rel="noopener noreferrer" href="'+esc(root.VectaHaynesJobTools.vehicleLink(vehicle))+'">Open full HaynesPro vehicle data</a></div>';
+ try{const matched=await root.VectaHaynesJobTools.lookup(reg);const d=matched?{status:'MATCHED',vehicle:matched}:{status:root.VectaHaynesJobTools.lookupStatus(reg)};if(!isCurrent())return;if(d.status!=='MATCHED'||normalise(d.vehicle?.registration)!==reg)throw Error(d.status);vehicle=root.VectaHaynesJobTools.remember(d.vehicle);if(!vehicle)throw Error('MISMATCH');identity.innerHTML='<div><h2>'+esc(vehicle.make+' '+vehicle.model)+'</h2><p>'+esc(vehicle.variant)+'</p><dl>'+[['Engine code',vehicle.engineCode],['Model years',vehicle.modelYears]].map(([k,v])=>'<dt>'+k+'</dt><dd>'+esc(v||'Not supplied')+'</dd>').join('')+'</dl><a target="_blank" rel="noopener noreferrer" href="'+esc(root.VectaHaynesJobTools.vehicleLink(vehicle))+'">Open full HaynesPro vehicle data</a></div>';
  const src=root.VectaHaynesJobTools.safeImage(vehicle.imageUrl);if(src){const img=document.createElement('img');img.src=src;img.alt=vehicle.make+' '+vehicle.model;img.onerror=()=>img.remove();identity.prepend(img);}paintLookupVehicle();status.textContent='Vehicle matched. Enter the current mileage to load its service schedule.';page.querySelectorAll('[data-create]').forEach(b=>b.disabled=false);
 
  }catch(err){if(isCurrent())status.textContent=messages[err.message]||'Vehicle match unavailable. Check the registration and retry.';}
