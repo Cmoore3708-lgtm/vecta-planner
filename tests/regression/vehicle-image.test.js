@@ -179,3 +179,9 @@ test('unavailable logo retains vehicle artwork and an independent later card ret
  }
  assert.equal(logos,2);
 });
+
+test('separate website badge does not remain embedded under the car',async()=>{
+ const root=browser();let calls=0;root.fetch=async url=>{calls++;assert.ok(url.startsWith('/api/haynes-image'));return {ok:true,json:async()=>({svg})};};
+ root.document.body.innerHTML='<img data-vehicle-image data-vehicle-logo="separate" data-vehicle-name="Ford Transit" data-registration="YB11DCE" src="https://www.haynespro-assets.com/workshop/images/123.svgz">';
+ await root.VectaVehicleImage.mount();assert.equal(calls,1);assert.doesNotMatch(decodeURIComponent(root.document.querySelector('img').src),/vecta-manufacturer-logo/);
+});

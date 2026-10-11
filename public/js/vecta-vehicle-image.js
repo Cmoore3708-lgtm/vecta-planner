@@ -135,7 +135,7 @@
       const match = url.match(/^https:\/\/www\.haynespro-assets\.com\/workshop\/images\/(\d+\.svgz?)$/);
       if (!match) return;
       const registration = normaliseReg(img.dataset.registration), colour = img.dataset.colour || '';
-      const baseKey = match[1]+'|'+registration+'|'+colourHex(colour),brand=manufacturer(img.dataset.vehicleMake||img.dataset.vehicleName);
+      const baseKey = match[1]+'|'+registration+'|'+colourHex(colour),brand=img.dataset.vehicleLogo==='separate'?'':manufacturer(img.dataset.vehicleMake||img.dataset.vehicleName);
       let key=brand?baseKey+'|logo-v2-below:'+brand:baseKey;
       try {
         let result = images.get(key);
