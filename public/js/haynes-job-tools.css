@@ -108,3 +108,14 @@
  .mobilePlanner .mobileJob>.haynesDashboardImage{top:54px;height:76px}
 }
 @media screen and (min-width:769px){.mobileManufacturerBadge{display:none}}
+
+/* Keep phone artwork level with the plate and remove the oversized header gap. */
+@media screen and (max-width:768px){
+ .mobilePlanner .mobileJob.hasHaynesDashboardImage .mobileJobTop{width:calc(100% - 128px);grid-template-columns:minmax(0,1fr) 60px;min-height:84px;gap:5px 6px!important;margin-bottom:4px}
+ .mobilePlanner .mobileJobTop>.plannerPlateWrap{max-width:100%;min-width:0}
+ .mobilePlanner .mobileJobTop .mobileManufacturerBadge{width:60px!important;height:40px!important;object-position:center}
+ .mobilePlanner .mobileJob .mobileVehicleTop{width:100%!important;max-width:100%!important}
+ .mobilePlanner .mobileJob>.haynesDashboardImage{top:10px;right:10px;height:82px}
+ .mobilePlanner .mobileJob .sideJobType{margin-top:0;margin-bottom:5px}
+ .mobilePlanner .mobileJob>b{line-height:1.3}
+}
