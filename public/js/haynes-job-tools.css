@@ -119,3 +119,26 @@
  .mobilePlanner .mobileJob .sideJobType{margin-top:0;margin-bottom:5px}
  .mobilePlanner .mobileJob>b{line-height:1.3}
 }
+
+/* Registration above vehicle details; give fleet labels the remaining header width. */
+@media screen and (max-width:768px){
+ .mobilePlanner .mobileJob .mobileJobTop,
+ .mobilePlanner .mobileJob.hasHaynesDashboardImage .mobileJobTop{
+  display:grid!important;grid-template-columns:minmax(0,1fr) minmax(105px,.85fr);
+  width:100%;gap:6px 10px!important;min-height:0;align-items:start!important;
+  padding-right:0;margin-bottom:8px;
+ }
+ .mobilePlanner .mobileJobTop>.plannerPlateWrap{grid-column:1;grid-row:1;max-width:100%}
+ .mobilePlanner .mobileJobTop .mobileJobCategory{
+  grid-column:2;grid-row:1;min-width:0;align-self:center;
+  font-size:12px;font-weight:800;line-height:1.3;white-space:normal;
+  overflow-wrap:break-word;text-align:left;
+ }
+ .mobilePlanner .mobileJobTop .mobileManufacturerBadge{display:none!important}
+ .mobilePlanner .mobileJob .mobileVehicleTop{
+  grid-column:1;grid-row:2;width:100%!important;max-width:100%!important;
+  text-align:left!important;white-space:normal!important;
+ }
+ .mobilePlanner .mobileJob.hasHaynesDashboardImage .mobileJobTop{min-height:112px}
+ .mobilePlanner .mobileJob>.haynesDashboardImage{top:48px;right:10px;width:120px;height:76px}
+}

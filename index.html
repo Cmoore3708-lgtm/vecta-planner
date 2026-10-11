@@ -12828,7 +12828,16 @@ function plannerHtml(){
 
 /* v236: restored original core planner/job-card helpers removed during layout amendments */
 function mobileMotAppointmentHtml(j){var time=motTimeFromJob(j);return hasMotJobType(j)&&time?'<span class="mobileMotAppointment" aria-label="MOT appointment time '+esc(time)+'">MOT '+esc(time)+'</span>':''}
-function mobileJobCardHtml(j,groupName){var isOther=String(groupName||j.technician||'').trim().toLowerCase()==='other',vehicleLine=String(j.vehicle||'').trim()||[j.make,j.model].filter(Boolean).join(' ').trim()||'Vehicle';return '<div class="mobileJob jobTypeCoded'+(isOther?' mobileOtherJob':'')+'" style="'+jobTypeInlineStyle(j)+(isOther?'background-color:#dff0ff!important;background-image:linear-gradient(#dff0ff,#dff0ff)!important;':'')+'" data-open-job="'+j.id+'"><div class="mobileJobTop">'+plannerPlate(j)+'<span class="mobileVehicleTop">'+esc(vehicleLine)+'</span></div>'+carryOverBadgeHtml(j)+'<div class="sideJobType">'+jobTypeChip(j)+mobileMotAppointmentHtml(j)+'</div><b>'+esc(j.work_required||'No work required entered')+'</b><div class="mobileJobMeta">'+(j.customer_name?esc(j.customer_name)+'<br>':'')+esc(j.technician||'Unallocated')+' · '+esc(timeRange(j))+' · '+esc(j.ramp||'No ramp')+'</div></div>'}
+function mobileJobCategoryLabel(j){
+  if(j.card_type==='mini_task')return '';
+  var account=fleetIncomeCustomerForJob(j)||String(j.customer_account||'').trim();
+  if(String(account).toUpperCase()==='NMUK'){
+    var type=String(fleetNmukTypeFromVehicle(j.registration)||j.nmuk_vehicle_type||'').trim();
+    return /^pool$/i.test(type)?'NMUK Pool Cars':type?'NMUK '+type:'NMUK';
+  }
+  return /^contractor$/i.test(account)?'Contractor':account;
+}
+function mobileJobCardHtml(j,groupName){var isOther=String(groupName||j.technician||'').trim().toLowerCase()==='other',vehicleLine=String(j.vehicle||'').trim()||[j.make,j.model].filter(Boolean).join(' ').trim()||'Vehicle';return '<div class="mobileJob jobTypeCoded'+(isOther?' mobileOtherJob':'')+'" style="'+jobTypeInlineStyle(j)+(isOther?'background-color:#dff0ff!important;background-image:linear-gradient(#dff0ff,#dff0ff)!important;':'')+'" data-open-job="'+j.id+'"><div class="mobileJobTop">'+plannerPlate(j)+'<span class="mobileJobCategory">'+esc(mobileJobCategoryLabel(j))+'</span><span class="mobileVehicleTop">'+esc(vehicleLine)+'</span></div>'+carryOverBadgeHtml(j)+'<div class="sideJobType">'+jobTypeChip(j)+mobileMotAppointmentHtml(j)+'</div><b>'+esc(j.work_required||'No work required entered')+'</b><div class="mobileJobMeta">'+(j.customer_name?esc(j.customer_name)+'<br>':'')+esc(j.technician||'Unallocated')+' · '+esc(timeRange(j))+' · '+esc(j.ramp||'No ramp')+'</div></div>'}
 
 function updateJobQuick(j){if((j.status==='completed'||j.status==='work_complete'||j.status==='ready_to_invoice')&&typeof showTowbarRemovalReminder==='function')showTowbarRemovalReminder(j);if(['completed','work_complete','ready_to_invoice'].indexOf(j.status)>=0)vectaRecordWorkCompleted(j);j.archived=j.status==='completed';if(j.status==='completed'&&!j.completed_at)j.completed_at=new Date().toISOString();j.updated_at=new Date().toISOString();syncTaskFromMiniJob(j);if(j.status==='completed'||j.status==='ready_to_invoice')syncFleetMaintenanceFromJob(j);saveAll();upsertRemote('jobs',j);render()}
 
