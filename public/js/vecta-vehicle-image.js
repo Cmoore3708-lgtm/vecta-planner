@@ -104,16 +104,16 @@
         plate.append(rect,text); svg.appendChild(plate); plateAdded = true;
       }
     } finally { host.remove(); }
-    // Keep the badge beside the car inside the same image box and print snapshot.
+    // Centre a larger badge below the car, leaving the drawing unobscured.
     const box=String(svg.getAttribute('viewBox')||'').trim().split(/[ ,]+/).map(Number);
     if(logo&&box.length===4&&box.every(Number.isFinite)&&box[2]>0&&box[3]>0){
-      const [x,y,width,height]=box,size=Math.min(width*.16,height*.3),gap=width*.02;
-      svg.setAttribute('viewBox',[x-size-gap,y,width+size+gap,height].join(' '));
+      const [x,y,width,height]=box,size=width*.36,gap=width*.025,badgeX=x+(width-size)/2,badgeY=y+height+gap;
+      svg.setAttribute('viewBox',[x,y,width,height+gap+size].join(' '));
       const badge=root.document.createElementNS(NS,'g');badge.setAttribute('id','vecta-manufacturer-logo');
       const background=root.document.createElementNS(NS,'rect');
-      for(const [k,v] of Object.entries({x:x-size-gap,y:y+(height-size)/2,width:size,height:size,rx:size*.12,fill:'#ffffff'}))background.setAttribute(k,v);
+      for(const [k,v] of Object.entries({x:badgeX,y:badgeY,width:size,height:size,rx:size*.12,fill:'#ffffff'}))background.setAttribute(k,v);
       const mark=root.document.createElementNS(NS,'image');
-      for(const [k,v] of Object.entries({x:x-size-gap+size*.08,y:y+(height-size)/2+size*.08,width:size*.84,height:size*.84,href:logo,preserveAspectRatio:'xMidYMid meet'}))mark.setAttribute(k,v);
+      for(const [k,v] of Object.entries({x:badgeX+size*.08,y:badgeY+size*.08,width:size*.84,height:size*.84,href:logo,preserveAspectRatio:'xMidYMid meet'}))mark.setAttribute(k,v);
       badge.append(background,mark);svg.appendChild(badge);
     }
     return {svg:new root.XMLSerializer().serializeToString(svg),plateAdded,recoloured:!!(hex && paint)};
@@ -136,7 +136,7 @@
       if (!match) return;
       const registration = normaliseReg(img.dataset.registration), colour = img.dataset.colour || '';
       const baseKey = match[1]+'|'+registration+'|'+colourHex(colour),brand=manufacturer(img.dataset.vehicleMake||img.dataset.vehicleName);
-      let key=brand?baseKey+'|logo-v1:'+brand:baseKey;
+      let key=brand?baseKey+'|logo-v2-below:'+brand:baseKey;
       try {
         let result = images.get(key);
         if (!result) {
