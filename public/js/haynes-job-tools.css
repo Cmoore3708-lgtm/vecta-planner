@@ -99,3 +99,12 @@
  .mobilePlanner .mobileJob>b{display:block;font-size:14px;line-height:1.4;overflow-wrap:break-word}
  .mobilePlanner .mobileJob .mobileJobMeta{font-size:12px;line-height:1.4}
 }
+
+@media screen and (max-width:768px){
+ .mobilePlanner .mobileJob.hasHaynesDashboardImage .mobileJobTop{display:grid!important;grid-template-columns:max-content minmax(0,1fr);width:100%;gap:8px 10px!important;align-content:start;min-height:118px}
+ .mobilePlanner .mobileJobTop>.plannerPlateWrap{grid-column:1;grid-row:1;max-width:180px}
+ .mobileManufacturerBadge{grid-column:2;grid-row:1;object-fit:contain;object-position:left center;max-width:100%;align-self:center}
+ .mobilePlanner .mobileJob .mobileVehicleTop{grid-column:1/-1;grid-row:2;width:calc(100% - 128px)}
+ .mobilePlanner .mobileJob>.haynesDashboardImage{top:54px;height:76px}
+}
+@media screen and (min-width:769px){.mobileManufacturerBadge{display:none}}
