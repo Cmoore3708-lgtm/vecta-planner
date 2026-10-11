@@ -60,3 +60,10 @@ button.fleetVehicleImage{cursor:pointer}button.fleetVehicleImage:hover,button.fl
  .fleetPanel .fleetRow.due30Columns{grid-template-columns:minmax(0,1fr) 40px 16px 96px 36px!important}
  .fleetPanel .fleetRow.due30Columns .fleetVehicleImage{width:138px;max-width:100%;height:62px;justify-self:end}
 }
+
+/* Pair the customer with the plate and the vehicle name with its artwork. */
+@media(max-width:700px){
+ .fleetPanel .fleetRow.due30Columns>:nth-child(2){grid-column:4/6;grid-row:2;justify-self:center;text-align:center;white-space:normal;overflow-wrap:anywhere;line-height:1.2}
+ .fleetPanel .fleetRow.due30Columns>:nth-child(3){grid-column:4/6;grid-row:1;align-self:start}
+ .fleetPanel .fleetRow.due30Columns>:nth-child(4){grid-column:2/4;grid-row:1;align-self:center;white-space:normal;overflow-wrap:anywhere;line-height:1.25;font-size:10px}
+}
