@@ -289,3 +289,20 @@ function initialiseBooking(){if(suppliedReg)state.form.registration=suppliedReg;
 .step:has(.haynes-vehicle) .vehicle-photo .haynes-image img{transform:scale(1.1);transform-origin:center}
 </style>
 
+
+<style>
+/* Let the vehicle lead, with a compact booking title and progress strip. */
+.top{padding-top:14px;padding-bottom:10px}
+.top h1{font-size:20px;line-height:1.2;margin:0}
+.step{padding-top:14px}
+.step:has(.haynes-vehicle){padding-top:8px}
+.step:has(.haynes-vehicle)>.vehicle-photo{margin-bottom:10px}
+.step:has(.haynes-vehicle) .vehicle-photo .haynes-vehicle{grid-template-columns:minmax(0,1fr) minmax(0,1.25fr);gap:12px}
+.step:has(.haynes-vehicle) .vehicle-photo .haynes-image img{height:230px;max-height:230px;transform:none}
+@media(max-width:600px){
+ .top{padding-top:12px;padding-bottom:8px}
+ .top h1{font-size:18px}
+ .step:has(.haynes-vehicle) .vehicle-photo .haynes-vehicle{grid-template-columns:minmax(0,1fr) minmax(0,1.2fr);gap:10px}
+ .step:has(.haynes-vehicle) .vehicle-photo .haynes-image img{height:175px;max-height:175px}
+}
+</style>
