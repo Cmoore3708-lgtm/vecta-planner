@@ -161,7 +161,11 @@ test('manufacturer artwork shares one download and render across cards and survi
   const doc=new DOMParser().parseFromString(decodeURIComponent(urls[0].split(',').slice(1).join(',')),'image/svg+xml');
   const mark=doc.querySelector('#vecta-manufacturer-logo image');assert.match(mark.getAttribute('href'),/^data:image\/png;base64,/);
   assert.equal(doc.querySelector('#transparant_colour path').getAttribute('fill'),'#ac1727');
-  assert.ok(Number(doc.documentElement.getAttribute('viewBox').split(' ')[0])<0,'badge sits outside the car drawing');
+  const badge=doc.querySelector('#vecta-manufacturer-logo rect');
+  assert.ok(Number(badge.getAttribute('y'))>=220,'badge sits beneath the car drawing');
+  assert.ok(Number(badge.getAttribute('width'))>299*.3,'badge is substantially larger');
+  assert.equal(Number(badge.getAttribute('x'))+Number(badge.getAttribute('width'))/2,299/2,'badge is centred');
+  assert.ok(Number(doc.documentElement.getAttribute('viewBox').split(' ')[3])>=Number(badge.getAttribute('y'))+Number(badge.getAttribute('height')),'badge is not clipped');
   if(!reopen)first=urls[0];else assert.equal(urls[0],first);
  }
  assert.equal(logos,1);assert.equal(supplier,1);
