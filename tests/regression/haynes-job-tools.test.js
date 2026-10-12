@@ -207,7 +207,7 @@ test('timed text follows the rendered car width after loading, resizing and artw
 test('job header shows supplier artwork, falls back on image failure and hides for no-vehicle jobs',async()=>{
  const {document}=setup(async()=>response(vehicle),(name,colour)=>'<svg aria-label="Generic '+name+'" data-colour="'+colour+'"></svg>');
  await new Promise(r=>setImmediate(r));
- const picture=document.querySelector('.jobCardHeaderVehicle');assert.equal(picture.parentElement.className,'jobModalHead hasJobCardVehicle');
+ const picture=document.querySelector('.jobCardHeaderVehicle');assert.ok(picture.parentElement.classList.contains('hasJobCardVehicle'));assert.ok(picture.parentElement.classList.contains('hasHeaderVehicleDetails'));
  const img=picture.querySelector('img');assert.equal(img.src,vehicle.imageUrl);assert.equal(img.dataset.registration,'FX69XWU');
  img.onerror();assert.ok(picture.querySelector('svg'));assert.equal(picture.querySelector('img'),null);
  const noVehicle=document.querySelector('#job_no_vehicle');noVehicle.checked=true;noVehicle.dispatchEvent(new document.defaultView.Event('change'));assert.equal(picture.hidden,true);
