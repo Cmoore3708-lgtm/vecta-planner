@@ -20,14 +20,14 @@ test('fresh missing picture loads before an unresolved colour lookup and does no
  assert.equal(host.querySelectorAll('img').length,2);assert.match(requested[0],/haynes-vehicle/);assert.equal(requested.filter(x=>x.includes('haynes-vehicle')).length,2);
  host.remove();
 });
-test('a fresh technical match without artwork requests the image instead of skipping the card',async()=>{
+test('a fresh vehicle match without artwork uses the generic picture without repeating Haynes',async()=>{
  const {window,document}=setup(async()=>response(vehicle));await new Promise(r=>setImmediate(r));
  window.VectaHaynesJobTools.remember({...vehicle,registration:'MK55MLU',make:'Toyota',model:'Yaris',imageUrl:''});
  let calls=0;window.fetch=async()=>{calls++;return response({...vehicle,registration:'MK55MLU',make:'Toyota',model:'Yaris'});};
  const host=document.createElement('div');host.innerHTML='<div class="mobileJob" data-open-job="1"></div>';document.body.append(host);
  window.enrichHaynesDashboard(host,[{id:'1',registration:'MK55MLU',make:'Toyota',colour:'Grey'}]);
  for(let i=0;i<8;i++)await new Promise(r=>setImmediate(r));
- assert.equal(calls,1);assert.ok(host.querySelector('img'));host.remove();
+ assert.equal(calls,0);host.remove();
 });
 test('hidden desktop cards do not queue lookups ahead of visible mobile cards',async()=>{
  const {window,document}=setup(async()=>response(vehicle));await new Promise(r=>setImmediate(r));
