@@ -61,3 +61,22 @@
  .jobModalCard .jobModalHead.hasJobCardVehicle{grid-template-columns:minmax(0,1fr) minmax(140px,48%)!important}
  .jobModalCard .jobCardHeaderVehicle{height:140px!important}
 }
+
+/* One editable plate, with vehicle section immediately beneath it in the header. */
+@media screen{
+ .jobModalCard .jobCardHeaderHeading .jobVehicleSection{margin:10px 0 0!important;width:100%;min-width:0}
+ .jobModalCard .jobCardHeaderHeading .jobVehicleSection .jobSectionGrid{grid-template-columns:minmax(0,1fr) minmax(100px,.55fr)!important}
+ .jobModalCard .jobCardHeaderHeading .noVehicleToggle{grid-column:1/-1}
+ .jobModalCard .jobCardHeaderRegistration{padding:0!important;overflow:hidden;min-width:180px}
+ .jobModalCard .jobCardHeaderRegistration::before{display:none}
+ .jobModalCard .jobCardHeaderRegistration .plateInputWrap{display:flex;align-items:stretch;margin:0;border:0!important}
+ .jobModalCard .jobCardHeaderRegistration .plateInputWrap>span{width:26px;flex:0 0 26px;display:flex;align-items:center;justify-content:center;background:#1d4ed8;color:white;font-size:10px}
+ .jobModalCard .jobCardHeaderRegistration input{width:170px!important;max-width:100%;min-width:0;border:0!important;border-radius:0!important;background:#efd13c!important;color:#111!important;padding:3px 10px!important;font-size:24px!important;font-weight:900!important;letter-spacing:1px;text-transform:uppercase;box-sizing:border-box}
+ .jobModalCard .jobCardHeaderHeading .jobVehicleSection .haynesJobVehicle>div{min-width:0}
+ .jobModalCard .jobCardHeaderHeading .jobVehicleSection .haynesJobVehicle a{font-size:12px!important}
+}
+@media screen and (max-width:600px){
+ .jobModalCard .jobModalHead.hasHeaderVehicleDetails>.jobCardHeaderHeading{grid-column:1/-1;grid-row:1}
+ .jobModalCard .jobModalHead.hasHeaderVehicleDetails>.jobCardHeaderVehicle{grid-column:2;grid-row:2}
+ .jobModalCard .jobModalHead.hasHeaderVehicleDetails>.jobModalHeadActions{grid-column:1;grid-row:2;align-self:start}
+}

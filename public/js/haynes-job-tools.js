@@ -175,12 +175,17 @@ root.initHaynesJobTools=function(modal){
  const header=modal.querySelector('.jobModalHead');
  const heading=document.createElement('div');heading.className='jobCardHeaderHeading';
  const plate=document.createElement('div');plate.className='jobCardHeaderRegistration';plate.setAttribute('aria-label','Vehicle registration');
- if(header){const title=header.querySelector('h2');header.insertBefore(heading,title);if(title)heading.appendChild(title);heading.appendChild(plate);}
+ if(header){
+  const title=header.querySelector('h2');header.insertBefore(heading,title);if(title)heading.appendChild(title);
+  const oldField=input.closest('.field'),registrationControl=input.closest('.plateInputWrap')||input;
+  input.setAttribute('aria-label','Vehicle registration');plate.appendChild(registrationControl);heading.appendChild(plate);
+  if(oldField)oldField.remove();heading.appendChild(section);header.classList.add('hasHeaderVehicleDetails');
+ }
  const picture=document.createElement('div');picture.className='jobCardHeaderVehicle';
  if(header){header.classList.add('hasJobCardVehicle');header.insertBefore(picture,header.querySelector('.jobModalHeadActions'));}
  function showHeaderVehicle(drawing){
   picture.replaceChildren();picture.hidden=!!modal.querySelector('#job_no_vehicle')?.checked;
-  const value=reg(input.value);plate.textContent=/^[A-Z]{2}\d{2}[A-Z]{3}$/.test(value)?value.slice(0,4)+' '+value.slice(4):value;plate.hidden=picture.hidden||!value;if(picture.hidden)return;
+  const value=reg(input.value);plate.hidden=picture.hidden;if(picture.hidden)return;
   const registration=reg(input.value),description={registration,make:modal.querySelector('#job_make')?.value,model:modal.querySelector('#job_model')?.value,vehicle:modal.querySelector('#job_vehicle')?.value};
   const colour=dashboardColour(description),name=[description.make,description.model||description.vehicle].filter(Boolean).join(' ');
   const fallback=()=>{picture.innerHTML=root.VectaFleetImages?.artwork?.(name,colour)||'';picture.title='Generic vehicle illustration — appearance may differ';};
