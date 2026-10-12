@@ -10,7 +10,7 @@ test('placeholders never reach Haynes, including after reopening or manual refre
  const fetcher=async()=>{calls++;return {ok:true,json:async()=>({status:'MATCHED',vehicle})};};
  for(let reopen=0;reopen<3;reopen++){
   const tools=setup(storage,fetcher);
-  for(const value of ['Van','Car','Unknown','TBC','Unknown1','No Reg','1234']){
+  for(const value of ['Van','Car','Unknown','TBC','Unknown1','No Reg','1234','RESCUE 2','RESCUE2']){
    assert.equal(validReg(value.toUpperCase().replace(/[^A-Z0-9]/g,'')),false);
    assert.equal(await tools.lookup(value,undefined,{background:true}),null);
    assert.equal(await tools.lookup(value,undefined,{force:true}),null);
@@ -88,4 +88,18 @@ test('KX15 FWF unavailable identification stays paused across all automatic cons
  assert.equal(calls,1);
  assert.equal((await setup(storage,fetcher).lookup('KX15FWF')).registration,'KX15FWF');
  assert.equal(calls,1);
+});
+
+test('a new unknown KX15 FWF result is persisted and never automatically repeated after reload',async()=>{
+ const storage=new Map();let calls=0;
+ const fetcher=async()=>{calls++;return {ok:true,json:async()=>({status:'UNKNOWN'})};};
+ assert.equal(await setup(storage,fetcher).lookup('KX15 FWF'),null);
+ for(let reload=0;reload<3;reload++){
+  const tools=setup(storage,fetcher);
+  assert.equal(await tools.lookup('KX15FWF'),null);
+  assert.equal(tools.lookupStatus('KX15FWF'),'UNKNOWN');
+ }
+ assert.equal(calls,1);
+ await setup(storage,fetcher).lookup('KX15FWF',undefined,{force:true});
+ assert.equal(calls,2);
 });

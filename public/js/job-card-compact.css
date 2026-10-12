@@ -101,3 +101,33 @@
 @media screen and (max-width:700px){
  .jobModalCard .jobModalHead.jobCardPinnedHeader>.jobCardHeaderVehicle{height:160px!important}
 }
+
+/* Vehicle identity and editable details share one pinned top band. */
+@media screen {
+ #jobModal .jobModalHead.jobCardPinnedHeader{display:grid!important;grid-template-columns:minmax(0,1fr) minmax(230px,350px)!important;grid-template-rows:auto auto auto;gap:6px 18px!important;margin-bottom:0!important;flex:0 0 auto;max-height:42dvh;overflow-y:auto}
+ #jobModal .jobModalHead.jobCardPinnedHeader>.jobCardHeaderHeading{grid-column:1;grid-row:1;padding:0!important;display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+ #jobModal .jobModalHead.jobCardPinnedHeader>.jobCardHeaderVehicle{grid-column:2;grid-row:1/4;height:190px!important;align-self:start!important}
+ #jobModal .jobModalHead.jobCardPinnedHeader>.jobModalHeadActions{grid-column:1;grid-row:3;justify-content:flex-start}
+ #jobModal .jobModalHead.jobCardPinnedHeader>.jobCardHeaderDetails{grid-column:1;grid-row:2;display:block;margin:0;min-width:0}
+ #jobModal .jobCardHeaderDetails .jobVehicleSection{border:0;background:transparent;box-shadow:none}
+ #jobModal .jobCardHeaderDetails .jobVehicleSection>.jobFormSectionHead{display:none}
+ #jobModal .jobCardHeaderDetails .jobVehicleSection .jobSectionGrid{grid-template-columns:minmax(0,2fr) minmax(100px,1fr)!important;padding:0!important;gap:5px 10px!important}
+ #jobModal .jobCardHeaderDetails .noVehicleToggle{grid-column:1/-1;margin:0}
+ #jobModal .jobCardHeaderDetails .haynesJobTools{padding:4px 0!important}
+ #jobModal .jobCardHeaderDetails .haynesJobVehicle img{display:none}
+ #jobModal .jobCardSections{display:grid;grid-template-columns:minmax(0,1.25fr) minmax(0,1fr);align-items:start;gap:12px!important}
+ #jobModal .jobCardSections>.jobCardMainColumn,#jobModal .jobCardSections>.jobCardSupportColumn{grid-column:auto;display:flex;flex-direction:column;gap:10px;min-width:0}
+ #jobModal .jobCardMainColumn>*,#jobModal .jobCardSupportColumn>*{margin:0!important;min-width:0}
+ #jobModal .jobWorkSection .jobSectionGrid{display:block!important}
+ #jobModal .jobWorkSection #job_work_required{width:100%;min-height:100px!important;box-sizing:border-box}
+ #jobModal .jobContactSection .jobSectionGrid,#jobModal .jobBookingSection .jobSectionGrid{grid-template-columns:repeat(2,minmax(0,1fr))!important}
+}
+@media screen and (max-width:700px){
+ #jobModal .jobModalHead.jobCardPinnedHeader{grid-template-columns:minmax(0,1fr) minmax(130px,40%)!important;gap:5px 8px!important;max-height:45dvh}
+ #jobModal .jobModalHead.jobCardPinnedHeader>.jobCardHeaderVehicle{height:150px!important;grid-row:1/3}
+ #jobModal .jobModalHead.jobCardPinnedHeader>.jobCardHeaderDetails{grid-column:1/-1;grid-row:3}
+ #jobModal .jobModalHead.jobCardPinnedHeader>.jobModalHeadActions{grid-row:2}
+ #jobModal .jobCardSections{grid-template-columns:minmax(0,1fr)}
+ #jobModal .jobCardHeaderRegistration{min-width:0;max-width:100%}
+ #jobModal .jobCardHeaderRegistration input{width:145px!important;font-size:22px!important}
+}

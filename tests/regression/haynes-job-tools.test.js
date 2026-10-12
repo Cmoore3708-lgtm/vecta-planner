@@ -8,7 +8,7 @@ import traverseModule from '@babel/traverse';
 const traverse=traverseModule.default||traverseModule;
 const source=readFileSync(new URL('../../public/js/haynes-job-tools.js',import.meta.url),'utf8');
 const vehicle={registration:'FX69XWU',make:'Nissan',model:'Qashqai',variant:'1.7 dCi',typeId:'t_301000368',imageUrl:'https://www.haynespro-assets.com/workshop/images/123.svg',fetchedAt:new Date().toISOString()};
-function setup(fetcher,artwork){const {window,document}=parseHTML('<html><body><div id="modal"><div class="jobModalHead"><h2>Edit Job</h2><div class="jobModalHeadActions"><button>Close</button></div></div><section class="jobVehicleSection"><input id="job_registration" value="FX69 XWU"><input id="job_make" value="Nissan"><input type="checkbox" id="job_no_vehicle"></section><button id="save">Save</button></div></body></html>');delete window.VectaVehicleImage;delete window.app;delete window.fleetVehicles;window.fetch=fetcher;window.VectaFleetImages={artwork};vm.runInNewContext(source,{window,document,AbortController,AbortSignal,setTimeout,clearTimeout,encodeURIComponent});window.initHaynesJobTools(document.querySelector('#modal'));return {window,document,panel:document.querySelector('.haynesJobTools')};}
+function setup(fetcher,artwork){const {window,document}=parseHTML('<html><body><div id="modal"><div class="jobModalHead"><h2>Edit Job</h2><div class="jobModalHeadActions"><button>Close</button></div></div><section class="jobVehicleSection"><input id="job_registration" value="FX69 XWU"><input id="job_make" value="Nissan"><input type="checkbox" id="job_no_vehicle"></section><div class="jobCardSections"><section class="jobWorkSection"></section><section class="jobPreviousWorkSection"></section><section class="jobContactSection"></section><section class="jobBookingSection"></section><section class="jobFormSection"><div class="jobPartsEditor"></div></section><section class="privatePricingSection"></section></div><button id="save">Save</button></div></body></html>');delete window.VectaVehicleImage;delete window.app;delete window.fleetVehicles;window.fetch=fetcher;window.VectaFleetImages={artwork};vm.runInNewContext(source,{window,document,AbortController,AbortSignal,setTimeout,clearTimeout,encodeURIComponent});window.initHaynesJobTools(document.querySelector('#modal'));return {window,document,panel:document.querySelector('.haynesJobTools')};}
 const response=v=>({ok:true,json:async()=>({status:'MATCHED',vehicle:v})});
 test('vehicle details sit below the single editable header registration',async()=>{
  const {window,document}=setup(async()=>response(vehicle));
@@ -16,9 +16,11 @@ test('vehicle details sit below the single editable header registration',async()
  const heading=document.querySelector('.jobCardHeaderHeading'),input=document.querySelector('#job_registration');
  assert.equal(document.querySelectorAll('#job_registration').length,1);
  assert.equal(input.closest('.jobCardHeaderRegistration').parentElement,heading);
- assert.equal(document.querySelector('.jobCardHeaderDetails .jobVehicleSection').parentElement.previousElementSibling,heading.parentElement);
+ assert.equal(document.querySelector('.jobCardHeaderDetails .jobVehicleSection').closest('.jobModalHead'),heading.parentElement);
  assert.ok(heading.parentElement.classList.contains('jobCardPinnedHeader'));
  assert.equal(document.querySelector('.jobVehicleSection #job_registration'),null);
+ assert.deepEqual(Array.from(document.querySelector('.jobCardMainColumn').children).map(el=>el.className),['jobWorkSection','jobBookingSection','privatePricingSection']);
+ assert.deepEqual(Array.from(document.querySelector('.jobCardSupportColumn').children).map(el=>el.className),['jobContactSection','jobPreviousWorkSection','jobFormSection']);
  input.value='AB12 XYZ';input.dispatchEvent(new window.Event('input'));
  assert.equal(document.querySelector('#job_registration'),input);
  assert.equal(input.value,'AB12 XYZ');

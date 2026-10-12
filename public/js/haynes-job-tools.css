@@ -238,3 +238,29 @@
  .mobilePlanner .mobileJob.hasHaynesDashboardImage .mobileJobTop{min-height:166px!important}
  .mobilePlanner .mobileJob>.haynesDashboardImage{top:46px!important;right:10px!important;width:180px!important;max-width:48%!important;height:116px!important;object-fit:contain!important;object-position:right top!important}
 }
+
+/* One scroll surface; every backlog card owns its complete, fixed-height content. */
+@media screen and (min-width:901px){
+ #content .livePriorityBacklog{overflow-y:auto!important;min-height:0;align-self:start}
+ #content .livePriorityBacklog>.unallocatedPanel{height:auto!important;max-height:none!important;display:block!important;overflow:visible!important}
+ #content .livePriorityBacklog .unallocatedJobList{display:flex!important;flex-direction:column!important;flex:none!important;height:auto!important;max-height:none!important;overflow:visible!important}
+ #content .livePriorityBacklog .unallocatedSideJob{box-sizing:border-box!important;position:relative;flex:none!important;width:100%!important;height:120px!important;min-height:120px!important;max-height:120px!important;padding:8px!important;overflow:hidden!important}
+ #content .livePriorityBacklog .unallocatedVehicleHeader{display:flex;align-items:center;gap:8px;width:100%;min-width:0;position:relative;z-index:2}
+ #content .livePriorityBacklog .unallocatedVehicleHeader>.uniformRegPlate{flex:0 0 88px;margin:0!important}
+ #content .unallocatedVehicleName{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:12px;font-weight:800;line-height:1.3}
+ #content .livePriorityBacklog .unallocatedSideJob>.sideJobType,#content .livePriorityBacklog .unallocatedSideJob>b{width:calc(100% - 112px)!important;box-sizing:border-box;position:relative;z-index:1}
+ #content .livePriorityBacklog .unallocatedSideJob>b{display:-webkit-box!important;-webkit-line-clamp:3!important;-webkit-box-orient:vertical;white-space:normal!important;max-height:55px!important;line-height:1.3!important}
+ #content .livePriorityBacklog .unallocatedSideJob>.haynesDashboardImage{top:32px!important;width:108px!important;max-width:42%!important;height:80px!important;right:6px!important}
+ /* Reserve the whole top row for registration and vehicle identity. */
+ #content .livePriorityPlanner .plannerGrid .lane .job .plannerJobHeader{width:100%!important}
+ #content .livePriorityPlanner .plannerGrid .lane .job .plannerJobLeft{display:flex!important;flex-direction:row!important;flex-wrap:nowrap!important;align-items:center!important;gap:8px!important;width:100%!important;padding-top:0!important}
+ #content .livePriorityPlanner .plannerJobLeft>.plannerPlateAndMot{display:flex!important;position:static!important;flex:0 0 auto;align-items:center;gap:6px}
+ #content .livePriorityPlanner .plannerGrid .lane .job .plannerJobVehicle{display:block!important;min-width:0!important;flex:1!important;max-width:none!important;margin:0!important;white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important;text-align:left!important}
+ #content .livePriorityPlanner .plannerGrid .lane .job .plannerJobRightText{width:calc(100% - var(--planner-vehicle-text-inset,150px))!important}
+ #content .livePriorityPlanner .plannerGrid .lane .job .plannerJobHeader>.haynesDashboardImage{top:32px!important;height:max(0px,calc(100% - 36px))!important}
+}
+@media screen and (max-width:900px){
+ .unallocatedVehicleHeader{display:flex;align-items:center;gap:8px;min-width:0}
+ .unallocatedVehicleHeader>.uniformRegPlate{flex:0 0 auto}
+ .unallocatedVehicleName{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:800;font-size:12px}
+}
