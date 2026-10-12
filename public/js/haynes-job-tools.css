@@ -91,16 +91,19 @@
  }
  .livePriorityPlanner .plannerGrid .lane .job .plannerJobLeft{display:flex!important;flex-direction:column;align-items:flex-start;gap:3px;width:100%!important;min-width:0!important;height:auto!important}
  .livePriorityPlanner .plannerGrid .lane .job .plannerJobRightText{width:100%!important;min-width:0!important;height:28px!important;max-height:28px!important;overflow:hidden!important}
- .livePriorityPlanner .plannerGrid .lane .job .uniformRegPlate{height:26px!important;min-height:26px!important}
+ .livePriorityPlanner .plannerGrid .lane .job .plannerPlateWrap{width:104px!important;min-width:104px!important;max-width:104px!important}
+ .livePriorityPlanner .plannerGrid .lane .job .uniformRegPlate{width:104px!important;max-width:104px!important;height:26px!important;min-height:26px!important}
  .livePriorityPlanner .plannerGrid .lane .job .plannerJobHeader>.haynesDashboardImage{
-  width:324px!important;max-width:52%!important;height:min(180px,max(0px,calc(100% - 10px)))!important;
+  width:324px!important;max-width:52%!important;height:min(180px,max(0px,calc(100% - 84px)))!important;
   top:3px!important;right:6px!important;object-fit:contain!important;object-position:right top!important
  }
  .livePriorityPlanner .plannerGrid .lane .job .uniformRegPlate b{font-size:14px!important;height:26px!important;min-height:26px!important;line-height:26px!important}
  .livePriorityPlanner .plannerGrid .lane .job .uniformRegPlate .ukStrip{height:26px!important;min-height:26px!important;font-size:7px!important}
  .livePriorityPlanner .plannerGrid .lane .job .plannerJobVehicle{font-size:11px!important;max-width:100%!important;line-height:1.2!important}
  .livePriorityPlanner .plannerGrid .lane .job .plannerJobTypeLine,.livePriorityPlanner .plannerGrid .lane .job .plannerJobTypeName{font-size:12px!important;line-height:1.2!important}
- .livePriorityPlanner .plannerGrid .lane .job:not(.miniPlannerTask) .plannerWorkRequired{top:76px!important;font-size:14px!important;line-height:1.3!important}
+ .livePriorityPlanner .plannerGrid .lane .job:not(.miniPlannerTask) .plannerWorkRequired{top:76px!important;right:12px!important;width:auto!important;max-width:none!important;font-size:14px!important;line-height:1.3!important}
+ .livePriorityPlanner .plannerGrid .lane .plannerJobCompact .plannerJobHeader>.haynesDashboardImage{height:52px!important}
+ .livePriorityPlanner .plannerGrid .lane .plannerJobMedium .plannerJobHeader>.haynesDashboardImage{height:66px!important}
  .livePriorityPlanner .plannerGrid .lane .plannerJobCompact .plannerWorkRequired{top:58px!important;font-size:12px!important}
  .livePriorityPlanner .plannerGrid .lane .plannerJobMedium .plannerWorkRequired{top:70px!important;font-size:13px!important}
  .livePriorityPlanner .plannerGrid .lane .plannerJobMicro .plannerJobVehicle{display:none!important}
