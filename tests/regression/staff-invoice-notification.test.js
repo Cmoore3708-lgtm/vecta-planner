@@ -12,7 +12,7 @@ function setup(){
  const {document}=parseHTML('<html><body><div id="invoiceModal"></div></body></html>');
  const events=[],tab={closed:false,document:{body:{}},location:{replace:url=>events.push(['navigate',url])},close(){this.closed=true;events.push(['close'])}};
  const inv={id:'i',job_id:'j',total:175,customer_phone:'07700123456',customer_email:'customer@example.com'};
- const ctx={document,console,app:{jobs:[{id:'j',customer_account:'Staff',customer_note:'Contact preference: Email || Other: detail'}],customers:[],websiteRequests:[],invoices:[]},invoiceNotificationSaves:{},invoiceCustomerAccount:()=> 'STAFF',vehicleTaxInvoiceTitle:()=>'',invoiceEmailRecipient:i=>({email:i.customer_email,name:'Jane Smith'}),fleetInvoiceFormatRegistration:()=> 'AB12 CDE',esc:s=>String(s).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;'),closeModals:()=>document.getElementById('invoiceModal').classList.remove('open'),window:{open:()=>{events.push(['open']);return tab}},gatherInvoice:()=>inv,saveInvoice:async()=>{events.push(['save']);ctx.app.invoices=[inv];return true},createInvoiceCustomerLink:async()=>{events.push(['link']);return 'https://workshop.example/invoice?token=secure'}};
+ const ctx={document,console,URL,AbortSignal,app:{jobs:[{id:'j',customer_account:'Staff',customer_note:'Contact preference: Email || Other: detail'}],customers:[],websiteRequests:[],invoices:[]},invoiceNotificationSaves:{},invoiceCustomerAccount:()=> 'STAFF',vehicleTaxInvoiceTitle:()=>'',invoiceEmailRecipient:i=>({email:i.customer_email,name:'Jane Smith'}),fleetInvoiceFormatRegistration:()=> 'AB12 CDE',esc:s=>String(s).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;'),closeModals:()=>document.getElementById('invoiceModal').classList.remove('open'),window:{open:()=>{events.push(['open']);return tab}},gatherInvoice:()=>inv,saveInvoice:async()=>{events.push(['save']);ctx.app.invoices=[inv];return true},createInvoiceCustomerLink:async()=>{events.push(['link']);return 'https://workshop.example/invoice?token=secure'}};
  vm.createContext(ctx);
  for(const match of html.matchAll(/<script(?:\s[^>]*)?>([\s\S]*?)<\/script>/gi)){
   const ast=parse(match[1],{sourceType:'script'});(traverse.default||traverse)(ast,{FunctionDeclaration(path){if(names.includes(path.node.id.name))vm.runInContext((gen.default||gen)(path.node).code,ctx)}});
@@ -22,7 +22,7 @@ function setup(){
 test('selected Email overrides available WhatsApp; exact message contains gross total and signed link',()=>{
  const {ctx,inv}=setup(),url='https://workshop.example/invoice?token=secure',n=ctx.invoiceCustomerNotification(inv,url);
  assert.equal(n.channel,'email');assert.equal(n.preferredUrl,n.email);
- assert.equal(new URL(n.email).searchParams.get('body'),'Hi Jane,\n\nWe have completed the work on your car. The total price is £175.00. You can view your invoice here '+url+'. We will send you a payment link shortly. Thank you for your custom.');
+ assert.equal(new URL(n.email).searchParams.get('body'),'Hi Jane,\n\nWe have completed the work on your car. The total price is £175.00.\n\nYou can view your invoice here:\n'+url+'\n\nWe will send you a payment link shortly. Thank you for your custom.');
  ctx.app.jobs[0].customer_note='Contact preference: WhatsApp';const w=ctx.invoiceCustomerNotification(inv,url);assert.equal(w.preferredUrl,w.whatsapp);assert.equal(new URL(w.whatsapp).pathname,'/447700123456');
 });
 test('reserve on click before asynchronous save; open only with confirmed invoice and PDF link; repeat saves supported',async()=>{
@@ -41,4 +41,13 @@ test('blocked popup retains ready message with direct email/WhatsApp links',asyn
 test('missing preferred contact does not silently use another channel; double-click saves only once',async()=>{
  const {ctx,inv,events}=setup();inv.customer_email='';assert.equal(ctx.invoiceCustomerNotification(inv).preferredUrl,'');
  let resolve;ctx.saveInvoice=()=>new Promise(r=>{resolve=r});const first=ctx.saveInvoiceAndNotify('i');assert.equal(await ctx.saveInvoiceAndNotify('i'),false);ctx.app.invoices=[inv];resolve(true);await first;assert.ok(!events.some(e=>e[0]==='navigate'));
+});
+
+
+test('message link requests shortening and validates both destinations', async()=>{
+ const {ctx,inv}=setup();vm.runInContext(html.match(/async function createInvoiceCustomerLink\(inv\)\{[\s\S]*?\n\}/)[0],ctx);ctx.window.location={host:'workshop.example'};
+ ctx.fetch=async (url,options)=>{assert.equal(JSON.parse(options.body).shorten,true);return {ok:true,json:async()=>({url:'https://tinyurl.com/test123',invoice_url:'https://workshop.example/invoice?token=secure'})}};
+ assert.equal(await ctx.createInvoiceCustomerLink(inv),'https://tinyurl.com/test123');
+ ctx.fetch=async()=>({ok:true,json:async()=>({url:'https://attacker.example/test',invoice_url:'https://workshop.example/invoice?token=secure'})});
+ await assert.rejects(ctx.createInvoiceCustomerLink(inv),/Short invoice link unavailable/);
 });

@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { PDFDocument } from 'pdf-lib';
-import handler, { issueInvoiceToken, verifyInvoiceToken, invoiceFingerprint, renderCustomerInvoicePdf } from '../../api/_invoice-pdf.js';
+import handler, { issueInvoiceToken, verifyInvoiceToken, invoiceFingerprint, renderCustomerInvoicePdf, shortenInvoiceUrl } from '../../api/_invoice-pdf.js';
 import { managerSessionCookie, requiresManagerLogin } from '../../middleware.js';
 
 const invoice = { id: 'invoice-123', invoice_number: 'VECTA-79001', invoice_date: '2026-10-07', job_id: 'job-123', customer_name: 'Jane Smith', registration: 'AB12 CDE', vehicle: 'Nissan Qashqai', mileage: 48210, status: 'saved', lines: [
@@ -20,7 +20,7 @@ test('signed tokens are invoice-specific, expire, reject tampering and do not ex
   assert.equal(verifyInvoiceToken(token + 'extra', secret, now), null);
   assert.equal(verifyInvoiceToken('invoice-123', secret, now), null);
   assert.notEqual(invoiceFingerprint(invoice), invoiceFingerprint({ ...invoice, total: 175 }));
-  assert.notEqual(invoiceFingerprint(invoice), invoiceFingerprint({ ...invoice, status: 'void' }));
+  assert.equal(invoiceFingerprint(invoice), invoiceFingerprint({ ...invoice, status: 'paid' }));
   const decoded = Buffer.from(token.split('.')[0], 'base64url').toString();
   assert.ok(!decoded.includes(invoice.customer_name)); assert.ok(!token.includes(secret));
   assert.equal(requiresManagerLogin('/invoice'), false, 'Customer download must not ask for workshop credentials');
@@ -55,6 +55,7 @@ test('only a signed-in manager can issue links; customer token fetch exposes onl
     assert.match(res.headers['Cache-Control'], /no-store/); assert.equal(res.headers['Referrer-Policy'], 'no-referrer');
     assert.match(res.headers['Content-Disposition'], /^inline; filename="VECTA-Invoice-VECTA-79001.pdf"/);
     const pdf = await PDFDocument.load(res.body); assert.equal(pdf.getPageCount(), 1);
+    currentInvoice = { ...invoice, status: 'paid', payment_method: 'Card' }; res = response(); await handler({ method: 'GET', headers: {}, query: { token } }, res); assert.equal(res.code, 200);
     currentInvoice = { ...invoice, total: 175 }; res = response(); await handler({ method: 'GET', headers: {}, query: { token } }, res); assert.equal(res.code, 404);
     currentInvoice = { ...invoice, status: 'void' }; res = response(); await handler({ method: 'GET', headers: {}, query: { token } }, res); assert.equal(res.code, 404);
     currentInvoice = null; res = response(); await handler({ method: 'GET', headers: {}, query: { token } }, res); assert.equal(res.code, 404);
@@ -71,4 +72,17 @@ test('PDF renderer handles long descriptions and many work lines without clippin
   const pdf = await PDFDocument.load(bytes); assert.ok(pdf.getPageCount() > 2);
   const unicode = await renderCustomerInvoicePdf({ ...invoice, customer_name: 'Renée 李', lines: [{ description: 'Réparation ✓ - filter replacement', amount: 174, vat_mode: 'inc_vat' }] }, settings);
   assert.equal((await PDFDocument.load(unicode)).getPageCount(), 1);
+});
+
+
+test('TinyURL shortening encodes the complete signed address and rejects bad results', async () => {
+  const oldFetch = globalThis.fetch, url = 'https://workshop.example/invoice?token=abc.def';
+  try {
+    globalThis.fetch = async endpoint => { assert.equal(new URL(endpoint).searchParams.get('url'), url); return new Response('https://tinyurl.com/test123\n'); };
+    assert.equal(await shortenInvoiceUrl(url), 'https://tinyurl.com/test123');
+    for (const invalid of ['https://attacker.example/test', 'http://tinyurl.com/test', 'https://tinyurl.com/', 'https://tinyurl.com/test?redirect=bad']) {
+      globalThis.fetch = async () => new Response(invalid); await assert.rejects(shortenInvoiceUrl(url));
+    }
+    globalThis.fetch = async () => new Response('Unavailable', {status: 503}); await assert.rejects(shortenInvoiceUrl(url));
+  } finally { globalThis.fetch = oldFetch; }
 });

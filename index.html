@@ -15185,7 +15185,7 @@ function invoiceCustomerNotification(inv,invoiceUrl){
   var phone=String(inv.customer_phone||(job&&job.customer_phone)||(customer&&customer.phone)||'').replace(/[^0-9]/g,'');
   if(phone.indexOf('0044')===0)phone=phone.slice(2);else if(phone.indexOf('0')===0)phone='44'+phone.slice(1);
   var mobile=/^447\d{9}$/.test(phone),reg=fleetInvoiceFormatRegistration(inv.registration||(job&&job.registration)||'');
-  var body=account==='STAFF'?'Hi '+(recipient.name.trim().split(/\s+/)[0]||'Customer')+',\n\nWe have completed the work on your car. The total price is £'+Number(inv.total||0).toFixed(2)+'. You can view your invoice here '+(invoiceUrl||'')+'. We will send you a payment link shortly. Thank you for your custom.':'Hi '+(recipient.name.split(/\s+/)[0]||'Customer')+'. The work on your car ('+reg+') is complete. It is ready to collect from our workshop.'+(invoiceUrl?'\n\nView or download your invoice PDF: '+invoiceUrl:'');
+  var body=account==='STAFF'?'Hi '+(recipient.name.trim().split(/\s+/)[0]||'Customer')+',\n\nWe have completed the work on your car. The total price is £'+Number(inv.total||0).toFixed(2)+'.\n\nYou can view your invoice here:\n'+(invoiceUrl||'')+'\n\nWe will send you a payment link shortly. Thank you for your custom.':'Hi '+(recipient.name.split(/\s+/)[0]||'Customer')+'. The work on your car ('+reg+') is complete. It is ready to collect from our workshop.'+(invoiceUrl?'\n\nView or download your invoice PDF: '+invoiceUrl:'');
   var emailBody=account==='STAFF'?body:(typeof appendVectaEmailSignature==='function'?appendVectaEmailSignature(body):body);
   var whatsapp=account==='STAFF'&&mobile?'https://wa.me/'+phone+'?text='+encodeURIComponent(body):'',email=recipient.email?'mailto:'+encodeURIComponent(recipient.email)+'?subject='+encodeURIComponent(reg+' — work complete')+'&body='+encodeURIComponent(emailBody):'';
   var preference=invoiceCustomerContactPreference(inv,job,customer),channel=account!=='STAFF'?'email':preference||(whatsapp?'whatsapp':'email');
@@ -15197,9 +15197,9 @@ function reserveInvoiceMessageWindow(notice){
 }
 function closeInvoiceMessageWindow(tab){try{if(tab&&!tab.closed)tab.close()}catch(e){}}
 async function createInvoiceCustomerLink(inv){
-  var response=await fetch('/api/additional-work?invoicePdf=1',{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json'},body:JSON.stringify({invoice_id:inv.id}),signal:AbortSignal.timeout(15000)});
+  var response=await fetch('/api/additional-work?invoicePdf=1',{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json'},body:JSON.stringify({invoice_id:inv.id,shorten:true}),signal:AbortSignal.timeout(25000)});
   var data=await response.json();if(!response.ok||!data.url)throw new Error(data.error||'Invoice PDF link unavailable');
-  var link=new URL(data.url);if(link.protocol!=='https:'||link.host!==window.location.host||link.pathname!=='/invoice')throw new Error('Unexpected invoice PDF address');return link.href;
+  var direct=new URL(data.invoice_url||data.url),link=new URL(data.url);if(direct.protocol!=='https:'||direct.host!==window.location.host||direct.pathname!=='/invoice')throw new Error('Unexpected invoice PDF address');if(link.protocol!=='https:'||link.hostname!=='tinyurl.com'||link.username||link.password||!/^\/[A-Za-z0-9_-]+$/.test(link.pathname)||link.search||link.hash)throw new Error('Short invoice link unavailable');return link.href;
 }
 async function promptInvoiceCustomerNotification(inv,messageWindow){
   var notice=invoiceCustomerNotification(inv);if(!notice){closeInvoiceMessageWindow(messageWindow);return false;}
