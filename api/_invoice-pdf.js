@@ -7,9 +7,19 @@ import { managerGate, validManagerSession } from '../middleware.js';
 const LINK_SECONDS = 90 * 24 * 60 * 60;
 const validId = id => typeof id === 'string' && /^[a-zA-Z0-9_-]{1,100}$/.test(id);
 const active = invoice => invoice && !['draft', 'void', 'cancelled', 'deleted'].includes(String(invoice.status || '').toLowerCase());
-export function invoiceFingerprint(invoice) {
-  const fields = ['id', 'invoice_number', 'invoice_date', 'job_id', 'customer_name', 'customer_phone', 'customer_address', 'registration', 'vehicle', 'mileage', 'mot_due', 'lines', 'subtotal', 'vat', 'total', 'status'];
+export function invoiceFingerprint(invoice, legacy = false) {
+  const fields = ['id', 'invoice_number', 'invoice_date', 'job_id', 'customer_name', 'customer_phone', 'customer_address', 'registration', 'vehicle', 'mileage', 'mot_due', 'lines', 'subtotal', 'vat', 'total'];
+  if (legacy) fields.push('status');
   return createHash('sha256').update(JSON.stringify(fields.map(key => invoice[key] ?? null))).digest('hex');
+}
+export async function shortenInvoiceUrl(url) {
+  const response = await fetch('https://tinyurl.com/api-create.php?url=' + encodeURIComponent(url), {
+    redirect: 'error', signal: AbortSignal.timeout(6000)
+  });
+  if (!response.ok) throw new Error('Short invoice link unavailable');
+  const shortUrl = new URL((await response.text()).trim());
+  if (shortUrl.protocol !== 'https:' || shortUrl.hostname !== 'tinyurl.com' || shortUrl.username || shortUrl.password || !/^\/[A-Za-z0-9_-]+$/.test(shortUrl.pathname) || shortUrl.search || shortUrl.hash) throw new Error('Invalid short invoice link');
+  return shortUrl.href;
 }
 export function issueInvoiceToken(invoice, secret, now = Date.now()) {
   const payload = Buffer.from(JSON.stringify({ id: invoice.id, exp: Math.floor(now / 1000) + LINK_SECONDS, hash: invoiceFingerprint(invoice), nonce: randomBytes(16).toString('hex') })).toString('base64url');
@@ -143,10 +153,12 @@ export default async function invoicePdfHandler(req, res) {
     const id = req.method === 'POST' ? req.body?.invoice_id : claim?.id;
     if (!validId(id)) return res.status(404).json({ error: 'Invoice link is unavailable or has expired' });
     const invoice = (await rows(config, 'invoices?select=*&id=eq.' + encodeURIComponent(id) + '&limit=1'))[0];
-    if (!active(invoice) || (claim && claim.hash !== invoiceFingerprint(invoice))) return res.status(404).json({ error: 'Invoice link is unavailable or has expired' });
+    if (!active(invoice) || (claim && ![invoiceFingerprint(invoice), invoiceFingerprint(invoice, true), invoiceFingerprint({ ...invoice, status: 'saved' }, true)].includes(claim.hash))) return res.status(404).json({ error: 'Invoice link is unavailable or has expired' });
     if (req.method === 'POST') {
       const token = issueInvoiceToken(invoice, secret);
-      return res.status(201).json({ url: 'https://' + req.headers.host + '/invoice?token=' + token, expires_in_days: 90 });
+      const url = 'https://' + req.headers.host + '/invoice?token=' + token;
+      if (req.body?.shorten === true) return res.status(201).json({ url: await shortenInvoiceUrl(url), invoice_url: url, expires_in_days: 90 });
+      return res.status(201).json({ url, expires_in_days: 90 });
     }
     const [settingRows, jobRows] = await Promise.all([
       rows(config, 'workshop_settings?select=value&id=eq.main&limit=1'),
@@ -162,3 +174,4 @@ export default async function invoicePdfHandler(req, res) {
     return res.status(503).json({ error: 'Invoice download is temporarily unavailable. Please try again.' });
   }
 }
+
