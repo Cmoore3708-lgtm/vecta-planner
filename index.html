@@ -2852,6 +2852,20 @@ body.servicePreviewing .servicePreviewControls{position:relative!important;z-ind
 <script src="/js/vecta-fleet-images.js" defer></script>
 <link rel="stylesheet" href="/js/vecta-fleet-images.css">
 <link rel="stylesheet" href="/js/job-card-compact.css">
+<style id="live-priority-dashboard-layout">
+@media(min-width:901px){
+ .plannerLayout.v233Planner.livePriorityPlanner.livePriorityPlanner{grid-template-columns:minmax(0,3fr) minmax(215px,1fr)!important;gap:10px!important}
+ .livePriorityPlanner.livePriorityPlanner .plannerGrid{grid-template-columns:48px minmax(0,1fr) minmax(0,1fr) minmax(0,1fr)!important;min-width:0!important}
+ .livePriorityPlanner.livePriorityPlanner .head{padding:10px 8px}
+ .livePriorityBacklog{min-width:0;display:flex;flex-direction:column;gap:10px;max-height:calc(100vh - 180px);overflow-y:auto;scrollbar-gutter:stable}
+ .livePriorityBacklog .panel{margin:0;padding:10px;min-width:0}
+ .livePriorityBacklog .unallocatedJobList{display:flex;flex-direction:column;gap:8px}
+ .livePriorityBacklog .sideJob{min-width:0;max-width:none;width:100%;margin:0}
+ .livePriorityBacklog h3{font-size:12px}
+ .livePriorityTasks{margin-top:12px}
+}
+@media(max-width:900px){.livePriorityBacklog,.livePriorityTasks{display:none}}
+</style>
 </head>
 <body>
 <!-- VECTA v200: unfinished jobs stay allocated; no carried-over column -->
@@ -12822,7 +12836,7 @@ function plannerHtml(){
   var live=plannerWindowConfig(jobs,mechanics);plannerStartMinutes=live.startMinutes;
   var bodyHeight=((live.dayLast-plannerStartMinutes)/60)*PLANNER_PX_PER_HOUR;
   var gridStyle='grid-template-columns:62px minmax(190px,1fr) minmax(190px,1fr) minmax(155px,.72fr);--planner-body-height:'+bodyHeight+'px;--planner-grid-position:'+live.gridPosition+'px;min-width:650px;';
-  return '<div class="timeOffToolbar"><button class="btn dark" id="manageTimeOff" type="button">Manage Holidays & Time Off</button></div>'+plannerMetricsHtml(mechanics,jobs,dayJobs)+'<div class="mobilePlannerNotice">Mobile planner mode: tap a job to open its full job card.</div>'+mobilePlannerHtml(mechanics,jobs)+'<div class="horizontalUnallocated">'+unallocatedPanelHtml()+quotePanelHtml()+'</div><div class="plannerLayout v233Planner"><div class="plannerCard">'+plannerLiveControlsHtml(live)+'<div class="plannerGrid liveWindow" style="'+gridStyle+'"><div class="head">Time</div>'+mechanics.map(function(m,i){return '<div class="head"><div>'+esc(m)+'<small>'+mechanicHours(dayJobs,m)+' hrs booked</small></div></div>'}).join('')+currentTimeLineHtml(live)+'<div class="timeCol" style="height:'+bodyHeight+'px">'+plannerTimeRows(plannerStartMinutes,live.dayLast)+'</div>'+mechanics.map(function(m){return laneHtml(m,jobs)}).join('')+'</div></div>'+myTasksHtml('desktop')+'</div><div class="mobileTasksBottom">'+myTasksHtml('mobile')+'</div>';
+  return '<div class="timeOffToolbar"><button class="btn dark" id="manageTimeOff" type="button">Manage Holidays & Time Off</button></div>'+plannerMetricsHtml(mechanics,jobs,dayJobs)+'<div class="mobilePlannerNotice">Mobile planner mode: tap a job to open its full job card.</div>'+mobilePlannerHtml(mechanics,jobs)+'<div class="plannerLayout v233Planner livePriorityPlanner"><div class="plannerCard">'+plannerLiveControlsHtml(live)+'<div class="plannerGrid liveWindow" style="'+gridStyle+'"><div class="head">Time</div>'+mechanics.map(function(m,i){return '<div class="head"><div>'+esc(m)+'<small>'+mechanicHours(dayJobs,m)+' hrs booked</small></div></div>'}).join('')+currentTimeLineHtml(live)+'<div class="timeCol" style="height:'+bodyHeight+'px">'+plannerTimeRows(plannerStartMinutes,live.dayLast)+'</div>'+mechanics.map(function(m){return laneHtml(m,jobs)}).join('')+'</div></div><div class="livePriorityBacklog" aria-label="Unallocated jobs and quotes">'+unallocatedPanelHtml()+quotePanelHtml()+'</div></div><div class="livePriorityTasks">'+myTasksHtml('desktop')+'</div><div class="mobileTasksBottom">'+myTasksHtml('mobile')+'</div>';
 }
 
 
