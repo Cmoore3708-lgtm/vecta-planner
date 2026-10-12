@@ -9,6 +9,20 @@ function vehicleLink(v){
 }
 const KEY='vecta_haynes_vehicle_snapshots_v1',TTL=86400000,cache=new Map(),pending=new Map(),failed=new Map(),failStatus=new Map();
 let dailyBlockedUntil=0;
+// Vehicle identity is stable; service schedules still have their own mileage-aware cache.
+const ID_KEY='vecta_haynes_vehicle_identity_v1',identities=new Map();
+const RETRY_KEY='vecta_haynes_vehicle_retries_v1';
+function persistRetries(){try{root.localStorage?.setItem(RETRY_KEY,JSON.stringify([...failed].map(([registration,at])=>({registration,at,status:failStatus.get(registration)}))));}catch{}}
+try{for(const entry of JSON.parse(root.localStorage?.getItem(RETRY_KEY)||'[]'))if(/^[A-Z0-9]{2,8}$/.test(entry.registration)&&Number.isFinite(entry.at)&&entry.at<=Date.now()&&Date.now()-entry.at<TTL){failed.set(entry.registration,entry.at);failStatus.set(entry.registration,entry.status||'UNAVAILABLE');if(entry.status==='DAILY_LIMIT')dailyBlockedUntil=(Math.floor(entry.at/TTL)+1)*TTL;}}catch{}
+function identitySnapshot(registration,expectedMake){const v=identities.get(reg(registration));return v&&(!expectedMake||make(v.make)===make(expectedMake))?v:null;}
+function rememberIdentity(v,persist=true){
+ if(!v||! /^[A-Z0-9]{2,8}$/.test(reg(v.registration))||!vehicleLink(v)||!v.make||!v.model||!v.variant||!Number.isFinite(Date.parse(v.fetchedAt))||Date.parse(v.fetchedAt)>Date.now())return;
+ const clean={registration:reg(v.registration),make:String(v.make).slice(0,100),model:String(v.model).slice(0,180),variant:String(v.variant).slice(0,180),engineCode:String(v.engineCode||'').slice(0,100),modelYears:String(v.modelYears||'').slice(0,100),vehicle:String(v.vehicle||[v.make,v.model,v.variant].join(' ')).slice(0,360),typeId:v.typeId,imageUrl:image(v.imageUrl),fetchedAt:v.fetchedAt};
+ identities.set(clean.registration,clean);while(identities.size>1000)identities.delete(identities.keys().next().value);
+ if(persist)try{root.localStorage?.setItem(ID_KEY,JSON.stringify([...identities.values()]));}catch{}
+ return clean;
+}
+try{for(const v of JSON.parse(root.localStorage?.getItem(ID_KEY)||'[]'))rememberIdentity(v,false);}catch{}
 // Artwork survives technical-data expiry; it must never expose technical links.
 const ART_KEY='vecta_haynes_artwork_v1',artwork=new Map();
 function rememberArtwork(v,persist=true){
@@ -18,7 +32,7 @@ function rememberArtwork(v,persist=true){
  if(persist)try{root.localStorage?.setItem(ART_KEY,JSON.stringify([...artwork.values()]));}catch{}
 }
 try{for(const v of JSON.parse(root.localStorage?.getItem(ART_KEY)||'[]'))rememberArtwork(v,false);}catch{}
-try{for(const v of JSON.parse(root.localStorage?.getItem(KEY)||'[]'))if(vehicleLink(v))rememberArtwork(v);}catch{}
+try{for(const v of JSON.parse(root.localStorage?.getItem(KEY)||'[]'))if(vehicleLink(v)){rememberArtwork(v);rememberIdentity(v);}}catch{}
 function artworkSnapshot(registration,expectedMake){const v=artwork.get(reg(registration));return v&&(!expectedMake||make(v.make)===make(expectedMake))?v:null;}
 try{for(const v of JSON.parse(root.localStorage?.getItem(KEY)||'[]'))remember(v,false);}catch{}
 function valid(v,registration,expectedMake){return !!(v&&reg(v.registration)===reg(registration)&&vehicleLink(v)&&v.make&&v.model&&v.variant&&(!expectedMake||make(v.make)===make(expectedMake))&&Number.isFinite(Date.parse(v.fetchedAt))&&Date.now()-Date.parse(v.fetchedAt)>=0&&Date.now()-Date.parse(v.fetchedAt)<TTL);}
@@ -26,7 +40,7 @@ function remember(v,persist=true){
  if(!valid(v,v?.registration))return;
  const clean={registration:reg(v.registration),make:String(v.make).slice(0,100),model:String(v.model).slice(0,180),variant:String(v.variant).slice(0,180),engineCode:String(v.engineCode||'').slice(0,100),modelYears:String(v.modelYears||'').slice(0,100),vehicle:String(v.vehicle||[v.make,v.model,v.variant].join(' ')).slice(0,360),typeId:v.typeId,imageUrl:image(v.imageUrl),fetchedAt:v.fetchedAt};
  cache.set(clean.registration,clean);while(cache.size>300)cache.delete(cache.keys().next().value);
- rememberArtwork(clean);
+ rememberArtwork(clean);rememberIdentity(clean);
  if(persist)try{root.localStorage?.setItem(KEY,JSON.stringify([...cache.values()].filter(x=>valid(x,x.registration))));}catch{}
  return clean;
 }
@@ -44,15 +58,15 @@ function genericImage(description){
  for(const v of candidates){const model=words(v.model);if(model&&text.includes(' '+model+' ')&&(!expectedMake||make(v.make)===expectedMake))return {make:v.make,model:v.model,imageUrl:v.imageUrl,generic:true};}
  return null;
 }
-async function lookup(registration,expectedMake,{requireImage=false}={}){
- const requested=reg(registration),hit=snapshot(requested,expectedMake);if(hit&&(!requireImage||hit.imageUrl))return hit;
+async function lookup(registration,expectedMake,{requireImage=false,force=false,background=false}={}){
+ const requested=reg(registration),hit=identitySnapshot(requested,expectedMake)||snapshot(requested,expectedMake);if(hit&&!force)return hit;
  if(Date.now()<dailyBlockedUntil){failStatus.set(requested,'DAILY_LIMIT');return null;}
- if(!/^[A-Z0-9]{2,8}$/.test(requested)||root.navigator?.onLine===false||Date.now()-(failed.get(requested)||0)<300000)return null;
+ if(!/^[A-Z0-9]{2,8}$/.test(requested)||root.navigator?.onLine===false||!force&&Date.now()-(failed.get(requested)||0)<(background?TTL:300000))return null;
  if(!pending.has(requested)){
   const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),30000);
-  pending.set(requested,(async()=>{try{const r=await root.fetch('/api/haynes-vehicle?reg='+encodeURIComponent(requested),{signal:controller.signal,cache:'no-store'}),d=await r.json();if(!r.ok||d.status!=='MATCHED'||!valid(d.vehicle,requested))throw Error(['NOT_CONFIGURED','OFFLINE','LOGIN_REQUIRED','VERIFICATION_REQUIRED','BUSY','DAILY_LIMIT'].includes(d.status)?d.status:'UNAVAILABLE');failStatus.delete(requested);return remember(d.vehicle);}catch(e){if(e.message==='DAILY_LIMIT')dailyBlockedUntil=(Math.floor(Date.now()/TTL)+1)*TTL;failed.set(requested,Date.now());failStatus.set(requested,e.message);while(failed.size>300){const oldest=failed.keys().next().value;failed.delete(oldest);failStatus.delete(oldest);}return null;}finally{clearTimeout(timer);pending.delete(requested);}})());
+  pending.set(requested,(async()=>{try{const r=await root.fetch('/api/haynes-vehicle?reg='+encodeURIComponent(requested),{signal:controller.signal,cache:'no-store'}),d=await r.json();if(!r.ok||d.status!=='MATCHED'||!valid(d.vehicle,requested))throw Error(['NOT_CONFIGURED','OFFLINE','LOGIN_REQUIRED','VERIFICATION_REQUIRED','BUSY','DAILY_LIMIT'].includes(d.status)?d.status:'UNAVAILABLE');failed.delete(requested);failStatus.delete(requested);persistRetries();return remember(d.vehicle);}catch(e){if(e.message==='DAILY_LIMIT')dailyBlockedUntil=(Math.floor(Date.now()/TTL)+1)*TTL;failed.set(requested,Date.now());failStatus.set(requested,e.message);while(failed.size>300){const oldest=failed.keys().next().value;failed.delete(oldest);failStatus.delete(oldest);}persistRetries();return null;}finally{clearTimeout(timer);pending.delete(requested);}})());
  }
- const v=await pending.get(requested);return valid(v,requested,expectedMake)?v:null;
+ const v=await pending.get(requested);return v&&reg(v.registration)===requested&&(!expectedMake||make(v.make)===make(expectedMake))?v:null;
 }
 function thumbnail(v,className){const src=image(v?.imageUrl);if(!src)return null;const img=document.createElement('img');img.src=src;img.className=className;img.alt=(v.generic?'Generic model image: ':'Representative ')+v.make+' '+v.model;img.title=v.generic?'Generic model image — appearance may differ':img.alt;img.dataset.generic=String(!!v.generic);img.dataset.vehicleMake=v.make||'';let retries=0;img.onerror=()=>{if(retries>=2)return;const delay=++retries===1?1500:5000;setTimeout(()=>{if(!img.isConnected||img.src.startsWith('data:'))return;img.src=src;delete img.dataset.personalising;root.VectaVehicleImage?.mount(img.parentElement);},delay);};img.draggable=false;return img;}
 let dashboardTail=Promise.resolve();
@@ -128,11 +142,11 @@ root.enrichHaynesDashboard=function(container,jobs){
  }
  const attach=(v,targets,j)=>{for(const {card,target} of targets){if(!card.isConnected)continue;if(!v){genericDashboardArtwork(card,target,j);continue;}const colour=dashboardColour(j);let img=card.querySelector('.haynesDashboardImage');if(img&&(img.dataset.haynesSource!==v.imageUrl||img.dataset.colour!==colour)){img.remove();img=null;}img=img||thumbnail(v,'haynesDashboardImage');if(img){img.dataset.haynesSource=v.imageUrl;img.dataset.colour=colour;img.dataset.vehicleName=[v.make,v.model].join(' ');img.setAttribute('data-vehicle-image','');img.dataset.registration=reg(j.registration);if(card.matches('.mobileJob'))img.dataset.vehicleLogo='separate';target.appendChild(img);mobileManufacturerBadge(card,j,v);img.addEventListener('error',()=>genericDashboardArtwork(card,target,j),{once:true});target.classList.add('hasHaynesDashboardImage');trackTimedArtwork(card,img);root.VectaVehicleImage?.mount(target);}}};
  for(const [key,group] of groups){
-  const j=group.job,hit=snapshot(j.registration,j.make),fallback=artworkSnapshot(j.registration,j.make)||genericImage(j);attach(hit?.imageUrl?hit:fallback,group.targets,j);if((hit?.imageUrl&&(!root.VectaVehicleImage||root.VectaVehicleImage.colourHex(dashboardColour(j))))||! /^[A-Z0-9]{2,8}$/.test(reg(j.registration)))continue;
+  const j=group.job,hit=identitySnapshot(j.registration,j.make)||snapshot(j.registration,j.make),fallback=artworkSnapshot(j.registration,j.make)||genericImage(j);attach(hit?.imageUrl?hit:fallback,group.targets,j);if((hit?.imageUrl&&(!root.VectaVehicleImage||root.VectaVehicleImage.colourHex(dashboardColour(j))))||! /^[A-Z0-9]{2,8}$/.test(reg(j.registration)))continue;
   if(!group.targets.some(x=>visibleCard(x.card))){for(const {card} of group.targets)observer?.observe(card);continue;}
   const existing=dashboardRequests.get(key);if(existing){existing.targets=group.targets;continue;}
   dashboardRequests.set(key,group);
-  dashboardTail=dashboardTail.then(async()=>{try{if(!group.targets.some(x=>visibleCard(x.card)))return;const v=hit?.imageUrl?hit:fallback?.imageUrl?fallback:await lookup(j.registration,j.make,{requireImage:true});attach(v?.imageUrl?v:genericImage(j),group.targets,j);
+  dashboardTail=dashboardTail.then(async()=>{try{if(!group.targets.some(x=>visibleCard(x.card)))return;const v=hit?.imageUrl?hit:fallback?.imageUrl?fallback:await lookup(j.registration,j.make,{requireImage:true,background:true});attach(v?.imageUrl?v:genericImage(j),group.targets,j);
    // Colour is optional decoration: never hold up this or the next missing picture.
    lookupDashboardColour(j).then(()=>attach(v?.imageUrl?v:artworkSnapshot(j.registration,j.make)||genericImage(j),group.targets,j)).catch(()=>{});
   }finally{dashboardRequests.delete(key);}}).catch(()=>{});
@@ -190,7 +204,7 @@ const requested=current(),expectedMake=make(modal.querySelector('#job_make')?.va
   const run=sequence;
   button.disabled=true;status.textContent='Looking up vehicle…';
   try{
-   const v=await lookup(requested,expectedMake);
+   const v=await lookup(requested,expectedMake,{force:!!event});
    if(run!==sequence||!panel.isConnected||current()!==requested||noVehicle?.checked)return;
    if(!v||reg(v?.registration)!==requested||!v?.model||!v?.variant||!v?.make||!vehicleLink(v)||(expectedMake&&make(v.make)!==expectedMake))throw Error('UNAVAILABLE');
    remember(v);showHeaderVehicle(v);const link=document.createElement('a');link.className='btn dark';link.href=vehicleLink(v);link.target='_blank';link.rel='noopener noreferrer';link.textContent='Open this vehicle in HaynesPro';
