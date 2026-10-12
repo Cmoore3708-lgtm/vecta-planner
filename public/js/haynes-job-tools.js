@@ -185,7 +185,7 @@ root.initHaynesJobTools=function(modal){
   const fallback=()=>{picture.innerHTML=root.VectaFleetImages?.artwork?.(name,colour)||'';picture.title='Generic vehicle illustration — appearance may differ';};
   const v=drawing||snapshot(registration,description.make)||artworkSnapshot(registration,description.make)||genericImage(description),src=image(v?.imageUrl);
   if(!src){fallback();return;}
-  const img=document.createElement('img');img.src=src;img.alt=[colour,v.make,v.model,registration].filter(Boolean).join(' ');img.dataset.vehicleImage='';img.dataset.registration=registration;img.dataset.colour=colour;img.dataset.vehicleName=name;img.dataset.vehicleMake=v.make||'';img.onerror=fallback;picture.appendChild(img);picture.title='';root.VectaVehicleImage?.mount(picture);
+  const img=document.createElement('img');img.src=src;img.alt=[colour,v.make,v.model,registration].filter(Boolean).join(' ');img.dataset.vehicleImage='';img.dataset.registration=registration;img.dataset.colour=colour;img.dataset.vehicleName=name;img.dataset.vehicleMake=v.make||'';img.dataset.vehicleLogo='separate';img.dataset.vehicleCrop='tight';img.onerror=fallback;picture.appendChild(img);picture.title='';root.VectaVehicleImage?.mount(picture);
  }
  const panel=document.createElement('div');panel.className='haynesJobTools';
  panel.innerHTML='<button type="button" class="btn">Find vehicle in HaynesPro</button><span role="status" aria-live="polite"></span><div class="haynesJobVehicle"></div>';
@@ -256,5 +256,6 @@ function install(){const top=document.querySelector('.top'),search=top?.querySel
 root.VectaHaynesDashboardLookup={open,install};
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',install);else install();
 })(window);
+
 
 
