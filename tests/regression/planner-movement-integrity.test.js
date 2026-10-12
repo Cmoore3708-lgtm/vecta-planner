@@ -103,3 +103,22 @@ test('every job ingress path repairs overlaps before rendering', () => {
   assert.match(namedFunctionSource('scheduleCloudRefresh'), /table==='jobs'[\s\S]*?repairExistingPlannerOverlaps\(\{persistRemote:true\}\)[\s\S]*?render\(\)/);
   assert.match(namedFunctionSource('refreshPlannerCoreFromCloudAndRender'), /repairExistingPlannerOverlaps\(\{persistRemote:true\}\)[\s\S]*?render\(\)/);
 });
+
+test('startup cleanup cannot overwrite a newer mechanic with a cached unallocated copy',()=>{
+ const stale={id:'adam-mot',registration:'ADAM',technician:'Unallocated',booking_date:'2026-10-23',status:'booked',updated_at:'2026-10-09T14:00:00Z'};
+ const original=JSON.stringify(stale);let writes=0;
+ const ctx={app:{jobs:[stale]},remoteClient:{},isUnallocatedJob:()=>true,isJobInvoiced:()=>false,saveLocal:()=>{writes++},upsertRemote:()=>{writes++;return Promise.resolve([])}};
+ vm.runInNewContext(namedFunctionSource('clearUnallocatedBookingDate')+';'+namedFunctionSource('normaliseUnallocatedBookingDates')+';result=normaliseUnallocatedBookingDates()',ctx);
+ assert.equal(ctx.result,0);assert.equal(writes,0);assert.equal(JSON.stringify(stale),original);
+});
+
+test('opening an existing job preserves a mechanic absent from the current settings',()=>{
+ const open=namedFunctionSource('openJobModal');
+ const start=open.indexOf("var mechanics=['Unallocated']"),end=open.indexOf('var ramps=',start);
+ assert.ok(start>-1&&end>start);
+ for(const technician of ['Jordan','alfie','Alfie']){
+  const ctx={id:'existing-job',j:{technician},app:{settings:{mechanics:['Alfie','Other']}}};
+  const result={...ctx,esc:v=>String(v),String};vm.runInNewContext(open.slice(start,end)+';'+namedFunctionSource('select')+";markup=select('Technician','technician',j.technician,mechanics)",result);
+  assert.match(result.markup,new RegExp('<option value="'+technician+'" selected>'));
+ }
+});
