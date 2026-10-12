@@ -214,21 +214,8 @@
  .livePriorityPlanner .plannerGrid .lane .job .plannerPlateWrap{align-self:flex-start!important;justify-content:flex-start!important;margin-left:0!important}
 }
 
-/* MOT appointment is a red label immediately beside the registration. */
-.plannerPlateAndMot{display:contents}
-.plannerMotHeader{color:#c1121f!important;font-size:14px!important;font-weight:900!important;line-height:1.2!important;white-space:nowrap}
-.plannerGrid .lane .job.plannerMotJob .plannerPlateAndMot{position:absolute;top:3px;left:7px;right:7px;display:flex;align-items:center;justify-content:flex-start;gap:10px;z-index:2}
-.plannerGrid .lane .job.plannerMotJob .plannerJobLeft{padding-top:29px!important}
-.plannerGrid .lane .job.plannerMotJob .plannerWorkRequired{color:#c1121f!important}
-.plannerGrid .lane .job.plannerMotJob .plannerJobHeader>.haynesDashboardImage{top:33px!important;height:max(0px,calc(100% - 38px))!important}
-.mobileMotAppointment{color:#c1121f!important}
-
-/* Vehicle lookup: large car-only artwork on the right of the vehicle details. */
-.haynesLookupPage{width:min(1400px,96vw)}
-.haynesLookupPage [data-identity]{display:grid;grid-template-columns:minmax(230px,1fr) minmax(0,2fr);gap:24px;align-items:center;min-height:340px}
-.haynesLookupPage [data-identity]>div{grid-column:1;grid-row:1;min-width:0}
-.haynesLookupPage [data-identity]>img{grid-column:2;grid-row:1;justify-self:end;width:100%;max-width:none;height:360px;object-fit:contain;object-position:right center;margin:0}
-@media(max-width:650px){
- .haynesLookupPage [data-identity]{grid-template-columns:minmax(0,1fr);min-height:0;gap:12px}
- .haynesLookupPage [data-identity]>img{grid-column:1;grid-row:2;height:230px}
+/* Restore prominent phone artwork, with room below it for the work description. */
+@media screen and (max-width:768px){
+ .mobilePlanner .mobileJob.hasHaynesDashboardImage .mobileJobTop{min-height:166px!important}
+ .mobilePlanner .mobileJob>.haynesDashboardImage{top:46px!important;right:10px!important;width:180px!important;max-width:48%!important;height:116px!important;object-fit:contain!important;object-position:right top!important}
 }
