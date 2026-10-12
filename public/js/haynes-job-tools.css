@@ -198,7 +198,7 @@
  }
  .livePriorityPlanner .plannerGrid .lane .job .plannerJobHeader.hasHaynesDashboardImage{width:calc(100% - var(--planner-vehicle-text-inset,150px))!important}
  .livePriorityPlanner .plannerGrid .lane .job:not(.miniPlannerTask) .plannerWorkRequired{
-  top:60px!important;right:var(--planner-vehicle-text-inset,150px)!important;font-size:14px!important;line-height:1.3!important
+  top:72px!important;right:var(--planner-vehicle-text-inset,150px)!important;font-size:14px!important;line-height:1.3!important
  }
  .livePriorityPlanner .plannerGrid .lane .plannerJobCompact .plannerJobVehicle,.livePriorityPlanner .plannerGrid .lane .plannerJobMicro .plannerJobVehicle{display:none!important}
  .livePriorityPlanner .plannerGrid .lane .plannerJobCompact .plannerWorkRequired{top:36px!important;font-size:12px!important}
