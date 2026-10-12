@@ -2858,9 +2858,9 @@ body.servicePreviewing .servicePreviewControls{position:relative!important;z-ind
  .livePriorityPlanner.livePriorityPlanner .plannerGrid{grid-template-columns:48px minmax(0,1fr) minmax(0,1fr) minmax(0,1fr)!important;min-width:0!important}
  .livePriorityPlanner.livePriorityPlanner .head{padding:10px 8px}
  .livePriorityBacklog{min-width:0;display:flex;flex-direction:column;gap:10px;max-height:calc(100vh - 180px);overflow-y:auto;scrollbar-gutter:stable}
- .livePriorityBacklog .panel{margin:0;padding:10px;min-width:0}
- .livePriorityBacklog .unallocatedJobList{display:flex;flex-direction:column;gap:8px}
- .livePriorityBacklog .sideJob{min-width:0;max-width:none;width:100%;margin:0}
+ .livePriorityBacklog .panel{margin:0;padding:10px;min-width:0;flex:0 0 auto!important;overflow:visible!important}
+ .livePriorityBacklog .unallocatedJobList{display:flex;flex-direction:column;gap:8px;flex:0 0 auto!important;max-height:none!important;overflow:visible!important}
+ .livePriorityBacklog .sideJob{min-width:0;max-width:none;width:100%;margin:0;flex:0 0 auto!important}
  .livePriorityBacklog h3{font-size:12px}
  .livePriorityTasks{margin-top:12px}
 }
