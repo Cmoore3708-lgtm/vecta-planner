@@ -206,3 +206,10 @@
 }
 
 @media screen and (min-width:901px) and (max-width:1200px){.plannerLayout.v233Planner.livePriorityPlanner .plannerCard .plannerGrid{min-width:850px!important}}
+
+
+/* Keep planner registration plates flush with the vehicle-name column. */
+@media(min-width:901px){
+ .livePriorityPlanner .plannerGrid .lane .job .plannerJobLeft{align-items:flex-start!important;text-align:left!important}
+ .livePriorityPlanner .plannerGrid .lane .job .plannerPlateWrap{align-self:flex-start!important;justify-content:flex-start!important;margin-left:0!important}
+}

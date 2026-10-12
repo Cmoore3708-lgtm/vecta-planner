@@ -42,3 +42,22 @@
   .jobModalCard .templateBtns button {padding:4px 7px;font-size:12px}
   .jobModalCard .jobTypeSelectHelp span {display:none}
 }
+
+
+/* Readable job sheet and prominent artwork without the manufacturer badge. */
+@media screen {
+ .jobModalCard{font-size:15px}
+ .jobModalCard .field label,.jobModalCard .jobTypeSelectHelp,.jobModalCard .muted{font-size:13px!important}
+ .jobModalCard .field input:not([type=checkbox]),.jobModalCard .field select,.jobModalCard .field textarea{font-size:15px!important;line-height:1.35!important}
+ .jobModalCard .jobFormSectionHead h3,.jobModalCard .jobPreviousWorkBody,.jobModalCard .haynesJobTools [role=status]{font-size:14px!important}
+ .jobModalCard .templateBtns button,.jobModalCard button,.jobModalCard .btn{font-size:14px!important}
+ .jobModalCard .jobWorkSection #job_work_required{font-size:15px!important}
+ .jobModalCard .haynesJobVehicle,.jobModalCard .jobPreviousWorkBody p,.jobModalCard .privatePricingHint{font-size:13px!important}
+ .jobModalCard .jobModalHead.hasJobCardVehicle{grid-template-columns:minmax(0,1fr) minmax(240px,420px)!important;align-items:start!important}
+ .jobModalCard .jobCardHeaderVehicle{height:190px!important;align-self:start!important}
+ .jobModalCard .jobCardHeaderVehicle>img,.jobModalCard .jobCardHeaderVehicle>svg{width:100%!important;height:100%!important;max-width:none!important;object-fit:contain!important;object-position:right top!important}
+}
+@media screen and (max-width:600px){
+ .jobModalCard .jobModalHead.hasJobCardVehicle{grid-template-columns:minmax(0,1fr) minmax(140px,48%)!important}
+ .jobModalCard .jobCardHeaderVehicle{height:140px!important}
+}
