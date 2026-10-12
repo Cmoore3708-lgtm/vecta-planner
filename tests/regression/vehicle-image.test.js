@@ -205,3 +205,37 @@ test('Fleet crop removes empty supplier canvas and uses a separate persisted ren
  }
  assert.equal(calls,1,'normal and crop share source and both reopen offline');
 });
+
+test('panel van windows cannot move the registration onto the side of the body',()=>{
+ const root=browser();
+ root.document.defaultView.Element.prototype.getBBox=function(){return this.id==='windows'?{x:35,y:20,width:110,height:85}:{x:10,y:10,width:270,height:180};};
+ const result=root.VectaVehicleImage.personaliseSvg(svg,'NJ16VME','White','999.svgz','',false,'Nissan NV400');
+ const doc=new DOMParser().parseFromString(result.svg,'image/svg+xml'),plate=doc.querySelector('#vecta-front-registration');
+ const [x]=plate.getAttribute('transform').match(/translate\(([^ ]+)/).slice(1).map(Number);
+ assert.ok(x<10+270*.2,'plate stays on front bumper instead of the rear side panel');
+ assert.ok(Number(plate.querySelector('rect').getAttribute('width'))<270*.15,'van plate fits its narrower front face');
+ assert.equal(plate.querySelector('text').textContent,'NJ16 VME');
+});
+
+test('tight artwork crop ignores oversized root canvas and retains the wheels',()=>{
+ const root=browser();
+ root.document.defaultView.Element.prototype.getBBox=function(){
+  if(this.id==='transparant_colour')return {x:40,y:60,width:250,height:120};
+  if(this.id==='windows')return {x:80,y:65,width:160,height:35};
+  if(this.id==='wheels')return {x:45,y:150,width:240,height:65};
+  return this.localName==='svg'?{x:0,y:0,width:1000,height:1000}:{x:0,y:0,width:0,height:0};
+ };
+ const result=root.VectaVehicleImage.personaliseSvg(svg.replace('0 0 299 220','0 0 1000 1000'),'GH15JJY','Gold','999.svgz','',true,'Land Rover Range Rover');
+ const doc=new DOMParser().parseFromString(result.svg,'image/svg+xml');
+ const [x,y,w,h]=doc.documentElement.getAttribute('viewBox').split(' ').map(Number);
+ assert.ok(w<300&&h<200,'vehicle fills the image box instead of retaining spare canvas');
+ assert.ok(x<40&&y<60&&x+w>290&&y+h>215,'body, wheels and padding remain visible');
+});
+
+test('corrected drawing geometry has a fresh cache key so old misplaced plates are not reused',async()=>{
+ const old=encodeURIComponent('<svg><text>OLD SIDE PLATE</text></svg>'),values=new Map([['vecta_vehicle_rendered_artwork_v1',JSON.stringify([['123.svgz|NJ16VME|#f5f5f2|tight-v1',{url:'data:image/svg+xml;charset=utf-8,'+old,plateAdded:true,recoloured:true}]])]]);
+ const root=browser({getItem:k=>values.get(k),setItem:(k,v)=>values.set(k,v)});let calls=0;
+ root.fetch=async()=>{calls++;return {ok:true,json:async()=>({svg})};};
+ root.document.body.innerHTML='<img data-vehicle-image data-vehicle-logo="separate" data-vehicle-crop="tight" data-vehicle-name="Nissan NV400" data-colour="White" data-registration="NJ16VME" src="https://www.haynespro-assets.com/workshop/images/123.svgz">';
+ await root.VectaVehicleImage.mount();assert.equal(calls,1);assert.doesNotMatch(decodeURIComponent(root.document.querySelector('img').src),/OLD SIDE PLATE/);
+});

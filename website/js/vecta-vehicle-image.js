@@ -73,7 +73,31 @@
     }
     return copy(document.documentElement);
   }
-  function personaliseSvg(source, registration, colour, asset, logo, tight = false) {
+  function drawingBounds(svg) {
+    const parts = ['shadow','wheels','gradients_background','transparant_colour','transparent_colour','other','windows','lights','outlines','vecta-front-registration'];
+    const boxes = [];
+    for (const id of parts) {
+      const node = svg.querySelector('[id="'+id+'"]');
+      if (!node || node.getAttribute('display') === 'none' || node.getAttribute('opacity') === '0') continue;
+      try {
+        let box = node.getBBox();
+        if (![box.x,box.y,box.width,box.height].every(Number.isFinite) || box.width <= 0 || box.height <= 0) continue;
+        // Convert layer-local bounds into root SVG units when an asset uses transforms.
+        const parentMatrix = svg.getCTM?.(), matrix = node.getCTM?.();
+        if (parentMatrix && matrix && parentMatrix.inverse) {
+          const relative = parentMatrix.inverse().multiply(matrix);
+          const corners = [[box.x,box.y],[box.x+box.width,box.y],[box.x,box.y+box.height],[box.x+box.width,box.y+box.height]].map(([x,y])=>({x:relative.a*x+relative.c*y+relative.e,y:relative.b*x+relative.d*y+relative.f}));
+          const x=Math.min(...corners.map(p=>p.x)),y=Math.min(...corners.map(p=>p.y));
+          box={x,y,width:Math.max(...corners.map(p=>p.x))-x,height:Math.max(...corners.map(p=>p.y))-y};
+        }
+        boxes.push(box);
+      } catch { /* A missing/non-rendering supplier layer is optional. */ }
+    }
+    if (!boxes.length) return svg.getBBox();
+    const x=Math.min(...boxes.map(b=>b.x)),y=Math.min(...boxes.map(b=>b.y));
+    return {x,y,width:Math.max(...boxes.map(b=>b.x+b.width))-x,height:Math.max(...boxes.map(b=>b.y+b.height))-y};
+  }
+  function personaliseSvg(source, registration, colour, asset, logo, tight = false, vehicleName = '') {
     const svg = sanitiseSvg(source), paint = svg.querySelector('[id="transparant_colour"], [id="transparent_colour"]');
     const hex = colourHex(colour);
     if (hex && paint) for (const path of paint.querySelectorAll('path, polygon')) {
@@ -87,9 +111,13 @@
     try {
       const body = paint?.getBBox(), windows = svg.querySelector('[id="windows"]')?.getBBox();
       if (registration && body?.width > 0 && windows?.width > 0) {
-        const left = windows.x-body.x > body.x+body.width-windows.x-windows.width;
+        // Supplier drawings face left unless an explicit front layer proves otherwise.
+        // Window offsets are unreliable on panel vans and tall SUVs.
+        const front = svg.querySelector('[id="front_bumper"], [id="front-bumper"], [id="front"]')?.getBBox();
+        const left = front?.width > 0 ? front.x+front.width/2 < body.x+body.width/2 : true;
+        const van = /\b(?:NV400|NV300|NV200|MASTER|MOVANO|SPRINTER|TRANSIT|CRAFTER|TRANSPORTER|VIVARO|TRAFIC|PRIMASTAR|DUCATO|BOXER|RELAY|VITO)\b/i.test(vehicleName);
         const position = platePositions[asset];
-        const width = position?.width ?? body.width*.21, height = position?.height ?? body.height*.095;
+        const width = position?.width ?? body.width*(van ? .13 : .21), height = position?.height ?? body.height*(van ? .065 : .095);
         const x = position?.x ?? (left ? body.x+body.width*.055 : body.x+body.width*.735);
         const y = position?.y ?? body.y+body.height*.80;
         const skew = position?.skew ?? (left ? 8 : -8);
@@ -107,7 +135,7 @@
       // bounds measured from the complete drawing, including wheels and front plate.
       if (tight) {
         try {
-          const bounds = svg.getBBox();
+          const bounds = drawingBounds(svg);
           if ([bounds.x,bounds.y,bounds.width,bounds.height].every(Number.isFinite) && bounds.width > 0 && bounds.height > 0) {
             const padding = Math.max(bounds.width,bounds.height)*.015;
             svg.setAttribute('viewBox',[bounds.x-padding,bounds.y-padding,bounds.width+padding*2,bounds.height+padding*2].join(' '));
@@ -150,7 +178,7 @@
       if (!match) return;
       const registration = normaliseReg(img.dataset.registration), colour = img.dataset.colour || '';
       const tight=img.dataset.vehicleCrop==='tight';
-      const baseKey = match[1]+'|'+registration+'|'+colourHex(colour)+(tight?'|tight-v1':''),brand=img.dataset.vehicleLogo==='separate'?'':manufacturer(img.dataset.vehicleMake||img.dataset.vehicleName);
+      const baseKey = match[1]+'|render-v3|'+registration+'|'+colourHex(colour)+(tight?'|tight-v2':''),brand=img.dataset.vehicleLogo==='separate'?'':manufacturer(img.dataset.vehicleMake||img.dataset.vehicleName);
       let key=brand?baseKey+'|logo-v2-below:'+brand:baseKey;
       try {
         let result = images.get(key);
@@ -160,7 +188,7 @@
           if(!result){
           if (!rendering.has(key)) {
             const task = sourceFor(match[1]).then(source => {
-              const rendered = personaliseSvg(source,registration,colour,match[1],logo,tight);
+              const rendered = personaliseSvg(source,registration,colour,match[1],logo,tight,img.dataset.vehicleName||'');
               rendered.url = 'data:image/svg+xml;charset=utf-8,'+encodeURIComponent(rendered.svg);
               images.set(key,rendered); if (images.size > 32) images.delete(images.keys().next().value);
               saveRenders(); return rendered;
