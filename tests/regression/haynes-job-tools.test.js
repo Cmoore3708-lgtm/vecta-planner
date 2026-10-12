@@ -10,6 +10,22 @@ const source=readFileSync(new URL('../../public/js/haynes-job-tools.js',import.m
 const vehicle={registration:'FX69XWU',make:'Nissan',model:'Qashqai',variant:'1.7 dCi',typeId:'t_301000368',imageUrl:'https://www.haynespro-assets.com/workshop/images/123.svg',fetchedAt:new Date().toISOString()};
 function setup(fetcher,artwork){const {window,document}=parseHTML('<html><body><div id="modal"><div class="jobModalHead"><h2>Edit Job</h2><div class="jobModalHeadActions"><button>Close</button></div></div><section class="jobVehicleSection"><input id="job_registration" value="FX69 XWU"><input id="job_make" value="Nissan"><input type="checkbox" id="job_no_vehicle"></section><button id="save">Save</button></div></body></html>');delete window.VectaVehicleImage;delete window.app;delete window.fleetVehicles;window.fetch=fetcher;window.VectaFleetImages={artwork};vm.runInNewContext(source,{window,document,AbortController,AbortSignal,setTimeout,clearTimeout,encodeURIComponent});window.initHaynesJobTools(document.querySelector('#modal'));return {window,document,panel:document.querySelector('.haynesJobTools')};}
 const response=v=>({ok:true,json:async()=>({status:'MATCHED',vehicle:v})});
+test('vehicle details sit below the single editable header registration',async()=>{
+ const {window,document}=setup(async()=>response(vehicle));
+ await new Promise(r=>setImmediate(r));
+ const heading=document.querySelector('.jobCardHeaderHeading'),input=document.querySelector('#job_registration');
+ assert.equal(document.querySelectorAll('#job_registration').length,1);
+ assert.equal(input.closest('.jobCardHeaderRegistration').parentElement,heading);
+ assert.equal(heading.querySelector('.jobVehicleSection').previousElementSibling.className,'jobCardHeaderRegistration');
+ assert.equal(heading.querySelector('.jobVehicleSection #job_registration'),null);
+ input.value='AB12 XYZ';input.dispatchEvent(new window.Event('input'));
+ assert.equal(document.querySelector('#job_registration'),input);
+ assert.equal(input.value,'AB12 XYZ');
+ document.querySelector('#job_no_vehicle').checked=true;
+ document.querySelector('#job_no_vehicle').dispatchEvent(new window.Event('change'));
+ assert.equal(input.closest('.jobCardHeaderRegistration').hidden,true);
+ assert.equal(document.querySelector('#job_registration'),input);
+});
 test('fresh missing picture loads before an unresolved colour lookup and does not block the next picture',async()=>{
  const {window,document}=setup(async()=>response(vehicle));await new Promise(r=>setImmediate(r));
  window.VectaVehicleImage={colourHex:()=>'',resolveColour:(_r,c)=>c,mount:()=>Promise.resolve()};
