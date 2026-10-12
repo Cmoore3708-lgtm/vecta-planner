@@ -108,3 +108,27 @@ button.fleetVehicleImage{cursor:pointer}button.fleetVehicleImage:hover,button.fl
  .fleetPanel .fleetRow.due30Columns .fleetVehicleImage img{object-position:right top}
  .fleetPanel .fleetRow.due30Columns .fleetBookingTypeGroupCell::before{content:none}
 }
+
+
+/* Fleet Manager: readable type and closely spaced customer/email columns. */
+@media screen and (min-width:701px){
+ .fleetHero p,.fleetEyebrow,.fleetToolbar,.fleetListTitle{font-size:15px!important}
+ .fleetHero h2{font-size:30px!important}
+ .fleetKpi small,.fleetGroup span,.fleetKpiBadge{font-size:13px!important}
+ .fleetKpi strong,.fleetGroup b{font-size:23px!important}
+ .fleetTopActions button,.fleetToolbar input,.fleetToolbar select,.fleetToolbar button{font-size:15px!important}
+ .fleetAutoRefreshBar b{font-size:16px!important}.fleetAutoRefreshBar span{font-size:14px!important}
+ .fleetWorkspace{grid-template-columns:minmax(0,1fr) 240px!important;gap:10px!important}
+ .fleetPanel{overflow-x:auto}
+ .fleetPanel .fleetTableHead,.fleetPanel .fleetRow{gap:8px!important}
+ .fleetPanel .fleetTableHead{font-size:12px!important}
+ .fleetPanel .fleetRow span,.fleetPanel .fleetContactEmailCell{font-size:15px!important;line-height:1.4}
+ .fleetPanel .fleetContactEmailCell{white-space:normal!important;overflow-wrap:anywhere;overflow:visible!important;text-overflow:clip}
+ .fleetPanel .fleetTableHead.due30Columns,.fleetPanel .fleetRow.due30Columns{grid-template-columns:118px 88px 100px 124px minmax(230px,360px) 84px 52px 16px 62px 48px!important;min-width:1100px;justify-content:start}
+ .fleetPanel .fleetRow.due30Columns>:nth-child(4){white-space:normal;overflow-wrap:anywhere}
+ .fleetPanel .fleetDue,.fleetPanel .fleetDueText,.fleetPanel .fleetBookedDateLink{font-size:13px!important}
+ .fleetPanel .fleetRow .fleetVehicleImage{width:100px;height:66px}
+ .fleetPanel .fleetRegPlate{height:32px}.fleetPanel .fleetRegPlate b{font-size:15px!important}
+ .fleetWorkspace .myTasksPanel{font-size:14px}.fleetWorkspace .taskTitle{font-size:13px!important}.fleetWorkspace .taskMeta{font-size:11px!important}
+}
+@media screen and (min-width:701px) and (max-width:1450px){.fleetWorkspace{grid-template-columns:minmax(0,1fr)!important}.fleetWorkspace>.myTasksPanel{position:static!important}}
