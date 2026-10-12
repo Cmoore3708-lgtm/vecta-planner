@@ -80,3 +80,20 @@
  .jobModalCard .jobModalHead.hasHeaderVehicleDetails>.jobCardHeaderVehicle{grid-column:2;grid-row:2}
  .jobModalCard .jobModalHead.hasHeaderVehicleDetails>.jobModalHeadActions{grid-column:1;grid-row:2;align-self:start}
 }
+
+
+/* Keep vehicle identity visible while the rest of the job sheet scrolls. */
+@media screen{
+ .jobModalCard .jobModalHead.jobCardPinnedHeader{position:sticky!important;top:0!important;z-index:15;background:#fff!important;box-shadow:0 3px 8px #0f172a12;padding-bottom:10px!important;margin-bottom:10px!important}
+ .jobModalCard .jobCardHeaderDetails{display:grid;grid-template-columns:minmax(0,1fr) minmax(240px,420px);gap:12px 18px;align-items:start;margin-bottom:12px}
+ .jobModalCard .jobCardHeaderDetails>.jobFormSection{min-width:0;margin:0!important}
+ .jobModalCard .jobCardHeaderDetails .jobVehicleSection .jobSectionGrid{grid-template-columns:minmax(0,1fr) minmax(100px,.55fr)!important}
+ .jobModalCard .jobCardHeaderDetails .noVehicleToggle{grid-column:1/-1}
+ .jobModalCard .jobCardHeaderDetails .jobContactSection .jobSectionGrid{grid-template-columns:repeat(2,minmax(0,1fr))!important}
+}
+@media screen and (max-width:700px){
+ .jobModalCard .jobCardHeaderDetails{grid-template-columns:minmax(0,1fr)}
+ .jobModalCard .jobModalHead.jobCardPinnedHeader>.jobCardHeaderHeading{grid-column:1;grid-row:1}
+ .jobModalCard .jobModalHead.jobCardPinnedHeader>.jobCardHeaderVehicle{grid-column:2;grid-row:1/3;height:110px!important}
+ .jobModalCard .jobModalHead.jobCardPinnedHeader>.jobModalHeadActions{grid-column:1;grid-row:2}
+}

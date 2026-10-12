@@ -183,6 +183,13 @@ root.initHaynesJobTools=function(modal){
  }
  const picture=document.createElement('div');picture.className='jobCardHeaderVehicle';
  if(header){header.classList.add('hasJobCardVehicle');header.insertBefore(picture,header.querySelector('.jobModalHeadActions'));}
+ if(header){
+  const details=document.createElement('div');details.className='jobCardHeaderDetails';
+  details.appendChild(section);
+  const contact=modal.querySelector('.jobContactSection');if(contact)details.appendChild(contact);
+  const scrollBody=modal.querySelector('.jobModalBody');if(scrollBody)scrollBody.prepend(details);else header.after(details);header.classList.add('jobCardPinnedHeader');
+ }
+
  function showHeaderVehicle(drawing){
   picture.replaceChildren();picture.hidden=!!modal.querySelector('#job_no_vehicle')?.checked;
   const value=reg(input.value);plate.hidden=picture.hidden;if(picture.hidden)return;
@@ -262,6 +269,7 @@ function install(){const top=document.querySelector('.top'),search=top?.querySel
 root.VectaHaynesDashboardLookup={open,install};
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',install);else install();
 })(window);
+
 
 
 

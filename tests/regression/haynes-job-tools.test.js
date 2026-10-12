@@ -16,8 +16,9 @@ test('vehicle details sit below the single editable header registration',async()
  const heading=document.querySelector('.jobCardHeaderHeading'),input=document.querySelector('#job_registration');
  assert.equal(document.querySelectorAll('#job_registration').length,1);
  assert.equal(input.closest('.jobCardHeaderRegistration').parentElement,heading);
- assert.equal(heading.querySelector('.jobVehicleSection').previousElementSibling.className,'jobCardHeaderRegistration');
- assert.equal(heading.querySelector('.jobVehicleSection #job_registration'),null);
+ assert.equal(document.querySelector('.jobCardHeaderDetails .jobVehicleSection').parentElement.previousElementSibling,heading.parentElement);
+ assert.ok(heading.parentElement.classList.contains('jobCardPinnedHeader'));
+ assert.equal(document.querySelector('.jobVehicleSection #job_registration'),null);
  input.value='AB12 XYZ';input.dispatchEvent(new window.Event('input'));
  assert.equal(document.querySelector('#job_registration'),input);
  assert.equal(input.value,'AB12 XYZ');
@@ -247,3 +248,4 @@ test('unknown models get an immediate local generic picture and a separate plate
  const badge=host.querySelector('.mobileManufacturerBadge');assert.equal(badge.parentElement,host.querySelector('.mobileJobTop'));assert.equal(badge.previousElementSibling.className,'plannerPlateWrap');assert.equal(badge.style.height,'30px');
  await new Promise(r=>setTimeout(r,20));assert.ok(host.querySelector('.haynesDashboardImage'));host.remove();
 });
+
