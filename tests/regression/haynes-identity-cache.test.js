@@ -73,3 +73,19 @@ test('explicit refresh replaces saved identity and conflicting makes never reuse
  assert.equal(await tools.lookup(vehicle.registration,'Ford'),null);
  assert.equal(calls,3);
 });
+
+test('KX15 FWF unavailable identification stays paused across all automatic consumers',async()=>{
+ const storage=new Map([['vecta_haynes_vehicle_retries_v1',JSON.stringify([{registration:'KX15FWF',at:Date.now()-7*86400000,status:'UNAVAILABLE'}])]]);
+ let calls=0;const fetcher=async()=>{calls++;return {ok:true,json:async()=>({status:'MATCHED',vehicle:{...vehicle,registration:'KX15FWF'}})};};
+ for(let reopen=0;reopen<3;reopen++){
+  const tools=setup(storage,fetcher);
+  assert.equal(await tools.lookup('KX15 FWF'),null);
+  assert.equal(await tools.lookup('KX15FWF',undefined,{background:true}),null);
+ }
+ assert.equal(calls,0);
+ const tools=setup(storage,fetcher);assert.equal(tools.lookupNeedsRetry('KX15 FWF'),true);
+ assert.equal((await tools.lookup('KX15FWF',undefined,{force:true})).registration,'KX15FWF');
+ assert.equal(calls,1);
+ assert.equal((await setup(storage,fetcher).lookup('KX15FWF')).registration,'KX15FWF');
+ assert.equal(calls,1);
+});
