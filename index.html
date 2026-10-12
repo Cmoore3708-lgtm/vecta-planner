@@ -12878,7 +12878,7 @@ function taskCardHtml(t){var m=taskMeta(t),overdue=m.due&&m.due<todayIso();retur
 function tasksHtml(){return myTasksHtml()}
 function byTime(a,b){return String(a.drop_time||'08:00').localeCompare(String(b.drop_time||'08:00'))}
 function mechanicHours(jobs,m){return jobs.filter(function(j){return plannerTechnicianLane(j.technician)===plannerTechnicianLane(m)}).reduce(function(a,j){return a+Number(j.estimated_hours||1)},0)}
-var PLANNER_PX_PER_HOUR=168;
+var PLANNER_PX_PER_HOUR=100.8;
 function topFor(j){var mins=clockMinutes(j.drop_time||'08:00')-plannerStartMinutes;return Math.max(0,(mins/60)*PLANNER_PX_PER_HOUR)}
 /* Keep jobs tightly stacked while leaving a small, consistent visual separation between cards. */
 var PLANNER_JOB_VISUAL_GAP_PX=5;
