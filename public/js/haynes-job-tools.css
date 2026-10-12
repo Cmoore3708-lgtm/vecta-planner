@@ -77,11 +77,11 @@
  .main:has(.livePriorityPlanner) .metric .sub{font-size:12px!important}
  .main:has(.livePriorityPlanner) .metric{padding:10px!important}
  .livePriorityPlanner .plannerLiveControls,.livePriorityPlanner .plannerLiveStatus{font-size:13px!important}
- .livePriorityPlanner .plannerGrid.liveWindow .timeCol .time{height:168px!important;font-size:13px!important;padding-top:9px!important}
+ .livePriorityPlanner .plannerGrid.liveWindow .timeCol .time{height:100.8px!important;font-size:13px!important;padding-top:9px!important}
  .livePriorityPlanner .plannerGrid.liveWindow .timeCol .time.partial{height:var(--partial-height)!important}
  .livePriorityPlanner .plannerGrid.liveWindow .lane{
-  background-image:linear-gradient(to bottom,transparent 167px,#edf1f5 167px,#edf1f5 168px)!important;
-  background-size:100% 168px!important
+  background-image:linear-gradient(to bottom,transparent 99.8px,#edf1f5 99.8px,#edf1f5 100.8px)!important;
+  background-size:100% 100.8px!important
  }
  .livePriorityPlanner .head{font-size:14px!important}
  .livePriorityPlanner .head small{font-size:11px!important}
@@ -189,3 +189,20 @@
  .mobilePlanner .mobileJob.hasHaynesDashboardImage .mobileJobTop{min-height:112px}
  .mobilePlanner .mobileJob>.haynesDashboardImage{top:48px;right:10px;width:120px;height:76px}
 }
+
+/* Larger main-planner cars inside the shorter hour rows; text keeps its readable size. */
+@media screen and (min-width:901px){
+ .livePriorityPlanner .plannerGrid .lane .job .plannerJobHeader>.haynesDashboardImage{
+  width:648px!important;max-width:calc(100% - 118px)!important;
+  height:min(360px,max(0px,calc(100% - 8px)))!important;top:3px!important;right:6px!important
+ }
+ .livePriorityPlanner .plannerGrid .lane .job .plannerJobHeader.hasHaynesDashboardImage{width:calc(100% - var(--planner-vehicle-text-inset,150px))!important}
+ .livePriorityPlanner .plannerGrid .lane .job:not(.miniPlannerTask) .plannerWorkRequired{
+  top:60px!important;right:var(--planner-vehicle-text-inset,150px)!important;font-size:14px!important;line-height:1.3!important
+ }
+ .livePriorityPlanner .plannerGrid .lane .plannerJobCompact .plannerJobVehicle,.livePriorityPlanner .plannerGrid .lane .plannerJobMicro .plannerJobVehicle{display:none!important}
+ .livePriorityPlanner .plannerGrid .lane .plannerJobCompact .plannerWorkRequired{top:36px!important;font-size:12px!important}
+ .livePriorityPlanner .plannerGrid .lane .plannerJobMedium .plannerWorkRequired{top:54px!important;font-size:13px!important}
+}
+
+@media screen and (min-width:901px) and (max-width:1200px){.plannerLayout.v233Planner.livePriorityPlanner .plannerCard .plannerGrid{min-width:850px!important}}
