@@ -122,3 +122,49 @@ test('opening an existing job preserves a mechanic absent from the current setti
   assert.match(result.markup,new RegExp('<option value="'+technician+'" selected>'));
  }
 });
+
+test('current and future legacy-mechanic bookings do not also appear in Unallocated',()=>{
+ const jobs=[
+  {id:'future',registration:'H13CKK',technician:'Chris',booking_date:'2026-10-13',status:'booked'},
+  {id:'today',registration:'AB12XYZ',technician:'Chris',booking_date:'2026-10-12',status:'booked'},
+  {id:'past',registration:'PAST',technician:'Chris',booking_date:'2026-10-09',status:'booked'},
+  {id:'no-date',registration:'NODATE',technician:'Chris',booking_date:null,status:'booked'},
+  {id:'unallocated',registration:'NONE',technician:'Unallocated',booking_date:null,status:'booked'}
+ ];
+ const before=JSON.stringify(jobs);
+ const ctx={app:{jobs,settings:{mechanics:['Alfie','Other']}},todayIso:()=> '2026-10-12',isVehicleTaxJob:()=>false,isJobInvoiced:()=>false,normReg:v=>String(v||'').replace(/\s/g,'').toUpperCase(),carryOverMeta:()=>null,byTime:()=>0};
+ vm.runInNewContext(namedFunctionSource('unallocatedJobs')+';rows=unallocatedJobs()',ctx);
+ assert.deepEqual(Array.from(ctx.rows,j=>j.id).sort(),['no-date','past','unallocated']);
+ assert.equal(JSON.stringify(jobs),before);
+});
+
+test('phone Unallocated uses the shared list without adding assigned multi-day jobs',()=>{
+ const allocated={id:'assigned-multi',card_type:'multi_day',technician:'Other',booking_date:'2026-10-13',status:'booked'};
+ const unallocated={id:'real-backlog',technician:'Unallocated',status:'booked'};
+ const ctx={app:{jobs:[allocated,unallocated],notes:''},window:{},selectedIso:()=> '2026-10-12',quoteJobs:()=>[],unallocatedJobs:()=>[unallocated],byTime:()=>0,esc:v=>String(v||''),mobileJobCardHtml:j=>'<i data-job="'+j.id+'"></i>',plannerTechnicianName:j=>j.technician};
+ vm.runInNewContext(namedFunctionSource('mobilePlannerHtml')+";output=mobilePlannerHtml(['Alfie','Other'],[])",ctx);
+ assert.match(ctx.output,/data-job="real-backlog"/);assert.doesNotMatch(ctx.output,/assigned-multi/);
+ vm.runInNewContext("output=mobilePlannerHtml(['Alfie','Other'],[app.jobs[0]])",ctx);
+ assert.equal((ctx.output.match(/assigned-multi/g)||[]).length,1);
+});
+
+test('renamed second column receives both Chris and legacy Other bookings',()=>{
+ const rules=fs.readFileSync(new URL('../../public/js/vecta-planner-rules.js',import.meta.url),'utf8');const ctx={};vm.runInNewContext(rules,ctx);
+ for(const technician of ['Chris','Other','Jordan'])assert.equal(ctx.VectaPlannerRules.technicianName({technician},['Alfie','Chris','Anyone']),'Chris');
+ assert.equal(ctx.VectaPlannerRules.technicianName({technician:'Unallocated'},['Alfie','Chris','Anyone']),'Unallocated');
+});
+
+test('legacy Other is shown as Chris in the editor after renaming the column',()=>{
+ const open=namedFunctionSource('openJobModal'),start=open.indexOf("var mechanics=['Unallocated']"),end=open.indexOf('var ramps=',start);
+ const ctx={id:'job',j:{technician:'Other'},app:{settings:{mechanics:['Alfie','Chris','Anyone']}},plannerTechnicianLane:()=> 'Chris',esc:v=>String(v)};
+ vm.runInNewContext(open.slice(start,end)+';'+namedFunctionSource('select')+";markup=select('Technician','technician',j.technician,mechanics)",ctx);
+ assert.match(ctx.markup,/<option value="Chris" selected>/);assert.doesNotMatch(ctx.markup,/<option value="Other"/);
+});
+
+test('unrelated settings saves preserve the shared renamed mechanic list',async()=>{
+ let written;const latest={value:{mechanics:['Alfie','Chris','Anyone']}};
+ const ctx={app:{settings:{mechanics:['Alfie','Other','Anyone'],businessName:'Vecta Motors'}},vectaMainSettingsLastPersisted:'',console,remoteClient:{from:()=>({select:()=>({eq:()=>({single:async()=>({data:latest})})}),upsert:async row=>{written=row;return {}}})}};
+ vm.runInNewContext(namedFunctionSource('vectaSettingsSignature')+';async '+namedFunctionSource('persistMainSettings'),ctx);
+ assert.equal(await ctx.persistMainSettings(),true);assert.deepEqual(Array.from(written.value.mechanics),['Alfie','Chris','Anyone']);
+ ctx.app.settings.mechanics=['Alfie','Dan','Anyone'];await ctx.persistMainSettings({mechanicsChanged:true});assert.deepEqual(Array.from(written.value.mechanics),['Alfie','Dan','Anyone']);
+});

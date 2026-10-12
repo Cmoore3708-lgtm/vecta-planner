@@ -13,7 +13,7 @@
     var exact=list.find(function(name){return String(name||'').trim().toLowerCase()===raw.toLowerCase()});
     if(exact)return exact;
     var other=list.find(function(name){return String(name||'').trim().toLowerCase()==='other'});
-    return other||raw;
+    return other||list[1]||raw;
   }
 
   root.VectaPlannerRules=Object.freeze({
