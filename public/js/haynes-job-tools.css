@@ -232,3 +232,9 @@
  .haynesLookupPage [data-identity]{grid-template-columns:minmax(0,1fr);min-height:0;gap:12px}
  .haynesLookupPage [data-identity]>img{grid-column:1;grid-row:2;height:230px}
 }
+
+/* Restore prominent phone artwork, with room below it for the work description. */
+@media screen and (max-width:768px){
+ .mobilePlanner .mobileJob.hasHaynesDashboardImage .mobileJobTop{min-height:166px!important}
+ .mobilePlanner .mobileJob>.haynesDashboardImage{top:46px!important;right:10px!important;width:180px!important;max-width:48%!important;height:116px!important;object-fit:contain!important;object-position:right top!important}
+}
