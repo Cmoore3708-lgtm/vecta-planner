@@ -2,10 +2,18 @@ import '../public/js/vecta-invoice-print.js';
 import { invoiceBrandLogo } from './_invoice-brand.js';
 const esc = value => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const money = value => '£' + Number(value || 0).toFixed(2);
-export function renderCustomerInvoiceHtml(inv, settings = {}, job = {}, presentation = {}) {
+export function renderCustomerInvoiceHtml(savedInvoice, settings = {}, job = {}, presentation = {}) {
+  let inv = savedInvoice;
   const account = String(inv.fleet_customer || inv.customer_account || job.customer_account || (inv.lines || []).find(l => l.invoice_customer_account)?.invoice_customer_account || '').toUpperCase();
   const tax = inv.source === 'vehicle_tax_eom' || inv.registration === 'NMUK TAX' || /^Vehicle tax\b/i.test(inv.vehicle || '');
   const staffInvoice = account === 'STAFF' && !tax;
+  // Match the existing workshop print correction for legacy standalone MOT fees.
+  if (staffInvoice && (inv.lines || []).some(l => /^(?:M\.?O\.?T\.?)(?:\s+(?:test(?:\s+fee)?|re[ -]?test|fee))?(?:\s*\([^)]*\))?\.?$/i.test(String(l.description || '').trim().replace(/\s+/g,' ')) && l.vat_mode !== 'no_vat')) {
+    const rate = Number(settings.vatRate || 20) / 100;
+    const lines = inv.lines.map(l => /^(?:M\.?O\.?T\.?)(?:\s+(?:test(?:\s+fee)?|re[ -]?test|fee))?(?:\s*\([^)]*\))?\.?$/i.test(String(l.description || '').trim().replace(/\s+/g,' ')) ? {...l,vat_mode:'no_vat'} : l);
+    const totals = lines.reduce((t,l) => {const a=Number(l.amount || 0);if(l.vat_mode==='inc_vat'){t.total+=a;t.subtotal+=a/(1+rate);t.vat+=a-a/(1+rate);}else if(l.vat_mode==='ex_vat'){t.subtotal+=a;t.vat+=a*rate;t.total+=a*(1+rate);}else{t.subtotal+=a;t.total+=a;}return t;},{subtotal:0,vat:0,total:0});
+    inv = {...inv,...totals,lines};
+  }
   const isFleet = !!(inv.fleet_customer || inv.fleet_month || inv.eom_month || inv.source === 'fleet_eom' || tax || inv.registration === 'FLEET ACCOUNT');
   const nmuk = account === 'NMUK' || inv.registration === 'NMUK TAX';
   const address = inv.customer_address || inv.lines?.[0]?.customer_address || '';

@@ -88,3 +88,12 @@ test('one click opens the invoice HTML with the original print template and esca
   assert.match(html, /&lt;script&gt;attack&lt;\/script&gt;/); assert.ok(!html.includes('<script>attack'));
   assert.ok(!html.includes('tinyurl')); assert.ok(!html.includes('iframe'));
 });
+
+test('legacy MOT VAT correction matches the workshop print without changing saved records', async()=>{
+ const {renderCustomerInvoiceHtml}=await import('../../api/_invoice-html.js');
+ const original={...invoice,customer_account:'STAFF',lines:[{description:'Full service',amount:120,vat_mode:'inc_vat'},{description:'MOT test',amount:54,vat_mode:'inc_vat'}],subtotal:145,vat:29,total:174};
+ const html=renderCustomerInvoiceHtml(original,settings);
+ assert.match(html,/<td class="right">£54.00<\/td><td>No VAT<\/td>/);
+ assert.match(html,/<b>Subtotal:<\/b><span>£154.00/);assert.match(html,/<b>VAT:<\/b><span>£20.00/);
+ assert.equal(original.vat,29);assert.equal(original.lines[1].vat_mode,'inc_vat');
+});
