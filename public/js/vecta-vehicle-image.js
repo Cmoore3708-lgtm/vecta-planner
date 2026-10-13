@@ -90,12 +90,14 @@
           const x=Math.min(...corners.map(p=>p.x)),y=Math.min(...corners.map(p=>p.y));
           box={x,y,width:Math.max(...corners.map(p=>p.x))-x,height:Math.max(...corners.map(p=>p.y))-y};
         }
-        boxes.push(box);
+        boxes.push({...box,id});
       } catch { /* A missing/non-rendering supplier layer is optional. */ }
     }
     if (!boxes.length) return svg.getBBox();
-    const x=Math.min(...boxes.map(b=>b.x)),y=Math.min(...boxes.map(b=>b.y));
-    return {x,y,width:Math.max(...boxes.map(b=>b.x+b.width))-x,height:Math.max(...boxes.map(b=>b.y+b.height))-y};
+    const body=boxes.find(b=>b.id==='transparant_colour'||b.id==='transparent_colour');
+    const visible=body?boxes.filter(b=>!['shadow','gradients_background','other'].includes(b.id)||(b.width<=body.width*1.4&&b.height<=body.height*1.8&&b.x>=body.x-body.width*.3&&b.x+b.width<=body.x+body.width*1.3)):boxes;
+    const x=Math.min(...visible.map(b=>b.x)),y=Math.min(...visible.map(b=>b.y));
+    return {x,y,width:Math.max(...visible.map(b=>b.x+b.width))-x,height:Math.max(...visible.map(b=>b.y+b.height))-y};
   }
   function personaliseSvg(source, registration, colour, asset, logo, tight = false, vehicleName = '') {
     const svg = sanitiseSvg(source), paint = svg.querySelector('[id="transparant_colour"], [id="transparent_colour"]');
@@ -178,7 +180,7 @@
       if (!match) return;
       const registration = normaliseReg(img.dataset.registration), colour = img.dataset.colour || '';
       const tight=img.dataset.vehicleCrop==='tight';
-      const baseKey = match[1]+'|render-v3|'+registration+'|'+colourHex(colour)+(tight?'|tight-v2':''),brand=img.dataset.vehicleLogo==='separate'?'':manufacturer(img.dataset.vehicleMake||img.dataset.vehicleName);
+      const baseKey = match[1]+'|render-v4|'+registration+'|'+colourHex(colour)+(tight?'|tight-v3':''),brand=img.dataset.vehicleLogo==='separate'?'':manufacturer(img.dataset.vehicleMake||img.dataset.vehicleName);
       let key=brand?baseKey+'|logo-v2-below:'+brand:baseKey;
       try {
         let result = images.get(key);

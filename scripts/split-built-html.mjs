@@ -5,6 +5,19 @@ import crypto from 'node:crypto';
 const htmlPath=path.resolve('dist/index.html');
 const assetsDir=path.resolve('dist/assets');
 let html=fs.readFileSync(htmlPath,'utf8');
+// A running phone must receive an update signal for every changed release,
+// including helper-only changes; do not rely on manually bumping app versions.
+const workerPath=path.resolve('dist/service-worker.js');
+let worker=fs.readFileSync(workerPath,'utf8');
+const baseVersion=worker.match(/const APP_VERSION='([^']+)'/)[1];
+const digest=crypto.createHash('sha256').update(html).update(worker);
+for(const filename of fs.readdirSync(path.resolve('dist/js')).sort()){
+  if(/\.(?:js|css)$/.test(filename))digest.update(filename).update(fs.readFileSync(path.resolve('dist/js',filename)));
+}
+const releaseVersion=baseVersion+'-'+digest.digest('hex').slice(0,10);
+html=html.replaceAll(baseVersion,releaseVersion).replace(/service-worker\.js\?v=[^'"]+/g,'service-worker.js?v='+releaseVersion);
+worker=worker.replace("const APP_VERSION='"+baseVersion+"'","const APP_VERSION='"+releaseVersion+"'");
+fs.writeFileSync(workerPath,worker);
 let scriptNumber=0;
 const written=[];
 

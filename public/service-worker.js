@@ -1,5 +1,5 @@
-const CACHE='vecta-workshop-pro-shell-v56-manager-offline';
-const APP_VERSION='v372-manager-offline';
+const CACHE='vecta-workshop-pro-shell-v57-mobile-booking-consistency';
+const APP_VERSION='v373-mobile-booking-consistency';
 const DATA_CACHE='vecta-workshop-pro-data-last-known-v1';
 const HEALTH_CACHE='vecta-workshop-pro-cloud-health-v1';
 const MAIN_CACHE='vecta-workshop-pro-manager-shell-v1';
@@ -255,6 +255,15 @@ self.addEventListener('fetch',event=>{
     }
 
 
+    // Mutable helper URLs must refresh online; hashed build assets remain cache-first.
+    if(url.pathname.startsWith('/js/')){
+      event.respondWith((async()=>{
+        try{const fresh=await fetch(req,{cache:'no-store'});if(fresh&&fresh.ok){const cache=await caches.open(MAIN_CACHE);await cache.put(req,fresh.clone());return fresh}}
+        catch(_e){}
+        return (await caches.match(req)) || Response.error();
+      })());
+      return;
+    }
     event.respondWith((async()=>{
       const cached=await caches.match(req);
       if(cached) return cached;

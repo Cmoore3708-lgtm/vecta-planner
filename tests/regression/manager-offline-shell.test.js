@@ -63,3 +63,12 @@ test('a failed dependency download never replaces a usable offline planner',asyn
   await assert.rejects(w.run('cacheShell(shell)'));
   assert.match(await (await w.run('cachedMain()')).text(),/Planner/);
 });
+
+test('mutable planner helpers refresh online and keep their updated offline copy',async()=>{
+ const w=worker(),req=new Request('https://workshop.test/js/vecta-planner-rules.js');
+ const cache=await w.caches.open('vecta-workshop-pro-manager-shell-v1');await cache.put(req,new Response('old Other rules'));
+ w.context.fetch=async()=>new Response('new Chris rules');let result;
+ w.listeners.fetch({request:req,respondWith:p=>result=p});assert.equal(await (await result).text(),'new Chris rules');
+ w.context.fetch=async()=>{throw Error('offline')};
+ w.listeners.fetch({request:req,respondWith:p=>result=p});assert.equal(await (await result).text(),'new Chris rules');
+});

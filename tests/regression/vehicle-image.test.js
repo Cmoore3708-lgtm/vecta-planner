@@ -239,3 +239,17 @@ test('corrected drawing geometry has a fresh cache key so old misplaced plates a
  root.document.body.innerHTML='<img data-vehicle-image data-vehicle-logo="separate" data-vehicle-crop="tight" data-vehicle-name="Nissan NV400" data-colour="White" data-registration="NJ16VME" src="https://www.haynespro-assets.com/workshop/images/123.svgz">';
  await root.VectaVehicleImage.mount();assert.equal(calls,1);assert.doesNotMatch(decodeURIComponent(root.document.querySelector('img').src),/OLD SIDE PLATE/);
 });
+
+test('an oversized supplier shadow cannot shrink a Range Rover body inside its crop',()=>{
+ const root=browser();
+ root.document.defaultView.Element.prototype.getBBox=function(){
+  if(this.id==='transparant_colour')return {x:40,y:60,width:250,height:120};
+  if(this.id==='windows')return {x:80,y:65,width:160,height:35};
+  if(this.id==='wheels')return {x:45,y:150,width:240,height:65};
+  if(this.id==='shadow')return {x:-200,y:0,width:900,height:500};
+  return {x:0,y:0,width:0,height:0};
+ };
+ const result=root.VectaVehicleImage.personaliseSvg(svg.replace('<g id="wheels">','<g id="shadow"><path d="M0 0"/></g><g id="wheels">'),'GH15JJY','Gold','999.svgz','',true,'Land Rover Range Rover Sport');
+ const doc=new DOMParser().parseFromString(result.svg,'image/svg+xml'),[x,y,w,h]=doc.documentElement.getAttribute('viewBox').split(' ').map(Number);
+ assert.ok(w<300&&h<200);assert.ok(x<40&&y<60&&x+w>290&&y+h>215);
+});
