@@ -32,7 +32,40 @@
     if(typeof key==='string'&&typeof result?.url==='string'&&result.url.startsWith('data:image/svg+xml;charset=utf-8,')&&result.url.length<250000)images.set(key,result);
     if(images.size>=32)break;
   } } catch {}
-  function saveRenders(){try{const entries=[];let size=0;for(const [key,result] of [...images].reverse()){size+=result.url.length;if(size>2000000)break;entries.push([key,{url:result.url,plateAdded:result.plateAdded,recoloured:result.recoloured}]);}root.localStorage?.setItem(renderKey,JSON.stringify(entries));}catch{}}
+  // Keep artwork outside synchronous localStorage so opening a large fleet cannot
+  // repeatedly serialise megabytes on the UI thread. IndexedDB survives navigation.
+  let artworkDb, legacySaveTimer;
+  function persistentDb() {
+    if (!root.indexedDB) return Promise.resolve(null);
+    if (!artworkDb) artworkDb = new Promise(resolve => {
+      let settled=false; const finish=db=>{if(settled){db?.close();return;}settled=true;clearTimeout(timer);resolve(db);};
+      const timer=setTimeout(()=>finish(null),3000);
+      try {
+        const request=root.indexedDB.open('vecta-vehicle-artwork',1);
+        request.onupgradeneeded=()=>{const db=request.result;if(!db.objectStoreNames.contains('artwork'))db.createObjectStore('artwork',{keyPath:'key'});};
+        request.onsuccess=()=>finish(request.result);request.onerror=()=>finish(null);request.onblocked=()=>finish(null);
+      } catch {finish(null);}
+    });
+    return artworkDb;
+  }
+  async function persistentRead(key) {
+    const db=await persistentDb();if(!db)return null;
+    return new Promise(resolve=>{try{const request=db.transaction('artwork','readonly').objectStore('artwork').get(key);request.onsuccess=()=>resolve(request.result?.value||null);request.onerror=()=>resolve(null);}catch{resolve(null);}});
+  }
+  async function persistentWrite(key,value) {
+    const db=await persistentDb();if(!db)return false;
+    return new Promise(resolve=>{try{const tx=db.transaction('artwork','readwrite'),store=tx.objectStore('artwork');store.put({key,value,savedAt:Date.now()});
+      // Bound disk use without throwing away the whole fleet cache.
+      const count=store.count();count.onsuccess=()=>{let excess=count.result-512;if(excess<=0)return;const cursor=store.openCursor();cursor.onsuccess=()=>{const row=cursor.result;if(!row||excess<=0)return;if(row.key!==key){row.delete();excess--;}row.continue();};};
+      tx.oncomplete=()=>resolve(true);tx.onerror=()=>resolve(false);tx.onabort=()=>resolve(false);
+    }catch{resolve(false);}});
+  }
+  function saveRenders(){
+    if(legacySaveTimer)return;
+    legacySaveTimer=setTimeout(()=>{legacySaveTimer=null;try{const entries=[];let size=0;for(const [key,result] of [...images].reverse()){size+=result.url.length;if(size>2000000)break;entries.push([key,{url:result.url,plateAdded:result.plateAdded,recoloured:result.recoloured}]);}root.localStorage?.setItem(renderKey,JSON.stringify(entries));}catch{}},500);
+  }
+  function cacheRender(key,result){images.delete(key);images.set(key,result);let size=0;for(const value of images.values())size+=value.url.length;while(images.size>128||(size>8000000&&images.size>1)){const oldest=images.keys().next().value;size-=images.get(oldest).url.length;images.delete(oldest);}}
+  function validRender(result){return typeof result?.url==='string'&&result.url.startsWith('data:image/svg+xml;charset=utf-8,')&&result.url.length<500000;}
   const normaliseReg = value => String(value || '').toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0,8);
   // Customer-confirmed illustration correction; leave official MOT records untouched.
   const confirmedColours = {BD53MUD:'Black',NA63UKO:'Black'};
@@ -164,10 +197,16 @@
   }
   async function sourceFor(asset) {
     if (!sources.has(asset)) {
-      const task = root.fetch('/api/haynes-image?asset='+encodeURIComponent(asset), {signal:root.AbortSignal.timeout(10000)})
-        .then(async response => {if (!response.ok) throw Error('Image unavailable'); return (await response.json()).svg;});
+      const task = (async()=>{
+        const saved=await persistentRead('source:'+asset);
+        if(typeof saved==='string'&&saved.includes('<svg')&&saved.length<500000)return saved;
+        const response=await root.fetch('/api/haynes-image?asset='+encodeURIComponent(asset), {signal:root.AbortSignal.timeout(10000)});
+        if(!response.ok)throw Error('Image unavailable');const source=(await response.json()).svg;
+        if(typeof source!=='string'||!source.includes('<svg')||source.length>=500000)throw Error('Invalid image');
+        persistentWrite('source:'+asset,source);return source;
+      })();
       sources.set(asset,task); task.catch(() => sources.delete(asset));
-      if (sources.size > 32) sources.delete(sources.keys().next().value);
+      if (sources.size > 64) sources.delete(sources.keys().next().value);
     }
     return sources.get(asset);
   }
@@ -175,7 +214,7 @@
     return Promise.all(Array.from(scope.querySelectorAll('img[data-vehicle-image]')).map(async img => {
       if (img.dataset.personalising) return;
       img.dataset.personalising = '1';
-      const url = img.getAttribute('src') || '';
+      const url = img.dataset.vehicleSource || img.getAttribute('src') || '';
       const match = url.match(/^https:\/\/www\.haynespro-assets\.com\/workshop\/images\/(\d+\.svgz?)$/);
       if (!match) return;
       const registration = normaliseReg(img.dataset.registration), colour = img.dataset.colour || '';
@@ -189,12 +228,16 @@
           if(brand&&!logo){key=baseKey;result=images.get(key);}
           if(!result){
           if (!rendering.has(key)) {
-            const task = sourceFor(match[1]).then(source => {
+            const task = (async()=>{
+              const saved=await persistentRead('render:'+key);
+              if(validRender(saved)){cacheRender(key,saved);return saved;}
+              const source=await sourceFor(match[1]);
               const rendered = personaliseSvg(source,registration,colour,match[1],logo,tight,img.dataset.vehicleName||'');
               rendered.url = 'data:image/svg+xml;charset=utf-8,'+encodeURIComponent(rendered.svg);
-              images.set(key,rendered); if (images.size > 32) images.delete(images.keys().next().value);
-              saveRenders(); return rendered;
-            });
+              cacheRender(key,rendered);
+              persistentWrite('render:'+key,{url:rendered.url,plateAdded:rendered.plateAdded,recoloured:rendered.recoloured}).then(saved=>{if(!saved)saveRenders();});
+              return rendered;
+            })();
             rendering.set(key,task);
           }
           const task = rendering.get(key);

@@ -9,7 +9,7 @@ const helper = fs.readFileSync('public/js/vecta-vehicle-image.js','utf8');
 function browser(storage) {
   const {document,window} = parseHTML('<html><body></body></html>');
   window.Element.prototype.getBBox = function() { return this.id==='windows' ? {x:90,y:62,width:167,height:36} : {x:26,y:59,width:247,height:110}; };
-  const root = {document,DOMParser,XMLSerializer:class {serializeToString(node){return node.outerHTML;}},AbortSignal,console,localStorage:storage};
+  const root = {document,DOMParser,XMLSerializer:class {serializeToString(node){return node.outerHTML;}},AbortSignal,console,setTimeout,clearTimeout,localStorage:storage};
   root.window=root;vm.createContext(root);vm.runInContext(helper,root);return root;
 }
 const svg = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 299 220" onload="alert(1)"><script>alert(1)</script><g id="wheels"><path fill="#333333" d="M0 0"/></g><g id="transparant_colour"><path opacity="0.7" fill="#CCCCCC" d="M0 0"/><path fill="none" stroke="#000000" d="M0 0"/></g><g id="windows"><path fill="#222222" d="M0 0"/></g><foreignObject><iframe src="https://evil.example"/></foreignObject><image href="https://evil.example"/><path style="fill:url(https://evil.example)" d="M0 0"/></svg>';
@@ -19,7 +19,7 @@ test('rendered colour and plate survive offline browser reopening without fetchi
  for(let reopen=0;reopen<2;reopen++){
   const root=browser(storage);root.fetch=async()=>{calls++;if(reopen)throw Error('offline');return {ok:true,json:async()=>({svg})};};
   root.document.body.innerHTML='<img data-vehicle-image data-registration="YB11DCE" data-colour="Red" src="https://www.haynespro-assets.com/workshop/images/123.svgz">';
-  await root.VectaVehicleImage.mount();const img=root.document.querySelector('img');
+  await root.VectaVehicleImage.mount();await new Promise(r=>setTimeout(r,550));const img=root.document.querySelector('img');
   assert.match(img.src,/^data:image\/svg\+xml/);assert.match(decodeURIComponent(img.src),/YB11 DCE/);assert.match(decodeURIComponent(img.src),/#ac1727/);
   if(!reopen)firstUrl=img.src;else assert.equal(img.src,firstUrl);
  }
@@ -141,7 +141,7 @@ test('concurrent copies share the supplier download and personalised render',asy
  root.fetch=async()=>{calls++;await new Promise(r=>complete=r);return {ok:true,json:async()=>({svg})};};
  root.document.body.innerHTML=Array.from({length:5},()=>'<div><img data-vehicle-image data-registration="YB11DCE" data-colour="Red" src="https://www.haynespro-assets.com/workshop/images/123.svgz"></div>').join('');
  const tasks=[...root.document.querySelectorAll('div')].map(scope=>root.VectaVehicleImage.mount(scope));
- assert.equal(calls,1);complete();await Promise.all(tasks);
+ await new Promise(r=>setTimeout(r,0));assert.equal(calls,1);complete();await Promise.all(tasks);await new Promise(r=>setTimeout(r,550));
  assert.equal(writes,1,'one personalised render is persisted for all copies');
  assert.equal(new Set([...root.document.querySelectorAll('img')].map(img=>img.src)).size,1);
 });
@@ -156,7 +156,7 @@ test('manufacturer artwork shares one download and render across cards and survi
  for(let reopen=0;reopen<2;reopen++){
   const root=browser(storage);root.fetch=async url=>{assert.equal(reopen,0,'cached branded artwork needs no network');if(url.startsWith('/assets/')){logos++;assert.equal(url,'/assets/manufacturers/ford.svg');return {ok:true,text:async()=>fs.readFileSync('public/assets/manufacturers/ford.svg','utf8')};}supplier++;return {ok:true,json:async()=>({svg})};};
   root.document.body.innerHTML=Array.from({length:4},()=>'<div><img data-vehicle-image data-vehicle-name="Ford Transit" data-registration="YB11DCE" data-colour="Red" src="https://www.haynespro-assets.com/workshop/images/123.svgz"></div>').join('');
-  await Promise.all([...root.document.querySelectorAll('div')].map(scope=>root.VectaVehicleImage.mount(scope)));
+  await Promise.all([...root.document.querySelectorAll('div')].map(scope=>root.VectaVehicleImage.mount(scope)));await new Promise(r=>setTimeout(r,550));
   const urls=[...root.document.querySelectorAll('img')].map(img=>img.src);assert.equal(new Set(urls).size,1);
   const doc=new DOMParser().parseFromString(decodeURIComponent(urls[0].split(',').slice(1).join(',')),'image/svg+xml');
   const mark=doc.querySelector('#vecta-manufacturer-logo image');assert.match(mark.getAttribute('href'),/^data:image\/png;base64,/);
@@ -192,7 +192,7 @@ test('Fleet crop removes empty supplier canvas and uses a separate persisted ren
  for(let reopen=0;reopen<2;reopen++){
   const root=browser(storage);root.fetch=async()=>{calls++;assert.equal(reopen,0);return {ok:true,json:async()=>({svg})};};
   root.document.body.innerHTML='<img data-vehicle-image data-vehicle-logo="separate" data-registration="NK75BBX" src="https://www.haynespro-assets.com/workshop/images/123.svgz"><img data-vehicle-image data-vehicle-logo="separate" data-vehicle-crop="tight" data-registration="NK75BBX" src="https://www.haynespro-assets.com/workshop/images/123.svgz">';
-  await root.VectaVehicleImage.mount();
+  await root.VectaVehicleImage.mount();await new Promise(r=>setTimeout(r,550));
   const [normal,cropped]=[...root.document.querySelectorAll('img')].map(img=>new DOMParser().parseFromString(decodeURIComponent(img.src.split(',').slice(1).join(',')),'image/svg+xml'));
   assert.equal(normal.documentElement.getAttribute('viewBox'),'0 0 299 220');
   const [x,y,w,h]=cropped.documentElement.getAttribute('viewBox').split(' ').map(Number);
@@ -252,4 +252,30 @@ test('an oversized supplier shadow cannot shrink a Range Rover body inside its c
  const result=root.VectaVehicleImage.personaliseSvg(svg.replace('<g id="wheels">','<g id="shadow"><path d="M0 0"/></g><g id="wheels">'),'GH15JJY','Gold','999.svgz','',true,'Land Rover Range Rover Sport');
  const doc=new DOMParser().parseFromString(result.svg,'image/svg+xml'),[x,y,w,h]=doc.documentElement.getAttribute('viewBox').split(' ').map(Number);
  assert.ok(w<300&&h<200);assert.ok(x<40&&y<60&&x+w>290&&y+h>215);
+});
+
+function artworkStorage(){
+ const rows=new Map();
+ return {rows,open(){const request={};setTimeout(()=>{request.result={close(){},transaction(){const tx={};const store={get(key){const r={};queueMicrotask(()=>{r.result=rows.get(key);r.onsuccess?.()});return r},put(row){rows.set(row.key,structuredClone(row));setTimeout(()=>tx.oncomplete?.(),0)},count(){const r={};queueMicrotask(()=>{r.result=rows.size;r.onsuccess?.()});return r}};tx.objectStore=()=>store;return tx}};request.onsuccess?.()},0);return request}};
+}
+test('a fleet larger than the memory cache survives reopening with zero image downloads',async()=>{
+ const indexedDB=artworkStorage();let downloads=0,writes=0;
+ const storage={getItem:()=>null,setItem:()=>writes++};
+ for(let reopen=0;reopen<2;reopen++){
+  const root=browser(storage);root.indexedDB=indexedDB;
+  root.fetch=async()=>{downloads++;if(reopen)throw Error('offline');return{ok:true,json:async()=>({svg})}};
+  root.document.body.innerHTML=Array.from({length:140},(_,i)=>'<img data-vehicle-image data-vehicle-logo="separate" data-registration="TEST'+i+'" data-colour="Red" src="https://www.haynespro-assets.com/workshop/images/123.svgz">').join('');
+  await root.VectaVehicleImage.mount();await new Promise(r=>setTimeout(r,10));
+  for(const img of root.document.querySelectorAll('img')){assert.match(img.src,/^data:image\/svg/);assert.match(decodeURIComponent(img.src),/#ac1727/)}
+ }
+ assert.equal(downloads,1);assert.equal(writes,0,'IndexedDB avoids synchronous fleet cache rewrites');assert.equal(indexedDB.rows.size,141);
+});
+test('stored supplier artwork recolours a vehicle offline without downloading again',async()=>{
+ const indexedDB=artworkStorage();let downloads=0;
+ for(const colour of ['Red','Blue']){
+  const root=browser();root.indexedDB=indexedDB;root.fetch=async()=>{downloads++;if(colour==='Blue')throw Error('offline');return{ok:true,json:async()=>({svg})}};
+  root.document.body.innerHTML='<img data-vehicle-image data-vehicle-logo="separate" data-registration="AB12CDE" data-colour="'+colour+'" src="https://www.haynespro-assets.com/workshop/images/123.svgz">';
+  await root.VectaVehicleImage.mount();await new Promise(r=>setTimeout(r,10));assert.match(decodeURIComponent(root.document.querySelector('img').src),new RegExp(colour==='Blue'?'#235b9a':'#ac1727'));
+ }
+ assert.equal(downloads,1);
 });
