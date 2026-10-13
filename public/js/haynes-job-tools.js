@@ -56,6 +56,8 @@ const words=v=>String(v||'').toUpperCase().replace(/[^A-Z0-9]+/g,' ').trim();
 function genericImage(description){
  if(!description||description.no_vehicle)return null;
  const text=' '+words(description.model||description.vehicle)+' ',expectedMake=make(description.make);
+ const fleetModel=root.VectaFleetImages?.modelArtwork?.(description.model||description.vehicle);
+ if(image(fleetModel?.imageUrl)&&(!expectedMake||make(fleetModel.make)===expectedMake))return {...fleetModel,generic:true};
  const candidates=[...modelImages,...artwork.values(),...cache.values()].filter(v=>image(v.imageUrl)).map(v=>({make:v.make,model:String(v.model).split(/[(/]/)[0].trim(),imageUrl:v.imageUrl})).sort((a,b)=>b.model.length-a.model.length);
  for(const v of candidates){const model=words(v.model);if(model&&text.includes(' '+model+' ')&&(!expectedMake||make(v.make)===expectedMake))return {make:v.make,model:v.model,imageUrl:v.imageUrl,generic:true};}
  return null;
@@ -138,8 +140,8 @@ root.enrichHaynesDashboard=function(container,jobs){
  dashboardObservers.get(container)?.disconnect();
  let observer;if(root.IntersectionObserver){observer=new root.IntersectionObserver(entries=>{if(entries.some(entry=>entry.isIntersecting))root.enrichHaynesDashboard(container,jobs);});dashboardObservers.set(container,observer);}
  const groups=new Map();
- for(const card of container.querySelectorAll('.job:not(.miniPlannerTask)[data-job-id],.mobileJob[data-open-job],.unallocatedSideJob[data-open-unallocated]')){
-  const j=byId.get(card.dataset.jobId||card.dataset.openJob),target=card.matches('.mobileJob,.unallocatedSideJob')?card:card.querySelector('.plannerJobHeader');if(!j||!target)continue;
+ for(const card of container.querySelectorAll('.job:not(.miniPlannerTask)[data-job-id],.mobileJob[data-open-job],.unallocatedSideJob[data-open-unallocated],.quoteCard[data-open-job]')){
+  const j=byId.get(card.dataset.jobId||card.dataset.openJob||card.dataset.openUnallocated),target=card.matches('.mobileJob,.unallocatedSideJob')?card:card.querySelector('.plannerJobHeader');if(!j||!target)continue;
   const key=reg(j.registration)+'|'+make(j.make)+'|'+words(j.model||j.vehicle)+'|'+words(dashboardColour(j));if(!groups.has(key))groups.set(key,{job:j,targets:[]});groups.get(key).targets.push({card,target});
  }
 const attach=(v,targets,j)=>{for(const {card,target} of targets){if(!card.isConnected)continue;if(!v){genericDashboardArtwork(card,target,j);continue;}const colour=dashboardColour(j);let img=card.querySelector('.haynesDashboardImage');if(img&&(img.dataset.haynesSource!==v.imageUrl||img.dataset.colour!==colour)){img.remove();img=null;}img=img||thumbnail(v,'haynesDashboardImage');if(img){img.dataset.haynesSource=v.imageUrl;img.dataset.colour=colour;img.dataset.vehicleName=[v.make,v.model].join(' ');img.setAttribute('data-vehicle-image','');img.dataset.registration=reg(j.registration);img.dataset.vehicleLogo='separate';img.dataset.vehicleCrop='tight';target.appendChild(img);mobileManufacturerBadge(card,j,v);img.addEventListener('error',()=>genericDashboardArtwork(card,target,j),{once:true});target.classList.add('hasHaynesDashboardImage');trackTimedArtwork(card,img);root.VectaVehicleImage?.mount(target);}}};
