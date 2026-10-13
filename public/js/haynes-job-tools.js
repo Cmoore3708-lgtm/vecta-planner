@@ -34,7 +34,8 @@ function rememberArtwork(v,persist=true){
  if(persist)try{root.localStorage?.setItem(ART_KEY,JSON.stringify([...artwork.values()]));}catch{}
 }
 try{for(const v of JSON.parse(root.localStorage?.getItem(ART_KEY)||'[]'))rememberArtwork(v,false);}catch{}
-try{for(const v of JSON.parse(root.localStorage?.getItem(KEY)||'[]'))if(vehicleLink(v)){rememberArtwork(v);rememberIdentity(v);}}catch{}
+// Hydrate once without rewriting the full artwork/identity collections per row.
+try{for(const v of JSON.parse(root.localStorage?.getItem(KEY)||'[]'))if(vehicleLink(v)){rememberArtwork(v,false);rememberIdentity(v,false);}}catch{}
 function artworkSnapshot(registration,expectedMake){const v=artwork.get(reg(registration));return v&&(!expectedMake||make(v.make)===make(expectedMake))?v:null;}
 try{for(const v of JSON.parse(root.localStorage?.getItem(KEY)||'[]'))remember(v,false);}catch{}
 function valid(v,registration,expectedMake){return !!(v&&reg(v.registration)===reg(registration)&&vehicleLink(v)&&v.make&&v.model&&v.variant&&(!expectedMake||make(v.make)===make(expectedMake))&&Number.isFinite(Date.parse(v.fetchedAt))&&Date.now()-Date.parse(v.fetchedAt)>=0&&Date.now()-Date.parse(v.fetchedAt)<TTL);}
@@ -42,7 +43,7 @@ function remember(v,persist=true){
  if(!valid(v,v?.registration))return;
  const clean={registration:reg(v.registration),make:String(v.make).slice(0,100),model:String(v.model).slice(0,180),variant:String(v.variant).slice(0,180),engineCode:String(v.engineCode||'').slice(0,100),modelYears:String(v.modelYears||'').slice(0,100),vehicle:String(v.vehicle||[v.make,v.model,v.variant].join(' ')).slice(0,360),typeId:v.typeId,imageUrl:image(v.imageUrl),fetchedAt:v.fetchedAt};
  cache.set(clean.registration,clean);while(cache.size>300)cache.delete(cache.keys().next().value);
- rememberArtwork(clean);rememberIdentity(clean);
+ rememberArtwork(clean,persist);rememberIdentity(clean,persist);
  if(persist)try{root.localStorage?.setItem(KEY,JSON.stringify([...cache.values()].filter(x=>valid(x,x.registration))));}catch{}
  return clean;
 }
@@ -59,7 +60,7 @@ function genericImage(description){
  if(!description||description.no_vehicle)return null;
  const text=' '+modelWords(description.model||description.vehicle)+' ',expectedMake=make(description.make);
  const fleetModel=root.VectaFleetImages?.modelArtwork?.(description.model||description.vehicle);
- if(image(fleetModel?.imageUrl)&&(!expectedMake||make(fleetModel.make)===expectedMake))return {...fleetModel,generic:true};
+ if(image(fleetModel?.imageUrl)&&(!expectedMake||make(fleetModel.make)===expectedMake))return {make:fleetModel.make,model:fleetModel.model,imageUrl:fleetModel.imageUrl,generic:true};
  const candidates=[...artwork.values(),...identities.values(),...cache.values(),...modelImages].filter(v=>image(v.imageUrl)).map(v=>({make:v.make,model:String(v.model).split(/[(/]/)[0].trim(),imageUrl:v.imageUrl})).sort((a,b)=>b.model.length-a.model.length);
  for(const v of candidates){const model=modelWords(v.model);if(model&&text.includes(' '+model+' ')&&(!expectedMake||make(v.make)===expectedMake))return {make:v.make,model:v.model,imageUrl:v.imageUrl,generic:true};}
  return null;
@@ -74,35 +75,42 @@ async function lookup(registration,expectedMake,{requireImage=false,force=false,
  }
  const v=await pending.get(requested);return v&&reg(v.registration)===requested&&(!expectedMake||make(v.make)===make(expectedMake))?v:null;
 }
-function thumbnail(v,className){const src=image(v?.imageUrl);if(!src)return null;const img=document.createElement('img');img.src=src;img.className=className;img.alt=(v.generic?'Generic model image: ':'Representative ')+v.make+' '+v.model;img.title=v.generic?'Generic model image — appearance may differ':img.alt;img.dataset.generic=String(!!v.generic);img.dataset.vehicleMake=v.make||'';let retries=0;img.onerror=()=>{if(retries>=2)return;const delay=++retries===1?1500:5000;setTimeout(()=>{if(!img.isConnected||img.src.startsWith('data:'))return;img.src=src;delete img.dataset.personalising;root.VectaVehicleImage?.mount(img.parentElement);},delay);};img.draggable=false;return img;}
+function artworkSource(img,src,description,colour){
+ const svg=description&&/\.svgz?$/.test(src)&&root.VectaVehicleImage?.mount&&root.VectaFleetImages?.artwork?.(description.model||description.vehicle||description.make,colour);
+ if(svg){img.dataset.vehicleSource=src;img.src='data:image/svg+xml;charset=utf-8,'+encodeURIComponent(svg);}else img.src=src;
+}
+function thumbnail(v,className,description){const src=image(v?.imageUrl);if(!src)return null;const img=document.createElement('img');artworkSource(img,src,description,description?dashboardColour(description):'');img.className=className;img.alt=(v.generic?'Generic model image: ':'Representative ')+v.make+' '+v.model;img.title=v.generic?'Generic model image — appearance may differ':img.alt;img.dataset.generic=String(!!v.generic);img.dataset.vehicleMake=v.make||'';let retries=0;img.onerror=()=>{if(retries>=2)return;const delay=++retries===1?1500:5000;setTimeout(()=>{if(!img.isConnected||img.src.startsWith('data:'))return;img.src=src;delete img.dataset.personalising;root.VectaVehicleImage?.mount(img.parentElement);},delay);};img.draggable=false;return img;}
 let dashboardTail=Promise.resolve();
 const dashboardRequests=new Map();
 const dashboardObservers=new WeakMap();
 function visibleCard(card){if(!card.isConnected)return false;if(!root.innerHeight||!card.getBoundingClientRect)return true;const box=card.getBoundingClientRect();return box.width>0&&box.height>0&&box.bottom>=0&&box.top<root.innerHeight;}
-const colourKey='vecta_dashboard_vehicle_colours_v1',colourCache=new Map(),colourFailures=new Map(),colourPending=new Map();
-try{for(const entry of JSON.parse(root.localStorage?.getItem(colourKey)||'[]'))if(/^[A-Z0-9]{2,8}$/.test(entry.registration)&&Date.now()-entry.at<TTL)colourCache.set(entry.registration,entry);}catch{}
+const colourKey='vecta_dashboard_vehicle_colours_v1',colourRetryKey='vecta_dashboard_colour_retries_v1',COLOUR_TTL=30*TTL,COLOUR_RETRY=300000,colourCache=new Map(),colourFailures=new Map(),colourPending=new Map();
+function persistColourFailures(){try{root.localStorage?.setItem(colourRetryKey,JSON.stringify([...colourFailures]));}catch{}}
+try{for(const [registration,at] of JSON.parse(root.localStorage?.getItem(colourRetryKey)||'[]'))if(lookupRegistration(registration)&&Number.isFinite(at)&&at<=Date.now()&&Date.now()-at<COLOUR_RETRY)colourFailures.set(registration,at);}catch{}
+try{for(const entry of JSON.parse(root.localStorage?.getItem(colourKey)||'[]'))if(/^[A-Z0-9]{2,8}$/.test(entry.registration)&&Number.isFinite(entry.at)&&entry.at<=Date.now()&&Date.now()-entry.at<COLOUR_TTL)colourCache.set(entry.registration,entry);}catch{}
 function dashboardColour(job){
  const registration=reg(job.registration),vehicle=registration?(root.app?.vehicles||[]).find(v=>reg(v.registration)===registration):null;
  const fleet=registration?(root.fleetVehicles||[]).find(v=>reg(v.registration)===registration):null;
- const saved=colourCache.get(registration),cached=saved&&Date.now()-saved.at<TTL&&(!job.make||make(saved.make)===make(job.make))?saved.colour:'';
+ const saved=colourCache.get(registration),cached=saved&&Date.now()-saved.at<COLOUR_TTL&&(!job.make||make(saved.make)===make(job.make))?saved.colour:'';
  const supplied=job.vehicle_colour||job.colour||vehicle?.colour||fleet?.colour||cached||'';
  return root.VectaVehicleImage?.resolveColour(registration,supplied)||supplied;
 }
 function rememberLookupColour(data,expectedMake){
  const registration=reg(data?.registration);
  if(!/^[A-Z0-9]{5,8}$/.test(registration)||(expectedMake&&make(data.make)!==make(expectedMake))||!root.VectaVehicleImage?.colourHex(data.primaryColour))return false;
+ colourFailures.delete(registration);persistColourFailures();
  colourCache.set(registration,{registration,make:data.make,colour:data.primaryColour,at:Date.now()});while(colourCache.size>300)colourCache.delete(colourCache.keys().next().value);
  try{root.localStorage?.setItem(colourKey,JSON.stringify([...colourCache.values()]));}catch{}
  return true;
 }
 async function lookupDashboardColour(job){
  const registration=reg(job.registration);
- if(!root.VectaVehicleImage||root.VectaVehicleImage.colourHex(dashboardColour(job))||! /^[A-Z0-9]{5,8}$/.test(registration)||root.navigator?.onLine===false||Date.now()-(colourFailures.get(registration)||0)<300000)return;
+ if(!root.VectaVehicleImage||root.VectaVehicleImage.colourHex(dashboardColour(job))||!lookupRegistration(registration)||! /^[A-Z0-9]{5,8}$/.test(registration)||root.navigator?.onLine===false||Date.now()-(colourFailures.get(registration)||0)<COLOUR_RETRY)return;
  if(colourPending.has(registration))return colourPending.get(registration);
  const task=(async()=>{try{
   const response=await root.fetch('/api/vehicle-lookup?reg='+encodeURIComponent(registration),{cache:'no-store',signal:AbortSignal.timeout(15000)}),data=await response.json();
   if(!response.ok||reg(data.registration)!==registration||!rememberLookupColour(data,job.make))throw Error('Colour unavailable');
- }catch{colourFailures.set(registration,Date.now());while(colourFailures.size>300)colourFailures.delete(colourFailures.keys().next().value);}
+ }catch{colourFailures.set(registration,Date.now());while(colourFailures.size>300)colourFailures.delete(colourFailures.keys().next().value);persistColourFailures();}
  })();colourPending.set(registration,task);
  try{await task;}finally{if(colourPending.get(registration)===task)colourPending.delete(registration);}
 }
@@ -146,7 +154,7 @@ root.enrichHaynesDashboard=function(container,jobs){
   const j=byId.get(card.dataset.jobId||card.dataset.openJob||card.dataset.openUnallocated),target=card.matches('.mobileJob,.unallocatedSideJob')?card:card.querySelector('.plannerJobHeader');if(!j||!target)continue;
   const key=reg(j.registration)+'|'+make(j.make)+'|'+words(j.model||j.vehicle)+'|'+words(dashboardColour(j));if(!groups.has(key))groups.set(key,{job:j,targets:[]});groups.get(key).targets.push({card,target});
  }
-const attach=(v,targets,j)=>{for(const {card,target} of targets){if(!card.isConnected)continue;if(!v){genericDashboardArtwork(card,target,j);continue;}const colour=dashboardColour(j);let img=card.querySelector('.haynesDashboardImage');if(img&&(img.dataset.haynesSource!==v.imageUrl||img.dataset.colour!==colour)){img.remove();img=null;}img=img||thumbnail(v,'haynesDashboardImage');if(img){img.dataset.haynesSource=v.imageUrl;img.dataset.colour=colour;img.dataset.vehicleName=[v.make,v.model].join(' ');img.setAttribute('data-vehicle-image','');img.dataset.registration=reg(j.registration);img.dataset.vehicleLogo='separate';img.dataset.vehicleCrop='tight';target.appendChild(img);mobileManufacturerBadge(card,j,v);img.addEventListener('error',()=>genericDashboardArtwork(card,target,j),{once:true});target.classList.add('hasHaynesDashboardImage');trackTimedArtwork(card,img);root.VectaVehicleImage?.mount(target);}}};
+const attach=(v,targets,j)=>{for(const {card,target} of targets){if(!card.isConnected)continue;if(!v){genericDashboardArtwork(card,target,j);continue;}const colour=dashboardColour(j);let img=card.querySelector('.haynesDashboardImage');if(img&&(img.dataset.haynesSource!==v.imageUrl||img.dataset.colour!==colour)){img.remove();img=null;}img=img||thumbnail(v,'haynesDashboardImage',j);if(img){img.dataset.haynesSource=v.imageUrl;img.dataset.colour=colour;img.dataset.vehicleName=[v.make,v.model].join(' ');img.setAttribute('data-vehicle-image','');img.dataset.registration=reg(j.registration);img.dataset.vehicleLogo='separate';img.dataset.vehicleCrop='tight';target.appendChild(img);mobileManufacturerBadge(card,j,v);img.addEventListener('error',()=>genericDashboardArtwork(card,target,j),{once:true});target.classList.add('hasHaynesDashboardImage');trackTimedArtwork(card,img);root.VectaVehicleImage?.mount(target);}}};
  for(const [key,group] of groups){
   const j=group.job,hit=identitySnapshot(j.registration,j.make)||snapshot(j.registration,j.make),fallback=artworkSnapshot(j.registration,j.make)||genericImage(j);attach(hit?.imageUrl?hit:fallback,group.targets,j);if((hit?.imageUrl&&(!root.VectaVehicleImage||root.VectaVehicleImage.colourHex(dashboardColour(j))))||!lookupRegistration(j.registration))continue;
   if(!group.targets.some(x=>visibleCard(x.card))){for(const {card} of group.targets)observer?.observe(card);continue;}
@@ -218,7 +226,7 @@ root.initHaynesJobTools=function(modal){
   const fallback=()=>{picture.innerHTML=root.VectaFleetImages?.artwork?.(name,colour)||'';picture.title='Generic vehicle illustration — appearance may differ';};
   const v=drawing||snapshot(registration,description.make)||artworkSnapshot(registration,description.make)||genericImage(description),src=image(v?.imageUrl);
   if(!src){fallback();return;}
-  const img=document.createElement('img');img.src=src;img.alt=[colour,v.make,v.model,registration].filter(Boolean).join(' ');img.dataset.vehicleImage='';img.dataset.registration=registration;img.dataset.colour=colour;img.dataset.vehicleName=name;img.dataset.vehicleMake=v.make||'';img.dataset.vehicleLogo='separate';img.dataset.vehicleCrop='tight';img.onerror=fallback;picture.appendChild(img);picture.title='';root.VectaVehicleImage?.mount(picture);
+  const img=document.createElement('img');artworkSource(img,src,description,colour);img.alt=[colour,v.make,v.model,registration].filter(Boolean).join(' ');img.dataset.vehicleImage='';img.dataset.registration=registration;img.dataset.colour=colour;img.dataset.vehicleName=name;img.dataset.vehicleMake=v.make||'';img.dataset.vehicleLogo='separate';img.dataset.vehicleCrop='tight';img.onerror=fallback;picture.appendChild(img);picture.title='';root.VectaVehicleImage?.mount(picture);
  }
  const panel=document.createElement('div');panel.className='haynesJobTools';
  panel.innerHTML='<button type="button" class="btn">Find vehicle in HaynesPro</button><span role="status" aria-live="polite"></span><div class="haynesJobVehicle"></div>';

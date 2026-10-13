@@ -220,29 +220,33 @@
       const registration = normaliseReg(img.dataset.registration), colour = img.dataset.colour || '';
       const tight=img.dataset.vehicleCrop==='tight';
       const baseKey = match[1]+'|render-v4|'+registration+'|'+colourHex(colour)+(tight?'|tight-v3':''),brand=img.dataset.vehicleLogo==='separate'?'':manufacturer(img.dataset.vehicleMake||img.dataset.vehicleName);
-      let key=brand?baseKey+'|logo-v2-below:'+brand:baseKey;
+      const key=brand?baseKey+'|logo-v2-below:'+brand:baseKey;
       try {
         let result = images.get(key);
         if (!result) {
-          const logo=brand?await logoFor(brand):'';
-          if(brand&&!logo){key=baseKey;result=images.get(key);}
-          if(!result){
           if (!rendering.has(key)) {
             const task = (async()=>{
+              // A finished branded render includes its badge. Check disk before
+              // downloading either the badge or the supplier drawing again.
               const saved=await persistentRead('render:'+key);
               if(validRender(saved)){cacheRender(key,saved);return saved;}
+              const logo=brand?await logoFor(brand):'';
+              const renderKey=brand&&!logo?baseKey:key;
+              if(renderKey!==key){
+                const fallback=images.get(renderKey)||await persistentRead('render:'+renderKey);
+                if(validRender(fallback)){cacheRender(renderKey,fallback);return fallback;}
+              }
               const source=await sourceFor(match[1]);
               const rendered = personaliseSvg(source,registration,colour,match[1],logo,tight,img.dataset.vehicleName||'');
               rendered.url = 'data:image/svg+xml;charset=utf-8,'+encodeURIComponent(rendered.svg);
-              cacheRender(key,rendered);
-              persistentWrite('render:'+key,{url:rendered.url,plateAdded:rendered.plateAdded,recoloured:rendered.recoloured}).then(saved=>{if(!saved)saveRenders();});
+              cacheRender(renderKey,rendered);
+              persistentWrite('render:'+renderKey,{url:rendered.url,plateAdded:rendered.plateAdded,recoloured:rendered.recoloured}).then(saved=>{if(!saved)saveRenders();});
               return rendered;
             })();
             rendering.set(key,task);
           }
           const task = rendering.get(key);
           try { result = await task; } finally { if (rendering.get(key) === task) rendering.delete(key); }
-          }
         }
         if (!img.isConnected) return;
         img.src = result.url;

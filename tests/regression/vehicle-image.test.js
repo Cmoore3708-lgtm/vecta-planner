@@ -279,3 +279,19 @@ test('stored supplier artwork recolours a vehicle offline without downloading ag
  }
  assert.equal(downloads,1);
 });
+
+test('branded fleet beyond the memory cache reopens without downloading badges or supplier artwork',async()=>{
+ const indexedDB=artworkStorage();let supplier=0,logos=0;
+ for(let reopen=0;reopen<2;reopen++){
+  const root=browser();root.indexedDB=indexedDB;
+  root.fetch=async url=>{
+   assert.equal(reopen,0,'persistent completed render must be checked before downloading its badge');
+   if(url.startsWith('/assets/')){logos++;return {ok:true,text:async()=>fs.readFileSync('public/assets/manufacturers/ford.svg','utf8')};}
+   supplier++;return {ok:true,json:async()=>({svg})};
+  };
+  root.document.body.innerHTML=Array.from({length:140},(_,i)=>'<img data-vehicle-image data-vehicle-name="Ford Transit" data-registration="TEST'+i+'" data-colour="Red" src="https://www.haynespro-assets.com/workshop/images/123.svgz">').join('');
+  await root.VectaVehicleImage.mount();await new Promise(r=>setTimeout(r,10));
+  for(const img of root.document.querySelectorAll('img'))assert.match(decodeURIComponent(img.src),/vecta-manufacturer-logo/);
+ }
+ assert.equal(supplier,1);assert.equal(logos,1);
+});
