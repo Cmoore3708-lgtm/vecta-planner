@@ -84,14 +84,16 @@ let dashboardTail=Promise.resolve();
 const dashboardRequests=new Map();
 const dashboardObservers=new WeakMap();
 function visibleCard(card){if(!card.isConnected)return false;if(!root.innerHeight||!card.getBoundingClientRect)return true;const box=card.getBoundingClientRect();return box.width>0&&box.height>0&&box.bottom>=0&&box.top<root.innerHeight;}
-const colourKey='vecta_dashboard_vehicle_colours_v1',colourRetryKey='vecta_dashboard_colour_retries_v1',COLOUR_TTL=30*TTL,COLOUR_RETRY=300000,colourCache=new Map(),colourFailures=new Map(),colourPending=new Map();
+// Paint colour is stable vehicle metadata, not a daily MOT/tax result.
+// Keep successful colours until a newer confirmed result or user choice replaces them.
+const colourKey='vecta_dashboard_vehicle_colours_v1',colourRetryKey='vecta_dashboard_colour_retries_v1',COLOUR_RETRY=300000,colourCache=new Map(),colourFailures=new Map(),colourPending=new Map();
 function persistColourFailures(){try{root.localStorage?.setItem(colourRetryKey,JSON.stringify([...colourFailures]));}catch{}}
 try{for(const [registration,at] of JSON.parse(root.localStorage?.getItem(colourRetryKey)||'[]'))if(lookupRegistration(registration)&&Number.isFinite(at)&&at<=Date.now()&&Date.now()-at<COLOUR_RETRY)colourFailures.set(registration,at);}catch{}
-try{for(const entry of JSON.parse(root.localStorage?.getItem(colourKey)||'[]'))if(/^[A-Z0-9]{2,8}$/.test(entry.registration)&&Number.isFinite(entry.at)&&entry.at<=Date.now()&&Date.now()-entry.at<COLOUR_TTL)colourCache.set(entry.registration,entry);}catch{}
+try{for(const entry of JSON.parse(root.localStorage?.getItem(colourKey)||'[]'))if(/^[A-Z0-9]{2,8}$/.test(entry.registration)&&Number.isFinite(entry.at)&&entry.at<=Date.now())colourCache.set(entry.registration,entry);}catch{}
 function dashboardColour(job){
  const registration=reg(job.registration),vehicle=registration?(root.app?.vehicles||[]).find(v=>reg(v.registration)===registration):null;
  const fleet=registration?(root.fleetVehicles||[]).find(v=>reg(v.registration)===registration):null;
- const saved=colourCache.get(registration),cached=saved&&Date.now()-saved.at<COLOUR_TTL&&(!job.make||make(saved.make)===make(job.make))?saved.colour:'';
+ const saved=colourCache.get(registration),cached=saved&&(!job.make||make(saved.make)===make(job.make))?saved.colour:'';
  const supplied=job.vehicle_colour||job.colour||vehicle?.colour||fleet?.colour||cached||'';
  return root.VectaVehicleImage?.resolveColour(registration,supplied)||supplied;
 }
@@ -99,7 +101,7 @@ function rememberLookupColour(data,expectedMake){
  const registration=reg(data?.registration);
  if(!/^[A-Z0-9]{5,8}$/.test(registration)||(expectedMake&&make(data.make)!==make(expectedMake))||!root.VectaVehicleImage?.colourHex(data.primaryColour))return false;
  colourFailures.delete(registration);persistColourFailures();
- colourCache.set(registration,{registration,make:data.make,colour:data.primaryColour,at:Date.now()});while(colourCache.size>300)colourCache.delete(colourCache.keys().next().value);
+ colourCache.set(registration,{registration,make:data.make,colour:data.primaryColour,at:Date.now()});
  try{root.localStorage?.setItem(colourKey,JSON.stringify([...colourCache.values()]));}catch{}
  return true;
 }

@@ -55,8 +55,9 @@
   async function persistentWrite(key,value) {
     const db=await persistentDb();if(!db)return false;
     return new Promise(resolve=>{try{const tx=db.transaction('artwork','readwrite'),store=tx.objectStore('artwork');store.put({key,value,savedAt:Date.now()});
-      // Bound disk use without throwing away the whole fleet cache.
-      const count=store.count();count.onsuccess=()=>{let excess=count.result-512;if(excess<=0)return;const cursor=store.openCursor();cursor.onsuccess=()=>{const row=cursor.result;if(!row||excess<=0)return;if(row.key!==key){row.delete();excess--;}row.continue();};};
+      // Regenerate old rendered variants from permanent supplier sources, never
+      // discard those sources just because the fleet grows past the render limit.
+      const count=store.count();count.onsuccess=()=>{let excess=count.result-512;if(excess<=0)return;const cursor=store.openCursor();cursor.onsuccess=()=>{const row=cursor.result;if(!row||excess<=0)return;if(row.key!==key&&!String(row.key).startsWith('source:')){row.delete();excess--;}row.continue();};};
       tx.oncomplete=()=>resolve(true);tx.onerror=()=>resolve(false);tx.onabort=()=>resolve(false);
     }catch{resolve(false);}});
   }

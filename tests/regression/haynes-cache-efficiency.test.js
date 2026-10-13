@@ -36,8 +36,8 @@ test('hundreds of cached vehicle records hydrate without serialising entire coll
  assert.equal(JSON.parse(values.get('vecta_haynes_vehicle_identity_v1')).length,201);
 });
 
-test('known colour survives reopening beyond one day and remains make-specific',async()=>{
- const values=new Map([['vecta_dashboard_vehicle_colours_v1',JSON.stringify([{registration:vehicle.registration,make:'Nissan',colour:'Blue',at:Date.now()-10*86400000}])]]);
+test('known colour remains permanent after years and stays make-specific',async()=>{
+ const values=new Map([['vecta_dashboard_vehicle_colours_v1',JSON.stringify([{registration:vehicle.registration,make:'Nissan',colour:'Blue',at:Date.now()-5*365*86400000}])]]);
  const {tools,calls}=setup(values);
  await tools.lookupDashboardColour(vehicle);
  assert.equal(calls(),0);assert.equal(tools.dashboardColour(vehicle),'Blue');
@@ -59,11 +59,28 @@ test('a successful colour result clears a previously persisted failure',async()=
  const second=setup(values);await second.tools.lookupDashboardColour(vehicle);assert.equal(second.calls(),0);
 });
 
-test('expired and future colour records cannot suppress a fresh lookup',async()=>{
- for(const at of [Date.now()-31*86400000,Date.now()+86400000]){
+test('invalid and future colour records cannot suppress a fresh lookup',async()=>{
+ for(const at of ['invalid',Date.now()+86400000]){
   const {tools,calls}=setup(new Map([['vecta_dashboard_vehicle_colours_v1',JSON.stringify([{registration:vehicle.registration,make:'Nissan',colour:'Blue',at}])]]));
   assert.equal(tools.dashboardColour(vehicle),'');await tools.lookupDashboardColour(vehicle);assert.equal(calls(),1);
  }
+});
+
+test('a growing fleet does not evict a previously confirmed colour',async()=>{
+ const values=new Map();const first=setup(values);
+ for(let i=0;i<400;i++)assert.equal(first.tools.rememberLookupColour({registration:'AB'+String(i).padStart(3,'0')+'CD',make:'Nissan',primaryColour:'Blue'}),true);
+ const second=setup(values);await second.tools.lookupDashboardColour({registration:'AB000CD',make:'Nissan'});
+ assert.equal(second.calls(),0);assert.equal(second.tools.dashboardColour({registration:'AB000CD',make:'Nissan'}),'Blue');
+ assert.equal(JSON.parse(values.get('vecta_dashboard_vehicle_colours_v1')).length,400);
+});
+
+test('a fleet colour edit or a newer confirmed lookup replaces a permanent cached colour',()=>{
+ const {root,tools}=setup();tools.rememberLookupColour({...vehicle,primaryColour:'Blue'});
+ root.app={vehicles:[{registration:vehicle.registration,colour:'Red'}]};
+ assert.equal(tools.dashboardColour(vehicle),'Red');
+ root.app.vehicles=[];root.VectaVehicleImage.colourHex=c=>['Blue','Green'].includes(c)?'#fff':'';
+ assert.equal(tools.rememberLookupColour({...vehicle,primaryColour:'Green'}),true);
+ assert.equal(tools.dashboardColour(vehicle),'Green');
 });
 
 test('placeholder registrations never trigger decorative government colour lookups',async()=>{
