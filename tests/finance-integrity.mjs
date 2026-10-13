@@ -510,16 +510,16 @@ console.log('Finance integrity regression tests passed.');
 
 {
   let submitted;
-  const context=contextWith(['createInvoiceCustomerLink'],{URL,AbortSignal,window:{location:{host:'workshop.example'}},fetch:async(path,options)=>{submitted={path,...options};return {ok:true,json:async()=>({url:'https://tinyurl.com/test123',invoice_url:'https://workshop.example/invoice?token=test-token'})}}});
+  const context=contextWith(['createInvoiceCustomerLink'],{URL,AbortSignal,window:{location:{host:'workshop.example'}},fetch:async(path,options)=>{submitted={path,...options};return {ok:true,json:async()=>({url:'https://workshop.example/invoice?token=test-token'})}}});
   const link=await context.createInvoiceCustomerLink({id:'saved-invoice'});
-  assert.equal(link,'https://tinyurl.com/test123');
+  assert.equal(link,'https://workshop.example/invoice?token=test-token');
   assert.equal(submitted.path,'/api/additional-work?invoicePdf=1');
   assert.equal(submitted.credentials,'same-origin');
-  assert.deepEqual(JSON.parse(submitted.body),{invoice_id:'saved-invoice',shorten:true},'Link service receives the saved invoice id and shortening request');
+  assert.deepEqual(JSON.parse(submitted.body),{invoice_id:'saved-invoice',presentation:{}},'Link service receives the saved invoice id and artwork without a shortening request');
   context.fetch=async()=>({ok:false,json:async()=>({error:'Manager sign-in required'})});
   await assert.rejects(context.createInvoiceCustomerLink({id:'saved-invoice'}),/Manager sign-in required/);
   context.fetch=async()=>({ok:true,json:async()=>({url:'https://attacker.example/invoice?token=test-token'})});
-  await assert.rejects(context.createInvoiceCustomerLink({id:'saved-invoice'}),/Unexpected invoice PDF address/);
+  await assert.rejects(context.createInvoiceCustomerLink({id:'saved-invoice'}),/Unexpected invoice address/);
 }
 
 {

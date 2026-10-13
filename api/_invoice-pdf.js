@@ -1,6 +1,7 @@
 import { createHmac, createHash, randomBytes, timingSafeEqual } from 'node:crypto';
 import { readFile } from 'node:fs/promises';
 import { PDFDocument, StandardFonts, rgb } from 'pdf-lib';
+import { renderCustomerInvoiceHtml } from './_invoice-html.js';
 import { databaseEnvironment } from './_database-environment.js';
 import { managerGate, validManagerSession } from '../middleware.js';
 
@@ -12,22 +13,13 @@ export function invoiceFingerprint(invoice, legacy = false) {
   if (legacy) fields.push('status');
   return createHash('sha256').update(JSON.stringify(fields.map(key => invoice[key] ?? null))).digest('hex');
 }
-export async function shortenInvoiceUrl(url) {
-  const response = await fetch('https://tinyurl.com/api-create.php?url=' + encodeURIComponent(url), {
-    redirect: 'error', signal: AbortSignal.timeout(6000)
-  });
-  if (!response.ok) throw new Error('Short invoice link unavailable');
-  const shortUrl = new URL((await response.text()).trim());
-  if (shortUrl.protocol !== 'https:' || shortUrl.hostname !== 'tinyurl.com' || shortUrl.username || shortUrl.password || !/^\/[A-Za-z0-9_-]+$/.test(shortUrl.pathname) || shortUrl.search || shortUrl.hash) throw new Error('Invalid short invoice link');
-  return shortUrl.href;
-}
-export function issueInvoiceToken(invoice, secret, now = Date.now()) {
-  const payload = Buffer.from(JSON.stringify({ id: invoice.id, exp: Math.floor(now / 1000) + LINK_SECONDS, hash: invoiceFingerprint(invoice), nonce: randomBytes(16).toString('hex') })).toString('base64url');
+export function issueInvoiceToken(invoice, secret, now = Date.now(), presentation = {}) {
+  const payload = Buffer.from(JSON.stringify({ id: invoice.id, exp: Math.floor(now / 1000) + LINK_SECONDS, hash: invoiceFingerprint(invoice), nonce: randomBytes(16).toString('hex'), presentation: { imageUrl: /^https:\/\/www\.haynespro-assets\.com\/workshop\/images\/\d+\.(svgz?|png|jpe?g|webp)$/.test(presentation.imageUrl || '') ? presentation.imageUrl : '', colour: String(presentation.colour || '').slice(0,40) } })).toString('base64url');
   const signature = createHmac('sha256', secret).update('vecta-invoice-v1.' + payload).digest('base64url');
   return payload + '.' + signature;
 }
 export function verifyInvoiceToken(token, secret, now = Date.now()) {
-  if (typeof token !== 'string' || token.length > 1000 || !/^[A-Za-z0-9_-]+\.[A-Za-z0-9_-]{43}$/.test(token)) return null;
+  if (typeof token !== 'string' || token.length > 2000 || !/^[A-Za-z0-9_-]+\.[A-Za-z0-9_-]{43}$/.test(token)) return null;
   const [payload, signature] = token.split('.');
   const expected = createHmac('sha256', secret).update('vecta-invoice-v1.' + payload).digest();
   const actual = Buffer.from(signature, 'base64url');
@@ -155,15 +147,19 @@ export default async function invoicePdfHandler(req, res) {
     const invoice = (await rows(config, 'invoices?select=*&id=eq.' + encodeURIComponent(id) + '&limit=1'))[0];
     if (!active(invoice) || (claim && ![invoiceFingerprint(invoice), invoiceFingerprint(invoice, true), invoiceFingerprint({ ...invoice, status: 'saved' }, true)].includes(claim.hash))) return res.status(404).json({ error: 'Invoice link is unavailable or has expired' });
     if (req.method === 'POST') {
-      const token = issueInvoiceToken(invoice, secret);
+      const token = issueInvoiceToken(invoice, secret, Date.now(), req.body?.presentation || {});
       const url = 'https://' + req.headers.host + '/invoice?token=' + token;
-      if (req.body?.shorten === true) return res.status(201).json({ url: await shortenInvoiceUrl(url), invoice_url: url, expires_in_days: 90 });
       return res.status(201).json({ url, expires_in_days: 90 });
     }
     const [settingRows, jobRows] = await Promise.all([
       rows(config, 'workshop_settings?select=value&id=eq.main&limit=1'),
       validId(invoice.job_id) ? rows(config, 'jobs?select=*&id=eq.' + encodeURIComponent(invoice.job_id) + '&limit=1') : Promise.resolve([])
     ]);
+    if (req.query.download !== '1' && req.query.format !== 'pdf') {
+      res.setHeader('Content-Type', 'text/html; charset=utf-8');
+      res.setHeader('Content-Security-Policy', "default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self' data: https://www.haynespro-assets.com; connect-src 'self'; base-uri 'none'; frame-ancestors 'none'; form-action 'none'");
+      return res.status(200).send(renderCustomerInvoiceHtml(invoice, settingRows[0]?.value || {}, jobRows[0] || {}, claim.presentation || {}));
+    }
     const bytes = await renderCustomerInvoicePdf(invoice, settingRows[0]?.value || {}, jobRows[0] || {});
     const filename = ('VECTA-Invoice-' + (invoice.invoice_number || '') + '.pdf').replace(/[^a-zA-Z0-9_.-]/g, '-');
     res.setHeader('Content-Type', 'application/pdf');
@@ -174,4 +170,3 @@ export default async function invoicePdfHandler(req, res) {
     return res.status(503).json({ error: 'Invoice download is temporarily unavailable. Please try again.' });
   }
 }
-

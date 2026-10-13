@@ -44,10 +44,11 @@ test('missing preferred contact does not silently use another channel; double-cl
 });
 
 
-test('message link requests shortening and validates both destinations', async()=>{
+test('message links go directly to the signed invoice and reject external redirects', async()=>{
  const {ctx,inv}=setup();vm.runInContext(html.match(/async function createInvoiceCustomerLink\(inv\)\{[\s\S]*?\n\}/)[0],ctx);ctx.window.location={host:'workshop.example'};
- ctx.fetch=async (url,options)=>{assert.equal(JSON.parse(options.body).shorten,true);return {ok:true,json:async()=>({url:'https://tinyurl.com/test123',invoice_url:'https://workshop.example/invoice?token=secure'})}};
- assert.equal(await ctx.createInvoiceCustomerLink(inv),'https://tinyurl.com/test123');
- ctx.fetch=async()=>({ok:true,json:async()=>({url:'https://attacker.example/test',invoice_url:'https://workshop.example/invoice?token=secure'})});
- await assert.rejects(ctx.createInvoiceCustomerLink(inv),/Short invoice link unavailable/);
+ ctx.fetch=async(url,options)=>{assert.equal(JSON.parse(options.body).shorten,undefined);return {ok:true,json:async()=>({url:'https://workshop.example/invoice?token=secure'})}};
+ assert.equal(await ctx.createInvoiceCustomerLink(inv),'https://workshop.example/invoice?token=secure');
+ for(const url of ['https://tinyurl.com/test123','https://attacker.example/invoice?token=secure','https://workshop.example/invoice','https://user@workshop.example/invoice?token=secure']){
+  ctx.fetch=async()=>({ok:true,json:async()=>({url})});await assert.rejects(ctx.createInvoiceCustomerLink(inv),/Unexpected invoice address/);
+ }
 });

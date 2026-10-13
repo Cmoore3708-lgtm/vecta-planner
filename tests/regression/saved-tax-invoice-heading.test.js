@@ -22,5 +22,6 @@ test('ordinary workshop invoices do not acquire a tax heading',()=>{
 });
 test('invoice screen and print output share the same heading helper',()=>{
  assert.ok(html.includes('<h2>INVOICE</h2>\'+vehicleTaxInvoiceHeading(inv)+\''));
- assert.ok(html.includes('<div class="printTitle">INVOICE\'+vehicleTaxInvoiceHeading(inv)+\''));
+ assert.ok(html.includes('accountHeading:vehicleTaxInvoiceHeading(inv)'));
+ assert.ok(fs.readFileSync(new URL('../../public/js/vecta-invoice-print.js',import.meta.url),'utf8').includes('<div class="printTitle">INVOICE\'+accountHeading+\''));
 });
