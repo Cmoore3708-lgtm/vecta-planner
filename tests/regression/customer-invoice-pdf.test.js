@@ -97,3 +97,30 @@ test('legacy MOT VAT correction matches the workshop print without changing save
  assert.match(html,/<b>Subtotal:<\/b><span>£154.00/);assert.match(html,/<b>VAT:<\/b><span>£20.00/);
  assert.equal(original.vat,29);assert.equal(original.lines[1].vat_mode,'inc_vat');
 });
+
+test('compact links persist hashed random codes and render directly without redirects',async()=>{
+ const oldEnv={...process.env},oldFetch=globalThis.fetch;
+ Object.assign(process.env,{VERCEL_ENV:'production',SUPABASE_URL:'https://unit-test.supabase.co',SUPABASE_SERVICE_ROLE_KEY:'server-only-service-key',VECTA_MAIN_USER:'Manager',VECTA_MAIN_PASSWORD:'manager-secret',VECTA_INVOICE_LINK_SECRET:secret});
+ delete process.env.VITE_SUPABASE_URL;delete process.env.VERCEL_PROJECT_NAME;delete process.env.VERCEL_PROJECT_PRODUCTION_URL;
+ let saved,failWrite=false;
+ globalThis.fetch=async(url,options={})=>{
+  const u=new URL(url);
+  if(u.pathname.endsWith('/invoice_customer_links')){
+   if(options.method==='POST'){if(failWrite)return new Response('Failed',{status:503});saved=JSON.parse(options.body);return new Response(null,{status:201});}
+   return new Response(JSON.stringify(saved&&u.searchParams.get('token_hash')==='eq.'+saved.token_hash?[saved]:[]));
+  }
+  return new Response(JSON.stringify(u.pathname.endsWith('/invoices')?[invoice]:u.pathname.endsWith('/workshop_settings')?[{value:settings}]:[{customer_account:'Staff'}]));
+ };
+ try{
+  const cookie=(await managerSessionCookie({user:'Manager',password:'manager-secret'})).split(';')[0];
+  const req={method:'POST',headers:{host:'workshop.example',origin:'https://workshop.example',cookie},body:{invoice_id:invoice.id,compact:true},query:{}};
+  let res=response();await handler(req,res);assert.equal(res.code,201);
+  const link=new URL(res.body.url),code=link.pathname.split('/').pop();assert.match(code,/^[A-Za-z0-9_-]{24}$/);assert.equal(link.search,'');assert.equal(link.pathname,'/i/'+code);assert.ok(res.body.url.length<70);
+  assert.notEqual(saved.token_hash,code);assert.equal(saved.token_hash.length,64);assert.ok(!JSON.stringify(saved).includes(code));
+  res=response();await handler({method:'GET',headers:{},query:{code}},res);assert.equal(res.code,200);assert.match(res.body,/invoicePrintPage/);assert.equal(res.headers.Location,undefined);
+  res=response();await handler({method:'GET',headers:{},query:{code:'Z'.repeat(24)}},res);assert.equal(res.code,404);
+  saved.expires_at='2000-01-01';res=response();await handler({method:'GET',headers:{},query:{code}},res);assert.equal(res.code,404);
+  failWrite=true;res=response();await handler(req,res);assert.equal(res.code,503);assert.ok(!res.body.url);
+  assert.equal(requiresManagerLogin('/i/'+code),false);
+ }finally{globalThis.fetch=oldFetch;for(const k of Object.keys(process.env))if(!(k in oldEnv))delete process.env[k];Object.assign(process.env,oldEnv);}
+});

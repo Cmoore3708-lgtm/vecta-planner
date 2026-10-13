@@ -27,6 +27,10 @@
   },
   "rewrites": [
     {
+      "source": "/i/:code",
+      "destination": "/api/additional-work?invoicePdf=1&code=:code"
+    },
+    {
       "source": "/invoice",
       "destination": "/api/additional-work?invoicePdf=1"
     },
