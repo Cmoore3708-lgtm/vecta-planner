@@ -38,7 +38,10 @@
     .final{padding-bottom:28px}#location{padding-top:24px}
     .final .bookingPrompt{font-size:13px;font-weight:850;line-height:1.4;color:var(--white);margin-bottom:15px}
     @media(max-width:720px){#how{padding-top:20px}.final .bookingPrompt{font-size:12px;white-space:nowrap}}
-  </style>
+
+    .registrationEntry{display:flex;align-items:stretch;gap:10px;max-width:530px;margin:auto}.registrationEntry .plate{flex:1;min-width:0;margin:0}.registrationEnter{flex:0 0 auto;min-width:84px;border:0;border-radius:9px;padding:0 18px;background:var(--red);color:#fff;font-size:18px;font-weight:850;cursor:pointer}.registrationEnter:hover{background:var(--red2)}.registrationEnter:focus-visible{outline:3px solid #fff;outline-offset:3px}
+    @media(max-width:600px){.registrationEntry{gap:8px}.registrationEntry .plate{grid-template-columns:36px 1fr;height:60px}.registrationEntry .plate input{font-size:clamp(21px,5.8vw,30px);letter-spacing:.05em;padding:0 5px}.registrationEnter{min-width:68px;padding:0 10px;font-size:16px}.regBox label{white-space:normal}}
+</style>
 </head>
 <body>
 <header class="siteHeader">
@@ -59,7 +62,7 @@
         <div class="card bookingWorkCard" data-home-type="Other" role="button" tabindex="0" aria-pressed="false"><div class="cardIcon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m14 6 4-4 4 4-4 4"/><path d="M18 6 9 15"/><path d="m5 13 6 6-3 3-6-6z"/></svg></div><h3>REPAIRS</h3><p>Suspension, exhausts, remaps…</p></div>
         <div class="card bookingWorkCard" data-home-type="Diagnostics / warning light" role="button" tabindex="0" aria-pressed="false"><div class="cardIcon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 7h10l3 4v6H4v-6l3-4Z"/><path d="M8 7V4h8v3"/><path d="M8 17v3M16 17v3"/><circle cx="8" cy="13" r="1"/><circle cx="16" cy="13" r="1"/></svg></div><h3>DIAGNOSTICS</h3><p>Engine management lights, fault finding</p></div>
       </div>
-      <form class="regBox bookingRegForm"><label>Enter your registration number to make your booking</label><div class="plate"><div class="gb"><span>GB</span></div><input class="bookingRegInput" maxlength="10" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="YOUR REG" aria-label="Vehicle registration" enterkeyhint="go"></div></form>
+      <form class="regBox bookingRegForm"><label>Enter your registration number to make your booking</label><div class="registrationEntry"><div class="plate"><div class="gb"><span>GB</span></div><input class="bookingRegInput" maxlength="10" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="YOUR REG" aria-label="Vehicle registration" enterkeyhint="go"></div><button type="submit" class="registrationEnter">Enter</button></div></form>
     </div>
   </div></div>
 
@@ -72,7 +75,7 @@
 
   <section><div class="wrap split"><img class="photo" src="/assets/technician.jpg" alt="Vehicle technician at work"><div class="copy experience"><h2>We are the longest standing contractor at NMUK.</h2><p id="adminIntro">We have been trusted to manage the fleet here at NMUK for over 30 years. Now you get to benefit from our experience and first class service.</p><div class="ticks"><div class="tick"><div><b>All makes and models</b><span>Not just Nissan.</span></div></div><div class="tick"><div><b>No taking time off work</b><span>Your car is being fixed while you're at work.</span></div></div><div class="tick"><div><b>Convenient on-site workshop</b><span>No arranging lifts or waiting around at a garage.</span></div></div></div></div></div></section>
 
-  <section class="final"><div class="wrap"><h2>Need some work doing?</h2><form class="regBox bookingRegForm" style="max-width:560px;margin:20px auto 0"><label>Enter your registration number to make your booking</label><div class="plate"><div class="gb"><span>GB</span></div><input class="bookingRegInput" maxlength="10" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="YOUR REG" aria-label="Vehicle registration" enterkeyhint="go"></div></form></div></section>
+  <section class="final"><div class="wrap"><h2>Need some work doing?</h2><form class="regBox bookingRegForm" style="max-width:560px;margin:20px auto 0"><label>Enter your registration number to make your booking</label><div class="registrationEntry"><div class="plate"><div class="gb"><span>GB</span></div><input class="bookingRegInput" maxlength="10" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="YOUR REG" aria-label="Vehicle registration" enterkeyhint="go"></div><button type="submit" class="registrationEnter">Enter</button></div></form></div></section>
 
   <section id="location"><div class="wrap"><div class="location"><div class="eyebrow">FIND US</div><h2>We're here at NMUK.</h2><p><strong>Vecta Workshop, Contractors Compound</strong></p><a class="locationMapLink" href="https://maps.app.goo.gl/M3d34Pt96byKtDQV6?g_st=ic" target="_blank" rel="noopener noreferrer" aria-label="Open directions to Vecta Workshop in Google Maps"><img class="locationMap" src="/assets/vecta-location-map.jpg" alt="Map showing Vecta Workshop and the South Gate entrance at NMUK"></a><p>Enter the site via the <span class="southGate">SOUTH GATE security entrance</span>, not the Main Security entrance.</p><p>Park in one of the parking bays outside our workshop. If you're leaving your car before 8am, put your keys through the key-drop letterbox.</p><a class="cta" href="https://maps.app.goo.gl/M3d34Pt96byKtDQV6?g_st=ic" target="_blank" rel="noopener noreferrer">GET DIRECTIONS →</a><a class="whatsappLink" href="https://wa.me/447721722622" target="_blank" rel="noopener noreferrer" aria-label="Message Vecta on WhatsApp"><span class="whatsappLogo" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M20 11.5a8 8 0 0 1-11.9 7L4 20l1.5-4A8 8 0 1 1 20 11.5Z"/><path d="M8.5 7.8c.3-.3.7-.2.9.1l1.1 1.8c.2.3.1.6-.1.8l-.7.7c.8 1.6 1.8 2.6 3.4 3.4l.7-.7c.2-.2.6-.3.8-.1l1.8 1.1c.3.2.4.6.1.9-.6.7-1.4 1-2.2.9-3.7-.5-7-3.8-7.5-7.5-.1-.8.3-1.7 1-2.4Z"/></svg></span><span>WhatsApp 07721 722622</span></a></div></div></section>
 </main>
@@ -125,6 +128,7 @@
   }));
   regForms.forEach(form => form.addEventListener('submit', e => {
     e.preventDefault();
+    clearTimeout(bookingTimer);
     const input = form.querySelector('.bookingRegInput');
     if(!goToBooking(input.value)) input.focus();
   }));
