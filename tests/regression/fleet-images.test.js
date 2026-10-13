@@ -18,3 +18,10 @@ test('unrelated mutations and image painting do not schedule a Fleet rescan',asy
 test('repeated mounts reuse artwork without rewriting local storage',()=>{let writes=0;const {api,root}=setup([{id:'road',model:'Leaf',registration:'NK75BBX'}],{snapshot:()=>({imageUrl:url})});root.localStorage={setItem:()=>writes++};api.mount();api.mount();assert.equal(writes,0);});
 
 test('unavailable supplier images revert to a colour matched local drawing after bounded retries',()=>{const {document}=setup([{id:'road',model:'Navara',colour:'Blue'}],{snapshot:()=>({imageUrl:url})});const img=document.querySelector('img');img.onerror();img.onerror();img.onerror();assert.equal(document.querySelector('img'),null);assert.match(document.querySelector('svg').outerHTML,/#235b9a/);assert.match(document.querySelector('svg').getAttribute('aria-label'),/Navara/);});
+
+test('Fleet personalisation uses a local placeholder rather than starting a second supplier download',()=>{
+ const {api,root,document}=setup([{id:'road',model:'Leaf',registration:'AB12CDE',colour:'Blue'}],{snapshot:()=>({imageUrl:url})});
+ const sources=[];root.VectaVehicleImage={mount:cell=>sources.push(cell.querySelector('img').dataset.vehicleSource)};
+ document.querySelector('[data-fleet-image]').dataset.imageKey='';api.mount();
+ assert.deepEqual(sources,[url]);assert.match(document.querySelector('img').src,/^data:image\/svg/);assert.match(decodeURIComponent(document.querySelector('img').src),/#235b9a/);
+});

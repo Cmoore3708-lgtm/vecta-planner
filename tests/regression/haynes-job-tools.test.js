@@ -64,7 +64,7 @@ test('dashboard downloads a missing recorded colour and renders grey body paint 
  const {window,document}=setup(async url=>{requests.push(url);return {ok:true,json:async()=>url.includes('vehicle-lookup')?{registration:vehicle.registration,make:'Nissan',primaryColour:'Grey'}:url.includes('haynes-image')?{svg:'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 299 220"><g id="transparant_colour"><path fill="#ffffff" d="M0 0h100v100z"/></g></svg>'}:{status:'MATCHED',vehicle}};});
  window.DOMParser=DOMParser;window.XMLSerializer=class{serializeToString(node){return node.outerHTML;}};window.AbortSignal=AbortSignal;
  window.Element.prototype.getBBox=()=>({x:0,y:0,width:100,height:100});
- vm.runInNewContext(readFileSync(new URL('../../public/js/vecta-vehicle-image.js',import.meta.url),'utf8'),{window});
+ vm.runInNewContext(readFileSync(new URL('../../public/js/vecta-vehicle-image.js',import.meta.url),'utf8'),{window,setTimeout,clearTimeout});
  const host=document.createElement('div');host.innerHTML='<div class="mobileJob" data-open-job="1"></div>';document.body.append(host);const jobs=[{id:'1',registration:vehicle.registration,make:'Nissan',model:'Qashqai'}];
  window.enrichHaynesDashboard(host,jobs);for(let i=0;i<12;i++)await new Promise(r=>setImmediate(r));
  const img=host.querySelector('img');assert.equal(img.dataset.colour,'Grey');assert.equal(img.dataset.recoloured,'true');assert.match(decodeURIComponent(img.src),/#626970/);
