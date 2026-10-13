@@ -34,3 +34,28 @@ test('failed thumbnail stays attached and retries twice without an endless reque
  assert.equal(timers.length,1);timers.shift()();img.onerror();assert.equal(timers.length,1);timers.shift()();img.onerror();assert.equal(timers.length,0);
  assert.equal(document.querySelector('img'),img);
 });
+
+test('internal NV 200 reuses saved NV200 artwork offline after repeated reopening',async()=>{
+ const van={...car,registration:'YY65UAX',make:'Nissan',model:'NV200'};
+ const storage=new Map([['vecta_haynes_artwork_v1',JSON.stringify([van])]]);
+ for(let reopen=0;reopen<2;reopen++){
+  const {window,document,calls}=setup(storage),tools=window.VectaHaynesJobTools;
+  const drawing=tools.genericImage({registration:'MTC 2',make:'Nissan',model:'NV 200'});
+  assert.equal(drawing.imageUrl,van.imageUrl);assert.equal(drawing.generic,true);
+  assert.equal(drawing.typeId,undefined);assert.equal(drawing.registration,undefined);
+  assert.equal(tools.genericImage({model:'NV 200',make:'Ford'}),null);
+  window.enrichHaynesDashboard(document,[{id:'1',registration:'MTC 2',make:'Nissan',model:'NV 200',colour:'Grey'}]);
+  for(let i=0;i<5;i++)await new Promise(r=>setImmediate(r));
+  assert.equal(document.querySelector('img.haynesDashboardImage').dataset.haynesSource,van.imageUrl);
+  assert.equal(calls(),0);
+ }
+});
+
+test('permanent vehicle identities recover model artwork even without the short-lived caches',()=>{
+ const van={...car,registration:'YY65UAX',make:'Nissan',model:'NV200'};
+ const storage=new Map([['vecta_haynes_vehicle_identity_v1',JSON.stringify([van])]]);
+ const {window,calls}=setup(storage);
+ assert.equal(window.VectaHaynesJobTools.genericImage({model:'NV 200'}).imageUrl,van.imageUrl);
+ assert.equal(window.VectaHaynesJobTools.genericImage({model:'NV 2000'}),null);
+ assert.equal(calls(),0);
+});

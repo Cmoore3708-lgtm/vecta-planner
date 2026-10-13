@@ -53,13 +53,15 @@ const modelImages=[
  {make:'Ford',model:'Transit',imageUrl:'https://www.haynespro-assets.com/workshop/images/319118141.svgz'}
 ];
 const words=v=>String(v||'').toUpperCase().replace(/[^A-Z0-9]+/g,' ').trim();
+// Model spacing varies between internal fleet names and Haynes (NV 200 / NV200).
+const modelWords=v=>words(v).replace(/([A-Z])\s+(?=\d)/g,'$1').replace(/(\d)\s+(?=[A-Z])/g,'$1');
 function genericImage(description){
  if(!description||description.no_vehicle)return null;
- const text=' '+words(description.model||description.vehicle)+' ',expectedMake=make(description.make);
+ const text=' '+modelWords(description.model||description.vehicle)+' ',expectedMake=make(description.make);
  const fleetModel=root.VectaFleetImages?.modelArtwork?.(description.model||description.vehicle);
  if(image(fleetModel?.imageUrl)&&(!expectedMake||make(fleetModel.make)===expectedMake))return {...fleetModel,generic:true};
- const candidates=[...modelImages,...artwork.values(),...cache.values()].filter(v=>image(v.imageUrl)).map(v=>({make:v.make,model:String(v.model).split(/[(/]/)[0].trim(),imageUrl:v.imageUrl})).sort((a,b)=>b.model.length-a.model.length);
- for(const v of candidates){const model=words(v.model);if(model&&text.includes(' '+model+' ')&&(!expectedMake||make(v.make)===expectedMake))return {make:v.make,model:v.model,imageUrl:v.imageUrl,generic:true};}
+ const candidates=[...artwork.values(),...identities.values(),...cache.values(),...modelImages].filter(v=>image(v.imageUrl)).map(v=>({make:v.make,model:String(v.model).split(/[(/]/)[0].trim(),imageUrl:v.imageUrl})).sort((a,b)=>b.model.length-a.model.length);
+ for(const v of candidates){const model=modelWords(v.model);if(model&&text.includes(' '+model+' ')&&(!expectedMake||make(v.make)===expectedMake))return {make:v.make,model:v.model,imageUrl:v.imageUrl,generic:true};}
  return null;
 }
 async function lookup(registration,expectedMake,{requireImage=false,force=false,background=true}={}){
