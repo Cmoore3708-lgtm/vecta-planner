@@ -100,3 +100,27 @@ test('current month export and category totals exclude monthly costs until month
  assert.match(s.csv(),/"2026-10-31","","Internal","Puncture repairs","200.00"/);
  assert.match(s.csv(),/"Total:","11450.00"/);
 });
+
+test('NMUK export combines all visits and line items for each normalised registration',()=>{
+ const s=setup(null,'2026-10-13'),c=s.context;
+ c.fleetEomRegistrationText=j=>j.registration||'No vehicle';
+ c.fleetEomLineItems=j=>j.items;
+ c.fleetNmukEomExportReport=()=>({total:200,internal:200,other:0,unallocated:0,extras:[]});
+ const jobs=[
+  {date:'2026-10-01',amount:120,job:{registration:'KX15 FWF',nmuk_type:'Internal',items:[{description:'Service',price:90},{description:'Wipers',price:30}]}},
+  {date:'2026-10-09',amount:80,job:{registration:'kx15fwf',nmuk_type:'Internal',items:[{description:'Brakes, front',price:80}]}}
+ ];
+ c.fleetDownloadEomCsv('NMUK','2026-10',jobs);
+ const lines=s.csv().split('\r\n');
+ assert.equal(lines.length,5);
+ assert.equal(lines[1],'"2026-10-01; 2026-10-09","KX15 FWF","Internal","Service; Wipers; Brakes, front","200.00"');
+ assert.ok(lines[2].endsWith('"Total:","200.00"'));
+});
+
+test('NMUK export keeps unrelated work without a registration on separate rows',()=>{
+ const s=setup(null),c=s.context;
+ c.fleetEomRegistrationText=j=>j.registration||'No vehicle';
+ const result=c.fleetNmukCsvVehicleRows([{job:{price:10},amount:10,date:'2026-09-01'},{job:{registration:'No vehicle',price:20},amount:20,date:'2026-09-02'}]);
+ assert.equal(result.length,2);
+ assert.equal(result[0][4],'10.00');assert.equal(result[1][4],'20.00');
+});
