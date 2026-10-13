@@ -15,100 +15,53 @@ button.fleetVehicleImage{cursor:pointer}button.fleetVehicleImage:hover,button.fl
 .fleetPanel .fleetTableHead.due30Columns>span:nth-child(n+7){text-align:center}
 
 .fleetVehicleImage small{font-size:10px;color:#64748b;text-align:center;white-space:normal}.fleetContactEmailCell{font-size:11px!important;min-width:0;overflow:hidden;text-overflow:ellipsis}
-/* Compact phone cards: plate and artwork above a labelled booking row. */
+/* Phone Fleet cards: registration and vehicle share a header above compact details. */
 @media(max-width:700px){
  .fleetPanel{overflow-x:auto}
  .fleetPanel .fleetTableHead{display:none}
- .fleetPanel .fleetRow.due30Columns{display:grid;box-sizing:border-box;min-width:0;width:100%;max-width:100%;margin:0;padding:10px 12px!important;grid-template-columns:minmax(0,1fr) 40px 16px 64px 36px!important;grid-template-rows:auto auto auto auto auto;gap:5px 6px;overflow:visible}
- .fleetPanel .fleetRow.due30Columns>*{min-width:0;max-width:100%;align-self:center;justify-self:stretch;grid-column:auto;grid-row:auto}
- .fleetPanel .fleetRow.due30Columns>:nth-child(1){grid-column:1/4;grid-row:1;justify-self:start}
- .fleetPanel .fleetRow.due30Columns>:nth-child(2){grid-column:1/4;grid-row:2;font-size:11px}
- .fleetPanel .fleetRow.due30Columns>:nth-child(3){grid-column:4/6;grid-row:1/3;justify-self:end}
- .fleetPanel .fleetRow.due30Columns>:nth-child(4){grid-column:1/-1;grid-row:3;font-size:11px}
- .fleetPanel .fleetRow.due30Columns>:nth-child(5){grid-column:1/-1;grid-row:4;white-space:normal;overflow-wrap:anywhere;font-size:10px!important;line-height:1.3;margin-bottom:4px}
- .fleetPanel .fleetRow.due30Columns>:nth-child(6){grid-column:1;grid-row:5;align-items:flex-start;justify-self:start}
- .fleetPanel .fleetRow.due30Columns>:nth-child(7){grid-column:2;grid-row:5;align-items:center}
- .fleetPanel .fleetRow.due30Columns>:nth-child(8){grid-column:3;grid-row:5;padding-top:14px;align-self:start}
- .fleetPanel .fleetRow.due30Columns>:nth-child(9){grid-column:4;grid-row:5}
- .fleetPanel .fleetRow.due30Columns>:nth-child(10){grid-column:5;grid-row:5;align-self:start}
- .fleetPanel .fleetRow.due30Columns .fleetRegPlate{max-width:100%;height:30px}
- .fleetPanel .fleetRow.due30Columns .fleetRegPlate b{font-size:14px}
- .fleetPanel .fleetRow.due30Columns .fleetVehicleImage{width:106px;max-width:100%;height:66px}
- .fleetPanel .fleetRow.due30Columns .fleetDueText{font-size:10px!important}
- .fleetPanel .fleetRow.due30Columns .fleetBookedDateLink{font-size:10px}
- .fleetPanel .fleetRow.due30Columns .fleetWorkDueGroupCell::before{content:'Due'}
- .fleetPanel .fleetRow.due30Columns .fleetBookingTypeGroupCell::before{content:'Type'}
- .fleetPanel .fleetRow.due30Columns .fleetBookedGroupCell::before{content:'Booked'}
- .fleetPanel .fleetRow.due30Columns .fleetEmailSentCheck::before{content:'Email'}
- .fleetPanel .fleetRow.due30Columns :is(.fleetWorkDueGroupCell,.fleetBookingTypeGroupCell,.fleetBookedGroupCell,.fleetEmailSentCheck)::before{font-size:8px;line-height:12px;color:#64748b;font-weight:400}
- .fleetPanel .fleetRow.due30Columns .fleetEmailSentCheck input{width:15px;height:15px;margin:0}
-}
-
-@media(max-width:700px){
- .fleetPanel .fleetRow.due30Columns>:nth-child(1){grid-column:1;grid-row:1}
- .fleetPanel .fleetRow.due30Columns>:nth-child(2){grid-column:2/4;grid-row:1;white-space:normal;overflow-wrap:anywhere;line-height:1.2;padding:0;font-size:10px}
- .fleetPanel .fleetRow.due30Columns>:nth-child(3){grid-column:4/6;grid-row:1/3}
- .fleetPanel .fleetRow.due30Columns>:nth-child(4){grid-column:1/4;grid-row:2}
- .fleetPanel .fleetRow.due30Columns>:nth-child(5){grid-row:3}
- .fleetPanel .fleetRow.due30Columns>:nth-child(n+6){grid-row:4}
- .fleetPanel .fleetRow.due30Columns .fleetVehicleImage{height:48px}
- .fleetPanel .fleetRow.due30Columns .fleetRegPlate b{font-size:12px;padding:0 4px}
- .fleetPanel .fleetRow.due30Columns .fleetRegPlate .gb{width:18px;flex-basis:18px}
-}
-
-@media(max-width:700px){
- .fleetPanel .fleetRow.due30Columns{grid-template-columns:minmax(0,1fr) 40px 16px 96px 36px!important}
- .fleetPanel .fleetRow.due30Columns .fleetVehicleImage{width:138px;max-width:100%;height:62px;justify-self:end}
-}
-
-/* Pair the customer with the plate and the vehicle name with its artwork. */
-@media(max-width:700px){
- .fleetPanel .fleetRow.due30Columns>:nth-child(2){grid-column:4/6;grid-row:2;justify-self:center;text-align:center;white-space:normal;overflow-wrap:anywhere;line-height:1.2}
- .fleetPanel .fleetRow.due30Columns>:nth-child(3){grid-column:4/6;grid-row:1;align-self:start}
- .fleetPanel .fleetRow.due30Columns>:nth-child(4){grid-column:2/4;grid-row:1;align-self:center;white-space:normal;overflow-wrap:anywhere;line-height:1.25;font-size:10px}
-}
-
-/* Fleet phone header: model below plate, with a full-width category column. */
-@media(max-width:700px){
  .fleetPanel .fleetRow.due30Columns{
-  grid-template-columns:repeat(12,minmax(0,1fr))!important;
-  grid-template-rows:auto auto auto auto;gap:5px 6px;
+  display:grid;box-sizing:border-box;min-width:0;width:100%;max-width:100%;margin:0;
+  padding:10px 12px!important;grid-template-columns:repeat(12,minmax(0,1fr))!important;
+  grid-template-rows:auto auto auto auto;gap:4px 6px;overflow:visible;
  }
+ .fleetPanel .fleetRow.due30Columns>*{min-width:0;max-width:100%;align-self:center;justify-self:stretch;grid-column:auto;grid-row:auto}
  .fleetPanel .fleetRow.due30Columns>:nth-child(1){grid-column:1/5;grid-row:1;justify-self:start}
  .fleetPanel .fleetRow.due30Columns>:nth-child(2){
-  grid-column:1/5;grid-row:2;justify-self:start;text-align:left;
-  white-space:normal;overflow-wrap:normal;word-break:normal;line-height:1.3;
+  grid-column:5/13;grid-row:1;justify-self:start;text-align:left;font-size:12px;
+  white-space:normal;overflow-wrap:anywhere;line-height:1.25;padding:0;
  }
- .fleetPanel .fleetRow.due30Columns>:nth-child(3){grid-column:9/13;grid-row:1/3;align-self:start;justify-self:end}
+ .fleetPanel .fleetRow.due30Columns>:nth-child(3){grid-column:7/13;grid-row:2/4;align-self:start;justify-self:end}
  .fleetPanel .fleetRow.due30Columns>:nth-child(4){
-  grid-column:5/9;grid-row:1/3;align-self:start;padding-top:3px;
-  white-space:normal;overflow-wrap:normal;word-break:normal;line-height:1.3;
+  grid-column:1/7;grid-row:2;align-self:start;padding-top:0;font-size:11px;
+  white-space:normal;overflow-wrap:anywhere;line-height:1.25;
  }
- .fleetPanel .fleetRow.due30Columns>:nth-child(5){grid-column:1/-1;grid-row:3}
- .fleetPanel .fleetRow.due30Columns>:nth-child(6){grid-column:1/6;grid-row:4}
- .fleetPanel .fleetRow.due30Columns>:nth-child(7){grid-column:6/8;grid-row:4}
- .fleetPanel .fleetRow.due30Columns>:nth-child(8){grid-column:8/9;grid-row:4}
+ .fleetPanel .fleetRow.due30Columns>:nth-child(5){
+  grid-column:1/7;grid-row:3;align-self:start;white-space:normal;overflow-wrap:anywhere;
+  font-size:10px!important;line-height:1.3;margin-bottom:0;
+ }
+ .fleetPanel .fleetRow.due30Columns>:nth-child(6){grid-column:1/6;grid-row:4;align-items:flex-start;justify-self:start}
+ .fleetPanel .fleetRow.due30Columns>:nth-child(7){grid-column:6/8;grid-row:4;align-items:center}
+ .fleetPanel .fleetRow.due30Columns>:nth-child(8){grid-column:8/9;grid-row:4;padding-top:14px;align-self:start}
  .fleetPanel .fleetRow.due30Columns>:nth-child(9){grid-column:9/11;grid-row:4}
- .fleetPanel .fleetRow.due30Columns>:nth-child(10){grid-column:11/13;grid-row:4}
- .fleetPanel .fleetRow.due30Columns .fleetVehicleImage{width:138px;max-width:100%;height:62px}
-}
-
-/* Reserve the top-right half for enlarged artwork; stack details beside it. */
-@media(max-width:700px){
- .fleetPanel .fleetRow.due30Columns{grid-template-rows:auto auto auto auto auto}
- .fleetPanel .fleetRow.due30Columns>:nth-child(1){grid-column:1/7;grid-row:1}
- .fleetPanel .fleetRow.due30Columns>:nth-child(2){grid-column:1/7;grid-row:2}
- .fleetPanel .fleetRow.due30Columns>:nth-child(3){grid-column:7/13;grid-row:1/4;align-self:start;justify-self:end}
- .fleetPanel .fleetRow.due30Columns>:nth-child(4){grid-column:1/7;grid-row:3;padding-top:0}
- .fleetPanel .fleetRow.due30Columns>:nth-child(5){grid-row:4}
- .fleetPanel .fleetRow.due30Columns>:nth-child(n+6){grid-row:5}
+ .fleetPanel .fleetRow.due30Columns>:nth-child(10){grid-column:11/13;grid-row:4;align-self:start}
+ .fleetPanel .fleetRow.due30Columns .fleetRegPlate{min-width:0;max-width:100%;height:30px}
+ .fleetPanel .fleetRow.due30Columns .fleetRegPlate b{font-size:12px;padding:0 4px}
  .fleetPanel .fleetRow.due30Columns .fleetVehicleImage{
   width:207px;max-width:100%;height:93px;overflow:visible;align-items:flex-start;
  }
  .fleetPanel .fleetRow.due30Columns .fleetVehicleImage img{object-position:right top}
+ .fleetPanel .fleetRow.due30Columns .fleetDueText{font-size:13px!important;line-height:1.35}
+ .fleetPanel .fleetRow.due30Columns .fleetBookedDateLink{font-size:13px!important}
+ .fleetPanel .fleetRow.due30Columns .fleetDueIcon{width:36px;flex-basis:36px;height:26px;font-size:10px!important}
+ .fleetPanel .fleetRow.due30Columns .fleetDueIcon.safety{width:38px;flex-basis:38px}
+ .fleetPanel .fleetRow.due30Columns :is(.fleetDueText,.fleetBookingTypeEntry,.fleetBookedTickEntry){min-height:26px;display:flex;align-items:center}
+ .fleetPanel .fleetRow.due30Columns .fleetWorkDueGroupCell::before{content:'Due'}
  .fleetPanel .fleetRow.due30Columns .fleetBookingTypeGroupCell::before{content:none}
+ .fleetPanel .fleetRow.due30Columns .fleetBookedGroupCell::before{content:'Booked'}
+ .fleetPanel .fleetRow.due30Columns .fleetEmailSentCheck::before{content:'Email'}
+ .fleetPanel .fleetRow.due30Columns :is(.fleetWorkDueGroupCell,.fleetBookedGroupCell,.fleetEmailSentCheck)::before{font-size:8px;line-height:12px;color:#64748b;font-weight:400}
+ .fleetPanel .fleetRow.due30Columns .fleetEmailSentCheck input{width:15px;height:15px;margin:0}
 }
-
 
 /* Fleet Manager: readable type and closely spaced customer/email columns. */
 @media screen and (min-width:701px){
