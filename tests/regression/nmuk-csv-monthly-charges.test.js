@@ -34,11 +34,11 @@ test('monthly entries use final date and their saved individual allocations',()=
  const extras=[{description:'Puncture repairs',amount:200,section:'internal'},{description:'Monthly work',amount:2220,section:'other'}];
  const s=setup({fleet_customer:'NMUK',fleet_month:'2026-09',lines:[{amount:12770,nmuk_monthly_extras:extras}]});
  s.context.fleetDownloadEomCsv('NMUK','2026-09',rows);
- assert.match(s.csv(),/"2026-09-30","","Internal","Puncture repairs","200.00"/);
- assert.match(s.csv(),/"2026-09-30","","Other","Monthly work","2220.00"/);
+ assert.match(s.csv(),/"30\/09","","Internal","Puncture repairs","200.00"/);
+ assert.match(s.csv(),/"30\/09","","Other","Monthly work","2220.00"/);
 });
 test('month-end dates handle future months and leap years',()=>{
- for(const [month,end] of [['2026-10','2026-10-31'],['2027-02','2027-02-28'],['2028-02','2028-02-29']]){
+ for(const [month,end] of [['2026-10','31/10'],['2027-02','28/02'],['2028-02','29/02']]){
   const s=setup({fleet_customer:'NMUK',fleet_month:month,lines:[{amount:10360,nmuk_monthly_extras:[{description:'Monthly work',amount:10,section:'other'}]}]});
   s.context.fleetDownloadEomCsv('NMUK',month,rows);assert.ok(s.csv().includes('"'+end+'","","Other","Monthly work","10.00"'));
  }
@@ -62,7 +62,7 @@ test('new tyre charge is editable, counted under Internal and exported at month 
  const totals=c.fleetNmukMonthTotals(rows,'2026-10');
  assert.equal(totals.internal,3280);assert.equal(totals.other,8990);assert.equal(totals.total,12270);
  c.fleetDownloadEomCsv('NMUK','2026-10',rows);
- assert.match(s.csv(),/"2026-10-31","","Internal","Fit new tyres","240.00"/);
+ assert.match(s.csv(),/"31\/10","","Internal","Fit new tyres","240.00"/);
  assert.match(s.csv(),/"Total:","12270.00"/);
  assert.match(s.csv(),/"Internal Vehicles:","3280.00"/);
  assert.equal((s.csv().match(/Fit new tyres/g)||[]).length,1);
@@ -97,7 +97,7 @@ test('current month export and category totals exclude monthly costs until month
  c.todayIso=()=> '2026-10-31';
  assert.equal(c.fleetNmukMonthTotals(rows,'2026-10').total,11450);
  c.fleetDownloadEomCsv('NMUK','2026-10',rows);
- assert.match(s.csv(),/"2026-10-31","","Internal","Puncture repairs","200.00"/);
+ assert.match(s.csv(),/"31\/10","","Internal","Puncture repairs","200.00"/);
  assert.match(s.csv(),/"Total:","11450.00"/);
 });
 
@@ -113,7 +113,7 @@ test('NMUK export combines all visits and line items for each normalised registr
  c.fleetDownloadEomCsv('NMUK','2026-10',jobs);
  const lines=s.csv().split('\r\n');
  assert.equal(lines.length,5);
- assert.equal(lines[1],'"2026-10-01; 2026-10-09","KX15 FWF","Internal","Service; Wipers; Brakes, front","200.00"');
+ assert.equal(lines[1],'"01/10; 09/10","KX15 FWF","Internal","Service; Wipers; Brakes, front","200.00"');
  assert.ok(lines[2].endsWith('"Total:","200.00"'));
 });
 
