@@ -73,3 +73,12 @@ for (const environment of ['production','preview']) test(`scoped relay works in 
   };assert.equal((await relayLookup('FX69XWU')).status,'MATCHED');
  }finally{global.fetch=oldFetch;process.env=saved;}
 });
+
+test('explicit manager retry forwards reset while ordinary requests never reset memory',async()=>{
+ const saved={...process.env},oldFetch=global.fetch;
+ try{process.env.HAYNES_RELAY_SITE_TOKEN='b'.repeat(64);const bodies=[];
+ global.fetch=async(_url,options)=>{bodies.push(JSON.parse(options.body));return {ok:true,json:async()=>({status:'UNAVAILABLE'})};};
+ await relayLookup('KX15FWF');await relayLookup('KX15FWF',{retry:true});
+ assert.equal(bodies[0].retry,undefined);assert.equal(bodies[1].retry,true);
+ }finally{global.fetch=oldFetch;process.env=saved;}
+});

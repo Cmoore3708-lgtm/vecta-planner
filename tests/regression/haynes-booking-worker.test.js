@@ -206,3 +206,9 @@ test('default allowance accepts 500 uncached lookups and resets next UTC day',as
  await assert.rejects(service('CD123XY'),{code:'DAILY_LIMIT'});assert.equal((await service('AB000XY')).cached,true);
  clock=Date.parse('2026-10-09T00:00:01Z');assert.equal((await service('CD123XY')).cached,false);
 });
+
+test('explicit retry bypasses the worker failure cache immediately',async()=>{
+ let calls=0;const service=createLookupService(async registration=>{calls++;if(calls===1)throw new HaynesError('UNAVAILABLE');return {...raw,registration};});
+ await assert.rejects(service('KX15FWF'),{code:'UNAVAILABLE'});await assert.rejects(service('KX15FWF'),{code:'UNAVAILABLE'});assert.equal(calls,1);
+ const matched=await service('KX15FWF',{retry:true});assert.equal(matched.registration,'KX15FWF');assert.equal(calls,2);
+});

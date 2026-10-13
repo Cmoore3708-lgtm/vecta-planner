@@ -22,7 +22,7 @@ test('the red booked tick has a dedicated column',()=>{
 });
 
 test('Booked shows every future diary date for the fleet vehicle, not only type-matched work',()=>{
-  assert.match(html,/function fleetPlannerJobsForVehicle\(reg\)/);
+  assert.match(html,/function fleetPlannerJobsForVehicle\(reg,candidates\)/);
   assert.match(html,/function fleetBookedGroupCell\(items,vehicle\)/);
   assert.match(html,/fleetPlannerJobsForVehicle\(vehicle&&vehicle\.registration\|\|''\)/);
 });
