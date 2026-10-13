@@ -3,9 +3,10 @@ import { normaliseReg, validReg, vehicleResult, HaynesError } from '../../lib/ha
 export function createLookupService(lookup, { now = Date.now, ttl = 86400000, maxQueue = 3, maxCache = 500, dailyLimit = 500, failureTtl = 300000 } = {}) {
   const cache = new Map(), pending = new Map(), failures = new Map();
   let tail = Promise.resolve(), circuitUntil = 0, circuitCode = '', count = 0, day = '';
-  return async input => {
+  return async (input,{retry=false}={}) => {
     const registration = normaliseReg(input);
     if (!validReg(registration)) throw new HaynesError('INVALID_REGISTRATION');
+    if(retry){cache.delete(registration);failures.delete(registration);}
     const hit = cache.get(registration);
     if (hit && hit.expires > now()) return { ...hit.data, cached: true };
     cache.delete(registration);

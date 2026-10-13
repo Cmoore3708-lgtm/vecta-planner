@@ -23,7 +23,19 @@ function paint(cell,v,drawing){const key=[v.model,v.colour,v.color,drawing?.imag
 function state(){return root.__vectaFleetState?.()||{vehicles:root.fleetVehicles||[],save:root.saveFleet,render:root.render};}
 function vehicle(id){return (state().vehicles||[]).find(v=>String(v.id)===String(id));}
 function visible(cell){if(!cell.isConnected||document.hidden)return false;if(!cell.getBoundingClientRect)return true;const box=cell.getBoundingClientRect();return box.width>0&&box.height>0&&box.bottom>=0&&box.top<root.innerHeight;}
-function mount(){const vehicles=new Map((state().vehicles||[]).map(v=>[String(v.id),v]));document.querySelectorAll('[data-fleet-image]').forEach(cell=>{if(!visible(cell))return;const v=vehicles.get(cell.dataset.fleetImage);if(!v)return;const drawing=drawingFor(v);paint(cell,v,drawing);if(!drawing?.imageUrl)enqueue(v);});}
+let mountGeneration=0;
+function mount(){
+ const generation=++mountGeneration,vehicles=new Map((state().vehicles||[]).map(v=>[String(v.id),v]));
+ // Read geometry before painting: alternating reads and writes forces layout
+ // once per vehicle. Yield between small batches so controls stay responsive.
+ const cells=Array.from(document.querySelectorAll('[data-fleet-image]')).filter(visible);
+ let offset=0;
+ function batch(){if(generation!==mountGeneration)return;const end=Math.min(offset+3,cells.length);
+  for(;offset<end;offset++){const cell=cells[offset];if(!cell.isConnected)continue;const v=vehicles.get(cell.dataset.fleetImage);if(!v)continue;const drawing=drawingFor(v);paint(cell,v,drawing);if(!drawing?.imageUrl)enqueue(v);}
+  if(offset<cells.length)setTimeout(batch,16);
+ }
+ batch();
+}
 async function saveColour(id,colour){const v=vehicle(id);if(!v||v.fleetGroup!=='Nissan Internal'||!palette[colour])throw Error('Choose a valid colour for an internal vehicle.');v.colour=colour;v.updated_at=new Date().toISOString();const saved=await state().save();if(saved===false)throw Error('The colour is saved on this device, but has not synced yet. Please retry.');root.VectaVehicleImage?.rememberColour(v.registration,colour);return v;}
 function open(id){const v=vehicle(id);if(!v||v.fleetGroup!=='Nissan Internal')return;document.getElementById('fleetColourPicker')?.remove();const dialog=document.createElement('dialog');dialog.id='fleetColourPicker';dialog.className='fleetColourPicker';dialog.innerHTML='<header><div><small>VEHICLE COLOUR</small><h2>'+esc(v.registration||v.model||'Internal vehicle')+'</h2><p>'+esc(v.model)+'</p></div><button type="button" data-close aria-label="Close colour picker">×</button></header><div class="fleetColourPreview"></div><div class="fleetColourChoices">'+Object.entries(palette).map(([name,hex])=>'<button type="button" data-colour="'+name+'" aria-pressed="'+(String(v.colour||v.color||'').toLowerCase()===name.toLowerCase())+'"><i style="background:'+hex+'"></i>'+name+'</button>').join('')+'</div><p role="status"></p>';document.body.appendChild(dialog);paint(dialog.querySelector('.fleetColourPreview'),v,drawingFor(v));dialog.showModal();const close=()=>{dialog.remove();document.querySelector('[data-fleet-image="'+CSS.escape(String(id))+'"]')?.focus();};dialog.querySelector('[data-close]').onclick=close;dialog.addEventListener('cancel',e=>{e.preventDefault();close();});dialog.querySelectorAll('[data-colour]').forEach(b=>b.onclick=async()=>{dialog.querySelectorAll('[data-colour]').forEach(x=>x.disabled=true);try{await saveColour(id,b.dataset.colour);state().render();close();}catch(error){dialog.querySelector('[role="status"]').textContent=error.message;dialog.querySelectorAll('[data-colour]').forEach(x=>x.disabled=false);mount();}});}
 document.addEventListener('click',e=>{const button=e.target.closest?.('button[data-fleet-image]');if(!button)return;e.preventDefault();e.stopImmediatePropagation();open(button.dataset.fleetImage);},true);

@@ -58,7 +58,7 @@ try {
       firstRelayJob = null;
       if (job.status === 'JOB') {
         let result;
-        try { result = {status:'MATCHED',vehicle:vehicleResult(await lookup(job.registration),job.registration)}; }
+        try { result = {status:'MATCHED',vehicle:vehicleResult(await lookup(job.registration,{retry:job.retry===true}),job.registration)}; }
         catch (error) {
           result = {status:['LOGIN_REQUIRED','VERIFICATION_REQUIRED','AMBIGUOUS','BUSY','DAILY_LIMIT'].includes(error.code) ? error.code : 'UNAVAILABLE'};
           console.log('Haynes lookup status: '+result.status+' · '+(error.stage||'LOOKUP')+' · '+(error.reason||error.code||'UNAVAILABLE')+' · '+(error.browserDetail||''));

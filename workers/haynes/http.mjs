@@ -20,7 +20,7 @@ export function createHandler(service, token) {
       let body;
       try { body = JSON.parse(Buffer.concat(chunks).toString()); } catch { throw new HaynesError('INVALID_REGISTRATION'); }
       if (typeof body?.registration !== 'string') throw new HaynesError('INVALID_REGISTRATION');
-      return send(200, { status: 'MATCHED', vehicle: await service(body.registration) });
+      return send(200, { status: 'MATCHED', vehicle: await service(body.registration,{retry:body.retry===true}) });
     } catch (error) {
       const code = error instanceof HaynesError ? error.code : 'UNAVAILABLE';
       return send(code === 'INVALID_REGISTRATION' ? 400 : 503, { status: code });

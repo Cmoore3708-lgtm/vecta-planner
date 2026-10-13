@@ -25,3 +25,14 @@ test('Fleet personalisation uses a local placeholder rather than starting a seco
  document.querySelector('[data-fleet-image]').dataset.imageKey='';api.mount();
  assert.deepEqual(sources,[url]);assert.match(document.querySelector('img').src,/^data:image\/svg/);assert.match(decodeURIComponent(document.querySelector('img').src),/#235b9a/);
 });
+
+test('large visible fleets paint in small batches and stop detached generations',async()=>{
+ const vehicles=Array.from({length:12},(_,i)=>({id:String(i),model:'Leaf',registration:'AB12CDE'}));
+ const {api,document}=setup(vehicles,{snapshot:()=>({imageUrl:url})});
+ assert.equal(document.querySelectorAll('img').length,3);
+ await new Promise(r=>setTimeout(r,100));assert.equal(document.querySelectorAll('img').length,12);
+ for(const cell of document.querySelectorAll('[data-fleet-image]')){cell.replaceChildren();delete cell.dataset.imageKey;}
+ api.mount();assert.equal(document.querySelectorAll('img').length,3);
+ for(const cell of document.querySelectorAll('[data-fleet-image]'))cell.remove();
+ api.mount();await new Promise(r=>setTimeout(r,60));assert.equal(document.querySelectorAll('img').length,0);
+});
