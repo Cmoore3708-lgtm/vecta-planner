@@ -10,6 +10,7 @@ const cacheKey='vecta_fleet_haynes_artwork_v1',catalog=new Map(),queued=new Set(
 const modelKey=v=>String(v||'').toUpperCase().replace(/\b(NISSAN|FORD|MERCEDES(?: BENZ)?|INFINITI|CITROEN|RENAULT)\b/g,'').replace(/[^A-Z0-9]/g,'');
 try{for(const entry of JSON.parse(root.localStorage?.getItem(cacheKey)||'[]'))if(entry.model&&/^https:\/\/www\.haynespro-assets\.com\/workshop\/images\/\d+\.(svgz?|png|jpe?g|webp)$/.test(entry.imageUrl))catalog.set(modelKey(entry.model),entry);}catch{}
 function remember(v,drawing){if(!root.VectaHaynesJobTools?.safeImage(drawing?.imageUrl))return;const key=modelKey(v.model);if(catalog.get(key)?.imageUrl===drawing.imageUrl)return;catalog.set(key,{model:v.model,imageUrl:drawing.imageUrl,make:drawing.make||'',source:'HaynesPro'});try{root.localStorage?.setItem(cacheKey,JSON.stringify([...catalog.values()]));}catch{}}
+function modelArtwork(model){return catalog.get(modelKey(model))||null;}
 function drawingFor(v){const tools=root.VectaHaynesJobTools,hit=tools?.snapshot?.(v.registration)||tools?.artworkSnapshot?.(v.registration);if(hit?.imageUrl){remember(v,hit);return hit;}return catalog.get(modelKey(v.model))||tools?.genericImage?.({model:v.model})||null;}
 function enqueue(v){const key=modelKey(v.model),tools=root.VectaHaynesJobTools;if(!tools?.lookup||queued.has(key)||catalog.has(key))return;
  const source=v.fleetGroup!=='Nissan Internal'&&v.roadGoing!==false?v:(state().vehicles||[]).find(x=>x.fleetGroup!=='Nissan Internal'&&x.roadGoing!==false&&modelKey(x.model)===key);
@@ -29,5 +30,5 @@ document.addEventListener('click',e=>{const button=e.target.closest?.('button[da
 let scheduled=false;function schedule(){if(scheduled)return;scheduled=true;setTimeout(()=>{scheduled=false;mount();},100);}
 new MutationObserver(records=>{if(records.some(record=>!record.target.closest?.('[data-fleet-image],.fleetColourPreview')&&Array.from(record.addedNodes||[]).some(node=>node.nodeType===1&&(node.matches?.('[data-fleet-image]')||node.querySelector?.('[data-fleet-image]')))))schedule();}).observe(document.body,{childList:true,subtree:true});
 document.addEventListener('scroll',schedule,{capture:true,passive:true});root.addEventListener?.('resize',schedule,{passive:true});document.addEventListener('visibilitychange',schedule);mount();
-root.VectaFleetImages={kind,artwork,modelKey,drawingFor,saveColour,mount};
+root.VectaFleetImages={kind,artwork,modelKey,modelArtwork,drawingFor,saveColour,mount};
 })(window);

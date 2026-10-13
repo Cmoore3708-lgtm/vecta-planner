@@ -268,3 +268,13 @@
 @media screen and (min-width:901px){
  #content .livePriorityPlanner .plannerGrid .lane .job .plannerJobLeft{width:calc(100% - var(--planner-vehicle-text-inset,150px))!important;position:relative;z-index:2}
 }
+
+/* Keep both backlog collections visible, even when unallocated work is long. */
+@media screen and (min-width:901px){
+ #content .livePriorityBacklog{height:clamp(360px,calc(100dvh - 190px),900px)!important;max-height:none!important;display:grid!important;grid-template-rows:minmax(0,3fr) minmax(0,2fr);overflow:hidden!important}
+ #content .livePriorityBacklog>.unallocatedPanel{display:flex!important;flex-direction:column!important;min-height:0!important;height:auto!important;overflow:hidden!important}
+ #content .livePriorityBacklog .unallocatedHead{flex:0 0 auto;margin-bottom:8px!important}
+ #content .livePriorityBacklog .unallocatedJobList{flex:1 1 auto!important;min-height:0!important;height:auto!important;overflow-y:auto!important;overflow-x:hidden!important;overscroll-behavior:contain;scrollbar-gutter:stable}
+ #content .livePriorityBacklog .quoteCard{height:140px!important;min-height:140px!important;max-height:140px!important}
+ #content .livePriorityBacklog .quoteCard>strong{position:relative;z-index:2;margin-top:6px}
+}
