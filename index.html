@@ -10877,7 +10877,7 @@ function fleetAlignServiceDatesToMot(){
       }
     });
   });
-  if(changed)localStorage.setItem('vecta:fleet:plans:v1',JSON.stringify(fleetPlans));
+  if(changed)fleetWriteLocal('vecta:fleet:plans:v1',fleetPlans);
   return changed;
 }
 /* V41.37: NMUK Internal vehicles receive one fixed Internal Service every 12 months.
@@ -10944,7 +10944,7 @@ function fleetAssignPoolEmail(){
   /* V100: do not overwrite per-vehicle contacts imported from the Nissan contact spreadsheet. */
   var email='laura.ridley@nissan-nmuk.co.uk',changed=false;
   (fleetVehicles||[]).forEach(function(v){if(v&&v.fleetGroup==='Nissan Pool Cars'&&!String(v.contactEmail||'').trim()){v.contactEmail=email;changed=true}});
-  if(changed)localStorage.setItem('vecta:fleet:vehicles:v1',JSON.stringify(fleetVehicles));
+  if(changed)fleetWriteLocal('vecta:fleet:vehicles:v1',fleetVehicles);
   return changed;
 }
 function fleetMigrateCustomerAliases(){
@@ -11286,7 +11286,18 @@ function persistFleetCloudSnapshot(){if(!remoteClient)return Promise.resolve(fal
 function applyFleetEmailSentSnapshot(value){if(!value||!value.emailSent||typeof value.emailSent!=='object')return false;fleetEmailSent=Object.assign({},fleetEmailSent||{},value.emailSent);try{localStorage.setItem('vecta:fleet:email-sent:v329',JSON.stringify(fleetEmailSent))}catch(e){}return true}
 function applyFleetCloudSnapshot(value){if(!value||typeof value!=='object')return false;applyFleetEmailSentSnapshot(value);fleetCaptureCurrentMotAuthority();var changed=false;if(value.removedMaintenance&&typeof value.removedMaintenance==='object'){if(!fleetRemovedMaintenance||typeof fleetRemovedMaintenance!=='object')fleetRemovedMaintenance={};Object.keys(value.removedMaintenance).forEach(function(k){var r=value.removedMaintenance[k];if(!fleetRemovedMaintenance[k]||String(r&&r.removed_at||'')>String(fleetRemovedMaintenance[k].removed_at||''))fleetRemovedMaintenance[k]=r});fleetSaveRemovedMaintenance()}if(Array.isArray(value.deletedRegistrations)){value.deletedRegistrations.forEach(function(r){r=normReg(r);if(r&&fleetDeletedRegistrations.indexOf(r)===-1)fleetDeletedRegistrations.push(r)});fleetSaveDeletedRegistrations()}if(Array.isArray(value.vehicles)){fleetVehicles=value.vehicles;changed=true}if(Array.isArray(value.plans)){fleetPlans=value.plans;changed=true}if(Array.isArray(value.completions)){fleetCompletions=value.completions;changed=true}if(value.customers&&typeof value.customers==='object'){var mergedCustomers=Object.assign({},value.customers||{});Object.keys(fleetCustomerProfiles||{}).forEach(function(customerKey){var localProfile=fleetCustomerProfiles[customerKey]||{},remoteProfile=mergedCustomers[customerKey]||{},mergedProfile=Object.assign({},remoteProfile);Object.keys(localProfile).forEach(function(field){if(String(localProfile[field]||'').trim()&&!String(mergedProfile[field]||'').trim())mergedProfile[field]=localProfile[field]});mergedCustomers[customerKey]=mergedProfile});fleetCustomerProfiles=mergedCustomers;changed=true}if(fleetApplyDeletionTombstones())changed=true;if(fleetApplyMaintenanceTombstones())changed=true;if(fleetApplyMotAuthority())changed=true;if(changed){try{localStorage.setItem('vecta:fleet:vehicles:v1',JSON.stringify(fleetVehicles));localStorage.setItem('vecta:fleet:plans:v1',JSON.stringify(fleetPlans));localStorage.setItem('vecta:fleet:completions:v1',JSON.stringify(fleetCompletions));localStorage.setItem('vecta:fleet:customers:v1',JSON.stringify(fleetCustomerProfiles));if(value.updated_at)localStorage.setItem('vecta:fleet:cloud-updated:v77',value.updated_at)}catch(e){}}return changed}
 async function pullFleetCloudState(){if(!remoteClient)return false;try{var rows=await remoteClient.from('workshop_settings').select('id,value,updated_at').in('id',[fleetCloudStateId,'fleet_auto_refresh_status_v77',FLEET_MOT_AUTHORITY_CLOUD_ID]);if(rows.error)throw rows.error;var state=null,status=null,authority=null;(rows.data||[]).forEach(function(row){if(row.id===fleetCloudStateId)state=row;if(row.id==='fleet_auto_refresh_status_v77')status=row;if(row.id===FLEET_MOT_AUTHORITY_CLOUD_ID)authority=row});if(status&&status.value)fleetAutoRefreshStatus=status.value;if(authority&&authority.value&&authority.value.records){var remoteRecords=authority.value.records||{};fleetMotAuthorityLastPersisted=vectaSettingsSignature(remoteRecords);Object.keys(remoteRecords).forEach(function(k){var rec=remoteRecords[k]||{},reg=normReg(rec.registration||k),expiry=dvsaIsoDate(rec.expiry),prev=fleetMotAuthority[reg]||{},prevExpiry=dvsaIsoDate(prev.expiry);if(reg&&expiry&&(!prevExpiry||String(rec.checked_at||'')>String(prev.checked_at||'')))fleetMotAuthority[reg]=rec});fleetMotAuthoritySaveLocal()}if(state&&state.value){fleetCloudLastPersistedPayload=vectaSettingsSignature(fleetCloudPersistenceValue(state.value));applyFleetCloudSnapshot(Object.assign({},state.value,{updated_at:state.updated_at||state.value.updated_at||''}));if(fleetRepairEmailAssignments()){localStorage.setItem('vecta:fleet:vehicles:v1',JSON.stringify(fleetVehicles));localStorage.setItem('vecta:fleet:customers:v1',JSON.stringify(fleetCustomerProfiles));if(!await persistFleetCloudSnapshot())throw new Error('Fleet email repair was not confirmed by cloud storage.')}return true}fleetApplyMotAuthority();fleetRepairEmailAssignments();await persistFleetCloudSnapshot();return false}catch(e){console.warn('Fleet cloud state pull failed',e);fleetApplyMotAuthority();return false}}
-function saveFleet(){fleetApplyMaintenanceTombstones();fleetEnsureServicePlanTypes();fleetAlignServiceDatesToMot();fleetAssignPoolEmail();fleetRepairEmailAssignments();fleetApplyDeletionTombstones();fleetApplyMaintenanceTombstones();fleetApplyMotAuthority();localStorage.setItem('vecta:fleet:vehicles:v1',JSON.stringify(fleetVehicles));localStorage.setItem('vecta:fleet:plans:v1',JSON.stringify(fleetPlans));localStorage.setItem('vecta:fleet:completions:v1',JSON.stringify(fleetCompletions));localStorage.setItem('vecta:fleet:customers:v1',JSON.stringify(fleetCustomerProfiles));if(remoteClient){persistFleetMotAuthority();return persistFleetCloudSnapshot()}return Promise.resolve(true)}
+function fleetWriteLocal(key,value){
+  try{localStorage.setItem(key,JSON.stringify(value));return true}
+  catch(error){if(!vectaIsQuotaError(error))throw error;vectaLocalStorageLimited=true;console.warn('Fleet browser storage is full; continuing cloud save.',error);return false}
+}
+function fleetSaveLocalSnapshot(){
+  var saved=true;
+  [['vehicles',fleetVehicles],['plans',fleetPlans],['completions',fleetCompletions],['customers',fleetCustomerProfiles]].forEach(function(entry){
+    if(!fleetWriteLocal('vecta:fleet:'+entry[0]+':v1',entry[1]))saved=false;
+  });
+  return saved;
+}
+function saveFleet(){fleetApplyMaintenanceTombstones();fleetEnsureServicePlanTypes();fleetAlignServiceDatesToMot();fleetAssignPoolEmail();fleetRepairEmailAssignments();fleetApplyDeletionTombstones();fleetApplyMaintenanceTombstones();fleetApplyMotAuthority();var localSaved=fleetSaveLocalSnapshot();if(remoteClient){persistFleetMotAuthority();return persistFleetCloudSnapshot()}return Promise.resolve(localSaved)}
 function fleetAutoRefreshBanner(){
   var st=fleetAutoRefreshStatus||{},when=st.finishedAt||st.startedAt||'',checked=Number(st.checked||0),updated=Number(st.updated||0),errors=Number(st.errors||0),taxConfigured=st.taxConfigured===true,hasReport=!!window.lastFleetManualMotReport;
   return '<div class="fleetAutoRefreshBar"><div><b>Government vehicle data</b><span>'+(when?'Last check '+esc(new Date(when).toLocaleString('en-GB')):'Automatic nightly checking enabled')+'</span></div><div class="fleetAutoRefreshStats"><button type="button" class="btn" id="fleetManualMotCheck" title="Run a live MOT lookup now">'+checked+' Checked</button><span>'+updated+' MOT dates updated</span>'+(errors?'<span class="warn">'+errors+' errors</span>':'')+(hasReport?'<button type="button" class="btn" id="fleetManualMotReport">View results</button>':'')+'<span>Tax '+(taxConfigured?'DVLA connected':'DVLA API ready — key pending')+'</span></div></div>';
@@ -11656,7 +11667,7 @@ function fleetEnsureServicePlanTypes(){
     plan.notes='Alternates Major and Full services every 12 months.';
     changed=true;
   });
-  if(changed)localStorage.setItem('vecta:fleet:plans:v1',JSON.stringify(fleetPlans));
+  if(changed)fleetWriteLocal('vecta:fleet:plans:v1',fleetPlans);
   return changed;
 }
 function currentServiceTypeForJob(j){j=j||{};var vehicle=fleetVehicleForRegistration(j.registration||'');if(vehicle&&vehicle.fleetGroup==='Nissan Internal')return 'Internal Service';var plan=vehicle&&fleetPlanMatching(vehicle.id,'service'),direct=serviceTypeFromValue(jobTypeValues(j).concat([j.work_required||'']).join(' '));if(vehicle&&plan&&direct==='Interim Service')direct='Full Service';if(direct&&direct!=='Service')return direct;var planned=serviceTypeFromValue(plan&&plan.type||'');if(planned==='Interim Service')planned='Full Service';if(planned&&planned!=='Service')return planned;if(vehicle){var previous=fleetCompletions.filter(function(c){return c.vehicleId===vehicle.id&&serviceTypeFromValue(c.serviceType||c.type)}).sort(function(a,b){return String(b.completedDate||b.completedMonth||'').localeCompare(String(a.completedDate||a.completedMonth||''))})[0],previousType=serviceTypeFromValue(previous&&(previous.serviceType||previous.type)||'');if(previousType&&previousType!=='Service')return alternateServiceType(previousType)}return 'Major Service'}
@@ -15079,7 +15090,7 @@ function openVehicleRecordBase(idOrReg){
         var next=String(input.value||'').slice(0,10),previous=String(p.currentDueDate||'').slice(0,10);p.currentDueDate=next;p.targetMonth=next?Number(next.slice(5,7)):null;
         if(next!==previous){p.manualDueDate=true;p.manualDueDateUpdatedAt=new Date().toISOString();p.notes='Due date manually set in Vehicle Record.'}
       });
-      if(fv){fv.model=model;fv.contactEmail=email;fv.taxReference=taxReference;fv.roadGoing=road;if(fv.fleetGroup==='Contractor Fleet')fv.customer=fleetNormaliseCustomer(cname);saveFleet()}
+      if(fv){fv.model=model;fv.contactEmail=email;fv.taxReference=taxReference;fv.roadGoing=road;if(fv.fleetGroup==='Contractor Fleet')fv.customer=fleetNormaliseCustomer(cname);if(!await saveFleet())throw new Error('Fleet details could not be saved. Keep this screen open and retry when the cloud connection is available.')}
       await saveAll();
       await upsertRemote('vehicles',v);
       openVehicleRecord(reg);
