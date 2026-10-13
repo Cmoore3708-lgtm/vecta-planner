@@ -251,3 +251,17 @@ test('unknown models get an immediate local generic picture and a separate plate
  await new Promise(r=>setTimeout(r,20));assert.ok(host.querySelector('.haynesDashboardImage'));host.remove();
 });
 
+
+test('quote cards receive cached artwork alongside unallocated cards without waiting for a lookup',()=>{
+ const {window,document}=setup(async()=>response(vehicle));window.VectaHaynesJobTools.remember(vehicle);
+ const host=document.createElement('div');host.innerHTML='<div class="sideJob unallocatedSideJob" data-open-unallocated="unallocated"></div><div class="sideJob unallocatedSideJob quoteCard" data-open-job="quote"></div>';document.body.appendChild(host);
+ window.enrichHaynesDashboard(host,[{id:'unallocated',registration:vehicle.registration,make:'Nissan'},{id:'quote',registration:vehicle.registration,make:'Nissan',status:'quote'}]);
+ assert.equal(host.querySelectorAll('.haynesDashboardImage').length,2);assert.ok(host.querySelector('.quoteCard.hasHaynesDashboardImage img'));assert.ok(host.querySelector('[data-open-unallocated] img'));
+});
+test('placeholder registrations reuse fleet model artwork without inventing vehicle identity',()=>{
+ const {window}=setup(async()=>response(vehicle));const stored={make:'Nissan',model:'Navara',imageUrl:vehicle.imageUrl};
+ window.VectaFleetImages.modelArtwork=model=>model==='Navara'?stored:null;
+ const drawing=window.VectaHaynesJobTools.genericImage({registration:'RESCUE2',vehicle:'Navara'});
+ assert.equal(drawing.imageUrl,vehicle.imageUrl);assert.equal(drawing.generic,true);assert.equal(drawing.typeId,undefined);
+ assert.equal(window.VectaHaynesJobTools.genericImage({vehicle:'Navara',make:'Ford'}),null);
+});
