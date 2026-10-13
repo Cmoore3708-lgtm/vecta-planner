@@ -256,7 +256,7 @@ test('an oversized supplier shadow cannot shrink a Range Rover body inside its c
 
 function artworkStorage(){
  const rows=new Map();
- return {rows,open(){const request={};setTimeout(()=>{request.result={close(){},transaction(){const tx={};const store={get(key){const r={};queueMicrotask(()=>{r.result=rows.get(key);r.onsuccess?.()});return r},put(row){rows.set(row.key,structuredClone(row));setTimeout(()=>tx.oncomplete?.(),0)},count(){const r={};queueMicrotask(()=>{r.result=rows.size;r.onsuccess?.()});return r}};tx.objectStore=()=>store;return tx}};request.onsuccess?.()},0);return request}};
+ return {rows,open(){const request={};setTimeout(()=>{request.result={close(){},transaction(){const tx={};const store={get(key){const r={};queueMicrotask(()=>{r.result=rows.get(key);r.onsuccess?.()});return r},put(row){rows.set(row.key,structuredClone(row));setTimeout(()=>tx.oncomplete?.(),0)},count(){const r={};queueMicrotask(()=>{r.result=rows.size;r.onsuccess?.()});return r},openCursor(){const r={},keys=[...rows.keys()].sort();let index=0;const next=()=>queueMicrotask(()=>{const key=keys[index++];r.result=key===undefined?null:{key,delete:()=>rows.delete(key),continue:next};r.onsuccess?.()});next();return r}};tx.objectStore=()=>store;return tx}};request.onsuccess?.()},0);return request}};
 }
 test('a fleet larger than the memory cache survives reopening with zero image downloads',async()=>{
  const indexedDB=artworkStorage();let downloads=0,writes=0;
@@ -278,4 +278,33 @@ test('stored supplier artwork recolours a vehicle offline without downloading ag
   await root.VectaVehicleImage.mount();await new Promise(r=>setTimeout(r,10));assert.match(decodeURIComponent(root.document.querySelector('img').src),new RegExp(colour==='Blue'?'#235b9a':'#ac1727'));
  }
  assert.equal(downloads,1);
+});
+
+test('branded fleet beyond the memory cache reopens without downloading badges or supplier artwork',async()=>{
+ const indexedDB=artworkStorage();let supplier=0,logos=0;
+ for(let reopen=0;reopen<2;reopen++){
+  const root=browser();root.indexedDB=indexedDB;
+  root.fetch=async url=>{
+   assert.equal(reopen,0,'persistent completed render must be checked before downloading its badge');
+   if(url.startsWith('/assets/')){logos++;return {ok:true,text:async()=>fs.readFileSync('public/assets/manufacturers/ford.svg','utf8')};}
+   supplier++;return {ok:true,json:async()=>({svg})};
+  };
+  root.document.body.innerHTML=Array.from({length:140},(_,i)=>'<img data-vehicle-image data-vehicle-name="Ford Transit" data-registration="TEST'+i+'" data-colour="Red" src="https://www.haynespro-assets.com/workshop/images/123.svgz">').join('');
+  await root.VectaVehicleImage.mount();await new Promise(r=>setTimeout(r,10));
+  for(const img of root.document.querySelectorAll('img'))assert.match(decodeURIComponent(img.src),/vecta-manufacturer-logo/);
+ }
+ assert.equal(supplier,1);assert.equal(logos,1);
+});
+
+test('supplier sources remain permanent when the fleet exceeds the render storage limit',async()=>{
+ const indexedDB=artworkStorage();
+ for(let i=0;i<513;i++)indexedDB.rows.set('source:'+i+'.svgz',{key:'source:'+i+'.svgz',value:svg});
+ for(let i=0;i<3;i++)indexedDB.rows.set('render:old'+i,{key:'render:old'+i,value:{url:'data:image/svg+xml;charset=utf-8,'+encodeURIComponent(svg)}});
+ const root=browser();root.indexedDB=indexedDB;let calls=0;
+ root.fetch=async()=>{calls++;throw Error('cached supplier source must survive');};
+ root.document.body.innerHTML='<img data-vehicle-image data-vehicle-logo="separate" data-registration="AB12CDE" data-colour="Blue" src="https://www.haynespro-assets.com/workshop/images/123.svgz">';
+ await root.VectaVehicleImage.mount();await new Promise(r=>setTimeout(r,10));
+ assert.equal(calls,0);assert.match(decodeURIComponent(root.document.querySelector('img').src),/#235b9a/);
+ assert.equal([...indexedDB.rows.keys()].filter(key=>key.startsWith('source:')).length,513);
+ assert.equal([...indexedDB.rows.keys()].filter(key=>key.startsWith('render:old')).length,0,'old rendered variants may be regenerated without downloads');
 });

@@ -55,8 +55,9 @@
   async function persistentWrite(key,value) {
     const db=await persistentDb();if(!db)return false;
     return new Promise(resolve=>{try{const tx=db.transaction('artwork','readwrite'),store=tx.objectStore('artwork');store.put({key,value,savedAt:Date.now()});
-      // Bound disk use without throwing away the whole fleet cache.
-      const count=store.count();count.onsuccess=()=>{let excess=count.result-512;if(excess<=0)return;const cursor=store.openCursor();cursor.onsuccess=()=>{const row=cursor.result;if(!row||excess<=0)return;if(row.key!==key){row.delete();excess--;}row.continue();};};
+      // Regenerate old rendered variants from permanent supplier sources, never
+      // discard those sources just because the fleet grows past the render limit.
+      const count=store.count();count.onsuccess=()=>{let excess=count.result-512;if(excess<=0)return;const cursor=store.openCursor();cursor.onsuccess=()=>{const row=cursor.result;if(!row||excess<=0)return;if(row.key!==key&&!String(row.key).startsWith('source:')){row.delete();excess--;}row.continue();};};
       tx.oncomplete=()=>resolve(true);tx.onerror=()=>resolve(false);tx.onabort=()=>resolve(false);
     }catch{resolve(false);}});
   }
@@ -220,29 +221,33 @@
       const registration = normaliseReg(img.dataset.registration), colour = img.dataset.colour || '';
       const tight=img.dataset.vehicleCrop==='tight';
       const baseKey = match[1]+'|render-v4|'+registration+'|'+colourHex(colour)+(tight?'|tight-v3':''),brand=img.dataset.vehicleLogo==='separate'?'':manufacturer(img.dataset.vehicleMake||img.dataset.vehicleName);
-      let key=brand?baseKey+'|logo-v2-below:'+brand:baseKey;
+      const key=brand?baseKey+'|logo-v2-below:'+brand:baseKey;
       try {
         let result = images.get(key);
         if (!result) {
-          const logo=brand?await logoFor(brand):'';
-          if(brand&&!logo){key=baseKey;result=images.get(key);}
-          if(!result){
           if (!rendering.has(key)) {
             const task = (async()=>{
+              // A finished branded render includes its badge. Check disk before
+              // downloading either the badge or the supplier drawing again.
               const saved=await persistentRead('render:'+key);
               if(validRender(saved)){cacheRender(key,saved);return saved;}
+              const logo=brand?await logoFor(brand):'';
+              const renderKey=brand&&!logo?baseKey:key;
+              if(renderKey!==key){
+                const fallback=images.get(renderKey)||await persistentRead('render:'+renderKey);
+                if(validRender(fallback)){cacheRender(renderKey,fallback);return fallback;}
+              }
               const source=await sourceFor(match[1]);
               const rendered = personaliseSvg(source,registration,colour,match[1],logo,tight,img.dataset.vehicleName||'');
               rendered.url = 'data:image/svg+xml;charset=utf-8,'+encodeURIComponent(rendered.svg);
-              cacheRender(key,rendered);
-              persistentWrite('render:'+key,{url:rendered.url,plateAdded:rendered.plateAdded,recoloured:rendered.recoloured}).then(saved=>{if(!saved)saveRenders();});
+              cacheRender(renderKey,rendered);
+              persistentWrite('render:'+renderKey,{url:rendered.url,plateAdded:rendered.plateAdded,recoloured:rendered.recoloured}).then(saved=>{if(!saved)saveRenders();});
               return rendered;
             })();
             rendering.set(key,task);
           }
           const task = rendering.get(key);
           try { result = await task; } finally { if (rendering.get(key) === task) rendering.delete(key); }
-          }
         }
         if (!img.isConnected) return;
         img.src = result.url;
