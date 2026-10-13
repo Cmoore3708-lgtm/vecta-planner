@@ -141,14 +141,31 @@ export default async function invoicePdfHandler(req, res) {
     }
     const config = databaseEnvironment({ requireService: true });
     const secret = process.env.VECTA_INVOICE_LINK_SECRET || createHmac('sha256', config.key).update('VECTA invoice links v1').digest('hex');
-    const claim = req.method === 'GET' ? verifyInvoiceToken(req.query.token, secret) : null;
+    let token = req.query.token;
+    if (req.method === 'GET' && req.query.code !== undefined) {
+      if (!/^[A-Za-z0-9_-]{24}$/.test(req.query.code)) return res.status(404).json({error:'Invoice link is unavailable or has expired'});
+      const hash = createHash('sha256').update(req.query.code).digest('hex');
+      const saved = (await rows(config, 'invoice_customer_links?select=signed_token,expires_at&token_hash=eq.' + hash + '&limit=1'))[0];
+      if (!saved || Date.parse(saved.expires_at) <= Date.now()) return res.status(404).json({error:'Invoice link is unavailable or has expired'});
+      token = saved.signed_token;
+    }
+    const claim = req.method === 'GET' ? verifyInvoiceToken(token, secret) : null;
     const id = req.method === 'POST' ? req.body?.invoice_id : claim?.id;
     if (!validId(id)) return res.status(404).json({ error: 'Invoice link is unavailable or has expired' });
     const invoice = (await rows(config, 'invoices?select=*&id=eq.' + encodeURIComponent(id) + '&limit=1'))[0];
     if (!active(invoice) || (claim && ![invoiceFingerprint(invoice), invoiceFingerprint(invoice, true), invoiceFingerprint({ ...invoice, status: 'saved' }, true)].includes(claim.hash))) return res.status(404).json({ error: 'Invoice link is unavailable or has expired' });
     if (req.method === 'POST') {
       const token = issueInvoiceToken(invoice, secret, Date.now(), req.body?.presentation || {});
-      const url = 'https://' + req.headers.host + '/invoice?token=' + token;
+      let url = 'https://' + req.headers.host + '/invoice?token=' + token;
+      if (req.body?.compact === true) {
+        const code = randomBytes(18).toString('base64url');
+        const response = await fetch(config.url + '/rest/v1/invoice_customer_links', {
+          method:'POST', headers:{apikey:config.key,Authorization:'Bearer '+config.key,'Content-Type':'application/json',Prefer:'return=minimal'},
+          body:JSON.stringify({token_hash:createHash('sha256').update(code).digest('hex'),signed_token:token,expires_at:new Date(Date.now()+LINK_SECONDS*1000).toISOString()}),signal:AbortSignal.timeout(10000)
+        });
+        if (!response.ok) throw new Error('Invoice link could not be saved');
+        url = 'https://' + req.headers.host + '/i/' + code;
+      }
       return res.status(201).json({ url, expires_in_days: 90 });
     }
     const [settingRows, jobRows] = await Promise.all([
