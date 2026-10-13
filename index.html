@@ -15225,7 +15225,7 @@ function invoiceLineWithMotVat(line){return invoiceMotTestLine(line)?Object.assi
 function staffInvoiceLineAmount(line){return invoiceTotals([line]).subtotal}
 function staffInvoiceLineHtml(line){
   line=invoiceLineWithMotVat(line||{});var amount=staffInvoiceLineAmount(line),display=amount.toFixed(2),mode=line.vat_mode==='no_vat'?'no_vat':'ex_vat';
-  return lineHtml(Object.assign({},line,{amount:display,vat_mode:mode})).replace('<tr>','<tr data-staff-invoice="1">').replace('data-line-amount ', 'data-line-amount data-original-amount="'+esc(line.amount||0)+'" data-original-vat="'+esc(line.vat_mode||'')+'" data-display-amount="'+display+'" data-display-vat="'+mode+'" ').replace('step="5"','step="0.01"').replace(/<option value="inc_vat"[^>]*>Inc VAT<\/option>/,'');
+  return lineHtml(Object.assign({},line,{amount:display,vat_mode:mode})).replace('<tr>','<tr data-staff-invoice="1">').replace('data-line-amount ', 'data-line-amount data-original-amount="'+esc(line.amount||0)+'" data-original-vat="'+esc(line.vat_mode||'')+'" data-display-amount="'+display+'" data-display-vat="'+mode+'" ').replace('step="5"','step="0.01"');
 }
 function invoiceEditorLineValue(tr){
   var input=tr.querySelector('[data-line-amount]'),vat=tr.querySelector('[data-line-vat]'),mode=vat.value,description=tr.querySelector('[data-line-desc]'),result;

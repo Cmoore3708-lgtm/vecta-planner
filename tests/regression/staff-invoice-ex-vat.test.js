@@ -24,11 +24,19 @@ test('inclusive, exclusive, exempt, negative, zero and configured rates',()=>{
 });
 test('editor preserves original gross amount and mode through rounded display and saves',()=>{
  const rendered=ctx.staffInvoiceLineHtml({amount:100,vat_mode:'inc_vat'});
- assert.match(rendered,/value="83.33"/);assert.doesNotMatch(rendered,/value="inc_vat"/);
+ assert.match(rendered,/value="83.33"/);assert.match(rendered,/value="inc_vat"/);assert.match(rendered,/value="ex_vat" selected/);assert.match(rendered,/value="no_vat"/);
  const input={value:'83.33',dataset:{displayAmount:'83.33',displayVat:'ex_vat',originalAmount:'100',originalVat:'inc_vat'}};
  const tr={querySelector:s=>s==='[data-line-amount]'?input:{value:'ex_vat'}};
  const original=ctx.invoiceEditorLineValue(tr);assert.equal(original.amount,100);assert.equal(original.vat_mode,'inc_vat');assert.equal(ctx.invoiceTotals([original]).total,100);
  input.value='90';const edited=ctx.invoiceEditorLineValue(tr);assert.equal(edited.amount,90);assert.equal(edited.vat_mode,'ex_vat');assert.equal(ctx.invoiceTotals([edited]).total,108);
+});
+test('Staff editor accepts all three VAT modes and calculates the selected amount',()=>{
+ const input={value:'120',dataset:{displayAmount:'100.00',displayVat:'ex_vat',originalAmount:'120',originalVat:'inc_vat'}},vat={value:'inc_vat'};
+ const tr={dataset:{staffInvoice:'1'},querySelector:s=>s==='[data-line-amount]'?input:s==='[data-line-vat]'?vat:{value:'Repair'}};
+ for(const [mode,total,net] of [['inc_vat',120,100],['ex_vat',144,120],['no_vat',120,120]]){
+  vat.value=mode;const line=ctx.invoiceEditorLineValue(tr);assert.equal(line.vat_mode,mode);
+  const totals=ctx.invoiceTotals([line]);assert.equal(totals.total,total);assert.equal(totals.subtotal,net);
+ }
 });
 test('actual print output shows Staff net lines with separate VAT and unchanged total',()=>{
  const inv={job_id:'s',lines:[{description:'Repair',amount:120,vat_mode:'inc_vat'},{description:'MOT',amount:55,vat_mode:'no_vat'}],subtotal:155,vat:20,total:175};
