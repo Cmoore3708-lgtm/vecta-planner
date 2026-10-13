@@ -156,6 +156,11 @@ const attach=(v,targets,j)=>{for(const {card,target} of targets){if(!card.isConn
   }finally{dashboardRequests.delete(key);}}).catch(()=>{});
  }
 };
+root.invoiceVehiclePresentation=function(invoice){
+ const matched=snapshot(invoice.registration,invoice.make),v=matched?.imageUrl?matched:artworkSnapshot(invoice.registration,invoice.make)||genericImage(invoice);
+ const linked=(root.app?.jobs||[]).find(j=>String(j.id)===String(invoice.job_id));
+ return {imageUrl:v?.imageUrl||'',colour:dashboardColour(Object.assign({},linked||{},invoice))};
+};
 root.enrichHaynesInvoice=function(sheet,invoice){
  const strip=sheet?.querySelector('.printInvoiceVehicle');if(!strip||!invoice||sheet.querySelector('.haynesInvoiceImage'))return;
  const matched=snapshot(invoice.registration,invoice.make),v=matched?.imageUrl?matched:artworkSnapshot(invoice.registration,invoice.make)||genericImage(invoice);if(!v)return;const img=thumbnail(v,'haynesInvoiceImage');if(img){
@@ -282,7 +287,3 @@ function install(){const top=document.querySelector('.top'),search=top?.querySel
 root.VectaHaynesDashboardLookup={open,install};
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',install);else install();
 })(window);
-
-
-
-

@@ -9,7 +9,7 @@ import {parseHTML} from 'linkedom';
 const html=fs.readFileSync(new URL('../../index.html',import.meta.url),'utf8');
 const names=['invoiceCustomerAccount','invoiceIsStaff','invoiceMotTestLine','invoiceLineWithMotVat','staffInvoiceLineAmount','staffInvoiceLineHtml','invoiceEditorLineValue','invoiceTotals','lineHtml','vehicleTaxInvoiceTitle','vehicleTaxInvoiceHeading','printInvoice','gatherInvoice','openInvoiceForJob'];
 const ctx={app:{settings:{vatRate:20},jobs:[{id:'s',customer_account:'Staff'},{id:'n',customer_account:'NMUK'},{id:'c',customer_account:'CONTRACTOR'}]},esc:String,money:v=>'£'+Number(v).toFixed(2),fleetInvoiceCustomerProfile:()=>({}),jobVehicleDueData:()=>({}),knownRegistrationDetails:()=>({}),latestServiceMileage:()=>'',invoiceSenderHtml:()=>'',invoicePlate:()=>'',niceDate:String,printWhenImagesReady:()=>{},document:{getElementById:()=>ctx.sheet},sheet:{}};
-vm.createContext(ctx);
+vm.createContext(ctx);vm.runInContext(fs.readFileSync(new URL('../../public/js/vecta-invoice-print.js',import.meta.url),'utf8'),ctx);
 for(const match of html.matchAll(/<script(?:\s[^>]*)?>([\s\S]*?)<\/script>/gi)){
  const ast=parse(match[1],{sourceType:'script'});
  (traverse.default||traverse)(ast,{FunctionDeclaration(path){const node=path.node;if(names.includes(node.id.name))vm.runInContext((gen.default||gen)(node).code,ctx);}});

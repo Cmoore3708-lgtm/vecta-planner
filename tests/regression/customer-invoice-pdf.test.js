@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { PDFDocument } from 'pdf-lib';
-import handler, { issueInvoiceToken, verifyInvoiceToken, invoiceFingerprint, renderCustomerInvoicePdf, shortenInvoiceUrl } from '../../api/_invoice-pdf.js';
+import handler, { issueInvoiceToken, verifyInvoiceToken, invoiceFingerprint, renderCustomerInvoicePdf } from '../../api/_invoice-pdf.js';
 import { managerSessionCookie, requiresManagerLogin } from '../../middleware.js';
 
 const invoice = { id: 'invoice-123', invoice_number: 'VECTA-79001', invoice_date: '2026-10-07', job_id: 'job-123', customer_name: 'Jane Smith', registration: 'AB12 CDE', vehicle: 'Nissan Qashqai', mileage: 48210, status: 'saved', lines: [
@@ -50,20 +50,23 @@ test('only a signed-in manager can issue links; customer token fetch exposes onl
     assert.equal(res.code, 201); const link = new URL(res.body.url), token = link.searchParams.get('token');
     assert.equal(link.origin, 'https://workshop.example'); assert.equal(link.pathname, '/invoice');
     assert.equal(Object.keys(res.body).length, 2, 'Do not return customer records or server secrets');
-    res = response(); await handler({ method: 'GET', headers: {}, query: { token } }, res);
+    res = response(); await handler({method:'GET',headers:{},query:{token}},res);
+    assert.equal(res.code,200);assert.equal(res.headers['Content-Type'],'text/html; charset=utf-8');
+    assert.match(res.body,/invoicePrintPage/);assert.match(res.headers['Content-Security-Policy'],/frame-ancestors 'none'/);
+    res = response(); await handler({ method: 'GET', headers: {}, query: { token, format: 'pdf' } }, res);
     assert.equal(res.code, 200); assert.equal(res.headers['Content-Type'], 'application/pdf'); assert.match(res.body.toString('ascii', 0, 5), /^%PDF-/);
     assert.match(res.headers['Cache-Control'], /no-store/); assert.equal(res.headers['Referrer-Policy'], 'no-referrer');
     assert.match(res.headers['Content-Disposition'], /^inline; filename="VECTA-Invoice-VECTA-79001.pdf"/);
     const pdf = await PDFDocument.load(res.body); assert.equal(pdf.getPageCount(), 1);
-    currentInvoice = { ...invoice, status: 'paid', payment_method: 'Card' }; res = response(); await handler({ method: 'GET', headers: {}, query: { token } }, res); assert.equal(res.code, 200);
-    currentInvoice = { ...invoice, total: 175 }; res = response(); await handler({ method: 'GET', headers: {}, query: { token } }, res); assert.equal(res.code, 404);
-    currentInvoice = { ...invoice, status: 'void' }; res = response(); await handler({ method: 'GET', headers: {}, query: { token } }, res); assert.equal(res.code, 404);
-    currentInvoice = null; res = response(); await handler({ method: 'GET', headers: {}, query: { token } }, res); assert.equal(res.code, 404);
+    currentInvoice = { ...invoice, status: 'paid', payment_method: 'Card' }; res = response(); await handler({ method: 'GET', headers: {}, query: { token, format: 'pdf' } }, res); assert.equal(res.code, 200);
+    currentInvoice = { ...invoice, total: 175 }; res = response(); await handler({ method: 'GET', headers: {}, query: { token, format: 'pdf' } }, res); assert.equal(res.code, 404);
+    currentInvoice = { ...invoice, status: 'void' }; res = response(); await handler({ method: 'GET', headers: {}, query: { token, format: 'pdf' } }, res); assert.equal(res.code, 404);
+    currentInvoice = null; res = response(); await handler({ method: 'GET', headers: {}, query: { token, format: 'pdf' } }, res); assert.equal(res.code, 404);
     const count = reads; res = response(); await handler({ method: 'GET', headers: {}, query: { token: 'invalid' } }, res); assert.equal(res.code, 404); assert.equal(reads, count);
     currentInvoice = invoice; res = response(); await handler({ method: 'GET', headers: {}, query: { token, download: '1' } }, res); assert.match(res.headers['Content-Disposition'], /^attachment/);
     res = response(); await handler({ method: 'DELETE', headers: {}, query: {} }, res); assert.equal(res.code, 405);
     process.env.VERCEL_ENV = 'preview'; delete process.env.VECTA_TEST_SUPABASE_SERVICE_ROLE_KEY;
-    res = response(); await handler({ method: 'GET', headers: {}, query: { token } }, res); assert.equal(res.code, 503, 'Preview must never fall back to live invoices');
+    res = response(); await handler({ method: 'GET', headers: {}, query: { token, format: 'pdf' } }, res); assert.equal(res.code, 503, 'Preview must never fall back to live invoices');
   } finally { globalThis.fetch = oldFetch; for (const key of Object.keys(process.env)) if (!(key in oldEnv)) delete process.env[key]; Object.assign(process.env, oldEnv); }
 });
 
@@ -75,14 +78,13 @@ test('PDF renderer handles long descriptions and many work lines without clippin
 });
 
 
-test('TinyURL shortening encodes the complete signed address and rejects bad results', async () => {
-  const oldFetch = globalThis.fetch, url = 'https://workshop.example/invoice?token=abc.def';
-  try {
-    globalThis.fetch = async endpoint => { assert.equal(new URL(endpoint).searchParams.get('url'), url); return new Response('https://tinyurl.com/test123\n'); };
-    assert.equal(await shortenInvoiceUrl(url), 'https://tinyurl.com/test123');
-    for (const invalid of ['https://attacker.example/test', 'http://tinyurl.com/test', 'https://tinyurl.com/', 'https://tinyurl.com/test?redirect=bad']) {
-      globalThis.fetch = async () => new Response(invalid); await assert.rejects(shortenInvoiceUrl(url));
-    }
-    globalThis.fetch = async () => new Response('Unavailable', {status: 503}); await assert.rejects(shortenInvoiceUrl(url));
-  } finally { globalThis.fetch = oldFetch; }
+test('one click opens the invoice HTML with the original print template and escaped content', async () => {
+  const { renderCustomerInvoiceHtml } = await import('../../api/_invoice-html.js');
+  const html = renderCustomerInvoiceHtml({ ...invoice, customer_name: '<script>attack</script>', customer_account: 'STAFF' }, settings, {}, {imageUrl:'https://www.haynespro-assets.com/workshop/images/123.svgz',colour:'Grey'});
+  assert.match(html, /invoicePrintPage/); assert.match(html, /invoicePrintHeader/);
+  assert.match(html, /vecta-customer-invoice.css/); assert.match(html, /Amount \(ex VAT\)/);
+  assert.match(html, /£100.00/); assert.match(html, /£54.00/); assert.match(html, /£174.00/);
+  assert.match(html, /haynesInvoiceHeaderVehicle/); assert.match(html, /data-registration="AB12 CDE"/);
+  assert.match(html, /&lt;script&gt;attack&lt;\/script&gt;/); assert.ok(!html.includes('<script>attack'));
+  assert.ok(!html.includes('tinyurl')); assert.ok(!html.includes('iframe'));
 });
