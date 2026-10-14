@@ -67,3 +67,21 @@ test('vehicle colour applies with independent MOT and Haynes responses in either
   assert.equal(document.querySelector('[data-identity] img').dataset.colour,'Black');assert.equal(painted.at(-1),'Black');
  }
 });
+
+test('late colour replaces a locked render and retains the supplier source and registration',async()=>{
+ let finishMot;const {window,document}=setup(url=>url.includes('haynes-vehicle')?Promise.resolve({ok:true,json:async()=>({status:'MATCHED',vehicle})}):new Promise(resolve=>finishMot=resolve));
+ const source='https://www.haynespro-assets.com/workshop/images/123.svgz';
+ window.VectaHaynesJobTools.safeImage=()=>source;
+ const painted=[];window.VectaVehicleImage={resolveColour:(_reg,colour)=>colour,mount:host=>{
+  const img=host.querySelector('img');if(img.dataset.personalising)return;
+  img.dataset.personalising='1';painted.push({img,colour:img.dataset.colour,registration:img.dataset.registration,source:img.dataset.vehicleSource});
+  img.src='data:image/svg+xml,previous-render';
+ }};
+ const opened=window.VectaHaynesDashboardLookup.open(vehicle.registration);
+ await new Promise(resolve=>setImmediate(resolve));
+ const original=document.querySelector('[data-identity] img');
+ finishMot({ok:true,json:async()=>({registration:vehicle.registration,primaryColour:'Red'})});await opened;
+ const current=document.querySelector('[data-identity] img');
+ assert.notEqual(current,original);assert.equal(original.isConnected,false);
+ assert.equal(painted.at(-1).colour,'Red');assert.equal(painted.at(-1).registration,vehicle.registration);assert.equal(painted.at(-1).source,source);
+});
