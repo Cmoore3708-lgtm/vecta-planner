@@ -308,3 +308,28 @@ test('supplier sources remain permanent when the fleet exceeds the render storag
  assert.equal([...indexedDB.rows.keys()].filter(key=>key.startsWith('source:')).length,513);
  assert.equal([...indexedDB.rows.keys()].filter(key=>key.startsWith('render:old')).length,0,'old rendered variants may be regenerated without downloads');
 });
+
+
+test('placeholder recovers after a failed supplier request without an image error',async()=>{
+ const root=browser(),timers=[];let calls=0;
+ root.setTimeout=(fn,delay)=>{timers.push({fn,delay});return timers.length;};
+ root.clearTimeout=()=>{};
+ root.fetch=async()=>{if(++calls===1)throw Error('temporary failure');return {ok:true,json:async()=>({svg})};};
+ root.document.body.innerHTML='<img data-vehicle-image data-vehicle-logo="separate" data-registration="MTC2" data-colour="Grey" data-vehicle-source="https://www.haynespro-assets.com/workshop/images/123.svgz" src="data:image/svg+xml;charset=utf-8,placeholder">';
+ await root.VectaVehicleImage.mount();
+ assert.equal(timers.length,1);assert.equal(timers[0].delay,1500);
+ timers.shift().fn();
+ for(let i=0;i<10;i++)await new Promise(r=>setImmediate(r));
+ assert.match(decodeURIComponent(root.document.querySelector('img').src),/MTC2/);
+ assert.equal(calls,2);
+});
+
+test('supplier failure retries at most twice and stops for disconnected cards',async()=>{
+ const root=browser(),timers=[];let calls=0;
+ root.setTimeout=(fn,delay)=>{timers.push({fn,delay});return timers.length;};root.clearTimeout=()=>{};
+ root.fetch=async()=>{calls++;throw Error('offline');};
+ root.document.body.innerHTML='<img data-vehicle-image data-vehicle-logo="separate" src="https://www.haynespro-assets.com/workshop/images/123.svgz">';
+ await root.VectaVehicleImage.mount();
+ for(let i=0;i<2;i++){assert.equal(timers.length,1);timers.shift().fn();for(let n=0;n<10;n++)await new Promise(r=>setImmediate(r));}
+ assert.equal(calls,3);assert.equal(timers.length,0);
+});

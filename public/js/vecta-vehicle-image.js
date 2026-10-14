@@ -10,6 +10,7 @@
     '319118141.svgz': {x:20.5,y:149,width:27,height:10,skew:12}
   };
   const sources = new Map(), images = new Map(), rendering = new Map();
+  const retryCounts = new WeakMap(), retryTimers = new WeakMap();
   const manufacturers = ['mercedes-benz','land-rover','volkswagen','mitsubishi','vauxhall','infiniti','hyundai','renault','peugeot','citroen','porsche','nissan','toyota','suzuki','jaguar','lexus','mazda','honda','skoda','volvo','tesla','dacia','audi','ford','seat','fiat','mini','bmw','kia','mg'];
   const logos = new Map();
   function manufacturer(name) {
@@ -250,11 +251,24 @@
           try { result = await task; } finally { if (rendering.get(key) === task) rendering.delete(key); }
         }
         if (!img.isConnected) return;
+        const retryTimer=retryTimers.get(img);if(retryTimer)clearTimeout(retryTimer);retryTimers.delete(img);retryCounts.delete(img);
         img.src = result.url;
         img.dataset.personalised = String(result.plateAdded);
         img.dataset.recoloured = String(result.recoloured);
         img.alt = [colour, img.dataset.vehicleName, registration,'model illustration'].filter(Boolean).join(' ');
-      } catch { delete img.dataset.personalising; /* Retain the element so a later retry can recover. */ }
+      } catch {
+        delete img.dataset.personalising;
+        // A data-URL placeholder cannot fire onerror when the supplier request fails.
+        // Retry the renderer itself, sharing source/render requests across cards.
+        const attempts=retryCounts.get(img)||0;
+        if(img.isConnected&&attempts<2&&!retryTimers.has(img)){
+          retryCounts.set(img,attempts+1);
+          retryTimers.set(img,setTimeout(()=>{
+            retryTimers.delete(img);
+            if(img.isConnected&&!img.dataset.personalising)mount(img.parentElement);
+          },attempts===0?1500:5000));
+        }
+      }
     }));
   }
   root.VectaVehicleImage = {mount,personaliseSvg,sanitiseSvg,colourHex,normaliseReg,resolveColour,rememberColour,manufacturer,colourNames:Object.keys(colours).filter(name=>name!=='GRAY')};
