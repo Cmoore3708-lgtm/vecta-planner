@@ -22,7 +22,7 @@ function identitySnapshot(registration,expectedMake){const v=identities.get(reg(
 function rememberIdentity(v,persist=true){
  if(!v||! /^[A-Z0-9]{2,8}$/.test(reg(v.registration))||!vehicleLink(v)||!v.make||!v.model||!v.variant||!Number.isFinite(Date.parse(v.fetchedAt))||Date.parse(v.fetchedAt)>Date.now())return;
  const clean={registration:reg(v.registration),make:String(v.make).slice(0,100),model:String(v.model).slice(0,180),variant:String(v.variant).slice(0,180),engineCode:String(v.engineCode||'').slice(0,100),modelYears:String(v.modelYears||'').slice(0,100),vehicle:String(v.vehicle||[v.make,v.model,v.variant].join(' ')).slice(0,360),typeId:v.typeId,...(/^\d{1,12}$/.test(String(v.ktypNr||''))?{ktypNr:String(v.ktypNr)}:{}),imageUrl:image(v.imageUrl),fetchedAt:v.fetchedAt};
- identities.set(clean.registration,clean);while(identities.size>1000)identities.delete(identities.keys().next().value);
+ identities.set(clean.registration,clean);
  if(persist)try{root.localStorage?.setItem(ID_KEY,JSON.stringify([...identities.values()]));}catch{}
  return clean;
 }
@@ -36,7 +36,7 @@ async function sharedArtworkResponse(request){
 }
 function cleanArtwork(v){
  if(!v||! /^[A-Z0-9]{2,12}$/.test(reg(v.registration))||!image(v.imageUrl)||!v.make||!v.model)return null;
- return {registration:reg(v.registration),make:String(v.make).slice(0,100),model:String(v.model).slice(0,180),imageUrl:image(v.imageUrl),...(v.generic?{generic:true}:{})};
+ return {registration:reg(v.registration),make:String(v.make).slice(0,100),model:String(v.model).slice(0,180),imageUrl:image(v.imageUrl),...(root.VectaVehicleImage?.colourHex(v.colour)?{colour:v.colour}:{}),...(v.generic?{generic:true}:{})};
 }
 function queueSharedArtwork(v){
  const client=root.remoteClient,clean=cleanArtwork(v);
@@ -79,8 +79,8 @@ function hydrateSharedArtwork(){
 function rememberArtwork(v,persist=true){
  const clean=cleanArtwork(v);if(!clean)return;
  if(persist)queueSharedArtwork(clean);
- const existing=artwork.get(clean.registration);if(existing&&existing.make===clean.make&&existing.model===clean.model&&existing.imageUrl===clean.imageUrl&&!!existing.generic===!!clean.generic)return;
- artwork.set(clean.registration,clean);while(artwork.size>300)artwork.delete(artwork.keys().next().value);
+ const existing=artwork.get(clean.registration);if(existing&&existing.make===clean.make&&existing.model===clean.model&&existing.imageUrl===clean.imageUrl&&existing.colour===clean.colour&&!!existing.generic===!!clean.generic)return;
+ artwork.set(clean.registration,clean);
  if(persist)try{root.localStorage?.setItem(ART_KEY,JSON.stringify([...artwork.values()]));}catch{}
 }
 try{for(const v of JSON.parse(root.localStorage?.getItem(ART_KEY)||'[]'))rememberArtwork(v,false);}catch{}
@@ -144,7 +144,7 @@ function dashboardColour(job){
  const registration=reg(job.registration),vehicle=registration?(root.app?.vehicles||[]).find(v=>reg(v.registration)===registration):null;
  const fleet=registration?(root.fleetVehicles||[]).find(v=>reg(v.registration)===registration):null;
  const saved=colourCache.get(registration),cached=saved&&(!job.make||make(saved.make)===make(job.make))?saved.colour:'';
- const supplied=job.vehicle_colour||job.colour||vehicle?.colour||fleet?.colour||cached||'';
+ const supplied=job.vehicle_colour||job.colour||vehicle?.colour||fleet?.colour||cached||artworkSnapshot(registration,job.make)?.colour||'';
  return root.VectaVehicleImage?.resolveColour(registration,supplied)||supplied;
 }
 function rememberLookupColour(data,expectedMake){
@@ -208,17 +208,13 @@ root.enrichHaynesDashboard=function(container,jobs){
   const j=byId.get(card.dataset.jobId||card.dataset.openJob||card.dataset.openUnallocated),target=card.matches('.mobileJob,.unallocatedSideJob')?card:card.querySelector('.plannerJobHeader');if(!j||!target)continue;
   const key=reg(j.registration)+'|'+make(j.make)+'|'+words(j.model||j.vehicle)+'|'+words(dashboardColour(j));if(!groups.has(key))groups.set(key,{job:j,targets:[]});groups.get(key).targets.push({card,target});
  }
-const attach=(v,targets,j)=>{for(const {card,target} of targets){if(!card.isConnected)continue;if(!v){genericDashboardArtwork(card,target,j);continue;}if(v.generic)rememberArtwork({registration:j.registration,make:v.make,model:v.model,imageUrl:v.imageUrl,generic:true});const colour=dashboardColour(j);let img=card.querySelector('.haynesDashboardImage');if(img&&(img.dataset.haynesSource!==v.imageUrl||img.dataset.colour!==colour)){img.remove();img=null;}img=img||thumbnail(v,'haynesDashboardImage',j);if(img){img.dataset.haynesSource=v.imageUrl;img.dataset.colour=colour;img.dataset.vehicleName=[v.make,v.model].join(' ');img.setAttribute('data-vehicle-image','');img.dataset.registration=reg(j.registration);img.dataset.vehicleLogo='separate';img.dataset.vehicleCrop='tight';target.appendChild(img);mobileManufacturerBadge(card,j,v);img.addEventListener('error',()=>genericDashboardArtwork(card,target,j),{once:true});target.classList.add('hasHaynesDashboardImage');trackTimedArtwork(card,img);root.VectaVehicleImage?.mount(target);}}};
- for(const [key,group] of groups){
-  const j=group.job,hit=identitySnapshot(j.registration,j.make)||snapshot(j.registration,j.make),fallback=artworkSnapshot(j.registration,j.make)||genericImage(j);attach(hit?.imageUrl?hit:fallback,group.targets,j);if(sharedLoad||(hit?.imageUrl&&(!root.VectaVehicleImage||root.VectaVehicleImage.colourHex(dashboardColour(j))))||!lookupRegistration(j.registration))continue;
-  if(!group.targets.some(x=>visibleCard(x.card))){for(const {card} of group.targets)observer?.observe(card);continue;}
-  const existing=dashboardRequests.get(key);if(existing){existing.targets=group.targets;continue;}
-  dashboardRequests.set(key,group);
-  dashboardTail=dashboardTail.then(async()=>{try{if(!group.targets.some(x=>visibleCard(x.card)))return;const v=hit?.imageUrl?hit:fallback?.imageUrl?fallback:await lookup(j.registration,j.make,{requireImage:true,background:true});attach(v?.imageUrl?v:genericImage(j),group.targets,j);
-   // Colour is optional decoration: never hold up this or the next missing picture.
-   lookupDashboardColour(j).then(()=>attach(v?.imageUrl?v:artworkSnapshot(j.registration,j.make)||genericImage(j),group.targets,j)).catch(()=>{});
-  }finally{dashboardRequests.delete(key);}}).catch(()=>{});
+const attach=(v,targets,j)=>{for(const {card,target} of targets){if(!card.isConnected)continue;if(!v){genericDashboardArtwork(card,target,j);continue;}const colour=dashboardColour(j);rememberArtwork({registration:j.registration,make:v.make,model:v.model,imageUrl:v.imageUrl,colour,...(v.generic?{generic:true}:{})});let img=card.querySelector('.haynesDashboardImage');if(img&&(img.dataset.haynesSource!==v.imageUrl||img.dataset.colour!==colour)){img.remove();img=null;}img=img||thumbnail(v,'haynesDashboardImage',j);if(img){img.dataset.haynesSource=v.imageUrl;img.dataset.colour=colour;img.dataset.vehicleName=[v.make,v.model].join(' ');img.setAttribute('data-vehicle-image','');img.dataset.registration=reg(j.registration);img.dataset.vehicleLogo='separate';img.dataset.vehicleCrop='tight';target.appendChild(img);mobileManufacturerBadge(card,j,v);img.addEventListener('error',()=>genericDashboardArtwork(card,target,j),{once:true});target.classList.add('hasHaynesDashboardImage');trackTimedArtwork(card,img);root.VectaVehicleImage?.mount(target);}}};
+ // Calendar rendering reads stored artwork only; it must never enqueue the PC worker.
+ for(const group of groups.values()){
+  const j=group.job,hit=identitySnapshot(j.registration,j.make)||snapshot(j.registration,j.make),fallback=artworkSnapshot(j.registration,j.make)||genericImage(j);
+  attach(hit?.imageUrl?hit:fallback,group.targets,j);
  }
+
 };
 root.invoiceVehiclePresentation=function(invoice){
  const matched=snapshot(invoice.registration,invoice.make),v=matched?.imageUrl?matched:artworkSnapshot(invoice.registration,invoice.make)||genericImage(invoice);
