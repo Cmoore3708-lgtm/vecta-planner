@@ -70,3 +70,10 @@ test('an unavailable shared catalogue times out once and stays paused across rer
  for(let i=0;i<5;i++)assert.equal(d.root.VectaHaynesJobTools.hydrateSharedArtwork(),null);
  assert.equal(reads,1);
 });
+test('the shared read repaints the latest planner data rather than an old registration',async()=>{
+ let finish;const db=database(new Map([['vehicle_artwork:MTC2',{...van,registration:'MTC2',generic:true}]]));
+ const from=db.client.from;db.client.from=table=>{const chain=from(table);chain.select=()=>({like:()=>({limit:()=>new Promise(resolve=>{finish=()=>resolve({data:[...db.rows].map(([id,value])=>({id,value})),error:null});})})});return chain;};
+ const d=device(db);d.root.enrichHaynesDashboard(d.document,[job]);
+ d.root.enrichHaynesDashboard(d.document,[{...job,registration:'OTHER',make:'Ford',vehicle:'Unknown',colour:'Grey'}]);
+ finish();await settled();assert.notEqual(d.document.querySelector('img')?.dataset.haynesSource,asset);
+});

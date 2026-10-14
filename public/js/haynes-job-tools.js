@@ -27,7 +27,7 @@ function rememberIdentity(v,persist=true){
 try{for(const v of JSON.parse(root.localStorage?.getItem(ID_KEY)||'[]'))rememberIdentity(v,false);}catch{}
 // Artwork survives technical-data expiry; it must never expose technical links.
 const ART_KEY='vecta_haynes_artwork_v1',artwork=new Map();
-const SHARED_ART_PREFIX='vehicle_artwork:',sharedArtwork=new Map(),sharedWrites=new Map(),sharedRefresh=new WeakSet();
+const SHARED_ART_PREFIX='vehicle_artwork:',sharedArtwork=new Map(),sharedWrites=new Map(),sharedRefresh=new WeakMap();
 let sharedClient=null,sharedLoading=null,sharedSaving=null,sharedTimer=null,sharedRetryAt=0;
 async function sharedArtworkResponse(request){
  let timer;try{return await Promise.race([request,new Promise((_,reject)=>{timer=setTimeout(()=>reject(new Error('Shared artwork timeout')),10000);})]);}finally{clearTimeout(timer);}
@@ -198,7 +198,7 @@ function genericDashboardArtwork(card,target,j){
 root.enrichHaynesDashboard=function(container,jobs){
  if(!container)return;const byId=new Map((jobs||[]).filter(j=>!j.no_vehicle&&j.card_type!=='mini_task').map(j=>[String(j.id),j]));
  const sharedLoad=hydrateSharedArtwork();
- if(sharedLoad&&!sharedRefresh.has(container)){sharedRefresh.add(container);sharedLoad.then(()=>{sharedRefresh.delete(container);if(container.isConnected)root.enrichHaynesDashboard(container,jobs);}).catch(()=>sharedRefresh.delete(container));}
+ if(sharedLoad){const refresh=sharedRefresh.get(container);if(refresh)refresh.jobs=jobs;else{const next={jobs};sharedRefresh.set(container,next);sharedLoad.then(()=>{sharedRefresh.delete(container);if(container.isConnected)root.enrichHaynesDashboard(container,next.jobs);}).catch(()=>sharedRefresh.delete(container));}}
  dashboardObservers.get(container)?.disconnect();
  let observer;if(root.IntersectionObserver){observer=new root.IntersectionObserver(entries=>{if(entries.some(entry=>entry.isIntersecting))root.enrichHaynesDashboard(container,jobs);});dashboardObservers.set(container,observer);}
  const groups=new Map();
