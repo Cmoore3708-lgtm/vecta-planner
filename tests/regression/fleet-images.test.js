@@ -36,3 +36,17 @@ test('large visible fleets paint in small batches and stop detached generations'
  for(const cell of document.querySelectorAll('[data-fleet-image]'))cell.remove();
  api.mount();await new Promise(r=>setTimeout(r,60));assert.equal(document.querySelectorAll('img').length,0);
 });
+
+ test('MLG1 Qashqai rejects an NV200 registration image without poisoning other Qashqais',()=>{
+ const van='https://www.haynespro-assets.com/workshop/images/123456.svgz';
+ const vehicles=[{id:'mlg',registration:'MLG1',model:'Qashqai'},{id:'other',registration:'MLG2',model:'Qashqai'}];
+ const {api,document}=setup(vehicles,{safeImage:x=>x,snapshot:r=>r==='MLG1'?{make:'Nissan',model:'NV200 Evalia (M20)',imageUrl:van}:null,genericImage:()=>({make:'Nissan',model:'Qashqai',imageUrl:url})});
+ assert.equal(api.drawingFor(vehicles[0]).imageUrl,url);
+ assert.equal(api.drawingFor(vehicles[1]).imageUrl,url);
+ assert.equal(document.querySelector('img').src,url);
+ });
+ test('NV 200 still accepts NV200 Evalia saved artwork',()=>{
+ const v={id:'van',registration:'MTC2',model:'NV 200'};
+ const {api}=setup([v],{snapshot:()=>({model:'NV200 Evalia (M20)',imageUrl:url})});
+ assert.equal(api.drawingFor(v).imageUrl,url);
+ });
