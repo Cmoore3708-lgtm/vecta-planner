@@ -107,3 +107,11 @@ test('CM14 KEL lookup renders green artwork with its front registration using th
   assert.equal(rendered.querySelector('#vecta-front-registration text').textContent,'CM14 KEL');
  }
 });
+
+
+test('job footer Cancel closes the editor without invoking save',()=>{
+ assert.match(html,/<div class="modalFoot"><button type="button" class="btn" id="cancelJob">Cancel<\/button>/);
+ const binding=html.match(/var cancelJobButton=m\.querySelector\('#cancelJob'\);if\(cancelJobButton\)cancelJobButton\.onclick=function\(\)\{closeModals\(\)\};/)[0];
+ const button={};let closed=0;vm.runInNewContext(binding,{m:{querySelector:()=>button},closeModals:()=>closed++});
+ button.onclick();assert.equal(closed,1);
+});
