@@ -265,3 +265,12 @@ test('placeholder registrations reuse fleet model artwork without inventing vehi
  assert.equal(drawing.imageUrl,vehicle.imageUrl);assert.equal(drawing.generic,true);assert.equal(drawing.typeId,undefined);
  assert.equal(window.VectaHaynesJobTools.genericImage({vehicle:'Navara',make:'Ford'}),null);
 });
+
+
+test('direct Haynes links retain the matched variant identifier and confirmed CM14 KEL link',()=>{
+ const {window}=setup(async()=>response(vehicle));
+ const tools=window.VectaHaynesJobTools;
+ assert.equal(tools.vehicleLink({...vehicle,ktypNr:'148229'}),'https://www.workshopdata.com/touch/site/layout/modelDetail?typeId=t_301000368&ktypNr=148229');
+ assert.equal(tools.vehicleLink({...vehicle,registration:'CM14 KEL',typeId:'t_619108899'}),'https://www.workshopdata.com/touch/site/layout/modelDetail?typeId=t_619108899&ktypNr=148229');
+ assert.equal(tools.vehicleLink({...vehicle,ktypNr:'148229&evil=1'}),'https://www.workshopdata.com/touch/site/layout/modelDetail?typeId=t_301000368');
+});
