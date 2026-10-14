@@ -59,3 +59,22 @@ test('permanent vehicle identities recover model artwork even without the short-
  assert.equal(window.VectaHaynesJobTools.genericImage({model:'NV 2000'}),null);
  assert.equal(calls(),0);
 });
+
+
+test('MTC2 retains its chosen image after the donor model cache disappears',async()=>{
+ const van={...car,registration:'YY65UAX',make:'Nissan',model:'NV200'};
+ const storage=new Map([['vecta_haynes_artwork_v1',JSON.stringify([van])]]);
+ const first=setup(storage);
+ first.window.enrichHaynesDashboard(first.document,[{id:'1',registration:'MTC 2',make:'Nissan',model:'NV 200',colour:'Grey'}]);
+ for(let i=0;i<5;i++)await new Promise(r=>setImmediate(r));
+ const saved=JSON.parse(storage.get('vecta_haynes_artwork_v1'));
+ const assigned=saved.find(v=>v.registration==='MTC2');
+ assert.equal(assigned.imageUrl,van.imageUrl);
+ assert.equal(assigned.typeId,undefined);
+ storage.set('vecta_haynes_artwork_v1',JSON.stringify([assigned]));
+ const next=setup(storage);
+ next.window.enrichHaynesDashboard(next.document,[{id:'1',registration:'MTC2',make:'Nissan',model:'NV 200',colour:'Grey'}]);
+ for(let i=0;i<5;i++)await new Promise(r=>setImmediate(r));
+ assert.equal(next.document.querySelector('img').dataset.haynesSource,van.imageUrl);
+ assert.equal(next.calls(),0);
+});
