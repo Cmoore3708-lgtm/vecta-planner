@@ -10,14 +10,19 @@ export function readSchedule() {
     ||oilOperation?.nextElementSibling?.querySelector('a[href*="/lubricants?"]')?.href;
   const lubricantLinks=[...new Set(Array.from(document.querySelectorAll('a[href*="/lubricants?"]')).map(a=>a.href))];
   const oilLink=operationLink||(lubricantLinks.length===1?lubricantLinks[0]:'');
-  return {period:document.querySelector('#selectedPeriod')?.value,schedule:clean(document.querySelector('#selectedPeriod option:checked')?.textContent),periods,parts,additional,oilLink};
+  const oilCapacity=clean(oilOperation?.textContent).match(/Engine(?:,\s*Engine)?\s+sump,\s*including filter\s+[\d.,]+\s*\(l\)/i)?.[0]||'';
+  const smartLinks=lubricantLinks.filter(href=>{try{return new URL(href).searchParams.get('smartLinkLubricant')==='true';}catch{return false;}});
+  return {oilCapacity,period:document.querySelector('#selectedPeriod')?.value,schedule:clean(document.querySelector('#selectedPeriod option:checked')?.textContent),periods,parts,additional,oilLink:oilLink||(smartLinks.length===1?smartLinks[0]:'')};
 }
 export function readOil() {
   const clean=v=>String(v||'').replace(/\s+/g,' ').trim();
   return Array.from(document.querySelectorAll('.filter-lubricant-data')).filter(e=>!e.hidden && getComputedStyle(e).display!=='none').flatMap(e=>{
     const applicability=clean(e.querySelector('h2')?.textContent);
     const capacity=Array.from(e.querySelectorAll('li.note')).map(x=>clean(x.textContent)).filter(x=>/sump.*filter/i.test(x)).join('; ');
-    return Array.from(e.querySelectorAll('li')).filter(x=>/^Engine oil$/i.test(clean(x.querySelector('p')?.textContent))).map(x=>({applicability,specification:Array.from(x.querySelectorAll('[class^="lube_value"]')).map(n=>clean(n.textContent)).filter(Boolean).join(' · '),capacity}));
+    return Array.from(e.querySelectorAll('li')).filter(x=>/^Engine oil(?:$|\s*\((?:Preferred|Alternative) lubricant specification\))/i.test(clean(x.querySelector('p')?.textContent))).map(x=>{
+      const label=clean(x.querySelector('p')?.textContent);
+      return {applicability:label==='Engine oil'?applicability:[applicability,label].filter(Boolean).join(' · '),specification:Array.from(x.querySelectorAll('[class^="lube_value"]')).map(n=>clean(n.textContent)).filter(Boolean).join(' · '),capacity};
+    });
   });
 }
 
@@ -43,4 +48,100 @@ export function readDirectSchedules() {
   if(!menus.length)return null;
   const signatures=new Set(menus.map(m=>JSON.stringify(m)));
   return signatures.size===1?menus[0]:{ambiguous:true};
+}
+
+
+// Read normal schedule links and the equivalent supplier GET Continue form.
+// Never submit an estimate or mutate the supplier checklist.
+export function readConditionSchedules() {
+  const clean=value=>String(value||'').replace(/\s+/g,' ').trim();
+  const labelPattern=/\b[\d,]+ miles\s*\/\s*\d+ months\b/gi;
+  const links=Array.from(document.querySelectorAll('a[href*="maintenanceSchedule?"]')).map(a=>({href:a.href,label:clean(a.textContent).replace(/\s*\((?:OEM|OE):\s*[^()]+\)\s*$/i,'')}));
+  for(const form of document.querySelectorAll('form')) {
+    if(String(form.getAttribute('method')||'get').toLowerCase()!=='get')continue;
+    let base;try{base=new URL(form.getAttribute('action')||location.href,location.href);}catch{continue;}
+    if(base.origin!=='https://www.workshopdata.com'||base.pathname!=='/touch/site/layout/maintenanceSchedule')continue;
+    const fields=Array.from(form.querySelectorAll('input,select,textarea'));
+    for(const field of fields){if(!field.name||field.disabled||field.name==='maintenancePeriodId')continue;
+      if(['checkbox','radio'].includes(field.type)&&!field.checked)continue;
+      if(['submit','button','reset','file'].includes(field.type))continue;
+      base.searchParams.set(field.name,field.value);
+    }
+    if(!/^t_\d+$/.test(base.searchParams.get('typeId')||'')||!/^ms_\d+$/.test(base.searchParams.get('maintenanceSystemId')||''))continue;
+    const periods=fields.filter(field=>field.name==='maintenancePeriodId'&&!field.disabled);
+    for(const field of periods){
+      const options=field.tagName==='SELECT'?Array.from(field.options):[field];
+      for(const option of options){if(!/^mp_\d+$/.test(option.value||''))continue;
+        let label=option.tagName==='OPTION'?clean(option.textContent):'';
+        if(!label){const associated=Array.from(document.querySelectorAll('label')).find(el=>el.htmlFor===field.id&&field.id);label=clean(associated?.textContent||field.closest('label')?.textContent);}
+        let container=field.parentElement;
+        for(let depth=0;!label&&container&&container!==form&&depth<4;depth++,container=container.parentElement){const matches=clean(container.textContent).match(labelPattern)||[];if(matches.length===1)label=matches[0];}
+        const matches=label.match(labelPattern)||[];if(matches.length!==1)continue;
+        const url=new URL(base.href);url.searchParams.set('maintenancePeriodId',option.value);
+        links.push({href:url.href,label:matches[0].replace(/\s*\/\s*/g,'/')});
+      }
+    }
+  }
+  // Supplier markup confirmed on CM14KEL: custom checkboxes under a system heading.
+  for(const input of document.querySelectorAll('li.combinableSystem_period input[type="checkbox"][maintenanceperiodid]')) {
+    const period=input.getAttribute('maintenanceperiodid');
+    if(!/^mp_\d+$/.test(period||'')||input.id!==period)continue;
+    const group=input.closest('li.dropdown');
+    const heading=group?.querySelector('[id^="maintenanceSystem_ms_"]');
+    const system=heading?.id.replace(/^maintenanceSystem_/,'');
+    if(!/^ms_\d+$/.test(system||''))continue;
+    const row=input.closest('li.combinableSystem_period');
+    const label=clean(row?.querySelector('label')?.textContent);
+    if(!/^\d[\d,]* miles\/\d+ months$/.test(label))continue;
+    let url;try{url=new URL(location.href);}catch{continue;}
+    if(url.origin!=='https://www.workshopdata.com'||!/^t_\d+$/.test(url.searchParams.get('typeId')||''))continue;
+    url.pathname='/touch/site/layout/maintenanceSchedule';
+    url.searchParams.set('maintenanceSystemId',system);url.searchParams.set('maintenancePeriodId',period);
+    // Used only for matching identifiers; navigate with the supplier's Continue control.
+    links.push({href:url.href,label,checkboxId:period,systemHeadingId:heading.id});
+  }
+  return links;
+}
+
+// Narrow diagnostic inventory: never record page text, credentials or arbitrary values.
+export function readScheduleDiagnostics() {
+  const safeId = value => /^(?:t_|ms_|mp_)\d+$/.test(value || '') ? value : '[redacted]';
+  const label = value => {
+    const text = String(value || '').replace(/\s+/g, ' ').trim();
+    return text.match(/\d[\d,]*\s*miles\s*\/\s*\d+\s*months/i)?.[0] ||
+      (/^(?:Continue|Select|Normal conditions \(United Kingdom\)|Additional procedures, Severe conditions \(United Kingdom\))$/i.test(text) ? text : '[omitted]');
+  };
+  const safeURL = value => {
+    try {
+      const url = new URL(value || '', location.href);
+      if (url.origin !== 'https://www.workshopdata.com') return '[external]';
+      const params = new URLSearchParams();
+      for (const name of ['typeId','maintenanceSystemId','maintenancePeriodId','currentTypeCar']) {
+        const value = url.searchParams.get(name);
+        if (value && safeId(value) !== '[redacted]') params.set(name, value);
+      }
+      return url.pathname + (params.size ? '?' + params.toString() : '');
+    } catch { return '[invalid]'; }
+  };
+  const meta = el => ({tag:el.tagName, id:el.id || '', name:el.getAttribute('name') || '', type:el.getAttribute('type') || '',
+    value:safeId(el.getAttribute('value')), label:label(el.textContent),
+    onclick:el.hasAttribute('onclick'), onchange:el.hasAttribute('onchange'),
+    handlerDestinations:[...(el.getAttribute('onchange') || '').matchAll(/['"]([^'"]*\/touch\/site\/layout\/[^'"]+)['"]/g)].map(match=>safeURL(match[1])),
+    dataAttributes:Array.from(el.attributes).filter(a=>a.name.startsWith('data-')).map(a=>({name:a.name,value:safeId(a.value)}))});
+  return {
+    page:safeURL(location.href),
+    forms:Array.from(document.querySelectorAll('form')).slice(0,30).map(form=>({
+      id:form.id || '', method:form.getAttribute('method') || '', action:safeURL(form.getAttribute('action')),
+      controls:Array.from(form.querySelectorAll('input,select,button')).slice(0,200).map(meta)
+    })),
+    selects:Array.from(document.querySelectorAll('select')).slice(0,30).map(select=>({
+      ...meta(select), selectedValue:safeId(select.value), selectedLabel:label(select.querySelector('option:checked')?.textContent), options:Array.from(select.querySelectorAll('option')).slice(0,200).map(o=>({value:safeId(o.getAttribute('value')),label:label(o.textContent)}))
+    })),
+    choices:Array.from(document.querySelectorAll('input[type="radio"],input[type="checkbox"]')).slice(0,200).map(el=>({
+      ...meta(el),label:label(el.closest('label')?.textContent || el.parentElement?.textContent)
+    })),
+    continueControls:Array.from(document.querySelectorAll('button,a,input[type="submit"],input[type="button"]')).filter(el=>/^continue$/i.test((el.textContent || el.getAttribute('value') || '').trim())).slice(0,20).map(el=>({
+      ...meta(el),href:el.hasAttribute('href') ? safeURL(el.getAttribute('href')) : null
+    }))
+  };
 }

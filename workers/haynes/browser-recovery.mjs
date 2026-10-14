@@ -17,9 +17,9 @@ async function bounded(promise, timeoutMs, reason) {
 
 // A stalled request owns only its own pages. Restart the shared browser only
 // after other requests finish; never replay a lookup or clear its login profile.
-export function createBrowserRecovery(open, { failureLimit = 3, cleanupMs = 2000, openMs = 20000, onRecovery = () => {} } = {}) {
+export function createBrowserRecovery(open, { failureLimit = 3, cleanupMs = 2000, openMs = 20000, onRecovery = () => {}, retainDiagnostics = process.env.HAYNES_SERVICE_DIAGNOSTICS === '1' } = {}) {
   let context = null, opening = null, restart = false, failures = 0, stopped = false;
-  let active = 0;
+  let active = 0, diagnosticPage = null;
   const drained = new Set();
   async function ready() {
     if (stopped) throw unavailable();
@@ -58,6 +58,15 @@ export function createBrowserRecovery(open, { failureLimit = 3, cleanupMs = 2000
           pages.add(page);
           if (ended) { page.close().catch(() => {}); throw unavailable(); }
           return page;
+        },
+        async retainDiagnosticPage(page) {
+          if (!retainDiagnostics || ended || !pages.has(page)) return false;
+          if (diagnosticPage && diagnosticPage !== page) {
+            await bounded(Promise.resolve().then(() => diagnosticPage.close()), cleanupMs, 'BROWSER_ERROR');
+          }
+          diagnosticPage = page;
+          pages.delete(page);
+          return true;
         }
       };
       try {
