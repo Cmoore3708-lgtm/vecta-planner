@@ -8,7 +8,7 @@ import traverseModule from '@babel/traverse';
 const traverse=traverseModule.default||traverseModule;
 const source=readFileSync(new URL('../../public/js/haynes-job-tools.js',import.meta.url),'utf8');
 const vehicle={registration:'FX69XWU',make:'Nissan',model:'Qashqai',variant:'1.7 dCi',typeId:'t_301000368',imageUrl:'https://www.haynespro-assets.com/workshop/images/123.svg',fetchedAt:new Date().toISOString()};
-function setup(fetcher,artwork){const {window,document}=parseHTML('<html><body><div id="modal"><div class="jobModalHead"><h2>Edit Job</h2><div class="jobModalHeadActions"><button>Close</button></div></div><section class="jobVehicleSection"><input id="job_registration" value="FX69 XWU"><input id="job_make" value="Nissan"><input type="checkbox" id="job_no_vehicle"></section><div class="jobCardSections"><section class="jobWorkSection"></section><section class="jobPreviousWorkSection"></section><section class="jobContactSection"></section><section class="jobBookingSection"></section><section class="jobFormSection"><div class="jobPartsEditor"></div></section><section class="privatePricingSection"></section></div><button id="save">Save</button></div></body></html>');delete window.VectaVehicleImage;delete window.app;delete window.fleetVehicles;window.fetch=fetcher;window.VectaFleetImages={artwork};vm.runInNewContext(source,{window,document,AbortController,AbortSignal,setTimeout,clearTimeout,encodeURIComponent});window.initHaynesJobTools(document.querySelector('#modal'));return {window,document,panel:document.querySelector('.haynesJobTools')};}
+function setup(fetcher,artwork,identities){const {window,document}=parseHTML('<html><body><div id="modal"><div class="jobModalHead"><h2>Edit Job</h2><div class="jobModalHeadActions"><button>Close</button></div></div><section class="jobVehicleSection"><input id="job_registration" value="FX69 XWU"><input id="job_make" value="Nissan"><input type="checkbox" id="job_no_vehicle"></section><div class="jobCardSections"><section class="jobWorkSection"></section><section class="jobPreviousWorkSection"></section><section class="jobContactSection"></section><section class="jobBookingSection"></section><section class="jobFormSection"><div class="jobPartsEditor"></div></section><section class="privatePricingSection"></section></div><button id="save">Save</button></div></body></html>');delete window.VectaVehicleImage;delete window.app;delete window.fleetVehicles;window.fetch=fetcher;if(identities)window.localStorage={getItem:key=>key==='vecta_haynes_vehicle_identity_v1'?JSON.stringify(identities):null,setItem(){}};window.VectaFleetImages={artwork};vm.runInNewContext(source,{window,document,AbortController,AbortSignal,setTimeout,clearTimeout,encodeURIComponent});window.initHaynesJobTools(document.querySelector('#modal'));return {window,document,panel:document.querySelector('.haynesJobTools')};}
 const response=v=>({ok:true,json:async()=>({status:'MATCHED',vehicle:v})});
 test('vehicle details sit below the single editable header registration',async()=>{
  const {window,document}=setup(async()=>response(vehicle));
@@ -273,4 +273,12 @@ test('direct Haynes links retain the matched variant identifier and confirmed CM
  assert.equal(tools.vehicleLink({...vehicle,ktypNr:'148229'}),'https://www.workshopdata.com/touch/site/layout/modelDetail?typeId=t_301000368&ktypNr=148229');
  assert.equal(tools.vehicleLink({...vehicle,registration:'CM14 KEL',typeId:'t_619108899'}),'https://www.workshopdata.com/touch/site/layout/modelDetail?typeId=t_619108899&ktypNr=148229');
  assert.equal(tools.vehicleLink({...vehicle,ktypNr:'148229&evil=1'}),'https://www.workshopdata.com/touch/site/layout/modelDetail?typeId=t_301000368');
+});
+
+
+test('new job header reuses permanent matched artwork after the daily lookup cache expires',()=>{
+ const saved={...vehicle,fetchedAt:new Date(Date.now()-3*86400000).toISOString()};
+ let requests=0;const {document}=setup(async()=>{requests++;throw Error('unexpected lookup');},undefined,[saved]);
+ const img=document.querySelector('.jobCardHeaderVehicle img');
+ assert.ok(img);assert.equal(img.src,vehicle.imageUrl);assert.equal(img.dataset.registration,vehicle.registration);assert.equal(requests,0);
 });
