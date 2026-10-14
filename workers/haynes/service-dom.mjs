@@ -79,3 +79,45 @@ export function readConditionSchedules() {
   }
   return links;
 }
+
+// Narrow diagnostic inventory: never record page text, credentials or arbitrary values.
+export function readScheduleDiagnostics() {
+  const safeId = value => /^(?:t_|ms_|mp_)\d+$/.test(value || '') ? value : '[redacted]';
+  const label = value => {
+    const text = String(value || '').replace(/\s+/g, ' ').trim();
+    return text.match(/\d[\d,]*\s*miles\s*\/\s*\d+\s*months/i)?.[0] ||
+      (/^(?:Continue|Select|Normal conditions \(United Kingdom\)|Additional procedures, Severe conditions \(United Kingdom\))$/i.test(text) ? text : '[omitted]');
+  };
+  const safeURL = value => {
+    try {
+      const url = new URL(value || '', location.href);
+      if (url.origin !== 'https://www.workshopdata.com') return '[external]';
+      const params = new URLSearchParams();
+      for (const name of ['typeId','maintenanceSystemId','maintenancePeriodId','currentTypeCar']) {
+        const value = url.searchParams.get(name);
+        if (value && safeId(value) !== '[redacted]') params.set(name, value);
+      }
+      return url.pathname + (params.size ? '?' + params.toString() : '');
+    } catch { return '[invalid]'; }
+  };
+  const meta = el => ({tag:el.tagName, id:el.id || '', name:el.getAttribute('name') || '', type:el.getAttribute('type') || '',
+    value:safeId(el.getAttribute('value')), label:label(el.textContent),
+    onclick:el.hasAttribute('onclick'), onchange:el.hasAttribute('onchange'),
+    dataAttributes:Array.from(el.attributes).filter(a=>a.name.startsWith('data-')).map(a=>({name:a.name,value:safeId(a.value)}))});
+  return {
+    page:safeURL(location.href),
+    forms:Array.from(document.querySelectorAll('form')).slice(0,30).map(form=>({
+      id:form.id || '', method:form.getAttribute('method') || '', action:safeURL(form.getAttribute('action')),
+      controls:Array.from(form.querySelectorAll('input,select,button')).slice(0,200).map(meta)
+    })),
+    selects:Array.from(document.querySelectorAll('select')).slice(0,30).map(select=>({
+      ...meta(select), options:Array.from(select.querySelectorAll('option')).slice(0,200).map(o=>({value:safeId(o.getAttribute('value')),label:label(o.textContent)}))
+    })),
+    choices:Array.from(document.querySelectorAll('input[type="radio"],input[type="checkbox"]')).slice(0,200).map(el=>({
+      ...meta(el),label:label(el.closest('label')?.textContent || el.parentElement?.textContent)
+    })),
+    continueControls:Array.from(document.querySelectorAll('button,a,input[type="submit"],input[type="button"]')).filter(el=>/^continue$/i.test((el.textContent || el.getAttribute('value') || '').trim())).slice(0,20).map(el=>({
+      ...meta(el),href:el.hasAttribute('href') ? safeURL(el.getAttribute('href')) : null
+    }))
+  };
+}

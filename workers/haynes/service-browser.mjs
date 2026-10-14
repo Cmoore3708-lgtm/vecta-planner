@@ -1,15 +1,16 @@
+import { writeFile } from 'node:fs/promises';
 import { chooseSchedule } from './schedule-choice.mjs';
 import { START } from './browser.mjs';
 import { readVehicle } from './dom.mjs';
-import { readSchedule, readOil, readDirectSchedules, readConditionSchedules } from './service-dom.mjs';
+import { readSchedule, readOil, readDirectSchedules, readConditionSchedules, readScheduleDiagnostics } from './service-dom.mjs';
 import { vehicleResult, HaynesError } from '../../lib/haynes-vehicle.js';
 import { serviceRequest, serviceResult, selectServicePeriod } from '../../lib/haynes-service.js';
-export const SERVICE_WORKER_VERSION = '2026-10-14.3';
+export const SERVICE_WORKER_VERSION = '2026-10-14.4';
 console.log('VECTA Haynes service worker version '+SERVICE_WORKER_VERSION);
 export function browserServiceLookup(context, { chooseConditions } = {}) {
   return async raw => {
     const input=serviceRequest(raw);
-    let page, deadline, stage='OPEN_BROWSER', expired=false;
+    let page, deadline, stage='OPEN_BROWSER', expired=false, keepFailedPage=false;
     const started=Date.now();
     try {
       page=await context.newPage();
@@ -99,7 +100,17 @@ export function browserServiceLookup(context, { chooseConditions } = {}) {
     } catch(error) {
       const reason=expired?'SERVICE_DEADLINE':error.name==='TimeoutError'?'TIMEOUT':['LOGIN_REQUIRED','VERIFICATION_REQUIRED','SCHEDULE_REQUIRED','MISMATCH','INCOMPLETE','AMBIGUOUS'].includes(error.code)?error.code:/page, context or browser has been closed|target closed/i.test(error.message||'')?'PAGE_CLOSED':'BROWSER_ERROR';
       console.log('Haynes service '+input.registration+' failed - step '+stage+' - reason '+reason+' - '+Math.round((Date.now()-started)/1000)+'s - version '+SERVICE_WORKER_VERSION);
+      if(process.env.HAYNES_SERVICE_DIAGNOSTICS==='1' && page && !page.isClosed()) {
+        clearTimeout(deadline);
+        keepFailedPage=true;
+        try {
+          const controls=await page.evaluate(readScheduleDiagnostics);
+          await writeFile(new URL('./haynes-service-diagnostic.json',import.meta.url),JSON.stringify({version:SERVICE_WORKER_VERSION,stage,reason,controls},null,2));
+          console.log('Diagnostic saved: haynes-service-diagnostic.json in this worker folder. Failed Haynes tab left open.');
+          await page.bringToFront();
+        } catch { console.log('Could not save diagnostic. Failed Haynes tab left open.'); }
+      }
       throw error;
-    } finally { clearTimeout(deadline);await page?.close().catch(()=>{}); }
+    } finally { clearTimeout(deadline);if(!keepFailedPage)await page?.close().catch(()=>{}); }
   };
 }
