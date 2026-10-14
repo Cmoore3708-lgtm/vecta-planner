@@ -103,6 +103,7 @@ export function readScheduleDiagnostics() {
   const meta = el => ({tag:el.tagName, id:el.id || '', name:el.getAttribute('name') || '', type:el.getAttribute('type') || '',
     value:safeId(el.getAttribute('value')), label:label(el.textContent),
     onclick:el.hasAttribute('onclick'), onchange:el.hasAttribute('onchange'),
+    handlerDestinations:[...(el.getAttribute('onchange') || '').matchAll(/['"]([^'"]*\/touch\/site\/layout\/[^'"]+)['"]/g)].map(match=>safeURL(match[1])),
     dataAttributes:Array.from(el.attributes).filter(a=>a.name.startsWith('data-')).map(a=>({name:a.name,value:safeId(a.value)}))});
   return {
     page:safeURL(location.href),
@@ -111,7 +112,7 @@ export function readScheduleDiagnostics() {
       controls:Array.from(form.querySelectorAll('input,select,button')).slice(0,200).map(meta)
     })),
     selects:Array.from(document.querySelectorAll('select')).slice(0,30).map(select=>({
-      ...meta(select), options:Array.from(select.querySelectorAll('option')).slice(0,200).map(o=>({value:safeId(o.getAttribute('value')),label:label(o.textContent)}))
+      ...meta(select), selectedValue:safeId(select.value), selectedLabel:label(select.querySelector('option:checked')?.textContent), options:Array.from(select.querySelectorAll('option')).slice(0,200).map(o=>({value:safeId(o.getAttribute('value')),label:label(o.textContent)}))
     })),
     choices:Array.from(document.querySelectorAll('input[type="radio"],input[type="checkbox"]')).slice(0,200).map(el=>({
       ...meta(el),label:label(el.closest('label')?.textContent || el.parentElement?.textContent)

@@ -5,7 +5,7 @@ import { readVehicle } from './dom.mjs';
 import { readSchedule, readOil, readDirectSchedules, readConditionSchedules, readScheduleDiagnostics } from './service-dom.mjs';
 import { vehicleResult, HaynesError } from '../../lib/haynes-vehicle.js';
 import { serviceRequest, serviceResult, selectServicePeriod } from '../../lib/haynes-service.js';
-export const SERVICE_WORKER_VERSION = '2026-10-14.4';
+export const SERVICE_WORKER_VERSION = '2026-10-14.5';
 console.log('VECTA Haynes service worker version '+SERVICE_WORKER_VERSION);
 export function browserServiceLookup(context, { chooseConditions } = {}) {
   return async raw => {
@@ -102,13 +102,13 @@ export function browserServiceLookup(context, { chooseConditions } = {}) {
       console.log('Haynes service '+input.registration+' failed - step '+stage+' - reason '+reason+' - '+Math.round((Date.now()-started)/1000)+'s - version '+SERVICE_WORKER_VERSION);
       if(process.env.HAYNES_SERVICE_DIAGNOSTICS==='1' && page && !page.isClosed()) {
         clearTimeout(deadline);
-        keepFailedPage=true;
+        keepFailedPage=await context.retainDiagnosticPage?.(page) || false;
         try {
           const controls=await page.evaluate(readScheduleDiagnostics);
           await writeFile(new URL('./haynes-service-diagnostic.json',import.meta.url),JSON.stringify({version:SERVICE_WORKER_VERSION,stage,reason,controls},null,2));
-          console.log('Diagnostic saved: haynes-service-diagnostic.json in this worker folder. Failed Haynes tab left open.');
+          console.log('Diagnostic saved: haynes-service-diagnostic.json in this worker folder. '+(keepFailedPage?'Failed Haynes tab left open.':'Failed tab will close: diagnostic retention unavailable.'));
           await page.bringToFront();
-        } catch { console.log('Could not save diagnostic. Failed Haynes tab left open.'); }
+        } catch { console.log('Could not finish diagnostic capture.'); }
       }
       throw error;
     } finally { clearTimeout(deadline);if(!keepFailedPage)await page?.close().catch(()=>{}); }

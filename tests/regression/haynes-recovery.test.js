@@ -86,3 +86,18 @@ test('an unresponsive service poll does not hold up the independently polled veh
  assert.equal((await rpc({action:'pull'})).status,'JOB');assert.deepEqual(actions,['service','vehicle']);
  gate.resolve();await polling;
 });
+
+test('diagnostic failure page survives outer cleanup; next diagnostic replaces it and normal lookups still close',async()=>{
+ const context=mockBrowser(),browser=createBrowserRecovery(async()=>context,{retainDiagnostics:true,cleanupMs:20});
+ const fail=()=>browser.run(scope=>async()=>{const page=await scope.newPage();assert.equal(await scope.retainDiagnosticPage(page),true);throw new HaynesError('SCHEDULE_REQUIRED');},{},100);
+ await assert.rejects(fail(),{code:'SCHEDULE_REQUIRED'});assert.equal(context.pages[0].closed,0);
+ await browser.run(scope=>async()=>{await scope.newPage();return 'ok';},{},100);
+ assert.equal(context.pages[0].closed,0);assert.equal(context.pages[1].closed,1);
+ await assert.rejects(fail(),{code:'SCHEDULE_REQUIRED'});assert.equal(context.pages[0].closed,1);assert.equal(context.pages[2].closed,0);
+ await browser.close();assert.equal(context.closes,1);
+});
+test('normal worker cannot retain a page for diagnostics',async()=>{
+ const context=mockBrowser(),browser=createBrowserRecovery(async()=>context,{retainDiagnostics:false});
+ await browser.run(scope=>async()=>{const page=await scope.newPage();assert.equal(await scope.retainDiagnosticPage(page),false);},{},100);
+ assert.equal(context.pages[0].closed,1);await browser.close();
+});
