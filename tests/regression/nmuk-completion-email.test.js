@@ -11,7 +11,7 @@ function setup(){
   const ctx={document,app:{jobs:[job]},nmukCompletionSaves:{},isVehicleTaxJob:j=>j.job_type==='Vehicle Tax',fleetVehicleForRegistration:reg=>({contactEmail:'owner@example.com'}),fleetInvoiceFormatRegistration:reg=>reg,emailAddressList:value=>String(value||'').split(/[;,]+/).map(s=>s.trim()).filter(s=>/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(s)),appendVectaEmailSignature:s=>s+'\n\nVECTA',gatherJob:()=>draft,window:{open:()=>{events.push(['open']);return tab;}},closeInvoiceMessageWindow:t=>{if(t&&!t.closed)t.close();},esc:s=>String(s).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;'),closeModals:()=>{},alert:s=>events.push(['alert',s])};
   ctx.saveJob=async(id,confirmed)=>{events.push(['save']);confirmed(draft);return true;};
   vm.createContext(ctx);
-  for(const name of ['emailFirstNameFromAddress','nmukCompletionEmail','completeNmukJobAndNotify']){
+  for(const name of ['emailFirstNameFromAddress','nmukCompletionSignatureText','nmukCompletionEmail','completeNmukJobAndNotify']){
     const start=html.indexOf((name==='completeNmukJobAndNotify'?'async ':'')+'function '+name+'('),end=html.indexOf('\n}',start)+2;
     vm.runInContext(html.slice(start,end),ctx);
   }
@@ -20,7 +20,7 @@ function setup(){
 test('NMUK completion uses vehicle contact and exact collection message without invoice or price',()=>{
   const {ctx,draft}=setup(),notice=ctx.nmukCompletionEmail(draft),url=new URL(notice.email);
   assert.equal(url.pathname,'owner%40example.com');
-  assert.equal(url.searchParams.get('body'),'Hi Owner.\n\nYour vehicle is complete and ready to pick up from our Workshop.\n\nVECTA');
+  assert.equal(url.searchParams.get('body'),'Hi Owner.\n\nYour vehicle is complete and ready to pick up from our Workshop.\n\n'+ctx.nmukCompletionSignatureText());
   for(const patch of [{customer_account:'Staff'},{customer_account:'CONTRACTOR'},{nmuk_vehicle_type:'MVOS'},{nmuk_vehicle_type:'Various'},{no_vehicle:true},{job_type:'Vehicle Tax'}])assert.equal(ctx.nmukCompletionEmail({...draft,...patch}),null);
   assert.ok(ctx.nmukCompletionEmail({...draft,nmuk_vehicle_type:'Pool'}));
   ctx.fleetVehicleForRegistration=()=>null;assert.equal(ctx.nmukCompletionEmail(draft).email,'');
@@ -55,7 +55,7 @@ test('retry after a rejected completion uses the editor baseline rather than uns
 test('greeting comes from recipient email and fleet model takes priority over stale job description',()=>{
   const {ctx,draft}=setup();draft.vehicle='Old job description';
   ctx.fleetVehicleForRegistration=()=>({contactEmail:'jane.smith@example.com',model:'Nissan NV200'});
-  assert.equal(new URL(ctx.nmukCompletionEmail(draft).email).searchParams.get('body'),'Hi Jane.\n\nYour Nissan NV200 is complete and ready to pick up from our Workshop.\n\nVECTA');
+  assert.equal(new URL(ctx.nmukCompletionEmail(draft).email).searchParams.get('body'),'Hi Jane.\n\nYour Nissan NV200 is complete and ready to pick up from our Workshop.\n\n'+ctx.nmukCompletionSignatureText());
   ctx.fleetVehicleForRegistration=()=>({contactEmail:'jane_smith@example.com',model:''});draft.vehicle='Nissan Qashqai';
   assert.match(ctx.nmukCompletionEmail(draft).body,/Hi Jane\.\n\nYour Nissan Qashqai/);
 });
