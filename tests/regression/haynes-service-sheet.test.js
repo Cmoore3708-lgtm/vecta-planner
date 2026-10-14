@@ -147,3 +147,16 @@ test('mechanic chooses between schedules before any parts or oil are applied, an
  assert.deepEqual(requests.map(r=>r.system),['','ms_10','ms_11']);assert.ok(requests.every(r=>r.mode==='choose'&&r.period===''));
  sheet.remove();
 });
+
+test('named service choice loads requirements only after the second mechanic selection',async()=>{
+ const schedules=[{id:'ms_11',label:'Longlife service (- 2018) (United Kingdom)'},{id:'ms_12',label:'Longlife service (2019 -) (United Kingdom)'}];
+ const periods=[{id:'mp_101',label:'Oil service (service indicator)'},{id:'mp_102',label:'Inspection service (service indicator)'},{id:'mp_103',label:'Oil service + Inspection service'}];
+ const requests=[];
+ const {window,sheet}=setup(async url=>{const q=new URL(url,'https://example.test').searchParams;requests.push(q);const result=!q.get('system')?{kind:'schedule_choices',vehicle,mileage:50000,schedules}:!q.get('period')?{kind:'period_choices',vehicle,mileage:50000,period:'',system:'ms_11',schedules,periods}:{...data,system:'ms_11',schedules,period:'mp_103',periods,schedule:periods[2].label,parts:['Oil filter','Combined inspection']};return {status:'MATCHED',result};});
+ await window.initHaynesServiceSheet(sheet,'FX69XWU','service');await settle();
+ sheet.querySelector('[data-schedule]').onchange({target:{value:'ms_11'}});await settle();
+ assert.equal(sheet.querySelector('.ssHaynesParts'),null);assert.equal(sheet.querySelector('[data-period]').querySelectorAll('option').length,4);
+ sheet.querySelector('[data-period]').onchange({target:{value:'mp_103'}});await settle();
+ assert.match(sheet.querySelector('.ssHaynesParts').textContent,/Combined inspection/);
+ assert.equal(requests.at(-1).get('period'),'mp_103');assert.equal(requests.at(-1).get('system'),'ms_11');sheet.remove();
+});

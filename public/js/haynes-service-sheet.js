@@ -149,6 +149,11 @@ root.initHaynesServiceSheet=async function(sheet,registration,kind){
    }
    if(system&&data.system!==system)throw Error('MISMATCH');
    system=data.system||system;if(system)panel.setAttribute('data-haynes-system',system);
+   if(data.kind==='period_choices') {
+    status.textContent='Choose the service type for this maintenance schedule.';
+    body.innerHTML=scheduleControl(system)+'<label class="ssHaynesSelect">Service type <select data-period aria-label="Haynes service type"><option value="">Choose the service type…</option>'+data.periods.map(p=>'<option value="'+esc(p.id)+'">'+esc(p.label)+'</option>').join('')+'</select></label>';
+    bindSchedule();body.querySelector('[data-period]').onchange=e=>{period=e.target.value;load();};return;
+   }
    if(!period){const intervals=data.periods.slice().sort((a,b)=>Number(a.label.split(' ')[0].replace(/,/g,''))-Number(b.label.split(' ')[0].replace(/,/g,''))),selected=intervals.find(p=>Number(p.label.split(' ')[0].replace(/,/g,''))>=current);if(selected&&selected.id!==data.period){period=selected.id;return load();}}
    showVehicle(data.vehicle);showRequired(data.parts);panel.setAttribute('data-required-parts',JSON.stringify(data.parts));period=data.period;panel.setAttribute('data-fetched-at',data.fetchedAt);
    status.textContent='HaynesPro · '+data.conditions+' · Current mileage: '+current.toLocaleString('en-GB')+' miles'+(data.ageMonths!==null?' · '+data.ageMonths+' months since registration':' · Age unavailable');
