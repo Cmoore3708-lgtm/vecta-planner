@@ -29,14 +29,14 @@ test('vehicle details sit below the single editable header registration',async()
  assert.equal(input.closest('.jobCardHeaderRegistration').hidden,true);
  assert.equal(document.querySelector('#job_registration'),input);
 });
-test('fresh missing picture loads before an unresolved colour lookup and does not block the next picture',async()=>{
+test('missing calendar pictures never request vehicle identity or colour',async()=>{
  const {window,document}=setup(async()=>response(vehicle));await new Promise(r=>setImmediate(r));
  window.VectaVehicleImage={colourHex:()=>'',resolveColour:(_r,c)=>c,mount:()=>Promise.resolve()};
  const requested=[];window.fetch=async url=>{requested.push(url);if(url.includes('vehicle-lookup'))return new Promise(()=>{});const registration=new URL(url,'https://test.local').searchParams.get('reg');return response({...vehicle,registration,make:'Toyota',model:'Yaris'});};
  const host=document.createElement('div');host.innerHTML='<div class="mobileJob" data-open-job="1"></div><div class="mobileJob" data-open-job="2"></div>';document.body.append(host);
  window.enrichHaynesDashboard(host,[{id:'1',registration:'MK55MLU',make:'Toyota'},{id:'2',registration:'AB12XYZ',make:'Toyota'}]);
  for(let i=0;i<8;i++)await new Promise(r=>setImmediate(r));
- assert.equal(host.querySelectorAll('img').length,2);assert.match(requested[0],/haynes-vehicle/);assert.equal(requested.filter(x=>x.includes('haynes-vehicle')).length,2);
+ assert.equal(host.querySelectorAll('img').length,0);assert.deepEqual(requested,[]);
  host.remove();
 });
 test('a fresh vehicle match without artwork uses the generic picture without repeating Haynes',async()=>{
@@ -48,28 +48,29 @@ test('a fresh vehicle match without artwork uses the generic picture without rep
  for(let i=0;i<8;i++)await new Promise(r=>setImmediate(r));
  assert.equal(calls,0);host.remove();
 });
-test('hidden desktop cards do not queue lookups ahead of visible mobile cards',async()=>{
+test('visible and scrolled calendar cards never queue lookups',async()=>{
  const {window,document}=setup(async()=>response(vehicle));await new Promise(r=>setImmediate(r));
  window.innerHeight=800;let onEntry;window.IntersectionObserver=class{constructor(callback){onEntry=callback;}observe(){}disconnect(){}};
  const requests=[];window.fetch=async url=>{const registration=new URL(url,'https://test.local').searchParams.get('reg');requests.push(registration);return response({...vehicle,registration,make:'Toyota',model:'Yaris'});};
  const host=document.createElement('div');host.innerHTML='<div class="mobileJob" data-open-job="hidden"></div><div class="mobileJob" data-open-job="visible"></div>';document.body.append(host);
  const hidden=host.firstElementChild;let scrolled=false;hidden.getBoundingClientRect=()=>({width:300,height:80,top:scrolled?100:900,bottom:scrolled?180:980});host.lastElementChild.getBoundingClientRect=()=>({width:300,height:80,top:100,bottom:180});
  const jobs=[{id:'hidden',registration:'ZZ12XYZ',make:'Toyota',colour:'Grey'},{id:'visible',registration:'MK55MLU',make:'Toyota',colour:'Grey'}];
- window.enrichHaynesDashboard(host,jobs);for(let i=0;i<8;i++)await new Promise(r=>setImmediate(r));assert.deepEqual(requests,['MK55MLU']);
- scrolled=true;onEntry([{isIntersecting:true}]);for(let i=0;i<8;i++)await new Promise(r=>setImmediate(r));assert.equal(hidden.querySelectorAll('img').length,1);
+ window.enrichHaynesDashboard(host,jobs);for(let i=0;i<8;i++)await new Promise(r=>setImmediate(r));assert.deepEqual(requests,[]);
+ scrolled=true;onEntry([{isIntersecting:true}]);for(let i=0;i<8;i++)await new Promise(r=>setImmediate(r));assert.equal(hidden.querySelectorAll('img').length,0);assert.deepEqual(requests,[]);
  delete window.innerHeight;delete window.IntersectionObserver;host.remove();
 });
-test('dashboard downloads a missing recorded colour and renders grey body paint without altering records',async()=>{
+test('dashboard reuses saved colour and renders grey body paint without altering records',async()=>{
  const requests=[];
  const {window,document}=setup(async url=>{requests.push(url);return {ok:true,json:async()=>url.includes('vehicle-lookup')?{registration:vehicle.registration,make:'Nissan',primaryColour:'Grey'}:url.includes('haynes-image')?{svg:'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 299 220"><g id="transparant_colour"><path fill="#ffffff" d="M0 0h100v100z"/></g></svg>'}:{status:'MATCHED',vehicle}};});
  window.DOMParser=DOMParser;window.XMLSerializer=class{serializeToString(node){return node.outerHTML;}};window.AbortSignal=AbortSignal;
  window.Element.prototype.getBBox=()=>({x:0,y:0,width:100,height:100});
  vm.runInNewContext(readFileSync(new URL('../../public/js/vecta-vehicle-image.js',import.meta.url),'utf8'),{window,setTimeout,clearTimeout});
  const host=document.createElement('div');host.innerHTML='<div class="mobileJob" data-open-job="1"></div>';document.body.append(host);const jobs=[{id:'1',registration:vehicle.registration,make:'Nissan',model:'Qashqai'}];
+ window.VectaHaynesJobTools.rememberLookupColour({registration:vehicle.registration,make:'Nissan',primaryColour:'Grey'});
  window.enrichHaynesDashboard(host,jobs);for(let i=0;i<12;i++)await new Promise(r=>setImmediate(r));
  const img=host.querySelector('img');assert.equal(img.dataset.colour,'Grey');assert.equal(img.dataset.recoloured,'true');assert.match(decodeURIComponent(img.src),/#626970/);
  assert.equal(jobs[0].colour,undefined);window.enrichHaynesDashboard(host,jobs);for(let i=0;i<5;i++)await new Promise(r=>setImmediate(r));
- assert.equal(requests.filter(url=>url.includes('vehicle-lookup')).length,1);host.remove();
+ assert.equal(requests.filter(url=>url.includes('vehicle-lookup')).length,0);host.remove();
 });
 test('dashboard uses registration-specific vehicle colours, including two generic models without plates',()=>{
  const {window,document}=setup(async()=>response(vehicle));
@@ -92,8 +93,8 @@ test('actual job-editor integration passes a defined modal element to Haynes too
 test('opening an existing job automatically looks up and displays its image without a separate click',async()=>{
  let requests=0;const {panel}=setup(async()=>{requests++;return response(vehicle);});await new Promise(r=>setImmediate(r));assert.equal(requests,1);assert.equal(panel.querySelector('img')?.src,vehicle.imageUrl);assert.match(panel.textContent,/Open this vehicle/);
 });
-test('real mobile planner card receives its image and shares one lookup with desktop',async()=>{
- let requests=0;const {window,document}=setup(async()=>{requests++;return response(vehicle);});
+test('real mobile and desktop planner cards reuse the same saved vehicle image',async()=>{
+ let requests=0;const {window,document}=setup(async()=>{requests++;return response(vehicle);});await new Promise(r=>setImmediate(r));
  const host=document.createElement('div');host.innerHTML='<div class="mobileJob" data-open-job="1"><div class="mobileJobTop">FX69 XWU</div></div><div class="unallocatedSideJob" draggable="true" data-job-id="1" data-open-unallocated="1">Unallocated</div><div class="job plannerJobFull" data-job-id="1"><div class="plannerJobHeader"><div class="plannerJobLeft">FX69 XWU</div><div class="plannerJobRightText">Service</div></div></div>';document.body.appendChild(host);
  window.enrichHaynesDashboard(host,[{id:'1',registration:'FX69XWU',make:'Nissan'}]);await new Promise(r=>setImmediate(r));await new Promise(r=>setImmediate(r));assert.equal(requests,1);assert.equal(host.querySelectorAll('.haynesDashboardImage').length,3);assert.equal(host.querySelector('.unallocatedSideJob').getAttribute('draggable'),'true');assert.match(host.textContent,/FX69 XWU/);assert.equal(host.querySelector('.mobileJob').lastElementChild.className,'haynesDashboardImage');assert.equal(host.querySelector('.plannerJobHeader').lastElementChild.className,'haynesDashboardImage');
 });
@@ -128,16 +129,17 @@ test('no-vehicle jobs and unsafe images fail closed; unavailable lookup never ch
  const {document,window,panel}=setup(async()=>{throw Error('offline');});await panel.querySelector('button').onclick();assert.match(panel.textContent,/still save/);assert.equal(document.querySelector('#job_registration').value,'FX69 XWU');const toggle=document.querySelector('#job_no_vehicle');toggle.checked=true;toggle.dispatchEvent(new window.Event('change'));assert.equal(panel.querySelector('button').disabled,true);assert.equal(window.VectaHaynesJobTools.safeImage('https://evil.test/car.png'),'');
 });
 
-test('planner looks up vehicles beyond the twelfth card without duplicate work across rerenders',async()=>{
+test('planner reuses saved vehicles beyond the twelfth card without lookups across rerenders',async()=>{
  const {window,document}=setup(async()=>response(vehicle));await new Promise(r=>setImmediate(r));
  let requests=0;window.fetch=async url=>{requests++;const registration=new URL(url,'https://test.local').searchParams.get('reg');return response({...vehicle,registration});};
  const jobs=Array.from({length:15},(_,i)=>({id:String(i),registration:'AB'+String(i).padStart(2,'0')+'XYZ',make:'Nissan'}));
+ for(const job of jobs)window.VectaHaynesJobTools.remember({...vehicle,registration:job.registration});
  const host=document.createElement('div');document.body.appendChild(host);
  const markup=()=>jobs.map(j=>'<div class="mobileJob" data-open-job="'+j.id+'"><div class="mobileJobTop">'+j.registration+'</div></div>').join('');
  host.innerHTML=markup();window.enrichHaynesDashboard(host,jobs);
  host.innerHTML=markup();window.enrichHaynesDashboard(host,jobs);
  for(let i=0;i<20;i++)await new Promise(r=>setImmediate(r));
- assert.equal(requests,15);assert.equal(host.querySelectorAll('.haynesDashboardImage').length,15);
+ assert.equal(requests,0);assert.equal(host.querySelectorAll('.haynesDashboardImage').length,15);
  assert.equal(host.querySelector('[data-open-job="14"]').lastElementChild.className,'haynesDashboardImage');
 });
 
@@ -161,7 +163,7 @@ test('unavailable registration keeps generic artwork; generic invoice image pres
  const inv={registration:'AB12XYZ',vehicle:'Nissan Qashqai',total:120},before=JSON.stringify(inv);window.enrichHaynesInvoice(sheet,inv);assert.equal(sheet.querySelector('img').dataset.generic,'true');assert.equal(sheet.querySelector('b').textContent,'My Qashqai description');assert.equal(sheet.querySelector('.haynesInvoiceDetails'),null);assert.equal(sheet.querySelector('.printTotals').textContent,'£120.00');assert.equal(JSON.stringify(inv),before);
 });
 test('vehicle artwork remains available when timed card shrinks below one hour',async()=>{
- const {window,document}=setup(async()=>response(vehicle));
+ const {window,document}=setup(async()=>response(vehicle));await new Promise(r=>setImmediate(r));
  const host=document.createElement('div');host.innerHTML='<div class="job plannerJobCompact" data-job-id="short"><div class="plannerJobHeader"></div></div><div class="job miniPlannerTask" data-job-id="task"><div class="plannerJobHeader"></div></div>';document.body.appendChild(host);
  window.enrichHaynesDashboard(host,[{id:'short',registration:'FX69XWU',make:'Nissan'},{id:'task',registration:'FX69XWU',make:'Nissan',card_type:'mini_task'}]);
  await new Promise(r=>setImmediate(r));await new Promise(r=>setImmediate(r));
