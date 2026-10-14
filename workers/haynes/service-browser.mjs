@@ -5,7 +5,7 @@ import { readVehicle } from './dom.mjs';
 import { readSchedule, readOil, readDirectSchedules, readConditionSchedules, readScheduleDiagnostics } from './service-dom.mjs';
 import { vehicleResult, HaynesError } from '../../lib/haynes-vehicle.js';
 import { serviceRequest, serviceResult, selectServicePeriod } from '../../lib/haynes-service.js';
-export const SERVICE_WORKER_VERSION = '2026-10-14.8';
+export const SERVICE_WORKER_VERSION = '2026-10-14.9';
 console.log('VECTA Haynes service worker version '+SERVICE_WORKER_VERSION);
 export function browserServiceLookup(context, { chooseConditions } = {}) {
   const retainDiagnosticPage=createDiagnosticPageRetainer(context);
@@ -129,11 +129,11 @@ export function browserServiceLookup(context, { chooseConditions } = {}) {
         stage='WAIT_OIL_DATA';
       await page.locator('.filter-lubricant-data').first().waitFor({state:'visible'});
         stage='READ_OIL_DATA';
-      oil=await page.evaluate(readOil);
+      oil=(await page.evaluate(readOil)).map(item=>({...item,capacity:item.capacity||schedule.oilCapacity||''}));
       }
       stage='VALIDATE_RESULT';
       const result=serviceResult({...schedule,vehicle,mileage:input.mileage,conditions,oil,ageMonths},input);
-      console.log('Haynes service '+input.registration+' completed - '+result.schedule);
+      console.log('Haynes service '+input.registration+' completed - '+result.schedule+' - engine oil rows '+result.oil.length);
       return result;
     } catch(error) {
       const reason=expired?'SERVICE_DEADLINE':error.name==='TimeoutError'?'TIMEOUT':['LOGIN_REQUIRED','VERIFICATION_REQUIRED','SCHEDULE_REQUIRED','MISMATCH','INCOMPLETE','AMBIGUOUS'].includes(error.code)?error.code:/page, context or browser has been closed|target closed/i.test(error.message||'')?'PAGE_CLOSED':'BROWSER_ERROR';

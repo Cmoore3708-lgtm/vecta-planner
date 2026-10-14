@@ -10,14 +10,19 @@ export function readSchedule() {
     ||oilOperation?.nextElementSibling?.querySelector('a[href*="/lubricants?"]')?.href;
   const lubricantLinks=[...new Set(Array.from(document.querySelectorAll('a[href*="/lubricants?"]')).map(a=>a.href))];
   const oilLink=operationLink||(lubricantLinks.length===1?lubricantLinks[0]:'');
-  return {period:document.querySelector('#selectedPeriod')?.value,schedule:clean(document.querySelector('#selectedPeriod option:checked')?.textContent),periods,parts,additional,oilLink};
+  const oilCapacity=clean(oilOperation?.textContent).match(/Engine(?:,\s*Engine)?\s+sump,\s*including filter\s+[\d.,]+\s*\(l\)/i)?.[0]||'';
+  const smartLinks=lubricantLinks.filter(href=>{try{return new URL(href).searchParams.get('smartLinkLubricant')==='true';}catch{return false;}});
+  return {oilCapacity,period:document.querySelector('#selectedPeriod')?.value,schedule:clean(document.querySelector('#selectedPeriod option:checked')?.textContent),periods,parts,additional,oilLink:oilLink||(smartLinks.length===1?smartLinks[0]:'')};
 }
 export function readOil() {
   const clean=v=>String(v||'').replace(/\s+/g,' ').trim();
   return Array.from(document.querySelectorAll('.filter-lubricant-data')).filter(e=>!e.hidden && getComputedStyle(e).display!=='none').flatMap(e=>{
     const applicability=clean(e.querySelector('h2')?.textContent);
     const capacity=Array.from(e.querySelectorAll('li.note')).map(x=>clean(x.textContent)).filter(x=>/sump.*filter/i.test(x)).join('; ');
-    return Array.from(e.querySelectorAll('li')).filter(x=>/^Engine oil$/i.test(clean(x.querySelector('p')?.textContent))).map(x=>({applicability,specification:Array.from(x.querySelectorAll('[class^="lube_value"]')).map(n=>clean(n.textContent)).filter(Boolean).join(' · '),capacity}));
+    return Array.from(e.querySelectorAll('li')).filter(x=>/^Engine oil(?:$|\s*\((?:Preferred|Alternative) lubricant specification\))/i.test(clean(x.querySelector('p')?.textContent))).map(x=>{
+      const label=clean(x.querySelector('p')?.textContent);
+      return {applicability:label==='Engine oil'?applicability:[applicability,label].filter(Boolean).join(' · '),specification:Array.from(x.querySelectorAll('[class^="lube_value"]')).map(n=>clean(n.textContent)).filter(Boolean).join(' · '),capacity};
+    });
   });
 }
 
