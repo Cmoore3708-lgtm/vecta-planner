@@ -47,3 +47,7 @@ test('blocked popup still offers email; double clicks cannot save or notify twic
   const first=ctx.completeNmukJobAndNotify('j');assert.equal(await ctx.completeNmukJobAndNotify('j'),false);finish();await first;
   assert.ok(ctx.document.querySelector('a[href^="mailto:"]'));assert.equal(events.length,0);
 });
+test('retry after a rejected completion uses the editor baseline rather than unsaved local state',async()=>{
+  const {ctx,job,events}=setup();ctx.window.__vectaJobEditorBaseline={id:'j',job:{...job}};job.status='completed';job.archived=true;
+  await ctx.completeNmukJobAndNotify('j');assert.deepEqual(events.map(e=>e[0]),['open','save','email']);
+});

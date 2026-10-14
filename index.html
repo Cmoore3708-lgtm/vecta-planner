@@ -14817,6 +14817,8 @@ async function completeNmukJobAndNotify(id){
   var tab=null;
   try{
     var previous=(app.jobs||[]).find(function(j){return String(j.id)===String(id)}),draft=gatherJob(id);
+    var baseline=window.__vectaJobEditorBaseline;
+    if(baseline&&String(baseline.id)===String(id))previous=baseline.job;
     var notice=draft.status==='completed'&&!(previous&&(previous.status==='completed'||previous.archived))?nmukCompletionEmail(draft):null;
     if(notice&&notice.email){try{tab=window.open('about:blank','_blank');if(tab){tab.opener=null;tab.document.title='Preparing completion email';tab.document.body.textContent='Saving job completion…';}}catch(e){}}
     return await saveJob(id,function(saved){
