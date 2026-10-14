@@ -14810,14 +14810,19 @@ async function vectaConfirmDuplicateBooking(draft,previous){
   var details=matches.map(function(row){return (row.booking_date?niceDate(row.booking_date):'Unallocated')+' · '+String(row.job_type||'General')+' · '+String(row.work_required||'')+' · '+String(row.status||'booked')}).join('\n');
   return confirm('Possible duplicate work booking for '+draft.registration+'\n\nExisting open jobs:\n'+details+'\n\n'+(cloudChecked?'':'Only this device could be checked while offline.\n\n')+'Book this same work for this vehicle again anyway?');
 }
+function nmukCompletionSignatureText(){
+  return 'Kind\nRegards,\n\nChris.\n07721722622\n\nVECTA\nNissan Fleet Support\nContractors compound\nVectaMotors.co.uk';
+}
 function nmukCompletionEmail(job){
   if(!job||String(job.customer_account||'').toUpperCase()!=='NMUK'||job.no_vehicle||isVehicleTaxJob(job))return null;
   var subtype=String(job.nmuk_vehicle_type||'').trim().toUpperCase();
   if(subtype!=='INTERNAL'&&subtype!=='POOL')return null;
   var vehicle=fleetVehicleForRegistration(job.registration),emails=emailAddressList(vehicle&&vehicle.contactEmail);
   var registration=fleetInvoiceFormatRegistration(job.registration||'');
-  var body='Your vehicle ('+registration+') is complete and ready to pick up from our workshop.';
-  if(typeof appendVectaEmailSignature==='function')body=appendVectaEmailSignature(body);
+  var first=emailFirstNameFromAddress(emails[0]||'')||'there';
+  var model=String((vehicle&&vehicle.model)||job.vehicle||[job.make,job.model].filter(Boolean).join(' ')||'vehicle').trim();
+  var body='Hi '+first+'.\n\nYour '+model+' is complete and ready to pick up from our Workshop.';
+  body+='\n\n'+nmukCompletionSignatureText();
   return {body:body,email:emails.length?'mailto:'+emails.map(encodeURIComponent).join(',')+'?subject='+encodeURIComponent(registration+' — ready to pick up')+'&body='+encodeURIComponent(body):''};
 }
 var nmukCompletionSaves={};
