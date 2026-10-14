@@ -132,3 +132,18 @@ test('service sheet uses the shared vehicle loader and displays cached artwork i
  assert.equal(calls,1);assert.equal(sheet.querySelector('.ssHaynesVehicle img').getAttribute('src'),vehicle.imageUrl);
  sheet.remove();
 });
+
+test('mechanic chooses between schedules before any parts or oil are applied, and can switch',async()=>{
+ const schedules=[{id:'ms_10',label:'Time/distance dependent service, (- 2018) (United Kingdom)'},{id:'ms_11',label:'Longlife service, (- 2018) (United Kingdom)'}];
+ const requests=[];
+ const {window,sheet}=setup(async url=>{const q=new URL(url,'https://example.test').searchParams;requests.push({system:q.get('system'),period:q.get('period'),mode:q.get('scheduleMode')});const system=q.get('system');return {status:'MATCHED',result:system?{...data,system,schedules,conditions:schedules.find(s=>s.id===system).label,parts:system==='ms_10'?['Oil filter']:['Fuel filter'],oil:[{specification:system==='ms_10'?'Fixed oil':'Longlife oil',capacity:'5 L'}]}:{kind:'schedule_choices',vehicle,mileage:50000,schedules}};});
+ await window.initHaynesServiceSheet(sheet,'FX69XWU','service');await settle();
+ let select=sheet.querySelector('[data-schedule]');assert.equal(select.querySelectorAll('option').length,3);
+ assert.equal(sheet.querySelector('.ssField').textContent,'');assert.equal(sheet.querySelector('.ssHaynesParts'),null);
+ await select.onchange({target:{value:'ms_10'}});await settle();
+ assert.match(sheet.querySelector('.ssHaynesParts').textContent,/Oil filter/);assert.equal(sheet.querySelector('.ssField').textContent,'Fixed oil');
+ select=sheet.querySelector('[data-schedule]');await select.onchange({target:{value:'ms_11'}});await settle();
+ assert.match(sheet.querySelector('.ssHaynesParts').textContent,/Fuel filter/);assert.equal(sheet.querySelector('.ssField').textContent,'Longlife oil');
+ assert.deepEqual(requests.map(r=>r.system),['','ms_10','ms_11']);assert.ok(requests.every(r=>r.mode==='choose'&&r.period===''));
+ sheet.remove();
+});

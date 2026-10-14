@@ -7,14 +7,22 @@ const options=[
   {value:'ms_3,x',label:'Severe conditions (United Kingdom)'}
 ];
 test('extended build labels require an explicit choice and preserve the full supplier value',async()=>{
-  assert.equal(normalSchedules(options).length,2);
+  assert.equal(normalSchedules(options).length,3);
   await assert.rejects(chooseSchedule(options,{},undefined),e=>e.code==='SCHEDULE_REQUIRED');
   const selected=await chooseSchedule(options,{},async choices=>choices[1].value);
   assert.equal(selected.value,'ms_2,x');assert.equal(selected.system,'ms_2');
   await assert.rejects(chooseSchedule(options,{},async()=>''),e=>e.code==='SCHEDULE_REQUIRED');
   await assert.rejects(chooseSchedule(options,{},async()=>'ms_9'),e=>e.code==='SCHEDULE_REQUIRED');
 });
-test('single UK normal schedule remains automatic; invalid, severe and foreign options are excluded',async()=>{
+test('single UK normal schedule remains automatic; invalid and foreign options are excluded; severe remains an explicit choice',async()=>{
   assert.equal((await chooseSchedule([{value:'ms_4',label:'Normal conditions (United Kingdom)'}],{})).system,'ms_4');
-  assert.equal(normalSchedules([...options,options[0],{value:'invalid',label:'Normal conditions (United Kingdom)'},{value:'ms_5',label:'Normal conditions (France)'}]).length,2);
+  assert.equal(normalSchedules([...options,options[0],{value:'invalid',label:'Normal conditions (United Kingdom)'},{value:'ms_5',label:'Normal conditions (France)'}]).length,3);
+});
+
+test('Audi fixed and Longlife schedules retain all four year-specific choices',async()=>{
+ const labels=['Time/distance dependent service, (- 2018) (United Kingdom)','Longlife service, (- 2018) (United Kingdom)','Time/distance dependent service, (2019 -) (United Kingdom)','Longlife service, (2019 -) (United Kingdom)'];
+ const menus=labels.map((label,i)=>({value:'ms_'+(10+i)+',UK',label}));
+ assert.deepEqual(normalSchedules(menus).map(c=>c.label),labels);
+ await assert.rejects(chooseSchedule(menus,{}),e=>e.code==='SCHEDULE_REQUIRED');
+ assert.equal((await chooseSchedule(menus,{},async choices=>choices[3].value)).system,'ms_13');
 });
