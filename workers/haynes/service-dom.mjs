@@ -77,6 +77,24 @@ export function readConditionSchedules() {
       }
     }
   }
+  // Supplier markup confirmed on CM14KEL: custom checkboxes under a system heading.
+  for(const input of document.querySelectorAll('li.combinableSystem_period input[type="checkbox"][maintenanceperiodid]')) {
+    const period=input.getAttribute('maintenanceperiodid');
+    if(!/^mp_\d+$/.test(period||'')||input.id!==period)continue;
+    const group=input.closest('li.dropdown');
+    const heading=group?.querySelector('[id^="maintenanceSystem_ms_"]');
+    const system=heading?.id.replace(/^maintenanceSystem_/,'');
+    if(!/^ms_\d+$/.test(system||''))continue;
+    const row=input.closest('li.combinableSystem_period');
+    const label=clean(row?.querySelector('label')?.textContent);
+    if(!/^\d[\d,]* miles\/\d+ months$/.test(label))continue;
+    let url;try{url=new URL(location.href);}catch{continue;}
+    if(url.origin!=='https://www.workshopdata.com'||!/^t_\d+$/.test(url.searchParams.get('typeId')||''))continue;
+    url.pathname='/touch/site/layout/maintenanceSchedule';
+    url.searchParams.set('maintenanceSystemId',system);url.searchParams.set('maintenancePeriodId',period);
+    // Used only for matching identifiers; navigate with the supplier's Continue control.
+    links.push({href:url.href,label,checkboxId:period,systemHeadingId:heading.id});
+  }
   return links;
 }
 
