@@ -33,3 +33,12 @@ test('worker discovers Audi schedule descriptions and returns choices without te
  const result=await browserServiceLookup({newPage:async()=>page},{chooseConditions:()=>{throw Error('No terminal prompt allowed')}})(request);
  assert.equal(result.kind,'schedule_choices');assert.deepEqual(result.schedules,schedules);assert.equal(selected,0);assert.equal(closed,1);
 });
+
+test('named Audi service types require a second explicit choice and remain system-specific',()=>{
+ const periods=[{id:'mp_101',label:'Oil service (service indicator)'},{id:'mp_102',label:'Inspection service (service indicator)'},{id:'mp_103',label:'Oil service + Inspection service'}];
+ const selected={...request,system:'ms_11'};
+ const result=serviceResult({kind:'period_choices',vehicle,mileage:50000,period:'',system:'ms_11',conditions:labels[1],schedules,periods},selected);
+ assert.deepEqual(result.periods,periods);assert.equal(result.parts,undefined);
+ assert.throws(()=>serviceResult(result,{...selected,period:'mp_103'}));
+ assert.throws(()=>serviceResult({...result,system:'ms_12'},selected));
+});

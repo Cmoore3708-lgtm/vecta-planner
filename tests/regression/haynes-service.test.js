@@ -41,3 +41,12 @@ test('service reads leave the caller free for booking polling and cannot overlap
  let bookingPolled=false;await Promise.resolve().then(()=>bookingPolled=true);assert.equal(bookingPolled,true);assert.equal(completed.length,0);
  release({mileage:50000});await runner.done;assert.equal(completed[0].id,'first');assert.equal(runner.busy,false);
 });
+
+test('named service links can be chosen explicitly but never guessed from mileage',()=>{
+ const links=[{label:'Oil service (service indicator)',href:'https://www.workshopdata.com/touch/site/layout/maintenanceSchedule?typeId=t_1&maintenanceSystemId=ms_1&maintenancePeriodId=mp_1'}, {label:'Oil service + Inspection service',href:'https://www.workshopdata.com/touch/site/layout/maintenanceSchedule?typeId=t_1&maintenanceSystemId=ms_1&maintenancePeriodId=mp_2'}];
+ const input={typeId:'t_1',system:'ms_1',mileage:101000};
+ assert.equal(selectServicePeriod(links,input),undefined);
+ assert.equal(selectServicePeriod(links,{...input,period:'mp_2'}).label,'Oil service + Inspection service');
+ assert.equal(selectServicePeriod(links,{...input,system:'ms_2',period:'mp_2'}),undefined);
+ assert.equal(selectServicePeriod(links,{...input,typeId:'t_2',period:'mp_2'}),undefined);
+});

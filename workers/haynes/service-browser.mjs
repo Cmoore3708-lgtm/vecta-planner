@@ -4,8 +4,8 @@ import { START } from './browser.mjs';
 import { readVehicle } from './dom.mjs';
 import { readSchedule, readOil, readDirectSchedules, readConditionSchedules, readScheduleDiagnostics, readScheduleSelectors } from './service-dom.mjs';
 import { vehicleResult, HaynesError } from '../../lib/haynes-vehicle.js';
-import { serviceRequest, serviceResult, selectServicePeriod } from '../../lib/haynes-service.js';
-export const SERVICE_WORKER_VERSION = '2026-10-14.10';
+import { serviceRequest, serviceResult, selectServicePeriod, servicePeriodLinks } from '../../lib/haynes-service.js';
+export const SERVICE_WORKER_VERSION = '2026-10-14.11';
 console.log('VECTA Haynes service worker version '+SERVICE_WORKER_VERSION);
 export function browserServiceLookup(context, { chooseConditions } = {}) {
   const retainDiagnosticPage=createDiagnosticPageRetainer(context);
@@ -108,7 +108,14 @@ export function browserServiceLookup(context, { chooseConditions } = {}) {
       stage='SELECT_MILEAGE';
       const selected=selectServicePeriod(links,{...input,system,typeId:vehicle.typeId,ageMonths});
       if(selected && new URL(selected.href).searchParams.get('typeId')!==vehicle.typeId)throw new HaynesError('MISMATCH');
-      if(!selected)throw new HaynesError('SCHEDULE_REQUIRED');
+      if(!selected) {
+        const available=servicePeriodLinks(links,{system,typeId:vehicle.typeId});
+        if(input.scheduleMode==='choose'&&input.system&&!input.period&&available.length) {
+          const periods=available.map(link=>({id:new URL(link.href).searchParams.get('maintenancePeriodId'),label:link.label}));
+          return serviceResult({kind:'period_choices',vehicle,mileage:input.mileage,period:'',system,conditions,schedules,periods},input);
+        }
+        throw new HaynesError('SCHEDULE_REQUIRED');
+      }
       stage='OPEN_SERVICE_SCHEDULE';
       if(selected.checkboxId) {
         stage='SELECT_INTERVAL_CHECKBOX';
