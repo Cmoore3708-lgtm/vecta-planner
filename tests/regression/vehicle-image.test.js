@@ -333,3 +333,15 @@ test('supplier failure retries at most twice and stops for disconnected cards',a
  for(let i=0;i<2;i++){assert.equal(timers.length,1);timers.shift().fn();for(let n=0;n<10;n++)await new Promise(r=>setImmediate(r));}
  assert.equal(calls,3);assert.equal(timers.length,0);
 });
+
+test('supplier drawings above 500 KB still render colour and front registration',async()=>{
+ const root=browser();
+ const largeSvg=svg.replace('</svg>','<!--'+'.'.repeat(820000)+'--></svg>');
+ assert.ok(largeSvg.length>500000&&largeSvg.length<2000000);
+ root.fetch=async()=>({ok:true,json:async()=>({svg:largeSvg})});
+ root.document.body.innerHTML='<img data-vehicle-image data-registration="CM14KEL" data-colour="Green" data-vehicle-logo="separate" src="https://www.haynespro-assets.com/workshop/images/319106279.svgz">';
+ await root.VectaVehicleImage.mount();
+ const img=root.document.querySelector('img');
+ assert.equal(img.dataset.recoloured,'true');assert.equal(img.dataset.personalised,'true');
+ assert.match(decodeURIComponent(img.src),/#296145/);assert.match(decodeURIComponent(img.src),/CM14 KEL/);
+});
