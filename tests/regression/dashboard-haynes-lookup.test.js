@@ -115,3 +115,25 @@ test('job footer Cancel closes the editor without invoking save',()=>{
  const button={};let closed=0;vm.runInNewContext(binding,{m:{querySelector:()=>button},closeModals:()=>closed++});
  button.onclick();assert.equal(closed,1);
 });
+
+test('dashboard service lookup returns schedules and loads the mechanic selection',async()=>{
+ const schedules=[{id:'ms_10',label:'Time/distance dependent service, (- 2018) (United Kingdom)'},{id:'ms_11',label:'Longlife service, (- 2018) (United Kingdom)'}];
+ const requests=[];
+ const {window,document}=setup(async url=>{
+  if(url.includes('haynes-vehicle'))return {ok:true,json:async()=>({status:'MATCHED',vehicle})};
+  if(url.includes('vehicle-lookup'))return {ok:true,json:async()=>({registration:vehicle.registration})};
+  const query=new URL(url,'https://example.test').searchParams;requests.push(query);
+  const system=query.get('system');return {ok:true,json:async()=>({status:'MATCHED',result:system?{vehicle,mileage:50000,system,schedules,period:'mp_1',periods:[{id:'mp_1',label:'50,000 miles/48 months'}],schedule:'50,000 miles/48 months',conditions:schedules[1].label,oil:[{specification:'Selected Longlife oil'}],parts:['Selected filter'],additional:[]}:{kind:'schedule_choices',vehicle,mileage:50000,schedules}})};
+ });
+ await window.VectaHaynesDashboardLookup.open(vehicle.registration);
+ const form=document.querySelector('[data-schedule-form]');const system=document.querySelector('[name="system"]');
+ form.elements={mileage:{value:'50000'},period:document.querySelector('[name="period"]'),system};
+ Object.defineProperty(system,'value',{value:'',writable:true});Object.defineProperty(form.elements.period,'value',{value:'',writable:true});
+ await form.onsubmit({preventDefault(){}});
+ assert.match(document.querySelector('[data-service]').textContent,/Choose the maintenance schedule/);
+ assert.equal(system.querySelectorAll('option').length,3);
+ assert.equal(requests[0].get('scheduleMode'),'choose');assert.equal(requests[0].get('system'),'');
+ system.value='ms_11';await system.onchange();await new Promise(resolve=>setImmediate(resolve));
+ assert.equal(requests.at(-1).get('system'),'ms_11');assert.equal(requests.at(-1).get('period'),'');
+ assert.match(document.querySelector('[data-service]').textContent,/Selected Longlife oil/);
+});
