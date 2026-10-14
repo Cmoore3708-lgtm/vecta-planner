@@ -14816,7 +14816,9 @@ function nmukCompletionEmail(job){
   if(subtype!=='INTERNAL'&&subtype!=='POOL')return null;
   var vehicle=fleetVehicleForRegistration(job.registration),emails=emailAddressList(vehicle&&vehicle.contactEmail);
   var registration=fleetInvoiceFormatRegistration(job.registration||'');
-  var body='Your vehicle ('+registration+') is complete and ready to pick up from our workshop.';
+  var first=emailFirstNameFromAddress(emails[0]||'')||'there';
+  var model=String((vehicle&&vehicle.model)||job.vehicle||[job.make,job.model].filter(Boolean).join(' ')||'vehicle').trim();
+  var body='Hi '+first+'.\n\nYour '+model+' is complete and ready to pick up from our Workshop.';
   if(typeof appendVectaEmailSignature==='function')body=appendVectaEmailSignature(body);
   return {body:body,email:emails.length?'mailto:'+emails.map(encodeURIComponent).join(',')+'?subject='+encodeURIComponent(registration+' — ready to pick up')+'&body='+encodeURIComponent(body):''};
 }
