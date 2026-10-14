@@ -7,7 +7,7 @@ import gen from '@babel/generator';
 import traverse from '@babel/traverse';
 import {parseHTML} from 'linkedom';
 const html=fs.readFileSync(new URL('../../index.html',import.meta.url),'utf8');
-const names=['invoiceCustomerAccount','invoiceIsStaff','invoiceMotTestLine','invoiceLineWithMotVat','staffInvoiceLineAmount','staffInvoiceLineHtml','invoiceEditorLineValue','invoiceTotals','lineHtml','vehicleTaxInvoiceTitle','vehicleTaxInvoiceHeading','printInvoice','gatherInvoice','openInvoiceForJob'];
+const names=['invoicePaidDate','setInvoicePaidDate','invoicePaymentDateForChange','invoiceCustomerAccount','invoiceIsStaff','invoiceMotTestLine','invoiceLineWithMotVat','staffInvoiceLineAmount','staffInvoiceLineHtml','invoiceEditorLineValue','invoiceTotals','lineHtml','vehicleTaxInvoiceTitle','vehicleTaxInvoiceHeading','printInvoice','gatherInvoice','openInvoiceForJob'];
 const ctx={app:{settings:{vatRate:20},jobs:[{id:'s',customer_account:'Staff'},{id:'n',customer_account:'NMUK'},{id:'c',customer_account:'CONTRACTOR'}]},esc:String,money:v=>'£'+Number(v).toFixed(2),fleetInvoiceCustomerProfile:()=>({}),jobVehicleDueData:()=>({}),knownRegistrationDetails:()=>({}),latestServiceMileage:()=>'',invoiceSenderHtml:()=>'',invoicePlate:()=>'',niceDate:String,printWhenImagesReady:()=>{},document:{getElementById:()=>ctx.sheet},sheet:{}};
 vm.createContext(ctx);vm.runInContext(fs.readFileSync(new URL('../../public/js/vecta-invoice-print.js',import.meta.url),'utf8'),ctx);
 for(const match of html.matchAll(/<script(?:\s[^>]*)?>([\s\S]*?)<\/script>/gi)){
@@ -94,3 +94,4 @@ test('new mixed job invoice exempts only MOT and stores Staff evidence in JSON l
  assert.equal(ctx.invoiceIsStaff(JSON.parse(JSON.stringify(saved))),true,'persisted line snapshot works without loaded jobs or customer memory');
  ctx.app.jobs=previousJobs;ctx.app.jobCustomerMemory=previousMemory;ctx.document=prior.document;
 });
+
