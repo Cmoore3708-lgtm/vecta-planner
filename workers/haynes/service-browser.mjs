@@ -1,3 +1,4 @@
+import {guidedMaintenance} from './maintenance-menus.mjs';
 import { writeFile } from 'node:fs/promises';
 import { chooseSchedule, ukSchedules } from './schedule-choice.mjs';
 import { START } from './browser.mjs';
@@ -5,7 +6,7 @@ import { readVehicle } from './dom.mjs';
 import { readSchedule, readOil, readDirectSchedules, readConditionSchedules, readScheduleDiagnostics, readScheduleSelectors } from './service-dom.mjs';
 import { vehicleResult, HaynesError } from '../../lib/haynes-vehicle.js';
 import { serviceRequest, serviceResult, selectServicePeriod, servicePeriodLinks } from '../../lib/haynes-service.js';
-export const SERVICE_WORKER_VERSION = '2026-10-14.11';
+export const SERVICE_WORKER_VERSION = '2026-10-14.12';
 console.log('VECTA Haynes service worker version '+SERVICE_WORKER_VERSION);
 export function browserServiceLookup(context, { chooseConditions } = {}) {
   const retainDiagnosticPage=createDiagnosticPageRetainer(context);
@@ -38,6 +39,13 @@ export function browserServiceLookup(context, { chooseConditions } = {}) {
       if(data?.blocked)throw new HaynesError('VERIFICATION_REQUIRED');
       stage='VALIDATE_VEHICLE';
       const vehicle=vehicleResult(data,input.registration);
+      let conditions,system,links,schedules=[],guided;
+      if(input.menuFlow==='guided') {
+        stage='GUIDED_MAINTENANCE';
+        guided=await guidedMaintenance(page,input,vehicle,{selectCheckbox:selectCheckboxSchedule});
+        if(guided.kind==='menu_choice'||guided.kind==='manual_step')return serviceResult({...guided,menuFlow:'guided',vehicle,mileage:input.mileage,period:''},input);
+        ({conditions,system}=guided);links=[];
+      } else {
       stage='WAIT_SERVICE_MENU';
       await page.waitForFunction(()=>Array.from(document.querySelectorAll('select')).some(s=>
         (s.getAttribute('onchange')||'').includes('/maintenanceSchedule?') ||
@@ -45,7 +53,6 @@ export function browserServiceLookup(context, { chooseConditions } = {}) {
       ),null,{timeout:12000});
       stage='READ_SERVICE_MENU';
       const direct=await page.evaluate(readDirectSchedules);
-      let conditions,system,links,schedules=[];
       if(direct) {
         if(direct.ambiguous)throw new HaynesError('SCHEDULE_REQUIRED');
         if(direct.typeId!==vehicle.typeId)throw new HaynesError('MISMATCH');
@@ -103,10 +110,11 @@ export function browserServiceLookup(context, { chooseConditions } = {}) {
         if(!links.length)throw new HaynesError('SCHEDULE_REQUIRED');
       }
       
+      }
       const match=String(data.registrationDate||'').match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
       const now=new Date(), ageMonths=match?Math.max(0,(now.getUTCFullYear()-Number(match[3]))*12+now.getUTCMonth()+1-Number(match[2])-(now.getUTCDate()<Number(match[1])?1:0)):null;
       stage='SELECT_MILEAGE';
-      const selected=selectServicePeriod(links,{...input,system,typeId:vehicle.typeId,ageMonths});
+      const selected=guided?.selected||selectServicePeriod(links,{...input,system,typeId:vehicle.typeId,ageMonths});
       if(selected && new URL(selected.href).searchParams.get('typeId')!==vehicle.typeId)throw new HaynesError('MISMATCH');
       if(!selected) {
         const available=servicePeriodLinks(links,{system,typeId:vehicle.typeId});
@@ -138,7 +146,7 @@ export function browserServiceLookup(context, { chooseConditions } = {}) {
         if(url.origin!=='https://www.workshopdata.com'||url.pathname!=='/touch/site/layout/maintenanceSchedule'||url.searchParams.get('typeId')!==vehicle.typeId||url.searchParams.get('maintenanceSystemId')!==system||await page.locator('#selectedPeriod').inputValue()!==expected.searchParams.get('maintenancePeriodId'))throw new HaynesError('MISMATCH');
       }
       stage='READ_SERVICE_SCHEDULE';
-      const schedule=await page.evaluate(readSchedule);
+      const schedule=guided?.schedule||await page.evaluate(readSchedule);
       let oil=[];
       if(schedule.oilLink) {
         stage='VALIDATE_OIL_LINK';
@@ -152,7 +160,7 @@ export function browserServiceLookup(context, { chooseConditions } = {}) {
       oil=(await page.evaluate(readOil)).map(item=>({...item,capacity:item.capacity||schedule.oilCapacity||''}));
       }
       stage='VALIDATE_RESULT';
-      const result=serviceResult({...schedule,vehicle,mileage:input.mileage,conditions,system,schedules,oil,ageMonths},input);
+      const result=serviceResult({...schedule,...(guided?{menuFlow:'guided'}:{}),vehicle,mileage:input.mileage,conditions,system,schedules,oil,ageMonths},input);
       console.log('Haynes service '+input.registration+' completed - '+result.schedule+' - engine oil rows '+result.oil.length);
       return result;
     } catch(error) {

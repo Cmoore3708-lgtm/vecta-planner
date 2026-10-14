@@ -19,7 +19,10 @@ Deno.serve(async req=>{
   if(body.action==='complete'){
    if(!uuid(body.id)||!uuid(body.lease))return response({status:'INVALID_RESULT'},400);
    payload={id:body.id,lease:body.lease,status:body.status};
-   if(body.status==='MATCHED')payload.result=serviceResult(body.result,body.request);
+   if(body.status==='MATCHED') {
+    try {payload.result=serviceResult(body.result,body.request);}
+    catch(error) {if((error as {code?:string}).code!=='WORKER_UPDATE_REQUIRED')throw error;payload.status='SCHEDULE_REQUIRED';payload.result={reason:'WORKER_UPDATE_REQUIRED'};}
+   }
   }
   const hash=Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',new TextEncoder().encode(token)))).map(b=>b.toString(16).padStart(2,'0')).join('');
   const key=Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;

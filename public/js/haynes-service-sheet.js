@@ -107,6 +107,7 @@ root.initHaynesServiceSheet=async function(sheet,registration,kind){
   const request=tools?.lookup?tools.lookup(registration):fetch('/api/haynes-vehicle?reg='+encodeURIComponent(registration),{cache:'no-store'}).then(r=>r.json()).then(d=>d.status==='MATCHED'?d.vehicle:null);
   request.then(v=>{if(sheet.isConnected&&v)showVehicle(v);}).catch(()=>{});
  }
+ let guidedFlow=true,menuChoices=[];try{menuChoices=JSON.parse(panel.getAttribute('data-haynes-menu-choices')||'[]');}catch{}
  let sequence=0,timer,period='',system=panel.getAttribute('data-haynes-system')||'';
  const status=panel.querySelector('.ssHaynesStatus'),body=panel.querySelector('.ssHaynesData');
  const fillOil=oil=>{if(!Array.isArray(oil)||oil.length!==1)return;const fields=sheet.querySelectorAll('.ssFluidsHorizontal .ssField');[oil[0].specification,compactCapacity(oil[0].capacity)].forEach((v,i)=>{if(fields[i]&&!fields[i].textContent.trim()&&v){fields[i].textContent=v;fields[i].setAttribute('data-haynes-auto',v);}});panel.setAttribute('data-haynes-oil',JSON.stringify(oil));};
@@ -133,13 +134,21 @@ root.initHaynesServiceSheet=async function(sheet,registration,kind){
   try{
    let id='',d,until=Date.now()+95000;
    do{
-    const query=new URLSearchParams({haynes:'service',reg:registration,mileage:String(current),period,system,scheduleMode:'choose'});if(id)query.set('id',id);
+    const query=new URLSearchParams({haynes:'service',reg:registration,mileage:String(current),period:guidedFlow?'':period,system:guidedFlow?'':system,scheduleMode:'choose',menuFlow:guidedFlow?'guided':'',menuChoices:JSON.stringify(menuChoices)});if(id)query.set('id',id);
     d=await fetch('/api/availability?'+query,{cache:'no-store'}).then(r=>r.json());
     if(run!==sequence||!sheet.isConnected||mileage(sheet)!==current)return;
     if(d.status!=='PENDING')break;id=d.id||id;await new Promise(r=>setTimeout(r,1000));
    }while(Date.now()<until);
    if(d.status!=='MATCHED')throw Error(d.status);
    const data=d.result;if(data.vehicle.registration!==registration||data.mileage!==current)throw Error('MISMATCH');
+   guidedFlow=data.menuFlow==='guided';
+   if(data.kind==='manual_step'){status.textContent='Haynes needs a manual step.';body.textContent=data.message;return;}
+   if(data.kind==='menu_choice') {
+    menuChoices=menuChoices.slice(0,data.resetFrom);panel.setAttribute('data-haynes-menu-choices',JSON.stringify(menuChoices));
+    status.textContent='HaynesPro needs a selection to continue.';
+    body.innerHTML='<label class="ssHaynesSelect">'+esc(data.menu.label)+'<select data-next-menu aria-label="'+esc(data.menu.label)+'"><option value="">Choose an option…</option>'+data.menu.options.map(o=>'<option value="'+esc(o.id)+'">'+esc(o.label)+'</option>').join('')+'</select></label>';
+    body.querySelector('[data-next-menu]').onchange=e=>{if(!e.target.value)return;menuChoices.push({menu:data.menu.id,option:e.target.value});panel.setAttribute('data-haynes-menu-choices',JSON.stringify(menuChoices));period='';system='';load();};return;
+   }
    const scheduleControl=selected=>'<label class="ssHaynesSelect">Maintenance schedule <select data-schedule aria-label="Haynes maintenance schedule"><option value="">Choose the schedule for this vehicle…</option>'+(data.schedules||[]).map(s=>'<option value="'+esc(s.id)+'"'+(s.id===selected?' selected':'')+'>'+esc(s.label)+'</option>').join('')+'</select></label>';
    const bindSchedule=()=>{const select=body.querySelector('[data-schedule]');if(select)select.onchange=e=>{system=e.target.value;period='';panel.removeAttribute('data-haynes-oil');panel.removeAttribute('data-required-parts');load();};};
    if(data.kind==='schedule_choices') {
@@ -152,18 +161,18 @@ root.initHaynesServiceSheet=async function(sheet,registration,kind){
    if(data.kind==='period_choices') {
     status.textContent='Choose the service type for this maintenance schedule.';
     body.innerHTML=scheduleControl(system)+'<label class="ssHaynesSelect">Service type <select data-period aria-label="Haynes service type"><option value="">Choose the service type…</option>'+data.periods.map(p=>'<option value="'+esc(p.id)+'">'+esc(p.label)+'</option>').join('')+'</select></label>';
-    bindSchedule();body.querySelector('[data-period]').onchange=e=>{period=e.target.value;load();};return;
+    if(data.menuFlow==='guided'){body.querySelector('[data-period]').closest('label').hidden=true;const reset=document.createElement('button');reset.type='button';reset.className='ssHaynesRefresh';reset.textContent='Change Haynes choices';reset.onclick=()=>{menuChoices=[];period='';system='';panel.removeAttribute('data-haynes-menu-choices');load();};body.prepend(reset);}else{bindSchedule();body.querySelector('[data-period]').onchange=e=>{period=e.target.value;load();};}return;
    }
-   if(!period){const intervals=data.periods.slice().sort((a,b)=>Number(a.label.split(' ')[0].replace(/,/g,''))-Number(b.label.split(' ')[0].replace(/,/g,''))),selected=intervals.find(p=>Number(p.label.split(' ')[0].replace(/,/g,''))>=current);if(selected&&selected.id!==data.period){period=selected.id;return load();}}
+   if(!period&&data.menuFlow!=='guided'){const intervals=data.periods.slice().sort((a,b)=>Number(a.label.split(' ')[0].replace(/,/g,''))-Number(b.label.split(' ')[0].replace(/,/g,''))),selected=intervals.find(p=>Number(p.label.split(' ')[0].replace(/,/g,''))>=current);if(selected&&selected.id!==data.period){period=selected.id;return load();}}
    showVehicle(data.vehicle);showRequired(data.parts);panel.setAttribute('data-required-parts',JSON.stringify(data.parts));period=data.period;panel.setAttribute('data-fetched-at',data.fetchedAt);
    status.textContent='HaynesPro · '+data.conditions+' · Current mileage: '+current.toLocaleString('en-GB')+' miles'+(data.ageMonths!==null?' · '+data.ageMonths+' months since registration':' · Age unavailable');
    body.innerHTML=(data.schedules?.length>1?scheduleControl(system):'')+'<label class="ssHaynesSelect">Service interval <select data-period aria-label="Haynes service interval">'+data.periods.map(p=>'<option value="'+esc(p.id)+'"'+(p.id===period?' selected':'')+'>'+esc(p.label)+'</option>').join('')+'</select></label><div class="ssHaynesColumns"><div><b>Scheduled parts / filters</b><p class="ssHaynesParts">'+data.parts.map(esc).join(' · ')+'</p></div><div><b>Additional work — check replacement history</b><ul>'+data.additional.map(p=>'<li>'+esc(p)+'</li>').join('')+'</ul></div></div>';
    moveAdditional();
-   bindSchedule();body.querySelector('[data-period]').onchange=e=>{period=e.target.value;load();};
+   if(data.menuFlow==='guided'){body.querySelector('[data-period]').closest('label').hidden=true;const reset=document.createElement('button');reset.type='button';reset.className='ssHaynesRefresh';reset.textContent='Change Haynes choices';reset.onclick=()=>{menuChoices=[];period='';system='';panel.removeAttribute('data-haynes-menu-choices');load();};body.prepend(reset);}else{bindSchedule();body.querySelector('[data-period]').onchange=e=>{period=e.target.value;load();};}
    fillOil(data.oil);
   }catch(e){if(run!==sequence||!sheet.isConnected)return;status.textContent=({WORKER_UPDATE_REQUIRED:'Update the Workshop PC Haynes worker to download service requirements.',LOGIN_REQUIRED:'Sign in to HaynesPro again using the Workshop PC worker login.',VERIFICATION_REQUIRED:'Complete HaynesPro verification in the Workshop PC worker browser.',SCHEDULE_REQUIRED:'No supported UK service schedule was found. Check this vehicle directly in HaynesPro.',AMBIGUOUS:'HaynesPro found more than one vehicle variant. Check the correct variant in HaynesPro.',OFFLINE:'The Workshop PC Haynes worker is offline. Start it and retry.',NOT_CONFIGURED:'The HaynesPro service relay is not configured for this site.',BUSY:'HaynesPro is busy. Wait for the current lookup and retry.',DAILY_LIMIT:'The daily HaynesPro service lookup limit has been reached.',PENDING:'The HaynesPro service lookup timed out. Check the PC worker and retry.'}[e.message]||'HaynesPro service requirements unavailable. Check the PC worker and retry.');body.innerHTML='<button type="button" class="ssHaynesRefresh">Retry Haynes</button>';body.querySelector('button').onclick=load;}
  }
- const field=sheet.querySelector('.ssMileageEntry');if(field)field.addEventListener('input',()=>{sequence++;sheet.querySelector('.ssHaynesRecommendations')?.remove();clearTimeout(timer);period='';clearAuto();clearRequired();panel.removeAttribute('data-required-parts');body.innerHTML='';status.textContent='Mileage changed — updating Haynes requirements…';panel.removeAttribute('data-confirmed');timer=setTimeout(load,900);});
+ const field=sheet.querySelector('.ssMileageEntry');if(field)field.addEventListener('input',()=>{sequence++;sheet.querySelector('.ssHaynesRecommendations')?.remove();clearTimeout(timer);period='';menuChoices=[];panel.removeAttribute('data-haynes-menu-choices');clearAuto();clearRequired();panel.removeAttribute('data-required-parts');body.innerHTML='';status.textContent='Mileage changed — updating Haynes requirements…';panel.removeAttribute('data-confirmed');timer=setTimeout(load,900);});
  if(archived){const schedule=body.querySelector('[data-schedule]');if(schedule)schedule.onchange=e=>{system=e.target.value;period='';load();};const select=body.querySelector('[data-period],select:not([data-schedule])');if(Array.from(sheet.querySelectorAll('.ssFluidsHorizontal .ssField')).slice(0,2).some(e=>!e.textContent.trim())){period=select?.value||'';load();}if(select)select.onchange=e=>{period=e.target.value;load();};}
  else load();
 };
