@@ -5,57 +5,41 @@ import vm from 'node:vm';
 import {parseHTML} from 'linkedom';
 const html=fs.readFileSync(new URL('../../index.html',import.meta.url),'utf8');
 function setup(){
-  const {document}=parseHTML('<html><body><div id="jobModal"></div></body></html>');
-  const events=[],job={id:'j',status:'booked',customer_account:'NMUK',nmuk_vehicle_type:'Internal',registration:'MTC 2'},draft={...job,status:'completed'};
-  const tab={closed:false,document:{body:{}},location:{replace:url=>events.push(['email',url])},close(){events.push(['close']);this.closed=true;}};
-  const ctx={document,app:{jobs:[job]},nmukCompletionSaves:{},isVehicleTaxJob:j=>j.job_type==='Vehicle Tax',fleetVehicleForRegistration:reg=>({contactEmail:'owner@example.com'}),fleetInvoiceFormatRegistration:reg=>reg,emailAddressList:value=>String(value||'').split(/[;,]+/).map(s=>s.trim()).filter(s=>/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(s)),appendVectaEmailSignature:s=>s+'\n\nVECTA',gatherJob:()=>draft,window:{open:()=>{events.push(['open']);return tab;}},closeInvoiceMessageWindow:t=>{if(t&&!t.closed)t.close();},esc:s=>String(s).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;'),closeModals:()=>{},alert:s=>events.push(['alert',s])};
-  ctx.saveJob=async(id,confirmed)=>{events.push(['save']);confirmed(draft);return true;};
-  vm.createContext(ctx);
-  for(const name of ['emailFirstNameFromAddress','nmukCompletionSignatureText','nmukCompletionEmail','completeNmukJobAndNotify']){
-    const start=html.indexOf((name==='completeNmukJobAndNotify'?'async ':'')+'function '+name+'('),end=html.indexOf('\n}',start)+2;
-    vm.runInContext(html.slice(start,end),ctx);
-  }
-  return {ctx,events,tab,job,draft};
+ const {document}=parseHTML('<html><body><div id="jobModal"></div></body></html>');
+ const events=[],job={id:'j',status:'booked',customer_account:'NMUK',nmuk_vehicle_type:'Internal',registration:'MTC 2'},draft={...job,status:'completed'};
+ const ctx={document,app:{jobs:[job]},nmukCompletionSaves:{},isVehicleTaxJob:j=>j.job_type==='Vehicle Tax',fleetVehicleForRegistration:()=>({contactEmail:'owner@example.com',model:'Nissan NV200'}),fleetInvoiceFormatRegistration:s=>s,emailAddressList:s=>s?[s]:[],gatherJob:()=>draft,window:{open:()=>{throw Error('Must not open Outlook');}},esc:s=>String(s).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;'),closeModals:()=>document.getElementById('jobModal').classList.remove('open')};
+ vm.createContext(ctx);
+ for(const name of ['emailFirstNameFromAddress','nmukCompletionSignatureText','nmukCompletionEmail','completeNmukJobAndNotify','openNmukCompletionDraft']){
+  const start=html.indexOf((['completeNmukJobAndNotify','openNmukCompletionDraft'].includes(name)?'async ':'')+'function '+name+'('),end=html.indexOf('\n}',start)+2;vm.runInContext(html.slice(start,end),ctx);
+ }
+ ctx.openNmukCompletionDraftReal=ctx.openNmukCompletionDraft;
+ ctx.openNmukCompletionDraft=async id=>{events.push(['draft',id]);};
+ ctx.saveJob=async(id,onConfirmed)=>{events.push(['save']);await onConfirmed(draft);return true;};
+ return {ctx,events,job,draft};
 }
-test('NMUK completion uses vehicle contact and exact collection message without invoice or price',()=>{
-  const {ctx,draft}=setup(),notice=ctx.nmukCompletionEmail(draft),url=new URL(notice.email);
-  assert.equal(url.pathname,'owner%40example.com');
-  assert.equal(url.searchParams.get('body'),'Hi Owner.\n\nYour vehicle is complete and ready to pick up from our Workshop.\n\n'+ctx.nmukCompletionSignatureText());
-  for(const patch of [{customer_account:'Staff'},{customer_account:'CONTRACTOR'},{nmuk_vehicle_type:'MVOS'},{nmuk_vehicle_type:'Various'},{no_vehicle:true},{job_type:'Vehicle Tax'}])assert.equal(ctx.nmukCompletionEmail({...draft,...patch}),null);
-  assert.ok(ctx.nmukCompletionEmail({...draft,nmuk_vehicle_type:'Pool'}));
-  ctx.fleetVehicleForRegistration=()=>null;assert.equal(ctx.nmukCompletionEmail(draft).email,'');
+test('completion opens review only after confirmed save and never opens an email app',async()=>{
+ const {ctx,events}=setup();await ctx.completeNmukJobAndNotify('j');assert.deepEqual(events.map(e=>e[0]),['save','draft']);
+ assert.match(html,/if\(savedResult===true&&typeof onConfirmed==='function'\)await onConfirmed\(j\)/);
 });
-test('reserve on click; open only after confirmed save; provide manual email fallback',async()=>{
-  const {ctx,events}=setup();assert.equal(await ctx.completeNmukJobAndNotify('j'),true);
-  assert.deepEqual(events.map(e=>e[0]),['open','save','email']);
-  assert.ok(ctx.document.querySelector('a[href^="mailto:"]'));
+test('failed or queued saves and already completed jobs never open the draft',async()=>{
+ const {ctx,events,job}=setup();ctx.saveJob=async()=>false;await ctx.completeNmukJobAndNotify('j');assert.equal(events.length,0);
+ ctx.saveJob=async()=>true;await ctx.completeNmukJobAndNotify('j');assert.equal(events.length,0);
+ job.status='completed';ctx.saveJob=async(id,fn)=>{await fn({...job});return true;};await ctx.completeNmukJobAndNotify('j');assert.equal(events.length,0);
 });
-test('failed or queued save never opens completion email and closes reserved tab',async()=>{
-  for(const result of [false,true]){
-    const {ctx,events}=setup();ctx.saveJob=async()=>result;
-    await ctx.completeNmukJobAndNotify('j');assert.deepEqual(events.map(e=>e[0]),['open','close']);assert.equal(ctx.document.querySelector('a'),null);
-  }
-  assert.match(html,/if\(savedResult===true&&typeof onConfirmed==='function'\)onConfirmed\(j\)/);
+test('double clicks save once; rejected-save retries use the editor baseline',async()=>{
+ const {ctx,job,draft,events}=setup();ctx.window.__vectaJobEditorBaseline={id:'j',job:{...job}};job.status='completed';job.archived=true;
+ let finish;ctx.saveJob=(id,fn)=>new Promise(resolve=>{finish=async()=>{await fn(draft);resolve(true);};});
+ const first=ctx.completeNmukJobAndNotify('j');assert.equal(await ctx.completeNmukJobAndNotify('j'),false);await finish();await first;assert.equal(events.length,1);
 });
-test('already complete jobs do not notify again; missing owner never falls back to NMUK billing',async()=>{
-  const {ctx,job,events}=setup();job.status='completed';await ctx.completeNmukJobAndNotify('j');assert.deepEqual(events.map(e=>e[0]),['save']);
-  job.status='booked';events.length=0;ctx.fleetVehicleForRegistration=()=>({contactEmail:''});await ctx.completeNmukJobAndNotify('j');assert.deepEqual(events.map(e=>e[0]),['save','alert']);
+test('review displays fixed From and signature; send is an explicit separate click and failed sends require status check',async()=>{
+ const {ctx}=setup(),calls=[];
+ ctx.nmukCompletionRequest=async payload=>{calls.push(payload);if(payload.action==='send')throw Error('Result uncertain');return {from:'chris@nissan-fleet.co.uk',to:['owner@example.com'],subject:'MTC 2',body:'Hi Owner.\n\nYour Nissan NV200 is complete.',signature_html:'<strong style="color:red">VECTA</strong>',token:'signed',ready:true,status:'draft'};};
+ await ctx.openNmukCompletionDraftReal('j');assert.equal(calls.length,1);assert.match(ctx.document.getElementById('jobModal').textContent,/chris@nissan-fleet.co.uk/);assert.ok(ctx.document.querySelector('#completionEmailSignature strong'));
+ const send=ctx.document.getElementById('sendCompletionEmail');await send.onclick();assert.equal(calls.length,2);assert.equal(calls[1].action,'send');assert.equal(calls[1].from,undefined);assert.equal(send.disabled,true);assert.equal(ctx.document.getElementById('completionEmailResult').textContent,'Result uncertain');
 });
-test('blocked popup still offers email; double clicks cannot save or notify twice',async()=>{
-  const {ctx,events,draft}=setup();ctx.window.open=()=>null;
-  let finish;ctx.saveJob=(id,confirmed)=>new Promise(resolve=>{finish=()=>{confirmed(draft);resolve(true);};});
-  const first=ctx.completeNmukJobAndNotify('j');assert.equal(await ctx.completeNmukJobAndNotify('j'),false);finish();await first;
-  assert.ok(ctx.document.querySelector('a[href^="mailto:"]'));assert.equal(events.length,0);
-});
-test('retry after a rejected completion uses the editor baseline rather than unsaved local state',async()=>{
-  const {ctx,job,events}=setup();ctx.window.__vectaJobEditorBaseline={id:'j',job:{...job}};job.status='completed';job.archived=true;
-  await ctx.completeNmukJobAndNotify('j');assert.deepEqual(events.map(e=>e[0]),['open','save','email']);
-});
-
-test('greeting comes from recipient email and fleet model takes priority over stale job description',()=>{
-  const {ctx,draft}=setup();draft.vehicle='Old job description';
-  ctx.fleetVehicleForRegistration=()=>({contactEmail:'jane.smith@example.com',model:'Nissan NV200'});
-  assert.equal(new URL(ctx.nmukCompletionEmail(draft).email).searchParams.get('body'),'Hi Jane.\n\nYour Nissan NV200 is complete and ready to pick up from our Workshop.\n\n'+ctx.nmukCompletionSignatureText());
-  ctx.fleetVehicleForRegistration=()=>({contactEmail:'jane_smith@example.com',model:''});draft.vehicle='Nissan Qashqai';
-  assert.match(ctx.nmukCompletionEmail(draft).body,/Hi Jane\.\n\nYour Nissan Qashqai/);
+test('missing sender setup, pending and already sent drafts cannot send',async()=>{
+ for(const status of ['draft','pending','sent']){
+  const {ctx}=setup();ctx.nmukCompletionRequest=async()=>({from:'chris@nissan-fleet.co.uk',to:['owner@example.com'],subject:'Ready',body:'Hi Owner.',signature_html:'VECTA',ready:false,status,setup_error:'Sender verification required'});
+  await ctx.openNmukCompletionDraftReal('j');assert.equal(ctx.document.getElementById('sendCompletionEmail').disabled,true);
+ }
 });

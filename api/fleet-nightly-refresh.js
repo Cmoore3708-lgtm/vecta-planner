@@ -136,6 +136,10 @@ async function writeSetting(id, value) {
 function sleep(ms){return new Promise(r=>setTimeout(r,ms));}
 
 export default async function handler(req,res){
+  if (req.query?.task === 'completion-email') {
+    const {default: completionEmail} = await import('../lib/nmuk-completion-email.js');
+    return completionEmail(req,res);
+  }
   if (req.query?.task === 'reminder-test') {
     const {default: testReminder} = await import('../lib/booking-reminder-test.js');
     return testReminder(req,res);
