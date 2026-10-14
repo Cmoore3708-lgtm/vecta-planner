@@ -21,10 +21,37 @@ test('confirmed combined checkbox markup yields matching system, period and labe
 });
 const source=fs.readFileSync(new URL('../../workers/haynes/service-browser.mjs',import.meta.url),'utf8');
 const selectCheckboxSchedule=vm.runInNewContext('('+source.slice(source.indexOf('export async function selectCheckboxSchedule')).replace(/^export /,'')+')',{HaynesError});
-test('checkbox selection clears other periods in the matching system and checks the selected interval using labels',async()=>{
- const links=fixture();const selected=links[1];const checked={'mp_320815741':true,'mp_320815742':false};const clicks=[];
- const page={locator(selector){const id=selector.match(/(?:id|for)="(mp_\d+)"/)[1];return {isChecked:async()=>checked[id],click:async()=>{clicks.push(id);checked[id]=!checked[id];}};}};
- await selectCheckboxSchedule(page,selected,links);
- assert.deepEqual(clicks,['mp_320815741','mp_320815742']);assert.equal(checked.mp_320815741,false);assert.equal(checked.mp_320815742,true);
+
+function duplicatedPage({bothVisible=false}={}) {
+ const markup=hidden=>`<section ${hidden?'hidden':''}><li class="dropdown"><a id="maintenanceSystem_ms_319118557"></a><ul><li class="combinableSystem_period"><label for="mp_320815741">9,000 miles/12 months</label><input id="mp_320815741" type="checkbox" checked maintenanceperiodid="mp_320815741"></li><li class="combinableSystem_period"><label for="mp_320815742">18,000 miles/24 months</label><input id="mp_320815742" type="checkbox" maintenanceperiodid="mp_320815742"></li></ul></li></section>`;
+ const {document}=parseHTML('<html><body>'+markup(false)+markup(!bothVisible)+'</body></html>');
+ const clicks=[];
+ function locator(nodes,selector='') {
+   const one=()=>{if(nodes.length!==1)throw Error('strict mode violation: '+nodes.length);return nodes[0];};
+   return {nodes,selector,
+     count:async()=>nodes.length,nth:n=>locator([nodes[n]]),
+     filter:({has})=>locator(nodes.filter(n=>n.querySelector(has.selector))),
+     locator:selector=>locator(nodes.flatMap(n=>Array.from(n.querySelectorAll(selector))),selector),
+     isVisible:async()=>!one().closest('[hidden]'),
+     isChecked:async()=>one().hasAttribute('checked'),
+     click:async()=>{const label=one();assert.equal(Boolean(label.closest('[hidden]')),false);const input=label.closest('li.combinableSystem_period').querySelector('input');if(input.hasAttribute('checked'))input.removeAttribute('checked');else input.setAttribute('checked','');clicks.push(input.id);}
+   };
+ }
+ return {document,clicks,page:{locator:selector=>locator(Array.from(document.querySelectorAll(selector)),selector)}};
+}
+test('duplicate desktop/mobile IDs select only the displayed system and leave the hidden copy unchanged',async()=>{
+ const links=fixture(),selected=links[1];const {document,page,clicks}=duplicatedPage();
+ await assert.rejects(page.locator('input[id="mp_320815741"]').isChecked(),/strict mode violation/);
+ await selectCheckboxSchedule(page,selected,[...links,...links]);
+ assert.deepEqual(clicks,['mp_320815741','mp_320815742']);
+ const sections=document.querySelectorAll('section');
+ assert.equal(sections[0].querySelector('[id="mp_320815741"]').hasAttribute('checked'),false);
+ assert.equal(sections[0].querySelector('[id="mp_320815742"]').hasAttribute('checked'),true);
+ assert.equal(sections[1].querySelector('[id="mp_320815741"]').hasAttribute('checked'),true);
+ assert.equal(sections[1].querySelector('[id="mp_320815742"]').hasAttribute('checked'),false);
  await selectCheckboxSchedule(page,selected,links);assert.equal(clicks.length,2);
+});
+test('two displayed copies are rejected before changing any checkbox',async()=>{
+ const {page,clicks}=duplicatedPage({bothVisible:true});const links=fixture();
+ await assert.rejects(selectCheckboxSchedule(page,links[1],links),{code:'SCHEDULE_REQUIRED'});assert.equal(clicks.length,0);
 });

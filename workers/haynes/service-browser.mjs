@@ -5,7 +5,7 @@ import { readVehicle } from './dom.mjs';
 import { readSchedule, readOil, readDirectSchedules, readConditionSchedules, readScheduleDiagnostics } from './service-dom.mjs';
 import { vehicleResult, HaynesError } from '../../lib/haynes-vehicle.js';
 import { serviceRequest, serviceResult, selectServicePeriod } from '../../lib/haynes-service.js';
-export const SERVICE_WORKER_VERSION = '2026-10-14.7';
+export const SERVICE_WORKER_VERSION = '2026-10-14.8';
 console.log('VECTA Haynes service worker version '+SERVICE_WORKER_VERSION);
 export function browserServiceLookup(context, { chooseConditions } = {}) {
   const retainDiagnosticPage=createDiagnosticPageRetainer(context);
@@ -166,14 +166,29 @@ export function createDiagnosticPageRetainer(context) {
 }
 
 export async function selectCheckboxSchedule(page,selected,links) {
+  if(!/^mp_\d+$/.test(selected.checkboxId||'')||!/^maintenanceSystem_ms_\d+$/.test(selected.systemHeadingId||''))throw new HaynesError('SCHEDULE_REQUIRED');
+  // Haynes renders desktop and mobile copies with identical element IDs.
+  // Scope all input reads and clicks to the one displayed system list.
+  const groups=page.locator('li.dropdown').filter({has:page.locator('a[id="'+selected.systemHeadingId+'"]')});
+  let group=null;
+  for(let n=0;n<await groups.count();n++) {
+    const candidate=groups.nth(n);
+    const labels=candidate.locator('label[for="'+selected.checkboxId+'"]');
+    if(await labels.count()===1 && await labels.isVisible()) {
+      if(group)throw new HaynesError('SCHEDULE_REQUIRED');
+      group=candidate;
+    }
+  }
+  if(!group)throw new HaynesError('SCHEDULE_REQUIRED');
   const entries=links.filter(link=>link.checkboxId&&link.systemHeadingId===selected.systemHeadingId);
   const seen=new Set();
   for(const entry of entries) {
     if(seen.has(entry.checkboxId))continue;
     seen.add(entry.checkboxId);
-    const input=page.locator('li.combinableSystem_period input[id="'+entry.checkboxId+'"][maintenanceperiodid="'+entry.checkboxId+'"]');
+    const input=group.locator('li.combinableSystem_period input[id="'+entry.checkboxId+'"][maintenanceperiodid="'+entry.checkboxId+'"]');
+    if(await input.count()!==1)throw new HaynesError('SCHEDULE_REQUIRED');
     const wanted=entry.checkboxId===selected.checkboxId;
-    if(await input.isChecked()!==wanted)await page.locator('li.combinableSystem_period label[for="'+entry.checkboxId+'"]').click();
+    if(await input.isChecked()!==wanted)await group.locator('li.combinableSystem_period label[for="'+entry.checkboxId+'"]').click();
     if(await input.isChecked()!==wanted)throw new HaynesError('SCHEDULE_REQUIRED');
   }
   if(!seen.has(selected.checkboxId))throw new HaynesError('SCHEDULE_REQUIRED');
