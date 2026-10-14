@@ -137,3 +137,21 @@ test('dashboard service lookup returns schedules and loads the mechanic selectio
  assert.equal(requests.at(-1).get('system'),'ms_11');assert.equal(requests.at(-1).get('period'),'');
  assert.match(document.querySelector('[data-service]').textContent,/Selected Longlife oil/);
 });
+
+test('generic supplier menus appear one after another without manufacturer-specific UI rules',async()=>{
+ const menus=[{id:'hm_'+ '1'.repeat(24),label:'New manufacturer question',options:[{id:'ho_'+'1'.repeat(24),label:'Answer A'}]},{id:'hm_'+'2'.repeat(24),label:'Different follow-up question',options:[{id:'ho_'+'2'.repeat(24),label:'Answer B'}]}];
+ const requests=[];
+ const {window,document}=setup(async url=>{
+  if(url.includes('haynes-vehicle'))return {ok:true,json:async()=>({status:'MATCHED',vehicle})};
+  if(url.includes('vehicle-lookup'))return {ok:true,json:async()=>({registration:vehicle.registration})};
+  const q=new URL(url,'https://example.test').searchParams,choices=JSON.parse(q.get('menuChoices'));requests.push(choices);
+  return {ok:true,json:async()=>({status:'MATCHED',result:{kind:'menu_choice',menuFlow:'guided',vehicle,mileage:50000,menu:menus[choices.length],resetFrom:choices.length}})};
+ });
+ await window.VectaHaynesDashboardLookup.open(vehicle.registration);
+ const form=document.querySelector('[data-schedule-form]');form.elements={mileage:{value:'50000'},system:document.querySelector('[name="system"]'),period:document.querySelector('[name="period"]')};
+ for(const e of [form.elements.system,form.elements.period])Object.defineProperty(e,'value',{value:'',writable:true});
+ await form.onsubmit({preventDefault(){}});assert.match(document.querySelector('[data-service]').textContent,/New manufacturer question/);
+ await document.querySelector('[data-next-menu]').onchange({target:{value:menus[0].options[0].id}});
+ assert.match(document.querySelector('[data-service]').textContent,/Different follow-up question/);
+ assert.equal(requests[1][0].menu,menus[0].id);assert.equal(requests[1][0].option,menus[0].options[0].id);
+});

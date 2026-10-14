@@ -151,3 +151,29 @@ export function readScheduleSelectors() {
   const clean=v=>String(v||'').replace(/\s+/g,' ').trim();
   return Array.from(document.querySelectorAll('select')).map((select,index)=>({index,options:Array.from(select.options).map(o=>({value:o.value,label:clean(o.textContent)}))})).filter(menu=>menu.options.some(o=>/^ms_\d+$/.test(String(o.value).split(',')[0])&&/\(United Kingdom\)\s*$/i.test(o.label)));
 }
+
+// Discover native maintenance dropdowns by their container and supplier IDs.
+// Wording is display data, never a whitelist of manufacturers or service names.
+export function readMaintenanceMenus() {
+ const clean=v=>String(v||'').replace(/\s+/g,' ').trim();
+ const visible=el=>!el.hidden&&getComputedStyle(el).display!=='none'&&getComputedStyle(el).visibility!=='hidden'&&!!el.getClientRects().length;
+ const menus=[],unsupported=[];
+ for(const [index,select] of Array.from(document.querySelectorAll('select')).entries()) {
+  if(!visible(select)||select.disabled)continue;
+  const form=select.closest('form');let formService=false;
+  if(form&&String(form.getAttribute('method')||'get').toLowerCase()==='get') {
+   try {const u=new URL(form.getAttribute('action')||location.href,location.href);formService=u.origin==='https://www.workshopdata.com'&&/\/maintenanceSchedule$/.test(u.pathname);}catch{}
+  }
+  const native=Array.from(select.options),supplierIds=native.some(o=>/^(?:ms_|mp_)\d+(?:,|$)/.test(o.value));
+  const section=select.closest('[id^="maintenance"],[class*="maintenance"],li.dropdown:has([id^="maintenanceSystem_"])');
+  if(!supplierIds&&!formService&&!section)continue;
+  if(form&&String(form.getAttribute('method')||'get').toLowerCase()==='post'){unsupported.push({kind:'post-form',label:'Maintenance question requires form support'});continue;}
+  if(select.multiple){unsupported.push({kind:'multiple-select',label:'Maintenance question allows several selections'});continue;}
+  const options=native.filter(o=>!o.disabled&&String(o.value)!==''&&!/^Select\b/i.test(clean(o.textContent))).map(o=>({value:o.value,label:clean(o.textContent)})).filter(o=>o.label);
+  if(!options.length)continue;
+  const labels=Array.from(document.querySelectorAll('label')).find(label=>select.id&&(label.htmlFor||label.getAttribute('for'))===select.id);
+  const label=clean(labels?.textContent||select.getAttribute('aria-label')||document.getElementById(select.getAttribute('aria-labelledby')||'')?.textContent||select.closest('label')?.textContent||select.closest('fieldset')?.querySelector('legend')?.textContent||section?.querySelector('h2,h3,h4')?.textContent)|| (native.some(o=>/^ms_\d+/.test(o.value))?'Maintenance schedule':'Service options');
+  menus.push({kind:'select',index,name:select.name||select.id||'',label,options});
+ }
+ return {menus,unsupported};
+}

@@ -160,3 +160,15 @@ test('named service choice loads requirements only after the second mechanic sel
  assert.match(sheet.querySelector('.ssHaynesParts').textContent,/Combined inspection/);
  assert.equal(requests.at(-1).get('period'),'mp_103');assert.equal(requests.at(-1).get('system'),'ms_11');sheet.remove();
 });
+
+test('service sheet renders generic questions, retains selections and applies data only at the end',async()=>{
+ const menu={id:'hm_'+'a'.repeat(24),label:'An unfamiliar maintenance question',options:[{id:'ho_'+'a'.repeat(24),label:'Manufacturer answer'}]};
+ const requests=[];
+ const {window,sheet}=setup(async url=>{const q=new URL(url,'https://example.test').searchParams;const choices=JSON.parse(q.get('menuChoices'));requests.push(choices);return {status:'MATCHED',result:choices.length?{...data,menuFlow:'guided',system:'ms_1',schedules:[]}:{kind:'menu_choice',menuFlow:'guided',vehicle,mileage:50000,menu,resetFrom:0}};});
+ await window.initHaynesServiceSheet(sheet,'FX69XWU','service');await settle();
+ assert.match(sheet.textContent,/An unfamiliar maintenance question/);assert.equal(sheet.querySelector('.ssHaynesParts'),null);
+ sheet.querySelector('[data-next-menu]').onchange({target:{value:menu.options[0].id}});await settle();
+ assert.match(sheet.querySelector('.ssHaynesParts').textContent,/Oil filter/);assert.equal(requests.at(-1)[0].menu,menu.id);
+ const reset=Array.from(sheet.querySelectorAll('button')).find(b=>b.textContent==='Change Haynes choices');assert.ok(reset);reset.onclick();await settle();
+ assert.match(sheet.textContent,/An unfamiliar maintenance question/);assert.equal(sheet.querySelector('.ssHaynesParts'),null);sheet.remove();
+});
