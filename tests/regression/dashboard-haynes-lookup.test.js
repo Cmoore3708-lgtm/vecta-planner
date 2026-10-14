@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import vm from 'node:vm';
 import {readFileSync} from 'node:fs';
-import {parseHTML} from 'linkedom';
+import {parseHTML,DOMParser} from 'linkedom';
 import {parse} from '@babel/parser';
 import traverseModule from '@babel/traverse';
 const traverse=traverseModule.default||traverseModule;
@@ -84,4 +84,26 @@ test('late colour replaces a locked render and retains the supplier source and r
  const current=document.querySelector('[data-identity] img');
  assert.notEqual(current,original);assert.equal(original.isConnected,false);
  assert.equal(painted.at(-1).colour,'Red');assert.equal(painted.at(-1).registration,vehicle.registration);assert.equal(painted.at(-1).source,source);
+});
+
+
+test('CM14 KEL lookup renders green artwork with its front registration using the actual renderer',async()=>{
+ for(const first of ['mot','haynes']){
+  const resolves={};const tasks=[];
+  const drawing='<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 299 220"><g id="wheels"><path fill="#333333" d="M0 0"/></g><g id="transparant_colour"><path fill="#CCCCCC" d="M0 0"/></g><g id="windows"><path fill="#222222" d="M0 0"/></g></svg>';
+  const {window,document}=setup(url=>url.includes('haynes-image')?Promise.resolve({ok:true,json:async()=>({svg:drawing})}):new Promise(resolve=>resolves[url.includes('haynes-vehicle')?'haynes':'mot']=resolve));
+  window.Element.prototype.getBBox=function(){return this.id==='windows'?{x:90,y:62,width:167,height:36}:{x:26,y:59,width:247,height:110};};
+  window.DOMParser=DOMParser;window.XMLSerializer=class{serializeToString(node){return node.outerHTML;}};window.AbortSignal=AbortSignal;
+  vm.runInNewContext(readFileSync(new URL('../../public/js/vecta-vehicle-image.js',import.meta.url),'utf8'),{window,setTimeout,clearTimeout});
+  const mount=window.VectaVehicleImage.mount;window.VectaVehicleImage.mount=host=>{const task=mount(host);tasks.push(task);return task;};
+  const source='https://www.haynespro-assets.com/workshop/images/319106279.svgz';window.VectaHaynesJobTools.safeImage=()=>source;
+  const opened=window.VectaHaynesDashboardLookup.open('CM14 KEL');
+  const responses={mot:{registration:'CM14KEL',primaryColour:'Green'},haynes:{status:'MATCHED',vehicle:{...vehicle,registration:'CM14KEL',imageUrl:source}}};
+  const finish=key=>resolves[key]({ok:true,json:async()=>responses[key]});
+  finish(first);await new Promise(resolve=>setImmediate(resolve));await Promise.all(tasks);
+  finish(first==='mot'?'haynes':'mot');await opened;await Promise.all(tasks);
+  const img=document.querySelector('[data-identity] img');const rendered=new DOMParser().parseFromString(decodeURIComponent(img.src.split(',').slice(1).join(',')),'image/svg+xml');
+  assert.equal(rendered.querySelector('#transparant_colour path').getAttribute('fill'),'#296145');
+  assert.equal(rendered.querySelector('#vecta-front-registration text').textContent,'CM14 KEL');
+ }
 });
