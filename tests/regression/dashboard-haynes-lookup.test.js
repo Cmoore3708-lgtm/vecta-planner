@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import vm from 'node:vm';
 import {readFileSync} from 'node:fs';
-import {parseHTML} from 'linkedom';
+import {parseHTML,DOMParser} from 'linkedom';
 import {parse} from '@babel/parser';
 import traverseModule from '@babel/traverse';
 const traverse=traverseModule.default||traverseModule;
@@ -66,4 +66,52 @@ test('vehicle colour applies with independent MOT and Haynes responses in either
   finish(first);await new Promise(resolve=>setImmediate(resolve));finish(first==='mot'?'haynes':'mot');await opened;
   assert.equal(document.querySelector('[data-identity] img').dataset.colour,'Black');assert.equal(painted.at(-1),'Black');
  }
+});
+
+test('late colour replaces a locked render and retains the supplier source and registration',async()=>{
+ let finishMot;const {window,document}=setup(url=>url.includes('haynes-vehicle')?Promise.resolve({ok:true,json:async()=>({status:'MATCHED',vehicle})}):new Promise(resolve=>finishMot=resolve));
+ const source='https://www.haynespro-assets.com/workshop/images/123.svgz';
+ window.VectaHaynesJobTools.safeImage=()=>source;
+ const painted=[];window.VectaVehicleImage={resolveColour:(_reg,colour)=>colour,mount:host=>{
+  const img=host.querySelector('img');if(img.dataset.personalising)return;
+  img.dataset.personalising='1';painted.push({img,colour:img.dataset.colour,registration:img.dataset.registration,source:img.dataset.vehicleSource});
+  img.src='data:image/svg+xml,previous-render';
+ }};
+ const opened=window.VectaHaynesDashboardLookup.open(vehicle.registration);
+ await new Promise(resolve=>setImmediate(resolve));
+ const original=document.querySelector('[data-identity] img');
+ finishMot({ok:true,json:async()=>({registration:vehicle.registration,primaryColour:'Red'})});await opened;
+ const current=document.querySelector('[data-identity] img');
+ assert.notEqual(current,original);assert.equal(original.isConnected,false);
+ assert.equal(painted.at(-1).colour,'Red');assert.equal(painted.at(-1).registration,vehicle.registration);assert.equal(painted.at(-1).source,source);
+});
+
+
+test('CM14 KEL lookup renders green artwork with its front registration using the actual renderer',async()=>{
+ for(const first of ['mot','haynes']){
+  const resolves={};const tasks=[];
+  const drawing='<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 299 220"><g id="wheels"><path fill="#333333" d="M0 0"/></g><g id="transparant_colour"><path fill="#CCCCCC" d="M0 0"/></g><g id="windows"><path fill="#222222" d="M0 0"/></g></svg>';
+  const {window,document}=setup(url=>url.includes('haynes-image')?Promise.resolve({ok:true,json:async()=>({svg:drawing})}):new Promise(resolve=>resolves[url.includes('haynes-vehicle')?'haynes':'mot']=resolve));
+  window.Element.prototype.getBBox=function(){return this.id==='windows'?{x:90,y:62,width:167,height:36}:{x:26,y:59,width:247,height:110};};
+  window.DOMParser=DOMParser;window.XMLSerializer=class{serializeToString(node){return node.outerHTML;}};window.AbortSignal=AbortSignal;
+  vm.runInNewContext(readFileSync(new URL('../../public/js/vecta-vehicle-image.js',import.meta.url),'utf8'),{window,setTimeout,clearTimeout});
+  const mount=window.VectaVehicleImage.mount;window.VectaVehicleImage.mount=host=>{const task=mount(host);tasks.push(task);return task;};
+  const source='https://www.haynespro-assets.com/workshop/images/319106279.svgz';window.VectaHaynesJobTools.safeImage=()=>source;
+  const opened=window.VectaHaynesDashboardLookup.open('CM14 KEL');
+  const responses={mot:{registration:'CM14KEL',primaryColour:'Green'},haynes:{status:'MATCHED',vehicle:{...vehicle,registration:'CM14KEL',imageUrl:source}}};
+  const finish=key=>resolves[key]({ok:true,json:async()=>responses[key]});
+  finish(first);await new Promise(resolve=>setImmediate(resolve));await Promise.all(tasks);
+  finish(first==='mot'?'haynes':'mot');await opened;await Promise.all(tasks);
+  const img=document.querySelector('[data-identity] img');const rendered=new DOMParser().parseFromString(decodeURIComponent(img.src.split(',').slice(1).join(',')),'image/svg+xml');
+  assert.equal(rendered.querySelector('#transparant_colour path').getAttribute('fill'),'#296145');
+  assert.equal(rendered.querySelector('#vecta-front-registration text').textContent,'CM14 KEL');
+ }
+});
+
+
+test('job footer Cancel closes the editor without invoking save',()=>{
+ assert.match(html,/<div class="modalFoot"><button type="button" class="btn" id="cancelJob">Cancel<\/button>/);
+ const binding=html.match(/var cancelJobButton=m\.querySelector\('#cancelJob'\);if\(cancelJobButton\)cancelJobButton\.onclick=function\(\)\{closeModals\(\)\};/)[0];
+ const button={};let closed=0;vm.runInNewContext(binding,{m:{querySelector:()=>button},closeModals:()=>closed++});
+ button.onclick();assert.equal(closed,1);
 });

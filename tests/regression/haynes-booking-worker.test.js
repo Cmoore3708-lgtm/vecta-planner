@@ -212,3 +212,8 @@ test('explicit retry bypasses the worker failure cache immediately',async()=>{
  await assert.rejects(service('KX15FWF'),{code:'UNAVAILABLE'});await assert.rejects(service('KX15FWF'),{code:'UNAVAILABLE'});assert.equal(calls,1);
  const matched=await service('KX15FWF',{retry:true});assert.equal(matched.registration,'KX15FWF');assert.equal(calls,2);
 });
+
+test('vehicle results preserve only a numeric matched Haynes variant identifier',()=>{
+ assert.equal(vehicleResult({...raw,ktypNr:'148229'},raw.registration).ktypNr,'148229');
+ assert.equal(vehicleResult({...raw,ktypNr:'148229&other=1'},raw.registration).ktypNr,undefined);
+});

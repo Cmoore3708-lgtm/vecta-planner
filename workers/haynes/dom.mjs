@@ -22,6 +22,7 @@ export function readVehicle() {
     registration: clean(text.match(/Vehicle Registration Number:\s*([A-Z0-9 ]+?)(?=\s*(?:VIN:|Registration Date:|[\n\r]|$))/)?.[1]).replace(/\s/g, ''),
     registrationDate: clean(text.match(/Registration Date:\s*(\d{2}\/\d{2}\/\d{4})/)?.[1]),
     typeId: new URL(location.href).searchParams.get('typeId'),
+    ktypNr: new URL(location.href).searchParams.get('ktypNr'),
     make, model, variant, engineCode: code, modelYears: years, imageUrl: image?.src || ''
   };
 }
