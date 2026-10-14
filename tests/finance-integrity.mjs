@@ -96,7 +96,7 @@ function contextWith(names, extras = {}) {
 
 {
   let persisted = 0;
-  const app = { invoices: [{ id: 'inv-1', payment_method: '', updated_at: '' }] };
+  const app = { invoices: [{ id: 'inv-1', payment_method: '', updated_at: '', lines: [{ description: 'Service', amount: 100 }] }] };
   const cloudRow = { id: 'inv-1', payment_method: 'bacs', updated_at: '2026-09-09T12:00:00Z' };
   const chain = {
     update: () => chain,
@@ -104,7 +104,7 @@ function contextWith(names, extras = {}) {
     select: () => chain,
     single: async () => ({ data: cloudRow, error: null })
   };
-  const context = contextWith(['updateInvoicePaymentMethod'], {
+  const context = contextWith(['invoicePaidDate','setInvoicePaidDate','invoicePaymentDateForChange','updateInvoicePaymentMethod'], {
     app,
     navigator: { onLine: true },
     remoteClient: { from: () => chain },
@@ -116,6 +116,8 @@ function contextWith(names, extras = {}) {
   });
   assert.equal(await context.updateInvoicePaymentMethod('inv-1', 'bacs'), true);
   assert.equal(app.invoices[0].payment_method, 'bacs');
+  assert.match(context.invoicePaidDate(app.invoices[0]), /^\d{4}-\d{2}-\d{2}$/);
+  assert.equal(app.invoices[0].lines[0].amount, 100);
   assert.equal(persisted, 1);
 }
 
@@ -537,4 +539,5 @@ console.log('Finance integrity regression tests passed.');
   context.createInvoiceCustomerLink=async()=>{document.getElementById('invoiceModal').classList.remove('open');return 'https://workshop.example/invoice?token=test-token'};
   assert.equal(await context.promptInvoiceCustomerNotification(inv),false,'A closed notification must not reopen after its link finishes loading');
 }
+
 
