@@ -10343,6 +10343,12 @@ async function upsertRemote(table,row,options){
   /* Parts status is mirrored inside customer_note for compatibility with the live jobs table. */
   if(table==='jobs'){
     delete data.parts_status;
+    /* Quotes retain customer details without creating master records. Their
+       optional UUID links can therefore be blank in the form. PostgreSQL
+       accepts NULL for an absent link, never an empty string. */
+    ['customer_id','vehicle_id'].forEach(function(key){
+      if(Object.prototype.hasOwnProperty.call(data,key)&&String(data[key]===null||data[key]===undefined?'':data[key]).trim()==='')data[key]=null;
+    });
     /* PostgreSQL date/timestamp columns reject an empty string. Job cards keep
        optional dates blank in the browser, so convert those blanks to NULL in
        the Supabase payload while leaving the local job unchanged. */
