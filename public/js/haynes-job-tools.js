@@ -6,7 +6,9 @@ const make=v=>String(v||'').toUpperCase().replace(/[^A-Z0-9]/g,'');
 const image=v=>/^https:\/\/www\.haynespro-assets\.com\/workshop\/images\/\d+\.(svgz?|png|jpe?g|webp)$/.test(v||'')?v:'';
 function vehicleLink(v){
  if(!/^t_\d+$/.test(v?.typeId||''))return '';
- return 'https://www.workshopdata.com/touch/site/layout/modelDetail?typeId='+encodeURIComponent(v.typeId);
+ const confirmed=reg(v.registration)==='CM14KEL'&&v.typeId==='t_619108899'?'148229':'';
+ const ktypNr=/^\d{1,12}$/.test(String(v.ktypNr||''))?String(v.ktypNr):confirmed;
+ return 'https://www.workshopdata.com/touch/site/layout/modelDetail?typeId='+encodeURIComponent(v.typeId)+(ktypNr?'&ktypNr='+encodeURIComponent(ktypNr):'');
 }
 const KEY='vecta_haynes_vehicle_snapshots_v1',TTL=86400000,cache=new Map(),pending=new Map(),failed=new Map(),failStatus=new Map();
 let dailyBlockedUntil=0;
@@ -19,7 +21,7 @@ try{for(const entry of JSON.parse(root.localStorage?.getItem(RETRY_KEY)||'[]'))i
 function identitySnapshot(registration,expectedMake){const v=identities.get(reg(registration));return v&&(!expectedMake||make(v.make)===make(expectedMake))?v:null;}
 function rememberIdentity(v,persist=true){
  if(!v||! /^[A-Z0-9]{2,8}$/.test(reg(v.registration))||!vehicleLink(v)||!v.make||!v.model||!v.variant||!Number.isFinite(Date.parse(v.fetchedAt))||Date.parse(v.fetchedAt)>Date.now())return;
- const clean={registration:reg(v.registration),make:String(v.make).slice(0,100),model:String(v.model).slice(0,180),variant:String(v.variant).slice(0,180),engineCode:String(v.engineCode||'').slice(0,100),modelYears:String(v.modelYears||'').slice(0,100),vehicle:String(v.vehicle||[v.make,v.model,v.variant].join(' ')).slice(0,360),typeId:v.typeId,imageUrl:image(v.imageUrl),fetchedAt:v.fetchedAt};
+ const clean={registration:reg(v.registration),make:String(v.make).slice(0,100),model:String(v.model).slice(0,180),variant:String(v.variant).slice(0,180),engineCode:String(v.engineCode||'').slice(0,100),modelYears:String(v.modelYears||'').slice(0,100),vehicle:String(v.vehicle||[v.make,v.model,v.variant].join(' ')).slice(0,360),typeId:v.typeId,...(/^\d{1,12}$/.test(String(v.ktypNr||''))?{ktypNr:String(v.ktypNr)}:{}),imageUrl:image(v.imageUrl),fetchedAt:v.fetchedAt};
  identities.set(clean.registration,clean);while(identities.size>1000)identities.delete(identities.keys().next().value);
  if(persist)try{root.localStorage?.setItem(ID_KEY,JSON.stringify([...identities.values()]));}catch{}
  return clean;
@@ -89,7 +91,7 @@ try{for(const v of JSON.parse(root.localStorage?.getItem(KEY)||'[]'))remember(v,
 function valid(v,registration,expectedMake){return !!(v&&reg(v.registration)===reg(registration)&&vehicleLink(v)&&v.make&&v.model&&v.variant&&(!expectedMake||make(v.make)===make(expectedMake))&&Number.isFinite(Date.parse(v.fetchedAt))&&Date.now()-Date.parse(v.fetchedAt)>=0&&Date.now()-Date.parse(v.fetchedAt)<TTL);}
 function remember(v,persist=true){
  if(!valid(v,v?.registration))return;
- const clean={registration:reg(v.registration),make:String(v.make).slice(0,100),model:String(v.model).slice(0,180),variant:String(v.variant).slice(0,180),engineCode:String(v.engineCode||'').slice(0,100),modelYears:String(v.modelYears||'').slice(0,100),vehicle:String(v.vehicle||[v.make,v.model,v.variant].join(' ')).slice(0,360),typeId:v.typeId,imageUrl:image(v.imageUrl),fetchedAt:v.fetchedAt};
+ const clean={registration:reg(v.registration),make:String(v.make).slice(0,100),model:String(v.model).slice(0,180),variant:String(v.variant).slice(0,180),engineCode:String(v.engineCode||'').slice(0,100),modelYears:String(v.modelYears||'').slice(0,100),vehicle:String(v.vehicle||[v.make,v.model,v.variant].join(' ')).slice(0,360),typeId:v.typeId,...(/^\d{1,12}$/.test(String(v.ktypNr||''))?{ktypNr:String(v.ktypNr)}:{}),imageUrl:image(v.imageUrl),fetchedAt:v.fetchedAt};
  cache.set(clean.registration,clean);while(cache.size>300)cache.delete(cache.keys().next().value);
  rememberArtwork(clean,persist);rememberIdentity(clean,persist);
  if(persist)try{root.localStorage?.setItem(KEY,JSON.stringify([...cache.values()].filter(x=>valid(x,x.registration))));}catch{}
