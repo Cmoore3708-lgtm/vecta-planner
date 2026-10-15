@@ -11508,7 +11508,7 @@ function fleetSafetyCompletionMatchesCycle(completed,due,cycle){
 function fleetPlanCompletedForCurrentCycle(p){
   /* A user-entered active due date is the authoritative outstanding cycle.
      Historical completion evidence must not hide it from the Fleet list. */
-  if(p&&p.manualDueDate===true)return false;
+  if(p&&p.manualDueDate===true&&fleetMaintenanceCategory(p.type)!=='safety')return false;
   var due=fleetDate(p),planCategory=fleetMaintenanceCategory(p.type),
       vehicle=(fleetVehicles||[]).find(function(v){return v&&String(v.id)===String(p.vehicleId)}),
       latestEvidence=vehicle&&fleetLatestCompletedEvidenceDate(vehicle,planCategory);
@@ -16233,9 +16233,9 @@ init();
      it was completed. Once the next service moves the due date, the old completion no
      longer clears the new cycle. */
   window.fleetPlanCompletedForCurrentCycle=function(p){
-    /* Keep a deliberately entered active due cycle visible. Completion handlers
-       advance and unprotect the plan when that exact piece of work is finished. */
-    if(p&&p.manualDueDate===true){
+    /* A manually dated safety cycle still accepts matching completion evidence.
+       Safety completion clears the list entry without advancing its anchored date. */
+    if(p&&p.manualDueDate===true&&fleetMaintenanceCategory(p.type)!=='safety'){
       /* A manual date protects an outstanding cycle. A completed service in
          that cycle must still clear it, including an early service. */
       var manualDue=String(fleetDate(p)||'').slice(0,10),
