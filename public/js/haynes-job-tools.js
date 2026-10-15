@@ -18,10 +18,10 @@ const RETRY_KEY='vecta_haynes_vehicle_retries_v1';
 const pausedStatuses=['AMBIGUOUS','UNAVAILABLE','UNKNOWN','NOT_FOUND','INCOMPLETE','MISMATCH'];
 function persistRetries(){try{root.localStorage?.setItem(RETRY_KEY,JSON.stringify([...failed].map(([registration,at])=>({registration,at,status:failStatus.get(registration)}))));}catch{}}
 try{for(const entry of JSON.parse(root.localStorage?.getItem(RETRY_KEY)||'[]'))if(/^[A-Z0-9]{2,8}$/.test(entry.registration)&&Number.isFinite(entry.at)&&entry.at<=Date.now()&&(Date.now()-entry.at<TTL||pausedStatuses.includes(entry.status))){failed.set(entry.registration,entry.at);failStatus.set(entry.registration,entry.status||'UNAVAILABLE');if(entry.status==='DAILY_LIMIT')dailyBlockedUntil=(Math.floor(entry.at/TTL)+1)*TTL;}}catch{}
-function identitySnapshot(registration,expectedMake){const v=identities.get(reg(registration));return v&&(!expectedMake||make(v.make)===make(expectedMake))?v:null;}
+function identitySnapshot(registration,expectedMake,expectedModel){const v=identities.get(reg(registration));return compatibleArtwork(v,{make:expectedMake,model:expectedModel})&&(!expectedModel||knownAssetMatches(v,{make:expectedMake,model:expectedModel}))?v:null;}
 function rememberIdentity(v,persist=true){
  if(!v||! /^[A-Z0-9]{2,8}$/.test(reg(v.registration))||!vehicleLink(v)||!v.make||!v.model||!v.variant||!Number.isFinite(Date.parse(v.fetchedAt))||Date.parse(v.fetchedAt)>Date.now())return;
- const clean={registration:reg(v.registration),make:String(v.make).slice(0,100),model:String(v.model).slice(0,180),variant:String(v.variant).slice(0,180),engineCode:String(v.engineCode||'').slice(0,100),modelYears:String(v.modelYears||'').slice(0,100),vehicle:String(v.vehicle||[v.make,v.model,v.variant].join(' ')).slice(0,360),typeId:v.typeId,...(/^\d{1,12}$/.test(String(v.ktypNr||''))?{ktypNr:String(v.ktypNr)}:{}),imageUrl:image(v.imageUrl),fetchedAt:v.fetchedAt};
+ const clean={registration:reg(v.registration),make:String(v.make).slice(0,100),model:String(v.model).slice(0,180),variant:String(v.variant).slice(0,180),engineCode:String(v.engineCode||'').slice(0,100),modelYears:String(v.modelYears||'').slice(0,100),vehicle:String(v.vehicle||[v.make,v.model,v.variant].join(' ')).slice(0,360),typeId:v.typeId,...(/^\d{1,12}$/.test(String(v.ktypNr||''))?{ktypNr:String(v.ktypNr)}:{}),imageUrl:image(v.imageUrl),...(root.VectaVehicleImage?.colourHex(v.colour)?{colour:v.colour}:{}),fetchedAt:v.fetchedAt};
  identities.set(clean.registration,clean);
  if(persist)try{root.localStorage?.setItem(ID_KEY,JSON.stringify([...identities.values()]));}catch{}
  return clean;
@@ -42,8 +42,9 @@ function queueSharedArtwork(v){
  const client=root.remoteClient,clean=cleanArtwork(v);
  if(!client||client!==sharedClient||root.VECTA_AUDIT_PREVIEW||!clean)return;
  const saved=sharedArtwork.get(clean.registration);
+ if(!clean.colour&&saved?.colour)clean.colour=saved.colour;
  // Keep a previously shared selection instead of replacing it with a new model guess.
- if(saved&&(JSON.stringify(saved)===JSON.stringify(clean)||clean.generic))return;
+ if(saved&&(JSON.stringify(saved)===JSON.stringify(clean)||clean.generic&&compatibleArtwork(saved,clean)))return;
  sharedWrites.set(clean.registration,clean);
  if(!sharedTimer&&!sharedSaving&&Date.now()>=sharedRetryAt)sharedTimer=setTimeout(()=>{sharedTimer=null;flushSharedArtwork();},100);
 }
@@ -67,7 +68,7 @@ function hydrateSharedArtwork(){
  sharedLoading=(async()=>{try{
   const response=await sharedArtworkResponse(client.from('workshop_settings').select('id,value').like('id',SHARED_ART_PREFIX+'%').limit(2000));
   if(response.error)throw response.error;
-  for(const row of response.data||[]){const clean=cleanArtwork(row.value);if(clean&&row.id===SHARED_ART_PREFIX+clean.registration){sharedArtwork.set(clean.registration,clean);rememberArtwork(clean,false);}}
+  for(const row of response.data||[]){const clean=cleanArtwork(row.value);if(clean&&row.id===SHARED_ART_PREFIX+clean.registration){const local=artwork.get(clean.registration);if(!clean.colour&&local?.colour)clean.colour=local.colour;sharedArtwork.set(clean.registration,clean);if(!local||compatibleArtwork(clean,local))rememberArtwork(clean,false);}}
   sharedClient=client;
   // Upgrade existing device caches in one batch, never a write per rendered card.
   for(const value of artwork.values())queueSharedArtwork(value);
@@ -78,6 +79,7 @@ function hydrateSharedArtwork(){
 }
 function rememberArtwork(v,persist=true){
  const clean=cleanArtwork(v);if(!clean)return;
+ const previous=artwork.get(clean.registration);if(!clean.colour&&previous?.colour)clean.colour=previous.colour;
  if(persist)queueSharedArtwork(clean);
  const existing=artwork.get(clean.registration);if(existing&&existing.make===clean.make&&existing.model===clean.model&&existing.imageUrl===clean.imageUrl&&existing.colour===clean.colour&&!!existing.generic===!!clean.generic)return;
  artwork.set(clean.registration,clean);
@@ -86,18 +88,18 @@ function rememberArtwork(v,persist=true){
 try{for(const v of JSON.parse(root.localStorage?.getItem(ART_KEY)||'[]'))rememberArtwork(v,false);}catch{}
 // Hydrate once without rewriting the full artwork/identity collections per row.
 try{for(const v of JSON.parse(root.localStorage?.getItem(KEY)||'[]'))if(vehicleLink(v)){rememberArtwork(v,false);rememberIdentity(v,false);}}catch{}
-function artworkSnapshot(registration,expectedMake){const v=sharedArtwork.get(reg(registration))||artwork.get(reg(registration));return v&&(!expectedMake||make(v.make)===make(expectedMake))?v:null;}
+function artworkSnapshot(registration,expectedMake,expectedModel){return [sharedArtwork.get(reg(registration)),artwork.get(reg(registration))].find(v=>compatibleArtwork(v,{make:expectedMake,model:expectedModel})&&(!expectedModel||knownAssetMatches(v,{make:expectedMake,model:expectedModel})))||null;}
 try{for(const v of JSON.parse(root.localStorage?.getItem(KEY)||'[]'))remember(v,false);}catch{}
 function valid(v,registration,expectedMake){return !!(v&&reg(v.registration)===reg(registration)&&vehicleLink(v)&&v.make&&v.model&&v.variant&&(!expectedMake||make(v.make)===make(expectedMake))&&Number.isFinite(Date.parse(v.fetchedAt))&&Date.now()-Date.parse(v.fetchedAt)>=0&&Date.now()-Date.parse(v.fetchedAt)<TTL);}
 function remember(v,persist=true){
  if(!valid(v,v?.registration))return;
- const clean={registration:reg(v.registration),make:String(v.make).slice(0,100),model:String(v.model).slice(0,180),variant:String(v.variant).slice(0,180),engineCode:String(v.engineCode||'').slice(0,100),modelYears:String(v.modelYears||'').slice(0,100),vehicle:String(v.vehicle||[v.make,v.model,v.variant].join(' ')).slice(0,360),typeId:v.typeId,...(/^\d{1,12}$/.test(String(v.ktypNr||''))?{ktypNr:String(v.ktypNr)}:{}),imageUrl:image(v.imageUrl),fetchedAt:v.fetchedAt};
+ const clean={registration:reg(v.registration),make:String(v.make).slice(0,100),model:String(v.model).slice(0,180),variant:String(v.variant).slice(0,180),engineCode:String(v.engineCode||'').slice(0,100),modelYears:String(v.modelYears||'').slice(0,100),vehicle:String(v.vehicle||[v.make,v.model,v.variant].join(' ')).slice(0,360),typeId:v.typeId,...(/^\d{1,12}$/.test(String(v.ktypNr||''))?{ktypNr:String(v.ktypNr)}:{}),imageUrl:image(v.imageUrl),...(root.VectaVehicleImage?.colourHex(v.colour)?{colour:v.colour}:{}),fetchedAt:v.fetchedAt};
  cache.set(clean.registration,clean);while(cache.size>300)cache.delete(cache.keys().next().value);
  rememberArtwork(clean,persist);rememberIdentity(clean,persist);
  if(persist)try{root.localStorage?.setItem(KEY,JSON.stringify([...cache.values()].filter(x=>valid(x,x.registration))));}catch{}
  return clean;
 }
-function snapshot(registration,expectedMake){const v=cache.get(reg(registration));return valid(v,registration,expectedMake)?v:null;}
+function snapshot(registration,expectedMake,expectedModel){const v=cache.get(reg(registration));return valid(v,registration,expectedMake)&&compatibleArtwork(v,{make:expectedMake,model:expectedModel})&&(!expectedModel||knownAssetMatches(v,{make:expectedMake,model:expectedModel}))?v:null;}
 // Generic artwork is a visual hint only; it has no registration or technical ID.
 const modelImages=[
  {make:'Nissan',model:'Qashqai',imageUrl:'https://www.haynespro-assets.com/workshop/images/319004648.svgz'},
@@ -106,12 +108,23 @@ const modelImages=[
 const words=v=>String(v||'').toUpperCase().replace(/[^A-Z0-9]+/g,' ').trim();
 // Model spacing varies between internal fleet names and Haynes (NV 200 / NV200).
 const modelWords=v=>words(v).replace(/([A-Z])\s+(?=\d)/g,'$1').replace(/(\d)\s+([A-Z])(?=\s|$)/g,'$1$2');
+// Registration alone cannot validate a stale/misidentified vehicle from another Nissan.
+function compatibleArtwork(value,description){
+ if(!value)return false;
+ if(description?.make&&value.make&&make(description.make)!==make(value.make))return false;
+ const normal=v=>modelWords(v).replace(/^(?:NISSAN|FORD|MERCEDES BENZ|INFINITI|CITROEN|RENAULT) /,'');
+ const expected=normal(description?.model||description?.vehicle),actual=normal(String(value.model||'').split(/[(/]/)[0]);
+ if(!expected||!actual)return true;
+ const family=v=>v.split(' ')[0];
+ return expected===actual||family(expected)===family(actual);
+}
+function knownAssetMatches(value,description){const known=modelImages.find(v=>v.imageUrl===value?.imageUrl);return !known||compatibleArtwork(known,description);}
 function genericImage(description){
  if(!description||description.no_vehicle)return null;
  const text=' '+modelWords(description.model||description.vehicle)+' ',expectedMake=make(description.make);
  const fleetModel=root.VectaFleetImages?.modelArtwork?.(description.model||description.vehicle);
- if(image(fleetModel?.imageUrl)&&(!expectedMake||make(fleetModel.make)===expectedMake))return {make:fleetModel.make,model:fleetModel.model,imageUrl:fleetModel.imageUrl,generic:true};
- const candidates=[...sharedArtwork.values(),...artwork.values(),...identities.values(),...cache.values(),...modelImages].filter(v=>image(v.imageUrl)).map(v=>({make:v.make,model:String(v.model).split(/[(/]/)[0].trim(),imageUrl:v.imageUrl})).sort((a,b)=>b.model.length-a.model.length);
+ if(image(fleetModel?.imageUrl)&&compatibleArtwork(fleetModel,description)&&knownAssetMatches(fleetModel,description)&&(!expectedMake||make(fleetModel.make)===expectedMake))return {make:fleetModel.make,model:fleetModel.model,imageUrl:fleetModel.imageUrl,generic:true};
+ const candidates=[...sharedArtwork.values(),...artwork.values(),...identities.values(),...cache.values(),...modelImages].filter(v=>image(v.imageUrl)&&knownAssetMatches(v,description)).map(v=>({make:v.make,model:String(v.model).split(/[(/]/)[0].trim(),imageUrl:v.imageUrl})).sort((a,b)=>b.model.length-a.model.length);
  for(const v of candidates){const model=modelWords(v.model),family=model.split(' ')[0],modelMatch=model&&text.includes(' '+model+' ')||/^[A-Z]+\d+[A-Z0-9]*$/.test(family)&&text.includes(' '+family+' ');if(modelMatch&&(!expectedMake||make(v.make)===expectedMake))return {make:v.make,model:v.model,imageUrl:v.imageUrl,generic:true};}
  return null;
 }
@@ -142,9 +155,9 @@ try{for(const [registration,at] of JSON.parse(root.localStorage?.getItem(colourR
 try{for(const entry of JSON.parse(root.localStorage?.getItem(colourKey)||'[]'))if(/^[A-Z0-9]{2,8}$/.test(entry.registration)&&Number.isFinite(entry.at)&&entry.at<=Date.now())colourCache.set(entry.registration,entry);}catch{}
 function dashboardColour(job){
  const registration=reg(job.registration),vehicle=registration?(root.app?.vehicles||[]).find(v=>reg(v.registration)===registration):null;
- const fleet=registration?(root.fleetVehicles||[]).find(v=>reg(v.registration)===registration):null;
+ const fleet=registration?(root.__vectaFleetState?.()?.vehicles||root.fleetVehicles||[]).find(v=>reg(v.registration)===registration):null;
  const saved=colourCache.get(registration),cached=saved&&(!job.make||make(saved.make)===make(job.make))?saved.colour:'';
- const supplied=job.vehicle_colour||job.colour||vehicle?.colour||fleet?.colour||cached||artworkSnapshot(registration,job.make)?.colour||'';
+ const supplied=job.vehicle_colour||job.colour||job.color||vehicle?.colour||vehicle?.color||fleet?.colour||fleet?.color||cached||artworkSnapshot(registration,job.make)?.colour||'';
  return root.VectaVehicleImage?.resolveColour(registration,supplied)||supplied;
 }
 function rememberLookupColour(data,expectedMake){
@@ -195,7 +208,7 @@ function mobileManufacturerBadge(card,j,v){
 function genericDashboardArtwork(card,target,j){
  const svg=root.VectaFleetImages?.artwork?.(j.model||j.vehicle||j.make,dashboardColour(j));if(!svg)return;
  let img=card.querySelector('.haynesDashboardImage');if(!img){img=document.createElement('img');img.className='haynesDashboardImage';target.appendChild(img);}
- img.src='data:image/svg+xml;charset=utf-8,'+encodeURIComponent(svg);img.alt='Generic '+(j.vehicle||j.model||j.make||'vehicle')+' illustration';img.dataset.generic='true';img.title='Generic illustration — appearance may differ';target.classList.add('hasHaynesDashboardImage');mobileManufacturerBadge(card,j);
+ delete img.dataset.vehicleSource;delete img.dataset.personalised;delete img.dataset.personalising;delete img.dataset.haynesSource;delete img.dataset.vehicleImage;img.src='data:image/svg+xml;charset=utf-8,'+encodeURIComponent(svg);img.alt='Generic '+(j.vehicle||j.model||j.make||'vehicle')+' illustration';img.dataset.generic='true';img.title='Generic illustration — appearance may differ';target.classList.add('hasHaynesDashboardImage');mobileManufacturerBadge(card,j);
 }
 root.enrichHaynesDashboard=function(container,jobs){
  if(!container)return;const byId=new Map((jobs||[]).filter(j=>!j.no_vehicle&&j.card_type!=='mini_task').map(j=>[String(j.id),j]));
@@ -211,7 +224,7 @@ root.enrichHaynesDashboard=function(container,jobs){
 const attach=(v,targets,j)=>{for(const {card,target} of targets){if(!card.isConnected)continue;if(!v){genericDashboardArtwork(card,target,j);continue;}const colour=dashboardColour(j);rememberArtwork({registration:j.registration,make:v.make,model:v.model,imageUrl:v.imageUrl,colour,...(v.generic?{generic:true}:{})});let img=card.querySelector('.haynesDashboardImage');if(img&&(img.dataset.haynesSource!==v.imageUrl||img.dataset.colour!==colour)){img.remove();img=null;}img=img||thumbnail(v,'haynesDashboardImage',j);if(img){img.dataset.haynesSource=v.imageUrl;img.dataset.colour=colour;img.dataset.vehicleName=[v.make,v.model].join(' ');img.setAttribute('data-vehicle-image','');img.dataset.registration=reg(j.registration);img.dataset.vehicleLogo='separate';img.dataset.vehicleCrop='tight';target.appendChild(img);mobileManufacturerBadge(card,j,v);img.addEventListener('error',()=>genericDashboardArtwork(card,target,j),{once:true});target.classList.add('hasHaynesDashboardImage');trackTimedArtwork(card,img);root.VectaVehicleImage?.mount(target);}}};
  // Calendar rendering reads stored artwork only; it must never enqueue the PC worker.
  for(const group of groups.values()){
-  const j=group.job,hit=identitySnapshot(j.registration,j.make)||snapshot(j.registration,j.make),fallback=artworkSnapshot(j.registration,j.make)||genericImage(j);
+  const j=group.job,hit=identitySnapshot(j.registration,j.make,j.model||j.vehicle)||snapshot(j.registration,j.make,j.model||j.vehicle),fallback=artworkSnapshot(j.registration,j.make,j.model||j.vehicle)||genericImage(j);
   attach(hit?.imageUrl?hit:fallback,group.targets,j);
  }
 

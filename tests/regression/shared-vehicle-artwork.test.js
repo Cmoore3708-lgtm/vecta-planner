@@ -77,3 +77,21 @@ test('the shared read repaints the latest planner data rather than an old regist
  d.root.enrichHaynesDashboard(d.document,[{...job,registration:'OTHER',make:'Ford',vehicle:'Unknown',colour:'Grey'}]);
  finish();await settled();assert.notEqual(d.document.querySelector('img')?.dataset.haynesSource,asset);
 });
+test('MTC2 rejects a stale Qashqai identity and cloud record, retaining its local NV200 offline',async()=>{
+ const wrong={registration:'MTC2',make:'Nissan',model:'Qashqai',variant:'1.5',typeId:'t_123',fetchedAt:new Date().toISOString(),imageUrl:'https://www.haynespro-assets.com/workshop/images/319004648.svgz'};
+ const storage=new Map([['vecta_haynes_vehicle_identity_v1',JSON.stringify([wrong])],['vecta_haynes_artwork_v1',JSON.stringify([{...van,registration:'MTC2',generic:true}])]]);
+ const db=database(new Map([['vehicle_artwork:MTC2',wrong]])),d=device(db,storage);
+ d.root.enrichHaynesDashboard(d.document,[job]);await settled();await d.root.VectaHaynesJobTools.flushSharedArtwork();
+ assert.equal(d.document.querySelector('img').dataset.haynesSource,asset);
+ assert.equal(db.rows.get('vehicle_artwork:MTC2').model,van.model);
+ const offline=device(db,storage);offline.root.navigator.onLine=false;offline.root.enrichHaynesDashboard(offline.document,[job]);
+ assert.equal(offline.document.querySelector('img').dataset.haynesSource,asset);assert.equal(d.lookups(),0);assert.equal(offline.lookups(),0);
+});
+test('a technical refresh without colour preserves blue across shared hydration and reopening',async()=>{
+ const car={...van,registration:'NJ17GWM',model:'Qashqai',colour:'Blue'};
+ const d=device(database(new Map([['vehicle_artwork:NJ17GWM',{...car,colour:undefined}]])),new Map([['vecta_haynes_artwork_v1',JSON.stringify([car])]]));
+ await d.root.VectaHaynesJobTools.hydrateSharedArtwork();
+ d.root.VectaHaynesJobTools.remember({...car,colour:undefined,variant:'1.5',typeId:'t_123',fetchedAt:new Date().toISOString()});
+ assert.equal(d.root.VectaHaynesJobTools.artworkSnapshot('NJ17GWM').colour,'Blue');
+ assert.equal(device(database(),d.storage).root.VectaHaynesJobTools.dashboardColour({registration:'NJ17 GWM'}),'Blue');
+});
