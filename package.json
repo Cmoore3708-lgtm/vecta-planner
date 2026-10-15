@@ -8,7 +8,7 @@
   },
   "scripts": {
     "dev": "vite",
-    "build": "npx vite build && node scripts/split-built-html.mjs && node scripts/copy-website.mjs",
+    "build": "npx vite build && node scripts/split-built-html.mjs && node scripts/copy-website.mjs && node scripts/verify-build-size.mjs",
     "preview": "vite preview",
     "test": "node scripts/run-regression-tests.mjs",
     "test:regression": "node scripts/run-regression-tests.mjs",
@@ -28,6 +28,7 @@
   },
   "devDependencies": {
     "@vitejs/plugin-react": "^5.0.1",
+    "esbuild": "0.28.1",
     "linkedom": "0.18.12",
     "vite": "^7.1.3"
   }
