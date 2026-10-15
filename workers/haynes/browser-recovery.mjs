@@ -15,11 +15,13 @@ async function bounded(promise, timeoutMs, reason) {
   } finally { clearTimeout(timer); }
 }
 
-// A stalled request owns only its own pages. Restart the shared browser only
+// A stalled request closes only its own pages, including any vehicle tab it
+// borrowed. Successful keyed lookups retain their tab. Restart the browser only
 // after other requests finish; never replay a lookup or clear its login profile.
 export function createBrowserRecovery(open, { failureLimit = 3, cleanupMs = 2000, openMs = 20000, onRecovery = () => {} } = {}) {
   let context = null, opening = null, restart = false, failures = 0, stopped = false;
   let active = 0;
+  const retained = new Map();
   const drained = new Set();
   async function ready() {
     if (stopped) throw unavailable();
@@ -31,6 +33,7 @@ export function createBrowserRecovery(open, { failureLimit = 3, cleanupMs = 2000
       if (context) {
         await bounded(context.close(), cleanupMs, 'BROWSER_ERROR');
         context = null;
+        retained.clear();
         onRecovery();
       }
       const launch = Promise.resolve().then(open);
@@ -47,14 +50,15 @@ export function createBrowserRecovery(open, { failureLimit = 3, cleanupMs = 2000
     return opening;
   }
   return {
-    async run(factory, input, timeoutMs) {
+    async run(factory, input, timeoutMs, { pageKey } = {}) {
       const started = Date.now();
       const current = await bounded(ready(), timeoutMs, 'TIMEOUT'), pages = new Set();
       let ended = false;
       active++;
       const scope = {
         async newPage() {
-          const page = await current.newPage();
+          let page = pageKey ? retained.get(pageKey) : null;
+          if (!page || page.isClosed?.()) page = await current.newPage();
           pages.add(page);
           if (ended) { page.close().catch(() => {}); throw unavailable(); }
           return page;
@@ -63,6 +67,10 @@ export function createBrowserRecovery(open, { failureLimit = 3, cleanupMs = 2000
       try {
         const result = await bounded(Promise.resolve().then(() => factory(scope)(input)), Math.max(1, timeoutMs - (Date.now() - started)), 'TIMEOUT');
         failures = 0;
+        if (pageKey && !ended) {
+          for (const page of pages) if (!page.isClosed?.()) retained.set(pageKey, page);
+          pages.clear();
+        }
         return result;
       } catch (caught) {
         const error = caught instanceof HaynesError ? caught : unavailable(caught.name === 'TimeoutError' ? 'TIMEOUT' : 'BROWSER_ERROR');
@@ -73,6 +81,7 @@ export function createBrowserRecovery(open, { failureLimit = 3, cleanupMs = 2000
         throw error;
       } finally {
         ended = true;
+        if (pageKey && pages.has(retained.get(pageKey))) retained.delete(pageKey);
         const cleanup = await bounded(Promise.allSettled([...pages].map(page => Promise.resolve().then(() => page.close()))), cleanupMs, 'BROWSER_ERROR').catch(() => null);
         if(!cleanup || cleanup.some(result => result.status === 'rejected')) restart = true;
         active--;
