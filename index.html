@@ -14556,6 +14556,7 @@ function applyTemplate(name){
   else{after=after.filter(function(v){return normaliseJobTypeKey(v)!=='general'});after.push(name)}
   if(!after.length)after=['general'];
   jobType.value=jobTypeStorageValue(after);
+  if(!exists&&key==='mot'){var technician=document.getElementById('job_technician');if(technician){var chris=Array.from(technician.options).find(function(option){return String(option.value).trim().toLowerCase()==='chris'});if(chris)technician.value=chris.value;}}
   updateMotTimeField(!exists&&key==='mot');
   document.querySelectorAll('.jobModalCard .templateBtns [data-template]').forEach(function(btn){btn.classList.toggle('selected',after.some(function(v){return normaliseJobTypeKey(v)===normaliseJobTypeKey(btn.dataset.template)}))});
   var work=document.getElementById('job_work_required'),newAuto=templateWorkForTypes(after);
