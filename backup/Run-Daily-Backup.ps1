@@ -6,6 +6,8 @@ $secure = ConvertTo-SecureString $config.encryptedSecret
 $credential = New-Object System.Management.Automation.PSCredential ('vecta-backup', $secure)
 $secret = $credential.GetNetworkCredential().Password
 $site = ([string]$config.siteUrl).TrimEnd('/')
+$siteUri = [Uri]$site
+if ($siteUri.Scheme -ne 'https' -or $siteUri.UserInfo -or $siteUri.Query -or $siteUri.Fragment -or $siteUri.AbsolutePath -ne '/') { throw 'Backup site must be an HTTPS origin without credentials or a path.' }
 $folder = [string]$config.backupFolder
 if (!(Test-Path $folder)) { New-Item -ItemType Directory -Force -Path $folder | Out-Null }
 $stamp = Get-Date -Format 'yyyy-MM-dd'
@@ -13,7 +15,7 @@ $temp = Join-Path $folder "VECTA-FULL-BACKUP-$stamp.downloading"
 $final = Join-Path $folder "VECTA-FULL-BACKUP-$stamp.json"
 $headers = @{ Authorization = "Bearer $secret" }
 try {
-  Invoke-WebRequest -Uri "$site/api/full-backup" -Headers $headers -OutFile $temp -UseBasicParsing -TimeoutSec 300
+  Invoke-WebRequest -Uri "$site/api/full-backup" -Headers $headers -OutFile $temp -UseBasicParsing -TimeoutSec 300 -MaximumRedirection 0
   $raw = [System.IO.File]::ReadAllText($temp, [System.Text.Encoding]::UTF8)
   $json = $raw | ConvertFrom-Json
   if ($json.format -ne 'VECTA_WORKSHOP_PRO_FULL_BACKUP_V1') { throw 'The downloaded file is not a recognised VECTA backup.' }
@@ -55,6 +57,25 @@ try {
   } finally { $sha.Dispose() }
   if ($digest -ne $json.data_sha256) { throw 'Backup SHA-256 checksum does not match.' }
   Move-Item -Force $temp $final
+  if (![string]::IsNullOrWhiteSpace([string]$config.encryptedCopyFolder)) {
+    $copyFolder = [string]$config.encryptedCopyFolder
+    if (!(Test-Path $copyFolder)) { throw 'Encrypted recovery-copy folder is unavailable; previous backups retained.' }
+    if (!$config.encryptedRecoveryPassphrase) { throw 'Encrypted recovery-copy passphrase is not configured.' }
+    $recoverySecure = ConvertTo-SecureString $config.encryptedRecoveryPassphrase
+    $recoveryCredential = New-Object System.Management.Automation.PSCredential ('recovery', $recoverySecure)
+    $recoveryTool = Join-Path $PSScriptRoot '..\scripts\encrypted-workshop-backup.mjs'
+    $copy = Join-Path $copyFolder ('VECTA-RECOVERY-' + (Get-Date -Format 'yyyy-MM-dd-HHmmss') + '-' + [guid]::NewGuid().ToString('N') + '.vecta-encrypted')
+    $previousOutputEncoding = $OutputEncoding
+    try {
+      $OutputEncoding = New-Object System.Text.UTF8Encoding($false)
+      $recoveryCredential.GetNetworkCredential().Password | & node $recoveryTool seal $final --output $copy --passphrase-stdin
+      if ($LASTEXITCODE -ne 0) { throw 'Encrypted recovery copy failed verification; previous backups retained.' }
+    } finally { $OutputEncoding = $previousOutputEncoding; $recoveryCredential = $null; $recoverySecure = $null }
+    Get-ChildItem -Path $copyFolder -Filter 'VECTA-RECOVERY-*.vecta-encrypted' -File |
+      Sort-Object LastWriteTime -Descending |
+      Select-Object -Skip 30 |
+      Remove-Item -Force
+  }
   Get-ChildItem -Path $folder -Filter 'VECTA-FULL-BACKUP-*.json' -File |
     Sort-Object LastWriteTime -Descending |
     Select-Object -Skip 30 |
