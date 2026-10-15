@@ -107,3 +107,10 @@ test('manufacturer-prefixed job labels retain the exact saved Volkswagen and Aud
   assert.equal(d.lookups(),0);
  }
 });
+
+test('Cabstar job uses its saved NT400 Cabstar drawing without borrowing an NV200 image',()=>{
+ const drawing={registration:'VK68UBR',make:'NISSAN',model:'NT400 Cabstar (F24)',imageUrl:'https://www.haynespro-assets.com/workshop/images/319011515.svgz'};
+ const d=device(database(),new Map([['vecta_haynes_artwork_v1',JSON.stringify([drawing])]]));
+ assert.equal(d.root.VectaHaynesJobTools.artworkSnapshot('VK68UBR','NISSAN','CABSTAR')?.imageUrl,drawing.imageUrl);
+ assert.equal(d.root.VectaHaynesJobTools.artworkSnapshot('VK68UBR','NISSAN','NV200'),null);
+});
