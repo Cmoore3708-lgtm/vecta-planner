@@ -72,9 +72,10 @@
   function validRender(result){return typeof result?.url==='string'&&result.url.startsWith('data:image/svg+xml;charset=utf-8,')&&result.url.length<500000;}
   const normaliseReg = value => String(value || '').toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0,8);
   // Customer-confirmed illustration correction; leave official MOT records untouched.
-  const confirmedColours = {BD53MUD:'Black',NA63UKO:'Black'};
+  const confirmedColours = {BD53MUD:'Black',NA63UKO:'Black',NJ17GWM:'Blue'};
   function resolveColour(registration, suppliedColour) {
     const reg = normaliseReg(registration);
+    if (reg === 'NJ17GWM') return confirmedColours[reg];
     try { const saved = root.localStorage?.getItem('vecta-image-colour:'+reg); if (colourHex(saved)) return saved; } catch {}
     return confirmedColours[reg] || suppliedColour || '';
   }

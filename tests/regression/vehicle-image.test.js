@@ -100,6 +100,7 @@ test('confirmed illustration colour corrections and customer choices are registr
   const helper=root.VectaVehicleImage;
   assert.equal(helper.resolveColour('BD53 MUD','Red'),'Black');
   assert.equal(helper.resolveColour('CM14 KEL','Green'),'Green');
+  assert.equal(helper.resolveColour('NJ17 GWM','Silver'),'Blue');
   helper.rememberColour('BD53 MUD','Blue');
   assert.equal(helper.resolveColour('BD53MUD','Red'),'Blue');
   assert.equal(helper.resolveColour('CM14KEL','Green'),'Green');
