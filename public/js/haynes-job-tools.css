@@ -303,3 +303,12 @@
  #content .livePriorityTasks .completedTasks summary,#content .livePriorityTasks .completedTask{font-size:16px!important;line-height:1.4!important}
  #content .livePriorityTasks .taskList>.empty{grid-column:1/-1}
 }
+
+/* MOT time has its own row, leaving registration and vehicle identity together. */
+@media screen and (min-width:901px){
+ #content .livePriorityPlanner .plannerGrid .lane .job.plannerMotJob .plannerJobHeader{display:flex!important;flex-direction:column!important;align-items:flex-start!important;gap:4px!important;height:auto!important}
+ #content .livePriorityPlanner .plannerGrid .lane .job.plannerMotJob .plannerPlateAndMot{position:static!important;display:flex!important;flex:0 0 auto!important}
+ #content .livePriorityPlanner .plannerGrid .lane .job.plannerMotJob .plannerJobHeader>.plannerMotHeader{display:block!important;position:static!important;flex:none!important;min-height:17px;margin:0}
+ #content .livePriorityPlanner .plannerGrid .lane .job.plannerMotJob .plannerJobRightText{height:18px!important;max-height:18px!important}
+ #content .livePriorityPlanner .plannerGrid .lane .job.plannerMotJob .plannerWorkRequired{top:80px!important}
+}
