@@ -6,13 +6,13 @@ import { parseHTML } from 'linkedom';
 const client=fs.readFileSync('public/js/vecta-haynes-booking.js','utf8');
 for(const path of ['public/booking.html','website/booking/index.html'])test(`${path}: Haynes pricing and persistent identity preserve advisories and live submission`,async()=>{
  const html=fs.readFileSync(path,'utf8'),{document}=parseHTML(html),requests=[];
- const root={document,URL,URLSearchParams,location:{search:''},AbortController,AbortSignal,console,setTimeout,clearTimeout,alert(){},crypto:{randomUUID:()=> '12345678-1234-4123-8123-123456789abc'}};
+ const root={document,URL,URLSearchParams,location:{search:''},AbortController,AbortSignal,console,setTimeout,clearTimeout,setInterval,clearInterval,alert(){},crypto:{randomUUID:()=> '12345678-1234-4123-8123-123456789abc'}};
  root.window=root;root.fetch=async(url,options)=>{
   requests.push({url,options});
   const data=String(url).includes('/api/haynes-vehicle')?{status:'MATCHED',vehicle:{registration:'NU67VSE',make:'NISSAN',model:'Qashqai',variant:'1.6 DiG-T 190',engineCode:'MR16DDT',vehicle:'NISSAN Qashqai 1.6 DiG-T 190',typeId:'t_1'}}:String(url).includes('/api/vehicle-lookup')?{vehicle:'NISSAN QASHQAI',make:'NISSAN',advisories:['Tyre worn'],engineCapacity:1618}:String(url).includes('/api/website-booking')?{ok:true,request_id:'receipt',confirmed:false}:{};
   return {ok:true,status:200,json:async()=>data};
  };
- vm.createContext(root);vm.runInContext(client,root);vm.runInContext(fs.readFileSync('public/js/vecta-vehicle-image.js','utf8'),root);
+ vm.createContext(root);if(html.includes('/js/vecta-booking-transfer.js'))vm.runInContext(fs.readFileSync('website/js/vecta-booking-transfer.js','utf8'),root);vm.runInContext(client,root);vm.runInContext(fs.readFileSync('public/js/vecta-vehicle-image.js','utf8'),root);
  for(const m of html.matchAll(/<script(?:\s[^>]*)?>([\s\S]*?)<\/script>/g))if(m[1])vm.runInContext(m[1],root);
  await new Promise(r=>setImmediate(r));await vm.runInContext("state.form.registration='NU67VSE';lookup('NU67VSE')",root);await new Promise(r=>setImmediate(r));
  assert.equal(vm.runInContext('serviceEngineSize()',root),1600);
