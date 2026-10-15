@@ -155,3 +155,14 @@ test('generic supplier menus appear one after another without manufacturer-speci
  assert.match(document.querySelector('[data-service]').textContent,/Different follow-up question/);
  assert.equal(requests[1][0].menu,menus[0].id);assert.equal(requests[1][0].option,menus[0].options[0].id);
 });
+
+test('typing a complete plate starts Haynes early, partial input does not',async()=>{
+ const {window,document}=setup(async()=>({ok:true,json:async()=>({status:'MATCHED',vehicle})}));
+ const requested=[];window.VectaHaynesJobTools.lookup=async registration=>{requested.push(registration);return vehicle;};
+ const input=document.getElementById('haynesDashboardRegistration');input.setCustomValidity=()=>{};
+ input.value='FX69XW';input.oninput({target:input});
+ await new Promise(resolve=>setTimeout(resolve,680));assert.equal(requested.length,0);
+ input.value='fx69 xwu';input.oninput({target:input});
+ await new Promise(resolve=>setTimeout(resolve,680));assert.deepEqual(requested,['FX69XWU']);
+ assert.equal(document.getElementById('haynesLookupPage'),null);
+});
