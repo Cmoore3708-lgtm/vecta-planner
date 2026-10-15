@@ -100,6 +100,8 @@ test('manufacturer-prefixed job labels retain the exact saved Volkswagen and Aud
  for(const [make,model,registration] of [['Volkswagen','Beetle','DC14EEZ'],['Audi','A4','HGZ7396']]){
   const saved={...van,make,model,registration};
   const d=device(database(),new Map([['vecta_haynes_artwork_v1',JSON.stringify([saved])]]));
+  assert.equal(d.root.VectaHaynesJobTools.artworkSnapshot(registration,make,make+' '+model)?.imageUrl,asset);
+  assert.equal(d.root.VectaHaynesJobTools.artworkSnapshot(registration,make,make+' WrongModel'),null);
   d.root.enrichHaynesDashboard(d.document,[{id:'1',registration,vehicle:make+' '+model}]);
   assert.equal(d.document.querySelector('img').dataset.haynesSource,asset);
   assert.equal(d.lookups(),0);
