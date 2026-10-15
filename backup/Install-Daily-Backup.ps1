@@ -1,7 +1,7 @@
 $ErrorActionPreference = 'Stop'
 Write-Host ''
 Write-Host 'VECTA Workshop Pro - Daily Offline Backup Setup' -ForegroundColor Cyan
-Write-Host 'This stores one full database copy per day on this Windows PC and keeps the newest 30.'
+Write-Host 'This stores one consistent workshop-data copy per day on this Windows PC and keeps the newest 30.'
 Write-Host ''
 $site = Read-Host 'Workshop Pro website address (for example https://workshop.example.com)'
 if ([string]::IsNullOrWhiteSpace($site)) { throw 'Website address is required.' }
@@ -22,7 +22,7 @@ $runner = Join-Path $PSScriptRoot 'Run-Daily-Backup.ps1'
 $action = New-ScheduledTaskAction -Execute 'powershell.exe' -Argument "-NoProfile -ExecutionPolicy Bypass -File `"$runner`""
 $trigger = New-ScheduledTaskTrigger -Daily -At 6:30pm
 $settings = New-ScheduledTaskSettingsSet -StartWhenAvailable -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries
-Register-ScheduledTask -TaskName 'VECTA Workshop Daily Backup' -Action $action -Trigger $trigger -Settings $settings -Description 'Daily offline copy of the VECTA Workshop Pro Supabase database' -Force | Out-Null
+Register-ScheduledTask -TaskName 'VECTA Workshop Daily Backup' -Action $action -Trigger $trigger -Settings $settings -Description 'Daily offline snapshot of VECTA workshop records' -Force | Out-Null
 Write-Host ''
 Write-Host 'Running the first backup now...' -ForegroundColor Yellow
 & $runner

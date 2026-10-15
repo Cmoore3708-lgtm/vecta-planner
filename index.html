@@ -12547,8 +12547,8 @@ async function createJobFromWebsiteRequest(id){
   }
 
   var r=(app.websiteRequests||[]).find(function(x){return x.id===id});if(!r)return;
-  var bookingDate=r.preferred_date_1||selectedIso(),types=Array.isArray(r.job_types)?r.job_types.slice():[];types=types.map(function(t){return normaliseJobTypeKey(t)==='service'?'Major Service':t});var jobType=types[0]||'General';
-  var j={id:uid(),booking_date:String(bookingDate).slice(0,10),drop_time:'08:00',registration:normReg(r.registration||''),vehicle:r.vehicle||'',mileage:(r.mileage===null||r.mileage===undefined||String(r.mileage).trim()===''?null:Number(r.mileage)),customer_account:'Staff',customer_name:r.customer_name||'',customer_phone:r.phone||'',customer_email:r.email||'',work_required:r.work_required||types.join(', ')||'Website booking request',job_type:types.join(', ')||jobType,job_colour:/mot/i.test(jobType)?'MOT':(/service/i.test(jobType)?'Service':'General'),estimated_hours:1,amount_quoted:null,technician:'Unallocated',ramp:'',status:'booked',card_type:'job',source:'website booking',booking_source:'Website booking',website_request_id:String(r.id||''),customer_note:websiteRequestNote(r),created_at:new Date().toISOString(),updated_at:new Date().toISOString()};applyWebsiteDefaultMajorService(j);
+  var reserved=!!r.confirmed_time&&Number(r.reserved_hours)>0,bookingDate=r.confirmed_date||r.preferred_date_1||selectedIso(),types=Array.isArray(r.job_types)?r.job_types.slice():[];types=types.map(function(t){return normaliseJobTypeKey(t)==='service'?'Major Service':t});var jobType=types[0]||'General';
+  var j={id:uid(),booking_date:String(bookingDate).slice(0,10),drop_time:r.confirmed_time||'08:00',registration:normReg(r.registration||''),vehicle:r.vehicle||'',mileage:(r.mileage===null||r.mileage===undefined||String(r.mileage).trim()===''?null:Number(r.mileage)),customer_account:'Staff',customer_name:r.customer_name||'',customer_phone:r.phone||'',customer_email:r.email||'',work_required:r.work_required||types.join(', ')||'Website booking request',job_type:types.join(', ')||jobType,job_colour:/mot/i.test(jobType)?'MOT':(/service/i.test(jobType)?'Service':'General'),estimated_hours:reserved?Number(r.reserved_hours):1,amount_quoted:null,technician:reserved?'Alfie':'Unallocated',ramp:'',status:'booked',card_type:'job',source:'website booking',booking_source:'Website booking',website_request_id:String(r.id||''),customer_note:websiteRequestNote(r),created_at:new Date().toISOString(),updated_at:new Date().toISOString()};applyWebsiteDefaultMajorService(j);
   if(!await vectaConfirmDuplicateBooking(j,null))return;
   app.jobs.push(j);saveLocal();
   ['mileage','customer_account','booking_source','website_request_id'].forEach(function(column){vectaRememberMissingColumn('jobs',column)});
@@ -12556,7 +12556,7 @@ async function createJobFromWebsiteRequest(id){
   // The request has now become a planner job. Mark it as booked so it leaves the Website Bookings inbox immediately.
   // This uses UPDATE rather than DELETE because the current Supabase security policy permits request updates but blocks browser deletes.
   if(remoteClient){
-    var bookedResult=await remoteClient.from('website_booking_requests').update({status:'booked'}).eq('id',id);
+    var bookedResult=await remoteClient.from('website_booking_requests').update({status:'booked',job_id:j.id,confirmed_at:new Date().toISOString()}).eq('id',id);
     if(bookedResult.error){
       console.error('Website request could not be marked as booked',bookedResult.error);
       app.jobs=app.jobs.filter(function(x){return String(x.id)!==String(j.id)});saveLocal();

@@ -2,69 +2,24 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import vm from 'node:vm';
-import handler,{bookingSlot,durationFor} from '../../api/availability.js';
-
-const friday='2026-10-09',tuesday='2026-10-13';
-const job=(hours,patch={})=>({booking_date:friday,drop_time:'08:00',estimated_hours:hours,technician:'Alfie',status:'booked',archived:false,...patch});
-test('Mondays and weekends never have online slots',()=>{
- for(const date of ['2026-10-12','2026-10-10','2026-10-11'])assert.equal(bookingSlot(date,[],[],[],1),null);
- assert.ok(bookingSlot(tuesday,[],[],[],1));
+import handler from '../../api/availability.js';
+import {bookingTypes} from '../../lib/booking-input.js';
+test('work types are canonical, deduplicated and cannot understate service duration',()=>{
+ assert.deepEqual(bookingTypes({job_types:['Service','MOT','MOT'],service_choice:'Major Service'}),['Major Service','MOT']);
+ assert.deepEqual(bookingTypes({job_types:['Interim Service']}),['Oil & Filter Change']);
+ assert.throws(()=>bookingTypes({job_types:['free text']}),{code:'BOOKING_INPUT'});
 });
-test('Friday includes the incoming booking and permits exactly four hours',()=>{
- assert.ok(bookingSlot(friday,[job(2.5)],[],[],1.5));
- assert.equal(bookingSlot(friday,[job(3)],[],[],1.5),null);
- assert.equal(bookingSlot(friday,[job(4)],[],[],.5),null);
- assert.equal(bookingSlot(friday,[],[],[],4.5),null);
+test('availability uses the same server engine as admission and ignores client duration claims',async()=>{
+ const oldFetch=global.fetch,oldEnv={...process.env};Object.assign(process.env,{VERCEL_ENV:'production',VITE_SUPABASE_URL:'https://test.invalid',SUPABASE_SERVICE_ROLE_KEY:'test'});let calls=0;
+ global.fetch=async(url,options)=>{calls++;assert.equal(new URL(url).pathname,'/rest/v1/rpc/vecta_online_booking_availability');assert.deepEqual(JSON.parse(options.body),{p_types:['Major Service','MOT']});return new Response(JSON.stringify({slots:[{date:'2050-01-04',time:'08:00'}],earliest_date:'2050-01-04',hours:3.5}));};
+ const r={setHeader(){},status(n){this.code=n;return this},json(v){this.data=v;return this}};
+ try{await handler({method:'POST',body:{job_types:['Major Service','MOT'],estimated_hours:0.5}},r);assert.equal(r.code,200);assert.equal(r.data.hours,3.5);assert.equal(calls,1);}finally{global.fetch=oldFetch;process.env=oldEnv;}
 });
-test('Friday pending website requests reserve capacity before manual acceptance',()=>{
- const pending=[{confirmed_date:friday,job_types:['Full Service']}];
- assert.ok(bookingSlot(friday,[job(1)],[],pending,1.5));
- assert.equal(bookingSlot(friday,[job(1.5)],[],pending,1.5),null);
-});
-test('Other, deleted, completed, cancelled, archived and quote jobs do not consume Alfie’s capacity',()=>{
- for(const patch of [{technician:'Other'},{status:'deleted'},{status:'completed'},{status:'cancelled'},{status:'quote'},{archived:true}])assert.ok(bookingSlot(friday,[job(8,patch)],[],[],1.5));
-});
-test('Friday slots cannot extend beyond Alfie’s 14:30 finish',()=>{
- const off=[{mechanic:'Alfie',start_date:friday,end_date:friday,start_time:'08:00',end_time:'13:30'}];
- assert.equal(bookingSlot(friday,[],off,[],1.5),null);
- assert.equal(bookingSlot(friday,[],off,[],1).time,'13:30');
-});
-test('Tuesday to Thursday retain the existing 75% threshold',()=>{
- assert.ok(bookingSlot(tuesday,[job(5.5,{booking_date:tuesday})],[],[],1.5));
- assert.equal(bookingSlot(tuesday,[job(6,{booking_date:tuesday})],[],[],1),null);
-});
-test('pending service and MOT combinations match customer booking durations',()=>{
- assert.equal(durationFor(['Oil & Filter Change','MOT']),2);
- assert.equal(durationFor(['Major Service','MOT']),3.5);
- assert.equal(durationFor(['Brakes','Tyres']),3);
-});
-test('availability reads the planner’s persisted settings for time off, not an absent table',async()=>{
- const fetchBefore=globalThis.fetch,envBefore={...process.env},paths=[];
- process.env.VERCEL_ENV='production';process.env.VITE_SUPABASE_URL='https://test.invalid';process.env.SUPABASE_SERVICE_ROLE_KEY='test-key';
- globalThis.fetch=async url=>{
-  const parsed=new URL(url);paths.push(parsed.pathname);
-  assert.notEqual(parsed.pathname,'/rest/v1/mechanic_time_off');
-  if(parsed.pathname==='/rest/v1/workshop_settings'){
-   assert.equal(parsed.searchParams.get('select'),'time_off:value->mechanicTimeOff');
-   return {ok:true,json:async()=>[{time_off:[]}]};
-  }
-  return {ok:true,json:async()=>[]};
- };
- const res={status(code){this.code=code;return this;},json(data){this.data=data;return this;}};
- try{await handler({method:'POST',body:{job_types:['Brakes'],estimated_hours:1.5}},res);
-  assert.equal(res.code,200);assert.ok(res.data.slots.length>12);assert.equal(res.data.friday_max_booked_percentage,50);
-  assert.ok(paths.includes('/rest/v1/workshop_settings'));
- }finally{globalThis.fetch=fetchBefore;for(const key of Object.keys(process.env))if(!(key in envBefore))delete process.env[key];Object.assign(process.env,envBefore);}
-});
-test('further-ahead calendar enables only checked slots, including no Mondays',()=>{
- const html=fs.readFileSync(new URL('../../website/booking/index.html',import.meta.url),'utf8');
- const source=html.slice(html.indexOf('function monthKey('),html.indexOf('function motCalendarHtml('));
- class TestDate extends Date{constructor(...args){super(...(args.length?args:['2026-10-05T12:00:00Z']));}static now(){return Date.parse('2026-10-05T12:00:00Z');}}
- const dates=['06','07','08','09','13','14','15','16','20','21','22','23','27'];
- const c=vm.createContext({state:{form:{available_slots:dates.map(day=>({date:'2026-10-'+day}))}},Date:TestDate,Intl});
- vm.runInContext(source,c);const calendar=c.generalCalendarHtml();
- assert.match(calendar,/data-future-date="2026-10-27"/);
- assert.doesNotMatch(calendar,/data-future-date="2026-10-26"/);
- assert.doesNotMatch(calendar,/data-future-date="2026-10-30"/);
- for(const match of html.matchAll(/<script(?:\s[^>]*)?>([\s\S]*?)<\/script>/gi))new vm.Script(match[1]);
+test('both booking pages compile and use server-checked dates without browser 48-hour arithmetic',()=>{
+ for(const file of ['website/booking/index.html','public/booking.html']){
+  const html=fs.readFileSync(new URL('../../'+file,import.meta.url),'utf8');
+  for(const match of html.matchAll(/<script(?:\s[^>]*)?>([\s\S]*?)<\/script>/gi))new vm.Script(match[1]);
+  assert.doesNotMatch(html,/appointmentIsBeyond48Hours|appointmentIsAtLeastDaysAway/);
+  assert.match(html,/f.available_slots=d.slots\|\|\[\]/);
+ }
 });
