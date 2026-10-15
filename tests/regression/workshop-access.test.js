@@ -57,3 +57,9 @@ test('data-bearing app chunks are protected while public booking and artwork rem
  assert.equal(requiresManagerLogin('/assets/vecta-header.png'),false);
  assert.equal(requiresManagerLogin('/booking'),false);
 });
+test('workshop SDK reads require a fresh network response and reject stale fallbacks',async()=>{
+ let options,seen;
+ const root={addEventListener(){},supabase:{createClient(u,k,o){options=o;return {}}},fetch:async(input,init)=>{seen=init.headers;return new Response('[]',{headers:{'X-Vecta-Data-State':'stale'}})}};
+ vm.runInNewContext(fs.readFileSync('public/js/vecta-workshop-access.js','utf8'),{window:root,setTimeout:()=>1,clearTimeout(){},AbortSignal,Headers,Date,Map,Number,Error});root.VectaWorkshopAccess.createClient('https://example.supabase.co','public-key');
+ await assert.rejects(options.global.fetch('https://example.supabase.co/rest/v1/invoices',{headers:{apikey:'public-key'}}),/Cloud data is offline/);assert.equal(seen.get('X-Vecta-Require-Fresh'),'1');assert.equal(seen.get('apikey'),'public-key');
+});

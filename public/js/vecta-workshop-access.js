@@ -25,7 +25,13 @@
  function createClient(url,key){
   const id=url+'|'+key;
   if(clients.has(id))return clients.get(id);
-  const client=root.supabase.createClient(url,key,{accessToken:token});
+  const client=root.supabase.createClient(url,key,{accessToken:token,global:{fetch:async(input,options={})=>{
+   const headers=new Headers(options.headers||(typeof input==='object'?input.headers:undefined));
+   headers.set('X-Vecta-Require-Fresh','1');
+   const response=await root.fetch(input,{...options,headers});
+   if(response.headers?.get('X-Vecta-Data-State')==='stale')throw Error('Cloud data is offline. Your last saved view remains available.');
+   return response;
+  }}});
   clients.set(id,client);return client;
  }
  root.addEventListener?.('online',()=>{if(clients.size)token().catch(()=>{});});

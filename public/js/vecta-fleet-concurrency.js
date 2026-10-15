@@ -1,0 +1,51 @@
+(function(root){
+  'use strict';
+  const clone=value=>value===undefined?undefined:JSON.parse(JSON.stringify(value));
+  function same(a,b){
+    if(a===b)return true;
+    if(!a||!b||typeof a!=='object'||typeof b!=='object')return false;
+    const ak=Object.keys(a).sort(),bk=Object.keys(b).sort();
+    return ak.length===bk.length&&ak.every((k,i)=>k===bk[i]&&same(a[k],b[k]));
+  }
+  function conflict(path){const e=Error('Fleet changed on another device at '+path+'. Your edit is kept on this device; review it before retrying.');e.code='FLEET_CONFLICT';throw e;}
+  function merge(base,local,remote,path='fleet'){
+    if(same(local,base))return clone(remote);
+    if(same(remote,base)||same(local,remote))return clone(local);
+    if(path.endsWith('.updated_at'))return String(local||'')>String(remote||'')?clone(local):clone(remote);
+    const lists=[base,local,remote];
+    if(lists.every(Array.isArray)&&lists.every(a=>a.every(v=>v&&typeof v==='object'&&v.id!=null)&&new Set(a.map(v=>String(v.id))).size===a.length)){
+      const maps=lists.map(a=>new Map(a.map(v=>[String(v.id),v]))),out=[];
+      for(const key of new Set([...maps[2].keys(),...maps[1].keys(),...maps[0].keys()])){
+        const v=merge(maps[0].get(key),maps[1].get(key),maps[2].get(key),path+'.'+key);if(v!==undefined)out.push(v);
+      }
+      return out;
+    }
+    if(lists.every(v=>v&&typeof v==='object'&&!Array.isArray(v))){
+      const out={};
+      for(const key of new Set(lists.flatMap(Object.keys))){
+        const v=merge(base[key],local[key],remote[key],path+'.'+key);if(v!==undefined)out[key]=v;
+      }
+      return out;
+    }
+    return conflict(path);
+  }
+  async function save(client,{id,base,desired}){
+    if(!base)throw Error('Fleet must finish its cloud download before changes can be synced. Your edit remains on this device.');
+    for(let attempt=0;attempt<3;attempt++){
+      const read=await client.from('workshop_settings').select('id,value,updated_at').eq('id',id).maybeSingle();
+      if(read.error)throw read.error;
+      const row=read.data;
+      const value=merge(base,desired,row?.value||{});value.updated_at=new Date().toISOString();
+      let result;
+      if(row){
+        let update=client.from('workshop_settings').update({value,updated_at:value.updated_at}).eq('id',id);
+        update=row.updated_at==null?update.is('updated_at',null):update.eq('updated_at',row.updated_at);
+        result=await update.select('id,value,updated_at');
+      }else result=await client.from('workshop_settings').insert({id,value,updated_at:value.updated_at}).select('id,value,updated_at');
+      if(result.error){if(result.error.code==='23505')continue;throw result.error;}
+      if(result.data?.length)return result.data[0];
+    }
+    return conflict('busy record');
+  }
+  root.VectaFleetConcurrency={merge,save,clone};
+})(typeof window!=='undefined'?window:globalThis);
