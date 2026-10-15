@@ -80,6 +80,7 @@
   <section id="location"><div class="wrap"><div class="location"><div class="eyebrow">FIND US</div><h2>We're here at NMUK.</h2><p><strong>Vecta Workshop, Contractors Compound</strong></p><a class="locationMapLink" href="https://maps.app.goo.gl/M3d34Pt96byKtDQV6?g_st=ic" target="_blank" rel="noopener noreferrer" aria-label="Open directions to Vecta Workshop in Google Maps"><img class="locationMap" src="/assets/vecta-location-map.jpg" alt="Map showing Vecta Workshop and the South Gate entrance at NMUK"></a><p>Enter the site via the <span class="southGate">SOUTH GATE security entrance</span>, not the Main Security entrance.</p><p>Park in one of the parking bays outside our workshop. If you're leaving your car before 8am, put your keys through the key-drop letterbox.</p><a class="cta" href="https://maps.app.goo.gl/M3d34Pt96byKtDQV6?g_st=ic" target="_blank" rel="noopener noreferrer">GET DIRECTIONS →</a><a class="whatsappLink" href="https://wa.me/447721722622" target="_blank" rel="noopener noreferrer" aria-label="Message Vecta on WhatsApp"><span class="whatsappLogo" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M20 11.5a8 8 0 0 1-11.9 7L4 20l1.5-4A8 8 0 1 1 20 11.5Z"/><path d="M8.5 7.8c.3-.3.7-.2.9.1l1.1 1.8c.2.3.1.6-.1.8l-.7.7c.8 1.6 1.8 2.6 3.4 3.4l.7-.7c.2-.2.6-.3.8-.1l1.8 1.1c.3.2.4.6.1.9-.6.7-1.4 1-2.2.9-3.7-.5-7-3.8-7.5-7.5-.1-.8.3-1.7 1-2.4Z"/></svg></span><span>WhatsApp 07721 722622</span></a></div></div></section>
 </main>
 <footer class="footer"><div class="wrap foot"><div class="brand">VECTA<small>© 2026 Vecta Motors</small></div><div class="footnav"><a href="/privacy">Privacy</a><a href="/terms">Terms</a><a href="#location">Find Us</a></div></div></footer>
+<script src="/js/vecta-booking-transfer.js"></script>
 <script>
   // Set this to the live customer booking URL when deployed.
   // The booking page should read ?reg=AB12CDE on load, populate its registration field,
@@ -106,7 +107,8 @@
     if(clean.length < 2) return false;
     const joiner = BOOKING_URL.includes('?') ? '&' : '?';
     const typeParam = selectedWorkTypes.size ? '&types=' + encodeURIComponent(Array.from(selectedWorkTypes).join(',')) : '';
-    window.location.href = BOOKING_URL + joiner + 'reg=' + encodeURIComponent(clean) + typeParam;
+    VectaBookingTransfer.show();
+    requestAnimationFrame(()=>requestAnimationFrame(()=>{window.location.href = BOOKING_URL + joiner + 'reg=' + encodeURIComponent(clean) + typeParam + '&transfer=1';}));
     return true;
   }
   function toggleWorkCard(card){
@@ -122,9 +124,7 @@
     clearTimeout(bookingTimer);
     const clean = cleanReg(input.value);
     // Most modern UK registrations contain 7 characters. Once complete, continue automatically.
-    if(clean.length === 7){
-      bookingTimer = setTimeout(() => goToBooking(clean), 550);
-    }
+    // Continue only after the customer presses Enter or the Enter button.
   }));
   regForms.forEach(form => form.addEventListener('submit', e => {
     e.preventDefault();
