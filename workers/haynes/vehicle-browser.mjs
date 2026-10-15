@@ -36,14 +36,15 @@ export function browserLookup(context, { keepFailedPage = false, reusePage = fal
       while (Date.now() < resultDeadline) {
         try {
           data = await page.evaluate(readVehicle);
-          if (data.login || data.blocked || data.registration === registration || data.ambiguous) break;
+          if (data.login || data.blocked || data.registration === registration || data.ambiguous || (data.noResults && data.searchRegistration === registration)) break;
         } catch (error) {
           // Navigation replaces the execution context during a successful search.
           if (!/Execution context was destroyed|Cannot find context/.test(error.message || '')) throw error;
         }
         await new Promise(resolve => setTimeout(resolve, 200));
       }
-      if (!(data.login || data.blocked || data.registration || data.ambiguous)) {
+      if (data.noResults && data.searchRegistration === registration) throw new HaynesError('NOT_FOUND');
+      if (!(data.login || data.blocked || data.registration === registration || data.ambiguous)) {
         const error = new Error('Result did not become ready');
         error.name = 'TimeoutError';
         throw error;

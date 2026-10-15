@@ -284,3 +284,10 @@ test('new job header reuses permanent matched artwork after the daily lookup cac
  const img=document.querySelector('.jobCardHeaderVehicle img');
  assert.ok(img);assert.equal(img.src,vehicle.imageUrl);assert.equal(img.dataset.registration,vehicle.registration);assert.equal(requests,0);
 });
+test('Irish plate typing does not submit WGZ73; the complete WGZ7396 is submitted',async()=>{
+ const calls=[],s=setup(async url=>{calls.push(url);return response(vehicle);});await new Promise(r=>setImmediate(r));calls.length=0;
+ const input=s.document.querySelector('#job_registration');input.value='WGZ73';input.dispatchEvent(new s.window.Event('input'));
+ await new Promise(r=>setTimeout(r,800));assert.equal(calls.length,0);
+ input.value='WGZ7396';input.dispatchEvent(new s.window.Event('input'));
+ await new Promise(r=>setTimeout(r,800));assert.equal(calls.length,1);assert.match(calls[0],/reg=WGZ7396/);
+});
