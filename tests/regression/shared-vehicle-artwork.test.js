@@ -95,3 +95,13 @@ test('a technical refresh without colour preserves blue across shared hydration 
  assert.equal(d.root.VectaHaynesJobTools.artworkSnapshot('NJ17GWM').colour,'Blue');
  assert.equal(device(database(),d.storage).root.VectaHaynesJobTools.dashboardColour({registration:'NJ17 GWM'}),'Blue');
 });
+
+test('manufacturer-prefixed job labels retain the exact saved Volkswagen and Audi artwork',()=>{
+ for(const [make,model,registration] of [['Volkswagen','Beetle','DC14EEZ'],['Audi','A4','HGZ7396']]){
+  const saved={...van,make,model,registration};
+  const d=device(database(),new Map([['vecta_haynes_artwork_v1',JSON.stringify([saved])]]));
+  d.root.enrichHaynesDashboard(d.document,[{id:'1',registration,vehicle:make+' '+model}]);
+  assert.equal(d.document.querySelector('img').dataset.haynesSource,asset);
+  assert.equal(d.lookups(),0);
+ }
+});
