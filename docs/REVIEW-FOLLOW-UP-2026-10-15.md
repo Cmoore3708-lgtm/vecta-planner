@@ -85,6 +85,45 @@ checks; no live latency reduction is claimed from unit tests.
 
 ## Remaining review items
 
+### Historical import audit and safe retirement work
+
+The read-only production comparison found all 760 source IDs are legacy text
+IDs, with no exact primary-key matches in the UUID jobs table. The old background
+uploader skipped every one of them. That redundant uploader and its delayed
+startup call are removed; no protected history was deleted or imported into
+production. Startup's local importer still fills missing historical rows, but
+can no longer overwrite an existing row's saved price, instructions, completion,
+contact details or other fields. Repeat opens do not reset those amendments.
+
+The inventory also covers initial fleet vehicles/plans, historical completions,
+new contractor vehicles and pre-2026 financial history: eight datasets in total.
+A read-only tool produces counts, byte sizes and canonical SHA-256 fingerprints:
+
+```sh
+node scripts/audit-historical-imports.mjs index.html
+```
+
+The regression gate pins the eight existing dataset fingerprints in
+`tests/fixtures/historical-source-fingerprints.json`. This contains hashes/counts,
+not extracted customer records. An accidental source-data change fails the gate.
+Do not update that baseline merely to make tests pass: reconcile any intentional
+historical correction or protected-store migration first. The baseline proves
+unchanged source data, not that every historical entry was correct originally.
+
+An optional second argument compares a privately obtained protected-history JSON
+copy. It never executes the HTML or writes a database. Fingerprints include every
+field, not just counts or monetary totals. Even identical copies do not declare
+retirement safe: database permissions, current invoice/finance corrections,
+application reports and offline/cold-start history still require verification.
+Keep output and any source copies private; do not commit extracted datasets.
+
+The audit identified 19 source descriptions containing Full Service without Major
+Service. The existing completion importer can classify that wording as Major
+Service. No automatic recategorisation is included: changing completion IDs/types
+before reconciling existing cycles could create conflicting service history.
+Existing source datasets and report calculations remain in place for now. The
+historical-source cleanup is still incomplete, including repository history.
+
 The historical-source/startup-import cleanup (2,7) still requires a protected
 reconciliation of all 760 embedded historical jobs, invoices and report totals.
 Do not simply delete those arrays or run old imports to establish a baseline.

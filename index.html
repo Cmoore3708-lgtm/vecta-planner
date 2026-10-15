@@ -10649,7 +10649,7 @@ function init(){safe(async function(){
           await restoreAug13JobsMovedByOldOverlapRule();await repairExistingPlannerOverlaps({persistRemote:true});
           render();
           await pullRemote({skipDashboardCore:true});
-          syncContractor2026SpreadsheetRemote();updateConnectivityUI();
+          updateConnectivityUI();
         }catch(e){console.warn('Background workshop synchronisation incomplete',e);updateConnectivityUI()}
       },120000);
     }catch(e){
@@ -11565,7 +11565,9 @@ function importContractor2026Spreadsheet(){
   var rows=window.CONTRACTOR_2026_JOBS||[], known={};
   (app.jobs||[]).forEach(function(j){if(j&&j.id)known[j.id]=true});
   var added=0;
-  rows.forEach(function(j){j=normaliseContractorImportedJob(j);if(!known[j.id]){app.jobs.push(j);known[j.id]=true;added++}else{var existing=app.jobs.find(function(x){return x&&x.id===j.id});if(existing&&String(existing.booking_source||'').indexOf('Contractor spreadsheet import')>-1)Object.assign(existing,j)}});
+  /* Legacy source rows fill missing history only. Reopening the app must never
+     overwrite a saved price, description, completion or contact edit. */
+  rows.forEach(function(j){j=normaliseContractorImportedJob(j);if(!known[j.id]){app.jobs.push(j);known[j.id]=true;added++}});
   var vehicleChanged=false;
   (window.CONTRACTOR_2026_NEW_VEHICLES||[]).forEach(function(v){
     /* Financial tracker imports must never create active NMUK fleet vehicles. */
@@ -11587,20 +11589,6 @@ function importContractor2026Spreadsheet(){
   });
   if(added||vehicleChanged){saveFleet();saveLocal()}
   return added;
-}
-async function syncContractor2026SpreadsheetRemote(){
-  if(!remoteClient)return;
-  var rows=window.CONTRACTOR_2026_JOBS||[];
-  for(var i=0;i<rows.length;i+=50){
-    var batch=rows.slice(i,i+50).filter(function(j){return j&&j.id&&isUuid(String(j.id))}).map(function(j){var x=Object.assign({},j);delete x.booking_source;return x});if(!batch.length)continue;
-    try{
-      var result=await remoteClient.from('jobs').upsert(batch,{onConflict:'id'});
-      if(result.error)throw result.error;
-    }catch(e){
-      console.warn('Bulk contractor history sync failed; retrying individually.',e);
-      for(var k=0;k<batch.length;k++){try{await upsertRemote('jobs',batch[k],{silent:true})}catch(err){console.warn('Contractor history row failed',batch[k].id,err)}}
-    }
-  }
 }
 
 function fleetEnriched(){fleetApplyDeletionTombstones();try{fleetApplyMotAuthority()}catch(e){console.warn('V317 MOT authority apply skipped',e)}return fleetVehicles.filter(function(v){return String(v&&v.status||'Active').toLowerCase()!=='archived'}).map(function(v){var allPlans=fleetVehiclePlans(v.id),ps=fleetOutstandingPlans(v.id),dated=ps.map(function(p){return {plan:p,date:fleetDate(p)||''}}).filter(function(x){return !!x.date}).sort(function(a,b){return a.date.localeCompare(b.date)}),first=dated[0]||null,next=first?first.date:'';return Object.assign({},v,{plans:ps,allPlans:allPlans,nextDue:next,nextDueType:first&&first.plan?first.plan.type:'',tone:fleetTone(next)})})}
