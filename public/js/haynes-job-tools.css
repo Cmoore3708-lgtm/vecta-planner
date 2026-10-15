@@ -278,3 +278,8 @@
  #content .livePriorityBacklog .quoteCard{height:140px!important;min-height:140px!important;max-height:140px!important}
  #content .livePriorityBacklog .quoteCard>strong{position:relative;z-index:2;margin-top:6px}
 }
+
+/* Duration changes the booking space, never the vehicle illustration size. */
+@media screen and (min-width:901px){
+ #content .livePriorityPlanner .plannerGrid .lane .job .plannerJobHeader>.haynesDashboardImage{width:162px!important;height:90px!important;max-width:calc(100% - 118px)!important;max-height:calc(100% - 8px)!important;top:3px!important;right:6px!important}
+}
