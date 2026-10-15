@@ -43,6 +43,10 @@ async function checkCloudHealth(req, res) {
 
 export default function handler(req, res) {
   res.setHeader('Cache-Control', 'no-store');
+  if(req.query?.action==='release'){
+    if(req.method!=='GET')return res.status(405).json({error:'Method not allowed'});
+    return res.status(200).json({application:'workshop',commit:/^[a-f0-9]{40}$/i.test(process.env.VERCEL_GIT_COMMIT_SHA||'')?process.env.VERCEL_GIT_COMMIT_SHA:null,environment:process.env.VERCEL_ENV||'development'});
+  }
   if(req.query?.action==='session')return workshopSessionHandler(req,res);
   if(req.query?.action==='access-health')return workshopAccessHealth(req,res);
   if(req.method&&req.method!=='GET'){res.setHeader('Allow','GET, POST');return res.status(405).json({error:'Method not allowed'});}

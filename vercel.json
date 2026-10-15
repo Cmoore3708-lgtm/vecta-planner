@@ -26,6 +26,9 @@
     },
     "api/full-backup.js": {
       "maxDuration": 300
+    },
+    "api/vehicle-lookup.js": {
+      "maxDuration": 30
     }
   },
   "rewrites": [

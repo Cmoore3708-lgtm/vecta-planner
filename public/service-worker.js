@@ -11,6 +11,7 @@ const CORE=[
   '/icons/vecta-512.png',
   '/js/vecta-job-rules.js',
   '/js/vecta-workshop-access.js',
+  '/js/vecta-cloud-reads.js',
   '/js/vecta-invoice-rules.js',
   '/js/vecta-planner-rules.js',
   '/js/vecta-finance-rules.js',

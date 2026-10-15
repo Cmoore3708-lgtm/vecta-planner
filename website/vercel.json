@@ -22,5 +22,10 @@
       "source": "/terms",
       "destination": "https://vecta-website-4mhfbwna9-vectaplanner.vercel.app/terms"
     }
-  ]
+  ],
+  "functions": {
+    "api/vehicle-lookup.js": {
+      "maxDuration": 30
+    }
+  }
 }
