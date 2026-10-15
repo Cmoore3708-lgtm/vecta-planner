@@ -15,13 +15,10 @@ const CORE=[
   '/js/vecta-planner-rules.js',
   '/js/vecta-finance-rules.js',
   '/js/vecta-fleet-rules.js',
+  '/js/vecta-fleet-concurrency.js',
   '/js/vecta-booking-rules.js',
   '/js/vecta-offline-sync-rules.js'
 ];
-const HEALTH_FAILURE_LIMIT=3;
-const RECENT_CLOUD_SUCCESS_MS=120000;
-let consecutiveHealthFailures=0;
-let lastCloudSuccessAt=0;
 
 function isSupabaseRestRequest(url){
   return /\.supabase\.co$/i.test(url.hostname) && url.pathname.startsWith('/rest/v1/');
@@ -44,98 +41,40 @@ async function writeHealthState(ok){
   }catch(_e){}
 }
 
-async function readHealthState(){
-  try{
-    const cache=await caches.open(HEALTH_CACHE);
-    const response=await cache.match('/__vecta_cloud_health_state__');
-    if(!response) return null;
-    return await response.json();
-  }catch(_e){return null;}
-}
-
-async function recordCloudSuccess(){
-  consecutiveHealthFailures=0;
-  lastCloudSuccessAt=Date.now();
-  await writeHealthState(true);
-}
-
-async function hasRecentCloudSuccess(){
-  if(lastCloudSuccessAt && Date.now()-lastCloudSuccessAt<RECENT_CLOUD_SUCCESS_MS) return true;
-  const state=await readHealthState();
-  if(state?.ok && Number.isFinite(Number(state.at)) && Date.now()-Number(state.at)<RECENT_CLOUD_SUCCESS_MS){
-    lastCloudSuccessAt=Number(state.at);
-    return true;
-  }
-  return false;
-}
-
-function syntheticHealthSuccess(){
-  return new Response('[{"id":"vecta-cloud-health"}]',{
-    status:200,
-    headers:{
-      'Content-Type':'application/json; charset=utf-8',
-      'Cache-Control':'no-store',
-      'Access-Control-Allow-Origin':'*'
-    }
-  });
-}
-
-async function serverConfirmsSupabase(){
-  try{
-    const response=await fetch('/api/cloud-health',{cache:'no-store'});
-    if(!response.ok) return false;
-    const body=await response.json().catch(()=>null);
-    return body?.ok===true;
-  }catch(_e){return false;}
-}
+async function recordCloudSuccess(){await writeHealthState(true);}
 
 async function handleJobsHealthProbe(req){
   try{
     const fresh=await fetch(req,{cache:'no-store'});
-    if(fresh?.ok){
-      await recordCloudSuccess();
-      const cache=await caches.open(DATA_CACHE);
-      const contentType=String(fresh.headers.get('content-type')||'').toLowerCase();
-      if(contentType.includes('json')) await cache.put(req,fresh.clone());
-      return fresh;
-    }
-  }catch(_e){}
-
-  if(await serverConfirmsSupabase()){
-    await recordCloudSuccess();
-    return syntheticHealthSuccess();
-  }
-
-  consecutiveHealthFailures+=1;
-  if(await hasRecentCloudSuccess()) return syntheticHealthSuccess();
-  if(consecutiveHealthFailures<HEALTH_FAILURE_LIMIT){
-    const cached=await caches.open(DATA_CACHE).then(cache=>cache.match(req)).catch(()=>null);
-    if(cached) return cached;
-  }
-
-  await writeHealthState(false);
-  const cached=await caches.open(DATA_CACHE).then(cache=>cache.match(req)).catch(()=>null);
-  return cached || Response.error();
+    if(fresh.ok)await recordCloudSuccess();else await writeHealthState(false);
+    return fresh;
+  }catch(_e){await writeHealthState(false);return Response.error();}
 }
-
+function staleResponse(response){
+  if(!response)return Response.error();
+  const headers=new Headers(response.headers);
+  headers.set('X-Vecta-Data-State','stale');
+  headers.set('X-Vecta-Cached-At',headers.get('X-Vecta-Cached-At')||headers.get('date')||'unknown');
+  headers.set('Cache-Control','no-store');
+  return new Response(response.body,{status:response.status,statusText:response.statusText,headers});
+}
 async function fetchSupabaseWithLastKnownFallback(req){
   const cache=await caches.open(DATA_CACHE);
+  const freshRequired=req.headers.get('X-Vecta-Require-Fresh')==='1';
   try{
     const fresh=await fetch(req,{cache:'no-store'});
     const contentType=String(fresh.headers.get('content-type')||'').toLowerCase();
     if(fresh.ok && contentType.includes('json')){
-      await cache.put(req,fresh.clone());
-      await recordCloudSuccess();
-      return fresh;
+      const headers=new Headers(fresh.headers);headers.set('X-Vecta-Cached-At',new Date().toISOString());
+      await cache.put(req,new Response(await fresh.clone().arrayBuffer(),{status:fresh.status,statusText:fresh.statusText,headers}));
+      await recordCloudSuccess();return fresh;
     }
-    if(fresh.status===429 || fresh.status>=500){
-      const cached=await cache.match(req);
-      if(cached) return cached;
+    if(fresh.status===429||fresh.status>=500){
+      await writeHealthState(false);
+      if(!freshRequired){const cached=await cache.match(req);if(cached)return staleResponse(cached);}
     }
     return fresh;
-  }catch(_e){
-    return (await cache.match(req)) || Response.error();
-  }
+  }catch(_e){await writeHealthState(false);return freshRequired?Response.error():staleResponse(await cache.match(req));}
 }
 
 function isMainNavigation(url){

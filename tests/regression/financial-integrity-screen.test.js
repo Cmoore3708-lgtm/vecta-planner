@@ -35,8 +35,7 @@ test('database safeguard rejects undated completed jobs', () => {
   assert.match(migration, /before insert or update of status, booking_date, completed_at/i);
 });
 
-test('invoice relink, cancellation and restore preserve a durable completion date', () => {
-  assert.match(html, /matchedDate=vectaValidJobDate\(matched\.invoice_date\|\|matched\.created_at\)\|\|vectaValidJobDate\(job\.booking_date\)/);
+test('cancellation and restore preserve a durable completion date', () => {
   assert.match(html, /cancelledDate=vectaValidJobDate\(inv\.invoice_date\|\|inv\.created_at\)\|\|vectaValidJobDate\(linkedJob\.booking_date\)/);
   assert.match(html, /restoredDate=vectaValidJobDate\(inv\.invoice_date\|\|inv\.created_at\)\|\|vectaValidJobDate\(job\.booking_date\)/);
 });

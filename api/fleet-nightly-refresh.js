@@ -1,3 +1,5 @@
+import '../public/js/vecta-fleet-concurrency.js';
+import {createClient} from '@supabase/supabase-js';
 let tokenCache = { accessToken: '', expiresAt: 0 };
 
 const FLEET_STATE_ID = 'fleet_state_v77';
@@ -149,12 +151,13 @@ export default async function handler(req,res){
     return sendNmukReminders(req,res);
   }
   if(req.method!=='GET'){res.setHeader('Allow','GET');return res.status(405).json({error:'Method not allowed'});}
-  if(process.env.CRON_SECRET && req.headers.authorization !== `Bearer ${process.env.CRON_SECRET}`) return res.status(401).json({error:'Unauthorized'});
+  if(!process.env.CRON_SECRET || req.headers.authorization !== `Bearer ${process.env.CRON_SECRET}`) return res.status(401).json({error:'Unauthorized'});
   const startedAt = new Date().toISOString();
   const status = {startedAt,finishedAt:'',checked:0,updated:0,errors:0,skipped:0,taxConfigured:!!process.env.DVLA_API_KEY,fullScan:false,errorSamples:[]};
   try{
     const row = await readSetting(FLEET_STATE_ID);
     if(!row?.value) throw new Error('Fleet cloud state has not been initialised yet. Open Fleet Manager once after deploying V77.');
+    const base = structuredClone(row.value);
     const state = row.value;
     const vehicles = Array.isArray(state.vehicles)?state.vehicles:[];
     const plans = Array.isArray(state.plans)?state.plans:[];
@@ -213,8 +216,10 @@ export default async function handler(req,res){
     status.skipped=Math.max(0,vehicles.length-candidates.length);
     const persistenceStamp=new Date().toISOString();
     state.vehicles=vehicles;state.plans=plans;state.completions=completions;state.updated_at=persistenceStamp;state.lastAutomaticRefresh=status.startedAt;
-    await writeSetting(FLEET_STATE_ID,state);
-    await writeSetting(MOT_AUTHORITY_ID,{version:260,records:authorityRecords,updated_at:persistenceStamp});
+    const config=databaseEnvironment({requireService:true});
+    const client=createClient(config.url,config.key,{auth:{persistSession:false,autoRefreshToken:false}});
+    await globalThis.VectaFleetConcurrency.save(client,{id:FLEET_STATE_ID,base,desired:state});
+    await globalThis.VectaFleetConcurrency.save(client,{id:MOT_AUTHORITY_ID,base:authorityRow?.value||{},desired:{version:260,records:authorityRecords,updated_at:persistenceStamp}});
     status.finishedAt=new Date().toISOString();
     await writeSetting(STATUS_ID,status);
     return res.status(200).json(status);

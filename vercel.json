@@ -23,6 +23,9 @@
     },
     "api/availability.js": {
       "maxDuration": 30
+    },
+    "api/full-backup.js": {
+      "maxDuration": 300
     }
   },
   "rewrites": [

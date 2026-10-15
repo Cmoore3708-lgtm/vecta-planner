@@ -14,9 +14,46 @@ $final = Join-Path $folder "VECTA-FULL-BACKUP-$stamp.json"
 $headers = @{ Authorization = "Bearer $secret" }
 try {
   Invoke-WebRequest -Uri "$site/api/full-backup" -Headers $headers -OutFile $temp -UseBasicParsing -TimeoutSec 300
-  $json = Get-Content $temp -Raw | ConvertFrom-Json
+  $raw = [System.IO.File]::ReadAllText($temp, [System.Text.Encoding]::UTF8)
+  $json = $raw | ConvertFrom-Json
   if ($json.format -ne 'VECTA_WORKSHOP_PRO_FULL_BACKUP_V1') { throw 'The downloaded file is not a recognised VECTA backup.' }
-  if ([int]$json.total_records -lt 1) { throw 'The backup contains no records.' }
+  if ($json.consistent_snapshot -ne $true) { throw 'Backup does not contain a consistent database snapshot.' }
+  $total = 0
+  foreach ($entry in $json.counts.PSObject.Properties) {
+    $table = $json.data.PSObject.Properties[$entry.Name]
+    if ($null -eq $table) { throw "Backup table missing: $($entry.Name)" }
+    $rows = @($table.Value)
+    if ($rows.Count -ne [int]$entry.Value) { throw "Backup row count mismatch: $($entry.Name)" }
+    $total += $rows.Count
+  }
+  foreach ($required in @('jobs','customers','vehicles','invoices','invoice_lines','workshop_settings','website_booking_requests')) {
+    if ($null -eq $json.data.PSObject.Properties[$required]) { throw "Required backup table missing: $required" }
+  }
+  if ($total -ne [int]$json.total_records -or $total -lt 1) { throw 'Backup total is empty or inconsistent.' }
+  # Verify the exact data JSON bytes serialized by the server, before retention.
+  $match = [regex]::Match($raw, '"data"\s*:\s*\{')
+  if (!$match.Success) { throw 'Backup data payload is missing.' }
+  $start = $match.Index + $match.Length - 1
+  $depth = 0; $inString = $false; $escaped = $false; $end = -1
+  for ($i = $start; $i -lt $raw.Length; $i++) {
+    $ch = $raw[$i]
+    if ($inString) {
+      if ($escaped) { $escaped = $false }
+      elseif ($ch -eq '\') { $escaped = $true }
+      elseif ($ch -eq '"') { $inString = $false }
+    } else {
+      if ($ch -eq '"') { $inString = $true }
+      elseif ($ch -eq '{') { $depth++ }
+      elseif ($ch -eq '}') { $depth--; if ($depth -eq 0) { $end = $i; break } }
+    }
+  }
+  if ($end -lt $start) { throw 'Backup data payload is truncated.' }
+  $sha = [System.Security.Cryptography.SHA256]::Create()
+  try {
+    $bytes = [System.Text.Encoding]::UTF8.GetBytes($raw.Substring($start, $end - $start + 1))
+    $digest = [BitConverter]::ToString($sha.ComputeHash($bytes)).Replace('-', '').ToLowerInvariant()
+  } finally { $sha.Dispose() }
+  if ($digest -ne $json.data_sha256) { throw 'Backup SHA-256 checksum does not match.' }
   Move-Item -Force $temp $final
   Get-ChildItem -Path $folder -Filter 'VECTA-FULL-BACKUP-*.json' -File |
     Sort-Object LastWriteTime -Descending |
