@@ -31,3 +31,12 @@ test('failed retained tab closes, preserving login-required status',async()=>{
  await assert.rejects(browserLookup(f.context,{reusePage:true})('AB12CDE'),{code:'LOGIN_REQUIRED'});
  assert.equal(f.page.closed,true);
 });
+test('a no-results page for the submitted plate ends promptly without a timeout',async()=>{
+ const f=fixture();f.page.evaluate=async()=>({noResults:true,searchRegistration:'WGZ73',registration:''});
+ await assert.rejects(browserLookup(f.context,{reusePage:true})('WGZ73'),error=>error.code==='NOT_FOUND'&&error.reason==='NOT_FOUND'&&error.stage==='WAIT_RESULT');
+ assert.equal(f.page.closed,true);
+});
+test('a stale no-results page cannot reject the next complete plate',async()=>{
+ const f=fixture();let calls=0;f.page.evaluate=async()=>++calls<3?{noResults:true,searchRegistration:'WGZ73',registration:''}:{registration:'WGZ7396',make:'BMW',model:'X1',variant:'25d',typeId:'t_123'};
+ assert.equal((await browserLookup(f.context,{reusePage:true})('WGZ7396')).registration,'WGZ7396');
+});

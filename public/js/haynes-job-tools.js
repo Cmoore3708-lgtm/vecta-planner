@@ -299,7 +299,7 @@ root.initHaynesJobTools=function(modal){
  function showGeneric(){if(noVehicle?.checked)return;const v=genericImage({make:modal.querySelector('#job_make')?.value,model:modal.querySelector('#job_model')?.value,vehicle:modal.querySelector('#job_vehicle')?.value}),img=thumbnail(v,'haynesJobGenericImage');if(img){body.replaceChildren(img);return true;}return false;}
  const current=()=>reg(input.value);
  function clear(){showHeaderVehicle();sequence++;clearTimeout(refreshTimer);body.replaceChildren();status.textContent='';button.disabled=!!noVehicle?.checked;button.textContent='Find vehicle in HaynesPro';if(showGeneric())status.textContent='Generic model image — appearance may differ.';}
- function changed(){clear();if(!noVehicle?.checked&&lookupRegistration(current()))refreshTimer=setTimeout(()=>button.onclick(),750);}
+ function changed(event){clear();const requested=current(),complete=/^(?:[A-Z]{2}[0-9]{2}[A-Z]{3}|[A-Z]{3}[0-9]{4})$/.test(requested);if(!noVehicle?.checked&&lookupRegistration(requested)&&(event?.type!=='input'||complete))refreshTimer=setTimeout(()=>{if(current()===requested&&panel.isConnected)button.onclick();},750);}
  input.addEventListener('input',changed);input.addEventListener('change',changed);for(const selector of ['#job_vehicle','#job_model','#job_make']){const field=modal.querySelector(selector);field?.addEventListener('change',changed);}noVehicle?.addEventListener('change',changed);clear();
  button.onclick=async(event)=>{
   if(!panel.isConnected)return;clear();if(event){failed.delete(current());}

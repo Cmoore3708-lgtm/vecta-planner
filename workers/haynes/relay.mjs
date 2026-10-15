@@ -44,6 +44,7 @@ async function chooseConditions(choices,vehicle) {
 const serviceTasks = createServiceTaskRunner(request=>browser.run(context=>browserServiceLookup(context,{chooseConditions}),request,62000),body=>rpc(body,true),error=>console.log(error.status?'Haynes service status: '+error.status+' · '+error.reason:'Service connection unavailable. The booking worker continues.'));
 let stopped = false;
 for (const signal of ['SIGTERM','SIGINT']) process.on(signal,() => { stopped = true; browser.close().catch(() => {}); });
+console.log('VECTA vehicle lookup recovery 2026-10-15.1');
 console.log('Connected to Haynes. Keep this window open. Press Ctrl+C to stop.');
 const servicePolling = pollServiceQueue(rpc, serviceTasks, {
   isStopped:()=>stopped,
