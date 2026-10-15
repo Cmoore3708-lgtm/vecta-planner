@@ -112,11 +112,11 @@ const modelWords=v=>words(v).replace(/([A-Z])\s+(?=\d)/g,'$1').replace(/(\d)\s+(
 function compatibleArtwork(value,description){
  if(!value)return false;
  if(description?.make&&value.make&&make(description.make)!==make(value.make))return false;
- const normal=v=>modelWords(v).replace(/^(?:NISSAN|FORD|MERCEDES BENZ|INFINITI|CITROEN|RENAULT) /,'');
- const expected=normal(description?.model||description?.vehicle),actual=normal(String(value.model||'').split(/[(/]/)[0]);
+ const normal=(v,manufacturer)=>{let text=modelWords(v);const prefix=modelWords(manufacturer);if(prefix&&text.startsWith(prefix+' '))text=text.slice(prefix.length+1);return text.replace(/^(?:NISSAN|FORD|MERCEDES BENZ|INFINITI|CITROEN|RENAULT|VOLKSWAGEN|VW|AUDI) /,'');};
+ const expected=normal(description?.model||description?.vehicle,description?.make||value.make),actual=normal(String(value.model||'').split(/[(/]/)[0],value.make);
  if(!expected||!actual)return true;
  const family=v=>v.split(' ')[0];
- return expected===actual||family(expected)===family(actual);
+ return expected===actual||family(expected)===family(actual)||(' '+actual+' ').includes(' '+expected+' ');
 }
 function knownAssetMatches(value,description){const known=modelImages.find(v=>v.imageUrl===value?.imageUrl);return !known||compatibleArtwork(known,description);}
 function genericImage(description){

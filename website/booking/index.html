@@ -108,7 +108,7 @@ function isNissanVehicle(){let f=state.form;return /\bnissan\b/i.test([f.vehicle
 function isMotBooking(){return (state.form.job_types||[]).some(x=>/(^|\b)mot(\b|$)/i.test(String(x||'').trim()))}
 function nevosHtml(){let f=state.form;if(!isNissanVehicle())return'';return `<div class="nevos-question"><strong>Is this a NEVOS vehicle?</strong><div class="nevos-choice"><button type="button" data-nevos-choice="yes" class="${f.nevos_vehicle==='yes'?'selected':''}">Yes</button><button type="button" data-nevos-choice="no" class="${f.nevos_vehicle==='no'?'selected':''}">No</button></div></div>`}
 function workDescriptionRequired(){return (state.form.job_types||[]).some(x=>['brakes','diagnostics','tyres','other'].some(required=>String(x||'').trim().toLowerCase().includes(required)))}
-function valid(){let f=state.form;if(state.step===1){return !!f.registration.trim()&&!!f.vehicle.trim()&&(!f.mot_advisories.length||!!f.inspect_mot_advisories);}if(state.step===2)return (!f.mot_advisories.length||!!f.inspect_mot_advisories)&&(!isNissanVehicle()||!!f.nevos_vehicle)&&f.job_types.length&&(!f.job_types.includes('Service')||(!!f.service_choice&&(f.mileage_unknown===true||(!!String(f.mileage??'').trim()&&Number.isInteger(Number(f.mileage))&&Number(f.mileage)>=0))))&&(!f.job_types.includes('Tyres')||(!!f.tyre_choice&&!!f.tyre_size.trim()))&&(!workDescriptionRequired()||!!f.work_required.trim());if(state.step===3)return !!(f.appointment_date&&f.appointment_time&&f.technician);if(state.step===4)return f.customer_name.trim()&&f.email.trim()&&f.phone.trim();return true}
+function valid(){let f=state.form;if(state.step===1){return !!f.registration.trim()&&!!f.vehicle.trim();}if(state.step===2)return (!isNissanVehicle()||!!f.nevos_vehicle)&&f.job_types.length&&(!f.job_types.includes('Service')||(!!f.service_choice&&(f.mileage_unknown===true||(!!String(f.mileage??'').trim()&&Number.isInteger(Number(f.mileage))&&Number(f.mileage)>=0))))&&(!f.job_types.includes('Tyres')||(!!f.tyre_choice&&!!f.tyre_size.trim()))&&(!workDescriptionRequired()||!!f.work_required.trim());if(state.step===3)return (!f.mot_advisories.length||['yes','no'].includes(f.inspect_mot_advisories))&&!!(f.appointment_date&&f.appointment_time&&f.technician);if(state.step===4)return f.customer_name.trim()&&f.email.trim()&&f.phone.trim();return true}
 function bindAdvisoryChoices(){document.querySelectorAll('[data-advisory-choice]').forEach(el=>el.onclick=()=>{state.form.inspect_mot_advisories=el.dataset.advisoryChoice;render()})}
 function updateLookupPanel(){let panel=document.getElementById('lookupPanel');if(panel){panel.innerHTML=lookupHtml();bindAdvisoryChoices()}}
 let haynesState={status:'idle',vehicle:null};
@@ -340,4 +340,11 @@ initialiseBooking();
 .step:not(.later-step):has(.haynes-vehicle) .haynes-image{grid-column:2;grid-row:1/4}
 .step:not(.later-step):has(.haynes-vehicle) .haynes-card>p{grid-column:1;grid-row:2;margin:4px 0}
 .step:not(.later-step):has(.haynes-vehicle) .haynes-actions{grid-column:1;grid-row:3;margin:0}
+</style>
+
+<style id="booking-bounded-registration-plate">
+/* The plate can extend past the text column without changing its own dimensions. */
+.identified-vehicle .registration-column .reg-wrap{box-sizing:border-box;flex:0 0 200px!important;width:200px!important;min-width:200px!important;max-width:200px!important;height:48px!important;min-height:48px!important;max-height:48px!important}
+.identified-vehicle .registration-column .reg-band{flex:0 0 30px!important;width:30px!important;font-size:13px!important}
+.identified-vehicle .registration-column .reg{box-sizing:border-box!important;flex:1 1 0!important;width:0!important;min-width:0!important;height:44px!important;margin:0!important;padding:8px 5px!important;font-size:23px!important;line-height:28px!important;letter-spacing:.4px!important;white-space:nowrap!important;overflow:hidden!important;text-align:center}
 </style>
