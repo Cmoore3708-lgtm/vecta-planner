@@ -8914,6 +8914,41 @@ window.INITIAL_MAINTENANCE_PLANS = [
   .invoicePrintPage .printPayment>div{font-size:12px!important;white-space:normal!important;overflow-wrap:anywhere!important}
 }
 </style>
+<style id="vecta-compact-financial-header">
+.invoiceArchivePage{gap:8px}
+.invoiceArchivePage .invoiceArchiveTop{display:grid;grid-template-columns:auto minmax(200px,1fr) auto;align-items:center;gap:16px}
+.invoiceArchiveTop h2{margin:0;font-size:22px}
+.invoiceArchiveTop .invoiceArchiveSearchCard{padding:0!important;margin:0;background:transparent;border:0;box-shadow:none;min-width:0}
+.invoiceArchiveTop .invoiceArchiveSearchCard>label{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
+.invoiceArchiveSearchWrap input{height:36px}
+.invoiceReadyEmpty{padding:4px 0;font-size:12px;color:#64748b}
+.invoiceArchiveReady{padding:10px 12px!important;margin:0!important}
+.invoiceArchiveReady .financialReadyHead{margin:0;align-items:center}
+.invoiceArchiveReady .financialReadyHead h3{margin:0;font-size:13px}
+.invoiceArchiveReady .financialReadyHead p{display:none}
+.invoiceSummaryCompact{grid-template-columns:minmax(240px,1.4fr) repeat(3,minmax(0,1fr));gap:8px;margin:0}
+.invoiceSummaryCompact>div,.invoiceSummaryCompact>.invoiceOutstandingTotal{min-width:0;padding:10px 12px;margin:0;border-radius:8px}
+.invoiceSummaryCompact>.invoiceOutstandingTotal{width:auto;box-sizing:border-box}
+.invoiceSummaryCompact .invoiceOutstandingTotal b{font-size:14px}
+.invoiceSummaryCompact .invoiceOutstandingTotal span{font-size:11px;margin-top:2px}
+.invoiceSummaryCompact .invoiceOutstandingTotal>strong{font-size:20px}
+.invoiceArchivePage .paymentMethodWarning{padding:8px 12px;margin:0}
+@media(max-width:760px){
+ .invoiceArchivePage .invoiceArchiveTop{grid-template-columns:minmax(0,1fr) auto!important;gap:6px!important}
+ .invoiceArchiveTop h2{grid-column:1;grid-row:1}
+ .invoiceArchiveTop #archiveBlankInvoice{grid-column:2;grid-row:1}
+ .invoiceArchiveTop .invoiceArchiveSearchCard{grid-column:1/-1;grid-row:2;padding:0!important}
+ .invoiceArchivePage .invoiceSummaryCompact{grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:5px!important}
+ .invoiceSummaryCompact>.invoiceOutstandingTotal{display:flex;padding:7px!important;gap:5px}
+ .invoiceSummaryCompact .invoiceOutstandingTotal b{font-size:11px}
+ .invoiceSummaryCompact .invoiceOutstandingTotal span{font-size:9px}
+ .invoiceSummaryCompact .invoiceOutstandingTotal>strong{font-size:13px!important;margin:0!important}
+ .invoiceSummaryCompact>div{display:flex!important;justify-content:space-between;padding:7px!important}
+ .invoiceSummaryCompact small{font-size:9px!important}
+ .invoiceSummaryCompact strong{font-size:13px!important;margin:0!important}
+}
+</style>
+
 <script id="v335-standalone-service-cycle-repair">
 (function(){
 'use strict';
@@ -13500,7 +13535,7 @@ function invoicePaymentSummaryHtml(){
     if(method==='card'||method==='cash'||method==='bacs')totals[method]+=amount;
     else{totals.unrecorded+=amount;unpaidCount++}
   });
-  return '<button type="button" class="invoiceOutstandingTotal" id="showOutstandingInvoices" aria-controls="invoiceArchiveResults" aria-pressed="'+(invoiceArchiveOutstandingOnly?'true':'false')+'"><div><b>Outstanding invoices</b><span>'+unpaidCount+' unpaid invoice'+(unpaidCount===1?'':'s')+' · all saved invoices</span></div><strong>'+money(totals.unrecorded)+'</strong></button><div class="invoicePaymentSummary"><div><small>Card</small><strong>'+money(totals.card)+'</strong></div><div><small>Cash</small><strong>'+money(totals.cash)+'</strong></div><div><small>BACS Transfer</small><strong>'+money(totals.bacs)+'</strong></div><div class="unrecorded"><small>Unpaid</small><strong>'+money(totals.unrecorded)+'</strong></div></div>'
+  return '<div class="invoicePaymentSummary invoiceSummaryCompact"><button type="button" class="invoiceOutstandingTotal" id="showOutstandingInvoices" aria-controls="invoiceArchiveResults" aria-pressed="'+(invoiceArchiveOutstandingOnly?'true':'false')+'"><div><b>Outstanding invoices</b><span>'+unpaidCount+' unpaid invoice'+(unpaidCount===1?'':'s')+' · all saved invoices</span></div><strong>'+money(totals.unrecorded)+'</strong></button><div><small>Card</small><strong>'+money(totals.card)+'</strong></div><div><small>Cash</small><strong>'+money(totals.cash)+'</strong></div><div><small>BACS Transfer</small><strong>'+money(totals.bacs)+'</strong></div></div>'
 }
 function invoicePaidDate(inv){var line=(inv.lines||[]).find(function(x){return x&&Object.prototype.hasOwnProperty.call(x,'invoice_paid_date')});return String(line&&line.invoice_paid_date||'')}
 function setInvoicePaidDate(inv,date){if(!Array.isArray(inv.lines))inv.lines=[];if(!inv.lines.length)return;inv.lines=inv.lines.map(function(line,i){var copy=Object.assign({},line);delete copy.invoice_paid_date;if(i===0)copy.invoice_paid_date=date||'';return copy})}
@@ -13631,15 +13666,16 @@ function cancelledInvoiceRowsHtml(){
 }
 function invoiceArchiveReadyJobsHtml(){
   var ready=(app.jobs||[]).filter(function(j){return !j.archived&&j.status==='ready_to_invoice'&&!savedInvoiceForJobId(j.id)});
+  if(!ready.length)return '<div class="invoiceReadyEmpty">No jobs waiting for an invoice.</div>';
   return '<div class="card panel financialReadyFull invoiceArchiveReady"><div class="financialReadyHead"><div><h3>Jobs ready to invoice</h3><p class="muted">These jobs still need an invoice creating.</p></div><span class="invoiceReadyCount">'+ready.length+'</span></div>'+
     (ready.length?ready.map(function(j){return '<div class="sideJob financialReadyJob">'+fullPlate(j.registration)+'<div class="financialReadyBody"><b>'+esc(j.vehicle||'Vehicle')+'</b><p>'+esc(j.work_required||'')+'</p></div><div class="financialReadyActions"><button class="btn dark" data-invoice-job="'+j.id+'">Create Invoice</button><button class="btn danger" data-delete-ready-job="'+j.id+'">Delete Job</button></div></div>'}).join(''):'<div class="empty">No jobs waiting for an invoice.</div>')+
     '</div>';
 }
 function invoiceArchiveHtml(){
   var count=vectaActiveInvoices().length;
-  return '<div class="invoiceArchivePage">'+invoicePaymentWarningHtml()+'<div class="invoiceArchiveTop"><div><h2>Invoices</h2><p>Create outstanding invoices, then search and open saved invoices below.</p></div><button class="btn red" id="archiveBlankInvoice">+ Blank Invoice</button></div>'+
+  return '<div class="invoiceArchivePage">'+invoicePaymentWarningHtml()+'<div class="invoiceArchiveTop"><h2>Invoices</h2>'+
+    '<div class="invoiceArchiveSearchCard"><label class="sr-only" for="invoiceArchiveSearch">Search invoices</label><div class="invoiceArchiveSearchWrap"><input id="invoiceArchiveSearch" type="search" autocomplete="off" placeholder="Search registration, customer, invoice, date or amount"><span>'+count+' invoice'+(count===1?'':'s')+'</span></div></div><button class="btn red" id="archiveBlankInvoice">+ Blank Invoice</button></div>'+
     invoiceArchiveReadyJobsHtml()+
-    '<div class="card panel invoiceArchiveSearchCard"><label for="invoiceArchiveSearch">Search invoices</label><div class="invoiceArchiveSearchWrap"><input id="invoiceArchiveSearch" type="search" autocomplete="off" placeholder="Registration, customer, invoice number, date or amount"><span>'+count+' invoice'+(count===1?'':'s')+'</span></div></div>'+
     invoicePaymentSummaryHtml()+(invoiceArchiveOutstandingOnly?'<div class="listToolbar"><b>Outstanding invoices · oldest first</b><button type="button" class="btn" id="showAllInvoices">Show all invoices</button></div>':'')+'<div class="card panel invoiceArchiveResults"><div id="invoiceArchiveResults">'+invoiceArchiveRows('')+'</div></div>'+cancelledInvoiceRowsHtml()+'</div>';
 }
 function invoiceRows(){return invoiceArchiveRows('')}
