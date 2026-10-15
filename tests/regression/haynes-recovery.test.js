@@ -86,3 +86,30 @@ test('an unresponsive service poll does not hold up the independently polled veh
  assert.equal((await rpc({action:'pull'})).status,'JOB');assert.deepEqual(actions,['service','vehicle']);
  gate.resolve();await polling;
 });
+
+test('vehicle tab is retained across lookups, isolated from services, discarded on failure',async()=>{
+ const context=mockBrowser(),browser=createBrowserRecovery(async()=>context);
+ const vehicleFactory=c=>async()=>c.newPage();
+ const first=await browser.run(vehicleFactory,{},100,{pageKey:'vehicle'});
+ assert.equal(first.closed,0);
+ const service=await browser.run(vehicleFactory,{},100);
+ assert.notEqual(first,service);assert.equal(service.closed,1);assert.equal(first.closed,0);
+ assert.equal(await browser.run(vehicleFactory,{},100,{pageKey:'vehicle'}),first);
+ await assert.rejects(browser.run(c=>async()=>{assert.equal(await c.newPage(),first);throw Error('broken');},{},100,{pageKey:'vehicle'}));
+ assert.equal(first.closed,1);
+ assert.notEqual(await browser.run(vehicleFactory,{},100,{pageKey:'vehicle'}),first);
+ await browser.close();
+});
+
+test('early booking lookup shares one request and still validates the government make',async()=>{
+ const root={fetch(){},AbortController,setTimeout,clearTimeout};
+ vm.runInNewContext(fs.readFileSync(new URL('../../public/js/vecta-haynes-booking.js',import.meta.url),'utf8'),root);
+ let calls=0,last,registration='AB12CDE',make='NISSAN';const gate=deferred();
+ const controller=root.VectaHaynesBooking.createController({getRegistration:()=>registration,getMake:()=>make,onChange:v=>last=v,fetcher:async()=>{calls++;await gate.promise;return {ok:true,json:async()=>({status:'MATCHED',vehicle:{registration:'AB12CDE',make:'NISSAN',model:'Qashqai',variant:'1.7'}})};}});
+ assert.equal(controller.prefetch('AB12CD'),null);
+ controller.prefetch(registration);controller.prefetch(registration);
+ const result=controller.lookup(registration);gate.resolve();await result;
+ assert.equal(calls,1);assert.equal(last.status,'matched');
+ make='FORD';await controller.lookup(registration);assert.equal(calls,1);assert.equal(last.status,'unavailable');
+ registration='CD34EFG';await controller.lookup('AB12CDE');assert.equal(last.status,'idle');
+});
