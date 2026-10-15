@@ -9190,6 +9190,7 @@ window.CONTRACTOR_2026_NEW_VEHICLES=[{"id":"CONTRACTOR|RV63SYG","fleetGroup":"Co
 </script>
 <script src="/js/vecta-workshop-access.js"></script>
 <script src="/js/vecta-cloud-reads.js"></script>
+<script src="/js/vecta-invoice-save.js"></script>
 <script src="/js/vecta-job-rules.js"></script>
 <script src="/js/vecta-invoice-print.js"></script>
 <script src="/js/vecta-invoice-rules.js"></script>
@@ -15435,11 +15436,27 @@ function openInvoice(id,preset){
 function gatherInvoice(id){var inv=app.invoices.find(function(x){return x.id===id})||{id:id};var oldPaidDate=invoicePaidDate(inv),oldPaymentMethod=inv.payment_method;if(!inv.created_at)inv.created_at=new Date().toISOString();var invoiceDetails=document.querySelector('.invoiceDetails[data-invoice-job-id]');if(invoiceDetails&&invoiceDetails.dataset.invoiceJobId)inv.job_id=invoiceDetails.dataset.invoiceJobId;['customer_name','customer_phone','registration','vehicle','mileage','mot_due','invoice_date','payment_method','customer_address'].forEach(function(k){var el=document.getElementById('inv_'+k);if(el)inv[k]=el.value;else if(k!=='customer_address')inv[k]=''});if(!/^\d{4}-\d{2}-\d{2}$/.test(String(inv.invoice_date||'')))inv.invoice_date=todayIso();inv.invoice_number=(inv.invoice_number||nextInvoiceNumberText());inv.lines=[].slice.call(document.querySelectorAll('#invoiceLines tr')).map(function(tr){var sourceLine=inv.lines&&inv.lines[Array.prototype.indexOf.call(tr.parentNode.children,tr)];var descEl=tr.querySelector('[data-line-desc]'),description=descEl.value;if(descEl&&descEl.dataset.fleetLine==='1'){var prefix=[descEl.dataset.fleetDate||'',descEl.dataset.fleetRegistration||''].filter(Boolean).join(' · ');description=(prefix?(prefix+' · '):'')+String(descEl.value||'').trim()}return Object.assign({type:'Work',description:description,vat_mode:invoiceEditorLineValue(tr).vat_mode,amount:invoiceEditorLineValue(tr).amount},inv.source==='fleet_eom'&&inv.fleet_customer==='NMUK'&&inv.lines&&inv.lines[Array.prototype.indexOf.call(tr.parentNode.children,tr)]&&inv.lines[Array.prototype.indexOf.call(tr.parentNode.children,tr)].nmuk_monthly_extra?{nmuk_monthly_extra:true,section:inv.lines[Array.prototype.indexOf.call(tr.parentNode.children,tr)].section}:{},sourceLine&&Array.isArray(sourceLine.nmuk_monthly_extras)?{nmuk_monthly_extras:sourceLine.nmuk_monthly_extras.map(function(line){return Object.assign({},line)})}:{})});var invoiceAccount=invoiceDetails&&invoiceDetails.dataset.invoiceCustomerAccount||invoiceCustomerAccount(inv);if(inv.lines.length&&invoiceAccount)inv.lines[0].invoice_customer_account=invoiceAccount;if(String(inv.customer_address||'').trim()&&inv.lines.length)inv.lines[0].customer_address=String(inv.customer_address).trim();setInvoicePaidDate(inv,invoicePaymentDateForChange({payment_method:oldPaymentMethod,lines:[{invoice_paid_date:oldPaidDate}]},inv.payment_method));var totals=invoiceTotals(inv.lines);inv.subtotal=totals.subtotal;inv.vat=totals.vat;inv.total=totals.total;inv.status='saved';inv.updated_at=new Date().toISOString();return inv}
 function invoiceTotals(lines){var rate=Number(app.settings.vatRate||20)/100,sub=0,vat=0,total=0;lines.forEach(function(l){var a=Number(l.amount||0); if(l.vat_mode==='ex_vat'){sub+=a;vat+=a*rate;total+=a*(1+rate)}else if(l.vat_mode==='inc_vat'){total+=a;sub+=a/(1+rate);vat+=a-a/(1+rate)}else{sub+=a;total+=a}});return {subtotal:sub,vat:vat,total:total}}
 function calcInvoice(){var lines=[].slice.call(document.querySelectorAll('#invoiceLines tr')).map(function(tr){return invoiceEditorLineValue(tr)});var t=invoiceTotals(lines);var el=document.getElementById('invoiceSummary');if(el)el.innerHTML='<div><span>Subtotal</span><b>'+money(t.subtotal)+'</b></div><div><span>VAT</span><b>'+money(t.vat)+'</b></div><div><span>Total</span><b>'+money(t.total)+'</b></div>'}
-async function vectaCloudInvoiceRows(){if(!remoteClient||!navigator.onLine)throw new Error('Workshop Pro must be online before an invoice number can be confirmed.');var res=await vectaWithTimeout(remoteClient.from('invoices').select('id,job_id,invoice_number,total,status').limit(1000),8000,'Invoice register check');if(res.error)throw res.error;return Array.isArray(res.data)?res.data:[]}
-function vectaNextInvoiceNumberFromRows(rows){var max=(rows||[]).reduce(function(n,row){return Math.max(n,invoiceNumericPart(row))},0);return (app.settings.invoicePrefix||'VECTA')+'-'+String(max+1).padStart(5,'0')}
-async function vectaConfirmInvoiceIdentity(inv,isNew){var rows=await vectaCloudInvoiceRows(),sameJob=inv.job_id&&rows.find(function(row){return String(row.job_id||'')===String(inv.job_id)&&String(row.id||'')!==String(inv.id)});if(sameJob)throw new Error('This job already has invoice '+String(sameJob.invoice_number||'')+' in the cloud register.');var numberOwner=rows.find(function(row){return String(row.invoice_number||'')===String(inv.invoice_number||'')&&String(row.id||'')!==String(inv.id)});if(isNew||numberOwner){var next=vectaNextInvoiceNumberFromRows(rows);if(isNew&&String(inv.invoice_number||'')===next&&!numberOwner)return inv.invoice_number;inv.invoice_number=next}return inv.invoice_number}
 async function vectaProtectInvoiceSnapshot(inv){if(!remoteClient||!inv||!inv.id)return false;var stamp=new Date().toISOString(),res=await remoteClient.from('workshop_settings').upsert({id:'invoice_protected:'+String(inv.id),value:{invoice:JSON.parse(JSON.stringify(inv)),protected_at:stamp},updated_at:stamp},{onConflict:'id'});if(res&&res.error)throw res.error;return true}
-async function vectaSaveInvoiceRowConfirmed(inv,isNew){if(VECTA_AUDIT_PREVIEW){await upsertRemote('invoices',inv,{silent:true,skipQueue:true});return inv;}await vectaConfirmInvoiceIdentity(inv,isNew);for(var attempt=0;attempt<2;attempt++){try{var write=await upsertRemote('invoices',inv,{silent:true,skipQueue:true});if(write&&write.queued)throw new Error('Invoice save was queued instead of confirmed.');var check=await vectaWithTimeout(remoteClient.from('invoices').select('*').eq('id',inv.id).single(),8000,'Invoice confirmation');if(check.error)throw check.error;var saved=check.data||{},sameNumber=String(saved.invoice_number||'')===String(inv.invoice_number||''),sameJob=String(saved.job_id||'')===String(inv.job_id||''),sameTotal=Math.abs(Number(saved.total||0)-Number(inv.total||0))<0.005;if(!sameNumber||!sameJob||!sameTotal)throw new Error('The cloud invoice did not match the invoice on screen.');await vectaProtectInvoiceSnapshot(inv);return saved}catch(e){var duplicate=String(e&&e.code||'')==='23505'||/duplicate key|unique constraint/i.test(String(e&&e.message||e));if(attempt===0&&duplicate&&/invoice_number/i.test(String(e&&e.message||e))){inv.invoice_number=vectaNextInvoiceNumberFromRows(await vectaCloudInvoiceRows());continue}throw e}}throw new Error('Invoice confirmation failed.')}
+async function vectaSaveInvoiceRowConfirmed(inv,isNew){if(VECTA_AUDIT_PREVIEW){await upsertRemote('invoices',inv,{silent:true,skipQueue:true});return inv;}
+  if(!remoteClient||!navigator.onLine)throw new Error('Workshop Pro must be online before an invoice can be confirmed.');
+  if(isNew){
+    var allocated=await window.VectaInvoiceSave.create(remoteClient,inv,app.settings.invoicePrefix||'VECTA');
+    Object.assign(inv,allocated);
+  }else{
+    /* Saved invoice identities are immutable here. Never renumber an existing
+       invoice to recover from a stale browser or unique-key error. */
+    var current=await vectaWithTimeout(remoteClient.from('invoices').select('id,invoice_number,job_id').eq('id',inv.id).single(),8000,'Saved invoice identity');
+    if(current.error)throw current.error;
+    if(!current.data||String(current.data.invoice_number||'')!==String(inv.invoice_number||'')||String(current.data.job_id||'')!==String(inv.job_id||''))throw new Error('The saved invoice identity has changed. Reopen it from the invoice list before editing.');
+    var write=await upsertRemote('invoices',inv,{silent:true,skipQueue:true});
+    if(write&&write.queued)throw new Error('Invoice save was queued instead of confirmed.');
+  }
+  var check=await vectaWithTimeout(remoteClient.from('invoices').select('*').eq('id',inv.id).single(),8000,'Invoice confirmation');
+  if(check.error)throw check.error;
+  var saved=check.data||{},sameNumber=String(saved.invoice_number||'')===String(inv.invoice_number||''),sameJob=String(saved.job_id||'')===String(inv.job_id||''),sameTotal=Math.abs(Number(saved.total||0)-Number(inv.total||0))<0.005;
+  if(!sameNumber||!sameJob||!sameTotal)throw new Error('The cloud invoice did not match the invoice on screen.');
+  await vectaProtectInvoiceSnapshot(inv);return saved;
+}
 function invoiceReturnAfterSave(inv,returnToPlanner){
   var monthEnd=inv&&inv.source!=='vehicle_tax_eom'&&!vehicleTaxInvoiceTitle(inv)&&(inv.source==='fleet_eom'||inv.fleet_month||inv.eom_month);
   if(monthEnd){financialSection='eom';view='invoices';fleetSection='invoicing';fleetEomCustomer='';fleetEomMonth=inv.fleet_month||inv.eom_month||fleetEomMonth}
@@ -15472,7 +15489,7 @@ async function saveInvoiceBase(id){
   }catch(err){
     console.error('Invoice was not confirmed by the cloud register',err);
     if(button){button.disabled=false;button.textContent='Save Invoice'}
-    alert('This invoice has NOT been finalised because the cloud register did not confirm it. The job remains ready to invoice.\n\n'+String(err&&err.message||err));
+    alert('The invoice save could not be confirmed. Keep this invoice open and retry; do not create a replacement. The job will not be marked invoiced until confirmation succeeds.\n\n'+String(err&&err.message||err));
     return false;
   }
 

@@ -1,10 +1,12 @@
-# Review follow-up: lookups, cloud refreshes and release verification
+# Review follow-up: lookups, cloud refreshes and invoice safety
 
 Prepared after the first stabilisation batch and booking layout #209, on Main
 `dda8bb5` (#208). This is a separate batch; source checks do not establish that
-these changes are live. No schema migrations or business-record edits are needed.
+these changes are live. The invoice change requires the database migration described
+below before deploying the new client. No production business records were edited.
 The batch also incorporates Main `284bec7` (#210), preserving its MOT assignment,
-booking-flow wording and partial-Haynes-search fixes.
+booking-flow wording and partial-Haynes-search fixes. Main `567c7e1` (#212) is
+also incorporated, preserving shared vehicle artwork and booking validation.
 
 ## Government vehicle lookup (review 15)
 
@@ -69,6 +71,45 @@ Test-backed preview. An alias check is deliberately included to reveal drift.
 This check does not replace device acceptance, booking submission, payment/print
 checks, logs or backup restoration. It does not itself publish or move aliases.
 
+## Atomic invoice creation (part of review 23)
+
+New invoices are allocated a number and inserted in one database transaction.
+The allocator scans all existing invoice numbers, including drafts/void invoices,
+and serialises concurrent creators. It retains the existing invoice-number and
+job-link uniqueness constraints. Numbers over five digits are preserved in full.
+Existing invoices keep their numbers; the new client no longer downloads the
+invoice register to choose a number or renumbers an existing invoice after a conflict.
+
+Each new invoice has a stable ID. Retrying an identical request returns the saved
+invoice with its original number. A changed retry, duplicate job link or stale
+request after a payment change is refused rather than overwriting saved data.
+Failed inserts roll back allocation. The client confirms the returned identity,
+number, job link, totals and lines, then performs its existing fresh confirmation
+and protected snapshot flow. An ambiguous timeout tells the user to keep the
+invoice open and retry. There is no fallback to an unprotected browser allocation.
+
+Deployment prerequisite: apply
+`supabase/migrations/20261015114154_atomic_invoice_creation.sql` to production
+before deploying this client. It adds any missing optional invoice columns,
+retains uniqueness indexes and creates the restricted, security-invoker RPC
+`vecta_create_invoice`. Anonymous callers have no execution grant; unrelated
+signed-in accounts are refused. The RPC uses the existing workshop app-metadata
+claim and table permissions. The migration is applied in isolated Test only;
+production application and live release verification are still outstanding.
+Deploying the client without the migration will block new invoice saves safely.
+
+`tests/database/atomic-invoices.sql` passed in Test: identical retry, altered
+retry, duplicate job link, payment preservation, failed-insert rollback,
+consecutive allocation and access restrictions. Its ordinary fixtures roll back.
+Two separate concurrent transactions also created distinct consecutive numbers;
+both committed synthetic records were removed afterwards, restoring the original
+12-invoice Test count. Production financial records were not changed.
+
+The transaction covers number allocation and the initial invoice row only.
+Existing invoice edits, linked job updates and protected snapshots are separate
+operations. This does not establish atomicity for the entire finance workflow or
+replace real-device acceptance.
+
 ## Verification and scope
 
 Mocked provider tests exercise parallel calls, partial failure, token/MOT/tax
@@ -79,7 +120,8 @@ separate clients, independent result copies, deletion between pages, timeout,
 partial failure and corrupt identities. Release tests cover matching/mismatched
 commits, preview rejection and failed access health.
 
-The complete release gate and integration suite must pass before merging. Actual
+The complete release gate passed with 611 regression tests, finance and sync
+integrity checks, and the production build. All 7 integration tests passed. Actual
 PC/iPad concurrency and before/after timing on the same devices remain acceptance
 checks; no live latency reduction is claimed from unit tests.
 
@@ -131,6 +173,7 @@ Existing git history remains a separate exposure even after source cleanup.
 Distributed public API rate controls (3), per-record fleet storage (4), typed
 state (9), module/delta/cache consolidation (13,14,16), worker efficiency/version
 reporting and production relay separation (17,18), shared booking source (19),
-real-device checks (21), full disaster recovery (22), atomic invoice allocation
-(23), and wider monitoring/retention (24) remain open. The earlier live database
+real-device checks (21), full disaster recovery (22), remaining finance transaction boundaries
+and concurrent editing (23), and wider monitoring/retention (24) remain open.
+The invoice allocation change is prepared and tested, not yet live. The earlier live database
 access restriction is not a claim that these remaining findings are complete.

@@ -74,24 +74,16 @@ function contextWith(names, extras = {}) {
 }
 
 {
-  const app = { settings: { invoicePrefix: 'VECTA' } };
-  const context = contextWith(
-    ['invoiceNumericPart', 'vectaNextInvoiceNumberFromRows', 'vectaConfirmInvoiceIdentity'],
-    { app }
-  );
-  context.vectaCloudInvoiceRows = async () => [
-    { id: 'a', job_id: null, invoice_number: 'VECTA-78748' },
-    { id: 'b', job_id: 'job-b', invoice_number: 'VECTA-78750' }
-  ];
-
-  const newInvoice = { id: 'new', job_id: 'job-new', invoice_number: 'VECTA-78748' };
-  await context.vectaConfirmInvoiceIdentity(newInvoice, true);
-  assert.equal(newInvoice.invoice_number, 'VECTA-78751');
-
-  await assert.rejects(
-    () => context.vectaConfirmInvoiceIdentity({ id: 'other', job_id: 'job-b', invoice_number: 'VECTA-78751' }, true),
-    /already has invoice VECTA-78750/
-  );
+  const invoice={id:'new',job_id:'job-new',invoice_number:'VECTA-78748',subtotal:100,vat:20,total:120};
+  const saved={...invoice,invoice_number:'VECTA-78751'};let protectedCount=0,legacyWrites=0;
+  const client={from:()=>({select:()=>({eq:()=>({single:async()=>({data:saved})})})})};
+  const context=contextWith(['vectaSaveInvoiceRowConfirmed'],{
+    app:{settings:{invoicePrefix:'VECTA'}},VECTA_AUDIT_PREVIEW:false,remoteClient:client,navigator:{onLine:true},
+    window:{VectaInvoiceSave:{create:async()=>saved}},vectaWithTimeout:async value=>value,
+    vectaProtectInvoiceSnapshot:async()=>{protectedCount++;},upsertRemote:async()=>{legacyWrites++;}
+  });
+  await context.vectaSaveInvoiceRowConfirmed(invoice,true);
+  assert.equal(invoice.invoice_number,'VECTA-78751');assert.equal(legacyWrites,0);assert.equal(protectedCount,1);
 }
 
 {
