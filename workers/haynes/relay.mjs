@@ -22,7 +22,7 @@ await rpc({action:'pull'}).then(data => {
   firstRelayJob = data;
 });
 const browser = createBrowserRecovery(() => openProfile({headless:false}), {onRecovery:() => console.log('Haynes browser restarted automatically. Continuing queued lookups.')});
-const lookup = createLookupService(registration => browser.run(browserLookup, registration, 24000));
+const lookup = createLookupService(registration => browser.run(context=>browserLookup(context,{reusePage:true}), registration, 24000, {pageKey:'vehicle'}));
 // Confirm build-specific schedules on this PC; never infer build date from registration.
 const confirmedSchedules=new Map();
 async function chooseConditions(choices,vehicle) {
