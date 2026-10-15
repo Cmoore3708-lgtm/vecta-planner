@@ -116,7 +116,7 @@ function compatibleArtwork(value,description){
  const expected=normal(description?.model||description?.vehicle,description?.make||value.make),actual=normal(String(value.model||'').split(/[(/]/)[0],value.make);
  if(!expected||!actual)return true;
  const family=v=>v.split(' ')[0];
- return expected===actual||family(expected)===family(actual);
+ return expected===actual||family(expected)===family(actual)||(' '+actual+' ').includes(' '+expected+' ');
 }
 function knownAssetMatches(value,description){const known=modelImages.find(v=>v.imageUrl===value?.imageUrl);return !known||compatibleArtwork(known,description);}
 function genericImage(description){
