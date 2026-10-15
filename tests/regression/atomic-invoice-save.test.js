@@ -41,7 +41,7 @@ test('the obsolete register download and client-side retry allocator are removed
  assert.doesNotMatch(html,/function vectaCloudInvoiceRows|function vectaNextInvoiceNumberFromRows|function vectaConfirmInvoiceIdentity/);
  const start=html.indexOf('async function vectaSaveInvoiceRowConfirmed('),end=html.indexOf('\nfunction invoiceReturnAfterSave(',start),source=html.slice(start,end);
  assert.match(source,/if\(isNew\)[\s\S]*VectaInvoiceSave\.create/);assert.match(source,/Object\.assign\(inv,allocated\)/);
- assert.match(source,/Saved invoice identity/);assert.doesNotMatch(source,/invoice_number\s*=/);
+ assert.match(source,/VectaInvoiceSave\.edit/);assert.doesNotMatch(source,/invoice_number\s*=/);
 });
 
 function paymentRow(){return {...draft(),invoice_number:'VECTA-78751',updated_at:'2026-10-15T10:00:00.000Z',payment_method:''};}
@@ -49,7 +49,7 @@ function paymentClient(initial,{beforeWrite,writeError}={}){
  let row=structuredClone(initial),writes=0;
  return {get row(){return row;},get writes(){return writes;},from(){
   let patch=null,filters=[];
-  const q={select(){return q;},eq(k,v){filters.push([k,v]);return q;},update(v){patch=v;return q;},single(){return q;},maybeSingle(){return q;},async abortSignal(){
+  const q={select(){return q;},eq(k,v){filters.push([k,v]);return q;},is(k,v){filters.push([k,v]);return q;},update(v){patch=v;return q;},single(){return q;},maybeSingle(){return q;},async abortSignal(){
    if(!patch)return {data:structuredClone(row)};
    writes++;if(beforeWrite)row=beforeWrite(row);
    if(writeError)return {error:writeError};
@@ -85,4 +85,20 @@ test('payment errors and timeouts leave the original local invoice intact',async
  await assert.rejects(helper().payment(c,inv,'bacs'),/network failed/);assert.equal(JSON.stringify(inv),before);
  const hanging={from(){const q={select(){return q;},eq(){return q;},single(){return q;},abortSignal:()=>new Promise(()=>{})};return q;}};
  await assert.rejects(helper().payment(hanging,inv,'cash',{timeoutMs:10}),/could not be confirmed/);assert.equal(JSON.stringify(inv),before);
+});
+
+test('saved invoice edits filter the original version and preserve invoice identity',async()=>{
+ const inv=paymentRow();inv.job_id='job-1';const c=paymentClient(inv);inv.lines[0].description='Revised work';
+ const saved=await helper().edit(c,inv);assert.equal(saved.lines[0].description,'Revised work');assert.equal(saved.invoice_number,inv.invoice_number);assert.equal(saved.job_id,'job-1');
+});
+test('saved invoice edits refuse competing payment updates without overwriting them',async()=>{
+ const inv=paymentRow();inv.job_id='job-1';const c=paymentClient(inv,{beforeWrite:r=>({...r,payment_method:'bacs',updated_at:'2026-10-15T11:00:00Z'})});
+ await assert.rejects(helper().edit(c,inv),/another device/);assert.equal(c.row.payment_method,'bacs');
+});
+test('editor saves use the opening version and do not mutate invoice-list rows before confirmation',()=>{
+ const open=html.slice(html.indexOf('function openInvoice(id,preset)'),html.indexOf('function invoiceTotals('));
+ assert.match(open,/vectaInvoiceEditVersions\[String\(id\)\]=inv.updated_at/);
+ assert.match(open,/var inv=source\?JSON.parse\(JSON.stringify\(source\)\)/);
+ assert.match(open,/inv.updated_at=window.vectaInvoiceEditVersions\[String\(id\)\]/);
+ const gather=open.slice(open.indexOf('function gatherInvoice('));assert.doesNotMatch(gather,/inv.updated_at=new Date/);
 });

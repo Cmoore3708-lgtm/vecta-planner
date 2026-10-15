@@ -302,9 +302,30 @@ initialiseBooking();
 .step:not(.later-step):has(.haynes-vehicle) .haynes-actions{grid-column:1;grid-row:3;margin:0}
 </style>
 
-<style id="booking-bounded-registration-plate">
-/* The plate can extend past the text column without changing its own dimensions. */
-.identified-vehicle .registration-column .reg-wrap{box-sizing:border-box;flex:0 0 200px!important;width:200px!important;min-width:200px!important;max-width:200px!important;height:48px!important;min-height:48px!important;max-height:48px!important}
-.identified-vehicle .registration-column .reg-band{flex:0 0 30px!important;width:30px!important;font-size:13px!important}
-.identified-vehicle .registration-column .reg{box-sizing:border-box!important;flex:1 1 0!important;width:0!important;min-width:0!important;height:44px!important;margin:0!important;padding:8px 5px!important;font-size:23px!important;line-height:28px!important;letter-spacing:.4px!important;white-space:nowrap!important;overflow:hidden!important;text-align:center}
+<style id="booking-compact-vehicle-identity">
+/* Compact plate and badge leave the top-aligned illustration more room. */
+.identified-vehicle .registration-brand-row{width:100%;max-width:100%;gap:8px;flex-wrap:nowrap}
+.identified-vehicle .registration-column .reg-wrap{box-sizing:border-box;flex:0 0 160px!important;width:160px!important;min-width:160px!important;max-width:160px!important;height:40px!important;min-height:40px!important;max-height:40px!important}
+.identified-vehicle .registration-column .reg-band{flex:0 0 25px!important;width:25px!important;font-size:11px!important}
+.identified-vehicle .registration-column .reg{box-sizing:border-box!important;flex:1 1 0!important;width:0!important;min-width:0!important;height:36px!important;margin:0!important;padding:5px 3px!important;font-size:20px!important;line-height:26px!important;letter-spacing:0!important;white-space:nowrap!important;overflow:hidden!important;text-align:center}
+.identified-vehicle .registration-manufacturer-logo{flex:0 0 40px;width:40px!important;height:40px!important;max-width:none;object-fit:contain}
+.step:not(.later-step):has(.haynes-vehicle) .haynes-card{grid-template-columns:minmax(208px,.85fr) minmax(0,1fr);align-items:start}
+.step:not(.later-step):has(.haynes-vehicle) .haynes-image{grid-column:2;grid-row:1;align-self:start}
+.step.later-step:has(.haynes-vehicle) .vehicle-photo .haynes-vehicle{grid-template-columns:minmax(208px,.85fr) minmax(0,1fr);align-items:start}
+.step:has(.haynes-vehicle) .vehicle-photo .haynes-image img{width:100%;max-width:100%;height:auto;max-height:none;margin:0;transform:none;object-fit:contain;object-position:center top;vertical-align:top}
+@media(max-width:600px){
+ .identified-vehicle .registration-column .reg-wrap{flex-basis:128px!important;width:128px!important;min-width:128px!important;max-width:128px!important;height:34px!important;min-height:34px!important;max-height:34px!important;border-radius:8px}
+ .identified-vehicle .registration-column .reg-band{flex-basis:22px!important;width:22px!important;font-size:10px!important}
+ .identified-vehicle .registration-column .reg{height:30px!important;padding:4px 2px!important;font-size:16px!important;line-height:22px!important}
+ .identified-vehicle .registration-manufacturer-logo{flex-basis:30px;width:30px!important;height:30px!important}
+ .step:not(.later-step):has(.haynes-vehicle) .haynes-card,.step.later-step:has(.haynes-vehicle) .vehicle-photo .haynes-vehicle{grid-template-columns:minmax(166px,.85fr) minmax(0,1fr);column-gap:8px}
+ .step:not(.later-step):has(.haynes-vehicle) .haynes-card>p,.step:not(.later-step):has(.haynes-vehicle) .haynes-actions{grid-column:1/-1}
+}
+@media(max-width:359px){
+ .step:not(.later-step):has(.haynes-vehicle) .haynes-card,.step.later-step:has(.haynes-vehicle) .vehicle-photo .haynes-vehicle{grid-template-columns:minmax(0,1fr)}
+ .step:has(.haynes-vehicle) .vehicle-photo .haynes-vehicle>div{grid-column:1;grid-row:2}
+ .step:not(.later-step):has(.haynes-vehicle) .haynes-image,.step.later-step:has(.haynes-vehicle) .haynes-image{grid-column:1;grid-row:1}
+ .step:not(.later-step):has(.haynes-vehicle) .haynes-card>p{grid-row:3}
+ .step:not(.later-step):has(.haynes-vehicle) .haynes-actions{grid-row:4}
+}
 </style>

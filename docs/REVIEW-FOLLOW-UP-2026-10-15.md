@@ -94,8 +94,10 @@ before deploying this client. It adds any missing optional invoice columns,
 retains uniqueness indexes and creates the restricted, security-invoker RPC
 `vecta_create_invoice`. Anonymous callers have no execution grant; unrelated
 signed-in accounts are refused. The RPC uses the existing workshop app-metadata
-claim and table permissions. The migration is applied in isolated Test only;
-production application and live release verification are still outstanding.
+claim and table permissions. The migration passed isolated Test and was applied to production on 15 October.
+The production invoice count (62) and sum (52797.99599999999998) were unchanged.
+The RPC exists, uses invoker permissions, denies anonymous execution and permits
+authorised workshop callers. Live client release verification follows deployment.
 Deploying the client without the migration will block new invoice saves safely.
 
 `tests/database/atomic-invoices.sql` passed in Test: identical retry, altered
@@ -106,8 +108,7 @@ both committed synthetic records were removed afterwards, restoring the original
 12-invoice Test count. Production financial records were not changed.
 
 The transaction covers number allocation and the initial invoice row only.
-Existing invoice edits, linked job updates and protected snapshots are separate
-operations. This does not establish atomicity for the entire finance workflow or
+Linked job updates and protected snapshots are separate operations. This does not establish atomicity for the entire finance workflow or
 replace real-device acceptance.
 
 ## Payment updates across devices (part of review 23)
@@ -134,8 +135,24 @@ integration also verifies that backup failure does not undo a confirmed payment.
 A rolled-back Test database scenario confirmed that an old version updates zero
 rows while the current version updates one; Test remains at 12 invoices.
 This adds no migration beyond the invoice-creation migration above. It relies on
-writers advancing `updated_at` and does not protect full-editor saves, old client
-versions, or make payment backups/job updates part of the same transaction.
+writers advancing `updated_at`. It does not protect old client versions or make
+payment backups/job updates part of the same transaction.
+
+## Full invoice editor version protection
+
+The editor captures the saved version when the invoice is opened. Gathering its
+fields makes a separate copy instead of changing the invoice list before the
+save is confirmed. Existing invoice writes filter by ID, number, original version
+and job identity; a stale editor cannot overwrite a newer payment or edit.
+A confirmed receipt supplies the updated version and snapshot contents. Month-end
+regeneration also edits a copy with its original version. Existing invoice edits
+never create a missing row or reallocate an invoice number.
+
+Three new regressions verify edits, a competing payment update and the opening
+version; the monthly invoice test checks preserved charges and unchanged list
+records before confirmation. Main changes through #217 are included. The linked
+job and snapshot updates remain separate follow-up operations with error reporting;
+the entire finance workflow is not one transaction.
 
 ## Verification and scope
 
@@ -147,7 +164,7 @@ separate clients, independent result copies, deletion between pages, timeout,
 partial failure and corrupt identities. Release tests cover matching/mismatched
 commits, preview rejection and failed access health.
 
-The complete release gate passed with 616 regression tests, finance and sync
+The complete release gate passed with 623 regression tests, finance and sync
 integrity checks, and the production build. All 7 integration tests passed. Actual
 PC/iPad concurrency and before/after timing on the same devices remain acceptance
 checks; no live latency reduction is claimed from unit tests.

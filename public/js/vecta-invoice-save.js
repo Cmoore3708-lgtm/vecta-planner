@@ -34,6 +34,25 @@
    throw error;
   }finally{clearTimeout(timer);controller.abort();}
  }
+ async function edit(client,invoice,{timeoutMs=12000}={}){
+  if(!invoice?.id||!invoice.updated_at)throw Error('Reopen this invoice from a refreshed invoice list before saving changes.');
+  const payload={};for(const key of fields)if(!['id','job_id'].includes(key)&&invoice[key]!==undefined)payload[key]=invoice[key];
+  payload.mot_due=String(payload.mot_due||'').trim()||null;
+  for(const key of ['amount','subtotal','vat','total'])if(payload[key]!=null)payload[key]=Number(payload[key]);
+  if(!['subtotal','vat','total'].every(k=>Number.isFinite(payload[k]))||!Array.isArray(payload.lines)||!/^\d{4}-\d{2}-\d{2}$/.test(String(payload.invoice_date||'')))throw Error('Valid invoice lines, totals and date are required.');
+  payload.updated_at=new Date().toISOString();
+  const controller=new AbortController();let timer;
+  try{
+   let query=client.from('invoices').update(JSON.parse(JSON.stringify(payload))).eq('id',invoice.id).eq('invoice_number',invoice.invoice_number).eq('updated_at',invoice.updated_at);
+   query=invoice.job_id?query.eq('job_id',invoice.job_id):query.is('job_id',null);
+   const result=await Promise.race([query.select('*').maybeSingle().abortSignal(controller.signal),new Promise((_,reject)=>{timer=setTimeout(()=>{controller.abort();reject(Error('Invoice save could not be confirmed. Refresh and check the saved invoice before retrying.'));},timeoutMs);})]);
+   if(result.error)throw result.error;
+   const saved=result.data;
+   if(!saved)throw Error('This invoice changed on another device. Reopen it from a refreshed invoice list before editing.');
+   if(String(saved.id)!==String(invoice.id)||String(saved.invoice_number)!==String(invoice.invoice_number)||String(saved.job_id||'')!==String(invoice.job_id||'')||canonical(saved.lines)!==canonical(payload.lines)||['subtotal','vat','total'].some(k=>saved[k]==null||Math.abs(Number(saved[k])-payload[k])>=0.005))throw Error('The saved invoice receipt did not match. Refresh and check it before retrying.');
+   return saved;
+  }finally{clearTimeout(timer);controller.abort();}
+ }
  async function payment(client,invoice,method,{timeoutMs=12000}={}){
   const next=String(method||'').toLowerCase();
   if(!['','card','cash','bacs'].includes(next))throw Error('Choose a valid payment method.');
@@ -64,5 +83,5 @@
   try{return await Promise.race([operation,new Promise((_,reject)=>{timer=setTimeout(()=>{controller.abort();reject(Error('The payment save could not be confirmed. Refresh and check this invoice before retrying.'));},timeoutMs);})]);}
   finally{clearTimeout(timer);controller.abort();}
  }
- root.VectaInvoiceSave={create,payment};
+ root.VectaInvoiceSave={create,payment,edit};
 })(typeof window==='undefined'?globalThis:window);

@@ -39,10 +39,11 @@ test('invoice save preserves consolidated monthly details',()=>{
  tr.parentNode.children=[tr];
  const inv={id:'test',payment_method:'card',source:'fleet_eom',fleet_customer:'NMUK',invoice_date:'2026-09-30',lines:original};
  const ctx={app:{invoices:[inv]},document:{querySelector:()=>null,getElementById:key=>key==='inv_payment_method'?{value:'card'}:null,querySelectorAll:()=>[tr]},todayIso:()=> '2026-09-30',nextInvoiceNumberText:()=> '78763',invoiceTotals:()=>({subtotal:12770,vat:2554,total:15324})};
- vm.createContext(ctx);vm.runInContext(html.slice(html.indexOf('function invoicePaidDate('),html.indexOf('function invoicePaymentKey(')),ctx);vm.runInContext(html.slice(html.indexOf('function invoiceCustomerAccount('),html.indexOf('function bindInvoiceFields(')),ctx);vm.runInContext(gather,ctx);ctx.gatherInvoice('test');
- assert.equal(inv.lines[0].nmuk_monthly_extras[0].amount,2420);
- assert.equal(ctx.invoicePaidDate(inv),'2026-10-14');
- assert.notEqual(inv.lines[0].nmuk_monthly_extras,original[0].nmuk_monthly_extras);
+ vm.createContext(ctx);vm.runInContext(html.slice(html.indexOf('function invoicePaidDate('),html.indexOf('function invoicePaymentKey(')),ctx);vm.runInContext(html.slice(html.indexOf('function invoiceCustomerAccount('),html.indexOf('function bindInvoiceFields(')),ctx);vm.runInContext(gather,ctx);const gathered=ctx.gatherInvoice('test');
+ assert.equal(gathered.lines[0].nmuk_monthly_extras[0].amount,2420);
+ assert.equal(ctx.invoicePaidDate(gathered),'2026-10-14');
+ assert.notEqual(gathered.lines[0].nmuk_monthly_extras,original[0].nmuk_monthly_extras);
+ assert.equal(inv.lines,original,'unsaved editor changes must leave the invoice list untouched');
 });
 
 test('monthly costs enter running totals only on the final calendar date',()=>{
