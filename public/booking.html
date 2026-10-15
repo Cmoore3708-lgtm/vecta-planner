@@ -308,3 +308,18 @@ initialiseBooking();
 .identified-vehicle .registration-column .reg-band{flex:0 0 30px!important;width:30px!important;font-size:13px!important}
 .identified-vehicle .registration-column .reg{box-sizing:border-box!important;flex:1 1 0!important;width:0!important;min-width:0!important;height:44px!important;margin:0!important;padding:8px 5px!important;font-size:23px!important;line-height:28px!important;letter-spacing:.4px!important;white-space:nowrap!important;overflow:hidden!important;text-align:center}
 </style>
+
+<style id="booking-plate-column-space">
+/* Reserve the fixed plate width instead of letting it overflow a fractional column. */
+.step:not(.later-step):has(.haynes-vehicle) .haynes-card{grid-template-columns:minmax(200px,1fr) minmax(0,1.25fr)}
+.step.later-step:has(.haynes-vehicle) .vehicle-photo .haynes-vehicle{grid-template-columns:minmax(200px,1.2fr) minmax(0,1fr)}
+.step:has(.haynes-vehicle) .vehicle-photo .haynes-image img{transform:none;object-fit:contain}
+@media(max-width:374px){
+ .step:not(.later-step):has(.haynes-vehicle) .haynes-card{grid-template-columns:minmax(0,1fr)}
+ .step:not(.later-step):has(.haynes-vehicle) .haynes-image{grid-column:1;grid-row:2}
+ .step:not(.later-step):has(.haynes-vehicle) .haynes-card>p{grid-row:3}
+ .step:not(.later-step):has(.haynes-vehicle) .haynes-actions{grid-row:4}
+ .step.later-step:has(.haynes-vehicle) .vehicle-photo .haynes-vehicle{grid-template-columns:minmax(0,1fr)}
+ .step.later-step:has(.haynes-vehicle) .haynes-image{grid-column:1;grid-row:2}
+}
+</style>
