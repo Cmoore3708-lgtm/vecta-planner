@@ -74,40 +74,28 @@ function contextWith(names, extras = {}) {
 }
 
 {
-  const app = { settings: { invoicePrefix: 'VECTA' } };
-  const context = contextWith(
-    ['invoiceNumericPart', 'vectaNextInvoiceNumberFromRows', 'vectaConfirmInvoiceIdentity'],
-    { app }
-  );
-  context.vectaCloudInvoiceRows = async () => [
-    { id: 'a', job_id: null, invoice_number: 'VECTA-78748' },
-    { id: 'b', job_id: 'job-b', invoice_number: 'VECTA-78750' }
-  ];
-
-  const newInvoice = { id: 'new', job_id: 'job-new', invoice_number: 'VECTA-78748' };
-  await context.vectaConfirmInvoiceIdentity(newInvoice, true);
-  assert.equal(newInvoice.invoice_number, 'VECTA-78751');
-
-  await assert.rejects(
-    () => context.vectaConfirmInvoiceIdentity({ id: 'other', job_id: 'job-b', invoice_number: 'VECTA-78751' }, true),
-    /already has invoice VECTA-78750/
-  );
+  const invoice={id:'new',job_id:'job-new',invoice_number:'VECTA-78748',subtotal:100,vat:20,total:120};
+  const saved={...invoice,invoice_number:'VECTA-78751'};let protectedCount=0,legacyWrites=0;
+  const client={from:()=>({select:()=>({eq:()=>({single:async()=>({data:saved})})})})};
+  const context=contextWith(['vectaSaveInvoiceRowConfirmed'],{
+    app:{settings:{invoicePrefix:'VECTA'}},VECTA_AUDIT_PREVIEW:false,remoteClient:client,navigator:{onLine:true},
+    window:{VectaInvoiceSave:{create:async()=>saved}},vectaWithTimeout:async value=>value,
+    vectaProtectInvoiceSnapshot:async()=>{protectedCount++;},upsertRemote:async()=>{legacyWrites++;}
+  });
+  await context.vectaSaveInvoiceRowConfirmed(invoice,true);
+  assert.equal(invoice.invoice_number,'VECTA-78751');assert.equal(legacyWrites,0);assert.equal(protectedCount,1);
 }
 
 {
   let persisted = 0;
   const app = { invoices: [{ id: 'inv-1', payment_method: '', updated_at: '', lines: [{ description: 'Service', amount: 100 }] }] };
-  const cloudRow = { id: 'inv-1', payment_method: 'bacs', updated_at: '2026-09-09T12:00:00Z' };
-  const chain = {
-    update: () => chain,
-    eq: () => chain,
-    select: () => chain,
-    single: async () => ({ data: cloudRow, error: null })
-  };
+  const cloudRow = { ...app.invoices[0], payment_method: 'bacs', updated_at: '2026-09-09T12:00:00Z', lines:[{description:'Service',amount:100,invoice_paid_date:'2026-10-15'}] };
   const context = contextWith(['invoicePaidDate','setInvoicePaidDate','invoicePaymentDateForChange','updateInvoicePaymentMethod'], {
     app,
     navigator: { onLine: true },
-    remoteClient: { from: () => chain },
+    remoteClient: {},
+    window: { VectaInvoiceSave: { payment: async () => cloudRow } },
+    vectaPendingInvoicePayments: new Set(),
     vectaWithTimeout: value => Promise.resolve(value),
     persistInvoicePaymentMethod: async () => { persisted += 1; },
     saveLocal: () => {},
@@ -119,6 +107,19 @@ function contextWith(names, extras = {}) {
   assert.match(context.invoicePaidDate(app.invoices[0]), /^\d{4}-\d{2}-\d{2}$/);
   assert.equal(app.invoices[0].lines[0].amount, 100);
   assert.equal(persisted, 1);
+}
+
+{
+  const inv={id:'payment-backup',payment_method:'',updated_at:'old',lines:[{description:'Repair',amount:100}]},messages=[];
+  const context=contextWith(['updateInvoicePaymentMethod'],{
+    app:{invoices:[inv]},navigator:{onLine:true},remoteClient:{},vectaPendingInvoicePayments:new Set(),
+    window:{VectaInvoiceSave:{payment:async()=>({...inv,payment_method:'card',updated_at:'confirmed'})}},
+    saveLocal:()=>{},render:()=>{},persistInvoicePaymentMethod:async()=>{throw Error('Backup unavailable');},alert:message=>messages.push(message)
+  });
+  assert.equal(await context.updateInvoicePaymentMethod(inv.id,'card'),true);
+  assert.equal(inv.payment_method,'card');assert.equal(inv.updated_at,'confirmed');
+  assert.equal(messages.length,1);assert.match(messages[0],/Payment is saved/);
+  assert.equal(context.vectaPendingInvoicePayments.size,0);
 }
 
 {

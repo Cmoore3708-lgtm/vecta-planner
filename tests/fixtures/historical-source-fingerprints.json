@@ -1,0 +1,37 @@
+{
+  "version": 1,
+  "datasets": {
+    "CONTRACTOR_2026_JOBS": {
+      "entries": 264,
+      "sha256": "876073b3dba73d529723b03d5da355474e7f9ab53c2baa08fff4dc6cd46407bf"
+    },
+    "NMUK_2026_JOBS": {
+      "entries": 496,
+      "sha256": "d464f33dffb5a1000bbc7b13953cbd9bb4efb03d94fe45443eac0f1be19c0652"
+    },
+    "CONTRACTOR_2026_NEW_VEHICLES": {
+      "entries": 126,
+      "sha256": "26662291e92b508d409c08fd45e1e42ee6a624b812713eafee5087e85b69859f"
+    },
+    "INITIAL_FLEET_VEHICLES": {
+      "entries": 276,
+      "sha256": "993002d7a51177bf7f631ccce8fe1a28d31c91bfef2227a4e56268eeb50e9fa5"
+    },
+    "INITIAL_MAINTENANCE_PLANS": {
+      "entries": 536,
+      "sha256": "0426db5077345ce46b126553513f88187f0c2d55e04ab7ca2024b6c88ca7e764"
+    },
+    "HISTORICAL_COMPLETION_SEED": {
+      "entries": 164,
+      "sha256": "497a287a3555ef059c81d3329ba999487734eb933f76aadf6d5d7903a84bd56c"
+    },
+    "CONTRACTOR_FINANCIAL_HISTORY": {
+      "entries": 3,
+      "sha256": "5ba384e831db1eb6997091923bc34b9f08c33c5d3aa3dd25d99724e5410b2165"
+    },
+    "NMUK_FINANCIAL_HISTORY": {
+      "entries": 3,
+      "sha256": "e06ce134814e49313bfbe6c3a64801bf938cfc1153f4708e9b03f8e80ded1c7e"
+    }
+  }
+}

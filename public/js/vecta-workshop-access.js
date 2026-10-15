@@ -2,6 +2,7 @@
  'use strict';
  let session=null,pending=null,timer=null;
  const clients=new Map();
+ let writeVersion=0,activeWrites=0;
  function schedule(){
   clearTimeout(timer);
   if(!session)return;
@@ -28,13 +29,18 @@
   const client=root.supabase.createClient(url,key,{accessToken:token,global:{fetch:async(input,options={})=>{
    const headers=new Headers(options.headers||(typeof input==='object'?input.headers:undefined));
    headers.set('X-Vecta-Require-Fresh','1');
-   const response=await root.fetch(input,{...options,headers});
-   if(response.headers?.get('X-Vecta-Data-State')==='stale')throw Error('Cloud data is offline. Your last saved view remains available.');
-   return response;
+   const method=String(options.method||(typeof input==='object'?input.method:'')||'GET').toUpperCase();
+   const writes=!['GET','HEAD','OPTIONS'].includes(method);
+   if(writes){writeVersion++;activeWrites++;}
+   try{
+    const response=await root.fetch(input,{...options,headers});
+    if(response.headers?.get('X-Vecta-Data-State')==='stale')throw Error('Cloud data is offline. Your last saved view remains available.');
+    return response;
+   }finally{if(writes){writeVersion++;activeWrites--;}}
   }}});
   clients.set(id,client);return client;
  }
  root.addEventListener?.('online',()=>{if(clients.size)token().catch(()=>{});});
  root.addEventListener?.('focus',()=>{if(clients.size)token().catch(()=>{});});
- root.VectaWorkshopAccess={createClient,token};
+ root.VectaWorkshopAccess={createClient,token,readState:()=>({version:writeVersion,writing:activeWrites>0})};
 })(window);
