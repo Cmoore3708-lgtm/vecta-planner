@@ -1,8 +1,10 @@
 import {sendPushSubscription,supabaseRest} from './_push.js';
+import {requireWorkshopLogin} from '../lib/workshop-access.js';
 
 export default async function handler(req,res){
   res.setHeader('Cache-Control','no-store');
   if(req.method!=='POST')return res.status(405).json({error:'Method not allowed'});
+  if(!await requireWorkshopLogin(req,res))return;
   try{
     const endpoint=String(req.body&&req.body.endpoint||'');
     if(!endpoint.startsWith('https://'))return res.status(400).json({error:'Missing iPhone push subscription'});

@@ -3,6 +3,7 @@ import {
   isAuditPreviewEnvironment,
   isPreviewEnvironment
 } from './_database-environment.js';
+import {workshopSessionHandler,workshopAccessHealth} from '../lib/workshop-access.js';
 
 async function checkCloudHealth(req, res) {
   if (req.method !== 'GET') {
@@ -42,6 +43,9 @@ async function checkCloudHealth(req, res) {
 
 export default function handler(req, res) {
   res.setHeader('Cache-Control', 'no-store');
+  if(req.query?.action==='session')return workshopSessionHandler(req,res);
+  if(req.query?.action==='access-health')return workshopAccessHealth(req,res);
+  if(req.method&&req.method!=='GET'){res.setHeader('Allow','GET, POST');return res.status(405).json({error:'Method not allowed'});}
   if (req.query?.health === '1') return checkCloudHealth(req, res);
   if (isAuditPreviewEnvironment()) {
     return res.status(200).json({ auditPreview: true });

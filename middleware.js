@@ -15,6 +15,9 @@ function isPublicWebsiteRequest(request) {
 }
 
 export function requiresManagerLogin(pathname) {
+  // Extracted app chunks contain historical workshop records. They are not
+  // public website assets, even though the build places them under /assets/.
+  if(/^\/assets\/vecta-inline-/.test(pathname))return true;
   return !PUBLIC_PATHS.has(pathname)
     && !PUBLIC_FILES.has(pathname)
     && !PUBLIC_PREFIXES.some(prefix => pathname.startsWith(prefix));

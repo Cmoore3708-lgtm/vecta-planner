@@ -1,0 +1,7 @@
+{
+  "version": 2,
+  "rewrites": [
+    {"source": "/:path*", "destination": "https://vecta-planner.vercel.app/:path*"}
+  ],
+  "headers": [{"source": "/:path*", "headers": [{"key":"Cache-Control","value":"no-store"}]}]
+}
