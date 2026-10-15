@@ -3,3 +3,6 @@ node_modules/
 dist/
 *.log
 .DS_Store
+backup/backup-config.json
+*.vecta-encrypted
+*.downloading
