@@ -3,6 +3,8 @@
 Prepared after the first stabilisation batch and booking layout #209, on Main
 `dda8bb5` (#208). This is a separate batch; source checks do not establish that
 these changes are live. No schema migrations or business-record edits are needed.
+The batch also incorporates Main `284bec7` (#210), preserving its MOT assignment,
+booking-flow wording and partial-Haynes-search fixes.
 
 ## Government vehicle lookup (review 15)
 
