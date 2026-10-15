@@ -34,5 +34,35 @@
    throw error;
   }finally{clearTimeout(timer);controller.abort();}
  }
- root.VectaInvoiceSave={create};
+ async function payment(client,invoice,method,{timeoutMs=12000}={}){
+  const next=String(method||'').toLowerCase();
+  if(!['','card','cash','bacs'].includes(next))throw Error('Choose a valid payment method.');
+  if(!invoice?.id||!invoice.updated_at)throw Error('Refresh the invoice list before recording a payment.');
+  const baseline=JSON.parse(JSON.stringify(invoice)),controller=new AbortController();let timer;
+  const conflict=()=>Error('This invoice changed on another device. Refresh the invoice list and check it before recording payment.');
+  const operation=(async()=>{
+   const read=await client.from('invoices').select('*').eq('id',baseline.id).single().abortSignal(controller.signal);
+   if(read.error)throw read.error;
+   const current=read.data;
+   if(!current||String(current.updated_at)!==String(baseline.updated_at)||
+      ['invoice_number','job_id','payment_method'].some(k=>String(current[k]||'')!==String(baseline[k]||''))||
+      ['subtotal','vat','total'].some(k=>Number(current[k])!==Number(baseline[k]))||canonical(current.lines)!==canonical(baseline.lines))throw conflict();
+   const lines=JSON.parse(JSON.stringify(current.lines||[]));
+   if(!lines.length)throw Error('Open this invoice and check its work lines before recording payment.');
+   const oldDate=String((lines.find(x=>Object.prototype.hasOwnProperty.call(x,'invoice_paid_date'))||{}).invoice_paid_date||'');
+   const paidDate=next?(current.payment_method?oldDate:new Intl.DateTimeFormat('en-CA',{timeZone:'Europe/London',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date())):'';
+   lines.forEach((line,i)=>{delete line.invoice_paid_date;if(i===0)line.invoice_paid_date=paidDate;});
+   const stamp=new Date(Math.max(Date.now(),Date.parse(current.updated_at)+1)).toISOString();
+   const write=await client.from('invoices').update({payment_method:next,lines,updated_at:stamp}).eq('id',baseline.id).eq('updated_at',current.updated_at).select('*').maybeSingle().abortSignal(controller.signal);
+   if(write.error)throw write.error;
+   if(!write.data)throw conflict();
+   const saved=write.data;
+   if(String(saved.id)!==String(baseline.id)||String(saved.payment_method||'')!==next||canonical(saved.lines)!==canonical(lines)||
+      ['invoice_number','job_id'].some(k=>String(saved[k]||'')!==String(current[k]||''))||['subtotal','vat','total'].some(k=>Number(saved[k])!==Number(current[k])))throw Error('The payment receipt could not be confirmed. Refresh and check this invoice before retrying.');
+   return saved;
+  })();
+  try{return await Promise.race([operation,new Promise((_,reject)=>{timer=setTimeout(()=>{controller.abort();reject(Error('The payment save could not be confirmed. Refresh and check this invoice before retrying.'));},timeoutMs);})]);}
+  finally{clearTimeout(timer);controller.abort();}
+ }
+ root.VectaInvoiceSave={create,payment};
 })(typeof window==='undefined'?globalThis:window);

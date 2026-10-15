@@ -13527,7 +13527,23 @@ function invoicePaymentDateForChange(inv,next){return next?(String(inv.payment_m
 function invoicePaymentKey(id){return 'invoice-payment:'+String(id||'')}
 async function persistInvoicePaymentMethod(inv){if(!inv||!inv.id||!remoteClient)return false;var value={invoice_id:inv.id,payment_method:String(inv.payment_method||''),paid_date:invoicePaidDate(inv),updated_at:new Date().toISOString()},res=await remoteClient.from('workshop_settings').upsert({id:invoicePaymentKey(inv.id),value:value,updated_at:value.updated_at},{onConflict:'id'});if(res&&res.error)throw res.error;return true}
 async function pullInvoicePaymentMethods(){if(!remoteClient)return;try{var res=await remoteClient.from('workshop_settings').select('id,value,updated_at').like('id','invoice-payment:%').limit(1000);if(res.error)return;(res.data||[]).forEach(function(row){var id=String(row.id||'').replace(/^invoice-payment:/,''),inv=(app.invoices||[]).find(function(x){return String(x.id)===id}),value=row&&row.value||{},rowTime=Date.parse(row.updated_at||value.updated_at||0)||0,invoiceTime=Date.parse(inv&&inv.updated_at||0)||0;if(inv&&value&&typeof value==='object'&&(!String(inv.payment_method||'').trim()||rowTime>invoiceTime)){inv.payment_method=String(value.payment_method||'');if(Object.prototype.hasOwnProperty.call(value,'paid_date'))setInvoicePaidDate(inv,value.paid_date)}})}catch(e){console.warn('Invoice payment method cloud pull failed',e)}}
-async function updateInvoicePaymentMethod(id,method){var inv=(app.invoices||[]).find(function(x){return String(x.id)===String(id)});if(!inv)return false;var previous=String(inv.payment_method||''),next=String(method||''),previousLines=inv.lines,nextDate=invoicePaymentDateForChange(inv,next),stamp=new Date().toISOString();setInvoicePaidDate(inv,nextDate);inv.payment_method=next;inv.updated_at=stamp;saveLocal();render();try{if(!remoteClient||!navigator.onLine)throw new Error('Workshop Pro is offline.');var res=await vectaWithTimeout(remoteClient.from('invoices').update({payment_method:next,lines:inv.lines,updated_at:stamp}).eq('id',inv.id).select('id,payment_method,updated_at').single(),8000,'Payment method save');if(res.error)throw res.error;if(!res.data||String(res.data.payment_method||'')!==next)throw new Error('The cloud did not confirm the selected payment method.');await persistInvoicePaymentMethod(inv);return true}catch(e){inv.lines=previousLines;inv.payment_method=previous;inv.updated_at=new Date().toISOString();saveLocal();render();console.error('Invoice payment method save failed',e);alert('Payment method was not saved. Please try again.\n\n'+String(e&&e.message||e));return false}}
+var vectaPendingInvoicePayments=new Set();
+async function updateInvoicePaymentMethod(id,method){
+  var inv=(app.invoices||[]).find(function(x){return String(x.id)===String(id)});
+  if(!inv||vectaPendingInvoicePayments.has(String(id)))return false;
+  vectaPendingInvoicePayments.add(String(id));
+  try{
+    if(!remoteClient||!navigator.onLine)throw new Error('Workshop Pro is offline.');
+    var saved=await window.VectaInvoiceSave.payment(remoteClient,inv,method);
+    Object.assign(inv,saved);saveLocal();render();
+    try{await persistInvoicePaymentMethod(inv)}catch(backupError){console.warn('Payment saved; backup needs retry',backupError);alert('Payment is saved, but its backup needs retrying. Do not record the payment again.');}
+    return true;
+  }catch(e){
+    console.error('Invoice payment was not confirmed',e);render();
+    alert('Payment save could not be confirmed. Refresh the invoice list and check the saved payment before retrying.\n\n'+String(e&&e.message||e));return false;
+  }finally{vectaPendingInvoicePayments.delete(String(id));}
+}
+
 function invoiceArchiveSearchText(inv){
   return [
     inv.invoice_number||'', inv.registration||'', inv.customer_name||'', inv.customer_phone||'',

@@ -43,3 +43,46 @@ test('the obsolete register download and client-side retry allocator are removed
  assert.match(source,/if\(isNew\)[\s\S]*VectaInvoiceSave\.create/);assert.match(source,/Object\.assign\(inv,allocated\)/);
  assert.match(source,/Saved invoice identity/);assert.doesNotMatch(source,/invoice_number\s*=/);
 });
+
+function paymentRow(){return {...draft(),invoice_number:'VECTA-78751',updated_at:'2026-10-15T10:00:00.000Z',payment_method:''};}
+function paymentClient(initial,{beforeWrite,writeError}={}){
+ let row=structuredClone(initial),writes=0;
+ return {get row(){return row;},get writes(){return writes;},from(){
+  let patch=null,filters=[];
+  const q={select(){return q;},eq(k,v){filters.push([k,v]);return q;},update(v){patch=v;return q;},single(){return q;},maybeSingle(){return q;},async abortSignal(){
+   if(!patch)return {data:structuredClone(row)};
+   writes++;if(beforeWrite)row=beforeWrite(row);
+   if(writeError)return {error:writeError};
+   if(!filters.every(([k,v])=>row[k]===v))return {data:null};
+   row={...row,...structuredClone(patch)};return {data:structuredClone(row)};
+  }};return q;
+ }};
+}
+test('payment changes preserve invoice amounts and work, adding only method and paid-date metadata',async()=>{
+ const inv=paymentRow(),before=JSON.stringify(inv),c=paymentClient(inv);
+ const saved=await helper().payment(c,inv,'bacs');
+ assert.equal(saved.payment_method,'bacs');assert.match(saved.lines[0].invoice_paid_date,/^\d{4}-\d{2}-\d{2}$/);
+ assert.equal(saved.lines[0].description,inv.lines[0].description);assert.equal(saved.total,120);assert.equal(JSON.stringify(inv),before);
+ assert.ok(Date.parse(saved.updated_at)>Date.parse(inv.updated_at));
+});
+test('stale payment screens refuse to write newer invoice lines or payment changes',async()=>{
+ for(const patch of [{updated_at:'2026-10-15T11:00:00Z'},{payment_method:'card'},{lines:[{description:'Newer repair',amount:300}]},{total:130}]){
+  const inv=paymentRow(),c=paymentClient({...inv,...patch});
+  await assert.rejects(helper().payment(c,inv,'cash'),/another device/);assert.equal(c.writes,0);
+ }
+});
+test('a competing update between payment read and write wins without being overwritten',async()=>{
+ const inv=paymentRow(),c=paymentClient(inv,{beforeWrite:r=>({...r,payment_method:'card',updated_at:'2026-10-15T11:00:00Z'})});
+ await assert.rejects(helper().payment(c,inv,'bacs'),/another device/);assert.equal(c.row.payment_method,'card');
+});
+test('payment corrections preserve the original date, while clearing payment clears its date',async()=>{
+ const inv=paymentRow();inv.payment_method='card';inv.lines[0].invoice_paid_date='2026-10-01';
+ const corrected=await helper().payment(paymentClient(inv),inv,'cash');assert.equal(corrected.lines[0].invoice_paid_date,'2026-10-01');
+ const cleared=await helper().payment(paymentClient(inv),inv,'');assert.equal(cleared.lines[0].invoice_paid_date,'');
+});
+test('payment errors and timeouts leave the original local invoice intact',async()=>{
+ const inv=paymentRow(),before=JSON.stringify(inv),c=paymentClient(inv,{writeError:Error('network failed')});
+ await assert.rejects(helper().payment(c,inv,'bacs'),/network failed/);assert.equal(JSON.stringify(inv),before);
+ const hanging={from(){const q={select(){return q;},eq(){return q;},single(){return q;},abortSignal:()=>new Promise(()=>{})};return q;}};
+ await assert.rejects(helper().payment(hanging,inv,'cash',{timeoutMs:10}),/could not be confirmed/);assert.equal(JSON.stringify(inv),before);
+});

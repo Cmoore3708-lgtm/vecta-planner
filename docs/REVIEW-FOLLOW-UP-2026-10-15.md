@@ -110,6 +110,33 @@ Existing invoice edits, linked job updates and protected snapshots are separate
 operations. This does not establish atomicity for the entire finance workflow or
 replace real-device acceptance.
 
+## Payment updates across devices (part of review 23)
+
+The invoice-list payment selector now reads the saved invoice and compares its
+version, identity, totals, payment method and lines with the displayed record.
+A stale screen is refused. The write is filtered by both invoice ID and the
+exact saved `updated_at`, so a competing update after that read also prevents
+the payment write. There is no retry that silently overwrites the competing row.
+Only payment method, paid-date line metadata and update time are submitted;
+work lines are copied from the verified current cloud row. The confirmed row is
+adopted locally only after a matching receipt. Concurrent clicks for the same
+invoice in one browser are suppressed.
+
+Changing Card/Cash/BACS preserves an existing paid date. Clearing the method
+clears the date; first payment uses the London calendar date. A timeout tells
+the user to refresh and check the saved payment before retrying. If the row is
+confirmed but its settings backup fails, the saved payment stays visible and
+the message reports a backup problem instead of incorrectly reverting it.
+
+Five additional executable regressions cover stale reads, a competing write,
+line/total preservation, payment-date corrections and failures/timeouts. Finance
+integration also verifies that backup failure does not undo a confirmed payment.
+A rolled-back Test database scenario confirmed that an old version updates zero
+rows while the current version updates one; Test remains at 12 invoices.
+This adds no migration beyond the invoice-creation migration above. It relies on
+writers advancing `updated_at` and does not protect full-editor saves, old client
+versions, or make payment backups/job updates part of the same transaction.
+
 ## Verification and scope
 
 Mocked provider tests exercise parallel calls, partial failure, token/MOT/tax
@@ -120,7 +147,7 @@ separate clients, independent result copies, deletion between pages, timeout,
 partial failure and corrupt identities. Release tests cover matching/mismatched
 commits, preview rejection and failed access health.
 
-The complete release gate passed with 611 regression tests, finance and sync
+The complete release gate passed with 616 regression tests, finance and sync
 integrity checks, and the production build. All 7 integration tests passed. Actual
 PC/iPad concurrency and before/after timing on the same devices remain acceptance
 checks; no live latency reduction is claimed from unit tests.
