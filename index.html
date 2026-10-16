@@ -10372,6 +10372,8 @@ async function upsertRemote(table,row,options){
      valid date or NULL. Keep the invoice date mandatory while allowing an
      absent MOT date to save and print normally. */
   if(table==='invoices'){
+    /* Staff/normal invoices have no fleet jobs; Supabase requires JSON [] not NULL. */
+    if(!Array.isArray(data.fleet_job_ids))data.fleet_job_ids=[];
     if(Object.prototype.hasOwnProperty.call(data,'mot_due')&&String(data.mot_due===null||data.mot_due===undefined?'':data.mot_due).trim()==='')data.mot_due=null;
     if(Object.prototype.hasOwnProperty.call(data,'invoice_date')&&String(data.invoice_date===null||data.invoice_date===undefined?'':data.invoice_date).trim()==='')data.invoice_date=todayIso();
   }
