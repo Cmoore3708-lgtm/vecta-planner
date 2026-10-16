@@ -430,6 +430,11 @@ function openBooking(registration){
  const technical=document.createElement('button');technical.type='button';technical.className='btn small';technical.textContent='Service & repair data';technical.onclick=()=>openTechnical(field('registration')?.value,{fromBooking:true});(header.querySelector('.jobModalHeadActions')||identity).prepend(technical);
  // Cached/local vehicles never cause a background Haynes or government lookup.
  if(stored)return;
+ // New registrations need the government colour as well as the Haynes drawing.
+ // The existing helper reuses saved colour and coalesces any pending request.
+ Promise.resolve(root.VectaHaynesJobTools.hydrateSharedArtwork?.()).then(()=>{
+  if(current())return root.VectaHaynesJobTools.lookupDashboardColour?.({registration:key,make:field('make')?.value||''});
+ }).then(()=>{if(current())field('vehicle')?.dispatchEvent(new root.Event('change',{bubbles:true}));}).catch(()=>{});
  return (async()=>{
   try{
    const vehicle=await root.VectaHaynesJobTools.lookup(key,undefined,{background:false});
