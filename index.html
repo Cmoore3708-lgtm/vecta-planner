@@ -14326,18 +14326,18 @@ function installNewJobAvailabilityCalendar(allowHistoricalDates,fieldId){
     }
     return html+'</div>';
   }
-  function plannerHtml(date){
+  function plannerHtml(date,inlineMode){
     var mechs=mechanics(),start=8,end=17,px=44,height=(end-start)*px;
     function top(time){var parts=String(time||'08:00').split(':'),mins=(Number(parts[0]||8)*60+Number(parts[1]||0))-(start*60);return Math.max(0,mins/60*px)}
     function h(job){return Math.max(28,Number(job.estimated_hours||1)*px-4)}
     var times='';for(var hr=start;hr<=end;hr++)times+='<div class="v243MiniTime" style="top:'+((hr-start)*px)+'px">'+String(hr).padStart(2,'0')+':00</div>';
     var alfiePct=dayPct(date,'Alfie'),otherPct=dayPct(date,'Other'),combinedPct=totalPct(date);
-    return '<div class="v243PlannerTitle"><div><h3>'+esc(niceDate(date))+'</h3><p>Select another date on the calendar to compare days.</p></div><button type="button" class="primary" data-v243-use-date>'+(dashboardMode?'View this date':'Use this date')+'</button></div>'+
-      '<div class="v245CalendarStats"><div><small>ALFIE</small><strong>'+alfiePct+'%</strong></div><div><small>OTHER</small><strong>'+otherPct+'%</strong></div><div><small>TOTAL</small><strong>'+combinedPct+'%</strong></div></div>'+
+    return '<div class="v243PlannerTitle"><div><h3>'+esc(niceDate(date))+'</h3><p>Select another date on the calendar to compare days.</p></div>'+(inlineMode?'':'<button type="button" class="primary" data-v243-use-date>'+(dashboardMode?'View this date':'Use this date')+'</button>')+'</div>'+
+      '<div class="v245CalendarStats"><div><small>ALFIE</small><strong>'+alfiePct+'%</strong></div><div><small>'+esc(mechs[1]||'Chris')+'</small><strong>'+otherPct+'%</strong></div><div><small>TOTAL</small><strong>'+combinedPct+'%</strong></div></div>'+
       '<div class="v243PlannerGrid" style="--v243-mini-height:'+height+'px"><div class="v243PlannerHead">Time</div>'+mechs.map(function(mech){return '<div class="v243PlannerHead">'+esc(mech)+' <small>'+dayPct(date,mech)+'%</small></div>'}).join('')+
       '<div class="v243TimeLane" style="height:'+height+'px">'+times+'</div>'+
       mechs.map(function(mech){
-        var jobs=calendarDayJobs(date).filter(function(j){return String(j.technician||'')===mech}).sort(byTime);
+        var jobs=calendarDayJobs(date).filter(function(j){return plannerTechnicianLane(j.technician)===plannerTechnicianLane(mech)}).sort(byTime);
         return '<div class="v243PlannerLane" style="height:'+height+'px">'+jobs.map(function(j){
           return '<div class="v243PlannerJob" style="top:'+top(j.drop_time)+'px;height:'+h(j)+'px"><b>'+esc(j.registration||'NO REG')+'</b><span>'+esc(j.work_required||jobTitle(j))+'</span><small>'+esc(j.drop_time||'08:00')+'</small></div>';
         }).join('')+'</div>';
@@ -14353,27 +14353,28 @@ function installNewJobAvailabilityCalendar(allowHistoricalDates,fieldId){
     render();
   }
 
-  // Show the same workload month directly beside the booking details.
+  // Keep calendar and allocated work together in the existing booking form.
   if(!dashboardMode){
     var preview=document.createElement('section');
-    preview.className='bookingMonthPreview';
-    preview.setAttribute('aria-label','Booking date calendar');
-    field.parentElement.appendChild(preview);
+    preview.className='bookingAvailabilityWorkspace';
+    preview.setAttribute('aria-label','Booking date and workshop planner');
+    (field.closest('.jobSectionGrid')||field.parentElement).appendChild(preview);
     function renderPreview(){
-      preview.innerHTML='<strong class="bookingMonthHeading">Choose booking date</strong><p>Click a date to open the full workshop planner.</p>'+calendarHtml();
+      preview.innerHTML='<div class="bookingMonthPreview"><strong class="bookingMonthHeading">Choose booking date</strong><p>Select a date to see allocated work alongside.</p>'+calendarHtml()+'</div><div class="bookingInlinePlanner" aria-label="Allocated work for selected booking date">'+plannerHtml(chosen,true)+'</div>';
     }
     preview.onclick=function(ev){
       if(ev.target.closest('[data-v243-prev-month]')){monthDate=new Date(monthDate.getFullYear(),monthDate.getMonth()-1,1,12);renderPreview();return}
       if(ev.target.closest('[data-v243-next-month]')){monthDate=new Date(monthDate.getFullYear(),monthDate.getMonth()+1,1,12);renderPreview();return}
       var day=ev.target.closest('[data-v243-calendar-day]');
-      if(day)openCalendar(day.dataset.v243CalendarDay);
+      if(day){field.value=day.dataset.v243CalendarDay;field.dispatchEvent(new Event('change',{bubbles:true}));}
     };
-    field.addEventListener('change',function(){chosen=String(field.value).slice(0,10);monthDate=new Date(chosen+'T12:00:00');renderPreview()});
+    field.addEventListener('change',function(){chosen=String(field.value).slice(0,10);var nextMonth=new Date(chosen+'T12:00:00');if(!isNaN(nextMonth.getTime()))monthDate=nextMonth;renderPreview()});
     renderPreview();
   }
 
-  field.onclick=function(ev){ev.preventDefault();openCalendar()};
-  field.onkeydown=function(ev){if(ev.key==='Enter'||ev.key===' '){ev.preventDefault();openCalendar()}};
+  function showDateChooser(){if(dashboardMode){openCalendar();return}if(preview.scrollIntoView)preview.scrollIntoView({block:'nearest',behavior:'smooth'});}
+  field.onclick=function(ev){ev.preventDefault();showDateChooser()};
+  field.onkeydown=function(ev){if(ev.key==='Enter'||ev.key===' '){ev.preventDefault();showDateChooser()}};
 
   modal.onclick=function(ev){
     if(ev.target.closest('[data-v243-close-calendar]')){modal.classList.remove('open');modal.setAttribute('aria-hidden','true');return}

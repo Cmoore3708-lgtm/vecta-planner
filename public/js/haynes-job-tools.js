@@ -278,11 +278,14 @@ root.initHaynesJobTools=function(modal){
    const main=document.createElement('div'),aside=document.createElement('div');
    main.className='jobCardMainColumn';aside.className='jobCardSupportColumn';
    Array.from(sections.children).forEach(child=>{
-    const support=child.matches('.jobContactSection,.jobPreviousWorkSection')||!!child.querySelector('.jobPartsEditor');
+    const support=child.matches('.jobContactSection,.jobPreviousWorkSection,.privatePricingSection')||!!child.querySelector('.jobPartsEditor');
     (support?aside:main).appendChild(child);
    });
    const contact=aside.querySelector('.jobContactSection');if(contact)aside.prepend(contact);
    sections.append(main,aside);
+   const parts=aside.querySelector('.jobPartsEditor')?.closest('.jobFormSection'),pricing=aside.querySelector('.privatePricingSection');
+   if(parts&&pricing)parts.after(pricing);
+   const booking=main.querySelector('.jobBookingSection');if(booking){booking.classList.add('jobBookingFullWidth');sections.appendChild(booking);}
   }
  }
 
@@ -420,7 +423,7 @@ function openBooking(registration){
  const dirty=new Set();['make','model','vehicle','colour'].forEach(id=>field(id)?.addEventListener('input',()=>dirty.add(id)));
  field('vehicle')?.addEventListener('change',()=>paint(root.VectaHaynesJobTools.snapshot?.(field('registration')?.value)));
  field('registration')?.addEventListener('change',()=>{paint(root.VectaHaynesJobTools.snapshot?.(field('registration')?.value));text('[data-booking-status]','Check the vehicle details for this registration before saving.');});
- const technical=document.createElement('button');technical.type='button';technical.className='btn small';technical.textContent='Service & repair data';technical.onclick=()=>openTechnical(field('registration')?.value,{fromBooking:true});identity.append(technical);
+ const technical=document.createElement('button');technical.type='button';technical.className='btn small';technical.textContent='Service & repair data';technical.onclick=()=>openTechnical(field('registration')?.value,{fromBooking:true});(header.querySelector('.jobModalHeadActions')||identity).prepend(technical);
  // Cached/local vehicles never cause a background Haynes or government lookup.
  if(stored)return;
  return (async()=>{
