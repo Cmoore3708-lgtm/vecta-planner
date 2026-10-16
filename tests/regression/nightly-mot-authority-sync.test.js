@@ -9,7 +9,7 @@ test('nightly MOT refresh persists Fleet state and authority from the same DVSA 
   assert.match(route, /const MOT_AUTHORITY_ID = 'fleet_mot_authority_v260'/);
   assert.match(route, /const motDueDate=mot\.motExpiryDate\|\|firstMotDueDate\(mot\.firstUsedDate\)/);
   assert.match(route, /authorityRecords\[registration\]=\{registration,expiry:motDueDate,checked_at:checkedAt/);
-  assert.match(route, /await globalThis\.VectaFleetConcurrency\.save\(client,\{id:FLEET_STATE_ID,base,desired:state\}\);\s*await globalThis\.VectaFleetConcurrency\.save\(client,\{id:MOT_AUTHORITY_ID,/);
+  assert.match(route, /await globalThis\.VectaFleetConcurrency\.save\(client,\{id:FLEET_STATE_ID,base,desired:state,baseRevision:row\?\.updated_at\|\|null\}\);\s*await globalThis\.VectaFleetConcurrency\.save\(client,\{id:MOT_AUTHORITY_ID,/);
 });
 
 test('vehicles without MOT history use the statutory first-MOT deadline', () => {
