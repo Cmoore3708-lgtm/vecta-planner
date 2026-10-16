@@ -29,13 +29,22 @@
     }
     return conflict(path);
   }
-  async function save(client,{id,base,desired}){
+  async function save(client,{id,base,desired,baseRevision=null}){
     if(!base)throw Error('Fleet must finish its cloud download before changes can be synced. Your edit remains on this device.');
     for(let attempt=0;attempt<3;attempt++){
-      const read=await client.from('workshop_settings').select('id,value,updated_at').eq('id',id).maybeSingle();
+      // A confirmed baseline with the exact database revision needs only a tiny
+      // revision read. Any mismatch (including an older client's write) falls
+      // back to the complete three-way merge. The conditional write still wins
+      // or loses atomically if another device changes the row after this read.
+      let read=await client.from('workshop_settings').select(baseRevision?'id,updated_at':'id,value,updated_at').eq('id',id).maybeSingle();
       if(read.error)throw read.error;
-      const row=read.data;
-      const value=merge(base,desired,row?.value||{});value.updated_at=new Date().toISOString();
+      let row=read.data,remote;
+      if(baseRevision&&row?.updated_at===baseRevision)remote=base;
+      else{
+        if(baseRevision){read=await client.from('workshop_settings').select('id,value,updated_at').eq('id',id).maybeSingle();if(read.error)throw read.error;row=read.data;}
+        remote=row?.value||{};
+      }
+      const value=merge(base,desired,remote);value.updated_at=new Date().toISOString();
       let result;
       if(row){
         let update=client.from('workshop_settings').update({value,updated_at:value.updated_at}).eq('id',id);

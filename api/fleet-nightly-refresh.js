@@ -218,8 +218,8 @@ export default async function handler(req,res){
     state.vehicles=vehicles;state.plans=plans;state.completions=completions;state.updated_at=persistenceStamp;state.lastAutomaticRefresh=status.startedAt;
     const config=databaseEnvironment({requireService:true});
     const client=createClient(config.url,config.key,{auth:{persistSession:false,autoRefreshToken:false}});
-    await globalThis.VectaFleetConcurrency.save(client,{id:FLEET_STATE_ID,base,desired:state});
-    await globalThis.VectaFleetConcurrency.save(client,{id:MOT_AUTHORITY_ID,base:authorityRow?.value||{},desired:{version:260,records:authorityRecords,updated_at:persistenceStamp}});
+    await globalThis.VectaFleetConcurrency.save(client,{id:FLEET_STATE_ID,base,desired:state,baseRevision:row?.updated_at||null});
+    await globalThis.VectaFleetConcurrency.save(client,{id:MOT_AUTHORITY_ID,base:authorityRow?.value||{},baseRevision:authorityRow?.updated_at||null,desired:{version:260,records:authorityRecords,updated_at:persistenceStamp}});
     status.finishedAt=new Date().toISOString();
     await writeSetting(STATUS_ID,status);
     return res.status(200).json(status);
