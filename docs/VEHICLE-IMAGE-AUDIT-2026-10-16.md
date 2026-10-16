@@ -34,6 +34,10 @@ Sixteen shared image assignments existed at audit start; none contained colour. 
 
 Tests cover the real Fleet renderer with the Hilux trim description; repeated navigation without worker requests; blank-registration vehicle isolation; exact artwork retention; shared/offline colour; stored source reuse with the supplier unavailable; concurrent first downloads; database outage behaviour; unsafe asset rejection; service-sheet rendering; customer invoice rendering; booking response ordering; and explicit technical lookup flows. The complete release gate is required before merge.
 
+## Live source-size finding
+
+The Primastar source `319110408.svgz` returned 502 because its genuine supplier file declared 1,402,733 bytes, exceeding an inconsistent 1 MB header limit even though the reader, decompressor and client already permit 2 MB. Its decompressed source was 1,963,625 bytes; removing Illustrator editing data leaves a 902,384-byte drawing. The header limit now matches the existing 2 MB processing bound. A regression test exercises the large editing-payload path before stripping.
+
 ## Practical limit
 
 A device that has never received a vehicle's artwork still needs connectivity to retrieve the stored copy. Browser storage can be cleared by the user/OS; the permanent server drawing then repopulates it. Temporary connection failure retains the saved assignment and never deliberately substitutes a cartoon for a known drawing. Service schedules and repair data can still call Haynes when the user requests them.
