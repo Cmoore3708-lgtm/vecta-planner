@@ -12660,7 +12660,7 @@ var renderInProgress=false;function render(){if(renderInProgress)return;renderIn
 function isJobInvoiced(j){if(!j)return false;var linked=vectaActiveInvoices().some(function(inv){return String(inv.job_id||'')===String(j.id||'')&&String(inv.status||'saved')!=='draft'});if(linked)return true;if(j.invoice_id||j.invoiced_at)return vectaActiveInvoices().some(function(inv){return String(inv.id||'')===String(j.invoice_id||'')});return false}
 function allJobsForDate(){var d=selectedIso();return app.jobs.filter(function(j){return !vectaJobIsDeletedForLists(j)&&String(j.status||'').toLowerCase()!=='quote'&&!j.archived&&!isVehicleTaxJob(j)&&!!j.booking_date&&String(j.booking_date)===d&&!isUnallocatedJob(j)})}
 function configuredMechanicNames(){var names=(app.settings&&app.settings.mechanics||[]).filter(function(n){return !!String(n||'').trim()&&String(n).toLowerCase()!=='anyone'&&String(n).toLowerCase()!=='unallocated'});return names.length?names:['Alfie','Other']}
-function configuredMechanicChoice(value){var names=configuredMechanicNames(),raw=String(value||'').trim();if(!raw)return '';var exact=names.find(function(n){return n.toLowerCase()===raw.toLowerCase()});if(exact)return exact;if(/^(other|chris)$/i.test(raw)&&names.length>1)return names[1];return names.indexOf(raw)>=0?raw:''}
+function configuredMechanicChoice(value){var names=configuredMechanicNames(),raw=String(value||'').trim();if(!raw)return '';var exact=names.find(function(n){return n.toLowerCase()===raw.toLowerCase()});if(exact)return exact;if(/^(other|chris|jordan)$/i.test(raw)&&names.length>1)return names[1];return names.indexOf(raw)>=0?raw:''}
 function plannerLaneMechanics(){var existing=(app.settings&&app.settings.mechanics||[]).filter(Boolean),first=existing[0]||'Alfie',second=existing[1]||'Other';return [first,second,'Anyone']}
 function plannerTechnicianName(job,mechanics){var list=mechanics&&mechanics.length?mechanics:plannerLaneMechanics();return window.VectaPlannerRules.technicianName(job,list)}
 function plannerTechnicianLane(value){return plannerTechnicianName({technician:value},plannerLaneMechanics())}
@@ -15135,7 +15135,7 @@ async function syncSavedJobBundleInBackground(j,linked,previous){
   try{
     if(linked&&linked.customer)await upsertRemote('customers',linked.customer,{silent:true});
     if(linked&&linked.vehicle){
-      /* Reuse the database's registration identity, not a fresh browser UUID.
+      /* Reuse the existing database registration identity, not a fresh browser UUID.
          Preserve the existing vehicle row and its fleet/maintenance history. */
       var requestedReg=normReg(linked.vehicle.registration||j.registration||'');
       async function findExistingVehicleByReg(){
