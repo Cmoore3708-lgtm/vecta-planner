@@ -2875,13 +2875,9 @@ body.servicePreviewing .servicePreviewControls{position:relative!important;z-ind
 <div id="vectaConnectivity" class="vectaConnectivity syncing"><span class="dot"></span><span id="vectaConnectivityText">Checking cloud connection…</span></div>
 <div id="fatal" class="fatal"></div>
 <div class="app">
-  <aside class="side">
-    <div class="logo"><div class="logoMark">VECTA</div><div class="product" style="font-size:18px!important;font-weight:900!important;letter-spacing:.03em!important;color:#fff!important;text-transform:none!important">Workshop Pro</div></div>
-    <nav class="nav" id="nav"></nav>
-    <div class="sideFoot"><b>V304 Fleet No-Reg Fix</b><br>NMUK ownership lock · Vehicle Tax canonicalisation · production verification build.</div>
-  </aside>
   <main class="main">
     <header class="top">
+      <div class="workshopHeaderBrand" aria-label="VECTA Workshop Pro"><img src="/assets/vecta-service-logo.webp" alt="VECTA"><span>Workshop Pro</span></div>
       <h1 id="viewTitle" hidden>Planner</h1><button type="button" id="dashboardBookedToday" class="dashboardBookedToday" title="Open selected day’s financial breakdown"><strong id="dashboardBookedTodayValue">£0.00</strong></button>
       <div class="plannerGlobalSearchWrap"><input id="plannerGlobalSearch" type="search" autocomplete="off" placeholder="Search reg, name, phone or email…" aria-label="Search Workshop Pro"></div><div class="dateCtl"><button id="prevDay" type="button" aria-label="Previous day">‹</button><div class="plannerSelectedDay"><div id="dashboardDayName" class="dashboardDayName" aria-live="polite"></div><input id="currentDate" type="date" aria-label="Current planner date" hidden></div><button id="nextDay" type="button" aria-label="Next day">›</button></div>
       <label class="btn mobileCalendarBtn" for="mobileDateInput"><span>Calendar</span><input id="mobileDateInput" type="date" aria-label="Select dashboard date"></label>
@@ -2891,6 +2887,7 @@ body.servicePreviewing .servicePreviewControls{position:relative!important;z-ind
       </div>
       <button class="btn" id="todayBtn" hidden>Today</button>
       <button class="mobileTaskTop" id="newTaskTop" hidden>+ Task</button>
+      <nav class="nav workshopTopNav" id="nav" aria-label="Workshop navigation"></nav>
     </header>
     <div id="vectaStartupGate"><div class="vectaStartupCard"><div class="vectaStartupSpinner"></div><strong id="vectaStartupTitle">Loading workshop…</strong><span id="vectaStartupDetail">Checking live jobs and tasks before showing the dashboard.</span></div></div>
     <section class="content" id="content"></section>
@@ -17913,30 +17910,46 @@ try{var foot=document.querySelector('.sideFoot small');if(foot)foot.textContent=
 </script>
 
 <style id="planner-header-clean-layout">
-/* Shared controls keep the same placement on phone, tablet and desktop. */
-.top:has(.plannerHeaderActions){display:grid!important;grid-template-columns:repeat(12,minmax(0,1fr))!important;grid-template-areas:"calendar calendar date date date date date date booked booked booked booked" "lookup lookup lookup lookup search search search search actions actions actions actions"!important;gap:8px!important;padding:10px!important;overflow:visible!important;align-items:center!important}
+/* One full-width shell; navigation lives below the lookup controls. */
+@media screen{
+.app{display:block!important;grid-template-columns:minmax(0,1fr)!important}
+.app>.main{width:100%;min-width:0;margin:0!important}
+.top:has(.plannerHeaderActions){display:grid!important;grid-template-columns:220px minmax(170px,1fr) 110px minmax(200px,1fr) 240px auto!important;grid-template-areas:"brand brand brand brand brand brand" "lookup search calendar date actions booked" "navigation navigation navigation navigation navigation navigation"!important;gap:10px!important;padding:12px 18px 0!important;overflow:visible!important;align-items:center!important;position:static!important}
+.top .workshopHeaderBrand{grid-area:brand;display:flex;align-items:center;gap:16px;padding:0 0 10px;border-bottom:1px solid #314156;min-width:0}
+.workshopHeaderBrand img{width:150px;height:42px;object-fit:contain;object-position:left center}
+.workshopHeaderBrand span{font-size:22px;font-weight:750;letter-spacing:.025em;color:#f4f7fc;border-left:1px solid #536174;padding-left:16px}
 .top #viewTitle{display:none!important}
-.top>.mobileCalendarBtn{grid-area:calendar!important;display:flex!important;position:relative;align-items:center;justify-content:center;width:100%!important;min-width:0!important;height:40px!important;margin:0!important;padding:0 6px!important;box-sizing:border-box!important}
-.top .haynesDashboardLookup{grid-area:lookup!important}
-.top .plannerGlobalSearchWrap{grid-area:search!important}
-.top .haynesDashboardLookup,.top .plannerGlobalSearchWrap{width:100%!important;min-width:0!important;max-width:none!important;margin:0!important;box-sizing:border-box!important}
-.top .plannerGlobalSearchWrap input{min-width:0!important;height:39px!important;font-size:12px!important;padding:0 8px!important;box-sizing:border-box!important}
-.top #dashboardBookedToday{grid-area:booked!important;justify-self:end;width:auto!important;min-width:100px!important;max-width:100%!important}
-.top .plannerHeaderActions{grid-area:actions;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px;min-width:0}
-.top .plannerHeaderActions>.btn,.top .plannerHeaderActions>.primary{display:flex!important;position:relative;align-items:center;justify-content:center;width:100%!important;min-width:0!important;max-width:none!important;height:40px!important;margin:0!important;padding:0 6px!important;font-size:13px!important;white-space:nowrap;box-sizing:border-box}
+.top>.mobileCalendarBtn{grid-area:calendar!important;display:flex!important;position:relative;align-items:center;justify-content:center;width:100%!important;min-width:0!important;height:40px!important;margin:0!important;padding:0 6px!important;box-sizing:border-box!important;overflow:hidden}
+.top .haynesDashboardLookup{grid-area:lookup!important;width:220px!important;max-width:100%!important;min-width:0!important;margin:0!important;box-sizing:border-box!important}
+.top .haynesDashboardLookup input{width:0!important;min-width:0!important;flex:1!important;text-align:center;font-size:22px!important;letter-spacing:1px!important}
+.top:has(.plannerHeaderActions) .plannerGlobalSearchWrap{grid-area:search!important;width:100%!important;min-width:0!important;max-width:none!important;margin:0!important;box-sizing:border-box!important}
+.top .plannerGlobalSearchWrap input{width:100%!important;min-width:0!important;height:40px!important;font-size:13px!important;padding:0 10px!important;box-sizing:border-box!important}
+.top #dashboardBookedToday{grid-area:booked!important;justify-self:end;width:auto!important;min-width:85px!important;max-width:100%!important;margin:0!important}
+.top .plannerHeaderActions{grid-area:actions;display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:8px;min-width:0}
+.top .plannerHeaderActions>#newJobTop,.top .plannerHeaderActions>#newQuoteTop{grid-area:auto!important;display:flex!important;position:static!important;align-items:center;justify-content:center;width:100%!important;min-width:0!important;max-width:none!important;height:40px!important;margin:0!important;padding:0 10px!important;font-size:13px!important;white-space:nowrap;box-sizing:border-box}
 .top .mobileCalendarBtn input{position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer;font-size:16px}
-.top .dateCtl{grid-area:date!important;position:static!important;display:grid!important;grid-template-columns:40px minmax(0,1fr) 40px!important;align-items:center!important;gap:6px!important;width:100%!important;min-width:0!important;max-width:none!important;height:auto!important;overflow:visible!important;clip:auto!important;clip-path:none!important;white-space:normal!important;margin:0!important}
-.top .dateCtl button{width:40px!important;min-width:40px!important;height:40px!important;font-size:26px!important;padding:0!important}
+.top .dateCtl{grid-area:date!important;position:static!important;display:grid!important;grid-template-columns:36px minmax(0,1fr) 36px!important;align-items:center!important;gap:6px!important;width:100%!important;min-width:0!important;max-width:none!important;height:auto!important;overflow:visible!important;clip:auto!important;clip-path:none!important;white-space:normal!important;margin:0!important}
+.top .dateCtl button{width:36px!important;min-width:36px!important;height:36px!important;font-size:26px!important;padding:0!important}
 .top .plannerSelectedDay{min-width:0;text-align:center;display:flex;align-items:center;justify-content:center;gap:8px}
-.top #dashboardDayName{width:auto!important;min-width:0!important;max-width:none!important;height:auto!important;line-height:1.2!important;font-size:16px!important;margin:0!important;padding:0!important}
-.top #currentDate{display:none!important}
-.top #todayBtn,.top #newTaskTop{display:none!important}
+.top #dashboardDayName{width:auto!important;min-width:0!important;max-width:none!important;height:auto!important;line-height:1.2!important;font-size:20px!important;margin:0!important;padding:0!important}
+.top #currentDate,.top #todayBtn,.top #newTaskTop{display:none!important}
+.top>.workshopTopNav{grid-area:navigation;display:flex!important;flex-direction:row!important;flex-wrap:wrap;gap:4px!important;min-width:0;width:100%;padding:8px 0;overflow:visible!important;border-top:1px solid #314156}
+.top>.workshopTopNav button{flex:0 0 auto;white-space:nowrap;height:36px;padding:8px 14px!important;border-radius:6px!important;font-size:13px!important;line-height:20px}
+.top>.workshopTopNav button:focus-visible,.top button:focus-visible{outline:2px solid #b1d3ff;outline-offset:2px}
+@media(max-width:1250px) and (min-width:901px){
+.top:has(.plannerHeaderActions){grid-template-columns:220px minmax(180px,1fr) 240px!important;grid-template-areas:"brand brand brand" "lookup search actions" "calendar date booked" "navigation navigation navigation"!important}
+.top>.mobileCalendarBtn{width:120px!important}
+}
 @media(max-width:900px){
-.top:has(.plannerHeaderActions){grid-template-columns:repeat(12,minmax(0,1fr))!important;grid-template-areas:"calendar calendar calendar date date date date date date date date date" "lookup lookup lookup lookup lookup lookup search search search search search search" "actions actions actions actions actions actions actions actions booked booked booked booked"!important;gap:6px!important;padding:6px!important}
-.top #dashboardDayName{font-size:16px!important}
-.top .plannerHeaderActions>.btn,.top .plannerHeaderActions>.primary{font-size:12px!important}
-.top #dashboardBookedToday{height:32px!important;min-height:32px!important}
-.top .haynesDashboardLookup input{font-size:16px!important;letter-spacing:.5px!important}
+.top:has(.plannerHeaderActions){grid-template-columns:repeat(12,minmax(0,1fr))!important;grid-template-areas:"brand brand brand brand brand brand brand brand brand brand brand brand" "calendar calendar calendar date date date date date date date date date" "lookup lookup lookup lookup lookup lookup search search search search search search" "actions actions actions actions actions actions actions actions booked booked booked booked" "navigation navigation navigation navigation navigation navigation navigation navigation navigation navigation navigation navigation"!important;gap:8px!important;padding:10px 8px 0!important}
+.top .workshopHeaderBrand{gap:10px;padding-bottom:8px}.workshopHeaderBrand img{width:112px;height:32px}.workshopHeaderBrand span{font-size:18px;padding-left:10px}
+.top #dashboardDayName{font-size:18px!important}
+.top .plannerHeaderActions>.btn,.top .plannerHeaderActions>.primary{font-size:12px!important;padding:0 6px!important}
+.top #dashboardBookedToday{height:32px!important;min-height:32px!important;min-width:0!important}
+.top .haynesDashboardLookup input{font-size:18px!important;letter-spacing:.5px!important}
+.top>.workshopTopNav{flex-wrap:nowrap;overflow-x:auto!important;overscroll-behavior-x:contain;padding:7px 0}
+.top>.workshopTopNav button{padding:7px 11px!important}
+}
 }
 </style>
 
