@@ -90,11 +90,11 @@ test('reconnect flushes local edits before downloading authoritative cloud state
   assert.equal((html.match(/addEventListener\('online',vectaHandleReconnect\)/g) || []).length, 1);
 });
 
-test('startup always removes its loading gate before waiting for backup or cloud', () => {
+test('stalled startup releases the cached diary with an offline indicator', () => {
   const start = html.indexOf('function init()');
   const end = html.indexOf('function plannerSearchNormaliseText', start);
   const source = html.slice(start, end);
-  assert.ok(source.indexOf('vectaSetStartupLoading(false)') < source.indexOf('vectaRestoreLatestBackupIfNeeded()'));
-  assert.ok(source.indexOf('render()') < source.indexOf('await loadCloudConfig'));
-  assert.match(source, /setTimeout\(function\(\)[\s\S]*?vectaSetStartupLoading\(false\);render\(\)/);
+  assert.match(source, /vectaCloudReachable=false;vectaSetStartupLoading\(false\);render\(\);updateConnectivityUI\(\)/);
+  assert.match(source, /\},12000\);/);
+  assert.match(source, /if\(!navigator.onLine\|\|VECTA_AUDIT_PREVIEW\)render\(\)/);
 });

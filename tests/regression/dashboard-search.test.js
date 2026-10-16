@@ -7,7 +7,7 @@ const html = fs.readFileSync(new URL('../../index.html', import.meta.url), 'utf8
 test('dashboard search popup exists before application startup binds the search box', () => {
   const popup = '<div id="globalSearchPopup" class="globalSearchPopup" aria-hidden="true"></div>';
   const popupIndex = html.indexOf(popup);
-  const mainScriptIndex = html.indexOf('<script>', html.indexOf('<body>'));
+  const mainScriptIndex = html.indexOf('<script>', html.indexOf('<body'));
   const initIndex = html.indexOf('init();');
 
   assert.notEqual(popupIndex, -1, 'search popup must exist');
