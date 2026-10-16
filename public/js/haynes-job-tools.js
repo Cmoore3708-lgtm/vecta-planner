@@ -40,12 +40,13 @@ async function sharedArtworkResponse(request){
 }
 function cleanArtwork(v){
  if(!v||! /^[A-Z0-9]{2,12}$/.test(reg(v.registration))||!image(v.imageUrl)||!v.make||!v.model)return null;
- return {registration:reg(v.registration),make:String(v.make).slice(0,100),model:String(v.model).slice(0,180),imageUrl:image(v.imageUrl),...(root.VectaVehicleImage?.colourHex(v.colour)?{colour:v.colour}:{}),...(v.generic?{generic:true}:{})};
+ return {registration:reg(v.registration),make:String(v.make).slice(0,100),model:String(v.model).slice(0,180),imageUrl:image(v.imageUrl),...(root.VectaVehicleImage?.colourHex(v.colour)?{colour:v.colour}:{}),...(v.generic?{generic:true}:{}),...(v.manual?{manual:true}:{})};
 }
 function queueSharedArtwork(v,{replace=false}={}){
  const client=workshopClient(),clean=cleanArtwork(v);
  if(!client||client!==sharedClient||root.VECTA_AUDIT_PREVIEW||!clean)return;
  const saved=sharedArtwork.get(clean.registration);
+ if(saved?.manual&&!clean.manual)return;
  if(!clean.colour&&saved?.colour)clean.colour=saved.colour;
  if(saved&&!saved.generic&&saved.imageUrl!==clean.imageUrl&&compatibleArtwork(saved,clean)&&!replace)return;
  // Keep a previously shared selection instead of replacing it with a new model guess.
@@ -74,7 +75,7 @@ function hydrateSharedArtwork({refresh=false}={}){
  sharedLoading=(async()=>{try{
   const query=client.from('workshop_settings').select('id,value');const response=await sharedArtworkResponse((typeof query.or==='function'?query.or('id.like.vehicle_artwork:%,id.like.vehicle_colour:%'):query.like('id',SHARED_ART_PREFIX+'%')).limit(2000));
   if(response.error)throw response.error;
-  for(const row of response.data||[]){if(row.id==='vehicle_colour:'+reg(row.value?.registration)){rememberLookupColour({registration:row.value.registration,make:row.value.make,primaryColour:row.value.colour});continue;}const clean=cleanArtwork(row.value);if(clean&&row.id===SHARED_ART_PREFIX+clean.registration){const local=artwork.get(clean.registration);if(!clean.colour&&local?.colour)clean.colour=local.colour;sharedArtwork.set(clean.registration,clean);if(!local||compatibleArtwork(clean,local))rememberArtwork(clean,false,{replace:true});}}
+  for(const row of response.data||[]){if(row.id==='vehicle_colour:'+reg(row.value?.registration)){rememberLookupColour({registration:row.value.registration,make:row.value.make,primaryColour:row.value.colour});continue;}const clean=cleanArtwork(row.value);if(clean&&row.id===SHARED_ART_PREFIX+clean.registration){const local=artwork.get(clean.registration);if(!clean.colour&&local?.colour)clean.colour=local.colour;sharedArtwork.set(clean.registration,clean);if(clean.manual||!local||compatibleArtwork(clean,local))rememberArtwork(clean,false,{replace:true});}}
   sharedClient=client;
   // Upgrade existing device caches in one batch, never a write per rendered card.
   for(const value of artwork.values())queueSharedArtwork(value);
@@ -85,16 +86,16 @@ function hydrateSharedArtwork({refresh=false}={}){
 }
 function rememberArtwork(v,persist=true,{replace=false}={}){
  const clean=cleanArtwork(v);if(!clean)return;
- const previous=artwork.get(clean.registration);if(previous&&!previous.generic&&compatibleArtwork(previous,clean)&&(clean.generic||previous.imageUrl!==clean.imageUrl)&&!replace)return previous;if(!clean.colour&&previous?.colour)clean.colour=previous.colour;
+ const previous=artwork.get(clean.registration);if(previous?.manual&&!clean.manual)return previous;if(previous&&!previous.generic&&compatibleArtwork(previous,clean)&&(clean.generic||previous.imageUrl!==clean.imageUrl)&&!replace)return previous;if(!clean.colour&&previous?.colour)clean.colour=previous.colour;
  if(persist)queueSharedArtwork(clean,{replace});
- const existing=artwork.get(clean.registration);if(existing&&existing.make===clean.make&&existing.model===clean.model&&existing.imageUrl===clean.imageUrl&&existing.colour===clean.colour&&!!existing.generic===!!clean.generic)return;
+ const existing=artwork.get(clean.registration);if(existing&&existing.make===clean.make&&existing.model===clean.model&&existing.imageUrl===clean.imageUrl&&existing.colour===clean.colour&&!!existing.manual===!!clean.manual&&!!existing.generic===!!clean.generic)return;
  artwork.set(clean.registration,clean);
  if(persist)try{root.localStorage?.setItem(ART_KEY,JSON.stringify([...artwork.values()]));}catch{}
 }
 try{for(const v of JSON.parse(root.localStorage?.getItem(ART_KEY)||'[]'))rememberArtwork(v,false);}catch{}
 // Hydrate once without rewriting the full artwork/identity collections per row.
 try{for(const v of JSON.parse(root.localStorage?.getItem(KEY)||'[]'))if(vehicleLink(v)){rememberArtwork(v,false);rememberIdentity(v,false);}}catch{}
-function artworkSnapshot(registration,expectedMake,expectedModel){return [sharedArtwork.get(reg(registration)),artwork.get(reg(registration))].sort((a,b)=>Number(!!a?.generic)-Number(!!b?.generic)).find(v=>compatibleArtwork(v,{make:expectedMake,model:expectedModel})&&(!expectedModel||knownAssetMatches(v,{make:expectedMake,model:expectedModel})))||null;}
+function artworkSnapshot(registration,expectedMake,expectedModel){return [sharedArtwork.get(reg(registration)),artwork.get(reg(registration))].sort((a,b)=>Number(!!a?.generic)-Number(!!b?.generic)).find(v=>v?.manual||compatibleArtwork(v,{make:expectedMake,model:expectedModel})&&(!expectedModel||knownAssetMatches(v,{make:expectedMake,model:expectedModel})))||null;}
 try{for(const v of JSON.parse(root.localStorage?.getItem(KEY)||'[]'))remember(v,false);}catch{}
 function valid(v,registration,expectedMake){return !!(v&&reg(v.registration)===reg(registration)&&vehicleLink(v)&&v.make&&v.model&&v.variant&&(!expectedMake||make(v.make)===make(expectedMake))&&Number.isFinite(Date.parse(v.fetchedAt))&&Date.now()-Date.parse(v.fetchedAt)>=0&&Date.now()-Date.parse(v.fetchedAt)<TTL);}
 function remember(v,persist=true,{replaceArtwork=false}={}){
@@ -127,7 +128,7 @@ function genericImage(description){
  const text=' '+modelWords(description.model||description.vehicle)+' ',expectedMake=make(description.make);
  const fleetModel=root.VectaFleetImages?.modelArtwork?.(description.model||description.vehicle);
  if(image(fleetModel?.imageUrl)&&compatibleArtwork(fleetModel,description)&&knownAssetMatches(fleetModel,description)&&(!expectedMake||make(fleetModel.make)===expectedMake))return {make:fleetModel.make,model:fleetModel.model,imageUrl:fleetModel.imageUrl,generic:true};
- const candidates=[...sharedArtwork.values(),...artwork.values(),...identities.values(),...cache.values(),...modelImages].filter(v=>image(v.imageUrl)&&knownAssetMatches(v,description)).map(v=>({make:v.make,model:String(v.model).split(/[(/]/)[0].trim(),imageUrl:v.imageUrl})).sort((a,b)=>b.model.length-a.model.length);
+ const candidates=[...sharedArtwork.values(),...artwork.values(),...identities.values(),...cache.values(),...modelImages].filter(v=>!v.manual&&image(v.imageUrl)&&knownAssetMatches(v,description)).map(v=>({make:v.make,model:String(v.model).split(/[(/]/)[0].trim(),imageUrl:v.imageUrl})).sort((a,b)=>b.model.length-a.model.length);
  for(const v of candidates){const model=modelWords(v.model),family=model.split(' ')[0],modelMatch=model&&text.includes(' '+model+' ')||/^[A-Z]+\d+[A-Z0-9]*$/.test(family)&&text.includes(' '+family+' ');if(modelMatch&&(!expectedMake||make(v.make)===expectedMake))return {make:v.make,model:v.model,imageUrl:v.imageUrl,generic:true};}
  return null;
 }
@@ -144,7 +145,7 @@ async function lookup(registration,expectedMake,{requireImage=false,force=false,
 function artworkUrl(src){const safe=image(src);return /\.svgz?$/.test(safe)?'/api/haynes-image?asset='+encodeURIComponent(safe.split('/').pop())+'&format=svg':safe;}
 function storedDrawing(description){const internal=root.VectaFleetImages?.forJob?.(description);if(internal)return internal.drawing;return artworkSnapshot(description.registration,description.make,description.model||description.vehicle)||[identitySnapshot(description.registration,description.make,description.model||description.vehicle),snapshot(description.registration,description.make,description.model||description.vehicle)].find(v=>v?.imageUrl)||genericImage(description);}
 function artworkSource(img,src,description,colour){if(/\.svgz?$/.test(src)&&root.VectaVehicleImage?.mount){img.dataset.vehicleSource=src;img.src=artworkUrl(src);}else img.src=src;}
-function thumbnail(v,className,description){const src=image(v?.imageUrl);if(!src)return null;const img=document.createElement('img');artworkSource(img,src,description,description?dashboardColour(description):'');img.className=className;img.alt=(v.generic?'Generic model image: ':'Representative ')+v.make+' '+v.model;img.title=v.generic?'Generic model image — appearance may differ':img.alt;img.dataset.generic=String(!!v.generic);img.dataset.vehicleMake=v.make||'';let retries=0;img.onerror=()=>{if(retries>=2)return;const delay=++retries===1?1500:5000;setTimeout(()=>{if(!img.isConnected||img.src.startsWith('data:'))return;img.src=src;delete img.dataset.personalising;root.VectaVehicleImage?.mount(img.parentElement);},delay);};img.draggable=false;return img;}
+function thumbnail(v,className,description){const src=image(v?.imageUrl);if(!src)return null;const img=document.createElement('img');artworkSource(img,src,description,description?dashboardColour(description):'');if(description){img.dataset.registration=reg(description.registration);if(description.fleet_vehicle_id)img.dataset.fleetArtworkId=String(description.fleet_vehicle_id);}img.className=className;img.alt=(v.generic?'Generic model image: ':'Representative ')+v.make+' '+v.model;img.title=v.generic?'Generic model image — appearance may differ':img.alt;img.dataset.generic=String(!!v.generic);img.dataset.vehicleMake=v.make||'';let retries=0;img.onerror=()=>{if(retries>=2)return;const delay=++retries===1?1500:5000;setTimeout(()=>{if(!img.isConnected||img.src.startsWith('data:'))return;img.src=src;delete img.dataset.personalising;root.VectaVehicleImage?.mount(img.parentElement);},delay);};img.draggable=false;return img;}
 let dashboardTail=Promise.resolve();
 const dashboardRequests=new Map();
 const dashboardObservers=new WeakMap();
@@ -156,6 +157,8 @@ function persistColourFailures(){try{root.localStorage?.setItem(colourRetryKey,J
 try{for(const [registration,at] of JSON.parse(root.localStorage?.getItem(colourRetryKey)||'[]'))if(lookupRegistration(registration)&&Number.isFinite(at)&&at<=Date.now()&&Date.now()-at<COLOUR_RETRY)colourFailures.set(registration,at);}catch{}
 try{for(const entry of JSON.parse(root.localStorage?.getItem(colourKey)||'[]'))if(/^[A-Z0-9]{2,8}$/.test(entry.registration)&&Number.isFinite(entry.at)&&entry.at<=Date.now())colourCache.set(entry.registration,entry);}catch{}
 function dashboardColour(job){
+ const fleetChoice=root.VectaFleetImages?.forJob?.(job);if(fleetChoice?.vehicle?.artwork&&fleetChoice.vehicle.colour)return fleetChoice.vehicle.colour;
+ const choice=artworkSnapshot(job.registration);if(choice?.manual&&choice.colour)return choice.colour;
  const registration=reg(job.registration),vehicle=registration?(root.app?.vehicles||[]).find(v=>reg(v.registration)===registration):null;
  const fleet=registration?(root.__vectaFleetState?.()?.vehicles||root.fleetVehicles||[]).find(v=>reg(v.registration)===registration):null;
  const saved=colourCache.get(registration),cached=saved&&(!job.make||make(saved.make)===make(job.make))?saved.colour:'';
@@ -210,7 +213,7 @@ function mobileManufacturerBadge(card,j,v){
 function genericDashboardArtwork(card,target,j){const previous=card.querySelector('.haynesDashboardImage');if(image(previous?.dataset?.haynesSource)&&reg(previous.dataset.registration)===reg(j.registration))return;
  const svg=root.VectaFleetImages?.artwork?.(j.model||j.vehicle||j.make,dashboardColour(j));if(!svg)return;
  let img=card.querySelector('.haynesDashboardImage');if(!img){img=document.createElement('img');img.className='haynesDashboardImage';target.appendChild(img);}
- delete img.dataset.vehicleSource;delete img.dataset.personalised;delete img.dataset.personalising;delete img.dataset.haynesSource;delete img.dataset.vehicleImage;img.src='data:image/svg+xml;charset=utf-8,'+encodeURIComponent(svg);img.alt='Generic '+(j.vehicle||j.model||j.make||'vehicle')+' illustration';img.dataset.generic='true';img.title='Generic illustration — appearance may differ';target.classList.add('hasHaynesDashboardImage');mobileManufacturerBadge(card,j);
+ delete img.dataset.vehicleSource;delete img.dataset.personalised;delete img.dataset.personalising;delete img.dataset.haynesSource;delete img.dataset.vehicleImage;img.src='data:image/svg+xml;charset=utf-8,'+encodeURIComponent(svg);img.alt='Generic '+(j.vehicle||j.model||j.make||'vehicle')+' illustration';img.dataset.generic='true';img.dataset.registration=reg(j.registration);if(j.fleet_vehicle_id)img.dataset.fleetArtworkId=String(j.fleet_vehicle_id);img.title='Click to choose vehicle image and colour';target.classList.add('hasHaynesDashboardImage');mobileManufacturerBadge(card,j);
 }
 root.enrichHaynesDashboard=function(container,jobs){
  if(!container)return;const byId=new Map((jobs||[]).filter(j=>!j.no_vehicle&&j.card_type!=='mini_task').map(j=>[String(j.id),j]));
@@ -298,17 +301,18 @@ root.initHaynesJobTools=function(modal){
   const value=reg(input.value);plate.hidden=picture.hidden;if(picture.hidden)return;
   const registration=reg(input.value),linked=(root.app?.jobs||[]).find(j=>String(j.id)===String(root.editingJobId)),description={...linked,registration,make:modal.querySelector('#job_make')?.value,model:modal.querySelector('#job_model')?.value,vehicle:modal.querySelector('#job_vehicle')?.value};
   const colour=dashboardColour(description),name=[description.make,description.model||description.vehicle].filter(Boolean).join(' ');
+  picture.dataset.vehiclePicker='';picture.dataset.registration=registration;if(description.fleet_vehicle_id)picture.dataset.fleetArtworkId=String(description.fleet_vehicle_id);
   const fallback=()=>{picture.innerHTML=root.VectaFleetImages?.artwork?.(name,colour)||'';picture.title='Generic vehicle illustration — appearance may differ';};
   const v=drawing||storedDrawing(description),src=image(v?.imageUrl);
   if(!src){fallback();return;}
-  const img=document.createElement('img');artworkSource(img,src,description,colour);img.alt=[colour,v.make,v.model,registration].filter(Boolean).join(' ');img.dataset.vehicleImage='';img.dataset.registration=registration;img.dataset.colour=colour;img.dataset.vehicleName=name;img.dataset.vehicleMake=v.make||'';img.dataset.vehicleLogo='separate';img.dataset.vehicleCrop='tight';img.onerror=()=>{img.title='Saved vehicle image is temporarily unavailable. It has been retained.';};picture.appendChild(img);picture.title='';root.VectaVehicleImage?.mount(picture);
+  const img=document.createElement('img');artworkSource(img,src,description,colour);if(description.fleet_vehicle_id)img.dataset.fleetArtworkId=String(description.fleet_vehicle_id);img.alt=[colour,v.make,v.model,registration].filter(Boolean).join(' ');img.dataset.vehicleImage='';img.dataset.registration=registration;img.dataset.colour=colour;img.dataset.vehicleName=name;img.dataset.vehicleMake=v.make||'';img.dataset.vehicleLogo='separate';img.dataset.vehicleCrop='tight';img.onerror=()=>{img.title='Saved vehicle image is temporarily unavailable. It has been retained.';};picture.appendChild(img);picture.title='';root.VectaVehicleImage?.mount(picture);
  }
  const panel=document.createElement('div');panel.className='haynesJobTools';
  panel.innerHTML='<button type="button" class="btn">Find vehicle in HaynesPro</button><span role="status" aria-live="polite"></span><div class="haynesJobVehicle"></div>';
  section.appendChild(panel);
  const button=panel.querySelector('button'),status=panel.querySelector('[role="status"]'),body=panel.querySelector('.haynesJobVehicle'),noVehicle=modal.querySelector('#job_no_vehicle');
  let sequence=0,refreshTimer;
- function showGeneric(){if(noVehicle?.checked)return;const v=genericImage({make:modal.querySelector('#job_make')?.value,model:modal.querySelector('#job_model')?.value,vehicle:modal.querySelector('#job_vehicle')?.value}),img=thumbnail(v,'haynesJobGenericImage');if(img){body.replaceChildren(img);return true;}return false;}
+ function showGeneric(){if(noVehicle?.checked)return;const v=genericImage({make:modal.querySelector('#job_make')?.value,model:modal.querySelector('#job_model')?.value,vehicle:modal.querySelector('#job_vehicle')?.value}),img=thumbnail(v,'haynesJobGenericImage',{registration:current()});if(img){body.replaceChildren(img);return true;}return false;}
  const current=()=>reg(input.value);
  function clear(){showHeaderVehicle();sequence++;clearTimeout(refreshTimer);body.replaceChildren();status.textContent='';button.disabled=!!noVehicle?.checked;button.textContent='Find vehicle in HaynesPro';if(showGeneric())status.textContent='Generic model image — appearance may differ.';}
  function changed(){clear();}
@@ -327,7 +331,7 @@ const requested=current(),expectedMake=make(modal.querySelector('#job_make')?.va
    remember(v);showHeaderVehicle(v);const link=document.createElement('a');link.className='btn dark';link.href=vehicleLink(v);link.target='_blank';link.rel='noopener noreferrer';link.textContent='Open this vehicle in HaynesPro';
    const details=document.createElement('div'),title=document.createElement('strong'),note=document.createElement('small');
    title.textContent=[v.make,v.model,v.variant].join(' ');note.textContent=[v.engineCode,v.modelYears].filter(Boolean).join(' · ');details.append(title,note);
-   body.replaceChildren();const src=image(v.imageUrl);if(src){const img=document.createElement('img');img.src=artworkUrl(src);img.alt=(v.generic?'Generic model image: ':'Representative ')+v.make+' '+v.model;img.title=v.generic?'Generic model image — appearance may differ':img.alt;img.dataset.generic=String(!!v.generic);img.dataset.vehicleMake=v.make||'';img.onerror=()=>img.remove();body.appendChild(img);}
+   body.replaceChildren();const src=image(v.imageUrl);if(src){const img=document.createElement('img');img.src=artworkUrl(src);img.alt=(v.generic?'Generic model image: ':'Representative ')+v.make+' '+v.model;img.title=v.generic?'Generic model image — appearance may differ':img.alt;img.dataset.generic=String(!!v.generic);img.dataset.vehicleMake=v.make||'';img.dataset.registration=requested;img.dataset.vehicleName=[v.make,v.model].join(' ');img.onerror=()=>img.remove();body.appendChild(img);}
    const times=document.createElement('a');times.className='btn';times.href='https://www.workshopdata.com/touch/site/layout/repairTimes?typeId='+encodeURIComponent(v.typeId)+'&groupId=QUICKGUIDES';times.target='_blank';times.rel='noopener noreferrer';times.textContent='Repair times';
    if(!src)showGeneric();body.append(details,link,times);status.textContent='Matched vehicle — check the variant before using technical data.';button.textContent='Refresh HaynesPro vehicle';
   }catch{if(run===sequence&&panel.isConnected&&current()===requested)button.textContent='Retry lookup';if(run===sequence&&panel.isConnected&&current()===requested)status.textContent=({NOT_CONFIGURED:'HaynesPro lookup is not configured for this preview.',OFFLINE:'The workshop HaynesPro worker is offline.',LOGIN_REQUIRED:'The workshop HaynesPro login needs renewing.',VERIFICATION_REQUIRED:'HaynesPro needs verification on the workshop PC.',BUSY:'HaynesPro is busy. Try again shortly.',DAILY_LIMIT:'The daily HaynesPro lookup limit has been reached.'}[failStatus.get(requested)]||'HaynesPro unavailable or vehicle match uncertain.')+' You can still save this job.';}
@@ -337,7 +341,18 @@ const requested=current(),expectedMake=make(modal.querySelector('#job_make')?.va
 };
 document.addEventListener('DOMContentLoaded',()=>{if(root.view==='planner')root.enrichHaynesDashboard(document.getElementById('content'),root.app?.jobs);});
 function storedArtwork(){const unique=new Map();for(const v of [...sharedArtwork.values(),...artwork.values(),...identities.values(),...cache.values()])if(image(v.imageUrl))unique.set(v.imageUrl,{make:v.make,model:v.model,imageUrl:v.imageUrl});return [...unique.values()].sort((a,b)=>[a.make,a.model].join(" ").localeCompare([b.make,b.model].join(" ")));}
-root.VectaHaynesJobTools={compatibleArtwork,storedDrawing,artworkUrl,storedArtwork,vehicleLink,safeImage:image,remember,snapshot,artworkSnapshot,lookup,lookupNeedsRetry:registration=>failed.has(reg(registration)),lookupStatus:registration=>failStatus.get(reg(registration))||'UNAVAILABLE',genericImage,dashboardColour,lookupDashboardColour,rememberLookupColour,hydrateSharedArtwork,flushSharedArtwork};
+// Explicit choices are artwork only: never modify technical vehicle identity.
+async function saveManualArtwork(value){
+ const clean=cleanArtwork({...value,manual:true});if(!clean)throw Error('Choose a stored image for a vehicle with a registration.');
+ const client=workshopClient();if(!client||root.VECTA_AUDIT_PREVIEW)throw Error('Connect to Workshop Pro before saving the image.');
+ if(sharedSaving)await sharedSaving;
+ const response=await sharedArtworkResponse(client.from('workshop_settings').upsert({id:SHARED_ART_PREFIX+clean.registration,value:clean,updated_at:new Date().toISOString()},{onConflict:'id'}));
+ if(response.error)throw Error('Image could not be saved. Please retry.');
+ sharedWrites.delete(clean.registration);sharedArtwork.set(clean.registration,clean);rememberArtwork(clean,false,{replace:true});
+ try{root.localStorage?.setItem(ART_KEY,JSON.stringify([...artwork.values()]));}catch{}
+ return clean;
+}
+root.VectaHaynesJobTools={saveManualArtwork,compatibleArtwork,storedDrawing,artworkUrl,storedArtwork,vehicleLink,safeImage:image,remember,snapshot,artworkSnapshot,lookup,lookupNeedsRetry:registration=>failed.has(reg(registration)),lookupStatus:registration=>failStatus.get(reg(registration))||'UNAVAILABLE',genericImage,dashboardColour,lookupDashboardColour,rememberLookupColour,hydrateSharedArtwork,flushSharedArtwork};
 })(window);
 
 /* Dashboard registration lookup: read-only until a job/quote form is saved. */

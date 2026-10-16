@@ -9,7 +9,7 @@ function setup(vehicles,tools={},saved=true,offscreen=false){const {window}=pars
 test('matched Haynes images render via live state bridge, with colour preserved',async()=>{const v={id:'internal',fleetGroup:'Nissan Internal',model:'Qashqai J11'};const {api,document,calls}=setup([v],{storedArtwork:()=>[{make:'Nissan',model:'Qashqai (J11)',imageUrl:url}]});assert.equal(document.querySelector('img').src,url);assert.equal(document.querySelector('svg'),null);await api.saveColour('internal','Blue');api.mount();assert.equal(calls(),1);assert.equal(document.querySelector('img').dataset.colour,'Blue');});
 test('Fleet display never looks up a registered donor for a missing internal image',async()=>{const regs=[];const vehicles=[{id:'internal',fleetGroup:'Nissan Internal',registration:'MTC 2',model:'NV 200'},{id:'pool',fleetGroup:'Nissan Pool Cars',registration:'VN68 FPJ',model:'NV200'}];const {document}=setup(vehicles,{lookup:async reg=>{regs.push(reg);return {imageUrl:url}}});await new Promise(r=>setTimeout(r,10));assert.deepEqual(regs,[]);assert.equal(document.querySelectorAll('img').length,0);});
 test('unmatched on-site equipment uses a local cart fallback without a registration lookup',async()=>{let lookups=0;const {document}=setup([{id:'internal',fleetGroup:'Nissan Internal',registration:'TCS 1',model:'Golf Buggy'}],{lookup:async()=>{lookups++}});await new Promise(r=>setTimeout(r,10));assert.equal(lookups,0);assert.equal(document.querySelector('img'),null);assert.match(document.querySelector('svg').getAttribute('aria-label'),/Golf Buggy/);assert.equal(document.querySelector('svg g').getAttribute('transform'),'translate(210 0) scale(-1 1)');});
-test('colour writes reject pool vehicles and invalid values and report cloud failure',async()=>{const vehicles=[{id:'internal',fleetGroup:'Nissan Internal',model:'Leaf'},{id:'pool',fleetGroup:'Nissan Pool Cars',model:'Leaf'}];const {api,calls}=setup(vehicles,{},false);await assert.rejects(api.saveColour('pool','Blue'));await assert.rejects(api.saveColour('internal','invalid'));assert.equal(calls(),0);await assert.rejects(api.saveColour('internal','Green'),/has not synced/);assert.equal(vehicles[0].colour,'Green');});
+test('colour writes support pool vehicles, reject invalid values and report cloud failure',async()=>{const vehicles=[{id:'internal',fleetGroup:'Nissan Internal',model:'Leaf'},{id:'pool',fleetGroup:'Nissan Pool Cars',model:'Leaf'}];const {api,calls}=setup(vehicles,{},false);await assert.rejects(api.saveColour('pool','Blue'),/not synced/);await assert.rejects(api.saveColour('internal','invalid'));assert.equal(calls(),1);await assert.rejects(api.saveColour('internal','Green'),/not synced/);assert.equal(vehicles[0].colour,'Green');});
 test('contact email is inserted in all three list variants using the inherited email resolver',()=>{const html=fs.readFileSync(new URL('../../index.html',import.meta.url),'utf8');assert.match(html,/function fleetContactEmailCell\(v\)\{var email=fleetEffectiveContactEmail\(v\)/);const body=html.slice(html.indexOf('function fleetMaintenanceHtml(){'),html.indexOf('function fleetHtml()'));assert.equal((body.match(/fleetContactEmailCell\(v\)/g)||[]).length,3);assert.match(body,/<span>Fleet \/ customer<\/span><span>Contact email<\/span><span>/);});
 test('internal picker button stays on row one and image assets are cache-versioned',()=>{const css=fs.readFileSync(new URL('../../public/js/vecta-fleet-images.css',import.meta.url),'utf8');assert.match(css,/\.fleetPanel \.fleetRow\.due30Columns>\*\{grid-row:1\}/);const build=fs.readFileSync(new URL('../../scripts/split-built-html.mjs',import.meta.url),'utf8');assert.match(build,/'vecta-fleet-images.js','vecta-fleet-images.css'/);});
 
@@ -114,4 +114,32 @@ test('internal van aliases distinguish e-NV200 from NV200 and reject unknown gen
  const vehicles=[{id:'ev',fleetGroup:'Nissan Internal',model:'Nissan e-NV 200'},{id:'van',fleetGroup:'Nissan Internal',model:'NV 200'},{id:'old',fleetGroup:'Nissan Internal',model:'Qashqai J10'}];
  const {api}=setup(vehicles,{safeImage:x=>x,storedArtwork:()=>[{make:'Nissan',model:'e-NV200',imageUrl:ev},{make:'Nissan',model:'NV200 Evalia (M20)',imageUrl:van}]});
  assert.equal(api.drawingFor(vehicles[0]).imageUrl,ev);assert.equal(api.drawingFor(vehicles[1]).imageUrl,van);assert.equal(api.drawingFor(vehicles[2]),null);
+});
+
+test('road fleet choices remain per vehicle and planner images resolve the same saved choice',async()=>{
+ const a={id:'road-a',registration:'AB12CDE',make:'Nissan',model:'Leaf',fleetGroup:'Nissan Pool Cars'},b={id:'road-b',registration:'AB12CDF',model:'Leaf'};
+ const drawing={make:'Nissan',model:'Qashqai',imageUrl:url};const {api}=setup([a,b],{storedArtwork:()=>[drawing]});
+ await api.saveArtwork(a.id,drawing,'Blue');assert.equal(api.forJob({registration:'AB12CDE'}).drawing.imageUrl,url);assert.equal(b.artwork,undefined);
+ const node={dataset:{registration:'AB12 CDE'},closest:()=>null};assert.equal(api.imageVehicle(node).id,a.id);
+});
+test('nonfleet image selection saves artwork against registration without altering job or invoice records',async()=>{
+ let saved;const drawing={make:'Ford',model:'Focus',imageUrl:url};const {api,document}=setup([],{storedArtwork:()=>[drawing],saveManualArtwork:async value=>{saved=value}});
+ const v=api.imageVehicle({dataset:{registration:'AB12 CDE',vehicleMake:'Ford',vehicleName:'Focus'},closest:()=>null});
+ const create=document.createElement.bind(document);document.createElement=name=>{const node=create(name);if(name==='dialog')node.showModal=()=>{};return node;};
+ await api.openArtwork(v.id);assert.equal(document.querySelectorAll('.fleetStoredImageChoice').length,1);
+ await api.saveArtwork(v.id,drawing,'Green');assert.equal(saved.registration,'AB12CDE');assert.equal(saved.colour,'Green');assert.equal(saved.imageUrl,url);
+ document.querySelector('dialog').remove();
+});
+test('duplicate fleet references require a fleet ID rather than choosing the first vehicle',()=>{
+ const {api}=setup([{id:'a',registration:'TCS1'},{id:'b',registration:'TCS1'}]);assert.equal(api.imageVehicle({dataset:{registration:'TCS1'},closest:()=>null}),null);
+});
+test('clicking vehicle images in any view opens the picker without opening the containing job',async()=>{
+ const {api,document}=setup([]);const create=document.createElement.bind(document);document.createElement=name=>{const node=create(name);if(name==='dialog')node.showModal=()=>{};return node;};
+ for(const name of ['planner','invoice','serviceSheet','jobHeader']){
+  const image=create('img');image.dataset.registration='AB12CDE';image.className=name;document.body.appendChild(image);
+  image.click();assert.ok(document.querySelector('dialog'),name);document.querySelector('dialog').remove();image.remove();
+ }
+});
+test('a service sheet image with a blank registration resolves its containing fleet identity',()=>{
+ const v={id:'blank',registration:'',fleetGroup:'Nissan Internal',model:'Leaf'};const {api,document}=setup([v]);const wrapper=document.createElement('div');wrapper.dataset.fleetArtworkId=v.id;wrapper.dataset.vehiclePicker='';const image=document.createElement('img');wrapper.appendChild(image);document.body.appendChild(wrapper);assert.equal(api.imageVehicle(image).id,v.id);
 });
