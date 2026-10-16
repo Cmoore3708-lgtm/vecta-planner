@@ -417,7 +417,11 @@ function openBooking(registration){
  header.append(identity);
  const current=()=>modal.classList.contains('open')&&originalHeader.isConnected&&normalise(field('registration')?.value)===normalise(preset.registration);
  const text=(selector,value)=>{identity.querySelector(selector).textContent=value||'';};
+ const fullHaynes=document.createElement('a');fullHaynes.className='btn small';fullHaynes.textContent='Open in HaynesPro';fullHaynes.target='_blank';fullHaynes.rel='noopener noreferrer';
+ fullHaynes.onclick=e=>{if(!fullHaynes.getAttribute('href'))e.preventDefault();};
  function paint(vehicle){
+  const link=root.VectaHaynesJobTools.vehicleLink?.(vehicle||root.VectaHaynesJobTools.snapshot?.(field('registration')?.value));
+  if(link){fullHaynes.href=link;fullHaynes.removeAttribute('aria-disabled');}else{fullHaynes.removeAttribute('href');fullHaynes.setAttribute('aria-disabled','true');}
   text('[data-booking-vehicle]',field('vehicle')?.value||[vehicle?.make,vehicle?.model].filter(Boolean).join(' ')||preset.vehicle||'Vehicle details');
   text('[data-booking-variant]',vehicle?.variant||'');
   identity.querySelector('[data-booking-spec]').innerHTML=[['Engine code',vehicle?.engineCode],['Model years',vehicle?.modelYears],['Customer',field('customer_account')?.value||preset.customer_account]].filter(([,v])=>v).map(([k,v])=>'<dt>'+esc(k)+'</dt><dd>'+esc(v)+'</dd>').join('');
@@ -427,7 +431,7 @@ function openBooking(registration){
  const dirty=new Set();['make','model','vehicle','colour'].forEach(id=>field(id)?.addEventListener('input',()=>dirty.add(id)));
  field('vehicle')?.addEventListener('change',()=>paint(root.VectaHaynesJobTools.snapshot?.(field('registration')?.value)));
  field('registration')?.addEventListener('change',()=>{paint(root.VectaHaynesJobTools.snapshot?.(field('registration')?.value));text('[data-booking-status]','Check the vehicle details for this registration before saving.');});
- const technical=document.createElement('button');technical.type='button';technical.className='btn small';technical.textContent='Service & repair data';technical.onclick=()=>openTechnical(field('registration')?.value,{fromBooking:true});(header.querySelector('.jobModalHeadActions')||identity).prepend(technical);
+ const technical=document.createElement('button');technical.type='button';technical.className='btn small';technical.textContent='Service & repair data';technical.onclick=()=>openTechnical(field('registration')?.value,{fromBooking:true});(header.querySelector('.jobModalHeadActions')||identity).prepend(technical);(header.querySelector('.jobModalHeadActions')||identity).append(fullHaynes);
  // Cached/local vehicles never cause a background Haynes or government lookup.
  if(stored)return;
  // New registrations need the government colour as well as the Haynes drawing.

@@ -17,7 +17,7 @@ test('saved internal and contractor vehicles open the real editor without any lo
  for(const account of ['NMUK','NDS','Staff']){
   let lookups=0;const stored={registration:'RESCUE 2',vehicle:'Nissan Navara',customer_account:account,customer_email:'owner@example.test',lookup_local_only:true};
   const {window,document,preset}=setup({stored,lookup:()=>{lookups++;throw Error('Unexpected remote lookup');}});
-  await window.VectaHaynesDashboardLookup.open('rescue 2');assert.equal(lookups,0);assert.equal(preset().customer_account,account);assert.equal(preset().customer_email,'owner@example.test');assert.equal(preset().status,'booked');assert.equal(document.querySelectorAll('#job_work_required').length,1);assert.equal(document.getElementById('job_mileage').value,'');assert.equal(document.querySelector('.bookingCurrentMileage label').textContent,'Current mileage');assert.ok(document.querySelector('.jobBookingSection .bookingCurrentMileage'));assert.equal(document.querySelector('.bookingLookupIdentity').closest('.jobModalHead'),document.querySelector('.jobModalHead'));assert.equal(document.querySelector('#haynesLookupPage'),null);assert.ok(document.getElementById('saveJob'));assert.ok(document.getElementById('job_booking_date'));assert.deepEqual(Array.from(document.querySelector('.jobModalHeadActions').children).map(el=>el.textContent),['Service & repair data','Print Job Card','Close']);
+  await window.VectaHaynesDashboardLookup.open('rescue 2');assert.equal(lookups,0);assert.equal(preset().customer_account,account);assert.equal(preset().customer_email,'owner@example.test');assert.equal(preset().status,'booked');assert.equal(document.querySelectorAll('#job_work_required').length,1);assert.equal(document.getElementById('job_mileage').value,'');assert.equal(document.querySelector('.bookingCurrentMileage label').textContent,'Current mileage');assert.ok(document.querySelector('.jobBookingSection .bookingCurrentMileage'));assert.equal(document.querySelector('.bookingLookupIdentity').closest('.jobModalHead'),document.querySelector('.jobModalHead'));assert.equal(document.querySelector('#haynesLookupPage'),null);assert.ok(document.getElementById('saveJob'));assert.ok(document.getElementById('job_booking_date'));assert.deepEqual(Array.from(document.querySelector('.jobModalHeadActions').children).map(el=>el.textContent),['Service & repair data','Print Job Card','Close','Open in HaynesPro']);
  }
 });
 test('new registration fills its vehicle without touching the booking fields',async()=>{
@@ -72,4 +72,11 @@ test('late booking colour cannot repaint a replacement vehicle editor',async()=>
  await window.VectaHaynesDashboardLookup.open('OE75NXX');await new Promise(r=>setTimeout(r,0));
  document.getElementById('job_vehicle').addEventListener('change',()=>paints++);
  document.getElementById('job_registration').value='AB12CDE';finish();await new Promise(r=>setTimeout(r,0));assert.equal(paints,0);
+});
+
+test('top HaynesPro action opens the matched vehicle alongside Close',async()=>{
+ const {window,document}=setup({lookup:async()=>({registration:'OE75NXX',make:'NISSAN',model:'Qashqai',typeId:'t_619108899'})});
+ window.VectaHaynesJobTools.vehicleLink=v=>v?.typeId?'https://www.workshopdata.com/touch/site/layout/modelDetail?typeId='+v.typeId:'';
+ await window.VectaHaynesDashboardLookup.open('OE75NXX');
+ const link=document.querySelector('.jobModalHeadActions a');assert.equal(link.textContent,'Open in HaynesPro');assert.match(link.href,/typeId=t_619108899/);assert.equal(link.target,'_blank');assert.equal(link.previousElementSibling.textContent,'Close');
 });
