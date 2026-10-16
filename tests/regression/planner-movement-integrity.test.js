@@ -112,14 +112,14 @@ test('startup cleanup cannot overwrite a newer mechanic with a cached unallocate
  assert.equal(ctx.result,0);assert.equal(writes,0);assert.equal(JSON.stringify(stale),original);
 });
 
-test('opening an existing job preserves a mechanic absent from the current settings',()=>{
+test('opening an existing job uses the configured mechanic names for legacy allocations',()=>{
  const open=namedFunctionSource('openJobModal');
  const start=open.indexOf("var mechanics=['Unallocated']"),end=open.indexOf('var ramps=',start);
  assert.ok(start>-1&&end>start);
- for(const technician of ['Jordan','alfie','Alfie']){
+ for(const [technician,expected] of [['Jordan','Other'],['alfie','Alfie'],['Alfie','Alfie']]){
   const ctx={id:'existing-job',j:{technician},app:{settings:{mechanics:['Alfie','Other']}}};
-  const result={...ctx,esc:v=>String(v),String};vm.runInNewContext(open.slice(start,end)+';'+namedFunctionSource('select')+";markup=select('Technician','technician',j.technician,mechanics)",result);
-  assert.match(result.markup,new RegExp('<option value="'+technician+'" selected>'));
+  const result={...ctx,esc:v=>String(v),String};vm.runInNewContext(namedFunctionSource('configuredMechanicNames')+';'+namedFunctionSource('configuredMechanicChoice')+';'+open.slice(start,end)+';'+namedFunctionSource('select')+";markup=select('Technician','technician',j.technician,mechanics)",result);
+  assert.match(result.markup,new RegExp('<option value="'+expected+'" selected>'));
  }
 });
 
@@ -157,7 +157,7 @@ test('renamed second column receives both Chris and legacy Other bookings',()=>{
 test('legacy Other is shown as Chris in the editor after renaming the column',()=>{
  const open=namedFunctionSource('openJobModal'),start=open.indexOf("var mechanics=['Unallocated']"),end=open.indexOf('var ramps=',start);
  const ctx={id:'job',j:{technician:'Other'},app:{settings:{mechanics:['Alfie','Chris','Anyone']}},plannerTechnicianLane:()=> 'Chris',esc:v=>String(v)};
- vm.runInNewContext(open.slice(start,end)+';'+namedFunctionSource('select')+";markup=select('Technician','technician',j.technician,mechanics)",ctx);
+ vm.runInNewContext(namedFunctionSource('configuredMechanicNames')+';'+namedFunctionSource('configuredMechanicChoice')+';'+open.slice(start,end)+';'+namedFunctionSource('select')+";markup=select('Technician','technician',j.technician,mechanics)",ctx);
  assert.match(ctx.markup,/<option value="Chris" selected>/);assert.doesNotMatch(ctx.markup,/<option value="Other"/);
 });
 
