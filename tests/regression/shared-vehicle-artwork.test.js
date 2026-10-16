@@ -176,3 +176,19 @@ test('main app exposes its current private database client through the bridge, i
  const first={},second={};root.connect(first);assert.equal(root.__vectaWorkshopClient(),first);root.connect(second);assert.equal(root.__vectaWorkshopClient(),second);
  root.connect(null);assert.equal(root.__vectaWorkshopClient(),null);
 });
+
+test('real fleet matcher renders automatic internal images on phone and desktop without publishing internal references',async()=>{
+ const db=database(),d=device(db),asset='https://www.haynespro-assets.com/workshop/images/319106279.svgz';
+ const vehicles=[{id:'internal',fleetGroup:'Nissan Internal',registration:'RESCUE 2',model:'Nissan Qashqai J12',colour:'Green'}];
+ d.root.__vectaFleetState=()=>({vehicles,save:async()=>true,render:()=>{}});
+ const fleetSource=fs.readFileSync(new URL('../../public/js/vecta-fleet-images.js',import.meta.url),'utf8');
+ vm.runInNewContext(fleetSource,{window:d.root,document:d.document,MutationObserver:class{observe(){}},setTimeout:(fn,delay)=>d.timers.push({fn,delay})});
+ const j={id:'1',fleet_vehicle_id:'internal',registration:'RESCUE 2',model:'Qashqai',make:'',vehicle:'Qashqai'};
+ d.document.body.insertAdjacentHTML('beforeend','<div class="job" data-job-id="1"><div class="plannerJobHeader"></div></div>');
+ d.root.enrichHaynesDashboard(d.document,[j]);await settled();
+ const images=d.document.querySelectorAll('.haynesDashboardImage');assert.equal(images.length,2);
+ for(const img of images){assert.equal(img.dataset.vehicleSource,asset);assert.equal(img.dataset.colour,'Green');assert.equal(img.dataset.fleetArtworkId,'internal');}
+ await d.root.VectaHaynesJobTools.flushSharedArtwork();assert.equal(db.writes(),0);assert.equal(d.lookups(),0);
+ vehicles[0].model='Qashqai';
+ assert.equal(d.root.VectaHaynesJobTools.storedDrawing(j),null,'ambiguous model must not fall through to generic Qashqai');
+});

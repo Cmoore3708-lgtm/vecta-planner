@@ -6,7 +6,7 @@ import {parseHTML} from 'linkedom';
 const source=fs.readFileSync(new URL('../../public/js/vecta-fleet-images.js',import.meta.url),'utf8');
 const url='https://www.haynespro-assets.com/workshop/images/319004648.svgz';
 function setup(vehicles,tools={},saved=true,offscreen=false){const {window}=parseHTML('<html><body>'+vehicles.map(v=>'<button data-fleet-image="'+v.id+'"></button>').join('')+'</body></html>');for(const cell of window.document.querySelectorAll('[data-fleet-image]'))cell.getBoundingClientRect=()=>({top:offscreen?1200:10,bottom:offscreen?1240:50,width:100,height:40});let observer;let calls=0;const root={innerHeight:800,__vectaFleetState:()=>({vehicles,save:async()=>{calls++;return saved},render:()=>{}}),VectaHaynesJobTools:{safeImage:x=>x===url?x:'',...tools}};vm.runInNewContext(source,{window:root,document:window.document,MutationObserver:class{constructor(callback){observer=callback}observe(){}},setTimeout,queueMicrotask,CSS:{escape:v=>v}});return {api:root.VectaFleetImages,document:window.document,calls:()=>calls,root,observe:records=>observer(records)};}
-test('matched Haynes images render via live state bridge, with colour preserved',async()=>{const v={id:'internal',fleetGroup:'Nissan Internal',model:'Qashqai'};const {api,document,calls}=setup([v],{genericImage:()=>({imageUrl:url})});assert.equal(document.querySelector('img').src,url);assert.equal(document.querySelector('svg'),null);await api.saveColour('internal','Blue');api.mount();assert.equal(calls(),1);assert.equal(document.querySelector('img').dataset.colour,'Blue');});
+test('matched Haynes images render via live state bridge, with colour preserved',async()=>{const v={id:'internal',fleetGroup:'Nissan Internal',model:'Qashqai J11'};const {api,document,calls}=setup([v],{storedArtwork:()=>[{make:'Nissan',model:'Qashqai (J11)',imageUrl:url}]});assert.equal(document.querySelector('img').src,url);assert.equal(document.querySelector('svg'),null);await api.saveColour('internal','Blue');api.mount();assert.equal(calls(),1);assert.equal(document.querySelector('img').dataset.colour,'Blue');});
 test('Fleet display never looks up a registered donor for a missing internal image',async()=>{const regs=[];const vehicles=[{id:'internal',fleetGroup:'Nissan Internal',registration:'MTC 2',model:'NV 200'},{id:'pool',fleetGroup:'Nissan Pool Cars',registration:'VN68 FPJ',model:'NV200'}];const {document}=setup(vehicles,{lookup:async reg=>{regs.push(reg);return {imageUrl:url}}});await new Promise(r=>setTimeout(r,10));assert.deepEqual(regs,[]);assert.equal(document.querySelectorAll('img').length,0);});
 test('unmatched on-site equipment uses a local cart fallback without a registration lookup',async()=>{let lookups=0;const {document}=setup([{id:'internal',fleetGroup:'Nissan Internal',registration:'TCS 1',model:'Golf Buggy'}],{lookup:async()=>{lookups++}});await new Promise(r=>setTimeout(r,10));assert.equal(lookups,0);assert.equal(document.querySelector('img'),null);assert.match(document.querySelector('svg').getAttribute('aria-label'),/Golf Buggy/);assert.equal(document.querySelector('svg g').getAttribute('transform'),'translate(210 0) scale(-1 1)');});
 test('colour writes reject pool vehicles and invalid values and report cloud failure',async()=>{const vehicles=[{id:'internal',fleetGroup:'Nissan Internal',model:'Leaf'},{id:'pool',fleetGroup:'Nissan Pool Cars',model:'Leaf'}];const {api,calls}=setup(vehicles,{},false);await assert.rejects(api.saveColour('pool','Blue'));await assert.rejects(api.saveColour('internal','invalid'));assert.equal(calls(),0);await assert.rejects(api.saveColour('internal','Green'),/has not synced/);assert.equal(vehicles[0].colour,'Green');});
@@ -73,3 +73,45 @@ test('planner artwork resolves a blank registration by fleet ID without mixing i
 });
 
 test('an app vehicle ID does not hide a saved internal fleet image matched by registration',()=>{const v={id:'fleet-a',fleetGroup:'Nissan Internal',registration:'MTC 2',model:'NV200',artwork:{imageUrl:url}};const {api}=setup([v]);assert.equal(api.forJob({vehicle_id:'different-app-id',registration:'MTC2'}).drawing.imageUrl,url);});
+
+const j12='https://www.haynespro-assets.com/workshop/images/319106279.svgz';
+test('internal Nissan descriptions match stored generations without a registration or lookup',()=>{
+ const vehicles=[{id:'j11',fleetGroup:'Nissan Internal',model:'NISSAN Qashqai J11 Tekna',colour:'Blue'}, {id:'j12',fleetGroup:'Nissan Internal',registration:'RESCUE 2',model:'QASHQAI (J12)',colour:'Green'}];
+ let lookups=0;const {api,document}=setup(vehicles,{safeImage:x=>/^https:\/\/www\.haynespro-assets\.com\//.test(x||'')?x:'',lookup:()=>lookups++});
+ assert.equal(api.drawingFor(vehicles[0]).imageUrl,url);assert.equal(api.drawingFor(vehicles[1]).imageUrl,j12);
+ assert.equal(api.forJob({fleet_vehicle_id:'j12'}).drawing.imageUrl,j12);
+ assert.equal(document.querySelectorAll('img')[1].dataset.colour,'Green');assert.equal(lookups,0);
+ assert.equal(vehicles[0].artwork,undefined);assert.equal(vehicles[1].artwork,undefined);
+});
+test('ambiguous internal descriptions never take the generic first generation',()=>{
+ const v={id:'q',fleetGroup:'Nissan Internal',model:'Qashqai'};
+ const {api,document}=setup([v],{safeImage:x=>x,genericImage:()=>({make:'Nissan',model:'Qashqai',imageUrl:url})});
+ assert.equal(api.drawingFor(v),null);assert.equal(api.forJob({fleet_vehicle_id:'q'}).drawing,null);
+ assert.equal(document.querySelector('img'),null);assert.match(document.querySelector('button').title,/Choose image once/);
+});
+test('one saved choice supplies matching descriptions after reload with independent colours',async()=>{
+ const a={id:'a',fleetGroup:'Nissan Internal',model:'Nissan Qashqai',colour:'Red'},b={id:'b',fleetGroup:'Nissan Internal',model:'Qashqai',colour:'Green'};
+ const {api}=setup([a,b],{safeImage:x=>x});await api.saveArtwork('a',{make:'Nissan',model:'Qashqai (J12)',imageUrl:j12},'Blue');
+ assert.equal(api.drawingFor(b).imageUrl,j12);assert.equal(b.colour,'Green');assert.equal(b.artwork,undefined);
+ const reload=setup(JSON.parse(JSON.stringify([a,b])),{safeImage:x=>x});
+ assert.equal(reload.api.forJob({fleet_vehicle_id:'b'}).drawing.imageUrl,j12);
+ assert.equal(reload.document.querySelectorAll('img')[1].dataset.colour,'Green');
+});
+test('conflicting templates and other makes cannot determine an internal image',()=>{
+ const vehicles=[{id:'a',fleetGroup:'Nissan Internal',model:'Qashqai',artwork:{make:'Nissan',model:'Qashqai J11',imageUrl:url}},{id:'b',fleetGroup:'Nissan Internal',model:'Qashqai',artwork:{make:'Nissan',model:'Qashqai J12',imageUrl:j12}},{id:'c',fleetGroup:'Nissan Internal',model:'Qashqai'},{id:'leaf',fleetGroup:'Nissan Internal',model:'Leaf'}];
+ const {api}=setup(vehicles,{safeImage:x=>x,storedArtwork:()=>[{make:'Ford',model:'Leaf',imageUrl:'https://www.haynespro-assets.com/workshop/images/999.svgz'}]});
+ assert.equal(api.drawingFor(vehicles[2]),null);assert.equal(api.drawingFor(vehicles[3]),null);assert.equal(api.drawingFor(vehicles[0]).imageUrl,url);
+});
+test('colour can still be changed when no stored Nissan model matches',async()=>{
+ const v={id:'unknown',fleetGroup:'Nissan Internal',model:'Internal car'};const {api,document,calls}=setup([v]);
+ const create=document.createElement.bind(document);document.createElement=name=>{const el=create(name);if(name==='dialog')el.showModal=()=>{};return el;};
+ await api.openArtwork(v.id);const dialog=document.querySelector('dialog');assert.equal(dialog.querySelector('[data-save-image]').textContent,'Save colour');
+ dialog.querySelector('[data-colour="Green"]').onclick();await dialog.querySelector('[data-save-image]').onclick();
+ assert.equal(v.colour,'Green');assert.equal(v.artwork,undefined);assert.equal(calls(),1);
+});
+test('internal van aliases distinguish e-NV200 from NV200 and reject unknown generation codes',()=>{
+ const ev='https://www.haynespro-assets.com/workshop/images/998.svgz',van='https://www.haynespro-assets.com/workshop/images/997.svgz';
+ const vehicles=[{id:'ev',fleetGroup:'Nissan Internal',model:'Nissan e-NV 200'},{id:'van',fleetGroup:'Nissan Internal',model:'NV 200'},{id:'old',fleetGroup:'Nissan Internal',model:'Qashqai J10'}];
+ const {api}=setup(vehicles,{safeImage:x=>x,storedArtwork:()=>[{make:'Nissan',model:'e-NV200',imageUrl:ev},{make:'Nissan',model:'NV200 Evalia (M20)',imageUrl:van}]});
+ assert.equal(api.drawingFor(vehicles[0]).imageUrl,ev);assert.equal(api.drawingFor(vehicles[1]).imageUrl,van);assert.equal(api.drawingFor(vehicles[2]),null);
+});
