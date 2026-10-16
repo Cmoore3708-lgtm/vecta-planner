@@ -9,7 +9,7 @@
     if(overlay)return;
     previousFocus=document.activeElement;
     overlay=document.createElement('div');overlay.className='booking-transfer';overlay.setAttribute('role','dialog');overlay.setAttribute('aria-modal','true');overlay.setAttribute('aria-labelledby','booking-transfer-message');
-    overlay.innerHTML='<div class="booking-transfer-card"><b>VECTA</b><p id="booking-transfer-message" role="status">Transferring you to our live booking Centre…</p><button type="button">Cancel</button></div>';
+    overlay.innerHTML='<div class="booking-transfer-card"><p id="booking-transfer-message" role="status">Transferring you to our live booking centre…</p><button type="button">Cancel</button></div>';
     overlay.querySelector('button').onclick=close;overlay.onkeydown=event=>{if(event.key==='Escape')close();if(event.key==='Tab'){event.preventDefault();overlay.querySelector('button').focus()}};
     document.body.append(overlay);document.body.style.overflow='hidden';overlay.querySelector('button').focus();
     deadline=setTimeout(()=>{if(!overlay)return;overlay.querySelector('p').textContent='Your vehicle image is taking longer than expected. You can continue your booking.';overlay.querySelector('button').textContent='Continue booking';},35000);
