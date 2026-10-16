@@ -28,9 +28,16 @@ for(const path of ['public/booking.html','website/booking/index.html'])test(`${p
    assert.equal(details.querySelector('[data-field="registration"]').value,'NU67VSE');
    assert.ok(details.querySelector('.haynes-meta'),'Haynes vehicle details remain visible');
    assert.ok(details.querySelector('.vehicle-top [data-field="registration"]'),'registration remains in its vehicle identity block');
+   assert.equal(document.querySelector('#next'),null);
+   assert.ok(document.querySelector('#actions .vehicle-confirmation [data-haynes-confirm="yes"]'));
+   assert.equal(document.querySelector('.vehicle-photo [data-haynes-confirm]'),null);
+   document.querySelector('[data-haynes-confirm="no"]').onclick();
+   assert.equal(vm.runInContext('state.step',root),1);
+   assert.equal(document.querySelector('#next').textContent,'Choose work');
+   vm.runInContext("haynesState.status='matched';render()",root);
    document.querySelector('[data-haynes-confirm="yes"]').onclick();
-   assert.equal(document.querySelectorAll('[data-field="registration"]').length,1);
-   assert.ok(document.querySelector('.haynes-vehicle [data-field="registration"]'));
+   assert.equal(vm.runInContext('state.step',root),2);
+   assert.equal(vm.runInContext('state.form.haynes_identity.engineCode',root),'MR16DDT');
   }
   else {assert.equal(document.querySelector('.vehicle-summary'),null);assert.doesNotMatch(document.querySelector('[data-haynes-slot]').textContent,/Mileage at last MOT|MOT due|Tyre worn/);}
   assert.equal(document.querySelector('[data-image-colour]'),null);
@@ -44,9 +51,9 @@ for(const path of ['public/booking.html','website/booking/index.html'])test(`${p
 for(const path of ['public/booking.html','website/booking/index.html'])test(`${path}: optional copy cannot delay the form or claim request acceptance`,async()=>{
  const html=fs.readFileSync(path,'utf8'),{document}=parseHTML(html);let copyRequested=false;
  const root={document,URL,URLSearchParams,location:{search:''},AbortController,AbortSignal,console,setTimeout,clearTimeout,alert(){},crypto:{randomUUID:()=> '12345678-1234-4123-8123-123456789abc'}};root.window=root;
- root.fetch=async url=>{if(String(url).includes('website-content-public')){copyRequested=true;assert.ok(document.querySelector('#next'),'form must render before optional copy request');return new Promise(()=>{});}return {ok:true,status:200,json:async()=>({})};};
+ root.fetch=async url=>{if(String(url).includes('website-content-public')){copyRequested=true;assert.ok(document.querySelector('[data-field="registration"]'),'form must render before optional copy request');return new Promise(()=>{});}return {ok:true,status:200,json:async()=>({})};};
  vm.createContext(root);vm.runInContext(client,root);vm.runInContext(fs.readFileSync('public/js/vecta-vehicle-image.js','utf8'),root);for(const m of html.matchAll(/<script(?:\s[^>]*)?>([\s\S]*?)<\/script>/g))if(m[1])vm.runInContext(m[1],root);
- assert.equal(copyRequested,true);assert.ok(document.querySelector('#next'));
+ assert.equal(copyRequested,true);assert.equal(document.querySelector('#next'),null);
  vm.runInContext("window.__VECTA_ADMIN_COPY__={bookingServiceIntro:'Choose for {vehicle}.',bookingConfirmedTitle:'Booking confirmed',bookingConfirmedMessage:'Already accepted'};state.form.vehicle='Test car';state.form.registration='';state.step=1",root);assert.equal(vm.runInContext('valid()',root),false);assert.equal(vm.runInContext("adminCopy('bookingServiceIntro')",root),'Choose for Test car.');
  document.getElementById('app').innerHTML='<div class="success"><h1></h1><strong class="booking-confirmed"></strong></div>';vm.runInContext('applyConfirmationCopy()',root);assert.equal(document.querySelector('.success h1').textContent,'Booking request received');assert.match(document.querySelector('.booking-confirmed').textContent,/not yet confirmed/);
 });
