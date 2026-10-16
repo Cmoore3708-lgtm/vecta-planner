@@ -46,3 +46,13 @@ test('production resolver uses fleet identifiers and preserves contractor and po
  const contractor=window.VectaBookingVehicles.resolve('AB12CDE');assert.equal(contractor.customer_account,'NDS');assert.equal(contractor.customer_email,'fleet@nds.test');assert.equal(contractor.mileage,'');
  assert.equal(window.VectaBookingVehicles.resolve('POOL 1').nmuk_vehicle_type,'POOL');assert.equal(window.VectaBookingVehicles.resolve('UNKNOWN PLATE'),null);
 });
+
+
+test('government MOT results cannot fill the current mileage field with a historical reading',async()=>{
+ const {window,document}=setup({stored:{registration:'AB12 CDE',vehicle:'Toyota Hilux'}});
+ await window.VectaHaynesDashboardLookup.open('AB12CDE');
+ const start=html.indexOf('async function lookupVehicleForJob('),end=html.indexOf('\nfunction ',start);
+ const context={document,dvsaAutoLookupSequence:0,normReg:s=>String(s).replace(/[^A-Z0-9]/g,''),fetchDvsaVehicle:async()=>({vehicle:'Toyota Hilux',latestMileage:120000,advisories:[]}),dvsaIsoDate:()=>'',dvsaAdvisoryArray:v=>v||[],renderDvsaAdvisoryPreview(){},refreshServicePricingAdvisor(){},updateJobVehicleDuePanel(){}};
+ vm.createContext(context);vm.runInContext(html.slice(start,end),context);await context.lookupVehicleForJob({});
+ assert.equal(document.getElementById('job_mileage').value,'');
+});
