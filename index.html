@@ -15132,7 +15132,37 @@ async function syncSavedJobBundleInBackground(j,linked,previous){
   if(!j)return false;
   try{
     if(linked&&linked.customer)await upsertRemote('customers',linked.customer,{silent:true});
-    if(linked&&linked.vehicle)await upsertRemote('vehicles',linked.vehicle,{silent:true});
+    if(linked&&linked.vehicle){
+      /* Reuse the database's registration identity, not a fresh browser UUID.
+         Preserve the existing vehicle row and its fleet/maintenance history. */
+      var requestedReg=normReg(linked.vehicle.registration||j.registration||'');
+      async function findExistingVehicleByReg(){
+        if(!remoteClient||!navigator.onLine)return null;
+        var pattern=requestedReg.split('').join('%')+'%';
+        var found=await remoteClient.from('vehicles').select('id,registration').ilike('registration',pattern).limit(200);
+        if(found.error)throw found.error;
+        return (found.data||[]).find(function(v){return normReg(v.registration||'')===requestedReg})||null;
+      }
+      var existingVehicle=await findExistingVehicleByReg();
+      if(!existingVehicle){
+        try{await upsertRemote('vehicles',linked.vehicle,{silent:true,skipQueue:true})}
+        catch(vehicleError){
+          /* Two devices can create the same VRM simultaneously. In that case,
+             the registration constraint protects us; adopt the winning row. */
+          if(String(vehicleError.code||'')!=='23505'&&!/vehicles_registration_key|duplicate key/i.test(String(vehicleError.message||'')))throw vehicleError;
+          existingVehicle=await findExistingVehicleByReg();
+          if(!existingVehicle)throw vehicleError;
+        }
+      }
+      if(existingVehicle){
+        var discardedId=linked.vehicle.id;
+        linked.vehicle.id=existingVehicle.id;
+        j.vehicle_id=existingVehicle.id;
+        (app.vehicles||[]).forEach(function(v){if(String(v.id)===String(discardedId)&&normReg(v.registration||'')===requestedReg)v.id=existingVehicle.id});
+        (app.jobs||[]).forEach(function(localJob){if(String(localJob.id)===String(j.id))localJob.vehicle_id=existingVehicle.id});
+        saveLocal();
+      }
+    }
     if(!remoteClient||!navigator.onLine){
       queueRemoteOperation('upsert','jobs',Object.assign({},j));
       return 'queued';
