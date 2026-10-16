@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import vm from 'node:vm';
 import {readFileSync} from 'node:fs';
-import {parseHTML} from 'linkedom';
+import {parseHTML,DOMParser} from 'linkedom';
 const source=readFileSync(new URL('../../public/js/haynes-service-sheet.js',import.meta.url),'utf8');
 const vehicle={registration:'FX69XWU',vehicle:'NISSAN Qashqai (J11) 1.7 dCi',engineCode:'R9N-401',modelYears:'2018 - 2020',imageUrl:'https://www.haynespro-assets.com/workshop/images/123.svg'};
 const data={vehicle,mileage:50000,period:'mp_1',periods:[{id:'mp_1',label:'50,000 miles/48 months'}],conditions:'Normal conditions (United Kingdom)',parts:['Oil filter','Filter, cabin air'],additional:['Renew fuel filter every 37,500 miles/36 months'],oil:[{specification:'SAE 5W-30 · ACEA C3',capacity:'Engine sump, including filter 5.9 (l)',applicability:'Engine (except North America)'}],ageMonths:84,fetchedAt:'2026-10-06T10:00:00Z'};
@@ -80,7 +80,7 @@ test('service image carries registration and job colour through the shared rende
  const {window,sheet}=setup(async()=>({status:'LOGIN_REQUIRED'}));
  window.app={jobs:[{id:'job-1',registration:'FX69XWU',vehicle_colour:'Blue'}]};sheet.setAttribute('data-job-id','job-1');
  const calls=[];
- window.VectaHaynesJobTools={remember(){},dashboardColour:j=>j.vehicle_colour,lookupDashboardColour:async()=>{}};
+ window.VectaHaynesJobTools={snapshot:()=>vehicle,remember(){},dashboardColour:j=>j.vehicle_colour,lookupDashboardColour:async()=>{}};
  window.VectaVehicleImage={mount:scope=>{const img=scope.querySelector('img');if(img)calls.push({reg:img.dataset.registration,colour:img.dataset.colour,source:img.dataset.haynesSource});}};
  await window.initHaynesServiceSheet(sheet,'FX69XWU','service');await settle();
  assert.ok(calls.length);assert.ok(calls.every(c=>c.reg==='FX69XWU'&&c.colour==='Blue'&&c.source===vehicle.imageUrl));
@@ -124,12 +124,12 @@ test('print freezes the personalised image at high resolution and restores its s
  const original=img.src;await window.prepareHaynesServicePrint(sheet);assert.equal(draws,1);assert.ok(canvas.width>=1200);assert.match(img.src,/^data:image\/png/);window.dispatchEvent(new window.Event('afterprint'));assert.equal(img.src,original);assert.equal(img.dataset.printSnapshot,undefined);sheet.remove();
 });
 
-test('service sheet uses the shared vehicle loader and displays cached artwork immediately',async()=>{
+test('service sheet displays cached artwork without calling the vehicle loader',async()=>{
  const {window,sheet}=setup(async()=>({status:'OFFLINE'}));let calls=0;
  const saved={...vehicle,make:'Nissan',model:'Qashqai'};window.VectaVehicleImage={resolveColour:()=>'',mount:()=>{}};
  window.VectaHaynesJobTools={snapshot:()=>saved,remember:()=>{},lookup:async()=>{calls++;return saved;},dashboardColour:()=>'',lookupDashboardColour:async()=>{}};
  await window.initHaynesServiceSheet(sheet,'FX69XWU','service');await settle();
- assert.equal(calls,1);assert.equal(sheet.querySelector('.ssHaynesVehicle img').getAttribute('src'),vehicle.imageUrl);
+ assert.equal(calls,0);assert.equal(sheet.querySelector('.ssHaynesVehicle img').getAttribute('src'),vehicle.imageUrl);
  sheet.remove();
 });
 
@@ -171,4 +171,14 @@ test('service sheet renders generic questions, retains selections and applies da
  assert.match(sheet.querySelector('.ssHaynesParts').textContent,/Oil filter/);assert.equal(requests.at(-1)[0].menu,menu.id);
  const reset=Array.from(sheet.querySelectorAll('button')).find(b=>b.textContent==='Change Haynes choices');assert.ok(reset);reset.onclick();await settle();
  assert.match(sheet.textContent,/An unfamiliar maintenance question/);assert.equal(sheet.querySelector('.ssHaynesParts'),null);sheet.remove();
+});
+
+test('service sheets recolour the stored same-origin image using the actual shared renderer',async()=>{
+ const {window,sheet}=setup(async()=>({status:'LOGIN_REQUIRED'}));const saved={...vehicle,make:'NISSAN',model:'Qashqai'};
+ window.Element.prototype.getBBox=function(){return this.id==='windows'?{x:20,y:10,width:40,height:20}:{x:0,y:0,width:100,height:80};};window.DOMParser=DOMParser;window.XMLSerializer=class{serializeToString(node){return node.outerHTML;}};window.AbortSignal=AbortSignal;
+ window.fetch=async()=>({ok:true,json:async()=>({svg:'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><g id="transparant_colour"><path fill="#ffffff" d="M0 0h100v80z"/></g><g id="windows"><path fill="#222222" d="M20 10h40v20z"/></g></svg>'})});
+ window.VectaHaynesJobTools={snapshot:()=>saved,dashboardColour:()=> 'Blue',artworkUrl:()=>'/api/haynes-image?asset=123.svg&format=svg'};
+ vm.runInNewContext(readFileSync(new URL('../../public/js/vecta-vehicle-image.js',import.meta.url),'utf8'),{window,setTimeout,clearTimeout});
+ await window.initHaynesServiceSheet(sheet,'FX69XWU','service');for(let i=0;i<12;i++)await settle();
+ const img=sheet.querySelector('.ssHaynesVehicle img');assert.equal(img.dataset.vehicleSource,vehicle.imageUrl);assert.match(img.src,/^data:image\/svg/);assert.match(decodeURIComponent(img.src),/#235b9a/);sheet.remove();
 });

@@ -69,7 +69,7 @@
     legacySaveTimer=setTimeout(()=>{legacySaveTimer=null;try{const entries=[];let size=0;for(const [key,result] of [...images].reverse()){size+=result.url.length;if(size>2000000)break;entries.push([key,{url:result.url,plateAdded:result.plateAdded,recoloured:result.recoloured}]);}root.localStorage?.setItem(renderKey,JSON.stringify(entries));}catch{}},500);
   }
   function cacheRender(key,result){images.delete(key);images.set(key,result);let size=0;for(const value of images.values())size+=value.url.length;while(images.size>128||(size>8000000&&images.size>1)){const oldest=images.keys().next().value;size-=images.get(oldest).url.length;images.delete(oldest);}}
-  function validRender(result){return typeof result?.url==='string'&&result.url.startsWith('data:image/svg+xml;charset=utf-8,')&&result.url.length<500000;}
+  function validRender(result){return typeof result?.url==='string'&&result.url.startsWith('data:image/svg+xml;charset=utf-8,')&&result.url.length<MAX_SOURCE_LENGTH*6;}
   const normaliseReg = value => String(value || '').toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0,8);
   // Customer-confirmed illustration correction; leave official MOT records untouched.
   const confirmedColours = {BD53MUD:'Black',NA63UKO:'Black',NJ17GWM:'Blue'};
