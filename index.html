@@ -15144,7 +15144,9 @@ async function syncSavedJobBundleInBackground(j,linked,previous){
         return (found.data||[]).find(function(v){return normReg(v.registration||'')===requestedReg})||null;
       }
       var existingVehicle=await findExistingVehicleByReg();
-      if(!existingVehicle){
+      if(!remoteClient||!navigator.onLine){
+        await upsertRemote('vehicles',linked.vehicle,{silent:true});
+      }else if(!existingVehicle){
         try{await upsertRemote('vehicles',linked.vehicle,{silent:true,skipQueue:true})}
         catch(vehicleError){
           /* Two devices can create the same VRM simultaneously. In that case,
