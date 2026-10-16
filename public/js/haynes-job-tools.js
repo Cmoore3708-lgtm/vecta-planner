@@ -285,7 +285,11 @@ root.initHaynesJobTools=function(modal){
    sections.append(main,aside);
    const parts=aside.querySelector('.jobPartsEditor')?.closest('.jobFormSection'),pricing=aside.querySelector('.privatePricingSection');
    if(parts&&pricing)parts.after(pricing);
-   const booking=main.querySelector('.jobBookingSection');if(booking){booking.classList.add('jobBookingFullWidth');sections.appendChild(booking);}
+   const previous=aside.querySelector('.jobPreviousWorkSection');if(previous)main.appendChild(previous);
+   const booking=main.querySelector('.jobBookingSection');if(booking){
+    booking.classList.add('jobBookingFullWidth');sections.prepend(booking);
+    const calendar=booking.querySelector('.bookingAvailabilityWorkspace');if(calendar)main.appendChild(calendar);
+   }
   }
  }
 
@@ -407,7 +411,7 @@ function openBooking(registration){
  // The original fields and save handlers stay in the existing job editor.
  const section=modal.querySelector('.jobVehicleSection'),details=document.createElement('details');details.className='bookingVehicleEditor';
  details.innerHTML='<summary>Edit vehicle details</summary>';
- if(section){const mileage=field('mileage'),mileageField=mileage?.closest('.field');if(mileageField){mileage.value='';mileage.setAttribute('data-current-mileage','');const label=mileageField.querySelector('label');if(label)label.textContent='Current mileage';mileageField.classList.add('bookingCurrentMileage');body.prepend(mileageField);}details.append(section);body.append(details);}
+ if(section){const mileage=field('mileage'),mileageField=mileage?.closest('.field');if(mileageField){mileage.value='';mileage.setAttribute('data-current-mileage','');const label=mileageField.querySelector('label');if(label)label.textContent='Current mileage';mileageField.classList.add('bookingCurrentMileage');const allocationGrid=modal.querySelector('.jobBookingSection>.jobSectionGrid');(allocationGrid||body).prepend(mileageField);}details.append(section);body.append(details);}
  header.querySelector('.jobCardHeaderDetails')?.remove();
  const identity=document.createElement('div');identity.className='bookingLookupIdentity';identity.innerHTML='<h3 data-booking-vehicle></h3><p data-booking-variant></p><dl data-booking-spec></dl><p role="status" aria-live="polite" data-booking-status></p>';
  header.append(identity);
