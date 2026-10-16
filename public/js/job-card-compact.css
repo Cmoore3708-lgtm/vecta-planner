@@ -148,3 +148,21 @@
  #jobModal.registrationBooking .jobModalHead>.jobModalHeadActions{grid-column:1/-1;grid-row:3}
  .bookingLookupIdentity h3{font-size:18px}.bookingLookupIdentity dl{font-size:11px;gap:2px 5px}.bookingLookupIdentity p{font-size:11px}.bookingLookupIdentity .btn{font-size:11px;padding:5px 8px}
 }
+
+/* Keep booking actions together, pricing beneath parts, and availability full width. */
+@media screen{
+ #jobModal .jobCardSections>.jobBookingFullWidth{grid-column:1/-1!important;min-width:0}
+ #jobModal .jobModalHead>.jobModalHeadActions{display:flex;flex-wrap:nowrap!important;align-items:center;gap:8px;max-width:100%;overflow-x:auto}
+ #jobModal .jobModalHeadActions>button{flex:0 0 auto;white-space:nowrap}
+ #jobModal .bookingAvailabilityWorkspace{grid-column:1/-1;display:grid;grid-template-columns:minmax(260px,320px) minmax(0,1fr);gap:16px;align-items:start;min-width:0;margin:10px 0}
+ #jobModal .bookingAvailabilityWorkspace .bookingMonthPreview{margin:0;max-width:none;padding:12px}
+ #jobModal .bookingInlinePlanner{min-width:0;overflow-x:auto;padding:12px;border:1px solid #d6dfea;border-radius:10px;background:#fff}
+ #jobModal .bookingInlinePlanner .v243PlannerGrid{min-width:480px}
+ #jobModal .bookingInlinePlanner .v243PlannerTitle h3{font-size:17px}
+ #jobModal .bookingInlinePlanner .v245CalendarStats>div{padding:6px 8px}
+}
+@media screen and (max-width:800px){
+ #jobModal .bookingAvailabilityWorkspace{grid-template-columns:minmax(0,1fr)}
+ #jobModal .bookingAvailabilityWorkspace .bookingMonthPreview{width:100%}
+ #jobModal .jobModalHeadActions>button{font-size:12px;padding:7px 10px}
+}
