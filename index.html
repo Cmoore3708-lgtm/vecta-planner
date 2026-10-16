@@ -16092,12 +16092,23 @@ window.VectaBookingVehicles={
   }
   preset.mileage='';preset.lookup_local_only=true;return preset;
  },
- suggestions:function(){
-  var seen={},out=[];
-  (app.vehicles||[]).concat(fleetVehicles||[],(app.jobs||[]).filter(function(j){return !!j.registration&&!vectaJobIsDeletedForLists(j)})).forEach(function(v){
-   var value=String(v.registration||v.assetNo||v.id||''),key=normReg(value);if(!key||seen[key])return;seen[key]=true;
-   out.push({value:value,label:[v.vehicle||v.model||'',v.customer||v.customer_account||''].filter(Boolean).join(' · ')});
-  });return out;
+ suggestions:function(query,limit){
+  var seen=new Set(),out=[],needle=String(query||'').trim().toUpperCase(),compact=normReg(needle),max=Math.max(1,Math.min(20,Number(limit)||20));
+  if(needle.length<2)return out;
+  var tombstones=null;
+  var groups=[app.vehicles||[],fleetVehicles||[],app.jobs||[]];
+  for(var group=0;group<groups.length;group++)for(var v of groups[group]){
+   var value=String(v.registration||v.assetNo||v.id||''),key=normReg(value);if(!key||seen.has(key))continue;
+   var label=[v.vehicle||v.model||'',v.customer||v.customer_account||''].filter(Boolean).join(' · ');
+   if(!(compact&&key.includes(compact))&&!(value+' '+label).toUpperCase().includes(needle))continue;
+   if(group===2){
+    // Read deletion history once per filtered search, never once per stored job.
+    if(tombstones===null)tombstones=vectaDeletedJobTombstones();
+    if(!v.registration||window.VectaJobRules.isDeleted(v,{terminalState:vectaTerminalJobState,isTombstone:function(id){return !!tombstones[String(id||'')]}}))continue;
+   }
+   seen.add(key);out.push({value:value,label:label});if(out.length>=max)return out;
+  }
+  return out;
  }
 };
 
