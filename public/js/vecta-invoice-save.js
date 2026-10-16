@@ -9,6 +9,9 @@
  async function create(client,invoice,prefix,{timeoutMs=12000}={}){
   if(!client||!invoice?.id)throw Error('Keep the invoice open until its cloud save is confirmed.');
   const payload={};for(const key of fields)if(invoice[key]!==undefined)payload[key]=invoice[key];
+  // Standard invoices have no fleet jobs; PostgreSQL requires an empty JSON array, not null.
+  if(payload.fleet_job_ids==null)payload.fleet_job_ids=[];
+  if(!Array.isArray(payload.fleet_job_ids))throw Error('Invoice fleet job references must be a list.');
   payload.job_id=String(payload.job_id||'').trim()||null;
   payload.mot_due=String(payload.mot_due||'').trim()||null;
   payload.status=payload.status||'saved';
@@ -37,6 +40,8 @@
  async function edit(client,invoice,{timeoutMs=12000}={}){
   if(!invoice?.id||!invoice.updated_at)throw Error('Reopen this invoice from a refreshed invoice list before saving changes.');
   const payload={};for(const key of fields)if(!['id','job_id'].includes(key)&&invoice[key]!==undefined)payload[key]=invoice[key];
+  if(payload.fleet_job_ids==null)payload.fleet_job_ids=[];
+  if(!Array.isArray(payload.fleet_job_ids))throw Error('Invoice fleet job references must be a list.');
   payload.mot_due=String(payload.mot_due||'').trim()||null;
   for(const key of ['amount','subtotal','vat','total'])if(payload[key]!=null)payload[key]=Number(payload[key]);
   if(!['subtotal','vat','total'].every(k=>Number.isFinite(payload[k]))||!Array.isArray(payload.lines)||!/^\d{4}-\d{2}-\d{2}$/.test(String(payload.invoice_date||'')))throw Error('Valid invoice lines, totals and date are required.');
