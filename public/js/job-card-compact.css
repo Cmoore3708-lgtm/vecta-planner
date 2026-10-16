@@ -131,3 +131,20 @@
  #jobModal .jobCardHeaderRegistration{min-width:0;max-width:100%}
  #jobModal .jobCardHeaderRegistration input{width:145px!important;font-size:22px!important}
 }
+
+/* Registration-first booking: vehicle summary stays above the existing job form. */
+@media screen{
+ #jobModal.registrationBooking .jobModalHead.jobCardPinnedHeader{max-height:none;overflow:visible;grid-template-rows:auto auto auto}
+ #jobModal.registrationBooking .jobModalHead>.bookingLookupIdentity{grid-column:1;grid-row:2;min-width:0}
+ .bookingLookupIdentity h3{font-size:24px;margin:0 0 5px;color:#17283e}.bookingLookupIdentity p{margin:4px 0;font-size:13px;color:#526276}
+ .bookingLookupIdentity dl{display:grid;grid-template-columns:auto minmax(0,1fr);gap:3px 12px;font-size:12px;margin:8px 0}.bookingLookupIdentity dd{margin:0;font-weight:700}.bookingLookupIdentity dt{color:#64748b}
+ #jobModal.registrationBooking .jobCardHeaderVehicle{height:210px!important;grid-row:1/4!important}
+ .bookingVehicleEditor{margin-top:14px;border:1px solid #d6dfea;border-radius:8px;padding:10px}.bookingVehicleEditor summary{cursor:pointer;font-weight:700;color:#304963}.bookingCurrentMileage{max-width:240px;margin-bottom:12px}
+ .registrationBooking .jobVehicleSection>.jobFormSectionHead{display:none}
+}
+@media screen and (max-width:700px){
+ #jobModal.registrationBooking .jobModalHead.jobCardPinnedHeader{grid-template-columns:minmax(0,1fr) 38%!important;gap:5px 8px!important;padding:8px!important}
+ #jobModal.registrationBooking .jobCardHeaderVehicle{height:130px!important;grid-row:1/3!important}
+ #jobModal.registrationBooking .jobModalHead>.jobModalHeadActions{grid-column:1/-1;grid-row:3}
+ .bookingLookupIdentity h3{font-size:18px}.bookingLookupIdentity dl{font-size:11px;gap:2px 5px}.bookingLookupIdentity p{font-size:11px}.bookingLookupIdentity .btn{font-size:11px;padding:5px 8px}
+}

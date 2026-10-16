@@ -255,6 +255,7 @@ root.enrichHaynesInvoice=function(sheet,invoice){
  if(!matched)return;const cells=strip.querySelectorAll('.printVehicleCell'),vehicleCell=cells[1];if(vehicleCell){const old=vehicleCell.querySelector('b');if(old)old.textContent=[matched.make,matched.model,matched.variant].join(' ');const extra=document.createElement('small');extra.className='haynesInvoiceDetails';extra.textContent=[matched.engineCode,matched.modelYears].filter(Boolean).join(' · ');vehicleCell.appendChild(extra);}
 };
 root.initHaynesJobTools=function(modal){
+ modal?.classList.remove('registrationBooking');
  const section=modal?.querySelector('.jobVehicleSection'),input=modal?.querySelector('#job_registration');
  if(!section||!input||section.querySelector('.haynesJobTools'))return;
  const header=modal.querySelector('.jobModalHead');
@@ -339,13 +340,13 @@ const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&
 const normalise=v=>String(v||'').toUpperCase().replace(/[^A-Z0-9]/g,'');
 const messages={UNAVAILABLE:'HaynesPro could not complete this lookup. Please retry shortly.',SERVICE_TIMEOUT:'The service request timed out. Check the workshop worker and retry.',TimeoutError:'The connection timed out. Please retry.',OFFLINE:'The workshop HaynesPro worker is offline.',LOGIN_REQUIRED:'Renew the HaynesPro login on the workshop PC.',VERIFICATION_REQUIRED:'HaynesPro needs verification on the workshop PC.',NOT_CONFIGURED:'HaynesPro is not configured.',BUSY:'HaynesPro is busy. Please retry.',DAILY_LIMIT:'The workshop’s internal daily lookup allowance has been reached. Cached vehicles may still be available.',AMBIGUOUS:'HaynesPro could not identify a unique vehicle.',SCHEDULE_REQUIRED:'Select a service schedule in HaynesPro.',WORKER_UPDATE_REQUIRED:'The workshop HaynesPro worker needs updating.'};
 let active=null;
-async function open(registration){
+async function openTechnical(registration,bookingContext){
  const reg=normalise(registration);if(!/^[A-Z0-9]{2,8}$/.test(reg))return;
  active?.abort();const controller=new AbortController();active=controller;
  document.getElementById('haynesLookupPage')?.remove();
  const page=document.createElement('dialog');page.id='haynesLookupPage';page.className='haynesLookupPage';
  page.innerHTML='<header><div><small>VEHICLE LOOKUP</small><h2>'+esc(reg)+'</h2></div><button type="button" data-close aria-label="Close vehicle lookup">Close</button></header><p role="status" data-status>Looking up vehicle in HaynesPro…</p><section data-identity></section><div class="haynesLookupMot"><b>Mileage at last MOT</b><strong data-mot-mileage>Loading…</strong><small data-mot-date></small></div><form data-schedule-form><label>Current mileage <input name="mileage" type="number" min="1" max="2000000" step="1" required></label><label>Maintenance schedule <select name="system"><option value="">Automatic where unambiguous</option></select></label><label>Service type / interval <select name="period"><option value="">Automatic from mileage</option></select></label><button type="submit">Load service data</button></form><section data-service></section><footer><button type="button" data-create="quote" disabled>Create Quote</button><button type="button" data-create="job" disabled>Create Job</button></footer>';
- document.body.appendChild(page);page.showModal();
+ document.body.appendChild(page);page.showModal();if(bookingContext)page.querySelector('footer')?.remove();
  const status=page.querySelector('[data-status]'),identity=page.querySelector('[data-identity]'),service=page.querySelector('[data-service]'),form=page.querySelector('form');let vehicle=null,government=null,serviceRun=0,guidedFlow=true,menuChoices=[];
  const close=()=>{controller.abort();page.remove();document.getElementById('haynesDashboardRegistration')?.focus();};page.querySelector('[data-close]').onclick=close;page.addEventListener('cancel',e=>{e.preventDefault();close();});
  const isCurrent=()=>!controller.signal.aborted&&page.isConnected;
@@ -388,7 +389,54 @@ async function open(registration){
  }catch(err){if(isCurrent())status.textContent=messages[err.message]||'Vehicle match unavailable. Check the registration and retry.';}
  await motLookup;
 }
-function install(){const top=document.querySelector('.top'),search=top?.querySelector('.plannerGlobalSearchWrap');if(!search||document.getElementById('haynesDashboardLookup'))return;const form=document.createElement('form');form.id='haynesDashboardLookup';form.className='haynesDashboardLookup';form.setAttribute('aria-label','HaynesPro vehicle lookup');form.innerHTML='<span aria-hidden="true">GB</span><input id="haynesDashboardRegistration" aria-label="Vehicle registration for HaynesPro lookup" autocomplete="off" maxlength="10" required pattern="[A-Za-z0-9 ]{2,10}"><button type="submit" aria-label="Look up vehicle">⌕</button>';search.before(form);form.onsubmit=e=>{e.preventDefault();const value=normalise(form.querySelector('input').value);if(value.length<2||value.length>8){form.querySelector('input').setCustomValidity('Enter a valid vehicle registration.');form.reportValidity();return;}form.querySelector('input').setCustomValidity('');open(value);};let earlyTimer;form.querySelector('input').oninput=e=>{e.target.value=e.target.value.toUpperCase();e.target.setCustomValidity('');clearTimeout(earlyTimer);const requested=normalise(e.target.value);if(/^[A-Z]{2}[0-9]{2}[A-Z]{3}$/.test(requested))earlyTimer=setTimeout(()=>{if(form.isConnected&&normalise(form.querySelector('input').value)===requested)void root.VectaHaynesJobTools.lookup(requested,undefined,{background:false});},650);};}
-root.VectaHaynesDashboardLookup={open,install};
+function openBooking(registration){
+ const value=String(registration||'').trim(),key=normalise(value);if(!key)return;
+ const stored=root.VectaBookingVehicles?.resolve(value);
+ if(!stored&&!/^[A-Z0-9]{2,8}$/.test(key))return;
+ active?.abort();active=new AbortController();
+ const preset={...(stored||{}),registration:stored?.registration||key,mileage:'',technician:'Unallocated',status:'booked'};
+ root.openJobModal(null,preset);
+ const modal=document.getElementById('jobModal'),header=modal?.querySelector('.jobModalHead'),body=modal?.querySelector('.jobModalBody');
+ if(!header||!body)return;
+ modal.classList.add('registrationBooking');
+ const originalHeader=header;
+ const field=id=>modal.querySelector('#job_'+id);
+ // The original fields and save handlers stay in the existing job editor.
+ const section=modal.querySelector('.jobVehicleSection'),details=document.createElement('details');details.className='bookingVehicleEditor';
+ details.innerHTML='<summary>Edit vehicle details</summary>';
+ if(section){const mileage=field('mileage'),mileageField=mileage?.closest('.field');if(mileageField){mileage.value='';const label=mileageField.querySelector('label');if(label)label.textContent='Current mileage';mileageField.classList.add('bookingCurrentMileage');body.prepend(mileageField);}details.append(section);body.append(details);}
+ header.querySelector('.jobCardHeaderDetails')?.remove();
+ const identity=document.createElement('div');identity.className='bookingLookupIdentity';identity.innerHTML='<h3 data-booking-vehicle></h3><p data-booking-variant></p><dl data-booking-spec></dl><p role="status" aria-live="polite" data-booking-status></p>';
+ header.append(identity);
+ const current=()=>modal.classList.contains('open')&&originalHeader.isConnected&&normalise(field('registration')?.value)===normalise(preset.registration);
+ const text=(selector,value)=>{identity.querySelector(selector).textContent=value||'';};
+ function paint(vehicle){
+  text('[data-booking-vehicle]',field('vehicle')?.value||[vehicle?.make,vehicle?.model].filter(Boolean).join(' ')||preset.vehicle||'Vehicle details');
+  text('[data-booking-variant]',vehicle?.variant||'');
+  identity.querySelector('[data-booking-spec]').innerHTML=[['Engine code',vehicle?.engineCode],['Model years',vehicle?.modelYears],['Customer',field('customer_account')?.value||preset.customer_account]].filter(([,v])=>v).map(([k,v])=>'<dt>'+esc(k)+'</dt><dd>'+esc(v)+'</dd>').join('');
+ }
+ const cached=root.VectaHaynesJobTools.snapshot?.(preset.registration,preset.make);paint(cached);
+ text('[data-booking-status]',stored?'Saved vehicle loaded. Complete the booking below.':'Loading vehicle details… You can complete the booking below.');
+ const dirty=new Set();['make','model','vehicle','colour'].forEach(id=>field(id)?.addEventListener('input',()=>dirty.add(id)));
+ field('vehicle')?.addEventListener('change',()=>paint(root.VectaHaynesJobTools.snapshot?.(field('registration')?.value)));
+ field('registration')?.addEventListener('change',()=>{paint(root.VectaHaynesJobTools.snapshot?.(field('registration')?.value));text('[data-booking-status]','Check the vehicle details for this registration before saving.');});
+ const technical=document.createElement('button');technical.type='button';technical.className='btn small';technical.textContent='Service & repair data';technical.onclick=()=>openTechnical(field('registration')?.value,{fromBooking:true});identity.append(technical);
+ // Cached/local vehicles never cause a background Haynes or government lookup.
+ if(stored)return;
+ return (async()=>{
+  try{
+   const vehicle=await root.VectaHaynesJobTools.lookup(key,undefined,{background:false});
+   if(!current())return;
+   if(!vehicle||normalise(vehicle.registration)!==key)throw Error('UNAVAILABLE');
+   root.VectaHaynesJobTools.remember(vehicle);
+   for(const [id,v] of Object.entries({make:vehicle.make,model:vehicle.model,vehicle:[vehicle.make,vehicle.model].filter(Boolean).join(' ')}))if(field(id)&&!dirty.has(id)&&v)field(id).value=v;
+   field('vehicle')?.dispatchEvent(new root.Event('change',{bubbles:true}));paint(vehicle);
+   text('[data-booking-status]','Vehicle matched. Complete the booking below.');
+  }catch{if(current())text('[data-booking-status]','Vehicle lookup unavailable. You can enter the details and save this booking.');}
+ })();
+}
+function install(){const top=document.querySelector('.top'),search=top?.querySelector('.plannerGlobalSearchWrap');if(!search||document.getElementById('haynesDashboardLookup'))return;const form=document.createElement('form');form.id='haynesDashboardLookup';form.className='haynesDashboardLookup';form.setAttribute('aria-label','Start a booking for a saved or new vehicle');form.innerHTML='<span aria-hidden="true">GB</span><input id="haynesDashboardRegistration" aria-label="Vehicle registration for HaynesPro lookup" autocomplete="off" maxlength="60" list="bookingVehicleSuggestions" required><button type="submit" aria-label="Look up vehicle">⌕</button>';search.before(form);const suggestions=document.createElement('datalist');suggestions.id='bookingVehicleSuggestions';form.appendChild(suggestions);const refreshSuggestions=()=>{suggestions.innerHTML=(root.VectaBookingVehicles?.suggestions()||[]).map(v=>'<option value="'+esc(v.value)+'">'+esc(v.label)+'</option>').join('');};form.querySelector('input').addEventListener('focus',refreshSuggestions);form.onsubmit=e=>{e.preventDefault();const input=form.querySelector('input'),value=input.value.trim();if(!value)return;if(!root.VectaBookingVehicles?.resolve(value)&&!/^[A-Z0-9]{2,8}$/.test(normalise(value))){input.setCustomValidity('Select a saved vehicle or enter its registration.');form.reportValidity();return;}input.setCustomValidity('');openBooking(value);};form.querySelector('input').oninput=e=>{e.target.value=e.target.value.toUpperCase();e.target.setCustomValidity('');};}
+
+root.VectaHaynesDashboardLookup={open:openBooking,openTechnical,install};
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',install);else install();
 })(window);
