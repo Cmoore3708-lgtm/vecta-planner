@@ -227,7 +227,7 @@ const attach=(v,targets,j)=>{for(const {card,target} of targets){if(!card.isConn
  for(const group of groups.values()){
   const j=group.job,hit=identitySnapshot(j.registration,j.make,j.model||j.vehicle)||snapshot(j.registration,j.make,j.model||j.vehicle),fallback=artworkSnapshot(j.registration,j.make,j.model||j.vehicle)||genericImage(j);
   const internal=root.VectaFleetImages?.forJob?.(j);attach(internal?.drawing|| (hit?.imageUrl?hit:fallback),group.targets,j);
-  for(const {card} of group.targets){const img=card.querySelector('.haynesDashboardImage');if(img){if(internal){img.dataset.fleetArtworkId=String(internal.vehicle.id);img.title='Click to choose vehicle image and colour';img.style.cursor='pointer';}else{delete img.dataset.fleetArtworkId;img.style.cursor='';}}}
+  for(const {card} of group.targets){const img=card.querySelector('.haynesDashboardImage');if(img?.dataset){if(internal){img.dataset.fleetArtworkId=String(internal.vehicle.id);img.title='Click to choose vehicle image and colour';img.style.cursor='pointer';}else{delete img.dataset.fleetArtworkId;img.style.cursor='';}}}
   if(!internal?.drawing?.imageUrl&&!hit?.imageUrl&&!fallback?.imageUrl){const refresh=hydrateSharedArtwork({refresh:true});if(refresh&&!sharedRefresh.has(container)){sharedRefresh.set(container,{jobs});refresh.then(ok=>{sharedRefresh.delete(container);if(ok&&container.isConnected)root.enrichHaynesDashboard(container,jobs);}).catch(()=>sharedRefresh.delete(container));}}
  }
 
