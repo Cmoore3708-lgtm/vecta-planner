@@ -56,3 +56,20 @@ test('government MOT results cannot fill the current mileage field with a histor
  vm.createContext(context);vm.runInContext(html.slice(start,end),context);await context.lookupVehicleForJob({});
  assert.equal(document.getElementById('job_mileage').value,'');
 });
+
+test('new booking repaints when colour arrives after the Haynes drawing',async()=>{
+ const {window,document}=setup({lookup:async()=>({registration:'OE75NXX',make:'NISSAN',model:'Qashqai (J12)'})});
+ let finish,requests=0,paints=0,colour='';
+ window.VectaHaynesJobTools.lookupDashboardColour=()=>{requests++;return new Promise(r=>{finish=()=>{colour='Blue';r();};});};
+ const opened=window.VectaHaynesDashboardLookup.open('OE75 NXX');
+ document.getElementById('job_vehicle').addEventListener('change',()=>{if(colour==='Blue')paints++;});
+ await opened;await new Promise(r=>setTimeout(r,0));assert.equal(requests,1);assert.equal(paints,0);
+ finish();await new Promise(r=>setTimeout(r,0));assert.equal(paints,1);
+});
+test('late booking colour cannot repaint a replacement vehicle editor',async()=>{
+ const {window,document}=setup({lookup:async()=>null});let finish,paints=0;
+ window.VectaHaynesJobTools.lookupDashboardColour=()=>new Promise(r=>finish=r);
+ await window.VectaHaynesDashboardLookup.open('OE75NXX');await new Promise(r=>setTimeout(r,0));
+ document.getElementById('job_vehicle').addEventListener('change',()=>paints++);
+ document.getElementById('job_registration').value='AB12CDE';finish();await new Promise(r=>setTimeout(r,0));assert.equal(paints,0);
+});
