@@ -8,6 +8,10 @@ Sixteen shared image assignments existed at audit start; none contained colour. 
 
 ## Findings and changes
 
+### Follow-up: fresh desktop planner still showed a generic Hilux
+
+The main app keeps `remoteClient` private inside its IIFE. The shared-artwork helper incorrectly read `window.remoteClient`, so real devices never queried the shared catalogue even though the recovered artwork and SVG sources were present. Earlier tests provided an artificial global connection and therefore missed the integration fault. A live getter now connects all helper reads and writes to the current authorised main-app client, including reconnects. A fresh-cache desktop planner regression uses the real Hilux job description with no global `remoteClient`; it reproduces the missing image before the fix and verifies the centrally stored drawing and colour afterward, with one catalogue read and no Haynes lookup.
+
 | Area | Earlier behaviour | Resulting behaviour |
 | --- | --- | --- |
 | Fleet | Missing artwork could enqueue a Haynes donor lookup; exact model strings could reject the Hilux | Reads saved artwork; uses the same make/model compatibility rule as the planner; never queues a decorative lookup |

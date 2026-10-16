@@ -145,3 +145,34 @@ test('shared colour is reused on a new device and survives offline reopening',as
  assert.equal(first.root.VectaHaynesJobTools.dashboardColour({registration:'AB12CDE',make:'NISSAN'}),'Blue');
  const offline=device(db,first.storage);offline.root.navigator.onLine=false;assert.equal(offline.root.VectaHaynesJobTools.dashboardColour({registration:'AB12CDE',make:'NISSAN'}),'Blue');assert.equal(offline.lookups(),0);
 });
+
+test('planner reads shared Hilux artwork through the main app private-client bridge on a fresh PC',async()=>{
+ const hilux={registration:'J321WPC',make:'TOYOTA',model:'Hilux (GUN; GGN; LAN)',imageUrl:'https://www.haynespro-assets.com/workshop/images/319009548.svgz'};
+ const db=database(new Map([['vehicle_artwork:J321WPC',hilux],['vehicle_colour:J321WPC',{registration:'J321WPC',make:'TOYOTA',colour:'White'}]])),d=device(db);
+ // The production main script is an IIFE: remoteClient is not a window property.
+ delete d.root.remoteClient;
+ d.root.__vectaWorkshopClient=()=>db.client;
+ d.document.body.innerHTML='<div class="job" data-job-id="1"><div class="plannerJobHeader"></div></div>';
+ const realJob={id:'1',registration:'J321WPC',make:'TOYOTA',model:'HILUX INVINCIB X D-4D4WD DCB A',vehicle:'TOYOTA HILUX INVINCIB X D-4D4WD DCB A'};
+ d.root.enrichHaynesDashboard(d.document,[realJob]);await settled();
+ const img=d.document.querySelector('.job img');
+ assert.equal(img?.dataset.haynesSource,hilux.imageUrl);assert.equal(img.dataset.colour,'White');
+ for(let i=0;i<5;i++)d.root.enrichHaynesDashboard(d.document,[realJob]);await settled();
+ assert.equal(db.reads(),1);assert.equal(d.lookups(),0);
+ assert.equal(JSON.parse(d.storage.get('vecta_haynes_artwork_v1')).find(v=>v.registration==='J321WPC').imageUrl,hilux.imageUrl);
+ d.root.VectaHaynesJobTools.remember({...hilux,registration:'AB12CDE',variant:'2.4',typeId:'t_123',fetchedAt:new Date().toISOString()});
+ await d.root.VectaHaynesJobTools.flushSharedArtwork();
+ assert.equal(db.rows.get('vehicle_artwork:AB12CDE').imageUrl,hilux.imageUrl);assert.equal(db.writes(),1);
+ const offline=device(db,d.storage);delete offline.root.remoteClient;offline.root.__vectaWorkshopClient=()=>null;offline.root.navigator.onLine=false;
+ offline.root.enrichHaynesDashboard(offline.document,[realJob]);assert.equal(offline.document.querySelector('img').dataset.haynesSource,hilux.imageUrl);assert.equal(offline.lookups(),0);
+});
+
+test('main app exposes its current private database client through the bridge, including reconnects',()=>{
+ const html=fs.readFileSync(new URL('../../index.html',import.meta.url),'utf8');
+ const bridge=html.match(/window\.__vectaWorkshopClient=function\(\)\{return remoteClient;\};/);
+ assert.ok(bridge,'The helper must be wired to the actual main-script connection');
+ const root={};vm.runInNewContext('(function(){var remoteClient=null;'+bridge[0]+'window.connect=function(client){remoteClient=client;};})();',{window:root});
+ assert.equal(root.__vectaWorkshopClient(),null);assert.equal(root.remoteClient,undefined);
+ const first={},second={};root.connect(first);assert.equal(root.__vectaWorkshopClient(),first);root.connect(second);assert.equal(root.__vectaWorkshopClient(),second);
+ root.connect(null);assert.equal(root.__vectaWorkshopClient(),null);
+});

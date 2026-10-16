@@ -9241,6 +9241,8 @@ var plannerStartMinutes=8*60;
 var carryOverPendingSync={};
 var lastKnownTodayIso=todayIso();
 var remoteClient=null;
+// Helpers run outside this IIFE and must read the current authorised connection.
+window.__vectaWorkshopClient=function(){return remoteClient;};
 var VECTA_AUDIT_PREVIEW=/vecta-planner-(?:git-)?audit-system-simplificati/i.test(String(location.hostname||''));
 var app={jobs:[],customers:[],vehicles:[],tasks:[],notes:'',settings:{businessName:'Vecta Motors',labourRate:40,bankName:'',accountName:'Vecta Motors',sortCode:'',accountNumber:'',paymentNote:'Please use vehicle registration as payment reference.',supabaseUrl:'https://jywufozycuwuoshlulwl.supabase.co',supabaseAnonKey:'',vatRate:20,vatNumber:'',invoicePrefix:'VECTA',nextInvoiceNumber:1,mechanics:['Alfie','Other','Anyone'],ramps:['Left','Middle','Right'],jobTemplates:templates},invoices:[],serviceRecords:[],websiteRequests:[]};
 var templates={
