@@ -103,7 +103,7 @@ test('CM14 KEL lookup renders green artwork with its front registration using th
   finish(first);await new Promise(resolve=>setImmediate(resolve));await Promise.all(tasks);
   finish(first==='mot'?'haynes':'mot');await opened;await Promise.all(tasks);
   const img=document.querySelector('[data-identity] img');const rendered=new DOMParser().parseFromString(decodeURIComponent(img.src.split(',').slice(1).join(',')),'image/svg+xml');
-  assert.equal(rendered.querySelector('#transparant_colour path').getAttribute('fill'),'#296145');
+  assert.equal(rendered.querySelector('#transparant_colour path').getAttribute('fill'),'#204c36');
   assert.equal(rendered.querySelector('#vecta-front-registration text').textContent,'CM14 KEL');
  }
 });

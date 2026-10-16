@@ -222,7 +222,7 @@ test('job header retains saved artwork on image failure and hides for no-vehicle
 
 test('simultaneous colour consumers share one request and cached colours are reused',async()=>{
  const {window}=setup(async()=>response(vehicle));await new Promise(r=>setImmediate(r));
- window.VectaVehicleImage={resolveColour:(_reg,c)=>c,colourHex:c=>c==='Green'?'#296145':''};
+ window.VectaVehicleImage={resolveColour:(_reg,c)=>c,colourHex:c=>c==='Green'?'#204c36':''};
  let complete,calls=0;window.fetch=async()=>{calls++;await new Promise(r=>complete=r);return {ok:true,json:async()=>({registration:vehicle.registration,make:'Nissan',primaryColour:'Green'})};};
  const job={registration:vehicle.registration,make:'Nissan'};
  const a=window.VectaHaynesJobTools.lookupDashboardColour(job),b=window.VectaHaynesJobTools.lookupDashboardColour({...job,registration:'FX69 XWU'});
@@ -237,7 +237,7 @@ test('shared vehicle snapshot retains full description for service sheets',async
 
 test('a colour learned by the vehicle-details page prevents a separate decorative lookup',async()=>{
  const {window}=setup(async()=>response(vehicle));await new Promise(r=>setImmediate(r));
- window.VectaVehicleImage={resolveColour:(_reg,c)=>c,colourHex:c=>c==='Blue'?'#235b9a':''};
+ window.VectaVehicleImage={resolveColour:(_reg,c)=>c,colourHex:c=>c==='Blue'?'#1c4778':''};
  let calls=0;window.fetch=async()=>{calls++;throw Error('must use cached colour');};
  assert.equal(window.VectaHaynesJobTools.rememberLookupColour({registration:vehicle.registration,make:'Nissan',primaryColour:'Blue'}),true);
  await window.VectaHaynesJobTools.lookupDashboardColour({registration:vehicle.registration,make:'Nissan'});
