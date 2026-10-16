@@ -123,3 +123,9 @@ test('missing planner artwork can refresh an old shared session without calling 
  assert.equal(d.root.VectaHaynesJobTools.artworkSnapshot('HGZ7396','AUDI','A4').imageUrl,asset);assert.equal(db.reads(),2);assert.equal(d.lookups(),0);
  assert.ok(d.root.VectaHaynesJobTools.storedArtwork().some(v=>v.model==='A4 (8W)'));
 });
+
+test('manual internal artwork stays on the linked fleet record rather than entering the registration cache',()=>{
+ const d=device(database());d.root.VectaFleetImages.forJob=()=>({vehicle:{id:'internal-1',colour:'Blue'},drawing:{make:'AUDI',model:'A4',imageUrl:asset,manual:true}});
+ d.root.enrichHaynesDashboard(d.document,[{...job,registration:'',fleet_vehicle_id:'internal-1'}]);
+ const img=d.document.querySelector('img');assert.equal(img.dataset.haynesSource,asset);assert.equal(img.dataset.fleetArtworkId,'internal-1');assert.equal(img.dataset.colour,'Blue');assert.equal(d.lookups(),0);
+});

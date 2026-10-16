@@ -43,6 +43,7 @@ function mount(){
  batch();
 }
 async function saveColour(id,colour){const v=vehicle(id);if(!v||v.fleetGroup!=='Nissan Internal'||!palette[colour])throw Error('Choose a valid colour for an internal vehicle.');v.colour=colour;v.updated_at=new Date().toISOString();const saved=await state().save();if(saved===false)throw Error('The colour is saved on this device, but has not synced yet. Please retry.');root.VectaVehicleImage?.rememberColour(v.registration,colour);return v;}
+function forJob(job){const all=state().vehicles||[],id=job.fleet_vehicle_id||job.vehicle_id,registration=String(job.registration||'').toUpperCase().replace(/[^A-Z0-9]/g,'');const matches=all.filter(v=>v.fleetGroup==='Nissan Internal'&&(id?String(v.id)===String(id):registration&&String(v.registration||'').toUpperCase().replace(/[^A-Z0-9]/g,'')===registration));if(matches.length!==1)return null;return {vehicle:matches[0],drawing:matches[0].artwork?{...matches[0].artwork,manual:true}:null};}
 function storedChoices(){const entries=[...(root.VectaHaynesJobTools?.storedArtwork?.()||[]),...catalog.values()];const unique=new Map();for(const entry of entries)if(root.VectaHaynesJobTools?.safeImage(entry.imageUrl))unique.set(entry.imageUrl,entry);return [...unique.values()];}
 async function saveArtwork(id,drawing,colour){
  const v=vehicle(id);if(!v||v.fleetGroup!=='Nissan Internal'||!palette[colour]||!root.VectaHaynesJobTools?.safeImage(drawing?.imageUrl))throw Error('Choose a stored vehicle image and colour.');
@@ -64,9 +65,9 @@ async function openArtwork(id){
  preview();try{await root.VectaHaynesJobTools?.hydrateSharedArtwork?.({refresh:true});if(!dialog.isConnected)return;choices=storedChoices();paintChoices();dialog.querySelector('[role="status"]').textContent=choices.length?'Choose a vehicle image, then its colour.':'No stored images available yet. Open a registered vehicle lookup first.';}catch{dialog.querySelector('[role="status"]').textContent='Stored images could not be loaded. Please retry.';}
 }
 function open(id){return openArtwork(id);}
-document.addEventListener('click',e=>{const button=e.target.closest?.('button[data-fleet-image]');if(!button)return;e.preventDefault();e.stopImmediatePropagation();open(button.dataset.fleetImage);},true);
+document.addEventListener('click',e=>{const planner=e.target.closest?.('img[data-fleet-artwork-id]');if(planner){e.preventDefault();e.stopImmediatePropagation();openArtwork(planner.dataset.fleetArtworkId);return;}const button=e.target.closest?.('button[data-fleet-image]');if(!button)return;e.preventDefault();e.stopImmediatePropagation();open(button.dataset.fleetImage);},true);
 let scheduled=false;function schedule(){if(scheduled)return;scheduled=true;setTimeout(()=>{scheduled=false;mount();},100);}
 new MutationObserver(records=>{if(records.some(record=>!record.target.closest?.('[data-fleet-image],.fleetColourPreview')&&Array.from(record.addedNodes||[]).some(node=>node.nodeType===1&&(node.matches?.('[data-fleet-image]')||node.querySelector?.('[data-fleet-image]')))))schedule();}).observe(document.body,{childList:true,subtree:true});
 document.addEventListener('scroll',schedule,{capture:true,passive:true});root.addEventListener?.('resize',schedule,{passive:true});document.addEventListener('visibilitychange',schedule);mount();
-root.VectaFleetImages={storedChoices,saveArtwork,openArtwork,kind,artwork,modelKey,modelArtwork,drawingFor,saveColour,mount};
+root.VectaFleetImages={forJob,storedChoices,saveArtwork,openArtwork,kind,artwork,modelKey,modelArtwork,drawingFor,saveColour,mount};
 })(window);

@@ -66,3 +66,8 @@ test('internal image picker previews a stored car and colour before saving both'
  dialog.querySelector('.fleetStoredImageChoice').onclick();dialog.querySelector('[data-colour="Blue"]').onclick();assert.equal(calls(),0);assert.equal(dialog.querySelector('[data-colour="Blue"]').getAttribute('aria-pressed'),'true');
  await dialog.querySelector('[data-save-image]').onclick();assert.equal(calls(),1);assert.equal(v.artwork.imageUrl,url);assert.equal(v.colour,'Blue');assert.equal(document.querySelector('dialog'),null);
 });
+
+test('planner artwork resolves a blank registration by fleet ID without mixing internal cars',()=>{
+ const a={id:'a',fleetGroup:'Nissan Internal',registration:'',artwork:{imageUrl:url}},b={id:'b',fleetGroup:'Nissan Internal',registration:''};const {api}=setup([a,b]);
+ assert.equal(api.forJob({fleet_vehicle_id:'a'}).drawing.imageUrl,url);assert.equal(api.forJob({registration:''}),null);assert.equal(api.forJob({vehicle_id:'b'}).drawing,null);
+});
