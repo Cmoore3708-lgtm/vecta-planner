@@ -32,8 +32,15 @@ test('late lookup cannot overwrite user vehicle edits or a closed/replaced form'
 test('failed unknown lookup leaves the existing form usable and unsaved',async()=>{
  const {window,document,preset}=setup({lookup:async()=>{throw Error('OFFLINE');}});await window.VectaHaynesDashboardLookup.open('AB12 CDE');assert.equal(preset().registration,'AB12CDE');assert.match(document.querySelector('[data-booking-status]').textContent,/enter the details and save/);assert.ok(document.getElementById('saveJob'));
 });
-test('saved suggestions include internal identifiers and do not start remote work',()=>{
- const {window,document}=setup();window.VectaHaynesDashboardLookup.install();document.getElementById('haynesDashboardRegistration').dispatchEvent(new window.Event('focus'));assert.match(document.getElementById('bookingVehicleSuggestions').innerHTML,/RESCUE 2/);
+test('phone focus does no fleet work; typing debounces and bounds saved suggestions',async()=>{
+ const {window,document}=setup();let calls=0,received;
+ window.VectaBookingVehicles.suggestions=(query,limit)=>{calls++;received=[query,limit];return Array.from({length:1000},(_,i)=>({value:'RESCUE '+i,label:'Nissan Navara'}));};
+ window.VectaHaynesDashboardLookup.install();const input=document.getElementById('haynesDashboardRegistration');
+ input.dispatchEvent(new window.Event('focus'));assert.equal(calls,0);assert.equal(document.querySelectorAll('datalist option').length,0);
+ input.setCustomValidity=()=>{};input.value='r';input.oninput({target:input});await new Promise(r=>setTimeout(r,170));assert.equal(calls,0);
+ input.value='re';input.oninput({target:input});input.value='res';input.oninput({target:input});assert.equal(calls,0);
+ await new Promise(r=>setTimeout(r,170));assert.equal(calls,1);assert.deepEqual(received,['RES',20]);assert.equal(document.querySelectorAll('datalist option').length,20);
+ input.value='';input.oninput({target:input});assert.equal(document.querySelectorAll('datalist option').length,0);
 });
 
 const html=readFileSync(new URL('../../index.html',import.meta.url),'utf8');
@@ -79,4 +86,14 @@ test('top HaynesPro action opens the matched vehicle alongside Close',async()=>{
  window.VectaHaynesJobTools.vehicleLink=v=>v?.typeId?'https://www.workshopdata.com/touch/site/layout/modelDetail?typeId='+v.typeId:'';
  await window.VectaHaynesDashboardLookup.open('OE75NXX');
  const link=document.querySelector('.jobModalHeadActions a');assert.equal(link.textContent,'Open in HaynesPro');assert.match(link.href,/typeId=t_619108899/);assert.equal(link.target,'_blank');assert.equal(link.previousElementSibling.textContent,'Close');
+});
+
+test('large saved history reads deletion tombstones once and excludes deleted suggestions',()=>{
+ const window={};vm.runInNewContext(readFileSync(new URL('../../public/js/vecta-job-rules.js',import.meta.url),'utf8'),{window});
+ let reads=0;const jobs=Array.from({length:10000},(_,i)=>({id:String(i),registration:'AB'+String(i).padStart(5,'0'),vehicle:'Ford Transit'}));
+ jobs[0].status='deleted';
+ vm.runInNewContext(bridge,{window,app:{vehicles:[],jobs},fleetVehicles:[],normReg:s=>String(s).toUpperCase().replace(/[^A-Z0-9]/g,''),vectaDeletedJobTombstones:()=>{reads++;return {'1':{deleted_at:'today'}};},vectaTerminalJobState:id=>id==='2'?{state:'deleted'}:null});
+ assert.equal(window.VectaBookingVehicles.suggestions('').length,0);assert.equal(reads,0);
+ const hits=window.VectaBookingVehicles.suggestions('AB',20);assert.equal(hits.length,20);assert.equal(reads,1);assert.equal(hits[0].value,'AB00003');
+ assert.equal(window.VectaBookingVehicles.suggestions('Transit').length,20);
 });
