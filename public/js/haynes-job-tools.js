@@ -30,7 +30,7 @@ try{for(const v of JSON.parse(root.localStorage?.getItem(ID_KEY)||'[]'))remember
 // Artwork survives technical-data expiry; it must never expose technical links.
 const ART_KEY='vecta_haynes_artwork_v1',artwork=new Map();
 const SHARED_ART_PREFIX='vehicle_artwork:',sharedArtwork=new Map(),sharedWrites=new Map(),sharedRefresh=new WeakMap();
-let sharedClient=null,sharedLoading=null,sharedSaving=null,sharedTimer=null,sharedRetryAt=0;
+let sharedClient=null,sharedLoading=null,sharedSaving=null,sharedTimer=null,sharedRetryAt=0,sharedReadAt=0;
 async function sharedArtworkResponse(request){
  let timer;try{return await Promise.race([request,new Promise((_,reject)=>{timer=setTimeout(()=>reject(new Error('Shared artwork timeout')),10000);})]);}finally{clearTimeout(timer);}
 }
@@ -61,10 +61,11 @@ function flushSharedArtwork(){
  }catch{sharedRetryAt=Date.now()+300000;return false;}finally{sharedSaving=null;if(sharedWrites.size&&!sharedTimer&&Date.now()>=sharedRetryAt)sharedTimer=setTimeout(()=>{sharedTimer=null;flushSharedArtwork();},100);}})();
  return sharedSaving;
 }
-function hydrateSharedArtwork(){
+function hydrateSharedArtwork({refresh=false}={}){
  const client=root.remoteClient;
- if(!client||root.VECTA_AUDIT_PREVIEW||root.navigator?.onLine===false||sharedClient===client||Date.now()<sharedRetryAt)return null;
+ if(!client||root.VECTA_AUDIT_PREVIEW||root.navigator?.onLine===false||sharedClient===client&&(!refresh||Date.now()-sharedReadAt<60000)||Date.now()<sharedRetryAt)return null;
  if(sharedLoading)return sharedLoading;
+ sharedReadAt=Date.now();
  sharedLoading=(async()=>{try{
   const response=await sharedArtworkResponse(client.from('workshop_settings').select('id,value').like('id',SHARED_ART_PREFIX+'%').limit(2000));
   if(response.error)throw response.error;
@@ -226,6 +227,7 @@ const attach=(v,targets,j)=>{for(const {card,target} of targets){if(!card.isConn
  for(const group of groups.values()){
   const j=group.job,hit=identitySnapshot(j.registration,j.make,j.model||j.vehicle)||snapshot(j.registration,j.make,j.model||j.vehicle),fallback=artworkSnapshot(j.registration,j.make,j.model||j.vehicle)||genericImage(j);
   attach(hit?.imageUrl?hit:fallback,group.targets,j);
+  if(!hit?.imageUrl&&!fallback?.imageUrl){const refresh=hydrateSharedArtwork({refresh:true});if(refresh&&!sharedRefresh.has(container)){sharedRefresh.set(container,{jobs});refresh.then(ok=>{sharedRefresh.delete(container);if(ok&&container.isConnected)root.enrichHaynesDashboard(container,jobs);}).catch(()=>sharedRefresh.delete(container));}}
  }
 
 };
@@ -323,7 +325,8 @@ const requested=current(),expectedMake=make(modal.querySelector('#job_make')?.va
  if(!noVehicle?.checked&&lookupRegistration(current()))button.onclick();
 };
 document.addEventListener('DOMContentLoaded',()=>{if(root.view==='planner')root.enrichHaynesDashboard(document.getElementById('content'),root.app?.jobs);});
-root.VectaHaynesJobTools={vehicleLink,safeImage:image,remember,snapshot,artworkSnapshot,lookup,lookupNeedsRetry:registration=>failed.has(reg(registration)),lookupStatus:registration=>failStatus.get(reg(registration))||'UNAVAILABLE',genericImage,dashboardColour,lookupDashboardColour,rememberLookupColour,hydrateSharedArtwork,flushSharedArtwork};
+function storedArtwork(){const unique=new Map();for(const v of [...sharedArtwork.values(),...artwork.values(),...identities.values(),...cache.values()])if(image(v.imageUrl))unique.set(v.imageUrl,{make:v.make,model:v.model,imageUrl:v.imageUrl});return [...unique.values()].sort((a,b)=>[a.make,a.model].join(" ").localeCompare([b.make,b.model].join(" ")));}
+root.VectaHaynesJobTools={storedArtwork,vehicleLink,safeImage:image,remember,snapshot,artworkSnapshot,lookup,lookupNeedsRetry:registration=>failed.has(reg(registration)),lookupStatus:registration=>failStatus.get(reg(registration))||'UNAVAILABLE',genericImage,dashboardColour,lookupDashboardColour,rememberLookupColour,hydrateSharedArtwork,flushSharedArtwork};
 })(window);
 
 /* Dashboard registration lookup: read-only until a job/quote form is saved. */
