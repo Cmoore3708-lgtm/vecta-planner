@@ -14350,10 +14350,29 @@ function installNewJobAvailabilityCalendar(allowHistoricalDates,fieldId){
     modal.innerHTML='<div class="modalCard v243CalendarModalCard"><div class="modalHead"><div><h2>'+(dashboardMode?'Workshop calendar':'Choose booking date')+'</h2><p class="muted" style="margin:4px 0 0">'+(dashboardMode?'Select any date to see Alfie, Other and total workshop loading before opening that day.':(allowHistoricalDates?'Select the actual historical job date. Previous weekdays are available for month-end entries.':'Click different future dates to compare the workshop planner. The calendar stays open until you choose a date.'))+'</p></div><button type="button" class="btn" data-v243-close-calendar>Close</button></div><div class="modalBody v243CalendarBody"><div class="v243CalendarPane">'+calendarHtml()+'<div class="v243Legend">Day percentage = combined workshop loading</div></div><div class="v243PlannerPane">'+plannerHtml(chosen)+'</div></div></div>';
     modal.classList.add('open');modal.setAttribute('aria-hidden','false');
   }
-  function openCalendar(){
-    chosen=String(field.value||chosen||selectedIso()).slice(0,10);
+  function openCalendar(date){
+    chosen=String(date||field.value||chosen||selectedIso()).slice(0,10);
     var chosenDate=new Date(chosen+'T12:00:00');if(!isNaN(chosenDate.getTime()))monthDate=chosenDate;
     render();
+  }
+
+  // Show the same workload month directly beside the booking details.
+  if(!dashboardMode){
+    var preview=document.createElement('section');
+    preview.className='bookingMonthPreview';
+    preview.setAttribute('aria-label','Booking date calendar');
+    field.parentElement.appendChild(preview);
+    function renderPreview(){
+      preview.innerHTML='<strong class="bookingMonthHeading">Choose booking date</strong><p>Click a date to open the full workshop planner.</p>'+calendarHtml();
+    }
+    preview.onclick=function(ev){
+      if(ev.target.closest('[data-v243-prev-month]')){monthDate=new Date(monthDate.getFullYear(),monthDate.getMonth()-1,1,12);renderPreview();return}
+      if(ev.target.closest('[data-v243-next-month]')){monthDate=new Date(monthDate.getFullYear(),monthDate.getMonth()+1,1,12);renderPreview();return}
+      var day=ev.target.closest('[data-v243-calendar-day]');
+      if(day)openCalendar(day.dataset.v243CalendarDay);
+    };
+    field.addEventListener('change',function(){chosen=String(field.value).slice(0,10);monthDate=new Date(chosen+'T12:00:00');renderPreview()});
+    renderPreview();
   }
 
   field.onclick=function(ev){ev.preventDefault();openCalendar()};
@@ -14361,8 +14380,8 @@ function installNewJobAvailabilityCalendar(allowHistoricalDates,fieldId){
 
   modal.onclick=function(ev){
     if(ev.target.closest('[data-v243-close-calendar]')){modal.classList.remove('open');modal.setAttribute('aria-hidden','true');return}
-    if(ev.target.closest('[data-v243-prev-month]')){monthDate.setMonth(monthDate.getMonth()-1);render();return}
-    if(ev.target.closest('[data-v243-next-month]')){monthDate.setMonth(monthDate.getMonth()+1);render();return}
+    if(ev.target.closest('[data-v243-prev-month]')){monthDate=new Date(monthDate.getFullYear(),monthDate.getMonth()-1,1,12);render();return}
+    if(ev.target.closest('[data-v243-next-month]')){monthDate=new Date(monthDate.getFullYear(),monthDate.getMonth()+1,1,12);render();return}
     var day=ev.target.closest('[data-v243-calendar-day]');
     if(day){chosen=day.dataset.v243CalendarDay;render();return}
     if(ev.target.closest('[data-v243-use-date]')){
@@ -17919,4 +17938,11 @@ try{var foot=document.querySelector('.sideFoot small');if(foot)foot.textContent=
 .top #dashboardBookedToday{height:32px!important;min-height:32px!important}
 .top .haynesDashboardLookup input{font-size:16px!important;letter-spacing:.5px!important}
 }
+</style>
+
+<style id="booking-date-prominence">
+.bookingMonthPreview{margin-top:10px;padding:16px;border:2px solid #3476b9;border-radius:12px;background:#eef5fc;color:#142c49;max-width:440px;box-sizing:border-box}
+.bookingMonthHeading{font-size:18px;display:block}.bookingMonthPreview p{font-size:12px;margin:5px 0 12px}.bookingMonthPreview .v243MonthHead{color:#142c49}.bookingMonthPreview .v243CalendarDay{min-height:42px}.bookingMonthPreview .v243CalendarDay.selected{outline:3px solid #145eac;outline-offset:-3px}
+#job_booking_date{border:2px solid #3476b9;font-weight:800;background:#eef5fc;cursor:pointer}
+@media(min-width:901px){.top>.mobileCalendarBtn{background:#eaf3ff!important;color:#153a65!important;border:2px solid #82b2e8!important;font-weight:800!important}.top .dateCtl{background:#172c45!important;border:1px solid #527090!important;border-radius:8px;padding:4px!important}.top #dashboardDayName{font-size:22px!important}}
 </style>
