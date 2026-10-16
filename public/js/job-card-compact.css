@@ -227,3 +227,19 @@
  #jobModal .jobBookingSection>.jobSectionGrid{grid-template-columns:repeat(2,minmax(0,1fr))!important}
 }
 @media screen{#jobModal .jobSectionGrid{padding:0!important}}
+
+/* Booking: keep the date picker and day plan level, with an internal diary scroll. */
+@media screen{
+ #jobModal .bookingAvailabilityWorkspace.hasDayPlanner{align-items:stretch}
+ #jobModal .bookingInlinePlanner{contain:size;min-height:0;overflow:auto;box-sizing:border-box}
+ #jobModal.registrationBooking .jobCardHeaderVehicle{height:187.5px!important}
+ #jobModal.registrationBooking .jobModalHead.jobCardPinnedHeader{grid-template-columns:minmax(0,1fr) minmax(225px,375px)!important}
+}
+@media screen and (min-width:801px) and (max-width:1200px){
+ #jobModal .bookingAvailabilityWorkspace.hasDayPlanner{grid-template-columns:minmax(190px,230px) minmax(0,1fr)}
+}
+@media screen and (max-width:800px){
+ #jobModal .bookingInlinePlanner{contain:none;height:300px}
+ #jobModal.registrationBooking .jobCardHeaderVehicle{height:137.5px!important}
+ #jobModal.registrationBooking .jobModalHead.jobCardPinnedHeader{grid-template-columns:minmax(0,1fr) 45%!important}
+}

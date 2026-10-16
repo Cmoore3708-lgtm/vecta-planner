@@ -14211,7 +14211,7 @@ function saveServicePricingSettings(){var bands=Array.from(document.querySelecto
 function privatePricingSectionHtml(j){
   var items=privatePricingItemsFromNote(j&&j.customer_note),presetItems=privatePricingPresetItemsForTypes(j&&j.job_type),rows=items.length?items:(presetItems.length?presetItems:[{description:'',price:''}]),legacy=Number(j&&j.amount_quoted||0);
   if(!items.length&&presetItems.length){legacy=presetItems.reduce(function(total,x){return total+(Number(x.price)||0)},0)}
-  return '<section class="jobFormSection privatePricingSection"><div class="jobFormSectionHead"><span class="jobSectionNumber">£</span><div><h3>Invoice description &amp; pricing</h3><p>This wording is used on invoices, Financial and end-of-month lists — separate from Work required</p></div><span class="privatePricingLock">PRIVATE</span></div>'+servicePricingAdvisorHtml(j)+'<div class="privatePricingRows" id="privatePricingRows">'+rows.map(privatePricingRowHtml).join('')+'</div><div class="privatePricingActions"><button type="button" class="btn" id="addPrivatePriceItem">+ Add invoice line</button><div class="privatePricingTotal"><span>Total</span><strong id="privatePricingTotal">£'+legacy.toFixed(2)+'</strong></div></div><p class="privatePricingHint">Enter the customer-facing wording here. Preset job types can add standard invoice lines automatically. Work required remains the mechanic instruction and is never overwritten by this section.</p><input type="hidden" id="job_amount_quoted" value="'+(j&&j.amount_quoted!=null?esc(j.amount_quoted):(presetItems.length?legacy.toFixed(2):''))+'"></section>'
+  return '<section class="jobFormSection privatePricingSection"><div class="jobFormSectionHead"><span class="jobSectionNumber">£</span><div><h3>Invoice description &amp; pricing</h3><p>This wording is used on invoices, Financial and end-of-month lists — separate from Work required</p></div><span class="privatePricingLock">PRIVATE</span></div>'+servicePricingAdvisorHtml(j)+'<div class="privatePricingRows" id="privatePricingRows">'+rows.map(privatePricingRowHtml).join('')+'</div><div class="privatePricingActions"><button type="button" class="btn" id="addPrivatePriceItem">+ Add invoice line</button><div class="privatePricingTotal"><span>Total</span><strong id="privatePricingTotal">£'+legacy.toFixed(2)+'</strong></div></div><input type="hidden" id="job_amount_quoted" value="'+(j&&j.amount_quoted!=null?esc(j.amount_quoted):(presetItems.length?legacy.toFixed(2):''))+'"></section>'
 }
 function gatherPrivatePricingItems(){return Array.from(document.querySelectorAll('#privatePricingRows .privatePricingRow')).map(function(row){var d=row.querySelector('.privatePriceDescription'),a=row.querySelector('.privatePriceAmount');return {description:String(d&&d.value||'').trim(),price:Number(a&&a.value||0)}}).filter(function(x){return x.description||x.price!==0})}
 function syncPrivatePricingTotal(force){
@@ -14364,7 +14364,7 @@ function installNewJobAvailabilityCalendar(allowHistoricalDates,fieldId){
 
   // Keep calendar and allocated work together in the existing booking form.
   if(!dashboardMode){
-    var preview=document.createElement('section'),plannerRevealed=false;
+    var preview=document.createElement('section'),plannerRevealed=true;
     preview.className='bookingAvailabilityWorkspace';
     preview.setAttribute('aria-label','Booking date and workshop planner');
     (field.closest('.jobSectionGrid')||field.parentElement).appendChild(preview);
