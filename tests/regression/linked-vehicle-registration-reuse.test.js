@@ -49,5 +49,5 @@ test('concurrent duplicate insert reuses the winning vehicle',async()=>{
 });
 test('unrelated vehicle write failures remain visible',async()=>{
   const {ctx}=setup([],{insertError:{code:'42501',message:'permission denied'}});
-  await assert.rejects(ctx.vectaSaveLinkedVehicleWithoutDuplicate({registration:'AB24XYZ'},{vehicle:{id:'new',registration:'AB24XYZ'}}),/permission denied/);
+  await assert.rejects(ctx.vectaSaveLinkedVehicleWithoutDuplicate({registration:'AB24XYZ'},{vehicle:{id:'new',registration:'AB24XYZ'}}),error=>error&&error.code==='42501'&&error.message==='permission denied');
 });
