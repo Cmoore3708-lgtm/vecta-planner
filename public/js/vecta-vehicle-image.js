@@ -2,7 +2,7 @@
   const NS = 'http://www.w3.org/2000/svg';
   // Match the image API limit: genuine Haynes SVG drawings can exceed 500 KB.
   const MAX_SOURCE_LENGTH = 2000000;
-  const colours = {BLACK:'#191b20',WHITE:'#f5f5f2',SILVER:'#bfc3c8',GREY:'#626970',GRAY:'#626970',BLUE:'#235b9a',RED:'#ac1727',GREEN:'#296145',YELLOW:'#e5ba20',ORANGE:'#d56b22',BROWN:'#77513b',BEIGE:'#c1ac88',GOLD:'#b59a50',BRONZE:'#98704c',PURPLE:'#654282',PINK:'#cb7a9b',MAROON:'#641f32',CREAM:'#e9dfc6',TURQUOISE:'#368d96'};
+  const colours = {BLACK:'#191b20',WHITE:'#f5f5f2',SILVER:'#bfc3c8',GREY:'#626970',GRAY:'#626970',BLUE:'#1c4778',RED:'#ac1727',GREEN:'#204c36',YELLOW:'#e5ba20',ORANGE:'#d56b22',BROWN:'#77513b',BEIGE:'#c1ac88',GOLD:'#b59a50',BRONZE:'#98704c',PURPLE:'#654282',PINK:'#cb7a9b',MAROON:'#641f32',CREAM:'#e9dfc6',TURQUOISE:'#368d96'};
   // Positions verified against these supplier drawings, in SVG viewBox units.
   const platePositions = {
     // Cab-over flatbed: the body includes the load bed, so window offsets misidentify the front.
@@ -256,6 +256,10 @@
         if (!img.isConnected) return;
         const retryTimer=retryTimers.get(img);if(retryTimer)clearTimeout(retryTimer);retryTimers.delete(img);retryCounts.delete(img);
         img.src = result.url;
+        // Reveal only the decoded, painted image on surfaces that opt in.
+        if (typeof img.decode === 'function') await img.decode();
+        if (!img.isConnected) return;
+        img.dataset.vehicleReady = '1';
         img.dataset.personalised = String(result.plateAdded);
         img.dataset.recoloured = String(result.recoloured);
         img.alt = [colour, img.dataset.vehicleName, registration,'model illustration'].filter(Boolean).join(' ');

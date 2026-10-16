@@ -10,7 +10,7 @@ const vehicle={registration:'AB12CDE',make:'Nissan',model:'Navara',variant:'2.3'
 function setup(values=new Map()){
  const {document}=parseHTML('<html><body></body></html>');
  let calls=0,writes=0;
- const root={document,navigator:{onLine:true},localStorage:{getItem:key=>values.get(key)||null,setItem:(key,value)=>{writes++;values.set(key,value);}},fetch:async()=>{calls++;throw Error('offline');},VectaVehicleImage:{resolveColour:(_r,c)=>c,colourHex:c=>c==='Blue'?'#235b9a':''},VectaFleetImages:{artwork:()=>'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 10 10"><path d="M0 0h10v10z"/></svg>'}};
+ const root={document,navigator:{onLine:true},localStorage:{getItem:key=>values.get(key)||null,setItem:(key,value)=>{writes++;values.set(key,value);}},fetch:async()=>{calls++;throw Error('offline');},VectaVehicleImage:{resolveColour:(_r,c)=>c,colourHex:c=>c==='Blue'?'#1c4778':''},VectaFleetImages:{artwork:()=>'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 10 10"><path d="M0 0h10v10z"/></svg>'}};
  vm.runInNewContext(source,{window:root,document,AbortController,AbortSignal,setTimeout,clearTimeout,encodeURIComponent});
  return {root,document,tools:root.VectaHaynesJobTools,calls:()=>calls,writes:()=>writes};
 }

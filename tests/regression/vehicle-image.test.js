@@ -29,7 +29,7 @@ test('body recolour preserves wheels, windows and outlines; plate contains only 
   const root=browser(),r=root.VectaVehicleImage.personaliseSvg(svg,'FX69 XWU','BLUE');
   assert.equal(r.recoloured,true);assert.equal(r.plateAdded,true);
   const doc=new DOMParser().parseFromString(r.svg,'image/svg+xml');
-  assert.equal(doc.querySelector('#transparant_colour path').getAttribute('fill'),'#235b9a');
+  assert.equal(doc.querySelector('#transparant_colour path').getAttribute('fill'),'#1c4778');
   assert.equal(doc.querySelector('#wheels path').getAttribute('fill'),'#333333');
   assert.equal(doc.querySelector('#windows path').getAttribute('fill'),'#222222');
   assert.equal(doc.querySelectorAll('#transparant_colour path')[1].getAttribute('fill'),'none');
@@ -45,7 +45,7 @@ test('newer Illustrator switch wrapper retains the green Qashqai drawing and reg
   const r=root.VectaVehicleImage.personaliseSvg(wrapped,'CM14KEL','Green','319106279.svgz');
   const doc=new DOMParser().parseFromString(r.svg,'image/svg+xml');
   assert.equal(r.recoloured,true);assert.equal(r.plateAdded,true);
-  assert.equal(doc.querySelector('#transparant_colour path').getAttribute('fill'),'#296145');
+  assert.equal(doc.querySelector('#transparant_colour path').getAttribute('fill'),'#204c36');
   assert.equal(doc.querySelector('#vecta-front-registration text').textContent,'CM14 KEL');
   assert.equal(doc.querySelector('#vecta-front-registration').getAttribute('transform'),'translate(35.5 141.8) skewY(8)');
   assert.equal(doc.querySelector('#wheels path').getAttribute('fill'),'#333333');
@@ -276,7 +276,7 @@ test('stored supplier artwork recolours a vehicle offline without downloading ag
  for(const colour of ['Red','Blue']){
   const root=browser();root.indexedDB=indexedDB;root.fetch=async()=>{downloads++;if(colour==='Blue')throw Error('offline');return{ok:true,json:async()=>({svg})}};
   root.document.body.innerHTML='<img data-vehicle-image data-vehicle-logo="separate" data-registration="AB12CDE" data-colour="'+colour+'" src="https://www.haynespro-assets.com/workshop/images/123.svgz">';
-  await root.VectaVehicleImage.mount();await new Promise(r=>setTimeout(r,10));assert.match(decodeURIComponent(root.document.querySelector('img').src),new RegExp(colour==='Blue'?'#235b9a':'#ac1727'));
+  await root.VectaVehicleImage.mount();await new Promise(r=>setTimeout(r,10));assert.match(decodeURIComponent(root.document.querySelector('img').src),new RegExp(colour==='Blue'?'#1c4778':'#ac1727'));
  }
  assert.equal(downloads,1);
 });
@@ -305,7 +305,7 @@ test('supplier sources remain permanent when the fleet exceeds the render storag
  root.fetch=async()=>{calls++;throw Error('cached supplier source must survive');};
  root.document.body.innerHTML='<img data-vehicle-image data-vehicle-logo="separate" data-registration="AB12CDE" data-colour="Blue" src="https://www.haynespro-assets.com/workshop/images/123.svgz">';
  await root.VectaVehicleImage.mount();await new Promise(r=>setTimeout(r,10));
- assert.equal(calls,0);assert.match(decodeURIComponent(root.document.querySelector('img').src),/#235b9a/);
+ assert.equal(calls,0);assert.match(decodeURIComponent(root.document.querySelector('img').src),/#1c4778/);
  assert.equal([...indexedDB.rows.keys()].filter(key=>key.startsWith('source:')).length,513);
  assert.equal([...indexedDB.rows.keys()].filter(key=>key.startsWith('render:old')).length,0,'old rendered variants may be regenerated without downloads');
 });
@@ -344,5 +344,19 @@ test('supplier drawings above 500 KB still render colour and front registration'
  await root.VectaVehicleImage.mount();
  const img=root.document.querySelector('img');
  assert.equal(img.dataset.recoloured,'true');assert.equal(img.dataset.personalised,'true');
- assert.match(decodeURIComponent(img.src),/#296145/);assert.match(decodeURIComponent(img.src),/CM14 KEL/);
+ assert.match(decodeURIComponent(img.src),/#204c36/);assert.match(decodeURIComponent(img.src),/CM14 KEL/);
+});
+
+test('booking artwork remains hidden until the coloured image has decoded',async()=>{
+ const root=browser();root.fetch=async()=>({ok:true,json:async()=>({svg})});
+ root.document.body.innerHTML='<img data-vehicle-image data-vehicle-logo="separate" data-colour="Blue" src="https://www.haynespro-assets.com/workshop/images/123.svgz">';
+ const img=root.document.querySelector('img');let finishDecode,started;
+ const decoding=new Promise(resolve=>{started=resolve;});
+ img.decode=()=>{started();return new Promise(resolve=>{finishDecode=resolve;});};
+ const mounting=root.VectaVehicleImage.mount();await decoding;
+ assert.match(decodeURIComponent(img.src),/#1c4778/);
+ assert.equal(img.dataset.vehicleReady,undefined);
+ finishDecode();await mounting;assert.equal(img.dataset.vehicleReady,'1');
+ const booking=fs.readFileSync('website/booking/index.html','utf8');
+ assert.match(booking,/img\[data-vehicle-image\]:not\(\[data-vehicle-ready="1"\]\)\{visibility:hidden\}/);
 });

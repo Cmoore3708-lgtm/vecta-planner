@@ -180,5 +180,5 @@ test('service sheets recolour the stored same-origin image using the actual shar
  window.VectaHaynesJobTools={snapshot:()=>saved,dashboardColour:()=> 'Blue',artworkUrl:()=>'/api/haynes-image?asset=123.svg&format=svg'};
  vm.runInNewContext(readFileSync(new URL('../../public/js/vecta-vehicle-image.js',import.meta.url),'utf8'),{window,setTimeout,clearTimeout});
  await window.initHaynesServiceSheet(sheet,'FX69XWU','service');for(let i=0;i<12;i++)await settle();
- const img=sheet.querySelector('.ssHaynesVehicle img');assert.equal(img.dataset.vehicleSource,vehicle.imageUrl);assert.match(img.src,/^data:image\/svg/);assert.match(decodeURIComponent(img.src),/#235b9a/);sheet.remove();
+ const img=sheet.querySelector('.ssHaynesVehicle img');assert.equal(img.dataset.vehicleSource,vehicle.imageUrl);assert.match(img.src,/^data:image\/svg/);assert.match(decodeURIComponent(img.src),/#1c4778/);sheet.remove();
 });
