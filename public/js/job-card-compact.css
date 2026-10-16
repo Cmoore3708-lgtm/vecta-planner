@@ -166,3 +166,64 @@
  #jobModal .bookingAvailabilityWorkspace .bookingMonthPreview{width:100%}
  #jobModal .jobModalHeadActions>button{font-size:12px;padding:7px 10px}
 }
+
+/* Compact job sheet: one allocation row above aligned work and commercial columns. */
+@media screen{
+ #jobModal .jobModalCard{width:min(1480px,96vw)!important;max-width:1480px!important}
+ #jobModal .jobModalBody{padding:10px 14px!important}
+ #jobModal .jobCardSections{grid-template-columns:minmax(0,1.45fr) minmax(0,1fr)!important;gap:10px!important}
+ #jobModal .jobCardSections>.jobBookingSection{margin:0!important}
+ #jobModal .jobCardMainColumn,#jobModal .jobCardSupportColumn{gap:8px!important}
+ #jobModal .jobFormSection{padding:8px!important;border-radius:8px!important}
+ #jobModal .jobFormSectionHead{padding:5px 7px!important;margin:-8px -8px 8px!important;min-height:0!important;gap:6px!important}
+ #jobModal .jobFormSectionHead h3{font-size:13px!important;margin:0!important}
+ #jobModal .jobFormSectionHead p,.jobTypeSelectHelp>span{display:none!important}
+ #jobModal .field{min-width:0!important;margin:0!important}
+ #jobModal .field label{font-size:10px!important;margin-bottom:3px!important;letter-spacing:.03em!important}
+ #jobModal .field input,#jobModal .field select{width:100%!important;max-width:100%!important;min-width:0!important;box-sizing:border-box;height:34px!important;min-height:34px!important;padding:5px 7px!important;font-size:13px!important}
+ #jobModal .jobBookingSection>.jobSectionGrid{grid-template-columns:100px 132px 100px minmax(110px,1fr) minmax(90px,1fr) 90px 100px 124px minmax(140px,1fr)!important;gap:6px 8px!important;align-items:end}
+ #jobModal .jobBookingSection .field{grid-column:auto!important}
+ #jobModal .jobBookingSection .bookingCurrentMileage{max-width:none;margin:0}
+ #jobModal .bookingCapacityLauncher{display:none!important}
+ #jobModal .jobContactSection .jobSectionGrid{gap:6px 8px!important}
+ #jobModal .jobWorkSection #job_work_required{min-height:90px!important;padding:7px!important;font-size:13px!important}
+ #jobModal .templateBtns{gap:5px!important;margin-bottom:9px!important}
+ #jobModal .templateBtns button{padding:5px 9px!important;font-size:12px!important;border-radius:6px!important}
+ #jobModal .jobTypeSelectHelp{margin:0 0 5px!important}
+ #jobModal .bookingAvailabilityWorkspace{display:block;margin:0!important;width:100%}
+ #jobModal .bookingAvailabilityWorkspace .bookingMonthPreview{width:min(100%,300px);padding:9px}
+ #jobModal .bookingAvailabilityWorkspace.hasDayPlanner{display:grid;grid-template-columns:minmax(230px,270px) minmax(0,1fr);gap:10px}
+ #jobModal .bookingAvailabilityWorkspace.hasDayPlanner .bookingMonthPreview{width:100%}
+ #jobModal .bookingMonthHeading{font-size:15px;margin-bottom:8px}
+ #jobModal .bookingInlinePlanner{padding:8px;position:relative}
+ #jobModal .bookingInlinePlanner .v243PlannerGrid{min-width:370px;grid-template-columns:40px repeat(3,minmax(0,1fr))}
+ #jobModal .bookingInlinePlanner .v243PlannerTitle{padding-right:80px;min-height:30px;margin-bottom:5px}
+ #jobModal .bookingInlinePlanner .v243PlannerTitle h3{font-size:13px}
+ #jobModal .bookingInlinePlanner .v243PlannerTitle p{display:none}
+ #jobModal .bookingHidePlanner{position:absolute;right:7px;top:7px;font-size:10px;padding:4px 6px}
+ #jobModal.registrationBooking .jobCardHeaderVehicle{height:150px!important}
+ #jobModal.registrationBooking .jobModalHead.jobCardPinnedHeader{grid-template-columns:minmax(0,1fr) minmax(180px,300px)!important;padding:10px 14px!important;gap:4px 14px!important}
+ #jobModal .bookingLookupIdentity h3{font-size:21px;margin:0 0 3px}
+ #jobModal .bookingLookupIdentity p{margin:2px 0;font-size:12px}
+ #jobModal .bookingLookupIdentity dl{display:flex;gap:5px 12px;flex-wrap:wrap;margin:5px 0;font-size:11px}
+ #jobModal .bookingLookupIdentity dd{margin:0 10px 0 0}
+ #jobModal .modalFoot{padding:8px 14px!important;gap:7px!important}
+ #jobModal .privatePricingSection .jobSectionGrid{gap:6px!important}
+}
+@media screen and (max-width:1200px){
+ #jobModal .jobBookingSection>.jobSectionGrid{grid-template-columns:repeat(5,minmax(0,1fr))!important}
+ #jobModal .jobCardSections{grid-template-columns:minmax(0,1.2fr) minmax(0,1fr)!important}
+ #jobModal .bookingAvailabilityWorkspace.hasDayPlanner{grid-template-columns:minmax(0,1fr)}
+}
+@media screen and (max-width:800px){
+ #jobModal .jobCardSections{grid-template-columns:minmax(0,1fr)!important}
+ #jobModal .jobBookingSection>.jobSectionGrid{grid-template-columns:repeat(3,minmax(0,1fr))!important}
+ #jobModal .jobModalBody{padding:8px!important}
+ #jobModal.registrationBooking .jobCardHeaderVehicle{height:110px!important}
+ #jobModal.registrationBooking .jobModalHead.jobCardPinnedHeader{grid-template-columns:minmax(0,1fr) 36%!important;padding:8px!important;gap:4px 8px!important}
+ #jobModal .bookingLookupIdentity h3{font-size:17px}
+}
+@media screen and (max-width:450px){
+ #jobModal .jobBookingSection>.jobSectionGrid{grid-template-columns:repeat(2,minmax(0,1fr))!important}
+}
+@media screen{#jobModal .jobSectionGrid{padding:0!important}}

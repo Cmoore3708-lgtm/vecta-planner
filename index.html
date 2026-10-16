@@ -14355,20 +14355,22 @@ function installNewJobAvailabilityCalendar(allowHistoricalDates,fieldId){
 
   // Keep calendar and allocated work together in the existing booking form.
   if(!dashboardMode){
-    var preview=document.createElement('section');
+    var preview=document.createElement('section'),plannerRevealed=false;
     preview.className='bookingAvailabilityWorkspace';
     preview.setAttribute('aria-label','Booking date and workshop planner');
     (field.closest('.jobSectionGrid')||field.parentElement).appendChild(preview);
     function renderPreview(){
-      preview.innerHTML='<div class="bookingMonthPreview"><strong class="bookingMonthHeading">Choose booking date</strong><p>Select a date to see allocated work alongside.</p>'+calendarHtml()+'</div><div class="bookingInlinePlanner" aria-label="Allocated work for selected booking date">'+plannerHtml(chosen,true)+'</div>';
+      preview.classList.toggle('hasDayPlanner',plannerRevealed);
+      preview.innerHTML='<div class="bookingMonthPreview"><strong class="bookingMonthHeading">Choose booking date</strong>'+calendarHtml()+'</div>'+(plannerRevealed?'<div class="bookingInlinePlanner" aria-label="Allocated work for selected booking date"><button type="button" class="btn small bookingHidePlanner" data-hide-day-planner>Hide planner</button>'+plannerHtml(chosen,true)+'</div>':'');
     }
     preview.onclick=function(ev){
+      if(ev.target.closest('[data-hide-day-planner]')){plannerRevealed=false;renderPreview();return}
       if(ev.target.closest('[data-v243-prev-month]')){monthDate=new Date(monthDate.getFullYear(),monthDate.getMonth()-1,1,12);renderPreview();return}
       if(ev.target.closest('[data-v243-next-month]')){monthDate=new Date(monthDate.getFullYear(),monthDate.getMonth()+1,1,12);renderPreview();return}
       var day=ev.target.closest('[data-v243-calendar-day]');
       if(day){field.value=day.dataset.v243CalendarDay;field.dispatchEvent(new Event('change',{bubbles:true}));}
     };
-    field.addEventListener('change',function(){chosen=String(field.value).slice(0,10);var nextMonth=new Date(chosen+'T12:00:00');if(!isNaN(nextMonth.getTime()))monthDate=nextMonth;renderPreview()});
+    field.addEventListener('change',function(){plannerRevealed=true;chosen=String(field.value).slice(0,10);var nextMonth=new Date(chosen+'T12:00:00');if(!isNaN(nextMonth.getTime()))monthDate=nextMonth;renderPreview()});
     renderPreview();
   }
 
@@ -16488,7 +16490,7 @@ init();
     renderDays();
   };
   var originalOpenJobModal=window.openJobModal;
-  window.openJobModal=function(id,preset){originalOpenJobModal(id,preset);var date=document.getElementById('job_booking_date');if(!date)return;var section=date.closest('.jobSectionGrid');if(!section||section.querySelector('.bookingCapacityLauncher'))return;var box=document.createElement('div');box.className='bookingCapacityLauncher';box.innerHTML='<div><b>Check workshop capacity before choosing the date</b><p>See each mechanic’s percentage and open a mini planner for the day.</p></div><button type="button" class="btn dark" id="openBookingCapacity">View availability</button>';section.insertBefore(box,date.closest('.field').nextSibling);document.getElementById('openBookingCapacity').onclick=openBookingCapacityChooser;};
+  window.openJobModal=function(id,preset){originalOpenJobModal(id,preset);var date=document.getElementById('job_booking_date');if(!date||document.querySelector('#jobModal .bookingAvailabilityWorkspace'))return;var section=date.closest('.jobSectionGrid');if(!section||section.querySelector('.bookingCapacityLauncher'))return;var box=document.createElement('div');box.className='bookingCapacityLauncher';box.innerHTML='<div><b>Check workshop capacity before choosing the date</b><p>See each mechanic’s percentage and open a mini planner for the day.</p></div><button type="button" class="btn dark" id="openBookingCapacity">View availability</button>';section.insertBefore(box,date.closest('.field').nextSibling);document.getElementById('openBookingCapacity').onclick=openBookingCapacityChooser;};
 
   /* 2. Fleet Manager: remove tax-confirm button from the Fleet Manager drawer only. */
   var originalFleetDrawerHtml=window.fleetDrawerHtml;

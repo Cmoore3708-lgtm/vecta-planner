@@ -19,8 +19,8 @@ test('vehicle details sit below the single editable header registration',async()
  assert.equal(document.querySelector('.jobCardHeaderDetails .jobVehicleSection').closest('.jobModalHead'),heading.parentElement);
  assert.ok(heading.parentElement.classList.contains('jobCardPinnedHeader'));
  assert.equal(document.querySelector('.jobVehicleSection #job_registration'),null);
- assert.deepEqual(Array.from(document.querySelector('.jobCardMainColumn').children).map(el=>el.className),['jobWorkSection']);
- assert.deepEqual(Array.from(document.querySelector('.jobCardSupportColumn').children).map(el=>el.className),['jobContactSection','jobPreviousWorkSection','jobFormSection','privatePricingSection']);
+ assert.deepEqual(Array.from(document.querySelector('.jobCardMainColumn').children).map(el=>el.className),['jobWorkSection','jobPreviousWorkSection']);
+ assert.deepEqual(Array.from(document.querySelector('.jobCardSupportColumn').children).map(el=>el.className),['jobContactSection','jobFormSection','privatePricingSection']);
  assert.equal(document.querySelector('.privatePricingSection').previousElementSibling.querySelector('.jobPartsEditor')!==null,true);
  assert.equal(document.querySelector('.jobBookingFullWidth').parentElement.className,'jobCardSections');
  input.value='AB12 XYZ';input.dispatchEvent(new window.Event('input'));

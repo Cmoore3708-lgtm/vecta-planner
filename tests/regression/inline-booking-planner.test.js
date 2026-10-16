@@ -13,15 +13,23 @@ function setup(fieldId='job_booking_date'){
 }
 test('selecting a day updates the existing booking field and adjacent allocated work without a popup',()=>{
  const {document,window}=setup(),field=document.getElementById('job_booking_date'),preview=document.querySelector('.bookingAvailabilityWorkspace');
- assert.equal(preview.parentElement.className,'jobSectionGrid');assert.match(preview.querySelector('.bookingInlinePlanner').textContent,/TODAY/);
+ assert.equal(preview.parentElement.className,'jobSectionGrid');assert.equal(preview.querySelector('.bookingInlinePlanner'),null);
  preview.querySelector('[data-v243-calendar-day="2026-10-19"]').dispatchEvent(new window.Event('click',{bubbles:true}));
  assert.equal(field.value,'2026-10-19');assert.match(preview.querySelector('.bookingInlinePlanner').textContent,/NEXTDAY/);assert.doesNotMatch(preview.textContent,/DONE/);assert.match(preview.querySelector('.v243PlannerTitle').textContent,/2026-10-19/);assert.equal(document.querySelector('.modal.open'),null);assert.equal(preview.querySelector('[data-v243-use-date]'),null);
  field.onclick({preventDefault(){}});assert.equal(document.querySelector('.modal.open'),null);
 });
 test('month browsing does not change the booking date until a day is selected',()=>{
  const {document,window}=setup(),field=document.getElementById('job_booking_date'),preview=document.querySelector('.bookingAvailabilityWorkspace');
- preview.querySelector('[data-v243-next-month]').dispatchEvent(new window.Event('click',{bubbles:true}));assert.match(preview.querySelector('.v243MonthHead').textContent,/November/);assert.equal(field.value,'2026-10-16');assert.match(preview.querySelector('.bookingInlinePlanner').textContent,/TODAY/);
+ preview.querySelector('[data-v243-next-month]').dispatchEvent(new window.Event('click',{bubbles:true}));assert.match(preview.querySelector('.v243MonthHead').textContent,/November/);assert.equal(field.value,'2026-10-16');assert.equal(preview.querySelector('.bookingInlinePlanner'),null);
 });
 test('the main dashboard calendar retains its existing modal and confirmation',()=>{
  const {document}=setup('currentDate');document.getElementById('currentDate').onclick({preventDefault(){}});assert.ok(document.querySelector('#dashboardPlannerCalendarModal.open'));assert.ok(document.querySelector('[data-v243-use-date]'));assert.equal(document.querySelector('.bookingAvailabilityWorkspace'),null);
+});
+
+
+test('the day planner is revealed only by date selection and can be hidden without changing the date',()=>{
+ const {document,window}=setup(),field=document.getElementById('job_booking_date'),preview=document.querySelector('.bookingAvailabilityWorkspace');
+ field.onclick({preventDefault(){}});assert.equal(preview.querySelector('.bookingInlinePlanner'),null);
+ preview.querySelector('[data-v243-calendar-day="2026-10-19"]').dispatchEvent(new window.Event('click',{bubbles:true}));assert.ok(preview.classList.contains('hasDayPlanner'));
+ preview.querySelector('[data-hide-day-planner]').dispatchEvent(new window.Event('click',{bubbles:true}));assert.equal(preview.querySelector('.bookingInlinePlanner'),null);assert.equal(preview.classList.contains('hasDayPlanner'),false);assert.equal(field.value,'2026-10-19');
 });
