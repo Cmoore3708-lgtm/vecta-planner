@@ -17,7 +17,7 @@ function setup(rows,options={}){
         limit(){return Promise.resolve({data:rows,error:null})}
       }}
     },app,
-    normReg:v=>String(v||'').toUpperCase().replace(/\\s+/g,''),
+    normReg:v=>String(v||'').toUpperCase().replace(/\s+/g,''),
     async upsertRemote(table,row){calls.push(['insert',table,row.id]);if(options.insertError)throw options.insertError;return [{id:row.id}]},
     saveLocal(){calls.push(['saveLocal'])},console
   };
