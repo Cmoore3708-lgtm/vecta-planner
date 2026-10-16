@@ -78,7 +78,7 @@ test('offline startup repairs service cycles before rendering the fallback Fleet
 test('startup repairs stale service cycles before the first visible render', () => {
   const source = html.match(/function init\(\)\{safe\(async function\(\)\{([\s\S]*?)\n\},null\)\}/)[1];
   const repair = source.indexOf('v359RepairFalseServiceCompletions();');
-  const firstRender = source.indexOf('\n  render();');
+  const firstRender = source.indexOf('if(!navigator.onLine||VECTA_AUDIT_PREVIEW)render();');
   const cloudConfig = source.indexOf('loadCloudConfig');
   assert.ok(repair > -1, 'startup must run the current-cycle repair');
   assert.ok(repair < firstRender, 'service dates must be repaired before the first render');

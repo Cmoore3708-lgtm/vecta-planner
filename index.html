@@ -1,6 +1,11 @@
 <!doctype html>
 <html lang="en">
 <head>
+  <style id="vectaStartupCritical">
+    body.vectaStartupLoading{margin:0;background:#f5f6f8}
+    body.vectaStartupLoading .app{visibility:hidden}
+    body.vectaStartupLoading #vectaStartupGate{visibility:visible;display:flex;position:fixed;inset:0;z-index:9999;min-height:100vh;box-sizing:border-box;background:#f5f6f8;align-items:center;justify-content:center;font-family:Arial,sans-serif}
+  </style>
   <!-- VECTA IO-GUARD 2026-09-04: realtime row merge, idempotent settings, legacy UUID protection -->
   <!-- Cache retirement belongs to service-worker activation, not every page load. -->
   <script>window.__vectaCacheResetPromise=Promise.resolve();</script>
@@ -2869,7 +2874,7 @@ body.servicePreviewing .servicePreviewControls{position:relative!important;z-ind
 @media(max-width:900px){.livePriorityBacklog,.livePriorityTasks{display:none}}
 </style>
 </head>
-<body>
+<body class="vectaStartupLoading">
 <!-- VECTA v200: unfinished jobs stay allocated; no carried-over column -->
 <div id="vectaOfflineBanner" class="vectaOfflineBanner">OFFLINE WORKSHOP MODE — live cloud data is unavailable. Changes made here will be saved on this device and queued for synchronisation.</div>
 <div id="vectaConnectivity" class="vectaConnectivity syncing"><span class="dot"></span><span id="vectaConnectivityText">Checking cloud connection…</span></div>
@@ -10586,11 +10591,11 @@ async function vectaHandleReconnect(){
   return refreshPlannerCoreFromCloudAndRender();
 }
 function init(){safe(async function(){
-  /* V342: the diary must be usable immediately. Cloud and IndexedDB recovery run
-     after the last-known local workshop is rendered and can never cover the UI. */
+  /* Keep cached jobs out of the online first paint. If cloud startup stalls,
+     release the saved diary with an explicit offline indicator. */
   var vectaStartupWatchdog=setTimeout(function(){
-    try{vectaSetStartupLoading(false);render();updateConnectivityUI();}catch(e){}
-  },2500);
+    try{vectaCloudReachable=false;vectaSetStartupLoading(false);render();updateConnectivityUI();}catch(e){}
+  },12000);
   loadLocal();
   if(VECTA_AUDIT_PREVIEW){vectaSavePendingSync([]);vectaCloudReachable=false;}
   vectaRunDataIngressMigrations({reason:'local-startup',legacyStartup:true,parts:true,tax:true});
@@ -10599,8 +10604,8 @@ function init(){safe(async function(){
      for a cloud configuration or Supabase connection that may not exist. */
   if(typeof window.v359RepairFalseServiceCompletions==='function')window.v359RepairFalseServiceCompletions();
   bindTop();
-  vectaSetStartupLoading(false);
-  render();
+  vectaSetStartupLoading(navigator.onLine&&!VECTA_AUDIT_PREVIEW);
+  if(!navigator.onLine||VECTA_AUDIT_PREVIEW)render();
   updateConnectivityUI('checking');
   /* IndexedDB recovery is useful when localStorage is empty, but iOS can leave the
      request pending. Give it a short opportunity without ever blocking the screen
@@ -10657,7 +10662,7 @@ function init(){safe(async function(){
         }catch(e){console.warn('Background workshop synchronisation incomplete',e);updateConnectivityUI()}
       },120000);
     }catch(e){
-      console.warn('Supabase startup unavailable; continuing in offline workshop mode.',e);vectaCloudReachable=false;updateConnectivityUI();vectaSetStartupLoading(false);render();
+      console.warn('Supabase startup unavailable; continuing in offline workshop mode.',e);clearTimeout(vectaStartupWatchdog);vectaCloudReachable=false;updateConnectivityUI();vectaSetStartupLoading(false);render();
     }
   })
 },null)}
@@ -12658,7 +12663,7 @@ function linkifyDisplayedEmails(root){
     textNode.parentNode.replaceChild(frag,textNode);
   });
 }
-var renderInProgress=false;function render(){if(renderInProgress)return;renderInProgress=true;try{safe(function(){var oldTaskList=document.querySelector('.taskList'),oldUnallocated=document.querySelector('.unallocatedPanel:not(.quotePanel) .unallocatedJobList'),oldQuotes=document.querySelector('.quotePanel .unallocatedJobList'),taskScroll=oldTaskList?oldTaskList.scrollTop:0,unallocatedScroll=oldUnallocated?oldUnallocated.scrollTop:0,quoteScroll=oldQuotes?oldQuotes.scrollTop:0;document.getElementById('currentDate').value=selectedIso();if(view==='dashboard')view='planner';if(view==='customers'||view==='vehicles')view='search';renderNav();var navMatch=navItems().find(function(x){return x[0]===view});if(!navMatch){view='planner';navMatch=navItems()[0];}document.getElementById('viewTitle').textContent=navMatch[1];var dayNameEl=document.getElementById('dashboardDayName');if(dayNameEl){if(view==='planner'){var dayDate=new Date(selectedIso()+'T12:00:00');dayNameEl.textContent=dayDate.toLocaleDateString('en-GB',{weekday:'long'});dayNameEl.classList.add('show')}else{dayNameEl.textContent='';dayNameEl.classList.remove('show')}}var bookedTodayEl=document.getElementById('dashboardBookedToday'),bookedTodayValue=document.getElementById('dashboardBookedTodayValue');if(bookedTodayEl){if(view==='planner'){var bookedTodayTotal=0;try{bookedTodayTotal=invoiceFinancialSummary().today}catch(e){console.warn('Dashboard booked-today total unavailable',e)}if(bookedTodayValue)bookedTodayValue.textContent=Number(bookedTodayTotal||0).toFixed(2);bookedTodayEl.classList.add('show');bookedTodayEl.onclick=function(){openInvoiceFinanceReport('date:'+financeDailyReferenceDate())}}else{bookedTodayEl.classList.remove('show');bookedTodayEl.onclick=null}}var c=document.getElementById('content');if(view==='dashboard')c.innerHTML=dashboardHtml();if(view==='planner')c.innerHTML=plannerHtml();if(view==='fleet')c.innerHTML=fleetHtml();if(view==='jobs')c.innerHTML=jobsHtml();if(view==='vehicleTax')c.innerHTML=vehicleTaxHtml();if(view==='service')c.innerHTML=serviceHtml();if(view==='search')c.innerHTML=searchHtml();if(view==='invoices')c.innerHTML=invoicesHtml();if(view==='invoiceArchive')c.innerHTML=invoiceArchiveHtml();if(view==='websiteRequests')c.innerHTML=websiteRequestsHtml();if(view==='parts')c.innerHTML=partsOrderingHtml();if(view==='settings')c.innerHTML=settingsHtml();bindView();if(view==='planner'&&window.enrichHaynesDashboard)window.enrichHaynesDashboard(c,app.jobs);if(view==='websiteRequests')bindWebsiteRequests();if(view==='parts')bindPartsOrdering();if(view==='vehicleTax')bindVehicleTax();linkifyDisplayedEmails(c);var newTaskList=document.querySelector('.taskList'),newUnallocated=document.querySelector('.unallocatedPanel:not(.quotePanel) .unallocatedJobList'),newQuotes=document.querySelector('.quotePanel .unallocatedJobList');if(newTaskList)newTaskList.scrollTop=taskScroll;if(newUnallocated)newUnallocated.scrollTop=unallocatedScroll;if(newQuotes)newQuotes.scrollTop=quoteScroll;},null)}finally{renderInProgress=false}}
+var renderInProgress=false;function render(){if(document.body.classList.contains('vectaStartupLoading')||renderInProgress)return;renderInProgress=true;try{safe(function(){var oldTaskList=document.querySelector('.taskList'),oldUnallocated=document.querySelector('.unallocatedPanel:not(.quotePanel) .unallocatedJobList'),oldQuotes=document.querySelector('.quotePanel .unallocatedJobList'),taskScroll=oldTaskList?oldTaskList.scrollTop:0,unallocatedScroll=oldUnallocated?oldUnallocated.scrollTop:0,quoteScroll=oldQuotes?oldQuotes.scrollTop:0;document.getElementById('currentDate').value=selectedIso();if(view==='dashboard')view='planner';if(view==='customers'||view==='vehicles')view='search';renderNav();var navMatch=navItems().find(function(x){return x[0]===view});if(!navMatch){view='planner';navMatch=navItems()[0];}document.getElementById('viewTitle').textContent=navMatch[1];var dayNameEl=document.getElementById('dashboardDayName');if(dayNameEl){if(view==='planner'){var dayDate=new Date(selectedIso()+'T12:00:00');dayNameEl.textContent=dayDate.toLocaleDateString('en-GB',{weekday:'long'});dayNameEl.classList.add('show')}else{dayNameEl.textContent='';dayNameEl.classList.remove('show')}}var bookedTodayEl=document.getElementById('dashboardBookedToday'),bookedTodayValue=document.getElementById('dashboardBookedTodayValue');if(bookedTodayEl){if(view==='planner'){var bookedTodayTotal=0;try{bookedTodayTotal=invoiceFinancialSummary().today}catch(e){console.warn('Dashboard booked-today total unavailable',e)}if(bookedTodayValue)bookedTodayValue.textContent=Number(bookedTodayTotal||0).toFixed(2);bookedTodayEl.classList.add('show');bookedTodayEl.onclick=function(){openInvoiceFinanceReport('date:'+financeDailyReferenceDate())}}else{bookedTodayEl.classList.remove('show');bookedTodayEl.onclick=null}}var c=document.getElementById('content');if(view==='dashboard')c.innerHTML=dashboardHtml();if(view==='planner')c.innerHTML=plannerHtml();if(view==='fleet')c.innerHTML=fleetHtml();if(view==='jobs')c.innerHTML=jobsHtml();if(view==='vehicleTax')c.innerHTML=vehicleTaxHtml();if(view==='service')c.innerHTML=serviceHtml();if(view==='search')c.innerHTML=searchHtml();if(view==='invoices')c.innerHTML=invoicesHtml();if(view==='invoiceArchive')c.innerHTML=invoiceArchiveHtml();if(view==='websiteRequests')c.innerHTML=websiteRequestsHtml();if(view==='parts')c.innerHTML=partsOrderingHtml();if(view==='settings')c.innerHTML=settingsHtml();bindView();if(view==='planner'&&window.enrichHaynesDashboard)window.enrichHaynesDashboard(c,app.jobs);if(view==='websiteRequests')bindWebsiteRequests();if(view==='parts')bindPartsOrdering();if(view==='vehicleTax')bindVehicleTax();linkifyDisplayedEmails(c);var newTaskList=document.querySelector('.taskList'),newUnallocated=document.querySelector('.unallocatedPanel:not(.quotePanel) .unallocatedJobList'),newQuotes=document.querySelector('.quotePanel .unallocatedJobList');if(newTaskList)newTaskList.scrollTop=taskScroll;if(newUnallocated)newUnallocated.scrollTop=unallocatedScroll;if(newQuotes)newQuotes.scrollTop=quoteScroll;},null)}finally{renderInProgress=false}}
 function isJobInvoiced(j){if(!j)return false;var linked=vectaActiveInvoices().some(function(inv){return String(inv.job_id||'')===String(j.id||'')&&String(inv.status||'saved')!=='draft'});if(linked)return true;if(j.invoice_id||j.invoiced_at)return vectaActiveInvoices().some(function(inv){return String(inv.id||'')===String(j.invoice_id||'')});return false}
 function allJobsForDate(){var d=selectedIso();return app.jobs.filter(function(j){return !vectaJobIsDeletedForLists(j)&&String(j.status||'').toLowerCase()!=='quote'&&!j.archived&&!isVehicleTaxJob(j)&&!!j.booking_date&&String(j.booking_date)===d&&!isUnallocatedJob(j)})}
 function configuredMechanicNames(){var names=(app.settings&&app.settings.mechanics||[]).filter(function(n){return !!String(n||'').trim()&&String(n).toLowerCase()!=='anyone'&&String(n).toLowerCase()!=='unallocated'});return names.length?names:['Alfie','Other']}
