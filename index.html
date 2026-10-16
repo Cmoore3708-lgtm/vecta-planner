@@ -2883,7 +2883,7 @@ body.servicePreviewing .servicePreviewControls{position:relative!important;z-ind
   <main class="main">
     <header class="top">
       <h1 id="viewTitle" hidden>Planner</h1><button type="button" id="dashboardBookedToday" class="dashboardBookedToday" title="Open selected day’s financial breakdown"><strong id="dashboardBookedTodayValue">£0.00</strong></button>
-      <div class="plannerGlobalSearchWrap"><input id="plannerGlobalSearch" type="search" autocomplete="off" placeholder="Search reg, name, phone or email…" aria-label="Search Workshop Pro"></div><div class="dateCtl"><button id="prevDay" type="button" aria-label="Previous day">‹</button><div class="plannerSelectedDay"><div id="dashboardDayName" class="dashboardDayName" aria-live="polite"></div><input id="currentDate" type="date" aria-label="Current planner date"></div><button id="nextDay" type="button" aria-label="Next day">›</button></div>
+      <div class="plannerGlobalSearchWrap"><input id="plannerGlobalSearch" type="search" autocomplete="off" placeholder="Search reg, name, phone or email…" aria-label="Search Workshop Pro"></div><div class="dateCtl"><button id="prevDay" type="button" aria-label="Previous day">‹</button><div class="plannerSelectedDay"><div id="dashboardDayName" class="dashboardDayName" aria-live="polite"></div><input id="currentDate" type="date" aria-label="Current planner date" hidden></div><button id="nextDay" type="button" aria-label="Next day">›</button></div>
       <label class="btn mobileCalendarBtn" for="mobileDateInput"><span>Calendar</span><input id="mobileDateInput" type="date" aria-label="Select dashboard date"></label>
       <div class="plannerHeaderActions">
         <button class="primary" id="newJobTop" type="button">+ New Job</button>
@@ -17908,13 +17908,11 @@ try{var foot=document.querySelector('.sideFoot small');if(foot)foot.textContent=
 .top .dateCtl button{width:40px!important;min-width:40px!important;height:40px!important;font-size:26px!important;padding:0!important}
 .top .plannerSelectedDay{min-width:0;text-align:center;display:flex;align-items:center;justify-content:center;gap:8px}
 .top #dashboardDayName{width:auto!important;min-width:0!important;max-width:none!important;height:auto!important;line-height:1.2!important;font-size:16px!important;margin:0!important;padding:0!important}
-.top #currentDate{width:145px!important;min-width:0!important;max-width:100%!important;height:40px!important;box-sizing:border-box!important}
+.top #currentDate{display:none!important}
 .top #todayBtn,.top #newTaskTop{display:none!important}
 @media(max-width:900px){
 .top:has(.plannerHeaderActions){grid-template-columns:repeat(12,minmax(0,1fr))!important;grid-template-areas:"calendar calendar calendar date date date date date date date date date" "lookup lookup lookup lookup lookup lookup search search search search search search" "actions actions actions actions actions actions actions actions booked booked booked booked"!important;gap:6px!important;padding:6px!important}
-.top .plannerSelectedDay{flex-direction:column;gap:0}
-.top #dashboardDayName{font-size:14px!important}
-.top #currentDate{height:28px!important;width:138px!important;font-size:13px!important}
+.top #dashboardDayName{font-size:16px!important}
 .top .plannerHeaderActions>.btn,.top .plannerHeaderActions>.primary{font-size:12px!important}
 .top #dashboardBookedToday{height:32px!important;min-height:32px!important}
 .top .haynesDashboardLookup input{font-size:16px!important;letter-spacing:.5px!important}
