@@ -21,7 +21,7 @@ function device(db,storage=new Map()){
  const root={document,remoteClient:db.client,navigator:{onLine:true},localStorage:{getItem:key=>storage.get(key)||null,setItem:(key,value)=>storage.set(key,value)},
   fetch:async()=>{lookups++;throw Error('No vehicle lookup should be made');},
   VectaVehicleImage:{resolveColour:(_r,c)=>c,colourHex:c=>c,mount:()=>Promise.resolve()},VectaFleetImages:{artwork:()=>'<svg></svg>'}};
- vm.runInNewContext(source,{window:root,document,AbortController,AbortSignal,setTimeout:(fn,delay)=>{timers.push({fn,delay});return timers.length;},clearTimeout(){},encodeURIComponent});
+ vm.runInNewContext(source,{window:root,document,AbortController,AbortSignal,setTimeout:(fn,delay)=>{timers.push({fn,delay});return timers.length;},clearTimeout(){},encodeURIComponent,Date});
  return {root,document,storage,timers,lookups:()=>lookups};
 }
 async function settled(){for(let i=0;i<10;i++)await new Promise(r=>setImmediate(r));}
@@ -113,4 +113,19 @@ test('Cabstar job uses its saved NT400 Cabstar drawing without borrowing an NV20
  const d=device(database(),new Map([['vecta_haynes_artwork_v1',JSON.stringify([drawing])]]));
  assert.equal(d.root.VectaHaynesJobTools.artworkSnapshot('VK68UBR','NISSAN','CABSTAR')?.imageUrl,drawing.imageUrl);
  assert.equal(d.root.VectaHaynesJobTools.artworkSnapshot('VK68UBR','NISSAN','NV200'),null);
+});
+
+test('missing planner artwork can refresh an old shared session without calling Haynes',async()=>{
+ const db=database(),d=device(db);await d.root.VectaHaynesJobTools.hydrateSharedArtwork();
+ db.rows.set('vehicle_artwork:HGZ7396',{registration:'HGZ7396',make:'AUDI',model:'A4 (8W)',imageUrl:asset});
+ const original=Date.now;Date.now=()=>original()+61000;
+ try{await d.root.VectaHaynesJobTools.hydrateSharedArtwork({refresh:true});}finally{Date.now=original;}
+ assert.equal(d.root.VectaHaynesJobTools.artworkSnapshot('HGZ7396','AUDI','A4').imageUrl,asset);assert.equal(db.reads(),2);assert.equal(d.lookups(),0);
+ assert.ok(d.root.VectaHaynesJobTools.storedArtwork().some(v=>v.model==='A4 (8W)'));
+});
+
+test('manual internal artwork stays on the linked fleet record rather than entering the registration cache',()=>{
+ const d=device(database());d.root.VectaFleetImages.forJob=()=>({vehicle:{id:'internal-1',colour:'Blue'},drawing:{make:'AUDI',model:'A4',imageUrl:asset,manual:true}});
+ d.root.enrichHaynesDashboard(d.document,[{...job,registration:'',fleet_vehicle_id:'internal-1'}]);
+ const img=d.document.querySelector('img');assert.equal(img.dataset.haynesSource,asset);assert.equal(img.dataset.fleetArtworkId,'internal-1');assert.equal(img.dataset.colour,'Blue');assert.equal(d.lookups(),0);
 });

@@ -97,3 +97,8 @@ button.fleetVehicleImage{cursor:pointer}button.fleetVehicleImage:hover,button.fl
  .fleetPanel .fleetTableHead>:nth-child(4),.fleetPanel .fleetRow>:nth-child(4){grid-column:4}
  .fleetPanel .fleetTableHead>:nth-child(5),.fleetPanel .fleetRow>:nth-child(5){grid-column:5}
 }
+
+.fleetStoredImages{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;max-height:260px;overflow:auto;margin:12px 0}.fleetStoredImageChoice{display:flex;flex-direction:column;align-items:center;gap:5px;background:#f8fafc;border:1px solid #cbd5e1;border-radius:10px;padding:8px;font-size:12px;color:#111827}.fleetStoredImageChoice[aria-pressed="true"]{border:2px solid #2563eb;background:#eff6ff}.fleetStoredImageChoice>span:first-child{width:100%;height:85px;display:flex;align-items:center;justify-content:center}.fleetStoredImageChoice img,.fleetStoredImageChoice svg{width:100%;height:85px;object-fit:contain}.fleetColourPicker [data-image-search]{display:block;width:100%;box-sizing:border-box;margin-top:5px;padding:10px;border:1px solid #cbd5e1;border-radius:8px}.fleetColourPicker [data-save-image]{width:100%;padding:12px}
+
+.fleetColourPicker{max-height:90vh;overflow:auto;box-sizing:border-box}.fleetColourPicker [data-image-search]{font-size:16px}
+.fleetColourPreview img{display:block;width:100%;height:100%;object-fit:contain}

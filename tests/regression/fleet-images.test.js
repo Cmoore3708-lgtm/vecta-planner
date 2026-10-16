@@ -5,7 +5,7 @@ import vm from 'node:vm';
 import {parseHTML} from 'linkedom';
 const source=fs.readFileSync(new URL('../../public/js/vecta-fleet-images.js',import.meta.url),'utf8');
 const url='https://www.haynespro-assets.com/workshop/images/319004648.svgz';
-function setup(vehicles,tools={},saved=true,offscreen=false){const {window}=parseHTML('<html><body>'+vehicles.map(v=>'<button data-fleet-image="'+v.id+'"></button>').join('')+'</body></html>');for(const cell of window.document.querySelectorAll('[data-fleet-image]'))cell.getBoundingClientRect=()=>({top:offscreen?1200:10,bottom:offscreen?1240:50,width:100,height:40});let observer;let calls=0;const root={innerHeight:800,__vectaFleetState:()=>({vehicles,save:async()=>{calls++;return saved},render:()=>{}}),VectaHaynesJobTools:{safeImage:x=>x===url?x:'',...tools}};vm.runInNewContext(source,{window:root,document:window.document,MutationObserver:class{constructor(callback){observer=callback}observe(){}},setTimeout,queueMicrotask});return {api:root.VectaFleetImages,document:window.document,calls:()=>calls,root,observe:records=>observer(records)};}
+function setup(vehicles,tools={},saved=true,offscreen=false){const {window}=parseHTML('<html><body>'+vehicles.map(v=>'<button data-fleet-image="'+v.id+'"></button>').join('')+'</body></html>');for(const cell of window.document.querySelectorAll('[data-fleet-image]'))cell.getBoundingClientRect=()=>({top:offscreen?1200:10,bottom:offscreen?1240:50,width:100,height:40});let observer;let calls=0;const root={innerHeight:800,__vectaFleetState:()=>({vehicles,save:async()=>{calls++;return saved},render:()=>{}}),VectaHaynesJobTools:{safeImage:x=>x===url?x:'',...tools}};vm.runInNewContext(source,{window:root,document:window.document,MutationObserver:class{constructor(callback){observer=callback}observe(){}},setTimeout,queueMicrotask,CSS:{escape:v=>v}});return {api:root.VectaFleetImages,document:window.document,calls:()=>calls,root,observe:records=>observer(records)};}
 test('matched Haynes images render via live state bridge, with colour preserved',async()=>{const v={id:'internal',fleetGroup:'Nissan Internal',model:'Qashqai'};const {api,document,calls}=setup([v],{genericImage:()=>({imageUrl:url})});assert.equal(document.querySelector('img').src,url);assert.equal(document.querySelector('svg'),null);await api.saveColour('internal','Blue');api.mount();assert.equal(calls(),1);assert.equal(document.querySelector('img').dataset.colour,'Blue');});
 test('road vehicle lookup populates the same-model internal image without looking up an internal registration',async()=>{const regs=[];const vehicles=[{id:'internal',fleetGroup:'Nissan Internal',registration:'MTC 2',model:'NV 200'},{id:'pool',fleetGroup:'Nissan Pool Cars',registration:'VN68 FPJ',model:'NV200'}];const {document}=setup(vehicles,{lookup:async reg=>{regs.push(reg);return {imageUrl:url}}});await new Promise(r=>setTimeout(r,10));assert.deepEqual(regs,['VN68 FPJ']);assert.equal(document.querySelectorAll('img').length,2);});
 test('unmatched on-site equipment uses a local cart fallback without a registration lookup',async()=>{let lookups=0;const {document}=setup([{id:'internal',fleetGroup:'Nissan Internal',registration:'TCS 1',model:'Golf Buggy'}],{lookup:async()=>{lookups++}});await new Promise(r=>setTimeout(r,10));assert.equal(lookups,0);assert.equal(document.querySelector('img'),null);assert.match(document.querySelector('svg').getAttribute('aria-label'),/Golf Buggy/);assert.equal(document.querySelector('svg g').getAttribute('transform'),'translate(210 0) scale(-1 1)');});
@@ -50,3 +50,24 @@ test('large visible fleets paint in small batches and stop detached generations'
  const {api}=setup([v],{snapshot:()=>({model:'NV200 Evalia (M20)',imageUrl:url})});
  assert.equal(api.drawingFor(v).imageUrl,url);
  });
+
+ test('manual artwork and colour are saved per internal vehicle, including blank registrations',async()=>{
+ const a={id:'a',registration:'',fleetGroup:'Nissan Internal',model:'Internal car'},b={id:'b',registration:'',fleetGroup:'Nissan Internal',model:'Internal car'};
+ const drawing={make:'Nissan',model:'Qashqai',imageUrl:url};const {api,calls}=setup([a,b],{storedArtwork:()=>[drawing]});
+ await api.saveArtwork('a',drawing,'Red');assert.equal(calls(),1);assert.equal(api.drawingFor(a).imageUrl,url);assert.equal(a.colour,'Red');assert.equal(b.artwork,undefined);assert.equal(b.colour,undefined);
+ const reload=setup([JSON.parse(JSON.stringify(a)),b],{storedArtwork:()=>[]});assert.equal(reload.api.drawingFor(a).imageUrl,url);
+ await assert.rejects(api.saveArtwork('b',{...drawing,imageUrl:'https://evil.example/a.svg'},'Blue'));
+ });
+
+test('internal image picker previews a stored car and colour before saving both',async()=>{
+ const v={id:'blank',registration:'',fleetGroup:'Nissan Internal',model:'Internal car'};const drawing={make:'Nissan',model:'Qashqai',imageUrl:url};const {api,document,calls}=setup([v],{storedArtwork:()=>[drawing]});
+ const create=document.createElement.bind(document);document.createElement=name=>{const node=create(name);if(name==='dialog')node.showModal=()=>{};return node;};
+ await api.openArtwork('blank');const dialog=document.querySelector('dialog');assert.ok(dialog);assert.equal(calls(),0);
+ dialog.querySelector('.fleetStoredImageChoice').onclick();dialog.querySelector('[data-colour="Blue"]').onclick();assert.equal(calls(),0);assert.equal(dialog.querySelector('[data-colour="Blue"]').getAttribute('aria-pressed'),'true');
+ await dialog.querySelector('[data-save-image]').onclick();assert.equal(calls(),1);assert.equal(v.artwork.imageUrl,url);assert.equal(v.colour,'Blue');assert.equal(document.querySelector('dialog'),null);
+});
+
+test('planner artwork resolves a blank registration by fleet ID without mixing internal cars',()=>{
+ const a={id:'a',fleetGroup:'Nissan Internal',registration:'',artwork:{imageUrl:url}},b={id:'b',fleetGroup:'Nissan Internal',registration:''};const {api}=setup([a,b]);
+ assert.equal(api.forJob({fleet_vehicle_id:'a'}).drawing.imageUrl,url);assert.equal(api.forJob({registration:''}),null);assert.equal(api.forJob({vehicle_id:'b'}).drawing,null);
+});
