@@ -8,7 +8,7 @@ import traverseModule from '@babel/traverse';
 const traverse=traverseModule.default||traverseModule;
 const source=readFileSync(new URL('../../public/js/haynes-job-tools.js',import.meta.url),'utf8');
 const vehicle={registration:'FX69XWU',make:'Nissan',model:'Qashqai',variant:'1.7 dCi',typeId:'t_301000368',imageUrl:'https://www.haynespro-assets.com/workshop/images/123.svg',fetchedAt:new Date().toISOString()};
-function setup(fetcher,artwork,identities){const {window,document}=parseHTML('<html><body><div id="modal"><div class="jobModalHead"><h2>Edit Job</h2><div class="jobModalHeadActions"><button>Close</button></div></div><section class="jobVehicleSection"><input id="job_registration" value="FX69 XWU"><input id="job_make" value="Nissan"><input type="checkbox" id="job_no_vehicle"></section><div class="jobCardSections"><section class="jobWorkSection"></section><section class="jobPreviousWorkSection"></section><section class="jobContactSection"></section><section class="jobBookingSection"></section><section class="jobFormSection"><div class="jobPartsEditor"></div></section><section class="privatePricingSection"></section></div><button id="save">Save</button></div></body></html>');delete window.VectaVehicleImage;delete window.app;delete window.fleetVehicles;window.fetch=fetcher;if(identities)window.localStorage={getItem:key=>key==='vecta_haynes_vehicle_identity_v1'?JSON.stringify(identities):null,setItem(){}};window.VectaFleetImages={artwork};vm.runInNewContext(source,{window,document,AbortController,AbortSignal,setTimeout,clearTimeout,encodeURIComponent});window.initHaynesJobTools(document.querySelector('#modal'));return {window,document,panel:document.querySelector('.haynesJobTools')};}
+function setup(fetcher,artwork,identities,explicitLookup=true){const {window,document}=parseHTML('<html><body><div id="modal"><div class="jobModalHead"><h2>Edit Job</h2><div class="jobModalHeadActions"><button>Close</button></div></div><section class="jobVehicleSection"><input id="job_registration" value="FX69 XWU"><input id="job_make" value="Nissan"><input type="checkbox" id="job_no_vehicle"></section><div class="jobCardSections"><section class="jobWorkSection"></section><section class="jobPreviousWorkSection"></section><section class="jobContactSection"></section><section class="jobBookingSection"></section><section class="jobFormSection"><div class="jobPartsEditor"></div></section><section class="privatePricingSection"></section></div><button id="save">Save</button></div></body></html>');delete window.VectaVehicleImage;delete window.app;delete window.fleetVehicles;window.fetch=fetcher;if(identities)window.localStorage={getItem:key=>key==='vecta_haynes_vehicle_identity_v1'?JSON.stringify(identities):null,setItem(){}};window.VectaFleetImages={artwork};vm.runInNewContext(source,{window,document,AbortController,AbortSignal,setTimeout,clearTimeout,encodeURIComponent});window.initHaynesJobTools(document.querySelector('#modal'));if(explicitLookup)document.querySelector('.haynesJobTools button').onclick();return {window,document,panel:document.querySelector('.haynesJobTools')};}
 const response=v=>({ok:true,json:async()=>({status:'MATCHED',vehicle:v})});
 test('vehicle details sit below the single editable header registration',async()=>{
  const {window,document}=setup(async()=>response(vehicle));
@@ -90,8 +90,8 @@ test('actual job-editor integration passes a defined modal element to Haynes too
   const ast=parse(match[1],{sourceType:'script'});traverse(ast,{CallExpression(path){const c=path.node.callee;if(c.type!=='MemberExpression'||c.property.name!=='initHaynesJobTools')return;calls++;const arg=path.node.arguments[0];assert.equal(arg.type,'Identifier');const binding=path.scope.getBinding(arg.name);assert.ok(binding,'Job-card integration uses undefined '+arg.name);assert.equal(binding.path.node.init?.callee?.property?.name,'getElementById');assert.equal(binding.path.node.init.arguments[0].value,'jobModal');}});
  }assert.equal(calls,1);
 });
-test('opening an existing job automatically looks up and displays its image without a separate click',async()=>{
- let requests=0;const {panel}=setup(async()=>{requests++;return response(vehicle);});await new Promise(r=>setImmediate(r));assert.equal(requests,1);assert.equal(panel.querySelector('img')?.src,vehicle.imageUrl);assert.match(panel.textContent,/Open this vehicle/);
+test('an explicit vehicle lookup displays its image',async()=>{
+ let requests=0;const {panel}=setup(async()=>{requests++;return response(vehicle);});await new Promise(r=>setImmediate(r));assert.equal(requests,1);assert.equal(panel.querySelector('img')?.src,'/api/haynes-image?asset=123.svg&format=svg');assert.match(panel.textContent,/Open this vehicle/);
 });
 test('real mobile and desktop planner cards reuse the same saved vehicle image',async()=>{
  let requests=0;const {window,document}=setup(async()=>{requests++;return response(vehicle);});await new Promise(r=>setImmediate(r));
@@ -209,12 +209,12 @@ test('timed text follows the rendered car width after loading, resizing and artw
  delete window.ResizeObserver;
 });
 
-test('job header shows supplier artwork, falls back on image failure and hides for no-vehicle jobs',async()=>{
+test('job header retains saved artwork on image failure and hides for no-vehicle jobs',async()=>{
  const {document}=setup(async()=>response(vehicle),(name,colour)=>'<svg aria-label="Generic '+name+'" data-colour="'+colour+'"></svg>');
  await new Promise(r=>setImmediate(r));
  const picture=document.querySelector('.jobCardHeaderVehicle');assert.ok(picture.parentElement.classList.contains('hasJobCardVehicle'));assert.ok(picture.parentElement.classList.contains('hasHeaderVehicleDetails'));
  const img=picture.querySelector('img');assert.equal(img.src,vehicle.imageUrl);assert.equal(img.dataset.registration,'FX69XWU');
- img.onerror();assert.ok(picture.querySelector('svg'));assert.equal(picture.querySelector('img'),null);
+ img.onerror();assert.equal(picture.querySelector('svg'),null);assert.equal(picture.querySelector('img'),img);
  const noVehicle=document.querySelector('#job_no_vehicle');noVehicle.checked=true;noVehicle.dispatchEvent(new document.defaultView.Event('change'));assert.equal(picture.hidden,true);
 });
 
@@ -284,10 +284,15 @@ test('new job header reuses permanent matched artwork after the daily lookup cac
  const img=document.querySelector('.jobCardHeaderVehicle img');
  assert.ok(img);assert.equal(img.src,vehicle.imageUrl);assert.equal(img.dataset.registration,vehicle.registration);assert.equal(requests,0);
 });
-test('Irish plate typing does not submit WGZ73; the complete WGZ7396 is submitted',async()=>{
+test('typing a registration never submits a decorative lookup; the explicit button uses the complete Irish plate',async()=>{
  const calls=[],s=setup(async url=>{calls.push(url);return response(vehicle);});await new Promise(r=>setImmediate(r));calls.length=0;
  const input=s.document.querySelector('#job_registration');input.value='WGZ73';input.dispatchEvent(new s.window.Event('input'));
  await new Promise(r=>setTimeout(r,800));assert.equal(calls.length,0);
  input.value='WGZ7396';input.dispatchEvent(new s.window.Event('input'));
- await new Promise(r=>setTimeout(r,800));assert.equal(calls.length,1);assert.match(calls[0],/reg=WGZ7396/);
+ await new Promise(r=>setTimeout(r,800));assert.equal(calls.length,0);await s.panel.querySelector('button').onclick();assert.equal(calls.length,1);assert.match(calls[0],/reg=WGZ7396/);
+});
+
+test('opening and editing a job never starts a decorative lookup when no image is cached',async()=>{
+ let calls=0;const s=setup(async()=>{calls++;return response(vehicle);},undefined,undefined,false);await new Promise(r=>setImmediate(r));assert.equal(calls,0);
+ const input=s.document.querySelector('#job_registration');input.value='J321 WPC';input.dispatchEvent(new s.window.Event('change'));await new Promise(r=>setTimeout(r,800));assert.equal(calls,0);
 });

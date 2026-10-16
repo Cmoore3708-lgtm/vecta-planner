@@ -1,4 +1,6 @@
-export function createVehicleLookup({fetch: request = (...args) => fetch(...args), env = process.env, now = Date.now, tokenTimeout = 4000, motTimeout = 8000, taxTimeout = 4000, maxInFlight = 64} = {}) {
+import {waitUntil} from '@vercel/functions';
+import {saveVehicleColour} from '../lib/haynes-shared-artwork.js';
+export function createVehicleLookup({fetch: request = (...args) => fetch(...args), env = process.env, now = Date.now, tokenTimeout = 4000, motTimeout = 8000, taxTimeout = 4000, maxInFlight = 64, onColour = null} = {}) {
 let tokenCache = { accessToken: '', expiresAt: 0 };
 let tokenPending = null;
 const pendingVehicles = new Map();
@@ -186,8 +188,9 @@ async function handler(req, res) {
     pending.finally(() => {if(pendingVehicles.get(registration)===pending)pendingVehicles.delete(registration);});
   }
   const result = await pending;
+  if(result.status===200&&onColour){try{onColour(result.body);}catch{ /* Optional artwork storage must not fail an MOT lookup. */ }}
   return res.status(result.status).json(structuredClone(result.body));
 }
 return handler;
 }
-export default createVehicleLookup();
+export default createVehicleLookup({onColour:data=>waitUntil(saveVehicleColour(data))});

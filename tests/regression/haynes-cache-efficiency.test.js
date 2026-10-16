@@ -96,7 +96,7 @@ test('dashboard personalisation uses a local image until stored supplier artwork
  document.body.innerHTML='<div class="unallocatedSideJob" data-open-unallocated="1"></div><div class="unallocatedSideJob quoteCard" data-open-job="2"></div>';
  root.enrichHaynesDashboard(document,[{...vehicle,id:'1',colour:'Blue'},{...vehicle,id:'2',colour:'Blue',status:'quote'}]);
  const images=[...document.querySelectorAll('img')];assert.equal(images.length,2);
- for(const img of images){assert.equal(img.dataset.vehicleSource,asset);assert.match(img.src,/^data:image\/svg/);assert.equal(img.dataset.registration,vehicle.registration);}
+ for(const img of images){assert.equal(img.dataset.vehicleSource,asset);assert.match(img.src,/^\/api\/haynes-image\?asset=/);assert.equal(img.dataset.registration,vehicle.registration);}
  assert.equal(mounted,images[1]);
 });
 
@@ -105,5 +105,5 @@ test('job header personalisation also avoids a direct supplier image request',()
  root.VectaVehicleImage.mount=target=>{mounted=target.querySelector('img');};tools.remember(vehicle);
  document.body.innerHTML='<div id="modal"><div class="jobModalHead"><h2>Edit job</h2></div><section class="jobVehicleSection"><input id="job_registration" value="AB12CDE"><input id="job_make" value="Nissan"><input id="job_model" value="Navara"></section></div>';
  root.initHaynesJobTools(document.querySelector('#modal'));
- assert.equal(mounted.dataset.vehicleSource,asset);assert.match(mounted.src,/^data:image\/svg/);
+ assert.equal(mounted.dataset.vehicleSource,asset);assert.match(mounted.src,/^\/api\/haynes-image\?asset=/);
 });

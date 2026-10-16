@@ -129,3 +129,19 @@ test('manual internal artwork stays on the linked fleet record rather than enter
  d.root.enrichHaynesDashboard(d.document,[{...job,registration:'',fleet_vehicle_id:'internal-1'}]);
  const img=d.document.querySelector('img');assert.equal(img.dataset.haynesSource,asset);assert.equal(img.dataset.fleetArtworkId,'internal-1');assert.equal(img.dataset.colour,'Blue');assert.equal(d.lookups(),0);
 });
+
+test('the real Fleet renderer retains the Hilux despite its longer job/fleet trim description',async()=>{
+ const hilux={registration:'J321WPC',make:'TOYOTA',model:'Hilux (GUN; GGN; LAN)',imageUrl:'https://www.haynespro-assets.com/workshop/images/319009548.svgz'};
+ const db=database(new Map([['vehicle_artwork:J321WPC',hilux]])),d=device(db);await d.root.VectaHaynesJobTools.hydrateSharedArtwork();
+ const vehicle={id:'hilux',registration:'J321 WPC',make:'TOYOTA',model:'HILUX INVINCIB X D-4D4WD DCB A'};
+ d.root.innerHeight=800;d.root.__vectaFleetState=()=>({vehicles:[vehicle]});
+ const cell=d.document.createElement('span');cell.dataset.fleetImage='hilux';cell.getBoundingClientRect=()=>({top:10,bottom:70,width:100,height:60});d.document.body.appendChild(cell);
+ vm.runInNewContext(fs.readFileSync(new URL('../../public/js/vecta-fleet-images.js',import.meta.url),'utf8'),{window:d.root,document:d.document,MutationObserver:class{observe(){}},setTimeout,queueMicrotask});
+ assert.equal(d.root.VectaFleetImages.drawingFor(vehicle).imageUrl,hilux.imageUrl);assert.equal(cell.querySelector('img').dataset.vehicleSource,hilux.imageUrl);assert.equal(d.lookups(),0);
+ for(let i=0;i<5;i++)d.root.VectaFleetImages.mount();assert.equal(d.lookups(),0);
+});
+test('shared colour is reused on a new device and survives offline reopening',async()=>{
+ const db=database(new Map([['vehicle_colour:AB12CDE',{registration:'AB12CDE',make:'NISSAN',colour:'Blue'}]])),first=device(db);await first.root.VectaHaynesJobTools.hydrateSharedArtwork();
+ assert.equal(first.root.VectaHaynesJobTools.dashboardColour({registration:'AB12CDE',make:'NISSAN'}),'Blue');
+ const offline=device(db,first.storage);offline.root.navigator.onLine=false;assert.equal(offline.root.VectaHaynesJobTools.dashboardColour({registration:'AB12CDE',make:'NISSAN'}),'Blue');assert.equal(offline.lookups(),0);
+});
