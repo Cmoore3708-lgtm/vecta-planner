@@ -34,6 +34,7 @@ try{for(const v of JSON.parse(root.localStorage?.getItem(ID_KEY)||'[]'))remember
 const ART_KEY='vecta_haynes_artwork_v1',artwork=new Map();
 const SHARED_ART_PREFIX='vehicle_artwork:',sharedArtwork=new Map(),sharedWrites=new Map(),sharedRefresh=new WeakMap();
 let sharedClient=null,sharedLoading=null,sharedSaving=null,sharedTimer=null,sharedRetryAt=0,sharedReadAt=0;
+function workshopClient(){return typeof root.__vectaWorkshopClient==='function'?root.__vectaWorkshopClient():root.remoteClient;}
 async function sharedArtworkResponse(request){
  let timer;try{return await Promise.race([request,new Promise((_,reject)=>{timer=setTimeout(()=>reject(new Error('Shared artwork timeout')),10000);})]);}finally{clearTimeout(timer);}
 }
@@ -42,7 +43,7 @@ function cleanArtwork(v){
  return {registration:reg(v.registration),make:String(v.make).slice(0,100),model:String(v.model).slice(0,180),imageUrl:image(v.imageUrl),...(root.VectaVehicleImage?.colourHex(v.colour)?{colour:v.colour}:{}),...(v.generic?{generic:true}:{})};
 }
 function queueSharedArtwork(v,{replace=false}={}){
- const client=root.remoteClient,clean=cleanArtwork(v);
+ const client=workshopClient(),clean=cleanArtwork(v);
  if(!client||client!==sharedClient||root.VECTA_AUDIT_PREVIEW||!clean)return;
  const saved=sharedArtwork.get(clean.registration);
  if(!clean.colour&&saved?.colour)clean.colour=saved.colour;
@@ -53,7 +54,7 @@ function queueSharedArtwork(v,{replace=false}={}){
  if(!sharedTimer&&!sharedSaving&&Date.now()>=sharedRetryAt)sharedTimer=setTimeout(()=>{sharedTimer=null;flushSharedArtwork();},100);
 }
 function flushSharedArtwork(){
- const client=root.remoteClient;
+ const client=workshopClient();
  if(sharedSaving)return sharedSaving;
  if(!client||client!==sharedClient||root.navigator?.onLine===false||root.VECTA_AUDIT_PREVIEW||!sharedWrites.size||Date.now()<sharedRetryAt)return Promise.resolve(false);
  const batch=[...sharedWrites.values()],stamp=new Date().toISOString();
@@ -66,7 +67,7 @@ function flushSharedArtwork(){
  return sharedSaving;
 }
 function hydrateSharedArtwork({refresh=false}={}){
- const client=root.remoteClient;
+ const client=workshopClient();
  if(!client||root.VECTA_AUDIT_PREVIEW||root.navigator?.onLine===false||sharedClient===client&&(!refresh||Date.now()-sharedReadAt<60000)||Date.now()<sharedRetryAt)return null;
  if(sharedLoading)return sharedLoading;
  sharedReadAt=Date.now();
