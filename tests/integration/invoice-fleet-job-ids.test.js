@@ -10,7 +10,7 @@ test('new standard invoice sends empty fleet_job_ids to the RPC',async()=>{
  let sent;
  const client={rpc(_name,args){sent=args.p_invoice;return {abortSignal(){return Promise.resolve({data:{invoice:{...sent,invoice_number:'VECTA-90001'}}})}}}};
  const saved=await load().create(client,{...base,fleet_job_ids:null},'VECTA');
- assert.deepEqual(sent.fleet_job_ids,[]);
+ assert.deepEqual(Array.from(sent.fleet_job_ids),[]);
  assert.equal(saved.total,12);
 });
 test('editing standard invoice sends empty fleet_job_ids rather than null',async()=>{
@@ -19,12 +19,12 @@ test('editing standard invoice sends empty fleet_job_ids rather than null',async
  const query={update(payload){sent=payload;return this},eq(){return this},is(){return this},select(){return this},maybeSingle(){return this},abortSignal(){return Promise.resolve({data:{...row,...sent}})}};
  const client={from(name){assert.equal(name,'invoices');return query}};
  const saved=await load().edit(client,row);
- assert.deepEqual(sent.fleet_job_ids,[]);
+ assert.deepEqual(Array.from(sent.fleet_job_ids),[]);
  assert.equal(saved.total,12);
 });
 test('fleet invoices retain their linked job IDs',async()=>{
  let sent;
  const client={rpc(_name,args){sent=args.p_invoice;return {abortSignal(){return Promise.resolve({data:{invoice:{...sent,invoice_number:'VECTA-90001'}}})}}}};
  await load().create(client,{...base,fleet_job_ids:['fleet-job-1']},'VECTA');
- assert.deepEqual(sent.fleet_job_ids,['fleet-job-1']);
+ assert.deepEqual(Array.from(sent.fleet_job_ids),['fleet-job-1']);
 });
