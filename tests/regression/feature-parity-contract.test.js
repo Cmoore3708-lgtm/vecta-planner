@@ -43,7 +43,7 @@ test('planner retains its operational controls',()=>{
     /id="todayBtn"/,
     /id="newJobTop"/,
     /id="newTaskTop"/,
-    /id="printBtn"/,
+    /id="newQuoteTop"/,
     /function bindDrag\(/,
     /function bindResize\(/,
     /function bindLane\(/,
