@@ -15128,11 +15128,58 @@ function prepareLinkedCustomerVehicleLocal(j){
   }
   return result;
 }
+/* Resolve the registration against Supabase before inserting a vehicle. The
+   local cache can be stale or use a different UUID for an existing registration. */
+async function vectaSaveLinkedVehicleWithoutDuplicate(j,linked){
+  if(!linked||!linked.vehicle)return;
+  if(!remoteClient||!navigator.onLine){
+    await upsertRemote('vehicles',linked.vehicle,{silent:true});
+    return;
+  }
+  var reg=normReg(linked.vehicle.registration||j.registration||'');
+  if(!reg){await upsertRemote('vehicles',linked.vehicle,{silent:true,skipQueue:true});return;}
+  async function existingVehicle(){
+    var variants=[reg];
+    if(reg.length===7)variants.push(reg.slice(0,4)+' '+reg.slice(4));
+    var response=await remoteClient.from('vehicles').select('id,registration').in('registration',variants).limit(10);
+    if(response.error)throw response.error;
+    return (response.data||[]).find(function(v){return normReg(v.registration||'')===reg})||null;
+  }
+  var canonical=await existingVehicle();
+  if(!canonical){
+    try{
+      await upsertRemote('vehicles',linked.vehicle,{silent:true,skipQueue:true});
+    }catch(error){
+      /* A second browser may have inserted the same registration after our
+         lookup. Re-read and reuse that record, never delete it. */
+      if(String(error&&error.code||'')!=='23505'&&!/vehicles_registration_key|duplicate key value/i.test(String(error&&error.message||'')))throw error;
+      canonical=await existingVehicle();
+      if(!canonical)throw error;
+    }
+  }
+  if(canonical){
+    j.vehicle_id=canonical.id;
+    linked.vehicle.id=canonical.id;
+    linked.vehicle.registration=canonical.registration;
+    /* Replace only the temporary local ID. Never overwrite the stored
+       vehicle's maintenance, customer or historical fields. */
+    var rows=app.vehicles||[],matching=rows.filter(function(v){return normReg(v.registration||'')===reg});
+    if(matching.length){
+      var survivor=matching.find(function(v){return String(v.id)===String(canonical.id)})||matching[0];
+      survivor.id=canonical.id;
+      survivor.registration=canonical.registration;
+      app.vehicles=rows.filter(function(v){return normReg(v.registration||'')!==reg||v===survivor});
+    }
+    var localJob=(app.jobs||[]).find(function(x){return String(x.id)===String(j.id)});
+    if(localJob)localJob.vehicle_id=canonical.id;
+    saveLocal();
+  }
+}
 async function syncSavedJobBundleInBackground(j,linked,previous){
   if(!j)return false;
   try{
     if(linked&&linked.customer)await upsertRemote('customers',linked.customer,{silent:true});
-    if(linked&&linked.vehicle)await upsertRemote('vehicles',linked.vehicle,{silent:true});
+    if(linked&&linked.vehicle)await vectaSaveLinkedVehicleWithoutDuplicate(j,linked);
     if(!remoteClient||!navigator.onLine){
       queueRemoteOperation('upsert','jobs',Object.assign({},j));
       return 'queued';
