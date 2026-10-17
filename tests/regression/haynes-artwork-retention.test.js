@@ -78,3 +78,19 @@ test('MTC2 retains its chosen image after the donor model cache disappears',asyn
  assert.equal(next.document.querySelector('img').dataset.haynesSource,van.imageUrl);
  assert.equal(next.calls(),0);
 });
+
+test('manual artwork survives reopening, model mismatch and subsequent automatic lookups',async()=>{
+ const storage=new Map(),{window}=setup(storage),tools=window.VectaHaynesJobTools;let row;
+ window.__vectaWorkshopClient=()=>({from:()=>({upsert:async value=>{row=value;return {error:null}}})});
+ await tools.saveManualArtwork({...car,model:'Selected body',colour:'Blue'});
+ assert.equal(row.value.manual,true);assert.equal(row.value.typeId,undefined);
+ tools.remember({...car,imageUrl:'https://www.haynespro-assets.com/workshop/images/456.svgz'});
+ assert.equal(tools.artworkSnapshot(car.registration,'Kia','Picanto').imageUrl,car.imageUrl);
+ const reopened=setup(storage).window.VectaHaynesJobTools;
+ assert.equal(reopened.storedDrawing({registration:car.registration,make:'Kia',model:'Picanto'}).manual,true);
+});
+test('failed manual saves leave the existing shared image intact',async()=>{
+ const {window}=setup(new Map()),tools=window.VectaHaynesJobTools;
+ window.__vectaWorkshopClient=()=>({from:()=>({upsert:async()=>({error:{message:'offline'}})})});
+ await assert.rejects(tools.saveManualArtwork(car),/could not be saved/);assert.equal(tools.artworkSnapshot(car.registration),null);
+});
