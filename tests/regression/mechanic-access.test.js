@@ -4,6 +4,7 @@ import fs from 'node:fs';
 import {mechanicAuthorised,mechanicCookie,mechanicGate} from '../../lib/mechanic-auth.js';
 import {managerGate,validManagerSession,managerSessionCookie} from '../../middleware.js';
 import {createMechanicHandler,MECHANIC_FIELDS} from '../../lib/mechanic-jobs.js';
+import configHandler from '../../api/supabase-config.js';
 
 const credentials={user:'mechanic',password:'test-only-mechanic-password'};
 const manager={user:'manager',password:'different-manager-password'};
@@ -42,6 +43,13 @@ test('anonymous and Main-only clients never reach the mechanics database',()=>wi
  let called=0;const api=handler(async()=>{called++;throw Error('Should not query');});
  for(const authorization of ['',basic(manager),'Basic !!!']){const res=response();await api(req({headers:{authorization}}),res);assert.equal(res.code,401);}
  assert.equal(called,0);
+}));
+test('existing server function dispatches the mechanic route without issuing Main sessions',()=>withEnv(async()=>{
+ const res=response();await configHandler(req({query:{action:'mechanic',date:'2026-10-17'},headers:{authorization:basic(manager)}}),res);
+ assert.equal(res.code,401);assert.equal(res.body.access_token,undefined);
+ assert.equal(fs.existsSync('api/mechanic.js'),false);
+ const config=JSON.parse(fs.readFileSync('vercel.json','utf8'));
+ assert.equal(config.rewrites.find(r=>r.source==='/api/mechanic').destination,'/api/supabase-config?action=mechanic');
 }));
 test('jobs reads select permitted columns and strip unexpected database fields',()=>withEnv(async()=>{
  let called=0;
