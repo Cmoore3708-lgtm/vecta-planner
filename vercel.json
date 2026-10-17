@@ -33,6 +33,10 @@
   },
   "rewrites": [
     {
+      "source": "/api/mechanic",
+      "destination": "/api/supabase-config?action=mechanic"
+    },
+    {
       "source": "/i/:code",
       "destination": "/api/additional-work?invoicePdf=1&code=:code"
     },
