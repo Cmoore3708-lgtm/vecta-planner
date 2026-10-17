@@ -17994,13 +17994,13 @@ try{var foot=document.querySelector('.sideFoot small');if(foot)foot.textContent=
 @media screen{
 .app{display:block!important;grid-template-columns:minmax(0,1fr)!important}
 .app>.main{width:100%;min-width:0;margin:0!important}
-.top:has(.plannerHeaderActions){display:grid!important;grid-template-columns:220px minmax(170px,1fr) 110px minmax(200px,1fr) 240px auto!important;grid-template-areas:"brand brand brand brand brand brand" "lookup search calendar date actions booked" "navigation navigation navigation navigation navigation navigation"!important;gap:10px!important;padding:12px 18px 0!important;overflow:visible!important;align-items:center!important;position:static!important}
+.top:has(.plannerHeaderActions){display:grid!important;grid-template-columns:260px minmax(170px,1fr) 110px minmax(180px,1fr) auto 240px!important;grid-template-areas:"brand brand brand brand brand brand" "lookup search calendar date booked actions" "navigation navigation navigation navigation navigation navigation"!important;gap:10px!important;padding:12px 18px 0!important;overflow:visible!important;align-items:center!important;position:static!important}
 .top .workshopHeaderBrand{grid-area:brand;display:flex;align-items:center;gap:16px;padding:0 0 10px;border-bottom:1px solid #314156;min-width:0}
-.workshopHeaderBrand img{width:200px;height:56px;object-fit:contain;object-position:left center}
-.workshopHeaderBrand span{font-size:22px;font-weight:750;letter-spacing:.025em;color:#f4f7fc;border-left:1px solid #536174;padding-left:16px}
+.workshopHeaderBrand img{width:240px;height:67px;object-fit:contain;object-position:left center}
+.workshopHeaderBrand span{font-size:18px;font-weight:750;letter-spacing:.025em;color:#f4f7fc;border-left:1px solid #536174;padding-left:16px}
 .top #viewTitle{display:none!important}
 .top>.mobileCalendarBtn{grid-area:calendar!important;display:flex!important;position:relative;align-items:center;justify-content:center;width:100%!important;min-width:0!important;height:40px!important;margin:0!important;padding:0 6px!important;box-sizing:border-box!important;overflow:hidden}
-.top .haynesDashboardLookup{grid-area:lookup!important;width:220px!important;max-width:100%!important;min-width:0!important;margin:0!important;box-sizing:border-box!important}
+.top .haynesDashboardLookup{grid-area:lookup!important;width:260px!important;max-width:100%!important;min-width:0!important;margin:0!important;box-sizing:border-box!important}
 .top .haynesDashboardLookup input{width:0!important;min-width:0!important;flex:1!important;text-align:center;font-size:22px!important;letter-spacing:1px!important}
 .top:has(.plannerHeaderActions) .plannerGlobalSearchWrap{grid-area:search!important;width:100%!important;min-width:0!important;max-width:none!important;margin:0!important;box-sizing:border-box!important}
 .top .plannerGlobalSearchWrap input{width:100%!important;min-width:0!important;height:40px!important;font-size:13px!important;padding:0 10px!important;box-sizing:border-box!important}
@@ -18017,16 +18017,19 @@ try{var foot=document.querySelector('.sideFoot small');if(foot)foot.textContent=
 .top>.workshopTopNav button{flex:0 0 auto;white-space:nowrap;height:36px;padding:8px 14px!important;border-radius:6px!important;font-size:13px!important;line-height:20px}
 .top>.workshopTopNav button:focus-visible,.top button:focus-visible{outline:2px solid #b1d3ff;outline-offset:2px}
 @media(max-width:1250px) and (min-width:901px){
-.top:has(.plannerHeaderActions){grid-template-columns:220px minmax(180px,1fr) 240px!important;grid-template-areas:"brand brand brand" "lookup search actions" "calendar date booked" "navigation navigation navigation"!important}
+.top:has(.plannerHeaderActions){grid-template-columns:260px minmax(180px,1fr) 240px!important;grid-template-areas:"brand brand brand" "lookup search actions" "calendar date booked" "navigation navigation navigation"!important}
 .top>.mobileCalendarBtn{width:120px!important}
 }
 @media(max-width:900px){
-.top:has(.plannerHeaderActions){grid-template-columns:repeat(12,minmax(0,1fr))!important;grid-template-areas:"brand brand brand brand brand brand brand brand brand brand brand brand" "calendar calendar calendar date date date date date date date date date" "lookup lookup lookup lookup lookup lookup search search search search search search" "actions actions actions actions actions actions actions actions booked booked booked booked" "navigation navigation navigation navigation navigation navigation navigation navigation navigation navigation navigation navigation"!important;gap:8px!important;padding:10px 8px 0!important}
-.top .workshopHeaderBrand{gap:10px;padding-bottom:8px}.workshopHeaderBrand img{width:150px;height:43px}.workshopHeaderBrand span{font-size:18px;padding-left:10px}
+.top:has(.plannerHeaderActions){grid-template-columns:repeat(12,minmax(0,1fr))!important;grid-template-areas:"brand brand brand brand brand brand brand brand brand brand brand brand" "calendar calendar calendar date date date date date date booked booked booked" "lookup lookup lookup lookup lookup lookup lookup search search search search search" "actions actions actions actions actions actions actions actions actions actions actions actions" "navigation navigation navigation navigation navigation navigation navigation navigation navigation navigation navigation navigation"!important;gap:8px!important;padding:10px 8px 0!important}
+.top .workshopHeaderBrand{gap:10px;padding-bottom:8px}.workshopHeaderBrand img{width:180px;height:52px}.workshopHeaderBrand span{font-size:15px;padding-left:10px}
 .top #dashboardDayName{font-size:18px!important}
 .top .plannerHeaderActions>.btn,.top .plannerHeaderActions>.primary{font-size:12px!important;padding:0 6px!important}
 .top #dashboardBookedToday{height:32px!important;min-height:32px!important;min-width:0!important}
-.top .haynesDashboardLookup input{font-size:18px!important;letter-spacing:.5px!important}
+.top .haynesDashboardLookup input{font-size:23px!important;letter-spacing:.5px!important}
+.top .haynesDashboardLookup{width:100%!important;min-height:44px!important}
+.top #dashboardBookedToday{padding:6px!important;justify-content:center}
+.top #dashboardBookedToday strong{font-size:14px!important}
 .top>.workshopTopNav{flex-wrap:nowrap;overflow-x:auto!important;overscroll-behavior-x:contain;padding:7px 0}
 .top>.workshopTopNav button{padding:7px 11px!important}
 }
