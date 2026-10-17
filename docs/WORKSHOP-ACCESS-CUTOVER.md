@@ -13,9 +13,11 @@ This preserves the existing shared workshop permissions. It does not invent
 individual mechanic identities or change which workshop employee sees finance.
 Individual staff roles can be introduced separately with explicit requirements.
 
-The mechanic alias forwards to the current protected application rather than
-running the old anonymous standalone build. The same workshop credentials apply;
-devices may need to sign in once. No credentials are copied to that project.
+The mechanic alias previously forwarded to the full protected application using
+the same workshop credentials. The separate mechanics release in
+`deploy/mechanic-access/README.md` replaces that proxy with an explicit route
+allowlist, distinct login and restricted jobs API. It does not issue workshop JWTs
+to mechanics or change the manager boundary documented here.
 
 ## Ordered deployment
 

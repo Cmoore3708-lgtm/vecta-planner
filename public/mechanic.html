@@ -1,0 +1,21 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="robots" content="noindex,nofollow">
+  <meta name="referrer" content="same-origin">
+  <title>VECTA · Mechanics</title>
+  <link rel="stylesheet" href="/js/mechanic-app.css">
+  <script src="/js/mechanic-app.js" defer></script>
+</head>
+<body>
+  <header><div class="brand">VECTA<span>MECHANICS</span></div><span class="workspace">WORKSHOP PRO</span></header>
+  <main>
+    <div class="heading"><div><p class="eyebrow">THE WORKSHOP</p><h1>Your working day.</h1></div><div class="controls"><label>Booking date<input id="date" type="date"></label><label>Technician<select id="technician"><option value="">Everyone</option></select></label><button id="refresh" type="button">Refresh</button></div></div>
+    <p id="message" role="status" aria-live="polite">Loading today’s work…</p>
+    <section id="jobs" aria-label="Scheduled jobs"></section>
+    <footer>Work notes save to Workshop Pro. Final completion and invoicing are handled in Main.</footer>
+  </main>
+</body>
+</html>

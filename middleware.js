@@ -1,4 +1,5 @@
 import { next } from '@vercel/functions';
+import { mechanicGate, mechanicCookie } from './lib/mechanic-auth.js';
 
 // The public booking and approval pages share this deployment with Main.
 // The mechanic dashboard is a separate Vercel project and is unaffected.
@@ -111,6 +112,14 @@ export async function validManagerSession(request,credentials,now=Date.now()){
 }
 
 export default async function middleware(request) {
+  if(new URL(request.url).pathname==='/mechanic.html') {
+    const denied=await mechanicGate(request);
+    if(denied)return denied;
+    const response=next();
+    response.headers.set('Cache-Control','no-store');
+    response.headers.append('Set-Cookie',await mechanicCookie());
+    return response;
+  }
   if (isPublicWebsiteRequest(request)) return next();
   const credentials = {
     user: process.env.VECTA_MAIN_USER,
