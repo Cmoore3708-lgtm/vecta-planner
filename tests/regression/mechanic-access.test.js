@@ -64,6 +64,12 @@ test('saves use optimistic concurrency and update only notes, start status and t
  const res=response();await api(write({status:'in_progress'}),res);assert.equal(res.code,200);assert.equal(res.body.jobs[0].status,'in_progress');
  const stale=response();await handler(async()=>Response.json([]))(write({}),stale);assert.equal(stale.code,409);
 }));
+test('the two mechanics aliases can save through the explicit upstream proxy',()=>withEnv(async()=>{
+ for(const origin of ['https://vecta-mechanic-dashboard.vercel.app','https://vecta-mechanic-dashboard-vectaplanner.vercel.app']){
+  const request=write({});request.headers.origin=origin;
+  const res=response();await handler(async()=>Response.json([row]))(request,res);assert.equal(res.code,200);
+ }
+}));
 test('mechanics cannot change prices, allocation, completion, invoices or cross-site data',()=>withEnv(async()=>{
  let calls=0;const api=handler(async()=>{calls++;throw Error('Must not query');});
  for(const body of [{amount_quoted:0},{status:'completed'},{status:'ready_to_invoice'},{technician:'Anyone'},{completed_at:stamp},{technician_notes:'x'.repeat(10001)},{id:'x&select=*'}]){const res=response();await api(write(body),res);assert.equal(res.code,400);}
