@@ -144,7 +144,10 @@ root.initHaynesServiceSheet=async function(sheet,registration,kind){
    guidedFlow=data.menuFlow==='guided';
    if(data.kind==='manual_step'){status.textContent='Haynes needs a manual step.';body.textContent=data.message;return;}
    if(data.kind==='menu_choice') {
+    const repeatedNormal=menuChoices.some(c=>c.menu===data.menu.id);
     menuChoices=menuChoices.slice(0,data.resetFrom);panel.setAttribute('data-haynes-menu-choices',JSON.stringify(menuChoices));
+    const normal=data.menu.options.filter(o=>/^Normal conditions(?:\s*\(United Kingdom\))?$/i.test(o.label.trim()));
+    if(normal.length===1&&!repeatedNormal){menuChoices.push({menu:data.menu.id,option:normal[0].id});panel.setAttribute('data-haynes-menu-choices',JSON.stringify(menuChoices));period='';system='';return load();}
     status.textContent='HaynesPro needs a selection to continue.';
     body.innerHTML='<label class="ssHaynesSelect">'+esc(data.menu.label)+'<select data-next-menu aria-label="'+esc(data.menu.label)+'"><option value="">Choose an option…</option>'+data.menu.options.map(o=>'<option value="'+esc(o.id)+'">'+esc(o.label)+'</option>').join('')+'</select></label>';
     body.querySelector('[data-next-menu]').onchange=e=>{if(!e.target.value)return;menuChoices.push({menu:data.menu.id,option:e.target.value});panel.setAttribute('data-haynes-menu-choices',JSON.stringify(menuChoices));period='';system='';load();};return;

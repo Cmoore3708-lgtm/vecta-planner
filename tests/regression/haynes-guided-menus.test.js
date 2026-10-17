@@ -54,3 +54,19 @@ test('unsupported POST forms produce an explicit manual step instead of a guesse
  const result=await guidedMaintenance(page,{menuChoices:[]},vehicle,{pauseFor:async()=>{}});
  assert.equal(result.kind,'manual_step');assert.match(result.message,/form support/);
 });
+
+test('large menus expose every option in bounded ranges and replay the exact supplier selection',async()=>{
+ const options=Array.from({length:251},(_,i)=>({value:'ms_'+(i+1),label:'Schedule '+(i+1)}));
+ const menu={kind:'select',index:0,name:'large',label:'Service options',options};
+ function fixture(){let selected='';return {selected:()=>selected,page:{url:()=>selected?'https://www.workshopdata.com/touch/site/layout/maintenanceSchedule?typeId=t_318011818&maintenanceSystemId='+selected+'&maintenancePeriodId=mp_1':'https://www.workshopdata.com/touch/site/layout/modelDetail?typeId=t_318011818',evaluate:async fn=>fn.name==='readMaintenanceMenus'?{menus:selected?[]:[menu],unsupported:[]}:fn.name==='readSchedule'?{period:'mp_1',schedule:'Selected service',parts:[]}:[],locator:()=>({nth:()=>({selectOption:async({value})=>{selected=value;}})}),waitForLoadState:async()=>{}}};}
+ const input={registration:vehicle.registration,mileage:40000,menuFlow:'guided',menuChoices:[]};
+ let f=fixture(),result=await guidedMaintenance(f.page,input,vehicle,{pauseFor:async()=>{}});
+ assert.equal(result.kind,'menu_choice');assert.equal(result.menu.options.length,6);assert.equal(f.selected(),'');
+ assert.equal(serviceResult({...result,menuFlow:'guided',vehicle,mileage:40000},input).menu.options[0].child,undefined);
+ input.menuChoices.push({menu:result.menu.id,option:result.menu.options[4].id});
+ f=fixture();result=await guidedMaintenance(f.page,input,vehicle,{pauseFor:async()=>{}});
+ assert.equal(result.menu.options.length,50);assert.equal(result.menu.options[0].label,'Schedule 201');assert.equal(f.selected(),'');
+ input.menuChoices.push({menu:result.menu.id,option:result.menu.options[24].id});
+ f=fixture();result=await guidedMaintenance(f.page,input,vehicle,{pauseFor:async()=>{}});
+ assert.equal(f.selected(),'ms_225');assert.equal(result.system,'ms_225');
+});
