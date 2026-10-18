@@ -312,3 +312,10 @@
  #content .livePriorityPlanner .plannerGrid .lane .job.plannerMotJob .plannerJobRightText{height:18px!important;max-height:18px!important}
  #content .livePriorityPlanner .plannerGrid .lane .job.plannerMotJob .plannerWorkRequired{top:80px!important}
 }
+.requestCard .requestTop{display:grid;grid-template-columns:minmax(0,1fr) 160px;gap:12px;align-items:start}
+.requestCard .requestIdentity{min-width:0;grid-column:1;grid-row:1 / span 2;gap:8px}
+.requestCard .requestIdentity h3,.requestCard .requestIdentity p{overflow-wrap:anywhere}
+.requestCard .requestVehicleArtwork{grid-column:2;grid-row:1;width:160px;height:96px;display:flex;align-items:center;justify-content:flex-end}
+.requestCard .requestVehicleArtwork>.haynesDashboardImage{display:block;width:100%;height:100%;max-width:100%;margin:0;object-fit:contain;pointer-events:auto}
+.requestCard .requestStatus{grid-column:2;grid-row:2;justify-self:end}
+@media(max-width:600px){.requestCard .requestTop{grid-template-columns:minmax(0,1fr) 128px;gap:8px}.requestCard .requestVehicleArtwork{width:128px;height:88px}.requestCard .requestIdentity h3{font-size:16px}.requestCard .requestIdentity p{font-size:13px}}
