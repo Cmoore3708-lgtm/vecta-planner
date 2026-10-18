@@ -43,11 +43,14 @@ test('accepting a request reopens an existing linked job instead of duplicating 
 });
 
 test('manual acceptance closes the request only after the job is saved', () => {
-  const source = namedFunctionSource('createJobFromWebsiteRequest');
-  const jobSave = source.indexOf("await upsertRemote('jobs',j");
-  const requestClose = source.indexOf("var bookedResult=await remoteClient.from('website_booking_requests').update({status:'booked',job_id:j.id,confirmed_at:new Date().toISOString()})");
-  assert.ok(jobSave > -1 && requestClose > jobSave, 'job save must precede request closure');
-  assert.match(source, /bookedResult\.error[\s\S]*?app\.jobs=app\.jobs\.filter[\s\S]*?deleteRemote\('jobs',j\.id\)/);
+  const open = namedFunctionSource('createJobFromWebsiteRequest');
+  assert.match(open, /openWebsiteRequestJobCard\(r,j\)/);
+  assert.doesNotMatch(open, /upsertRemote|deleteRemote|\.update\(/);
+  const accept = namedFunctionSource('acceptWebsiteRequestJob');
+  assert.match(accept, /saveJob\(jobId,async function\(job\)/);
+  assert.match(accept, /result\.error\|\|!result\.data\|\|result\.data\.length!==1/);
+  const save = namedFunctionSource('saveJob');
+  assert.ok(save.indexOf('syncSavedJobBundleInBackground') < save.indexOf('await onConfirmed(j)'), 'server save must precede request closure');
 });
 
 test('public booking submissions cannot create or allocate planner jobs', () => {
