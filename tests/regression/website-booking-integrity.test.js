@@ -60,10 +60,10 @@ test('public booking submissions cannot create or allocate planner jobs', () => 
   assert.doesNotMatch(api, /rest\(url,key,'jobs','POST'/);
   assert.doesNotMatch(api, /job_id:/);
   assert.doesNotMatch(api, /technician:String\(b\.technician\)/);
-  assert.match(bookingPage, /Send booking request/);
-  assert.match(bookingPage, /Booking request received/);
-  assert.match(bookingPage, /will review your request and confirm whether the appointment can be accepted/);
-  assert.doesNotMatch(bookingPage, /Your booking is confirmed/);
+  assert.match(bookingPage, /Confirm booking/);
+  assert.match(bookingPage, /Booking confirmed/);
+  assert.match(bookingPage, /Your booking is confirmed/);
+  assert.doesNotMatch(bookingPage, /not yet confirmed|will review your request and confirm whether/);
 });
 
 test('website request deletion cannot delete customer, vehicle, job or invoice data', () => {
