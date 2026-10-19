@@ -6,9 +6,9 @@ import {parseHTML} from 'linkedom';
 const html=fs.readFileSync('website/booking/index.html','utf8');
 const esc=value=>String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 function calendar(form={}){const context=vm.createContext({state:{form:{registration:'AB12 CDE',vehicle:'Toyota Hilux',job_types:['MOT','Other'],work_required:'Rattle on braking',...form}},esc});vm.runInContext(html.slice(html.indexOf('function calendarEscape('),html.indexOf('async function submit(')),context);return context;}
-test('homepage reaches registration before the workshop photo and retains four choices',()=>{
+test('homepage leads with the workshop photo and retains four booking choices',()=>{
  const {document}=parseHTML(fs.readFileSync('website/index.html','utf8'));
- const hero=document.querySelector('.hero');assert.ok(hero.querySelector('.heroText .bookingRegForm'));assert.equal(hero.querySelector('.heroPhoto').previousElementSibling,hero.querySelector('.heroText'));
+ const hero=document.querySelector('.hero');assert.ok(hero.querySelector('.heroText .bookingRegForm'));assert.equal(hero.querySelector('.heroText').previousElementSibling,hero.querySelector('.heroPhoto'));
  assert.equal(hero.querySelectorAll('[data-home-type]').length,4);assert.equal(hero.querySelectorAll('.bookingRegForm').length,1);
 });
 test('progress labels identify the current step and completed steps at every stage',()=>{
