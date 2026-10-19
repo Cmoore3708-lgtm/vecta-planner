@@ -315,6 +315,16 @@ root.initHaynesJobTools=function(modal){
  panel.innerHTML='<button type="button" class="btn">Find vehicle in HaynesPro</button><span role="status" aria-live="polite"></span><div class="haynesJobVehicle"></div>';
  section.appendChild(panel);
  const button=panel.querySelector('button'),status=panel.querySelector('[role="status"]'),body=panel.querySelector('.haynesJobVehicle'),noVehicle=modal.querySelector('#job_no_vehicle');
+ // Keep the original controls and handlers while arranging the compact header.
+ const vehicleField=section.querySelector('#job_vehicle')?.closest('.field');if(vehicleField)vehicleField.hidden=true;
+ const due=section.querySelector('#jobVehicleDuePanel'),mileage=section.querySelector('#job_mileage')?.closest('.field');
+ if(due&&mileage){const facts=document.createElement('div');facts.className='jobVehicleQuickFacts';due.before(facts);facts.append(due,mileage);}
+ if(header){
+  let actions=header.querySelector('.jobModalHeadActions');
+  if(!actions){actions=document.createElement('div');actions.className='jobModalHeadActions';}
+  button.classList.add('jobHeaderHaynesLookup');actions.prepend(button);heading.appendChild(actions);
+ }
+
  let sequence=0,refreshTimer;
  function showGeneric(){if(noVehicle?.checked)return;const v=genericImage({make:modal.querySelector('#job_make')?.value,model:modal.querySelector('#job_model')?.value,vehicle:modal.querySelector('#job_vehicle')?.value}),img=thumbnail(v,'haynesJobGenericImage',{registration:current()});if(img){body.replaceChildren(img);return true;}return false;}
  const current=()=>reg(input.value);
@@ -434,7 +444,7 @@ function openBooking(registration){
  // The original fields and save handlers stay in the existing job editor.
  const section=modal.querySelector('.jobVehicleSection'),details=document.createElement('details');details.className='bookingVehicleEditor';
  details.innerHTML='<summary>Edit vehicle details</summary>';
- if(section){const mileage=field('mileage'),mileageField=mileage?.closest('.field');if(mileageField){mileage.value='';mileage.setAttribute('data-current-mileage','');const label=mileageField.querySelector('label');if(label)label.textContent='Current mileage';mileageField.classList.add('bookingCurrentMileage');const allocationGrid=modal.querySelector('.jobBookingSection>.jobSectionGrid');(allocationGrid||body).prepend(mileageField);}details.append(section);body.append(details);}
+ if(section){const vehicleField=field('vehicle')?.closest('.field');if(vehicleField)vehicleField.hidden=false;const mileage=field('mileage'),mileageField=mileage?.closest('.field');if(mileageField){mileage.value='';mileage.setAttribute('data-current-mileage','');const label=mileageField.querySelector('label');if(label)label.textContent='Current mileage';mileageField.classList.add('bookingCurrentMileage');const allocationGrid=modal.querySelector('.jobBookingSection>.jobSectionGrid');(allocationGrid||body).prepend(mileageField);}details.append(section);body.append(details);}
  const headerDetails=header.querySelector('.jobCardHeaderDetails');
  if(headerDetails&&!headerDetails.querySelector('.jobContactSection'))headerDetails.remove();
  const identity=document.createElement('div');identity.className='bookingLookupIdentity';identity.innerHTML='<h3 data-booking-vehicle></h3><p data-booking-variant></p><dl data-booking-spec></dl><p role="status" aria-live="polite" data-booking-status></p>';
