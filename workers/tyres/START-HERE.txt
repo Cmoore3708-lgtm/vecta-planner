@@ -1,0 +1,23 @@
+VECTA TYRE LOOKUP — FIRST CONNECTION CHECK
+
+This checks the supplier page so the tyre worker can be completed accurately.
+It does not change your website and does not order any tyres.
+
+1. On the Windows workshop PC, extract this ZIP into its own folder.
+2. Double-click START-TYRE-SETUP.cmd.
+3. A separate Microsoft Edge window opens. Sign in to ESP directly there.
+4. Search for 205/55 R16, using your usual Vecta Sellout price list and VAT setting.
+5. Once results appear, return to the black setup window and press Enter.
+6. Send Vecta-Tyre-Setup-Report.json back in our tyre chat.
+
+The report contains only allowlisted search-control names and product-table
+headings/counts. It does not include your password, login session, account
+information, trade costs or full page contents. Login stays on this PC in a
+separate VectaTyres Edge profile.
+
+Requires Node.js 22 or newer, Microsoft Edge, and internet access. The Haynes
+worker PC should already have Node.js. Initial setup downloads the pinned
+Playwright dependency using npm ci. It does not download another browser.
+
+If an error appears, send the error text. Do not send a password or browser
+profile folder. Keep the existing Haynes worker running as usual.

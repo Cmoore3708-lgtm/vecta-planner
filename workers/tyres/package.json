@@ -1,0 +1,8 @@
+{
+  "name":"vecta-tyre-guide-worker",
+  "private":true,
+  "type":"module",
+  "engines":{"node":">=22"},
+  "scripts":{"inspect":"node inspect.mjs","login":"node login.mjs","test":"node --test *.test.mjs"},
+  "dependencies":{"playwright":"1.63.0"}
+}

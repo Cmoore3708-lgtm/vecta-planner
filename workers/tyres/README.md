@@ -6,7 +6,7 @@ Uses ESP Sellout as the final fully fitted VAT-inclusive guide price, without fu
 
 Run `node --test workers/tyres/guide.test.mjs` from the repository root.
 
-Install the existing Haynes worker dependencies first (`npm ci` inside workers/haynes). Run `node workers/tyres/login.mjs` from the repository root on the workshop PC to open a separate Edge profile for manual login. Never commit or upload that profile. TYRE_PROFILE_DIR can specify its location.
+Install this worker’s dependencies first (`npm ci` inside workers/tyres). Run `node workers/tyres/login.mjs` from the repository root on the workshop PC to open a separate Edge profile for manual login. Never commit or upload that profile. TYRE_PROFILE_DIR can specify its location.
 
 ## Remaining work before release
 
@@ -18,3 +18,7 @@ Install the existing Haynes worker dependencies first (`npm ci` inside workers/h
 6. Follow RELEASE-SAFETY.md and preview verification before public enablement.
 
 No supplier password is embedded. No database or existing booking/invoice records are changed by this foundation.
+
+## Setup progress
+
+A separate Windows setup utility now collects an allowlisted DOM report for authenticated-page integration. See START-HERE.txt. The bounded serialized queue caches successful guides for five minutes, deduplicates concurrent requests, never caches failures, and stops after a timeout to avoid overlapping supplier searches. The authenticated supplier adapter and website integration remain incomplete.
