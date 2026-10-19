@@ -1,0 +1,20 @@
+# Tyre guide worker — initial implementation
+
+Status: foundation only; not connected to public booking or a live supplier account.
+
+Uses ESP Sellout as the final fully fitted VAT-inclusive guide price, without further markup. Prices use integer pennies. Public output omits cost and supplier account information. Each of three categories selects the cheapest eligible tyre with sufficient stock for the requested quantity. Missing categories remain unavailable.
+
+Run `node --test workers/tyres/guide.test.mjs` from the repository root.
+
+Install the existing Haynes worker dependencies first (`npm ci` inside workers/haynes). Run `node workers/tyres/login.mjs` from the repository root on the workshop PC to open a separate Edge profile for manual login. Never commit or upload that profile. TYRE_PROFILE_DIR can specify its location.
+
+## Remaining work before release
+
+1. Inspect the authenticated supplier DOM and implement a supplier adapter: width/profile/rim selectors, Search, completed-results marker, readRows. Ensure old results cannot be mistaken for a new completed search. Inspect pagination and numeric stock formatting.
+2. Verify the Vecta price list, Include VAT and fitted add-ons settings during every lookup; fail closed if they change. The selector currently accepts verified settings, not an assumption.
+3. Agree the brand category mapping with Chris. Test fixtures are illustrative and do not configure production classification. The current selection requires confirmed new, summer, non-run-flat tyres; special tyre guides need a separate explicit flow.
+4. Live test multiple sizes, quantities, pagination, no results, login expiry and changed settings. Do not click Cart or Order.
+5. Add a serialized queue with timeouts and bounded retries, private server authentication, short-lived cache and supplier rate limits. Connect the booking UI and preserve guide price/size/quantity/category in booking records. Failed lookups must allow an enquiry without a price.
+6. Follow RELEASE-SAFETY.md and preview verification before public enablement.
+
+No supplier password is embedded. No database or existing booking/invoice records are changed by this foundation.
