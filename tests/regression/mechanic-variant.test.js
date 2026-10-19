@@ -50,3 +50,10 @@ test('the real registration lookup installs beside the restored mechanics search
  window.VectaHaynesDashboardLookup.install();window.VectaHaynesDashboardLookup.install();
  const plate=document.getElementById('haynesDashboardLookup');assert.ok(plate);assert.equal(plate.nextElementSibling.className,'plannerGlobalSearchWrap');assert.equal(document.querySelectorAll('#haynesDashboardRegistration').length,1);
 });
+
+test('quote cards and vehicle history do not display quoted prices or invoice rows',()=>{
+ const source=mechanic.match(/function quotePanelHtml\(\)\{[^\n]+/)[0];
+ const c={quoteJobs:()=>[{id:'quote',registration:'ABC123',customer_name:'Example',work_required:'Service',amount_quoted:98765}],esc:s=>s,compactUnallocatedPlate:s=>s,money:()=>{throw Error('Mechanics must not render quote money');}};
+ vm.runInNewContext(source,c);assert.match(c.quotePanelHtml(),/Service/);assert.doesNotMatch(c.quotePanelHtml(),/98765/);
+ assert.doesNotMatch(mechanic,/<small>Amount quoted:|^  invoices\.forEach\(function\(inv\)\{history\.push/m);
+});

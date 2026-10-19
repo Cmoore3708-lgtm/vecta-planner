@@ -17,6 +17,11 @@ export function mechanicVariant(source){
  source=once(source,"document.getElementById('newQuoteTop').onclick=function(){openJobModal(null,{status:'quote',technician:'Unallocated'})};",'');
  source=once(source,'bindPlannerGlobalSearch();installFinancialInvoiceNavigation();','bindPlannerGlobalSearch();');
  source=once(source,'invoices:invoices.slice(0,15)','invoices:[]');
+ source=once(source,"<strong>'+money(Number(j.amount_quoted||0))+'</strong>",'');
+ source=source.replaceAll("<small>Amount quoted: '+money(Number(j.amount_quoted||0))+'</small>",'');
+ source=source.replace(/^  invoices\.forEach\(function\(inv\)\{history\.push[^\n]+\n/gm,'');
+ source=source.replace('Job Cards, Service Sheets & Invoices','Job Cards & Service Sheets');
+
  source=once(source,'          if(!id) return result;', "          if(IS_MECHANIC){['markComplete','markReady','createInvoiceFromJob','deleteJob','undoJobCompletion','returnToMechanic','createQuote','convertQuote'].forEach(function(key){var control=document.getElementById(key);if(control)control.remove();});}\n          if(!id) return result;");
 
  source=once(source,"jobsForList(jobsListMode).filter(function(j){return !q", "(view==='completedJobs'?jobsForList('completed').concat((app.jobs||[]).filter(function(j){return j.status==='work_complete'})):jobsForList(jobsListMode)).filter(function(j){return !q");
