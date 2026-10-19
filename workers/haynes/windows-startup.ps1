@@ -16,12 +16,19 @@ New-Item -ItemType Directory -Force -Path $workerDir, $libDir | Out-Null
 Set-Content -Path (Join-Path $installRoot 'package.json') -Value '{"private":true,"type":"module"}'
 if ([IO.Path]::GetFullPath($PSScriptRoot) -ne [IO.Path]::GetFullPath($workerDir)) {
   Get-ChildItem $PSScriptRoot -File | Where-Object { $_.Extension -in '.mjs','.cmd','.ps1','.json' } | Copy-Item -Destination $workerDir -Force
-  Copy-Item (Join-Path $sourceRoot 'lib\haynes-vehicle.js') $libDir -Force
+  foreach ($name in @('haynes-vehicle.js','haynes-service.js')) {
+    Copy-Item (Join-Path $sourceRoot ('lib\' + $name)) $libDir -Force
+  }
 }
 Push-Location $workerDir
 try {
   & npm.cmd ci --ignore-scripts
   if ($LASTEXITCODE -ne 0) { throw 'Worker installation failed. Startup has not been enabled.' }
+} finally { Pop-Location }
+Push-Location $workerDir
+try {
+  & node --input-type=module --eval "await import('./service-browser.mjs'); await import('./browser-recovery.mjs');"
+  if ($LASTEXITCODE -ne 0) { throw 'Worker module check failed. Startup has not been enabled.' }
 } finally { Pop-Location }
 $shell = New-Object -ComObject WScript.Shell
 $shortcut = $shell.CreateShortcut($shortcutPath)
