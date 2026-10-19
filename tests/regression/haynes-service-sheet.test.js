@@ -173,6 +173,15 @@ test('service sheet renders generic questions, retains selections and applies da
  assert.match(sheet.textContent,/An unfamiliar maintenance question/);assert.equal(sheet.querySelector('.ssHaynesParts'),null);sheet.remove();
 });
 
+test('service sheet automatically chooses the unique Normal conditions option',async()=>{
+ const menu={id:'hm_'+'a'.repeat(24),label:'An unfamiliar maintenance question',options:[{id:'ho_'+'a'.repeat(24),label:'Normal conditions (United Kingdom)'}]};
+ const requests=[];
+ const {window,sheet}=setup(async url=>{const q=new URL(url,'https://example.test').searchParams;const choices=JSON.parse(q.get('menuChoices'));requests.push(choices);return {status:'MATCHED',result:choices.length?{...data,menuFlow:'guided',system:'ms_1',schedules:[]}:{kind:'menu_choice',menuFlow:'guided',vehicle,mileage:50000,menu,resetFrom:0}};});
+ await window.initHaynesServiceSheet(sheet,'FX69XWU','service');await settle();
+ assert.match(sheet.querySelector('.ssHaynesParts').textContent,/Oil filter/);assert.equal(requests.at(-1)[0].menu,menu.id);
+ sheet.remove();
+});
+
 test('service sheets recolour the stored same-origin image using the actual shared renderer',async()=>{
  const {window,sheet}=setup(async()=>({status:'LOGIN_REQUIRED'}));const saved={...vehicle,make:'NISSAN',model:'Qashqai'};
  window.Element.prototype.getBBox=function(){return this.id==='windows'?{x:20,y:10,width:40,height:20}:{x:0,y:0,width:100,height:80};};window.DOMParser=DOMParser;window.XMLSerializer=class{serializeToString(node){return node.outerHTML;}};window.AbortSignal=AbortSignal;

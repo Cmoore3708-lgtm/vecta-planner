@@ -11,9 +11,21 @@ export function menuDescriptor(menu) {
  return {...menu,id,options};
 }
 function publicMenu(menu){return {id:menu.id,label:clean(menu.label).slice(0,180),options:menu.options.map(o=>({id:o.id,label:clean(o.label).slice(0,600)}))};}
+// Keep the existing relay payload bound and expose every supplier choice.
+// Range answers are replayed locally; only the final advertised option touches Haynes.
+function groupedMenu(menu){
+ const groups=[];
+ for(let start=0;start<menu.options.length;start+=50){
+  const options=menu.options.slice(start,start+50);
+  const child=menuDescriptor({...menu,options});
+  groups.push({value:String(start),label:(start+1)+'–'+(start+options.length)+': '+clean(options[0].label).slice(0,80)+' … '+clean(options.at(-1).label).slice(0,80),child});
+ }
+ return menuDescriptor({kind:'page',name:menu.id,label:menu.label+' — choose an option range',options:groups});
+}
+function oversized(menu){return menu.options.length>100||Buffer.byteLength(JSON.stringify(publicMenu(menu)),'utf8')>48000;}
 function choiceResult(menu,path,resetFrom) {
  const view=publicMenu(menu);
- if(menu.options.length>100||Buffer.byteLength(JSON.stringify(view),'utf8')>48000)return {kind:'manual_step',message:'This Haynes menu exceeds the guided size limit. Check its full options in Haynes.'};
+ if(oversized(menu))throw new HaynesError('INCOMPLETE');
  return {kind:'menu_choice',menu:view,path,...(resetFrom===undefined?{}:{resetFrom})};
 }
 function error(code){throw new HaynesError(code);}
@@ -55,13 +67,24 @@ export async function guidedMaintenance(page,input,vehicle,{selectCheckbox,pause
    if(!ready)await pauseFor(200);
   }while(!ready&&Date.now()<until);
   if(!menu)return {kind:'manual_step',message:'Haynes did not expose a supported next maintenance choice. Open the Haynes page to check the next control.'};
+  const sourceMenuId=menu.id;
+  while(oversized(menu))menu=groupedMenu(menu);
+  while(menu.kind==='page'){
+   const answer=selections[answerIndex];
+   if(!answer)return choiceResult(menu,path);
+   if(answer.menu!==menu.id)return choiceResult(menu,path,answerIndex);
+   const option=menu.options.find(o=>o.id===answer.option);
+   if(!option)return choiceResult(menu,path,answerIndex);
+   answerIndex++;path.push({menu:menu.id,label:menu.label+': '+option.label});menu=option.child;
+   while(oversized(menu))menu=groupedMenu(menu);
+  }
   const answer=selections[answerIndex];
   if(!answer)return choiceResult(menu,path);
   // A changed menu is returned again; never apply an answer to a different menu.
   if(answer.menu!==menu.id)return choiceResult(menu,path,answerIndex);
   const option=menu.options.find(o=>o.id===answer.option);
   if(!option)return choiceResult(menu,path,answerIndex);
-  answerIndex++;completed.add(menu.id);path.push({menu:menu.id,label:menu.label+': '+option.label});
+  answerIndex++;completed.add(sourceMenuId);completed.add(menu.id);path.push({menu:menu.id,label:menu.label+': '+option.label});
   if(menu.kind==='select') {
    const control=page.locator('select').nth(menu.index);
    await control.selectOption({value:option.value});

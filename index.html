@@ -12448,9 +12448,10 @@ function websiteRequestsHtml(){
   var alertsEnabled=localStorage.getItem('vecta:booking-alerts-enabled')==='1';
   return '<div class="websiteRequestsHead"><div><h2>Website Bookings</h2><p>Review new requests and create planner jobs from them.</p></div><div><button class="btn" id="refreshWebsiteRequests">Refresh requests</button> <button class="btn red" id="enableBookingAlerts" '+(alertsEnabled?'disabled':'')+'>'+(alertsEnabled?'Background alerts enabled':'Enable background alerts')+'</button></div></div>'+websiteBookingStatsHtml()+'<div class="requestFilters">'+tab('all','All')+tab('awaiting_review','New')+tab('contacted','Contacted')+tab('archived','Archived')+'</div><div class="requestList">'+(rows.length?rows.map(websiteRequestCardHtml).join(''):'<div class="requestEmpty"><b>No website bookings in this section.</b><p>New customer requests will appear here automatically.</p></div>')+'</div>';
 }
+
 function websiteRequestCardHtml(r){
   var st=r.status||'awaiting_review',types=Array.isArray(r.job_types)?r.job_types.join(', '):String(r.job_types||''),dates=[r.preferred_date_1,r.preferred_date_2,r.preferred_date_3].filter(Boolean).map(requestDate).join(' · ');
-  return '<article class="requestCard '+(st==='awaiting_review'?'new':'')+'" data-request-id="'+esc(r.id||'')+'"><div class="requestTop"><div class="requestIdentity"><span class="requestPlate">'+esc(r.registration||'NO REG')+'</span><div><h3>'+esc(r.customer_name||'Customer')+'</h3><p>'+esc(r.vehicle||'Vehicle not entered')+'</p></div></div><span class="requestStatus '+esc(st)+'">'+requestStatusLabel(st)+'</span></div><div class="requestGrid"><div class="requestBlock"><small>Contact</small><b>'+esc(r.phone||'No phone')+'</b><p>'+esc(r.email||'No email')+'<br>Preferred: '+esc(r.contact_preference||'Email')+'</p></div><div class="requestBlock"><small>Requested dates</small><b>'+esc(dates||'No date supplied')+'</b><p>'+(r.completion_deadline?'Needed by: '+esc(r.completion_deadline):'No completion deadline')+'</p></div><div class="requestBlock"><small>Work required</small><b>'+esc(types||'General repair')+'</b><p>'+esc(r.work_required||'No description supplied')+'</p></div></div><div class="requestActions">'+(st==='awaiting_review'?'<button class="btn" data-request-contact="'+esc(r.id)+'">Mark contacted</button>':'')+(st!=='booked'?'<button class="btn green" data-request-create="'+esc(r.id)+'">Accept &amp; create job</button>':'<button class="btn" disabled>Job created</button>')+(st!=='archived'&&st!=='declined'?'<button class="btn" data-request-archive="'+esc(r.id)+'">Archive</button>':'')+'<button class="btn danger" data-request-delete="'+esc(r.id)+'">Delete request</button></div></article>';
+  return '<article class="requestCard '+(st==='awaiting_review'?'new':'')+'" data-request-id="'+esc(r.id||'')+'"><div class="requestTop"><div class="requestIdentity"><span class="requestPlate">'+esc(r.registration||'NO REG')+'</span><div><h3>'+esc(r.customer_name||'Customer')+'</h3><p>'+esc(r.vehicle||'Vehicle not entered')+'</p></div></div><span class="requestStatus '+esc(st)+'">'+requestStatusLabel(st)+'</span><div class="requestVehicleArtwork" aria-label="Vehicle image"></div></div><div class="requestGrid"><div class="requestBlock"><small>Contact</small><b>'+esc(r.phone||'No phone')+'</b><p>'+esc(r.email||'No email')+'<br>Preferred: '+esc(r.contact_preference||'Email')+'</p></div><div class="requestBlock"><small>Requested dates</small><b>'+esc(dates||'No date supplied')+'</b><p>'+(r.completion_deadline?'Needed by: '+esc(r.completion_deadline):'No completion deadline')+'</p></div><div class="requestBlock"><small>Work required</small><b>'+esc(types||'General repair')+'</b><p>'+esc(r.work_required||'No description supplied')+'</p></div></div><div class="requestActions">'+(st==='awaiting_review'?'<button class="btn" data-request-contact="'+esc(r.id)+'">Mark contacted</button>':'')+(st!=='booked'?'<button class="btn green" data-request-create="'+esc(r.id)+'">Open job card</button>':'<button class="btn" disabled>Job created</button>')+(st!=='archived'&&st!=='declined'?'<button class="btn" data-request-archive="'+esc(r.id)+'">Archive</button>':'')+'<button class="btn danger" data-request-delete="'+esc(r.id)+'">Delete request</button></div></article>';
 }
 async function updateWebsiteRequest(id,changes){var row=(app.websiteRequests||[]).find(function(r){return r.id===id});if(!row)return;Object.assign(row,changes,{updated_at:new Date().toISOString()});saveLocal();if(remoteClient){var res=await remoteClient.from('website_booking_requests').update(changes).eq('id',id);if(res.error){console.error(res.error);alert('The website request could not be updated: '+res.error.message);return false}}render();return true}
 function websiteRequestNote(r){
@@ -12564,40 +12565,44 @@ async function createJobFromWebsiteRequest(id){
     }
   }
   if(existingJob){
-    try{
-      if(remoteClient)await remoteClient.from('website_booking_requests').update({status:'booked'}).eq('id',id);
-    }catch(e){console.warn('Website request status update skipped',e)}
-    app.websiteRequests=(app.websiteRequests||[]).filter(function(x){return String(x.id)!==String(id)});
-    saveLocal();
-    selectedDate=existingJob.booking_date?new Date(existingJob.booking_date+'T00:00:00'):selectedDate;
-    view='planner';render();openJobModal(existingJob.id);
+    openWebsiteRequestJobCard(existingRequest||{id:id},existingJob);
     return;
   }
 
   var r=(app.websiteRequests||[]).find(function(x){return x.id===id});if(!r)return;
   var reserved=!!r.confirmed_time&&Number(r.reserved_hours)>0,bookingDate=r.confirmed_date||r.preferred_date_1||selectedIso(),types=Array.isArray(r.job_types)?r.job_types.slice():[];types=types.map(function(t){return normaliseJobTypeKey(t)==='service'?'Major Service':t});var jobType=types[0]||'General';
   var j={id:uid(),booking_date:String(bookingDate).slice(0,10),drop_time:r.confirmed_time||'08:00',registration:normReg(r.registration||''),vehicle:r.vehicle||'',mileage:(r.mileage===null||r.mileage===undefined||String(r.mileage).trim()===''?null:Number(r.mileage)),customer_account:'Staff',customer_name:r.customer_name||'',customer_phone:r.phone||'',customer_email:r.email||'',work_required:r.work_required||types.join(', ')||'Website booking request',job_type:types.join(', ')||jobType,job_colour:/mot/i.test(jobType)?'MOT':(/service/i.test(jobType)?'Service':'General'),estimated_hours:reserved?Number(r.reserved_hours):1,amount_quoted:null,technician:reserved?'Alfie':'Unallocated',ramp:'',status:'booked',card_type:'job',source:'website booking',booking_source:'Website booking',website_request_id:String(r.id||''),customer_note:websiteRequestNote(r),created_at:new Date().toISOString(),updated_at:new Date().toISOString()};applyWebsiteDefaultMajorService(j);
-  if(!await vectaConfirmDuplicateBooking(j,null))return;
-  app.jobs.push(j);saveLocal();
-  ['mileage','customer_account','booking_source','website_request_id'].forEach(function(column){vectaRememberMissingColumn('jobs',column)});
-  try{await upsertRemote('jobs',j,{skipConflictGuard:true})}catch(e){app.jobs=app.jobs.filter(function(x){return x.id!==j.id});saveLocal();return}
-  // The request has now become a planner job. Mark it as booked so it leaves the Website Bookings inbox immediately.
-  // This uses UPDATE rather than DELETE because the current Supabase security policy permits request updates but blocks browser deletes.
-  if(remoteClient){
-    var bookedResult=await remoteClient.from('website_booking_requests').update({status:'booked',job_id:j.id,confirmed_at:new Date().toISOString()}).eq('id',id);
-    if(bookedResult.error){
-      console.error('Website request could not be marked as booked',bookedResult.error);
-      app.jobs=app.jobs.filter(function(x){return String(x.id)!==String(j.id)});saveLocal();
-      try{await deleteRemote('jobs',j.id)}catch(ignore){}
-      alert('The planner job could not be finalised because the website request could not be closed: '+bookedResult.error.message);
-      return;
-    }
-  }
-  app.websiteRequests=(app.websiteRequests||[]).filter(function(x){return String(x.id)!==String(id)});saveLocal();
-  selectedDate=new Date(j.booking_date+'T00:00:00');view='planner';render();openJobModal(j.id);
+  openWebsiteRequestJobCard(r,j);
   }finally{
     delete websiteRequestCreateBusy[id];
   }
+}
+function openWebsiteRequestJobCard(request,draft){
+  // Review uses the existing unsaved editor; closing it does not accept the request.
+  draft.lookup_local_only=true;
+  openJobModal((app.jobs||[]).some(function(j){return String(j.id)===String(draft.id)})?draft.id:null,draft);
+  var modal=document.getElementById('jobModal'),button=modal.querySelector('#saveJob');
+  modal.dataset.websiteRequestId=String(request.id);
+  modal.querySelector('.jobModalHead h2').textContent='Website booking';
+  ['#saveJobMobile','#createQuote','#markReady','#markComplete','#deleteJob','#openServiceSheet','#createInvoiceFromJob'].forEach(function(selector){var el=modal.querySelector(selector);if(el)el.remove()});
+  button.textContent='Accept Booking';button.className='btn green';
+  button.onclick=function(){return acceptWebsiteRequestJob(request.id,draft.id,button)};
+  var date=modal.querySelector('#job_booking_date');
+  if(date)date.dispatchEvent(new Event('change',{bubbles:true}));
+}
+async function acceptWebsiteRequestJob(requestId,jobId,button){
+  if(button.disabled)return false;
+  if(!remoteClient||!navigator.onLine){alert('Connect to the workshop server before accepting a booking.');return false;}
+  if(isUnallocatedJob(gatherJob(jobId))){alert('Choose a technician before accepting this booking.');return false;}
+  button.disabled=true;button.textContent='Accepting…';
+  try{
+    return await saveJob(jobId,async function(job){
+      var result=await remoteClient.from('website_booking_requests').update({status:'booked',job_id:job.id,confirmed_at:new Date().toISOString()}).eq('id',requestId).select('id');
+      if(result.error||!result.data||result.data.length!==1){alert('The job was saved, but the booking inbox could not be updated. Retry Accept Booking to finish.');return false;}
+      app.websiteRequests=(app.websiteRequests||[]).filter(function(r){return String(r.id)!==String(requestId)});
+      saveLocal();return true;
+    });
+  }finally{button.disabled=false;button.textContent='Accept Booking';}
 }
 async function deleteWebsiteRequestCompletely(id){
   var row=(app.websiteRequests||[]).find(function(r){return String(r.id)===String(id)});
@@ -12630,7 +12635,7 @@ async function refreshWebsiteRequestsFromCloud(){
     return false;
   }
 }
-function bindWebsiteRequests(){var e;document.querySelectorAll('[data-website-stat]').forEach(function(b){b.onclick=function(){openWebsiteBookingStatistics(b.dataset.websiteStat)}});if(e=document.getElementById('refreshWebsiteRequests'))e.onclick=async function(){await pullRemote();render()};if(e=document.getElementById('enableBookingAlerts'))e.onclick=vectaEnableBookingAlerts;document.querySelectorAll('[data-request-filter]').forEach(function(b){b.onclick=function(){websiteRequestFilter=b.dataset.requestFilter;render()}});document.querySelectorAll('[data-request-contact]').forEach(function(b){b.onclick=function(){updateWebsiteRequest(b.dataset.requestContact,{status:'contacted'})}});document.querySelectorAll('[data-request-archive]').forEach(function(b){b.onclick=function(){if(confirm('Archive this website booking request?'))updateWebsiteRequest(b.dataset.requestArchive,{status:'archived'})}});document.querySelectorAll('[data-request-delete]').forEach(function(b){b.onclick=function(){deleteWebsiteRequestCompletely(b.dataset.requestDelete)}});document.querySelectorAll('[data-request-create]').forEach(function(b){b.onclick=function(){if(b.disabled)return;b.disabled=true;b.textContent='Opening job…';createJobFromWebsiteRequest(b.dataset.requestCreate).finally(function(){if(document.body.contains(b)){b.disabled=false;b.textContent='Accept & create job'}})}})}
+function bindWebsiteRequests(){if(window.enrichHaynesDashboard)window.enrichHaynesDashboard(document.getElementById('content')||document,app.websiteRequests||[]);var e;document.querySelectorAll('[data-website-stat]').forEach(function(b){b.onclick=function(){openWebsiteBookingStatistics(b.dataset.websiteStat)}});if(e=document.getElementById('refreshWebsiteRequests'))e.onclick=async function(){await pullRemote();render()};if(e=document.getElementById('enableBookingAlerts'))e.onclick=vectaEnableBookingAlerts;document.querySelectorAll('[data-request-filter]').forEach(function(b){b.onclick=function(){websiteRequestFilter=b.dataset.requestFilter;render()}});document.querySelectorAll('[data-request-contact]').forEach(function(b){b.onclick=function(){updateWebsiteRequest(b.dataset.requestContact,{status:'contacted'})}});document.querySelectorAll('[data-request-archive]').forEach(function(b){b.onclick=function(){if(confirm('Archive this website booking request?'))updateWebsiteRequest(b.dataset.requestArchive,{status:'archived'})}});document.querySelectorAll('[data-request-delete]').forEach(function(b){b.onclick=function(){deleteWebsiteRequestCompletely(b.dataset.requestDelete)}});document.querySelectorAll('[data-request-create]').forEach(function(b){b.onclick=function(){if(b.disabled)return;b.disabled=true;b.textContent='Opening job…';createJobFromWebsiteRequest(b.dataset.requestCreate).finally(function(){if(document.body.contains(b)){b.disabled=false;b.textContent='Open job card'}})}})}
 
 
 function displayedEmailContextForNode(node,email){
@@ -14561,7 +14566,7 @@ async function vectaCheckInvoiceActionAgainstCloud(id){
     return false;
   }catch(error){console.warn('Could not verify invoice action against cloud',error);alert('Could not confirm this job’s current status with the workshop server. Please try again when the connection is available.');return false}
 }
-function openJobModal(id,preset){editingJobId=id||null;var liveJob=id?(app.jobs||[]).find(function(x){return x.id===id}):null,importedJob=id?(window.CONTRACTOR_2026_JOBS||[]).find(function(x){return x.id===id}):null;window.__vectaJobEditorBaseline=liveJob?{id:String(id),job:JSON.parse(JSON.stringify(liveJob))}:null;var j=id?hydrateJobContactDetails(Object.assign({},liveJob||importedJob||{})):Object.assign({id:uid(),booking_date:selectedIso(),drop_time:'08:00',technician:'Alfie',ramp:'',status:'booked',job_type:'general',job_colour:'general',estimated_hours:1,card_type:'job',source:'manual',booking_source:'',created_at:new Date().toISOString()},preset||{});var mechanics=['Unallocated'].concat(configuredMechanicNames());j.technician=configuredMechanicChoice(j.technician)||(id?'Unallocated':(mechanics[1]||'Unallocated'));var ramps=[''].concat(app.settings.ramps||['Left','Middle','Right']);var templateSource=Object.assign({},templates,app.settings.jobTemplates||{}),templateNames=Object.keys(templateSource).filter(function(name){var key=normaliseJobTypeKey(name);return key!=='vehicle tax'&&key!=='road tax'});applyWebsiteDefaultMajorService(j);var selectedTypes=jobTypeValues(j);if(!id)j.parts_status=newBookingPartsStatusForTypes(selectedTypes);var initialTemplateWork=templateWorkForTypes(selectedTypes);if(!String(j.work_required||'').trim()&&initialTemplateWork)j.work_required=initialTemplateWork;var motTime=motTimeFromJob(j);var paperworkKind=paperworkKindForJob(j),isSafety=paperworkKind==='safety',isOnsite=paperworkKind==='onsite';var completedStampText=vectaCompletionDisplay(j);var incomeCustomers=fleetIncomeCustomers(),selectedAccount=fleetNormaliseCustomer(j.customer_account||''),storedContractorName=fleetNormaliseCustomer(j.customer_name||''),selectedContractorIncome=(String(selectedAccount).toUpperCase()==='CONTRACTOR'&&fleetIsContractorIncome(storedContractorName)&&String(storedContractorName).toUpperCase()!=='CONTRACTOR')?storedContractorName:'',selectedIncome=(String(selectedAccount).toUpperCase()==='STAFF'?'Staff':String(selectedAccount).toUpperCase()==='NMUK'?'NMUK':String(selectedAccount).toUpperCase()==='CONTRACTOR'?(selectedContractorIncome||'CONTRACTOR'):selectedAccount)||fleetIncomeCustomerFromVehicle(j.registration)||'',selectedNmukType=(isVehicleTaxJob(j)&&String(selectedIncome).toUpperCase()==='NMUK')?'Pool':(fleetNmukTypeForJob(j)||''),showCustomerName=selectedIncome==='Staff'||selectedIncome==='CONTRACTOR'||(selectedIncome==='NMUK'&&selectedNmukType==='MVOS'),customerNameValue=showCustomerName&&fleetNormaliseCustomer(j.customer_name||'')!==selectedIncome?(j.customer_name||''):'',selectedFleetContact=fleetVehicleForRegistration(j.registration),selectedTaxReference=(selectedFleetContact&&selectedFleetContact.taxReference)||'';var defaultJobVatMode=String(j.vat_mode||'')==='no_vat'?'no_vat':(String(selectedIncome).toUpperCase()==='STAFF'?'inc_vat':'ex_vat');var isHistoricalImport=!!importedJob&&!liveJob;var showService=!!id&&!isHistoricalImport&&(isSafety||isOnsite||/service/i.test(j.job_type||'')||/service/i.test(j.work_required||''));var paperworkLabel=isSafety?'Open 6 Month Safety Check':isOnsite?'Open On-Site Service':'Open Service Sheet';var html='<div class="modalCard jobModalCard"><div class="modalHead jobModalHead"><h2>'+(id?'Edit Job':'New Job')+'</h2><div class="jobModalHeadActions"><button class="btn jobPrintSmall" id="printJobCard">Print Job Card</button>'+(!isHistoricalImport?'<button type="button" class="primary" id="saveJobMobile">'+(id?'Save & Close':'Create Job')+'</button>':'')+'<button class="btn" data-close-modal>Close</button></div></div><div class="modalBody jobModalBody">'+
+function openJobModal(id,preset){delete document.getElementById('jobModal').dataset.websiteRequestId;editingJobId=id||null;var liveJob=id?(app.jobs||[]).find(function(x){return x.id===id}):null,importedJob=id?(window.CONTRACTOR_2026_JOBS||[]).find(function(x){return x.id===id}):null;window.__vectaJobEditorBaseline=liveJob?{id:String(id),job:JSON.parse(JSON.stringify(liveJob))}:null;var j=id?hydrateJobContactDetails(Object.assign({},liveJob||importedJob||{})):Object.assign({id:uid(),booking_date:selectedIso(),drop_time:'08:00',technician:'Alfie',ramp:'',status:'booked',job_type:'general',job_colour:'general',estimated_hours:1,card_type:'job',source:'manual',booking_source:'',created_at:new Date().toISOString()},preset||{});var mechanics=['Unallocated'].concat(configuredMechanicNames());j.technician=configuredMechanicChoice(j.technician)||(id?'Unallocated':(mechanics[1]||'Unallocated'));var ramps=[''].concat(app.settings.ramps||['Left','Middle','Right']);var templateSource=Object.assign({},templates,app.settings.jobTemplates||{}),templateNames=Object.keys(templateSource).filter(function(name){var key=normaliseJobTypeKey(name);return key!=='vehicle tax'&&key!=='road tax'});applyWebsiteDefaultMajorService(j);var selectedTypes=jobTypeValues(j);if(!id)j.parts_status=newBookingPartsStatusForTypes(selectedTypes);var initialTemplateWork=templateWorkForTypes(selectedTypes);if(!String(j.work_required||'').trim()&&initialTemplateWork)j.work_required=initialTemplateWork;var motTime=motTimeFromJob(j);var paperworkKind=paperworkKindForJob(j),isSafety=paperworkKind==='safety',isOnsite=paperworkKind==='onsite';var completedStampText=vectaCompletionDisplay(j);var incomeCustomers=fleetIncomeCustomers(),selectedAccount=fleetNormaliseCustomer(j.customer_account||''),storedContractorName=fleetNormaliseCustomer(j.customer_name||''),selectedContractorIncome=(String(selectedAccount).toUpperCase()==='CONTRACTOR'&&fleetIsContractorIncome(storedContractorName)&&String(storedContractorName).toUpperCase()!=='CONTRACTOR')?storedContractorName:'',selectedIncome=(String(selectedAccount).toUpperCase()==='STAFF'?'Staff':String(selectedAccount).toUpperCase()==='NMUK'?'NMUK':String(selectedAccount).toUpperCase()==='CONTRACTOR'?(selectedContractorIncome||'CONTRACTOR'):selectedAccount)||fleetIncomeCustomerFromVehicle(j.registration)||'',selectedNmukType=(isVehicleTaxJob(j)&&String(selectedIncome).toUpperCase()==='NMUK')?'Pool':(fleetNmukTypeForJob(j)||''),showCustomerName=selectedIncome==='Staff'||selectedIncome==='CONTRACTOR'||(selectedIncome==='NMUK'&&selectedNmukType==='MVOS'),customerNameValue=showCustomerName&&fleetNormaliseCustomer(j.customer_name||'')!==selectedIncome?(j.customer_name||''):'',selectedFleetContact=fleetVehicleForRegistration(j.registration),selectedTaxReference=(selectedFleetContact&&selectedFleetContact.taxReference)||'';var defaultJobVatMode=String(j.vat_mode||'')==='no_vat'?'no_vat':(String(selectedIncome).toUpperCase()==='STAFF'?'inc_vat':'ex_vat');var isHistoricalImport=!!importedJob&&!liveJob;var showService=!!id&&!isHistoricalImport&&(isSafety||isOnsite||/service/i.test(j.job_type||'')||/service/i.test(j.work_required||''));var paperworkLabel=isSafety?'Open 6 Month Safety Check':isOnsite?'Open On-Site Service':'Open Service Sheet';var html='<div class="modalCard jobModalCard"><div class="modalHead jobModalHead"><h2>'+(id?'Edit Job':'New Job')+'</h2><div class="jobModalHeadActions"><button class="btn jobPrintSmall" id="printJobCard">Print Job Card</button>'+(!isHistoricalImport?'<button type="button" class="primary" id="saveJobMobile">'+(id?'Save & Close':'Create Job')+'</button>':'')+'<button class="btn" data-close-modal>Close</button></div></div><div class="modalBody jobModalBody">'+
 '<div class="jobTypeSelectHelp"><b>Job types</b><span>Select every type of work included in this booking.</span></div><div class="templateBtns multiSelect">'+templateNames.map(function(k){var templateData=templateSource[k]||{},typeJob={job_type:k,work_required:templateData.work_required||''};return '<button class="jobTypeTemplate '+(selectedTypes.some(function(type){return normaliseJobTypeKey(type)===normaliseJobTypeKey(k)})?'selected':'')+'" style="'+jobTypeInlineStyle(typeJob)+'" data-template="'+esc(k)+'">'+esc(k)+'</button>'}).join('')+'</div>'+
 '<div class="jobCardSections">'+
 '<section class="jobFormSection jobVehicleSection"><div class="jobFormSectionHead"><span class="jobSectionNumber">1</span><div><h3>Vehicle details</h3><p>Registration, vehicle identity and current due dates</p></div></div><div class="formGrid jobFormGrid jobSectionGrid">'+
@@ -14956,6 +14961,8 @@ async function openNmukCompletionDraft(id){
 
 async function saveJob(id){
   var onConfirmed=arguments[1];
+  var reviewModal=document.getElementById('jobModal'),acceptingWebsiteRequest=!!(reviewModal&&reviewModal.classList.contains('open')&&reviewModal.dataset.websiteRequestId);
+  if(acceptingWebsiteRequest&&typeof onConfirmed!=='function')return false;
   var asQuote=!!window.__vectaSaveAsQuote;window.__vectaSaveAsQuote=false;
   /* V322: saving a job is a local merge, never a whole-planner replacement.
      Hold automatic cloud refreshes while this save is being committed. */
@@ -14966,6 +14973,7 @@ async function saveJob(id){
   var editorBaseline=window.__vectaJobEditorBaseline;
   var savedJobBeforeEdit=editorBaseline&&String(editorBaseline.id)===String(id)?JSON.parse(JSON.stringify(editorBaseline.job)):(existingJob?JSON.parse(JSON.stringify(existingJob)):null);
   var j=gatherJob(id);
+  if(acceptingWebsiteRequest){j.website_request_id=reviewModal.dataset.websiteRequestId;j.source='website booking';j.booking_source='Website booking';}
   if(asQuote||String(j.status||'').toLowerCase()==='quote'){j.status='quote';j.technician='Unallocated';j.booking_date=null;j.drop_time=null;j.ramp='';j.archived=false;}
   if(savedJobBeforeEdit){
     var beforePrices=privatePricingItemsFromNote(savedJobBeforeEdit.customer_note);
@@ -15007,7 +15015,7 @@ async function saveJob(id){
     (app.invoices||[]).forEach(function(inv){if(String(inv.job_id||'')===originalJobId)inv.job_id=migratedJobId});
     (app.serviceRecords||[]).forEach(function(rec){if(String(rec.job_id||'')===originalJobId)rec.job_id=migratedJobId});
   }
-  var firstWebsiteConfirmation=isWebsiteBookingJob(j)&&!websiteConfirmationAlreadyPrepared(existingJob||j);
+  var firstWebsiteConfirmation=isWebsiteBookingJob(j)&&(acceptingWebsiteRequest||!websiteConfirmationAlreadyPrepared(existingJob||j));
   var workField=document.getElementById('job_work_required');
   if(isUnresolvedWebsiteService(j)){applyWebsiteDefaultMajorService(j);}
   if(!j.customer_account){alert('Please select a customer before saving this job card.');var customerField=document.getElementById('job_customer_account');if(customerField){customerField.classList.add('requiredMissing');customerField.focus();customerField.onchange=function(){if(this.value)this.classList.remove('requiredMissing')}}return;}
@@ -15078,7 +15086,9 @@ async function saveJob(id){
       alert('This job has NOT been confirmed by the workshop server.\n\n'+String(window.__vectaLastJobSaveFailure||'Please refresh the cloud connection and retry.'));
       return false;
     }
+    if(acceptingWebsiteRequest&&savedResult==='queued'){alert('This booking is queued on this device and has not been accepted by the server. Reconnect and retry.');return false;}
     if(savedResult==='queued')alert('Saved on this device only. The workshop server has not confirmed this change yet; it is queued for sync.');
+    if(acceptingWebsiteRequest&&await onConfirmed(j)===false)return false;
     if(overlapShifted.length)persistPlannerJobsInBackground(overlapShifted.filter(function(x){return String(x.id)!==String(j.id)}),'New job overlap repair');
 
     if(String(j.source||'').toLowerCase()==='website booking'&&/^\d{4}-\d{2}-\d{2}$/.test(String(j.booking_date||''))){selectedDate=new Date(j.booking_date+'T00:00:00');view='planner';}
@@ -15086,7 +15096,7 @@ async function saveJob(id){
     render();
     if(autoSlotNotice)alert(autoSlotNotice);
     if(firstWebsiteConfirmation){openWebsiteBookingConfirmationEmail(j);}
-    if(savedResult===true&&typeof onConfirmed==='function')await onConfirmed(j);
+    if(!acceptingWebsiteRequest){if(savedResult===true&&typeof onConfirmed==='function')await onConfirmed(j);}
     /* A new completed record is a direct financial entry; existing staff jobs retain their invoice workflow. */
     if(existingJob&&j.status==='completed'&&j.customer_account==='Staff'&&!wasCompleted){openInvoiceForJob(j.id);return true;}
     return true;
@@ -17994,13 +18004,13 @@ try{var foot=document.querySelector('.sideFoot small');if(foot)foot.textContent=
 @media screen{
 .app{display:block!important;grid-template-columns:minmax(0,1fr)!important}
 .app>.main{width:100%;min-width:0;margin:0!important}
-.top:has(.plannerHeaderActions){display:grid!important;grid-template-columns:220px minmax(170px,1fr) 110px minmax(200px,1fr) 240px auto!important;grid-template-areas:"brand brand brand brand brand brand" "lookup search calendar date actions booked" "navigation navigation navigation navigation navigation navigation"!important;gap:10px!important;padding:12px 18px 0!important;overflow:visible!important;align-items:center!important;position:static!important}
+.top:has(.plannerHeaderActions){display:grid!important;grid-template-columns:260px minmax(170px,1fr) 110px minmax(180px,1fr) auto 240px!important;grid-template-areas:"brand brand brand brand brand brand" "lookup search calendar date booked actions" "navigation navigation navigation navigation navigation navigation"!important;gap:10px!important;padding:12px 18px 0!important;overflow:visible!important;align-items:center!important;position:static!important}
 .top .workshopHeaderBrand{grid-area:brand;display:flex;align-items:center;gap:16px;padding:0 0 10px;border-bottom:1px solid #314156;min-width:0}
-.workshopHeaderBrand img{width:200px;height:56px;object-fit:contain;object-position:left center}
-.workshopHeaderBrand span{font-size:22px;font-weight:750;letter-spacing:.025em;color:#f4f7fc;border-left:1px solid #536174;padding-left:16px}
+.workshopHeaderBrand img{width:240px;height:67px;object-fit:contain;object-position:left center}
+.workshopHeaderBrand span{font-size:18px;font-weight:750;letter-spacing:.025em;color:#f4f7fc;border-left:1px solid #536174;padding-left:16px}
 .top #viewTitle{display:none!important}
 .top>.mobileCalendarBtn{grid-area:calendar!important;display:flex!important;position:relative;align-items:center;justify-content:center;width:100%!important;min-width:0!important;height:40px!important;margin:0!important;padding:0 6px!important;box-sizing:border-box!important;overflow:hidden}
-.top .haynesDashboardLookup{grid-area:lookup!important;width:220px!important;max-width:100%!important;min-width:0!important;margin:0!important;box-sizing:border-box!important}
+.top .haynesDashboardLookup{grid-area:lookup!important;width:260px!important;max-width:100%!important;min-width:0!important;margin:0!important;box-sizing:border-box!important}
 .top .haynesDashboardLookup input{width:0!important;min-width:0!important;flex:1!important;text-align:center;font-size:22px!important;letter-spacing:1px!important}
 .top:has(.plannerHeaderActions) .plannerGlobalSearchWrap{grid-area:search!important;width:100%!important;min-width:0!important;max-width:none!important;margin:0!important;box-sizing:border-box!important}
 .top .plannerGlobalSearchWrap input{width:100%!important;min-width:0!important;height:40px!important;font-size:13px!important;padding:0 10px!important;box-sizing:border-box!important}
@@ -18017,16 +18027,19 @@ try{var foot=document.querySelector('.sideFoot small');if(foot)foot.textContent=
 .top>.workshopTopNav button{flex:0 0 auto;white-space:nowrap;height:36px;padding:8px 14px!important;border-radius:6px!important;font-size:13px!important;line-height:20px}
 .top>.workshopTopNav button:focus-visible,.top button:focus-visible{outline:2px solid #b1d3ff;outline-offset:2px}
 @media(max-width:1250px) and (min-width:901px){
-.top:has(.plannerHeaderActions){grid-template-columns:220px minmax(180px,1fr) 240px!important;grid-template-areas:"brand brand brand" "lookup search actions" "calendar date booked" "navigation navigation navigation"!important}
+.top:has(.plannerHeaderActions){grid-template-columns:260px minmax(180px,1fr) 240px!important;grid-template-areas:"brand brand brand" "lookup search actions" "calendar date booked" "navigation navigation navigation"!important}
 .top>.mobileCalendarBtn{width:120px!important}
 }
 @media(max-width:900px){
-.top:has(.plannerHeaderActions){grid-template-columns:repeat(12,minmax(0,1fr))!important;grid-template-areas:"brand brand brand brand brand brand brand brand brand brand brand brand" "calendar calendar calendar date date date date date date date date date" "lookup lookup lookup lookup lookup lookup search search search search search search" "actions actions actions actions actions actions actions actions booked booked booked booked" "navigation navigation navigation navigation navigation navigation navigation navigation navigation navigation navigation navigation"!important;gap:8px!important;padding:10px 8px 0!important}
-.top .workshopHeaderBrand{gap:10px;padding-bottom:8px}.workshopHeaderBrand img{width:150px;height:43px}.workshopHeaderBrand span{font-size:18px;padding-left:10px}
+.top:has(.plannerHeaderActions){grid-template-columns:repeat(12,minmax(0,1fr))!important;grid-template-areas:"brand brand brand brand brand brand brand brand brand brand brand brand" "calendar calendar calendar date date date date date date booked booked booked" "lookup lookup lookup lookup lookup lookup lookup search search search search search" "actions actions actions actions actions actions actions actions actions actions actions actions" "navigation navigation navigation navigation navigation navigation navigation navigation navigation navigation navigation navigation"!important;gap:8px!important;padding:10px 8px 0!important}
+.top .workshopHeaderBrand{gap:10px;padding-bottom:8px}.workshopHeaderBrand img{width:180px;height:52px}.workshopHeaderBrand span{font-size:15px;padding-left:10px}
 .top #dashboardDayName{font-size:18px!important}
 .top .plannerHeaderActions>.btn,.top .plannerHeaderActions>.primary{font-size:12px!important;padding:0 6px!important}
 .top #dashboardBookedToday{height:32px!important;min-height:32px!important;min-width:0!important}
-.top .haynesDashboardLookup input{font-size:18px!important;letter-spacing:.5px!important}
+.top .haynesDashboardLookup input{font-size:23px!important;letter-spacing:.5px!important}
+.top .haynesDashboardLookup{width:100%!important;min-height:44px!important}
+.top #dashboardBookedToday{padding:6px!important;justify-content:center}
+.top #dashboardBookedToday strong{font-size:14px!important}
 .top>.workshopTopNav{flex-wrap:nowrap;overflow-x:auto!important;overscroll-behavior-x:contain;padding:7px 0}
 .top>.workshopTopNav button{padding:7px 11px!important}
 }
