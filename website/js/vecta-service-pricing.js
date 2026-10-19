@@ -24,9 +24,10 @@
     const kind=fuelKind(fuel);
     if(typeof litres!=='number'||!Number.isFinite(litres)||litres<1||litres>15||!kind)return null;
     const money=value=>Math.round((value+Number.EPSILON)*100)/100;
+    const roundUp=value=>Math.ceil(money(value)/5)*5;
     const oilCost=money(litres*10);
     return {source:'HaynesPro',oilLitres:litres,fuel:kind,vatIncluded:true,
-      oil:money(oilCost+40),full:money(oilCost+95),major:money(oilCost+(kind==='petrol'?175:140))};
+      oil:roundUp(oilCost+40),full:roundUp(oilCost+115),major:roundUp(oilCost+(kind==='petrol'?200:165))};
   }
   function matchesIdentity(a,b){
     return !!a&&!!b&&registration(a.registration)===registration(b.registration)&&

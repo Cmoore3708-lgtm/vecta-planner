@@ -66,17 +66,17 @@ for(const [i,f] of fixtures.entries())test(`vehicle fixture ${i+1}: ${f.mot.vehi
  assert.ok(b.cache.calls.every(c=>!c.options.method||c.options.method==='GET'),'cache cannot change records or enqueue work');
 });
 test('agreed VAT-inclusive petrol and diesel examples, decimals and invalid inputs',()=>{
- assert.deepEqual([pricing.prices(5,'Petrol').oil,pricing.prices(5,'Petrol').full,pricing.prices(5,'Petrol').major],[90,145,225]);
- assert.equal(pricing.prices(5,'Diesel').major,190);
- assert.equal(pricing.prices(3.75,'Petrol/Electric').major,212.5);
+ assert.deepEqual([pricing.prices(5,'Petrol').oil,pricing.prices(5,'Petrol').full,pricing.prices(5,'Petrol').major],[90,165,250]);
+ assert.equal(pricing.prices(5,'Diesel').major,215);
+ assert.equal(pricing.prices(3.75,'Petrol/Electric').major,240);
  for(const litres of [null,'5',NaN,Infinity,0,-1,16])assert.equal(pricing.prices(litres,'Petrol'),null);
  for(const fuel of ['', 'Hybrid Electric (Clean)','Electric','Petrol/Diesel'])assert.equal(pricing.prices(5,fuel),null);
 });
 test('petrol Major displays and submits spark-plug formula',async()=>{
  const f=structuredClone(fixtures[5]);f.result={source:'HaynesPro',vehicle:f.identity,oil:[{capacity:'Engine sump, including filter 3.25 (l)'}]};
- const b=await booking(f);assert.equal(b.run('serviceGuidePrices(serviceEngineSize()).major'),207.5);
+ const b=await booking(f);assert.equal(b.run('serviceGuidePrices(serviceEngineSize()).major'),235);
  b.document.querySelector('[data-service-choice="Major Service"]').onclick();
- b.run("state.form.parts_range='Mid Range';state.step=5;render()");await b.run('submit()');assert.equal(b.writes[0].approximate_cost,207.5);
+ b.run("state.form.parts_range='Mid Range';state.step=5;render()");await b.run('submit()');assert.equal(b.writes[0].approximate_cost,235);
 });
 test('strict service refill parser rejects ranges, missing rows, dry fills and conflicting variants',()=>{
  const row=capacity=>({capacity});
@@ -130,4 +130,11 @@ test('both deployments ship the same pricing module and routes',()=>{
  assert.equal(fs.readFileSync('public/booking.html','utf8'),html);
  assert.match(html,/src="\/js\/vecta-service-pricing.js"/);
  for(const p of ['vercel.json','website/vercel.json'])assert.ok(JSON.parse(fs.readFileSync(p)).rewrites.some(r=>r.source==='/api/haynes-pricing'));
+});
+
+test('service prices round upwards to £5 without increasing exact multiples',()=>{
+ assert.deepEqual([pricing.prices(4.6,'Diesel').oil,pricing.prices(4.6,'Diesel').full,pricing.prices(4.6,'Diesel').major],[90,165,215]);
+ assert.deepEqual([pricing.prices(6.5,'Diesel').oil,pricing.prices(6.5,'Diesel').full,pricing.prices(6.5,'Diesel').major],[105,180,230]);
+ assert.equal(pricing.prices(4.001,'Diesel').oil,85);
+ assert.equal(pricing.prices(4,'Diesel').oil,80);
 });

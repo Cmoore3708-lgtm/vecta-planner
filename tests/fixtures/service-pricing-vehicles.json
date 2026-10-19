@@ -38,9 +38,9 @@
         ]
       },
       "expected": [
-        85.0,
-        140.0,
-        185.0
+        85,
+        160,
+        210
       ],
       "expectedSource": "HaynesPro"
     },
@@ -81,9 +81,9 @@
         ]
       },
       "expected": [
-        88.0,
-        143.0,
-        188.0
+        90,
+        165,
+        215
       ],
       "expectedSource": "HaynesPro"
     },
@@ -124,9 +124,9 @@
         ]
       },
       "expected": [
-        75.0,
-        130.0,
-        175.0
+        75,
+        150,
+        200
       ],
       "expectedSource": "HaynesPro"
     },
@@ -167,9 +167,9 @@
         ]
       },
       "expected": [
-        102.0,
-        157.0,
-        202.0
+        105,
+        180,
+        230
       ],
       "expectedSource": "HaynesPro"
     },
