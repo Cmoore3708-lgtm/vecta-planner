@@ -1,0 +1,367 @@
+{
+  "provenance": "Entirely synthetic regression fixtures. Real vehicle verification data is kept outside the public repository.",
+  "vehicles": [
+    {
+      "registration": "AA01AAA",
+      "mot": {
+        "vehicle": "Test vehicle 1",
+        "make": "TEST",
+        "fuelType": "Diesel",
+        "engineSize": "1461"
+      },
+      "identity": {
+        "make": "TEST",
+        "model": "Model 1",
+        "variant": "1.5",
+        "engineCode": "TEST1",
+        "typeId": "t_1000",
+        "registration": "AA01AAA",
+        "vehicle": "TEST Model 1 1.5"
+      },
+      "result": {
+        "source": "HaynesPro",
+        "vehicle": {
+          "make": "TEST",
+          "model": "Model 1",
+          "variant": "1.5",
+          "engineCode": "TEST1",
+          "typeId": "t_1000",
+          "registration": "AA01AAA",
+          "vehicle": "TEST Model 1 1.5"
+        },
+        "oil": [
+          {
+            "capacity": "Engine sump, including filter 4.5 (l)",
+            "applicability": "Engine",
+            "specification": "TEST SPECIFICATION"
+          }
+        ]
+      },
+      "expected": [
+        85.0,
+        140.0,
+        185.0
+      ],
+      "expectedSource": "HaynesPro"
+    },
+    {
+      "registration": "AA02AAA",
+      "mot": {
+        "vehicle": "Test vehicle 2",
+        "make": "TEST",
+        "fuelType": "Diesel",
+        "engineSize": "1968"
+      },
+      "identity": {
+        "make": "TEST",
+        "model": "Model 2",
+        "variant": "2.0",
+        "engineCode": "TEST2",
+        "typeId": "t_1001",
+        "registration": "AA02AAA",
+        "vehicle": "TEST Model 2 2.0"
+      },
+      "result": {
+        "source": "HaynesPro",
+        "vehicle": {
+          "make": "TEST",
+          "model": "Model 2",
+          "variant": "2.0",
+          "engineCode": "TEST2",
+          "typeId": "t_1001",
+          "registration": "AA02AAA",
+          "vehicle": "TEST Model 2 2.0"
+        },
+        "oil": [
+          {
+            "capacity": "Engine sump, including filter 4.8 (l)",
+            "applicability": "Engine",
+            "specification": "TEST SPECIFICATION"
+          }
+        ]
+      },
+      "expected": [
+        88.0,
+        143.0,
+        188.0
+      ],
+      "expectedSource": "HaynesPro"
+    },
+    {
+      "registration": "AA03AAA",
+      "mot": {
+        "vehicle": "Test vehicle 3",
+        "make": "TEST",
+        "fuelType": "Diesel",
+        "engineSize": "1560"
+      },
+      "identity": {
+        "make": "TEST",
+        "model": "Model 3",
+        "variant": "1.6",
+        "engineCode": "TEST3",
+        "typeId": "t_1002",
+        "registration": "AA03AAA",
+        "vehicle": "TEST Model 3 1.6"
+      },
+      "result": {
+        "source": "HaynesPro",
+        "vehicle": {
+          "make": "TEST",
+          "model": "Model 3",
+          "variant": "1.6",
+          "engineCode": "TEST3",
+          "typeId": "t_1002",
+          "registration": "AA03AAA",
+          "vehicle": "TEST Model 3 1.6"
+        },
+        "oil": [
+          {
+            "capacity": "Engine sump, including filter 3.5 (l)",
+            "applicability": "Engine",
+            "specification": "TEST SPECIFICATION"
+          }
+        ]
+      },
+      "expected": [
+        75.0,
+        130.0,
+        175.0
+      ],
+      "expectedSource": "HaynesPro"
+    },
+    {
+      "registration": "AA04AAA",
+      "mot": {
+        "vehicle": "Test vehicle 4",
+        "make": "TEST",
+        "fuelType": "Diesel",
+        "engineSize": "1999"
+      },
+      "identity": {
+        "make": "TEST",
+        "model": "Model 4",
+        "variant": "2.0",
+        "engineCode": "TEST4",
+        "typeId": "t_1003",
+        "registration": "AA04AAA",
+        "vehicle": "TEST Model 4 2.0"
+      },
+      "result": {
+        "source": "HaynesPro",
+        "vehicle": {
+          "make": "TEST",
+          "model": "Model 4",
+          "variant": "2.0",
+          "engineCode": "TEST4",
+          "typeId": "t_1003",
+          "registration": "AA04AAA",
+          "vehicle": "TEST Model 4 2.0"
+        },
+        "oil": [
+          {
+            "capacity": "Engine sump, including filter 6.2 (l)",
+            "applicability": "Engine",
+            "specification": "TEST SPECIFICATION"
+          }
+        ]
+      },
+      "expected": [
+        102.0,
+        157.0,
+        202.0
+      ],
+      "expectedSource": "HaynesPro"
+    },
+    {
+      "registration": "AA05AAA",
+      "mot": {
+        "vehicle": "Test vehicle 5",
+        "make": "TEST",
+        "fuelType": "Hybrid Electric (Clean)",
+        "engineSize": ""
+      },
+      "identity": {
+        "make": "TEST",
+        "model": "Model 5",
+        "variant": "1.5",
+        "engineCode": "TEST5",
+        "typeId": "t_1004",
+        "registration": "AA05AAA",
+        "vehicle": "TEST Model 5 1.5"
+      },
+      "result": {
+        "source": "HaynesPro",
+        "vehicle": {
+          "make": "TEST",
+          "model": "Model 5",
+          "variant": "1.5",
+          "engineCode": "TEST5",
+          "typeId": "t_1004",
+          "registration": "AA05AAA",
+          "vehicle": "TEST Model 5 1.5"
+        },
+        "oil": [
+          {
+            "capacity": "Engine sump, including filter 5.2 (l)",
+            "applicability": "Engine",
+            "specification": "TEST SPECIFICATION"
+          }
+        ]
+      },
+      "expected": [
+        85,
+        155,
+        210
+      ],
+      "expectedSource": "engine-size"
+    },
+    {
+      "registration": "AA06AAA",
+      "mot": {
+        "vehicle": "Test vehicle 6",
+        "make": "TEST",
+        "fuelType": "Petrol",
+        "engineSize": "1199"
+      },
+      "identity": {
+        "make": "TEST",
+        "model": "Model 6",
+        "variant": "1.2",
+        "engineCode": "TEST6",
+        "typeId": "t_1005",
+        "registration": "AA06AAA",
+        "vehicle": "TEST Model 6 1.2"
+      },
+      "result": {
+        "source": "HaynesPro",
+        "vehicle": {
+          "make": "TEST",
+          "model": "Model 6",
+          "variant": "1.2",
+          "engineCode": "TEST6",
+          "typeId": "t_1005",
+          "registration": "AA06AAA",
+          "vehicle": "TEST Model 6 1.2"
+        },
+        "oil": []
+      },
+      "expected": [
+        80,
+        140,
+        195
+      ],
+      "expectedSource": "engine-size"
+    },
+    {
+      "registration": "AA07AAA",
+      "mot": {
+        "vehicle": "Test vehicle 7",
+        "make": "TEST",
+        "fuelType": "Diesel",
+        "engineSize": "2997"
+      },
+      "identity": {
+        "make": "TEST",
+        "model": "Model 7",
+        "variant": "3.0",
+        "engineCode": "TEST7",
+        "typeId": "t_1006",
+        "registration": "AA07AAA",
+        "vehicle": "TEST Model 7 D300"
+      },
+      "result": {
+        "source": "HaynesPro",
+        "vehicle": {
+          "make": "TEST",
+          "model": "Model 7",
+          "variant": "3.0",
+          "engineCode": "TEST7",
+          "typeId": "t_1006",
+          "registration": "AA07AAA",
+          "vehicle": "TEST Model 7 D300"
+        },
+        "oil": null,
+        "kind": "manual_step"
+      },
+      "expected": [
+        105,
+        195,
+        250
+      ],
+      "expectedSource": "engine-size"
+    },
+    {
+      "registration": "AA08AAA",
+      "mot": {
+        "vehicle": "Test vehicle 8",
+        "make": "TEST",
+        "fuelType": "Diesel",
+        "engineSize": ""
+      },
+      "identity": {
+        "make": "TEST",
+        "model": "Model 8",
+        "variant": "2.8",
+        "engineCode": "TEST8",
+        "typeId": "t_1007",
+        "registration": "AA08AAA",
+        "vehicle": "TEST Model 8 2.8"
+      },
+      "result": {
+        "source": "HaynesPro",
+        "vehicle": {
+          "make": "TEST",
+          "model": "Model 8",
+          "variant": "2.8",
+          "engineCode": "TEST8",
+          "typeId": "t_1007",
+          "registration": "AA08AAA",
+          "vehicle": "TEST Model 8 2.8"
+        },
+        "oil": null,
+        "kind": "manual_step"
+      },
+      "expected": [
+        105,
+        195,
+        250
+      ],
+      "expectedSource": "engine-size"
+    },
+    {
+      "registration": "AA09AAA",
+      "mot": {
+        "vehicle": "Test vehicle 9",
+        "make": "TEST",
+        "fuelType": "Diesel",
+        "engineSize": "1995"
+      },
+      "identity": null,
+      "result": null,
+      "expected": [
+        90,
+        165,
+        220
+      ],
+      "expectedSource": "engine-size"
+    },
+    {
+      "registration": "AA10AAA",
+      "mot": {
+        "vehicle": "Test vehicle 10",
+        "make": "TEST",
+        "fuelType": "Diesel",
+        "engineSize": "2143"
+      },
+      "identity": null,
+      "result": null,
+      "expected": [
+        95,
+        180,
+        230
+      ],
+      "expectedSource": "engine-size"
+    }
+  ]
+}

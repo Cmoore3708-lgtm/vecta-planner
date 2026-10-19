@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import vm from 'node:vm';
 import { parseHTML } from 'linkedom';
-const client=fs.readFileSync('public/js/vecta-haynes-booking.js','utf8');
+const client=fs.readFileSync('public/js/vecta-service-pricing.js','utf8')+'\n'+fs.readFileSync('public/js/vecta-haynes-booking.js','utf8');
 for(const path of ['public/booking.html','website/booking/index.html'])test(`${path}: Haynes pricing and persistent identity preserve advisories and live submission`,async()=>{
  const html=fs.readFileSync(path,'utf8'),{document}=parseHTML(html),requests=[];
  const root={document,URL,URLSearchParams,location:{search:''},AbortController,AbortSignal,console,setTimeout,clearTimeout,setInterval,clearInterval,alert(){},crypto:{randomUUID:()=> '12345678-1234-4123-8123-123456789abc'}};
