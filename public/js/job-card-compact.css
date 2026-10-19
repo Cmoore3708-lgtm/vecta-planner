@@ -243,3 +243,22 @@
  #jobModal.registrationBooking .jobCardHeaderVehicle{height:137.5px!important}
  #jobModal.registrationBooking .jobModalHead.jobCardPinnedHeader{grid-template-columns:minmax(0,1fr) 45%!important}
 }
+
+/* Give the vehicle twice its desktop space and keep the identity fields compact. */
+@media screen and (min-width:801px){
+ #jobModal .jobModalHead.jobCardPinnedHeader{grid-template-columns:minmax(0,1fr) minmax(0,min(60%,700px))!important;max-height:none;overflow:visible}
+ #jobModal .jobModalHead.jobCardPinnedHeader>.jobCardHeaderVehicle{height:auto!important;aspect-ratio:35/19;max-height:380px;width:100%;min-width:0}
+ #jobModal.registrationBooking .jobModalHead.jobCardPinnedHeader{grid-template-columns:minmax(0,1fr) minmax(0,min(60%,750px))!important}
+ #jobModal.registrationBooking .jobModalHead.jobCardPinnedHeader>.jobCardHeaderVehicle{height:auto!important;aspect-ratio:2;max-height:375px}
+ #jobModal .jobCardHeaderDetails .jobVehicleSection .jobSectionGrid{grid-template-columns:minmax(0,1.5fr) minmax(0,1fr)!important;gap:5px 8px!important}
+ #jobModal .jobBookingSection>.jobSectionGrid{grid-template-columns:repeat(9,minmax(0,1fr))!important}
+}
+@media screen and (min-width:801px) and (max-width:1200px){
+ #jobModal .jobBookingSection>.jobSectionGrid{grid-template-columns:repeat(5,minmax(0,1fr))!important}
+}
+@media screen{
+ #jobModal .jobCardHeaderDetails .jobVehicleDuePanel{grid-template-columns:repeat(auto-fit,minmax(min(100%,110px),1fr));min-width:0;box-sizing:border-box}
+ #jobModal .jobCardHeaderDetails .jobVehicleDuePanel>*{min-width:0;overflow-wrap:anywhere}
+ #jobModal .jobCardHeaderDetails .haynesJobVehicle>div{min-width:0;overflow-wrap:anywhere}
+ #jobModal .jobBookingSection .field label{white-space:normal;overflow-wrap:anywhere}
+}
