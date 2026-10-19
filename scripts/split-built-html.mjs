@@ -16,7 +16,7 @@ let worker=fs.readFileSync(workerPath,'utf8');
 const baseVersion=worker.match(/const APP_VERSION='([^']+)'/)[1];
 const digest=crypto.createHash('sha256').update(html).update(worker);
 // Build-pipeline changes must also wake existing offline clients.
-for(const file of ['scripts/split-built-html.mjs','scripts/compact-build-data.mjs'])digest.update(fs.readFileSync(file));
+for(const file of ['scripts/split-built-html.mjs','scripts/compact-build-data.mjs','scripts/mechanic-variant.mjs','scripts/original-mechanic-variant.json'])digest.update(fs.readFileSync(file));
 for(const filename of fs.readdirSync(path.resolve('dist/js')).sort()){
   if(/\.(?:js|css)$/.test(filename))digest.update(filename).update(fs.readFileSync(path.resolve('dist/js',filename)));
 }
