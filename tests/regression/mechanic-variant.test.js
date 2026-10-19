@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import vm from 'node:vm';
+import {parseHTML} from 'linkedom';
 import {readFileSync} from 'node:fs';
 import {mechanicVariant} from '../../scripts/mechanic-variant.mjs';
 const main=readFileSync('index.html','utf8'),mechanic=mechanicVariant(main);
@@ -20,4 +21,13 @@ test('the recovered full-width mechanic planner uses current configured names, w
  assert.match(recovered.plannerHtml,/configuredMechanicNames/);assert.doesNotMatch(recovered.plannerHtml,/myTasksHtml|quotePanelHtml|manageTimeOff|workloadValue/);
  const c={configuredMechanicNames:()=>['Alfie','Chris','Anyone'],app:{jobs:[],settings:{}},jobsForDate:()=>[],allJobsForDate:()=>[],plannerWindowConfig:()=>({startMinutes:420,dayLast:960,gridPosition:0}),PLANNER_PX_PER_HOUR:60,plannerMetricsHtml:()=>'',unallocatedPanelHtml:()=> 'UNALLOCATED',mobilePlannerHtml:()=>'',plannerLiveControlsHtml:()=>'',esc:s=>s,mechanicHours:()=>0,currentTimeLineHtml:()=>'',plannerTimeRows:()=>'',laneHtml:m=>m};
  vm.runInNewContext(recovered.plannerHtml,c);const rendered=c.plannerHtml();assert.match(rendered,/mechanicPlannerOnly/);assert.match(rendered,/Chris/);assert.match(rendered,/UNALLOCATED/);assert.doesNotMatch(rendered,/Financial|Quoted|£/);
+});
+
+test('mechanics have no Main invoice-search or quote controls, including on a new card',()=>{
+ assert.doesNotMatch(mechanic,/id="plannerGlobalSearch"|id="newQuoteTop"/);
+ const {window,document}=parseHTML('<html><head></head><body><div id="jobModal"><div class="modalFoot"><button id="markReady">Ready to invoice</button><button id="createQuote">Create Quote</button><button id="saveJob">Create Job</button></div></div></body></html>');
+ Object.defineProperty(window,'location',{value:{hostname:'vecta-mechanic-dashboard.vercel.app',pathname:'/'}});
+ const source=mechanic.match(/<script>\s*\/\* V280 - staged mechanic[\s\S]*?<\/script>/)[0].replace(/^<script>|<\/script>$/g,'');
+ const c={window,document,console,app:{jobs:[]},openJobModal(){}};vm.createContext(c);vm.runInContext(source,c);c.openJobModal(null);
+ assert.equal(document.getElementById('markReady'),null);assert.equal(document.getElementById('createQuote'),null);assert.ok(document.getElementById('saveJob'));
 });
