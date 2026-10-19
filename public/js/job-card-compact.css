@@ -322,3 +322,35 @@
  #jobModal .jobCardSupportColumn .bookingAvailabilityWorkspace.hasDayPlanner{grid-template-columns:minmax(0,1fr);height:auto}
  #jobModal .jobCardSupportColumn .bookingInlinePlanner{height:clamp(300px,45dvh,520px);contain:none}
 }
+
+/* Clear vehicle identity and restrained section colours for the job editor. */
+@media screen{
+ #jobModal .jobModalHead.jobCardPinnedHeader>.jobCardHeaderHeading{flex-wrap:nowrap!important;gap:10px!important;min-width:0}
+ #jobModal .jobCardHeaderHeading>h2,#jobModal .jobCardHeaderRegistration{flex:0 0 auto}
+ #jobModal .jobCardHeaderModel{flex:1 1 auto;min-width:0;font-size:clamp(20px,2vw,28px);font-weight:850;line-height:1.1;color:#17283d;overflow-wrap:anywhere}
+ #jobModal .jobCardHeaderModel[hidden]{display:none}
+ #jobModal .jobCardHeaderDetails>.jobFormSection{flex:0 0 auto}
+ #jobModal .jobCardHeaderDetails input[type=checkbox]{width:14px!important;min-width:14px!important;max-width:14px!important;height:14px!important;min-height:14px!important;max-height:14px!important;flex:0 0 14px!important;padding:0!important;margin:0!important;vertical-align:middle;appearance:auto}
+ #jobModal .jobCardHeaderDetails .existingCustomerToggle{display:flex!important;align-items:center;gap:5px;line-height:1.2!important;text-transform:none!important;letter-spacing:normal!important}
+ #jobModal .jobCardHeaderDetails .haynesJobTools{height:auto!important;max-height:none!important;min-height:0;overflow:visible!important}
+ #jobModal .jobCardHeaderDetails .haynesJobTools [role=status]{display:block;height:auto!important;max-height:none!important;white-space:normal!important;overflow:visible!important;text-overflow:clip!important;line-height:1.35!important;overflow-wrap:anywhere;padding:2px 0;color:#526276}
+ #jobModal .jobCardHeaderDetails .haynesJobTools [role=status]:empty{display:none}
+ #jobModal .jobCardHeaderDetails .haynesJobVehicle{min-width:0;flex-wrap:wrap;gap:4px;margin-top:3px}
+ #jobModal .jobCardHeaderDetails .haynesJobVehicle>div{flex:1 1 160px;line-height:1.3}
+ #jobModal .jobWorkSection{--job-section-bg:#fff3f5;--job-section-border:#e7c8d0;--job-section-heading:#f8e8ed}
+ #jobModal .jobFormSection:has(.jobPartsEditor){--job-section-bg:#eef4fc;--job-section-border:#c5d6ec;--job-section-heading:#e1ecf9}
+ #jobModal .privatePricingSection{--job-section-bg:#f4f0fa;--job-section-border:#d8cce8}
+ #jobModal .jobBookingSection{--job-section-bg:#fff8e5;--job-section-border:#e5d39d;--job-section-heading:#f8edc8}
+ #jobModal .jobPreviousWorkSection{--job-section-bg:#f2f5f8;--job-section-border:#d0d9e3;--job-section-heading:#e7edf3}
+ #jobModal .jobCardSections .jobFormSection,#jobModal .jobPreviousWorkSection{background:var(--job-section-bg,#fff)!important;border:1px solid var(--job-section-border,#d6dfea)!important}
+ #jobModal .jobCardSections .jobFormSection:not(.privatePricingSection)>.jobFormSectionHead{background:var(--job-section-heading,#f2f5f8)!important}
+ #jobModal .jobCardHeaderDetails>.jobContactSection{background:#edf7ee!important;border:1px solid #bad8c1!important;border-radius:7px!important;padding:6px 8px!important}
+ #jobModal .jobCardHeaderDetails>.jobVehicleSection{background:#f0f5fb!important;border:1px solid #d2dfed!important;border-radius:7px!important;padding:5px 7px!important}
+ #jobModal .jobCardHeaderDetails .field input:not([type=checkbox]),#jobModal .jobCardHeaderDetails .field select{background:#ffffffd9!important}
+ #jobModal .bookingMonthPreview{background:#fff8e5!important;border-color:#e5d39d!important}
+ #jobModal .bookingInlinePlanner{background:#f3f7fc;border-color:#c5d6ec}
+}
+@media screen and (max-width:700px){
+ #jobModal .jobModalHead.jobCardPinnedHeader>.jobCardHeaderHeading{flex-wrap:wrap!important;gap:4px 6px!important}
+ #jobModal .jobCardHeaderModel{flex-basis:100%;font-size:18px}
+}
