@@ -41,9 +41,9 @@
 
     .registrationEntry{display:flex;align-items:stretch;gap:10px;max-width:530px;margin:auto}.registrationEntry .plate{flex:1;min-width:0;margin:0}.registrationEnter{flex:0 0 auto;min-width:84px;border:0;border-radius:9px;padding:0 18px;background:var(--red);color:#fff;font-size:18px;font-weight:850;cursor:pointer}.registrationEnter:hover{background:var(--red2)}.registrationEnter:focus-visible{outline:3px solid #fff;outline-offset:3px}
     @media(max-width:600px){.registrationEntry{gap:8px}.registrationEntry .plate{grid-template-columns:36px 1fr;height:60px}.registrationEntry .plate input{font-size:clamp(21px,5.8vw,30px);letter-spacing:.05em;padding:0 5px}.registrationEnter{min-width:68px;padding:0 10px;font-size:16px}.regBox label{white-space:normal}}
-    /* Keep booking above the workshop photograph. */
-    .hero{padding-top:24px}.heroText{max-width:760px;margin:0 auto}.heroCards{grid-template-columns:repeat(4,minmax(0,1fr));max-width:760px}.heroPhoto{margin-top:32px}.heroText .regBox{max-width:620px;margin:20px auto 0}.heroCards .card h3{font-size:16px}.bookingWorkCard:focus-visible{outline:3px solid #fff;outline-offset:4px}
-    @media(max-width:720px){.hero{padding-top:20px}.heroCards{grid-template-columns:repeat(2,minmax(0,1fr))}.heroCards .card h3{font-size:15px}.heroPhoto{margin-top:24px}}
+    /* Workshop photograph leads the homepage. */
+    .hero{padding-top:24px}.heroText{max-width:760px;margin:0 auto}.heroCards{grid-template-columns:repeat(4,minmax(0,1fr));max-width:760px}.heroPhoto{margin:0 0 32px}.heroText .regBox{max-width:620px;margin:20px auto 0}.heroCards .card h3{font-size:16px}.bookingWorkCard:focus-visible{outline:3px solid #fff;outline-offset:4px}
+    @media(max-width:720px){.hero{padding-top:20px}.heroCards{grid-template-columns:repeat(2,minmax(0,1fr))}.heroCards .card h3{font-size:15px}.heroPhoto{margin:0 0 24px}}
 </style>
 </head>
 <body>
@@ -55,6 +55,7 @@
 </header>
 <main id="top">
   <div class="hero"><div class="wrap">
+    <img class="heroPhoto" src="/assets/workshop.jpg" alt="Vecta workshop at NMUK">
     <div class="heroText"><div class="eyebrow">ON-SITE AT NMUK</div><h1 id="adminHeroTitle"><span>Finally, the garage service</span><span>you’ve been waiting for.</span></h1><p><strong class="heroLead" id="adminHeroSubtitle">We fix your car while you're at work.</strong></p>
       <div class="cards heroCards">
         <div class="card bookingWorkCard" data-home-type="Service" role="button" tabindex="0" aria-pressed="false"><div class="cardIcon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v6"/><path d="M8.5 5.5 12 2l3.5 3.5"/><path d="M5 11h14"/><path d="M7 11v8h10v-8"/></svg></div><h3>SERVICE</h3><p>All makes and models</p></div>
@@ -64,7 +65,6 @@
       </div>
       <form class="regBox bookingRegForm"><label>Enter your registration number to make your booking</label><div class="registrationEntry"><div class="plate"><div class="gb"><span>GB</span></div><input class="bookingRegInput" maxlength="10" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="YOUR REG" aria-label="Vehicle registration" enterkeyhint="go"></div><button type="submit" class="registrationEnter">Enter</button></div></form>
     </div>
-    <img class="heroPhoto" src="/assets/workshop.jpg" alt="Vecta workshop at NMUK">
   </div></div>
 
   <section id="how"><div class="wrap"><div class="sectionHead"><div class="eyebrow">HOW IT WORKS</div></div><div class="steps">
