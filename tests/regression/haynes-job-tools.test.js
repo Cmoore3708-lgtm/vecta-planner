@@ -18,6 +18,8 @@ test('vehicle details sit below the single editable header registration',async()
  assert.equal(input.closest('.jobCardHeaderRegistration').parentElement,heading);
  assert.equal(document.querySelector('.jobCardHeaderDetails .jobVehicleSection').closest('.jobModalHead'),heading.parentElement);
  assert.ok(heading.parentElement.classList.contains('jobCardPinnedHeader'));
+ assert.equal(heading.querySelector('.jobCardHeaderModel').textContent,'Nissan Qashqai');
+ assert.equal(heading.querySelector('.jobCardHeaderRegistration').nextElementSibling,heading.querySelector('.jobCardHeaderModel'));
  assert.equal(document.querySelector('.jobVehicleSection #job_registration'),null);
  assert.deepEqual(Array.from(document.querySelector('.jobCardMainColumn').children).map(el=>el.className),['jobWorkSection','jobFormSection','privatePricingSection','jobPreviousWorkSection']);
  assert.deepEqual(Array.from(document.querySelector('.jobCardSupportColumn').children).map(el=>el.className),['bookingAvailabilityWorkspace']);
@@ -31,7 +33,18 @@ test('vehicle details sit below the single editable header registration',async()
  document.querySelector('#job_no_vehicle').checked=true;
  document.querySelector('#job_no_vehicle').dispatchEvent(new window.Event('change'));
  assert.equal(input.closest('.jobCardHeaderRegistration').hidden,true);
+ assert.equal(heading.querySelector('.jobCardHeaderModel').hidden,true);
  assert.equal(document.querySelector('#job_registration'),input);
+});
+test('the header name avoids a duplicate manufacturer and leaves the editable vehicle value intact',()=>{
+ const {window,document}=setup(async()=>response(vehicle),undefined,undefined,false);
+ const vehicleInput=document.createElement('input');vehicleInput.id='job_vehicle';vehicleInput.value='Nissan Qashqai';document.querySelector('.jobVehicleSection').appendChild(vehicleInput);
+ document.querySelector('#job_registration').dispatchEvent(new window.Event('change'));
+ assert.equal(document.querySelector('.jobCardHeaderModel').textContent,'Nissan Qashqai');
+ assert.equal(vehicleInput.value,'Nissan Qashqai');
+ vehicleInput.value='Micra';document.querySelector('#job_registration').dispatchEvent(new window.Event('change'));
+ assert.equal(document.querySelector('.jobCardHeaderModel').textContent,'Nissan Micra');
+ assert.equal(vehicleInput.value,'Micra');
 });
 test('missing calendar pictures never request vehicle identity or colour',async()=>{
  const {window,document}=setup(async()=>response(vehicle));await new Promise(r=>setImmediate(r));

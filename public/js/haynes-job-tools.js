@@ -264,10 +264,11 @@ root.initHaynesJobTools=function(modal){
  const header=modal.querySelector('.jobModalHead');
  const heading=document.createElement('div');heading.className='jobCardHeaderHeading';
  const plate=document.createElement('div');plate.className='jobCardHeaderRegistration';plate.setAttribute('aria-label','Vehicle registration');
+ const vehicleTitle=document.createElement('strong');vehicleTitle.className='jobCardHeaderModel';
  if(header){
   const title=header.querySelector('h2');header.insertBefore(heading,title);if(title)heading.appendChild(title);
   const oldField=input.closest('.field'),registrationControl=input.closest('.plateInputWrap')||input;
-  input.setAttribute('aria-label','Vehicle registration');plate.appendChild(registrationControl);heading.appendChild(plate);
+  input.setAttribute('aria-label','Vehicle registration');plate.appendChild(registrationControl);heading.appendChild(plate);heading.appendChild(vehicleTitle);
   if(oldField)oldField.remove();heading.appendChild(section);header.classList.add('hasHeaderVehicleDetails');
  }
  const picture=document.createElement('div');picture.className='jobCardHeaderVehicle';
@@ -299,12 +300,14 @@ root.initHaynesJobTools=function(modal){
 
  function showHeaderVehicle(drawing){
   picture.replaceChildren();picture.hidden=!!modal.querySelector('#job_no_vehicle')?.checked;
-  const value=reg(input.value);plate.hidden=picture.hidden;if(picture.hidden)return;
+  const value=reg(input.value);plate.hidden=picture.hidden;vehicleTitle.hidden=picture.hidden;if(picture.hidden)return;
   const registration=reg(input.value),linked=(root.app?.jobs||[]).find(j=>String(j.id)===String(root.editingJobId)),description={...linked,registration,make:modal.querySelector('#job_make')?.value,model:modal.querySelector('#job_model')?.value,vehicle:modal.querySelector('#job_vehicle')?.value};
   const colour=dashboardColour(description),name=[description.make,description.model||description.vehicle].filter(Boolean).join(' ');
   picture.dataset.vehiclePicker='';picture.dataset.registration=registration;if(description.fleet_vehicle_id)picture.dataset.fleetArtworkId=String(description.fleet_vehicle_id);
   const fallback=()=>{picture.innerHTML=root.VectaFleetImages?.artwork?.(name,colour)||'';picture.title='Generic vehicle illustration — appearance may differ';};
   const v=drawing||storedDrawing(description),src=image(v?.imageUrl);
+  const manufacturer=String(description.make||v?.make||'').trim(),model=String(description.model||description.vehicle||v?.model||'').trim();
+  vehicleTitle.textContent=manufacturer&&model&&!model.toUpperCase().startsWith(manufacturer.toUpperCase()+' ')&&model.toUpperCase()!==manufacturer.toUpperCase()?manufacturer+' '+model:model||manufacturer;
   if(!src){fallback();return;}
   const img=document.createElement('img');artworkSource(img,src,description,colour);if(description.fleet_vehicle_id)img.dataset.fleetArtworkId=String(description.fleet_vehicle_id);img.alt=[colour,v.make,v.model,registration].filter(Boolean).join(' ');img.dataset.vehicleImage='';img.dataset.registration=registration;img.dataset.colour=colour;img.dataset.vehicleName=name;img.dataset.vehicleMake=v.make||'';img.dataset.vehicleLogo='separate';img.dataset.vehicleCrop='tight';img.onerror=()=>{img.title='Saved vehicle image is temporarily unavailable. It has been retained.';};picture.appendChild(img);picture.title='';root.VectaVehicleImage?.mount(picture);
  }
