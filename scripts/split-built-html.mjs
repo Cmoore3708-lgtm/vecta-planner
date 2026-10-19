@@ -3,10 +3,12 @@ import path from 'node:path';
 import crypto from 'node:crypto';
 import { transformSync } from 'esbuild';
 import { compactBuildData } from './compact-build-data.mjs';
+import { mechanicVariant } from './mechanic-variant.mjs';
 
 const htmlPath=path.resolve('dist/index.html');
 const assetsDir=path.resolve('dist/assets');
 let html=fs.readFileSync(htmlPath,'utf8');
+let mechanicHtml=mechanicVariant(html);
 // A running phone must receive an update signal for every changed release,
 // including helper-only changes; do not rely on manually bumping app versions.
 const workerPath=path.resolve('dist/service-worker.js');
@@ -19,6 +21,7 @@ for(const filename of fs.readdirSync(path.resolve('dist/js')).sort()){
   if(/\.(?:js|css)$/.test(filename))digest.update(filename).update(fs.readFileSync(path.resolve('dist/js',filename)));
 }
 const releaseVersion=baseVersion+'-'+digest.digest('hex').slice(0,10);
+mechanicHtml=mechanicHtml.replaceAll(baseVersion,releaseVersion);
 html=html.replaceAll(baseVersion,releaseVersion).replace(/service-worker\.js\?v=[^'"]+/g,'service-worker.js?v='+releaseVersion);
 worker=worker.replace("const APP_VERSION='"+baseVersion+"'","const APP_VERSION='"+releaseVersion+"'");
 fs.writeFileSync(workerPath,worker);
@@ -71,9 +74,20 @@ for(const name of ['haynes-job-tools.js','haynes-job-tools.css','haynes-service-
   fs.mkdirSync(assetsDir,{recursive:true});
   fs.writeFileSync(path.join(assetsDir,filename),source);
   html=html.replaceAll(`/js/${name}`,`/assets/${filename}`);
+  mechanicHtml=mechanicHtml.replaceAll(`/js/${name}`,`/assets/${filename}`);
 }
 fs.writeFileSync(htmlPath,html);
-// Preview the established planner under the separate mechanics login. Do not
-// introduce a second UI: every byte and helper comes from the existing build.
-fs.writeFileSync(path.resolve('dist/mechanic.html'),html);
+// Mechanics have their own generated entry and chunks; never alias them to Main HTML.
+let mechanicNumber=0;
+mechanicHtml=mechanicHtml.replace(/<script([^>]*)>([\s\S]*?)<\/script>/gi,(whole,attrs,source)=>{
+ mechanicNumber++;
+ if(/\bsrc\s*=|\btype\s*=/.test(attrs)||!source.trim())return whole;
+ source=transformSync(compactBuildData(source),{loader:'js',target:'esnext',charset:'utf8',legalComments:'inline',minifyWhitespace:true,minifyIdentifiers:false,minifySyntax:false}).code;
+ if(Buffer.byteLength(source)<100000)return `<script${attrs}>${source.replace(/<\/script/gi,'<\\/script')}</script>`;
+ const hash=crypto.createHash('sha256').update(source).digest('hex').slice(0,10);
+ const filename=`vecta-inline-mechanic-${mechanicNumber}-${hash}.js`;
+ fs.writeFileSync(path.join(assetsDir,filename),source);
+ return `<script${attrs} src="/assets/${filename}"></script>`;
+});
+fs.writeFileSync(path.resolve('dist/mechanic.html'),mechanicHtml);
 console.log(JSON.stringify({indexBytes:Buffer.byteLength(html),extractedScripts:written}));
