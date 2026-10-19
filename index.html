@@ -2877,6 +2877,8 @@ body.servicePreviewing .servicePreviewControls{position:relative!important;z-ind
 <body class="vectaStartupLoading">
 <!-- VECTA v200: unfinished jobs stay allocated; no carried-over column -->
 <div id="vectaOfflineBanner" class="vectaOfflineBanner">OFFLINE WORKSHOP MODE — live cloud data is unavailable. Changes made here will be saved on this device and queued for synchronisation.</div>
+
+
 <div id="vectaConnectivity" class="vectaConnectivity syncing"><span class="dot"></span><span id="vectaConnectivityText">Checking cloud connection…</span></div>
 <div id="fatal" class="fatal"></div>
 <div class="app">
@@ -2884,12 +2886,13 @@ body.servicePreviewing .servicePreviewControls{position:relative!important;z-ind
     <header class="top">
       <div class="workshopHeaderBrand" aria-label="VECTA Workshop Pro"><img src="/assets/vecta-dashboard-logo-transparent.webp" alt="VECTA"><span>Workshop Pro</span></div>
       <h1 id="viewTitle" hidden>Planner</h1><button type="button" id="dashboardBookedToday" class="dashboardBookedToday" title="Open selected day’s financial breakdown"><strong id="dashboardBookedTodayValue">£0.00</strong></button>
-      <div class="plannerGlobalSearchWrap"><input id="plannerGlobalSearch" type="search" autocomplete="off" placeholder="Search reg, name, phone or email…" aria-label="Search Workshop Pro"></div><div class="dateCtl"><button id="prevDay" type="button" aria-label="Previous day">‹</button><div class="plannerSelectedDay"><div id="dashboardDayName" class="dashboardDayName" aria-live="polite"></div><input id="currentDate" type="date" aria-label="Current planner date" hidden></div><button id="nextDay" type="button" aria-label="Next day">›</button></div>
-      <label class="btn mobileCalendarBtn" for="mobileDateInput"><span>Calendar</span><input id="mobileDateInput" type="date" aria-label="Select dashboard date"></label>
+      <div class="plannerGlobalSearchWrap"><input id="plannerGlobalSearch" type="search" autocomplete="off" placeholder="Search reg, name, phone or email…" aria-label="Search Workshop Pro"></div>
       <div class="plannerHeaderActions">
         <button class="primary" id="newJobTop" type="button">+ New Job</button>
         <button class="btn" id="newQuoteTop" type="button">+ New Quote</button>
       </div>
+      <div class="dateCtl"><button id="prevDay" type="button" aria-label="Previous day">‹</button><div class="plannerSelectedDay"><div id="dashboardDayName" class="dashboardDayName" aria-live="polite"></div><input id="currentDate" type="date" aria-label="Current planner date" hidden></div><button id="nextDay" type="button" aria-label="Next day">›</button></div>
+      <label class="btn mobileCalendarBtn" for="mobileDateInput"><span>Calendar</span><input id="mobileDateInput" type="date" aria-label="Select dashboard date"></label>
       <button class="btn" id="todayBtn" hidden>Today</button>
       <button class="mobileTaskTop" id="newTaskTop" hidden>+ Task</button>
       <nav class="nav workshopTopNav" id="nav" aria-label="Workshop navigation"></nav>
@@ -18075,5 +18078,29 @@ try{var foot=document.querySelector('.sideFoot small');if(foot)foot.textContent=
  .top .dateCtl{width:100%!important;min-width:0!important;grid-template-columns:24px minmax(0,1fr) 24px!important;gap:2px!important}
  .top .dateCtl button{width:24px!important;min-width:24px!important}
  .top #dashboardDayName{font-size:16px!important}
+}
+</style>
+
+<style id="planner-header-compact-actions">
+/* Keep booking actions beside search, with content-sized controls and small gaps. */
+@media screen and (min-width:901px){
+ .top:has(.plannerHeaderActions){grid-template-columns:260px minmax(150px,200px) 214px 90px 210px max-content!important;grid-template-areas:"brand brand brand brand brand brand" "lookup search actions calendar date booked" "navigation navigation navigation navigation navigation navigation"!important;justify-content:start!important;gap:6px!important;padding:10px 14px 0!important}
+ .top:has(.plannerHeaderActions) .plannerGlobalSearchWrap{width:100%!important}
+ .top .plannerHeaderActions{gap:5px!important}
+ .top .dateCtl{width:100%!important;min-width:0!important;justify-self:start!important}
+ .top #dashboardBookedToday{justify-self:start!important}
+ .top>.workshopTopNav,.top .workshopHeaderBrand{grid-column:1/-1;width:100%;box-sizing:border-box}
+}
+@media screen and (min-width:901px) and (max-width:1150px){
+ .top:has(.plannerHeaderActions){grid-template-columns:260px 180px 214px!important;grid-template-areas:"brand brand brand" "lookup search actions" "calendar date booked" "navigation navigation navigation"!important}
+ .top>.mobileCalendarBtn{width:90px!important}
+}
+@media screen and (max-width:900px){
+ .top:has(.plannerHeaderActions){grid-template-areas:"brand brand brand brand brand brand brand brand brand brand brand brand" "calendar calendar calendar date date date date date date booked booked booked" "lookup lookup lookup lookup lookup lookup lookup lookup lookup lookup lookup lookup" "search search search search search search newjob newjob newjob newquote newquote newquote" "navigation navigation navigation navigation navigation navigation navigation navigation navigation navigation navigation navigation"!important;gap:5px!important}
+ .top .plannerHeaderActions{display:contents!important}
+ .top .plannerHeaderActions>#newJobTop{grid-area:newjob!important}
+ .top .plannerHeaderActions>#newQuoteTop{grid-area:newquote!important}
+ .top:has(.plannerHeaderActions) .plannerGlobalSearchWrap{width:100%!important}
+ .top .plannerHeaderActions>#newJobTop,.top .plannerHeaderActions>#newQuoteTop{font-size:11px!important;padding:0 4px!important}
 }
 </style>
