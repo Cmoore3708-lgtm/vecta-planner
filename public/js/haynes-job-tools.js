@@ -286,9 +286,8 @@ root.initHaynesJobTools=function(modal){
     const support=child.matches('.jobContactSection,.jobPreviousWorkSection,.privatePricingSection')||!!child.querySelector('.jobPartsEditor');
     (support?aside:main).appendChild(child);
    });
-   const contact=aside.querySelector('.jobContactSection');if(contact)aside.prepend(contact);
+   const contact=aside.querySelector('.jobContactSection');if(contact)(mechanic?header:details).appendChild(contact);
    sections.append(main,aside);
-   if(mechanic){const contact=aside.querySelector('.jobContactSection');if(contact)header.appendChild(contact);}
    const parts=aside.querySelector('.jobPartsEditor')?.closest('.jobFormSection'),pricing=aside.querySelector('.privatePricingSection');
    if(parts&&pricing)parts.after(pricing);
    const previous=aside.querySelector('.jobPreviousWorkSection');if(previous)main.appendChild(previous);
@@ -434,9 +433,10 @@ function openBooking(registration){
  const section=modal.querySelector('.jobVehicleSection'),details=document.createElement('details');details.className='bookingVehicleEditor';
  details.innerHTML='<summary>Edit vehicle details</summary>';
  if(section){const mileage=field('mileage'),mileageField=mileage?.closest('.field');if(mileageField){mileage.value='';mileage.setAttribute('data-current-mileage','');const label=mileageField.querySelector('label');if(label)label.textContent='Current mileage';mileageField.classList.add('bookingCurrentMileage');const allocationGrid=modal.querySelector('.jobBookingSection>.jobSectionGrid');(allocationGrid||body).prepend(mileageField);}details.append(section);body.append(details);}
- header.querySelector('.jobCardHeaderDetails')?.remove();
+ const headerDetails=header.querySelector('.jobCardHeaderDetails');
+ if(headerDetails&&!headerDetails.querySelector('.jobContactSection'))headerDetails.remove();
  const identity=document.createElement('div');identity.className='bookingLookupIdentity';identity.innerHTML='<h3 data-booking-vehicle></h3><p data-booking-variant></p><dl data-booking-spec></dl><p role="status" aria-live="polite" data-booking-status></p>';
- header.append(identity);
+ if(headerDetails?.isConnected)headerDetails.prepend(identity);else header.append(identity);
  const current=()=>modal.classList.contains('open')&&originalHeader.isConnected&&normalise(field('registration')?.value)===normalise(preset.registration);
  const text=(selector,value)=>{identity.querySelector(selector).textContent=value||'';};
  const fullHaynes=document.createElement('a');fullHaynes.className='btn small';fullHaynes.textContent='Open in HaynesPro';fullHaynes.target='_blank';fullHaynes.rel='noopener noreferrer';

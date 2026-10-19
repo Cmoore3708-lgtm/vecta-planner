@@ -9,7 +9,7 @@ function setup({stored=null,lookup=async()=>null}={}){
  const {window,document}=parseHTML('<html><body><header class="top"><div class="plannerGlobalSearchWrap"></div></header><div id="jobModal"></div></body></html>');let opened;
  window.VectaBookingVehicles={resolve:()=>stored,suggestions:()=>[{value:'RESCUE 2',label:'Nissan Navara · NMUK'}]};
  window.VectaHaynesJobTools={snapshot:()=>null,lookup,remember:v=>v};
- window.openJobModal=(_id,preset)=>{opened=preset;const modal=document.getElementById('jobModal');modal.className='modal open';modal.innerHTML='<div class="jobModalCard"><header class="jobModalHead"><div class="jobModalHeadActions"><button id="printJobCard">Print Job Card</button><button data-close-modal>Close</button></div><div class="jobCardHeaderVehicle"></div><div class="jobCardHeaderDetails"><section class="jobVehicleSection"><div class="field"><label>Last MOT Mileage</label><input id="job_mileage" value="12345"></div><input id="job_registration"><input id="job_vehicle"><input id="job_make"><input id="job_model"><input id="job_customer_account"></section></div></header><main class="jobModalBody"><textarea id="job_work_required"></textarea><section class="jobBookingSection"><div class="jobSectionGrid"><input id="job_booking_date"></div></section><input id="job_customer_email"></main><footer><button id="saveJob">Create Job</button></footer></div>';for(const id of ['registration','vehicle','make','model','customer_account','customer_email'])document.getElementById('job_'+id).value=preset[id]||'';};
+ window.openJobModal=(_id,preset)=>{opened=preset;const modal=document.getElementById('jobModal');modal.className='modal open';modal.innerHTML='<div class="jobModalCard"><header class="jobModalHead"><div class="jobModalHeadActions"><button id="printJobCard">Print Job Card</button><button data-close-modal>Close</button></div><div class="jobCardHeaderVehicle"></div><div class="jobCardHeaderDetails"><section class="jobVehicleSection"><div class="field"><label>Last MOT Mileage</label><input id="job_mileage" value="12345"></div><input id="job_registration"><input id="job_vehicle"><input id="job_make"><input id="job_model"></section><section class="jobContactSection"><input id="job_customer_account"><input id="job_customer_email"></section></div></header><main class="jobModalBody"><textarea id="job_work_required"></textarea><section class="jobBookingSection"><div class="jobSectionGrid"><input id="job_booking_date"></div></section></main><footer><button id="saveJob">Create Job</button></footer></div>';for(const id of ['registration','vehicle','make','model','customer_account','customer_email'])document.getElementById('job_'+id).value=preset[id]||'';};
  vm.runInNewContext(module,{window,document,AbortController,URLSearchParams,setTimeout,clearTimeout,Date});
  return {window,document,preset:()=>opened};
 }
@@ -96,4 +96,20 @@ test('large saved history reads deletion tombstones once and excludes deleted su
  assert.equal(window.VectaBookingVehicles.suggestions('').length,0);assert.equal(reads,0);
  const hits=window.VectaBookingVehicles.suggestions('AB',20);assert.equal(hits.length,20);assert.equal(reads,1);assert.equal(hits[0].value,'AB00003');
  assert.equal(window.VectaBookingVehicles.suggestions('Transit').length,20);
+});
+
+
+test('registration booking keeps the original contact fields and handlers in the pinned header',async()=>{
+ const {window,document}=setup({stored:{registration:'AB12CDE',vehicle:'Toyota Hilux',customer_account:'NDS',customer_email:'contact@example.test',lookup_local_only:true}});
+ const originalOpen=window.openJobModal;let emailInput,events=0;
+ window.openJobModal=(...args)=>{originalOpen(...args);emailInput=document.getElementById('job_customer_email');emailInput.addEventListener('input',()=>events++);};
+ await window.VectaHaynesDashboardLookup.open('AB12 CDE');
+ assert.equal(document.getElementById('job_customer_email'),emailInput);
+ assert.equal(document.querySelectorAll('#job_customer_email').length,1);
+ assert.equal(emailInput.value,'contact@example.test');
+ assert.equal(emailInput.closest('.jobModalHead'),document.querySelector('.jobModalHead'));
+ assert.equal(document.querySelector('.bookingLookupIdentity').parentElement,document.querySelector('.jobCardHeaderDetails'));
+ assert.equal(document.querySelector('.jobContactSection').parentElement,document.querySelector('.jobCardHeaderDetails'));
+ emailInput.value='updated@example.test';emailInput.dispatchEvent(new window.Event('input'));assert.equal(events,1);
+ assert.ok(document.querySelector('.bookingVehicleEditor .jobVehicleSection'));
 });

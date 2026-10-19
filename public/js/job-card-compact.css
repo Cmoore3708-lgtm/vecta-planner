@@ -263,6 +263,52 @@
  #jobModal .jobBookingSection .field label{white-space:normal;overflow-wrap:anywhere}
 }
 
+/* Vehicle and contact details stay in a compact, pinned 30% header. */
+@media screen{
+ #jobModal .jobModalCard{height:calc(100dvh - 24px)!important;max-height:calc(100dvh - 24px)!important;display:flex!important;flex-direction:column!important;overflow:hidden!important}
+ #jobModal .jobModalHead.jobCardPinnedHeader,
+ #jobModal.registrationBooking .jobModalHead.jobCardPinnedHeader{flex:0 0 30%!important;height:30%!important;max-height:30%!important;min-height:0!important;box-sizing:border-box;grid-template-columns:minmax(0,1fr) minmax(0,38%)!important;grid-template-rows:auto minmax(0,1fr) auto!important;gap:3px 12px!important;padding:8px 12px!important;margin:0!important;overflow:hidden!important;align-items:stretch!important}
+ #jobModal .jobModalHead.jobCardPinnedHeader>.jobCardHeaderVehicle,
+ #jobModal.registrationBooking .jobModalHead.jobCardPinnedHeader>.jobCardHeaderVehicle{height:100%!important;max-height:100%!important;min-height:0!important;aspect-ratio:auto!important;align-self:stretch!important}
+ #jobModal .jobCardHeaderVehicle>img,#jobModal .jobCardHeaderVehicle>svg{object-fit:contain!important;object-position:right top!important}
+ #jobModal .jobModalHead.jobCardPinnedHeader>.jobCardHeaderHeading{gap:6px!important;align-items:center;padding:0!important}
+ #jobModal .jobCardHeaderHeading h2{font-size:18px!important;margin:0!important}
+ #jobModal .jobModalHead.jobCardPinnedHeader>.jobCardHeaderDetails{display:flex!important;flex-direction:column;gap:4px;margin:0!important;min-height:0;overflow:auto;overscroll-behavior:contain;padding-right:3px}
+ #jobModal .jobCardHeaderDetails>.jobFormSection{padding:0!important;border:0!important;border-radius:0!important;background:transparent!important;box-shadow:none!important}
+ #jobModal .jobCardHeaderDetails .jobFormSectionHead,#jobModal .jobCardHeaderDetails .existingCustomerHelp{display:none!important}
+ #jobModal .jobCardHeaderDetails .jobVehicleSection .jobSectionGrid{grid-template-columns:minmax(0,2fr) minmax(80px,1fr) auto!important;gap:3px 6px!important;align-items:end}
+ #jobModal .jobCardHeaderDetails .noVehicleToggle{grid-column:3!important;grid-row:1;margin:0!important;align-self:center;white-space:nowrap;font-size:11px!important}
+ #jobModal .jobCardHeaderDetails .field:has(#job_vehicle){grid-column:1;grid-row:1}
+ #jobModal .jobCardHeaderDetails .field:has(#job_mileage){grid-column:2;grid-row:1}
+ #jobModal .jobCardHeaderDetails .jobContactSection .jobSectionGrid{grid-template-columns:repeat(4,minmax(0,1fr))!important;gap:3px 6px!important}
+ #jobModal .jobCardHeaderDetails .existingCustomerLookupField{grid-column:auto!important}
+ #jobModal .jobCardHeaderDetails .field label{font-size:10px!important;line-height:1.1!important;margin-bottom:2px!important}
+ #jobModal .jobCardHeaderDetails .field input:not([type=checkbox]),#jobModal .jobCardHeaderDetails .field select{height:28px!important;min-height:28px!important;padding:3px 5px!important;font-size:12px!important}
+ #jobModal .jobCardHeaderDetails .jobVehicleDuePanel{padding:3px!important;gap:3px!important}
+ #jobModal .jobCardHeaderDetails .jobVehicleDueItem{padding:3px 5px!important}
+ #jobModal .jobCardHeaderDetails .haynesJobTools{padding:2px 0!important}
+ #jobModal .jobCardHeaderDetails .haynesJobTools button,#jobModal .jobCardHeaderDetails .haynesJobVehicle a{padding:3px 6px!important;font-size:11px!important}
+ #jobModal .jobCardHeaderDetails .haynesJobTools [role=status]:empty{display:none}
+ #jobModal .jobCardHeaderDetails .haynesJobTools [role=status]{margin-top:2px;font-size:11px!important}
+ #jobModal .jobModalHeadActions{min-height:0;gap:5px!important}
+ #jobModal .jobModalHeadActions>button{padding:4px 7px!important;font-size:12px!important}
+ #jobModal .jobModalCard>.jobModalBody{flex:1 1 auto!important;min-height:0!important;overflow:auto!important}
+ #jobModal .jobModalCard>.modalFoot{flex:0 0 auto!important}
+ #jobModal .bookingLookupIdentity h3{font-size:17px;margin:0 0 2px}
+ #jobModal .bookingLookupIdentity p,#jobModal .bookingLookupIdentity dl{margin:2px 0;font-size:11px}
+}
+@media screen and (max-width:760px){
+ #jobModal .jobModalCard{height:calc(100dvh - 10px)!important;max-height:calc(100dvh - 10px)!important}
+}
+@media screen and (max-width:700px){
+ #jobModal .jobModalHead.jobCardPinnedHeader,#jobModal.registrationBooking .jobModalHead.jobCardPinnedHeader{grid-template-columns:minmax(0,1fr) minmax(0,38%)!important;gap:3px 6px!important;padding:6px!important}
+ #jobModal .jobModalHead.jobCardPinnedHeader>.jobCardHeaderDetails,#jobModal.registrationBooking .jobModalHead.jobCardPinnedHeader>.jobCardHeaderDetails{grid-column:1/-1!important;grid-row:3!important}
+ #jobModal .jobModalHead.jobCardPinnedHeader>.jobModalHeadActions,#jobModal.registrationBooking .jobModalHead.jobCardPinnedHeader>.jobModalHeadActions{grid-column:1!important;grid-row:2!important}
+ #jobModal .jobCardHeaderDetails .jobContactSection .jobSectionGrid{grid-template-columns:repeat(2,minmax(0,1fr))!important}
+ #jobModal .jobCardHeaderDetails .jobVehicleSection .jobSectionGrid{grid-template-columns:minmax(0,2fr) minmax(65px,1fr)!important}
+ #jobModal .jobCardHeaderDetails .noVehicleToggle{grid-column:1/-1!important;grid-row:auto}
+}
+
 /* Mechanics use the existing editor, with hidden values retained for safe saves. */
 #jobModal .mechanicJobCard .jobTypeSelectHelp,
 #jobModal .mechanicJobCard .templateBtns,
@@ -271,17 +317,18 @@
 #jobModal .mechanicJobCard .privatePricingSection{display:none!important}
 #jobModal .mechanicJobCard .jobCardSections{grid-template-columns:minmax(0,1fr)!important}
 #jobModal .mechanicJobCard .jobWorkSection #job_work_required{width:100%;min-height:220px!important;height:220px;padding:14px!important;font-size:20px!important;line-height:1.5!important;resize:vertical}
-#jobModal .mechanicJobCard .jobModalHead.jobCardPinnedHeader{max-height:none;overflow:visible;grid-template-rows:auto auto auto auto}
-#jobModal .mechanicJobCard .jobModalHead>.jobCardHeaderDetails{grid-column:1;grid-row:2}
-#jobModal .mechanicJobCard .jobModalHead>.jobModalHeadActions{grid-column:1;grid-row:5}
-#jobModal .mechanicJobCard .jobModalHead>.haynesJobTools{grid-column:1;grid-row:4;align-self:start;min-width:0}
-#jobModal .mechanicJobCard .jobModalHead>.jobContactSection{grid-column:2;grid-row:4;margin:0!important;min-width:0}
+#jobModal .mechanicJobCard .jobModalHead.jobCardPinnedHeader{grid-template-rows:auto minmax(0,1fr) auto auto!important;overflow-y:auto!important}
+#jobModal .mechanicJobCard .jobModalHead>.jobCardHeaderDetails{grid-column:1;grid-row:2!important}
+#jobModal .mechanicJobCard .jobModalHead>.jobCardHeaderVehicle{grid-column:2!important;grid-row:1/3!important}
+#jobModal .mechanicJobCard .jobModalHead>.jobModalHeadActions{grid-column:1/-1!important;grid-row:4!important}
+#jobModal .mechanicJobCard .jobModalHead>.haynesJobTools{grid-column:1;grid-row:3;align-self:start;min-width:0}
+#jobModal .mechanicJobCard .jobModalHead>.jobContactSection{grid-column:2;grid-row:3;margin:0!important;min-width:0}
 #jobModal .mechanicJobCard .jobModalHead>.jobContactSection .jobSectionGrid{grid-template-columns:repeat(2,minmax(0,1fr))!important}
 #jobModal .mechanicJobCard .v280MechanicComplete{margin-left:auto;min-width:140px;min-height:44px;font-size:17px!important}
 @media screen and (max-width:700px){
- #jobModal .mechanicJobCard .jobModalHead>.jobCardHeaderDetails{grid-column:1/-1;grid-row:3}
+ #jobModal .mechanicJobCard .jobModalHead>.jobCardHeaderDetails{grid-column:1/-1;grid-row:3!important}
  #jobModal .mechanicJobCard .jobModalHead>.haynesJobTools{grid-column:1/-1;grid-row:4}
  #jobModal .mechanicJobCard .jobModalHead>.jobContactSection{grid-column:1/-1;grid-row:5}
- #jobModal .mechanicJobCard .jobModalHead>.jobModalHeadActions{grid-column:1;grid-row:2}
+ #jobModal .mechanicJobCard .jobModalHead>.jobModalHeadActions{grid-column:1!important;grid-row:2!important}
  #jobModal .mechanicJobCard .jobWorkSection #job_work_required{font-size:18px!important;min-height:200px!important}
 }
