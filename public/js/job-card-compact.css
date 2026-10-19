@@ -272,14 +272,16 @@
 #jobModal .mechanicJobCard .jobCardSections{grid-template-columns:minmax(0,1fr)!important}
 #jobModal .mechanicJobCard .jobWorkSection #job_work_required{width:100%;min-height:220px!important;height:220px;padding:14px!important;font-size:20px!important;line-height:1.5!important;resize:vertical}
 #jobModal .mechanicJobCard .jobModalHead.jobCardPinnedHeader{max-height:none;overflow:visible;grid-template-rows:auto auto auto auto}
-#jobModal .mechanicJobCard .jobModalHead>.jobCardHeaderDetails{grid-column:1;grid-row:2/5}
+#jobModal .mechanicJobCard .jobModalHead>.jobCardHeaderDetails{grid-column:1;grid-row:2}
 #jobModal .mechanicJobCard .jobModalHead>.jobModalHeadActions{grid-column:1;grid-row:5}
+#jobModal .mechanicJobCard .jobModalHead>.haynesJobTools{grid-column:1;grid-row:4;align-self:start;min-width:0}
 #jobModal .mechanicJobCard .jobModalHead>.jobContactSection{grid-column:2;grid-row:4;margin:0!important;min-width:0}
 #jobModal .mechanicJobCard .jobModalHead>.jobContactSection .jobSectionGrid{grid-template-columns:repeat(2,minmax(0,1fr))!important}
 #jobModal .mechanicJobCard .v280MechanicComplete{margin-left:auto;min-width:140px;min-height:44px;font-size:17px!important}
 @media screen and (max-width:700px){
  #jobModal .mechanicJobCard .jobModalHead>.jobCardHeaderDetails{grid-column:1/-1;grid-row:3}
- #jobModal .mechanicJobCard .jobModalHead>.jobContactSection{grid-column:1/-1;grid-row:4}
+ #jobModal .mechanicJobCard .jobModalHead>.haynesJobTools{grid-column:1/-1;grid-row:4}
+ #jobModal .mechanicJobCard .jobModalHead>.jobContactSection{grid-column:1/-1;grid-row:5}
  #jobModal .mechanicJobCard .jobModalHead>.jobModalHeadActions{grid-column:1;grid-row:2}
  #jobModal .mechanicJobCard .jobWorkSection #job_work_required{font-size:18px!important;min-height:200px!important}
 }

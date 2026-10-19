@@ -260,7 +260,7 @@ root.enrichHaynesInvoice=function(sheet,invoice){
 root.initHaynesJobTools=function(modal){
  modal?.classList.remove('registrationBooking');
  const section=modal?.querySelector('.jobVehicleSection'),input=modal?.querySelector('#job_registration');
- if(!section||!input||section.querySelector('.haynesJobTools'))return;
+ if(!section||!input||modal.querySelector('.haynesJobTools'))return;
  const header=modal.querySelector('.jobModalHead');
  const mechanic=root.VECTA_MECHANIC_DEPLOYMENT===true;
  modal.querySelector('.jobModalCard')?.classList.toggle('mechanicJobCard',mechanic);
@@ -312,7 +312,7 @@ root.initHaynesJobTools=function(modal){
  }
  const panel=document.createElement('div');panel.className='haynesJobTools';
  panel.innerHTML='<button type="button" class="btn">Find vehicle in HaynesPro</button><span role="status" aria-live="polite"></span><div class="haynesJobVehicle"></div>';
- section.appendChild(panel);
+ if(mechanic&&header)header.appendChild(panel);else section.appendChild(panel);
  const button=panel.querySelector('button'),status=panel.querySelector('[role="status"]'),body=panel.querySelector('.haynesJobVehicle'),noVehicle=modal.querySelector('#job_no_vehicle');
  let sequence=0,refreshTimer;
  function showGeneric(){if(noVehicle?.checked)return;const v=genericImage({make:modal.querySelector('#job_make')?.value,model:modal.querySelector('#job_model')?.value,vehicle:modal.querySelector('#job_vehicle')?.value}),img=thumbnail(v,'haynesJobGenericImage',{registration:current()});if(img){body.replaceChildren(img);return true;}return false;}

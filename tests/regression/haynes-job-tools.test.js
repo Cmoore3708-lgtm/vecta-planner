@@ -303,6 +303,7 @@ test('mechanics keep the original editable contacts below the artwork and retain
  const {document}=setup(async()=>response(vehicle),undefined,undefined,false,true);
  assert.ok(document.querySelector('.jobModalCard').classList.contains('mechanicJobCard'));
  assert.equal(document.querySelector('.jobContactSection').parentElement,document.querySelector('.jobModalHead'));
+ assert.equal(document.querySelector('.haynesJobTools').parentElement,document.querySelector('.jobModalHead'));
  assert.ok(document.querySelector('.privatePricingSection'),'retained for the existing gather/save pipeline');
  assert.ok(document.querySelector('.jobWorkSection'));
 });
