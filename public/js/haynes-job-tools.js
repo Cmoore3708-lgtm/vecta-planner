@@ -262,6 +262,8 @@ root.initHaynesJobTools=function(modal){
  const section=modal?.querySelector('.jobVehicleSection'),input=modal?.querySelector('#job_registration');
  if(!section||!input||section.querySelector('.haynesJobTools'))return;
  const header=modal.querySelector('.jobModalHead');
+ const mechanic=root.VECTA_MECHANIC_DEPLOYMENT===true;
+ modal.querySelector('.jobModalCard')?.classList.toggle('mechanicJobCard',mechanic);
  const heading=document.createElement('div');heading.className='jobCardHeaderHeading';
  const plate=document.createElement('div');plate.className='jobCardHeaderRegistration';plate.setAttribute('aria-label','Vehicle registration');
  if(header){
@@ -286,6 +288,7 @@ root.initHaynesJobTools=function(modal){
    });
    const contact=aside.querySelector('.jobContactSection');if(contact)aside.prepend(contact);
    sections.append(main,aside);
+   if(mechanic){const contact=aside.querySelector('.jobContactSection');if(contact)header.appendChild(contact);}
    const parts=aside.querySelector('.jobPartsEditor')?.closest('.jobFormSection'),pricing=aside.querySelector('.privatePricingSection');
    if(parts&&pricing)parts.after(pricing);
    const previous=aside.querySelector('.jobPreviousWorkSection');if(previous)main.appendChild(previous);
