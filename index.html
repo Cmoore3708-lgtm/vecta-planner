@@ -14329,15 +14329,18 @@ function installNewJobAvailabilityCalendar(allowHistoricalDates,fieldId){
   }
   function isoDate(y,m,d){return y+'-'+String(m+1).padStart(2,'0')+'-'+String(d).padStart(2,'0')}
   function monthTitle(d){return d.toLocaleDateString('en-GB',{month:'long',year:'numeric'})}
-  function calendarHtml(){
+  function calendarHtml(inlineMode){
     var y=monthDate.getFullYear(),m=monthDate.getMonth(),first=new Date(y,m,1,12),lastDay=new Date(y,m+1,0,12).getDate(),offset=(first.getDay()+6)%7,today=todayIso();
+    // The inline picker begins at the selected day and fills five weeks forward.
+    var rolling=inlineMode&&!dashboardMode,startDay=1;
+    if(rolling){var selected=new Date(chosen+'T12:00:00');if(selected.getFullYear()===y&&selected.getMonth()===m)startDay=selected.getDate();first=new Date(y,m,startDay,12);offset=(first.getDay()+6)%7;lastDay=startDay+34-offset;}
     var html='<div class="v243MonthHead"><button type="button" class="btn small" data-v243-prev-month>‹</button><strong>'+esc(monthTitle(monthDate))+'</strong><button type="button" class="btn small" data-v243-next-month>›</button></div>'+
       '<div class="v243Weekdays"><span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span><span>Sat</span><span>Sun</span></div><div class="v243MonthGrid">';
     for(var blank=0;blank<offset;blank++)html+='<span class="v243DayBlank"></span>';
-    for(var d=1;d<=lastDay;d++){
-      var date=isoDate(y,m,d),dow=new Date(date+'T12:00:00').getDay(),past=date<today,weekend=dow===0||dow===6,disabled=dashboardMode?false:(weekend||(!allowHistoricalDates&&past));
+    for(var d=startDay;d<=lastDay;d++){
+      var actual=new Date(y,m,d,12),date=isoDate(actual.getFullYear(),actual.getMonth(),actual.getDate()),dow=new Date(date+'T12:00:00').getDay(),past=date<today,weekend=dow===0||dow===6,disabled=dashboardMode?false:(weekend||(!allowHistoricalDates&&past));
       var total=totalPct(date);
-      html+='<button type="button" class="v243CalendarDay '+(past?'past ':'')+(date===chosen?'selected ':'')+(disabled?'disabled':'')+'" '+(disabled?'disabled':'data-v243-calendar-day="'+date+'"')+'><b>'+d+'</b>'+((weekend&&!dashboardMode)?'':('<small>'+total+'%</small>'))+'</button>';
+      html+='<button type="button" class="v243CalendarDay '+(past?'past ':'')+(date===chosen?'selected ':'')+(disabled?'disabled':'')+'" '+(disabled?'disabled':'data-v243-calendar-day="'+date+'"')+'><b>'+actual.getDate()+(rolling&&actual.getDate()===1?' '+actual.toLocaleDateString('en-GB',{month:'short'}):'')+'</b>'+((weekend&&!dashboardMode)?'':('<small>'+total+'%</small>'))+'</button>';
     }
     return html+'</div>';
   }
@@ -14376,7 +14379,7 @@ function installNewJobAvailabilityCalendar(allowHistoricalDates,fieldId){
     (field.closest('.jobSectionGrid')||field.parentElement).appendChild(preview);
     function renderPreview(){
       preview.classList.toggle('hasDayPlanner',plannerRevealed);
-      preview.innerHTML='<div class="bookingMonthPreview"><strong class="bookingMonthHeading">Choose booking date</strong>'+calendarHtml()+'</div>'+(plannerRevealed?'<div class="bookingInlinePlanner" aria-label="Allocated work for selected booking date"><button type="button" class="btn small bookingHidePlanner" data-hide-day-planner>Hide planner</button>'+plannerHtml(chosen,true)+'</div>':'');
+      preview.innerHTML='<div class="bookingMonthPreview"><strong class="bookingMonthHeading">Choose booking date</strong>'+calendarHtml(true)+'</div>'+(plannerRevealed?'<div class="bookingInlinePlanner" aria-label="Allocated work for selected booking date"><button type="button" class="btn small bookingHidePlanner" data-hide-day-planner>Hide planner</button>'+plannerHtml(chosen,true)+'</div>':'');
     }
     preview.onclick=function(ev){
       if(ev.target.closest('[data-hide-day-planner]')){plannerRevealed=false;renderPreview();return}
