@@ -73,4 +73,7 @@ for(const name of ['haynes-job-tools.js','haynes-job-tools.css','haynes-service-
   html=html.replaceAll(`/js/${name}`,`/assets/${filename}`);
 }
 fs.writeFileSync(htmlPath,html);
+// Preview the established planner under the separate mechanics login. Do not
+// introduce a second UI: every byte and helper comes from the existing build.
+fs.writeFileSync(path.resolve('dist/mechanic.html'),html);
 console.log(JSON.stringify({indexBytes:Buffer.byteLength(html),extractedScripts:written}));

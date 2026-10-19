@@ -13,9 +13,11 @@ This preserves the existing shared workshop permissions. It does not invent
 individual mechanic identities or change which workshop employee sees finance.
 Individual staff roles can be introduced separately with explicit requirements.
 
-The mechanic alias forwards to the current protected application rather than
-running the old anonymous standalone build. The same workshop credentials apply;
-devices may need to sign in once. No credentials are copied to that project.
+The mechanics aliases serve the established planner from a Workshop Pro
+deployment. The separate-login amendment in `deploy/mechanic-access/README.md`
+changes the login on those hostnames while preserving the existing UI, session
+exchange and workshop permissions. Main keeps its own credentials. This does not
+introduce a new restricted financial-data role.
 
 ## Ordered deployment
 
