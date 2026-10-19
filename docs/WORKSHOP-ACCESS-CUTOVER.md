@@ -13,11 +13,11 @@ This preserves the existing shared workshop permissions. It does not invent
 individual mechanic identities or change which workshop employee sees finance.
 Individual staff roles can be introduced separately with explicit requirements.
 
-The mechanic alias previously forwarded to the full protected application using
-the same workshop credentials. The separate mechanics release in
-`deploy/mechanic-access/README.md` replaces that proxy with an explicit route
-allowlist, distinct login and restricted jobs API. It does not issue workshop JWTs
-to mechanics or change the manager boundary documented here.
+The mechanics aliases serve the established planner from a Workshop Pro
+deployment. The separate-login amendment in `deploy/mechanic-access/README.md`
+changes the login on those hostnames while preserving the existing UI, session
+exchange and workshop permissions. Main keeps its own credentials. This does not
+introduce a new restricted financial-data role.
 
 ## Ordered deployment
 

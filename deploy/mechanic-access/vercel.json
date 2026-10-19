@@ -1,12 +1,7 @@
 {
   "version": 2,
   "rewrites": [
-    {"source": "/", "destination": "https://vecta-planner.vercel.app/mechanic.html"},
-    {"source": "/mechanic.html", "destination": "https://vecta-planner.vercel.app/mechanic.html"},
-    {"source": "/api/mechanic", "destination": "https://vecta-planner.vercel.app/api/mechanic"},
-    {"source": "/api/supabase-config", "has": [{"type":"query","key":"action","value":"release"}], "destination": "https://vecta-planner.vercel.app/api/supabase-config?action=release"},
-    {"source": "/js/mechanic-app.js", "destination": "https://vecta-planner.vercel.app/js/mechanic-app.js"},
-    {"source": "/js/mechanic-app.css", "destination": "https://vecta-planner.vercel.app/js/mechanic-app.css"}
+    {"source": "/:path*", "destination": "https://vecta-planner.vercel.app/:path*"}
   ],
   "headers": [{"source": "/:path*", "headers": [{"key":"Cache-Control","value":"no-store"}]}]
 }

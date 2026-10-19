@@ -1,5 +1,5 @@
 import { next } from '@vercel/functions';
-import { mechanicGate, mechanicCookie } from './lib/mechanic-auth.js';
+import { mechanicGate, mechanicCookie, mechanicAuthorised, isMechanicHost } from './lib/mechanic-auth.js';
 
 // The public booking and approval pages share this deployment with Main.
 // The mechanic dashboard is a separate Vercel project and is unaffected.
@@ -112,11 +112,18 @@ export async function validManagerSession(request,credentials,now=Date.now()){
 }
 
 export default async function middleware(request) {
-  if(new URL(request.url).pathname==='/mechanic.html') {
+  const url=new URL(request.url);
+  const protectedPath=requiresManagerLogin(url.pathname);
+  // The live mechanics alias serves the same planner, with independent credentials.
+  // On Preview only, /mechanic.html is a byte-identical build of that planner.
+  const mechanicContext=isMechanicHost(url.hostname)||(process.env.VERCEL_ENV==='preview'&&url.pathname==='/mechanic.html')||
+    (process.env.VERCEL_ENV==='preview'&&/^\/assets\/vecta-inline-/.test(url.pathname)&&await mechanicAuthorised(request));
+  if(mechanicContext&&protectedPath) {
     const denied=await mechanicGate(request);
     if(denied)return denied;
     const response=next();
     response.headers.set('Cache-Control','no-store');
+    response.headers.set('X-Vecta-Manager-Authenticated','1');
     response.headers.append('Set-Cookie',await mechanicCookie());
     return response;
   }
@@ -125,7 +132,6 @@ export default async function middleware(request) {
     user: process.env.VECTA_MAIN_USER,
     password: process.env.VECTA_MAIN_PASSWORD
   };
-  const protectedPath=requiresManagerLogin(new URL(request.url).pathname);
   const remembered=protectedPath && await validManagerSession(request,credentials);
   const result = remembered ? null : managerGate(request,credentials);
   if (result) return result;
