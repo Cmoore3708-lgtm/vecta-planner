@@ -289,11 +289,12 @@ root.initHaynesJobTools=function(modal){
    const contact=aside.querySelector('.jobContactSection');if(contact)(mechanic?header:details).appendChild(contact);
    sections.append(main,aside);
    const parts=aside.querySelector('.jobPartsEditor')?.closest('.jobFormSection'),pricing=aside.querySelector('.privatePricingSection');
-   if(parts&&pricing)parts.after(pricing);
+   if(parts)main.appendChild(parts);
+   if(pricing)main.appendChild(pricing);
    const previous=aside.querySelector('.jobPreviousWorkSection');if(previous)main.appendChild(previous);
    const booking=main.querySelector('.jobBookingSection');if(booking){
     booking.classList.add('jobBookingFullWidth');sections.prepend(booking);
-    const calendar=booking.querySelector('.bookingAvailabilityWorkspace');if(calendar)main.appendChild(calendar);
+    const calendar=booking.querySelector('.bookingAvailabilityWorkspace');if(calendar)aside.appendChild(calendar);
    }
   }
  }
