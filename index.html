@@ -2877,6 +2877,8 @@ body.servicePreviewing .servicePreviewControls{position:relative!important;z-ind
 <body class="vectaStartupLoading">
 <!-- VECTA v200: unfinished jobs stay allocated; no carried-over column -->
 <div id="vectaOfflineBanner" class="vectaOfflineBanner">OFFLINE WORKSHOP MODE — live cloud data is unavailable. Changes made here will be saved on this device and queued for synchronisation.</div>
+
+
 <div id="vectaConnectivity" class="vectaConnectivity syncing"><span class="dot"></span><span id="vectaConnectivityText">Checking cloud connection…</span></div>
 <div id="fatal" class="fatal"></div>
 <div class="app">
@@ -2884,12 +2886,13 @@ body.servicePreviewing .servicePreviewControls{position:relative!important;z-ind
     <header class="top">
       <div class="workshopHeaderBrand" aria-label="VECTA Workshop Pro"><img src="/assets/vecta-dashboard-logo-transparent.webp" alt="VECTA"><span>Workshop Pro</span></div>
       <h1 id="viewTitle" hidden>Planner</h1><button type="button" id="dashboardBookedToday" class="dashboardBookedToday" title="Open selected day’s financial breakdown"><strong id="dashboardBookedTodayValue">£0.00</strong></button>
-      <div class="plannerGlobalSearchWrap"><input id="plannerGlobalSearch" type="search" autocomplete="off" placeholder="Search reg, name, phone or email…" aria-label="Search Workshop Pro"></div><div class="dateCtl"><button id="prevDay" type="button" aria-label="Previous day">‹</button><div class="plannerSelectedDay"><div id="dashboardDayName" class="dashboardDayName" aria-live="polite"></div><input id="currentDate" type="date" aria-label="Current planner date" hidden></div><button id="nextDay" type="button" aria-label="Next day">›</button></div>
-      <label class="btn mobileCalendarBtn" for="mobileDateInput"><span>Calendar</span><input id="mobileDateInput" type="date" aria-label="Select dashboard date"></label>
+      <div class="plannerGlobalSearchWrap"><input id="plannerGlobalSearch" type="search" autocomplete="off" placeholder="Search reg, name, phone or email…" aria-label="Search Workshop Pro"></div>
       <div class="plannerHeaderActions">
         <button class="primary" id="newJobTop" type="button">+ New Job</button>
         <button class="btn" id="newQuoteTop" type="button">+ New Quote</button>
       </div>
+      <div class="dateCtl"><button id="prevDay" type="button" aria-label="Previous day">‹</button><div class="plannerSelectedDay"><div id="dashboardDayName" class="dashboardDayName" aria-live="polite"></div><input id="currentDate" type="date" aria-label="Current planner date" hidden></div><button id="nextDay" type="button" aria-label="Next day">›</button></div>
+      <label class="btn mobileCalendarBtn" for="mobileDateInput"><span>Calendar</span><input id="mobileDateInput" type="date" aria-label="Select dashboard date"></label>
       <button class="btn" id="todayBtn" hidden>Today</button>
       <button class="mobileTaskTop" id="newTaskTop" hidden>+ Task</button>
       <nav class="nav workshopTopNav" id="nav" aria-label="Workshop navigation"></nav>
@@ -14329,15 +14332,18 @@ function installNewJobAvailabilityCalendar(allowHistoricalDates,fieldId){
   }
   function isoDate(y,m,d){return y+'-'+String(m+1).padStart(2,'0')+'-'+String(d).padStart(2,'0')}
   function monthTitle(d){return d.toLocaleDateString('en-GB',{month:'long',year:'numeric'})}
-  function calendarHtml(){
+  function calendarHtml(inlineMode){
     var y=monthDate.getFullYear(),m=monthDate.getMonth(),first=new Date(y,m,1,12),lastDay=new Date(y,m+1,0,12).getDate(),offset=(first.getDay()+6)%7,today=todayIso();
+    // The inline picker begins at the selected day and fills five weeks forward.
+    var rolling=inlineMode&&!dashboardMode,startDay=1;
+    if(rolling){var selected=new Date(chosen+'T12:00:00');if(selected.getFullYear()===y&&selected.getMonth()===m)startDay=selected.getDate();first=new Date(y,m,startDay,12);offset=(first.getDay()+6)%7;lastDay=startDay+34-offset;}
     var html='<div class="v243MonthHead"><button type="button" class="btn small" data-v243-prev-month>‹</button><strong>'+esc(monthTitle(monthDate))+'</strong><button type="button" class="btn small" data-v243-next-month>›</button></div>'+
       '<div class="v243Weekdays"><span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span><span>Sat</span><span>Sun</span></div><div class="v243MonthGrid">';
     for(var blank=0;blank<offset;blank++)html+='<span class="v243DayBlank"></span>';
-    for(var d=1;d<=lastDay;d++){
-      var date=isoDate(y,m,d),dow=new Date(date+'T12:00:00').getDay(),past=date<today,weekend=dow===0||dow===6,disabled=dashboardMode?false:(weekend||(!allowHistoricalDates&&past));
+    for(var d=startDay;d<=lastDay;d++){
+      var actual=new Date(y,m,d,12),date=isoDate(actual.getFullYear(),actual.getMonth(),actual.getDate()),dow=new Date(date+'T12:00:00').getDay(),past=date<today,weekend=dow===0||dow===6,disabled=dashboardMode?false:(weekend||(!allowHistoricalDates&&past));
       var total=totalPct(date);
-      html+='<button type="button" class="v243CalendarDay '+(past?'past ':'')+(date===chosen?'selected ':'')+(disabled?'disabled':'')+'" '+(disabled?'disabled':'data-v243-calendar-day="'+date+'"')+'><b>'+d+'</b>'+((weekend&&!dashboardMode)?'':('<small>'+total+'%</small>'))+'</button>';
+      html+='<button type="button" class="v243CalendarDay '+(past?'past ':'')+(date===chosen?'selected ':'')+(disabled?'disabled':'')+'" '+(disabled?'disabled':'data-v243-calendar-day="'+date+'"')+'><b>'+actual.getDate()+(rolling&&actual.getDate()===1?' '+actual.toLocaleDateString('en-GB',{month:'short'}):'')+'</b>'+((weekend&&!dashboardMode)?'':('<small>'+total+'%</small>'))+'</button>';
     }
     return html+'</div>';
   }
@@ -14376,7 +14382,7 @@ function installNewJobAvailabilityCalendar(allowHistoricalDates,fieldId){
     (field.closest('.jobSectionGrid')||field.parentElement).appendChild(preview);
     function renderPreview(){
       preview.classList.toggle('hasDayPlanner',plannerRevealed);
-      preview.innerHTML='<div class="bookingMonthPreview"><strong class="bookingMonthHeading">Choose booking date</strong>'+calendarHtml()+'</div>'+(plannerRevealed?'<div class="bookingInlinePlanner" aria-label="Allocated work for selected booking date"><button type="button" class="btn small bookingHidePlanner" data-hide-day-planner>Hide planner</button>'+plannerHtml(chosen,true)+'</div>':'');
+      preview.innerHTML='<div class="bookingMonthPreview"><strong class="bookingMonthHeading">Choose booking date</strong>'+calendarHtml(true)+'</div>'+(plannerRevealed?'<div class="bookingInlinePlanner" aria-label="Allocated work for selected booking date"><button type="button" class="btn small bookingHidePlanner" data-hide-day-planner>Hide planner</button>'+plannerHtml(chosen,true)+'</div>':'');
     }
     preview.onclick=function(ev){
       if(ev.target.closest('[data-hide-day-planner]')){plannerRevealed=false;renderPreview();return}
@@ -18072,5 +18078,29 @@ try{var foot=document.querySelector('.sideFoot small');if(foot)foot.textContent=
  .top .dateCtl{width:100%!important;min-width:0!important;grid-template-columns:24px minmax(0,1fr) 24px!important;gap:2px!important}
  .top .dateCtl button{width:24px!important;min-width:24px!important}
  .top #dashboardDayName{font-size:16px!important}
+}
+</style>
+
+<style id="planner-header-compact-actions">
+/* Keep booking actions beside search, with content-sized controls and small gaps. */
+@media screen and (min-width:901px){
+ .top:has(.plannerHeaderActions){grid-template-columns:260px minmax(150px,200px) 214px 90px 210px max-content!important;grid-template-areas:"brand brand brand brand brand brand" "lookup search actions calendar date booked" "navigation navigation navigation navigation navigation navigation"!important;justify-content:start!important;gap:6px!important;padding:10px 14px 0!important}
+ .top:has(.plannerHeaderActions) .plannerGlobalSearchWrap{width:100%!important}
+ .top .plannerHeaderActions{gap:5px!important}
+ .top .dateCtl{width:100%!important;min-width:0!important;justify-self:start!important}
+ .top #dashboardBookedToday{justify-self:start!important}
+ .top>.workshopTopNav,.top .workshopHeaderBrand{grid-column:1/-1;width:100%;box-sizing:border-box}
+}
+@media screen and (min-width:901px) and (max-width:1150px){
+ .top:has(.plannerHeaderActions){grid-template-columns:260px 180px 214px!important;grid-template-areas:"brand brand brand" "lookup search actions" "calendar date booked" "navigation navigation navigation"!important}
+ .top>.mobileCalendarBtn{width:90px!important}
+}
+@media screen and (max-width:900px){
+ .top:has(.plannerHeaderActions){grid-template-areas:"brand brand brand brand brand brand brand brand brand brand brand brand" "calendar calendar calendar date date date date date date booked booked booked" "lookup lookup lookup lookup lookup lookup lookup lookup lookup lookup lookup lookup" "search search search search search search newjob newjob newjob newquote newquote newquote" "navigation navigation navigation navigation navigation navigation navigation navigation navigation navigation navigation navigation"!important;gap:5px!important}
+ .top .plannerHeaderActions{display:contents!important}
+ .top .plannerHeaderActions>#newJobTop{grid-area:newjob!important}
+ .top .plannerHeaderActions>#newQuoteTop{grid-area:newquote!important}
+ .top:has(.plannerHeaderActions) .plannerGlobalSearchWrap{width:100%!important}
+ .top .plannerHeaderActions>#newJobTop,.top .plannerHeaderActions>#newQuoteTop{font-size:11px!important;padding:0 4px!important}
 }
 </style>
