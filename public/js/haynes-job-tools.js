@@ -291,7 +291,7 @@ root.initHaynesJobTools=function(modal){
    if(contact){
     const field=document.createElement('div');field.className='field jobCurrentMileageField';
     const label=document.createElement('label');label.htmlFor='job_current_mileage';label.textContent='Enter current mileage';
-    const mileageInput=document.createElement('input');mileageInput.id='job_current_mileage';mileageInput.type='text';mileageInput.inputMode='numeric';mileageInput.autocomplete='off';mileageInput.placeholder='Enter current mileage';mileageInput.setAttribute('aria-label','Enter current mileage');mileageInput.setAttribute('aria-required','true');
+    const mileageInput=document.createElement('input');mileageInput.id='job_current_mileage';mileageInput.type='text';mileageInput.inputMode='numeric';mileageInput.autocomplete='off';mileageInput.placeholder='Enter current mileage';mileageInput.setAttribute('aria-label','Enter current mileage');mileageInput.setAttribute('aria-required',String(typeof root.currentJobMileageRequired==='function'?root.currentJobMileageRequired({job_type:modal.querySelector('#job_job_type')?.value}):true));
     const note=modal.querySelector('#job_customer_note')?.value||'';const saved=note.match(/\[\[VECTA_CURRENT_MILEAGE:(\d+)\]\]/);mileageInput.value=saved?saved[1]:'';
     const noVehicle=modal.querySelector('#job_no_vehicle');const toggleMileage=()=>{field.hidden=!!noVehicle?.checked;mileageInput.disabled=field.hidden;};toggleMileage();noVehicle?.addEventListener('change',toggleMileage);
     mileageInput.addEventListener('input',()=>{mileageInput.classList.remove('requiredMissing');mileageInput.removeAttribute('aria-invalid');});

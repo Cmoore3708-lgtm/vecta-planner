@@ -14622,6 +14622,7 @@ function applyTemplate(name){
   else{after=after.filter(function(v){return normaliseJobTypeKey(v)!=='general'});after.push(name)}
   if(!after.length)after=['general'];
   jobType.value=jobTypeStorageValue(after);
+  var currentMileage=document.getElementById('job_current_mileage');if(currentMileage){currentMileage.setAttribute('aria-required',String(currentJobMileageRequired({job_type:jobType.value})));currentMileage.classList.remove('requiredMissing');currentMileage.removeAttribute('aria-invalid')}
   if(!exists&&key==='mot'){var technician=document.getElementById('job_technician');if(technician){var chris=Array.from(technician.options).find(function(option){return String(option.value).trim().toLowerCase()==='chris'});if(chris)technician.value=chris.value;}}
   updateMotTimeField(!exists&&key==='mot');
   document.querySelectorAll('.jobModalCard .templateBtns [data-template]').forEach(function(btn){btn.classList.toggle('selected',after.some(function(v){return normaliseJobTypeKey(v)===normaliseJobTypeKey(btn.dataset.template)}))});
@@ -14694,7 +14695,12 @@ async function restoreSoftDeletedJob(id){
 function normaliseCurrentJobMileage(value){var raw=String(value===null||value===undefined?'':value).trim().replace(/[\s,]/g,'');return /^\d+$/.test(raw)&&Number(raw)>0&&Number(raw)<=2000000?String(Number(raw)):''}
 function confirmedJobMileage(job){var match=String(job&&job.customer_note||'').match(/\[\[VECTA_CURRENT_MILEAGE:(\d+)\]\]/);return match?normaliseCurrentJobMileage(match[1]):''}
 function noteWithCurrentJobMileage(note,value){var clean=String(note||'').replace(/\s*\[\[VECTA_CURRENT_MILEAGE:[^\]]*\]\]/g,'').trim(),mileage=normaliseCurrentJobMileage(value);return clean+(mileage?'\n[[VECTA_CURRENT_MILEAGE:'+mileage+']]':'')}
-function requireCurrentJobMileage(job){if(job&&(job.no_vehicle||job.card_type==='mini_task'))return true;var field=document.getElementById('job_current_mileage'),value=normaliseCurrentJobMileage(field?field.value:confirmedJobMileage(job));if(value){if(field){field.value=value;field.classList.remove('requiredMissing');field.removeAttribute('aria-invalid')}return true}alert('Enter current mileage before marking this job complete.');if(field){field.classList.add('requiredMissing');field.setAttribute('aria-invalid','true');try{field.scrollIntoView({block:'center'});field.focus()}catch(e){}}return false}
+function currentJobMileageRequired(job){
+  if(job&&(job.no_vehicle||job.card_type==='mini_task'))return false;
+  var optional=['tow bar fit','tow bar fitting','fit tow bar','tow bar removal','remove tow bar','tow bar removing','mot','pre mot check','tyre','tyres','puncture repair','puncture repairs','wash hover','wash hoover','wash and hover','wash and hoover','special valet'];
+  return !jobTypeValues(job).every(function(type){var key=normaliseJobTypeKey(type).replace(/towbar/g,'tow bar').replace(/&(?:amp;)?/g,' ').replace(/\s+/g,' ').trim();return optional.indexOf(key)>=0;});
+}
+function requireCurrentJobMileage(job){if(!currentJobMileageRequired(job)){var optionalField=document.getElementById('job_current_mileage');if(optionalField){optionalField.classList.remove('requiredMissing');optionalField.removeAttribute('aria-invalid')}return true;}var field=document.getElementById('job_current_mileage'),value=normaliseCurrentJobMileage(field?field.value:confirmedJobMileage(job));if(value){if(field){field.value=value;field.classList.remove('requiredMissing');field.removeAttribute('aria-invalid')}return true}alert('Enter current mileage before marking this job complete.');if(field){field.classList.add('requiredMissing');field.setAttribute('aria-invalid','true');try{field.scrollIntoView({block:'center'});field.focus()}catch(e){}}return false}
 function gatherJob(id){
   var fields=['registration','customer_account','customer_id','customer_name','nmuk_vehicle_type','customer_phone','customer_email','vehicle','mileage','booking_date','drop_time','technician','ramp','estimated_hours','amount_quoted','vat_mode','status','parts_status','job_type','booking_source','work_required','technician_notes','customer_note','mot_due','mot_status','mot_advisories','make','model','fuel_type','colour','engine_size','dvsa_last_checked','dvsa_mot_tests'];
   /* A preview for Complete or Ready to Invoice must not mutate the saved
