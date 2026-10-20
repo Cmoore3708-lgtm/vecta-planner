@@ -21,7 +21,7 @@ test('mechanics render the same current planner, all three lanes and right-hand 
  const mainPlanner=main.match(expression)[0],mechanicPlanner=mechanic.match(expression)[0];
  function render(source){
   const c={app:{settings:{mechanics:['Alfie','Chris']}},jobsForDate:()=>[],allJobsForDate:()=>[],plannerWindowConfig:()=>({startMinutes:420,dayLast:960,gridPosition:0}),PLANNER_PX_PER_HOUR:60,plannerMetricsHtml:()=>'',unallocatedPanelHtml:()=> 'UNALLOCATED',quotePanelHtml:()=> 'QUOTES',myTasksHtml:()=>'',mobilePlannerHtml:()=>'',plannerLiveControlsHtml:()=>'',esc:s=>s,mechanicHours:()=>0,currentTimeLineHtml:()=>'',plannerTimeRows:()=>'',laneHtml:m=>m};
-  vm.runInNewContext(source,c);return c.plannerHtml();
+  vm.runInNewContext(main.match(/function configuredMechanicNames\(\)\{[^\n]+/)[0]+'\n'+main.match(/function plannerLaneMechanics\(\)\{[^\n]+/)[0]+'\n'+source,c);return c.plannerHtml();
  }
  const rendered=render(mechanicPlanner);assert.equal(rendered,render(mainPlanner));assert.match(rendered,/Anyone/);assert.match(rendered,/livePriorityBacklog[^]*UNALLOCATED/);assert.doesNotMatch(rendered,/mechanicPlannerOnly/);
  assert.doesNotMatch(mechanic,/<style id="v75-mechanic-final-layout"/);
