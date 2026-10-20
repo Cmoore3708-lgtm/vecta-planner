@@ -1,10 +1,10 @@
-VECTA LIVE TYRE WORKER - PREPARED BUILD, NOT YET ENABLED
+VECTA LIVE TYRE WORKER - READY FOR CONNECTION TEST
 
-The live relay has not been deployed: the Supabase deployment tool failed.
-Do not use this package until the tyre relay and website connection are
-confirmed enabled. This is not another diagnostic report request.
+The separate tyre relay is deployed and its queue, authentication and lease
+checks have passed. Start this worker so we can verify supplier access.
+The website relay update is in review (PR 297); public prices are not yet live.
 
-Once enabled:
+Start the worker:
 1. On the Windows workshop PC already paired with Haynes, extract the entire ZIP.
 2. Close any old tyre setup/diagnostic Edge windows. Keep Haynes running.
 3. Open START-LIVE-TYRE-PRICES.cmd in the extracted folder.
@@ -12,8 +12,10 @@ Once enabled:
    Use Vecta, Show Sellout, Include VAT and multiplier 1. Leave Addons as usual.
 5. Return to the black window and press Enter. Wait for LIVE TYRE WORKER READY.
 6. Keep this window and its separate Edge browser open and keep the PC awake.
-7. On the booking page, enter 205 / 55 R 16, then click Check Live Prices.
-   Compare the three guides with supplier Sellout prices before accepting them.
+7. Tell Chris/Codex when LIVE TYRE WORKER READY appears. We will then check
+   the live connection and a supplier search before enabling public prices.
+8. Once the website update is enabled, enter 205 / 55 R 16 and click Check Live
+   Prices. Compare all three guides with supplier Sellout before accepting them.
 
 This worker uses the encrypted pairing already saved by Haynes for this Windows
 user. It does not replace or stop Haynes, store a supplier password in files,
@@ -26,5 +28,7 @@ A guide remains valid for at most five minutes. Chris must verify the final
 load/speed rating and specification, availability and price before ordering.
 
 Current verification: automated contract, authentication, selection and UI
-checks pass. The database queue/Edge deployment and a real end-to-end lookup
-have not been verified. Do not assume the website can return live prices yet.
+checks pass. Database authentication, role isolation, request deduplication,
+leases, cache and rollback checks passed. The deployed endpoint rejects
+unauthenticated requests. A real supplier lookup still needs this PC running.
+Do not assume the website can return live prices until that test passes.
