@@ -15,8 +15,8 @@ function setup({mechanic=true,account='Staff',mileage=true,saved=true}={}){
 for(const account of ['Staff','NMUK','CONTRACTOR'])test(`mechanic ${account} card uses its private app/save scope and only offers Complete`,async()=>{
  const t=setup({account});assert.equal(t.c.app,undefined);assert.equal(t.c.saveJob,undefined);assert.equal(t.document.getElementById('markReady'),null);assert.equal(t.document.getElementById('markComplete'),null);assert.equal(t.document.getElementById('deleteJob'),null);const button=t.document.getElementById('v280MechanicWorkComplete');assert.equal(button.textContent,'Complete');await button.onclick();assert.deepEqual(t.saves,[['j','work_complete']]);
 });
-test('Main labels its office action Ready to invoice and retains office handlers',()=>{
- const t=setup({mechanic:false});assert.equal(t.document.getElementById('markComplete').textContent,'Ready to invoice');assert.equal(t.document.getElementById('markReady').textContent,'Ready to invoice');assert.equal(t.document.getElementById('v280MechanicWorkComplete'),null);
+test('Main retains completion handlers and Staff readiness',()=>{
+ const t=setup({mechanic:false});assert.equal(t.document.getElementById('markComplete').textContent,'Mark complete');assert.equal(t.document.getElementById('markReady').textContent,'Ready to invoice');assert.equal(t.document.getElementById('v280MechanicWorkComplete'),null);
 });
 test('mechanic action refuses missing mileage and restores status on rejected save',async()=>{
  const missing=setup({mileage:false});await missing.document.getElementById('v280MechanicWorkComplete').onclick();assert.equal(missing.saves.length,0);assert.equal(missing.document.getElementById('job_status').value,'booked');
@@ -35,13 +35,16 @@ test('work-complete jobs leave the mechanics planner and remain visible to Main 
 
 
 test('Main NMUK jobs retain Mark as complete and the monthly completion handler',()=>{
- const t=setup({mechanic:false,account:'NMUK'});const button=t.document.getElementById('markComplete');let completed=0;button.onclick=()=>completed++;t.window.installForTest('j');assert.equal(button.textContent,'Mark as complete');button.onclick();assert.equal(completed,1);assert.equal(t.document.getElementById('v280MechanicWorkComplete'),null);
+ const t=setup({mechanic:false,account:'NMUK'});const button=t.document.getElementById('markComplete');let completed=0;button.onclick=()=>completed++;t.window.installForTest('j');assert.equal(button.textContent,'Mark complete');button.onclick();assert.equal(completed,1);assert.equal(t.document.getElementById('v280MechanicWorkComplete'),null);
 });
 
 test('NMUK footer hides invoice controls, preserves completion and updates when the customer changes',()=>{
  const t=setup({mechanic:false,account:'Staff'}),foot=t.document.querySelector('.modalFoot');
  const invoice=t.document.createElement('button');invoice.id='createInvoiceFromJob';invoice.textContent='Create Invoice';foot.appendChild(invoice);
  const account=t.document.createElement('input');account.id='job_customer_account';account.value='NMUK';t.document.getElementById('jobModal').appendChild(account);
- t.window.installForTest('j');assert.equal(t.document.getElementById('markComplete').textContent,'Mark as complete');assert.equal(t.document.getElementById('markComplete').style.display,'');assert.equal(t.document.getElementById('markReady').style.display,'none');assert.equal(invoice.style.display,'none');
+ t.window.installForTest('j');assert.equal(t.document.getElementById('markComplete').textContent,'Mark complete');assert.equal(t.document.getElementById('markComplete').style.display,'');assert.equal(t.document.getElementById('markReady').style.display,'none');assert.equal(invoice.style.display,'none');
  account.value='Staff';t.window.installForTest('j');assert.equal(t.document.getElementById('markReady').style.display,'');assert.equal(invoice.style.display,'');
 });
+
+
+test('named contractor WGZ 7062 uses completion and only Staff shows Ready to invoice',()=>{for(const account of ['BIDVEST','CONTRACTOR','NMUK','Staff']){const t=setup({mechanic:false,account});t.window.installForTest('j');assert.equal(t.document.getElementById('markComplete').textContent,'Mark complete');assert.equal(t.document.getElementById('markReady').style.display,account==='Staff'?'':'none');}});

@@ -32,8 +32,8 @@ test('vehicle details sit below the single editable header registration',async()
  assert.equal(heading.querySelector('.jobCardHeaderRegistration').nextElementSibling,heading.querySelector('.jobCardHeaderModel'));
  assert.equal(document.querySelector('.jobVehicleSection #job_registration'),null);
  assert.deepEqual(Array.from(document.querySelector('.jobCardMainColumn').children).map(el=>el.className),['jobWorkSection','jobFormSection','privatePricingSection']);
- assert.deepEqual(Array.from(document.querySelector('.jobCardSupportColumn').children).map(el=>el.className),['bookingAvailabilityWorkspace']);
- assert.equal(document.querySelector('.jobPreviousWorkFullWidth').nextElementSibling,document.querySelector('.jobBookingFullWidth'));
+ assert.deepEqual(Array.from(document.querySelector('.jobCardSupportColumn').children).map(el=>el.className),['jobPreviousWorkSection jobPreviousWorkAlongside','bookingAvailabilityWorkspace']);
+ assert.equal(document.querySelector('.jobCardSupportColumn').firstElementChild,document.querySelector('.jobPreviousWorkAlongside'));
  assert.equal(document.querySelectorAll('.jobContactSection').length,1);
  assert.equal(document.querySelector('.jobContactSection').parentElement,document.querySelector('.jobCardHeaderDetails'));
  assert.equal(document.querySelector('.privatePricingSection').previousElementSibling.querySelector('.jobPartsEditor')!==null,true);

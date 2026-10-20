@@ -608,3 +608,17 @@
  #jobModal .jobCardSimplified .jobHeaderHaynesRow{grid-column:1;grid-row:3}
  #jobModal .jobCardSimplified #jobPreviousWorkSection{width:100%!important}
 }
+
+@media screen{
+ #jobModal .jobCardSimplified .jobModalHead.jobCardPinnedHeader>.jobCardHeaderHeading{grid-template-columns:max-content minmax(120px,1fr) max-content!important}
+ #jobModal .jobCardSimplified .jobHeaderHaynesRow{grid-column:3;grid-row:1;margin:0!important}
+ #jobModal .jobCardSimplified .jobCardSections{grid-template-columns:repeat(2,minmax(0,1fr))!important}
+ #jobModal .jobCardSimplified #jobPreviousWorkSection{width:100%!important;align-self:stretch}
+}
+@media screen and (max-width:700px){
+ #jobModal .jobCardSimplified .jobModalHead.jobCardPinnedHeader>.jobCardHeaderHeading{grid-template-columns:minmax(0,1fr) max-content!important}
+ #jobModal .jobCardSimplified .jobCardHeaderRegistration{grid-column:1/-1;grid-row:1}
+ #jobModal .jobCardSimplified .jobCardHeaderModel{grid-column:1;grid-row:2}
+ #jobModal .jobCardSimplified .jobHeaderHaynesRow{grid-column:2;grid-row:2}
+ #jobModal .jobCardSimplified .jobCardSections{grid-template-columns:minmax(0,1fr)!important}
+}

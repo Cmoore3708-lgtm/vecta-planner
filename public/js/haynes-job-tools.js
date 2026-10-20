@@ -304,7 +304,7 @@ root.initHaynesJobTools=function(modal){
    if(pricing)main.appendChild(pricing);
    const previous=aside.querySelector('.jobPreviousWorkSection');
    const booking=main.querySelector('.jobBookingSection');if(booking){
-    booking.classList.add('jobBookingFullWidth');sections.prepend(booking);if(previous){previous.classList.add('jobPreviousWorkFullWidth');booking.before(previous);}
+    booking.classList.add('jobBookingFullWidth');sections.prepend(booking);if(previous){previous.classList.add('jobPreviousWorkAlongside');aside.prepend(previous);}
     const calendar=booking.querySelector('.bookingAvailabilityWorkspace');if(calendar)aside.appendChild(calendar);
    }
   }
@@ -324,7 +324,7 @@ root.initHaynesJobTools=function(modal){
   const img=document.createElement('img');artworkSource(img,src,description,colour);if(description.fleet_vehicle_id)img.dataset.fleetArtworkId=String(description.fleet_vehicle_id);img.alt=[colour,v.make,v.model,registration].filter(Boolean).join(' ');img.dataset.vehicleImage='';img.dataset.registration=registration;img.dataset.colour=colour;img.dataset.vehicleName=name;img.dataset.vehicleMake=v.make||'';img.dataset.vehicleLogo='separate';img.dataset.vehicleCrop='tight';img.onerror=()=>{img.title='Saved vehicle image is temporarily unavailable. It has been retained.';};picture.appendChild(img);picture.title='';root.VectaVehicleImage?.mount(picture);
  }
  const panel=document.createElement('div');panel.className='haynesJobTools';
- panel.innerHTML='<button type="button" class="btn">Find vehicle in HaynesPro</button><span role="status" aria-live="polite"></span><div class="haynesJobVehicle"></div>';
+ panel.innerHTML='<button type="button" class="btn">Haynes Pro</button><span role="status" aria-live="polite"></span><div class="haynesJobVehicle"></div>';
  if(mechanic&&header)header.appendChild(panel);else section.appendChild(panel);
  const button=panel.querySelector('button'),status=panel.querySelector('[role="status"]'),body=panel.querySelector('.haynesJobVehicle'),noVehicle=modal.querySelector('#job_no_vehicle');
  // Keep the original controls and handlers while arranging the compact header.
@@ -357,7 +357,7 @@ root.initHaynesJobTools=function(modal){
  function clear(){
   const noVehicleControl=noVehicle?.closest('.noVehicleToggle')||noVehicle;
   if(noVehicleControl){const selected=!!current()||!!String(modal.querySelector('#job_vehicle')?.value||'').trim().replace(/^No Vehicle$/i,'');noVehicleControl.hidden=selected&&!noVehicle.checked;}
-  showHeaderVehicle();sequence++;clearTimeout(refreshTimer);body.replaceChildren();status.textContent='';button.disabled=!!noVehicle?.checked;button.textContent='Find vehicle in HaynesPro';showGeneric();}
+  showHeaderVehicle();sequence++;clearTimeout(refreshTimer);body.replaceChildren();status.textContent='';button.disabled=!!noVehicle?.checked;button.textContent='Haynes Pro';showGeneric();}
  function changed(){clear();}
  const shared=hydrateSharedArtwork();if(shared)shared.then(()=>{if(modal.isConnected)showHeaderVehicle();});
  input.addEventListener('input',changed);input.addEventListener('change',changed);for(const selector of ['#job_vehicle','#job_model','#job_make']){const field=modal.querySelector(selector);field?.addEventListener('change',changed);}noVehicle?.addEventListener('change',changed);clear();
@@ -376,8 +376,8 @@ const requested=current(),expectedMake=make(modal.querySelector('#job_make')?.va
    title.textContent=[v.make,v.model,v.variant].join(' ');note.textContent=[v.engineCode,v.modelYears].filter(Boolean).join(' · ');details.append(title,note);
    body.replaceChildren();const src=image(v.imageUrl);if(src){const img=document.createElement('img');img.src=artworkUrl(src);img.alt=(v.generic?'Generic model image: ':'Representative ')+v.make+' '+v.model;img.title=v.generic?'Generic model image — appearance may differ':img.alt;img.dataset.generic=String(!!v.generic);img.dataset.vehicleMake=v.make||'';img.dataset.registration=requested;img.dataset.vehicleName=[v.make,v.model].join(' ');img.onerror=()=>img.remove();body.appendChild(img);}
    const times=document.createElement('a');times.className='btn';times.href='https://www.workshopdata.com/touch/site/layout/repairTimes?typeId='+encodeURIComponent(v.typeId)+'&groupId=QUICKGUIDES';times.target='_blank';times.rel='noopener noreferrer';times.textContent='Repair times';
-   if(!src)showGeneric();body.append(details,link,times);status.textContent='Matched vehicle — check the variant before using technical data.';button.textContent='Refresh HaynesPro vehicle';
-  }catch{if(run===sequence&&panel.isConnected&&current()===requested)button.textContent='Retry lookup';if(run===sequence&&panel.isConnected&&current()===requested)status.textContent=({NOT_CONFIGURED:'HaynesPro lookup is not configured for this preview.',OFFLINE:'The workshop HaynesPro worker is offline.',LOGIN_REQUIRED:'The workshop HaynesPro login needs renewing.',VERIFICATION_REQUIRED:'HaynesPro needs verification on the workshop PC.',BUSY:'HaynesPro is busy. Try again shortly.',DAILY_LIMIT:'The daily HaynesPro lookup limit has been reached.'}[failStatus.get(requested)]||'HaynesPro unavailable or vehicle match uncertain.')+' You can still save this job.';}
+   if(!src)showGeneric();body.append(details,link,times);status.textContent='Matched vehicle — check the variant before using technical data.';button.textContent='Haynes Pro';
+  }catch{if(run===sequence&&panel.isConnected&&current()===requested)button.textContent='Haynes Pro';if(run===sequence&&panel.isConnected&&current()===requested)status.textContent=({NOT_CONFIGURED:'HaynesPro lookup is not configured for this preview.',OFFLINE:'The workshop HaynesPro worker is offline.',LOGIN_REQUIRED:'The workshop HaynesPro login needs renewing.',VERIFICATION_REQUIRED:'HaynesPro needs verification on the workshop PC.',BUSY:'HaynesPro is busy. Try again shortly.',DAILY_LIMIT:'The daily HaynesPro lookup limit has been reached.'}[failStatus.get(requested)]||'HaynesPro unavailable or vehicle match uncertain.')+' You can still save this job.';}
   finally{if(run===sequence)button.disabled=!!noVehicle?.checked;}
  };
  if(!noVehicle?.checked&&identitySnapshot(current()))button.onclick();
