@@ -287,7 +287,7 @@ root.initHaynesJobTools=function(modal){
     const support=child.matches('.jobContactSection,.jobPreviousWorkSection,.privatePricingSection')||!!child.querySelector('.jobPartsEditor');
     (support?aside:main).appendChild(child);
    });
-   const contact=aside.querySelector('.jobContactSection');if(contact)(mechanic?header:details).appendChild(contact);
+   const contact=aside.querySelector('.jobContactSection');if(contact)details.appendChild(contact);
    sections.append(main,aside);
    const parts=aside.querySelector('.jobPartsEditor')?.closest('.jobFormSection'),pricing=aside.querySelector('.privatePricingSection');
    if(parts)main.appendChild(parts);

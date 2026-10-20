@@ -318,10 +318,11 @@ test('opening and editing a job never starts a decorative lookup when no image i
  const input=s.document.querySelector('#job_registration');input.value='J321 WPC';input.dispatchEvent(new s.window.Event('change'));await new Promise(r=>setTimeout(r,800));assert.equal(calls,0);
 });
 
-test('mechanics keep the original editable contacts below the artwork and retain hidden pricing inputs',()=>{
+test('mechanics place editable contacts left of the dedicated large artwork and retain hidden pricing inputs',()=>{
  const {document}=setup(async()=>response(vehicle),undefined,undefined,false,'',true);
  assert.ok(document.querySelector('.jobModalCard').classList.contains('mechanicJobCard'));
- assert.equal(document.querySelector('.jobContactSection').parentElement,document.querySelector('.jobModalHead'));
+ assert.equal(document.querySelector('.jobContactSection').parentElement,document.querySelector('.jobCardHeaderDetails'));
+ assert.equal(document.querySelector('.jobCardHeaderVehicle').parentElement,document.querySelector('.jobModalHead'));
  assert.equal(document.querySelector('.haynesJobTools').parentElement,document.querySelector('.jobModalHead'));
  assert.ok(document.querySelector('.privatePricingSection'),'retained for the existing gather/save pipeline');
  assert.ok(document.querySelector('.jobWorkSection'));
