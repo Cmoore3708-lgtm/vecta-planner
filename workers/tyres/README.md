@@ -22,3 +22,7 @@ No supplier password is embedded. No database or existing booking/invoice record
 ## Setup progress
 
 A separate Windows setup utility now collects an allowlisted DOM report for authenticated-page integration. See START-HERE.txt. The bounded serialized queue caches successful guides for five minutes, deduplicates concurrent requests, never caches failures, and stops after a timeout to avoid overlapping supplier searches. The authenticated supplier adapter and website integration remain incomplete.
+
+## ESP report findings (20 October)
+
+The uploaded v1 diagnostic identifies #FindProductsButton and #OrderWindowGrid, with a unique Sellout column. Search is an input submit, so Search verification now reads its value instead of innerText. Other search buttons exist and must not be selected. V1 omitted plain-text Width/Profile/Rim labels; v2 inspects adjacent text and bounded search-panel control metadata and includes five allowlisted product/Sellout/stock samples. The table reader remains unverified against live row markup. No width/profile/rim selectors, refresh-completion signal, stock-warehouse meaning or classification are assumed. Public pricing stays disconnected.

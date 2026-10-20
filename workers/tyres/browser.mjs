@@ -12,7 +12,7 @@ export async function searchSupplier(page, size, adapter) {
   }
   // Adapter may only target the Search control, never Cart or Order controls.
   const search = page.locator(adapter.search);
-  if (await search.count() !== 1 || !/^search$/i.test((await search.innerText()).trim())) throw new Error('Supplier Search control not verified');
+  if (await search.count() !== 1 || !/^search$/i.test(String(await search.evaluate(el => el.tagName === 'INPUT' ? el.value : el.textContent)).trim())) throw new Error('Supplier Search control not verified');
   await search.click();
   await page.locator(adapter.resultReady).waitFor({ timeout: 20000 });
   return adapter.readRows(page, parsed);
