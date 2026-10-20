@@ -14596,7 +14596,7 @@ function installDashboardJobActions(id){
   var complete=document.createElement('button');complete.type='button';complete.id='v280MechanicWorkComplete';complete.className='btn v280MechanicComplete';complete.textContent='Complete';
   complete.onclick=async function(){
     if(complete.disabled)return;var status=modal.querySelector('#job_status');if(!status)return;
-    if(!requireCurrentJobMileage(gatherJob(id)))return;
+    if(!await requireCurrentJobMileage(gatherJob(id)))return;
     var previousStatus=status.value;complete.disabled=true;complete.textContent='Saving...';status.value='work_complete';
     try{if(await saveJob(id)!==true){status.value=previousStatus;return;}if(typeof showTowbarRemovalReminder==='function')showTowbarRemovalReminder(job);}
     finally{complete.disabled=false;complete.textContent='Complete';}
@@ -14703,13 +14703,33 @@ async function restoreSoftDeletedJob(id){
 }
 function normaliseCurrentJobMileage(value){var raw=String(value===null||value===undefined?'':value).trim().replace(/[\s,]/g,'');return /^\d+$/.test(raw)&&Number(raw)>0&&Number(raw)<=2000000?String(Number(raw)):''}
 function confirmedJobMileage(job){var match=String(job&&job.customer_note||'').match(/\[\[VECTA_CURRENT_MILEAGE:(\d+)\]\]/);return match?normaliseCurrentJobMileage(match[1]):''}
-function noteWithCurrentJobMileage(note,value){var clean=String(note||'').replace(/\s*\[\[VECTA_CURRENT_MILEAGE:[^\]]*\]\]/g,'').trim(),mileage=normaliseCurrentJobMileage(value);return clean+(mileage?'\n[[VECTA_CURRENT_MILEAGE:'+mileage+']]':'')}
+function currentJobMileageUnknown(job){return /\[\[VECTA_CURRENT_MILEAGE_UNKNOWN\]\]/.test(String(job&&job.customer_note||''))}
+function noteWithCurrentJobMileage(note,value,unknown){var clean=String(note||'').replace(/\s*\[\[VECTA_CURRENT_MILEAGE:[^\]]*\]\]/g,'').replace(/\s*\[\[VECTA_CURRENT_MILEAGE_UNKNOWN\]\]/g,'').trim(),mileage=normaliseCurrentJobMileage(value);return clean+(mileage?'\n[[VECTA_CURRENT_MILEAGE:'+mileage+']]':unknown?'\n[[VECTA_CURRENT_MILEAGE_UNKNOWN]]':'')}
 function currentJobMileageRequired(job){
   if(job&&(job.no_vehicle||job.card_type==='mini_task'))return false;
   var optional=['tow bar fit','tow bar fitting','fit tow bar','tow bar removal','remove tow bar','tow bar removing','mot','pre mot check','tyre','tyres','puncture repair','puncture repairs','wash hover','wash hoover','wash and hover','wash and hoover','special valet'];
   return !jobTypeValues(job).every(function(type){var key=normaliseJobTypeKey(type).replace(/towbar/g,'tow bar').replace(/&(?:amp;)?/g,' ').replace(/\s+/g,' ').trim();return optional.indexOf(key)>=0;});
 }
-function requireCurrentJobMileage(job){if(!currentJobMileageRequired(job)){var optionalField=document.getElementById('job_current_mileage');if(optionalField){optionalField.classList.remove('requiredMissing');optionalField.removeAttribute('aria-invalid')}return true;}var field=document.getElementById('job_current_mileage'),value=normaliseCurrentJobMileage(field?field.value:confirmedJobMileage(job));if(value){if(field){field.value=value;field.classList.remove('requiredMissing');field.removeAttribute('aria-invalid')}return true}alert('Enter current mileage before marking this job complete.');if(field){field.classList.add('requiredMissing');field.setAttribute('aria-invalid','true');try{field.scrollIntoView({block:'center'});field.focus()}catch(e){}}return false}
+async function requireCurrentJobMileage(job){
+  var field=document.getElementById('job_current_mileage');
+  function clearMissing(){if(field){field.classList.remove('requiredMissing');field.removeAttribute('aria-invalid')}}
+  if(!currentJobMileageRequired(job)){clearMissing();return true;}
+  var value=normaliseCurrentJobMileage(field?field.value:confirmedJobMileage(job));
+  if(value){if(field){field.value=value;delete field.dataset.mileageUnknown;}clearMissing();return true;}
+  if(field&&field.dataset.mileageUnknown==='true'||currentJobMileageUnknown(job)){clearMissing();return true;}
+  if(field){field.classList.add('requiredMissing');field.setAttribute('aria-invalid','true');}
+  var existing=document.getElementById('jobMileagePrompt');if(existing)return false;
+  return new Promise(function(resolve){
+    var dialog=document.createElement('dialog');dialog.id='jobMileagePrompt';dialog.className='jobMileagePrompt';dialog.setAttribute('aria-labelledby','jobMileagePromptTitle');
+    dialog.innerHTML='<h2 id="jobMileagePromptTitle">Enter vehicle mileage</h2><p>Enter the current mileage, or select Mileage unknown to complete this job without a mileage reading.</p><div class="jobMileagePromptActions"><button type="button" class="btn" data-mileage-enter>Enter mileage</button><button type="button" class="btn green" data-mileage-unknown>Mileage unknown</button></div>';
+    var done=false;
+    function finish(unknown){if(done)return;done=true;if(unknown){if(field){field.value='';field.dataset.mileageUnknown='true';field.placeholder='Mileage unknown';}job.customer_note=noteWithCurrentJobMileage(job.customer_note,'',true);var note=document.getElementById('job_customer_note');if(note)note.value=job.customer_note;clearMissing();}dialog.remove();if(!unknown&&field){try{field.scrollIntoView({block:'center'});field.focus();}catch(e){}}resolve(unknown);}
+    dialog.querySelector('[data-mileage-enter]').onclick=function(){finish(false)};
+    dialog.querySelector('[data-mileage-unknown]').onclick=function(){finish(true)};
+    dialog.addEventListener('cancel',function(event){event.preventDefault();finish(false)});
+    document.body.appendChild(dialog);if(typeof dialog.showModal==='function')dialog.showModal();else dialog.setAttribute('open','');
+  });
+}
 function gatherJob(id){
   var fields=['registration','customer_account','customer_id','customer_name','nmuk_vehicle_type','customer_phone','customer_email','vehicle','mileage','booking_date','drop_time','technician','ramp','estimated_hours','amount_quoted','vat_mode','status','parts_status','job_type','booking_source','work_required','technician_notes','customer_note','mot_due','mot_status','mot_advisories','make','model','fuel_type','colour','engine_size','dvsa_last_checked','dvsa_mot_tests'];
   /* A preview for Complete or Ready to Invoice must not mutate the saved
@@ -14733,7 +14753,7 @@ function gatherJob(id){
   j.job_colour=jobTypeValues(j)[0]||'general';
   j.estimated_hours=Number(j.estimated_hours||1);
   j.mileage=j.mileage===''?null:Number(j.mileage||0);
-  var currentMileageField=document.getElementById('job_current_mileage');if(currentMileageField&&!j.no_vehicle){var enteredMileage=normaliseCurrentJobMileage(currentMileageField.value);j.customer_note=noteWithCurrentJobMileage(j.customer_note,enteredMileage);if(enteredMileage)j.mileage=Number(enteredMileage);}
+  var currentMileageField=document.getElementById('job_current_mileage');if(currentMileageField&&!j.no_vehicle){var enteredMileage=normaliseCurrentJobMileage(currentMileageField.value);j.customer_note=noteWithCurrentJobMileage(j.customer_note,enteredMileage,currentMileageField.dataset.mileageUnknown==='true');if(enteredMileage)j.mileage=Number(enteredMileage);}
   j.amount_quoted=j.amount_quoted===''?null:Number(j.amount_quoted||0);
   var carry=carryOverMeta(j);
   if(carry&&!isUnallocatedJob(j)&&String(j.booking_date||'')===String(carry.last_date||'')&&String(j.booking_date||'')<todayIso())j.booking_date=selectedIso();
@@ -15021,7 +15041,7 @@ async function saveJob(id){
   var editorBaseline=window.__vectaJobEditorBaseline;
   var savedJobBeforeEdit=editorBaseline&&String(editorBaseline.id)===String(id)?JSON.parse(JSON.stringify(editorBaseline.job)):(existingJob?JSON.parse(JSON.stringify(existingJob)):null);
   var j=gatherJob(id);
-  if(['work_complete','completed'].indexOf(String(j.status||''))>=0&&!wasCompleted&&document.getElementById('job_current_mileage')&&!requireCurrentJobMileage(j))return false;
+  if(['work_complete','completed'].indexOf(String(j.status||''))>=0&&!wasCompleted&&document.getElementById('job_current_mileage')&&!await requireCurrentJobMileage(j))return false;
   if(acceptingWebsiteRequest){j.website_request_id=reviewModal.dataset.websiteRequestId;j.source='website booking';j.booking_source='Website booking';}
   if(asQuote||String(j.status||'').toLowerCase()==='quote'){j.status='quote';j.technician='Unallocated';j.booking_date=null;j.drop_time=null;j.ramp='';j.archived=false;}
   if(savedJobBeforeEdit){
@@ -15483,7 +15503,7 @@ function invoiceEditorLineValue(tr){
 }
 function bindInvoiceFields(){document.querySelectorAll('#invoiceModal input,#invoiceModal textarea,#invoiceModal select').forEach(function(x){x.oninput=calcInvoice;x.onchange=calcInvoice});document.querySelectorAll('[data-remove-line]').forEach(function(b){b.onclick=function(){var rows=document.querySelectorAll('#invoiceLines tr');if(rows.length>1){b.closest('tr').remove();calcInvoice()}}})}
 function invoiceJobTypeLabel(value){var holder=value&&typeof value==='object'?value:{job_type:value},labels=jobTypeLabels(holder);return labels.map(function(raw){var map={general:'General Work',service:'Service',mot:'MOT',brakes:'Brakes',diagnostics:'Diagnostics',clutch:'Clutch',timing:'Timing Belt / Chain',mini_task:'Internal Task'},key=normaliseJobTypeKey(raw);return map[key]||raw}).join(' + ')||'Workshop Work'}
-function openInvoiceForJob(id){var j=app.jobs.find(function(x){return x.id===id});if(!j)return;var existing=savedInvoiceForJobId(j.id);if(existing){alert('An invoice already exists for this job. The existing invoice will be opened instead.');openInvoice(existing.id);return;}var privateLines=privatePricingItemsFromNote(j.customer_note).filter(function(x){return String((x&&x.description)||'').trim()||Number((x&&x.price)||0)!==0});var invoiceLines=privateLines.length?privateLines.map(function(x){return invoiceLineWithMotVat({description:String(x.description||'').trim()||'Workshop work',type:'Work',amount:Number(x.price||0),vat_mode:j.vat_mode||'inc_vat'})}):[invoiceLineWithMotVat({description:invoiceDescriptionText(j)||invoiceJobTypeLabel(j),type:'Work',amount:Number(j.amount_quoted||0),vat_mode:j.vat_mode||'inc_vat'})];var due=jobVehicleDueData(j.registration)||{},known=knownRegistrationDetails(j.registration)||{},serviceMileage=latestServiceMileage(j.registration);var inv={id:uid(),job_id:j.id,registration:j.registration,customer_name:j.customer_name,customer_phone:j.customer_phone||'',vehicle:j.vehicle,mileage:confirmedJobMileage(j)||serviceMileage||j.mileage||known.mileage||'',mot_due:j.mot_due||due.motDue||'',invoice_number:nextInvoiceNumberText(),invoice_date:todayIso(),payment_method:'',lines:invoiceLines,status:'draft'};openInvoice(null,inv)}
+function openInvoiceForJob(id){var j=app.jobs.find(function(x){return x.id===id});if(!j)return;var existing=savedInvoiceForJobId(j.id);if(existing){alert('An invoice already exists for this job. The existing invoice will be opened instead.');openInvoice(existing.id);return;}var privateLines=privatePricingItemsFromNote(j.customer_note).filter(function(x){return String((x&&x.description)||'').trim()||Number((x&&x.price)||0)!==0});var invoiceLines=privateLines.length?privateLines.map(function(x){return invoiceLineWithMotVat({description:String(x.description||'').trim()||'Workshop work',type:'Work',amount:Number(x.price||0),vat_mode:j.vat_mode||'inc_vat'})}):[invoiceLineWithMotVat({description:invoiceDescriptionText(j)||invoiceJobTypeLabel(j),type:'Work',amount:Number(j.amount_quoted||0),vat_mode:j.vat_mode||'inc_vat'})];var due=jobVehicleDueData(j.registration)||{},known=knownRegistrationDetails(j.registration)||{},serviceMileage=latestServiceMileage(j.registration);var inv={id:uid(),job_id:j.id,registration:j.registration,customer_name:j.customer_name,customer_phone:j.customer_phone||'',vehicle:j.vehicle,mileage:currentJobMileageUnknown(j)?'Unknown':(confirmedJobMileage(j)||serviceMileage||j.mileage||known.mileage||''),mot_due:j.mot_due||due.motDue||'',invoice_number:nextInvoiceNumberText(),invoice_date:todayIso(),payment_method:'',lines:invoiceLines,status:'draft'};openInvoice(null,inv)}
 function invoiceEmailRecipient(inv){
   inv=inv||{};var linked=inv.job_id&&(app.jobs||[]).find(function(j){return String(j.id)===String(inv.job_id)}),email=String(inv.customer_email||(linked&&linked.customer_email)||'').trim();
   if(!email&&typeof fleetEomCustomerEmail==='function')email=String(fleetEomCustomerEmail(inv.fleet_customer||inv.customer_name)||'').trim();
