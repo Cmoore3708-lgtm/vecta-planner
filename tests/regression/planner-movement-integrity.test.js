@@ -88,6 +88,7 @@ test('legacy technician names collide in the same visible Other lane', () => {
   context.window.window = context.window;
   vm.runInNewContext(plannerRules, context.window);
   vm.runInNewContext([
+    namedFunctionSource('configuredMechanicNames'),
     namedFunctionSource('plannerLaneMechanics'),
     namedFunctionSource('plannerTechnicianName'),
     namedFunctionSource('plannerTechnicianLane'),
@@ -167,4 +168,17 @@ test('unrelated settings saves preserve the shared renamed mechanic list',async(
  vm.runInNewContext(namedFunctionSource('vectaSettingsSignature')+';async '+namedFunctionSource('persistMainSettings'),ctx);
  assert.equal(await ctx.persistMainSettings(),true);assert.deepEqual(Array.from(written.value.mechanics),['Alfie','Chris','Anyone']);
  ctx.app.settings.mechanics=['Alfie','Dan','Anyone'];await ctx.persistMainSettings({mechanicsChanged:true});assert.deepEqual(Array.from(written.value.mechanics),['Alfie','Dan','Anyone']);
+});
+
+test('technician choices follow the complete current list without invented fallback names',()=>{
+ const ctx={app:{settings:{mechanics:[' Amy ','Ben','Cara','Dan','Anyone','amy','Unallocated']}}};
+ vm.runInNewContext(namedFunctionSource('configuredMechanicNames')+';'+namedFunctionSource('plannerLaneMechanics')+';names=configuredMechanicNames();lanes=plannerLaneMechanics()',ctx);
+ assert.deepEqual(Array.from(ctx.names),['Amy','Ben','Cara','Dan']);
+ assert.deepEqual(Array.from(ctx.lanes),['Amy','Ben','Cara','Dan','Anyone']);
+ assert.deepEqual(ctx.app.settings.mechanics,[' Amy ','Ben','Cara','Dan','Anyone','amy','Unallocated']);
+ ctx.app.settings.mechanics=[];
+ vm.runInNewContext('names=configuredMechanicNames()',ctx);
+ assert.deepEqual(Array.from(ctx.names),[]);
+ assert.doesNotMatch(namedFunctionSource('plannerHtml'),/app\.settings\.mechanics\s*=/);
+ assert.doesNotMatch(namedFunctionSource('ensureThreeMechanics'),/app\.settings\.mechanics\s*=/);
 });
