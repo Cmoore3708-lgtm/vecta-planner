@@ -337,3 +337,10 @@ test('compact vehicle facts preserve the hidden vehicle and mileage across due-d
  assert.equal(mileage.value,'60210');assert.equal(mileage.isConnected,true);
 
 });
+
+
+test('current odometer input sits below customer details, stays empty for old MOT mileage and restores confirmed mileage',()=>{
+ const old=setup(async()=>response(vehicle),undefined,undefined,false,'<input type="hidden" id="job_customer_note" value=""><div class="field"><label>Last MOT Mileage</label><input id="job_mileage" value="50000"></div>');
+ const input=old.document.querySelector('#job_current_mileage');assert.ok(input);assert.equal(input.value,'');assert.equal(input.closest('.jobCurrentMileageField').previousElementSibling,old.document.querySelector('.jobContactSection'));assert.equal(old.document.querySelector('#job_mileage').value,'50000');
+ const saved=setup(async()=>response(vehicle),undefined,undefined,false,'<input type="hidden" id="job_customer_note" value="[[VECTA_CURRENT_MILEAGE:54321]]">');assert.equal(saved.document.querySelector('#job_current_mileage').value,'54321');
+});
