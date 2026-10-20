@@ -17,7 +17,7 @@ test('saved internal and contractor vehicles open the real editor without any lo
  for(const account of ['NMUK','NDS','Staff']){
   let lookups=0;const stored={registration:'RESCUE 2',vehicle:'Nissan Navara',customer_account:account,customer_email:'owner@example.test',lookup_local_only:true};
   const {window,document,preset}=setup({stored,lookup:()=>{lookups++;throw Error('Unexpected remote lookup');}});
-  await window.VectaHaynesDashboardLookup.open('rescue 2');assert.equal(lookups,0);assert.equal(preset().customer_account,account);assert.equal(preset().customer_email,'owner@example.test');assert.equal(preset().status,'booked');assert.equal(document.querySelectorAll('#job_work_required').length,1);assert.equal(document.getElementById('job_mileage').value,'');assert.equal(document.querySelector('.bookingCurrentMileage label').textContent,'Current mileage');assert.ok(document.querySelector('.jobBookingSection .bookingCurrentMileage'));assert.equal(document.querySelector('.bookingLookupIdentity').closest('.jobModalHead'),document.querySelector('.jobModalHead'));assert.equal(document.querySelector('#haynesLookupPage'),null);assert.ok(document.getElementById('saveJob'));assert.ok(document.getElementById('job_booking_date'));assert.deepEqual(Array.from(document.querySelector('.jobModalHeadActions').children).map(el=>el.textContent),['Service & repair data','Print Job Card','Close','Open in HaynesPro']);
+  await window.VectaHaynesDashboardLookup.open('rescue 2');assert.equal(lookups,0);assert.equal(preset().customer_account,account);assert.equal(preset().customer_email,'owner@example.test');assert.equal(preset().status,'booked');assert.equal(document.querySelectorAll('#job_work_required').length,1);assert.equal(document.getElementById('job_mileage').value,'12345');assert.equal(document.querySelector('.bookingCurrentMileage'),null);assert.equal(document.querySelector('.jobBookingSection #job_mileage'),null);assert.equal(document.querySelector('.bookingLookupIdentity').closest('.jobModalHead'),document.querySelector('.jobModalHead'));assert.equal(document.querySelector('#haynesLookupPage'),null);assert.ok(document.getElementById('saveJob'));assert.ok(document.getElementById('job_booking_date'));assert.deepEqual(Array.from(document.querySelector('.jobModalHeadActions').children).map(el=>el.textContent),['Service & repair data','Print Job Card','Close','Open in HaynesPro']);
  }
 });
 test('new registration fills its vehicle without touching the booking fields',async()=>{
@@ -58,10 +58,12 @@ test('production resolver uses fleet identifiers and preserves contractor and po
 test('government MOT results cannot fill the current mileage field with a historical reading',async()=>{
  const {window,document}=setup({stored:{registration:'AB12 CDE',vehicle:'Toyota Hilux'}});
  await window.VectaHaynesDashboardLookup.open('AB12CDE');
+ const current=document.createElement('input');current.id='job_current_mileage';current.value='';document.querySelector('.jobModalHead').append(current);
  const start=html.indexOf('async function lookupVehicleForJob('),end=html.indexOf('\nfunction ',start);
  const context={document,dvsaAutoLookupSequence:0,normReg:s=>String(s).replace(/[^A-Z0-9]/g,''),fetchDvsaVehicle:async()=>({vehicle:'Toyota Hilux',latestMileage:120000,advisories:[]}),dvsaIsoDate:()=>'',dvsaAdvisoryArray:v=>v||[],renderDvsaAdvisoryPreview(){},refreshServicePricingAdvisor(){},updateJobVehicleDuePanel(){}};
  vm.createContext(context);vm.runInContext(html.slice(start,end),context);await context.lookupVehicleForJob({});
- assert.equal(document.getElementById('job_mileage').value,'');
+ assert.equal(document.getElementById('job_current_mileage').value,'');
+ assert.equal(document.querySelector('.jobBookingSection #job_mileage'),null);
 });
 
 test('new booking repaints when colour arrives after the Haynes drawing',async()=>{
