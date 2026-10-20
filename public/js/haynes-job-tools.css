@@ -322,5 +322,5 @@
 
 /* The dashboard's inline layout styles must not shrink the registration text. */
 @media screen {
- #haynesDashboardLookup #haynesDashboardRegistration{font-size:42px!important;line-height:1!important;font-weight:900!important;letter-spacing:0!important;padding:0 6px!important;font-family:'Arial Narrow',Arial,sans-serif!important}
+ #haynesDashboardLookup #haynesDashboardRegistration{font-size:30px!important;line-height:1.1!important;font-weight:800!important;letter-spacing:.5px!important;padding:0 6px!important;font-family:'Arial Narrow',Arial,sans-serif!important}
 }
