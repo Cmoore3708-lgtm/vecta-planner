@@ -35,3 +35,19 @@ test('the editor retains the opened job as the baseline across background refres
   assert.match(html,/var savedJobBeforeEdit=editorBaseline&&String\(editorBaseline\.id\)===String\(id\)\?JSON\.parse\(JSON\.stringify\(editorBaseline\.job\)\)/);
   assert.match(html,/function closeModals\(\)\{window\.__vectaJobEditorBaseline=null/);
 });
+
+test('saving selected types replaces a stale website/import type array without changing instructions',()=>{
+  const saved={id:'ND13GKC',registration:'ND13GKC',customer_account:'Staff',job_type:'Interim Service || Repairs',job_types:['Interim Service','Repairs'],work_required:'Oil & filter change. Also investigate noise.',customer_note:''};
+  const fields={job_job_type:{value:'Repairs'}};
+  const ctx={app:{jobs:[saved]},document:{getElementById:key=>fields[key]||null},
+    syncPrivatePricingTotal:()=>[],gatherJobPartsEditor:()=>[],noteWithPrivatePricing:x=>x,noteWithJobParts:x=>x,
+    dvsaAdvisoryArray:x=>x||[],fleetNormaliseCustomer:x=>x,jobTypeStorageValue:x=>x,
+    jobTypeValues:x=>String(typeof x==='object'?x.job_types.join(' || '):x).split(' || '),
+    hasMotJobType:()=>false,setMotTimeOnNote:x=>x,carryOverMeta:()=>null,isUnallocatedJob:()=>false,isVehicleTaxJob:()=>false,
+    normalisePartsStatus:()=>'',calculatedPartsStatus:()=>'',fleetIncomeCustomerFromVehicle:()=>'',fleetIsContractorIncome:()=>false,partsStatusNote:x=>x};
+  vm.createContext(ctx);vm.runInContext(html.slice(start,end),ctx);
+  const draft=ctx.gatherJob(saved.id);
+  assert.equal(draft.job_type,'Repairs');assert.deepEqual(Array.from(draft.job_types),['Repairs']);
+  assert.equal(draft.job_colour,'Repairs');assert.equal(draft.work_required,saved.work_required);
+  assert.deepEqual(saved.job_types,['Interim Service','Repairs']);
+});
