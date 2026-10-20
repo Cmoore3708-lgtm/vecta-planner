@@ -52,12 +52,23 @@
     if(state.eligible&&date<state.eligible)return 'The last '+title+' was '+state.last+'. The next eligible date is '+state.eligible+' (15-day minimum gap).';
     return '';
   }
+  function manualJobs(records){return (records||[]).filter(function(r){return r.source==='monthly-pool:manual'&&member(r.registration)&&day(r.completedDate)}).map(function(r){return {id:r.id,registration:r.registration,status:'completed',monthlyPoolManual:true,customer_note:withMeta('',{v:1,reg:key(r.registration),done:r.completedDate})}})}
+  function manualRecord(reg,date,month,existing,today){
+    if(!member(reg)||!day(date)||date.slice(0,7)!==month||date>today)throw new Error('Choose a valid completion date within the selected month, no later than today.');
+    var record={id:'monthly-pool-'+key(reg)+'-'+month,registration:key(reg),type:'Monthly Pool Clean',source:'monthly-pool:manual',monthlyPool:true,completedDate:date,datePrecision:'day',notes:title};
+    var candidate=manualJobs([record])[0],error=completionError(candidate,existing);
+    if(error)throw new Error(error);
+    var conflict=(existing||[]).some(function(j){var d=completionDay(j);return String(j.id)!==record.id&&key(j.registration)===key(reg)&&d&&(d.slice(0,7)===month||Math.abs(Date.parse(d)-Date.parse(date))<15*86400000)});
+    if(conflict)throw new Error('A recorded check is in the same month or within the 15-day minimum gap.');
+    return record;
+  }
   function renameLine(line){var text=String(line&&line.description||'');return /^(?:Safety check,? wash\s*&\s*(?:Hoover|hover) pool cars x23|Monthly Safety check & Clean (?:23|24) pool cars)$/i.test(text.trim())?Object.assign({},line,{description:title+' 24 pool cars'}):line}
-  var api={title:title,registrations:registrations,email:email,key:key,member:member,day:day,londonDay:londonDay,plusDays:plusDays,meta:meta,withMeta:withMeta,active:active,complete:complete,completionDay:completionDay,status:status,prepare:prepare,completionError:completionError,renameLine:renameLine};
+  var api={title:title,registrations:registrations,email:email,key:key,member:member,day:day,londonDay:londonDay,plusDays:plusDays,meta:meta,withMeta:withMeta,active:active,complete:complete,completionDay:completionDay,status:status,prepare:prepare,completionError:completionError,renameLine:renameLine,manualJobs:manualJobs,manualRecord:manualRecord};
   root.VectaMonthlyPool=api;
   if(!root.document)return;
   var doc=root.document,reportMonth=londonDay().slice(0,7),reportFilter='all',reportOpen=false;
-  function jobs(){return (root.app&&root.app.jobs||[]).filter(function(j){return typeof root.vectaJobIsDeletedForLists!=='function'||!root.vectaJobIsDeletedForLists(j)})}
+  function records(){return typeof root.__vectaFleetState==='function'?root.__vectaFleetState().completions||[]:root.fleetCompletions||[]}
+  function jobs(){return (root.app&&root.app.jobs||[]).filter(function(j){return typeof root.vectaJobIsDeletedForLists!=='function'||!root.vectaJobIsDeletedForLists(j)}).concat(manualJobs(records()))}
   function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
   function plate(reg){return reg.slice(0,4)+' '+reg.slice(4)}
   function display(date){return date?date.slice(8,10)+'/'+date.slice(5,7)+'/'+date.slice(0,4):'—'}
@@ -99,13 +110,15 @@
   api.validate=function(job){var error=completionError(job,jobs());if(error){root.alert(error);return false}return true};
   function reportRows(){
     var parts=reportMonth.split('-'),end=plusDays(reportMonth+'-01',new Date(Date.UTC(Number(parts[0]),Number(parts[1]),0)).getUTCDate()-1),today=londonDay(),reference=reportMonth===today.slice(0,7)?today:end;
-    return registrations.map(function(reg){var state=status(reg,reference,jobs());var vehicle=(root.fleetVehicles||[]).find(function(v){return key(v.registration)===reg});return {reg:reg,model:vehicle&&vehicle.model||'',state:state}});
+    return registrations.map(function(reg){return {reg:reg,state:status(reg,reference,jobs())}});
   }
   api.reportHtml=function(){
     if(root.VECTA_MECHANIC_DEPLOYMENT===true)return '';
-    var rows=reportRows(),completed=rows.filter(function(r){return r.state.state==='completed'}).length,booked=rows.filter(function(r){return r.state.state==='booked'}).length;
+    var rows=reportRows(),completed=rows.filter(function(r){return r.state.state==='completed'}).length;
     var visible=rows.filter(function(r){return reportFilter==='all'||(reportFilter==='outstanding'?r.state.state!=='completed':r.state.state===reportFilter)});
-    return '<details class="monthlyPoolReport" id="monthlyPoolReport"'+(reportOpen?' open':'')+'><summary>'+title+' · 24 pool cars <span>'+completed+' done · '+(24-completed)+' outstanding · '+booked+' booked</span></summary><div class="monthlyPoolReportBody"><div class="monthlyPoolControls"><label>Month <input id="monthlyPoolMonth" type="month" value="'+esc(reportMonth)+'"></label><label>Show <select id="monthlyPoolFilter">'+[['all','All 24 cars'],['outstanding','Outstanding'],['completed','Completed'],['booked','Booked'],['deferred','Not yet eligible']].map(function(o){return '<option value="'+o[0]+'"'+(reportFilter===o[0]?' selected':'')+'>'+o[1]+'</option>'}).join('')+'</select></label></div><p>Allocated to '+email+'. Once per calendar month, with at least 15 days between completed checks. Booking alone does not count as completed.</p><div class="monthlyPoolTableWrap"><table><thead><tr><th>Registration</th><th>Vehicle</th><th>Status</th><th>Last completed</th><th>Next eligible</th><th>Job</th></tr></thead><tbody>'+visible.map(function(r){var s=r.state,label={completed:'Completed',booked:'Booked',deferred:'Not yet eligible',due:'Outstanding'}[s.state];return '<tr><td><b class="monthlyPoolPlate">'+plate(r.reg)+'</b></td><td>'+esc(r.model)+'</td><td><span class="monthlyPoolState '+s.state+'">'+label+'</span>'+(s.state==='booked'?'<small>'+display(s.job.booking_date)+'</small>':'')+'</td><td>'+display(s.last)+'</td><td>'+display(s.eligible)+'</td><td>'+(s.job?'<button type="button" class="btn" data-monthly-pool-job="'+esc(s.job.id)+'">Open job</button>':'<button type="button" class="btn" data-monthly-pool-book="'+r.reg+'">Book</button>')+'</td></tr>'}).join('')+'</tbody></table></div><p>Completion history is retained when a new month starts. Existing checks only appear here when recorded against a job with this task.</p></div></details>';
+    var columns=[[],[],[]];visible.forEach(function(r,i){columns[Math.floor(i/Math.max(1,Math.ceil(visible.length/3)))].push(r)});
+    return '<details class="monthlyPoolReport" id="monthlyPoolReport"'+(reportOpen?' open':'')+'><summary>'+title+' · 24 pool cars <span>'+completed+' done · '+(24-completed)+' outstanding</span></summary><div class="monthlyPoolReportBody"><div class="monthlyPoolControls"><label>Month <input id="monthlyPoolMonth" type="month" value="'+esc(reportMonth)+'"></label><label>Show <select id="monthlyPoolFilter">'+[['all','All 24 cars'],['outstanding','Outstanding'],['completed','Completed'],['booked','Booked'],['deferred','Not yet eligible']].map(function(o){return '<option value="'+o[0]+'"'+(reportFilter===o[0]?' selected':'')+'>'+o[1]+'</option>'}).join('')+'</select></label></div><p>At least 15 days between checks. Tick Complete after the work is finished. Covered by the monthly NMUK charge.</p><div class="monthlyPoolGrid">'+columns.map(function(col){return '<div class="monthlyPoolColumn">'+col.map(function(r){var s=r.state,done=s.state==='completed',linked=done&&!s.job.monthlyPoolManual,label={completed:'Completed '+display(s.last),booked:'Booked '+display(s.job&&s.job.booking_date),deferred:'Eligible '+display(s.eligible),due:'Outstanding'}[s.state];return '<div class="monthlyPoolCar"><div><b class="monthlyPoolPlate">'+plate(r.reg)+'</b><small>'+esc(label)+'</small></div><label title="'+(linked?'Recorded by a completed job. Reopen that job to undo.':'Record this monthly check')+'"><input type="checkbox" data-monthly-pool-complete="'+r.reg+'"'+(done?' checked':'')+(linked?' disabled':'')+'> Complete</label></div>'}).join('')+'</div>'}).join('')+'</div><p id="monthlyPoolSaveStatus" role="status"></p><p>Completion history is retained when a new month starts.</p></div></details>';
+
   };
   function refreshReport(){var node=doc.getElementById('monthlyPoolReport');if(node){reportOpen=node.open;node.outerHTML=api.reportHtml()}}
   doc.addEventListener('change',function(event){
@@ -113,10 +126,17 @@
     if(event.target.id==='monthlyPoolFilter'){reportFilter=event.target.value;refreshReport()}
   });
   doc.addEventListener('toggle',function(event){if(event.target.id==='monthlyPoolReport')reportOpen=event.target.open},true);
-  doc.addEventListener('click',function(event){
-    var button=event.target.closest('[data-monthly-pool-job],[data-monthly-pool-book]');if(!button)return;
-    if(button.dataset.monthlyPoolJob){root.openJobModal(button.dataset.monthlyPoolJob);return}
-    var reg=button.dataset.monthlyPoolBook,vehicle=(root.fleetVehicles||[]).find(function(v){return key(v.registration)===reg}),today=londonDay(),date=reportMonth===today.slice(0,7)?today:reportMonth+'-01';
-    root.openJobModal(null,{registration:plate(reg),vehicle:vehicle&&vehicle.model||'',booking_date:date,customer_account:'NMUK',customer_name:'NMUK',nmuk_vehicle_type:'Pool',customer_email:email,technician:'Unallocated',job_type:'Other'});
+  doc.addEventListener('change',async function(event){
+    var input=event.target,reg=input.dataset&&input.dataset.monthlyPoolComplete;if(!reg)return;
+    var checked=input.checked;input.disabled=true;
+    try{
+      var current=records(),id='monthly-pool-'+reg+'-'+reportMonth,next=current.filter(function(r){return !(r.id===id&&r.source==='monthly-pool:manual')});
+      if(checked){var today=londonDay(),date=reportMonth===today.slice(0,7)?today:root.prompt('Actual completion date (YYYY-MM-DD) for '+plate(reg)+' in '+reportMonth+':','');if(!date){refreshReport();return}next.push(manualRecord(reg,date,reportMonth,jobs(),today))}
+      if(typeof root.__vectaFleetState!=='function'||typeof root.fleetWriteLocal!=='function')throw new Error('Fleet records are not ready. Please reload and try again.');
+      if(!root.fleetWriteLocal('vecta:fleet:completions:v1',next))throw new Error('Could not save this completion on this device.');
+      root.__vectaFleetState({completions:next});refreshReport();
+      var synced=typeof root.persistFleetCloudSnapshot==='function'&&await root.persistFleetCloudSnapshot();
+      var message=doc.getElementById('monthlyPoolSaveStatus');if(message)message.textContent=synced?'Saved.':'Saved on this device. Cloud sync is pending; use Sync to retry.';
+    }catch(error){root.alert(error.message);refreshReport()}
   });
 })(typeof window!=='undefined'?window:globalThis);
