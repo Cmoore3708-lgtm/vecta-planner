@@ -2875,8 +2875,8 @@ body.servicePreviewing .servicePreviewControls{position:relative!important;z-ind
 </style>
 <style id="workshop-charcoal-background">
 @media screen {
-  .app > .main { background:#34373b; }
-  .app > .main > #content { background:#34373b;flex:1; }
+  .app > .main { background:#000000; }
+  .app > .main > #content { background:#000000;flex:1; }
 }
 </style>
 <style id="planner-today-between-day-and-total">
@@ -15942,7 +15942,7 @@ function knownRegistrationDetails(regValue){
 }
 function jobVehicleDueItem(label,dateValue,detail){if(!dateValue&&!detail)return '';var tone=jobVehicleDateTone(dateValue),urgent=jobVehicleDueWithinDays(dateValue,30);return '<div class="jobVehicleDueItem '+esc(tone)+(urgent?' urgent':'')+'"><span>'+esc(label)+'</span><b>'+esc(dateValue?fleetFormat(String(dateValue).slice(0,10)):detail)+'</b>'+(dateValue&&detail&&detail!==label?'<small>'+esc(detail)+'</small>':'')+'</div>'}
 function jobVehicleSafetyItem(data){if(data&&data.safetyCompletedDate)return '<div class="jobVehicleDueItem completed"><span>6 Month Safety Check</span><b>Completed '+esc(fleetFormat(String(data.safetyCompletedDate).slice(0,10)))+'</b></div>';return jobVehicleDueItem('6 Month Safety Check',data&&data.safetyDue,'')}
-function jobVehicleDueMarkup(data){return jobVehicleDueItem(data.serviceType||'Service',data.serviceDue,data.serviceType||'')+jobVehicleDueItem('MOT',data.motDue,'')+jobVehicleSafetyItem(data)+jobVehicleDueItem('Vehicle Tax',data.taxDue,'')}
+function jobVehicleDueMarkup(data){return jobVehicleDueItem((data.serviceType||'Major service')+' due',data.serviceDue,data.serviceDue?'':'Not recorded')+jobVehicleDueItem('MOT due',data.motDue,data.motDue?'':'Not recorded')+jobVehicleSafetyItem(data)+jobVehicleDueItem('Vehicle Tax',data.taxDue,'')}
 function jobVehicleDuePanelHtml(regValue){var data=jobVehicleDueData(regValue);return '<div class="jobVehicleDuePanel" id="jobVehicleDuePanel" '+(data?'':'hidden')+'>'+(data?jobVehicleDueMarkup(data):'')+'</div>'}
 function updateJobRegistrationDueAlert(){var input=document.getElementById('job_registration'),wrap=input&&input.closest('.plateInputWrap');if(!wrap)return;wrap.classList.remove('vehicleDueSoon');wrap.removeAttribute('title')}
 function updateJobVehicleDuePanel(regValue){var panel=document.getElementById('jobVehicleDuePanel'),data=jobVehicleDueData(regValue);updateJobRegistrationDueAlert();if(!panel)return;if(!data){panel.innerHTML='';panel.hidden=true;return}panel.innerHTML=jobVehicleDueMarkup(data);panel.hidden=false}
