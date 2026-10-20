@@ -33,6 +33,10 @@
   },
   "rewrites": [
     {
+      "source": "/api/haynes-pricing",
+      "destination": "/api/availability?haynes=pricing"
+    },
+    {
       "source": "/i/:code",
       "destination": "/api/additional-work?invoicePdf=1&code=:code"
     },

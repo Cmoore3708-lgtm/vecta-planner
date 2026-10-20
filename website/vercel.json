@@ -3,6 +3,10 @@
   "trailingSlash": false,
   "rewrites": [
     {
+      "source": "/api/haynes-pricing",
+      "destination": "https://vecta-planner.vercel.app/api/haynes-pricing"
+    },
+    {
       "source": "/api/haynes-image",
       "destination": "https://vecta-planner.vercel.app/api/haynes-image"
     },
