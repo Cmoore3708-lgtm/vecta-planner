@@ -16,8 +16,7 @@ const state={form:{job_types:['Tyres'],tyre_size:'205/55R16',tyre_quantity:1,tyr
 const esc=value=>String(value??'').replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('"','&quot;');
 function renderActions(){}
 ${functions}
-document.getElementById('reviewPanel').innerHTML=tyreOptionsHtml();bindTyreCards();
-document.querySelector('[data-field="tyre_size"]').oninput=e=>{state.form.tyre_size=e.target.value.toUpperCase();state.form.tyre_guide=null;tyreLookup.update(state.form.tyre_size,state.form.tyre_quantity);};
-tyreLookup.update(state.form.tyre_size,state.form.tyre_quantity);
+document.getElementById('reviewPanel').innerHTML=tyreOptionsHtml();bindTyreCards();bindTyreSearch();
+
 </script></body></html>`);
 console.log('Built review-only tyre cards preview');
