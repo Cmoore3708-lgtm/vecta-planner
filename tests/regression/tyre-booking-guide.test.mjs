@@ -53,3 +53,11 @@ test('actual booking cards render the cutout, preserve selection and save the se
  form.tyre_size='225/45R17';assert.doesNotMatch(context.tyreBookingDescription(),/£62/);
  form.nevos_vehicle='yes';document.querySelector('main').innerHTML=context.tyreOptionsHtml();context.bindTyreCards();assert.equal(document.querySelector('[data-tyre-choice="Budget"]').disabled,true);assert.equal(document.querySelector('[data-tyre-choice="Premium"]').disabled,false);
 });
+test('standalone website ships the same tyre assets and forwards only the tyre lookup switch',async()=>{
+ for(const path of ['js/vecta-tyre-booking.js','js/vecta-tyre-booking.css','assets/tyre-guide-cutout.webp'])assert.deepEqual(readFileSync(new URL('../../website/'+path,import.meta.url)),readFileSync(new URL('../../public/'+path,import.meta.url)));
+ const {default:website}=await import('../../website/api/availability.js');const original=global.fetch,calls=[];
+ try{global.fetch=async(url)=>{calls.push(url);return{status:200,headers:new Map([['content-type','application/json']]),text:async()=>'{}'}};
+ for(const query of [{tyres:'1',unrelated:'ignored'},{}]){const r=response();r.send=body=>{r.body=body;return r};await website({method:'POST',query,body:{size:'205/55R16',quantity:1}},r);assert.equal(r.code,200)}
+ assert.deepEqual(calls,['https://vecta-planner.vercel.app/api/availability?tyres=1','https://vecta-planner.vercel.app/api/availability']);
+ }finally{global.fetch=original}
+});

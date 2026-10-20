@@ -6,7 +6,7 @@ export default async function handler(req,res){
   }
   if(req.method!=='POST')return res.status(405).json({error:'Method not allowed'});
   try{
-    const r=await fetch('https://vecta-planner.vercel.app/api/availability',{
+    const r=await fetch('https://vecta-planner.vercel.app/api/availability'+(req.query?.tyres==='1'?'?tyres=1':''),{
       method:'POST',
       headers:{'Content-Type':'application/json','Cache-Control':'no-cache'},
       body:JSON.stringify(req.body||{})
