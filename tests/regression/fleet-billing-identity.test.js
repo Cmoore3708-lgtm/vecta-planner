@@ -75,3 +75,9 @@ test('review UI keeps both item lists and extra work; an unconfirmed review cann
  await document.querySelector('[data-separate-work]').onclick();
  assert.match(warning,/not saved/);assert.equal(c.vectaFleetDuplicatePairs(rows,[a,b]).length,1);
 });
+
+test('a separate-work review survives equivalent cloud timestamps and numeric representations',()=>{
+ const c=context(),a=priced('a','2026-08-19',[{description:'Major Service',price:170}]),b=priced('b','2026-08-20',[{description:'Major Service',price:140}]);
+ a.completed_at='2026-08-19T10:12:00.000Z';b.completed_at='2026-08-20T10:12:00.000Z';
+ assert.equal(c.VectaBillingIntegrity.signature(a,b),c.VectaBillingIntegrity.signature({...a,registration:'NK72KTE',amount_quoted:'170',completed_at:'2026-08-19T10:12:00+00:00'},{...b,completed_at:'2026-08-20T10:12:00+00:00'}));
+});

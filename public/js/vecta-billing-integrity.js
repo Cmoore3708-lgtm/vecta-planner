@@ -24,6 +24,6 @@
     if(!matches.length&&/service/i.test(a.job_type||'')&&/service/i.test(b.job_type||''))matches.push({left:{description:a.job_type},right:{description:b.job_type}});
     return matches;
   }
-  function signature(a,b){return JSON.stringify([a,b].sort(function(x,y){return String(x.id).localeCompare(String(y.id));}).map(function(j){return [j.id,j.registration,j.completed_at,j.booking_date,j.job_type,j.work_required,j.amount_quoted,items(j)];}));}
+  function signature(a,b){return JSON.stringify([a,b].sort(function(x,y){return String(x.id).localeCompare(String(y.id));}).map(function(j){return [j.id,reg(j),Number.isFinite(Date.parse(j.completed_at||''))?new Date(j.completed_at).toISOString():null,String(j.booking_date||'').slice(0,10),j.job_type,j.work_required,Number(j.amount_quoted||0),items(j)];}));}
   root.VectaBillingIntegrity=Object.freeze({items:items,overlaps:overlaps,signature:signature});
 })(typeof window!=='undefined'?window:globalThis);
