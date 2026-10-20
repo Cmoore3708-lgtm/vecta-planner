@@ -163,9 +163,9 @@ test('legacy Other is shown as Chris in the editor after renaming the column',()
 });
 
 test('unrelated settings saves preserve the shared renamed mechanic list',async()=>{
- let written;const latest={value:{mechanics:['Alfie','Chris','Anyone']}};
- const ctx={app:{settings:{mechanics:['Alfie','Other','Anyone'],businessName:'Vecta Motors'}},vectaMainSettingsLastPersisted:'',console,remoteClient:{from:()=>({select:()=>({eq:()=>({single:async()=>({data:latest})})}),upsert:async row=>{written=row;return {}}})}};
- vm.runInNewContext(namedFunctionSource('vectaSettingsSignature')+';async '+namedFunctionSource('persistMainSettings'),ctx);
+ let written;const latest={value:{mechanics:['Alfie','Chris','Anyone']},updated_at:'r1'};
+ const ctx={app:{settings:{mechanics:['Alfie','Other','Anyone'],businessName:'Vecta Motors'}},vectaSettingsWriteQueue:Promise.resolve(),contractorMasterNames:()=>[],saveLocal(){},vectaMainSettingsLastPersisted:'',console,remoteClient:{from(){let payload;const q={select(){return q},eq(){return q},is(){return q},maybeSingle:async()=>({data:latest}),update(row){payload=row;return q},then(resolve){written=payload;latest.value=payload.value;return Promise.resolve({data:[{id:'main'}]}).then(resolve)}};return q}}};
+ vm.runInNewContext(namedFunctionSource('mergeContractorNames')+';'+namedFunctionSource('vectaSettingsSignature')+';async '+namedFunctionSource('persistMainSettings'),ctx);
  assert.equal(await ctx.persistMainSettings(),true);assert.deepEqual(Array.from(written.value.mechanics),['Alfie','Chris','Anyone']);
  ctx.app.settings.mechanics=['Alfie','Dan','Anyone'];await ctx.persistMainSettings({mechanicsChanged:true});assert.deepEqual(Array.from(written.value.mechanics),['Alfie','Dan','Anyone']);
 });
