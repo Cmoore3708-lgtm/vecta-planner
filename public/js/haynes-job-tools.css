@@ -322,5 +322,8 @@
 
 /* The dashboard's inline layout styles must not shrink the registration text. */
 @media screen {
- #haynesDashboardLookup #haynesDashboardRegistration{font-size:30px!important;line-height:1.1!important;font-weight:800!important;letter-spacing:.5px!important;padding:0 6px!important;font-family:'Arial Narrow',Arial,sans-serif!important}
+ #haynesDashboardLookup #haynesDashboardRegistration{font-size:32px!important;line-height:1.1!important;font-weight:900!important;letter-spacing:1px!important;padding:0 6px!important;font-family:'Arial Black',Arial,sans-serif!important}
 }
+
+/* Retain saved-vehicle suggestions without the native dropdown arrow. */
+#haynesDashboardRegistration::-webkit-calendar-picker-indicator{display:none!important;opacity:0!important}
