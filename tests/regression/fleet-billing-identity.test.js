@@ -4,10 +4,11 @@ import fs from 'node:fs';
 import vm from 'node:vm';
 import {parse} from '@babel/parser';
 import traverseModule from '@babel/traverse';
+import {parseHTML} from 'linkedom';
 const traverse=traverseModule.default||traverseModule;
 const html=fs.readFileSync(new URL('../../index.html',import.meta.url),'utf8');
 const rules=fs.readFileSync(new URL('../../public/js/vecta-billing-integrity.js',import.meta.url),'utf8');
-const wanted=['vectaGuardJobUpsert','upsertRemote','queueRemoteOperation','vectaLikelyNewOfflineJob','fleetEomBillingMonth','vectaFleetDuplicatePairs'];
+const wanted=['vectaGuardJobUpsert','upsertRemote','queueRemoteOperation','vectaLikelyNewOfflineJob','fleetEomBillingMonth','vectaFleetDuplicatePairs','vectaOpenFleetDuplicateReview'];
 let source='';
 for(const m of html.matchAll(/<script(?:\s[^>]*)?>([\s\S]*?)<\/script>/gi)){
  if(!wanted.some(n=>m[1].includes('function '+n+'(')))continue;
@@ -59,4 +60,18 @@ test('recorded separate-work reason expires when either card or its price change
 test('a saved fleet invoice pins billing month even if completion date or hold marker changes',()=>{
  const c=context({vectaActiveInvoices:()=>[{fleet_month:'2026-09',fleet_job_ids:[id]}],financeCompletedDate:()=> '2026-08-19'});
  assert.equal(c.fleetEomBillingMonth({id,customer_note:'[[EOM_BILL_MONTH:2026-10]]'}),'2026-09');
+});
+test('review UI keeps both item lists and extra work; an unconfirmed review cannot suppress the warning',async()=>{
+ const {document}=parseHTML('<html><body><div id="jobModal"></div></body></html>');
+ let opened='',warning='';
+ const c=context({document,esc:value=>String(value||'').replace(/</g,'&lt;').replace(/>/g,'&gt;'),niceDate:x=>x,money:x=>'£'+x,
+ openJobModal:id=>{opened=id;},closeModals(){},prompt:()=> 'Separate work confirmed',persistMainSettings:async()=>false,alert:m=>{warning=m;}});
+ const a=priced('a','2026-08-19',[{description:'Major Service',price:170}]),b=priced('b','2026-08-20',[{description:'Major Service',price:140},{description:'NOx sensor <extra>',price:290}]);
+ const rows=[{job:a,customer:'NMUK'}],pairs=c.vectaFleetDuplicatePairs(rows,[a,b]);
+ c.vectaOpenFleetDuplicateReview('NMUK','2026-08',rows,pairs);
+ assert.equal(document.querySelectorAll('[data-review-job]').length,2);
+ assert.match(document.getElementById('jobModal').textContent,/NOx sensor <extra>/);
+ document.querySelector('[data-review-job="b"]').onclick();assert.equal(opened,'b');
+ await document.querySelector('[data-separate-work]').onclick();
+ assert.match(warning,/not saved/);assert.equal(c.vectaFleetDuplicatePairs(rows,[a,b]).length,1);
 });

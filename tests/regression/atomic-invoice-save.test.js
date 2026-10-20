@@ -102,3 +102,11 @@ test('editor saves use the opening version and do not mutate invoice-list rows b
  assert.match(open,/inv.updated_at=window.vectaInvoiceEditVersions\[String\(id\)\]/);
  const gather=open.slice(open.indexOf('function gatherInvoice('));assert.doesNotMatch(gather,/inv.updated_at=new Date/);
 });
+
+test('fleet creation transmits and verifies frozen job evidence in the actual RPC payload',async()=>{
+ const inv={...draft(),fleet_job_ids:['job-a'],fleet_job_snapshot:{version:1,rows:[{job:{id:'job-a',work_required:'Service'},date:'2026-10-01',amount:100}]}};
+ const c=client(),saved=await helper().create(c,inv,'VECTA');
+ assert.deepEqual(JSON.parse(JSON.stringify(c.calls[0].args.p_invoice.fleet_job_snapshot)),inv.fleet_job_snapshot);
+ assert.equal(saved.fleet_job_snapshot.rows[0].job.work_required,'Service');
+ await assert.rejects(helper().create(client(row=>({...row,fleet_job_snapshot:null})),inv,'VECTA'),/receipt did not match/);
+});

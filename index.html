@@ -11141,7 +11141,7 @@ function vectaOpenFleetDuplicateReview(name,month,rows,pairs){
     app.settings.fleetDuplicateReviews=app.settings.fleetDuplicateReviews||{};
     var previous=app.settings.fleetDuplicateReviews[pair.key];
     app.settings.fleetDuplicateReviews[pair.key]={signature:pair.signature,reason:reason.trim(),reviewed_at:new Date().toISOString()};
-    try{await persistMainSettings();saveLocal();var remaining=vectaFleetDuplicatePairs(rows,app.jobs||[]);if(remaining.length)vectaOpenFleetDuplicateReview(name,month,rows,remaining);else{closeModals();fleetEomPreview(name,month,rows);}}
+    try{if(!await persistMainSettings())throw new Error('Review was not confirmed by the server');saveLocal();var remaining=vectaFleetDuplicatePairs(rows,app.jobs||[]);if(remaining.length)vectaOpenFleetDuplicateReview(name,month,rows,remaining);else{closeModals();fleetEomPreview(name,month,rows);}}
     catch(e){if(previous)app.settings.fleetDuplicateReviews[pair.key]=previous;else delete app.settings.fleetDuplicateReviews[pair.key];alert('Review was not saved. Reconnect and retry.');}
   };});
 }
