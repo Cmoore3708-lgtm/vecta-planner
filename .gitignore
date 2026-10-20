@@ -6,3 +6,7 @@ dist/
 backup/backup-config.json
 *.vecta-encrypted
 *.downloading
+
+# Supplier login profiles contain private session data
+.tyre-browser-profile/
+workers/tyres/.tyre-browser-profile/

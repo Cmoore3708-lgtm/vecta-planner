@@ -1,0 +1,12 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import { parseSize, moneyPence, selectGuides } from './guide.mjs';
+const config = { size:'205/55 R16', quantity:2, brands:{budget:['COMFORSER'],midrange:['KUMHO'],premium:['MICHELIN']},settings:{vatIncluded:true,fullyFitted:true},now:0 };
+const row = {size:'205/55R16',brand:'COMFORSER',model:'CF510',stock:4,sellout:'£62.00',runflat:false,season:'summer',newTyre:true,cost:'£20.86'};
+test('normalises sizes and rejects malformed inputs',()=>{assert.equal(parseSize('205/55 R16').key,'205/55R16');for(const value of ['2055516','205/55R16<script>','999/55R16']) assert.throws(()=>parseSize(value));});
+test('uses Sellout directly in pennies without disclosing cost',()=>{const out=selectGuides([row],config);assert.equal(out.options[0].unitPence,6200);assert.equal(out.options[0].totalPence,12400);assert.ok(!JSON.stringify(out).includes('20.86'));});
+test('selects cheapest brand within each category',()=>{const out=selectGuides([row,{...row,sellout:'£60.00'},{...row,brand:'KUMHO',sellout:'£75.00'},{...row,brand:'MICHELIN',sellout:'£99.00'}],config);assert.deepEqual(out.options.map(x=>x.unitPence),[6000,7500,9900]);});
+test('rejects wrong size, insufficient stock, unknown brand and special tyres',()=>{for(const patch of [{size:'225/55R16'},{stock:1},{brand:'UNKNOWN'},{runflat:true},{season:'winter'},{newTyre:false},{sellout:'POA'},{runflat:undefined}]) assert.equal(selectGuides([{...row,...patch}],config).options[0].available,false);});
+test('never assumes fully fitted or VAT settings',()=>{assert.throws(()=>selectGuides([row],{...config,settings:{}}));});
+test('strict money parsing',()=>{assert.equal(moneyPence('£1,234.50'),123450);for(const x of ['£0.00','-10','62abc','62.1']) assert.equal(moneyPence(x),null);});
+test('rejects invalid quantities and ambiguous categories',()=>{assert.throws(()=>selectGuides([row],{...config,quantity:0}));assert.throws(()=>selectGuides([row],{...config,brands:{budget:['A'],premium:['A']}}));});
