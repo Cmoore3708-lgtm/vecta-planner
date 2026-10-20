@@ -76,3 +76,24 @@ test('number-only size entry keeps separators fixed and searches only on Check L
  let prevented=false;inputs[0].onpaste({clipboardData:{getData:()=>'225/45R17'},preventDefault(){prevented=true}});assert.equal(prevented,true);assert.equal(form.tyre_size,'225/45R17');assert.deepEqual(inputs.map(e=>e.value),['225','45','17']);assert.equal(calls.length,1);
  vm.runInContext('tyreLookup.dispose()',context);
 });
+test('quantity buttons automatically refresh checked prices and select sufficient stock without another search click',async()=>{
+ const {parseHTML}=await import('linkedom'),{document}=parseHTML('<html><body><main></main></body></html>'),calls=[];
+ const form={job_types:['Tyres'],tyre_size:'205/55R16',tyre_quantity:1,tyre_choice:'Budget',nevos_vehicle:'no'};
+ const context=vm.createContext({document,state:{form},setTimeout,clearTimeout,AbortController,Intl,Date,renderActions(){},esc:String,fetch:async(url,options)=>{const body=JSON.parse(options.body);calls.push(body);return{ok:true,json:async()=>payload(body.quantity)}}});
+ vm.runInContext(readFileSync(new URL('../../public/js/vecta-tyre-booking.js',import.meta.url),'utf8'),context);
+ const html=readFileSync(new URL('../../website/booking/index.html',import.meta.url),'utf8');vm.runInContext(html.slice(html.indexOf('let tyreGuideState='),html.indexOf('function pricingHtml(')),context);
+ document.querySelector('main').innerHTML=context.tyreOptionsHtml();context.bindTyreCards();context.bindTyreSearch();
+ const step=(range,direction)=>document.querySelector(`[data-tyre-range="${range}"][data-tyre-quantity-step="${direction}"]`).click();
+ try{
+  step('Budget','1');await tick();assert.equal(calls.length,0,'initial size search still requires the search button');
+  step('Budget','-1');document.querySelector('[data-tyre-check]').click();await tick();
+  assert.equal(document.querySelectorAll('.tyre-guide-price')[2].textContent,'£95');
+  step('Premium','1');assert.equal(form.tyre_guide,null,'old quantity quote must not be saved while checking');await tick();
+  assert.deepEqual(calls,[{size:'205/55R16',quantity:1},{size:'205/55R16',quantity:2}]);
+  assert.equal(document.querySelectorAll('.tyre-guide-price')[2].textContent,'£101','premium stock for one must not be reused for two');
+  assert.equal(document.querySelectorAll('.tyre-guide-total')[2].textContent,'2 × tyres: £202');
+  assert.equal(form.tyre_guide.totalPence,20200);assert.equal(form.tyre_guide.quantity,2);
+  for(const card of document.querySelectorAll('.tyre-guide-card')){assert.doesNotMatch(card.textContent,/guide/i);assert.match(card.textContent,/per tyre · fully fitted/)}
+  step('Premium','-1');await tick();assert.equal(form.tyre_guide.totalPence,9500);assert.equal(calls.length,2,'fresh quantity cache avoids unnecessary supplier calls');
+ }finally{vm.runInContext('tyreLookup.dispose()',context)}
+});
