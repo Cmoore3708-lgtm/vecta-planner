@@ -5,7 +5,7 @@ import vm from 'node:vm';
 import {parseHTML} from 'linkedom';
 const html=fs.readFileSync('website/booking/index.html','utf8');
 const esc=value=>String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-function calendar(form={}){const context=vm.createContext({state:{form:{registration:'AB12 CDE',vehicle:'Toyota Hilux',job_types:['MOT','Other'],work_required:'Rattle on braking',...form}},esc});vm.runInContext(html.slice(html.indexOf('function calendarEscape('),html.indexOf('async function submit(')),context);return context;}
+function calendar(form={}){const context=vm.createContext({state:{form:{registration:'AB12 CDE',vehicle:'Toyota Hilux',job_types:['MOT','Other'],work_required:'Rattle on braking',...form}},esc,URLSearchParams});vm.runInContext(html.slice(html.indexOf('function calendarEscape('),html.indexOf('async function submit(')),context);return context;}
 test('homepage leads with the workshop photo and retains four booking choices',()=>{
  const {document}=parseHTML(fs.readFileSync('website/index.html','utf8'));
  const hero=document.querySelector('.hero');assert.ok(hero.querySelector('.heroText .bookingRegForm'));assert.equal(hero.querySelector('.heroText').previousElementSibling,hero.querySelector('.heroPhoto'));
@@ -25,7 +25,7 @@ test('calendar escapes customer notes and folds Unicode lines to valid UTF-8 len
 });
 test('confirmation shortcuts download a calendar and open the same directions used by the homepage',()=>{
  const c=calendar();const {document}=parseHTML(c.bookingReceiptActionsHtml('2026-11-03','receipt'));
- const a=document.querySelector('.receipt-calendar');assert.equal(a.textContent.trim(),'＋ Add to calendar');assert.equal(a.getAttribute('download'),'Vecta-AB12CDE-2026-11-03.ics');const content=decodeURIComponent(a.getAttribute('href').split(',').slice(1).join(','));assert.match(content,/DTSTART;VALUE=DATE:20261103/);
+ const a=document.querySelector('.receipt-calendar');assert.equal(a.textContent.trim(),'＋ Add to calendar');const url=new URL(a.getAttribute('href'),'https://example.test');assert.equal(url.pathname,'/api/booking-calendar');assert.equal(url.searchParams.get('date'),'2026-11-03');assert.equal(url.searchParams.get('registration'),'AB12 CDE');assert.equal(url.searchParams.get('id'),'receipt');
  const directions=document.querySelector('.receipt-directions');const home=parseHTML(fs.readFileSync('website/index.html','utf8')).document;assert.equal(directions.getAttribute('href'),home.querySelector('.locationMapLink').getAttribute('href'));assert.equal(directions.getAttribute('target'),'_blank');assert.match(directions.getAttribute('rel'),/noopener/);
  assert.equal(parseHTML(c.bookingReceiptActionsHtml('', 'receipt')).document.querySelector('.receipt-calendar'),null);
  assert.match(html,/bookingReceiptActionsHtml\(d\.date,d\.request_id\)/);
