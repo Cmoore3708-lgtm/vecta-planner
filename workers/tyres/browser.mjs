@@ -1,10 +1,12 @@
 // The supplier-specific selectors are configured only after inspecting a live account.
+import {ensureEnquiry} from './esp-enquiry.mjs';
 export const SUPPLIER = 'https://esp.thevirtualwarehouse.co.uk/';
 export async function searchSupplier(page, size, adapter) {
   const { parseSize } = await import('./guide.mjs');
   const parsed = parseSize(size);
   await page.goto(SUPPLIER, { waitUntil: 'domcontentloaded', timeout: 20000 });
   if (/\/Account\/LogOn/i.test(page.url())) throw new Error('SUPPLIER_LOGIN_REQUIRED');
+  await ensureEnquiry(page);
   for (const field of ['width', 'profile', 'rim']) {
     const input = page.locator(adapter[field]);
     if (await input.count() !== 1) throw new Error(`Supplier ${field} control changed`);

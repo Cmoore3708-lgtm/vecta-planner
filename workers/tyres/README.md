@@ -26,3 +26,9 @@ A separate Windows setup utility now collects an allowlisted DOM report for auth
 ## ESP report findings (20 October)
 
 The uploaded v1 diagnostic identifies #FindProductsButton and #OrderWindowGrid, with a unique Sellout column. Search is an input submit, so Search verification now reads its value instead of innerText. Other search buttons exist and must not be selected. V1 omitted plain-text Width/Profile/Rim labels; v2 inspects adjacent text and bounded search-panel control metadata and includes five allowlisted product/Sellout/stock samples. The table reader remains unverified against live row markup. No width/profile/rim selectors, refresh-completion signal, stock-warehouse meaning or classification are assumed. Public pricing stays disconnected.
+
+## ESP v2 report findings
+
+V2 confirms #key2 (Profile), #key3 (Rim), #key4 (Speed), plus the first #key1 input in the same panel (inferred Width). ShowSellout and ShowVat are checked; ShowAddOns is unchecked, which is not overridden because Chris confirms Sellout is already fully fitted. The grid reports 51 rows but the strict reader extracts zero products. V3 records cell positions/classes without costs or arbitrary text, and runs two size searches with stale-result/size-mismatch checks. Actual search refresh, row alignment, stock meaning and price-list selection still need live verification.
+
+Chris confirms Enquiry (image/tab to the right of the car) must be opened before tyre size entry. ensureEnquiry skips this when #key1 is already visible; otherwise it requires a uniquely visible control labelled Enquiry and waits for #key1. An unlabelled or ambiguous icon fails safely; its live identity still needs verification. The setup now explicitly instructs opening Enquiry.

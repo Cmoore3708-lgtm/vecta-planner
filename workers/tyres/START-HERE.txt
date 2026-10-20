@@ -1,4 +1,4 @@
-VECTA TYRE LOOKUP — CONNECTION CHECK VERSION 2
+VECTA TYRE LOOKUP — CONNECTION CHECK VERSION 3
 
 This checks the supplier page so the tyre worker can be completed accurately.
 It does not change your website and does not order any tyres.
@@ -6,9 +6,10 @@ It does not change your website and does not order any tyres.
 1. On the Windows workshop PC, extract this ZIP into its own folder.
 2. Double-click START-TYRE-SETUP.cmd.
 3. A separate Microsoft Edge window opens. Sign in to ESP directly there.
-4. Search for 205/55 R16, using your usual Vecta Sellout price list and VAT setting.
-5. Once results appear, return to the black setup window and press Enter.
-6. Send Vecta-Tyre-Setup-Report-v2.json back in our tyre chat.
+4. Click the Enquiry image/tab to the right of the car.
+5. Search for 205/55 R16, using your usual Vecta Sellout price list and VAT setting.
+6. Once results appear, return to the black setup window and press Enter.
+7. Send Vecta-Tyre-Setup-Report-v3.json back in our tyre chat.
 
 The report contains search-control names, table headings/counts and up to five
 product descriptions with Sellout prices and stock-column text. It does not
@@ -23,6 +24,8 @@ Playwright dependency using npm ci. It does not download another browser.
 If an error appears, send the error text. Do not send a password or browser
 profile folder. Keep the existing Haynes worker running as usual.
 
-Version 2 corrects missing plain-text tyre-size labels from the first report
-and tests reading Sellout from the confirmed OrderWindowGrid table. Use the
-same PC: the separate VectaTyres login should be remembered if still valid.
+Version 3 adds automatic searches for 225/45 R17 and 205/55 R16 after you
+press Enter. Leave Edge open while it tests; this may take about a minute.
+The report now also describes the table's cell layout to resolve missing rows.
+No Cart or Order control is clicked. Product prices are only read from the
+Sellout column when column alignment is verified.

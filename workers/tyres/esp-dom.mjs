@@ -23,7 +23,7 @@ export function readEspGrid(document) {
     const cells = Array.from(row.children);
     if (cells.some(cell=>cell.tagName==='TH') || cells.length !== headings.length || cells.some(cell=>Number(cell.getAttribute('colspan') || 1)!==1)) continue;
     const product = cells[productIndex]?.textContent.replace(/\s+/g,' ').trim();
-    if (!/^\d{3}\s*\/\s*\d{2}\s*R\s*\d{2}\b/i.test(product || '')) continue;
+    if (!/\d{3}\s*\/\s*\d{2}\s*R\s*\d{2}(?=\D|$)/i.test(product || '')) continue;
     const sellout = cells[selloutIndex].textContent.replace(/\s+/g,' ').trim();
     // Never read wholesale Cost, Actual, account data or Cart input values.
     products.push({product,sellout,stockColumns:Object.fromEntries(stocks.map(({label,index})=>[label,cells[index].textContent.replace(/\s+/g,' ').trim()]))});
