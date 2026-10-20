@@ -74,3 +74,4 @@ test('new invoices preserve explicit unknown instead of reusing a previous MOT r
  Object.assign(c,{savedInvoiceForJobId:()=>null,privatePricingItemsFromNote:()=>[],invoiceLineWithMotVat:x=>x,invoiceDescriptionText:()=> 'Service',invoiceJobTypeLabel:()=> 'Service',jobVehicleDueData:()=>({}),knownRegistrationDetails:()=>({mileage:10000}),latestServiceMileage:()=>45000,uid:()=> 'i',nextInvoiceNumberText:()=> '123',todayIso:()=> '2026-10-20',openInvoice:(_,inv)=>invoice=inv});
  c.openInvoiceForJob('j');assert.equal(invoice.mileage,'Unknown');assert.equal(invoice.lines[0].amount,120);
 });
+

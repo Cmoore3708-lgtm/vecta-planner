@@ -329,7 +329,15 @@ root.initHaynesJobTools=function(modal){
  // Keep the original controls and handlers while arranging the compact header.
  const vehicleField=section.querySelector('#job_vehicle')?.closest('.field');if(vehicleField)vehicleField.hidden=true;
  const due=section.querySelector('#jobVehicleDuePanel'),mileage=section.querySelector('#job_mileage')?.closest('.field');
- if(due&&mileage){const facts=document.createElement('div');facts.className='jobVehicleQuickFacts';due.before(facts);facts.append(due,mileage);}
+ if(mileage){
+  const facts=document.createElement('div');facts.className='jobVehicleQuickFacts';
+  const mileageLabel=mileage.querySelector('label');if(mileageLabel)mileageLabel.textContent='Last MOT mileage';
+  if(due){due.before(facts);facts.appendChild(due);}else mileage.before(facts);
+  facts.appendChild(mileage);
+  const currentMileage=modal.querySelector('.jobCurrentMileageField');if(currentMileage)facts.appendChild(currentMileage);
+  // Facts use the whole header width, independent of the artwork column.
+  if(header)header.appendChild(facts);
+ }
  if(header){
   let actions=header.querySelector('.jobModalHeadActions');
   if(!actions){actions=document.createElement('div');actions.className='jobModalHeadActions';}
@@ -501,4 +509,5 @@ function install(){const top=document.querySelector('.top'),search=top?.querySel
 root.VectaHaynesDashboardLookup={open:openBooking,openTechnical,install};
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',install);else install();
 })(window);
+
 

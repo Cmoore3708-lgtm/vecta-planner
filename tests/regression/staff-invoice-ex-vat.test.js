@@ -95,3 +95,4 @@ test('new mixed job invoice exempts only MOT and stores Staff evidence in JSON l
  ctx.app.jobs=previousJobs;ctx.app.jobCustomerMemory=previousMemory;ctx.document=prior.document;
 });
 
+
