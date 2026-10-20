@@ -543,3 +543,10 @@
  #jobModal .jobVehicleQuickFacts .jobVehicleDueItem>span{font-size:9px!important;min-height:22px}
  #jobModal .jobVehicleQuickFacts .jobVehicleDueItem b{font-size:12px!important}
 }
+
+.jobMileagePrompt{width:min(430px,calc(100vw - 32px));box-sizing:border-box;padding:24px;border:1px solid #cbd5e1;border-radius:14px;background:#fff;color:#111827;box-shadow:0 20px 70px #0005}
+.jobMileagePrompt::backdrop{background:#0009}
+.jobMileagePrompt h2{font-size:21px;margin:0 0 12px}
+.jobMileagePrompt p{line-height:1.5;margin:0 0 20px}
+.jobMileagePromptActions{display:flex;flex-wrap:wrap;justify-content:flex-end;gap:8px}
+
