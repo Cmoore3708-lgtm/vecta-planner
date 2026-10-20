@@ -14643,7 +14643,7 @@ function syncOfficeJobActions(account){
   if(window.VECTA_MECHANIC_DEPLOYMENT===true)return;
   var modal=document.getElementById('jobModal');if(!modal)return;
   var key=String(account||'').trim().toUpperCase(),isNmuk=key==='NMUK',isStaff=key==='STAFF',complete=modal.querySelector('#markComplete'),ready=modal.querySelector('#markReady'),invoice=modal.querySelector('#createInvoiceFromJob');
-  if(complete){complete.textContent=isNmuk?'Mark as complete':'Ready to invoice';complete.style.display=isNmuk||fleetIsContractorIncome(account)?'':'none';}
+  if(complete){complete.textContent='Mark complete';complete.style.display=isNmuk||fleetIsContractorIncome(account)?'':'none';}
   if(ready)ready.style.display=isStaff?'':'none';
   if(invoice)invoice.style.display=isNmuk?'none':'';
 }
