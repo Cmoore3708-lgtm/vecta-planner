@@ -63,7 +63,7 @@ html=html.replace(/<(script|style)([^>]*)>([\s\S]*?)<\/\1>/gi,(whole,tag,attribu
   return result.warnings.length?whole:`<style${attributes}>${result.code}</style>`;
 });
 // Give Haynes helpers and stylesheets the same cache-safe treatment.
-for(const name of ['haynes-job-tools.js','haynes-job-tools.css','haynes-service-sheet.js','haynes-service-sheet.css','vecta-vehicle-image.js','vecta-fleet-images.js','vecta-fleet-images.css']){
+for(const name of ['haynes-job-tools.js','haynes-job-tools.css','haynes-service-sheet.js','haynes-service-sheet.css','vecta-vehicle-image.js','vecta-fleet-images.js','vecta-fleet-images.css','vecta-monthly-pool.js','vecta-monthly-pool.css']){
   let source=fs.readFileSync(path.resolve('dist/js',name));
   const result=transformSync(source.toString(),{loader:name.endsWith('.js')?'js':'css',
     target:'esnext',charset:'utf8',legalComments:'inline',
@@ -91,3 +91,4 @@ mechanicHtml=mechanicHtml.replace(/<script([^>]*)>([\s\S]*?)<\/script>/gi,(whole
 });
 fs.writeFileSync(path.resolve('dist/mechanic.html'),mechanicHtml);
 console.log(JSON.stringify({indexBytes:Buffer.byteLength(html),extractedScripts:written}));
+
