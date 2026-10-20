@@ -3,7 +3,8 @@ VECTA TYRE LOOKUP — CONNECTION CHECK VERSION 3
 This checks the supplier page so the tyre worker can be completed accurately.
 It does not change your website and does not order any tyres.
 
-1. On the Windows workshop PC, extract this ZIP into its own folder.
+1. Right-click the downloaded ZIP and choose Extract All. Open the extracted
+   folder. Do not double-click the launcher while viewing files inside the ZIP.
 2. Double-click START-TYRE-SETUP.cmd.
 3. A separate Microsoft Edge window opens. Sign in to ESP directly there.
 4. Click the Enquiry image/tab to the right of the car.
