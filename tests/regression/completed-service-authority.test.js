@@ -176,10 +176,10 @@ test('embedded service history repairs EYC before live jobs finish loading', () 
 test('phone shell keeps one update owner and advances the source-authoritative cache', () => {
   const html = fs.readFileSync(new URL('../../index.html', import.meta.url), 'utf8');
   const worker = fs.readFileSync(new URL('../../public/service-worker.js', import.meta.url), 'utf8');
-  assert.match(html, /VECTA_APP_VERSION='v373-mobile-booking-consistency'/);
-  assert.match(html, /service-worker\.js\?v=20261013-mobile-booking-consistency-v373/);
-  assert.match(worker, /APP_VERSION='v373-mobile-booking-consistency'/);
-  assert.match(worker, /CACHE='vecta-workshop-pro-shell-v57-mobile-booking-consistency'/);
+  assert.match(html, /VECTA_APP_VERSION='v374-contractor-startup'/);
+  assert.match(html, /service-worker\.js\?v=20261020-contractor-startup-v374/);
+  assert.match(worker, /APP_VERSION='v374-contractor-startup'/);
+  assert.match(worker, /CACHE='vecta-workshop-pro-shell-v58-contractor-startup'/);
   assert.match(html, /vectaSafeApplyAppUpdate\(event\.data\.version\)/);
   assert.match(html, /if\(vectaAppUpdateWaiting\)vectaSafeApplyAppUpdate\(vectaAppUpdateWaiting\)/);
 });
@@ -194,7 +194,7 @@ test('service-worker update has one guarded reload owner', () => {
 
 test('a newer app waits for an open job card and reloads after it closes', async () => {
   const html = fs.readFileSync(new URL('../../index.html', import.meta.url), 'utf8');
-  const start=html.indexOf("var VECTA_APP_VERSION='v373-mobile-booking-consistency'");
+  const start=html.indexOf("var VECTA_APP_VERSION='v374-contractor-startup'");
   const end=html.indexOf('function registerVectaServiceWorker()',start);
   const closeStart=html.indexOf('function closeModals(){');
   const closeEnd=html.indexOf('\nfunction editCustomer(',closeStart);

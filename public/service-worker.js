@@ -1,5 +1,5 @@
-const CACHE='vecta-workshop-pro-shell-v57-mobile-booking-consistency';
-const APP_VERSION='v373-mobile-booking-consistency';
+const CACHE='vecta-workshop-pro-shell-v58-contractor-startup';
+const APP_VERSION='v374-contractor-startup';
 const DATA_CACHE='vecta-workshop-pro-data-last-known-v1';
 const HEALTH_CACHE='vecta-workshop-pro-cloud-health-v1';
 const MAIN_CACHE='vecta-workshop-pro-manager-shell-v1';

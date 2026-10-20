@@ -9792,7 +9792,7 @@ async function flushPendingSync(){
   if(!remaining.length)return true;
   return false
 }
-var VECTA_APP_VERSION='v373-mobile-booking-consistency';
+var VECTA_APP_VERSION='v374-contractor-startup';
 var vectaAppUpdateWaiting=false;
 function vectaSafeApplyAppUpdate(version){
   var nextVersion=String(version||vectaAppUpdateWaiting||VECTA_APP_VERSION);
@@ -9817,7 +9817,7 @@ function registerVectaServiceWorker(){
   navigator.serviceWorker.addEventListener('controllerchange',function(){vectaSafeApplyAppUpdate()});
   window.addEventListener('load',function(){
     Promise.resolve(window.__vectaCacheResetPromise).finally(function(){
-      navigator.serviceWorker.register('/service-worker.js?v=20261013-mobile-booking-consistency-v373',{updateViaCache:'none'}).then(function(reg){
+      navigator.serviceWorker.register('/service-worker.js?v=20261020-contractor-startup-v374',{updateViaCache:'none'}).then(function(reg){
         if(navigator.onLine)Promise.resolve(reg.update()).catch(function(e){console.warn('Service worker update skipped',e)});
       }).catch(function(e){console.warn('Offline app install skipped',e)});
     });
@@ -10187,6 +10187,28 @@ function vectaReconcileTasksFromCloud(remoteRows){
   applyTaskStateOverrides();
   return next;
 }
+async function vectaLoadSharedCustomerState(){
+  if(!remoteClient)return false;
+  var results=await Promise.all([
+    vectaWithTimeout(remoteClient.from('workshop_settings').select('value,updated_at').eq('id','main').single(),9000,'Shared contractor settings'),
+    vectaWithTimeout(remoteClient.from('workshop_settings').select('id,value,updated_at').like('id','jobcustomer:%').limit(1000),9000,'Job customer allocations')
+  ]);
+  results.forEach(function(result){if(result.error)throw result.error});
+  var shared=results[0].data&&results[0].data.value;
+  if(!shared)throw new Error('Shared workshop settings could not be loaded.');
+  var names=mergeContractorNames(app.settings.contractors,shared.contractors);
+  vectaMainSettingsLastPersisted=vectaSettingsSignature(shared);
+  app.settings=merge(app.settings,shared);app.settings.contractors=names;
+  app.jobCustomerMemory=app.jobCustomerMemory||{};
+  (results[1].data||[]).forEach(function(row){
+    var id=String(row.id||'').replace(/^jobcustomer:/,'');
+    if(!id||!row.value||typeof row.value!=='object')return;
+    var current=app.jobCustomerMemory[id],localTime=Date.parse(current&&current.updated_at||0)||0,remoteTime=Date.parse(row.updated_at||row.value.updated_at||0)||0;
+    if(!current||remoteTime>=localTime)app.jobCustomerMemory[id]=Object.assign({},row.value,{updated_at:row.updated_at||row.value.updated_at||''});
+  });
+  app.settings.contractors=mergeContractorNames(app.settings.contractors,contractorMasterNames());
+  return true;
+}
 async function vectaPrimeAuthoritativeDashboard(){
   if(!remoteClient)return false;
   var started=performance.now();
@@ -10194,7 +10216,9 @@ async function vectaPrimeAuthoritativeDashboard(){
   var tasksP=vectaFetchAllRemoteRows('tasks',25000);
   var terminalP=vectaLoadTerminalJobStatesFromCloud();
   var overridesP=vectaWithTimeout(remoteClient.from('workshop_settings').select('id,value,updated_at').eq('id','task_state_overrides_v50').limit(1),25000,'Task state download');
-  var results=await Promise.allSettled([jobsP,tasksP,terminalP,overridesP]);
+  var customerStateP=vectaLoadSharedCustomerState();
+  var results=await Promise.allSettled([jobsP,tasksP,terminalP,overridesP,customerStateP]);
+  if(results[4].status!=='fulfilled')throw results[4].reason||new Error('Customer allocations could not be loaded.');
   if(results[0].status!=='fulfilled')throw results[0].reason||new Error('Live jobs could not be loaded.');
   if(results[1].status!=='fulfilled')throw results[1].reason||new Error('Live tasks could not be loaded.');
   vectaReconcileJobsFromCloud(results[0].value);
