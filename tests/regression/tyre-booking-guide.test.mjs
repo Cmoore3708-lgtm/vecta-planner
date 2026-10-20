@@ -61,3 +61,18 @@ test('standalone website ships the same tyre assets and forwards only the tyre l
  assert.deepEqual(calls,['https://vecta-planner.vercel.app/api/availability?tyres=1','https://vecta-planner.vercel.app/api/availability']);
  }finally{global.fetch=original}
 });
+test('number-only size entry keeps separators fixed and searches only on Check Live Prices',async()=>{
+ const {parseHTML}=await import('linkedom'),{document}=parseHTML('<html><body><main></main></body></html>'),calls=[];
+ const form={job_types:['Tyres'],tyre_size:'',tyre_quantity:1,tyre_choice:'Budget',nevos_vehicle:'no'};
+ const context=vm.createContext({document,state:{form},setTimeout,clearTimeout,AbortController,Intl,Date,renderActions(){},esc:String,fetch:async(url,options)=>{calls.push({url,body:JSON.parse(options.body)});return{ok:true,json:async()=>payload()}}});
+ vm.runInContext(readFileSync(new URL('../../public/js/vecta-tyre-booking.js',import.meta.url),'utf8'),context);
+ const html=readFileSync(new URL('../../website/booking/index.html',import.meta.url),'utf8');vm.runInContext(html.slice(html.indexOf('let tyreGuideState='),html.indexOf('function pricingHtml(')),context);
+ document.querySelector('main').innerHTML=context.tyreOptionsHtml();context.bindTyreCards();context.bindTyreSearch();
+ const inputs=[...document.querySelectorAll('[data-tyre-part]')],button=document.querySelector('[data-tyre-check]');assert.deepEqual(inputs.map(e=>e.getAttribute('placeholder')),['205','55','16']);assert.deepEqual([...document.querySelectorAll('.tyre-size-parts>span')].map(e=>e.textContent),['/','R']);
+ button.click();await tick();assert.equal(calls.length,0);assert.match(document.querySelector('#tyreGuideStatus').textContent,/Enter all three numbers/);
+ for(const [index,value]of ['2a05','55','16'].entries()){inputs[index].value=value;inputs[index].oninput();}await tick();assert.equal(form.tyre_size,'205/55R16');assert.equal(calls.length,0);
+ button.click();await tick();assert.equal(calls.length,1);assert.deepEqual(calls[0].body,{size:'205/55R16',quantity:1});assert.equal(document.querySelector('.tyre-guide-price').textContent,'£62');
+ inputs[1].value='60';inputs[1].oninput();assert.equal(form.tyre_guide,null);assert.equal(document.querySelector('.tyre-guide-price').textContent,'—');await tick();assert.equal(calls.length,1);
+ let prevented=false;inputs[0].onpaste({clipboardData:{getData:()=>'225/45R17'},preventDefault(){prevented=true}});assert.equal(prevented,true);assert.equal(form.tyre_size,'225/45R17');assert.deepEqual(inputs.map(e=>e.value),['225','45','17']);assert.equal(calls.length,1);
+ vm.runInContext('tyreLookup.dispose()',context);
+});
