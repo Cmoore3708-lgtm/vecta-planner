@@ -26,3 +26,7 @@
 .tyre-check-button:focus-visible{outline:3px solid #5de0a2;outline-offset:3px}.tyre-check-button:disabled{opacity:.65;cursor:wait}
 @media(max-width:760px){.tyre-search-row{grid-template-columns:minmax(0,1fr) 120px;gap:8px}.tyre-size-parts{padding:4px 6px;grid-template-columns:minmax(0,1.35fr) 10px minmax(0,1fr) 12px minmax(0,1fr)}.tyre-picker .tyre-size-parts input{font-size:18px;padding:13px 0}.tyre-size-parts>span{font-size:18px}.tyre-picker .tyre-check-button{padding:9px 7px;font-size:13px}.tyre-size-field>span{font-size:13px}}
 @media(max-width:359px){.tyre-search-row{grid-template-columns:minmax(0,1fr) 105px;gap:6px}.tyre-picker .tyre-size-parts input{font-size:16px}.tyre-picker .tyre-check-button{font-size:12px}}
+
+.tyre-guide-status.is-checking{animation:tyre-price-pulse 1.4s ease-in-out infinite}
+@keyframes tyre-price-pulse{0%,100%{opacity:1}50%{opacity:.45}}
+@media(prefers-reduced-motion:reduce){.tyre-guide-status.is-checking{animation:none}}
