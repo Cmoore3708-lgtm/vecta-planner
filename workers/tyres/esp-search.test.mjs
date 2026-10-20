@@ -6,7 +6,7 @@ function mock({wrongButton=false,stale=false,wrongSize=false}={}){
  return {filled,clicks,
   locator(selector){return {count:async()=>1,isVisible:async()=>true,fill:async value=>{filled[selector]=value},inputValue:async()=>wrongButton?'Order':'Search',click:async()=>{clicks.push(selector);clicked=true},textContent:async()=>clicked?'new results':'old results'};},
   async waitForFunction(fn,previous){assert.equal(previous,'old results');if(stale)throw Error('timeout');},
-  async evaluate(){return {products:[{product:wrongSize?'205/55R16 EXAMPLE':'225/45R17 EXAMPLE',sellout:'£70.00',stockColumns:{Default:'5'}}]};}
+  async evaluate(_fn,source){if(source.includes('checkboxCounts'))return {showSellout:true,vatIncluded:true,priceList:'Vecta',multiplier:1};return {products:[{product:wrongSize?'205/55R16 EXAMPLE':'225/45R17 EXAMPLE',sellout:'£70.00',stockColumns:{Default:'5'}}]};}
  };
 }
 test('ESP search fills confirmed controls, clears speed and only clicks tyre Search',async()=>{

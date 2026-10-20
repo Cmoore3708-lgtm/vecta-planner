@@ -8,6 +8,7 @@ import { inspectDocument } from './inspect-dom.mjs';
 import { readEspGrid } from './esp-dom.mjs';
 import { inspectEspStructure } from './esp-structure.mjs';
 import { testEspSearch } from './esp-search.mjs';
+import { readEspSettings } from './esp-settings.mjs';
 const profile = process.env.TYRE_PROFILE_DIR || resolve(process.env.LOCALAPPDATA || '.', 'VectaTyres', 'EdgeProfile');
 const context = await chromium.launchPersistentContext(profile, { channel:'msedge',headless:false,acceptDownloads:false });
 const terminal = createInterface({input:stdin,output:stdout});
@@ -22,7 +23,8 @@ try {
  let prices={products:[]};
  try{prices=await page.evaluate(source=>{const reader=new Function('return ('+source+')')();return reader(document);},readEspGrid.toString());}
  catch(error){report.readerStatus=/ESP_[A-Z_]+/.exec(error.message)?.[0]||'NEEDS_CHECK';}
- report.version=3;
+ report.version=4;
+ report.verifiedCheckboxSettings=await page.evaluate(source=>(new Function('return ('+source+')')())(document),readEspSettings.toString());
  report.structure=await page.evaluate(source=>(new Function('return ('+source+')')())(document),inspectEspStructure.toString());
  report.selloutSample=prices.products.slice(0,5);
  report.productsRead=prices.products.length;
@@ -34,7 +36,7 @@ try {
   catch(error){report.searchTests.push({requestedSize:size,status:'NEEDS_CHECK',reason:/ESP_[A-Z_]+/.exec(error.message)?.[0]||'SEARCH_NOT_VERIFIED'});}
  }
  report.afterSearchStructure=await page.evaluate(source=>(new Function('return ('+source+')')())(document),inspectEspStructure.toString());
- const target=resolve('Vecta-Tyre-Setup-Report-v3.json');await writeFile(target,JSON.stringify(report,null,2));
+ const target=resolve('Vecta-Tyre-Setup-Report-v4.json');await writeFile(target,JSON.stringify(report,null,2));
  console.log('\nSaved: '+target+'\nSend this JSON report back in our tyre chat. Your password and session stay on this PC.');
  await terminal.question('Press Enter to close: ');
 } finally { terminal.close();await context.close(); }

@@ -1,4 +1,4 @@
-VECTA TYRE LOOKUP — CONNECTION CHECK VERSION 3
+VECTA TYRE LOOKUP — CONNECTION CHECK VERSION 4
 
 This checks the supplier page so the tyre worker can be completed accurately.
 It does not change your website and does not order any tyres.
@@ -10,7 +10,7 @@ It does not change your website and does not order any tyres.
 4. Click the Enquiry image/tab to the right of the car.
 5. Search for 205/55 R16, using your usual Vecta Sellout price list and VAT setting.
 6. Once results appear, return to the black setup window and press Enter.
-7. Send Vecta-Tyre-Setup-Report-v3.json back in our tyre chat.
+7. Send Vecta-Tyre-Setup-Report-v4.json back in our tyre chat.
 
 The report contains search-control names, table headings/counts and up to five
 product descriptions with Sellout prices and stock-column text. It does not
@@ -30,3 +30,7 @@ press Enter. Leave Edge open while it tests; this may take about a minute.
 The report now also describes the table's cell layout to resolve missing rows.
 No Cart or Order control is clicked. Product prices are only read from the
 Sellout column when column alignment is verified.
+
+Version 4 verifies the actual VAT/Sellout checkbox controls separately from
+hidden inputs and saves cleaned product details, Sellout prices and separate
+Default warehouse counts for the two test sizes. No trade costs are included.

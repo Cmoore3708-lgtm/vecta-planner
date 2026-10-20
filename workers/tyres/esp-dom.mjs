@@ -22,8 +22,13 @@ export function readEspGrid(document) {
   for (const row of rows) {
     const cells = Array.from(row.children);
     if (cells.some(cell=>cell.tagName==='TH') || cells.length !== headings.length || cells.some(cell=>Number(cell.getAttribute('colspan') || 1)!==1)) continue;
-    const product = cells[productIndex]?.textContent.replace(/\s+/g,' ').trim();
-    if (!/\d{3}\s*\/\s*\d{2}\s*R\s*\d{2}(?=\D|$)/i.test(product || '')) continue;
+    const rawProduct = cells[productIndex]?.textContent.replace(/\s+/g,' ').trim() || '';
+    const sizes = Array.from(rawProduct.matchAll(/\d{3}\s*\/\s*\d{2}\s*R\s*\d{2}(?=\D|$)/gi));
+    if (!sizes.length) continue;
+    const normalSize = value => value.replace(/\s/g,'').toUpperCase();
+    if (sizes.some(match=>normalSize(match[0])!==normalSize(sizes[0][0]))) throw Error('ESP_PRODUCT_SIZE_AMBIGUOUS');
+    // ESP prepends a hidden SKU and repeats the description in a tooltip.
+    const product = rawProduct.slice(sizes[0].index,sizes[1]?.index ?? rawProduct.length).trim();
     const sellout = cells[selloutIndex].textContent.replace(/\s+/g,' ').trim();
     // Never read wholesale Cost, Actual, account data or Cart input values.
     products.push({product,sellout,stockColumns:Object.fromEntries(stocks.map(({label,index})=>[label,cells[index].textContent.replace(/\s+/g,' ').trim()]))});

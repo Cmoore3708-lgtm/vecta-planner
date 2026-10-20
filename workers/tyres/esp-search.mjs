@@ -1,6 +1,8 @@
 import {parseSize} from './guide.mjs';
 import {readEspGrid} from './esp-dom.mjs';
 import {ensureEnquiry} from './esp-enquiry.mjs';
+import {readEspSettings} from './esp-settings.mjs';
+import {parseEspProduct} from './esp-normalise.mjs';
 export async function testEspSearch(page,size){
  const parsed=parseSize(size);
  await ensureEnquiry(page);
@@ -31,5 +33,7 @@ export async function testEspSearch(page,size){
   const m=row.product.match(/\d{3}\s*\/\s*\d{2}\s*R\s*\d{2}/i);return !m || m[0].replace(/\s/g,'').toUpperCase()!==parsed.key;
  });
  if(mismatches.length)throw Error('ESP_RESULTS_SIZE_MISMATCH');
- return {requestedSize:parsed.key,productsRead:result.products.length,selloutSample:result.products.slice(0,5)};
+ const settings=await page.evaluate(source=>(new Function('return ('+source+')')())(document),readEspSettings.toString());
+ const catalogue=result.products.map(row=>parseEspProduct(row)).filter(Boolean);
+ return {requestedSize:parsed.key,productsRead:result.products.length,selloutSample:result.products.slice(0,5),settings,guideCatalogue:catalogue};
 }

@@ -26,3 +26,10 @@ test('bounded panel inventory finds unlabelled controls without leaking outside 
  const report=inspectDocument(doc('<input aria-label="Customer" value="PRIVATE"><section><input id="a"><input id="b"><input id="c"><input type="submit" id="FindProductsButton" value="Search"></section>'));
  assert.deepEqual(report.fields.map(f=>f.id),['a','b','c','FindProductsButton']);
 });
+test('removes real ESP hidden SKU prefixes and duplicate tooltip descriptions',()=>{
+ const document=doc('<table id="OrderWindowGrid"><tr><th>Product</th><th>Sellout</th></tr><tr><td><input type="hidden">2055516VBUCOMFO<div>205/55R16 COMFORSER CF510 91V <span>205/55R16 COMFORSER CF510 91V</span></div></td><td>£62.00</td></tr></table>');
+ assert.equal(readEspGrid(document).products[0].product,'205/55R16 COMFORSER CF510 91V');
+});
+test('different sizes within one product cell are rejected',()=>{
+ assert.throws(()=>readEspGrid(doc('<table id="OrderWindowGrid"><tr><th>Product</th><th>Sellout</th></tr><tr><td>205/55R16 EXAMPLE 225/45R17 EXAMPLE</td><td>£62.00</td></tr></table>')),/SIZE_AMBIGUOUS/);
+});
