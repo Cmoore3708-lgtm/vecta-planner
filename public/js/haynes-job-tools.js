@@ -473,7 +473,7 @@ function openBooking(registration){
  // The original fields and save handlers stay in the existing job editor.
  const section=modal.querySelector('.jobVehicleSection'),details=document.createElement('details');details.className='bookingVehicleEditor';
  details.innerHTML='<summary>Edit vehicle details</summary>';
- if(section){const vehicleField=field('vehicle')?.closest('.field');if(vehicleField)vehicleField.hidden=false;const mileage=field('mileage'),mileageField=mileage?.closest('.field');if(mileageField){mileage.value='';mileage.setAttribute('data-current-mileage','');const label=mileageField.querySelector('label');if(label)label.textContent='Current mileage';mileageField.classList.add('bookingCurrentMileage');const allocationGrid=modal.querySelector('.jobBookingSection>.jobSectionGrid');(allocationGrid||body).prepend(mileageField);}details.append(section);body.append(details);}
+ if(section){const vehicleField=field('vehicle')?.closest('.field');if(vehicleField)vehicleField.hidden=false;details.append(section);body.append(details);}
  const headerDetails=header.querySelector('.jobCardHeaderDetails');
  if(headerDetails&&!headerDetails.querySelector('.jobContactSection'))headerDetails.remove();
  const identity=document.createElement('div');identity.className='bookingLookupIdentity';identity.innerHTML='<h3 data-booking-vehicle></h3><p data-booking-variant></p><dl data-booking-spec></dl><p role="status" aria-live="polite" data-booking-status></p>';
