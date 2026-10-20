@@ -88,6 +88,7 @@ test('legacy technician names collide in the same visible Other lane', () => {
   context.window.window = context.window;
   vm.runInNewContext(plannerRules, context.window);
   vm.runInNewContext([
+    namedFunctionSource('configuredMechanicNames'),
     namedFunctionSource('plannerLaneMechanics'),
     namedFunctionSource('plannerTechnicianName'),
     namedFunctionSource('plannerTechnicianLane'),
@@ -162,9 +163,22 @@ test('legacy Other is shown as Chris in the editor after renaming the column',()
 });
 
 test('unrelated settings saves preserve the shared renamed mechanic list',async()=>{
- let written;const latest={value:{mechanics:['Alfie','Chris','Anyone']}};
- const ctx={app:{settings:{mechanics:['Alfie','Other','Anyone'],businessName:'Vecta Motors'}},vectaMainSettingsLastPersisted:'',console,remoteClient:{from:()=>({select:()=>({eq:()=>({single:async()=>({data:latest})})}),upsert:async row=>{written=row;return {}}})}};
- vm.runInNewContext(namedFunctionSource('vectaSettingsSignature')+';async '+namedFunctionSource('persistMainSettings'),ctx);
+ let written;const latest={value:{mechanics:['Alfie','Chris','Anyone']},updated_at:'r1'};
+ const ctx={app:{settings:{mechanics:['Alfie','Other','Anyone'],businessName:'Vecta Motors'}},vectaSettingsWriteQueue:Promise.resolve(),contractorMasterNames:()=>[],saveLocal(){},vectaMainSettingsLastPersisted:'',console,remoteClient:{from(){let payload;const q={select(){return q},eq(){return q},is(){return q},maybeSingle:async()=>({data:latest}),update(row){payload=row;return q},then(resolve){written=payload;latest.value=payload.value;return Promise.resolve({data:[{id:'main'}]}).then(resolve)}};return q}}};
+ vm.runInNewContext(namedFunctionSource('mergeContractorNames')+';'+namedFunctionSource('vectaSettingsSignature')+';async '+namedFunctionSource('persistMainSettings'),ctx);
  assert.equal(await ctx.persistMainSettings(),true);assert.deepEqual(Array.from(written.value.mechanics),['Alfie','Chris','Anyone']);
  ctx.app.settings.mechanics=['Alfie','Dan','Anyone'];await ctx.persistMainSettings({mechanicsChanged:true});assert.deepEqual(Array.from(written.value.mechanics),['Alfie','Dan','Anyone']);
+});
+
+test('technician choices follow the complete current list without invented fallback names',()=>{
+ const ctx={app:{settings:{mechanics:[' Amy ','Ben','Cara','Dan','Anyone','amy','Unallocated']}}};
+ vm.runInNewContext(namedFunctionSource('configuredMechanicNames')+';'+namedFunctionSource('plannerLaneMechanics')+';names=configuredMechanicNames();lanes=plannerLaneMechanics()',ctx);
+ assert.deepEqual(Array.from(ctx.names),['Amy','Ben','Cara','Dan']);
+ assert.deepEqual(Array.from(ctx.lanes),['Amy','Ben','Cara','Dan','Anyone']);
+ assert.deepEqual(ctx.app.settings.mechanics,[' Amy ','Ben','Cara','Dan','Anyone','amy','Unallocated']);
+ ctx.app.settings.mechanics=[];
+ vm.runInNewContext('names=configuredMechanicNames()',ctx);
+ assert.deepEqual(Array.from(ctx.names),[]);
+ assert.doesNotMatch(namedFunctionSource('plannerHtml'),/app\.settings\.mechanics\s*=/);
+ assert.doesNotMatch(namedFunctionSource('ensureThreeMechanics'),/app\.settings\.mechanics\s*=/);
 });

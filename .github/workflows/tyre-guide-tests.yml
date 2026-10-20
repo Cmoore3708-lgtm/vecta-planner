@@ -1,10 +1,10 @@
 name: Tyre guide worker checks
 on:
   pull_request:
-    paths: ['workers/tyres/**', '.github/workflows/tyre-guide-tests.yml']
+    paths: ['workers/tyres/**', 'lib/tyre-guide-proxy.js', 'api/availability.js', 'public/js/vecta-tyre-booking.*', 'website/booking/index.html', 'tests/regression/tyre-booking-guide.test.mjs', '.github/workflows/tyre-guide-tests.yml']
   push:
     branches: ['amendment/tyre-guide-worker']
-    paths: ['workers/tyres/**', '.github/workflows/tyre-guide-tests.yml']
+    paths: ['workers/tyres/**', 'lib/tyre-guide-proxy.js', 'api/availability.js', 'public/js/vecta-tyre-booking.*', 'website/booking/index.html', 'tests/regression/tyre-booking-guide.test.mjs', '.github/workflows/tyre-guide-tests.yml']
 permissions:
   contents: read
 jobs:
@@ -17,4 +17,4 @@ jobs:
           node-version: 24
           cache: npm
       - run: npm ci --ignore-scripts
-      - run: node --test workers/tyres/*.test.mjs
+      - run: node --test workers/tyres/*.test.mjs tests/regression/tyre-booking-guide.test.mjs

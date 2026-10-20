@@ -4,6 +4,7 @@ import fs from 'node:fs';
 import vm from 'node:vm';
 const html=fs.readFileSync(new URL('../../index.html',import.meta.url),'utf8');
 function setup(saved,today='2029-01-01'){
+ if(saved&&saved.fleet_job_snapshot===undefined)saved.fleet_job_snapshot={version:1,rows:JSON.parse(JSON.stringify(rows))};
  let output='',warning='';
  const context={todayIso:()=>today,alert:text=>{warning=text},fleetNormaliseCustomer:x=>x,vectaActiveInvoices:()=>saved?[saved]:[],invoiceTotals:lines=>({subtotal:lines.reduce((s,l)=>s+Number(l.amount||0),0)}),fleetNmukIsInternalJob:j=>j.internal,fleetEomLineItems:j=>[{description:'Workshop work',price:j.price}],niceDate:x=>x,fleetEomRegistrationText:()=>'',fleetNmukTypeForJob:j=>j.nmuk_type||'',financeBaseJob:j=>j,normReg:x=>String(x||'').replace(/ /g,'').toUpperCase(),app:{jobs:[],jobCustomerMemory:{}},window:{},Blob:class{constructor(parts){output=parts.join('')}},URL:{createObjectURL:()=>'',revokeObjectURL:()=>{}},document:{createElement:()=>({click(){},remove(){}}),body:{appendChild(){}}},setTimeout:()=>{}};
  vm.createContext(context);
@@ -26,9 +27,9 @@ test('CSV includes saved monthly charges once with correct Internal/MVOS totals'
  assert.doesNotMatch(s.csv(),/allocation not recorded/);
 });
 test('legacy invoice without original breakdown blocks an invented single charge',()=>{
- const s=setup({invoice_number:'78763',fleet_customer:'NMUK',fleet_month:'2026-09',fleet_job_ids:['1','2'],lines:[{amount:12770}]});
+ const s=setup({invoice_number:'78763',fleet_customer:'NMUK',fleet_month:'2026-09',fleet_job_ids:['1','2'],fleet_job_snapshot:null,lines:[{amount:12770}]});
  s.context.fleetDownloadEomCsv('NMUK','2026-09',rows);
- assert.equal(s.csv(),'');assert.match(s.warning(),/individual monthly charges/);
+ assert.equal(s.csv(),'');assert.match(s.warning(),/original issued spreadsheet/);
 });
 test('monthly entries use final date and their saved individual allocations',()=>{
  const extras=[{description:'Puncture repairs',amount:200,section:'internal'},{description:'Monthly work',amount:2220,section:'other'}];
@@ -78,7 +79,9 @@ test('CSV uses saved MVOS subtype and job-customer memory, with Other for remain
  {id:'pool',customer_account:'NMUK',nmuk_vehicle_type:'Pool'},
  {id:'other',customer_account:'NMUK',nmuk_vehicle_type:'Various'}
  ];
- s.context.fleetDownloadEomCsv('NMUK','2026-09',jobs.map(job=>({job:{...job,price:10},amount:10,date:'2026-09-30'})));
+ const frozen=jobs.map(job=>({job:{...job,price:10},amount:10,date:'2026-09-30'}));
+ s.context.vectaActiveInvoices=()=>[{fleet_customer:'NMUK',fleet_month:'2026-09',fleet_job_snapshot:{version:1,rows:frozen},lines:[{amount:50,nmuk_monthly_extras:[]}]}];
+ s.context.fleetDownloadEomCsv('NMUK','2026-09',frozen);
  assert.equal((s.csv().match(/"MVOS","Workshop work"/g)||[]).length,2);
  assert.match(s.csv(),/"Internal","Workshop work"/);
  assert.match(s.csv(),/"Pool","Workshop work"/);
@@ -123,4 +126,10 @@ test('NMUK export keeps unrelated work without a registration on separate rows',
  const result=c.fleetNmukCsvVehicleRows([{job:{price:10},amount:10,date:'2026-09-01'},{job:{registration:'No vehicle',price:20},amount:20,date:'2026-09-02'}]);
  assert.equal(result.length,2);
  assert.equal(result[0][4],'10.00');assert.equal(result[1][4],'20.00');
+});
+
+test('saved export uses frozen job prices and descriptions after later job edits',()=>{
+ const s=setup({fleet_customer:'NMUK',fleet_month:'2026-09',lines:[{amount:10350,nmuk_monthly_extras:[]}]});
+ s.context.fleetDownloadEomCsv('NMUK','2026-09',[{job:{id:'1',price:99999},amount:99999,date:'2026-10-10'}]);
+ assert.match(s.csv(),/3040.00/);assert.match(s.csv(),/10350.00/);assert.doesNotMatch(s.csv(),/99999/);
 });

@@ -46,3 +46,13 @@ The uploaded report confirms one actual checkbox per setting, Sellout=true, VAT=
 Captured one-tyre results using these draft rules: 205/55R16 = Comforser £62, Lassa £74, Pirelli £95; 225/45R17 = Massimo £65, Kumho £82, Pirelli £105. Four 205/55R16 tyres instead choose the £101 Pirelli because the £95 line has only one unit. All amounts are unchanged Sellout values.
 
 There are now 40 targeted tests, plus a dedicated read-only CI workflow. Website transport, booking persistence and public enablement are still not implemented. The interactive review artifact uses captured data, explicitly marked as a snapshot, and cannot book/order tyres.
+
+## Booking cards integration (review branch)
+
+The existing booking tyre section now uses a transparent photographic tyre in charcoal, red-outlined Budget/Mid-range/Premium cards. It has a debounced size lookup, one shared quantity (1–4), per-tyre and total guide prices, loading/unavailable states, stale-response rejection, a five-minute expiry and preserved NEVOS restrictions. The selected size, range, quantity and available guide are included in the existing booking work notes; they do not alter invoice totals or create supplier orders.
+
+`POST /api/availability?tyres=1` validates customer input and forwards privately to `TYRE_WORKER_URL` (`https`, `/quote`) using `TYRE_WORKER_TOKEN` (at least 32 characters). The worker contract is `{status:'MATCHED',size,checkedAt,catalogue,settings}` using the normalised Sellout catalogue. The public route recomputes the three options and never returns trade Cost or supplier settings. Missing configuration, expired data or supplier errors return an unavailable state. There is **no live worker relay configured or `/quote` server enabled** in this branch. The long-running supplier runtime, refresh-completion handling for identical-result searches, brand-rule review, warehouse fulfilment confirmation and end-to-end live deployment remain outstanding.
+
+The transparent image is `public/assets/tyre-guide-cutout.webp`, encoded from the user-approved built-in imagegen cutout. Final generation prompt: “Standalone upright three-quarter black tyre product photograph, tread on the left and central opening on the right, realistic rubber texture and studio lighting, transparent background, no text or branding.” It is generic illustrative artwork, not a photograph of a quoted model.
+
+`node scripts/build-tyre-review-preview.mjs /absolute/output.html` produces a self-contained design preview from the actual booking card functions, styles, asset and captured catalogue. Its sample prices are visibly labelled as a snapshot; that preview and its mock transport are never copied into the deployed website.

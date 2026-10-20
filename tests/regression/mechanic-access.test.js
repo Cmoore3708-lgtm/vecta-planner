@@ -63,3 +63,13 @@ test('the replacement interface and limited API have been removed',()=>{
  assert.doesNotMatch(fs.readFileSync('api/supabase-config.js','utf8'),/createMechanicHandler/);
  assert.doesNotMatch(fs.readFileSync('vercel.json','utf8'),/\/api\/mechanic/);
 });
+
+test('mechanics HTML is rewritten to the dedicated recovered entry and cannot load Main chunks',()=>env('production',async()=>{
+ const headers={authorization:basic(credentials)};
+ for(const path of ['/','/index.html','/invoices']){
+  const result=await middleware(new Request('https://vecta-mechanic-dashboard.vercel.app'+path,{headers}));
+  assert.equal(new URL(result.headers.get('x-middleware-rewrite')).pathname,'/mechanic.html');
+ }
+ assert.equal((await middleware(new Request('https://vecta-mechanic-dashboard.vercel.app/assets/vecta-inline-06-main.js',{headers}))).status,403);
+ assert.equal((await middleware(new Request('https://vecta-mechanic-dashboard.vercel.app/assets/vecta-inline-mechanic-06-app.js',{headers}))).status,200);
+}));

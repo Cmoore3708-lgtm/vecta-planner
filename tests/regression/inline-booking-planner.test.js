@@ -27,9 +27,31 @@ test('the main dashboard calendar retains its existing modal and confirmation',(
 });
 
 
-test('the day planner starts visible and can be hidden without changing the date',()=>{
+test('the day planner stays visible without a redundant hide control',()=>{
  const {document,window}=setup(),field=document.getElementById('job_booking_date'),preview=document.querySelector('.bookingAvailabilityWorkspace');
  field.onclick({preventDefault(){}});assert.ok(preview.querySelector('.bookingInlinePlanner'));
  preview.querySelector('[data-v243-calendar-day="2026-10-19"]').dispatchEvent(new window.Event('click',{bubbles:true}));assert.ok(preview.classList.contains('hasDayPlanner'));
- preview.querySelector('[data-hide-day-planner]').dispatchEvent(new window.Event('click',{bubbles:true}));assert.equal(preview.querySelector('.bookingInlinePlanner'),null);assert.equal(preview.classList.contains('hasDayPlanner'),false);assert.equal(field.value,'2026-10-19');
+ assert.equal(preview.querySelector('[data-hide-day-planner]'),null);assert.ok(preview.querySelector('.bookingInlinePlanner'));assert.equal(preview.classList.contains('hasDayPlanner'),true);assert.equal(field.value,'2026-10-19');
 });
+
+test('inline booking dates omit earlier days and continue into next month',()=>{
+ const {document,window}=setup(),preview=document.querySelector('.bookingAvailabilityWorkspace');
+ preview.querySelector('[data-v243-calendar-day="2026-10-20"]').dispatchEvent(new window.Event('click',{bubbles:true}));
+ const days=Array.from(preview.querySelectorAll('[data-v243-calendar-day]')).map(el=>el.dataset.v243CalendarDay);
+ assert.equal(days[0],'2026-10-20');assert.ok(days.includes('2026-11-02'));
+ assert.equal(preview.querySelector('[data-v243-calendar-day="2026-10-19"]'),null);
+ preview.querySelector('[data-v243-calendar-day="2026-11-02"]').dispatchEvent(new window.Event('click',{bubbles:true}));
+ assert.equal(document.getElementById('job_booking_date').value,'2026-11-02');
+ preview.querySelector('[data-v243-prev-month]').dispatchEvent(new window.Event('click',{bubbles:true}));
+ assert.ok(preview.querySelector('[data-v243-calendar-day="2026-10-01"]'));
+});
+
+test('rolling dates cross year and leap-month boundaries correctly',()=>{
+ const {document,window}=setup(),field=document.getElementById('job_booking_date'),preview=document.querySelector('.bookingAvailabilityWorkspace');
+ for(const [start,next] of [['2026-12-29','2027-01-04'],['2028-02-28','2028-03-01']]){
+  field.value=start;field.dispatchEvent(new window.Event('change'));
+  assert.ok(preview.querySelector('[data-v243-calendar-day="'+next+'"]'));
+ }
+ assert.ok(preview.querySelector('[data-v243-calendar-day="2028-02-29"]'));
+});
+

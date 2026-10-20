@@ -8,21 +8,32 @@ import traverseModule from '@babel/traverse';
 const traverse=traverseModule.default||traverseModule;
 const source=readFileSync(new URL('../../public/js/haynes-job-tools.js',import.meta.url),'utf8');
 const vehicle={registration:'FX69XWU',make:'Nissan',model:'Qashqai',variant:'1.7 dCi',typeId:'t_301000368',imageUrl:'https://www.haynespro-assets.com/workshop/images/123.svg',fetchedAt:new Date().toISOString()};
-function setup(fetcher,artwork,identities,explicitLookup=true){const {window,document}=parseHTML('<html><body><div id="modal"><div class="jobModalHead"><h2>Edit Job</h2><div class="jobModalHeadActions"><button>Close</button></div></div><section class="jobVehicleSection"><input id="job_registration" value="FX69 XWU"><input id="job_make" value="Nissan"><input type="checkbox" id="job_no_vehicle"></section><div class="jobCardSections"><section class="jobWorkSection"></section><section class="jobPreviousWorkSection"></section><section class="jobContactSection"></section><section class="jobBookingSection"><div class="bookingAvailabilityWorkspace"></div></section><section class="jobFormSection"><div class="jobPartsEditor"></div></section><section class="privatePricingSection"></section></div><button id="save">Save</button></div></body></html>');delete window.VectaVehicleImage;delete window.app;delete window.fleetVehicles;window.fetch=fetcher;if(identities)window.localStorage={getItem:key=>key==='vecta_haynes_vehicle_identity_v1'?JSON.stringify(identities):null,setItem(){}};window.VectaFleetImages={artwork};vm.runInNewContext(source,{window,document,AbortController,AbortSignal,setTimeout,clearTimeout,encodeURIComponent});window.initHaynesJobTools(document.querySelector('#modal'));if(explicitLookup)document.querySelector('.haynesJobTools button').onclick();return {window,document,panel:document.querySelector('.haynesJobTools')};}
+function setup(fetcher,artwork,identities,explicitLookup=true,extraFields='',mechanic=false){const {window,document}=parseHTML('<html><body><div id="modal"><div class="jobModalHead"><h2>Edit Job</h2><div class="jobModalHeadActions"><button data-close-modal>Close</button><button id="printJobCard" class="jobPrintSmall">Print Job Card</button></div></div><section class="jobVehicleSection"><input id="job_registration" value="FX69 XWU"><input id="job_make" value="Nissan"><input type="checkbox" id="job_no_vehicle">'+extraFields+'</section><div class="jobCardSections"><section class="jobWorkSection"></section><section class="jobPreviousWorkSection"></section><section class="jobContactSection"></section><section class="jobBookingSection"><div class="bookingAvailabilityWorkspace"></div></section><section class="jobFormSection"><div class="jobPartsEditor"></div></section><section class="privatePricingSection"></section></div><div class="modalFoot"><button id="deleteJob">Delete Job</button><button id="save">Save</button></div></div></body></html>');const card=document.createElement('div');card.className='jobModalCard';card.append(...document.querySelector('#modal').children);document.querySelector('#modal').append(card);window.VECTA_MECHANIC_DEPLOYMENT=mechanic;delete window.VectaVehicleImage;delete window.app;delete window.fleetVehicles;window.fetch=fetcher;if(identities)window.localStorage={getItem:key=>key==='vecta_haynes_vehicle_identity_v1'?JSON.stringify(identities):null,setItem(){}};window.VectaFleetImages={artwork};vm.runInNewContext(source,{window,document,AbortController,AbortSignal,setTimeout,clearTimeout,encodeURIComponent});window.initHaynesJobTools(document.querySelector('#modal'));if(explicitLookup)document.querySelector('.jobHeaderHaynesLookup').onclick();return {window,document,panel:document.querySelector('.haynesJobTools')};}
+const lookupButton=panel=>panel.ownerDocument.querySelector('.jobHeaderHaynesLookup');
+
 const response=v=>({ok:true,json:async()=>({status:'MATCHED',vehicle:v})});
 test('vehicle details sit below the single editable header registration',async()=>{
  const {window,document}=setup(async()=>response(vehicle));
  await new Promise(r=>setImmediate(r));
  const heading=document.querySelector('.jobCardHeaderHeading'),input=document.querySelector('#job_registration');
  assert.equal(document.querySelectorAll('#job_registration').length,1);
+ assert.equal(document.querySelector('.jobModalHead [data-close-modal]'),null);
+ assert.equal(document.querySelector('#deleteJob').nextElementSibling,document.querySelector('#printJobCard'));
+ assert.equal(document.querySelector('#printJobCard').closest('.modalFoot')!==null,true);
+ assert.equal(document.querySelector('.jobHeaderHaynesRow').previousElementSibling,document.querySelector('.jobCardHeaderModel'));
+ assert.equal(document.querySelector('.jobModalHeadActions').parentElement,heading.parentElement);
+ assert.equal(heading.parentElement.firstElementChild,document.querySelector('.jobCardTopActions'));
+ assert.equal(document.querySelector('#job_no_vehicle').hidden,true);
+ assert.equal(document.querySelector('.jobHeaderHaynesLookup').parentElement,document.querySelector('.jobHeaderHaynesRow'));
  assert.equal(input.closest('.jobCardHeaderRegistration').parentElement,heading);
  assert.equal(document.querySelector('.jobCardHeaderDetails .jobVehicleSection').closest('.jobModalHead'),heading.parentElement);
  assert.ok(heading.parentElement.classList.contains('jobCardPinnedHeader'));
  assert.equal(heading.querySelector('.jobCardHeaderModel').textContent,'Nissan Qashqai');
  assert.equal(heading.querySelector('.jobCardHeaderRegistration').nextElementSibling,heading.querySelector('.jobCardHeaderModel'));
  assert.equal(document.querySelector('.jobVehicleSection #job_registration'),null);
- assert.deepEqual(Array.from(document.querySelector('.jobCardMainColumn').children).map(el=>el.className),['jobWorkSection','jobFormSection','privatePricingSection','jobPreviousWorkSection']);
- assert.deepEqual(Array.from(document.querySelector('.jobCardSupportColumn').children).map(el=>el.className),['bookingAvailabilityWorkspace']);
+ assert.deepEqual(Array.from(document.querySelector('.jobCardMainColumn').children).map(el=>el.className),['jobWorkSection','jobFormSection','privatePricingSection']);
+ assert.deepEqual(Array.from(document.querySelector('.jobCardSupportColumn').children).map(el=>el.className),['jobPreviousWorkSection jobPreviousWorkAlongside','bookingAvailabilityWorkspace']);
+ assert.equal(document.querySelector('.jobCardSupportColumn').firstElementChild,document.querySelector('.jobPreviousWorkAlongside'));
  assert.equal(document.querySelectorAll('.jobContactSection').length,1);
  assert.equal(document.querySelector('.jobContactSection').parentElement,document.querySelector('.jobCardHeaderDetails'));
  assert.equal(document.querySelector('.privatePricingSection').previousElementSibling.querySelector('.jobPartsEditor')!==null,true);
@@ -30,6 +41,7 @@ test('vehicle details sit below the single editable header registration',async()
  input.value='AB12 XYZ';input.dispatchEvent(new window.Event('input'));
  assert.equal(document.querySelector('#job_registration'),input);
  assert.equal(input.value,'AB12 XYZ');
+ input.value='';input.dispatchEvent(new window.Event('input'));assert.equal(document.querySelector('#job_no_vehicle').hidden,false);input.value='AB12 XYZ';input.dispatchEvent(new window.Event('input'));assert.equal(document.querySelector('#job_no_vehicle').hidden,true);
  document.querySelector('#job_no_vehicle').checked=true;
  document.querySelector('#job_no_vehicle').dispatchEvent(new window.Event('change'));
  assert.equal(input.closest('.jobCardHeaderRegistration').hidden,true);
@@ -119,7 +131,7 @@ test('unconfigured preview reports the actual lookup issue instead of silently s
  const {panel}=setup(async()=>({ok:true,json:async()=>({status:'NOT_CONFIGURED'})}));await new Promise(r=>setImmediate(r));assert.match(panel.textContent,/not configured for this preview/);assert.equal(panel.querySelector('img'),null);
 });
 test('confirmed vehicle opens a fixed supplier URL, hides broken images and leaves save intact',async()=>{
- const {document,panel}=setup(async()=>response(vehicle));await panel.querySelector('button').onclick();
+ const {document,panel}=setup(async()=>response(vehicle));await lookupButton(panel).onclick();
  const link=panel.querySelector('a');assert.equal(link.href,'https://www.workshopdata.com/touch/site/layout/modelDetail?typeId=t_301000368');assert.equal(link.target,'_blank');assert.equal(link.rel,'noopener noreferrer');
  assert.match(panel.textContent,/Nissan Qashqai/);panel.querySelector('img').onerror();assert.equal(panel.querySelector('img'),null);assert.equal(document.querySelector('#save').textContent,'Save');
 });
@@ -136,14 +148,14 @@ test('snapshot cache drops unsafe fields, rejects stale results and survives sto
  const {window}=setup(async()=>response(vehicle));window.localStorage={setItem(){throw Error('full');}};const tools=window.VectaHaynesJobTools;assert.ok(tools.remember({...vehicle,vin:'private',cookie:'secret'}));assert.equal(tools.snapshot(vehicle.registration).vin,undefined);assert.equal(tools.snapshot(vehicle.registration).cookie,undefined);assert.equal(tools.remember({...vehicle,registration:'OTHER',fetchedAt:'2020-01-01T00:00:00Z'}),undefined);assert.equal(tools.snapshot('OTHER'),null);
 });
 test('wrong registration, conflicting make and invalid vehicle ID cannot expose technical links',async()=>{
- for(const wrong of [{...vehicle,registration:'OTHER'},{...vehicle,make:'Ford'},{...vehicle,typeId:'https://evil.test'}]){const {panel}=setup(async()=>response(wrong));await panel.querySelector('button').onclick();assert.equal(panel.querySelector('a'),null);assert.match(panel.textContent,/uncertain/);}
+ for(const wrong of [{...vehicle,registration:'OTHER'},{...vehicle,make:'Ford'},{...vehicle,typeId:'https://evil.test'}]){const {panel}=setup(async()=>response(wrong));await lookupButton(panel).onclick();assert.equal(panel.querySelector('a'),null);assert.match(panel.textContent,/uncertain/);}
 });
 test('late response cannot attach another vehicle to an edited or closed job',async()=>{
- let finish;const pending=new Promise(r=>finish=r),{document,window,panel}=setup(()=>pending);const running=panel.querySelector('button').onclick();const input=document.querySelector('#job_registration');input.value='OTHER';input.dispatchEvent(new window.Event('input'));finish(response(vehicle));await running;assert.equal(panel.querySelector('a'),null);
- let finish2;const second=setup(()=>new Promise(r=>finish2=r)),run2=second.panel.querySelector('button').onclick();second.panel.remove();finish2(response(vehicle));await run2;assert.equal(second.panel.querySelector('a'),null);
+ let finish;const pending=new Promise(r=>finish=r),{document,window,panel}=setup(()=>pending);const running=lookupButton(panel).onclick();const input=document.querySelector('#job_registration');input.value='OTHER';input.dispatchEvent(new window.Event('input'));finish(response(vehicle));await running;assert.equal(panel.querySelector('a'),null);
+ let finish2;const second=setup(()=>new Promise(r=>finish2=r)),run2=lookupButton(second.panel).onclick();second.panel.remove();finish2(response(vehicle));await run2;assert.equal(second.panel.querySelector('a'),null);
 });
 test('no-vehicle jobs and unsafe images fail closed; unavailable lookup never changes vehicle fields',async()=>{
- const {document,window,panel}=setup(async()=>{throw Error('offline');});await panel.querySelector('button').onclick();assert.match(panel.textContent,/still save/);assert.equal(document.querySelector('#job_registration').value,'FX69 XWU');const toggle=document.querySelector('#job_no_vehicle');toggle.checked=true;toggle.dispatchEvent(new window.Event('change'));assert.equal(panel.querySelector('button').disabled,true);assert.equal(window.VectaHaynesJobTools.safeImage('https://evil.test/car.png'),'');
+ const {document,window,panel}=setup(async()=>{throw Error('offline');});await lookupButton(panel).onclick();assert.match(panel.textContent,/still save/);assert.equal(document.querySelector('#job_registration').value,'FX69 XWU');const toggle=document.querySelector('#job_no_vehicle');toggle.checked=true;toggle.dispatchEvent(new window.Event('change'));assert.equal(lookupButton(panel).disabled,true);assert.equal(window.VectaHaynesJobTools.safeImage('https://evil.test/car.png'),'');
 });
 
 test('planner reuses saved vehicles beyond the twelfth card without lookups across rerenders',async()=>{
@@ -306,10 +318,39 @@ test('typing a registration never submits a decorative lookup; the explicit butt
  const input=s.document.querySelector('#job_registration');input.value='WGZ73';input.dispatchEvent(new s.window.Event('input'));
  await new Promise(r=>setTimeout(r,800));assert.equal(calls.length,0);
  input.value='WGZ7396';input.dispatchEvent(new s.window.Event('input'));
- await new Promise(r=>setTimeout(r,800));assert.equal(calls.length,0);await s.panel.querySelector('button').onclick();assert.equal(calls.length,1);assert.match(calls[0],/reg=WGZ7396/);
+ await new Promise(r=>setTimeout(r,800));assert.equal(calls.length,0);await lookupButton(s.panel).onclick();assert.equal(calls.length,1);assert.match(calls[0],/reg=WGZ7396/);
 });
 
 test('opening and editing a job never starts a decorative lookup when no image is cached',async()=>{
  let calls=0;const s=setup(async()=>{calls++;return response(vehicle);},undefined,undefined,false);await new Promise(r=>setImmediate(r));assert.equal(calls,0);
  const input=s.document.querySelector('#job_registration');input.value='J321 WPC';input.dispatchEvent(new s.window.Event('change'));await new Promise(r=>setTimeout(r,800));assert.equal(calls,0);
 });
+
+test('mechanics place editable contacts left of the dedicated large artwork and retain hidden pricing inputs',()=>{
+ const {document}=setup(async()=>response(vehicle),undefined,undefined,false,'',true);
+ assert.ok(document.querySelector('.jobModalCard').classList.contains('mechanicJobCard'));
+ assert.equal(document.querySelector('.jobContactSection').parentElement,document.querySelector('.jobCardHeaderDetails'));
+ assert.equal(document.querySelector('.jobCardHeaderVehicle').parentElement,document.querySelector('.jobModalHead'));
+ assert.equal(document.querySelector('.haynesJobTools').parentElement,document.querySelector('.jobModalHead'));
+ assert.ok(document.querySelector('.privatePricingSection'),'retained for the existing gather/save pipeline');
+ assert.ok(document.querySelector('.jobWorkSection'));
+});
+test('compact vehicle facts preserve the hidden vehicle and mileage across due-date refreshes',()=>{
+ const {document}=setup(async()=>response(vehicle),undefined,undefined,false,'<div class="field"><label>Vehicle</label><input id="job_vehicle" value="Qashqai"></div><div class="field"><label>Last MOT mileage</label><input id="job_mileage" value="60210"></div><div id="jobVehicleDuePanel"><div>MOT</div></div>');
+ assert.equal(document.querySelector('#job_vehicle').closest('.field').hidden,true);
+ assert.equal(document.querySelector('#job_vehicle').value,'Qashqai');
+ const due=document.querySelector('#jobVehicleDuePanel'),mileage=document.querySelector('#job_mileage');
+ assert.equal(due.nextElementSibling,mileage.closest('.field'));
+ due.innerHTML='<div>Refreshed MOT</div>';
+ assert.equal(mileage.value,'60210');assert.equal(mileage.isConnected,true);
+
+});
+
+
+test('current odometer input sits beside last MOT mileage, stays empty for old MOT mileage and restores confirmed mileage',()=>{
+ const old=setup(async()=>response(vehicle),undefined,undefined,false,'<input type="hidden" id="job_customer_note" value=""><div class="field"><label>Last MOT Mileage</label><input id="job_mileage" value="50000"></div>');
+ const input=old.document.querySelector('#job_current_mileage');assert.ok(input);assert.equal(input.value,'');assert.equal(input.placeholder,'');assert.equal(input.closest('.jobCurrentMileageField').previousElementSibling,old.document.querySelector('#job_mileage').closest('.field'));assert.equal(input.closest('.jobVehicleQuickFacts').parentElement,old.document.querySelector('.jobModalHead'));assert.equal(old.document.querySelector('#job_mileage').value,'50000');
+ const saved=setup(async()=>response(vehicle),undefined,undefined,false,'<input type="hidden" id="job_customer_note" value="[[VECTA_CURRENT_MILEAGE:54321]]">');assert.equal(saved.document.querySelector('#job_current_mileage').value,'54321');
+ const unknown=setup(async()=>response(vehicle),undefined,undefined,false,'<input type="hidden" id="job_customer_note" value="[[VECTA_CURRENT_MILEAGE_UNKNOWN]]">');const field=unknown.document.querySelector('#job_current_mileage');assert.equal(field.dataset.mileageUnknown,'true');assert.equal(field.placeholder,'Mileage unknown');field.value='61234';field.dispatchEvent(new unknown.window.Event('input'));assert.equal(field.dataset.mileageUnknown,undefined);
+});
+

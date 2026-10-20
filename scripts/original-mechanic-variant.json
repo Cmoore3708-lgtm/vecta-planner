@@ -1,0 +1,7 @@
+{
+  "sourceDeployment": "dpl_AR2goceeCEXR1iVxp4XBdDfWApC8",
+  "sourceBuild": "Original mechanics history only; planner and responsive styles always come from current Main",
+  "recovered": {
+    "mechanicCompletedJobsHtml": "function mechanicCompletedJobsHtml(){\n  var query=String(jobsSearchQuery||'').toLowerCase();\n  var rows=(app.jobs||[]).filter(function(j){return !vectaJobIsDeletedForLists(j)&&(j.status==='work_complete'||j.status==='completed'||j.archived)}).sort(function(a,b){return String(b.completed_at||b.updated_at||b.booking_date||'').localeCompare(String(a.completed_at||a.updated_at||a.booking_date||''))});\n  if(query)rows=rows.filter(function(j){return [j.registration,j.vehicle,j.customer_name,j.customer_account,j.work_required,j.job_type,j.technician,j.completed_at,j.booking_date].join(' ').toLowerCase().indexOf(query)>-1});\n  return '<div class=\"jobsPageHead\"><div><h2>Completed Jobs</h2><p class=\"muted\" style=\"margin:4px 0 0\">'+rows.length+' completed job'+(rows.length===1?'':'s')+' \u00b7 newest first</p></div></div><div class=\"listToolbar\"><input class=\"search\" id=\"jobSearch\" value=\"'+esc(jobsSearchQuery||'')+'\" placeholder=\"Search registration, vehicle, customer or work\"></div><div id=\"jobList\">'+jobRows(rows)+'</div>';\n}"
+  }
+}

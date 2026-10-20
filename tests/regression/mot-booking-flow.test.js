@@ -14,7 +14,7 @@ test('advisories repeat at appointment choice with the question only on step 3',
 });
 test('selecting MOT allocates Chris but removing MOT preserves the current mechanic',()=>{
  const html=fs.readFileSync('index.html','utf8'),tech={value:'Alfie',options:[{value:'Alfie'},{value:'Chris'}]},type={value:'General'};
- const ctx={document:{getElementById:id=>id==='job_technician'?tech:type,querySelectorAll:()=>[]},templateDataForType:()=>({}),jobTypeValues:x=>x.split(','),normaliseJobTypeKey:x=>x.toLowerCase(),jobTypeStorageValue:x=>x.join(','),updateMotTimeField:()=>{throw new Error('stop after allocation')}};vm.createContext(ctx);vm.runInContext(fn(html,'applyTemplate'),ctx);
+ const ctx={document:{getElementById:id=>id==='job_technician'?tech:id==='job_job_type'?type:null,querySelectorAll:()=>[]},templateDataForType:()=>({}),jobTypeValues:x=>x.split(','),normaliseJobTypeKey:x=>x.toLowerCase(),jobTypeStorageValue:x=>x.join(','),updateMotTimeField:()=>{throw new Error('stop after allocation')}};vm.createContext(ctx);vm.runInContext(fn(html,'applyTemplate'),ctx);
  assert.throws(()=>ctx.applyTemplate('MOT'),/stop/);assert.equal(tech.value,'Chris');
  type.value='MOT,Service';tech.value='Alfie';assert.throws(()=>ctx.applyTemplate('MOT'),/stop/);assert.equal(tech.value,'Alfie');
 });

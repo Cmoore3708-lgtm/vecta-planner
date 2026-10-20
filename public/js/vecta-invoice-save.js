@@ -1,6 +1,6 @@
 (function(root){
  'use strict';
- const fields=['id','job_id','registration','amount','invoice_date','status','customer_name','customer_phone','vehicle','lines','subtotal','vat','total','customer_address','eom_month','fleet_customer','fleet_job_ids','fleet_month','mileage','mot_due','payment_method','source'];
+ const fields=['id','job_id','registration','amount','invoice_date','status','customer_name','customer_phone','vehicle','lines','subtotal','vat','total','customer_address','eom_month','fleet_customer','fleet_job_ids','fleet_job_snapshot','fleet_month','mileage','mot_due','payment_method','source'];
  function canonical(value){
   if(Array.isArray(value))return '['+value.map(canonical).join(',')+']';
   if(value&&typeof value==='object')return '{'+Object.keys(value).sort().map(k=>JSON.stringify(k)+':'+canonical(value[k])).join(',')+'}';
@@ -27,7 +27,7 @@
    if(result.error)throw result.error;
    const saved=result.data?.invoice;
    if(!saved||String(saved.id)!==String(payload.id)||!String(saved.invoice_number||'').trim()||String(saved.job_id||'')!==String(payload.job_id||'')||
-      ['subtotal','vat','total'].some(k=>saved[k]==null||!Number.isFinite(Number(saved[k]))||Math.abs(Number(saved[k])-payload[k])>=0.005)||canonical(saved.lines)!==canonical(payload.lines)){
+      ['subtotal','vat','total'].some(k=>saved[k]==null||!Number.isFinite(Number(saved[k]))||Math.abs(Number(saved[k])-payload[k])>=0.005)||canonical(saved.lines)!==canonical(payload.lines)||(payload.fleet_job_snapshot!==undefined&&canonical(saved.fleet_job_snapshot)!==canonical(payload.fleet_job_snapshot))){
     throw Error('The cloud invoice receipt did not match this invoice. Keep it open and check the saved record before retrying.');
    }
    return saved;

@@ -354,3 +354,271 @@
  #jobModal .jobModalHead.jobCardPinnedHeader>.jobCardHeaderHeading{flex-wrap:wrap!important;gap:4px 6px!important}
  #jobModal .jobCardHeaderModel{flex-basis:100%;font-size:18px}
 }
+
+/* Compact identity row and a workspace that fits the available desktop height. */
+@media screen{
+ #jobModal .jobModalHead.jobCardPinnedHeader{grid-template-rows:auto minmax(0,1fr)!important;gap:5px 12px!important}
+ #jobModal .jobModalHead.jobCardPinnedHeader>.jobCardHeaderHeading{grid-column:1/-1!important;grid-row:1!important}
+ #jobModal .jobCardHeaderHeading>h2{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
+ #jobModal .jobCardHeaderHeading>.jobModalHeadActions{display:flex;flex:0 0 auto;align-items:center;flex-wrap:wrap;gap:5px;margin-left:auto}
+ #jobModal .jobModalHead.jobCardPinnedHeader>.jobCardHeaderDetails{grid-column:1!important;grid-row:2!important}
+ #jobModal .jobModalHead.jobCardPinnedHeader>.jobCardHeaderVehicle{grid-column:2!important;grid-row:2!important}
+ #jobModal .jobCardHeaderDetails .field[hidden]{display:none!important}
+ #jobModal .jobCardHeaderDetails .jobVehicleSection .jobSectionGrid{display:flex!important;flex-wrap:wrap;align-items:center;gap:4px 8px!important}
+ #jobModal .jobCardHeaderDetails .noVehicleToggle{order:2;flex:0 0 auto}
+ #jobModal .jobVehicleQuickFacts{display:flex;align-items:center;gap:6px;min-width:0;flex:1 1 auto}
+ #jobModal .jobVehicleQuickFacts .jobVehicleDuePanel{display:flex;flex:0 1 260px;flex-wrap:wrap;min-width:0;margin:0!important;box-sizing:border-box}
+ #jobModal .jobVehicleQuickFacts .jobVehicleDuePanel[hidden]{display:none}
+ #jobModal .jobVehicleQuickFacts .jobVehicleDueItem{flex:1 1 100px;min-width:0;box-sizing:border-box}
+ #jobModal .jobVehicleQuickFacts>.field{flex:0 0 112px;align-self:center}
+ #jobModal .jobCardHeaderDetails .dvsaLookupStatus:empty{display:none}
+ #jobModal .jobCardHeaderVehicle>img,#jobModal .jobCardHeaderVehicle>svg{object-position:right center!important}
+}
+@media screen and (min-width:1050px){
+ #jobModal .jobModalHead.jobCardPinnedHeader{flex-basis:24%!important;height:24%!important;max-height:30%!important;padding:8px 14px!important}
+ #jobModal .jobModalCard>.jobModalBody{display:flex;flex-direction:column;overflow:hidden!important;padding:6px 12px!important}
+ #jobModal .jobModalBody>.jobTypeSelectHelp,#jobModal .jobModalBody>.templateBtns{flex:0 0 auto}
+ #jobModal .templateBtns{gap:3px!important;margin-bottom:5px!important}
+ #jobModal .templateBtns button{padding:3px 6px!important;font-size:11px!important}
+ #jobModal .jobCardSections{flex:1 1 0;min-height:0;grid-template-rows:auto minmax(0,1fr);align-items:stretch!important;gap:6px!important}
+ #jobModal .jobCardSections>.jobCardMainColumn,#jobModal .jobCardSections>.jobCardSupportColumn{min-height:0;height:100%;gap:5px!important;overflow:auto}
+ #jobModal .jobCardSupportColumn .bookingAvailabilityWorkspace.hasDayPlanner{height:100%!important;min-height:0;grid-template-columns:minmax(165px,200px) minmax(0,1fr)!important;gap:6px}
+ #jobModal .jobCardSupportColumn .bookingInlinePlanner{height:auto!important;contain:size!important}
+ #jobModal .jobCardMainColumn>.jobFormSection{flex:0 0 auto}
+ #jobModal .jobWorkSection #job_work_required{height:64px!important;min-height:54px!important;resize:vertical}
+ #jobModal .jobCardMainColumn .jobFormSectionHead{margin-bottom:4px!important;padding:3px 6px!important}
+ #jobModal .jobCardMainColumn .jobFormSection{padding:6px!important}
+ #jobModal .jobCardMainColumn .jobPreviousWorkSection{padding:5px 8px!important}
+ #jobModal .jobCardMainColumn .jobPreviousWorkHead{margin-bottom:2px}
+ #jobModal .jobCardMainColumn .jobPreviousWorkBody{max-height:65px;overflow:auto}
+ #jobModal .jobPartsEditor{max-height:130px;overflow:auto}
+ #jobModal .privatePricingRows{max-height:100px;overflow:auto}
+ #jobModal .jobBookingSection>.jobSectionGrid{grid-template-columns:repeat(8,minmax(0,1fr))!important}
+ #jobModal .jobBookingSection .field input,#jobModal .jobBookingSection .field select{height:28px!important;min-height:28px!important;padding:3px 5px!important}
+ #jobModal .jobBookingSection .jobFormSectionHead{margin-bottom:5px!important;padding:3px 6px!important}
+ #jobModal .bookingMonthPreview .v243CalendarDay{min-height:30px;padding:3px!important}
+}
+@media screen and (max-width:1049px){
+ #jobModal .jobCardHeaderHeading>.jobModalHeadActions{flex-wrap:wrap!important;margin-left:0}
+ #jobModal .jobModalHead.jobCardPinnedHeader>.jobCardHeaderHeading{flex-wrap:wrap!important}
+ #jobModal .jobCardHeaderModel{flex:1 1 140px}
+ #jobModal .jobVehicleQuickFacts{flex-wrap:wrap}
+ #jobModal .jobModalHead.jobCardPinnedHeader{overflow:auto!important}
+}
+@media screen and (min-width:1050px){
+ #jobModal .jobModalHead.jobCardPinnedHeader{flex-basis:27%!important;height:27%!important}
+ #jobModal .jobCardHeaderDetails .jobVehicleDueItem>span{white-space:nowrap;letter-spacing:0!important;font-size:10px!important}
+ #jobModal .jobVehicleQuickFacts>.field label{white-space:nowrap}
+ #jobModal .jobVehicleQuickFacts .jobVehicleDuePanel{flex-basis:260px;padding:0!important;border:0!important;background:transparent!important}
+ #jobModal .jobCardMainColumn .privatePricingRow input{height:28px!important;min-height:28px!important;padding:3px 5px!important}
+ #jobModal .jobCardMainColumn .privatePricingActions{margin-top:4px!important;padding:0!important;gap:4px!important}
+ #jobModal .jobCardMainColumn .privatePricingRows{padding:0!important}
+ #jobModal .jobCardMainColumn .jobPartsEditor{margin-top:0!important}
+ #jobModal .jobCardMainColumn .jobPreviousWorkBody{font-size:11px!important}
+ #jobModal .jobCardMainColumn .jobPreviousWorkHead{font-size:10px!important}
+}
+@media screen and (max-width:700px){
+ #jobModal .jobCardHeaderHeading>.jobModalHeadActions{max-width:100%;gap:3px!important}
+ #jobModal .jobCardHeaderHeading>.jobModalHeadActions>button{padding:4px!important;font-size:10px!important}
+}
+@media screen and (min-width:1050px){
+ #jobModal .jobModalHead.jobCardPinnedHeader{flex-basis:25%!important;height:25%!important}
+ #jobModal .jobCardHeaderDetails .jobContactSection .jobSectionGrid{grid-template-columns:repeat(5,minmax(0,1fr))!important}
+ #jobModal .jobCardMainColumn .jobSectionNumber,#jobModal .jobBookingSection .jobSectionNumber{width:16px!important;height:16px!important;min-width:16px!important;font-size:10px!important}
+ #jobModal .jobCardMainColumn .jobFormSectionHead,#jobModal .jobBookingSection .jobFormSectionHead{padding:2px 6px!important}
+ #jobModal .jobCardMainColumn .jobFormSectionHead h3{line-height:1.15!important}
+ #jobModal .jobCardMainColumn .btn,#jobModal .jobCardMainColumn button{min-height:24px!important;height:26px;padding:3px 6px!important;font-size:11px!important}
+ #jobModal .jobCardMainColumn .privatePricingTotal{padding:3px 6px!important;min-height:0!important}
+ #jobModal .jobCardMainColumn .privatePricingTotal strong{font-size:16px!important}
+ #jobModal .jobWorkSection #job_work_required{height:clamp(42px,6dvh,64px)!important;min-height:42px!important}
+ #jobModal .jobCardMainColumn .jobPreviousWorkHead{line-height:1.1!important}
+ #jobModal .jobCardMainColumn .jobPreviousWorkBody{line-height:1.2!important}
+ #jobModal .jobCardMainColumn .jobPreviousWorkBody p{margin:2px 0 0!important}
+}
+@media screen and (min-width:1050px){
+ #jobModal .jobCardHeaderDetails .field label{font-size:9px!important;letter-spacing:0!important}
+ #jobModal .jobModalCard>.jobModalBody{gap:0!important}
+}
+@media screen and (min-width:1050px) and (max-height:760px){
+ #jobModal .jobModalHead.jobCardPinnedHeader{flex-basis:180px!important;height:144px!important}
+ #jobModal .jobModalCard>.jobModalBody{padding-top:4px!important;padding-bottom:4px!important}
+ #jobModal .jobTypeSelectHelp{margin-bottom:2px!important;line-height:12px}
+ #jobModal .jobTypeSelectHelp b{font-size:10px!important}
+ #jobModal .jobCardMainColumn{gap:3px!important}
+ #jobModal .jobCardMainColumn .jobPartsHint{font-size:9px!important}
+ #jobModal .jobBookingSection{padding:6px!important}
+ #jobModal .modalFoot{padding-top:5px!important;padding-bottom:5px!important}
+ #jobModal .modalFoot>button{padding:6px 9px!important;font-size:12px!important}
+}
+@media screen and (min-width:1050px){
+ #jobModal .jobCardHeaderModel{flex:0 1 auto}
+ #jobModal .jobCardHeaderHeading>.jobModalHeadActions{margin-left:0;flex:1 1 auto;justify-content:flex-start}
+ #jobModal .jobCardSections{margin-top:3px!important}
+ #jobModal .jobCardHeaderDetails>.jobVehicleSection{padding-top:3px!important;padding-bottom:3px!important}
+ #jobModal .jobCardHeaderDetails>.jobContactSection{padding-top:4px!important;padding-bottom:4px!important}
+}
+
+/* Mechanics retain hidden values for safe saves, with contacts left and artwork right. */
+#jobModal .mechanicJobCard .jobTypeSelectHelp,
+#jobModal .mechanicJobCard .templateBtns,
+#jobModal .mechanicJobCard .jobBookingSection,
+#jobModal .mechanicJobCard .bookingAvailabilityWorkspace,
+#jobModal .mechanicJobCard .bookingCapacityLauncher,
+#jobModal .mechanicJobCard .privatePricingSection{display:none!important}
+#jobModal .mechanicJobCard .jobCardSections{grid-template-columns:minmax(0,1fr)!important}
+#jobModal .mechanicJobCard .jobWorkSection #job_work_required{width:100%;min-height:220px!important;height:220px;padding:14px!important;font-size:20px!important;line-height:1.5!important;resize:vertical}
+#jobModal .mechanicJobCard .jobModalHead.jobCardPinnedHeader{grid-template-columns:minmax(0,1fr) minmax(0,40%)!important;grid-template-rows:auto minmax(0,1fr)!important;overflow:hidden!important}
+#jobModal .mechanicJobCard .jobModalHead.jobCardPinnedHeader>.jobCardHeaderHeading{grid-column:1/-1!important;grid-row:1!important}
+#jobModal .mechanicJobCard .jobModalHead.jobCardPinnedHeader>.jobCardHeaderDetails{grid-column:1!important;grid-row:2!important}
+#jobModal .mechanicJobCard .jobModalHead.jobCardPinnedHeader>.jobCardHeaderVehicle{grid-column:2!important;grid-row:2!important;width:100%!important;height:100%!important;min-height:150px!important;max-height:none!important;align-self:stretch!important;overflow:hidden}
+#jobModal .mechanicJobCard .jobCardHeaderVehicle>img,#jobModal .mechanicJobCard .jobCardHeaderVehicle>svg{width:100%!important;height:100%!important;max-width:none!important;max-height:none!important;object-fit:contain!important;object-position:center!important}
+#jobModal .mechanicJobCard .jobModalHead>.haynesJobTools{display:none!important}
+#jobModal .mechanicJobCard .jobCardHeaderDetails>.jobContactSection{margin:0!important;min-width:0}
+#jobModal .mechanicJobCard .jobCardHeaderDetails>.jobContactSection .jobSectionGrid{grid-template-columns:repeat(2,minmax(0,1fr))!important}
+#jobModal .mechanicJobCard .v280MechanicComplete{margin-left:auto;min-width:140px;min-height:44px;font-size:17px!important}
+@media screen and (max-width:1049px){
+ #jobModal .mechanicJobCard .jobModalHead.jobCardPinnedHeader{flex:0 0 auto!important;height:clamp(260px,33dvh,360px)!important;max-height:45dvh!important}
+}
+@media screen and (max-width:700px){
+ #jobModal .mechanicJobCard .jobModalHead.jobCardPinnedHeader{grid-template-columns:minmax(0,1fr) minmax(0,38%)!important}
+ #jobModal .mechanicJobCard .jobCardHeaderDetails>.jobContactSection .jobSectionGrid{grid-template-columns:minmax(0,1fr)!important}
+ #jobModal .mechanicJobCard .jobModalHead.jobCardPinnedHeader>.jobCardHeaderVehicle{min-height:120px!important}
+ #jobModal .mechanicJobCard .jobWorkSection #job_work_required{font-size:18px!important;min-height:200px!important}
+}
+
+#jobModal .jobCurrentMileageField{flex:0 0 auto;padding:0!important;border:0;border-radius:0;background:transparent;margin:4px 0 0!important;box-sizing:border-box}
+#jobModal .jobCurrentMileageField label{display:none}
+#jobModal .jobCurrentMileageField input{width:100%;box-sizing:border-box;min-height:40px;font-size:18px!important;font-weight:700}
+#jobModal .jobCurrentMileageField[hidden]{display:none!important}
+
+
+/* Keep the parts controls together and use the full header height for artwork. */
+#jobModal .jobPartsActions{display:flex;align-items:center;flex-wrap:wrap;gap:6px;margin-top:4px}
+#jobModal .jobPartsActions>.field{display:flex;align-items:center;gap:5px;flex:0 1 230px;min-width:0;margin:0}
+#jobModal .jobPartsActions>.field label{white-space:nowrap;margin:0}
+#jobModal .jobPartsActions select{flex:1;min-width:0;min-height:28px;height:28px;padding:3px 5px}
+@media screen and (min-width:1050px){
+ #jobModal .jobModalHead.jobCardPinnedHeader>.jobCardHeaderHeading,
+ #jobModal .mechanicJobCard .jobModalHead.jobCardPinnedHeader>.jobCardHeaderHeading{grid-column:1!important}
+ #jobModal .jobModalHead.jobCardPinnedHeader>.jobCardHeaderVehicle,
+ #jobModal .mechanicJobCard .jobModalHead.jobCardPinnedHeader>.jobCardHeaderVehicle{grid-row:1/3!important;min-height:0!important;max-height:none!important;height:100%!important;align-self:stretch!important}
+ #jobModal .jobCardHeaderVehicle>img,#jobModal .jobCardHeaderVehicle>svg{width:100%!important;height:100%!important;max-width:none!important;max-height:none!important;object-fit:contain!important;object-position:right top!important}
+ #jobModal .jobCardHeaderHeading{flex-wrap:wrap!important}
+ #jobModal .jobBookingSection>.jobSectionGrid{grid-template-columns:repeat(7,minmax(0,1fr))!important}
+}
+
+/* Header facts span the card instead of competing with the vehicle image. */
+@media screen{
+ #jobModal .jobModalCard{width:calc(100vw - 24px)!important;max-width:none!important}
+ #jobModal .jobModalHead.jobCardPinnedHeader,
+ #jobModal.registrationBooking .jobModalHead.jobCardPinnedHeader,
+ #jobModal .mechanicJobCard .jobModalHead.jobCardPinnedHeader{grid-template-columns:minmax(0,1fr) minmax(0,45.6%)!important;grid-template-rows:auto auto auto!important;flex:0 0 auto!important;height:auto!important;max-height:none!important;overflow:visible!important;align-items:start!important}
+ #jobModal .jobModalHead.jobCardPinnedHeader>.jobCardHeaderHeading,#jobModal .mechanicJobCard .jobModalHead.jobCardPinnedHeader>.jobCardHeaderHeading{grid-column:1!important;grid-row:1!important}
+ #jobModal .jobModalHead.jobCardPinnedHeader>.jobCardHeaderDetails,#jobModal .mechanicJobCard .jobModalHead.jobCardPinnedHeader>.jobCardHeaderDetails{grid-column:1!important;grid-row:2!important}
+ #jobModal .jobModalHead.jobCardPinnedHeader>.jobCardHeaderVehicle,#jobModal .mechanicJobCard .jobModalHead.jobCardPinnedHeader>.jobCardHeaderVehicle{grid-column:2!important;grid-row:1/3!important;height:216px!important;min-height:0!important;max-height:none!important;align-self:start!important}
+ #jobModal .jobModalHead.jobCardPinnedHeader>.jobVehicleQuickFacts{grid-column:1/-1;grid-row:3;display:grid!important;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;width:100%;min-width:0;align-items:stretch}
+ #jobModal .jobVehicleQuickFacts .jobVehicleDuePanel{display:contents!important}
+ #jobModal .jobVehicleQuickFacts .jobVehicleDuePanel[hidden]{display:none!important}
+ #jobModal .jobVehicleQuickFacts .jobVehicleDueItem{padding:6px 8px!important;min-width:0}
+ #jobModal .jobVehicleQuickFacts .jobVehicleDueItem:nth-child(1){grid-column:1;grid-row:1}
+ #jobModal .jobVehicleQuickFacts .jobVehicleDueItem:nth-child(2){grid-column:2;grid-row:1}
+ #jobModal .jobVehicleQuickFacts>.field:has(#job_mileage){grid-column:3;grid-row:1}
+ #jobModal .jobVehicleQuickFacts>.jobCurrentMileageField{grid-column:4;grid-row:1}
+ #jobModal .jobVehicleQuickFacts>.field{margin:0!important;align-self:stretch;min-width:0;box-sizing:border-box}
+ #jobModal .jobVehicleQuickFacts>.field label{display:block;font-size:10px!important;white-space:normal!important;line-height:1.2;margin-bottom:3px}
+ #jobModal .jobVehicleQuickFacts>.field input{width:100%;min-width:0;min-height:30px!important;height:30px!important;padding:4px 7px!important;font-size:15px!important}
+ #jobModal .jobVehicleQuickFacts .jobVehicleDueItem>span{white-space:normal!important;text-transform:none;line-height:1.2;font-size:10px!important}
+ #jobModal .jobVehicleQuickFacts .jobVehicleDueItem:nth-child(n+3){grid-row:2}
+ #jobModal .jobCardHeaderDetails .jobVehicleSection:has(.jobSectionGrid:empty){display:none}
+}
+@media screen and (max-width:1049px){
+ #jobModal .jobModalHead.jobCardPinnedHeader>.jobCardHeaderVehicle,#jobModal .mechanicJobCard .jobModalHead.jobCardPinnedHeader>.jobCardHeaderVehicle{height:144px!important}
+}
+@media screen and (max-width:600px){
+ #jobModal .jobModalHead.jobCardPinnedHeader>.jobCardHeaderVehicle,#jobModal .mechanicJobCard .jobModalHead.jobCardPinnedHeader>.jobCardHeaderVehicle{height:132px!important}
+ #jobModal .jobVehicleQuickFacts{gap:4px!important}
+ #jobModal .jobVehicleQuickFacts .jobVehicleDueItem{padding:5px 4px!important}
+ #jobModal .jobVehicleQuickFacts>.field input{font-size:13px!important;padding:4px!important}
+ #jobModal .jobVehicleQuickFacts>.field label{font-size:9px!important;min-height:22px}
+ #jobModal .jobVehicleQuickFacts .jobVehicleDueItem>span{font-size:9px!important;min-height:22px}
+ #jobModal .jobVehicleQuickFacts .jobVehicleDueItem b{font-size:12px!important}
+}
+
+.jobMileagePrompt{width:min(430px,calc(100vw - 32px));box-sizing:border-box;padding:24px;border:1px solid #cbd5e1;border-radius:14px;background:#fff;color:#111827;box-shadow:0 20px 70px #0005}
+.jobMileagePrompt::backdrop{background:#0009}
+.jobMileagePrompt h2{font-size:21px;margin:0 0 12px}
+.jobMileagePrompt p{line-height:1.5;margin:0 0 20px}
+.jobMileagePromptActions{display:flex;flex-wrap:wrap;justify-content:flex-end;gap:8px}
+
+/* A single page scroll, a distinct work area, and a compact left-hand header. */
+@media screen{
+ #jobModal .jobModalCard.jobCardSimplified{overflow-y:auto!important;overflow-x:hidden!important;overscroll-behavior-y:contain}
+ #jobModal .jobCardSimplified .jobModalHead.jobCardPinnedHeader{position:relative!important;top:auto!important;grid-template-rows:auto auto auto auto!important;overflow:visible!important}
+ #jobModal .jobCardSimplified .jobModalHead.jobCardPinnedHeader>.jobCardTopActions{grid-column:1/-1!important;grid-row:1!important;display:flex!important;justify-content:flex-end;flex-wrap:wrap!important;overflow:visible!important;margin:0 0 3px!important;width:100%;box-sizing:border-box}
+ #jobModal .jobCardTopActions .jobHeaderHaynesLookup{margin-right:auto}
+ #jobModal .jobCardSimplified .jobModalHead.jobCardPinnedHeader>.jobCardHeaderHeading{grid-column:1!important;grid-row:2!important}
+ #jobModal .jobCardSimplified .jobModalHead.jobCardPinnedHeader>.jobCardHeaderDetails{grid-column:1!important;grid-row:3!important;overflow:visible!important;padding:0!important}
+ #jobModal .jobCardSimplified .jobModalHead.jobCardPinnedHeader>.jobVehicleQuickFacts{grid-column:1!important;grid-row:4!important;min-width:0;width:100%;box-sizing:border-box}
+ #jobModal .jobCardSimplified .jobModalHead.jobCardPinnedHeader>.jobCardHeaderVehicle{grid-column:2!important;grid-row:2/5!important}
+ #jobModal .noVehicleToggle[hidden]{display:none!important}
+ #jobModal .jobCardSimplified>.jobModalBody{display:block!important;flex:0 0 auto!important;overflow:visible!important;min-height:auto!important}
+ #jobModal .jobCardSimplified .jobCardSections{flex:none!important;height:auto!important;min-height:0!important;grid-template-rows:auto auto!important;align-items:start!important}
+ #jobModal .jobCardSimplified .jobCardMainColumn,#jobModal .jobCardSimplified .jobCardSupportColumn{height:auto!important;min-height:0!important;overflow:visible!important}
+ #jobModal .jobCardSimplified .jobCardHeaderDetails,#jobModal .jobCardSimplified .jobPreviousWorkBody,#jobModal .jobCardSimplified .jobPartsEditor,#jobModal .jobCardSimplified .privatePricingRows{max-height:none!important;overflow:visible!important}
+ #jobModal .jobCardSimplified .jobWorkSection{border:1px solid #c6cbd1!important;border-left:4px solid #b51d2c!important;background:#fff!important;box-shadow:0 3px 12px #15202b12}
+ #jobModal .jobCardSimplified .jobWorkSection .jobSectionGrid{padding:10px!important}
+ #jobModal .jobCardSimplified .jobWorkSection #job_work_required{width:100%;height:144px!important;min-height:144px!important;padding:12px!important;border:1px solid #9aa5b1!important;border-radius:7px;background:#fff!important;color:#15202b!important;font-size:17px!important;line-height:1.55!important;resize:vertical;box-sizing:border-box}
+ #jobModal .jobCardSimplified .jobWorkSection #job_work_required:focus{outline:2px solid #b51d2c;outline-offset:2px}
+ #jobModal .jobCardSimplified>.modalFoot{position:sticky;bottom:0;z-index:5;flex:0 0 auto;background:#fff;box-shadow:0 -3px 12px #15202b12}
+}
+@media screen and (max-width:700px){
+ #jobModal .jobCardSimplified .jobVehicleQuickFacts{grid-template-columns:repeat(2,minmax(0,1fr))!important}
+ #jobModal .jobCardSimplified .jobVehicleQuickFacts>.field:has(#job_mileage){grid-column:1!important;grid-row:2!important}
+ #jobModal .jobCardSimplified .jobVehicleQuickFacts>.jobCurrentMileageField{grid-column:2!important;grid-row:2!important}
+ #jobModal .jobCardSimplified .jobVehicleQuickFacts .jobVehicleDueItem:nth-child(n+3){grid-row:3!important}
+ #jobModal .jobCardSimplified .jobWorkSection #job_work_required{font-size:16px!important;min-height:144px!important}
+}
+
+
+@media screen{
+ #jobModal .jobCardSimplified .jobHeaderHaynesRow{flex:0 0 100%;width:100%;display:flex;justify-content:flex-start;margin:4px 0 0}
+ #jobModal .jobCardSimplified .jobHeaderHaynesRow .jobHeaderHaynesLookup{margin:0!important}
+ #jobModal .jobCardSimplified .jobPreviousWorkFullWidth{grid-column:1/-1!important;width:100%;box-sizing:border-box}
+ #jobModal .jobCardSimplified .jobCardTopActions:empty{display:none!important}
+ #jobModal .jobCardSimplified .jobVehicleSection>.jobFormSectionHead,#jobModal .jobCardSimplified .jobVehicleSection .jobSectionNumber{display:none!important}
+}
+
+/* Give identity explicit tracks: a third flex item must never squeeze the model. */
+@media screen{
+ #jobModal .jobCardSimplified .jobModalHead.jobCardPinnedHeader{height:auto!important;max-height:none!important;flex:0 0 auto!important}
+ #jobModal .jobCardSimplified .jobModalHead.jobCardPinnedHeader>.jobCardHeaderHeading{display:grid!important;grid-template-columns:max-content minmax(0,1fr)!important;grid-template-rows:auto auto!important;align-items:center!important;min-width:0!important;width:100%;box-sizing:border-box}
+ #jobModal .jobCardSimplified .jobCardHeaderRegistration{grid-column:1;grid-row:1;min-width:0!important}
+ #jobModal .jobCardSimplified .jobCardHeaderModel{grid-column:2;grid-row:1;display:block;min-width:0!important;width:auto!important;white-space:normal!important;word-break:normal!important;overflow-wrap:break-word!important;writing-mode:horizontal-tb!important;line-height:1.2!important}
+ #jobModal .jobCardSimplified .jobHeaderHaynesRow{grid-column:2;grid-row:2;width:auto!important;min-width:0;max-width:100%;margin:4px 0 0!important}
+ #jobModal .jobCardSimplified .jobHeaderHaynesLookup{white-space:normal!important;max-width:100%}
+ #jobModal .jobCardSimplified #jobPreviousWorkSection{grid-column:1/-1!important;justify-self:end;width:calc(50% - 6px)!important;box-sizing:border-box;margin:0!important}
+ #jobModal .jobCardSimplified .jobCardHeaderDetails .jobVehicleSection{border:0!important;border-radius:0!important;box-shadow:none!important;background:transparent!important;min-height:0!important}
+ #jobModal .jobCardSimplified .jobCardHeaderDetails .jobVehicleSection .jobSectionGrid{border:0!important;border-radius:0!important;box-shadow:none!important;min-height:0!important}
+ #jobModal .jobCardSimplified .dvsaLookupStatus:empty,#jobModal .jobCardSimplified .haynesJobTools:has(>[role=status]:empty):not(:has(.haynesJobVehicle>div,.haynesJobVehicle>a)){display:none!important}
+}
+@media screen and (max-width:700px){
+ #jobModal .jobCardSimplified .jobModalHead.jobCardPinnedHeader>.jobCardHeaderHeading{grid-template-columns:minmax(0,1fr)!important}
+ #jobModal .jobCardSimplified .jobCardHeaderRegistration{grid-column:1;grid-row:1}
+ #jobModal .jobCardSimplified .jobCardHeaderModel{grid-column:1;grid-row:2}
+ #jobModal .jobCardSimplified .jobHeaderHaynesRow{grid-column:1;grid-row:3}
+ #jobModal .jobCardSimplified #jobPreviousWorkSection{width:100%!important}
+}
+
+@media screen{
+ #jobModal .jobCardSimplified .jobModalHead.jobCardPinnedHeader>.jobCardHeaderHeading{grid-template-columns:max-content minmax(120px,1fr) max-content!important}
+ #jobModal .jobCardSimplified .jobHeaderHaynesRow{grid-column:3;grid-row:1;margin:0!important}
+ #jobModal .jobCardSimplified .jobCardSections{grid-template-columns:repeat(2,minmax(0,1fr))!important}
+ #jobModal .jobCardSimplified #jobPreviousWorkSection{width:100%!important;align-self:stretch}
+}
+@media screen and (max-width:700px){
+ #jobModal .jobCardSimplified .jobModalHead.jobCardPinnedHeader>.jobCardHeaderHeading{grid-template-columns:minmax(0,1fr) max-content!important}
+ #jobModal .jobCardSimplified .jobCardHeaderRegistration{grid-column:1/-1;grid-row:1}
+ #jobModal .jobCardSimplified .jobCardHeaderModel{grid-column:1;grid-row:2}
+ #jobModal .jobCardSimplified .jobHeaderHaynesRow{grid-column:2;grid-row:2}
+ #jobModal .jobCardSimplified .jobCardSections{grid-template-columns:minmax(0,1fr)!important}
+}

@@ -3,10 +3,12 @@ import path from 'node:path';
 import crypto from 'node:crypto';
 import { transformSync } from 'esbuild';
 import { compactBuildData } from './compact-build-data.mjs';
+import { mechanicVariant } from './mechanic-variant.mjs';
 
 const htmlPath=path.resolve('dist/index.html');
 const assetsDir=path.resolve('dist/assets');
 let html=fs.readFileSync(htmlPath,'utf8');
+let mechanicHtml=mechanicVariant(html);
 // A running phone must receive an update signal for every changed release,
 // including helper-only changes; do not rely on manually bumping app versions.
 const workerPath=path.resolve('dist/service-worker.js');
@@ -14,11 +16,12 @@ let worker=fs.readFileSync(workerPath,'utf8');
 const baseVersion=worker.match(/const APP_VERSION='([^']+)'/)[1];
 const digest=crypto.createHash('sha256').update(html).update(worker);
 // Build-pipeline changes must also wake existing offline clients.
-for(const file of ['scripts/split-built-html.mjs','scripts/compact-build-data.mjs'])digest.update(fs.readFileSync(file));
+for(const file of ['scripts/split-built-html.mjs','scripts/compact-build-data.mjs','scripts/mechanic-variant.mjs','scripts/original-mechanic-variant.json'])digest.update(fs.readFileSync(file));
 for(const filename of fs.readdirSync(path.resolve('dist/js')).sort()){
   if(/\.(?:js|css)$/.test(filename))digest.update(filename).update(fs.readFileSync(path.resolve('dist/js',filename)));
 }
 const releaseVersion=baseVersion+'-'+digest.digest('hex').slice(0,10);
+mechanicHtml=mechanicHtml.replaceAll(baseVersion,releaseVersion);
 html=html.replaceAll(baseVersion,releaseVersion).replace(/service-worker\.js\?v=[^'"]+/g,'service-worker.js?v='+releaseVersion);
 worker=worker.replace("const APP_VERSION='"+baseVersion+"'","const APP_VERSION='"+releaseVersion+"'");
 fs.writeFileSync(workerPath,worker);
@@ -60,7 +63,7 @@ html=html.replace(/<(script|style)([^>]*)>([\s\S]*?)<\/\1>/gi,(whole,tag,attribu
   return result.warnings.length?whole:`<style${attributes}>${result.code}</style>`;
 });
 // Give Haynes helpers and stylesheets the same cache-safe treatment.
-for(const name of ['haynes-job-tools.js','haynes-job-tools.css','haynes-service-sheet.js','haynes-service-sheet.css','vecta-vehicle-image.js','vecta-fleet-images.js','vecta-fleet-images.css']){
+for(const name of ['haynes-job-tools.js','haynes-job-tools.css','haynes-service-sheet.js','haynes-service-sheet.css','vecta-vehicle-image.js','vecta-fleet-images.js','vecta-fleet-images.css','vecta-monthly-pool.js','vecta-monthly-pool.css']){
   let source=fs.readFileSync(path.resolve('dist/js',name));
   const result=transformSync(source.toString(),{loader:name.endsWith('.js')?'js':'css',
     target:'esnext',charset:'utf8',legalComments:'inline',
@@ -71,9 +74,21 @@ for(const name of ['haynes-job-tools.js','haynes-job-tools.css','haynes-service-
   fs.mkdirSync(assetsDir,{recursive:true});
   fs.writeFileSync(path.join(assetsDir,filename),source);
   html=html.replaceAll(`/js/${name}`,`/assets/${filename}`);
+  mechanicHtml=mechanicHtml.replaceAll(`/js/${name}`,`/assets/${filename}`);
 }
 fs.writeFileSync(htmlPath,html);
-// Preview the established planner under the separate mechanics login. Do not
-// introduce a second UI: every byte and helper comes from the existing build.
-fs.writeFileSync(path.resolve('dist/mechanic.html'),html);
+// Mechanics have their own generated entry and chunks; never alias them to Main HTML.
+let mechanicNumber=0;
+mechanicHtml=mechanicHtml.replace(/<script([^>]*)>([\s\S]*?)<\/script>/gi,(whole,attrs,source)=>{
+ mechanicNumber++;
+ if(/\bsrc\s*=|\btype\s*=/.test(attrs)||!source.trim())return whole;
+ source=transformSync(compactBuildData(source),{loader:'js',target:'esnext',charset:'utf8',legalComments:'inline',minifyWhitespace:true,minifyIdentifiers:false,minifySyntax:false}).code;
+ if(Buffer.byteLength(source)<100000)return `<script${attrs}>${source.replace(/<\/script/gi,'<\\/script')}</script>`;
+ const hash=crypto.createHash('sha256').update(source).digest('hex').slice(0,10);
+ const filename=`vecta-inline-mechanic-${mechanicNumber}-${hash}.js`;
+ fs.writeFileSync(path.join(assetsDir,filename),source);
+ return `<script${attrs} src="/assets/${filename}"></script>`;
+});
+fs.writeFileSync(path.resolve('dist/mechanic.html'),mechanicHtml);
 console.log(JSON.stringify({indexBytes:Buffer.byteLength(html),extractedScripts:written}));
+

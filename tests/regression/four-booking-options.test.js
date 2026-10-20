@@ -36,7 +36,7 @@ test('Something else requires a description while Service and MOT retain their r
 test('receipt preserves the already rendered vehicle image, chosen service, tyres and escaped problem details',()=>{
  const {document}=parseHTML('<div class="vehicle-photo"><figure class="haynes-image"><img src="data:image/svg+xml,coloured-car" data-vehicle-ready="1" alt="Blue Nissan Qashqai"></figure></div>');
  const form={registration:'AB12 CDE',vehicle:'Nissan Qashqai',job_types:['Service','MOT','Tyres','Other'],service_choice:'Full Service',tyre_size:'225/45 R18',tyre_choice:'Premium',work_required:'Noise <script>alert(1)</script>\non braking',inspect_mot_advisories:'yes',mot_advisories:['Brake pads worn']};
- const context=vm.createContext({document,state:{form},esc});vm.runInContext(fn('bookingConfirmationSummaryHtml','submit').replace(/async $/,''),context);
+ const context=vm.createContext({document,state:{form},esc,selectedTyreGuide:()=>null});vm.runInContext(fn('bookingConfirmationSummaryHtml','submit').replace(/async $/,''),context);
  let receipt=parseHTML(context.bookingConfirmationSummaryHtml()).document;
  assert.equal(receipt.querySelector('img').getAttribute('src'),'data:image/svg+xml,coloured-car');assert.match(receipt.textContent||receipt.toString(),/AB12 CDE/);assert.match(receipt.toString(),/Full Service, MOT, Tyres, Something else/);assert.match(receipt.toString(),/225\/45 R18 · Premium/);assert.equal(receipt.querySelector('script'),null);assert.match(receipt.toString(),/Brake pads worn/);
  document.querySelector('figure').remove();receipt=parseHTML(context.bookingConfirmationSummaryHtml()).document;assert.equal(receipt.querySelector('img'),null);assert.match(receipt.toString(),/Nissan Qashqai/);
