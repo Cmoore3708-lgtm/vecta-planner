@@ -97,3 +97,31 @@ test('quantity buttons automatically refresh checked prices and select sufficien
   step('Premium','-1');await tick();assert.equal(form.tyre_guide.totalPence,9500);assert.equal(calls.length,2,'fresh quantity cache avoids unnecessary supplier calls');
  }finally{vm.runInContext('tyreLookup.dispose()',context)}
 });
+test('a temporary lookup failure retries once while the customer still sees a pulsing checking message',async()=>{
+ const {parseHTML}=await import('linkedom'),{document}=parseHTML('<html><body><main></main></body></html>'),pending=[];
+ const form={job_types:['Tyres'],tyre_size:'205/55R16',tyre_quantity:1,tyre_choice:'Budget',nevos_vehicle:'no'};
+ const context=vm.createContext({document,state:{form},setTimeout,clearTimeout,AbortController,Intl,Date,renderActions(){},esc:String,fetch:async(_url,options)=>({ok:true,json:()=>new Promise(resolve=>pending.push({body:JSON.parse(options.body),resolve}))})});
+ vm.runInContext(readFileSync(new URL('../../public/js/vecta-tyre-booking.js',import.meta.url),'utf8'),context);
+ const html=readFileSync(new URL('../../website/booking/index.html',import.meta.url),'utf8');vm.runInContext(html.slice(html.indexOf('let tyreGuideState='),html.indexOf('function pricingHtml(')),context);
+ document.querySelector('main').innerHTML=context.tyreOptionsHtml();context.bindTyreCards();context.bindTyreSearch();
+ try{
+  document.querySelector('[data-tyre-check]').click();await tick();const status=document.querySelector('#tyreGuideStatus');
+  assert.equal(status.classList.contains('is-checking'),true);assert.match(status.textContent,/Checking fully fitted guide prices/);
+  pending[0].resolve({status:'UNAVAILABLE'});await tick();assert.equal(pending.length,2);assert.deepEqual(pending[0].body,pending[1].body);
+  assert.equal(status.classList.contains('is-checking'),true);assert.doesNotMatch(status.textContent,/unavailable/);
+  pending[1].resolve(payload());await tick();assert.equal(status.classList.contains('is-checking'),false);assert.equal(form.tyre_guide.unitPence,6200);
+  const css=readFileSync(new URL('../../public/js/vecta-tyre-booking.css',import.meta.url),'utf8');assert.match(css,/@media\(prefers-reduced-motion:reduce\)/);
+ }finally{vm.runInContext('tyreLookup.dispose()',context)}
+});
+test('retry is bounded and never repeats login, offline, configuration failures or invalid prices',async()=>{
+ const c=client();
+ for(const status of ['UNAVAILABLE','LOGIN_REQUIRED','SETTINGS_REQUIRED','OFFLINE','NOT_CONFIGURED','BUSY','DAILY_LIMIT']){
+  let calls=0;const ctrl=c.createController({delay:0,fetchGuide:async()=>{calls++;return{status}}});
+  ctrl.update('205/55R16',1);await tick();assert.equal(calls,status==='UNAVAILABLE'?2:1,status);assert.equal(ctrl.getState().status,'unavailable');ctrl.dispose();
+ }
+ let calls=0;const ctrl=c.createController({delay:0,fetchGuide:async()=>{calls++;return{...payload(),quantity:4}}});ctrl.update('205/55R16',1);await tick();assert.equal(calls,1);assert.equal(ctrl.getState().result,null);ctrl.dispose();
+});
+test('changing the size cancels an unavailable result before it can launch a retry',async()=>{
+ const c=client(),pending=[];const ctrl=c.createController({delay:0,fetchGuide:(size,quantity,signal)=>new Promise(resolve=>pending.push({size,signal,resolve}))});
+ ctrl.update('205/55R16',1);await tick();ctrl.update('',1);pending[0].resolve({status:'UNAVAILABLE'});await tick();assert.equal(pending[0].signal.aborted,true);assert.equal(pending.length,1);assert.equal(ctrl.getState().status,'idle');ctrl.dispose();
+});

@@ -17,7 +17,7 @@
    sequence++;const current=sequence;clearTimeout(timer);request?.abort();key=next;
    if(!next){emit('idle');return;}
    const saved=cache.get(next);if(saved&&Date.now()-Date.parse(saved.checkedAt)<300000){emit('matched',saved);return;}
-   emit('waiting');timer=setTimeout(async()=>{request=new AbortController();const abort=request;const timeout=setTimeout(()=>abort.abort(),24000);emit('loading');try{const result=cleanResult(await fetchGuide(size,quantity,abort.signal),size,quantity);if(current!==sequence)return;if(cache.size>=30)cache.delete(cache.keys().next().value);cache.set(next,result);emit('matched',result);}catch{if(current===sequence)emit('unavailable');}finally{clearTimeout(timeout);}},delay);
+   emit('waiting');timer=setTimeout(async()=>{request=new AbortController();const abort=request;const timeout=setTimeout(()=>abort.abort(),50000);emit('loading');try{let data=await fetchGuide(size,quantity,abort.signal);if(current!==sequence||abort.signal.aborted)return;if(data?.status==='UNAVAILABLE'){data=await fetchGuide(size,quantity,abort.signal);if(current!==sequence||abort.signal.aborted)return;}const result=cleanResult(data,size,quantity);if(cache.size>=30)cache.delete(cache.keys().next().value);cache.set(next,result);emit('matched',result);}catch{if(current===sequence)emit('unavailable');}finally{clearTimeout(timeout);}},delay);
   },dispose(){sequence++;clearTimeout(timer);clearTimeout(expiry);request?.abort();}};
  }
  root.VectaTyreBooking={createController,sizeKey,cleanResult};
