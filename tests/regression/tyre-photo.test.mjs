@@ -25,3 +25,31 @@ test('booking mirrors and photo assets stay identical',()=>{
  assert.ok(booking.includes('state.form.tyre_size=size;state.form.tyre_guide=null;'));
  assert.ok(booking.includes('/js/vecta-tyre-photo.js'));
 });
+
+test('photo confirmation populates existing fields, clears old prices and waits for price search',()=>{
+ const html=fs.readFileSync('website/booking/index.html','utf8');
+ const bind=html.slice(html.indexOf('function bindTyreSearch(){'),html.indexOf('function tyreOptionsHtml(){'));
+ const fields=[{value:''},{value:''},{value:''}], updates=[];
+ let confirm, refreshes=0, actions=0, focuses=0;
+ const host={};
+ const context={
+  document:{
+   querySelectorAll:()=>fields,
+   querySelector:selector=>selector==='[data-tyre-check]'?{focus(){focuses++;}}:host
+  },
+  state:{form:{tyre_size:'205/55R16',tyre_quantity:3,tyre_guide:{size:'20555R16'}}},
+  VectaTyrePhoto:{mount(target,callback){assert.equal(target,host);confirm=callback;}},
+  VectaTyreBooking:{sizeKey:size=>/^\d{3}\/\d{2}R\d{2}$/.test(size)?size:''},
+  tyreLookup:{update(...args){updates.push(args);}},
+  refreshTyrePanel(){refreshes++;},
+  renderActions(){actions++;}
+ };
+ vm.runInNewContext(bind+';bindTyreSearch();',context);
+ confirm('225/40R18');
+ assert.equal(context.state.form.tyre_size,'225/40R18');
+ assert.equal(context.state.form.tyre_quantity,3);
+ assert.equal(context.state.form.tyre_guide,null);
+ assert.deepEqual(fields.map(x=>x.value),['225','40','18']);
+ assert.deepEqual(updates,[['',1]]);
+ assert.equal(refreshes,1);assert.equal(actions,1);assert.equal(focuses,1);
+});
