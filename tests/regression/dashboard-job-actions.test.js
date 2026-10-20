@@ -4,10 +4,10 @@ import vm from 'node:vm';
 import {readFileSync} from 'node:fs';
 import {parseHTML} from 'linkedom';
 const html=readFileSync('index.html','utf8');
-const helper=html.slice(html.indexOf('function installDashboardJobActions(id)'),html.indexOf('function openJobModal(id,preset)'));
+const helper=html.slice(html.indexOf('function syncOfficeJobActions(account)'),html.indexOf('function openJobModal(id,preset)'));
 function setup({mechanic=true,account='Staff',mileage=true,saved=true}={}){
  const {window,document}=parseHTML('<html><body><div id="jobModal"><input id="job_status" value="booked"><div class="modalFoot"><button id="markComplete">Mark as complete</button><button id="markReady">Ready to invoice</button><button id="deleteJob">Delete</button><button id="saveJob">Save & Close</button></div></div></body></html>');
- window.VECTA_MECHANIC_DEPLOYMENT=mechanic;const saves=[];const c={window,document,requireCurrentJobMileage:()=>mileage};vm.createContext(c);
+ window.VECTA_MECHANIC_DEPLOYMENT=mechanic;const saves=[];const c={window,document,requireCurrentJobMileage:()=>mileage,fleetIsContractorIncome:value=>String(value).toUpperCase()==='CONTRACTOR'};vm.createContext(c);
  // Match the real app boundary: app and saveJob are private to its closure.
  vm.runInContext(`(function(){const app={jobs:[{id:'j',status:'booked',customer_account:${JSON.stringify(account)}}]};function gatherJob(){return {id:'j'};}async function saveJob(id){capture(id,document.getElementById('job_status').value);return ${saved};}${helper}window.installForTest=installDashboardJobActions;})();`,Object.assign(c,{capture:(...args)=>saves.push(args)}));
  window.installForTest('j');return {window,document,saves,c};
@@ -36,4 +36,12 @@ test('work-complete jobs leave the mechanics planner and remain visible to Main 
 
 test('Main NMUK jobs retain Mark as complete and the monthly completion handler',()=>{
  const t=setup({mechanic:false,account:'NMUK'});const button=t.document.getElementById('markComplete');let completed=0;button.onclick=()=>completed++;t.window.installForTest('j');assert.equal(button.textContent,'Mark as complete');button.onclick();assert.equal(completed,1);assert.equal(t.document.getElementById('v280MechanicWorkComplete'),null);
+});
+
+test('NMUK footer hides invoice controls, preserves completion and updates when the customer changes',()=>{
+ const t=setup({mechanic:false,account:'Staff'}),foot=t.document.querySelector('.modalFoot');
+ const invoice=t.document.createElement('button');invoice.id='createInvoiceFromJob';invoice.textContent='Create Invoice';foot.appendChild(invoice);
+ const account=t.document.createElement('input');account.id='job_customer_account';account.value='NMUK';t.document.getElementById('jobModal').appendChild(account);
+ t.window.installForTest('j');assert.equal(t.document.getElementById('markComplete').textContent,'Mark as complete');assert.equal(t.document.getElementById('markComplete').style.display,'');assert.equal(t.document.getElementById('markReady').style.display,'none');assert.equal(invoice.style.display,'none');
+ account.value='Staff';t.window.installForTest('j');assert.equal(t.document.getElementById('markReady').style.display,'');assert.equal(invoice.style.display,'');
 });
