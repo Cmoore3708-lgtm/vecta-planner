@@ -30,8 +30,8 @@ test('supplier failures leave no stale price on screen',async()=>{
 });
 function response(){return{code:0,headers:{},setHeader(k,v){this.headers[k]=v},status(code){this.code=code;return this},json(body){this.body=body;return this}}}
 test('public endpoint fails closed without worker configuration and rejects malformed requests',async()=>{
- const old={url:process.env.TYRE_WORKER_URL,token:process.env.TYRE_WORKER_TOKEN};delete process.env.TYRE_WORKER_URL;delete process.env.TYRE_WORKER_TOKEN;
- try{let r=response();await tyreGuide({method:'POST',body:{size:'205/55R16',quantity:1}},r);assert.equal(r.body.status,'NOT_CONFIGURED');assert.equal(r.headers['Cache-Control'],'no-store');r=response();await tyreGuide({method:'POST',body:{size:'205/55R16',quantity:9}},r);assert.equal(r.code,400)}finally{for(const [key,value]of [['TYRE_WORKER_URL',old.url],['TYRE_WORKER_TOKEN',old.token]])value===undefined?delete process.env[key]:process.env[key]=value}
+ const old={url:process.env.TYRE_WORKER_URL,token:process.env.TYRE_WORKER_TOKEN,relay:process.env.HAYNES_RELAY_SITE_TOKEN};delete process.env.HAYNES_RELAY_SITE_TOKEN;delete process.env.TYRE_WORKER_URL;delete process.env.TYRE_WORKER_TOKEN;
+ try{let r=response();await tyreGuide({method:'POST',body:{size:'205/55R16',quantity:1}},r);assert.equal(r.body.status,'NOT_CONFIGURED');assert.equal(r.headers['Cache-Control'],'no-store');r=response();await tyreGuide({method:'POST',body:{size:'205/55R16',quantity:9}},r);assert.equal(r.code,400)}finally{for(const [key,value]of [['TYRE_WORKER_URL',old.url],['TYRE_WORKER_TOKEN',old.token],['HAYNES_RELAY_SITE_TOKEN',old.relay]])value===undefined?delete process.env[key]:process.env[key]=value}
 });
 test('public endpoint derives prices from verified Sellout catalogue and strips supplier fields',async()=>{
  const old={url:process.env.TYRE_WORKER_URL,token:process.env.TYRE_WORKER_TOKEN,fetch:global.fetch};process.env.TYRE_WORKER_URL='https://worker.example';process.env.TYRE_WORKER_TOKEN='x'.repeat(32);

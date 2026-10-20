@@ -56,3 +56,11 @@ The existing booking tyre section now uses a transparent photographic tyre in ch
 The transparent image is `public/assets/tyre-guide-cutout.webp`, encoded from the user-approved built-in imagegen cutout. Final generation prompt: “Standalone upright three-quarter black tyre product photograph, tread on the left and central opening on the right, realistic rubber texture and studio lighting, transparent background, no text or branding.” It is generic illustrative artwork, not a photograph of a quoted model.
 
 `node scripts/build-tyre-review-preview.mjs /absolute/output.html` produces a self-contained design preview from the actual booking card functions, styles, asset and captured catalogue. Its sample prices are visibly labelled as a snapshot; that preview and its mock transport are never copied into the deployed website.
+
+## Prepared live relay branch (deployment blocked)
+
+The separate `tyre-pc-relay` function and private `tyre_relay_jobs`/`tyre_relay_runtime` queue reuse the existing Haynes site/PC token hashes for authentication, without changing Haynes queues, pairing, job or invoice records. The worker reads the existing Windows-encrypted pairing and the separate VectaTyres Edge profile. A verified normalized Sellout catalogue is cached for at most five minutes. Catalogue contracts strip unrelated fields, reject malformed prices and settings, and omit unknown stock. The public endpoint recomputes guide options.
+
+The SQL deployment failed with `Invalid or expired requestState` / `Conflicting MCP request metadata`; a read-only check confirmed neither tyre table exists. The Edge function has not been deployed and the new website relay fallback has not been merged. No live end-to-end success is claimed. Finish database deployment, verify role isolation/leases with rolled-back synthetic jobs, deploy/test Edge authentication, and only then enable the website fallback and ask Chris to launch the worker. Device/browser and supplier checks remain necessary.
+
+`node scripts/package-tyre-live-worker.mjs /absolute/empty/folder` builds the complete Windows package. The included instructions clearly mark it as not yet enabled. It contains no tokens, credentials or browser profile data.

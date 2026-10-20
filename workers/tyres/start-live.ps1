@@ -1,0 +1,24 @@
+$ErrorActionPreference = 'Stop'
+Set-Location $PSScriptRoot
+$major = & node -p "process.versions.node.split('.')[0]"
+if ($LASTEXITCODE -ne 0 -or [int]$major -lt 22) { throw 'Node.js 22 or newer is required on the workshop PC.' }
+$tokenFile = Join-Path $env:LOCALAPPDATA 'VectaHaynes\relay-token.txt'
+if (!(Test-Path $tokenFile)) { throw 'Run this on the workshop PC already paired with Haynes. Leave your existing Haynes worker running.' }
+$mutex = New-Object System.Threading.Mutex($false, 'Local\VectaTyreLiveWorker')
+$owns = $false
+try {
+ try { $owns = $mutex.WaitOne(0) } catch [System.Threading.AbandonedMutexException] { $owns = $true }
+ if (!$owns) { Write-Host 'The live tyre worker is already running.'; return }
+ if (!(Test-Path 'node_modules\playwright\package.json')) {
+  & npm.cmd ci --ignore-scripts
+  if ($LASTEXITCODE -ne 0) { throw 'Package installation failed. Send the error text.' }
+ }
+ $secure = (Get-Content -Raw $tokenFile).Trim() | ConvertTo-SecureString
+ $env:HAYNES_RELAY_TOKEN = (New-Object System.Net.NetworkCredential('', $secure)).Password
+ & node live-worker.mjs
+ if ($LASTEXITCODE -ne 0) { throw 'The tyre worker stopped. Send the error shown above.' }
+} finally {
+ Remove-Item Env:HAYNES_RELAY_TOKEN -ErrorAction SilentlyContinue
+ if ($owns) { $mutex.ReleaseMutex() }
+ $mutex.Dispose()
+}

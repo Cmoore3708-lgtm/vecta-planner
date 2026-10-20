@@ -16,3 +16,9 @@ test('ESP search fills confirmed controls, clears speed and only clicks tyre Sea
 test('changed Search text prevents any click',async()=>{const page=mock({wrongButton:true});await assert.rejects(testEspSearch(page,'225/45R17'),/BUTTON_CHANGED/);assert.equal(page.clicks.length,0);});
 test('stale results fail before extraction',async()=>{const page=mock({stale:true});await assert.rejects(testEspSearch(page,'225/45R17'));});
 test('results for a different size cannot be reported as the requested size',async()=>{await assert.rejects(testEspSearch(mock({wrongSize:true}),'225/45R17'),/SIZE_MISMATCH/);});
+test('live refresh mode requires old product rows to be replaced even when their text is identical',async()=>{
+ const page=mock();let markerInstalled=false;
+ const locate=page.locator;page.locator=selector=>({...locate(selector),evaluateAll:async(fn,marker)=>{assert.equal(selector,'#OrderWindowGrid tr');assert.ok(marker);markerInstalled=true;return 2}});
+ page.waitForFunction=async(_fn,args)=>{assert.equal(markerInstalled,true);assert.equal(args.marked,2);assert.equal(args.previous,'old results');assert.ok(args.marker)};
+ assert.equal((await testEspSearch(page,'225/45R17',{trackRefresh:true})).productsRead,1);
+});

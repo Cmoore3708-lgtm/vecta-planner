@@ -1,0 +1,30 @@
+VECTA LIVE TYRE WORKER - PREPARED BUILD, NOT YET ENABLED
+
+The live relay has not been deployed: the Supabase deployment tool failed.
+Do not use this package until the tyre relay and website connection are
+confirmed enabled. This is not another diagnostic report request.
+
+Once enabled:
+1. On the Windows workshop PC already paired with Haynes, extract the entire ZIP.
+2. Close any old tyre setup/diagnostic Edge windows. Keep Haynes running.
+3. Open START-LIVE-TYRE-PRICES.cmd in the extracted folder.
+4. Sign into ESP if requested. Open Enquiry (right of the car).
+   Use Vecta, Show Sellout, Include VAT and multiplier 1. Leave Addons as usual.
+5. Return to the black window and press Enter. Wait for LIVE TYRE WORKER READY.
+6. Keep this window and its separate Edge browser open and keep the PC awake.
+7. On the booking page, enter 205 / 55 R 16, then click Check Live Prices.
+   Compare the three guides with supplier Sellout prices before accepting them.
+
+This worker uses the encrypted pairing already saved by Haynes for this Windows
+user. It does not replace or stop Haynes, store a supplier password in files,
+or click Cart/Order. Login stays in your existing VectaTyres browser profile.
+Node.js 22+ and Edge are required. First launch installs the pinned packages.
+
+If login expires, sign into the supplier again, then restart this worker.
+If a price setting changes or supplier markup changes, guides fail closed.
+A guide remains valid for at most five minutes. Chris must verify the final
+load/speed rating and specification, availability and price before ordering.
+
+Current verification: automated contract, authentication, selection and UI
+checks pass. The database queue/Edge deployment and a real end-to-end lookup
+have not been verified. Do not assume the website can return live prices yet.
