@@ -302,9 +302,9 @@ root.initHaynesJobTools=function(modal){
    const parts=aside.querySelector('.jobPartsEditor')?.closest('.jobFormSection'),pricing=aside.querySelector('.privatePricingSection');
    if(parts)main.appendChild(parts);
    if(pricing)main.appendChild(pricing);
-   const previous=aside.querySelector('.jobPreviousWorkSection');if(previous)main.appendChild(previous);
+   const previous=aside.querySelector('.jobPreviousWorkSection');
    const booking=main.querySelector('.jobBookingSection');if(booking){
-    booking.classList.add('jobBookingFullWidth');sections.prepend(booking);
+    booking.classList.add('jobBookingFullWidth');sections.prepend(booking);if(previous){previous.classList.add('jobPreviousWorkFullWidth');booking.before(previous);}
     const calendar=booking.querySelector('.bookingAvailabilityWorkspace');if(calendar)aside.appendChild(calendar);
    }
   }
@@ -342,7 +342,13 @@ root.initHaynesJobTools=function(modal){
  if(header){
   let actions=header.querySelector('.jobModalHeadActions');
   if(!actions){actions=document.createElement('div');actions.className='jobModalHeadActions';}
-  button.classList.add('jobHeaderHaynesLookup');actions.prepend(button);actions.classList.add('jobCardTopActions');header.prepend(actions);
+  button.classList.add('jobHeaderHaynesLookup');
+  const lookupRow=document.createElement('div');lookupRow.className='jobHeaderHaynesRow';lookupRow.appendChild(button);heading.appendChild(lookupRow);
+  actions.querySelector('[data-close-modal]')?.remove();
+  const print=actions.querySelector('#printJobCard'),foot=modal.querySelector('.modalFoot'),remove=foot?.querySelector('#deleteJob');
+  if(print&&foot){print.classList.remove('jobPrintSmall');if(remove)remove.after(print);else foot.prepend(print);}
+  actions.classList.add('jobCardTopActions');header.prepend(actions);
+  section.querySelector('.jobFormSectionHead')?.remove();
  }
 
  let sequence=0,refreshTimer;
