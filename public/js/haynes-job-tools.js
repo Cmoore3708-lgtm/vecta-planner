@@ -467,34 +467,14 @@ function openBooking(registration){
  root.openJobModal(null,preset);
  const modal=document.getElementById('jobModal'),header=modal?.querySelector('.jobModalHead'),body=modal?.querySelector('.jobModalBody');
  if(!header||!body)return;
- modal.classList.add('registrationBooking');
+ // Use the standard editor exactly as opened: no alternate layout, image sizing,
+ // duplicate identity block, extra actions, or moved vehicle fields.
  const originalHeader=header;
  const field=id=>modal.querySelector('#job_'+id);
- // The original fields and save handlers stay in the existing job editor.
- const section=modal.querySelector('.jobVehicleSection'),details=document.createElement('details');details.className='bookingVehicleEditor';
- details.innerHTML='<summary>Edit vehicle details</summary>';
- if(section){const vehicleField=field('vehicle')?.closest('.field');if(vehicleField)vehicleField.hidden=false;details.append(section);body.append(details);}
- const headerDetails=header.querySelector('.jobCardHeaderDetails');
- if(headerDetails&&!headerDetails.querySelector('.jobContactSection'))headerDetails.remove();
- const identity=document.createElement('div');identity.className='bookingLookupIdentity';identity.innerHTML='<h3 data-booking-vehicle></h3><p data-booking-variant></p><dl data-booking-spec></dl><p role="status" aria-live="polite" data-booking-status></p>';
- if(headerDetails?.isConnected)headerDetails.prepend(identity);else header.append(identity);
+ const status=modal.querySelector('.haynesJobTools [role="status"]');
  const current=()=>modal.classList.contains('open')&&originalHeader.isConnected&&normalise(field('registration')?.value)===normalise(preset.registration);
- const text=(selector,value)=>{identity.querySelector(selector).textContent=value||'';};
- const fullHaynes=document.createElement('a');fullHaynes.className='btn small';fullHaynes.textContent='Open in HaynesPro';fullHaynes.target='_blank';fullHaynes.rel='noopener noreferrer';
- fullHaynes.onclick=e=>{if(!fullHaynes.getAttribute('href'))e.preventDefault();};
- function paint(vehicle){
-  const link=root.VectaHaynesJobTools.vehicleLink?.(vehicle||root.VectaHaynesJobTools.snapshot?.(field('registration')?.value));
-  if(link){fullHaynes.href=link;fullHaynes.removeAttribute('aria-disabled');}else{fullHaynes.removeAttribute('href');fullHaynes.setAttribute('aria-disabled','true');}
-  text('[data-booking-vehicle]',field('vehicle')?.value||[vehicle?.make,vehicle?.model].filter(Boolean).join(' ')||preset.vehicle||'Vehicle details');
-  text('[data-booking-variant]',vehicle?.variant||'');
-  identity.querySelector('[data-booking-spec]').innerHTML=[['Engine code',vehicle?.engineCode],['Model years',vehicle?.modelYears],['Customer',field('customer_account')?.value||preset.customer_account]].filter(([,v])=>v).map(([k,v])=>'<dt>'+esc(k)+'</dt><dd>'+esc(v)+'</dd>').join('');
- }
- const cached=root.VectaHaynesJobTools.snapshot?.(preset.registration,preset.make);paint(cached);
- text('[data-booking-status]',stored?'Saved vehicle loaded. Complete the booking below.':'Loading vehicle details… You can complete the booking below.');
+ const setStatus=message=>{if(status&&current())status.textContent=message;};
  const dirty=new Set();['make','model','vehicle','colour'].forEach(id=>field(id)?.addEventListener('input',()=>dirty.add(id)));
- field('vehicle')?.addEventListener('change',()=>paint(root.VectaHaynesJobTools.snapshot?.(field('registration')?.value)));
- field('registration')?.addEventListener('change',()=>{paint(root.VectaHaynesJobTools.snapshot?.(field('registration')?.value));text('[data-booking-status]','Check the vehicle details for this registration before saving.');});
- const technical=document.createElement('button');technical.type='button';technical.className='btn small';technical.textContent='Service & repair data';technical.onclick=()=>openTechnical(field('registration')?.value,{fromBooking:true});(header.querySelector('.jobModalHeadActions')||identity).prepend(technical);(header.querySelector('.jobModalHeadActions')||identity).append(fullHaynes);
  // Cached/local vehicles never cause a background Haynes or government lookup.
  if(stored)return;
  // New registrations need the government colour as well as the Haynes drawing.
@@ -509,9 +489,9 @@ function openBooking(registration){
    if(!vehicle||normalise(vehicle.registration)!==key)throw Error('UNAVAILABLE');
    root.VectaHaynesJobTools.remember(vehicle);
    for(const [id,v] of Object.entries({make:vehicle.make,model:vehicle.model,vehicle:[vehicle.make,vehicle.model].filter(Boolean).join(' ')}))if(field(id)&&!dirty.has(id)&&v)field(id).value=v;
-   field('vehicle')?.dispatchEvent(new root.Event('change',{bubbles:true}));paint(vehicle);
-   text('[data-booking-status]','Vehicle matched. Complete the booking below.');
-  }catch{if(current())text('[data-booking-status]','Vehicle lookup unavailable. You can enter the details and save this booking.');}
+   field('vehicle')?.dispatchEvent(new root.Event('change',{bubbles:true}));
+   setStatus('Vehicle matched.');
+  }catch{if(current())setStatus('Vehicle lookup unavailable. You can enter the details and save this booking.');}
  })();
 }
 function install(){const top=document.querySelector('.top'),search=top?.querySelector('.plannerGlobalSearchWrap');if(!search||document.getElementById('haynesDashboardLookup'))return;const form=document.createElement('form');form.id='haynesDashboardLookup';form.className='haynesDashboardLookup';form.setAttribute('aria-label','Start a booking for a saved or new vehicle');form.innerHTML='<span aria-hidden="true">GB</span><input id="haynesDashboardRegistration" aria-label="Vehicle registration for HaynesPro lookup" autocomplete="off" maxlength="60" list="bookingVehicleSuggestions" required><button type="submit" aria-label="Look up vehicle">⌕</button>';search.before(form);const suggestions=document.createElement('datalist');suggestions.id='bookingVehicleSuggestions';form.appendChild(suggestions);let suggestionTimer;const refreshSuggestions=()=>{const query=form.querySelector('input').value.trim();suggestions.innerHTML=query.length>=2?(root.VectaBookingVehicles?.suggestions(query,20)||[]).slice(0,20).map(v=>'<option value="'+esc(v.value)+'">'+esc(v.label)+'</option>').join(''):'';};form.querySelector('input').addEventListener('blur',()=>clearTimeout(suggestionTimer));form.onsubmit=e=>{e.preventDefault();const input=form.querySelector('input'),value=input.value.trim();if(!value)return;if(!root.VectaBookingVehicles?.resolve(value)&&!/^[A-Z0-9]{2,8}$/.test(normalise(value))){input.setCustomValidity('Select a saved vehicle or enter its registration.');form.reportValidity();return;}input.setCustomValidity('');openBooking(value);};form.querySelector('input').oninput=e=>{e.target.value=e.target.value.toUpperCase();e.target.setCustomValidity('');clearTimeout(suggestionTimer);suggestions.replaceChildren();if(e.target.value.trim().length>=2)suggestionTimer=setTimeout(refreshSuggestions,150);};}
