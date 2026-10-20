@@ -9489,9 +9489,9 @@ function migrateLegacyServiceNamesOnce(){
   saveLocal();
 }
 function jobTypeValues(value){
-  var raw=value,items=null;
+  var raw=value,items=null,legacyWebsiteTypes=false;
   if(Array.isArray(raw))items=raw;
-  else{if(raw&&typeof raw==='object')raw=Array.isArray(raw.job_types)&&raw.job_types.length?raw.job_types:raw.job_type;items=Array.isArray(raw)?raw:String(raw||'general').split(/\s*\|\|\s*/)}
+  else{if(raw&&typeof raw==='object'){legacyWebsiteTypes=typeof isWebsiteBookingJob==='function'&&isWebsiteBookingJob(raw);raw=Array.isArray(raw.job_types)&&raw.job_types.length?raw.job_types:raw.job_type}items=Array.isArray(raw)?raw:String(raw||'general').split(legacyWebsiteTypes&&String(raw||'').indexOf(JOB_TYPE_SEPARATOR)<0?/\s*,\s*/:/\s*\|\|\s*/)}
   var seen={},out=[];
   items.forEach(function(item){item=String(item||'').replace(/\s+/g,' ').trim();var key=normaliseJobTypeKey(item);if(item&&key&&!seen[key]){seen[key]=true;out.push(item)}});
   return out.length?out:['general'];
@@ -9538,8 +9538,10 @@ function formatJobTypeLabel(raw,work,inferFromWork){
 }
 function jobTypeLabels(j){
   j=j||{};
-  var values=jobTypeValues(j),single=values.length===1;
-  return values.map(function(raw){return formatJobTypeLabel(raw,j.work_required,single)});
+  var values=jobTypeValues(j);
+  /* Selected types are the dashboard title. Old customer instructions must not
+     turn a remaining type back into a service that was removed in the editor. */
+  return values.map(function(raw){return formatJobTypeLabel(raw,'',false)});
 }
 function jobTypeLabel(j){return jobTypeLabels(j)[0]||'General'}
 function fallbackJobTypeMeta(label){
@@ -12595,7 +12597,7 @@ async function createJobFromWebsiteRequest(id){
 
   var r=(app.websiteRequests||[]).find(function(x){return x.id===id});if(!r)return;
   var reserved=!!r.confirmed_time&&Number(r.reserved_hours)>0,bookingDate=r.confirmed_date||r.preferred_date_1||selectedIso(),types=Array.isArray(r.job_types)?r.job_types.slice():[];types=types.map(function(t){return normaliseJobTypeKey(t)==='service'?'Major Service':t});var jobType=types[0]||'General';
-  var j={id:uid(),booking_date:String(bookingDate).slice(0,10),drop_time:r.confirmed_time||'08:00',registration:normReg(r.registration||''),vehicle:r.vehicle||'',mileage:(r.mileage===null||r.mileage===undefined||String(r.mileage).trim()===''?null:Number(r.mileage)),customer_account:'Staff',customer_name:r.customer_name||'',customer_phone:r.phone||'',customer_email:r.email||'',work_required:r.work_required||types.join(', ')||'Website booking request',job_type:types.join(', ')||jobType,job_colour:/mot/i.test(jobType)?'MOT':(/service/i.test(jobType)?'Service':'General'),estimated_hours:reserved?Number(r.reserved_hours):1,amount_quoted:null,technician:reserved?'Alfie':'Unallocated',ramp:'',status:'booked',card_type:'job',source:'website booking',booking_source:'Website booking',website_request_id:String(r.id||''),customer_note:websiteRequestNote(r),created_at:new Date().toISOString(),updated_at:new Date().toISOString()};applyWebsiteDefaultMajorService(j);
+  var j={id:uid(),booking_date:String(bookingDate).slice(0,10),drop_time:r.confirmed_time||'08:00',registration:normReg(r.registration||''),vehicle:r.vehicle||'',mileage:(r.mileage===null||r.mileage===undefined||String(r.mileage).trim()===''?null:Number(r.mileage)),customer_account:'Staff',customer_name:r.customer_name||'',customer_phone:r.phone||'',customer_email:r.email||'',work_required:r.work_required||types.join(', ')||'Website booking request',job_type:jobTypeStorageValue(types.length?types:[jobType]),job_colour:/mot/i.test(jobType)?'MOT':(/service/i.test(jobType)?'Service':'General'),estimated_hours:reserved?Number(r.reserved_hours):1,amount_quoted:null,technician:reserved?'Alfie':'Unallocated',ramp:'',status:'booked',card_type:'job',source:'website booking',booking_source:'Website booking',website_request_id:String(r.id||''),customer_note:websiteRequestNote(r),created_at:new Date().toISOString(),updated_at:new Date().toISOString()};applyWebsiteDefaultMajorService(j);
   openWebsiteRequestJobCard(r,j);
   }finally{
     delete websiteRequestCreateBusy[id];
@@ -14730,8 +14732,11 @@ function gatherJob(id){
   j.nmuk_vehicle_type=j.customer_account==='NMUK'?String(j.nmuk_vehicle_type||fleetNmukTypeFromVehicle(j.registration)||''):'';
   if(j.customer_account==='NMUK'){j.customer_phone='';j.customer_email='';if(j.nmuk_vehicle_type!=='MVOS')j.customer_name='NMUK';}
   j.job_type=jobTypeStorageValue(j.job_type);
+  /* Imported records can retain an array that otherwise overrides the edited field. */
+  if(Array.isArray(j.job_types))j.job_types=jobTypeValues(j.job_type);
   if(j.customer_account==='NMUK'&&String(j.nmuk_vehicle_type||'').toUpperCase()==='POOL CAR TAX'){if(!String(j.work_required||'').trim())j.work_required='Vehicle Tax';j.job_type='Vehicle Tax';j.source='vehicle_tax_admin';j.technician='Unallocated';j.ramp='';j.estimated_hours=0;j.drop_time=null;}
   else if(isVehicleTaxJob(j)){j.job_type='Vehicle Tax';j.source='vehicle_tax_admin';j.technician='Unallocated';j.ramp='';j.estimated_hours=0;j.drop_time=null;}
+  if(Array.isArray(j.job_types))j.job_types=jobTypeValues(j.job_type);
   if(j.parts_status)j.customer_note=partsStatusNote(j.customer_note,j.parts_status);else j.customer_note=String(j.customer_note||'').replace(/\s*\[\[PARTS_STATUS:[^\]]+\]\]\s*/ig,'\n').trim();
   var motInput=document.getElementById('job_mot_time'),motTime=hasMotJobType(j)?normaliseMotTime(motInput&&motInput.value):'';
   j.mot_time=motTime||null;
