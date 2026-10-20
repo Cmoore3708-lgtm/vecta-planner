@@ -32,3 +32,8 @@ test('editor installs dashboard actions after helper setup for internal and exte
 test('work-complete jobs leave the mechanics planner and remain visible to Main for invoicing',()=>{
  const source=html.match(/function allJobsForDate\(\)\{[^\n]+/)[0];const c={window:{VECTA_MECHANIC_DEPLOYMENT:true},app:{jobs:[{id:'j',status:'work_complete',booking_date:'2026-10-20'}]},selectedIso:()=> '2026-10-20',vectaJobIsDeletedForLists:()=>false,isVehicleTaxJob:()=>false,isUnallocatedJob:()=>false};vm.runInNewContext(source,c);assert.equal(c.allJobsForDate().length,0);c.window.VECTA_MECHANIC_DEPLOYMENT=false;assert.equal(c.allJobsForDate().length,1);
 });
+
+
+test('Main NMUK jobs retain Mark as complete and the monthly completion handler',()=>{
+ const t=setup({mechanic:false,account:'NMUK'});const button=t.document.getElementById('markComplete');let completed=0;button.onclick=()=>completed++;t.window.installForTest('j');assert.equal(button.textContent,'Mark as complete');button.onclick();assert.equal(completed,1);assert.equal(t.document.getElementById('v280MechanicWorkComplete'),null);
+});
