@@ -5,12 +5,14 @@ declare d date:=date '2050-01-04';j uuid:=gen_random_uuid();r jsonb;id1 uuid:=ge
 begin
  -- Calendar notice uses the UK date, including the spring clock change.
  assert public.vecta_booking_earliest('["Brakes"]','2026-10-15 06:00Z')=date '2026-10-20';
- assert public.vecta_booking_earliest('["Brakes"]','2026-10-16 12:00Z')=date '2026-10-21';
- assert public.vecta_booking_earliest('["Brakes"]','2026-10-17 12:00Z')=date '2026-10-21';
+ assert public.vecta_booking_earliest('["Brakes"]','2026-10-16 12:00Z')=date '2026-10-20';
+ assert public.vecta_booking_earliest('["Brakes"]','2026-10-17 12:00Z')=date '2026-10-20';
  assert public.vecta_booking_earliest('["Full Service","MOT"]','2026-10-15 06:00Z')=date '2026-10-27';
- assert public.vecta_booking_earliest('["Brakes"]','2026-03-29 23:30Z')=date '2026-04-02';
+ assert public.vecta_booking_earliest('["Brakes"]','2026-03-29 23:30Z')=date '2026-04-01';
  assert public.vecta_online_booking_slot('2026-10-19','["Other"]','2026-10-15 06:00Z') is null;
  assert public.vecta_online_booking_slot('2026-10-16','["Other"]','2026-10-15 06:00Z') is null;
+ assert public.vecta_booking_earliest('["Tyres"]','2026-10-20 06:00Z')=date '2026-10-22';
+ assert public.vecta_booking_earliest('["Tyres"]','2026-10-20 08:00Z')=date '2026-10-23';
  -- Tuesday's resulting load, not just its previous percentage, is bounded.
  assert extract(isodow from d)=2;
  insert into public.jobs(id,booking_date,registration,customer_name,work_required,status,technician,estimated_hours,drop_time,archived)
