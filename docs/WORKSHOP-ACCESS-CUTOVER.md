@@ -13,11 +13,13 @@ This preserves the existing shared workshop permissions. It does not invent
 individual mechanic identities or change which workshop employee sees finance.
 Individual staff roles can be introduced separately with explicit requirements.
 
-The mechanics aliases serve the established planner from a Workshop Pro
-deployment. The separate-login amendment in `deploy/mechanic-access/README.md`
-changes the login on those hostnames while preserving the existing UI, session
-exchange and workshop permissions. Main keeps its own credentials. This does not
-introduce a new restricted financial-data role.
+The mechanics aliases authenticate separately and rewrite to the distinct
+`mechanic.html` entry, restored from the original standalone mechanics build.
+That entry has Dashboard and Completed Jobs, the mechanics planner and staged
+work completion. Main keeps its management navigation and credentials. See
+`deploy/mechanic-access/README.md` for the recovered source and release checks.
+The existing workshop data role remains shared; UI separation must not be
+represented as a newly implemented financial-data RLS boundary.
 
 ## Ordered deployment
 

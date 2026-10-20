@@ -260,8 +260,10 @@ root.enrichHaynesInvoice=function(sheet,invoice){
 root.initHaynesJobTools=function(modal){
  modal?.classList.remove('registrationBooking');
  const section=modal?.querySelector('.jobVehicleSection'),input=modal?.querySelector('#job_registration');
- if(!section||!input||section.querySelector('.haynesJobTools'))return;
+ if(!section||!input||modal.querySelector('.haynesJobTools'))return;
  const header=modal.querySelector('.jobModalHead');
+ const mechanic=root.VECTA_MECHANIC_DEPLOYMENT===true;
+ modal.querySelector('.jobModalCard')?.classList.toggle('mechanicJobCard',mechanic);
  const heading=document.createElement('div');heading.className='jobCardHeaderHeading';
  const plate=document.createElement('div');plate.className='jobCardHeaderRegistration';plate.setAttribute('aria-label','Vehicle registration');
  const vehicleTitle=document.createElement('strong');vehicleTitle.className='jobCardHeaderModel';
@@ -285,7 +287,7 @@ root.initHaynesJobTools=function(modal){
     const support=child.matches('.jobContactSection,.jobPreviousWorkSection,.privatePricingSection')||!!child.querySelector('.jobPartsEditor');
     (support?aside:main).appendChild(child);
    });
-   const contact=aside.querySelector('.jobContactSection');if(contact)details.appendChild(contact);
+   const contact=aside.querySelector('.jobContactSection');if(contact)(mechanic?header:details).appendChild(contact);
    sections.append(main,aside);
    const parts=aside.querySelector('.jobPartsEditor')?.closest('.jobFormSection'),pricing=aside.querySelector('.privatePricingSection');
    if(parts)main.appendChild(parts);
@@ -313,7 +315,7 @@ root.initHaynesJobTools=function(modal){
  }
  const panel=document.createElement('div');panel.className='haynesJobTools';
  panel.innerHTML='<button type="button" class="btn">Find vehicle in HaynesPro</button><span role="status" aria-live="polite"></span><div class="haynesJobVehicle"></div>';
- section.appendChild(panel);
+ if(mechanic&&header)header.appendChild(panel);else section.appendChild(panel);
  const button=panel.querySelector('button'),status=panel.querySelector('[role="status"]'),body=panel.querySelector('.haynesJobVehicle'),noVehicle=modal.querySelector('#job_no_vehicle');
  // Keep the original controls and handlers while arranging the compact header.
  const vehicleField=section.querySelector('#job_vehicle')?.closest('.field');if(vehicleField)vehicleField.hidden=true;

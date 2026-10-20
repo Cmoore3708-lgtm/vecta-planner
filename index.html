@@ -16833,7 +16833,8 @@ window.v290RepairCompletionDates=repairFromBackups;
 (function(){
   'use strict';
   try {
-    var IS_MECHANIC = window.VECTA_MECHANIC_DEPLOYMENT === true;
+    var IS_MECHANIC = ['vecta-mechanic-dashboard.vercel.app','vecta-mechanic-dashboard-vectaplanner.vercel.app'].indexOf(window.location.hostname)>=0 || window.location.pathname==='/mechanic.html';
+    window.VECTA_MECHANIC_DEPLOYMENT = IS_MECHANIC;
     var WORK_COMPLETE = 'work_complete';
 
     function liveJob(id){
@@ -16896,26 +16897,25 @@ window.v290RepairCompletionDates=repairFromBackups;
 
           if(IS_MECHANIC){
             /* Mechanics must not use the management completion/invoice workflow. */
-            ['markComplete','markReady','createInvoiceFromJob'].forEach(function(btnId){
-              var b=document.getElementById(btnId); if(b) b.style.display='none';
+            ['markComplete','markReady','createInvoiceFromJob','deleteJob','undoJobCompletion','returnToMechanic'].forEach(function(btnId){
+              var b=document.getElementById(btnId); if(b) b.remove();
             });
-            if(!isWorkComplete(job) && String(job.status||'').toLowerCase()!=='completed' && !job.archived){
+            if(!isWorkComplete(job) && ['completed','quote'].indexOf(String(job.status||'').toLowerCase())<0 && !job.archived){
               var complete=document.createElement('button');
               complete.type='button';
               complete.id='v280MechanicWorkComplete';
               complete.className='btn v280MechanicComplete';
-              complete.textContent='✓ Mark work complete';
-              complete.onclick=function(){
-                var current=liveJob(id); if(!current) return;
-                if(typeof showTowbarRemovalReminder==='function')showTowbarRemovalReminder(current);
-                current.status=WORK_COMPLETE;
-                current.archived=false;
-                /* Never create a final completion timestamp at the mechanic stage. */
-                current.completed_at='';
-                current.updated_at=new Date().toISOString();
-                if(typeof updateJobQuick==='function') updateJobQuick(current);
-                if(typeof closeModals==='function') closeModals();
-                if(typeof render==='function') render();
+              complete.textContent='Complete';
+              complete.onclick=async function(){
+                var current=liveJob(id); if(!current||complete.disabled) return;
+                var status=document.getElementById('job_status');if(!status)return;
+                var previousStatus=status.value;
+                complete.disabled=true;complete.textContent='Saving...';
+                status.value=WORK_COMPLETE;
+                try{
+                  if(await saveJob(id)!==true){status.value=previousStatus;return;}
+                  if(typeof showTowbarRemovalReminder==='function')showTowbarRemovalReminder(current);
+                }finally{complete.disabled=false;complete.textContent='Complete';}
               };
               foot.insertBefore(complete,foot.firstChild);
             }

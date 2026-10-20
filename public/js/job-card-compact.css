@@ -457,3 +457,27 @@
  #jobModal .jobCardHeaderDetails>.jobVehicleSection{padding-top:3px!important;padding-bottom:3px!important}
  #jobModal .jobCardHeaderDetails>.jobContactSection{padding-top:4px!important;padding-bottom:4px!important}
 }
+
+/* Mechanics use the existing editor, with hidden values retained for safe saves. */
+#jobModal .mechanicJobCard .jobTypeSelectHelp,
+#jobModal .mechanicJobCard .templateBtns,
+#jobModal .mechanicJobCard .bookingAvailabilityWorkspace,
+#jobModal .mechanicJobCard .bookingCapacityLauncher,
+#jobModal .mechanicJobCard .privatePricingSection{display:none!important}
+#jobModal .mechanicJobCard .jobCardSections{grid-template-columns:minmax(0,1fr)!important}
+#jobModal .mechanicJobCard .jobWorkSection #job_work_required{width:100%;min-height:220px!important;height:220px;padding:14px!important;font-size:20px!important;line-height:1.5!important;resize:vertical}
+#jobModal .mechanicJobCard .jobModalHead.jobCardPinnedHeader{grid-template-rows:auto minmax(0,1fr) auto auto!important;overflow-y:auto!important}
+#jobModal .mechanicJobCard .jobModalHead>.jobCardHeaderDetails{grid-column:1;grid-row:2!important}
+#jobModal .mechanicJobCard .jobModalHead>.jobCardHeaderVehicle{grid-column:2!important;grid-row:1/3!important}
+#jobModal .mechanicJobCard .jobModalHead>.jobModalHeadActions{grid-column:1/-1!important;grid-row:4!important}
+#jobModal .mechanicJobCard .jobModalHead>.haynesJobTools{grid-column:1;grid-row:3;align-self:start;min-width:0}
+#jobModal .mechanicJobCard .jobModalHead>.jobContactSection{grid-column:2;grid-row:3;margin:0!important;min-width:0}
+#jobModal .mechanicJobCard .jobModalHead>.jobContactSection .jobSectionGrid{grid-template-columns:repeat(2,minmax(0,1fr))!important}
+#jobModal .mechanicJobCard .v280MechanicComplete{margin-left:auto;min-width:140px;min-height:44px;font-size:17px!important}
+@media screen and (max-width:700px){
+ #jobModal .mechanicJobCard .jobModalHead>.jobCardHeaderDetails{grid-column:1/-1;grid-row:3!important}
+ #jobModal .mechanicJobCard .jobModalHead>.haynesJobTools{grid-column:1/-1;grid-row:4}
+ #jobModal .mechanicJobCard .jobModalHead>.jobContactSection{grid-column:1/-1;grid-row:5}
+ #jobModal .mechanicJobCard .jobModalHead>.jobModalHeadActions{grid-column:1!important;grid-row:2!important}
+ #jobModal .mechanicJobCard .jobWorkSection #job_work_required{font-size:18px!important;min-height:200px!important}
+}

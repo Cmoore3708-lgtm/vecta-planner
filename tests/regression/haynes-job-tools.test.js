@@ -8,8 +8,9 @@ import traverseModule from '@babel/traverse';
 const traverse=traverseModule.default||traverseModule;
 const source=readFileSync(new URL('../../public/js/haynes-job-tools.js',import.meta.url),'utf8');
 const vehicle={registration:'FX69XWU',make:'Nissan',model:'Qashqai',variant:'1.7 dCi',typeId:'t_301000368',imageUrl:'https://www.haynespro-assets.com/workshop/images/123.svg',fetchedAt:new Date().toISOString()};
-function setup(fetcher,artwork,identities,explicitLookup=true,extraFields=''){const {window,document}=parseHTML('<html><body><div id="modal"><div class="jobModalHead"><h2>Edit Job</h2><div class="jobModalHeadActions"><button>Close</button></div></div><section class="jobVehicleSection"><input id="job_registration" value="FX69 XWU"><input id="job_make" value="Nissan"><input type="checkbox" id="job_no_vehicle">'+extraFields+'</section><div class="jobCardSections"><section class="jobWorkSection"></section><section class="jobPreviousWorkSection"></section><section class="jobContactSection"></section><section class="jobBookingSection"><div class="bookingAvailabilityWorkspace"></div></section><section class="jobFormSection"><div class="jobPartsEditor"></div></section><section class="privatePricingSection"></section></div><button id="save">Save</button></div></body></html>');delete window.VectaVehicleImage;delete window.app;delete window.fleetVehicles;window.fetch=fetcher;if(identities)window.localStorage={getItem:key=>key==='vecta_haynes_vehicle_identity_v1'?JSON.stringify(identities):null,setItem(){}};window.VectaFleetImages={artwork};vm.runInNewContext(source,{window,document,AbortController,AbortSignal,setTimeout,clearTimeout,encodeURIComponent});window.initHaynesJobTools(document.querySelector('#modal'));if(explicitLookup)document.querySelector('.jobHeaderHaynesLookup').onclick();return {window,document,panel:document.querySelector('.haynesJobTools')};}
+function setup(fetcher,artwork,identities,explicitLookup=true,extraFields='',mechanic=false){const {window,document}=parseHTML('<html><body><div id="modal"><div class="jobModalHead"><h2>Edit Job</h2><div class="jobModalHeadActions"><button>Close</button></div></div><section class="jobVehicleSection"><input id="job_registration" value="FX69 XWU"><input id="job_make" value="Nissan"><input type="checkbox" id="job_no_vehicle">'+extraFields+'</section><div class="jobCardSections"><section class="jobWorkSection"></section><section class="jobPreviousWorkSection"></section><section class="jobContactSection"></section><section class="jobBookingSection"><div class="bookingAvailabilityWorkspace"></div></section><section class="jobFormSection"><div class="jobPartsEditor"></div></section><section class="privatePricingSection"></section></div><button id="save">Save</button></div></body></html>');const card=document.createElement('div');card.className='jobModalCard';card.append(...document.querySelector('#modal').children);document.querySelector('#modal').append(card);window.VECTA_MECHANIC_DEPLOYMENT=mechanic;delete window.VectaVehicleImage;delete window.app;delete window.fleetVehicles;window.fetch=fetcher;if(identities)window.localStorage={getItem:key=>key==='vecta_haynes_vehicle_identity_v1'?JSON.stringify(identities):null,setItem(){}};window.VectaFleetImages={artwork};vm.runInNewContext(source,{window,document,AbortController,AbortSignal,setTimeout,clearTimeout,encodeURIComponent});window.initHaynesJobTools(document.querySelector('#modal'));if(explicitLookup)document.querySelector('.jobHeaderHaynesLookup').onclick();return {window,document,panel:document.querySelector('.haynesJobTools')};}
 const lookupButton=panel=>panel.ownerDocument.querySelector('.jobHeaderHaynesLookup');
+
 const response=v=>({ok:true,json:async()=>({status:'MATCHED',vehicle:v})});
 test('vehicle details sit below the single editable header registration',async()=>{
  const {window,document}=setup(async()=>response(vehicle));
@@ -317,6 +318,14 @@ test('opening and editing a job never starts a decorative lookup when no image i
  const input=s.document.querySelector('#job_registration');input.value='J321 WPC';input.dispatchEvent(new s.window.Event('change'));await new Promise(r=>setTimeout(r,800));assert.equal(calls,0);
 });
 
+test('mechanics keep the original editable contacts below the artwork and retain hidden pricing inputs',()=>{
+ const {document}=setup(async()=>response(vehicle),undefined,undefined,false,'',true);
+ assert.ok(document.querySelector('.jobModalCard').classList.contains('mechanicJobCard'));
+ assert.equal(document.querySelector('.jobContactSection').parentElement,document.querySelector('.jobModalHead'));
+ assert.equal(document.querySelector('.haynesJobTools').parentElement,document.querySelector('.jobModalHead'));
+ assert.ok(document.querySelector('.privatePricingSection'),'retained for the existing gather/save pipeline');
+ assert.ok(document.querySelector('.jobWorkSection'));
+});
 test('compact vehicle facts preserve the hidden vehicle and mileage across due-date refreshes',()=>{
  const {document}=setup(async()=>response(vehicle),undefined,undefined,false,'<div class="field"><label>Vehicle</label><input id="job_vehicle" value="Qashqai"></div><div class="field"><label>Last MOT mileage</label><input id="job_mileage" value="60210"></div><div id="jobVehicleDuePanel"><div>MOT</div></div>');
  assert.equal(document.querySelector('#job_vehicle').closest('.field').hidden,true);
@@ -325,4 +334,5 @@ test('compact vehicle facts preserve the hidden vehicle and mileage across due-d
  assert.equal(due.nextElementSibling,mileage.closest('.field'));
  due.innerHTML='<div>Refreshed MOT</div>';
  assert.equal(mileage.value,'60210');assert.equal(mileage.isConnected,true);
+
 });
