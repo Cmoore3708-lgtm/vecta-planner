@@ -68,8 +68,8 @@ function functionSource(name) {
 assert.doesNotMatch(html, /blocked incomplete jobs refresh/);
 assert.match(html, /deletionStamp<Date\.parse\('2026-08-26T00:00:00Z'\)/);
 assert.match(html, /await vectaWriteTerminalJobState\(j,'deleted'/);
-assert.match(html, /VECTA_APP_VERSION='v373-mobile-booking-consistency'/);
-assert.match(html, /service-worker\.js\?v=20261013-mobile-booking-consistency-v373/);
+assert.match(html, /VECTA_APP_VERSION='v374-contractor-startup'/);
+assert.match(html, /service-worker\.js\?v=20261020-contractor-startup-v374/);
 assert.equal((html.match(/serviceWorker\.register\(/g) || []).length, 1);
 assert.equal((html.match(/addEventListener\('controllerchange'/g) || []).length, 1);
 assert.doesNotMatch(html, /navigator\.serviceWorker\.register\('\/service-worker\.js'/);
