@@ -50,6 +50,7 @@ function contextWith(names, extras = {}) {
     ['fleetEomNextMonth', 'fleetEomBillingMonth', 'fleetEomHoldMarker', 'fleetEomBillMonthMarker', 'fleetEomIsHeld', 'fleetEomHoldJob'],
     {
       app,
+      vectaActiveInvoices:()=>[],
       financeCompletedDate: job => job.completed_at,
       saveLocal: () => { saves += 1; },
       render: () => { renders += 1; },

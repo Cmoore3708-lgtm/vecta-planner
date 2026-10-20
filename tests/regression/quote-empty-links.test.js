@@ -16,7 +16,7 @@ function setup(){
  const writes=[],rows=new Map();let failNext=false;
  const ctx={VECTA_AUDIT_PREVIEW:false,navigator:{onLine:true},window:{},app:{jobs:[]},console:{warn(){},error(){}},
  isUuid:value=>/^[0-9a-f-]{36}$/i.test(value),vectaGuardJobUpsert:async()=>({allow:true}),
- vectaStripKnownMissingColumns:(_t,row)=>row,schemaColumnFromError:()=>null,shouldQueueRemoteFailure:()=>false,
+ vectaPendingSync:()=>[],vectaStripKnownMissingColumns:(_t,row)=>row,schemaColumnFromError:()=>null,shouldQueueRemoteFailure:()=>false,
  vectaJobHasFinancialValue:()=>false,jobCompletionEvidence:()=>false,persistMainSettings:async()=>true,
  rememberJobCustomer:async()=>{throw Error('A quote must not create a customer record');},
  saveLocal(){},updateConnectivityUI(){},scheduleCloudRefresh(){},setTimeout(){},
@@ -40,7 +40,7 @@ test('a new quote with empty optional UUID links is confirmed without creating m
  assert.equal(JSON.stringify(job),before);
 });
 test('valid existing links are retained; whitespace-only links become NULL',async()=>{
- const {ctx,writes}=setup();await ctx.upsertRemote('jobs',quote({customer_id:customer,vehicle_id:'  '}),{silent:true});
+ const {ctx,writes}=setup();await ctx.upsertRemote('jobs',quote({customer_id:customer,vehicle_id:'  '}),{silent:true,jobWriteIntent:'create'});
  assert.equal(writes[0].data.customer_id,customer);assert.equal(writes[0].data.vehicle_id,null);
 });
 test('a failed quote save remains retryable under the same ID without duplicate records',async()=>{
@@ -50,5 +50,5 @@ test('a failed quote save remains retryable under the same ID without duplicate 
  assert.equal(writes[0].data.id,writes[1].data.id);
 });
 test('invalid non-empty IDs still fail instead of silently dropping a customer link',async()=>{
- const {ctx,rows}=setup();await assert.rejects(()=>ctx.upsertRemote('jobs',quote({customer_id:'not-a-uuid'}),{silent:true}),e=>/uuid/.test(e.message));assert.equal(rows.size,0);
+ const {ctx,rows}=setup();await assert.rejects(()=>ctx.upsertRemote('jobs',quote({customer_id:'not-a-uuid'}),{silent:true,jobWriteIntent:'create'}),e=>/uuid/.test(e.message));assert.equal(rows.size,0);
 });
