@@ -587,3 +587,24 @@
  #jobModal .jobCardSimplified .jobCardTopActions:empty{display:none!important}
  #jobModal .jobCardSimplified .jobVehicleSection>.jobFormSectionHead,#jobModal .jobCardSimplified .jobVehicleSection .jobSectionNumber{display:none!important}
 }
+
+/* Give identity explicit tracks: a third flex item must never squeeze the model. */
+@media screen{
+ #jobModal .jobCardSimplified .jobModalHead.jobCardPinnedHeader{height:auto!important;max-height:none!important;flex:0 0 auto!important}
+ #jobModal .jobCardSimplified .jobModalHead.jobCardPinnedHeader>.jobCardHeaderHeading{display:grid!important;grid-template-columns:max-content minmax(0,1fr)!important;grid-template-rows:auto auto!important;align-items:center!important;min-width:0!important;width:100%;box-sizing:border-box}
+ #jobModal .jobCardSimplified .jobCardHeaderRegistration{grid-column:1;grid-row:1;min-width:0!important}
+ #jobModal .jobCardSimplified .jobCardHeaderModel{grid-column:2;grid-row:1;display:block;min-width:0!important;width:auto!important;white-space:normal!important;word-break:normal!important;overflow-wrap:break-word!important;writing-mode:horizontal-tb!important;line-height:1.2!important}
+ #jobModal .jobCardSimplified .jobHeaderHaynesRow{grid-column:2;grid-row:2;width:auto!important;min-width:0;max-width:100%;margin:4px 0 0!important}
+ #jobModal .jobCardSimplified .jobHeaderHaynesLookup{white-space:normal!important;max-width:100%}
+ #jobModal .jobCardSimplified #jobPreviousWorkSection{grid-column:1/-1!important;justify-self:end;width:calc(50% - 6px)!important;box-sizing:border-box;margin:0!important}
+ #jobModal .jobCardSimplified .jobCardHeaderDetails .jobVehicleSection{border:0!important;border-radius:0!important;box-shadow:none!important;background:transparent!important;min-height:0!important}
+ #jobModal .jobCardSimplified .jobCardHeaderDetails .jobVehicleSection .jobSectionGrid{border:0!important;border-radius:0!important;box-shadow:none!important;min-height:0!important}
+ #jobModal .jobCardSimplified .dvsaLookupStatus:empty,#jobModal .jobCardSimplified .haynesJobTools:has(>[role=status]:empty):not(:has(.haynesJobVehicle>div,.haynesJobVehicle>a)){display:none!important}
+}
+@media screen and (max-width:700px){
+ #jobModal .jobCardSimplified .jobModalHead.jobCardPinnedHeader>.jobCardHeaderHeading{grid-template-columns:minmax(0,1fr)!important}
+ #jobModal .jobCardSimplified .jobCardHeaderRegistration{grid-column:1;grid-row:1}
+ #jobModal .jobCardSimplified .jobCardHeaderModel{grid-column:1;grid-row:2}
+ #jobModal .jobCardSimplified .jobHeaderHaynesRow{grid-column:1;grid-row:3}
+ #jobModal .jobCardSimplified #jobPreviousWorkSection{width:100%!important}
+}
