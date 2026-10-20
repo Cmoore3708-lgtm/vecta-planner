@@ -36,3 +36,13 @@ Chris confirms Enquiry (image/tab to the right of the car) must be opened before
 ## Live v3 success and remaining settings check
 
 The returned report proves 225/45R17 -> 46 products and 205/55R16 -> 49 products, including Sellout samples. Product descriptions contain hidden SKU prefixes and duplicate tooltip text; the reader now strips both and rejects conflicting sizes. Initial field inventory reports VAT/Sellout checked, but the generic ID-based structure reader reports false. Duplicate hidden input IDs are a hypothesis, not yet proven: v4 targets checkbox inputs explicitly and fails ambiguous state. It records clean per-product guide catalogue data (without trade costs) for the two test sizes. No public price is authorised by these results until settings and price list pass verification. Brand tier mapping, special-tyre eligibility, stock fulfilment semantics and website transport remain outstanding.
+
+## V4 verified settings and proposed tier selection
+
+The uploaded report confirms one actual checkbox per setting, Sellout=true, VAT=true, Vecta price list and multiplier=1, before and after both searches. V4 captures 46 and 49 normalised catalogue rows. These are retained as a limited fixture without account/session or cost data.
+
+`tiers.mjs` adds proposed configurable Vecta brand merchandising groups and narrow model-scoped supplier aliases. These are business rules for review, not supplier-certified categories. Clearly marked run-flat, winter and all-season products are excluded from the standard guide selection. Unknown aliases stay unclassified; selected products remain specificationUnverified until Chris checks the actual vehicle. Default stock is used conservatively without adding Company stock; its fulfilment meaning still needs confirming before live enablement.
+
+Captured one-tyre results using these draft rules: 205/55R16 = Comforser £62, Lassa £74, Pirelli £95; 225/45R17 = Massimo £65, Kumho £82, Pirelli £105. Four 205/55R16 tyres instead choose the £101 Pirelli because the £95 line has only one unit. All amounts are unchanged Sellout values.
+
+There are now 40 targeted tests, plus a dedicated read-only CI workflow. Website transport, booking persistence and public enablement are still not implemented. The interactive review artifact uses captured data, explicitly marked as a snapshot, and cannot book/order tyres.

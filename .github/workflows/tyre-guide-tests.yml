@@ -1,0 +1,20 @@
+name: Tyre guide worker checks
+on:
+  pull_request:
+    paths: ['workers/tyres/**', '.github/workflows/tyre-guide-tests.yml']
+  push:
+    branches: ['amendment/tyre-guide-worker']
+    paths: ['workers/tyres/**', '.github/workflows/tyre-guide-tests.yml']
+permissions:
+  contents: read
+jobs:
+  tyre-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - run: node --test workers/tyres/*.test.mjs
