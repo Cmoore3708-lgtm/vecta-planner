@@ -17,8 +17,10 @@ test('vehicle details sit below the single editable header registration',async()
  await new Promise(r=>setImmediate(r));
  const heading=document.querySelector('.jobCardHeaderHeading'),input=document.querySelector('#job_registration');
  assert.equal(document.querySelectorAll('#job_registration').length,1);
- assert.equal(document.querySelector('.jobModalHeadActions').parentElement,heading);
- assert.equal(document.querySelector('.jobHeaderHaynesLookup').parentElement,heading.querySelector('.jobModalHeadActions'));
+ assert.equal(document.querySelector('.jobModalHeadActions').parentElement,heading.parentElement);
+ assert.equal(heading.parentElement.firstElementChild,document.querySelector('.jobCardTopActions'));
+ assert.equal(document.querySelector('#job_no_vehicle').hidden,true);
+ assert.equal(document.querySelector('.jobHeaderHaynesLookup').parentElement,document.querySelector('.jobCardTopActions'));
  assert.equal(input.closest('.jobCardHeaderRegistration').parentElement,heading);
  assert.equal(document.querySelector('.jobCardHeaderDetails .jobVehicleSection').closest('.jobModalHead'),heading.parentElement);
  assert.ok(heading.parentElement.classList.contains('jobCardPinnedHeader'));
@@ -34,6 +36,7 @@ test('vehicle details sit below the single editable header registration',async()
  input.value='AB12 XYZ';input.dispatchEvent(new window.Event('input'));
  assert.equal(document.querySelector('#job_registration'),input);
  assert.equal(input.value,'AB12 XYZ');
+ input.value='';input.dispatchEvent(new window.Event('input'));assert.equal(document.querySelector('#job_no_vehicle').hidden,false);input.value='AB12 XYZ';input.dispatchEvent(new window.Event('input'));assert.equal(document.querySelector('#job_no_vehicle').hidden,true);
  document.querySelector('#job_no_vehicle').checked=true;
  document.querySelector('#job_no_vehicle').dispatchEvent(new window.Event('change'));
  assert.equal(input.closest('.jobCardHeaderRegistration').hidden,true);
@@ -341,7 +344,7 @@ test('compact vehicle facts preserve the hidden vehicle and mileage across due-d
 
 test('current odometer input sits beside last MOT mileage, stays empty for old MOT mileage and restores confirmed mileage',()=>{
  const old=setup(async()=>response(vehicle),undefined,undefined,false,'<input type="hidden" id="job_customer_note" value=""><div class="field"><label>Last MOT Mileage</label><input id="job_mileage" value="50000"></div>');
- const input=old.document.querySelector('#job_current_mileage');assert.ok(input);assert.equal(input.value,'');assert.equal(input.closest('.jobCurrentMileageField').previousElementSibling,old.document.querySelector('#job_mileage').closest('.field'));assert.equal(input.closest('.jobVehicleQuickFacts').parentElement,old.document.querySelector('.jobModalHead'));assert.equal(old.document.querySelector('#job_mileage').value,'50000');
+ const input=old.document.querySelector('#job_current_mileage');assert.ok(input);assert.equal(input.value,'');assert.equal(input.placeholder,'');assert.equal(input.closest('.jobCurrentMileageField').previousElementSibling,old.document.querySelector('#job_mileage').closest('.field'));assert.equal(input.closest('.jobVehicleQuickFacts').parentElement,old.document.querySelector('.jobModalHead'));assert.equal(old.document.querySelector('#job_mileage').value,'50000');
  const saved=setup(async()=>response(vehicle),undefined,undefined,false,'<input type="hidden" id="job_customer_note" value="[[VECTA_CURRENT_MILEAGE:54321]]">');assert.equal(saved.document.querySelector('#job_current_mileage').value,'54321');
  const unknown=setup(async()=>response(vehicle),undefined,undefined,false,'<input type="hidden" id="job_customer_note" value="[[VECTA_CURRENT_MILEAGE_UNKNOWN]]">');const field=unknown.document.querySelector('#job_current_mileage');assert.equal(field.dataset.mileageUnknown,'true');assert.equal(field.placeholder,'Mileage unknown');field.value='61234';field.dispatchEvent(new unknown.window.Event('input'));assert.equal(field.dataset.mileageUnknown,undefined);
 });

@@ -264,6 +264,7 @@ root.initHaynesJobTools=function(modal){
  const header=modal.querySelector('.jobModalHead');
  const mechanic=root.VECTA_MECHANIC_DEPLOYMENT===true;
  modal.querySelector('.jobModalCard')?.classList.toggle('mechanicJobCard',mechanic);
+ modal.querySelector('.jobModalCard')?.classList.add('jobCardSimplified');
  const heading=document.createElement('div');heading.className='jobCardHeaderHeading';
  const plate=document.createElement('div');plate.className='jobCardHeaderRegistration';plate.setAttribute('aria-label','Vehicle registration');
  const vehicleTitle=document.createElement('strong');vehicleTitle.className='jobCardHeaderModel';
@@ -291,10 +292,10 @@ root.initHaynesJobTools=function(modal){
    if(contact){
     const field=document.createElement('div');field.className='field jobCurrentMileageField';
     const label=document.createElement('label');label.htmlFor='job_current_mileage';label.textContent='Enter current mileage';
-    const mileageInput=document.createElement('input');mileageInput.id='job_current_mileage';mileageInput.type='text';mileageInput.inputMode='numeric';mileageInput.autocomplete='off';mileageInput.placeholder='Enter current mileage';mileageInput.setAttribute('aria-label','Enter current mileage');mileageInput.setAttribute('aria-required',String(typeof root.currentJobMileageRequired==='function'?root.currentJobMileageRequired({job_type:modal.querySelector('#job_job_type')?.value}):true));
+    const mileageInput=document.createElement('input');mileageInput.id='job_current_mileage';mileageInput.type='text';mileageInput.inputMode='numeric';mileageInput.autocomplete='off';mileageInput.placeholder='';mileageInput.setAttribute('aria-label','Enter current mileage');mileageInput.setAttribute('aria-required',String(typeof root.currentJobMileageRequired==='function'?root.currentJobMileageRequired({job_type:modal.querySelector('#job_job_type')?.value}):true));
     const note=modal.querySelector('#job_customer_note')?.value||'';const saved=note.match(/\[\[VECTA_CURRENT_MILEAGE:(\d+)\]\]/);mileageInput.value=saved?saved[1]:'';if(!saved&&/\[\[VECTA_CURRENT_MILEAGE_UNKNOWN\]\]/.test(note)){mileageInput.dataset.mileageUnknown='true';mileageInput.placeholder='Mileage unknown';}
     const noVehicle=modal.querySelector('#job_no_vehicle');const toggleMileage=()=>{field.hidden=!!noVehicle?.checked;mileageInput.disabled=field.hidden;};toggleMileage();noVehicle?.addEventListener('change',toggleMileage);
-    mileageInput.addEventListener('input',()=>{delete mileageInput.dataset.mileageUnknown;mileageInput.placeholder='Enter current mileage';mileageInput.classList.remove('requiredMissing');mileageInput.removeAttribute('aria-invalid');});
+    mileageInput.addEventListener('input',()=>{delete mileageInput.dataset.mileageUnknown;mileageInput.placeholder='';mileageInput.classList.remove('requiredMissing');mileageInput.removeAttribute('aria-invalid');});
     field.append(label,mileageInput);contact.after(field);
    }
    sections.append(main,aside);
@@ -335,19 +336,22 @@ root.initHaynesJobTools=function(modal){
   if(due){due.before(facts);facts.appendChild(due);}else mileage.before(facts);
   facts.appendChild(mileage);
   const currentMileage=modal.querySelector('.jobCurrentMileageField');if(currentMileage)facts.appendChild(currentMileage);
-  // Facts use the whole header width, independent of the artwork column.
+  // Facts align with the customer details in the left header column.
   if(header)header.appendChild(facts);
  }
  if(header){
   let actions=header.querySelector('.jobModalHeadActions');
   if(!actions){actions=document.createElement('div');actions.className='jobModalHeadActions';}
-  button.classList.add('jobHeaderHaynesLookup');actions.prepend(button);heading.appendChild(actions);
+  button.classList.add('jobHeaderHaynesLookup');actions.prepend(button);actions.classList.add('jobCardTopActions');header.prepend(actions);
  }
 
  let sequence=0,refreshTimer;
  function showGeneric(){if(noVehicle?.checked)return;const v=genericImage({make:modal.querySelector('#job_make')?.value,model:modal.querySelector('#job_model')?.value,vehicle:modal.querySelector('#job_vehicle')?.value}),img=thumbnail(v,'haynesJobGenericImage',{registration:current()});if(img){body.replaceChildren(img);return true;}return false;}
  const current=()=>reg(input.value);
- function clear(){showHeaderVehicle();sequence++;clearTimeout(refreshTimer);body.replaceChildren();status.textContent='';button.disabled=!!noVehicle?.checked;button.textContent='Find vehicle in HaynesPro';showGeneric();}
+ function clear(){
+  const noVehicleControl=noVehicle?.closest('.noVehicleToggle')||noVehicle;
+  if(noVehicleControl){const selected=!!current()||!!String(modal.querySelector('#job_vehicle')?.value||'').trim().replace(/^No Vehicle$/i,'');noVehicleControl.hidden=selected&&!noVehicle.checked;}
+  showHeaderVehicle();sequence++;clearTimeout(refreshTimer);body.replaceChildren();status.textContent='';button.disabled=!!noVehicle?.checked;button.textContent='Find vehicle in HaynesPro';showGeneric();}
  function changed(){clear();}
  const shared=hydrateSharedArtwork();if(shared)shared.then(()=>{if(modal.isConnected)showHeaderVehicle();});
  input.addEventListener('input',changed);input.addEventListener('change',changed);for(const selector of ['#job_vehicle','#job_model','#job_make']){const field=modal.querySelector(selector);field?.addEventListener('change',changed);}noVehicle?.addEventListener('change',changed);clear();
