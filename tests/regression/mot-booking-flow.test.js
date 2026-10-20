@@ -9,7 +9,7 @@ test('advisories repeat at appointment choice with the question only on step 3',
  vm.runInContext(fn(booking,'advisoryListHtml')+'\n'+fn(booking,'advisoryQuestionHtml'),context);
  const first=context.advisoryListHtml(),third=context.advisoryListHtml(true);
  assert.match(first,/Latest MOT advisories/);assert.doesNotMatch(first,/Would you like/);
- assert.match(third,/These advisories were recommended on your last MOT:/);assert.match(third,/Would you like/);assert.match(third,/data-advisory-choice="yes" class="selected"/);
+ assert.match(third,/THESE ADVISORIES WERE RECOMMENDED ON YOUR LAST MOT/);assert.match(third,/Would you like/);assert.match(third,/data-advisory-choice="yes" class="selected"/);
  assert.ok(booking.indexOf('advisoryListHtml(true)')<booking.indexOf('<span class="kicker">STEP 3 OF 5'));
 });
 test('selecting MOT allocates Chris but removing MOT preserves the current mechanic',()=>{
