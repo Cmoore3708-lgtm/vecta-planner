@@ -106,7 +106,7 @@ test('a temporary lookup failure retries once while the customer still sees a pu
  document.querySelector('main').innerHTML=context.tyreOptionsHtml();context.bindTyreCards();context.bindTyreSearch();
  try{
   document.querySelector('[data-tyre-check]').click();await tick();const status=document.querySelector('#tyreGuideStatus');
-  assert.equal(status.classList.contains('is-checking'),true);assert.match(status.textContent,/Checking fully fitted prices/);
+  assert.equal(status.classList.contains('is-checking'),true);assert.match(status.textContent,/Checking live database for availability & prices\./);
   pending[0].resolve({status:'UNAVAILABLE'});await tick();assert.equal(pending.length,2);assert.deepEqual(pending[0].body,pending[1].body);
   assert.equal(status.classList.contains('is-checking'),true);assert.doesNotMatch(status.textContent,/unavailable/);
   pending[1].resolve(payload());await tick();assert.equal(status.classList.contains('is-checking'),false);assert.equal(form.tyre_guide.unitPence,6200);
