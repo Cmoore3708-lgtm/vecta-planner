@@ -34,7 +34,7 @@
 /* Original brand artwork, contained at its native aspect ratio. */
 .tyre-option .tyre-brand-logo{display:flex;align-items:center;justify-content:center;width:calc(100% - 12px);max-width:160px;height:48px;margin:12px auto 0;padding:6px 10px;border-radius:6px;background:#686b72;box-sizing:border-box;isolation:isolate}
 .tyre-option .tyre-brand-logo[hidden]{display:none}
-.tyre-option .tyre-brand-logo img{display:block;max-width:100%;width:auto;height:auto;max-height:100%;object-fit:contain;mix-blend-mode:multiply}
+.tyre-option .tyre-brand-logo img{display:block;max-width:100%;width:auto;height:auto;max-height:100%;object-fit:contain}
 .tyre-option .tyre-brand-logo:not([hidden])+.tyre-guide-brand{display:none}
 .tyre-option .tyre-guide-brand{font-size:18px;font-weight:900;color:#fff;letter-spacing:.4px;line-height:1.25;margin-top:14px;white-space:normal;overflow-wrap:anywhere}
 @media(max-width:760px){.tyre-option .tyre-guide-brand{font-size:14px}}
