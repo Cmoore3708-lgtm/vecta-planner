@@ -1,5 +1,9 @@
 (function(root){
  'use strict';
+ const logoBrands=new Set('accelera bridgestone continental cooper dunlop falken goodyear hankook imperial kumho lassa michelin nankang pirelli radar toyo uniroyal vredestein yokohama'.split(' '));
+ function brandLogo(brand){const key=String(brand||'').trim().toLowerCase().replace(/\s+(?:tyres?|tires?)$/,'');return logoBrands.has(key)?`<span class="tyre-brand-logo"><img src="/assets/tyre-brands/${key}.png" alt="" width="130" height="40" loading="lazy" decoding="async"></span>`:'';}
+ // Preserve the readable brand name below if a cached asset cannot be loaded.
+ root.document?.addEventListener('error',event=>{const img=event.target;if(img?.parentElement?.classList.contains('tyre-brand-logo'))img.parentElement.hidden=true;},true);
  const categories=['budget','midrange','premium'];
  function sizeKey(value){const m=String(value||'').trim().match(/^(\d{3})\s*[/ ]\s*(\d{2})\s*(?:R|[/ ])\s*(\d{2})$/i);if(!m)return null;const [w,p,r]=m.slice(1).map(Number);return w>=125&&w<=355&&w%5===0&&p>=20&&p<=85&&p%5===0&&r>=10&&r<=24?`${w}/${p}R${r}`:null;}
  function cleanResult(data,size,quantity){
@@ -20,5 +24,5 @@
    emit('waiting');timer=setTimeout(async()=>{request=new AbortController();const abort=request;const timeout=setTimeout(()=>abort.abort(),50000);emit('loading');try{let data=await fetchGuide(size,quantity,abort.signal);if(current!==sequence||abort.signal.aborted)return;if(data?.status==='UNAVAILABLE'){data=await fetchGuide(size,quantity,abort.signal);if(current!==sequence||abort.signal.aborted)return;}const result=cleanResult(data,size,quantity);if(cache.size>=30)cache.delete(cache.keys().next().value);cache.set(next,result);emit('matched',result);}catch{if(current===sequence)emit('unavailable');}finally{clearTimeout(timeout);}},delay);
   },dispose(){sequence++;clearTimeout(timer);clearTimeout(expiry);request?.abort();}};
  }
- root.VectaTyreBooking={createController,sizeKey,cleanResult};
+ root.VectaTyreBooking={createController,sizeKey,cleanResult,brandLogo};
 })(typeof window!=='undefined'?window:globalThis);
