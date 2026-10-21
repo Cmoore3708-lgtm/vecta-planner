@@ -1,24 +1,9 @@
 (function(root){
  'use strict';
  const logoBrands=new Set('accelera bridgestone continental cooper dunlop falken goodyear hankook imperial kumho lassa michelin nankang pirelli radar toyo uniroyal vredestein yokohama'.split(' '));
- function brandLogo(brand){const key=String(brand||'').trim().toLowerCase().replace(/\s+(?:tyres?|tires?)$/,'');return logoBrands.has(key)?`<span class="tyre-brand-logo"><img src="/assets/tyre-brands/${key}.png" alt="${key.toUpperCase()}" width="130" height="40" loading="lazy" decoding="async"></span>`:'';}
- // Reveal the bold text fallback if a logo asset cannot be loaded.
- root.document?.addEventListener('error',event=>{const img=event.target;if(img?.parentElement?.classList.contains('tyre-brand-logo'))img.parentElement.hidden=true;},true);
- // Remove only neutral white pixels connected to the image boundary.
- // Keep every foreground RGB value unchanged, including enclosed white artwork.
- function clearLogoBackground(pixels,width,height){
-  const seen=new Uint8Array(width*height),queue=new Int32Array(width*height);let end=0;
-  const add=i=>{if(i<0||i>=seen.length||seen[i])return;seen[i]=1;const p=i*4,r=pixels[p],g=pixels[p+1],b=pixels[p+2];if(pixels[p+3]===0||(Math.min(r,g,b)>=245&&Math.max(r,g,b)-Math.min(r,g,b)<=10)){queue[end++]=i;pixels[p+3]=0;}};
-  for(let x=0;x<width;x++){add(x);add((height-1)*width+x);}for(let y=0;y<height;y++){add(y*width);add(y*width+width-1);}
-  for(let n=0;n<end;n++){const i=queue[n],x=i%width;if(x)add(i-1);if(x<width-1)add(i+1);add(i-width);add(i+width);}
-  return pixels;
- }
- const logoCache=new Map();
- root.document?.addEventListener('load',event=>{
-  const img=event.target;if(!img?.parentElement?.classList.contains('tyre-brand-logo')||img.dataset.backgroundCleaned)return;
-  img.dataset.backgroundCleaned='1';const source=img.currentSrc||img.src;
-  try{let cleaned=logoCache.get(source);if(!cleaned){const canvas=root.document.createElement('canvas');canvas.width=img.naturalWidth;canvas.height=img.naturalHeight;const ctx=canvas.getContext('2d');ctx.drawImage(img,0,0);const data=ctx.getImageData(0,0,canvas.width,canvas.height);clearLogoBackground(data.data,canvas.width,canvas.height);ctx.putImageData(data,0,0);cleaned=canvas.toDataURL('image/png');logoCache.set(source,cleaned);}img.src=cleaned;}catch{/* Keep original artwork if canvas is unavailable. */}
- },true);
+ function brandLogo(brand){const name=String(brand||'').trim(),key=name.toLowerCase().replace(/\s+(?:tyres?|tires?)$/,'');const text=name.replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));return `<span class="tyre-brand-logo">${logoBrands.has(key)?`<img src="/assets/tyre-brands/${key}.png" alt="${text}" width="130" height="40" loading="lazy" decoding="async">`:`<span class="tyre-guide-brand">${text||'&nbsp;'}</span>`}</span>`;}
+ // Keep the same white panel when an image is unavailable.
+ root.document?.addEventListener('error',event=>{const img=event.target;if(img?.parentElement?.classList.contains('tyre-brand-logo')){const fallback=root.document.createElement('span');fallback.className='tyre-guide-brand';fallback.textContent=img.alt;img.replaceWith(fallback);}},true);
  const categories=['budget','midrange','premium'];
  function sizeKey(value){const m=String(value||'').trim().match(/^(\d{3})\s*[/ ]\s*(\d{2})\s*(?:R|[/ ])\s*(\d{2})$/i);if(!m)return null;const [w,p,r]=m.slice(1).map(Number);return w>=125&&w<=355&&w%5===0&&p>=20&&p<=85&&p%5===0&&r>=10&&r<=24?`${w}/${p}R${r}`:null;}
  function cleanResult(data,size,quantity){
@@ -39,5 +24,5 @@
    emit('waiting');timer=setTimeout(async()=>{request=new AbortController();const abort=request;const timeout=setTimeout(()=>abort.abort(),50000);emit('loading');try{let data=await fetchGuide(size,quantity,abort.signal);if(current!==sequence||abort.signal.aborted)return;if(data?.status==='UNAVAILABLE'){data=await fetchGuide(size,quantity,abort.signal);if(current!==sequence||abort.signal.aborted)return;}const result=cleanResult(data,size,quantity);if(cache.size>=30)cache.delete(cache.keys().next().value);cache.set(next,result);emit('matched',result);}catch{if(current===sequence)emit('unavailable');}finally{clearTimeout(timeout);}},delay);
   },dispose(){sequence++;clearTimeout(timer);clearTimeout(expiry);request?.abort();}};
  }
- root.VectaTyreBooking={createController,sizeKey,cleanResult,brandLogo,clearLogoBackground};
+ root.VectaTyreBooking={createController,sizeKey,cleanResult,brandLogo};
 })(typeof window!=='undefined'?window:globalThis);
