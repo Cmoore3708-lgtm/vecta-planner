@@ -49,7 +49,7 @@ test('actual booking cards render the cutout, preserve selection and save the se
  vm.runInContext('tyreGuideState={status:"matched",result:'+JSON.stringify(payload())+'};refreshTyrePanel()',context);
  assert.equal(document.querySelectorAll('.tyre-cutout').length,3);assert.equal(document.querySelectorAll('.tyre-guide-price')[0].textContent,'£62');
  document.querySelector('[data-tyre-choice="Budget"]').click();assert.equal(form.tyre_guide.unitPence,6200);assert.equal(document.querySelector('.selected').querySelector('strong').textContent,'Budget');
- assert.match(context.tyreBookingDescription(),/Tyre quantity: 1/);assert.match(context.tyreBookingDescription(),/£62 total including VAT/);
+ assert.match(context.tyreBookingDescription(),/Tyre quantity: 1/);assert.match(context.tyreBookingDescription(),/£62 total including VAT/);assert.doesNotMatch(context.tyreBookingDescription(),/guide/i);assert.doesNotMatch(document.querySelector('.tyre-picker').textContent,/guide/i);assert.match(document.querySelector('.tyre-picker').textContent,/If the brand changes it’s due to limited stock levels/);
  form.tyre_size='225/45R17';assert.doesNotMatch(context.tyreBookingDescription(),/£62/);
  form.nevos_vehicle='yes';document.querySelector('main').innerHTML=context.tyreOptionsHtml();context.bindTyreCards();assert.equal(document.querySelector('[data-tyre-choice="Budget"]').disabled,true);assert.equal(document.querySelector('[data-tyre-choice="Premium"]').disabled,false);
 });
@@ -106,7 +106,7 @@ test('a temporary lookup failure retries once while the customer still sees a pu
  document.querySelector('main').innerHTML=context.tyreOptionsHtml();context.bindTyreCards();context.bindTyreSearch();
  try{
   document.querySelector('[data-tyre-check]').click();await tick();const status=document.querySelector('#tyreGuideStatus');
-  assert.equal(status.classList.contains('is-checking'),true);assert.match(status.textContent,/Checking fully fitted guide prices/);
+  assert.equal(status.classList.contains('is-checking'),true);assert.match(status.textContent,/Checking fully fitted prices/);
   pending[0].resolve({status:'UNAVAILABLE'});await tick();assert.equal(pending.length,2);assert.deepEqual(pending[0].body,pending[1].body);
   assert.equal(status.classList.contains('is-checking'),true);assert.doesNotMatch(status.textContent,/unavailable/);
   pending[1].resolve(payload());await tick();assert.equal(status.classList.contains('is-checking'),false);assert.equal(form.tyre_guide.unitPence,6200);
