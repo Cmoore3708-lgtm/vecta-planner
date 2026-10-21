@@ -26,7 +26,7 @@ test('booking mirrors and photo assets stay identical',()=>{
  assert.ok(booking.includes('/js/vecta-tyre-photo.js'));
 });
 
-test('photo confirmation populates existing fields, clears old prices and waits for price search',()=>{
+test('photo confirmation populates existing fields and immediately searches the selected size and quantity',()=>{
  const html=fs.readFileSync('website/booking/index.html','utf8');
  const bind=html.slice(html.indexOf('function bindTyreSearch(){'),html.indexOf('function tyreOptionsHtml(){'));
  const fields=[{value:''},{value:''},{value:''}], updates=[];
@@ -50,8 +50,8 @@ test('photo confirmation populates existing fields, clears old prices and waits 
  assert.equal(context.state.form.tyre_quantity,3);
  assert.equal(context.state.form.tyre_guide,null);
  assert.deepEqual(fields.map(x=>x.value),['225','40','18']);
- assert.deepEqual(updates,[['',1]]);
- assert.equal(refreshes,1);assert.equal(actions,1);assert.equal(focuses,1);
+ assert.deepEqual(updates,[['',1],['225/40R18',3]]);
+ assert.equal(refreshes,1);assert.equal(actions,1);assert.equal(focuses,0);
 });
 
 test('commercial photo confirmation never searches passenger-tyre prices',()=>{
@@ -64,4 +64,30 @@ test('commercial photo confirmation never searches passenger-tyre prices',()=>{
   VectaTyreBooking:{sizeKey(){throw Error('Must not search passenger prices');}}};
  vm.runInNewContext(bind+';bindTyreSearch();',context);button.onclick();
  assert.deepEqual(calls,[['',1]]);
+});
+
+test('confirming a detected tyre removes the photograph and photo messages before handing off once',async()=>{
+ const {parseHTML}=await import('linkedom');
+ const {document,MutationObserver}=parseHTML('<html><body><main id="app"><div id="host"></div></main></body></html>');
+ const create=document.createElement.bind(document);
+ document.createElement=tag=>{
+  const el=create(tag);
+  if(tag==='canvas'){el.getContext=()=>({drawImage(){}});el.toDataURL=()=> 'data:image/jpeg;base64,/9j/';}
+  return el;
+ };
+ const calls=[],revoked=[];
+ const context={document,MutationObserver,AbortController,setTimeout,clearTimeout,
+  URL:{createObjectURL:()=> 'blob:tyre-test',revokeObjectURL:value=>revoked.push(value)},
+  fetch:async()=>({ok:true,json:async()=>({readings:[{baseSize:'205/45R17',label:'205/45ZR17',commercial:false}]})})};
+ context.window=context;
+ vm.runInNewContext(source,context);
+ const host=document.getElementById('host');
+ context.VectaTyrePhoto.mount(host,(...args)=>{assert.equal(host.querySelector('.tyre-photo'),null);calls.push(args);});
+ const image=host.querySelector('img');Object.assign(image,{complete:true,naturalWidth:1152,naturalHeight:1536});
+ const input=host.querySelector('[data-photo-upload-input]');input.files=[{type:'image/jpeg',size:50000}];input.onchange();
+ for(let i=0;i<10&&!host.querySelector('.tyre-photo-confirm');i++)await new Promise(setImmediate);
+ const confirm=host.querySelector('.tyre-photo-confirm');assert.ok(confirm);
+ confirm.onclick();confirm.onclick();
+ assert.equal(calls.length,1);assert.equal(calls[0][0],'205/45R17');
+ assert.equal(image.getAttribute('src'),null);assert.equal(host.textContent,'');assert.ok(revoked.includes('blob:tyre-test'));
 });

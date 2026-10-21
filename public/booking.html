@@ -124,7 +124,7 @@ function bindTyreSearch(){
   if(!parts||!VectaTyreBooking.sizeKey(size))return;
   state.form.tyre_size=size;state.form.tyre_guide=null;state.form.tyre_photo_spec=spec||null;tyreLookup.update('',1);
   fields.forEach((field,index)=>field.value=parts[index]);
-  refreshTyrePanel();renderActions();button?.focus();
+  refreshTyrePanel();renderActions();check();
  });
 }
 function tyreOptionsHtml(){

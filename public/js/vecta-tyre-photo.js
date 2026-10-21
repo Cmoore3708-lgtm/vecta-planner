@@ -79,9 +79,11 @@
       button.textContent = 'Use ' + reading.label + ' — matches my tyre';
       button.onclick = () => {
        if (!panel.isConnected || busy) return;
-       results.replaceChildren();
+       stop();
+       preview.removeAttribute('src');
+       panel.remove();
+       observer.disconnect();
        onConfirm(reading.baseSize,reading);
-       status.textContent = reading.label + (reading.commercial?' added. We’ll confirm the correct commercial tyre and price.':' added. Check live prices when you’re ready.');
       };
       results.appendChild(button);
      });
