@@ -5,6 +5,7 @@ export const bookingSource='website/booking/index.html';
 export const bookingOutput='public/booking.html';
 export function syncBookingPage({check=false}={}){
  const pairs=[[bookingSource,bookingOutput],['public/js/vecta-tyre-booking.js','website/js/vecta-tyre-booking.js'],['public/js/vecta-tyre-booking.css','website/js/vecta-tyre-booking.css'],['public/assets/tyre-guide-cutout.webp','website/assets/tyre-guide-cutout.webp']];
+ for(const name of fs.readdirSync('public/assets/tyre-brands').filter(name=>name.endsWith('.png')))pairs.push(['public/assets/tyre-brands/'+name,'website/assets/tyre-brands/'+name]);
  const changed=pairs.filter(([source,output])=>!fs.existsSync(output)||!fs.readFileSync(output).equals(fs.readFileSync(source)));
  if(!changed.length)return false;
  if(check)throw Error('Booking pages or tyre assets differ. Run node scripts/sync-booking-page.mjs.');

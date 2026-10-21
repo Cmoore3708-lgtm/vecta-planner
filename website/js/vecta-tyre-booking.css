@@ -30,3 +30,10 @@
 .tyre-guide-status.is-checking{animation:tyre-price-pulse 1.4s ease-in-out infinite}
 @keyframes tyre-price-pulse{0%,100%{opacity:1}50%{opacity:.45}}
 @media(prefers-reduced-motion:reduce){.tyre-guide-status.is-checking{animation:none}}
+
+/* Original brand artwork, contained at its native aspect ratio. */
+.tyre-option .tyre-brand-logo{display:flex;align-items:center;justify-content:center;width:calc(100% - 12px);max-width:160px;height:48px;margin:12px auto 0;padding:6px 10px;border-radius:6px;background:#fff;box-sizing:border-box}
+.tyre-option .tyre-brand-logo[hidden]{display:none}
+.tyre-option .tyre-brand-logo img{display:block;max-width:100%;width:auto;height:auto;max-height:100%;object-fit:contain}
+.tyre-option .tyre-brand-logo+.tyre-guide-brand{margin-top:5px}
+@media(max-width:760px){.tyre-option .tyre-brand-logo{height:36px;padding:5px 6px;width:calc(100% - 8px);margin-top:10px}}
