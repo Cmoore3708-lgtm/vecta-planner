@@ -53,3 +53,15 @@ test('photo confirmation populates existing fields, clears old prices and waits 
  assert.deepEqual(updates,[['',1]]);
  assert.equal(refreshes,1);assert.equal(actions,1);assert.equal(focuses,1);
 });
+
+test('commercial photo confirmation never searches passenger-tyre prices',()=>{
+ const html=fs.readFileSync('website/booking/index.html','utf8');
+ const bind=html.slice(html.indexOf('function bindTyreSearch(){'),html.indexOf('function tyreOptionsHtml(){'));
+ const button={};const calls=[];
+ const context={document:{querySelectorAll:()=>[{},{},{}],querySelector:()=>button},
+  state:{form:{tyre_size:'205/65R16',tyre_photo_spec:{commercial:true}}},
+  tyreLookup:{update:(...args)=>calls.push(args)},refreshTyrePanel(){},
+  VectaTyreBooking:{sizeKey(){throw Error('Must not search passenger prices');}}};
+ vm.runInNewContext(bind+';bindTyreSearch();',context);button.onclick();
+ assert.deepEqual(calls,[['',1]]);
+});
