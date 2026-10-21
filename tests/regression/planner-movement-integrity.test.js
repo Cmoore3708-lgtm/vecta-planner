@@ -109,7 +109,7 @@ test('startup cleanup cannot overwrite a newer mechanic with a cached unallocate
  const stale={id:'adam-mot',registration:'ADAM',technician:'Unallocated',booking_date:'2026-10-23',status:'booked',updated_at:'2026-10-09T14:00:00Z'};
  const original=JSON.stringify(stale);let writes=0;
  const ctx={app:{jobs:[stale]},remoteClient:{},isUnallocatedJob:()=>true,isJobInvoiced:()=>false,saveLocal:()=>{writes++},upsertRemote:()=>{writes++;return Promise.resolve([])}};
- vm.runInNewContext(namedFunctionSource('clearUnallocatedBookingDate')+';'+namedFunctionSource('normaliseUnallocatedBookingDates')+';result=normaliseUnallocatedBookingDates()',ctx);
+ vm.runInNewContext(namedFunctionSource('normaliseUnallocatedBookingDates')+';result=normaliseUnallocatedBookingDates()',ctx);
  assert.equal(ctx.result,0);assert.equal(writes,0);assert.equal(JSON.stringify(stale),original);
 });
 
@@ -180,5 +180,5 @@ test('technician choices follow the complete current list without invented fallb
  vm.runInNewContext('names=configuredMechanicNames()',ctx);
  assert.deepEqual(Array.from(ctx.names),[]);
  assert.doesNotMatch(namedFunctionSource('plannerHtml'),/app\.settings\.mechanics\s*=/);
- assert.doesNotMatch(namedFunctionSource('ensureThreeMechanics'),/app\.settings\.mechanics\s*=/);
+ assert.doesNotMatch(html,/function ensureThreeMechanics\(/);
 });
