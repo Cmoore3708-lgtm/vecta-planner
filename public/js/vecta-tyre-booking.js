@@ -3,7 +3,7 @@
  const logoBrands=new Set('accelera bridgestone continental cooper dunlop falken goodyear hankook imperial kumho lassa michelin nankang pirelli radar toyo uniroyal vredestein yokohama'.split(' '));
  function brandLogo(brand){const key=String(brand||'').trim().toLowerCase().replace(/\s+(?:tyres?|tires?)$/,'');return logoBrands.has(key)?`<span class="tyre-brand-logo"><img src="/assets/tyre-brands/${key}.png" alt="${key.toUpperCase()}" width="130" height="40" loading="lazy" decoding="async"></span>`:'';}
  // Reveal the bold text fallback if a logo asset cannot be loaded.
- root.document?.addEventListener('error',event=>{const img=event.target;if(img?.parentElement?.classList.contains('tyre-brand-logo'))img.parentElement.hidden=true;},true);
+ root.document?.addEventListener('error',event=>{const img=event.target;if(img?.parentElement?.classList.contains('tyre-brand-logo')){const fallback=root.document.createElement('span');fallback.className='tyre-guide-brand';fallback.textContent=img.alt;img.parentElement.replaceWith(fallback);}},true);
  // Remove only neutral white pixels connected to the image boundary.
  // Keep every foreground RGB value unchanged, including enclosed white artwork.
  function clearLogoBackground(pixels,width,height){
