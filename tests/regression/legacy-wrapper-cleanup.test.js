@@ -48,5 +48,5 @@ test('v255 is the sole executable authoritative MOT workflow', () => {
   assert.doesNotMatch(html, /window\.__v254ManualMotRunning/);
   assert.match(html, /window\.v255RunAllMotMaintenanceRecords\s*=\s*v255RunAll/);
   assert.match(html, /window\.v254ReconcileAllFleetMots\s*=\s*v255RunAll/);
-  assert.match(html, /id="fleet-service-only-completion-guard"/);
+  assert.doesNotMatch(html, /id="fleet-service-only-completion-guard"/);
 });
