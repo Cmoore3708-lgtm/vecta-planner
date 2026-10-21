@@ -190,3 +190,14 @@
  .servicePrint.ssHaynesCompact .ssHaynesVehicle{grid-column:3;grid-row:1/3;align-self:center!important;margin-bottom:0!important;max-width:100%!important}
  .servicePrint.ssHaynesCompact .ssHaynesVehicle img{width:330px!important;max-width:100%!important;height:135px!important;transform:none!important;object-fit:contain!important;object-position:right center!important}
 }
+
+.servicePrint .ssHaynesRequiredCheck{pointer-events:auto!important;cursor:pointer!important}
+.servicePrint .ssHaynesTopUp::after{content:''!important;font-size:0!important}
+.servicePrint .ssHaynesTopUp.selected::after{width:7px!important;height:4px!important;border-left:2px solid #087a21!important;border-bottom:2px solid #087a21!important;transform:rotate(-45deg) translateY(-1px)!important}
+.servicePrint .ssManufacturerLogo{width:48px;height:40px;object-fit:contain;align-self:center;justify-self:center}
+@media print{
+ .servicePrint.ssHaynesCompact .ssHeader:has(.ssHaynesVehicle){grid-template-columns:150px minmax(0,1fr) 48px 340px!important;grid-template-rows:1fr 1fr!important;height:140px!important}
+ .servicePrint.ssHaynesCompact .ssManufacturerLogo{grid-column:3;grid-row:1/3}
+ .servicePrint.ssHaynesCompact .ssHaynesVehicle{grid-column:4!important;grid-row:1/3!important}
+ .servicePrint.ssHaynesCompact .ssHaynesVehicle img{width:340px!important;height:140px!important}
+}

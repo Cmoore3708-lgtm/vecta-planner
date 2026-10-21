@@ -56,10 +56,10 @@ test('Haynes marks scheduled filters as required without marking work completed 
  const completed=[...table.querySelectorAll('.ssCheck')];
  await window.initHaynesServiceSheet(sheet,'FX69XWU','service');await settle();
  const rows=[...table.querySelectorAll('tr')].slice(1);
- assert.deepEqual(rows.map(row=>row.querySelector('.ssHaynesRequired').textContent),['✓','','✓','']);
+ assert.deepEqual(rows.map(row=>row.querySelector('.ssHaynesRequiredCheck').getAttribute('aria-checked')),['true','false','true','false']);
  assert.ok(completed.every(cell=>cell.classList.contains('selected')));
  const field=sheet.querySelector('.ssMileageEntry');field.textContent='60000';field.dispatchEvent(new window.Event('input'));
- assert.ok(rows.every(row=>row.querySelector('.ssHaynesRequired').textContent===''));
+ assert.ok(rows.every(row=>row.querySelector('.ssHaynesRequiredCheck').getAttribute('aria-checked')==='false'));
  assert.ok(completed.every(cell=>cell.classList.contains('selected')));sheet.remove();await new Promise(r=>setTimeout(r,950));
 });
 
@@ -96,7 +96,7 @@ for(const [status,message] of [['OFFLINE',/worker is offline/],['WORKER_UPDATE_R
 test('required checkboxes are supplier-selected and do not change completed work',async()=>{
  const {document,window,sheet}=setup(async()=>({status:'MATCHED',result:data}));const table=document.createElement('table');table.className='ssOps';table.innerHTML='<tr><th>Item</th><th>Completed</th></tr><tr><td>Air filter</td><td><span class="ssCheck selected">✓</span></td></tr><tr><td>Pollen filter</td><td><span class="ssCheck"></span></td></tr>';sheet.append(table);
  await window.initHaynesServiceSheet(sheet,'FX69XWU','service');await settle();
- const required=table.querySelectorAll('.ssHaynesRequiredCheck');assert.equal(required[0].getAttribute('aria-checked'),'false');assert.equal(required[1].getAttribute('aria-checked'),'true');assert.equal(required[1].getAttribute('aria-disabled'),'true');assert.equal(table.querySelectorAll('td:last-child .ssCheck.selected').length,1);sheet.remove();
+ const required=table.querySelectorAll('.ssHaynesRequiredCheck');assert.equal(required[0].getAttribute('aria-checked'),'false');assert.equal(required[1].getAttribute('aria-checked'),'true');assert.equal(required[1].getAttribute('aria-disabled'),null);assert.equal(table.querySelectorAll('td:last-child .ssCheck.selected').length,1);sheet.remove();
 });
 
 test('mileage selection corrects an older worker age-selected schedule before displaying parts',async()=>{
@@ -190,4 +190,13 @@ test('service sheets recolour the stored same-origin image using the actual shar
  vm.runInNewContext(readFileSync(new URL('../../public/js/vecta-vehicle-image.js',import.meta.url),'utf8'),{window,setTimeout,clearTimeout});
  await window.initHaynesServiceSheet(sheet,'FX69XWU','service');for(let i=0;i<12;i++)await settle();
  const img=sheet.querySelector('.ssHaynesVehicle img');assert.equal(img.dataset.vehicleSource,vehicle.imageUrl);assert.match(img.src,/^data:image\/svg/);assert.match(decodeURIComponent(img.src),/#1c4778/);sheet.remove();
+});
+
+test('every operation has a manual Required checkbox when Haynes is offline',async()=>{
+ const {document,window,sheet}=setup(async()=>({status:'OFFLINE'}));
+ const table=document.createElement('table');table.className='ssOps';table.innerHTML='<tr><th>Item</th><th>Done</th></tr><tr><td>Air filter</td><td class="ssDone"><span class="ssCheck"></span></td></tr><tr><td>Brake fluid check</td><td class="ssDone"><span class="ssCheck"></span></td></tr>';sheet.appendChild(table);
+ await window.initHaynesServiceSheet(sheet,'FX69XWU','service');await settle();
+ const ticks=[...table.querySelectorAll('.ssHaynesRequiredCheck')];assert.equal(ticks.length,2);
+ for(const tick of ticks){assert.equal(tick.getAttribute('aria-disabled'),null);assert.equal(tick.getAttribute('aria-checked'),'false');vm.runInNewContext('(function(){'+tick.getAttribute('onclick')+'}).call(tick)',{tick});assert.equal(tick.getAttribute('aria-checked'),'true');assert.equal(tick.dataset.manual,'true');}
+ assert.equal(table.querySelectorAll('.ssDone .selected').length,0);sheet.remove();
 });
