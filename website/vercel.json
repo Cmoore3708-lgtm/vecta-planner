@@ -26,6 +26,9 @@
   "functions": {
     "api/vehicle-lookup.js": {
       "maxDuration": 30
+    },
+    "api/availability.js": {
+      "maxDuration": 30
     }
   }
 }

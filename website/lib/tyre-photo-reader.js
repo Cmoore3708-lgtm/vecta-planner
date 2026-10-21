@@ -1,4 +1,5 @@
 import {createHash} from 'node:crypto';
+import {getVercelOidcToken} from '@vercel/oidc';
 
 // Bounded, per-instance protection for the preview. Production activation is explicit.
 const requests=new Map(),cache=new Map();
@@ -23,7 +24,8 @@ export default async function tyrePhotoReader(req,res){
  if(req.headers['sec-fetch-site']==='cross-site')return res.status(403).json({error:'Open the booking page to read a tyre photo'});
  // Keep chargeable recognition off production until the preview is approved.
  if(process.env.VERCEL_ENV==='production'&&process.env.VECTA_TYRE_PHOTO_AI!=='1')return res.status(503).json({error:'Photo reader is not enabled'});
- const token=process.env.AI_GATEWAY_API_KEY||process.env.VERCEL_OIDC_TOKEN;
+ let token=process.env.AI_GATEWAY_API_KEY||process.env.VERCEL_OIDC_TOKEN;
+ if(!token){try{token=await getVercelOidcToken();}catch{}}
  if(!token)return res.status(503).json({error:'Photo reader is not configured'});
  const image=req.body?.image;
  if(typeof image!=='string'||image.length>2200000||!/^data:image\/jpeg;base64,[A-Za-z0-9+/]+={0,2}$/.test(image))return res.status(400).json({error:'Choose a JPEG photograph smaller than 1.5 MB'});
@@ -44,7 +46,11 @@ export default async function tyrePhotoReader(req,res){
     {role:'user',content:[{type:'text',text:'Read the complete size and adjacent ratings on this tyre.'},{type:'image_url',image_url:{url:image,detail:'high'}}]}
    ]})
   });
-  if(!response.ok)return res.status(503).json({error:'Photo reading is temporarily unavailable'});
+  if(!response.ok){
+   const detail=await response.json().catch(()=>({}));
+   console.warn('Tyre photo gateway unavailable',{status:response.status,code:String(detail.error?.type||detail.error?.code||'unknown').slice(0,80)});
+   return res.status(503).json({error:'Photo reading is temporarily unavailable'});
+  }
   const data=await response.json();
   const parsed=JSON.parse(data.choices?.[0]?.message?.content||'{}');
   if(!Array.isArray(parsed.readings))throw Error('Invalid reader response');
