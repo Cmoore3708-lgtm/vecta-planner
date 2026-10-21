@@ -1,4 +1,6 @@
+import tyrePhotoReader from '../lib/tyre-photo-reader.js';
 export default async function handler(req,res){
+  if(req.query?.tyrePhoto==='1')return tyrePhotoReader(req,res);
   if(req.query?.action==='release'){
     res.setHeader('Cache-Control','no-store');
     if(req.method!=='GET')return res.status(405).json({error:'Method not allowed'});

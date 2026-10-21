@@ -1,4 +1,5 @@
 import tyreGuide from '../lib/tyre-guide-proxy.js';
+import tyrePhotoReader from '../website/lib/tyre-photo-reader.js';
 import haynesService from '../lib/haynes-service-proxy.js';
 import haynesVehicle from '../lib/haynes-proxy.js';
 import haynesImage from '../lib/haynes-image.js';
@@ -6,6 +7,7 @@ import { databaseEnvironment } from './_database-environment.js';
 import {bookingTypes} from '../lib/booking-input.js';
 function cfg(){return databaseEnvironment({requireService:true})}
 export default async function handler(req,res){
+ if(req.query?.tyrePhoto==='1')return tyrePhotoReader(req,res);
  if(req.query?.tyres==='1')return tyreGuide(req,res);
  if(req.query?.haynesImage==='1')return haynesImage(req,res);
  if(req.query?.haynes==='service')return haynesService(req,res);
