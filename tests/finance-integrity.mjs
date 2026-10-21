@@ -47,7 +47,7 @@ function contextWith(names, extras = {}) {
   let renders = 0;
   const app = { jobs: [] };
   const context = contextWith(
-    ['fleetEomNextMonth', 'fleetEomBillingMonth', 'fleetEomHoldMarker', 'fleetEomBillMonthMarker', 'fleetEomIsHeld', 'fleetEomHoldJob'],
+    ['fleetEomNextMonth', 'fleetEomBillingMonth', 'fleetEomBillMonthMarker', 'fleetEomIsHeld', 'fleetEomHoldJob'],
     {
       app,
       vectaActiveInvoices:()=>[],

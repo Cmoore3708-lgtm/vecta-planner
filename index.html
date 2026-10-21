@@ -2570,7 +2570,6 @@ body.servicePreviewing .servicePreviewControls{position:relative!important;z-ind
 </style>
 
 <style>
-.fleetTaxConfirmBar{margin:14px 0;padding:14px 16px;border:2px solid #16a34a;background:#f0fdf4;border-radius:12px;display:flex;align-items:center;gap:12px;flex-wrap:wrap}.fleetTaxConfirmBar .primary{font-size:15px;padding:11px 16px}.fleetTaxConfirmBar small{font-weight:700;color:#166534;max-width:620px}@media(max-width:700px){.fleetTaxConfirmBar{align-items:stretch}.fleetTaxConfirmBar .primary{width:100%}}
 </style>
 <style id="v227-streamlined-tax-css">
 .vehicleTaxDueSection,.vehicleTaxCompletedSection{background:#fff;border:1px solid var(--line);border-radius:14px;overflow:hidden}
@@ -2846,7 +2845,6 @@ body.servicePreviewing .servicePreviewControls{position:relative!important;z-ind
 .fleetNmukInvoiceHint{margin:8px 0 0;padding:9px 11px;border-radius:8px;background:#f8fafc;border:1px solid #e2e8f0;font-size:12px;color:#475569}
 
 /* Quotes remain visible beside unallocated work without looking booked. */
-.horizontalUnallocated .quotePanel{margin-top:10px}
 .quotePanel .quoteCard{display:block;text-align:left;background:#e0f2fe!important;border:1px solid #7dd3fc!important;border-left:4px solid #38bdf8!important;color:#075985;cursor:pointer}
 .quotePanel .quoteCard strong{display:block;margin-top:5px}
 .mobilePlanner .mobileGroup-quotes .mobileJob{background:#e0f2fe!important;border-color:#7dd3fc!important}
@@ -9371,9 +9369,7 @@ function vehicleEmailLinkHtml(rawEmail,registration,vehicleModel){
     return '<a class="contactEmailLink vehicleEmailPrimary" data-fleet-email-registration="'+esc(normReg(registration||''))+'" href="'+serviceReminderMailto(email,registration||'',vehicleModel||'')+'" title="Email '+esc(email)+'">'+esc(email)+'</a>';
   }).join('')+'</div>';
 }
-function vectaEmailSignatureText(){
-  return 'Kind regards,\n\nChris\nVECTA Motors\n07721 722622\nwww.vectamotors.co.uk';
-}
+
 function appendVectaEmailSignature(body){
   return String(body||'').replace(/\s+$/,'');
 }
@@ -9592,29 +9588,15 @@ function setCarryOverMeta(note,meta){
 }
 function clearCarryOverMeta(note){return String(note||'').replace(/\s*\[\[CARRY_OVER:[^\]]+\]\]\s*/ig,'\n').replace(/^\s+|\s+$/g,'')}
 function isUnallocatedJob(j){return window.VectaPlannerRules.isUnallocated(j)}
-function clearUnallocatedBookingDate(j){
-  if(!j||!isUnallocatedJob(j)||j.archived||j.status==='completed'||j.status==='ready_to_invoice'||isJobInvoiced(j))return false;
-  if(!j.booking_date)return false;
-  j.booking_date=null;
-  j.updated_at=new Date().toISOString();
-  return true;
-}
+
 function normaliseUnallocatedBookingDates(){
   /* Unallocated dates are cleared by an explicit save or move. A startup
      cleanup must never stamp and upsert a cached whole job: its old mechanic
      can overwrite a newer booking made on another device. */
   return 0;
 }
-function carryOverDays(meta){
-  var from=meta&&(meta.original_date||meta.last_date);
-  if(!from)return 1;
-  var a=new Date(from+'T12:00:00'),b=new Date(todayIso()+'T12:00:00');
-  return Math.max(1,Math.round((b-a)/86400000));
-}
-function carryOverDateLabel(value){
-  if(!value)return 'earlier booking';
-  try{return new Date(value+'T12:00:00').toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'short'})}catch(e){return value}
-}
+
+
 function carryOverBadgeHtml(j){
   return '';
 }
@@ -9633,12 +9615,7 @@ function shouldCarryOverJob(j,today){
 }
 function carryOverWorkshopDate(today){var d=new Date(String(today||todayIso())+'T12:00:00');if(isNaN(d.getTime()))return today||todayIso();if(d.getDay()===0||d.getDay()===6)return nextWorkshopDate(plannerIsoDate(d));return plannerIsoDate(d)}
 function carryOverAvailableSlot(job,date,mechanic){if(!job||!date||!mechanic||mechanic==='Unallocated')return null;var duration=Math.max(15,roundPlannerMinutesUp(Number(job.estimated_hours||1)*60)),dayStart=8*60,dayEnd=17*60,intervals=mechanicBookingIntervals(date,mechanic,job.id),candidate=dayStart,guard=0;while(candidate+duration<=dayEnd&&guard++<100){var conflict=null;for(var i=0;i<intervals.length;i++){var occupied=intervals[i];if(candidate<occupied.end&&candidate+duration>occupied.start){conflict=occupied;break}}if(!conflict)return timeFromMinutes(candidate);candidate=roundPlannerMinutesUp(conflict.end)}return null}
-function carryOverFallbackTime(job,date,mechanic){
-  var intervals=mechanicBookingIntervals(date,mechanic,job.id),duration=Math.max(15,roundPlannerMinutesUp(Number(job.estimated_hours||1)*60)),candidate=8*60;
-  if(intervals.length)candidate=Math.max(candidate,Math.max.apply(null,intervals.map(function(x){return x.end})));
-  candidate=roundPlannerMinutesUp(candidate);
-  return timeFromMinutes(candidate);
-}
+
 function carriedOverPreferredMechanics(job,mechanics){
   var original=String(job&&job.technician||''),out=[];
   if(original&&mechanics.indexOf(original)>-1)out.push(original);
@@ -11094,7 +11071,7 @@ var fleetContractorBadgeColours={
 var fleetContractorFallbackColours=['#a16207','#166534','#7e22ce','#c2410c','#be185d','#4d7c0f','#334155','#991b1b'];
 function fleetContractorKey(name){var key=String(fleetNormaliseCustomer(name)||'').toUpperCase();return key==='OBEN'?'OWBEN':key}
 function fleetContractorColour(name){var key=fleetContractorKey(name);if(fleetContractorColours[key])return fleetContractorColours[key];var hash=0;for(var i=0;i<key.length;i++)hash=((hash<<5)-hash)+key.charCodeAt(i);return fleetContractorFallbackColours[Math.abs(hash)%fleetContractorFallbackColours.length]}
-function fleetContractorStyle(name){var key=fleetContractorKey(name),pair=fleetContractorBadgeColours[key];if(!pair){var colour=fleetContractorColour(name);pair=['#f1f5f9',colour]}return 'background:'+pair[0]+';color:'+pair[1]+';border-color:'+pair[1]}
+
 function fleetVehicleForRegistration(reg){var key=normReg(reg||'');return key?fleetVehicles.find(function(v){return normReg(v.registration||'')===key}):null}
 function fleetLatestJobForRegistration(reg){var key=normReg(reg||'');if(!key||!app||!Array.isArray(app.jobs))return null;return app.jobs.filter(function(j){return !vectaJobIsDeletedForLists(j)&&normReg(j.registration||'')===key}).sort(function(a,b){return String(b.updated_at||b.completed_at||b.booking_date||b.created_at||'').localeCompare(String(a.updated_at||a.completed_at||a.booking_date||a.created_at||''))})[0]||null}
 function fleetPlateCategory(reg,job){var v=fleetVehicleForRegistration(reg);if(v){if(v.fleetGroup==='Nissan Internal')return {name:'Internal',colour:'#dc2626',text:'#ffffff',title:'NMUK Internal'};if(v.fleetGroup==='Nissan Pool Cars')return {name:'Pool',colour:'#7f1d1d',text:'#ffffff',title:'NMUK Pool'};if(v.fleetGroup==='Contractor Fleet'){var contractor=fleetNormaliseCustomer(v.customer);return {name:'Contractor',colour:fleetContractorColour(contractor),text:'#ffffff',title:contractor+' contractor'}}}var j=job||fleetLatestJobForRegistration(reg);if(j){var account=fleetNormaliseCustomer(j.customer_account||'');if(account==='Staff')return {name:'Staff',colour:'#2563eb',text:'#ffffff',title:'Staff vehicle'};if(account==='CONTRACTOR'){var genericContractor=fleetNormaliseCustomer(j.customer_name||'CONTRACTOR');return {name:'Contractor',colour:fleetContractorColour(genericContractor),text:'#ffffff',title:genericContractor+' contractor'}}if(account==='NMUK'){var subtype=String(j.nmuk_vehicle_type||'').trim().toUpperCase();if(subtype==='MVOS')return {name:'MVOS',colour:'#f87171',text:'#450a0a',title:'NMUK MVOS'};if(subtype==='POOL')return {name:'Pool',colour:'#7f1d1d',text:'#ffffff',title:'NMUK Pool'};if(subtype==='INTERNAL')return {name:'Internal',colour:'#dc2626',text:'#ffffff',title:'NMUK Internal'}}}return null}
@@ -11105,9 +11082,9 @@ function fleetCustomerBadge(v){var name=fleetNormaliseCustomer(v.customer);retur
 
 var fleetSection='maintenance',fleetEomMonth=(new Date()).toISOString().slice(0,7),fleetEomCustomer='';
 function fleetEomRecognisedJob(j){if(!financeValidJob(j))return false;var st=financeStatusKey(j);return st==='completed'||st==='invoiced'||st==='invoice_created'||(financeLegacyAllocation(j).type==='Staff'&&(st==='ready_to_invoice'||st==='ready'))}
-function fleetJobDate(j){return financeCompletedDate(j)}
-function fleetQuotedExVat(j){return financeExVatValue(j)}
-function fleetPricingMismatch(j){j=j||{};var q=j.amount_quoted,n=Number(q);if(q===null||q===undefined||String(q).trim()===''||!Number.isFinite(n))return false;var items=privatePricingItemsFromNote(j.customer_note);if(!items.length)return false;var t=items.reduce(function(s,x){var v=Number(x&&x.price);return s+(Number.isFinite(v)?v:0)},0);return Math.abs(t-n)>0.009}
+
+
+
 function fleetEomLineItems(j){j=j||{};var quoted=Number(j.amount_quoted),hasQuoted=j.amount_quoted!==null&&j.amount_quoted!==undefined&&String(j.amount_quoted).trim()!==''&&Number.isFinite(quoted);var items=privatePricingItemsFromNote(j.customer_note).map(function(x){return {description:String(x&&x.description||'').trim(),price:Number(x&&x.price||0)}}).filter(function(x){return x.description||x.price!==0});if(!items.length){var fallback=invoiceDescriptionText(j);return [{description:fallback,price:hasQuoted?quoted:0}]}if(hasQuoted){var itemTotal=items.reduce(function(s,x){return s+(Number.isFinite(x.price)?x.price:0)},0),diff=Math.round((quoted-itemTotal)*100)/100;if(Math.abs(diff)>0.009)items.push({description:'Adjustment to match job card total',price:diff,adjustment:true})}return items}
 function fleetEomWorkItems(j){return fleetEomLineItems(j).map(function(x){return x.description})}
 function fleetEomWorkText(j){return fleetEomWorkItems(j).join(' | ')}
@@ -11320,7 +11297,7 @@ function fleetMonthName(month){try{var parts=String(month||'').split('-'),d=new 
 function fleetInvoiceEmailFirstName(email){var local=String(email||'').split('@')[0]||'',first=(local.split('.')[0]||local).replace(/[^A-Za-z'-]/g,' ' ).trim();if(!first)return '';return first.charAt(0).toUpperCase()+first.slice(1).toLowerCase()}
 function fleetEmailEom(name,month,rows,inv){var email=fleetEomCustomerEmail(name);if(!email){alert('Please save an invoice email on the '+name+' customer profile first.');return}var first=fleetInvoiceEmailFirstName(email),monthName=fleetMonthName(month),subject=monthName+' Invoice',body=appendVectaEmailSignature('Hi '+(first||'there')+',\n\nPlease find attached our '+monthName+' Invoice.');window.location.href='mailto:'+encodeURIComponent(email)+'?subject='+encodeURIComponent(subject)+'&body='+encodeURIComponent(body)}
 /* VECTA v198 — safe month-end preview/check/finalise workflow */
-function fleetEomHoldMarker(month){return '[[EOM_HOLD:'+String(month||'')+']]'}
+
 function fleetEomBillMonthMarker(month){return '[[EOM_BILL_MONTH:'+String(month||'')+']]'}
 function fleetEomIsHeld(j,month){var target=fleetEomBillingMonth(j);return !!target&&target!==String(month||'')}
 async function fleetEomHoldJob(id,month){var j=(app.jobs||[]).find(function(x){return String(x.id)===String(id)});if(!j)return false;var target=fleetEomNextMonth(month);if(!target){alert('The next invoice month could not be calculated. Nothing has been changed.');return false}var originalNote=String(j.customer_note||''),clean=originalNote.replace(/\s*\[\[(?:EOM_HOLD|EOM_BILL_MONTH):\d{4}-\d{2}\]\]\s*/g,'\n').replace(/\n{3,}/g,'\n\n').trim();j.customer_note=(clean?clean+'\n':'')+fleetEomBillMonthMarker(target);j.updated_at=new Date().toISOString();saveLocal();try{var result=await upsertRemote('jobs',j,{silent:true});if(result&&result.queued)console.warn('Month-end hold-over is protected locally and waiting for cloud sync',j.id);render();return true}catch(e){j.customer_note=originalNote;saveLocal();console.error('Month-end hold-over cloud save failed',e);alert('The job could not be moved into '+target+'. Nothing has been removed from its original month.');render();return false}}
@@ -11374,7 +11351,7 @@ var fleetDeletedRegistrations=fleetDeletedRegsLoad();
 function fleetSaveDeletedRegistrations(){try{localStorage.setItem(FLEET_DELETED_REGS_KEY,JSON.stringify(fleetDeletedRegistrations||[]))}catch(e){console.warn('Fleet deletion tombstone save skipped',e)}}
 function fleetMigrateExplicitDeletedRegistrations(){var changed=false;if(fleetDeletedRegistrations.indexOf('FG05BZV')===-1){fleetDeletedRegistrations.push('FG05BZV');changed=true}if(changed)fleetSaveDeletedRegistrations();return changed}
 function fleetIsDeletedRegistration(reg){return fleetDeletedRegistrations.indexOf(normReg(reg||''))>-1}
-function fleetMarkDeletedRegistration(reg){reg=normReg(reg||'');if(!reg)return;if(fleetDeletedRegistrations.indexOf(reg)===-1)fleetDeletedRegistrations.push(reg);fleetSaveDeletedRegistrations();delete fleetMotAuthority[reg];fleetMotAuthoritySaveLocal()}
+
 function fleetApplyDeletionTombstones(){var deleted={};(fleetDeletedRegistrations||[]).forEach(function(r){deleted[normReg(r)]=true});var vehicleIds={};(fleetVehicles||[]).forEach(function(v){if(deleted[normReg(v.registration||'')])vehicleIds[String(v.id)]=true});fleetVehicles=(fleetVehicles||[]).filter(function(v){return !deleted[normReg(v.registration||'')]});fleetPlans=(fleetPlans||[]).filter(function(p){return !vehicleIds[String(p.vehicleId)]});fleetCompletions=(fleetCompletions||[]).filter(function(c){return !vehicleIds[String(c.vehicleId)]});app.vehicles=(app.vehicles||[]).filter(function(v){return !deleted[normReg(v.registration||'')]});Object.keys(deleted).forEach(function(reg){delete fleetMotAuthority[reg]});fleetMotAuthoritySaveLocal();return Object.keys(vehicleIds).length}
 var FLEET_REMOVED_MAINTENANCE_KEY='vecta:fleet:removed-maintenance:v268';
 function fleetLoadRemovedMaintenance(){try{var x=JSON.parse(localStorage.getItem(FLEET_REMOVED_MAINTENANCE_KEY)||'{}');return x&&typeof x==='object'?x:{}}catch(e){return {}}}
@@ -11798,18 +11775,7 @@ function fleetAnyBookedPlannerJob(v){
   return matches[0]||null;
 }
 function fleetDueCell(type,due,tone,booked){return '<span class="fleetDueCell">'+fleetDueIcon(type)+fleetBookedTick(booked)+'<span class="fleetDueText '+esc(tone||'unknown')+'">'+fleetFormat(due)+'</span></span>'}
-function fleetDueGroupCell(items){
-  items=(items||[]).slice().sort(function(a,b){return String(a.due||'').localeCompare(String(b.due||''))||String(a.plan&&a.plan.type||'').localeCompare(String(b.plan&&b.plan.type||''))});
-  if(!items.length)return fleetDueCell('','', 'unknown');
-  var seen={},rows=[],details=[];
-  items.forEach(function(item){
-    var key=String(item.typeKey||item.plan&&item.plan.type||'').toLowerCase();
-    details.push(String(item.plan&&item.plan.type||'Maintenance')+' '+fleetFormat(item.due)+(item.bookedJob?' — booked '+niceDate(item.bookedJob.booking_date):''));
-    if(seen[key])return;seen[key]=true;
-    rows.push('<span class="fleetDueItem">'+fleetDueIcon(item.plan&&item.plan.type||'')+'<span class="fleetDueText '+esc(fleetTone(item.due))+'">'+fleetFormat(item.due)+'</span></span>');
-  });
-  return '<span class="fleetDueCell fleetDueMultiCell" title="'+esc(details.join(' · '))+'"><span class="fleetDueItems">'+rows.join('')+'</span></span>';
-}
+
 function fleetPlanDueByType(v,type){var matches=(v.plans||[]).map(function(p){return {date:String(p.type||'').toLowerCase().indexOf(String(type||'').toLowerCase())>-1?(fleetDate(p)||''):''}}).filter(function(x){return !!x.date}).sort(function(a,b){return a.date.localeCompare(b.date)});return matches.length?matches[0].date:''}
 function fleetDisplayedDue(v,mode){if(mode==='mot30')return fleetPlanDueByType(v,'MOT');if(mode==='tax30')return fleetPlanDueByType(v,'Tax');if(mode==='service30')return fleetPlanDueByType(v,'Service');return v.nextDue||''}
 function fleetDateSort(a,b,mode){var ad=fleetDisplayedDue(a,mode)||'9999-12-31',bd=fleetDisplayedDue(b,mode)||'9999-12-31';return ad.localeCompare(bd)||String(a.registration||'').localeCompare(String(b.registration||''))}
@@ -11819,7 +11785,7 @@ function fleetGovernmentDataHtml(v){
   var cls=/taxed/i.test(status)?'fleetGovStatusTaxed':(/untaxed|sorn|not taxed/i.test(status)?'fleetGovStatusBad':'fleetGovStatusWarn');
   return '<section class="fleetGovData"><h3>Government vehicle data</h3><div class="fleetGovGrid"><div class="fleetGovStat"><small>Tax status</small><strong class="'+cls+'">'+esc(status||'Awaiting DVLA API')+'</strong></div><div class="fleetGovStat"><small>Tax due</small><strong>'+esc(due?fleetFormat(due):'Awaiting DVLA API')+'</strong></div><div class="fleetGovStat"><small>Last DVLA check</small><strong>'+esc(checked)+'</strong></div></div><div class="fleetGovNote">The DVLA Vehicle Enquiry Service connector is installed. Until DVLA issues the production API key, existing manually stored tax dates remain in use and no tax lookup is attempted.</div></section>';
 }
-function fleetDrawerHtml(){var v=fleetVehicles.find(function(x){return x.id===activeFleetVehicleId});if(!v)return '';var plans=fleetVehiclePlans(v.id),done=fleetCompletions.filter(function(x){return x.vehicleId===v.id}).sort(function(a,b){return String(b.completedDate||'').localeCompare(String(a.completedDate||''))}),taxPlan=plans.find(function(p){return fleetMaintenanceCategory(p.type)==='tax'}),showTaxConfirm=!!(taxPlan||v.roadGoing||String(v.taxDueDate||'').trim()||String(v.taxStatus||'').trim()),taxConfirm=showTaxConfirm?'<div class="fleetTaxConfirmBar"><button type="button" class="primary" id="fleetConfirmTaxed">✓ Confirm vehicle has been taxed</button><small>Use this immediately after you have taxed the vehicle. It will log today&#39;s date and add it to the Vehicle Tax ledger.</small></div>':'';function planRow(p){var due=fleetDate(p),tone=fleetTone(due);return '<div class="fleetPlan"><div class="fleetPlanInfo"><b>'+esc(p.type||'Maintenance')+'</b><small>Due '+fleetFormat(due)+' · every '+esc(String(p.intervalMonths||12))+' months'+(p.status&&p.status!=='Active'?' · '+esc(p.status):'')+'</small><div class="fleetDueEdit"><label>Due date <input type="date" data-fleet-due-input="'+esc(p.id)+'" value="'+esc(due||'')+'"></label><button type="button" class="btn" data-fleet-save-due="'+esc(p.id)+'">Save due date</button></div></div><div class="fleetPlanActions"><button type="button" class="btn" data-fleet-book="'+esc(p.id)+'">Book</button><button type="button" class="btn" data-fleet-complete="'+esc(p.id)+'">Complete</button><button type="button" class="btn" data-fleet-pause="'+esc(p.id)+'">Pause</button><button type="button" class="btn danger" data-fleet-remove-plan="'+esc(p.id)+'">Remove maintenance record</button></div></div>'}return '<aside class="fleetDrawer" role="dialog" aria-modal="true" aria-label="Fleet vehicle details"><div class="fleetDrawerHead"><div><span class="fleetEyebrow">FLEET VEHICLE</span><h2>'+fleetPlate(v.registration)+'</h2><p>'+esc(fleetDisplayModel(v.model))+' · '+esc(v.fleetGroup==='Contractor Fleet'?fleetNormaliseCustomer(v.customer):fleetGroupLabel(v.fleetGroup))+'</p></div><div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;justify-content:flex-end"><button type="button" class="fleetDrawerClose" id="fleetClose" aria-label="Close">×</button></div></div>'+taxConfirm+'<div class="fleetProfile"><div class="field"><label>Fleet / customer</label><div>'+(v.fleetGroup==='Contractor Fleet'?fleetCustomerBadge(v):'<b>'+esc(fleetGroupLabel(v.fleetGroup))+'</b>')+'</div></div><div class="field"><label>Road going</label><select id="fleetRoad"><option '+(v.roadGoing?'selected':'')+'>Yes</option><option '+(!v.roadGoing?'selected':'')+'>No</option></select></div><div class="field"><label>Contact name</label><input id="fleetContactName" value="'+esc(v.contactName||'')+'" placeholder="Contact name"></div><div class="field"><label>Telephone</label><input id="fleetContactPhone" value="'+esc(v.contactPhone||'')+'" placeholder="Telephone"></div><div class="field wide"><label>Contact email</label>'+vehicleEmailLinkHtml(v.contactEmail||'',v.registration,v.model||'')+'<div class="fleetContactSaveRow"><input class="vehicleEmailEditInput" id="fleetEmail" type="email" value="'+esc(v.contactEmail||'')+'" placeholder="Edit email address"><a class="btn fleetReminderEmailLink" href="'+(v.contactEmail?serviceReminderMailto(emailAddressList(v.contactEmail)[0]||v.contactEmail,v.registration,v.model):'#')+'">Email</a><button type="button" class="primary" id="fleetSaveVehicleEmail">Save contact</button></div><small id="fleetVehicleEmailSaved" class="fleetSaveNotice"></small></div></div>'+fleetGovernmentDataHtml(v)+'<section class="fleetMaintenance"><h3>Maintenance plans</h3>'+(plans.length?plans.map(planRow).join(''):'<div class="fleetEmpty">No maintenance plans are recorded.</div>')+'<div class="fleetAddPlan"><input id="fleetPlanType" placeholder="New plan e.g. DPF Renewal"><input id="fleetPlanInterval" type="number" min="1" value="12" title="Interval in months"><select id="fleetPlanMonth"><option value="">Any month</option>'+Array.from({length:12},function(_,i){return '<option value="'+(i+1)+'">'+new Date(2026,i,1).toLocaleString('en-GB',{month:'short'})+'</option>'}).join('')+'</select><button type="button" class="primary" id="fleetAddPlan">Add plan</button></div></section><section class="fleetMaintenance"><h3>Completion history</h3>'+(done.length?done.slice(0,50).map(function(x){var imported=String(x.source||'').indexOf('historical/imported')===0;return '<div class="fleetCompletion"><div><b>'+esc(x.type||'Maintenance')+'</b><small>'+(imported?'Historical / imported · ':'')+esc(x.notes||'')+'</small></div><span>'+esc(fleetHistoricalDisplay(x))+'</span><div class="fleetCompletionActions"><button type="button" class="btn" data-fleet-edit-completion="'+esc(x.id)+'">Edit</button><button type="button" class="btn danger" data-fleet-delete-completion="'+esc(x.id)+'">Delete</button></div></div>'}).join(''):'<div class="fleetEmpty">No completed maintenance has been recorded.</div>')+'</section><section class="fleetRemoveVehicleSection"><h3>Archive vehicle</h3><p>Removes the vehicle from active Fleet Manager lists while retaining every customer, job, invoice and service record.</p><button type="button" class="btn danger" id="fleetRemoveVehicle">Archive vehicle</button></section></aside>'}
+function fleetDrawerHtml(){var v=fleetVehicles.find(function(x){return x.id===activeFleetVehicleId});if(!v)return '';var plans=fleetVehiclePlans(v.id),done=fleetCompletions.filter(function(x){return x.vehicleId===v.id}).sort(function(a,b){return String(b.completedDate||'').localeCompare(String(a.completedDate||''))});function planRow(p){var due=fleetDate(p),tone=fleetTone(due);return '<div class="fleetPlan"><div class="fleetPlanInfo"><b>'+esc(p.type||'Maintenance')+'</b><small>Due '+fleetFormat(due)+' · every '+esc(String(p.intervalMonths||12))+' months'+(p.status&&p.status!=='Active'?' · '+esc(p.status):'')+'</small><div class="fleetDueEdit"><label>Due date <input type="date" data-fleet-due-input="'+esc(p.id)+'" value="'+esc(due||'')+'"></label><button type="button" class="btn" data-fleet-save-due="'+esc(p.id)+'">Save due date</button></div></div><div class="fleetPlanActions"><button type="button" class="btn" data-fleet-book="'+esc(p.id)+'">Book</button><button type="button" class="btn" data-fleet-complete="'+esc(p.id)+'">Complete</button><button type="button" class="btn" data-fleet-pause="'+esc(p.id)+'">Pause</button><button type="button" class="btn danger" data-fleet-remove-plan="'+esc(p.id)+'">Remove maintenance record</button></div></div>'}return '<aside class="fleetDrawer" role="dialog" aria-modal="true" aria-label="Fleet vehicle details"><div class="fleetDrawerHead"><div><span class="fleetEyebrow">FLEET VEHICLE</span><h2>'+fleetPlate(v.registration)+'</h2><p>'+esc(fleetDisplayModel(v.model))+' · '+esc(v.fleetGroup==='Contractor Fleet'?fleetNormaliseCustomer(v.customer):fleetGroupLabel(v.fleetGroup))+'</p></div><div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;justify-content:flex-end"><button type="button" class="fleetDrawerClose" id="fleetClose" aria-label="Close">×</button></div></div><div class="fleetProfile"><div class="field"><label>Fleet / customer</label><div>'+(v.fleetGroup==='Contractor Fleet'?fleetCustomerBadge(v):'<b>'+esc(fleetGroupLabel(v.fleetGroup))+'</b>')+'</div></div><div class="field"><label>Road going</label><select id="fleetRoad"><option '+(v.roadGoing?'selected':'')+'>Yes</option><option '+(!v.roadGoing?'selected':'')+'>No</option></select></div><div class="field"><label>Contact name</label><input id="fleetContactName" value="'+esc(v.contactName||'')+'" placeholder="Contact name"></div><div class="field"><label>Telephone</label><input id="fleetContactPhone" value="'+esc(v.contactPhone||'')+'" placeholder="Telephone"></div><div class="field wide"><label>Contact email</label>'+vehicleEmailLinkHtml(v.contactEmail||'',v.registration,v.model||'')+'<div class="fleetContactSaveRow"><input class="vehicleEmailEditInput" id="fleetEmail" type="email" value="'+esc(v.contactEmail||'')+'" placeholder="Edit email address"><a class="btn fleetReminderEmailLink" href="'+(v.contactEmail?serviceReminderMailto(emailAddressList(v.contactEmail)[0]||v.contactEmail,v.registration,v.model):'#')+'">Email</a><button type="button" class="primary" id="fleetSaveVehicleEmail">Save contact</button></div><small id="fleetVehicleEmailSaved" class="fleetSaveNotice"></small></div></div>'+fleetGovernmentDataHtml(v)+'<section class="fleetMaintenance"><h3>Maintenance plans</h3>'+(plans.length?plans.map(planRow).join(''):'<div class="fleetEmpty">No maintenance plans are recorded.</div>')+'<div class="fleetAddPlan"><input id="fleetPlanType" placeholder="New plan e.g. DPF Renewal"><input id="fleetPlanInterval" type="number" min="1" value="12" title="Interval in months"><select id="fleetPlanMonth"><option value="">Any month</option>'+Array.from({length:12},function(_,i){return '<option value="'+(i+1)+'">'+new Date(2026,i,1).toLocaleString('en-GB',{month:'short'})+'</option>'}).join('')+'</select><button type="button" class="primary" id="fleetAddPlan">Add plan</button></div></section><section class="fleetMaintenance"><h3>Completion history</h3>'+(done.length?done.slice(0,50).map(function(x){var imported=String(x.source||'').indexOf('historical/imported')===0;return '<div class="fleetCompletion"><div><b>'+esc(x.type||'Maintenance')+'</b><small>'+(imported?'Historical / imported · ':'')+esc(x.notes||'')+'</small></div><span>'+esc(fleetHistoricalDisplay(x))+'</span><div class="fleetCompletionActions"><button type="button" class="btn" data-fleet-edit-completion="'+esc(x.id)+'">Edit</button><button type="button" class="btn danger" data-fleet-delete-completion="'+esc(x.id)+'">Delete</button></div></div>'}).join(''):'<div class="fleetEmpty">No completed maintenance has been recorded.</div>')+'</section><section class="fleetRemoveVehicleSection"><h3>Archive vehicle</h3><p>Removes the vehicle from active Fleet Manager lists while retaining every customer, job, invoice and service record.</p><button type="button" class="btn danger" id="fleetRemoveVehicle">Archive vehicle</button></section></aside>'}
 
 function fleetNextAnnualDueFromCycle(previousDue,completedDate){
   var completed=String(completedDate||todayIso()).slice(0,10),
@@ -12108,14 +12074,7 @@ function fleetPrintDue30Page(){fleetPrintCurrentView()}
 /* V354: completion-date evidence repair is manual-only. */
 
 
-function fleetFutureCompletionDiagnostic(){
-  var today=todayIso(),out=[];
-  (fleetCompletions||[]).forEach(function(c){
-    var d=String(c&& (c.completedDate||c.completedMonth) ||'').slice(0,10);
-    if(/^\d{4}-\d{2}-\d{2}$/.test(d)&&d>today)out.push(c);
-  });
-  return out;
-}
+
 
 function fleetDueIntegrityAudit(){
   var today=todayIso(),limitDate=new Date(today+'T00:00:00');limitDate.setDate(limitDate.getDate()+30);
@@ -12506,7 +12465,7 @@ async function fleetRemoveVehicleCompletely(){
 function fleetBindBase(){var e;
 if(e=document.getElementById('fleetRemoveVehicle'))e.onclick=function(ev){if(ev){ev.preventDefault();ev.stopPropagation()}fleetRemoveVehicleCompletely()};
 document.querySelectorAll('[data-fleet-remove-plan]').forEach(function(b){b.onclick=function(ev){if(ev){ev.preventDefault();ev.stopPropagation()}fleetRemoveMaintenancePlan(b.dataset.fleetRemovePlan)}});
-if(e=document.getElementById('fleetManualMotReport'))e.onclick=function(){openFleetManualMotReport(window.lastFleetManualMotReport||{})};if(e=document.getElementById('fleetManualMotCheck'))e.onclick=function(ev){if(ev){ev.preventDefault();ev.stopPropagation()}fleetRunManualMotCheck(e)};document.querySelectorAll('[data-fleet-download-contacts]').forEach(function(b){b.onclick=function(){fleetDownloadVehicleContacts(b.dataset.fleetDownloadContacts)}});if(e=document.getElementById('fleetAddVehicle'))e.onclick=fleetAddVehicleModal;if(e=document.getElementById('fleetPrintCurrent'))e.onclick=fleetPrintCurrentView;if(e=document.getElementById('fleetPrintDue30'))e.onclick=fleetPrintDue30Page;if(e=document.getElementById('fleetOpenEom'))e.onclick=function(){fleetSection='invoicing';fleetEomCustomer='';render()};if(e=document.getElementById('fleetEomMaintenance'))e.onclick=function(){fleetSection='maintenance';fleetEomCustomer='';fleetListMode='due30';fleetFilter='All';fleetQuery='';fleetDueOnly=false;activeFleetVehicleId='';render()};if(e=document.getElementById('fleetEomCustomersBack'))e.onclick=function(){fleetEomCustomer='';render()};if(e=document.getElementById('fleetEomMonth'))e.onchange=function(){fleetEomMonth=e.value||todayIso().slice(0,7);render()};document.querySelectorAll('[data-eom-customer]').forEach(function(b){b.onclick=function(){fleetEomCustomer=fleetNormaliseCustomer(b.dataset.eomCustomer);render()}});if(e=document.getElementById('fleetEomPreview'))e.onclick=function(){var rows=fleetEomJobs(fleetEomMonth).filter(function(r){return r.customer===fleetNormaliseCustomer(fleetEomCustomer)});fleetEomPreview(fleetNormaliseCustomer(fleetEomCustomer),fleetEomMonth,rows)};document.querySelectorAll('[data-eom-open-job]').forEach(function(row){row.onclick=function(ev){if(ev.target.closest&&ev.target.closest('[data-eom-hold-job]'))return;openJobModal(row.dataset.eomOpenJob)}});document.querySelectorAll('[data-eom-hold-job]').forEach(function(b){b.onclick=function(ev){ev.preventDefault();ev.stopPropagation();if(confirm('Hold this job over from '+fleetEomMonth+' month-end? It will remain in Workshop Pro and will not be included in this month’s invoice.'))fleetEomHoldJob(b.dataset.eomHoldJob,fleetEomMonth)}});if(e=document.getElementById('fleetEomCsv'))e.onclick=function(){fleetDownloadEomCsv(fleetEomCustomer,fleetEomMonth,fleetEomJobs(fleetEomMonth).filter(function(r){return r.customer===fleetNormaliseCustomer(fleetEomCustomer)}))};if(e=document.getElementById('fleetEomInvoice'))e.onclick=function(){var rows=fleetEomJobs(fleetEomMonth).filter(function(r){return r.customer===fleetNormaliseCustomer(fleetEomCustomer)}),existing=vectaActiveInvoices().find(function(i){return i.fleet_customer===fleetNormaliseCustomer(fleetEomCustomer)&&i.fleet_month===fleetEomMonth});if(existing){openInvoice(existing.id);return}fleetEomConfirmFinalise(fleetNormaliseCustomer(fleetEomCustomer),fleetEomMonth,rows)};if(e=document.getElementById('fleetEomEmail'))e.onclick=function(){var rows=fleetEomJobs(fleetEomMonth).filter(function(r){return r.customer===fleetNormaliseCustomer(fleetEomCustomer)}),inv=vectaActiveInvoices().find(function(i){return i.fleet_customer===fleetNormaliseCustomer(fleetEomCustomer)&&i.fleet_month===fleetEomMonth});fleetEmailEom(fleetNormaliseCustomer(fleetEomCustomer),fleetEomMonth,rows,inv)};document.querySelectorAll('[data-fleet-mode]').forEach(function(b){b.onclick=function(){var requested=b.dataset.fleetMode;fleetListMode=fleetListMode===requested?'all':requested;fleetFilter='All';fleetQuery='';fleetDueOnly=false;activeFleetVehicleId='';render()}});document.querySelectorAll('[data-fleet-customer]').forEach(function(b){b.onclick=function(ev){ev.preventDefault();ev.stopPropagation();fleetFilter=fleetNormaliseCustomer(b.dataset.fleetCustomer);fleetListMode='all';activeFleetVehicleId='';render()}});if(e=document.getElementById('fleetSearch'))e.oninput=function(){fleetQuery=this.value;var pos=this.selectionStart;render();var next=document.getElementById('fleetSearch');if(next){next.focus();try{next.setSelectionRange(pos,pos)}catch(err){}}};if(e=document.getElementById('fleetSearchClear'))e.onclick=function(){fleetQuery='';render();var next=document.getElementById('fleetSearch');if(next)next.focus()};if(e=document.getElementById('fleetGroup')){e.value=fleetFilter;e.onchange=function(){fleetFilter=this.value||'All';fleetListMode='all';fleetQuery='';fleetDueOnly=false;activeFleetVehicleId='';render()}}if(e=document.getElementById('fleetDueOnly'))e.onchange=function(){fleetDueOnly=e.checked;render()};document.querySelectorAll('[data-fleet-group]').forEach(function(b){b.onclick=function(){fleetFilter=fleetFilter===b.dataset.fleetGroup?'All':b.dataset.fleetGroup;fleetListMode='all';fleetQuery='';fleetDueOnly=false;activeFleetVehicleId='';render()}});document.querySelectorAll('[data-fleet-open]').forEach(function(b){function openSelectedFleetVehicle(){var fv=fleetVehicles.find(function(x){return x.id===b.dataset.fleetOpen});if(!fv)return;if(fleetListMode==='tax30'&&typeof openStreamlinedTaxModalV226==='function'){openStreamlinedTaxModalV226(fv.registration);return}openVehicleFromReg(fv.registration)}b.onclick=function(ev){if(ev.target.closest&&ev.target.closest('[data-fleet-customer]'))return;openSelectedFleetVehicle()};b.onkeydown=function(ev){if(ev.key==='Enter'||ev.key===' '){ev.preventDefault();openSelectedFleetVehicle()}}});if(e=document.getElementById('fleetClose'))e.onclick=function(){activeFleetVehicleId='';render()};if(e=document.getElementById('fleetConfirmTaxed'))e.onclick=function(ev){if(ev){ev.preventDefault();ev.stopPropagation()}confirmFleetVehicleTaxed()};if(e=document.getElementById('fleetDrawerBack'))e.onclick=function(ev){if(ev.target===e){activeFleetVehicleId='';render()}};if(e=document.getElementById('fleetSaveVehicleEmail'))e.onclick=function(){var input=document.getElementById('fleetEmail'),v=fleetVehicles.find(function(x){return x.id===activeFleetVehicleId});if(v&&input){v.contactEmail=input.value.trim();saveFleet();var note=document.getElementById('fleetVehicleEmailSaved');if(note)note.textContent='Saved';setTimeout(function(){var n=document.getElementById('fleetVehicleEmailSaved');if(n)n.textContent=''},1600)}};if(e=document.getElementById('fleetSaveCustomer'))e.onclick=async function(){var rawFilter=String(fleetFilter||''),name=(rawFilter==='Nissan Internal'||rawFilter==='Nissan Pool Cars')?'NMUK':fleetNormaliseCustomer(rawFilter),profile={primaryContact:(document.getElementById('fleetCustomerContactName')||{}).value||'',telephone:(document.getElementById('fleetCustomerTelephone')||{}).value||'',contactEmail:(document.getElementById('fleetCustomerEmail')||{}).value||'',invoiceEmail:(document.getElementById('fleetCustomerInvoiceEmail')||{}).value||'',address:(document.getElementById('fleetCustomerAddress')||{}).value||''};Object.keys(profile).forEach(function(k){profile[k]=String(profile[k]||'').trim()});fleetCustomerProfiles[name]=profile;if(name==='NMUK'&&profile.address){try{localStorage.setItem('vecta:nmuk:invoice-address:v309',profile.address)}catch(e){}}if(profile.address){(app.invoices||[]).forEach(function(inv){var invoiceCustomer=fleetNormaliseCustomer(inv.fleet_customer||inv.customer_name||'');var looksFleet=!!(inv.fleet_customer||inv.fleet_month||inv.source==='fleet_eom'||String(inv.registration||'').trim().toUpperCase()==='FLEET ACCOUNT'||/^Monthly fleet work\s*[—-]/i.test(String(inv.vehicle||'')));if(looksFleet&&invoiceCustomer===name){inv.customer_address=profile.address;if(inv.lines&&inv.lines.length)inv.lines[0].customer_address=profile.address;upsertRemote('invoices',inv)}});saveAll()}if(name!=='NMUK'){fleetVehicles.forEach(function(v){if(v.fleetGroup==='Contractor Fleet'&&fleetNormaliseCustomer(v.customer)===name)v.contactEmail=profile.contactEmail})}try{localStorage.setItem('vecta:fleet:customers:v1',JSON.stringify(fleetCustomerProfiles));if(remoteClient&&typeof persistFleetCloudSnapshot==='function')await persistFleetCloudSnapshot()}catch(err){console.warn('Fleet customer details save sync failed',err)}var note=document.getElementById('fleetCustomerSaved');if(note)note.textContent='Customer details saved';setTimeout(function(){render()},700)};if(e=document.getElementById('fleetRoad'))e.onchange=function(){var v=fleetVehicles.find(function(x){return x.id===activeFleetVehicleId});if(v){v.roadGoing=e.value==='Yes';saveFleet()}};if(e=document.getElementById('fleetAddPlan'))e.onclick=function(){var type=document.getElementById('fleetPlanType').value.trim(),interval=Number(document.getElementById('fleetPlanInterval').value||12),month=Number(document.getElementById('fleetPlanMonth').value||0)||null;if(type){fleetPlans.push({id:'plan-'+Date.now(),vehicleId:activeFleetVehicleId,type:type,intervalMonths:interval,targetMonth:month,currentDueDate:'',notes:'Custom maintenance plan',status:'Active',source:'Fleet Manager'});saveFleet();render()}};document.querySelectorAll('[data-fleet-save-due]').forEach(function(b){b.onclick=function(){var p=fleetPlans.find(function(x){return x.id===b.dataset.fleetSaveDue}),input=document.querySelector('[data-fleet-due-input="'+b.dataset.fleetSaveDue+'"]');if(p&&input){p.currentDueDate=input.value||'';saveFleet();render()}}});document.querySelectorAll('[data-fleet-complete]').forEach(function(b){b.onclick=function(ev){if(ev){ev.preventDefault();ev.stopPropagation()}fleetCompletePlanNow(b.dataset.fleetComplete)}});document.querySelectorAll('[data-fleet-edit-completion]').forEach(function(b){b.onclick=function(){var c=fleetCompletions.find(function(x){return x.id===b.dataset.fleetEditCompletion});if(!c)return;var current=c.datePrecision==='month'?(c.completedMonth||''):c.completedDate;var value=prompt(c.datePrecision==='month'?'Completion month (YYYY-MM)':'Completion date (YYYY-MM-DD)',current||'');if(value===null)return;value=String(value||'').trim();if(/^\d{4}-\d{2}$/.test(value)){c.completedMonth=value;c.completedDate='';c.datePrecision='month'}else if(/^\d{4}-\d{2}-\d{2}$/.test(value)){c.completedDate=value;c.completedMonth='';c.datePrecision='day'}else{alert('Enter either YYYY-MM or YYYY-MM-DD.');return}saveFleet();render()}});document.querySelectorAll('[data-fleet-delete-completion]').forEach(function(b){b.onclick=function(){var c=fleetCompletions.find(function(x){return x.id===b.dataset.fleetDeleteCompletion});if(c&&confirm('Delete this completion record?')){fleetCompletions=fleetCompletions.filter(function(x){return x.id!==c.id});saveFleet();render()}}});document.querySelectorAll('[data-fleet-pause]').forEach(function(b){b.onclick=function(){var p=fleetPlans.find(function(x){return x.id===b.dataset.fleetPause});if(p&&confirm('Pause this maintenance plan?')){p.status='Paused';saveFleet();render()}}});document.querySelectorAll('[data-fleet-book]').forEach(function(b){b.onclick=function(){var p=fleetPlans.find(function(x){return x.id===b.dataset.fleetBook}),v=fleetVehicles.find(function(x){return x.id===activeFleetVehicleId});if(!p||!v)return;view='planner';selectedDate=fleetDate(p)||new Date().toISOString().slice(0,10);render();openJobModal(null,{registration:v.registration,vehicle:v.model,customer_account:(v.fleetGroup==='Nissan Internal'||v.fleetGroup==='Nissan Pool Cars')?'NMUK':fleetNormaliseCustomer(v.customer),customer_name:(v.fleetGroup==='Nissan Internal'||v.fleetGroup==='Nissan Pool Cars')?'NMUK':fleetNormaliseCustomer(v.customer),customer_email:v.contactEmail,work_required:p.type==='Internal Service'?'On-Site Service':p.type,job_type:p.type==='MOT'?'MOT':(p.type==='Internal Service'?'On-Site Service':(String(p.type||'').toLowerCase().indexOf('service')>-1?p.type:'Other')),estimated_hours:p.type==='MOT'?1:1.5,technician:'Unallocated'})}});if(e=document.getElementById('fleetReset'))e.onclick=function(){if(confirm('Reset Fleet Manager to the imported spreadsheet data?')){localStorage.removeItem('vecta:fleet:vehicles:v1');localStorage.removeItem('vecta:fleet:plans:v1');localStorage.removeItem('vecta:fleet:completions:v1');localStorage.removeItem('vecta:fleet:customers:v1');localStorage.removeItem('vecta:fleet:historical-import:v2');fleetCustomerProfiles={};fleetVehicles=(window.INITIAL_FLEET_VEHICLES||[]).map(function(v){v=Object.assign({},v);v.customer=fleetNormaliseCustomer(v.customer);return v});fleetPlans=window.INITIAL_MAINTENANCE_PLANS||[];fleetCompletions=[];fleetImportHistoricalSeed(true);fleetMigratePreJuly2026Overdues();saveFleet();render()}}}
+if(e=document.getElementById('fleetManualMotReport'))e.onclick=function(){openFleetManualMotReport(window.lastFleetManualMotReport||{})};if(e=document.getElementById('fleetManualMotCheck'))e.onclick=function(ev){if(ev){ev.preventDefault();ev.stopPropagation()}fleetRunManualMotCheck(e)};document.querySelectorAll('[data-fleet-download-contacts]').forEach(function(b){b.onclick=function(){fleetDownloadVehicleContacts(b.dataset.fleetDownloadContacts)}});if(e=document.getElementById('fleetAddVehicle'))e.onclick=fleetAddVehicleModal;if(e=document.getElementById('fleetPrintCurrent'))e.onclick=fleetPrintCurrentView;if(e=document.getElementById('fleetPrintDue30'))e.onclick=fleetPrintDue30Page;if(e=document.getElementById('fleetOpenEom'))e.onclick=function(){fleetSection='invoicing';fleetEomCustomer='';render()};if(e=document.getElementById('fleetEomMaintenance'))e.onclick=function(){fleetSection='maintenance';fleetEomCustomer='';fleetListMode='due30';fleetFilter='All';fleetQuery='';fleetDueOnly=false;activeFleetVehicleId='';render()};if(e=document.getElementById('fleetEomCustomersBack'))e.onclick=function(){fleetEomCustomer='';render()};if(e=document.getElementById('fleetEomMonth'))e.onchange=function(){fleetEomMonth=e.value||todayIso().slice(0,7);render()};document.querySelectorAll('[data-eom-customer]').forEach(function(b){b.onclick=function(){fleetEomCustomer=fleetNormaliseCustomer(b.dataset.eomCustomer);render()}});if(e=document.getElementById('fleetEomPreview'))e.onclick=function(){var rows=fleetEomJobs(fleetEomMonth).filter(function(r){return r.customer===fleetNormaliseCustomer(fleetEomCustomer)});fleetEomPreview(fleetNormaliseCustomer(fleetEomCustomer),fleetEomMonth,rows)};document.querySelectorAll('[data-eom-open-job]').forEach(function(row){row.onclick=function(ev){if(ev.target.closest&&ev.target.closest('[data-eom-hold-job]'))return;openJobModal(row.dataset.eomOpenJob)}});document.querySelectorAll('[data-eom-hold-job]').forEach(function(b){b.onclick=function(ev){ev.preventDefault();ev.stopPropagation();if(confirm('Hold this job over from '+fleetEomMonth+' month-end? It will remain in Workshop Pro and will not be included in this month’s invoice.'))fleetEomHoldJob(b.dataset.eomHoldJob,fleetEomMonth)}});if(e=document.getElementById('fleetEomCsv'))e.onclick=function(){fleetDownloadEomCsv(fleetEomCustomer,fleetEomMonth,fleetEomJobs(fleetEomMonth).filter(function(r){return r.customer===fleetNormaliseCustomer(fleetEomCustomer)}))};if(e=document.getElementById('fleetEomInvoice'))e.onclick=function(){var rows=fleetEomJobs(fleetEomMonth).filter(function(r){return r.customer===fleetNormaliseCustomer(fleetEomCustomer)}),existing=vectaActiveInvoices().find(function(i){return i.fleet_customer===fleetNormaliseCustomer(fleetEomCustomer)&&i.fleet_month===fleetEomMonth});if(existing){openInvoice(existing.id);return}fleetEomConfirmFinalise(fleetNormaliseCustomer(fleetEomCustomer),fleetEomMonth,rows)};if(e=document.getElementById('fleetEomEmail'))e.onclick=function(){var rows=fleetEomJobs(fleetEomMonth).filter(function(r){return r.customer===fleetNormaliseCustomer(fleetEomCustomer)}),inv=vectaActiveInvoices().find(function(i){return i.fleet_customer===fleetNormaliseCustomer(fleetEomCustomer)&&i.fleet_month===fleetEomMonth});fleetEmailEom(fleetNormaliseCustomer(fleetEomCustomer),fleetEomMonth,rows,inv)};document.querySelectorAll('[data-fleet-mode]').forEach(function(b){b.onclick=function(){var requested=b.dataset.fleetMode;fleetListMode=fleetListMode===requested?'all':requested;fleetFilter='All';fleetQuery='';fleetDueOnly=false;activeFleetVehicleId='';render()}});document.querySelectorAll('[data-fleet-customer]').forEach(function(b){b.onclick=function(ev){ev.preventDefault();ev.stopPropagation();fleetFilter=fleetNormaliseCustomer(b.dataset.fleetCustomer);fleetListMode='all';activeFleetVehicleId='';render()}});if(e=document.getElementById('fleetSearch'))e.oninput=function(){fleetQuery=this.value;var pos=this.selectionStart;render();var next=document.getElementById('fleetSearch');if(next){next.focus();try{next.setSelectionRange(pos,pos)}catch(err){}}};if(e=document.getElementById('fleetSearchClear'))e.onclick=function(){fleetQuery='';render();var next=document.getElementById('fleetSearch');if(next)next.focus()};if(e=document.getElementById('fleetGroup')){e.value=fleetFilter;e.onchange=function(){fleetFilter=this.value||'All';fleetListMode='all';fleetQuery='';fleetDueOnly=false;activeFleetVehicleId='';render()}}if(e=document.getElementById('fleetDueOnly'))e.onchange=function(){fleetDueOnly=e.checked;render()};document.querySelectorAll('[data-fleet-group]').forEach(function(b){b.onclick=function(){fleetFilter=fleetFilter===b.dataset.fleetGroup?'All':b.dataset.fleetGroup;fleetListMode='all';fleetQuery='';fleetDueOnly=false;activeFleetVehicleId='';render()}});document.querySelectorAll('[data-fleet-open]').forEach(function(b){function openSelectedFleetVehicle(){var fv=fleetVehicles.find(function(x){return x.id===b.dataset.fleetOpen});if(!fv)return;if(fleetListMode==='tax30'&&typeof openStreamlinedTaxModalV226==='function'){openStreamlinedTaxModalV226(fv.registration);return}openVehicleFromReg(fv.registration)}b.onclick=function(ev){if(ev.target.closest&&ev.target.closest('[data-fleet-customer]'))return;openSelectedFleetVehicle()};b.onkeydown=function(ev){if(ev.key==='Enter'||ev.key===' '){ev.preventDefault();openSelectedFleetVehicle()}}});if(e=document.getElementById('fleetClose'))e.onclick=function(){activeFleetVehicleId='';render()};if(e=document.getElementById('fleetDrawerBack'))e.onclick=function(ev){if(ev.target===e){activeFleetVehicleId='';render()}};if(e=document.getElementById('fleetSaveVehicleEmail'))e.onclick=function(){var input=document.getElementById('fleetEmail'),v=fleetVehicles.find(function(x){return x.id===activeFleetVehicleId});if(v&&input){v.contactEmail=input.value.trim();saveFleet();var note=document.getElementById('fleetVehicleEmailSaved');if(note)note.textContent='Saved';setTimeout(function(){var n=document.getElementById('fleetVehicleEmailSaved');if(n)n.textContent=''},1600)}};if(e=document.getElementById('fleetSaveCustomer'))e.onclick=async function(){var rawFilter=String(fleetFilter||''),name=(rawFilter==='Nissan Internal'||rawFilter==='Nissan Pool Cars')?'NMUK':fleetNormaliseCustomer(rawFilter),profile={primaryContact:(document.getElementById('fleetCustomerContactName')||{}).value||'',telephone:(document.getElementById('fleetCustomerTelephone')||{}).value||'',contactEmail:(document.getElementById('fleetCustomerEmail')||{}).value||'',invoiceEmail:(document.getElementById('fleetCustomerInvoiceEmail')||{}).value||'',address:(document.getElementById('fleetCustomerAddress')||{}).value||''};Object.keys(profile).forEach(function(k){profile[k]=String(profile[k]||'').trim()});fleetCustomerProfiles[name]=profile;if(name==='NMUK'&&profile.address){try{localStorage.setItem('vecta:nmuk:invoice-address:v309',profile.address)}catch(e){}}if(profile.address){(app.invoices||[]).forEach(function(inv){var invoiceCustomer=fleetNormaliseCustomer(inv.fleet_customer||inv.customer_name||'');var looksFleet=!!(inv.fleet_customer||inv.fleet_month||inv.source==='fleet_eom'||String(inv.registration||'').trim().toUpperCase()==='FLEET ACCOUNT'||/^Monthly fleet work\s*[—-]/i.test(String(inv.vehicle||'')));if(looksFleet&&invoiceCustomer===name){inv.customer_address=profile.address;if(inv.lines&&inv.lines.length)inv.lines[0].customer_address=profile.address;upsertRemote('invoices',inv)}});saveAll()}if(name!=='NMUK'){fleetVehicles.forEach(function(v){if(v.fleetGroup==='Contractor Fleet'&&fleetNormaliseCustomer(v.customer)===name)v.contactEmail=profile.contactEmail})}try{localStorage.setItem('vecta:fleet:customers:v1',JSON.stringify(fleetCustomerProfiles));if(remoteClient&&typeof persistFleetCloudSnapshot==='function')await persistFleetCloudSnapshot()}catch(err){console.warn('Fleet customer details save sync failed',err)}var note=document.getElementById('fleetCustomerSaved');if(note)note.textContent='Customer details saved';setTimeout(function(){render()},700)};if(e=document.getElementById('fleetRoad'))e.onchange=function(){var v=fleetVehicles.find(function(x){return x.id===activeFleetVehicleId});if(v){v.roadGoing=e.value==='Yes';saveFleet()}};if(e=document.getElementById('fleetAddPlan'))e.onclick=function(){var type=document.getElementById('fleetPlanType').value.trim(),interval=Number(document.getElementById('fleetPlanInterval').value||12),month=Number(document.getElementById('fleetPlanMonth').value||0)||null;if(type){fleetPlans.push({id:'plan-'+Date.now(),vehicleId:activeFleetVehicleId,type:type,intervalMonths:interval,targetMonth:month,currentDueDate:'',notes:'Custom maintenance plan',status:'Active',source:'Fleet Manager'});saveFleet();render()}};document.querySelectorAll('[data-fleet-save-due]').forEach(function(b){b.onclick=function(){var p=fleetPlans.find(function(x){return x.id===b.dataset.fleetSaveDue}),input=document.querySelector('[data-fleet-due-input="'+b.dataset.fleetSaveDue+'"]');if(p&&input){p.currentDueDate=input.value||'';saveFleet();render()}}});document.querySelectorAll('[data-fleet-complete]').forEach(function(b){b.onclick=function(ev){if(ev){ev.preventDefault();ev.stopPropagation()}fleetCompletePlanNow(b.dataset.fleetComplete)}});document.querySelectorAll('[data-fleet-edit-completion]').forEach(function(b){b.onclick=function(){var c=fleetCompletions.find(function(x){return x.id===b.dataset.fleetEditCompletion});if(!c)return;var current=c.datePrecision==='month'?(c.completedMonth||''):c.completedDate;var value=prompt(c.datePrecision==='month'?'Completion month (YYYY-MM)':'Completion date (YYYY-MM-DD)',current||'');if(value===null)return;value=String(value||'').trim();if(/^\d{4}-\d{2}$/.test(value)){c.completedMonth=value;c.completedDate='';c.datePrecision='month'}else if(/^\d{4}-\d{2}-\d{2}$/.test(value)){c.completedDate=value;c.completedMonth='';c.datePrecision='day'}else{alert('Enter either YYYY-MM or YYYY-MM-DD.');return}saveFleet();render()}});document.querySelectorAll('[data-fleet-delete-completion]').forEach(function(b){b.onclick=function(){var c=fleetCompletions.find(function(x){return x.id===b.dataset.fleetDeleteCompletion});if(c&&confirm('Delete this completion record?')){fleetCompletions=fleetCompletions.filter(function(x){return x.id!==c.id});saveFleet();render()}}});document.querySelectorAll('[data-fleet-pause]').forEach(function(b){b.onclick=function(){var p=fleetPlans.find(function(x){return x.id===b.dataset.fleetPause});if(p&&confirm('Pause this maintenance plan?')){p.status='Paused';saveFleet();render()}}});document.querySelectorAll('[data-fleet-book]').forEach(function(b){b.onclick=function(){var p=fleetPlans.find(function(x){return x.id===b.dataset.fleetBook}),v=fleetVehicles.find(function(x){return x.id===activeFleetVehicleId});if(!p||!v)return;view='planner';selectedDate=fleetDate(p)||new Date().toISOString().slice(0,10);render();openJobModal(null,{registration:v.registration,vehicle:v.model,customer_account:(v.fleetGroup==='Nissan Internal'||v.fleetGroup==='Nissan Pool Cars')?'NMUK':fleetNormaliseCustomer(v.customer),customer_name:(v.fleetGroup==='Nissan Internal'||v.fleetGroup==='Nissan Pool Cars')?'NMUK':fleetNormaliseCustomer(v.customer),customer_email:v.contactEmail,work_required:p.type==='Internal Service'?'On-Site Service':p.type,job_type:p.type==='MOT'?'MOT':(p.type==='Internal Service'?'On-Site Service':(String(p.type||'').toLowerCase().indexOf('service')>-1?p.type:'Other')),estimated_hours:p.type==='MOT'?1:1.5,technician:'Unallocated'})}});if(e=document.getElementById('fleetReset'))e.onclick=function(){if(confirm('Reset Fleet Manager to the imported spreadsheet data?')){localStorage.removeItem('vecta:fleet:vehicles:v1');localStorage.removeItem('vecta:fleet:plans:v1');localStorage.removeItem('vecta:fleet:completions:v1');localStorage.removeItem('vecta:fleet:customers:v1');localStorage.removeItem('vecta:fleet:historical-import:v2');fleetCustomerProfiles={};fleetVehicles=(window.INITIAL_FLEET_VEHICLES||[]).map(function(v){v=Object.assign({},v);v.customer=fleetNormaliseCustomer(v.customer);return v});fleetPlans=window.INITIAL_MAINTENANCE_PLANS||[];fleetCompletions=[];fleetImportHistoricalSeed(true);fleetMigratePreJuly2026Overdues();saveFleet();render()}}}
 
 var websiteRequestFilter='all';
 function requestDate(value){if(!value)return 'Not provided';try{return new Date(String(value).slice(0,10)+'T00:00:00').toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'})}catch(e){return String(value)}}
@@ -12577,9 +12536,7 @@ function websiteRequestNote(r){
   return 'Website request ID: '+String(r.id||'')+' || Website booking made: '+createdAt+' || Website requested date: '+requestedDate+' || Website customer notes: '+notes+' || Completion deadline: '+String(r.completion_deadline||'Not provided')+' || Contact preference: '+String(r.contact_preference||'Not provided');
 }
 function websiteRequestIdFromJob(j){return window.VectaBookingRules.requestIdFromJob(j)}
-function websiteRequestMatchesJob(req,j){
-  return window.VectaBookingRules.requestMatchesJob(req,j,{normaliseRegistration:normReg,isWebsiteJob:isWebsiteBookingJob});
-}
+
 function websiteJobDetails(j){
   var note=String(j&&j.customer_note||''),requestId=websiteRequestIdFromJob(j),req=(app.websiteRequests||[]).find(function(r){return String(r.id||'')===String(requestId||'')})||null;
   var oldDates=(note.match(/Website booking dates:\s*([^|][\s\S]*?)\s*\|\|/i)||[])[1]||'',oldDate=(oldDates.match(/\d{4}-\d{2}-\d{2}/)||[])[0]||'';
@@ -12875,7 +12832,7 @@ function partsStatusClass(status){status=normalisePartsStatus(status);return sta
 function partsStatusDot(j){var status=partsStatusFromJob(j);return status?'<span class="partsStatusDot cardPartsStatusDot '+partsStatusClass(status)+'" title="'+esc(status)+'" aria-label="'+esc(status)+'"></span>':''}
 function nextWorkshopIso(from){var d=new Date((from||todayIso())+'T12:00:00');do{d.setDate(d.getDate()+1)}while(d.getDay()===0||d.getDay()===6);return d.toISOString().slice(0,10)}
 function partsBookingType(j){return jobTypeLabels(j).join(' + ')||'General'}
-function partsVehicleName(j){var named=[j.make,j.model].filter(Boolean).join(' ').trim();return named||j.vehicle||'Vehicle'}
+
 function partsJobCardHtml(j){var parts=jobParts(j);return '<article class="partsWorkCard"><div class="partsCompactTop">'+listPlate(j.registration)+'<span class="partsCompactType">'+esc(partsBookingType(j))+'</span></div><div class="partsCompactLine">'+parts.map(function(p){return '<label class="partsCompactItem"><span>'+esc(p.description)+(Number(p.quantity||1)>1?' <span class="partsCompactQty">×'+esc(String(p.quantity))+'</span>':'')+'</span><input type="checkbox" title="Parts here" aria-label="'+esc(p.description)+' parts here" data-part-arrived="'+esc(j.id)+'" data-part-id="'+esc(p.id)+'" '+(p.arrived?'checked':'')+'></label>'}).join('')+'</div></article>'}
 function partsOrderingHtml(){var today=todayIso(),tomorrow=nextWorkshopIso(today),jobs=(app.jobs||[]).filter(function(j){var ps=partsStatusFromJob(j);return !vectaJobIsDeletedForLists(j)&&!!ps&&ps!=='Parts here'&&ps!=='Not required'&&!j.archived&&j.status!=='completed'&&j.status!=='ready_to_invoice'}).sort(function(a,b){return String(a.booking_date||'9999').localeCompare(String(b.booking_date||'9999'))||byTime(a,b)}),todayRows=jobs.filter(function(j){return j.booking_date===today}),tomorrowRows=jobs.filter(function(j){return j.booking_date===tomorrow}),laterRows=jobs.filter(function(j){return j.booking_date!==today&&j.booking_date!==tomorrow});function section(title,rows,isUrgent){return '<section class="partsWorkSection '+(isUrgent?'partsTodayUrgent':'')+'"><div class="partsWorkSectionHead"><h2>'+esc(title)+(isUrgent&&rows.length?' — URGENT':'')+'</h2><span>'+rows.length+'</span></div>'+(rows.length?rows.map(partsJobCardHtml).join(''):'<div class="partsEmpty">No parts required.</div>')+'</section>'}return '<div class="partsPageHead"><div><h2>Parts Ordering</h2><p>Tick each part as it arrives. As soon as every part is here, the planner dot turns green and the job disappears from this list.</p></div><div class="partsLegend"><span><i class="parts-red"></i>To order</span><span><i class="parts-amber"></i>Awaiting parts</span><span><i class="parts-green"></i>Parts here</span></div></div><div class="partsWorkPage">'+section('Needed today',todayRows,true)+section('Needed tomorrow',tomorrowRows,false)+section('Later bookings',laterRows,false)+'</div>'}
 async function updatePartState(jobId,partId,key,value){var j=(app.jobs||[]).find(function(x){return String(x.id)===String(jobId)});if(!j)return;var parts=jobParts(j),part=parts.find(function(p){return String(p.id)===String(partId)});if(!part)return;part[key]=!!value;if(key==='arrived'&&value)part.ordered=true;if(key==='ordered'&&!value)part.arrived=false;j.customer_note=noteWithJobParts(j.customer_note,parts);j.parts_status=calculatedPartsStatus(parts);j.customer_note=partsStatusNote(j.customer_note,j.parts_status);j.updated_at=new Date().toISOString();saveLocal();render();try{await upsertRemote('jobs',j,{silent:true})}catch(e){alert('The part status could not be saved to the cloud. Please try again.')}}
@@ -12905,14 +12862,14 @@ function jobPartsRangeWorkHtml(j){
 function jobPartsEditorHtml(j){var rows=jobParts(j),range=jobPartsRangeDisplay(j);function row(p){return '<div class="jobPartRow" data-job-part data-part-id="'+esc(p.id||uid())+'"><input type="text" data-part-description placeholder="Part description" value="'+esc(p.description||'')+'"><input type="number" data-part-quantity min="1" step="1" value="'+esc(p.quantity||1)+'"><input type="number" data-part-cost-price aria-label="Cost price (£)" placeholder="Cost price £" min="0" step="0.01" value="'+esc(p.cost_price==null?'':p.cost_price)+'"><label class="jobPartCheck"><input type="checkbox" data-part-ordered-edit '+(p.ordered?'checked':'')+'>Ordered</label><label class="jobPartCheck"><input type="checkbox" data-part-arrived-edit '+(p.arrived?'checked':'')+'>Arrived</label><button type="button" class="jobPartRemove" data-remove-job-part>×</button></div>'}return '<section class="jobFormSection"><div class="jobFormSectionHead"><span class="jobSectionNumber">P</span><div><h3>Parts ordering list'+(range?' <span class="jobPartsRangeHeading">*('+esc(range)+')*</span>':'')+'</h3><p>For ordering and arrival tracking only — this does not change Work required</p></div></div><div class="jobPartsEditor" id="jobPartsEditor">'+rows.map(row).join('')+'</div><div class="jobPartsActions"><button type="button" class="btn" id="addJobPart">+ Add part</button>'+select('Parts status','parts_status',partsStatusFromJob(j),PARTS_STATUS_VALUES)+'</div></section>'}
 function gatherJobPartsEditor(){return [].slice.call(document.querySelectorAll('[data-job-part]')).map(function(r){var arrived=!!r.querySelector('[data-part-arrived-edit]').checked,ordered=!!r.querySelector('[data-part-ordered-edit]').checked||arrived;return{id:r.dataset.partId||uid(),description:r.querySelector('[data-part-description]').value.trim(),quantity:Number(r.querySelector('[data-part-quantity]').value)||1,cost_price:r.querySelector('[data-part-cost-price]').value===''?null:Math.max(0,Number(r.querySelector('[data-part-cost-price]').value)||0),ordered:ordered,arrived:arrived}}).filter(function(p){return p.description})}
 function partsWorkRequiredText(parts){return (parts||[]).map(function(p){return String(p&&p.description||'').trim()}).filter(Boolean).join('\n')}
-function syncWorkRequiredFromPartsEditor(){return partsWorkRequiredText(gatherJobPartsEditor())}
+
 function bindJobPartsEditor(){var add=document.getElementById('addJobPart'),wrap=document.getElementById('jobPartsEditor');function bind(){document.querySelectorAll('[data-remove-job-part]').forEach(function(b){b.onclick=function(){b.closest('[data-job-part]').remove()}});document.querySelectorAll('[data-part-arrived-edit]').forEach(function(x){x.onchange=function(){if(x.checked)x.closest('[data-job-part]').querySelector('[data-part-ordered-edit]').checked=true}})}if(add&&wrap)add.onclick=function(){wrap.insertAdjacentHTML('beforeend','<div class="jobPartRow" data-job-part data-part-id="'+uid()+'"><input type="text" data-part-description placeholder="Part description"><input type="number" data-part-quantity min="1" step="1" value="1"><input type="number" data-part-cost-price aria-label="Cost price (£)" placeholder="Cost price £" min="0" step="0.01"><label class="jobPartCheck"><input type="checkbox" data-part-ordered-edit>Ordered</label><label class="jobPartCheck"><input type="checkbox" data-part-arrived-edit>Arrived</label><button type="button" class="jobPartRemove" data-remove-job-part>×</button></div>');bind();var rows=wrap.querySelectorAll('[data-part-description]');rows[rows.length-1].focus()};bind()}
 function templateDefaultParts(t){var raw=t&&t.default_parts;if(Array.isArray(raw))return raw.map(function(x){return String(x||'').trim()}).filter(Boolean);return String(raw||'').split(/\r?\n|,/).map(function(x){return x.trim()}).filter(Boolean)}
 function addTemplatePartsToJob(t){var wrap=document.getElementById('jobPartsEditor');if(!wrap)return;var existing=[].slice.call(wrap.querySelectorAll('[data-part-description]')).map(function(x){return String(x.value||'').trim().toLowerCase()});templateDefaultParts(t).forEach(function(description){if(existing.indexOf(description.toLowerCase())>-1)return;wrap.insertAdjacentHTML('beforeend','<div class="jobPartRow" data-job-part data-part-id="'+uid()+'"><input type="text" data-part-description placeholder="Part description" value="'+esc(description)+'"><input type="number" data-part-quantity min="1" step="1" value="1"><input type="number" data-part-cost-price aria-label="Cost price (£)" placeholder="Cost price £" min="0" step="0.01"><label class="jobPartCheck"><input type="checkbox" data-part-ordered-edit>Ordered</label><label class="jobPartCheck"><input type="checkbox" data-part-arrived-edit>Arrived</label><button type="button" class="jobPartRemove" data-remove-job-part>×</button></div>');existing.push(description.toLowerCase())});bindJobPartsEditor()}
 function plannerPlate(j){return '<span class="plannerPlateWrap">'+fullPlate(j.registration,j)+'</span>'}
 function compactUnallocatedPlate(reg,job){var r=normReg(reg||''),internal=fleetIsInternalRegistration(r,job);return '<button type="button" class="ukPlate uniformRegPlate '+(internal?'internalRoadPlate':'')+'" data-open-vehicle-reg="'+esc(r)+'" title="'+(internal?'Site-only vehicle — not for public-road use':'Open vehicle details')+'"><span class="ukStrip"'+fleetPlateStripStyle(r,job)+'>GB</span><span class="compactPlateText">'+esc(r||'NO REG')+'</span></button>'}
 function listPlate(reg){var r=normReg(reg||''),internal=fleetIsInternalRegistration(r);return '<span class="ukPlate uniformRegPlate '+(internal?'internalRoadPlate':'')+'"'+(internal?' title="Site-only vehicle — not for public-road use"':'')+'><span class="ukStrip"'+fleetPlateStripStyle(r)+'>GB</span><b>'+esc(r||'NO REG')+'</b></span>'}
-function scheduleMini(jobs){if(!jobs.length)return '<div class="empty">No jobs booked for this day yet.</div>';return '<div class="tableList">'+jobs.sort(byTime).map(function(j){return '<div class="rowCard scheduleRow" data-open-job="'+j.id+'"><span class="timeBadge">'+esc(j.drop_time||'08:00')+'</span>'+jobVehicleBadge(j)+'<div><b>'+esc(j.no_vehicle?'No Vehicle':(j.vehicle||'Vehicle'))+'</b><br><span class="muted">'+esc(j.work_required||'')+'</span></div><span>'+esc(j.technician||'Unallocated')+'</span><span class="pill">'+statusText(j.status)+'</span></div>'}).join('')+'</div>'}
+
 function unallocatedJobs(){
   var today=todayIso();
   return (app.jobs||[]).filter(function(j){
@@ -12949,7 +12906,7 @@ function unallocatedJobs(){
     return ad.localeCompare(bd)||byTime(a,b);
   });
 }
-function unallocatedMini(){var p=unallocatedJobs().slice(0,8);if(!p.length)return '<div class="ok">No unallocated jobs.</div>';return p.map(function(j){return '<div class="sideJob" data-open-job="'+j.id+'">'+carryOverBadgeHtml(j)+fullPlate(j.registration)+'<b>'+esc(j.vehicle||'Vehicle')+'</b><p>'+esc(j.work_required||'')+'</p></div>'}).join('')}
+
 function plannerVehicleLabel(j){return String(j.vehicle||[j.make,j.model].filter(Boolean).join(' ')||'Vehicle').trim().split(/\s+/).slice(0,2).join(' ')}
 function unallocatedJobCardHtml(j){var carried=!!carryOverMeta(j);return '<div draggable="true" class="sideJob unallocatedSideJob jobTypeCoded '+(carried?'carryOverSideJob':'')+'" style="'+jobTypeInlineStyle(j)+'" data-job-id="'+j.id+'" data-open-unallocated="'+j.id+'" title="Click to open job card">'+carryOverBadgeHtml(j)+'<div class="unallocatedVehicleHeader">'+compactUnallocatedPlate(j.registration||'NO REG',j)+'<span class="unallocatedVehicleName" title="'+esc(j.vehicle||'Vehicle')+'">'+esc(plannerVehicleLabel(j))+'</span></div><div class="sideJobType">'+jobTypeChip(j)+'</div><b>'+esc(j.work_required||'No work required entered')+'</b>'+partsStatusDot(j)+'</div>'}
 function unallocatedPanelHtml(){var rows=unallocatedJobs(),carried=rows.filter(function(j){return !!carryOverMeta(j)}),body=rows.length?rows.map(unallocatedJobCardHtml).join(''):'<div class="empty">No unallocated jobs.</div>';return '<aside class="panel unallocatedPanel" data-unallocated-drop="true"><div class="unallocatedHead"><h3>Unallocated Jobs <span class="pill">'+rows.length+'</span>'+(carried.length?' <span class="pill" style="background:#dc2626;color:#fff">'+carried.length+' outstanding</span>':'')+'</h3></div><div class="unallocatedJobList">'+body+'</div></aside>'}
@@ -13121,11 +13078,11 @@ function jobTitle(j){return j.work_required||j.job_type||'Job'}
 function plannerMotHeaderHtml(j){if(!hasMotJobType(j))return '';var time=motTimeFromJob(j);return '<span class="plannerMotHeader" aria-label="MOT appointment'+(time?' '+esc(time):'')+'">MOT'+(time?' ('+esc(time)+')':'')+'</span>'}
 function jobCardHtml(j){if(j.card_type==='mini_task'){var mins=Math.max(15,Math.round((Number(j.estimated_hours)||.5)*60)),sourceId=String(j.source||'').indexOf('task:')===0?String(j.source).slice(5):'',sourceTask=sourceId&&app.tasks.find(function(t){return t.id===sourceId}),priority=sourceTask?taskMeta(sourceTask).priority:'normal';return '<div draggable="true" class="job miniPlannerTask priority-'+esc(priority)+'" data-job-id="'+j.id+'" style="top:'+topFor(j)+'px;--task-height:'+heightFor(j)+'px"><div class="resizeTopHandle" title="Drag up/down to change task start time"></div><div class="miniTaskRow"><span class="miniTaskLabel">Task</span><span class="miniTaskWork">'+esc(j.work_required||'Internal task')+'</span><span class="miniTaskTime">'+esc(normaliseClock(j.drop_time||'08:00'))+' · '+mins+' min</span></div><div class="resizeHandle" title="Drag down/up to change task length"></div></div>'}var duration=Number(j.estimated_hours||1),sizeClass=duration>=1?'plannerJobFull':duration>=.75?'plannerJobMedium':duration>=.5?'plannerJobCompact':'plannerJobMicro';return '<div draggable="true" class="job '+(String(j.status||'').toLowerCase()==='work_complete'?'mechanicWorkComplete ':'')+'jobTypeCoded '+(hasMotJobType(j)?'plannerMotJob ':'')+sizeClass+'" data-job-id="'+j.id+'" style="top:'+topFor(j)+'px;height:'+heightFor(j)+'px;'+jobTypeInlineStyle(j)+'"><div class="resizeTopHandle" title="Drag up/down to change job start time"></div><div class="plannerJobHeader"><div class="plannerJobLeft">'+'<div class="plannerPlateAndMot">'+plannerPlate(j)+'</div><b class="jobVehicle plannerJobVehicle">'+esc(plannerVehicleLabel(j))+'</b></div>'+plannerMotHeaderHtml(j)+'<div class="plannerJobRightText">'+plannerJobTypesHtml(j,sizeClass,true)+'</div></div><div class="plannerWorkRequired">'+esc(j.work_required||'No work required entered')+'</div>'+partsStatusDot(j)+'<div class="resizeHandle" title="Drag down/up to change job length"></div></div>'}
 
-function sideJobsHtml(list){if(!list.length)return '<div class="empty">Nothing waiting. Good.</div>';return list.map(function(j){return '<div draggable="true" class="sideJob jobTypeCoded" style="'+jobTypeInlineStyle(j)+'" data-job-id="'+j.id+'">'+fullPlate(j.registration)+'<div class="sideJobType">'+jobTypeChip(j)+'</div><b>'+esc(j.work_required||'No work required entered')+'</b><p>'+esc(j.vehicle||'Vehicle')+' · '+esc(timeRange(j))+'</p><span class="pill">'+statusText(j.status)+'</span></div>'}).join('')}
+
 
 function myTasksHtml(instance){instance=instance||'desktop';var bodyId='myTasksBody-'+instance;var active=(app.tasks||[]).filter(function(t){return !t.done&&!taskIsAllocated(t)}).sort(taskSort),done=(app.tasks||[]).filter(function(t){return t.done}).slice(-10).reverse(),counts={high:0,normal:0,low:0};active.forEach(function(t){counts[taskMeta(t).priority]=(counts[taskMeta(t).priority]||0)+1});var visible=taskPriorityFilter==='all'?active:active.filter(function(t){return taskMeta(t).priority===taskPriorityFilter});function countBox(priority,label){var selected=taskPriorityFilter===priority;return '<button type="button" class="taskCount'+(selected?' active':'')+'" data-task-priority-filter="'+priority+'" aria-pressed="'+(selected?'true':'false')+'" title="Show '+label.toLowerCase()+' priority tasks"><b>'+counts[priority]+'</b><span>'+label+'</span></button>'}return '<aside class="panel myTasksPanel" data-task-return="true"><div class="myTasksHead"><h3>My Tasks <span class="pill">'+active.length+'</span></h3><button class="btn small" data-collapse-tasks="'+bodyId+'" title="Collapse tasks">−</button></div><div id="'+bodyId+'"><div class="taskCounts">'+countBox('high','High')+countBox('normal','Normal')+countBox('low','Low')+'</div><div class="taskList">'+(visible.length?visible.map(taskCardHtml).join(''):'<div class="empty">'+(active.length?'No '+esc(taskPriorityFilter)+' priority tasks. Click the selected box again to show all.':'No outstanding tasks.')+'</div>')+'</div><button class="btn dark" data-add-task="true">+ New Task</button><details class="completedTasks"><summary>Completed ('+done.length+')</summary>'+done.map(function(t){return '<div class="completedTask">✓ '+esc(t.task_text)+'</div>'}).join('')+'</details></div></aside>'}
 function taskCardHtml(t){var m=taskMeta(t),overdue=m.due&&m.due<todayIso();return '<div draggable="true" class="taskCard '+esc(m.priority)+(overdue?' overdue':'')+(m.allocated?' allocated':'')+'" data-task-drag="'+t.id+'" data-task-open="'+t.id+'" title="Click to open task"><button class="taskPin" data-task-pin="'+t.id+'" title="Pin task">'+(m.pinned?'★':'☆')+'</button><div class="taskCardTop"><input type="checkbox" data-task="'+t.id+'"><div><div class="taskTitle">'+esc(t.task_text)+'</div><div class="taskMeta"><span>📅 '+esc(taskDueLabel(m.due))+(m.scheduled_time?' · '+esc(m.scheduled_time):'')+'</span>'+(m.owner?'<span>👤 '+esc(m.owner)+'</span>':'')+(m.allocated?'<span>🛠 '+esc(m.allocated_to)+' · '+esc(m.allocated_time)+'</span>':'')+(m.recurrence_label?'<span>↻ '+esc(m.recurrence_label)+'</span>':'')+(m.notes&&!m.recurrence_label?'<span title="'+esc(m.notes)+'">📝 Notes</span>':'')+'</div></div></div><div class="taskActions"><button data-task-delete="'+t.id+'" title="Delete task">Delete</button></div></div>'}
-function tasksHtml(){return myTasksHtml()}
+
 function byTime(a,b){return String(a.drop_time||'08:00').localeCompare(String(b.drop_time||'08:00'))}
 function mechanicHours(jobs,m){return jobs.filter(function(j){return plannerTechnicianLane(j.technician)===plannerTechnicianLane(m)}).reduce(function(a,j){return a+Number(j.estimated_hours||1)},0)}
 var PLANNER_PX_PER_HOUR=100.8;
@@ -13133,7 +13090,7 @@ function topFor(j){var mins=clockMinutes(j.drop_time||'08:00')-plannerStartMinut
 /* Keep jobs tightly stacked while leaving a small, consistent visual separation between cards. */
 var PLANNER_JOB_VISUAL_GAP_PX=5;
 function heightFor(j){return j&&j.card_type==='mini_task'?Math.max(30,Number(j.estimated_hours||.5)*PLANNER_PX_PER_HOUR-PLANNER_JOB_VISUAL_GAP_PX):Math.max(12,Number(j.estimated_hours||1)*PLANNER_PX_PER_HOUR-PLANNER_JOB_VISUAL_GAP_PX)}
-function jobsForList(mode){var list=(app.jobs||[]).filter(function(j){var deleted=vectaJobIsDeletedForLists(j);if(mode==='deleted')return deleted;if(deleted||String(j.status||'').toLowerCase()==='quote')return false;var invoiced=isJobInvoiced(j),admin=isVehicleTaxJob(j),completed=jobCompletionEvidence(j);if(mode==='admin')return admin;if(admin)return false;if(mode==='completed')return completed||invoiced;if(completed)return false;if(mode==='today')return !!j.booking_date&&String(j.booking_date)===todayIso()&&!isUnallocatedJob(j)&&j.status!=='ready_to_invoice'&&!invoiced;if(mode==='ready')return j.status==='ready_to_invoice'&&!invoiced;return j.status!=='ready_to_invoice'&&!invoiced});return list.sort(function(a,b){var d=String(a.booking_date||'').localeCompare(String(b.booking_date||''));if(mode==='completed'||mode==='admin'||mode==='deleted')d=-d;return d||String(a.drop_time||'').localeCompare(String(b.drop_time||''))})}
+function jobsForList(mode){if(mode==='admin')return (app.jobs||[]).filter(function(j){return isVehicleTaxJob(j)||String(j.source||'')==='monthly_admin'}).sort(function(a,b){return String(b.booking_date||'').localeCompare(String(a.booking_date||''))||String(a.work_required||'').localeCompare(String(b.work_required||''))});var list=(app.jobs||[]).filter(function(j){var deleted=vectaJobIsDeletedForLists(j);if(mode==='deleted')return deleted;if(deleted||String(j.status||'').toLowerCase()==='quote')return false;var invoiced=isJobInvoiced(j),admin=isVehicleTaxJob(j),completed=jobCompletionEvidence(j);if(mode==='admin')return admin;if(admin)return false;if(mode==='completed')return completed||invoiced;if(completed)return false;if(mode==='today')return !!j.booking_date&&String(j.booking_date)===todayIso()&&!isUnallocatedJob(j)&&j.status!=='ready_to_invoice'&&!invoiced;if(mode==='ready')return j.status==='ready_to_invoice'&&!invoiced;return j.status!=='ready_to_invoice'&&!invoiced});return list.sort(function(a,b){var d=String(a.booking_date||'').localeCompare(String(b.booking_date||''));if(mode==='completed'||mode==='admin'||mode==='deleted')d=-d;return d||String(a.drop_time||'').localeCompare(String(b.drop_time||''))})}
 function jobsHtml(){var titles={today:"Today's Jobs",open:'All Open Jobs',ready:'Ready to Invoice',completed:'Completed Jobs',admin:'Admin Jobs',deleted:'Deleted Jobs'},query=String(jobsSearchQuery||'').toUpperCase().replace(/[^A-Z0-9]/g,''),rows=jobsForList(jobsListMode);if(query)rows=rows.filter(function(j){return String(j.registration||'').toUpperCase().replace(/[^A-Z0-9]/g,'').indexOf(query)>-1});var adminNotice=jobsListMode==='admin'?'<div class="warn"><b>Admin Jobs</b> are kept away from the workshop planner. Vehicle Tax pass-through values remain excluded from VECTA revenue; recurring NMUK admin charges remain included in end-of-month totals.</div>':'';var deletedNotice=jobsListMode==='deleted'?'<div class="warn"><b>Recoverable Deleted Jobs.</b> These records still exist in Supabase. Restoring a job reactivates the same record; it does not create a duplicate. Completed/invoiced financial history is retained while a job is deleted.</div>':'';var q='<div class="jobsPageHead"><h2>'+titles[jobsListMode]+'</h2><button class="btn red" id="jobNew">+ New Job</button></div><div class="jobsRegSearchWrap"><label for="jobSearch">Search by registration</label><input class="jobsRegSearch" id="jobSearch" value="'+esc(jobsSearchQuery||'')+'" placeholder="ENTER REG" autocomplete="off" spellcheck="false"></div><div class="jobTabs"><button class="jobTab '+(jobsListMode==='today'?'active':'')+'" data-jobs-tab="today">Today&#39;s Jobs</button><button class="jobTab '+(jobsListMode==='open'?'active':'')+'" data-jobs-tab="open">All Open Jobs</button><button class="jobTab '+(jobsListMode==='ready'?'active':'')+'" data-jobs-tab="ready">Ready to Invoice</button><button class="jobTab '+(jobsListMode==='completed'?'active':'')+'" data-jobs-tab="completed">Completed Jobs</button><button class="jobTab '+(jobsListMode==='admin'?'active':'')+'" data-jobs-tab="admin">Admin Jobs</button><button class="jobTab '+(jobsListMode==='deleted'?'active':'')+'" data-jobs-tab="deleted">Deleted Jobs</button></div>'+adminNotice+deletedNotice+'<div id="jobList">'+jobRows(rows,jobsListMode)+'</div>';return q}
 function jobRows(list,mode){if(!list.length)return '<div class="empty">No jobs found.</div>';return '<div class="tableList">'+list.map(function(j){var deleted=mode==='deleted'||isSoftDeletedJob(j),action=deleted?'<button type="button" class="btn green" data-restore-job="'+esc(j.id)+'">Restore</button>':'<span class="pill">'+statusText(j.status)+'</span>';return '<div class="rowCard jobTypeCoded" style="'+jobTypeInlineStyle(j)+'" '+(deleted?'':'data-open-job="'+j.id+'"')+'>'+jobVehicleBadge(j)+'<div><b>'+esc(j.no_vehicle?'No Vehicle':(j.vehicle||'Vehicle'))+'</b><br><span class="muted">'+esc(j.customer_name||'')+' '+esc(j.customer_phone||'')+'</span></div><div class="jobWorkBlock">'+jobTypeChip(j)+'<span>'+esc(j.work_required||'No work description entered')+'</span></div><span>'+esc(j.booking_date||'')+' '+esc(j.drop_time||'')+'</span><span class="hideSmall">'+esc(j.technician||'Unallocated')+'</span>'+action+'</div>'}).join('')+'</div>'}
 
@@ -13228,9 +13185,9 @@ function searchResultsHtml(q){
   }
   return html||'<div class="empty">No matching vehicles or customers found.</div>';
 }
-function customersHtml(){return searchHtml()}
+
 function customerRows(list){if(!list.length)return '<div class="empty">No customers saved yet.</div>';return list.map(function(c){var cars=app.vehicles.filter(function(v){return v.customer_id===c.id}).length;return '<div class="rowCard" data-edit-customer="'+c.id+'"><span class="listCountBadge">'+cars+' CAR'+(cars===1?'':'S')+'</span><div><b>'+esc(c.name||c.surname||'Customer')+'</b><br><span class="muted">'+esc(c.email||'')+'</span></div><span>'+esc(c.phone||'')+'</span><span class="hideSmall">'+esc(c.surname||'')+'</span><span class="pill">Open</span></div>'}).join('')}
-function vehiclesHtml(){return searchHtml()}
+
 function financeStatusKey(j){return window.VectaFinanceRules.statusKey(j)}
 function financeValidJob(j){if(!j||String(j.status||'').toLowerCase()==='quote'||j.finance_deleted||j.card_type==='mini_task'||vectaJobIsDeletedForLists(j))return false;if(isVehicleTaxJob(j)||isVehicleTaxJob(financeBaseJob(j)))return false;return true}
 function financeIsStaffJob(j){return financeLegacyAllocation(j).type==='Staff'}
@@ -13323,7 +13280,7 @@ function financeNmukAdjustmentsForPeriod(period){
   else if(period==='week'){var d=new Date(today+'T12:00:00');d.setDate(d.getDate()-(d.getDay()+6)%7);start=iso(d)}
   return financeNmukInvoiceAdjustments(start,end);
 }
-function financeNmukAdjustmentTotal(period){return financeNmukAdjustmentsForPeriod(period).reduce(function(s,row){return s+row.amount},0)}
+
 var financeSharedReports={key:'',reports:{}};
 function financeSharedReport(period){
   var key=financeDashboardCacheKey()+'|'+financeDailyReferenceDate();
@@ -13378,9 +13335,9 @@ function staffMonthTotal(year,month){var last=new Date(year,month,0).getDate();r
 function staffPerformanceData(){var t=todayIso(),dt=new Date(t+'T12:00:00'),y=dt.getFullYear(),m=dt.getMonth()+1,day=dt.getDate(),curStart=y+'-'+String(m).padStart(2,'0')+'-01',fyStart=(m>=4?y:y-1),recognised=staffAllFinanceJobs().filter(financeIsRecognisedJob);return {today:t,year:y,month:m,day:day,current:staffRangeTotal(curStart,t),fyCurrent:staffRangeTotal(fyStart+'-04-01',t),allTime:recognised.reduce(function(s,j){return s+staffValue(j)},0),jobCount:recognised.length}}
 function staffLineChartSvg(){var d=staffPerformanceData(),months=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'],values=months.map(function(_,i){return staffMonthTotal(d.year,i+1)}),max=Math.max.apply(null,values.concat([1])),w=900,h=250,pL=58,pR=20,pT=24,pB=42,iw=w-pL-pR,ih=h-pT-pB;function x(i){return pL+i*(iw/11)}function yy(v){return pT+ih-(v/max*ih)}var grid='';for(var g=0;g<=4;g++){var val=max*g/4,y=pT+ih-g*ih/4;grid+='<line x1="'+pL+'" y1="'+y+'" x2="'+(w-pR)+'" y2="'+y+'" stroke="#e5e7eb"/><text x="'+(pL-8)+'" y="'+(y+4)+'" text-anchor="end" font-size="10" fill="#6b7280">£'+Math.round(val/1000)+'k</text>'}var labels=months.map(function(m,i){return '<text x="'+x(i)+'" y="'+(h-14)+'" text-anchor="middle" font-size="10" fill="#6b7280">'+m+'</text>'}).join(''),pts=values.map(function(v,i){return x(i)+','+yy(v)}).join(' '),line='<polyline points="'+pts+'" fill="none" stroke="#16a34a" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>'+values.map(function(v,i){return v?'<circle cx="'+x(i)+'" cy="'+yy(v)+'" r="4" fill="#16a34a"/>':''}).join('');return '<svg class="nmukLineChart" viewBox="0 0 '+w+' '+h+'" role="img" aria-label="Staff monthly revenue for current year">'+grid+labels+line+'</svg>'}
 function staffPerformanceHtml(){var d=staffPerformanceData();return '<section class="nmukPerformance staffPerformance"><div class="nmukPerfHead"><div><small>STAFF PERFORMANCE</small><h3>'+new Date(d.year,d.month-1,1).toLocaleDateString('en-GB',{month:'long',year:'numeric'})+'</h3><p>Staff work starts from the current system, so there is no historic comparison yet.</p></div><div class="nmukTargetStatus on"><strong>CURRENT ACTIVITY</strong><span>'+d.jobCount+' completed staff job'+(d.jobCount===1?'':'s')+' recorded</span></div></div><div class="nmukKpis staffKpis"><div><small>This month</small><strong>'+money(d.current)+'</strong></div><div><small>Financial year to date</small><strong>'+money(d.fyCurrent)+'</strong></div><div><small>All recorded staff work</small><strong>'+money(d.allTime)+'</strong></div><div class="target"><small>Historic comparison</small><strong>Not available yet</strong></div></div><div class="nmukTrend"><h4>Staff monthly revenue: '+d.year+'</h4>'+staffLineChartSvg()+'</div><div class="invoiceFinanceNote">Year-on-year and 10% target comparisons will become available once there is enough staff history to compare fairly.</div></section>'}
-function nmukAllFinanceJobs(){var byId={},out=[];function add(j){j=financeEffectiveJob(j);if(!j||j.card_type==='mini_task')return;var id=String(j.id||'');if(id&&byId[id])return;if(id)byId[id]=1;var a=financeLegacyAllocation(j);if(a.type==='NMUK')out.push(j)}(app.jobs||[]).forEach(add);(window.CONTRACTOR_2026_JOBS||[]).forEach(add);return out}
-function nmukJobDate(j){return financeCompletedDate(j)}
-function nmukValue(j){return financeRevenueExVatValue(j)}
+
+
+
 function nmukRangeTotal(start,end){return financeSharedReport('range:'+start+':'+end).nmukTotal}
 window.NMUK_FINANCIAL_HISTORY={"2023":{"months":{"1":{"Internal":1580.0,"Pool":1495.0,"MVOS":1090.0,"Various":2855.0,"total":7020.0},"2":{"Internal":1735.0,"Pool":885.0,"MVOS":1745.0,"Various":5320.0,"total":9685.0},"3":{"Internal":2110.0,"Pool":2650.0,"MVOS":320.0,"Various":5355.0,"total":10435.0},"4":{"Internal":4030.0,"Pool":1865.0,"MVOS":650.0,"Various":5600.0,"total":12145.0},"5":{"Internal":2600.0,"Pool":1235.0,"MVOS":1075.0,"Various":4020.0,"total":8930.0},"6":{"Internal":1400.0,"Pool":1025.0,"MVOS":120.0,"Various":2575.0,"total":5120.0},"7":{"Internal":2355.0,"Pool":1370.0,"MVOS":720.0,"Various":5265.0,"total":9710.0},"8":{"Internal":770.0,"Pool":525.0,"MVOS":220.0,"Various":3660.0,"total":5175.0},"9":{"Internal":2520.0,"Pool":2535.0,"MVOS":130.0,"Various":4130.0,"total":9315.0},"10":{"Internal":2705.0,"Pool":1570.0,"MVOS":650.0,"Various":6035.0,"total":10960.0},"11":{"Internal":2420.0,"Pool":510.0,"MVOS":1300.0,"Various":6611.0,"total":10841.0},"12":{"Internal":1780.0,"Pool":940.0,"MVOS":1150.0,"Various":3470.0,"total":7340.0}},"daily":{"2023-01-30":2830.0,"2023-01-23":140.0,"2023-01-16":550.0,"2023-01-19":245.0,"2023-01-20":225.0,"2023-01-24":280.0,"2023-01-12":685.0,"2023-01-04":0.0,"2023-01-09":0.0,"2023-01-11":365.0,"2023-01-13":510.0,"2023-01-17":60.0,"2023-01-18":175.0,"2023-01-25":160.0,"2023-01-26":295.0,"2023-01-27":370.0,"2023-01-31":130.0,"2023-02-01":270.0,"2023-02-02":140.0,"2023-02-03":805.0,"2023-02-06":2000.0,"2023-02-07":215.0,"2023-02-08":140.0,"2023-02-09":595.0,"2023-02-13":180.0,"2023-02-14":195.0,"2023-02-15":490.0,"2023-02-16":170.0,"2023-02-20":195.0,"2023-02-21":405.0,"2023-02-27":455.0,"2023-02-28":3430.0,"2023-03-20":115.0,"2023-03-09":115.0,"2023-03-22":470.0,"2023-03-08":1190.0,"2023-03-10":115.0,"2023-03-13":615.0,"2023-03-21":815.0,"2023-03-27":245.0,"2023-03-28":600.0,"2023-03-06":255.0,"2023-03-12":60.0,"2023-03-02":55.0,"2023-03-01":270.0,"2023-03-03":60.0,"2023-03-07":585.0,"2023-03-16":840.0,"2023-03-17":900.0,"2023-03-23":180.0,"2023-03-30":2950.0,"2023-04-01":1200.0,"2023-04-02":575.0,"2023-04-03":645.0,"2023-04-04":335.0,"2023-04-05":800.0,"2023-04-06":940.0,"2023-04-11":335.0,"2023-04-12":260.0,"2023-04-18":245.0,"2023-04-19":1435.0,"2023-04-20":290.0,"2023-04-21":465.0,"2023-04-23":75.0,"2023-04-25":570.0,"2023-04-26":495.0,"2023-04-28":470.0,"2023-04-29":330.0,"2023-04-30":2680.0,"2023-05-15":480.0,"2023-05-04":210.0,"2023-05-16":505.0,"2023-05-12":150.0,"2023-05-02":410.0,"2023-05-10":435.0,"2023-05-17":720.0,"2023-05-30":3580.0,"2023-05-22":235.0,"2023-05-11":350.0,"2023-05-24":270.0,"2023-05-18":420.0,"2023-05-19":410.0,"2023-05-26":415.0,"2023-05-25":260.0,"2023-05-05":80.0,"2023-06-13":295.0,"2023-06-07":140.0,"2023-06-27":255.0,"2023-06-02":60.0,"2023-06-26":210.0,"2023-06-06":75.0,"2023-06-08":370.0,"2023-06-28":300.0,"2023-06-09":165.0,"2023-06-01":110.0,"2023-06-29":60.0,"2023-06-15":425.0,"2023-06-05":80.0,"2023-06-30":2575.0,"2023-07-24":470.0,"2023-07-25":445.0,"2023-07-26":2770.0,"2023-07-27":230.0,"2023-07-11":70.0,"2023-07-03":430.0,"2023-07-04":385.0,"2023-07-19":400.0,"2023-07-10":75.0,"2023-07-07":355.0,"2023-07-13":120.0,"2023-07-12":265.0,"2023-07-17":285.0,"2023-07-18":130.0,"2023-07-05":100.0,"2023-07-21":115.0,"2023-07-30":3065.0,"2023-08-01":970.0,"2023-08-20":240.0,"2023-08-29":60.0,"2023-08-21":320.0,"2023-08-16":165.0,"2023-08-30":3010.0,"2023-08-18":115.0,"2023-08-15":65.0,"2023-08-14":230.0,"2023-09-05":235.0,"2023-09-25":1015.0,"2023-09-14":475.0,"2023-09-07":230.0,"2023-09-18":280.0,"2023-09-13":285.0,"2023-09-21":355.0,"2023-09-06":160.0,"2023-09-08":500.0,"2023-09-11":215.0,"2023-09-04":140.0,"2023-09-12":475.0,"2023-09-15":50.0,"2023-09-17":75.0,"2023-09-19":330.0,"2023-09-20":555.0,"2023-09-22":395.0,"2023-09-24":75.0,"2023-09-27":150.0,"2023-09-28":80.0,"2023-09-29":180.0,"2023-09-30":3060.0,"2023-10-02":150.0,"2023-10-03":260.0,"2023-10-04":380.0,"2023-10-06":235.0,"2023-10-09":30.0,"2023-10-10":490.0,"2023-10-11":740.0,"2023-10-12":475.0,"2023-10-13":445.0,"2023-10-16":50.0,"2023-10-18":600.0,"2023-10-19":230.0,"2023-10-20":1515.0,"2023-10-23":500.0,"2023-10-25":390.0,"2023-10-26":30.0,"2023-10-27":390.0,"2023-10-28":120.0,"2023-10-30":3930.0,"2023-11-06":500.0,"2023-11-28":90.0,"2023-11-22":880.0,"2023-11-15":645.0,"2023-11-16":120.0,"2023-11-18":350.0,"2023-11-27":505.0,"2023-11-17":75.0,"2023-11-03":470.0,"2023-11-08":135.0,"2023-11-14":605.0,"2023-11-20":210.0,"2023-11-07":240.0,"2023-11-21":586.0,"2023-11-23":610.0,"2023-11-24":720.0,"2023-11-10":30.0,"2023-11-09":325.0,"2023-11-01":420.0,"2023-11-30":3325.0,"2023-12-30":2660.0,"2023-12-12":470.0,"2023-12-01":700.0,"2023-12-20":300.0,"2023-12-08":45.0,"2023-12-21":585.0,"2023-12-13":130.0,"2023-12-18":285.0,"2023-12-19":335.0,"2023-12-14":300.0,"2023-12-06":180.0,"2023-12-11":230.0,"2023-12-05":115.0,"2023-12-15":335.0,"2023-12-07":520.0,"2023-12-04":150.0}},"2024":{"months":{"1":{"Internal":1920.0,"Pool":1580.0,"MVOS":1740.0,"Various":3297.0,"total":8537.0},"2":{"Internal":2470.0,"Pool":2100.0,"MVOS":950.0,"Various":4740.0,"total":10260.0},"3":{"Internal":1410.0,"Pool":2195.0,"MVOS":1670.0,"Various":5055.0,"total":10330.0},"4":{"Internal":2455.0,"Pool":1465.0,"MVOS":1660.0,"Various":4140.0,"total":9720.0},"5":{"Internal":1665.0,"Pool":1915.0,"MVOS":470.0,"Various":5960.0,"total":10010.0},"6":{"Internal":1240.0,"Pool":1120.0,"MVOS":875.0,"Various":7269.0,"total":10504.0},"7":{"Internal":1420.0,"Pool":2115.0,"MVOS":1160.0,"Various":4380.0,"total":9075.0},"8":{"Internal":1355.0,"Pool":80.0,"MVOS":280.0,"Various":2545.0,"total":4260.0},"9":{"Internal":1455.0,"Pool":995.0,"MVOS":1420.0,"Various":3360.0,"total":7230.0},"10":{"Internal":4315.0,"Pool":1380.0,"MVOS":1090.0,"Various":5020.0,"total":11805.0},"11":{"Internal":1250.0,"Pool":1930.0,"MVOS":2180.0,"Various":3610.0,"total":8970.0},"12":{"Internal":920.0,"Pool":2425.0,"MVOS":330.0,"Various":3760.0,"total":7435.0}},"daily":{"2024-01-08":245.0,"2024-01-09":200.0,"2024-01-10":530.0,"2024-01-11":85.0,"2024-01-12":185.0,"2024-01-15":390.0,"2024-01-16":935.0,"2024-01-17":365.0,"2024-01-18":155.0,"2024-01-19":100.0,"2024-01-21":100.0,"2024-01-22":390.0,"2024-01-24":175.0,"2024-01-25":125.0,"2024-01-26":230.0,"2024-01-29":500.0,"2024-01-30":3482.0,"2024-01-31":345.0,"2024-02-01":320.0,"2024-02-02":215.0,"2024-02-03":260.0,"2024-02-05":285.0,"2024-02-06":375.0,"2024-02-07":555.0,"2024-02-08":135.0,"2024-02-09":210.0,"2024-02-10":75.0,"2024-02-12":510.0,"2024-02-13":150.0,"2024-02-14":240.0,"2024-02-15":530.0,"2024-02-19":675.0,"2024-02-20":575.0,"2024-02-21":355.0,"2024-02-22":460.0,"2024-02-23":115.0,"2024-02-24":210.0,"2024-02-26":430.0,"2024-02-27":315.0,"2024-02-28":3265.0,"2024-03-01":750.0,"2024-03-02":150.0,"2024-03-04":1015.0,"2024-03-05":380.0,"2024-03-06":60.0,"2024-03-07":150.0,"2024-03-08":440.0,"2024-03-11":225.0,"2024-03-12":350.0,"2024-03-13":240.0,"2024-03-14":220.0,"2024-03-15":310.0,"2024-03-17":315.0,"2024-03-18":200.0,"2024-03-19":285.0,"2024-03-20":390.0,"2024-03-21":535.0,"2024-03-22":570.0,"2024-03-24":120.0,"2024-03-25":190.0,"2024-03-27":410.0,"2024-03-28":3025.0,"2024-04-01":110.0,"2024-04-02":575.0,"2024-04-03":225.0,"2024-04-04":275.0,"2024-04-05":225.0,"2024-04-08":265.0,"2024-04-09":150.0,"2024-04-10":515.0,"2024-04-11":1000.0,"2024-04-15":180.0,"2024-04-16":200.0,"2024-04-17":360.0,"2024-04-18":370.0,"2024-04-19":225.0,"2024-04-22":305.0,"2024-04-23":275.0,"2024-04-24":520.0,"2024-04-25":560.0,"2024-04-26":265.0,"2024-04-28":2965.0,"2024-04-29":155.0,"2024-05-01":750.0,"2024-05-02":405.0,"2024-05-03":180.0,"2024-05-09":430.0,"2024-05-10":240.0,"2024-05-13":190.0,"2024-05-15":75.0,"2024-05-16":250.0,"2024-05-17":345.0,"2024-05-20":1530.0,"2024-05-21":710.0,"2024-05-22":150.0,"2024-05-24":220.0,"2024-05-28":3270.0,"2024-05-29":1050.0,"2024-05-30":140.0,"2024-05-31":75.0,"2024-06-01":150.0,"2024-06-03":680.0,"2024-06-04":335.0,"2024-06-05":300.0,"2024-06-06":1874.0,"2024-06-07":270.0,"2024-06-11":100.0,"2024-06-12":470.0,"2024-06-13":240.0,"2024-06-14":245.0,"2024-06-17":135.0,"2024-06-19":525.0,"2024-06-20":325.0,"2024-06-21":285.0,"2024-06-25":60.0,"2024-06-26":1630.0,"2024-06-27":130.0,"2024-06-28":2750.0,"2024-07-01":270.0,"2024-07-02":300.0,"2024-07-03":345.0,"2024-07-04":495.0,"2024-07-05":350.0,"2024-07-08":385.0,"2024-07-09":90.0,"2024-07-10":245.0,"2024-07-11":380.0,"2024-07-12":110.0,"2024-07-17":115.0,"2024-07-18":690.0,"2024-07-19":50.0,"2024-07-23":795.0,"2024-07-24":305.0,"2024-07-25":590.0,"2024-07-27":210.0,"2024-07-28":3350.0,"2024-08-25":50.0,"2024-08-28":2595.0,"2024-08-13":350.0,"2024-08-16":250.0,"2024-08-20":150.0,"2024-08-29":250.0,"2024-08-27":75.0,"2024-08-21":300.0,"2024-08-19":120.0,"2024-08-23":120.0,"2024-09-03":120.0,"2024-09-04":210.0,"2024-09-06":110.0,"2024-09-13":170.0,"2024-09-16":20.0,"2024-09-17":590.0,"2024-09-18":230.0,"2024-09-19":350.0,"2024-09-20":210.0,"2024-09-23":120.0,"2024-09-24":180.0,"2024-09-27":640.0,"2024-09-28":3635.0,"2024-09-30":645.0,"2024-10-11":760.0,"2024-10-25":205.0,"2024-10-08":350.0,"2024-10-09":455.0,"2024-10-22":485.0,"2024-10-16":315.0,"2024-10-24":410.0,"2024-10-27":200.0,"2024-10-28":5605.0,"2024-10-10":265.0,"2024-10-02":725.0,"2024-10-01":30.0,"2024-10-30":330.0,"2024-10-29":205.0,"2024-10-21":415.0,"2024-10-26":75.0,"2024-10-07":40.0,"2024-10-04":110.0,"2024-10-17":120.0,"2024-10-14":205.0,"2024-10-18":210.0,"2024-10-23":290.0,"2024-11-01":650.0,"2024-11-04":120.0,"2024-11-05":180.0,"2024-11-07":195.0,"2024-11-08":340.0,"2024-11-11":270.0,"2024-11-12":170.0,"2024-11-13":125.0,"2024-11-14":225.0,"2024-11-15":675.0,"2024-11-18":345.0,"2024-11-19":335.0,"2024-11-20":305.0,"2024-11-21":360.0,"2024-11-22":420.0,"2024-11-25":605.0,"2024-11-26":150.0,"2024-11-27":180.0,"2024-11-28":3070.0,"2024-11-29":250.0,"2024-12-13":170.0,"2024-12-17":175.0,"2024-12-09":30.0,"2024-12-03":200.0,"2024-12-04":190.0,"2024-12-05":300.0,"2024-12-11":1580.0,"2024-12-12":880.0,"2024-12-10":190.0,"2024-12-18":235.0,"2024-12-16":215.0,"2024-12-06":510.0,"2024-12-28":2760.0}},"2025":{"months":{"1":{"Internal":2545.0,"Pool":960.0,"MVOS":1325.0,"Various":3775.0,"total":8605.0},"2":{"Internal":3200.0,"Pool":2996.0,"MVOS":1390.0,"Various":3830.0,"total":11416.0},"3":{"Internal":1910.0,"Pool":4975.0,"MVOS":1475.0,"Various":4100.0,"total":12460.0},"4":{"Internal":2800.0,"Pool":4435.0,"MVOS":330.0,"Various":4640.0,"total":12205.0},"5":{"Internal":1130.0,"Pool":610.0,"MVOS":1200.0,"Various":3920.0,"total":6860.0},"6":{"Internal":2365.0,"Pool":2930.0,"MVOS":465.0,"Various":5670.0,"total":11430.0},"7":{"Internal":1185.0,"Pool":1315.0,"MVOS":700.0,"Various":4405.0,"total":7605.0},"8":{"Internal":1295.0,"Pool":4075.0,"MVOS":1450.0,"Various":2915.0,"total":9735.0},"9":{"Internal":2200.0,"Pool":3235.0,"MVOS":1340.0,"Various":3910.0,"total":10685.0},"10":{"Internal":2485.0,"Pool":2295.0,"MVOS":1950.0,"Various":7715.0,"total":14445.0},"11":{"Internal":2545.0,"Pool":2690.0,"MVOS":3910.0,"Various":5215.0,"total":14360.0},"12":{"Internal":1590.0,"Pool":3075.0,"MVOS":1760.0,"Various":3745.0,"total":10170.0}},"daily":{"2025-01-02":75.0,"2025-01-06":555.0,"2025-01-07":225.0,"2025-01-08":75.0,"2025-01-09":160.0,"2025-01-10":75.0,"2025-01-15":630.0,"2025-01-16":330.0,"2025-01-17":620.0,"2025-01-20":90.0,"2025-01-21":300.0,"2025-01-22":470.0,"2025-01-23":505.0,"2025-01-24":780.0,"2025-01-27":215.0,"2025-01-28":75.0,"2025-01-29":75.0,"2025-01-31":3350.0,"2025-02-01":365.0,"2025-02-02":435.0,"2025-02-03":320.0,"2025-02-04":1516.0,"2025-02-05":465.0,"2025-02-06":195.0,"2025-02-07":105.0,"2025-02-09":30.0,"2025-02-10":345.0,"2025-02-11":150.0,"2025-02-12":310.0,"2025-02-13":365.0,"2025-02-14":70.0,"2025-02-16":80.0,"2025-02-17":625.0,"2025-02-19":405.0,"2025-02-20":410.0,"2025-02-21":210.0,"2025-02-24":75.0,"2025-02-25":535.0,"2025-02-27":505.0,"2025-02-28":150.0,"2025-02-31":3750.0,"2025-03-03":915.0,"2025-03-04":235.0,"2025-03-05":840.0,"2025-03-06":400.0,"2025-03-07":690.0,"2025-03-08":240.0,"2025-03-10":480.0,"2025-03-11":210.0,"2025-03-12":210.0,"2025-03-13":140.0,"2025-03-14":920.0,"2025-03-16":30.0,"2025-03-17":520.0,"2025-03-18":190.0,"2025-03-19":1190.0,"2025-03-20":180.0,"2025-03-21":755.0,"2025-03-23":115.0,"2025-03-24":120.0,"2025-03-25":80.0,"2025-03-26":75.0,"2025-03-27":175.0,"2025-03-28":150.0,"2025-03-31":3600.0,"2025-04-14":605.0,"2025-04-10":480.0,"2025-04-01":295.0,"2025-04-13":250.0,"2025-04-16":465.0,"2025-04-09":785.0,"2025-04-21":440.0,"2025-04-22":620.0,"2025-04-03":360.0,"2025-04-28":110.0,"2025-04-24":485.0,"2025-04-02":145.0,"2025-04-25":255.0,"2025-04-30":395.0,"2025-04-26":420.0,"2025-04-29":120.0,"2025-04-23":115.0,"2025-04-15":1245.0,"2025-04-08":510.0,"2025-04-04":145.0,"2025-04-07":60.0,"2025-04-05":520.0,"2025-04-20":80.0,"2025-04-31":3300.0,"2025-05-08":575.0,"2025-05-01":555.0,"2025-05-15":520.0,"2025-05-16":75.0,"2025-05-07":915.0,"2025-05-30":35.0,"2025-05-22":390.0,"2025-05-19":120.0,"2025-05-02":75.0,"2025-05-20":190.0,"2025-05-12":30.0,"2025-05-13":210.0,"2025-05-09":140.0,"2025-05-06":60.0,"2025-05-31":2970.0,"2025-06-02":395.0,"2025-06-03":125.0,"2025-06-04":235.0,"2025-06-05":600.0,"2025-06-06":160.0,"2025-06-08":260.0,"2025-06-09":350.0,"2025-06-10":165.0,"2025-06-11":220.0,"2025-06-12":480.0,"2025-06-13":1635.0,"2025-06-16":305.0,"2025-06-17":670.0,"2025-06-18":445.0,"2025-06-19":495.0,"2025-06-20":75.0,"2025-06-23":385.0,"2025-06-24":555.0,"2025-06-26":245.0,"2025-06-30":3630.0,"2025-07-16":150.0,"2025-07-08":540.0,"2025-07-02":610.0,"2025-07-15":175.0,"2025-07-03":150.0,"2025-07-24":105.0,"2025-07-23":510.0,"2025-07-18":25.0,"2025-07-21":375.0,"2025-07-07":115.0,"2025-07-17":165.0,"2025-07-01":660.0,"2025-07-04":315.0,"2025-07-09":115.0,"2025-07-11":180.0,"2025-07-14":180.0,"2025-07-30":3235.0,"2025-08-13":570.0,"2025-08-18":1390.0,"2025-08-14":510.0,"2025-08-27":610.0,"2025-08-26":495.0,"2025-08-29":745.0,"2025-08-21":505.0,"2025-08-19":95.0,"2025-08-22":420.0,"2025-08-11":130.0,"2025-08-12":385.0,"2025-08-15":435.0,"2025-08-20":220.0,"2025-08-24":120.0,"2025-08-28":290.0,"2025-08-30":2815.0,"2025-09-01":225.0,"2025-09-02":605.0,"2025-09-03":215.0,"2025-09-04":335.0,"2025-09-05":400.0,"2025-09-08":75.0,"2025-09-09":90.0,"2025-09-10":215.0,"2025-09-11":80.0,"2025-09-12":360.0,"2025-09-15":500.0,"2025-09-16":925.0,"2025-09-17":400.0,"2025-09-18":340.0,"2025-09-19":330.0,"2025-09-22":365.0,"2025-09-23":515.0,"2025-09-24":320.0,"2025-09-25":650.0,"2025-09-26":170.0,"2025-09-29":340.0,"2025-09-30":3230.0,"2025-10-02":285.0,"2025-10-03":345.0,"2025-10-05":30.0,"2025-10-07":295.0,"2025-10-08":320.0,"2025-10-09":875.0,"2025-10-10":2995.0,"2025-10-13":145.0,"2025-10-14":1495.0,"2025-10-15":735.0,"2025-10-16":550.0,"2025-10-17":550.0,"2025-10-21":210.0,"2025-10-22":330.0,"2025-10-28":170.0,"2025-10-29":535.0,"2025-10-30":3730.0,"2025-10-31":850.0,"2025-11-30":2800.0,"2025-11-05":440.0,"2025-11-03":510.0,"2025-11-04":1735.0,"2025-11-10":260.0,"2025-11-19":975.0,"2025-11-20":720.0,"2025-11-21":1015.0,"2025-11-14":450.0,"2025-11-13":890.0,"2025-11-06":900.0,"2025-11-12":945.0,"2025-11-18":800.0,"2025-11-11":390.0,"2025-11-28":415.0,"2025-11-27":290.0,"2025-11-25":315.0,"2025-11-15":210.0,"2025-11-26":120.0,"2025-11-17":90.0,"2025-11-24":90.0,"2025-12-01":305.0,"2025-12-11":865.0,"2025-12-02":350.0,"2025-12-21":210.0,"2025-12-23":280.0,"2025-12-19":165.0,"2025-12-03":765.0,"2025-12-20":75.0,"2025-12-10":140.0,"2025-12-17":115.0,"2025-12-22":75.0,"2025-12-16":1015.0,"2025-12-18":280.0,"2025-12-09":1815.0,"2025-12-15":280.0,"2025-12-05":220.0,"2025-12-07":140.0,"2025-12-12":280.0,"2025-12-08":390.0,"2025-12-30":2405.0}}};
 function nmukHistoricalRangeTotal(start,end){var h=window.NMUK_FINANCIAL_HISTORY||{},sum=0;Object.keys(h).forEach(function(y){var d=h[y].daily||{};Object.keys(d).forEach(function(k){if(k>=start&&k<=end)sum+=Number(d[k]||0)})});return sum}
@@ -13514,8 +13471,8 @@ function financeLegacyAllocation(j){
   var historicalNmuk=financeHistoricalNmukAllocation(reg,effective&&effective.id);if(historicalNmuk)return historicalNmuk;
   return {type:'Needs review',name:'Unassigned'};
 }
-function financeCustomerName(j){return financeLegacyAllocation(j).name}
-function financeCustomerType(j){return financeLegacyAllocation(j).type}
+
+
 function financeJobDate(j,period){if(period==='today'||String(period||'').indexOf('date:')===0)return financeDateForDailyView(j);if(period==='future')return financeIsUnallocated(j)?'Unallocated':String(j&&j.booking_date||'').slice(0,10);return financeCompletedDate(j)}
 function financeDisplayDate(j,period){var d=financeJobDate(j,period);return d==='Unallocated'?'Unallocated':niceDate(d)}
 function migrateNmukVariousJobs(){var changed=false;(app.jobs||[]).forEach(function(j){if(String(j.customer_account||'').toUpperCase()==='NMUK'&&String(j.nmuk_vehicle_type||'').toUpperCase()==='GENERAL'){j.nmuk_vehicle_type='Various';changed=true}});if(changed)saveLocal();return changed}
@@ -13813,7 +13770,7 @@ function invoiceArchiveHtml(){
     invoiceArchiveReadyJobsHtml()+
     invoicePaymentSummaryHtml()+(invoiceArchiveOutstandingOnly?'<div class="listToolbar"><b>Outstanding invoices · oldest first</b><button type="button" class="btn" id="showAllInvoices">Show all invoices</button></div>':'')+'<div class="card panel invoiceArchiveResults"><div id="invoiceArchiveResults">'+invoiceArchiveRows('')+'</div></div>'+cancelledInvoiceRowsHtml()+'</div>';
 }
-function invoiceRows(){return invoiceArchiveRows('')}
+
 /* VECTA v187 — dedicated NMUK Vehicle Tax ledger + 24h invoice payment-method warning */
 var vehicleTaxSelectedMonth=(todayIso&&todayIso().slice(0,7))||new Date().toISOString().slice(0,7);
 var pendingTaxInvoiceJobIds=[];
@@ -13851,10 +13808,7 @@ function vehicleTaxFinanceHtml(){
   var month=todayIso().slice(0,7),fyYear=Number(todayIso().slice(5,7))>=4?Number(todayIso().slice(0,4)):Number(todayIso().slice(0,4))-1,fyStart=String(fyYear)+'-04-01',today=todayIso(),all=vehicleTaxDeduplicate((app.jobs||[]).filter(function(j){return !vectaJobIsDeletedForLists(j)&&isVehicleTaxJob(j)})),monthJobs=all.filter(function(j){return vehicleTaxJobDate(j).slice(0,7)===month}),fyJobs=all.filter(function(j){var d=vehicleTaxJobDate(j);return d>=fyStart&&d<=today}),unbilled=all.filter(function(j){return !vehicleTaxInvoiceMarker(j)}),sum=function(list){return list.reduce(function(s,j){return s+vehicleTaxAmount(j)},0)};
   return '<section class="vehicleTaxFinance"><div class="vehicleTaxFinanceHead"><div><small>SEPARATE NMUK VEHICLE TAX LEDGER</small><h3>Vehicle tax is kept outside workshop revenue</h3><p>These figures are tracked separately so the monthly tax invoice does not distort servicing and repair performance.</p></div><button type="button" class="btn dark" id="openVehicleTaxFromFinance">Open Vehicle Tax</button></div><div class="vehicleTaxFinanceGrid"><div><small>This month</small><strong>'+money(sum(monthJobs))+'</strong><span>'+monthJobs.length+' vehicle'+(monthJobs.length===1?'':'s')+' taxed</span></div><div><small>Financial year</small><strong>'+money(sum(fyJobs))+'</strong><span>Separate from workshop turnover</span></div><div class="attention"><small>Awaiting tax invoice</small><strong>'+money(sum(unbilled))+'</strong><span>'+unbilled.length+' item'+(unbilled.length===1?'':'s')+' not yet consolidated</span></div></div></section>'
 }
-function vehicleTaxRowsHtml(rows){
-  if(!rows.length)return '<div class="empty">No NMUK vehicle tax entries for this month.</div>';
-  return '<div class="vehicleTaxTable"><div class="vehicleTaxTableHead"><span>Date</span><span>Registration</span><span>Reference / vehicle</span><span>Status</span><span>Amount</span><span></span></div>'+rows.map(function(j){var marker=vehicleTaxInvoiceMarker(j),fv=fleetVehicleForRegistration(j.registration)||{},label=marker?'Invoiced':'Awaiting month-end invoice';return '<div class="vehicleTaxRow"><span>'+esc(niceDate(vehicleTaxJobDate(j)))+'</span><span>'+listPlate(j.registration||'')+'</span><span><b>'+esc(fv.taxReference||j.vehicle||'—')+'</b><small>'+esc(canonicalVehicleTaxLabel())+'</small></span><span class="vehicleTaxState '+(marker?'done':'open')+'">'+esc(label)+'</span><strong>'+money(vehicleTaxAmount(j))+'</strong><button type="button" class="btn" data-tax-open-job="'+esc(j.id)+'">Open</button></div>'}).join('')+'</div>'
-}
+
 
 /* v227 integrated streamlined Vehicle Tax workflow */
 
@@ -14793,7 +14747,7 @@ function applyTemplate(name){
   else{var vat=document.getElementById('job_vat_mode'),account=document.getElementById('job_customer_account');if(vat&&String(vat.value||'')!=='no_vat')vat.value=account&&String(account.value||'').toUpperCase()==='STAFF'?'inc_vat':'ex_vat'}
 }
 function jobVehicleLabel(j){return j&&j.no_vehicle?'No Vehicle':String((j&&j.registration)||'No Vehicle')}
-function migrateNoVehicleJobs(){var changed=false;(app.jobs||[]).forEach(function(j){if(!normReg(j.registration||'')&&String(j.work_required||'').trim()&&!j.no_vehicle){j.no_vehicle=true;if(!j.vehicle)j.vehicle='No Vehicle';changed=true}});if(changed)saveAll()}
+
 function jobVehicleBadge(j){return j&&j.no_vehicle?'<span class="noVehicleBadge">No Vehicle</span>':listPlate(j&&j.registration||'')}
 var VECTA_SOFT_DELETE_TAG='VECTA_SOFT_DELETE';
 function vectaSoftDeleteMeta(job){return window.VectaJobRules.softDeleteMeta(job)}
@@ -15014,11 +14968,7 @@ function findNextMechanicSlot(job,excludeId){
   return {booking_date:date,drop_time:timeFromMinutes(candidate),requested_date:date,requested_time:normaliseClock(job.drop_time||'08:00')};
 }
 
-function plannerJobConflict(job,excludeId){
-  if(!job||!job.booking_date||!job.technician||job.technician==='Unallocated')return null;
-  var start=clockMinutes(job.drop_time||'08:00'),duration=Math.max(15,roundPlannerMinutesUp(Number(job.estimated_hours||1)*60)),end=start+duration;
-  return mechanicBookingIntervals(job.booking_date,job.technician,excludeId||job.id).find(function(slot){return start<slot.end&&end>slot.start})||null;
-}
+
 async function repairExistingPlannerOverlaps(options){
   options=options||{};
   var changed=[],changedIds={};
@@ -16710,65 +16660,8 @@ init();
 <style id="v230-amendments-css">
 .plannerGlobalSearchWrap{width:min(310px,24vw);margin-left:auto}.plannerGlobalSearchWrap input{width:100%;height:42px;border:1px solid var(--line);border-radius:10px;padding:0 13px;font-weight:800;background:#fff}.top .plannerGlobalSearchWrap+.dateCtl{margin-left:0}
 .globalSearchPopup{position:fixed;z-index:80;top:76px;left:calc(250px + 18px);right:18px;max-height:78vh;overflow:auto;background:#fff;border:1px solid var(--line);border-radius:16px;box-shadow:0 28px 80px rgba(15,23,42,.28);padding:16px;display:none}.globalSearchPopup.open{display:block}.globalSearchPopupHead{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:10px}.globalSearchPopupHead h3{margin:0}.globalSearchPopupClose{border:0;background:#f1f5f9;border-radius:8px;padding:8px 11px;font-weight:900}
-.bookingCapacityLauncher{grid-column:1/-1;background:#f8fafc;border:1px solid var(--line);border-radius:12px;padding:12px;display:flex;align-items:center;justify-content:space-between;gap:12px}.bookingCapacityLauncher p{margin:3px 0 0;color:#64748b;font-size:12px}.capacityModalCard{width:min(1080px,96vw)}.capacityDays{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:9px}.capacityDay{border:1px solid var(--line);background:#fff;border-radius:12px;padding:10px;text-align:left;cursor:pointer}.capacityDay:hover,.capacityDay.selected{outline:2px solid #e11d2e}.capacityDay strong{display:block;margin-bottom:7px}.capacityMech{display:grid;grid-template-columns:1fr auto;gap:4px 8px;font-size:11px;margin-top:4px}.capacityMech i{grid-column:1/-1;height:5px;background:#e5e7eb;border-radius:99px;overflow:hidden}.capacityMech i span{display:block;height:100%;background:#334155}.capacityMini{margin-top:16px;border-top:1px solid var(--line);padding-top:14px}.capacityMiniGrid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}.capacityMiniLane{border:1px solid var(--line);border-radius:12px;background:#f8fafc;min-height:180px;padding:10px}.capacityMiniLane h4{margin:0 0 8px}.capacityMiniJob{background:#fff;border:1px solid #dbe2ea;border-left:4px solid #2563eb;border-radius:8px;padding:7px;margin:6px 0;font-size:11px}.capacityMiniJob b{display:block}.capacityConfirmRow{display:flex;justify-content:flex-end;gap:10px;margin-top:14px}
-.horizontalUnallocated{margin-bottom:12px}.horizontalUnallocated .unallocatedPanel{margin:0}.horizontalUnallocated .unallocatedJobList{display:flex;flex-wrap:wrap;gap:9px;overflow:visible;padding-bottom:4px}.horizontalUnallocated .sideJob{min-width:210px;max-width:280px;margin:0;flex:1 1 220px}.horizontalUnallocated .carryOverSideJob{order:-1;background:#fff1f2!important;border-color:#fecaca!important}.plannerLayout.v230Planner{display:block}.v230Planner .plannerCard{width:100%;overflow:auto}.v230Planner .plannerGrid{width:100%;min-width:900px}.plannerTasksBelow{margin-top:12px}.plannerTasksBelow .panel{max-width:none}.v230Planner .head{padding-left:10px;padding-right:10px}
-@media(max-width:900px){.plannerGlobalSearchWrap{width:180px}.globalSearchPopup{left:12px;right:12px;top:130px}.capacityDays{grid-template-columns:repeat(2,minmax(0,1fr))}.capacityMiniGrid{grid-template-columns:1fr}.horizontalUnallocated{display:none}}
+@media(max-width:900px){.plannerGlobalSearchWrap{width:180px}.globalSearchPopup{left:12px;right:12px;top:130px}}
 </style>
-<div class="modal" id="capacityModal" aria-hidden="true"></div>
-<script id="v230-amendments-js">
-(function(){
-  function ensureThreeMechanics(){
-    if(!window.app||!app.settings)return;
-    /* Planner lanes are derived from settings; never rewrite the mechanics list. */
-  }
-  ensureThreeMechanics();
-
-  /* 1. Booking capacity/date chooser */
-  function capacityPercent(date,mech){
-    var h=(app.jobs||[]).filter(function(j){return !j.archived&&j.status!=='completed'&&j.status!=='cancelled'&&j.status!=='ready_to_invoice'&&String(j.booking_date||'')===date&&String(j.technician||'')===mech}).reduce(function(t,j){return t+Number(j.estimated_hours||1)},0);
-    return {hours:h,percent:Math.min(100,Math.round(h/8*100))};
-  }
-  function workingDates(start,count){var out=[],d=new Date((start||todayIso())+'T12:00:00'),guard=0;while(out.length<count&&guard++<40){if(d.getDay()!==0&&d.getDay()!==6)out.push(d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'));d.setDate(d.getDate()+1)}return out}
-  function miniPlanner(date){var mechs=(app.settings.mechanics||[]).slice(0,3);return '<div class="capacityMini"><h3>'+esc(niceDate(date))+' mini planner</h3><div class="capacityMiniGrid">'+mechs.map(function(m){var rows=(app.jobs||[]).filter(function(j){return !vectaJobIsDeletedForLists(j)&&!j.archived&&j.status!=='cancelled'&&String(j.booking_date||'')===date&&String(j.technician||'')===m}).sort(byTime);return '<div class="capacityMiniLane"><h4>'+esc(m)+' · '+capacityPercent(date,m).percent+'% booked</h4>'+(rows.length?rows.map(function(j){return '<div class="capacityMiniJob"><b>'+esc((j.drop_time||'08:00')+' · '+(j.registration||'NO REG'))+'</b>'+esc(j.work_required||jobTitle(j))+'</div>'}).join(''):'<div class="empty">No jobs booked.</div>')+'</div>'}).join('')+'</div><div class="capacityConfirmRow"><button class="btn" id="capacityBack">Choose another day</button><button class="primary" id="capacityConfirm">Confirm this date</button></div></div>'}
-  window.openBookingCapacityChooser=function(){
-    ensureThreeMechanics();var field=document.getElementById('job_booking_date'),start=(field&&field.value)||selectedIso(),dates=workingDates(start,15),modal=document.getElementById('capacityModal'),chosen=start;
-    function dayCards(){return '<div class="capacityDays">'+dates.map(function(d){var ps=(app.settings.mechanics||[]).slice(0,3).map(function(m){var c=capacityPercent(d,m);return '<div class="capacityMech"><span>'+esc(m)+'</span><b>'+c.percent+'%</b><i><span style="width:'+c.percent+'%"></span></i></div>'}).join('');return '<button type="button" class="capacityDay '+(d===chosen?'selected':'')+'" data-capacity-day="'+d+'"><strong>'+esc(niceDate(d))+'</strong>'+ps+'</button>'}).join('')+'</div>'}
-    function renderDays(){modal.innerHTML='<div class="modalCard capacityModalCard"><div class="modalHead"><div><h2>Workshop availability</h2><p class="muted" style="margin:4px 0 0">Choose a day, inspect the mini planner, then confirm it.</p></div><button class="btn" id="capacityClose">Close</button></div><div class="modalBody">'+dayCards()+'<div id="capacityMiniHost"></div></div></div>';modal.classList.add('open');modal.setAttribute('aria-hidden','false');document.getElementById('capacityClose').onclick=function(){modal.classList.remove('open')};modal.querySelectorAll('[data-capacity-day]').forEach(function(b){b.onclick=function(){chosen=b.dataset.capacityDay;modal.querySelectorAll('.capacityDay').forEach(function(x){x.classList.toggle('selected',x===b)});document.getElementById('capacityMiniHost').innerHTML=miniPlanner(chosen);document.getElementById('capacityBack').onclick=function(){document.getElementById('capacityMiniHost').innerHTML=''};document.getElementById('capacityConfirm').onclick=function(){if(field)field.value=chosen;modal.classList.remove('open');field&&field.dispatchEvent(new Event('change',{bubbles:true}))}}})}
-    renderDays();
-  };
-  var originalOpenJobModal=window.openJobModal;
-  window.openJobModal=function(id,preset){originalOpenJobModal(id,preset);var date=document.getElementById('job_booking_date');if(!date||document.querySelector('#jobModal .bookingAvailabilityWorkspace'))return;var section=date.closest('.jobSectionGrid');if(!section||section.querySelector('.bookingCapacityLauncher'))return;var box=document.createElement('div');box.className='bookingCapacityLauncher';box.innerHTML='<div><b>Check workshop capacity before choosing the date</b><p>See each mechanic’s percentage and open a mini planner for the day.</p></div><button type="button" class="btn dark" id="openBookingCapacity">View availability</button>';section.insertBefore(box,date.closest('.field').nextSibling);document.getElementById('openBookingCapacity').onclick=openBookingCapacityChooser;};
-
-  /* 2. Fleet Manager: remove tax-confirm button from the Fleet Manager drawer only. */
-  var originalFleetDrawerHtml=window.fleetDrawerHtml;
-  window.fleetDrawerHtml=function(){var html=originalFleetDrawerHtml();return html.replace(/<div class="fleetTaxConfirmBar">[\s\S]*?<\/div>/,'');};
-
-  /* 3. Planner-top search popup; separate Search navigation page removed. */
-  var originalNavItems=window.navItems;
-  window.navItems=function(){return originalNavItems().filter(function(it){return it[0]!=='search'});};
-  function closeGlobalSearch(){var p=document.getElementById('globalSearchPopup');if(p){p.classList.remove('open');p.setAttribute('aria-hidden','true')}}
-  function bindGlobalResults(p){p.onclick=function(ev){var v=ev.target.closest('[data-open-vehicle-reg]'),j=ev.target.closest('[data-search-open-job]'),c=ev.target.closest('[data-open-customer]');if(v){closeGlobalSearch();openVehicleFromReg(v.dataset.openVehicleReg)}else if(j){closeGlobalSearch();openJobModal(j.dataset.searchOpenJob)}else if(c){closeGlobalSearch();openCustomerDetails(c.dataset.openCustomer)}else if(ev.target.closest('.globalSearchPopupClose'))closeGlobalSearch();};}
-  function installGlobalSearch(){var input=document.getElementById('plannerGlobalSearch'),p=document.getElementById('globalSearchPopup');if(!input||!p||input.dataset.bound)return;input.dataset.bound='1';var timer=null;input.addEventListener('input',function(){clearTimeout(timer);timer=setTimeout(function(){var q=String(input.value||'').trim();if(!q){closeGlobalSearch();return}p.innerHTML='<div class="globalSearchPopupHead"><h3>Search results</h3><button class="globalSearchPopupClose">Close</button></div>'+window.searchResultsHtml(q);p.classList.add('open');p.setAttribute('aria-hidden','false');bindGlobalResults(p)},80)});input.addEventListener('keydown',function(e){if(e.key==='Escape'){input.value='';closeGlobalSearch()}})}
-  /* v233: legacy global search binding disabled; v232/v233 search owns the header input. */
-
-  /* 4. Automatic recurring NMUK jobs, one deterministic row per month. */
-  function monthKey(){var d=new Date(),y=d.getFullYear(),m=String(d.getMonth()+1).padStart(2,'0');return y+'-'+m}
-  window.ensureMonthlyNmukJobs=async function(){if(!window.app||!Array.isArray(app.jobs))return false;var mk=monthKey(),date=todayIso(),now=new Date().toISOString(),defs=[
-    {key:'wash26',work:'WASH & HOOVER — 26 NMUK cars',type:'Other',amount:520,source:'monthly_nmuk'},
-    {key:'fleet-management',work:'Fleet management',type:'Admin',amount:750,source:'monthly_admin'},
-    {key:'tractor-details',work:'Prepare tractor details',type:'Admin',amount:90,source:'monthly_admin'}
-  ],added=[];defs.forEach(function(d){var id='auto-monthly-'+mk+'-'+d.key;if((app.jobs||[]).some(function(j){return String(j.id)===id}))return;var j={id:id,booking_date:date,drop_time:'16:00',registration:'',vehicle:'No Vehicle',no_vehicle:true,customer_name:'NMUK',customer_account:'NMUK',nmuk_vehicle_type:'Various',customer_phone:'',customer_email:'',work_required:d.work,job_type:d.type,amount_quoted:d.amount,vat_mode:'ex_vat',estimated_hours:0,technician:'Admin',ramp:'',status:'completed',archived:false,completed_at:now,created_at:now,updated_at:now,booking_source:'Automatic monthly NMUK charge',source:d.source};app.jobs.push(j);added.push(j)});if(!added.length)return false;saveLocal();for(var i=0;i<added.length;i++){try{await upsertRemote('jobs',added[i],{silent:true})}catch(e){console.warn('Monthly NMUK auto-job sync failed',e)}}return true;};
-  var originalJobsForList=window.jobsForList;
-  window.jobsForList=function(mode){if(mode!=='admin')return originalJobsForList(mode);return (app.jobs||[]).filter(function(j){return isVehicleTaxJob(j)||String(j.source||'')==='monthly_admin'}).sort(function(a,b){return String(b.booking_date||'').localeCompare(String(a.booking_date||''))||String(a.work_required||'').localeCompare(String(b.work_required||''))});};
-
-  /* 5. Unallocated strip above planner + narrower Alfie/Jordan lanes + smaller Anyone lane. */
-  /* v233: planner is rendered by the primary plannerHtml() above. Legacy v230 override removed. */
-
-  /* V354: monthly accounting rows are created only by an explicit workflow. */
-})();
-</script>
-
-
 <style id="v233-planner-three-mechanic-right-tasks-fix">
 @media(min-width:901px){
   .plannerLayout.v233Planner{display:grid!important;grid-template-columns:minmax(0,1fr) 210px!important;gap:10px!important;align-items:start!important}
@@ -16777,8 +16670,6 @@ init();
   .v233Planner .myTasksPanel{min-width:0!important;padding:10px!important}
   .v233Planner .taskCard{padding-left:8px!important;padding-right:27px!important}
   .v233Planner>.myTasksPanel{display:block!important;position:sticky!important;top:78px!important;width:300px!important;max-width:300px!important;margin:0!important;align-self:start!important}
-  .plannerTasksBelow{display:none!important}
-  .v230Planner{display:grid!important}
 }
 @media(max-width:900px){
   .plannerLayout.v233Planner{display:block!important}
@@ -17364,249 +17255,9 @@ document.addEventListener('input',function(ev){
 </script>
 
 
-<style id="v240-reliability-repair">
-/* V240 reliability repair: recovered outstanding jobs + durable booking-capacity modal. */
-.bookingCapacityLauncher{display:none!important}
-.v240OutstandingBadge{display:block;margin:0 0 6px;padding:4px 7px;border-radius:7px;background:#b91c1c;color:#fff;font-size:9px;font-weight:950;line-height:1.2}
-.v240OutstandingCard{background:#fff1f2!important;border-color:#fecaca!important}
-.v240CapacityLauncher{grid-column:1/-1;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:11px 12px;border:1px solid #cbd5e1;border-radius:11px;background:#f8fafc}
-.v240CapacityLauncher p{margin:2px 0 0;color:#64748b;font-size:11px}
-#v240CapacityModal{z-index:140}
-#v240CapacityModal .modalCard{width:min(1120px,96vw);max-height:92vh;overflow:auto}
-.v240CapacityDays{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:9px}
-.v240CapacityDay{border:1px solid #dbe2ea;border-radius:11px;background:#fff;padding:9px;text-align:left;cursor:pointer}
-.v240CapacityDay:hover,.v240CapacityDay.selected{outline:2px solid #e11d2e}
-.v240CapacityDay>strong{display:block;margin-bottom:6px}
-.v240CapacityPct{display:grid;grid-template-columns:1fr auto;gap:3px 7px;margin-top:4px;font-size:10px}
-.v240CapacityPct i{grid-column:1/-1;height:5px;background:#e5e7eb;border-radius:99px;overflow:hidden}
-.v240CapacityPct i span{display:block;height:100%;background:#334155}
-.v240MiniPlanner{margin-top:14px;padding-top:13px;border-top:1px solid #e2e8f0}
-.v240MiniGrid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
-.v240MiniLane{min-height:180px;border:1px solid #dbe2ea;border-radius:11px;background:#f8fafc;padding:9px}
-.v240MiniLane h4{margin:0 0 7px}
-.v240MiniJob{margin:6px 0;padding:7px;border:1px solid #dbe2ea;border-left:4px solid #2563eb;border-radius:8px;background:#fff;font-size:10px}
-.v240MiniJob b{display:block}
-.v240CapacityActions{display:flex;justify-content:flex-end;gap:8px;margin-top:12px}
+<style id="fleet-manual-mot-progress">
 #fleetManualMotCheck.v240Checking{pointer-events:none;opacity:.72}
-@media(max-width:900px){
-  .v240CapacityDays{grid-template-columns:repeat(2,minmax(0,1fr))}
-  .v240MiniGrid{grid-template-columns:1fr}
-}
 </style>
-
-<script id="v240-reliability-repair">
-(function(){
-'use strict';
-
-/* V242: unallocated recovery moved into the original unallocatedJobs() function. */
-/* ---------- 2. DURABLE BOOKING AVAILABILITY / MINI PLANNER ---------- */
-function v240CapacityPercent(date,mech){
-  var h=(app.jobs||[]).filter(function(j){
-    return !j.archived&&String(j.status||'')!=='completed'&&String(j.status||'')!=='cancelled'&&String(j.status||'')!=='ready_to_invoice'&&String(j.booking_date||'')===date&&String(j.technician||'')===mech;
-  }).reduce(function(sum,j){return sum+Number(j.estimated_hours||1)},0);
-  return {hours:h,percent:Math.min(100,Math.round(h/8*100))};
-}
-function v240WorkingDates(start,count){
-  var out=[],d=new Date(String(start||todayIso()).slice(0,10)+'T12:00:00'),guard=0;
-  if(isNaN(d.getTime()))d=new Date(todayIso()+'T12:00:00');
-  while(out.length<count&&guard++<60){
-    if(d.getDay()!==0&&d.getDay()!==6)out.push(d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'));
-    d.setDate(d.getDate()+1);
-  }
-  return out;
-}
-function v240MiniPlannerHtml(date){
-  var mechs=v240PlannerMechanics().slice(0,3);
-  return '<div class="v240MiniPlanner"><h3>'+esc(niceDate(date))+' — mini planner</h3><div class="v240MiniGrid">'+mechs.map(function(mech){
-    var rows=(app.jobs||[]).filter(function(j){
-      return !j.archived&&String(j.status||'')!=='cancelled'&&String(j.status||'')!=='completed'&&String(j.booking_date||'')===date&&String(j.technician||'')===mech;
-    }).sort(byTime);
-    var pct=v240CapacityPercent(date,mech).percent;
-    return '<div class="v240MiniLane"><h4>'+esc(mech)+' · '+pct+'%</h4>'+(rows.length?rows.map(function(j){
-      return '<div class="v240MiniJob"><b>'+esc((j.drop_time||'08:00')+' · '+(j.registration||'NO REG'))+'</b><span>'+esc(j.work_required||jobTitle(j))+'</span></div>';
-    }).join(''):'<div class="empty">No jobs booked.</div>')+'</div>';
-  }).join('')+'</div><div class="v240CapacityActions"><button type="button" class="btn" data-v240-capacity-back>Choose another day</button><button type="button" class="primary" data-v240-capacity-confirm>Confirm this date</button></div></div>';
-}
-function v240CapacityModal(){
-  var modal=document.getElementById('v240CapacityModal');
-  if(!modal){
-    modal=document.createElement('div');
-    modal.className='modal';
-    modal.id='v240CapacityModal';
-    modal.setAttribute('aria-hidden','true');
-    document.body.appendChild(modal);
-  }
-  return modal;
-}
-window.v240OpenCapacityChooser=function(){
-  var field=document.getElementById('job_booking_date');
-  if(!field||field.disabled)return;
-  var start=field.value||selectedIso(),chosen=start,dates=v240WorkingDates(start,20),modal=v240CapacityModal();
-  function render(){
-    modal.innerHTML='<div class="modalCard"><div class="modalHead"><div><h2>Workshop availability</h2><p class="muted" style="margin:4px 0 0">Select a day to see the mini planner, then confirm the date.</p></div><button type="button" class="btn" data-v240-capacity-close>Close</button></div><div class="modalBody"><div class="v240CapacityDays">'+dates.map(function(date){
-      var stats=v240PlannerMechanics().slice(0,3).map(function(mech){var c=v240CapacityPercent(date,mech);return '<div class="v240CapacityPct"><span>'+esc(mech)+'</span><b>'+c.percent+'%</b><i><span style="width:'+c.percent+'%"></span></i></div>'}).join('');
-      return '<button type="button" class="v240CapacityDay '+(date===chosen?'selected':'')+'" data-v240-capacity-day="'+date+'"><strong>'+esc(niceDate(date))+'</strong>'+stats+'</button>';
-    }).join('')+'</div><div data-v240-mini-host></div></div></div>';
-    modal.classList.add('open');modal.setAttribute('aria-hidden','false');
-  }
-  render();
-  modal.onclick=function(ev){
-    var close=ev.target.closest('[data-v240-capacity-close]');if(close){modal.classList.remove('open');modal.setAttribute('aria-hidden','true');return}
-    var day=ev.target.closest('[data-v240-capacity-day]');if(day){
-      chosen=day.dataset.v240CapacityDay;
-      modal.querySelectorAll('[data-v240-capacity-day]').forEach(function(x){x.classList.toggle('selected',x===day)});
-      var host=modal.querySelector('[data-v240-mini-host]');if(host)host.innerHTML=v240MiniPlannerHtml(chosen);
-      return;
-    }
-    if(ev.target.closest('[data-v240-capacity-back]')){var host=modal.querySelector('[data-v240-mini-host]');if(host)host.innerHTML='';return}
-    if(ev.target.closest('[data-v240-capacity-confirm]')){
-      field.value=chosen;field.dispatchEvent(new Event('change',{bubbles:true}));
-      modal.classList.remove('open');modal.setAttribute('aria-hidden','true');
-    }
-  };
-};
-function v240InstallCapacityLauncher(){
-  /* V241: superseded by the inline + New Job calendar. */
-  return;
-  var field=document.getElementById('job_booking_date');
-  if(!field||field.disabled)return;
-  var section=field.closest('.jobSectionGrid')||field.parentElement;
-  if(!section||section.querySelector('.v240CapacityLauncher'))return;
-  var box=document.createElement('div');
-  box.className='v240CapacityLauncher';
-  box.innerHTML='<div><b>Choose date using workshop availability</b><p>See Alfie, Other and Anyone percentages, then inspect the mini planner before confirming.</p></div><button type="button" class="btn dark" data-v240-open-capacity>View availability</button>';
-  var fieldWrap=field.closest('.field');
-  if(fieldWrap&&fieldWrap.nextSibling)section.insertBefore(box,fieldWrap.nextSibling);else section.appendChild(box);
-  field.setAttribute('title','Click to view workshop availability');field.readOnly=true;
-}
-var v240JobObserver=new MutationObserver(function(){v240InstallCapacityLauncher()});
-function v240StartObserver(){
-  var modal=document.getElementById('jobModal');
-  if(modal)v240JobObserver.observe(modal,{childList:true,subtree:true});
-  v240InstallCapacityLauncher();
-}
-if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',v240StartObserver,{once:true});else v240StartObserver();
-
-/* Permanent delegated control: later renders cannot disconnect it. */
-document.addEventListener('click',function(ev){
-  var launcher=ev.target.closest('[data-v240-open-capacity]');
-  if(launcher){ev.preventDefault();ev.stopImmediatePropagation();window.v240OpenCapacityChooser();return}
-  var dateField=ev.target.closest('#job_booking_date');
-  if(dateField&&!dateField.disabled){
-    /* V241: keep the normal Booking Date input; availability is inline in + New Job. */
-    return;
-  }
-},true);
-
-/* ---------- 3. DURABLE FLEET MANAGER MANUAL MOT CHECK ---------- */
-function v240Iso(v){v=String(v||'').slice(0,10);return /^\d{4}-\d{2}-\d{2}$/.test(v)?v:''}
-function v240MotPlan(vehicle){return typeof fleetPlanMatching==='function'?fleetPlanMatching(vehicle.id,'mot'):null}
-function v240ManualCandidate(vehicle){
-  if(!vehicle)return false;
-  var p=v240MotPlan(vehicle);if(!p)return false;var d=typeof fleetDate==='function'?v240Iso(fleetDate(p)):'';
-  if(!d)return true;
-  var now=new Date();now.setHours(0,0,0,0);
-  var x=new Date(d+'T00:00:00'),limit=new Date(now.getTime()+60*86400000);
-  return !isNaN(x.getTime())&&x<=limit;
-}
-async function v240FetchDvsaFresh(reg){
-  reg=normReg(reg||'');if(!reg)throw new Error('Registration missing');
-  var url='/api/vehicle-lookup?reg='+encodeURIComponent(reg)+'&manual=1&_ts='+Date.now();
-  var response=await fetch(url,{cache:'no-store',headers:{Accept:'application/json','Cache-Control':'no-cache'}});
-  var data=await response.json().catch(function(){return {}});
-  if(!response.ok)throw new Error(data.error||'Vehicle lookup failed');
-  return data;
-}
-window.v240ManualFleetMotCheck=async function(button){
-  if(window.__v240ManualMotRunning)return;
-  window.__v240ManualMotRunning=true;
-  var candidates=(fleetVehicles||[]).filter(v240ManualCandidate),checked=0,changed=0,errors=0;
-  try{
-    if(button){button.classList.add('v240Checking');button.disabled=true}
-    for(var i=0;i<candidates.length;i++){
-      var v=candidates[i];
-      if(button)button.textContent='Checking '+(i+1)+' / '+candidates.length+'…';
-      try{
-        var data=await v240FetchDvsaFresh(v.registration||'');checked++;
-        var fresh=window.v234LatestMotExpiry?window.v234LatestMotExpiry(data):v240Iso(data&&data.motExpiryDate);
-        v.motLastChecked=new Date().toISOString();
-        if(!fresh)continue;
-        var p=v240MotPlan(v),old=p&&typeof fleetDate==='function'?v240Iso(fleetDate(p)):'';
-        if(!p)continue;
-        if(fresh!==old){
-          p.currentDueDate=fresh;p.type='MOT';p.intervalMonths=12;p.status='Active';p.notes='Manual live MOT lookup '+new Date().toISOString()+'.';
-          changed++;
-        }
-        v.motDue=fresh;v.mot_due=fresh;
-        if(typeof fleetRecordMotAuthority==='function')fleetRecordMotAuthority(v,fresh,new Date().toISOString());
-        var av=(app.vehicles||[]).find(function(x){return normReg(x.registration||'')===normReg(v.registration||'')});
-        if(av){av.mot_due=fresh;av.dvsa_last_checked=new Date().toISOString()}
-      }catch(err){errors++;console.warn('Manual MOT check failed for '+String(v.registration||''),err)}
-    }
-    if(typeof saveFleet==='function')saveFleet();
-    if(typeof saveLocal==='function')saveLocal();
-    window.v234MotReconcileStatus={checked:checked,changed:changed,errors:errors,finishedAt:new Date().toISOString(),manual:true};
-    if(typeof render==='function'&&typeof view!=='undefined'&&view==='fleet')render();
-    alert('Manual vehicle check complete. '+checked+' checked; '+changed+' MOT due date'+(changed===1?'':'s')+' updated.'+(errors?' '+errors+' error'+(errors===1?'':'s')+'.':''));
-  }finally{
-    window.__v240ManualMotRunning=false;
-    if(button){button.classList.remove('v240Checking');button.disabled=false}
-  }
-};
-
-/* Capture-phase delegation beats any stale onclick installed by older code. */
-document.addEventListener('click',function(ev){
-  var button=ev.target.closest('#fleetManualMotCheck_v242_disabled');
-  if(!button)return;
-  ev.preventDefault();ev.stopImmediatePropagation();
-  window.v240ManualFleetMotCheck(button);
-},true);
-
-})();
-</script>
-
-
-<style id="v241-new-job-inline-calendar">
-/* V241: availability calendar belongs inside + New Job > Booking details. */
-.v241InlineAvailability{
-  grid-column:1/-1;
-  margin-top:4px;
-  border:1px solid #d7dee8;
-  border-radius:12px;
-  background:#f8fafc;
-  padding:12px;
-}
-.v241AvailabilityHead{display:flex;align-items:flex-end;justify-content:space-between;gap:12px;margin-bottom:10px}
-.v241AvailabilityHead h4{margin:0;font-size:14px}
-.v241AvailabilityHead p{margin:3px 0 0;color:#64748b;font-size:11px}
-.v241AvailabilityDays{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px}
-.v241AvailabilityDay{
-  border:1px solid #dbe2ea;
-  background:#fff;
-  border-radius:10px;
-  padding:8px;
-  text-align:left;
-  cursor:pointer;
-  min-width:0;
-}
-.v241AvailabilityDay:hover,.v241AvailabilityDay.selected{border-color:#e11d2e;box-shadow:0 0 0 2px rgba(225,29,46,.15)}
-.v241AvailabilityDay>strong{display:block;font-size:11px;margin-bottom:5px;white-space:nowrap}
-.v241DayPct{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:2px 5px;font-size:9px;margin-top:3px}
-.v241DayPct span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.v241DayPct i{grid-column:1/-1;height:4px;background:#e5e7eb;border-radius:99px;overflow:hidden}
-.v241DayPct i span{display:block;height:100%;background:#334155}
-.v241InlineMini{margin-top:12px;padding-top:11px;border-top:1px solid #dbe2ea}
-.v241InlineMini h4{margin:0 0 8px}
-.v241MiniGrid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
-.v241MiniLane{border:1px solid #dbe2ea;border-radius:10px;background:#fff;padding:8px;min-height:150px}
-.v241MiniLane h5{margin:0 0 6px;font-size:11px}
-.v241MiniJob{border:1px solid #e2e8f0;border-left:4px solid #2563eb;border-radius:7px;padding:6px;margin:5px 0;font-size:9.5px}
-.v241MiniJob b{display:block}
-.v241MiniActions{display:flex;justify-content:flex-end;gap:8px;margin-top:10px}
-@media(max-width:1000px){.v241AvailabilityDays{grid-template-columns:repeat(3,minmax(0,1fr))}}
-@media(max-width:680px){.v241AvailabilityDays{grid-template-columns:repeat(2,minmax(0,1fr))}.v241MiniGrid{grid-template-columns:1fr}}
-</style>
-
 
 <style id="v252-mobile-other-hard-override">
 @media (max-width:768px){
@@ -17627,16 +17278,6 @@ document.addEventListener('click',function(ev){
 .fleetKpi.active small,.fleetGroup.active span,.fleetKpi.active strong,.fleetGroup.active b{color:#14532d!important}
 </style>
 
-
-<script id="fleet-service-only-completion-guard">
-/* A pure Service completion can update Service/Safety dates only.
-   It cannot call the MOT schedule updater unless the job explicitly contains MOT work.
-   Authoritative MOT lookup is owned by the following v255 block. */
-(function(){
-'use strict';
-/* The service-only rule now lives in the canonical maintenance synchroniser. */
-})();
-</script>
 
 <script id="v255-all-mot-records-authoritative-manual-check">
 /* V255 MOT RECONCILIATION CORRECTION
@@ -17983,7 +17624,7 @@ window.v278RepairAllMainSec=v278RepairAllMainSec;
 /* A cloud Fleet snapshot can replace the local array after startup. Re-apply the
    correction immediately after every snapshot so MAIN SEC cannot disappear again. */
 /* V352: V278 migration remains callable but is not wrapped into every cloud snapshot. */
-function v278SafeRun(){try{var r=v278RepairAllMainSec();if(r&&typeof r.catch==='function')r.catch(function(e){console.warn('V278 MAIN SEC deferred repair failed',e);});}catch(e){console.warn('V278 MAIN SEC deferred repair skipped',e);}}
+
 /* V352: no automatic V278 migration during interactive startup. */
 try{var foot=document.querySelector('.sideFoot small');if(foot)foot.textContent='v278 Workshop Pro · MAIN SEC Internal master correction';}catch(e){}
 })();

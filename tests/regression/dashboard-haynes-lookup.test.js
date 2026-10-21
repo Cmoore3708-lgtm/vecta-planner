@@ -21,11 +21,6 @@ function installActualEditorBridge(window,document,editor){
  assert.ok(bridge,'The core job editor must be exported from its own scope');
  const context={window,document,openJobModal:editor};
  vm.runInNewContext(bridge,context);
- const amendments=html.match(/<script id="v230-amendments-js">([\s\S]*?)<\/script>/)[1];
- const ast=parse(amendments,{sourceType:'script'});
- const nodes=ast.program.body[0].expression.callee.body.body;
- const start=nodes.findIndex(n=>n.type==='VariableDeclaration'&&n.declarations[0].id.name==='originalOpenJobModal');
- vm.runInNewContext(nodes.slice(start,start+2).map(n=>amendments.slice(n.start,n.end)).join('\n'),context);
 }
 
 const src=readFileSync(new URL('../../public/js/haynes-job-tools.js',import.meta.url),'utf8');

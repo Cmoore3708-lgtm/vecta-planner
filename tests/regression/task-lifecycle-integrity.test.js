@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import test from 'node:test';
+import vm from 'node:vm';
 
 const html = fs.readFileSync(new URL('../../index.html', import.meta.url), 'utf8');
 
@@ -27,5 +28,7 @@ test('task rows and task-linked planner jobs are excluded from revenue', () => {
   assert.match(html, /function financeValidJob\(j\)\{[^}]*j\.card_type==='mini_task'/);
   assert.match(html, /function contractorAllFinanceJobs\(\)[\s\S]*?j\.card_type==='mini_task'/);
   assert.match(html, /function staffAllFinanceJobs\(\)[\s\S]*?j\.card_type==='mini_task'/);
-  assert.match(html, /function nmukAllFinanceJobs\(\)[\s\S]*?j\.card_type==='mini_task'/);
+  const context={app:{jobs:[{id:'nmuk-task',customer_account:'NMUK',card_type:'mini_task'},{id:'nmuk-work',customer_account:'NMUK'}]},window:{CONTRACTOR_2026_JOBS:[{id:'imported-task',card_type:'mini_task'}]},financeEffectiveJob:j=>j,financeBaseJob:j=>j,vectaJobIsDeletedForLists:()=>false,isVehicleTaxJob:()=>false};
+  for(const name of ['financeValidJob','financeAllJobs'])vm.runInNewContext(html.split('\n').find(line=>line.startsWith('function '+name+'(')),context);
+  assert.deepEqual(Array.from(context.financeAllJobs(),j=>j.id),['nmuk-work']);
 });
