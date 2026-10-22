@@ -8,7 +8,7 @@
   },
   "scripts": {
     "dev": "vite",
-    "build": "node scripts/sync-booking-page.mjs --check && npx vite build && node scripts/split-built-html.mjs && node scripts/copy-website.mjs && node scripts/verify-build-size.mjs",
+    "build": "node scripts/dashboard-layout-lock.mjs && node scripts/sync-booking-page.mjs --check && npx vite build && node scripts/split-built-html.mjs && node scripts/copy-website.mjs && node scripts/verify-build-size.mjs && node scripts/dashboard-layout-lock.mjs --built",
     "preview": "vite preview",
     "test": "node scripts/run-regression-tests.mjs",
     "test:regression": "node scripts/run-regression-tests.mjs",
@@ -16,7 +16,8 @@
     "test:phone-sync": "node tests/phone-sync-integrity.mjs",
     "test:finance-integrity": "node tests/finance-integrity.mjs",
     "release:gate": "npm run test:regression && npm run test:phone-sync && npm run test:finance-integrity && npm run build",
-    "sync:booking": "node scripts/sync-booking-page.mjs"
+    "sync:booking": "node scripts/sync-booking-page.mjs",
+    "layout:check": "node scripts/dashboard-layout-lock.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.49.8",
