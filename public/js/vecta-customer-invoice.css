@@ -45,9 +45,9 @@ html,body{margin:0;padding:0;font-family:Arial,Helvetica,sans-serif;font-size:12
 .noBreak,tr{break-inside:avoid}
 @media screen and (max-width:820px){.printSheet{margin:0}body{overflow-x:auto}.invoiceActions{justify-content:flex-start}}
 @media print{
- html,body{width:auto;height:auto;min-height:0;margin:0!important;padding:0!important;background:#fff!important;overflow:visible!important;-webkit-text-size-adjust:100%;text-size-adjust:100%}
+ html,body{width:190mm!important;height:auto;min-height:0;margin:0!important;padding:0!important;background:#fff!important;overflow:visible!important;-webkit-text-size-adjust:100%;text-size-adjust:100%}
  .invoiceActions{display:none!important}
- .printSheet{width:190mm!important;max-width:100%!important;margin:0!important;padding:0!important;zoom:1!important;transform:none!important;box-shadow:none!important;background:#fff!important;overflow:visible!important}
+ .printSheet{width:190mm!important;max-width:none!important;margin:0!important;padding:0!important;zoom:1!important;transform:none!important;box-shadow:none!important;background:#fff!important;overflow:visible!important}
  .invoicePrintPage{width:100%;min-height:275mm;height:auto;background:#fff!important}
  .invoiceBookingHeader,.invoicePrintHeader,.printTotals,.printPayment{background:#fff!important}
  thead{display:table-header-group}
