@@ -9238,6 +9238,7 @@ async function printWhenImagesReady(){
     });
   });
   Promise.all(waits).then(function(){
+    if(root&&root.querySelector('.invoicePrintPage')&&window.VectaInvoicePrint&&window.VectaInvoicePrint.print){window.VectaInvoicePrint.print(root).catch(function(error){console.error('Invoice print unavailable',error);alert('The invoice print preview could not be opened. Please try again.');});return;}
     requestAnimationFrame(function(){requestAnimationFrame(function(){window.print();});});
   });
 }

@@ -21,3 +21,18 @@ test('customer print CSS contains only invoice rules, fixes A4 width and resets 
  assert.match(css,/width:190mm!important/);assert.match(css,/zoom:1!important/);
  assert.match(css,/background:#fff!important/);assert.doesNotMatch(css,/planner|servicePreviewing|@media all/);
 });
+
+test('workshop invoices print their rendered content in an isolated document, without dashboard styles',async()=>{
+ const {document}=parseHTML('<html><body><div id="printSheet"><div class="invoicePrintPage"><div class="printTotals">£35.00</div></div></div></body></html>');
+ let printed=0,frame;const timers=[];const after={};
+ const contentWindow={document:{images:[],fonts:{ready:Promise.resolve()}},requestAnimationFrame:fn=>fn(),addEventListener:(name,fn)=>after[name]=fn,focus(){},print(){printed++;}};
+ const append=document.body.appendChild.bind(document.body);
+ document.body.appendChild=node=>{frame=node;Object.defineProperty(node,'contentWindow',{value:contentWindow});append(node);queueMicrotask(()=>node.onload());return node;};
+ const root={document,location:{origin:'https://workshop.example'},setTimeout:fn=>{timers.push(fn);return 1;}};
+ vm.runInNewContext(readFileSync('public/js/vecta-invoice-print.js','utf8'),root);
+ await root.VectaInvoicePrint.print(document.querySelector('#printSheet'));
+ assert.equal(printed,1);assert.match(frame.srcdoc,/vecta-customer-invoice.css\?v=/);assert.match(frame.srcdoc,/£35.00/);assert.doesNotMatch(frame.srcdoc,/index.html|haynes-job-tools.css/);
+ assert.match(frame.style.cssText,/left:-10000px/);assert.equal(typeof after.afterprint,'function');
+ after.afterprint();timers.at(-1)();assert.equal(document.querySelector('iframe'),null);
+ const app=readFileSync('index.html','utf8');assert.match(app,/root.querySelector\('\.invoicePrintPage'\).*window.VectaInvoicePrint.print\(root\)/);
+});

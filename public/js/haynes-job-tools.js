@@ -251,7 +251,7 @@ root.enrichHaynesInvoice=function(sheet,invoice){
    const picture=document.createElement('div');picture.className='haynesInvoiceHeaderVehicle';
    const linked=(root.app?.jobs||[]).find(j=>String(j.id)===String(invoice.job_id));
    const vehicle=Object.assign({},linked||{},invoice,{registration:invoice.registration||linked?.registration});
-   img.setAttribute('data-vehicle-image','');img.dataset.registration=reg(vehicle.registration);
+   img.setAttribute('data-vehicle-image','');img.dataset.vehicleLogo='separate';img.dataset.registration=reg(vehicle.registration);
    img.dataset.colour=dashboardColour(vehicle);img.dataset.vehicleName=[v.make,v.model].join(' ');
    picture.appendChild(img);header.appendChild(picture);
    sheet.invoiceVehicleReady=root.VectaVehicleImage?.mount(picture);
