@@ -124,3 +124,19 @@ test('compact links persist hashed random codes and render directly without redi
   assert.equal(requiresManagerLogin('/i/'+code),false);
  }finally{globalThis.fetch=oldFetch;for(const k of Object.keys(process.env))if(!(k in oldEnv))delete process.env[k];Object.assign(process.env,oldEnv);}
 });
+
+test('downloaded PDF embeds compact stored artwork and make badge; fleet invoices never fetch vehicle artwork', async () => {
+  const oldFetch=globalThis.fetch;let calls=0;
+  globalThis.fetch=async url=>{calls++;assert.equal(url,'https://www.haynespro-assets.com/workshop/images/123.svg');return new Response('<svg xmlns="http://www.w3.org/2000/svg" width="300" height="140"><g id="transparant_colour"><path fill="#cccccc" d="M20 80 L70 25 L210 25 L280 80 L280 110 L20 110 Z"/></g><circle cx="75" cy="110" r="20"/><circle cx="235" cy="110" r="20"/></svg>');};
+  try{
+    const bytes=await renderCustomerInvoicePdf(invoice,settings,{}, {imageUrl:'https://www.haynespro-assets.com/workshop/images/123.svg',colour:'BLUE'});
+    const pdf=await PDFDocument.load(bytes);assert.equal(pdf.getPageCount(),1);
+    const {PDFName,PDFDict}=await import('pdf-lib');
+    const images=pdf.getPage(0).node.Resources().lookup(PDFName.of('XObject'),PDFDict);
+    assert.equal(images.keys().length,3,'VECTA logo, make badge and car artwork must all be embedded');
+    assert.equal(calls,1);
+    await renderCustomerInvoicePdf({...invoice,fleet_customer:'NMUK'},settings,{}, {imageUrl:'https://www.haynespro-assets.com/workshop/images/123.svg'});
+    await renderCustomerInvoicePdf(invoice,settings,{}, {imageUrl:'https://example.com/private.svg'});
+    assert.equal(calls,1,'Fleet accounts and non-supplier URLs must not fetch artwork');
+  }finally{globalThis.fetch=oldFetch;}
+});
