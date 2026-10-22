@@ -35,3 +35,11 @@ remain unchanged. Preview uses `/mechanic.html` against isolated Test data.
 
 The catch-all proxy in this folder is historical only; do not deploy it as a
 mechanics recovery. It would replace the distinct mechanics entry with Main.
+
+## Approved layout lock
+
+The PC and phone dashboard display approved on 22 October 2026 is locked by
+`scripts/dashboard-layout-lock.mjs` and `docs/dashboard-layout-baseline.json`.
+Read `DASHBOARD-LAYOUT-LOCK.md` before editing or releasing shared display code.
+Builds verify both source and generated Main/mechanics output. Both manual
+mechanics aliases must be moved to and checked against the released commit.

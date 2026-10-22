@@ -1,0 +1,187 @@
+{
+  "approvedOn": "2026-10-22",
+  "approvedBy": "Chris Moore",
+  "approval": "I am very happy with the dashboard layout on both the PC and the phone. Can you somehow lock these in place so they can’t accidentally be amended during future updates.",
+  "layout": {
+    "main": {
+      "functions": {
+        "artwork.enrichHaynesDashboard": [
+          "ce7bc1778d301acc618b8410ccd38ace8621eb0b7ab76ca0c51b5f448194cf41"
+        ],
+        "artwork.genericDashboardArtwork": [
+          "7641134af456f4c2b3e987bc87dc3644c21d0163d2019e61f5649fdcc391c712"
+        ],
+        "artwork.install": [
+          "984961154578b61eb32087be1f8cb772d7799e8e3855df1f6c1216c8663bef2f"
+        ],
+        "artwork.mobileManufacturerBadge": [
+          "b435ce8bd03c274a3854119c1ad4f6007bb3b96d34811e6a6a2f1f89bbf56c14"
+        ],
+        "artwork.trackTimedArtwork": [
+          "dbab92a132e31c5718ce9940ccc249546580ebc8455aa91603cfd3090b9bcd7f"
+        ],
+        "currentTimeLineHtml": [
+          "e88476836fbd89bfabfb0ae444f39154c1b5a61601589f1f164deaa92cc556bf"
+        ],
+        "fullPlate": [
+          "597fd52cacbb812ce0c13609698291ca1e4b66a837739e5b87140eaa7ee04cc0"
+        ],
+        "jobCardHtml": [
+          "8d756f4aad26195fd0f10831c2adb64c5da38101d233d9a062be7400d6fbfa64",
+          "e85302f44a1ca97ea457261f8e4bb46ba71bb8326b576e04ae7b7d2929740414"
+        ],
+        "laneHtml": [
+          "e34fc942ef5b6d5524c97a112ffff1ff331642243af2a3a0ba04aaeb0f0dcf3a"
+        ],
+        "mobileJobCardHtml": [
+          "95c72ce42bbf6dda49ec2c4ca92d70a5141f8718ef8ae39b5ac3cff1f1da56a9"
+        ],
+        "mobileJobCategoryLabel": [
+          "40e9cd14a67e72f9e3f664bac42c93a924ddcd168f900eb37913228dba56c798"
+        ],
+        "mobileMotAppointmentHtml": [
+          "9cf72b9f127146360dad122a1621a4497fcd933b37bb9759f87c40eb992b6722"
+        ],
+        "mobilePlannerHtml": [
+          "21fd5ec9d76e1c684ee87adb977f85876844fac5924c4d774d9ffe70700e004f"
+        ],
+        "myTasksHtml": [
+          "6f3578d03d6a62e5a707800ce51f656f2f698a5b0b6d03f41d0af13429d637b8"
+        ],
+        "plannerHtml": [
+          "26e3ed63b218a16ad042afe76e477213faee324788b7a42769dde5369a1a9438"
+        ],
+        "plannerJobDescription": [
+          "cadbc956980adbf8444c2e15eb147edfde542ce599e9ef84a998532a6f0dc676"
+        ],
+        "plannerJobTypesHtml": [
+          "a89ca7f9ba3de0f507f3bd54a788f2d6d1cd078bfc7019584612c1982859ab89"
+        ],
+        "plannerLiveControlsHtml": [
+          "6134812bcfaf0718c015994fa4546b5e56a3eee0503466a93695faffe976cb7e"
+        ],
+        "plannerMetricsHtml": [
+          "15647ab24084aa222acb8397b4528f7dac1273bb4e2246f82c7f8019aaf80470"
+        ],
+        "plannerMotHeaderHtml": [
+          "9d0dad99baae978fc44b7ceff82e6b94ed88d65b09a18a5b324dfef4f01c2f6e"
+        ],
+        "plannerPlate": [
+          "41c809aff97fac29000cff841bdf0168b26f096e4870ceca5582af09a962c6d6"
+        ],
+        "plannerTimeRows": [
+          "a9ed16606b9608213fc1efac8c9d2425371eb659fd8ece83baddd407b7e849f4"
+        ],
+        "plannerVehicleLabel": [
+          "2b7aacdd9dcd7cfe545516c8520de2ebabf319a4c079fa9785beb3efea142262"
+        ],
+        "plannerWindowConfig": [
+          "3117740bc9c8e1854657732d430e701b0ebd82c9d40a44b52f666a00ac50211c"
+        ],
+        "quotePanelHtml": [
+          "39f1a48e7da3c8f332dd86957acad1377b44109417bbc389528982fbf4100daf"
+        ],
+        "unallocatedJobCardHtml": [
+          "8ce56cd69d3a66a05b82d6ebe8c2e39575192c35c67936d35bcb2b276115c16d"
+        ],
+        "unallocatedPanelHtml": [
+          "3a9a42c6c0bf2d0614443fe79675792f688eb5512c394fbfd54ec1fb14fd13de"
+        ]
+      },
+      "styles": "313e0d115cbcb9677c047db8eb1dbf4dd8ec0bd9a13053bd10ab41d99765ac79",
+      "injectedStyles": [
+        "bea850ce68304d8a50a6018729fb5923f614c6708b6a11a3d3d937b525dd855a"
+      ]
+    },
+    "mechanic": {
+      "functions": {
+        "artwork.enrichHaynesDashboard": [
+          "ce7bc1778d301acc618b8410ccd38ace8621eb0b7ab76ca0c51b5f448194cf41"
+        ],
+        "artwork.genericDashboardArtwork": [
+          "7641134af456f4c2b3e987bc87dc3644c21d0163d2019e61f5649fdcc391c712"
+        ],
+        "artwork.install": [
+          "984961154578b61eb32087be1f8cb772d7799e8e3855df1f6c1216c8663bef2f"
+        ],
+        "artwork.mobileManufacturerBadge": [
+          "b435ce8bd03c274a3854119c1ad4f6007bb3b96d34811e6a6a2f1f89bbf56c14"
+        ],
+        "artwork.trackTimedArtwork": [
+          "dbab92a132e31c5718ce9940ccc249546580ebc8455aa91603cfd3090b9bcd7f"
+        ],
+        "currentTimeLineHtml": [
+          "e88476836fbd89bfabfb0ae444f39154c1b5a61601589f1f164deaa92cc556bf"
+        ],
+        "fullPlate": [
+          "597fd52cacbb812ce0c13609698291ca1e4b66a837739e5b87140eaa7ee04cc0"
+        ],
+        "jobCardHtml": [
+          "8d756f4aad26195fd0f10831c2adb64c5da38101d233d9a062be7400d6fbfa64",
+          "e85302f44a1ca97ea457261f8e4bb46ba71bb8326b576e04ae7b7d2929740414"
+        ],
+        "laneHtml": [
+          "e34fc942ef5b6d5524c97a112ffff1ff331642243af2a3a0ba04aaeb0f0dcf3a"
+        ],
+        "mobileJobCardHtml": [
+          "95c72ce42bbf6dda49ec2c4ca92d70a5141f8718ef8ae39b5ac3cff1f1da56a9"
+        ],
+        "mobileJobCategoryLabel": [
+          "40e9cd14a67e72f9e3f664bac42c93a924ddcd168f900eb37913228dba56c798"
+        ],
+        "mobileMotAppointmentHtml": [
+          "9cf72b9f127146360dad122a1621a4497fcd933b37bb9759f87c40eb992b6722"
+        ],
+        "mobilePlannerHtml": [
+          "21fd5ec9d76e1c684ee87adb977f85876844fac5924c4d774d9ffe70700e004f"
+        ],
+        "myTasksHtml": [
+          "6f3578d03d6a62e5a707800ce51f656f2f698a5b0b6d03f41d0af13429d637b8"
+        ],
+        "plannerHtml": [
+          "26e3ed63b218a16ad042afe76e477213faee324788b7a42769dde5369a1a9438"
+        ],
+        "plannerJobDescription": [
+          "cadbc956980adbf8444c2e15eb147edfde542ce599e9ef84a998532a6f0dc676"
+        ],
+        "plannerJobTypesHtml": [
+          "a89ca7f9ba3de0f507f3bd54a788f2d6d1cd078bfc7019584612c1982859ab89"
+        ],
+        "plannerLiveControlsHtml": [
+          "6134812bcfaf0718c015994fa4546b5e56a3eee0503466a93695faffe976cb7e"
+        ],
+        "plannerMetricsHtml": [
+          "ab0fae19f0a3d50f04538da1700492cb2910c1dda8a9888c1c0cdea6a9376604"
+        ],
+        "plannerMotHeaderHtml": [
+          "9d0dad99baae978fc44b7ceff82e6b94ed88d65b09a18a5b324dfef4f01c2f6e"
+        ],
+        "plannerPlate": [
+          "41c809aff97fac29000cff841bdf0168b26f096e4870ceca5582af09a962c6d6"
+        ],
+        "plannerTimeRows": [
+          "a9ed16606b9608213fc1efac8c9d2425371eb659fd8ece83baddd407b7e849f4"
+        ],
+        "plannerVehicleLabel": [
+          "2b7aacdd9dcd7cfe545516c8520de2ebabf319a4c079fa9785beb3efea142262"
+        ],
+        "plannerWindowConfig": [
+          "3117740bc9c8e1854657732d430e701b0ebd82c9d40a44b52f666a00ac50211c"
+        ],
+        "quotePanelHtml": [
+          "4b3586830752d0327cfcc935211e047cedf9111600a1c572e996f0b4a0e3820b"
+        ],
+        "unallocatedJobCardHtml": [
+          "8ce56cd69d3a66a05b82d6ebe8c2e39575192c35c67936d35bcb2b276115c16d"
+        ],
+        "unallocatedPanelHtml": [
+          "3a9a42c6c0bf2d0614443fe79675792f688eb5512c394fbfd54ec1fb14fd13de"
+        ]
+      },
+      "styles": "3ea9a8c8e711d1d33c303a478bf190593958e23ba5b04eccaccac2a811d362a6",
+      "injectedStyles": [
+        "bea850ce68304d8a50a6018729fb5923f614c6708b6a11a3d3d937b525dd855a"
+      ]
+    }
+  }
+}
