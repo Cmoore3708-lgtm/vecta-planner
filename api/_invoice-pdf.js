@@ -108,26 +108,27 @@ export async function renderCustomerInvoicePdf(invoice, settings = {}, job = {},
     for (const line of wrap(value, width, size, font)) { ensure(15); text(line, x, y, size, font); y -= 15; }
   }
   newPage();
-  const headerOffset=isFleet?0:110;
+  const headerOffset=isFleet?0:-4;
   if(!isFleet){
-    const vehicleLines=wrap(invoice.vehicle||job.vehicle||'Vehicle',225,12,bold).slice(0,2);
-    vehicleLines.forEach((line,i)=>text(line,162,762-i*15,12,bold));
+    const vehicleLines=wrap(invoice.vehicle||job.vehicle||'Vehicle',170,12,bold).slice(0,2);
+    vehicleLines.forEach((line,i)=>text(line,250,750-i*15,12,bold));
     const plate=String(invoice.registration||'NO REG').toUpperCase(),plateWidth=Math.max(100,bold.widthOfTextAtSize(plate,17)+28);
-    page.drawRectangle({x:162,y:701,width:plateWidth,height:28,color:rgb(.95,.80,.22),borderColor:ink,borderWidth:.7});
-    page.drawRectangle({x:162,y:701,width:17,height:28,color:rgb(.09,.38,.55)});
-    text('GB',165,710,7,bold,rgb(1,1,1));text(plate,185,708,17,bold);
-    if(badge){const scale=Math.min(32/badge.width,24/badge.height);page.drawImage(badge,{x:162+plateWidth+10,y:703,width:badge.width*scale,height:badge.height*scale});}
-    text('Mileage: '+(invoice.mileage??job.mileage??'Not recorded'),162,686,9,regular,muted);
-    text('MOT due: '+String(invoice.mot_due||job.mot_due||'Not recorded').slice(0,10),162,672,9,regular,muted);
-    if(car){const scale=Math.min(145/car.width,90/car.height);page.drawImage(car,{x:553-car.width*scale,y:683,width:car.width*scale,height:car.height*scale});}
-    page.drawLine({start:{x:42,y:655},end:{x:553,y:655},thickness:.6,color:rgb(.82,.84,.86)});
+    page.drawRectangle({x:250,y:701,width:plateWidth,height:28,color:rgb(.95,.80,.22),borderColor:ink,borderWidth:.7});
+    page.drawRectangle({x:250,y:701,width:17,height:28,color:rgb(.09,.38,.55)});
+    text('GB',253,710,7,bold,rgb(1,1,1));text(plate,273,708,17,bold);
+    if(badge){const scale=Math.min(32/badge.width,24/badge.height);page.drawImage(badge,{x:250+plateWidth+10,y:703,width:badge.width*scale,height:badge.height*scale});}
+    text('Mileage: '+(invoice.mileage??job.mileage??'Not recorded'),250,686,9,regular,muted);
+    text('MOT due: '+String(invoice.mot_due||job.mot_due||'Not recorded').slice(0,10),250,672,9,regular,muted);
+    if(car){const scale=Math.min(120/car.width,80/car.height);page.drawImage(car,{x:553-car.width*scale,y:700,width:car.width*scale,height:car.height*scale});}
+
   }
-  if (logo) { const scale = Math.min(215 / logo.width, 48 / logo.height); page.drawImage(logo, { x: 42, y: 710-headerOffset, width: logo.width * scale, height: logo.height * scale }); }
+  if (logo) { const scale = Math.min((isFleet?215:180) / logo.width, 48 / logo.height); page.drawImage(logo, { x: 42, y: 710-headerOffset, width: logo.width * scale, height: logo.height * scale }); }
   else text('VECTA', 42, 721-headerOffset, 32, bold, red);
-  right('INVOICE', 553, 745-headerOffset, 24, bold); right(invoice.invoice_number || '', 553, 722-headerOffset, 13, bold); right(invoice.invoice_date || '', 553, 704-headerOffset, 10);
+  right('INVOICE', 553, isFleet?745:610, 24, bold); right(invoice.invoice_number || '', 553, isFleet?722:587, 13, bold); right(invoice.invoice_date || '', 553, isFleet?704:569, 10);
   y = 682-headerOffset;
   const business = nmuk ? ['10 Hunter Close', 'East Boldon, Tyne and Wear, NE36 0TB', 'Email: shirken.moore@talktalk.net'] : ['Contractors Compound, Nissan Motor Manufacturing', 'Nissan Way, Washington, SR5 3NS'];
-  for (const line of [...business, 'Tel: 07721722622', 'VAT No. 169170002']) { text(line, 42, y, 9, regular, muted); y -= 14; }
+  for (const line of [...business, 'Tel: 07721722622', 'VAT No. 169170002']) { for(const part of wrap(line,isFleet?320:180,9)){text(part,42,y,9,regular,muted);y-=12;} }
+  if(!isFleet)y=Math.min(y,550);
   y -= 18; text('CUSTOMER', 42, y, 9, bold, muted); y -= 19;
   paragraph(invoice.customer_name || 'Customer', 42, 511, bold, 12);
   if (invoice.customer_address) paragraph(invoice.customer_address, 42, 511);
