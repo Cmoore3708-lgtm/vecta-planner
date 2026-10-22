@@ -38,11 +38,15 @@ export function createMotHandler({database=db,emailApi=resend,login=requireWorks
    const email=await emailApi('emails/receiving/'+id);
    if(address(email.from)!==motSender||!(email.to||[]).some(to=>address(to)===motInbox))return res.status(200).json({ignored:true});
    const authenticated=email.authentication?.dkim==='pass'&&email.authentication?.dmarc!=='fail';
-   const parsed=parseMotConfirmation(email),record={...parsed,email_id:id,received_at:email.created_at||event.created_at,forwarded:false};
+   const parsed=parseMotConfirmation(email);let record={...parsed,email_id:id,received_at:email.created_at||event.created_at,forwarded:false};
    if(!record.received_at||!Number.isFinite(Date.parse(record.received_at)))throw fail('Missing received timestamp');
    // An authenticated sender is required both for automatic green and for forwarding.
    if(!authenticated)record.state='review';
-   await database('workshop_settings?on_conflict=id',{method:'POST',headers:{Prefer:'resolution=merge-duplicates'},body:JSON.stringify({id:prefix+id,value:record,updated_at:new Date().toISOString()})});
+   // Allocate the existing unallocated job and save the confirmation in one
+   // transaction. The function also guards duplicated/out-of-order webhooks,
+   // ambiguous registrations, and clashes with ordinary planner writes.
+   record=await database('rpc/vecta_apply_mot_confirmation',{method:'POST',body:JSON.stringify({p_record:record})});
+   if(!record||record.email_id!==id)throw fail('MOT allocation was not confirmed');
    if(!authenticated)return res.status(200).json({ok:true,review:true});
    const forwarded=await emailApi('emails',{method:'POST',headers:{'Idempotency-Key':'mot-copy-'+id},body:JSON.stringify({from:copyInbox,to:[copyInbox],reply_to:motSender,subject:('MOT centre: '+String(email.subject||'Booking confirmation')).slice(0,200),text:'Copy of the MOT centre email received by Workshop Pro.\n\n'+emailText(email)})});
    if(!forwarded.id)throw fail('Email copy was not accepted');

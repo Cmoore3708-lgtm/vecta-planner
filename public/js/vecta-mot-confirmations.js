@@ -3,15 +3,15 @@
 export function motBookingStatus(job,events,jobs){
  const reg=value=>String(value||'').toUpperCase().replace(/[^A-Z0-9]/g,''),time=value=>/^\d{2}:\d{2}/.exec(String(value||''))?.[0]||'';
  const mot=j=>String(Array.isArray(j.job_types)&&j.job_types.length?j.job_types.join('|'):j.job_type||'').split(/[,;|]/).some(type=>/^mot(?: test)?$/i.test(type.trim()));
- const appointment=j=>time(j.mot_time)||time(String(j.customer_note||'').match(/\[MOT_TIME:([^\]]+)\]/i)?.[1]);
+ const appointment=j=>time(String(j.customer_note||'').match(/\[MOT_TIME:([^\]]+)\]/i)?.[1])||time(j.mot_time);
  const history=(events||[]).filter(e=>e&&e.reference&&Number.isFinite(Date.parse(e.received_at))).sort((a,b)=>Date.parse(a.received_at)-Date.parse(b.received_at)||String(a.email_id).localeCompare(String(b.email_id)));
  const latest=new Map();
  for(const e of history){const old=latest.get(e.reference);latest.set(e.reference,{...e,registration:e.registration||old?.registration,date:e.date||old?.date});}
- const related=[...latest.values()].filter(e=>reg(e.registration)===reg(job.registration)&&e.date===job.booking_date).sort((a,b)=>Date.parse(b.received_at)-Date.parse(a.received_at));
+ const related=[...latest.values()].filter(e=>e.job_id===job.id||(reg(e.registration)===reg(job.registration)&&(e.date===job.booking_date||(e.state==='review'&&/^unallocated$/i.test(job.technician||''))))).sort((a,b)=>Date.parse(b.received_at)-Date.parse(a.received_at));
  const event=related[0];if(!event)return {confirmed:false,review:false};
  const candidates=(jobs||[]).filter(j=>!j.archived&&j.card_type!=='quote'&&j.status!=='quote'&&mot(j)&&reg(j.registration)===reg(job.registration)&&j.booking_date===job.booking_date&&appointment(j)===appointment(job));
- const confirmed=event.state==='confirmed'&&mot(job)&&!!appointment(job)&&event.time===appointment(job)&&candidates.length===1&&candidates[0].id===job.id;
- return {confirmed,review:!confirmed,reference:event.reference,time:event.time};
+ const confirmed=event.state==='confirmed'&&event.allocation_status==='allocated'&&event.job_id===job.id&&reg(event.registration)===reg(job.registration)&&event.date===job.booking_date&&String(job.technician||'').toLowerCase()==='chris'&&time(job.drop_time)===event.time&&mot(job)&&!!appointment(job)&&event.time===appointment(job)&&candidates.length===1&&candidates[0].id===job.id;
+ return {confirmed,review:!confirmed,reference:event.reference,time:event.time,date:event.date,reason:event.allocation_status};
 }
 
 if(typeof window!=='undefined'){

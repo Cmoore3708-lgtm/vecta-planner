@@ -11,8 +11,8 @@ import {motBookingStatus} from '../../public/js/vecta-mot-confirmations.js';
 import {createMotHandler} from '../../api/mot-confirmations.js';
 
 const email={id:'12345678-1234-1234-1234-123456789abc',from:'Fault Finder <confirmations@garagemail.motasoft.net>',to:['mot@faliiloi.resend.app'],subject:'Booking Confirmation - MOT IV (ref:29421617)',created_at:'2026-10-22T12:00:00Z',authentication:{dkim:'pass',dmarc:'pass'},text:'Fault Finder MOT Centre\nBooking Confirmation - MOT IV (ref:29421617)\nDear MR CHRIS MOORE (VECTA),\nBooking Details\nMOT IV - Thu 29 Oct 2026 at 12:00\nLAND ROVER DISCOVERY BD53 MUD\nTechnician STEPHEN ANGUS\nNotes\nPrice Summary\nMOT IV £40.00'};
-const job={id:'job1',registration:'BD53 MUD',booking_date:'2026-10-29',mot_time:'12:00',job_type:'MOT || Brakes'};
-const confirmation={...parseMotConfirmation(email),received_at:email.created_at,email_id:email.id};
+const job={id:'job1',technician:'Chris',drop_time:'12:00',registration:'BD53 MUD',booking_date:'2026-10-29',mot_time:'12:00',job_type:'MOT || Brakes'};
+const confirmation={...parseMotConfirmation(email),allocation_status:'allocated',job_id:'job1',received_at:email.created_at,email_id:email.id};
 const secret='whsec_'+Buffer.from('test-secret-with-sufficient-length').toString('base64');
 function signed(payload,stamp=String(Math.floor(Date.now()/1000))){const raw=JSON.stringify(payload),id='msg_test',signature=createHmac('sha256',Buffer.from(secret.slice(6),'base64')).update(id+'.'+stamp+'.'+raw).digest('base64');return {raw,headers:{'svix-id':id,'svix-timestamp':stamp,'svix-signature':'v1,'+signature}}}
 
@@ -44,7 +44,8 @@ test('raw webhook signatures reject tampering and expired replay',()=>{
 function harness(source=email,{sendFails=false}={}){
  const records=new Map(),sent=[],writes=[];let fail=sendFails;
  const handler=createMotHandler({env:{RESEND_MOT_WEBHOOK_SECRET:secret},login:async()=>true,database:async(path,options={})=>{
-  writes.push({path,options});assert.ok(path.startsWith('workshop_settings?'));
+  writes.push({path,options});assert.ok(path.startsWith('workshop_settings?')||path==='rpc/vecta_apply_mot_confirmation');
+  if(path==='rpc/vecta_apply_mot_confirmation'){let value=JSON.parse(options.body).p_record;value={...value,allocation_status:value.state==='confirmed'?'allocated':'confirmation_needs_review',job_id:value.state==='confirmed'?'job1':null};records.set('mot-email:'+value.email_id,value);return value}
   if(options.method==='POST'){const row=JSON.parse(options.body);records.set(row.id,row.value);return null}
   if(options.method==='PATCH'){const key=path.split('id=eq.')[1];records.set(key,JSON.parse(options.body).value);return null}
   const key=path.split('id=eq.')[1];return key?(records.has(key)?[{value:records.get(key)}]:[]):[...records.values()].map(value=>({value}));
@@ -79,4 +80,14 @@ test('Main and mechanics desktop/mobile MOT badges change only the requested sta
    const unmatched=context[renderer]({...job,mot_time:'13:00'});assert.doesNotMatch(unmatched,/#15803d|✓/);assert.match(unmatched,/needs checking/);
   }
  }
+});
+
+test('confirmed time survives stale local fields and exact quarter-hour times reopen unchanged',()=>{
+ const html=readFileSync(new URL('../../index.html',import.meta.url),'utf8');
+ const functions=['motTimeFromJob','halfHourMotTimeOptions'].map(name=>html.match(new RegExp('function '+name+'\\([^\\n]+'))[0]).join('\n');
+ const ctx={MOT_TIME_MARKER:/\[\[MOT_TIME:([^\]]+)\]\]/i,normaliseMotTime:x=>x||'',clockMinutes:s=>Number(s.slice(0,2))*60+Number(s.slice(3))};vm.createContext(ctx);vm.runInContext(functions,ctx);
+ assert.equal(ctx.motTimeFromJob({mot_time:'09:00',customer_note:'Notes\n[[MOT_TIME:12:15]]'}),'12:15');
+ assert.match(ctx.halfHourMotTimeOptions('12:15'),/<option value="12:15" selected>12:15<\/option>/);
+ const booked={...job,drop_time:'12:15',mot_time:'09:00',customer_note:'[[MOT_TIME:12:15]]'};
+ assert.equal(motBookingStatus(booked,[{...confirmation,time:'12:15'}],[booked]).confirmed,true);
 });

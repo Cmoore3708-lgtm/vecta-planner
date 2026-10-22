@@ -7,7 +7,8 @@ Chris approved this feature on 22 October 2026. The MOT centre now sends only to
 
 The existing Resend integration is provisioned. No DNS/MX changes are needed.
 
-1. Deploy the reviewed branch through the normal release gate and verify the
+1. Apply `20261022171442_garage_mot_confirmation_allocation.sql` to the target database. The function has been exercised only on the isolated Test database.
+   Deploy the reviewed branch through the normal release gate and verify the
    `/api/mot-confirmations` route is present. A POST without the signing secret
    returns 503; an unsigned POST after configuration returns 401.
 2. In Resend Webhooks, add the production endpoint:
@@ -43,9 +44,9 @@ Receiving until end-to-end verification succeeds.
   status or automatic forwarding. Check such originals in Resend Receiving.
 - Recognise the supplied Fault Finder MOT IV confirmation template. Validate
   the weekday, calendar date, clock time, reference and registration.
-- Store metadata separately in `workshop_settings`. Never create/complete jobs,
-  overwrite planner times, or change invoices or fleet due dates.
-- A unique matching MOT job gets a green badge and tick. Duplicated jobs,
+- New workshop MOT bookings default to Unallocated. A verified email finds one active, unallocated MOT job by registration, then atomically assigns it to Chris on the garage date/time and fills the existing MOT-time field. It moves the original job; it never creates or completes a job, changes prices or fleet due dates, or shifts a clash into a different slot.
+- The service-only database function locks the admission check against other job writes, checks Chris's jobs and time off, preserves the original description/duration/prices/notes, and saves the confirmation metadata in the same transaction. Duplicate emails do not reallocate again. Multiple matches, missing unallocated jobs, past appointments and diary clashes save a review result. A newer changed booking for an already allocated job requires manual review; it is not silently rescheduled.
+- A successfully allocated MOT job gets a green badge and tick, with confirmation details and reference shown beside the MOT dropdown. Duplicated jobs,
   mismatched times and changed/cancelled references remain red with a warning.
   The newest email for a reference supersedes older confirmations even if
   webhook events arrive out of order. Unsupported templates without a usable
@@ -63,7 +64,7 @@ Receiving until end-to-end verification succeeds.
 `tests/regression/mot-confirmations.test.js` covers the real example, HTML,
 invalid dates, signature tampering/replay, changes/cancellations, duplicated
 jobs, sender authentication, forwarding retries and Main/mechanics badge output.
-Only the two protected MOT badge renderers are intentionally recaptured in the
+The SQL integration fixture `tests/integration/mot-confirmation-allocation.sql` runs service-role assertions against Test and rolls back all synthetic jobs and emails. Only the two protected MOT badge renderers are intentionally recaptured in the
 layout baseline. All existing styles, positioning and other renderers stay
 locked. Move both manual mechanics aliases with the approved release as required
 by `DASHBOARD-LAYOUT-LOCK.md`.
