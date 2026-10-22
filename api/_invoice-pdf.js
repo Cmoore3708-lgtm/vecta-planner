@@ -119,7 +119,7 @@ export async function renderCustomerInvoicePdf(invoice, settings = {}, job = {},
     if(badge){const scale=Math.min(32/badge.width,24/badge.height);page.drawImage(badge,{x:250+plateWidth+10,y:716,width:badge.width*scale,height:badge.height*scale});}
     const mileage=invoice.mileage??job.mileage;
     if(mileage!==''&&mileage!=null&&Number.isFinite(Number(String(mileage).replace(/,/g,''))))text(String(mileage)+' miles',250+bold.widthOfTextAtSize(vehicleLines.at(-1)||'',12)+10,690-(vehicleLines.length-1)*15,8,regular,muted);
-    if(car){const scale=Math.min(120/car.width,80/car.height);page.drawImage(car,{x:553-car.width*scale,y:714,width:car.width*scale,height:car.height*scale});}
+    if(car){const scale=Math.min(120/car.width,80/car.height);page.drawImage(car,{x:553-car.width*scale,y:710,width:car.width*scale,height:car.height*scale});}
 
   }
   if (logo) { const scale = Math.min((isFleet?215:180) / logo.width, 48 / logo.height); page.drawImage(logo, { x: 42, y: 710-headerOffset, width: logo.width * scale, height: logo.height * scale }); }
@@ -153,14 +153,13 @@ export async function renderCustomerInvoicePdf(invoice, settings = {}, job = {},
     }
     y -= 11; page.drawLine({ start: { x: 42, y: y + 4 }, end: { x: 553, y: y + 4 }, thickness: 0.5, color: pale });
   }
-  ensure(220); y = 316;
+  ensure(220); y = 216;
   for (const [label, value] of [['Subtotal', invoice.subtotal], ['VAT', invoice.vat]]) { text(label, 365, y); right(money(value), 544, y); y -= 24; }
   page.drawRectangle({ x: 350, y: y - 12, width: 203, height: 35, color: ink });
   page.drawText('TOTAL', { x: 365, y, size: 11, font: bold, color: rgb(1, 1, 1) });
   const total = money(invoice.total); page.drawText(total, { x: 544 - bold.widthOfTextAtSize(total, 16), y: y - 1, size: 16, font: bold, color: rgb(1, 1, 1) });
   y -= 48; text('PAYMENT DETAILS', 42, y, 9, bold, muted); y -= 18;
-  paragraph(['Bank: ' + (settings.bankName || ''), 'Account name: ' + (settings.accountName || 'Vecta Motors'), 'Account number: ' + (settings.accountNumber || ''), 'Sort code: ' + (settings.sortCode || ''), 'Reference: ' + (invoice.registration || invoice.invoice_number)].join('\n'), 42, 511, regular, 9);
-  pages.forEach((p, index) => { page = p; text('VectaMotors.co.uk', 42, 48, 9, regular, muted); right('Page ' + (index + 1) + ' of ' + pages.length, 553, 48, 8); });
+  for(const line of ['Bank: ' + (settings.bankName || ''), 'Account name: ' + (settings.accountName || 'Vecta Motors'), 'Account number: ' + (settings.accountNumber || ''), 'Sort code: ' + (settings.sortCode || ''), 'Reference: ' + (invoice.registration || invoice.invoice_number)])for(const part of wrap(line,511,9)){text(part,42,y,9,regular);y-=15;}
   return Buffer.from(await pdf.save());
 }
 

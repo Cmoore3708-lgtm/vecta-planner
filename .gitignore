@@ -10,3 +10,6 @@ backup/backup-config.json
 # Supplier login profiles contain private session data
 .tyre-browser-profile/
 workers/tyres/.tyre-browser-profile/
+
+# Generated invoice-only PDF bundle
+public/js/vecta-invoice-pdf-client.js

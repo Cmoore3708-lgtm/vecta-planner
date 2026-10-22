@@ -39,6 +39,15 @@
       finally{host?.remove();}
     }));
   }
+  let exporterReady;
+  async function exporter(){
+    if(root.VectaInvoicePdf)return root.VectaInvoicePdf;
+    if(!exporterReady)exporterReady=new Promise((resolve,reject)=>{
+      const script=root.document.createElement('script');script.src='/js/vecta-invoice-pdf-client.js?v=20261022-clean-pdf';
+      script.onload=()=>resolve(root.VectaInvoicePdf);script.onerror=()=>{exporterReady=null;script.remove();reject(Error('Invoice PDF could not load'));};root.document.head.appendChild(script);
+    });
+    return exporterReady;
+  }
   async function print(sheet){
     await cutout(sheet);
     const doc=root.document,frame=doc.createElement('iframe');
@@ -46,7 +55,7 @@
     frame.style.cssText='position:fixed;left:-10000px;top:0;width:794px;height:1123px;border:0';
     const markup=sheet.querySelector('.invoicePrintPage').outerHTML;
     const loaded=new Promise((resolve,reject)=>{frame.onload=resolve;frame.onerror=()=>reject(Error('Invoice print document could not load'));});
-    frame.srcdoc='<!doctype html><html><head><meta charset="utf-8"><base href="'+root.location.origin+'/"><title>VECTA Invoice</title><link rel="stylesheet" href="/js/vecta-customer-invoice.css?v=20261022-invoice-plate-cutout"></head><body><main class="printSheet">'+markup+'</main></body></html>';
+    frame.srcdoc='<!doctype html><html><head><meta charset="utf-8"><base href="'+root.location.origin+'/"><title>VECTA Invoice</title><link rel="stylesheet" href="/js/vecta-customer-invoice.css?v=20261022-invoice-clean-footer"></head><body><main class="printSheet">'+markup+'</main></body></html>';
     doc.body.appendChild(frame);
     try{
       await loaded;
@@ -54,9 +63,8 @@
       await Promise.all(Array.from(win.document.images).map(img=>img.complete?Promise.resolve():new Promise(resolve=>{img.addEventListener('load',resolve,{once:true});img.addEventListener('error',resolve,{once:true});root.setTimeout(resolve,5000);} )));
       if(win.document.fonts?.ready)await win.document.fonts.ready;
       await new Promise(resolve=>win.requestAnimationFrame(()=>win.requestAnimationFrame(resolve)));
-      win.addEventListener('afterprint',()=>root.setTimeout(()=>frame.remove(),0),{once:true});
-      root.setTimeout(()=>frame.remove(),600000);
-      win.focus();win.print();
+      await (await exporter()).save(win.document.querySelector('.invoicePrintPage'));
+      frame.remove();
     }catch(error){frame.remove();throw error;}
   }
   root.VectaInvoicePrint={render,manufacturer,print,cutout};
