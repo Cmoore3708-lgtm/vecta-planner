@@ -360,3 +360,11 @@ test('booking artwork remains hidden until the coloured image has decoded',async
  const booking=fs.readFileSync('website/booking/index.html','utf8');
  assert.match(booking,/img\[data-vehicle-image\]:not\(\[data-vehicle-ready="1"\]\)\{visibility:hidden\}/);
 });
+
+test('tight dashboard cutouts remove supplier backgrounds while preserving the vehicle layers',()=>{
+ const root=browser(),source=svg.replace('<g id="wheels">','<g id="gradients_background"><rect width="299" height="220" fill="white"/></g><g id="wheels">');
+ const normal=root.VectaVehicleImage.personaliseSvg(source,'DY71UVE','Grey','999.svgz','',false,'Kia XCeed');
+ const cut=root.VectaVehicleImage.personaliseSvg(source,'DY71UVE','Grey','999.svgz','',true,'Kia XCeed');
+ assert.match(normal.svg,/gradients_background/);assert.doesNotMatch(cut.svg,/gradients_background/);
+ assert.match(cut.svg,/id="wheels"/);assert.match(cut.svg,/id="windows"/);assert.match(cut.svg,/DY71 UVE/);
+});

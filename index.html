@@ -9505,7 +9505,7 @@ function isVehicleTaxJob(j){
   return /^(?:tax(?:ing)?(?: the)? vehicle|vehicle tax(?:ed)?|road tax(?:ed)?)$/.test(work);
 }
 var MOT_TIME_MARKER=/\[\[MOT_TIME:([^\]]+)\]\]/i;
-function normaliseMotTime(value){var raw=String(value||'').trim(),special={'tomorrow':'Tomorrow','vic young':'Vic Young'},specialValue=special[raw.toLowerCase()];if(specialValue)return specialValue;var m=raw.match(/^(\d{1,2}):(\d{2})$/);if(!m)return '';var h=Number(m[1]),mins=Number(m[2]);if(h<0||h>23||mins<0||mins>59)return '';return String(h).padStart(2,'0')+':'+String(mins).padStart(2,'0')}
+function normaliseMotTime(value){var raw=String(value||'').trim(),special={'tomorrow':'Tomorrow','vic young':'Vic Young','wash autos':'Wash Autos'},specialValue=special[raw.toLowerCase()];if(specialValue)return specialValue;var m=raw.match(/^(\d{1,2}):(\d{2})$/);if(!m)return '';var h=Number(m[1]),mins=Number(m[2]);if(h<0||h>23||mins<0||mins>59)return '';return String(h).padStart(2,'0')+':'+String(mins).padStart(2,'0')}
 function hasMotJobType(value){return jobTypeValues(value).some(function(type){return normaliseJobTypeKey(type)==='mot'})}
 function motTimeFromJob(j){j=j||{};var direct=normaliseMotTime(j.mot_time);if(direct)return direct;var match=String(j.customer_note||'').match(MOT_TIME_MARKER);return normaliseMotTime(match&&match[1])}
 function setMotTimeOnNote(note,time){var clean=String(note||'').replace(MOT_TIME_MARKER,'').replace(/\n{3,}/g,'\n\n').trim(),value=normaliseMotTime(time);return value?(clean?clean+'\n':'')+'[[MOT_TIME:'+value+']]':clean}
@@ -14076,21 +14076,24 @@ function bindView(){
 }
 function openPlannerItem(id){var j=app.jobs.find(function(x){return x.id===id});if(!j)return;if(j.card_type==='mini_task'||String(j.source||'').indexOf('task:')===0){var taskId=String(j.source||'').indexOf('task:')===0?String(j.source).slice(5):'';var t=taskId&&app.tasks.find(function(x){return x.id===taskId});if(t){openTaskModal(t.id);return}openMiniTaskModal(j);return}openJobModal(id)}
 function openMiniTaskModal(j){var html='<div class="modalCard taskModalCard"><div class="modalHead"><h2>Edit Task</h2><button class="btn" data-close-modal>Close</button></div><div class="modalBody"><div class="formGrid"><div class="field wide"><label>Task</label><input id="mini_task_text" value="'+esc(j.work_required||'Internal task')+'"></div><div class="field"><label>Assigned person</label><select id="mini_task_technician">'+configuredMechanicNames().map(function(m){return '<option '+(m===configuredMechanicChoice(j.technician)?'selected':'')+'>'+esc(m)+'</option>'}).join('')+'</select></div><div class="field"><label>Start time</label><input id="mini_task_time" type="time" value="'+esc(normaliseClock(j.drop_time||'08:00'))+'"></div><div class="field"><label>Duration (minutes)</label><input id="mini_task_duration" type="number" min="15" step="15" value="'+Math.max(15,Math.round(Number(j.estimated_hours||.5)*60))+'"></div><div class="field"><label>Status</label><select id="mini_task_status"><option value="booked" '+(j.status==='booked'?'selected':'')+'>Open</option><option value="in_progress" '+(j.status==='in_progress'?'selected':'')+'>In progress</option><option value="completed" '+(j.status==='completed'?'selected':'')+'>Completed</option></select></div></div></div><div class="modalFoot"><button class="primary" id="saveMiniTask">Save Task</button></div></div>';var modal=document.getElementById('jobModal');modal.innerHTML=html;modal.classList.add('open');modal.setAttribute('aria-hidden','false');modal.querySelector('[data-close-modal]').onclick=closeModals;document.getElementById('saveMiniTask').onclick=async function(){j.work_required=document.getElementById('mini_task_text').value.trim()||'Internal task';j.technician=document.getElementById('mini_task_technician').value;j.drop_time=normaliseClock(document.getElementById('mini_task_time').value);j.estimated_hours=Math.max(.25,Number(document.getElementById('mini_task_duration').value||30)/60);j.status=document.getElementById('mini_task_status').value;j.updated_at=new Date().toISOString();syncTaskFromMiniJob(j);saveLocal();try{await upsertRemote('jobs',j)}catch(e){}closeModals();render()}}
-function bindDrag(el){if(window.matchMedia('(max-width: 768px)').matches){el.removeAttribute('draggable');el.onclick=function(ev){ev.stopPropagation();openPlannerItem(el.dataset.jobId)};return}var dragged=false;bindResize(el);el.ondragstart=function(ev){if(el.classList.contains('resizing')||el.dataset.justResized==='1'){ev.preventDefault();return false}dragged=true;plannerInteractionBusy=true;ev.dataTransfer.setData('text/plain',el.dataset.jobId);ev.dataTransfer.effectAllowed='move';setTimeout(function(){el.classList.add('hidden')},0)};el.ondragend=function(){setTimeout(function(){dragged=false;plannerInteractionBusy=false},300);el.classList.remove('hidden')};el.onclick=function(ev){ev.stopPropagation();if(!dragged&&!el.classList.contains('resizing')&&el.dataset.justResized!=='1')openPlannerItem(el.dataset.jobId)}}
+function bindDrag(el){if(window.matchMedia('(max-width: 768px)').matches){el.removeAttribute('draggable');el.onclick=function(ev){ev.stopPropagation();openPlannerItem(el.dataset.jobId)};return}var dragged=false;bindResize(el);el.ondragstart=function(ev){if(el.classList.contains('resizing')||el.dataset.justResized==='1'){ev.preventDefault();return false}dragged=true;plannerInteractionBusy=true;ev.dataTransfer.setData('text/plain',el.dataset.jobId);ev.dataTransfer.setData('application/x-vecta-drag-offset',String(ev.clientY-el.getBoundingClientRect().top));ev.dataTransfer.effectAllowed='move';setTimeout(function(){el.classList.add('hidden')},0)};el.ondragend=function(){setTimeout(function(){dragged=false;plannerInteractionBusy=false},300);el.classList.remove('hidden')};el.onclick=function(ev){ev.stopPropagation();if(!dragged&&!el.classList.contains('resizing')&&el.dataset.justResized!=='1')openPlannerItem(el.dataset.jobId)}}
 function minutesFromTime(t){var p=String(t||'08:00').split(':');return Number(p[0]||8)*60+Number(p[1]||0)}
 function timeFromMinutes(total){total=Math.max(0,Math.round(total));return String(Math.floor(total/60)).padStart(2,'0')+':'+String(total%60).padStart(2,'0')}
 /* VECTA stacked planner: the clock is a guide; jobs are ordered and packed together.
    A gap is only introduced when recorded mechanic time-off makes the next position unavailable. */
 function plannerLaneActiveJobs(date,tech,excludeId){var wantedLane=plannerTechnicianLane(tech);return (app.jobs||[]).filter(function(x){var st=String(x&&x.status||'').toLowerCase();return x&&st!=='quote'&&String(x.id)!==String(excludeId||'')&&!x.archived&&!isSoftDeletedJob(x)&&!jobCompletionEvidence(x)&&st!=='cancelled'&&st!=='ready_to_invoice'&&!isJobInvoiced(x)&&String(x.booking_date||'')===String(date||'')&&plannerTechnicianLane(x.technician)===wantedLane&&String(x.technician||'')!=='Unallocated'}).sort(function(a,b){var d=clockMinutes(a.drop_time||'08:00')-clockMinutes(b.drop_time||'08:00');return d||String(a.created_at||'').localeCompare(String(b.created_at||''))})}
 function plannerSafeStackStart(job,cursor){var start=Math.max(8*60,Math.round(Number(cursor||8*60)/15)*15),guard=0;while(guard++<80){job.drop_time=timeFromMinutes(start);var conflict=window.vectaTimeOffConflict&&window.vectaTimeOffConflict(job,job.id);if(!conflict)return start;start+=15}return start}
-function plannerCompactLane(date,tech,orderedIds,anchorMinutes){if(!date||!tech||tech==='Unallocated')return [];var jobs=plannerLaneActiveJobs(date,tech),rank={};(orderedIds||[]).forEach(function(id,i){rank[String(id)]=i});if(orderedIds&&orderedIds.length)jobs.sort(function(a,b){var ar=Object.prototype.hasOwnProperty.call(rank,String(a.id))?rank[String(a.id)]:999999,br=Object.prototype.hasOwnProperty.call(rank,String(b.id))?rank[String(b.id)]:999999;return ar-br||clockMinutes(a.drop_time||'08:00')-clockMinutes(b.drop_time||'08:00')});if(!jobs.length)return [];var earliest=Math.min.apply(null,jobs.map(function(x){return clockMinutes(x.drop_time||'08:00')}));var cursor=Math.max(8*60,Number.isFinite(Number(anchorMinutes))?Math.min(earliest,Number(anchorMinutes)):earliest),changed=[];jobs.forEach(function(j){var before=normaliseClock(j.drop_time||'08:00'),start=plannerSafeStackStart(j,cursor),after=timeFromMinutes(start),duration=Math.max(15,roundPlannerMinutesUp(Number(j.estimated_hours||1)*60));j.drop_time=after;if(after!==before){j.updated_at=new Date().toISOString();changed.push(j)}cursor=start+duration});return changed}
+function plannerCompactLane(){return []} /* Explicit positions are retained; legacy callers must not repack a lane. */
+
 function plannerDropOrder(date,tech,excludeId,rawMinutes){var jobs=plannerLaneActiveJobs(date,tech,excludeId),index=jobs.length;for(var i=0;i<jobs.length;i++){var start=clockMinutes(jobs[i].drop_time||'08:00'),dur=Math.max(15,roundPlannerMinutesUp(Number(jobs[i].estimated_hours||1)*60)),mid=start+(dur/2);if(rawMinutes<mid){index=i;break}}return {jobs:jobs,index:index}}
 async function vectaVerifyPlannerJobSaved(j){
   if(!remoteClient||!navigator.onLine||!j||!j.id)return true;
+  if(!plannerChangeIsCurrent(j))return true;
   var expectedDate=j.booking_date?String(j.booking_date).slice(0,10):null,
       expectedTech=String(j.technician||''),
       expectedTime=j.drop_time?normaliseClock(j.drop_time):null;
   for(var attempt=0;attempt<3;attempt++){
+    if(!plannerChangeIsCurrent(j))return true;
     var check=await vectaWithTimeout(remoteClient.from('jobs').select('id,booking_date,technician,drop_time,updated_at').eq('id',j.id).maybeSingle(),8000,'Planner save verification');
     if(check&&!check.error&&check.data){
       var actualDate=check.data.booking_date?String(check.data.booking_date).slice(0,10):null,
@@ -14100,6 +14103,7 @@ async function vectaVerifyPlannerJobSaved(j){
     }
     /* A planner move is an explicit user amendment. Re-apply the three scheduling
        fields directly if an older cloud value won a race with the first write. */
+    if(!plannerChangeIsCurrent(j))return true;
     var stamp=new Date().toISOString(),patch={booking_date:expectedDate,technician:expectedTech,drop_time:expectedTime,updated_at:stamp};
     var retry=await remoteClient.from('jobs').update(patch).eq('id',j.id).select('id');
     if(retry&&retry.error)throw retry.error;
@@ -14107,15 +14111,21 @@ async function vectaVerifyPlannerJobSaved(j){
   }
   throw new Error('The cloud database did not retain the new planner date / technician for '+(j.registration||j.id)+'.');
 }
-async function persistPlannerJobs(jobs){var seen={};for(var i=0;i<(jobs||[]).length;i++){var j=jobs[i];if(!j||seen[j.id])continue;seen[j.id]=1;j.updated_at=j.updated_at||new Date().toISOString();await upsertRemote('jobs',j,{silent:true});await vectaVerifyPlannerJobSaved(j);syncTaskFromMiniJob(j)}}
+async function persistPlannerJobs(jobs){var seen={};for(var i=0;i<(jobs||[]).length;i++){var j=jobs[i];if(!j||seen[j.id]||!plannerChangeIsCurrent(j))continue;seen[j.id]=1;j.updated_at=j.updated_at||new Date().toISOString();await upsertRemote('jobs',j,{silent:true});await vectaVerifyPlannerJobSaved(j);syncTaskFromMiniJob(j)}}
+function plannerChangeIsCurrent(job){
+  if(typeof app==='undefined'||!Array.isArray(app.jobs))return true;
+  var current=app.jobs.find(function(x){return x.id===job.id});
+  return !!current&&String(current.booking_date||'')===String(job.booking_date||'')&&String(current.technician||'')===String(job.technician||'')&&normaliseClock(current.drop_time)===normaliseClock(job.drop_time)&&Number(current.estimated_hours||1)===Number(job.estimated_hours||1)&&String(current.updated_at||'')<=String(job.updated_at||'');
+}
+var plannerSaveQueue=Promise.resolve(),plannerSaveCount=0;
 function persistPlannerJobsInBackground(jobs,label){
   var snapshot=(jobs||[]).filter(Boolean).map(function(j){return Object.assign({},j)});
   if(!snapshot.length){plannerInteractionBusy=false;return}
-  cloudRefreshBusy=true;
-  Promise.resolve().then(async function(){
+  plannerSaveCount++;cloudRefreshBusy=true;
+  plannerSaveQueue=plannerSaveQueue.then(async function(){
     try{await persistPlannerJobs(snapshot)}
-    catch(err){console.warn((label||'Planner change')+' cloud sync incomplete.',err);alert((label||'Planner change')+' was not confirmed by the cloud database. The job has NOT been silently accepted. Please try the move again.\n\n'+(err&&err.message?err.message:err))}
-    finally{cloudRefreshBusy=false;plannerInteractionBusy=false}
+    catch(err){console.warn((label||'Planner change')+' cloud sync incomplete.',err);alert((label||'Planner change')+' was not confirmed by the cloud database. Please retry.\n\n'+(err&&err.message?err.message:err))}
+    finally{plannerSaveCount--;cloudRefreshBusy=plannerSaveCount>0;plannerInteractionBusy=false}
   });
 }
 
@@ -14128,102 +14138,35 @@ function bindResize(el){
     var original={estimated_hours:baseHours,drop_time:baseStart};plannerInteractionBusy=true;el.classList.add('resizing');el.draggable=false;document.body.classList.add('resizingJob');
     try{handle.setPointerCapture(ev.pointerId)}catch(e){}
     function move(e){e.preventDefault();var delta=e.clientY-startY,closingMinutes=17*60;if(edge==='bottom'){var requested=Math.round((baseHours*60+(delta/PLANNER_PX_PER_HOUR)*60)/15)*15,maxToClose=Math.max(15,closingMinutes-baseStartM),mins=Math.max(15,Math.min(maxToClose,requested));j.estimated_hours=mins/60}else{var shift=Math.round(((delta/PLANNER_PX_PER_HOUR)*60)/15)*15;var newStart=Math.max(plannerStartMinutes,Math.min(baseEndM-15,baseStartM+shift));j.drop_time=timeFromMinutes(newStart);j.estimated_hours=(baseEndM-newStart)/60}el.style.top=topFor(j)+'px';el.style.height=heightFor(j)+'px';el.style.setProperty('--task-height',heightFor(j)+'px');var time=el.querySelector('.jobTime');if(time)time.textContent=timeRange(j);var mini=el.querySelector('.miniTaskTime');if(mini)mini.textContent=normaliseClock(j.drop_time)+' · '+Math.round(j.estimated_hours*60)+' min'}
-    async function end(e){if(e)e.preventDefault();handle.removeEventListener('pointermove',move);handle.removeEventListener('pointerup',end);handle.removeEventListener('pointercancel',cancel);document.body.classList.remove('resizingJob');el.classList.remove('resizing');el.draggable=true;el.dataset.justResized='1';setTimeout(function(){delete el.dataset.justResized},250);j.drop_time=normaliseClock(j.drop_time);var absence=window.vectaTimeOffConflict&&window.vectaTimeOffConflict(j,j.id);if(absence){j.estimated_hours=original.estimated_hours;j.drop_time=original.drop_time;plannerInteractionBusy=false;alert('That change would run into recorded time off. The job has been put back where it was.');render();return}j.updated_at=new Date().toISOString();var changed=[j].concat(plannerCompactLane(j.booking_date,j.technician,null,clockMinutes(j.drop_time||'08:00')));saveLocal();plannerInteractionBusy=false;render();persistPlannerJobsInBackground(changed,'Planner resize')}
+    async function end(e){if(e)e.preventDefault();handle.removeEventListener('pointermove',move);handle.removeEventListener('pointerup',end);handle.removeEventListener('pointercancel',cancel);document.body.classList.remove('resizingJob');el.classList.remove('resizing');el.draggable=true;el.dataset.justResized='1';setTimeout(function(){delete el.dataset.justResized},250);j.drop_time=normaliseClock(j.drop_time);var absence=plannerPlacementConflict(j,j.id);if(absence){j.estimated_hours=original.estimated_hours;j.drop_time=original.drop_time;plannerInteractionBusy=false;alert(absence);render();return}j.updated_at=new Date().toISOString();var changed=[j].concat(plannerCompactLane(j.booking_date,j.technician,null,clockMinutes(j.drop_time||'08:00')));saveLocal();plannerInteractionBusy=false;render();persistPlannerJobsInBackground(changed,'Planner resize')}
     function cancel(e){j.estimated_hours=original.estimated_hours;j.drop_time=original.drop_time;end(e)}
     handle.addEventListener('pointermove',move);handle.addEventListener('pointerup',end);handle.addEventListener('pointercancel',cancel);
   }});
 }
+function plannerSnapMinutes(minutes){return Math.max(8*60,Math.round(Number(minutes)/60)*60)}
+function plannerPlacementConflict(job,excludeId){
+  var start=clockMinutes(job.drop_time||'08:00'),end=start+Math.max(15,Number(job.estimated_hours||1)*60);
+  if(end>17*60)return 'That job would finish after 17:00. Choose an earlier hour.';
+  var occupied=mechanicBookingIntervals(job.booking_date,job.technician,excludeId).some(function(x){return start<x.end&&end>x.start});
+  return occupied?'That hour is occupied or unavailable. Choose a free hour; existing jobs will stay in place.':'';
+}
 function bindLane(lane){
-  lane.ondragover=function(ev){
-    ev.preventDefault();
-    var isTask=Array.prototype.indexOf.call(ev.dataTransfer.types||[],'application/x-vecta-task')>-1;
-    ev.dataTransfer.dropEffect=isTask?'copy':'move';
-    lane.classList.add('drop');
-  };
+  lane.ondragover=function(ev){ev.preventDefault();ev.dataTransfer.dropEffect='move';lane.classList.add('drop')};
   lane.ondragleave=function(){lane.classList.remove('drop')};
-  lane.ondrop=async function(ev){
-    ev.preventDefault();
-    lane.classList.remove('drop');
-    var rect=lane.getBoundingClientRect(),
-        y=ev.clientY-rect.top,
-        rawMinutes=Math.max(8*60,Math.round((plannerStartMinutes+(y/PLANNER_PX_PER_HOUR*60))/15)*15),
-        time=timeFromMinutes(rawMinutes);
-
-    var taskId=ev.dataTransfer.getData('application/x-vecta-task');
-    if(taskId){
-      plannerInteractionBusy=false;
-      var t=app.tasks.find(function(x){return x.id===taskId});
-      if(t)createMiniTaskFromDrop(t,lane.dataset.tech,time);
-      return;
-    }
-
-    var id=ev.dataTransfer.getData('text/plain'),
-        j=app.jobs.find(function(x){return x.id===id});
-    if(!j)return;
-
-    var old={technician:j.technician,booking_date:j.booking_date,drop_time:j.drop_time},
-        targetTech=lane.dataset.tech,
-        targetDate=selectedIso();
-
-    /* Dropping directly ON another job in the same mechanic/day swaps the two
-       positions. Their durations stay with their own jobs, then everything below
-       is re-stacked automatically so there are no overlaps or unwanted gaps. */
-    var targetEl=ev.target&&ev.target.closest?ev.target.closest('.job[data-job-id]'):null,
-        targetId=targetEl&&targetEl.dataset?targetEl.dataset.jobId:'',
-        sameLane=String(old.booking_date||'')===String(targetDate)&&String(old.technician||'')===String(targetTech);
-
-    if(sameLane&&targetId&&String(targetId)!==String(j.id)){
-      var targetJob=app.jobs.find(function(x){return String(x.id)===String(targetId)});
-      if(targetJob&&String(targetJob.booking_date||'')===String(targetDate)&&String(targetJob.technician||'')===String(targetTech)){
-        var laneJobs=plannerLaneActiveJobs(targetDate,targetTech),
-            order=laneJobs.map(function(x){return x.id}),
-            fromIndex=order.map(String).indexOf(String(j.id)),
-            toIndex=order.map(String).indexOf(String(targetJob.id));
-
-        if(fromIndex>-1&&toIndex>-1){
-          var tmp=order[fromIndex];
-          order[fromIndex]=order[toIndex];
-          order[toIndex]=tmp;
-
-          var earliest=Math.min.apply(null,laneJobs.map(function(x){return clockMinutes(x.drop_time||'08:00')}));
-          var changed=plannerCompactLane(targetDate,targetTech,order,earliest);
-          j.updated_at=new Date().toISOString();
-          targetJob.updated_at=new Date().toISOString();
-          if(changed.indexOf(j)===-1)changed.push(j);
-          if(changed.indexOf(targetJob)===-1)changed.push(targetJob);
-
-          saveLocal();
-          plannerInteractionBusy=false;
-          render();
-          persistPlannerJobsInBackground(changed,'Planner job swap');
-          return;
-        }
-      }
-    }
-
-    /* Normal drop: insert the job at the chosen point in the ordered stack. */
-    var drop=plannerDropOrder(targetDate,targetTech,j.id,rawMinutes),
-        order=drop.jobs.map(function(x){return x.id});
-    order.splice(drop.index,0,j.id);
-
-    j.technician=targetTech;
-    j.booking_date=targetDate;
-    j.drop_time=time;
-    j.updated_at=new Date().toISOString();
-
-    var changed=[j];
-    if(old.booking_date&&old.technician&&old.technician!=='Unallocated'&&
-       (String(old.booking_date)!==String(targetDate)||String(old.technician)!==String(targetTech))){
-      changed=changed.concat(plannerCompactLane(old.booking_date,old.technician));
-    }
-    changed=changed.concat(plannerCompactLane(targetDate,targetTech,order,rawMinutes));
-
-    saveLocal();
-    plannerInteractionBusy=false;
-    render();
-    persistPlannerJobsInBackground(changed,'Planner job move')
+  lane.ondrop=function(ev){
+    ev.preventDefault();lane.classList.remove('drop');
+    var taskId=ev.dataTransfer.getData('application/x-vecta-task'),id=ev.dataTransfer.getData('text/plain'),j=app.jobs.find(function(x){return x.id===id});
+    var rect=lane.getBoundingClientRect(),offset=Number(ev.dataTransfer.getData('application/x-vecta-drag-offset'))||0;
+    var minutes=plannerSnapMinutes(plannerStartMinutes+((ev.clientY-rect.top-offset)/PLANNER_PX_PER_HOUR)*60),time=timeFromMinutes(minutes);
+    if(taskId){var t=app.tasks.find(function(x){return x.id===taskId});plannerInteractionBusy=false;if(t)createMiniTaskFromDrop(t,lane.dataset.tech,time);return}
+    if(!j){plannerInteractionBusy=false;return}
+    var probe=Object.assign({},j,{technician:lane.dataset.tech,booking_date:selectedIso(),drop_time:time}),conflict=plannerPlacementConflict(probe,j.id);
+    if(conflict){plannerInteractionBusy=false;alert(conflict);return}
+    Object.assign(j,probe,{updated_at:new Date().toISOString()});var changed=[j];
+    saveLocal();render();persistPlannerJobsInBackground(changed,'Planner job move');
   };
 }
+
 function bindUnallocatedDrop(panel){panel.ondragover=function(ev){var types=Array.from(ev.dataTransfer.types||[]);if(types.indexOf('text/plain')===-1)return;ev.preventDefault();ev.dataTransfer.dropEffect='move';panel.classList.add('unallocatedDropActive')};panel.ondragleave=function(ev){if(!panel.contains(ev.relatedTarget))panel.classList.remove('unallocatedDropActive')};panel.ondrop=function(ev){ev.preventDefault();panel.classList.remove('unallocatedDropActive');var id=ev.dataTransfer.getData('text/plain');var j=app.jobs.find(function(x){return x.id===id});if(!j)return;if(j.card_type==='mini_task'||String(j.source||'').indexOf('task:')===0){plannerInteractionBusy=false;alert('Tasks cannot be moved into Unallocated Jobs.');return}var old={technician:j.technician,ramp:j.ramp,status:j.status,booking_date:j.booking_date};j.technician='Unallocated';j.ramp='Unallocated';j.booking_date=null;j.status=j.status||'booked';j.updated_at=new Date().toISOString();var shifted=plannerCompactLane(old.booking_date,old.technician),changed=[j].concat(shifted);saveLocal();plannerInteractionBusy=false;render();persistPlannerJobsInBackground(changed,'Move to Unallocated')}}
 function bindTaskReturnDrop(panel){panel.ondragover=function(ev){var types=Array.from(ev.dataTransfer.types||[]);if(types.indexOf('text/plain')===-1)return;ev.preventDefault();ev.stopPropagation();ev.dataTransfer.dropEffect='move';panel.classList.add('taskReturnActive')};panel.ondragleave=function(ev){if(!panel.contains(ev.relatedTarget))panel.classList.remove('taskReturnActive')};panel.ondrop=async function(ev){ev.preventDefault();ev.stopPropagation();panel.classList.remove('taskReturnActive');var id=ev.dataTransfer.getData('text/plain'),j=app.jobs.find(function(x){return x.id===id});if(!j||(j.card_type!=='mini_task'&&String(j.source||'').indexOf('task:')!==0)){plannerInteractionBusy=false;return}var taskId=String(j.source||'').indexOf('task:')===0?String(j.source).slice(5):'',t=taskId&&app.tasks.find(function(x){return x.id===taskId});if(!t){plannerInteractionBusy=false;alert('The original task could not be found.');return}var m=taskMeta(t);m.allocated=false;m.allocated_to='';m.allocated_time='';m.mini_job_id='';t.done=false;t.priority=packTaskMeta(m);app.jobs=app.jobs.filter(function(x){return x.id!==j.id});saveLocal();cloudRefreshBusy=true;try{await deleteRemote('jobs',j.id);await upsertRemote('tasks',t,{silent:true})}catch(err){alert('The task was returned on this screen, but the cloud update could not be confirmed. Please refresh and try again.')}finally{cloudRefreshBusy=false;plannerInteractionBusy=false;render()}}}
 
@@ -14424,8 +14367,8 @@ function installNewJobAvailabilityCalendar(allowHistoricalDates,fieldId){
   function calendarHtml(inlineMode){
     var y=monthDate.getFullYear(),m=monthDate.getMonth(),first=new Date(y,m,1,12),lastDay=new Date(y,m+1,0,12).getDate(),offset=(first.getDay()+6)%7,today=todayIso();
     // The inline picker begins at the selected day and fills five weeks forward.
-    var rolling=inlineMode&&!dashboardMode,startDay=1;
-    if(rolling){var selected=new Date(chosen+'T12:00:00');if(selected.getFullYear()===y&&selected.getMonth()===m)startDay=selected.getDate();first=new Date(y,m,startDay,12);offset=(first.getDay()+6)%7;lastDay=startDay+34-offset;}
+    var rolling=inlineMode&&!dashboardMode&&chosen.slice(0,7)===isoDate(y,m,1).slice(0,7),startDay=1;
+    if(rolling){var selected=new Date(chosen+'T12:00:00');if(selected.getFullYear()===y&&selected.getMonth()===m)startDay=selected.getDate();first=new Date(y,m,startDay,12);offset=(first.getDay()+6)%7;lastDay=Math.max(new Date(y,m+1,0,12).getDate(),startDay+34-offset);}
     var html='<div class="v243MonthHead"><button type="button" class="btn small" data-v243-prev-month>‹</button><strong>'+esc(monthTitle(monthDate))+'</strong><button type="button" class="btn small" data-v243-next-month>›</button></div>'+
       '<div class="v243Weekdays"><span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span><span>Sat</span><span>Sun</span></div><div class="v243MonthGrid">';
     for(var blank=0;blank<offset;blank++)html+='<span class="v243DayBlank"></span>';
@@ -14474,6 +14417,7 @@ function installNewJobAvailabilityCalendar(allowHistoricalDates,fieldId){
       preview.innerHTML='<div class="bookingMonthPreview"><strong class="bookingMonthHeading">Choose booking date</strong>'+calendarHtml(true)+'</div>'+(plannerRevealed?'<div class="bookingInlinePlanner" aria-label="Allocated work for selected booking date">'+plannerHtml(chosen,true)+'</div>':'');
     }
     preview.onclick=function(ev){
+      ev.stopPropagation();
       if(ev.target.closest('[data-hide-day-planner]')){plannerRevealed=false;renderPreview();return}
       if(ev.target.closest('[data-v243-prev-month]')){monthDate=new Date(monthDate.getFullYear(),monthDate.getMonth()-1,1,12);renderPreview();return}
       if(ev.target.closest('[data-v243-next-month]')){monthDate=new Date(monthDate.getFullYear(),monthDate.getMonth()+1,1,12);renderPreview();return}
@@ -14489,6 +14433,7 @@ function installNewJobAvailabilityCalendar(allowHistoricalDates,fieldId){
   field.onkeydown=function(ev){if(ev.key==='Enter'||ev.key===' '){ev.preventDefault();showDateChooser()}};
 
   modal.onclick=function(ev){
+    ev.stopPropagation();
     if(ev.target.closest('[data-v243-close-calendar]')){modal.classList.remove('open');modal.setAttribute('aria-hidden','true');return}
     if(ev.target.closest('[data-v243-prev-month]')){monthDate=new Date(monthDate.getFullYear(),monthDate.getMonth()-1,1,12);render();return}
     if(ev.target.closest('[data-v243-next-month]')){monthDate=new Date(monthDate.getFullYear(),monthDate.getMonth()+1,1,12);render();return}
@@ -14704,7 +14649,7 @@ inp('Booking date','booking_date',j.booking_date||selectedIso(),'date')+halfHour
 jobPartsEditorHtml(j)+privatePricingSectionHtml(j)+
 '</div></div><div class="modalFoot"><button type="button" class="btn" id="cancelJob">Cancel</button>'+(id&&!isHistoricalImport&&(jobCompletionEvidence(j)||['ready_to_invoice','work_complete'].indexOf(String(j.status||'').toLowerCase())>=0)?'<button type="button" class="btn" id="undoJobCompletion">Reset to booked</button>':'')+(id&&!isHistoricalImport?'<button class="btn danger" id="deleteJob">'+(String(j.status||'').toLowerCase()==='quote'?'Delete Quote':'Delete Job')+'</button>':'')+(id&&String(j.status||'').toLowerCase()==='work_complete'?'<button class="btn v280ReturnMechanic" id="returnToMechanic">↩ Return to mechanic</button>':'')+(!isHistoricalImport&&j.status!=='quote'&&!jobCompletionEvidence(j)?'<button type="button" class="btn green" id="markComplete">Mark as complete</button>':'')+(showService&&j.status!=='quote'?'<button class="btn dark" id="openServiceSheet">'+paperworkLabel+'</button>':'')+(j.status==='quote'?'':id&&jobCompletionEvidence(j)?'<button class="btn dark" id="createInvoiceFromJob">Open Invoice</button>':id&&j.status==='ready_to_invoice'?'<button class="btn dark" id="createInvoiceFromJob">Create Invoice</button>':'<button class="btn green" id="markReady">Ready to invoice</button>')+(j.status==='quote'?'<button class="primary" id="convertQuote">Create Job</button><button class="btn" id="saveJob">Save Quote</button>':id?'<button class="primary" id="saveJob">Save & Close</button>':'<button class="btn" id="createQuote">Create Quote</button><button class="primary" id="saveJob">Create Job</button>')+'</div></div>';var m=document.getElementById('jobModal');m.innerHTML=html;var undoButton=m.querySelector('#undoJobCompletion');if(undoButton)undoButton.onclick=function(){undoJobCompletion(id)};if(id&&jobCompletionEvidence(j)&&nmukCompletionEmail(j)){var emailButton=document.createElement('button');emailButton.type='button';emailButton.className='btn';emailButton.textContent='Completion email';emailButton.onclick=function(){openNmukCompletionDraft(id)};m.querySelector('.modalFoot').appendChild(emailButton);}m.classList.add('open');m.setAttribute('aria-hidden','false');if(!isHistoricalImport)installNewJobAvailabilityCalendar(true);bindPrivatePricing();refreshServicePricingAdvisor();if(isHistoricalImport){m.querySelectorAll('input,textarea,select').forEach(function(el){el.disabled=true});var saveBtn=m.querySelector('#saveJob'),readyBtn=m.querySelector('#markReady'),completeBtn=m.querySelector('#markComplete');if(saveBtn)saveBtn.style.display='none';if(readyBtn)readyBtn.style.display='none';if(completeBtn)completeBtn.style.display='none';}var cancelJobButton=m.querySelector('#cancelJob');if(cancelJobButton)cancelJobButton.onclick=function(){closeModals()};var jobCloseButton=m.querySelector('[data-close-modal]');if(jobCloseButton)jobCloseButton.onclick=function(){closeModals()};m.querySelectorAll('[data-template]').forEach(function(b){b.onclick=function(){applyTemplate(b.dataset.template);if(!editingJobId){var jt=document.getElementById('job_job_type');applyNewBookingPartsStatusPreset(jt?jt.value:'general')}}});m.querySelectorAll('[data-website-date]').forEach(function(b){b.onclick=function(){var dateField=document.getElementById('job_booking_date');if(dateField){dateField.value=b.dataset.websiteDate;m.querySelectorAll('[data-website-date]').forEach(function(x){x.classList.toggle('selected',x===b)})}}});m.querySelectorAll('[data-website-service-choice]').forEach(function(b){b.onclick=function(){resolveWebsiteServiceChoice(b.dataset.websiteServiceChoice)}});updateMotTimeField(false);updateJobVehicleDuePanel(j.registration);var workInput=document.getElementById('job_work_required');if(workInput)workInput.dataset.autoTemplateText=templateWorkForTypes(selectedTypes);var saveJobButton=document.getElementById('saveJob');if(saveJobButton)saveJobButton.onclick=function(){saveJob(j.id)};var createQuoteButton=document.getElementById('createQuote');if(createQuoteButton)createQuoteButton.onclick=function(){saveQuote(j.id)};var convertQuoteButton=document.getElementById('convertQuote');if(convertQuoteButton)convertQuoteButton.onclick=function(){convertQuoteToJob(j.id)};var mobileSaveButton=document.getElementById('saveJobMobile');if(mobileSaveButton)mobileSaveButton.onclick=function(){if(saveJobButton&&!saveJobButton.disabled)saveJobButton.click()};var deleteButton=document.getElementById('deleteJob');if(deleteButton)deleteButton.onclick=function(){deleteJobCompletely(j.id)};var returnToMechanicButton=document.getElementById('returnToMechanic');if(returnToMechanicButton)returnToMechanicButton.onclick=async function(){var live=(app.jobs||[]).find(function(x){return String(x.id)===String(j.id)});if(!live)return;var draft=gatherJob(j.id);Object.keys(draft||{}).forEach(function(k){live[k]=draft[k]});live.status='booked';live.archived=false;live.completed_at='';live.updated_at=new Date().toISOString();try{await upsertRemote('jobs',live,{silent:true});saveLocal();if(typeof closeModals==='function')closeModals();if(typeof render==='function')render();}catch(e){console.error('Could not return job to mechanic',e);alert('Could not return this job to the mechanic. Please try again.')}};var completeButton=document.getElementById('markComplete');if(completeButton)completeButton.onclick=function(){var draft=gatherJob(j.id);if(!confirmServiceBookStampedBeforeComplete(draft))return;var cats=fleetPlannerJobCategories(draft),motAnswer;/* Only combined Service + MOT jobs need the extra question. */if(cats&&cats.service&&cats.mot){motAnswer=confirm('Has the MOT been completed?\n\nSelect OK for Yes.\nSelect Cancel for No — only the service will be marked complete and the MOT will remain outstanding.');window.__vectaMotCompletionDecision=window.__vectaMotCompletionDecision||{};window.__vectaMotCompletionDecision[String(j.id)]=motAnswer;}var status=document.getElementById('job_status');if(status)status.value='completed';completeNmukJobAndNotify(j.id)};var readyButton=document.getElementById('markReady');if(readyButton)readyButton.onclick=async function(){if(!await vectaCheckInvoiceActionAgainstCloud(id))return;var draft=gatherJob(j.id);if(draft.amount_quoted===null){alert('Enter a price before marking this job Ready to Invoice.');var priceInput=document.querySelector('#privatePricingRows .privatePriceAmount');if(priceInput){priceInput.classList.add('requiredMissing');priceInput.focus();priceInput.scrollIntoView({behavior:'smooth',block:'center'});}return;}var status=document.getElementById('job_status');if(status)status.value='ready_to_invoice';var savedOk=await saveJob(j.id);if(savedOk!==true)return;var savedJob=app.jobs.find(function(x){return String(x.id)===String(j.id)});if(savedJob&&savedJob.status==='ready_to_invoice'){if(typeof showTowbarRemovalReminder==='function')showTowbarRemovalReminder(savedJob);closeModals();openInvoiceForJob(savedJob.id)}};var createInvoiceButton=document.getElementById('createInvoiceFromJob');if(createInvoiceButton)createInvoiceButton.onclick=async function(){if(!await vectaCheckInvoiceActionAgainstCloud(j.id))return;closeModals();openInvoiceForJob(j.id)};var serviceButton=document.getElementById('openServiceSheet');if(serviceButton)serviceButton.onclick=async function(){var mileageField=document.getElementById('job_current_mileage');if(mileageField&&String(mileageField.value||'').trim()&&await saveJob(j.id)!==true)return;printService(j.id)};var printJobButton=document.getElementById('printJobCard');if(printJobButton)printJobButton.onclick=function(){printJob(gatherJob(j.id));};var jobEmailInput=document.getElementById('job_customer_email'),jobEmailLink=document.getElementById('job_customer_email_link');function syncJobEmailLink(){if(!jobEmailLink)return;var email=String(jobEmailInput&&jobEmailInput.value||'').trim(),address=emailAddressList(email)[0]||email,regInput=document.getElementById('job_registration'),vehicleInput=document.getElementById('job_vehicle');jobEmailLink.href=email?serviceReminderMailto(address,regInput&&regInput.value||j.registration,vehicleInput&&vehicleInput.value||j.vehicle):'#';jobEmailLink.classList.toggle('disabled',!email)}if(jobEmailInput){jobEmailInput.addEventListener('input',syncJobEmailLink);jobEmailInput.addEventListener('change',syncJobEmailLink)}syncJobEmailLink();var customerSelect=document.getElementById('job_customer_account');function updateCustomerFields(focusName){var nmukField=document.getElementById('nmukVehicleTypeField'),type=document.getElementById('job_nmuk_vehicle_type'),nameField=document.getElementById('jobCustomerNameField'),nameInput=document.getElementById('job_customer_name'),phoneField=document.getElementById('jobCustomerPhoneField'),emailField=document.getElementById('jobCustomerEmailField'),phoneInput=document.getElementById('job_customer_phone'),emailInput=document.getElementById('job_customer_email'),rawAccount=customerSelect?String(customerSelect.value||'').trim():'',accountKey=rawAccount.toUpperCase(),isNmuk=accountKey==='NMUK';if(nmukField){nmukField.classList.toggle('nmukTypeHidden',!isNmuk);nmukField.hidden=!isNmuk}if(isNmuk&&type&&!type.value){var regEl=document.getElementById('job_registration');type.value=fleetNmukTypeFromVehicle(regEl&&regEl.value||'')}var nmukTypeValue=isNmuk&&type?String(type.value||'').toUpperCase():'',isMvos=nmukTypeValue==='MVOS',isPool=isNmuk&&(nmukTypeValue==='POOL'||nmukTypeValue==='POOL CAR TAX'),isInternal=isNmuk&&nmukTypeValue==='INTERNAL',isServiceEmailVehicle=isPool||isInternal,isStaff=accountKey==='STAFF',isContractor=fleetIsContractorIncome(rawAccount),isGenericContractor=accountKey==='CONTRACTOR',showName=isStaff||isGenericContractor||isMvos,taxField=document.getElementById('jobTaxReferenceField'),taxInput=document.getElementById('job_tax_reference'),serviceEmailButton=document.getElementById('job_pool_service_email'),regValue=((document.getElementById('job_registration')||{}).value||''),fleetContact=fleetVehicleForRegistration(regValue);if(nameField){nameField.classList.toggle('customerNameHidden',!showName);nameField.hidden=!showName;nameField.setAttribute('aria-hidden',showName?'false':'true')}if(phoneField){phoneField.classList.toggle('customerNameHidden',isNmuk);phoneField.hidden=isNmuk}if(emailField){emailField.classList.toggle('customerNameHidden',isNmuk&&!isServiceEmailVehicle);emailField.hidden=isNmuk&&!isServiceEmailVehicle}if(taxField){taxField.classList.toggle('customerNameHidden',!isPool);taxField.hidden=!isPool}if(isServiceEmailVehicle&&fleetContact){if(emailInput&&fleetContact.contactEmail)emailInput.value=fleetContact.contactEmail;if(isPool&&taxInput)taxInput.value=fleetContact.taxReference||''}if(serviceEmailButton){serviceEmailButton.hidden=!isServiceEmailVehicle;serviceEmailButton.onclick=openPoolServiceEmailFromJob}if(isNmuk){if(phoneInput)phoneInput.value='';if(!isServiceEmailVehicle&&emailInput)emailInput.value='';if(!isMvos&&nameInput)nameInput.value=''}var nameLabel=document.getElementById('jobCustomerNameLabel');if(nameLabel)nameLabel.innerHTML=(isGenericContractor||isMvos)?'Name <b class="requiredMark">*</b>':'Name <small class="optionalFieldLabel">(optional)</small>';if(showName&&nameInput&&['STAFF','CONTRACTOR','NMUK'].indexOf(String(nameInput.value||'').trim().toUpperCase())>=0)nameInput.value='';if(showName&&focusName&&nameInput)setTimeout(function(){try{nameInput.focus()}catch(e){}},0);var vatMode=document.getElementById('job_vat_mode');if(vatMode&&String(vatMode.value||'')!=='no_vat')vatMode.value=isStaff?'inc_vat':'ex_vat';syncOfficeJobActions(rawAccount)}if(customerSelect){var handleCustomerChange=function(){customerSelect.classList.remove('requiredMissing');updateCustomerFields(true)};customerSelect.onchange=handleCustomerChange;customerSelect.addEventListener('input',handleCustomerChange)};var nmukTypeSelect=document.getElementById('job_nmuk_vehicle_type');function applyNmukTypeWorkflow(){if(!nmukTypeSelect)return;var isTax=String(nmukTypeSelect.value||'').toUpperCase()==='POOL CAR TAX',jobType=document.getElementById('job_job_type'),work=document.getElementById('job_work_required'),tech=document.getElementById('job_technician'),ramp=document.getElementById('job_ramp'),hours=document.getElementById('job_estimated_hours');if(isTax){if(jobType)jobType.value='Vehicle Tax';if(work&&(!String(work.value||'').trim()||String(work.dataset.autoTemplateText||'')===String(work.value||'')))work.value='Vehicle Tax';if(tech)tech.value='Unallocated';if(ramp)ramp.value='';if(hours)hours.value='0';syncWorkRequiredToPrivatePricing()}}if(nmukTypeSelect)nmukTypeSelect.onchange=function(){this.classList.remove('requiredMissing');updateCustomerFields(this.value==='MVOS');applyNmukTypeWorkflow()};updateCustomerFields(false);applyNmukTypeWorkflow();setupExistingCustomerPicker();var reg=document.getElementById('job_registration');if(reg){var autofillTimer=null;dvsaLastAutomaticRegistration=id?normReg(j.registration||''):'';reg.oninput=function(){var typed=cleanStoredRegistration(reg.value),resolved=storedRegistrationValue(typed);reg.value=resolved||typed;clearTimeout(autofillTimer);autofillTimer=setTimeout(function(){applyStoredRegistrationToInput(reg);autofillKnownRegistration(reg.value);updateJobVehicleDuePanel(reg.value);updatePreviousVehicleWorkPanel(reg.value,id)},220);scheduleAutomaticDvsaLookup(reg.value,650)};reg.onchange=function(){applyStoredRegistrationToInput(reg);autofillKnownRegistration(reg.value);updateJobVehicleDuePanel(reg.value);updatePreviousVehicleWorkPanel(reg.value,id);var a=document.getElementById('job_customer_account'),known=fleetIncomeCustomerFromVehicle(reg.value);if(a&&known&&!a.value)a.value=known;updateCustomerFields(false);scheduleAutomaticDvsaLookup(reg.value,80)};reg.onblur=function(){applyStoredRegistrationToInput(reg);autofillKnownRegistration(reg.value);updateJobVehicleDuePanel(reg.value);updatePreviousVehicleWorkPanel(reg.value,id);var a=document.getElementById('job_customer_account'),known=fleetIncomeCustomerFromVehicle(reg.value);if(a&&known&&!a.value)a.value=known;updateCustomerFields(false);scheduleAutomaticDvsaLookup(reg.value,80)}}var noVehicleToggle=document.getElementById('job_no_vehicle');function applyNoVehicleState(){var active=!!(noVehicleToggle&&noVehicleToggle.checked),vehicleEl=document.getElementById('job_vehicle'),mileageEl=document.getElementById('job_mileage'),plateWrap=reg&&reg.closest('.field');if(reg){reg.disabled=active;if(active)reg.value=''}if(vehicleEl){vehicleEl.disabled=active;if(active)vehicleEl.value='No Vehicle';else if(vehicleEl.value==='No Vehicle')vehicleEl.value=''}if(mileageEl){mileageEl.disabled=active;if(active)mileageEl.value=''}if(plateWrap)plateWrap.classList.toggle('noVehicleActive',active);if(active)updateJobVehicleDuePanel('')}if(noVehicleToggle)noVehicleToggle.onchange=applyNoVehicleState;applyNoVehicleState();if(window.initHaynesJobTools)window.initHaynesJobTools(m);if(!id&&j.registration&&!j.no_vehicle){autofillKnownRegistration(j.registration);updateJobVehicleDuePanel(j.registration);if(!j.lookup_local_only)scheduleAutomaticDvsaLookup(j.registration,80)}installDashboardJobActions(id);if(window.VectaMonthlyPool)window.VectaMonthlyPool.mount(j);}
 function autofillKnownRegistration(regValue){var found=knownRegistrationDetails(regValue);if(!found)return false;var reg=document.getElementById('job_registration');if(reg&&found.registration)reg.value=found.registration;[['vehicle',found.vehicle],['customer_id',found.customer_id],['customer_name',found.customer_name],['customer_phone',found.customer_phone],['customer_email',found.customer_email],['mileage',found.mileage],['nmuk_vehicle_type',found.nmuk_vehicle_type]].forEach(function(pair){var el=document.getElementById('job_'+pair[0]);if(el&&pair[1]!==null&&pair[1]!==undefined&&String(pair[1]).trim()!=='')el.value=pair[1]});var account=document.getElementById('job_customer_account');if(account&&found.customer_account){var wanted=String(found.customer_account||'').trim(),options=Array.from(account.options||[]),exact=options.find(function(o){return String(o.value||'').toUpperCase()===wanted.toUpperCase()});if(exact)account.value=exact.value;else if(wanted.toUpperCase()==='STAFF')account.value='Staff';else if(wanted.toUpperCase()==='NMUK')account.value='NMUK';else if(wanted.toUpperCase()==='CONTRACTOR'||fleetIsContractorIncome(wanted))account.value='CONTRACTOR';account.dispatchEvent(new Event('change',{bubbles:true}))}var email=document.getElementById('job_customer_email');if(email)email.dispatchEvent(new Event('change',{bubbles:true}));return true}
-function halfHourMotTimeOptions(val){var current=normaliseMotTime(val),times=[];for(var mins=9*60;mins<=16*60;mins+=30){var h=String(Math.floor(mins/60)).padStart(2,'0'),m=String(mins%60).padStart(2,'0');times.push(h+':'+m)}if(current&&times.indexOf(current)<0&&current!=='Tomorrow'&&current!=='Vic Young'){var total=clockMinutes(current);if(Number.isFinite(total)){var rounded=Math.round(total/30)*30%(24*60),rh=String(Math.floor(rounded/60)).padStart(2,'0'),rm=String(rounded%60).padStart(2,'0');current=rh+':'+rm}else current=''}var choices=times.concat(['Tomorrow','Vic Young']),opts='<option value=""'+(!current?' selected':'')+'>Select time...</option>'+choices.map(function(t){return '<option value="'+t+'"'+(t===current?' selected':'')+'>'+t+'</option>'}).join('');return '<select id="job_mot_time">'+opts+'</select>'}
+function halfHourMotTimeOptions(val){var current=normaliseMotTime(val),times=[];for(var mins=9*60;mins<=16*60;mins+=30){var h=String(Math.floor(mins/60)).padStart(2,'0'),m=String(mins%60).padStart(2,'0');times.push(h+':'+m)}if(current&&times.indexOf(current)<0&&current!=='Tomorrow'&&current!=='Vic Young'&&current!=='Wash Autos'){var total=clockMinutes(current);if(Number.isFinite(total)){var rounded=Math.round(total/30)*30%(24*60),rh=String(Math.floor(rounded/60)).padStart(2,'0'),rm=String(rounded%60).padStart(2,'0');current=rh+':'+rm}else current=''}var choices=times.concat(['Tomorrow','Vic Young','Wash Autos']),opts='<option value=""'+(!current?' selected':'')+'>Select time...</option>'+choices.map(function(t){return '<option value="'+t+'"'+(t===current?' selected':'')+'>'+t+'</option>'}).join('');return '<select id="job_mot_time">'+opts+'</select>'}
 function halfHourTimeSelect(label,key,val){var current=String(val||'08:00').slice(0,5),times=[];for(var mins=7*60;mins<=15*60;mins+=30){var h=String(Math.floor(mins/60)).padStart(2,'0'),m=String(mins%60).padStart(2,'0');times.push(h+':'+m)}if(current<'07:00'||current>'15:00')current='08:00';if(times.indexOf(current)<0)times.push(current);times.sort();var opts=times.map(function(t){return '<option value="'+t+'"'+(t===current?' selected':'')+'>'+t+'</option>'}).join('');return '<div class="field"><label>'+label+'</label><select id="job_'+key+'">'+opts+'</select></div>'}
 function inp(label,key,val,type,cls){if(cls==='plateField'){return '<div class="field plateFieldWrap"><label>'+label+'</label><div class="plateInputWrap"><span>GB</span><input class="plateField" id="job_'+key+'" type="'+(type||'text')+'" value="'+esc(val||'')+'"></div></div>'}var attrs=key==='drop_time'?' step="1800"':key==='estimated_hours'?' min="0.5" step="0.5"':'';return '<div class="field"><label>'+label+'</label><input '+(cls?'class="'+cls+'"':'')+' id="job_'+key+'" type="'+(type||'text')+'"'+attrs+' value="'+esc(val==null?'':val)+'"></div>'}
 function select(label,key,val,opts){var blankLabel=key==='ramp'?'Select ramp...':key==='booking_source'?'Select booking source...':key==='customer_account'?'Select customer...':'Select...';return '<div class="field"><label>'+label+'</label><select id="job_'+key+'">'+opts.map(function(o){return '<option value="'+esc(o)+'" '+(String(o)===String(val)?'selected':'')+'>'+esc(o||blankLabel)+'</option>'}).join('')+'</select></div>'}
@@ -14988,25 +14933,8 @@ function findNextMechanicSlot(job,excludeId){
 }
 
 
-async function repairExistingPlannerOverlaps(options){
-  options=options||{};
-  var changed=[],changedIds={};
-  var active=(app.jobs||[]).filter(function(j){return j&&!j.archived&&String(j.status||'').toLowerCase()!=='completed'&&String(j.status||'').toLowerCase()!=='cancelled'&&String(j.status||'').toLowerCase()!=='deleted'&&j.booking_date&&j.technician&&j.technician!=='Unallocated'}).sort(function(a,b){
-    var ak=String(a.booking_date||'')+'|'+String(a.technician||'')+'|'+String(normaliseClock(a.drop_time||'08:00'))+'|'+String(a.created_at||'');
-    var bk=String(b.booking_date||'')+'|'+String(b.technician||'')+'|'+String(normaliseClock(b.drop_time||'08:00'))+'|'+String(b.created_at||'');
-    return ak.localeCompare(bk);
-  });
-  var cursors={};
-  for(var i=0;i<active.length;i++){var j=active[i],key=String(j.booking_date)+'|'+String(plannerTechnicianLane(j.technician)),requested=roundPlannerMinutesUp(clockMinutes(j.drop_time||'08:00')),start=Math.max(requested,cursors[key]||8*60),duration=Math.max(15,roundPlannerMinutesUp(Number(j.estimated_hours||1)*60));if(start!==requested){j.drop_time=timeFromMinutes(start);j.updated_at=new Date().toISOString();if(!changedIds[j.id]){changedIds[j.id]=true;changed.push(j)}}cursors[key]=start+duration}
-  if(changed.length){
-    saveLocal();
-    if(options.persistRemote&&remoteClient){
-      cloudRefreshBusy=true;
-      try{for(var c=0;c<changed.length;c++)await upsertRemote('jobs',changed[c],{silent:true});}catch(e){console.warn('Planner overlap repair could not fully sync',e)}finally{cloudRefreshBusy=false;}
-    }
-  }
-  return changed.length;
-}
+async function repairExistingPlannerOverlaps(){return 0} /* Cloud refresh is read-only with respect to planner positions. */
+
 function shouldAutoAllocateJobSlot(existing,job){
   if(!job||!job.technician||job.technician==='Unallocated'||!job.booking_date)return false;
   if(!existing)return true;
@@ -15650,7 +15578,7 @@ async function promptInvoiceCustomerNotification(inv,messageWindow){
   if(!modal.classList.contains('open')||modal.firstElementChild!==pending){closeInvoiceMessageWindow(messageWindow);return false;}
   if(messageWindow&&notice.preferredUrl){try{if(!messageWindow.closed)messageWindow.location.replace(notice.preferredUrl)}catch(e){closeInvoiceMessageWindow(messageWindow)}}else closeInvoiceMessageWindow(messageWindow);
   modal.innerHTML='<div class="modalCard"><div class="modalHead"><h2>Invoice saved · Notify customer</h2><button class="btn" data-close-notice>Close</button></div><div class="modalBody"><p style="white-space:pre-wrap;overflow-wrap:anywhere">'+esc(notice.body)+'</p>'+(!notice.whatsapp&&!notice.email?'<p>No suitable customer contact details are saved. Update the job, then use Notify Customer on the invoice.</p>':(!notice.preferredUrl?'<p>Your preferred contact method is unavailable. Choose an available method below or update the customer contact details.</p>':'<p>Your message is ready in '+(notice.channel==='email'?'email':'WhatsApp')+'. If it did not open, use the button below, then review and send.</p>'))+'</div><div class="modalFoot">'+(notice.whatsapp?'<a class="primary" href="'+esc(notice.whatsapp)+'" target="_blank" rel="noopener noreferrer">Open WhatsApp</a>':'')+(notice.email?'<a class="btn" href="'+esc(notice.email)+'">Open Email</a>':'')+'<button class="btn" data-close-notice>Later</button></div></div>';
-  modal.querySelectorAll('[data-close-notice]').forEach(function(b){b.onclick=closeModals});return true;
+  modal.querySelectorAll('[data-close-notice]').forEach(function(b){b.onclick=closeModals});modal.querySelectorAll('a').forEach(function(a){a.addEventListener('click',function(){closeModals();financialSection='invoiceList';view='invoices';render()})});return true;
 }
 var invoiceNotificationSaves={};
 async function saveInvoiceAndNotify(id){
@@ -15662,7 +15590,7 @@ async function saveInvoiceAndNotify(id){
     messageWindow=reserveInvoiceMessageWindow(notice);
     var savedOk=await saveInvoice(id);if(savedOk!==true){closeInvoiceMessageWindow(messageWindow);return false;}
     var saved=(app.invoices||[]).find(function(x){return String(x.id)===String(id)});
-    if(saved)await promptInvoiceCustomerNotification(saved,messageWindow);else closeInvoiceMessageWindow(messageWindow);
+    if(saved){financialSection='invoiceList';view='invoices';render();await promptInvoiceCustomerNotification(saved,messageWindow);}else closeInvoiceMessageWindow(messageWindow);
     return true;
   }catch(error){closeInvoiceMessageWindow(messageWindow);console.error('Invoice customer message failed',error);return false}
   finally{delete invoiceNotificationSaves[String(id)]}
@@ -17908,21 +17836,21 @@ try{var foot=document.querySelector('.sideFoot small');if(foot)foot.textContent=
  .top:has(.plannerHeaderActions) .plannerGlobalSearchWrap{width:60%!important;justify-self:start}
  .top .dateCtl{width:50%!important;min-width:min(100%,170px)!important;justify-self:center;box-sizing:border-box;grid-template-columns:28px minmax(0,1fr) 28px!important;gap:4px!important}
  .top .dateCtl button{width:28px!important;min-width:28px!important;height:36px!important}
- .top #dashboardDayName{font-size:18px!important;white-space:normal!important;overflow-wrap:normal!important}
+ .top #dashboardDayName{font-size:18px!important;white-space:nowrap!important;overflow-wrap:normal!important}
 }
 @media screen and (max-width:900px){
  .top .haynesDashboardLookup{height:66px!important;min-height:66px!important}
  .top .haynesDashboardLookup input{font-size:34px!important}
  .top .dateCtl{width:100%!important;min-width:0!important;grid-template-columns:24px minmax(0,1fr) 24px!important;gap:2px!important}
  .top .dateCtl button{width:24px!important;min-width:24px!important}
- .top #dashboardDayName{font-size:16px!important}
+ .top #dashboardDayName{font-size:clamp(12px,3.3vw,16px)!important}
 }
 </style>
 
 <style id="planner-header-compact-actions">
 /* Keep booking actions beside search, with content-sized controls and small gaps. */
 @media screen and (min-width:901px){
- .top:has(.plannerHeaderActions){grid-template-columns:260px minmax(150px,200px) 214px 90px 210px max-content!important;grid-template-areas:"brand brand brand brand brand brand" "lookup search actions calendar date booked" "navigation navigation navigation navigation navigation navigation"!important;justify-content:start!important;gap:6px!important;padding:10px 14px 0!important}
+ .top:has(.plannerHeaderActions){grid-template-columns:260px minmax(150px,200px) 214px 90px 254px max-content!important;grid-template-areas:"brand brand brand brand brand brand" "lookup search actions calendar date booked" "navigation navigation navigation navigation navigation navigation"!important;justify-content:start!important;gap:6px!important;padding:10px 14px 0!important}
  .top:has(.plannerHeaderActions) .plannerGlobalSearchWrap{width:100%!important}
  .top .plannerHeaderActions{gap:5px!important}
  .top .dateCtl{width:100%!important;min-width:0!important;justify-self:start!important}
@@ -17948,13 +17876,13 @@ try{var foot=document.querySelector('.sideFoot small');if(foot)foot.textContent=
  .top #todayBtn{display:flex!important;grid-area:today!important;align-items:center;justify-content:center;width:64px!important;min-width:64px!important;max-width:64px!important;height:36px!important;margin:0!important;padding:0 8px!important;font-size:12px!important}
 }
 @media screen and (min-width:1251px){
- .top:has(.plannerHeaderActions){grid-template-columns:260px minmax(150px,200px) 214px 90px 210px 64px max-content!important;grid-template-areas:"brand brand brand brand brand brand brand" "lookup search actions calendar date today booked" "navigation navigation navigation navigation navigation navigation navigation"!important}
+ .top:has(.plannerHeaderActions){grid-template-columns:260px minmax(150px,200px) 214px 90px 254px 64px max-content!important;grid-template-areas:"brand brand brand brand brand brand brand" "lookup search actions calendar date today booked" "navigation navigation navigation navigation navigation navigation navigation"!important}
 }
 @media screen and (min-width:901px) and (max-width:1250px){
- .top:has(.plannerHeaderActions){grid-template-columns:260px 180px 64px 144px!important;grid-template-areas:"brand brand brand brand" "lookup search actions actions" "calendar date today booked" "navigation navigation navigation navigation"!important}
+ .top:has(.plannerHeaderActions){grid-template-columns:260px 254px 64px 144px!important;grid-template-areas:"brand brand brand brand" "lookup search actions actions" "calendar date today booked" "navigation navigation navigation navigation"!important}
 }
 @media screen and (max-width:900px){
- .top:has(.plannerHeaderActions){grid-template-areas:"brand brand brand brand brand brand brand brand brand brand brand brand" "calendar calendar date date date date date today today booked booked booked" "lookup lookup lookup lookup lookup lookup lookup lookup lookup lookup lookup lookup" "search search search search search search newjob newjob newjob newquote newquote newquote" "navigation navigation navigation navigation navigation navigation navigation navigation navigation navigation navigation navigation"!important}
+ .top:has(.plannerHeaderActions){grid-template-areas:"brand brand brand brand brand brand brand brand brand brand brand brand" "calendar calendar date date date date date date today today booked booked" "lookup lookup lookup lookup lookup lookup lookup lookup lookup lookup lookup lookup" "search search search search search search newjob newjob newjob newquote newquote newquote" "navigation navigation navigation navigation navigation navigation navigation navigation navigation navigation navigation navigation"!important}
  .top #todayBtn{width:100%!important;min-width:0!important;max-width:none!important;height:32px!important;padding:0 3px!important;font-size:11px!important}
 }
 </style>

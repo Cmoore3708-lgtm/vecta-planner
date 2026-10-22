@@ -139,6 +139,7 @@
   }
   function personaliseSvg(source, registration, colour, asset, logo, tight = false, vehicleName = '') {
     const svg = sanitiseSvg(source), paint = svg.querySelector('[id="transparant_colour"], [id="transparent_colour"]');
+    if(tight)svg.querySelectorAll('[id="gradients_background"], [id="background"]').forEach(node=>node.remove());
     const hex = colourHex(colour);
     if (hex && paint) for (const path of paint.querySelectorAll('path, polygon')) {
       if (path.getAttribute('fill') && path.getAttribute('fill') !== 'none') path.setAttribute('fill',hex);
@@ -224,7 +225,7 @@
       if (!match) return;
       const registration = normaliseReg(img.dataset.registration), colour = img.dataset.colour || '';
       const tight=img.dataset.vehicleCrop==='tight';
-      const baseKey = match[1]+'|render-v4|'+registration+'|'+colourHex(colour)+(tight?'|tight-v3':''),brand=img.dataset.vehicleLogo==='separate'?'':manufacturer(img.dataset.vehicleMake||img.dataset.vehicleName);
+      const baseKey = match[1]+'|render-v4|'+registration+'|'+colourHex(colour)+(tight?'|tight-v4-cutout':''),brand=img.dataset.vehicleLogo==='separate'?'':manufacturer(img.dataset.vehicleMake||img.dataset.vehicleName);
       const key=brand?baseKey+'|logo-v2-below:'+brand:baseKey;
       try {
         let result = images.get(key);

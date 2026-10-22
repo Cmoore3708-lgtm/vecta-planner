@@ -44,7 +44,8 @@ function cleanArtwork(v){
 }
 function queueSharedArtwork(v,{replace=false}={}){
  const client=workshopClient(),clean=cleanArtwork(v);
- if(!client||client!==sharedClient||root.VECTA_AUDIT_PREVIEW||!clean)return;
+ if(!client||root.VECTA_AUDIT_PREVIEW||!clean)return;
+ if(client!==sharedClient){sharedWrites.set(clean.registration,clean);hydrateSharedArtwork();return;}
  const saved=sharedArtwork.get(clean.registration);
  if(saved?.manual&&!clean.manual)return;
  if(!clean.colour&&saved?.colour)clean.colour=saved.colour;
@@ -75,7 +76,7 @@ function hydrateSharedArtwork({refresh=false}={}){
  sharedLoading=(async()=>{try{
   const query=client.from('workshop_settings').select('id,value');const response=await sharedArtworkResponse((typeof query.or==='function'?query.or('id.like.vehicle_artwork:%,id.like.vehicle_colour:%'):query.like('id',SHARED_ART_PREFIX+'%')).limit(2000));
   if(response.error)throw response.error;
-  for(const row of response.data||[]){if(row.id==='vehicle_colour:'+reg(row.value?.registration)){rememberLookupColour({registration:row.value.registration,make:row.value.make,primaryColour:row.value.colour});continue;}const clean=cleanArtwork(row.value);if(clean&&row.id===SHARED_ART_PREFIX+clean.registration){const local=artwork.get(clean.registration);if(!clean.colour&&local?.colour)clean.colour=local.colour;sharedArtwork.set(clean.registration,clean);if(clean.manual||!local||compatibleArtwork(clean,local))rememberArtwork(clean,false,{replace:true});}}
+  for(const row of response.data||[]){if(row.id==='vehicle_colour:'+reg(row.value?.registration)){rememberLookupColour({registration:row.value.registration,make:row.value.make,primaryColour:row.value.colour});continue;}const clean=cleanArtwork(row.value);if(clean&&row.id===SHARED_ART_PREFIX+clean.registration){const local=artwork.get(clean.registration);if(sharedWrites.has(clean.registration))continue;if(!clean.colour&&local?.colour)clean.colour=local.colour;sharedArtwork.set(clean.registration,clean);if(clean.manual||!local||compatibleArtwork(clean,local))rememberArtwork(clean,false,{replace:true});}}
   sharedClient=client;
   // Upgrade existing device caches in one batch, never a write per rendered card.
   for(const value of artwork.values())queueSharedArtwork(value);
@@ -95,7 +96,7 @@ function rememberArtwork(v,persist=true,{replace=false}={}){
 try{for(const v of JSON.parse(root.localStorage?.getItem(ART_KEY)||'[]'))rememberArtwork(v,false);}catch{}
 // Hydrate once without rewriting the full artwork/identity collections per row.
 try{for(const v of JSON.parse(root.localStorage?.getItem(KEY)||'[]'))if(vehicleLink(v)){rememberArtwork(v,false);rememberIdentity(v,false);}}catch{}
-function artworkSnapshot(registration,expectedMake,expectedModel){return [sharedArtwork.get(reg(registration)),artwork.get(reg(registration))].sort((a,b)=>Number(!!a?.generic)-Number(!!b?.generic)).find(v=>v?.manual||compatibleArtwork(v,{make:expectedMake,model:expectedModel})&&(!expectedModel||knownAssetMatches(v,{make:expectedMake,model:expectedModel})))||null;}
+function artworkSnapshot(registration,expectedMake,expectedModel){return [artwork.get(reg(registration)),sharedArtwork.get(reg(registration))].sort((a,b)=>Number(!!a?.generic)-Number(!!b?.generic)).find(v=>v?.manual||compatibleArtwork(v,{make:expectedMake,model:expectedModel})&&(!expectedModel||knownAssetMatches(v,{make:expectedMake,model:expectedModel})))||null;}
 try{for(const v of JSON.parse(root.localStorage?.getItem(KEY)||'[]'))remember(v,false);}catch{}
 function valid(v,registration,expectedMake){return !!(v&&reg(v.registration)===reg(registration)&&vehicleLink(v)&&v.make&&v.model&&v.variant&&(!expectedMake||make(v.make)===make(expectedMake))&&Number.isFinite(Date.parse(v.fetchedAt))&&Date.now()-Date.parse(v.fetchedAt)>=0&&Date.now()-Date.parse(v.fetchedAt)<TTL);}
 function remember(v,persist=true,{replaceArtwork=false}={}){
@@ -120,7 +121,8 @@ function compatibleArtwork(value,description){
  const expected=normal(description?.model||description?.vehicle,description?.make||value.make),actual=normal(String(value.model||'').split(/[(/]/)[0],value.make);
  if(!expected||!actual)return true;
  const family=v=>v.split(' ')[0];
- return expected===actual||family(expected)===family(actual)||(' '+actual+' ').includes(' '+expected+' ');
+ const alternatives=String(value.model||'').split('/').map(part=>normal(part.split('(')[0],value.make)).filter(Boolean);
+ return alternatives.some(model=>expected===model||family(expected)===family(model)||(' '+model+' ').includes(' '+expected+' '));
 }
 function knownAssetMatches(value,description){const known=modelImages.find(v=>v.imageUrl===value?.imageUrl);return !known||compatibleArtwork(known,description);}
 function genericImage(description){
