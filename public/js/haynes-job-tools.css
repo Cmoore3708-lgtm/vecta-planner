@@ -334,3 +334,8 @@
  .mobilePlanner .mobileJob .mobileVehicleTop{font-size:12px!important}
  .mobilePlanner .mobileJob>.haynesDashboardImage{top:8px!important;height:88px!important}
 }
+
+/* Identify website-origin jobs without changing card size or job-type colour. */
+@media screen{
+ .job.websiteBookingOutline,.mobileJob.websiteBookingOutline,.unallocatedSideJob.websiteBookingOutline{outline:1.5px solid #2563eb!important;outline-offset:-1.5px!important}
+}
