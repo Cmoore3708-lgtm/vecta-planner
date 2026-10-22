@@ -98,3 +98,33 @@ test('stalled startup releases the cached diary with an offline indicator', () =
   assert.match(source, /\},12000\);/);
   assert.match(source, /if\(!navigator.onLine\|\|VECTA_AUDIT_PREVIEW\)render\(\)/);
 });
+
+
+test('delayed backup recovery never overwrites jobs loaded while storage was opening', async () => {
+  let release;
+  const rows = new Promise(resolve => { release = resolve; });
+  const context = {
+    app: {jobs:[]}, fleetVehicles:[], fleetPlans:[],
+    vectaHasUsableWorkshopData: candidate => !!candidate?.jobs?.length,
+    vectaListBackups: () => rows,
+    vectaBackupJobCount: snapshot => snapshot.record_counts.jobs,
+    merge: (_a,b) => b,
+    localStorage:{setItem(){}}, STORE_KEY:'store', console, JSON, Array,
+  };
+  vm.runInNewContext(`${namedFunctionSource('vectaRestoreLatestBackupIfNeeded')}; promise=vectaRestoreLatestBackupIfNeeded();`, context);
+  context.app.jobs = [{id:'live-job'}];
+  release([{created_at:'2026-10-22',record_counts:{jobs:1},app:{jobs:[{id:'stale-job'}]}}]);
+  assert.equal(await context.promise, false);
+  assert.equal(context.app.jobs[0].id, 'live-job');
+});
+
+test('damaged local JSON cannot abort offline recovery or cloud startup', () => {
+  const context = {
+    app:{jobs:[],tasks:[]}, STORE_KEY:'store',
+    localStorage:{getItem:key=>key==='store'?'{broken':'[]',removeItem(){}},
+    migrateLegacyTasksLocal(){},purgeDeletedWebsiteTestBookingH4uxm:async()=>{},
+    applyTaskStateOverrides(){},saveLocal(){throw Error('Do not overwrite damaged evidence');},console,
+  };
+  vm.runInNewContext(`${namedFunctionSource('loadLocal')};loadLocal();`,context);
+  assert.equal(context.app.jobs.length,0);
+});

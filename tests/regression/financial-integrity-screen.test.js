@@ -52,7 +52,7 @@ test("Today's tile uses exactly the same jobs as its drill-down", () => {
 });
 
 test('startup keeps backup recovery bounded while the live planner is loading', () => {
-  assert.match(html, /vectaWithTimeout\(vectaRestoreLatestBackupIfNeeded\(\),1500/);
+  assert.match(html, /vectaWithTimeout\(localRecovery,1500/);
   assert.match(html, /<body class="vectaStartupLoading">/);
   assert.match(html, /Backup storage took too long to open/);
 });
