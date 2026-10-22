@@ -327,3 +327,10 @@
 
 /* Retain saved-vehicle suggestions without the native dropdown arrow. */
 #haynesDashboardRegistration::-webkit-calendar-picker-indicator{display:none!important;opacity:0!important}
+
+@media screen and (max-width:768px){
+ .mobilePlanner .mobileJob .mobileJobTop,.mobilePlanner .mobileJob.hasHaynesDashboardImage .mobileJobTop{display:flex!important;flex-direction:column!important;gap:3px!important;width:calc(100% - 128px)!important;min-height:92px!important;margin-bottom:4px!important}
+ .mobilePlanner .mobileJobTop .mobileJobCategory,.mobilePlanner .mobileJobTop .mobileMotAppointment{display:block;align-self:flex-start!important;margin:0!important}
+ .mobilePlanner .mobileJob .mobileVehicleTop{font-size:12px!important}
+ .mobilePlanner .mobileJob>.haynesDashboardImage{top:8px!important;height:88px!important}
+}
