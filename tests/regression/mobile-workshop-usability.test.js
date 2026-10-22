@@ -6,7 +6,7 @@ const html=fs.readFileSync(new URL('../../index.html',import.meta.url),'utf8');
 
 test('phone planner renders the saved MOT appointment time',()=>{
   assert.match(html,/function mobileMotAppointmentHtml\(j\)[\s\S]*?motTimeFromJob\(j\)[\s\S]*?hasMotJobType\(j\)[\s\S]*?>MOT /);
-  assert.match(html,/function mobileJobCardHtml\(j,groupName\)[\s\S]*?jobTypeChip\(j\)[\s\S]*?mobileMotAppointmentHtml\(j\)/);
+  assert.match(html,/function mobileJobCardHtml\(j,groupName\)[\s\S]*?mobileMotAppointmentHtml\(j\)/);
 });
 
 test('shared office and mechanic paperwork save requires positive numeric mileage',()=>{

@@ -13058,7 +13058,12 @@ function mobileJobCategoryLabel(j){
   }
   return /^contractor$/i.test(account)?'Contractor':account;
 }
-function mobileJobCardHtml(j,groupName){var isOther=String(groupName||j.technician||'').trim().toLowerCase()==='other',vehicleLine=String(j.vehicle||'').trim()||[j.make,j.model].filter(Boolean).join(' ').trim()||'Vehicle';return '<div class="mobileJob jobTypeCoded'+(isOther?' mobileOtherJob':'')+'" style="'+jobTypeInlineStyle(j)+(isOther?'background-color:#dff0ff!important;background-image:linear-gradient(#dff0ff,#dff0ff)!important;':'')+'" data-open-job="'+j.id+'"><div class="mobileJobTop">'+plannerPlate(j)+'<div class="mobileJobTypes">'+jobTypeChip(j)+'</div><span class="mobileJobCategory">'+esc(mobileJobCategoryLabel(j))+'</span>'+mobileMotAppointmentHtml(j)+'<span class="mobileVehicleTop">'+esc(plannerVehicleLabel(j))+'</span></div>'+carryOverBadgeHtml(j)+'<b>'+esc(j.work_required||'No work required entered')+'</b></div>'}
+function mobileJobCardHtml(j,groupName){
+  var isOther=String(groupName||j.technician||'').trim().toLowerCase()==='other',motAppointment=mobileMotAppointmentHtml(j);
+  var types=jobTypeLabels(j).filter(function(label){var key=normaliseJobTypeKey(label);return key!=='general'&&!(motAppointment&&(key==='mot'||key==='mot test'))}).map(function(label){return jobTypeChip(j,label)}).join('');
+  var work=String(j.work_required||'').split(/\r?\n/).filter(function(line){return !(motAppointment&&/^mot(?:\s+test)?[.!]?$/i.test(line.trim()))}).join('\n').trim();
+  return '<div class="mobileJob jobTypeCoded'+(isOther?' mobileOtherJob':'')+'" style="'+jobTypeInlineStyle(j)+(isOther?'background-color:#dff0ff!important;background-image:linear-gradient(#dff0ff,#dff0ff)!important;':'')+'" data-open-job="'+j.id+'"><div class="mobileJobTop">'+plannerPlate(j)+'<span class="mobileVehicleTop">'+esc(plannerVehicleLabel(j))+'</span>'+(types?'<div class="mobileJobTypes">'+types+'</div>':'')+'<span class="mobileJobCategory">'+esc(mobileJobCategoryLabel(j))+'</span>'+motAppointment+'</div>'+carryOverBadgeHtml(j)+(work?'<b>'+esc(work)+'</b>':'')+'</div>';
+}
 
 function updateJobQuick(j){if((j.status==='completed'||j.status==='work_complete'||j.status==='ready_to_invoice')&&typeof showTowbarRemovalReminder==='function')showTowbarRemovalReminder(j);if(['completed','work_complete','ready_to_invoice'].indexOf(j.status)>=0)vectaRecordWorkCompleted(j);j.archived=j.status==='completed';if(j.status==='completed'&&!j.completed_at)j.completed_at=new Date().toISOString();j.updated_at=new Date().toISOString();syncTaskFromMiniJob(j);if(j.status==='completed'||j.status==='ready_to_invoice')syncFleetMaintenanceFromJob(j);saveAll();upsertRemote('jobs',j);render()}
 
