@@ -1,7 +1,7 @@
 {
   "approvedOn": "2026-10-22",
   "approvedBy": "Chris Moore",
-  "approval": "22 October 2026: Chris requested red MOT/time with black work text, cutout vehicle artwork across Main/mechanics/mobile, and the planner date beside its weekday. Only those requested dashboard styles change; the remaining approved layout stays locked.",
+  "approval": "22 October 2026: Chris requested red MOT/time with black work text, cutout vehicle artwork across Main/mechanics/mobile, and the planner date beside its weekday. Only those requested dashboard styles change; the remaining approved layout stays locked. MOT confirmation request: Chris approved automatic green MOT/time with a tick when garage email matches, plus a copy to his Nissan Fleet inbox. Main and generated mechanics desktop/mobile status markup verified by mot-confirmations.test.js; only the two MOT badge renderers change. Existing geometry and other styles remain locked.",
   "layout": {
     "main": {
       "functions": {
@@ -40,7 +40,7 @@
           "40e9cd14a67e72f9e3f664bac42c93a924ddcd168f900eb37913228dba56c798"
         ],
         "mobileMotAppointmentHtml": [
-          "9cf72b9f127146360dad122a1621a4497fcd933b37bb9759f87c40eb992b6722"
+          "3245d208c54421a1f5fbaa87c02078e861cbc33448043214ffb2b6bc3238f58c"
         ],
         "mobilePlannerHtml": [
           "21fd5ec9d76e1c684ee87adb977f85876844fac5924c4d774d9ffe70700e004f"
@@ -64,7 +64,7 @@
           "15647ab24084aa222acb8397b4528f7dac1273bb4e2246f82c7f8019aaf80470"
         ],
         "plannerMotHeaderHtml": [
-          "9d0dad99baae978fc44b7ceff82e6b94ed88d65b09a18a5b324dfef4f01c2f6e"
+          "720f6c0a7b205c0b2baca825e83d3316c5c7965e35e47c50961c33efd1e83ebf"
         ],
         "plannerPlate": [
           "41c809aff97fac29000cff841bdf0168b26f096e4870ceca5582af09a962c6d6"
@@ -130,7 +130,7 @@
           "40e9cd14a67e72f9e3f664bac42c93a924ddcd168f900eb37913228dba56c798"
         ],
         "mobileMotAppointmentHtml": [
-          "9cf72b9f127146360dad122a1621a4497fcd933b37bb9759f87c40eb992b6722"
+          "3245d208c54421a1f5fbaa87c02078e861cbc33448043214ffb2b6bc3238f58c"
         ],
         "mobilePlannerHtml": [
           "21fd5ec9d76e1c684ee87adb977f85876844fac5924c4d774d9ffe70700e004f"
@@ -154,7 +154,7 @@
           "ab0fae19f0a3d50f04538da1700492cb2910c1dda8a9888c1c0cdea6a9376604"
         ],
         "plannerMotHeaderHtml": [
-          "9d0dad99baae978fc44b7ceff82e6b94ed88d65b09a18a5b324dfef4f01c2f6e"
+          "720f6c0a7b205c0b2baca825e83d3316c5c7965e35e47c50961c33efd1e83ebf"
         ],
         "plannerPlate": [
           "41c809aff97fac29000cff841bdf0168b26f096e4870ceca5582af09a962c6d6"
