@@ -88,7 +88,7 @@
           "3a9a42c6c0bf2d0614443fe79675792f688eb5512c394fbfd54ec1fb14fd13de"
         ]
       },
-      "styles": "313e0d115cbcb9677c047db8eb1dbf4dd8ec0bd9a13053bd10ab41d99765ac79",
+      "styles": "573a00084588d4b161960e81c0f56349f9cee3a4d71167b92826a776977b525b",
       "injectedStyles": [
         "bea850ce68304d8a50a6018729fb5923f614c6708b6a11a3d3d937b525dd855a"
       ]
@@ -178,10 +178,17 @@
           "3a9a42c6c0bf2d0614443fe79675792f688eb5512c394fbfd54ec1fb14fd13de"
         ]
       },
-      "styles": "3ea9a8c8e711d1d33c303a478bf190593958e23ba5b04eccaccac2a811d362a6",
+      "styles": "9bc811c5ec43552128ade0f73d0e91d6fb9b8f4ddf1680558d0c2523328e4b0b",
       "injectedStyles": [
         "bea850ce68304d8a50a6018729fb5923f614c6708b6a11a3d3d937b525dd855a"
       ]
     }
-  }
+  },
+  "changes": [
+    {
+      "date": "2026-10-22",
+      "request": "Move the customer/name down a few pixels so it is not touching the registration plate; move MOT details to the left; move the work description up one full line.",
+      "reason": "Requested desktop spacing refinement: customer row gap 3px to 6px, MOT row spans from left, standard description 64px to 46px and MOT description 72px to 54px. Preserve space for additional booking-type rows and compact cards. Phone CSS and shared renderers unchanged."
+    }
+  ]
 }
