@@ -251,14 +251,14 @@ root.enrichHaynesInvoice=function(sheet,invoice){
    const picture=document.createElement('div');picture.className='haynesInvoiceHeaderVehicle';
    const linked=(root.app?.jobs||[]).find(j=>String(j.id)===String(invoice.job_id));
    const vehicle=Object.assign({},linked||{},invoice,{registration:invoice.registration||linked?.registration});
-   img.setAttribute('data-vehicle-image','');img.dataset.vehicleLogo='separate';img.dataset.registration=reg(vehicle.registration);
+   img.setAttribute('data-vehicle-image','');img.dataset.vehicleLogo='separate';img.dataset.vehicleCrop='tight';img.dataset.registration=reg(vehicle.registration);
    img.dataset.colour=dashboardColour(vehicle);img.dataset.vehicleName=[v.make,v.model].join(' ');
    picture.appendChild(img);header.appendChild(picture);
    sheet.invoiceVehicleReady=root.VectaVehicleImage?.mount(picture);
   }
  }
 
- if(matched){const title=strip.querySelector('.invoiceBookingDetails>strong');if(title)title.textContent=[matched.make,matched.model,matched.variant].filter(Boolean).join(' ');const extra=document.createElement('small');extra.className='haynesInvoiceDetails';extra.textContent=[matched.engineCode,matched.modelYears].filter(Boolean).join(' · ');if(extra.textContent)strip.querySelector('.invoiceBookingDetails')?.appendChild(extra);}
+ if(matched){const title=strip.querySelector('.invoiceVehicleMake,.invoiceBookingDetails>strong');if(title)title.textContent=[matched.make,matched.model,matched.variant].filter(Boolean).join(' ');}
 };
 root.initHaynesJobTools=function(modal){
  modal?.classList.remove('registrationBooking');
