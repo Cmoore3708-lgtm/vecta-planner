@@ -1,4 +1,6 @@
 import { createHmac, createHash, randomBytes, timingSafeEqual } from 'node:crypto';
+import { gunzipSync } from 'node:zlib';
+import { Resvg } from '@resvg/resvg-js';
 import { readFile } from 'node:fs/promises';
 import { PDFDocument, StandardFonts, rgb } from 'pdf-lib';
 import { renderCustomerInvoiceHtml } from './_invoice-html.js';
@@ -38,7 +40,7 @@ async function rows(config, path) {
 const safeText = value => String(value ?? '').replace(/[\r\n\t]+/g, ' ').replace(/[^\x20-\x7e\xa0-\xff\u2013\u2014\u2018\u2019\u201c\u201d\u2022\u20ac]/g, '?');
 const money = value => '£' + Number(value || 0).toFixed(2);
 
-export async function renderCustomerInvoicePdf(invoice, settings = {}, job = {}) {
+export async function renderCustomerInvoicePdf(invoice, settings = {}, job = {}, presentation = {}) {
   const pdf = await PDFDocument.create();
   pdf.setTitle('VECTA Invoice ' + String(invoice.invoice_number || ''));
   pdf.setAuthor('Vecta Motors');
@@ -51,6 +53,29 @@ export async function renderCustomerInvoicePdf(invoice, settings = {}, job = {})
   const vatRate = Number(settings.vatRate ?? 20) / 100;
   let logo;
   try { logo = await pdf.embedPng(await readFile(new URL('../public/assets/vecta-header.png', import.meta.url))); } catch { /* Text logo remains available. */ }
+  const isFleet=!!(invoice.fleet_customer||invoice.fleet_month||invoice.eom_month||invoice.source==='fleet_eom'||invoice.source==='vehicle_tax_eom'||['FLEET ACCOUNT','NMUK TAX'].includes(invoice.registration));
+  let car, badge;
+  const brand=globalThis.VectaInvoicePrint.manufacturer(invoice.make||invoice.vehicle||job.make);
+  if(!isFleet&&brand){try{const svg=await readFile(new URL('../public/assets/manufacturers/'+brand+'.svg',import.meta.url),'utf8');const png=svg.match(/href="data:image\/png;base64,([A-Za-z0-9+/=]+)"/);if(png)badge=await pdf.embedPng(Buffer.from(png[1],'base64'));}catch{}}
+  // Only the signed, stored supplier asset is fetched; PDF viewing never queues a lookup.
+  if(!isFleet&&/^https:\/\/www\.haynespro-assets\.com\/workshop\/images\/\d+\.(svgz?|png|jpe?g|webp)$/.test(presentation.imageUrl||'')){
+    try{
+      const response=await fetch(presentation.imageUrl,{signal:AbortSignal.timeout(5000),redirect:'error'});
+      if(!response.ok||Number(response.headers.get('content-length')||0)>2000000)throw Error('Artwork unavailable');
+      const reader=response.body.getReader(),chunks=[];let size=0;
+      while(true){const {done,value}=await reader.read();if(done)break;size+=value.length;if(size>2000000){await reader.cancel();throw Error('Artwork too large');}chunks.push(value);}
+      let bytes=Buffer.concat(chunks);
+      if(/\.svgz?$/.test(presentation.imageUrl)){
+        if(bytes[0]===31&&bytes[1]===139)bytes=gunzipSync(bytes,{maxOutputLength:2000000});
+        let svg=bytes.toString('utf8');
+        const colours={BLACK:'#191b20',WHITE:'#f5f5f2',SILVER:'#bfc3c8',GREY:'#626970',GRAY:'#626970',BLUE:'#1c4778',RED:'#ac1727',GREEN:'#204c36',YELLOW:'#e5ba20',ORANGE:'#d56b22',BROWN:'#77513b',BEIGE:'#c1ac88',GOLD:'#b59a50'};
+        const colour=colours[String(presentation.colour||'').toUpperCase()];
+        if(colour)svg=svg.replace(/(<g\b[^>]*id=["']transpar(?:a|e)nt_colour["'][^>]*>)([\s\S]*?)(<\/g>)/i,(_,open,body,close)=>open+body.replace(/fill=["'](?!none)[^"']*["']/g,'fill="'+colour+'"')+close);
+        car=await pdf.embedPng(new Resvg(svg,{fitTo:{mode:'width',value:600}}).render().asPng());
+      }else if(/\.png$/.test(presentation.imageUrl))car=await pdf.embedPng(bytes);
+      else if(/\.jpe?g$/.test(presentation.imageUrl))car=await pdf.embedJpg(bytes);
+    }catch{/* Vehicle details remain printable when stored artwork is unavailable. */}
+  }
   function text(value, x, at, size = 10, font = regular, color = ink) { page.drawText(safeText(value), { x, y: at, size, font, color }); }
   function right(value, x, at, size = 10, font = regular) { const clean = safeText(value); text(clean, x - font.widthOfTextAtSize(clean, size), at, size, font); }
   function wrap(value, width, size = 10, font = regular) {
@@ -83,10 +108,24 @@ export async function renderCustomerInvoicePdf(invoice, settings = {}, job = {})
     for (const line of wrap(value, width, size, font)) { ensure(15); text(line, x, y, size, font); y -= 15; }
   }
   newPage();
-  if (logo) { const scale = Math.min(215 / logo.width, 48 / logo.height); page.drawImage(logo, { x: 42, y: 710, width: logo.width * scale, height: logo.height * scale }); }
-  else text('VECTA', 42, 721, 32, bold, red);
-  right('INVOICE', 553, 745, 24, bold); right(invoice.invoice_number || '', 553, 722, 13, bold); right(invoice.invoice_date || '', 553, 704, 10);
-  y = 682;
+  const headerOffset=isFleet?0:110;
+  if(!isFleet){
+    const vehicleLines=wrap(invoice.vehicle||job.vehicle||'Vehicle',225,12,bold).slice(0,2);
+    vehicleLines.forEach((line,i)=>text(line,162,762-i*15,12,bold));
+    const plate=String(invoice.registration||'NO REG').toUpperCase(),plateWidth=Math.max(100,bold.widthOfTextAtSize(plate,17)+28);
+    page.drawRectangle({x:162,y:701,width:plateWidth,height:28,color:rgb(.95,.80,.22),borderColor:ink,borderWidth:.7});
+    page.drawRectangle({x:162,y:701,width:17,height:28,color:rgb(.09,.38,.55)});
+    text('GB',165,710,7,bold,rgb(1,1,1));text(plate,185,708,17,bold);
+    if(badge){const scale=Math.min(32/badge.width,24/badge.height);page.drawImage(badge,{x:162+plateWidth+10,y:703,width:badge.width*scale,height:badge.height*scale});}
+    text('Mileage: '+(invoice.mileage??job.mileage??'Not recorded'),162,686,9,regular,muted);
+    text('MOT due: '+String(invoice.mot_due||job.mot_due||'Not recorded').slice(0,10),162,672,9,regular,muted);
+    if(car){const scale=Math.min(145/car.width,90/car.height);page.drawImage(car,{x:553-car.width*scale,y:683,width:car.width*scale,height:car.height*scale});}
+    page.drawLine({start:{x:42,y:655},end:{x:553,y:655},thickness:.6,color:rgb(.82,.84,.86)});
+  }
+  if (logo) { const scale = Math.min(215 / logo.width, 48 / logo.height); page.drawImage(logo, { x: 42, y: 710-headerOffset, width: logo.width * scale, height: logo.height * scale }); }
+  else text('VECTA', 42, 721-headerOffset, 32, bold, red);
+  right('INVOICE', 553, 745-headerOffset, 24, bold); right(invoice.invoice_number || '', 553, 722-headerOffset, 13, bold); right(invoice.invoice_date || '', 553, 704-headerOffset, 10);
+  y = 682-headerOffset;
   const business = nmuk ? ['10 Hunter Close', 'East Boldon, Tyne and Wear, NE36 0TB', 'Email: shirken.moore@talktalk.net'] : ['Contractors Compound, Nissan Motor Manufacturing', 'Nissan Way, Washington, SR5 3NS'];
   for (const line of [...business, 'Tel: 07721722622', 'VAT No. 169170002']) { text(line, 42, y, 9, regular, muted); y -= 14; }
   y -= 18; text('CUSTOMER', 42, y, 9, bold, muted); y -= 19;
@@ -94,7 +133,7 @@ export async function renderCustomerInvoicePdf(invoice, settings = {}, job = {})
   if (invoice.customer_address) paragraph(invoice.customer_address, 42, 511);
   y -= 12;
   const identity = [invoice.registration, invoice.vehicle, invoice.mileage ? 'Mileage: ' + invoice.mileage : '', invoice.mot_due ? 'MOT due: ' + String(invoice.mot_due).slice(0, 10) : ''].filter(Boolean).join('  |  ');
-  paragraph(identity, 42, 511, bold, 10); y -= 14;
+  if(isFleet)paragraph(identity, 42, 511, bold, 10); y -= 14;
   function tableHead() {
     ensure(36); page.drawRectangle({ x: 42, y: y - 8, width: 511, height: 26, color: pale });
     text('WORK CARRIED OUT', 51, y, 9, bold); right(staff ? 'AMOUNT (EX VAT)' : 'AMOUNT', 480, y, 8, bold); right('VAT', 544, y, 8, bold); y -= 34;
@@ -177,7 +216,7 @@ export default async function invoicePdfHandler(req, res) {
       res.setHeader('Content-Security-Policy', "default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self' data: https://www.haynespro-assets.com; connect-src 'self'; base-uri 'none'; frame-ancestors 'none'; form-action 'none'");
       return res.status(200).send(renderCustomerInvoiceHtml(invoice, settingRows[0]?.value || {}, jobRows[0] || {}, claim.presentation || {}));
     }
-    const bytes = await renderCustomerInvoicePdf(invoice, settingRows[0]?.value || {}, jobRows[0] || {});
+    const bytes = await renderCustomerInvoicePdf(invoice, settingRows[0]?.value || {}, jobRows[0] || {}, claim.presentation || {});
     const filename = ('VECTA-Invoice-' + (invoice.invoice_number || '') + '.pdf').replace(/[^a-zA-Z0-9_.-]/g, '-');
     res.setHeader('Content-Type', 'application/pdf');
     res.setHeader('Content-Disposition', (req.query.download === '1' ? 'attachment' : 'inline') + '; filename="' + filename + '"');

@@ -244,20 +244,21 @@ root.invoiceVehiclePresentation=function(invoice){
  return {imageUrl:v?.imageUrl||'',colour:dashboardColour(Object.assign({},linked||{},invoice))};
 };
 root.enrichHaynesInvoice=function(sheet,invoice){
- const strip=sheet?.querySelector('.printInvoiceVehicle');if(!strip||!invoice||sheet.querySelector('.haynesInvoiceImage'))return;
+ const strip=sheet?.querySelector('.invoiceBookingHeader');if(!strip||!invoice||sheet.querySelector('.haynesInvoiceImage'))return;
  const matched=identitySnapshot(invoice.registration,invoice.make)||snapshot(invoice.registration,invoice.make),v=storedDrawing(invoice);if(!v)return;const img=thumbnail(v,'haynesInvoiceImage');if(img){
-  const header=sheet.querySelector('.invoicePrintHeader');
+  const header=sheet.querySelector('.invoiceBookingArtwork');
   if(header){
    const picture=document.createElement('div');picture.className='haynesInvoiceHeaderVehicle';
    const linked=(root.app?.jobs||[]).find(j=>String(j.id)===String(invoice.job_id));
    const vehicle=Object.assign({},linked||{},invoice,{registration:invoice.registration||linked?.registration});
    img.setAttribute('data-vehicle-image','');img.dataset.registration=reg(vehicle.registration);
    img.dataset.colour=dashboardColour(vehicle);img.dataset.vehicleName=[v.make,v.model].join(' ');
-   picture.appendChild(img);header.insertBefore(picture,header.querySelector('.printTitle'));
+   picture.appendChild(img);header.appendChild(picture);
    sheet.invoiceVehicleReady=root.VectaVehicleImage?.mount(picture);
   }
  }
- if(!matched)return;const cells=strip.querySelectorAll('.printVehicleCell'),vehicleCell=cells[1];if(vehicleCell){const old=vehicleCell.querySelector('b');if(old)old.textContent=[matched.make,matched.model,matched.variant].join(' ');const extra=document.createElement('small');extra.className='haynesInvoiceDetails';extra.textContent=[matched.engineCode,matched.modelYears].filter(Boolean).join(' · ');vehicleCell.appendChild(extra);}
+
+ if(matched){const title=strip.querySelector('.invoiceBookingDetails>strong');if(title)title.textContent=[matched.make,matched.model,matched.variant].filter(Boolean).join(' ');const extra=document.createElement('small');extra.className='haynesInvoiceDetails';extra.textContent=[matched.engineCode,matched.modelYears].filter(Boolean).join(' · ');if(extra.textContent)strip.querySelector('.invoiceBookingDetails')?.appendChild(extra);}
 };
 root.initHaynesJobTools=function(modal){
  modal?.classList.remove('registrationBooking');

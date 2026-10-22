@@ -29,6 +29,9 @@
     },
     "api/vehicle-lookup.js": {
       "maxDuration": 30
+    },
+    "api/additional-work.js": {
+      "includeFiles": "public/assets/{vecta-header.png,manufacturers/*.svg}"
     }
   },
   "rewrites": [

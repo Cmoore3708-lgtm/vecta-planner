@@ -20,6 +20,7 @@
     "layout:check": "node scripts/dashboard-layout-lock.mjs"
   },
   "dependencies": {
+    "@resvg/resvg-js": "^2.6.2",
     "@supabase/supabase-js": "^2.49.8",
     "@vercel/functions": "3.9.9",
     "@vercel/oidc": "3.8.9",
