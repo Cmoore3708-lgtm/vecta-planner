@@ -153,7 +153,7 @@ export async function renderCustomerInvoicePdf(invoice, settings = {}, job = {},
     }
     y -= 11; page.drawLine({ start: { x: 42, y: y + 4 }, end: { x: 553, y: y + 4 }, thickness: 0.5, color: pale });
   }
-  ensure(220); y -= 12;
+  ensure(220); y = 316;
   for (const [label, value] of [['Subtotal', invoice.subtotal], ['VAT', invoice.vat]]) { text(label, 365, y); right(money(value), 544, y); y -= 24; }
   page.drawRectangle({ x: 350, y: y - 12, width: 203, height: 35, color: ink });
   page.drawText('TOTAL', { x: 365, y, size: 11, font: bold, color: rgb(1, 1, 1) });
