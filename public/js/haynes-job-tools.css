@@ -219,7 +219,7 @@
 .plannerMotHeader{color:#c1121f!important;font-size:14px!important;font-weight:900!important;line-height:1.2!important;white-space:nowrap}
 .plannerGrid .lane .job.plannerMotJob .plannerPlateAndMot{position:absolute;top:3px;left:7px;right:7px;display:flex;align-items:center;justify-content:flex-start;gap:10px;z-index:2}
 .plannerGrid .lane .job.plannerMotJob .plannerJobLeft{padding-top:29px!important}
-.plannerGrid .lane .job.plannerMotJob .plannerWorkRequired{color:#c1121f!important}
+.plannerGrid .lane .job.plannerMotJob .plannerWorkRequired{color:#000!important}
 .plannerGrid .lane .job.plannerMotJob .plannerJobHeader>.haynesDashboardImage{top:33px!important;height:max(0px,calc(100% - 38px))!important}
 .mobileMotAppointment{color:#c1121f!important}
 
@@ -359,4 +359,15 @@
  #content .livePriorityPlanner .plannerGrid .lane .job.plannerMotJob .plannerWorkRequired{top:54px!important}
  #content .livePriorityPlanner .plannerGrid .lane .job.plannerJobFull:has(.plannerJobRightText:not(:empty)) .plannerWorkRequired{top:64px!important}
  #content .livePriorityPlanner .plannerGrid .lane .job.plannerMotJob:has(.plannerJobRightText:not(:empty)) .plannerWorkRequired{top:72px!important}
+}
+
+/* Chris, 22 October: day/date on one line; MOT only is red. */
+.top #dashboardDayName{white-space:nowrap!important;overflow-wrap:normal!important}
+.mobilePlanner .mobileJob>b{color:#000!important}
+.mobileMotAppointment{color:#c1121f!important}
+@media(min-width:769px){
+ #jobList .rowCard{grid-template-columns:116px 160px minmax(180px,260px) 130px 85px 80px 120px!important;gap:12px!important;width:max-content;max-width:none}
+ #jobList{max-width:100%;overflow-x:auto}
+ #jobModal .modalFoot{justify-content:flex-start!important}
+ #jobModal .modalFoot>*{margin-left:0!important;margin-right:0!important}
 }

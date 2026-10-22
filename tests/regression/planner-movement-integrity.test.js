@@ -27,7 +27,7 @@ function namedFunctionSource(name) {
   throw new Error(`Could not extract ${name}`);
 }
 
-test('lane compaction keeps every job and produces a non-overlapping schedule', () => {
+test('legacy lane compaction cannot move jobs away from explicitly chosen times', () => {
   const jobs = [
     { id: 'a', booking_date: '2026-09-14', technician: 'Alfie', drop_time: '08:00', estimated_hours: 1 },
     { id: 'b', booking_date: '2026-09-14', technician: 'Alfie', drop_time: '08:30', estimated_hours: 0.5 },
@@ -46,9 +46,9 @@ test('lane compaction keeps every job and produces a non-overlapping schedule', 
   };
   vm.runInNewContext(`${namedFunctionSource('plannerCompactLane')}; changed = plannerCompactLane('2026-09-14', 'Alfie');`, context);
   assert.deepEqual(jobs.map(j => j.id), ['a', 'b', 'c']);
-  assert.deepEqual(jobs.map(j => j.drop_time), ['08:00', '09:00', '09:30']);
+  assert.deepEqual(jobs.map(j => j.drop_time), ['08:00', '08:30', '09:00']);
   assert.deepEqual(jobs.map(j => j.estimated_hours), [1, 0.5, 1.5]);
-  assert.deepEqual(Array.from(context.changed, j => j.id), ['b', 'c']);
+  assert.deepEqual(Array.from(context.changed, j => j.id), []);
 });
 
 test('planner moves save locally first and then verify every cloud write', () => {
@@ -99,10 +99,20 @@ test('legacy technician names collide in the same visible Other lane', () => {
   assert.match(namedFunctionSource('findNextMechanicSlot'), /mechanicBookingIntervals\(date,job\.technician,excludeId\)/);
 });
 
-test('every job ingress path repairs overlaps before rendering', () => {
-  assert.match(namedFunctionSource('saveJob'), /plannerCompactLane\(j\.booking_date,plannerTechnicianLane\(j\.technician\)\)[\s\S]*?render\(\)/);
-  assert.match(namedFunctionSource('scheduleCloudRefresh'), /table==='jobs'[\s\S]*?repairExistingPlannerOverlaps\(\{persistRemote:true\}\)[\s\S]*?render\(\)/);
-  assert.match(namedFunctionSource('refreshPlannerCoreFromCloudAndRender'), /repairExistingPlannerOverlaps\(\{persistRemote:true\}\)[\s\S]*?render\(\)/);
+test('background overlap hooks do not mutate bookings or write to the cloud', async () => {
+ const jobs=[{id:'a',drop_time:'08:00'},{id:'b',drop_time:'08:00'}],before=JSON.stringify(jobs);
+ const ctx={app:{jobs},saveLocal(){throw Error('Unexpected save')},upsertRemote(){throw Error('Unexpected cloud write')}};
+ vm.runInNewContext(namedFunctionSource('repairExistingPlannerOverlaps'),ctx);
+ assert.equal(await ctx.repairExistingPlannerOverlaps({persistRemote:true}),0);assert.equal(JSON.stringify(jobs),before);
+});
+
+test('hourly snap is anchored at 08:00 and placement rejects occupied slots without moving neighbours',()=>{
+ const ctx={clockMinutes:value=>{const [h,m]=value.split(':').map(Number);return h*60+m},mechanicBookingIntervals:()=>[{start:540,end:600}]};
+ vm.runInNewContext(namedFunctionSource('plannerSnapMinutes')+';'+namedFunctionSource('plannerPlacementConflict'),ctx);
+ assert.equal(ctx.plannerSnapMinutes(481),480);assert.equal(ctx.plannerSnapMinutes(525),540);assert.equal(ctx.plannerSnapMinutes(940),960);
+ assert.match(ctx.plannerPlacementConflict({drop_time:'09:00',estimated_hours:1}),/occupied/);
+ assert.equal(ctx.plannerPlacementConflict({drop_time:'10:00',estimated_hours:1}),'');
+ assert.match(ctx.plannerPlacementConflict({drop_time:'16:00',estimated_hours:2}),/17:00/);
 });
 
 test('startup cleanup cannot overwrite a newer mechanic with a cached unallocated copy',()=>{
@@ -181,4 +191,12 @@ test('technician choices follow the complete current list without invented fallb
  assert.deepEqual(Array.from(ctx.names),[]);
  assert.doesNotMatch(namedFunctionSource('plannerHtml'),/app\.settings\.mechanics\s*=/);
  assert.doesNotMatch(html,/function ensureThreeMechanics\(/);
+});
+
+test('a superseded planner save cannot overwrite a later drag', async()=>{
+ const latest={id:'a',booking_date:'2026-10-22',technician:'Alfie',drop_time:'11:00',estimated_hours:1,updated_at:'2026-10-22T10:01:00Z'};
+ const writes=[],ctx={app:{jobs:[latest]},normaliseClock:v=>String(v||'08:00'),upsertRemote:async(_table,j)=>writes.push(j.drop_time),vectaVerifyPlannerJobSaved:async()=>true,syncTaskFromMiniJob(){}};
+ vm.runInNewContext(namedFunctionSource('plannerChangeIsCurrent')+';async '+namedFunctionSource('persistPlannerJobs'),ctx);
+ await ctx.persistPlannerJobs([{...latest,drop_time:'09:00',updated_at:'2026-10-22T10:00:00Z'},latest]);
+ assert.deepEqual(writes,['11:00']);assert.equal(latest.drop_time,'11:00');
 });

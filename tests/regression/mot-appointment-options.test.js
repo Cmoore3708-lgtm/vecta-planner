@@ -5,8 +5,8 @@ import vm from 'node:vm';
 
 const html=fs.readFileSync(new URL('../../index.html',import.meta.url),'utf8');
 
-test('MOT appointment list ends with Tomorrow followed by Vic Young',()=>{
-  assert.match(html,/function halfHourMotTimeOptions\(val\)[\s\S]*?times\.concat\(\['Tomorrow','Vic Young'\]\)/);
+test('MOT appointment list ends with Tomorrow, Vic Young and Wash Autos',()=>{
+  assert.match(html,/function halfHourMotTimeOptions\(val\)[\s\S]*?times\.concat\(\['Tomorrow','Vic Young','Wash Autos'\]\)/);
 });
 
 test('special MOT appointment choices are preserved when jobs are saved and reopened',()=>{

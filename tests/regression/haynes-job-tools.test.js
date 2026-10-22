@@ -354,3 +354,11 @@ test('current odometer input sits beside last MOT mileage, stays empty for old M
  const unknown=setup(async()=>response(vehicle),undefined,undefined,false,'<input type="hidden" id="job_customer_note" value="[[VECTA_CURRENT_MILEAGE_UNKNOWN]]">');const field=unknown.document.querySelector('#job_current_mileage');assert.equal(field.dataset.mileageUnknown,'true');assert.equal(field.placeholder,'Mileage unknown');field.value='61234';field.dispatchEvent(new unknown.window.Event('input'));assert.equal(field.dataset.mileageUnknown,undefined);
 });
 
+
+test('DY71 UVE reuses the saved Haynes XCeed drawing across model-family aliases',()=>{
+ const {window}=setup(async()=>response(vehicle),undefined,undefined,false);
+ const saved={make:'KIA',model:'Ceed /ProCeed/XCeed (CD)',imageUrl:'https://www.haynespro-assets.com/workshop/images/319029563.svgz'};
+ assert.equal(window.VectaHaynesJobTools.compatibleArtwork(saved,{make:'KIA',model:'XCEED CONNECT ISG'}),true);
+ assert.equal(window.VectaHaynesJobTools.compatibleArtwork(saved,{make:'KIA',model:'SPORTAGE'}),false);
+ assert.equal(window.VectaHaynesJobTools.compatibleArtwork(saved,{make:'FORD',model:'XCEED'}),false);
+});
