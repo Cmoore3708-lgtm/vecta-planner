@@ -339,3 +339,16 @@
 @media screen{
  .job.websiteBookingOutline,.mobileJob.websiteBookingOutline,.unallocatedSideJob.websiteBookingOutline{outline:1.5px solid #2563eb!important;outline-offset:-1.5px!important}
 }
+
+/* PC identity: customer below the plate, with vehicle beside it and no empty type row. */
+@media screen and (min-width:901px){
+ #content .livePriorityPlanner .plannerGrid .lane .job:not(.miniPlannerTask) .plannerJobHeader{display:grid!important;grid-template-columns:minmax(0,1fr) max-content!important;gap:3px 6px!important;width:calc(100% - var(--planner-vehicle-text-inset,150px))!important;height:auto!important;min-height:0!important}
+ #content .livePriorityPlanner .plannerGrid .lane .job:not(.miniPlannerTask) .plannerJobHeader>.plannerJobRightText{grid-column:1;grid-row:2;width:100%!important;height:18px!important;max-height:18px!important}
+ #content .livePriorityPlanner .plannerGrid .lane .job.plannerMotJob .plannerJobHeader>.plannerMotHeader{grid-column:2;grid-row:2;min-width:0}
+
+ #content .livePriorityPlanner .plannerGrid .lane .job:not(.miniPlannerTask) .plannerJobLeft{grid-column:1/-1;grid-row:1;width:100%!important;display:grid!important;grid-template-columns:104px minmax(0,1fr)!important;gap:3px 7px!important;align-items:center!important;padding-top:0!important}
+ #content .livePriorityPlanner .plannerGrid .lane .job .plannerPlateAndMot{grid-column:1;grid-row:1;display:flex;position:static!important}
+ #content .livePriorityPlanner .plannerGrid .lane .job .plannerJobVehicle{grid-column:2;grid-row:1;margin:0!important;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap!important}
+ #content .livePriorityPlanner .plannerGrid .lane .job .plannerJobCustomer{grid-column:1/-1;grid-row:2;display:block;font-size:12px;font-weight:800;line-height:1.2;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+ #content .livePriorityPlanner .plannerGrid .lane .job .plannerJobRightText:empty,#content .livePriorityPlanner .plannerGrid .lane .job .plannerWorkRequired:empty{display:none!important}
+}
