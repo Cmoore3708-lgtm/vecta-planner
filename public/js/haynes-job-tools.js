@@ -258,7 +258,7 @@ root.enrichHaynesInvoice=function(sheet,invoice){
   }
  }
 
- if(matched){const title=strip.querySelector('.invoiceVehicleMake');if(title)title.textContent=[matched.make,matched.model,matched.variant].filter(Boolean).join(' ');}
+ if(matched){const title=strip.querySelector('.invoiceVehicleMake,.invoiceBookingDetails>strong');if(title)title.textContent=[matched.make,matched.model,matched.variant].filter(Boolean).join(' ');}
 };
 root.initHaynesJobTools=function(modal){
  modal?.classList.remove('registrationBooking');
