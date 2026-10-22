@@ -17,13 +17,36 @@
     const vehicleHeader=isFleet?'':'<div class="invoiceBookingHeader"><div class="invoiceBookingDetails"><div class="invoiceBookingPlate">'+plateHtml+badge+'</div><div class="invoiceVehicleIdentityRow"><strong class="invoiceVehicleMake">'+esc(inv.vehicle||'Vehicle')+'</strong>'+(hasMileage?'<span class="invoiceVehicleMileage">'+esc(mileage)+' miles</span>':'')+'</div></div><div class="invoiceBookingArtwork"></div></div>';
     return '<div class="invoicePrintPage"><div class="invoicePrintHeader'+(isFleet?' invoiceFleetHeader':'')+'"><div class="invoiceSender">'+sender+'</div>'+vehicleHeader+'<div class="printTitle">INVOICE'+accountHeading+'<br><span>'+esc(inv.invoice_number||'')+'</span><br><small>'+esc(inv.invoice_date||'')+'</small>'+customer+'</div></div>'+'<table class="printTable invoiceWorkPrint"><tr><th>Work</th><th>'+(staffInvoice?'Amount (ex VAT)':'Amount')+'</th><th>VAT</th></tr>'+rows+'</table><div class="invoiceBottomBlock noBreak"><div class="printTotals noBreak printTotalsGrid"><div><b>Subtotal:</b><span>'+money(inv.subtotal||0)+'</span></div><div><b>VAT:</b><span>'+money(inv.vat||0)+'</span></div><div><b>Total:</b><span>'+money(inv.total||0)+'</span></div></div><div class="printPayment noBreak"><div><b>Bank:</b> '+esc(settings.bankName||'')+' &nbsp; <b>Account Name:</b> '+esc(settings.accountName||'Vecta Motors')+' &nbsp; <b>Account Number:</b> '+esc(settings.accountNumber||'')+' &nbsp; <b>Sort Code:</b> '+esc(settings.sortCode||'')+' &nbsp; <b>Reference:</b> '+esc(inv.registration||'Registration number')+'</div></div></div></div>';
   }
+  async function cutout(scope){
+    const doc=root.document,NS='http://www.w3.org/2000/svg';
+    await Promise.all(Array.from(scope.querySelectorAll('.haynesInvoiceImage')).map(async img=>{
+      if(img.dataset.invoiceCutout==='1')return;
+      const source=img.getAttribute('src')||'';
+      if(!source.startsWith('data:image/svg+xml'))return;
+      let host;
+      try{
+        const svg=new root.DOMParser().parseFromString(decodeURIComponent(source.slice(source.indexOf(',')+1)),'image/svg+xml').documentElement;
+        if(svg.namespaceURI!==NS||svg.localName!=='svg')return;
+        svg.querySelectorAll('[id="background"], [id="gradients_background"], [id="shadow"]').forEach(node=>node.remove());
+        host=doc.createElement('div');host.style.cssText='position:fixed;left:-10000px;top:0;visibility:hidden;pointer-events:none';host.appendChild(svg);doc.body.appendChild(host);
+        const box=svg.getBBox();
+        if(![box.x,box.y,box.width,box.height].every(Number.isFinite)||box.width<=0||box.height<=0)return;
+        svg.setAttribute('viewBox',[box.x,box.y,box.width,box.height].join(' '));
+        svg.setAttribute('width',box.width);svg.setAttribute('height',box.height);svg.setAttribute('preserveAspectRatio','xMaxYMax meet');
+        img.src='data:image/svg+xml;charset=utf-8,'+encodeURIComponent(new root.XMLSerializer().serializeToString(svg));
+        if(img.decode)await img.decode();img.dataset.invoiceCutout='1';
+      }catch{/* Keep the original artwork if its drawing cannot be measured. */}
+      finally{host?.remove();}
+    }));
+  }
   async function print(sheet){
+    await cutout(sheet);
     const doc=root.document,frame=doc.createElement('iframe');
     frame.title='VECTA invoice print';frame.setAttribute('aria-hidden','true');
     frame.style.cssText='position:fixed;left:-10000px;top:0;width:794px;height:1123px;border:0';
     const markup=sheet.querySelector('.invoicePrintPage').outerHTML;
     const loaded=new Promise((resolve,reject)=>{frame.onload=resolve;frame.onerror=()=>reject(Error('Invoice print document could not load'));});
-    frame.srcdoc='<!doctype html><html><head><meta charset="utf-8"><base href="'+root.location.origin+'/"><title>VECTA Invoice</title><link rel="stylesheet" href="/js/vecta-customer-invoice.css?v=20261022-invoice-final-heading"></head><body><main class="printSheet">'+markup+'</main></body></html>';
+    frame.srcdoc='<!doctype html><html><head><meta charset="utf-8"><base href="'+root.location.origin+'/"><title>VECTA Invoice</title><link rel="stylesheet" href="/js/vecta-customer-invoice.css?v=20261022-invoice-plate-cutout"></head><body><main class="printSheet">'+markup+'</main></body></html>';
     doc.body.appendChild(frame);
     try{
       await loaded;
@@ -36,5 +59,5 @@
       win.focus();win.print();
     }catch(error){frame.remove();throw error;}
   }
-  root.VectaInvoicePrint={render,manufacturer,print};
+  root.VectaInvoicePrint={render,manufacturer,print,cutout};
 })(globalThis);

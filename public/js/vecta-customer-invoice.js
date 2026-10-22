@@ -9,7 +9,7 @@
   window.addEventListener('afterprint',afterPrint);
   const printMedia=window.matchMedia?.('print');
   printMedia?.addEventListener?.('change',event=>event.matches?beforePrint():afterPrint());
-  const ready=window.VectaVehicleImage?.mount(document)||Promise.resolve();
+  const ready=Promise.resolve(window.VectaVehicleImage?.mount(document)).then(()=>window.VectaInvoicePrint?.cutout(document));
   document.getElementById('printInvoice').addEventListener('click',async()=>{
     await ready;
     await Promise.all(Array.from(document.images).map(img=>img.complete?Promise.resolve():new Promise(resolve=>{

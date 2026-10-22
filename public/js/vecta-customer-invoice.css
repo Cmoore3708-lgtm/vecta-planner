@@ -7,10 +7,10 @@ html,body{margin:0;padding:0;font-family:Arial,Helvetica,sans-serif;font-size:12
 .invoiceActions{display:flex;justify-content:center;padding:16px;position:relative}
 .invoiceActions button{padding:12px 18px;background:#202631;color:#fff;border:0;border-radius:6px;font:inherit;cursor:pointer}
 .invoiceBookingHeader{display:contents}
-.invoiceBookingDetails{grid-column:2;grid-row:1;padding:0 0 0 16px;min-width:0;justify-self:start;align-self:end}
+.invoiceBookingDetails{display:contents}
 .invoiceBookingArtwork{grid-column:3;grid-row:1;align-self:end}
 .invoiceVehicleMake{display:block;font-size:16px;line-height:1.3}
-.invoiceBookingPlate{display:flex;align-items:center;gap:12px;margin:0 0 8px}
+.invoiceBookingPlate{display:flex;grid-column:2;grid-row:1;align-self:end;justify-self:start;align-items:center;gap:12px;margin:0 0 0 16px}
 .invoiceBookingDetails>small{display:block;font-size:10px;color:#555}
 .invoiceMakeBadge{width:38px;height:26px;object-fit:contain}
 .invoiceUkPlate{display:inline-flex;align-items:stretch;overflow:hidden;border:1px solid #222;border-radius:5px;background:#f2cb37;color:#111;line-height:1;white-space:nowrap;print-color-adjust:exact;-webkit-print-color-adjust:exact}
@@ -59,5 +59,5 @@ html,body{margin:0;padding:0;font-family:Arial,Helvetica,sans-serif;font-size:12
  thead{display:table-header-group}
 }
 
-.invoiceVehicleIdentityRow{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
+.invoiceVehicleIdentityRow{display:flex;grid-column:2;grid-row:2;align-self:start;margin-left:16px;align-items:baseline;gap:10px;flex-wrap:wrap}
 .invoiceVehicleMileage{font-size:10px;color:#555;white-space:nowrap}

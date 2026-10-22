@@ -111,15 +111,15 @@ export async function renderCustomerInvoicePdf(invoice, settings = {}, job = {},
   const headerOffset=isFleet?0:-4;
   if(!isFleet){
     const vehicleLines=wrap(invoice.vehicle||job.vehicle||'Vehicle',170,12,bold).slice(0,2);
-    vehicleLines.forEach((line,i)=>text(line,250,714-i*15,12,bold));
+    vehicleLines.forEach((line,i)=>text(line,250,690-i*15,12,bold));
     const plate=String(invoice.registration||'NO REG').toUpperCase(),plateWidth=Math.max(100,bold.widthOfTextAtSize(plate,17)+28);
-    page.drawRectangle({x:250,y:739,width:plateWidth,height:28,color:rgb(.95,.80,.22),borderColor:ink,borderWidth:.7});
-    page.drawRectangle({x:250,y:739,width:17,height:28,color:rgb(.09,.38,.55)});
-    text('GB',253,748,7,bold,rgb(1,1,1));text(plate,273,746,17,bold);
-    if(badge){const scale=Math.min(32/badge.width,24/badge.height);page.drawImage(badge,{x:250+plateWidth+10,y:741,width:badge.width*scale,height:badge.height*scale});}
+    page.drawRectangle({x:250,y:714,width:plateWidth,height:28,color:rgb(.95,.80,.22),borderColor:ink,borderWidth:.7});
+    page.drawRectangle({x:250,y:714,width:17,height:28,color:rgb(.09,.38,.55)});
+    text('GB',253,723,7,bold,rgb(1,1,1));text(plate,273,721,17,bold);
+    if(badge){const scale=Math.min(32/badge.width,24/badge.height);page.drawImage(badge,{x:250+plateWidth+10,y:716,width:badge.width*scale,height:badge.height*scale});}
     const mileage=invoice.mileage??job.mileage;
-    if(mileage!==''&&mileage!=null&&Number.isFinite(Number(String(mileage).replace(/,/g,''))))text(String(mileage)+' miles',250+bold.widthOfTextAtSize(vehicleLines.at(-1)||'',12)+10,714-(vehicleLines.length-1)*15,8,regular,muted);
-    if(car){const scale=Math.min(120/car.width,80/car.height);page.drawImage(car,{x:553-car.width*scale,y:700,width:car.width*scale,height:car.height*scale});}
+    if(mileage!==''&&mileage!=null&&Number.isFinite(Number(String(mileage).replace(/,/g,''))))text(String(mileage)+' miles',250+bold.widthOfTextAtSize(vehicleLines.at(-1)||'',12)+10,690-(vehicleLines.length-1)*15,8,regular,muted);
+    if(car){const scale=Math.min(120/car.width,80/car.height);page.drawImage(car,{x:553-car.width*scale,y:714,width:car.width*scale,height:car.height*scale});}
 
   }
   if (logo) { const scale = Math.min((isFleet?215:180) / logo.width, 48 / logo.height); page.drawImage(logo, { x: 42, y: 710-headerOffset, width: logo.width * scale, height: logo.height * scale }); }
