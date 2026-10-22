@@ -9706,6 +9706,9 @@ async function vectaRestoreLatestBackupIfNeeded(){
     if(vectaHasUsableWorkshopData(app))return false;
     var rows=await vectaListBackups(),usable=rows.find(function(r){return r&&r.app&&vectaBackupJobCount(r)>0&&Array.isArray(r.app.jobs)});
     if(!usable)return false;
+    /* Storage may finish after the cloud or another local edit. Recheck after
+       awaiting it so an older snapshot cannot replace the newly loaded diary. */
+    if(vectaHasUsableWorkshopData(app))return false;
     app=merge(app,JSON.parse(JSON.stringify(usable.app)));
     if(typeof fleetVehicles!=='undefined'&&Array.isArray(usable.fleetVehicles)&&usable.fleetVehicles.length)fleetVehicles=JSON.parse(JSON.stringify(usable.fleetVehicles));
     if(typeof fleetPlans!=='undefined'&&Array.isArray(usable.fleetPlans)&&usable.fleetPlans.length)fleetPlans=JSON.parse(JSON.stringify(usable.fleetPlans));
@@ -9835,8 +9838,11 @@ function migrateLegacyTasksLocal(){
   }
 }
 function loadLocal(){
-  var raw=localStorage.getItem(STORE_KEY);
-  if(raw){var old=JSON.parse(raw); app=merge(app,old);}
+  var raw=null;
+  try{
+    raw=localStorage.getItem(STORE_KEY);
+    if(raw){var old=JSON.parse(raw);if(!old||typeof old!=='object'||Array.isArray(old))throw new Error('Invalid saved workshop data.');app=merge(app,old);}
+  }catch(e){raw=null;console.warn('Local workshop data unavailable; continuing with snapshot recovery and cloud startup.',e)}
   /* Import task lists from very old planner builds ONCE. Previously these
      keys were re-imported on every refresh, resurrecting tasks that had just
      been completed or deleted. */
@@ -10652,7 +10658,13 @@ function init(){safe(async function(){
   /* IndexedDB recovery is useful when localStorage is empty, but iOS can leave the
      request pending. Give it a short opportunity without ever blocking the screen
      or the subsequent live cloud connection. */
-  try{await vectaWithTimeout(vectaRestoreLatestBackupIfNeeded(),1500,'Local backup recovery')}catch(e){console.warn('Local backup recovery continuing in background',e)}
+  var localRecovery=vectaRestoreLatestBackupIfNeeded().then(function(restored){
+    /* The startup timeout does not cancel IndexedDB. Redraw if recovery finishes
+       after the offline screen has already been released. */
+    if(restored&&vectaCloudReachable===false)render();
+    return restored;
+  });
+  try{await vectaWithTimeout(localRecovery,1500,'Local backup recovery')}catch(e){console.warn('Local backup recovery continuing in background',e)}
   /* Backups must never block startup. */
   vectaCreateDailyBackup(false,'startup-local').catch(function(e){console.warn('Startup backup skipped',e)});
   setInterval(function(){checkForNewWorkshopDay();if(view==='planner')updateCurrentTimeLine()},30000);
