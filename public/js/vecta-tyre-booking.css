@@ -1,7 +1,7 @@
 .tyre-picker .tyre-picker-head p{max-width:620px}
 .tyre-guide-card{min-width:0;background:#202329;border:1.5px solid #b52635;border-radius:14px;overflow:hidden;box-shadow:0 10px 25px #0002}
 .tyre-guide-card.selected{border-color:#ff354b;box-shadow:0 0 0 1px #ff354b,0 12px 30px #0004}
-.tyre-guide-card.blocked{opacity:.5}
+.tyre-guide-card.blocked{opacity:.5;filter:grayscale(1)}
 .tyre-picker .tyre-guide-card .tyre-option{width:100%;min-height:0;border:0;border-radius:0;background:none;box-shadow:none;transform:none;gap:0;padding:16px 10px 13px}
 .tyre-cutout{display:block;width:100%;height:150px;object-fit:contain;margin:2px auto 13px;filter:drop-shadow(0 8px 9px #0006)}
 .tyre-option .tyre-guide-price{display:block;font-size:32px;line-height:1.1;font-weight:850;color:#fff;letter-spacing:-1px;margin:13px 0 0}
