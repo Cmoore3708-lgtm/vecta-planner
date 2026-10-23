@@ -362,3 +362,16 @@ test('DY71 UVE reuses the saved Haynes XCeed drawing across model-family aliases
  assert.equal(window.VectaHaynesJobTools.compatibleArtwork(saved,{make:'KIA',model:'SPORTAGE'}),false);
  assert.equal(window.VectaHaynesJobTools.compatibleArtwork(saved,{make:'FORD',model:'XCEED'}),false);
 });
+
+test('explicit header click opens the registration-matched Haynes vehicle in the reserved tab',async()=>{
+ const {window,panel}=setup(async()=>response(vehicle),undefined,undefined,false);
+ let destination='',closed=false,opened=false;const target={opener:{},location:{replace:url=>{destination=url}},close:()=>{closed=true}};
+ window.open=(url,name)=>{assert.equal(url,'about:blank');assert.equal(name,'_blank');opened=true;return target;};
+ const pending=lookupButton(panel).onclick({type:'click'});assert.equal(opened,true);assert.equal(target.opener,null);await pending;
+ assert.equal(destination,window.VectaHaynesJobTools.vehicleLink(vehicle));assert.equal(closed,false);
+});
+test('a failed Haynes lookup closes the reserved tab and displays the failure',async()=>{
+ const {window,panel}=setup(async()=>({ok:false,json:async()=>({status:'UNAVAILABLE'})}),undefined,undefined,false);
+ let closed=false;window.open=()=>({opener:{},location:{replace:()=>assert.fail('must not open an uncertain match')},close:()=>{closed=true}});
+ await lookupButton(panel).onclick({type:'click'});assert.equal(closed,true);assert.match(panel.querySelector('[role="status"]').textContent,/unavailable/i);
+});

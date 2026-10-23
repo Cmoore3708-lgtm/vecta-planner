@@ -1,7 +1,7 @@
 {
   "approvedOn": "2026-10-23",
   "approvedBy": "Chris Moore",
-  "approval": "Chris’s 23 October screenshot request: hide duplicate MOT job-type/template wording when an MOT appointment is displayed, and let the PC vehicle make/model extend to the visible car edge. Shared Main/mechanics renderers checked at PC and phone widths; extra work and appointment remain visible. MOT confirmation request: Chris approved green MOT/time after garage confirmation and automatic allocation of unallocated MOT jobs to Chris. Only mobileMotAppointmentHtml and plannerMotHeaderHtml are additionally changed; both Main/mechanics outputs are covered by regression tests.",
+  "approval": "Chris’s 23 October screenshot request: hide duplicate MOT job-type/template wording when an MOT appointment is displayed, and let the PC vehicle make/model extend to the visible car edge. Shared Main/mechanics renderers checked at PC and phone widths; extra work and appointment remain visible. MOT confirmation request: Chris approved green MOT/time after garage confirmation and automatic allocation of unallocated MOT jobs to Chris. Only mobileMotAppointmentHtml and plannerMotHeaderHtml are additionally changed; both Main/mechanics outputs are covered by regression tests. Chris’s 23 October mechanic screenshot request: remove overlapping card text at PC and iPad widths. Identity rows now reserve their natural height and work follows the header. Checked shared Main/mechanics CSS at 800, 1024 and 1440px; phone rules retained.",
   "layout": {
     "main": {
       "functions": {
@@ -94,7 +94,7 @@
           "3a9a42c6c0bf2d0614443fe79675792f688eb5512c394fbfd54ec1fb14fd13de"
         ]
       },
-      "styles": "9bae682689b07ac8ef3e5997aa94c00788987810d1a093b71d1b3cfc3f57918e",
+      "styles": "c67d3e3eba606f8ee9f127133dcb27b9562f7a0bcccc1034bfa7d0e079c4c8ee",
       "injectedStyles": [
         "bea850ce68304d8a50a6018729fb5923f614c6708b6a11a3d3d937b525dd855a"
       ]
@@ -190,7 +190,7 @@
           "3a9a42c6c0bf2d0614443fe79675792f688eb5512c394fbfd54ec1fb14fd13de"
         ]
       },
-      "styles": "d3c7991130480eb1c30bab8beda2f3b575b89f4230bf8c5ac901ec812c12a4b7",
+      "styles": "218c8ebe1e8a5b7306ec2629ed7f6190b3dd2cb52df43e2e59542ec3fc3aeb5b",
       "injectedStyles": [
         "bea850ce68304d8a50a6018729fb5923f614c6708b6a11a3d3d937b525dd855a"
       ]

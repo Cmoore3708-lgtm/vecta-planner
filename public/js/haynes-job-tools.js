@@ -427,19 +427,23 @@ root.initHaynesJobTools=function(modal){
   if(!panel.isConnected)return;clear();if(event){failed.delete(current());}
 const requested=current(),expectedMake=make(modal.querySelector('#job_make')?.value);
   if(noVehicle?.checked||!lookupRegistration(requested)){status.textContent='Enter the actual vehicle registration first. Placeholder names cannot be looked up.';return;}
+  // Open during the click so browsers do not block the eventual vehicle page.
+  const target=event&&typeof root.open==='function'?root.open('about:blank','_blank'):null;
+  if(target)target.opener=null;
   const run=sequence;
   button.disabled=true;status.textContent='Looking up vehicle…';
   try{
    const v=await lookup(requested,expectedMake,{force:!!event});
-   if(run!==sequence||!panel.isConnected||current()!==requested||noVehicle?.checked)return;
+   if(run!==sequence||!panel.isConnected||current()!==requested||noVehicle?.checked){target?.close();return;}
    if(!v||reg(v?.registration)!==requested||!v?.model||!v?.variant||!v?.make||!vehicleLink(v)||(expectedMake&&make(v.make)!==expectedMake))throw Error('UNAVAILABLE');
+   if(target)target.location.replace(vehicleLink(v));
    remember(v);showHeaderVehicle(v);const link=document.createElement('a');link.className='btn dark';link.href=vehicleLink(v);link.target='_blank';link.rel='noopener noreferrer';link.textContent='Open this vehicle in HaynesPro';
    const details=document.createElement('div'),title=document.createElement('strong'),note=document.createElement('small');
    title.textContent=[v.make,v.model,v.variant].join(' ');note.textContent=[v.engineCode,v.modelYears].filter(Boolean).join(' · ');details.append(title,note);
    body.replaceChildren();const src=image(v.imageUrl);if(src){const img=document.createElement('img');img.src=artworkUrl(src);img.alt=(v.generic?'Generic model image: ':'Representative ')+v.make+' '+v.model;img.title=v.generic?'Generic model image — appearance may differ':img.alt;img.dataset.generic=String(!!v.generic);img.dataset.vehicleMake=v.make||'';img.dataset.registration=requested;img.dataset.vehicleName=[v.make,v.model].join(' ');img.onerror=()=>img.remove();body.appendChild(img);}
    const times=document.createElement('a');times.className='btn';times.href='https://www.workshopdata.com/touch/site/layout/repairTimes?typeId='+encodeURIComponent(v.typeId)+'&groupId=QUICKGUIDES';times.target='_blank';times.rel='noopener noreferrer';times.textContent='Repair times';
    if(!src)showGeneric();body.append(details,link,times);status.textContent='Matched vehicle — check the variant before using technical data.';button.textContent='Haynes Pro';
-  }catch{if(run===sequence&&panel.isConnected&&current()===requested)button.textContent='Haynes Pro';if(run===sequence&&panel.isConnected&&current()===requested)status.textContent=({NOT_CONFIGURED:'HaynesPro lookup is not configured for this preview.',OFFLINE:'The workshop HaynesPro worker is offline.',LOGIN_REQUIRED:'The workshop HaynesPro login needs renewing.',VERIFICATION_REQUIRED:'HaynesPro needs verification on the workshop PC.',BUSY:'HaynesPro is busy. Try again shortly.',DAILY_LIMIT:'The daily HaynesPro lookup limit has been reached.'}[failStatus.get(requested)]||'HaynesPro unavailable or vehicle match uncertain.')+' You can still save this job.';}
+  }catch{target?.close();if(run===sequence&&panel.isConnected&&current()===requested)button.textContent='Haynes Pro';if(run===sequence&&panel.isConnected&&current()===requested)status.textContent=({NOT_CONFIGURED:'HaynesPro lookup is not configured for this preview.',OFFLINE:'The workshop HaynesPro worker is offline.',LOGIN_REQUIRED:'The workshop HaynesPro login needs renewing.',VERIFICATION_REQUIRED:'HaynesPro needs verification on the workshop PC.',BUSY:'HaynesPro is busy. Try again shortly.',DAILY_LIMIT:'The daily HaynesPro lookup limit has been reached.'}[failStatus.get(requested)]||'HaynesPro unavailable or vehicle match uncertain.')+' You can still save this job.';}
   finally{if(run===sequence)button.disabled=!!noVehicle?.checked;}
  };
  if(!noVehicle?.checked&&identitySnapshot(current()))button.onclick();
