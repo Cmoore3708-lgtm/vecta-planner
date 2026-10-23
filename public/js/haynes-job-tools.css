@@ -342,7 +342,7 @@
 
 /* PC identity: customer below the plate, with vehicle beside it and no empty type row. */
 @media screen and (min-width:901px){
- #content .livePriorityPlanner .plannerGrid .lane .job:not(.miniPlannerTask) .plannerJobHeader{display:grid!important;grid-template-columns:minmax(0,1fr) max-content!important;gap:3px 6px!important;width:calc(100% - var(--planner-vehicle-text-inset,150px))!important;height:auto!important;min-height:0!important}
+ #content .livePriorityPlanner .plannerGrid .lane .job:not(.miniPlannerTask) .plannerJobHeader{display:grid!important;grid-template-columns:minmax(0,1fr) max-content!important;gap:3px 6px!important;width:calc(100% - var(--planner-identity-text-inset,var(--planner-vehicle-text-inset,150px)))!important;height:auto!important;min-height:0!important}
  #content .livePriorityPlanner .plannerGrid .lane .job:not(.miniPlannerTask) .plannerJobHeader>.plannerJobRightText{grid-column:1;grid-row:2;width:100%!important;height:18px!important;max-height:18px!important}
  #content .livePriorityPlanner .plannerGrid .lane .job.plannerMotJob .plannerJobHeader>.plannerMotHeader{grid-column:1/-1;grid-row:2;justify-self:start;min-width:0}
 
@@ -370,6 +370,12 @@
  #jobList{max-width:100%;overflow-x:auto}
  #jobModal .modalFoot{justify-content:flex-start!important}
  #jobModal .modalFoot>*{margin-left:0!important;margin-right:0!important}
+}
+
+/* PC/iPad work text follows the visible vehicle outline, including generic fallback cars. */
+@media screen and (min-width:769px){
+ #content .livePriorityPlanner .plannerGrid .lane .job.plannerArtworkWrapped .plannerWorkRequired{right:7px!important;width:auto!important;max-width:none!important;word-break:normal!important;overflow-wrap:anywhere!important}
+ .plannerWorkRequired>.plannerArtworkExclusion{display:block;float:right;pointer-events:none;user-select:none;margin:0;padding:0;border:0;shape-margin:0}
 }
 
 /* Compact booking-style vehicle heading, isolated from dashboard layout. */

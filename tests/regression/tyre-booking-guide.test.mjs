@@ -72,7 +72,7 @@ test('number-only size entry keeps separators fixed and searches only on Check L
  button.click();await tick();assert.equal(calls.length,0);assert.match(document.querySelector('#tyreGuideStatus').textContent,/Enter all three numbers/);
  for(const [index,value]of ['2a05','55','16'].entries()){inputs[index].value=value;inputs[index].oninput();}await tick();assert.equal(form.tyre_size,'205/55R16');assert.equal(calls.length,0);
  button.click();await tick();assert.equal(calls.length,1);assert.deepEqual(calls[0].body,{size:'205/55R16',quantity:1});assert.equal(document.querySelector('.tyre-guide-price').textContent,'£62');
- inputs[1].value='60';inputs[1].oninput();assert.equal(form.tyre_guide,null);assert.equal(document.querySelector('.tyre-guide-price').textContent,'—');await tick();assert.equal(calls.length,1);
+ inputs[1].value='60';inputs[1].oninput();assert.equal(form.tyre_guide,null);assert.equal(document.querySelectorAll('.tyre-guide-price').length,0);assert.match(document.querySelector('.tyre-brand-empty').textContent,/Price on request/);await tick();assert.equal(calls.length,1);
  let prevented=false;inputs[0].onpaste({clipboardData:{getData:()=>'225/45R17'},preventDefault(){prevented=true}});assert.equal(prevented,true);assert.equal(form.tyre_size,'225/45R17');assert.deepEqual(inputs.map(e=>e.value),['225','45','17']);assert.equal(calls.length,1);
  vm.runInContext('tyreLookup.dispose()',context);
 });
@@ -87,10 +87,10 @@ test('quantity buttons automatically refresh checked prices and select sufficien
  try{
   step('Budget','1');await tick();assert.equal(calls.length,0,'initial size search still requires the search button');
   step('Budget','-1');document.querySelector('[data-tyre-check]').click();await tick();
-  assert.equal(document.querySelectorAll('.tyre-guide-price')[2].textContent,'£95');
+  assert.equal(document.querySelector('[data-tyre-choice="Premium"]').closest('.tyre-guide-card').querySelector('.tyre-guide-price').textContent,'£95');
   step('Premium','1');assert.equal(form.tyre_guide,null,'old quantity quote must not be saved while checking');await tick();
   assert.deepEqual(calls,[{size:'205/55R16',quantity:1},{size:'205/55R16',quantity:2}]);
-  assert.equal(document.querySelectorAll('.tyre-guide-price')[2].textContent,'£101','premium stock for one must not be reused for two');
+  assert.equal(document.querySelector('[data-tyre-choice="Premium"]').closest('.tyre-guide-card').querySelector('.tyre-guide-price').textContent,'£101','premium stock for one must not be reused for two');
   assert.equal(document.querySelectorAll('.tyre-guide-total')[2].textContent,'2 tyres: £202');
   assert.equal(form.tyre_guide.totalPence,20200);assert.equal(form.tyre_guide.quantity,2);
   for(const card of document.querySelectorAll('.tyre-guide-card')){assert.doesNotMatch(card.textContent,/guide/i);assert.match(card.textContent,/per tyre · fully fitted/)}
@@ -124,4 +124,32 @@ test('retry is bounded and never repeats login, offline, configuration failures 
 test('changing the size cancels an unavailable result before it can launch a retry',async()=>{
  const c=client(),pending=[];const ctrl=c.createController({delay:0,fetchGuide:(size,quantity,signal)=>new Promise(resolve=>pending.push({size,signal,resolve}))});
  ctrl.update('205/55R16',1);await tick();ctrl.update('',1);pending[0].resolve({status:'UNAVAILABLE'});await tick();assert.equal(pending[0].signal.aborted,true);assert.equal(pending.length,1);assert.equal(ctrl.getState().status,'idle');ctrl.dispose();
+});
+test('three brand rows per range select and retain the actual brand in booking review and notes',async()=>{
+ const {parseHTML}=await import('linkedom'),{document}=parseHTML('<html><body><main></main></body></html>');
+ const form={job_types:['Tyres'],tyre_size:'205/55R16',tyre_quantity:1,tyre_choice:'',nevos_vehicle:'no'};
+ const context=vm.createContext({document,state:{form},VectaTyreBooking:client(),renderActions(){},esc:String,Intl,Date});
+ const html=readFileSync(new URL('../../website/booking/index.html',import.meta.url),'utf8');
+ vm.runInContext(html.slice(html.indexOf('let tyreGuideState='),html.indexOf('function pricingHtml(')),context);
+ document.querySelector('main').innerHTML=context.tyreOptionsHtml();
+ vm.runInContext('tyreGuideState={status:"matched",result:'+JSON.stringify(payload())+'};refreshTyrePanel()',context);
+ assert.deepEqual([...document.querySelectorAll('.tyre-guide-card')].map(card=>card.querySelectorAll('.tyre-brand-choice').length),[3,3,3]);
+ assert.equal(document.querySelectorAll('.tyre-brand-label').length,3);
+ document.querySelector('[data-tyre-brand="KUMHO"]').click();
+ assert.equal(form.tyre_choice,'Mid Range');assert.equal(form.tyre_brand,'KUMHO');assert.equal(form.tyre_guide.unitPence,7500);
+ assert.match(context.tyreBookingDescription(),/Tyre: KUMHO/);assert.match(context.tyreBookingDescription(),/£75 total including VAT/);
+ assert.equal(document.querySelector('[data-tyre-brand="KUMHO"]').getAttribute('aria-pressed'),'true');
+ const review=html.match(/function tyreReviewHtml\(\)[^\n]+/)[0];vm.runInContext(review,context);
+ assert.match(context.tyreReviewHtml(),/KUMHO/);assert.match(context.tyreReviewHtml(),/£75/);
+ form.nevos_vehicle='yes';document.querySelector('main').innerHTML=context.tyreOptionsHtml();context.bindTyreCards();
+ for(const row of document.querySelectorAll('[data-tyre-brand]'))assert.equal(row.disabled,row.dataset.tyreChoice!=='Premium');
+ const old=form.tyre_brand;document.querySelector('[data-tyre-brand="COMFORSER"]').click();assert.equal(form.tyre_brand,old);
+});
+test('choice validation accepts legacy single-brand responses and rejects malformed or duplicated extra brands',()=>{
+ const c=client(),p=payload();
+ const legacy={...p,options:p.options.map(({choices,...rest})=>rest)};
+ assert.equal(c.cleanResult(legacy,p.size,1).options[0].choices.length,1);
+ for(const choices of [[],Array(4).fill(p.options[0].choices[0]),[p.options[0].choices[0],p.options[0].choices[0]],[p.options[0].choices[0],{...p.options[0].choices[1],totalPence:1}]]){
+  assert.throws(()=>c.cleanResult({...p,options:[{...p.options[0],choices},...p.options.slice(1)]},p.size,1));
+ }
 });

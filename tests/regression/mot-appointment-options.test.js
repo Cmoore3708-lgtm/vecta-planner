@@ -28,6 +28,10 @@ test('planner MOT label keeps the vehicle name visible and uses appointment time
  assert.equal(context.plannerJobDescription({job_type:'mot',mot_time:'14:00',work_required:'MOT test\nCheck brakes'}),'Check brakes');
  assert.equal(context.plannerJobDescription({job_type:'mot',work_required:'MOT test'}),'MOT test');
  assert.equal(context.plannerJobDescription({job_type:'general',work_required:'General\nInvestigate noise'}),'Investigate noise');
+ for(const mot_time of ['14:00','Vic Young','Wash Autos']){
+  assert.equal(context.plannerJobDescription({job_type:'mot',mot_time,work_required:'MOT test / MOT preparation.\nCheck brakes'}),'Check brakes');
+  assert.equal(context.plannerJobDescription({job_type:'mot',mot_time,work_required:'MOT preparation: inspect corrosion'}),'MOT preparation: inspect corrosion');
+ }
  assert.equal(context.mobileJobCategoryLabel({customer_account:'NDS'}),'NDS');
  assert.doesNotMatch(result,/websiteBookingOutline/);
  assert.match(context.jobCardHtml({id:'web',job_type:'mot',website_request_id:'request-1',estimated_hours:1}),/websiteBookingOutline/);

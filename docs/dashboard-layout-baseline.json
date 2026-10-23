@@ -1,7 +1,7 @@
 {
-  "approvedOn": "2026-10-22",
+  "approvedOn": "2026-10-23",
   "approvedBy": "Chris Moore",
-  "approval": "22 October 2026: Chris requested red MOT/time with black work text, cutout vehicle artwork across Main/mechanics/mobile, and the planner date beside its weekday. Only those requested dashboard styles change; the remaining approved layout stays locked. MOT confirmation request: Chris approved automatic green MOT/time with a tick when garage email matches, plus a copy to his Nissan Fleet inbox. Main and generated mechanics desktop/mobile status markup verified by mot-confirmations.test.js; only the two MOT badge renderers change. Existing geometry and other styles remain locked.",
+  "approval": "Chris’s 23 October screenshot request: hide duplicate MOT job-type/template wording when an MOT appointment is displayed, and let the PC vehicle make/model extend to the visible car edge. Shared Main/mechanics renderers checked at PC and phone widths; extra work and appointment remain visible. MOT confirmation request: Chris approved green MOT/time after garage confirmation and automatic allocation of unallocated MOT jobs to Chris. Only mobileMotAppointmentHtml and plannerMotHeaderHtml are additionally changed; both Main/mechanics outputs are covered by regression tests.",
   "layout": {
     "main": {
       "functions": {
@@ -9,7 +9,7 @@
           "ce7bc1778d301acc618b8410ccd38ace8621eb0b7ab76ca0c51b5f448194cf41"
         ],
         "artwork.genericDashboardArtwork": [
-          "7641134af456f4c2b3e987bc87dc3644c21d0163d2019e61f5649fdcc391c712"
+          "ba8adafcd4b979a82f3b6718b6b9b2f85867c107fe2166e7adadd9c3d925e61e"
         ],
         "artwork.install": [
           "984961154578b61eb32087be1f8cb772d7799e8e3855df1f6c1216c8663bef2f"
@@ -17,8 +17,14 @@
         "artwork.mobileManufacturerBadge": [
           "b435ce8bd03c274a3854119c1ad4f6007bb3b96d34811e6a6a2f1f89bbf56c14"
         ],
+        "artwork.plannerArtworkPolygon": [
+          "c00f7b1dbbf818cc86f6398ba7f5e64b4069257231d69ebdc8891c0e7ddb0851"
+        ],
+        "artwork.plannerArtworkProfile": [
+          "050407d4f0c9426158c10a7e6729b21d8f218d5135a911744cebe811ddf206db"
+        ],
         "artwork.trackTimedArtwork": [
-          "dbab92a132e31c5718ce9940ccc249546580ebc8455aa91603cfd3090b9bcd7f"
+          "4e6e089eb0f588d454d6c852f61d28eed988b41b75b8cceced53aee4643da8be"
         ],
         "currentTimeLineHtml": [
           "e88476836fbd89bfabfb0ae444f39154c1b5a61601589f1f164deaa92cc556bf"
@@ -34,7 +40,7 @@
           "e34fc942ef5b6d5524c97a112ffff1ff331642243af2a3a0ba04aaeb0f0dcf3a"
         ],
         "mobileJobCardHtml": [
-          "95c72ce42bbf6dda49ec2c4ca92d70a5141f8718ef8ae39b5ac3cff1f1da56a9"
+          "e093c855956b7e9874e96011e4ac6dbe7b636c6ec573793b3a43b1838e9cb53f"
         ],
         "mobileJobCategoryLabel": [
           "40e9cd14a67e72f9e3f664bac42c93a924ddcd168f900eb37913228dba56c798"
@@ -52,7 +58,7 @@
           "26e3ed63b218a16ad042afe76e477213faee324788b7a42769dde5369a1a9438"
         ],
         "plannerJobDescription": [
-          "cadbc956980adbf8444c2e15eb147edfde542ce599e9ef84a998532a6f0dc676"
+          "ef28ffca9add68705a6a77af920de659b7f033a73014d4e5283072d6a765553e"
         ],
         "plannerJobTypesHtml": [
           "a89ca7f9ba3de0f507f3bd54a788f2d6d1cd078bfc7019584612c1982859ab89"
@@ -88,7 +94,7 @@
           "3a9a42c6c0bf2d0614443fe79675792f688eb5512c394fbfd54ec1fb14fd13de"
         ]
       },
-      "styles": "645f424543ad7277f5910d762c443b751706e0d2e31e2f92fe1327adcc39c246",
+      "styles": "9bae682689b07ac8ef3e5997aa94c00788987810d1a093b71d1b3cfc3f57918e",
       "injectedStyles": [
         "bea850ce68304d8a50a6018729fb5923f614c6708b6a11a3d3d937b525dd855a"
       ]
@@ -99,7 +105,7 @@
           "ce7bc1778d301acc618b8410ccd38ace8621eb0b7ab76ca0c51b5f448194cf41"
         ],
         "artwork.genericDashboardArtwork": [
-          "7641134af456f4c2b3e987bc87dc3644c21d0163d2019e61f5649fdcc391c712"
+          "ba8adafcd4b979a82f3b6718b6b9b2f85867c107fe2166e7adadd9c3d925e61e"
         ],
         "artwork.install": [
           "984961154578b61eb32087be1f8cb772d7799e8e3855df1f6c1216c8663bef2f"
@@ -107,8 +113,14 @@
         "artwork.mobileManufacturerBadge": [
           "b435ce8bd03c274a3854119c1ad4f6007bb3b96d34811e6a6a2f1f89bbf56c14"
         ],
+        "artwork.plannerArtworkPolygon": [
+          "c00f7b1dbbf818cc86f6398ba7f5e64b4069257231d69ebdc8891c0e7ddb0851"
+        ],
+        "artwork.plannerArtworkProfile": [
+          "050407d4f0c9426158c10a7e6729b21d8f218d5135a911744cebe811ddf206db"
+        ],
         "artwork.trackTimedArtwork": [
-          "dbab92a132e31c5718ce9940ccc249546580ebc8455aa91603cfd3090b9bcd7f"
+          "4e6e089eb0f588d454d6c852f61d28eed988b41b75b8cceced53aee4643da8be"
         ],
         "currentTimeLineHtml": [
           "e88476836fbd89bfabfb0ae444f39154c1b5a61601589f1f164deaa92cc556bf"
@@ -124,7 +136,7 @@
           "e34fc942ef5b6d5524c97a112ffff1ff331642243af2a3a0ba04aaeb0f0dcf3a"
         ],
         "mobileJobCardHtml": [
-          "95c72ce42bbf6dda49ec2c4ca92d70a5141f8718ef8ae39b5ac3cff1f1da56a9"
+          "e093c855956b7e9874e96011e4ac6dbe7b636c6ec573793b3a43b1838e9cb53f"
         ],
         "mobileJobCategoryLabel": [
           "40e9cd14a67e72f9e3f664bac42c93a924ddcd168f900eb37913228dba56c798"
@@ -142,7 +154,7 @@
           "26e3ed63b218a16ad042afe76e477213faee324788b7a42769dde5369a1a9438"
         ],
         "plannerJobDescription": [
-          "cadbc956980adbf8444c2e15eb147edfde542ce599e9ef84a998532a6f0dc676"
+          "ef28ffca9add68705a6a77af920de659b7f033a73014d4e5283072d6a765553e"
         ],
         "plannerJobTypesHtml": [
           "a89ca7f9ba3de0f507f3bd54a788f2d6d1cd078bfc7019584612c1982859ab89"
@@ -178,7 +190,7 @@
           "3a9a42c6c0bf2d0614443fe79675792f688eb5512c394fbfd54ec1fb14fd13de"
         ]
       },
-      "styles": "3ca75f576c5fe8ac5a8294aff778613b77b25d459fbfb6c7f16311705d2d921d",
+      "styles": "d3c7991130480eb1c30bab8beda2f3b575b89f4230bf8c5ac901ec812c12a4b7",
       "injectedStyles": [
         "bea850ce68304d8a50a6018729fb5923f614c6708b6a11a3d3d937b525dd855a"
       ]
@@ -192,15 +204,14 @@
     }
   ],
   "verification": {
-    "date": "2026-10-22",
+    "date": "2026-10-23",
     "surfaces": [
       "Main PC 1440px",
-      "Main phone 390px",
-      "Main iPad 820px",
       "Mechanics PC 1440px",
+      "Main phone 390px",
       "Mechanics phone 390px",
       "Mechanics iPad 820px"
     ],
-    "method": "Local Chromium browser checks of rendered MOT colours, single-line date fit, job footer placement, October/November/December navigation and Wash Autos option; shared renderer parity checked by layout lock."
+    "method": "Chromium compared the previous layout with the fix using the actual saved Audi Q7 (JH08URN) and Audi A4 (HGZ7396) SVG drawings and generic ADAM fallback. Checked rendered text against painted image pixels, scrolling, viewport resize and manual artwork replacement. Phone cards remain unchanged. Added negative lock tests for both outline calculation helpers."
   }
 }

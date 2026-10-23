@@ -8,7 +8,7 @@
   },
   "scripts": {
     "dev": "vite",
-    "build": "node scripts/dashboard-layout-lock.mjs && node scripts/sync-booking-page.mjs --check && npx vite build && node scripts/split-built-html.mjs && node scripts/copy-website.mjs && node scripts/verify-build-size.mjs && node scripts/dashboard-layout-lock.mjs --built",
+    "build": "node scripts/dashboard-layout-lock.mjs && node scripts/build-invoice-pdf.mjs && node scripts/sync-booking-page.mjs --check && npx vite build && node scripts/split-built-html.mjs && node scripts/copy-website.mjs && node scripts/verify-build-size.mjs && node scripts/dashboard-layout-lock.mjs --built",
     "preview": "vite preview",
     "test": "node scripts/run-regression-tests.mjs",
     "test:regression": "node scripts/run-regression-tests.mjs",
@@ -24,6 +24,7 @@
     "@supabase/supabase-js": "^2.49.8",
     "@vercel/functions": "3.9.9",
     "@vercel/oidc": "3.8.9",
+    "html2canvas": "^1.4.1",
     "lucide-react": "^0.468.0",
     "pdf-lib": "1.17.1",
     "react": "19.1.1",

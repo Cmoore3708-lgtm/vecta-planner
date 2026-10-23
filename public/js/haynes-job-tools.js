@@ -186,24 +186,83 @@ async function lookupDashboardColour(job){
  })();colourPending.set(registration,task);
  try{await task;}finally{if(colourPending.get(registration)===task)colourPending.delete(registration);}
 }
-// Object-fit can leave unused space to the left of right-aligned artwork.
-// Reserve its rendered width, not the full 162px image element.
-const timedArtwork=new WeakSet();
+// Match the description's exclusion area to the painted car, not its rectangular canvas.
+// Sampling is local, once per loaded source: it never starts a Haynes lookup.
+const artworkProfiles=new WeakMap(),timedArtwork=new WeakMap();
+function plannerArtworkProfile(img){
+ const src=img.currentSrc||img.src,previous=artworkProfiles.get(img);
+ if(previous?.src===src)return previous.profile;
+ let profile=null;
+ try{
+  const scale=128/Math.max(img.naturalWidth,img.naturalHeight),width=Math.max(1,Math.round(img.naturalWidth*scale)),height=Math.max(1,Math.round(img.naturalHeight*scale));
+  const canvas=document.createElement('canvas');canvas.width=width;canvas.height=height;
+  const context=canvas.getContext?.('2d',{willReadFrequently:true});
+  if(context){
+   context.drawImage(img,0,0,width,height);const pixels=context.getImageData(0,0,width,height).data,left=[];
+   for(let y=0;y<height;y++){let x=0;while(x<width&&pixels[(y*width+x)*4+3]<32)x++;left.push(x);}
+   if(left.some(x=>x<width))profile={width,height,left};
+  }
+ }catch{/* A cross-origin or unreadable image keeps the conservative rectangular margin. */}
+ artworkProfiles.set(img,{src,profile});return profile;
+}
+function plannerArtworkPolygon(profile,box){
+ const {width,height,scrollTop,imageLeft,imageTop,imageWidth,imageHeight}=box,points=[];
+ const extent=Math.ceil(height+scrollTop),clearance=6;
+ for(let y=0;y<=Math.ceil(height);y+=2){
+  let left=width;
+  // Include a small vertical clearance as well, so letters never touch the body or wheels.
+  const first=Math.floor((y-imageTop-clearance)/imageHeight*profile.height),last=Math.ceil((y-imageTop+clearance+2)/imageHeight*profile.height);
+  for(let row=Math.max(0,first);row<=Math.min(profile.height-1,last);row++)if(profile.left[row]<profile.width)left=Math.min(left,imageLeft+profile.left[row]/profile.width*imageWidth-clearance);
+  points.push([Math.max(0,Math.min(width,left)),Math.min(extent,y+scrollTop)]);
+ }
+ const point=p=>p.map(v=>Math.round(v*10)/10+'px').join(' ');
+ return 'polygon('+[[width,0],[width,extent],...points.reverse(),[width,0]].map(point).join(',')+')';
+}
 function trackTimedArtwork(card,img){
- if(!card.matches('.job')||timedArtwork.has(img))return;
- timedArtwork.add(img);
+ if(!card?.matches('.job'))return;
+ const tracked=timedArtwork.get(img);if(tracked){tracked();return;}
  let observer;
+ const work=card.querySelector('.plannerWorkRequired');
+ const clear=()=>{card.classList.remove('plannerArtworkWrapped');work?.querySelector('.plannerArtworkExclusion')?.remove();};
  const update=()=>{
-  if(!img.isConnected){observer?.disconnect();return;}
+  if(!img.isConnected){observer?.disconnect();work?.removeEventListener('scroll',update);return;}
   const box=img.getBoundingClientRect();
-  if(!img.naturalWidth||!img.naturalHeight||!box.width||!box.height)return;
+  if(!img.naturalWidth||!img.naturalHeight||!box.width||!box.height){clear();return;}
   const drawnWidth=Math.min(box.width,box.height*img.naturalWidth/img.naturalHeight);
   card.style.setProperty('--planner-vehicle-text-inset',Math.ceil(drawnWidth+12)+'px');
+  // The make/model sits near the roof: reserve its painted edge, not the wider bonnet below.
+  const profile=plannerArtworkProfile(img),identity=card.querySelector('.plannerJobVehicle');
+  if(identity&&profile){
+   const line=identity.getBoundingClientRect(),header=card.querySelector('.plannerJobHeader').getBoundingClientRect();
+   const drawnHeight=drawnWidth*img.naturalHeight/img.naturalWidth;
+   let edge=box.right;
+   const first=Math.max(0,Math.floor((line.top-box.top-6)/drawnHeight*profile.height));
+   const last=Math.min(profile.height-1,Math.ceil((line.bottom-box.top+6)/drawnHeight*profile.height));
+   for(let row=first;row<=last;row++)if(profile.left[row]<profile.width)edge=Math.min(edge,box.right-drawnWidth+profile.left[row]/profile.width*drawnWidth);
+   const available=Math.max(0,edge-header.left-6);
+   card.style.setProperty('--planner-identity-text-inset',Math.max(0,Math.ceil(card.clientWidth-available))+'px');
+  }else card.style.removeProperty('--planner-identity-text-inset');
+  if(!work||!work.textContent.trim()||root.matchMedia?.('(max-width:768px)').matches||root.CSS?.supports&&!root.CSS.supports('shape-outside','polygon(0 0,100% 0,100% 100%)')){clear();return;}
+  if(!profile){clear();return;}
+  card.classList.add('plannerArtworkWrapped');
+  let exclusion=work.querySelector('.plannerArtworkExclusion');
+  if(!exclusion){exclusion=document.createElement('span');exclusion.className='plannerArtworkExclusion';exclusion.setAttribute('aria-hidden','true');work.prepend(exclusion);}
+  const textBox=work.getBoundingClientRect(),drawnHeight=drawnWidth*img.naturalHeight/img.naturalWidth;
+  // Dashboard artwork uses object-position:right top; the float occupies that same coordinate space.
+  const width=Math.max(0,Math.min(textBox.width,textBox.right-(box.right-drawnWidth)+6));
+  const geometry={width,height:work.clientHeight,scrollTop:work.scrollTop,imageLeft:box.right-drawnWidth-(textBox.right-width),imageTop:box.top-textBox.top,imageWidth:drawnWidth,imageHeight:drawnHeight};
+  const shape=plannerArtworkPolygon(profile,geometry);
+  exclusion.style.width=width+'px';exclusion.style.height=Math.ceil(geometry.height+geometry.scrollTop)+'px';
+  if(exclusion.style.shapeOutside!==shape)exclusion.style.shapeOutside=shape;
  };
- img.addEventListener('load',update);
- if(root.ResizeObserver){observer=new root.ResizeObserver(update);observer.observe(img);}
+ timedArtwork.set(img,update);img.addEventListener('load',update);img.addEventListener('error',clear);work?.addEventListener('scroll',update,{passive:true});
+ // Resize notifications run after layout; defer our writes to avoid observer feedback errors.
+ let frame=null;
+ const schedule=()=>{if(frame!==null)return;if(!root.requestAnimationFrame){update();return;}frame=root.requestAnimationFrame(()=>{frame=null;update();});};
+ if(root.ResizeObserver){observer=new root.ResizeObserver(schedule);observer.observe(img);if(work)observer.observe(work);}
  update();
 }
+
 function mobileManufacturerBadge(card,j,v){
  if(!card.matches('.mobileJob'))return;
  const top=card.querySelector('.mobileJobTop'),plate=top?.querySelector('.ukPlate');if(!plate)return;const anchor=plate.closest('.plannerPlateWrap')||plate;
@@ -215,7 +274,7 @@ function mobileManufacturerBadge(card,j,v){
 function genericDashboardArtwork(card,target,j){const previous=card.querySelector('.haynesDashboardImage');if(image(previous?.dataset?.haynesSource)&&reg(previous.dataset.registration)===reg(j.registration))return;
  const svg=root.VectaFleetImages?.artwork?.(j.model||j.vehicle||j.make,dashboardColour(j));if(!svg)return;
  let img=card.querySelector('.haynesDashboardImage');if(!img){img=document.createElement('img');img.className='haynesDashboardImage';target.appendChild(img);}
- delete img.dataset.vehicleSource;delete img.dataset.personalised;delete img.dataset.personalising;delete img.dataset.haynesSource;delete img.dataset.vehicleImage;img.src='data:image/svg+xml;charset=utf-8,'+encodeURIComponent(svg);img.alt='Generic '+(j.vehicle||j.model||j.make||'vehicle')+' illustration';img.dataset.generic='true';img.dataset.registration=reg(j.registration);if(j.fleet_vehicle_id)img.dataset.fleetArtworkId=String(j.fleet_vehicle_id);img.title='Click to choose vehicle image and colour';target.classList.add('hasHaynesDashboardImage');mobileManufacturerBadge(card,j);
+ delete img.dataset.vehicleSource;delete img.dataset.personalised;delete img.dataset.personalising;delete img.dataset.haynesSource;delete img.dataset.vehicleImage;img.src='data:image/svg+xml;charset=utf-8,'+encodeURIComponent(svg);img.alt='Generic '+(j.vehicle||j.model||j.make||'vehicle')+' illustration';img.dataset.generic='true';img.dataset.registration=reg(j.registration);if(j.fleet_vehicle_id)img.dataset.fleetArtworkId=String(j.fleet_vehicle_id);img.title='Click to choose vehicle image and colour';target.classList.add('hasHaynesDashboardImage');mobileManufacturerBadge(card,j);trackTimedArtwork(card,img);
 }
 root.enrichHaynesDashboard=function(container,jobs){
  if(!container)return;const byId=new Map((jobs||[]).filter(j=>!j.no_vehicle&&j.card_type!=='mini_task').map(j=>[String(j.id),j]));
@@ -251,14 +310,14 @@ root.enrichHaynesInvoice=function(sheet,invoice){
    const picture=document.createElement('div');picture.className='haynesInvoiceHeaderVehicle';
    const linked=(root.app?.jobs||[]).find(j=>String(j.id)===String(invoice.job_id));
    const vehicle=Object.assign({},linked||{},invoice,{registration:invoice.registration||linked?.registration});
-   img.setAttribute('data-vehicle-image','');img.dataset.registration=reg(vehicle.registration);
+   img.setAttribute('data-vehicle-image','');img.dataset.vehicleLogo='separate';img.dataset.vehicleCrop='tight';img.dataset.registration=reg(vehicle.registration);
    img.dataset.colour=dashboardColour(vehicle);img.dataset.vehicleName=[v.make,v.model].join(' ');
    picture.appendChild(img);header.appendChild(picture);
    sheet.invoiceVehicleReady=root.VectaVehicleImage?.mount(picture);
   }
  }
 
- if(matched){const title=strip.querySelector('.invoiceBookingDetails>strong');if(title)title.textContent=[matched.make,matched.model,matched.variant].filter(Boolean).join(' ');const extra=document.createElement('small');extra.className='haynesInvoiceDetails';extra.textContent=[matched.engineCode,matched.modelYears].filter(Boolean).join(' · ');if(extra.textContent)strip.querySelector('.invoiceBookingDetails')?.appendChild(extra);}
+ if(matched){const title=strip.querySelector('.invoiceVehicleMake,.invoiceBookingDetails>strong');if(title)title.textContent=[matched.make,matched.model,matched.variant].filter(Boolean).join(' ');}
 };
 root.initHaynesJobTools=function(modal){
  modal?.classList.remove('registrationBooking');
@@ -398,7 +457,7 @@ async function saveManualArtwork(value){
  try{root.localStorage?.setItem(ART_KEY,JSON.stringify([...artwork.values()]));}catch{}
  return clean;
 }
-root.VectaHaynesJobTools={saveManualArtwork,compatibleArtwork,storedDrawing,artworkUrl,storedArtwork,vehicleLink,safeImage:image,remember,snapshot,artworkSnapshot,lookup,lookupNeedsRetry:registration=>failed.has(reg(registration)),lookupStatus:registration=>failStatus.get(reg(registration))||'UNAVAILABLE',genericImage,dashboardColour,lookupDashboardColour,rememberLookupColour,hydrateSharedArtwork,flushSharedArtwork};
+root.VectaHaynesJobTools={trackTimedArtwork,saveManualArtwork,compatibleArtwork,storedDrawing,artworkUrl,storedArtwork,vehicleLink,safeImage:image,remember,snapshot,artworkSnapshot,lookup,lookupNeedsRetry:registration=>failed.has(reg(registration)),lookupStatus:registration=>failStatus.get(reg(registration))||'UNAVAILABLE',genericImage,dashboardColour,lookupDashboardColour,rememberLookupColour,hydrateSharedArtwork,flushSharedArtwork};
 })(window);
 
 /* Dashboard registration lookup: read-only until a job/quote form is saved. */
@@ -454,7 +513,7 @@ async function openTechnical(registration,bookingContext){
  function showMatchedVehicle(value){vehicle=root.VectaHaynesJobTools.remember(value);if(!vehicle)throw Error('MISMATCH');identity.innerHTML='<div><h2>'+esc(vehicle.make+' '+vehicle.model)+'</h2><p>'+esc(vehicle.variant)+'</p><dl>'+[['Engine code',vehicle.engineCode],['Model years',vehicle.modelYears]].map(([k,v])=>'<dt>'+k+'</dt><dd>'+esc(v||'Not supplied')+'</dd>').join('')+'</dl><a target="_blank" rel="noopener noreferrer" href="'+esc(root.VectaHaynesJobTools.vehicleLink(vehicle))+'">Open full HaynesPro vehicle data</a></div>';
  const src=root.VectaHaynesJobTools.safeImage(vehicle.imageUrl);if(src){const img=document.createElement('img');img.dataset.vehicleSource=src;img.src=root.VectaHaynesJobTools.artworkUrl?.(src)||src;img.alt=vehicle.make+' '+vehicle.model;img.onerror=()=>img.remove();identity.append(img);}paintLookupVehicle();status.textContent='Vehicle matched. Enter the current mileage to load its service schedule.';page.querySelectorAll('[data-create]').forEach(b=>b.disabled=false);}
  const motLookup=(async()=>{
- try{government=await json('/api/vehicle-lookup?reg='+encodeURIComponent(reg));if(normalise(government.registration)!==reg)government=null;else root.VectaHaynesJobTools.rememberLookupColour?.(government);const raw=String(government?.latestMileage??'').replace(/[, ]/g,''),available=/^\d+$/.test(raw),unit=String(government?.latestMileageUnit||'').toLowerCase();if(isCurrent()){paintLookupVehicle();page.querySelector('[data-mot-mileage]').textContent=available?Number(raw).toLocaleString('en-GB')+' '+(unit==='mi'?'miles':unit==='km'?'km':unit||'units'):'Not available';page.querySelector('[data-mot-date]').textContent=(government?.lastMotTestDate?'MOT date: '+String(government.lastMotTestDate).slice(0,10)+'. ':'')+'Historical MOT reading; enter current mileage separately.';}}catch{if(isCurrent())page.querySelector('[data-mot-mileage]').textContent='Not available';}
+ try{government=await json('/api/vehicle-lookup?reg='+encodeURIComponent(reg));if(normalise(government.registration)!==reg)government=null;else root.VectaHaynesJobTools.rememberLookupColour?.(government);const raw=String(government?.latestMileage??'').replace(/[, ]/g,''),available=/^\d+$/.test(raw),unit=String(government?.latestMileageUnit||'').toLowerCase();if(isCurrent()){paintLookupVehicle();page.querySelector('[data-mot-mileage]').textContent=available?Number(raw).toLocaleString('en-GB')+' '+(unit==='mi'?'miles':unit==='km'?'km':unit||'units'):'Not available';page.querySelector('[data-mot-date]').textContent=(government?.lastMotTestDate?'MOT date: '+String(government.lastMotTestDate).slice(0,10).split('-').reverse().join('/')+'. ':'')+'Historical MOT reading; enter current mileage separately.';}}catch{if(isCurrent())page.querySelector('[data-mot-mileage]').textContent='Not available';}
  })();
  try{const matched=await root.VectaHaynesJobTools.lookup(reg,undefined,{background:false,force:root.VectaHaynesJobTools.lookupNeedsRetry?.(reg)||false});const d=matched?{status:'MATCHED',vehicle:matched}:{status:root.VectaHaynesJobTools.lookupStatus(reg)};if(!isCurrent())return;if(d.status!=='MATCHED'||normalise(d.vehicle?.registration)!==reg)throw Error(d.status);vehicle=root.VectaHaynesJobTools.remember(d.vehicle);if(!vehicle)throw Error('MISMATCH');showMatchedVehicle(d.vehicle);
 

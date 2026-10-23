@@ -31,8 +31,14 @@ export function selectCatalogueGuides(catalogue,{size,quantity=1,settings,groups
    let rowKey;try{rowKey=parseSize(row.size).key;}catch{return false;}
    return rowKey===key && membership.get(canonicalBrand(row))===category && !isSpecialTyre(row) && Number.isSafeInteger(row.unitPence) && row.unitPence>0 && Number.isFinite(row.defaultStockMinimum) && row.defaultStockMinimum>=quantity;
   }).sort((a,b)=>a.unitPence-b.unitPence || canonicalBrand(a).localeCompare(canonicalBrand(b)) || a.model.localeCompare(b.model));
-  const tyre=eligible[0];
-  return tyre?{category,available:true,brand:canonicalBrand(tyre),model:tyre.model,unitPence:tyre.unitPence,totalPence:tyre.unitPence*quantity,specificationUnverified:true}:{category,available:false};
+  const seen=new Set(),choices=[];
+  for(const tyre of eligible){
+   const brand=canonicalBrand(tyre);if(seen.has(brand))continue;
+   seen.add(brand);choices.push({category,available:true,brand,model:tyre.model,unitPence:tyre.unitPence,totalPence:tyre.unitPence*quantity,specificationUnverified:true});
+   if(choices.length===3)break;
+  }
+  // Keep the cheapest fields for older website clients while offering more brands.
+  return choices.length?{...choices[0],choices}:{category,available:false,choices:[]};
  });
  return {size:key,quantity,checkedAt:new Date(now).toISOString(),guideOnly:true,options};
 }

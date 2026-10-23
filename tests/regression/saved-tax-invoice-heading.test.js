@@ -5,7 +5,7 @@ import vm from 'node:vm';
 const html=fs.readFileSync(new URL('../../index.html',import.meta.url),'utf8');
 const context={esc:value=>String(value).replaceAll('&','&amp;').replaceAll('<','&lt;')};
 vm.createContext(context);
-vm.runInContext(html.slice(html.indexOf('function vehicleTaxInvoiceTitle('),html.indexOf('function printInvoice(inv)')),context);
+vm.runInContext(html.slice(html.indexOf('function vehicleTaxInvoiceTitle('),html.indexOf('function printInvoice(inv,output)')),context);
 test('saved NMUK tax invoice without source keeps its billing month in both headings',()=>{
  const inv={invoice_number:'78764',registration:'NMUK TAX',vehicle:'Vehicle Tax — September 2026',invoice_date:'2026-10-01'};
  assert.equal(context.vehicleTaxInvoiceTitle(inv),'Vehicle tax September 2026');
