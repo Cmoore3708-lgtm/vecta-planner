@@ -9,6 +9,6 @@ test('service save and print helpers are executable scripts, never page text', (
   const scripts = [...html.matchAll(/<script\b[^>]*>([\s\S]*?)<\/script>/gi)].map(match => match[1]);
   const source = scripts.join('\n');
   assert.match(source, /async function saveServiceSheetAndClose\(/);
-  assert.match(source, /async function printWhenImagesReady\(\)\s*\{\s*var root=document\.getElementById\('printSheet'\);\s*if\(root&&window\.prepareHaynesServicePrint\)/);
+  assert.match(source, /async function printWhenImagesReady\(output\)\s*\{\s*var root=document\.getElementById\('printSheet'\);\s*if\(root&&window\.prepareHaynesServicePrint\)/);
   for (const script of scripts) new vm.Script(script);
 });

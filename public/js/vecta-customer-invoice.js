@@ -10,11 +10,14 @@
   const printMedia=window.matchMedia?.('print');
   printMedia?.addEventListener?.('change',event=>event.matches?beforePrint():afterPrint());
   const ready=Promise.resolve(window.VectaVehicleImage?.mount(document)).then(()=>window.VectaInvoicePrint?.cutout(document));
-  document.getElementById('printInvoice').addEventListener('click',async()=>{
+  async function outputInvoice(output){
     await ready;
     await Promise.all(Array.from(document.images).map(img=>img.complete?Promise.resolve():new Promise(resolve=>{
       img.addEventListener('load',resolve,{once:true});img.addEventListener('error',resolve,{once:true});setTimeout(resolve,5000);
     })));
-    await window.VectaInvoicePrint.print(document);
-  });
+    await window.VectaInvoicePrint.print(document,output);
+  }
+  ready.then(()=>window.VectaInvoicePrint?.fitFooter(document));
+  document.getElementById('printInvoice').addEventListener('click',()=>outputInvoice('print'));
+  document.getElementById('downloadInvoicePdf')?.addEventListener('click',()=>outputInvoice('pdf'));
 })();
