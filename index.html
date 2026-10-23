@@ -9216,6 +9216,7 @@ window.CONTRACTOR_2026_NEW_VEHICLES=[{"id":"CONTRACTOR|RV63SYG","fleetGroup":"Co
 <script src="/js/vecta-booking-rules.js"></script>
 <script src="/js/vecta-offline-sync-rules.js"></script>
 <script src="/js/vecta-message-centre.js"></script>
+<script src="/js/vecta-job-photos.js"></script>
 <script>
 (function(){
 'use strict';
@@ -12633,7 +12634,8 @@ function resolveWebsiteServiceChoice(choice){
 function websiteBookingPanelHtml(j){
   if(!isWebsiteBookingJob(j))return '';
   var details=websiteJobDetails(j),requested=details.requestedDate?requestDate(details.requestedDate):'Not provided';
-  return websiteServiceResolveHtml(j)+'<section class="websiteJobRequestPanel"><div><strong>Website booking request</strong><p>Details supplied when the customer booked online.</p></div><div class="websiteRequestMeta"><span><b>Booking made:</b> '+esc(websiteBookingMadeText(details.made))+'</span><span><b>Requested booking date:</b> '+esc(requested)+'</span></div><div class="websiteRequestMeta"><span style="grid-column:1/-1"><b>Customer notes:</b> '+esc(details.notes||'No additional notes were added.')+'</span></div></section>';
+  var requestId=websiteRequestIdFromJob(j),photoRequest=(app.websiteRequests||[]).find(function(r){return r.id===requestId}),photoButton=requestId&&(!photoRequest||photoRequest.work_photo_count>0)?'<div><button type="button" class="btn" data-booking-photos="'+esc(requestId)+'">View customer photos'+(photoRequest?' ('+Number(photoRequest.work_photo_count)+')':'')+'</button></div>':'';
+  return websiteServiceResolveHtml(j)+'<section class="websiteJobRequestPanel"><div><strong>Website booking request</strong><p>Details supplied when the customer booked online.</p></div><div class="websiteRequestMeta"><span><b>Booking made:</b> '+esc(websiteBookingMadeText(details.made))+'</span><span><b>Requested booking date:</b> '+esc(requested)+'</span></div><div class="websiteRequestMeta"><span style="grid-column:1/-1"><b>Customer notes:</b> '+esc(details.notes||'No additional notes were added.')+'</span></div>'+photoButton+'</section>';
 }
 var websiteRequestCreateBusy={};
 async function createJobFromWebsiteRequest(id){
