@@ -77,8 +77,16 @@
     const line=scope.querySelector('.printPayment>div');if(!line?.ownerDocument?.createRange)return;
     line.style.fontSize='11px';
     const range=line.ownerDocument.createRange();range.selectNodeContents(line);
-    const width=range.getBoundingClientRect().width,available=line.clientWidth;
+    const previewScale=line.offsetWidth?line.getBoundingClientRect().width/line.offsetWidth:1;
+    const width=range.getBoundingClientRect().width/(previewScale||1),available=line.clientWidth;
     if(width>0&&available>0)line.style.fontSize=(11*available/width*.995)+'px';
+    const page=scope.querySelector('.invoicePrintPage');
+    page?.style?.setProperty('--invoice-work-description-size',line.style.fontSize);
+    const badge=scope.querySelector('.invoiceMakeBadge'),label=scope.querySelector('.printCustomerTop>b'),row=scope.querySelector('.invoiceVehicleIdentityRow');
+    if(badge&&label&&row&&row.offsetHeight){
+      const scale=row.getBoundingClientRect().height/row.offsetHeight;
+      if(scale>0){const bottom=parseFloat(badge.ownerDocument.defaultView.getComputedStyle(badge).bottom)||0;badge.style.bottom=(bottom+(badge.getBoundingClientRect().bottom-label.getBoundingClientRect().bottom)/scale)+'px';}
+    }
   }
   function formatDate(value){const match=String(value||'').match(/^(\d{4})-(\d{2})-(\d{2})/);return match?match[3]+'/'+match[2]+'/'+match[1]:String(value||'');}
   root.VectaInvoicePrint={render,manufacturer,print,cutout,formatDate,fitFooter};
