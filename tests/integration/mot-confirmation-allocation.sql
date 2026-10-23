@@ -44,6 +44,18 @@ begin
  on conflict(id) do update set value=jsonb_set(coalesce(public.workshop_settings.value,'{}'::jsonb),'{mechanicTimeOff}',excluded.value->'mechanicTimeOff');
  r:=public.vecta_apply_mot_confirmation(v||jsonb_build_object('email_id','00000000-0000-4000-8000-000000000e08','reference','99990008'));
  assert r->>'allocation_status'='chris_time_off',r::text;
+ -- Existing exact Chris allocations confirm without moving or duplicating jobs.
+ update public.workshop_settings set value=jsonb_set(value,'{mechanicTimeOff}','[]'::jsonb) where id='main';
+ update public.jobs set technician='Chris',booking_date='2099-10-29',drop_time='12:15',customer_note='Keep manual booking [[MOT_TIME:12:15]]' where id=j.id;
+ r:=public.vecta_apply_mot_confirmation(v||jsonb_build_object('email_id','00000000-0000-4000-8000-000000000e09','reference','99990009'));
+ assert r->>'allocation_status'='allocated' and r->>'job_id'=j.id::text,r::text;
+ assert (select technician='Chris' and drop_time='12:15'::time and customer_note like '%Keep manual booking%' from public.jobs where id=j.id);
+ -- Different date/time or a conflicting MOT-time marker cannot be confirmed.
+ r:=public.vecta_apply_mot_confirmation(v||jsonb_build_object('email_id','00000000-0000-4000-8000-000000000e10','reference','99990010','time','14:00'));
+ assert r->>'state'='review',r::text;
+ update public.jobs set customer_note='[[MOT_TIME:14:00]]' where id=j.id;
+ r:=public.vecta_apply_mot_confirmation(v||jsonb_build_object('email_id','00000000-0000-4000-8000-000000000e11','reference','99990011'));
+ assert r->>'state'='review',r::text;
  -- Unknown registrations never create a new job.
  r:=public.vecta_apply_mot_confirmation(v||jsonb_build_object('email_id','00000000-0000-4000-8000-000000000e07','reference','99990007','registration','QZ77ZZZ'));
  assert r->>'allocation_status'='no_unallocated_mot',r::text;
