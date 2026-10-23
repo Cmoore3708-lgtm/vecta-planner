@@ -38,7 +38,7 @@ test('ordinary job saves cannot launch the bulk Fleet integrity repair', () => {
 });
 
 test('invoice printing uses its canonical sender rule without a late wrapper', () => {
-  assert.match(html, /function printInvoice\(inv\)[\s\S]*?invoiceSenderHtml\(inv\|\|\{\},true\)/);
+  assert.match(html, /function printInvoice\(inv,output\)[\s\S]*?invoiceSenderHtml\(inv\|\|\{\},true\)/);
   assert.doesNotMatch(html, /printInvoiceV329Base/);
 });
 
