@@ -1,7 +1,7 @@
 {
   "approvedOn": "2026-10-23",
   "approvedBy": "Chris Moore",
-  "approval": "Chris’s 23 October screenshot request: hide duplicate MOT job-type/template wording when an MOT appointment is displayed, and let the PC vehicle make/model extend to the visible car edge. Shared Main/mechanics renderers checked at PC and phone widths; extra work and appointment remain visible. MOT confirmation request: Chris approved green MOT/time after garage confirmation and automatic allocation of unallocated MOT jobs to Chris. Only mobileMotAppointmentHtml and plannerMotHeaderHtml are additionally changed; both Main/mechanics outputs are covered by regression tests. Chris’s 23 October mechanic screenshot request: remove overlapping card text at PC and iPad widths. Identity rows now reserve their natural height and work follows the header. Checked shared Main/mechanics CSS at 800, 1024 and 1440px; phone rules retained.",
+  "approval": "Chris’s 23 October screenshot request: hide duplicate MOT job-type/template wording when an MOT appointment is displayed, and let the PC vehicle make/model extend to the visible car edge. Shared Main/mechanics renderers checked at PC and phone widths; extra work and appointment remain visible. MOT confirmation request: Chris approved green MOT/time after garage confirmation and automatic allocation of unallocated MOT jobs to Chris. Only mobileMotAppointmentHtml and plannerMotHeaderHtml are additionally changed; both Main/mechanics outputs are covered by regression tests. Chris’s 23 October mechanic screenshot request: remove overlapping card text at PC and iPad widths. Identity rows now reserve their natural height and work follows the header. Checked shared Main/mechanics CSS at 800, 1024 and 1440px; phone rules retained. Chris’s 23 October missing-image and Main text-alignment regression report, followed by “Carry on”: restore the whole card as the artwork positioning container while retaining natural text rows and the Haynes link fix. Only the final header position changes from relative to static; shared Main/mechanics checked at phone, tablet and desktop widths.",
   "layout": {
     "main": {
       "functions": {
@@ -94,7 +94,7 @@
           "3a9a42c6c0bf2d0614443fe79675792f688eb5512c394fbfd54ec1fb14fd13de"
         ]
       },
-      "styles": "c67d3e3eba606f8ee9f127133dcb27b9562f7a0bcccc1034bfa7d0e079c4c8ee",
+      "styles": "f278c60ac04887994f4148a8794b341270ac00785a594ee0d82e8437367cb135",
       "injectedStyles": [
         "bea850ce68304d8a50a6018729fb5923f614c6708b6a11a3d3d937b525dd855a"
       ]
@@ -190,7 +190,7 @@
           "3a9a42c6c0bf2d0614443fe79675792f688eb5512c394fbfd54ec1fb14fd13de"
         ]
       },
-      "styles": "218c8ebe1e8a5b7306ec2629ed7f6190b3dd2cb52df43e2e59542ec3fc3aeb5b",
+      "styles": "6aedabd870b20dee6eb6b223a7bdfe48d9bbb3f067f365ddbb965d6ed38c32a0",
       "injectedStyles": [
         "bea850ce68304d8a50a6018729fb5923f614c6708b6a11a3d3d937b525dd855a"
       ]
