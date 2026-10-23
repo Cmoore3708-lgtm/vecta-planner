@@ -342,7 +342,7 @@
 
 /* PC identity: customer below the plate, with vehicle beside it and no empty type row. */
 @media screen and (min-width:901px){
- #content .livePriorityPlanner .plannerGrid .lane .job:not(.miniPlannerTask) .plannerJobHeader{display:grid!important;grid-template-columns:minmax(0,1fr) max-content!important;gap:3px 6px!important;width:calc(100% - var(--planner-vehicle-text-inset,150px))!important;height:auto!important;min-height:0!important}
+ #content .livePriorityPlanner .plannerGrid .lane .job:not(.miniPlannerTask) .plannerJobHeader{display:grid!important;grid-template-columns:minmax(0,1fr) max-content!important;gap:3px 6px!important;width:calc(100% - var(--planner-identity-text-inset,var(--planner-vehicle-text-inset,150px)))!important;height:auto!important;min-height:0!important}
  #content .livePriorityPlanner .plannerGrid .lane .job:not(.miniPlannerTask) .plannerJobHeader>.plannerJobRightText{grid-column:1;grid-row:2;width:100%!important;height:18px!important;max-height:18px!important}
  #content .livePriorityPlanner .plannerGrid .lane .job.plannerMotJob .plannerJobHeader>.plannerMotHeader{grid-column:1/-1;grid-row:2;justify-self:start;min-width:0}
 
