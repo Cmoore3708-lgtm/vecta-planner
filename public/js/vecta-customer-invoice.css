@@ -46,7 +46,7 @@ html,body{margin:0;padding:0;font-family:Arial,Helvetica,sans-serif;font-size:12
 .printTotals>div{display:grid;grid-template-columns:1fr 110px;gap:16px;padding:4px 0}
 .printTotals span{text-align:right;font-variant-numeric:tabular-nums}
 .printTotals>div:last-child{border-top:1px solid #aaa;padding-top:8px;margin-top:4px;font-size:17px;font-weight:bold}
-.printPayment{margin-top:24px;padding:10px 12px;border:1px solid #d1d5db;border-radius:4px;font-size:11px;line-height:1.6;overflow-wrap:anywhere;break-inside:avoid;background:#fff}
+.printPayment{margin-top:24px;padding:10px 12px;border:1px solid #d1d5db;border-radius:4px;font-size:10px;line-height:1.5;overflow-wrap:anywhere;break-inside:avoid;background:#fff}
 .printPayment>div{max-width:100%;min-width:0;white-space:normal}
 .noBreak,tr{break-inside:avoid}
 @media screen and (max-width:820px){.printSheet{margin:0}body{overflow-x:auto}.invoiceActions{justify-content:flex-start}}
