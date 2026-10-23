@@ -1,7 +1,7 @@
 {
   "approvedOn": "2026-10-23",
   "approvedBy": "Chris Moore",
-  "approval": "Chris’s 23 October screenshot correction: the car backgrounds still reserved rectangular text margins. Make PC planner descriptions flow against the actual visible car outline, including generic cars, while preserving the remaining approved layout.",
+  "approval": "Chris’s 23 October screenshot request: hide duplicate MOT job-type/template wording when an MOT appointment is displayed, and let the PC vehicle make/model extend to the visible car edge. Shared Main/mechanics renderers checked at PC and phone widths; extra work and appointment remain visible.",
   "layout": {
     "main": {
       "functions": {
@@ -24,7 +24,7 @@
           "050407d4f0c9426158c10a7e6729b21d8f218d5135a911744cebe811ddf206db"
         ],
         "artwork.trackTimedArtwork": [
-          "7903f2a5d04902c47b03e4aff7a03a0a703331294113572b2ee7888930b1759f"
+          "4e6e089eb0f588d454d6c852f61d28eed988b41b75b8cceced53aee4643da8be"
         ],
         "currentTimeLineHtml": [
           "e88476836fbd89bfabfb0ae444f39154c1b5a61601589f1f164deaa92cc556bf"
@@ -40,7 +40,7 @@
           "e34fc942ef5b6d5524c97a112ffff1ff331642243af2a3a0ba04aaeb0f0dcf3a"
         ],
         "mobileJobCardHtml": [
-          "95c72ce42bbf6dda49ec2c4ca92d70a5141f8718ef8ae39b5ac3cff1f1da56a9"
+          "e093c855956b7e9874e96011e4ac6dbe7b636c6ec573793b3a43b1838e9cb53f"
         ],
         "mobileJobCategoryLabel": [
           "40e9cd14a67e72f9e3f664bac42c93a924ddcd168f900eb37913228dba56c798"
@@ -58,7 +58,7 @@
           "26e3ed63b218a16ad042afe76e477213faee324788b7a42769dde5369a1a9438"
         ],
         "plannerJobDescription": [
-          "cadbc956980adbf8444c2e15eb147edfde542ce599e9ef84a998532a6f0dc676"
+          "ef28ffca9add68705a6a77af920de659b7f033a73014d4e5283072d6a765553e"
         ],
         "plannerJobTypesHtml": [
           "a89ca7f9ba3de0f507f3bd54a788f2d6d1cd078bfc7019584612c1982859ab89"
@@ -94,7 +94,7 @@
           "3a9a42c6c0bf2d0614443fe79675792f688eb5512c394fbfd54ec1fb14fd13de"
         ]
       },
-      "styles": "ab0140fbe50da3e6d0207f55ac547b623231494856bec4e728a5ac568b660466",
+      "styles": "9bae682689b07ac8ef3e5997aa94c00788987810d1a093b71d1b3cfc3f57918e",
       "injectedStyles": [
         "bea850ce68304d8a50a6018729fb5923f614c6708b6a11a3d3d937b525dd855a"
       ]
@@ -120,7 +120,7 @@
           "050407d4f0c9426158c10a7e6729b21d8f218d5135a911744cebe811ddf206db"
         ],
         "artwork.trackTimedArtwork": [
-          "7903f2a5d04902c47b03e4aff7a03a0a703331294113572b2ee7888930b1759f"
+          "4e6e089eb0f588d454d6c852f61d28eed988b41b75b8cceced53aee4643da8be"
         ],
         "currentTimeLineHtml": [
           "e88476836fbd89bfabfb0ae444f39154c1b5a61601589f1f164deaa92cc556bf"
@@ -136,7 +136,7 @@
           "e34fc942ef5b6d5524c97a112ffff1ff331642243af2a3a0ba04aaeb0f0dcf3a"
         ],
         "mobileJobCardHtml": [
-          "95c72ce42bbf6dda49ec2c4ca92d70a5141f8718ef8ae39b5ac3cff1f1da56a9"
+          "e093c855956b7e9874e96011e4ac6dbe7b636c6ec573793b3a43b1838e9cb53f"
         ],
         "mobileJobCategoryLabel": [
           "40e9cd14a67e72f9e3f664bac42c93a924ddcd168f900eb37913228dba56c798"
@@ -154,7 +154,7 @@
           "26e3ed63b218a16ad042afe76e477213faee324788b7a42769dde5369a1a9438"
         ],
         "plannerJobDescription": [
-          "cadbc956980adbf8444c2e15eb147edfde542ce599e9ef84a998532a6f0dc676"
+          "ef28ffca9add68705a6a77af920de659b7f033a73014d4e5283072d6a765553e"
         ],
         "plannerJobTypesHtml": [
           "a89ca7f9ba3de0f507f3bd54a788f2d6d1cd078bfc7019584612c1982859ab89"
@@ -190,7 +190,7 @@
           "3a9a42c6c0bf2d0614443fe79675792f688eb5512c394fbfd54ec1fb14fd13de"
         ]
       },
-      "styles": "b6e131e6757c8ce19cdc2d986c3dd3a9be0ac1f67adfbc80fa137980c4a1b387",
+      "styles": "d3c7991130480eb1c30bab8beda2f3b575b89f4230bf8c5ac901ec812c12a4b7",
       "injectedStyles": [
         "bea850ce68304d8a50a6018729fb5923f614c6708b6a11a3d3d937b525dd855a"
       ]

@@ -38,3 +38,13 @@ test('outline sampling is cached per loaded image and an unreadable image fails 
  img.src='data:image/svg+xml,replaced';ctx.plannerArtworkProfile(img);assert.equal(reads,2,'a changed image gets a new outline');
  img.src='https://unreadable.example/car.png';canvas.getContext=()=>{throw Error('Cross-origin canvas')};assert.equal(ctx.plannerArtworkProfile(img),null);
 });
+
+test('make/model width follows the roof silhouette even when the description is empty',()=>{
+ const values=new Map(),style={setProperty:(k,v)=>values.set(k,v),removeProperty:k=>values.delete(k)};
+ const card={matches:()=>true,clientWidth:400,style,classList:{remove(){}},querySelector:s=>s==='.plannerJobVehicle'?{getBoundingClientRect:()=>({top:0,bottom:10})}:s==='.plannerJobHeader'?{getBoundingClientRect:()=>({left:10})}:null};
+ const img={isConnected:true,naturalWidth:200,naturalHeight:100,getBoundingClientRect:()=>({top:0,right:400,width:200,height:100}),addEventListener(){}};
+ const ctx={timedArtwork:new WeakMap(),root:{},plannerArtworkProfile:()=>({width:100,height:5,left:[80,40,10,10,100]})};
+ vm.runInNewContext(functions.get('trackTimedArtwork'),ctx);ctx.trackTimedArtwork(card,img);
+ assert.equal(values.get('--planner-vehicle-text-inset'),'212px');
+ assert.equal(values.get('--planner-identity-text-inset'),'136px','roof clearance leaves extra width for the vehicle name');
+});
