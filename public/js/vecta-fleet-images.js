@@ -74,7 +74,7 @@ function refreshImages(v){
   if(!match)continue;
   // Detach pending old renders so a late supplier response cannot undo this choice.
   img=previous.cloneNode(false);previous.replaceWith(img);
-  img.dataset.vehicleSource=drawing.imageUrl;img.dataset.haynesSource=drawing.imageUrl;img.dataset.colour=v.colour;img.setAttribute('data-vehicle-image','');delete img.dataset.personalised;delete img.dataset.personalising;img.src=root.VectaHaynesJobTools?.artworkUrl?.(drawing.imageUrl)||drawing.imageUrl;root.VectaVehicleImage?.mount(img.parentElement);
+  img.dataset.vehicleSource=drawing.imageUrl;img.dataset.haynesSource=drawing.imageUrl;img.dataset.colour=v.colour;img.setAttribute('data-vehicle-image','');delete img.dataset.personalised;delete img.dataset.personalising;img.src=root.VectaHaynesJobTools?.artworkUrl?.(drawing.imageUrl)||drawing.imageUrl;root.VectaHaynesJobTools?.trackTimedArtwork?.(img.closest('.job'),img);root.VectaVehicleImage?.mount(img.parentElement);
  }
 }
 

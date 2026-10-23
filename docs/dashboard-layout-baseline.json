@@ -1,7 +1,7 @@
 {
-  "approvedOn": "2026-10-22",
+  "approvedOn": "2026-10-23",
   "approvedBy": "Chris Moore",
-  "approval": "22 October 2026: Chris requested red MOT/time with black work text, cutout vehicle artwork across Main/mechanics/mobile, and the planner date beside its weekday. Only those requested dashboard styles change; the remaining approved layout stays locked.",
+  "approval": "Chris’s 23 October screenshot correction: the car backgrounds still reserved rectangular text margins. Make PC planner descriptions flow against the actual visible car outline, including generic cars, while preserving the remaining approved layout.",
   "layout": {
     "main": {
       "functions": {
@@ -9,7 +9,7 @@
           "ce7bc1778d301acc618b8410ccd38ace8621eb0b7ab76ca0c51b5f448194cf41"
         ],
         "artwork.genericDashboardArtwork": [
-          "7641134af456f4c2b3e987bc87dc3644c21d0163d2019e61f5649fdcc391c712"
+          "ba8adafcd4b979a82f3b6718b6b9b2f85867c107fe2166e7adadd9c3d925e61e"
         ],
         "artwork.install": [
           "984961154578b61eb32087be1f8cb772d7799e8e3855df1f6c1216c8663bef2f"
@@ -17,8 +17,14 @@
         "artwork.mobileManufacturerBadge": [
           "b435ce8bd03c274a3854119c1ad4f6007bb3b96d34811e6a6a2f1f89bbf56c14"
         ],
+        "artwork.plannerArtworkPolygon": [
+          "c00f7b1dbbf818cc86f6398ba7f5e64b4069257231d69ebdc8891c0e7ddb0851"
+        ],
+        "artwork.plannerArtworkProfile": [
+          "050407d4f0c9426158c10a7e6729b21d8f218d5135a911744cebe811ddf206db"
+        ],
         "artwork.trackTimedArtwork": [
-          "dbab92a132e31c5718ce9940ccc249546580ebc8455aa91603cfd3090b9bcd7f"
+          "7903f2a5d04902c47b03e4aff7a03a0a703331294113572b2ee7888930b1759f"
         ],
         "currentTimeLineHtml": [
           "e88476836fbd89bfabfb0ae444f39154c1b5a61601589f1f164deaa92cc556bf"
@@ -88,7 +94,7 @@
           "3a9a42c6c0bf2d0614443fe79675792f688eb5512c394fbfd54ec1fb14fd13de"
         ]
       },
-      "styles": "645f424543ad7277f5910d762c443b751706e0d2e31e2f92fe1327adcc39c246",
+      "styles": "ab0140fbe50da3e6d0207f55ac547b623231494856bec4e728a5ac568b660466",
       "injectedStyles": [
         "bea850ce68304d8a50a6018729fb5923f614c6708b6a11a3d3d937b525dd855a"
       ]
@@ -99,7 +105,7 @@
           "ce7bc1778d301acc618b8410ccd38ace8621eb0b7ab76ca0c51b5f448194cf41"
         ],
         "artwork.genericDashboardArtwork": [
-          "7641134af456f4c2b3e987bc87dc3644c21d0163d2019e61f5649fdcc391c712"
+          "ba8adafcd4b979a82f3b6718b6b9b2f85867c107fe2166e7adadd9c3d925e61e"
         ],
         "artwork.install": [
           "984961154578b61eb32087be1f8cb772d7799e8e3855df1f6c1216c8663bef2f"
@@ -107,8 +113,14 @@
         "artwork.mobileManufacturerBadge": [
           "b435ce8bd03c274a3854119c1ad4f6007bb3b96d34811e6a6a2f1f89bbf56c14"
         ],
+        "artwork.plannerArtworkPolygon": [
+          "c00f7b1dbbf818cc86f6398ba7f5e64b4069257231d69ebdc8891c0e7ddb0851"
+        ],
+        "artwork.plannerArtworkProfile": [
+          "050407d4f0c9426158c10a7e6729b21d8f218d5135a911744cebe811ddf206db"
+        ],
         "artwork.trackTimedArtwork": [
-          "dbab92a132e31c5718ce9940ccc249546580ebc8455aa91603cfd3090b9bcd7f"
+          "7903f2a5d04902c47b03e4aff7a03a0a703331294113572b2ee7888930b1759f"
         ],
         "currentTimeLineHtml": [
           "e88476836fbd89bfabfb0ae444f39154c1b5a61601589f1f164deaa92cc556bf"
@@ -178,7 +190,7 @@
           "3a9a42c6c0bf2d0614443fe79675792f688eb5512c394fbfd54ec1fb14fd13de"
         ]
       },
-      "styles": "3ca75f576c5fe8ac5a8294aff778613b77b25d459fbfb6c7f16311705d2d921d",
+      "styles": "b6e131e6757c8ce19cdc2d986c3dd3a9be0ac1f67adfbc80fa137980c4a1b387",
       "injectedStyles": [
         "bea850ce68304d8a50a6018729fb5923f614c6708b6a11a3d3d937b525dd855a"
       ]
@@ -192,15 +204,14 @@
     }
   ],
   "verification": {
-    "date": "2026-10-22",
+    "date": "2026-10-23",
     "surfaces": [
       "Main PC 1440px",
-      "Main phone 390px",
-      "Main iPad 820px",
       "Mechanics PC 1440px",
+      "Main phone 390px",
       "Mechanics phone 390px",
       "Mechanics iPad 820px"
     ],
-    "method": "Local Chromium browser checks of rendered MOT colours, single-line date fit, job footer placement, October/November/December navigation and Wash Autos option; shared renderer parity checked by layout lock."
+    "method": "Chromium compared the previous layout with the fix using the actual saved Audi Q7 (JH08URN) and Audi A4 (HGZ7396) SVG drawings and generic ADAM fallback. Checked rendered text against painted image pixels, scrolling, viewport resize and manual artwork replacement. Phone cards remain unchanged. Added negative lock tests for both outline calculation helpers."
   }
 }
