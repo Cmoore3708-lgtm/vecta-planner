@@ -4,7 +4,7 @@
   var labels={email:'Email',whatsapp:'WhatsApp',sms:'SMS',system:'System',prepared:'Prepared',sent:'Sent',failed:'Failed',unconfirmed:'Unconfirmed',recorded:'Recorded'};
   var types={invoice:'Invoice message',booking_confirmation:'Booking confirmation',service_reminder:'Service reminder',booking_reminder:'Booking reminder',collection:'Ready to collect',booking:'Booking record created',message:'Message'};
   function escape(value){return String(value==null?'':value).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]});}
-  function date(value){return new Date(value).toLocaleString('en-GB',{timeZone:'Europe/London',day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit',hourCycle:'h23'});}
+  function date(value){return new Date(value).toLocaleString('en-GB',{timeZone:'Europe/London',day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit',hourCycle:'h23'});}
   function queue(){
     try{return Object.keys(localStorage).filter(function(key){return key.indexOf(queueKey)===0}).map(function(key){try{return JSON.parse(localStorage.getItem(key))}catch(e){return null}}).filter(Boolean)}catch(e){return []}
   }

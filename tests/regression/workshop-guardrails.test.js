@@ -17,12 +17,12 @@ test('phone Fleet due list uses a screen-width compact grid',()=>{
 test('Fleet due list links booked dates to planner days and dates email audit ticks',()=>{
   assert.match(html,/class="fleetBookedDateLink" data-fleet-booked-job=/);
   assert.match(html,/data-fleet-booked-date=/);
-  assert.match(html,/shortDate=new Date\([\s\S]*?toLocaleDateString\('en-GB',\{day:'2-digit',month:'2-digit'\}\)/, 'booked dates must omit the year');
+  assert.match(html,/shortDate=niceDate\(booked.booking_date\)/, 'booked dates use the shared full UK date');
   assert.match(html,/grid-template-columns:125px 76px minmax\(105px,1fr\) 88px 68px 24px 58px 54px!important/, 'Work due, booking type, booked tick, booked date and Email sent must have compact dedicated columns');
   assert.match(html,/\.fleetBookedDateLink\{[^}]*font-size:9px/, 'booked links must use compact green text');
   assert.match(html,/document\.querySelectorAll\('\[data-fleet-booked-job\]'\)[\s\S]*?job&&job\.booking_date\|\|link\.dataset\.fleetBookedDate[\s\S]*?selectedDate=new Date\(date\+'T00:00:00'\);view='planner';render\(\)/);
   assert.doesNotMatch(html,/document\.querySelectorAll\('\[data-fleet-booked-job\]'\)[\s\S]*?openJobModal\(id\)/);
-  assert.match(html,/function fleetEmailSentDisplayDate\(record\)[\s\S]*?toLocaleDateString\('en-GB',\{day:'2-digit',month:'2-digit'\}\)/, 'email audit dates must omit the year');
+  assert.match(html,/function fleetEmailSentDisplayDate\(record\)[\s\S]*?niceDate\(raw\)/, 'email audit dates use the shared full UK date');
   assert.match(html,/data-fleet-email-registration=/, 'vehicle email links must identify their Fleet registration');
   assert.match(html,/document\.querySelectorAll\('\.fleetReminderEmailLink'\)[\s\S]*?link\.dataset\.fleetEmailRegistration=normReg\(v\.registration/, 'the drawer Email button must inherit the active registration');
   assert.match(html,/async function fleetMarkEmailSentForVehicle\(v\)[\s\S]*?if\(remoteClient\)await persistFleetCloudSnapshot\(\)/, 'email audit must reach cloud storage before Outlook opens');

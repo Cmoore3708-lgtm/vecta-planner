@@ -182,7 +182,7 @@ function contextWith(names, extras = {}) {
   });
   const nmuk = context.invoiceSenderHtml({ customer_name: 'NMUK' }, true);
   assert.match(nmuk, /10 Hunter Close/);
-  assert.match(nmuk, /shirken\.moore@talktalk\.net/);
+  assert.match(nmuk, /chris@VectaMotors\.co\.uk/);
   assert.doesNotMatch(context.invoiceSenderHtml({ customer_name: 'Retail customer' }, true), /10 Hunter Close/);
 }
 
