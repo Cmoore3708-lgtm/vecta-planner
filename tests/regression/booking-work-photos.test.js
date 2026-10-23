@@ -19,12 +19,15 @@ test('photos are optional, bounded, JPEG only and exclude filenames/metadata',()
 
 test('optional photo UI retains previews across renders and escapes no arbitrary image URL',()=>{
  const context=vm.createContext({window:{}});vm.runInContext(fs.readFileSync('public/js/vecta-work-photos.js','utf8'),context);
- const ui=context.window.VectaWorkPhotos,form={work_photos:[{image}]};
- assert.match(ui.html(form),/If you think it will help, upload a photo here/);
+ const ui=context.window.VectaWorkPhotos,form={job_types:['Other'],work_photos:[{image}]};
+ assert.match(ui.html(form),/If you think it will help, upload a photo/);
  assert.match(ui.html(form),/capture="environment"/);assert.match(ui.html(form),/data-work-remove="0"/);
  assert.match(ui.html(form,true),/Your photos/);assert.doesNotMatch(ui.html(form,true),/data-work-choose/);
  assert.match(ui.html(form),new RegExp(image.replace(/[+]/g,'\\+')));
  assert.equal(ui.html({},true),'');
+ assert.equal(ui.html({job_types:['MOT'],work_photos:[{image}]}),'');
+ assert.equal(ui.html({job_types:['Service'],work_photos:[{image}]},true),'');
+ assert.doesNotMatch(ui.html(form),/photo here|Optional|up to 3 photos/);
 });
 
 test('booking photos use atomic insertion, survive retries and cannot be replaced with a reused request ID',async()=>{
