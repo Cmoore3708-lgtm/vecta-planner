@@ -55,7 +55,7 @@
     frame.style.cssText='position:fixed;left:-10000px;top:0;width:794px;height:1123px;border:0';
     const markup=sheet.querySelector('.invoicePrintPage').outerHTML;
     const loaded=new Promise((resolve,reject)=>{frame.onload=resolve;frame.onerror=()=>reject(Error('Invoice print document could not load'));});
-    frame.srcdoc='<!doctype html><html><head><meta charset="utf-8"><base href="'+root.location.origin+'/"><title>VECTA Invoice</title><link rel="stylesheet" href="/js/vecta-customer-invoice.css?v=20261022-invoice-clean-footer"></head><body><main class="printSheet">'+markup+'</main></body></html>';
+    frame.srcdoc='<!doctype html><html><head><meta charset="utf-8"><base href="'+root.location.origin+'/"><title>VECTA Invoice</title><link rel="stylesheet" href="/js/vecta-customer-invoice.css?v=20261023-invoice-reference-header"></head><body><main class="printSheet">'+markup+'</main></body></html>';
     doc.body.appendChild(frame);
     try{
       await loaded;
