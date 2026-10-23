@@ -12,7 +12,7 @@ html,body{margin:0;padding:0;font-family:Arial,Helvetica,sans-serif;font-size:12
 .invoiceVehicleMake{display:block;font-size:16px;line-height:1.3}
 .invoiceBookingPlate{display:flex;grid-column:2;grid-row:1;align-self:end;justify-self:start;align-items:center;gap:12px;margin:0 0 0 16px}
 .invoiceBookingDetails>small{display:block;font-size:10px;color:#555}
-.invoiceMakeBadge{display:block;width:225px;max-width:100%;height:135px;object-fit:contain;object-position:center top;margin-top:10px;opacity:.2;filter:none;print-color-adjust:exact;-webkit-print-color-adjust:exact}
+.invoiceMakeBadge{display:block;width:180px;max-width:100%;height:105px;object-fit:contain;object-position:center bottom;margin-top:auto;opacity:.2;filter:none;print-color-adjust:exact;-webkit-print-color-adjust:exact}
 .invoiceUkPlate{display:inline-flex;align-items:stretch;overflow:hidden;border:1px solid #222;border-radius:5px;background:#f2cb37;color:#111;line-height:1;white-space:nowrap;print-color-adjust:exact;-webkit-print-color-adjust:exact}
 .invoiceUkStrip{display:flex;align-items:center;background:#17608b;color:#fff;padding:10px 5px;font-size:10px}
 .invoiceUkPlate b{padding:7px 12px;font:bold 22px Arial,sans-serif;letter-spacing:1px}
@@ -59,7 +59,7 @@ html,body{margin:0;padding:0;font-family:Arial,Helvetica,sans-serif;font-size:12
  thead{display:table-header-group}
 }
 
-.invoiceVehicleIdentityRow{display:flex;grid-column:2;grid-row:2;align-self:start;margin-left:16px;flex-direction:column;align-items:flex-start;gap:4px}
+.invoiceVehicleIdentityRow{display:flex;grid-column:2;grid-row:2;align-self:stretch;padding-bottom:8px;margin-left:16px;flex-direction:column;align-items:flex-start;gap:4px}
 .invoiceVehicleMileage{font-size:10px;color:#555;white-space:nowrap}
 
 /* Keep identity and business details above vehicle artwork on every invoice. */
