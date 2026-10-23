@@ -4,9 +4,10 @@
  let busy=false;
  function photos(form){return form.work_photos||(form.work_photos=[]);}
  function html(form,review=false){
+  if(!Array.isArray(form.job_types)||!form.job_types.includes('Other'))return '';
   const items=photos(form);
   if(review&&!items.length)return '';
-  return '<section class="work-photos" aria-label="Photos of the work required"><strong>'+(review?'Your photos':'If you think it will help, upload a photo here.')+'</strong>'+(review?'':'<p>Optional · up to 3 photos</p><div class="work-photo-actions"><button type="button" data-work-camera>Take a photo</button><button type="button" data-work-choose>Choose photos</button></div><input type="file" accept="image/*" capture="environment" data-work-camera-input hidden><input type="file" accept="image/*" multiple data-work-choose-input hidden>')+'<div class="work-photo-grid">'+items.map((photo,i)=>'<figure><img src="'+photo.image+'" alt="Work photo '+(i+1)+'">'+(review?'':'<button type="button" data-work-remove="'+i+'" aria-label="Remove photo '+(i+1)+'">Remove</button>')+'</figure>').join('')+'</div>'+(review?'':'<p data-work-photo-status role="status" aria-live="polite"></p>')+'</section>';
+  return '<section class="work-photos" aria-label="Photos of the work required"><strong>'+(review?'Your photos':'If you think it will help, upload a photo.')+'</strong>'+(review?'':'<div class="work-photo-actions"><button type="button" data-work-camera>Take a photo</button><button type="button" data-work-choose>Choose photos</button></div><input type="file" accept="image/*" capture="environment" data-work-camera-input hidden><input type="file" accept="image/*" multiple data-work-choose-input hidden>')+'<div class="work-photo-grid">'+items.map((photo,i)=>'<figure><img src="'+photo.image+'" alt="Work photo '+(i+1)+'">'+(review?'':'<button type="button" data-work-remove="'+i+'" aria-label="Remove photo '+(i+1)+'">Remove</button>')+'</figure>').join('')+'</div>'+(review?'':'<p data-work-photo-status role="status" aria-live="polite"></p>')+'</section>';
  }
  async function compress(file){
   if(!file||file.size>20*1024*1024||!(file.type.startsWith('image/')||/\.(heic|heif)$/i.test(file.name)))throw Error('Choose an image smaller than 20 MB.');
