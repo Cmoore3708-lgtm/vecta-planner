@@ -10,7 +10,16 @@
   if(data?.status!=='MATCHED'||data.guideOnly!==true||data.size!==size||data.quantity!==quantity||!Array.isArray(data.options)||data.options.length!==3)throw Error('Guide unavailable');
   const checkedAt=new Date(data.checkedAt).toISOString();
   if(Date.now()-Date.parse(checkedAt)>300000||Date.parse(checkedAt)>Date.now()+60000)throw Error('Guide expired');
-  const options=categories.map(category=>{const matches=data.options.filter(o=>o.category===category);if(matches.length!==1)throw Error('Invalid categories');const o=matches[0];if(o.available!==true)return{category,available:false};if(!Number.isSafeInteger(o.unitPence)||o.unitPence<=0||o.unitPence>500000||o.totalPence!==o.unitPence*quantity)throw Error('Invalid guide');return{category,available:true,brand:String(o.brand||'').slice(0,70),model:String(o.model||'').slice(0,120),unitPence:o.unitPence,totalPence:o.totalPence};});
+  const cleanOption=(o,category)=>{if(!o||o.category!==category||o.available!==true||typeof o.brand!=='string'||!o.brand.trim()||typeof o.model!=='string'||!Number.isSafeInteger(o.unitPence)||o.unitPence<=0||o.unitPence>500000||o.totalPence!==o.unitPence*quantity)throw Error('Invalid guide');return{category,available:true,brand:o.brand.slice(0,70),model:o.model.slice(0,180),unitPence:o.unitPence,totalPence:o.totalPence};};
+  const options=categories.map(category=>{
+   const matches=data.options.filter(o=>o.category===category);if(matches.length!==1)throw Error('Invalid categories');
+   const o=matches[0];if(o.available!==true)return{category,available:false,choices:[]};
+   const first=cleanOption(o,category),raw=o.choices===undefined?[o]:o.choices;
+   if(!Array.isArray(raw)||raw.length<1||raw.length>3)throw Error('Invalid choices');
+   const choices=raw.map(choice=>cleanOption(choice,category));
+   if(new Set(choices.map(choice=>choice.brand.toUpperCase())).size!==choices.length||JSON.stringify(first)!==JSON.stringify(choices[0]))throw Error('Invalid choices');
+   return{...first,choices};
+  });
   return{size,quantity,checkedAt,guideOnly:true,options};
  }
  function createController({onChange=()=>{},fetchGuide=async(size,quantity,signal)=>{const r=await fetch('/api/availability?tyres=1',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({size,quantity}),signal});if(!r.ok)throw Error('Guide unavailable');return r.json();},delay=600}={}){

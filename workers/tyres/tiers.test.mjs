@@ -29,3 +29,14 @@ test('unavailable tiers remain unavailable; wrong size, missing stock and invali
   const r=selectCatalogueGuides([{...base,...patch}],{size:f.requestedSize,settings:f.settings});assert.equal(r.options.every(o=>!o.available),true);
  }
 });
+test('each tier offers its three cheapest distinct brands, using the cheapest eligible model per brand',()=>{
+ const f=fixtures[0],base={size:f.requestedSize,model:'SUMMER',defaultStockMinimum:4};
+ const rows=[['COMFORSER',6000],['COMFORSER',5000],['RADAR',5500],['IMPERIAL',5600],['TOURADOR',5700]].map(([brand,unitPence])=>({...base,brand,unitPence}));
+ const result=selectCatalogueGuides(rows,{size:f.requestedSize,quantity:2,settings:f.settings});
+ assert.deepEqual(result.options[0].choices.map(c=>[c.brand,c.unitPence,c.totalPence]),[['COMFORSER',5000,10000],['RADAR',5500,11000],['IMPERIAL',5600,11200]]);
+ assert.equal(result.options[0].unitPence,5000,'older clients retain the cheapest price');
+ assert.deepEqual(result.options[1].choices,[]);
+ rows[1].defaultStockMinimum=1;
+ const enough=selectCatalogueGuides(rows,{size:f.requestedSize,quantity:2,settings:f.settings}).options[0].choices;
+ assert.deepEqual(enough.map(c=>c.brand),['RADAR','IMPERIAL','TOURADOR']);
+});
