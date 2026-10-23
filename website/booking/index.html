@@ -178,16 +178,14 @@ function haynesHtml(){
 }
 function alignVehicleHeader(){const step=document.querySelector('.step');const details=step?.querySelector('.haynes-vehicle>div');let plate=step?.querySelector('.vehicle-top');if(details){if(!plate&&state.step>1){plate=document.createElement('div');plate.className='vehicle-top';plate.innerHTML=`<div class="registration-column"><div class="reg-wrap" aria-label="Registration number"><span class="reg-band">GB</span><span class="reg">${esc(state.form.registration)}</span></div></div>`;}if(plate)details.appendChild(plate);step.classList.add('identified-vehicle');}else step?.classList.remove('identified-vehicle');}
 function refreshHaynes(){const plate=document.querySelector('.vehicle-top');if(plate?.closest('[data-haynes-slot]'))document.querySelector('.step').appendChild(plate);if(state.step>1){render();return}updateLookupPanel();document.querySelectorAll('[data-haynes-slot]').forEach(slot=>slot.innerHTML=haynesHtml());alignVehicleHeader();bindHaynes();renderActions();}
-let registrationLogoObserver;
 function mountRegistrationLogo(){
- registrationLogoObserver?.disconnect();document.querySelectorAll('.registration-manufacturer-logo').forEach(img=>img.remove());
+ document.querySelectorAll('.registration-manufacturer-logo').forEach(img=>img.remove());
  const plate=document.querySelector('.step .vehicle-top .reg-wrap');
  const make=VectaVehicleImage.manufacturer(haynesState.vehicle?.make||state.form.vehicle_make);
  if(!plate||!make||!document.querySelector('.step.identified-vehicle .haynes-vehicle'))return;
  let row=plate.parentElement;if(!row.classList.contains('registration-brand-row')){row=document.createElement('div');row.className='registration-brand-row';plate.parentNode.insertBefore(row,plate);row.appendChild(plate);}
  const logo=document.createElement('img');logo.className='registration-manufacturer-logo';logo.src='/assets/manufacturers/'+make+'.svg';logo.alt=(haynesState.vehicle?.make||state.form.vehicle_make)+' logo';logo.onerror=()=>logo.remove();row.appendChild(logo);
- const size=()=>{const height=plate.getBoundingClientRect().height;logo.style.height=height+'px';const ratio=logo.naturalWidth&&logo.naturalHeight?logo.naturalWidth/logo.naturalHeight:1;logo.style.width=(height*Math.min(2,ratio))+'px';};logo.onload=size;size();
- if(window.ResizeObserver){registrationLogoObserver=new ResizeObserver(size);registrationLogoObserver.observe(plate);}
+
 }
 function bindHaynes(){mountRegistrationLogo();VectaVehicleImage.mount();document.querySelector('[data-haynes-retry]')?.addEventListener('click',()=>haynesLookup.lookup(state.form.registration));bindVehicleConfirmation();document.querySelectorAll('.haynes-image img').forEach(img=>img.onerror=()=>img.closest('figure').remove());}
 function scheduleLookup(){state.form.engine_size_manual='';state.form.vehicle_colour='';haynesLookup.reset();clearTimeout(state.timer);let reg=state.form.registration.toUpperCase().replace(/[^A-Z0-9]/g,'');if(reg.length<5){state.lookup='idle';refreshHaynes();return}state.lookup='idle';state.lookupMessage='';refreshHaynes();state.timer=setTimeout(()=>haynesLookup.prefetch(reg),650)}
@@ -423,21 +421,22 @@ initialiseBooking();
 </style>
 
 <style id="booking-compact-vehicle-identity">
-/* Compact plate and badge leave the top-aligned illustration more room. */
-.identified-vehicle .registration-brand-row{width:100%;max-width:100%;gap:8px;flex-wrap:nowrap}
-.identified-vehicle .registration-column .reg-wrap{box-sizing:border-box;flex:0 0 160px!important;width:160px!important;min-width:160px!important;max-width:160px!important;height:40px!important;min-height:40px!important;max-height:40px!important}
+/* Keep the original-colour make badge below the compact registration plate. */
+.identified-vehicle .registration-brand-row{width:100%;max-width:100%;gap:18px;flex-direction:column;align-items:flex-start;flex-wrap:nowrap}
+.identified-vehicle .registration-column .reg-wrap{box-sizing:border-box;flex:0 0 auto!important;width:160px!important;min-width:160px!important;max-width:160px!important;height:40px!important;min-height:40px!important;max-height:40px!important}
 .identified-vehicle .registration-column .reg-band{flex:0 0 25px!important;width:25px!important;font-size:11px!important}
 .identified-vehicle .registration-column .reg{box-sizing:border-box!important;flex:1 1 0!important;width:0!important;min-width:0!important;height:36px!important;margin:0!important;padding:5px 3px!important;font-size:20px!important;line-height:26px!important;letter-spacing:0!important;white-space:nowrap!important;overflow:hidden!important;text-align:center}
-.identified-vehicle .registration-manufacturer-logo{flex:0 0 40px;width:40px!important;height:40px!important;max-width:none;object-fit:contain}
+.identified-vehicle .registration-manufacturer-logo{flex:0 0 auto;width:160px!important;height:100px!important;max-width:100%;object-fit:contain;object-position:left center;filter:none;opacity:1;background:transparent;border-radius:0}
 .step:not(.later-step):has(.haynes-vehicle) .haynes-card{grid-template-columns:minmax(208px,.85fr) minmax(0,1fr);align-items:start}
 .step:not(.later-step):has(.haynes-vehicle) .haynes-image{grid-column:2;grid-row:1;align-self:start}
 .step.later-step:has(.haynes-vehicle) .vehicle-photo .haynes-vehicle{grid-template-columns:minmax(208px,.85fr) minmax(0,1fr);align-items:start}
 .step:has(.haynes-vehicle) .vehicle-photo .haynes-image img{width:100%;max-width:100%;height:auto;max-height:none;margin:0;transform:none;object-fit:contain;object-position:center top;vertical-align:top}
 @media(max-width:600px){
- .identified-vehicle .registration-column .reg-wrap{flex-basis:128px!important;width:128px!important;min-width:128px!important;max-width:128px!important;height:34px!important;min-height:34px!important;max-height:34px!important;border-radius:8px}
+ .identified-vehicle .registration-column .reg-wrap{flex-basis:auto!important;width:128px!important;min-width:128px!important;max-width:128px!important;height:34px!important;min-height:34px!important;max-height:34px!important;border-radius:8px}
  .identified-vehicle .registration-column .reg-band{flex-basis:22px!important;width:22px!important;font-size:10px!important}
  .identified-vehicle .registration-column .reg{height:30px!important;padding:4px 2px!important;font-size:16px!important;line-height:22px!important}
- .identified-vehicle .registration-manufacturer-logo{flex-basis:30px;width:30px!important;height:30px!important}
+ .identified-vehicle .registration-brand-row{gap:14px}
+ .identified-vehicle .registration-manufacturer-logo{width:128px!important;height:80px!important}
  .step:not(.later-step):has(.haynes-vehicle) .haynes-card,.step.later-step:has(.haynes-vehicle) .vehicle-photo .haynes-vehicle{grid-template-columns:minmax(166px,.85fr) minmax(0,1fr);column-gap:8px}
  .step:not(.later-step):has(.haynes-vehicle) .haynes-card>p,.step:not(.later-step):has(.haynes-vehicle) .haynes-actions{grid-column:1/-1}
 }
