@@ -10,7 +10,7 @@ import {mechanicVariant} from './mechanic-variant.mjs';
 const root=fileURLToPath(new URL('../',import.meta.url));
 export const baselinePath=path.join(root,'docs/dashboard-layout-baseline.json');
 const names=new Set(['plannerHtml','plannerMetricsHtml','plannerLiveControlsHtml','plannerWindowConfig','plannerTimeRows','currentTimeLineHtml','laneHtml','mobilePlannerHtml','jobCardHtml','mobileJobCardHtml','mobileJobCategoryLabel','plannerJobDescription','plannerMotHeaderHtml','mobileMotAppointmentHtml','plannerJobTypesHtml','plannerVehicleLabel','plannerPlate','fullPlate','unallocatedPanelHtml','unallocatedJobCardHtml','quotePanelHtml','myTasksHtml']);
-const helperNames=new Set(['trackTimedArtwork','mobileManufacturerBadge','genericDashboardArtwork','enrichHaynesDashboard','install']);
+const helperNames=new Set(['plannerArtworkProfile','plannerArtworkPolygon','trackTimedArtwork','mobileManufacturerBadge','genericDashboardArtwork','enrichHaynesDashboard','install']);
 const sharedNames=['plannerHtml','laneHtml','mobilePlannerHtml','jobCardHtml','mobileJobCardHtml','mobileJobCategoryLabel','plannerJobDescription','plannerMotHeaderHtml','mobileMotAppointmentHtml','plannerJobTypesHtml','plannerVehicleLabel','plannerPlate','unallocatedJobCardHtml'];
 const protectedSelector=/[.#](?:app|main|content|top|side|nav|dateCtl|currentDate|todayBtn|job|jobTypeCoded|jobVehicle|lane|head|time|timeCol|ukPlate|uniformRegPlate|ukStrip|quoteCard|websiteBookingOutline|planner[\w-]*|mobile(?:Planner|Job|Group|Vehicle|Manufacturer|Mot)[\w-]*|livePriority[\w-]*|unallocated[\w-]*|sideJob[\w-]*|task[\w-]*|resize[\w-]*|miniPlanner[\w-]*|haynesDashboard[\w-]*|requestCard|timeOff[\w-]*)\b/;
 const sha=value=>createHash('sha256').update(value).digest('hex');

@@ -25,3 +25,9 @@ test('production builds enforce layout locks both before and after mechanics gen
  assert.match(scripts.build,/^node scripts\/dashboard-layout-lock\.mjs && /);
  assert.match(scripts.build,/&& node scripts\/dashboard-layout-lock\.mjs --built$/);
 });
+
+test('a later outline or pixel-sampling change must explicitly update the approved dashboard baseline',()=>{
+ for(const [before,after] of [['extent=Math.ceil(height+scrollTop),clearance=6','extent=Math.ceil(height+scrollTop),clearance=0'],['*4+3]<32','*4+3]<255']]){
+  assert.throws(()=>checkLayout(captureBoth({readAsset:url=>url==='/js/haynes-job-tools.js'?readAsset(url).replace(before,after):readAsset(url)})),/DASHBOARD LAYOUT LOCK/);
+ }
+});
