@@ -116,25 +116,25 @@ export async function renderCustomerInvoicePdf(invoice, settings = {}, job = {},
     page.drawRectangle({x:250,y:714,width:plateWidth,height:28,color:rgb(.95,.80,.22),borderColor:ink,borderWidth:.7});
     page.drawRectangle({x:250,y:714,width:17,height:28,color:rgb(.09,.38,.55)});
     text('GB',253,723,7,bold,rgb(1,1,1));text(plate,273,721,17,bold);
-    if(badge){const scale=Math.min(32/badge.width,24/badge.height);page.drawImage(badge,{x:250+plateWidth+10,y:716,width:badge.width*scale,height:badge.height*scale});}
+    if(badge){const scale=Math.min(120/badge.width,80/badge.height);page.drawImage(badge,{x:250,y:575,width:badge.width*scale,height:badge.height*scale,opacity:.2});}
     const mileage=invoice.mileage??job.mileage;
-    if(mileage!==''&&mileage!=null&&Number.isFinite(Number(String(mileage).replace(/,/g,''))))text(String(mileage)+' miles',250+bold.widthOfTextAtSize(vehicleLines.at(-1)||'',12)+10,690-(vehicleLines.length-1)*15,8,regular,muted);
+    if(mileage!==''&&mileage!=null&&Number.isFinite(Number(String(mileage).replace(/,/g,''))))text(String(mileage)+' miles',250,674-(vehicleLines.length-1)*15,8,regular,muted);
     if(car){const scale=Math.min(120/car.width,80/car.height);page.drawImage(car,{x:553-car.width*scale,y:710,width:car.width*scale,height:car.height*scale});}
 
   }
   if (logo) { const scale = Math.min((isFleet?215:180) / logo.width, 48 / logo.height); page.drawImage(logo, { x: 42, y: 710-headerOffset, width: logo.width * scale, height: logo.height * scale }); }
   else text('VECTA', 42, 721-headerOffset, 32, bold, red);
-  right('INVOICE', 553, isFleet?745:610, 24, bold); right(invoice.invoice_number || '', 553, isFleet?722:587, 13, bold); right(invoice.invoice_date || '', 553, isFleet?704:569, 10);
+  right('INVOICE', 553, isFleet?745:610, 24, bold); right(invoice.invoice_number || '', 553, isFleet?722:587, 13, bold); right(globalThis.VectaInvoicePrint.formatDate(invoice.invoice_date), 553, isFleet?704:569, 10);
   y = 682-headerOffset;
-  const business = nmuk ? ['10 Hunter Close', 'East Boldon, Tyne and Wear, NE36 0TB', 'Email: shirken.moore@talktalk.net'] : ['Contractors Compound, Nissan Motor Manufacturing', 'Nissan Way, Washington, SR5 3NS'];
-  for (const line of [...business, 'Tel: 07721722622', 'VAT No. 169170002']) { for(const part of wrap(line,isFleet?320:180,9)){text(part,42,y,9,regular,muted);y-=12;} }
+  const business = nmuk ? ['10 Hunter Close', 'East Boldon, Tyne and Wear, NE36 0TB'] : ['Contractors Compound, Nissan Motor Manufacturing', 'Nissan Way, Washington, SR5 3NS'];
+  for (const line of [...business, 'Tel: 07721722622', 'chris@VectaMotors.co.uk', 'VectaMotors.co.uk', 'VAT No. 169170002']) { for(const part of wrap(line,isFleet?320:180,9)){text(part,42,y,9,regular,muted);y-=12;} }
   if(!isFleet)y=Math.min(y,550);
   y -= 18; text('CUSTOMER', 42, y, 9, bold, muted); y -= 19;
   paragraph(invoice.customer_name || 'Customer', 42, 511, bold, 12);
   if (invoice.customer_address) paragraph(invoice.customer_address, 42, 511);
   y -= 12;
   const identity = [invoice.registration, invoice.vehicle, invoice.mileage ? 'Mileage: ' + invoice.mileage : '', invoice.mot_due ? 'MOT due: ' + String(invoice.mot_due).slice(0, 10) : ''].filter(Boolean).join('  |  ');
-  if(isFleet)paragraph(identity, 42, 511, bold, 10); y -= 14;
+  if(isFleet)paragraph(identity, 42, 511, bold, 10); y -= 38;
   function tableHead() {
     ensure(36); page.drawRectangle({ x: 42, y: y - 8, width: 511, height: 26, color: pale });
     text('WORK CARRIED OUT', 51, y, 9, bold); right(staff ? 'AMOUNT (EX VAT)' : 'AMOUNT', 480, y, 8, bold); right('VAT', 544, y, 8, bold); y -= 34;
