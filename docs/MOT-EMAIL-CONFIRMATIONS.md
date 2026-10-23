@@ -44,8 +44,8 @@ Receiving until end-to-end verification succeeds.
   status or automatic forwarding. Check such originals in Resend Receiving.
 - Recognise the supplied Fault Finder MOT IV confirmation template. Validate
   the weekday, calendar date, clock time, reference and registration.
-- New workshop MOT bookings default to Unallocated. A verified email finds one active, unallocated MOT job by registration, then atomically assigns it to Chris on the garage date/time and fills the existing MOT-time field. It moves the original job; it never creates or completes a job, changes prices or fleet due dates, or shifts a clash into a different slot.
-- The service-only database function locks the admission check against other job writes, checks Chris's jobs and time off, preserves the original description/duration/prices/notes, and saves the confirmation metadata in the same transaction. Duplicate emails do not reallocate again. Multiple matches, missing unallocated jobs, past appointments and diary clashes save a review result. A newer changed booking for an already allocated job requires manual review; it is not silently rescheduled.
+- New workshop MOT bookings default to Unallocated. A verified email finds one active MOT by registration: either unallocated, or already assigned to Chris at the exact garage date/time with no conflicting MOT-time marker. It then atomically assigns or confirms it with Chris on the garage date/time and fills the existing MOT-time field. It moves the original job; it never creates or completes a job, changes prices or fleet due dates, or shifts a clash into a different slot.
+- The service-only database function locks the admission check against other job writes, checks Chris's jobs and time off, preserves the original description/duration/prices/notes, and saves the confirmation metadata in the same transaction. Duplicate emails do not reallocate again. Multiple matches, missing unallocated jobs, past appointments and diary clashes save a review result. A newer changed booking with a different date/time for an already allocated job requires manual review; it is not silently rescheduled.
 - A successfully allocated MOT job gets a green badge and tick, with confirmation details and reference shown beside the MOT dropdown. Duplicated jobs,
   mismatched times and changed/cancelled references remain red with a warning.
   The newest email for a reference supersedes older confirmations even if
@@ -74,3 +74,5 @@ by `DASHBOARD-LAYOUT-LOCK.md`.
 Disable this specific receiving webhook before rolling back the app. Chris must
 then check Resend Receiving or restore the garage's original recipient. Do not
 delete stored confirmation metadata or change the mailbox domain's MX records.
+
+23 October update: job-card confirmation wording ends at “Fault Finder MOT Centre”. Click the centre name to view the saved plain-text garage confirmation; date/time/reference remain in that viewer and the booking data. Earlier records without stored text show their saved booking details.

@@ -38,7 +38,7 @@ export function createMotHandler({database=db,emailApi=resend,login=requireWorks
    const email=await emailApi('emails/receiving/'+id);
    if(address(email.from)!==motSender||!(email.to||[]).some(to=>address(to)===motInbox))return res.status(200).json({ignored:true});
    const authenticated=email.authentication?.dkim==='pass'&&email.authentication?.dmarc!=='fail';
-   const parsed=parseMotConfirmation(email);let record={...parsed,email_id:id,received_at:email.created_at||event.created_at,forwarded:false};
+   const parsed=parseMotConfirmation(email);let record={...parsed,email_subject:String(email.subject||'Booking confirmation').slice(0,500),email_text:emailText(email).slice(0,100000),email_id:id,received_at:email.created_at||event.created_at,forwarded:false};
    if(!record.received_at||!Number.isFinite(Date.parse(record.received_at)))throw fail('Missing received timestamp');
    // An authenticated sender is required both for automatic green and for forwarding.
    if(!authenticated)record.state='review';
