@@ -15,6 +15,6 @@
     await Promise.all(Array.from(document.images).map(img=>img.complete?Promise.resolve():new Promise(resolve=>{
       img.addEventListener('load',resolve,{once:true});img.addEventListener('error',resolve,{once:true});setTimeout(resolve,5000);
     })));
-    beforePrint();window.print();
+    await window.VectaInvoicePrint.print(document);
   });
 })();
