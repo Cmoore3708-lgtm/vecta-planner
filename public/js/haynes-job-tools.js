@@ -230,8 +230,20 @@ function trackTimedArtwork(card,img){
   if(!img.naturalWidth||!img.naturalHeight||!box.width||!box.height){clear();return;}
   const drawnWidth=Math.min(box.width,box.height*img.naturalWidth/img.naturalHeight);
   card.style.setProperty('--planner-vehicle-text-inset',Math.ceil(drawnWidth+12)+'px');
+  // The make/model sits near the roof: reserve its painted edge, not the wider bonnet below.
+  const profile=plannerArtworkProfile(img),identity=card.querySelector('.plannerJobVehicle');
+  if(identity&&profile){
+   const line=identity.getBoundingClientRect(),header=card.querySelector('.plannerJobHeader').getBoundingClientRect();
+   const drawnHeight=drawnWidth*img.naturalHeight/img.naturalWidth;
+   let edge=box.right;
+   const first=Math.max(0,Math.floor((line.top-box.top-6)/drawnHeight*profile.height));
+   const last=Math.min(profile.height-1,Math.ceil((line.bottom-box.top+6)/drawnHeight*profile.height));
+   for(let row=first;row<=last;row++)if(profile.left[row]<profile.width)edge=Math.min(edge,box.right-drawnWidth+profile.left[row]/profile.width*drawnWidth);
+   const available=Math.max(0,edge-header.left-6);
+   card.style.setProperty('--planner-identity-text-inset',Math.max(0,Math.ceil(card.clientWidth-available))+'px');
+  }else card.style.removeProperty('--planner-identity-text-inset');
   if(!work||!work.textContent.trim()||root.matchMedia?.('(max-width:768px)').matches||root.CSS?.supports&&!root.CSS.supports('shape-outside','polygon(0 0,100% 0,100% 100%)')){clear();return;}
-  const profile=plannerArtworkProfile(img);if(!profile){clear();return;}
+  if(!profile){clear();return;}
   card.classList.add('plannerArtworkWrapped');
   let exclusion=work.querySelector('.plannerArtworkExclusion');
   if(!exclusion){exclusion=document.createElement('span');exclusion.className='plannerArtworkExclusion';exclusion.setAttribute('aria-hidden','true');work.prepend(exclusion);}
