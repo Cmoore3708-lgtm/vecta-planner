@@ -8,6 +8,7 @@ function setup(saved,today='2029-01-01'){
  let output='',warning='';
  const context={todayIso:()=>today,alert:text=>{warning=text},fleetNormaliseCustomer:x=>x,vectaActiveInvoices:()=>saved?[saved]:[],invoiceTotals:lines=>({subtotal:lines.reduce((s,l)=>s+Number(l.amount||0),0)}),fleetNmukIsInternalJob:j=>j.internal,fleetEomLineItems:j=>[{description:'Workshop work',price:j.price}],niceDate:x=>x,fleetEomRegistrationText:()=>'',fleetNmukTypeForJob:j=>j.nmuk_type||'',financeBaseJob:j=>j,normReg:x=>String(x||'').replace(/ /g,'').toUpperCase(),app:{jobs:[],jobCustomerMemory:{}},window:{},Blob:class{constructor(parts){output=parts.join('')}},URL:{createObjectURL:()=>'',revokeObjectURL:()=>{}},document:{createElement:()=>({click(){},remove(){}}),body:{appendChild(){}}},setTimeout:()=>{}};
  vm.createContext(context);
+ vm.runInContext(html.slice(html.indexOf('function financeOwnershipRegistration('),html.indexOf('function financeHistoricalNmukAllocation(')),context);
  vm.runInContext(html.match(/function fleetNmukCsvTypeForJob\(job\)\{[\s\S]*?\n\}/)[0],context);
  vm.runInContext(html.slice(html.indexOf('function financeAuthoritativeNmukAllocation('),html.indexOf('function financeRawAllocationEvidence(')),context);
  vm.runInContext(html.slice(html.indexOf('var fleetNmukMonthlyDrafts={}'),html.indexOf('async function fleetEomInvoice(')),context);
