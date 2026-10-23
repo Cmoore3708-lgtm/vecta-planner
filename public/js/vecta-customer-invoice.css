@@ -39,7 +39,7 @@ html,body{margin:0;padding:0;font-family:Arial,Helvetica,sans-serif;font-size:12
 .printTable th:nth-child(2){width:21%;text-align:right}
 .printTable th:last-child{width:13%;text-align:right}
 .printTable td{padding:10px 8px;vertical-align:top;border-bottom:1px solid #e1e4e8;overflow-wrap:anywhere;white-space:pre-wrap}
-.printTable td:first-child{font-weight:normal}
+.printTable td:first-child{font-weight:normal;font-size:var(--invoice-work-description-size,14px)}
 .printTable td:nth-child(2),.printTable td:last-child,.right{text-align:right}
 .invoiceBottomBlock{display:flex;flex-direction:column;margin-top:auto;padding-top:16px;break-inside:avoid;page-break-inside:avoid;flex-shrink:0}
 .printTotals{width:270px;margin:0 0 0 auto;padding:8px 0;font-size:13px;break-inside:avoid}
