@@ -13404,8 +13404,13 @@ function financeSaveCorrection(id,values){var map=financeCorrectionMap();map[Str
    This is deliberately used before stale Staff/Contractor labels in financial reports.
    MVOS is not represented as a separate Fleet Manager group, so its historical NMUK
    job allocation is the safest source of truth for future-work classification. */
+function financeOwnershipRegistration(job){
+  if(job&&job.no_vehicle)return '';
+  var reg=normReg(job&&job.registration||'');
+  return /^(?:VARIOUS|GENERAL|NOVEHICLE|N\/A|NA|NONE|NOTAPPLICABLE|MULTIPLE|UNKNOWN)$/.test(reg.replace(/\s+/g,''))?'':reg;
+}
 function financeHistoricalNmukAllocation(reg,currentId){
-  reg=normReg(reg||'');if(!reg)return null;
+  reg=financeOwnershipRegistration({registration:reg});if(!reg)return null;
   var history=[].concat(app.jobs||[],window.NMUK_2026_JOBS||[]);
   var matches=history.filter(function(h){
     if(!h||String(h.id||'')===String(currentId||''))return false;
@@ -13440,7 +13445,7 @@ function financeNmukImportId(id){
    the embedded NMUK tracker history and other explicit NMUK jobs for the same reg. */
 function financeAuthoritativeNmukAllocation(j){
   j=financeBaseJob(j)||j||{};
-  var reg=normReg(j.registration||''),sub=String(j.nmuk_vehicle_type||j.nmuk_subtype||'').trim().toUpperCase();
+  var reg=financeOwnershipRegistration(j),sub=String(j.nmuk_vehicle_type||j.nmuk_subtype||'').trim().toUpperCase();
   function result(kind){kind=String(kind||'').toUpperCase();if(kind==='MVOS')return {type:'NMUK',name:'NMUK MVOS'};if(kind==='INTERNAL')return {type:'NMUK',name:'NMUK Internal'};if(kind==='POOL'||kind==='POOL CAR TAX')return {type:'NMUK',name:'NMUK Pool'};if(kind==='VARIOUS'||kind==='GENERAL')return {type:'NMUK',name:'NMUK Various'};return {type:'NMUK',name:'NMUK'};}
   var acct=String(j.customer_account||'').trim().toUpperCase(),name=String(j.customer_name||'').trim().toUpperCase();
   if(acct==='NMUK'||name==='NMUK'||['MVOS','INTERNAL','POOL','POOL CAR TAX','VARIOUS','GENERAL'].indexOf(sub)>-1)return result(sub);
@@ -13470,7 +13475,7 @@ function financeLegacyAllocation(j){
   var effective=financeEffectiveJob(j),raw=financeBaseJob(effective)||effective||{},known=financeKnownContractors();
   /* Registration ownership in Fleet Manager is authoritative and is checked against
      the raw job registration first so a stale finance correction cannot redirect it. */
-  var rawReg=normReg(raw.registration||''),effectiveReg=normReg(effective&&effective.registration||''),reg=rawReg||effectiveReg,fv=reg&&typeof fleetVehicleForRegistration==='function'?fleetVehicleForRegistration(reg):null;
+  var rawReg=financeOwnershipRegistration(raw),effectiveReg=financeOwnershipRegistration(effective),reg=rawReg||effectiveReg,fv=reg&&typeof fleetVehicleForRegistration==='function'?fleetVehicleForRegistration(reg):null;
   if(fv){
     if(fv.fleetGroup==='Nissan Internal')return {type:'NMUK',name:'NMUK Internal'};
     if(fv.fleetGroup==='Nissan Pool Cars')return {type:'NMUK',name:'NMUK Pool'};
