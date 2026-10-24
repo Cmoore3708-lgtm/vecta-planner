@@ -12,6 +12,8 @@ backup/backup-config.json
 workers/tyres/.tyre-browser-profile/
 workers/gsf/gsf-config.local.json
 workers/gsf/*.local.json
+workers/gsf/*.local.csv
+workers/gsf/*.local.md
 workers/gsf/.env*
 VectaGSF/
 

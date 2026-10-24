@@ -1,6 +1,6 @@
 {
-  "version": "gsf-100pct-trial",
-  "markupBps": 10000,
+  "version": "gsf-50pct-trial",
+  "markupBps": 5000,
   "vatBps": 2000,
   "roundUpPence": 1,
   "labourNetPence": {

@@ -26,24 +26,30 @@ The older selector-based `readProduct` path is retained for verified vehicle-cat
 
 `pricing-policy.example.json` now contains Chris's requested **trial scenario**, not activated production configuration:
 
-- 100% markup on purchase costs: parts and oil cost × 2.
+- 50% markup on purchase costs: parts and oil cost × 1.5.
 - Oil & Filter Change labour: £35; Full Service: £70; Major Service: £110.
 - Labour is interpreted as excluding VAT; 20% VAT is applied once to the resulting total.
 - Exact penny totals; no £5/£10 rounding.
 
-Example equations: oil/filter = `(2 × applicable costs + 35) × 1.20`; full = `(2 × applicable costs + 70) × 1.20`; major = `(2 × applicable costs + 110) × 1.20`. Required major extras must follow the reviewed vehicle scope, not be guessed from fuel type.
+Example equations: oil/filter = `(1.5 × applicable costs + 35) × 1.20`; full = `(1.5 × applicable costs + 70) × 1.20`; major = `(1.5 × applicable costs + 110) × 1.20`. Required major extras must follow the reviewed vehicle scope, not be guessed from fuel type.
 
 ## Independent PC price check
 
-1. Use the repository checkout including `lib/service-pricing.js` and `workers/gsf`. Install Node 22+ and Microsoft Edge.
-2. In `workers/gsf`, run `npm ci` using the pinned lockfile.
-3. Stop any existing GSF worker before opening its dedicated browser profile.
-4. Run `CHECK-GSF-PRICES.cmd`. Sign in directly in Edge if needed. Search for a part and open its Part Details dialog.
-5. Press Enter in the terminal. The script validates the price/stock/VAT fields and saves `gsf-product-capture.local.json` beside the script. It saves only selected product data, not HTML, passwords, cookies, VINs or account details. The capture is deliberately marked **fitment not verified**.
+The downloadable package now has a top-level **START-HERE.cmd**. Extract All and run that file. It delegates to `workers/gsf/setup.cmd`, which checks Node 22+, Microsoft Edge and the local profile directory, installs locked dependencies, runs `self-check.mjs`, then opens the automatic price check.
 
-This check does not need queue credentials, a database change or website activation. It does not order anything. It verifies the real Windows/Edge environment separately from the cloud research browser.
+Stop any existing GSF worker first. Sign in directly in the dedicated Edge window if needed, then press Enter in the terminal. The script searches the known UFI test product automatically and validates the selected SKU, brand, description, price, VAT and stock. It saves selected product fields to `gsf-product-capture.local.json`; failures after browser launch save a small `gsf-check-diagnostic.local.json` where possible. Neither file contains passwords, cookies, VINs, account details or page HTML. The product capture is deliberately marked **fitment not verified**.
 
-`SIGN-IN-GSF.cmd` opens the same dedicated profile for manual sign-in. A script never reads or types the GSF password. Automatic credential entry is not implemented. Keep the worker PC awake and connected.
+To check another product manually, use `node probe.mjs --manual`, then open its Part Details dialog before pressing Enter. `SIGN-IN-GSF.cmd` opens the same profile for manual sign-in. Automatic credential entry is not implemented.
+
+This check does not need queue credentials, database changes or website activation. Nothing is ordered. The live Windows test remains pending; offline package and arithmetic tests do not replace it.
+
+## Prepared ten-car comparison
+
+`COMPARE-TEN-CARS.cmd` runs a sequential local comparison using the approved worker mappings. Copy `comparison-input.example.json` to `comparison-input.local.json`, select ten different registrations and complete their mileage/range details. The template has four observed registrations and six intentionally empty slots. A missing or duplicate registration is rejected.
+
+The runner needs an approved `gsf-config.local.json` with the correct filter fitments, oil specification/quantity and service scope for each combination. It refreshes costs and calculates all three services using the 50% trial policy, saving `service-comparison.local.json`, a readable Markdown table and a CSV. A missing/unverified combination is marked **Needs verification**, with no fabricated or zero price. This standalone comparison does not activate the website or need backend credentials.
+
+The offline self-check uses clearly synthetic costs and verifies expected totals of £96.00 / £177.60 / £279.60. Those are arithmetic examples only, not quotes for any actual registration.
 
 ## Approved recipes
 

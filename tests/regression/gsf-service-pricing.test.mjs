@@ -10,6 +10,7 @@ import {servicePriceHandler} from '../../api/service-price.js';
 import {gsfWorkerHandler} from '../../api/gsf-worker.js';
 import {approvedRecipe,moneyPence,supplierUrl,readProduct,readProductBySku} from '../../workers/gsf/supplier.mjs';
 import {readProductDialog} from '../../workers/gsf/product-dialog.mjs';
+import {comparisonVehicles,compareServices,comparisonMarkdown,comparisonCsv} from '../../workers/gsf/comparison.mjs';
 
 // Synthetic oil cost/quantity for arithmetic tests, NOT verified NU67 VSE service data.
 const now=Date.parse('2026-10-24T21:00:00Z'),secret='a'.repeat(64);
@@ -130,11 +131,34 @@ test('approved-SKU worker uses saved fitment evidence and checks the selected pr
   await assert.rejects(readProductBySku(page,{...item,brand:'WRONG'}),/REVIEW_REQUIRED/);
   assert.throws(()=>approvedRecipe({calibrationApproved:true,lookupMode:'approved-skus',recipes:[{...request,approved:true,reviewedAt:new Date(now).toISOString()}]},request,now),/REVIEW_REQUIRED/);
 });
-test('the requested trial policy doubles parts and oil and uses £35/£70/£110 net labour',()=>{
+test('the requested trial policy adds 50% to parts and oil and uses £35/£70/£110 net labour',()=>{
   const trial=JSON.parse(readFileSync(new URL('../../workers/gsf/pricing-policy.example.json',import.meta.url),'utf8'));
-  assert.equal(trial.markupBps,10000);assert.deepEqual(trial.labourNetPence,{'Oil & Filter Change':3500,'Full Service':7000,'Major Service':11000});
+  assert.equal(trial.markupBps,5000);assert.deepEqual(trial.labourNetPence,{'Oil & Filter Change':3500,'Full Service':7000,'Major Service':11000});
   const price=calculateServicePrice(result(),request,trial,now);
-  assert.equal(price.partsNetPence,10938);assert.equal(price.labourNetPence,7000);assert.equal(price.totalPence,21526);
+  assert.equal(price.partsNetPence,8204);assert.equal(price.labourNetPence,7000);assert.equal(price.totalPence,18245);
+});
+test('ten-car comparison rejects duplicates and missing registrations',()=>{
+  const vehicles=Array.from({length:10},(_,i)=>({registration:'DEMO'+String(i).padStart(3,'0'),mileage:50000,range:'Mid Range'}));
+  assert.equal(comparisonVehicles({vehicles}).length,10);
+  assert.throws(()=>comparisonVehicles({vehicles:vehicles.slice(1)}));
+  assert.throws(()=>comparisonVehicles({vehicles:vehicles.map((vehicle,i)=>i===9?vehicles[0]:vehicle)}));
+  assert.throws(()=>comparisonVehicles({vehicles:vehicles.map((vehicle,i)=>i===9?{...vehicle,registration:''}:vehicle)}));
+});
+test('comparison prices all three scopes sequentially and marks missing costs without inventing a total',async()=>{
+  const trial=JSON.parse(readFileSync(new URL('../../workers/gsf/pricing-policy.example.json',import.meta.url),'utf8'));
+  const vehicles=[{registration:'DEMO000',mileage:50000,range:'Mid Range'},{registration:'DEMO001',mileage:50000,range:'Mid Range'}];
+  let active=0,maxActive=0;const calls=[];
+  const rows=await compareServices(vehicles,trial,async input=>{
+    active++;maxActive=Math.max(maxActive,active);calls.push(input.service);await flush();active--;
+    if(input.registration==='DEMO001'&&input.service==='Major Service')throw Error('REVIEW_REQUIRED');
+    const data=result();return {...data,request:input,checkedAt:new Date().toISOString()};
+  });
+  assert.equal(maxActive,1);assert.equal(calls.length,6);
+  assert.equal(rows[0].services['Full Service'].totalPence,18245);
+  assert.equal(rows[1].services['Major Service'].status,'REVIEW_REQUIRED');
+  assert.equal(rows[1].services['Major Service'].totalPence,undefined);
+  assert.match(comparisonMarkdown(rows,trial),/Needs verification/);assert.match(comparisonCsv(rows),/182.45/);
+  assert.doesNotMatch(comparisonMarkdown(rows,trial),/£0.00/);
 });
 function controller(fetcher,form,wait=async()=>{}){
   const context={fetch:fetcher,AbortController,AbortSignal,setTimeout:()=>1,clearTimeout,Date};vm.createContext(context);
