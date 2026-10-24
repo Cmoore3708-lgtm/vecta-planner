@@ -4,7 +4,7 @@ import {dirname} from 'node:path';
 export const bookingSource='website/booking/index.html';
 export const bookingOutput='public/booking.html';
 export function syncBookingPage({check=false}={}){
- const pairs=[[bookingSource,bookingOutput],['public/js/vecta-work-photos.js','website/js/vecta-work-photos.js'],['public/js/vecta-work-photos.css','website/js/vecta-work-photos.css'],['public/js/vecta-tyre-photo.js','website/js/vecta-tyre-photo.js'],['public/js/vecta-tyre-photo.css','website/js/vecta-tyre-photo.css'],['public/js/vecta-tyre-booking.js','website/js/vecta-tyre-booking.js'],['public/js/vecta-tyre-booking.css','website/js/vecta-tyre-booking.css'],['public/assets/tyre-guide-cutout.webp','website/assets/tyre-guide-cutout.webp']];
+ const pairs=[[bookingSource,bookingOutput],['public/js/vecta-service-pricing.js','website/js/vecta-service-pricing.js'],['public/js/vecta-work-photos.js','website/js/vecta-work-photos.js'],['public/js/vecta-work-photos.css','website/js/vecta-work-photos.css'],['public/js/vecta-tyre-photo.js','website/js/vecta-tyre-photo.js'],['public/js/vecta-tyre-photo.css','website/js/vecta-tyre-photo.css'],['public/js/vecta-tyre-booking.js','website/js/vecta-tyre-booking.js'],['public/js/vecta-tyre-booking.css','website/js/vecta-tyre-booking.css'],['public/assets/tyre-guide-cutout.webp','website/assets/tyre-guide-cutout.webp']];
  for(const name of fs.readdirSync('public/assets/tyre-brands').filter(name=>name.endsWith('.png')))pairs.push(['public/assets/tyre-brands/'+name,'website/assets/tyre-brands/'+name]);
  const changed=pairs.filter(([source,output])=>!fs.existsSync(output)||!fs.readFileSync(output).equals(fs.readFileSync(source)));
  if(!changed.length)return false;

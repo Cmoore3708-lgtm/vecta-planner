@@ -1,0 +1,11 @@
+{
+  "version": "gsf-1",
+  "markupBps": null,
+  "vatBps": 2000,
+  "roundUpPence": 1,
+  "labourNetPence": {
+    "Oil & Filter Change": null,
+    "Full Service": null,
+    "Major Service": null
+  }
+}

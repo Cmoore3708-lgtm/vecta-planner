@@ -1,0 +1,17 @@
+{
+  "id": "replace-with-verified-vehicle-and-service-id",
+  "approved": false,
+  "reviewedAt": "",
+  "registration": "NU67VSE",
+  "vehicle": "Nissan Pulsar DiG-T 190 Start/Stop Tekna",
+  "service": "Oil & Filter Change",
+  "range": "Mid Range",
+  "minimumMileage": null,
+  "maximumMileage": null,
+  "allowUnknownMileage": false,
+  "oilSpecification": "",
+  "oilSource": "",
+  "scopeSource": "",
+  "requiredKinds": ["oil", "oil_filter"],
+  "items": []
+}
