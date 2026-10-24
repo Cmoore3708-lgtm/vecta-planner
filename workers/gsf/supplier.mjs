@@ -1,4 +1,5 @@
 import {servicePriceRequest, cleanServiceCosts} from '../../lib/service-pricing.js';
+import {readProductDialog} from './product-dialog.mjs';
 export const SUPPLIER = 'https://trade.gsfcarparts.com';
 export function supplierUrl(value) {
   const url=new URL(value);
@@ -16,6 +17,7 @@ export function approvedRecipe(config, raw, now=Date.now()) {
   const matches=config.recipes.filter(recipe=>recipe.registration===request.registration && recipe.service===request.service && recipe.range===request.range);
   if(matches.length!==1)throw Error('REVIEW_REQUIRED');
   const recipe=matches[0], reviewed=Date.parse(recipe.reviewedAt);
+  if(config.lookupMode==='approved-skus' && !recipe.fitmentSource)throw Error('REVIEW_REQUIRED');
   if(recipe.approved!==true || !Number.isFinite(reviewed) || reviewed>now || now-reviewed>30*86400000 ||
     !recipe.id || !recipe.vehicle || !recipe.oilSpecification || !recipe.oilSource || !recipe.scopeSource ||
     !Array.isArray(recipe.items) || recipe.items.length<2 || recipe.items.length>16 ||
@@ -25,13 +27,35 @@ export function approvedRecipe(config, raw, now=Date.now()) {
     !Number.isSafeInteger(recipe.minimumMileage) || !Number.isSafeInteger(recipe.maximumMileage) ||
     request.mileage<recipe.minimumMileage || request.mileage>recipe.maximumMileage)throw Error('REVIEW_REQUIRED');
   for(const item of recipe.items) {
-    supplierUrl(item.url);
-    for(const key of ['rootCss','skuCss','priceCss','stockCss','vatBasisCss'])if(typeof item[key]!=='string'||!item[key].trim())throw Error('SETTINGS_REQUIRED');
+    if(config.lookupMode==='approved-skus') {
+      if(!/^[A-Za-z0-9 ._/-]{1,80}$/.test(item.searchTerm||item.sku||''))throw Error('SETTINGS_REQUIRED');
+    } else {
+      supplierUrl(item.url);
+      for(const key of ['rootCss','skuCss','priceCss','stockCss','vatBasisCss'])if(typeof item[key]!=='string'||!item[key].trim())throw Error('SETTINGS_REQUIRED');
+    }
     if(item.vatBasis!=='EX_VAT' || !item.vatEvidence || !item.sku || !item.brand || !item.description ||
       !Number.isSafeInteger(item.quantityMilli) || item.quantityMilli<1 || !Number.isSafeInteger(item.packQuantityMilli) ||
       item.packQuantityMilli<1 || (item.kind!=='oil' && item.packQuantityMilli!==1000))throw Error('SETTINGS_REQUIRED');
   }
   return recipe;
+}
+export async function readProductBySku(page,item) {
+  await page.goto(SUPPLIER,{waitUntil:'domcontentloaded',timeout:15000});
+  if(/\/signin(?:[/?]|$)/.test(page.url()))throw Error('LOGIN_REQUIRED');
+  if(new URL(page.url()).origin!==SUPPLIER)throw Error('UNAVAILABLE');
+  const term=item.searchTerm||item.sku;
+  if(!/^[A-Za-z0-9 ._/-]{1,80}$/.test(term))throw Error('SETTINGS_REQUIRED');
+  const search=page.getByRole('textbox',{name:"Search for OE (cross ref), aftermarket or categories like 'Air filter'",exact:true});
+  await search.fill(term);await search.press('Enter');
+  await page.getByRole('heading',{name:'Search Results for "'+term+'"',exact:true}).waitFor({state:'visible',timeout:15000});
+  const sku=page.getByRole('main').getByText(item.sku,{exact:true});
+  await uniqueVisible(sku);await sku.click();
+  const dialog=page.getByRole('dialog',{name:'Part Details',exact:true});
+  await dialog.getByRole('heading',{level:5}).waitFor({state:'visible',timeout:15000});
+  const product=await page.evaluate(readProductDialog);
+  if(product.sku!==item.sku || product.brand.toUpperCase()!==item.brand.toUpperCase() || product.description!==item.description)throw Error('REVIEW_REQUIRED');
+  return {kind:item.kind,sku:product.sku,brand:product.brand,description:product.description,
+    quantityMilli:item.quantityMilli,unitNetPence:Math.ceil(product.unitNetPence*1000/item.packQuantityMilli),vatBasis:'EX_VAT',inStock:true};
 }
 async function uniqueVisible(locator) {
   if(await locator.count()!==1 || !await locator.isVisible())throw Error('SETTINGS_REQUIRED');
@@ -59,6 +83,12 @@ export async function readProduct(page,item) {
 }
 export async function lookupService(page,raw,config) {
   const request=servicePriceRequest(raw),recipe=approvedRecipe(config,request);
+  if(config.lookupMode==='approved-skus') {
+    const items=[];
+    for(const item of recipe.items)items.push(await readProductBySku(page,item));
+    return cleanServiceCosts({request,recipeId:recipe.id,vehicle:recipe.vehicle,oilSpecification:recipe.oilSpecification,
+      requiredKinds:recipe.requiredKinds,items,fitmentVerified:true,scopeVerified:true,oilVerified:true,checkedAt:new Date().toISOString()},request);
+  }
   await page.goto(SUPPLIER,{waitUntil:'domcontentloaded',timeout:15000});
   if(/\/signin(?:[/?]|$)/.test(page.url()))throw Error('LOGIN_REQUIRED');
   // This is the visible registration search, never a hidden supplier API.

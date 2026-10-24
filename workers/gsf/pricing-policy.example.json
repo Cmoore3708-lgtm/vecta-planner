@@ -1,11 +1,11 @@
 {
-  "version": "gsf-1",
-  "markupBps": null,
+  "version": "gsf-100pct-trial",
+  "markupBps": 10000,
   "vatBps": 2000,
   "roundUpPence": 1,
   "labourNetPence": {
-    "Oil & Filter Change": null,
-    "Full Service": null,
-    "Major Service": null
+    "Oil & Filter Change": 3500,
+    "Full Service": 7000,
+    "Major Service": 11000
   }
 }

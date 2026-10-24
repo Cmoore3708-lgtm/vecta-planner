@@ -12,6 +12,7 @@
   "oilSpecification": "",
   "oilSource": "",
   "scopeSource": "",
+  "fitmentSource": "",
   "requiredKinds": ["oil", "oil_filter"],
   "items": []
 }

@@ -1,73 +1,88 @@
-# GSF service-pricing worker — staged first version
+# GSF service pricing — staged worker
 
-This is a real queue/worker/pricing implementation, **not yet enabled or live-tested against GSF product pages**. No parts are ordered. Existing public engine-band guide prices remain the fallback.
+The queue, pricing engine, signed booking prices and PC worker are implemented. Production remains disabled. **Automatic coverage of arbitrary registrations is not complete.**
 
-## Implemented
+## Investigation results
 
-- Separate Edge profile, manual secure sign-in, PC pull loop and explicit login-expiry reporting.
-- Registration search through the visible GSF interface, selected-vehicle verification, then read-only product page navigation.
-- Exact SKU, single selected account price, visible ex-VAT basis and positive stock checks. RRP, multiple prices, unavailable stock or uncertain oil/fitment cannot produce a quote.
-- Approved vehicle/service recipes select exact SKUs and brand/range, required quantities, service scope and oil specification. Oil pack price is converted to a per-litre cost (rounded up to a penny), then only the verified fill quantity is charged.
-- Server-side parts markup, preset net labour, VAT and optional final-price rounding. Costs, markup, account sessions and worker credentials stay private.
-- Queue deduplication, one active lookup, job leases, five-minute success cache, one-minute failure cache, hourly and daily lookup limits, bounded deadlines and cleanup.
-- Website lookup on service selection; obsolete vehicle/mileage/range responses are ignored. Loading/offline states retain the guide price. Signed customer prices last 30 minutes and are validated and recorded with parts against the booking. The existing £65 MOT / £5 combined-service offer is preserved separately.
+In the signed-in research browser, exact part-number search works. Searching `UFI23.265.00` returns a product card with SKU `23.265.00`; clicking that SKU opens the **Part Details** dialog. Its rendered fields explicitly show UFI, £4.94 **ex vat**, £5.93 including VAT, RRP £20.18, and positive stock in Boldon/RDC/NDC. RRP is not the account cost.
 
-## What is deliberately unfinished
+The vehicle-history action separately reports `Vehicle not found` in this browser even though the recent list contains the correctly identified car. The user's phone can open the vehicle catalogue. This does not prove an account-wide fault or explain the supplier's underlying cause. One bulk oil promotional SKU search also returned no results; do not assume every promotional code is searchable.
 
-GSF's live DOM selectors and displayed VAT basis have **not** been calibrated. The first version requires an approved recipe for each registration/service/range and mileage window. It does **not** yet discover and price every vehicle automatically. Unknown vehicles, changed scope or unreviewed manufacturer oil data return `REVIEW_REQUIRED`, and the website keeps its guide price.
+These observations establish one filter product price and the dialog layout. They do **not** establish all filter fitments, oil specification/capacity or three complete service prices for ten registrations. No purchasing, basket updates, hidden supplier APIs or session extraction were used.
 
-Next stage: calibrate the catalogue with real vehicles, connect trusted Haynes oil/scope data to recipe discovery, compare at least ten petrol/diesel vehicles, and expand coverage. Do not infer oil quantity from engine size or treat every listed part as due for replacement.
+## Current worker approach
 
-## PC setup (once the preview/backend is configured)
+1. A reviewed recipe links a registration, service, quality range and mileage window to compatible parts, verified oil specification and fill quantity. Recipe review expires after 30 days.
+2. In `approved-skus` mode, the worker searches each saved supplier part number in GSF's visible interface. It requires exactly one SKU result and verifies its SKU, brand and description again inside Part Details.
+3. The read-only dialog reader isolates the **ex-VAT account cost**, checks the separate including-VAT cost, and verifies stock. Multiple prices, changed SKU/brand, out-of-stock products or unclear VAT fail closed.
+4. The server applies parts markup, preset net labour, VAT and rounding. Only the customer price and selected parts reach the booking browser.
+5. An unknown/unreviewed vehicle, failed lookup or expired sign-in retains the existing engine-band guide price. Saved fitment evidence allows known vehicles to be repriced without relying on GSF's failing registration-selection action.
+
+Oil sold in packs is converted to a per-litre cost, rounded up to a penny, then multiplied by the verified fill quantity. Manufacturer oil specification and pack size must be checked; engine size is not an oil-capacity source.
+
+The older selector-based `readProduct` path is retained for verified vehicle-catalogue workflows. It is not the default; the new SKU/dialog path needs no hand-entered product CSS selectors or invented product URLs.
+
+## Trial commercial policy
+
+`pricing-policy.example.json` now contains Chris's requested **trial scenario**, not activated production configuration:
+
+- 100% markup on purchase costs: parts and oil cost × 2.
+- Oil & Filter Change labour: £35; Full Service: £70; Major Service: £110.
+- Labour is interpreted as excluding VAT; 20% VAT is applied once to the resulting total.
+- Exact penny totals; no £5/£10 rounding.
+
+Example equations: oil/filter = `(2 × applicable costs + 35) × 1.20`; full = `(2 × applicable costs + 70) × 1.20`; major = `(2 × applicable costs + 110) × 1.20`. Required major extras must follow the reviewed vehicle scope, not be guessed from fuel type.
+
+## Independent PC price check
 
 1. Use the repository checkout including `lib/service-pricing.js` and `workers/gsf`. Install Node 22+ and Microsoft Edge.
-2. In `workers/gsf`, run `npm ci` (pinned Playwright lockfile included).
-3. Run `SIGN-IN-GSF.cmd`. Sign into GSF directly in its dedicated Edge window, then press Enter in the terminal. This does not read a password or copy your usual browser's profile.
-4. Copy `gsf-config.example.json` to `gsf-config.local.json`. Keep `calibrationApproved: false` until the following checks pass.
-5. Verify the selected-vehicle container selector from the actual rendered site. It must show both the current registration and the complete variant, rather than the recent-vehicles list.
-6. Add reviewed recipes using `recipe.template.json`. For every part, record:
+2. In `workers/gsf`, run `npm ci` using the pinned lockfile.
+3. Stop any existing GSF worker before opening its dedicated browser profile.
+4. Run `CHECK-GSF-PRICES.cmd`. Sign in directly in Edge if needed. Search for a part and open its Part Details dialog.
+5. Press Enter in the terminal. The script validates the price/stock/VAT fields and saves `gsf-product-capture.local.json` beside the script. It saves only selected product data, not HTML, passwords, cookies, VINs or account details. The capture is deliberately marked **fitment not verified**.
 
-   ```json
-   {
-     "kind": "oil_filter",
-     "sku": "REPLACE_WITH_VERIFIED_SKU",
-     "brand": "REPLACE_WITH_SELECTED_BRAND",
-     "description": "Oil filter",
-     "url": "https://trade.gsfcarparts.com/product/REPLACE_WITH_OBSERVED_PATH",
-     "quantityMilli": 1000,
-     "packQuantityMilli": 1000,
-     "vatBasis": "EX_VAT",
-     "vatEvidence": "Record how the account VAT basis was confirmed",
-     "rootCss": "REPLACE_WITH_SELECTED_PRODUCT_CONTAINER",
-     "skuCss": "REPLACE_WITH_SKU_WITHIN_CONTAINER",
-     "priceCss": "REPLACE_WITH_ACCOUNT_PRICE_WITHIN_CONTAINER",
-     "stockCss": "REPLACE_WITH_STOCK_WITHIN_CONTAINER",
-     "vatBasisCss": "REPLACE_WITH_LIVE_EX_VAT_INDICATOR"
-   }
-   ```
+This check does not need queue credentials, a database change or website activation. It does not order anything. It verifies the real Windows/Edge environment separately from the cloud research browser.
 
-   These strings are placeholders, not verified GSF selectors/URLs. `priceCss` must resolve to exactly one account-price field, excluding RRP and carousel alternatives. `stockCss` must read `In stock`; `vatBasisCss` must show an explicit ex-VAT label on every page. Do not approve settings solely from the supplied screenshots: VAT isn't shown there.
+`SIGN-IN-GSF.cmd` opens the same dedicated profile for manual sign-in. A script never reads or types the GSF password. Automatic credential entry is not implemented. Keep the worker PC awake and connected.
 
-   Oil quantity uses millilitres, e.g. **synthetic example** `quantityMilli:4500` for a verified 4.5L fill; `packQuantityMilli:5000` for a 5L pack. Other parts use 1000 per item. Record manufacturer oil specification/source, scope source and appropriate mileage bounds. Recipe review expires after 30 days. No production recipe or oil quantity is supplied by this commit.
-7. Store the dedicated `GSF_WORKER_TOKEN` and `GSF_WORKSHOP_ORIGIN` in the PC environment. The origin must be the configured HTTPS Workshop deployment. Never put credentials in Git or website JavaScript. The worker uses no Supabase key.
-8. After calibration, set `calibrationApproved: true`, then run `START-GSF-PRICING.cmd`.
+## Approved recipes
 
-If the session expires, stop the worker and rerun `SIGN-IN-GSF.cmd`, then restart. Automatic credential entry is **not** included in this version. Keep the PC online and awake.
+Copy `gsf-config.example.json` to `gsf-config.local.json` and leave `calibrationApproved: false` until the complete service flow is checked. The default mode is `approved-skus`. Populate recipes using `recipe.template.json`. Each needs explicit approval/review date, exact registration/variant, service/range, appropriate mileage window, manufacturer oil source, scope source and **fitmentSource**.
 
-## Backend / commercial settings
+Each selected product needs fields like this observed filter example (it is **not** a complete service recipe):
 
-1. Apply `docs/sql/gsf-service-queue.sql` to the isolated Test database first, with advisors and test queries. This SQL is a staged setup script, not an automatically applied migration. It touches no existing jobs, invoices, fleet, Haynes or tyre tables.
-2. Configure the preview's existing Test database service credentials. New queue tables have RLS enabled, no client policies, and service-role-only grants. No new Edge Function or browser database access is required.
-3. Generate independent random 32-byte hex values for `GSF_WORKER_TOKEN` and `GSF_SERVICE_QUOTE_SECRET`. These are private server/PC configuration, not GSF login credentials. Never reuse Haynes/tyre tokens.
-4. Set `GSF_SERVICE_PRICING_POLICY` to the completed JSON from `pricing-policy.example.json`. All `null` values intentionally fail validation. Chris must confirm markup and **net** labour before activation. `markupBps:3000` means 30% markup on purchase costs, not 30% margin. Labour is not marked up. The VAT percentage and rounding rule are explicit policy values.
-5. Set `GSF_SERVICE_PRICING_ENABLED=true` only on the test deployment when configured. It defaults to disabled. Keep production disabled until real product prices, fitment, oil, VAT and booking persistence have been checked.
-6. The standalone website proxy forwards to Main by default. During preview testing configure the website to use its matching preview API, rather than relying on the production proxy. Main's built-in booking page uses the same-origin endpoint.
+```json
+{
+  "kind": "oil_filter",
+  "sku": "23.265.00",
+  "searchTerm": "UFI23.265.00",
+  "brand": "UFI",
+  "description": "Oil Filter - Spin-on Filter",
+  "quantityMilli": 1000,
+  "packQuantityMilli": 1000,
+  "vatBasis": "EX_VAT",
+  "vatEvidence": "GSF Part Details explicitly labels the account cost ex vat"
+}
+```
 
-## Validation / release
+Oil `quantityMilli` is the verified fill in ml; `packQuantityMilli` is the selected product's pack size in ml. Other parts use 1000 per unit. Do not treat a selected product's availability or price as evidence that it fits a vehicle.
 
-- New regression tests: `node --test tests/regression/gsf-service-pricing.test.mjs`.
-- Whole application gate: `npm run release:gate` (install the existing Haynes and tyre worker dependencies first, as required by their regression tests).
-- Test offline PC, expired login, multiple brand choices, missing prices, unknown VAT, wrong SKU, missing oil data, stale results, service changes, mileage changes, quality changes, quote expiry and repeated booking submissions.
-- Run the supplier flow on the actual Windows PC and verify ten vehicles against GSF and manufacturer service data before enabling automated customer prices. Verify desktop and mobile booking, then follow `RELEASE-SAFETY.md` for release.
+After complete recipe/PC validation, set `calibrationApproved: true`, set private `GSF_WORKER_TOKEN` and `GSF_WORKSHOP_ORIGIN` in the PC environment, then run `START-GSF-PRICING.cmd`. Never put credentials in Git or public JavaScript. The worker needs no Supabase key.
 
-The shared pricing core is usable for future Workshop Pro quotes, but its job-quoting UI and general repair-parts lookup are outside this first amendment.
+## Backend activation — still pending
+
+- Apply `docs/sql/gsf-service-queue.sql` to isolated Test first, with advisors and test queries. It is a staged setup script, not an automatically applied migration, and touches no existing jobs/invoices/fleet/Haynes/tyre tables.
+- Configure the preview's existing Test database credentials. New queue tables use RLS and service-role-only grants; browsers cannot access them.
+- Set independent random 32-byte hex values for private `GSF_WORKER_TOKEN` and `GSF_SERVICE_QUOTE_SECRET`; never reuse tyre/Haynes tokens.
+- Put the reviewed trial policy JSON in `GSF_SERVICE_PRICING_POLICY`. Set `GSF_SERVICE_PRICING_ENABLED=true` only on the configured test deployment. Production stays disabled until real vehicle comparisons and booking checks pass.
+- The standalone website proxy targets Main by default. During preview testing use the matching preview backend; Main's built-in booking page uses its same-origin endpoint.
+
+The queue deduplicates requests, serializes work with leases, caches successes for five minutes and failures for one minute, bounds lookups, and limits hourly/daily volume. Customer quotes last 30 minutes. Their signature, selected service/mileage/range and total are validated on booking and the selected parts/price are recorded. The existing £65 MOT/£5 combined service offer remains separate.
+
+## Validation and next work
+
+Run `node --test tests/regression/gsf-service-pricing.test.mjs`, then `npm run release:gate` (install the existing Haynes worker test dependencies first). Parser fixtures reconstruct the observed UFI dialog; they do not substitute for live Windows tests. SQL was verified separately in local PGlite PostgreSQL.
+
+Next: validate the PC price check, capture reviewed vehicle/filter/oil mappings for ten different registrations, connect trusted Haynes scope/oil data to broader recipe discovery, and compare all three service totals against manual GSF calculations. Test expiry, offline, missing parts, price changes, duplicate submissions and desktop/mobile booking before following `RELEASE-SAFETY.md`.
+
+General repair-parts quoting in Workshop Pro can reuse this pricing core, but its UI is outside this amendment.

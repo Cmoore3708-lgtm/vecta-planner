@@ -10,7 +10,7 @@ const site=process.env.GSF_WORKSHOP_ORIGIN;
 if(!setup && (!/^[a-f0-9]{64}$/.test(token||'') || !site))throw Error('Set GSF_WORKSHOP_ORIGIN and GSF_WORKER_TOKEN in the local PC environment.');
 if(site && (!/^https:\/\/[a-z0-9.-]+$/.test(site) || !/(?:\.vercel\.app|\.vectamotors\.co\.uk)$/.test(new URL(site).hostname)))throw Error('Invalid workshop origin.');
 const config=setup?null:JSON.parse(readFileSync(process.env.GSF_CONFIG_FILE||resolve('gsf-config.local.json'),'utf8'));
-if(!setup && (config.calibrationApproved!==true || !config.selectedVehicleCss))throw Error('Complete the GSF catalogue calibration before starting the worker.');
+if(!setup && (config.calibrationApproved!==true || (config.lookupMode!=='approved-skus' && !config.selectedVehicleCss)))throw Error('Complete the GSF catalogue calibration before starting the worker.');
 const profile=process.env.GSF_PROFILE_DIR||resolve(process.env.LOCALAPPDATA||'.','VectaGSF','EdgeProfile');
 const context=await chromium.launchPersistentContext(profile,{channel:'msedge',headless:false,acceptDownloads:false,chromiumSandbox:true});
 let stopped=false;context.on('close',()=>stopped=true);

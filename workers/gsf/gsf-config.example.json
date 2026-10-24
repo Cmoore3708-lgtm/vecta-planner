@@ -1,5 +1,6 @@
 {
   "calibrationApproved": false,
+  "lookupMode": "approved-skus",
   "selectedVehicleCss": "",
   "recipes": []
 }

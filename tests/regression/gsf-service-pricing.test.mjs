@@ -8,7 +8,8 @@ import {signServicePrice,verifyServicePrice} from '../../lib/service-price-token
 import {bookingServicePrice} from '../../lib/booking-service-price.js';
 import {servicePriceHandler} from '../../api/service-price.js';
 import {gsfWorkerHandler} from '../../api/gsf-worker.js';
-import {approvedRecipe,moneyPence,supplierUrl,readProduct} from '../../workers/gsf/supplier.mjs';
+import {approvedRecipe,moneyPence,supplierUrl,readProduct,readProductBySku} from '../../workers/gsf/supplier.mjs';
+import {readProductDialog} from '../../workers/gsf/product-dialog.mjs';
 
 // Synthetic oil cost/quantity for arithmetic tests, NOT verified NU67 VSE service data.
 const now=Date.parse('2026-10-24T21:00:00Z'),secret='a'.repeat(64);
@@ -102,6 +103,38 @@ test('supplier reader binds the selected SKU, live ex-VAT flag and account price
   values['.vat']='Ex VAT';values['.sku']='SKU: WRONG';await assert.rejects(readProduct(page,product),/REVIEW_REQUIRED/);
   values['.sku']='SKU: UFI23.265.00';values['.price']='£4.94 RRP £9.00';await assert.rejects(readProduct(page,product),/SETTINGS_REQUIRED/);
   assert.ok(visited.every(url=>url===product.url));
+});
+const productFixture=readFileSync(new URL('../fixtures/gsf-product-dialog.html',import.meta.url),'utf8');
+test('GSF dialog reader extracts account cost and checks VAT without using RRP',()=>{
+  const {document}=parseHTML(productFixture),product=readProductDialog(document);
+  assert.equal(product.sku,'23.265.00');assert.equal(product.brand,'UFI');
+  assert.equal(product.unitNetPence,494);assert.equal(product.costIncVatPence,593);assert.equal(product.vatBasis,'EX_VAT');
+  assert.deepEqual(product.stock,[{location:'Boldon',quantity:1},{location:'RDC',quantity:1},{location:'NDC',quantity:406}]);
+});
+test('GSF dialog reader rejects missing, conflicting or ambiguous commercial data',()=>{
+  for(const html of [productFixture.replace('ex vat','inc vat'),productFixture.replace('£5.93','£6.93'),
+    productFixture.replace('In stock.','Out of stock.'),productFixture.replace('£4.94','£0.00'),
+    productFixture.replace('<div><p>SKU</p><p>23.265.00','<div><p>SKU</p><p>WRONG'),
+    productFixture.replace('</h5>','</h5><p>£7.87 ex vat</p>'),productFixture+productFixture]) {
+    assert.throws(()=>readProductDialog(parseHTML(html).document));
+  }
+});
+test('approved-SKU worker uses saved fitment evidence and checks the selected product identity',async()=>{
+  const calls=[],product=readProductDialog(parseHTML(productFixture).document);
+  const locator={count:async()=>1,isVisible:async()=>true,fill:async v=>calls.push(['fill',v]),press:async v=>calls.push(['press',v]),
+    click:async()=>calls.push(['click-sku']),waitFor:async()=>{},getByText:()=>locator,getByRole:()=>locator};
+  const page={goto:async url=>calls.push(['goto',url]),url:()=> 'https://trade.gsfcarparts.com/',getByRole:()=>locator,evaluate:async()=>product};
+  const item={kind:'oil_filter',sku:'23.265.00',searchTerm:'UFI23.265.00',brand:'UFI',description:'Oil Filter - Spin-on Filter',quantityMilli:1000,packQuantityMilli:1000};
+  const result=await readProductBySku(page,item);assert.equal(result.unitNetPence,494);
+  assert.deepEqual(calls,[['goto','https://trade.gsfcarparts.com'],['fill','UFI23.265.00'],['press','Enter'],['click-sku']]);
+  await assert.rejects(readProductBySku(page,{...item,brand:'WRONG'}),/REVIEW_REQUIRED/);
+  assert.throws(()=>approvedRecipe({calibrationApproved:true,lookupMode:'approved-skus',recipes:[{...request,approved:true,reviewedAt:new Date(now).toISOString()}]},request,now),/REVIEW_REQUIRED/);
+});
+test('the requested trial policy doubles parts and oil and uses £35/£70/£110 net labour',()=>{
+  const trial=JSON.parse(readFileSync(new URL('../../workers/gsf/pricing-policy.example.json',import.meta.url),'utf8'));
+  assert.equal(trial.markupBps,10000);assert.deepEqual(trial.labourNetPence,{'Oil & Filter Change':3500,'Full Service':7000,'Major Service':11000});
+  const price=calculateServicePrice(result(),request,trial,now);
+  assert.equal(price.partsNetPence,10938);assert.equal(price.labourNetPence,7000);assert.equal(price.totalPence,21526);
 });
 function controller(fetcher,form,wait=async()=>{}){
   const context={fetch:fetcher,AbortController,AbortSignal,setTimeout:()=>1,clearTimeout,Date};vm.createContext(context);
