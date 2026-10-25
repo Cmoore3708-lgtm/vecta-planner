@@ -105,3 +105,18 @@ Registration catalogue selection still fails in that browser. Haynes redirects
 to sign-in; GSF’s Haynes button offers a trial, which was declined.
 The Haynes capture reader is based on Chris’s screenshot and still needs its
 first live PC verification. No arbitrary-registration automation is activated.
+
+## Multi-part quote layout
+Each part has one horizontal row: description, parts cost price, sale price,
+labour hours, labour cost and final price including VAT. Add part creates an
+editable additional row; its cost uses the same marginal markup, sale price can
+be adjusted, and only additional fitting hours should be entered. The current
+automatic supplier lookup still covers alternators only; extra rows are manual.
+Rows can be removed and blank/invalid entries cannot be applied. Up to 20 parts.
+
+The combined net amount is saved in ex_vat mode, with original source evidence
+and all rows retained privately. VAT is calculated once at 20% on the combined
+net amount. Any penny allocation difference is assigned through cumulative row
+VAT so displayed row totals sum to the grand total. No gross totals are saved
+as net invoice lines. Saved multi-part breakdowns reopen in the same editor.
+On narrow screens the table scrolls horizontally to keep each part on one row.

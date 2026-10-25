@@ -1,4 +1,4 @@
-#vectaRepairQuote{margin:14px 0;padding:18px;border:1px solid #d8dbe0;border-top:3px solid #b91925;border-radius:10px;background:#fafafa;color:#202226;font-size:14px}
+#vectaRepairQuote{grid-column:1/-1;min-width:0;margin:14px 0;padding:18px;border:1px solid #d8dbe0;border-top:3px solid #b91925;border-radius:10px;background:#fafafa;color:#202226;font-size:14px}
 #vectaRepairQuote h3{margin:0 0 5px;font-size:18px;color:#202226}
 #vectaRepairQuote .rqIntro{margin:0 0 14px;color:#62666e}
 #vectaRepairQuote .rqActions{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
@@ -6,10 +6,17 @@
 #vectaRepairQuote .rqPart{display:flex;align-items:center;gap:16px;padding:14px 0;border-top:1px solid #e2e3e6}
 #vectaRepairQuote .rqPart img{width:100px;height:90px;object-fit:contain;background:white;border-radius:7px}
 #vectaRepairQuote .rqPart p{margin:4px 0}
-#vectaRepairQuote .rqPrices{display:grid;grid-template-columns:1fr auto;gap:10px;margin:14px 0}
-#vectaRepairQuote .rqPrices dt,#vectaRepairQuote .rqPrices dd{margin:0}
-#vectaRepairQuote .rqPrices dd{text-align:right;font-variant-numeric:tabular-nums;font-weight:600}
-#vectaRepairQuote .rqTotal{border-top:1px solid #d8dbe0;padding-top:12px;font-size:17px;font-weight:700}
+#vectaRepairQuote .rqTableWrap{overflow-x:auto;margin:14px 0;border:1px solid #d8dbe0;border-radius:8px}
+#vectaRepairQuote .rqTable{width:100%;min-width:840px;border-collapse:collapse;table-layout:fixed}
+#vectaRepairQuote .rqTable th{padding:12px 9px;background:#24262b;color:white;text-align:left;font-size:12px;font-weight:600}
+#vectaRepairQuote .rqTable td{padding:12px 9px;border-top:1px solid #ddd;vertical-align:top;font-variant-numeric:tabular-nums}
+#vectaRepairQuote .rqTable th:first-child{width:23%}
+#vectaRepairQuote .rqTable th:last-child{width:34px}
+#vectaRepairQuote .rqTable input{width:100%;min-width:0;box-sizing:border-box;padding:8px 6px;border:1px solid #cfd1d5;border-radius:5px;background:white;color:#202226;font-size:14px}
+#vectaRepairQuote .rqTable td[data-rq-labour],#vectaRepairQuote .rqTable td[data-rq-final]{white-space:nowrap;font-weight:700;padding-top:22px}
+#vectaRepairQuote .rqGrandTotal{display:flex;justify-content:space-between;align-items:center;gap:15px;padding:16px 0 8px;border-top:1px solid #d8dbe0;margin-top:16px;font-size:18px;font-weight:700}
+#vectaRepairQuote .rqAddActions{margin:8px 0 12px}
+#vectaRepairQuote .rqRemoveLabel{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%)}
 #vectaRepairQuote small{display:block;color:#62666e;line-height:1.5}
 #vectaRepairQuote [hidden]{display:none!important}
 @media(max-width:600px){#vectaRepairQuote{padding:14px}#vectaRepairQuote .rqPart{gap:10px}#vectaRepairQuote .rqPart img{width:76px;height:76px}#vectaRepairQuote .rqActions button{width:100%}}
