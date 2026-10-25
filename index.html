@@ -17848,18 +17848,31 @@ try{var foot=document.querySelector('.sideFoot small');if(foot)foot.textContent=
 </style>
 
 <style id="planner-header-control-sizing">
-/* Keep the controls in their established responsive rows. */
+/* Compact controls occupy their actual widths; flex wrapping leaves no empty grid tracks. */
 @media screen{
  .top .haynesDashboardLookup{height:58.5px!important;min-height:58.5px!important;align-self:center}
- .top .haynesDashboardLookup input{font-size:33px!important;line-height:1.1!important}
- .top:has(.plannerHeaderActions) .plannerGlobalSearchWrap{width:60%!important;justify-self:start}
- .top .dateCtl{width:50%!important;min-width:min(100%,170px)!important;justify-self:center;box-sizing:border-box;grid-template-columns:28px minmax(0,1fr) 28px!important;gap:4px!important}
+ .top .haynesDashboardLookup #haynesDashboardRegistration{height:100%!important;box-sizing:border-box;font-size:48px!important;font-weight:900!important;line-height:1!important;letter-spacing:2px!important;padding:0 4px!important}
+ .top .haynesDashboardLookup>span{font-size:11px}
+ .top .haynesDashboardLookup button{flex:0 0 30px;width:30px;padding:0!important}
+ .top .dateCtl{box-sizing:border-box;grid-template-columns:28px minmax(0,1fr) 28px!important;gap:4px!important}
  .top .dateCtl button{width:28px!important;min-width:28px!important;height:36px!important}
  .top #dashboardDayName{font-size:18px!important;white-space:nowrap!important;overflow-wrap:normal!important}
 }
+@media screen and (min-width:901px){
+ .top:has(.plannerHeaderActions){display:flex!important;flex-wrap:wrap!important;justify-content:flex-start!important;gap:8px!important}
+ .top .workshopHeaderBrand{order:0;flex:0 0 100%;box-sizing:border-box}
+ .top .haynesDashboardLookup{order:1;flex:0 0 312px!important;width:312px!important;justify-self:start}
+ .top:has(.plannerHeaderActions) .plannerGlobalSearchWrap{order:2;flex:0 0 156px!important;width:156px!important;min-width:0!important;max-width:156px!important}
+ .top>.mobileCalendarBtn{order:3;flex:0 0 90px!important;width:90px!important}
+ .top .dateCtl{order:4;flex:0 0 180px!important;width:180px!important;min-width:0!important}
+ .top #dashboardBookedToday{order:5;flex:0 0 auto!important;justify-self:start}
+ .top .plannerHeaderActions{order:6;flex:0 0 208px!important;width:208px!important}
+ .top>.workshopTopNav{order:7;flex:0 0 100%;box-sizing:border-box}
+}
 @media screen and (max-width:900px){
+ .top:has(.plannerHeaderActions) .plannerGlobalSearchWrap{width:60%!important;justify-self:start}
  .top .haynesDashboardLookup{height:66px!important;min-height:66px!important}
- .top .haynesDashboardLookup input{font-size:34px!important}
+ .top .haynesDashboardLookup #haynesDashboardRegistration{font-size:clamp(30px,8.5vw,48px)!important;letter-spacing:1px!important}
  .top .dateCtl{width:100%!important;min-width:0!important;grid-template-columns:24px minmax(0,1fr) 24px!important;gap:2px!important}
  .top .dateCtl button{width:24px!important;min-width:24px!important}
  .top #dashboardDayName{font-size:clamp(12px,3.3vw,16px)!important}
