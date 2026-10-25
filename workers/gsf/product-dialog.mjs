@@ -1,12 +1,16 @@
-// Read-only DOM extraction, calibrated on GSF's rendered Part Details dialog.
+// Read-only DOM extraction for GSF's Part Details dialog or full product page.
 // Self-contained so the identical function runs in Edge and DOM fixture tests.
 export function readProductDialog(doc = document) {
   const clean=value=>String(value||'').replace(/\s+/g,' ').trim();
   const visible=element=>!element.hidden && element.getAttribute('aria-hidden')!=='true' &&
     (typeof getComputedStyle!=='function'||getComputedStyle(element).display!=='none');
   const dialogs=[...doc.querySelectorAll('[role="dialog"]')].filter(el=>visible(el)&&clean(el.querySelector('h2')?.textContent)==='Part Details');
-  if(dialogs.length!==1)throw Error('SETTINGS_REQUIRED');
-  const dialog=dialogs[0],paragraphs=[...dialog.querySelectorAll('p')].filter(visible);
+  if(dialogs.length>1)throw Error('SETTINGS_REQUIRED');
+  const fullPage=doc.location?.origin==='https://trade.gsfcarparts.com' && /^\/partdetails\/[^/]+\/?$/.test(doc.location.pathname);
+  const mains=fullPage?[...doc.querySelectorAll('main,[role="main"]')].filter(visible):[];
+  const dialog=dialogs[0]||(mains.length===1?mains[0]:null);
+  if(!dialog)throw Error('PRODUCT_DETAILS_NOT_OPEN');
+  const paragraphs=[...dialog.querySelectorAll('p')].filter(visible);
   const descriptions=[...dialog.querySelectorAll('h5')].filter(visible).map(el=>clean(el.textContent));
   if(descriptions.length!==1||!descriptions[0])throw Error('SETTINGS_REQUIRED');
   const skus=paragraphs.map(el=>clean(el.textContent)).filter(text=>/^SKU:\s*\S/.test(text));

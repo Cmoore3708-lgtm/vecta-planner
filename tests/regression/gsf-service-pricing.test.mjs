@@ -120,10 +120,25 @@ test('GSF dialog reader rejects missing, conflicting or ambiguous commercial dat
     assert.throws(()=>readProductDialog(parseHTML(html).document));
   }
 });
+test('GSF full product page uses the same account price checks and rejects unrelated pages',()=>{
+  // Same rendered fields observed on /partdetails/UFI23.265.00, without a modal.
+  const html=productFixture.replace('<div role="dialog" aria-label="Part Details">','<main>')
+    .replace('<h2>Part Details</h2>','').replace(/<\/div>\s*$/,'</main>');
+  const pageDoc=(content,path='/partdetails/UFI23.265.00')=>{
+    const {document}=parseHTML(content);
+    Object.defineProperty(document,'location',{value:new URL('https://trade.gsfcarparts.com'+path)});
+    return document;
+  };
+  assert.equal(readProductDialog(pageDoc(html)).unitNetPence,494);
+  assert.throws(()=>readProductDialog(pageDoc(html,'/enhancedSearch/UFI23.265.00')),/PRODUCT_DETAILS_NOT_OPEN/);
+  assert.throws(()=>readProductDialog(pageDoc(html+html)),/PRODUCT_DETAILS_NOT_OPEN/);
+  for(const broken of [html.replace('£5.93','£8.93'),html.replace('ex vat','inc vat'),html.replace('In stock.','Out of stock.')])
+    assert.throws(()=>readProductDialog(pageDoc(broken)));
+});
 test('approved-SKU worker uses saved fitment evidence and checks the selected product identity',async()=>{
   const calls=[],product=readProductDialog(parseHTML(productFixture).document);
   const locator={count:async()=>1,isVisible:async()=>true,fill:async v=>calls.push(['fill',v]),press:async v=>calls.push(['press',v]),
-    click:async()=>calls.push(['click-sku']),waitFor:async()=>{},getByText:()=>locator,getByRole:()=>locator};
+    click:async()=>calls.push(['click-sku']),waitFor:async()=>{},getByText:()=>locator,getByRole:()=>locator,or:()=>locator};
   const page={goto:async url=>calls.push(['goto',url]),url:()=> 'https://trade.gsfcarparts.com/',getByRole:()=>locator,evaluate:async()=>product};
   const item={kind:'oil_filter',sku:'23.265.00',searchTerm:'UFI23.265.00',brand:'UFI',description:'Oil Filter - Spin-on Filter',quantityMilli:1000,packQuantityMilli:1000};
   const result=await readProductBySku(page,item);assert.equal(result.unitNetPence,494);

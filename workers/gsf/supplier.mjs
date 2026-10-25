@@ -50,8 +50,9 @@ export async function readProductBySku(page,item) {
   await page.getByRole('heading',{name:'Search Results for "'+term+'"',exact:true}).waitFor({state:'visible',timeout:15000});
   const sku=page.getByRole('main').getByText(item.sku,{exact:true});
   await uniqueVisible(sku);await sku.click();
-  const dialog=page.getByRole('dialog',{name:'Part Details',exact:true});
-  await dialog.getByRole('heading',{level:5}).waitFor({state:'visible',timeout:15000});
+  // Desktop may navigate to a full product page instead of opening a dialog.
+  const details=page.getByRole('dialog',{name:'Part Details',exact:true}).or(page.getByRole('main'));
+  await details.getByRole('heading',{level:5,name:item.description,exact:true}).waitFor({state:'visible',timeout:15000});
   const product=await page.evaluate(readProductDialog);
   if(product.sku!==item.sku || product.brand.toUpperCase()!==item.brand.toUpperCase() || product.description!==item.description)throw Error('REVIEW_REQUIRED');
   return {kind:item.kind,sku:product.sku,brand:product.brand,description:product.description,
