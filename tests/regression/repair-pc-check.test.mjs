@@ -11,3 +11,8 @@ test('screenshot-informed Haynes row capture uses hours rather than interpreting
  const {document}=parseHTML('<html><body><div>TOTAL TIME (H)</div><input id="numberPlate" value="FV65 JTY"><table><tr><td>1E02944501WV0</td><td><span>Renew the alternator</span></td><td>0.70</td></tr></table></body></html>');const result=readAlternatorTime(document);assert.equal(result.hoursMilli,700);assert.equal(result.registrationVisible,'FV65JTY');assert.equal(result.fitmentConfirmed,false);
  document.querySelector('tr').insertAdjacentHTML('beforeend','<td>1.10</td>');assert.throws(()=>readAlternatorTime(document),/LABOUR_REVIEW_REQUIRED/);
 });
+
+test('nested operation label and code sharing one cell are accepted; hidden duplicates ignored',()=>{
+ const {document}=parseHTML('<html><body><p>Total time (H)</p><table><tr><td>1E02944501WV0 <span>Renew <b>the alternator</b></span></td><td>0.70</td></tr></table><div hidden><span>Renew the alternator</span><span>1.00</span></div></body></html>');assert.equal(readAlternatorTime(document).hoursMilli,700);
+});
+test('capture reports a specific reason without assuming a time',()=>{const {document}=parseHTML('<html><body>Sign in</body></html>');assert.throws(()=>readAlternatorTime(document),/OPERATION_NOT_VISIBLE/);});

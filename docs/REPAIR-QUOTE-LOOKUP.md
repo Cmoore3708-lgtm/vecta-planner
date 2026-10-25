@@ -120,3 +120,14 @@ net amount. Any penny allocation difference is assigned through cumulative row
 VAT so displayed row totals sum to the grand total. No gross totals are saved
 as net invoice lines. Saved multi-part breakdowns reopen in the same editor.
 On narrow screens the table scrolls horizontally to keep each part on one row.
+
+## First PC capture result and Haynes retry
+Chris's uploaded PC report on 25 October captured real GSF A8828 at £194.74
+ex VAT, image and positive stock; Haynes reported NEEDS_CHECK without a reason.
+The reader now tolerates nested operation labels/code prefixes, ignores hidden
+copies and reports specific reason codes. The checker inspects permitted Haynes
+frames and refuses multiple matching operations. These are possible causes,
+not a confirmed diagnosis from the original report.
+CHECK-HAYNES-ONLY.cmd skips GSF and retains a previous local GSF capture if it
+exists in the same folder. It does not activate the lookup. Run with the visible
+FV65 JTY Renew the alternator row open in the newly launched Haynes window.
