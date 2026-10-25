@@ -1,0 +1,13 @@
+import {execFileSync} from 'node:child_process';
+import {mkdirSync,cpSync,mkdtempSync,readdirSync} from 'node:fs';
+import {tmpdir} from 'node:os';
+import path from 'node:path';
+const root=path.resolve(new URL('../',import.meta.url).pathname),stage=mkdtempSync(path.join(tmpdir(),'vecta-repair-quotes-'));
+for(const name of readdirSync(path.join(root,'workers/repair-quotes'))){
+ if(name==='node_modules'||name==='profile'||name.endsWith('.local.json'))continue;
+ cpSync(path.join(root,'workers/repair-quotes',name),path.join(stage,'workers/repair-quotes',name),{recursive:true});
+}
+mkdirSync(path.join(stage,'lib'),{recursive:true});cpSync(path.join(root,'lib/repair-quote.js'),path.join(stage,'lib/repair-quote.js'));
+cpSync(path.join(root,'docs/REPAIR-QUOTE-LOOKUP.md'),path.join(stage,'READ-ME.md'));
+const output=path.resolve(process.argv[2]||'/tmp/Vecta-Repair-Quote-Worker.zip');
+execFileSync('zip',['-qr',output,'.'],{cwd:stage});console.log(output);
