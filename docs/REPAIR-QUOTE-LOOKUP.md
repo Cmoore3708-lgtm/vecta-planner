@@ -9,15 +9,15 @@ combined markup once to the nearest penny. Labour is £50/hour, rounding the Hay
 increment (exact half-hours stay unchanged). The internal quote panel displays
 GSF cost, markup, selling price, original Haynes time and chargeable hours.
 Customer invoice lines show selling prices and rounded chargeable hours only. Every displayed amount is excluding
-VAT. A refundable exchange deposit is separate and is not marked up.
+VAT. Exchange surcharges are excluded for now.
 
 ## Delivered code
 
 - Quote-only editor panel; automatic lookup after typing the complete supported
   instruction, plus explicit lookup/cancel/refresh and Add to quote.
 - Exact pence calculations, fractional hours, complete-catalogue and same-variant
-  checks, explicit VAT and deposit fields, stock checks and source expiry.
-- Separate parts/labour/deposit invoice lines, private source snapshot persisted
+  checks, explicit VAT fields, stock checks and source expiry.
+- Separate parts/labour invoice lines, private source snapshot persisted
   through the existing private-pricing note. Existing manual net lines survive.
   Existing gross/no-VAT lines block mixing until reviewed. No new job columns.
 - Authenticated manager endpoint and independently paired read-only PC worker.
@@ -88,3 +88,20 @@ Do not bypass RELEASE-SAFETY.md or update the dashboard baseline for this change
 Chris requested that exchange surcharges be ignored for now. They are neither
 required by the supplier reader nor included in quote totals or invoice lines.
 This exclusion is a pricing choice, not evidence that the supplier charges none.
+
+## Independent PC check
+Run workers/repair-quotes/CHECK-REPAIR-QUOTES.cmd. No backend token, database
+setup or production activation is required. It uses two dedicated Edge profiles;
+stop the repair quote worker first to avoid a profile conflict. Sign in directly
+in Edge, press Enter when GSF is ready, then open the FV65 JTY Haynes repair-time
+row and press Enter. The script saves repair-pc-check.local.json for review.
+It contains selected product fields/operation text only, not page HTML, VINs,
+passwords, cookies or account details. The capture does not prove fitment.
+
+Direct research-browser verification on 25 October: search DREA8828 returns
+DriveTec A8828 (Alternator - 150 Amp), £194.74 ex VAT, £233.69 inc VAT, and
+positive stock at Boldon/RDC/NDC. Product image read from the visible dialog.
+Registration catalogue selection still fails in that browser. Haynes redirects
+to sign-in; GSF’s Haynes button offers a trial, which was declined.
+The Haynes capture reader is based on Chris’s screenshot and still needs its
+first live PC verification. No arbitrary-registration automation is activated.
