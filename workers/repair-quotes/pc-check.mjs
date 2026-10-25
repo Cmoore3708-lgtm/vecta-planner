@@ -9,10 +9,10 @@ const here=path.dirname(fileURLToPath(import.meta.url)),terminal=createInterface
 const base=process.platform==='win32'?path.join(process.env.LOCALAPPDATA||here,'VectaRepairQuotes'):path.join(here,'profile');
 async function open(name,url){const ctx=await chromium.launchPersistentContext(path.join(base,name),{headless:false,acceptDownloads:false,...(process.platform==='win32'?{channel:'msedge'}:{})});contexts.push(ctx);const page=ctx.pages()[0]||await ctx.newPage();await page.goto(url,{waitUntil:'domcontentloaded'});return page;}
 const haynesOnly=process.argv.includes('--haynes-only');
-console.log('VECTA Haynes checker 2026-10-25.5');
+console.log('VECTA Haynes checker 2026-10-25.6');
 const output=path.join(here,'repair-pc-check.local.json');
 let previous={};if(haynesOnly&&fs.existsSync(output)){try{previous=JSON.parse(fs.readFileSync(output,'utf8'));}catch{}}
-const report={...(previous.registration==='FV65JTY'?previous:{}),checkedAt:new Date().toISOString(),registration:'FV65JTY',checkerVersion:'2026-10-25.5',purpose:'PC calibration only; does not enable pricing',fitmentConfirmed:false};
+const report={...(previous.registration==='FV65JTY'?previous:{}),checkedAt:new Date().toISOString(),registration:'FV65JTY',checkerVersion:'2026-10-25.6',purpose:'PC calibration only; does not enable pricing',fitmentConfirmed:false};
 try{
  if(!haynesOnly){
  const gsf=await open('GSF','https://trade.gsfcarparts.com');
@@ -28,9 +28,9 @@ try{
   report.gsf={status:'CAPTURED',searchTerm:'DREA8828',...part};console.log('GSF read: '+part.brand+' '+part.sku+' £'+(part.unitNetPence/100).toFixed(2)+' excluding VAT.');
  }catch{report.gsf={status:'NEEDS_CHECK'};console.log('Automatic GSF read needs checking. The diagnostic contains no passwords or page HTML.');}
  }
- const haynes=await open('Haynes','https://www.workshopdata.com/touch/site/layout/makesOverview');
+ const haynes=await open('Haynes',haynesOnly?'https://www.workshopdata.com/touch/site/layout/repairTimes?typeId=t_317000375&groupId=QUICKGUIDES':'https://www.workshopdata.com/touch/site/layout/makesOverview');
  console.log('In the Haynes Edge window: sign in, select FV65 JTY, open Repair Times, then expand Alternator so Renew the alternator and its hours are visible.');
- await terminal.question('Press Enter when that repair-time row is visible: ');
+ await terminal.question('Keep the 0.70 alternator row visible on screen, then press Enter: ');
  const captures=[],reasons=[],diagnostics=[];
  for(const frame of haynes.frames()){
   try{const url=new URL(frame.url());if(!/(^|\.)workshopdata\.com$/.test(url.hostname))continue;

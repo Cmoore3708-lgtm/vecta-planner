@@ -3,7 +3,25 @@ export function readAlternatorTime(doc=document){
  const clean=v=>String(v||'').replace(/\s+/g,' ').trim();
  const fail=reason=>{throw Error('LABOUR_REVIEW_REQUIRED:'+reason);};
  const operation=/\b(?:Renew|Replace|Remove\s+and\s+refit)\s+(?:the\s+)?alternator\b/i;
- const visible=el=>{for(let n=el;n&&n.nodeType===1;n=n.parentElement){if(n.hidden||n.getAttribute('aria-hidden')==='true')return false;if(typeof getComputedStyle==='function'){const s=getComputedStyle(n);if(s.display==='none'||s.visibility==='hidden')return false;}}return true;};
+ const visible=el=>{
+  let bounds=null;if(Number.isFinite(doc.defaultView?.innerHeight)&&doc.defaultView.innerHeight>0&&typeof el.getBoundingClientRect==='function'){
+   const r=el.getBoundingClientRect(),view=doc.defaultView;
+   if(r.width<=0||r.height<=0||r.bottom<=0||r.right<=0||(view&&r.top>=view.innerHeight)||(view&&r.left>=view.innerWidth))return false;
+   bounds={left:r.left,right:r.right,top:r.top,bottom:r.bottom};
+  }
+  for(let n=el;n&&n.nodeType===1;n=n.parentElement){
+   if(n.hidden||n.getAttribute('aria-hidden')==='true')return false;
+   if(typeof getComputedStyle==='function'){
+    const style=getComputedStyle(n);if(style.display==='none'||style.visibility==='hidden'||style.visibility==='collapse'||style.opacity==='0')return false;
+    if(bounds&&n!==el&&typeof n.getBoundingClientRect==='function'){
+     const r=n.getBoundingClientRect();
+     if(/hidden|clip|auto|scroll/.test(style.overflowX||style.overflow||'')){bounds.left=Math.max(bounds.left,r.left);bounds.right=Math.min(bounds.right,r.right);}
+     if(/hidden|clip|auto|scroll/.test(style.overflowY||style.overflow||'')){bounds.top=Math.max(bounds.top,r.top);bounds.bottom=Math.min(bounds.bottom,r.bottom);}
+     if(bounds.left>=bounds.right||bounds.top>=bounds.bottom)return false;
+    }
+   }
+  }return true;
+ };
  const textOf=node=>node.nodeType===3?node.textContent:node.nodeType===1&&!visible(node)?'':[...node.childNodes].map(textOf).join(' ');
  const nodes=[...doc.querySelectorAll('td,span,a,div,p,label')].filter(el=>visible(el)&&clean(textOf(el)).length<160&&operation.test(clean(textOf(el)))&&![...el.children].some(child=>operation.test(clean(textOf(child)))));
  if(!nodes.length)fail('OPERATION_NOT_VISIBLE');
