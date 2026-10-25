@@ -4,7 +4,7 @@ This update must be installed on the workshop PC; deploying the website does not
 
 1. Close the existing tyre worker and its separate supplier Edge window. Leave Haynes running.
 2. Update the `workers/tyres` files from this amendment. Keep the existing package and pairing.
-3. In that folder, run `powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\save-login.ps1` as the same Windows user that runs the worker. Enter the supplier username and password into the Windows credential prompt, never into chat.
+3. In that folder, run `powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\save-login.ps1` as the same Windows user that runs the worker. Enter the supplier username and password into the black setup window (password input is hidden), never into chat.
 4. Start the usual `START-LIVE-TYRE-PRICES.cmd` launcher.
 
 The login is stored in `%LOCALAPPDATA%\VectaTyres\supplier-login.xml`, with the password encrypted by Windows DPAPI for the current Windows user on this PC. It is not stored in GitHub, the website, or Supabase. The worker decrypts it in memory only when needed, using a captured local child-process pipe. Do not run `read-login.ps1` manually or include its output in diagnostics.
