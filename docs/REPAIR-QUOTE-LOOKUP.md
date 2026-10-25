@@ -3,7 +3,9 @@
 Requested by Chris: enter a registration and “Supply and fit alternator” in a
 new quote; show the vehicle already provided by the job editor, the cheapest
 compatible stocked GSF alternator/photo, and Haynes replacement labour.
-Parts markup is 50%; labour is £50/hour. Every displayed amount is excluding
+Parts markup uses marginal bands per individual part: 50% on the first £50 of
+cost, 20% on the next £100, and 10% on the amount above £150. Round the
+combined markup once to the nearest penny. Labour is £50/hour. Every displayed amount is excluding
 VAT. A refundable exchange deposit is separate and is not marked up.
 
 ## Delivered code

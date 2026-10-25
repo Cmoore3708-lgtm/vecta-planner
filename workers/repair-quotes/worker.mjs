@@ -24,7 +24,7 @@ try{
   console.log('Sign in directly in both Edge windows. Passwords remain in the dedicated local browser profiles. This does not activate pricing.');
   const terminal=createInterface({input:process.stdin,output:process.stdout});try{await terminal.question('Press Enter after signing in to close setup.');}finally{terminal.close();}
  }else{
-  console.log('VECTA repair quotes: 50% parts markup, £50/hour, excluding VAT. No orders are placed.');
+  console.log('VECTA repair quotes: Sliding parts markup (50% / 20% / 10%), £50/hour, excluding VAT. No orders are placed.');
   let completion=null;
   while(!stopping){
    try{
