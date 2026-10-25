@@ -5,7 +5,10 @@ new quote; show the vehicle already provided by the job editor, the cheapest
 compatible stocked GSF alternator/photo, and Haynes replacement labour.
 Parts markup uses marginal bands per individual part: 50% on the first £50 of
 cost, 20% on the next £100, and 10% on the amount above £150. Round the
-combined markup once to the nearest penny. Labour is £50/hour. Every displayed amount is excluding
+combined markup once to the nearest penny. Labour is £50/hour, rounding the Haynes time up to the next 30-minute
+increment (exact half-hours stay unchanged). The internal quote panel displays
+GSF cost, markup, selling price, original Haynes time and chargeable hours.
+Customer invoice lines show selling prices and rounded chargeable hours only. Every displayed amount is excluding
 VAT. A refundable exchange deposit is separate and is not marked up.
 
 ## Delivered code

@@ -35,3 +35,14 @@ test('no selling-price drops at band boundaries or penny rounding transitions',(
  assert.equal(repairPartsPrice(4999),7499);assert.equal(repairPartsPrice(5001),7501);
  assert.equal(repairPartsPrice(14999),19499);assert.equal(repairPartsPrice(15001),19501);
 });
+
+test('labour rounds up to 30 minutes; exact half-hours stay unchanged',()=>{
+ for(const [source,charged,price] of [[1,500,2500],[499,500,2500],[500,500,2500],[501,1000,5000],[1000,1000,5000],[1100,1500,7500],[1500,1500,7500],[1501,2000,10000],[2000,2000,10000]]){const r=fixture();r.labour.hoursMilli=source;const q=calculateRepairQuote(r,request,{now});assert.equal(q.labour.hoursMilli,source);assert.equal(q.chargedHoursMilli,charged);assert.equal(q.labourPence,price);}
+});
+test('internal panel shows cost and both time values; invoice and planner use rounded hours',async()=>{
+ const e=editor();const raw=fixture();raw.labour.hoursMilli=1100;
+ e.ctx.fetch=async()=>({status:200,json:async()=>({status:'MATCHED',quote:calculateRepairQuote(raw,request,{now})})});
+ e.document.querySelector('[data-rq-find]').click();await new Promise(r=>setImmediate(r));
+ const panel=e.document.querySelector('[data-rq-result]');assert.match(panel.textContent,/GSF cost price · internal£100.01/);assert.match(panel.textContent,/Haynes time: 1.1 hours/);assert.match(panel.textContent,/Charged time: 1.5 hours/);
+ e.document.querySelector('[data-rq-apply]').click();const items=e.ctx.gatherPrivatePricingItems();assert.match(items[1].description,/1.5 hours at £50/);assert.equal(items[1].price,75);assert.equal(items[1].repair_quote.labour.hoursMilli,1100);assert.equal(items[1].repair_quote.chargedHoursMilli,1500);assert.equal(e.document.getElementById('job_estimated_hours').value,'1.5');assert.ok(!items.some(i=>/cost price/i.test(i.description)));
+});
