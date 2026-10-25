@@ -50,8 +50,8 @@ in this first staged version; uncertain/unmapped registrations stop for review.
 2. Copy repair-config.example.json to repair-config.local.json. With the actual
    pages open, record the visible registration controls, read-only navigation,
    identity, VAT, complete result count, part row, SKU/brand/description, account
-   cost, stock, image and explicit exchange surcharge selectors. A missing
-   surcharge value must be investigated; do not assume zero.
+   cost, stock and image selectors. Exchange surcharges are excluded at
+   Chris’s request; a missing surcharge field does not block the quote.
 3. Record the Haynes registration controls, selected identity, exact replacement
    operation ID/label, decimal time and explicit Hours unit. Do not use a service
    interval, diagnostic time, tenths-of-hour code or minutes as decimal hours.
@@ -83,3 +83,8 @@ public scripts. Run START-REPAIR-QUOTES.cmd.
 Production remains unchanged/disabled until live calibration, queue verification,
 release gate, desktop/iPhone/iPad preview checks and release review are complete.
 Do not bypass RELEASE-SAFETY.md or update the dashboard baseline for this change.
+
+## Current exchange surcharge policy
+Chris requested that exchange surcharges be ignored for now. They are neither
+required by the supplier reader nor included in quote totals or invoice lines.
+This exclusion is a pricing choice, not evidence that the supplier charges none.

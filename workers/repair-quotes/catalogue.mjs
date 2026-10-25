@@ -59,7 +59,7 @@ export async function lookupRepair({gsfPage,haynesPage},raw,config,{now=Date.now
   const description=await read(root,g.description);
   if(!/\balternator\b/i.test(description))fail('REVIEW_REQUIRED');
   let imageUrl='';if(g.image){const img=root.locator(g.image);if(await img.count()===1)imageUrl=await img.getAttribute('src')||'';if(imageUrl)imageUrl=new URL(imageUrl,GSF_ORIGIN).href;}
-  parts.push({source:'GSF',registration:request.registration,variant:mapping.variant,fitmentConfirmed:true,vatBasis:'EX_VAT',sku:await read(root,g.sku),brand:await read(root,g.brand),description,costPence:parsePence(await read(root,g.price)),corePence:parsePence(await read(root,g.core)),inStock:stock==='IN STOCK',imageUrl,checkedAt:new Date(now()).toISOString()});
+  parts.push({source:'GSF',registration:request.registration,variant:mapping.variant,fitmentConfirmed:true,vatBasis:'EX_VAT',sku:await read(root,g.sku),brand:await read(root,g.brand),description,costPence:parsePence(await read(root,g.price)),corePence:0,inStock:stock==='IN STOCK',imageUrl,checkedAt:new Date(now()).toISOString()});
  }
  await navigate(haynesPage,h,request,haynesOrigin);
  if(normal(await read(haynesPage,h.identity))!==normal(mapping.haynesIdentity))fail('LABOUR_REVIEW_REQUIRED');
