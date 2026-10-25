@@ -12,6 +12,16 @@
     if(same(local,base))return clone(remote);
     if(same(remote,base)||same(local,remote))return clone(local);
     if(path.endsWith('.updated_at'))return String(local||'')>String(remote||'')?clone(local):clone(remote);
+    // Plan notes are descriptive and are also rewritten by automatic repairs.
+    // Preserve both concurrent texts; dates, status and deletions still use the
+    // strict conflict checks below. Split our own separator to avoid growth
+    // when an older phone retries an already-combined note.
+    if(/^fleet\.plans\.[^.]+\.notes$/.test(path)&&
+       [base,local,remote].every(v=>v==null||typeof v==='string')&&
+       typeof local==='string'&&typeof remote==='string'&&local&&remote){
+      const separator='\n\n[Also recorded]\n';
+      return [...new Set([...remote.split(separator),...local.split(separator)])].join(separator);
+    }
     const lists=[base,local,remote];
     if(lists.every(Array.isArray)&&lists.every(a=>a.every(v=>v&&typeof v==='object'&&v.id!=null)&&new Set(a.map(v=>String(v.id))).size===a.length)){
       const maps=lists.map(a=>new Map(a.map(v=>[String(v.id),v]))),out=[];
