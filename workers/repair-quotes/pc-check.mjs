@@ -9,9 +9,10 @@ const here=path.dirname(fileURLToPath(import.meta.url)),terminal=createInterface
 const base=process.platform==='win32'?path.join(process.env.LOCALAPPDATA||here,'VectaRepairQuotes'):path.join(here,'profile');
 async function open(name,url){const ctx=await chromium.launchPersistentContext(path.join(base,name),{headless:false,acceptDownloads:false,...(process.platform==='win32'?{channel:'msedge'}:{})});contexts.push(ctx);const page=ctx.pages()[0]||await ctx.newPage();await page.goto(url,{waitUntil:'domcontentloaded'});return page;}
 const haynesOnly=process.argv.includes('--haynes-only');
+console.log('VECTA Haynes checker 2026-10-25.5');
 const output=path.join(here,'repair-pc-check.local.json');
 let previous={};if(haynesOnly&&fs.existsSync(output)){try{previous=JSON.parse(fs.readFileSync(output,'utf8'));}catch{}}
-const report={...(previous.registration==='FV65JTY'?previous:{}),checkedAt:new Date().toISOString(),registration:'FV65JTY',purpose:'PC calibration only; does not enable pricing',fitmentConfirmed:false};
+const report={...(previous.registration==='FV65JTY'?previous:{}),checkedAt:new Date().toISOString(),registration:'FV65JTY',checkerVersion:'2026-10-25.5',purpose:'PC calibration only; does not enable pricing',fitmentConfirmed:false};
 try{
  if(!haynesOnly){
  const gsf=await open('GSF','https://trade.gsfcarparts.com');
