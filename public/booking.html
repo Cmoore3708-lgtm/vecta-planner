@@ -560,3 +560,16 @@ initialiseBooking();
 .review-mot-saving{display:block;margin-top:7px;color:#fff;font-size:12px;font-weight:700}
 .review-additional-item{display:block;margin-top:8px}
 </style>
+
+<style id="booking-selection-glow">
+:root{--selection-green:#35d58a;--selection-glow:0 0 0 2px rgba(53,213,138,.3),0 0 22px rgba(53,213,138,.55),0 0 40px rgba(53,213,138,.2)}
+.service-option.selected,.work-type-option.on,.tyre-option.selected,.tyre-guide-card.selected,.tyre-brand-choice.selected,.parts-range-option.selected,.returning-buttons button.selected,.advisory-choice button.selected,.nevos-choice button.selected,.slot.selected,.mot-calendar-day.selected,.type.on{border-color:var(--selection-green);box-shadow:var(--selection-glow)}
+.service-option.selected,.work-type-option.on{background:#30363e}
+.service-option.recommended:not(.selected){border-color:#4a535e}
+.tyre-brand-choice.selected{background:#17392b}
+.parts-range-option.selected,.slot.selected{background:#e9fbf1;color:#165f3b}
+.returning-buttons button.selected,.advisory-choice button.selected,.nevos-choice button.selected,.mot-calendar-day.selected,.type.on{background:#176b43;color:#fff}
+.work-type-option.on:after,.tyre-option.selected:after,.parts-range-option.selected:before{background:#23834f;color:#fff}
+input[type="checkbox"],input[type="radio"]{accent-color:#23834f}
+input[type="checkbox"]:checked,input[type="radio"]:checked{box-shadow:0 0 12px rgba(53,213,138,.55)}
+</style>

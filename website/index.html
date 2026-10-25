@@ -146,3 +146,8 @@
   }catch(e){ console.warn('VECTA content settings unavailable; using built-in content.'); }
 })();
 </script></body></html>
+
+<style id="home-selection-glow">
+:root{--selection-green:#35d58a;--selection-glow:0 0 0 2px rgba(53,213,138,.3),0 0 22px rgba(53,213,138,.55),0 0 40px rgba(53,213,138,.2)}
+.heroCards .bookingWorkCard.selected{border-color:var(--selection-green);box-shadow:var(--selection-glow)}
+</style>
