@@ -8,8 +8,9 @@ ONE-TIME SETUP ON THE WORKSHOP PC
 2. Close the OLD tyre worker console and its separate ESP Edge window.
    Leave the Haynes worker running.
 3. Double-click SETUP-AUTO-SIGN-IN.cmd in the extracted folder.
-4. Enter your usual ESP / The Virtual Warehouse username and password into
-   the Windows credential prompt. Do not send your password in chat.
+4. In the black setup window, type your supplier username and press Enter.
+   Type your password and press Enter. Password characters are hidden.
+   There is no separate pop-up. Do not send your password in chat.
 5. Setup starts the updated tyre worker. Leave its console and Edge open.
    Look for: LIVE TYRE WORKER READY.
 
