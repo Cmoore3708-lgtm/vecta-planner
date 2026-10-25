@@ -226,7 +226,7 @@ function stepHtml(){
  const description=String(f.work_required||'').trim();
  const normaliseWork=value=>value.replace(/\s+/g,' ').trim().toLowerCase();
  const repeatedDescription=[...workLabels,workLabels.join(', ')].some(label=>normaliseWork(label)===normaliseWork(description));
- return `<span class="kicker">STEP 5 OF 5</span><h2>Review your booking</h2><div class="review"><div class="review-vehicle"><small>Vehicle</small><b>${[f.registration,f.vehicle].filter(Boolean).map(esc).join(' · ')}</b>${f.job_types.includes('Service')?`<p>Current mileage: <b>${f.mileage_unknown?'Unknown — we’ll check when your vehicle arrives':prettyMiles(f.mileage)}</b></p>`:''}${isNissanVehicle()?`<p>NEVOS vehicle: <b>${esc(f.nevos_vehicle==='yes'?'Yes':'No')}</b></p>`:''}</div>${f.job_types.includes('Service')?`<div class="review-price" aria-label="Service guide pricing">${pricingHtml()}</div>`:''}<div class="review-work"><small>Work required</small><b>${esc(workLabels.join(', '))}</b>${description&&!repeatedDescription?`<p>${esc(description)}</p>`:''}</div>${typeof VectaWorkPhotos!=='undefined'?VectaWorkPhotos.html(f,true):''}${tyreReviewHtml()}<div class="review-appointment"><small>Appointment</small><b class="appointment-review">${f.appointment_date?prettyDate(f.appointment_date):'No appointment selected'}</b></div><div class="review-contact"><small>Contact</small><b>${esc(f.customer_name)}</b><p>${esc(f.email)}<br>${esc(f.phone)}</p></div></div>${partsRangeHtml()}`
+ return `<span class="kicker">STEP 5 OF 5</span><h2>Review your booking</h2><div class="review">${f.job_types.includes('Service')?`<div class="review-price" aria-label="Service guide pricing">${pricingHtml()}</div>`:''}<div class="review-work"><small>Work required</small><b>${esc(workLabels.join(', '))}</b>${description&&!repeatedDescription?`<p>${esc(description)}</p>`:''}</div>${typeof VectaWorkPhotos!=='undefined'?VectaWorkPhotos.html(f,true):''}${tyreReviewHtml()}<div class="review-appointment"><small>Appointment</small><b class="appointment-review">${f.appointment_date?prettyDate(f.appointment_date):'No appointment selected'}</b></div><div class="review-contact"><small>Contact</small><b>${esc(f.customer_name)}</b><p>${esc(f.email)}<br>${esc(f.phone)}</p></div></div>${partsRangeHtml()}`
 }
 // Keep the journey clock outside render: availability/photo updates must not replay it.
 function bookingProgressHtml(){
@@ -507,7 +507,7 @@ initialiseBooking();
 .booking-journey .progress li{padding:0;gap:10px;font-size:12px}
 .booking-journey .progress li::before{display:none}
 .booking-journey .progress-number{width:13px;height:13px;margin-top:-3px;border:2px solid #d0d5dd;background:#e5e7eb;font-size:9px;line-height:1;z-index:3}
-.booking-journey .on .progress-number{border-color:var(--red);background:var(--red);color:white}
+.booking-journey .on .progress-number{border-color:#23834f;background:#23834f;color:white}
 .booking-journey .current .progress-number{border:2px solid white;background:var(--red);box-shadow:0 0 0 2px var(--red)}
 @keyframes booking-drive{from{left:var(--road-from)}to{left:var(--road-to)}}
 @media(max-width:700px){.booking-journey{margin:0 20px;padding-top:30px}.booking-road{top:29px;height:7px}.booking-road::before,.booking-road::after{height:7px}.booking-road-car{top:0;width:72px;height:31px}.booking-journey .progress li{font-size:10px;gap:9px}}
