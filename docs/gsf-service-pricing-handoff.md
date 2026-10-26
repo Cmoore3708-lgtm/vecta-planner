@@ -114,3 +114,14 @@ chargeable litres, so conditional calculations using the earlier filters are
 £137.48 Interim, £233.87 Full and £281.87 Major gross. A regression checks
 both fill cases and ensures the replacement's own price is used. This does not
 approve the replacement oil specification or establish vehicle fitment.
+
+
+## Vehicle correction — authoritative screenshot
+
+IMG_BA1C49A6 confirms the 4.7L and Comma ECO-V oil screens belong to FV65JTY,
+Honda CR-V i-DTEC 4WD 1.6 diesel, not NU67VSE. There is no capacity conflict:
+these are different cars. Keep Honda oil evidence in fv65jty-observed-oil.json
+and Pulsar evidence separate. The £137.48 / £233.87 / £281.87 mixed-vehicle
+calculations above are withdrawn and must not be used for either vehicle. No
+Honda filter prices or complete Honda service quote have been verified. Honda
+Major requires its diesel fuel filter. The replacement Pulsar oil is unresolved.

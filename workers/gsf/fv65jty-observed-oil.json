@@ -1,0 +1,26 @@
+{
+  "source": "User screenshots IMG_723DA821 and IMG_E7C6CD40, 26 October 2026",
+  "searchTerm": "COMECOV5L",
+  "manufacturerSku": "ECOV5L",
+  "description": "ECO-V 0W-20 - 5L",
+  "brand": "COMMA",
+  "packQuantityMilli": 5000,
+  "observedPackNetPence": 5935,
+  "vatBasis": "EX_VAT",
+  "inStockOnScreenshot": true,
+  "selectedVehicleVisible": true,
+  "displayedOilQuantityMilli": 4700,
+  "oilProductSpecificationVerified": false,
+  "approvedForPublication": false,
+  "registration": "FV65JTY",
+  "vehicle": "Honda CR-V i-DTEC 4WD Opt DASP Start/Stop EX",
+  "fuelType": "diesel",
+  "registrationConfirmedBy": "User screenshot IMG_BA1C49A6, 26 October 2026",
+  "scope": "Oil observation only; Honda filters not captured; no complete service quote",
+  "withdrawnMixedVehicleGrossPence": {
+    "Oil & Filter Change": 13748,
+    "Full Service": 23387,
+    "Major Service": 28187
+  },
+  "withdrawalReason": "Combined Honda oil observation with Pulsar filters; not a valid quote for either vehicle."
+}
