@@ -1,0 +1,38 @@
+{
+  "calibrationApproved": false,
+  "gsf": {
+    "navigationMode": "gsf-alternator-category",
+    "startUrl": "https://trade.gsfcarparts.com",
+    "registrationInput": "",
+    "registrationSubmit": "",
+    "navigation": [],
+    "searchInput": "",
+    "ready": "",
+    "identity": "",
+    "vatBasis": "",
+    "parts": "",
+    "totalCount": "",
+    "sku": "",
+    "brand": "",
+    "description": "",
+    "price": "",
+    "core": "",
+    "stock": "",
+    "image": ""
+  },
+  "haynes": {
+    "startUrl": "https://www.workshopdata.com",
+    "registrationInput": "",
+    "registrationSubmit": "",
+    "navigation": [],
+    "searchInput": "",
+    "ready": "",
+    "identity": "",
+    "operationRoot": "",
+    "operationId": "",
+    "operationLabel": "",
+    "hours": "",
+    "unit": ""
+  },
+  "vehicles": []
+}

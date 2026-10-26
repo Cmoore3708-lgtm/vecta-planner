@@ -1,0 +1,15 @@
+{
+  "vehicles": [
+    {"registration": "NU67VSE", "mileage": null, "range": "Mid Range"},
+    {"registration": "FV65JTY", "mileage": null, "range": "Mid Range"},
+    {"registration": "CM14KEL", "mileage": null, "range": "Mid Range"},
+    {"registration": "K24TTE", "mileage": null, "range": "Mid Range"},
+    {"registration": "", "mileage": null, "range": "Mid Range"},
+    {"registration": "", "mileage": null, "range": "Mid Range"},
+    {"registration": "", "mileage": null, "range": "Mid Range"},
+    {"registration": "", "mileage": null, "range": "Mid Range"},
+    {"registration": "", "mileage": null, "range": "Mid Range"},
+    {"registration": "", "mileage": null, "range": "Mid Range"}
+  ]
+}
+
