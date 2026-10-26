@@ -20,3 +20,9 @@ The user's subsequent expanded-group photo shows ten cards and Show Less: six pr
 The optional `completionMode: "single-expanded-group"` now replaces the numeric count requirement when a fresh DOM capture confirms exactly one group SKU, a terminal Show Less state, no Show More, no pagination, no loading and no truncation. The bounded option container must parse and reconcile every displayed priced/unavailable entry. Old captures without this boundary evidence cannot pass. The numeric-count method remains supported.
 
 VERIFY-QUOTE version 2026-10-26.10 records this boundary. If the first fresh navigation, completeness and Haynes checks pass, it runs the actual lookupRepair → cleanRepairEvidence → calculateRepairQuote path again using a temporary in-memory mapping scoped to FV65JTY/DREA8828/A8828/Haynes t_317000375. It does not write calibration settings, start the queue, save a quote or enable live pricing. This is a source-to-calculation test, not yet a cloud-queue/database round trip.
+
+## PC .10 result and targeted timeout fix
+
+The 12:05 run automatically submitted FV65JTY and confirmed the expanded group's complete boundary: DREA8828 only, ten options, Show Less, no pagination/loading/truncation. The subsequent independent SKU lookup returned PAGE_TIMEOUT, and Haynes/final validation did not run. The report does not identify which old SKU step timed out.
+
+Checker .11 uses the already browser-verified enhancedSearch/DREA8828 address directly for this reviewed repair mapping, removing the home-page/search-form navigation. It retries that read-only route once on TimeoutError only. Other failures and price/identity/stock mismatches are not retried. It records GSF_SKU_NAVIGATION, RESULTS, OPEN_DETAILS, DETAILS_CONTENT or VALIDATE stages when a step fails. Existing service mappings retain their form-search route. No fresh .11 PC result is claimed yet.
