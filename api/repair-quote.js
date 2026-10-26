@@ -25,6 +25,8 @@ export function repairQuoteHandler({env=process.env,authenticate=requireQuoteMan
   try {
    if(Buffer.byteLength(JSON.stringify(req.body||{}))>2000)return res.status(413).json({status:'INVALID_REQUEST'});
    const request=repairRequest(req.body);
+   const scope=String(env.REPAIR_QUOTE_ALLOWED_REGISTRATIONS||'').split(',').map(s=>s.trim()).filter(Boolean);
+   if(scope.length&&!scope.includes(request.registration))return res.status(200).json({status:'SETTINGS_REQUIRED'});
    // Shared manager account, no customer contact details or raw cookies in DB.
    const actor=createHash('sha256').update('repair-quotes|'+String(env.VECTA_MAIN_USER||'manager')).digest('hex');
    const result=await queue('enqueue',{request,actor});

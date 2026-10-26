@@ -1,0 +1,10 @@
+import fs from 'node:fs';
+import path from 'node:path';
+import {fileURLToPath} from 'node:url';
+const here=path.dirname(fileURLToPath(import.meta.url));
+const connection=JSON.parse(fs.readFileSync(path.join(here,'repair-connection.local.json'),'utf8'));
+if(connection.origin!=='https://vecta-planner.vercel.app'||!/^[a-f0-9]{64}$/.test(connection.token||''))throw Error('Repair quote pairing is invalid.');
+process.env.REPAIR_QUOTE_ORIGIN=connection.origin;
+process.env.REPAIR_QUOTE_WORKER_TOKEN=connection.token;
+process.env.REPAIR_QUOTE_CONFIG_FILE=path.join(here,'repair-config.local.json');
+await import('../gsf/worker.mjs');
