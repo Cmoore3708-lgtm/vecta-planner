@@ -70,5 +70,27 @@
       "inStock": true,
       "productUrl": "https://trade.gsfcarparts.com/partdetails/MANCU1629"
     }
-  ]
+  ],
+  "previousOilSelectionStatus": "Customer reports DriveTec option no longer displayed; previous observation is historical, not current availability.",
+  "replacementOilObservation": {
+    "source": "User screenshots IMG_723DA821 and IMG_E7C6CD40, 26 October 2026",
+    "searchTerm": "COMECOV5L",
+    "manufacturerSku": "ECOV5L",
+    "description": "ECO-V 0W-20 - 5L",
+    "brand": "COMMA",
+    "packQuantityMilli": 5000,
+    "observedPackNetPence": 5935,
+    "vatBasis": "EX_VAT",
+    "inStockOnScreenshot": true,
+    "selectedVehicleVisible": false,
+    "displayedOilQuantityMilli": 4700,
+    "conflictsWithHaynesQuantityMilli": 4300,
+    "oilProductSpecificationVerified": false,
+    "approvedForPublication": false,
+    "provisionalGrossPence": {
+      "Oil & Filter Change": 13748,
+      "Full Service": 23387,
+      "Major Service": 28187
+    }
+  }
 }

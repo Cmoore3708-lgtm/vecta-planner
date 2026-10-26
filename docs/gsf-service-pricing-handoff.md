@@ -101,3 +101,16 @@ not found' for NU67VSE. Exact-product reads succeeded independently. Vehicle
 fitment remains supported by the user's selected-vehicle screenshots, not a
 successful automated registration lookup. A fresh PC-worker service run and
 website-to-booking test are still required; no production activation occurred.
+
+## Replacement oil observation
+
+Chris reports the DriveTec oil option is no longer displayed. Keep its original
+observation as historical evidence, not a current quote. The replacement
+screenshot shows COMMA ECO-V 0W-20 - 5L, search key COMECOV5L, £59.35 ex VAT,
+and positive stock. The selected registration is outside that screenshot;
+the capacity shown is 4.7L, differing from the earlier 4.3L Haynes screenshot.
+Neither value is silently substituted as a confirmed fill. Both round to 5
+chargeable litres, so conditional calculations using the earlier filters are
+£137.48 Interim, £233.87 Full and £281.87 Major gross. A regression checks
+both fill cases and ensures the replacement's own price is used. This does not
+approve the replacement oil specification or establish vehicle fitment.

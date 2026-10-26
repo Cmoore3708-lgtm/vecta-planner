@@ -348,3 +348,22 @@ test('reviewed direct product URL checks identity and avoids fragile search inpu
  for(const productUrl of ['https://evil.test/partdetails/UFI23.265.00','https://trade.gsfcarparts.com/basket','https://trade.gsfcarparts.com/partdetails/UFI23.265.00?x=1'])await assert.rejects(readProductBySku(page,{...row,productUrl}),/SETTINGS_REQUIRED/);
  assert.equal(visits,2);
 });
+
+test('replacement Comma price uses its own cost; both disputed fills charge five litres without approving fitment',()=>{
+ const evidence=JSON.parse(readFileSync(new URL('../../workers/gsf/nu67vse-observed-evidence.json',import.meta.url),'utf8'));
+ const replacement=evidence.replacementOilObservation;
+ assert.equal(replacement.selectedVehicleVisible,false);assert.equal(replacement.approvedForPublication,false);
+ assert.equal(replacement.oilProductSpecificationVerified,false);
+ const trial=JSON.parse(readFileSync(new URL('../../workers/gsf/pricing-policy.example.json',import.meta.url),'utf8'));
+ for(const fill of [evidence.requiredOilQuantityMilli,replacement.displayedOilQuantityMilli])for(const [service,total] of Object.entries(replacement.provisionalGrossPence)){
+  const input={registration:evidence.registration,service,mileage:null,range:'Mid Range'},kinds=serviceRequiredKinds(service,'petrol');
+  // Conditional arithmetic only; the evidence object above remains unapproved.
+  const rows=evidence.items.filter(row=>kinds.includes(row.kind)).map(row=>row.kind==='oil'
+   ?{...row,sku:replacement.manufacturerSku,brand:replacement.brand,description:replacement.description,quantityMilli:fill,packQuantityMilli:5000,packNetPence:replacement.observedPackNetPence,unitNetPence:1187}
+   :{...row,packQuantityMilli:undefined,unitNetPence:row.observedPackNetPence});
+  const data={request:input,recipeId:'conditional-replacement-arithmetic',vehicle:evidence.vehicle,fuelType:'petrol',oilSpecification:evidence.preferredOilSpecification,fitmentVerified:true,scopeVerified:true,oilVerified:true,requiredKinds:kinds,checkedAt:new Date(now).toISOString(),items:rows};
+  const price=calculateServicePrice(data,input,trial,now);
+  assert.equal(price.lines[0].quantityMilli,fill);assert.equal(price.lines[0].chargedQuantityMilli,5000);
+  assert.equal(price.lines[0].costNetPence,5935);assert.equal(price.totalPence,total);
+ }
+});
