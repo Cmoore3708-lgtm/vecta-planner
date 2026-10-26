@@ -6,7 +6,7 @@ This does **not** approve fitment or prove the entire compatible catalogue has b
 
 ## Reviewable Workshop Pro flow
 
-Only the amendment/repair-quote-lookup Vercel preview, using its isolated Test database, offers **Test captured FV65 JTY quote**. Existing Workshop Pro manager authentication is required. Production, mechanics and other branches cannot request the replay.
+The amendment/repair-quote-lookup Vercel preview and Main offer **Test captured FV65 JTY quote**. Existing Workshop Pro manager authentication is required. Chris explicitly requested testing on Main on 26 October after preview sign-in failed. Main manager access is permitted; mechanics and other branches cannot request the replay. Replay prices added to a quote carry a TEST REPLAY prefix. This does not enable live pricing.
 
 1. Open New Quote. Enter FV65 JTY and Supply and fit alternator.
 2. Click Test captured FV65 JTY quote. This replays the successful PC capture; it does not start either supplier or claim a fresh price.
