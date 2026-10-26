@@ -34,9 +34,9 @@ Named packages also include **Interim Service** (oil and oil filter only) and **
 
 `pricing-policy.example.json` now contains Chris's requested **trial scenario**, not activated production configuration:
 
-- 50% markup on purchase costs: parts and oil cost × 1.5.
+- 50% markup on filters (× 1.5); 30% markup on engine oil (× 1.3).
 - Oil quantity is charged at the next whole litre before the markup. Booking evidence records both the required fill and the charged litres.
-- Oil & Filter Change labour: £35; Full Service: £70; Major Service: £110.
+- Oil & Filter Change labour: £30; Full Service: £60; Major Service: £100.
 - Labour is interpreted as excluding VAT; 20% VAT is applied once to the resulting total.
 - Exact penny totals; no £5/£10 rounding.
 
@@ -58,7 +58,7 @@ This check does not need queue credentials, database changes or website activati
 
 Before any browser work, run `node scripts/gsf-service-readiness.mjs [path-to-approved-config]` from the repository. This offline audit checks all thirty vehicle/service combinations and reports missing fitment, oil, fuel type or review evidence. `READY_FOR_LIVE_PRICE_CHECK` is not a verified price. No prices or approvals are invented and no browser is launched. The same comparison functions can consume results from the shared runner; do not start the legacy standalone comparison alongside it.
 
-The runner needs an approved `gsf-config.local.json` with the correct filter fitments, oil specification/quantity and service scope for each combination. It refreshes costs and calculates all three services using the 50% trial policy, saving `service-comparison.local.json`, a readable Markdown table and a CSV. A missing/unverified combination is marked **Needs verification**, with no fabricated or zero price. This standalone comparison does not activate the website or need backend credentials.
+The runner needs an approved `gsf-config.local.json` with the correct filter fitments, oil specification/quantity and service scope for each combination. It refreshes costs and calculates all three services using the 50% filter / 30% engine-oil policy, saving `service-comparison.local.json`, a readable Markdown table and a CSV. A missing/unverified combination is marked **Needs verification**, with no fabricated or zero price. This standalone comparison does not activate the website or need backend credentials.
 
 The offline self-check uses clearly synthetic costs and verifies expected totals of £96.00 / £177.60 / £279.60. Those are arithmetic examples only, not quotes for any actual registration.
 

@@ -206,11 +206,11 @@ test('approved-SKU worker uses saved fitment evidence and checks the selected pr
   await assert.rejects(readProductBySku(page,{...item,brand:'WRONG'}),/REVIEW_REQUIRED/);
   assert.throws(()=>approvedRecipe({calibrationApproved:true,lookupMode:'approved-skus',recipes:[{...request,approved:true,reviewedAt:new Date(now).toISOString()}]},request,now),/REVIEW_REQUIRED/);
 });
-test('the requested trial policy adds 50% to parts and oil and uses £35/£70/£110 net labour',()=>{
+test('the requested trial policy adds 50% to filters and 30% to oil and uses £30/£60/£100 net labour',()=>{
   const trial=JSON.parse(readFileSync(new URL('../../workers/gsf/pricing-policy.example.json',import.meta.url),'utf8'));
-  assert.equal(trial.markupBps,5000);assert.deepEqual(trial.labourNetPence,{'Oil & Filter Change':3500,'Full Service':7000,'Major Service':11000});
+  assert.equal(trial.markupBps,5000);assert.equal(trial.oilMarkupBps,3000);assert.deepEqual(trial.labourNetPence,{'Oil & Filter Change':3000,'Full Service':6000,'Major Service':10000});
   const price=calculateServicePrice(result(),request,trial,now);
-  assert.equal(price.partsNetPence,8204);assert.equal(price.labourNetPence,7000);assert.equal(price.totalPence,18245);
+  assert.equal(price.partsNetPence,7664);assert.equal(price.labourNetPence,6000);assert.equal(price.totalPence,16397);
 });
 test('ten-car comparison rejects duplicates and missing registrations',()=>{
   const vehicles=Array.from({length:10},(_,i)=>({registration:'DEMO'+String(i).padStart(3,'0'),mileage:50000,range:'Mid Range'}));
@@ -229,10 +229,10 @@ test('comparison prices all three scopes sequentially and marks missing costs wi
     const data=result();return {...data,request:input,checkedAt:new Date().toISOString()};
   });
   assert.equal(maxActive,1);assert.equal(calls.length,6);
-  assert.equal(rows[0].services['Full Service'].totalPence,18245);
+  assert.equal(rows[0].services['Full Service'].totalPence,16397);
   assert.equal(rows[1].services['Major Service'].status,'REVIEW_REQUIRED');
   assert.equal(rows[1].services['Major Service'].totalPence,undefined);
-  assert.match(comparisonMarkdown(rows,trial),/Needs verification/);assert.match(comparisonCsv(rows),/182.45/);
+  assert.match(comparisonMarkdown(rows,trial),/Needs verification/);assert.match(comparisonCsv(rows),/163.97/);
   assert.doesNotMatch(comparisonMarkdown(rows,trial),/£0.00/);
 });
 function controller(fetcher,form,wait=async()=>{}){
@@ -311,8 +311,16 @@ test('shared supplier lookup carries exact oil pack cost through whole-litre ser
  const trial=JSON.parse(readFileSync(new URL('../../workers/gsf/pricing-policy.example.json',import.meta.url),'utf8'));
  const price=calculateServicePrice(costs,input,trial);
  assert.equal(price.lines[0].quantityMilli,6700);assert.equal(price.lines[0].chargedQuantityMilli,7000);
- assert.equal(price.lines[0].costNetPence,4199);assert.equal(price.totalPence,12648);
+ assert.equal(price.lines[0].costNetPence,4199);assert.equal(price.totalPence,11040);
  // Missing oil evidence blocks before the supplier is contacted.
  await assert.rejects(lookupService(page,input,{calibrationApproved:true,lookupMode:'approved-skus',recipes:[{...recipe,oilSource:''}]}),/REVIEW_REQUIRED/);
  assert.equal(reads,2);
+});
+
+test('oil markup is validated independently without changing filter markup',()=>{
+ const mixed={...policy,markupBps:5000,oilMarkupBps:3000};
+ const price=calculateServicePrice(result(),request,mixed,now);
+ assert.equal(price.lines[0].sellNetPence,3510);
+ assert.equal(price.lines[1].sellNetPence,741);
+ for(const bad of [null,-1,30001,'3000'])assert.throws(()=>pricingPolicy({...mixed,oilMarkupBps:bad}));
 });

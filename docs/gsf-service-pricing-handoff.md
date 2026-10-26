@@ -10,7 +10,7 @@ The 26 October PC capture for FV65JTY reports a selected registration and an aut
 
 ## Existing service contract
 
-Interim Service is explicitly supported as the oil-and-oil-filter package (same £35 net labour as Oil & Filter Change). EV Major Service is explicitly supported with air and cabin filters only: no engine oil, oil filter, fuel filter or spark plugs, and no engine-oil lookup dependency. EV fitment must identify an electric vehicle. Its net labour must be explicitly configured before issuing a live calculated EV quote; the saved £120 EV template total is not a net labour rate. The original ten-car comparison remains the three combustion-engine packages.
+Interim Service is explicitly supported as the oil-and-oil-filter package (same £30 net labour as Oil & Filter Change). EV Major Service is explicitly supported with air and cabin filters only: no engine oil, oil filter, fuel filter or spark plugs, and no engine-oil lookup dependency. EV fitment must identify an electric vehicle. Its net labour must be explicitly configured before issuing a live calculated EV quote; the saved £120 EV template total is not a net labour rate. The original ten-car comparison remains the three combustion-engine packages.
 
 - Input: registration, service (`Oil & Filter Change`, `Full Service`, `Major Service`), current mileage or null, and parts range. Mileage/range/service changes invalidate the old result.
 - A reviewed mapping binds that request to the exact vehicle variant, service scope, compatible filter SKUs, oil specification, fill quantity and pack size. Mappings expire after thirty days. Mileage is optional; no mileage window or unknown-mileage approval is required for these default packages.
@@ -23,8 +23,8 @@ Interim Service is explicitly supported as the oil-and-oil-filter package (same 
 ## Service policy, separate from repair quotes
 
 1. Retain the verified oil fill, but round its charge quantity up to the next whole litre (6.7L → 7L; 7L → 7L). Calculate net oil cost from that charged quantity and the original pack fraction. Other parts use their verified unit quantities.
-2. Add 50% markup to each line and round that sale line to a penny.
-3. Add net labour: £35 oil/filter, £70 full, £110 major.
+2. Add 30% markup to engine oil and 50% to filters and round that sale line to a penny.
+3. Add net labour: £30 oil/filter, £60 full, £100 major.
 4. Apply 20% VAT once to the subtotal. No additional £5/£10 rounding.
 
 The customer quote and saved booking evidence retain the actual oil fill and charged litres separately. Neither the litre rounding nor the sale calculation changes the manufacturer's required fill quantity. The trial policy version is `gsf-default-parts-oilceil-v1`.

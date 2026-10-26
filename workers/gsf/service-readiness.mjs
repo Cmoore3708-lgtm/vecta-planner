@@ -55,5 +55,5 @@ export function serviceCoverageMarkdown(report) {
     report.rows.map(row=>'| '+row.registration+' | '+SERVICES.map(service=>{
       const cell=row.services[service];return cell.status==='READY_FOR_LIVE_PRICE_CHECK'?'Ready for live check':cell.issues.map(issue=>labels[issue]).join('; ');
     }).join(' | ')+' |').join('\n')+'\n\n'+
-    'Commercial rule: oil quantity rounds up to the next whole litre; 50% markup on filter and charged oil costs; net labour £35 / £70 / £110; then 20% VAT. Repair-job markup and hourly labour rules do not apply to these service packages.\n';
+    'Commercial rule: oil quantity rounds up to the next whole litre; 50% markup on filters and 30% on charged oil costs; net labour £30 / £60 / £100; then 20% VAT. Repair-job markup and hourly labour rules do not apply to these service packages.\n';
 }

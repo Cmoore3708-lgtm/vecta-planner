@@ -1,11 +1,12 @@
 {
-  "version": "gsf-default-parts-oilceil-v1",
+  "version": "gsf-oil30-filters50-v2",
   "markupBps": 5000,
   "vatBps": 2000,
   "roundUpPence": 1,
   "labourNetPence": {
-    "Oil & Filter Change": 3500,
-    "Full Service": 7000,
-    "Major Service": 11000
-  }
+    "Oil & Filter Change": 3000,
+    "Full Service": 6000,
+    "Major Service": 10000
+  },
+  "oilMarkupBps": 3000
 }
