@@ -31,7 +31,7 @@ for(const path of ['public/booking.html','website/booking/index.html'])test(`${p
    assert.equal(details.querySelector('[data-field="registration"]').value,'NU67VSE');
    assert.ok(details.querySelector('.haynes-meta'),'Haynes vehicle details remain visible');
    assert.ok(details.querySelector('.vehicle-top [data-field="registration"]'),'registration remains in its vehicle identity block');
-   assert.equal(document.querySelector('#next'),null);
+   assert.ok(document.querySelector('#next'));
    assert.equal(document.querySelector('[data-haynes-confirm]'),null);
    document.querySelector('#next').onclick();
    assert.equal(vm.runInContext('state.step',root),2);
