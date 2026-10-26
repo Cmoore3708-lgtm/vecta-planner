@@ -41,16 +41,25 @@ export function approvedRecipe(config, raw, now=Date.now()) {
   return recipe;
 }
 export async function readProductBySku(page,item) {
-  await page.goto(SUPPLIER,{waitUntil:'domcontentloaded',timeout:15000});
+  if(item.productUrl) {
+    const url=new URL(item.productUrl);
+    // Only reviewed exact product pages, never basket/checkout or foreign URLs.
+    if(url.origin!==SUPPLIER||url.username||url.password||url.search||url.hash||!/^\/partdetails\/[A-Za-z0-9._-]+$/.test(url.pathname))throw Error('SETTINGS_REQUIRED');
+    await page.goto(url.href,{waitUntil:'domcontentloaded',timeout:15000});
+  } else {
+    await page.goto(SUPPLIER,{waitUntil:'domcontentloaded',timeout:15000});
+    if(/\/signin(?:[/?]|$)/.test(page.url()))throw Error('LOGIN_REQUIRED');
+    if(new URL(page.url()).origin!==SUPPLIER)throw Error('UNAVAILABLE');
+    const term=item.searchTerm||item.sku;
+    if(!/^[A-Za-z0-9 ._/-]{1,80}$/.test(term))throw Error('SETTINGS_REQUIRED');
+    const search=page.getByRole('textbox',{name:"Search for OE (cross ref), aftermarket or categories like 'Air filter'",exact:true});
+    await search.fill(term);await search.press('Enter');
+    await page.getByRole('heading',{name:'Search Results for "'+term+'"',exact:true}).waitFor({state:'visible',timeout:15000});
+    const sku=page.getByRole('main').getByText(item.sku,{exact:true});
+    await uniqueVisible(sku);await sku.click();
+  }
   if(/\/signin(?:[/?]|$)/.test(page.url()))throw Error('LOGIN_REQUIRED');
   if(new URL(page.url()).origin!==SUPPLIER)throw Error('UNAVAILABLE');
-  const term=item.searchTerm||item.sku;
-  if(!/^[A-Za-z0-9 ._/-]{1,80}$/.test(term))throw Error('SETTINGS_REQUIRED');
-  const search=page.getByRole('textbox',{name:"Search for OE (cross ref), aftermarket or categories like 'Air filter'",exact:true});
-  await search.fill(term);await search.press('Enter');
-  await page.getByRole('heading',{name:'Search Results for "'+term+'"',exact:true}).waitFor({state:'visible',timeout:15000});
-  const sku=page.getByRole('main').getByText(item.sku,{exact:true});
-  await uniqueVisible(sku);await sku.click();
   // Prefer the active modal over background main content. Desktop can instead
   // navigate to the separately calibrated full Part Details page.
   const dialog=page.getByRole('dialog',{name:'Part Details',exact:true});

@@ -324,3 +324,27 @@ test('oil markup is validated independently without changing filter markup',()=>
  assert.equal(price.lines[1].sellNetPence,741);
  for(const bad of [null,-1,30001,'3000'])assert.throws(()=>pricingPolicy({...mixed,oilMarkupBps:bad}));
 });
+
+test('observed Pulsar ex-VAT costs reproduce the three manual examples without becoming live evidence',()=>{
+ const evidence=JSON.parse(readFileSync(new URL('../../workers/gsf/nu67vse-observed-evidence.json',import.meta.url),'utf8'));
+ assert.equal(evidence.approvedForPublication,false);assert.equal(evidence.oilProductSpecificationVerified,false);assert.equal(evidence.workerQuoteVerified,false);
+ const trial=JSON.parse(readFileSync(new URL('../../workers/gsf/pricing-policy.example.json',import.meta.url),'utf8'));
+ const expected={'Oil & Filter Change':13012,'Full Service':22650,'Major Service':27450};
+ for(const [service,total] of Object.entries(expected)) {
+  const input={registration:evidence.registration,service,mileage:null,range:'Mid Range'};
+  const kinds=serviceRequiredKinds(service,'petrol');
+  // Arithmetic replay only. These test flags must never be exported as live evidence.
+  const data={request:input,recipeId:'manual-evidence-arithmetic-only',vehicle:evidence.vehicle,fuelType:'petrol',oilSpecification:evidence.preferredOilSpecification,fitmentVerified:true,scopeVerified:true,oilVerified:true,requiredKinds:kinds,checkedAt:new Date(now).toISOString(),items:evidence.items.filter(row=>kinds.includes(row.kind)).map(row=>({...row,unitNetPence:Math.ceil(row.observedPackNetPence*1000/row.packQuantityMilli),...(row.kind==='oil'?{packNetPence:row.observedPackNetPence}:{packQuantityMilli:undefined})}))};
+  assert.equal(calculateServicePrice(data,input,trial,now).totalPence,total);
+ }
+});
+test('reviewed direct product URL checks identity and avoids fragile search input naming',async()=>{
+ let visits=0;
+ const locator={count:async()=>1,isVisible:async()=>true,waitFor:async()=>{},getByRole:()=>locator};
+ const page={goto:async()=>{visits++;},url:()=> 'https://trade.gsfcarparts.com/partdetails/UFI23.265.00',getByRole:()=>locator,evaluate:async()=>readProductDialog(parseHTML(productFixture).document)};
+ const row={kind:'oil_filter',sku:'23.265.00',brand:'UFI',description:'Oil Filter - Spin-on Filter',quantityMilli:1000,packQuantityMilli:1000,productUrl:'https://trade.gsfcarparts.com/partdetails/UFI23.265.00'};
+ assert.equal((await readProductBySku(page,row)).unitNetPence,494);
+ await assert.rejects(readProductBySku(page,{...row,sku:'WRONG'}),/REVIEW_REQUIRED/);
+ for(const productUrl of ['https://evil.test/partdetails/UFI23.265.00','https://trade.gsfcarparts.com/basket','https://trade.gsfcarparts.com/partdetails/UFI23.265.00?x=1'])await assert.rejects(readProductBySku(page,{...row,productUrl}),/SETTINGS_REQUIRED/);
+ assert.equal(visits,2);
+});

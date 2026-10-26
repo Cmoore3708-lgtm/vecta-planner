@@ -65,3 +65,39 @@ supplier prices verified. No service queue, production flag or PC configuration
 has been enabled by this amendment. Next live proof requires one reviewed
 vehicle's service filter SKUs plus oil specification, fill and pack size, then
 one fresh lookup through the existing PC worker before extending to all ten.
+
+## Fresh exact-product verification — 26 October 2026
+
+Chris confirmed that the GSF account prices exclude VAT. Independently opened
+GSF product pages and observed all four in stock with explicit ex-VAT labels:
+
+| Search/product key | Manufacturer SKU | Brand | Net purchase price |
+| --- | --- | --- | --- |
+| DRODT0205EZ | DT0205EZ | DriveTec | £54.63 / 5L |
+| UFI23.265.00 | 23.265.00 | UFI | £4.94 |
+| FRACA5619 | CA5619 | FRAM | £10.75 |
+| MANCU1629 | CU1629 | MANN-FILTER | £22.79 |
+
+The manufacturer SKU differs from GSF's prefixed search key. Reviewed direct
+product URLs are now accepted by the same reader, with strict origin/path checks
+and revalidation of SKU, brand, description, price, VAT and stock. Search remains
+available for existing mappings. No ordering or basket actions were performed.
+
+Evidence is stored in `workers/gsf/nu67vse-observed-evidence.json`, deliberately
+not an approved recipe. The customer's Haynes screenshot shows 4.3L including
+filter and preferred 0W-20 API SN / ILSAC GF-5 (type t_317000289). The exact EZ
+product's API/ILSAC specification remains unverified: the live product page
+exposes no specification attributes. Do not substitute another DriveTec product's
+specification merely because the viscosity or brand matches.
+
+Correct manual arithmetic using 30% oil markup, 50% filters, 5 charged litres,
+and £30 / £60 / £100 net labour is £130.12 / £226.50 / £274.50 including VAT.
+Earlier manually quoted £202.50 / £250.50 Full/Major totals were wrong and are
+superseded. The calculator-backed evidence regression verifies all three totals.
+These are conditional arithmetic replays, not live verified vehicle quotes.
+
+Cloud GSF registration submission on the Engine Oils category returned 'Vehicle
+not found' for NU67VSE. Exact-product reads succeeded independently. Vehicle
+fitment remains supported by the user's selected-vehicle screenshots, not a
+successful automated registration lookup. A fresh PC-worker service run and
+website-to-booking test are still required; no production activation occurred.
