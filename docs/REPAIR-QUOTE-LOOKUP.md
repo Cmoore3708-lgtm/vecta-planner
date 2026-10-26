@@ -144,3 +144,14 @@ conflicting times across frames, and rejects a conflicting visible registration.
 No labour time is hardcoded. Registration navigation, GSF complete compatible
 catalogue capture and reviewed vehicle mappings remain uncalibrated. The example
 configuration remains disabled; this does not activate production pricing.
+
+### Automatic Haynes registration path
+An optional `haynes.navigationMode: "workshopdata-registration"` reuses the
+existing vehicle worker's DOM reader and observed #numberPlate/#licencePlateBtn
+controls. It requires an explicitly reviewed `haynesTypeId` per vehicle mapping,
+checks the returned registration/type, then follows the unique visible-page
+Repair Times QUICKGUIDES link for that type. It expands Alternator and uses the
+PC-verified time reader. Login, multi-result selection, mismatched type, missing
+links and conflicting operations stop the quote. This new navigation path has
+unit coverage but still needs an end-to-end PC run; it is not enabled by default.
+The packaged quote worker includes the shared read-only Haynes DOM module.

@@ -1,3 +1,4 @@
+import {navigateHaynesRepair} from './haynes-navigation.mjs';
 import {readAlternatorTime} from './repair-time-reader.mjs';
 import {repairRequest,cleanRepairEvidence} from '../../lib/repair-quote.js';
 export const GSF_ORIGIN='https://trade.gsfcarparts.com';
@@ -86,8 +87,13 @@ export async function lookupRepair({gsfPage,haynesPage},raw,config,{now=Date.now
   let imageUrl='';if(g.image){const img=root.locator(g.image);if(await img.count()===1)imageUrl=await img.getAttribute('src')||'';if(imageUrl)imageUrl=new URL(imageUrl,GSF_ORIGIN).href;}
   parts.push({source:'GSF',registration:request.registration,variant:mapping.variant,fitmentConfirmed:true,vatBasis:'EX_VAT',sku:await read(root,g.sku),brand:await read(root,g.brand),description,costPence:parsePence(await read(root,g.price)),corePence:0,inStock:stock==='IN STOCK',imageUrl,checkedAt:new Date(now()).toISOString()});
  }
- await navigate(haynesPage,h,request,haynesOrigin);
- if(normal(await read(haynesPage,h.identity))!==normal(mapping.haynesIdentity))fail('LABOUR_REVIEW_REQUIRED');
+ if(h.navigationMode==='workshopdata-registration'){
+  if(haynesOrigin!=='https://www.workshopdata.com')fail('SETTINGS_REQUIRED');
+  await navigateHaynesRepair(haynesPage,request,mapping);
+ }else{
+  await navigate(haynesPage,h,request,haynesOrigin);
+  if(normal(await read(haynesPage,h.identity))!==normal(mapping.haynesIdentity))fail('LABOUR_REVIEW_REQUIRED');
+ }
  const {operationId,operationLabel,hoursMilli}=await readReviewedHaynesOperation(haynesPage,mapping,haynesOrigin);
  const stamp=new Date(now()).toISOString();
  return cleanRepairEvidence({request,variant:mapping.variant,fitmentEvidence:mapping.fitmentEvidence,catalogueComplete:true,parts,checkedAt:stamp,labour:{source:'HAYNES_PRO',registration:request.registration,variant:mapping.variant,operation:request.operation,operationId,operationLabel,hoursMilli,unit:'hours',scopeConfirmed:true,checkedAt:stamp}},request,{now:now()});

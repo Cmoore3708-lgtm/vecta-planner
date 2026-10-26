@@ -40,3 +40,15 @@ test('worker accepts the observed capture only against the reviewed operation',a
  await assert.rejects(readReviewedHaynesOperation({frames:()=>[frame(capture),frame({...capture,hoursMilli:300})]},mapping,'https://www.workshopdata.com'),/LABOUR_REVIEW_REQUIRED/);
  await assert.rejects(readReviewedHaynesOperation(page,mapping,'https://other.workshopdata.com'),/LABOUR_REVIEW_REQUIRED/);
 });
+
+import {verifyRepairVehicle,repairTimesLink} from '../../workers/repair-quotes/haynes-navigation.mjs';
+test('automatic Haynes navigation binds registration and reviewed vehicle type',()=>{
+ const vehicle={registration:'FV65JTY',typeId:'t_317000375',make:'Honda',model:'CR-V',variant:'1.6 i-DTEC'};
+ const request={registration:'FV65JTY'},mapping={haynesTypeId:'t_317000375'};
+ assert.equal(verifyRepairVehicle(vehicle,request,mapping),'t_317000375');
+ for(const change of [{registration:'OTHER'},{typeId:'t_999'},{ambiguous:true},{blocked:true},{variant:''}])assert.throws(()=>verifyRepairVehicle({...vehicle,...change},request,mapping),/LABOUR_REVIEW_REQUIRED/);
+ assert.throws(()=>verifyRepairVehicle({...vehicle,login:true},request,mapping),/LOGIN_REQUIRED/);
+ const url='https://www.workshopdata.com/touch/site/layout/repairTimes?typeId=t_317000375&groupId=QUICKGUIDES';
+ assert.equal(repairTimesLink([url,url],'t_317000375'),url);
+ for(const links of [[],[url.replace('t_317000375','t_999')],[url.replace('www.workshopdata.com','evil.example')],[url.replace('repairTimes','costEstimate')]])assert.throws(()=>repairTimesLink(links,'t_317000375'),/LABOUR_REVIEW_REQUIRED/);
+});

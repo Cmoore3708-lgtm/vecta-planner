@@ -7,6 +7,7 @@ for(const name of readdirSync(path.join(root,'workers/repair-quotes'))){
  if(name==='node_modules'||name==='profile'||name.endsWith('.local.json'))continue;
  cpSync(path.join(root,'workers/repair-quotes',name),path.join(stage,'workers/repair-quotes',name),{recursive:true});
 }
+mkdirSync(path.join(stage,'workers/haynes'),{recursive:true});cpSync(path.join(root,'workers/haynes/dom.mjs'),path.join(stage,'workers/haynes/dom.mjs'));
 mkdirSync(path.join(stage,'lib'),{recursive:true});cpSync(path.join(root,'lib/repair-quote.js'),path.join(stage,'lib/repair-quote.js'));
 cpSync(path.join(root,'docs/REPAIR-QUOTE-LOOKUP.md'),path.join(stage,'READ-ME.md'));
 const output=path.resolve(process.argv[2]||'/tmp/Vecta-Repair-Quote-Worker.zip');
