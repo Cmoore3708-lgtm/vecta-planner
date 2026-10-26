@@ -47,8 +47,8 @@ html,body{margin:0;padding:0;font-family:Arial,Helvetica,sans-serif;font-size:12
 .printTotals span{text-align:right;font-variant-numeric:tabular-nums}
 .printTotals>div:last-child{border-top:1px solid #aaa;padding-top:8px;margin-top:4px;font-size:17px;font-weight:bold}
 .printPayment{margin-top:24px;padding:10px 12px;border:1px solid #d1d5db;border-radius:4px;font-size:11px;line-height:1.5;break-inside:avoid;background:#fff}
-.printPayment>div{display:block;width:100%;min-width:0;white-space:nowrap}
-.printPayment span{display:inline;white-space:nowrap}
+.printPayment>div{display:block;width:100%;min-width:0;white-space:normal;overflow-wrap:anywhere}
+.printPayment span{display:inline;white-space:nowrap;margin-right:4px}
 .noBreak,tr{break-inside:avoid}
 @media screen and (max-width:820px){.printSheet{margin:0}body{overflow-x:auto}.invoiceActions{justify-content:flex-start}}
 @media print{
