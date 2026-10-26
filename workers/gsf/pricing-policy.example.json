@@ -1,12 +1,11 @@
 {
-  "version": "gsf-50pct-trial",
+  "version": "gsf-round5-v1",
   "markupBps": 5000,
   "vatBps": 2000,
-  "roundUpPence": 1,
+  "roundUpPence": 500,
   "labourNetPence": {
     "Oil & Filter Change": 3500,
     "Full Service": 7000,
     "Major Service": 11000
   }
 }
-
