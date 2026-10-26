@@ -307,3 +307,30 @@ reload after submission. Success requires selected registration, priced choices
 and the exact category path together. Progress and failure evidence explicitly
 record whether registration was submitted and which readiness checks passed.
 This ordering has regression tests but is not yet a live automatic success.
+
+### Automatic GSF navigation milestone — 10:27 UTC, 26 October
+The .8 PC result reports AUTOMATIC_CATEGORY_REACHED, registrationSubmitted:true,
+selectedRegistration:true, pricedOptions:2 and categoryPathMatched:true. Show More
+then expanded once and the stock-aware analysis selected DriveTec £194.74 among
+the six priced alternatives. This is live automatic registration/category evidence
+for FV65JTY. Overall fitment/catalogue completeness remain false in that report.
+
+A fresh selected-part verifier is prepared using the existing shared exact-SKU
+lookup: DREA8828 is the reviewed search term and A8828 the manufacturer SKU from
+the earlier successful live Part Details capture. It verifies catalogue choice,
+brand, description, exact current net price, positive stock, VAT basis and image.
+Changed prices/identity/stock stop review; the catalogue SKU is never inferred for
+other brands. This helper has targeted tests but has not yet run as part of the
+new automatic catalogue flow. It does not set fitment or completeness flags.
+
+### Same-run component verification
+VERIFY-QUOTE.cmd (setup .9) runs the now-verified GSF navigation/expansion, checks
+the selected DriveTec DREA8828/A8828 through the shared exact-SKU reader, and
+runs the verified Haynes registration/operation lookup. Haynes prompts for sign-in
+only if its password field is present. A same-run read-only arithmetic preview
+requires matching registrations, current EX_VAT part price, positive stock and
+fresh source timestamps. It reuses the agreed policy and reports the requested
+cost/sale/hours/labour/VAT amounts. previewOnly:true and readyForAutomaticQuote:false
+remain explicit: this does not bypass production fitment/completeness review or
+write an invoice/quote to Workshop Pro. The next PC check verifies these existing
+components together; it is not another navigation-calibration task.

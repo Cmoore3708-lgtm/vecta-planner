@@ -50,8 +50,19 @@ export async function readProductBySku(page,item) {
   await page.getByRole('heading',{name:'Search Results for "'+term+'"',exact:true}).waitFor({state:'visible',timeout:15000});
   const sku=page.getByRole('main').getByText(item.sku,{exact:true});
   await uniqueVisible(sku);await sku.click();
-  // Desktop may navigate to a full product page instead of opening a dialog.
-  const details=page.getByRole('dialog',{name:'Part Details',exact:true}).or(page.getByRole('main'));
+  // Prefer the active modal over background main content. Desktop can instead
+  // navigate to the separately calibrated full Part Details page.
+  const dialog=page.getByRole('dialog',{name:'Part Details',exact:true});
+  let details;const deadline=Date.now()+15000;
+  while(Date.now()<deadline){
+    if(await dialog.count()===1&&await dialog.isVisible()){details=dialog;break;}
+    const url=new URL(page.url());
+    if(url.origin===SUPPLIER&&/^\/partdetails\/[^/]+\/?$/.test(url.pathname)){
+      const main=page.getByRole('main');if(await main.count()===1&&await main.isVisible()){details=main;break;}
+    }
+    await page.waitForTimeout(200);
+  }
+  if(!details)throw Error('PRODUCT_DETAILS_NOT_OPEN');
   await details.getByRole('heading',{level:5,name:item.description,exact:true}).waitFor({state:'visible',timeout:15000});
   const product=await page.evaluate(readProductDialog);
   if(product.sku!==item.sku || product.brand.toUpperCase()!==item.brand.toUpperCase() || product.description!==item.description)throw Error('REVIEW_REQUIRED');
