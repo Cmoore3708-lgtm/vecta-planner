@@ -17,14 +17,16 @@ export function approvedRecipe(config, raw, now=Date.now()) {
   const matches=config.recipes.filter(recipe=>recipe.registration===request.registration && recipe.service===request.service && recipe.range===request.range);
   if(matches.length!==1)throw Error('REVIEW_REQUIRED');
   const recipe=matches[0], reviewed=Date.parse(recipe.reviewedAt);
+  const oilApplicable=request.service!=='EV Major Service';
+  if(!oilApplicable&&!['electric','electricity','battery electric','bev'].includes(String(recipe.fuelType||'').trim().toLowerCase()))throw Error('REVIEW_REQUIRED');
   if(config.lookupMode==='approved-skus' && !recipe.fitmentSource)throw Error('REVIEW_REQUIRED');
   if(recipe.approved!==true || !Number.isFinite(reviewed) || reviewed>now || now-reviewed>30*86400000 ||
-    !recipe.id || !recipe.vehicle || !recipe.oilSpecification || !recipe.oilSource ||
+    !recipe.id || !recipe.vehicle || (oilApplicable&&(!recipe.oilSpecification||!recipe.oilSource)) ||
     !Array.isArray(recipe.items) || recipe.items.length<2 || recipe.items.length>16 ||
     !Array.isArray(recipe.requiredKinds))throw Error('REVIEW_REQUIRED');
   // The default package applies even when mileage is unknown.
   const required=serviceRequiredKinds(request.service,recipe.fuelType),kinds=recipe.items.map(item=>item.kind);
-  if(required.some(kind=>!kinds.includes(kind))||kinds.some(kind=>!required.includes(kind)&&!['sump_plug','washer'].includes(kind)))throw Error('REVIEW_REQUIRED');
+  if(required.some(kind=>!kinds.includes(kind))||kinds.some(kind=>!required.includes(kind)&&(!oilApplicable||!['sump_plug','washer'].includes(kind))))throw Error('REVIEW_REQUIRED');
   for(const item of recipe.items) {
     if(config.lookupMode==='approved-skus') {
       if(!/^[A-Za-z0-9 ._/-]{1,80}$/.test(item.searchTerm||item.sku||''))throw Error('SETTINGS_REQUIRED');

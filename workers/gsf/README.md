@@ -30,6 +30,8 @@ The older selector-based `readProduct` path is retained for verified vehicle-cat
 
 ## Trial commercial policy
 
+Named packages also include **Interim Service** (oil and oil filter only) and **EV Major Service** (air and cabin filters only). Interim reuses the oil/filter net labour. EV Major needs no engine-oil specification or capacity, but requires verified EV fitment and an explicitly configured net labour value before live pricing; do not infer labour from its saved total quote. The ten selected comparison vehicles still use the three original combustion-engine packages.
+
 `pricing-policy.example.json` now contains Chris's requested **trial scenario**, not activated production configuration:
 
 - 50% markup on purchase costs: parts and oil cost × 1.5.

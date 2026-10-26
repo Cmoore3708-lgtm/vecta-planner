@@ -1,4 +1,4 @@
-import {servicePriceRequest,calculateServicePrice,SERVICES,normaliseRegistration} from '../../lib/service-pricing.js';
+import {servicePriceRequest,calculateServicePrice,COMPARISON_SERVICES as SERVICES,normaliseRegistration} from '../../lib/service-pricing.js';
 
 export function comparisonVehicles(raw) {
   if(!Array.isArray(raw?.vehicles)||raw.vehicles.length!==10)throw Error('Choose exactly ten registrations for the comparison.');

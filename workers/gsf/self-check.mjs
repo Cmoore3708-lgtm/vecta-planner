@@ -1,7 +1,7 @@
 // Offline arithmetic and package check. All costs below are synthetic examples.
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
-import {calculateServicePrice,SERVICES} from '../../lib/service-pricing.js';
+import {calculateServicePrice,COMPARISON_SERVICES as SERVICES} from '../../lib/service-pricing.js';
 const policy=JSON.parse(readFileSync(new URL('./pricing-policy.example.json',import.meta.url),'utf8'));
 assert.equal(policy.markupBps,5000);
 const part=(kind,cost,quantityMilli=1000)=>({kind,sku:'DEMO-'+kind,brand:'Example',description:kind,unitNetPence:cost,quantityMilli,vatBasis:'EX_VAT',inStock:true});

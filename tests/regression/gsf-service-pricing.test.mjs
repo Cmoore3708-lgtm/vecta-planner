@@ -47,6 +47,21 @@ test('default packages do not require mileage; diesel major includes fuel filter
     assert.throws(()=>calculateServicePrice({...costs,requiredKinds:[...costs.requiredKinds,kind],items:[...costs.items,item(kind,1000)]},input,policy,now),/REVIEW_REQUIRED/);
   }
 });
+test('Interim is oil/filter only and EV Major is air/cabin only without engine-oil data',()=>{
+  assert.deepEqual(serviceRequiredKinds('Interim Service'),['oil','oil_filter']);
+  assert.deepEqual(serviceRequiredKinds('EV Major Service'),['air_filter','cabin_filter']);
+  const interimRequest={...request,service:'Interim Service',mileage:null};
+  const interim={...result(),request:interimRequest,requiredKinds:['oil','oil_filter'],items:result().items.slice(0,2)};
+  assert.equal(calculateServicePrice(interim,interimRequest,policy,now).labourNetPence,3000);
+  const evRequest={...request,service:'EV Major Service',mileage:null};
+  const ev={...result(),request:evRequest,fuelType:'electric',oilSpecification:'',oilVerified:false,requiredKinds:['air_filter','cabin_filter'],items:[item('air_filter',1000),item('cabin_filter',1500)]};
+  const clean=cleanServiceCosts(ev,evRequest,now);assert.equal(clean.oilSpecification,'');assert.equal(clean.oilVerified,false);
+  assert.throws(()=>calculateServicePrice(ev,evRequest,policy,now),/SETTINGS_REQUIRED/);
+  const evPolicy={...policy,labourNetPence:{...policy.labourNetPence,'EV Major Service':9000}}; // Synthetic labour, not an agreed rate.
+  assert.equal(calculateServicePrice(ev,evRequest,evPolicy,now).labourNetPence,9000);
+  assert.throws(()=>cleanServiceCosts({...ev,fuelType:'petrol'},evRequest,now),/REVIEW_REQUIRED/);
+  for(const kind of ['oil','oil_filter','sump_plug'])assert.throws(()=>cleanServiceCosts({...ev,items:[...ev.items,item(kind,1000)],requiredKinds:[...ev.requiredKinds,kind]},evRequest,now),/REVIEW_REQUIRED/);
+});
 test('pricing applies markup to parts, preset net labour and VAT exactly once',()=>{
   const price=calculateServicePrice(result(),request,policy,now);
   assert.equal(price.partsNetPence,7110);assert.equal(price.labourNetPence,5000);

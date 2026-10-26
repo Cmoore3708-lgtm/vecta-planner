@@ -1,5 +1,5 @@
 // Offline evidence audit only: no browser, relay, price estimates or approvals.
-import {SERVICES,serviceRequiredKinds} from '../../lib/service-pricing.js';
+import {COMPARISON_SERVICES as SERVICES,serviceRequiredKinds} from '../../lib/service-pricing.js';
 import {comparisonVehicles} from './comparison.mjs';
 import {approvedRecipe} from './supplier.mjs';
 

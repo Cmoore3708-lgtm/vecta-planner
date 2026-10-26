@@ -1,5 +1,5 @@
 (function(root) {
-  const services = ['Oil & Filter Change','Full Service','Major Service'];
+  const services = ['Oil & Filter Change','Full Service','Major Service','Interim Service','EV Major Service'];
   function request(form) {
     if (!form.job_types?.includes('Service') || !services.includes(form.service_choice) || form.nevos_vehicle === 'yes') return null;
     const registration = String(form.registration || '').toUpperCase().replace(/\s/g,'');

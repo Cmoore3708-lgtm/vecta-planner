@@ -10,6 +10,8 @@ The 26 October PC capture for FV65JTY reports a selected registration and an aut
 
 ## Existing service contract
 
+Interim Service is explicitly supported as the oil-and-oil-filter package (same £35 net labour as Oil & Filter Change). EV Major Service is explicitly supported with air and cabin filters only: no engine oil, oil filter, fuel filter or spark plugs, and no engine-oil lookup dependency. EV fitment must identify an electric vehicle. Its net labour must be explicitly configured before issuing a live calculated EV quote; the saved £120 EV template total is not a net labour rate. The original ten-car comparison remains the three combustion-engine packages.
+
 - Input: registration, service (`Oil & Filter Change`, `Full Service`, `Major Service`), current mileage or null, and parts range. Mileage/range/service changes invalidate the old result.
 - A reviewed mapping binds that request to the exact vehicle variant, service scope, compatible filter SKUs, oil specification, fill quantity and pack size. Mappings expire after thirty days. Mileage is optional; no mileage window or unknown-mileage approval is required for these default packages.
 - Oil/filter always needs oil and oil filter. The current full/major package also needs air and cabin filters. Major services require a verified `fuelType`: `petrol`, `diesel`, `petrol hybrid` or `diesel hybrid`. Diesel major services include a fuel filter. Petrol major services do not include one. Spark plugs are excluded from every automatic service price and quoted separately if needed. Unknown fuel type blocks a major quote rather than guessing. Filter compatibility and stock must still be verified.
