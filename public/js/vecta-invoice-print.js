@@ -55,7 +55,7 @@
     frame.style.cssText='position:fixed;left:-10000px;top:0;width:794px;height:1123px;border:0';
     const markup=sheet.querySelector('.invoicePrintPage').outerHTML;
     const loaded=new Promise((resolve,reject)=>{frame.onload=resolve;frame.onerror=()=>reject(Error('Invoice print document could not load'));});
-    frame.srcdoc='<!doctype html><html><head><meta charset="utf-8"><base href="'+root.location.origin+'/"><title>VECTA Invoice</title><link rel="stylesheet" href="/js/vecta-customer-invoice.css?v=20261023-invoice-contact-dates"></head><body><main class="printSheet">'+markup+'</main></body></html>';
+    frame.srcdoc='<!doctype html><html><head><meta charset="utf-8"><base href="'+root.location.origin+'/"><title>VECTA Invoice</title><link rel="stylesheet" href="/js/vecta-customer-invoice.css?v=20261026-readable-invoice"></head><body><main class="printSheet">'+markup+'</main></body></html>';
     doc.body.appendChild(frame);
     try{
       await loaded;
@@ -79,9 +79,9 @@
     const range=line.ownerDocument.createRange();range.selectNodeContents(line);
     const previewScale=line.offsetWidth?line.getBoundingClientRect().width/line.offsetWidth:1;
     const width=range.getBoundingClientRect().width/(previewScale||1),available=line.clientWidth;
-    if(width>0&&available>0)line.style.fontSize=(11*available/width*.995)+'px';
+    if(width>0&&available>0)line.style.fontSize=Math.max(11,Math.min(14,11*available/width*.995))+'px';
     const page=scope.querySelector('.invoicePrintPage');
-    page?.style?.setProperty('--invoice-work-description-size',line.style.fontSize);
+    page?.style?.setProperty('--invoice-work-description-size','14px');
     const badge=scope.querySelector('.invoiceMakeBadge'),label=scope.querySelector('.printCustomerTop>b'),row=scope.querySelector('.invoiceVehicleIdentityRow');
     if(badge&&label&&row&&row.offsetHeight){
       const scale=row.getBoundingClientRect().height/row.offsetHeight;
