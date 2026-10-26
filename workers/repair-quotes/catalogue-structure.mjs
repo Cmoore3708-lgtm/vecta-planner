@@ -13,7 +13,7 @@ export function inspectRepairCatalogue({registration},doc=document){
  const candidates=[];
  for(const el of nodes){const value=clean(text(el));if(value.length>600||!/^.*\balternator\b/i.test(value)||!/[£]\s*\d/.test(value))continue;
   if([...el.children].some(child=>/alternator/i.test(text(child))&&/£\s*\d/.test(text(child))))continue;
-  const ancestors=[];for(let n=el.parentElement,depth=1;n&&depth<=3;n=n.parentElement,depth++){
+  const ancestors=[];for(let n=el.parentElement,depth=1;n&&depth<=6;n=n.parentElement,depth++){
    const section=clean(text(n));if(section.length>1200||n.tagName==='MAIN'||n.tagName==='BODY')break;
    ancestors.push({depth,selector:selector(n),text:scrub(section),images:[...n.querySelectorAll('img')].slice(0,8).map(img=>({alt:scrub(img.getAttribute('alt')),src:(()=>{try{const u=new URL(img.getAttribute('src'));return u.protocol==='https:'&&/gsf|catalogue/i.test(u.hostname)&&/ProductImages|brand|logo/i.test(u.pathname)?u.origin+u.pathname:'';}catch{return '';}})()}))});
   }

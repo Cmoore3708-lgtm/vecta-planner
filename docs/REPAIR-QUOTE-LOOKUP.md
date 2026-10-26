@@ -220,3 +220,46 @@ filtering. If all permitted frames reject with OPERATION_NOT_VISIBLE, the worker
 can toggle the unique Alternator heading once and retry. It never clicks an
 add-to-estimate control. Setup .5 records row geometry if a further failure
 occurs. These changes have fixture tests; a live automatic capture is still pending.
+
+## Consolidated supplier worker and live Haynes milestone
+On 26 October at 09:01 UTC, PC checker 2026-10-26.5 automatically searched
+FV65JTY, matched type t_317000375, navigated to repair times, and captured
+operation 1E02944501WV0, Renew the alternator, 700 thousandths of an hour.
+This is live navigation evidence for that vehicle/operation, not a fixture.
+The overall report still has fitmentConfirmed:false; it does not approve a GSF
+mapping or enable pricing.
+
+The GSF conversation confirmed using one supplier worker for website services
+and Workshop Pro repairs. This branch now incorporates the shared GSF PC modules
+from PR #360 commit 64bee691822de102feed3a918f60a0658447667c. Its worker polls the
+repair queue optionally as well as its service queue, serially in the same GSF
+browser context/profile (VectaGSF/EdgeProfile). Repair jobs use isolated tabs,
+plus the existing VectaRepairQuotes/Haynes session for labour. There is no second
+production GSF browser or second GSF sign-in. The product details reader is also
+shared, including popup/full-page support and a part photo.
+
+Repair quoting keeps its own server calculation, reviewed mappings, token and
+queue. It does not use website service markup or preset service labour. Repair
+completion is retained across delivery retries, so retrying delivery does not
+rerun a supplier lookup. A repair pairing failure does not disable service work.
+The old repair worker entry point forwards to the shared runner; its --setup
+mode signs into Haynes only. Install the shared worker's locked dependencies via
+workers/gsf/setup.cmd before production use. Diagnostic checkers remain separate
+from the production runner and should be closed before starting it.
+
+The service endpoints/queue remain owned by PR #360; coordinate the two PRs
+before release. This branch carries the PC modules for integration/testing, not
+a second service backend. Both sets of feature gates remain disabled until
+compatible catalogue completeness, queue pairing and preview flow are verified.
+The next live supplier work is GSF registration/category navigation, Show More,
+SKU/stock/price/photo extraction and proof of the complete compatible list.
+
+### Shared-profile GSF navigation check
+CHECK-GSF-CATALOGUE.cmd runs setup .6 with --gsf-only. It uses the same
+VectaGSF/EdgeProfile as the consolidated service/repair runner, so close previous
+GSF test windows first. After sign-in it attempts the observed ENTER REG / VIN,
+Search VRM Button and Electrical > Rotating > Alternator controls. Any failure
+records its stage and allows manual navigation in that same window before
+capturing/expanding the catalogue. It never starts Haynes or activates pricing.
+Automatic category navigation still requires a live PC test; reaching a category
+does not itself approve part fitment or catalogue completeness.

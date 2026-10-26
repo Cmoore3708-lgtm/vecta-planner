@@ -1,0 +1,9 @@
+{
+  "name": "vecta-gsf-service-worker",
+  "private": true,
+  "type": "module",
+  "engines": {"node": ">=22"},
+  "scripts": {"login": "node worker.mjs --setup", "start": "node worker.mjs", "check": "node probe.mjs", "check:offline": "node self-check.mjs", "compare": "node compare.mjs"},
+  "dependencies": {"playwright": "1.63.0"}
+}
+
