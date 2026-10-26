@@ -30,3 +30,9 @@ Checker .11 uses the already browser-verified enhancedSearch/DREA8828 address di
 ## PC .11 result
 
 The 12:13 run passed automatic registration, complete ten-option boundary, independent A8828/price/VAT/stock/photo verification and Haynes 0.70-hour capture. The redundant second source lookup inside the actual-worker test failed VEHICLE_IDENTITY_MISMATCH. Its compared strings/count were not recorded, so the cause is not established. Version .12 normalises all display whitespace while retaining the exact remaining identity characters, rejects duplicates/different registrations and records bounded expected/observed identity diagnostics. No successful fresh .12 run or live activation is claimed.
+
+## PC .12 result and expansion rendering race
+
+The 12:19 run again passed GSF ten-option enumeration, selected SKU, stock, price, photo and Haynes time. The repeated worker lookup passed its identity comparison but stopped at EXPANDED_CATALOGUE_BOUNDARY_UNCONFIRMED. The failed second boundary was not recorded in .12.
+
+Code inspection found a reproducible race: expandGSFAlternatives returned immediately when Show More was absent, even when prices had rendered before the expansion controls. The new requireExpanded mode waits for a terminal Show Less state and an unchanged second capture, with a bounded timeout. It never converts missing controls into completeness. A regression reproduces late controls and confirms expansion; another proves a half-rendered list fails at the deadline. Checker .13 records boundary diagnostics on any subsequent failure. This addresses a demonstrated code race; the .12 report does not prove it was the specific second-boundary failure cause.

@@ -6,7 +6,7 @@ const reject=detail=>{throw Object.assign(Error('REVIEW_REQUIRED'),{code:'REVIEW
 const normal=value=>String(value||'').trim().replace(/\s/g,'').toUpperCase();
 export function confirmExpandedGSF(snapshot,analysis,expectedSku){
  const b=snapshot?.boundary;
- if(!b||b.version!==1||b.truncated!==false||b.loading!==false||b.unparsedSkuLabels!==0||!Array.isArray(b.groupSkus)||b.groupSkus.length!==1||b.groupSkus[0]!==expectedSku||b.showMore!==0||b.showLess!==1||!Array.isArray(b.paginationControls)||b.paginationControls.length)reject('EXPANDED_CATALOGUE_BOUNDARY_UNCONFIRMED');
+ if(!b||b.version!==1||b.truncated!==false||b.loading!==false||b.unparsedSkuLabels!==0||!Array.isArray(b.groupSkus)||b.groupSkus.length!==1||b.groupSkus[0]!==expectedSku||b.showMore!==0||b.showLess!==1||!Array.isArray(b.paginationControls)||b.paginationControls.length)throw Object.assign(Error('REVIEW_REQUIRED'),{code:'REVIEW_REQUIRED',detail:'EXPANDED_CATALOGUE_BOUNDARY_UNCONFIRMED',boundaryCheck:b||null});
  if(analysis.displayedGroupSku!==expectedSku||!Number.isInteger(analysis.expandedGroupOptionsCount)||analysis.expandedGroupOptionsCount<1||analysis.expandedGroupOptionsCount>100||analysis.expandedGroupOptionsCount!==analysis.displayedOptionCount)reject('EXPANDED_GROUP_UNPARSED');
  return {method:'single-expanded-group',groupSku:expectedSku,optionsChecked:analysis.displayedOptionCount};
 }
@@ -16,7 +16,7 @@ export async function readLiveGSFAlternator(page,request,mapping,config,{now=Dat
  if((!config.totalCount&&config.completionMode!=='single-expanded-group')||!mapping.gsfPart)throw Object.assign(Error('SETTINGS_REQUIRED'),{code:'SETTINGS_REQUIRED'});
  const navigation=await navigate(page,request.registration);
  if(navigation.status!=='AUTOMATIC_CATEGORY_REACHED'||navigation.registrationSubmitted!==true||navigation.observed?.selectedRegistration!==true||navigation.observed?.categoryPathMatched!==true)reject('REGISTRATION_NOT_CONFIRMED');
- const snapshot=await expand(page,request.registration);
+ const snapshot=await expand(page,request.registration,{requireExpanded:config.completionMode==='single-expanded-group'});
  const identityCheck={requestRegistration:request.registration,capturedRegistration:snapshot.registration||'',identityCount:snapshot.identities?.length||0,expected:normal(mapping.gsfIdentity),observed:(snapshot.identities||[]).slice(0,4).map(row=>normal(row.text).slice(0,220))};
  if(snapshot.registration!==request.registration||snapshot.identities?.length!==1||identityCheck.observed[0]!==identityCheck.expected){const error=Object.assign(Error('REVIEW_REQUIRED'),{code:'REVIEW_REQUIRED',detail:'VEHICLE_IDENTITY_MISMATCH',identityCheck});throw error;}
  const analysis=analyseAlternatorOptions(snapshot);

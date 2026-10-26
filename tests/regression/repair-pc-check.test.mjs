@@ -120,6 +120,17 @@ test('GSF Show More expands additional alternatives and never establishes catalo
  expanded=false;control.click=async()=>{clicks++;};
  await assert.rejects(expandGSFAlternatives(page,'FV65JTY',{timeoutMs:0}),/GSF_MORE_DID_NOT_LOAD/);
 });
+test('fresh GSF render waits for late Show More, then a stable Show Less capture',async()=>{
+ let phase=0,clicks=0,waits=0;
+ const card={text:'£194.74 Silver Alternator - 150 Amp'};
+ const page={evaluate:async()=>({candidates:phase<2?[card]:[card,{text:'£215.32 Gold Alternator'}],boundary:{showMore:phase===1?1:0,showLess:phase>=2?1:0,loading:phase===0}}),getByText:()=>({count:async()=>phase===1?1:0,nth:()=>({isVisible:async()=>true,click:async()=>{clicks++;phase=2;}})}),waitForTimeout:async()=>{waits++;if(phase===0)phase=1;}};
+ const result=await expandGSFAlternatives(page,'FV65JTY',{requireExpanded:true});assert.equal(result.candidates.length,2);assert.equal(result.boundary.showLess,1);assert.equal(clicks,1);assert.ok(waits>=2);
+});
+test('absence of both expansion controls cannot establish a completed fresh list',async()=>{
+ const boundary={showMore:0,showLess:0,loading:false};
+ const page={evaluate:async()=>({candidates:[{text:'half-rendered'}],boundary}),getByText:()=>({count:async()=>0}),waitForTimeout:async()=>{throw Error('Should stop at deadline');}};
+ await assert.rejects(expandGSFAlternatives(page,'FV65JTY',{requireExpanded:true,timeoutMs:0}),error=>error.detail==='GSF_EXPANSION_NOT_READY'&&error.boundaryCheck.showLess===0);
+});
 
 test('reviewed operation scope distinguishes two alternator jobs without hardcoding the time',()=>{
  const {document}=parseHTML('<html><body><p>Total time (H)</p><ul><li><span>1E02944501WV0 Renew the alternator</span><span>0.70</span></li><li><span>1D01901429WV0 Renew the alternator</span><span>0.30</span></li></ul></body></html>');
