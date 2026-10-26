@@ -70,7 +70,7 @@ test('repair navigation searches the requested plate and follows only its verifi
  const calls=[];let searched=false,url='',badVehicle=false;
  const operation={count:async()=>1,isVisible:async()=>true,waitFor:async()=>{},scrollIntoViewIfNeeded:async()=>calls.push('scroll')};
  const page={url:()=>url,goto:async target=>{url=target;calls.push(target);},evaluate:async()=>searched?{registration:'FV65JTY',typeId:badVehicle?'t_999':'t_317000375',make:'Honda',model:'CR-V',variant:'1.6'}:{},
- locator:selector=>selector==='a[href]'?{evaluateAll:async()=>[repair]}:selector==='li:not(:has(li))'?{filter:()=>({...operation,nth:()=>operation})}:selector==='#licencePlateBtn'?{count:async()=>1,click:async()=>{searched=true;}}:{count:async()=>1,fill:async plate=>calls.push(plate)},
+ locator:selector=>selector==='a[href]'?{evaluateAll:async()=>[repair]}:selector==='li:not(:has(li))'?{filter:()=>({...operation,nth:()=>operation})}:selector==='#licencePlateBtn'?{count:async()=>1,click:async()=>{searched=true;}}:{count:async()=>1,waitFor:async()=>{},fill:async plate=>calls.push(plate)},
  getByText:()=>({count:async()=>1,click:async()=>calls.push('expand')}),waitForTimeout:async()=>{}};
  assert.deepEqual(await navigateHaynesRepair(page,request,mapping),{registration:'FV65JTY',typeId:'t_317000375'});
  assert.ok(calls.includes('FV65JTY'));assert.ok(calls.includes(repair));assert.ok(calls.includes('scroll'));
@@ -90,4 +90,26 @@ test('alternator expansion waits for asynchronously inserted leaf rows and rejec
  duplicates=true;
  await assert.rejects(openAlternatorOperation(page,{haynesOperationId:'1E02944501WV0'}),/LABOUR_REVIEW_REQUIRED/);
  assert.equal(clicked,1);
+});
+
+import {readRepairVehicle} from '../../workers/repair-quotes/haynes-navigation.mjs';
+import {repairBrowserReason} from '../../workers/repair-quotes/browser-errors.mjs';
+import {expandGSFAlternatives} from '../../workers/repair-quotes/gsf-alternatives.mjs';
+test('Haynes retries document replacement but reports a closed browser distinctly',async()=>{
+ let tries=0;
+ const page={evaluate:async()=>{if(++tries===1)throw Error('Execution context was destroyed');return {registration:'FV65JTY'};},waitForTimeout:async()=>{}};
+ assert.equal((await readRepairVehicle(page)).registration,'FV65JTY');assert.equal(tries,2);
+ assert.equal(repairBrowserReason(Error('Target page, context or browser has been closed')),'BROWSER_WINDOW_CLOSED');
+ assert.equal(repairBrowserReason(Error('net::ERR_ABORTED at https://private.example/token')),'NAVIGATION_INTERRUPTED');
+ assert.equal(repairBrowserReason(Error('Execution context was destroyed')),'DOCUMENT_CHANGED');
+ await assert.rejects(readRepairVehicle({...page,evaluate:async()=>{throw Error('Target closed');}}),/Target closed/);
+});
+test('GSF Show More expands additional alternatives and never establishes catalogue completeness',async()=>{
+ let expanded=false,clicks=0;
+ const card={text:'£194.74 Silver Alternator - 150 Amp'};
+ const control={isVisible:async()=>true,click:async()=>{expanded=true;clicks++;}};
+ const page={evaluate:async()=>({candidates:expanded?[card,{text:'£180.00 Alternator'}]:[card],catalogueComplete:false}),getByText:label=>{assert.equal(label,'Show More');return {count:async()=>expanded?0:1,nth:()=>control};},waitForTimeout:async()=>{}};
+ const result=await expandGSFAlternatives(page,'FV65JTY');assert.equal(result.candidates.length,2);assert.equal(clicks,1);assert.equal(result.catalogueComplete,false);
+ expanded=false;control.click=async()=>{clicks++;};
+ await assert.rejects(expandGSFAlternatives(page,'FV65JTY',{timeoutMs:0}),/GSF_MORE_DID_NOT_LOAD/);
 });

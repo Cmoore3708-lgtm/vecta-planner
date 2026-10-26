@@ -181,3 +181,18 @@ GSF captured £194.74 and £215.32 cards but no explicit catalogue count. No cla
 complete fitment selection or live pricing is justified yet. Setup 2026-10-26.2
 also captures full rooted selector paths and limited card-parent structure for
 stock/image/brand calibration, without account panels or raw HTML.
+
+### Follow-up result — 08:36 UTC, 26 October
+Setup .2 stopped at OPEN_HAYNES with the generic PAGE_NOT_READY reason. The
+underlying browser error was not retained, so a closed window or navigation
+replacement cannot be distinguished from this report. No cause is claimed.
+Setup .3 avoids reloading an already-open Haynes start page, retries transient
+execution-context replacement, waits for the registration input, and records
+bounded specific error codes without raw messages/URLs. RETRY-HAYNES.cmd skips
+GSF, whose evidence is already captured; keep this test browser open until the
+result has been saved. The checker then waits before closing it.
+
+The GSF card-parent capture exposes Show More, so the two observed prices do not
+establish completeness. The combined checker now expands this exact observed
+control with bounded progress checks. No-change, ambiguous controls or a limit
+stop expansion and preserve diagnostic data with catalogueComplete:false.
