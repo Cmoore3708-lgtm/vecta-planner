@@ -209,3 +209,14 @@ rejects multiple jobs, and two times for the same reviewed ID still fail. Times
 remain read from the supplier. Unit text can be outside the viewport after
 scrolling to the row, but must remain rendered rather than display-hidden.
 Vehicle registration/type verification still runs before this scoped capture.
+
+### Scoped row visibility correction
+PC setup .4 at 08:56 UTC failed specifically with OPERATION_NOT_VISIBLE after
+navigation. The diagnostic retains both DOM rows, but does not establish whether
+viewport position or accordion clipping caused that rejection. Scoped capture
+now permits the reviewed ID outside viewport bounds, while still rejecting
+zero-size/display-hidden/ancestor-clipped rows. Unscoped scans keep viewport
+filtering. If all permitted frames reject with OPERATION_NOT_VISIBLE, the worker
+can toggle the unique Alternator heading once and retry. It never clicks an
+add-to-estimate control. Setup .5 records row geometry if a further failure
+occurs. These changes have fixture tests; a live automatic capture is still pending.

@@ -6,10 +6,11 @@ export function readAlternatorTime(input={},doc=globalThis.document){
  const fail=reason=>{throw Error('LABOUR_REVIEW_REQUIRED:'+reason);};
  if(expectedOperationId&&!/^[0-9][A-Z0-9]{9,23}$/.test(expectedOperationId))fail('INVALID_OPERATION_ID');
  const operation=/\b(?:Renew|Replace|Remove\s+and\s+refit)\s+(?:the\s+)?alternator\b/i;
- const visible=(el,viewport=true)=>{
-  let bounds=null;if(viewport&&Number.isFinite(doc.defaultView?.innerHeight)&&doc.defaultView.innerHeight>0&&typeof el.getBoundingClientRect==='function'){
+ const visible=(el,viewport=!expectedOperationId)=>{
+  let bounds=null;if(Number.isFinite(doc.defaultView?.innerHeight)&&doc.defaultView.innerHeight>0&&typeof el.getBoundingClientRect==='function'){
    const r=el.getBoundingClientRect(),view=doc.defaultView;
-   if(r.width<=0||r.height<=0||r.bottom<=0||r.right<=0||(view&&r.top>=view.innerHeight)||(view&&r.left>=view.innerWidth))return false;
+   if(r.width<=0||r.height<=0)return false;
+   if(viewport&&(r.bottom<=0||r.right<=0||r.top>=view.innerHeight||r.left>=view.innerWidth))return false;
    bounds={left:r.left,right:r.right,top:r.top,bottom:r.bottom};
   }
   for(let n=el;n&&n.nodeType===1;n=n.parentElement){
@@ -25,7 +26,7 @@ export function readAlternatorTime(input={},doc=globalThis.document){
    }
   }return true;
  };
- const textOf=(node,viewport=true)=>node.nodeType===3?node.textContent:node.nodeType===1&&!visible(node,viewport)?'':[...node.childNodes].map(child=>textOf(child,viewport)).join(' ');
+ const textOf=(node,viewport=!expectedOperationId)=>node.nodeType===3?node.textContent:node.nodeType===1&&!visible(node,viewport)?'':[...node.childNodes].map(child=>textOf(child,viewport)).join(' ');
  const nodes=[...doc.querySelectorAll('td,span,a,div,p,label')].filter(el=>visible(el)&&clean(textOf(el)).length<160&&operation.test(clean(textOf(el)))&&![...el.children].some(child=>operation.test(clean(textOf(child)))));
  if(!nodes.length)fail('OPERATION_NOT_VISIBLE');
  const matches=new Map();let ambiguous=false;
@@ -67,7 +68,10 @@ export function repairTimeDiagnostics(doc=document){
    const text=clean(textOf(n));if(text.length>350)break;
    const times=[...text.matchAll(/(?:^|\s)(\d{1,2}[.,]\d{2})(?=\s|$)/g)].map(m=>m[1]);
    const operationCodes=(text.match(/\b[A-Z0-9]{8,24}\b/g)||[]).filter(c=>c.length!==17).slice(0,4);
-   ancestors.push({depth,tag:n.tagName,times,operationCodes});if(times.length)break;
+   const rect=typeof n.getBoundingClientRect==='function'?n.getBoundingClientRect():null;
+   const geometry=rect?{top:Math.round(rect.top),bottom:Math.round(rect.bottom),height:Math.round(rect.height),width:Math.round(rect.width)}:null;
+   const style=typeof getComputedStyle==='function'?getComputedStyle(n):null;
+   ancestors.push({depth,tag:n.tagName,times,operationCodes,geometry,...(style?{display:style.display,visibility:style.visibility,overflow:style.overflow}:{} )});if(times.length)break;
   }
   return {operation:(textOf(el).match(operation)||[])[0]||'',ancestors};
  })};

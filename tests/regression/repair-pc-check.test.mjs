@@ -139,3 +139,21 @@ test('worker passes the reviewed operation to browser capture and retains the sp
  const page={frames:()=>[{url:()=> 'https://www.workshopdata.com/touch/site/layout/repairTimes',evaluate:async(fn,arg)=>{assert.equal(arg.operationId,mapping.haynesOperationId);throw Error('LABOUR_REVIEW_REQUIRED:HOURS_UNIT_NOT_CONFIRMED');}}]};
  await assert.rejects(readReviewedHaynesOperation(page,mapping,'https://www.workshopdata.com'),error=>error.detail==='HOURS_UNIT_NOT_CONFIRMED');
 });
+
+test('reviewed operation can be rendered outside viewport; an unscoped scan still excludes it',t=>{
+ t.after(()=>{delete globalThis.innerHeight;delete globalThis.innerWidth;});
+ const {document}=parseHTML('<html><body><p>Total time (H)</p><ul><li><span>1E02944501WV0 Renew the alternator</span><span>0.70</span></li></ul></body></html>');
+ document.defaultView.innerHeight=1000;document.defaultView.innerWidth=1000;
+ document.querySelectorAll('*').forEach(el=>{el.getBoundingClientRect=()=>({left:10,right:100,top:1100,bottom:1120,width:90,height:20});});
+ assert.throws(()=>readAlternatorTime(document),/OPERATION_NOT_VISIBLE/);
+ assert.equal(readAlternatorTime({operationId:'1E02944501WV0'},document).hoursMilli,700);
+ document.querySelector('li').hidden=true;
+ assert.throws(()=>readAlternatorTime({operationId:'1E02944501WV0'},document),/OPERATION_NOT_VISIBLE/);
+});
+test('capture opens a clipped job section once and retries the reviewed ID',async()=>{
+ let toggles=0;
+ const mapping={registration:'FV65JTY',haynesOperationId:'1E02944501WV0',haynesOperationLabel:'Renew the alternator'};
+ const frame={url:()=> 'https://www.workshopdata.com/touch/site/layout/repairTimes',evaluate:async()=>{if(!toggles)throw Error('LABOUR_REVIEW_REQUIRED:OPERATION_NOT_VISIBLE');return {operationId:mapping.haynesOperationId,operationText:'1E02944501WV0 Renew the alternator 0.70',hoursMilli:700,unit:'hours'};}};
+ const page={frames:()=>[frame],getByText:label=>{assert.equal(label,'Alternator');return {count:async()=>1,click:async()=>{toggles++;}};},locator:()=>({filter:()=>({count:async()=>1,scrollIntoViewIfNeeded:async()=>{}})}),waitForTimeout:async()=>{}};
+ assert.equal((await readReviewedHaynesOperation(page,mapping,'https://www.workshopdata.com')).hoursMilli,700);assert.equal(toggles,1);
+});

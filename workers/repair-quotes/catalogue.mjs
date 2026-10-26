@@ -43,16 +43,29 @@ async function navigate(page,config,request,origin){
 export async function readReviewedHaynesOperation(page,mapping,origin){
  const reject=detail=>{throw Object.assign(Error('LABOUR_REVIEW_REQUIRED'),{code:'LABOUR_REVIEW_REQUIRED',detail});};
  if(!/^[0-9][A-Z0-9]{9,23}$/.test(mapping.haynesOperationId||''))reject('INVALID_OPERATION_ID');
- const captures=[],reasons=[];
- for(const frame of page.frames()){
-  let url;try{url=new URL(frame.url());}catch{continue;}
-  if(url.origin!==origin)continue;
-  try{captures.push(await frame.evaluate(readAlternatorTime,{operationId:mapping.haynesOperationId}));}
-  catch(error){
-   const detail=String(error.message||'').match(/LABOUR_REVIEW_REQUIRED:([A-Z_]+)/)?.[1]||'FRAME_UNAVAILABLE';
-   reasons.push(detail);
-   if(/MULTIPLE_TIMES|MULTIPLE_PRICED_OPERATIONS/.test(detail))reject(detail);
+ const captures=[];let reasons=[];
+ for(let attempt=0;attempt<2;attempt++){
+  reasons=[];
+  for(const frame of page.frames()){
+   let url;try{url=new URL(frame.url());}catch{continue;}
+   if(url.origin!==origin)continue;
+   try{captures.push(await frame.evaluate(readAlternatorTime,{operationId:mapping.haynesOperationId}));}
+   catch(error){
+    const detail=String(error.message||'').match(/LABOUR_REVIEW_REQUIRED:([A-Z_]+)/)?.[1]||'FRAME_UNAVAILABLE';
+    reasons.push(detail);
+    if(/MULTIPLE_TIMES|MULTIPLE_PRICED_OPERATIONS/.test(detail))reject(detail);
+   }
   }
+  if(captures.length||attempt||!reasons.length||!reasons.every(reason=>reason==='OPERATION_NOT_VISIBLE'))break;
+  // A clipped accordion can have positive-size rows according to Playwright.
+  // Toggle only the exact job heading once; no estimate/add controls are used.
+  const heading=page.getByText('Alternator',{exact:true});
+  if(await heading.count()!==1)break;
+  await heading.click({timeout:10000});
+  const row=page.locator('li:not(:has(li))').filter({hasText:mapping.haynesOperationId});
+  if(await row.count()!==1)break;
+  await row.scrollIntoViewIfNeeded({timeout:10000});
+  await page.waitForTimeout(300);
  }
  if(!captures.length)reject(reasons[0]||'NO_MATCHING_FRAME');
  const label=String(mapping.haynesOperationLabel||'').trim();
