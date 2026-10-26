@@ -131,3 +131,16 @@ not a confirmed diagnosis from the original report.
 CHECK-HAYNES-ONLY.cmd skips GSF and retains a previous local GSF capture if it
 exists in the same folder. It does not activate the lookup. Run with the visible
 FV65 JTY Renew the alternator row open in the newly launched Haynes window.
+
+## Verified PC labour capture — 26 October 2026
+Checker 2026-10-25.6 captured operation 1E02944501WV0, Renew the alternator,
+0.70 hours from the workshop PC at 08:10 UTC. This is a real DOM capture, not a
+fixture result. Its registration field was blank and fitmentConfirmed was false;
+it does not independently establish vehicle identity or part fitment.
+
+The automatic worker now uses that same reader after the existing exact selected
+vehicle identity check. It requires the reviewed operation ID/label, rejects
+conflicting times across frames, and rejects a conflicting visible registration.
+No labour time is hardcoded. Registration navigation, GSF complete compatible
+catalogue capture and reviewed vehicle mappings remain uncalibrated. The example
+configuration remains disabled; this does not activate production pricing.

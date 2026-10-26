@@ -1,3 +1,4 @@
+import {readAlternatorTime} from './repair-time-reader.mjs';
 import {repairRequest,cleanRepairEvidence} from '../../lib/repair-quote.js';
 export const GSF_ORIGIN='https://trade.gsfcarparts.com';
 function fail(code){throw Object.assign(Error(code),{code});}
@@ -37,6 +38,30 @@ async function navigate(page,config,request,origin){
  await checkOrigin(page,origin);
  if(config.ready){await page.locator(config.ready).waitFor({state:'visible',timeout:15000});}
 }
+// Vehicle identity is checked by the caller before reading any operation.
+export async function readReviewedHaynesOperation(page,mapping,origin){
+ const captures=[];
+ for(const frame of page.frames()){
+  let url;try{url=new URL(frame.url());}catch{continue;}
+  if(url.origin!==origin)continue;
+  try{captures.push(await frame.evaluate(readAlternatorTime));}
+  catch(error){
+   // A frame containing conflicting operations must never be silently skipped.
+   if(/MULTIPLE_TIMES|MULTIPLE_PRICED_OPERATIONS/.test(error.message||''))fail('LABOUR_REVIEW_REQUIRED');
+  }
+ }
+ if(!captures.length)fail('LABOUR_REVIEW_REQUIRED');
+ const label=String(mapping.haynesOperationLabel||'').trim();
+ const plate=String(mapping.registration||'').replace(/\s/g,'').toUpperCase();
+ for(const result of captures){
+  if(result.operationId!==mapping.haynesOperationId||!label||!normal(result.operationText).includes(normal(label))||
+    (result.registrationVisible&&result.registrationVisible!==plate))fail('LABOUR_REVIEW_REQUIRED');
+ }
+ const values=new Set(captures.map(result=>result.operationId+'|'+result.hoursMilli));
+ if(values.size!==1)fail('LABOUR_REVIEW_REQUIRED');
+ const result=captures[0];
+ return {operationId:result.operationId,operationLabel:label,hoursMilli:parseHours(String(result.hoursMilli/1000),result.unit)};
+}
 export async function lookupRepair({gsfPage,haynesPage},raw,config,{now=Date.now}={}){
  const request=repairRequest(raw),mapping=reviewedMapping(config,request,now()),g=config.gsf,h=config.haynes;
  if(!g||!h||!/^https:\/\//.test(h.startUrl||''))fail('SETTINGS_REQUIRED');
@@ -63,10 +88,7 @@ export async function lookupRepair({gsfPage,haynesPage},raw,config,{now=Date.now
  }
  await navigate(haynesPage,h,request,haynesOrigin);
  if(normal(await read(haynesPage,h.identity))!==normal(mapping.haynesIdentity))fail('LABOUR_REVIEW_REQUIRED');
- const root=await unique(haynesPage.locator(h.operationRoot),'LABOUR_REVIEW_REQUIRED');
- const operationId=await read(root,h.operationId,'LABOUR_REVIEW_REQUIRED'),operationLabel=await read(root,h.operationLabel,'LABOUR_REVIEW_REQUIRED');
- if(operationId!==mapping.haynesOperationId||normal(operationLabel)!==normal(mapping.haynesOperationLabel)||!/alternator/i.test(operationLabel))fail('LABOUR_REVIEW_REQUIRED');
- const hoursMilli=parseHours(await read(root,h.hours,'LABOUR_REVIEW_REQUIRED'),await read(root,h.unit,'LABOUR_REVIEW_REQUIRED'));
+ const {operationId,operationLabel,hoursMilli}=await readReviewedHaynesOperation(haynesPage,mapping,haynesOrigin);
  const stamp=new Date(now()).toISOString();
  return cleanRepairEvidence({request,variant:mapping.variant,fitmentEvidence:mapping.fitmentEvidence,catalogueComplete:true,parts,checkedAt:stamp,labour:{source:'HAYNES_PRO',registration:request.registration,variant:mapping.variant,operation:request.operation,operationId,operationLabel,hoursMilli,unit:'hours',scopeConfirmed:true,checkedAt:stamp}},request,{now:now()});
 }

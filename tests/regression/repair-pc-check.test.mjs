@@ -25,3 +25,18 @@ test('operation outside the visible screen does not create a second priced match
  document.defaultView.innerHeight=1000;document.defaultView.innerWidth=1000;document.querySelectorAll('*').forEach(el=>{el.getBoundingClientRect=()=>({left:10,right:100,top:50,bottom:70,width:90,height:20});});const hidden=document.querySelectorAll('body > div')[1];hidden.querySelectorAll('*').forEach(el=>{el.getBoundingClientRect=()=>({left:10,right:100,top:-50,bottom:-30,width:90,height:20});});
  assert.equal(readAlternatorTime(document).hoursMilli,700);
 });
+
+// Worker adapter tests: capture success must not bypass reviewed vehicle/scope checks.
+import {readReviewedHaynesOperation} from '../../workers/repair-quotes/catalogue.mjs';
+test('worker accepts the observed capture only against the reviewed operation',async()=>{
+ const mapping={registration:'FV65JTY',haynesOperationId:'1E02944501WV0',haynesOperationLabel:'Renew the alternator'};
+ const capture={operationId:mapping.haynesOperationId,operationText:'1E02944501WV0 Renew the alternator OE: 1181M9 + 0.70',hoursMilli:700,unit:'hours',registrationVisible:''};
+ const frame=value=>({url:()=> 'https://www.workshopdata.com/touch/site/layout/repairTimes',evaluate:async()=>value});
+ const page={frames:()=>[frame(capture)]};
+ assert.equal((await readReviewedHaynesOperation(page,mapping,'https://www.workshopdata.com')).hoursMilli,700);
+ for(const change of [{operationId:'1D01901429WV0'},{registrationVisible:'WRONGREG'},{unit:'minutes'}]){
+  await assert.rejects(readReviewedHaynesOperation({frames:()=>[frame({...capture,...change})]},mapping,'https://www.workshopdata.com'),/LABOUR_REVIEW_REQUIRED/);
+ }
+ await assert.rejects(readReviewedHaynesOperation({frames:()=>[frame(capture),frame({...capture,hoursMilli:300})]},mapping,'https://www.workshopdata.com'),/LABOUR_REVIEW_REQUIRED/);
+ await assert.rejects(readReviewedHaynesOperation(page,mapping,'https://other.workshopdata.com'),/LABOUR_REVIEW_REQUIRED/);
+});
