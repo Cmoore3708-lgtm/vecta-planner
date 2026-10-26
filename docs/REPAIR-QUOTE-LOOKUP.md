@@ -263,3 +263,25 @@ records its stage and allows manual navigation in that same window before
 capturing/expanding the catalogue. It never starts Haynes or activates pricing.
 Automatic category navigation still requires a live PC test; reaching a category
 does not itself approve part fitment or catalogue completeness.
+
+### Expanded GSF catalogue capture — 09:52 UTC, 26 October
+Setup .6 entered the registration and Electrical, then timed out at GSF_ROTATING.
+After manual category navigation, Show More expanded once and the capture held
+six priced alternatives: DriveTec £194.74 Local Branch; Lucas £215.32 RDC; Denso
+£361.63 Branch Network; Elstock £191.12 Out Of Stock; WAI £156.74 Out Of Stock;
+Autoelectro £382.12 Out Of Stock. Zero-price Bronze entries were also explicitly
+shown out of stock in the enclosing group. The header showed DREA8828 and the
+part images were captured. This is real PC evidence, not an automatic navigation
+success or proof that every compatible catalogue group was returned.
+
+A shared options analyser now selects DriveTec £194.74 among the displayed
+available choices, excludes the cheaper unavailable options, and keeps
+catalogueComplete:false, fitmentConfirmed:false and verifiedPart:null. It never
+assigns the displayed group SKU to other brands. Unknown stock labels, unknown
+brand images, zero prices and truncated captures require review. Both fixture
+regressions and analysis of the actual uploaded capture passed. The checker will
+include this bounded analysis in subsequent results.
+
+Next navigation evidence needed: the visible GSF URL of the final alternator
+category page, to establish a reviewed category route rather than guessing menu
+labels after the Rotating timeout. No further Haynes test is needed for FV65JTY.

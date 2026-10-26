@@ -5,6 +5,7 @@ import {createInterface} from 'node:readline/promises';
 import {chromium} from 'playwright';
 import {repairBrowserReason} from './browser-errors.mjs';
 import {repairTimeDiagnostics} from './repair-time-reader.mjs';
+import {analyseAlternatorOptions} from '../gsf/alternator-options.mjs';
 import {navigateGSFAlternator} from './gsf-navigation.mjs';
 import {expandGSFAlternatives} from './gsf-alternatives.mjs';
 import {inspectRepairCatalogue} from './catalogue-structure.mjs';
@@ -37,6 +38,7 @@ try{
   if(new URL(page.url()).origin!=='https://trade.gsfcarparts.com')throw Error('LOGIN_REQUIRED');
   let captured;try{captured=await expandGSFAlternatives(page,report.registration);}catch(error){captured={...await page.evaluate(inspectRepairCatalogue,{registration:report.registration}),expansionReason:reason(error)};}
   report.gsf={status:captured.candidateCount?'STRUCTURE_CAPTURED':'NEEDS_REVIEW',navigation,...captured};
+  if(captured.candidateCount){try{report.gsf.optionAnalysis=analyseAlternatorOptions(captured);}catch{report.gsf.optionAnalysis={status:'REVIEW_REQUIRED'};}}
   console.log('GSF: saved '+captured.candidateCount+' catalogue sections for review.');
  }catch(error){report.gsf={status:'NEEDS_REVIEW',reason:reason(error)};console.log('GSF: '+report.gsf.reason);}
  }
