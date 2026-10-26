@@ -1,4 +1,4 @@
-import {servicePriceRequest, cleanServiceCosts} from '../../lib/service-pricing.js';
+import {servicePriceRequest, cleanServiceCosts,serviceRequiredKinds} from '../../lib/service-pricing.js';
 import {readProductDialog} from './product-dialog.mjs';
 export const SUPPLIER = 'https://trade.gsfcarparts.com';
 export function supplierUrl(value) {
@@ -19,13 +19,12 @@ export function approvedRecipe(config, raw, now=Date.now()) {
   const recipe=matches[0], reviewed=Date.parse(recipe.reviewedAt);
   if(config.lookupMode==='approved-skus' && !recipe.fitmentSource)throw Error('REVIEW_REQUIRED');
   if(recipe.approved!==true || !Number.isFinite(reviewed) || reviewed>now || now-reviewed>30*86400000 ||
-    !recipe.id || !recipe.vehicle || !recipe.oilSpecification || !recipe.oilSource || !recipe.scopeSource ||
+    !recipe.id || !recipe.vehicle || !recipe.oilSpecification || !recipe.oilSource ||
     !Array.isArray(recipe.items) || recipe.items.length<2 || recipe.items.length>16 ||
     !Array.isArray(recipe.requiredKinds))throw Error('REVIEW_REQUIRED');
-  // Service scope is approved for this mileage window, rather than guessed.
-  if(request.mileage===null ? recipe.allowUnknownMileage!==true :
-    !Number.isSafeInteger(recipe.minimumMileage) || !Number.isSafeInteger(recipe.maximumMileage) ||
-    request.mileage<recipe.minimumMileage || request.mileage>recipe.maximumMileage)throw Error('REVIEW_REQUIRED');
+  // The default package applies even when mileage is unknown.
+  const required=serviceRequiredKinds(request.service,recipe.fuelType),kinds=recipe.items.map(item=>item.kind);
+  if(required.some(kind=>!kinds.includes(kind))||kinds.some(kind=>!required.includes(kind)&&!['sump_plug','washer'].includes(kind)))throw Error('REVIEW_REQUIRED');
   for(const item of recipe.items) {
     if(config.lookupMode==='approved-skus') {
       if(!/^[A-Za-z0-9 ._/-]{1,80}$/.test(item.searchTerm||item.sku||''))throw Error('SETTINGS_REQUIRED');
@@ -90,7 +89,7 @@ export async function lookupService(page,raw,config) {
     const items=[];
     for(const item of recipe.items)items.push(await readProductBySku(page,item));
     return cleanServiceCosts({request,recipeId:recipe.id,vehicle:recipe.vehicle,oilSpecification:recipe.oilSpecification,
-      requiredKinds:recipe.requiredKinds,items,fitmentVerified:true,scopeVerified:true,oilVerified:true,checkedAt:new Date().toISOString()},request);
+      fuelType:recipe.fuelType,requiredKinds:recipe.requiredKinds,items,fitmentVerified:true,scopeVerified:true,oilVerified:true,checkedAt:new Date().toISOString()},request);
   }
   await page.goto(SUPPLIER,{waitUntil:'domcontentloaded',timeout:15000});
   if(/\/signin(?:[/?]|$)/.test(page.url()))throw Error('LOGIN_REQUIRED');
@@ -106,5 +105,5 @@ export async function lookupService(page,raw,config) {
   const items=[];
   for(const item of recipe.items)items.push(await readProduct(page,item));
   return cleanServiceCosts({request,recipeId:recipe.id,vehicle:recipe.vehicle,oilSpecification:recipe.oilSpecification,
-    requiredKinds:recipe.requiredKinds,items,fitmentVerified:true,scopeVerified:true,oilVerified:true,checkedAt:new Date().toISOString()},request);
+    fuelType:recipe.fuelType,requiredKinds:recipe.requiredKinds,items,fitmentVerified:true,scopeVerified:true,oilVerified:true,checkedAt:new Date().toISOString()},request);
 }

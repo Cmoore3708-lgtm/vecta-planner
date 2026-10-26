@@ -11,8 +11,8 @@ The 26 October PC capture for FV65JTY reports a selected registration and an aut
 ## Existing service contract
 
 - Input: registration, service (`Oil & Filter Change`, `Full Service`, `Major Service`), current mileage or null, and parts range. Mileage/range/service changes invalidate the old result.
-- A reviewed mapping binds that request to the exact vehicle variant, service scope, compatible filter SKUs, oil specification, fill quantity and pack size. Mappings expire after thirty days and need an explicit reviewed unknown-mileage scope when mileage is unavailable.
-- Oil/filter always needs oil and oil filter. The current full/major package also needs air and cabin filters. Additional major-service items come from the reviewed scope, not an assumption based on fuel type. No unverified plugs/fuel filters become a quote.
+- A reviewed mapping binds that request to the exact vehicle variant, service scope, compatible filter SKUs, oil specification, fill quantity and pack size. Mappings expire after thirty days. Mileage is optional; no mileage window or unknown-mileage approval is required for these default packages.
+- Oil/filter always needs oil and oil filter. The current full/major package also needs air and cabin filters. Major services require a verified `fuelType`: `petrol`, `diesel`, `petrol hybrid` or `diesel hybrid`. Diesel major services include a fuel filter. Petrol major services do not include one. Spark plugs are excluded from every automatic service price and quoted separately if needed. Unknown fuel type blocks a major quote rather than guessing. Filter compatibility and stock must still be verified.
 - GSF readers verify the exact selected SKU, brand, description, positive stock and ex-VAT account cost, independently of RRP. A price or stock label alone proves neither vehicle fitment nor catalogue completeness.
 - Completed costs include request binding, recipe ID, vehicle, oil specification, required kinds, item quantities, checkedAt and explicit fitment/scope/oil verification. The service API rejects unverified, incomplete or stale results. Results must be fresh within five minutes.
 - For new oil results, include `packNetPence` (actual GSF net pack price) and `packQuantityMilli` (ml), alongside the compatible per-litre `unitNetPence`. The latter must equal `ceil(packNetPence × 1000 / packQuantityMilli)`. Costing uses the original fraction, not that rounded per-litre rate. Non-oil parts remain priced per unit.
@@ -25,7 +25,7 @@ The 26 October PC capture for FV65JTY reports a selected registration and an aut
 3. Add net labour: £35 oil/filter, £70 full, £110 major.
 4. Apply 20% VAT once to the subtotal. No additional £5/£10 rounding.
 
-The customer quote and saved booking evidence retain the actual oil fill and charged litres separately. Neither the litre rounding nor the sale calculation changes the manufacturer's required fill quantity. The trial policy version is `gsf-50pct-oilceil-v1`.
+The customer quote and saved booking evidence retain the actual oil fill and charged litres separately. Neither the litre rounding nor the sale calculation changes the manufacturer's required fill quantity. The trial policy version is `gsf-default-parts-oilceil-v1`.
 
 Keep repair-job marginal parts markup and £50/hour half-hour labour rounding out of service-package quotes.
 
@@ -37,7 +37,7 @@ With no approved mappings, the correct current result is 0/30 ready and no verif
 
 ## Remaining release checks
 
-1. Prove selected vehicle/variant, complete supplier options and exact chosen part identity in the shared PC browser; complete oil/parts scope evidence per service.
+1. Prove selected vehicle/variant, complete supplier options and exact chosen part identity in the shared PC browser; complete oil/parts fitment evidence per service using VECTA’s default package scope.
 2. Complete one actual vehicle across all three services, then the ten-car comparison. Missing items produce no verified price.
 3. Test the service queue in isolated Test only, including lease expiry, lost connectivity, login expiry, partial data and price changes. Keep Production disabled.
 4. Verify booking price display, expiry, signature binding, changed registration/mileage/range, combined MOT pricing and saved agreed-price snapshot on desktop, iPhone and iPad.

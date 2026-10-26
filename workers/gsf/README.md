@@ -18,7 +18,7 @@ These observations establish one filter product price and the dialog layout. The
 
 ## Current worker approach
 
-1. A reviewed recipe links a registration, service, quality range and mileage window to compatible parts, verified oil specification and fill quantity. Recipe review expires after 30 days.
+1. A reviewed recipe links a registration, service and quality range to compatible parts, verified oil specification and fill quantity. Mileage is optional and never determines these default package parts. Recipe review expires after 30 days.
 2. In `approved-skus` mode, the worker searches each saved supplier part number in GSF's visible interface. It requires exactly one SKU result and verifies its SKU, brand and description again inside Part Details.
 3. The read-only dialog reader isolates the **ex-VAT account cost**, checks the separate including-VAT cost, and verifies stock. Multiple prices, changed SKU/brand, out-of-stock products or unclear VAT fail closed.
 4. The server applies parts markup, preset net labour, VAT and rounding. Only the customer price and selected parts reach the booking browser.
@@ -38,7 +38,7 @@ The older selector-based `readProduct` path is retained for verified vehicle-cat
 - Labour is interpreted as excluding VAT; 20% VAT is applied once to the resulting total.
 - Exact penny totals; no £5/£10 rounding.
 
-Example equations: oil/filter = `(1.5 × applicable costs + 35) × 1.20`; full = `(1.5 × applicable costs + 70) × 1.20`; major = `(1.5 × applicable costs + 110) × 1.20`. Required major extras must follow the reviewed vehicle scope, not be guessed from fuel type.
+Example equations: oil/filter = `(1.5 × applicable costs + 35) × 1.20`; full = `(1.5 × applicable costs + 70) × 1.20`; major = `(1.5 × applicable costs + 110) × 1.20`. Package scope follows VECTA’s default parts list. Major diesel services always include a compatible fuel filter; major petrol services exclude spark plugs. Spark plugs are discussed and quoted separately if needed.
 
 ## Independent PC price check
 
@@ -54,7 +54,7 @@ This check does not need queue credentials, database changes or website activati
 
 `comparison-input.example.json` now contains the ten registrations previously selected from Workshop Pro: NU67VSE, FV65JTY, NJ66GXH, LS10PET, KE65BPK, PA14GEO, KX58PNV, NA63UKO, PO11YFC and JH08URN. Mileage remains explicitly unknown rather than inferred from an old MOT. A missing or duplicate registration is rejected.
 
-Before any browser work, run `node scripts/gsf-service-readiness.mjs [path-to-approved-config]` from the repository. This offline audit checks all thirty vehicle/service combinations and reports missing fitment, scope, oil, mileage or review evidence. `READY_FOR_LIVE_PRICE_CHECK` is not a verified price. No prices or approvals are invented and no browser is launched. The same comparison functions can consume results from the shared runner; do not start the legacy standalone comparison alongside it.
+Before any browser work, run `node scripts/gsf-service-readiness.mjs [path-to-approved-config]` from the repository. This offline audit checks all thirty vehicle/service combinations and reports missing fitment, oil, fuel type or review evidence. `READY_FOR_LIVE_PRICE_CHECK` is not a verified price. No prices or approvals are invented and no browser is launched. The same comparison functions can consume results from the shared runner; do not start the legacy standalone comparison alongside it.
 
 The runner needs an approved `gsf-config.local.json` with the correct filter fitments, oil specification/quantity and service scope for each combination. It refreshes costs and calculates all three services using the 50% trial policy, saving `service-comparison.local.json`, a readable Markdown table and a CSV. A missing/unverified combination is marked **Needs verification**, with no fabricated or zero price. This standalone comparison does not activate the website or need backend credentials.
 
@@ -62,7 +62,7 @@ The offline self-check uses clearly synthetic costs and verifies expected totals
 
 ## Approved recipes
 
-Copy `gsf-config.example.json` to `gsf-config.local.json` and leave `calibrationApproved: false` until the complete service flow is checked. The default mode is `approved-skus`. Populate recipes using `recipe.template.json`. Each needs explicit approval/review date, exact registration/variant, service/range, appropriate mileage window, manufacturer oil source, scope source and **fitmentSource**.
+Copy `gsf-config.example.json` to `gsf-config.local.json` and leave `calibrationApproved: false` until the complete service flow is checked. The default mode is `approved-skus`. Populate recipes using `recipe.template.json`. Each needs explicit approval/review date, exact registration/variant, service/range, verified fuel type for major services, manufacturer oil source and **fitmentSource**. Unknown mileage is accepted without an override or mileage window.
 
 Each selected product needs fields like this observed filter example (it is **not** a complete service recipe):
 
@@ -98,6 +98,6 @@ The queue deduplicates requests, serializes work with leases, caches successes f
 
 Run `node --test tests/regression/gsf-service-pricing.test.mjs`, then `npm run release:gate` (install the existing Haynes worker test dependencies first). Parser fixtures reconstruct the observed UFI dialog; they do not substitute for live Windows tests. SQL was verified separately in local PGlite PostgreSQL.
 
-Next: validate the PC price check, capture reviewed vehicle/filter/oil mappings for ten different registrations, connect trusted Haynes scope/oil data to broader recipe discovery, and compare all three service totals against manual GSF calculations. Test expiry, offline, missing parts, price changes, duplicate submissions and desktop/mobile booking before following `RELEASE-SAFETY.md`.
+Next: validate the PC price check, capture reviewed vehicle/filter/oil mappings for ten different registrations, connect verified vehicle oil specification/quantity data to broader recipe discovery (without requiring a mileage-based OEM parts schedule), and compare all three service totals against manual GSF calculations. Test expiry, offline, missing parts, price changes, duplicate submissions and desktop/mobile booking before following `RELEASE-SAFETY.md`.
 
 General repair-parts quoting in Workshop Pro can reuse this pricing core, but its UI is outside this amendment.

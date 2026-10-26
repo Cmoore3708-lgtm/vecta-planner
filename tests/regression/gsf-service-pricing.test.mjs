@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import vm from 'node:vm';
 import {readFileSync} from 'node:fs';
 import {parseHTML} from 'linkedom';
-import {servicePriceRequest,cleanServiceCosts,calculateServicePrice,publicServicePrice,pricingPolicy} from '../../lib/service-pricing.js';
+import {servicePriceRequest,cleanServiceCosts,calculateServicePrice,publicServicePrice,pricingPolicy,serviceRequiredKinds} from '../../lib/service-pricing.js';
 import {signServicePrice,verifyServicePrice} from '../../lib/service-price-token.js';
 import {bookingServicePrice} from '../../lib/booking-service-price.js';
 import {servicePriceHandler} from '../../api/service-price.js';
@@ -16,7 +16,7 @@ import {comparisonVehicles,compareServices,comparisonMarkdown,comparisonCsv} fro
 const now=Date.parse('2026-10-24T21:00:00Z'),secret='a'.repeat(64);
 const request={registration:'NU67VSE',service:'Full Service',mileage:50000,range:'Mid Range'};
 const item=(kind,unitNetPence,quantityMilli=1000)=>({kind,sku:'TEST-'+kind,brand:'Test',description:kind,unitNetPence,quantityMilli,vatBasis:'EX_VAT',inStock:true});
-const result=()=>({request,recipeId:'synthetic-test',vehicle:'Nissan Pulsar',oilSpecification:'SYNTHETIC TEST ONLY',
+const result=()=>({request,recipeId:'synthetic-test',vehicle:'Nissan Pulsar',fuelType:'petrol',oilSpecification:'SYNTHETIC TEST ONLY',
   requiredKinds:['oil','oil_filter','air_filter','cabin_filter'],items:[item('oil',540,5000),item('oil_filter',494),item('air_filter',1075),item('cabin_filter',1200)],
   fitmentVerified:true,scopeVerified:true,oilVerified:true,checkedAt:new Date(now).toISOString()});
 const policy={version:'test-1',markupBps:3000,vatBps:2000,roundUpPence:1,
@@ -31,6 +31,21 @@ test('GSF money parser rejects RRP, multiple prices and ambiguous VAT strings',(
 test('request canonicalisation binds registration, mileage, service and quality',()=>{
   assert.deepEqual(servicePriceRequest({...request,registration:'nu67 vse'}),request);
   for(const patch of [{service:'MOT'},{mileage:-1},{mileage:'50000'},{range:'cheap'},{registration:'<bad>'}])assert.throws(()=>servicePriceRequest({...request,...patch}));
+});
+test('default packages do not require mileage; diesel major includes fuel filter and petrol excludes plugs',()=>{
+  assert.deepEqual(serviceRequiredKinds('Oil & Filter Change'),['oil','oil_filter']);
+  assert.deepEqual(serviceRequiredKinds('Full Service'),['oil','oil_filter','air_filter','cabin_filter']);
+  assert.deepEqual(serviceRequiredKinds('Major Service','petrol'),['oil','oil_filter','air_filter','cabin_filter']);
+  assert.deepEqual(serviceRequiredKinds('Major Service','diesel'),['oil','oil_filter','air_filter','cabin_filter','fuel_filter']);
+  assert.throws(()=>serviceRequiredKinds('Major Service','unknown'),/REVIEW_REQUIRED/);
+  const input={...request,service:'Major Service',mileage:null},costs={...result(),request:input};
+  assert.ok(calculateServicePrice(costs,input,policy,now).totalPence>0);
+  assert.throws(()=>calculateServicePrice({...costs,fuelType:'diesel'},input,policy,now),/INCOMPLETE/);
+  const diesel={...costs,fuelType:'diesel',requiredKinds:[...costs.requiredKinds,'fuel_filter'],items:[...costs.items,item('fuel_filter',1000)]};
+  assert.ok(calculateServicePrice(diesel,input,policy,now).totalPence>0);
+  for(const kind of ['spark_plug','fuel_filter']) {
+    assert.throws(()=>calculateServicePrice({...costs,requiredKinds:[...costs.requiredKinds,kind],items:[...costs.items,item(kind,1000)]},input,policy,now),/REVIEW_REQUIRED/);
+  }
 });
 test('pricing applies markup to parts, preset net labour and VAT exactly once',()=>{
   const price=calculateServicePrice(result(),request,policy,now);

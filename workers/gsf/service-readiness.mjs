@@ -1,5 +1,5 @@
 // Offline evidence audit only: no browser, relay, price estimates or approvals.
-import {SERVICES} from '../../lib/service-pricing.js';
+import {SERVICES,serviceRequiredKinds} from '../../lib/service-pricing.js';
 import {comparisonVehicles} from './comparison.mjs';
 import {approvedRecipe} from './supplier.mjs';
 
@@ -16,14 +16,11 @@ export function serviceCoverage(input,config,now=Date.now()) {
       if(recipe.approved!==true)issues.push('MAPPING_REVIEW_PENDING');
       if(!Number.isFinite(reviewed)||reviewed>now||reviewed<now-30*86400000)issues.push('MAPPING_REVIEW_EXPIRED');
       if(!hasText(recipe.fitmentSource))issues.push('VEHICLE_FITMENT_EVIDENCE_MISSING');
-      if(!hasText(recipe.scopeSource))issues.push('SERVICE_SCOPE_EVIDENCE_MISSING');
       if(!hasText(recipe.oilSource)||!hasText(recipe.oilSpecification))issues.push('OIL_SPECIFICATION_EVIDENCE_MISSING');
-      if(vehicle.mileage===null&&recipe.allowUnknownMileage!==true)issues.push('MILEAGE_REQUIRED');
-      if(vehicle.mileage!==null&&(!Number.isSafeInteger(recipe.minimumMileage)||!Number.isSafeInteger(recipe.maximumMileage)||
-        vehicle.mileage<recipe.minimumMileage||vehicle.mileage>recipe.maximumMileage))issues.push('MILEAGE_OUTSIDE_REVIEWED_SCOPE');
       const items=Array.isArray(recipe.items)?recipe.items:[],kinds=items.map(item=>item.kind);
       const allowed=['oil','oil_filter','air_filter','cabin_filter','fuel_filter','spark_plug','sump_plug','washer'];
-      const base=service==='Oil & Filter Change'?['oil','oil_filter']:['oil','oil_filter','air_filter','cabin_filter'];
+      let base=[];try{base=serviceRequiredKinds(service,recipe.fuelType);}catch{issues.push('FUEL_TYPE_REQUIRED');}
+      if(kinds.some(kind=>!base.includes(kind)&&!['sump_plug','washer'].includes(kind)))issues.push('DEFAULT_SERVICE_SCOPE_MISMATCH');
       const required=recipe.requiredKinds;
       if(!Array.isArray(required)||!required.length||items.length>16||new Set(required).size!==required.length||
         new Set(kinds).size!==kinds.length||base.some(kind=>!kinds.includes(kind))||
@@ -45,9 +42,9 @@ export function serviceCoverage(input,config,now=Date.now()) {
 const labels={
   SHARED_WORKER_CALIBRATION_PENDING:'shared worker calibration',PARTS_MAPPING_MISSING:'verified parts mapping',
   AMBIGUOUS_PARTS_MAPPING:'resolve duplicate mappings',MAPPING_REVIEW_PENDING:'mapping review',MAPPING_REVIEW_EXPIRED:'current mapping review',
-  VEHICLE_FITMENT_EVIDENCE_MISSING:'vehicle fitment evidence',SERVICE_SCOPE_EVIDENCE_MISSING:'service scope evidence',
-  OIL_SPECIFICATION_EVIDENCE_MISSING:'oil specification evidence',MILEAGE_REQUIRED:'current mileage or reviewed unknown-mileage scope',
-  MILEAGE_OUTSIDE_REVIEWED_SCOPE:'reviewed mileage scope',SERVICE_PARTS_INCOMPLETE:'complete service parts',
+  VEHICLE_FITMENT_EVIDENCE_MISSING:'vehicle fitment evidence',
+  OIL_SPECIFICATION_EVIDENCE_MISSING:'oil specification evidence',FUEL_TYPE_REQUIRED:'verified petrol/diesel fuel type',
+  DEFAULT_SERVICE_SCOPE_MISMATCH:'default service parts scope',SERVICE_PARTS_INCOMPLETE:'complete service parts',
   OIL_FILL_OR_PACK_SIZE_MISSING:'verified oil fill and pack size',PARTS_MAPPING_INVALID:'valid parts mapping'
 };
 export function serviceCoverageMarkdown(report) {
