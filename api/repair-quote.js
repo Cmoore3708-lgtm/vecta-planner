@@ -2,6 +2,7 @@ import {createHash} from 'node:crypto';
 import {requireWorkshopLogin,sameOriginRequest} from '../lib/workshop-access.js';
 import {isMechanicHost,mechanicAuthorised} from '../lib/mechanic-auth.js';
 import {repairRequest,calculateRepairQuote} from '../lib/repair-quote.js';
+import {repairReplayAvailable,repairReplayQuote} from '../lib/repair-quote-replay.js';
 import {repairQueue} from '../lib/repair-quote-queue.js';
 export async function requireQuoteManager(req,res){
  const request=new Request('https://'+(req.headers?.host||'localhost')+'/',{headers:{cookie:String(req.headers?.cookie||''),authorization:String(req.headers?.authorization||'')}});
@@ -14,8 +15,13 @@ export function repairQuoteHandler({env=process.env,authenticate=requireQuoteMan
   if(!['GET','POST'].includes(req.method))return res.status(405).json({status:'METHOD_NOT_ALLOWED'});
   if(!await authenticate(req,res))return;
   if(!sameOriginRequest(req))return res.status(403).json({status:'FORBIDDEN'});
+  if(req.method==='GET')return res.status(200).json({status:env.REPAIR_QUOTING_ENABLED==='true'?'READY':'SETUP_REQUIRED',replayAvailable:repairReplayAvailable(env)});
+  if(req.body?.previewReplay===true){
+   if(!repairReplayAvailable(env))return res.status(403).json({status:'FORBIDDEN'});
+   try{return res.status(200).json({status:'MATCHED',quote:repairReplayQuote(req.body,{now:now()})});}
+   catch{return res.status(400).json({status:'INVALID_REQUEST'});}
+  }
   if(env.REPAIR_QUOTING_ENABLED!=='true')return res.status(200).json({status:'SETUP_REQUIRED'});
-  if(req.method==='GET')return res.status(200).json({status:'READY'});
   try {
    if(Buffer.byteLength(JSON.stringify(req.body||{}))>2000)return res.status(413).json({status:'INVALID_REQUEST'});
    const request=repairRequest(req.body);

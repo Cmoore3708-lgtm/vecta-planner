@@ -5,6 +5,7 @@ import vm from 'node:vm';
 import {parseHTML} from 'linkedom';
 import {repairRequest,cleanRepairEvidence,calculateRepairQuote,repairPartsPrice} from '../../lib/repair-quote.js';
 import {repairQuoteHandler} from '../../api/repair-quote.js';
+import {repairReplayAvailable,repairReplayQuote} from '../../lib/repair-quote-replay.js';
 import {repairWorkerHandler} from '../../api/repair-quote-worker.js';
 import {parsePence,parseHours,reviewedMapping} from '../../workers/repair-quotes/catalogue.mjs';
 const now=Date.parse('2026-10-25T09:00:00Z'),stamp=new Date(now).toISOString();
@@ -69,4 +70,28 @@ test('blank/invalid additional prices cannot be added; VAT allocation reconciles
 test('saved multi-part breakdown reopens with cost, sale, source hours and VAT total intact',async()=>{
  const first=editor();first.document.querySelector('[data-rq-find]').click();await new Promise(r=>setImmediate(r));first.document.querySelector('[data-rq-add]').click();const extra=first.document.querySelector('[data-rq-items]').children[1];for(const [sel,val] of [['[data-rq-description]','Belt'],['[data-rq-cost]','20']]){const input=extra.querySelector(sel);input.value=val;input.dispatchEvent(new first.window.Event('input'));}first.document.querySelector('[data-rq-apply]').click();const note=first.ctx.noteWithPrivatePricing('',first.ctx.gatherPrivatePricingItems());
  const next=editor({status:'quote',customer_note:note});assert.equal(next.document.querySelector('[data-rq-items]').children.length,2);assert.equal(next.document.querySelector('[data-rq-total]').textContent,'£288.01');assert.equal(next.document.querySelector('[data-rq-cost]').value,'100.01');
+});
+test('captured replay is restricted to this isolated preview and never queries the live queue',async()=>{
+ const env={VERCEL_ENV:'preview',VERCEL_GIT_COMMIT_REF:'amendment/repair-quote-lookup'};
+ assert.equal(repairReplayAvailable(env),true);
+ for(const change of [{VERCEL_ENV:'production'},{VERCEL_GIT_COMMIT_REF:'main'},{VECTA_TEST_SUPABASE_URL:'https://jywufozycuwuoshlulwl.supabase.co'}])assert.equal(repairReplayAvailable({...env,...change}),false);
+ const handler=repairQuoteHandler({env,authenticate:async()=>true,queue:()=>{throw Error('Replay must not enqueue');},now:()=>now});
+ let res=response();await handler({method:'POST',body:{registration:'FV65JTY',work:'Supply and fit alternator',previewReplay:true}},res);
+ assert.equal(res.body.quote.previewOnly,true);assert.equal(res.body.quote.netPence,29421);assert.equal(res.body.quote.part.fitmentConfirmed,false);assert.equal(res.body.quote.part.checkedAt,'2026-10-26T10:39:38.602Z');
+ assert.throws(()=>cleanRepairEvidence(res.body.quote,res.body.quote.request,{now}));
+ res=response();await handler({method:'POST',body:{...request,previewReplay:true}},res);assert.equal(res.code,400);
+ res=response();await repairQuoteHandler({env:{VERCEL_ENV:'production'},authenticate:async()=>true})({method:'POST',body:{previewReplay:true}},res);assert.equal(res.code,403);
+});
+test('captured PC test renders, adds a part and retains test identity on save/reopen',async()=>{
+ const first=editor(),q=repairReplayQuote({registration:'FV65JTY',work:'Supply and fit alternator'},{now});
+ first.document.getElementById('job_registration').value='FV65JTY';
+ first.ctx.fetch=async(url,options)=>({status:200,json:async()=>options?.method==='POST'?{status:'MATCHED',quote:q}:{replayAvailable:true}});
+ first.document.querySelector('[data-rq-replay]').click();await new Promise(r=>setImmediate(r));
+ assert.match(first.document.querySelector('.rqStatus').textContent,/TEST REPLAY/);assert.equal(first.document.querySelector('[data-rq-total]').textContent,'£353.05');
+ first.document.querySelector('[data-rq-add]').click();const extra=first.document.querySelector('[data-rq-items]').children[1];
+ for(const [sel,value] of [['[data-rq-description]','Drive belt'],['[data-rq-cost]','20'],['[data-rq-hours]','0.1']]){const el=extra.querySelector(sel);el.value=value;el.dispatchEvent(new first.window.Event('input'));}
+ assert.equal(first.document.querySelector('[data-rq-total]').textContent,'£419.05');
+ first.document.querySelector('[data-rq-apply]').click();const items=first.ctx.gatherPrivatePricingItems();assert.equal(items[0].repair_quote.previewOnly,true);assert.equal(items[0].repair_quote.evidenceCapturedAt,q.part.checkedAt);assert.equal(first.document.getElementById('job_amount_quoted').value,'349.21');
+ const note=first.ctx.noteWithPrivatePricing('',items),next=editor();next.document.getElementById('job_registration').value='FV65JTY';next.document.getElementById('vectaRepairQuote').remove();next.window.VectaRepairQuote.mount({status:'quote',customer_note:note});
+ assert.equal(next.document.querySelector('[data-rq-total]').textContent,'£419.05');assert.match(next.document.querySelector('.rqStatus').textContent,/SAVED TEST REPLAY/);
 });
