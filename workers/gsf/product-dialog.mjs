@@ -42,5 +42,7 @@ export function readProductDialog(doc = document) {
     .map(([location,quantity])=>({location,quantity:Number(quantity)}));
   if(!stock.length||stock.some(row=>!row.location||row.location.length>80||!Number.isSafeInteger(row.quantity)||row.quantity>1000000)||!stock.some(row=>row.quantity>0))throw Error('UNAVAILABLE');
   if(sku.length>80||brand.length>80||descriptions[0].length>160)throw Error('SETTINGS_REQUIRED');
-  return {sku,brand,description:descriptions[0],unitNetPence,costIncVatPence,vatBasis:'EX_VAT',inStock,stock};
+  const imageUrl=[...dialog.querySelectorAll('img')].map(img=>img.getAttribute('src')||'').find(src=>/^https:\/\//.test(src)&&/ProductImages\//i.test(src))||'';
+  return {imageUrl,sku,brand,description:descriptions[0],unitNetPence,costIncVatPence,vatBasis:'EX_VAT',inStock,stock};
 }
+

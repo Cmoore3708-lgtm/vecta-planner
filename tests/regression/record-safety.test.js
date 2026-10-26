@@ -55,3 +55,22 @@ test('cached viewing is labelled stale while fresh-required reconciliation fails
 test('authorization failure never falls back to cached workshop data',async()=>{
  const w=worker();w.c.req=new Request('https://test.supabase.co/rest/v1/jobs');await w.run('fetchSupabaseWithLastKnownFallback(req)');w.c.fetch=async()=>new Response('Denied',{status:401});assert.equal((await w.run('fetchSupabaseWithLastKnownFallback(req)')).status,401);
 });
+
+test('concurrent plan notes preserve both versions and repeated recovery is stable',()=>{
+ const original={plans:[{id:'plan-298',notes:'Original note',currentDueDate:'2026-11-01'}]};
+ const phone=clone(original),cloud=clone(original);
+ phone.plans[0].notes='Phone note';cloud.plans[0].notes='Automatic fleet note';
+ const recovered=merge(original,phone,cloud);
+ assert.match(recovered.plans[0].notes,/Phone note/);
+ assert.match(recovered.plans[0].notes,/Automatic fleet note/);
+ assert.deepEqual(merge(original,phone,recovered),recovered);
+ assert.equal(original.plans[0].notes,'Original note');
+ phone.plans[0].currentDueDate='2027-01-01';cloud.plans[0].currentDueDate='2027-02-01';
+ assert.throws(()=>merge(original,phone,cloud),{code:'FLEET_CONFLICT'});
+});
+test('concurrent note clearing and record deletion still require review',()=>{
+ const original={plans:[{id:'plan-298',notes:'Original'}]};
+ const phone=clone(original),cloud=clone(original);phone.plans[0].notes='';cloud.plans[0].notes='Changed';
+ assert.throws(()=>merge(original,phone,cloud),{code:'FLEET_CONFLICT'});
+ phone.plans=[];assert.throws(()=>merge(original,phone,cloud),{code:'FLEET_CONFLICT'});
+});

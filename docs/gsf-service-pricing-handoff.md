@@ -44,3 +44,24 @@ With no approved mappings, the correct current result is 0/30 ready and no verif
 3. Test the service queue in isolated Test only, including lease expiry, lost connectivity, login expiry, partial data and price changes. Keep Production disabled.
 4. Verify booking price display, expiry, signature binding, changed registration/mileage/range, combined MOT pricing and saved agreed-price snapshot on desktop, iPhone and iPad.
 5. Integrate both PRs preserving the shared runner and the service endpoints. Run the release gate and follow RELEASE-SAFETY.md before a live release.
+
+## Shared-worker integration check — 26 October 2026
+
+Reconciled this amendment with Main `3d229dc8` and retained Main's combined
+`workers/gsf/worker.mjs` unchanged. Service lookups and repair lookups share the
+same exact-SKU product reader and dedicated Edge context; the combined runner
+awaits each lookup before pulling another supplier job. Retained Main's modal
+versus full-page selection fix and its VAT/stock/image reader changes, while
+preserving this amendment's default-package and whole-litre oil rules.
+
+The new supplier-to-calculator integration test uses explicitly synthetic data.
+It exercises `lookupService`, the DOM product reader, original pack fraction,
+whole-litre charging, markup, labour and VAT, and verifies missing oil evidence
+blocks before browsing. It is not a live price or fitment test.
+
+No reviewed service mapping/config is available in this workspace for the ten
+registrations. The offline readiness audit still returns 0/30 ready, with no
+supplier prices verified. No service queue, production flag or PC configuration
+has been enabled by this amendment. Next live proof requires one reviewed
+vehicle's service filter SKUs plus oil specification, fill and pack size, then
+one fresh lookup through the existing PC worker before extending to all ten.

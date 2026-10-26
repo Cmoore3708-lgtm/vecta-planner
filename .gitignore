@@ -19,3 +19,7 @@ VectaGSF/
 
 # Generated invoice-only PDF bundle
 public/js/vecta-invoice-pdf-client.js
+
+# Dedicated repair quote profiles and reviewed local supplier settings
+workers/repair-quotes/profile/
+workers/repair-quotes/*.local.json

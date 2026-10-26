@@ -8,7 +8,7 @@ import {signServicePrice,verifyServicePrice} from '../../lib/service-price-token
 import {bookingServicePrice} from '../../lib/booking-service-price.js';
 import {servicePriceHandler} from '../../api/service-price.js';
 import {gsfWorkerHandler} from '../../api/gsf-worker.js';
-import {approvedRecipe,moneyPence,supplierUrl,readProduct,readProductBySku} from '../../workers/gsf/supplier.mjs';
+import {approvedRecipe,moneyPence,supplierUrl,readProduct,readProductBySku,lookupService} from '../../workers/gsf/supplier.mjs';
 import {readProductDialog} from '../../workers/gsf/product-dialog.mjs';
 import {comparisonVehicles,compareServices,comparisonMarkdown,comparisonCsv} from '../../workers/gsf/comparison.mjs';
 
@@ -288,4 +288,31 @@ test('actual website shows a matched service price and submits its signed snapsh
   await document.querySelector('#send').onclick();assert.ok(writes[0].service_price_token);
   assert.equal(writes[0].approximate_cost,145.32);assert.equal(verifyServicePrice(writes[0].service_price_token,request,secret).totalPence,14532);
   assert.ok(document.querySelector('.success'));
+});
+
+// Integration fixture only: deliberately synthetic vehicle, oil and prices.
+// Exercises the real service lookup/reader/calculator chain, not a live quote.
+test('shared supplier lookup carries exact oil pack cost through whole-litre service pricing',async()=>{
+ const input={registration:'TEST123',service:'Interim Service',mileage:null,range:'Mid Range'};
+ const current=new Date().toISOString();
+ const rows=[{kind:'oil',sku:'TEST-OIL',brand:'TEST',description:'Synthetic oil fixture',quantityMilli:6700,packQuantityMilli:5000},
+ {kind:'oil_filter',sku:'23.265.00',searchTerm:'UFI23.265.00',brand:'UFI',description:'Oil Filter - Spin-on Filter',quantityMilli:1000,packQuantityMilli:1000}];
+ const recipe={...input,id:'fixture-only',vehicle:'SYNTHETIC VEHICLE',fuelType:'petrol',approved:true,reviewedAt:current,fitmentSource:'fixture only',oilSource:'fixture only',oilSpecification:'SYNTHETIC',requiredKinds:['oil','oil_filter'],items:rows.map(row=>({...row,vatBasis:'EX_VAT',vatEvidence:'fixture'}))};
+ let term='',reads=0;
+ const locator={count:async()=>1,isVisible:async()=>true,fill:async value=>{term=value;},press:async()=>{},click:async()=>{},waitFor:async()=>{},getByText:()=>locator,getByRole:()=>locator};
+ const page={goto:async()=>{},url:()=> 'https://trade.gsfcarparts.com/',getByRole:()=>locator,evaluate:async reader=>{
+  reads++;
+  const oil=term==='TEST-OIL';
+  const html=oil?productFixture.replaceAll('23.265.00','TEST-OIL').replaceAll('UFI','TEST').replaceAll('Oil Filter - Spin-on Filter','Synthetic oil fixture').replaceAll('£4.94','£29.99').replaceAll('£5.93','£35.99'):productFixture;
+  return reader(parseHTML(html).document);
+ }};
+ const costs=await lookupService(page,input,{calibrationApproved:true,lookupMode:'approved-skus',recipes:[recipe]});
+ assert.equal(reads,2);assert.equal(costs.items[0].packNetPence,2999);
+ const trial=JSON.parse(readFileSync(new URL('../../workers/gsf/pricing-policy.example.json',import.meta.url),'utf8'));
+ const price=calculateServicePrice(costs,input,trial);
+ assert.equal(price.lines[0].quantityMilli,6700);assert.equal(price.lines[0].chargedQuantityMilli,7000);
+ assert.equal(price.lines[0].costNetPence,4199);assert.equal(price.totalPence,12648);
+ // Missing oil evidence blocks before the supplier is contacted.
+ await assert.rejects(lookupService(page,input,{calibrationApproved:true,lookupMode:'approved-skus',recipes:[{...recipe,oilSource:''}]}),/REVIEW_REQUIRED/);
+ assert.equal(reads,2);
 });
