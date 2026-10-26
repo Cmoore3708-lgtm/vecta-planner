@@ -1,0 +1,67 @@
+VECTA - AUTOMATIC TYRE SUPPLIER SIGN-IN
+Prepared 24 October 2026
+
+ONE-TIME SETUP ON THE WORKSHOP PC
+
+1. Download this ZIP and choose Extract All. Keep the whole extracted folder.
+   Do not run the launcher from inside the ZIP.
+2. Close the OLD tyre worker console and its separate ESP Edge window.
+   Leave the Haynes worker running.
+3. Double-click SETUP-AUTO-SIGN-IN.cmd in the extracted folder.
+4. In the black setup window, type your supplier username and press Enter.
+   Type your password and press Enter. Password characters are hidden.
+   There is no separate pop-up. Do not send your password in chat.
+5. Setup starts the updated tyre worker. Leave its console and Edge open.
+   Look for: LIVE TYRE WORKER READY.
+
+The PC must have internet, Microsoft Edge and the existing Node.js 22+
+installation. Use the same Windows account as your existing workers.
+No administrator rights are normally needed. Setup installs the worker's
+pinned Playwright dependency through npm if it is missing.
+
+CHECK IT WORKS
+
+First check a tyre price on your website. Then sign out of ESP in the
+worker's separate Edge window, leaving Edge and the worker console open.
+Wait about one minute. Look for 'Supplier session restored.' and check
+another tyre price on the website. If a sign-in was attempted recently,
+the five-minute retry pause may apply. Do not assume the fix is proven
+until a fresh price lookup succeeds after this logout/recovery test.
+
+IF YOU NEED TO RESTART LATER
+
+Use START-LIVE-TYRE-PRICES.cmd from THIS folder. Replace any shortcut that
+points to the old worker with a shortcut to this new launcher.
+Do not start the old and new tyre workers together.
+This package does not install a Windows startup task.
+
+IF THE PASSWORD CHANGES
+
+Close the tyre worker and its Edge window. Run SETUP-AUTO-SIGN-IN.cmd again
+and enter the new credentials.
+
+HOW IT WORKS
+
+Windows encrypts the saved password for this Windows user on this PC.
+It is stored at %LOCALAPPDATA%\VectaTyres\supplier-login.xml.
+The password is not included in this ZIP or sent to the Vecta website,
+GitHub or Supabase. It is sent to the supplier's normal sign-in form.
+Do not run read-login.ps1 manually or share its output.
+Delete supplier-login.xml to disable saved automatic sign-in.
+
+The worker checks for an expired session every minute and during lookups,
+and selects Remember me at sign-in. Failed attempts have a five-minute
+pause. A wrong password, changed supplier page or additional verification
+can still require your intervention. Price settings still need to be Vecta,
+Sellout shown, VAT included and multiplier 1; keep your usual Addons setting.
+
+If setup cannot sign in automatically, complete the sign-in manually in its
+Edge window, open Enquiry, verify the price settings, then press Enter in
+the worker console when prompted.
+
+STATUS
+
+Recovery logic tests pass. This package still requires the live Windows
+setup and logout/recovery test above. It does not update the main dashboard,
+Haynes worker, invoice data or website files, and cannot be installed on
+your workshop PC remotely from this chat.
