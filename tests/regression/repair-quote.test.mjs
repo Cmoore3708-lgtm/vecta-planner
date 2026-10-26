@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import vm from 'node:vm';
 import {parseHTML} from 'linkedom';
-import {repairRequest,cleanRepairEvidence,calculateRepairQuote,repairPartsPrice} from '../../lib/repair-quote.js';
+import {repairRequest,cleanRepairEvidence,calculateRepairQuote,repairPartsPrice,repairPartUrl} from '../../lib/repair-quote.js';
 import {repairQuoteHandler} from '../../api/repair-quote.js';
 import {repairReplayAvailable,repairReplayQuote} from '../../lib/repair-quote-replay.js';
 import {repairWorkerHandler} from '../../api/repair-quote-worker.js';
@@ -90,10 +90,17 @@ test('captured PC test renders, adds a part and retains test identity on save/re
  first.ctx.fetch=async(url,options)=>({status:200,json:async()=>options?.method==='POST'?{status:'MATCHED',quote:q}:{replayAvailable:true}});
  first.document.querySelector('[data-rq-replay]').click();await new Promise(r=>setImmediate(r));
  assert.match(first.document.querySelector('.rqStatus').textContent,/TEST REPLAY/);assert.equal(first.document.querySelector('[data-rq-total]').textContent,'£353.05');
+ const link=first.document.querySelector('.rqPart a');assert.equal(link.getAttribute('href'),'https://trade.gsfcarparts.com/enhancedSearch/DREA8828');assert.equal(link.getAttribute('target'),'_blank');assert.equal(link.getAttribute('rel'),'noopener noreferrer');assert.ok(link.querySelector('img'));assert.match(first.document.querySelector('.rqPart').textContent,/Check the selected vehicle/);
  first.document.querySelector('[data-rq-add]').click();const extra=first.document.querySelector('[data-rq-items]').children[1];
  for(const [sel,value] of [['[data-rq-description]','Drive belt'],['[data-rq-cost]','20'],['[data-rq-hours]','0.1']]){const el=extra.querySelector(sel);el.value=value;el.dispatchEvent(new first.window.Event('input'));}
  assert.equal(first.document.querySelector('[data-rq-total]').textContent,'£419.05');
  first.document.querySelector('[data-rq-apply]').click();const items=first.ctx.gatherPrivatePricingItems();assert.match(items[0].description,/^TEST REPLAY/);assert.equal(items[0].repair_quote.previewOnly,true);assert.equal(items[0].repair_quote.evidenceCapturedAt,q.part.checkedAt);assert.equal(first.document.getElementById('job_amount_quoted').value,'349.21');
  const note=first.ctx.noteWithPrivatePricing('',items),next=editor();next.document.getElementById('job_registration').value='FV65JTY';next.document.getElementById('vectaRepairQuote').remove();next.window.VectaRepairQuote.mount({status:'quote',customer_note:note});
  assert.equal(next.document.querySelector('[data-rq-total]').textContent,'£419.05');assert.match(next.document.querySelector('.rqStatus').textContent,/SAVED TEST REPLAY/);
+ assert.equal(next.document.querySelector('.rqPart a').getAttribute('href'),link.getAttribute('href'));
+});
+test('GSF links only retain observed supplier product/search paths without session parameters',()=>{
+ const good='https://trade.gsfcarparts.com/enhancedSearch/DREA8828';assert.equal(repairPartUrl(good),good);
+ for(const bad of ['javascript:alert(1)','https://evil.example/partdetails/A8828','https://trade.gsfcarparts.com/basket','https://trade.gsfcarparts.com/parts/Alternator',good+'?token=secret','https://trade.gsfcarparts.com@evil.example/partdetails/A8828'])assert.equal(repairPartUrl(bad),'');
+ const raw=fixture();raw.parts[1].gsfUrl=good;assert.equal(calculateRepairQuote(raw,request,{now}).part.gsfUrl,good);raw.parts[1].gsfUrl='javascript:alert(1)';assert.equal(calculateRepairQuote(raw,request,{now}).part.gsfUrl,'');
 });
