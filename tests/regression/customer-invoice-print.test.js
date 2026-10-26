@@ -38,13 +38,15 @@ test('workshop invoices print their rendered content in an isolated document, wi
  const app=readFileSync('index.html','utf8');assert.match(app,/root.querySelector\('\.invoicePrintPage'\).*window.VectaInvoicePrint.print\(root,output\|\|'print'\)/);
 });
 
-test('work description matches the fitted bank font and badge bottom matches Customer Details even in a zoomed preview',()=>{
+test('work description stays readable independently of the fitted bank font and badge bottom matches Customer Details even in a zoomed preview',()=>{
  const {document}=parseHTML('<html><body><div class="invoicePrintPage"><div class="invoiceVehicleIdentityRow"><img class="invoiceMakeBadge" style="bottom:8px"></div><div class="printCustomerTop"><b>Customer Details</b></div><div class="printPayment"><div>Bank details</div></div><table class="printTable"><tr><td>Service description</td></tr></table></div></body></html>');
  const line=document.querySelector('.printPayment>div'),row=document.querySelector('.invoiceVehicleIdentityRow'),badge=document.querySelector('.invoiceMakeBadge'),label=document.querySelector('.printCustomerTop>b');
  document.createRange=()=>({selectNodeContents(){},getBoundingClientRect:()=>({width:275})});Object.defineProperty(line,'clientWidth',{value:700});Object.defineProperty(line,'offsetWidth',{value:700});line.getBoundingClientRect=()=>({width:350});Object.defineProperty(row,'offsetHeight',{value:200});
  row.getBoundingClientRect=()=>({height:100});badge.getBoundingClientRect=()=>({bottom:200});label.getBoundingClientRect=()=>({bottom:180});
  document.defaultView.getComputedStyle=e=>({bottom:e.style.bottom});
  const context={document};vm.runInNewContext(readFileSync('public/js/vecta-invoice-print.js','utf8'),context);context.VectaInvoicePrint.fitFooter(document);
- assert.equal(document.querySelector('.invoicePrintPage').style.getPropertyValue('--invoice-work-description-size'),line.style.fontSize);assert.ok(parseFloat(line.style.fontSize)>12);assert.equal(badge.style.bottom,'48px');
+ assert.equal(document.querySelector('.invoicePrintPage').style.getPropertyValue('--invoice-work-description-size'),'14px');assert.ok(parseFloat(line.style.fontSize)>12);assert.equal(badge.style.bottom,'48px');
+ document.createRange=()=>({selectNodeContents(){},getBoundingClientRect:()=>({width:10000})});context.VectaInvoicePrint.fitFooter(document);
+ assert.equal(line.style.fontSize,'11px');assert.equal(document.querySelector('.invoicePrintPage').style.getPropertyValue('--invoice-work-description-size'),'14px');
  assert.match(readFileSync('public/js/vecta-customer-invoice.css','utf8'),/\.printTable td:first-child\{[^}]*font-size:var\(--invoice-work-description-size,14px\)/);
 });
