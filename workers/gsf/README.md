@@ -103,3 +103,30 @@ Run `node --test tests/regression/gsf-service-pricing.test.mjs`, then `npm run r
 Next: validate the PC price check, capture reviewed vehicle/filter/oil mappings for ten different registrations, connect verified vehicle oil specification/quantity data to broader recipe discovery (without requiring a mileage-based OEM parts schedule), and compare all three service totals against manual GSF calculations. Test expiry, offline, missing parts, price changes, duplicate submissions and desktop/mobile booking before following `RELEASE-SAFETY.md`.
 
 General repair-parts quoting in Workshop Pro can reuse this pricing core, but its UI is outside this amendment.
+
+## One service evidence check in the shared package
+
+`CHECK-SERVICE-PRICING.cmd` is included in the combined repair/service package.
+Do not use the deprecated service-only ZIP. The command invokes the existing
+`worker.mjs --service-check NU67VSE FV65JTY` entry point and profile. Stop only
+the shared GSF worker before running that diagnostic mode; leave tyre/Haynes
+workers alone. It needs the existing signed-in GSF profile. If sign-in has
+expired, it records LOGIN_REQUIRED and stops instead of repeatedly retrying.
+
+It checks five categories for each registration sequentially: oil filter, air,
+cabin, fuel and engine oil. Each category gets a fresh registration submission
+and must show that registration beside the selected-vehicle Clear control.
+A recent-vehicles entry is insufficient. No page navigation follows a matched
+registration. Exact product specifications are captured through Attributes only
+when there is one unambiguous product group/control; otherwise review is flagged.
+
+One `service-check-result.local.json` is saved in this folder. It contains
+bounded visible catalogue text, product/group labels, displayed prices and
+attributes, not cookies, input values, account panels or page HTML. VINs and
+emails are redacted. RRP and alternative prices can appear in this calibration
+file: they are NOT accepted trade costs or quotes. Review/fitment/oil approval
+flags remain false. This mode does not call the website relay, send reports,
+create bookings, alter a basket, order parts or enable customer pricing.
+
+For other known registrations, the existing entry point accepts up to ten unique
+plates after `--service-check`. Do not run two copies against the same profile.

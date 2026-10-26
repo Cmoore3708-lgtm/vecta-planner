@@ -125,3 +125,20 @@ and Pulsar evidence separate. The £137.48 / £233.87 / £281.87 mixed-vehicle
 calculations above are withdrawn and must not be used for either vehicle. No
 Honda filter prices or complete Honda service quote have been verified. Honda
 Major requires its diesel fuel filter. The replacement Pulsar oil is unresolved.
+
+## Batched service calibration in the shared worker
+
+Added --service-check mode to the existing shared worker and one root launcher
+in the existing combined package. It collects five service categories for both
+NU67VSE and FV65JTY sequentially and outputs one local review file. It does not
+create another runner/profile, publish quotes or enable production. It skips
+repair/relay polling while capturing. Invalid or duplicate registration commands
+fail before browser launch; sign-in expiry stops the batch. Product Attributes
+are captured only when the group/control is unique. Remaining uncertainty is
+explicit in the report and is never converted into fitment/oil approval.
+
+Offline checks cover selected registration versus recent vehicles, VIN/email
+redaction, sequential use of the borrowed context, closing tabs on failure,
+partial results, login expiry, group-bound attributes and navigation ordering.
+This diagnostic has NOT yet run on the workshop PC. Supply it through the one
+combined worker update, not a second service-only setup/download.
