@@ -296,3 +296,14 @@ review. This bypasses the timed-out Rotating menu rather than guessing its label
 The production adapter supports gsf.navigationMode:gsf-alternator-category; other
 vehicle identity/VAT/catalogue completeness gates remain mandatory. Setup .7 uses
 the same route and still requires a live automatic navigation run.
+
+### Category/registration ordering correction
+Setup .7 reached GSF_CATALOGUE_READY but did not confirm the filtered catalogue
+within its automatic wait. The final FV65JTY identity was captured after manual
+fallback and cannot establish retention during automatic navigation. In .8 the
+category opens first, any previous vehicle selection is cleared, and the new
+registration is filled/read back/submitted on that category page. There is no
+reload after submission. Success requires selected registration, priced choices
+and the exact category path together. Progress and failure evidence explicitly
+record whether registration was submitted and which readiness checks passed.
+This ordering has regression tests but is not yet a live automatic success.

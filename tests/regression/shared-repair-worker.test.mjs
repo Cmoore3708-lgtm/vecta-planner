@@ -41,19 +41,19 @@ test('shared bridge serialises supplier access and isolates repair pairing failu
 });
 
 import {navigateGSFAlternator} from '../../workers/repair-quotes/gsf-navigation.mjs';
-test('GSF calibration enters the requested plate and clicks only observed category controls',async()=>{
- const actions=[];
- const control=label=>({waitFor:async()=>{},count:async()=>1,isVisible:async()=>true,fill:async value=>actions.push(value),click:async()=>actions.push(label)});
- let current='https://trade.gsfcarparts.com';
- const page={url:()=>current,goto:async url=>{current=url;actions.push(url);},getByPlaceholder:label=>{assert.equal(label,'ENTER REG / VIN');return control(label);},getByRole:(role,{name})=>control(name),getByText:label=>control(label),evaluate:async()=>({identities:[{text:'FV65JTY Clear'}],candidateCount:2})};
- const result=await navigateGSFAlternator(page,'FV65JTY');
- assert.deepEqual(actions,['FV65JTY','Search VRM Button','https://trade.gsfcarparts.com/parts/Alternator']);assert.equal(result.fitmentConfirmed,false);assert.equal(result.catalogueComplete,false);
+
+function navigationPage({loseFilter=false}={}){
+ let current='https://trade.gsfcarparts.com',selected=true,input='';const actions=[];
+ const control=label=>({waitFor:async()=>{},count:async()=>label==='Clear'?(selected?1:0):1,isVisible:async()=>true,inputValue:async()=>input,fill:async value=>{input=value;actions.push(value);},click:async()=>{actions.push(label);if(label==='Clear')selected=false;if(label==='Search VRM Button')selected=!loseFilter;}});
+ const page={url:()=>current,goto:async url=>{current=url;selected=true;actions.push(url);},getByPlaceholder:()=>control('input'),getByRole:(role,{name})=>control(name),evaluate:async()=>({identities:selected?[{text:'FV65JTY Clear'}]:[],candidateCount:6}),waitForTimeout:async()=>{}};
+ return {page,actions};
+}
+test('GSF category opens before a fresh registration; no reload follows selection',async()=>{
+ const {page,actions}=navigationPage();const result=await navigateGSFAlternator(page,'FV65JTY');
+ assert.deepEqual(actions,['https://trade.gsfcarparts.com/parts/Alternator','Clear','FV65JTY','Search VRM Button']);assert.equal(result.registrationSubmitted,true);assert.equal(result.observed.selectedRegistration,true);assert.equal(result.fitmentConfirmed,false);assert.equal(result.catalogueComplete,false);
  await assert.rejects(navigateGSFAlternator({...page,url:()=> 'https://elsewhere.example'},'FV65JTY'),/LOGIN_REQUIRED/);
 });
-
-test('direct category navigation refuses a lost registration selection',async()=>{
- let current='https://trade.gsfcarparts.com',waits=0;
- const control={waitFor:async()=>{},count:async()=>1,fill:async()=>{},click:async()=>{}};
- const page={url:()=>current,goto:async url=>{current=url;},getByPlaceholder:()=>control,getByRole:()=>control,evaluate:async()=>({identities:current.endsWith('/parts/Alternator')?[]:[{text:'FV65JTY Clear'}],candidateCount:6}),waitForTimeout:async()=>{waits++;}};
- await assert.rejects(navigateGSFAlternator(page,'FV65JTY'),error=>error.code==='REVIEW_REQUIRED'&&error.stage==='GSF_CATALOGUE_READY');assert.equal(waits,60);
+test('category flow records that registration was submitted but refuses unconfirmed filter state',async()=>{
+ const {page}=navigationPage({loseFilter:true});
+ await assert.rejects(navigateGSFAlternator(page,'FV65JTY'),error=>error.stage==='GSF_FILTER_READY'&&error.registrationSubmitted===true&&error.detail==='FILTERED_CATEGORY_NOT_CONFIRMED'&&error.observed.selectedRegistration===false);
 });
