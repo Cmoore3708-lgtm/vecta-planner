@@ -170,3 +170,14 @@ The result is repair-setup-result.local.json. The launcher highlights that file
 in Explorer after completion. It uses the existing isolated repair-test profiles,
 so close other repair-test windows first; the live tyre and vehicle workers use
 separate profiles. Profiles and *.local.json reports are excluded from packages.
+
+### PC navigation result and expansion correction
+The 26 October combined result verified the Haynes registration/type and reached
+Repair Times, then failed at EXPAND_ALTERNATOR. Expansion previously counted rows
+immediately after click and included enclosing LI lists. It now waits for the
+reviewed operation's leaf LI row to appear, rejects multiple visible matches, and
+scrolls the unique row into view. A delayed-insertion regression covers this.
+GSF captured £194.74 and £215.32 cards but no explicit catalogue count. No claim of
+complete fitment selection or live pricing is justified yet. Setup 2026-10-26.2
+also captures full rooted selector paths and limited card-parent structure for
+stock/image/brand calibration, without account panels or raw HTML.

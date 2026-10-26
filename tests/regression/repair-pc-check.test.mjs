@@ -70,11 +70,24 @@ test('repair navigation searches the requested plate and follows only its verifi
  const calls=[];let searched=false,url='',badVehicle=false;
  const operation={count:async()=>1,isVisible:async()=>true,waitFor:async()=>{},scrollIntoViewIfNeeded:async()=>calls.push('scroll')};
  const page={url:()=>url,goto:async target=>{url=target;calls.push(target);},evaluate:async()=>searched?{registration:'FV65JTY',typeId:badVehicle?'t_999':'t_317000375',make:'Honda',model:'CR-V',variant:'1.6'}:{},
- locator:selector=>selector==='a[href]'?{evaluateAll:async()=>[repair]}:selector==='li'?{filter:()=>operation}:selector==='#licencePlateBtn'?{count:async()=>1,click:async()=>{searched=true;}}:{count:async()=>1,fill:async plate=>calls.push(plate)},
+ locator:selector=>selector==='a[href]'?{evaluateAll:async()=>[repair]}:selector==='li:not(:has(li))'?{filter:()=>({...operation,nth:()=>operation})}:selector==='#licencePlateBtn'?{count:async()=>1,click:async()=>{searched=true;}}:{count:async()=>1,fill:async plate=>calls.push(plate)},
  getByText:()=>({count:async()=>1,click:async()=>calls.push('expand')}),waitForTimeout:async()=>{}};
  assert.deepEqual(await navigateHaynesRepair(page,request,mapping),{registration:'FV65JTY',typeId:'t_317000375'});
  assert.ok(calls.includes('FV65JTY'));assert.ok(calls.includes(repair));assert.ok(calls.includes('scroll'));
  badVehicle=true;searched=false;calls.length=0;
  await assert.rejects(navigateHaynesRepair(page,request,mapping),error=>error.code==='LABOUR_REVIEW_REQUIRED'&&error.stage==='VERIFY_VEHICLE');
  assert.ok(!calls.includes(repair));
+});
+
+import {openAlternatorOperation} from '../../workers/repair-quotes/haynes-navigation.mjs';
+test('alternator expansion waits for asynchronously inserted leaf rows and rejects duplicate visible matches',async()=>{
+ let tick=0,clicked=0,scrolled=0,duplicates=false;
+ const row={isVisible:async()=>true,scrollIntoViewIfNeeded:async()=>{scrolled++;}};
+ const rows={count:async()=>tick<2?0:duplicates?2:1,nth:()=>row};
+ const page={getByText:()=>({count:async()=>1,click:async()=>{clicked++;}}),locator:selector=>{assert.equal(selector,'li:not(:has(li))');return {filter:()=>rows};},waitForTimeout:async()=>{tick++;}};
+ await openAlternatorOperation(page,{haynesOperationId:'1E02944501WV0'});
+ assert.equal(clicked,1);assert.equal(scrolled,1);assert.ok(tick>=2);
+ duplicates=true;
+ await assert.rejects(openAlternatorOperation(page,{haynesOperationId:'1E02944501WV0'}),/LABOUR_REVIEW_REQUIRED/);
+ assert.equal(clicked,1);
 });

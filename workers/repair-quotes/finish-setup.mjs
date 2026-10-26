@@ -3,6 +3,7 @@ import path from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {createInterface} from 'node:readline/promises';
 import {chromium} from 'playwright';
+import {repairTimeDiagnostics} from './repair-time-reader.mjs';
 import {inspectRepairCatalogue} from './catalogue-structure.mjs';
 import {navigateHaynesRepair} from './haynes-navigation.mjs';
 import {readReviewedHaynesOperation} from './catalogue.mjs';
@@ -10,10 +11,10 @@ const here=path.dirname(fileURLToPath(import.meta.url)),contexts=[];
 const terminal=createInterface({input:process.stdin,output:process.stdout});
 const base=process.platform==='win32'?path.join(process.env.LOCALAPPDATA||here,'VectaRepairQuotes'):path.join(here,'profile');
 const output=path.join(here,'repair-setup-result.local.json');
-const report={version:'2026-10-26.1',checkedAt:new Date().toISOString(),registration:'FV65JTY',purpose:'Read-only setup check; does not enable pricing',fitmentConfirmed:false};
+const report={version:'2026-10-26.2',checkedAt:new Date().toISOString(),registration:'FV65JTY',purpose:'Read-only setup check; does not enable pricing',fitmentConfirmed:false};
 async function open(name,url){const ctx=await chromium.launchPersistentContext(path.join(base,name),{headless:false,acceptDownloads:false,...(process.platform==='win32'?{channel:'msedge'}:{})});contexts.push(ctx);const page=ctx.pages()[0]||await ctx.newPage();await page.goto(url,{waitUntil:'domcontentloaded',timeout:20000});return page;}
 const reason=error=>['LOGIN_REQUIRED','SETTINGS_REQUIRED','LABOUR_REVIEW_REQUIRED','REVIEW_REQUIRED'].includes(error.code||error.message)?error.code||error.message:/profile.*in use|ProcessSingleton/i.test(error.message||'')?'TEST_PROFILE_ALREADY_OPEN':error.name==='TimeoutError'?'PAGE_TIMEOUT':'PAGE_NOT_READY';
-console.log('VECTA REPAIR QUOTE - FINISH SETUP - 2026-10-26.1');
+console.log('VECTA REPAIR QUOTE - FINISH SETUP - 2026-10-26.2');
 console.log('This checks only. It does not place orders or activate live pricing.');
 try{
  try{
@@ -25,8 +26,9 @@ try{
   report.gsf={status:captured.candidateCount?'STRUCTURE_CAPTURED':'NEEDS_REVIEW',...captured};
   console.log('GSF: saved '+captured.candidateCount+' catalogue sections for review.');
  }catch(error){report.gsf={status:'NEEDS_REVIEW',reason:reason(error)};console.log('GSF: '+report.gsf.reason);}
+ let haynesPage;
  try{
-  const page=await open('Haynes','https://www.workshopdata.com/touch/site/layout/makesOverview');
+  const page=haynesPage=await open('Haynes','https://www.workshopdata.com/touch/site/layout/makesOverview');
   console.log('Haynes: sign in if asked. This test will enter FV65 JTY and try to open Alternator automatically.');
   await terminal.question('When Haynes is signed in, press Enter here to test automatic navigation: ');
   const mapping={registration:report.registration,haynesTypeId:'t_317000375',haynesOperationId:'1E02944501WV0',haynesOperationLabel:'Renew the alternator'};
@@ -34,7 +36,7 @@ try{
   const operation=await readReviewedHaynesOperation(page,mapping,'https://www.workshopdata.com');
   report.haynes={status:'AUTOMATIC_CAPTURED',...vehicle,...operation};
   console.log('Haynes: registration and vehicle type matched; captured '+operation.hoursMilli/1000+' hours automatically.');
- }catch(error){report.haynes={status:'NEEDS_REVIEW',reason:reason(error),stage:error.stage||'READ_OPERATION'};console.log('Haynes: '+report.haynes.reason+'. The result file records this; no labour time has been assumed.');}
+ }catch(error){report.haynes={status:'NEEDS_REVIEW',reason:reason(error),stage:error.stage||'READ_OPERATION'};if(haynesPage&&new URL(haynesPage.url()).origin==='https://www.workshopdata.com'){try{report.haynes.diagnostics=await haynesPage.evaluate(repairTimeDiagnostics);}catch{}}console.log('Haynes: '+report.haynes.reason+'. The result file records this; no labour time has been assumed.');}
 }catch(error){report.error=reason(error);process.exitCode=1;}
 finally{
  fs.writeFileSync(output,JSON.stringify(report,null,2)+'\n',{mode:0o600});

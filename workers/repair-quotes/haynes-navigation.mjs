@@ -42,15 +42,28 @@ export async function navigateHaynesRepair(page,request,mapping,{timeoutMs=12000
  stage='OPEN_REPAIR_TIMES';
  await page.goto(url,{waitUntil:'domcontentloaded',timeout:15000});originOK();
  if(new URL(page.url()).pathname!=='/touch/site/layout/repairTimes'||new URL(page.url()).searchParams.get('typeId')!==typeId)fail('LABOUR_REVIEW_REQUIRED');
- // Expand only the exact observed job heading; never click the green add-to-estimate control.
- const heading=page.getByText('Alternator',{exact:true});
- if(await heading.count()!==1)fail('LABOUR_REVIEW_REQUIRED');
  stage='EXPAND_ALTERNATOR';
- const operation=page.locator('li').filter({hasText:mapping.haynesOperationId});
- if(await operation.count()!==1||!await operation.isVisible())await heading.click({timeout:10000});
- if(await operation.count()!==1)fail('LABOUR_REVIEW_REQUIRED');
- await operation.waitFor({state:'visible',timeout:10000});
- await operation.scrollIntoViewIfNeeded({timeout:10000});
+ await openAlternatorOperation(page,mapping,{timeoutMs});
  return {registration:request.registration,typeId};
  }catch(error){error.stage=stage;throw error;}
+}
+
+export async function openAlternatorOperation(page,mapping,{timeoutMs=12000}={}){
+ const heading=page.getByText('Alternator',{exact:true});
+ if(await heading.count()!==1)fail('LABOUR_REVIEW_REQUIRED');
+ // Outer menu lists also contain an operation's text. Match only leaf LI rows.
+ const rows=page.locator('li:not(:has(li))').filter({hasText:mapping.haynesOperationId});
+ const visibleRows=async()=>{const found=[];for(let i=0;i<await rows.count();i++){const row=rows.nth(i);if(await row.isVisible())found.push(row);}return found;};
+ let found=await visibleRows();
+ if(found.length>1)fail('LABOUR_REVIEW_REQUIRED');
+ if(!found.length)await heading.click({timeout:10000});
+ const deadline=Date.now()+timeoutMs;
+ while(!found.length&&Date.now()<deadline){
+  // Expansion can fetch and insert the rows asynchronously after click returns.
+  found=await visibleRows();
+  if(found.length>1)fail('LABOUR_REVIEW_REQUIRED');
+  if(!found.length)await page.waitForTimeout(200);
+ }
+ if(found.length!==1)fail('LABOUR_REVIEW_REQUIRED');
+ await found[0].scrollIntoViewIfNeeded({timeout:10000});
 }
