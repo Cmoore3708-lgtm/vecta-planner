@@ -18,3 +18,11 @@ test('expanded group accounts for four unavailable zero-price cards without trea
  const result=analyseAlternatorOptions(s);assert.equal(result.options.length,6);assert.equal(result.unpricedUnavailableCount,4);assert.equal(result.displayedOptionCount,10);assert.equal(result.expandedGroupOptionsCount,10);assert.equal(result.cheapestDisplayedAvailable.costPence,19474);assert.equal(result.catalogueComplete,false);
  for(const bad of [text.replace('£0.00 Bronze Out Of Stock','£0.00 Bronze Local Branch'),text.replace('£194.74','£194.75'),text.replace(' Show Less',' unknown card Show Less')]){s.candidates[0].ancestors.at(-1).text=bad;assert.throws(()=>analyseAlternatorOptions(s),/REVIEW_REQUIRED/);}
 });
+test('known brand text replaces a missing logo and reconciles branded unavailable cards',()=>{
+ const s=snapshot();const auto=s.candidates[5].ancestors[0];auto.text=auto.text.replace('£382.12 Silver','£382.12 AUTOELECTRO Silver');auto.images=[];
+ const text=s.candidates.map(c=>c.ancestors[0].text).join(' ')+' £0.00 Bronze Out Of Stock £0.00 NK Bronze Out Of Stock £0.00 Bronze Out Of Stock £0.00 AUTOELECTRO Bronze Out Of Stock Show Less';
+ s.candidates[0].ancestors.push({depth:2,text,images:[]});
+ const result=analyseAlternatorOptions(s);assert.equal(result.options[5].brand,'Autoelectro');assert.equal(result.displayedOptionCount,10);assert.equal(result.cheapestDisplayedAvailable.brand,'DriveTec');assert.equal(result.cheapestDisplayedAvailable.costPence,19474);
+ auto.images=[{src:'https://gsfappstorage.blob.core.windows.net/catalogue-assets/Brands/lucas.svg'}];assert.throws(()=>analyseAlternatorOptions(s),/REVIEW_REQUIRED/);
+ auto.images=[];auto.text=auto.text.replace('AUTOELECTRO','UNKNOWN');assert.throws(()=>analyseAlternatorOptions(s),/REVIEW_REQUIRED/);
+});
