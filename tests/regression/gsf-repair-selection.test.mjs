@@ -18,7 +18,7 @@ test('changed price, identity, VAT, stock or missing image prevents verification
 import {repairLookupPreview} from '../../workers/repair-quotes/quote-preview.mjs';
 test('same-run part and labour preview applies agreed markup, half-hour rounding and VAT',()=>{
  const stamp='2026-10-26T10:27:51.000Z',now=Date.parse(stamp),part={...captured,registration:'FV65JTY',checkedAt:stamp,priceMatchesCatalogue:true},labour={registration:'FV65JTY',hoursMilli:700,checkedAt:stamp};
- const result=repairLookupPreview(part,labour,{now});assert.equal(result.partsSalePence,24421);assert.equal(result.chargedHoursMilli,1000);assert.equal(result.labourPence,5000);assert.equal(result.totalIncVatPence,35305);assert.equal(result.readyForAutomaticQuote,false);assert.equal(result.previewOnly,true);
+ const result=repairLookupPreview(part,labour,{now});assert.equal(result.partsSalePence,24421);assert.equal(result.chargedHoursMilli,1000);assert.equal(result.labourPence,5000);assert.equal(result.totalIncVatPence,35500);assert.equal(result.readyForAutomaticQuote,false);assert.equal(result.previewOnly,true);
  assert.equal(repairLookupPreview(part,{...labour,hoursMilli:1100},{now}).labourPence,7500);
  assert.throws(()=>repairLookupPreview(part,{...labour,registration:'WRONG'},{now}),/REVIEW_REQUIRED/);
  assert.throws(()=>repairLookupPreview(part,labour,{now:now+16*60000}),/REVIEW_REQUIRED/);
