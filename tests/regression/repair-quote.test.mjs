@@ -104,3 +104,9 @@ test('GSF links only retain observed supplier product/search paths without sessi
  for(const bad of ['javascript:alert(1)','https://evil.example/partdetails/A8828','https://trade.gsfcarparts.com/basket','https://trade.gsfcarparts.com/parts/Alternator',good+'?token=secret','https://trade.gsfcarparts.com@evil.example/partdetails/A8828'])assert.equal(repairPartUrl(bad),'');
  const raw=fixture();raw.parts[1].gsfUrl=good;assert.equal(calculateRepairQuote(raw,request,{now}).part.gsfUrl,good);raw.parts[1].gsfUrl='javascript:alert(1)';assert.equal(calculateRepairQuote(raw,request,{now}).part.gsfUrl,'');
 });
+
+test('initial activation scope rejects other registrations before any queue operation',async()=>{
+ let calls=0;const h=repairQuoteHandler({env:{REPAIR_QUOTING_ENABLED:'true',REPAIR_QUOTE_ALLOWED_REGISTRATIONS:'FV65JTY'},authenticate:async()=>true,queue:async()=>{calls++;return {status:'PENDING'};}});
+ let res=response();await h({method:'POST',body:request},res);assert.equal(res.body.status,'SETTINGS_REQUIRED');assert.equal(calls,0);
+ res=response();await h({method:'POST',body:{registration:'FV65 JTY',work:'Supply and fit alternator'}},res);assert.equal(res.body.status,'PENDING');assert.equal(calls,1);
+});
