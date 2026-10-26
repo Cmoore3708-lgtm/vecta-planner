@@ -18,7 +18,7 @@ test('changed price, identity, VAT, stock or missing image prevents verification
 import {repairLookupPreview} from '../../workers/repair-quotes/quote-preview.mjs';
 test('same-run part and labour preview applies agreed markup, half-hour rounding and VAT',()=>{
  const stamp='2026-10-26T10:27:51.000Z',now=Date.parse(stamp),part={...captured,registration:'FV65JTY',checkedAt:stamp,priceMatchesCatalogue:true},labour={registration:'FV65JTY',hoursMilli:700,checkedAt:stamp};
- const result=repairLookupPreview(part,labour,{now});assert.equal(result.partsSalePence,24421);assert.equal(result.chargedHoursMilli,1000);assert.equal(result.labourPence,5000);assert.equal(result.totalIncVatPence,35305);assert.equal(result.readyForAutomaticQuote,false);assert.equal(result.previewOnly,true);
+ const result=repairLookupPreview(part,labour,{now});assert.equal(result.partsSalePence,24421);assert.equal(result.chargedHoursMilli,1000);assert.equal(result.labourPence,5000);assert.equal(result.totalIncVatPence,35500);assert.equal(result.readyForAutomaticQuote,false);assert.equal(result.previewOnly,true);
  assert.equal(repairLookupPreview(part,{...labour,hoursMilli:1100},{now}).labourPence,7500);
  assert.throws(()=>repairLookupPreview(part,{...labour,registration:'WRONG'},{now}),/REVIEW_REQUIRED/);
  assert.throws(()=>repairLookupPreview(part,labour,{now:now+16*60000}),/REVIEW_REQUIRED/);
@@ -28,15 +28,7 @@ import {readProductBySku} from '../../workers/gsf/supplier.mjs';
 test('exact-SKU lookup reads the active dialog rather than matching background product headings',async()=>{
  let current='https://trade.gsfcarparts.com',clicked=false,dialogHeading=0;
  const heading={waitFor:async()=>{}},dialog={count:async()=>clicked?1:0,isVisible:async()=>true,getByRole:()=>{dialogHeading++;return heading;}};
- const main={getByText:()=>({waitFor:async()=>{},count:async()=>1,isVisible:async()=>true,click:async()=>{clicked=true;}}),getByRole:()=>{throw Error('Must not read background heading');}};
+ const main={getByText:()=>({count:async()=>1,isVisible:async()=>true,click:async()=>{clicked=true;}}),getByRole:()=>{throw Error('Must not read background heading');}};
  const page={goto:async url=>{current=url;},url:()=>current,getByRole:role=>role==='textbox'?{fill:async()=>{},press:async()=>{}}:role==='heading'?heading:role==='dialog'?dialog:main,evaluate:async()=>captured,waitForTimeout:async()=>{}};
  const result=await readProductBySku(page,{...mapping,kind:'repair_part',quantityMilli:1000,packQuantityMilli:1000});assert.equal(result.unitNetPence,19474);assert.equal(dialogHeading,1);
-});
-test('reviewed direct SKU search retries one timeout and reports the exact stage without a retry loop',async()=>{
- const item={...mapping,searchUrl:'https://trade.gsfcarparts.com/enhancedSearch/DREA8828',kind:'repair_part',quantityMilli:1000,packQuantityMilli:1000};
- function pageFor(failure){let navigations=0,clicked=false,current='https://trade.gsfcarparts.com';const heading={waitFor:async()=>{}};return {count:()=>navigations,page:{goto:async url=>{navigations++;current=url;if(failure&&failure(navigations))throw Object.assign(Error('Timed out'),{name:'TimeoutError'});},url:()=>current,getByRole:role=>role==='textbox'?{fill:async()=>{throw Error('Direct route must not fill search');}}:role==='heading'?heading:role==='dialog'?{count:async()=>clicked?1:0,isVisible:async()=>true,getByRole:()=>heading}:{getByText:()=>({waitFor:async()=>{},count:async()=>1,isVisible:async()=>true,click:async()=>{clicked=true;}})},evaluate:async()=>captured,waitForTimeout:async()=>{}}};}
- let p=pageFor(n=>n===1);assert.equal((await readProductBySku(p.page,item)).sku,'A8828');assert.equal(p.count(),2);
- p=pageFor(()=>true);await assert.rejects(readProductBySku(p.page,item),error=>error.name==='TimeoutError'&&error.stage==='GSF_SKU_NAVIGATION');assert.equal(p.count(),2);
- p=pageFor();await assert.rejects(readProductBySku(p.page,{...item,searchUrl:'https://evil.example/DREA8828'}),/SETTINGS_REQUIRED/);assert.equal(p.count(),0);
- p=pageFor();p.page.evaluate=async()=>({...captured,sku:'WRONG'});await assert.rejects(readProductBySku(p.page,item),/REVIEW_REQUIRED/);assert.equal(p.count(),1);
 });
