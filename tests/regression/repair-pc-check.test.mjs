@@ -52,3 +52,29 @@ test('automatic Haynes navigation binds registration and reviewed vehicle type',
  assert.equal(repairTimesLink([url,url],'t_317000375'),url);
  for(const links of [[],[url.replace('t_317000375','t_999')],[url.replace('www.workshopdata.com','evil.example')],[url.replace('repairTimes','costEstimate')]])assert.throws(()=>repairTimesLink(links,'t_317000375'),/LABOUR_REVIEW_REQUIRED/);
 });
+
+import {inspectRepairCatalogue} from '../../workers/repair-quotes/catalogue-structure.mjs';
+test('catalogue calibration captures product structure without account/input secrets or claiming fitment',()=>{
+ const {document}=parseHTML('<html><body><header>Account balance £999.00 customer@example.com</header><main><section><strong>FV65 JTY</strong><p>Honda CR-V</p></section><input name="password" type="password" value="secret"><input aria-label="Search registration" value="PRIVATE INPUT"><button aria-label="Search VRM Button"></button><nav><p>Unrelated account</p></nav><article><h3>Alternator - 150 Amp</h3><span>DriveTec</span><p>£194.74</p><span>In stock</span></article><article hidden><h3>Alternator</h3><p>£2.00</p></article><p>2 products</p></main></body></html>');
+ const result=inspectRepairCatalogue({registration:'FV65 JTY'},document),encoded=JSON.stringify(result);
+ assert.equal(result.candidateCount,1);assert.equal(result.catalogueComplete,false);assert.equal(result.fitmentConfirmed,false);assert.equal(result.registration,'FV65JTY');
+ assert.match(encoded,/194.74/);assert.match(encoded,/Search VRM Button/);assert.ok(result.identities.length);assert.match(result.candidates[0].selector,/article/);
+ for(const value of ['999.00','customer@example.com','secret','PRIVATE INPUT','£2.00'])assert.ok(!encoded.includes(value),value);
+ assert.throws(()=>inspectRepairCatalogue({registration:'<script>'},document),/INVALID_REGISTRATION/);
+});
+
+import {navigateHaynesRepair} from '../../workers/repair-quotes/haynes-navigation.mjs';
+test('repair navigation searches the requested plate and follows only its verified repair link',async()=>{
+ const request={registration:'FV65JTY'},mapping={haynesTypeId:'t_317000375',haynesOperationId:'1E02944501WV0'};
+ const repair='https://www.workshopdata.com/touch/site/layout/repairTimes?typeId=t_317000375&groupId=QUICKGUIDES';
+ const calls=[];let searched=false,url='',badVehicle=false;
+ const operation={count:async()=>1,isVisible:async()=>true,waitFor:async()=>{},scrollIntoViewIfNeeded:async()=>calls.push('scroll')};
+ const page={url:()=>url,goto:async target=>{url=target;calls.push(target);},evaluate:async()=>searched?{registration:'FV65JTY',typeId:badVehicle?'t_999':'t_317000375',make:'Honda',model:'CR-V',variant:'1.6'}:{},
+ locator:selector=>selector==='a[href]'?{evaluateAll:async()=>[repair]}:selector==='li'?{filter:()=>operation}:selector==='#licencePlateBtn'?{count:async()=>1,click:async()=>{searched=true;}}:{count:async()=>1,fill:async plate=>calls.push(plate)},
+ getByText:()=>({count:async()=>1,click:async()=>calls.push('expand')}),waitForTimeout:async()=>{}};
+ assert.deepEqual(await navigateHaynesRepair(page,request,mapping),{registration:'FV65JTY',typeId:'t_317000375'});
+ assert.ok(calls.includes('FV65JTY'));assert.ok(calls.includes(repair));assert.ok(calls.includes('scroll'));
+ badVehicle=true;searched=false;calls.length=0;
+ await assert.rejects(navigateHaynesRepair(page,request,mapping),error=>error.code==='LABOUR_REVIEW_REQUIRED'&&error.stage==='VERIFY_VEHICLE');
+ assert.ok(!calls.includes(repair));
+});

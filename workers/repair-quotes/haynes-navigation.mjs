@@ -16,6 +16,8 @@ export function repairTimesLink(links,typeId){
  if(matches.length!==1)fail('LABOUR_REVIEW_REQUIRED');return matches[0];
 }
 export async function navigateHaynesRepair(page,request,mapping,{timeoutMs=12000}={}){
+ let stage='OPEN_HAYNES';
+ try{
  if(!/^t_\d+$/.test(mapping.haynesTypeId||''))fail('SETTINGS_REQUIRED');
  await page.goto(START,{waitUntil:'domcontentloaded',timeout:15000});
  const originOK=()=>{if(new URL(page.url()).origin!==ORIGIN)fail('LOGIN_REQUIRED');};originOK();
@@ -23,6 +25,7 @@ export async function navigateHaynesRepair(page,request,mapping,{timeoutMs=12000
  if(vehicle.login)fail('LOGIN_REQUIRED');if(vehicle.blocked)fail('LABOUR_REVIEW_REQUIRED');
  const field=page.locator('#numberPlate,input[name="numberPlate"]'),submit=page.locator('#licencePlateBtn');
  if(await field.count()!==1||await submit.count()!==1)fail('LABOUR_REVIEW_REQUIRED');
+ stage='SEARCH_REGISTRATION';
  await field.fill(request.registration);await submit.click({timeout:10000});
  const deadline=Date.now()+timeoutMs;
  while(Date.now()<deadline){
@@ -31,16 +34,23 @@ export async function navigateHaynesRepair(page,request,mapping,{timeoutMs=12000
   if(vehicle.login||vehicle.blocked||vehicle.ambiguous||vehicle.registration===request.registration)break;
   await page.waitForTimeout(200);
  }
+ stage='VERIFY_VEHICLE';
  const typeId=verifyRepairVehicle(vehicle,request,mapping);
+ stage='FIND_REPAIR_TIMES_LINK';
  const links=await page.locator('a[href]').evaluateAll(nodes=>nodes.map(node=>node.href));
  const url=repairTimesLink(links,typeId);
+ stage='OPEN_REPAIR_TIMES';
  await page.goto(url,{waitUntil:'domcontentloaded',timeout:15000});originOK();
  if(new URL(page.url()).pathname!=='/touch/site/layout/repairTimes'||new URL(page.url()).searchParams.get('typeId')!==typeId)fail('LABOUR_REVIEW_REQUIRED');
  // Expand only the exact observed job heading; never click the green add-to-estimate control.
  const heading=page.getByText('Alternator',{exact:true});
  if(await heading.count()!==1)fail('LABOUR_REVIEW_REQUIRED');
- const operation=page.getByText(/Renew the alternator/);
+ stage='EXPAND_ALTERNATOR';
+ const operation=page.locator('li').filter({hasText:mapping.haynesOperationId});
  if(await operation.count()!==1||!await operation.isVisible())await heading.click({timeout:10000});
- await page.getByText(/Renew the alternator/).first().waitFor({state:'visible',timeout:10000});
+ if(await operation.count()!==1)fail('LABOUR_REVIEW_REQUIRED');
+ await operation.waitFor({state:'visible',timeout:10000});
+ await operation.scrollIntoViewIfNeeded({timeout:10000});
  return {registration:request.registration,typeId};
+ }catch(error){error.stage=stage;throw error;}
 }

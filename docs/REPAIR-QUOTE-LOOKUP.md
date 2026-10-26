@@ -155,3 +155,18 @@ PC-verified time reader. Login, multi-result selection, mismatched type, missing
 links and conflicting operations stop the quote. This new navigation path has
 unit coverage but still needs an end-to-end PC run; it is not enabled by default.
 The packaged quote worker includes the shared read-only Haynes DOM module.
+
+### Combined remaining PC check
+Run the root FINISH-REPAIR-SETUP.cmd from the setup package. Its window is titled
+VECTA - FINISH REPAIR QUOTE SETUP. In its GSF window select FV65 JTY and the
+alternator category, leaving the catalogue cards visible. The check saves only
+limited vehicle/product structure, not page HTML, input values or account panels.
+This is diagnostic evidence: it never marks the catalogue complete or approves
+fitment. After sign-in, its Haynes step tests the new automatic registration path
+against the previously observed type/operation IDs. These IDs constrain this test
+only; a successful check does not enable or approve any production mapping.
+
+The result is repair-setup-result.local.json. The launcher highlights that file
+in Explorer after completion. It uses the existing isolated repair-test profiles,
+so close other repair-test windows first; the live tyre and vehicle workers use
+separate profiles. Profiles and *.local.json reports are excluded from packages.

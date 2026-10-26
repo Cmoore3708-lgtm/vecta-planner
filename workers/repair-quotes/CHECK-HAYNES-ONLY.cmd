@@ -8,7 +8,10 @@ if errorlevel 1 (
 )
 if not exist "node_modules\playwright\package.json" (
  call npm ci --ignore-scripts
- if errorlevel 1 exit /b 1
+ if errorlevel 1 (
+  pause
+  exit /b 1
+ )
 )
 node pc-check.mjs --haynes-only
 pause
