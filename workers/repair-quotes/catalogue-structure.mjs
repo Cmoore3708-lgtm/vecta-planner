@@ -19,8 +19,15 @@ export function inspectRepairCatalogue({registration},doc=document){
   }
   candidates.push({selector:selector(el),text:scrub(value),ancestors,fields:[...el.querySelectorAll('p,span,h2,h3,h4,h5,button')].filter(visible).filter(n=>!n.children.length).slice(0,24).map(n=>({selector:selector(n),text:scrub(text(n))}))});
  }
- const controls=[...doc.querySelectorAll('button,a,[role="button"]')].filter(visible).map(el=>({selector:selector(el),label:scrub(el.getAttribute('aria-label')||text(el))})).filter(x=>/^(?:Search VRM Button|Enter reg\s*\/\s*vin|Clear|All categories|Electrical|Rotating|Alternator|Next|Previous|Load more|Show more|\d+)$/i.test(x.label)).slice(0,30);
+ const controls=[...doc.querySelectorAll('button,a,[role="button"]')].filter(visible).map(el=>({selector:selector(el),label:scrub(el.getAttribute('aria-label')||text(el))})).filter(x=>/^(?:Search VRM Button|Enter reg\s*\/\s*vin|Clear|All categories|Electrical|Rotating|Alternator|Next|Previous|Load more|Show more|Show less|\d+)$/i.test(x.label)).slice(0,30);
  const inputs=[...doc.querySelectorAll('input:not([type="password"]),select')].filter(visible).filter(el=>/reg|vrm|vin|search|sort|categor/i.test([el.id,el.name,el.getAttribute('placeholder'),el.getAttribute('aria-label')].join(' '))).map(el=>({selector:selector(el),tag:el.tagName,type:el.getAttribute('type')||'',placeholder:scrub(el.getAttribute('placeholder')),label:scrub(el.getAttribute('aria-label'))})).slice(0,12);
  const counts=nodes.map(el=>clean(text(el))).filter(value=>value.length<100&&/^(?:showing\s+\d+.*\d+|\d+\s+(?:products?|results?|items?)|(?:products?|results?|items?)\s*:?\s*\d+)$/i.test(value));
- return {registration:plate,fitmentConfirmed:false,catalogueComplete:false,identities,inputs,controls,countLabels:[...new Set(counts)].slice(0,8),candidateCount:candidates.length,candidates:candidates.slice(0,30)};
+ const skuNodes=nodes.filter(el=>/^SKU:\s*\S/i.test(clean(text(el)))&&clean(text(el)).length<100&&!el.closest('[role="dialog"],[role="menu"],nav')&&![...el.children].some(c=>/^SKU:\s*\S/i.test(clean(text(c)))));
+ const groupSkus=skuNodes.map(el=>clean(text(el)).match(/^SKU:\s*([A-Z0-9.-]+)$/i)?.[1]||'');
+ const mainControls=[...doc.querySelectorAll('main button,main a,main [role="button"],[role="main"] button,[role="main"] a')].filter(visible).map(el=>clean(el.getAttribute('aria-label')||text(el)));
+ const paginationControls=mainControls.filter(label=>/^(?:next(?:\s+page)?|previous(?:\s+page)?|load more|(?:go to )?(?:next|previous) page|(?:go to )?page\s+\d+(?:\s+of\s+\d+)?|\d+)$/i.test(label));
+ const expansionLabels=nodes.filter(el=>/^(?:show more|show less)$/i.test(clean(text(el)))&&![...el.children].some(c=>clean(text(c))===clean(text(el)))).map(el=>clean(text(el)));
+ const loading=nodes.some(el=>el.getAttribute('aria-busy')==='true'||el.getAttribute('role')==='progressbar');
+ const boundary={version:1,groupSkus,unparsedSkuLabels:groupSkus.filter(s=>!s).length,showMore:expansionLabels.filter(s=>/^show more$/i.test(s)).length,showLess:expansionLabels.filter(s=>/^show less$/i.test(s)).length,paginationControls,loading,truncated:candidates.length>30};
+ return {registration:plate,fitmentConfirmed:false,catalogueComplete:false,boundary,identities,inputs,controls,countLabels:[...new Set(counts)].slice(0,8),candidateCount:candidates.length,candidates:candidates.slice(0,30)};
 }

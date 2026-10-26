@@ -13,3 +13,10 @@ Remaining evidence needed: a successful fresh vehicle selection and the catalogu
 ## Screenshot reconciliation
 
 The user's subsequent expanded-group photo shows ten cards and Show Less: six priced cards and four £0.00 Bronze Out Of Stock cards without an Alternator description. The .9 capture already contains their text in the bounded group container. The analyser now parses that full container, reconciles every priced card against its independent leaf capture and records four unavailable unpriced options. Running the updated analyser against the unchanged .9 report yields ten displayed options and the same cheapest available DriveTec £194.74. Zero-price available cards or unparsed content require review. This establishes the expanded group's displayed options, not the complete vehicle catalogue or a fresh lookup.
+
+
+## Expanded-group verification
+
+The optional `completionMode: "single-expanded-group"` now replaces the numeric count requirement when a fresh DOM capture confirms exactly one group SKU, a terminal Show Less state, no Show More, no pagination, no loading and no truncation. The bounded option container must parse and reconcile every displayed priced/unavailable entry. Old captures without this boundary evidence cannot pass. The numeric-count method remains supported.
+
+VERIFY-QUOTE version 2026-10-26.10 records this boundary. If the first fresh navigation, completeness and Haynes checks pass, it runs the actual lookupRepair → cleanRepairEvidence → calculateRepairQuote path again using a temporary in-memory mapping scoped to FV65JTY/DREA8828/A8828/Haynes t_317000375. It does not write calibration settings, start the queue, save a quote or enable live pricing. This is a source-to-calculation test, not yet a cloud-queue/database round trip.

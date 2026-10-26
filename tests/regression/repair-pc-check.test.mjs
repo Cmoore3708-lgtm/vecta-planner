@@ -63,6 +63,12 @@ test('catalogue calibration captures product structure without account/input sec
  for(const value of ['999.00','customer@example.com','secret','PRIVATE INPUT','£2.00'])assert.ok(!encoded.includes(value),value);
  assert.throws(()=>inspectRepairCatalogue({registration:'<script>'},document),/INVALID_REGISTRATION/);
 });
+test('expanded catalogue boundary records all group markers and pending pagination/loading',()=>{
+ const {document}=parseHTML('<html><body><main><p>FV65JTY</p><article><p>SKU: DREA8828</p><div><div><div><img src="https://gsfappstorage.blob.core.windows.net/catalogue-assets/Brands/drivetec.svg"><div>£194.74 Silver Alternator - 150 Amp</div><span>Local Branch</span></div><div>£0.00 Bronze Out Of Stock</div><span>Show Less</span></div></div></article></main></body></html>');
+ let capture=inspectRepairCatalogue({registration:'FV65JTY'},document);assert.equal(capture.candidateCount,1);assert.deepEqual(capture.boundary,{version:1,groupSkus:['DREA8828'],unparsedSkuLabels:0,showMore:0,showLess:1,paginationControls:[],loading:false,truncated:false});
+ const next=document.createElement('button');next.setAttribute('aria-label','Go to next page');document.querySelector('main').append(next);const loading=document.createElement('div');loading.setAttribute('aria-busy','true');document.querySelector('main').append(loading);const second=document.createElement('p');second.textContent='SKU: OTHER';document.querySelector('main').append(second);
+ capture=inspectRepairCatalogue({registration:'FV65JTY'},document);assert.equal(capture.boundary.loading,true);assert.equal(capture.boundary.groupSkus.length,2);assert.deepEqual(capture.boundary.paginationControls,['Go to next page']);
+});
 
 import {navigateHaynesRepair} from '../../workers/repair-quotes/haynes-navigation.mjs';
 test('repair navigation searches the requested plate and follows only its verified repair link',async()=>{

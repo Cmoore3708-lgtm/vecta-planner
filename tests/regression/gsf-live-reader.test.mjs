@@ -1,12 +1,12 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {readLiveGSFAlternator} from '../../workers/repair-quotes/gsf-live-reader.mjs';
+import {readLiveGSFAlternator,confirmExpandedGSF} from '../../workers/repair-quotes/gsf-live-reader.mjs';
 import {cleanRepairEvidence,repairRequest} from '../../lib/repair-quote.js';
 const request=repairRequest({registration:'FV65JTY',work:'Supply and fit alternator'}),stamp='2026-10-26T10:39:43.830Z';
 const mapping={registration:request.registration,variant:'Reviewed synthetic variant',gsfIdentity:'FV65JTY Clear',gsfPart:{searchTerm:'DREA8828',sku:'A8828',brand:'DriveTec',description:'Alternator - 150 Amp'}};
 function fixture(){
  const rows=[['194.74','Local Branch','drivetec'],['156.74','Out Of Stock','wai']];
- const snapshot={registration:request.registration,identities:[{text:'FV65JTY Clear'}],candidateCount:2,candidates:rows.map(([cost,stock,brand])=>({ancestors:[{depth:1,text:`£${cost} Silver Alternator - 150 Amp ${stock}`,images:[{src:`https://gsfappstorage.blob.core.windows.net/catalogue-assets/Brands/${brand}.svg`}]},{depth:2,text:'SKU: DREA8828',images:[]}]}))};
+ const snapshot={registration:request.registration,identities:[{text:'FV65JTY Clear'}],candidateCount:2,candidates:rows.map(([cost,stock,brand])=>({ancestors:[{depth:1,text:`£${cost} Silver Alternator - 150 Amp ${stock}`,images:[{src:`https://gsfappstorage.blob.core.windows.net/catalogue-assets/Brands/${brand}.svg`}]},{depth:5,text:'SKU: DREA8828',images:[]}]}))};
  const selected={sku:'A8828',brand:'DriveTec',description:'Alternator - 150 Amp',unitNetPence:19474,vatBasis:'EX_VAT',inStock:true,imageUrl:'https://example.com/part.jpg',gsfUrl:'https://trade.gsfcarparts.com/enhancedSearch/DREA8828',checkedAt:stamp,priceMatchesCatalogue:true};
  const nav={status:'AUTOMATIC_CATEGORY_REACHED',registrationSubmitted:true,observed:{selectedRegistration:true,categoryPathMatched:true}};
  const count={count:async()=>1,isVisible:async()=>true,innerText:async()=> '2'};
@@ -27,4 +27,10 @@ test('missing or ambiguous count, partial catalogue, wrong vehicle and unsubmitt
 });
 test('changed cheapest part must be remapped and reviewed rather than substituting its SKU',async()=>{
  for(const change of [{unitNetPence:19000},{sku:'OTHER'},{brand:'Lucas'},{priceMatchesCatalogue:false}]){const f=fixture();Object.assign(f.selected,change);await assert.rejects(readLiveGSFAlternator(f.page,request,mapping,{totalCount:'.count'},f.options),/REVIEW_REQUIRED/);}
+});
+test('single expanded group rejects pending loading, further pages, other groups and unparsed options',async()=>{
+ function complete(){const f=fixture();f.snapshot.boundary={version:1,groupSkus:['DREA8828'],unparsedSkuLabels:0,showMore:0,showLess:1,paginationControls:[],loading:false,truncated:false};const text=f.snapshot.candidates.map(c=>c.ancestors[0].text).join(' ')+' £0.00 Bronze Out Of Stock Show Less';for(const c of f.snapshot.candidates)c.ancestors.push({depth:2,text,images:[]});return f;}
+ const good=complete(),result=await readLiveGSFAlternator(good.page,request,mapping,{completionMode:'single-expanded-group'},good.options);assert.equal(result.alternativesChecked,3);
+ for(const mutate of [f=>f.snapshot.boundary.loading=true,f=>f.snapshot.boundary.truncated=true,f=>f.snapshot.boundary.groupSkus.push('OTHER'),f=>f.snapshot.boundary.groupSkus=['OTHER'],f=>f.snapshot.boundary.unparsedSkuLabels=1,f=>f.snapshot.boundary.showMore=1,f=>f.snapshot.boundary.showLess=0,f=>f.snapshot.boundary.showLess=2,f=>f.snapshot.boundary.paginationControls=['Next'],f=>delete f.snapshot.boundary,f=>f.snapshot.candidates[0].ancestors.pop()]){const f=complete();mutate(f);await assert.rejects(readLiveGSFAlternator(f.page,request,mapping,{completionMode:'single-expanded-group'},f.options),/REVIEW_REQUIRED/);assert.equal(f.reads(),0);}
+ assert.throws(()=>confirmExpandedGSF({}, {expandedGroupOptionsCount:10,displayedOptionCount:10},'DREA8828'),/REVIEW_REQUIRED/);
 });
