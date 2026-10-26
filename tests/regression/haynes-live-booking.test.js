@@ -16,6 +16,9 @@ for(const path of ['public/booking.html','website/booking/index.html'])test(`${p
  for(const m of html.matchAll(/<script(?:\s[^>]*)?>([\s\S]*?)<\/script>/g))if(m[1])vm.runInContext(m[1],root);
  await new Promise(r=>setImmediate(r));await vm.runInContext("state.form.registration='NU67VSE';lookup('NU67VSE')",root);await new Promise(r=>setImmediate(r));
  assert.equal(vm.runInContext('serviceEngineSize()',root),1600);
+ assert.equal(vm.runInContext('state.step',root),2);
+ assert.equal(document.querySelector('[data-haynes-confirm]'),null);
+ for(const answer of ['yes','no']){vm.runInContext("state.form.nevos_vehicle='';render()",root);assert.ok(document.querySelector('.nevos-question'));document.querySelector('[data-nevos-choice="'+answer+'"]').onclick();assert.equal(document.querySelector('.nevos-question'),null);assert.equal(vm.runInContext('state.form.nevos_vehicle',root),answer);}
  vm.runInContext("state.form.job_types=['Service'];state.form.service_choice='Full Service';state.form.parts_range='Mid Range';state.form.inspect_mot_advisories='yes'",root);
  assert.equal(vm.runInContext('estimateCost()',root),155);
  for(let step=1;step<=5;step++){
@@ -29,13 +32,8 @@ for(const path of ['public/booking.html','website/booking/index.html'])test(`${p
    assert.ok(details.querySelector('.haynes-meta'),'Haynes vehicle details remain visible');
    assert.ok(details.querySelector('.vehicle-top [data-field="registration"]'),'registration remains in its vehicle identity block');
    assert.equal(document.querySelector('#next'),null);
-   assert.ok(document.querySelector('#actions .vehicle-confirmation [data-haynes-confirm="yes"]'));
-   assert.equal(document.querySelector('.vehicle-photo [data-haynes-confirm]'),null);
-   document.querySelector('[data-haynes-confirm="no"]').onclick();
-   assert.equal(vm.runInContext('state.step',root),1);
-   assert.equal(document.querySelector('#next').textContent,'Choose work');
-   vm.runInContext("haynesState.status='matched';render()",root);
-   document.querySelector('[data-haynes-confirm="yes"]').onclick();
+   assert.equal(document.querySelector('[data-haynes-confirm]'),null);
+   document.querySelector('#next').onclick();
    assert.equal(vm.runInContext('state.step',root),2);
    assert.equal(vm.runInContext('state.form.haynes_identity.engineCode',root),'MR16DDT');
   }
