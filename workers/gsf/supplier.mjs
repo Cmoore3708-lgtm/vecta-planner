@@ -40,16 +40,32 @@ export function approvedRecipe(config, raw, now=Date.now()) {
   return recipe;
 }
 export async function readProductBySku(page,item) {
-  await page.goto(SUPPLIER,{waitUntil:'domcontentloaded',timeout:15000});
-  if(/\/signin(?:[/?]|$)/.test(page.url()))throw Error('LOGIN_REQUIRED');
-  if(new URL(page.url()).origin!==SUPPLIER)throw Error('UNAVAILABLE');
+  // Retry only the optional reviewed direct-search route, and only a timeout.
+  // No retry for a closed browser, wrong SKU, stock, login or price mismatch.
+  for(let attempt=0;attempt<2;attempt++){
+    try{return await readProductBySkuOnce(page,item);}
+    catch(error){if(!item.searchUrl||attempt||error.name!=='TimeoutError')throw error;}
+  }
+}
+async function readProductBySkuOnce(page,item) {
+  let stage='GSF_SKU_NAVIGATION';
+  try{
   const term=item.searchTerm||item.sku;
   if(!/^[A-Za-z0-9 ._/-]{1,80}$/.test(term))throw Error('SETTINGS_REQUIRED');
+  if(item.searchUrl&&item.searchUrl!==SUPPLIER+'/enhancedSearch/'+encodeURIComponent(term))throw Error('SETTINGS_REQUIRED');
+  await page.goto(item.searchUrl||SUPPLIER,{waitUntil:'domcontentloaded',timeout:15000});
+  if(/\/signin(?:[/?]|$)/.test(page.url()))throw Error('LOGIN_REQUIRED');
+  if(new URL(page.url()).origin!==SUPPLIER)throw Error('UNAVAILABLE');
+  stage='GSF_SKU_SEARCH';
+  if(!item.searchUrl){
   const search=page.getByRole('textbox',{name:"Search for OE (cross ref), aftermarket or categories like 'Air filter'",exact:true});
-  await search.fill(term);await search.press('Enter');
+  await search.fill(term,{timeout:15000});await search.press('Enter',{timeout:15000});
+  }
+  stage='GSF_SKU_RESULTS';
   await page.getByRole('heading',{name:'Search Results for "'+term+'"',exact:true}).waitFor({state:'visible',timeout:15000});
   const sku=page.getByRole('main').getByText(item.sku,{exact:true});
-  await uniqueVisible(sku);await sku.click();
+  await sku.waitFor({state:'visible',timeout:15000});
+  await uniqueVisible(sku);stage='GSF_SKU_OPEN_DETAILS';await sku.click({timeout:15000});
   // Prefer the active modal over background main content. Desktop can instead
   // navigate to the separately calibrated full Part Details page.
   const dialog=page.getByRole('dialog',{name:'Part Details',exact:true});
@@ -63,11 +79,14 @@ export async function readProductBySku(page,item) {
     await page.waitForTimeout(200);
   }
   if(!details)throw Error('PRODUCT_DETAILS_NOT_OPEN');
+  stage='GSF_SKU_DETAILS_CONTENT';
   await details.getByRole('heading',{level:5,name:item.description,exact:true}).waitFor({state:'visible',timeout:15000});
+  stage='GSF_SKU_VALIDATE';
   const product=await page.evaluate(readProductDialog);
   if(product.sku!==item.sku || product.brand.toUpperCase()!==item.brand.toUpperCase() || product.description!==item.description)throw Error('REVIEW_REQUIRED');
   return {kind:item.kind,sku:product.sku,brand:product.brand,description:product.description,
     quantityMilli:item.quantityMilli,unitNetPence:Math.ceil(product.unitNetPence*1000/item.packQuantityMilli),vatBasis:'EX_VAT',inStock:true};
+  }catch(error){error.stage=stage;throw error;}
 }
 async function uniqueVisible(locator) {
   if(await locator.count()!==1 || !await locator.isVisible())throw Error('SETTINGS_REQUIRED');

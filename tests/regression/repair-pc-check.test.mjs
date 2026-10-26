@@ -63,6 +63,12 @@ test('catalogue calibration captures product structure without account/input sec
  for(const value of ['999.00','customer@example.com','secret','PRIVATE INPUT','£2.00'])assert.ok(!encoded.includes(value),value);
  assert.throws(()=>inspectRepairCatalogue({registration:'<script>'},document),/INVALID_REGISTRATION/);
 });
+test('expanded catalogue boundary records all group markers and pending pagination/loading',()=>{
+ const {document}=parseHTML('<html><body><main><p>FV65JTY</p><article><p>SKU: DREA8828</p><div><div><div><img src="https://gsfappstorage.blob.core.windows.net/catalogue-assets/Brands/drivetec.svg"><div>£194.74 Silver Alternator - 150 Amp</div><span>Local Branch</span></div><div>£0.00 Bronze Out Of Stock</div><span>Show Less</span></div></div></article></main></body></html>');
+ let capture=inspectRepairCatalogue({registration:'FV65JTY'},document);assert.equal(capture.candidateCount,1);assert.deepEqual(capture.boundary,{version:1,groupSkus:['DREA8828'],unparsedSkuLabels:0,showMore:0,showLess:1,paginationControls:[],loading:false,truncated:false});
+ const next=document.createElement('button');next.setAttribute('aria-label','Go to next page');document.querySelector('main').append(next);const loading=document.createElement('div');loading.setAttribute('aria-busy','true');document.querySelector('main').append(loading);const second=document.createElement('p');second.textContent='SKU: OTHER';document.querySelector('main').append(second);
+ capture=inspectRepairCatalogue({registration:'FV65JTY'},document);assert.equal(capture.boundary.loading,true);assert.equal(capture.boundary.groupSkus.length,2);assert.deepEqual(capture.boundary.paginationControls,['Go to next page']);
+});
 
 import {navigateHaynesRepair} from '../../workers/repair-quotes/haynes-navigation.mjs';
 test('repair navigation searches the requested plate and follows only its verified repair link',async()=>{
@@ -113,6 +119,17 @@ test('GSF Show More expands additional alternatives and never establishes catalo
  const result=await expandGSFAlternatives(page,'FV65JTY');assert.equal(result.candidates.length,2);assert.equal(clicks,1);assert.equal(result.catalogueComplete,false);
  expanded=false;control.click=async()=>{clicks++;};
  await assert.rejects(expandGSFAlternatives(page,'FV65JTY',{timeoutMs:0}),/GSF_MORE_DID_NOT_LOAD/);
+});
+test('fresh GSF render waits for late Show More, then a stable Show Less capture',async()=>{
+ let phase=0,clicks=0,waits=0;
+ const card={text:'£194.74 Silver Alternator - 150 Amp'};
+ const page={evaluate:async()=>({candidates:phase<2?[card]:[card,{text:'£215.32 Gold Alternator'}],boundary:{showMore:phase===1?1:0,showLess:phase>=2?1:0,loading:phase===0}}),getByText:()=>({count:async()=>phase===1?1:0,nth:()=>({isVisible:async()=>true,click:async()=>{clicks++;phase=2;}})}),waitForTimeout:async()=>{waits++;if(phase===0)phase=1;}};
+ const result=await expandGSFAlternatives(page,'FV65JTY',{requireExpanded:true});assert.equal(result.candidates.length,2);assert.equal(result.boundary.showLess,1);assert.equal(clicks,1);assert.ok(waits>=2);
+});
+test('absence of both expansion controls cannot establish a completed fresh list',async()=>{
+ const boundary={showMore:0,showLess:0,loading:false};
+ const page={evaluate:async()=>({candidates:[{text:'half-rendered'}],boundary}),getByText:()=>({count:async()=>0}),waitForTimeout:async()=>{throw Error('Should stop at deadline');}};
+ await assert.rejects(expandGSFAlternatives(page,'FV65JTY',{requireExpanded:true,timeoutMs:0}),error=>error.detail==='GSF_EXPANSION_NOT_READY'&&error.boundaryCheck.showLess===0);
 });
 
 test('reviewed operation scope distinguishes two alternator jobs without hardcoding the time',()=>{

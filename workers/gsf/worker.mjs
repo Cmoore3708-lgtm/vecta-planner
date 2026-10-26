@@ -22,7 +22,7 @@ const profile=process.env.GSF_PROFILE_DIR||resolve(process.env.LOCALAPPDATA||'.'
 const context=await chromium.launchPersistentContext(profile,{channel:'msedge',headless:false,acceptDownloads:false,chromiumSandbox:true});
 let repair=null;
 
-let stopped=false;context.on('close',()=>stopped=true);
+let stopped=false,lastRepairState='';context.on('close',()=>stopped=true);
 process.on('SIGINT',()=>{stopped=true;void context.close();});
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));
 async function rpc(body) {
@@ -43,7 +43,7 @@ try {
   } else {
     console.log('VECTA shared GSF worker started. Service and repair pricing use one supplier browser, with separate pricing policies. No basket or ordering actions.');
     while(!stopped) {
-      if(repair){try{await repair.tick();}catch{console.log('Repair quote connection unavailable; retrying.');}}
+      if(repair){try{const state=await repair.tick();if(state!==lastRepairState){if(state==='IDLE')console.log('Repair quote connection ready. Waiting for Workshop Pro requests.');else if(state==='MATCHED')console.log('Fresh repair quote delivered to Workshop Pro.');else if(state==='DISABLED')console.log('Repair quoting is disabled on Workshop Pro.');lastRepairState=state;}}catch{lastRepairState='';console.log('Repair quote connection unavailable; retrying.');}}
       if(!serviceEnabled){await sleep(2000);continue;}
       let task;
       try {task=await rpc({action:'pull'});}catch(error){if(error.message==='PAIRING_REQUIRED')throw error;console.log('Workshop connection unavailable; retrying.');await sleep(5000);continue;}
