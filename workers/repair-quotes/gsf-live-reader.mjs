@@ -15,11 +15,11 @@ export async function readLiveGSFAlternator(page,request,mapping,config,{now=Dat
  const count=page.locator(config.totalCount);
  if(await count.count()!==1||!await count.isVisible())reject('CATALOGUE_COUNT_NOT_VISIBLE');
  const total=(await count.innerText()).trim();
- if(!/^\d+$/.test(total)||Number(total)<1||Number(total)>100||Number(total)!==snapshot.candidateCount||snapshot.candidates?.length!==snapshot.candidateCount)reject('CATALOGUE_COUNT_MISMATCH');
+ if(!/^\d+$/.test(total)||Number(total)<1||Number(total)>100||snapshot.candidates?.length!==snapshot.candidateCount)reject('CATALOGUE_COUNT_MISMATCH');
  const analysis=analyseAlternatorOptions(snapshot);
- if(analysis.options.length!==Number(total))reject('UNPARSED_CATALOGUE_OPTIONS');
+ if(analysis.displayedOptionCount!==Number(total))reject('UNPARSED_CATALOGUE_OPTIONS');
  if(!analysis.cheapestDisplayedAvailable)throw Object.assign(Error('OUT_OF_STOCK'),{code:'OUT_OF_STOCK'});
  const selected=await verify(page,analysis,mapping.gsfPart,{now});
  if(!selected.priceMatchesCatalogue||selected.unitNetPence!==analysis.cheapestDisplayedAvailable.costPence||selected.brand!==analysis.cheapestDisplayedAvailable.brand||selected.sku!==mapping.gsfPart.sku)reject('SELECTED_PART_CHANGED');
- return {catalogueComplete:true,alternativesChecked:analysis.options.length,parts:[{source:'GSF',registration:request.registration,variant:mapping.variant,fitmentConfirmed:true,vatBasis:selected.vatBasis,sku:selected.sku,brand:selected.brand,description:selected.description,costPence:selected.unitNetPence,corePence:0,inStock:selected.inStock,imageUrl:selected.imageUrl,gsfUrl:selected.gsfUrl,checkedAt:selected.checkedAt}]};
+ return {catalogueComplete:true,alternativesChecked:analysis.displayedOptionCount,parts:[{source:'GSF',registration:request.registration,variant:mapping.variant,fitmentConfirmed:true,vatBasis:selected.vatBasis,sku:selected.sku,brand:selected.brand,description:selected.description,costPence:selected.unitNetPence,corePence:0,inStock:selected.inStock,imageUrl:selected.imageUrl,gsfUrl:selected.gsfUrl,checkedAt:selected.checkedAt}]};
 }

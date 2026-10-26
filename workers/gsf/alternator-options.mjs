@@ -19,8 +19,26 @@ export function analyseAlternatorOptions(snapshot){
  }
  const available=options.filter(row=>row.displayedAvailable).sort((a,b)=>a.costPence-b.costPence||a.brand.localeCompare(b.brand));
  const selected=available[0]||null;
+ // GSF omits the Alternator description from zero-price unavailable cards.
+ // Those cards are absent from the priced-leaf capture but present in its
+ // bounded group container. Account for them without inventing brand or SKU.
+ const container=snapshot.candidates[0].ancestors.find(row=>row.depth===2);
+ let unpricedUnavailableCount=0,expandedGroupOptionsCount=null;
+ if(container&&/\bShow Less$/.test(container.text)){
+  let remaining=container.text.replace(/\s+Show Less$/,'');const parsed=[];
+  while(remaining){
+   const row=remaining.match(/^£(\d+(?:,\d{3})*)\.(\d{2})\s+(Silver|Gold|Bronze)(?:\s+(Alternator(?:\s*-\s*150 Amp)?))?\s+(Local Branch|RDC|Branch Network|Out Of Stock)(?:\s+|$)/i);
+   if(!row)fail();
+   const costPence=Number(row[1].replaceAll(',',''))*100+Number(row[2]);
+   if(costPence===0){if(row[4]||!/^Out Of Stock$/i.test(row[5]))fail();unpricedUnavailableCount++;}
+   else {if(!row[4])fail();parsed.push({costPence,description:row[4],stockLabel:row[5]});}
+   remaining=remaining.slice(row[0].length);
+  }
+  if(parsed.length!==options.length||parsed.some((row,i)=>row.costPence!==options[i].costPence||row.description!==options[i].description||row.stockLabel!==options[i].stockLabel))fail();
+  expandedGroupOptionsCount=parsed.length+unpricedUnavailableCount;
+ }
  const group=snapshot.candidates[0].ancestors.find(row=>/\bSKU:/.test(row.text));
  const displayedGroupSku=group?.text.match(/\bSKU:\s*([A-Z0-9.-]+)/)?.[1]||'';
  const images=snapshot.candidates[0].ancestors.flatMap(row=>row.images||[]).map(row=>row.src).filter(src=>{try{const url=new URL(src);return url.origin==='https://gsfappstorage.blob.core.windows.net'&&/\/ProductImages\//i.test(url.pathname);}catch{return false;}});
- return {status:'DISPLAYED_OPTIONS_ANALYSED',options,cheapestDisplayedAvailable:selected,displayedGroupSku,imageUrl:images[0]||'',catalogueComplete:false,fitmentConfirmed:false,verifiedPart:null};
+ return {status:'DISPLAYED_OPTIONS_ANALYSED',options,unpricedUnavailableCount,displayedOptionCount:options.length+unpricedUnavailableCount,expandedGroupOptionsCount,cheapestDisplayedAvailable:selected,displayedGroupSku,imageUrl:images[0]||'',catalogueComplete:false,fitmentConfirmed:false,verifiedPart:null};
 }

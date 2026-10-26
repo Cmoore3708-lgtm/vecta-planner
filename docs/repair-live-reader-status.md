@@ -9,3 +9,7 @@ This adapter has fixture coverage but is **not calibrated or enabled**. The user
 In a fresh cloud browser test, GSF's visible registration search returned "Vehicle not found" for FV65JTY. This differs from the successful workshop PC run; it does not establish that the vehicle itself is missing or that GSF is generally unavailable. An exact-SKU search continued to work in the same browser.
 
 Remaining evidence needed: a successful fresh vehicle selection and the catalogue's actual complete-option count/pagination behaviour. If GSF exposes no such count, a separately verified enumeration strategy is required; configuring the observed count as a constant would defeat this check. Fresh queue/worker/database testing follows that verification. Main continues to offer only the labelled captured replay.
+
+## Screenshot reconciliation
+
+The user's subsequent expanded-group photo shows ten cards and Show Less: six priced cards and four £0.00 Bronze Out Of Stock cards without an Alternator description. The .9 capture already contains their text in the bounded group container. The analyser now parses that full container, reconciles every priced card against its independent leaf capture and records four unavailable unpriced options. Running the updated analyser against the unchanged .9 report yields ten displayed options and the same cheapest available DriveTec £194.74. Zero-price available cards or unparsed content require review. This establishes the expanded group's displayed options, not the complete vehicle catalogue or a fresh lookup.
