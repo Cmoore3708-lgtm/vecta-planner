@@ -3,7 +3,7 @@ import {expandGSFAlternatives} from './gsf-alternatives.mjs';
 import {analyseAlternatorOptions} from '../gsf/alternator-options.mjs';
 import {verifyRepairSelection} from '../gsf/verify-repair-selection.mjs';
 const reject=detail=>{throw Object.assign(Error('REVIEW_REQUIRED'),{code:'REVIEW_REQUIRED',detail});};
-const normal=value=>String(value||'').trim().replace(/\s+/g,' ').toUpperCase();
+const normal=value=>String(value||'').trim().replace(/\s/g,'').toUpperCase();
 export function confirmExpandedGSF(snapshot,analysis,expectedSku){
  const b=snapshot?.boundary;
  if(!b||b.version!==1||b.truncated!==false||b.loading!==false||b.unparsedSkuLabels!==0||!Array.isArray(b.groupSkus)||b.groupSkus.length!==1||b.groupSkus[0]!==expectedSku||b.showMore!==0||b.showLess!==1||!Array.isArray(b.paginationControls)||b.paginationControls.length)reject('EXPANDED_CATALOGUE_BOUNDARY_UNCONFIRMED');
@@ -17,7 +17,8 @@ export async function readLiveGSFAlternator(page,request,mapping,config,{now=Dat
  const navigation=await navigate(page,request.registration);
  if(navigation.status!=='AUTOMATIC_CATEGORY_REACHED'||navigation.registrationSubmitted!==true||navigation.observed?.selectedRegistration!==true||navigation.observed?.categoryPathMatched!==true)reject('REGISTRATION_NOT_CONFIRMED');
  const snapshot=await expand(page,request.registration);
- if(snapshot.registration!==request.registration||snapshot.identities?.length!==1||normal(snapshot.identities[0].text)!==normal(mapping.gsfIdentity))reject('VEHICLE_IDENTITY_MISMATCH');
+ const identityCheck={requestRegistration:request.registration,capturedRegistration:snapshot.registration||'',identityCount:snapshot.identities?.length||0,expected:normal(mapping.gsfIdentity),observed:(snapshot.identities||[]).slice(0,4).map(row=>normal(row.text).slice(0,220))};
+ if(snapshot.registration!==request.registration||snapshot.identities?.length!==1||identityCheck.observed[0]!==identityCheck.expected){const error=Object.assign(Error('REVIEW_REQUIRED'),{code:'REVIEW_REQUIRED',detail:'VEHICLE_IDENTITY_MISMATCH',identityCheck});throw error;}
  const analysis=analyseAlternatorOptions(snapshot);
  if(config.completionMode==='single-expanded-group')confirmExpandedGSF(snapshot,analysis,mapping.gsfPart.searchTerm);
  else{

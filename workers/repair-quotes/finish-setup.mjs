@@ -20,11 +20,11 @@ const here=path.dirname(fileURLToPath(import.meta.url)),contexts=[];
 const terminal=createInterface({input:process.stdin,output:process.stdout});
 const base=process.platform==='win32'?path.join(process.env.LOCALAPPDATA||here,'VectaRepairQuotes'):path.join(here,'profile');
 const output=path.join(here,'repair-setup-result.local.json');
-const report={version:'2026-10-26.11',checkedAt:new Date().toISOString(),registration:'FV65JTY',purpose:'Read-only setup check; does not enable pricing',fitmentConfirmed:false};
+const report={version:'2026-10-26.12',checkedAt:new Date().toISOString(),registration:'FV65JTY',purpose:'Read-only setup check; does not enable pricing',fitmentConfirmed:false};
 async function open(name,url){const ctx=await chromium.launchPersistentContext((name==='GSF'?path.join(process.env.LOCALAPPDATA||here,'VectaGSF','EdgeProfile'):path.join(base,name)),{headless:false,acceptDownloads:false,...(process.platform==='win32'?{channel:'msedge'}:{})});contexts.push(ctx);const page=ctx.pages()[0]||await ctx.newPage();await page.goto(url,{waitUntil:'domcontentloaded',timeout:20000});return page;}
 const reason=repairBrowserReason;
 const haynesOnly=process.argv.includes('--haynes-only'),gsfOnly=process.argv.includes('--gsf-only'),verifyBoth=process.argv.includes('--verify-quote');
-console.log('VECTA REPAIR QUOTE - FINISH SETUP - 2026-10-26.11');
+console.log('VECTA REPAIR QUOTE - FINISH SETUP - 2026-10-26.12');
 console.log('This checks only. It does not place orders or activate live pricing.');
 try{
  if(!haynesOnly){
@@ -76,7 +76,7 @@ finally{
   const mapping={registration:report.registration,approved:true,reviewedAt:new Date().toISOString(),variant,fitmentEvidence:'GSF registration-filtered alternator group DREA8828; matching Haynes type t_317000375',gsfIdentity:report.gsf.identities[0].text,gsfPart:{searchTerm:'DREA8828',searchUrl:'https://trade.gsfcarparts.com/enhancedSearch/DREA8828',sku:'A8828',brand:'DriveTec',description:'Alternator - 150 Amp'},haynesIdentity:variant,haynesTypeId:'t_317000375',haynesOperationId:'1E02944501WV0',haynesOperationLabel:'Renew the alternator'};
   const config={calibrationApproved:true,vehicles:[mapping],gsf:{readerMode:'verified-alternator-options',completionMode:'single-expanded-group'},haynes:{startUrl:'https://www.workshopdata.com',navigationMode:'workshopdata-registration'}};
   try{const request={registration:report.registration,work:'Supply and fit alternator'},evidence=await lookupRepair({gsfPage:testGSFPage,haynesPage:testHaynesPage},request,config);report.liveQuoteValidation={status:'PASSED_READ_ONLY',quote:calculateRepairQuote(evidence,request)};console.log('Actual worker lookup and quote validation passed. Live pricing remains disabled.');}
-  catch(error){report.liveQuoteValidation={status:'NEEDS_REVIEW',reason:reason(error),detail:error.detail||''};console.log('Actual worker lookup needs review: '+report.liveQuoteValidation.reason+' '+report.liveQuoteValidation.detail);}
+  catch(error){report.liveQuoteValidation={status:'NEEDS_REVIEW',reason:reason(error),detail:error.detail||'',identityCheck:error.identityCheck||null};console.log('Actual worker lookup needs review: '+report.liveQuoteValidation.reason+' '+report.liveQuoteValidation.detail);}
  }
  fs.writeFileSync(output,JSON.stringify(report,null,2)+'\n',{mode:0o600});
  console.log('Saved: '+output);

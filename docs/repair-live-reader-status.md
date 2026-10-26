@@ -26,3 +26,7 @@ VERIFY-QUOTE version 2026-10-26.10 records this boundary. If the first fresh nav
 The 12:05 run automatically submitted FV65JTY and confirmed the expanded group's complete boundary: DREA8828 only, ten options, Show Less, no pagination/loading/truncation. The subsequent independent SKU lookup returned PAGE_TIMEOUT, and Haynes/final validation did not run. The report does not identify which old SKU step timed out.
 
 Checker .11 uses the already browser-verified enhancedSearch/DREA8828 address directly for this reviewed repair mapping, removing the home-page/search-form navigation. It retries that read-only route once on TimeoutError only. Other failures and price/identity/stock mismatches are not retried. It records GSF_SKU_NAVIGATION, RESULTS, OPEN_DETAILS, DETAILS_CONTENT or VALIDATE stages when a step fails. Existing service mappings retain their form-search route. No fresh .11 PC result is claimed yet.
+
+## PC .11 result
+
+The 12:13 run passed automatic registration, complete ten-option boundary, independent A8828/price/VAT/stock/photo verification and Haynes 0.70-hour capture. The redundant second source lookup inside the actual-worker test failed VEHICLE_IDENTITY_MISMATCH. Its compared strings/count were not recorded, so the cause is not established. Version .12 normalises all display whitespace while retaining the exact remaining identity characters, rejects duplicates/different registrations and records bounded expected/observed identity diagnostics. No successful fresh .12 run or live activation is claimed.

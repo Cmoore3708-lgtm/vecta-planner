@@ -28,6 +28,14 @@ test('missing or ambiguous count, partial catalogue, wrong vehicle and unsubmitt
 test('changed cheapest part must be remapped and reviewed rather than substituting its SKU',async()=>{
  for(const change of [{unitNetPence:19000},{sku:'OTHER'},{brand:'Lucas'},{priceMatchesCatalogue:false}]){const f=fixture();Object.assign(f.selected,change);await assert.rejects(readLiveGSFAlternator(f.page,request,mapping,{totalCount:'.count'},f.options),/REVIEW_REQUIRED/);}
 });
+test('identity comparison ignores display spacing but reports and rejects a different or duplicate vehicle',async()=>{
+ const f=fixture();f.snapshot.identities[0].text='  FV65 JTY\n Clear ';
+ assert.equal((await readLiveGSFAlternator(f.page,request,mapping,{totalCount:'.count'},f.options)).parts[0].registration,'FV65JTY');
+ f.snapshot.identities[0].text='XY99ZZZ Clear';
+ await assert.rejects(readLiveGSFAlternator(f.page,request,mapping,{totalCount:'.count'},f.options),error=>error.detail==='VEHICLE_IDENTITY_MISMATCH'&&error.identityCheck.observed[0]==='XY99ZZZCLEAR'&&error.identityCheck.expected==='FV65JTYCLEAR');
+ f.snapshot.identities=[{text:'FV65JTY Clear'},{text:'FV65 JTY Clear'}];
+ await assert.rejects(readLiveGSFAlternator(f.page,request,mapping,{totalCount:'.count'},f.options),error=>error.identityCheck.identityCount===2);
+});
 test('single expanded group rejects pending loading, further pages, other groups and unparsed options',async()=>{
  function complete(){const f=fixture();f.snapshot.boundary={version:1,groupSkus:['DREA8828'],unparsedSkuLabels:0,showMore:0,showLess:1,paginationControls:[],loading:false,truncated:false};const text=f.snapshot.candidates.map(c=>c.ancestors[0].text).join(' ')+' £0.00 Bronze Out Of Stock Show Less';for(const c of f.snapshot.candidates)c.ancestors.push({depth:2,text,images:[]});return f;}
  const good=complete(),result=await readLiveGSFAlternator(good.page,request,mapping,{completionMode:'single-expanded-group'},good.options);assert.equal(result.alternativesChecked,3);
