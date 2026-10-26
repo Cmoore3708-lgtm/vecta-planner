@@ -17,7 +17,7 @@ const now=Date.parse('2026-10-24T21:00:00Z'),secret='a'.repeat(64);
 const request={registration:'NU67VSE',service:'Full Service',mileage:50000,range:'Mid Range'};
 const item=(kind,unitNetPence,quantityMilli=1000)=>({kind,sku:'TEST-'+kind,brand:'Test',description:kind,unitNetPence,quantityMilli,vatBasis:'EX_VAT',inStock:true});
 const result=()=>({request,recipeId:'synthetic-test',vehicle:'Nissan Pulsar',oilSpecification:'SYNTHETIC TEST ONLY',
-  requiredKinds:['oil','oil_filter','air_filter','cabin_filter'],items:[item('oil',600,4500),item('oil_filter',494),item('air_filter',1075),item('cabin_filter',1200)],
+  requiredKinds:['oil','oil_filter','air_filter','cabin_filter'],items:[item('oil',540,5000),item('oil_filter',494),item('air_filter',1075),item('cabin_filter',1200)],
   fitmentVerified:true,scopeVerified:true,oilVerified:true,checkedAt:new Date(now).toISOString()});
 const policy={version:'test-1',markupBps:3000,vatBps:2000,roundUpPence:1,
   labourNetPence:{'Oil & Filter Change':3000,'Full Service':5000,'Major Service':6500}};
@@ -45,6 +45,33 @@ test('round up the final VAT-inclusive amount and reconcile the VAT breakdown',(
   assert.equal(price.totalPence,15000);assert.equal(price.netPence+price.vatPence,15000);
   assert.equal(price.netPence,price.partsNetPence+price.labourNetPence+price.roundingNetPence);
 });
+test('oil charges whole litres using the exact pack fraction before penny rounding and markup',()=>{
+  const costs=result();costs.items[0]={...costs.items[0],quantityMilli:4500,unitNetPence:600,packNetPence:2999,packQuantityMilli:5000};
+  const price=calculateServicePrice(costs,request,{...policy,markupBps:5000},now);
+  assert.equal(price.lines[0].quantityMilli,4500);assert.equal(price.lines[0].chargedQuantityMilli,5000);
+  assert.equal(price.lines[0].costNetPence,2999); // Synthetic £29.99 / 5L × 5 charged litres.
+  assert.equal(price.lines[0].sellNetPence,4499);
+  costs.items[0].quantityMilli=6700;
+  const seven=calculateServicePrice(costs,request,{...policy,markupBps:5000},now);
+  assert.equal(seven.lines[0].chargedQuantityMilli,7000);assert.equal(seven.lines[0].costNetPence,4199);
+  assert.equal(seven.lines[0].sellNetPence,6299);
+  assert.equal(publicServicePrice(seven).items[0].quantityMilli,6700);
+  assert.equal(publicServicePrice(seven).items[0].chargedQuantityMilli,7000);
+  costs.items[0].quantityMilli=6000;
+  assert.equal(calculateServicePrice(costs,request,policy,now).lines[0].chargedQuantityMilli,6000);
+  const safe=JSON.stringify(publicServicePrice(price));
+  assert.equal(safe.includes('packNetPence'),false);assert.equal(safe.includes('packQuantityMilli'),false);
+  for(const patch of [{packNetPence:undefined},{packQuantityMilli:0},{packQuantityMilli:250001},{unitNetPence:601}]) {
+    const broken={...costs,items:costs.items.map((row,i)=>i===0?{...row,...patch}:row)};
+    assert.throws(()=>cleanServiceCosts(broken,request,now));
+  }
+});
+test('per-litre oil prices also round the charge quantity up without changing filter quantities',()=>{
+  const costs=result();costs.items[0]={...costs.items[0],unitNetPence:600,quantityMilli:6700};
+  const price=calculateServicePrice(costs,request,policy,now);
+  assert.equal(price.lines[0].costNetPence,4200);assert.equal(price.lines[0].chargedQuantityMilli,7000);
+  assert.equal(price.lines[1].chargedQuantityMilli,1000);
+});
 test('unknown VAT, missing oil, unverified fitment and stale costs cannot become prices',()=>{
   for(const patch of [{fitmentVerified:false},{scopeVerified:false},{oilVerified:false},{checkedAt:'2020-01-01'},
     {items:result().items.filter(row=>row.kind!=='oil')},{items:result().items.map(row=>({...row,vatBasis:'UNKNOWN'}))},
@@ -67,6 +94,7 @@ test('booking saves the signed price and parts, keeps MOT discount and rejects a
   const body={registration:request.registration,service_choice:request.service,mileage:'50000',parts_range:request.range,service_price_token:quote.token};
   const booking=bookingServicePrice(body,['Full Service','MOT'],secret);
   assert.equal(booking.approximateCost,205.32);assert.match(booking.snapshot,/145.32 including VAT/);assert.match(booking.snapshot,/TEST-oil_filter/);
+  assert.match(booking.snapshot,/Required 5L; charged 5L/);
   assert.throws(()=>bookingServicePrice({...body,mileage:'60000'},['Full Service'],secret));
   assert.equal(bookingServicePrice({},['MOT']),null);
 });
@@ -143,6 +171,8 @@ test('approved-SKU worker uses saved fitment evidence and checks the selected pr
   const item={kind:'oil_filter',sku:'23.265.00',searchTerm:'UFI23.265.00',brand:'UFI',description:'Oil Filter - Spin-on Filter',quantityMilli:1000,packQuantityMilli:1000};
   const result=await readProductBySku(page,item);assert.equal(result.unitNetPence,494);
   assert.deepEqual(calls,[['goto','https://trade.gsfcarparts.com'],['fill','UFI23.265.00'],['press','Enter'],['click-sku']]);
+  const oil=await readProductBySku(page,{...item,kind:'oil',quantityMilli:4500,packQuantityMilli:5000});
+  assert.equal(oil.packNetPence,494);assert.equal(oil.packQuantityMilli,5000);
   await assert.rejects(readProductBySku(page,{...item,brand:'WRONG'}),/REVIEW_REQUIRED/);
   assert.throws(()=>approvedRecipe({calibrationApproved:true,lookupMode:'approved-skus',recipes:[{...request,approved:true,reviewedAt:new Date(now).toISOString()}]},request,now),/REVIEW_REQUIRED/);
 });

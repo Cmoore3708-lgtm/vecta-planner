@@ -2,13 +2,13 @@
   "vehicles": [
     {"registration": "NU67VSE", "mileage": null, "range": "Mid Range"},
     {"registration": "FV65JTY", "mileage": null, "range": "Mid Range"},
-    {"registration": "CM14KEL", "mileage": null, "range": "Mid Range"},
-    {"registration": "K24TTE", "mileage": null, "range": "Mid Range"},
-    {"registration": "", "mileage": null, "range": "Mid Range"},
-    {"registration": "", "mileage": null, "range": "Mid Range"},
-    {"registration": "", "mileage": null, "range": "Mid Range"},
-    {"registration": "", "mileage": null, "range": "Mid Range"},
-    {"registration": "", "mileage": null, "range": "Mid Range"},
-    {"registration": "", "mileage": null, "range": "Mid Range"}
+    {"registration": "NJ66GXH", "mileage": null, "range": "Mid Range"},
+    {"registration": "LS10PET", "mileage": null, "range": "Mid Range"},
+    {"registration": "KE65BPK", "mileage": null, "range": "Mid Range"},
+    {"registration": "PA14GEO", "mileage": null, "range": "Mid Range"},
+    {"registration": "KX58PNV", "mileage": null, "range": "Mid Range"},
+    {"registration": "NA63UKO", "mileage": null, "range": "Mid Range"},
+    {"registration": "PO11YFC", "mileage": null, "range": "Mid Range"},
+    {"registration": "JH08URN", "mileage": null, "range": "Mid Range"}
   ]
 }

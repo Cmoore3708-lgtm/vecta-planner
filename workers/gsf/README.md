@@ -2,6 +2,12 @@
 
 The queue, pricing engine, signed booking prices and PC worker are implemented. Production remains disabled. **Automatic coverage of arbitrary registrations is not complete.**
 
+## Shared worker decision — 26 October 2026
+
+Do not install or start another GSF worker from this amendment. PR #361 (`amendment/repair-quote-lookup`) already extends the runner to poll the service and repair queues serially in one GSF browser/profile. Complete the workshop-PC navigation/fitment setup there. The old standalone setup and comparison shortcuts below are retained for development history, not a second production installation.
+
+This amendment owns the service calculation, service queue, signed booking prices and service comparison. The repair amendment owns the combined runner and repair quoting. Preserve the combined runner when integrating the branches; never overwrite it with this branch's older service-only `worker.mjs`. See `docs/gsf-service-pricing-handoff.md` for the integration contract and verification blockers.
+
 ## Investigation results
 
 In the signed-in research browser, exact part-number search works. Searching `UFI23.265.00` returns a product card with SKU `23.265.00`; clicking that SKU opens the **Part Details** dialog. Its rendered fields explicitly show UFI, £4.94 **ex vat**, £5.93 including VAT, RRP £20.18, and positive stock in Boldon/RDC/NDC. RRP is not the account cost.
@@ -18,7 +24,7 @@ These observations establish one filter product price and the dialog layout. The
 4. The server applies parts markup, preset net labour, VAT and rounding. Only the customer price and selected parts reach the booking browser.
 5. An unknown/unreviewed vehicle, failed lookup or expired sign-in retains the existing engine-band guide price. Saved fitment evidence allows known vehicles to be repriced without relying on GSF's failing registration-selection action.
 
-Oil sold in packs is converted to a per-litre cost, rounded up to a penny, then multiplied by the verified fill quantity. Manufacturer oil specification and pack size must be checked; engine size is not an oil-capacity source.
+Oil sold in packs retains its original net pack price and verified pack size. Chris's 26 October instruction rounds the charged oil quantity up to the next whole litre: 6.7L is charged as 7L, while exactly 7L remains 7L. The verified actual fill is retained separately. The cost is `packNetPence × chargedMl / packMl`, rounded once to a penny before markup. This avoids rounding the per-litre rate first. Older per-litre results remain readable, but the updated readers return the exact pack evidence for new quotes. Manufacturer oil specification and pack size must be checked; engine size is not an oil-capacity source.
 
 The older selector-based `readProduct` path is retained for verified vehicle-catalogue workflows. It is not the default; the new SKU/dialog path needs no hand-entered product CSS selectors or invented product URLs.
 
@@ -27,6 +33,7 @@ The older selector-based `readProduct` path is retained for verified vehicle-cat
 `pricing-policy.example.json` now contains Chris's requested **trial scenario**, not activated production configuration:
 
 - 50% markup on purchase costs: parts and oil cost × 1.5.
+- Oil quantity is charged at the next whole litre before the markup. Booking evidence records both the required fill and the charged litres.
 - Oil & Filter Change labour: £35; Full Service: £70; Major Service: £110.
 - Labour is interpreted as excluding VAT; 20% VAT is applied once to the resulting total.
 - Exact penny totals; no £5/£10 rounding.
@@ -35,7 +42,7 @@ Example equations: oil/filter = `(1.5 × applicable costs + 35) × 1.20`; full =
 
 ## Independent PC price check
 
-The downloadable package now has a top-level **START-HERE.cmd**. Extract All and run that file. It delegates to `workers/gsf/setup.cmd`, which checks Node 22+, Microsoft Edge and the local profile directory, installs locked dependencies, runs `self-check.mjs`, then opens the automatic price check.
+**Paused: use the shared worker setup in PR #361.** The old downloadable package has a top-level **START-HERE.cmd**, which delegates to `workers/gsf/setup.cmd`. It is not the combined service/repair installation.
 
 Stop any existing GSF worker first. Sign in directly in the dedicated Edge window if needed, then press Enter in the terminal. The script searches the known UFI test product automatically and validates the selected SKU, brand, description, price, VAT and stock. It saves selected product fields to `gsf-product-capture.local.json`; failures after browser launch save a small `gsf-check-diagnostic.local.json` where possible. Neither file contains passwords, cookies, VINs, account details or page HTML. The product capture is deliberately marked **fitment not verified**.
 
@@ -45,7 +52,9 @@ This check does not need queue credentials, database changes or website activati
 
 ## Prepared ten-car comparison
 
-`COMPARE-TEN-CARS.cmd` runs a sequential local comparison using the approved worker mappings. Copy `comparison-input.example.json` to `comparison-input.local.json`, select ten different registrations and complete their mileage/range details. The template has four observed registrations and six intentionally empty slots. A missing or duplicate registration is rejected.
+`comparison-input.example.json` now contains the ten registrations previously selected from Workshop Pro: NU67VSE, FV65JTY, NJ66GXH, LS10PET, KE65BPK, PA14GEO, KX58PNV, NA63UKO, PO11YFC and JH08URN. Mileage remains explicitly unknown rather than inferred from an old MOT. A missing or duplicate registration is rejected.
+
+Before any browser work, run `node scripts/gsf-service-readiness.mjs [path-to-approved-config]` from the repository. This offline audit checks all thirty vehicle/service combinations and reports missing fitment, scope, oil, mileage or review evidence. `READY_FOR_LIVE_PRICE_CHECK` is not a verified price. No prices or approvals are invented and no browser is launched. The same comparison functions can consume results from the shared runner; do not start the legacy standalone comparison alongside it.
 
 The runner needs an approved `gsf-config.local.json` with the correct filter fitments, oil specification/quantity and service scope for each combination. It refreshes costs and calculates all three services using the 50% trial policy, saving `service-comparison.local.json`, a readable Markdown table and a CSV. A missing/unverified combination is marked **Needs verification**, with no fabricated or zero price. This standalone comparison does not activate the website or need backend credentials.
 

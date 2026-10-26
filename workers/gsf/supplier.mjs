@@ -56,7 +56,8 @@ export async function readProductBySku(page,item) {
   const product=await page.evaluate(readProductDialog);
   if(product.sku!==item.sku || product.brand.toUpperCase()!==item.brand.toUpperCase() || product.description!==item.description)throw Error('REVIEW_REQUIRED');
   return {kind:item.kind,sku:product.sku,brand:product.brand,description:product.description,
-    quantityMilli:item.quantityMilli,unitNetPence:Math.ceil(product.unitNetPence*1000/item.packQuantityMilli),vatBasis:'EX_VAT',inStock:true};
+    quantityMilli:item.quantityMilli,unitNetPence:Math.ceil(product.unitNetPence*1000/item.packQuantityMilli),
+    ...(item.kind==='oil'?{packNetPence:product.unitNetPence,packQuantityMilli:item.packQuantityMilli}:{}),vatBasis:'EX_VAT',inStock:true};
 }
 async function uniqueVisible(locator) {
   if(await locator.count()!==1 || !await locator.isVisible())throw Error('SETTINGS_REQUIRED');
@@ -80,7 +81,8 @@ export async function readProduct(page,item) {
   // Oil may be sold in 5L packs; charge only the verified fill quantity.
   const unitNetPence=Math.ceil(packNetPence*1000/item.packQuantityMilli);
   return {kind:item.kind,sku:item.sku,brand:item.brand,description:item.description,
-    quantityMilli:item.quantityMilli,unitNetPence,vatBasis:'EX_VAT',inStock:true};
+    quantityMilli:item.quantityMilli,unitNetPence,
+    ...(item.kind==='oil'?{packNetPence,packQuantityMilli:item.packQuantityMilli}:{}),vatBasis:'EX_VAT',inStock:true};
 }
 export async function lookupService(page,raw,config) {
   const request=servicePriceRequest(raw),recipe=approvedRecipe(config,request);

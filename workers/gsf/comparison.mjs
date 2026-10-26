@@ -21,7 +21,8 @@ export async function compareServices(vehicles,policy,lookup) {
         const price=calculateServicePrice(costs,request,policy);
         row.services[service]={status:'PRICED',totalPence:price.totalPence,netPence:price.netPence,vatPence:price.vatPence,
           recipeId:price.recipeId,oilSpecification:price.oilSpecification,checkedAt:price.checkedAt,
-          parts:price.lines.map(({sku,brand,description,quantityMilli,costNetPence,sellNetPence})=>({sku,brand,description,quantityMilli,costNetPence,sellNetPence}))};
+          parts:price.lines.map(({kind,sku,brand,description,quantityMilli,chargedQuantityMilli,costNetPence,sellNetPence})=>
+            ({kind,sku,brand,description,quantityMilli,chargedQuantityMilli,costNetPence,sellNetPence}))};
       } catch(error) {
         row.services[service]={status:['LOGIN_REQUIRED','SETTINGS_REQUIRED','REVIEW_REQUIRED','UNAVAILABLE'].includes(error.message)?error.message:'REVIEW_REQUIRED'};
       }
@@ -33,7 +34,7 @@ export async function compareServices(vehicles,policy,lookup) {
 const priceCell=value=>value.status==='PRICED'?'£'+(value.totalPence/100).toFixed(2):'Needs verification';
 export function comparisonMarkdown(rows,policy) {
   const labour=SERVICES.map(service=>'£'+(policy.labourNetPence[service]/100).toFixed(2)).join('/');
-  return '# VECTA service price comparison\n\nPrices include '+(policy.markupBps/100)+'% parts/oil markup, preset net labour ('+labour+'), then '+(policy.vatBps/100)+'% VAT.\nUnverified combinations have no calculated price.\n\n'+
+  return '# VECTA service price comparison\n\nOil quantity is charged at the next whole litre (6.7L is charged as 7L). Prices include '+(policy.markupBps/100)+'% parts/oil markup, preset net labour ('+labour+'), then '+(policy.vatBps/100)+'% VAT.\nUnverified combinations have no calculated price.\n\n'+
     '| Registration | Oil & filter | Full service | Major service |\n|---|---:|---:|---:|\n'+
     rows.map(row=>'| '+row.registration+' | '+SERVICES.map(service=>priceCell(row.services[service])).join(' | ')+' |').join('\n')+'\n';
 }
