@@ -6,7 +6,8 @@ const analysis={displayedGroupSku:'DREA8828',cheapestDisplayedAvailable:{brand:'
 const captured={sku:'A8828',brand:'DriveTec',description:'Alternator - 150 Amp',unitNetPence:19474,costIncVatPence:23369,vatBasis:'EX_VAT',inStock:true,stock:[{location:'Boldon',quantity:1}],imageUrl:'https://gsfappstorage.blob.core.windows.net/catalogue-assets//ProductImages/WAI/21126N_B1.jpg'};
 test('selected catalogue option is checked against a fresh exact-SKU product read',async()=>{
  let lookups=0;
- const result=await verifyRepairSelection({evaluate:async()=>captured},analysis,mapping,{lookup:async(page,item)=>{lookups++;assert.equal(item.searchTerm,'DREA8828');assert.equal(item.sku,'A8828');},now:()=>1000});
+ const result=await verifyRepairSelection({evaluate:async()=>captured,url:()=> 'https://trade.gsfcarparts.com/enhancedSearch/DREA8828'},analysis,mapping,{lookup:async(page,item)=>{lookups++;assert.equal(item.searchTerm,'DREA8828');assert.equal(item.sku,'A8828');},now:()=>1000});
+ assert.equal(result.gsfUrl,'https://trade.gsfcarparts.com/enhancedSearch/DREA8828');
  assert.equal(lookups,1);assert.equal(result.unitNetPence,19474);assert.equal(result.priceMatchesCatalogue,true);assert.equal(result.catalogueComplete,false);assert.equal(result.fitmentConfirmed,false);assert.equal(result.checkedAt,'1970-01-01T00:00:01.000Z');
 });
 test('changed price, identity, VAT, stock or missing image prevents verification',async()=>{

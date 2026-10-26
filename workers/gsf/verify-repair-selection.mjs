@@ -1,3 +1,4 @@
+import {repairPartUrl} from '../../lib/repair-quote.js';
 import {readProductBySku} from './supplier.mjs';
 import {readProductDialog} from './product-dialog.mjs';
 const review=()=>{throw Object.assign(Error('REVIEW_REQUIRED'),{code:'REVIEW_REQUIRED'});};
@@ -9,5 +10,5 @@ export async function verifyRepairSelection(page,analysis,reviewedPart,{lookup=r
  await lookup(page,{...reviewedPart,kind:'repair_part',quantityMilli:1000,packQuantityMilli:1000});
  const part=await page.evaluate(readProductDialog);
  if(part.sku!==reviewedPart.sku||part.brand!==choice.brand||part.description!==choice.description||part.unitNetPence!==choice.costPence||part.vatBasis!=='EX_VAT'||part.inStock!==true||!part.stock?.some(row=>Number.isSafeInteger(row.quantity)&&row.quantity>0)||!part.imageUrl)review();
- return {source:'GSF',...part,checkedAt:new Date(now()).toISOString(),priceMatchesCatalogue:true,fitmentConfirmed:false,catalogueComplete:false};
+ return {source:'GSF',...part,gsfUrl:repairPartUrl(typeof page.url==='function'?page.url():''),checkedAt:new Date(now()).toISOString(),priceMatchesCatalogue:true,fitmentConfirmed:false,catalogueComplete:false};
 }
