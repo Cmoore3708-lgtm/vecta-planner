@@ -285,3 +285,14 @@ include this bounded analysis in subsequent results.
 Next navigation evidence needed: the visible GSF URL of the final alternator
 category page, to establish a reviewed category route rather than guessing menu
 labels after the Rotating timeout. No further Haynes test is needed for FV65JTY.
+
+### Confirmed alternator route
+Chris supplied https://trade.gsfcarparts.com/parts/Alternator from his signed-in
+browser. The navigation path now searches the registration, confirms selected
+registration evidence, opens this exact category URL, then waits for both the
+selected registration and priced alternator choices. The category address itself
+does not establish fitment. Lost vehicle state or a different destination fails
+review. This bypasses the timed-out Rotating menu rather than guessing its label.
+The production adapter supports gsf.navigationMode:gsf-alternator-category; other
+vehicle identity/VAT/catalogue completeness gates remain mandatory. Setup .7 uses
+the same route and still requires a live automatic navigation run.

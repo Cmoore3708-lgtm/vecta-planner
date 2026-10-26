@@ -15,11 +15,11 @@ const here=path.dirname(fileURLToPath(import.meta.url)),contexts=[];
 const terminal=createInterface({input:process.stdin,output:process.stdout});
 const base=process.platform==='win32'?path.join(process.env.LOCALAPPDATA||here,'VectaRepairQuotes'):path.join(here,'profile');
 const output=path.join(here,'repair-setup-result.local.json');
-const report={version:'2026-10-26.6',checkedAt:new Date().toISOString(),registration:'FV65JTY',purpose:'Read-only setup check; does not enable pricing',fitmentConfirmed:false};
+const report={version:'2026-10-26.7',checkedAt:new Date().toISOString(),registration:'FV65JTY',purpose:'Read-only setup check; does not enable pricing',fitmentConfirmed:false};
 async function open(name,url){const ctx=await chromium.launchPersistentContext((name==='GSF'?path.join(process.env.LOCALAPPDATA||here,'VectaGSF','EdgeProfile'):path.join(base,name)),{headless:false,acceptDownloads:false,...(process.platform==='win32'?{channel:'msedge'}:{})});contexts.push(ctx);const page=ctx.pages()[0]||await ctx.newPage();await page.goto(url,{waitUntil:'domcontentloaded',timeout:20000});return page;}
 const reason=repairBrowserReason;
 const haynesOnly=process.argv.includes('--haynes-only'),gsfOnly=process.argv.includes('--gsf-only');
-console.log('VECTA REPAIR QUOTE - FINISH SETUP - 2026-10-26.6');
+console.log('VECTA REPAIR QUOTE - FINISH SETUP - 2026-10-26.7');
 console.log('This checks only. It does not place orders or activate live pricing.');
 try{
  if(!haynesOnly){

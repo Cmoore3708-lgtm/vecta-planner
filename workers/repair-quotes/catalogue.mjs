@@ -1,3 +1,4 @@
+import {navigateGSFAlternator} from './gsf-navigation.mjs';
 import {navigateHaynesRepair} from './haynes-navigation.mjs';
 import {readAlternatorTime} from './repair-time-reader.mjs';
 import {repairRequest,cleanRepairEvidence} from '../../lib/repair-quote.js';
@@ -84,7 +85,8 @@ export async function lookupRepair({gsfPage,haynesPage},raw,config,{now=Date.now
  if(!g||!h||!/^https:\/\//.test(h.startUrl||''))fail('SETTINGS_REQUIRED');
  const haynesOrigin=new URL(h.startUrl).origin;
  if(!/^(?:https:\/\/)(?:[a-z0-9-]+\.)*(?:haynespro\.com|workshopdata\.com)$/.test(haynesOrigin))fail('SETTINGS_REQUIRED');
- await navigate(gsfPage,g,request,GSF_ORIGIN);
+ if(g.navigationMode==='gsf-alternator-category')await navigateGSFAlternator(gsfPage,request.registration);
+ else await navigate(gsfPage,g,request,GSF_ORIGIN);
  const identity=await read(gsfPage,g.identity);
  if(normal(identity)!==normal(mapping.gsfIdentity)||!normal(identity).replace(/\s/g,'').includes(request.registration))fail('REVIEW_REQUIRED');
  if(normal(await read(gsfPage,g.vatBasis))!=='EX VAT')fail('REVIEW_REQUIRED');

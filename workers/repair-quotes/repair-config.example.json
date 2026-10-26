@@ -1,6 +1,7 @@
 {
   "calibrationApproved": false,
   "gsf": {
+    "navigationMode": "gsf-alternator-category",
     "startUrl": "https://trade.gsfcarparts.com",
     "registrationInput": "",
     "registrationSubmit": "",

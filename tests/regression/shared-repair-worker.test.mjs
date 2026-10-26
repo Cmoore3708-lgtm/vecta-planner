@@ -44,8 +44,16 @@ import {navigateGSFAlternator} from '../../workers/repair-quotes/gsf-navigation.
 test('GSF calibration enters the requested plate and clicks only observed category controls',async()=>{
  const actions=[];
  const control=label=>({waitFor:async()=>{},count:async()=>1,isVisible:async()=>true,fill:async value=>actions.push(value),click:async()=>actions.push(label)});
- const page={url:()=> 'https://trade.gsfcarparts.com',getByPlaceholder:label=>{assert.equal(label,'ENTER REG / VIN');return control(label);},getByRole:(role,{name})=>control(name),getByText:label=>control(label),evaluate:async()=>({identities:[{text:'FV65JTY Clear'}],candidateCount:2})};
+ let current='https://trade.gsfcarparts.com';
+ const page={url:()=>current,goto:async url=>{current=url;actions.push(url);},getByPlaceholder:label=>{assert.equal(label,'ENTER REG / VIN');return control(label);},getByRole:(role,{name})=>control(name),getByText:label=>control(label),evaluate:async()=>({identities:[{text:'FV65JTY Clear'}],candidateCount:2})};
  const result=await navigateGSFAlternator(page,'FV65JTY');
- assert.deepEqual(actions,['FV65JTY','Search VRM Button','All categories','Electrical','Rotating','Alternator']);assert.equal(result.fitmentConfirmed,false);assert.equal(result.catalogueComplete,false);
+ assert.deepEqual(actions,['FV65JTY','Search VRM Button','https://trade.gsfcarparts.com/parts/Alternator']);assert.equal(result.fitmentConfirmed,false);assert.equal(result.catalogueComplete,false);
  await assert.rejects(navigateGSFAlternator({...page,url:()=> 'https://elsewhere.example'},'FV65JTY'),/LOGIN_REQUIRED/);
+});
+
+test('direct category navigation refuses a lost registration selection',async()=>{
+ let current='https://trade.gsfcarparts.com',waits=0;
+ const control={waitFor:async()=>{},count:async()=>1,fill:async()=>{},click:async()=>{}};
+ const page={url:()=>current,goto:async url=>{current=url;},getByPlaceholder:()=>control,getByRole:()=>control,evaluate:async()=>({identities:current.endsWith('/parts/Alternator')?[]:[{text:'FV65JTY Clear'}],candidateCount:6}),waitForTimeout:async()=>{waits++;}};
+ await assert.rejects(navigateGSFAlternator(page,'FV65JTY'),error=>error.code==='REVIEW_REQUIRED'&&error.stage==='GSF_CATALOGUE_READY');assert.equal(waits,60);
 });
