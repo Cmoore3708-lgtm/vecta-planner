@@ -19,7 +19,8 @@ test('capture reports a specific reason without assuming a time',()=>{const {doc
 test('unpriced menu label does not conflict with the one repair-time row',()=>{const {document}=parseHTML('<html><body><p>Total time (H)</p><nav><span>Renew the alternator</span></nav><table><tr><td>1E02944501WV0</td><td>Renew the alternator</td><td>0.70</td></tr></table></body></html>');assert.equal(readAlternatorTime(document).hoursMilli,700);});
 test('identical repeated rows deduplicate but different operation codes still require review',()=>{const row='<tr><td>1E02944501WV0</td><td>Renew the alternator</td><td>0.70</td></tr>';const {document}=parseHTML('<html><body><p>Total time (H)</p><table>'+row+row+'</table></body></html>');assert.equal(readAlternatorTime(document).hoursMilli,700);document.querySelectorAll('tr')[1].querySelector('td').textContent='OTHEROPERATION';assert.throws(()=>readAlternatorTime(document),/MULTIPLE_PRICED_OPERATIONS/);});
 test('div rows with different wrappers/OE details deduplicate by operation code and time',()=>{const {document}=parseHTML('<html><body><p>Total time (H)</p><div><span>1E02944501WV0</span><span>Renew the alternator</span><span>0.70</span></div><div><span>1E02944501WV0</span><span>Renew the alternator</span><span>OE: 1181M9</span><span>0.70</span></div></body></html>');const result=readAlternatorTime(document);assert.equal(result.hoursMilli,700);assert.equal(result.operationId,'1E02944501WV0');document.querySelectorAll('div')[1].lastElementChild.textContent='1.10';assert.throws(()=>readAlternatorTime(document),/MULTIPLE_PRICED_OPERATIONS/);});
-test('operation outside the visible screen does not create a second priced match',()=>{
+test('operation outside the visible screen does not create a second priced match',t=>{
+ t.after(()=>{delete globalThis.innerHeight;delete globalThis.innerWidth;});
  const row=(id,time)=>'<div><span>'+id+'</span><span>Renew the alternator</span><span>'+time+'</span></div>';
  const {document}=parseHTML('<html><body><p>Total time (H)</p>'+row('1E02944501WV0','0.70')+row('1D01901429WV0','0.30')+'</body></html>');
  document.defaultView.innerHeight=1000;document.defaultView.innerWidth=1000;document.querySelectorAll('*').forEach(el=>{el.getBoundingClientRect=()=>({left:10,right:100,top:50,bottom:70,width:90,height:20});});const hidden=document.querySelectorAll('body > div')[1];hidden.querySelectorAll('*').forEach(el=>{el.getBoundingClientRect=()=>({left:10,right:100,top:-50,bottom:-30,width:90,height:20});});
@@ -112,4 +113,29 @@ test('GSF Show More expands additional alternatives and never establishes catalo
  const result=await expandGSFAlternatives(page,'FV65JTY');assert.equal(result.candidates.length,2);assert.equal(clicks,1);assert.equal(result.catalogueComplete,false);
  expanded=false;control.click=async()=>{clicks++;};
  await assert.rejects(expandGSFAlternatives(page,'FV65JTY',{timeoutMs:0}),/GSF_MORE_DID_NOT_LOAD/);
+});
+
+test('reviewed operation scope distinguishes two alternator jobs without hardcoding the time',()=>{
+ const {document}=parseHTML('<html><body><p>Total time (H)</p><ul><li><span>1E02944501WV0 Renew the alternator</span><span>0.70</span></li><li><span>1D01901429WV0 Renew the alternator</span><span>0.30</span></li></ul></body></html>');
+ assert.throws(()=>readAlternatorTime(document),/MULTIPLE_PRICED_OPERATIONS/);
+ assert.equal(readAlternatorTime({operationId:'1E02944501WV0'},document).hoursMilli,700);
+ assert.equal(readAlternatorTime({operationId:'1D01901429WV0'},document).hoursMilli,300);
+ document.querySelector('li').lastElementChild.textContent='1.10';
+ assert.equal(readAlternatorTime({operationId:'1E02944501WV0'},document).hoursMilli,1100);
+ document.querySelector('li').insertAdjacentHTML('beforeend','<span>2.00</span>');
+ assert.throws(()=>readAlternatorTime({operationId:'1E02944501WV0'},document),/MULTIPLE_TIMES/);
+ assert.throws(()=>readAlternatorTime({operationId:'1E00000000WV0'},document),/TIME_NOT_FOUND/);
+});
+test('hours header may be outside viewport after scrolling to the reviewed operation',t=>{
+ t.after(()=>{delete globalThis.innerHeight;delete globalThis.innerWidth;});
+ const {document}=parseHTML('<html><body><p>Total time (H)</p><ul><li><span>1E02944501WV0 Renew the alternator</span><span>0.70</span></li></ul></body></html>');
+ document.defaultView.innerHeight=1000;document.defaultView.innerWidth=1000;
+ document.querySelectorAll('*').forEach(el=>{el.getBoundingClientRect=()=>({left:10,right:100,top:50,bottom:70,width:90,height:20});});
+ document.querySelector('p').getBoundingClientRect=()=>({left:10,right:100,top:-50,bottom:-30,width:90,height:20});
+ assert.equal(readAlternatorTime({operationId:'1E02944501WV0'},document).hoursMilli,700);
+});
+test('worker passes the reviewed operation to browser capture and retains the specific rejection',async()=>{
+ const mapping={registration:'FV65JTY',haynesOperationId:'1E02944501WV0',haynesOperationLabel:'Renew the alternator'};
+ const page={frames:()=>[{url:()=> 'https://www.workshopdata.com/touch/site/layout/repairTimes',evaluate:async(fn,arg)=>{assert.equal(arg.operationId,mapping.haynesOperationId);throw Error('LABOUR_REVIEW_REQUIRED:HOURS_UNIT_NOT_CONFIRMED');}}]};
+ await assert.rejects(readReviewedHaynesOperation(page,mapping,'https://www.workshopdata.com'),error=>error.detail==='HOURS_UNIT_NOT_CONFIRMED');
 });

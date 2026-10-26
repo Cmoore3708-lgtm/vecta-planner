@@ -41,25 +41,28 @@ async function navigate(page,config,request,origin){
 }
 // Vehicle identity is checked by the caller before reading any operation.
 export async function readReviewedHaynesOperation(page,mapping,origin){
- const captures=[];
+ const reject=detail=>{throw Object.assign(Error('LABOUR_REVIEW_REQUIRED'),{code:'LABOUR_REVIEW_REQUIRED',detail});};
+ if(!/^[0-9][A-Z0-9]{9,23}$/.test(mapping.haynesOperationId||''))reject('INVALID_OPERATION_ID');
+ const captures=[],reasons=[];
  for(const frame of page.frames()){
   let url;try{url=new URL(frame.url());}catch{continue;}
   if(url.origin!==origin)continue;
-  try{captures.push(await frame.evaluate(readAlternatorTime));}
+  try{captures.push(await frame.evaluate(readAlternatorTime,{operationId:mapping.haynesOperationId}));}
   catch(error){
-   // A frame containing conflicting operations must never be silently skipped.
-   if(/MULTIPLE_TIMES|MULTIPLE_PRICED_OPERATIONS/.test(error.message||''))fail('LABOUR_REVIEW_REQUIRED');
+   const detail=String(error.message||'').match(/LABOUR_REVIEW_REQUIRED:([A-Z_]+)/)?.[1]||'FRAME_UNAVAILABLE';
+   reasons.push(detail);
+   if(/MULTIPLE_TIMES|MULTIPLE_PRICED_OPERATIONS/.test(detail))reject(detail);
   }
  }
- if(!captures.length)fail('LABOUR_REVIEW_REQUIRED');
+ if(!captures.length)reject(reasons[0]||'NO_MATCHING_FRAME');
  const label=String(mapping.haynesOperationLabel||'').trim();
  const plate=String(mapping.registration||'').replace(/\s/g,'').toUpperCase();
  for(const result of captures){
-  if(result.operationId!==mapping.haynesOperationId||!label||!normal(result.operationText).includes(normal(label))||
-    (result.registrationVisible&&result.registrationVisible!==plate))fail('LABOUR_REVIEW_REQUIRED');
+  if(result.operationId!==mapping.haynesOperationId||!label||!normal(result.operationText).includes(normal(label)))reject('OPERATION_MISMATCH');
+  if(result.registrationVisible&&result.registrationVisible!==plate)reject('REGISTRATION_MISMATCH');
  }
  const values=new Set(captures.map(result=>result.operationId+'|'+result.hoursMilli));
- if(values.size!==1)fail('LABOUR_REVIEW_REQUIRED');
+ if(values.size!==1)reject('CONFLICTING_FRAME_TIMES');
  const result=captures[0];
  return {operationId:result.operationId,operationLabel:label,hoursMilli:parseHours(String(result.hoursMilli/1000),result.unit)};
 }

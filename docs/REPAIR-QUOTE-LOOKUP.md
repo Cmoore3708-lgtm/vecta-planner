@@ -196,3 +196,16 @@ The GSF card-parent capture exposes Show More, so the two observed prices do not
 establish completeness. The combined checker now expands this exact observed
 control with bounded progress checks. No-change, ambiguous controls or a limit
 stop expansion and preserve diagnostic data with catalogueComplete:false.
+
+### Automatic navigation now reaches operation capture
+PC setup .3 (08:47 UTC) passed navigation and failed at READ_OPERATION. Diagnostic
+rows still show IDs 1E02944501WV0 (0.70) and 1D01901429WV0 (0.30). The old adapter
+collapsed reader rejection detail into LABOUR_REVIEW_REQUIRED, so the exact
+rejection cannot be reconstructed from that report. Setup .4 preserves it.
+
+The worker now passes its reviewed operation ID into the DOM reader. Other job
+IDs do not conflict with an explicitly reviewed operation; unscoped capture still
+rejects multiple jobs, and two times for the same reviewed ID still fail. Times
+remain read from the supplier. Unit text can be outside the viewport after
+scrolling to the row, but must remain rendered rather than display-hidden.
+Vehicle registration/type verification still runs before this scoped capture.

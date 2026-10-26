@@ -1,10 +1,13 @@
 // Read-only capture of one visible, priced alternator operation.
-export function readAlternatorTime(doc=document){
+export function readAlternatorTime(input={},doc=globalThis.document){
+ if(typeof input?.querySelectorAll==='function'){doc=input;input={};}
+ const expectedOperationId=input?.operationId||'';
  const clean=v=>String(v||'').replace(/\s+/g,' ').trim();
  const fail=reason=>{throw Error('LABOUR_REVIEW_REQUIRED:'+reason);};
+ if(expectedOperationId&&!/^[0-9][A-Z0-9]{9,23}$/.test(expectedOperationId))fail('INVALID_OPERATION_ID');
  const operation=/\b(?:Renew|Replace|Remove\s+and\s+refit)\s+(?:the\s+)?alternator\b/i;
- const visible=el=>{
-  let bounds=null;if(Number.isFinite(doc.defaultView?.innerHeight)&&doc.defaultView.innerHeight>0&&typeof el.getBoundingClientRect==='function'){
+ const visible=(el,viewport=true)=>{
+  let bounds=null;if(viewport&&Number.isFinite(doc.defaultView?.innerHeight)&&doc.defaultView.innerHeight>0&&typeof el.getBoundingClientRect==='function'){
    const r=el.getBoundingClientRect(),view=doc.defaultView;
    if(r.width<=0||r.height<=0||r.bottom<=0||r.right<=0||(view&&r.top>=view.innerHeight)||(view&&r.left>=view.innerWidth))return false;
    bounds={left:r.left,right:r.right,top:r.top,bottom:r.bottom};
@@ -22,7 +25,7 @@ export function readAlternatorTime(doc=document){
    }
   }return true;
  };
- const textOf=node=>node.nodeType===3?node.textContent:node.nodeType===1&&!visible(node)?'':[...node.childNodes].map(textOf).join(' ');
+ const textOf=(node,viewport=true)=>node.nodeType===3?node.textContent:node.nodeType===1&&!visible(node,viewport)?'':[...node.childNodes].map(child=>textOf(child,viewport)).join(' ');
  const nodes=[...doc.querySelectorAll('td,span,a,div,p,label')].filter(el=>visible(el)&&clean(textOf(el)).length<160&&operation.test(clean(textOf(el)))&&![...el.children].some(child=>operation.test(clean(textOf(child)))));
  if(!nodes.length)fail('OPERATION_NOT_VISIBLE');
  const matches=new Map();let ambiguous=false;
@@ -31,10 +34,11 @@ export function readAlternatorTime(doc=document){
    const label=clean(textOf(node));
    if(label.length>350||(label.match(new RegExp(operation.source,'ig'))||[]).length>1)break;
    const times=[...label.matchAll(/(?:^|\s)(\d{1,2}[.,]\d{2})(?=\s|$)/g)].map(m=>m[1].replace(',','.'));
+   const codes=label.match(/\b[0-9][A-Z0-9]{9,23}\b/g)||[];
+   if(times.length&&expectedOperationId&&(codes.length!==1||codes[0]!==expectedOperationId))break;
    if(times.length>1){ambiguous=true;break;}
    if(times.length===1){
     // Identical duplicate DOM rows are one operation; different IDs/times are not.
-    const codes=label.match(/\b[0-9][A-Z0-9]{9,23}\b/g)||[];
     const operationId=codes.length===1?codes[0]:'';
     const match={operationText:label,hoursText:times[0],operationId};
     // Different layout wrappers/OE labels must not create different operations.
@@ -45,7 +49,7 @@ export function readAlternatorTime(doc=document){
  }
  if(ambiguous)fail('MULTIPLE_TIMES');
  if(matches.size!==1)fail(matches.size?'MULTIPLE_PRICED_OPERATIONS':'TIME_NOT_FOUND');
- const matched=[...matches.values()][0],unitText=clean(textOf(doc.body));
+ const matched=[...matches.values()][0],unitText=clean(textOf(doc.body,false));
  if(!/TOTAL\s*TIME\s*\(H\)/i.test(unitText)&&!/hours\s+and\s+hundredths\s+of\s+hours/i.test(unitText))fail('HOURS_UNIT_NOT_CONFIRMED');
  const hoursMilli=Math.round(Number(matched.hoursText)*1000);
  if(hoursMilli<=0||hoursMilli>100000)fail('INVALID_TIME');

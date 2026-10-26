@@ -13,11 +13,11 @@ const here=path.dirname(fileURLToPath(import.meta.url)),contexts=[];
 const terminal=createInterface({input:process.stdin,output:process.stdout});
 const base=process.platform==='win32'?path.join(process.env.LOCALAPPDATA||here,'VectaRepairQuotes'):path.join(here,'profile');
 const output=path.join(here,'repair-setup-result.local.json');
-const report={version:'2026-10-26.3',checkedAt:new Date().toISOString(),registration:'FV65JTY',purpose:'Read-only setup check; does not enable pricing',fitmentConfirmed:false};
+const report={version:'2026-10-26.4',checkedAt:new Date().toISOString(),registration:'FV65JTY',purpose:'Read-only setup check; does not enable pricing',fitmentConfirmed:false};
 async function open(name,url){const ctx=await chromium.launchPersistentContext(path.join(base,name),{headless:false,acceptDownloads:false,...(process.platform==='win32'?{channel:'msedge'}:{})});contexts.push(ctx);const page=ctx.pages()[0]||await ctx.newPage();await page.goto(url,{waitUntil:'domcontentloaded',timeout:20000});return page;}
 const reason=repairBrowserReason;
 const haynesOnly=process.argv.includes('--haynes-only');
-console.log('VECTA REPAIR QUOTE - FINISH SETUP - 2026-10-26.3');
+console.log('VECTA REPAIR QUOTE - FINISH SETUP - 2026-10-26.4');
 console.log('This checks only. It does not place orders or activate live pricing.');
 try{
  if(!haynesOnly){
@@ -41,7 +41,7 @@ try{
   const operation=await readReviewedHaynesOperation(page,mapping,'https://www.workshopdata.com');
   report.haynes={status:'AUTOMATIC_CAPTURED',...vehicle,...operation};
   console.log('Haynes: registration and vehicle type matched; captured '+operation.hoursMilli/1000+' hours automatically.');
- }catch(error){report.haynes={status:'NEEDS_REVIEW',reason:reason(error),stage:error.stage||'READ_OPERATION'};if(haynesPage&&new URL(haynesPage.url()).origin==='https://www.workshopdata.com'){try{report.haynes.diagnostics=await haynesPage.evaluate(repairTimeDiagnostics);}catch{}}console.log('Haynes: '+report.haynes.reason+' at '+report.haynes.stage+'. The result file records this; no labour time has been assumed.');}
+ }catch(error){report.haynes={status:'NEEDS_REVIEW',reason:reason(error),stage:error.stage||'READ_OPERATION',captureReason:error.detail||''};if(haynesPage&&new URL(haynesPage.url()).origin==='https://www.workshopdata.com'){try{report.haynes.diagnostics=await haynesPage.evaluate(repairTimeDiagnostics);}catch{}}console.log('Haynes: '+report.haynes.reason+' at '+report.haynes.stage+'. The result file records this; no labour time has been assumed.');}
 }catch(error){report.error=reason(error);process.exitCode=1;}
 finally{
  fs.writeFileSync(output,JSON.stringify(report,null,2)+'\n',{mode:0o600});
