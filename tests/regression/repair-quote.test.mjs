@@ -110,3 +110,27 @@ test('initial activation scope rejects other registrations before any queue oper
  let res=response();await h({method:'POST',body:request},res);assert.equal(res.body.status,'SETTINGS_REQUIRED');assert.equal(calls,0);
  res=response();await h({method:'POST',body:{registration:'FV65 JTY',work:'Supply and fit alternator'}},res);assert.equal(res.body.status,'PENDING');assert.equal(calls,1);
 });
+
+
+test('structured alternator request does not require a typed instruction',async()=>{
+ const e=editor();e.document.querySelectorAll('select').forEach(s=>Object.defineProperty(s,'value',{value:'',writable:true}));e.document.getElementById('job_work_required').value='';let payload;
+ e.ctx.fetch=async(url,options)=>{payload=JSON.parse(options.body);return {status:200,json:async()=>({status:'UNAVAILABLE'})};};
+ const category=e.document.querySelector('[data-rq-category]');category.value='0';category.onchange();
+ const part=e.document.querySelector('[data-rq-part]');part.value='alternator';part.onchange();
+ e.document.querySelector('[data-rq-find]').click();await new Promise(r=>setImmediate(r));
+ assert.equal(payload.work,'Supply and fit alternator');assert.equal(payload.selection.partId,'alternator');assert.equal(payload.selection.quantity,1);
+ assert.equal(e.document.getElementById('job_work_required').value,'');
+});
+test('structured brake choice requires position and never sends an alternator lookup',async()=>{
+ const e=editor();e.document.querySelectorAll('select').forEach(s=>Object.defineProperty(s,'value',{value:'',writable:true}));let calls=0;e.ctx.fetch=async()=>{calls++;throw Error('unexpected lookup');};
+ const category=e.document.querySelector('[data-rq-category]');category.value='1';category.onchange();
+ const part=e.document.querySelector('[data-rq-part]');part.value='brake-pads';part.onchange();
+ e.document.querySelector('[data-rq-find]').click();assert.match(e.document.querySelector('.rqStatus').textContent,/Complete the position/);
+ const axle=e.document.querySelector('[data-rq-axle]');axle.value='front';axle.onchange();
+ e.document.querySelector('[data-rq-find]').click();assert.equal(calls,0);assert.match(e.document.querySelector('.rqStatus').textContent,/not available yet/);
+ assert.match(e.document.querySelector('[data-rq-supplier]').href,/enhancedSearch\/front%20Brake%20pads$/);
+});
+test('structured selections cannot price a different part or quantity as one alternator',()=>{
+ const selection={partId:'alternator',quantity:1,axle:'',side:''};assert.equal(repairRequest({...request,selection}).operation,'alternator-replacement');
+ for(const change of [{partId:'brake-pads'},{quantity:2},{quantity:1.5},{axle:'front'},{side:'left'}])assert.throws(()=>repairRequest({...request,selection:{...selection,...change}}),/UNSUPPORTED_OPERATION/);
+});
