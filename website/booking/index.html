@@ -272,8 +272,8 @@ function mountRegistrationLogo(){
 }
 
 let serviceCarImageObserver;
-function watchServiceCarImages(){
- serviceCarImageObserver?.disconnect();
+function watchServiceCarImages(){ serviceCarImageObserver?.disconnect();
+ if(typeof MutationObserver!=='function')return;
  serviceCarImageObserver=new MutationObserver(()=>animateServiceCarWheels());
  document.querySelectorAll('img[data-service-car]').forEach(img=>serviceCarImageObserver.observe(img,{attributes:true,attributeFilter:['src','data-vehicle-ready']}));
  animateServiceCarWheels();
