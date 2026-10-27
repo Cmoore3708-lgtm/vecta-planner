@@ -107,6 +107,7 @@
    timer=setTimeout(function(){if(panel.isConnected&&quote){quote=null;apply.disabled=true;message.textContent='Lookup price expired. Refresh before adding it to a quote.';}},Math.max(0,Date.parse(q.expiresAt)-Date.now()));
   }
   async function lookup(replay){
+   if(selectedPart&&selectionValid()&&!work.value.trim())work.value=selectedWork();
    if(selectedPart&&!selectionValid()){message.textContent='Complete the position, side and quantity for this repair.';return;}
    if(selectedPart&&(selectedPart[0]!=='alternator'||Number(quantity.value)!==1)){message.textContent='Automatic price verification for this repair is not available yet. Open the GSF search and enter checked prices in the quote.';return;}
    stop();quote=null;result.replaceChildren();lastKey=key();var input=read(),run=generation,started=Date.now();find.disabled=true;cancel.hidden=false;
