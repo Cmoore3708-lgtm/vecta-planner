@@ -11,6 +11,7 @@
           "width": 140.94972,
           "height": 89.34607
         },
+        "bodyOccluded": true,
         "shapeCount": 210
       },
       {
@@ -22,6 +23,7 @@
           "width": 56.08899,
           "height": 69.70221
         },
+        "bodyOccluded": false,
         "shapeCount": 104
       },
       {
@@ -33,6 +35,7 @@
           "width": 28.36803,
           "height": 53.82416
         },
+        "bodyOccluded": false,
         "shapeCount": 102
       },
       {
@@ -44,6 +47,7 @@
           "width": 28.67502,
           "height": 46.10682
         },
+        "bodyOccluded": false,
         "shapeCount": 104
       },
       {
@@ -55,6 +59,7 @@
           "width": 13.409,
           "height": 33.99647
         },
+        "bodyOccluded": false,
         "shapeCount": 102
       }
     ]
@@ -71,6 +76,7 @@
           "width": 228.01,
           "height": 102.04702
         },
+        "bodyOccluded": false,
         "shapeCount": 147
       },
       {
@@ -82,6 +88,7 @@
           "width": 66.4,
           "height": 86.69702
         },
+        "bodyOccluded": false,
         "shapeCount": 49
       },
       {
@@ -93,6 +100,7 @@
           "width": 29.86981,
           "height": 51.95921
         },
+        "bodyOccluded": false,
         "shapeCount": 47
       },
       {
@@ -104,6 +112,7 @@
           "width": 66.47,
           "height": 83.01029
         },
+        "bodyOccluded": true,
         "shapeCount": 49
       },
       {
@@ -115,6 +124,7 @@
           "width": 29.95186,
           "height": 50.18893
         },
+        "bodyOccluded": true,
         "shapeCount": 47
       },
       {
@@ -126,6 +136,7 @@
           "width": 32.35,
           "height": 54.97612
         },
+        "bodyOccluded": false,
         "shapeCount": 49
       },
       {
@@ -137,6 +148,7 @@
           "width": 18.55272,
           "height": 45.33443
         },
+        "bodyOccluded": false,
         "shapeCount": 47
       }
     ]
@@ -153,6 +165,7 @@
           "width": 225.89599,
           "height": 88.35901
         },
+        "bodyOccluded": false,
         "shapeCount": 170
       },
       {
@@ -164,6 +177,7 @@
           "width": 56.88157,
           "height": 60.32317
         },
+        "bodyOccluded": true,
         "shapeCount": 2
       },
       {
@@ -175,6 +189,7 @@
           "width": 55.92999,
           "height": 67.18501
         },
+        "bodyOccluded": false,
         "shapeCount": 83
       },
       {
@@ -186,6 +201,7 @@
           "width": 26.61834,
           "height": 51.33619
         },
+        "bodyOccluded": false,
         "shapeCount": 81
       },
       {
@@ -197,6 +213,7 @@
           "width": 26.61834,
           "height": 51.33619
         },
+        "bodyOccluded": false,
         "shapeCount": 2
       },
       {
@@ -208,6 +225,7 @@
           "width": 30.80649,
           "height": 45.30313
         },
+        "bodyOccluded": false,
         "shapeCount": 83
       },
       {
@@ -219,6 +237,7 @@
           "width": 12.04682,
           "height": 34.72002
         },
+        "bodyOccluded": false,
         "shapeCount": 81
       },
       {
@@ -230,6 +249,7 @@
           "width": 12.04682,
           "height": 34.72002
         },
+        "bodyOccluded": false,
         "shapeCount": 2
       }
     ]
@@ -246,6 +266,7 @@
           "width": 204.66286,
           "height": 79.64505
         },
+        "bodyOccluded": false,
         "shapeCount": 82
       },
       {
@@ -257,6 +278,7 @@
           "width": 44.76291,
           "height": 60.54257
         },
+        "bodyOccluded": false,
         "shapeCount": 39
       },
       {
@@ -268,6 +290,7 @@
           "width": 21.87426,
           "height": 41.6434
         },
+        "bodyOccluded": false,
         "shapeCount": 37
       },
       {
@@ -279,6 +302,7 @@
           "width": 44.79971,
           "height": 59.45276
         },
+        "bodyOccluded": true,
         "shapeCount": 2
       },
       {
@@ -290,6 +314,7 @@
           "width": 26.10715,
           "height": 39.70614
         },
+        "bodyOccluded": false,
         "shapeCount": 39
       },
       {
@@ -301,6 +326,7 @@
           "width": 10.70894,
           "height": 27.30493
         },
+        "bodyOccluded": false,
         "shapeCount": 37
       }
     ]
@@ -317,6 +343,7 @@
           "width": 160.65,
           "height": 104.31717
         },
+        "bodyOccluded": true,
         "shapeCount": 100
       },
       {
@@ -328,6 +355,7 @@
           "width": 41.8214,
           "height": 57.71966
         },
+        "bodyOccluded": false,
         "shapeCount": 48
       },
       {
@@ -339,6 +367,7 @@
           "width": 30.21281,
           "height": 55.32801
         },
+        "bodyOccluded": false,
         "shapeCount": 47
       },
       {
@@ -350,6 +379,7 @@
           "width": 26.18789,
           "height": 37.78766
         },
+        "bodyOccluded": false,
         "shapeCount": 48
       },
       {
@@ -361,6 +391,7 @@
           "width": 17.18917,
           "height": 36.52757
         },
+        "bodyOccluded": false,
         "shapeCount": 47
       }
     ]
@@ -377,10 +408,23 @@
           "width": 243.31371,
           "height": 99.26903
         },
+        "bodyOccluded": false,
         "shapeCount": 104
       },
       {
         "id": 1,
+        "parent": 0,
+        "box": {
+          "x": 120.68366,
+          "y": 105.45202,
+          "width": 72.39782,
+          "height": 91.66837
+        },
+        "bodyOccluded": false,
+        "shapeCount": 34
+      },
+      {
+        "id": 2,
         "parent": 0,
         "box": {
           "x": 36.08907,
@@ -388,10 +432,11 @@
           "width": 55.82741,
           "height": 67.06233
         },
+        "bodyOccluded": true,
         "shapeCount": 27
       },
       {
-        "id": 2,
+        "id": 3,
         "parent": 0,
         "box": {
           "x": 237.30959,
@@ -399,6 +444,7 @@
           "width": 31.50981,
           "height": 44.94135
         },
+        "bodyOccluded": false,
         "shapeCount": 36
       }
     ]
