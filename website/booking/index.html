@@ -120,9 +120,11 @@ function animateServiceCarWheels(){
     // Undo the perspective squash before rotation, then restore it afterwards.
     // At zero degrees this matrix is the identity, preserving the exact artwork.
     while(node.firstChild)artwork.append(node.firstChild);
-    rotor.append(artwork);plane.append(rotor);node.append(plane);
+    rotor.append(artwork);
+    const spin=document.createElementNS(NS,'animateTransform');
+    for(const [key,value]of Object.entries({attributeName:'transform',type:'rotate',from:'0',to:'360',dur:'6s',repeatCount:'indefinite'}))spin.setAttribute(key,value);
+    rotor.append(spin);plane.append(rotor);node.append(plane);
    }
-   const style=document.createElementNS(NS,'style');style.textContent='@keyframes vecta-service-wheel-turn{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}.vecta-service-wheel-rotor{transform-origin:0 0;animation:vecta-service-wheel-turn 6s linear infinite}@media(prefers-reduced-motion:reduce){.vecta-service-wheel-rotor{animation:none}}';svg.append(style);
    if(img.isConnected){img.src='data:image/svg+xml;charset=utf-8,'+encodeURIComponent(new XMLSerializer().serializeToString(svg));img.dataset.serviceAnimated='1';}
   }catch{/* Keep the original vehicle if its supplier drawing lacks separable wheels. */}finally{host?.remove();}
  });
@@ -648,3 +650,8 @@ input[type="checkbox"]:checked,input[type="radio"]:checked{--pulse-rgb:53,213,13
 @media(max-width:760px){.service-vehicle-stage{height:130px}}
 @media(prefers-reduced-motion:reduce){.service-option.selected .service-vehicle-stage .service-inspection-sweep{animation:none;display:none}}
 </style>
+
+<script>
+// Rebuild selected service artwork when the visitor changes motion preferences.
+window.matchMedia?.('(prefers-reduced-motion: reduce)').addEventListener?.('change',()=>{if(state.step===2)render();});
+</script>
