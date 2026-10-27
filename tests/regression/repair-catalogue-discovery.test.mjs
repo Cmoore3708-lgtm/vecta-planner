@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {parseHTML} from 'linkedom';
-import {DISCOVERY_PARTS,readDiscoveryPage,discoverGSFParts,discoverHaynesJobs,submitHaynesJobSearch,discoveryTerms,openGSFCategoryResult,expandHaynesSearchResults} from '../../workers/repair-quotes/catalogue-discovery.mjs';
+import {DISCOVERY_PARTS,readDiscoveryPage,discoverGSFParts,discoverHaynesJobs,submitHaynesJobSearch,discoveryTerms,openGSFCategoryResult,expandHaynesSearchResults,settleGSFCapture,captureHaynesFrames} from '../../workers/repair-quotes/catalogue-discovery.mjs';
 test('one inspection covers the complete structured part menu without SKU mappings',()=>{
  assert.equal(DISCOVERY_PARTS.length,21);assert.equal(new Set(DISCOVERY_PARTS.map(p=>p.id)).size,21);
  for(const p of DISCOVERY_PARTS){assert.match(p.id,/^[a-z-]+$/);assert.ok(p.label);assert.equal(p.sku,undefined);}
@@ -14,8 +14,8 @@ test('bounded DOM capture scrubs VIN and emails and cannot approve prices',()=>{
 });
 test('inspection searches all parts, uses no ordering controls and continues after one unavailable result',async()=>{
  const searches=[],pressed=[],captured=[];let term='';const parts=DISCOVERY_PARTS.slice(0,3);
- const page={getByPlaceholder:()=>({fill:async value=>{term=value;searches.push(value);if(value==='Starter motor')throw Error('unavailable');},press:async key=>pressed.push(key)}),getByText:()=>({count:async()=>0,waitFor:async()=>{}}),waitForTimeout:async()=>{},url:()=> 'https://trade.gsfcarparts.com/enhancedSearch/test',evaluate:async(fn,arg)=>{captured.push(arg);return {pricingApproved:false};}};
- const r=await discoverGSFParts(page,'FV65JTY',{parts,openCategory:async()=>({registrationSubmitted:true,observed:{selectedRegistration:true}})});assert.equal(r.length,3);assert.deepEqual(searches,parts.map(p=>p.label));assert.equal(r[1].status,'INSPECTION_UNAVAILABLE');assert.equal(r[2].status,'INSPECTED');assert.deepEqual(pressed,['Enter','Enter']);assert.equal(captured.length,2);
+ const page={getByPlaceholder:()=>({fill:async value=>{term=value;searches.push(value);if(value==='Starter motor')throw Error('unavailable');},press:async key=>pressed.push(key)}),getByText:()=>({count:async()=>0,waitFor:async()=>{}}),waitForTimeout:async()=>{},url:()=> 'https://trade.gsfcarparts.com/enhancedSearch/test',evaluate:async(fn,arg)=>{captured.push(arg);return {pricingApproved:false,identities:['FV65JTY'],cards:[{text:'£10.00'}],cardCount:1};}};
+ const r=await discoverGSFParts(page,'FV65JTY',{parts,openCategory:async()=>({registrationSubmitted:true,observed:{selectedRegistration:true}})});assert.equal(r.length,3);assert.deepEqual(searches,parts.map(p=>p.label));assert.equal(r[1].status,'INSPECTION_UNAVAILABLE');assert.equal(r[2].status,'INSPECTED');assert.deepEqual(pressed,['Enter','Enter']);assert.equal(captured.length,4);
 });
 function searchFixture(kind='link',ambiguous=false){
  const clicked=[],reads=[],target={isVisible:async()=>true,click:async()=>clicked.push('Search')};
@@ -57,4 +57,26 @@ test('vehicle-filter readiness accepts a priced brake catalogue without pretendi
  const {document}=parseHTML('<html><body><main><p>FV65JTY</p><section><div><span>£35.00 Brake Pads Local Branch</span></div></section></main></body></html>');
  assert.equal(inspectRepairCatalogue({registration:'FV65JTY'},document).candidateCount,0);
  assert.equal(inspectRepairCatalogue({registration:'FV65JTY',anyPart:true},document).candidateCount,1);
+});
+
+test('Haynes operation rows inside menu-style wrappers are captured without dropping the labour data',()=>{
+ const {document}=parseHTML('<html><body><div role="menu"><h2>Brake pad</h2><ul><li><span>1E02944501WV0</span> Renew the front brake pads <span>0.70</span></li><li hidden>1D01901429WV0 Renew the rear brake pads 0.50</li></ul></div></body></html>');
+ const r=readDiscoveryPage({registration:'FV65JTY',term:'Brake pad',supplier:'HAYNES'},document);
+ assert.equal(r.jobs.length,1);assert.match(r.jobs[0],/0.70/);assert.equal(r.hiddenJobRows.length,1);assert.equal(r.hiddenJobRows[0].visible,false);assert.equal(r.pricingApproved,false);
+});
+test('GSF capture waits through blank re-render and requires two stable priced snapshots',async()=>{
+ let calls=0;const ready={identities:['FV65JTY'],cards:[{text:'£10.00'}],cardCount:1};
+ const page={evaluate:async()=>++calls===1?{identities:[],cards:[],cardCount:0}:ready,waitForTimeout:async()=>{}};
+ assert.equal((await settleGSFCapture(page,'FV65JTY','Alternator')).cardCount,1);assert.equal(calls,3);
+});
+test('Haynes frames are read on the supplier origin and duplicate operations are deduplicated',async()=>{
+ let blockedRead=false;const data={jobs:['Renew alternator 0.70'],jobRows:[],hiddenJobRows:[],pricingApproved:false};
+ const frame={url:()=> 'https://www.workshopdata.com/touch/site/layout/repairTimes',evaluate:async()=>data};
+ const blocked={url:()=> 'https://other.example/',evaluate:async()=>{blockedRead=true;}};
+ const page={frames:()=>[frame,frame,blocked]};const r=await captureHaynesFrames(page,'FV65JTY','Alternator');assert.equal(r.jobs.length,1);assert.equal(r.framesChecked,2);assert.equal(blockedRead,false);
+});
+test('GSF accessible category name accepts the image and text label repetition',async()=>{
+ let name;const page={getByRole:(role,options)=>{name=options.name;return {count:async()=>0};},getByText:()=>({count:async()=>0})};
+ await assert.rejects(openGSFCategoryResult(page,{id:'suspension-arm'},'FV65JTY'),/GSF_CATEGORY_NOT_FOUND/);
+ assert.equal(name.test('Suspension Arm Suspension Arm'),true);assert.equal(name.test('Suspension Arm Bush'),false);
 });
