@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {parseHTML} from 'linkedom';
-import {DISCOVERY_PARTS,readDiscoveryPage,discoverGSFParts,discoverHaynesJobs} from '../../workers/repair-quotes/catalogue-discovery.mjs';
+import {DISCOVERY_PARTS,readDiscoveryPage,discoverGSFParts,discoverHaynesJobs,submitHaynesJobSearch} from '../../workers/repair-quotes/catalogue-discovery.mjs';
 test('one inspection covers the complete structured part menu without SKU mappings',()=>{
  assert.equal(DISCOVERY_PARTS.length,21);assert.equal(new Set(DISCOVERY_PARTS.map(p=>p.id)).size,21);
  for(const p of DISCOVERY_PARTS){assert.match(p.id,/^[a-z-]+$/);assert.ok(p.label);assert.equal(p.sku,undefined);}
@@ -17,7 +17,21 @@ test('inspection searches all parts, uses no ordering controls and continues aft
  const page={getByPlaceholder:()=>({fill:async value=>{term=value;searches.push(value);if(value==='Starter motor')throw Error('unavailable');},press:async key=>pressed.push(key)}),getByText:()=>({count:async()=>0}),waitForTimeout:async()=>{},url:()=> 'https://trade.gsfcarparts.com/enhancedSearch/test',evaluate:async(fn,arg)=>{captured.push(arg);return {pricingApproved:false};}};
  const r=await discoverGSFParts(page,'FV65JTY',{parts});assert.equal(r.length,3);assert.deepEqual(searches,parts.map(p=>p.label));assert.equal(r[1].status,'INSPECTION_UNAVAILABLE');assert.equal(r[2].status,'INSPECTED');assert.deepEqual(pressed,['Enter','Enter']);assert.equal(captured.length,2);
 });
-test('Haynes inspection only searches and reads jobs; never adds jobs to an estimate',async()=>{
- const clicked=[];const page={getByPlaceholder:name=>{assert.equal(name,'Search job');return {fill:async()=>{}};},getByRole:(role,{name})=>({click:async()=>clicked.push(name)}),waitForTimeout:async()=>{},locator:()=>({count:async()=>0}),evaluate:async()=>({pricingApproved:false,jobs:[]})};
- const r=await discoverHaynesJobs(page,'FV65JTY',{parts:DISCOVERY_PARTS.slice(0,2)});assert.equal(r.length,2);assert.deepEqual(clicked,['Search','Search']);
+function searchFixture(kind='link',ambiguous=false){
+ const clicked=[],reads=[],target={isVisible:async()=>true,click:async()=>clicked.push('Search')};
+ const none={count:async()=>0},matches={count:async()=>ambiguous?2:1,nth:()=>target};
+ const scope={locator:selector=>selector==='..'?scope:kind==='input'?matches:none,getByRole:()=>kind==='button'?matches:none,getByText:()=>kind==='link'?matches:none};
+ const field={fill:async()=>{},locator:()=>scope};
+ const page={getByPlaceholder:()=>field,waitForTimeout:async()=>{},locator:()=>none,evaluate:async()=>{reads.push(clicked.length);return {pricingApproved:false,jobs:[]};}};
+ return {page,field,clicked,reads};
+}
+test('Haynes inspection clicks a styled Search link before reading each result',async()=>{
+ const f=searchFixture();const r=await discoverHaynesJobs(f.page,'FV65JTY',{parts:DISCOVERY_PARTS.slice(0,2)});
+ assert.equal(r.length,2);assert.deepEqual(f.clicked,['Search','Search']);assert.deepEqual(f.reads,[1,2]);assert.equal(r[0].searchSubmitted,true);assert.equal(r[0].submittedBy,'text');
+});
+test('Haynes Search supports native buttons and input controls too',async()=>{
+ for(const kind of ['button','input']){const f=searchFixture(kind);assert.equal(await submitHaynesJobSearch(f.page,f.field),kind);assert.equal(f.clicked.length,1);}
+});
+test('ambiguous or missing Search controls stop inspection without clicking unrelated controls',async()=>{
+ for(const kind of ['missing','link']){const f=searchFixture(kind,kind==='link');const r=await discoverHaynesJobs(f.page,'FV65JTY',{parts:DISCOVERY_PARTS.slice(0,2)});assert.equal(r.length,1);assert.equal(f.clicked.length,0);assert.equal(f.reads.length,0);assert.match(r[0].detail,/HAYNES_SEARCH_CONTROL_/);}
 });
