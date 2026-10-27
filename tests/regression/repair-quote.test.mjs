@@ -119,7 +119,7 @@ test('structured alternator request does not require a typed instruction',async(
  const part=e.document.querySelector('[data-rq-part]');part.value='alternator';part.onchange();
  e.document.querySelector('[data-rq-find]').click();await new Promise(r=>setImmediate(r));
  assert.equal(payload.work,'Supply and fit alternator');assert.equal(payload.selection.partId,'alternator');assert.equal(payload.selection.quantity,1);
- assert.equal(e.document.getElementById('job_work_required').value,'');
+ assert.equal(e.document.getElementById('job_work_required').value,'Supply and fit alternator');
 });
 test('structured brake choice requires position and never sends an alternator lookup',async()=>{
  const e=editor();e.document.querySelectorAll('select').forEach(s=>Object.defineProperty(s,'value',{value:'',writable:true}));let calls=0;e.ctx.fetch=async()=>{calls++;throw Error('unexpected lookup');};
