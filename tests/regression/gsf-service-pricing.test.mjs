@@ -290,6 +290,21 @@ test('actual website shows a matched service price and submits its signed snapsh
   assert.equal(writes[0].approximate_cost,145.32);assert.equal(verifyServicePrice(writes[0].service_price_token,request,secret).totalPence,14532);
   assert.ok(document.querySelector('.success'));
 });
+test('failed live lookup restores the existing engine-band guide prices without creating signed quotes',()=>{
+ const html=readFileSync(new URL('../../website/booking/index.html',import.meta.url),'utf8');
+ const context={state:{form:{service_choice:'Full Service'}},servicePriceState:{status:'unavailable'},liveServiceQuote:()=>null};vm.createContext(context);
+ for(const name of ['serviceChoicePrice','serviceGuideFallback','servicePriceLabel']){
+  const start=html.indexOf('function '+name+'('),end=html.indexOf('\nfunction ',start+1);
+  vm.runInContext(html.slice(start,end),context);
+ }
+ const band={oil:85,full:155,major:210};
+ for(const [service,price] of [['Oil & Filter Change','£85'],['Full Service','£155'],['Major Service','£210']])assert.equal(context.servicePriceLabel(service,band),price);
+ assert.equal(context.serviceGuideFallback(),true);
+ context.servicePriceState.status='disabled';assert.equal(context.servicePriceLabel('Full Service',band),'£155');
+ context.servicePriceState.status='loading';assert.equal(context.servicePriceLabel('Full Service',band),'Retrieving live prices…');
+ assert.match(html,/serviceGuideFallback\(\)&&band&&!band.individual\?'Guide price'/);
+ assert.equal(context.liveServiceQuote(),null);
+});
 
 // Integration fixture only: deliberately synthetic vehicle, oil and prices.
 // Exercises the real service lookup/reader/calculator chain, not a live quote.
