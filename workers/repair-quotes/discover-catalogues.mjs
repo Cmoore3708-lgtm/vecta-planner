@@ -18,11 +18,11 @@ try{
  console.log('This checks all listed part categories itself. It does not approve prices, edit quotes, use baskets or place orders.');
  gsf=await browser(process.env.GSF_PROFILE_DIR||path.join(process.env.LOCALAPPDATA||here,'VectaGSF','EdgeProfile'));
  const gp=gsf.pages()[0]||await gsf.newPage();await gp.goto('https://trade.gsfcarparts.com',{waitUntil:'domcontentloaded'});await gp.bringToFront();
- await ask('Sign in to GSF in this browser if asked.');
+ if(await gp.getByRole('button',{name:'Haynes technical data',exact:true}).count()!==1)await ask('Sign in to GSF in this browser.');
  try{await navigateGSFAlternator(gp,registration);report.gsf=await discoverGSFParts(gp,registration,{log:console.log});}catch(error){report.gsfStatus=error.code||error.message;}
  haynes=await browser(path.join(process.env.LOCALAPPDATA||here,'VectaRepairQuotes','Haynes'));
  const hp=haynes.pages()[0]||await haynes.newPage();await hp.goto('https://www.workshopdata.com/touch/site/layout/makesOverview',{waitUntil:'domcontentloaded'});await hp.bringToFront();
- await ask('Sign in to Haynes if asked. Leave it on the vehicle overview.');
+ if(await hp.locator('input[type="password"]').count())await ask('Sign in to Haynes. Leave it on the vehicle overview.');
  const field=hp.locator('#numberPlate,input[name="numberPlate"]');await field.fill(registration);await hp.locator('#licencePlateBtn').click();
  let vehicle;
  for(let n=0;n<60;n++){try{vehicle=await hp.evaluate(readVehicle);}catch{}if(vehicle?.registration===registration)break;await hp.waitForTimeout(250);}
