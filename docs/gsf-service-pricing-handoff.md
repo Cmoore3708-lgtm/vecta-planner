@@ -159,9 +159,15 @@ PC catalogue data and a stub fresh-product reader. This is NOT proof of a live
 PC-to-cloud service quote. The UI and queue time budget now allow a 150-second
 worker lookup, with a 180-second queue deadline and 165-second website polling.
 
-Production has no service queue schema or GSF service environment variables.
-The Test schema creation was attempted through apply_migration, then execute_sql;
-both write calls returned `Invalid or expired requestState`. A subsequent read
-confirmed no Test queue exists. Do not enable pricing until the schema is applied,
-permissions/queue operations are checked, the updated shared PC worker is paired,
-and an actual website request returns and saves its live price.
+Production activation is still pending. The previously failing database connection
+recovered on 27 October. The exact Test setup migration was applied successfully
+to brqsejjykrubxuofavuu. Both queue tables have RLS enabled, anon/authenticated
+have no SELECT or function EXECUTE permissions, and service_role can execute.
+A real database transaction verified enqueue, deduplication, worker leasing,
+wrong-lease rejection, MATCHED completion, idempotent retry and cached delivery.
+All synthetic queue test rows were rolled back. This verifies the Test queue,
+not a live supplier price or an actual PC/cloud service quote.
+
+The owner no longer needs to run the manual Test SQL file. Remaining work:
+production preparation, updated paired PC worker, and an actual website-to-PC
+quote and saved-booking verification before customer activation.
