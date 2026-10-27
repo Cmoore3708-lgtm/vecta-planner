@@ -3,6 +3,7 @@ import {bookingTypes} from '../lib/booking-input.js';
 import {sendBookingBadges} from './_push.js';
 import {databaseEnvironment} from './_database-environment.js';
 import {bookingServicePrice} from '../lib/booking-service-price.js';
+import {bookingServiceParts} from '../lib/booking-service-parts.js';
 
 function cfg(){return databaseEnvironment({requireService:true})}
 function reg(v){return String(v||'').toUpperCase().replace(/\s+/g,' ').trim()}
@@ -29,7 +30,13 @@ export default async function handler(req,res){
   // the workshop's explicit "Accept & create job" action in Workshop Pro.
   const request={id,customer_name:String(b.customer_name).trim(),email:String(b.email).trim(),phone:String(b.phone).trim(),registration:reg(b.registration),vehicle:String(b.vehicle).trim(),mileage:String(b.mileage||'').trim(),mot_due:b.mot_due||null,job_types:types,work_required:String(b.work_required).trim(),preferred_date_1:appointment,preferred_date_2:null,preferred_date_3:null,completion_deadline:String(b.completion_deadline||'').trim(),contact_preference:String(b.contact_preference||'Email'),source:'Website booking',status:'awaiting_review',confirmed_date:appointment,confirmed_time:b.appointment_time||null,approximate_cost:Number.isFinite(Number(b.approximate_cost))?Number(b.approximate_cost):null,created_at:new Date().toISOString()};
   // The primary key makes concurrent retries atomic without overwriting a request.
-  if(servicePrice){request.approximate_cost=servicePrice.approximateCost;request.work_required+=servicePrice.snapshot;}
+  if(servicePrice){
+   request.approximate_cost=servicePrice.approximateCost;request.work_required+=servicePrice.snapshot;
+   const quote=servicePrice.quote;
+   const filter=new URLSearchParams({status:'eq.MATCHED','request->>registration':'eq.'+quote.request.registration,'request->>range':'eq.'+quote.request.range,'result->>checkedAt':'eq.'+quote.checkedAt,select:'result',limit:'5'});
+   const costs=await rest(url,key,'gsf_service_jobs?'+filter);
+   request.gsf_parts=bookingServiceParts(quote,costs||[]);
+  }
   const inserted=photos.length
    ? await rest(url,key,'rpc/insert_website_booking_with_photos','POST',{p_request:request,p_photos:photos})
    : await rest(url,key,'website_booking_requests?on_conflict=id','POST',request,'resolution=ignore-duplicates,return=representation');

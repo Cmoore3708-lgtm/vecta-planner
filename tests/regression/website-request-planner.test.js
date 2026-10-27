@@ -24,7 +24,7 @@ test('review opens the existing editor and date planner without saving or accept
 });
 test('acceptance saves edits before closing the inbox request',async()=>{
   const s=setup();await s.context.acceptWebsiteRequestJob('request-1','job-1',s.document.getElementById('saveJob'));
-  assert.deepEqual(s.calls.map(c=>c[0]),['save','update','local']);assert.equal(s.calls[1][3].job_id,'job-1');assert.equal(s.app.websiteRequests.length,0);
+  assert.deepEqual(s.calls.map(c=>c[0]),['save','update','local','open']);assert.equal(s.calls.at(-1)[1],'job-1');assert.equal(s.calls[1][3].job_id,'job-1');assert.equal(s.app.websiteRequests.length,0);
 });
 test('failed saves leave the request pending',async()=>{
   const s=setup({saved:false});await s.context.acceptWebsiteRequestJob('request-1','job-1',s.document.getElementById('saveJob'));
