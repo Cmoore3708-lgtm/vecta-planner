@@ -42,8 +42,8 @@ test('shared bridge serialises supplier access and isolates repair pairing failu
 
 import {navigateGSFAlternator} from '../../workers/repair-quotes/gsf-navigation.mjs';
 
-function navigationPage({loseFilter=false}={}){
- let current='https://trade.gsfcarparts.com',selected=true,input='';const actions=[];
+function navigationPage({loseFilter=false,startBlank=false}={}){
+ let current=startBlank?'about:blank':'https://trade.gsfcarparts.com',selected=true,input='';const actions=[];
  const control=label=>({waitFor:async()=>{},count:async()=>label==='Clear'?(selected?1:0):1,isVisible:async()=>true,inputValue:async()=>input,fill:async value=>{input=value;actions.push(value);},click:async()=>{actions.push(label);if(label==='Clear')selected=false;if(label==='Search VRM Button')selected=!loseFilter;}});
  const page={url:()=>current,goto:async url=>{current=url;selected=true;actions.push(url);},getByPlaceholder:()=>control('input'),getByRole:(role,{name})=>control(name),evaluate:async()=>({identities:selected?[{text:'FV65JTY Clear'}]:[],candidateCount:6}),waitForTimeout:async()=>{}};
  return {page,actions};
@@ -71,3 +71,10 @@ test('category flow records that registration was submitted but refuses unconfir
  const f=fixture(t);const bridge=createRepairBridge({...settings,...f,lookup:async()=>{throw Error('LOGIN_REQUIRED');},rpc:async body=>body.action==='pull'?{status:'JOB',id:'id',lease:'lease',request:{}}:{status:'SAVED'}});
  await bridge.tick();assert.equal(f.counts().closed,0);await bridge.close();assert.equal(f.counts().closed,2);
  });
+
+test('a newly opened blank GSF tab navigates before checking supplier authentication',async()=>{
+ const {page,actions}=navigationPage({startBlank:true});
+ const result=await navigateGSFAlternator(page,'FV65JTY');
+ assert.equal(actions[0],'https://trade.gsfcarparts.com/parts/Alternator');
+ assert.equal(result.registrationSubmitted,true);
+});
