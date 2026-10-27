@@ -1,0 +1,406 @@
+[
+  {
+    "model": "Qashqai J11",
+    "groups": [
+      {
+        "id": 0,
+        "parent": null,
+        "box": {
+          "x": 131.8517,
+          "y": 107.75393,
+          "width": 140.94972,
+          "height": 89.34607
+        },
+        "shapeCount": 210
+      },
+      {
+        "id": 1,
+        "parent": 0,
+        "box": {
+          "x": 131.8517,
+          "y": 127.39779,
+          "width": 56.08899,
+          "height": 69.70221
+        },
+        "shapeCount": 104
+      },
+      {
+        "id": 2,
+        "parent": 1,
+        "box": {
+          "x": 155.93023,
+          "y": 136.43792,
+          "width": 28.36803,
+          "height": 53.82416
+        },
+        "shapeCount": 102
+      },
+      {
+        "id": 3,
+        "parent": 0,
+        "box": {
+          "x": 243.35935,
+          "y": 113.59659,
+          "width": 28.67502,
+          "height": 46.10682
+        },
+        "shapeCount": 104
+      },
+      {
+        "id": 4,
+        "parent": 3,
+        "box": {
+          "x": 256.99849,
+          "y": 120.95176,
+          "width": 13.409,
+          "height": 33.99647
+        },
+        "shapeCount": 102
+      }
+    ]
+  },
+  {
+    "model": "Qashqai J12",
+    "groups": [
+      {
+        "id": 0,
+        "parent": null,
+        "box": {
+          "x": 44.54,
+          "y": 88.51,
+          "width": 228.01,
+          "height": 102.04702
+        },
+        "shapeCount": 147
+      },
+      {
+        "id": 1,
+        "parent": 0,
+        "box": {
+          "x": 133.54,
+          "y": 103.86,
+          "width": 66.4,
+          "height": 86.69702
+        },
+        "shapeCount": 49
+      },
+      {
+        "id": 2,
+        "parent": 1,
+        "box": {
+          "x": 155.04009,
+          "y": 130.41089,
+          "width": 29.86981,
+          "height": 51.95921
+        },
+        "shapeCount": 47
+      },
+      {
+        "id": 3,
+        "parent": 0,
+        "box": {
+          "x": 44.54,
+          "y": 88.51,
+          "width": 66.47,
+          "height": 83.01029
+        },
+        "shapeCount": 49
+      },
+      {
+        "id": 4,
+        "parent": 3,
+        "box": {
+          "x": 64.21407,
+          "y": 113.82053,
+          "width": 29.95186,
+          "height": 50.18893
+        },
+        "shapeCount": 47
+      },
+      {
+        "id": 5,
+        "parent": 0,
+        "box": {
+          "x": 240.2,
+          "y": 99.86,
+          "width": 32.35,
+          "height": 54.97612
+        },
+        "shapeCount": 49
+      },
+      {
+        "id": 6,
+        "parent": 5,
+        "box": {
+          "x": 252.56542,
+          "y": 109.50169,
+          "width": 18.55272,
+          "height": 45.33443
+        },
+        "shapeCount": 47
+      }
+    ]
+  },
+  {
+    "model": "Juke",
+    "groups": [
+      {
+        "id": 0,
+        "parent": null,
+        "box": {
+          "x": 46.52339,
+          "y": 109.31809,
+          "width": 225.89599,
+          "height": 88.35901
+        },
+        "shapeCount": 170
+      },
+      {
+        "id": 1,
+        "parent": 0,
+        "box": {
+          "x": 46.52339,
+          "y": 118.32312,
+          "width": 56.88157,
+          "height": 60.32317
+        },
+        "shapeCount": 2
+      },
+      {
+        "id": 2,
+        "parent": 0,
+        "box": {
+          "x": 132.42381,
+          "y": 130.49209,
+          "width": 55.92999,
+          "height": 67.18501
+        },
+        "shapeCount": 83
+      },
+      {
+        "id": 3,
+        "parent": 2,
+        "box": {
+          "x": 155.99083,
+          "y": 138.47495,
+          "width": 26.61834,
+          "height": 51.33619
+        },
+        "shapeCount": 81
+      },
+      {
+        "id": 4,
+        "parent": 3,
+        "box": {
+          "x": 155.99083,
+          "y": 138.47495,
+          "width": 26.61834,
+          "height": 51.33619
+        },
+        "shapeCount": 2
+      },
+      {
+        "id": 5,
+        "parent": 0,
+        "box": {
+          "x": 241.51592,
+          "y": 114.99687,
+          "width": 30.80649,
+          "height": 45.30313
+        },
+        "shapeCount": 83
+      },
+      {
+        "id": 6,
+        "parent": 5,
+        "box": {
+          "x": 257.72659,
+          "y": 120.58415,
+          "width": 12.04682,
+          "height": 34.72002
+        },
+        "shapeCount": 81
+      },
+      {
+        "id": 7,
+        "parent": 6,
+        "box": {
+          "x": 257.72659,
+          "y": 120.58415,
+          "width": 12.04682,
+          "height": 34.72002
+        },
+        "shapeCount": 2
+      }
+    ]
+  },
+  {
+    "model": "Yaris",
+    "groups": [
+      {
+        "id": 0,
+        "parent": null,
+        "box": {
+          "x": 58.45794,
+          "y": 116.53752,
+          "width": 204.66286,
+          "height": 79.64505
+        },
+        "shapeCount": 82
+      },
+      {
+        "id": 1,
+        "parent": 0,
+        "box": {
+          "x": 144.09081,
+          "y": 135.64,
+          "width": 44.76291,
+          "height": 60.54257
+        },
+        "shapeCount": 39
+      },
+      {
+        "id": 2,
+        "parent": 1,
+        "box": {
+          "x": 163.23,
+          "y": 145.2866,
+          "width": 21.87426,
+          "height": 41.6434
+        },
+        "shapeCount": 37
+      },
+      {
+        "id": 3,
+        "parent": 0,
+        "box": {
+          "x": 58.45794,
+          "y": 122.99,
+          "width": 44.79971,
+          "height": 59.45276
+        },
+        "shapeCount": 2
+      },
+      {
+        "id": 4,
+        "parent": 0,
+        "box": {
+          "x": 236.17397,
+          "y": 123.27,
+          "width": 26.10715,
+          "height": 39.70614
+        },
+        "shapeCount": 39
+      },
+      {
+        "id": 5,
+        "parent": 4,
+        "box": {
+          "x": 249.65553,
+          "y": 129.73753,
+          "width": 10.70894,
+          "height": 27.30493
+        },
+        "shapeCount": 37
+      }
+    ]
+  },
+  {
+    "model": "Transit",
+    "groups": [
+      {
+        "id": 0,
+        "parent": null,
+        "box": {
+          "x": 124.84,
+          "y": 93.97684,
+          "width": 160.65,
+          "height": 104.31717
+        },
+        "shapeCount": 100
+      },
+      {
+        "id": 1,
+        "parent": 0,
+        "box": {
+          "x": 124.84,
+          "y": 140.57435,
+          "width": 41.8214,
+          "height": 57.71966
+        },
+        "shapeCount": 48
+      },
+      {
+        "id": 2,
+        "parent": 1,
+        "box": {
+          "x": 136.4486,
+          "y": 141.536,
+          "width": 30.21281,
+          "height": 55.32801
+        },
+        "shapeCount": 47
+      },
+      {
+        "id": 3,
+        "parent": 0,
+        "box": {
+          "x": 255.00868,
+          "y": 108.72466,
+          "width": 26.18789,
+          "height": 37.78766
+        },
+        "shapeCount": 48
+      },
+      {
+        "id": 4,
+        "parent": 3,
+        "box": {
+          "x": 264.0074,
+          "y": 109.54121,
+          "width": 17.18917,
+          "height": 36.52757
+        },
+        "shapeCount": 47
+      }
+    ]
+  },
+  {
+    "model": "Defender",
+    "groups": [
+      {
+        "id": 0,
+        "parent": null,
+        "box": {
+          "x": 36.08907,
+          "y": 97.85137,
+          "width": 243.31371,
+          "height": 99.26903
+        },
+        "shapeCount": 104
+      },
+      {
+        "id": 1,
+        "parent": 0,
+        "box": {
+          "x": 36.08907,
+          "y": 108.1592,
+          "width": 55.82741,
+          "height": 67.06233
+        },
+        "shapeCount": 27
+      },
+      {
+        "id": 2,
+        "parent": 0,
+        "box": {
+          "x": 237.30959,
+          "y": 109.29669,
+          "width": 31.50981,
+          "height": 44.94135
+        },
+        "shapeCount": 36
+      }
+    ]
+  }
+]
