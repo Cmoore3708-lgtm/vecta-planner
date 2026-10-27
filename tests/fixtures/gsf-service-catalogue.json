@@ -1,0 +1,148 @@
+{
+  "purpose": "Recorded catalogue parsing fixture only; not current prices or live quote evidence",
+  "rows": [
+    {
+      "registration": "NU67VSE",
+      "categories": [
+        {
+          "category": "Oil Filter",
+          "status": "CAPTURED_FOR_REVIEW",
+          "selectedRegistration": true,
+          "registration": "NU67VSE",
+          "headings": [
+            "Oil Filter - Spin-on Filter",
+            "\u00a34.94"
+          ],
+          "visibleText": "NU67VSE Clear Nissan Pulsar DiG-T 190 Start/Stop Tekna 1.6 (1618cc) Petrol Manual 5 doors 23/11/17 22/11/26 Copy VIN More Details All categories / Filters / Oil Filter Related: Air Filter Fuel Filter Cabin Filter Urea Filter Engine Oil Sump Plug Sump Plug Washer Oil Filter - Spin-on Filter SKU: UFI23.265.00 In stock. Attributes Sort By Relevancy \u00a34.94 Gold Oil Filter - Spin-On Filter Local Branch \u00a37.87 Gold Oil Filter - Spin-On Filter Local Branch \u00a34.49 Silver Oil Filter - Spin-On Local Branch Show More Stock Type Quantity Boldon 1 RDC 1 NDC 369 \u00a34.94 RRP: \u00a320.18 Buy Now Add to basket 0",
+          "truncated": false
+        },
+        {
+          "category": "Air Filter",
+          "status": "CAPTURED_FOR_REVIEW",
+          "selectedRegistration": true,
+          "registration": "NU67VSE",
+          "headings": [
+            "Air Filter",
+            "\u00a310.75"
+          ],
+          "visibleText": "NU67VSE Clear Nissan Pulsar DiG-T 190 Start/Stop Tekna 1.6 (1618cc) Petrol Manual 5 doors 23/11/17 22/11/26 Copy VIN More Details All categories / Filters / Air Filter Related: Oil Filter Fuel Filter Cabin Filter Urea Filter Engine Oil Sump Plug Sump Plug Washer Air Filter SKU: FRACA5619 In stock. Attributes Sort By Relevancy \u00a310.75 Gold Air Filter Local Branch \u00a313.45 Gold Air Filter - Insert Filter Local Branch \u00a39.65 Silver Air Filter - Insert Filter Local Branch Show More Stock Type Quantity Boldon 1 RDC 4 NDC 205 \u00a310.75 RRP: \u00a318.56 Buy Now Add to basket 0",
+          "truncated": false
+        },
+        {
+          "category": "Cabin Filter",
+          "status": "CAPTURED_FOR_REVIEW",
+          "selectedRegistration": true,
+          "registration": "NU67VSE",
+          "headings": [
+            "Cabin Filter - Particulate Filter",
+            "\u00a322.79"
+          ],
+          "visibleText": "NU67VSE Clear Nissan Pulsar DiG-T 190 Start/Stop Tekna 1.6 (1618cc) Petrol Manual 5 doors 23/11/17 22/11/26 Copy VIN More Details All categories / Filters / Cabin Filter Related: Oil Filter Air Filter Fuel Filter Urea Filter Engine Oil Sump Plug Sump Plug Washer Cabin Filter - Particulate Filter SKU: MANCU1629 In stock. Attributes Sort By Relevancy \u00a322.79 Gold Cabin Filter - Particulate Filter Local Branch \u00a320.84 Silver Cabin Filter - Particulate Filter Local Branch Show More Stock Type Quantity Boldon 1 RDC 1 NDC 446 \u00a322.79 RRP: \u00a335.48 Buy Now Add to basket 0",
+          "truncated": false
+        },
+        {
+          "category": "Fuel Filter",
+          "status": "CAPTURED_FOR_REVIEW",
+          "selectedRegistration": true,
+          "registration": "NU67VSE",
+          "headings": [
+            "Fuel Filter - In-Line Filter"
+          ],
+          "visibleText": "NU67VSE Clear Nissan Pulsar DiG-T 190 Start/Stop Tekna 1.6 (1618cc) Petrol Manual 5 doors 23/11/17 22/11/26 Copy VIN More Details All categories / Filters / Fuel Filter Related: Oil Filter Air Filter Cabin Filter Urea Filter Engine Oil Sump Plug Sump Plug Washer Fuel Filter - In-Line Filter SKU: FEB24073 Call your branch for availability. Attributes Sort By Relevancy \u00a35.49 Silver Fuel Filter - In-Line Filter Branch Network \u00a35.90 Silver Fuel Filter - In-Line Filter Branch Network \u00a37.22 Silver Fuel Filter - In-Line Filter Branch Network \u00a325.44 Bronze Fuel Filter - Insert Filter Branch Network \u00a318.02 Gold Fuel Filter - In-Line Out Of Stock \u00a344.99 Bronze Fuel Filter - Canister Out Of Stock \u00a30.00 Bronze Out Of Stock \u00a30.00 Bronze Out Of Stock \u00a30.00 Bronze Out Of Stock \u00a30.00 Bronze Out Of Stock \u00a30.00 Bronze Out Of Stock \u00a30.00 Bronze Out Of Stock \u00a30.00 Bronze Out Of Stock \u00a30.00 Bronze Out Of Stock \u00a30.00 Bronze Out Of Stock \u00a30.00 Bronze Out Of Stock \u00a30.00 Bronze Out Of Stock \u00a30.00 Bronze Out Of Stock \u00a30.00 Bronze Out Of Stock \u00a30.00 Bronze Out Of Stock Please contact your branch for availability. They will be able to provide more information. Need assistance? Call branch: 0191 644 4789 Opening hours: Monday-Friday 8:00 - 17:30 Saturday 8:00 - 14:00 Sunday Closed WhatsApp branch",
+          "truncated": false
+        },
+        {
+          "category": "Engine Oils (Applied)",
+          "status": "CAPTURED_FOR_REVIEW",
+          "selectedRegistration": true,
+          "registration": "NU67VSE",
+          "headings": [
+            "Engine Oil Information",
+            "Progress",
+            "Oil recommendation",
+            "Capacity",
+            "Viscosity",
+            "X-FLOW TYPE F 5W30 - 5L",
+            "\u00a343.41",
+            "XTECH 5W-30 - 1L",
+            "\u00a310.68"
+          ],
+          "visibleText": "NU67VSE Clear Nissan Pulsar DiG-T 190 Start/Stop Tekna 1.6 (1618cc) Petrol Manual 5 doors 23/11/17 22/11/26 Copy VIN More Details All categories / Service Items / Fluids & Lubricants / Engine Oils (Applicated) Engine Oil Information Progress 0.0L / 4.3L 0 % 0.00 L / 4.30 L Oil recommendation 5W-30 Recommendation 5W-30 Normal (preferred) \u2022 20000 km/ 12 months km This is a recommended engine oil. If you\u2019re unsure, please refer to the vehicle manufacturer\u2019s handbook. Capacity 1L 4L 5L 20L 60L 199L 200L 208L Viscosity 5W-30 0W-20 10W-40 0W-30 5W-40 10W-60 0W-40 X-FLOW TYPE F 5W30 - 5L SKU: COMXFF5L In stock. Attributes Sort By Relevancy \u00a343.41 Gold X-Flow Type F 5W30 - 5L Local Branch \u00a345.10 Gold Xtech 5W-30 - 5L Local Branch \u00a350.58 Gold Edge 5W-30 Ll - 5L Local Branch \u00a355.28 Gold X-Flow Type F Plus 5W30 - 5L Local Branch \u00a360.26 Gold GTX 5W-30 Rn17 - 5L Local Branch \u00a364.12 Gold 3000 Formula V 5W-30 - 5L Local Branch \u00a366.47 Gold ESP Formula P 5W-30 - 5L Local Branch \u00a368.88 Gold 3000 Formula R 5W-30 - 5L Local Branch \u00a381.32 Gold 3000 Xe1 5W-30 - 5L Local Branch \u00a388.46 Gold ESP 5W-30 - 5L Local Branch \u00a357.94 Silver Magnatec 5W30 A5 5L H 4A Local Branch \u00a342.03 Gold Magnatec 5W-30 C3 5L H 4A RDC Show More Stock Type Quantity Boldon 1 RDC 1 NDC 123 \u00a343.41 RRP: \u00a3128.34 Buy Now Add to basket 0 XTECH 5W-30 - 1L SKU: COMXTC1L In stock. Attributes Sort By Relevancy \u00a310.68 Gold Xtech 5W-30 - 1L Local Branch \u00a311.79 Gold Magnatec 5W-30 A5 - 1L Local Branch \u00a311.81 Gold GTX 5W-30 Rn17 - 1L Local Branch \u00a314.39 Gold Magnatec 5W-30 C2 - 1L Local Branch \u00a314.41 Gold Edge 5W-30 Ll - 1L Local Branch \u00a317.40 Gold 3000 Xe1 5W-30 - 1L Local Branch \u00a317.47 Gold 3000 Formula V 5W-30 - 1L Local Branch \u00a317.53 Gold ESP 5W-30 - 1L Local Branch \u00a323.05 Gold Syntium 5000 Av 5W-30 - 1L Local Branch \u00a324.82 Gold ESP Formula P 5W-30 - 1L Local Branch \u00a317.47 Gold 3000 Formula R 5W-30 - 1L RDC Show More Stock Type Quantity Boldon 1 RDC 1 NDC 407 \u00a310.68 RRP: \u00a323.98 Buy Now Add to basket 0",
+          "truncated": false
+        }
+      ]
+    },
+    {
+      "registration": "FV65JTY",
+      "categories": [
+        {
+          "category": "Oil Filter",
+          "status": "CAPTURED_FOR_REVIEW",
+          "selectedRegistration": true,
+          "registration": "FV65JTY",
+          "headings": [
+            "Oil Filter - Spin-on Filter",
+            "\u00a312.25"
+          ],
+          "visibleText": "FV65JTY Clear Honda CR-V i-DTEC 4WD Opt DASP Start/Stop EX 1.6 (1596cc) Diesel Manual 5 doors 07/12/15 14/05/27 Copy VIN More Details All categories / Filters / Oil Filter Related: Air Filter Fuel Filter Cabin Filter Urea Filter Engine Oil Sump Plug Sump Plug Washer Oil Filter - Spin-on Filter SKU: MANW7069 In stock. Attributes Sort By Relevancy \u00a312.25 Gold Oil Filter - Spin-On Filter Local Branch \u00a37.90 Gold Oil Filter - Canister RDC \u00a311.50 Gold Oil Filter - Spin-On Filter RDC \u00a37.84 Silver Oil Filter - Spin-On Filter RDC Show More Stock Type Quantity Boldon 1 RDC 1 NDC 326 \u00a312.25 RRP: \u00a318.51 Buy Now Add to basket 0",
+          "truncated": false
+        },
+        {
+          "category": "Air Filter",
+          "status": "CAPTURED_FOR_REVIEW",
+          "selectedRegistration": true,
+          "registration": "FV65JTY",
+          "headings": [
+            "Air Filter - Insert Filter",
+            "\u00a326.76"
+          ],
+          "visibleText": "FV65JTY Clear Honda CR-V i-DTEC 4WD Opt DASP Start/Stop EX 1.6 (1596cc) Diesel Manual 5 doors 07/12/15 14/05/27 Copy VIN More Details All categories / Filters / Air Filter Related: Oil Filter Fuel Filter Cabin Filter Urea Filter Engine Oil Sump Plug Sump Plug Washer Air Filter - Insert Filter SKU: MANC25028 In stock. Attributes Sort By Relevancy \u00a326.76 Gold Air Filter - Insert Filter Local Branch \u00a35.09 Silver Air Filter RDC Show More Stock Type Quantity Boldon 1 RDC 1 NDC 161 \u00a326.76 RRP: \u00a396.94 Buy Now Add to basket 0",
+          "truncated": false
+        },
+        {
+          "category": "Cabin Filter",
+          "status": "CAPTURED_FOR_REVIEW",
+          "selectedRegistration": true,
+          "registration": "FV65JTY",
+          "headings": [
+            "Cabin Filter - Standard",
+            "\u00a37.98"
+          ],
+          "visibleText": "FV65JTY Clear Honda CR-V i-DTEC 4WD Opt DASP Start/Stop EX 1.6 (1596cc) Diesel Manual 5 doors 07/12/15 14/05/27 Copy VIN More Details All categories / Filters / Cabin Filter Related: Oil Filter Air Filter Fuel Filter Urea Filter Engine Oil Sump Plug Sump Plug Washer Cabin Filter - Standard SKU: FRACF10062 In stock. Attributes Sort By Relevancy \u00a37.98 Gold Cabin Filter - Standard Local Branch \u00a314.65 Gold Cabin Filter - Particulate Filter Local Branch \u00a312.55 Silver Cabin Filter - Particulate Filter Local Branch Show More Stock Type Quantity Boldon 1 RDC 1 NDC 126 \u00a37.98 RRP: \u00a313.79 Buy Now Add to basket 0",
+          "truncated": false
+        },
+        {
+          "category": "Fuel Filter",
+          "status": "CAPTURED_FOR_REVIEW",
+          "selectedRegistration": true,
+          "registration": "FV65JTY",
+          "headings": [
+            "Fuel Filter - In-Line Filter",
+            "\u00a343.50"
+          ],
+          "visibleText": "FV65JTY Clear Honda CR-V i-DTEC 4WD Opt DASP Start/Stop EX 1.6 (1596cc) Diesel Manual 5 doors 07/12/15 14/05/27 Copy VIN More Details All categories / Filters / Fuel Filter Related: Oil Filter Air Filter Cabin Filter Urea Filter Engine Oil Sump Plug Sump Plug Washer Fuel Filter - In-Line Filter SKU: MAHKL764D In stock. Attributes Sort By Relevancy \u00a343.50 Gold Fuel Filter - In-Line Filter Local Branch \u00a332.77 Bronze Fuel Filter - In-Line Filter Local Branch Show More Stock Type Quantity Boldon 1 RDC 1 NDC 0 \u00a343.50 RRP: \u00a379.15 Buy Now Add to basket 0",
+          "truncated": false
+        },
+        {
+          "category": "Engine Oils (Applied)",
+          "status": "CAPTURED_FOR_REVIEW",
+          "selectedRegistration": true,
+          "registration": "FV65JTY",
+          "headings": [
+            "Engine Oil Information",
+            "Progress",
+            "Oil recommendation",
+            "Capacity",
+            "Viscosity",
+            "ECO-FE Plus 0W-30 - 5L",
+            "\u00a356.99",
+            "ECO-P 0W-30 - 1L",
+            "\u00a313.65"
+          ],
+          "visibleText": "FV65JTY Clear Honda CR-V i-DTEC 4WD Opt DASP Start/Stop EX 1.6 (1596cc) Diesel Manual 5 doors 07/12/15 14/05/27 Copy VIN More Details All categories / Service Items / Fluids & Lubricants / Engine Oils (Applicated) Engine Oil Information Progress 0.0L / 4.7L 0 % 0.00 L / 4.70 L Oil recommendation 0W-30 This is a recommended engine oil. If you\u2019re unsure, please refer to the vehicle manufacturer\u2019s handbook. Capacity 1L 4L 5L 20L 60L 199L 200L 208L Viscosity 5W-30 0W-30 0W-20 ECO-FE Plus 0W-30 - 5L SKU: COMECOFEP5L In stock. Attributes Sort By Relevancy \u00a356.99 Gold ECO-Fe Plus 0W-30 - 5L Local Branch \u00a356.99 Gold ECO-Vg 0W-30 - 5L Local Branch \u00a359.35 Gold ECO-P 0W-30 - 5L Local Branch \u00a371.24 Gold 3000 Formula V 0W-30 - 5L Local Branch \u00a376.00 Gold 3000 Formula F 0W-30 - 5L Local Branch \u00a392.16 Gold 3000 Formula P 0W-30 - 5L Local Branch \u00a341.53 Silver PSA Fully Synthetic Motor Oil 0W-30 - 5L Local Branch \u00a345.10 Silver Fully Synthetic Motor Oil 0W-30 - 5L Local Branch Show More Stock Type Quantity Boldon 3 RDC 3 NDC 868 \u00a356.99 RRP: \u00a3127.98 Buy Now Add to basket 0 ECO-P 0W-30 - 1L SKU: COMECOP1L In stock. Attributes Sort By Relevancy \u00a313.65 Gold ECO-P 0W-30 - 1L Local Branch \u00a313.73 Gold Magnatec 0W-30 D - 1L Local Branch \u00a314.24 Gold ECO-Fe Plus 0W-30 - 1L Local Branch \u00a314.81 Gold ECO-Vg 0W-30 - 1L Local Branch \u00a317.47 Gold 3000 Formula F 0W-30 - 1L Local Branch \u00a317.47 Gold 3000 Formula V 0W-30 - 1L Local Branch \u00a317.47 Gold 3000 Formula P 0W-30 - 1L Local Branch \u00a311.88 Silver 0W30 PSA 1L Local Branch \u00a312.46 Silver Fully Synthetic Motor Oil 0W-30 - 1L Local Branch Show More Stock Type Quantity Boldon 1 RDC 1 NDC 150 \u00a313.65 RRP: \u00a330.66 Buy Now Add to basket 0",
+          "truncated": false
+        }
+      ]
+    }
+  ]
+}

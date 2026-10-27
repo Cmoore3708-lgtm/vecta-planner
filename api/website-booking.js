@@ -2,6 +2,7 @@ import {bookingPhotos,readBookingPhotos} from './_booking-photos.js';
 import {bookingTypes} from '../lib/booking-input.js';
 import {sendBookingBadges} from './_push.js';
 import {databaseEnvironment} from './_database-environment.js';
+import {bookingServicePrice} from '../lib/booking-service-price.js';
 
 function cfg(){return databaseEnvironment({requireService:true})}
 function reg(v){return String(v||'').toUpperCase().replace(/\s+/g,' ').trim()}
@@ -17,6 +18,8 @@ export default async function handler(req,res){
   }
   const photos=bookingPhotos(b.work_photos);
   const types=bookingTypes(b);
+  let servicePrice;
+  try {servicePrice=bookingServicePrice(b,types);}catch{return res.status(409).json({error:'Your service price has expired or the service details have changed. Please review the service price and try again.'});}
   const appointment=String(b.appointment_date||b.preferred_date_1||'');
   if(!/^\d{4}-\d{2}-\d{2}$/.test(appointment)||!Number.isFinite(Date.parse(appointment+'T12:00:00Z'))||new Date(appointment+'T12:00:00Z').toISOString().slice(0,10)!==appointment)return res.status(400).json({error:'Choose an available appointment date'});
   if(b.appointment_time&&!/^(?:[01]\d|2[0-3]):[0-5]\d$/.test(String(b.appointment_time)))return res.status(400).json({error:'Invalid appointment time'});
@@ -26,6 +29,7 @@ export default async function handler(req,res){
   // the workshop's explicit "Accept & create job" action in Workshop Pro.
   const request={id,customer_name:String(b.customer_name).trim(),email:String(b.email).trim(),phone:String(b.phone).trim(),registration:reg(b.registration),vehicle:String(b.vehicle).trim(),mileage:String(b.mileage||'').trim(),mot_due:b.mot_due||null,job_types:types,work_required:String(b.work_required).trim(),preferred_date_1:appointment,preferred_date_2:null,preferred_date_3:null,completion_deadline:String(b.completion_deadline||'').trim(),contact_preference:String(b.contact_preference||'Email'),source:'Website booking',status:'awaiting_review',confirmed_date:appointment,confirmed_time:b.appointment_time||null,approximate_cost:Number.isFinite(Number(b.approximate_cost))?Number(b.approximate_cost):null,created_at:new Date().toISOString()};
   // The primary key makes concurrent retries atomic without overwriting a request.
+  if(servicePrice){request.approximate_cost=servicePrice.approximateCost;request.work_required+=servicePrice.snapshot;}
   const inserted=photos.length
    ? await rest(url,key,'rpc/insert_website_booking_with_photos','POST',{p_request:request,p_photos:photos})
    : await rest(url,key,'website_booking_requests?on_conflict=id','POST',request,'resolution=ignore-duplicates,return=representation');

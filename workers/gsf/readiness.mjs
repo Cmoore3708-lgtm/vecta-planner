@@ -12,4 +12,3 @@ try {
   try {writeFileSync(temporary,'setup check',{flag:'wx'});}finally{if(existsSync(temporary))unlinkSync(temporary);}
   console.log('PASS: Node version, Microsoft Edge and local profile folder.');
 } catch(error) {console.error(error.message);process.exitCode=1;}
-

@@ -33,4 +33,3 @@ try {
   console.error(error.code==='ENOENT'?'Comparison setup is incomplete. The ten registrations and approved filter/oil mappings must be prepared first.':error.message);
   process.exitCode=1;
 } finally {terminal?.close();await context?.close().catch(()=>{});}
-

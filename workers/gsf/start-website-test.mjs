@@ -1,0 +1,16 @@
+import fs from 'node:fs';
+import path from 'node:path';
+import {fileURLToPath} from 'node:url';
+const here=path.dirname(fileURLToPath(import.meta.url));
+const config=JSON.parse(fs.readFileSync(path.join(here,'website-test.local.json'),'utf8'));
+const url=new URL(config.origin);
+if(url.protocol!=='https:'||!/^vecta-planner-[a-z0-9]+-vectaplanner\.vercel\.app$/.test(url.hostname)||url.origin!==config.origin||!/^[a-f0-9]{64}$/.test(config.workerToken)||!/^[A-Za-z0-9_-]+$/.test(config.shareToken))throw Error('Invalid preview pairing.');
+const response=await fetch(config.origin+'/booking?_vercel_share='+encodeURIComponent(config.shareToken),{redirect:'manual',signal:AbortSignal.timeout(15000)});
+const cookies=response.headers.getSetCookie().map(c=>c.split(';')[0]).filter(c=>c.startsWith('_vercel_jwt='));
+if(!cookies.length)throw Error('Preview access expired. Request an updated website-test connection.');
+process.env.GSF_PREVIEW_COOKIE=cookies.join('; ');
+process.env.GSF_WORKSHOP_ORIGIN=config.origin;
+process.env.GSF_WORKER_TOKEN=config.workerToken;
+process.env.GSF_CONFIG_FILE=path.join(here,'live-service-config.example.json');
+console.log('Website TEST connection ready. Production website prices are unchanged.');
+await import('../repair-quotes/start-paired.mjs');

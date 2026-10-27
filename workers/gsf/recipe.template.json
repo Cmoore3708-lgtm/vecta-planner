@@ -6,14 +6,11 @@
   "vehicle": "Nissan Pulsar DiG-T 190 Start/Stop Tekna",
   "service": "Oil & Filter Change",
   "range": "Mid Range",
-  "minimumMileage": null,
-  "maximumMileage": null,
-  "allowUnknownMileage": false,
+  "fuelType": "petrol",
   "oilSpecification": "",
   "oilSource": "",
-  "scopeSource": "",
+  "scopeSource": "VECTA default service parts list; diesel major includes fuel filter; spark plugs quoted separately",
   "fitmentSource": "",
   "requiredKinds": ["oil", "oil_filter"],
   "items": []
 }
-

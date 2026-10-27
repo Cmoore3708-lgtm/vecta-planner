@@ -1,4 +1,5 @@
-import {servicePriceRequest, cleanServiceCosts} from '../../lib/service-pricing.js';
+import {lookupLiveService} from './live-service.mjs';
+import {servicePriceRequest, cleanServiceCosts,serviceRequiredKinds} from '../../lib/service-pricing.js';
 import {readProductDialog} from './product-dialog.mjs';
 export const SUPPLIER = 'https://trade.gsfcarparts.com';
 export function supplierUrl(value) {
@@ -17,15 +18,16 @@ export function approvedRecipe(config, raw, now=Date.now()) {
   const matches=config.recipes.filter(recipe=>recipe.registration===request.registration && recipe.service===request.service && recipe.range===request.range);
   if(matches.length!==1)throw Error('REVIEW_REQUIRED');
   const recipe=matches[0], reviewed=Date.parse(recipe.reviewedAt);
+  const oilApplicable=request.service!=='EV Major Service';
+  if(!oilApplicable&&!['electric','electricity','battery electric','bev'].includes(String(recipe.fuelType||'').trim().toLowerCase()))throw Error('REVIEW_REQUIRED');
   if(config.lookupMode==='approved-skus' && !recipe.fitmentSource)throw Error('REVIEW_REQUIRED');
   if(recipe.approved!==true || !Number.isFinite(reviewed) || reviewed>now || now-reviewed>30*86400000 ||
-    !recipe.id || !recipe.vehicle || !recipe.oilSpecification || !recipe.oilSource || !recipe.scopeSource ||
+    !recipe.id || !recipe.vehicle || (oilApplicable&&(!recipe.oilSpecification||!recipe.oilSource)) ||
     !Array.isArray(recipe.items) || recipe.items.length<2 || recipe.items.length>16 ||
     !Array.isArray(recipe.requiredKinds))throw Error('REVIEW_REQUIRED');
-  // Service scope is approved for this mileage window, rather than guessed.
-  if(request.mileage===null ? recipe.allowUnknownMileage!==true :
-    !Number.isSafeInteger(recipe.minimumMileage) || !Number.isSafeInteger(recipe.maximumMileage) ||
-    request.mileage<recipe.minimumMileage || request.mileage>recipe.maximumMileage)throw Error('REVIEW_REQUIRED');
+  // The default package applies even when mileage is unknown.
+  const required=serviceRequiredKinds(request.service,recipe.fuelType),kinds=recipe.items.map(item=>item.kind);
+  if(required.some(kind=>!kinds.includes(kind))||kinds.some(kind=>!required.includes(kind)&&(!oilApplicable||!['sump_plug','washer'].includes(kind))))throw Error('REVIEW_REQUIRED');
   for(const item of recipe.items) {
     if(config.lookupMode==='approved-skus') {
       if(!/^[A-Za-z0-9 ._/-]{1,80}$/.test(item.searchTerm||item.sku||''))throw Error('SETTINGS_REQUIRED');
@@ -53,6 +55,11 @@ async function readProductBySkuOnce(page,item) {
   const term=item.searchTerm||item.sku;
   if(!/^[A-Za-z0-9 ._/-]{1,80}$/.test(term))throw Error('SETTINGS_REQUIRED');
   if(item.searchUrl&&item.searchUrl!==SUPPLIER+'/enhancedSearch/'+encodeURIComponent(term))throw Error('SETTINGS_REQUIRED');
+  if(item.productUrl){
+   const url=new URL(item.productUrl);
+   if(url.origin!==SUPPLIER||url.username||url.password||url.search||url.hash||!/^\/partdetails\/[A-Za-z0-9._-]+$/.test(url.pathname))throw Error('SETTINGS_REQUIRED');
+   await page.goto(url.href,{waitUntil:'domcontentloaded',timeout:15000});
+  }else{
   await page.goto(item.searchUrl||SUPPLIER,{waitUntil:'domcontentloaded',timeout:15000});
   if(/\/signin(?:[/?]|$)/.test(page.url()))throw Error('LOGIN_REQUIRED');
   if(new URL(page.url()).origin!==SUPPLIER)throw Error('UNAVAILABLE');
@@ -66,6 +73,7 @@ async function readProductBySkuOnce(page,item) {
   const sku=page.getByRole('main').getByText(item.sku,{exact:true});
   await sku.waitFor({state:'visible',timeout:15000});
   await uniqueVisible(sku);stage='GSF_SKU_OPEN_DETAILS';await sku.click({timeout:15000});
+   }
   // Prefer the active modal over background main content. Desktop can instead
   // navigate to the separately calibrated full Part Details page.
   const dialog=page.getByRole('dialog',{name:'Part Details',exact:true});
@@ -85,7 +93,7 @@ async function readProductBySkuOnce(page,item) {
   const product=await page.evaluate(readProductDialog);
   if(product.sku!==item.sku || product.brand.toUpperCase()!==item.brand.toUpperCase() || product.description!==item.description)throw Error('REVIEW_REQUIRED');
   return {kind:item.kind,sku:product.sku,brand:product.brand,description:product.description,
-    quantityMilli:item.quantityMilli,unitNetPence:Math.ceil(product.unitNetPence*1000/item.packQuantityMilli),vatBasis:'EX_VAT',inStock:true};
+    quantityMilli:item.quantityMilli,unitNetPence:Math.ceil(product.unitNetPence*1000/item.packQuantityMilli),...(item.kind==='oil'?{packNetPence:product.unitNetPence,packQuantityMilli:item.packQuantityMilli}:{}),vatBasis:'EX_VAT',inStock:true};
   }catch(error){error.stage=stage;throw error;}
 }
 async function uniqueVisible(locator) {
@@ -110,15 +118,17 @@ export async function readProduct(page,item) {
   // Oil may be sold in 5L packs; charge only the verified fill quantity.
   const unitNetPence=Math.ceil(packNetPence*1000/item.packQuantityMilli);
   return {kind:item.kind,sku:item.sku,brand:item.brand,description:item.description,
-    quantityMilli:item.quantityMilli,unitNetPence,vatBasis:'EX_VAT',inStock:true};
+    quantityMilli:item.quantityMilli,unitNetPence,
+    ...(item.kind==='oil'?{packNetPence,packQuantityMilli:item.packQuantityMilli}:{}),vatBasis:'EX_VAT',inStock:true};
 }
 export async function lookupService(page,raw,config) {
+  if(config?.lookupMode==='vehicle-catalogue'&&config.calibrationApproved===true)return lookupLiveService(page,raw);
   const request=servicePriceRequest(raw),recipe=approvedRecipe(config,request);
   if(config.lookupMode==='approved-skus') {
     const items=[];
     for(const item of recipe.items)items.push(await readProductBySku(page,item));
     return cleanServiceCosts({request,recipeId:recipe.id,vehicle:recipe.vehicle,oilSpecification:recipe.oilSpecification,
-      requiredKinds:recipe.requiredKinds,items,fitmentVerified:true,scopeVerified:true,oilVerified:true,checkedAt:new Date().toISOString()},request);
+      fuelType:recipe.fuelType,requiredKinds:recipe.requiredKinds,items,fitmentVerified:true,scopeVerified:true,oilVerified:true,checkedAt:new Date().toISOString()},request);
   }
   await page.goto(SUPPLIER,{waitUntil:'domcontentloaded',timeout:15000});
   if(/\/signin(?:[/?]|$)/.test(page.url()))throw Error('LOGIN_REQUIRED');
@@ -134,6 +144,5 @@ export async function lookupService(page,raw,config) {
   const items=[];
   for(const item of recipe.items)items.push(await readProduct(page,item));
   return cleanServiceCosts({request,recipeId:recipe.id,vehicle:recipe.vehicle,oilSpecification:recipe.oilSpecification,
-    requiredKinds:recipe.requiredKinds,items,fitmentVerified:true,scopeVerified:true,oilVerified:true,checkedAt:new Date().toISOString()},request);
+    fuelType:recipe.fuelType,requiredKinds:recipe.requiredKinds,items,fitmentVerified:true,scopeVerified:true,oilVerified:true,checkedAt:new Date().toISOString()},request);
 }
-

@@ -1,0 +1,139 @@
+{
+  "checkedAt": "2026-10-27T09:17:06.796Z",
+  "source": "User-uploaded service-check-result.local.json",
+  "approvedForPublication": false,
+  "workerQuoteVerified": false,
+  "oilVerified": false,
+  "rows": [
+    {
+      "registration": "NU67VSE",
+      "categories": [
+        {
+          "category": "Oil Filter",
+          "status": "CAPTURED_FOR_REVIEW",
+          "reason": null,
+          "selectedRegistration": true,
+          "skuLabels": [
+            "UFI23.265.00"
+          ],
+          "headings": [
+            "Oil Filter - Spin-on Filter",
+            "\u00a34.94"
+          ]
+        },
+        {
+          "category": "Air Filter",
+          "status": "CAPTURED_FOR_REVIEW",
+          "reason": null,
+          "selectedRegistration": true,
+          "skuLabels": [
+            "FRACA5619"
+          ],
+          "headings": [
+            "Air Filter",
+            "\u00a310.75"
+          ]
+        },
+        {
+          "category": "Cabin Filter",
+          "status": "CAPTURED_FOR_REVIEW",
+          "reason": null,
+          "selectedRegistration": true,
+          "skuLabels": [
+            "MANCU1629"
+          ],
+          "headings": [
+            "Cabin Filter - Particulate Filter",
+            "\u00a322.79"
+          ]
+        },
+        {
+          "category": "Fuel Filter",
+          "status": "CAPTURED_FOR_REVIEW",
+          "reason": null,
+          "selectedRegistration": true,
+          "skuLabels": [
+            "FEB24073"
+          ],
+          "headings": [
+            "Fuel Filter - In-Line Filter"
+          ]
+        },
+        {
+          "category": "Engine Oils (Applied)",
+          "status": "NEEDS_REVIEW",
+          "reason": "NO_PRICED_ITEMS",
+          "selectedRegistration": true,
+          "skuLabels": [],
+          "headings": []
+        }
+      ]
+    },
+    {
+      "registration": "FV65JTY",
+      "categories": [
+        {
+          "category": "Oil Filter",
+          "status": "CAPTURED_FOR_REVIEW",
+          "reason": null,
+          "selectedRegistration": true,
+          "skuLabels": [
+            "MANW7069"
+          ],
+          "headings": [
+            "Oil Filter - Spin-on Filter",
+            "\u00a312.25"
+          ]
+        },
+        {
+          "category": "Air Filter",
+          "status": "CAPTURED_FOR_REVIEW",
+          "reason": null,
+          "selectedRegistration": true,
+          "skuLabels": [
+            "MANC25028"
+          ],
+          "headings": [
+            "Air Filter - Insert Filter",
+            "\u00a326.76"
+          ]
+        },
+        {
+          "category": "Cabin Filter",
+          "status": "CAPTURED_FOR_REVIEW",
+          "reason": null,
+          "selectedRegistration": true,
+          "skuLabels": [
+            "FRACF10062"
+          ],
+          "headings": [
+            "Cabin Filter - Standard",
+            "\u00a37.98"
+          ]
+        },
+        {
+          "category": "Fuel Filter",
+          "status": "CAPTURED_FOR_REVIEW",
+          "reason": null,
+          "selectedRegistration": true,
+          "skuLabels": [
+            "MAHKL764D"
+          ],
+          "headings": [
+            "Fuel Filter - In-Line Filter",
+            "\u00a343.50"
+          ]
+        },
+        {
+          "category": "Engine Oils (Applied)",
+          "status": "NEEDS_REVIEW",
+          "reason": "NO_PRICED_ITEMS",
+          "selectedRegistration": true,
+          "skuLabels": [],
+          "headings": []
+        }
+      ]
+    }
+  ],
+  "followup": "Applied engine-oil category returned no parts for both vehicles. Checker corrected to follow supplier Engine Oil related link; live rerun required."
+}

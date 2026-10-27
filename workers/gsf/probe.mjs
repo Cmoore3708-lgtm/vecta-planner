@@ -34,4 +34,3 @@ try {
   if(reason==='PRODUCT_DETAILS_NOT_OPEN')console.error('Click the part and leave its full product page or Part Details popup open before pressing Enter.');
   process.exitCode=1;
 } finally {terminal.close();await context.close().catch(()=>{});}
-
