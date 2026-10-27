@@ -41,7 +41,7 @@
               expiryTimer=setTimeout(()=>{if(active===generation)publish({status:'unavailable',quote:null});},expiresAt-now());
               publish({status:'matched',quotes:data.quotes,quote:null});return;
             }
-            if(data.status==='MATCHED' && data.quote?.expiresAt>now() && typeof data.quote.token==='string' &&
+            if(!batch && data.status==='MATCHED' && data.quote?.expiresAt>now() && typeof data.quote.token==='string' &&
               JSON.stringify(data.quote.request)===JSON.stringify(input) && Number.isSafeInteger(data.quote.totalPence) && data.quote.totalPence>0) {
               expiryTimer=setTimeout(()=>{if(active===generation)publish({status:'unavailable',quote:null});},data.quote.expiresAt-now());
               publish({status:'matched',quote:data.quote});return;

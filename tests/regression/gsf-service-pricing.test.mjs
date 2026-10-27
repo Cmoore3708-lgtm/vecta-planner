@@ -269,8 +269,9 @@ test('actual website shows a matched service price and submits its signed snapsh
   root.fetch=async(url,options)=>{
     if(url==='/api/service-price'){
       const input=JSON.parse(options.body),timestamp=Date.now();
-      const costs={...result(),request:input,checkedAt:new Date(timestamp).toISOString()};
-      return {ok:true,json:async()=>({status:'MATCHED',quote:signServicePrice(publicServicePrice(calculateServicePrice(costs,input,policy,timestamp)),secret,timestamp)})};
+      const costs={...result(),request:{...servicePriceRequest(input),service:'Major Service',mileage:null},checkedAt:new Date(timestamp).toISOString()};
+      const res=response();await servicePriceHandler({env,now:()=>timestamp,queue:async()=>({status:'MATCHED',result:costs})})({method:'POST',body:input},res);
+      return {ok:true,json:async()=>res.body};
     }
     if(url==='/api/website-booking'){writes.push(JSON.parse(options.body));return {ok:true,json:async()=>({ok:true,request_id:'receipt'})};}
     return {ok:true,json:async()=>({})};
