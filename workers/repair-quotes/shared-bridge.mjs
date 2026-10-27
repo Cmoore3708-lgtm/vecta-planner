@@ -29,6 +29,7 @@ export function createRepairBridge({origin,token,gsfContext,openHaynesContext,co
      const code=error.code||error.message;
      status=['LOGIN_REQUIRED','REVIEW_REQUIRED','LABOUR_REVIEW_REQUIRED','OUT_OF_STOCK'].includes(code)?code:['SETTINGS_REQUIRED','ENOENT'].includes(code)?'SETTINGS_REQUIRED':'UNAVAILABLE';
      log('Repair lookup: '+status);
+     const details=[error.stage,error.detail].filter(value=>/^[A-Z_]{3,80}$/.test(value||''));if(details.length)log('Repair detail: '+details.join(' / '));
     }finally{
      clearTimeout(timer);
      if(status==='LOGIN_REQUIRED'){

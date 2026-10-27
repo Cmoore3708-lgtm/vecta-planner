@@ -42,8 +42,8 @@ test('shared bridge serialises supplier access and isolates repair pairing failu
 
 import {navigateGSFAlternator} from '../../workers/repair-quotes/gsf-navigation.mjs';
 
-function navigationPage({loseFilter=false}={}){
- let current='https://trade.gsfcarparts.com',selected=true,input='';const actions=[];
+function navigationPage({loseFilter=false,startBlank=false}={}){
+ let current=startBlank?'about:blank':'https://trade.gsfcarparts.com',selected=true,input='';const actions=[];
  const control=label=>({waitFor:async()=>{},count:async()=>label==='Clear'?(selected?1:0):1,isVisible:async()=>true,inputValue:async()=>input,fill:async value=>{input=value;actions.push(value);},click:async()=>{actions.push(label);if(label==='Clear')selected=false;if(label==='Search VRM Button')selected=!loseFilter;}});
  const page={url:()=>current,goto:async url=>{current=url;selected=true;actions.push(url);},getByPlaceholder:()=>control('input'),getByRole:(role,{name})=>control(name),evaluate:async()=>({identities:selected?[{text:'FV65JTY Clear'}]:[],candidateCount:6}),waitForTimeout:async()=>{}};
  return {page,actions};
@@ -56,4 +56,25 @@ test('GSF category opens before a fresh registration; no reload follows selectio
 test('category flow records that registration was submitted but refuses unconfirmed filter state',async()=>{
  const {page}=navigationPage({loseFilter:true});
  await assert.rejects(navigateGSFAlternator(page,'FV65JTY'),error=>error.stage==='GSF_FILTER_READY'&&error.registrationSubmitted===true&&error.detail==='FILTERED_CATEGORY_NOT_CONFIRMED'&&error.observed.selectedRegistration===false);
+});
+
+ test('sign-in tabs stay open, come forward and are reused on retry',async t=>{
+ const f=fixture(t);let lookups=0,firstPages,focused=0;const delivered=[];
+ const bridge=createRepairBridge({...settings,...f,lookup:async pages=>{
+  if(++lookups===1){firstPages=pages;pages.gsfPage.bringToFront=async()=>{focused++;};throw Error('LOGIN_REQUIRED');}
+  assert.equal(pages.gsfPage,firstPages.gsfPage);assert.equal(pages.haynesPage,firstPages.haynesPage);return {source:'fresh'};
+ },rpc:async body=>body.action==='pull'?{status:'JOB',id:'id',lease:'lease',request:{}}:(delivered.push(body),{status:'SAVED'})});
+ assert.equal(await bridge.tick(),'LOGIN_REQUIRED');assert.equal(f.counts().closed,0);assert.equal(focused,1);assert.equal(delivered[0].result,null);
+ assert.equal(await bridge.tick(),'MATCHED');assert.equal(f.counts().closed,2);assert.equal(f.counts().gsfTabs,1);await bridge.close();
+ });
+ test('closing the bridge cleans up retained sign-in tabs',async t=>{
+ const f=fixture(t);const bridge=createRepairBridge({...settings,...f,lookup:async()=>{throw Error('LOGIN_REQUIRED');},rpc:async body=>body.action==='pull'?{status:'JOB',id:'id',lease:'lease',request:{}}:{status:'SAVED'}});
+ await bridge.tick();assert.equal(f.counts().closed,0);await bridge.close();assert.equal(f.counts().closed,2);
+ });
+
+test('a newly opened blank GSF tab navigates before checking supplier authentication',async()=>{
+ const {page,actions}=navigationPage({startBlank:true});
+ const result=await navigateGSFAlternator(page,'FV65JTY');
+ assert.equal(actions[0],'https://trade.gsfcarparts.com/parts/Alternator');
+ assert.equal(result.registrationSubmitted,true);
 });

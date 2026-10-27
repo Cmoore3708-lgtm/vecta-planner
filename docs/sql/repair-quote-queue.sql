@@ -23,8 +23,18 @@ begin
  if p_action='enqueue' then
   if coalesce(p_payload->>'actor','') !~ '^[a-f0-9]{64}$'
    or coalesce(p_payload->'request'->>'registration','') !~ '^[A-Z0-9]{2,8}$'
-   or coalesce(p_payload->'request'->>'operation','')<>'alternator-replacement'
-   or coalesce(p_payload->'request'->>'quantity','')<>'1'
+   or not coalesce((
+    (p_payload->'request'->>'operation'='alternator-replacement' and p_payload->'request'->>'quantity'='1' and (not (p_payload->'request' ? 'selection') or p_payload->'request'->'selection'='null'::jsonb))
+    or (jsonb_typeof(p_payload->'request'->'selection')='object'
+     and p_payload->'request'->>'operation'=(p_payload->'request'->'selection'->>'partId')||'-replacement'
+     and p_payload->'request'->'quantity'=p_payload->'request'->'selection'->'quantity'
+     and (
+      (p_payload->'request'->'selection'->>'partId' in ('alternator','starter-motor','battery','water-pump','thermostat','radiator','auxiliary-belt','clutch-kit','oil-filter','air-filter','cabin-filter','fuel-filter') and p_payload->'request'->'selection'->'quantity'='1'::jsonb and p_payload->'request'->'selection'->>'axle'='' and p_payload->'request'->'selection'->>'side'='')
+      or (p_payload->'request'->'selection'->>'partId'='brake-pads' and p_payload->'request'->'selection'->'quantity'='1'::jsonb and p_payload->'request'->'selection'->>'axle' in ('front','rear') and p_payload->'request'->'selection'->>'side'='')
+      or (p_payload->'request'->'selection'->>'partId' in ('brake-discs','brake-caliper','coil-spring','shock-absorber','suspension-arm','track-rod-end','wheel-bearing','drive-shaft') and p_payload->'request'->'selection'->>'axle' in ('front','rear')
+       and ((p_payload->'request'->'selection'->>'side' in ('left','right') and p_payload->'request'->'selection'->'quantity'='1'::jsonb) or (p_payload->'request'->'selection'->>'side'='both' and p_payload->'request'->'selection'->'quantity'='2'::jsonb)))
+     ))
+   ),false)
    then return jsonb_build_object('status','INVALID_REQUEST');end if;
   select * into j from public.vecta_repair_quote_jobs where request=p_payload->'request' and status='MATCHED'
    and completed_at>now()-interval '5 minutes' order by completed_at desc limit 1;

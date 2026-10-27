@@ -49,8 +49,8 @@ export function analyseStructuredGSF(snapshot,rawSelection,{requireComplete=true
  const selection=structuredRepairSelection(rawSelection);
  if(!snapshot||snapshot.captureIncomplete||snapshot.truncated||!Array.isArray(snapshot.cards)||snapshot.cardCount!==snapshot.cards.length||!snapshot.identities?.some(t=>t.replace(/\s/g,'')===snapshot.registration))review('VEHICLE_CATALOGUE_NOT_CONFIRMED');
  if(requireComplete){const b=snapshot.boundary;if(!b||b.loading||b.showMore||b.paginationControls?.length||!b.atBottom||!b.groupSkus?.length)review('CATALOGUE_NOT_COMPLETE');}
- const options=snapshot.cards.map(parseGSFOption).filter(Boolean),compatible=options.filter(option=>option.inStock&&parts[selection.partId].test(option.description)&&scopeMatches(option,selection));
- if(!compatible.length)review('NO_PART_WITH_CONFIRMED_SCOPE');
+ const options=snapshot.cards.map(parseGSFOption).filter(Boolean),scoped=options.filter(option=>option.description&&parts[selection.partId].test(option.description)&&scopeMatches(option,selection)),compatible=scoped.filter(option=>option.inStock);
+ if(!compatible.length){if(scoped.length)throw Object.assign(Error('OUT_OF_STOCK'),{code:'OUT_OF_STOCK'});review('NO_PART_WITH_CONFIRMED_SCOPE');}
  for(const option of compatible){option.packsRequired=Math.ceil(selection.quantity/option.packQuantity);option.totalCostPence=option.costPence*option.packsRequired;}
  const fingerprints=new Set(compatible.map(option=>[...option.groupDescription.matchAll(/\b\d+(?:[.,]\d+)?\s*(?:mm|amp|kw)\b/gi)].map(m=>normalPart(m[0])).sort().join('|')).filter(Boolean));
  if(fingerprints.size>1)review('MULTIPLE_FITMENT_SPECIFICATIONS');

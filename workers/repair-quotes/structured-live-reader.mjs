@@ -84,13 +84,19 @@ export async function readStructuredHaynes(page,request,selection){
 }
 export async function lookupStructuredRepair({gsfPage,haynesPage},request,{now=Date.now}={}){
  const selection=structuredRepairSelection(request.selection),part=DISCOVERY_PARTS.find(p=>p.id===selection.partId);
+ let stage='GSF_CATEGORY_SEARCH';
+ try{
  await gsfPage.goto(GSF,{waitUntil:'domcontentloaded',timeout:15000});sameOrigin(gsfPage,GSF);
  const search=gsfPage.getByPlaceholder("Search for OE (cross ref), aftermarket or categories like 'Air filter'",{exact:true});await search.fill(part.label);await search.press('Enter');
  await gsfPage.getByText('Search Results for "'+part.label+'"',{exact:true}).waitFor({state:'visible',timeout:15000});
- await openGSFCategoryResult(gsfPage,part,request.registration);
+ stage='GSF_VEHICLE_FILTER';await openGSFCategoryResult(gsfPage,part,request.registration);
+ stage='GSF_COMPLETE_CATALOGUE';
  const snapshot=await completeGSFCatalogue(gsfPage,request.registration,part.label),analysis=analyseStructuredGSF(snapshot,selection);
+ stage='GSF_PRODUCT_DETAILS';
  const product=await verifyStructuredProduct(gsfPage,analysis.selected),gsfCheckedAt=new Date(now()).toISOString();
+ stage='HAYNES_REPLACEMENT_OPERATION';
  const {vehicle,operation}=await readStructuredHaynes(haynesPage,request,selection),checkedAt=new Date(now()).toISOString();
  const variant=[vehicle.make,vehicle.model,vehicle.variant].join(' ');
  return {request,variant,fitmentEvidence:'Fresh GSF category registration filter and independently confirmed Haynes registration '+request.registration,catalogueComplete:true,checkedAt,parts:[{source:'GSF',registration:request.registration,variant,fitmentConfirmed:true,vatBasis:'EX_VAT',sku:product.sku,brand:product.brand,description:product.description+(selection.quantity>1?' · '+selection.quantity+' required':''),costPence:product.totalCostPence,unitCostPence:product.unitNetPence,packsRequired:analysis.selected.packsRequired,unitsPerPack:analysis.selected.packQuantity,corePence:0,inStock:true,imageUrl:product.imageUrl,gsfUrl:product.gsfUrl,checkedAt:gsfCheckedAt}],labour:{source:'HAYNES_PRO',registration:request.registration,variant,operation:request.operation,...operation,checkedAt},alternativesChecked:analysis.optionsChecked};
+ }catch(error){error.stage||=stage;throw error;}
 }
