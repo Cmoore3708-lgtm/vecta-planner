@@ -9,12 +9,12 @@ import {repairTimesLink} from './haynes-navigation.mjs';
 import {navigateGSFAlternator} from './gsf-navigation.mjs';
 import {discoverGSFParts,discoverHaynesJobs} from './catalogue-discovery.mjs';
 const here=path.dirname(fileURLToPath(import.meta.url)),registration='FV65JTY';
-const report={version:'catalogue-discovery-2',registration,checkedAt:new Date().toISOString(),pricingApproved:false,gsf:[],haynes:[]};
+const report={version:'catalogue-discovery-3',registration,checkedAt:new Date().toISOString(),pricingApproved:false,gsf:[],haynes:[]};
 const terminal=createInterface({input:process.stdin,output:process.stdout});let gsf,haynes;
 const ask=message=>terminal.question(message+' Press Enter here when ready: ');
 async function browser(profile){return chromium.launchPersistentContext(profile,{channel:'msedge',headless:false,acceptDownloads:false,chromiumSandbox:true});}
 try{
- console.log('VECTA - AUTOMATIC REPAIR CATALOGUE INSPECTION v2 - SEARCH CLICK');
+ console.log('VECTA - AUTOMATIC REPAIR CATALOGUE INSPECTION v3 - CATEGORY AND REPAIR TIMES');
  console.log('This checks all listed part categories itself. It does not approve prices, edit quotes, use baskets or place orders.');
  gsf=await browser(process.env.GSF_PROFILE_DIR||path.join(process.env.LOCALAPPDATA||here,'VectaGSF','EdgeProfile'));
  const gp=gsf.pages()[0]||await gsf.newPage();await gp.goto('https://trade.gsfcarparts.com',{waitUntil:'domcontentloaded'});await gp.bringToFront();
