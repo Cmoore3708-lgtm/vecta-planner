@@ -60,7 +60,7 @@
 .mileage-unknown{display:flex;align-items:flex-start;gap:12px;margin:16px 0 0;padding:15px;border:1px solid #d6dbe3;border-radius:12px;background:#f8fafc;cursor:pointer}.mileage-unknown input{width:20px;height:20px;flex:0 0 20px;margin:2px 0 0;accent-color:var(--red)}.mileage-unknown strong{display:block;margin-bottom:5px;font-size:15px}.mileage-unknown span span{display:block;font-weight:400;line-height:1.5}input:disabled{background:#f1f3f5;color:#667085}.registration-brand-row{display:flex;align-items:center;gap:12px;max-width:100%;margin-top:7px}.registration-brand-row .reg-wrap{margin:0;flex:1 1 auto;min-width:0}.registration-manufacturer-logo{display:block;object-fit:contain;flex:0 0 auto;max-width:calc(100vw - 252px);padding:0;background:#fff;border-radius:6px}
 .haynes-image img[data-vehicle-image]:not([data-vehicle-ready="1"]){visibility:hidden}
 .advisories.appointment-advisories>b{color:#000;font-size:14px;line-height:1.5}.advisories ul{font-weight:400}
-@keyframes servicePricePulse{0%,100%{opacity:1}50%{opacity:.4}}.service-price-pulsing{animation:servicePricePulse 1.4s ease-in-out infinite}@media(prefers-reduced-motion:reduce){.service-price-pulsing{animation:none}}</style><link rel="stylesheet" href="/js/vecta-tyre-booking.css?v=20261022-nevos-premium"><link rel="stylesheet" href="/js/vecta-tyre-photo.css"><link rel="stylesheet" href="/js/vecta-work-photos.css?v=20261023-copy"><script src="/js/vecta-work-photos.js?v=20261023-copy"></script></head><body><div class="shell"><div class="bookingHeader"><img src="assets/vecta-header.png" alt="VECTA Vehicle Servicing and repairs"><div class="bookingHeaderTagline">For all employees of <strong>NMUK</strong></div></div><div class="card" id="app"></div></div><script src="/js/vecta-tyre-booking.js?v=20261022-nevos-premium"></script><script src="/js/vecta-tyre-photo.js"></script><script src="/js/vecta-booking-transfer.js"></script><script src="/js/vecta-haynes-booking.js"></script><script src="/js/vecta-service-pricing.js?v=gsf-1"></script><script src="/js/vecta-vehicle-image.js"></script><script>
+@keyframes servicePricePulse{0%,100%{opacity:1}50%{opacity:.4}}.service-price-pulsing{animation:servicePricePulse 1.4s ease-in-out infinite}@media(prefers-reduced-motion:reduce){.service-price-pulsing{animation:none}}</style><link rel="stylesheet" href="/js/vecta-tyre-booking.css?v=20261027-rotation-2"><link rel="stylesheet" href="/js/vecta-tyre-photo.css"><link rel="stylesheet" href="/js/vecta-work-photos.css?v=20261023-copy"><script src="/js/vecta-work-photos.js?v=20261023-copy"></script></head><body><div class="shell"><div class="bookingHeader"><img src="assets/vecta-header.png" alt="VECTA Vehicle Servicing and repairs"><div class="bookingHeaderTagline">For all employees of <strong>NMUK</strong></div></div><div class="card" id="app"></div></div><script src="/js/vecta-tyre-booking.js?v=20261022-nevos-premium"></script><script src="/js/vecta-tyre-photo.js"></script><script src="/js/vecta-booking-transfer.js"></script><script src="/js/vecta-haynes-booking.js"></script><script src="/js/vecta-service-pricing.js?v=gsf-1"></script><script src="/js/vecta-vehicle-image.js"></script><script>
 
 const bookingParams=new URLSearchParams(window.location.search),suppliedTypes=[...new Set((bookingParams.get('types')||'').split(',').map(x=>x.trim()).map(x=>['Brakes','Diagnostics / warning light','Something else'].includes(x)?'Other':x).filter(x=>['Service','MOT','Tyres','Other'].includes(x)))];
 const state={step:1,lookup:'idle',lookupMessage:'',timer:null,customerTimer:null,customer_recognition_status:'idle',customer_lookup_error:'',availability_loading:false,service_offer_dismissed:false,mot_calendar_month:'',form:{customer_name:'',email:'',phone:'',registration:'',vehicle:'',vehicle_make:'',vehicle_colour:'',engine_size:'',engine_size_manual:'',mileage:'',mileage_unknown:false,last_mot_mileage:'',last_mot_date:'',mot_due:'',mot_advisories:[],inspect_mot_advisories:'',nevos_vehicle:'',job_types:suppliedTypes.slice(),work_required:'',preferred_date_1:'',preferred_date_2:'',preferred_date_3:'',completion_deadline:'',contact_preference:'Email',service_choice:'',tyre_choice:'',tyre_size:'',tyre_quantity:1,tyre_guide:null,parts_range:'',returning_contact:'',returning_choice:'',customer_found:false,customer_vehicles:[],latest_service_date:'',available_slots:[],appointment_date:'',appointment_time:'',technician:'',estimated_hours:1}};
@@ -92,6 +92,7 @@ function serviceVehicleHtml(){
  return `<span class="service-vehicle-stage"><img class="service-customer-car" data-service-car data-vehicle-image data-vehicle-crop="tight" data-vehicle-logo="separate" data-registration="${esc(state.form.registration)}" data-colour="${esc(state.form.vehicle_colour)}" data-vehicle-name="${esc([v.make,v.model].filter(Boolean).join(' '))}" data-vehicle-source="${esc(source)}" src="data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=" alt="${esc(v.vehicle||state.form.vehicle||'Your vehicle')}" referrerpolicy="no-referrer"><span class="service-inspection-sweep" aria-hidden="true"></span></span>`;
 }
 // Service-only decoration: never mutate shared cached vehicle artwork.
+let serviceWheelSvgSequence=0;
 function animateServiceCarWheels(){
  const NS='http://www.w3.org/2000/svg';
  if(window.matchMedia?.('(prefers-reduced-motion: reduce)').matches)return;
@@ -101,32 +102,60 @@ function animateServiceCarWheels(){
   try{
    const doc=new DOMParser().parseFromString(decodeURIComponent(img.src.slice(img.src.indexOf(',')+1)),'image/svg+xml'),svg=doc.documentElement;
    if(doc.querySelector('parsererror')||svg.localName!=='svg')return;
-   const layer=svg.querySelector('[id="wheels"]');if(!layer)return;
+   const layer=svg.querySelector('[id="wheels"]');if(!layer){img.dataset.serviceAnimationStatus='no-wheel-layer';return;}
    host=document.createElement('div');host.style.cssText='position:absolute;left:-10000px;top:0;width:400px;visibility:hidden;pointer-events:none';host.append(svg);document.body.append(host);
+   const paint=svg.querySelector('[id="transparant_colour"], [id="transparent_colour"]');
+   function bodyOccludes(node,box){
+    if(!paint||!svg.createSVGPoint)return false;
+    try{const centre=svg.createSVGPoint();centre.x=box.x+box.width/2;centre.y=box.y+box.height/2;const screen=centre.matrixTransform(node.getCTM());return [...paint.querySelectorAll('path,polygon,rect,ellipse,circle')].some(shape=>shape.getAttribute('fill')!=='none'&&shape.isPointInFill&&shape.isPointInFill(screen.matrixTransform(shape.getCTM().inverse())));}catch{return false;}
+   }
+   // Some drawings leave the visible front wheel as loose paths. Group only
+   // neighbouring shapes in the supplier's wheel layer, preserving drawing order.
+   const width=layer.getBBox().width,loose=[...layer.children].filter(n=>['path','polygon','polyline','circle','ellipse'].includes(n.localName)).map(node=>({node,box:node.getBBox()})).filter(s=>s.box.width>0&&s.box.width<width*.65).sort((a,b)=>(a.box.x+a.box.width/2)-(b.box.x+b.box.width/2));
+   const clusters=[];for(const item of loose){const last=clusters[clusters.length-1],prev=last?.[last.length-1];if(!prev||(item.box.x+item.box.width/2)-(prev.box.x+prev.box.width/2)>width*.12)clusters.push([item]);else last.push(item);}
+   for(const cluster of clusters){if(cluster.length<6)continue;const members=new Set(cluster.map(s=>s.node)),ordered=[...layer.children].filter(n=>members.has(n)),group=document.createElementNS(NS,'g');layer.insertBefore(group,ordered[0]);ordered.forEach(n=>group.append(n));}
    const layerRect=layer.getBoundingClientRect();
    // Rotate the complete supplier wheel group: tyre, sidewall and alloy together.
-   // Largest separate groups win over nested rim-only groups.
-   const candidates=[...layer.querySelectorAll('g')].filter(node=>node.querySelector('path,polygon,polyline,circle,ellipse')).flatMap(node=>{
-    try{const box=node.getBBox(),rect=node.getBoundingClientRect();return box.width>2&&box.height>2&&box.width/box.height>.2&&box.width/box.height<1.7&&rect.width<layerRect.width*.7?[{node,box,rect}]:[];}catch{return [];}
+   // Exclude plain hidden tyres: visible wheel assemblies have detailed rim shapes.
+   // Largest detailed groups win over nested rim-only groups.
+   const candidates=[...layer.querySelectorAll('g')].filter(node=>node.querySelectorAll('path,polygon,polyline,circle,ellipse').length>=6).flatMap(node=>{
+    try{const box=node.getBBox(),rect=node.getBoundingClientRect();return box.width>2&&box.height>2&&box.width/box.height>.2&&box.width/box.height<1.7&&rect.width<layerRect.width*.7&&!bodyOccludes(node,box)?[{node,box,rect}]:[];}catch{return [];}
    }).sort((a,b)=>b.rect.width*b.rect.height-a.rect.width*a.rect.height);
    const wheels=[];
    for(const item of candidates){if(wheels.some(r=>r.node.contains(item.node)||item.node.contains(r.node)||Math.abs(r.rect.x+r.rect.width/2-item.rect.x-item.rect.width/2)<layerRect.width*.22))continue;wheels.push(item);if(wheels.length===2)break;}
-   if(wheels.length!==2)return;
-   for(const {node,box:b} of wheels){
-    const cx=b.x+b.width/2,cy=b.y+b.height/2,rx=b.width/2,ry=b.height/2;
-    const plane=document.createElementNS(NS,'g');plane.setAttribute('transform',`translate(${cx} ${cy}) scale(${rx} ${ry})`);
-    const rotor=document.createElementNS(NS,'g');rotor.setAttribute('class','vecta-service-wheel-rotor');
-    const artwork=document.createElementNS(NS,'g');artwork.setAttribute('transform',`scale(${1/rx} ${1/ry}) translate(${-cx} ${-cy})`);
-    // Undo the perspective squash before rotation, then restore it afterwards.
-    // At zero degrees this matrix is the identity, preserving the exact artwork.
-    while(node.firstChild)artwork.append(node.firstChild);
-    rotor.append(artwork);
-    const spin=document.createElementNS(NS,'animateTransform');
-    for(const [key,value]of Object.entries({attributeName:'transform',type:'rotate',from:'0',to:'360',dur:'6s',repeatCount:'indefinite'}))spin.setAttribute(key,value);
-    rotor.append(spin);plane.append(rotor);node.append(plane);
+   if(wheels.length!==2){img.dataset.serviceAnimationStatus='wheel-geometry-unavailable';return;}
+   for(const {node:wheel,box:wheelBox} of wheels){
+    // Keep the tyre silhouette still; an axially rotating tyre changes its
+    // tread position, not the shape of the whole perspective drawing.
+    let rim=[...wheel.querySelectorAll('g')].filter(n=>n.querySelectorAll('path,polygon,polyline,circle,ellipse').length>=6).map(node=>({node,box:node.getBBox()})).filter(({box:b})=>b.width>2&&b.height>2&&b.width<wheelBox.width*.98&&b.height<wheelBox.height*.98).sort((a,b)=>b.box.width*b.box.height-a.box.width*a.box.height)[0];
+    if(!rim){
+     // Older supplier drawings flatten the metallic rim paths into the tyre.
+     const shapes=[...wheel.children].filter(n=>['path','polygon','polyline','circle','ellipse'].includes(n.localName)).map(node=>({node,box:node.getBBox(),fill:node.getAttribute('fill')||''}));
+     const metal=shapes.filter(({fill})=>/^#[a-f0-9]{6}$/i.test(fill)&&Math.min(...[1,3,5].map(i=>parseInt(fill.slice(i,i+2),16)))>=90);
+     if(metal.length>=6){const x=Math.min(...metal.map(s=>s.box.x)),y=Math.min(...metal.map(s=>s.box.y)),right=Math.max(...metal.map(s=>s.box.x+s.box.width)),bottom=Math.max(...metal.map(s=>s.box.y+s.box.height));
+      const inside=shapes.filter(({box:b})=>b.x>=x-.5&&b.y>=y-.5&&b.x+b.width<=right+.5&&b.y+b.height<=bottom+.5);
+      if(inside.length>=6&&right-x<wheelBox.width*.98&&bottom-y<wheelBox.height*.98){const group=document.createElementNS(NS,'g');inside.forEach(({node})=>group.append(node));wheel.append(group);rim={node:group,box:{x,y,width:right-x,height:bottom-y}};}
+     }
+    }
+    const b=rim?.box||wheelBox,cx=b.x+b.width/2,cy=b.y+b.height/2,rx=b.width/2,ry=b.height/2;
+    function movingPlane(x,y,sx,sy){const plane=document.createElementNS(NS,'g');plane.setAttribute('transform',`translate(${x} ${y}) scale(${sx} ${sy})`);const rotor=document.createElementNS(NS,'g');rotor.setAttribute('class','vecta-service-wheel-rotor');plane.append(rotor);const spin=document.createElementNS(NS,'animateTransform');for(const [key,value]of Object.entries({attributeName:'transform',type:'rotate',from:'0',to:'360',dur:'6s',repeatCount:'indefinite'}))spin.setAttribute(key,value);rotor.append(spin);return {plane,rotor};}
+    if(rim){const {plane,rotor}=movingPlane(cx,cy,rx,ry),artwork=document.createElementNS(NS,'g');artwork.setAttribute('transform',`scale(${1/rx} ${1/ry}) translate(${-cx} ${-cy})`);while(rim.node.firstChild)artwork.append(rim.node.firstChild);rotor.append(artwork);rim.node.append(plane);}
+    const outerRatio=Math.max(1.08,wheelBox.height/b.height*.95),tread=movingPlane(cx,cy,rx*outerRatio,ry*outerRatio),marks=document.createElementNS(NS,'circle');
+    for(const [key,value]of Object.entries({cx:0,cy:0,r:1,fill:'none',stroke:'#9aa6b1','stroke-width':'.035','stroke-dasharray':'.09 .37',opacity:'.5'}))marks.setAttribute(key,value);
+    tread.rotor.append(marks);wheel.append(tread.plane);
    }
-   if(img.isConnected){img.src='data:image/svg+xml;charset=utf-8,'+encodeURIComponent(new XMLSerializer().serializeToString(svg));img.dataset.serviceAnimated='1';}
-  }catch{/* Keep the original vehicle if its supplier drawing lacks separable wheels. */}finally{host?.remove();}
+   if(img.isConnected){
+    // Inline animation avoids mobile SVG-as-image playback restrictions.
+    // Only personalised artwork from the allowlisted supplier can reach here.
+    if(svg.querySelector('script,foreignObject,iframe')||[...svg.querySelectorAll('*')].some(n=>[...n.attributes].some(a=>/^on/i.test(a.name))))return;
+    const prefix='service-wheel-'+(++serviceWheelSvgSequence)+'-';
+    const ids=new Map([...svg.querySelectorAll('[id]')].map(n=>[n.id,prefix+n.id]));
+    for(const n of [svg,...svg.querySelectorAll('*')])for(const a of [...n.attributes]){let v=a.value;if(a.name==='id'&&ids.has(v))v=ids.get(v);v=v.replace(/url\(#([^)]*)\)/g,(all,id)=>ids.has(id)?'url(#'+ids.get(id)+')':all);if((a.localName==='href')&&v.startsWith('#')&&ids.has(v.slice(1)))v='#'+ids.get(v.slice(1));if(v!==a.value)n.setAttribute(a.name,v);}
+    svg.setAttribute('class','service-animated-artwork');svg.setAttribute('aria-hidden','true');svg.setAttribute('focusable','false');svg.setAttribute('width','100%');svg.setAttribute('height','100%');svg.setAttribute('preserveAspectRatio','xMidYMid meet');
+    const stage=img.closest('.service-vehicle-stage');if(!stage)return;
+    stage.querySelector('.service-animated-artwork')?.remove();stage.append(svg);img.style.visibility='hidden';img.dataset.serviceAnimated='1';img.dataset.serviceAnimationStatus='running';
+   }
+  }catch(error){img.dataset.serviceAnimationStatus='error';console.warn('Service wheel animation unavailable',error);}finally{host?.remove();}
  });
 }
 
@@ -241,7 +270,16 @@ function mountRegistrationLogo(){
  const logo=document.createElement('img');logo.className='registration-manufacturer-logo';logo.src='/assets/manufacturers/'+make+'.svg';logo.alt=(haynesState.vehicle?.make||state.form.vehicle_make)+' logo';logo.onerror=()=>logo.remove();row.appendChild(logo);
 
 }
-function bindHaynes(){mountRegistrationLogo();VectaVehicleImage.mount().then(animateServiceCarWheels).catch(()=>{});document.querySelector('[data-haynes-retry]')?.addEventListener('click',()=>haynesLookup.lookup(state.form.registration));document.querySelectorAll('.haynes-image img').forEach(img=>img.onerror=()=>img.closest('figure').remove());}
+
+let serviceCarImageObserver;
+function watchServiceCarImages(){ serviceCarImageObserver?.disconnect();
+ if(typeof MutationObserver!=='function')return;
+ serviceCarImageObserver=new MutationObserver(()=>animateServiceCarWheels());
+ document.querySelectorAll('img[data-service-car]').forEach(img=>serviceCarImageObserver.observe(img,{attributes:true,attributeFilter:['src','data-vehicle-ready']}));
+ animateServiceCarWheels();
+}
+
+function bindHaynes(){mountRegistrationLogo();watchServiceCarImages();VectaVehicleImage.mount().then(animateServiceCarWheels).catch(()=>{});document.querySelector('[data-haynes-retry]')?.addEventListener('click',()=>haynesLookup.lookup(state.form.registration));document.querySelectorAll('.haynes-image img').forEach(img=>img.onerror=()=>img.closest('figure').remove());}
 function scheduleLookup(){state.form.engine_size_manual='';state.form.vehicle_colour='';haynesLookup.reset();clearTimeout(state.timer);let reg=state.form.registration.toUpperCase().replace(/[^A-Z0-9]/g,'');if(reg.length<5){state.lookup='idle';refreshHaynes();return}state.lookup='idle';state.lookupMessage='';refreshHaynes();state.timer=setTimeout(()=>haynesLookup.prefetch(reg),650)}
 function engineSizeFromLookup(data){let direct=data&&(data.engineSize||data.engine_size||data.engineCapacity||data.engine_capacity||data.cylinderCapacity||data.cylinder_capacity);if(direct)return direct;let found='';function scan(value,depth){if(found||depth>5||value==null)return;if(Array.isArray(value)){value.forEach(x=>scan(x,depth+1));return}if(typeof value!=='object')return;Object.keys(value).some(key=>{if(/(?:engine|cylinder).*(?:size|capacity)|(?:size|capacity).*(?:engine|cylinder)/i.test(key)&&engineCc(value[key])){found=value[key];return true}scan(value[key],depth+1);return !!found})}scan(data,0);return found}
 function startBookingTransfer(){VectaBookingTransfer.waitForVehicle(()=>({failed:state.lookup==='error'||(state.lookup==='success'&&['unavailable','ambiguous','rejected'].includes(haynesState.status)),ready:state.lookup==='success'&&['matched','confirmed'].includes(haynesState.status),hasImage:!!haynesState.vehicle?.imageUrl}))}
@@ -644,6 +682,7 @@ input[type="checkbox"]:checked,input[type="radio"]:checked{--pulse-rgb:53,213,13
 .service-vehicle-stage{position:relative;display:flex;align-items:center;justify-content:center;width:100%;height:125px;margin:0 auto 17px;isolation:isolate;overflow:hidden;pointer-events:none}
 .service-customer-car{display:block;width:100%;height:100%;object-fit:contain;filter:drop-shadow(0 8px 6px #0005)}
 .service-customer-car:not([data-vehicle-ready="1"]){visibility:hidden}
+.service-animated-artwork{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;filter:drop-shadow(0 8px 6px #0005)}
 .service-inspection-sweep{display:none;position:absolute;top:7%;bottom:5%;left:8%;width:2px;border-radius:2px;background:#93ffc1;box-shadow:0 0 18px 6px #62f5a86b;pointer-events:none}
 .service-option.selected .service-vehicle-stage:has([data-vehicle-ready="1"]) .service-inspection-sweep{display:block;animation:vecta-service-inspection 4s ease-in-out infinite}
 @keyframes vecta-service-inspection{0%,100%{left:8%;opacity:.25}50%{left:91%;opacity:1}}
