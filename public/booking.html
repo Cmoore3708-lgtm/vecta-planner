@@ -104,12 +104,22 @@ function animateServiceCarWheels(){
    if(doc.querySelector('parsererror')||svg.localName!=='svg')return;
    const layer=svg.querySelector('[id="wheels"]');if(!layer){img.dataset.serviceAnimationStatus='no-wheel-layer';return;}
    host=document.createElement('div');host.style.cssText='position:absolute;left:-10000px;top:0;width:400px;visibility:hidden;pointer-events:none';host.append(svg);document.body.append(host);
+   const paint=svg.querySelector('[id="transparant_colour"], [id="transparent_colour"]');
+   function bodyOccludes(node,box){
+    if(!paint||!svg.createSVGPoint)return false;
+    try{const centre=svg.createSVGPoint();centre.x=box.x+box.width/2;centre.y=box.y+box.height/2;const screen=centre.matrixTransform(node.getCTM());return [...paint.querySelectorAll('path,polygon,rect,ellipse,circle')].some(shape=>shape.getAttribute('fill')!=='none'&&shape.isPointInFill&&shape.isPointInFill(screen.matrixTransform(shape.getCTM().inverse())));}catch{return false;}
+   }
+   // Some drawings leave the visible front wheel as loose paths. Group only
+   // neighbouring shapes in the supplier's wheel layer, preserving drawing order.
+   const width=layer.getBBox().width,loose=[...layer.children].filter(n=>['path','polygon','polyline','circle','ellipse'].includes(n.localName)).map(node=>({node,box:node.getBBox()})).filter(s=>s.box.width>0&&s.box.width<width*.65).sort((a,b)=>(a.box.x+a.box.width/2)-(b.box.x+b.box.width/2));
+   const clusters=[];for(const item of loose){const last=clusters[clusters.length-1],prev=last?.[last.length-1];if(!prev||(item.box.x+item.box.width/2)-(prev.box.x+prev.box.width/2)>width*.12)clusters.push([item]);else last.push(item);}
+   for(const cluster of clusters){if(cluster.length<6)continue;const members=new Set(cluster.map(s=>s.node)),ordered=[...layer.children].filter(n=>members.has(n)),group=document.createElementNS(NS,'g');layer.insertBefore(group,ordered[0]);ordered.forEach(n=>group.append(n));}
    const layerRect=layer.getBoundingClientRect();
    // Rotate the complete supplier wheel group: tyre, sidewall and alloy together.
    // Exclude plain hidden tyres: visible wheel assemblies have detailed rim shapes.
    // Largest detailed groups win over nested rim-only groups.
    const candidates=[...layer.querySelectorAll('g')].filter(node=>node.querySelectorAll('path,polygon,polyline,circle,ellipse').length>=6).flatMap(node=>{
-    try{const box=node.getBBox(),rect=node.getBoundingClientRect();return box.width>2&&box.height>2&&box.width/box.height>.2&&box.width/box.height<1.7&&rect.width<layerRect.width*.7?[{node,box,rect}]:[];}catch{return [];}
+    try{const box=node.getBBox(),rect=node.getBoundingClientRect();return box.width>2&&box.height>2&&box.width/box.height>.2&&box.width/box.height<1.7&&rect.width<layerRect.width*.7&&!bodyOccludes(node,box)?[{node,box,rect}]:[];}catch{return [];}
    }).sort((a,b)=>b.rect.width*b.rect.height-a.rect.width*a.rect.height);
    const wheels=[];
    for(const item of candidates){if(wheels.some(r=>r.node.contains(item.node)||item.node.contains(r.node)||Math.abs(r.rect.x+r.rect.width/2-item.rect.x-item.rect.width/2)<layerRect.width*.22))continue;wheels.push(item);if(wheels.length===2)break;}
