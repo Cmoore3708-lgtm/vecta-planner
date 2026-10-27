@@ -58,3 +58,11 @@
 .tyre-guide-card>.tyre-guide-total{display:block;padding:0 7px 13px;text-align:center;color:#fff;font-size:15px;font-weight:800;white-space:nowrap}
 @media(max-width:760px){.tyre-brand-choices{padding:0 5px 8px}.tyre-brand-label{font-size:9px;margin:2px 0 9px;white-space:nowrap}.tyre-brand-choice{gap:4px;min-height:44px;padding:6px 4px;margin-bottom:6px;border-radius:6px}.tyre-brand-choice .tyre-brand-logo{height:26px;padding:3px;max-width:65px}.tyre-brand-choice .tyre-guide-brand{font-size:8px}.tyre-brand-choice .tyre-guide-price{font-size:12px}.tyre-brand-choices .tyre-guide-unit{font-size:9px}.tyre-guide-card>.tyre-guide-total{font-size:11px;padding:0 3px 10px}}
 @media(max-width:359px){.tyre-brand-choices{padding-left:3px;padding-right:3px}.tyre-brand-choice{gap:3px;padding-left:3px;padding-right:3px}.tyre-brand-choice .tyre-guide-price{font-size:11px}.tyre-brand-label{font-size:8px}}
+
+/* Keep the rotating image square so it stays inside its category card. */
+.tyre-cutout{width:min(100%,150px)}
+.tyre-guide-card.selected:not(.blocked) .tyre-cutout{animation:vecta-selected-tyre-spin 24s linear infinite;transform-origin:center}
+@keyframes vecta-selected-tyre-spin{from{rotate:0deg}to{rotate:360deg}}
+@media(max-width:760px){.tyre-cutout{width:min(100%,104px)}}
+@media(max-width:360px){.tyre-cutout{width:min(100%,88px)}}
+@media(prefers-reduced-motion:reduce){.tyre-guide-card.selected:not(.blocked) .tyre-cutout{animation:none}}
