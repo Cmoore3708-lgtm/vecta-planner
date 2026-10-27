@@ -106,8 +106,9 @@ function animateServiceCarWheels(){
    host=document.createElement('div');host.style.cssText='position:absolute;left:-10000px;top:0;width:400px;visibility:hidden;pointer-events:none';host.append(svg);document.body.append(host);
    const layerRect=layer.getBoundingClientRect();
    // Rotate the complete supplier wheel group: tyre, sidewall and alloy together.
-   // Largest separate groups win over nested rim-only groups.
-   const candidates=[...layer.querySelectorAll('g')].filter(node=>node.querySelector('path,polygon,polyline,circle,ellipse')).flatMap(node=>{
+   // Exclude plain hidden tyres: visible wheel assemblies have detailed rim shapes.
+   // Largest detailed groups win over nested rim-only groups.
+   const candidates=[...layer.querySelectorAll('g')].filter(node=>node.querySelectorAll('path,polygon,polyline,circle,ellipse').length>=6).flatMap(node=>{
     try{const box=node.getBBox(),rect=node.getBoundingClientRect();return box.width>2&&box.height>2&&box.width/box.height>.2&&box.width/box.height<1.7&&rect.width<layerRect.width*.7?[{node,box,rect}]:[];}catch{return [];}
    }).sort((a,b)=>b.rect.width*b.rect.height-a.rect.width*a.rect.height);
    const wheels=[];
@@ -116,7 +117,7 @@ function animateServiceCarWheels(){
    for(const {node:wheel,box:wheelBox} of wheels){
     // Keep the tyre silhouette still; an axially rotating tyre changes its
     // tread position, not the shape of the whole perspective drawing.
-    const rim=[...wheel.querySelectorAll('g')].filter(n=>!n.querySelector('g')&&n.querySelectorAll('path,polygon,polyline,circle,ellipse').length>=6).map(node=>({node,box:node.getBBox()})).filter(({box:b})=>b.width>2&&b.height>2&&b.width<wheelBox.width*.98&&b.height<wheelBox.height*.98).sort((a,b)=>b.box.width*b.box.height-a.box.width*a.box.height)[0];
+    const rim=[...wheel.querySelectorAll('g')].filter(n=>n.querySelectorAll('path,polygon,polyline,circle,ellipse').length>=6).map(node=>({node,box:node.getBBox()})).filter(({box:b})=>b.width>2&&b.height>2&&b.width<wheelBox.width*.98&&b.height<wheelBox.height*.98).sort((a,b)=>b.box.width*b.box.height-a.box.width*a.box.height)[0];
     const b=rim?.box||wheelBox,cx=b.x+b.width/2,cy=b.y+b.height/2,rx=b.width/2,ry=b.height/2;
     function movingPlane(x,y,sx,sy){const plane=document.createElementNS(NS,'g');plane.setAttribute('transform',`translate(${x} ${y}) scale(${sx} ${sy})`);const rotor=document.createElementNS(NS,'g');rotor.setAttribute('class','vecta-service-wheel-rotor');plane.append(rotor);const spin=document.createElementNS(NS,'animateTransform');for(const [key,value]of Object.entries({attributeName:'transform',type:'rotate',from:'0',to:'360',dur:'6s',repeatCount:'indefinite'}))spin.setAttribute(key,value);rotor.append(spin);return {plane,rotor};}
     if(rim){const {plane,rotor}=movingPlane(cx,cy,rx,ry),artwork=document.createElementNS(NS,'g');artwork.setAttribute('transform',`scale(${1/rx} ${1/ry}) translate(${-cx} ${-cy})`);while(rim.node.firstChild)artwork.append(rim.node.firstChild);rotor.append(artwork);rim.node.append(plane);}
@@ -674,7 +675,6 @@ input[type="checkbox"]:checked,input[type="radio"]:checked{--pulse-rgb:53,213,13
 // Rebuild selected service artwork when the visitor changes motion preferences.
 window.matchMedia?.('(prefers-reduced-motion: reduce)').addEventListener?.('change',()=>{if(state.step===2)render();});
 </script>
-
 <script>
 const proofModels=[
  ['Qashqai J11','319004648.svgz'],['Qashqai J12','319106279.svgz'],['Juke','319004664.svgz'],['Yaris','319005881.svgz'],['Transit','319118141.svgz'],['Defender','319002225.svgz']
