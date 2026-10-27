@@ -171,3 +171,25 @@ not a live supplier price or an actual PC/cloud service quote.
 The owner no longer needs to run the manual Test SQL file. Remaining work:
 production preparation, updated paired PC worker, and an actual website-to-PC
 quote and saved-booking verification before customer activation.
+
+## Production connection recovered — 27 October
+
+The production schema request repeatedly returned `Invalid or expired requestState`.
+Project health and SQL reads remained healthy. Splitting the same reviewed schema
+into two atomic migrations succeeded: `gsf_service_private_queue_tables` and
+`gsf_service_private_queue_rpc`. The production queue now exists.
+
+Verified both tables have RLS and no anon/authenticated SELECT grants. The queue
+function denies anon/authenticated EXECUTE and permits service_role. A rolled-back
+production transaction passed offline detection, heartbeat, enqueue, deduplication,
+lease acquisition, invalid-lease rejection, completion and idempotent completion.
+After rollback there are zero jobs and no worker heartbeat. No customer records
+were created or changed. This clears the database-setup connection blocker only.
+
+The shared worker download version 5 includes `TEST-LIVE-SERVICE-PRICES.cmd`,
+which reads fresh costs for NU67VSE and FV65JTY and calculates three packages per
+vehicle without publishing them. Its 29 packaged modules passed syntax/import
+checks. Existing private pairing/config bytes were retained. Cloud service polling
+is not enabled in that package. Production variables, application release, real PC
+quote verification and saved-booking verification remain pending; website service
+prices have not changed.
