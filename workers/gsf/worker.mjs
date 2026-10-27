@@ -32,7 +32,7 @@ let stopped=false,lastRepairState='';context.on('close',()=>stopped=true);
 process.on('SIGINT',()=>{stopped=true;void context.close();});
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));
 async function rpc(body) {
-  const response=await fetch(site+'/api/gsf-worker',{method:'POST',redirect:'error',headers:{Authorization:'Bearer '+token,'Content-Type':'application/json'},body:JSON.stringify(body),signal:AbortSignal.timeout(10000)});
+  const response=await fetch(site+'/api/gsf-worker',{method:'POST',redirect:'error',headers:{Authorization:'Bearer '+token,'Content-Type':'application/json',...(process.env.GSF_PREVIEW_COOKIE?{Cookie:process.env.GSF_PREVIEW_COOKIE}:{})},body:JSON.stringify(body),signal:AbortSignal.timeout(10000)});
   if(response.status===401)throw Error('PAIRING_REQUIRED');
   if(!response.ok)throw Error('RELAY_UNAVAILABLE');
   return response.json();
