@@ -24,10 +24,10 @@ Interim Service is explicitly supported as the oil-and-oil-filter package (same 
 
 1. Retain the verified oil fill, but round its charge quantity up to the next whole litre (6.7L → 7L; 7L → 7L). Calculate net oil cost from that charged quantity and the original pack fraction. Other parts use their verified unit quantities.
 2. Add 30% markup to engine oil and 50% to filters and round that sale line to a penny.
-3. Add net labour: £30 oil/filter, £60 full, £100 major.
+3. Add net labour: £30 oil/filter, £60 full, £80 major.
 4. Apply 20% VAT once to the subtotal. Round the final VAT-inclusive total UP to the next £5 (500 pence); exact £5 multiples stay unchanged. Reconcile net, VAT and a saved net rounding adjustment to that final total. Apply the same final-total rule to supply-and-fit repair quotes, including editable multi-part quotes; do not round every individual part separately.
 
-The customer quote and saved booking evidence retain the actual oil fill and charged litres separately. Neither the litre rounding nor the sale calculation changes the manufacturer's required fill quantity. The trial policy version is `gsf-oil30-filters50-round5-v3`.
+The customer quote and saved booking evidence retain the actual oil fill and charged litres separately. Neither the litre rounding nor the sale calculation changes the manufacturer's required fill quantity. The trial policy version is `gsf-oil30-filters50-round5-v4`.
 
 Keep repair-job marginal parts markup and £50/hour half-hour labour rounding out of service-package quotes.
 

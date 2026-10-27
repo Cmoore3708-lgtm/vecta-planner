@@ -1,12 +1,12 @@
 {
-  "version": "gsf-oil30-filters50-round5-v3",
+  "version": "gsf-oil30-filters50-round5-v4",
   "markupBps": 5000,
   "vatBps": 2000,
   "roundUpPence": 500,
   "labourNetPence": {
     "Oil & Filter Change": 3000,
     "Full Service": 6000,
-    "Major Service": 10000
+    "Major Service": 8000
   },
   "oilMarkupBps": 3000
 }
