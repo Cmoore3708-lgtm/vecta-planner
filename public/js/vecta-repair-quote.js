@@ -8,10 +8,38 @@
   var modal=document.getElementById('jobModal'),work=document.getElementById('job_work_required'),status=document.getElementById('job_status');
   if(!modal||!work||!status||status.value!=='quote'||!document.getElementById('privatePricingRows')||document.getElementById('vectaRepairQuote'))return;
   var panel=document.createElement('section');panel.id='vectaRepairQuote';
-  panel.innerHTML='<h3>Parts &amp; labour lookup</h3><p class="rqIntro">Sliding parts markup · Labour £50/hour · Final prices include VAT</p><div class="rqActions"><button type="button" class="btn" data-rq-find>Find parts &amp; labour</button><button type="button" class="btn" data-rq-replay hidden>Test captured FV65 JTY quote</button><button type="button" class="btn" data-rq-cancel hidden>Cancel lookup</button></div><p class="rqStatus" role="status" aria-live="polite">Enter “Supply and fit alternator” in Work required.</p><div data-rq-result></div>';
+  panel.innerHTML='<h3>Parts &amp; labour lookup</h3><p class="rqIntro">Sliding parts markup · Labour £50/hour · Final prices include VAT</p><div class="rqActions"><button type="button" class="btn" data-rq-find>Find parts &amp; labour</button><button type="button" class="btn" data-rq-replay hidden>Test captured FV65 JTY quote</button><button type="button" class="btn" data-rq-cancel hidden>Cancel lookup</button></div><p class="rqStatus" role="status" aria-live="polite">Choose a category and part above, then find parts &amp; labour.</p><div data-rq-result></div>';
+  // Standard catalogue terms make supplier searches explicit, without parsing prose.
+  var catalogue=[
+   {group:'Electrical',parts:[['alternator','Alternator'],['starter-motor','Starter motor'],['battery','Battery']]},
+   {group:'Brakes',parts:[['brake-pads','Brake pads','axle'],['brake-discs','Brake discs','axle'],['brake-caliper','Brake caliper','corner']]},
+   {group:'Suspension & steering',parts:[['coil-spring','Coil spring','corner'],['shock-absorber','Shock absorber','corner'],['suspension-arm','Suspension arm','corner'],['track-rod-end','Track rod end','side'],['wheel-bearing','Wheel bearing','corner']]},
+   {group:'Engine & cooling',parts:[['water-pump','Water pump'],['thermostat','Thermostat'],['radiator','Radiator'],['auxiliary-belt','Auxiliary drive belt']]},
+   {group:'Transmission',parts:[['clutch-kit','Clutch kit'],['drive-shaft','Drive shaft','side']]},
+   {group:'Filters',parts:[['oil-filter','Oil filter'],['air-filter','Air filter'],['cabin-filter','Cabin / pollen filter'],['fuel-filter','Fuel filter']]}
+  ];
+  var builder=document.createElement('fieldset');builder.className='rqBuilder';
+  builder.innerHTML='<legend>Choose the repair</legend><div class="rqFields"><label>Category<select data-rq-category><option value="">Choose category</option>'+catalogue.map(function(c,i){return '<option value="'+i+'">'+esc(c.group)+'</option>';}).join('')+'</select></label><label>Part<select data-rq-part disabled><option value="">Choose part</option></select></label><label data-rq-axle-label hidden>Position<select data-rq-axle><option value="">Choose position</option><option value="front">Front</option><option value="rear">Rear</option></select></label><label data-rq-side-label hidden>Side<select data-rq-side><option value="">Choose side</option><option value="left">Left (passenger side)</option><option value="right">Right (driver side)</option><option value="both">Both sides</option></select></label><label>Quantity<input data-rq-quantity type="number" min="1" max="20" step="1" value="1"></label></div><p data-rq-summary>Choose a category and part. The registration comes from this quote.</p><a data-rq-supplier hidden target="_blank" rel="noopener noreferrer">Open this part search in GSF</a><small>GSF opens in a new tab. Check the selected registration there. Left and right are viewed from inside the car.</small>';
+  panel.insertBefore(builder,panel.querySelector('.rqActions'));
+  var category=builder.querySelector('[data-rq-category]'),partSelect=builder.querySelector('[data-rq-part]'),axle=builder.querySelector('[data-rq-axle]'),side=builder.querySelector('[data-rq-side]'),quantity=builder.querySelector('[data-rq-quantity]'),selectedPart=null;
+  function selection(){return selectedPart?{partId:selectedPart[0],quantity:Number(quantity.value),axle:axle.value,side:side.value}:null;}
+  function selectedWork(){return selectedPart?'Supply and fit '+[axle.value,side.value,selectedPart[1].toLowerCase()].filter(Boolean).join(' '):work.value.trim().replace(/\s+/g,' ');}
+  function selectionValid(){return selectedPart&&Number.isInteger(Number(quantity.value))&&Number(quantity.value)>=1&&Number(quantity.value)<=20&&(!/axle|corner/.test(selectedPart[2]||'')||axle.value)&&(!/side|corner/.test(selectedPart[2]||'')||side.value);}
+  function updateSelection(){
+   selectedPart=(catalogue[Number(category.value)]||{parts:[]}).parts.find(function(p){return p[0]===partSelect.value;})||null;
+   builder.querySelector('[data-rq-axle-label]').hidden=!selectedPart||!/axle|corner/.test(selectedPart[2]||'');
+   builder.querySelector('[data-rq-side-label]').hidden=!selectedPart||!/side|corner/.test(selectedPart[2]||'');
+   var link=builder.querySelector('[data-rq-supplier]');link.hidden=!selectedPart;
+   if(selectedPart)link.href='https://trade.gsfcarparts.com/enhancedSearch/'+encodeURIComponent([axle.value,side.value,selectedPart[1]].filter(Boolean).join(' '));
+   builder.querySelector('[data-rq-summary]').textContent=selectedPart?selectedWork()+' · quantity '+quantity.value:'Choose a category and part. The registration comes from this quote.';
+   invalidate();
+   if(selectedPart)message.textContent=selectionValid()?(selectedPart[0]==='alternator'&&Number(quantity.value)===1?'Ready to find parts & labour.':'Supplier search ready. Automatic price verification for this repair is not available yet; use the GSF search and enter checked prices below.'):'Complete the position, side and quantity for this repair.';
+  }
+  category.onchange=function(){partSelect.disabled=category.value==='';partSelect.innerHTML='<option value="">Choose part</option>'+(category.value===''?'':catalogue[Number(category.value)].parts.map(function(p){return '<option value="'+p[0]+'">'+esc(p[1])+'</option>';}).join(''));axle.value='';side.value='';updateSelection();};
+  partSelect.onchange=function(){axle.value='';side.value='';updateSelection();};axle.onchange=updateSelection;side.onchange=updateSelection;quantity.oninput=updateSelection;
   var sections=modal.querySelector('.jobCardSections');if(sections)sections.prepend(panel);else work.closest('.jobWorkSection').appendChild(panel);
   var find=panel.querySelector('[data-rq-find]'),cancel=panel.querySelector('[data-rq-cancel]'),message=panel.querySelector('.rqStatus'),result=panel.querySelector('[data-rq-result]'),generation=0,controller=null,timer=null,quote=null,lastKey='',appliedKey='',additionalDrafts=[];
-  var read=function(){return {registration:String((document.getElementById('job_registration')||{}).value||'').toUpperCase().replace(/\s/g,''),work:work.value.trim().replace(/\s+/g,' ')};};
+  var read=function(){return {registration:String((document.getElementById('job_registration')||{}).value||'').toUpperCase().replace(/\s/g,''),work:selectedWork(),selection:selection()};};
   var key=function(){return JSON.stringify(read());};
   function stop(){generation++;if(controller)controller.abort();controller=null;clearTimeout(timer);timer=null;find.disabled=false;cancel.hidden=true;}
   function invalidate(){stop();quote=null;result.replaceChildren();message.textContent='Vehicle or work changed. Run a new lookup.';}
@@ -79,6 +107,8 @@
    timer=setTimeout(function(){if(panel.isConnected&&quote){quote=null;apply.disabled=true;message.textContent='Lookup price expired. Refresh before adding it to a quote.';}},Math.max(0,Date.parse(q.expiresAt)-Date.now()));
   }
   async function lookup(replay){
+   if(selectedPart&&!selectionValid()){message.textContent='Complete the position, side and quantity for this repair.';return;}
+   if(selectedPart&&(selectedPart[0]!=='alternator'||Number(quantity.value)!==1)){message.textContent='Automatic price verification for this repair is not available yet. Open the GSF search and enter checked prices in the quote.';return;}
    stop();quote=null;result.replaceChildren();lastKey=key();var input=read(),run=generation,started=Date.now();find.disabled=true;cancel.hidden=false;
    async function poll(){
     if(run!==generation||!panel.isConnected||key()!==lastKey)return;
@@ -102,10 +132,8 @@
   find.onclick=function(){lookup(false);};cancel.onclick=function(){stop();message.textContent='Lookup cancelled.';};
   if(job&&job.customer_note&&typeof window.privatePricingItemsFromNote==='function'){var saved=window.privatePricingItemsFromNote(job.customer_note).map(function(line){return line.repair_quote;}).find(function(meta){return meta&&Array.isArray(meta.items)&&meta.items.length&&meta.request&&meta.request.registration===read().registration;});if(saved){lastKey=key();show(Object.assign({},saved,{variant:saved.part.variant||'',partsPence:saved.part.costPence,chargedHoursMilli:Math.ceil(saved.labour.hoursMilli/500)*500}),saved.items);message.textContent=(saved.previewOnly?'SAVED TEST REPLAY — not a live supplier quote. ':'')+'Saved parts and labour breakdown. Refresh supplier prices before reusing an expired lookup.';}}
   work.addEventListener('input',invalidate);var reg=document.getElementById('job_registration');if(reg){reg.addEventListener('input',function(){additionalDrafts=[];invalidate();});reg.addEventListener('change',function(){additionalDrafts=[];invalidate();});}
-  // Auto lookup after a complete supported instruction; no background lookups
-  // while editing an existing saved quote or after a failed request.
-  var automatic;
-  work.addEventListener('input',function(){clearTimeout(automatic);automatic=setTimeout(function(){if(panel.isConnected&&/^(?:supply\s+(?:and|&)\s+fit|replace|fit|renew)\s+(?:an?\s+)?alternator[.!]?$/i.test(work.value.trim())&&read().registration.length>=2)lookup();},1000);});
+
  }
  window.VectaRepairQuote={mount:mount};
 })();
+
