@@ -94,28 +94,37 @@ function serviceVehicleHtml(){
 // Service-only decoration: never mutate shared cached vehicle artwork.
 function animateServiceCarWheels(){
  const NS='http://www.w3.org/2000/svg';
+ if(window.matchMedia?.('(prefers-reduced-motion: reduce)').matches)return;
  document.querySelectorAll('.service-option.selected img[data-service-car][data-vehicle-ready="1"]').forEach(img=>{
   if(img.dataset.serviceAnimated||!img.src.startsWith('data:image/svg+xml;charset=utf-8,'))return;
   let host;
   try{
-   const doc=new DOMParser().parseFromString(decodeURIComponent(img.src.split(',').slice(1).join(',')),'image/svg+xml'),svg=doc.documentElement;
+   const doc=new DOMParser().parseFromString(decodeURIComponent(img.src.slice(img.src.indexOf(',')+1)),'image/svg+xml'),svg=doc.documentElement;
    if(doc.querySelector('parsererror')||svg.localName!=='svg')return;
    const layer=svg.querySelector('[id="wheels"]');if(!layer)return;
    host=document.createElement('div');host.style.cssText='position:absolute;left:-10000px;top:0;width:400px;visibility:hidden;pointer-events:none';host.append(svg);document.body.append(host);
-   // Only separate, compact wheel groups are eligible. Never guess screen positions.
-   const whole=layer.getBBox(),layerRect=layer.getBoundingClientRect(),candidates=[...layer.querySelectorAll('g')].map(node=>({node,box:node.getBBox()})).filter(({box:b})=>b.width>4&&b.height>4&&b.width<whole.width*.42&&b.height<whole.height*1.05&&b.width/b.height>.35&&b.width/b.height<1.4).sort((a,b)=>b.box.width*b.box.height-a.box.width*a.box.height);
+   const layerRect=layer.getBoundingClientRect();
+   // Rotate the complete supplier wheel group: tyre, sidewall and alloy together.
+   // Largest separate groups win over nested rim-only groups.
+   const candidates=[...layer.querySelectorAll('g')].filter(node=>node.querySelector('path,polygon,polyline,circle,ellipse')).flatMap(node=>{
+    try{const box=node.getBBox(),rect=node.getBoundingClientRect();return box.width>2&&box.height>2&&box.width/box.height>.2&&box.width/box.height<1.7&&rect.width<layerRect.width*.7?[{node,box,rect}]:[];}catch{return [];}
+   }).sort((a,b)=>b.rect.width*b.rect.height-a.rect.width*a.rect.height);
    const wheels=[];
-   for(const item of candidates){if(wheels.some(w=>w.node.contains(item.node)||item.node.contains(w.node)))continue;const rect=item.node.getBoundingClientRect();if(wheels.some(w=>Math.abs(w.rect.x+w.rect.width/2-rect.x-rect.width/2)<layerRect.width*.2))continue;wheels.push({...item,rect});if(wheels.length===2)break;}
+   for(const item of candidates){if(wheels.some(r=>r.node.contains(item.node)||item.node.contains(r.node)||Math.abs(r.rect.x+r.rect.width/2-item.rect.x-item.rect.width/2)<layerRect.width*.22))continue;wheels.push(item);if(wheels.length===2)break;}
    if(wheels.length!==2)return;
    for(const {node,box:b} of wheels){
-    const placement=document.createElementNS(NS,'g');placement.setAttribute('transform',`translate(${b.x+b.width/2} ${b.y+b.height/2}) scale(${b.width*.26} ${b.height*.26})`);placement.setAttribute('opacity','.55');
+    const cx=b.x+b.width/2,cy=b.y+b.height/2,rx=b.width/2,ry=b.height/2;
+    const plane=document.createElementNS(NS,'g');plane.setAttribute('transform',`translate(${cx} ${cy}) scale(${rx} ${ry})`);
     const rotor=document.createElementNS(NS,'g');rotor.setAttribute('class','vecta-service-wheel-rotor');
-    const ring=document.createElementNS(NS,'circle');for(const [k,v]of Object.entries({cx:0,cy:0,r:.78,fill:'none',stroke:'#dce6ef','stroke-width':'.16','stroke-dasharray':'.25 .73'}))ring.setAttribute(k,v);
-    rotor.append(ring);placement.append(rotor);node.append(placement);
+    const artwork=document.createElementNS(NS,'g');artwork.setAttribute('transform',`scale(${1/rx} ${1/ry}) translate(${-cx} ${-cy})`);
+    // Undo the perspective squash before rotation, then restore it afterwards.
+    // At zero degrees this matrix is the identity, preserving the exact artwork.
+    while(node.firstChild)artwork.append(node.firstChild);
+    rotor.append(artwork);plane.append(rotor);node.append(plane);
    }
-   const style=document.createElementNS(NS,'style');style.textContent='@keyframes vecta-service-wheel-turn{to{transform:rotate(360deg)}}.vecta-service-wheel-rotor{transform-origin:0 0;animation:vecta-service-wheel-turn 6s linear infinite}@media(prefers-reduced-motion:reduce){.vecta-service-wheel-rotor{animation:none}}';svg.append(style);
+   const style=document.createElementNS(NS,'style');style.textContent='@keyframes vecta-service-wheel-turn{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}.vecta-service-wheel-rotor{transform-origin:0 0;animation:vecta-service-wheel-turn 6s linear infinite}@media(prefers-reduced-motion:reduce){.vecta-service-wheel-rotor{animation:none}}';svg.append(style);
    if(img.isConnected){img.src='data:image/svg+xml;charset=utf-8,'+encodeURIComponent(new XMLSerializer().serializeToString(svg));img.dataset.serviceAnimated='1';}
-  }catch{/* Unrecognised wheel geometry keeps the correct vehicle artwork still. */}finally{host?.remove();}
+  }catch{/* Keep the original vehicle if its supplier drawing lacks separable wheels. */}finally{host?.remove();}
  });
 }
 
