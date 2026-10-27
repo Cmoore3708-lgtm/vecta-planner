@@ -150,4 +150,10 @@
 <style id="home-selection-glow">
 :root{--selection-green:#35d58a;--selection-glow:0 0 0 2px rgba(53,213,138,.3),0 0 22px rgba(53,213,138,.55),0 0 40px rgba(53,213,138,.2)}
 .heroCards .bookingWorkCard.selected{border-color:var(--selection-green);box-shadow:var(--selection-glow)}
+
+@keyframes vecta-frame-pulse{0%,100%{border-color:rgb(var(--pulse-rgb));box-shadow:0 0 5px rgba(var(--pulse-rgb),.27)}50%{border-color:var(--pulse-bright);box-shadow:0 0 0 4px rgba(var(--pulse-rgb),.2),0 0 18px rgba(var(--pulse-rgb),.8),0 0 32px rgba(var(--pulse-rgb),.4)}}
+@keyframes vecta-tick-pulse{0%,100%{scale:1;filter:drop-shadow(0 0 1px currentColor)}50%{scale:1.13;filter:drop-shadow(0 0 5px currentColor)}}
+.heroCards .bookingWorkCard.selected{--pulse-rgb:53,213,138;--pulse-bright:#92ffbf;border-width:2px;animation:vecta-frame-pulse 3.4s ease-in-out infinite}
+.tick:before{animation:vecta-tick-pulse 3.4s ease-in-out infinite;transform-origin:center}
+@media(prefers-reduced-motion:reduce){.heroCards .bookingWorkCard.selected,.tick:before{animation:none}}
 </style>
