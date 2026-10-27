@@ -44,16 +44,33 @@ export async function discoverGSFParts(page,registration,{log=()=>{},parts=DISCO
  }
  return captures;
 }
+// Haynes renders Search as a styled link on some WorkshopData versions.
+// Scope to the search field's surrounding rows so the top navigation Search
+// and Add to Cost Estimate controls can never be mistaken for this action.
+export async function submitHaynesJobSearch(page,field){
+ let scope=field;
+ for(let depth=0;depth<4;depth++){
+  scope=scope.locator('..');
+  const strategies=[['button',()=>scope.getByRole('button',{name:'Search',exact:true})],['text',()=>scope.getByText('Search',{exact:true})],['input',()=>scope.locator('input[type="submit"][value="Search"],input[type="button"][value="Search"]')]];
+  for(const [kind,find] of strategies){
+   const matches=find(),visible=[];
+   for(let i=0;i<await matches.count();i++)if(await matches.nth(i).isVisible())visible.push(matches.nth(i));
+   if(visible.length>1)throw Error('HAYNES_SEARCH_CONTROL_AMBIGUOUS');
+   if(visible.length===1){await visible[0].click({timeout:10000});return kind;}
+  }
+ }
+ throw Error('HAYNES_SEARCH_CONTROL_NOT_FOUND');
+}
 export async function discoverHaynesJobs(page,registration,{log=()=>{},parts=DISCOVERY_PARTS}={}){
  const captures=[];
  for(const part of parts){
   log('Haynes: inspecting '+part.label);
   try{
    const field=page.getByPlaceholder('Search job',{exact:true});await field.fill(part.label);
-   await page.getByRole('button',{name:'Search',exact:true}).click();await page.waitForTimeout(700);
+   const submittedBy=await submitHaynesJobSearch(page,field);await page.waitForTimeout(1000);
    if(await page.locator('input[type="password"]').count())throw Error('LOGIN_REQUIRED');
-   captures.push({partId:part.id,status:'INSPECTED',snapshot:await page.evaluate(readDiscoveryPage,{registration,term:part.label})});
-  }catch(error){captures.push({partId:part.id,status:error.message==='LOGIN_REQUIRED'?'LOGIN_REQUIRED':'INSPECTION_UNAVAILABLE'});if(error.message==='LOGIN_REQUIRED')break;}
+   captures.push({partId:part.id,status:'INSPECTED',searchSubmitted:true,submittedBy,snapshot:await page.evaluate(readDiscoveryPage,{registration,term:part.label})});
+  }catch(error){const detail=/^HAYNES_SEARCH_CONTROL_(?:NOT_FOUND|AMBIGUOUS)$/.test(error.message)?error.message:undefined;captures.push({partId:part.id,status:error.message==='LOGIN_REQUIRED'?'LOGIN_REQUIRED':'INSPECTION_UNAVAILABLE',detail});if(error.message==='LOGIN_REQUIRED'||detail)break;}
  }
  return captures;
 }
