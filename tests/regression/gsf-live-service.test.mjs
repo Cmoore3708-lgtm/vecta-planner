@@ -17,8 +17,8 @@ test('uploaded PC oil selection binds first pack price to exact registration and
  for(const mutation of [c=>c.registration='NU67VSE',c=>c.selectedRegistration=false,c=>c.truncated=true,c=>c.visibleText=c.visibleText.replace('£56.99 Gold','£56.99 Silver')]){const c=capture('FV65JTY','Engine Oils (Applied)');mutation(c);assert.throws(()=>catalogueSelection(c,'oil','FV65JTY'));}
 });
 test('live catalogue requires diesel fuel filter, omits petrol plugs and uses agreed oil/filters/labour/VAT/£5 rule',async()=>{
- const diesel=await lookup('FV65JTY','Major Service');assert.equal(diesel.items.length,5);assert.ok(diesel.items.some(x=>x.kind==='fuel_filter'));const price=calculateServicePrice(diesel,diesel.request,policy,now);assert.equal(price.totalPence,37500);assert.equal(price.netPence+price.vatPence,37500);
- const petrol=await lookup('NU67VSE','Major Service');assert.equal(petrol.items.length,4);assert.ok(!petrol.items.some(x=>['spark_plug','fuel_filter'].includes(x.kind)));assert.equal(calculateServicePrice(petrol,petrol.request,policy,now).totalPence,26000);
+ const diesel=await lookup('FV65JTY','Major Service');assert.equal(diesel.items.length,5);assert.ok(diesel.items.some(x=>x.kind==='fuel_filter'));const price=calculateServicePrice(diesel,diesel.request,policy,now);assert.equal(price.totalPence,35000);assert.equal(price.netPence+price.vatPence,35000);
+ const petrol=await lookup('NU67VSE','Major Service');assert.equal(petrol.items.length,4);assert.ok(!petrol.items.some(x=>['spark_plug','fuel_filter'].includes(x.kind)));assert.equal(calculateServicePrice(petrol,petrol.request,policy,now).totalPence,23500);
 });
 test('website request → worker relay → signed quote → booking snapshot retains price and oil quantities',async()=>{
  const secret='b'.repeat(64),request={registration:'FV65JTY',service:'Major Service',mileage:null,range:'Mid Range'};
@@ -33,9 +33,9 @@ test('website request → worker relay → signed quote → booking snapshot ret
  let res=response();await api({method:'POST',body:request},res);assert.equal(res.body.status,'PENDING');
  res=response();await worker({method:'POST',headers:{authorization:'Bearer '+secret},body:{action:'pull'}},res);const job=res.body;assert.equal(job.status,'JOB');
  const live=await lookup(request.registration,request.service);res=response();await worker({method:'POST',headers:{authorization:'Bearer '+secret},body:{action:'complete',id:job.id,lease:job.lease,status:'MATCHED',request,result:live}},res);assert.equal(res.body.status,'SAVED');
- res=response();await api({method:'POST',body:request},res);assert.equal(res.body.status,'MATCHED');const q=res.body.quote;assert.equal(q.totalPence,37500);assert.ok(!JSON.stringify(q).includes('unitNetPence'));
+ res=response();await api({method:'POST',body:request},res);assert.equal(res.body.status,'MATCHED');const q=res.body.quote;assert.equal(q.totalPence,35000);assert.ok(!JSON.stringify(q).includes('unitNetPence'));
  const body={registration:request.registration,service_choice:request.service,mileage_unknown:true,parts_range:request.range,service_price_token:q.token};
- const booking=bookingServicePrice(body,[request.service],secret);assert.equal(booking.approximateCost,375);assert.match(booking.snapshot,/Required 4.7L; charged 5L/);
+ const booking=bookingServicePrice(body,[request.service],secret);assert.equal(booking.approximateCost,350);assert.match(booking.snapshot,/Required 4.7L; charged 5L/);
  assert.throws(()=>bookingServicePrice({...body,registration:'NU67VSE'},[request.service],secret));
 });
 test('unimplemented quality grades never become Gold quotes',async()=>{
@@ -54,7 +54,7 @@ test('selecting Service fetches one Major parts set, displays all packages and s
   await api({method:'POST',body:JSON.parse(options.body)},res);return {ok:res.code===200,json:async()=>res.body};
  }});
  controller.update();await matched;
- for(const [service,total] of [['Oil & Filter Change',15000],['Full Service',25000],['Major Service',37500]]){
+ for(const [service,total] of [['Oil & Filter Change',15000],['Full Service',25000],['Major Service',35000]]){
   form.service_choice=service;controller.update();const quote=controller.currentQuote();assert.equal(quote.totalPence,total);
   const booking=bookingServicePrice({registration:form.registration,service_choice:service,mileage_unknown:true,parts_range:'Mid Range',service_price_token:quote.token},[service],secret,now);
   assert.equal(booking.approximateCost,total/100);
