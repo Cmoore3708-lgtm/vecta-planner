@@ -1,6 +1,6 @@
 (function(){
  'use strict';
- var messages={SETUP_REQUIRED:'Automatic parts and labour lookup needs its PC setup completing.',SETTINGS_REQUIRED:'The GSF and Haynes repair lookup needs calibrating on the PC.',OFFLINE:'The repair lookup worker is offline. Start it on the workshop PC, then try again.',LOGIN_REQUIRED:'Sign in to GSF or Haynes in the repair worker’s browser on the workshop PC.',REVIEW_REQUIRED:'The vehicle variant or compatible alternators need checking. No automatic price has been added.',LABOUR_REVIEW_REQUIRED:'The Haynes replacement operation or labour time needs checking. No fitting time has been assumed.',OUT_OF_STOCK:'No confirmed compatible alternator is currently in stock.',UNSUPPORTED_OPERATION:'Start with “Supply and fit alternator”. Other repairs need their own parts and labour setup.',BUSY:'The PC is checking other quotes. Please try again shortly.',DAILY_LIMIT:'The lookup limit has been reached. Please price this quote manually.',INVALID_REQUEST:'Enter the registration and “Supply and fit alternator”.',UNAVAILABLE:'The lookup could not be completed. Please try again or price the quote manually.'};
+ var messages={SETUP_REQUIRED:'Automatic parts and labour lookup needs its PC setup completing.',SETTINGS_REQUIRED:'Start the updated parts and labour worker on the workshop PC.',OFFLINE:'The repair lookup worker is offline. Start it on the workshop PC, then try again.',LOGIN_REQUIRED:'Sign in to GSF or Haynes in the repair worker’s browser on the workshop PC.',REVIEW_REQUIRED:'The vehicle, fitting position or compatible part options need checking. No automatic price has been added.',LABOUR_REVIEW_REQUIRED:'The Haynes replacement operation or labour time needs checking. No fitting time has been assumed.',OUT_OF_STOCK:'No confirmed compatible part is currently in stock.',UNSUPPORTED_OPERATION:'Choose a supported part from the repair form.',BUSY:'The PC is checking other quotes. Please try again shortly.',DAILY_LIMIT:'The lookup limit has been reached. Please price this quote manually.',INVALID_REQUEST:'Enter the registration and “Supply and fit alternator”.',UNAVAILABLE:'The lookup could not be completed. Please try again or price the quote manually.'};
  var money=function(p){return '£'+(p/100).toFixed(2);};
  var esc=function(v){return String(v==null?'':v).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});};
  function mount(job){
@@ -12,10 +12,10 @@
   // Standard catalogue terms make supplier searches explicit, without parsing prose.
   var catalogue=[
    {group:'Electrical',parts:[['alternator','Alternator'],['starter-motor','Starter motor'],['battery','Battery']]},
-   {group:'Brakes',parts:[['brake-pads','Brake pads','axle'],['brake-discs','Brake discs','axle'],['brake-caliper','Brake caliper','corner']]},
-   {group:'Suspension & steering',parts:[['coil-spring','Coil spring','corner'],['shock-absorber','Shock absorber','corner'],['suspension-arm','Suspension arm','corner'],['track-rod-end','Track rod end','side'],['wheel-bearing','Wheel bearing','corner']]},
+   {group:'Brakes',parts:[['brake-pads','Brake pads','axle'],['brake-discs','Brake discs','corner'],['brake-caliper','Brake caliper','corner']]},
+   {group:'Suspension & steering',parts:[['coil-spring','Coil spring','corner'],['shock-absorber','Shock absorber','corner'],['suspension-arm','Suspension arm','corner'],['track-rod-end','Track rod end','corner'],['wheel-bearing','Wheel bearing','corner']]},
    {group:'Engine & cooling',parts:[['water-pump','Water pump'],['thermostat','Thermostat'],['radiator','Radiator'],['auxiliary-belt','Auxiliary drive belt']]},
-   {group:'Transmission',parts:[['clutch-kit','Clutch kit'],['drive-shaft','Drive shaft','side']]},
+   {group:'Transmission',parts:[['clutch-kit','Clutch kit'],['drive-shaft','Drive shaft','corner']]},
    {group:'Filters',parts:[['oil-filter','Oil filter'],['air-filter','Air filter'],['cabin-filter','Cabin / pollen filter'],['fuel-filter','Fuel filter']]}
   ];
   var builder=document.createElement('fieldset');builder.className='rqBuilder';
@@ -27,13 +27,14 @@
   function selectionValid(){return selectedPart&&Number.isInteger(Number(quantity.value))&&Number(quantity.value)>=1&&Number(quantity.value)<=20&&(!/axle|corner/.test(selectedPart[2]||'')||axle.value)&&(!/side|corner/.test(selectedPart[2]||'')||side.value);}
   function updateSelection(){
    selectedPart=(catalogue[Number(category.value)]||{parts:[]}).parts.find(function(p){return p[0]===partSelect.value;})||null;
+   quantity.readOnly=true;quantity.value=side.value==='both'?'2':'1';
    builder.querySelector('[data-rq-axle-label]').hidden=!selectedPart||!/axle|corner/.test(selectedPart[2]||'');
    builder.querySelector('[data-rq-side-label]').hidden=!selectedPart||!/side|corner/.test(selectedPart[2]||'');
    var link=builder.querySelector('[data-rq-supplier]');link.hidden=!selectedPart;
    if(selectedPart)link.href='https://trade.gsfcarparts.com/enhancedSearch/'+encodeURIComponent([axle.value,side.value,selectedPart[1]].filter(Boolean).join(' '));
    builder.querySelector('[data-rq-summary]').textContent=selectedPart?selectedWork()+' · quantity '+quantity.value:'Choose a category and part. The registration comes from this quote.';
    invalidate();
-   if(selectedPart)message.textContent=selectionValid()?(selectedPart[0]==='alternator'&&Number(quantity.value)===1?'Ready to find parts & labour.':'Supplier search ready. Automatic price verification for this repair is not available yet; use the GSF search and enter checked prices below.'):'Complete the position, side and quantity for this repair.';
+   if(selectedPart)message.textContent=selectionValid()?'Ready to find parts & labour.':'Complete the position, side and quantity for this repair.';
   }
   category.onchange=function(){partSelect.disabled=category.value==='';partSelect.innerHTML='<option value="">Choose part</option>'+(category.value===''?'':catalogue[Number(category.value)].parts.map(function(p){return '<option value="'+p[0]+'">'+esc(p[1])+'</option>';}).join(''));axle.value='';side.value='';updateSelection();};
   partSelect.onchange=function(){axle.value='';side.value='';updateSelection();};axle.onchange=updateSelection;side.onchange=updateSelection;quantity.oninput=updateSelection;
@@ -44,14 +45,14 @@
   function stop(){generation++;if(controller)controller.abort();controller=null;clearTimeout(timer);timer=null;find.disabled=false;cancel.hidden=true;}
   function invalidate(){stop();quote=null;result.replaceChildren();message.textContent='Vehicle or work changed. Run a new lookup.';}
   function show(q,restored){
-   quote=q;var items=[{description:q.part.description+' — '+q.part.brand+' '+q.part.sku,costPence:q.part.costPence,salePence:q.partsPence,hoursMilli:q.labour.hoursMilli,source:true}].concat(additionalDrafts),revision=0;if(Array.isArray(restored)&&restored.length)items=restored.map(function(item){return Object.assign({},item)});
+   quote=q;var items=[{description:q.part.description+' — '+q.part.brand+' '+q.part.sku,costPence:q.part.costPence,salePence:q.partsPence,hoursMilli:q.labour.hoursMilli,packsRequired:q.part.packsRequired||1,source:true}].concat(additionalDrafts),revision=0;if(Array.isArray(restored)&&restored.length)items=restored.map(function(item){return Object.assign({},item)});
    message.textContent='GSF part found. Parts and labour exclude VAT; final prices include 20% VAT.';
    var partLink=typeof q.part.gsfUrl==='string'&&/^https:\/\/trade\.gsfcarparts\.com\/(?:enhancedSearch|partdetails)\/[A-Za-z0-9._-]{1,100}$/.test(q.part.gsfUrl)?q.part.gsfUrl:'';
    result.innerHTML='<div class="rqPart">'+(q.part.imageUrl?(partLink?'<a href="'+esc(partLink)+'" target="_blank" rel="noopener noreferrer" aria-label="Open GSF part '+esc(q.part.sku)+' in a new tab">':'')+'<img src="'+esc(q.part.imageUrl)+'" alt="'+esc(q.part.brand+' '+q.part.description)+'" referrerpolicy="no-referrer">'+(partLink?'</a>':''):'<span>Part photo unavailable</span>')+'<div><strong>'+esc(q.part.brand+' '+q.part.description)+'</strong><p>Part '+esc(q.part.sku)+'</p>'+(partLink?'<small>Click photo to open GSF. Quote vehicle: '+esc(q.request.registration)+'. Check the selected vehicle in GSF.</small>':'')+'<small>'+esc(q.variant)+'</small></div></div><div class="rqTableWrap" tabindex="0" role="region" aria-label="Parts and labour prices"><table class="rqTable"><thead><tr><th scope="col">Part</th><th scope="col">Parts cost price</th><th scope="col">Sale price</th><th scope="col">Labour hours</th><th scope="col">Labour cost</th><th scope="col">Final price (inc VAT)</th><th scope="col"><span class="rqRemoveLabel">Remove</span></th></tr></thead><tbody data-rq-items></tbody></table></div><div class="rqActions rqAddActions"><button type="button" class="btn" data-rq-add>Add part</button></div><small>Cost, sale and labour prices exclude VAT. Labour rounds up to 30 minutes at £50/hour. Add only additional labour for extra parts.</small><div class="rqGrandTotal"><span>Total price (inc VAT)</span><strong data-rq-total></strong></div><small data-rq-tax></small><small>Haynes time: '+(q.labour.hoursMilli/1000)+' hours · Charged time: '+(q.chargedHoursMilli/1000)+' hours (rounded up to 30 minutes)</small><small>Haynes: '+esc(q.labour.operationLabel)+' · '+esc(q.labour.operationId)+'</small><small>'+(q.previewOnly?'Evidence captured ':'Checked ')+esc(new Date(q.checkedAt).toLocaleString('en-GB'))+(q.previewOnly?' · test session ends ':' · refresh before ')+esc(new Date(q.expiresAt).toLocaleTimeString('en-GB'))+'</small><div class="rqActions"><button type="button" class="primary" data-rq-apply>Add to quote</button></div>';
    if(q.previewOnly){message.textContent='TEST REPLAY — captured 26 October 2026. Fitment and catalogue completeness remain unapproved. Save only as a test quote.';var notice=document.createElement('p');notice.className='rqIntro';notice.textContent='Captured supplier evidence, not a fresh live price. '+q.reviewReasons.join(' ');result.prepend(notice);}
    var body=result.querySelector('[data-rq-items]'),apply=result.querySelector('[data-rq-apply]');
    var image=result.querySelector('img');if(image)image.onerror=function(){var label=document.createElement('span');label.textContent='Part photo unavailable';image.replaceWith(label);};
-   function saleFor(cost){return cost+Math.round((Math.min(cost,5000)*50+Math.min(Math.max(cost-5000,0),10000)*20+Math.max(cost-15000,0)*10)/100);}
+   function saleFor(cost,packs){packs=packs||1;cost=cost/packs;return (cost+Math.round((Math.min(cost,5000)*50+Math.min(Math.max(cost-5000,0),10000)*20+Math.max(cost-15000,0)*10)/100))*packs;}
    function parseInput(value,scale){if(!/^\d+(?:\.\d{1,2})?$/.test(String(value)))return null;var n=Math.round(Number(value)*scale);return Number.isSafeInteger(n)&&n>=0&&n<=10000000?n:null;}
    function totals(){
     var net=0,hours=0,valid=true;
@@ -79,7 +80,7 @@
      var item=items[i];
      row.querySelectorAll('input').forEach(function(input){input.addEventListener('input',function(){
       if(input.hasAttribute('data-rq-description'))item.description=input.value;
-      if(input.hasAttribute('data-rq-cost')){item.costPence=parseInput(input.value,100);item.salePence=item.costPence===null?null:saleFor(item.costPence);row.querySelector('[data-rq-sale]').value=item.salePence===null?'':(item.salePence/100).toFixed(2);}
+      if(input.hasAttribute('data-rq-cost')){item.costPence=parseInput(input.value,100);item.salePence=item.costPence===null?null:saleFor(item.costPence,item.packsRequired);row.querySelector('[data-rq-sale]').value=item.salePence===null?'':(item.salePence/100).toFixed(2);}
       if(input.hasAttribute('data-rq-sale'))item.salePence=parseInput(input.value,100);
       if(input.hasAttribute('data-rq-hours'))item.hoursMilli=parseInput(input.value,1000);
       item.manuallyEdited=true;revision++;apply.textContent='Add to quote';totals();
@@ -109,7 +110,6 @@
   async function lookup(replay){
    if(selectedPart&&selectionValid()&&!work.value.trim())work.value=selectedWork();
    if(selectedPart&&!selectionValid()){message.textContent='Complete the position, side and quantity for this repair.';return;}
-   if(selectedPart&&(selectedPart[0]!=='alternator'||Number(quantity.value)!==1)){message.textContent='Automatic price verification for this repair is not available yet. Open the GSF search and enter checked prices in the quote.';return;}
    stop();quote=null;result.replaceChildren();lastKey=key();var input=read(),run=generation,started=Date.now();find.disabled=true;cancel.hidden=false;
    async function poll(){
     if(run!==generation||!panel.isConnected||key()!==lastKey)return;

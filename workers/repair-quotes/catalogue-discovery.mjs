@@ -102,7 +102,7 @@ export async function captureHaynesFrames(page,registration,term){
  }
  if(!captures.length)throw Error('HAYNES_CAPTURE_UNAVAILABLE');
  const unique=rows=>[...new Map(rows.map(row=>[JSON.stringify(row),row])).values()];
- return {...captures[0],framesChecked:captures.length,jobs:unique(captures.flatMap(c=>c.jobs||[])),jobRows:unique(captures.flatMap(c=>c.jobRows||[])),hiddenJobRows:unique(captures.flatMap(c=>c.hiddenJobRows||[])),pricingApproved:false};
+ return {...captures[0],framesChecked:captures.length,unitHoursConfirmed:captures.some(c=>c.unitHoursConfirmed===true),jobs:unique(captures.flatMap(c=>c.jobs||[])),jobRows:unique(captures.flatMap(c=>c.jobRows||[])),hiddenJobRows:unique(captures.flatMap(c=>c.hiddenJobRows||[])),pricingApproved:false};
 }
 export async function discoverGSFParts(page,registration,{log=()=>{},parts=DISCOVERY_PARTS,openCategory=openGSFCategoryResult}={}){
  const captures=[];
