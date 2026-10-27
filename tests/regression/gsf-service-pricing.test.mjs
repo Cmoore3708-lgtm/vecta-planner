@@ -206,9 +206,9 @@ test('approved-SKU worker uses saved fitment evidence and checks the selected pr
   await assert.rejects(readProductBySku(page,{...item,brand:'WRONG'}),/REVIEW_REQUIRED/);
   assert.throws(()=>approvedRecipe({calibrationApproved:true,lookupMode:'approved-skus',recipes:[{...request,approved:true,reviewedAt:new Date(now).toISOString()}]},request,now),/REVIEW_REQUIRED/);
 });
-test('the requested trial policy adds 50% to filters and 30% to oil and uses £30/£60/£100 net labour',()=>{
+test('the requested trial policy adds 50% to filters and 30% to oil and uses £30/£60/£80 net labour',()=>{
   const trial=JSON.parse(readFileSync(new URL('../../workers/gsf/pricing-policy.example.json',import.meta.url),'utf8'));
-  assert.equal(trial.markupBps,5000);assert.equal(trial.oilMarkupBps,3000);assert.deepEqual(trial.labourNetPence,{'Oil & Filter Change':3000,'Full Service':6000,'Major Service':10000});
+  assert.equal(trial.markupBps,5000);assert.equal(trial.oilMarkupBps,3000);assert.deepEqual(trial.labourNetPence,{'Oil & Filter Change':3000,'Full Service':6000,'Major Service':8000});
   const price=calculateServicePrice(result(),request,trial,now);
   assert.equal(price.partsNetPence,7664);assert.equal(price.labourNetPence,6000);assert.equal(price.totalPence,16500);
 });
@@ -345,7 +345,7 @@ test('observed Pulsar ex-VAT costs reproduce the three manual examples without b
  const evidence=JSON.parse(readFileSync(new URL('../../workers/gsf/nu67vse-observed-evidence.json',import.meta.url),'utf8'));
  assert.equal(evidence.approvedForPublication,false);assert.equal(evidence.oilProductSpecificationVerified,false);assert.equal(evidence.workerQuoteVerified,false);
  const trial=JSON.parse(readFileSync(new URL('../../workers/gsf/pricing-policy.example.json',import.meta.url),'utf8'));
- const expected={'Oil & Filter Change':13500,'Full Service':23000,'Major Service':27500};
+ const expected={'Oil & Filter Change':13500,'Full Service':23000,'Major Service':25500};
  for(const [service,total] of Object.entries(expected)) {
   const input={registration:evidence.registration,service,mileage:null,range:'Mid Range'};
   const kinds=serviceRequiredKinds(service,'petrol');
