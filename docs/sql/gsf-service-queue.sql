@@ -10,7 +10,7 @@ create table public.gsf_service_jobs (
   actor text not null check (actor ~ '^[a-f0-9]{64}$'),
   status text not null default 'PENDING' check (status in ('PENDING','WORKING','MATCHED','LOGIN_REQUIRED','REVIEW_REQUIRED','SETTINGS_REQUIRED','UNAVAILABLE')),
   result jsonb, lease uuid, created_at timestamptz not null default now(), completed_at timestamptz,
-  deadline timestamptz not null default now()+interval '90 seconds'
+  deadline timestamptz not null default now()+interval '180 seconds'
 );
 create index gsf_service_jobs_created on public.gsf_service_jobs(created_at);
 alter table public.gsf_service_jobs enable row level security;
@@ -29,7 +29,7 @@ begin
   if p_action='enqueue' then
     if coalesce(p_payload->>'actor','') !~ '^[a-f0-9]{64}$'
       or coalesce(p_payload->'request'->>'registration','') !~ '^[A-Z0-9]{5,8}$'
-      or coalesce(p_payload->'request'->>'service','') not in ('Oil & Filter Change','Full Service','Major Service')
+      or coalesce(p_payload->'request'->>'service','') not in ('Oil & Filter Change','Full Service','Major Service','Interim Service','EV Major Service')
       or coalesce(p_payload->'request'->>'range','') not in ('Budget','Mid Range','Premium/Dealer')
       then return jsonb_build_object('status','INVALID_REQUEST'); end if;
     select * into j from public.gsf_service_jobs where request=p_payload->'request'

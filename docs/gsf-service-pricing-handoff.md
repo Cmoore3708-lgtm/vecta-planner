@@ -142,3 +142,26 @@ redaction, sequential use of the borrowed context, closing tabs on failure,
 partial results, login expiry, group-bound attributes and navigation ordering.
 This diagnostic has NOT yet run on the workshop PC. Supply it through the one
 combined worker update, not a second service-only setup/download.
+
+## Website connection work — 27 October
+
+Owner accepts GSF's oil offered for the selected registration as suitable. The
+new `vehicle-catalogue` worker mode follows the same selected-vehicle pages
+as the successful uploaded PC check. It reads the selected Gold/Mid Range
+product and confirms its actual ex-VAT cost, identity and stock on fresh Part
+Details before returning costs. Oil quantity uses the GSF progress/fill field;
+the original pack fraction is retained. No per-registration recipe is needed.
+Budget and Premium/Dealer remain review-only until their selection is calibrated;
+EV Major still requires an agreed net labour setting.
+
+An automated in-process request/relay/signing/booking test passes using recorded
+PC catalogue data and a stub fresh-product reader. This is NOT proof of a live
+PC-to-cloud service quote. The UI and queue time budget now allow a 150-second
+worker lookup, with a 180-second queue deadline and 165-second website polling.
+
+Production has no service queue schema or GSF service environment variables.
+The Test schema creation was attempted through apply_migration, then execute_sql;
+both write calls returned `Invalid or expired requestState`. A subsequent read
+confirmed no Test queue exists. Do not enable pricing until the schema is applied,
+permissions/queue operations are checked, the updated shared PC worker is paired,
+and an actual website request returns and saves its live price.

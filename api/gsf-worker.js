@@ -5,7 +5,7 @@ export function gsfWorkerHandler({env = process.env, queue = gsfQueue} = {}) {
   return async (req,res) => {
     res.setHeader('Cache-Control','no-store');
     if (req.method !== 'POST') return res.status(405).json({status:'METHOD_NOT_ALLOWED'});
-    const secret = env.GSF_WORKER_TOKEN || '', token = String(req.headers?.authorization || '').replace(/^Bearer /,'');
+    const secret = env.GSF_WORKER_TOKEN || env.REPAIR_QUOTE_WORKER_TOKEN || '', token = String(req.headers?.authorization || '').replace(/^Bearer /,'');
     if (!/^[a-f0-9]{64}$/.test(secret) || !/^[a-f0-9]{64}$/.test(token) || !timingSafeEqual(Buffer.from(token),Buffer.from(secret))) return res.status(401).json({status:'UNAUTHORIZED'});
     if (env.GSF_SERVICE_PRICING_ENABLED !== 'true') return res.status(200).json({status:'DISABLED'});
     try {

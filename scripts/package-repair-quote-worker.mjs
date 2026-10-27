@@ -23,5 +23,6 @@ writeFileSync(path.join(stage,'RETRY-HAYNES.cmd'),'@echo off\r\ncall "%~dp0worke
 writeFileSync(path.join(stage,'CHECK-GSF-CATALOGUE.cmd'),'@echo off\r\ncall "%~dp0workers\\repair-quotes\\CHECK-GSF-CATALOGUE.cmd"\r\n');
 writeFileSync(path.join(stage,'VERIFY-QUOTE.cmd'),'@echo off\r\ncall "%~dp0workers\\repair-quotes\\VERIFY-QUOTE.cmd"\r\n');
 writeFileSync(path.join(stage,'CHECK-SERVICE-PRICING.cmd'),'@echo off\r\ncall "%~dp0workers\\gsf\\CHECK-SERVICE-PRICING.cmd"\r\n');
+writeFileSync(path.join(stage,'START-LIVE-REPAIR-QUOTES.cmd'),'@echo off\r\ncall "%~dp0workers\\repair-quotes\\START-LIVE-REPAIR-QUOTES.cmd"\r\n');
 const output=path.resolve(process.argv[2]||'/tmp/Vecta-Repair-Quote-Worker.zip');
 execFileSync('zip',['-qr',output,'.'],{cwd:stage});console.log(output);

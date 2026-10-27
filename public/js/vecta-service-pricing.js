@@ -29,7 +29,7 @@
         publish(value);
         const started=now();
         try {
-          while(active===generation && now()-started<65000) {
+          while(active===generation && now()-started<165000) {
             const response=await fetcher('/api/service-price',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(input),signal:AbortSignal.any([signal,AbortSignal.timeout(10000)]),cache:'no-store'});
             const data=await response.json();
             if(active!==generation)return;

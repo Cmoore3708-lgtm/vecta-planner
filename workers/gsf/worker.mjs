@@ -21,14 +21,14 @@ if(!setup && !serviceCheck && !repairEnabled && !serviceEnabled)throw Error('Con
 if(!setup && !serviceCheck && serviceEnabled && (!/^[a-f0-9]{64}$/.test(token||'') || !site))throw Error('Set GSF_WORKSHOP_ORIGIN and GSF_WORKER_TOKEN in the local PC environment.');
 if(site && (!/^https:\/\/[a-z0-9.-]+$/.test(site) || !/(?:\.vercel\.app|\.vectamotors\.co\.uk)$/.test(new URL(site).hostname)))throw Error('Invalid workshop origin.');
 const config=setup||serviceCheck||!serviceEnabled?null:JSON.parse(readFileSync(process.env.GSF_CONFIG_FILE||resolve(here,'gsf-config.local.json'),'utf8'));
-if(!setup && !serviceCheck && serviceEnabled && (config.calibrationApproved!==true || (config.lookupMode!=='approved-skus' && !config.selectedVehicleCss)))throw Error('Complete the GSF catalogue calibration before starting the worker.');
+if(!setup && !serviceCheck && serviceEnabled && (config.calibrationApproved!==true || (!['approved-skus','vehicle-catalogue'].includes(config.lookupMode) && !config.selectedVehicleCss)))throw Error('Complete the GSF catalogue calibration before starting the worker.');
 const profile=process.env.GSF_PROFILE_DIR||resolve(process.env.LOCALAPPDATA||'.','VectaGSF','EdgeProfile');
 let context;
 try{context=await chromium.launchPersistentContext(profile,{channel:'msedge',headless:false,acceptDownloads:false,chromiumSandbox:true});}
 catch(error){if(!serviceCheck)throw error;console.error('Cannot open the dedicated GSF browser. If the shared GSF worker is running, stop only that worker and try again. Leave tyre and Haynes workers running. No settings were changed.');process.exit(1);}
 let repair=null;
 
-let stopped=false;context.on('close',()=>stopped=true);
+let stopped=false,lastRepairState='';context.on('close',()=>stopped=true);
 process.on('SIGINT',()=>{stopped=true;void context.close();});
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));
 async function rpc(body) {
@@ -55,7 +55,7 @@ try {
   } else {
     console.log('VECTA shared GSF worker started. Service and repair pricing use one supplier browser, with separate pricing policies. No basket or ordering actions.');
     while(!stopped) {
-      if(repair){try{await repair.tick();}catch{console.log('Repair quote connection unavailable; retrying.');}}
+      if(repair){try{const state=await repair.tick();if(state!==lastRepairState){if(state==='IDLE')console.log('Repair quote connection ready. Waiting for Workshop Pro requests.');else if(state==='MATCHED')console.log('Fresh repair quote delivered to Workshop Pro.');else if(state==='DISABLED')console.log('Repair quoting is disabled on Workshop Pro.');lastRepairState=state;}}catch{lastRepairState='';console.log('Repair quote connection unavailable; retrying.');}}
       if(!serviceEnabled){await sleep(2000);continue;}
       let task;
       try {task=await rpc({action:'pull'});}catch(error){if(error.message==='PAIRING_REQUIRED')throw error;console.log('Workshop connection unavailable; retrying.');await sleep(5000);continue;}
@@ -64,7 +64,7 @@ try {
         let page,timer,completion;
         try {
           page=await context.newPage();
-          const result=await Promise.race([lookupService(page,task.request,config),new Promise((_,reject)=>{timer=setTimeout(()=>reject(Error('LOOKUP_TIMEOUT')),60000);})]);
+          const result=await Promise.race([lookupService(page,task.request,config),new Promise((_,reject)=>{timer=setTimeout(()=>reject(Error('LOOKUP_TIMEOUT')),150000);})]);
           completion={action:'complete',id:task.id,lease:task.lease,request:task.request,status:'MATCHED',result};
         } catch(error) {
           const status=['LOGIN_REQUIRED','SETTINGS_REQUIRED','REVIEW_REQUIRED'].includes(error.message)?error.message:'UNAVAILABLE';

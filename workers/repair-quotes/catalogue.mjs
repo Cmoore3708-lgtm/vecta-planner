@@ -1,4 +1,5 @@
 import {navigateGSFAlternator} from './gsf-navigation.mjs';
+import {readLiveGSFAlternator} from './gsf-live-reader.mjs';
 import {navigateHaynesRepair} from './haynes-navigation.mjs';
 import {readAlternatorTime} from './repair-time-reader.mjs';
 import {repairRequest,cleanRepairEvidence} from '../../lib/repair-quote.js';
@@ -85,6 +86,10 @@ export async function lookupRepair({gsfPage,haynesPage},raw,config,{now=Date.now
  if(!g||!h||!/^https:\/\//.test(h.startUrl||''))fail('SETTINGS_REQUIRED');
  const haynesOrigin=new URL(h.startUrl).origin;
  if(!/^(?:https:\/\/)(?:[a-z0-9-]+\.)*(?:haynespro\.com|workshopdata\.com)$/.test(haynesOrigin))fail('SETTINGS_REQUIRED');
+ let parts;
+ if(g.readerMode==='verified-alternator-options'){
+  ({parts}=await readLiveGSFAlternator(gsfPage,request,mapping,g,{now}));
+ }else{
  if(g.navigationMode==='gsf-alternator-category')await navigateGSFAlternator(gsfPage,request.registration);
  else await navigate(gsfPage,g,request,GSF_ORIGIN);
  const identity=await read(gsfPage,g.identity);
@@ -96,7 +101,7 @@ export async function lookupRepair({gsfPage,haynesPage},raw,config,{now=Date.now
  const total=await read(gsfPage,g.totalCount);
  if(!/^\d+$/.test(total)||Number(total)!==count||count>100)fail('REVIEW_REQUIRED');
  if(count===0)fail('OUT_OF_STOCK');
- const parts=[];
+ parts=[];
  for(let i=0;i<count;i++){
   const root=partsRoot.nth(i),stock=normal(await read(root,g.stock));
   if(!['IN STOCK','OUT OF STOCK'].includes(stock))fail('REVIEW_REQUIRED');
@@ -104,6 +109,7 @@ export async function lookupRepair({gsfPage,haynesPage},raw,config,{now=Date.now
   if(!/\balternator\b/i.test(description))fail('REVIEW_REQUIRED');
   let imageUrl='';if(g.image){const img=root.locator(g.image);if(await img.count()===1)imageUrl=await img.getAttribute('src')||'';if(imageUrl)imageUrl=new URL(imageUrl,GSF_ORIGIN).href;}
   parts.push({source:'GSF',registration:request.registration,variant:mapping.variant,fitmentConfirmed:true,vatBasis:'EX_VAT',sku:await read(root,g.sku),brand:await read(root,g.brand),description,costPence:parsePence(await read(root,g.price)),corePence:0,inStock:stock==='IN STOCK',imageUrl,checkedAt:new Date(now()).toISOString()});
+ }
  }
  if(h.navigationMode==='workshopdata-registration'){
   if(haynesOrigin!=='https://www.workshopdata.com')fail('SETTINGS_REQUIRED');
