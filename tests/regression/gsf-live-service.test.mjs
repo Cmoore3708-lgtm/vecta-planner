@@ -6,6 +6,7 @@ import {calculateServicePrice} from '../../lib/service-pricing.js';
 import {servicePriceHandler} from '../../api/service-price.js';
 import {gsfWorkerHandler} from '../../api/gsf-worker.js';
 import {bookingServicePrice} from '../../lib/booking-service-price.js';
+import '../../public/js/vecta-service-pricing.js';
 const report=JSON.parse(readFileSync(new URL('../fixtures/gsf-service-catalogue.json',import.meta.url),'utf8'));
 const policy=JSON.parse(readFileSync(new URL('../../workers/gsf/pricing-policy.example.json',import.meta.url),'utf8'));
 const now=Date.now();
@@ -39,4 +40,24 @@ test('website request → worker relay → signed quote → booking snapshot ret
 });
 test('unimplemented quality grades never become Gold quotes',async()=>{
  for(const range of ['Budget','Premium/Dealer'])await assert.rejects(lookupLiveService({}, {registration:'FV65JTY',service:'Major Service',mileage:null,range},{capture:()=>{throw Error('must not browse');}}),/REVIEW_REQUIRED/);
+});
+test('selecting Service fetches one Major parts set, displays all packages and switches without another lookup',async()=>{
+ const costs=await lookup('FV65JTY','Major Service'),secret='c'.repeat(64);
+ let queueCalls=0,fetches=0;
+ const api=servicePriceHandler({now:()=>now,env:{GSF_SERVICE_PRICING_ENABLED:'true',GSF_SERVICE_PRICING_POLICY:JSON.stringify(policy),GSF_SERVICE_QUOTE_SECRET:secret},queue:async(action,payload)=>{
+  queueCalls++;assert.equal(action,'enqueue');assert.deepEqual(payload.request,costs.request);return {status:'MATCHED',result:costs};
+ }});
+ const form={registration:'FV65JTY',job_types:['Service'],service_choice:'',mileage:'',parts_range:'Mid Range'};
+ let resolve;const matched=new Promise(r=>resolve=r);
+ const controller=globalThis.VectaServicePricing.createController({batch:true,getForm:()=>form,now:()=>now,wait:async()=>{},onChange:v=>{if(v.status==='matched')resolve(v);},fetcher:async(url,options)=>{
+  fetches++;const res={setHeader(){},status(n){this.code=n;return this;},json(v){this.body=v;return this;}};
+  await api({method:'POST',body:JSON.parse(options.body)},res);return {ok:res.code===200,json:async()=>res.body};
+ }});
+ controller.update();await matched;
+ for(const [service,total] of [['Oil & Filter Change',15000],['Full Service',25000],['Major Service',37500]]){
+  form.service_choice=service;controller.update();const quote=controller.currentQuote();assert.equal(quote.totalPence,total);
+  const booking=bookingServicePrice({registration:form.registration,service_choice:service,mileage_unknown:true,parts_range:'Mid Range',service_price_token:quote.token},[service],secret,now);
+  assert.equal(booking.approximateCost,total/100);
+ }
+ assert.equal(fetches,1);assert.equal(queueCalls,1);controller.reset();
 });
