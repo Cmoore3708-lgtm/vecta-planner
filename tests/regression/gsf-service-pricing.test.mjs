@@ -47,14 +47,14 @@ test('default packages do not require mileage; diesel major includes fuel filter
     assert.throws(()=>calculateServicePrice({...costs,requiredKinds:[...costs.requiredKinds,kind],items:[...costs.items,item(kind,1000)]},input,policy,now),/REVIEW_REQUIRED/);
   }
 });
-test('Interim is oil/filter only and EV Major is air/cabin only without engine-oil data',()=>{
+test('Interim is oil/filter only and EV Major is cabin only without engine-oil data',()=>{
   assert.deepEqual(serviceRequiredKinds('Interim Service'),['oil','oil_filter']);
-  assert.deepEqual(serviceRequiredKinds('EV Major Service'),['air_filter','cabin_filter']);
+  assert.deepEqual(serviceRequiredKinds('EV Major Service'),['cabin_filter']);
   const interimRequest={...request,service:'Interim Service',mileage:null};
   const interim={...result(),request:interimRequest,requiredKinds:['oil','oil_filter'],items:result().items.slice(0,2)};
   assert.equal(calculateServicePrice(interim,interimRequest,policy,now).labourNetPence,3000);
   const evRequest={...request,service:'EV Major Service',mileage:null};
-  const ev={...result(),request:evRequest,fuelType:'electric',oilSpecification:'',oilVerified:false,requiredKinds:['air_filter','cabin_filter'],items:[item('air_filter',1000),item('cabin_filter',1500)]};
+  const ev={...result(),request:evRequest,fuelType:'electric',oilSpecification:'',oilVerified:false,requiredKinds:['cabin_filter'],items:[item('cabin_filter',1500)]};
   const clean=cleanServiceCosts(ev,evRequest,now);assert.equal(clean.oilSpecification,'');assert.equal(clean.oilVerified,false);
   assert.throws(()=>calculateServicePrice(ev,evRequest,policy,now),/SETTINGS_REQUIRED/);
   const evPolicy={...policy,labourNetPence:{...policy.labourNetPence,'EV Major Service':9000}}; // Synthetic labour, not an agreed rate.
