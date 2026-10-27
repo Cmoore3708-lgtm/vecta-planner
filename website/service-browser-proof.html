@@ -117,7 +117,16 @@ function animateServiceCarWheels(){
    for(const {node:wheel,box:wheelBox} of wheels){
     // Keep the tyre silhouette still; an axially rotating tyre changes its
     // tread position, not the shape of the whole perspective drawing.
-    const rim=[...wheel.querySelectorAll('g')].filter(n=>n.querySelectorAll('path,polygon,polyline,circle,ellipse').length>=6).map(node=>({node,box:node.getBBox()})).filter(({box:b})=>b.width>2&&b.height>2&&b.width<wheelBox.width*.98&&b.height<wheelBox.height*.98).sort((a,b)=>b.box.width*b.box.height-a.box.width*a.box.height)[0];
+    let rim=[...wheel.querySelectorAll('g')].filter(n=>n.querySelectorAll('path,polygon,polyline,circle,ellipse').length>=6).map(node=>({node,box:node.getBBox()})).filter(({box:b})=>b.width>2&&b.height>2&&b.width<wheelBox.width*.98&&b.height<wheelBox.height*.98).sort((a,b)=>b.box.width*b.box.height-a.box.width*a.box.height)[0];
+    if(!rim){
+     // Older supplier drawings flatten the metallic rim paths into the tyre.
+     const shapes=[...wheel.children].filter(n=>['path','polygon','polyline','circle','ellipse'].includes(n.localName)).map(node=>({node,box:node.getBBox(),fill:node.getAttribute('fill')||''}));
+     const metal=shapes.filter(({fill})=>/^#[a-f0-9]{6}$/i.test(fill)&&Math.min(...[1,3,5].map(i=>parseInt(fill.slice(i,i+2),16)))>=90);
+     if(metal.length>=6){const x=Math.min(...metal.map(s=>s.box.x)),y=Math.min(...metal.map(s=>s.box.y)),right=Math.max(...metal.map(s=>s.box.x+s.box.width)),bottom=Math.max(...metal.map(s=>s.box.y+s.box.height));
+      const inside=shapes.filter(({box:b})=>b.x>=x-.5&&b.y>=y-.5&&b.x+b.width<=right+.5&&b.y+b.height<=bottom+.5);
+      if(inside.length>=6&&right-x<wheelBox.width*.98&&bottom-y<wheelBox.height*.98){const group=document.createElementNS(NS,'g');inside.forEach(({node})=>group.append(node));wheel.append(group);rim={node:group,box:{x,y,width:right-x,height:bottom-y}};}
+     }
+    }
     const b=rim?.box||wheelBox,cx=b.x+b.width/2,cy=b.y+b.height/2,rx=b.width/2,ry=b.height/2;
     function movingPlane(x,y,sx,sy){const plane=document.createElementNS(NS,'g');plane.setAttribute('transform',`translate(${x} ${y}) scale(${sx} ${sy})`);const rotor=document.createElementNS(NS,'g');rotor.setAttribute('class','vecta-service-wheel-rotor');plane.append(rotor);const spin=document.createElementNS(NS,'animateTransform');for(const [key,value]of Object.entries({attributeName:'transform',type:'rotate',from:'0',to:'360',dur:'6s',repeatCount:'indefinite'}))spin.setAttribute(key,value);rotor.append(spin);return {plane,rotor};}
     if(rim){const {plane,rotor}=movingPlane(cx,cy,rx,ry),artwork=document.createElementNS(NS,'g');artwork.setAttribute('transform',`scale(${1/rx} ${1/ry}) translate(${-cx} ${-cy})`);while(rim.node.firstChild)artwork.append(rim.node.firstChild);rotor.append(artwork);rim.node.append(plane);}
