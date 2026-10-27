@@ -190,5 +190,6 @@ test('real fleet matcher renders automatic internal images on phone and desktop 
  for(const img of images){assert.equal(img.dataset.vehicleSource,asset);assert.equal(img.dataset.colour,'Green');assert.equal(img.dataset.fleetArtworkId,'internal');}
  await d.root.VectaHaynesJobTools.flushSharedArtwork();assert.equal(db.writes(),0);assert.equal(d.lookups(),0);
  vehicles[0].model='Qashqai';
- assert.equal(d.root.VectaHaynesJobTools.storedDrawing(j),null,'ambiguous model must not fall through to generic Qashqai');
+ assert.match(d.root.VectaHaynesJobTools.storedDrawing(j).imageUrl,/319004648\.svgz$/,'Chris permits a representative Qashqai when its generation is unspecified');
+ await d.root.VectaHaynesJobTools.flushSharedArtwork();assert.equal(db.writes(),0);assert.equal(d.lookups(),0);
 });
