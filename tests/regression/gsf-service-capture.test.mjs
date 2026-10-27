@@ -64,3 +64,13 @@ test('attribute capture records classifications without approving compatibility 
  const capture=readServiceAttributes(document);assert.equal(capture.status,'ATTRIBUTES_CAPTURED');assert.equal(capture.oilVerified,false);assert.deepEqual(capture.rows,[{attribute:'Specification',value:'API SN'},{attribute:'Viscosity',value:'0W-20'}]);
  assert.doesNotMatch(JSON.stringify(capture),/Account panel/);
 });
+
+test('applied oil follows the visible supplier link after vehicle selection instead of constructing its category',async()=>{
+ let current='',selected=false,clicked=false;const calls=[];
+ const clear={count:async()=>0},field={waitFor:async()=>{},count:async()=>1,fill:async()=>{}},search={click:async()=>{selected=true;}};
+ const oilLink={count:async()=>1,isVisible:async()=>true,click:async()=>{clicked=true;current='https://trade.gsfcarparts.com/parts/supplier-oil-route';calls.push('oil-link');}};
+ const page={goto:async url=>{current=url;calls.push(url);},url:()=>current,getByRole:(_,options)=>options.name==='Clear'?clear:search,getByPlaceholder:()=>field,getByText:(label)=>{assert.equal(label,'Engine Oil');return oilLink;},waitForTimeout:async()=>{},evaluate:async()=>({status:'CAPTURED_FOR_REVIEW',selectedRegistration:selected,displayedPrices:clicked?['54.63']:['4.94'],skuLabels:[],visibleText:clicked?'Engine Oil Information 4.3L':'Oil Filter Related Engine Oil'})};
+ const result=await captureServiceCategory(page,'NU67VSE','Engine Oils (Applied)',{attempts:2});
+ assert.equal(result.status,'CAPTURED_FOR_REVIEW');assert.deepEqual(result.displayedPrices,['54.63']);assert.equal(result.observedCategoryPath,'/parts/supplier-oil-route');
+ assert.match(calls[0],/Oil%2520Filter$/);assert.equal(calls[1],'oil-link');assert.equal(calls.length,2);assert.notEqual(result.oilVerified,true);
+});

@@ -47,7 +47,11 @@ async function captureAttributes(page,result){
 }
 function checkPage(page){const url=new URL(page.url());if(url.origin!==ORIGIN||/\/signin(?:[/?]|$)/.test(url.pathname))throw Error('LOGIN_REQUIRED');}
 export async function captureServiceCategory(page,registration,category,{attempts=80}={}){
- const target=ORIGIN+'/parts/'+encodeURIComponent(encodeURIComponent(category));
+ // Oil is an applied catalogue reached through the supplier's related-item link.
+ // A constructed category URL returned no parts for both verified PC vehicles.
+ const oilCategory=category==='Engine Oils (Applied)';
+ const seedCategory=oilCategory?'Oil Filter':category;
+ const target=ORIGIN+'/parts/'+encodeURIComponent(encodeURIComponent(seedCategory));
  await page.goto(target,{waitUntil:'domcontentloaded',timeout:15000});checkPage(page);
  const clear=page.getByRole('button',{name:'Clear',exact:true});
  if(await clear.count()>1)throw Error('AMBIGUOUS_VEHICLE');
@@ -63,7 +67,20 @@ export async function captureServiceCategory(page,registration,category,{attempt
  for(let i=0;i<attempts;i++){
   checkPage(page);result=await page.evaluate(readServiceCategory,{registration,category});
   if(new URL(page.url()).pathname!==new URL(target).pathname)throw Error('CATEGORY_REDIRECTED');
-  if(result.selectedRegistration&&(result.displayedPrices?.length||result.visibleText?.match(/no (?:parts|products|results)|not available|no items/i)))return captureAttributes(page,result);
+  if(result.selectedRegistration&&(result.displayedPrices?.length||result.visibleText?.match(/no (?:parts|products|results)|not available|no items/i))){
+   if(!oilCategory)return captureAttributes(page,result);
+   const link=page.getByText('Engine Oil',{exact:true});
+   if(await link.count()!==1||!await link.isVisible())return {...result,status:'NEEDS_REVIEW',reason:'OIL_LINK_NOT_UNIQUE'};
+   await link.click({timeout:10000});
+   for(let j=0;j<attempts;j++){
+    checkPage(page);const oilUrl=new URL(page.url());
+    if(!oilUrl.pathname.startsWith('/parts/'))throw Error('CATEGORY_REDIRECTED');
+    result=await page.evaluate(readServiceCategory,{registration,category});
+    if(oilUrl.pathname!==new URL(target).pathname&&result.selectedRegistration&&(result.displayedPrices?.length||/Engine Oil Information/i.test(result.visibleText||'')))return captureAttributes(page,{...result,observedCategoryPath:oilUrl.pathname});
+    await page.waitForTimeout(200);
+   }
+   return {...result,status:'NEEDS_REVIEW',reason:'OIL_LINK_NO_PRICED_ITEMS'};
+  }
   await page.waitForTimeout(200);
  }
  return {...result,status:'NEEDS_REVIEW',reason:result?.selectedRegistration?'NO_PRICED_ITEMS':'SELECTED_VEHICLE_NOT_CONFIRMED'};
