@@ -2882,6 +2882,40 @@ body.servicePreviewing .servicePreviewControls{position:relative!important;z-ind
 }
 </style>
 
+<style id="fleet-header-refinement">
+/* Fleet-only presentation: keep shared planner and mechanics layout intact. */
+.fleetHero{align-items:center;padding:18px;border:1px solid #334155;border-radius:14px;background:#101c2c;color:#f8fafc;gap:16px;margin-bottom:14px}
+.fleetHero>div:first-child{min-width:0;flex:1}
+.fleetHero h2{color:#f8fafc;font-size:26px;line-height:1.15;margin:0 0 6px}
+.fleetHero p{color:#b8c5d6;font-size:12px;line-height:1.5;max-width:340px}
+.fleetHero .fleetEyebrow{display:none}
+.fleetTopActions{justify-content:flex-end;gap:8px;max-width:520px}
+.fleetTopActions .btn,.fleetTopActions .primary{min-height:42px;padding:9px 12px;font-size:12px;border-radius:9px;margin:0;line-height:1.25}
+.fleetTopActions #fleetAddVehicle{order:-1;background:#2563eb;color:#fff;border:1px solid #3b82f6}
+.fleetTopActions #fleetReset{color:#cbd5e1;background:transparent;border:1px solid #475569;font-size:11px}
+.fleetAutoRefreshBar{padding:12px 14px;border:1px solid #334155;border-radius:12px;box-shadow:none;gap:10px}
+.fleetAutoRefreshBar b{font-size:13px;line-height:1.4}
+.fleetAutoRefreshBar>div>span{font-size:11px;color:#aebdd0;line-height:1.5}
+.fleetAutoRefreshStats{gap:6px;align-items:center}
+.fleetAutoRefreshStats span,.fleetAutoRefreshStats .btn{font-size:11px;line-height:1.35;padding:6px 9px;min-height:0;margin:0;border-radius:7px}
+.monthlyPoolReport{margin-bottom:12px!important;border-radius:12px!important}
+.monthlyPoolReport>summary{padding:12px 14px!important;font-size:13px!important;line-height:1.45}
+.monthlyPoolReport>summary>span{font-size:12px!important;margin-top:3px}
+@media(max-width:760px){
+.fleetHero{flex-direction:column;align-items:stretch;padding:14px;gap:12px}
+.fleetHero h2{font-size:23px}
+.fleetHero p{max-width:none;font-size:12px}
+.fleetTopActions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));max-width:none;width:100%;gap:7px}
+.fleetTopActions .btn,.fleetTopActions .primary{width:100%;min-width:0;white-space:normal;font-size:11px;padding:9px 7px}
+.fleetTopActions #fleetAddVehicle{grid-column:1/-1;font-size:13px}
+.fleetAutoRefreshBar{gap:9px;margin-bottom:12px}
+.fleetAutoRefreshStats{width:100%;justify-content:flex-start}
+.fleetKpis{gap:7px}
+.fleetKpi{padding:9px 8px;gap:6px;min-height:49px}
+.fleetKpi small{font-size:9px}
+.fleetKpi strong{font-size:22px}
+}
+</style>
 </head>
 <body class="vectaStartupLoading">
 <!-- VECTA v200: unfinished jobs stay allocated; no carried-over column -->
