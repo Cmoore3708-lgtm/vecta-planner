@@ -78,5 +78,8 @@ test('opening Website Bookings refreshes the inbox from cloud before relying on 
   const nav = namedFunctionSource('renderNav');
   assert.match(refresh, /vectaFetchAllRemoteRows\('website_booking_requests',12000\)/);
   assert.match(refresh, /app\.websiteRequests=rows\.map\(fromRemote\)/);
-  assert.match(nav, /view==='websiteRequests'\)refreshWebsiteRequestsFromCloud\(\)/);
+  assert.match(nav, /vectaNavigateTo\(b.dataset.view\)/);
+  const navigate=namedFunctionSource('vectaNavigateTo');
+  assert.match(navigate, /view==='websiteRequests'\)refreshWebsiteRequestsFromCloud\(\)/);
+  assert.match(navigate, /if\(ok&&view==='websiteRequests'\)render\(\)/);
 });
