@@ -7,7 +7,7 @@ const booking=fs.readFileSync('website/booking/index.html','utf8');
 const helper=fs.readFileSync('public/js/vecta-tyre-positions.js','utf8');
 function setup(){
  const {document}=parseHTML('<html><body><main></main></body></html>');
- const form={job_types:['Tyres'],tyre_size:'205/55R16',tyre_quantity:1,tyre_choice:'Budget',tyre_brand:'FALKEN',nevos_vehicle:'no'};
+ const form={job_types:['Tyres'],tyre_size:'205/55R16',tyre_quantity:1,tyre_prices_checked:true,tyre_choice:'Budget',tyre_brand:'FALKEN',nevos_vehicle:'no'};
  const calls=[],root={document,DOMParser,state:{form},haynesState:{vehicle:null},renderActions(){},esc:String,Intl,Date};root.window=root;
  const context=vm.createContext(root);
  vm.runInContext(fs.readFileSync('public/js/vecta-tyre-booking.js','utf8'),context);
@@ -85,12 +85,13 @@ test('late artwork readiness triggers targets even when another image mount retu
  const img=document.querySelector('[data-tyre-car]');img.src='data:image/svg+xml;charset=utf-8,'+encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="20 45 265 155"/>');img.dataset.vehicleReady='1';
  changed();assert.equal(document.querySelectorAll('.tp-wheel').length,4);assert.equal(disconnected,true);
 });
-test('brand can be selected before wheels, revealing the car prompt and retaining the brand at zero quantity',()=>{
- const {context,document,form,calls}=setup();form.tyre_brand='';
+test('Check Live Prices reveals the car before brand selection, and selection stays independent of quantity',()=>{
+ const {context,document,form,calls}=setup();form.tyre_brand='';form.tyre_prices_checked=false;
  const option={category:'budget',available:true,brand:'FALKEN',model:'TEST',unitPence:8500,totalPence:8500};
  vm.runInContext('tyreGuideState='+JSON.stringify({status:'matched',result:{size:form.tyre_size,quantity:1,checkedAt:new Date().toISOString(),options:[{...option,choices:[option]}]}})+';refreshTyrePanel()',context);
  assert.equal(document.getElementById('tyrePositions').hidden,true);assert.equal(document.querySelectorAll('[data-tyre-position]').length,0);
  document.querySelector('.tyre-option[data-tyre-choice="Budget"]').click();assert.equal(document.getElementById('tyrePositions').hidden,true,'range selection alone must not reveal the car');
+ context.bindTyreSearch();document.querySelector('[data-tyre-check]').click();assert.equal(document.getElementById('tyrePositions').hidden,false,'checking a valid size reveals the car before a brand is selected');
  document.querySelector('[data-tyre-brand="FALKEN"]').click();
  assert.equal(form.tyre_quantity,0);assert.equal(form.tyre_brand,'FALKEN');
  assert.equal(document.querySelector('[data-tyre-brand="FALKEN"]').getAttribute('aria-pressed'),'true');
@@ -99,7 +100,7 @@ test('brand can be selected before wheels, revealing the car prompt and retainin
  document.querySelector('[data-tyre-position="Front passenger"]').click();assert.equal(form.tyre_quantity,1);assert.match(document.querySelector('.tyre-guide-card.selected .tyre-guide-total').textContent,/1 tyre: £85/);
  document.querySelector('[data-tyre-position="Front passenger"]').click();assert.equal(form.tyre_quantity,0);assert.deepEqual(calls.at(-1),['205/55R16',1]);
  assert.equal(document.querySelector('[data-tyre-brand="FALKEN"]').getAttribute('aria-pressed'),'true');assert.equal(document.getElementById('tyrePositions').hidden,false);
- document.querySelector('.tyre-option[data-tyre-choice="Premium"]').click();assert.equal(form.tyre_brand,'');assert.equal(document.getElementById('tyrePositions').hidden,true);
+ document.querySelector('.tyre-option[data-tyre-choice="Premium"]').click();assert.equal(form.tyre_brand,'');assert.equal(document.getElementById('tyrePositions').hidden,false);
  assert.equal(context.selectedTyreGuide(),null,'a new range must not silently choose its first brand');
 });
 test('commercial or unavailable tyre prices retain an explicit brand-confirmation route',()=>{
@@ -108,4 +109,33 @@ test('commercial or unavailable tyre prices retain an explicit brand-confirmatio
  const confirm=document.querySelector('[data-tyre-choice="Budget"][data-tyre-brand="Brand to be confirmed"]');assert.ok(confirm);confirm.click();
  assert.equal(form.tyre_brand,'Brand to be confirmed');assert.equal(document.getElementById('tyrePositions').hidden,false);
  document.querySelector('[data-tyre-position="Rear driver"]').click();assert.equal(form.tyre_quantity,1);assert.equal(context.selectedTyreGuide(),null);
+});
+test('selecting wheels preserves the car element and groups front controls before rear controls',()=>{
+ const {context,document,form}=setup();
+ document.querySelector('main').innerHTML=context.tyreOptionsHtml();
+ const selector=document.getElementById('tyrePositions');assert.deepEqual([...selector.querySelectorAll('.tp-controls button')].map(e=>e.dataset.tyrePosition),['Front passenger','Front driver','Rear passenger','Rear driver']);
+ assert.equal(selector.querySelectorAll('.tp-axle-group').length,2);
+ context.bindTyreCards();selector.querySelector('[data-tyre-position="Front passenger"]').click();
+ assert.equal(document.getElementById('tyrePositions'),selector,'selection must not replace or resize the car container');
+ assert.equal(selector.querySelector('.tp-dot').textContent,'✓');assert.equal(form.tyre_quantity,1);
+});
+test('last-checked prices remain visible after a refresh failure but never become a fresh booking quote',()=>{
+ const {context,document,form}=setup();form.tyre_positions=['Front passenger'];form.tyre_quantity=1;
+ const option={category:'budget',available:true,brand:'FALKEN',model:'TEST',unitPence:8500,totalPence:8500},checkedAt=new Date(Date.now()-300001).toISOString();
+ form.tyre_guide={...option,size:form.tyre_size,quantity:1,checkedAt};
+ vm.runInContext('tyreGuideState='+JSON.stringify({status:'stale',result:{size:form.tyre_size,quantity:1,checkedAt,options:[{...option,choices:[option]}]}})+';refreshTyrePanel()',context);
+ assert.match(document.querySelector('.tyre-guide-card.selected .tyre-guide-total').textContent,/£85/);
+ assert.match(document.getElementById('tyreGuideStatus').textContent,/Last checked prices/);
+ assert.equal(context.selectedTyreGuide(),null);assert.equal(context.savedTyreGuide(),null);assert.doesNotMatch(context.tyreBookingDescription(),/£85/);
+});
+test('tyres-only notes are optional with the requested placeholder; mixed repair work retains its required description',()=>{
+ const {context,root,document,form}=setup();context.state.step=2;form.work_required='';
+ Object.assign(root,{recommendationsHtml:()=>'',workTypeCardsHtml:()=>'',serviceOptionsHtml:()=>'',isNissanVehicle:()=>false});
+ for(const name of ['workDescriptionRequired','stepHtml']){const start=booking.indexOf('function '+name+'('),end=booking.indexOf('\nfunction ',start+1);vm.runInContext(booking.slice(start,end),context);}
+ vm.runInContext(booking.match(/function valid\(\)\{.*\}/)[0],context);
+ form.tyre_positions=['Front passenger'];form.tyre_quantity=1;form.tyre_brand='';
+ document.querySelector('main').innerHTML=context.stepHtml();
+ assert.equal(document.querySelector('[data-field="work_required"]').getAttribute('placeholder'),'If there is a specific tyre you would like, let us know here');
+ assert.doesNotMatch(document.querySelector('main').textContent,/Describe what work you would like us to do/);assert.equal(context.workDescriptionRequired(),false);assert.equal(Boolean(context.valid()),true);
+ form.job_types=['Tyres','Other'];document.querySelector('main').innerHTML=context.stepHtml();assert.match(document.querySelector('main').textContent,/Describe what work you would like us to do/);assert.equal(context.workDescriptionRequired(),true);assert.equal(Boolean(context.valid()),false);
 });
