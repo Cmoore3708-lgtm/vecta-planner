@@ -114,9 +114,11 @@ function illuminateServiceCarHeadlights(){
    if(!lamps.length){img.dataset.serviceAnimationStatus='no-headlight-layer';return;}
    function element(tag,attrs){const n=document.createElementNS(NS,tag);for(const [k,v]of Object.entries(attrs))n.setAttribute(k,v);return n;}
    const defs=element('defs',{}),gradient=element('linearGradient',{id:'service-headlight-beam',x1:facesLeft?'100%':'0%',x2:facesLeft?'0%':'100%',y1:'0%',y2:'0%'});
-   gradient.append(element('stop',{offset:'0%','stop-color':'#fffde1','stop-opacity':'.85'}),element('stop',{offset:'100%','stop-color':'#e8f4ff','stop-opacity':'0'}));
-   defs.append(gradient);svg.append(defs);
-   const beams=element('g',{'class':'service-headlight-beams','aria-hidden':'true'}),reach=bounds.width*.2,direction=facesLeft?-1:1;
+   gradient.append(element('stop',{offset:'0%','stop-color':'#fffde1','stop-opacity':'.72'}),element('stop',{offset:'45%','stop-color':'#f4f7e9','stop-opacity':'.32'}),element('stop',{offset:'100%','stop-color':'#e8f4ff','stop-opacity':'0'}));
+   const softness=element('filter',{id:'service-headlight-softness',x:'-50%',y:'-100%',width:'200%',height:'300%','color-interpolation-filters':'sRGB'});
+   softness.append(element('feGaussianBlur',{stdDeviation:bounds.width*.012}));
+   defs.append(gradient,softness);svg.append(defs);
+   const beams=element('g',{'class':'service-headlight-beams','aria-hidden':'true',filter:'url(#service-headlight-softness)'}),reach=bounds.width*.2,direction=facesLeft?-1:1;
    for(const {node,centre:{x,y}}of lamps){
     node.setAttribute('fill','#ffffff');node.classList.add('service-headlight-on');
     beams.append(element('path',{d:`M${x} ${y-1} L${x+direction*reach} ${y-reach*.15} Q${x+direction*reach*1.1} ${y+reach*.13} ${x+direction*reach} ${y+reach*.3} L${x} ${y+2} Z`,fill:'url(#service-headlight-beam)'}));
