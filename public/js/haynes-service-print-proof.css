@@ -166,4 +166,7 @@
 .servicePrint.ssHaynesCompact .ssRoad{min-height:42px!important}
 .servicePrint.ssHaynesCompact .ssRoadMain,.servicePrint.ssHaynesCompact .ssRoadChecks{padding:3px!important}
 .servicePrint.ssHaynesCompact .ssRoadChecks>div{margin-top:4px!important}
-.servicePrint.ssHaynesCompact .ssFooter{position:static!important;break-inside:avoid;margin-top:2px!important}
+.servicePrint.ssHaynesCompact .ssFooter{position:fixed!important;left:0!important;right:0!important;bottom:0!important;break-inside:avoid;margin:0!important}
+.servicePrint.ssHaynesCompact{padding-bottom:10mm!important;box-sizing:border-box!important}
+.servicePrint .ssDueDateControl .ssDueDateInput{display:none!important}
+.servicePrint .ssDueDateDisplay{display:block!important;font:900 10px/1.6 Arial,Helvetica,sans-serif!important}

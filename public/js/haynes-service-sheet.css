@@ -130,7 +130,8 @@
  .servicePrint.ssHaynesCompact .ssRoad{min-height:42px!important}
  .servicePrint.ssHaynesCompact .ssRoadMain,.servicePrint.ssHaynesCompact .ssRoadChecks{padding:3px!important}
  .servicePrint.ssHaynesCompact .ssRoadChecks>div{margin-top:4px!important}
- .servicePrint.ssHaynesCompact .ssFooter{position:static!important;break-inside:avoid;margin-top:2px!important}
+ .servicePrint.ssHaynesCompact .ssFooter{position:fixed!important;left:0!important;right:0!important;bottom:0!important;break-inside:avoid;margin:0!important}
+ .servicePrint.ssHaynesCompact{padding-bottom:10mm!important;box-sizing:border-box!important}
 }
 @media screen and (max-width:650px){.servicePrint.ssHaynesCompact .ssHaynesLowerGrid{grid-template-columns:1fr}.servicePrint.ssHaynesCompact .ssHaynesLowerGrid .ssRightStack{grid-template-columns:1fr 1fr;grid-template-rows:auto}}
 
