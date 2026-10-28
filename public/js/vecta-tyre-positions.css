@@ -35,3 +35,5 @@
 
 .tp-rear .tp-brand{width:61px;height:21px}
 @media(max-width:760px){.tp-rear .tp-brand{width:47px;height:17px}}
+.tyre-position-picker .tyre-guide-status{min-height:24px;line-height:24px}
+.tyre-position-picker .tyre-guide-card{border-width:2px}
