@@ -1,5 +1,5 @@
-import {mkdirSync,existsSync} from 'node:fs';
-import {resolve} from 'node:path';
+import {mkdirSync,existsSync,readFileSync} from 'node:fs';
+import {resolve,dirname,relative} from 'node:path';
 import {spawnSync} from 'node:child_process';
 
 const destination=resolve(process.argv[2]||'Vecta-GSF-PC-Price-Check.zip');
@@ -8,7 +8,18 @@ const names=['README.md','CHECK-GSF-PRICES.cmd','COMPARE-TEN-CARS.cmd','SIGN-IN-
   'setup.cmd','readiness.mjs','probe.mjs','worker.mjs','supplier.mjs','product-dialog.mjs','self-check.mjs',
   'comparison.mjs','compare.mjs','comparison-input.example.json','gsf-config.example.json','pricing-policy.example.json',
   'recipe.template.json','package.json','package-lock.json'];
-const files=names.map(name=>'workers/gsf/'+name).concat('lib/service-pricing.js');
+// Follow runtime relative imports so a clean package never misses new helpers.
+const included=new Set(names.map(name=>'workers/gsf/'+name).concat('lib/service-pricing.js'));
+for(const file of included){
+ if(!/\.(mjs|js)$/.test(file))continue;
+ const source=readFileSync(file,'utf8');
+ for(const match of source.matchAll(/(?:\bfrom\s*|\bimport\s*\(?\s*)['"](\.[^'"]+)['"]/g)){
+  const dependency=relative(process.cwd(),resolve(dirname(file),match[1])).replaceAll('\\','/');
+  if(dependency.startsWith('../')||dependency.endsWith('.local.json'))throw Error('Unsafe package dependency: '+dependency);
+  included.add(dependency);
+ }
+}
+const files=[...included];
 for(const file of files)if(!existsSync(file))throw Error('Missing package file: '+file);
 const wrapper='@echo off\r\ncd /d "%~dp0"\r\ncall "workers\\gsf\\setup.cmd"\r\n';
 const comparison='@echo off\r\ncd /d "%~dp0workers\\gsf"\r\nnode compare.mjs\r\npause\r\n';

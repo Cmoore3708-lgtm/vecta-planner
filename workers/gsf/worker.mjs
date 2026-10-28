@@ -1,4 +1,5 @@
 import {chromium} from 'playwright';
+import {createDiagnosticBridge} from './diagnostic-bridge.mjs';
 import {readFileSync,writeFileSync} from 'node:fs';
 import {captureServices,captureRegistrations} from './service-capture.mjs';
 import path from 'node:path';
@@ -26,7 +27,9 @@ const profile=process.env.GSF_PROFILE_DIR||resolve(process.env.LOCALAPPDATA||'.'
 let context;
 try{context=await chromium.launchPersistentContext(profile,{channel:'msedge',headless:false,acceptDownloads:false,chromiumSandbox:true});}
 catch(error){if(!serviceCheck)throw error;console.error('Cannot open the dedicated GSF browser. If the shared GSF worker is running, stop only that worker and try again. Leave tyre and Haynes workers running. No settings were changed.');process.exit(1);}
-let repair=null;
+let repair=null,diagnosticHeartbeat=null;
+let diagnostics=null;
+if(!setup&&!serviceCheck&&serviceEnabled){try{diagnostics=createDiagnosticBridge({context,origin:site,token,ready:config?.calibrationApproved===true&&config?.lookupMode==='vehicle-catalogue',outboxPath:path.join(here,'diagnostic-receipt.local.json'),log:console.log});}catch{console.log('Saved batch-test receipt needs review; customer lookups can continue.');}}
 
 let stopped=false,lastRepairState='';context.on('close',()=>stopped=true);
 process.on('SIGINT',()=>{stopped=true;void context.close();});
@@ -54,8 +57,11 @@ try {
     try {await terminal.question('Once signed in, press Enter to close and save the dedicated browser session: ');}finally{terminal.close();}
   } else {
     console.log('VECTA shared GSF worker started. Service and repair pricing use one supplier browser, with separate pricing policies. No basket or ordering actions.');
+    diagnosticHeartbeat=setInterval(()=>{void diagnostics?.heartbeat();},20000);diagnosticHeartbeat.unref?.();
     while(!stopped) {
-      if(repair){try{const state=await repair.tick();if(state!==lastRepairState){if(state==='IDLE')console.log('Repair quote connection ready. Waiting for Workshop Pro requests.');else if(state==='MATCHED')console.log('Fresh repair quote delivered to Workshop Pro.');else if(state==='DISABLED')console.log('Repair quoting is disabled on Workshop Pro.');lastRepairState=state;}}catch{lastRepairState='';console.log('Repair quote connection unavailable; retrying.');}}
+      await diagnostics?.heartbeat();
+      let repairIdle=!repair;
+      if(repair){try{const state=await repair.tick();repairIdle=['IDLE','DISABLED'].includes(state);if(state!==lastRepairState){if(state==='IDLE')console.log('Repair quote connection ready. Waiting for Workshop Pro requests.');else if(state==='MATCHED')console.log('Fresh repair quote delivered to Workshop Pro.');else if(state==='DISABLED')console.log('Repair quoting is disabled on Workshop Pro.');lastRepairState=state;}}catch{lastRepairState='';console.log('Repair quote connection unavailable; retrying.');}}
       if(!serviceEnabled){await sleep(2000);continue;}
       let task;
       try {task=await rpc({action:'pull'});}catch(error){if(error.message==='PAIRING_REQUIRED')throw error;console.log('Workshop connection unavailable; retrying.');await sleep(5000);continue;}
@@ -76,8 +82,10 @@ try {
           catch {if(attempt===1)console.log('Result delivery failed; website will retain its guide price.');else await sleep(1000);}
         }
       }
+      // Customer work wins each loop. Diagnostics claim only one bounded case.
+      if(task.status==='IDLE'&&repairIdle&&diagnostics){try{await diagnostics.tick();}catch{console.log('Batch-test delivery unavailable; saved progress will retry.');}}
       await sleep(2000);
     }
   }
-} finally {await repair?.close();await context.close().catch(()=>{});}
+} finally {clearInterval(diagnosticHeartbeat);await repair?.close();await context.close().catch(()=>{});}
 
