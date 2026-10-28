@@ -76,51 +76,48 @@ or a database performance/security audit.
    would increase risk. Extract bounded subsystems only when a demonstrated
    defect or maintenance burden justifies it and behaviour can be verified.
 
-## Implemented in this amendment
+## Implementation after Chris approved permanent installation
 
-`workers/control/workshop-workers.ps1` prepares one **Start VECTA Workers**
-desktop shortcut using the existing installations. Setup selects the actual
-working launchers rather than guessing among Downloads/Documents copies. It
-stores only paths in the current Windows account, preserves pairing and
-profiles, checks dependencies, skips detected runners, and reports failures per
-worker. It does not add another supplier process, npm install, automatic update,
-sign-in startup entry, production queue flag or website deployment.
+Chris subsequently asked for one permanent installation, the same desktop button
+after amendments, and an end to running workers from downloaded folders. The
+amendment now implements that system rather than the earlier shortcut-only
+proposal: a stable bootstrap, a small Windows connection manager, separate
+versioned releases and persistent settings, approved-channel updates, staged
+pinned dependencies/import checks, atomic activation, cooperative stop and a
+previous-version restore that blocks automatic reapply of a rejected version.
 
-This is prepared source only. Windows PowerShell/COM, the actual installation
-selection and supplier sessions cannot be verified in this Linux session.
-Follow the Windows acceptance checklist in `workers/control/README.md` before
-calling the shortcut ready. Existing startup scripts and working installations
-remain the rollback. The new controller does not supervise crashes or establish
-end-to-end supplier health.
+Existing supplier profiles and Windows-encrypted pairing remain in their current
+locations. The initial migration imports the working GSF/repair configuration;
+normal startup and later worker releases no longer depend on Downloads. A
+verified tyre session no longer requires Enter on every managed start. Worker
+status distinguishes relay reachability from supplier/login readiness. Website
+amendments do not publish worker updates automatically.
 
-## Ordered work remaining
+The implementation and release/Windows checks are in this PR. See
+`workers/control/README.md` for the operational contract and acceptance checks.
+The first live approved channel, workshop-PC migration and actual supplier
+acceptance are not yet completed. Native automated Windows checks use synthetic
+sessions and cannot replace that acceptance.
 
-1. Complete one assisted workshop-PC acceptance session for the desktop shortcut.
-   An operator should locate the existing working installations; Chris should
-   not have to diagnose paths or repeat supplier setup. No PC access is available
-   in this session, so the shortcut cannot be installed remotely here.
-2. Record installed versions and actual successful lookups for all three workers.
-   Verify cold startup, duplicate clicks, lost network, sign-in expiry and
-   sleep/resume. Identify the real installed deficiencies before issuing updates.
-3. Consolidate to one stable installation and one documented, compatible release
-   package, preserving profiles/pairing. Validate migration and rollback before
-   moving anything. Current launcher deliberately does not perform migration.
-4. Add trustworthy unified worker health and bounded crash recovery. Show one
-   actionable message for sign-in or pairing rather than prescribing new
-   downloads. Keep supplier fallback prices/availability states honest when
-   live evidence is unavailable; verify booking behaviour under each failure.
-5. Replace ad hoc file updates with staged, versioned releases. Before enabling
-   any unattended updater, prove integrity checking, dependency compatibility,
-   idle-time switching, no in-flight quote interruption and rollback. Never
-   silently update from the moving tip of Main.
-6. Consider hosted workers or direct supplier APIs only after supplier support,
-   authentication, cost and reliability are verified. Local signed-in browser
-   automation cannot promise 24/7 operation while the PC sleeps. A hosting move
-   is a separate architecture decision, not a necessary first step to get one
-   desktop button.
+## Remaining operational verification
+
+1. Pass native Windows CI and complete one assisted workshop-PC migration using
+   the exact final setup package. Verify the existing supplier accounts, settings,
+   pricing policies and read-only lookups; do not create customer test records.
+2. Prove safe stop, network loss, sign-in expiry, sleep/restart, duplicate desktop
+   clicks, an approved update and restore with the same desktop button. Record
+   installed versions and actual end-to-end results.
+3. Configure required reviewers on `worker-production`, record PC acceptance,
+   then publish the first separately approved worker channel. Source prepared,
+   CI passed, channel published, PC installed and real lookup verified remain
+   distinct evidence states.
+4. Maintain one release record for cloud/database/mechanics/worker compatibility.
+   Address demonstrated core-application defects in bounded amendments rather
+   than a wholesale rewrite. Supplier APIs or hosted workers remain a separate
+   evaluated architecture decision; local browser workers cannot promise 24/7
+   availability while the PC sleeps.
 
 No production application, supplier account, database record, reminder schedule
-or customer message was changed by this review. The sole immediate operational
-change is pausing the independent cleanup automation. No promise of all-time
-availability is made. Native PC/iPhone/iPad, live supplier and financial save
-flows remain outside the checks performed here.
+or customer message was changed by this review. The independent cleanup task
+remains paused to prevent overlap. No worker updater has been installed on the
+workshop PC, and no promise of all-time supplier availability is made.

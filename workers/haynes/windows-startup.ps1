@@ -16,7 +16,7 @@ New-Item -ItemType Directory -Force -Path $workerDir, $libDir | Out-Null
 Set-Content -Path (Join-Path $installRoot 'package.json') -Value '{"private":true,"type":"module"}'
 if ([IO.Path]::GetFullPath($PSScriptRoot) -ne [IO.Path]::GetFullPath($workerDir)) {
   Get-ChildItem $PSScriptRoot -File | Where-Object { $_.Extension -in '.mjs','.cmd','.ps1','.json' } | Copy-Item -Destination $workerDir -Force
-  foreach ($name in @('haynes-vehicle.js','haynes-service.js')) {
+  foreach ($name in @('haynes-vehicle.js','haynes-service.js','worker-runtime.js')) {
     Copy-Item (Join-Path $sourceRoot ('lib\' + $name)) $libDir -Force
   }
 }

@@ -20,7 +20,7 @@ try {
   $backupRoot = Join-Path $env:LOCALAPPDATA ('VectaHaynes\RepairBackups\' + (Get-Date -Format 'yyyyMMdd-HHmmss-fff'))
   $manifest = Get-Content -LiteralPath (Join-Path $PSScriptRoot 'manifest.json') -Raw | ConvertFrom-Json
   foreach ($entry in $manifest) {
-    if ($entry.path -notmatch '^(workers/haynes/[^/]+\.(mjs|cmd|ps1|json)|lib/haynes-(vehicle|service)\.js)$') { throw 'Invalid repair file list. Nothing changed.' }
+    if ($entry.path -notmatch '^(workers/haynes/[^/]+\.(mjs|cmd|ps1|json)|lib/(haynes-(vehicle|service)|worker-runtime)\.js)$') { throw 'Invalid repair file list. Nothing changed.' }
     $source = Join-Path $payload $entry.path
     if (!(Test-Path -LiteralPath $source) -or (Get-FileHash -LiteralPath $source -Algorithm SHA256).Hash -ne $entry.sha256) { throw 'The repair ZIP is incomplete or damaged. Download and Extract All again.' }
   }

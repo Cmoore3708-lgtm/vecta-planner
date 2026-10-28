@@ -5,7 +5,7 @@ import {fileURLToPath} from 'node:url';
 const root=resolve(dirname(fileURLToPath(import.meta.url)),'..');
 const out=resolve(process.argv[2]||'haynes-repair-package');
 const files=(await readdir(resolve(root,'workers/haynes'))).filter(n=>/\.(?:mjs|cmd|ps1|json)$/.test(n)).map(n=>'workers/haynes/'+n);
-files.push('lib/haynes-vehicle.js','lib/haynes-service.js');
+files.push('lib/haynes-vehicle.js','lib/haynes-service.js','lib/worker-runtime.js');
 const included=new Set(files),manifest=[];
 // Fail packaging if any local module import is missing, including re-exports.
 for(const file of files){
