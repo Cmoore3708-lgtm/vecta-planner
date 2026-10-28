@@ -13,12 +13,15 @@
   const cleanOption=(o,category)=>{if(!o||o.category!==category||o.available!==true||typeof o.brand!=='string'||!o.brand.trim()||typeof o.model!=='string'||!Number.isSafeInteger(o.unitPence)||o.unitPence<=0||o.unitPence>500000||o.totalPence!==o.unitPence*quantity)throw Error('Invalid guide');return{category,available:true,brand:o.brand.slice(0,70),model:o.model.slice(0,180),unitPence:o.unitPence,totalPence:o.totalPence};};
   const options=categories.map(category=>{
    const matches=data.options.filter(o=>o.category===category);if(matches.length!==1)throw Error('Invalid categories');
-   const o=matches[0];if(o.available!==true)return{category,available:false,choices:[]};
+   const o=matches[0],stockLevels=o.stockLevels===undefined?[]:o.stockLevels;
+   if(!Array.isArray(stockLevels)||stockLevels.length>60||stockLevels.some(s=>typeof s?.brand!=='string'||!s.brand.trim()||s.brand.length>70||!Number.isInteger(s.availableQuantity)||s.availableQuantity<0||s.availableQuantity>4)||new Set(stockLevels.map(s=>s.brand.toUpperCase())).size!==stockLevels.length)throw Error('Invalid stock');
+   const stock=stockLevels.map(s=>({brand:s.brand,availableQuantity:s.availableQuantity}));
+   if(o.available!==true)return{category,available:false,choices:[],stockLevels:stock};
    const first=cleanOption(o,category),raw=o.choices===undefined?[o]:o.choices;
    if(!Array.isArray(raw)||raw.length<1||raw.length>3)throw Error('Invalid choices');
    const choices=raw.map(choice=>cleanOption(choice,category));
    if(new Set(choices.map(choice=>choice.brand.toUpperCase())).size!==choices.length||JSON.stringify(first)!==JSON.stringify(choices[0]))throw Error('Invalid choices');
-   return{...first,choices};
+   return{...first,choices,stockLevels:stock};
   });
   return{size,quantity,checkedAt,guideOnly:true,options};
  }

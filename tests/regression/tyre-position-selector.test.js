@@ -113,11 +113,11 @@ test('commercial or unavailable tyre prices retain an explicit brand-confirmatio
 test('selecting wheels preserves the car element and groups front controls before rear controls',()=>{
  const {context,document,form}=setup();
  document.querySelector('main').innerHTML=context.tyreOptionsHtml();
- const selector=document.getElementById('tyrePositions');assert.deepEqual([...selector.querySelectorAll('.tp-controls button')].map(e=>e.dataset.tyrePosition),['Front passenger','Front driver','Rear passenger','Rear driver']);
+ const selector=document.getElementById('tyrePositions');assert.deepEqual([...selector.querySelectorAll('.tp-controls button')].map(e=>e.dataset.tyrePosition),['Front driver','Front passenger','Rear driver','Rear passenger']);
  assert.equal(selector.querySelectorAll('.tp-axle-group').length,2);
  context.bindTyreCards();selector.querySelector('[data-tyre-position="Front passenger"]').click();
  assert.equal(document.getElementById('tyrePositions'),selector,'selection must not replace or resize the car container');
- assert.equal(selector.querySelector('.tp-dot').textContent,'✓');assert.equal(form.tyre_quantity,1);
+ assert.equal(selector.querySelector('[data-tyre-position="Front passenger"] .tp-dot').textContent,'✓');assert.equal(form.tyre_quantity,1);
 });
 test('last-checked prices remain visible after a refresh failure but never become a fresh booking quote',()=>{
  const {context,document,form}=setup();form.tyre_positions=['Front passenger'];form.tyre_quantity=1;
@@ -138,4 +138,15 @@ test('tyres-only notes are optional with the requested placeholder; mixed repair
  assert.equal(document.querySelector('[data-field="work_required"]').getAttribute('placeholder'),'If there is a specific tyre you would like, let us know here');
  assert.doesNotMatch(document.querySelector('main').textContent,/Describe what work you would like us to do/);assert.equal(context.workDescriptionRequired(),false);assert.equal(Boolean(context.valid()),true);
  form.job_types=['Tyres','Other'];document.querySelector('main').innerHTML=context.stepHtml();assert.match(document.querySelector('main').textContent,/Describe what work you would like us to do/);assert.equal(context.workDescriptionRequired(),true);assert.equal(Boolean(context.valid()),false);
+});
+test('requesting four when the selected brand has three shows the exact stock shortage and clears after reducing quantity',()=>{
+ const {context,document,form}=setup();form.tyre_brand='FALKEN';form.tyre_positions=['Front driver','Front passenger','Rear driver','Rear passenger'];form.tyre_quantity=4;
+ const stockLevels=[{brand:'FALKEN',availableQuantity:3}];
+ const result={size:form.tyre_size,quantity:4,checkedAt:new Date().toISOString(),options:[{category:'budget',available:false,choices:[],stockLevels}]};
+ vm.runInContext('tyreGuideState='+JSON.stringify({status:'matched',result})+';refreshTyrePanel()',context);
+ const card=document.querySelector('.tyre-guide-card.selected');assert.equal(card.querySelector('.tyre-stock-notice').textContent,'Unfortunately we only have 3 tyres in stock.');
+ assert.doesNotMatch(card.textContent,/Confirm brand with us|Price on request/);assert.equal(context.selectedTyreGuide(),null);assert.match(card.querySelector('.tyre-guide-total').textContent,/4 selected · 3 in stock/);
+ form.tyre_positions.pop();form.tyre_quantity=3;const offer={category:'budget',available:true,brand:'FALKEN',model:'TEST',unitPence:8500,totalPence:25500};result.quantity=3;result.options=[{...offer,choices:[offer],stockLevels}];
+ vm.runInContext('tyreGuideState='+JSON.stringify({status:'matched',result})+';refreshTyrePanel()',context);
+ assert.equal(document.querySelector('.tyre-stock-notice'),null);assert.match(document.querySelector('.tyre-guide-card.selected .tyre-guide-total').textContent,/3 tyres: £255/);
 });

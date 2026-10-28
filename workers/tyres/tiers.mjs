@@ -27,10 +27,15 @@ export function selectCatalogueGuides(catalogue,{size,quantity=1,settings,groups
   for(const brand of brands){const name=brand.trim().toUpperCase();if(membership.has(name))throw Error('Duplicate brand group');membership.set(name,category);}
  }
  const options=['budget','midrange','premium'].map(category=>{
-  const eligible=catalogue.filter(row=>{
+  const known=catalogue.filter(row=>{
    let rowKey;try{rowKey=parseSize(row.size).key;}catch{return false;}
-   return rowKey===key && membership.get(canonicalBrand(row))===category && !isSpecialTyre(row) && Number.isSafeInteger(row.unitPence) && row.unitPence>0 && Number.isFinite(row.defaultStockMinimum) && row.defaultStockMinimum>=quantity;
-  }).sort((a,b)=>a.unitPence-b.unitPence || canonicalBrand(a).localeCompare(canonicalBrand(b)) || a.model.localeCompare(b.model));
+   return rowKey===key && membership.get(canonicalBrand(row))===category && !isSpecialTyre(row) && Number.isSafeInteger(row.unitPence) && row.unitPence>0 && Number.isInteger(row.defaultStockMinimum) && row.defaultStockMinimum>=0;
+  });
+  // Publish only the confirmed online quantity per brand, capped at the four
+  // positions a customer can book. Never add Company/Centre stock or mix models.
+  const stock=new Map();for(const row of known){const brand=canonicalBrand(row);stock.set(brand,Math.max(stock.get(brand)||0,Math.min(4,row.defaultStockMinimum)));}
+  const stockLevels=[...stock].sort(([a],[b])=>a.localeCompare(b)).map(([brand,availableQuantity])=>({brand,availableQuantity}));
+  const eligible=known.filter(row=>row.defaultStockMinimum>=quantity).sort((a,b)=>a.unitPence-b.unitPence || canonicalBrand(a).localeCompare(canonicalBrand(b)) || a.model.localeCompare(b.model));
   const seen=new Set(),choices=[];
   for(const tyre of eligible){
    const brand=canonicalBrand(tyre);if(seen.has(brand))continue;
@@ -38,7 +43,7 @@ export function selectCatalogueGuides(catalogue,{size,quantity=1,settings,groups
    if(choices.length===3)break;
   }
   // Keep the cheapest fields for older website clients while offering more brands.
-  return choices.length?{...choices[0],choices}:{category,available:false,choices:[]};
+  return choices.length?{...choices[0],choices,stockLevels}:{category,available:false,choices:[],stockLevels};
  });
  return {size:key,quantity,checkedAt:new Date(now).toISOString(),guideOnly:true,options};
 }
