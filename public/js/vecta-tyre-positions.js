@@ -20,7 +20,7 @@
   const far=hidden?[hidden[0],hidden[1]+hidden[3]*.3,front[2]*.86,front[3]*.86]:[front[0]-direction*across,front[1]-front[3]*.36,front[2]*.86,front[3]*.86];
   return [front,rear,far,[rear[0]+far[0]-front[0],rear[1]+far[1]-front[1]+rear[3]*.5,rear[2]*.9,rear[3]*.9]];
  }
- function measureWheels(svg){
+ function measureWheels(svg,debug=()=>{}){
   const layer=svg.querySelector('[id="wheels"]');if(!layer)return null;
   const NS='http://www.w3.org/2000/svg',stage=root.document.createElement('div');
   stage.style.cssText='position:absolute;left:-10000px;top:0;width:600px;visibility:hidden;pointer-events:none';stage.append(svg);root.document.body.append(stage);
@@ -36,7 +36,7 @@
    for(const cluster of clusters){if(cluster.length<6)continue;const group=root.document.createElementNS(NS,'g');layer.append(group);cluster.forEach(s=>group.append(s.node));}
    const all=[...layer.querySelectorAll('g')].filter(n=>n.querySelectorAll('path,polygon,circle,ellipse').length>=6).map(node=>({node,box:box(node)})).filter(({box:b})=>b.width>2&&b.height>2&&b.width/b.height>.15&&b.width/b.height<1.8&&b.width<whole.width*.7).sort((a,b)=>b.box.width*b.box.height-a.box.width*a.box.height);
    const visible=[];for(const candidate of all){if(occluded(candidate.box)||visible.some(r=>r.node.contains(candidate.node)||candidate.node.contains(r.node)||Math.abs(r.box.x+r.box.width/2-candidate.box.x-candidate.box.width/2)<whole.width*.22))continue;visible.push(candidate);if(visible.length===2)break;}
-   if(visible.length!==2)return null;
+   debug({whole,visible:visible.length,all:all.map(c=>({box:c.box,occluded:occluded(c.box)}))});if(visible.length!==2)return null;
    function wheel(candidate){const outer=candidate.box,nested=[...candidate.node.querySelectorAll('g')].filter(n=>n.querySelectorAll('path,polygon,circle,ellipse').length>=6).map(box).filter(b=>b.width>2&&b.height>2&&b.width<outer.width*.98&&b.height<outer.height*.98).sort((a,b)=>b.width*b.height-a.width*a.height);let rim=nested[0];
     if(!rim){const metal=[...candidate.node.querySelectorAll('path,polygon,circle,ellipse')].filter(n=>{const fill=n.getAttribute('fill')||'';return /^#[a-f0-9]{6}$/i.test(fill)&&Math.min(...[1,3,5].map(i=>parseInt(fill.slice(i,i+2),16)))>=90;}).map(box);if(metal.length>=6){const x=Math.min(...metal.map(b=>b.x)),y=Math.min(...metal.map(b=>b.y));rim={x,y,width:Math.max(...metal.map(b=>b.x+b.width))-x,height:Math.max(...metal.map(b=>b.y+b.height))-y};}}
     return rim?[rim.x+rim.width/2,rim.y+rim.height/2,rim.width*.7,rim.height*.65]:[outer.x+outer.width/2,outer.y+outer.height/2,outer.width*.38,outer.height*.45];
@@ -67,12 +67,12 @@
    try{
     const svg=new root.DOMParser().parseFromString(decodeURIComponent(img.src.slice(img.src.indexOf(',')+1)),'image/svg+xml').documentElement;
     const vb=(svg.getAttribute('viewBox')||'').split(/[ ,]+/).map(Number);if(vb.length!==4||!vb.every(Number.isFinite)||vb[2]<=0||vb[3]<=0)return;
-    let profile=profiles[asset]||measured.get(asset);if(!profile){profile=measureWheels(svg);if(profile)measured.set(asset,profile);}if(!profile)return;
+    let profile=profiles[asset]||measured.get(asset);if(!profile){profile=measureWheels(svg,info=>host.dataset.geometryDebug=JSON.stringify(info));if(profile)measured.set(asset,profile);}if(!profile)return;
     const [x,y,w,h]=vb,scene=host.querySelector('.tp-scene');scene.style.aspectRatio=w+'/'+h;
     host.querySelector('.tp-wheels').innerHTML=profile.map(([cx,cy,rx,ry],i)=>`<button type="button" class="tp-wheel ${i>=2?'tp-far':''}" data-tyre-position="${positions[i]}" aria-label="${positions[i]} tyre" aria-pressed="${chosen.includes(positions[i])}" style="left:${(cx-x)/w*100}%;top:${(cy-y)/h*100}%;width:${rx*2/w*100}%;height:${ry*2/h*100}%"><span class="tp-ring">${i>=2?'<img class="tp-tyre" src="/assets/tyre-axle-still.webp" alt="">':''}<span class="tp-check" aria-hidden="true">✓</span></span>${brand?`<span class="tp-brand">${root.VectaTyreBooking.brandLogo(brand)}</span>`:''}</button>`).join('');
     const detail=host.querySelector('.tp-car-detail');detail.src=img.src;detail.style.maskImage=detail.style.webkitMaskImage=profile.slice(2).map(([cx,cy,rx,ry])=>`radial-gradient(ellipse ${(rx+7)/w*100}% ${(ry+7)/h*100}% at ${(cx-x)/w*100}% ${(cy-y)/h*100}%,#000 65%,transparent 100%)`).join(',');
     bind();
-   }catch{ /* Labelled position buttons are the safe geometry fallback. */ }
+   }catch(error){host.dataset.geometryError=error.message;}
   };
   if(img.dataset.vehicleReady==='1')ready();
   else if(root.VectaVehicleImage)root.VectaVehicleImage.mount().then(ready).catch(()=>{});
