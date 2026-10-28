@@ -100,14 +100,29 @@ function illuminateServiceCarHeadlights(){
   try{
    const doc=new DOMParser().parseFromString(decodeURIComponent(img.src.slice(img.src.indexOf(',')+1)),'image/svg+xml'),svg=doc.documentElement;
    if(doc.querySelector('parsererror')||svg.localName!=='svg')return;
-   // Haynes uses this pale lens colour for headlights and fog lamps across models.
-   // Leave red tail lamps, amber indicators, outlines and all wheel artwork intact.
-   const lamps=[...svg.querySelectorAll('[id="lights"] [fill]')].filter(node=>node.getAttribute('fill').toLowerCase()==='#f7f7d1');
+   // Measure the real headlamp lenses in the personalised drawing. A near-white
+   // fill alone is imperceptible at card size, so add visible light spilling forward.
+   host=document.createElement('div');host.style.cssText='position:absolute;left:-10000px;top:0;width:400px;visibility:hidden;pointer-events:none';host.append(svg);document.body.append(host);
+   const NS='http://www.w3.org/2000/svg',body=svg.querySelector('[id="transparant_colour"], [id="transparent_colour"]');
+   const bounds=body?.getBBox()||svg.getBBox(),front=svg.querySelector('[id="front_bumper"], [id="front-bumper"], [id="front"]')?.getBBox();
+   const facesLeft=front?.width>0?front.x+front.width/2<bounds.x+bounds.width/2:true;
+   const lamps=[...svg.querySelectorAll('[id="lights"] [fill]')].filter(node=>node.getAttribute('fill').toLowerCase()==='#f7f7d1').flatMap(node=>{
+    const b=node.getBBox(),matrix=svg.getCTM().inverse().multiply(node.getCTM()),p=svg.createSVGPoint();p.x=b.x+b.width/2;p.y=b.y+b.height/2;
+    const centre=p.matrixTransform(matrix);
+    return b.width>0&&b.height>0&&(facesLeft?centre.x<bounds.x+bounds.width*.55:centre.x>bounds.x+bounds.width*.45)?[{node,centre}]:[];
+   });
    if(!lamps.length){img.dataset.serviceAnimationStatus='no-headlight-layer';return;}
-   for(const lamp of lamps){
-    lamp.setAttribute('fill','#fffdeb');
-    lamp.classList.add('service-headlight-on');
+   function element(tag,attrs){const n=document.createElementNS(NS,tag);for(const [k,v]of Object.entries(attrs))n.setAttribute(k,v);return n;}
+   const defs=element('defs',{}),gradient=element('linearGradient',{id:'service-headlight-beam',x1:facesLeft?'100%':'0%',x2:facesLeft?'0%':'100%',y1:'0%',y2:'0%'});
+   gradient.append(element('stop',{offset:'0%','stop-color':'#fffde1','stop-opacity':'.85'}),element('stop',{offset:'100%','stop-color':'#e8f4ff','stop-opacity':'0'}));
+   defs.append(gradient);svg.append(defs);
+   const beams=element('g',{'class':'service-headlight-beams','aria-hidden':'true'}),reach=bounds.width*.2,direction=facesLeft?-1:1;
+   for(const {node,centre:{x,y}}of lamps){
+    node.setAttribute('fill','#ffffff');node.classList.add('service-headlight-on');
+    beams.append(element('path',{d:`M${x} ${y-1} L${x+direction*reach} ${y-reach*.15} Q${x+direction*reach*1.1} ${y+reach*.13} ${x+direction*reach} ${y+reach*.3} L${x} ${y+2} Z`,fill:'url(#service-headlight-beam)'}));
+    beams.append(element('ellipse',{cx:x,cy:y,rx:bounds.width*.018,ry:bounds.width*.012,fill:'#fffde1',opacity:'.8'}));
    }
+   svg.append(beams);
    if(img.isConnected){
     // Inline animation avoids mobile SVG-as-image playback restrictions.
     // Only personalised artwork from the allowlisted supplier can reach here.
@@ -665,10 +680,11 @@ input[type="checkbox"]:checked,input[type="radio"]:checked{--pulse-rgb:53,213,13
 .service-customer-car{display:block;width:100%;height:100%;object-fit:contain;filter:drop-shadow(0 8px 6px #0005)}
 .service-customer-car:not([data-vehicle-ready="1"]){visibility:hidden}
 .service-animated-artwork{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;filter:drop-shadow(0 8px 6px #0005)}
-.service-headlight-on{filter:drop-shadow(0 0 2px #fffdeb) drop-shadow(0 0 5px #fff4bd);animation:vecta-headlights-on .35s ease-out both}
-@keyframes vecta-headlights-on{from{filter:none}to{filter:drop-shadow(0 0 2px #fffdeb) drop-shadow(0 0 5px #fff4bd)}}
+.service-headlight-on{filter:drop-shadow(0 0 3px #fffdeb) drop-shadow(0 0 9px #fff4bd)}
+.service-headlight-beams{pointer-events:none;animation:vecta-headlights-on .3s ease-out both}
+@keyframes vecta-headlights-on{from{opacity:0}to{opacity:1}}
 @media(max-width:760px){.service-vehicle-stage{height:130px}}
-@media(prefers-reduced-motion:reduce){.service-headlight-on{animation:none}}
+@media(prefers-reduced-motion:reduce){.service-headlight-beams{animation:none}}
 </style>
 
 <script>
