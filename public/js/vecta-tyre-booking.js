@@ -24,14 +24,14 @@
  }
  function createController({onChange=()=>{},fetchGuide=async(size,quantity,signal)=>{const r=await fetch('/api/availability?tyres=1',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({size,quantity}),signal});if(!r.ok)throw Error('Guide unavailable');return r.json();},delay=600}={}){
   let sequence=0,timer,expiry,request,state={status:'idle',result:null},key='';const cache=new Map();
-  const emit=(status,result=null)=>{clearTimeout(expiry);state={status,result};onChange(state);if(status==='matched'){expiry=setTimeout(()=>{if(state.result===result)emit('unavailable');},Math.max(1,300000-(Date.now()-Date.parse(result.checkedAt))));expiry.unref?.();}};
-  return{getState:()=>state,update(value,quantity=1){const size=sizeKey(value);const next=size&&Number.isInteger(quantity)&&quantity>=1&&quantity<=4?size+':'+quantity:'';
-   if(next&&next===key&&(['waiting','loading'].includes(state.status)||(state.status==='matched'&&Date.now()-Date.parse(state.result.checkedAt)<300000)))return;
-   sequence++;const current=sequence;clearTimeout(timer);request?.abort();key=next;
+  const emit=(status,result=null)=>{clearTimeout(expiry);state={status,result};onChange(state);if(status==='matched'){expiry=setTimeout(()=>{if(state.result===result)api.update(result.size,result.quantity,{refresh:true});},Math.max(1,300050-(Date.now()-Date.parse(result.checkedAt))));expiry.unref?.();}};
+  const api={getState:()=>state,update(value,quantity=1,{refresh=false}={}){const size=sizeKey(value);const next=size&&Number.isInteger(quantity)&&quantity>=1&&quantity<=4?size+':'+quantity:'';
+   if(!refresh&&next&&next===key&&(['waiting','loading'].includes(state.status)||(state.status==='matched'&&Date.now()-Date.parse(state.result.checkedAt)<300000)))return;
+   const previous=state.result?.size===size?state.result:null;sequence++;const current=sequence;clearTimeout(timer);request?.abort();key=next;
    if(!next){emit('idle');return;}
-   const saved=cache.get(next);if(saved&&Date.now()-Date.parse(saved.checkedAt)<300000){emit('matched',saved);return;}
-   emit('waiting');timer=setTimeout(async()=>{request=new AbortController();const abort=request;const timeout=setTimeout(()=>abort.abort(),50000);emit('loading');try{let data=await fetchGuide(size,quantity,abort.signal);if(current!==sequence||abort.signal.aborted)return;if(data?.status==='UNAVAILABLE'){data=await fetchGuide(size,quantity,abort.signal);if(current!==sequence||abort.signal.aborted)return;}const result=cleanResult(data,size,quantity);if(cache.size>=30)cache.delete(cache.keys().next().value);cache.set(next,result);emit('matched',result);}catch{if(current===sequence)emit('unavailable');}finally{clearTimeout(timeout);}},delay);
-  },dispose(){sequence++;clearTimeout(timer);clearTimeout(expiry);request?.abort();}};
+   const saved=cache.get(next);if(!refresh&&saved&&Date.now()-Date.parse(saved.checkedAt)<300000){emit('matched',saved);return;}
+   emit('waiting',previous);timer=setTimeout(async()=>{request=new AbortController();const abort=request;const timeout=setTimeout(()=>abort.abort(),50000);emit('loading',previous);try{let data=await fetchGuide(size,quantity,abort.signal);if(current!==sequence||abort.signal.aborted)return;if(data?.status==='UNAVAILABLE'){data=await fetchGuide(size,quantity,abort.signal);if(current!==sequence||abort.signal.aborted)return;}const result=cleanResult(data,size,quantity);if(cache.size>=30)cache.delete(cache.keys().next().value);cache.set(next,result);emit('matched',result);}catch{if(current===sequence)emit(previous?'stale':'unavailable',previous);}finally{clearTimeout(timeout);}},delay);
+  },dispose(){sequence++;clearTimeout(timer);clearTimeout(expiry);request?.abort();}};return api;
  }
  root.VectaTyreBooking={createController,sizeKey,cleanResult,brandLogo};
 })(typeof window!=='undefined'?window:globalThis);

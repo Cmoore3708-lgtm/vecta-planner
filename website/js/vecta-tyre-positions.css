@@ -1,6 +1,6 @@
 .tyre-position-selector{margin:0 auto 10px;max-width:680px;padding:0 14px 6px}
 .tp-scene{position:relative;width:100%;aspect-ratio:282/205;margin:14px auto 42px;isolation:isolate}
-.tp-car,.tp-car-detail{position:absolute;inset:0;width:100%;height:100%;object-fit:fill;pointer-events:none;filter:grayscale(1);opacity:.66}
+.tp-car,.tp-car-detail{position:absolute;inset:0;width:100%;height:100%;object-fit:fill;pointer-events:none;filter:grayscale(.72) brightness(.9);opacity:.66}
 .tp-car:not([data-vehicle-ready="1"]){visibility:hidden}
 .tp-car-detail{opacity:.48;z-index:4}.tp-car-detail:not([src]){display:none}
 .tp-wheels{position:absolute;inset:0}
@@ -16,7 +16,8 @@
 .tp-wheel[aria-pressed=true] .tp-ring{background:#65ff8a16;box-shadow:0 0 15px 5px #75ff9b80,inset 0 0 13px 3px #75ff9b65}
 .tp-far[aria-pressed=true] .tp-ring{background:#17191b}
 .tp-wheel[aria-pressed=true] .tp-check,.tp-wheel[aria-pressed=true] .tp-brand{display:block}
-.tp-controls{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;max-width:560px;margin:0 auto}
+.tp-axle-group{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px;min-width:0}
+.tp-controls{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;max-width:560px;margin:0 auto}
 .tyre-position-selector .tp-controls button{display:flex;align-items:center;gap:6px;min-width:0;min-height:32px;border:1px solid #46535f;border-radius:6px;background:#222b33;color:#f3f5f8;padding:6px 8px;text-align:left;font:inherit;font-size:11px;cursor:pointer;box-shadow:none}
 .tp-dot{flex-shrink:0;width:17px;height:20px;display:grid;place-items:center;border:1px solid #ef929280;border-radius:50%;font-size:13px;color:#efaaaa}
 .tyre-position-selector .tp-controls button[aria-pressed=true]{border-color:#8dffab;background:#23352b}.tp-controls [aria-pressed=true] .tp-dot{color:#8dffab;border-color:#8dffab}
@@ -24,10 +25,15 @@
 .tyre-position-picker .tyre-quantity{display:none}
 .tyre-position-picker .tyre-guide-card:not(.selected)>.tyre-guide-total{visibility:hidden}
 .tyre-position-picker .tyre-guide-total{white-space:normal;min-height:35px;line-height:1.4;padding:8px 4px}
-@media(max-width:760px){.tyre-position-selector{padding:0 6px 6px}.tp-scene{margin:10px auto 36px}.tp-controls{grid-template-columns:repeat(2,minmax(0,1fr));max-width:310px}.tp-brand{width:58px;height:21px}.tp-brand .tyre-brand-logo{padding:3px 4px}}
+@media(max-width:760px){.tyre-position-selector{padding:0 6px 6px}.tp-scene{margin:10px auto 36px}.tp-controls{grid-template-columns:minmax(0,1fr);max-width:310px;gap:12px}.tp-brand{width:58px;height:21px}.tp-brand .tyre-brand-logo{padding:3px 4px}}
 @media(pointer:coarse){.tyre-position-selector .tp-controls button{min-height:44px}}
 @media(prefers-reduced-motion:reduce){.tp-ring{transition:none}}
 
 .tyre-position-selector[hidden]{display:none!important}
 .tyre-position-selector .tp-prompt{color:#f3f5f8;text-align:center;font-size:16px;line-height:1.4;margin:22px 0 12px;font-weight:700}
 @media(max-width:760px){.tyre-position-selector .tp-prompt{font-size:14px;margin-top:18px}}
+
+.tp-rear .tp-brand{width:61px;height:21px}
+@media(max-width:760px){.tp-rear .tp-brand{width:47px;height:17px}}
+.tyre-position-picker .tyre-guide-status{min-height:24px;line-height:24px}
+.tyre-position-picker .tyre-guide-card{border-width:2px}
