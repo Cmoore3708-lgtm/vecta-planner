@@ -75,3 +75,13 @@ test('automatic perspective projection works without a model profile and mirrors
  assert.equal(withHidden[2][0],79);assert.equal(withHidden[2][1],146.5);
  assert.equal(withHidden[3][0],171);
 });
+test('late artwork readiness triggers targets even when another image mount returns early',async()=>{
+ const {context,root,document,form}=setup();let changed,disconnected=false;
+ root.MutationObserver=class{constructor(callback){changed=callback;}observe(){}disconnect(){disconnected=true;}};
+ root.VectaVehicleImage={mount:async()=>{}};
+ document.querySelector('main').innerHTML=context.VectaTyrePositions.html(form,{imageUrl:'https://www.haynespro-assets.com/workshop/images/319106279.svgz'});
+ context.VectaTyrePositions.mount(form,()=>{});await Promise.resolve();
+ assert.equal(document.querySelectorAll('.tp-wheel').length,0);
+ const img=document.querySelector('[data-tyre-car]');img.src='data:image/svg+xml;charset=utf-8,'+encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="20 45 265 155"/>');img.dataset.vehicleReady='1';
+ changed();assert.equal(document.querySelectorAll('.tp-wheel').length,4);assert.equal(disconnected,true);
+});
