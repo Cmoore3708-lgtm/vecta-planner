@@ -337,7 +337,7 @@
 
 /* Identify website-origin jobs without changing card size or job-type colour. */
 @media screen{
- .job.websiteBookingOutline,.mobileJob.websiteBookingOutline,.unallocatedSideJob.websiteBookingOutline{outline:1.5px solid #2563eb!important;outline-offset:-1.5px!important}
+ .job.websiteBookingOutline,.mobileJob.websiteBookingOutline,.unallocatedSideJob.websiteBookingOutline{outline:3px solid #2563eb!important;outline-offset:-3px!important}
 }
 
 /* PC identity: customer below the plate, with vehicle beside it and no empty type row. */

@@ -1,7 +1,7 @@
 {
-  "approvedOn": "2026-10-27",
+  "approvedOn": "2026-10-28",
   "approvedBy": "Chris Moore",
-  "approval": "Chris’s 23 October screenshot request: hide duplicate MOT job-type/template wording when an MOT appointment is displayed, and let the PC vehicle make/model extend to the visible car edge. Shared Main/mechanics renderers checked at PC and phone widths; extra work and appointment remain visible. MOT confirmation request: Chris approved green MOT/time after garage confirmation and automatic allocation of unallocated MOT jobs to Chris. Only mobileMotAppointmentHtml and plannerMotHeaderHtml are additionally changed; both Main/mechanics outputs are covered by regression tests. Chris’s 23 October mechanic screenshot request: remove overlapping card text at PC and iPad widths. Identity rows now reserve their natural height and work follows the header. Checked shared Main/mechanics CSS at 800, 1024 and 1440px; phone rules retained. Chris’s 23 October missing-image and Main text-alignment regression report, followed by “Carry on”: restore the whole card as the artwork positioning container while retaining natural text rows and the Haynes link fix. Only the final header position changes from relative to static; shared Main/mechanics checked at phone, tablet and desktop widths. Chris’s 27 October screenshot request: fix overlapping MOT/service/customer rows and allow make/model text to reach the vehicle. Full-width header keeps artwork sizing independent of silhouette-sized identity; natural flex rows prevent track compression; static work positioning removes legacy relative offsets. Shared Main/mechanics CSS checked at desktop/tablet widths; phone rules unchanged.",
+  "approval": "Chris’s 23 October screenshot request: hide duplicate MOT job-type/template wording when an MOT appointment is displayed, and let the PC vehicle make/model extend to the visible car edge. Shared Main/mechanics renderers checked at PC and phone widths; extra work and appointment remain visible. MOT confirmation request: Chris approved green MOT/time after garage confirmation and automatic allocation of unallocated MOT jobs to Chris. Only mobileMotAppointmentHtml and plannerMotHeaderHtml are additionally changed; both Main/mechanics outputs are covered by regression tests. Chris’s 23 October mechanic screenshot request: remove overlapping card text at PC and iPad widths. Identity rows now reserve their natural height and work follows the header. Checked shared Main/mechanics CSS at 800, 1024 and 1440px; phone rules retained. Chris’s 23 October missing-image and Main text-alignment regression report, followed by “Carry on”: restore the whole card as the artwork positioning container while retaining natural text rows and the Haynes link fix. Only the final header position changes from relative to static; shared Main/mechanics checked at phone, tablet and desktop widths. Chris’s 27 October screenshot request: fix overlapping MOT/service/customer rows and allow make/model text to reach the vehicle. Full-width header keeps artwork sizing independent of silhouette-sized identity; natural flex rows prevent track compression; static work positioning removes legacy relative offsets. Shared Main/mechanics CSS checked at desktop/tablet widths; phone rules unchanged. Chris’s 28 October request: “The blue box around website bookings don’t stand out enough. Make the lines twice as thick”. Only the shared websiteBookingOutline changes from 1.5px to 3px, with its inset offset also doubled.",
   "layout": {
     "main": {
       "functions": {
@@ -94,7 +94,7 @@
           "3a9a42c6c0bf2d0614443fe79675792f688eb5512c394fbfd54ec1fb14fd13de"
         ]
       },
-      "styles": "a746f7d1175ad2a2561fa55da36d34b03ebf12efa81a2206f222624de081ee48",
+      "styles": "d09d5de45ecdffd595c8125a83ecaf34dcb7d41c52718c2dfd29efa8f2a83e1c",
       "injectedStyles": [
         "bea850ce68304d8a50a6018729fb5923f614c6708b6a11a3d3d937b525dd855a"
       ]
@@ -190,7 +190,7 @@
           "3a9a42c6c0bf2d0614443fe79675792f688eb5512c394fbfd54ec1fb14fd13de"
         ]
       },
-      "styles": "d9ae2faa12cee761f04ce66acc790e29fbb14063cb44ffd67f9918d88bd69257",
+      "styles": "05247233981924c9644ed94aaf226f10ddaacecb4a661665c6865d939632382b",
       "injectedStyles": [
         "bea850ce68304d8a50a6018729fb5923f614c6708b6a11a3d3d937b525dd855a"
       ]
