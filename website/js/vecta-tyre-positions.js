@@ -21,7 +21,7 @@
  }
  function mount(form,onChange){
   const host=root.document.getElementById('tyrePositions');if(!host)return;
-  const chosen=selection(form),brand=form.tyre_brand||'',img=host.querySelector('[data-tyre-car]');
+  const chosen=selection(form),brand=form.tyre_brand||form.tyre_guide?.brand||'',img=host.querySelector('[data-tyre-car]');
   const bind=()=>host.querySelectorAll('[data-tyre-position]').forEach(button=>{const active=chosen.includes(button.dataset.tyrePosition);button.setAttribute('aria-pressed',String(active));button.onclick=()=>{if(!form.tyre_choice){root.document.querySelector('[data-tyre-choice]')?.focus();return;}const next=selection(form),p=button.dataset.tyrePosition;form.tyre_positions=positions.filter(name=>name===p?!next.includes(name):next.includes(name));form.tyre_quantity=form.tyre_positions.length;form.tyre_guide=null;onChange();};});
   bind();
   if(!img)return;

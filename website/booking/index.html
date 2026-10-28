@@ -375,7 +375,6 @@ async function sendBookingRequest(payload){
  throw new Error('The connection was interrupted. Your details are still here. Please try again; repeating this submission will not create a duplicate request.');
 }
 function bookingConfirmationSummaryHtml(){
- if(typeof VectaTyrePositions!=='undefined')VectaTyrePositions.initialise(state.form);
  const f=state.form,image=document.querySelector('.vehicle-photo .haynes-image img')?.outerHTML||'';
  const work=f.job_types.map(type=>type==='Service'?(f.service_choice||type):type==='Other'?'Something else':type).join(', ');
  return `<section class="booking-receipt" aria-label="Your booking"><div class="receipt-vehicle"><div><small>Your vehicle</small><div class="summary-plate"><span class="summary-plate-gb">GB</span><strong class="summary-plate-reg">${esc(f.registration)}</strong></div><b>${esc(f.vehicle)}</b></div>${image?`<figure class="receipt-image">${image}</figure>`:''}</div><div class="receipt-work"><small>Booked work</small><strong>${esc(work)}</strong>${tyreReviewHtml()}${f.work_required.trim()?`<p class="receipt-description">${esc(f.work_required)}</p>`:''}${f.inspect_mot_advisories==='yes'&&f.mot_advisories.length?`<p>Please check the MOT advisories:</p><ul>${f.mot_advisories.map(item=>`<li>${esc(item)}</li>`).join('')}</ul>`:''}</div></section>`;
