@@ -15939,7 +15939,8 @@ async function openJobServiceSheet(id){
   finally{if(button)button.disabled=false;}
 }
 async function printService(id,draft){
-  var savedJob=app.jobs.find(function(x){return x.id===id});if(!savedJob)return;
+  var savedJob=app.jobs.find(function(x){return x.id===id})||(window.CONTRACTOR_2026_JOBS||[]).find(function(x){return x.id===id});
+  if(!savedJob)throw new Error('The job for this service sheet could not be found.');
   // Opening paperwork uses current editor values without requiring a full job save.
   var j=Object.assign({},savedJob,draft||{});
   var kind=paperworkKindForJob(j),safety=kind==='safety',internal=kind==='internal',onsite=kind==='onsite',inspection=safety||internal||onsite;
