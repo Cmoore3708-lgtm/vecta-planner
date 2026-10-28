@@ -100,6 +100,12 @@ test('maintenance lock rejects overlapping updates and recovers after a dead own
  await withLock(root,async()=>{await assert.rejects(withLock(root,async()=>{}),/already running/)});
  await fs.writeFile(path.join(root,'maintenance.lock'),JSON.stringify({pid:2147483647}));let called=false;await withLock(root,async()=>{called=true});assert.equal(called,true);
 }));
+test('rerunning an old installer preserves the current installed release without reading old Downloads',()=>temporary(async root=>{
+ await initial(root);
+ const cli=fileURLToPath(new URL('../../workers/control/release-cli.mjs',import.meta.url));
+ const child=spawnSync(process.execPath,[cli,'install',root,path.join(root,'old-download-missing.gz'),path.join(root,'old-sources-missing.json')],{encoding:'utf8'});
+ assert.equal(child.status,0,child.stderr);assert.equal(JSON.parse(child.stdout).status,'already-installed');assert.equal((await readState(root)).active,first);
+}));
 test('runtime status persists actionable login state across relay polling and cooperatively stops',()=>temporary(async root=>{
  const file=path.join(root,'status.json'),stop=path.join(root,'stop');const runtime=createWorkerRuntime('Tyres',{env:{VECTA_WORKER_STATUS_FILE:file,VECTA_WORKER_STOP_FILE:stop},timers:false});
  runtime.set('attention','LOGIN_REQUIRED');runtime.set('reconnecting','RELAY_UNAVAILABLE');runtime.set('connected','RELAY_ONLY');

@@ -45,6 +45,13 @@ async function main(){
   return withLock(root,async()=>{
     if(action==='update')return update(root);
     if(action==='rollback')return {status:'rolled-back',...await rollback(root)};
+    let installed=false;try{await fs.access(path.join(root,'state.json'));installed=true}catch{}
+    if(installed){
+      const state=await readState(root);
+      const marker=parseJSON(await fs.readFile(path.join(root,'releases',state.active,'installed.json'),'utf8'));
+      if(marker.version!==state.active)throw Error('Existing installation needs recovery; it has not been overwritten');
+      return {status:'already-installed',...state};
+    }
     const [artifact,sourcesFile]=args;
     if(!artifact||!sourcesFile)throw Error('The complete one-time installer is required');
     const sources=parseJSON(await fs.readFile(sourcesFile,'utf8'));

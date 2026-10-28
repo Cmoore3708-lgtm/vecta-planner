@@ -92,6 +92,8 @@ const timer=setInterval(()=>{if(fs.existsSync(process.env.VECTA_WORKER_STOP_FILE
         if (Test-Path -LiteralPath $desktopLink) { $oldDesktopBytes=[IO.File]::ReadAllBytes($desktopLink) }
         $startup=Join-Path ([Environment]::GetFolderPath('Startup')) 'Vecta Haynes Test.lnk'
         Assert-True (!(Test-Path -LiteralPath $startup)) 'Refusing to modify an existing startup shortcut in test'
+        # The earlier state was a synthetic runner fixture, not an installation.
+        Remove-Item -LiteralPath (Join-Path $root 'state.json')
         try {
             & powershell.exe -NoProfile -ExecutionPolicy Bypass -File (Join-Path $setup 'workers\control\workshop-workers.ps1') -Install -Root $root
             Assert-True ($LASTEXITCODE -eq 0) 'Complete Windows installation failed'
@@ -102,6 +104,11 @@ const timer=setInterval(()=>{if(fs.existsSync(process.env.VECTA_WORKER_STOP_FILE
             Assert-True ($link.Arguments.Contains((Join-Path $root 'Start-VECTA.ps1'))) 'Installed Desktop link is not permanent'
             Remove-Item -LiteralPath (Join-Path $testRoot 'Old Downloads') -Recurse -Force
             Assert-True (Test-Path -LiteralPath (Join-Path $root 'data\repair-quotes\repair-connection.local.json')) 'Settings depend on Downloads after migration'
+            # Re-running an old installer must keep the active version without
+            # reading a removed source folder or reinstalling dependencies.
+            & powershell.exe -NoProfile -ExecutionPolicy Bypass -File (Join-Path $setup 'workers\control\workshop-workers.ps1') -Install -Root $root
+            Assert-True ($LASTEXITCODE -eq 0) 'Reinstall depended on removed Downloads'
+            Assert-True ((Get-Content -Raw -LiteralPath (Join-Path $root 'state.json') | ConvertFrom-Json).active -eq ('c' * 40)) 'Reinstall replaced the active release'
             Write-Output 'PASS: complete Windows migration, private ACL, pinned dependencies and permanent desktop shortcut'
         } finally {
             if ($null -ne $oldDesktopBytes) { [IO.File]::WriteAllBytes($desktopLink,$oldDesktopBytes) }

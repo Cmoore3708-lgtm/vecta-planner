@@ -80,7 +80,9 @@ locations are retained. The GSF entrypoint supports the persistent data director
 only when the manager supplies it; old standalone launches keep their existing
 configuration paths. Current-account/SYSTEM ACLs protect the new installation.
 Reinstalling preserves newer installed configuration rather than copying stale
-settings over it. No database credentials or schema changes are required.
+settings over it. An existing valid installation also retains its active code
+version when an old setup package is rerun; only the approved updater or explicit
+restore changes that version. No database credentials or schema changes are required.
 
 ## Update and release ownership
 
