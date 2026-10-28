@@ -9425,7 +9425,7 @@ function serviceReminderMailto(email,regHint,vehicleHint){
   var ctx=vehicleEmailContext(email,regHint,vehicleHint),reg=String(ctx.registration||'').trim(),vehicle=String(ctx.vehicle||'').trim(),
       first=emailFirstNameFromAddress(email),subject=reg||'Vehicle Service',
       vehicleText=[vehicle,reg].filter(Boolean).join(', '),
-      body=appendVectaEmailSignature('Hi '+(first||'there')+',\n\nYour vehicle'+(vehicleText?' '+vehicleText:'')+' is due its annual Service. Can we book it in for one day next week please?');
+      body=appendVectaEmailSignature('Hi '+(first||'there')+',\n\nYour'+(vehicleText?' '+vehicleText:'')+' is due its annual Service. Can we book it in for one day next week please?');
   return 'mailto:'+encodeURIComponent(email)+'?subject='+encodeURIComponent(subject)+'&body='+encodeURIComponent(body);
 }
 function emailLinkHtml(email,emptyText,regHint,vehicleHint){
