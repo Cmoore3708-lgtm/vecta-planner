@@ -40,3 +40,10 @@ test('each tier offers its three cheapest distinct brands, using the cheapest el
  const enough=selectCatalogueGuides(rows,{size:f.requestedSize,quantity:2,settings:f.settings}).options[0].choices;
  assert.deepEqual(enough.map(c=>c.brand),['RADAR','IMPERIAL','TOURADOR']);
 });
+test('insufficient stock retains the confirmed brand quantity without mixing models or stock columns',()=>{
+ const f=fixtures[0],base={size:f.requestedSize,brand:'RADAR',model:'SUMMER',unitPence:6000,defaultStockMinimum:3};
+ const rows=[base,{...base,model:'OTHER SUMMER',defaultStockMinimum:2},{...base,model:'WINTER',defaultStockMinimum:50},{...base,size:'195/55R16',defaultStockMinimum:50}];
+ const four=selectCatalogueGuides(rows,{size:f.requestedSize,quantity:4,settings:f.settings}).options[0];assert.equal(four.available,false);assert.deepEqual(four.stockLevels,[{brand:'RADAR',availableQuantity:3}]);
+ const three=selectCatalogueGuides(rows,{size:f.requestedSize,quantity:3,settings:f.settings}).options[0];assert.equal(three.available,true);assert.equal(three.totalPence,18000);
+ const unknown=selectCatalogueGuides([{...base,defaultStockMinimum:null}],{size:f.requestedSize,quantity:4,settings:f.settings}).options[0];assert.deepEqual(unknown.stockLevels,[]);
+});
