@@ -100,4 +100,12 @@ test('brand can be selected before wheels, revealing the car prompt and retainin
  document.querySelector('[data-tyre-position="Front passenger"]').click();assert.equal(form.tyre_quantity,0);assert.deepEqual(calls.at(-1),['205/55R16',1]);
  assert.equal(document.querySelector('[data-tyre-brand="FALKEN"]').getAttribute('aria-pressed'),'true');assert.equal(document.getElementById('tyrePositions').hidden,false);
  document.querySelector('.tyre-option[data-tyre-choice="Premium"]').click();assert.equal(form.tyre_brand,'');assert.equal(document.getElementById('tyrePositions').hidden,true);
+ assert.equal(context.selectedTyreGuide(),null,'a new range must not silently choose its first brand');
+});
+test('commercial or unavailable tyre prices retain an explicit brand-confirmation route',()=>{
+ const {context,document,form}=setup();form.tyre_brand='';form.tyre_photo_spec={commercial:true};
+ context.refreshTyrePanel();
+ const confirm=document.querySelector('[data-tyre-choice="Budget"][data-tyre-brand="Brand to be confirmed"]');assert.ok(confirm);confirm.click();
+ assert.equal(form.tyre_brand,'Brand to be confirmed');assert.equal(document.getElementById('tyrePositions').hidden,false);
+ document.querySelector('[data-tyre-position="Rear driver"]').click();assert.equal(form.tyre_quantity,1);assert.equal(context.selectedTyreGuide(),null);
 });
