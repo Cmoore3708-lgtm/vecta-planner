@@ -35,7 +35,7 @@ export function readProductDialog(doc = document) {
   const costIncVatPence=Number(grossMatch[1].replaceAll(',',''))*100+Number(grossMatch[2]);
   if(Math.abs(costIncVatPence-Math.round(unitNetPence*1.2))>1)throw Error('SETTINGS_REQUIRED');
   const stockLabels=[...dialog.querySelectorAll('*')].filter(visible).map(el=>clean(el.textContent));
-  const inStock=stockLabels.some(text=>/^In stock\.?$/i.test(text));
+  const inStock=stockLabels.some(text=>/^In stock(?: in (?:RDC|NDC))?\.?(?: Get it tomorrow\.)?$/i.test(text));
   if(!inStock||stockLabels.some(text=>/^Out of stock\.?$/i.test(text)))throw Error('UNAVAILABLE');
   const stock=[...dialog.querySelectorAll('tbody tr')].map(row=>[...row.querySelectorAll('td')].map(el=>clean(el.textContent)))
     .filter(cells=>cells.length===2&&/^\d+$/.test(cells[1]))

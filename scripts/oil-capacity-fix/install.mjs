@@ -5,7 +5,7 @@ import {fileURLToPath,pathToFileURL} from 'node:url';
 import {createHash} from 'node:crypto';
 import {spawnSync} from 'node:child_process';
 import {createInterface} from 'node:readline/promises';
-const files=['oil-capacity.mjs','live-service.mjs'];
+const files=['oil-capacity.mjs','live-service.mjs','product-dialog.mjs'];
 export function applyOilFix(target,payload){
  const worker=path.join(target,'workers','gsf');
  for(const name of ['worker.mjs','live-service.mjs','service-capture.mjs','product-dialog.mjs'])if(!existsSync(path.join(worker,name)))throw Error('Choose the existing Vecta-Live-Repair-Quotes folder containing workers/gsf, not the update folder.');
@@ -24,7 +24,7 @@ export function applyOilFix(target,payload){
 if(process.argv[1]&&import.meta.url===pathToFileURL(process.argv[1]).href){
  const terminal=createInterface({input:process.stdin,output:process.stdout});
  try{
-  console.log('VECTA service oil capacity fix. Close only the shared GSF/service worker first. Leave Haynes and tyres running.');
+  console.log('VECTA service lookup fix. Close only the shared GSF/service worker first. Leave Haynes and tyres running.');
   const suggested=path.join(os.homedir(),'Downloads','Vecta-Live-Repair-Quotes (11)');
   console.log('Default existing folder: '+suggested);
   const answer=(await terminal.question('Press Enter for that folder, or paste a different existing worker folder: ')).trim().replace(/^"|"$/g,'');

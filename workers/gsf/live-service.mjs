@@ -11,7 +11,7 @@ export function catalogueSelection(capture,kind,registration){
  if(!skus.length)fail();
  const sku=skus[0][1],segment=text.slice(skus[0].index,skus[1]?.index??text.length);
  const panel=segment.match(/Stock Type Quantity\s+(.+?)\s+£\s*(\d+\.\d{2})\s+RRP:/);
- if(!panel||!/In stock\./i.test(segment)||!/(?:Boldon|RDC|NDC)\s+[1-9]\d*/.test(panel[1]))fail();
+ if(!panel||!/^SKU:\s*[A-Za-z0-9._/-]+\s+In stock(?: in (?:RDC|NDC))?\.(?: Get it tomorrow\.)?(?=\s|$)/i.test(segment)||!/(?:Boldon|RDC|NDC)\s+[1-9]\d*/.test(panel[1]))fail();
  const pricePence=Math.round(Number(panel[2])*100);
  const selectedCard=segment.match(/Sort By Relevancy\s+£\s*(\d+\.\d{2})\s+(Gold|Silver|Bronze)\b/);
  if(!selectedCard||selectedCard[1]!==panel[2]||selectedCard[2]!=='Gold')fail(); // Mid Range: selected Gold option only.
