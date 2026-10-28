@@ -48,3 +48,40 @@ test('position module and styling are mirrored in both deployed websites',()=>{
  assert.match(booking,/tyre_positions.length>0/);
  const css=fs.readFileSync('public/js/vecta-tyre-positions.css','utf8');assert.match(css,/\.tyre-position-picker \.tyre-quantity\{display:none\}/);
 });
+test('the current Qashqai J12 artwork has four aligned, selectable tyre targets',()=>{
+ const {context,document,form}=setup(),api=context.VectaTyrePositions;
+ document.querySelector('main').innerHTML=api.html(form,{imageUrl:'https://www.haynespro-assets.com/workshop/images/319106279.svgz',make:'Nissan',model:'Qashqai J12'});
+ const img=document.querySelector('[data-tyre-car]');
+ img.src='data:image/svg+xml;charset=utf-8,'+encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="20 45 265 155"/>');img.dataset.vehicleReady='1';
+ let changes=0;api.mount(form,()=>changes++);
+ assert.equal(document.querySelectorAll('.tp-wheel').length,4);
+ assert.equal(document.querySelectorAll('.tp-far').length,2);
+ const rear=document.querySelector('.tp-far[data-tyre-position="Rear driver"]');
+ assert.ok(parseFloat(rear.style.top)>50,'the far rear target sits in the lower body, not near the windows');
+ rear.click();assert.equal(changes,1);assert.deepEqual([...form.tyre_positions],['Rear driver']);assert.equal(form.tyre_quantity,1);
+ api.mount(form,()=>changes++);assert.equal(document.querySelector('.tp-wheel[data-tyre-position="Rear driver"]').getAttribute('aria-pressed'),'true');
+});
+test('automatic perspective projection works without a model profile and mirrors front-facing direction',()=>{
+ const {context}=setup(),api=context.VectaTyrePositions;
+ for(const direction of [1,-1]){
+  const front=[direction===1?170:130,160,20,33],rear=[direction===1?260:40,135,10,23];
+  const wheels=api.projectWheels(front,rear,null,{x:20,width:260});
+  assert.equal(wheels.length,4);assert.ok(wheels.flat().every(Number.isFinite));
+  assert.ok((front[0]-wheels[2][0])*direction>0);
+  assert.ok((rear[0]-wheels[3][0])*direction>0);
+  assert.ok(wheels[3][1]>rear[1]-rear[3],'the far rear wheel stays below the window line');
+ }
+ const withHidden=api.projectWheels([170,157,20,34],[262,132,11,27],[79,139,15,25],{x:20,width:260});
+ assert.equal(withHidden[2][0],79);assert.equal(withHidden[2][1],146.5);
+ assert.equal(withHidden[3][0],171);
+});
+test('late artwork readiness triggers targets even when another image mount returns early',async()=>{
+ const {context,root,document,form}=setup();let changed,disconnected=false;
+ root.MutationObserver=class{constructor(callback){changed=callback;}observe(){}disconnect(){disconnected=true;}};
+ root.VectaVehicleImage={mount:async()=>{}};
+ document.querySelector('main').innerHTML=context.VectaTyrePositions.html(form,{imageUrl:'https://www.haynespro-assets.com/workshop/images/319106279.svgz'});
+ context.VectaTyrePositions.mount(form,()=>{});await Promise.resolve();
+ assert.equal(document.querySelectorAll('.tp-wheel').length,0);
+ const img=document.querySelector('[data-tyre-car]');img.src='data:image/svg+xml;charset=utf-8,'+encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="20 45 265 155"/>');img.dataset.vehicleReady='1';
+ changed();assert.equal(document.querySelectorAll('.tp-wheel').length,4);assert.equal(disconnected,true);
+});
