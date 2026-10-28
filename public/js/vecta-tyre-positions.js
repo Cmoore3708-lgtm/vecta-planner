@@ -13,6 +13,7 @@
   '319009548':[[156.3,166.2,19,32],[258.1,135.3,11,24],[64,152,17,27],[165.8,131.1,10,21]]
  };
  const measured=new Map();
+ const watchers=new WeakMap();
  function projectWheels(front,rear,hidden,body){
   const direction=front[0]<rear[0]?1:-1;
   const edge=direction===1?body.x:body.x+body.width;
@@ -71,11 +72,16 @@
     const [x,y,w,h]=vb,scene=host.querySelector('.tp-scene');scene.style.aspectRatio=w+'/'+h;
     host.querySelector('.tp-wheels').innerHTML=profile.map(([cx,cy,rx,ry],i)=>`<button type="button" class="tp-wheel ${i>=2?'tp-far':''}" data-tyre-position="${positions[i]}" aria-label="${positions[i]} tyre" aria-pressed="${chosen.includes(positions[i])}" style="left:${(cx-x)/w*100}%;top:${(cy-y)/h*100}%;width:${rx*2/w*100}%;height:${ry*2/h*100}%"><span class="tp-ring">${i>=2?'<img class="tp-tyre" src="/assets/tyre-axle-still.webp" alt="">':''}<span class="tp-check" aria-hidden="true">✓</span></span>${brand?`<span class="tp-brand">${root.VectaTyreBooking.brandLogo(brand)}</span>`:''}</button>`).join('');
     const detail=host.querySelector('.tp-car-detail');detail.src=img.src;detail.style.maskImage=detail.style.webkitMaskImage=profile.slice(2).map(([cx,cy,rx,ry])=>`radial-gradient(ellipse ${(rx+7)/w*100}% ${(ry+7)/h*100}% at ${(cx-x)/w*100}% ${(cy-y)/h*100}%,#000 65%,transparent 100%)`).join(',');
-    bind();
+    bind();watchers.get(host)?.disconnect();
    }catch(error){host.dataset.geometryError=error.message;}
   };
   if(img.dataset.vehicleReady==='1')ready();
-  else if(root.VectaVehicleImage)root.VectaVehicleImage.mount().then(ready).catch(()=>{});
+  else {
+   // Another booking image mount may already own this async render. Its mount
+   // promise can resolve before this image finishes, so observe actual readiness.
+   if(root.MutationObserver&&!watchers.has(host)){const observer=new root.MutationObserver(()=>{if(!host.isConnected){observer.disconnect();return;}if(img.dataset.vehicleReady==='1')ready();});observer.observe(img,{attributes:true,attributeFilter:['src','data-vehicle-ready']});watchers.set(host,observer);}
+   if(root.VectaVehicleImage)root.VectaVehicleImage.mount().then(ready).catch(()=>{});
+  }
  }
  root.VectaTyrePositions={positions,profiles,projectWheels,measureWheels,selection,initialise,html,mount};
 })(window);
