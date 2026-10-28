@@ -2,23 +2,40 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import vm from 'node:vm';
+import {parseHTML,DOMParser} from 'linkedom';
 const booking=fs.readFileSync('website/booking/index.html','utf8');
-const start=booking.indexOf('   const layerRect=layer.getBoundingClientRect();',booking.indexOf('function animateServiceCarWheels()'));
-const end=booking.indexOf('   if(wheels.length!==2)',start);
-assert.ok(start>=0&&end>start,'wheel selection code must be present');
-const select=booking.slice(start,end)+'\nwheels;';
-const fixtures=JSON.parse(fs.readFileSync('tests/fixtures/service-wheel-geometry.json','utf8'));
-// Geometry measured from real supplier drawings; includes hidden tyres and nested rim wrappers.
-for(const fixture of fixtures)test(`service wheel selection: ${fixture.model}`,()=>{
- const nodes=new Map(fixture.groups.map(g=>[g.id,{...g,getBBox(){return this.box;},getBoundingClientRect(){return this.box;},contains(other){for(let n=other;n;n=nodes.get(n.parent))if(n.id===this.id)return true;return false;},querySelector(){return this.shapeCount?{}:null;},querySelectorAll(selector){return selector==='g'?[...nodes.values()].filter(n=>n.id!==this.id&&this.contains(n)):{length:this.shapeCount};}}]));
- const selected=vm.runInNewContext(select,{layer:nodes.get(0),bodyOccludes:node=>node.bodyOccluded});
- assert.equal(selected.length,2,'both visible wheels must be selected');
- const expected=fixture.groups.filter(g=>g.parent===0&&g.shapeCount>=6&&!g.bodyOccluded).map(g=>g.id).sort((a,b)=>a-b);
- assert.deepEqual(Array.from(selected,w=>w.node.id).sort((a,b)=>a-b),expected,'hidden plain tyres and nested rim-only groups must not replace a visible wheel');
+const code=booking.slice(booking.indexOf('let serviceHeadlightSvgSequence=0;'),booking.indexOf('\nfunction serviceOptionsHtml()'));
+test('only selected ready cars illuminate pale headlight lenses; wheels and other lamps stay intact',()=>{
+ const {document}=parseHTML('<html><body><div class="service-option selected"><span class="service-vehicle-stage"><img data-service-car data-vehicle-ready="1"></span></div><div class="service-option"><img data-service-car data-vehicle-ready="1"></div></body></html>');
+ const originalCreate=document.createElementNS.bind(document);document.createElementNS=(ns,tag)=>originalCreate(ns,tag);
+ class Parser extends DOMParser{parseFromString(...args){const doc=super.parseFromString(...args);for(const n of [doc.documentElement,...doc.querySelectorAll('*')]){n.getBBox=()=>n.localName==='svg'?({x:10,y:30,width:100,height:50}):({x:n.getAttribute('id')==='alternate-head'?55:28,y:48,width:4,height:6});n.getCTM=()=>({inverse(){return this},multiply(){return this}});}doc.documentElement.createSVGPoint=()=>({x:0,y:0,matrixTransform(){return {x:this.x,y:this.y}}});return doc;}}
+ const artwork='<svg xmlns="http://www.w3.org/2000/svg"><g id="wheels"><path fill="#aaa" d="M0 0h10v10z"/></g><g id="lights"><path id="head" fill="#F7F7D1"/><path id="alternate-head" fill="#F6F6D2"/><path id="tail" fill="#FF0000"/><path id="indicator" fill="#FF6633"/></g></svg>';
+ const imgs=[...document.querySelectorAll('img')];imgs.forEach(img=>img.src='data:image/svg+xml;charset=utf-8,'+encodeURIComponent(artwork));
+ vm.runInNewContext(code+'\nilluminateServiceCarHeadlights();illuminateServiceCarHeadlights();',{document,DOMParser:Parser,console});
+ const svg=document.querySelector('.service-animated-artwork');
+ assert.ok(svg);assert.equal(document.querySelectorAll('.service-animated-artwork').length,1);
+ assert.equal(svg.querySelector('.service-headlight-on').getAttribute('fill'),'#ffffff');
+ assert.equal(svg.querySelectorAll('.service-headlight-on').length,2,'both supplier lens palettes illuminate');
+ assert.equal(svg.querySelector('[id$="tail"]').getAttribute('fill'),'#FF0000');
+ assert.equal(svg.querySelector('[id$="indicator"]').getAttribute('fill'),'#FF6633');
+ assert.equal(svg.querySelector('[id$="wheels"] path').getAttribute('d'),'M0 0h10v10z');
+ assert.equal(svg.querySelector('animateTransform'),null);
+ assert.equal(svg.querySelectorAll('.service-headlight-beams path').length,2);
+ assert.match(svg.querySelector('.service-headlight-beams path').getAttribute('d'),/M30 50 L10 48/);
+ assert.ok(svg.querySelector('[id$="service-headlight-beam"]'));
+ assert.equal(svg.querySelectorAll('.service-headlight-beams').length,1);
+ assert.equal(imgs[1].dataset.serviceAnimated,undefined);
 });
-test('service car watches image readiness and rotates inline artwork',()=>{
- assert.match(booking,/attributeFilter:\['src','data-vehicle-ready'\]/);
- assert.match(booking,/stage\.append\(svg\)/);
- assert.match(booking,/service-animated-artwork/);
+test('booking copies match and reduced motion keeps steady headlights',()=>{
  assert.equal(booking,fs.readFileSync('public/booking.html','utf8'));
+ assert.match(booking,/@media\(prefers-reduced-motion:reduce\)\{\.service-headlight-beams\{animation:none\}/);
+ assert.doesNotMatch(booking,/service-inspection-sweep|animateServiceCarWheels|animateTransform/);
+});
+
+test('actual G4 WPC modern Defender neutral lamp gradients are recognised; red gradients are excluded',()=>{
+ const {document}=parseHTML('<svg><radialGradient id="SVGID_38_"><stop stop-color="#CFD2D8"/><stop stop-color="#68696C"/></radialGradient><linearGradient id="rear"><stop stop-color="#FF0000"/><stop stop-color="#880000"/></linearGradient><path id="head" fill="url(#SVGID_38_)"/><path id="tail" fill="url(#rear)"/></svg>');
+ const start=code.indexOf('   function isHeadlightLens(node){'),end=code.indexOf('   const candidates=',start);
+ const detect=vm.runInNewContext(code.slice(start,end)+'\nisHeadlightLens;',{svg:document});
+ assert.equal(detect(document.querySelector('#head')),true);
+ assert.equal(detect(document.querySelector('#tail')),false);
 });
