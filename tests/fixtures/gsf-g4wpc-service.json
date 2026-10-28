@@ -1,0 +1,238 @@
+{
+  "registration": "G4WPC",
+  "categories": [
+    {
+      "category": "Oil Filter",
+      "status": "CAPTURED_FOR_REVIEW",
+      "reason": null,
+      "selectedRegistration": true,
+      "registration": "G4WPC",
+      "headings": [
+        "Oil Filter - Insert Filter",
+        "\u00a324.13",
+        "Oil Filter"
+      ],
+      "skuLabels": [
+        "HGTE1004HD672",
+        "PFXP653"
+      ],
+      "displayedPrices": [
+        "24.13",
+        "32.86",
+        "0.00"
+      ],
+      "displayedLitres": [],
+      "visibleText": "G4WPC Clear Land Rover Defender D350 AWD MHEV 48v Auto Start/Stop 90 X-Dynamic HSE 3.0 (2996cc) Diesel/Hybrid Electric Semi Automatic 3 doors 30/07/25 29/07/28 Copy VIN More Details All categories / Filters / Oil Filter Related: Air Filter Fuel Filter Cabin Filter Urea Filter Engine Oil Sump Plug Sump Plug Washer There are multiple options! Not sure which one fits? Call your local branch on 0191 644 4789 and we'll help you choose. WhatsApp branch Oil Filter - Insert Filter SKU: HGTE1004HD672 In stock. Attributes Sort By Relevancy \u00a324.13 Gold Oil Filter - Insert Filter Local Branch Show More Stock Type Quantity Boldon 1 RDC 1 NDC 24 \u00a324.13 RRP: \u00a332.86 Buy Now Add to basket 0 Oil Filter SKU: PFXP653 Out of stock. Attributes Sort By Relevancy \u00a30.00 Bronze Out Of Stock Please contact your branch for availability. They will be able to provide more information. Need assistance? Call branch: 0191 644 4789 Opening hours: Monday-Friday 8:00 - 17:30 Saturday 8:00 - 14:00 Sunday Closed WhatsApp branch",
+      "truncated": false,
+      "fitmentVerified": false,
+      "oilVerified": false,
+      "approvedForPublication": false,
+      "attributes": {
+        "status": "NEEDS_REVIEW",
+        "reason": "MULTIPLE_OR_MISSING_PRODUCT_GROUPS"
+      }
+    },
+    {
+      "category": "Air Filter",
+      "status": "CAPTURED_FOR_REVIEW",
+      "reason": null,
+      "selectedRegistration": true,
+      "registration": "G4WPC",
+      "headings": [
+        "Air Filter",
+        "\u00a321.98"
+      ],
+      "skuLabels": [
+        "FRACA12860"
+      ],
+      "displayedPrices": [
+        "21.98",
+        "27.49",
+        "44.55"
+      ],
+      "displayedLitres": [],
+      "visibleText": "G4WPC Clear Land Rover Defender D350 AWD MHEV 48v Auto Start/Stop 90 X-Dynamic HSE 3.0 (2996cc) Diesel/Hybrid Electric Semi Automatic 3 doors 30/07/25 29/07/28 Copy VIN More Details All categories / Filters / Air Filter Related: Oil Filter Fuel Filter Cabin Filter Urea Filter Engine Oil Sump Plug Sump Plug Washer Air Filter SKU: FRACA12860 In stock. Attributes Sort By Relevancy \u00a321.98 Gold Air Filter Local Branch \u00a327.49 Gold Air Filter - Insert Filter RDC Show More Stock Type Quantity Boldon 1 RDC 1 NDC 80 \u00a321.98 RRP: \u00a344.55 Buy Now Add to basket 0",
+      "truncated": false,
+      "fitmentVerified": false,
+      "oilVerified": false,
+      "approvedForPublication": false,
+      "attributes": {
+        "status": "ATTRIBUTES_CAPTURED",
+        "rows": [
+          {
+            "attribute": "Filter Type",
+            "value": "Filter Insert"
+          },
+          {
+            "attribute": "Height (mm)",
+            "value": "58"
+          },
+          {
+            "attribute": "Length (mm)",
+            "value": "346"
+          },
+          {
+            "attribute": "Width (mm)",
+            "value": "163"
+          },
+          {
+            "attribute": "Bar Code",
+            "value": "502265029520"
+          }
+        ],
+        "oilVerified": false,
+        "groupSku": "FRACA12860"
+      }
+    },
+    {
+      "category": "Cabin Filter",
+      "status": "CAPTURED_FOR_REVIEW",
+      "reason": null,
+      "selectedRegistration": true,
+      "registration": "G4WPC",
+      "headings": [
+        "Cabin Filter - Carbon",
+        "\u00a341.58"
+      ],
+      "skuLabels": [
+        "FRACFA12888"
+      ],
+      "displayedPrices": [
+        "41.58",
+        "54.22",
+        "30.07",
+        "20.26",
+        "54.81"
+      ],
+      "displayedLitres": [],
+      "visibleText": "G4WPC Clear Land Rover Defender D350 AWD MHEV 48v Auto Start/Stop 90 X-Dynamic HSE 3.0 (2996cc) Diesel/Hybrid Electric Semi Automatic 3 doors 30/07/25 29/07/28 Copy VIN More Details All categories / Filters / Cabin Filter Related: Oil Filter Air Filter Fuel Filter Urea Filter Engine Oil Sump Plug Sump Plug Washer Cabin Filter - Carbon SKU: FRACFA12888 In stock. Attributes Sort By Relevancy \u00a341.58 Gold Cabin Filter - Carbon Local Branch \u00a354.22 Gold Cabin Filter - Charcoal Filter Local Branch \u00a330.07 Silver Cabin Filter - Carbon Local Branch \u00a320.26 Gold Cabin Filter - Particulate Filter RDC Show More Stock Type Quantity Boldon 1 RDC 1 NDC 102 \u00a341.58 RRP: \u00a354.81 Buy Now Add to basket 0",
+      "truncated": false,
+      "fitmentVerified": false,
+      "oilVerified": false,
+      "approvedForPublication": false,
+      "attributes": {
+        "status": "ATTRIBUTES_CAPTURED",
+        "rows": [
+          {
+            "attribute": "Filter Type",
+            "value": "Activated Carbon Filter"
+          },
+          {
+            "attribute": "Height (mm)",
+            "value": "35"
+          },
+          {
+            "attribute": "Length (mm)",
+            "value": "209"
+          },
+          {
+            "attribute": "Width (mm)",
+            "value": "204"
+          },
+          {
+            "attribute": "Bar Code",
+            "value": "502265029672"
+          }
+        ],
+        "oilVerified": false,
+        "groupSku": "FRACFA12888"
+      }
+    },
+    {
+      "category": "Fuel Filter",
+      "status": "CAPTURED_FOR_REVIEW",
+      "reason": null,
+      "selectedRegistration": true,
+      "registration": "G4WPC",
+      "headings": [
+        "Fuel Filter Assembly - Insert Filter",
+        "\u00a364.57"
+      ],
+      "skuLabels": [
+        "FRAPS12976"
+      ],
+      "displayedPrices": [
+        "64.57",
+        "99.29"
+      ],
+      "displayedLitres": [],
+      "visibleText": "G4WPC Clear Land Rover Defender D350 AWD MHEV 48v Auto Start/Stop 90 X-Dynamic HSE 3.0 (2996cc) Diesel/Hybrid Electric Semi Automatic 3 doors 30/07/25 29/07/28 Copy VIN More Details All categories / Filters / Fuel Filter Related: Oil Filter Air Filter Cabin Filter Urea Filter Engine Oil Sump Plug Sump Plug Washer Fuel Filter Assembly - Insert Filter SKU: FRAPS12976 In stock. Attributes Sort By Relevancy \u00a364.57 Gold Fuel Filter Assembly - Insert Filter Local Branch Show More Stock Type Quantity Boldon 1 RDC 4 NDC 55 \u00a364.57 RRP: \u00a399.29 Buy Now Add to basket 0",
+      "truncated": false,
+      "fitmentVerified": false,
+      "oilVerified": false,
+      "approvedForPublication": false,
+      "attributes": {
+        "status": "ATTRIBUTES_CAPTURED",
+        "rows": [
+          {
+            "attribute": "Filter Type",
+            "value": "Filter Insert"
+          },
+          {
+            "attribute": "Height (mm)",
+            "value": "201"
+          },
+          {
+            "attribute": "Outer Diameter (mm)",
+            "value": "104"
+          },
+          {
+            "attribute": "Diameter 3 (mm)",
+            "value": "10"
+          },
+          {
+            "attribute": "Bar Code",
+            "value": "502265029737"
+          }
+        ],
+        "oilVerified": false,
+        "groupSku": "FRAPS12976"
+      }
+    },
+    {
+      "category": "Engine Oils (Applied)",
+      "status": "CAPTURED_FOR_REVIEW",
+      "reason": null,
+      "selectedRegistration": true,
+      "registration": "G4WPC",
+      "headings": [
+        "Engine Oil Information",
+        "Oil recommendation",
+        "Capacity",
+        "Viscosity",
+        "ECO-FE Plus 0W-30 - 1L",
+        "\u00a314.24",
+        "ECO-FE Plus 0W-30 - 5L",
+        "\u00a356.99"
+      ],
+      "skuLabels": [
+        "COMECOFEP1L",
+        "COMECOFEP5L"
+      ],
+      "displayedPrices": [
+        "14.24",
+        "31.98",
+        "56.99",
+        "127.98"
+      ],
+      "displayedLitres": [
+        "1L",
+        "5L",
+        "20L",
+        "60L",
+        "199L"
+      ],
+      "visibleText": "G4WPC Clear Land Rover Defender D350 AWD MHEV 48v Auto Start/Stop 90 X-Dynamic HSE 3.0 (2996cc) Diesel/Hybrid Electric Semi Automatic 3 doors 30/07/25 29/07/28 Copy VIN More Details All categories / Service Items / Fluids & Lubricants / Engine Oils (Applicated) Engine Oil Information Oil recommendation 0W-30 This is a recommended engine oil. If you\u2019re unsure, please refer to the vehicle manufacturer\u2019s handbook. Capacity 1L 5L 20L 60L 199L Viscosity 0W-30 ECO-FE Plus 0W-30 - 1L SKU: COMECOFEP1L In stock. Attributes Sort By Relevancy \u00a314.24 Gold ECO-Fe Plus 0W-30 - 1L Local Branch Stock Type Quantity Boldon 6 RDC 12 NDC 1162 \u00a314.24 RRP: \u00a331.98 Buy Now Add to basket 0 ECO-FE Plus 0W-30 - 5L SKU: COMECOFEP5L In stock. Attributes Sort By Relevancy \u00a356.99 Gold ECO-Fe Plus 0W-30 - 5L Local Branch Stock Type Quantity Boldon 4 RDC 2 NDC 836 \u00a356.99 RRP: \u00a3127.98 Buy Now Add to basket 0",
+      "truncated": false,
+      "fitmentVerified": false,
+      "oilVerified": false,
+      "approvedForPublication": false,
+      "observedCategoryPath": "/parts/Engine%2520Oils%2520(Applicated)",
+      "attributes": {
+        "status": "NEEDS_REVIEW",
+        "reason": "MULTIPLE_OR_MISSING_PRODUCT_GROUPS"
+      }
+    }
+  ],
+  "complete": true
+}

@@ -1,0 +1,12 @@
+import {readFileSync,writeFileSync,mkdirSync,mkdtempSync} from 'node:fs';
+import {execFileSync} from 'node:child_process';
+import {createHash} from 'node:crypto';
+import os from 'node:os';
+import path from 'node:path';
+const stage=mkdtempSync(path.join(os.tmpdir(),'vecta-oil-fix-'));mkdirSync(path.join(stage,'payload'));
+const manifest={};for(const name of ['oil-capacity.mjs','live-service.mjs']){const data=readFileSync('workers/gsf/'+name);writeFileSync(path.join(stage,'payload',name),data);manifest[name]=createHash('sha256').update(data).digest('hex');}
+writeFileSync(path.join(stage,'payload','manifest.json'),JSON.stringify(manifest,null,2));
+writeFileSync(path.join(stage,'install.mjs'),readFileSync('scripts/oil-capacity-fix/install.mjs'));
+writeFileSync(path.join(stage,'APPLY-FIX.cmd'),'@echo off\r\ncd /d "%~dp0"\r\nnode install.mjs\r\npause\r\n');
+writeFileSync(path.join(stage,'READ-ME.txt'),'VECTA SERVICE OIL CAPACITY FIX\r\n\r\n1. Stop only the shared GSF/service worker. Leave Haynes and tyres running.\r\n2. Extract All from this ZIP. Double-click APPLY-FIX.cmd.\r\n3. Press Enter to update Downloads\\Vecta-Live-Repair-Quotes (11), or paste your existing worker folder path.\r\n4. Wait for UPDATE INSTALLED, then restart the existing START-LIVE-SERVICE-PRICING in your original folder.\r\n5. Retry G4WPC and allow live pricing to finish.\r\n\r\nThis changes two pricing modules, backs up original files and restores them if import validation fails. It does not install another worker or modify credentials, settings or sign-in profiles.\r\n\r\nCapacity evidence: Chris supplied a Haynes Lubricants and Fluids screenshot on 28 October 2026 for Defender L663 D350 DT306 2024 onward. Engine sump including filter: 8.8 litres. The existing pricing policy charges the next whole litre: 9 litres. The lookup checks registration plus model/engine identity before using this evidence. Other vehicles still need their own verified fill. Fresh GSF prices, product identities, VAT and stock remain required.\r\n\r\nOffline regression tests passed. Live workshop-PC lookup verification remains required after installing.\r\n');
+const destination=path.resolve(process.argv[2]||'Vecta-Oil-Capacity-Fix.zip');mkdirSync(path.dirname(destination),{recursive:true});execFileSync('zip',['-qr',destination,'.'],{cwd:stage});console.log(destination);

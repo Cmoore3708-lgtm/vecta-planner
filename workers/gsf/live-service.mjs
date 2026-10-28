@@ -1,6 +1,7 @@
 import {servicePriceRequest,serviceRequiredKinds,cleanServiceCosts} from '../../lib/service-pricing.js';
 import {captureServiceCategory} from './service-capture.mjs';
 import {readProductDialog} from './product-dialog.mjs';
+import {oilFillEvidence} from './oil-capacity.mjs';
 const fail=()=>{throw Error('REVIEW_REQUIRED');};
 const categories={oil:'Engine Oils (Applied)',oil_filter:'Oil Filter',air_filter:'Air Filter',cabin_filter:'Cabin Filter',fuel_filter:'Fuel Filter'};
 // Parse only the selected product's stock/price panel, never alternative cards or RRP.
@@ -18,8 +19,8 @@ export function catalogueSelection(capture,kind,registration){
  if(!title)fail();
  let quantityMilli=1000,packQuantityMilli=1000;
  if(kind==='oil'){
-  const fill=text.match(/\bProgress\s+0(?:\.0+)?\s*L\s*\/\s*(\d+(?:\.\d+)?)\s*L\b/i),pack=title.match(/\b(\d+(?:\.\d+)?)\s*L\s*$/i);
-  if(!fill||!pack)fail();quantityMilli=Math.round(Number(fill[1])*1000);packQuantityMilli=Math.round(Number(pack[1])*1000);
+  const fill=oilFillEvidence(capture,registration),pack=title.match(/\b(\d+(?:\.\d+)?)\s*L\s*$/i);
+  if(!fill||!pack)fail();quantityMilli=fill.requiredMl;packQuantityMilli=Math.round(Number(pack[1])*1000);
   if(quantityMilli<1||quantityMilli>30000||packQuantityMilli<1||packQuantityMilli>250000)fail();
  }
  const fuelType=/\bDiesel\b/.test(text)?'diesel':/\bPetrol\b/.test(text)?'petrol':/\bElectric(?:ity)?\b/.test(text)?'electric':null;
@@ -33,7 +34,7 @@ async function freshProduct(page,selected){
   if(/\/signin(?:[/?]|$)/.test(page.url()))throw Error('LOGIN_REQUIRED');
   try{product=await page.evaluate(readProductDialog);break;}catch{await page.waitForTimeout(200);}
  }
- if(!product||product.description!==selected.description||!selected.searchTerm.toUpperCase().endsWith(product.sku.toUpperCase())||product.unitNetPence!==selected.expectedPricePence)fail();
+ if(!product||String(product.description).replace(/\s+/g,' ').trim().toLowerCase()!==selected.description.replace(/\s+/g,' ').trim().toLowerCase()||!selected.searchTerm.toUpperCase().endsWith(product.sku.toUpperCase())||product.unitNetPence!==selected.expectedPricePence)fail();
  return {kind:selected.kind,sku:product.sku,brand:product.brand,description:product.description,quantityMilli:selected.quantityMilli,
   unitNetPence:Math.ceil(product.unitNetPence*1000/selected.packQuantityMilli),...(selected.kind==='oil'?{packNetPence:product.unitNetPence,packQuantityMilli:selected.packQuantityMilli}:{}),vatBasis:'EX_VAT',inStock:true};
 }
