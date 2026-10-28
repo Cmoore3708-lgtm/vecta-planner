@@ -85,3 +85,27 @@ test('late artwork readiness triggers targets even when another image mount retu
  const img=document.querySelector('[data-tyre-car]');img.src='data:image/svg+xml;charset=utf-8,'+encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="20 45 265 155"/>');img.dataset.vehicleReady='1';
  changed();assert.equal(document.querySelectorAll('.tp-wheel').length,4);assert.equal(disconnected,true);
 });
+test('brand can be selected before wheels, revealing the car prompt and retaining the brand at zero quantity',()=>{
+ const {context,document,form,calls}=setup();form.tyre_brand='';
+ const option={category:'budget',available:true,brand:'FALKEN',model:'TEST',unitPence:8500,totalPence:8500};
+ vm.runInContext('tyreGuideState='+JSON.stringify({status:'matched',result:{size:form.tyre_size,quantity:1,checkedAt:new Date().toISOString(),options:[{...option,choices:[option]}]}})+';refreshTyrePanel()',context);
+ assert.equal(document.getElementById('tyrePositions').hidden,true);assert.equal(document.querySelectorAll('[data-tyre-position]').length,0);
+ document.querySelector('.tyre-option[data-tyre-choice="Budget"]').click();assert.equal(document.getElementById('tyrePositions').hidden,true,'range selection alone must not reveal the car');
+ document.querySelector('[data-tyre-brand="FALKEN"]').click();
+ assert.equal(form.tyre_quantity,0);assert.equal(form.tyre_brand,'FALKEN');
+ assert.equal(document.querySelector('[data-tyre-brand="FALKEN"]').getAttribute('aria-pressed'),'true');
+ assert.equal(document.getElementById('tyrePositions').hidden,false);
+ assert.equal(document.querySelector('.tp-prompt').textContent,'Please select how many tyres you need');
+ document.querySelector('[data-tyre-position="Front passenger"]').click();assert.equal(form.tyre_quantity,1);assert.match(document.querySelector('.tyre-guide-card.selected .tyre-guide-total').textContent,/1 tyre: £85/);
+ document.querySelector('[data-tyre-position="Front passenger"]').click();assert.equal(form.tyre_quantity,0);assert.deepEqual(calls.at(-1),['205/55R16',1]);
+ assert.equal(document.querySelector('[data-tyre-brand="FALKEN"]').getAttribute('aria-pressed'),'true');assert.equal(document.getElementById('tyrePositions').hidden,false);
+ document.querySelector('.tyre-option[data-tyre-choice="Premium"]').click();assert.equal(form.tyre_brand,'');assert.equal(document.getElementById('tyrePositions').hidden,true);
+ assert.equal(context.selectedTyreGuide(),null,'a new range must not silently choose its first brand');
+});
+test('commercial or unavailable tyre prices retain an explicit brand-confirmation route',()=>{
+ const {context,document,form}=setup();form.tyre_brand='';form.tyre_photo_spec={commercial:true};
+ context.refreshTyrePanel();
+ const confirm=document.querySelector('[data-tyre-choice="Budget"][data-tyre-brand="Brand to be confirmed"]');assert.ok(confirm);confirm.click();
+ assert.equal(form.tyre_brand,'Brand to be confirmed');assert.equal(document.getElementById('tyrePositions').hidden,false);
+ document.querySelector('[data-tyre-position="Rear driver"]').click();assert.equal(form.tyre_quantity,1);assert.equal(context.selectedTyreGuide(),null);
+});
