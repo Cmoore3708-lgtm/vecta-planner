@@ -58,3 +58,23 @@ for(const path of ['public/booking.html','website/booking/index.html']){
   context.haynesState.status='confirmed';assert.equal(context.vehicleSummaryHtml(),'');
  });
 }
+
+for(const path of ['public/booking.html','website/booking/index.html']){
+ test(path+': mileage dialog restores entered values, validates input and saves unknown or known mileage',()=>{
+  const html=fs.readFileSync(path,'utf8');
+  const form={job_types:['Service'],service_choice:'Full Service',last_mot_mileage:'110000',mileage:'',mileage_unknown:false,work_required:''};
+  const context=vm.createContext({state:{step:2,mileage_dialog_open:true,form},esc:String,prettyMiles:v=>`${v} miles`,recommendationsHtml:()=>'',workTypeCardsHtml:()=>'',tyreOptionsHtml:()=>'',serviceOptionsHtml:()=>'',pricingHtml:()=>'',workDescriptionRequired:()=>false,prettyDate:v=>v});
+  vm.runInContext(html.slice(html.indexOf('function lastMotMileageLabel(){'),html.indexOf('function lookupHtml(){')),context);
+  vm.runInContext(html.slice(html.indexOf('function stepHtml(){'),html.indexOf('function serviceMileageValid(){')),context);
+  const {document}=parseHTML(context.stepHtml());let opened=0,closed=0,renders=0;
+  const dialog=document.querySelector('dialog');dialog.showModal=()=>opened++;dialog.close=()=>closed++;
+  context.document=document;context.render=()=>renders++;
+  vm.runInContext(html.slice(html.indexOf('function serviceMileageValid(){'),html.indexOf('function render(){')),context);
+  context.bindMileageDialog();assert.equal(opened,1);assert.equal(document.querySelector('[data-save-service-mileage]').disabled,true);
+  assert.equal(dialog.querySelector('[aria-label="Mileage at last MOT"]').value,'110000 miles');
+  form.mileage='123456';context.updateMileageDialogValidity();assert.equal(document.querySelector('[data-save-service-mileage]').disabled,false);
+  document.querySelector('[data-save-service-mileage]').onclick();assert.equal(closed,1);assert.equal(context.state.mileage_dialog_open,false);assert.equal(form.mileage,'123456');assert.equal(renders,1);
+  context.state.mileage_dialog_open=true;form.mileage_unknown=true;form.mileage='';context.bindMileageDialog();assert.equal(opened,2);assert.equal(document.querySelector('[data-save-service-mileage]').disabled,false);
+  let prevented=false;dialog.oncancel({preventDefault(){prevented=true;}});assert.equal(prevented,true);assert.equal(context.state.mileage_dialog_open,false);assert.equal(form.mileage_unknown,true);
+ });
+}
