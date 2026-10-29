@@ -75,6 +75,12 @@
 @media(max-width:400px){.service-option.service-compact{padding:12px}.service-compact .service-title-row strong{font-size:19px}.service-compact .price{font-size:24px}.service-interval b{font-size:9px}.service-compact .free-clean{font-size:7px;padding:4px}.service-features{gap:7px 10px}.service-compact .service-feature{font-size:10px}}
 
 
+/* Loading copy stays secondary; final service prices retain their existing size. */
+.service-compact .price.service-price-pulsing{font-size:14px;font-weight:600;line-height:1.4;max-width:145px}
+.service-compact .free-clean{animation:freeCleanPulse 2.4s ease-in-out infinite}
+@keyframes freeCleanPulse{0%,100%{opacity:1;box-shadow:0 0 0 0 #ffffff00}50%{opacity:.65;box-shadow:0 0 10px 2px #ffffff40}}
+@media(prefers-reduced-motion:reduce){.service-compact .free-clean{animation:none}}
+
 .service-mileage-summary{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:0 0 18px;font-size:13px}.service-mileage-summary button{padding:9px 13px;font-size:12px}
 .service-mileage-dialog{box-sizing:border-box;width:min(480px,calc(100% - 28px));max-height:calc(100dvh - 28px);overflow:auto;margin:auto;padding:24px;border:1px solid #ddd;border-radius:18px;background:#fff;color:#161b22;box-shadow:0 24px 80px #0006}.service-mileage-dialog::backdrop{background:#080d14bb}.service-mileage-heading{display:flex;align-items:center;justify-content:space-between;gap:12px}.service-mileage-heading h3{margin:0;font-size:22px}.service-mileage-heading button{background:transparent;color:#444;border:0;font-size:27px;padding:0 4px;line-height:1;cursor:pointer}.service-mileage-dialog>p{font-size:14px;line-height:1.5;color:#555;margin:10px 0 18px}.service-mileage-dialog .grid2{grid-template-columns:1fr;gap:14px}.service-mileage-dialog input{box-sizing:border-box;width:100%}.service-mileage-dialog .mileage-unknown input{width:auto}.service-mileage-dialog [data-save-service-mileage]{width:100%;margin-top:20px;padding:13px 18px;border:0;border-radius:10px;background:#d7192d;color:#fff;font-size:16px;font-weight:700;cursor:pointer}.service-mileage-dialog [data-save-service-mileage]:disabled{opacity:.45;cursor:default}.service-mileage-dialog input[type="number"]{font-size:16px;padding:12px}.service-mileage-summary button{border:1px solid #ccd1d7;border-radius:8px;background:#fff;color:#222;cursor:pointer}.service-mileage-dialog .service-mileage-error{color:#b8192d;font-size:13px}.service-mileage-dialog input:focus-visible,.service-mileage-dialog button:focus-visible{outline:3px solid #35d58a;outline-offset:3px}
 
