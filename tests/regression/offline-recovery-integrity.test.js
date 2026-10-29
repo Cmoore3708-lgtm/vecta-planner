@@ -49,6 +49,8 @@ test('offline snapshot contains the complete operational state including Fleet p
 test('an empty browser restores the newest usable local workshop snapshot', () => {
   const context = {
     app: {jobs:[]}, fleetVehicles:[], fleetPlans:[],
+    vectaPendingSync:()=>[],
+    vectaWorkshopSavedTime:candidate=>Date.parse(candidate.offline_saved_at||'')||0,
     vectaHasUsableWorkshopData: candidate => !!(candidate?.jobs?.length),
     vectaListBackups: async () => [{created_at:'2026-09-13T10:00:00Z',record_counts:{jobs:1},app:{jobs:[{id:'restored'}]},fleetVehicles:[{id:'vehicle'}],fleetPlans:[{id:'plan'}]}],
     vectaBackupJobCount: snapshot => snapshot.record_counts.jobs,
@@ -105,6 +107,8 @@ test('delayed backup recovery never overwrites jobs loaded while storage was ope
   const rows = new Promise(resolve => { release = resolve; });
   const context = {
     app: {jobs:[]}, fleetVehicles:[], fleetPlans:[],
+    vectaPendingSync:()=>[],
+    vectaWorkshopSavedTime:candidate=>Date.parse(candidate.offline_saved_at||'')||0,
     vectaHasUsableWorkshopData: candidate => !!candidate?.jobs?.length,
     vectaListBackups: () => rows,
     vectaBackupJobCount: snapshot => snapshot.record_counts.jobs,
@@ -127,4 +131,26 @@ test('damaged local JSON cannot abort offline recovery or cloud startup', () => 
   };
   vm.runInNewContext(`${namedFunctionSource('loadLocal')};loadLocal();`,context);
   assert.equal(context.app.jobs.length,0);
+});
+
+for (const scenario of [
+  {name:'stale non-empty local copy restores newer saved diary',local:'2026-10-28',backup:'2026-10-29',pending:[],restored:true},
+  {name:'newer local diary survives an older backup',local:'2026-10-29',backup:'2026-10-28',pending:[],restored:false},
+  {name:'unsynced local work survives a newer snapshot',local:'2026-10-28',backup:'2026-10-29',pending:[{key:'jobs:local'}],restored:false},
+]) test(scenario.name,async()=>{
+  const context={app:{jobs:[{id:'local'}],offline_saved_at:scenario.local},
+    vectaHasUsableWorkshopData:c=>!!c.jobs.length,vectaPendingSync:()=>scenario.pending,
+    vectaListBackups:async()=>[{app:{jobs:[{id:'backup'}],offline_saved_at:scenario.backup},record_counts:{jobs:1}}],
+    vectaBackupJobCount:s=>s.record_counts.jobs,merge:(_a,b)=>b,
+    localStorage:{setItem(){}},STORE_KEY:'store',console};
+  vm.runInNewContext(`${namedFunctionSource('vectaWorkshopSavedTime')};${namedFunctionSource('vectaRestoreLatestBackupIfNeeded')};promise=vectaRestoreLatestBackupIfNeeded()`,context);
+  assert.equal(await context.promise,scenario.restored);
+  assert.equal(context.app.jobs[0].id,scenario.restored?'backup':'local');
+});
+
+test('startup cannot overwrite the last good snapshot before recovery settles',()=>{
+  const context={STORE_KEY:'store',vectaLocalRecoveryReady:false,app:{jobs:[]},localStorage:{setItem(){}},vectaListBackups(){throw Error('premature backup')}};
+  vm.runInNewContext(`${namedFunctionSource('saveLocal')};${namedFunctionSource('vectaCreateDailyBackup')};saved=saveLocal();promise=vectaCreateDailyBackup(false,'startup-local')`,context);
+  assert.equal(context.saved,true);
+  return context.promise.then(value=>assert.equal(value,null));
 });
