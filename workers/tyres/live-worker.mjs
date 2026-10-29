@@ -29,7 +29,7 @@ try{
  });
  let firstTask=await rpc({action:'pull'});if(!['JOB','IDLE'].includes(firstTask.status))throw Error('RELAY_NOT_READY');
  console.log('LIVE TYRE WORKER READY. Keep this window and Edge open. Website searches are read-only; no tyres will be ordered.');
- runtime.set('connected');
+ runtime.set('connected','STARTUP_CONFIRMED');
  while(!stopped&&!runtime.stopRequested()){
   let task;
   try{task=firstTask||await rpc({action:'pull'});firstTask=null;runtime.set('connected')}catch(e){runtime.set(e.message==='PAIRING_REQUIRED'?'attention':'reconnecting',e.message==='PAIRING_REQUIRED'?'PAIRING_REQUIRED':'RELAY_UNAVAILABLE');if(e.message==='PAIRING_REQUIRED')throw e;console.log('Connection unavailable; retrying.');await new Promise(r=>setTimeout(r,5000));continue}

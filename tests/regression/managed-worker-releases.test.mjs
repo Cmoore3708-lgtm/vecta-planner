@@ -118,3 +118,16 @@ test('managed tyre startup needs no Enter when session/settings verify; failures
  checks=0;await prepareTyreStartup({managed:true,verify:async()=>{if(++checks===1)throw Error('LOGIN_REQUIRED')},confirm:async()=>{confirms++}});assert.equal(confirms,1);assert.equal(checks,2);
  await assert.rejects(prepareTyreStartup({managed:true,verify:async()=>{throw Error('SETTINGS_REQUIRED')},confirm:async()=>{confirms++}}),/SETTINGS_REQUIRED/);
 });
+test('verified tyre startup clears its resolved prompt without hiding later lookup failures',()=>temporary(async root=>{
+ const file=path.join(root,'status.json');
+ const runtime=createWorkerRuntime('Tyres',{env:{VECTA_WORKER_STATUS_FILE:file},timers:false});
+ runtime.set('attention','SIGN_IN_OR_SETTINGS_REQUIRED');
+ runtime.set('connected','RELAY_ONLY');
+ assert.equal(JSON.parse(await fs.readFile(file)).state,'attention');
+ runtime.set('connected','STARTUP_CONFIRMED');
+ assert.equal(JSON.parse(await fs.readFile(file)).state,'connected');
+ runtime.set('attention','LOGIN_REQUIRED');runtime.set('connected','STARTUP_CONFIRMED');
+ assert.equal(JSON.parse(await fs.readFile(file)).state,'attention');
+ runtime.set('connected','LOOKUP_CONFIRMED');assert.equal(JSON.parse(await fs.readFile(file)).state,'connected');
+ runtime.close();
+}));
