@@ -11,7 +11,7 @@ function harness(online=true, recovery=async()=>{}, timeout=async p=>p){
     safe(fn){c.start=fn()},setTimeout(fn,ms){timers.push({fn,ms});return timers.length},clearTimeout(){},setInterval(){},
     vectaSetStartupLoading(on){events.push(on?'loading':'released')},render(){events.push('render')},updateConnectivityUI(){},
     loadLocal(){events.push('local')},vectaRunDataIngressMigrations(){return {}},bindTop(){},
-    vectaWithTimeout:timeout,vectaRestoreLatestBackupIfNeeded:recovery,vectaCreateDailyBackup:async()=>{},
+    saveLocal(){},vectaWithTimeout:timeout,vectaRestoreLatestBackupIfNeeded:recovery,vectaCreateDailyBackup:async()=>{},
     loadCloudConfig:async()=>true,ensureSupabase(fn){c.connected=fn(true)},connectSupabase:()=>true,
     vectaPrimeAuthoritativeDashboard:async()=>{await live;events.push('live')},pullFleetCloudState:async()=>{},
     importContractor2026Spreadsheet(){},ensureServiceTemplates(){},ensureRecurringWorkshopTasks(){},startCloudSync(){},

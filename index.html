@@ -9733,6 +9733,7 @@ var VECTA_BACKUP_STORE='snapshots';
 var VECTA_BACKUP_RETENTION=30;
 var vectaCloudReachable=null;
 var vectaLastCloudSuccess='';
+var vectaLocalRecoveryReady=false;
 function vectaPendingSync(){try{var q=JSON.parse(localStorage.getItem(VECTA_PENDING_SYNC_KEY)||'[]');return Array.isArray(q)?q.map(vectaNormaliseQueuedItem):[]}catch(e){return []}}
 function vectaSavePendingSync(q){try{localStorage.setItem(VECTA_PENDING_SYNC_KEY,JSON.stringify((q||[]).map(vectaNormaliseQueuedItem)))}catch(e){if(vectaIsQuotaError(e))vectaLocalStorageLimited=true;console.warn('Could not save offline sync queue',e)}updateConnectivityUI()}
 function queueRemoteOperation(operation,table,payload,options){options=options||{};if(operation==='delete'&&table==='jobs'){console.warn('DATA SAFETY: blocked queued jobs DELETE',payload&&payload.id||payload);return {blocked:true}}var q=vectaPendingSync(),key=operation+':'+table+':'+String((payload&&payload.id)||payload||'');var prior=q.find(function(x){return x.key===key});q=q.filter(function(x){return x.key!==key});q.push({key:key,operation:operation,table:table,payload:payload,jobWriteIntent:prior&&prior.jobWriteIntent==='create'?'create':options.jobWriteIntent||'update',queued_at:new Date().toISOString(),attempts:0,next_retry_at:''});vectaSavePendingSync(q);console.warn('Queued for later cloud sync',operation,table,payload&&payload.id||payload);return {queued:true}}
@@ -9748,14 +9749,25 @@ async function vectaPruneBackups(){var rows=await vectaListBackups();if(rows.len
 function vectaBackupPayload(source){return {id:new Date().toISOString().slice(0,10),created_at:new Date().toISOString(),source:source||'local',version:'offline-continuity-v1',record_counts:{jobs:(app.jobs||[]).length,customers:(app.customers||[]).length,vehicles:(app.vehicles||[]).length,tasks:(app.tasks||[]).length,invoices:(app.invoices||[]).length,serviceRecords:(app.serviceRecords||[]).length,websiteRequests:(app.websiteRequests||[]).length},app:JSON.parse(JSON.stringify(app)),fleetVehicles:(typeof fleetVehicles!=='undefined'&&Array.isArray(fleetVehicles))?JSON.parse(JSON.stringify(fleetVehicles)):[],fleetPlans:(typeof fleetPlans!=='undefined'&&Array.isArray(fleetPlans))?JSON.parse(JSON.stringify(fleetPlans)):[],pendingSync:vectaPendingSync()}}
 function vectaBackupJobCount(snapshot){try{return Number(snapshot&&snapshot.record_counts&&snapshot.record_counts.jobs!=null?snapshot.record_counts.jobs:(snapshot&&snapshot.app&&Array.isArray(snapshot.app.jobs)?snapshot.app.jobs.length:0))||0}catch(e){return 0}}
 function vectaHasUsableWorkshopData(candidate){candidate=candidate||app;return !!(candidate&&Array.isArray(candidate.jobs)&&candidate.jobs.length)}
+function vectaWorkshopSavedTime(candidate){
+  if(!candidate)return 0;
+  var stamp=Date.parse(candidate.offline_saved_at||'')||0;
+  if(stamp)return stamp;
+  /* Older releases have no snapshot timestamp in localStorage. Only a newer
+     actual job edit provides evidence that their non-empty copy is stale. */
+  (candidate.jobs||[]).forEach(function(job){stamp=Math.max(stamp,Date.parse(job.updated_at||job.created_at||'')||0)});
+  return stamp;
+}
 async function vectaRestoreLatestBackupIfNeeded(){
   try{
-    if(vectaHasUsableWorkshopData(app))return false;
+    var before=JSON.stringify(app),hasLocal=vectaHasUsableWorkshopData(app);
+    if(hasLocal&&vectaPendingSync().length)return false;
     var rows=await vectaListBackups(),usable=rows.find(function(r){return r&&r.app&&vectaBackupJobCount(r)>0&&Array.isArray(r.app.jobs)});
     if(!usable)return false;
-    /* Storage may finish after the cloud or another local edit. Recheck after
-       awaiting it so an older snapshot cannot replace the newly loaded diary. */
-    if(vectaHasUsableWorkshopData(app))return false;
+    /* A cloud response or local edit arriving during IndexedDB recovery wins. */
+    if(JSON.stringify(app)!==before)return false;
+    if(hasLocal&&vectaWorkshopSavedTime(usable.app)<=vectaWorkshopSavedTime(app))return false;
+    if(hasLocal&&vectaPendingSync().length)return false;
     app=merge(app,JSON.parse(JSON.stringify(usable.app)));
     if(typeof fleetVehicles!=='undefined'&&Array.isArray(usable.fleetVehicles)&&usable.fleetVehicles.length)fleetVehicles=JSON.parse(JSON.stringify(usable.fleetVehicles));
     if(typeof fleetPlans!=='undefined'&&Array.isArray(usable.fleetPlans)&&usable.fleetPlans.length)fleetPlans=JSON.parse(JSON.stringify(usable.fleetPlans));
@@ -9765,8 +9777,9 @@ async function vectaRestoreLatestBackupIfNeeded(){
   }catch(e){console.warn('Offline snapshot restore skipped',e);return false}
 }
 async function vectaCreateDailyBackup(force,source){
+  if(!vectaLocalRecoveryReady)return null;
   var today=new Date().toISOString().slice(0,10),rows=await vectaListBackups(),snap=vectaBackupPayload(source||((navigator.onLine&&vectaCloudReachable)?'cloud-synchronised':'offline-local'));
-  /* Always refresh today's snapshot instead of freezing the first startup copy for the whole day.
+  /* Always refresh the current daily snapshot instead of freezing the first startup copy for the whole day.
      This is what makes the backup genuinely "last known good" rather than "first state seen today". */
   if(!force&&vectaBackupJobCount(snap)===0){var usable=rows.find(function(r){return vectaBackupJobCount(r)>0});if(usable)return usable}
   await vectaStoreBackup(snap);
@@ -9861,7 +9874,7 @@ registerVectaServiceWorker();
 
 var vectaLocalStorageLimited=false;
 function vectaIsQuotaError(e){var n=String(e&&e.name||''),m=String(e&&e.message||e||'').toLowerCase();return n==='QuotaExceededError'||n==='NS_ERROR_DOM_QUOTA_REACHED'||/quota|storage.*exceed|exceed.*storage/.test(m)}
-function saveLocal(){var saved=false;try{localStorage.setItem(STORE_KEY,JSON.stringify(app));vectaLocalStorageLimited=false;saved=true}catch(e){if(vectaIsQuotaError(e)){vectaLocalStorageLimited=true;console.warn('Browser local storage is full. Cloud saving will continue; offline snapshot storage is handled separately.',e)}else console.warn('Local browser save skipped',e)}vectaCreateDailyBackup(false,'local-save').catch(function(e){console.warn('Daily local backup skipped',e)});return saved}
+function saveLocal(){if(vectaLocalRecoveryReady)app.offline_saved_at=new Date().toISOString();var saved=false;try{localStorage.setItem(STORE_KEY,JSON.stringify(app));vectaLocalStorageLimited=false;saved=true}catch(e){if(vectaIsQuotaError(e)){vectaLocalStorageLimited=true;console.warn('Browser local storage is full. Cloud saving will continue; offline snapshot storage is handled separately.',e)}else console.warn('Local browser save skipped',e)}vectaCreateDailyBackup(false,'local-save').catch(function(e){console.warn('Daily local backup skipped',e)});return saved}
 function migrateLegacyTasksLocal(){
   app.tasks=Array.isArray(app.tasks)?app.tasks:[];
   var idMap={};
@@ -10759,7 +10772,7 @@ function init(){safe(async function(){
        after the offline screen has already been released. */
     if(restored&&vectaCloudReachable===false)render();
     return restored;
-  });
+  }).finally(function(){vectaLocalRecoveryReady=true;saveLocal()});
   try{await vectaWithTimeout(localRecovery,1500,'Local backup recovery')}catch(e){console.warn('Local backup recovery continuing in background',e)}
   /* Backups must never block startup. */
   vectaCreateDailyBackup(false,'startup-local').catch(function(e){console.warn('Startup backup skipped',e)});
