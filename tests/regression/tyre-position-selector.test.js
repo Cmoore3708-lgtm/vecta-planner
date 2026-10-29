@@ -156,6 +156,7 @@ test('requesting four when the selected brand has three shows the exact stock sh
 test('unavailable prices use concise TBC labels in every category',()=>{
  const {context,document,form}=setup();form.tyre_brand='';
  vm.runInContext("tyreGuideState={status:'unavailable',result:null};refreshTyrePanel()",context);
+ assert.equal(document.getElementById('tyreGuideStatus').textContent,'Live tyre prices are currently unavailable. We will contact you with a price');
  for(const card of document.querySelectorAll('.tyre-guide-card')){
   assert.doesNotMatch(card.textContent,/Confirm brand with us|Price on request/);
   assert.equal(card.querySelector('.tyre-brand-choice').textContent,'£TBC');
