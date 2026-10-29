@@ -61,3 +61,9 @@ test('selecting Service fetches one Major parts set, displays all packages and s
  }
  assert.equal(fetches,1);assert.equal(queueCalls,1);controller.reset();
 });
+
+test('fitment interface heading cannot replace the selected product description',()=>{
+ const c=capture('NU67VSE','Oil Filter');c.headings.unshift('Fitment');
+ assert.equal(catalogueSelection(c,'oil_filter','NU67VSE').description,'Oil Filter - Spin-on Filter');
+ c.selectedRegistration=false;assert.throws(()=>catalogueSelection(c,'oil_filter','NU67VSE'));
+});

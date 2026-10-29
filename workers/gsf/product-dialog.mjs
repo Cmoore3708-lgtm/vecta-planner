@@ -2,8 +2,15 @@
 // Self-contained so the identical function runs in Edge and DOM fixture tests.
 export function readProductDialog(doc = document) {
   const clean=value=>String(value||'').replace(/\s+/g,' ').trim();
-  const visible=element=>!element.hidden && element.getAttribute('aria-hidden')!=='true' &&
-    (typeof getComputedStyle!=='function'||getComputedStyle(element).display!=='none');
+  const visible=element=>{
+    for(let current=element;current&&current.nodeType===1;current=current.parentElement){
+      if(current.hidden||current.getAttribute('aria-hidden')==='true')return false;
+      if(typeof getComputedStyle==='function'){
+        const style=getComputedStyle(current);if(style.display==='none'||style.visibility==='hidden')return false;
+      }
+    }
+    return true;
+  };
   const dialogs=[...doc.querySelectorAll('[role="dialog"]')].filter(el=>visible(el)&&clean(el.querySelector('h2')?.textContent)==='Part Details');
   if(dialogs.length>1)throw Error('SETTINGS_REQUIRED');
   const fullPage=doc.location?.origin==='https://trade.gsfcarparts.com' && /^\/partdetails\/[^/]+\/?$/.test(doc.location.pathname);
@@ -37,7 +44,7 @@ export function readProductDialog(doc = document) {
   const stockLabels=[...dialog.querySelectorAll('*')].filter(visible).map(el=>clean(el.textContent));
   const inStock=stockLabels.some(text=>/^In stock(?: in (?:RDC|NDC))?\.?(?: Get it tomorrow\.)?$/i.test(text));
   if(!inStock||stockLabels.some(text=>/^Out of stock\.?$/i.test(text)))throw Error('UNAVAILABLE');
-  const stock=[...dialog.querySelectorAll('tbody tr')].map(row=>[...row.querySelectorAll('td')].map(el=>clean(el.textContent)))
+  const stock=[...dialog.querySelectorAll('tbody tr')].filter(visible).map(row=>[...row.querySelectorAll('td')].map(el=>clean(el.textContent)))
     .filter(cells=>cells.length===2&&/^\d+$/.test(cells[1]))
     .map(([location,quantity])=>({location,quantity:Number(quantity)}));
   if(!stock.length||stock.some(row=>!row.location||row.location.length>80||!Number.isSafeInteger(row.quantity)||row.quantity>1000000)||!stock.some(row=>row.quantity>0))throw Error('UNAVAILABLE');

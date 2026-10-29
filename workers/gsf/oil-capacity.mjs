@@ -1,6 +1,13 @@
 // Manufacturer capacities are separate from GSF bottle sizes and price evidence.
 // Reviewed from Chris's Haynes Lubricants and Fluids screenshot, 28 October 2026.
 const reviewed=[{
+ registration:'CM14KEL',typeId:'t_619108899',source:'HaynesPro: Engine sump, including filter',
+ engine:'NISSAN Qashqai (J12) 1.5 e-Power (KR15DDT), 2023 onwards',
+ requiredMl:5100,includingFilter:true,reviewedAt:'2026-10-29',evidenceFetchedAt:'2026-10-14T14:00:46.521Z',
+ // Stored manufacturer result has twelve preferred/alternative lubricant rows,
+ // all agreeing on this fill. Require the live supplier identity as well as reg.
+ matches:text=>/\bNissan Qashqai\b/i.test(text)&&/\b1\.5\b/.test(text)&&/\be[ -]?Power\b/i.test(text)&&/\bPetrol\b/i.test(text)
+},{
  registration:'G4WPC',typeId:'t_619041753',source:'HaynesPro: Engine sump, including filter',
  engine:'Defender (L663) D350 (3.0 TD6 MHEV) (DT306), 2024 onwards',
  requiredMl:8800,includingFilter:true,reviewedAt:'2026-10-28',

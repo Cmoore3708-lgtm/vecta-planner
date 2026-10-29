@@ -15,7 +15,7 @@ export function catalogueSelection(capture,kind,registration){
  const pricePence=Math.round(Number(panel[2])*100);
  const selectedCard=segment.match(/Sort By Relevancy\s+£\s*(\d+\.\d{2})\s+(Gold|Silver|Bronze)\b/);
  if(!selectedCard||selectedCard[1]!==panel[2]||selectedCard[2]!=='Gold')fail('PRICE_OR_GRADE_NOT_CONFIRMED'); // Mid Range: selected Gold option only.
- const title=capture.headings?.find(h=>h&&!/^£/.test(h)&&!['Engine Oil Information','Progress','Oil recommendation','Capacity','Viscosity'].includes(h));
+ const title=capture.headings?.find(h=>h&&!/^£/.test(h)&&!['Fitment','Attributes','Engine Oil Information','Progress','Oil recommendation','Capacity','Viscosity'].includes(h));
  if(!title)fail('PRODUCT_DESCRIPTION_MISSING');
  let quantityMilli=1000,packQuantityMilli=1000;
  if(kind==='oil'){
@@ -23,7 +23,10 @@ export function catalogueSelection(capture,kind,registration){
   if(!fill||!pack)fail('OIL_FILL_OR_PACK_UNCONFIRMED');quantityMilli=fill.requiredMl;packQuantityMilli=Math.round(Number(pack[1])*1000);
   if(quantityMilli<1||quantityMilli>30000||packQuantityMilli<1||packQuantityMilli>250000)fail('OIL_QUANTITY_OUT_OF_RANGE');
  }
- const fuelType=/\bDiesel\b/.test(text)?'diesel':/\bPetrol\b/.test(text)?'petrol':/\bElectric(?:ity)?\b/.test(text)?'electric':null;
+ const identityEnd=text.indexOf(' Copy VIN'),identity=identityEnd<0?'':text.slice(0,identityEnd);
+ const fuels=['diesel','petrol','electric'].filter(f=>new RegExp('\\b'+(f==='electric'?'Electric(?:ity)?':f)+'\\b','i').test(identity));
+ const combustion=fuels.filter(f=>f!=='electric');
+ const fuelType=combustion.length===1?combustion[0]:combustion.length>1?null:fuels.includes('electric')?'electric':null;
  if(!fuelType)fail('FUEL_TYPE_UNCONFIRMED');
  return {kind,searchTerm:sku,expectedPricePence:pricePence,description:title,quantityMilli,packQuantityMilli,fuelType};
 }
