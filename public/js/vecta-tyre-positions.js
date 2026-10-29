@@ -60,7 +60,7 @@
  function mount(form,onChange){
   const host=root.document.getElementById('tyrePositions');if(!host||host.hidden)return;
   const chosen=selection(form),brand=form.tyre_brand||form.tyre_guide?.brand||'',img=host.querySelector('[data-tyre-car]');
-  const bind=()=>host.querySelectorAll('[data-tyre-position]').forEach(button=>{const active=chosen.includes(button.dataset.tyrePosition);button.setAttribute('aria-pressed',String(active));const dot=button.querySelector('.tp-dot');if(dot)dot.textContent=active?'✓':'+';button.onclick=()=>{if(!form.tyre_choice||!form.tyre_brand){root.document.querySelector('.tyre-brand-choice:not(:disabled)')?.focus();return;}const next=selection(form),p=button.dataset.tyrePosition;form.tyre_positions=positions.filter(name=>name===p?!next.includes(name):next.includes(name));form.tyre_quantity=form.tyre_positions.length;form.tyre_guide=null;onChange();};});
+  const bind=()=>host.querySelectorAll('[data-tyre-position]').forEach(button=>{const active=chosen.includes(button.dataset.tyrePosition);button.setAttribute('aria-pressed',String(active));const dot=button.querySelector('.tp-dot');if(dot)dot.textContent=active?'✓':'+';button.onclick=()=>{if(!form.tyre_choice||!form.tyre_brand){root.document.querySelector('.tyre-brand-choice:not(:disabled)')?.focus({preventScroll:true});return;}const next=selection(form),p=button.dataset.tyrePosition;form.tyre_positions=positions.filter(name=>name===p?!next.includes(name):next.includes(name));form.tyre_quantity=form.tyre_positions.length;form.tyre_guide=null;onChange();};});
   bind();
   if(!img)return;
   const asset=img.dataset.vehicleSource.match(/\/(\d+)\.svgz?$/)?.[1];
@@ -72,7 +72,10 @@
     let profile=profiles[asset]||measured.get(asset);if(!profile){profile=measureWheels(svg);if(profile)measured.set(asset,profile);}if(!profile)return;
     const artworkWheels=profile.map((wheel,i)=>i===3?[wheel[0],wheel[1],wheel[2]*1.12,wheel[3]*1.12]:wheel);
     const [x,y,w,h]=vb,scene=host.querySelector('.tp-scene');scene.style.aspectRatio=w+'/'+h;
-    host.querySelector('.tp-wheels').innerHTML=artworkWheels.map(([cx,cy,rx,ry],i)=>`<button type="button" class="tp-wheel ${i>=2?'tp-far':''} ${i===1||i===3?'tp-rear':''}" data-tyre-position="${positions[i]}" aria-label="${positions[i]} tyre" aria-pressed="${chosen.includes(positions[i])}" style="left:${(cx-x)/w*100}%;top:${(cy-y)/h*100}%;width:${rx*2/w*100}%;height:${ry*2/h*100}%"><span class="tp-ring">${i>=2?'<img class="tp-tyre" src="/assets/tyre-axle-still.webp" alt="">':''}<span class="tp-check" aria-hidden="true">✓</span></span>${brand?`<span class="tp-brand">${root.VectaTyreBooking.brandLogo(brand)}</span>`:''}</button>`).join('');
+    const wheels=host.querySelector('.tp-wheels');
+    // Keep tapped buttons mounted so mobile focus and scroll anchors stay put.
+    const wheelKey=img.src+'|'+brand;
+    if(wheels._artworkKey!==wheelKey){wheels._artworkKey=wheelKey;wheels.innerHTML=artworkWheels.map(([cx,cy,rx,ry],i)=>`<button type="button" class="tp-wheel ${i>=2?'tp-far':''} ${i===1||i===3?'tp-rear':''}" data-tyre-position="${positions[i]}" aria-label="${positions[i]} tyre" aria-pressed="${chosen.includes(positions[i])}" style="left:${(cx-x)/w*100}%;top:${(cy-y)/h*100}%;width:${rx*2/w*100}%;height:${ry*2/h*100}%"><span class="tp-ring">${i>=2?'<img class="tp-tyre" src="/assets/tyre-axle-still.webp" alt="">':''}<span class="tp-check" aria-hidden="true">✓</span></span>${brand?`<span class="tp-brand">${root.VectaTyreBooking.brandLogo(brand)}</span>`:''}</button>`).join('');}
     const detail=host.querySelector('.tp-car-detail');detail.src=img.src;detail.style.maskImage=detail.style.webkitMaskImage=artworkWheels.slice(2).map(([cx,cy,rx,ry])=>`radial-gradient(ellipse ${(rx+7)/w*100}% ${(ry+7)/h*100}% at ${(cx-x)/w*100}% ${(cy-y)/h*100}%,#000 65%,transparent 100%)`).join(',');
     bind();watchers.get(host)?.disconnect();
    }catch{ /* Keep labelled controls usable if supplier artwork is malformed. */ }
@@ -87,3 +90,4 @@
  }
  root.VectaTyrePositions={positions,profiles,projectWheels,measureWheels,selection,initialise,html,mount};
 })(window);
+

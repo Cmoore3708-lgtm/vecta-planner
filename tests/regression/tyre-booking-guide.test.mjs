@@ -72,7 +72,7 @@ test('number-only size entry keeps separators fixed and searches only on Check L
  button.click();await tick();assert.equal(calls.length,0);assert.match(document.querySelector('#tyreGuideStatus').textContent,/Enter all three numbers/);
  for(const [index,value]of ['2a05','55','16'].entries()){inputs[index].value=value;inputs[index].oninput();}await tick();assert.equal(form.tyre_size,'205/55R16');assert.equal(calls.length,0);
  button.click();await tick();assert.equal(calls.length,1);assert.deepEqual(calls[0].body,{size:'205/55R16',quantity:1});assert.equal(document.querySelector('.tyre-guide-price').textContent,'£62');
- inputs[1].value='60';inputs[1].oninput();assert.equal(form.tyre_guide,null);assert.equal(document.querySelectorAll('.tyre-guide-price').length,0);assert.match(document.querySelector('.tyre-brand-empty').textContent,/Price on request/);await tick();assert.equal(calls.length,1);
+ inputs[1].value='60';inputs[1].oninput();assert.equal(form.tyre_guide,null);assert.equal(document.querySelectorAll('.tyre-guide-price').length,0);assert.equal(document.querySelector('.tyre-brand-empty').textContent,'£TBC');await tick();assert.equal(calls.length,1);
  let prevented=false;inputs[0].onpaste({clipboardData:{getData:()=>'225/45R17'},preventDefault(){prevented=true}});assert.equal(prevented,true);assert.equal(form.tyre_size,'225/45R17');assert.deepEqual(inputs.map(e=>e.value),['225','45','17']);assert.equal(calls.length,1);
  vm.runInContext('tyreLookup.dispose()',context);
 });
@@ -153,3 +153,4 @@ test('choice validation accepts legacy single-brand responses and rejects malfor
   assert.throws(()=>c.cleanResult({...p,options:[{...p.options[0],choices},...p.options.slice(1)]},p.size,1));
  }
 });
+
