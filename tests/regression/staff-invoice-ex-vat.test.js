@@ -24,11 +24,11 @@ test('inclusive, exclusive, exempt, negative, zero and configured rates',()=>{
 });
 test('editor preserves original gross amount and mode through rounded display and saves',()=>{
  const rendered=ctx.staffInvoiceLineHtml({amount:100,vat_mode:'inc_vat'});
- assert.match(rendered,/value="83.33"/);assert.match(rendered,/value="inc_vat"/);assert.match(rendered,/value="ex_vat" selected/);assert.match(rendered,/value="no_vat"/);
- const input={value:'83.33',dataset:{displayAmount:'83.33',displayVat:'ex_vat',originalAmount:'100',originalVat:'inc_vat'}};
- const tr={querySelector:s=>s==='[data-line-amount]'?input:{value:'ex_vat'}};
+ assert.match(rendered,/value="100.00"/);assert.match(rendered,/value="inc_vat"/);assert.match(rendered,/value="inc_vat" selected/);assert.match(rendered,/value="no_vat"/);
+ const input={value:'100.00',dataset:{displayAmount:'100.00',displayVat:'inc_vat',originalAmount:'100',originalVat:'inc_vat'}};
+ const vat={value:'inc_vat'},tr={querySelector:s=>s==='[data-line-amount]'?input:vat};
  const original=ctx.invoiceEditorLineValue(tr);assert.equal(original.amount,100);assert.equal(original.vat_mode,'inc_vat');assert.equal(ctx.invoiceTotals([original]).total,100);
- input.value='90';const edited=ctx.invoiceEditorLineValue(tr);assert.equal(edited.amount,90);assert.equal(edited.vat_mode,'ex_vat');assert.equal(ctx.invoiceTotals([edited]).total,108);
+ input.value='90';vat.value='ex_vat';const edited=ctx.invoiceEditorLineValue(tr);assert.equal(edited.amount,90);assert.equal(edited.vat_mode,'ex_vat');assert.equal(ctx.invoiceTotals([edited]).total,108);
 });
 test('Staff editor accepts all three VAT modes and calculates the selected amount',()=>{
  const input={value:'120',dataset:{displayAmount:'100.00',displayVat:'ex_vat',originalAmount:'120',originalVat:'inc_vat'}},vat={value:'inc_vat'};
@@ -63,25 +63,26 @@ test('only standalone MOT test fees are automatically No VAT',()=>{
  }
  for(const description of ['Pre MOT check','MOT preparation','MOT repairs','MOT test + Service','MOT test / MOT preparation.','Supply & fit rear coupling','MOT test booking administration'])assert.equal(ctx.invoiceMotTestLine({description}),false);
 });
-test('mixed Staff invoice corrects MOT VAT without exempting repair work',()=>{
+test('mixed Staff invoice prints saved VAT choices without overriding them',()=>{
  const inv={job_id:'cloud-staff',lines:[{description:'MOT test',amount:65,vat_mode:'inc_vat'},{description:'Supply & Fit Rear Prop shaft flexible coupling',amount:130,vat_mode:'inc_vat'}],subtotal:162.5,vat:32.5,total:195};
  ctx.printInvoice(inv);
- assert.match(ctx.sheet.innerHTML,/MOT test<\/td><td class="right">£65.00<\/td><td>No VAT/);
+ assert.match(ctx.sheet.innerHTML,/MOT test<\/td><td class="right">£54.17<\/td><td>Ex VAT/);
  assert.match(ctx.sheet.innerHTML,/£108.33<\/td><td>Ex VAT/);
- assert.match(ctx.sheet.innerHTML,/<b>VAT:<\/b><span>£21.67/);
+ assert.match(ctx.sheet.innerHTML,/<b>VAT:<\/b><span>£32.50/);
  assert.match(ctx.sheet.innerHTML,/<b>Total:<\/b><span>£195.00/);
  assert.equal(inv.lines[0].vat_mode,'inc_vat','printing does not silently change saved data');
  assert.match(ctx.staffInvoiceLineHtml(inv.lines[0]),/value="65.00"/);
- assert.match(ctx.staffInvoiceLineHtml(inv.lines[0]),/value="no_vat" selected/);
+ assert.match(ctx.staffInvoiceLineHtml(inv.lines[0]),/value="inc_vat" selected/);
 });
-test('MOT fee remains No VAT when editor dropdown is changed',()=>{
+test('MOT fee retains manual VAT override when editor dropdown is changed',()=>{
  const vat={value:'ex_vat'},input={value:'65',dataset:{displayAmount:'65.00',displayVat:'no_vat',originalAmount:'65',originalVat:'no_vat'}};
  const tr={dataset:{staffInvoice:'1'},querySelector:s=>s==='[data-line-amount]'?input:s==='[data-line-vat]'?vat:{value:'MOT test'}};
- const result=ctx.invoiceEditorLineValue(tr);assert.equal(result.amount,65);assert.equal(result.vat_mode,'no_vat');assert.equal(vat.value,'no_vat');
+ const result=ctx.invoiceEditorLineValue(tr);assert.equal(result.amount,65);assert.equal(result.vat_mode,'ex_vat');assert.equal(vat.value,'ex_vat');
 });
 test('new mixed job invoice exempts only MOT and stores Staff evidence in JSON lines',()=>{
  const prior={...ctx};
  ctx.savedInvoiceForJobId=()=>null;ctx.uid=()=> 'new-invoice';ctx.privatePricingItemsFromNote=()=>[{description:'MOT test',price:65},{description:'Rear coupling',price:130}];ctx.nextInvoiceNumberText=()=> 'VECTA-TEST';ctx.todayIso=()=> '2026-10-07';ctx.openInvoice=(_id,inv)=>ctx.draft=inv;
+ ctx.app.jobs.find(j=>j.id==='s').vat_mode='no_vat';
  ctx.openInvoiceForJob('s');
  assert.equal(ctx.draft.lines[0].vat_mode,'no_vat');assert.equal(ctx.draft.lines[1].vat_mode,'inc_vat');
  const {document}=parseHTML('<html><body><div class="invoiceDetails" data-invoice-job-id="cloud-staff" data-invoice-customer-account="STAFF"></div><input id="inv_registration" value="KO69WMF"><input id="inv_invoice_date" value="2026-10-07"><table><tbody id="invoiceLines">'+ctx.draft.lines.map(ctx.staffInvoiceLineHtml).join('')+'</tbody></table></body></html>');
