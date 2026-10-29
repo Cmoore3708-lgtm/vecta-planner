@@ -13,6 +13,7 @@ test('only selected ready cars illuminate pale headlight lenses; wheels and othe
  const imgs=[...document.querySelectorAll('img')];imgs.forEach(img=>img.src='data:image/svg+xml;charset=utf-8,'+encodeURIComponent(artwork));
  vm.runInNewContext(code+'\nilluminateServiceCarHeadlights();illuminateServiceCarHeadlights();',{document,DOMParser:Parser,console});
  const svg=document.querySelector('.service-animated-artwork');
+ assert.equal(svg.getAttribute('overflow'),'visible','beams extend past the artwork viewport');
  assert.ok(svg);assert.equal(document.querySelectorAll('.service-animated-artwork').length,1);
  assert.equal(svg.querySelector('.service-headlight-on').getAttribute('fill'),'#ffffff');
  assert.equal(svg.querySelectorAll('.service-headlight-on').length,2,'both supplier lens palettes illuminate');
@@ -21,7 +22,9 @@ test('only selected ready cars illuminate pale headlight lenses; wheels and othe
  assert.equal(svg.querySelector('[id$="wheels"] path').getAttribute('d'),'M0 0h10v10z');
  assert.equal(svg.querySelector('animateTransform'),null);
  assert.equal(svg.querySelectorAll('.service-headlight-beams path').length,2);
- assert.match(svg.querySelector('.service-headlight-beams path').getAttribute('d'),/M30 50 L10 48/);
+ const beam=svg.querySelector('.service-headlight-beams path').getAttribute('d');
+ const tip=Number(beam.match(/ L([^ ]+)/)[1]);
+ assert.ok(tip<10,'visible beam extends forward beyond the old short reach');
  assert.ok(svg.querySelector('[id$="service-headlight-beam"]'));
  assert.equal(svg.querySelectorAll('.service-headlight-beams').length,1);
  assert.equal(imgs[1].dataset.serviceAnimated,undefined);
