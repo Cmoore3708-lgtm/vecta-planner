@@ -13,7 +13,7 @@ const functions=[];
 for(const m of html.matchAll(/<script(?:\s[^>]*)?>([\s\S]*?)<\/script>/gi))(traverseModule.default||traverseModule)(parse(m[1],{sourceType:'script'}),{FunctionDeclaration(path){if(names.has(path.node.id.name))functions.push(generate(path.node).code);}});
 function setup(value=''){
  const {window,document}=parseHTML('<html><body><input id="job_current_mileage"><input id="saveJob"></body></html>');document.getElementById('job_current_mileage').value=value;const alerts=[];
- const c={window,document,console,alert:message=>alerts.push(message),app:{jobs:[{id:'j',status:'booked',mileage:50000}]},gatherJob:()=>({...c.app.jobs[0],status:'work_complete'}),normalisePaperworkKind:x=>x,paperworkTitle:()=> 'Service',serviceSheetSummaryHtml:()=>'',activeServiceRegistration:'ABC123',serviceIconKeyFromTitle:()=>''};vm.createContext(c);vm.runInContext(functions.join('\n'),c);return {c,document,alerts};
+ const c={window,document,console,alert:message=>alerts.push(message),app:{jobs:[{id:'j',status:'booked',mileage:50000}]},gatherJob:()=>({...c.app.jobs[0],status:'work_complete'}),normalisePaperworkKind:x=>x,paperworkTitle:()=> 'Service',serviceSheetSummaryHtml:()=>'',activeServiceRegistration:'ABC123',serviceIconKeyFromTitle:()=>'',invoiceIsStaff:()=>false};vm.createContext(c);vm.runInContext(functions.join('\n'),c);return {c,document,alerts};
 }
 test('current mileage must be positive whole miles and never inferred from MOT or old service data',()=>{
  const {c}=setup();for(const v of ['',null,'-1','0','1.5','Infinity','2000001','abc'])assert.equal(c.normaliseCurrentJobMileage(v),'');assert.equal(c.normaliseCurrentJobMileage(' 54,321 '),'54321');assert.equal(c.confirmedJobMileage({mileage:50000}),'');
