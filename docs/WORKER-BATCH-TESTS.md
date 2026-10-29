@@ -116,3 +116,37 @@ lookup completed with REVIEW_REQUIRED on 29 October 2026 at 10:56:19 UTC.
 That is a historical failure, not a newly completed batch case. The prior worker
 did not save its detailed cause; do not assert a description/fitment cause until
 the diagnostic worker captures it. The cohort carries the baseline into reports.
+
+## One-time PC updater and direct connection (29 October)
+
+`VECTA-Start-100-Vehicle-Test.zip` contains START-TEST.cmd. It stages a checked
+release beside the existing permanent installation, waits for managed workers to
+finish their current requests, activates the new release, restarts the same
+workers and requests the 100-vehicle batch automatically. The desktop shortcut,
+private data folder and supplier profile paths remain the same. It refuses an
+unknown base release and retains the previous release. A blocked old-channel
+entry prevents the original stable release immediately undoing this update.
+
+The standalone `worker-batch-tests` Edge Function is deployed only to isolated
+Test. It verifies the PC's existing paired token by SHA-256 against the existing
+paired-worker identity and uses the service-role-only diagnostic queue. No new
+password, pairing token, public table access or Vercel preview cookie is needed.
+The PC credential is decrypted by the existing Windows account, never placed in
+the updater or URL, and never returned to the assistant. Existing Haynes/tyre
+heartbeats and allowances are not modified by diagnostic authentication.
+
+Only the GSF worker gains the diagnostic branch; normal customer work still uses
+its existing production routes and wins between diagnostic cases. All evidence
+and cohort records remain in isolated Test. No production application/schema
+release is required for this one-time direct relay path. The new function rejects
+unauthenticated requests with HTTP 401; its own authentication is why platform
+JWT verification is disabled. The endpoint does not allow arbitrary SQL/actions.
+
+Build with scripts/batch-test-update/package.mjs using the user's resolved
+permanent-worker bundle. The updater's source release is 6deec1d71fe343fab652d71ae849b6ab4e31f9f0.
+The artifact contains no credentials. Tests cover unpaired access rejection,
+Test/Main isolation, CM14KEL inclusion and one-time automatic start. A simulated
+installation passed module loads, worker syntax, preserved pairing/profile data,
+rollback retention, checksum rejection and protection against channel downgrade.
+Windows UI execution and authenticated supplier reads still require running the
+updater on the workshop PC; do not report the 100-vehicle test started beforehand.

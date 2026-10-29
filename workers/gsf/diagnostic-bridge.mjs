@@ -1,6 +1,6 @@
 import {readFileSync,writeFileSync,renameSync,unlinkSync} from 'node:fs';
 import {randomUUID,createHash} from 'node:crypto';
-const sourceRevision=()=>{const hash=createHash('sha256');for(const file of ['worker.mjs','supplier.mjs','live-service.mjs','service-capture.mjs','product-dialog.mjs','oil-capacity.mjs','diagnostic-case.mjs','diagnostic-bridge.mjs','../../lib/service-pricing.js','../../lib/worker-tests.js'])hash.update(file).update(readFileSync(new URL(file,import.meta.url)));return hash.digest('hex');};
+const sourceRevision=()=>{const hash=createHash('sha256');for(const file of ['worker.mjs','supplier.mjs','live-service.mjs','service-capture.mjs','product-dialog.mjs','oil-capacity.mjs','diagnostic-case.mjs','diagnostic-product.mjs','diagnostic-bridge.mjs','../../lib/service-pricing.js','../../lib/worker-tests.js'])hash.update(file).update(readFileSync(new URL(file,import.meta.url)));return hash.digest('hex');};
 import {DIAGNOSTIC_BUILD,cleanEvidence} from '../../lib/worker-tests.js';
 import {diagnosticCase} from './diagnostic-case.mjs';
 // Runs only within the existing browser owner. No second profile or process.

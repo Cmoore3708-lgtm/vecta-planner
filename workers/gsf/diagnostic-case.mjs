@@ -1,8 +1,9 @@
 import {captureServiceCategory} from './service-capture.mjs';
-import {catalogueSelection,freshProduct,lookupLiveService} from './live-service.mjs';
+import {catalogueSelection,lookupLiveService} from './live-service.mjs';
+import {diagnosticProduct} from './diagnostic-product.mjs';
 import {cleanEvidence,PAUSE_CODES,safeCode} from '../../lib/worker-tests.js';
 const categories={oil_filter:'Oil Filter',air_filter:'Air Filter',cabin_filter:'Cabin Filter',fuel_filter:'Fuel Filter',oil:'Engine Oils (Applied)'};
-export async function diagnosticCase(page,request,{capture=captureServiceCategory,readFresh=freshProduct,lookup=lookupLiveService}={}) {
+export async function diagnosticCase(page,request,{capture=captureServiceCategory,readFresh=diagnosticProduct,lookup=lookupLiveService}={}) {
  let stage='REQUEST_VALIDATION',evidence={},supplierStatus=null;
  const observe=response=>{try{if(new URL(response.url()).origin==='https://trade.gsfcarparts.com'&&response.request().resourceType()==='document'&&[429,502,503,504].includes(response.status()))supplierStatus=response.status();}catch{}};
  page.on?.('response',observe);

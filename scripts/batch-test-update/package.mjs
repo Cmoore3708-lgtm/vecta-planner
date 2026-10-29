@@ -1,0 +1,16 @@
+import {readFileSync,writeFileSync,mkdirSync,copyFileSync} from 'node:fs';
+import {gzipSync,gunzipSync} from 'node:zlib';
+import path from 'node:path';
+import {createHash,randomUUID} from 'node:crypto';
+import {spawnSync} from 'node:child_process';
+import {addBatchFiles} from './patch-release.mjs';
+const root=path.resolve(new URL('../../',import.meta.url).pathname);
+const input=path.resolve(process.argv[2]),output=path.resolve(process.argv[3]),stage=path.resolve(process.argv[4]);
+const base=JSON.parse(gunzipSync(readFileSync(input))),bundle=addBatchFiles(base,root),bytes=gzipSync(Buffer.from(JSON.stringify(bundle)));
+mkdirSync(stage,{recursive:true});writeFileSync(path.join(stage,'workers.vecta.gz'),bytes);
+const manifest={version:bundle.version,baseVersion:base.version,sha256:createHash('sha256').update(bytes).digest('hex'),launchKey:randomUUID(),endpoint:'https://brqsejjykrubxuofavuu.supabase.co/functions/v1/worker-batch-tests'};
+writeFileSync(path.join(stage,'manifest.json'),JSON.stringify(manifest,null,2));
+for(const name of ['START-TEST.cmd','update.ps1','install.mjs','release-store.mjs','release-cli.mjs'])copyFileSync(path.join(root,'scripts/batch-test-update',name),path.join(stage,name));
+writeFileSync(path.join(stage,'READ-ME.txt'),'VECTA - START THE 100-VEHICLE TEST\r\n\r\n1. Extract All.\r\n2. Double-click START-TEST.cmd.\r\n3. Leave the PC and Edge windows open.\r\n\r\nThe updater uses the permanent VECTA Workers installation. Saved settings, sign-ins, profiles and your desktop shortcut are kept. It waits for current lookups to finish, updates the workers, and requests the test automatically with CM14 KEL first.\r\n\r\nIf GSF asks you to sign in, do so normally. This file does not need your passwords. It does not make bookings, order parts, or publish test prices.\r\n\r\nA previous version is retained for Restore previous in VECTA Workers. If a different or incomplete setup is found, it stops without changing it.\r\n\r\nThe installer was checked with simulated installations. The real workshop-PC test still depends on running this file successfully.\r\n');
+const zip=spawnSync('python3',['-c',`import sys,zipfile\nfrom pathlib import Path\ns=Path(sys.argv[1])\nwith zipfile.ZipFile(sys.argv[2],'w',zipfile.ZIP_DEFLATED) as z:\n for p in sorted(s.iterdir()):\n  data=p.read_bytes()\n  if p.suffix in ('.cmd','.ps1'):\n   data=data.replace(b'\\r\\n',b'\\n').replace(b'\\n',b'\\r\\n')\n  z.writestr(p.name,data)\nwith zipfile.ZipFile(sys.argv[2]) as z:\n assert z.testzip() is None\n print(len(z.namelist()))`,stage,output],{encoding:'utf8'});
+if(zip.status!==0)throw Error(zip.stderr||'Could not package updater');console.log(JSON.stringify({output,files:Number(zip.stdout),version:bundle.version,sha256:manifest.sha256}));
