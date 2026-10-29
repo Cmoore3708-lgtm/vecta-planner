@@ -39,6 +39,7 @@ async function freshProduct(page,selected){
   unitNetPence:Math.ceil(product.unitNetPence*1000/selected.packQuantityMilli),...(selected.kind==='oil'?{packNetPence:product.unitNetPence,packQuantityMilli:selected.packQuantityMilli}:{}),vatBasis:'EX_VAT',inStock:true};
 }
 export async function lookupLiveService(page,raw,{capture=captureServiceCategory,readFresh=freshProduct,now=Date.now}={}){
+ const began=Date.now();
  const request=servicePriceRequest(raw);
  if(request.range!=='Mid Range')fail(); // Never mislabel Gold catalogue parts as Budget or Dealer.
  const firstKind=request.service==='EV Major Service'?'cabin_filter':'oil_filter';
@@ -50,7 +51,25 @@ export async function lookupLiveService(page,raw,{capture=captureServiceCategory
   if(selected.fuelType!==fuelType)fail();
   items.push(await readFresh(page,selected));
  }
+ const optionalParts=[];
+ // Older PC workers can keep returning the core service unchanged. New workers
+ // also attempt plugs, but only an explicit GSF required quantity can be priced.
+ if(request.service==='Major Service'&&/^petrol(?: hybrid)?$/.test(fuelType)&&Date.now()-began<100000){
+  let optionalTimer;
+  try{
+   await Promise.race([(async()=>{
+   const evidence=await capture(page,request.registration,'Spark Plug');
+   const selected=catalogueSelection(evidence,'spark_plug',request.registration);
+   const quantities=[...String(evidence.visibleText||'').matchAll(/\b(?:required quantity|quantity required|quantity per vehicle)\s*[:=-]?\s*(\d+)\b/gi)].map(m=>Number(m[1]));
+   if(selected.fuelType===fuelType&&quantities.length&&new Set(quantities).size===1&&quantities[0]>=1&&quantities[0]<=16){
+    selected.quantityMilli=quantities[0]*1000;
+    optionalParts.push({...await readFresh(page,selected),fitmentVerified:true,quantityVerified:true});
+   }
+   })(),new Promise((_,reject)=>{optionalTimer=setTimeout(()=>reject(Error('OPTIONAL_TIMEOUT')),10000);})]);
+  }catch { /* Optional lookup failure must not lose the Full/Interim price. */ }
+  finally {clearTimeout(optionalTimer);}
+ }
  return cleanServiceCosts({request,recipeId:'gsf-selected-vehicle-v1',vehicle:first.visibleText.split(' Clear ')[1]?.split(' Copy VIN')[0]||request.registration,
-  fuelType,oilSpecification:request.service==='EV Major Service'?'':'GSF vehicle-applied oil recommendation',requiredKinds,items,
+  fuelType,oilSpecification:request.service==='EV Major Service'?'':'GSF vehicle-applied oil recommendation',requiredKinds,items,optionalParts,
   fitmentVerified:true,scopeVerified:true,oilVerified:true,checkedAt:new Date(now()).toISOString()},request,now());
 }

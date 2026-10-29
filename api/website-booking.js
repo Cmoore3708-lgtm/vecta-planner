@@ -4,6 +4,7 @@ import {sendBookingBadges} from './_push.js';
 import {databaseEnvironment} from './_database-environment.js';
 import {bookingServicePrice} from '../lib/booking-service-price.js';
 import {bookingServiceParts} from '../lib/booking-service-parts.js';
+import {bookingServiceExtra,serviceExtraSnapshot} from '../lib/service-extras.js';
 
 function cfg(){return databaseEnvironment({requireService:true})}
 function reg(v){return String(v||'').toUpperCase().replace(/\s+/g,' ').trim()}
@@ -19,6 +20,7 @@ export default async function handler(req,res){
   }
   const photos=bookingPhotos(b.work_photos);
   const types=bookingTypes(b);
+  const extra=bookingServiceExtra(b);
   let servicePrice;
   try {servicePrice=bookingServicePrice(b,types);}catch{return res.status(409).json({error:'Your service price has expired or the service details have changed. Please review the service price and try again.'});}
   const appointment=String(b.appointment_date||b.preferred_date_1||'');
@@ -37,6 +39,7 @@ export default async function handler(req,res){
    const costs=await rest(url,key,'gsf_service_jobs?'+filter);
    request.gsf_parts=bookingServiceParts(quote,costs||[]);
   }
+  if(!servicePrice)request.work_required+=serviceExtraSnapshot(extra,null);
   const inserted=photos.length
    ? await rest(url,key,'rpc/insert_website_booking_with_photos','POST',{p_request:request,p_photos:photos})
    : await rest(url,key,'website_booking_requests?on_conflict=id','POST',request,'resolution=ignore-duplicates,return=representation');
@@ -51,5 +54,5 @@ export default async function handler(req,res){
   }
   if(created)await sendBookingBadges();
   return res.status(created?201:200).json({ok:true,confirmed:false,request_id:id,date:receipt?.confirmed_date||appointment,time:String(receipt?.confirmed_time||b.appointment_time||'').slice(0,5)||null});
- }catch(e){if(e.code==='BOOKING_INPUT')return res.status(400).json({error:e.message});if(String(e.message).includes('VECTA_BOOKING_UNAVAILABLE'))return res.status(409).json({error:'That appointment is no longer available or does not meet the booking notice period. Please choose another available date.'});if(String(e.message).includes('VECTA_BOOKING_MONDAY'))return res.status(409).json({error:'Mondays are not available for online bookings. Please choose another day.'});if(String(e.message).includes('VECTA_BOOKING_FRIDAY_CAPACITY'))return res.status(409).json({error:'Alfie’s Friday online booking capacity is now full. Please choose another date.'});console.error(e);return res.status(500).json({error:'Unable to complete booking'});}
+ }catch(e){if(e.message==='INVALID_SERVICE_EXTRA')return res.status(400).json({error:'Select a valid optional service item.'});if(e.code==='BOOKING_INPUT')return res.status(400).json({error:e.message});if(String(e.message).includes('VECTA_BOOKING_UNAVAILABLE'))return res.status(409).json({error:'That appointment is no longer available or does not meet the booking notice period. Please choose another available date.'});if(String(e.message).includes('VECTA_BOOKING_MONDAY'))return res.status(409).json({error:'Mondays are not available for online bookings. Please choose another day.'});if(String(e.message).includes('VECTA_BOOKING_FRIDAY_CAPACITY'))return res.status(409).json({error:'Alfie’s Friday online booking capacity is now full. Please choose another date.'});console.error(e);return res.status(500).json({error:'Unable to complete booking'});}
 }
