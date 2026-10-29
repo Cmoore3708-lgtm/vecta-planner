@@ -49,6 +49,18 @@ test('position module and styling are mirrored in both deployed websites',()=>{
  assert.match(booking,/tyre_positions.length>0/);
  const css=fs.readFileSync('public/js/vecta-tyre-positions.css','utf8');assert.match(css,/\.tyre-position-picker \.tyre-quantity\{display:none\}/);
 });
+test('repeated selection updates reuse decoded artwork and keep every wheel interactive',()=>{
+ const {context,root,document,form}=setup(),api=context.VectaTyrePositions;
+ document.querySelector('main').innerHTML=api.html(form,{imageUrl:'https://www.haynespro-assets.com/workshop/images/319106279.svgz'});
+ const img=document.querySelector('[data-tyre-car]');
+ img.src='data:image/svg+xml;charset=utf-8,'+encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="20 45 265 155"/>');img.dataset.vehicleReady='1';
+ let parses=0,changes=0;root.DOMParser=class extends DOMParser{parseFromString(...args){parses++;return super.parseFromString(...args);}};
+ api.mount(form,()=>changes++);
+ const wheel=document.querySelector('.tp-wheel');
+ for(let i=0;i<100;i++){wheel.click();api.mount(form,()=>changes++);}
+ assert.equal(parses,1);assert.equal(changes,100);assert.equal(form.tyre_quantity,0);
+ assert.equal(document.querySelector('.tp-wheel'),wheel);
+});
 test('the current Qashqai J12 artwork has four aligned, selectable tyre targets',()=>{
  const {context,document,form}=setup(),api=context.VectaTyrePositions;
  document.querySelector('main').innerHTML=api.html(form,{imageUrl:'https://www.haynespro-assets.com/workshop/images/319106279.svgz',make:'Nissan',model:'Qashqai J12'});
