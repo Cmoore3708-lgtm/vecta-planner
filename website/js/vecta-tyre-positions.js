@@ -66,6 +66,10 @@
   const asset=img.dataset.vehicleSource.match(/\/(\d+)\.svgz?$/)?.[1];
   const ready=()=>{
    if(!host.isConnected||!img.src.startsWith('data:image/svg+xml;charset=utf-8,'))return;
+   // Price and quantity updates must not parse and repaint the same large SVG.
+   // Keep the existing wheel targets and their refreshed click handlers instead.
+   const artworkKey=img.src+'|'+brand,wheelLayer=host.querySelector('.tp-wheels');
+   if(wheelLayer?._artworkKey===artworkKey){bind();return;}
    try{
     const svg=new root.DOMParser().parseFromString(decodeURIComponent(img.src.slice(img.src.indexOf(',')+1)),'image/svg+xml').documentElement;
     const vb=(svg.getAttribute('viewBox')||'').split(/[ ,]+/).map(Number);if(vb.length!==4||!vb.every(Number.isFinite)||vb[2]<=0||vb[3]<=0)return;
