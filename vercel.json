@@ -36,6 +36,10 @@
   },
   "rewrites": [
     {
+      "source": "/api/service-guide-prices",
+      "destination": "/api/admin-website?guidePrices=1&public=1"
+    },
+    {
       "source": "/i/:code",
       "destination": "/api/additional-work?invoicePdf=1&code=:code"
     },
