@@ -6,7 +6,7 @@ const booking=fs.readFileSync('website/booking/index.html','utf8');
 function fn(source,name){const start=source.indexOf('function '+name+'('),end=source.indexOf('\nfunction ',start+1);return source.slice(start,end);}
 test('advisories repeat at appointment choice with the question only on step 3',()=>{
  const context={state:{lookup:'success',step:1,form:{mot_advisories:['Tyre worn'],inspect_mot_advisories:'yes'}},esc:x=>x};vm.createContext(context);
- vm.runInContext(fn(booking,'advisoryListHtml')+'\n'+fn(booking,'advisoryQuestionHtml'),context);
+ vm.runInContext(fn(booking,'hasTyreAdvisory')+'\n'+fn(booking,'advisoryListHtml')+'\n'+fn(booking,'advisoryQuestionHtml'),context);
  const first=context.advisoryListHtml(),third=context.advisoryListHtml(true);
  assert.match(first,/Latest MOT advisories/);assert.doesNotMatch(first,/Would you like/);
  assert.match(third,/THESE ADVISORIES WERE RECOMMENDED ON YOUR LAST MOT/);assert.match(third,/Would you like/);assert.match(third,/data-advisory-choice="yes" class="selected"/);
