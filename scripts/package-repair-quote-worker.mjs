@@ -14,6 +14,7 @@ for(const name of readdirSync(path.join(root,'workers/gsf'))){
 mkdirSync(path.join(stage,'workers/haynes'),{recursive:true});cpSync(path.join(root,'workers/haynes/dom.mjs'),path.join(stage,'workers/haynes/dom.mjs'));
 mkdirSync(path.join(stage,'lib'),{recursive:true});cpSync(path.join(root,'lib/repair-quote.js'),path.join(stage,'lib/repair-quote.js'));
 cpSync(path.join(root,'lib/service-pricing.js'),path.join(stage,'lib/service-pricing.js'));
+cpSync(path.join(root,'lib/worker-tests.js'),path.join(stage,'lib/worker-tests.js'));
 cpSync(path.join(root,'docs/REPAIR-QUOTE-LOOKUP.md'),path.join(stage,'READ-ME.md'));
 cpSync(path.join(root,'workers/repair-quotes/FINISH-REPAIR-SETUP.cmd'),path.join(stage,'FINISH-REPAIR-SETUP.cmd'));
 // The root launcher forwards into the worker folder; no file hunting required.
