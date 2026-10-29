@@ -23,7 +23,7 @@
 .tyre-position-selector .tp-controls button[aria-pressed=true]{border-color:#8dffab;background:#23352b}.tp-controls [aria-pressed=true] .tp-dot{color:#8dffab;border-color:#8dffab}
 .tyre-position-selector button:focus-visible{outline:3px solid #fff;outline-offset:3px}
 .tyre-position-picker .tyre-quantity{display:none}
-.tyre-position-picker .tyre-guide-card:not(.selected)>.tyre-guide-total{visibility:hidden}
+.tyre-position-picker .tyre-guide-card:not(.selected)>.tyre-guide-total{visibility:visible}
 .tyre-position-picker .tyre-guide-total{white-space:normal;min-height:35px;line-height:1.4;padding:8px 4px}
 @media(max-width:760px){.tyre-position-selector{padding:0 6px 6px}.tp-scene{margin:10px auto 36px}.tp-controls{grid-template-columns:minmax(0,1fr);max-width:310px;gap:18px}.tp-brand{width:58px;height:21px}.tp-brand .tyre-brand-logo{padding:3px 4px}}
 @media(pointer:coarse){.tyre-position-selector .tp-controls button{min-height:44px}}
@@ -40,3 +40,4 @@
 
 .tyre-stock-notice{margin:8px 0;padding:10px 7px;border-radius:6px;background:#46252a;color:#ffe2e5;font-size:13px;line-height:1.45;text-align:center}
 @media(max-width:760px){.tyre-stock-notice{padding:8px 4px;font-size:11px}}
+

@@ -39,7 +39,8 @@ test('aligned drawings show four working wheel targets and brand logos; unknown 
  let changes=0;api.mount(form,()=>changes++);
  assert.equal(document.querySelectorAll('.tp-wheel').length,4);assert.equal(document.querySelectorAll('.tp-controls button').length,4);
  document.querySelector('.tp-far').click();assert.equal(changes,1);assert.equal(form.tyre_quantity,1);
- api.mount(form,()=>changes++);assert.equal(document.querySelector('.tp-far').getAttribute('aria-pressed'),'true');assert.match(document.querySelector('.tp-far .tp-brand').textContent||document.querySelector('.tp-far .tp-brand img').alt,/FALKEN/);
+ const tapped=document.querySelector('.tp-far');
+ api.mount(form,()=>changes++);assert.equal(document.querySelector('.tp-far'),tapped,'wheel taps must retain the focused button');assert.equal(document.querySelector('.tp-far').getAttribute('aria-pressed'),'true');assert.match(document.querySelector('.tp-far .tp-brand').textContent||document.querySelector('.tp-far .tp-brand img').alt,/FALKEN/);
  assert.ok(document.querySelector('.tp-car-detail').style.maskImage.includes('radial-gradient'));
  vehicle.imageUrl=vehicle.imageUrl.replace('319004664','999999');document.querySelector('main').innerHTML=api.html(form,vehicle);api.mount(form,()=>changes++);assert.equal(document.querySelectorAll('.tp-wheel').length,0);assert.equal(document.querySelectorAll('.tp-controls button').length,4);
 });
@@ -149,4 +150,15 @@ test('requesting four when the selected brand has three shows the exact stock sh
  form.tyre_positions.pop();form.tyre_quantity=3;const offer={category:'budget',available:true,brand:'FALKEN',model:'TEST',unitPence:8500,totalPence:25500};result.quantity=3;result.options=[{...offer,choices:[offer],stockLevels}];
  vm.runInContext('tyreGuideState='+JSON.stringify({status:'matched',result})+';refreshTyrePanel()',context);
  assert.equal(document.querySelector('.tyre-stock-notice'),null);assert.match(document.querySelector('.tyre-guide-card.selected .tyre-guide-total').textContent,/3 tyres: £255/);
+});
+
+
+test('unavailable prices use concise TBC labels in every category',()=>{
+ const {context,document,form}=setup();form.tyre_brand='';
+ vm.runInContext("tyreGuideState={status:'unavailable',result:null};refreshTyrePanel()",context);
+ for(const card of document.querySelectorAll('.tyre-guide-card')){
+  assert.doesNotMatch(card.textContent,/Confirm brand with us|Price on request/);
+  assert.equal(card.querySelector('.tyre-brand-choice').textContent,'£TBC');
+  assert.equal(card.querySelector('.tyre-guide-total').textContent,'£TBC');
+ }
 });
