@@ -33,6 +33,23 @@ try {
     Write-Host 'Checking the update. Your saved settings and sign-ins will be kept.'
     & node $installer stage $root $artifact $manifest
     if ($LASTEXITCODE -ne 0) { throw 'The update did not pass its checks. Your current workers have been kept.' }
+    # A worker started from an old Downloads folder cannot observe the managed
+    # stop file. Do not kill it or start a competing browser profile.
+    function Get-OlderGSF {
+        $managedId = 0
+        $statusFile = Join-Path $root 'runtime\GSF.json'
+        if (Test-Path -LiteralPath $statusFile) {
+            $saved = Get-Content -Raw -LiteralPath $statusFile | ConvertFrom-Json
+            if ($saved.pid) { $managedId = [int]$saved.pid }
+        }
+        $pattern = '(?i)(?:^|[\\/\s"''])(?:worker|start-paired|start-website-test|probe|check-live-services)\.mjs(?:[\s"'']|$)'
+        return @(Get-CimInstance Win32_Process | Where-Object { $_.Name -eq 'node.exe' -and $_.ProcessId -ne $managedId -and $_.CommandLine -match $pattern })
+    }
+    while (@(Get-OlderGSF).Count -gt 0) {
+        Write-Host ''
+        Write-Host 'Close the old GSF black worker window. Leave Haynes and tyres alone.' -ForegroundColor Yellow
+        Read-Host 'Then press Enter here to continue the update' | Out-Null
+    }
     # Existing managed workers stop cooperatively after an in-flight lookup.
     Write-Host 'Waiting for any current lookups to finish...'
     $runtime = Join-Path $root 'runtime'
