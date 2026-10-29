@@ -36,7 +36,7 @@ not stop the PC worker. The assistant can retrieve the manager-protected JSON at
 between diagnostic cases; a case is bounded to 170 seconds.
 
 The 100-vehicle sample comes only from the deployment's database. Selection
-normalizes/deduplicates registrations, includes G4WPC/XJ07WAL/NU67VSE/FV65JTY when
+normalizes/deduplicates registrations, includes CM14KEL/G4WPC/XJ07WAL/NU67VSE/FV65JTY when
 present, and balances recorded make, fuel and age groups. It does not invent
 registrations or fetch customer names, contact details or addresses. If fewer
 than 100 eligible registrations exist, the batch refuses to start and reports
@@ -108,3 +108,11 @@ customer notification or automatic patch/deployment is performed.
   stale acknowledgements, login pause/resume, bounded retry, crash recovery and
   cancellation. It never calls a supplier or changes a real vehicle.
 - Run `npm run release:gate` and inspect desktop/phone rendering before release.
+
+## Required regression: CM14 KEL
+
+CM14KEL is first in a new cohort when present. Its production Major Service
+lookup completed with REVIEW_REQUIRED on 29 October 2026 at 10:56:19 UTC.
+That is a historical failure, not a newly completed batch case. The prior worker
+did not save its detailed cause; do not assert a description/fitment cause until
+the diagnostic worker captures it. The cohort carries the baseline into reports.

@@ -17,6 +17,12 @@ test('100 genuine unique registrations, seed failures and rare makes; no contact
  const cohort=selectCohort([...registrations,...registrations,{registration:'G4 WPC',make:'BMW'},{registration:'UNKNOWN'},{registration:'123456'},{registration:'ABCDE'}]);
  assert.equal(cohort.length,100);assert.equal(cohort[0].registration,'G4WPC');assert.equal(new Set(cohort.map(x=>x.registration)).size,100);assert.ok(cohort.some(x=>x.make==='Honda'));assert.ok(!JSON.stringify(cohort).includes('never included'));assert.throws(()=>selectCohort(registrations.slice(0,2)),e=>e.available===2);
 });
+test('CM14 KEL is first and its historical REVIEW_REQUIRED failure stays separate from new results',()=>{
+ const cohort=selectCohort([...registrations,{registration:'CM14 KEL',make:'Nissan'},{registration:'G4WPC'}]);
+ assert.equal(cohort[0].registration,'CM14KEL');assert.equal(cohort.length,100);assert.equal(cohort[0].baselineFailure.status,'REVIEW_REQUIRED');assert.equal(cohort[0].baselineFailure.causeConfirmed,false);
+ const report=testReport({run:{status:'RUNNING',cohort},cases:[{registration:'CM14KEL',operation:'service',status:'PENDING'}]});
+ assert.equal(report.baselineFailures[0].registration,'CM14KEL');assert.equal(report.counts.review,0);assert.equal(report.counts.remaining,1);assert.equal(report.complete,false);
+});
 test('evidence allowlist drops account fields and raw text, redacts VIN/email, preserves description differences',()=>{
  const evidence=cleanEvidence({stage:'PRODUCT_DETAILS',reason:'PRODUCT_DESCRIPTION_MISMATCH',expectedDescription:'Oil Filter',observedDescription:'Oil-filter',cookie:'secret',url:'https://account',visibleText:'private',headings:['x@example.com WBA12345678901234'],sku:'123'});
  assert.equal(evidence.expectedDescription,'Oil Filter');assert.equal(evidence.observedDescription,'Oil-filter');assert.ok(!JSON.stringify(evidence).match(/private|secret|https|example|WBA123/));
