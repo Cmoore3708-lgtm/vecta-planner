@@ -68,9 +68,9 @@
 .service-compact-head{display:flex;align-items:center;justify-content:space-between;gap:12px;padding-bottom:13px;border-bottom:1px solid #59616b}
 .service-compact .service-title-row{display:block;margin:0;text-align:left;min-width:0}.service-compact .service-title-row strong{color:var(--tier);font-size:22px;line-height:1.15}.service-tier{display:block;color:var(--tier);font-size:10px;font-weight:800;letter-spacing:.16em;margin-bottom:5px}
 .service-compact-price{display:flex;flex-direction:column;align-items:flex-end;flex-shrink:0;max-width:43%;text-align:right}.service-compact .price{display:block;color:#fff;font-size:28px;margin:0 0 3px;line-height:1.1}.service-compact .price-label{font-size:8px;display:block;order:2}.service-compact .ev-price-guide{font-size:10px}
-.service-compact-middle{display:grid;grid-template-columns:43% 57%;align-items:center;padding:12px 0;min-height:112px}.service-interval{display:block;border-right:1px solid #59616b;padding-right:10px}.service-interval-top{display:flex;align-items:center;justify-content:space-between;gap:6px;margin-bottom:9px}.service-calendar svg{width:25px;height:25px;fill:none;stroke:#c3cbd4;stroke-width:1.6}.service-interval-caption{display:block;font-size:11px;color:#c3cbd4;margin-bottom:3px}.service-interval b{display:block;font-size:12px;line-height:1.3;white-space:nowrap}
+.service-compact-middle{display:grid;grid-template-columns:43% 57%;align-items:center;padding:12px 0;min-height:112px}.service-interval{display:block;padding-right:10px}.service-interval-top{display:flex;align-items:center;justify-content:space-between;gap:6px;margin-bottom:9px}.service-calendar svg{width:25px;height:25px;fill:none;stroke:#c3cbd4;stroke-width:1.6}.service-interval-caption{display:block;font-size:11px;color:#c3cbd4;margin-bottom:3px}.service-interval b{display:block;font-size:12px;line-height:1.3;white-space:nowrap}
 .service-compact .free-clean{display:block;width:auto;margin:0;padding:4px 6px;border:1px solid var(--tier);border-radius:5px;background:transparent;color:var(--tier);font-size:8px;line-height:1.2;text-align:center;letter-spacing:0}.service-compact .free-clean:before{content:none}
-.service-compact .service-vehicle-stage{display:block;position:relative;width:100%;height:110px;margin:0;overflow:visible}.service-compact .service-customer-car,.service-compact .service-animated-artwork{display:block;width:100%;height:100%;object-fit:contain}.service-compact .service-animated-artwork{position:absolute;inset:0}
+.service-compact .service-vehicle-stage{display:block;position:relative;width:100%;height:110px;margin:0;overflow:visible}.service-compact .service-customer-car,.service-compact .service-animated-artwork{display:block;width:100%;height:100%;object-fit:contain}.service-compact .service-animated-artwork{position:absolute;inset:0;overflow:visible}.service-compact .service-vehicle-stage{z-index:1}
 .service-features{display:grid;grid-template-columns:1fr 1fr;gap:7px 14px;border-top:1px solid #59616b;padding-top:12px}.service-compact .service-feature{margin:0;font-size:11px;gap:6px}.service-compact:hover{transform:none}
 @media(max-width:400px){.service-option.service-compact{padding:12px}.service-compact .service-title-row strong{font-size:19px}.service-compact .price{font-size:24px}.service-interval b{font-size:10px}.service-compact .free-clean{font-size:7px;padding:4px}.service-features{gap:7px 10px}.service-compact .service-feature{font-size:10px}}
 
@@ -144,15 +144,15 @@ function illuminateServiceCarHeadlights(){
    if(!lamps.length){img.dataset.serviceAnimationStatus='no-headlight-layer';return;}
    function element(tag,attrs){const n=document.createElementNS(NS,tag);for(const [k,v]of Object.entries(attrs))n.setAttribute(k,v);return n;}
    const defs=element('defs',{}),gradient=element('linearGradient',{id:'service-headlight-beam',x1:facesLeft?'100%':'0%',x2:facesLeft?'0%':'100%',y1:'0%',y2:'0%'});
-   gradient.append(element('stop',{offset:'0%','stop-color':'#fffde1','stop-opacity':'.72'}),element('stop',{offset:'45%','stop-color':'#f4f7e9','stop-opacity':'.32'}),element('stop',{offset:'100%','stop-color':'#e8f4ff','stop-opacity':'0'}));
+   gradient.append(element('stop',{offset:'0%','stop-color':'#fffde1','stop-opacity':'.95'}),element('stop',{offset:'45%','stop-color':'#f4f7e9','stop-opacity':'.5'}),element('stop',{offset:'100%','stop-color':'#e8f4ff','stop-opacity':'0'}));
    const softness=element('filter',{id:'service-headlight-softness',x:'-50%',y:'-100%',width:'200%',height:'300%','color-interpolation-filters':'sRGB'});
    softness.append(element('feGaussianBlur',{stdDeviation:bounds.width*.012}));
    defs.append(gradient,softness);svg.append(defs);
-   const beams=element('g',{'class':'service-headlight-beams','aria-hidden':'true',filter:'url(#service-headlight-softness)'}),reach=bounds.width*.2,direction=facesLeft?-1:1;
+   const beams=element('g',{'class':'service-headlight-beams','aria-hidden':'true',filter:'url(#service-headlight-softness)'}),reach=bounds.width*.28,direction=facesLeft?-1:1;
    for(const {node,centre:{x,y}}of lamps){
     node.setAttribute('fill','#ffffff');node.classList.add('service-headlight-on');
     beams.append(element('path',{d:`M${x} ${y-1} L${x+direction*reach} ${y-reach*.15} Q${x+direction*reach*1.1} ${y+reach*.13} ${x+direction*reach} ${y+reach*.3} L${x} ${y+2} Z`,fill:'url(#service-headlight-beam)'}));
-    beams.append(element('ellipse',{cx:x,cy:y,rx:bounds.width*.018,ry:bounds.width*.012,fill:'#fffde1',opacity:'.8'}));
+    beams.append(element('ellipse',{cx:x,cy:y,rx:bounds.width*.024,ry:bounds.width*.016,fill:'#fffde1',opacity:'.95'}));
    }
    svg.append(beams);
    if(img.isConnected){
@@ -162,7 +162,7 @@ function illuminateServiceCarHeadlights(){
     const prefix='service-headlights-'+(++serviceHeadlightSvgSequence)+'-';
     const ids=new Map([...svg.querySelectorAll('[id]')].map(n=>[n.id,prefix+n.id]));
     for(const n of [svg,...svg.querySelectorAll('*')])for(const a of [...n.attributes]){let v=a.value;if(a.name==='id'&&ids.has(v))v=ids.get(v);v=v.replace(/url\(#([^)]*)\)/g,(all,id)=>ids.has(id)?'url(#'+ids.get(id)+')':all);if((a.localName==='href')&&v.startsWith('#')&&ids.has(v.slice(1)))v='#'+ids.get(v.slice(1));if(v!==a.value)n.setAttribute(a.name,v);}
-    svg.setAttribute('class','service-animated-artwork');svg.setAttribute('aria-hidden','true');svg.setAttribute('focusable','false');svg.setAttribute('width','100%');svg.setAttribute('height','100%');svg.setAttribute('preserveAspectRatio','xMidYMid meet');
+    svg.setAttribute('overflow','visible');svg.setAttribute('class','service-animated-artwork');svg.setAttribute('aria-hidden','true');svg.setAttribute('focusable','false');svg.setAttribute('width','100%');svg.setAttribute('height','100%');svg.setAttribute('preserveAspectRatio','xMidYMid meet');
     const stage=img.closest('.service-vehicle-stage');if(!stage)return;
     stage.querySelector('.service-animated-artwork')?.remove();stage.append(svg);img.style.visibility='hidden';img.dataset.serviceAnimated='1';img.dataset.serviceAnimationStatus='on';
    }
@@ -716,7 +716,7 @@ input[type="checkbox"]:checked,input[type="radio"]:checked{--pulse-rgb:53,213,13
 .service-customer-car{display:block;width:100%;height:100%;object-fit:contain;filter:drop-shadow(0 8px 6px #0005)}
 .service-customer-car:not([data-vehicle-ready="1"]){visibility:hidden}
 .service-animated-artwork{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;filter:drop-shadow(0 8px 6px #0005)}
-.service-headlight-on{filter:drop-shadow(0 0 3px #fffdeb) drop-shadow(0 0 9px #fff4bd)}
+.service-headlight-on{filter:drop-shadow(0 0 4px #fffdeb) drop-shadow(0 0 12px #fff4bd)}
 .service-headlight-beams{pointer-events:none;animation:vecta-headlights-on .3s ease-out both}
 @keyframes vecta-headlights-on{from{opacity:0}to{opacity:1}}
 @media(max-width:760px){.service-vehicle-stage{height:130px}}
