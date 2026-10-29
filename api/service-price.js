@@ -2,6 +2,7 @@ import {createHash} from 'node:crypto';
 import {servicePriceRequest, serviceRequiredKinds, cleanServiceCosts, COMPARISON_SERVICES, calculateServicePrice, publicServicePrice, pricingPolicy} from '../lib/service-pricing.js';
 import {signServicePrice, verifyServicePrice} from '../lib/service-price-token.js';
 import {gsfQueue} from '../lib/gsf-queue.js';
+import {serviceExtraPrice} from '../lib/service-extras.js';
 
 export function servicePriceHandler({env = process.env, queue = gsfQueue, now = Date.now} = {}) {
   return async (req, res) => {
@@ -28,7 +29,9 @@ export function servicePriceHandler({env = process.env, queue = gsfQueue, now = 
         const quotes=[...COMPARISON_SERVICES,'Interim Service'].map(service=>{
           const request={...input,service},requiredKinds=serviceRequiredKinds(service,costs.fuelType);
           const selected={...costs,request,requiredKinds,items:costs.items.filter(item=>requiredKinds.includes(item.kind))};
-          return signServicePrice(publicServicePrice(calculateServicePrice(selected,request,policy,now())),env.GSF_SERVICE_QUOTE_SECRET,now());
+          const price=publicServicePrice(calculateServicePrice(selected,request,policy,now()));
+          if(service==='Full Service')price.serviceExtra=serviceExtraPrice(costs,policy);
+          return signServicePrice(price,env.GSF_SERVICE_QUOTE_SECRET,now());
         });
         return res.status(200).json({status:'MATCHED',quotes});
       }

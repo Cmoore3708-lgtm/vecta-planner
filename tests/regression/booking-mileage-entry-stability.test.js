@@ -4,11 +4,11 @@ import vm from 'node:vm';
 import fs from 'node:fs';
 const html=fs.readFileSync('website/booking/index.html','utf8');
 function setup(mileage=''){
- const input={dataset:{field:'mileage'},value:mileage},choice={dataset:{serviceChoice:'Major Service'}};
+ const input={dataset:{field:'mileage'},value:mileage},choice={dataset:{serviceChoice:'Oil & Filter Change'}};
  let renders=0,updates=0;
  const state={step:2,mileage_dialog_open:true,form:{mileage,mileage_unknown:false,job_types:['Service'],service_choice:'Full Service',work_required:'Full Service'}};
  const document={querySelector:()=>null,querySelectorAll:s=>s==='[data-field]'?[input]:s==='[data-service-choice]'?[choice]:[]};
- const ctx={state,document,bindHaynes(){},bindAdvisoryChoices(){},bindTyreCards(){},bindTyreSearch(){},render(){renders++},renderActions(){},updateMileageDialogValidity(){},servicePricing:{update(){updates++}}};
+ const ctx={state,document,bindServiceExtra(){},bindHaynes(){},bindAdvisoryChoices(){},bindTyreCards(){},bindTyreSearch(){},render(){renders++},renderActions(){},updateMileageDialogValidity(){},servicePricing:{update(){updates++}}};
  vm.createContext(ctx);
  vm.runInContext(html.slice(html.indexOf('function serviceMileageValid(){'),html.indexOf('function updateMileageDialogValidity(){')),ctx);
  vm.runInContext(html.slice(html.indexOf('function bind(){'),html.indexOf('\nfunction ',html.indexOf('function bind(){')+1)),ctx);
@@ -22,7 +22,7 @@ test('switching services carries current mileage and unknown choice without reop
  for(const [mileage,unknown] of [['135000',false],['',true]]){
  const s=setup(mileage);s.state.form.mileage_unknown=unknown;s.choice.onclick();
  assert.equal(s.state.form.mileage,mileage);assert.equal(s.state.form.mileage_unknown,unknown);
- assert.equal(s.state.form.service_choice,'Major Service');assert.equal(s.state.mileage_dialog_open,false);
+ assert.equal(s.state.form.service_choice,'Oil & Filter Change');assert.equal(s.state.mileage_dialog_open,false);
  }
  const empty=setup();empty.choice.onclick();assert.equal(empty.state.mileage_dialog_open,true);
 });
