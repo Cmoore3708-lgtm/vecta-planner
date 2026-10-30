@@ -10,13 +10,18 @@ export function catalogueSelection(capture,kind,registration){
  if(capture.status!=='CAPTURED_FOR_REVIEW'||!capture.selectedRegistration||capture.registration!==registration||capture.truncated)fail(capture.reason||'VEHICLE_OR_CAPTURE_NOT_CONFIRMED',{selectedRegistration:capture.selectedRegistration===true});
  const text=capture.visibleText||'',skus=[...text.matchAll(/\bSKU:\s*([A-Za-z0-9._/-]+)/g)];
  if(!skus.length)fail('NO_PRODUCT_SKU');
- const sku=skus[0][1],segment=text.slice(skus[0].index,skus[1]?.index??text.length);
+ let firstFailure;
+ for(let productIndex=0;productIndex<skus.length;productIndex++){
+ try{
+ const sku=skus[productIndex][1],segment=text.slice(skus[productIndex].index,skus[productIndex+1]?.index??text.length);
  const panel=segment.match(/Stock Type Quantity\s+(.+?)\s+£\s*(\d+\.\d{2})\s+RRP:/);
  if(!panel||!/^SKU:\s*[A-Za-z0-9._/-]+\s+In stock(?: in (?:RDC|NDC))?\.(?: Get it (?:tomorrow|this afternoon)\.)?(?=\s|$)/i.test(segment)||!/(?:Boldon|RDC|NDC)\s+[1-9]\d*/.test(panel[1]))fail('STOCK_PANEL_NOT_CONFIRMED');
  const pricePence=Math.round(Number(panel[2])*100);
  const selectedCard=segment.match(/Sort By Relevancy\s+£\s*(\d+\.\d{2})\s+(Gold|Silver|Bronze)\b/);
  if(!selectedCard||selectedCard[1]!==panel[2]||selectedCard[2]!=='Gold')fail('PRICE_OR_GRADE_NOT_CONFIRMED'); // Mid Range: selected Gold option only.
- const title=capture.headings?.find(h=>h&&!/^£/.test(h)&&!['Fitment','Attributes','Engine Oil Information','Progress','Oil recommendation','Capacity','Viscosity'].includes(h));
+ const prefix=text.slice(0,skus[productIndex].index),previousIndex=productIndex?skus[productIndex-1].index:-1;
+ const title=capture.headings?.filter(h=>h&&!/^£/.test(h)&&!['Fitment','Attributes','Engine Oil Information','Progress','Oil recommendation','Capacity','Viscosity'].includes(h))
+  .map(h=>({h,index:prefix.lastIndexOf(h)})).filter(x=>x.index>previousIndex).sort((a,b)=>b.index-a.index)[0]?.h;
  if(!title)fail('PRODUCT_DESCRIPTION_MISSING');
  let quantityMilli=1000,packQuantityMilli=1000;
  if(kind==='oil'){
@@ -30,6 +35,14 @@ export function catalogueSelection(capture,kind,registration){
  const fuelType=combustion.length===1?combustion[0]:combustion.length>1?null:fuels.includes('electric')?'electric':null;
  if(!fuelType)fail('FUEL_TYPE_UNCONFIRMED');
  return {kind,searchTerm:sku,detailUrl:capture.productLinks?.find(link=>link.sku===sku)?.url,expectedPricePence:pricePence,description:title,quantityMilli,packQuantityMilli,fuelType};
+ }catch(error){
+  // Try another independently displayed group only for unavailable stock/grade.
+  // Never mask unknown oil fill, ambiguous identity or description evidence.
+  if(kind==='oil'||!['STOCK_PANEL_NOT_CONFIRMED','PRICE_OR_GRADE_NOT_CONFIRMED'].includes(error.diagnosticReason))throw error;
+  firstFailure ||= error;
+ }
+ }
+ throw firstFailure;
 }
 export async function freshProduct(page,selected){
  await openSelectedProduct(page,selected);
@@ -41,6 +54,7 @@ export async function freshProduct(page,selected){
  const evidence={expectedDescription:selected.description,observedDescription:product?.description,sku:product?.sku,expectedPricePence:selected.expectedPricePence,observedPricePence:product?.unitNetPence};
  if(!product)fail(lastReadError?.message==='UNAVAILABLE'?'PRODUCT_STOCK_UNAVAILABLE':lastReadError?.message==='SETTINGS_REQUIRED'?'PRODUCT_FIELDS_UNCONFIRMED':'PRODUCT_DETAILS_UNREADABLE',evidence);
  if(String(product.description).replace(/\s+/g,' ').trim().toLowerCase()!==selected.description.replace(/\s+/g,' ').trim().toLowerCase())fail('PRODUCT_DESCRIPTION_MISMATCH',evidence);
+ if(/^MAN.*\//.test(selected.searchTerm)&&(product.sku!==selected.searchTerm.slice(3)||product.brand.toUpperCase()!=='MANN-FILTER'))fail('PRODUCT_SKU_MISMATCH',evidence);
  if(!selected.searchTerm.toUpperCase().endsWith(product.sku.toUpperCase()))fail('PRODUCT_SKU_MISMATCH',evidence);
  if(product.unitNetPence!==selected.expectedPricePence)fail('PRODUCT_PRICE_MISMATCH',evidence);
  return {kind:selected.kind,sku:product.sku,brand:product.brand,description:product.description,quantityMilli:selected.quantityMilli,

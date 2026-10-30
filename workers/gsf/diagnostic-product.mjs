@@ -12,6 +12,7 @@ export async function diagnosticProduct(page,selected){
  const fail=reason=>{throw Object.assign(Error('REVIEW_REQUIRED'),{diagnosticReason:reason,evidence});};
  if(!product)fail(lastError?.message==='UNAVAILABLE'?'PRODUCT_STOCK_UNAVAILABLE':'PRODUCT_DETAILS_UNREADABLE');
  if(product.description.replace(/\s+/g,' ').trim().toLowerCase()!==selected.description.replace(/\s+/g,' ').trim().toLowerCase())fail('PRODUCT_DESCRIPTION_MISMATCH');
+ if(/^MAN.*\//.test(selected.searchTerm)&&(product.sku!==selected.searchTerm.slice(3)||product.brand.toUpperCase()!=='MANN-FILTER'))fail('PRODUCT_SKU_MISMATCH');
  if(!selected.searchTerm.toUpperCase().endsWith(product.sku.toUpperCase()))fail('PRODUCT_SKU_MISMATCH');
  if(product.unitNetPence!==selected.expectedPricePence)fail('PRODUCT_PRICE_MISMATCH');
  return {kind:selected.kind,sku:product.sku,brand:product.brand,description:product.description,quantityMilli:selected.quantityMilli,

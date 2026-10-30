@@ -69,5 +69,19 @@ export function selectedProductUrl(selected){
  return ORIGIN+'/partdetails/'+encodeURIComponent(selected.searchTerm);
 }
 export async function openSelectedProduct(page,selected){
+ // MANN slash-bearing catalogue codes fail the constructed product route.
+ // Use the existing calibrated GSF search-and-click flow; the fresh reader still
+ // requires the exact manufacturer code, description, price, VAT and stock.
+ if(!selected.detailUrl&&/^MAN[A-Za-z0-9._-]+\/[A-Za-z0-9._/-]+$/.test(selected.searchTerm)){
+  const term=selected.searchTerm,sku=term.slice(3);
+  await page.keyboard.press('Escape');
+  const search=page.getByRole('textbox',{name:"Search for OE (cross ref), aftermarket or categories like 'Air filter'",exact:true});
+  await search.fill(term,{timeout:15000});await search.press('Enter',{timeout:15000});
+  await page.getByRole('heading',{name:'Search Results for "'+term+'"',exact:true}).waitFor({state:'visible',timeout:15000});
+  const code=page.getByRole('main').getByText(sku,{exact:true});
+  await code.waitFor({state:'visible',timeout:15000});
+  if(await code.count()!==1||!await code.isVisible())throw Error('PRODUCT_LINK_UNCONFIRMED');
+  await code.click({timeout:15000});return;
+ }
  await page.goto(selectedProductUrl(selected),{waitUntil:'domcontentloaded',timeout:15000});
 }
