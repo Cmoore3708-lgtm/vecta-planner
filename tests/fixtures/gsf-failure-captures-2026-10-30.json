@@ -1,0 +1,158 @@
+[
+  {
+    "registration": "CM14KEL",
+    "category": "Air Filter",
+    "capture": {
+      "status": "CAPTURED_FOR_REVIEW",
+      "reason": null,
+      "selectedRegistration": true,
+      "registration": "CM14KEL",
+      "category": "Air Filter",
+      "headings": [
+        "Air Filter - Filter Insert",
+        "\u00a318.56"
+      ],
+      "skuLabels": [
+        "ADLADBP220170"
+      ],
+      "displayedPrices": [
+        "18.56",
+        "31.74"
+      ],
+      "displayedLitres": [],
+      "visibleText": "CM14KEL Clear Nissan Qashqai Hybrid HEV 1.5h 190 e-Power HEV CVT Auto Start/Stop Tekna 1.5 (1497cc) Petrol/Hybrid Electric CVT 5 doors 28/11/24 27/11/27 Copy VIN More Details All categories / Filters / Air Filter Related: Oil Filter Fuel Filter Cabin Filter Urea Filter Engine Oil Sump Plug Sump Plug Washer Air Filter - Filter Insert SKU: ADLADBP220170 In stock in RDC. Get it this afternoon. Attributes Sort By Relevancy \u00a318.56 Bronze Air Filter - Filter Insert RDC Show More Stock Type Quantity Boldon 0 RDC 1 NDC 0 \u00a318.56 RRP: \u00a331.74 Buy Now Add to basket 0",
+      "truncated": false,
+      "fitmentVerified": false,
+      "oilVerified": false,
+      "approvedForPublication": false,
+      "attributes": {
+        "status": "NEEDS_REVIEW",
+        "reason": "ATTRIBUTES_CAPTURE_FAILED"
+      }
+    }
+  },
+  {
+    "registration": "AU62ZZF",
+    "category": "Cabin Filter",
+    "capture": {
+      "status": "CAPTURED_FOR_REVIEW",
+      "reason": null,
+      "selectedRegistration": true,
+      "registration": "AU62ZZF",
+      "category": "Cabin Filter",
+      "headings": [
+        "Cabin Filter - Charcoal Filter",
+        "\u00a330.84"
+      ],
+      "skuLabels": [
+        "MANCUK2231"
+      ],
+      "displayedPrices": [
+        "30.84",
+        "63.90"
+      ],
+      "displayedLitres": [],
+      "visibleText": "AU62ZZF Clear Mitsubishi L200 DI-D 178 Warrior LB 2.5 (2477cc) Diesel Manual 4 doors 17/10/12 01/10/27 Copy VIN More Details All categories / Filters / Cabin Filter Related: Oil Filter Air Filter Fuel Filter Urea Filter Engine Oil Sump Plug Sump Plug Washer Cabin Filter - Charcoal Filter SKU: MANCUK2231 In stock in RDC. Get it this afternoon. Attributes Sort By Relevancy \u00a330.84 Gold Cabin Filter - Charcoal Filter RDC Show More Stock Type Quantity Boldon 0 RDC 1 NDC 7 \u00a330.84 RRP: \u00a363.90 Buy Now Add to basket 0",
+      "truncated": false,
+      "fitmentVerified": false,
+      "oilVerified": false,
+      "approvedForPublication": false,
+      "attributes": {
+        "status": "ATTRIBUTES_CAPTURED",
+        "rows": [
+          {
+            "attribute": "Bar Code",
+            "value": "401155853990"
+          },
+          {
+            "attribute": "Height (mm)",
+            "value": "74"
+          },
+          {
+            "attribute": "Width (mm)",
+            "value": "231"
+          },
+          {
+            "attribute": "Length (mm)",
+            "value": "233"
+          },
+          {
+            "attribute": "Fitting Time (min)",
+            "value": "18"
+          },
+          {
+            "attribute": "Filter Type",
+            "value": "Activated Carbon Filter"
+          },
+          {
+            "attribute": "Fitting Position",
+            "value": "behind the glove compartment"
+          }
+        ],
+        "oilVerified": false,
+        "groupSku": "MANCUK2231"
+      }
+    }
+  },
+  {
+    "registration": "SB65BXU",
+    "category": "Fuel Filter",
+    "capture": {
+      "status": "CAPTURED_FOR_REVIEW",
+      "reason": null,
+      "selectedRegistration": true,
+      "registration": "SB65BXU",
+      "category": "Fuel Filter",
+      "headings": [
+        "Fuel Filter - Element",
+        "\u00a319.97"
+      ],
+      "skuLabels": [
+        "FRAC11574"
+      ],
+      "displayedPrices": [
+        "19.97",
+        "28.06",
+        "12.32",
+        "34.49"
+      ],
+      "displayedLitres": [],
+      "visibleText": "SB65BXU Clear Mercedes-Benz Citan 109 CDi Dualiner BlueEFFICIENCY XLWB Extended Frame Start/Stop 109 CDi Extra Long Dualiner BlueEFFICIENCY 1.5 (1461cc) Diesel Manual 4 doors 31/10/15 02/12/26 Copy VIN More Details All categories / Filters / Fuel Filter Related: Oil Filter Air Filter Cabin Filter Urea Filter Engine Oil Sump Plug Sump Plug Washer Fuel Filter - Element SKU: FRAC11574 In stock. Attributes Sort By Relevancy \u00a319.97 Gold Fuel Filter - Element Local Branch \u00a328.06 Gold Fuel Filter - Insert Filter Local Branch \u00a312.32 Silver Fuel Filter - Insert Filter Local Branch Show More Stock Type Quantity Boldon 1 RDC 1 NDC 78 \u00a319.97 RRP: \u00a334.49 Buy Now Add to basket 0",
+      "truncated": false,
+      "fitmentVerified": false,
+      "oilVerified": false,
+      "approvedForPublication": false,
+      "attributes": {
+        "status": "ATTRIBUTES_CAPTURED",
+        "rows": [
+          {
+            "attribute": "Filter Type",
+            "value": "Filter Insert"
+          },
+          {
+            "attribute": "Height (mm)",
+            "value": "118"
+          },
+          {
+            "attribute": "Outer Diameter (mm)",
+            "value": "81"
+          },
+          {
+            "attribute": "Inner Diameter (mm)",
+            "value": "11"
+          },
+          {
+            "attribute": "Diameter 3 (mm)",
+            "value": "87"
+          },
+          {
+            "attribute": "Bar Code",
+            "value": "502265028629"
+          }
+        ],
+        "oilVerified": false,
+        "groupSku": "FRAC11574"
+      }
+    }
+  }
+]

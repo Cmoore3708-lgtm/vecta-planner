@@ -23,8 +23,17 @@ export function readServiceCategory({registration,category},doc=document){
  const skuLabels=[...all.matchAll(/\bSKU\s*:\s*([A-Za-z0-9._/-]+)/gi)].map(m=>m[1]);
  const prices=[...all.matchAll(/£\s*(\d+(?:,\d{3})*\.\d{2})/g)].map(m=>m[1]);
  const quantities=[...all.matchAll(/\b(?:\d+(?:\.\d+)?)\s*L\b/gi)].map(m=>m[0]);
+ const productLinks=[];
+ for(const anchor of [...main.querySelectorAll('a[href]')].filter(visible)){
+  try{
+   const url=new URL(anchor.getAttribute('href'),'https://trade.gsfcarparts.com');
+   if(url.origin!=='https://trade.gsfcarparts.com'||url.username||url.password||url.search||url.hash||!url.pathname.startsWith('/partdetails/'))continue;
+   let sku=url.pathname.slice('/partdetails/'.length);
+   for(let i=0;i<3;i++){if(skuLabels.includes(sku)){if(!productLinks.some(x=>x.sku===sku))productLinks.push({sku,url:url.href});break;}const next=decodeURIComponent(sku);if(next===sku)break;sku=next;}
+  }catch{}
+ }
  return {status:selected?'CAPTURED_FOR_REVIEW':'NEEDS_REVIEW',reason:selected?null:'SELECTED_VEHICLE_NOT_CONFIRMED',selectedRegistration:selected,registration,category,
-  headings,skuLabels:[...new Set(skuLabels)].slice(0,40),displayedPrices:[...new Set(prices)].slice(0,100),displayedLitres:[...new Set(quantities)].slice(0,20),
+  headings,productLinks,skuLabels:[...new Set(skuLabels)].slice(0,40),displayedPrices:[...new Set(prices)].slice(0,100),displayedLitres:[...new Set(quantities)].slice(0,20),
   visibleText:all.slice(0,14000),truncated:all.length>14000,fitmentVerified:false,oilVerified:false,approvedForPublication:false};
 }
 export function readServiceAttributes(doc=document){

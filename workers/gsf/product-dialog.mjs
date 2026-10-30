@@ -13,7 +13,7 @@ export function readProductDialog(doc = document) {
   };
   const dialogs=[...doc.querySelectorAll('[role="dialog"]')].filter(el=>visible(el)&&clean(el.querySelector('h2')?.textContent)==='Part Details');
   if(dialogs.length>1)throw Error('SETTINGS_REQUIRED');
-  const fullPage=doc.location?.origin==='https://trade.gsfcarparts.com' && /^\/partdetails\/[^/]+\/?$/.test(doc.location.pathname);
+  const fullPage=doc.location?.origin==='https://trade.gsfcarparts.com' && /^\/partdetails\/.+/.test(doc.location.pathname);
   const mains=fullPage?[...doc.querySelectorAll('main,[role="main"]')].filter(visible):[];
   const dialog=dialogs[0]||(mains.length===1?mains[0]:null);
   if(!dialog)throw Error('PRODUCT_DETAILS_NOT_OPEN');
@@ -42,7 +42,7 @@ export function readProductDialog(doc = document) {
   const costIncVatPence=Number(grossMatch[1].replaceAll(',',''))*100+Number(grossMatch[2]);
   if(Math.abs(costIncVatPence-Math.round(unitNetPence*1.2))>1)throw Error('SETTINGS_REQUIRED');
   const stockLabels=[...dialog.querySelectorAll('*')].filter(visible).map(el=>clean(el.textContent));
-  const inStock=stockLabels.some(text=>/^In stock(?: in (?:RDC|NDC))?\.?(?: Get it tomorrow\.)?$/i.test(text));
+  const inStock=stockLabels.some(text=>/^In stock(?: in (?:RDC|NDC))?\.?(?: Get it (?:tomorrow|this afternoon)\.)?$/i.test(text));
   if(!inStock||stockLabels.some(text=>/^Out of stock\.?$/i.test(text)))throw Error('UNAVAILABLE');
   const stock=[...dialog.querySelectorAll('tbody tr')].filter(visible).map(row=>[...row.querySelectorAll('td')].map(el=>clean(el.textContent)))
     .filter(cells=>cells.length===2&&/^\d+$/.test(cells[1]))
@@ -53,3 +53,21 @@ export function readProductDialog(doc = document) {
   return {imageUrl,sku,brand,description:descriptions[0],unitNetPence,costIncVatPence,vatBasis:'EX_VAT',inStock,stock};
 }
 
+
+const ORIGIN='https://trade.gsfcarparts.com';
+// Follow the supplier's own product URL for SKUs containing route separators.
+// Never invent a different escape sequence or choose a substitute part.
+export function selectedProductUrl(selected){
+ if(selected.detailUrl){
+  const url=new URL(selected.detailUrl,ORIGIN);
+  if(url.origin!==ORIGIN||url.username||url.password||url.search||url.hash||!url.pathname.startsWith('/partdetails/'))throw Error('PRODUCT_LINK_UNCONFIRMED');
+  let sku=url.pathname.slice('/partdetails/'.length);
+  for(let i=0;i<3;i++){if(sku===selected.searchTerm)return url.href;try{const next=decodeURIComponent(sku);if(next===sku)break;sku=next;}catch{break;}}
+  throw Error('PRODUCT_LINK_UNCONFIRMED');
+ }
+ if(selected.searchTerm.includes('/'))throw Error('PRODUCT_LINK_UNCONFIRMED');
+ return ORIGIN+'/partdetails/'+encodeURIComponent(selected.searchTerm);
+}
+export async function openSelectedProduct(page,selected){
+ await page.goto(selectedProductUrl(selected),{waitUntil:'domcontentloaded',timeout:15000});
+}

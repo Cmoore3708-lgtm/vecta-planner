@@ -35,3 +35,24 @@ New regression fixtures verify hidden ancestors, visible ambiguity, missing fuel
 - NO_PRODUCT_SKU: 2
 - LOOKUP_FAILED: 1
 - INVALID_RESULT: 1
+
+
+## 30 October uploaded failure capture and consolidated candidate
+
+Evidence: VECTA-Failure-Details.json, Library libfile_c965bd9d21cc81918d4a33540ca5108d, linked run 1564d5e4-70cb-47a7-94ce-72f0969f6e69. 121 distinct registration/category requests: 120 captured and one capture error (NK72KRV applied oil). Historical production CM14KEL failure remains baseline only. The completed live run has 314 passes, 174 reviews and 112 skips. Skips are not passes. Ten previously passed checks became review, all at PRODUCT_DETAILS_UNREADABLE.
+
+Confirmed code defects:
+- Catalogue and product stock grammars accepted tomorrow but rejected the supplier's equally explicit same-afternoon RDC stock. Both readers now accept the observed wording while still requiring positive quantified stock and exact price/VAT checks. AU62ZZF and the shared FRACA12624 cases reproduce this.
+- SB65BXU selected vehicle display identity is 178 characters, exceeding the 160-character result display contract after all product checks succeeded. Only the returned display label is shortened; full vehicle identity remains intact for scope and fitment validation.
+- Slash-bearing supplier SKUs produce not-found pages through the previously constructed URL. Capture now retains supplier-authored product links only when their decoded complete SKU matches the selected SKU. The reader follows that verified link and supports slash-bearing product paths. If no matching supplier link is exposed, it records PRODUCT_LINK_UNCONFIRMED rather than guessing another URL. This route still needs workshop-PC verification; uploaded captures did not retain anchor URLs.
+
+Remaining evidence boundaries:
+- 64 category captures show an explicit N/A supplier vehicle and no parts. Across 13 affected vehicles this explains 78 run reviews including service scope. No make/model-only substitution is safe. NK72KRV oil had a capture error; its other four captured categories exhibit the same unmatched identity, but its missing capture is not invented.
+- 27 applied-oil captures expose bottle-size filters, not a sump fill including filter. Preserve OIL_FILL_OR_PACK_UNCONFIRMED until vehicle-specific manufacturer evidence exists. Do not turn 1L/5L bottle sizes into engine capacity.
+- Nine captured selections are below the required Gold grade (eight air filters, one fuel filter). CM14KEL's only captured air filter is Bronze. It remains review under the existing Mid Range policy; the associated service cannot be marked passed.
+- Two stock cases lack the existing positive verified depot-stock evidence. Group/branch enquiries must not be treated as confirmed available stock.
+- The changes do not establish that every remaining case is fixed, and no new live rerun has yet verified them. Guide-price fallback is retained.
+
+Validation: six new regression cases use the uploaded stock wording and Citan identity, retain Bronze review and enforce exact supplier link identity. Existing capture and product regression suites passed. Full release-gate outcome is recorded separately after completion. No production data or main branch changes.
+
+Final local validation: release:gate passed all 1,120 regression tests plus phone/cloud sync, finance integrity, production build and dashboard lock. Simulated upgrade from installed 66c6aaed passed module imports, syntax, cooperative-stop retention, preserved pairing/profile markers, previous release retention, old-channel blocking, corrupt-bundle rejection and saved-run preservation. These do not substitute for live Windows/supplier verification. Candidate a7b232211856f53ba5a9ed07b9b8dc5368cad8fc, bundle SHA256 ab1e52e16cefa8aed7cd2be9b034d6f7526bc5d8795743bd229335e0609fde7c.

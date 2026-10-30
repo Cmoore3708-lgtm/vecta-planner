@@ -1,6 +1,7 @@
 import {servicePriceRequest,serviceRequiredKinds,cleanServiceCosts} from '../../lib/service-pricing.js';
 import {captureServiceCategory} from './service-capture.mjs';
 import {readProductDialog} from './product-dialog.mjs';
+import {openSelectedProduct} from './product-dialog.mjs';
 import {oilFillEvidence} from './oil-capacity.mjs';
 const fail=(reason='REVIEW_REQUIRED',evidence={})=>{throw Object.assign(Error('REVIEW_REQUIRED'),{diagnosticReason:reason,evidence});};
 const categories={oil:'Engine Oils (Applied)',oil_filter:'Oil Filter',air_filter:'Air Filter',cabin_filter:'Cabin Filter',fuel_filter:'Fuel Filter'};
@@ -11,7 +12,7 @@ export function catalogueSelection(capture,kind,registration){
  if(!skus.length)fail('NO_PRODUCT_SKU');
  const sku=skus[0][1],segment=text.slice(skus[0].index,skus[1]?.index??text.length);
  const panel=segment.match(/Stock Type Quantity\s+(.+?)\s+£\s*(\d+\.\d{2})\s+RRP:/);
- if(!panel||!/^SKU:\s*[A-Za-z0-9._/-]+\s+In stock(?: in (?:RDC|NDC))?\.(?: Get it tomorrow\.)?(?=\s|$)/i.test(segment)||!/(?:Boldon|RDC|NDC)\s+[1-9]\d*/.test(panel[1]))fail('STOCK_PANEL_NOT_CONFIRMED');
+ if(!panel||!/^SKU:\s*[A-Za-z0-9._/-]+\s+In stock(?: in (?:RDC|NDC))?\.(?: Get it (?:tomorrow|this afternoon)\.)?(?=\s|$)/i.test(segment)||!/(?:Boldon|RDC|NDC)\s+[1-9]\d*/.test(panel[1]))fail('STOCK_PANEL_NOT_CONFIRMED');
  const pricePence=Math.round(Number(panel[2])*100);
  const selectedCard=segment.match(/Sort By Relevancy\s+£\s*(\d+\.\d{2})\s+(Gold|Silver|Bronze)\b/);
  if(!selectedCard||selectedCard[1]!==panel[2]||selectedCard[2]!=='Gold')fail('PRICE_OR_GRADE_NOT_CONFIRMED'); // Mid Range: selected Gold option only.
@@ -28,10 +29,10 @@ export function catalogueSelection(capture,kind,registration){
  const combustion=fuels.filter(f=>f!=='electric');
  const fuelType=combustion.length===1?combustion[0]:combustion.length>1?null:fuels.includes('electric')?'electric':null;
  if(!fuelType)fail('FUEL_TYPE_UNCONFIRMED');
- return {kind,searchTerm:sku,expectedPricePence:pricePence,description:title,quantityMilli,packQuantityMilli,fuelType};
+ return {kind,searchTerm:sku,detailUrl:capture.productLinks?.find(link=>link.sku===sku)?.url,expectedPricePence:pricePence,description:title,quantityMilli,packQuantityMilli,fuelType};
 }
 export async function freshProduct(page,selected){
- await page.goto('https://trade.gsfcarparts.com/partdetails/'+encodeURIComponent(selected.searchTerm),{waitUntil:'domcontentloaded',timeout:15000});
+ await openSelectedProduct(page,selected);
  let product,lastReadError;const deadline=Date.now()+15000;
  while(Date.now()<deadline){
   if(/\/signin(?:[/?]|$)/.test(page.url()))throw Error('LOGIN_REQUIRED');
@@ -64,8 +65,14 @@ export async function lookupLiveService(page,raw,{capture=captureServiceCategory
   items.push(await readFresh(page,selected));
  }
  stage='SERVICE_VALIDATION';
- return cleanServiceCosts({request,recipeId:'gsf-selected-vehicle-v1',vehicle:first.visibleText.split(' Clear ')[1]?.split(' Copy VIN')[0]||request.registration,
+ return cleanServiceCosts({request,recipeId:'gsf-selected-vehicle-v1',vehicle:serviceVehicleLabel(first,request.registration),
   fuelType,oilSpecification:request.service==='EV Major Service'?'':'GSF vehicle-applied oil recommendation',requiredKinds,items,
   fitmentVerified:true,scopeVerified:true,oilVerified:true,checkedAt:new Date(now()).toISOString()},request,now());
  }catch(error){error.stage ||= stage;error.evidence={category:categories[kind],...error.evidence};throw error;}
+}
+
+// Display label only: full identity was checked above and is never truncated for fitment.
+export function serviceVehicleLabel(capture,registration){
+ const identity=capture.visibleText?.split(' Clear ')[1]?.split(' Copy VIN')[0]||registration;
+ return identity.length>160?identity.slice(0,159)+'…':identity;
 }

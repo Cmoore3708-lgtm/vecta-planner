@@ -1,7 +1,8 @@
 // Same strict product checks as the live reader, with diagnostic-only evidence.
+import {openSelectedProduct} from './product-dialog.mjs';
 import {readProductDialog} from './product-dialog.mjs';
 export async function diagnosticProduct(page,selected){
- await page.goto('https://trade.gsfcarparts.com/partdetails/'+encodeURIComponent(selected.searchTerm),{waitUntil:'domcontentloaded',timeout:15000});
+ await openSelectedProduct(page,selected);
  let product,lastError;const deadline=Date.now()+15000;
  while(Date.now()<deadline){
   if(/\/signin(?:[/?]|$)/.test(page.url()))throw Error('LOGIN_REQUIRED');
