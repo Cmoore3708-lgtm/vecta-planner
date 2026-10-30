@@ -6,7 +6,7 @@ import {parseHTML} from 'linkedom';
 import {cleanServiceCosts} from '../../lib/service-pricing.js';
 import {servicePriceHandler} from '../../api/service-price.js';
 import {bookingServicePrice} from '../../lib/booking-service-price.js';
-import {bookingServiceExtra,serviceExtraSnapshot} from '../../lib/service-extras.js';
+import {bookingServiceExtra,serviceExtraSnapshot,serviceExtraPrice} from '../../lib/service-extras.js';
 import {bookingServiceParts} from '../../lib/booking-service-parts.js';
 import {verifyServicePrice} from '../../lib/service-price-token.js';
 const now=Date.now(),secret='f'.repeat(64);
@@ -25,22 +25,22 @@ async function offers(raw=costs()){
 function body(quote,choice='replace',kind='fuel_filter'){
  return {registration:request.registration,service_choice:'Full Service',mileage_unknown:true,parts_range:'Mid Range',service_price_token:quote.token,service_extra_kind:kind,service_extra_choice:choice};
 }
-test('fuel-filter estimate is the VAT-inclusive GSF cost plus 30 percent plus £25, without £5 rounding',async()=>{
- const q=await offers();assert.equal(q.serviceExtra.kind,'fuel_filter');assert.equal(q.serviceExtra.totalPence,5620);
+test('fuel-filter estimate is the VAT-inclusive GSF cost plus 30 percent plus £25, rounded up to £5',async()=>{
+ const q=await offers();assert.equal(q.serviceExtra.kind,'fuel_filter');assert.equal(q.serviceExtra.totalPence,6000);
  assert.equal(q.serviceExtra.netPence+q.serviceExtra.vatPence,q.serviceExtra.totalPence);
- assert.equal(verifyServicePrice(q.token,q.request,secret).serviceExtra.totalPence,5620);
+ assert.equal(verifyServicePrice(q.token,q.request,secret).serviceExtra.totalPence,6000);
  assert.ok(!JSON.stringify(q).includes('unitNetPence'));
 });
 test('replace includes the extra once; check-first keeps it conditional; none excludes it',async()=>{
  const q=await offers(),base=q.totalPence/100;
  const replace=bookingServicePrice(body(q),['Full Service'],secret);
- assert.equal(replace.approximateCost,base+56.20);assert.match(replace.snapshot,/Customer requests replacement/);
+ assert.equal(replace.approximateCost,base+60);assert.match(replace.snapshot,/Customer requests replacement/);
  assert.equal(replace.quote.items.filter(i=>i.kind==='fuel_filter').length,1);
  const check=bookingServicePrice(body(q,'check'),['Full Service'],secret);
  assert.equal(check.approximateCost,base);assert.match(check.snapshot,/replace only if due/);
  assert.ok(!check.quote.items.some(i=>i.kind==='fuel_filter'));
  assert.equal(bookingServicePrice(body(q,'none'),['Full Service'],secret).approximateCost,base);
- assert.equal(bookingServicePrice(body(q,'replace'),['Full Service','MOT'],secret).approximateCost,base+116.20);
+ assert.equal(bookingServicePrice(body(q,'replace'),['Full Service','MOT'],secret).approximateCost,base+120);
 });
 test('changed kind, customer supplied prices and missing plug quotes never invent a price',async()=>{
  const q=await offers();const b={...body(q,'replace','spark_plug'),service_extra_price:1};
@@ -51,13 +51,13 @@ test('changed kind, customer supplied prices and missing plug quotes never inven
 });
 test('only verified, explicitly counted spark-plug sets produce a live extra',async()=>{
  const raw=costs('petrol');raw.optionalParts=[{...item('spark_plug',1000,4000),fitmentVerified:true,quantityVerified:true}];
- const q=await offers(raw);assert.equal(q.serviceExtra.kind,'spark_plug');assert.equal(q.serviceExtra.items[0].quantityMilli,4000);assert.equal(q.serviceExtra.totalPence,8740);
+ const q=await offers(raw);assert.equal(q.serviceExtra.kind,'spark_plug');assert.equal(q.serviceExtra.items[0].quantityMilli,4000);assert.equal(q.serviceExtra.totalPence,9000);
  for(const patch of [{quantityVerified:false},{fitmentVerified:false},{quantityMilli:4500},{quantityMilli:17000},{unitNetPence:0},{inStock:false},{vatBasis:'UNKNOWN'}]){
   const invalid={...raw,optionalParts:[{...raw.optionalParts[0],...patch}]};
   assert.ok(cleanServiceCosts(invalid,request,now));assert.equal((await offers(invalid)).serviceExtra,null);
  }
  const booked=bookingServicePrice(body(q,'replace','spark_plug'),['Full Service'],secret);
- assert.equal(booked.approximateCost,(q.totalPence+8740)/100);assert.match(booked.snapshot,/Estimated additional cost: £87\.40/);
+ assert.equal(booked.approximateCost,(q.totalPence+9000)/100);assert.match(booked.snapshot,/Estimated additional cost: £90\.00/);
  const conditional=bookingServicePrice(body(q,'check','spark_plug'),['Full Service'],secret);assert.equal(conditional.approximateCost,q.totalPence/100);
  const parts=bookingServiceParts(booked.quote,[{result:raw}]);
  const plugs=parts.find(p=>p.id.endsWith('spark_plug'));assert.equal(plugs.cost_price,10);assert.equal(plugs.quantity,4);
@@ -81,12 +81,15 @@ test('approved slim section switches diesel/petrol and ignores a choice from ano
  assert.equal(document.querySelectorAll('select').length,1);assert.equal(document.querySelectorAll('input').length,0);
  assert.match(document.querySelector('.service-extra-price').textContent,/confirm the price before fitting/);
  assert.equal(root.serviceExtraSelection(),'check');
- root.liveServiceQuote=()=>({serviceExtra:{kind:'fuel_filter',totalPence:5620}});
- assert.match(root.serviceExtraHtml(),/We estimate the cost of fitting your fuel filter will be £56\.20\./);
+ root.liveServiceQuote=()=>({serviceExtra:{kind:'fuel_filter',totalPence:6000}});
+ assert.match(root.serviceExtraHtml(),/We estimate the cost of fitting your fuel filter will be £60\./);
+ document.getElementById('root').innerHTML=root.serviceExtraHtml();
+ assert.equal(document.querySelector('.service-extra-title .service-extra-estimate strong').textContent,'£60');
+ assert.equal(document.querySelector('.service-extra-price'),null);
  root.liveServiceQuote=()=>null;
  state.form.fuel_type='Petrol';assert.equal(root.serviceExtraSelection(),'none');
  assert.match(root.serviceExtraHtml(),/Spark plugs/);assert.match(root.serviceExtraHtml(),/replace them/);
- root.liveServiceQuote=()=>({serviceExtra:{kind:'spark_plug',totalPence:8740}});assert.match(root.serviceExtraHtml(),/We estimate the cost of fitting your spark plugs will be £87\.40\./);root.liveServiceQuote=()=>null;
+ root.liveServiceQuote=()=>({serviceExtra:{kind:'spark_plug',totalPence:9000}});assert.match(root.serviceExtraHtml(),/We estimate the cost of fitting your spark plugs will be £90\./);root.liveServiceQuote=()=>null;
  state.form.registration='OTHER123';assert.equal(root.serviceExtraHtml(),'');assert.equal(root.serviceExtraSelection(),'none');
  state.form.registration='TEST123';state.form.fuel_type='Electricity';assert.equal(root.serviceExtraHtml(),'');
  state.form.fuel_type='Diesel';state.form.service_choice='Oil & Filter Change';assert.equal(root.serviceExtraHtml(),'');
@@ -102,4 +105,11 @@ test('the service picker keeps Interim and Full and places the extra outside the
  assert.ok(document.querySelector('.service-full-with-extra>[data-extra]'));
  assert.equal(document.querySelector('[data-extra]').closest('button'),null);
  assert.ok(document.querySelector('img[alt="Your car"]'));
+});
+
+test('rounding keeps exact £5 totals and rounds one penny above upward',()=>{
+ for(const [cost,expected] of [[5000,9000],[5001,9500],[4999,9000]]){
+  const result=serviceExtraPrice({fuelType:'diesel',items:[item('fuel_filter',cost)]},{vatBps:0});
+  assert.equal(result.totalPence,expected);
+ }
 });
