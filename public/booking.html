@@ -87,7 +87,9 @@
 
 </style><link rel="stylesheet" href="/js/vecta-tyre-booking.css?v=20261028-axle-roll"><link rel="stylesheet" href="/js/vecta-tyre-photo.css"><link rel="stylesheet" href="/js/vecta-work-photos.css?v=20261023-copy"><script src="/js/vecta-work-photos.js?v=20261023-copy"></script><link rel="stylesheet" href="/js/vecta-tyre-positions.css?v=20261028-stock-limit"><style>
 .advisory-response{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:18px;align-items:start}.advisory-tyre-options{padding:16px;border:1px solid #cbd5e1;border-radius:12px;background:#fff;color:#182433}.advisory-tyre-options strong{display:block;line-height:1.4;margin-bottom:12px}.advisory-tyre-options button{display:block;width:100%;margin:9px 0 0;padding:11px 12px;border:1px solid #cbd5e1;border-radius:8px;background:#f8fafc;color:#182433;font-size:14px;line-height:1.4;text-align:left;cursor:pointer}.advisory-tyre-options button.selected{border-color:#15803d;background:#ecfdf5}.advisory-tyre-options p{font-size:13px;line-height:1.5;margin:12px 0 0}@media(max-width:640px){.advisory-response{grid-template-columns:1fr}}
-</style></head><body><div class="shell"><div class="bookingHeader"><img src="assets/vecta-header.png" alt="VECTA Vehicle Servicing and repairs"><div class="bookingHeaderTagline">For all employees of <strong>NMUK</strong></div></div><div class="card" id="app"></div></div><script src="/js/vecta-tyre-booking.js?v=20261028-stock-limit"></script><script src="/js/vecta-tyre-positions.js?v=20261028-stock-limit"></script><script src="/js/vecta-tyre-photo.js"></script><script src="/js/vecta-booking-transfer.js"></script><script src="/js/vecta-haynes-booking.js"></script><script src="/js/vecta-guide-prices.js"></script><script src="/js/vecta-service-pricing.js?v=gsf-1"></script><script src="/js/vecta-vehicle-image.js"></script><script src="/js/vecta-booking-updates.js?v=20261028-stock-limit"></script><script>
+</style>
+
+</head><body><div class="shell"><div class="bookingHeader"><img src="assets/vecta-header.png" alt="VECTA Vehicle Servicing and repairs"><div class="bookingHeaderTagline">For all employees of <strong>NMUK</strong></div></div><div class="card" id="app"></div></div><script src="/js/vecta-tyre-booking.js?v=20261028-stock-limit"></script><script src="/js/vecta-tyre-positions.js?v=20261028-stock-limit"></script><script src="/js/vecta-tyre-photo.js"></script><script src="/js/vecta-booking-transfer.js"></script><script src="/js/vecta-haynes-booking.js"></script><script src="/js/vecta-guide-prices.js"></script><script src="/js/vecta-service-pricing.js?v=gsf-1"></script><script src="/js/vecta-vehicle-image.js"></script><script src="/js/vecta-booking-updates.js?v=20261028-stock-limit"></script><script>
 
 const bookingParams=new URLSearchParams(window.location.search),suppliedTypes=[...new Set((bookingParams.get('types')||'').split(',').map(x=>x.trim()).map(x=>['Brakes','Diagnostics / warning light','Something else'].includes(x)?'Other':x).filter(x=>['Service','MOT','Tyres','Other'].includes(x)))];
 const state={step:1,mileage_dialog_open:false,lookup:'idle',lookupMessage:'',timer:null,customerTimer:null,customer_recognition_status:'idle',customer_lookup_error:'',availability_loading:false,service_offer_dismissed:false,mot_calendar_month:'',form:{customer_name:'',email:'',phone:'',registration:'',vehicle:'',vehicle_make:'',vehicle_colour:'',engine_size:'',engine_size_manual:'',mileage:'',mileage_unknown:false,last_mot_mileage:'',last_mot_date:'',mot_due:'',mot_advisories:[],inspect_mot_advisories:'',nevos_vehicle:'',job_types:suppliedTypes.slice(),work_required:'',preferred_date_1:'',preferred_date_2:'',preferred_date_3:'',completion_deadline:'',contact_preference:'Email',service_choice:'',service_extra_choice:'none',service_extra_kind:'',service_extra_registration:'',tyre_choice:'',tyre_size:'',tyre_quantity:1,tyre_guide:null,parts_range:'',returning_contact:'',returning_choice:'',customer_found:false,customer_vehicles:[],latest_service_date:'',available_slots:[],appointment_date:'',appointment_time:'',technician:'',estimated_hours:1}};
@@ -434,7 +436,7 @@ function bindMileageDialog(){
  updateMileageDialogValidity();
  if(state.mileage_dialog_open&&state.step===2&&state.form.service_choice){dialog.showModal();if(state.form.mileage_unknown)dialog.querySelector('[data-mileage-unknown]').focus();}
 }
-function render(){servicePricing.update();app.innerHTML=`<div class="top"><h1>Booking Form</h1></div>${bookingProgressHtml()}<div class="step ${state.step>1?'later-step':''}"><div class="vehicle-photo" data-haynes-slot>${haynesHtml()}</div>${vehicleSummaryHtml()}${stepHtml()}</div><div class="actions" id="actions"></div>${serviceOfferEligible()?'<div class="mot-notice-backdrop"><div class="mot-notice" role="dialog" aria-modal="true" aria-labelledby="motNoticeTitle"><div class="mot-notice-icon">£5</div><h3 id="motNoticeTitle">Add a Service and save</h3><p>If you book a Service at the same time, you’ll get £5 off the price. Plus with a Full Service your car will get a good clean!</p><button type="button" id="addServiceOffer">Add a Service</button><button type="button" id="closeMotNotice" style="margin-left:12px;background:#475569">No thanks</button></div></div>':''}`;alignVehicleHeader();applyAdminCopy();bind();bindV137();if(typeof VectaWorkPhotos!=='undefined')VectaWorkPhotos.mount(state.form,render,renderActions);renderActions();bindMileageDialog();let addService=document.getElementById('addServiceOffer');if(addService)addService.onclick=()=>{state.service_offer_dismissed=true;if(!state.form.job_types.includes('Service'))state.form.job_types.push('Service');state.form.appointment_date='';state.form.appointment_time='';state.form.technician='';render();document.querySelector('.service-picker-head')?.scrollIntoView({block:'center',behavior:'smooth'})};let motClose=document.getElementById('closeMotNotice');if(motClose)motClose.onclick=()=>{state.service_offer_dismissed=true;render()}}
+function render(){servicePricing.update();app.innerHTML=`<div class="top"><h1>Booking Form</h1></div>${bookingProgressHtml()}<div class="step ${state.step>1?'later-step':''} ${state.step>=3&&state.step<=5?'booking-charcoal':''}"><div class="vehicle-photo" data-haynes-slot>${haynesHtml()}</div>${vehicleSummaryHtml()}${stepHtml()}</div><div class="actions" id="actions"></div>${serviceOfferEligible()?'<div class="mot-notice-backdrop"><div class="mot-notice" role="dialog" aria-modal="true" aria-labelledby="motNoticeTitle"><div class="mot-notice-icon">£5</div><h3 id="motNoticeTitle">Add a Service and save</h3><p>If you book a Service at the same time, you’ll get £5 off the price. Plus with a Full Service your car will get a good clean!</p><button type="button" id="addServiceOffer">Add a Service</button><button type="button" id="closeMotNotice" style="margin-left:12px;background:#475569">No thanks</button></div></div>':''}`;alignVehicleHeader();applyAdminCopy();bind();bindV137();if(typeof VectaWorkPhotos!=='undefined')VectaWorkPhotos.mount(state.form,render,renderActions);renderActions();bindMileageDialog();let addService=document.getElementById('addServiceOffer');if(addService)addService.onclick=()=>{state.service_offer_dismissed=true;if(!state.form.job_types.includes('Service'))state.form.job_types.push('Service');state.form.appointment_date='';state.form.appointment_time='';state.form.technician='';render();document.querySelector('.service-picker-head')?.scrollIntoView({block:'center',behavior:'smooth'})};let motClose=document.getElementById('closeMotNotice');if(motClose)motClose.onclick=()=>{state.service_offer_dismissed=true;render()}}
 // Reuse one request identity if a response is lost or the customer tries again.
 let bookingSubmission = null;
 async function sendBookingRequest(payload){
@@ -499,7 +501,8 @@ initialiseBooking();
 (async function loadOptionalCopy(){try{const r=await fetch('https://jywufozycuwuoshlulwl.supabase.co/functions/v1/website-content-public',{cache:'no-store',signal:AbortSignal.timeout(2500)});if(r.ok){const d=await r.json();window.__VECTA_ADMIN_COPY__=d.content?.booking||{};applyAdminCopy()}}catch{}})();
 
 if(typeof VectaGuidePrices!=='undefined')VectaGuidePrices.load().then(()=>{if(state.step>=2&&!state.mileage_dialog_open&&!bookingSubmitting)render();}).catch(()=>{});
-</script></body></html>
+</script>
+</body></html>
 
 <style>@media(max-width:700px){.slots{column-count:1}}.later-step .vehicle-summary{width:48%;min-height:400px;display:flex;flex-direction:column;align-items:flex-start;justify-content:flex-start}.later-step .vehicle-summary-meta{justify-content:flex-start;gap:14px}.later-step>h2,.later-step>p{max-width:100%}@media(max-width:600px){.later-step .vehicle-summary{width:48%;min-height:370px;padding:12px 8px}.later-step .vehicle-summary-meta{display:grid;gap:12px}}
 .summary-advisories{width:100%;margin-top:0;padding-top:12px}.summary-advisories .advisories{background:#fff0f1;border:1px solid #f1c6cb;padding:12px}.summary-advisories .advisories ul{font-size:12px;font-weight:400;line-height:1.5;color:#344054}.summary-advisories .advisories p{font-size:12px;color:#475467}.summary-advisories .advisory-question{font-size:12px}.summary-advisories .advisory-question strong{white-space:normal;overflow:visible;text-overflow:clip;line-height:1.5;font-size:12px}.haynes-loading{font-weight:400}.vehicle-download-wait{display:block;color:#9ca3af;font-size:clamp(28px,5vw,44px);font-weight:400;line-height:1.15;margin:10px 0 0;animation:haynes-pulse 1s ease-in-out infinite}.vehicle-download-caption{display:block;font-size:14px;line-height:1.5;color:#667085}.lookup.loading{display:block}.lookup.loading .spinner{display:none}@keyframes haynes-pulse{0%,100%{opacity:1}50%{opacity:.55}}@media(prefers-reduced-motion:reduce){.vehicle-download-wait{animation:none}}
@@ -799,4 +802,53 @@ window.matchMedia?.('(prefers-reduced-motion: reduce)').addEventListener?.('chan
 .service-extra-strip p.service-extra-price{font-size:12px;line-height:1.3;margin:5px 0 0;color:#e0e5eb}
 .service-extra-plugs{display:block;width:38px;height:28px;background:url('/assets/service-parts.webp') right center/200% 100% no-repeat;filter:invert(1) grayscale(1);mix-blend-mode:screen}
 .review-service-extra{padding:10px 0;font:14px/1.5 Arial,sans-serif;color:#17212b;border-bottom:1px solid #e5e7eb}
+</style>
+
+<style id="booking-charcoal-final-steps">
+/* Date, details and review: warm charcoal, quiet borders and clear controls. */
+.card:has(.booking-charcoal){--ink:#f4f1eb;--muted:#b9b9b7;--line:#484a4d;background:#242628;color:var(--ink)}
+.card:has(.booking-charcoal) .top{background:#242628}
+.card:has(.booking-charcoal) .top h1,.booking-charcoal h2,.booking-charcoal h3{color:#f4f1eb}
+.card:has(.booking-charcoal) .progress li{color:#b9b9b7}
+.card:has(.booking-charcoal) .progress li.on,.card:has(.booking-charcoal) .progress li.current{color:#f4f1eb}
+.card:has(.booking-charcoal) .actions{background:#1d1f21;border-color:#484a4d}
+.card:has(.booking-charcoal) .secondary{background:#383b3f;color:#f4f1eb;border:1px solid #55585c}
+.booking-charcoal .kicker{color:#ff7f89}
+.booking-charcoal input,.booking-charcoal select,.booking-charcoal textarea{background:#303336;color:#f4f1eb;border-color:#606367;color-scheme:dark}
+.booking-charcoal input::placeholder,.booking-charcoal textarea::placeholder{color:#b7b9bc;opacity:1}
+.booking-charcoal input:focus-visible,.booking-charcoal select:focus-visible,.booking-charcoal textarea:focus-visible{outline:2px solid #dbb88c;outline-offset:3px}
+.card:has(.booking-charcoal) button:focus-visible{outline:2px solid #dbb88c;outline-offset:3px}
+.booking-charcoal .availability-box,.booking-charcoal .parts-range-box,.booking-charcoal .review>div{background:#2d3033;border-color:#4b4e52}
+.booking-charcoal .availability-loading,.booking-charcoal .future-calendar-note,.booking-charcoal .mot-date-note,.booking-charcoal .drop-before-eight,.booking-charcoal .history-note{color:#bfc1c4}
+.booking-charcoal .mot-calendar{background:#2d3033;border-color:#505358}
+.booking-charcoal .mot-calendar-head{background:#1b1d1f;color:#f4f1eb}
+.booking-charcoal .mot-calendar-nav{background:#383c40;color:#f4f1eb}
+.booking-charcoal .mot-calendar-weekdays span{background:#242628;color:#c4c6c8;border-color:#484b4e}
+.booking-charcoal .mot-calendar-day{background:#34383c;color:#f4f1eb;border-color:#4b4f53}
+.booking-charcoal .mot-calendar-day.unavailable{background:#272a2d;color:#82878d}
+.booking-charcoal .mot-calendar-day.blank{background:#2b2e31}
+.booking-charcoal .mot-calendar-day.available:hover,.booking-charcoal .mot-calendar-day.future:hover{background:#176b43;color:#fff}
+.booking-charcoal .mot-calendar-day.selected{background:#b91c30;color:#fff;box-shadow:inset 0 0 0 2px #ffb3bb}
+.booking-charcoal .mot-selected-date{background:#203d31;border-color:#507c64;color:#d8f2e0}
+.booking-charcoal .mot-dropoff-note{background:#3d3429;border-color:#796346;color:#f1d8b4}
+.booking-charcoal .advisories.appointment-advisories{background:#362b2d;border-color:#a85761}
+.booking-charcoal .advisories.appointment-advisories>b,.booking-charcoal .advisories.appointment-advisories ul,.booking-charcoal .advisories.appointment-advisories p,.booking-charcoal .advisory-question{color:#f0dadd}
+.booking-charcoal .advisory-choice button{background:#34383c;color:#f4f1eb;border-color:#73777b}
+.booking-charcoal .advisory-choice button.selected{background:#b91c30;color:#fff;border-color:#ff9aa5}
+.booking-charcoal .review small{color:#bfc1c4}
+.booking-charcoal .appointment-review,.booking-charcoal .parts-range-box>p{color:#f4f1eb}
+.booking-charcoal .appointment-review em{color:#bfc1c4}
+.booking-charcoal .parts-range-option{background:#363a3e;color:#f4f1eb;border-color:#62666b}
+.booking-charcoal .parts-range-option.selected{background:#492b31;color:#fff;border-color:#ef6573}
+.booking-charcoal .parts-range-option:disabled{background:#272a2d;color:#999da2;border-color:#474b4f}
+.booking-charcoal .review-service-extra,.booking-charcoal .review-mot-saving{color:#dfc49f}
+.booking-charcoal .review-mot-price strong{color:#f4f1eb}
+.booking-charcoal .review-mot-price del{color:#bfc1c4}
+.booking-charcoal .advisory-question strong{color:#f0dadd}
+.booking-charcoal .advisory-tyre-options{background:#303336;color:#f4f1eb;border-color:#62666b}
+.booking-charcoal .advisory-tyre-options button{background:#3a3e42;color:#f4f1eb;border-color:#73777b}
+.booking-charcoal .review-price .guide-price-card small,.booking-charcoal .review-price .guide-price-card p{color:#c5c4c1}
+.booking-charcoal .review-price .guide-price-card strong{color:#f1d2aa}
+.booking-charcoal .review-appointment>small{color:#b5d7c4}
+.booking-charcoal .review-contact>small{color:#bbcce0}
 </style>
