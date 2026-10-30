@@ -38,7 +38,7 @@ for (const path of ['public/booking.html','website/booking/index.html']) {
   assert.equal(document.querySelector('[data-mileage-unknown]').hasAttribute('checked'),true);
   assert.match(document.querySelector('.mileage-unknown').textContent,/Unsure of your mileage/);
   form.last_mot_date='2026-04-09T12:00:00';assert.match(context.stepHtml(),/Mileage at last MOT on 2026-04-09/);
-  assert.match(context.stepHtml(),/We’ll use this to confirm which service items are due for replacement/);
+  assert.doesNotMatch(context.stepHtml(),/We’ll use this to confirm which service items are due for replacement|enter the mileage showing on your car now|Tick this box and we will price/);
   form.last_mot_mileage='';assert.doesNotMatch(context.stepHtml(),/Not available|aria-label="Mileage at last MOT"/);assert.match(context.stepHtml(),/Current mileage/);
  });
  test(`${path}: scripts compile and booking notes preserve the workshop instruction`,()=>{
