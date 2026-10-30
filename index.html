@@ -13221,7 +13221,25 @@ function timeRange(j){var start=normaliseClock(j.drop_time||'08:00');var hrs=Num
 function jobTitle(j){return j.work_required||j.job_type||'Job'}
 
 function plannerMotHeaderHtml(j){if(!hasMotJobType(j))return '';var time=motTimeFromJob(j),confirmation=motConfirmationPresentation(j);return '<span class="plannerMotHeader"'+confirmation.attributes+' aria-label="MOT appointment'+(time?' '+esc(time):'')+confirmation.tick+'">MOT'+(time?' ('+esc(time)+')':'')+confirmation.tick+'</span>'}
-function plannerJobDescription(j){var timedMot=hasMotJobType(j)&&!!motTimeFromJob(j);return String(j.work_required||'').split(/\r?\n/).filter(function(line){var text=line.trim();return !/^general[.!]?$/i.test(text)&&!(timedMot&&/^mot(?:\s+test)?(?:\s*[/&+]\s*mot\s+preparation)?[.!]?$/i.test(text))}).join('\n').trim()}
+function plannerJobDescription(j){
+  function key(value){return String(value||'').toLowerCase().replace(/[_–—-]+/g,' ').replace(/\s+/g,' ').replace(/[.!]+$/,'').trim()}
+  var labels=jobTypeLabels(j).filter(function(label){return /\bservice\b|^(?:six|6) month(?:ly)?(?: safety)? check$|^mot(?: test)?$/i.test(key(label))}),defaults=[];
+  labels.forEach(function(label){
+    defaults.push(label);
+    if(/^(?:six|6) month/.test(key(label)))defaults.push('6 Month Safety Check','Six Month Safety Check','6 monthly check','Six monthly check');
+    if(/^mot(?: test)?$/.test(key(label)))defaults.push('MOT','MOT test','MOT test / MOT preparation');
+    var preset=templateDataForType(/^(?:six|6) month/.test(key(label))?'6 Month Safety Check':label);if(preset&&preset.work_required)defaults.push(preset.work_required);
+  });
+  defaults=defaults.filter(Boolean).sort(function(a,b){return b.length-a.length});
+  return String(j.work_required||'').split(/\r?\n/).map(function(line){
+    var text=line.trim();if(/^general[.!]?$/i.test(text))return '';
+    if(defaults.some(function(value){return key(value)===key(text)}))return '';
+    // Remove only a recognised standard prefix followed by an explicit separator.
+    // The remainder is additional work and must stay visible.
+    for(var i=0;i<text.length;i++){if(!/[:;–—-]/.test(text[i]))continue;var prefix=text.slice(0,i).trim();if(defaults.some(function(value){return key(value)===key(prefix)})){text=text.slice(i+1).trim();break}}
+    return text;
+  }).filter(Boolean).join('\n').trim();
+}
 function jobCardHtml(j){if(j.card_type==='mini_task'){var mins=Math.max(15,Math.round((Number(j.estimated_hours)||.5)*60)),sourceId=String(j.source||'').indexOf('task:')===0?String(j.source).slice(5):'',sourceTask=sourceId&&app.tasks.find(function(t){return t.id===sourceId}),priority=sourceTask?taskMeta(sourceTask).priority:'normal';return '<div draggable="true" class="job miniPlannerTask priority-'+esc(priority)+'" data-job-id="'+j.id+'" style="top:'+topFor(j)+'px;--task-height:'+heightFor(j)+'px"><div class="resizeTopHandle" title="Drag up/down to change task start time"></div><div class="miniTaskRow"><span class="miniTaskLabel">Task</span><span class="miniTaskWork">'+esc(j.work_required||'Internal task')+'</span><span class="miniTaskTime">'+esc(normaliseClock(j.drop_time||'08:00'))+' · '+mins+' min</span></div><div class="resizeHandle" title="Drag down/up to change task length"></div></div>'}var duration=Number(j.estimated_hours||1),sizeClass=duration>=1?'plannerJobFull':duration>=.75?'plannerJobMedium':duration>=.5?'plannerJobCompact':'plannerJobMicro';return '<div draggable="true" class="job '+(String(j.status||'').toLowerCase()==='work_complete'?'mechanicWorkComplete ':'')+'jobTypeCoded '+(isWebsiteBookingJob(j)?'websiteBookingOutline ':'')+(hasMotJobType(j)?'plannerMotJob ':'')+sizeClass+'" data-job-id="'+j.id+'" style="top:'+topFor(j)+'px;height:'+heightFor(j)+'px;'+jobTypeInlineStyle(j)+'"><div class="resizeTopHandle" title="Drag up/down to change job start time"></div><div class="plannerJobHeader"><div class="plannerJobLeft">'+'<div class="plannerPlateAndMot">'+plannerPlate(j)+'</div><b class="jobVehicle plannerJobVehicle">'+esc(plannerVehicleLabel(j))+'</b><span class="plannerJobCustomer" title="'+esc(mobileJobCategoryLabel(j))+'">'+esc(mobileJobCategoryLabel(j))+'</span></div>'+plannerMotHeaderHtml(j)+'<div class="plannerJobRightText">'+plannerJobTypesHtml(j,sizeClass,true)+'</div></div><div class="plannerWorkRequired">'+esc(plannerJobDescription(j))+'</div>'+partsStatusDot(j)+'<div class="resizeHandle" title="Drag down/up to change job length"></div></div>'}
 
 
