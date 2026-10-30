@@ -1,0 +1,4412 @@
+[
+  {
+    "registration": "CM14KEL",
+    "category": "Air Filter",
+    "capture": {
+      "status": "CAPTURED_FOR_REVIEW",
+      "reason": null,
+      "selectedRegistration": true,
+      "registration": "CM14KEL",
+      "category": "Air Filter",
+      "headings": [
+        "Air Filter - Filter Insert",
+        "\u00a318.56"
+      ],
+      "skuLabels": [
+        "ADLADBP220170"
+      ],
+      "displayedPrices": [
+        "18.56",
+        "31.74"
+      ],
+      "displayedLitres": [],
+      "visibleText": "CM14KEL Clear Nissan Qashqai Hybrid HEV 1.5h 190 e-Power HEV CVT Auto Start/Stop Tekna 1.5 (1497cc) Petrol/Hybrid Electric CVT 5 doors 28/11/24 27/11/27 Copy VIN More Details All categories / Filters / Air Filter Related: Oil Filter Fuel Filter Cabin Filter Urea Filter Engine Oil Sump Plug Sump Plug Washer Air Filter - Filter Insert SKU: ADLADBP220170 In stock in RDC. Get it this afternoon. Attributes Sort By Relevancy \u00a318.56 Bronze Air Filter - Filter Insert RDC Show More Stock Type Quantity Boldon 0 RDC 1 NDC 0 \u00a318.56 RRP: \u00a331.74 Buy Now Add to basket 0",
+      "truncated": false,
+      "fitmentVerified": false,
+      "oilVerified": false,
+      "approvedForPublication": false,
+      "attributes": {
+        "status": "NEEDS_REVIEW",
+        "reason": "ATTRIBUTES_CAPTURE_FAILED"
+      }
+    }
+  },
+  {
+    "registration": "AU62ZZF",
+    "category": "Cabin Filter",
+    "capture": {
+      "status": "CAPTURED_FOR_REVIEW",
+      "reason": null,
+      "selectedRegistration": true,
+      "registration": "AU62ZZF",
+      "category": "Cabin Filter",
+      "headings": [
+        "Cabin Filter - Charcoal Filter",
+        "\u00a330.84"
+      ],
+      "skuLabels": [
+        "MANCUK2231"
+      ],
+      "displayedPrices": [
+        "30.84",
+        "63.90"
+      ],
+      "displayedLitres": [],
+      "visibleText": "AU62ZZF Clear Mitsubishi L200 DI-D 178 Warrior LB 2.5 (2477cc) Diesel Manual 4 doors 17/10/12 01/10/27 Copy VIN More Details All categories / Filters / Cabin Filter Related: Oil Filter Air Filter Fuel Filter Urea Filter Engine Oil Sump Plug Sump Plug Washer Cabin Filter - Charcoal Filter SKU: MANCUK2231 In stock in RDC. Get it this afternoon. Attributes Sort By Relevancy \u00a330.84 Gold Cabin Filter - Charcoal Filter RDC Show More Stock Type Quantity Boldon 0 RDC 1 NDC 7 \u00a330.84 RRP: \u00a363.90 Buy Now Add to basket 0",
+      "truncated": false,
+      "fitmentVerified": false,
+      "oilVerified": false,
+      "approvedForPublication": false,
+      "attributes": {
+        "status": "ATTRIBUTES_CAPTURED",
+        "rows": [
+          {
+            "attribute": "Bar Code",
+            "value": "401155853990"
+          },
+          {
+            "attribute": "Height (mm)",
+            "value": "74"
+          },
+          {
+            "attribute": "Width (mm)",
+            "value": "231"
+          },
+          {
+            "attribute": "Length (mm)",
+            "value": "233"
+          },
+          {
+            "attribute": "Fitting Time (min)",
+            "value": "18"
+          },
+          {
+            "attribute": "Filter Type",
+            "value": "Activated Carbon Filter"
+          },
+          {
+            "attribute": "Fitting Position",
+            "value": "behind the glove compartment"
+          }
+        ],
+        "oilVerified": false,
+        "groupSku": "MANCUK2231"
+      }
+    }
+  },
+  {
+    "registration": "BD53MUD",
+    "category": "Oil Filter",
+    "capture": {
+      "status": "CAPTURED_FOR_REVIEW",
+      "reason": null,
+      "selectedRegistration": true,
+      "registration": "BD53MUD",
+      "category": "Oil Filter",
+      "headings": [
+        "Oil Filter - Spin-on Filter",
+        "\u00a316.06",
+        "Oil Filter - Centrifuge Filter",
+        "\u00a320.94"
+      ],
+      "skuLabels": [
+        "MANW713/9",
+        "MANZR700X"
+      ],
+      "displayedPrices": [
+        "16.06",
+        "9.23",
+        "22.36",
+        "20.94",
+        "13.40",
+        "32.73"
+      ],
+      "displayedLitres": [],
+      "visibleText": "BD53MUD Clear Land Rover Defender TD5 90 2.5 (2493cc) Diesel Manual 3 doors 28/11/03 09/11/27 Copy VIN More Details All categories / Filters / Oil Filter Related: Air Filter Fuel Filter Cabin Filter Urea Filter Engine Oil Sump Plug Sump Plug Washer There are multiple options! Not sure which one fits? Call your local branch on 0191 644 4789 and we'll help you choose. WhatsApp branch Oil Filter - Spin-on Filter SKU: MANW713/9 In stock. Attributes Sort By Relevancy \u00a316.06 Gold Oil Filter - Spin-On Filter Local Branch \u00a39.23 Silver Oil Filter - Spin-On Filter RDC Show More Stock Type Quantity Boldon 1 RDC 1 NDC 125 \u00a316.06 RRP: \u00a322.36 Buy Now Add to basket 0 Oil Filter - Centrifuge Filter SKU: MANZR700X In stock. Attributes Sort By Relevancy \u00a320.94 Gold Oil Filter - Centrifuge Filter Local Branch \u00a313.40 Silver Oil Filter - Centrifuge Filter RDC Show More Stock Type Quantity Boldon 1 RDC 0 NDC 65 \u00a320.94 RRP: \u00a332.73 Buy Now Add to basket 0",
+      "truncated": false,
+      "fitmentVerified": false,
+      "oilVerified": false,
+      "approvedForPublication": false,
+      "attributes": {
+        "status": "NEEDS_REVIEW",
+        "reason": "MULTIPLE_OR_MISSING_PRODUCT_GROUPS"
+      }
+    }
+  },
+  {
+    "registration": "BD53MUD",
+    "category": "Cabin Filter",
+    "capture": {
+      "status": "CAPTURED_FOR_REVIEW",
+      "reason": null,
+      "selectedRegistration": true,
+      "registration": "BD53MUD",
+      "category": "Cabin Filter",
+      "headings": [
+        "Cabin Filter - Particulate Filter",
+        "\u00a323.34"
+      ],
+      "skuLabels": [
+        "MANCU4795"
+      ],
+      "displayedPrices": [
+        "23.34",
+        "36.44",
+        "12.19",
+        "0.00",
+        "47.34"
+      ],
+      "displayedLitres": [],
+      "visibleText": "BD53MUD Clear Land Rover Defender TD5 90 2.5 (2493cc) Diesel Manual 3 doors 28/11/03 09/11/27 Copy VIN More Details All categories / Filters / Cabin Filter Related: Oil Filter Air Filter Fuel Filter Urea Filter Engine Oil Sump Plug Sump Plug Washer Cabin Filter - Particulate Filter SKU: MANCU4795 In stock in Group. Get it tomorrow. Attributes Sort By Relevancy \u00a323.34 Gold Cabin Filter - Particulate Filter Branch Network \u00a336.44 Gold Cabin Filter - Charcoal Filter Out Of Stock \u00a312.19 Silver Cabin Filter - Pollen Filter Out Of Stock \u00a30.00 Bronze Out Of Stock \u00a30.00 Bronze Out Of Stock \u00a30.00 Bronze Out Of Stock \u00a30.00 Bronze Out Of Stock \u00a30.00 Bronze Out Of Stock \u00a30.00 Bronze Out Of Stock \u00a30.00 Bronze Out Of Stock \u00a30.00 Bronze Out Of Stock \u00a30.00 Bronze Out Of Stock \u00a30.00 Bronze Out Of Stock \u00a30.00 Bronze Out Of Stock \u00a30.00 Bronze Out Of Stock Stock Type Quantity Boldon 0 RDC 0 NDC 13 \u00a323.34 RRP: \u00a347.34 Buy Now Add to basket 0",
+      "truncated": false,
+      "fitmentVerified": false,
+      "oilVerified": false,
+      "approvedForPublication": false,
+      "attributes": {
+        "status": "ATTRIBUTES_CAPTURED",
+        "rows": [
+          {
+            "attribute": "Bar Code",
+            "value": "401155830520"
+          },
+          {
+            "attribute": "Height (mm)",
+            "value": "70"
+          },
+          {
+            "attribute": "Width (mm)",
+            "value": "183"
+          },
+          {
+            "attribute": "Length (mm)",
+            "value": "466"
+          },
+          {
+            "attribute": "Version with active carbon (Art. No.)",
+            "value": "CUK 4795"
+          },
+          {
+            "attribute": "Highly efficient version with active carbon (Art. No.)",
+            "value": "FP 4795"
+          },
+          {
+            "attribute": "Filter Type",
+            "value": "Particulate Filter"
+          }
+        ],
+        "oilVerified": false,
+        "groupSku": "MANCU4795"
+      }
+    }
+  },
+  {
+    "registration": "DX69XNR",
+    "category": "Air Filter",
+    "capture": {
+      "status": "CAPTURED_FOR_REVIEW",
+      "reason": null,
+      "selectedRegistration": true,
+      "registration": "DX69XNR",
+      "category": "Air Filter",
+      "headings": [
+        "Air Filter",
+        "\u00a314.08",
+        "Pipercross Performance Panel Filter"
+      ],
+      "skuLabels": [
+        "FRACA12624",
+        "PCXPP1914"
+      ],
+      "displayedPrices": [
+        "14.08",
+        "10.50",
+        "24.33",
+        "31.49"
+      ],
+      "displayedLitres": [],
+      "visibleText": "DX69XNR Clear Nissan Qashqai dCi 115 DCT Auto Start/Stop Acenta Premium 1.5 (1461cc) Diesel Semi Automatic 5 doors 30/09/19 29/09/27 Copy VIN More Details All categories / Filters / Air Filter Related: Oil Filter Fuel Filter Cabin Filter Urea Filter Engine Oil Sump Plug Sump Plug Washer There are multiple options! Not sure which one fits? Call your local branch on 0191 644 4789 and we'll help you choose. WhatsApp branch Air Filter SKU: FRACA12624 In stock in RDC. Get it this afternoon. Attributes Sort By Relevancy \u00a314.08 Gold Air Filter RDC \u00a310.50 Silver Air Filter RDC Show More Stock Type Quantity Boldon 0 RDC 2 NDC 157 \u00a314.08 RRP: \u00a324.33 Buy Now Add to basket 0 Pipercross Performance Panel Filter SKU: PCXPP1914 Out of stock. Attributes Sort By Relevancy \u00a331.49 Bronze Performance Panel Filter Out Of Stock Please contact your branch for availability. They will be able to provide more information. Need assistance? Call branch: 0191 644 4789 Opening hours: Monday-Friday 8:00 - 17:30 Saturday 8:00 - 14:00 Sunday Closed WhatsApp branch",
+      "truncated": false,
+      "fitmentVerified": false,
+      "oilVerified": false,
+      "approvedForPublication": false,
+      "attributes": {
+        "status": "NEEDS_REVIEW",
+        "reason": "MULTIPLE_OR_MISSING_PRODUCT_GROUPS"
+      }
+    }
+  },
+  {
+    "registration": "DX69XNS",
+    "category": "Air Filter",
+    "capture": {
+      "status": "CAPTURED_FOR_REVIEW",
+      "reason": null,
+      "selectedRegistration": true,
+      "registration": "DX69XNS",
+      "category": "Air Filter",
+      "headings": [
+        "Air Filter",
+        "\u00a314.08",
+        "Pipercross Performance Panel Filter"
+      ],
+      "skuLabels": [
+        "FRACA12624",
+        "PCXPP1914"
+      ],
+      "displayedPrices": [
+        "14.08",
+        "10.50",
+        "24.33",
+        "31.49"
+      ],
+      "displayedLitres": [],
+      "visibleText": "DX69XNS Clear Nissan Qashqai dCi 115 DCT Auto Start/Stop Acenta Premium 1.5 (1461cc) Diesel Semi Automatic 5 doors 30/09/19 08/01/27 Copy VIN More Details All categories / Filters / Air Filter Related: Oil Filter Fuel Filter Cabin Filter Urea Filter Engine Oil Sump Plug Sump Plug Washer There are multiple options! Not sure which one fits? Call your local branch on 0191 644 4789 and we'll help you choose. WhatsApp branch Air Filter SKU: FRACA12624 In stock in RDC. Get it this afternoon. Attributes Sort By Relevancy \u00a314.08 Gold Air Filter RDC \u00a310.50 Silver Air Filter RDC Show More Stock Type Quantity Boldon 0 RDC 2 NDC 157 \u00a314.08 RRP: \u00a324.33 Buy Now Add to basket 0 Pipercross Performance Panel Filter SKU: PCXPP1914 Out of stock. Attributes Sort By Relevancy \u00a331.49 Bronze Performance Panel Filter Out Of Stock Please contact your branch for availability. They will be able to provide more information. Need assistance? Call branch: 0191 644 4789 Opening hours: Monday-Friday 8:00 - 17:30 Saturday 8:00 - 14:00 Sunday Closed WhatsApp branch",
+      "truncated": false,
+      "fitmentVerified": false,
+      "oilVerified": false,
+      "approvedForPublication": false,
+      "attributes": {
+        "status": "NEEDS_REVIEW",
+        "reason": "MULTIPLE_OR_MISSING_PRODUCT_GROUPS"
+      }
+    }
+  },
+  {
+    "registration": "HAD1K",
+    "category": "Engine Oils (Applied)",
+    "capture": {
+      "status": "CAPTURED_FOR_REVIEW",
+      "reason": null,
+      "selectedRegistration": true,
+      "registration": "HAD1K",
+      "category": "Engine Oils (Applied)",
+      "headings": [
+        "Engine Oil Information",
+        "Oil recommendation",
+        "Capacity",
+        "Viscosity",
+        "ECO-VG 0W-30 - 5L",
+        "\u00a356.99",
+        "ECO-VG 0W-30 - 1L",
+        "\u00a314.81"
+      ],
+      "skuLabels": [
+        "COMECOVG5L",
+        "COMECOVG1L"
+      ],
+      "displayedPrices": [
+        "56.99",
+        "71.24",
+        "118.01",
+        "40.96",
+        "127.98",
+        "14.81",
+        "17.47",
+        "22.66",
+        "14.24",
+        "33.26"
+      ],
+      "displayedLitres": [
+        "1L",
+        "4L",
+        "5L",
+        "20L",
+        "60L",
+        "199L",
+        "200L",
+        "208L"
+      ],
+      "visibleText": "HAD1K Clear Volkswagen Transporter TDi 110 BlueMotion SWB Start/Stop T28 Startline 2.0 (1968cc) Diesel Manual N/A 17/03/21 16/03/27 Copy VIN More Details All categories / Service Items / Fluids & Lubricants / Engine Oils (Applicated) Engine Oil Information Oil recommendation 0W-30 This is a recommended engine oil. If you\u2019re unsure, please refer to the vehicle manufacturer\u2019s handbook. Capacity 1L 4L 5L 20L 60L 199L 200L 208L Viscosity 5W-30 0W-30 0W-20 5W-40 ECO-VG 0W-30 - 5L SKU: COMECOVG5L In stock. Attributes Sort By Relevancy \u00a356.99 Gold ECO-Vg 0W-30 - 5L Local Branch \u00a371.24 Gold 3000 Formula V 0W-30 - 5L Local Branch \u00a3118.01 Gold ESP 0W-30 - 5L Local Branch \u00a340.96 Silver 0W30 EVG 5L Local Branch Show More Stock Type Quantity Boldon 3 RDC 1 NDC 376 \u00a356.99 RRP: \u00a3127.98 Buy Now Add to basket 0 ECO-VG 0W-30 - 1L SKU: COMECOVG1L In stock. Attributes Sort By Relevancy \u00a314.81 Gold ECO-Vg 0W-30 - 1L Local Branch \u00a317.47 Gold 3000 Formula V 0W-30 - 1L Local Branch \u00a322.66 Gold ESP 0W-30 - 1L Local Branch \u00a314.24 Silver 0W30 EVG 1L Local Branch Show More Stock Type Quantity Boldon 1 RDC 0 NDC 168 \u00a314.81 RRP: \u00a333.26 Buy Now Add to basket 0",
+      "truncated": false,
+      "fitmentVerified": false,
+      "oilVerified": false,
+      "approvedForPublication": false,
+      "observedCategoryPath": "/parts/Engine%2520Oils%2520(Applicated)",
+      "attributes": {
+        "status": "NEEDS_REVIEW",
+        "reason": "MULTIPLE_OR_MISSING_PRODUCT_GROUPS"
+      }
+    }
+  },
+  {
+    "registration": "J8LGH",
+    "category": "Engine Oils (Applied)",
+    "capture": {
+      "status": "CAPTURED_FOR_REVIEW",
+      "reason": null,
+      "selectedRegistration": true,
+      "registration": "J8LGH",
+      "category": "Engine Oils (Applied)",
+      "headings": [
+        "Engine Oil Information",
+        "Oil recommendation",
+        "Capacity",
+        "Viscosity",
+        "ECO-FO 0W-20 - 5L",
+        "\u00a356.99",
+        "ECO-FO 0W-20 - 1L",
+        "\u00a314.81"
+      ],
+      "skuLabels": [
+        "COMECOFO5L",
+        "COMECOFO1L"
+      ],
+      "displayedPrices": [
+        "56.99",
+        "68.88",
+        "45.10",
+        "54.63",
+        "127.98",
+        "14.81",
+        "18.37",
+        "13.65",
+        "16.60",
+        "33.26"
+      ],
+      "displayedLitres": [
+        "1L",
+        "5L",
+        "20L",
+        "60L",
+        "199L"
+      ],
+      "visibleText": "J8LGH Clear Nissan Juke DIG-T 114 Start/Stop N-Connecta 1.0 (999cc) Petrol Manual 5 doors 24/07/24 23/07/27 Copy VIN More Details All categories / Service Items / Fluids & Lubricants / Engine Oils (Applicated) Engine Oil Information Oil recommendation 0W-20 Recommendation 0W-20 Normal (preferred) \u2022 30000 km/ 12 months km This is a recommended engine oil. If you\u2019re unsure, please refer to the vehicle manufacturer\u2019s handbook. Capacity 1L 5L 20L 60L 199L Viscosity 5W-30 0W-20 ECO-FO 0W-20 - 5L SKU: COMECOFO5L In stock. Attributes Sort By Relevancy \u00a356.99 Gold ECO-Fo 0W-20 - 5L Local Branch \u00a368.88 Gold ECO-Z 0W-20 - 5L Local Branch \u00a345.10 Silver Fully Synthetic Motor Oil 0W-20 - 5L Local Branch \u00a354.63 Silver 0W20 Ez 5L Local Branch Stock Type Quantity Boldon 2 RDC 4 NDC 749 \u00a356.99 RRP: \u00a3127.98 Buy Now Add to basket 0 ECO-FO 0W-20 - 1L SKU: COMECOFO1L In stock. Attributes Sort By Relevancy \u00a314.81 Gold ECO-Fo 0W-20 - 1L Local Branch \u00a318.37 Gold ECO-Z 0W-20 - 1L Local Branch \u00a313.65 Silver 0W20 Fo 1L Local Branch \u00a316.60 Silver 0W20 Ez 1L Local Branch Stock Type Quantity Boldon 1 RDC 2 NDC 209 \u00a314.81 RRP: \u00a333.26 Buy Now Add to basket 0",
+      "truncated": false,
+      "fitmentVerified": false,
+      "oilVerified": false,
+      "approvedForPublication": false,
+      "observedCategoryPath": "/parts/Engine%2520Oils%2520(Applicated)",
+      "attributes": {
+        "status": "NEEDS_REVIEW",
+        "reason": "MULTIPLE_OR_MISSING_PRODUCT_GROUPS"
+      }
+    }
+  },
+  {
+    "registration": "J8LGH",
+    "category": "Air Filter",
+    "capture": {
+      "status": "CAPTURED_FOR_REVIEW",
+      "reason": null,
+      "selectedRegistration": true,
+      "registration": "J8LGH",
+      "category": "Air Filter",
+      "headings": [
+        "Air Filter - Insert Filter",
+        "\u00a319.31"
+      ],
+      "skuLabels": [
+        "ADLADBP220129"
+      ],
+      "displayedPrices": [
+        "19.31",
+        "49.26"
+      ],
+      "displayedLitres": [],
+      "visibleText": "J8LGH Clear Nissan Juke DIG-T 114 Start/Stop N-Connecta 1.0 (999cc) Petrol Manual 5 doors 24/07/24 23/07/27 Copy VIN More Details All categories / Filters / Air Filter Related: Oil Filter Fuel Filter Cabin Filter Urea Filter Engine Oil Sump Plug Sump Plug Washer Air Filter - Insert Filter SKU: ADLADBP220129 In stock. Attributes Sort By Relevancy \u00a319.31 Bronze Air Filter - Insert Filter Local Branch Show More Stock Type Quantity Boldon 2 RDC 1 NDC 0 \u00a319.31 RRP: \u00a349.26 Buy Now Add to basket 0",
+      "truncated": false,
+      "fitmentVerified": false,
+      "oilVerified": false,
+      "approvedForPublication": false,
+      "attributes": {
+        "status": "NEEDS_REVIEW",
+        "reason": "ATTRIBUTES_CAPTURE_FAILED"
+      }
+    }
+  },
+  {
+    "registration": "JH08URN",
+    "category": "Oil Filter",
+    "capture": {
+      "status": "CAPTURED_FOR_REVIEW",
+      "reason": null,
+      "selectedRegistration": true,
+      "registration": "JH08URN",
+      "category": "Oil Filter",
+      "headings": [
+        "Oil Filter - Insert Filter",
+        "\u00a316.66"
+      ],
+      "skuLabels": [
+        "MANHU9011Z"
+      ],
+      "displayedPrices": [
+        "16.66",
+        "21.48"
+      ],
+      "displayedLitres": [],
+      "visibleText": "JH08URN Clear Audi SQ7 TDi V8 435 Quattro Tip Auto Start/Stop Entry 4.0 (3956cc) Diesel Semi Automatic 5 doors 26/01/18 07/02/27 Copy VIN More Details All categories / Filters / Oil Filter Related: Air Filter Fuel Filter Cabin Filter Urea Filter Engine Oil Sump Plug Sump Plug Washer Oil Filter - Insert Filter SKU: MANHU9011Z In stock in RDC. Get it this afternoon. Attributes Sort By Relevancy \u00a316.66 Gold Oil Filter - Insert Filter RDC Show More Stock Type Quantity Boldon 0 RDC 1 NDC 26 \u00a316.66 RRP: \u00a321.48 Buy Now Add to basket 0",
+      "truncated": false,
+      "fitmentVerified": false,
+      "oilVerified": false,
+      "approvedForPublication": false,
+      "attributes": {
+        "status": "ATTRIBUTES_CAPTURED",
+        "rows": [
+          {
+            "attribute": "Bar Code",
+            "value": "401155881427"
+          },
+          {
+            "attribute": "Outer Diameter (mm)",
+            "value": "83"
+          },
+          {
+            "attribute": "Height (mm)",
+            "value": "116"
+          },
+          {
+            "attribute": "Other Info",
+            "value": "with seal"
+          },
+          {
+            "attribute": "Filter Type",
+            "value": "Filter Insert"
+          }
+        ],
+        "oilVerified": false,
+        "groupSku": "MANHU9011Z"
+      }
+    }
+  },
+  {
+    "registration": "JH08URN",
+    "category": "Air Filter",
+    "capture": {
+      "status": "CAPTURED_FOR_REVIEW",
+      "reason": null,
+      "selectedRegistration": true,
+      "registration": "JH08URN",
+      "category": "Air Filter",
+      "headings": [
+        "Air Filter - Insert Filter"
+      ],
+      "skuLabels": [
+        "MAHLX3294/4"
+      ],
+      "displayedPrices": [
+        "56.47",
+        "0.00"
+      ],
+      "displayedLitres": [],
+      "visibleText": "JH08URN Clear Audi SQ7 TDi V8 435 Quattro Tip Auto Start/Stop Entry 4.0 (3956cc) Diesel Semi Automatic 5 doors 26/01/18 07/02/27 Copy VIN More Details All categories / Filters / Air Filter Related: Oil Filter Fuel Filter Cabin Filter Urea Filter Engine Oil Sump Plug Sump Plug Washer Air Filter - Insert Filter SKU: MAHLX3294/4 Call your branch for availability. Attributes Sort By Relevancy \u00a356.47 Gold Air Filter - Insert Filter Branch Network \u00a30.00 Bronze Out Of Stock \u00a30.00 Bronze Out Of Stock Please contact your branch for availability. They will be able to provide more information. Need assistance? Call branch: 0191 644 4789 Opening hours: Monday-Friday 8:00 - 17:30 Saturday 8:00 - 14:00 Sunday Closed WhatsApp branch",
+      "truncated": false,
+      "fitmentVerified": false,
+      "oilVerified": false,
+      "approvedForPublication": false,
+      "attributes": {
+        "status": "ATTRIBUTES_CAPTURED",
+        "rows": [
+          {
+            "attribute": "Filter Type",
+            "value": "Filter Insert"
+          },
+          {
+            "attribute": "Length (mm)",
+            "value": "379"
+          },
+          {
+            "attribute": "Width (mm)",
+            "value": "182"
+          },
+          {
+            "attribute": "Height (mm)",
+            "value": "83"
+          },
+          {
+            "attribute": "Seal Material",
+            "value": "Plastic"
+          },
+          {
+            "attribute": "Packaging width (cm)",
+            "value": "11.5"
+          },
+          {
+            "attribute": "Packaging length (cm)",
+            "value": "19"
+          },
+          {
+            "attribute": "Packaging height (cm)",
+            "value": "39.5"
+          },
+          {
+            "attribute": "Bar Code",
+            "value": "400902695916"
+          }
+        ],
+        "oilVerified": false,
+        "groupSku": "MAHLX3294/4"
+      }
+    }
+  },
+  {
+    "registration": "K600RJF",
+    "category": "Oil Filter",
+    "capture": {
+      "status": "CAPTURED_FOR_REVIEW",
+      "reason": null,
+      "selectedRegistration": true,
+      "registration": "K600RJF",
+      "category": "Oil Filter",
+      "headings": [
+        "Oil Filter - Insert Filter",
+        "\u00a313.74",
+        "Oil Filter Housing Cover"
+      ],
+      "skuLabels": [
+        "MANHU721/5X",
+        "FEB173589"
+      ],
+      "displayedPrices": [
+        "13.74",
+        "13.93",
+        "10.97",
+        "3.37",
+        "26.48",
+        "48.22",
+        "35.46",
+        "0.00"
+      ],
+      "displayedLitres": [],
+      "visibleText": "K600RJF Clear BMW 1 Series Coupe 118d Start/Stop 118 Sport 2.0 (1995cc) Diesel Manual 2 doors 27/01/11 12/12/26 Copy VIN More Details All categories / Filters / Oil Filter Related: Air Filter Fuel Filter Cabin Filter Urea Filter Engine Oil Sump Plug Sump Plug Washer There are multiple options! Not sure which one fits? Call your local branch on 0191 644 4789 and we'll help you choose. WhatsApp branch Oil Filter - Insert Filter SKU: MANHU721/5X In stock. Attributes Sort By Relevancy \u00a313.74 Gold Oil Filter - Insert Filter Local Branch \u00a313.93 Gold Oil Filter - Element Local Branch \u00a310.97 Silver Oil Filter - Insert Filter Local Branch \u00a33.37 Silver Oil Filter - Insert RDC Show More Stock Type Quantity Boldon 2 RDC 2 NDC 395 \u00a313.74 RRP: \u00a326.48 Buy Now Add to basket 0 Oil Filter Housing Cover SKU: FEB173589 Out of stock. Attributes Sort By Relevancy \u00a348.22 Silver Oil Filter Housing Cover Out Of Stock \u00a335.46 Bronze Oil Filter Housing Cover Out Of Stock \u00a30.00 Bronze Out Of Stock \u00a30.00 Bronze Out Of Stock \u00a30.00 Bronze Out Of Stock \u00a30.00 Bronze Out Of Stock Please contact your branch for availability. They will be able to provide more information. Need assistance? Call branch: 0191 644 4789 Opening hours: Monday-Friday 8:00 - 17:30 Saturday 8:00 - 14:00 Sunday Closed WhatsApp branch",
+      "truncated": false,
+      "fitmentVerified": false,
+      "oilVerified": false,
+      "approvedForPublication": false,
+      "attributes": {
+        "status": "NEEDS_REVIEW",
+        "reason": "MULTIPLE_OR_MISSING_PRODUCT_GROUPS"
+      }
+    }
+  },
+  {
+    "registration": "K600RJF",
+    "category": "Cabin Filter",
+    "capture": {
+      "status": "CAPTURED_FOR_REVIEW",
+      "reason": null,
+      "selectedRegistration": true,
+      "registration": "K600RJF",
+      "category": "Cabin Filter",
+      "headings": [
+        "Cabin Filter - Standard",
+        "\u00a322.95",
+        "Cabin Filter - Particulate"
+      ],
+      "skuLabels": [
+        "FRACF10207",
+        "BOS1987432124"
+      ],
+      "displayedPrices": [
+        "22.95",
+        "26.33",
+        "27.96",
+        "16.43",
+        "20.99",
+        "22.37",
+        "39.66",
+        "27.75",
+        "7.95",
+        "14.21",
+        "0.00"
+      ],
+      "displayedLitres": [],
+      "visibleText": "K600RJF Clear BMW 1 Series Coupe 118d Start/Stop 118 Sport 2.0 (1995cc) Diesel Manual 2 doors 27/01/11 12/12/26 Copy VIN More Details All categories / Filters / Cabin Filter Related: Oil Filter Air Filter Fuel Filter Urea Filter Engine Oil Sump Plug Sump Plug Washer There are multiple options! Not sure which one fits? Call your local branch on 0191 644 4789 and we'll help you choose. WhatsApp branch Cabin Filter - Standard SKU: FRACF10207 In stock. Attributes Sort By Relevancy \u00a322.95 Gold Cabin Filter - Standard Local Branch \u00a326.33 Gold Cabin Filter - Particulate Filter Local Branch \u00a327.96 Gold Cabin Filter - Charcoal Filter Local Branch \u00a316.43 Silver Cabin Filter - Charcoal Filter Local Branch \u00a320.99 Silver Cabin Filter - Particulate Filter Local Branch \u00a322.37 Gold Cabin Filter - Carbon RDC Show More Stock Type Quantity Boldon 1 RDC 1 NDC 164 \u00a322.95 RRP: \u00a339.66 Buy Now Add to basket 0 Cabin Filter - Particulate SKU: BOS1987432124 Out of stock. Attributes Sort By Relevancy \u00a327.75 Gold Cabin Filter - Particulate Out Of Stock \u00a37.95 Silver Cabin Filter - Standard Out Of Stock \u00a314.21 Bronze Cabin Filter - Particulate Filter Out Of Stock \u00a30.00 Bronze Out Of Stock \u00a30.00 Bronze Out Of Stock \u00a30.00 Bronze Out Of Stock \u00a30.00 Bronze Out Of Stock \u00a30.00 Bronze Out Of Stock \u00a30.00 Bronze Out Of Stock Please contact your branch for availability. They will be able to provide more information. Need assistance? Call branch: 0191 644 4789 Opening hours: Monday-Friday 8:00 - 17:30 Saturday 8:00 - 14:00 Sunday Closed WhatsApp branch",
+      "truncated": false,
+      "fitmentVerified": false,
+      "oilVerified": false,
+      "approvedForPublication": false,
+      "attributes": {
+        "status": "NEEDS_REVIEW",
+        "reason": "MULTIPLE_OR_MISSING_PRODUCT_GROUPS"
+      }
+    }
+  },
+  {
+    "registration": "KX68ENT",
+    "category": "Cabin Filter",
+    "capture": {
+      "status": "NEEDS_REVIEW",
+      "reason": "NO_PRICED_ITEMS",
+      "selectedRegistration": true,
+      "registration": "KX68ENT",
+      "category": "Cabin Filter",
+      "headings": [],
+      "skuLabels": [],
+      "displayedPrices": [],
+      "displayedLitres": [],
+      "visibleText": "KX68ENT Clear N/A N/A N/A N/A 01/09/18 18/09/26 Copy VIN More Details All categories / Filters / Cabin Filter Related: Oil Filter Air Filter Fuel Filter Urea Filter Engine Oil Sump Plug Sump Plug Washer Sorry, we couldn't find any parts. We were unable to find any \"Cabin Filter\" matching this vehicle. Need assistance? Call branch: 0191 644 4789 Opening hours: Monday-Friday 8:00 - 17:30 Saturday 8:00 - 14:00 Sunday Closed WhatsApp branch",
+      "truncated": false,
+      "fitmentVerified": false,
+      "oilVerified": false,
+      "approvedForPublication": false
+    }
+  },
+  {
+    "registration": "KX68ENT",
+    "category": "Oil Filter",
+    "capture": {
+      "status": "NEEDS_REVIEW",
+      "reason": "NO_PRICED_ITEMS",
+      "selectedRegistration": true,
+      "registration": "KX68ENT",
+      "category": "Oil Filter",
+      "headings": [],
+      "skuLabels": [],
+      "displayedPrices": [],
+      "displayedLitres": [],
+      "visibleText": "KX68ENT Clear N/A N/A N/A N/A 01/09/18 18/09/26 Copy VIN More Details All categories / Filters / Oil Filter Related: Air Filter Fuel Filter Cabin Filter Urea Filter Engine Oil Sump Plug Sump Plug Washer Sorry, we couldn't find any parts. We were unable to find any \"Oil Filter\" matching this vehicle. Need assistance? Call branch: 0191 644 4789 Opening hours: Monday-Friday 8:00 - 17:30 Saturday 8:00 - 14:00 Sunday Closed WhatsApp branch",
+      "truncated": false,
+      "fitmentVerified": false,
+      "oilVerified": false,
+      "approvedForPublication": false
+    }
+  },
+  {
+    "registration": "KX68ENT",
+    "category": "Air Filter",
+    "capture": {
+      "status": "NEEDS_REVIEW",
+      "reason": "NO_PRICED_ITEMS",
+      "selectedRegistration": true,
+      "registration": "KX68ENT",
+      "category": "Air Filter",
+      "headings": [],
+      "skuLabels": [],
+      "displayedPrices": [],
+      "displayedLitres": [],
+      "visibleText": "KX68ENT Clear N/A N/A N/A N/A 01/09/18 18/09/26 Copy VIN More Details All categories / Filters / Air Filter Related: Oil Filter Fuel Filter Cabin Filter Urea Filter Engine Oil Sump Plug Sump Plug Washer Sorry, we couldn't find any parts. We were unable to find any \"Air Filter\" matching this vehicle. Need assistance? Call branch: 0191 644 4789 Opening hours: Monday-Friday 8:00 - 17:30 Saturday 8:00 - 14:00 Sunday Closed WhatsApp branch",
+      "truncated": false,
+      "fitmentVerified": false,
+      "oilVerified": false,
+      "approvedForPublication": false
+    }
+  },
+  {
+    "registration": "KX68ENT",
+    "category": "Fuel Filter",
+    "capture": {
+      "status": "NEEDS_REVIEW",
+      "reason": "NO_PRICED_ITEMS",
+      "selectedRegistration": true,
+      "registration": "KX68ENT",
+      "category": "Fuel Filter",
+      "headings": [],
+      "skuLabels": [],
+      "displayedPrices": [],
+      "displayedLitres": [],
+      "visibleText": "KX68ENT Clear N/A N/A N/A N/A 01/09/18 18/09/26 Copy VIN More Details All categories / Filters / Fuel Filter Related: Oil Filter Air Filter Cabin Filter Urea Filter Engine Oil Sump Plug Sump Plug Washer Sorry, we couldn't find any parts. We were unable to find any \"Fuel Filter\" matching this vehicle. Need assistance? Call branch: 0191 644 4789 Opening hours: Monday-Friday 8:00 - 17:30 Saturday 8:00 - 14:00 Sunday Closed WhatsApp branch",
+      "truncated": false,
+      "fitmentVerified": false,
+      "oilVerified": false,
+      "approvedForPublication": false
+    }
+  },
+  {
+    "registration": "KX68ENT",
+    "category": "Engine Oils (Applied)",
+    "capture": {
+      "status": "NEEDS_REVIEW",
+      "reason": "NO_PRICED_ITEMS",
+      "selectedRegistration": true,
+      "registration": "KX68ENT",
+      "category": "Engine Oils (Applied)",
+      "headings": [],
+      "skuLabels": [],
+      "displayedPrices": [],
+      "displayedLitres": [],
+      "visibleText": "KX68ENT Clear N/A N/A N/A N/A 01/09/18 18/09/26 Copy VIN More Details All categories / Filters / Oil Filter Related: Air Filter Fuel Filter Cabin Filter Urea Filter Engine Oil Sump Plug Sump Plug Washer Sorry, we couldn't find any parts. We were unable to find any \"Oil Filter\" matching this vehicle. Need assistance? Call branch: 0191 644 4789 Opening hours: Monday-Friday 8:00 - 17:30 Saturday 8:00 - 14:00 Sunday Closed WhatsApp branch",
+      "truncated": false,
+      "fitmentVerified": false,
+      "oilVerified": false,
+      "approvedForPublication": false
+    }
+  },
+  {
+    "registration": "M26JKM",
+    "category": "Oil Filter",
+    "capture": {
+      "status": "CAPTURED_FOR_REVIEW",
+      "reason": null,
+      "selectedRegistration": true,
+      "registration": "M26JKM",
+      "category": "Oil Filter",
+      "headings": [
+        "Oil Filter - Insert Filter",
+        "\u00a315.44"
+      ],
+      "skuLabels": [
+        "MANHU6014/1Z"
+      ],
+      "displayedPrices": [
+        "15.44",
+        "12.67",
+        "2.80",
+        "23.17"
+      ],
+      "displayedLitres": [],
+      "visibleText": "M26JKM Clear BMW 3 Series 320d 190 Step Auto Start/Stop 320 M Sport Shadow Edition 2.0 (1995cc) Diesel Semi Automatic 5 doors 08/09/17 12/09/27 Copy VIN More Details All categories / Filters / Oil Filter Related: Air Filter Fuel Filter Cabin Filter Urea Filter Engine Oil Sump Plug Sump Plug Washer Oil Filter - Insert Filter SKU: MANHU6014/1Z In stock. Attributes Sort By Relevancy \u00a315.44 Gold Oil Filter - Insert Filter Local Branch \u00a312.67 Silver Oil Filter - Insert Filter Local Branch \u00a32.80 Silver Oil Filter - Insert RDC Show More Stock Type Quantity Boldon 3 RDC 10 NDC 2940 \u00a315.44 RRP: \u00a323.17 Buy Now Add to basket 0",
+      "truncated": false,
+      "fitmentVerified": false,
+      "oilVerified": false,
+      "approvedForPublication": false,
+      "attributes": {
+        "status": "ATTRIBUTES_CAPTURED",
+        "rows": [
+          {
+            "attribute": "Bar Code",
+            "value": "401155809796"
+          },
+          {
+            "attribute": "Inner Diameter 1 (mm)",
+            "value": "15"
+          },
+          {
+            "attribute": "Outer Diameter 1 (mm)",
+            "value": "53"
+          },
+          {
+            "attribute": "Outer Diameter (mm)",
+            "value": "53"
+          },
+          {
+            "attribute": "Inner Diameter (mm)",
+            "value": "22"
+          },
+          {
+            "attribute": "Height (mm)",
+            "value": "134"
+          },
+          {
+            "attribute": "Filter Type",
+            "value": "Filter Insert"
+          },
+          {
+            "attribute": "Other Info",
+            "value": "with seal"
+          }
+        ],
+        "oilVerified": false,
+        "groupSku": "MANHU6014/1Z"
+      }
+    }
+  },
+  {
+    "registration": "M26JKM",
+    "category": "Fuel Filter",
+    "capture": {
+      "status": "CAPTURED_FOR_REVIEW",
+      "reason": null,
+      "selectedRegistration": true,
+      "registration": "M26JKM",
+      "category": "Fuel Filter",
+      "headings": [
+        "Fuel Filter - In-Line Filter",
+        "\u00a334.93",
+        "Fuel Filter - In-Line"
+      ],
+      "skuLabels": [
+        "MANWK5005/1",
+        "BOSF026402824"
+      ],
+      "displayedPrices": [
+        "34.93",
+        "28.93",
+        "33.07",
+        "10.62",
+        "58.14",
+        "41.25",
+        "0.00"
+      ],
+      "displayedLitres": [],
+      "visibleText": "M26JKM Clear BMW 3 Series 320d 190 Step Auto Start/Stop 320 M Sport Shadow Edition 2.0 (1995cc) Diesel Semi Automatic 5 doors 08/09/17 12/09/27 Copy VIN More Details All categories / Filters / Fuel Filter Related: Oil Filter Air Filter Cabin Filter Urea Filter Engine Oil Sump Plug Sump Plug Washer There are multiple options! Not sure which one fits? Call your local branch on 0191 644 4789 and we'll help you choose. WhatsApp branch Fuel Filter - In-Line Filter SKU: MANWK5005/1 In stock. Attributes Sort By Relevancy \u00a334.93 Gold Fuel Filter - In-Line Filter Local Branch \u00a328.93 Silver Fuel Filter - In-Line Filter Local Branch \u00a333.07 Gold Fuel Filter - Canister RDC \u00a310.62 Silver Fuel Filter - Canister RDC Show More Stock Type Quantity Boldon 2 RDC 3 NDC 876 \u00a334.93 RRP: \u00a358.14 Buy Now Add to basket 0 Fuel Filter - In-Line SKU: BOSF026402824 Call your branch for availability. Attributes Sort By Relevancy \u00a341.25 Gold Fuel Filter - In-Line Branch Network \u00a30.00 Bronze Out Of Stock \u00a30.00 Bronze Out Of Stock \u00a30.00 Bronze Out Of Stock Please contact your branch for availability. They will be able to provide more information. Need assistance? Call branch: 0191 644 4789 Opening hours: Monday-Friday 8:00 - 17:30 Saturday 8:00 - 14:00 Sunday Closed WhatsApp branch",
+      "truncated": false,
+      "fitmentVerified": false,
+      "oilVerified": false,
+      "approvedForPublication": false,
+      "attributes": {
+        "status": "NEEDS_REVIEW",
+        "reason": "MULTIPLE_OR_MISSING_PRODUCT_GROUPS"
+      }
+    }
+  },
+  {
+    "registration": "MA72YFW",
+    "category": "Engine Oils (Applied)",
+    "capture": {
+      "status": "CAPTURED_FOR_REVIEW",
+      "reason": null,
+      "selectedRegistration": true,
+      "registration": "MA72YFW",
+      "category": "Engine Oils (Applied)",
+      "headings": [
+        "Engine Oil Information",
+        "Oil recommendation",
+        "Capacity",
+        "Viscosity",
+        "X-FLOW TYPE F 5W30 - 5L",
+        "\u00a343.41",
+        "XTECH 5W-30 - 1L",
+        "\u00a310.68"
+      ],
+      "skuLabels": [
+        "COMXFF5L",
+        "COMXTC1L"
+      ],
+      "displayedPrices": [
+        "43.41",
+        "45.10",
+        "55.28",
+        "35.62",
+        "57.94",
+        "128.34",
+        "10.68",
+        "11.79",
+        "9.47",
+        "23.98"
+      ],
+      "displayedLitres": [
+        "1L",
+        "4L",
+        "5L",
+        "20L",
+        "60L",
+        "199L",
+        "200L",
+        "208L"
+      ],
+      "visibleText": "MA72YFW Clear Ford Transit TDCi 130 EcoBlue RWD L2H1 MWB Start/Stop 350 RWD Leader 2.0 (1995cc) Diesel Manual 2 doors 29/09/22 28/09/27 Copy VIN More Details All categories / Service Items / Fluids & Lubricants / Engine Oils (Applicated) Engine Oil Information Oil recommendation 5W-30 This is a recommended engine oil. If you\u2019re unsure, please refer to the vehicle manufacturer\u2019s handbook. Capacity 1L 4L 5L 20L 60L 199L 200L 208L Viscosity 5W-30 0W-30 X-FLOW TYPE F 5W30 - 5L SKU: COMXFF5L In stock. Attributes Sort By Relevancy \u00a343.41 Gold X-Flow Type F 5W30 - 5L Local Branch \u00a345.10 Gold Xtech 5W-30 - 5L Local Branch \u00a355.28 Gold X-Flow Type F Plus 5W30 - 5L Local Branch \u00a335.62 Silver Dura PRO Fully Synthetic Motor Oil 5W-30 - 5L Local Branch \u00a357.94 Silver Magnatec 5W30 A5 5L H 4A Local Branch Show More Stock Type Quantity Boldon 1 RDC 1 NDC 73 \u00a343.41 RRP: \u00a3128.34 Buy Now Add to basket 0 XTECH 5W-30 - 1L SKU: COMXTC1L In stock. Attributes Sort By Relevancy \u00a310.68 Gold Xtech 5W-30 - 1L Local Branch \u00a311.79 Gold Magnatec 5W-30 A5 - 1L Local Branch \u00a39.47 Silver Dura PRO Fully Synthetic Motor Oil 5W-30 - 1L Local Branch Show More Stock Type Quantity Boldon 1 RDC 1 NDC 370 \u00a310.68 RRP: \u00a323.98 Buy Now Add to basket 0",
+      "truncated": false,
+      "fitmentVerified": false,
+      "oilVerified": false,
+      "approvedForPublication": false,
+      "observedCategoryPath": "/parts/Engine%2520Oils%2520(Applicated)",
+      "attributes": {
+        "status": "NEEDS_REVIEW",
+        "reason": "MULTIPLE_OR_MISSING_PRODUCT_GROUPS"
+      }
+    }
+  },
+  {
+    "registration": "MA72YFW",
+    "category": "Fuel Filter",
+    "capture": {
+      "status": "CAPTURED_FOR_REVIEW",
+      "reason": null,
+      "selectedRegistration": true,
+      "registration": "MA72YFW",
+      "category": "Fuel Filter",
+      "headings": [
+        "Fuel Filter - Element",
+        "\u00a335.26"
+      ],
+      "skuLabels": [
+        "ADLADBP230032"
+      ],
+      "displayedPrices": [
+        "35.26",
+        "41.45",
+        "70.35"
+      ],
+      "displayedLitres": [],
+      "visibleText": "MA72YFW Clear Ford Transit TDCi 130 EcoBlue RWD L2H1 MWB Start/Stop 350 RWD Leader 2.0 (1995cc) Diesel Manual 2 doors 29/09/22 28/09/27 Copy VIN More Details All categories / Filters / Fuel Filter Related: Oil Filter Air Filter Cabin Filter Urea Filter Engine Oil Sump Plug Sump Plug Washer Fuel Filter - Element SKU: ADLADBP230032 In stock. Attributes Sort By Relevancy \u00a335.26 Silver Fuel Filter - Element Local Branch \u00a341.45 Silver Febi Fuel Filter Local Branch Show More Stock Type Quantity Boldon 4 RDC 2 NDC 0 \u00a335.26 RRP: \u00a370.35 Buy Now Add to basket 0",
+      "truncated": false,
+      "fitmentVerified": false,
+      "oilVerified": false,
+      "approvedForPublication": false,
+      "attributes": {
+        "status": "NEEDS_REVIEW",
+        "reason": "ATTRIBUTES_CAPTURE_FAILED"
+      }
+    }
+  },
+  {
+    "registration": "MH24WHL",
+    "category": "Engine Oils (Applied)",
+    "capture": {
+      "status": "CAPTURED_FOR_REVIEW",
+      "reason": null,
+      "selectedRegistration": true,
+      "registration": "MH24WHL",
+      "category": "Engine Oils (Applied)",
+      "headings": [
+        "Engine Oil Information",
+        "Capacity",
+        "Viscosity",
+        "ESP Formula P 5W-30 - 5L",
+        "\u00a366.47",
+        "ESP Formula P 5W-30 - 1L",
+        "\u00a324.82"
+      ],
+      "skuLabels": [
+        "MOB157292",
+        "MOB157290"
+      ],
+      "displayedPrices": [
+        "66.47",
+        "47.50",
+        "149.26",
+        "24.82",
+        "11.79",
+        "32.70"
+      ],
+      "displayedLitres": [
+        "1L",
+        "5L",
+        "20L",
+        "199L"
+      ],
+      "visibleText": "MH24WHL Clear Peugeot Partner M BlueHDi 102 L1H1 Start/Stop Professional L1 1000 1.5 (1499cc) Diesel Manual 5 doors 31/07/24 30/07/27 Copy VIN More Details All categories / Service Items / Fluids & Lubricants / Engine Oils (Applicated) Engine Oil Information Capacity 1L 5L 20L 199L Viscosity 5W-30 ESP Formula P 5W-30 - 5L SKU: MOB157292 In stock. Attributes Sort By Relevancy \u00a366.47 Gold ESP Formula P 5W-30 - 5L Local Branch \u00a347.50 Silver ECO-SFP 5W30 5L Local Branch Stock Type Quantity Boldon 4 RDC 5 NDC 1150 \u00a366.47 RRP: \u00a3149.26 Buy Now Add to basket 0 ESP Formula P 5W-30 - 1L SKU: MOB157290 In stock. Attributes Sort By Relevancy \u00a324.82 Gold ESP Formula P 5W-30 - 1L Local Branch \u00a311.79 Silver ECO-SFP 5W30 1L Local Branch Stock Type Quantity Boldon 2 RDC 2 NDC 771 \u00a324.82 RRP: \u00a332.70 Buy Now Add to basket 0",
+      "truncated": false,
+      "fitmentVerified": false,
+      "oilVerified": false,
+      "approvedForPublication": false,
+      "observedCategoryPath": "/parts/Engine%2520Oils%2520(Applicated)",
+      "attributes": {
+        "status": "NEEDS_REVIEW",
+        "reason": "MULTIPLE_OR_MISSING_PRODUCT_GROUPS"
+      }
+    }
+  },
+  {
+    "registration": "NA72KNW",
+    "category": "Engine Oils (Applied)",
+    "capture": {
+      "status": "CAPTURED_FOR_REVIEW",
+      "reason": null,
+      "selectedRegistration": true,
+      "registration": "NA72KNW",
+      "category": "Engine Oils (Applied)",
+      "headings": [
+        "Engine Oil Information",
+        "Oil recommendation",
+        "Capacity",
+        "Viscosity",
+        "XTECH 5W-30 - 5L",
+        "\u00a345.10",
+        "XTECH 5W-30 - 1L",
+        "\u00a310.68"
+      ],
+      "skuLabels": [
+        "COMXTC5L",
+        "COMXTC1L"
+      ],
+      "displayedPrices": [
+        "45.10",
+        "52.22",
+        "60.26",
+        "68.88",
+        "33.84",
+        "35.62",
+        "42.74",
+        "43.61",
+        "101.26",
+        "10.68",
+        "11.81",
+        "14.24",
+        "9.47",
+        "13.03",
+        "13.10",
+        "11.88",
+        "17.47",
+        "23.98"
+      ],
+      "displayedLitres": [
+        "1L",
+        "5L",
+        "20L",
+        "60L",
+        "199L",
+        "200L",
+        "208L"
+      ],
+      "visibleText": "NA72KNW Clear Nissan Interstar dCi 135 F35 L2H2 MWB Start/Stop 35 Tekna 2.3 (2298cc) Diesel Manual N/A 10/01/23 09/01/27 Copy VIN More Details All categories / Service Items / Fluids & Lubricants / Engine Oils (Applicated) Engine Oil Information Oil recommendation 5W-30 This is a recommended engine oil. If you\u2019re unsure, please refer to the vehicle manufacturer\u2019s handbook. Capacity 1L 5L 20L 60L 199L 200L 208L Viscosity 5W-30 5W-40 XTECH 5W-30 - 5L SKU: COMXTC5L In stock. Attributes Sort By Relevancy \u00a345.10 Gold Xtech 5W-30 - 5L Local Branch \u00a352.22 Gold Ecoren 5W-30 - 5L Local Branch \u00a360.26 Gold GTX 5W-30 Rn17 - 5L Local Branch \u00a368.88 Gold 3000 Formula R 5W-30 - 5L Local Branch \u00a333.84 Silver Z Plus 5W-30 - 5L Local Branch \u00a335.62 Silver Dura PRO Fully Synthetic Motor Oil 5W-30 - 5L Local Branch \u00a342.74 Silver Renmax Fully Synthetic Motor Oil 5W-30 - 5L Local Branch \u00a343.61 Silver 5W30 BMW Ll04 5L Local Branch Show More Stock Type Quantity Boldon 6 RDC 8 NDC 522 \u00a345.10 RRP: \u00a3101.26 Buy Now Add to basket 0 XTECH 5W-30 - 1L SKU: COMXTC1L In stock. Attributes Sort By Relevancy \u00a310.68 Gold Xtech 5W-30 - 1L Local Branch \u00a311.81 Gold GTX 5W-30 Rn17 - 1L Local Branch \u00a314.24 Gold Ecoren 5W-30 - 1L Local Branch \u00a39.47 Silver Dura PRO Fully Synthetic Motor Oil 5W-30 - 1L Local Branch \u00a313.03 Silver Renmax Fully Synthetic Motor Oil 5W-30 - 1L Local Branch \u00a313.10 Silver 5W30 B Ll 1L Local Branch \u00a311.88 Gold Syner-X 5W-30 - 1L RDC \u00a317.47 Gold 3000 Formula R 5W-30 - 1L RDC Show More Stock Type Quantity Boldon 1 RDC 1 NDC 370 \u00a310.68 RRP: \u00a323.98 Buy Now Add to basket 0",
+      "truncated": false,
+      "fitmentVerified": false,
+      "oilVerified": false,
+      "approvedForPublication": false,
+      "observedCategoryPath": "/parts/Engine%2520Oils%2520(Applicated)",
+      "attributes": {
+        "status": "NEEDS_REVIEW",
+        "reason": "MULTIPLE_OR_MISSING_PRODUCT_GROUPS"
+      }
+    }
+  },
+  {
+    "registration": "ND62EWO",
+    "category": "Oil Filter",
+    "capture": {
+      "status": "CAPTURED_FOR_REVIEW",
+      "reason": null,
+      "selectedRegistration": true,
+      "registration": "ND62EWO",
+      "category": "Oil Filter",
+      "headings": [
+        "Oil Filter - Spin-on Filter",
+        "\u00a37.87"
+      ],
+      "skuLabels": [
+        "MANW67/1"
+      ],
+      "displayedPrices": [
+        "7.87",
+        "6.49",
+        "5.72",
+        "13.91"
+      ],
+      "displayedLitres": [],
+      "visibleText": "ND62EWO Clear Nissan Juke Acenta Premium 1.6 (1598cc) Petrol Manual 5 doors 30/11/12 03/09/27 Copy VIN More Details All categories / Filters / Oil Filter Related: Air Filter Fuel Filter Cabin Filter Urea Filter Engine Oil Sump Plug Sump Plug Washer Oil Filter - Spin-on Filter SKU: MANW67/1 In stock. Attributes Sort By Relevancy \u00a37.87 Gold Oil Filter - Spin-On Filter Local Branch \u00a36.49 Silver Oil Filter - Spin-On Filter Local Branch \u00a35.72 Gold Oil Filter - Canister RDC Show More Stock Type Quantity Boldon 3 RDC 9 NDC 4101 \u00a37.87 RRP: \u00a313.91 Buy Now Add to basket 0",
+      "truncated": false,
+      "fitmentVerified": false,
+      "oilVerified": false,
+      "approvedForPublication": false,
+      "attributes": {
+        "status": "ATTRIBUTES_CAPTURED",
+        "rows": [
+          {
+            "attribute": "Bar Code",
+            "value": "401155873800"
+          },
+          {
+            "attribute": "Gasket outside diameter [mm]",
+            "value": "62"
+          },
+          {
+            "attribute": "Gasket inside diameter [mm]",
+            "value": "54"
+          },
+          {
+            "attribute": "Bypass Valve Opening Pressure (bar)",
+            "value": "1"
+          },
+          {
+            "attribute": "Other Info",
+            "value": "with one anti-return valve"
+          },
+          {
+            "attribute": "Outer Diameter (mm)",
+            "value": "66"
+          },
+          {
+            "attribute": "Thread Size",
+            "value": "M20x1.5"
+          },
+          {
+            "attribute": "Filter Type",
+            "value": "Spin-on Filter"
+          },
+          {
+            "attribute": "Part number of the recommended special tools",
+            "value": "LS 6/1"
+          },
+          {
+            "attribute": "Height (mm)",
+            "value": "65"
+          }
+        ],
+        "oilVerified": false,
+        "groupSku": "MANW67/1"
+      }
+    }
+  },
+  {
+    "registration": "NG18VNU",
+    "category": "Engine Oils (Applied)",
+    "capture": {
+      "status": "CAPTURED_FOR_REVIEW",
+      "reason": null,
+      "selectedRegistration": true,
+      "registration": "NG18VNU",
+      "category": "Engine Oils (Applied)",
+      "headings": [
+        "Engine Oil Information",
+        "Capacity",
+        "Viscosity",
+        "3000 Formula R 5W-30 - 5L",
+        "\u00a368.88",
+        "3000 Formula R 5W-30 - 1L",
+        "\u00a317.47",
+        "MOBIL SUPER 3000 X1 5W40 1L",
+        "3000 X1 5W-40 - 5L"
+      ],
+      "skuLabels": [
+        "MOB154126",
+        "MOB154125",
+        "FPS151165",
+        "MOB151166"
+      ],
+      "displayedPrices": [
+        "68.88",
+        "154.66",
+        "17.47",
+        "37.26",
+        "19.04",
+        "70.08"
+      ],
+      "displayedLitres": [
+        "1L",
+        "5L",
+        "20L",
+        "200L",
+        "208L"
+      ],
+      "visibleText": "NG18VNU Clear Nissan NV400 dCi 145 R35 RWD TRW L3H1 LWB Euro6 Start/Stop SE 35 RWD 2.3 (2298cc) Diesel Manual 2 doors 16/08/18 18/08/27 Copy VIN More Details All categories / Service Items / Fluids & Lubricants / Engine Oils (Applicated) Engine Oil Information Capacity 1L 5L 20L 200L 208L Viscosity 5W-30 5W-40 3000 Formula R 5W-30 - 5L SKU: MOB154126 In stock. Attributes Sort By Relevancy \u00a368.88 Gold 3000 Formula R 5W-30 - 5L Local Branch Stock Type Quantity Boldon 7 RDC 1 NDC 61 \u00a368.88 RRP: \u00a3154.66 Buy Now Add to basket 0 3000 Formula R 5W-30 - 1L SKU: MOB154125 In stock in RDC. Get it this afternoon. Attributes Sort By Relevancy \u00a317.47 Gold 3000 Formula R 5W-30 - 1L RDC Show More Stock Type Quantity Boldon 0 RDC 11 NDC 76 \u00a317.47 RRP: \u00a337.26 Buy Now Add to basket 0 MOBIL SUPER 3000 X1 5W40 1L SKU: FPS151165 Call your branch for availability. Attributes Sort By Relevancy \u00a319.04 Gold Super 3000 X1 5W40 1L Branch Network Please contact your branch for availability. They will be able to provide more information. Need assistance? Call branch: 0191 644 4789 Opening hours: Monday-Friday 8:00 - 17:30 Saturday 8:00 - 14:00 Sunday Closed WhatsApp branch 3000 X1 5W-40 - 5L SKU: MOB151166 Out of stock. Attributes Sort By Relevancy \u00a370.08 Gold 3000 X1 5W-40 - 5L Out Of Stock Please contact your branch for availability. They will be able to provide more information. Need assistance? Call branch: 0191 644 4789 Opening hours: Monday-Friday 8:00 - 17:30 Saturday 8:00 - 14:00 Sunday Closed WhatsApp branch",
+      "truncated": false,
+      "fitmentVerified": false,
+      "oilVerified": false,
+      "approvedForPublication": false,
+      "observedCategoryPath": "/parts/Engine%2520Oils%2520(Applicated)",
+      "attributes": {
+        "status": "NEEDS_REVIEW",
+        "reason": "MULTIPLE_OR_MISSING_PRODUCT_GROUPS"
+      }
+    }
+  },
+  {
+    "registration": "NG69LLJ",
+    "category": "Engine Oils (Applied)",
+    "capture": {
+      "status": "CAPTURED_FOR_REVIEW",
+      "reason": null,
+      "selectedRegistration": true,
+      "registration": "NG69LLJ",
+      "category": "Engine Oils (Applied)",
+      "headings": [
+        "Engine Oil Information",
+        "Oil recommendation",
+        "Capacity",
+        "Viscosity",
+        "ECO-FE Plus 0W-30 - 5L",
+        "\u00a349.95",
+        "Magnatec 0W-30 D - 1L",
+        "\u00a313.73"
+      ],
+      "skuLabels": [
+        "COMECOFEP5L",
+        "CAS15F67C"
+      ],
+      "displayedPrices": [
+        "49.95",
+        "76.00",
+        "45.10",
+        "127.98",
+        "13.73",
+        "14.24",
+        "17.47",
+        "12.46",
+        "29.29"
+      ],
+      "displayedLitres": [
+        "1L",
+        "4L",
+        "5L",
+        "20L",
+        "60L",
+        "199L",
+        "200L",
+        "208L"
+      ],
+      "visibleText": "NG69LLJ Clear Ford Transit Courier 1.5 TDCi 75 Start/Stop Leader 1.5 (1499cc) Diesel Manual N/A 28/02/20 12/02/27 Copy VIN More Details All categories / Service Items / Fluids & Lubricants / Engine Oils (Applicated) Engine Oil Information Oil recommendation 0W-30 This is a recommended engine oil. If you\u2019re unsure, please refer to the vehicle manufacturer\u2019s handbook. Capacity 1L 4L 5L 20L 60L 199L 200L 208L Viscosity 5W-30 0W-30 ECO-FE Plus 0W-30 - 5L SKU: COMECOFEP5L In stock. Attributes Sort By Relevancy \u00a349.95 Gold ECO-Fe Plus 0W-30 - 5L Local Branch \u00a376.00 Gold 3000 Formula F 0W-30 - 5L Local Branch \u00a345.10 Silver Fully Synthetic Motor Oil 0W-30 - 5L Local Branch Show More Stock Type Quantity Boldon 4 RDC 4 NDC 961 \u00a349.95 RRP: \u00a3127.98 Buy Now Add to basket 0 Magnatec 0W-30 D - 1L SKU: CAS15F67C In stock. Attributes Sort By Relevancy \u00a313.73 Gold Magnatec 0W-30 D - 1L Local Branch \u00a314.24 Gold ECO-Fe Plus 0W-30 - 1L Local Branch \u00a317.47 Gold 3000 Formula F 0W-30 - 1L Local Branch \u00a312.46 Silver Fully Synthetic Motor Oil 0W-30 - 1L Local Branch Show More Stock Type Quantity Boldon 1 RDC 1 NDC 0 \u00a313.73 RRP: \u00a329.29 Buy Now Add to basket 0",
+      "truncated": false,
+      "fitmentVerified": false,
+      "oilVerified": false,
+      "approvedForPublication": false,
+      "observedCategoryPath": "/parts/Engine%2520Oils%2520(Applicated)",
+      "attributes": {
+        "status": "NEEDS_REVIEW",
+        "reason": "MULTIPLE_OR_MISSING_PRODUCT_GROUPS"
+      }
+    }
+  },
+  {
+    "registration": "NH21EDF",
+    "category": "Engine Oils (Applied)",
+    "capture": {
+      "status": "CAPTURED_FOR_REVIEW",
+      "reason": null,
+      "selectedRegistration": true,
+      "registration": "NH21EDF",
+      "category": "Engine Oils (Applied)",
+      "headings": [
+        "Engine Oil Information",
+        "Oil recommendation",
+        "Capacity",
+        "Viscosity",
+        "ECO-V 0W-20 - 5L",
+        "\u00a359.35",
+        "ECO-V 0W-20 - 1L",
+        "\u00a314.81"
+      ],
+      "skuLabels": [
+        "COMECOV5L",
+        "COMECOV1L"
+      ],
+      "displayedPrices": [
+        "59.35",
+        "45.10",
+        "133.26",
+        "14.81",
+        "17.21",
+        "33.26"
+      ],
+      "displayedLitres": [
+        "1L",
+        "5L",
+        "20L",
+        "60L",
+        "200L",
+        "208L"
+      ],
+      "visibleText": "NH21EDF Clear Volvo V60 Hybrid PHEV Recharge T6 340 253+87AWD Twin Engine PHEV Start/Stop Inscription 2.0 (1969cc) Petrol/Hybrid Electric Semi Automatic 5 doors 22/07/21 23/07/27 Copy VIN More Details All categories / Service Items / Fluids & Lubricants / Engine Oils (Applicated) Engine Oil Information Oil recommendation 0W-20 This is a recommended engine oil. If you\u2019re unsure, please refer to the vehicle manufacturer\u2019s handbook. Capacity 1L 5L 20L 60L 200L 208L Viscosity 0W-20 5W-30 ECO-V 0W-20 - 5L SKU: COMECOV5L In stock. Attributes Sort By Relevancy \u00a359.35 Gold ECO-V 0W-20 - 5L Local Branch \u00a345.10 Silver Fully Synthetic Motor Oil 0W-20 - 5L Local Branch Show More Stock Type Quantity Boldon 1 RDC 4 NDC 123 \u00a359.35 RRP: \u00a3133.26 Buy Now Add to basket 0 ECO-V 0W-20 - 1L SKU: COMECOV1L In stock. Attributes Sort By Relevancy \u00a314.81 Gold ECO-V 0W-20 - 1L Local Branch \u00a317.21 Gold 3000 Formula Vc 0W-20 - 1L Local Branch Show More Stock Type Quantity Boldon 1 RDC 3 NDC 884 \u00a314.81 RRP: \u00a333.26 Buy Now Add to basket 0",
+      "truncated": false,
+      "fitmentVerified": false,
+      "oilVerified": false,
+      "approvedForPublication": false,
+      "observedCategoryPath": "/parts/Engine%2520Oils%2520(Applicated)",
+      "attributes": {
+        "status": "NEEDS_REVIEW",
+        "reason": "MULTIPLE_OR_MISSING_PRODUCT_GROUPS"
+      }
+    }
+  },
+  {
+    "registration": "NK16CYO",
+    "category": "Cabin Filter",
+    "capture": {
+      "status": "NEEDS_REVIEW",
+      "reason": "NO_PRICED_ITEMS",
+      "selectedRegistration": true,
+      "registration": "NK16CYO",
+      "category": "Cabin Filter",
+      "headings": [],
+      "skuLabels": [],
+      "displayedPrices": [],
+      "displayedLitres": [],
+      "visibleText": "NK16CYO Clear N/A N/A N/A N/A 07/03/16 07/05/27 Copy VIN More Details All categories / Filters / Cabin Filter Related: Oil Filter Air Filter Fuel Filter Urea Filter Engine Oil Sump Plug Sump Plug Washer Sorry, we couldn't find any parts. We were unable to find any \"Cabin Filter\" matching this vehicle. Need assistance? Call branch: 0191 644 4789 Opening hours: Monday-Friday 8:00 - 17:30 Saturday 8:00 - 14:00 Sunday Closed WhatsApp branch",
+      "truncated": false,
+      "fitmentVerified": false,
+      "oilVerified": false,
+      "approvedForPublication": false
+    }
+  },
+  {
+    "registration": "NK16CYO",
+    "category": "Oil Filter",
+    "capture": {
+      "status": "NEEDS_REVIEW",
+      "reason": "NO_PRICED_ITEMS",
+      "selectedRegistration": true,
+      "registration": "NK16CYO",
+      "category": "Oil Filter",
+      "headings": [],
+      "skuLabels": [],
+      "displayedPrices": [],
+      "displayedLitres": [],
+      "visibleText": "NK16CYO Clear N/A N/A N/A N/A 07/03/16 07/05/27 Copy VIN More Details All categories / Filters / Oil Filter Related: Air Filter Fuel Filter Cabin Filter Urea Filter Engine Oil Sump Plug Sump Plug Washer Sorry, we couldn't find any parts. We were unable to find any \"Oil Filter\" matching this vehicle. Need assistance? Call branch: 0191 644 4789 Opening hours: Monday-Friday 8:00 - 17:30 Saturday 8:00 - 14:00 Sunday Closed WhatsApp branch",
+      "truncated": false,
+      "fitmentVerified": false,
+      "oilVerified": false,
+      "approvedForPublication": false
+    }
+  },
+  {
+    "registration": "NK16CYO",
+    "category": "Air Filter",
+    "capture": {
+      "status": "NEEDS_REVIEW",
+      "reason": "NO_PRICED_ITEMS",
+      "selectedRegistration": true,
+      "registration": "NK16CYO",
+      "category": "Air Filter",
+      "headings": [],
+      "skuLabels": [],
+      "displayedPrices": [],
+      "displayedLitres": [],
+      "visibleText": "NK16CYO Clear N/A N/A N/A N/A 07/03/16 07/05/27 Copy VIN More Details All categories / Filters / Air Filter Related: Oil Filter Fuel Filter Cabin Filter Urea Filter Engine Oil Sump Plug Sump Plug Washer Sorry, we couldn't find any parts. We were unable to find any \"Air Filter\" matching this vehicle. Need assistance? Call branch: 0191 644 4789 Opening hours: Monday-Friday 8:00 - 17:30 Saturday 8:00 - 14:00 Sunday Closed WhatsApp branch",
+      "truncated": false,
+      "fitmentVerified": false,
+      "oilVerified": false,
+      "approvedForPublication": false
+    }
+  },
+  {
+    "registration": "NK16CYO",
+    "category": "Fuel Filter",
+    "capture": {
+      "status": "NEEDS_REVIEW",
+      "reason": "NO_PRICED_ITEMS",
+      "selectedRegistration": true,
+      "registration": "NK16CYO",
+      "category": "Fuel Filter",
+      "headings": [],
+      "skuLabels": [],
+      "displayedPrices": [],
+      "displayedLitres": [],
+      "visibleText": "NK16CYO Clear N/A N/A N/A N/A 07/03/16 07/05/27 Copy VIN More Details All categories / Filters / Fuel Filter Related: Oil Filter Air Filter Cabin Filter Urea Filter Engine Oil Sump Plug Sump Plug Washer Sorry, we couldn't find any parts. We were unable to find any \"Fuel Filter\" matching this vehicle. Need assistance? Call branch: 0191 644 4789 Opening hours: Monday-Friday 8:00 - 17:30 Saturday 8:00 - 14:00 Sunday Closed WhatsApp branch",
+      "truncated": false,
+      "fitmentVerified": false,
+      "oilVerified": false,
+      "approvedForPublication": false
+    }
+  },
+  {
+    "registration": "NK16CYO",
+    "category": "Engine Oils (Applied)",
+    "capture": {
+      "status": "NEEDS_REVIEW",
+      "reason": "NO_PRICED_ITEMS",
+      "selectedRegistration": true,
+      "registration": "NK16CYO",
+      "category": "Engine Oils (Applied)",
+      "headings": [],
+      "skuLabels": [],
+      "displayedPrices": [],
+      "displayedLitres": [],
+      "visibleText": "NK16CYO Clear N/A N/A N/A N/A 07/03/16 07/05/27 Copy VIN More Details All categories / Filters / Oil Filter Related: Air Filter Fuel Filter Cabin Filter Urea Filter Engine Oil Sump Plug Sump Plug Washer Sorry, we couldn't find any parts. We were unable to find any \"Oil Filter\" matching this vehicle. Need assistance? Call branch: 0191 644 4789 Opening hours: Monday-Friday 8:00 - 17:30 Saturday 8:00 - 14:00 Sunday Closed WhatsApp branch",
+      "truncated": false,
+      "fitmentVerified": false,
+      "oilVerified": false,
+      "approvedForPublication": false
+    }
+  },
+  {
+    "registration": "NK71DHL",
+    "category": "Cabin Filter",
+    "capture": {
+      "status": "NEEDS_REVIEW",
+      "reason": "NO_PRICED_ITEMS",
+      "selectedRegistration": true,
+      "registration": "NK71DHL",
+      "category": "Cabin Filter",
+      "headings": [],
+      "skuLabels": [],
+      "displayedPrices": [],
+      "displayedLitres": [],
+      "visibleText": "NK71DHL Clear N/A N/A N/A N/A 31/12/21 30/12/26 Copy VIN More Details All categories / Filters / Cabin Filter Related: Oil Filter Air Filter Fuel Filter Urea Filter Engine Oil Sump Plug Sump Plug Washer Sorry, we couldn't find any parts. We were unable to find any \"Cabin Filter\" matching this vehicle. Need assistance? Call branch: 0191 644 4789 Opening hours: Monday-Friday 8:00 - 17:30 Saturday 8:00 - 14:00 Sunday Closed WhatsApp branch",
+      "truncated": false,
+      "fitmentVerified": false,
+      "oilVerified": false,
+      "approvedForPublication": false
+    }
+  },
+  {
+    "registration": "NK71DHL",
+    "category": "Oil Filter",
+    "capture": {
+      "status": "NEEDS_REVIEW",
+      "reason": "NO_PRICED_ITEMS",
+      "selectedRegistration": true,
+      "registration": "NK71DHL",
+      "category": "Oil Filter",
+      "headings": [],
+      "skuLabels": [],
+      "displayedPrices": [],
+      "displayedLitres": [],
+      "visibleText": "NK71DHL Clear N/A N/A N/A N/A 31/12/21 30/12/26 Copy VIN More Details All categories / Filters / Oil Filter Related: Air Filter Fuel Filter Cabin Filter Urea Filter Engine Oil Sump Plug Sump Plug Washer Sorry, we couldn't find any parts. We were unable to find any \"Oil Filter\" matching this vehicle. Need assistance? Call branch: 0191 644 4789 Opening hours: Monday-Friday 8:00 - 17:30 Saturday 8:00 - 14:00 Sunday Closed WhatsApp branch",
+      "truncated": false,
+      "fitmentVerified": false,
+      "oilVerified": false,
+      "approvedForPublication": false
+    }
+  },
+  {
+    "registration": "NK71DHL",
+    "category": "Air Filter",
+    "capture": {
+      "status": "NEEDS_REVIEW",
+      "reason": "NO_PRICED_ITEMS",
+      "selectedRegistration": true,
+      "registration": "NK71DHL",
+      "category": "Air Filter",
+      "headings": [],
+      "skuLabels": [],
+      "displayedPrices": [],
+      "displayedLitres": [],
+      "visibleText": "NK71DHL Clear N/A N/A N/A N/A 31/12/21 30/12/26 Copy VIN More Details All categories / Filters / Air Filter Related: Oil Filter Fuel Filter Cabin Filter Urea Filter Engine Oil Sump Plug Sump Plug Washer Sorry, we couldn't find any parts. We were unable to find any \"Air Filter\" matching this vehicle. Need assistance? Call branch: 0191 644 4789 Opening hours: Monday-Friday 8:00 - 17:30 Saturday 8:00 - 14:00 Sunday Closed WhatsApp branch",
+      "truncated": false,
+      "fitmentVerified": false,
+      "oilVerified": false,
+      "approvedForPublication": false
+    }
+  },
+  {
+    "registration": "NK71DHL",
+    "category": "Fuel Filter",
+    "capture": {
+      "status": "NEEDS_REVIEW",
+      "reason": "NO_PRICED_ITEMS",
+      "selectedRegistration": true,
+      "registration": "NK71DHL",
+      "category": "Fuel Filter",
+      "headings": [],
+      "skuLabels": [],
+      "displayedPrices": [],
+      "displayedLitres": [],
+      "visibleText": "NK71DHL Clear N/A N/A N/A N/A 31/12/21 30/12/26 Copy VIN More Details All categories / Filters / Fuel Filter Related: Oil Filter Air Filter Cabin Filter Urea Filter Engine Oil Sump Plug Sump Plug Washer Sorry, we couldn't find any parts. We were unable to find any \"Fuel Filter\" matching this vehicle. Need assistance? Call branch: 0191 644 4789 Opening hours: Monday-Friday 8:00 - 17:30 Saturday 8:00 - 14:00 Sunday Closed WhatsApp branch",
+      "truncated": false,
+      "fitmentVerified": false,
+      "oilVerified": false,
+      "approvedForPublication": false
+    }
+  },
+  {
+    "registration": "NK71DHL",
+    "category": "Engine Oils (Applied)",
+    "capture": {
+      "status": "NEEDS_REVIEW",
+      "reason": "NO_PRICED_ITEMS",
+      "selectedRegistration": true,
+      "registration": "NK71DHL",
+      "category": "Engine Oils (Applied)",
+      "headings": [],
+      "skuLabels": [],
+      "displayedPrices": [],
+      "displayedLitres": [],
+      "visibleText": "NK71DHL Clear N/A N/A N/A N/A 31/12/21 30/12/26 Copy VIN More Details All categories / Filters / Oil Filter Related: Air Filter Fuel Filter Cabin Filter Urea Filter Engine Oil Sump Plug Sump Plug Washer Sorry, we couldn't find any parts. We were unable to find any \"Oil Filter\" matching this vehicle. Need assistance? Call branch: 0191 644 4789 Opening hours: Monday-Friday 8:00 - 17:30 Saturday 8:00 - 14:00 Sunday Closed WhatsApp branch",
+      "truncated": false,
+      "fitmentVerified": false,
+      "oilVerified": false,
+      "approvedForPublication": false
+    }
+  },
+  {
+    "registration": "NK72KRV",
+    "category": "Cabin Filter",
+    "capture": {
+      "status": "NEEDS_REVIEW",
+      "reason": "NO_PRICED_ITEMS",
+      "selectedRegistration": true,
+      "registration": "NK72KRV",
+      "category": "Cabin Filter",
+      "headings": [],
+      "skuLabels": [],
+      "displayedPrices": [],
+      "displayedLitres": [],
+      "visibleText": "NK72KRV Clear N/A N/A N/A N/A 01/09/22 31/08/27 Copy VIN More Details All categories / Filters / Cabin Filter Related: Oil Filter Air Filter Fuel Filter Urea Filter Engine Oil Sump Plug Sump Plug Washer Sorry, we couldn't find any parts. We were unable to find any \"Cabin Filter\" matching this vehicle. Need assistance? Call branch: 0191 644 4789 Opening hours: Monday-Friday 8:00 - 17:30 Saturday 8:00 - 14:00 Sunday Closed WhatsApp branch",
+      "truncated": false,
+      "fitmentVerified": false,
+      "oilVerified": false,
+      "approvedForPublication": false
+    }
+  },
+  {
+    "registration": "NK72KRV",
+    "category": "Oil Filter",
+    "capture": {
+      "status": "NEEDS_REVIEW",
+      "reason": "NO_PRICED_ITEMS",
+      "selectedRegistration": true,
+      "registration": "NK72KRV",
+      "category": "Oil Filter",
+      "headings": [],
+      "skuLabels": [],
+      "displayedPrices": [],
+      "displayedLitres": [],
+      "visibleText": "NK72KRV Clear N/A N/A N/A N/A 01/09/22 31/08/27 Copy VIN More Details All categories / Filters / Oil Filter Related: Air Filter Fuel Filter Cabin Filter Urea Filter Engine Oil Sump Plug Sump Plug Washer Sorry, we couldn't find any parts. We were unable to find any \"Oil Filter\" matching this vehicle. Need assistance? Call branch: 0191 644 4789 Opening hours: Monday-Friday 8:00 - 17:30 Saturday 8:00 - 14:00 Sunday Closed WhatsApp branch",
+      "truncated": false,
+      "fitmentVerified": false,
+      "oilVerified": false,
+      "approvedForPublication": false
+    }
+  },
+  {
+    "registration": "NK72KRV",
+    "category": "Air Filter",
+    "capture": {
+      "status": "NEEDS_REVIEW",
+      "reason": "NO_PRICED_ITEMS",
+      "selectedRegistration": true,
+      "registration": "NK72KRV",
+      "category": "Air Filter",
+      "headings": [],
+      "skuLabels": [],
+      "displayedPrices": [],
+      "displayedLitres": [],
+      "visibleText": "NK72KRV Clear N/A N/A N/A N/A 01/09/22 31/08/27 Copy VIN More Details All categories / Filters / Air Filter Related: Oil Filter Fuel Filter Cabin Filter Urea Filter Engine Oil Sump Plug Sump Plug Washer Sorry, we couldn't find any parts. We were unable to find any \"Air Filter\" matching this vehicle. Need assistance? Call branch: 0191 644 4789 Opening hours: Monday-Friday 8:00 - 17:30 Saturday 8:00 - 14:00 Sunday Closed WhatsApp branch",
+      "truncated": false,
+      "fitmentVerified": false,
+      "oilVerified": false,
+      "approvedForPublication": false
+    }
+  },
+  {
+    "registration": "NK72KRV",
+    "category": "Fuel Filter",
+    "capture": {
+      "status": "NEEDS_REVIEW",
+      "reason": "NO_PRICED_ITEMS",
+      "selectedRegistration": true,
+      "registration": "NK72KRV",
+      "category": "Fuel Filter",
+      "headings": [],
+      "skuLabels": [],
+      "displayedPrices": [],
+      "displayedLitres": [],
+      "visibleText": "NK72KRV Clear N/A N/A N/A N/A 01/09/22 31/08/27 Copy VIN More Details All categories / Filters / Fuel Filter Related: Oil Filter Air Filter Cabin Filter Urea Filter Engine Oil Sump Plug Sump Plug Washer Sorry, we couldn't find any parts. We were unable to find any \"Fuel Filter\" matching this vehicle. Need assistance? Call branch: 0191 644 4789 Opening hours: Monday-Friday 8:00 - 17:30 Saturday 8:00 - 14:00 Sunday Closed WhatsApp branch",
+      "truncated": false,
+      "fitmentVerified": false,
+      "oilVerified": false,
+      "approvedForPublication": false
+    }
+  },
+  {
+    "registration": "NK72KRV",
+    "category": "Engine Oils (Applied)"
+  },
+  {
+    "registration": "NK72KRX",
+    "category": "Cabin Filter",
+    "capture": {
+      "status": "NEEDS_REVIEW",
+      "reason": "NO_PRICED_ITEMS",
+      "selectedRegistration": true,
+      "registration": "NK72KRX",
+      "category": "Cabin Filter",
+      "headings": [],
+      "skuLabels": [],
+      "displayedPrices": [],
+      "displayedLitres": [],
+      "visibleText": "NK72KRX Clear N/A N/A N/A N/A 01/09/22 31/08/27 Copy VIN More Details All categories / Filters / Cabin Filter Related: Oil Filter Air Filter Fuel Filter Urea Filter Engine Oil Sump Plug Sump Plug Washer Sorry, we couldn't find any parts. We were unable to find any \"Cabin Filter\" matching this vehicle. Need assistance? Call branch: 0191 644 4789 Opening hours: Monday-Friday 8:00 - 17:30 Saturday 8:00 - 14:00 Sunday Closed WhatsApp branch",
+      "truncated": false,
+      "fitmentVerified": false,
+      "oilVerified": false,
+      "approvedForPublication": false
+    }
+  },
+  {
+    "registration": "NK72KRX",
+    "category": "Oil Filter",
+    "capture": {
+      "status": "NEEDS_REVIEW",
+      "reason": "NO_PRICED_ITEMS",
+      "selectedRegistration": true,
+      "registration": "NK72KRX",
+      "category": "Oil Filter",
+      "headings": [],
+      "skuLabels": [],
+      "displayedPrices": [],
+      "displayedLitres": [],
+      "visibleText": "NK72KRX Clear N/A N/A N/A N/A 01/09/22 31/08/27 Copy VIN More Details All categories / Filters / Oil Filter Related: Air Filter Fuel Filter Cabin Filter Urea Filter Engine Oil Sump Plug Sump Plug Washer Sorry, we couldn't find any parts. We were unable to find any \"Oil Filter\" matching this vehicle. Need assistance? Call branch: 0191 644 4789 Opening hours: Monday-Friday 8:00 - 17:30 Saturday 8:00 - 14:00 Sunday Closed WhatsApp branch",
+      "truncated": false,
+      "fitmentVerified": false,
+      "oilVerified": false,
+      "approvedForPublication": false
+    }
+  },
+  {
+    "registration": "NK72KRX",
+    "category": "Air Filter",
+    "capture": {
+      "status": "NEEDS_REVIEW",
+      "reason": "NO_PRICED_ITEMS",
+      "selectedRegistration": true,
+      "registration": "NK72KRX",
+      "category": "Air Filter",
+      "headings": [],
+      "skuLabels": [],
+      "displayedPrices": [],
+      "displayedLitres": [],
+      "visibleText": "NK72KRX Clear N/A N/A N/A N/A 01/09/22 31/08/27 Copy VIN More Details All categories / Filters / Air Filter Related: Oil Filter Fuel Filter Cabin Filter Urea Filter Engine Oil Sump Plug Sump Plug Washer Sorry, we couldn't find any parts. We were unable to find any \"Air Filter\" matching this vehicle. Need assistance? Call branch: 0191 644 4789 Opening hours: Monday-Friday 8:00 - 17:30 Saturday 8:00 - 14:00 Sunday Closed WhatsApp branch",
+      "truncated": false,
+      "fitmentVerified": false,
+      "oilVerified": false,
+      "approvedForPublication": false
+    }
+  },
+  {
+    "registration": "NK72KRX",
+    "category": "Fuel Filter",
+    "capture": {
+      "status": "NEEDS_REVIEW",
+      "reason": "NO_PRICED_ITEMS",
+      "selectedRegistration": true,
+      "registration": "NK72KRX",
+      "category": "Fuel Filter",
+      "headings": [],
+      "skuLabels": [],
+      "displayedPrices": [],
+      "displayedLitres": [],
+      "visibleText": "NK72KRX Clear N/A N/A N/A N/A 01/09/22 31/08/27 Copy VIN More Details All categories / Filters / Fuel Filter Related: Oil Filter Air Filter Cabin Filter Urea Filter Engine Oil Sump Plug Sump Plug Washer Sorry, we couldn't find any parts. We were unable to find any \"Fuel Filter\" matching this vehicle. Need assistance? Call branch: 0191 644 4789 Opening hours: Monday-Friday 8:00 - 17:30 Saturday 8:00 - 14:00 Sunday Closed WhatsApp branch",
+      "truncated": false,
+      "fitmentVerified": false,
+      "oilVerified": false,
+      "approvedForPublication": false
+    }
+  },
+  {
+    "registration": "NK72KRX",
+    "category": "Engine Oils (Applied)",
+    "capture": {
+      "status": "NEEDS_REVIEW",
+      "reason": "NO_PRICED_ITEMS",
+      "selectedRegistration": true,
+      "registration": "NK72KRX",
+      "category": "Engine Oils (Applied)",
+      "headings": [],
+      "skuLabels": [],
+      "displayedPrices": [],
+      "displayedLitres": [],
+      "visibleText": "NK72KRX Clear N/A N/A N/A N/A 01/09/22 31/08/27 Copy VIN More Details All categories / Filters / Oil Filter Related: Air Filter Fuel Filter Cabin Filter Urea Filter Engine Oil Sump Plug Sump Plug Washer Sorry, we couldn't find any parts. We were unable to find any \"Oil Filter\" matching this vehicle. Need assistance? Call branch: 0191 644 4789 Opening hours: Monday-Friday 8:00 - 17:30 Saturday 8:00 - 14:00 Sunday Closed WhatsApp branch",
+      "truncated": false,
+      "fitmentVerified": false,
+      "oilVerified": false,
+      "approvedForPublication": false
+    }
+  },
+  {
+    "registration": "NK72KRZ",
+    "category": "Cabin Filter",
+    "capture": {
+      "status": "NEEDS_REVIEW",
+      "reason": "NO_PRICED_ITEMS",
+      "selectedRegistration": true,
+      "registration": "NK72KRZ",
+      "category": "Cabin Filter",
+      "headings": [],
+      "skuLabels": [],
+      "displayedPrices": [],
+      "displayedLitres": [],
+      "visibleText": "NK72KRZ Clear N/A N/A N/A N/A 01/09/22 31/08/27 Copy VIN More Details All categories / Filters / Cabin Filter Related: Oil Filter Air Filter Fuel Filter Urea Filter Engine Oil Sump Plug Sump Plug Washer Sorry, we couldn't find any parts. We were unable to find any \"Cabin Filter\" matching this vehicle. Need assistance? Call branch: 0191 644 4789 Opening hours: Monday-Friday 8:00 - 17:30 Saturday 8:00 - 14:00 Sunday Closed WhatsApp branch",
+      "truncated": false,
+      "fitmentVerified": false,
+      "oilVerified": false,
+      "approvedForPublication": false
+    }
+  },
+  {
+    "registration": "NK72KRZ",
+    "category": "Oil Filter",
+    "capture": {
+      "status": "NEEDS_REVIEW",
+      "reason": "NO_PRICED_ITEMS",
+      "selectedRegistration": true,
+      "registration": "NK72KRZ",
+      "category": "Oil Filter",
+      "headings": [],
+      "skuLabels": [],
+      "displayedPrices": [],
+      "displayedLitres": [],
+      "visibleText": "NK72KRZ Clear N/A N/A N/A N/A 01/09/22 31/08/27 Copy VIN More Details All categories / Filters / Oil Filter Related: Air Filter Fuel Filter Cabin Filter Urea Filter Engine Oil Sump Plug Sump Plug Washer Sorry, we couldn't find any parts. We were unable to find any \"Oil Filter\" matching this vehicle. Need assistance? Call branch: 0191 644 4789 Opening hours: Monday-Friday 8:00 - 17:30 Saturday 8:00 - 14:00 Sunday Closed WhatsApp branch",
+      "truncated": false,
+      "fitmentVerified": false,
+      "oilVerified": false,
+      "approvedForPublication": false
+    }
+  },
+  {
+    "registration": "NK72KRZ",
+    "category": "Air Filter",
+    "capture": {
+      "status": "NEEDS_REVIEW",
+      "reason": "NO_PRICED_ITEMS",
+      "selectedRegistration": true,
+      "registration": "NK72KRZ",
+      "category": "Air Filter",
+      "headings": [],
+      "skuLabels": [],
+      "displayedPrices": [],
+      "displayedLitres": [],
+      "visibleText": "NK72KRZ Clear N/A N/A N/A N/A 01/09/22 31/08/27 Copy VIN More Details All categories / Filters / Air Filter Related: Oil Filter Fuel Filter Cabin Filter Urea Filter Engine Oil Sump Plug Sump Plug Washer Sorry, we couldn't find any parts. We were unable to find any \"Air Filter\" matching this vehicle. Need assistance? Call branch: 0191 644 4789 Opening hours: Monday-Friday 8:00 - 17:30 Saturday 8:00 - 14:00 Sunday Closed WhatsApp branch",
+      "truncated": false,
+      "fitmentVerified": false,
+      "oilVerified": false,
+      "approvedForPublication": false
+    }
+  },
+  {
+    "registration": "NK72KRZ",
+    "category": "Fuel Filter",
+    "capture": {
+      "status": "NEEDS_REVIEW",
+      "reason": "NO_PRICED_ITEMS",
+      "selectedRegistration": true,
+      "registration": "NK72KRZ",
+      "category": "Fuel Filter",
+      "headings": [],
+      "skuLabels": [],
+      "displayedPrices": [],
+      "displayedLitres": [],
+      "visibleText": "NK72KRZ Clear N/A N/A N/A N/A 01/09/22 31/08/27 Copy VIN More Details All categories / Filters / Fuel Filter Related: Oil Filter Air Filter Cabin Filter Urea Filter Engine Oil Sump Plug Sump Plug Washer Sorry, we couldn't find any parts. We were unable to find any \"Fuel Filter\" matching this vehicle. Need assistance? Call branch: 0191 644 4789 Opening hours: Monday-Friday 8:00 - 17:30 Saturday 8:00 - 14:00 Sunday Closed WhatsApp branch",
+      "truncated": false,
+      "fitmentVerified": false,
+      "oilVerified": false,
+      "approvedForPublication": false
+    }
+  },
+  {
+    "registration": "NK72KRZ",
+    "category": "Engine Oils (Applied)",
+    "capture": {
+      "status": "NEEDS_REVIEW",
+      "reason": "NO_PRICED_ITEMS",
+      "selectedRegistration": true,
+      "registration": "NK72KRZ",
+      "category": "Engine Oils (Applied)",
+      "headings": [],
+      "skuLabels": [],
+      "displayedPrices": [],
+      "displayedLitres": [],
+      "visibleText": "NK72KRZ Clear N/A N/A N/A N/A 01/09/22 31/08/27 Copy VIN More Details All categories / Filters / Oil Filter Related: Air Filter Fuel Filter Cabin Filter Urea Filter Engine Oil Sump Plug Sump Plug Washer Sorry, we couldn't find any parts. We were unable to find any \"Oil Filter\" matching this vehicle. Need assistance? Call branch: 0191 644 4789 Opening hours: Monday-Friday 8:00 - 17:30 Saturday 8:00 - 14:00 Sunday Closed WhatsApp branch",
+      "truncated": false,
+      "fitmentVerified": false,
+      "oilVerified": false,
+      "approvedForPublication": false
+    }
+  },
+  {
+    "registration": "NK72KSE",
+    "category": "Cabin Filter",
+    "capture": {
+      "status": "NEEDS_REVIEW",
+      "reason": "NO_PRICED_ITEMS",
+      "selectedRegistration": true,
+      "registration": "NK72KSE",
+      "category": "Cabin Filter",
+      "headings": [],
+      "skuLabels": [],
+      "displayedPrices": [],
+      "displayedLitres": [],
+      "visibleText": "NK72KSE Clear N/A N/A N/A N/A 01/09/22 31/08/27 Copy VIN More Details All categories / Filters / Cabin Filter Related: Oil Filter Air Filter Fuel Filter Urea Filter Engine Oil Sump Plug Sump Plug Washer Sorry, we couldn't find any parts. We were unable to find any \"Cabin Filter\" matching this vehicle. Need assistance? Call branch: 0191 644 4789 Opening hours: Monday-Friday 8:00 - 17:30 Saturday 8:00 - 14:00 Sunday Closed WhatsApp branch",
+      "truncated": false,
+      "fitmentVerified": false,
+      "oilVerified": false,
+      "approvedForPublication": false
+    }
+  },
+  {
+    "registration": "NK72KSE",
+    "category": "Oil Filter",
+    "capture": {
+      "status": "NEEDS_REVIEW",
+      "reason": "NO_PRICED_ITEMS",
+      "selectedRegistration": true,
+      "registration": "NK72KSE",
+      "category": "Oil Filter",
+      "headings": [],
+      "skuLabels": [],
+      "displayedPrices": [],
+      "displayedLitres": [],
+      "visibleText": "NK72KSE Clear N/A N/A N/A N/A 01/09/22 31/08/27 Copy VIN More Details All categories / Filters / Oil Filter Related: Air Filter Fuel Filter Cabin Filter Urea Filter Engine Oil Sump Plug Sump Plug Washer Sorry, we couldn't find any parts. We were unable to find any \"Oil Filter\" matching this vehicle. Need assistance? Call branch: 0191 644 4789 Opening hours: Monday-Friday 8:00 - 17:30 Saturday 8:00 - 14:00 Sunday Closed WhatsApp branch",
+      "truncated": false,
+      "fitmentVerified": false,
+      "oilVerified": false,
+      "approvedForPublication": false
+    }
+  },
+  {
+    "registration": "NK72KSE",
+    "category": "Air Filter",
+    "capture": {
+      "status": "NEEDS_REVIEW",
+      "reason": "NO_PRICED_ITEMS",
+      "selectedRegistration": true,
+      "registration": "NK72KSE",
+      "category": "Air Filter",
+      "headings": [],
+      "skuLabels": [],
+      "displayedPrices": [],
+      "displayedLitres": [],
+      "visibleText": "NK72KSE Clear N/A N/A N/A N/A 01/09/22 31/08/27 Copy VIN More Details All categories / Filters / Air Filter Related: Oil Filter Fuel Filter Cabin Filter Urea Filter Engine Oil Sump Plug Sump Plug Washer Sorry, we couldn't find any parts. We were unable to find any \"Air Filter\" matching this vehicle. Need assistance? Call branch: 0191 644 4789 Opening hours: Monday-Friday 8:00 - 17:30 Saturday 8:00 - 14:00 Sunday Closed WhatsApp branch",
+      "truncated": false,
+      "fitmentVerified": false,
+      "oilVerified": false,
+      "approvedForPublication": false
+    }
+  },
+  {
+    "registration": "NK72KSE",
+    "category": "Fuel Filter",
+    "capture": {
+      "status": "NEEDS_REVIEW",
+      "reason": "NO_PRICED_ITEMS",
+      "selectedRegistration": true,
+      "registration": "NK72KSE",
+      "category": "Fuel Filter",
+      "headings": [],
+      "skuLabels": [],
+      "displayedPrices": [],
+      "displayedLitres": [],
+      "visibleText": "NK72KSE Clear N/A N/A N/A N/A 01/09/22 31/08/27 Copy VIN More Details All categories / Filters / Fuel Filter Related: Oil Filter Air Filter Cabin Filter Urea Filter Engine Oil Sump Plug Sump Plug Washer Sorry, we couldn't find any parts. We were unable to find any \"Fuel Filter\" matching this vehicle. Need assistance? Call branch: 0191 644 4789 Opening hours: Monday-Friday 8:00 - 17:30 Saturday 8:00 - 14:00 Sunday Closed WhatsApp branch",
+      "truncated": false,
+      "fitmentVerified": false,
+      "oilVerified": false,
+      "approvedForPublication": false
+    }
+  },
+  {
+    "registration": "NK72KSE",
+    "category": "Engine Oils (Applied)",
+    "capture": {
+      "status": "NEEDS_REVIEW",
+      "reason": "NO_PRICED_ITEMS",
+      "selectedRegistration": true,
+      "registration": "NK72KSE",
+      "category": "Engine Oils (Applied)",
+      "headings": [],
+      "skuLabels": [],
+      "displayedPrices": [],
+      "displayedLitres": [],
+      "visibleText": "NK72KSE Clear N/A N/A N/A N/A 01/09/22 31/08/27 Copy VIN More Details All categories / Filters / Oil Filter Related: Air Filter Fuel Filter Cabin Filter Urea Filter Engine Oil Sump Plug Sump Plug Washer Sorry, we couldn't find any parts. We were unable to find any \"Oil Filter\" matching this vehicle. Need assistance? Call branch: 0191 644 4789 Opening hours: Monday-Friday 8:00 - 17:30 Saturday 8:00 - 14:00 Sunday Closed WhatsApp branch",
+      "truncated": false,
+      "fitmentVerified": false,
+      "oilVerified": false,
+      "approvedForPublication": false
+    }
+  },
+  {
+    "registration": "NK72KSV",
+    "category": "Cabin Filter",
+    "capture": {
+      "status": "NEEDS_REVIEW",
+      "reason": "NO_PRICED_ITEMS",
+      "selectedRegistration": true,
+      "registration": "NK72KSV",
+      "category": "Cabin Filter",
+      "headings": [],
+      "skuLabels": [],
+      "displayedPrices": [],
+      "displayedLitres": [],
+      "visibleText": "NK72KSV Clear N/A N/A N/A N/A 01/09/22 31/08/27 Copy VIN More Details All categories / Filters / Cabin Filter Related: Oil Filter Air Filter Fuel Filter Urea Filter Engine Oil Sump Plug Sump Plug Washer Sorry, we couldn't find any parts. We were unable to find any \"Cabin Filter\" matching this vehicle. Need assistance? Call branch: 0191 644 4789 Opening hours: Monday-Friday 8:00 - 17:30 Saturday 8:00 - 14:00 Sunday Closed WhatsApp branch",
+      "truncated": false,
+      "fitmentVerified": false,
+      "oilVerified": false,
+      "approvedForPublication": false
+    }
+  },
+  {
+    "registration": "NK72KSV",
+    "category": "Oil Filter",
+    "capture": {
+      "status": "NEEDS_REVIEW",
+      "reason": "NO_PRICED_ITEMS",
+      "selectedRegistration": true,
+      "registration": "NK72KSV",
+      "category": "Oil Filter",
+      "headings": [],
+      "skuLabels": [],
+      "displayedPrices": [],
+      "displayedLitres": [],
+      "visibleText": "NK72KSV Clear N/A N/A N/A N/A 01/09/22 31/08/27 Copy VIN More Details All categories / Filters / Oil Filter Related: Air Filter Fuel Filter Cabin Filter Urea Filter Engine Oil Sump Plug Sump Plug Washer Sorry, we couldn't find any parts. We were unable to find any \"Oil Filter\" matching this vehicle. Need assistance? Call branch: 0191 644 4789 Opening hours: Monday-Friday 8:00 - 17:30 Saturday 8:00 - 14:00 Sunday Closed WhatsApp branch",
+      "truncated": false,
+      "fitmentVerified": false,
+      "oilVerified": false,
+      "approvedForPublication": false
+    }
+  },
+  {
+    "registration": "NK72KSV",
+    "category": "Air Filter",
+    "capture": {
+      "status": "NEEDS_REVIEW",
+      "reason": "NO_PRICED_ITEMS",
+      "selectedRegistration": true,
+      "registration": "NK72KSV",
+      "category": "Air Filter",
+      "headings": [],
+      "skuLabels": [],
+      "displayedPrices": [],
+      "displayedLitres": [],
+      "visibleText": "NK72KSV Clear N/A N/A N/A N/A 01/09/22 31/08/27 Copy VIN More Details All categories / Filters / Air Filter Related: Oil Filter Fuel Filter Cabin Filter Urea Filter Engine Oil Sump Plug Sump Plug Washer Sorry, we couldn't find any parts. We were unable to find any \"Air Filter\" matching this vehicle. Need assistance? Call branch: 0191 644 4789 Opening hours: Monday-Friday 8:00 - 17:30 Saturday 8:00 - 14:00 Sunday Closed WhatsApp branch",
+      "truncated": false,
+      "fitmentVerified": false,
+      "oilVerified": false,
+      "approvedForPublication": false
+    }
+  },
+  {
+    "registration": "NK72KSV",
+    "category": "Fuel Filter",
+    "capture": {
+      "status": "NEEDS_REVIEW",
+      "reason": "NO_PRICED_ITEMS",
+      "selectedRegistration": true,
+      "registration": "NK72KSV",
+      "category": "Fuel Filter",
+      "headings": [],
+      "skuLabels": [],
+      "displayedPrices": [],
+      "displayedLitres": [],
+      "visibleText": "NK72KSV Clear N/A N/A N/A N/A 01/09/22 31/08/27 Copy VIN More Details All categories / Filters / Fuel Filter Related: Oil Filter Air Filter Cabin Filter Urea Filter Engine Oil Sump Plug Sump Plug Washer Sorry, we couldn't find any parts. We were unable to find any \"Fuel Filter\" matching this vehicle. Need assistance? Call branch: 0191 644 4789 Opening hours: Monday-Friday 8:00 - 17:30 Saturday 8:00 - 14:00 Sunday Closed WhatsApp branch",
+      "truncated": false,
+      "fitmentVerified": false,
+      "oilVerified": false,
+      "approvedForPublication": false
+    }
+  },
+  {
+    "registration": "NK72KSV",
+    "category": "Engine Oils (Applied)",
+    "capture": {
+      "status": "NEEDS_REVIEW",
+      "reason": "NO_PRICED_ITEMS",
+      "selectedRegistration": true,
+      "registration": "NK72KSV",
+      "category": "Engine Oils (Applied)",
+      "headings": [],
+      "skuLabels": [],
+      "displayedPrices": [],
+      "displayedLitres": [],
+      "visibleText": "NK72KSV Clear N/A N/A N/A N/A 01/09/22 31/08/27 Copy VIN More Details All categories / Filters / Oil Filter Related: Air Filter Fuel Filter Cabin Filter Urea Filter Engine Oil Sump Plug Sump Plug Washer Sorry, we couldn't find any parts. We were unable to find any \"Oil Filter\" matching this vehicle. Need assistance? Call branch: 0191 644 4789 Opening hours: Monday-Friday 8:00 - 17:30 Saturday 8:00 - 14:00 Sunday Closed WhatsApp branch",
+      "truncated": false,
+      "fitmentVerified": false,
+      "oilVerified": false,
+      "approvedForPublication": false
+    }
+  },
+  {
+    "registration": "NK72KTD",
+    "category": "Cabin Filter",
+    "capture": {
+      "status": "NEEDS_REVIEW",
+      "reason": "NO_PRICED_ITEMS",
+      "selectedRegistration": true,
+      "registration": "NK72KTD",
+      "category": "Cabin Filter",
+      "headings": [],
+      "skuLabels": [],
+      "displayedPrices": [],
+      "displayedLitres": [],
+      "visibleText": "NK72KTD Clear N/A N/A N/A N/A 01/09/22 31/08/27 Copy VIN More Details All categories / Filters / Cabin Filter Related: Oil Filter Air Filter Fuel Filter Urea Filter Engine Oil Sump Plug Sump Plug Washer Sorry, we couldn't find any parts. We were unable to find any \"Cabin Filter\" matching this vehicle. Need assistance? Call branch: 0191 644 4789 Opening hours: Monday-Friday 8:00 - 17:30 Saturday 8:00 - 14:00 Sunday Closed WhatsApp branch",
+      "truncated": false,
+      "fitmentVerified": false,
+      "oilVerified": false,
+      "approvedForPublication": false
+    }
+  },
+  {
+    "registration": "NK72KTD",
+    "category": "Oil Filter",
+    "capture": {
+      "status": "NEEDS_REVIEW",
+      "reason": "NO_PRICED_ITEMS",
+      "selectedRegistration": true,
+      "registration": "NK72KTD",
+      "category": "Oil Filter",
+      "headings": [],
+      "skuLabels": [],
+      "displayedPrices": [],
+      "displayedLitres": [],
+      "visibleText": "NK72KTD Clear N/A N/A N/A N/A 01/09/22 31/08/27 Copy VIN More Details All categories / Filters / Oil Filter Related: Air Filter Fuel Filter Cabin Filter Urea Filter Engine Oil Sump Plug Sump Plug Washer Sorry, we couldn't find any parts. We were unable to find any \"Oil Filter\" matching this vehicle. Need assistance? Call branch: 0191 644 4789 Opening hours: Monday-Friday 8:00 - 17:30 Saturday 8:00 - 14:00 Sunday Closed WhatsApp branch",
+      "truncated": false,
+      "fitmentVerified": false,
+      "oilVerified": false,
+      "approvedForPublication": false
+    }
+  },
+  {
+    "registration": "NK72KTD",
+    "category": "Air Filter",
+    "capture": {
+      "status": "NEEDS_REVIEW",
+      "reason": "NO_PRICED_ITEMS",
+      "selectedRegistration": true,
+      "registration": "NK72KTD",
+      "category": "Air Filter",
+      "headings": [],
+      "skuLabels": [],
+      "displayedPrices": [],
+      "displayedLitres": [],
+      "visibleText": "NK72KTD Clear N/A N/A N/A N/A 01/09/22 31/08/27 Copy VIN More Details All categories / Filters / Air Filter Related: Oil Filter Fuel Filter Cabin Filter Urea Filter Engine Oil Sump Plug Sump Plug Washer Sorry, we couldn't find any parts. We were unable to find any \"Air Filter\" matching this vehicle. Need assistance? Call branch: 0191 644 4789 Opening hours: Monday-Friday 8:00 - 17:30 Saturday 8:00 - 14:00 Sunday Closed WhatsApp branch",
+      "truncated": false,
+      "fitmentVerified": false,
+      "oilVerified": false,
+      "approvedForPublication": false
+    }
+  },
+  {
+    "registration": "NK72KTD",
+    "category": "Fuel Filter",
+    "capture": {
+      "status": "NEEDS_REVIEW",
+      "reason": "NO_PRICED_ITEMS",
+      "selectedRegistration": true,
+      "registration": "NK72KTD",
+      "category": "Fuel Filter",
+      "headings": [],
+      "skuLabels": [],
+      "displayedPrices": [],
+      "displayedLitres": [],
+      "visibleText": "NK72KTD Clear N/A N/A N/A N/A 01/09/22 31/08/27 Copy VIN More Details All categories / Filters / Fuel Filter Related: Oil Filter Air Filter Cabin Filter Urea Filter Engine Oil Sump Plug Sump Plug Washer Sorry, we couldn't find any parts. We were unable to find any \"Fuel Filter\" matching this vehicle. Need assistance? Call branch: 0191 644 4789 Opening hours: Monday-Friday 8:00 - 17:30 Saturday 8:00 - 14:00 Sunday Closed WhatsApp branch",
+      "truncated": false,
+      "fitmentVerified": false,
+      "oilVerified": false,
+      "approvedForPublication": false
+    }
+  },
+  {
+    "registration": "NK72KTD",
+    "category": "Engine Oils (Applied)",
+    "capture": {
+      "status": "NEEDS_REVIEW",
+      "reason": "NO_PRICED_ITEMS",
+      "selectedRegistration": true,
+      "registration": "NK72KTD",
+      "category": "Engine Oils (Applied)",
+      "headings": [],
+      "skuLabels": [],
+      "displayedPrices": [],
+      "displayedLitres": [],
+      "visibleText": "NK72KTD Clear N/A N/A N/A N/A 01/09/22 31/08/27 Copy VIN More Details All categories / Filters / Oil Filter Related: Air Filter Fuel Filter Cabin Filter Urea Filter Engine Oil Sump Plug Sump Plug Washer Sorry, we couldn't find any parts. We were unable to find any \"Oil Filter\" matching this vehicle. Need assistance? Call branch: 0191 644 4789 Opening hours: Monday-Friday 8:00 - 17:30 Saturday 8:00 - 14:00 Sunday Closed WhatsApp branch",
+      "truncated": false,
+      "fitmentVerified": false,
+      "oilVerified": false,
+      "approvedForPublication": false
+    }
+  },
+  {
+    "registration": "NK72KTE",
+    "category": "Cabin Filter",
+    "capture": {
+      "status": "NEEDS_REVIEW",
+      "reason": "NO_PRICED_ITEMS",
+      "selectedRegistration": true,
+      "registration": "NK72KTE",
+      "category": "Cabin Filter",
+      "headings": [],
+      "skuLabels": [],
+      "displayedPrices": [],
+      "displayedLitres": [],
+      "visibleText": "NK72KTE Clear N/A N/A N/A N/A 01/09/22 31/08/27 Copy VIN More Details All categories / Filters / Cabin Filter Related: Oil Filter Air Filter Fuel Filter Urea Filter Engine Oil Sump Plug Sump Plug Washer Sorry, we couldn't find any parts. We were unable to find any \"Cabin Filter\" matching this vehicle. Need assistance? Call branch: 0191 644 4789 Opening hours: Monday-Friday 8:00 - 17:30 Saturday 8:00 - 14:00 Sunday Closed WhatsApp branch",
+      "truncated": false,
+      "fitmentVerified": false,
+      "oilVerified": false,
+      "approvedForPublication": false
+    }
+  },
+  {
+    "registration": "NK72KTE",
+    "category": "Oil Filter",
+    "capture": {
+      "status": "NEEDS_REVIEW",
+      "reason": "NO_PRICED_ITEMS",
+      "selectedRegistration": true,
+      "registration": "NK72KTE",
+      "category": "Oil Filter",
+      "headings": [],
+      "skuLabels": [],
+      "displayedPrices": [],
+      "displayedLitres": [],
+      "visibleText": "NK72KTE Clear N/A N/A N/A N/A 01/09/22 31/08/27 Copy VIN More Details All categories / Filters / Oil Filter Related: Air Filter Fuel Filter Cabin Filter Urea Filter Engine Oil Sump Plug Sump Plug Washer Sorry, we couldn't find any parts. We were unable to find any \"Oil Filter\" matching this vehicle. Need assistance? Call branch: 0191 644 4789 Opening hours: Monday-Friday 8:00 - 17:30 Saturday 8:00 - 14:00 Sunday Closed WhatsApp branch",
+      "truncated": false,
+      "fitmentVerified": false,
+      "oilVerified": false,
+      "approvedForPublication": false
+    }
+  },
+  {
+    "registration": "NK72KTE",
+    "category": "Air Filter",
+    "capture": {
+      "status": "NEEDS_REVIEW",
+      "reason": "NO_PRICED_ITEMS",
+      "selectedRegistration": true,
+      "registration": "NK72KTE",
+      "category": "Air Filter",
+      "headings": [],
+      "skuLabels": [],
+      "displayedPrices": [],
+      "displayedLitres": [],
+      "visibleText": "NK72KTE Clear N/A N/A N/A N/A 01/09/22 31/08/27 Copy VIN More Details All categories / Filters / Air Filter Related: Oil Filter Fuel Filter Cabin Filter Urea Filter Engine Oil Sump Plug Sump Plug Washer Sorry, we couldn't find any parts. We were unable to find any \"Air Filter\" matching this vehicle. Need assistance? Call branch: 0191 644 4789 Opening hours: Monday-Friday 8:00 - 17:30 Saturday 8:00 - 14:00 Sunday Closed WhatsApp branch",
+      "truncated": false,
+      "fitmentVerified": false,
+      "oilVerified": false,
+      "approvedForPublication": false
+    }
+  },
+  {
+    "registration": "NK72KTE",
+    "category": "Fuel Filter",
+    "capture": {
+      "status": "NEEDS_REVIEW",
+      "reason": "NO_PRICED_ITEMS",
+      "selectedRegistration": true,
+      "registration": "NK72KTE",
+      "category": "Fuel Filter",
+      "headings": [],
+      "skuLabels": [],
+      "displayedPrices": [],
+      "displayedLitres": [],
+      "visibleText": "NK72KTE Clear N/A N/A N/A N/A 01/09/22 31/08/27 Copy VIN More Details All categories / Filters / Fuel Filter Related: Oil Filter Air Filter Cabin Filter Urea Filter Engine Oil Sump Plug Sump Plug Washer Sorry, we couldn't find any parts. We were unable to find any \"Fuel Filter\" matching this vehicle. Need assistance? Call branch: 0191 644 4789 Opening hours: Monday-Friday 8:00 - 17:30 Saturday 8:00 - 14:00 Sunday Closed WhatsApp branch",
+      "truncated": false,
+      "fitmentVerified": false,
+      "oilVerified": false,
+      "approvedForPublication": false
+    }
+  },
+  {
+    "registration": "NK72KTE",
+    "category": "Engine Oils (Applied)",
+    "capture": {
+      "status": "NEEDS_REVIEW",
+      "reason": "NO_PRICED_ITEMS",
+      "selectedRegistration": true,
+      "registration": "NK72KTE",
+      "category": "Engine Oils (Applied)",
+      "headings": [],
+      "skuLabels": [],
+      "displayedPrices": [],
+      "displayedLitres": [],
+      "visibleText": "NK72KTE Clear N/A N/A N/A N/A 01/09/22 31/08/27 Copy VIN More Details All categories / Filters / Oil Filter Related: Air Filter Fuel Filter Cabin Filter Urea Filter Engine Oil Sump Plug Sump Plug Washer Sorry, we couldn't find any parts. We were unable to find any \"Oil Filter\" matching this vehicle. Need assistance? Call branch: 0191 644 4789 Opening hours: Monday-Friday 8:00 - 17:30 Saturday 8:00 - 14:00 Sunday Closed WhatsApp branch",
+      "truncated": false,
+      "fitmentVerified": false,
+      "oilVerified": false,
+      "approvedForPublication": false
+    }
+  },
+  {
+    "registration": "NK72KTF",
+    "category": "Cabin Filter",
+    "capture": {
+      "status": "NEEDS_REVIEW",
+      "reason": "NO_PRICED_ITEMS",
+      "selectedRegistration": true,
+      "registration": "NK72KTF",
+      "category": "Cabin Filter",
+      "headings": [],
+      "skuLabels": [],
+      "displayedPrices": [],
+      "displayedLitres": [],
+      "visibleText": "NK72KTF Clear N/A N/A N/A N/A 01/09/22 31/08/27 Copy VIN More Details All categories / Filters / Cabin Filter Related: Oil Filter Air Filter Fuel Filter Urea Filter Engine Oil Sump Plug Sump Plug Washer Sorry, we couldn't find any parts. We were unable to find any \"Cabin Filter\" matching this vehicle. Need assistance? Call branch: 0191 644 4789 Opening hours: Monday-Friday 8:00 - 17:30 Saturday 8:00 - 14:00 Sunday Closed WhatsApp branch",
+      "truncated": false,
+      "fitmentVerified": false,
+      "oilVerified": false,
+      "approvedForPublication": false
+    }
+  },
+  {
+    "registration": "NK72KTF",
+    "category": "Oil Filter",
+    "capture": {
+      "status": "NEEDS_REVIEW",
+      "reason": "NO_PRICED_ITEMS",
+      "selectedRegistration": true,
+      "registration": "NK72KTF",
+      "category": "Oil Filter",
+      "headings": [],
+      "skuLabels": [],
+      "displayedPrices": [],
+      "displayedLitres": [],
+      "visibleText": "NK72KTF Clear N/A N/A N/A N/A 01/09/22 31/08/27 Copy VIN More Details All categories / Filters / Oil Filter Related: Air Filter Fuel Filter Cabin Filter Urea Filter Engine Oil Sump Plug Sump Plug Washer Sorry, we couldn't find any parts. We were unable to find any \"Oil Filter\" matching this vehicle. Need assistance? Call branch: 0191 644 4789 Opening hours: Monday-Friday 8:00 - 17:30 Saturday 8:00 - 14:00 Sunday Closed WhatsApp branch",
+      "truncated": false,
+      "fitmentVerified": false,
+      "oilVerified": false,
+      "approvedForPublication": false
+    }
+  },
+  {
+    "registration": "NK72KTF",
+    "category": "Air Filter",
+    "capture": {
+      "status": "NEEDS_REVIEW",
+      "reason": "NO_PRICED_ITEMS",
+      "selectedRegistration": true,
+      "registration": "NK72KTF",
+      "category": "Air Filter",
+      "headings": [],
+      "skuLabels": [],
+      "displayedPrices": [],
+      "displayedLitres": [],
+      "visibleText": "NK72KTF Clear N/A N/A N/A N/A 01/09/22 31/08/27 Copy VIN More Details All categories / Filters / Air Filter Related: Oil Filter Fuel Filter Cabin Filter Urea Filter Engine Oil Sump Plug Sump Plug Washer Sorry, we couldn't find any parts. We were unable to find any \"Air Filter\" matching this vehicle. Need assistance? Call branch: 0191 644 4789 Opening hours: Monday-Friday 8:00 - 17:30 Saturday 8:00 - 14:00 Sunday Closed WhatsApp branch",
+      "truncated": false,
+      "fitmentVerified": false,
+      "oilVerified": false,
+      "approvedForPublication": false
+    }
+  },
+  {
+    "registration": "NK72KTF",
+    "category": "Fuel Filter",
+    "capture": {
+      "status": "NEEDS_REVIEW",
+      "reason": "NO_PRICED_ITEMS",
+      "selectedRegistration": true,
+      "registration": "NK72KTF",
+      "category": "Fuel Filter",
+      "headings": [],
+      "skuLabels": [],
+      "displayedPrices": [],
+      "displayedLitres": [],
+      "visibleText": "NK72KTF Clear N/A N/A N/A N/A 01/09/22 31/08/27 Copy VIN More Details All categories / Filters / Fuel Filter Related: Oil Filter Air Filter Cabin Filter Urea Filter Engine Oil Sump Plug Sump Plug Washer Sorry, we couldn't find any parts. We were unable to find any \"Fuel Filter\" matching this vehicle. Need assistance? Call branch: 0191 644 4789 Opening hours: Monday-Friday 8:00 - 17:30 Saturday 8:00 - 14:00 Sunday Closed WhatsApp branch",
+      "truncated": false,
+      "fitmentVerified": false,
+      "oilVerified": false,
+      "approvedForPublication": false
+    }
+  },
+  {
+    "registration": "NK72KTF",
+    "category": "Engine Oils (Applied)",
+    "capture": {
+      "status": "NEEDS_REVIEW",
+      "reason": "NO_PRICED_ITEMS",
+      "selectedRegistration": true,
+      "registration": "NK72KTF",
+      "category": "Engine Oils (Applied)",
+      "headings": [],
+      "skuLabels": [],
+      "displayedPrices": [],
+      "displayedLitres": [],
+      "visibleText": "NK72KTF Clear N/A N/A N/A N/A 01/09/22 31/08/27 Copy VIN More Details All categories / Filters / Oil Filter Related: Air Filter Fuel Filter Cabin Filter Urea Filter Engine Oil Sump Plug Sump Plug Washer Sorry, we couldn't find any parts. We were unable to find any \"Oil Filter\" matching this vehicle. Need assistance? Call branch: 0191 644 4789 Opening hours: Monday-Friday 8:00 - 17:30 Saturday 8:00 - 14:00 Sunday Closed WhatsApp branch",
+      "truncated": false,
+      "fitmentVerified": false,
+      "oilVerified": false,
+      "approvedForPublication": false
+    }
+  },
+  {
+    "registration": "NK72KTG",
+    "category": "Cabin Filter",
+    "capture": {
+      "status": "NEEDS_REVIEW",
+      "reason": "NO_PRICED_ITEMS",
+      "selectedRegistration": true,
+      "registration": "NK72KTG",
+      "category": "Cabin Filter",
+      "headings": [],
+      "skuLabels": [],
+      "displayedPrices": [],
+      "displayedLitres": [],
+      "visibleText": "NK72KTG Clear N/A N/A N/A N/A 01/09/22 31/08/27 Copy VIN More Details All categories / Filters / Cabin Filter Related: Oil Filter Air Filter Fuel Filter Urea Filter Engine Oil Sump Plug Sump Plug Washer Sorry, we couldn't find any parts. We were unable to find any \"Cabin Filter\" matching this vehicle. Need assistance? Call branch: 0191 644 4789 Opening hours: Monday-Friday 8:00 - 17:30 Saturday 8:00 - 14:00 Sunday Closed WhatsApp branch",
+      "truncated": false,
+      "fitmentVerified": false,
+      "oilVerified": false,
+      "approvedForPublication": false
+    }
+  },
+  {
+    "registration": "NK72KTG",
+    "category": "Oil Filter",
+    "capture": {
+      "status": "NEEDS_REVIEW",
+      "reason": "NO_PRICED_ITEMS",
+      "selectedRegistration": true,
+      "registration": "NK72KTG",
+      "category": "Oil Filter",
+      "headings": [],
+      "skuLabels": [],
+      "displayedPrices": [],
+      "displayedLitres": [],
+      "visibleText": "NK72KTG Clear N/A N/A N/A N/A 01/09/22 31/08/27 Copy VIN More Details All categories / Filters / Oil Filter Related: Air Filter Fuel Filter Cabin Filter Urea Filter Engine Oil Sump Plug Sump Plug Washer Sorry, we couldn't find any parts. We were unable to find any \"Oil Filter\" matching this vehicle. Need assistance? Call branch: 0191 644 4789 Opening hours: Monday-Friday 8:00 - 17:30 Saturday 8:00 - 14:00 Sunday Closed WhatsApp branch",
+      "truncated": false,
+      "fitmentVerified": false,
+      "oilVerified": false,
+      "approvedForPublication": false
+    }
+  },
+  {
+    "registration": "NK72KTG",
+    "category": "Air Filter",
+    "capture": {
+      "status": "NEEDS_REVIEW",
+      "reason": "NO_PRICED_ITEMS",
+      "selectedRegistration": true,
+      "registration": "NK72KTG",
+      "category": "Air Filter",
+      "headings": [],
+      "skuLabels": [],
+      "displayedPrices": [],
+      "displayedLitres": [],
+      "visibleText": "NK72KTG Clear N/A N/A N/A N/A 01/09/22 31/08/27 Copy VIN More Details All categories / Filters / Air Filter Related: Oil Filter Fuel Filter Cabin Filter Urea Filter Engine Oil Sump Plug Sump Plug Washer Sorry, we couldn't find any parts. We were unable to find any \"Air Filter\" matching this vehicle. Need assistance? Call branch: 0191 644 4789 Opening hours: Monday-Friday 8:00 - 17:30 Saturday 8:00 - 14:00 Sunday Closed WhatsApp branch",
+      "truncated": false,
+      "fitmentVerified": false,
+      "oilVerified": false,
+      "approvedForPublication": false
+    }
+  },
+  {
+    "registration": "NK72KTG",
+    "category": "Fuel Filter",
+    "capture": {
+      "status": "NEEDS_REVIEW",
+      "reason": "NO_PRICED_ITEMS",
+      "selectedRegistration": true,
+      "registration": "NK72KTG",
+      "category": "Fuel Filter",
+      "headings": [],
+      "skuLabels": [],
+      "displayedPrices": [],
+      "displayedLitres": [],
+      "visibleText": "NK72KTG Clear N/A N/A N/A N/A 01/09/22 31/08/27 Copy VIN More Details All categories / Filters / Fuel Filter Related: Oil Filter Air Filter Cabin Filter Urea Filter Engine Oil Sump Plug Sump Plug Washer Sorry, we couldn't find any parts. We were unable to find any \"Fuel Filter\" matching this vehicle. Need assistance? Call branch: 0191 644 4789 Opening hours: Monday-Friday 8:00 - 17:30 Saturday 8:00 - 14:00 Sunday Closed WhatsApp branch",
+      "truncated": false,
+      "fitmentVerified": false,
+      "oilVerified": false,
+      "approvedForPublication": false
+    }
+  },
+  {
+    "registration": "NK72KTG",
+    "category": "Engine Oils (Applied)",
+    "capture": {
+      "status": "NEEDS_REVIEW",
+      "reason": "NO_PRICED_ITEMS",
+      "selectedRegistration": true,
+      "registration": "NK72KTG",
+      "category": "Engine Oils (Applied)",
+      "headings": [],
+      "skuLabels": [],
+      "displayedPrices": [],
+      "displayedLitres": [],
+      "visibleText": "NK72KTG Clear N/A N/A N/A N/A 01/09/22 31/08/27 Copy VIN More Details All categories / Filters / Oil Filter Related: Air Filter Fuel Filter Cabin Filter Urea Filter Engine Oil Sump Plug Sump Plug Washer Sorry, we couldn't find any parts. We were unable to find any \"Oil Filter\" matching this vehicle. Need assistance? Call branch: 0191 644 4789 Opening hours: Monday-Friday 8:00 - 17:30 Saturday 8:00 - 14:00 Sunday Closed WhatsApp branch",
+      "truncated": false,
+      "fitmentVerified": false,
+      "oilVerified": false,
+      "approvedForPublication": false
+    }
+  },
+  {
+    "registration": "NK72KTJ",
+    "category": "Cabin Filter",
+    "capture": {
+      "status": "NEEDS_REVIEW",
+      "reason": "NO_PRICED_ITEMS",
+      "selectedRegistration": true,
+      "registration": "NK72KTJ",
+      "category": "Cabin Filter",
+      "headings": [],
+      "skuLabels": [],
+      "displayedPrices": [],
+      "displayedLitres": [],
+      "visibleText": "NK72KTJ Clear N/A N/A N/A N/A 01/09/22 31/08/27 Copy VIN More Details All categories / Filters / Cabin Filter Related: Oil Filter Air Filter Fuel Filter Urea Filter Engine Oil Sump Plug Sump Plug Washer Sorry, we couldn't find any parts. We were unable to find any \"Cabin Filter\" matching this vehicle. Need assistance? Call branch: 0191 644 4789 Opening hours: Monday-Friday 8:00 - 17:30 Saturday 8:00 - 14:00 Sunday Closed WhatsApp branch",
+      "truncated": false,
+      "fitmentVerified": false,
+      "oilVerified": false,
+      "approvedForPublication": false
+    }
+  },
+  {
+    "registration": "NK72KTJ",
+    "category": "Oil Filter",
+    "capture": {
+      "status": "NEEDS_REVIEW",
+      "reason": "NO_PRICED_ITEMS",
+      "selectedRegistration": true,
+      "registration": "NK72KTJ",
+      "category": "Oil Filter",
+      "headings": [],
+      "skuLabels": [],
+      "displayedPrices": [],
+      "displayedLitres": [],
+      "visibleText": "NK72KTJ Clear N/A N/A N/A N/A 01/09/22 31/08/27 Copy VIN More Details All categories / Filters / Oil Filter Related: Air Filter Fuel Filter Cabin Filter Urea Filter Engine Oil Sump Plug Sump Plug Washer Sorry, we couldn't find any parts. We were unable to find any \"Oil Filter\" matching this vehicle. Need assistance? Call branch: 0191 644 4789 Opening hours: Monday-Friday 8:00 - 17:30 Saturday 8:00 - 14:00 Sunday Closed WhatsApp branch",
+      "truncated": false,
+      "fitmentVerified": false,
+      "oilVerified": false,
+      "approvedForPublication": false
+    }
+  },
+  {
+    "registration": "NK72KTJ",
+    "category": "Air Filter",
+    "capture": {
+      "status": "NEEDS_REVIEW",
+      "reason": "NO_PRICED_ITEMS",
+      "selectedRegistration": true,
+      "registration": "NK72KTJ",
+      "category": "Air Filter",
+      "headings": [],
+      "skuLabels": [],
+      "displayedPrices": [],
+      "displayedLitres": [],
+      "visibleText": "NK72KTJ Clear N/A N/A N/A N/A 01/09/22 31/08/27 Copy VIN More Details All categories / Filters / Air Filter Related: Oil Filter Fuel Filter Cabin Filter Urea Filter Engine Oil Sump Plug Sump Plug Washer Sorry, we couldn't find any parts. We were unable to find any \"Air Filter\" matching this vehicle. Need assistance? Call branch: 0191 644 4789 Opening hours: Monday-Friday 8:00 - 17:30 Saturday 8:00 - 14:00 Sunday Closed WhatsApp branch",
+      "truncated": false,
+      "fitmentVerified": false,
+      "oilVerified": false,
+      "approvedForPublication": false
+    }
+  },
+  {
+    "registration": "NK72KTJ",
+    "category": "Fuel Filter",
+    "capture": {
+      "status": "NEEDS_REVIEW",
+      "reason": "NO_PRICED_ITEMS",
+      "selectedRegistration": true,
+      "registration": "NK72KTJ",
+      "category": "Fuel Filter",
+      "headings": [],
+      "skuLabels": [],
+      "displayedPrices": [],
+      "displayedLitres": [],
+      "visibleText": "NK72KTJ Clear N/A N/A N/A N/A 01/09/22 31/08/27 Copy VIN More Details All categories / Filters / Fuel Filter Related: Oil Filter Air Filter Cabin Filter Urea Filter Engine Oil Sump Plug Sump Plug Washer Sorry, we couldn't find any parts. We were unable to find any \"Fuel Filter\" matching this vehicle. Need assistance? Call branch: 0191 644 4789 Opening hours: Monday-Friday 8:00 - 17:30 Saturday 8:00 - 14:00 Sunday Closed WhatsApp branch",
+      "truncated": false,
+      "fitmentVerified": false,
+      "oilVerified": false,
+      "approvedForPublication": false
+    }
+  },
+  {
+    "registration": "NK72KTJ",
+    "category": "Engine Oils (Applied)",
+    "capture": {
+      "status": "NEEDS_REVIEW",
+      "reason": "NO_PRICED_ITEMS",
+      "selectedRegistration": true,
+      "registration": "NK72KTJ",
+      "category": "Engine Oils (Applied)",
+      "headings": [],
+      "skuLabels": [],
+      "displayedPrices": [],
+      "displayedLitres": [],
+      "visibleText": "NK72KTJ Clear N/A N/A N/A N/A 01/09/22 31/08/27 Copy VIN More Details All categories / Filters / Oil Filter Related: Air Filter Fuel Filter Cabin Filter Urea Filter Engine Oil Sump Plug Sump Plug Washer Sorry, we couldn't find any parts. We were unable to find any \"Oil Filter\" matching this vehicle. Need assistance? Call branch: 0191 644 4789 Opening hours: Monday-Friday 8:00 - 17:30 Saturday 8:00 - 14:00 Sunday Closed WhatsApp branch",
+      "truncated": false,
+      "fitmentVerified": false,
+      "oilVerified": false,
+      "approvedForPublication": false
+    }
+  },
+  {
+    "registration": "NK72YKR",
+    "category": "Engine Oils (Applied)",
+    "capture": {
+      "status": "CAPTURED_FOR_REVIEW",
+      "reason": null,
+      "selectedRegistration": true,
+      "registration": "NK72YKR",
+      "category": "Engine Oils (Applied)",
+      "headings": [
+        "Engine Oil Information",
+        "Oil recommendation",
+        "Capacity",
+        "Viscosity",
+        "ECO-M 0W-20 - 5L",
+        "\u00a361.75",
+        "EDGE 0W-20 LL IV - 1L",
+        "\u00a315.07"
+      ],
+      "skuLabels": [
+        "COMECOM5L",
+        "CAS15F610"
+      ],
+      "displayedPrices": [
+        "61.75",
+        "87.84",
+        "145.87",
+        "45.10",
+        "54.63",
+        "138.61",
+        "138.66",
+        "15.07",
+        "15.44",
+        "20.62",
+        "35.42",
+        "13.65",
+        "16.60",
+        "32.16"
+      ],
+      "displayedLitres": [
+        "1L",
+        "4L",
+        "5L",
+        "20L",
+        "60L",
+        "199L",
+        "200L",
+        "208L"
+      ],
+      "visibleText": "NK72YKR Clear Mercedes-Benz Sprinter 315 CDi 35t RWD L3H2 LWB Start/Stop 315 CDi RWD Progressive 2.0 (1950cc) Diesel Manual N/A 30/09/22 29/09/27 Copy VIN More Details All categories / Service Items / Fluids & Lubricants / Engine Oils (Applicated) Engine Oil Information Oil recommendation 0W-20 This is a recommended engine oil. If you\u2019re unsure, please refer to the vehicle manufacturer\u2019s handbook. Capacity 1L 4L 5L 20L 60L 199L 200L 208L Viscosity 5W-30 5W-40 0W-30 0W-20 0W-40 ECO-M 0W-20 - 5L SKU: COMECOM5L In stock. Attributes Sort By Relevancy \u00a361.75 Gold ECO-M 0W-20 - 5L Local Branch \u00a387.84 Gold 0W-20 Prolife - 5L Local Branch \u00a3145.87 Gold ESP X2 0W-20 - 5L Local Branch \u00a345.10 Silver Fully Synthetic Motor Oil 0W-20 - 5L Local Branch \u00a354.63 Silver 0W20 Ez 5L Local Branch \u00a3138.61 Gold 0W-20 - 5L RDC Show More Stock Type Quantity Boldon 2 RDC 2 NDC 292 \u00a361.75 RRP: \u00a3138.66 Buy Now Add to basket 0 EDGE 0W-20 LL IV - 1L SKU: CAS15F610 In stock. Attributes Sort By Relevancy \u00a315.07 Gold Edge 0W-20 Ll Iv - 1L Local Branch \u00a315.44 Gold ECO-M 0W-20 - 1L Local Branch \u00a320.62 Gold 3000 Formula Ov 0W-20 - 1L Local Branch \u00a335.42 Gold ESP X2 0W-20 - 1L Local Branch \u00a313.65 Silver 0W20 Fo 1L Local Branch \u00a316.60 Silver 0W20 Ez 1L Local Branch Show More Stock Type Quantity Boldon 1 RDC 1 NDC 1757 \u00a315.07 RRP: \u00a332.16 Buy Now Add to basket 0",
+      "truncated": false,
+      "fitmentVerified": false,
+      "oilVerified": false,
+      "approvedForPublication": false,
+      "observedCategoryPath": "/parts/Engine%2520Oils%2520(Applicated)",
+      "attributes": {
+        "status": "NEEDS_REVIEW",
+        "reason": "MULTIPLE_OR_MISSING_PRODUCT_GROUPS"
+      }
+    }
+  },
+  {
+    "registration": "NL20SXN",
+    "category": "Air Filter",
+    "capture": {
+      "status": "CAPTURED_FOR_REVIEW",
+      "reason": null,
+      "selectedRegistration": true,
+      "registration": "NL20SXN",
+      "category": "Air Filter",
+      "headings": [
+        "Air Filter",
+        "\u00a314.08"
+      ],
+      "skuLabels": [
+        "FRACA12624"
+      ],
+      "displayedPrices": [
+        "14.08",
+        "24.33"
+      ],
+      "displayedLitres": [],
+      "visibleText": "NL20SXN Clear Nissan X-Trail dCi 150 2WD Start/Stop Tekna 1.7 (1749cc) Diesel Manual 5 doors 19/03/20 07/06/27 Copy VIN More Details All categories / Filters / Air Filter Related: Oil Filter Fuel Filter Cabin Filter Urea Filter Engine Oil Sump Plug Sump Plug Washer Air Filter SKU: FRACA12624 In stock in RDC. Get it this afternoon. Attributes Sort By Relevancy \u00a314.08 Gold Air Filter RDC Show More Stock Type Quantity Boldon 0 RDC 2 NDC 157 \u00a314.08 RRP: \u00a324.33 Buy Now Add to basket 0",
+      "truncated": false,
+      "fitmentVerified": false,
+      "oilVerified": false,
+      "approvedForPublication": false,
+      "attributes": {
+        "status": "ATTRIBUTES_CAPTURED",
+        "rows": [
+          {
+            "attribute": "Filter Type",
+            "value": "Filter Insert"
+          },
+          {
+            "attribute": "Height (mm)",
+            "value": "44"
+          },
+          {
+            "attribute": "Length (mm)",
+            "value": "260"
+          },
+          {
+            "attribute": "Width (mm)",
+            "value": "171"
+          },
+          {
+            "attribute": "Bar Code",
+            "value": "502265029110"
+          }
+        ],
+        "oilVerified": false,
+        "groupSku": "FRACA12624"
+      }
+    }
+  },
+  {
+    "registration": "NL23XKO",
+    "category": "Engine Oils (Applied)",
+    "capture": {
+      "status": "CAPTURED_FOR_REVIEW",
+      "reason": null,
+      "selectedRegistration": true,
+      "registration": "NL23XKO",
+      "category": "Engine Oils (Applied)",
+      "headings": [
+        "Engine Oil Information",
+        "Oil recommendation",
+        "Capacity",
+        "Viscosity",
+        "SYNER-Z 5W-30 - 5L",
+        "\u00a337.95",
+        "GTX 5W-30 RN17 - 1L",
+        "\u00a311.81"
+      ],
+      "skuLabels": [
+        "COMSYZ5L",
+        "CAS15F6E4"
+      ],
+      "displayedPrices": [
+        "37.95",
+        "60.26",
+        "64.12",
+        "66.47",
+        "81.32",
+        "88.46",
+        "35.62",
+        "37.40",
+        "43.61",
+        "95.98",
+        "11.81",
+        "12.46",
+        "13.65",
+        "17.40",
+        "17.47",
+        "17.53",
+        "23.05",
+        "24.82",
+        "60.55",
+        "11.88",
+        "13.03",
+        "13.10",
+        "25.20"
+      ],
+      "displayedLitres": [
+        "1L",
+        "5L",
+        "20L",
+        "60L",
+        "199L",
+        "200L",
+        "208L"
+      ],
+      "visibleText": "NL23XKO Clear Nissan Townstar TCe130 L1H1 Start/Stop Acenta 1.3 (1333cc) Petrol Manual N/A 18/04/23 19/04/27 Copy VIN More Details All categories / Service Items / Fluids & Lubricants / Engine Oils (Applicated) Engine Oil Information Oil recommendation 5W-30 This is a recommended engine oil. If you\u2019re unsure, please refer to the vehicle manufacturer\u2019s handbook. Capacity 1L 5L 20L 60L 199L 200L 208L Viscosity 5W-30 0W-30 0W-20 SYNER-Z 5W-30 - 5L SKU: COMSYZ5L In stock. Attributes Sort By Relevancy \u00a337.95 Gold Syner-Z 5W-30 - 5L Local Branch \u00a360.26 Gold GTX 5W-30 Rn17 - 5L Local Branch \u00a364.12 Gold 3000 Formula V 5W-30 - 5L Local Branch \u00a366.47 Gold ESP Formula P 5W-30 - 5L Local Branch \u00a381.32 Gold 3000 Xe1 5W-30 - 5L Local Branch \u00a388.46 Gold ESP 5W-30 - 5L Local Branch \u00a335.62 Silver 5W30 Ls 504/507 5L Local Branch \u00a337.40 Silver 5W30 Dx2 C2 C3 5L Local Branch \u00a343.61 Silver 5W30 BMW Ll04 5L Local Branch Show More Stock Type Quantity Boldon 12 RDC 15 NDC 1921 \u00a337.95 RRP: \u00a395.98 Buy Now Add to basket 0 GTX 5W-30 RN17 - 1L SKU: CAS15F6E4 In stock. Attributes Sort By Relevancy \u00a311.81 Gold GTX 5W-30 Rn17 - 1L Local Branch \u00a312.46 Gold ECO-R 5W-30 - 1L Local Branch \u00a313.65 Gold Syner-Z 5W-30 - 1L Local Branch \u00a317.40 Gold 3000 Xe1 5W-30 - 1L Local Branch \u00a317.47 Gold 3000 Formula V 5W-30 - 1L Local Branch \u00a317.53 Gold ESP 5W-30 - 1L Local Branch \u00a323.05 Gold Syntium 5000 Av 5W-30 - 1L Local Branch \u00a324.82 Gold ESP Formula P 5W-30 - 1L Local Branch \u00a360.55 Gold ECO-R 5W-30 - 5L Local Branch \u00a311.88 Silver 5W30 Dx2 C2 C3 1L Local Branch \u00a313.03 Silver 5W30 Ls 504/507 1L Local Branch \u00a313.10 Silver 5W30 B Ll 1L Local Branch Show More Stock Type Quantity Boldon 1 RDC 1 NDC 277 \u00a311.81 RRP: \u00a325.20 Buy Now Add to basket 0",
+      "truncated": false,
+      "fitmentVerified": false,
+      "oilVerified": false,
+      "approvedForPublication": false,
+      "observedCategoryPath": "/parts/Engine%2520Oils%2520(Applicated)",
+      "attributes": {
+        "status": "NEEDS_REVIEW",
+        "reason": "MULTIPLE_OR_MISSING_PRODUCT_GROUPS"
+      }
+    }
+  },
+  {
+    "registration": "NL63XDT",
+    "category": "Oil Filter",
+    "capture": {
+      "status": "CAPTURED_FOR_REVIEW",
+      "reason": null,
+      "selectedRegistration": true,
+      "registration": "NL63XDT",
+      "category": "Oil Filter",
+      "headings": [
+        "Oil Filter - Spin-on Filter",
+        "\u00a37.87"
+      ],
+      "skuLabels": [
+        "MANW67/1"
+      ],
+      "displayedPrices": [
+        "7.87",
+        "4.49",
+        "6.49",
+        "5.72",
+        "13.91"
+      ],
+      "displayedLitres": [],
+      "visibleText": "NL63XDT Clear Nissan Vanette Di Entry 2.0 (1952cc) Diesel Manual 4 doors 18/10/13 18/08/27 Copy VIN More Details All categories / Filters / Oil Filter Related: Air Filter Fuel Filter Cabin Filter Urea Filter Engine Oil Sump Plug Sump Plug Washer Oil Filter - Spin-on Filter SKU: MANW67/1 In stock. Attributes Sort By Relevancy \u00a37.87 Gold Oil Filter - Spin-On Filter Local Branch \u00a34.49 Silver Oil Filter - Spin-On Local Branch \u00a36.49 Silver Oil Filter - Spin-On Filter Local Branch \u00a35.72 Gold Oil Filter - Canister RDC Show More Stock Type Quantity Boldon 3 RDC 9 NDC 4101 \u00a37.87 RRP: \u00a313.91 Buy Now Add to basket 0",
+      "truncated": false,
+      "fitmentVerified": false,
+      "oilVerified": false,
+      "approvedForPublication": false,
+      "attributes": {
+        "status": "ATTRIBUTES_CAPTURED",
+        "rows": [
+          {
+            "attribute": "Bar Code",
+            "value": "401155873800"
+          },
+          {
+            "attribute": "Gasket outside diameter [mm]",
+            "value": "62"
+          },
+          {
+            "attribute": "Gasket inside diameter [mm]",
+            "value": "54"
+          },
+          {
+            "attribute": "Bypass Valve Opening Pressure (bar)",
+            "value": "1"
+          },
+          {
+            "attribute": "Other Info",
+            "value": "with one anti-return valve"
+          },
+          {
+            "attribute": "Outer Diameter (mm)",
+            "value": "66"
+          },
+          {
+            "attribute": "Thread Size",
+            "value": "M20x1.5"
+          },
+          {
+            "attribute": "Filter Type",
+            "value": "Spin-on Filter"
+          },
+          {
+            "attribute": "Part number of the recommended special tools",
+            "value": "LS 6/1"
+          },
+          {
+            "attribute": "Height (mm)",
+            "value": "65"
+          }
+        ],
+        "oilVerified": false,
+        "groupSku": "MANW67/1"
+      }
+    }
+  },
+  {
+    "registration": "NU67ZDP",
+    "category": "Engine Oils (Applied)",
+    "capture": {
+      "status": "CAPTURED_FOR_REVIEW",
+      "reason": null,
+      "selectedRegistration": true,
+      "registration": "NU67ZDP",
+      "category": "Engine Oils (Applied)",
+      "headings": [
+        "Engine Oil Information",
+        "Oil recommendation",
+        "Capacity",
+        "Viscosity",
+        "PROLIFE 5W-30 - 5L",
+        "\u00a349.87",
+        "PROLIFE 5W-30 - 1L",
+        "\u00a314.24"
+      ],
+      "skuLabels": [
+        "COMPRO5L",
+        "COMPRO1L"
+      ],
+      "displayedPrices": [
+        "49.87",
+        "35.62",
+        "111.98",
+        "14.24",
+        "13.03",
+        "31.98"
+      ],
+      "displayedLitres": [
+        "1L",
+        "5L",
+        "20L",
+        "60L",
+        "199L"
+      ],
+      "visibleText": "NU67ZDP Clear Volkswagen Crafter BiTDi 163 BlueMotion L2H1 MWB Euro6 Start/Stop CR50 BlueMotion 2.0 (1968cc) Diesel Manual 2 doors 06/12/17 11/06/25 Copy VIN More Details All categories / Service Items / Fluids & Lubricants / Engine Oils (Applicated) Engine Oil Information Oil recommendation 5W-30 This is a recommended engine oil. If you\u2019re unsure, please refer to the vehicle manufacturer\u2019s handbook. Capacity 1L 5L 20L 60L 199L Viscosity 5W-30 PROLIFE 5W-30 - 5L SKU: COMPRO5L In stock. Attributes Sort By Relevancy \u00a349.87 Gold Prolife 5W-30 - 5L Local Branch \u00a335.62 Silver 5W30 Ls 504/507 5L Local Branch Show More Stock Type Quantity Boldon 4 RDC 2 NDC 1262 \u00a349.87 RRP: \u00a3111.98 Buy Now Add to basket 0 PROLIFE 5W-30 - 1L SKU: COMPRO1L In stock. Attributes Sort By Relevancy \u00a314.24 Gold Prolife 5W-30 - 1L Local Branch \u00a313.03 Silver 5W30 Ls 504/507 1L Local Branch Show More Stock Type Quantity Boldon 1 RDC 1 NDC 290 \u00a314.24 RRP: \u00a331.98 Buy Now Add to basket 0",
+      "truncated": false,
+      "fitmentVerified": false,
+      "oilVerified": false,
+      "approvedForPublication": false,
+      "observedCategoryPath": "/parts/Engine%2520Oils%2520(Applicated)",
+      "attributes": {
+        "status": "NEEDS_REVIEW",
+        "reason": "MULTIPLE_OR_MISSING_PRODUCT_GROUPS"
+      }
+    }
+  },
+  {
+    "registration": "NU67ZDP",
+    "category": "Air Filter",
+    "capture": {
+      "status": "CAPTURED_FOR_REVIEW",
+      "reason": null,
+      "selectedRegistration": true,
+      "registration": "NU67ZDP",
+      "category": "Air Filter",
+      "headings": [
+        "Air Filter - Insert Filter",
+        "\u00a38.95"
+      ],
+      "skuLabels": [
+        "MANC4312/1"
+      ],
+      "displayedPrices": [
+        "8.95",
+        "17.77",
+        "14.60",
+        "29.91"
+      ],
+      "displayedLitres": [],
+      "visibleText": "NU67ZDP Clear Volkswagen Crafter BiTDi 163 BlueMotion L2H1 MWB Euro6 Start/Stop CR50 BlueMotion 2.0 (1968cc) Diesel Manual 2 doors 06/12/17 11/06/25 Copy VIN More Details All categories / Filters / Air Filter Related: Oil Filter Fuel Filter Cabin Filter Urea Filter Engine Oil Sump Plug Sump Plug Washer Air Filter - Insert Filter SKU: MANC4312/1 In stock. Attributes Sort By Relevancy \u00a38.95 Gold Air Filter - Insert Filter Local Branch \u00a317.77 Gold Air Filter Local Branch \u00a314.60 Silver Air Filter - Insert Filter Local Branch Show More Stock Type Quantity Boldon 1 RDC 3 NDC 776 \u00a38.95 RRP: \u00a329.91 Buy Now Add to basket 0",
+      "truncated": false,
+      "fitmentVerified": false,
+      "oilVerified": false,
+      "approvedForPublication": false,
+      "attributes": {
+        "status": "ATTRIBUTES_CAPTURED",
+        "rows": [
+          {
+            "attribute": "Bar Code",
+            "value": "401155842180"
+          },
+          {
+            "attribute": "Height (mm)",
+            "value": "58"
+          },
+          {
+            "attribute": "Width (mm)",
+            "value": "265"
+          },
+          {
+            "attribute": "Length (mm)",
+            "value": "355"
+          },
+          {
+            "attribute": "Filter Type",
+            "value": "Filter Insert"
+          }
+        ],
+        "oilVerified": false,
+        "groupSku": "MANC4312/1"
+      }
+    }
+  },
+  {
+    "registration": "NU72KZH",
+    "category": "Engine Oils (Applied)",
+    "capture": {
+      "status": "CAPTURED_FOR_REVIEW",
+      "reason": null,
+      "selectedRegistration": true,
+      "registration": "NU72KZH",
+      "category": "Engine Oils (Applied)",
+      "headings": [
+        "Engine Oil Information",
+        "Oil recommendation",
+        "Capacity",
+        "Viscosity",
+        "ECO-VG 0W-30 - 5L",
+        "\u00a356.99",
+        "ECO-VG 0W-30 - 1L",
+        "\u00a314.81"
+      ],
+      "skuLabels": [
+        "COMECOVG5L",
+        "COMECOVG1L"
+      ],
+      "displayedPrices": [
+        "56.99",
+        "71.24",
+        "118.01",
+        "40.96",
+        "127.98",
+        "14.81",
+        "17.47",
+        "22.66",
+        "14.24",
+        "33.26"
+      ],
+      "displayedLitres": [
+        "1L",
+        "5L",
+        "20L",
+        "60L",
+        "200L",
+        "208L"
+      ],
+      "visibleText": "NU72KZH Clear Audi A5 Sportback 40 TDi 204 Quattro 12v MHEV S tronic Auto Start/Stop Black Edition 2.0 (1968cc) Diesel/Hybrid Electric Semi Automatic 5 doors 12/12/22 11/12/26 Copy VIN More Details All categories / Service Items / Fluids & Lubricants / Engine Oils (Applicated) Engine Oil Information Oil recommendation 0W-30 This is a recommended engine oil. If you\u2019re unsure, please refer to the vehicle manufacturer\u2019s handbook. Capacity 1L 5L 20L 60L 200L 208L Viscosity 0W-30 0W-20 5W-30 ECO-VG 0W-30 - 5L SKU: COMECOVG5L In stock. Attributes Sort By Relevancy \u00a356.99 Gold ECO-Vg 0W-30 - 5L Local Branch \u00a371.24 Gold 3000 Formula V 0W-30 - 5L Local Branch \u00a3118.01 Gold ESP 0W-30 - 5L Local Branch \u00a340.96 Silver 0W30 EVG 5L Local Branch Show More Stock Type Quantity Boldon 3 RDC 1 NDC 376 \u00a356.99 RRP: \u00a3127.98 Buy Now Add to basket 0 ECO-VG 0W-30 - 1L SKU: COMECOVG1L In stock. Attributes Sort By Relevancy \u00a314.81 Gold ECO-Vg 0W-30 - 1L Local Branch \u00a317.47 Gold 3000 Formula V 0W-30 - 1L Local Branch \u00a322.66 Gold ESP 0W-30 - 1L Local Branch \u00a314.24 Silver 0W30 EVG 1L Local Branch Show More Stock Type Quantity Boldon 1 RDC 0 NDC 324 \u00a314.81 RRP: \u00a333.26 Buy Now Add to basket 0",
+      "truncated": false,
+      "fitmentVerified": false,
+      "oilVerified": false,
+      "approvedForPublication": false,
+      "observedCategoryPath": "/parts/Engine%2520Oils%2520(Applicated)",
+      "attributes": {
+        "status": "NEEDS_REVIEW",
+        "reason": "MULTIPLE_OR_MISSING_PRODUCT_GROUPS"
+      }
+    }
+  },
+  {
+    "registration": "OE75TXP",
+    "category": "Engine Oils (Applied)",
+    "capture": {
+      "status": "CAPTURED_FOR_REVIEW",
+      "reason": null,
+      "selectedRegistration": true,
+      "registration": "OE75TXP",
+      "category": "Engine Oils (Applied)",
+      "headings": [
+        "Engine Oil Information",
+        "Oil recommendation",
+        "Capacity",
+        "Viscosity",
+        "ECO-R 5W-30 - 1L",
+        "\u00a312.46"
+      ],
+      "skuLabels": [
+        "COMECOR1L"
+      ],
+      "displayedPrices": [
+        "12.46",
+        "60.55",
+        "27.98"
+      ],
+      "displayedLitres": [
+        "1L",
+        "4L",
+        "5L",
+        "20L",
+        "60L",
+        "199L"
+      ],
+      "visibleText": "OE75TXP Clear Nissan Qashqai 1.3 DIG-T 160 MHEV 12v XTronic CVT Auto Start/Stop N-Connecta 1.3 (1332cc) Petrol/Hybrid Electric CVT 5 doors 21/10/25 20/10/28 Copy VIN More Details All categories / Service Items / Fluids & Lubricants / Engine Oils (Applicated) Engine Oil Information Oil recommendation 5W-30 This is a recommended engine oil. If you\u2019re unsure, please refer to the vehicle manufacturer\u2019s handbook. Capacity 1L 4L 5L 20L 60L 199L Viscosity 5W-30 0W-20 ECO-R 5W-30 - 1L SKU: COMECOR1L In stock. Attributes Sort By Relevancy \u00a312.46 Gold ECO-R 5W-30 - 1L Local Branch \u00a360.55 Gold ECO-R 5W-30 - 5L Local Branch Stock Type Quantity Boldon 1 RDC 2 NDC 243 \u00a312.46 RRP: \u00a327.98 Buy Now Add to basket 0",
+      "truncated": false,
+      "fitmentVerified": false,
+      "oilVerified": false,
+      "approvedForPublication": false,
+      "observedCategoryPath": "/parts/Engine%2520Oils%2520(Applicated)",
+      "attributes": {
+        "status": "ATTRIBUTES_CAPTURED",
+        "rows": [
+          {
+            "attribute": "Extra Info",
+            "value": "Fully synthetic motor oil Fully synthetic, high performance 5W-30 engine oil. Suitable"
+          },
+          {
+            "attribute": "Sub Brand",
+            "value": "COMMA ECO-R 5W30"
+          },
+          {
+            "attribute": "Oil",
+            "value": "Part Synthetic Oil"
+          },
+          {
+            "attribute": "Oil Viscosity Classification SAE",
+            "value": "5W-30"
+          },
+          {
+            "attribute": "Packing Type",
+            "value": "Bottle"
+          },
+          {
+            "attribute": "Capacity (Litre)",
+            "value": "1"
+          },
+          {
+            "attribute": "Specification",
+            "value": "ACEA C3"
+          },
+          {
+            "attribute": "Manufacturer Release",
+            "value": "Renault RN17"
+          },
+          {
+            "attribute": "Bar Code",
+            "value": "501184605934"
+          },
+          {
+            "attribute": "Viscosity Filter",
+            "value": "5W-30"
+          }
+        ],
+        "oilVerified": false,
+        "groupSku": "COMECOR1L"
+      }
+    }
+  },
+  {
+    "registration": "OV75FSX",
+    "category": "Engine Oils (Applied)",
+    "capture": {
+      "status": "CAPTURED_FOR_REVIEW",
+      "reason": null,
+      "selectedRegistration": true,
+      "registration": "OV75FSX",
+      "category": "Engine Oils (Applied)",
+      "headings": [
+        "Engine Oil Information",
+        "Oil recommendation",
+        "Capacity",
+        "Viscosity",
+        "PRO-NRG 0W-20 - 1L",
+        "\u00a314.24",
+        "ECO-FO 0W-20 - 5L",
+        "\u00a356.99"
+      ],
+      "skuLabels": [
+        "COMNRG1L",
+        "COMECOFO5L"
+      ],
+      "displayedPrices": [
+        "14.24",
+        "14.81",
+        "18.37",
+        "16.60",
+        "31.98",
+        "56.99",
+        "68.88",
+        "72.44",
+        "54.63",
+        "127.98"
+      ],
+      "displayedLitres": [
+        "1L",
+        "4L",
+        "5L",
+        "20L",
+        "60L",
+        "199L"
+      ],
+      "visibleText": "OV75FSX Clear Nissan Qashqai Hybrid HEV 1.5h 190 e-Power HEV CVT Auto Start/Stop Tekna 1.5 (1497cc) Petrol/Hybrid Electric CVT 5 doors 02/09/25 01/09/28 Copy VIN More Details All categories / Service Items / Fluids & Lubricants / Engine Oils (Applicated) Engine Oil Information Oil recommendation 0W-20 This is a recommended engine oil. If you\u2019re unsure, please refer to the vehicle manufacturer\u2019s handbook. Capacity 1L 4L 5L 20L 60L 199L Viscosity 0W-20 PRO-NRG 0W-20 - 1L SKU: COMNRG1L In stock. Attributes Sort By Relevancy \u00a314.24 Gold PRO-NRG 0W-20 - 1L Local Branch \u00a314.81 Gold ECO-Fo 0W-20 - 1L Local Branch \u00a318.37 Gold ECO-Z 0W-20 - 1L Local Branch \u00a316.60 Silver 0W20 Ez 1L Local Branch Stock Type Quantity Boldon 2 RDC 1 NDC 173 \u00a314.24 RRP: \u00a331.98 Buy Now Add to basket 0 ECO-FO 0W-20 - 5L SKU: COMECOFO5L In stock. Attributes Sort By Relevancy \u00a356.99 Gold ECO-Fo 0W-20 - 5L Local Branch \u00a368.88 Gold ECO-Z 0W-20 - 5L Local Branch \u00a372.44 Gold PRO-NRG 0W-20 - 5L Local Branch \u00a354.63 Silver 0W20 Ez 5L Local Branch Stock Type Quantity Boldon 2 RDC 4 NDC 749 \u00a356.99 RRP: \u00a3127.98 Buy Now Add to basket 0",
+      "truncated": false,
+      "fitmentVerified": false,
+      "oilVerified": false,
+      "approvedForPublication": false,
+      "observedCategoryPath": "/parts/Engine%2520Oils%2520(Applicated)",
+      "attributes": {
+        "status": "NEEDS_REVIEW",
+        "reason": "MULTIPLE_OR_MISSING_PRODUCT_GROUPS"
+      }
+    }
+  },
+  {
+    "registration": "OV75FSX",
+    "category": "Air Filter",
+    "capture": {
+      "status": "CAPTURED_FOR_REVIEW",
+      "reason": null,
+      "selectedRegistration": true,
+      "registration": "OV75FSX",
+      "category": "Air Filter",
+      "headings": [
+        "Air Filter - Filter Insert",
+        "\u00a318.56"
+      ],
+      "skuLabels": [
+        "ADLADBP220170"
+      ],
+      "displayedPrices": [
+        "18.56",
+        "31.74"
+      ],
+      "displayedLitres": [],
+      "visibleText": "OV75FSX Clear Nissan Qashqai Hybrid HEV 1.5h 190 e-Power HEV CVT Auto Start/Stop Tekna 1.5 (1497cc) Petrol/Hybrid Electric CVT 5 doors 02/09/25 01/09/28 Copy VIN More Details All categories / Filters / Air Filter Related: Oil Filter Fuel Filter Cabin Filter Urea Filter Engine Oil Sump Plug Sump Plug Washer Air Filter - Filter Insert SKU: ADLADBP220170 In stock in RDC. Get it this afternoon. Attributes Sort By Relevancy \u00a318.56 Bronze Air Filter - Filter Insert RDC Show More Stock Type Quantity Boldon 0 RDC 1 NDC 0 \u00a318.56 RRP: \u00a331.74 Buy Now Add to basket 0",
+      "truncated": false,
+      "fitmentVerified": false,
+      "oilVerified": false,
+      "approvedForPublication": false,
+      "attributes": {
+        "status": "NEEDS_REVIEW",
+        "reason": "ATTRIBUTES_CAPTURE_FAILED"
+      }
+    }
+  },
+  {
+    "registration": "OW24UFH",
+    "category": "Engine Oils (Applied)",
+    "capture": {
+      "status": "CAPTURED_FOR_REVIEW",
+      "reason": null,
+      "selectedRegistration": true,
+      "registration": "OW24UFH",
+      "category": "Engine Oils (Applied)",
+      "headings": [
+        "Engine Oil Information",
+        "Oil recommendation",
+        "Capacity",
+        "Viscosity",
+        "PRO-NRG 0W-20 - 1L",
+        "\u00a314.24",
+        "ECO-FO 0W-20 - 5L",
+        "\u00a356.99"
+      ],
+      "skuLabels": [
+        "COMNRG1L",
+        "COMECOFO5L"
+      ],
+      "displayedPrices": [
+        "14.24",
+        "14.81",
+        "18.37",
+        "16.60",
+        "31.98",
+        "56.99",
+        "68.88",
+        "72.44",
+        "54.63",
+        "127.98"
+      ],
+      "displayedLitres": [
+        "1L",
+        "4L",
+        "5L",
+        "20L",
+        "60L",
+        "199L"
+      ],
+      "visibleText": "OW24UFH Clear Nissan Qashqai Hybrid HEV 1.5h 190 e-Power HEV CVT Auto Start/Stop N-Connecta 1.5 (1497cc) Petrol/Hybrid Electric CVT 5 doors 16/07/24 15/07/27 Copy VIN More Details All categories / Service Items / Fluids & Lubricants / Engine Oils (Applicated) Engine Oil Information Oil recommendation 0W-20 This is a recommended engine oil. If you\u2019re unsure, please refer to the vehicle manufacturer\u2019s handbook. Capacity 1L 4L 5L 20L 60L 199L Viscosity 0W-20 PRO-NRG 0W-20 - 1L SKU: COMNRG1L In stock. Attributes Sort By Relevancy \u00a314.24 Gold PRO-NRG 0W-20 - 1L Local Branch \u00a314.81 Gold ECO-Fo 0W-20 - 1L Local Branch \u00a318.37 Gold ECO-Z 0W-20 - 1L Local Branch \u00a316.60 Silver 0W20 Ez 1L Local Branch Stock Type Quantity Boldon 2 RDC 1 NDC 173 \u00a314.24 RRP: \u00a331.98 Buy Now Add to basket 0 ECO-FO 0W-20 - 5L SKU: COMECOFO5L In stock. Attributes Sort By Relevancy \u00a356.99 Gold ECO-Fo 0W-20 - 5L Local Branch \u00a368.88 Gold ECO-Z 0W-20 - 5L Local Branch \u00a372.44 Gold PRO-NRG 0W-20 - 5L Local Branch \u00a354.63 Silver 0W20 Ez 5L Local Branch Stock Type Quantity Boldon 2 RDC 4 NDC 749 \u00a356.99 RRP: \u00a3127.98 Buy Now Add to basket 0",
+      "truncated": false,
+      "fitmentVerified": false,
+      "oilVerified": false,
+      "approvedForPublication": false,
+      "observedCategoryPath": "/parts/Engine%2520Oils%2520(Applicated)",
+      "attributes": {
+        "status": "NEEDS_REVIEW",
+        "reason": "MULTIPLE_OR_MISSING_PRODUCT_GROUPS"
+      }
+    }
+  },
+  {
+    "registration": "OW24UFH",
+    "category": "Air Filter",
+    "capture": {
+      "status": "CAPTURED_FOR_REVIEW",
+      "reason": null,
+      "selectedRegistration": true,
+      "registration": "OW24UFH",
+      "category": "Air Filter",
+      "headings": [
+        "Air Filter - Filter Insert",
+        "\u00a318.56"
+      ],
+      "skuLabels": [
+        "ADLADBP220170"
+      ],
+      "displayedPrices": [
+        "18.56",
+        "31.74"
+      ],
+      "displayedLitres": [],
+      "visibleText": "OW24UFH Clear Nissan Qashqai Hybrid HEV 1.5h 190 e-Power HEV CVT Auto Start/Stop N-Connecta 1.5 (1497cc) Petrol/Hybrid Electric CVT 5 doors 16/07/24 15/07/27 Copy VIN More Details All categories / Filters / Air Filter Related: Oil Filter Fuel Filter Cabin Filter Urea Filter Engine Oil Sump Plug Sump Plug Washer Air Filter - Filter Insert SKU: ADLADBP220170 In stock in RDC. Get it this afternoon. Attributes Sort By Relevancy \u00a318.56 Bronze Air Filter - Filter Insert RDC Show More Stock Type Quantity Boldon 0 RDC 1 NDC 0 \u00a318.56 RRP: \u00a331.74 Buy Now Add to basket 0",
+      "truncated": false,
+      "fitmentVerified": false,
+      "oilVerified": false,
+      "approvedForPublication": false,
+      "attributes": {
+        "status": "NEEDS_REVIEW",
+        "reason": "ATTRIBUTES_CAPTURE_FAILED"
+      }
+    }
+  },
+  {
+    "registration": "OW24UFL",
+    "category": "Engine Oils (Applied)",
+    "capture": {
+      "status": "CAPTURED_FOR_REVIEW",
+      "reason": null,
+      "selectedRegistration": true,
+      "registration": "OW24UFL",
+      "category": "Engine Oils (Applied)",
+      "headings": [
+        "Engine Oil Information",
+        "Oil recommendation",
+        "Capacity",
+        "Viscosity",
+        "ECO-R 5W-30 - 1L",
+        "\u00a312.46"
+      ],
+      "skuLabels": [
+        "COMECOR1L"
+      ],
+      "displayedPrices": [
+        "12.46",
+        "60.55",
+        "27.98"
+      ],
+      "displayedLitres": [
+        "1L",
+        "4L",
+        "5L",
+        "20L",
+        "60L",
+        "199L"
+      ],
+      "visibleText": "OW24UFL Clear Nissan Qashqai 1.3 DIG-T 160 MHEV 12v Start/Stop N-Connecta 1.3 (1332cc) Petrol/Hybrid Electric Manual 5 doors 16/07/24 15/07/27 Copy VIN More Details All categories / Service Items / Fluids & Lubricants / Engine Oils (Applicated) Engine Oil Information Oil recommendation 5W-30 This is a recommended engine oil. If you\u2019re unsure, please refer to the vehicle manufacturer\u2019s handbook. Capacity 1L 4L 5L 20L 60L 199L Viscosity 5W-30 0W-20 ECO-R 5W-30 - 1L SKU: COMECOR1L In stock. Attributes Sort By Relevancy \u00a312.46 Gold ECO-R 5W-30 - 1L Local Branch \u00a360.55 Gold ECO-R 5W-30 - 5L Local Branch Stock Type Quantity Boldon 1 RDC 2 NDC 243 \u00a312.46 RRP: \u00a327.98 Buy Now Add to basket 0",
+      "truncated": false,
+      "fitmentVerified": false,
+      "oilVerified": false,
+      "approvedForPublication": false,
+      "observedCategoryPath": "/parts/Engine%2520Oils%2520(Applicated)",
+      "attributes": {
+        "status": "ATTRIBUTES_CAPTURED",
+        "rows": [
+          {
+            "attribute": "Extra Info",
+            "value": "Fully synthetic motor oil Fully synthetic, high performance 5W-30 engine oil. Suitable"
+          },
+          {
+            "attribute": "Sub Brand",
+            "value": "COMMA ECO-R 5W30"
+          },
+          {
+            "attribute": "Oil",
+            "value": "Part Synthetic Oil"
+          },
+          {
+            "attribute": "Oil Viscosity Classification SAE",
+            "value": "5W-30"
+          },
+          {
+            "attribute": "Packing Type",
+            "value": "Bottle"
+          },
+          {
+            "attribute": "Capacity (Litre)",
+            "value": "1"
+          },
+          {
+            "attribute": "Specification",
+            "value": "ACEA C3"
+          },
+          {
+            "attribute": "Manufacturer Release",
+            "value": "Renault RN17"
+          },
+          {
+            "attribute": "Bar Code",
+            "value": "501184605934"
+          },
+          {
+            "attribute": "Viscosity Filter",
+            "value": "5W-30"
+          }
+        ],
+        "oilVerified": false,
+        "groupSku": "COMECOR1L"
+      }
+    }
+  },
+  {
+    "registration": "OW24UFM",
+    "category": "Engine Oils (Applied)",
+    "capture": {
+      "status": "CAPTURED_FOR_REVIEW",
+      "reason": null,
+      "selectedRegistration": true,
+      "registration": "OW24UFM",
+      "category": "Engine Oils (Applied)",
+      "headings": [
+        "Engine Oil Information",
+        "Oil recommendation",
+        "Capacity",
+        "Viscosity",
+        "ECO-R 5W-30 - 1L",
+        "\u00a312.46"
+      ],
+      "skuLabels": [
+        "COMECOR1L"
+      ],
+      "displayedPrices": [
+        "12.46",
+        "60.55",
+        "27.98"
+      ],
+      "displayedLitres": [
+        "1L",
+        "4L",
+        "5L",
+        "20L",
+        "60L",
+        "199L"
+      ],
+      "visibleText": "OW24UFM Clear Nissan Qashqai 1.3 DIG-T 160 MHEV 12v XTronic CVT Auto Start/Stop Tekna+ 1.3 (1332cc) Petrol/Hybrid Electric CVT 5 doors 16/07/24 15/07/27 Copy VIN More Details All categories / Service Items / Fluids & Lubricants / Engine Oils (Applicated) Engine Oil Information Oil recommendation 5W-30 This is a recommended engine oil. If you\u2019re unsure, please refer to the vehicle manufacturer\u2019s handbook. Capacity 1L 4L 5L 20L 60L 199L Viscosity 5W-30 0W-20 ECO-R 5W-30 - 1L SKU: COMECOR1L In stock. Attributes Sort By Relevancy \u00a312.46 Gold ECO-R 5W-30 - 1L Local Branch \u00a360.55 Gold ECO-R 5W-30 - 5L Local Branch Stock Type Quantity Boldon 1 RDC 2 NDC 243 \u00a312.46 RRP: \u00a327.98 Buy Now Add to basket 0",
+      "truncated": false,
+      "fitmentVerified": false,
+      "oilVerified": false,
+      "approvedForPublication": false,
+      "observedCategoryPath": "/parts/Engine%2520Oils%2520(Applicated)",
+      "attributes": {
+        "status": "ATTRIBUTES_CAPTURED",
+        "rows": [
+          {
+            "attribute": "Extra Info",
+            "value": "Fully synthetic motor oil Fully synthetic, high performance 5W-30 engine oil. Suitable"
+          },
+          {
+            "attribute": "Sub Brand",
+            "value": "COMMA ECO-R 5W30"
+          },
+          {
+            "attribute": "Oil",
+            "value": "Part Synthetic Oil"
+          },
+          {
+            "attribute": "Oil Viscosity Classification SAE",
+            "value": "5W-30"
+          },
+          {
+            "attribute": "Packing Type",
+            "value": "Bottle"
+          },
+          {
+            "attribute": "Capacity (Litre)",
+            "value": "1"
+          },
+          {
+            "attribute": "Specification",
+            "value": "ACEA C3"
+          },
+          {
+            "attribute": "Manufacturer Release",
+            "value": "Renault RN17"
+          },
+          {
+            "attribute": "Bar Code",
+            "value": "501184605934"
+          },
+          {
+            "attribute": "Viscosity Filter",
+            "value": "5W-30"
+          }
+        ],
+        "oilVerified": false,
+        "groupSku": "COMECOR1L"
+      }
+    }
+  },
+  {
+    "registration": "OW24UFR",
+    "category": "Engine Oils (Applied)",
+    "capture": {
+      "status": "CAPTURED_FOR_REVIEW",
+      "reason": null,
+      "selectedRegistration": true,
+      "registration": "OW24UFR",
+      "category": "Engine Oils (Applied)",
+      "headings": [
+        "Engine Oil Information",
+        "Oil recommendation",
+        "Capacity",
+        "Viscosity",
+        "PRO-NRG 0W-20 - 1L",
+        "\u00a314.24",
+        "ECO-FO 0W-20 - 5L",
+        "\u00a356.99"
+      ],
+      "skuLabels": [
+        "COMNRG1L",
+        "COMECOFO5L"
+      ],
+      "displayedPrices": [
+        "14.24",
+        "14.81",
+        "18.37",
+        "16.60",
+        "31.98",
+        "56.99",
+        "68.88",
+        "72.44",
+        "54.63",
+        "127.98"
+      ],
+      "displayedLitres": [
+        "1L",
+        "4L",
+        "5L",
+        "20L",
+        "60L",
+        "199L"
+      ],
+      "visibleText": "OW24UFR Clear Nissan Qashqai Hybrid HEV 1.5h 190 e-Power HEV CVT Auto Start/Stop Tekna 1.5 (1497cc) Petrol/Hybrid Electric CVT 5 doors 16/07/24 15/07/27 Copy VIN More Details All categories / Service Items / Fluids & Lubricants / Engine Oils (Applicated) Engine Oil Information Oil recommendation 0W-20 This is a recommended engine oil. If you\u2019re unsure, please refer to the vehicle manufacturer\u2019s handbook. Capacity 1L 4L 5L 20L 60L 199L Viscosity 0W-20 PRO-NRG 0W-20 - 1L SKU: COMNRG1L In stock. Attributes Sort By Relevancy \u00a314.24 Gold PRO-NRG 0W-20 - 1L Local Branch \u00a314.81 Gold ECO-Fo 0W-20 - 1L Local Branch \u00a318.37 Gold ECO-Z 0W-20 - 1L Local Branch \u00a316.60 Silver 0W20 Ez 1L Local Branch Stock Type Quantity Boldon 2 RDC 1 NDC 173 \u00a314.24 RRP: \u00a331.98 Buy Now Add to basket 0 ECO-FO 0W-20 - 5L SKU: COMECOFO5L In stock. Attributes Sort By Relevancy \u00a356.99 Gold ECO-Fo 0W-20 - 5L Local Branch \u00a368.88 Gold ECO-Z 0W-20 - 5L Local Branch \u00a372.44 Gold PRO-NRG 0W-20 - 5L Local Branch \u00a354.63 Silver 0W20 Ez 5L Local Branch Stock Type Quantity Boldon 2 RDC 4 NDC 749 \u00a356.99 RRP: \u00a3127.98 Buy Now Add to basket 0",
+      "truncated": false,
+      "fitmentVerified": false,
+      "oilVerified": false,
+      "approvedForPublication": false,
+      "observedCategoryPath": "/parts/Engine%2520Oils%2520(Applicated)",
+      "attributes": {
+        "status": "NEEDS_REVIEW",
+        "reason": "MULTIPLE_OR_MISSING_PRODUCT_GROUPS"
+      }
+    }
+  },
+  {
+    "registration": "OW24UFR",
+    "category": "Air Filter",
+    "capture": {
+      "status": "CAPTURED_FOR_REVIEW",
+      "reason": null,
+      "selectedRegistration": true,
+      "registration": "OW24UFR",
+      "category": "Air Filter",
+      "headings": [
+        "Air Filter - Filter Insert",
+        "\u00a318.56"
+      ],
+      "skuLabels": [
+        "ADLADBP220170"
+      ],
+      "displayedPrices": [
+        "18.56",
+        "31.74"
+      ],
+      "displayedLitres": [],
+      "visibleText": "OW24UFR Clear Nissan Qashqai Hybrid HEV 1.5h 190 e-Power HEV CVT Auto Start/Stop Tekna 1.5 (1497cc) Petrol/Hybrid Electric CVT 5 doors 16/07/24 15/07/27 Copy VIN More Details All categories / Filters / Air Filter Related: Oil Filter Fuel Filter Cabin Filter Urea Filter Engine Oil Sump Plug Sump Plug Washer Air Filter - Filter Insert SKU: ADLADBP220170 In stock in RDC. Get it this afternoon. Attributes Sort By Relevancy \u00a318.56 Bronze Air Filter - Filter Insert RDC Show More Stock Type Quantity Boldon 0 RDC 1 NDC 0 \u00a318.56 RRP: \u00a331.74 Buy Now Add to basket 0",
+      "truncated": false,
+      "fitmentVerified": false,
+      "oilVerified": false,
+      "approvedForPublication": false,
+      "attributes": {
+        "status": "NEEDS_REVIEW",
+        "reason": "ATTRIBUTES_CAPTURE_FAILED"
+      }
+    }
+  },
+  {
+    "registration": "OW26DXM",
+    "category": "Engine Oils (Applied)",
+    "capture": {
+      "status": "CAPTURED_FOR_REVIEW",
+      "reason": null,
+      "selectedRegistration": true,
+      "registration": "OW26DXM",
+      "category": "Engine Oils (Applied)",
+      "headings": [
+        "Engine Oil Information",
+        "Oil recommendation",
+        "Capacity",
+        "Viscosity",
+        "ECO-R 5W-30 - 1L",
+        "\u00a312.46"
+      ],
+      "skuLabels": [
+        "COMECOR1L"
+      ],
+      "displayedPrices": [
+        "12.46",
+        "60.55",
+        "27.98"
+      ],
+      "displayedLitres": [
+        "1L",
+        "4L",
+        "5L",
+        "20L",
+        "60L",
+        "199L"
+      ],
+      "visibleText": "OW26DXM Clear Nissan Qashqai 1.3 DIG-T 160 MHEV 12v XTronic CVT Auto Start/Stop Tekna+ 1.3 (1332cc) Petrol/Hybrid Electric CVT 5 doors 18/05/26 17/05/29 Copy VIN More Details All categories / Service Items / Fluids & Lubricants / Engine Oils (Applicated) Engine Oil Information Oil recommendation 5W-30 This is a recommended engine oil. If you\u2019re unsure, please refer to the vehicle manufacturer\u2019s handbook. Capacity 1L 4L 5L 20L 60L 199L Viscosity 5W-30 0W-20 ECO-R 5W-30 - 1L SKU: COMECOR1L In stock. Attributes Sort By Relevancy \u00a312.46 Gold ECO-R 5W-30 - 1L Local Branch \u00a360.55 Gold ECO-R 5W-30 - 5L Local Branch Stock Type Quantity Boldon 1 RDC 2 NDC 243 \u00a312.46 RRP: \u00a327.98 Buy Now Add to basket 0",
+      "truncated": false,
+      "fitmentVerified": false,
+      "oilVerified": false,
+      "approvedForPublication": false,
+      "observedCategoryPath": "/parts/Engine%2520Oils%2520(Applicated)",
+      "attributes": {
+        "status": "ATTRIBUTES_CAPTURED",
+        "rows": [
+          {
+            "attribute": "Extra Info",
+            "value": "Fully synthetic motor oil Fully synthetic, high performance 5W-30 engine oil. Suitable"
+          },
+          {
+            "attribute": "Sub Brand",
+            "value": "COMMA ECO-R 5W30"
+          },
+          {
+            "attribute": "Oil",
+            "value": "Part Synthetic Oil"
+          },
+          {
+            "attribute": "Oil Viscosity Classification SAE",
+            "value": "5W-30"
+          },
+          {
+            "attribute": "Packing Type",
+            "value": "Bottle"
+          },
+          {
+            "attribute": "Capacity (Litre)",
+            "value": "1"
+          },
+          {
+            "attribute": "Specification",
+            "value": "ACEA C3"
+          },
+          {
+            "attribute": "Manufacturer Release",
+            "value": "Renault RN17"
+          },
+          {
+            "attribute": "Bar Code",
+            "value": "501184605934"
+          },
+          {
+            "attribute": "Viscosity Filter",
+            "value": "5W-30"
+          }
+        ],
+        "oilVerified": false,
+        "groupSku": "COMECOR1L"
+      }
+    }
+  },
+  {
+    "registration": "OW26YMA",
+    "category": "Engine Oils (Applied)",
+    "capture": {
+      "status": "CAPTURED_FOR_REVIEW",
+      "reason": null,
+      "selectedRegistration": true,
+      "registration": "OW26YMA",
+      "category": "Engine Oils (Applied)",
+      "headings": [
+        "Engine Oil Information",
+        "Oil recommendation",
+        "Capacity",
+        "Viscosity",
+        "ECO-R 5W-30 - 1L",
+        "\u00a312.46"
+      ],
+      "skuLabels": [
+        "COMECOR1L"
+      ],
+      "displayedPrices": [
+        "12.46",
+        "60.55",
+        "27.98"
+      ],
+      "displayedLitres": [
+        "1L",
+        "4L",
+        "5L",
+        "20L",
+        "60L",
+        "199L"
+      ],
+      "visibleText": "OW26YMA Clear Nissan Qashqai 1.3 DIG-T 160 MHEV 12v Start/Stop Acenta Premium 1.3 (1332cc) Petrol/Hybrid Electric Manual 5 doors 19/06/26 18/06/29 Copy VIN More Details All categories / Service Items / Fluids & Lubricants / Engine Oils (Applicated) Engine Oil Information Oil recommendation 5W-30 This is a recommended engine oil. If you\u2019re unsure, please refer to the vehicle manufacturer\u2019s handbook. Capacity 1L 4L 5L 20L 60L 199L Viscosity 5W-30 0W-20 ECO-R 5W-30 - 1L SKU: COMECOR1L In stock. Attributes Sort By Relevancy \u00a312.46 Gold ECO-R 5W-30 - 1L Local Branch \u00a360.55 Gold ECO-R 5W-30 - 5L Local Branch Stock Type Quantity Boldon 1 RDC 2 NDC 243 \u00a312.46 RRP: \u00a327.98 Buy Now Add to basket 0",
+      "truncated": false,
+      "fitmentVerified": false,
+      "oilVerified": false,
+      "approvedForPublication": false,
+      "observedCategoryPath": "/parts/Engine%2520Oils%2520(Applicated)",
+      "attributes": {
+        "status": "ATTRIBUTES_CAPTURED",
+        "rows": [
+          {
+            "attribute": "Extra Info",
+            "value": "Fully synthetic motor oil Fully synthetic, high performance 5W-30 engine oil. Suitable"
+          },
+          {
+            "attribute": "Sub Brand",
+            "value": "COMMA ECO-R 5W30"
+          },
+          {
+            "attribute": "Oil",
+            "value": "Part Synthetic Oil"
+          },
+          {
+            "attribute": "Oil Viscosity Classification SAE",
+            "value": "5W-30"
+          },
+          {
+            "attribute": "Packing Type",
+            "value": "Bottle"
+          },
+          {
+            "attribute": "Capacity (Litre)",
+            "value": "1"
+          },
+          {
+            "attribute": "Specification",
+            "value": "ACEA C3"
+          },
+          {
+            "attribute": "Manufacturer Release",
+            "value": "Renault RN17"
+          },
+          {
+            "attribute": "Bar Code",
+            "value": "501184605934"
+          },
+          {
+            "attribute": "Viscosity Filter",
+            "value": "5W-30"
+          }
+        ],
+        "oilVerified": false,
+        "groupSku": "COMECOR1L"
+      }
+    }
+  },
+  {
+    "registration": "OW75HZM",
+    "category": "Engine Oils (Applied)",
+    "capture": {
+      "status": "CAPTURED_FOR_REVIEW",
+      "reason": null,
+      "selectedRegistration": true,
+      "registration": "OW75HZM",
+      "category": "Engine Oils (Applied)",
+      "headings": [
+        "Engine Oil Information",
+        "Oil recommendation",
+        "Capacity",
+        "Viscosity",
+        "PRO-NRG 0W-20 - 1L",
+        "\u00a314.24",
+        "ECO-FO 0W-20 - 5L",
+        "\u00a356.99"
+      ],
+      "skuLabels": [
+        "COMNRG1L",
+        "COMECOFO5L"
+      ],
+      "displayedPrices": [
+        "14.24",
+        "14.81",
+        "18.37",
+        "16.60",
+        "31.98",
+        "56.99",
+        "68.88",
+        "72.44",
+        "54.63",
+        "127.98"
+      ],
+      "displayedLitres": [
+        "1L",
+        "4L",
+        "5L",
+        "20L",
+        "60L",
+        "199L"
+      ],
+      "visibleText": "OW75HZM Clear Nissan Qashqai Hybrid HEV 1.5h 190 e-Power HEV CVT Auto Start/Stop Acenta Premium 1.5 (1497cc) Petrol/Hybrid Electric CVT 5 doors 21/11/25 20/11/28 Copy VIN More Details All categories / Service Items / Fluids & Lubricants / Engine Oils (Applicated) Engine Oil Information Oil recommendation 0W-20 This is a recommended engine oil. If you\u2019re unsure, please refer to the vehicle manufacturer\u2019s handbook. Capacity 1L 4L 5L 20L 60L 199L Viscosity 0W-20 PRO-NRG 0W-20 - 1L SKU: COMNRG1L In stock. Attributes Sort By Relevancy \u00a314.24 Gold PRO-NRG 0W-20 - 1L Local Branch \u00a314.81 Gold ECO-Fo 0W-20 - 1L Local Branch \u00a318.37 Gold ECO-Z 0W-20 - 1L Local Branch \u00a316.60 Silver 0W20 Ez 1L Local Branch Stock Type Quantity Boldon 2 RDC 1 NDC 173 \u00a314.24 RRP: \u00a331.98 Buy Now Add to basket 0 ECO-FO 0W-20 - 5L SKU: COMECOFO5L In stock. Attributes Sort By Relevancy \u00a356.99 Gold ECO-Fo 0W-20 - 5L Local Branch \u00a368.88 Gold ECO-Z 0W-20 - 5L Local Branch \u00a372.44 Gold PRO-NRG 0W-20 - 5L Local Branch \u00a354.63 Silver 0W20 Ez 5L Local Branch Stock Type Quantity Boldon 2 RDC 4 NDC 749 \u00a356.99 RRP: \u00a3127.98 Buy Now Add to basket 0",
+      "truncated": false,
+      "fitmentVerified": false,
+      "oilVerified": false,
+      "approvedForPublication": false,
+      "observedCategoryPath": "/parts/Engine%2520Oils%2520(Applicated)",
+      "attributes": {
+        "status": "NEEDS_REVIEW",
+        "reason": "MULTIPLE_OR_MISSING_PRODUCT_GROUPS"
+      }
+    }
+  },
+  {
+    "registration": "OW75HZM",
+    "category": "Air Filter",
+    "capture": {
+      "status": "CAPTURED_FOR_REVIEW",
+      "reason": null,
+      "selectedRegistration": true,
+      "registration": "OW75HZM",
+      "category": "Air Filter",
+      "headings": [
+        "Air Filter - Filter Insert",
+        "\u00a318.56"
+      ],
+      "skuLabels": [
+        "ADLADBP220170"
+      ],
+      "displayedPrices": [
+        "18.56",
+        "31.74"
+      ],
+      "displayedLitres": [],
+      "visibleText": "OW75HZM Clear Nissan Qashqai Hybrid HEV 1.5h 190 e-Power HEV CVT Auto Start/Stop Acenta Premium 1.5 (1497cc) Petrol/Hybrid Electric CVT 5 doors 21/11/25 20/11/28 Copy VIN More Details All categories / Filters / Air Filter Related: Oil Filter Fuel Filter Cabin Filter Urea Filter Engine Oil Sump Plug Sump Plug Washer Air Filter - Filter Insert SKU: ADLADBP220170 In stock in RDC. Get it this afternoon. Attributes Sort By Relevancy \u00a318.56 Bronze Air Filter - Filter Insert RDC Show More Stock Type Quantity Boldon 0 RDC 1 NDC 0 \u00a318.56 RRP: \u00a331.74 Buy Now Add to basket 0",
+      "truncated": false,
+      "fitmentVerified": false,
+      "oilVerified": false,
+      "approvedForPublication": false,
+      "attributes": {
+        "status": "NEEDS_REVIEW",
+        "reason": "ATTRIBUTES_CAPTURE_FAILED"
+      }
+    }
+  },
+  {
+    "registration": "OX26LXA",
+    "category": "Engine Oils (Applied)",
+    "capture": {
+      "status": "CAPTURED_FOR_REVIEW",
+      "reason": null,
+      "selectedRegistration": true,
+      "registration": "OX26LXA",
+      "category": "Engine Oils (Applied)",
+      "headings": [
+        "Engine Oil Information",
+        "Oil recommendation",
+        "Capacity",
+        "Viscosity",
+        "ECO-R 5W-30 - 1L",
+        "\u00a312.46"
+      ],
+      "skuLabels": [
+        "COMECOR1L"
+      ],
+      "displayedPrices": [
+        "12.46",
+        "60.55",
+        "27.98"
+      ],
+      "displayedLitres": [
+        "1L",
+        "4L",
+        "5L",
+        "20L",
+        "60L",
+        "199L"
+      ],
+      "visibleText": "OX26LXA Clear Nissan Qashqai 1.3 DIG-T 160 MHEV 12v Start/Stop N-Design 1.3 (1332cc) Petrol/Hybrid Electric Manual 5 doors 13/07/26 12/07/29 Copy VIN More Details All categories / Service Items / Fluids & Lubricants / Engine Oils (Applicated) Engine Oil Information Oil recommendation 5W-30 This is a recommended engine oil. If you\u2019re unsure, please refer to the vehicle manufacturer\u2019s handbook. Capacity 1L 4L 5L 20L 60L 199L Viscosity 5W-30 0W-20 ECO-R 5W-30 - 1L SKU: COMECOR1L In stock. Attributes Sort By Relevancy \u00a312.46 Gold ECO-R 5W-30 - 1L Local Branch \u00a360.55 Gold ECO-R 5W-30 - 5L Local Branch Stock Type Quantity Boldon 1 RDC 2 NDC 243 \u00a312.46 RRP: \u00a327.98 Buy Now Add to basket 0",
+      "truncated": false,
+      "fitmentVerified": false,
+      "oilVerified": false,
+      "approvedForPublication": false,
+      "observedCategoryPath": "/parts/Engine%2520Oils%2520(Applicated)",
+      "attributes": {
+        "status": "ATTRIBUTES_CAPTURED",
+        "rows": [
+          {
+            "attribute": "Extra Info",
+            "value": "Fully synthetic motor oil Fully synthetic, high performance 5W-30 engine oil. Suitable"
+          },
+          {
+            "attribute": "Sub Brand",
+            "value": "COMMA ECO-R 5W30"
+          },
+          {
+            "attribute": "Oil",
+            "value": "Part Synthetic Oil"
+          },
+          {
+            "attribute": "Oil Viscosity Classification SAE",
+            "value": "5W-30"
+          },
+          {
+            "attribute": "Packing Type",
+            "value": "Bottle"
+          },
+          {
+            "attribute": "Capacity (Litre)",
+            "value": "1"
+          },
+          {
+            "attribute": "Specification",
+            "value": "ACEA C3"
+          },
+          {
+            "attribute": "Manufacturer Release",
+            "value": "Renault RN17"
+          },
+          {
+            "attribute": "Bar Code",
+            "value": "501184605934"
+          },
+          {
+            "attribute": "Viscosity Filter",
+            "value": "5W-30"
+          }
+        ],
+        "oilVerified": false,
+        "groupSku": "COMECOR1L"
+      }
+    }
+  },
+  {
+    "registration": "OX26WTO",
+    "category": "Engine Oils (Applied)",
+    "capture": {
+      "status": "CAPTURED_FOR_REVIEW",
+      "reason": null,
+      "selectedRegistration": true,
+      "registration": "OX26WTO",
+      "category": "Engine Oils (Applied)",
+      "headings": [
+        "Engine Oil Information",
+        "Capacity",
+        "Viscosity",
+        "PRO-NRG 0W-20 - 1L",
+        "\u00a314.24",
+        "ECO-FO 0W-20 - 5L",
+        "\u00a356.99"
+      ],
+      "skuLabels": [
+        "COMNRG1L",
+        "COMECOFO5L"
+      ],
+      "displayedPrices": [
+        "14.24",
+        "14.81",
+        "18.37",
+        "16.60",
+        "31.98",
+        "56.99",
+        "68.88",
+        "72.44",
+        "54.63",
+        "127.98"
+      ],
+      "displayedLitres": [
+        "1L",
+        "4L",
+        "5L",
+        "20L",
+        "60L",
+        "199L"
+      ],
+      "visibleText": "OX26WTO Clear Nissan Qashqai Hybrid HEV 1.5h 205 e-Power HEV CVT Auto Start/Stop Tekna+ 1.5 (1497cc) Petrol/Hybrid Electric CVT 5 doors 11/08/26 10/08/29 Copy VIN More Details All categories / Service Items / Fluids & Lubricants / Engine Oils (Applicated) Engine Oil Information Capacity 1L 4L 5L 20L 60L 199L Viscosity 0W-20 PRO-NRG 0W-20 - 1L SKU: COMNRG1L In stock. Attributes Sort By Relevancy \u00a314.24 Gold PRO-NRG 0W-20 - 1L Local Branch \u00a314.81 Gold ECO-Fo 0W-20 - 1L Local Branch \u00a318.37 Gold ECO-Z 0W-20 - 1L Local Branch \u00a316.60 Silver 0W20 Ez 1L Local Branch Stock Type Quantity Boldon 2 RDC 1 NDC 173 \u00a314.24 RRP: \u00a331.98 Buy Now Add to basket 0 ECO-FO 0W-20 - 5L SKU: COMECOFO5L In stock. Attributes Sort By Relevancy \u00a356.99 Gold ECO-Fo 0W-20 - 5L Local Branch \u00a368.88 Gold ECO-Z 0W-20 - 5L Local Branch \u00a372.44 Gold PRO-NRG 0W-20 - 5L Local Branch \u00a354.63 Silver 0W20 Ez 5L Local Branch Stock Type Quantity Boldon 2 RDC 4 NDC 749 \u00a356.99 RRP: \u00a3127.98 Buy Now Add to basket 0",
+      "truncated": false,
+      "fitmentVerified": false,
+      "oilVerified": false,
+      "approvedForPublication": false,
+      "observedCategoryPath": "/parts/Engine%2520Oils%2520(Applicated)",
+      "attributes": {
+        "status": "NEEDS_REVIEW",
+        "reason": "MULTIPLE_OR_MISSING_PRODUCT_GROUPS"
+      }
+    }
+  },
+  {
+    "registration": "OX26WTO",
+    "category": "Air Filter",
+    "capture": {
+      "status": "CAPTURED_FOR_REVIEW",
+      "reason": null,
+      "selectedRegistration": true,
+      "registration": "OX26WTO",
+      "category": "Air Filter",
+      "headings": [
+        "Air Filter - Filter Insert",
+        "\u00a318.56"
+      ],
+      "skuLabels": [
+        "ADLADBP220170"
+      ],
+      "displayedPrices": [
+        "18.56",
+        "31.74"
+      ],
+      "displayedLitres": [],
+      "visibleText": "OX26WTO Clear Nissan Qashqai Hybrid HEV 1.5h 205 e-Power HEV CVT Auto Start/Stop Tekna+ 1.5 (1497cc) Petrol/Hybrid Electric CVT 5 doors 11/08/26 10/08/29 Copy VIN More Details All categories / Filters / Air Filter Related: Oil Filter Fuel Filter Cabin Filter Urea Filter Engine Oil Sump Plug Sump Plug Washer Air Filter - Filter Insert SKU: ADLADBP220170 In stock in RDC. Get it this afternoon. Attributes Sort By Relevancy \u00a318.56 Bronze Air Filter - Filter Insert RDC Show More Stock Type Quantity Boldon 0 RDC 1 NDC 0 \u00a318.56 RRP: \u00a331.74 Buy Now Add to basket 0",
+      "truncated": false,
+      "fitmentVerified": false,
+      "oilVerified": false,
+      "approvedForPublication": false,
+      "attributes": {
+        "status": "ATTRIBUTES_CAPTURED",
+        "rows": [
+          {
+            "attribute": "Info",
+            "value": "Filter Insert"
+          }
+        ],
+        "oilVerified": false,
+        "groupSku": "ADLADBP220170"
+      }
+    }
+  },
+  {
+    "registration": "OX75MWA",
+    "category": "Engine Oils (Applied)",
+    "capture": {
+      "status": "CAPTURED_FOR_REVIEW",
+      "reason": null,
+      "selectedRegistration": true,
+      "registration": "OX75MWA",
+      "category": "Engine Oils (Applied)",
+      "headings": [
+        "Engine Oil Information",
+        "Oil recommendation",
+        "Capacity",
+        "Viscosity",
+        "ECO-R 5W-30 - 1L",
+        "\u00a312.46"
+      ],
+      "skuLabels": [
+        "COMECOR1L"
+      ],
+      "displayedPrices": [
+        "12.46",
+        "60.55",
+        "27.98"
+      ],
+      "displayedLitres": [
+        "1L",
+        "4L",
+        "5L",
+        "20L",
+        "60L",
+        "199L"
+      ],
+      "visibleText": "OX75MWA Clear Nissan Qashqai 1.3 DIG-T 160 MHEV 12v XTronic CVT Auto Start/Stop Tekna 1.3 (1332cc) Petrol/Hybrid Electric CVT 5 doors 21/01/26 20/01/29 Copy VIN More Details All categories / Service Items / Fluids & Lubricants / Engine Oils (Applicated) Engine Oil Information Oil recommendation 5W-30 This is a recommended engine oil. If you\u2019re unsure, please refer to the vehicle manufacturer\u2019s handbook. Capacity 1L 4L 5L 20L 60L 199L Viscosity 5W-30 0W-20 ECO-R 5W-30 - 1L SKU: COMECOR1L In stock. Attributes Sort By Relevancy \u00a312.46 Gold ECO-R 5W-30 - 1L Local Branch \u00a360.55 Gold ECO-R 5W-30 - 5L Local Branch Stock Type Quantity Boldon 1 RDC 2 NDC 243 \u00a312.46 RRP: \u00a327.98 Buy Now Add to basket 0",
+      "truncated": false,
+      "fitmentVerified": false,
+      "oilVerified": false,
+      "approvedForPublication": false,
+      "observedCategoryPath": "/parts/Engine%2520Oils%2520(Applicated)",
+      "attributes": {
+        "status": "ATTRIBUTES_CAPTURED",
+        "rows": [
+          {
+            "attribute": "Extra Info",
+            "value": "Fully synthetic motor oil Fully synthetic, high performance 5W-30 engine oil. Suitable"
+          },
+          {
+            "attribute": "Sub Brand",
+            "value": "COMMA ECO-R 5W30"
+          },
+          {
+            "attribute": "Oil",
+            "value": "Part Synthetic Oil"
+          },
+          {
+            "attribute": "Oil Viscosity Classification SAE",
+            "value": "5W-30"
+          },
+          {
+            "attribute": "Packing Type",
+            "value": "Bottle"
+          },
+          {
+            "attribute": "Capacity (Litre)",
+            "value": "1"
+          },
+          {
+            "attribute": "Specification",
+            "value": "ACEA C3"
+          },
+          {
+            "attribute": "Manufacturer Release",
+            "value": "Renault RN17"
+          },
+          {
+            "attribute": "Bar Code",
+            "value": "501184605934"
+          },
+          {
+            "attribute": "Viscosity Filter",
+            "value": "5W-30"
+          }
+        ],
+        "oilVerified": false,
+        "groupSku": "COMECOR1L"
+      }
+    }
+  },
+  {
+    "registration": "OX75UBJ",
+    "category": "Engine Oils (Applied)",
+    "capture": {
+      "status": "CAPTURED_FOR_REVIEW",
+      "reason": null,
+      "selectedRegistration": true,
+      "registration": "OX75UBJ",
+      "category": "Engine Oils (Applied)",
+      "headings": [
+        "Engine Oil Information",
+        "Capacity",
+        "Viscosity",
+        "PRO-NRG 0W-20 - 1L",
+        "\u00a314.24",
+        "ECO-FO 0W-20 - 5L",
+        "\u00a356.99"
+      ],
+      "skuLabels": [
+        "COMNRG1L",
+        "COMECOFO5L"
+      ],
+      "displayedPrices": [
+        "14.24",
+        "14.81",
+        "18.37",
+        "16.60",
+        "31.98",
+        "56.99",
+        "68.88",
+        "72.44",
+        "54.63",
+        "127.98"
+      ],
+      "displayedLitres": [
+        "1L",
+        "4L",
+        "5L",
+        "20L",
+        "60L",
+        "199L"
+      ],
+      "visibleText": "OX75UBJ Clear Nissan Qashqai Hybrid HEV 1.5h 205 e-Power HEV CVT Auto Start/Stop Tekna 1.5 (1497cc) Petrol/Hybrid Electric CVT 5 doors 27/01/26 26/01/29 Copy VIN More Details All categories / Service Items / Fluids & Lubricants / Engine Oils (Applicated) Engine Oil Information Capacity 1L 4L 5L 20L 60L 199L Viscosity 0W-20 PRO-NRG 0W-20 - 1L SKU: COMNRG1L In stock. Attributes Sort By Relevancy \u00a314.24 Gold PRO-NRG 0W-20 - 1L Local Branch \u00a314.81 Gold ECO-Fo 0W-20 - 1L Local Branch \u00a318.37 Gold ECO-Z 0W-20 - 1L Local Branch \u00a316.60 Silver 0W20 Ez 1L Local Branch Stock Type Quantity Boldon 2 RDC 1 NDC 173 \u00a314.24 RRP: \u00a331.98 Buy Now Add to basket 0 ECO-FO 0W-20 - 5L SKU: COMECOFO5L In stock. Attributes Sort By Relevancy \u00a356.99 Gold ECO-Fo 0W-20 - 5L Local Branch \u00a368.88 Gold ECO-Z 0W-20 - 5L Local Branch \u00a372.44 Gold PRO-NRG 0W-20 - 5L Local Branch \u00a354.63 Silver 0W20 Ez 5L Local Branch Stock Type Quantity Boldon 2 RDC 4 NDC 749 \u00a356.99 RRP: \u00a3127.98 Buy Now Add to basket 0",
+      "truncated": false,
+      "fitmentVerified": false,
+      "oilVerified": false,
+      "approvedForPublication": false,
+      "observedCategoryPath": "/parts/Engine%2520Oils%2520(Applicated)",
+      "attributes": {
+        "status": "NEEDS_REVIEW",
+        "reason": "MULTIPLE_OR_MISSING_PRODUCT_GROUPS"
+      }
+    }
+  },
+  {
+    "registration": "OX75UBJ",
+    "category": "Air Filter",
+    "capture": {
+      "status": "CAPTURED_FOR_REVIEW",
+      "reason": null,
+      "selectedRegistration": true,
+      "registration": "OX75UBJ",
+      "category": "Air Filter",
+      "headings": [
+        "Air Filter - Filter Insert",
+        "\u00a318.56"
+      ],
+      "skuLabels": [
+        "ADLADBP220170"
+      ],
+      "displayedPrices": [
+        "18.56",
+        "31.74"
+      ],
+      "displayedLitres": [],
+      "visibleText": "OX75UBJ Clear Nissan Qashqai Hybrid HEV 1.5h 205 e-Power HEV CVT Auto Start/Stop Tekna 1.5 (1497cc) Petrol/Hybrid Electric CVT 5 doors 27/01/26 26/01/29 Copy VIN More Details All categories / Filters / Air Filter Related: Oil Filter Fuel Filter Cabin Filter Urea Filter Engine Oil Sump Plug Sump Plug Washer Air Filter - Filter Insert SKU: ADLADBP220170 In stock in RDC. Get it this afternoon. Attributes Sort By Relevancy \u00a318.56 Bronze Air Filter - Filter Insert RDC Show More Stock Type Quantity Boldon 0 RDC 1 NDC 0 \u00a318.56 RRP: \u00a331.74 Buy Now Add to basket 0",
+      "truncated": false,
+      "fitmentVerified": false,
+      "oilVerified": false,
+      "approvedForPublication": false,
+      "attributes": {
+        "status": "ATTRIBUTES_CAPTURED",
+        "rows": [
+          {
+            "attribute": "Info",
+            "value": "Filter Insert"
+          }
+        ],
+        "oilVerified": false,
+        "groupSku": "ADLADBP220170"
+      }
+    }
+  },
+  {
+    "registration": "OY75KKO",
+    "category": "Engine Oils (Applied)",
+    "capture": {
+      "status": "CAPTURED_FOR_REVIEW",
+      "reason": null,
+      "selectedRegistration": true,
+      "registration": "OY75KKO",
+      "category": "Engine Oils (Applied)",
+      "headings": [
+        "Engine Oil Information",
+        "Oil recommendation",
+        "Capacity",
+        "Viscosity",
+        "ECO-R 5W-30 - 1L",
+        "\u00a312.46"
+      ],
+      "skuLabels": [
+        "COMECOR1L"
+      ],
+      "displayedPrices": [
+        "12.46",
+        "60.55",
+        "27.98"
+      ],
+      "displayedLitres": [
+        "1L",
+        "4L",
+        "5L",
+        "20L",
+        "60L",
+        "199L"
+      ],
+      "visibleText": "OY75KKO Clear Nissan Qashqai 1.3 DIG-T 160 MHEV 12v XTronic CVT Auto Start/Stop Tekna+ 1.3 (1332cc) Petrol/Hybrid Electric CVT 5 doors 02/09/25 01/09/28 Copy VIN More Details All categories / Service Items / Fluids & Lubricants / Engine Oils (Applicated) Engine Oil Information Oil recommendation 5W-30 This is a recommended engine oil. If you\u2019re unsure, please refer to the vehicle manufacturer\u2019s handbook. Capacity 1L 4L 5L 20L 60L 199L Viscosity 5W-30 0W-20 ECO-R 5W-30 - 1L SKU: COMECOR1L In stock. Attributes Sort By Relevancy \u00a312.46 Gold ECO-R 5W-30 - 1L Local Branch \u00a360.55 Gold ECO-R 5W-30 - 5L Local Branch Stock Type Quantity Boldon 1 RDC 2 NDC 243 \u00a312.46 RRP: \u00a327.98 Buy Now Add to basket 0",
+      "truncated": false,
+      "fitmentVerified": false,
+      "oilVerified": false,
+      "approvedForPublication": false,
+      "observedCategoryPath": "/parts/Engine%2520Oils%2520(Applicated)",
+      "attributes": {
+        "status": "ATTRIBUTES_CAPTURED",
+        "rows": [
+          {
+            "attribute": "Extra Info",
+            "value": "Fully synthetic motor oil Fully synthetic, high performance 5W-30 engine oil. Suitable"
+          },
+          {
+            "attribute": "Sub Brand",
+            "value": "COMMA ECO-R 5W30"
+          },
+          {
+            "attribute": "Oil",
+            "value": "Part Synthetic Oil"
+          },
+          {
+            "attribute": "Oil Viscosity Classification SAE",
+            "value": "5W-30"
+          },
+          {
+            "attribute": "Packing Type",
+            "value": "Bottle"
+          },
+          {
+            "attribute": "Capacity (Litre)",
+            "value": "1"
+          },
+          {
+            "attribute": "Specification",
+            "value": "ACEA C3"
+          },
+          {
+            "attribute": "Manufacturer Release",
+            "value": "Renault RN17"
+          },
+          {
+            "attribute": "Bar Code",
+            "value": "501184605934"
+          },
+          {
+            "attribute": "Viscosity Filter",
+            "value": "5W-30"
+          }
+        ],
+        "oilVerified": false,
+        "groupSku": "COMECOR1L"
+      }
+    }
+  },
+  {
+    "registration": "PO11YFC",
+    "category": "Oil Filter",
+    "capture": {
+      "status": "CAPTURED_FOR_REVIEW",
+      "reason": null,
+      "selectedRegistration": true,
+      "registration": "PO11YFC",
+      "category": "Oil Filter",
+      "headings": [
+        "Oil Filter - Insert Filter",
+        "\u00a315.44"
+      ],
+      "skuLabels": [
+        "MANHU6014/1Z"
+      ],
+      "displayedPrices": [
+        "15.44",
+        "12.67",
+        "2.80",
+        "23.17"
+      ],
+      "displayedLitres": [],
+      "visibleText": "PO11YFC Clear BMW 3 Series 320d 190 Step Auto Start/Stop 320 M Sport 2.0 (1995cc) Diesel Semi Automatic 4 doors 15/03/18 22/07/27 Copy VIN More Details All categories / Filters / Oil Filter Related: Air Filter Fuel Filter Cabin Filter Urea Filter Engine Oil Sump Plug Sump Plug Washer Oil Filter - Insert Filter SKU: MANHU6014/1Z In stock. Attributes Sort By Relevancy \u00a315.44 Gold Oil Filter - Insert Filter Local Branch \u00a312.67 Silver Oil Filter - Insert Filter Local Branch \u00a32.80 Silver Oil Filter - Insert RDC Show More Stock Type Quantity Boldon 3 RDC 10 NDC 2940 \u00a315.44 RRP: \u00a323.17 Buy Now Add to basket 0",
+      "truncated": false,
+      "fitmentVerified": false,
+      "oilVerified": false,
+      "approvedForPublication": false,
+      "attributes": {
+        "status": "ATTRIBUTES_CAPTURED",
+        "rows": [
+          {
+            "attribute": "Bar Code",
+            "value": "401155809796"
+          },
+          {
+            "attribute": "Inner Diameter 1 (mm)",
+            "value": "15"
+          },
+          {
+            "attribute": "Outer Diameter 1 (mm)",
+            "value": "53"
+          },
+          {
+            "attribute": "Outer Diameter (mm)",
+            "value": "53"
+          },
+          {
+            "attribute": "Inner Diameter (mm)",
+            "value": "22"
+          },
+          {
+            "attribute": "Height (mm)",
+            "value": "134"
+          },
+          {
+            "attribute": "Filter Type",
+            "value": "Filter Insert"
+          },
+          {
+            "attribute": "Other Info",
+            "value": "with seal"
+          }
+        ],
+        "oilVerified": false,
+        "groupSku": "MANHU6014/1Z"
+      }
+    }
+  },
+  {
+    "registration": "PO11YFC",
+    "category": "Fuel Filter",
+    "capture": {
+      "status": "CAPTURED_FOR_REVIEW",
+      "reason": null,
+      "selectedRegistration": true,
+      "registration": "PO11YFC",
+      "category": "Fuel Filter",
+      "headings": [
+        "Fuel Filter - In-Line Filter",
+        "\u00a334.93",
+        "Fuel Filter - In-Line"
+      ],
+      "skuLabels": [
+        "MANWK5005/1",
+        "BOSF026402824"
+      ],
+      "displayedPrices": [
+        "34.93",
+        "28.93",
+        "33.07",
+        "10.62",
+        "58.14",
+        "41.25",
+        "0.00"
+      ],
+      "displayedLitres": [],
+      "visibleText": "PO11YFC Clear BMW 3 Series 320d 190 Step Auto Start/Stop 320 M Sport 2.0 (1995cc) Diesel Semi Automatic 4 doors 15/03/18 22/07/27 Copy VIN More Details All categories / Filters / Fuel Filter Related: Oil Filter Air Filter Cabin Filter Urea Filter Engine Oil Sump Plug Sump Plug Washer There are multiple options! Not sure which one fits? Call your local branch on 0191 644 4789 and we'll help you choose. WhatsApp branch Fuel Filter - In-Line Filter SKU: MANWK5005/1 In stock. Attributes Sort By Relevancy \u00a334.93 Gold Fuel Filter - In-Line Filter Local Branch \u00a328.93 Silver Fuel Filter - In-Line Filter Local Branch \u00a333.07 Gold Fuel Filter - Canister RDC \u00a310.62 Silver Fuel Filter - Canister RDC Show More Stock Type Quantity Boldon 2 RDC 3 NDC 876 \u00a334.93 RRP: \u00a358.14 Buy Now Add to basket 0 Fuel Filter - In-Line SKU: BOSF026402824 Call your branch for availability. Attributes Sort By Relevancy \u00a341.25 Gold Fuel Filter - In-Line Branch Network \u00a30.00 Bronze Out Of Stock \u00a30.00 Bronze Out Of Stock \u00a30.00 Bronze Out Of Stock Please contact your branch for availability. They will be able to provide more information. Need assistance? Call branch: 0191 644 4789 Opening hours: Monday-Friday 8:00 - 17:30 Saturday 8:00 - 14:00 Sunday Closed WhatsApp branch",
+      "truncated": false,
+      "fitmentVerified": false,
+      "oilVerified": false,
+      "approvedForPublication": false,
+      "attributes": {
+        "status": "NEEDS_REVIEW",
+        "reason": "MULTIPLE_OR_MISSING_PRODUCT_GROUPS"
+      }
+    }
+  },
+  {
+    "registration": "R10WPC",
+    "category": "Engine Oils (Applied)",
+    "capture": {
+      "status": "CAPTURED_FOR_REVIEW",
+      "reason": null,
+      "selectedRegistration": true,
+      "registration": "R10WPC",
+      "category": "Engine Oils (Applied)",
+      "headings": [
+        "Engine Oil Information",
+        "Oil recommendation",
+        "Capacity",
+        "Viscosity",
+        "ECO-FE Plus 0W-30 - 1L",
+        "\u00a314.24",
+        "ECO-FE Plus 0W-30 - 5L",
+        "\u00a349.95"
+      ],
+      "skuLabels": [
+        "COMECOFEP1L",
+        "COMECOFEP5L"
+      ],
+      "displayedPrices": [
+        "14.24",
+        "31.98",
+        "49.95",
+        "127.98"
+      ],
+      "displayedLitres": [
+        "1L",
+        "5L",
+        "20L",
+        "60L",
+        "199L"
+      ],
+      "visibleText": "R10WPC Clear Land Rover Defender D350 AWD MHEV 48v Auto Start/Stop 110 X-Dynamic HSE 3.0 (2996cc) Diesel/Hybrid Electric Semi Automatic 5 doors 05/09/25 04/09/28 Copy VIN More Details All categories / Service Items / Fluids & Lubricants / Engine Oils (Applicated) Engine Oil Information Oil recommendation 0W-30 This is a recommended engine oil. If you\u2019re unsure, please refer to the vehicle manufacturer\u2019s handbook. Capacity 1L 5L 20L 60L 199L Viscosity 0W-30 ECO-FE Plus 0W-30 - 1L SKU: COMECOFEP1L In stock. Attributes Sort By Relevancy \u00a314.24 Gold ECO-Fe Plus 0W-30 - 1L Local Branch Stock Type Quantity Boldon 8 RDC 11 NDC 1047 \u00a314.24 RRP: \u00a331.98 Buy Now Add to basket 0 ECO-FE Plus 0W-30 - 5L SKU: COMECOFEP5L In stock. Attributes Sort By Relevancy \u00a349.95 Gold ECO-Fe Plus 0W-30 - 5L Local Branch Stock Type Quantity Boldon 4 RDC 4 NDC 961 \u00a349.95 RRP: \u00a3127.98 Buy Now Add to basket 0",
+      "truncated": false,
+      "fitmentVerified": false,
+      "oilVerified": false,
+      "approvedForPublication": false,
+      "observedCategoryPath": "/parts/Engine%2520Oils%2520(Applicated)",
+      "attributes": {
+        "status": "NEEDS_REVIEW",
+        "reason": "MULTIPLE_OR_MISSING_PRODUCT_GROUPS"
+      }
+    }
+  },
+  {
+    "registration": "S11PTD",
+    "category": "Air Filter",
+    "capture": {
+      "status": "CAPTURED_FOR_REVIEW",
+      "reason": null,
+      "selectedRegistration": true,
+      "registration": "S11PTD",
+      "category": "Air Filter",
+      "headings": [
+        "Air Filter - Insert Filter",
+        "\u00a314.49",
+        "Air Filter",
+        "Ramair Performance Replacement Panel Air Filter To Fit A4 A5"
+      ],
+      "skuLabels": [
+        "MANC27192/1",
+        "RMAPPF-1721",
+        "RMAPPF-1905"
+      ],
+      "displayedPrices": [
+        "14.49",
+        "17.52",
+        "10.75",
+        "8.39",
+        "30.82",
+        "0.00"
+      ],
+      "displayedLitres": [],
+      "visibleText": "S11PTD Clear Audi A4 TDi TDV 140 S Line 2.0 (1968cc) Diesel Manual 5 doors 04/09/06 12/12/26 Copy VIN More Details All categories / Filters / Air Filter Related: Oil Filter Fuel Filter Cabin Filter Urea Filter Engine Oil Sump Plug Sump Plug Washer There are multiple options! Not sure which one fits? Call your local branch on 0191 644 4789 and we'll help you choose. WhatsApp branch Air Filter - Insert Filter SKU: MANC27192/1 In stock. Attributes Sort By Relevancy \u00a314.49 Gold Air Filter - Insert Filter Local Branch \u00a317.52 Gold Air Filter - Insert Filter Local Branch \u00a310.75 Silver Air Filter - Insert Filter Local Branch \u00a38.39 Gold Air Filter RDC Show More Stock Type Quantity Boldon 1 RDC 1 NDC 114 \u00a314.49 RRP: \u00a330.82 Buy Now Add to basket 0 Air Filter SKU: RMAPPF-1721 Out of stock. Attributes Sort By Relevancy \u00a30.00 Bronze Out Of Stock Please contact your branch for availability. They will be able to provide more information. Need assistance? Call branch: 0191 644 4789 Opening hours: Monday-Friday 8:00 - 17:30 Saturday 8:00 - 14:00 Sunday Closed WhatsApp branch Ramair Performance Replacement Panel Air Filter To Fit A4 A5 SKU: RMAPPF-1905 Out of stock. Attributes Sort By Relevancy \u00a30.00 Bronze Performance Replacement Panel Air Filter To Fit A4 A5 Out Of Stock Please contact your branch for availability. They will be able to provide more information. Need assistance? Call branch: 0191 644 4789 Opening hours: Monday-Friday 8:00 - 17:30 Saturday 8:00 - 14:00 Sunday Closed WhatsApp branch",
+      "truncated": false,
+      "fitmentVerified": false,
+      "oilVerified": false,
+      "approvedForPublication": false,
+      "attributes": {
+        "status": "NEEDS_REVIEW",
+        "reason": "MULTIPLE_OR_MISSING_PRODUCT_GROUPS"
+      }
+    }
+  },
+  {
+    "registration": "S11PTD",
+    "category": "Fuel Filter",
+    "capture": {
+      "status": "CAPTURED_FOR_REVIEW",
+      "reason": null,
+      "selectedRegistration": true,
+      "registration": "S11PTD",
+      "category": "Fuel Filter",
+      "headings": [
+        "Fuel Filter - In-Line Filter",
+        "\u00a328.44",
+        "Fuel Filter Seal Set"
+      ],
+      "skuLabels": [
+        "MANWK842/21X",
+        "GSF121VG0680"
+      ],
+      "displayedPrices": [
+        "28.44",
+        "19.68",
+        "43.17",
+        "3.74"
+      ],
+      "displayedLitres": [],
+      "visibleText": "S11PTD Clear Audi A4 TDi TDV 140 S Line 2.0 (1968cc) Diesel Manual 5 doors 04/09/06 12/12/26 Copy VIN More Details All categories / Filters / Fuel Filter Related: Oil Filter Air Filter Cabin Filter Urea Filter Engine Oil Sump Plug Sump Plug Washer There are multiple options! Not sure which one fits? Call your local branch on 0191 644 4789 and we'll help you choose. WhatsApp branch Fuel Filter - In-Line Filter SKU: MANWK842/21X In stock. Attributes Sort By Relevancy \u00a328.44 Gold Fuel Filter - In-Line Filter Local Branch \u00a319.68 Silver Fuel Filter - In-Line Filter Local Branch Show More Stock Type Quantity Boldon 1 RDC 1 NDC 36 \u00a328.44 RRP: \u00a343.17 Buy Now Add to basket 0 Fuel Filter Seal Set SKU: GSF121VG0680 Out of stock. Attributes Sort By Relevancy \u00a33.74 Silver Fuel Filter Seal Set Out Of Stock Please contact your branch for availability. They will be able to provide more information. Need assistance? Call branch: 0191 644 4789 Opening hours: Monday-Friday 8:00 - 17:30 Saturday 8:00 - 14:00 Sunday Closed WhatsApp branch",
+      "truncated": false,
+      "fitmentVerified": false,
+      "oilVerified": false,
+      "approvedForPublication": false,
+      "attributes": {
+        "status": "NEEDS_REVIEW",
+        "reason": "MULTIPLE_OR_MISSING_PRODUCT_GROUPS"
+      }
+    }
+  },
+  {
+    "registration": "SB65BXU",
+    "category": "Fuel Filter",
+    "capture": {
+      "status": "CAPTURED_FOR_REVIEW",
+      "reason": null,
+      "selectedRegistration": true,
+      "registration": "SB65BXU",
+      "category": "Fuel Filter",
+      "headings": [
+        "Fuel Filter - Element",
+        "\u00a319.97"
+      ],
+      "skuLabels": [
+        "FRAC11574"
+      ],
+      "displayedPrices": [
+        "19.97",
+        "28.06",
+        "12.32",
+        "34.49"
+      ],
+      "displayedLitres": [],
+      "visibleText": "SB65BXU Clear Mercedes-Benz Citan 109 CDi Dualiner BlueEFFICIENCY XLWB Extended Frame Start/Stop 109 CDi Extra Long Dualiner BlueEFFICIENCY 1.5 (1461cc) Diesel Manual 4 doors 31/10/15 02/12/26 Copy VIN More Details All categories / Filters / Fuel Filter Related: Oil Filter Air Filter Cabin Filter Urea Filter Engine Oil Sump Plug Sump Plug Washer Fuel Filter - Element SKU: FRAC11574 In stock. Attributes Sort By Relevancy \u00a319.97 Gold Fuel Filter - Element Local Branch \u00a328.06 Gold Fuel Filter - Insert Filter Local Branch \u00a312.32 Silver Fuel Filter - Insert Filter Local Branch Show More Stock Type Quantity Boldon 1 RDC 1 NDC 78 \u00a319.97 RRP: \u00a334.49 Buy Now Add to basket 0",
+      "truncated": false,
+      "fitmentVerified": false,
+      "oilVerified": false,
+      "approvedForPublication": false,
+      "attributes": {
+        "status": "ATTRIBUTES_CAPTURED",
+        "rows": [
+          {
+            "attribute": "Filter Type",
+            "value": "Filter Insert"
+          },
+          {
+            "attribute": "Height (mm)",
+            "value": "118"
+          },
+          {
+            "attribute": "Outer Diameter (mm)",
+            "value": "81"
+          },
+          {
+            "attribute": "Inner Diameter (mm)",
+            "value": "11"
+          },
+          {
+            "attribute": "Diameter 3 (mm)",
+            "value": "87"
+          },
+          {
+            "attribute": "Bar Code",
+            "value": "502265028629"
+          }
+        ],
+        "oilVerified": false,
+        "groupSku": "FRAC11574"
+      }
+    }
+  }
+]

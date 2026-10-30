@@ -74,14 +74,28 @@ export async function openSelectedProduct(page,selected){
  // requires the exact manufacturer code, description, price, VAT and stock.
  if(!selected.detailUrl&&/^MAN[A-Za-z0-9._-]+\/[A-Za-z0-9._/-]+$/.test(selected.searchTerm)){
   const term=selected.searchTerm,sku=term.slice(3);
+  let step='PRODUCT_SEARCH_DISMISS';
+  try {
   await page.keyboard.press('Escape');
   const search=page.getByRole('textbox',{name:"Search for OE (cross ref), aftermarket or categories like 'Air filter'",exact:true});
-  await search.fill(term,{timeout:15000});await search.press('Enter',{timeout:15000});
+  step='PRODUCT_SEARCH_INPUT';
+  await search.fill(term,{timeout:15000});
+  step='PRODUCT_SEARCH_SUBMIT';await search.press('Enter',{timeout:15000});
+  step='PRODUCT_SEARCH_HEADING';
   await page.getByRole('heading',{name:'Search Results for "'+term+'"',exact:true}).waitFor({state:'visible',timeout:15000});
+  step='PRODUCT_SEARCH_EXACT_SKU';
   const code=page.getByRole('main').getByText(sku,{exact:true});
   await code.waitFor({state:'visible',timeout:15000});
   if(await code.count()!==1||!await code.isVisible())throw Error('PRODUCT_LINK_UNCONFIRMED');
+  step='PRODUCT_SEARCH_OPEN';
   await code.click({timeout:15000});return;
+  } catch(error) {
+   // Retain the original failure and its exact step, without logging page text,
+   // credentials, URLs or supplier account details. Never relax product checks.
+   error.stage=step;
+   error.evidence={...error.evidence,sku:term,expectedDescription:selected.description,expectedPricePence:selected.expectedPricePence};
+   throw error;
+  }
  }
  await page.goto(selectedProductUrl(selected),{waitUntil:'domcontentloaded',timeout:15000});
 }

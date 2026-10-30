@@ -45,3 +45,28 @@ test('a lower-grade first group cannot hide a separate confirmed Gold filter gro
  assert.throws(()=>catalogueSelection({...capture,visibleText:capture.visibleText.replace('14.36 Gold','14.36 Silver')},'cabin_filter','PA14GEO'));
  assert.throws(()=>catalogueSelection({...capture,visibleText:capture.visibleText.replace('Cabin Filter - Particulate Filter Local Branch Stock Type Quantity Boldon 1','Cabin Filter - Particulate Filter Local Branch Stock Type Quantity Boldon 0')},'cabin_filter','PA14GEO'));
 });
+
+test('each supplier search failure retains its precise step and original error without claiming a repair',async()=>{
+ const steps=['PRODUCT_SEARCH_DISMISS','PRODUCT_SEARCH_INPUT','PRODUCT_SEARCH_SUBMIT','PRODUCT_SEARCH_HEADING','PRODUCT_SEARCH_EXACT_SKU','PRODUCT_SEARCH_OPEN'];
+ for(const target of steps){
+  const original=Object.assign(Error('supplier timeout'),{name:'TimeoutError'});
+  const hit=async step=>{if(step===target)throw original;};
+  const page={keyboard:{press:()=>hit(steps[0])},getByRole(role){
+   if(role==='textbox')return {fill:()=>hit(steps[1]),press:()=>hit(steps[2])};
+   if(role==='heading')return {waitFor:()=>hit(steps[3])};
+   return {getByText:()=>({waitFor:()=>hit(steps[4]),count:async()=>1,isVisible:async()=>true,click:()=>hit(steps[5])})};
+  }};
+  await assert.rejects(openSelectedProduct(page,selected),error=>error===original&&error.stage===target&&error.name==='TimeoutError');
+ }
+});
+
+test('search step survives batch sanitisation and remains a failed timeout, never a successful check',async()=>{
+ const {diagnosticCase}=await import('../../workers/gsf/diagnostic-case.mjs');
+ const row=rows[0];
+ const result=await diagnosticCase({}, {registration:row.registration,operation:'oil'}, {
+  capture:async()=>row.capture,
+  readFresh:async()=>{throw Object.assign(Error('supplier search timed out'),{name:'TimeoutError',stage:'PRODUCT_SEARCH_EXACT_SKU'});}
+ });
+ assert.equal(result.outcome,'FAILED');assert.equal(result.reason,'LOOKUP_TIMEOUT');assert.equal(result.evidence.stage,'PRODUCT_SEARCH_EXACT_SKU');
+ assert.equal(JSON.stringify(result).includes('supplier search timed out'),false);
+});
