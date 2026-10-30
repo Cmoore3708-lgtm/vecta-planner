@@ -205,7 +205,7 @@ function serviceExtraSummary(){
 function serviceExtraHtml(){
  const kind=serviceExtraKind();if(!kind)return '';
  const petrol=kind==='spark_plug',label=petrol?'Spark plugs':'Fuel filter',choice=serviceExtraSelection(),offer=serviceExtraOffer();
- const price=offer?'Extra £'+(offer.totalPence/100).toLocaleString('en-GB',{maximumFractionDigits:2})+' including fitting & VAT.':'We will confirm the price before fitting.';
+ const price=offer?(kind==='fuel_filter'?'We estimate the cost of fitting your fuel filter will be £'+(offer.totalPence/100).toLocaleString('en-GB',{minimumFractionDigits:offer.totalPence%100?2:0,maximumFractionDigits:2})+'.':'Extra £'+(offer.totalPence/100).toLocaleString('en-GB',{maximumFractionDigits:2})+' including fitting & VAT.'):'We will confirm the price before fitting.';
  return `<section class="service-extra-strip" aria-label="Optional ${label.toLowerCase()}"><div class="service-extra-title"><h4>${label}</h4>${petrol?'<span class="service-extra-plugs" role="img" aria-label="Spark plugs"></span>':'<img src="/assets/service-fuel-filter.webp" alt="Hand-drawn fuel filter" width="38" height="28">'}</div><p>Not sure? We will check the manufacturer’s guidance.</p><select data-service-extra aria-label="${label} replacement choice"><option value="none" ${choice==='none'?'selected':''}>No thanks</option><option value="check" ${choice==='check'?'selected':''}>Check first — replace only if due</option><option value="replace" ${choice==='replace'?'selected':''}>Go ahead and replace ${petrol?'them':'it'}</option></select><p class="service-extra-price" role="status">${price}</p></section>`;
 }
 function bindServiceExtra(){
