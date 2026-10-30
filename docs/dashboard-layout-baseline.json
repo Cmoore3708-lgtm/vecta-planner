@@ -1,7 +1,7 @@
 {
-  "approvedOn": "2026-10-27",
+  "approvedOn": "2026-10-30",
   "approvedBy": "Chris Moore",
-  "approval": "Chris’s 23 October screenshot request: hide duplicate MOT job-type/template wording when an MOT appointment is displayed, and let the PC vehicle make/model extend to the visible car edge. Shared Main/mechanics renderers checked at PC and phone widths; extra work and appointment remain visible. MOT confirmation request: Chris approved green MOT/time after garage confirmation and automatic allocation of unallocated MOT jobs to Chris. Only mobileMotAppointmentHtml and plannerMotHeaderHtml are additionally changed; both Main/mechanics outputs are covered by regression tests. Chris’s 23 October mechanic screenshot request: remove overlapping card text at PC and iPad widths. Identity rows now reserve their natural height and work follows the header. Checked shared Main/mechanics CSS at 800, 1024 and 1440px; phone rules retained. Chris’s 23 October missing-image and Main text-alignment regression report, followed by “Carry on”: restore the whole card as the artwork positioning container while retaining natural text rows and the Haynes link fix. Only the final header position changes from relative to static; shared Main/mechanics checked at phone, tablet and desktop widths. Chris’s 27 October screenshot request: fix overlapping MOT/service/customer rows and allow make/model text to reach the vehicle. Full-width header keeps artwork sizing independent of silhouette-sized identity; natural flex rows prevent track compression; static work positioning removes legacy relative offsets. Shared Main/mechanics CSS checked at desktop/tablet widths; phone rules unchanged.",
+  "approval": "Chris’s 23 October screenshot request: hide duplicate MOT job-type/template wording when an MOT appointment is displayed, and let the PC vehicle make/model extend to the visible car edge. Shared Main/mechanics renderers checked at PC and phone widths; extra work and appointment remain visible. MOT confirmation request: Chris approved green MOT/time after garage confirmation and automatic allocation of unallocated MOT jobs to Chris. Only mobileMotAppointmentHtml and plannerMotHeaderHtml are additionally changed; both Main/mechanics outputs are covered by regression tests. Chris’s 23 October mechanic screenshot request: remove overlapping card text at PC and iPad widths. Identity rows now reserve their natural height and work follows the header. Checked shared Main/mechanics CSS at 800, 1024 and 1440px; phone rules retained. Chris’s 23 October missing-image and Main text-alignment regression report, followed by “Carry on”: restore the whole card as the artwork positioning container while retaining natural text rows and the Haynes link fix. Only the final header position changes from relative to static; shared Main/mechanics checked at phone, tablet and desktop widths. Chris’s 27 October screenshot request: fix overlapping MOT/service/customer rows and allow make/model text to reach the vehicle. Full-width header keeps artwork sizing independent of silhouette-sized identity; natural flex rows prevent track compression; static work positioning removes legacy relative offsets. Shared Main/mechanics CSS checked at desktop/tablet widths; phone rules unchanged. Chris’s 30 October job-card screenshot request: hide repeated standard descriptions for selected services, six-month checks and MOTs, preserving additional instructions. Only plannerJobDescription changes; shared Main/mechanics renderer and existing responsive styles remain identical.",
   "layout": {
     "main": {
       "functions": {
@@ -58,7 +58,7 @@
           "26e3ed63b218a16ad042afe76e477213faee324788b7a42769dde5369a1a9438"
         ],
         "plannerJobDescription": [
-          "ef28ffca9add68705a6a77af920de659b7f033a73014d4e5283072d6a765553e"
+          "c10d60361dfdf47c0ee084c379c63a9b046bf87665205ec53b534a546230dae8"
         ],
         "plannerJobTypesHtml": [
           "a89ca7f9ba3de0f507f3bd54a788f2d6d1cd078bfc7019584612c1982859ab89"
@@ -154,7 +154,7 @@
           "26e3ed63b218a16ad042afe76e477213faee324788b7a42769dde5369a1a9438"
         ],
         "plannerJobDescription": [
-          "ef28ffca9add68705a6a77af920de659b7f033a73014d4e5283072d6a765553e"
+          "c10d60361dfdf47c0ee084c379c63a9b046bf87665205ec53b534a546230dae8"
         ],
         "plannerJobTypesHtml": [
           "a89ca7f9ba3de0f507f3bd54a788f2d6d1cd078bfc7019584612c1982859ab89"
