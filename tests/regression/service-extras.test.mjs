@@ -25,22 +25,22 @@ async function offers(raw=costs()){
 function body(quote,choice='replace',kind='fuel_filter'){
  return {registration:request.registration,service_choice:'Full Service',mileage_unknown:true,parts_range:'Mid Range',service_price_token:quote.token,service_extra_kind:kind,service_extra_choice:choice};
 }
-test('live diesel extra includes configured margin, incremental labour and VAT without leaking costs',async()=>{
- const q=await offers();assert.equal(q.serviceExtra.kind,'fuel_filter');assert.equal(q.serviceExtra.totalPence,6000);
+test('fuel-filter estimate is the VAT-inclusive GSF cost plus 30 percent plus £25, without £5 rounding',async()=>{
+ const q=await offers();assert.equal(q.serviceExtra.kind,'fuel_filter');assert.equal(q.serviceExtra.totalPence,5620);
  assert.equal(q.serviceExtra.netPence+q.serviceExtra.vatPence,q.serviceExtra.totalPence);
- assert.equal(verifyServicePrice(q.token,q.request,secret).serviceExtra.totalPence,6000);
+ assert.equal(verifyServicePrice(q.token,q.request,secret).serviceExtra.totalPence,5620);
  assert.ok(!JSON.stringify(q).includes('unitNetPence'));
 });
 test('replace includes the extra once; check-first keeps it conditional; none excludes it',async()=>{
  const q=await offers(),base=q.totalPence/100;
  const replace=bookingServicePrice(body(q),['Full Service'],secret);
- assert.equal(replace.approximateCost,base+60);assert.match(replace.snapshot,/Customer requests replacement/);
+ assert.equal(replace.approximateCost,base+56.20);assert.match(replace.snapshot,/Customer requests replacement/);
  assert.equal(replace.quote.items.filter(i=>i.kind==='fuel_filter').length,1);
  const check=bookingServicePrice(body(q,'check'),['Full Service'],secret);
  assert.equal(check.approximateCost,base);assert.match(check.snapshot,/replace only if due/);
  assert.ok(!check.quote.items.some(i=>i.kind==='fuel_filter'));
  assert.equal(bookingServicePrice(body(q,'none'),['Full Service'],secret).approximateCost,base);
- assert.equal(bookingServicePrice(body(q,'replace'),['Full Service','MOT'],secret).approximateCost,base+120);
+ assert.equal(bookingServicePrice(body(q,'replace'),['Full Service','MOT'],secret).approximateCost,base+116.20);
 });
 test('changed kind, customer supplied prices and missing plug quotes never invent a price',async()=>{
  const q=await offers();const b={...body(q,'replace','spark_plug'),service_extra_price:1};
@@ -79,6 +79,9 @@ test('approved slim section switches diesel/petrol and ignores a choice from ano
  assert.equal(document.querySelectorAll('select').length,1);assert.equal(document.querySelectorAll('input').length,0);
  assert.match(document.querySelector('.service-extra-price').textContent,/confirm the price before fitting/);
  assert.equal(root.serviceExtraSelection(),'check');
+ root.liveServiceQuote=()=>({serviceExtra:{kind:'fuel_filter',totalPence:5620}});
+ assert.match(root.serviceExtraHtml(),/We estimate the cost of fitting your fuel filter will be £56\.20\./);
+ root.liveServiceQuote=()=>null;
  state.form.fuel_type='Petrol';assert.equal(root.serviceExtraSelection(),'none');
  assert.match(root.serviceExtraHtml(),/Spark plugs/);assert.match(root.serviceExtraHtml(),/replace them/);
  state.form.registration='OTHER123';assert.equal(root.serviceExtraHtml(),'');assert.equal(root.serviceExtraSelection(),'none');
