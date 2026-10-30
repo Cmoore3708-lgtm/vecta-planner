@@ -1,0 +1,33 @@
+name: Workshop worker Windows checks
+on:
+  pull_request:
+    paths: ['workers/**', 'lib/worker-runtime.js', 'scripts/*worker*', 'tests/regression/managed-worker-releases.test.mjs', '.github/workflows/workshop-worker-windows.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  windows:
+    runs-on: windows-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Exercise release management without supplier access
+        run: node --test tests/regression/managed-worker-releases.test.mjs
+      - name: Exercise native PowerShell, DPAPI, duplicate runners and shortcut stability
+        shell: powershell
+        run: .\scripts\test-worker-windows.ps1
+      - name: Build one-time setup for review
+        shell: powershell
+        run: |
+          $version = (git rev-parse HEAD).Trim()
+          node scripts/package-workshop-workers.mjs "$env:RUNNER_TEMP\VECTA-Workers-Setup" $version
+          if ($LASTEXITCODE -ne 0) { throw 'Setup packaging failed' }
+          Compress-Archive -Path "$env:RUNNER_TEMP\VECTA-Workers-Setup\*" -DestinationPath "$env:RUNNER_TEMP\VECTA-Workers-Setup.zip"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: VECTA-Workers-Setup-for-review
+          path: ${{ runner.temp }}/VECTA-Workers-Setup.zip
+          retention-days: 14

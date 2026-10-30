@@ -8,7 +8,7 @@ const names=['README.md','CHECK-GSF-PRICES.cmd','COMPARE-TEN-CARS.cmd','SIGN-IN-
   'setup.cmd','readiness.mjs','probe.mjs','worker.mjs','supplier.mjs','product-dialog.mjs','self-check.mjs',
   'comparison.mjs','compare.mjs','comparison-input.example.json','gsf-config.example.json','pricing-policy.example.json',
   'recipe.template.json','package.json','package-lock.json'];
-const files=names.map(name=>'workers/gsf/'+name).concat('lib/service-pricing.js');
+const files=names.map(name=>'workers/gsf/'+name).concat('lib/service-pricing.js','lib/worker-runtime.js');
 for(const file of files)if(!existsSync(file))throw Error('Missing package file: '+file);
 const wrapper='@echo off\r\ncd /d "%~dp0"\r\ncall "workers\\gsf\\setup.cmd"\r\n';
 const comparison='@echo off\r\ncd /d "%~dp0workers\\gsf"\r\nnode compare.mjs\r\npause\r\n';

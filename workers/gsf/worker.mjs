@@ -7,6 +7,8 @@ import {createRepairBridge} from '../repair-quotes/shared-bridge.mjs';
 import {resolve} from 'node:path';
 import {createInterface} from 'node:readline/promises';
 import {lookupService,SUPPLIER} from './supplier.mjs';
+import {createWorkerRuntime} from '../../lib/worker-runtime.js';
+const runtime=createWorkerRuntime('GSF');
 
 const here=path.dirname(fileURLToPath(import.meta.url));
 const setup=process.argv.includes('--setup');
@@ -54,13 +56,15 @@ try {
     try {await terminal.question('Once signed in, press Enter to close and save the dedicated browser session: ');}finally{terminal.close();}
   } else {
     console.log('VECTA shared GSF worker started. Service and repair pricing use one supplier browser, with separate pricing policies. No basket or ordering actions.');
-    while(!stopped) {
-      if(repair){try{const state=await repair.tick();if(state!==lastRepairState){if(state==='IDLE')console.log('Repair quote connection ready. Waiting for Workshop Pro requests.');else if(state==='MATCHED')console.log('Fresh repair quote delivered to Workshop Pro.');else if(state==='DISABLED')console.log('Repair quoting is disabled on Workshop Pro.');lastRepairState=state;}}catch{lastRepairState='';console.log('Repair quote connection unavailable; retrying.');}}
+    while(!stopped&&!runtime.stopRequested()) {
+      if(repair){try{runtime.set('working');const state=await repair.tick();runtime.set(['LOGIN_REQUIRED','SETTINGS_REQUIRED','PAIRING_REQUIRED'].includes(state)?'attention':'connected',state==='MATCHED'?'LOOKUP_CONFIRMED':['LOGIN_REQUIRED','SETTINGS_REQUIRED','PAIRING_REQUIRED'].includes(state)?state:'RELAY_ONLY');if(state!==lastRepairState){if(state==='IDLE')console.log('Repair quote connection ready. Waiting for Workshop Pro requests.');else if(state==='MATCHED')console.log('Fresh repair quote delivered to Workshop Pro.');else if(state==='DISABLED')console.log('Repair quoting is disabled on Workshop Pro.');lastRepairState=state;}}catch{runtime.set('reconnecting','RELAY_UNAVAILABLE');lastRepairState='';console.log('Repair quote connection unavailable; retrying.');}}
+      if(runtime.stopRequested())break;
       if(!serviceEnabled){await sleep(2000);continue;}
       let task;
-      try {task=await rpc({action:'pull'});}catch(error){if(error.message==='PAIRING_REQUIRED')throw error;console.log('Workshop connection unavailable; retrying.');await sleep(5000);continue;}
+      try {task=await rpc({action:'pull'});}catch(error){runtime.set(error.message==='PAIRING_REQUIRED'?'attention':'reconnecting',error.message==='PAIRING_REQUIRED'?'PAIRING_REQUIRED':'RELAY_UNAVAILABLE');if(error.message==='PAIRING_REQUIRED')throw error;console.log('Workshop connection unavailable; retrying.');await sleep(5000);continue;}
       if(task.status==='DISABLED') {console.log('GSF service pricing is disabled on this deployment.');await sleep(repair?2000:15000);continue;}
       if(task.status==='JOB') {
+        runtime.set('working');
         let page,timer,completion;
         try {
           page=await context.newPage();
@@ -70,14 +74,15 @@ try {
           const status=['LOGIN_REQUIRED','SETTINGS_REQUIRED','REVIEW_REQUIRED'].includes(error.message)?error.message:'UNAVAILABLE';
           completion={action:'complete',id:task.id,lease:task.lease,request:task.request,status};
           console.log(status==='LOGIN_REQUIRED'?'GSF sign-in expired. Stop the worker and run SIGN-IN-GSF.cmd.':'Lookup ended: '+status);
+          runtime.set('attention',status);
         } finally {clearTimeout(timer);await page?.close().catch(()=>{});}
         for(let attempt=0;attempt<2;attempt++) {
-          try {const saved=await rpc(completion);console.log(saved.status==='SAVED'?'Result delivered.':'Result expired or unavailable.');break;}
+          try {const saved=await rpc(completion);if(saved.status==='SAVED'&&completion.status==='MATCHED')runtime.set('connected','LOOKUP_CONFIRMED');console.log(saved.status==='SAVED'?'Result delivered.':'Result expired or unavailable.');break;}
           catch {if(attempt===1)console.log('Result delivery failed; website will retain its guide price.');else await sleep(1000);}
         }
       }
       await sleep(2000);
     }
   }
-} finally {await repair?.close();await context.close().catch(()=>{});}
+} finally {await repair?.close();await context.close().catch(()=>{});runtime.close();}
 

@@ -6,6 +6,8 @@ import { createLookupService } from './service.mjs';
 import { pollServiceQueue } from './relay-poll.mjs';
 import { createBrowserRecovery } from './browser-recovery.mjs';
 import { vehicleResult } from '../../lib/haynes-vehicle.js';
+import {createWorkerRuntime} from '../../lib/worker-runtime.js';
+const runtime=createWorkerRuntime('Haynes');
 
 const endpoint = 'https://brqsejjykrubxuofavuu.supabase.co/functions/v1/haynes-pc-relay';
 const token = process.env.HAYNES_RELAY_TOKEN;
@@ -46,18 +48,21 @@ let stopped = false;
 for (const signal of ['SIGTERM','SIGINT']) process.on(signal,() => { stopped = true; browser.close().catch(() => {}); });
 console.log('VECTA vehicle lookup recovery 2026-10-15.1');
 console.log('Connected to Haynes. Keep this window open. Press Ctrl+C to stop.');
+runtime.set('connected','RELAY_ONLY');
 const servicePolling = pollServiceQueue(rpc, serviceTasks, {
-  isStopped:()=>stopped,
+  isStopped:()=>stopped||runtime.stopRequested(),
   stop:()=>{stopped=true;console.log('Pairing expired or revoked. Run setup again.');},
   onUnavailable:()=>console.log('Service relay unavailable. Vehicle lookups continue.')
 });
 try {
-  while (!stopped) {
+  while (!stopped&&!runtime.stopRequested()) {
     try {
       // Service polling runs independently: its outage cannot delay this queue.
       const job = firstRelayJob || await rpc({action:'pull'});
+      runtime.set('connected','RELAY_ONLY');
       firstRelayJob = null;
       if (job.status === 'JOB') {
+        runtime.set('working');
         let result;
         try { result = {status:'MATCHED',vehicle:vehicleResult(await lookup(job.registration,{retry:job.retry===true}),job.registration)}; }
         catch (error) {
@@ -65,12 +70,14 @@ try {
           console.log('Haynes lookup status: '+result.status+' · '+(error.stage||'LOOKUP')+' · '+(error.reason||error.code||'UNAVAILABLE')+' · '+(error.browserDetail||''));
         }
         await rpc({action:'complete',id:job.id,lease:job.lease,...result});
+        runtime.set(result.status==='MATCHED'?'connected':'attention',result.status==='MATCHED'?'LOOKUP_CONFIRMED':result.status);
       }
     } catch (error) {
-      if (error.message === 'PAIRING_REQUIRED') { console.log('Pairing expired or revoked. Run setup again.'); break; }
+      if (error.message === 'PAIRING_REQUIRED') { runtime.set('attention','PAIRING_REQUIRED');console.log('Pairing expired or revoked. Run setup again.'); break; }
+      runtime.set('reconnecting','RELAY_UNAVAILABLE');
       console.log('Vehicle relay connection unavailable. Retrying shortly.');
     }
     if (!stopped) await new Promise(resolve => setTimeout(resolve,5000));
   }
-} finally { stopped=true; await browser.close(); await Promise.all([serviceTasks.done,servicePolling]); }
+} finally { stopped=true; await servicePolling; await serviceTasks.done; await browser.close();runtime.close(); }
 

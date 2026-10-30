@@ -1,0 +1,101 @@
+name: Publish approved workshop workers
+on:
+  workflow_dispatch:
+    inputs:
+      commit:
+        description: Exact 40-character Main commit approved for the workers
+        required: true
+      windows_acceptance:
+        description: Link to recorded workshop-PC supplier acceptance results
+        required: true
+permissions:
+  contents: read
+concurrency:
+  group: publish-workshop-workers
+  cancel-in-progress: false
+jobs:
+  verify:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      WORKER_COMMIT: ${{ inputs.commit }}
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          fetch-depth: 0
+      - name: Require an exact commit already on Main
+        run: |
+          [[ "$WORKER_COMMIT" =~ ^[a-f0-9]{40}$ ]]
+          git merge-base --is-ancestor "$WORKER_COMMIT" origin/main
+          git checkout --detach "$WORKER_COMMIT"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - run: npm ci --prefix workers/haynes --ignore-scripts
+      - run: npm run release:gate
+      - name: Build the immutable release and one-time installer
+        run: |
+          node scripts/package-workshop-workers.mjs "$RUNNER_TEMP/workers-installer" "$WORKER_COMMIT"
+          mkdir -p "$RUNNER_TEMP/worker-publish"
+          cp "$RUNNER_TEMP/workers-installer/initial-release.vecta.gz" "$RUNNER_TEMP/worker-publish/workers.vecta.gz"
+          cp "$RUNNER_TEMP/workers-installer/channel.json" "$RUNNER_TEMP/worker-publish/channel.json"
+          cd "$RUNNER_TEMP/workers-installer"
+          zip -qr "$RUNNER_TEMP/worker-publish/VECTA-Workers-Setup.zip" .
+      - uses: actions/upload-artifact@v4
+        with:
+          name: approved-worker-release
+          path: ${{ runner.temp }}/worker-publish/
+          retention-days: 7
+  windows:
+    if: github.ref == 'refs/heads/main'
+    runs-on: windows-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          ref: ${{ inputs.commit }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - run: node --test tests/regression/managed-worker-releases.test.mjs
+      - shell: powershell
+        run: .\scripts\test-worker-windows.ps1
+  publish:
+    needs: [verify, windows]
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment: worker-production
+    permissions:
+      contents: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+      WORKER_COMMIT: ${{ inputs.commit }}
+      ACCEPTANCE_RECORD: ${{ inputs.windows_acceptance }}
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: approved-worker-release
+          path: release
+      - name: Fail closed unless release reviewers are configured
+        run: |
+          gh api "repos/$GH_REPO/environments/worker-production" > environment.json
+          node -e 'const fs=require("fs");const e=JSON.parse(fs.readFileSync("environment.json"));if(!e.protection_rules?.some(r=>r.type==="required_reviewers"&&r.reviewers?.length))throw Error("Configure required reviewers on worker-production before publishing");'
+      - name: Publish immutable version first, then move approved channel
+        run: |
+          [[ "$WORKER_COMMIT" =~ ^[a-f0-9]{40}$ ]]
+          printf '%s\n' 'Approved worker release. Workshop-PC acceptance record:' "$ACCEPTANCE_RECORD" > notes.txt
+          if gh release view "workers-$WORKER_COMMIT" >/dev/null 2>&1; then
+            mkdir existing
+            gh release download "workers-$WORKER_COMMIT" --pattern workers.vecta.gz --dir existing
+            cmp existing/workers.vecta.gz release/workers.vecta.gz
+          else
+            gh release create "workers-$WORKER_COMMIT" release/workers.vecta.gz release/VECTA-Workers-Setup.zip --target "$WORKER_COMMIT" --title "Workshop workers $WORKER_COMMIT" --notes-file notes.txt --latest=false
+          fi
+          if ! gh release view workers-stable >/dev/null 2>&1; then
+            gh release create workers-stable --target "$WORKER_COMMIT" --title 'Approved workshop worker channel' --notes 'Only separately approved worker releases are served here.' --latest=false
+          fi
+          gh release upload workers-stable release/channel.json --clobber
