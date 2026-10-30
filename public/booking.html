@@ -77,8 +77,9 @@
 
 /* Loading copy stays secondary; final service prices retain their existing size. */
 .service-compact .price.service-price-pulsing{font-size:14px;font-weight:600;line-height:1.4;max-width:145px}
-.service-compact .free-clean{animation:freeCleanPulse 2.4s ease-in-out infinite}
-@keyframes freeCleanPulse{0%,100%{opacity:1;box-shadow:0 0 0 0 #ffffff00}50%{opacity:.65;box-shadow:0 0 10px 2px #ffffff40}}
+.service-compact .free-clean{border:2px solid #ef3340;animation:freeCleanPulse 1.2s ease-in-out infinite}
+@keyframes freeCleanPulse{0%,100%{opacity:1;box-shadow:0 0 0 0 #ef334000}50%{opacity:.8;box-shadow:0 0 10px 2px #ef334080}}
+@media(prefers-reduced-motion:reduce){.service-compact .free-clean{animation:none}}
 @media(prefers-reduced-motion:reduce){.service-compact .free-clean{animation:none}}
 
 .service-mileage-summary{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:0 0 18px;font-size:13px}.service-mileage-summary button{padding:9px 13px;font-size:12px}
