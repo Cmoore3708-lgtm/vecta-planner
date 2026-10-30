@@ -11341,7 +11341,7 @@ function fleetNmukMonthlyDefaults(){return [
   {description:'Flat battery',amount:0,section:'other'},
   {description:'Fit new tyres',amount:0,section:'internal'}
 ]}
-function fleetNmukMonthlyLines(month){return (fleetNmukMonthlyDrafts[month]||fleetNmukMonthlyDefaults()).map(function(x){return {description:String((window.VectaMonthlyPool?window.VectaMonthlyPool.renameLine(x):x).description||'').trim(),amount:Number(x.amount||0),section:x.section,vat_mode:'ex_vat',type:'Work',nmuk_monthly_extra:true}})}
+function fleetNmukMonthlyLines(month){return (fleetNmukMonthlyDrafts[month]||(app.settings&&app.settings.nmukPreviewDrafts&&app.settings.nmukPreviewDrafts[month])||fleetNmukMonthlyDefaults()).map(function(x){return {description:String((window.VectaMonthlyPool?window.VectaMonthlyPool.renameLine(x):x).description||'').trim(),amount:Number(x.amount||0),section:x.section,vat_mode:'ex_vat',type:'Work',nmuk_monthly_extra:true}})}
 function fleetNmukMonthTotals(rows,month){var internal=rows.reduce(function(s,r){return s+(fleetNmukIsInternalJob(r.job)?Number(r.amount||0):0)},0),other=rows.reduce(function(s,r){return s+(!fleetNmukIsInternalJob(r.job)?Number(r.amount||0):0)},0);(fleetNmukMonthlyCostsDue(month)?fleetNmukMonthlyLines(month):[]).forEach(function(x){if(x.section==='internal')internal+=x.amount;else other+=x.amount});return {internal:internal,other:other,total:internal+other}}
 async function fleetEomInvoice(name,month,rows){
   rows=(rows||[]).slice().sort(function(a,b){return String(a.date||'').localeCompare(String(b.date||''))||String(a.job&&a.job.registration||'').localeCompare(String(b.job&&b.job.registration||''))});
@@ -11380,7 +11380,10 @@ function fleetNmukEomExportReport(month,rows){
   var jobsTotal=rows.reduce(function(sum,row){return sum+Number(row.amount||0)},0),total=fleetEomCustomerTotal('NMUK',month,rows);
   var saved=vectaActiveInvoices().find(function(inv){return inv.fleet_customer==='NMUK'&&inv.fleet_month===month}),savedLines=saved&&saved.fleet_job_snapshot&&Array.isArray(saved.fleet_job_snapshot.invoice_lines)?saved.fleet_job_snapshot.invoice_lines:(saved&&Array.isArray(saved.lines)?saved.lines:null);
   var extras=savedLines?(savedLines[0]&&Array.isArray(savedLines[0].nmuk_monthly_extras)?savedLines[0].nmuk_monthly_extras:savedLines.filter(function(line){return line.nmuk_monthly_extra})):fleetNmukMonthlyLines(month);
-  extras=(fleetNmukMonthlyCostsDue(month)?extras:[]).map(function(line){return Object.assign({},window.VectaMonthlyPool?window.VectaMonthlyPool.renameLine(line):line)});
+  extras=extras.map(function(line){return Object.assign({},window.VectaMonthlyPool?window.VectaMonthlyPool.renameLine(line):line)});
+  // The downloadable job list includes editable monthly charges before month end.
+  // Issued invoices keep their frozen charges and totals; finance accrual timing is unchanged.
+  total=saved?(saved.fleet_job_snapshot&&Number.isFinite(Number(saved.fleet_job_snapshot.subtotal))?Number(saved.fleet_job_snapshot.subtotal):invoiceTotals(savedLines||[]).subtotal):jobsTotal+extras.reduce(function(sum,line){return sum+Number(line.amount||0)},0);
   var remainder=Number((total-jobsTotal-extras.reduce(function(sum,line){return sum+Number(line.amount||0)},0)).toFixed(2));
   if(Math.abs(remainder)>=0.01)extras.push({description:'Saved monthly charges / invoice adjustment'+(saved&&saved.invoice_number?' (invoice '+saved.invoice_number+')':''),amount:remainder,section:'unallocated'});
   var internal=rows.reduce(function(sum,row){return fleetNmukIsInternalJob(row.job)?sum+Number(row.amount||0):sum},0),other=jobsTotal-internal,unallocated=0;

@@ -6,7 +6,7 @@ const html=fs.readFileSync(new URL('../../index.html',import.meta.url),'utf8');
 function setup(saved,today='2029-01-01'){
  if(saved&&saved.fleet_job_snapshot===undefined)saved.fleet_job_snapshot={version:1,rows:JSON.parse(JSON.stringify(rows))};
  let output='',warning='';
- const context={todayIso:()=>today,alert:text=>{warning=text},fleetNormaliseCustomer:x=>x,vectaActiveInvoices:()=>saved?[saved]:[],invoiceTotals:lines=>({subtotal:lines.reduce((s,l)=>s+Number(l.amount||0),0)}),fleetNmukIsInternalJob:j=>j.internal,fleetEomLineItems:j=>[{description:'Workshop work',price:j.price}],niceDate:x=>x,fleetEomRegistrationText:()=>'',fleetNmukTypeForJob:j=>j.nmuk_type||'',financeBaseJob:j=>j,normReg:x=>String(x||'').replace(/ /g,'').toUpperCase(),app:{jobs:[],jobCustomerMemory:{}},window:{},Blob:class{constructor(parts){output=parts.join('')}},URL:{createObjectURL:()=>'',revokeObjectURL:()=>{}},document:{createElement:()=>({click(){},remove(){}}),body:{appendChild(){}}},setTimeout:()=>{}};
+ const context={todayIso:()=>today,alert:text=>{warning=text},fleetNormaliseCustomer:x=>x,vectaActiveInvoices:()=>saved?[saved]:[],invoiceTotals:lines=>({subtotal:lines.reduce((s,l)=>s+Number(l.amount||0),0)}),fleetNmukIsInternalJob:j=>j.internal,fleetEomLineItems:j=>[{description:'Workshop work',price:j.price}],niceDate:x=>x,fleetEomRegistrationText:()=>'',fleetNmukTypeForJob:j=>j.nmuk_type||'',financeBaseJob:j=>j,normReg:x=>String(x||'').replace(/ /g,'').toUpperCase(),app:{jobs:[],jobCustomerMemory:{},settings:{}},window:{},Blob:class{constructor(parts){output=parts.join('')}},URL:{createObjectURL:()=>'',revokeObjectURL:()=>{}},document:{createElement:()=>({click(){},remove(){}}),body:{appendChild(){}}},setTimeout:()=>{}};
  vm.createContext(context);
  vm.runInContext(html.slice(html.indexOf('function financeOwnershipRegistration('),html.indexOf('function financeHistoricalNmukAllocation(')),context);
  vm.runInContext(html.match(/function fleetNmukCsvTypeForJob\(job\)\{[\s\S]*?\n\}/)[0],context);
@@ -90,13 +90,14 @@ test('CSV uses saved MVOS subtype and job-customer memory, with Other for remain
  assert.match(s.csv(),/"Total:","50.00"/);
 });
 
-test('current month export and category totals exclude monthly costs until month end',()=>{
+test('current month export includes monthly costs while finance category totals wait until month end',()=>{
  const s=setup(null,'2026-10-30'),c=s.context;
  c.fleetNmukMonthlyDrafts['2026-10']=[{description:'Puncture repairs',amount:200,section:'internal'},{description:'Fleet Maintenance work',amount:900,section:'other'}];
  assert.equal(c.fleetNmukMonthTotals(rows,'2026-10').total,10350);
  c.fleetDownloadEomCsv('NMUK','2026-10',rows);
- assert.match(s.csv(),/"Total:","10350.00"/);
- assert.doesNotMatch(s.csv(),/Puncture repairs|Fleet Maintenance work/);
+ assert.match(s.csv(),/"Total:","11450.00"/);
+ assert.match(s.csv(),/"Puncture repairs","200.00"/);
+ assert.match(s.csv(),/"Fleet Maintenance work","900.00"/);
  assert.equal(c.fleetNmukMonthlyLines('2026-10')[0].amount,200);
  c.todayIso=()=> '2026-10-31';
  assert.equal(c.fleetNmukMonthTotals(rows,'2026-10').total,11450);
@@ -142,3 +143,21 @@ test('NMUK single October dates are literal DD/MM text for Excel',()=>{
  for(const date of ['01/10','09/10','14/10'])assert.ok(s.csv().includes('"=""'+date+'"""'));
  assert.match(s.csv(),/"Total:","30.00"/);
 });
+
+ test('direct download restores saved monthly edits without opening Preview',()=>{
+ const s=setup(null,'2026-10-30'),c=s.context;
+ c.app.settings.nmukPreviewDrafts={'2026-10':[{description:'Saved maintenance',amount:450,section:'other'}]};
+ c.fleetDownloadEomCsv('NMUK','2026-10',rows);
+ assert.match(s.csv(),/"Saved maintenance","450.00"/);
+ assert.match(s.csv(),/"Total:","10800.00"/);
+ assert.match(s.csv(),/"MVOS and other work:","7760.00"/);
+ assert.equal(c.fleetEomCustomerTotal('NMUK','2026-10',rows),10350);
+ });
+ test('issued invoice charges stay frozen before month end despite saved draft changes',()=>{
+ const s=setup({fleet_customer:'NMUK',fleet_month:'2026-10',lines:[{amount:10450,nmuk_monthly_extras:[{description:'Issued maintenance',amount:100,section:'other'}]}]},'2026-10-30');
+ s.context.app.settings.nmukPreviewDrafts={'2026-10':[{description:'Later edit',amount:900,section:'other'}]};
+ s.context.fleetDownloadEomCsv('NMUK','2026-10',rows);
+ assert.match(s.csv(),/"Issued maintenance","100.00"/);
+ assert.match(s.csv(),/"Total:","10450.00"/);
+ assert.doesNotMatch(s.csv(),/Later edit/);
+ });
