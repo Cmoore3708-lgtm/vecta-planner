@@ -15,9 +15,23 @@ try {
  }
  $secure = (Get-Content -Raw $tokenFile).Trim() | ConvertTo-SecureString
  $env:HAYNES_RELAY_TOKEN = (New-Object System.Net.NetworkCredential('', $secure)).Password
- & node live-worker.mjs
- if ($LASTEXITCODE -ne 0) { throw 'The tyre worker stopped. Send the error shown above.' }
+ $loginFile = Join-Path $env:LOCALAPPDATA 'VectaTyres\supplier-login.xml'
+ if (Test-Path $loginFile) {
+  $login = Import-Clixml $loginFile
+  $env:ESP_USERNAME = $login.UserName
+  $env:ESP_PASSWORD = $login.GetNetworkCredential().Password
+ }
+ $failures = 0
+ while ($true) {
+  & node live-worker.mjs
+  $failures++
+  $delay = [Math]::Min(300, 5 * [Math]::Pow(2, [Math]::Min($failures - 1, 6)))
+  Write-Host "Tyre browser stopped. Restarting automatically in $delay seconds. Close this window to stop."
+  Start-Sleep -Seconds $delay
+ }
 } finally {
+ Remove-Item Env:ESP_USERNAME -ErrorAction SilentlyContinue
+ Remove-Item Env:ESP_PASSWORD -ErrorAction SilentlyContinue
  Remove-Item Env:HAYNES_RELAY_TOKEN -ErrorAction SilentlyContinue
  if ($owns) { $mutex.ReleaseMutex() }
  $mutex.Dispose()

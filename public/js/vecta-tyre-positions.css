@@ -41,3 +41,7 @@
 .tyre-stock-notice{margin:8px 0;padding:10px 7px;border-radius:6px;background:#46252a;color:#ffe2e5;font-size:13px;line-height:1.45;text-align:center}
 @media(max-width:760px){.tyre-stock-notice{padding:8px 4px;font-size:11px}}
 
+
+/* Unavailable vehicle artwork leaves only the four labelled position boxes. */
+.tp-scene[data-artwork-ready="false"]{display:none}
+.tyre-position-selector{overflow-anchor:none}

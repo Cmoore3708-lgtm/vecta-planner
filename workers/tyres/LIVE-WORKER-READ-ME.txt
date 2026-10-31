@@ -1,34 +1,29 @@
-VECTA LIVE TYRE WORKER - READY FOR CONNECTION TEST
+VECTA TYRE RECOVERY UPDATE — 31 October 2026
 
-The separate tyre relay is deployed and its queue, authentication and lease
-checks have passed. Start this worker so we can verify supplier access.
-The website relay update is in review (PR 297); public prices are not yet live.
+WHEN YOU ARE BACK AT THE WORKSHOP PC
+1. Extract All from the ZIP.
+2. Run INSTALL-UPDATE.cmd on your existing paired PC.
+3. Use the new VECTA Tyre Worker desktop shortcut.
+4. If ESP asks, sign in and check Vecta / Sellout / Include VAT / multiplier 1.
+   The worker now resumes automatically. You do not need to press Enter.
+5. Optional: run SAVE-SUPPLIER-LOGIN.cmd once to save your existing ESP login.
+   The password is entered hidden and encrypted for your Windows account on this PC.
+   It is not stored in this ZIP or sent to Vecta servers. Restart the tyre worker
+   after saving it. Delete %LOCALAPPDATA%\VectaTyres\supplier-login.xml to remove it.
 
-Start the worker:
-1. On the Windows workshop PC already paired with Haynes, extract the entire ZIP.
-2. Close any old tyre setup/diagnostic Edge windows. Keep Haynes running.
-3. Open START-LIVE-TYRE-PRICES.cmd in the extracted folder.
-4. Sign into ESP if requested. Open Enquiry (right of the car).
-   Use Vecta, Show Sellout, Include VAT and multiplier 1. Leave Addons as usual.
-5. Return to the black window and press Enter. Wait for LIVE TYRE WORKER READY.
-6. Keep this window and its separate Edge browser open and keep the PC awake.
-7. Tell Chris/Codex when LIVE TYRE WORKER READY appears. We will then check
-   the live connection and a supplier search before enabling public prices.
-8. Once the website update is enabled, enter 205 / 55 R 16 and click Check Live
-   Prices. Compare all three guides with supplier Sellout before accepting them.
+WHAT RECOVERS AUTOMATICALLY
+- Temporary internet/relay outages are retried.
+- Closed/crashed browsers are restarted with increasing delays.
+- Supplier sessions are rechecked in the existing browser profile.
+- Saved credentials are used only on the exact ESP origin and verified login form.
+- Login retries are limited to one every 30 minutes in the running worker.
 
-This worker uses the encrypted pairing already saved by Haynes for this Windows
-user. It does not replace or stop Haynes, store a supplier password in files,
-or click Cart/Order. Login stays in your existing VectaTyres browser profile.
-Node.js 22+ and Edge are required. First launch installs the pinned packages.
-
-If login expires, sign into the supplier again, then restart this worker.
-If a price setting changes or supplier markup changes, guides fail closed.
-A guide remains valid for at most five minutes. Chris must verify the final
-load/speed rating and specification, availability and price before ordering.
-
-Current verification: automated contract, authentication, selection and UI
-checks pass. Database authentication, role isolation, request deduplication,
-leases, cache and rollback checks passed. The deployed endpoint rejects
-unauthenticated requests. A real supplier lookup still needs this PC running.
-Do not assume the website can return live prices until that test passes.
+LIMITS
+A changed login form, CAPTCHA, two-factor challenge, incorrect password or pricing
+settings still requires attention on the PC. This is not remote desktop access.
+Keep the worker window open; the PC must be awake and connected to the internet.
+The installer retains the existing Edge profile and Haynes pairing and backs up
+an existing installation in its managed folder. Other worker launchers are not
+rewired: start tyres with the new dedicated desktop shortcut.
+No orders or cart actions are performed. Live supplier testing is still required
+on your workshop PC; automated recovery and website regression tests passed here.

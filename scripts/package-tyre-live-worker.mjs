@@ -1,9 +1,13 @@
 import fs from 'node:fs';import path from 'node:path';
 const target=process.argv[2];if(!target||!path.isAbsolute(target))throw Error('Provide an absolute empty output folder');
 fs.mkdirSync(target,{recursive:true});if(fs.readdirSync(target).length)throw Error('Output folder must be empty');
-const names=['live-worker.mjs','browser.mjs','esp-search.mjs','esp-dom.mjs','esp-enquiry.mjs','esp-normalise.mjs','esp-settings.mjs','guide.mjs','start-live.ps1','package.json','package-lock.json'];
+const names=['live-worker.mjs','session-recovery.mjs','save-supplier-login.ps1','browser.mjs','esp-search.mjs','esp-dom.mjs','esp-enquiry.mjs','esp-normalise.mjs','esp-settings.mjs','guide.mjs','start-live.ps1','package.json','package-lock.json'];
 for(const name of names){const dest=path.join(target,'workers/tyres',name);fs.mkdirSync(path.dirname(dest),{recursive:true});fs.copyFileSync('workers/tyres/'+name,dest)}
 fs.mkdirSync(path.join(target,'lib'));fs.copyFileSync('lib/tyre-relay-contract.js',path.join(target,'lib/tyre-relay-contract.js'));
 fs.writeFileSync(path.join(target,'package.json'),'{"private":true,"type":"module"}\n');
 fs.writeFileSync(path.join(target,'START-LIVE-TYRE-PRICES.cmd'),'@echo off\r\nsetlocal\r\ncd /d "%~dp0workers\\tyres"\r\npowershell.exe -NoProfile -ExecutionPolicy Bypass -File "%~dp0workers\\tyres\\start-live.ps1"\r\npause\r\n');
 fs.copyFileSync('workers/tyres/LIVE-WORKER-READ-ME.txt',path.join(target,'READ-ME-FIRST.txt'));console.log('Prepared complete tyre worker package');
+
+fs.copyFileSync('workers/tyres/install-update.ps1',path.join(target,'install-update.ps1'));
+fs.writeFileSync(path.join(target,'INSTALL-UPDATE.cmd'),'@echo off\r\ncd /d "%~dp0"\r\npowershell.exe -NoProfile -ExecutionPolicy Bypass -File "%~dp0install-update.ps1"\r\npause\r\n');
+fs.writeFileSync(path.join(target,'SAVE-SUPPLIER-LOGIN.cmd'),'@echo off\r\npowershell.exe -NoProfile -ExecutionPolicy Bypass -File "%~dp0workers\\tyres\\save-supplier-login.ps1"\r\npause\r\n');
