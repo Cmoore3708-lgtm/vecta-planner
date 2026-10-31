@@ -189,7 +189,12 @@ function serviceExtraKind(){
  const f=state.form;
  if(!f.job_types.includes('Service')||f.service_choice!=='Full Service'||f.nevos_vehicle==='yes'||f.fuel_registration!==f.registration.toUpperCase().replace(/[^A-Z0-9]/g,''))return null;
  const fuel=String(f.fuel_type||'').trim().toLowerCase();
- return /diesel/.test(fuel)?'fuel_filter':/petrol/.test(fuel)?'spark_plug':null;
+ if(/diesel/.test(fuel))return 'fuel_filter';
+ if(/petrol/.test(fuel))return 'spark_plug';
+ // DVSA labels CM14 KEL as "Hybrid Electric (Clean)". Nissan e-POWER
+ // still has a petrol engine; do not infer petrol for other generic hybrids.
+ const nissanEpower=/^nissan$/i.test(String(f.vehicle_make||'').trim())&&/\be[\s\u2010-\u2015-]*power\b/i.test(String(f.vehicle||''));
+ return /hybrid/.test(fuel)&&nissanEpower?'spark_plug':null;
 }
 function serviceExtraOffer(){
  const kind=serviceExtraKind(),offer=liveServiceQuote('Full Service')?.serviceExtra;
