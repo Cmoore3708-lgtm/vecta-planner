@@ -97,6 +97,26 @@ test('approved slim section switches diesel/petrol and ignores a choice from ano
  state.form.registration='TEST123';state.form.fuel_type='Electricity';assert.equal(root.serviceExtraHtml(),'');
  state.form.fuel_type='Diesel';state.form.service_choice='Oil & Filter Change';assert.equal(root.serviceExtraHtml(),'');
 });
+test('CM14 KEL e-POWER offers spark plugs with guide prices while generic hybrids and EVs stay unclassified',()=>{
+ const html=readFileSync(new URL('../../website/booking/index.html',import.meta.url),'utf8');
+ const state={form:{job_types:['Service'],service_choice:'Full Service',registration:'CM14KEL',fuel_registration:'CM14KEL',fuel_type:'Hybrid Electric (Clean)',vehicle_make:'NISSAN',vehicle:'NISSAN QASHQAI TEKNA E-POWER AUTO'}};
+ const root={state,liveServiceQuote:()=>null};vm.createContext(root);
+ vm.runInContext(html.slice(html.indexOf('function serviceExtraKind(){'),html.indexOf('function bindServiceExtra(){')),root);
+ const {document}=parseHTML(root.serviceExtraHtml());
+ assert.equal(document.querySelector('h4').textContent,'Spark plugs');
+ assert.match(document.querySelector('.service-extra-price').textContent,/confirm the price before fitting/);
+ assert.equal(root.serviceExtraAddedPence(),0);
+ assert.match(root.serviceExtraSummary(),/Spark plugs: replacement requested/);
+ assert.match(serviceExtraSnapshot(bookingServiceExtra({service_choice:'Full Service',service_extra_kind:root.serviceExtraKind(),service_extra_choice:root.serviceExtraSelection()}),null),/Obtain price approval/);
+ for(const vehicle of ['NISSAN QASHQAI E POWER AUTO','NISSAN QASHQAI E\u2011POWER AUTO']){state.form.vehicle=vehicle;assert.equal(root.serviceExtraKind(),'spark_plug');}
+ state.form.vehicle='NISSAN QASHQAI HYBRID';assert.equal(root.serviceExtraKind(),null);
+ state.form.vehicle='NISSAN QASHQAI E-POWER';state.form.vehicle_make='OTHER';assert.equal(root.serviceExtraKind(),null);
+ state.form.vehicle_make='NISSAN';state.form.fuel_type='Electricity';assert.equal(root.serviceExtraKind(),null);
+ state.form.fuel_type='Diesel Hybrid';assert.equal(root.serviceExtraKind(),'fuel_filter');
+ state.form.fuel_type='Hybrid Electric (Clean)';state.form.registration='OTHER123';assert.equal(root.serviceExtraKind(),null);
+ state.form.registration='CM14KEL';state.form.service_choice='Oil & Filter Change';assert.equal(root.serviceExtraKind(),null);
+ state.form.service_choice='Full Service';state.form.nevos_vehicle='yes';assert.equal(root.serviceExtraKind(),null);
+});
 test('the service picker keeps Interim and Full and places the extra outside the clickable Full button',()=>{
  const html=readFileSync(new URL('../../website/booking/index.html',import.meta.url),'utf8');
  const start=html.indexOf('function serviceOptionsHtml(){'),end=html.indexOf('\nlet tyreGuideState=',start);
