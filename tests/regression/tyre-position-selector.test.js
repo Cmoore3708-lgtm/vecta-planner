@@ -175,3 +175,16 @@ test('unavailable prices use concise TBC labels in every category',()=>{
   assert.equal(card.querySelector('.tyre-guide-total').textContent,'£TBC');
  }
 });
+
+test('supplier outage keeps all four wheels usable without a brand and never retries on a tap',()=>{
+ const {context,document,form,calls}=setup();form.tyre_brand='';form.tyre_choice='';
+ vm.runInContext("tyreGuideState={status:'unavailable',result:null};refreshTyrePanel()",context);
+ const box=document.querySelector('.tp-controls button');
+ assert.equal(document.querySelector('.tp-scene'),null);assert.equal(document.querySelectorAll('.tp-wheel').length,0);assert.equal(document.querySelectorAll('.tp-controls button').length,4);
+ const before=calls.length;
+ for(const name of ['Front driver','Rear driver','Front passenger','Rear passenger'])document.querySelector('.tp-controls [data-tyre-position="'+name+'"]').click();
+ assert.equal(form.tyre_quantity,4);assert.equal(calls.length,before);assert.equal(document.querySelector('.tp-controls button'),box);
+ assert.equal(document.querySelectorAll('.tp-controls [aria-pressed="true"]').length,4);
+ document.querySelector('.tp-controls [data-tyre-position="Front driver"]').click();assert.equal(form.tyre_quantity,3);
+ assert.equal(context.selectedTyreGuide(),null);
+});
