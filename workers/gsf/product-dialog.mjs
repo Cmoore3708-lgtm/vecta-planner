@@ -84,7 +84,7 @@ export async function openSelectedProduct(page,selected){
   step='PRODUCT_SEARCH_HEADING';
   await page.getByRole('heading',{name:'Search Results for "'+term+'"',exact:true}).waitFor({state:'visible',timeout:15000});
   step='PRODUCT_SEARCH_EXACT_SKU';
-  const code=page.getByRole('main').getByText(sku,{exact:true});
+  const code=page.getByRole('main').getByText(new RegExp('^'+sku.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+'$','i'));
   await code.waitFor({state:'visible',timeout:15000});
   if(await code.count()!==1||!await code.isVisible())throw Error('PRODUCT_LINK_UNCONFIRMED');
   step='PRODUCT_SEARCH_OPEN';

@@ -1,0 +1,13 @@
+import test from 'node:test';import assert from 'node:assert/strict';import {readFileSync} from 'node:fs';
+import {openSelectedProduct} from '../workers/gsf/product-dialog.mjs';import {freshProduct} from '../workers/gsf/live-service.mjs';import {diagnosticProduct} from '../workers/gsf/diagnostic-product.mjs';
+const rows=JSON.parse(readFileSync(new URL('./fixtures/gsf-targeted-search-2026-10-31.json',import.meta.url))).results.filter(r=>r.status==='REVIEW');
+function pageFor(row,product,duplicates=1){return {keyboard:{press:async()=>{}},url:()=> 'https://trade.gsfcarparts.com/search',waitForTimeout:async()=>{},evaluate:async()=>product,getByRole(role,opts){if(role==='textbox')return {fill:async term=>assert.equal(term,row.evidence.sku),press:async()=>{}};if(role==='heading')return {waitFor:async()=>assert.ok(row.observed.headings.includes(opts.name))};return {getByText(pattern){assert.ok(pattern instanceof RegExp);const visible=row.observed.visibleText.match(/product found (\S+)/)[1];assert.ok(pattern.test(visible),'must match the actual supplier lowercase suffix');for(const wrong of [visible+'X','X'+visible,visible.replace('/','-'),visible.replace('/',''),visible+' extra'])assert.equal(pattern.test(wrong),false);return {waitFor:async()=>{},count:async()=>duplicates,isVisible:async()=>true,click:async()=>{}};}};}};}
+for(const row of rows){
+ const selected={kind:row.category==='Oil Filter'?'oil_filter':'fuel_filter',searchTerm:row.evidence.sku,description:row.evidence.expectedDescription,expectedPricePence:row.evidence.expectedPricePence,quantityMilli:1000,packQuantityMilli:1000};
+ const sku=row.observed.visibleText.match(/product found (\S+)/)[1];const product={sku,brand:'MANN-FILTER',description:selected.description,unitNetPence:selected.expectedPricePence};
+ test(row.registration+' actual captured result is found with unchanged punctuation',async()=>{await openSelectedProduct(pageFor(row,product),selected);await assert.rejects(openSelectedProduct(pageFor(row,product,2),selected),/PRODUCT_LINK_UNCONFIRMED/);});
+ for(const reader of [freshProduct,diagnosticProduct]){
+  test(row.registration+' '+reader.name+' accepts equivalent SKU casing only',async()=>{assert.equal((await reader(pageFor(row,product),selected)).sku,sku);});
+  for(const mutation of [{sku:sku+'X'},{sku:sku.replace('/','-')},{brand:'OTHER'},{description:'Different part'},{unitNetPence:product.unitNetPence+1}])test(row.registration+' '+reader.name+' rejects '+JSON.stringify(mutation),async()=>{await assert.rejects(reader(pageFor(row,{...product,...mutation}),selected),/REVIEW_REQUIRED/);});
+ }
+}

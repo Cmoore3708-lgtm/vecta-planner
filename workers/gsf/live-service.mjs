@@ -54,7 +54,7 @@ export async function freshProduct(page,selected){
  const evidence={expectedDescription:selected.description,observedDescription:product?.description,sku:product?.sku,expectedPricePence:selected.expectedPricePence,observedPricePence:product?.unitNetPence};
  if(!product)fail(lastReadError?.message==='UNAVAILABLE'?'PRODUCT_STOCK_UNAVAILABLE':lastReadError?.message==='SETTINGS_REQUIRED'?'PRODUCT_FIELDS_UNCONFIRMED':'PRODUCT_DETAILS_UNREADABLE',evidence);
  if(String(product.description).replace(/\s+/g,' ').trim().toLowerCase()!==selected.description.replace(/\s+/g,' ').trim().toLowerCase())fail('PRODUCT_DESCRIPTION_MISMATCH',evidence);
- if(/^MAN.*\//.test(selected.searchTerm)&&(product.sku!==selected.searchTerm.slice(3)||product.brand.toUpperCase()!=='MANN-FILTER'))fail('PRODUCT_SKU_MISMATCH',evidence);
+ if(/^MAN.*\//.test(selected.searchTerm)&&(product.sku.toUpperCase()!==selected.searchTerm.slice(3).toUpperCase()||product.brand.toUpperCase()!=='MANN-FILTER'))fail('PRODUCT_SKU_MISMATCH',evidence);
  if(!selected.searchTerm.toUpperCase().endsWith(product.sku.toUpperCase()))fail('PRODUCT_SKU_MISMATCH',evidence);
  if(product.unitNetPence!==selected.expectedPricePence)fail('PRODUCT_PRICE_MISMATCH',evidence);
  return {kind:selected.kind,sku:product.sku,brand:product.brand,description:product.description,quantityMilli:selected.quantityMilli,

@@ -1,0 +1,357 @@
+{
+  "purpose": "Read-only targeted search evidence; not a new cohort run or published quote",
+  "sourceRun": "3a2b7412-4a85-4593-aa36-dd46a03bbdbd",
+  "results": [
+    {
+      "registration": "K600RJF",
+      "category": "Oil Filter",
+      "status": "REVIEW",
+      "evidence": {
+        "stage": "PRODUCT_SEARCH_EXACT_SKU",
+        "reason": "LOOKUP_TIMEOUT",
+        "freshRead": true,
+        "expectedDescription": "Oil Filter - Insert Filter",
+        "sku": "MANHU721/5X",
+        "expectedPricePence": 1374
+      },
+      "capture": {
+        "status": "CAPTURED_FOR_REVIEW",
+        "reason": null,
+        "selectedRegistration": true,
+        "registration": "K600RJF",
+        "category": "Oil Filter",
+        "headings": [
+          "Oil Filter - Insert Filter",
+          "£13.74",
+          "Oil Filter Housing Cover"
+        ],
+        "productLinks": [],
+        "skuLabels": [
+          "MANHU721/5X",
+          "FEB173589"
+        ],
+        "displayedPrices": [
+          "13.74",
+          "13.93",
+          "10.97",
+          "3.37",
+          "26.48",
+          "48.22",
+          "35.46",
+          "0.00"
+        ],
+        "displayedLitres": [],
+        "visibleText": "K600RJF Clear BMW 1 Series Coupe 118d Start/Stop 118 Sport 2.0 (1995cc) Diesel Manual 2 doors 27/01/11 12/12/26 Copy VIN More Details All categories / Filters / Oil Filter Related: Air Filter Fuel Filter Cabin Filter Urea Filter Engine Oil Sump Plug Sump Plug Washer There are multiple options! Not sure which one fits? Call your local branch on 0191 644 4789 and we'll help you choose. WhatsApp branch Oil Filter - Insert Filter SKU: MANHU721/5X In stock. Attributes Sort By Relevancy £13.74 Gold Oil Filter - Insert Filter Local Branch £13.93 Gold Oil Filter - Element Local Branch £10.97 Silver Oil Filter - Insert Filter Local Branch £3.37 Silver Oil Filter - Insert RDC Show More Stock Type Quantity Boldon 2 RDC 2 NDC 389 £13.74 RRP: £26.48 Buy Now Add to basket 0 Oil Filter Housing Cover SKU: FEB173589 Out of stock. Attributes Sort By Relevancy £48.22 Silver Oil Filter Housing Cover Out Of Stock £35.46 Bronze Oil Filter Housing Cover Out Of Stock £0.00 Bronze Out Of Stock £0.00 Bronze Out Of Stock £0.00 Bronze Out Of Stock £0.00 Bronze Out Of Stock Please contact your branch for availability. They will be able to provide more information. Need assistance? Call branch: 0191 644 4789 Opening hours: Monday-Friday 8:00 - 17:30 Saturday 8:00 - 14:00 Sunday Closed WhatsApp branch",
+        "truncated": false,
+        "fitmentVerified": false,
+        "oilVerified": false,
+        "approvedForPublication": false,
+        "attributes": {
+          "status": "NEEDS_REVIEW",
+          "reason": "MULTIPLE_OR_MISSING_PRODUCT_GROUPS"
+        }
+      },
+      "observed": {
+        "status": "NEEDS_REVIEW",
+        "reason": "SELECTED_VEHICLE_NOT_CONFIRMED",
+        "selectedRegistration": false,
+        "registration": "K600RJF",
+        "category": "Oil Filter",
+        "headings": [
+          "Search Results for \"MANHU721/5X\""
+        ],
+        "productLinks": [],
+        "skuLabels": [],
+        "displayedPrices": [
+          "13.74"
+        ],
+        "displayedLitres": [],
+        "visibleText": "Search Results for \"MANHU721/5X\" Parts - 1 product found HU721/5x Oil Filter - Insert Filter £ 13.74 In stock. Add to basket 0",
+        "truncated": false,
+        "fitmentVerified": false,
+        "oilVerified": false,
+        "approvedForPublication": false
+      }
+    },
+    {
+      "registration": "M26JKM",
+      "category": "Oil Filter",
+      "status": "REVIEW",
+      "evidence": {
+        "stage": "PRODUCT_SEARCH_EXACT_SKU",
+        "reason": "LOOKUP_TIMEOUT",
+        "freshRead": true,
+        "expectedDescription": "Oil Filter - Insert Filter",
+        "sku": "MANHU6014/1Z",
+        "expectedPricePence": 1544
+      },
+      "capture": {
+        "status": "CAPTURED_FOR_REVIEW",
+        "reason": null,
+        "selectedRegistration": true,
+        "registration": "M26JKM",
+        "category": "Oil Filter",
+        "headings": [
+          "Oil Filter - Insert Filter",
+          "£15.44"
+        ],
+        "productLinks": [],
+        "skuLabels": [
+          "MANHU6014/1Z"
+        ],
+        "displayedPrices": [
+          "15.44",
+          "12.67",
+          "2.80",
+          "23.17"
+        ],
+        "displayedLitres": [],
+        "visibleText": "M26JKM Clear BMW 3 Series 320d 190 Step Auto Start/Stop 320 M Sport Shadow Edition 2.0 (1995cc) Diesel Semi Automatic 5 doors 08/09/17 12/09/27 Copy VIN More Details All categories / Filters / Oil Filter Related: Air Filter Fuel Filter Cabin Filter Urea Filter Engine Oil Sump Plug Sump Plug Washer Oil Filter - Insert Filter SKU: MANHU6014/1Z In stock. Attributes Sort By Relevancy £15.44 Gold Oil Filter - Insert Filter Local Branch £12.67 Silver Oil Filter - Insert Filter Local Branch £2.80 Silver Oil Filter - Insert RDC Show More Stock Type Quantity Boldon 10 RDC 10 NDC 2914 £15.44 RRP: £23.17 Buy Now Add to basket 0",
+        "truncated": false,
+        "fitmentVerified": false,
+        "oilVerified": false,
+        "approvedForPublication": false,
+        "attributes": {
+          "status": "ATTRIBUTES_CAPTURED",
+          "rows": [
+            {
+              "attribute": "Bar Code",
+              "value": "401155809796"
+            },
+            {
+              "attribute": "Inner Diameter 1 (mm)",
+              "value": "15"
+            },
+            {
+              "attribute": "Outer Diameter 1 (mm)",
+              "value": "53"
+            },
+            {
+              "attribute": "Outer Diameter (mm)",
+              "value": "53"
+            },
+            {
+              "attribute": "Inner Diameter (mm)",
+              "value": "22"
+            },
+            {
+              "attribute": "Height (mm)",
+              "value": "134"
+            },
+            {
+              "attribute": "Filter Type",
+              "value": "Filter Insert"
+            },
+            {
+              "attribute": "Other Info",
+              "value": "with seal"
+            }
+          ],
+          "oilVerified": false,
+          "groupSku": "MANHU6014/1Z"
+        }
+      },
+      "observed": {
+        "status": "NEEDS_REVIEW",
+        "reason": "SELECTED_VEHICLE_NOT_CONFIRMED",
+        "selectedRegistration": false,
+        "registration": "M26JKM",
+        "category": "Oil Filter",
+        "headings": [
+          "Search Results for \"MANHU6014/1Z\""
+        ],
+        "productLinks": [],
+        "skuLabels": [],
+        "displayedPrices": [
+          "15.44"
+        ],
+        "displayedLitres": [],
+        "visibleText": "Search Results for \"MANHU6014/1Z\" Parts - 1 product found HU6014/1z Oil Filter - Insert Filter £ 15.44 In stock. Add to basket 0",
+        "truncated": false,
+        "fitmentVerified": false,
+        "oilVerified": false,
+        "approvedForPublication": false
+      }
+    },
+    {
+      "registration": "PO11YFC",
+      "category": "Oil Filter",
+      "status": "REVIEW",
+      "evidence": {
+        "stage": "PRODUCT_SEARCH_EXACT_SKU",
+        "reason": "LOOKUP_TIMEOUT",
+        "freshRead": true,
+        "expectedDescription": "Oil Filter - Insert Filter",
+        "sku": "MANHU6014/1Z",
+        "expectedPricePence": 1544
+      },
+      "capture": {
+        "status": "CAPTURED_FOR_REVIEW",
+        "reason": null,
+        "selectedRegistration": true,
+        "registration": "PO11YFC",
+        "category": "Oil Filter",
+        "headings": [
+          "Oil Filter - Insert Filter",
+          "£15.44"
+        ],
+        "productLinks": [],
+        "skuLabels": [
+          "MANHU6014/1Z"
+        ],
+        "displayedPrices": [
+          "15.44",
+          "12.67",
+          "2.80",
+          "23.17"
+        ],
+        "displayedLitres": [],
+        "visibleText": "PO11YFC Clear BMW 3 Series 320d 190 Step Auto Start/Stop 320 M Sport 2.0 (1995cc) Diesel Semi Automatic 4 doors 15/03/18 22/07/27 Copy VIN More Details All categories / Filters / Oil Filter Related: Air Filter Fuel Filter Cabin Filter Urea Filter Engine Oil Sump Plug Sump Plug Washer Oil Filter - Insert Filter SKU: MANHU6014/1Z In stock. Attributes Sort By Relevancy £15.44 Gold Oil Filter - Insert Filter Local Branch £12.67 Silver Oil Filter - Insert Filter Local Branch £2.80 Silver Oil Filter - Insert RDC Show More Stock Type Quantity Boldon 10 RDC 10 NDC 2914 £15.44 RRP: £23.17 Buy Now Add to basket 0",
+        "truncated": false,
+        "fitmentVerified": false,
+        "oilVerified": false,
+        "approvedForPublication": false,
+        "attributes": {
+          "status": "ATTRIBUTES_CAPTURED",
+          "rows": [
+            {
+              "attribute": "Bar Code",
+              "value": "401155809796"
+            },
+            {
+              "attribute": "Inner Diameter 1 (mm)",
+              "value": "15"
+            },
+            {
+              "attribute": "Outer Diameter 1 (mm)",
+              "value": "53"
+            },
+            {
+              "attribute": "Outer Diameter (mm)",
+              "value": "53"
+            },
+            {
+              "attribute": "Inner Diameter (mm)",
+              "value": "22"
+            },
+            {
+              "attribute": "Height (mm)",
+              "value": "134"
+            },
+            {
+              "attribute": "Filter Type",
+              "value": "Filter Insert"
+            },
+            {
+              "attribute": "Other Info",
+              "value": "with seal"
+            }
+          ],
+          "oilVerified": false,
+          "groupSku": "MANHU6014/1Z"
+        }
+      },
+      "observed": {
+        "status": "NEEDS_REVIEW",
+        "reason": "SELECTED_VEHICLE_NOT_CONFIRMED",
+        "selectedRegistration": false,
+        "registration": "PO11YFC",
+        "category": "Oil Filter",
+        "headings": [
+          "Search Results for \"MANHU6014/1Z\""
+        ],
+        "productLinks": [],
+        "skuLabels": [],
+        "displayedPrices": [
+          "15.44"
+        ],
+        "displayedLitres": [],
+        "visibleText": "Search Results for \"MANHU6014/1Z\" Parts - 1 product found HU6014/1z Oil Filter - Insert Filter £ 15.44 In stock. Add to basket 0",
+        "truncated": false,
+        "fitmentVerified": false,
+        "oilVerified": false,
+        "approvedForPublication": false
+      }
+    },
+    {
+      "registration": "S11PTD",
+      "category": "Fuel Filter",
+      "status": "REVIEW",
+      "evidence": {
+        "stage": "PRODUCT_SEARCH_EXACT_SKU",
+        "reason": "LOOKUP_TIMEOUT",
+        "freshRead": true,
+        "expectedDescription": "Fuel Filter - In-Line Filter",
+        "sku": "MANWK842/21X",
+        "expectedPricePence": 2844
+      },
+      "capture": {
+        "status": "CAPTURED_FOR_REVIEW",
+        "reason": null,
+        "selectedRegistration": true,
+        "registration": "S11PTD",
+        "category": "Fuel Filter",
+        "headings": [
+          "Fuel Filter - In-Line Filter",
+          "£28.44",
+          "Fuel Filter Seal Set"
+        ],
+        "productLinks": [],
+        "skuLabels": [
+          "MANWK842/21X",
+          "GSF121VG0680"
+        ],
+        "displayedPrices": [
+          "28.44",
+          "19.68",
+          "43.17",
+          "3.74"
+        ],
+        "displayedLitres": [],
+        "visibleText": "S11PTD Clear Audi A4 TDi TDV 140 S Line 2.0 (1968cc) Diesel Manual 5 doors 04/09/06 12/12/26 Copy VIN More Details All categories / Filters / Fuel Filter Related: Oil Filter Air Filter Cabin Filter Urea Filter Engine Oil Sump Plug Sump Plug Washer There are multiple options! Not sure which one fits? Call your local branch on 0191 644 4789 and we'll help you choose. WhatsApp branch Fuel Filter - In-Line Filter SKU: MANWK842/21X In stock. Attributes Sort By Relevancy £28.44 Gold Fuel Filter - In-Line Filter Local Branch £19.68 Silver Fuel Filter - In-Line Filter Local Branch Show More Stock Type Quantity Boldon 1 RDC 1 NDC 35 £28.44 RRP: £43.17 Buy Now Add to basket 0 Fuel Filter Seal Set SKU: GSF121VG0680 Out of stock. Attributes Sort By Relevancy £3.74 Silver Fuel Filter Seal Set Out Of Stock Please contact your branch for availability. They will be able to provide more information. Need assistance? Call branch: 0191 644 4789 Opening hours: Monday-Friday 8:00 - 17:30 Saturday 8:00 - 14:00 Sunday Closed WhatsApp branch",
+        "truncated": false,
+        "fitmentVerified": false,
+        "oilVerified": false,
+        "approvedForPublication": false,
+        "attributes": {
+          "status": "NEEDS_REVIEW",
+          "reason": "MULTIPLE_OR_MISSING_PRODUCT_GROUPS"
+        }
+      },
+      "observed": {
+        "status": "NEEDS_REVIEW",
+        "reason": "SELECTED_VEHICLE_NOT_CONFIRMED",
+        "selectedRegistration": false,
+        "registration": "S11PTD",
+        "category": "Fuel Filter",
+        "headings": [
+          "Search Results for \"MANWK842/21X\""
+        ],
+        "productLinks": [],
+        "skuLabels": [],
+        "displayedPrices": [
+          "28.44"
+        ],
+        "displayedLitres": [],
+        "visibleText": "Search Results for \"MANWK842/21X\" Parts - 1 product found WK842/21x Fuel Filter - In-Line Filter £ 28.44 In stock. Add to basket 0",
+        "truncated": false,
+        "fitmentVerified": false,
+        "oilVerified": false,
+        "approvedForPublication": false
+      }
+    },
+    {
+      "registration": "LS10PET",
+      "category": "Air Filter",
+      "status": "OBSERVED",
+      "evidence": {
+        "stage": "PRODUCT_DETAILS",
+        "reason": "UNKNOWN",
+        "freshRead": true,
+        "observedDescription": "Air Filter",
+        "sku": "CA11503",
+        "brand": "FRAM"
+      }
+    }
+  ]
+}

@@ -21,7 +21,7 @@ function searchPage({duplicates=1,product}={}){
  return {events,keyboard:{press:async k=>events.push(k)},getByRole(role,opts){
   if(role==='textbox')return {fill:async v=>events.push(v),press:async v=>events.push(v)};
   if(role==='heading')return {waitFor:async()=>events.push(opts.name)};
-  assert.equal(role,'main');return {getByText(sku,opts){assert.equal(sku,'W713/9');assert.equal(opts.exact,true);return code;}};
+  assert.equal(role,'main');return {getByText(sku,opts){assert.ok(sku instanceof RegExp);assert.ok(sku.test('W713/9'));assert.equal(sku.test('W713/90'),false);return code;}};
  },url:()=> 'https://trade.gsfcarparts.com/search',evaluate:async()=>product,waitForTimeout:async()=>{},goto:async()=>{throw Error('Broken route must not be used');}};
 }
 const selected={kind:'oil_filter',searchTerm:'MANW713/9',description:'Oil Filter - Spin-on Filter',expectedPricePence:1606,quantityMilli:1000,packQuantityMilli:1000};
@@ -70,3 +70,4 @@ test('search step survives batch sanitisation and remains a failed timeout, neve
  assert.equal(result.outcome,'FAILED');assert.equal(result.reason,'LOOKUP_TIMEOUT');assert.equal(result.evidence.stage,'PRODUCT_SEARCH_EXACT_SKU');
  assert.equal(JSON.stringify(result).includes('supplier search timed out'),false);
 });
+
