@@ -37,7 +37,7 @@ test('replace includes the extra once; check-first keeps it conditional; none ex
  assert.equal(replace.approximateCost,base+60);assert.match(replace.snapshot,/Customer requests replacement/);
  assert.equal(replace.quote.items.filter(i=>i.kind==='fuel_filter').length,1);
  const check=bookingServicePrice(body(q,'check'),['Full Service'],secret);
- assert.equal(check.approximateCost,base);assert.match(check.snapshot,/replace only if due/);
+ assert.equal(check.approximateCost,base);assert.match(check.snapshot,/replace if due/);
  assert.ok(!check.quote.items.some(i=>i.kind==='fuel_filter'));
  assert.equal(bookingServicePrice(body(q,'none'),['Full Service'],secret).approximateCost,base);
  assert.equal(bookingServicePrice(body(q,'replace'),['Full Service','MOT'],secret).approximateCost,base+120);
@@ -64,7 +64,7 @@ test('only verified, explicitly counted spark-plug sets produce a live extra',as
 });
 test('no live quote still retains the decision and asks for approval of the price before fitting',()=>{
  const decision=bookingServiceExtra({service_choice:'Full Service',service_extra_kind:'fuel_filter',service_extra_choice:'check'});
- assert.match(serviceExtraSnapshot(decision,null),/replace only if due/);
+ assert.match(serviceExtraSnapshot(decision,null),/replace if due/);
  assert.match(serviceExtraSnapshot(decision,null),/Obtain price approval before replacement/);
  assert.equal(bookingServiceExtra({service_choice:'Oil & Filter Change',service_extra_choice:'replace'}),null);
  assert.throws(()=>bookingServiceExtra({service_choice:'Full Service',service_extra_choice:'invalid'}));
@@ -83,15 +83,15 @@ test('approved slim section switches diesel/petrol and ignores a choice from ano
  assert.equal(root.serviceExtraSelection(),'check');
  state.form.service_extra_choice='none';assert.equal(root.serviceExtraSelection(),'none');
  state.form.service_extra_choice='replace';assert.equal(root.serviceExtraSelection(),'replace');
- delete state.form.service_extra_choice;assert.equal(root.serviceExtraSelection(),'replace');
+ delete state.form.service_extra_choice;assert.equal(root.serviceExtraSelection(),'check');
  root.liveServiceQuote=()=>({serviceExtra:{kind:'fuel_filter',totalPence:6000}});
  assert.match(root.serviceExtraHtml(),/We estimate the cost of fitting your fuel filter will be £60\./);
  document.getElementById('root').innerHTML=root.serviceExtraHtml();
  assert.equal(document.querySelector('.service-extra-title .service-extra-estimate strong').textContent,'£60');
  assert.equal(document.querySelector('.service-extra-price'),null);
  root.liveServiceQuote=()=>null;
- state.form.fuel_type='Petrol';assert.equal(root.serviceExtraSelection(),'replace');
- assert.match(root.serviceExtraHtml(),/Spark plugs/);assert.match(root.serviceExtraHtml(),/Yes please, change them/);
+ state.form.fuel_type='Petrol';assert.equal(root.serviceExtraSelection(),'check');
+ assert.match(root.serviceExtraHtml(),/Spark plugs are changed at various mileage intervals\. What would you like us to do\?/);assert.match(root.serviceExtraHtml(),/value="check" selected>Check first — replace if due/);assert.match(root.serviceExtraHtml(),/Yes please, change them/);
  root.liveServiceQuote=()=>({serviceExtra:{kind:'spark_plug',totalPence:9000}});assert.match(root.serviceExtraHtml(),/We estimate the cost of fitting your spark plugs will be £90\./);root.liveServiceQuote=()=>null;
  state.form.registration='OTHER123';assert.equal(root.serviceExtraHtml(),'');assert.equal(root.serviceExtraSelection(),'none');
  state.form.registration='TEST123';state.form.fuel_type='Electricity';assert.equal(root.serviceExtraHtml(),'');
@@ -106,7 +106,7 @@ test('CM14 KEL e-POWER offers spark plugs with guide prices while generic hybrid
  assert.equal(document.querySelector('h4').textContent,'Spark plugs');
  assert.match(document.querySelector('.service-extra-price').textContent,/confirm the price before fitting/);
  assert.equal(root.serviceExtraAddedPence(),0);
- assert.match(root.serviceExtraSummary(),/Spark plugs: replacement requested/);
+ assert.match(root.serviceExtraSummary(),/Spark plugs: check manufacturer’s guidance; replace if due/);
  assert.match(serviceExtraSnapshot(bookingServiceExtra({service_choice:'Full Service',service_extra_kind:root.serviceExtraKind(),service_extra_choice:root.serviceExtraSelection()}),null),/Obtain price approval/);
  for(const vehicle of ['NISSAN QASHQAI E POWER AUTO','NISSAN QASHQAI E\u2011POWER AUTO']){state.form.vehicle=vehicle;assert.equal(root.serviceExtraKind(),'spark_plug');}
  state.form.vehicle='NISSAN QASHQAI HYBRID';assert.equal(root.serviceExtraKind(),null);

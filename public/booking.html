@@ -202,19 +202,19 @@ function serviceExtraOffer(){
 }
 function serviceExtraSelection(){
  const f=state.form,kind=serviceExtraKind();if(!kind)return 'none';
- return f.service_extra_registration===f.registration.toUpperCase().replace(/[^A-Z0-9]/g,'')&&f.service_extra_kind===kind&&['none','check','replace'].includes(f.service_extra_choice)?f.service_extra_choice:'replace';
+ return f.service_extra_registration===f.registration.toUpperCase().replace(/[^A-Z0-9]/g,'')&&f.service_extra_kind===kind&&['none','check','replace'].includes(f.service_extra_choice)?f.service_extra_choice:'check';
 }
 function serviceExtraAddedPence(){return serviceExtraSelection()==='replace'?(serviceExtraOffer()?.totalPence||0):0;}
 function serviceExtraSummary(){
  const kind=serviceExtraKind(),choice=serviceExtraSelection();if(!kind||choice==='none')return '';
  const label=kind==='fuel_filter'?'Fuel filter':'Spark plugs',offer=serviceExtraOffer();
- return label+': '+(choice==='check'?'check manufacturer’s guidance; replace only if due.':'replacement requested.')+' '+(offer?'Extra £'+(offer.totalPence/100).toLocaleString('en-GB',{maximumFractionDigits:2})+' including fitting and VAT'+(choice==='check'?' if due.':'.'):'We will confirm the price before fitting.');
+ return label+': '+(choice==='check'?'check manufacturer’s guidance; replace if due.':'replacement requested.')+' '+(offer?'Extra £'+(offer.totalPence/100).toLocaleString('en-GB',{maximumFractionDigits:2})+' including fitting and VAT'+(choice==='check'?' if due.':'.'):'We will confirm the price before fitting.');
 }
 function serviceExtraHtml(){
  const kind=serviceExtraKind();if(!kind)return '';
  const petrol=kind==='spark_plug',label=petrol?'Spark plugs':'Fuel filter',choice=serviceExtraSelection(),offer=serviceExtraOffer();
  const price=offer?'We estimate the cost of fitting your '+(petrol?'spark plugs':'fuel filter')+' will be £'+(offer.totalPence/100).toLocaleString('en-GB',{minimumFractionDigits:offer.totalPence%100?2:0,maximumFractionDigits:2})+'.':'We will confirm the price before fitting.';
- return `<section class="service-extra-strip" aria-label="Optional ${label.toLowerCase()}"><div class="service-extra-title"><h4>${label}</h4>${petrol?'<span class="service-extra-plugs" role="img" aria-label="Spark plugs"></span>':'<img src="/assets/service-fuel-filter.webp" alt="Hand-drawn fuel filter" width="38" height="28">'}${offer?`<span class="service-extra-estimate" role="status" aria-label="${price}"><small>Estimated</small><strong>£${(offer.totalPence/100).toLocaleString('en-GB')}</strong></span>`:''}</div><p>${petrol?'Not sure? We will check the manufacturer’s guidance.':'Fuel filters are changed at various mileage intervals. What would you like us to do?'}</p><select data-service-extra aria-label="${label} replacement choice"><option value="replace" ${choice==='replace'?'selected':''}>Yes please, change ${petrol?'them':'it'}</option><option value="check" ${choice==='check'?'selected':''}>Check first — replace only if due</option><option value="none" ${choice==='none'?'selected':''}>No thanks</option></select>${offer?'':`<p class="service-extra-price" role="status">${price}</p>`}</section>`;
+ return `<section class="service-extra-strip" aria-label="Optional ${label.toLowerCase()}"><div class="service-extra-title"><h4>${label}</h4>${petrol?'<span class="service-extra-plugs" role="img" aria-label="Spark plugs"></span>':'<img src="/assets/service-fuel-filter.webp" alt="Hand-drawn fuel filter" width="38" height="28">'}${offer?`<span class="service-extra-estimate" role="status" aria-label="${price}"><small>Estimated</small><strong>£${(offer.totalPence/100).toLocaleString('en-GB')}</strong></span>`:''}</div><p>${petrol?'Spark plugs are changed at various mileage intervals. What would you like us to do?':'Fuel filters are changed at various mileage intervals. What would you like us to do?'}</p><select data-service-extra aria-label="${label} replacement choice"><option value="replace" ${choice==='replace'?'selected':''}>Yes please, change ${petrol?'them':'it'}</option><option value="check" ${choice==='check'?'selected':''}>Check first — replace if due</option><option value="none" ${choice==='none'?'selected':''}>No thanks</option></select>${offer?'':`<p class="service-extra-price" role="status">${price}</p>`}</section>`;
 }
 function bindServiceExtra(){
  const select=document.querySelector('[data-service-extra]');if(!select)return;
