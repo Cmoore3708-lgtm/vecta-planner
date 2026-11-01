@@ -21,11 +21,11 @@ for (const path of ['public/booking.html','website/booking/index.html']) {
  });
  test(`${path}: selecting unknown clears stale mileage and unselecting restores the requirement`,()=>{
   const toggle=html.slice(html.indexOf('const unknown=document.querySelector'),html.indexOf(';bindHaynes();',html.indexOf('const unknown=document.querySelector')));
-  const checkbox={checked:true};let renders=0;
-  const context=vm.createContext({document:{querySelector:()=>checkbox},state:{form:{mileage:'120000',mileage_unknown:false}},render:()=>renders++});
+  const checkbox={checked:true},input={value:'120000',disabled:false};let renders=0,validityUpdates=0;
+  const context=vm.createContext({document:{querySelector:selector=>selector==='[data-mileage-unknown]'?checkbox:input},state:{form:{mileage:'120000',mileage_unknown:false}},render:()=>renders++,updateMileageDialogValidity:()=>validityUpdates++,renderActions(){}});
   vm.runInContext(toggle,context);checkbox.onchange();
   assert.equal(context.state.form.mileage,'');assert.equal(context.state.form.mileage_unknown,true);
-  checkbox.checked=false;checkbox.onchange();assert.equal(context.state.form.mileage_unknown,false);assert.equal(renders,2);
+  checkbox.checked=false;checkbox.onchange();assert.equal(context.state.form.mileage_unknown,false);assert.equal(renders,0);assert.equal(validityUpdates,2);assert.equal(input.disabled,false);assert.equal(input.value,'');
  });
  test(`${path}: servicing shows last MOT mileage beside current mileage and an accessible checkbox`,()=>{
   const form={job_types:['Service'],last_mot_mileage:'110000',mileage:'',mileage_unknown:true,work_required:''};
