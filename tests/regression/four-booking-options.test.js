@@ -52,6 +52,10 @@ test('Something else shows the customer car without wheel effects, examples and 
  assert.deepEqual([...document.querySelectorAll('#other-work-help>li')].map(x=>x.textContent),['ECU remaps','Bodywork repairs','Diagnostics','Exhausts','Brakes','Suspension','Towbars','Valeting','Batteries','Puncture repairs']);
  const details=document.querySelector('details');assert.equal(details.querySelector('summary').textContent,'NEVOS?');assert.equal(details.hasAttribute('open'),false);
  assert.equal(details.querySelectorAll('li').length,5);assert.match(details.textContent,/Pre handover valet & inspection/);assert.match(details.textContent,/literally works magic on dents/);assert.match(details.textContent,/OEM standard/);assert.match(details.textContent,/We aren’t able to service your NEVOS/);
+ form.job_types=['Tyres','Other'];
+ const combined=parseHTML(context.otherWorkOptionsHtml()).document;
+ assert.equal(combined.querySelector('img'),null,'Tyres selected: avoid repeating the customer car in Something else');assert.equal(combined.querySelectorAll('#other-work-help>li').length,10);assert.ok(combined.querySelector('details summary'));
+ form.job_types=['Other'];assert.ok(parseHTML(context.otherWorkOptionsHtml()).document.querySelector('img'),'deselecting Tyres restores the Something else car');
  form.job_types=['Tyres'];assert.equal(context.otherWorkOptionsHtml(),'');
 });
 
