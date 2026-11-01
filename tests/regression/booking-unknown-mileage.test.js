@@ -9,7 +9,7 @@ for (const path of ['public/booking.html','website/booking/index.html']) {
  const valid=html.match(/function valid\(\)\{.*\}/)[0];
  test(`${path}: service bookings require mileage or the explicit unknown choice`,()=>{
   const form={vehicle:'Test vehicle',vehicle_make:'Test',mot_advisories:[],job_types:['Service'],service_choice:'Full Service',mileage:'',mileage_unknown:false};
-  const context=vm.createContext({state:{step:2,form},isNissanVehicle:()=>false,workDescriptionRequired:()=>false});
+  const context=vm.createContext({state:{step:2,form},isNevosEligibleVehicle:()=>false,workDescriptionRequired:()=>false});
   vm.runInContext(valid,context);
   assert.equal(Boolean(context.valid()),false);
   form.mileage_unknown=true;assert.equal(Boolean(context.valid()),true);

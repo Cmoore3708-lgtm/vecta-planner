@@ -27,7 +27,7 @@ test('booking shows four accessible choices and retains NEVOS restriction',()=>{
  assert.deepEqual(cards.map(c=>c.dataset.type),['Service','MOT','Tyres','Other']);assert.equal(cards[0].hasAttribute('disabled'),true);assert.equal(cards[3].getAttribute('aria-pressed'),'true');assert.equal(cards[3].querySelector('strong').textContent,'Something else');
 });
 test('Something else requires a description while Service and MOT retain their rules',()=>{
- const form={job_types:['Other'],work_required:'',mot_advisories:[]};const context=vm.createContext({state:{step:2,form},isNissanVehicle:()=>false});
+ const form={job_types:['Other'],work_required:'',mot_advisories:[]};const context=vm.createContext({state:{step:2,form},isNevosEligibleVehicle:()=>false});
  vm.runInContext(fn('workDescriptionRequired','valid')+html.match(/function valid\(\)\{.*\}/)[0],context);
  assert.equal(Boolean(context.valid()),false);form.work_required='Rattle when braking';assert.equal(Boolean(context.valid()),true);
  form.job_types=['MOT'];form.work_required='';assert.equal(Boolean(context.valid()),true);
@@ -63,5 +63,30 @@ test('Something else omits missing or unsafe artwork while keeping the service e
  for(const imageUrl of ['', 'https://example.com/not-your-car.svg']){
  const context=vm.createContext({state:{form:{job_types:['Other']}},haynesState:{vehicle:{imageUrl}},esc});vm.runInContext(fn('otherWorkOptionsHtml','workTypeCardsHtml'),context);
  const {document}=parseHTML(context.otherWorkOptionsHtml());assert.equal(document.querySelector('img'),null);assert.equal(document.querySelectorAll('#other-work-help>li').length,10);assert.ok(document.querySelector('details summary'));
+ }
+});
+
+test('NEVOS question and required answer apply only to Nissan Qashqai and Juke variants',()=>{
+ const examples=[
+  [{vehicle_make:'NISSAN',vehicle:'QASHQAI TEKNA E-POWER AUTO'},true],
+  [{vehicle_make:'nissan',vehicle:'Juke N-Connecta'},true],
+  [{vehicle:'Nissan Qashqai+2'},true],
+  [{vehicle_make:'Nissan',vehicle:'Nissan',haynes_identity:{make:'Nissan',model:'Juke',vehicle:'Nissan Juke 1.0'}},true],
+  [{vehicle_make:'NISSAN',vehicle:'LEAF'},false],
+  [{vehicle_make:'NISSAN',vehicle:'MICRA'},false],
+  [{vehicle_make:'NISSAN',vehicle:'X-TRAIL'},false],
+  [{vehicle_make:'NISSAN',vehicle:'NOTE'},false],
+  [{vehicle_make:'Toyota',vehicle:'Toyota Corolla'},false],
+  [{vehicle_make:'Toyota',vehicle:'Juke'},false],
+  [{vehicle_make:'Nissan',vehicle:'Nissan'},false],
+  [{vehicle:'Qashqai'},false]
+ ];
+ for(const [identity,expected] of examples){
+  const form={...identity,job_types:['MOT'],work_required:'',nevos_vehicle:''};
+  const context=vm.createContext({state:{step:2,form},workDescriptionRequired:()=>false});
+  vm.runInContext(fn('isNevosEligibleVehicle','isMotBooking')+fn('nevosHtml','workDescriptionRequired')+html.match(/function valid\(\)\{.*\}/)[0],context);
+  assert.equal(context.isNevosEligibleVehicle(),expected,JSON.stringify(identity));assert.equal(context.nevosHtml().includes('Is this a NEVOS vehicle?'),expected);
+  assert.equal(Boolean(context.valid()),!expected,'Only eligible models must answer before continuing');
+  form.nevos_vehicle='no';assert.equal(Boolean(context.valid()),true);assert.equal(context.nevosHtml(),'');
  }
 });
