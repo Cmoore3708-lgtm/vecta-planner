@@ -23,8 +23,8 @@ test('switching services retains the loaded tyre picker and restores the service
  assert.equal(s.scrolls.length,1);assert.equal(s.scrolls[0].top,220);assert.equal(s.scrolls[0].behavior,'instant');
  assert.equal(s.focuses.length,1);assert.equal(s.focuses[0].preventScroll,true);
 });
-test('an open required mileage dialog keeps its normal focus and ordinary navigation does not retain tyre DOM',()=>{
- const dialog=setup({dialog:true});dialog.c.render({preserveServicePosition:true});assert.equal(dialog.scrolls.length,0);assert.equal(dialog.focuses.length,0);
+test('an open mileage dialog preserves the service viewport without focusing a background control and ordinary navigation does not retain tyre DOM',()=>{
+ const dialog=setup({dialog:true});dialog.c.render({preserveServicePosition:true});assert.equal(dialog.scrolls.length,1);assert.equal(dialog.scrolls[0].top,220);assert.equal(dialog.focuses.length,0);
  for(const options of [{},{step:3}]){const s=setup(options);s.c.render(options.step?{preserveServicePosition:true}:undefined);assert.notEqual(s.document.querySelector('.tyre-picker'),s.tyres);assert.equal(s.scrolls.length,0);assert.equal(s.focuses.length,0);}
 });
 
