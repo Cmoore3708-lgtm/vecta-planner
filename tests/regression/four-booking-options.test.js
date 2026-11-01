@@ -49,7 +49,7 @@ test('Something else shows the customer car without wheel effects, examples and 
  const {document}=parseHTML(context.otherWorkOptionsHtml()),image=document.querySelector('img');
  assert.equal(image.dataset.registration,'CM14KEL');assert.equal(image.dataset.colour,'white');assert.equal(image.dataset.vehicleSource,'https://www.haynespro-assets.com/workshop/images/319106279.svg');
  assert.equal(document.querySelector('.tp-wheels,[data-tyre-car],[data-service-car],[data-tyre-position]'),null);
- assert.deepEqual([...document.querySelectorAll('#other-work-help>li')].map(x=>x.textContent),['ECU remaps','Bodywork repairs','Diagnostics','Exhausts','Brakes','Suspension']);
+ assert.deepEqual([...document.querySelectorAll('#other-work-help>li')].map(x=>x.textContent),['ECU remaps','Bodywork repairs','Diagnostics','Exhausts','Brakes','Suspension','Towbars','Valeting','Batteries','Puncture repairs']);
  const details=document.querySelector('details');assert.equal(details.querySelector('summary').textContent,'NEVOS?');assert.equal(details.hasAttribute('open'),false);
  assert.equal(details.querySelectorAll('li').length,5);assert.match(details.textContent,/Pre handover valet & inspection/);assert.match(details.textContent,/literally works magic on dents/);assert.match(details.textContent,/OEM standard/);assert.match(details.textContent,/We aren’t able to service your NEVOS/);
  form.job_types=['Tyres'];assert.equal(context.otherWorkOptionsHtml(),'');
@@ -58,6 +58,6 @@ test('Something else shows the customer car without wheel effects, examples and 
 test('Something else omits missing or unsafe artwork while keeping the service examples and NEVOS information',()=>{
  for(const imageUrl of ['', 'https://example.com/not-your-car.svg']){
  const context=vm.createContext({state:{form:{job_types:['Other']}},haynesState:{vehicle:{imageUrl}},esc});vm.runInContext(fn('otherWorkOptionsHtml','workTypeCardsHtml'),context);
- const {document}=parseHTML(context.otherWorkOptionsHtml());assert.equal(document.querySelector('img'),null);assert.equal(document.querySelectorAll('#other-work-help>li').length,6);assert.ok(document.querySelector('details summary'));
+ const {document}=parseHTML(context.otherWorkOptionsHtml());assert.equal(document.querySelector('img'),null);assert.equal(document.querySelectorAll('#other-work-help>li').length,10);assert.ok(document.querySelector('details summary'));
  }
 });
