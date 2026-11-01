@@ -8,7 +8,7 @@ function load(name,c){const start=html.indexOf(`function ${name}(`);vm.runInCont
 test('unknown tyre size clears previous size, brand and price, permits continuation and survives review/booking notes',()=>{
  const {document}=parseHTML('<div class="tyre-picker"><input data-tyre-part value="225"><input data-tyre-part value="40"><input data-tyre-part value="18"></div>');
  const form={job_types:['Tyres'],tyre_size:'225/40R18',tyre_choice:'Premium',tyre_brand:'Old brand',tyre_guide:{totalPence:40000},tyre_positions:['FL','FR'],tyre_quantity:2};
- const calls=[],state={step:2,form},c={document,state,tyreLookup:{update:(...args)=>calls.push(args)},refreshTyrePanel(){},renderActions(){},isNissanVehicle:()=>false,workDescriptionRequired:()=>false};vm.createContext(c);
+ const calls=[],state={step:2,form},c={document,state,tyreLookup:{update:(...args)=>calls.push(args)},refreshTyrePanel(){},renderActions(){},isNevosEligibleVehicle:()=>false,workDescriptionRequired:()=>false};vm.createContext(c);
  for(const name of ['chooseUnknownTyreSize','valid','tyreReviewHtml','tyreBookingDescription'])load(name,c);
  c.chooseUnknownTyreSize();assert.equal(form.tyre_size_unknown,true);assert.equal(form.tyre_size,'');assert.equal(form.tyre_choice,'');assert.equal(form.tyre_guide,null);assert.equal(form.tyre_brand,'');assert.equal(form.tyre_positions.length,0);assert.equal(c.valid(),true);
  assert.ok([...document.querySelectorAll('input')].every(x=>x.value===''));assert.equal(document.querySelector('.tyre-picker').classList.contains('size-unknown'),true);assert.deepEqual(calls,[['',1]]);
