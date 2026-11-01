@@ -463,7 +463,7 @@ function render(){
  const preserveServicePosition=arguments[0]?.preserveServicePosition&&state.step===2;
  const tyrePicker=preserveServicePosition?document.querySelector('.tyre-picker'):null;
  const serviceTop=preserveServicePosition?document.querySelector('.service-picker')?.getBoundingClientRect().top:null;
- servicePricing.update();app.innerHTML=`<div class="top"><h1>Booking Form</h1></div>${bookingProgressHtml()}<div class="step ${state.step>1?'later-step':''} booking-soft-background"><div class="vehicle-photo" data-haynes-slot>${haynesHtml()}</div>${vehicleSummaryHtml()}${stepHtml()}</div><div class="actions" id="actions"></div>${serviceOfferEligible()?'<div class="mot-notice-backdrop"><div class="mot-notice" role="dialog" aria-modal="true" aria-labelledby="motNoticeTitle"><div class="mot-notice-icon">£5</div><h3 id="motNoticeTitle">Add a Service and save</h3><p>If you book a Service at the same time, you’ll get £5 off the price. Plus with a Full Service your car will get a good clean!</p><button type="button" id="addServiceOffer">Add a Service</button><button type="button" id="closeMotNotice" style="margin-left:12px;background:#475569">No thanks</button></div></div>':''}`;if(tyrePicker)document.querySelector('.tyre-picker')?.replaceWith(tyrePicker);alignVehicleHeader();applyAdminCopy();bind();bindV137();if(typeof VectaWorkPhotos!=='undefined')VectaWorkPhotos.mount(state.form,render,renderActions);renderActions();bindMileageDialog();let addService=document.getElementById('addServiceOffer');if(addService)addService.onclick=()=>{state.service_offer_dismissed=true;if(!state.form.job_types.includes('Service'))state.form.job_types.push('Service');state.form.appointment_date='';state.form.appointment_time='';state.form.technician='';render();document.querySelector('.service-picker-head')?.scrollIntoView({block:'center',behavior:'smooth'})};let motClose=document.getElementById('closeMotNotice');if(motClose)motClose.onclick=()=>{state.service_offer_dismissed=true;render()};
+ servicePricing.update();app.innerHTML=`<header class="booking-page-header"><div class="top"><h1>Booking Form</h1></div>${bookingProgressHtml()}</header><div class="step ${state.step>1?'later-step':''} booking-soft-background"><div class="vehicle-photo" data-haynes-slot>${haynesHtml()}</div>${vehicleSummaryHtml()}${stepHtml()}</div><div class="actions" id="actions"></div>${serviceOfferEligible()?'<div class="mot-notice-backdrop"><div class="mot-notice" role="dialog" aria-modal="true" aria-labelledby="motNoticeTitle"><div class="mot-notice-icon">£5</div><h3 id="motNoticeTitle">Add a Service and save</h3><p>If you book a Service at the same time, you’ll get £5 off the price. Plus with a Full Service your car will get a good clean!</p><button type="button" id="addServiceOffer">Add a Service</button><button type="button" id="closeMotNotice" style="margin-left:12px;background:#475569">No thanks</button></div></div>':''}`;if(tyrePicker)document.querySelector('.tyre-picker')?.replaceWith(tyrePicker);alignVehicleHeader();applyAdminCopy();bind();bindV137();if(typeof VectaWorkPhotos!=='undefined')VectaWorkPhotos.mount(state.form,render,renderActions);renderActions();bindMileageDialog();let addService=document.getElementById('addServiceOffer');if(addService)addService.onclick=()=>{state.service_offer_dismissed=true;if(!state.form.job_types.includes('Service'))state.form.job_types.push('Service');state.form.appointment_date='';state.form.appointment_time='';state.form.technician='';render();document.querySelector('.service-picker-head')?.scrollIntoView({block:'center',behavior:'smooth'})};let motClose=document.getElementById('closeMotNotice');if(motClose)motClose.onclick=()=>{state.service_offer_dismissed=true;render()};
  // Retain the loaded tyre artwork above the services, so it cannot collapse
  // during a service change. Restore the service section's viewport position.
  if(preserveServicePosition){
@@ -841,8 +841,12 @@ window.matchMedia?.('(prefers-reduced-motion: reduce)').addEventListener?.('chan
 </style>
 
 <style id="booking-soft-final-pages">
-.card{background:#d3d8dd}
-.card .actions{background:#c9d0d6}
+.card{background:#c1c9d1}
+.card .actions{background:#b5bfc8}
+.booking-page-header{background:#fff}
+.step>.vehicle-photo,.step>.vehicle-summary,.step>.vehicle-top{background:#fff;border-radius:12px}
+.step>.vehicle-photo:not(:empty){box-sizing:border-box;padding:14px}
+.step>.vehicle-photo .vehicle-top{background:#fff}
 .booking-soft-background .review>div{background:#fff}
 .tp-scene>.tyre-headlight-artwork{z-index:1;filter:none;pointer-events:none;overflow:visible}
 </style>
