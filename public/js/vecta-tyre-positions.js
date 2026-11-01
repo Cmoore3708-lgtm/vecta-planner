@@ -69,7 +69,7 @@
    // Price and quantity updates must not parse and repaint the same large SVG.
    // Keep the existing wheel targets and their refreshed click handlers instead.
    const artworkKey=img.src,wheelLayer=host.querySelector('.tp-wheels');
-   if(wheelLayer?._artworkKey===artworkKey){bind();return;}
+   if(wheelLayer?._artworkKey===artworkKey){bind();root.illuminateServiceCarHeadlights?.();return;}
    try{
     const svg=new root.DOMParser().parseFromString(decodeURIComponent(img.src.slice(img.src.indexOf(',')+1)),'image/svg+xml').documentElement;
     const vb=(svg.getAttribute('viewBox')||'').split(/[ ,]+/).map(Number);if(vb.length!==4||!vb.every(Number.isFinite)||vb[2]<=0||vb[3]<=0)return;
@@ -81,7 +81,7 @@
     const wheelKey=img.src;
     if(wheels._artworkKey!==wheelKey){wheels._artworkKey=wheelKey;wheels.innerHTML=artworkWheels.map(([cx,cy,rx,ry],i)=>`<button type="button" class="tp-wheel ${i>=2?'tp-far':''} ${i===1||i===3?'tp-rear':''}" data-tyre-position="${positions[i]}" aria-label="${positions[i]} tyre" aria-pressed="${chosen.includes(positions[i])}" style="left:${(cx-x)/w*100}%;top:${(cy-y)/h*100}%;width:${rx*2/w*100}%;height:${ry*2/h*100}%"><span class="tp-ring">${i>=2?'<img class="tp-tyre" src="/assets/tyre-axle-still.webp" alt="">':''}<span class="tp-check" aria-hidden="true">✓</span></span><span class="tp-brand"></span></button>`).join('');}
     const detail=host.querySelector('.tp-car-detail');detail.src=img.src;detail.style.maskImage=detail.style.webkitMaskImage=artworkWheels.slice(2).map(([cx,cy,rx,ry])=>`radial-gradient(ellipse ${(rx+7)/w*100}% ${(ry+7)/h*100}% at ${(cx-x)/w*100}% ${(cy-y)/h*100}%,#000 65%,transparent 100%)`).join(',');
-    bind();watchers.get(host)?.disconnect();
+    bind();root.illuminateServiceCarHeadlights?.();watchers.get(host)?.disconnect();
    }catch{ /* Keep labelled controls usable if supplier artwork is malformed. */ }
   };
   if(img.dataset.vehicleReady==='1')ready();

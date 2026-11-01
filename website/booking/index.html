@@ -120,10 +120,10 @@ function serviceVehicleHtml(){
  if(!/^https:\/\/www\.haynespro-assets\.com\/workshop\/images\/\d+\.svgz?$/.test(source))return '';
  return `<span class="service-vehicle-stage"><img class="service-customer-car" data-service-car data-vehicle-image data-vehicle-crop="tight" data-vehicle-logo="separate" data-registration="${esc(state.form.registration)}" data-colour="${esc(state.form.vehicle_colour)}" data-vehicle-name="${esc([v.make,v.model].filter(Boolean).join(' '))}" data-vehicle-source="${esc(source)}" src="data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=" alt="${esc(v.vehicle||state.form.vehicle||'Your vehicle')}" referrerpolicy="no-referrer"></span>`;
 }
-// Service-only decoration: never mutate shared cached vehicle artwork.
+// Booking-only decoration: never mutate shared cached vehicle artwork.
 let serviceHeadlightSvgSequence=0;
 function illuminateServiceCarHeadlights(){
- document.querySelectorAll('.service-option.selected img[data-service-car][data-vehicle-ready="1"]').forEach(img=>{
+ document.querySelectorAll('.service-option.selected img[data-service-car][data-vehicle-ready="1"], .tp-scene img[data-tyre-car][data-vehicle-ready="1"]').forEach(img=>{
   if(img.dataset.serviceAnimated||!img.src.startsWith('data:image/svg+xml;charset=utf-8,'))return;
   let host;
   try{
@@ -178,8 +178,13 @@ function illuminateServiceCarHeadlights(){
     const ids=new Map([...svg.querySelectorAll('[id]')].map(n=>[n.id,prefix+n.id]));
     for(const n of [svg,...svg.querySelectorAll('*')])for(const a of [...n.attributes]){let v=a.value;if(a.name==='id'&&ids.has(v))v=ids.get(v);v=v.replace(/url\(#([^)]*)\)/g,(all,id)=>ids.has(id)?'url(#'+ids.get(id)+')':all);if((a.localName==='href')&&v.startsWith('#')&&ids.has(v.slice(1)))v='#'+ids.get(v.slice(1));if(v!==a.value)n.setAttribute(a.name,v);}
     svg.setAttribute('overflow','visible');svg.setAttribute('class','service-animated-artwork');svg.setAttribute('aria-hidden','true');svg.setAttribute('focusable','false');svg.setAttribute('width','100%');svg.setAttribute('height','100%');svg.setAttribute('preserveAspectRatio','xMidYMid meet');
-    const stage=img.closest('.service-vehicle-stage');if(!stage)return;
-    stage.querySelector('.service-animated-artwork')?.remove();stage.append(svg);img.style.visibility='hidden';img.dataset.serviceAnimated='1';img.dataset.serviceAnimationStatus='on';
+    const tyreCar=img.hasAttribute('data-tyre-car'),stage=img.closest(tyreCar?'.tp-scene':'.service-vehicle-stage');if(!stage)return;
+    if(tyreCar){
+     // Overlay only the light: retain the original car and the clickable wheel targets.
+     svg.classList.add('tyre-headlight-artwork');
+     svg.querySelectorAll('path,polygon,rect,circle,ellipse,line,polyline,text,image,use').forEach(node=>{if(!node.closest('defs,.service-headlight-beams')&&!node.classList.contains('service-headlight-on'))node.setAttribute('visibility','hidden');});
+    }
+    stage.querySelector('.service-animated-artwork')?.remove();stage.append(svg);if(!tyreCar)img.style.visibility='hidden';img.dataset.serviceAnimated='1';img.dataset.serviceAnimationStatus='on';
    }
   }catch(error){img.dataset.serviceAnimationStatus='error';console.warn('Service headlights unavailable',error);}finally{host?.remove();}
  });
@@ -452,7 +457,7 @@ function render(){
  const preserveServicePosition=arguments[0]?.preserveServicePosition&&state.step===2;
  const tyrePicker=preserveServicePosition?document.querySelector('.tyre-picker'):null;
  const serviceTop=preserveServicePosition?document.querySelector('.service-picker')?.getBoundingClientRect().top:null;
- servicePricing.update();app.innerHTML=`<div class="top"><h1>Booking Form</h1></div>${bookingProgressHtml()}<div class="step ${state.step>1?'later-step':''}"><div class="vehicle-photo" data-haynes-slot>${haynesHtml()}</div>${vehicleSummaryHtml()}${stepHtml()}</div><div class="actions" id="actions"></div>${serviceOfferEligible()?'<div class="mot-notice-backdrop"><div class="mot-notice" role="dialog" aria-modal="true" aria-labelledby="motNoticeTitle"><div class="mot-notice-icon">£5</div><h3 id="motNoticeTitle">Add a Service and save</h3><p>If you book a Service at the same time, you’ll get £5 off the price. Plus with a Full Service your car will get a good clean!</p><button type="button" id="addServiceOffer">Add a Service</button><button type="button" id="closeMotNotice" style="margin-left:12px;background:#475569">No thanks</button></div></div>':''}`;if(tyrePicker)document.querySelector('.tyre-picker')?.replaceWith(tyrePicker);alignVehicleHeader();applyAdminCopy();bind();bindV137();if(typeof VectaWorkPhotos!=='undefined')VectaWorkPhotos.mount(state.form,render,renderActions);renderActions();bindMileageDialog();let addService=document.getElementById('addServiceOffer');if(addService)addService.onclick=()=>{state.service_offer_dismissed=true;if(!state.form.job_types.includes('Service'))state.form.job_types.push('Service');state.form.appointment_date='';state.form.appointment_time='';state.form.technician='';render();document.querySelector('.service-picker-head')?.scrollIntoView({block:'center',behavior:'smooth'})};let motClose=document.getElementById('closeMotNotice');if(motClose)motClose.onclick=()=>{state.service_offer_dismissed=true;render()};
+ servicePricing.update();app.innerHTML=`<div class="top"><h1>Booking Form</h1></div>${bookingProgressHtml()}<div class="step ${state.step>1?'later-step':''} ${state.step===4||state.step===5?'booking-soft-background':''}"><div class="vehicle-photo" data-haynes-slot>${haynesHtml()}</div>${vehicleSummaryHtml()}${stepHtml()}</div><div class="actions" id="actions"></div>${serviceOfferEligible()?'<div class="mot-notice-backdrop"><div class="mot-notice" role="dialog" aria-modal="true" aria-labelledby="motNoticeTitle"><div class="mot-notice-icon">£5</div><h3 id="motNoticeTitle">Add a Service and save</h3><p>If you book a Service at the same time, you’ll get £5 off the price. Plus with a Full Service your car will get a good clean!</p><button type="button" id="addServiceOffer">Add a Service</button><button type="button" id="closeMotNotice" style="margin-left:12px;background:#475569">No thanks</button></div></div>':''}`;if(tyrePicker)document.querySelector('.tyre-picker')?.replaceWith(tyrePicker);alignVehicleHeader();applyAdminCopy();bind();bindV137();if(typeof VectaWorkPhotos!=='undefined')VectaWorkPhotos.mount(state.form,render,renderActions);renderActions();bindMileageDialog();let addService=document.getElementById('addServiceOffer');if(addService)addService.onclick=()=>{state.service_offer_dismissed=true;if(!state.form.job_types.includes('Service'))state.form.job_types.push('Service');state.form.appointment_date='';state.form.appointment_time='';state.form.technician='';render();document.querySelector('.service-picker-head')?.scrollIntoView({block:'center',behavior:'smooth'})};let motClose=document.getElementById('closeMotNotice');if(motClose)motClose.onclick=()=>{state.service_offer_dismissed=true;render()};
  // Retain the loaded tyre artwork above the services, so it cannot collapse
  // during a service change. Restore the service section's viewport position.
  if(preserveServicePosition){
@@ -827,4 +832,11 @@ window.matchMedia?.('(prefers-reduced-motion: reduce)').addEventListener?.('chan
 .service-extra-strip p.service-extra-price{font-size:12px;line-height:1.3;margin:5px 0 0;color:#e0e5eb}
 .service-extra-plugs{display:block;width:38px;height:28px;background:url('/assets/service-parts.webp') right center/200% 100% no-repeat;filter:invert(1) grayscale(1);mix-blend-mode:screen}
 .review-service-extra{padding:10px 0;font:14px/1.5 Arial,sans-serif;color:#17212b;border-bottom:1px solid #e5e7eb}
+</style>
+
+<style id="booking-soft-final-pages">
+.card:has(.booking-soft-background){background:#f1f2f3}
+.card:has(.booking-soft-background) .actions{background:#e8eaec}
+.booking-soft-background .review>div{background:#fff}
+.tp-scene>.tyre-headlight-artwork{z-index:1;filter:none;pointer-events:none;overflow:visible}
 </style>
