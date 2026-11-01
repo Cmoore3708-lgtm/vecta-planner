@@ -31,3 +31,11 @@ test('photo help offers camera, upload and unknown buttons and an accessible rea
  const buttons=[...document.querySelectorAll('.tyre-photo-actions button')];assert.deepEqual(buttons.map(x=>x.textContent),['Take photo','Upload photo','I don’t know']);assert.equal(document.querySelector('[data-photo-camera-input]').getAttribute('capture'),'environment');assert.equal(document.querySelector('[data-photo-upload-input]').hasAttribute('capture'),false);
  buttons[2].click();assert.equal(chosen,1);assert.equal(opened,1);const dialog=document.querySelector('dialog');assert.equal(dialog.querySelector('p').textContent,'That’s OK, we will contact you when we have your car to discuss your options');dialog.querySelector('button').click();assert.equal(document.querySelector('dialog'),null);
 });
+
+test('final review has no generic parts question and every work type can confirm without a parts-range answer',()=>{
+ for(const types of [['Service'],['MOT'],['Other'],['Tyres'],['MOT','Service']]){
+ const {document}=parseHTML('<div id="actions"></div>');let submissions=0;
+ const c={document,state:{step:5,form:{job_types:types,parts_range:''}},submit:()=>submissions++};vm.createContext(c);load('partsRangeHtml',c);load('renderActions',c);assert.equal(c.partsRangeHtml(),'');c.renderActions();
+ const send=document.getElementById('send');assert.equal(send.disabled,false);send.click();assert.equal(submissions,1);assert.ok(document.getElementById('back'));
+ }
+});
