@@ -27,6 +27,6 @@ test('repair leaves paid invoices, unknown adjustments, legacy invoices and othe
  c.fleetNmukMonthlyCostsDue=()=>false;const inv=invoice();assert.equal(c.fleetNmukInvoiceChargesDraft(inv),inv);
 });
 test('invoice save uses the prepared draft and persists the corrected frozen snapshot',()=>{
- assert.match(html,/function gatherInvoice\(id\)\{var source=\(window\.vectaNmukInvoiceDrafts/);
+ assert.match(html,/function gatherInvoice\(id\)\{var source=\(typeof window!=='undefined'&&window\.vectaNmukInvoiceDrafts/);
  assert.match(html,/inv\.fleet_job_snapshot\.invoice_lines=JSON\.parse\(JSON\.stringify\(inv\.lines\)\)/);
 });
