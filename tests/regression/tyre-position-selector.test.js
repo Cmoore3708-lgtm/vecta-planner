@@ -149,7 +149,7 @@ test('tyres-only notes are optional with the requested placeholder; mixed repair
  form.tyre_positions=['Front passenger'];form.tyre_quantity=1;form.tyre_brand='';
  document.querySelector('main').innerHTML=context.stepHtml();
  assert.equal(document.querySelector('[data-field="work_required"]').getAttribute('placeholder'),'If there is a specific tyre you would like, let us know here');
- assert.doesNotMatch(document.querySelector('main').textContent,/Describe what work you would like us to do/);assert.equal(context.workDescriptionRequired(),false);assert.equal(Boolean(context.valid()),true);
+ assert.match(document.querySelector('main').textContent,/Describe what work you would like us to do in as much detail as possible \(optional\)/);assert.equal(document.querySelector('#otherWorkTitle').textContent,'Other work we do');assert.equal(context.workDescriptionRequired(),false);assert.equal(Boolean(context.valid()),true);
  form.job_types=['Tyres','Other'];document.querySelector('main').innerHTML=context.stepHtml();assert.match(document.querySelector('main').textContent,/Describe what work you would like us to do/);assert.equal(context.workDescriptionRequired(),true);assert.equal(Boolean(context.valid()),false);
 });
 test('requesting four when the selected brand has three shows the exact stock shortage and clears after reducing quantity',()=>{
