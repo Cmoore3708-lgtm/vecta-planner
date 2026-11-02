@@ -14,6 +14,8 @@ export function readEspGrid(document) {
     return matches[0];
   };
   const productIndex = index('Product'), selloutIndex = index('Sellout');
+  const costColumns = headings.flatMap((h,i)=>/^cost$/i.test(h)?[i]:[]);
+  const costIndex = costColumns.length===1?costColumns[0]:null;
   const stocks = ['Default','Company','Centre Stock'].flatMap(label => {
     const matches = headings.flatMap((heading,i) => heading === label ? [{label,index:i}] : []);
     return matches.length === 1 ? matches : [];
@@ -30,8 +32,9 @@ export function readEspGrid(document) {
     // ESP prepends a hidden SKU and repeats the description in a tooltip.
     const product = rawProduct.slice(sizes[0].index,sizes[1]?.index ?? rawProduct.length).trim();
     const sellout = cells[selloutIndex].textContent.replace(/\s+/g,' ').trim();
-    // Never read wholesale Cost, Actual, account data or Cart input values.
-    products.push({product,sellout,stockColumns:Object.fromEntries(stocks.map(({label,index})=>[label,cells[index].textContent.replace(/\s+/g,' ').trim()]))});
+    // Cost is the wholesale unit price, separate from the VAT-inclusive Sellout.
+    // Never read Actual, account data or Cart input values.
+    products.push({product,sellout,cost:costIndex===null?null:cells[costIndex].textContent.replace(/\s+/g,' ').trim(),stockColumns:Object.fromEntries(stocks.map(({label,index})=>[label,cells[index].textContent.replace(/\s+/g,' ').trim()]))});
   }
   return {headings,products};
 }

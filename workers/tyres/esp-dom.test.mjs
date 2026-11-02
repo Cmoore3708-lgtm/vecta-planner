@@ -7,7 +7,7 @@ function doc(markup){return parseHTML(markup).document;}
 test('extracts Sellout from the verified ESP grid and never substitutes Cost',()=>{
  const document=doc('<table><tr><td><table id="OrderWindowGrid"><tr><th>Product</th><th>Default</th><th>Cost</th><th>Sellout</th><th>Actual</th><th>Cart</th></tr><tr><td>205/55R16 COMFORSER CF510 91V</td><td>+50</td><td>£20.86</td><td>£62.00</td><td>PRIVATE</td><td><input value="SECRET"></td></tr></table></td></tr></table>');
  const result=readEspGrid(document);assert.equal(result.products.length,1);assert.equal(result.products[0].sellout,'£62.00');
- assert.equal(result.products[0].stockColumns.Default,'+50');assert.ok(!JSON.stringify(result).includes('20.86'));assert.ok(!JSON.stringify(result).includes('PRIVATE'));assert.ok(!JSON.stringify(result).includes('SECRET'));
+ assert.equal(result.products[0].stockColumns.Default,'+50');assert.equal(result.products[0].cost,'£20.86');assert.ok(!JSON.stringify(result).includes('PRIVATE'));assert.ok(!JSON.stringify(result).includes('SECRET'));
  assert.equal(ESP_SEARCH,'#FindProductsButton');assert.equal(ESP_GRID,'#OrderWindowGrid');
 });
 test('fails when Sellout column is missing or ambiguous',()=>{

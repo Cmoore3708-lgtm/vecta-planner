@@ -11,5 +11,6 @@ export function parseEspProduct(row,{brands=[]}={}){
  // Keep warehouse counts separate; Company may overlap Default.
  const stock=/^(?:\+?\d+|\d+\+)$/.test(stockText)?Number(stockText.replace(/\+/g,'')):null;
  const rating=model.match(/(?:^|\s)(\d{2,3})([A-Z])(?:\s*XL)?(?:\s|$)/i);
- return {size,brand,model,unitPence,defaultStockMinimum:stock,loadRating:rating?Number(rating[1]):null,speedRating:rating?rating[2].toUpperCase():null,extraLoad:/\bXL\b|\d[A-Z]XL\b/i.test(model),specificationUnverified:true};
+ const cost=moneyPence(row.cost);
+ return {size,brand,model,unitPence,...(Number.isSafeInteger(cost)&&cost>0&&cost<=500000?{costNetPence:cost}:{}),defaultStockMinimum:stock,loadRating:rating?Number(rating[1]):null,speedRating:rating?rating[2].toUpperCase():null,extraLoad:/\bXL\b|\d[A-Z]XL\b/i.test(model),specificationUnverified:true};
 }
