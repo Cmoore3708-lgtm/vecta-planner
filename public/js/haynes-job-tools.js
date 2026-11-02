@@ -117,7 +117,9 @@ const modelImages=[
 function compatibleArtwork(value,description){
  if(!value)return false;
  if(description?.make&&value.make&&make(description.make)!==make(value.make))return false;
- const normal=(v,manufacturer)=>{let text=modelWords(v);const prefix=modelWords(manufacturer);if(prefix&&text.startsWith(prefix+' '))text=text.slice(prefix.length+1);return text.replace(/^(?:NISSAN|FORD|MERCEDES BENZ|INFINITI|CITROEN|RENAULT|VOLKSWAGEN|VW|AUDI) /,'');};
+ // Strip the manufacturer before compacting model codes: MAZDA 6 is model 6,
+ // while TGE 3.140 and SPRINTER 315 have trim numbers, not joined model names.
+ const normal=(v,manufacturer)=>{let text=words(v);const prefix=words(manufacturer);if(prefix&&text.startsWith(prefix+' '))text=text.slice(prefix.length+1);text=text.replace(/^(?:NISSAN|FORD|MERCEDES BENZ|INFINITI|CITROEN|RENAULT|VOLKSWAGEN|VW|AUDI) /,'');return text.replace(/^([A-Z]{1,2})\s+(?=\d)/,'$1').replace(/(\d)\s+([A-Z])(?=\s|$)/g,'$1$2');};
  const expected=normal(description?.model||description?.vehicle,description?.make||value.make),actual=normal(String(value.model||'').split(/[(/]/)[0],value.make);
  if(!expected||!actual)return true;
  const family=v=>v.split(' ')[0];
