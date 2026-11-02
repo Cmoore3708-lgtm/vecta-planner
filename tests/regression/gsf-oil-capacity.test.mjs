@@ -19,9 +19,9 @@ test('existing GSF fill quantities remain available for vehicles without reviewe
 test('all G4WPC combustion packages retain 8.8L required and charge 9L, with fresh product checks',async()=>{
  for(const service of ['Oil & Filter Change','Full Service','Major Service']){
   const chosen=new Map();let freshChecks=0;
-  const page={url:()=> 'https://trade.gsfcarparts.com/partdetails/example',goto:async url=>{page.current=url.split('/').at(-1)},evaluate:async()=>{freshChecks++;const p=chosen.get(page.current);return {sku:p.searchTerm,brand:'Fixture brand',description:p.description.toLowerCase(),unitNetPence:p.expectedPricePence}}};
+  const page={url:()=> 'https://trade.gsfcarparts.com/partdetails/example',goto:async url=>{page.current=url.split('/').at(-1)},evaluate:async()=>{freshChecks++;if(page.current.endsWith('ECOFEP5L'))return {sku:page.current,brand:'Fixture brand',description:'ECO-FE Plus 0W-30 - 5L',unitNetPence:4995,vatBasis:'EX_VAT',inStock:true,stock:[{location:'Boldon',quantity:3}]};const p=chosen.get(page.current);return {sku:p.searchTerm,brand:'Fixture brand',description:p.description.toLowerCase(),unitNetPence:p.expectedPricePence}}};
   const result=await lookupLiveService(page,{registration:'G4WPC',service,mileage:null,range:'Mid Range'},{capture:async(_,reg,category)=>{const c=structuredClone(fixture.categories.find(c=>c.category===category)),kind={'Engine Oils (Applied)':'oil','Oil Filter':'oil_filter','Air Filter':'air_filter','Cabin Filter':'cabin_filter','Fuel Filter':'fuel_filter'}[category],s=catalogueSelection(c,kind,reg);chosen.set(s.searchTerm,s);return c;}});
-  assert.equal(freshChecks,result.items.length);assert.equal(result.items.find(i=>i.kind==='oil').quantityMilli,8800);
+  assert.equal(freshChecks,result.items.length+1);assert.equal(result.items.find(i=>i.kind==='oil').packQuantityMilli,5000);assert.equal(result.items.find(i=>i.kind==='oil').quantityMilli,8800);
   const price=calculateServicePrice(result,result.request,JSON.parse(readFileSync('workers/gsf/pricing-policy.example.json','utf8')),Date.now());assert.equal(price.lines.find(i=>i.kind==='oil').chargedQuantityMilli,9000);
  }
 });
