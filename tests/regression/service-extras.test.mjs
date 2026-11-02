@@ -59,7 +59,7 @@ test('only verified, explicitly counted spark-plug sets produce a live extra',as
  const booked=bookingServicePrice(body(q,'replace','spark_plug'),['Full Service'],secret);
  assert.equal(booked.approximateCost,(q.totalPence+9000)/100);assert.match(booked.snapshot,/Estimated additional cost: £90\.00/);
  const conditional=bookingServicePrice(body(q,'check','spark_plug'),['Full Service'],secret);assert.equal(conditional.approximateCost,q.totalPence/100);
- const parts=bookingServiceParts(booked.quote,[{result:raw}]);
+ const parts=bookingServiceParts(booked.quote,[{result:raw}],secret);
  const plugs=parts.find(p=>p.id.endsWith('spark_plug'));assert.equal(plugs.cost_price,10);assert.equal(plugs.quantity,4);
 });
 test('no live quote still retains the decision and asks for approval of the price before fitting',()=>{

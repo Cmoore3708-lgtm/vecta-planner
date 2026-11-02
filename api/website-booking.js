@@ -36,10 +36,13 @@ export default async function handler(req,res){
    request.approximate_cost=servicePrice.approximateCost;request.work_required+=servicePrice.snapshot;
    const quote=servicePrice.quote;
    const filter=new URLSearchParams({status:'eq.MATCHED','request->>registration':'eq.'+quote.request.registration,'request->>range':'eq.'+quote.request.range,'result->>checkedAt':'eq.'+quote.checkedAt,select:'result',limit:'5'});
-   const costs=await rest(url,key,'gsf_service_jobs?'+filter);
+   const costs=quote.costSnapshot?[]:await rest(url,key,'gsf_service_jobs?'+filter);
    request.gsf_parts=bookingServiceParts(quote,costs||[]);
   }
-  if(!servicePrice)request.work_required+=serviceExtraSnapshot(extra,null);
+  if(!servicePrice){
+   if(types.some(type=>/Service|Oil & Filter/i.test(type))&&request.approximate_cost>0)request.work_required+='\n\nBooking guide total: £'+request.approximate_cost.toFixed(2)+' including VAT.\nGuide price based on engine size.';
+   request.work_required+=serviceExtraSnapshot(extra,null);
+  }
   const inserted=photos.length
    ? await rest(url,key,'rpc/insert_website_booking_with_photos','POST',{p_request:request,p_photos:photos})
    : await rest(url,key,'website_booking_requests?on_conflict=id','POST',request,'resolution=ignore-duplicates,return=representation');
