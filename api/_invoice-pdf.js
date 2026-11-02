@@ -127,7 +127,7 @@ export async function renderCustomerInvoicePdf(invoice, settings = {}, job = {},
   right('INVOICE', 553, isFleet?745:610, 24, bold); right(invoice.invoice_number || '', 553, isFleet?722:587, 13, bold); right(globalThis.VectaInvoicePrint.formatDate(invoice.invoice_date), 553, isFleet?704:569, 10);
   y = 682-headerOffset;
   const business = nmuk ? ['10 Hunter Close', 'East Boldon, Tyne and Wear, NE36 0TB'] : ['Contractors Compound, Nissan Motor Manufacturing', 'Nissan Way, Washington, SR5 3NS'];
-  for (const line of [...business, 'Tel: 07721722622', 'chris@VectaMotors.co.uk', 'VectaMotors.co.uk', 'VAT No. 169170002']) { for(const part of wrap(line,isFleet?320:180,9)){text(part,42,y,9,regular,muted);y-=12;} }
+  for (const line of [...business, 'Tel: 07721722622', 'chris@VectaMotors.co.uk', ...(nmuk ? ['shirken.moore@talktalk.net'] : []), 'VectaMotors.co.uk', 'VAT No. 169170002']) { for(const part of wrap(line,isFleet?320:180,9)){text(part,42,y,9,regular,muted);y-=12;} }
   if(!isFleet)y=Math.min(y,550);
   y -= 18; text('CUSTOMER', 42, y, 9, bold, muted); y -= 19;
   paragraph(invoice.customer_name || 'Customer', 42, 511, bold, 12);
