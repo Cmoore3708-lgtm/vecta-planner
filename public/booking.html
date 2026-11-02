@@ -844,6 +844,11 @@ window.matchMedia?.('(prefers-reduced-motion: reduce)').addEventListener?.('chan
 .card{background:#a8b2bc}
 .card .actions{background:#9ca8b4}
 .booking-page-header{background:#fff}
+/* Extend the white vehicle header through the surrounding page gutters. */
+.step:not(.later-step){background:#fff}
+.later-step>.vehicle-photo:not(:empty),.later-step>.vehicle-summary{border-radius:0;box-shadow:0 0 0 34px #fff;clip-path:inset(-28px -34px -16px)}
+@media(max-width:700px){.later-step>.vehicle-photo:not(:empty),.later-step>.vehicle-summary{box-shadow:0 0 0 20px #fff;clip-path:inset(-28px -20px -16px)}}
+
 .step>.vehicle-photo,.step>.vehicle-summary,.step>.vehicle-top{background:#fff;border-radius:12px}
 .step>.vehicle-photo:not(:empty){box-sizing:border-box;padding:14px}
 .step>.vehicle-photo .vehicle-top{background:#fff}
