@@ -2,6 +2,7 @@ import {servicePriceRequest,serviceRequiredKinds,cleanServiceCosts} from '../../
 import {captureServiceCategory} from './service-capture.mjs';
 import {readProductDialog} from './product-dialog.mjs';
 import {oilFillEvidence} from './oil-capacity.mjs';
+import {chooseServiceOilPack} from './oil-pack-choice.mjs';
 const fail=()=>{throw Error('REVIEW_REQUIRED');};
 const categories={oil:'Engine Oils (Applied)',oil_filter:'Oil Filter',air_filter:'Air Filter',cabin_filter:'Cabin Filter',fuel_filter:'Fuel Filter'};
 // Parse only the selected product's stock/price panel, never alternative cards or RRP.
@@ -38,7 +39,7 @@ async function freshProduct(page,selected){
  return {kind:selected.kind,sku:product.sku,brand:product.brand,description:product.description,quantityMilli:selected.quantityMilli,
   unitNetPence:Math.ceil(product.unitNetPence*1000/selected.packQuantityMilli),...(selected.kind==='oil'?{packNetPence:product.unitNetPence,packQuantityMilli:selected.packQuantityMilli}:{}),vatBasis:'EX_VAT',inStock:true};
 }
-export async function lookupLiveService(page,raw,{capture=captureServiceCategory,readFresh=freshProduct,now=Date.now}={}){
+export async function lookupLiveService(page,raw,{capture=captureServiceCategory,readFresh=freshProduct,chooseOilPack=chooseServiceOilPack,now=Date.now}={}){
  const began=Date.now();
  const request=servicePriceRequest(raw);
  if(request.range!=='Mid Range')fail(); // Never mislabel Gold catalogue parts as Budget or Dealer.
@@ -49,7 +50,8 @@ export async function lookupLiveService(page,raw,{capture=captureServiceCategory
  for(const kind of requiredKinds){
   const selected=kind===firstKind?selectedFirst:catalogueSelection(await capture(page,request.registration,categories[kind]),kind,request.registration);
   if(selected.fuelType!==fuelType)fail();
-  items.push(await readFresh(page,selected));
+  const product=await readFresh(page,selected);
+  items.push(kind==='oil'?await chooseOilPack(page,product,{searchTerm:selected.searchTerm}):product);
  }
  const optionalParts=[];
  // Older PC workers can keep returning the core service unchanged. New workers
