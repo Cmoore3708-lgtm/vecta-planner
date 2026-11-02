@@ -11,7 +11,7 @@ test('Excel workbook has valid ZIP/XML, text dates, wide wrapped columns and num
  ['01/10','AB12 CDE','Internal','Service; brakes, front',190],
  ['09/10; 14/10','CD34 FGH','Other','=SUM(A1:A2) & test',25]
  ],[{description:'Monthly maintenance',amount:450,section:'other'}],{total:665,internal:190,other:475});
- assert.equal(result.filename,'Vecta Monthly Tracker (October 26).xlsx');
+ assert.equal(result.filename,'Vecta Monthly Tracker October 26.xlsx');
  const run=spawnSync('python',['-c',`import sys,zipfile,io,xml.etree.ElementTree as E
 z=zipfile.ZipFile(io.BytesIO(sys.stdin.buffer.read())); assert z.testzip() is None
 for name in z.namelist(): E.fromstring(z.read(name))
@@ -21,14 +21,15 @@ assert cells['A3'].attrib['t']=='inlineStr'
 assert cells['A3'].find('s:is/s:t',n).text=='01/10'
 assert cells['A4'].find('s:is/s:t',n).text=='09/10; 14/10'
 assert cells['D4'].find('s:is/s:t',n).text=='=SUM(A1:A2) & test'
-assert cells['A7'].find('s:is/s:t',n).text=='31/10'
-assert cells['D7'].find('s:is/s:t',n).text=='Monthly maintenance'
-assert cells['E7'].find('s:v',n).text=='450.00'
+assert cells['A6'].find('s:is/s:t',n).text=='31/10'
+assert cells['D6'].find('s:is/s:t',n).text=='Monthly maintenance'
+assert cells['E6'].find('s:v',n).text=='450.00'
 assert not s.findall('.//s:f',n)
 assert s.find('s:cols',n)[3].attrib['width']=='90'
 `],{input:result.bytes});
  assert.equal(run.status,0,run.stderr.toString());
  assert.match(result.files['xl/styles.xml'],/wrapText="1"/);
+ assert.doesNotMatch(result.files['xl/worksheets/sheet1.xml'],/Editable monthly charges/);
 });
 test('each monthly charge uses the calendar month end including leap years',()=>{
  for(const [month,end] of [['2026-10','31/10'],['2027-02','28/02'],['2028-02','29/02']]){
