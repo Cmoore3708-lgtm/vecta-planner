@@ -321,7 +321,7 @@ test('typing a registration never submits a decorative lookup; the explicit butt
  await new Promise(r=>setTimeout(r,800));assert.equal(calls.length,0);await lookupButton(s.panel).onclick();assert.equal(calls.length,1);assert.match(calls[0],/reg=WGZ7396/);
 });
 
-test('opening and editing a job never starts a decorative lookup when no image is cached',async()=>{
+test('opening a cached job avoids new lookups and editing its registration does not query while typing',async()=>{
  let calls=0;const s=setup(async()=>{calls++;return response(vehicle);},undefined,undefined,false);await new Promise(r=>setImmediate(r));assert.equal(calls,0);
  const input=s.document.querySelector('#job_registration');input.value='J321 WPC';input.dispatchEvent(new s.window.Event('change'));await new Promise(r=>setTimeout(r,800));assert.equal(calls,0);
 });
@@ -374,4 +374,34 @@ test('a failed Haynes lookup closes the reserved tab and displays the failure',a
  const {window,panel}=setup(async()=>({ok:false,json:async()=>({status:'UNAVAILABLE'})}),undefined,undefined,false);
  let closed=false;window.open=()=>({opener:{},location:{replace:()=>assert.fail('must not open an uncertain match')},close:()=>{closed=true}});
  await lookupButton(panel).onclick({type:'click'});assert.equal(closed,true);assert.match(panel.querySelector('[role="status"]').textContent,/unavailable/i);
+});
+
+test('Mazda numeric model matches a full make/model without confusing other models',()=>{
+ const {window}=setup(async()=>response(vehicle),undefined,undefined,false);
+ const tools=window.VectaHaynesJobTools;
+ assert.equal(tools.compatibleArtwork({make:'Mazda',model:'6 (GH)'},{vehicle:'MAZDA 6'}),true);
+ assert.equal(tools.compatibleArtwork({make:'Mazda',model:'6 (GH)'},{make:'Mazda',model:'6'}),true);
+ assert.equal(tools.compatibleArtwork({make:'Mazda',model:'6 (GH)'},{vehicle:'MAZDA 3'}),false);
+ assert.equal(tools.compatibleArtwork({make:'Mazda',model:'6 (GH)'},{make:'Ford',model:'6'}),false);
+});
+test('opening a job without saved artwork performs one lookup without opening a supplier tab',async()=>{
+ let calls=0;
+ const {window,panel}=setup(async()=>{calls++;return response(vehicle)},undefined,[],false,'<input id="job_vehicle" value="Nissan Micra">');
+ let opened=0;window.open=()=>{opened++;};
+ await new Promise(r=>setImmediate(r));
+ assert.equal(calls,1);assert.equal(opened,0);assert.ok(panel.querySelector('img'));
+});
+test('remembering a Mazda image replaces the existing planner placeholder without a calendar lookup',async()=>{
+ const {window,document}=setup(async()=>response(vehicle),undefined,undefined,false);
+ await new Promise(r=>setImmediate(r));
+ const host=document.createElement('div');host.id='content';host.innerHTML='<div class="mobileJob" data-open-job="mazda"></div>';document.body.append(host);
+ const job={id:'mazda',registration:'DN60FBF',vehicle:'MAZDA 6'};
+ window.app={jobs:[job]};window.VectaFleetImages.artwork=()=>'<svg xmlns="http://www.w3.org/2000/svg"><rect width="100" height="40"/></svg>';
+ window.enrichHaynesDashboard(host,[job]);assert.equal(host.querySelector('img').dataset.generic,'true');
+ let lookups=0;window.fetch=async()=>{lookups++;throw Error('Planner must not query the worker')};
+ window.VectaHaynesJobTools.remember({...vehicle,registration:'DN60FBF',make:'Mazda',model:'6 (GH)',variant:'2.2 CDTI DPF'});
+ await new Promise(r=>setTimeout(r,10));
+ assert.equal(host.querySelector('img').dataset.haynesSource,vehicle.imageUrl);
+ assert.equal(host.querySelector('img').dataset.generic,'false');assert.equal(lookups,0);
+ host.remove();
 });
