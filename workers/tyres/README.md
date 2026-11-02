@@ -72,7 +72,7 @@ Workshop confirmation: quantities beside the green downward arrows are available
 from another warehouse. Read the unlabelled stock column immediately before
 Sellout, plus explicitly labelled warehouse stock columns. Use the largest
 confirmed individual stock pool, never sum overlapping Default/warehouse counts.
-Company stock alone remains unverified. Blank or malformed stock stays unknown.
+Company stock is also orderable stock and is included. Blank or malformed stock stays unknown.
 The relay-compatible `defaultStockMinimum` field now carries this usable minimum,
 so the installed website can include these tyres without a server update.
 Quantity eligibility and stock badges continue to use the same minimum.
@@ -81,3 +81,10 @@ The screenshot example now offers Accelera at £64 for up to two tyres and
 Massimo at £65 for up to four tyres (seven in stock), alongside Comforser at £70.
 These are the displayed supplier Sellout prices; no additional markup is added.
 This has fixture coverage, not a live supplier-session verification.
+
+V2: include Company stock, case-insensitive warehouse headings, and numeric
+counts decorated with downward-arrow characters. This covers retail layouts
+without a separate blank warehouse column. Worker startup identifies V2 and
+lookup logs show each public price and usable quantity. A bounded local report
+is saved as %LOCALAPPDATA%\VectaTyres\last-tyre-lookup.json (no trade costs,
+account data, credentials or browser/session data).

@@ -9,11 +9,11 @@ test('supports configured multi-word brands and glued XL ratings',()=>{
  const result=parseEspProduct({product:'225/45R17 ROAD DMX TEST 94YXL',sellout:'£74.00',stockColumns:{Default:'5'}},{brands:['ROAD DMX']});
  assert.equal(result.brand,'ROAD DMX');assert.equal(result.model,'TEST 94YXL');assert.equal(result.extraLoad,true);assert.equal(result.speedRating,'Y');
 });
-test('missing stock is unknown and Company stock is never added',()=>{
- const result=parseEspProduct({product:'205/55R16 EXAMPLE MODEL',sellout:'£62.00',stockColumns:{Default:'',Company:'40'}});assert.equal(result.defaultStockMinimum,null);
+test('Company warehouse stock is available without Default stock',()=>{
+ const result=parseEspProduct({product:'205/55R16 EXAMPLE MODEL',sellout:'£62.00',stockColumns:{Default:'',Company:'40'}});assert.equal(result.defaultStockMinimum,40);
 });
 
-test('includes confirmed warehouse stock without double counting or treating Company as stock',()=>{
- const base={product:'175/65R17 MASSIMO OTTP 84WXL',sellout:'£65.00'};
- for(const [stockColumns,expected] of [[{Default:'',Warehouse:'7'},7],[{Default:'0',Warehouse:'2'},2],[{Default:'2',Warehouse:'2'},2],[{Default:'4',Warehouse:'7'},7],[{Default:'+50',Warehouse:'7'},50],[{Default:'',Warehouse:'',Company:'40'},null],[{Default:'0',Warehouse:'unknown'},0],[{Warehouse:'7+'},7],[{Warehouse:'-1'},null],[{Warehouse:'100001'},null]])assert.equal(parseEspProduct({...base,stockColumns}).defaultStockMinimum,expected);
+test('includes all confirmed warehouse stock without double counting',()=>{
+ const base={product:'205/40R17 MASSIMO OTTP 84WXL',sellout:'£65.00'};
+ for(const [stockColumns,expected] of [[{Default:'',Warehouse:'7'},7],[{Default:'0',Warehouse:'2'},2],[{Default:'2',Warehouse:'2'},2],[{Default:'4',Warehouse:'7'},7],[{Default:'+50',Warehouse:'7'},50],[{Default:'',Warehouse:'',Company:'40'},40],[{Default:'0',Warehouse:'unknown'},0],[{Warehouse:'7+'},7],[{Warehouse:'-1'},null],[{Warehouse:'100001'},null],[{Company:'7↓'},7],[{Default:'2',Company:'2'},2],[{Default:'2',Company:'7'},7]])assert.equal(parseEspProduct({...base,stockColumns}).defaultStockMinimum,expected);
 });

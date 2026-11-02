@@ -17,7 +17,7 @@ export function readEspGrid(document) {
   const costColumns = headings.flatMap((h,i)=>/^cost$/i.test(h)?[i]:[]);
   const costIndex = costColumns.length===1?costColumns[0]:null;
   const stocks = ['Default','Company','Centre Stock','Warehouse','Other Warehouse','Other Stock'].flatMap(label => {
-    const matches = headings.flatMap((heading,i) => heading === label ? [{label,index:i}] : []);
+    const matches = headings.flatMap((heading,i) => heading.toLowerCase() === label.toLowerCase() ? [{label,index:i}] : []);
     return matches.length === 1 ? matches : [];
   });
   // ESP shows transfer-warehouse quantities beside green down arrows in an

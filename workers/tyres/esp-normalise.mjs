@@ -9,9 +9,9 @@ export function parseEspProduct(row,{brands=[]}={}){
  const model=description.slice(brand.length).trim();
  // Include the confirmed transfer-warehouse column as well as Default stock.
  // Take the largest single pool: counts can overlap, so never add them together.
- // Company alone remains unverified and must not imply available stock.
- const counts=['Default','Centre Stock','Warehouse','Other Warehouse','Other Stock'].map(label=>{
-  const text=String(row.stockColumns?.[label]??'').trim();
+ // Company includes orderable stock in the supplier’s other warehouses.
+ const counts=['Default','Company','Centre Stock','Warehouse','Other Warehouse','Other Stock'].map(label=>{
+  const text=String(row.stockColumns?.[label]??'').replace(/[↓▼⬇↧\uFE0F]/g,'').trim();
   if(!/^(?:\+?\d+|\d+\+)$/.test(text))return null;
   const count=Number(text.replace(/\+/g,''));
   return Number.isSafeInteger(count)&&count<=100000?count:null;
