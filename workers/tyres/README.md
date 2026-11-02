@@ -64,3 +64,20 @@ The separate `tyre-pc-relay` function and private `tyre_relay_jobs`/`tyre_relay_
 The SQL deployment failed with `Invalid or expired requestState` / `Conflicting MCP request metadata`; a read-only check confirmed neither tyre table exists. The Edge function has not been deployed and the new website relay fallback has not been merged. No live end-to-end success is claimed. Finish database deployment, verify role isolation/leases with rolled-back synthetic jobs, deploy/test Edge authentication, and only then enable the website fallback and ask Chris to launch the worker. Device/browser and supplier checks remain necessary.
 
 `node scripts/package-tyre-live-worker.mjs /absolute/empty/folder` builds the complete Windows package. The included instructions clearly mark it as not yet enabled. It contains no tokens, credentials or browser profile data.
+
+
+## Warehouse stock correction — 02 November 2026
+
+Workshop confirmation: quantities beside the green downward arrows are available
+from another warehouse. Read the unlabelled stock column immediately before
+Sellout, plus explicitly labelled warehouse stock columns. Use the largest
+confirmed individual stock pool, never sum overlapping Default/warehouse counts.
+Company stock alone remains unverified. Blank or malformed stock stays unknown.
+The relay-compatible `defaultStockMinimum` field now carries this usable minimum,
+so the installed website can include these tyres without a server update.
+Quantity eligibility and stock badges continue to use the same minimum.
+
+The screenshot example now offers Accelera at £64 for up to two tyres and
+Massimo at £65 for up to four tyres (seven in stock), alongside Comforser at £70.
+These are the displayed supplier Sellout prices; no additional markup is added.
+This has fixture coverage, not a live supplier-session verification.
