@@ -193,3 +193,21 @@ test('real fleet matcher renders automatic internal images on phone and desktop 
  assert.match(d.root.VectaHaynesJobTools.storedDrawing(j).imageUrl,/319004648\.svgz$/,'Chris permits a representative Qashqai when its generation is unspecified');
  await d.root.VectaHaynesJobTools.flushSharedArtwork();assert.equal(db.writes(),0);assert.equal(d.lookups(),0);
 });
+
+test('actual dashboard labels retain the same saved drawings as the job sheet',async()=>{
+ const cases=[
+  [{registration:'OV72HWP',make:'MAN',model:'TGE',imageUrl:'https://www.haynespro-assets.com/workshop/images/319020957.svgz'},{make:'MAN',model:'TGE 3.140',vehicle:'MAN TGE 3.140'}],
+  [{registration:'DN60FBF',make:'MAZDA',model:'6 (GH)',imageUrl:'https://www.haynespro-assets.com/workshop/images/319007366.svgz'},{make:'',model:'',vehicle:'MAZDA 6'}],
+  [{registration:'NK72YKR',make:'MERCEDES-BENZ',model:'Sprinter III (W907/W910)',imageUrl:'https://www.haynespro-assets.com/workshop/images/319037186.svgz'},{make:'',model:'',vehicle:'MERCEDES-BENZ SPRINTER 315 PROGRESSIVE CDI'}]
+ ];
+ for(const [saved,label] of cases){
+  const db=database(new Map([['vehicle_artwork:'+saved.registration,saved]])),d=device(db);
+  const j={...label,id:'1',registration:saved.registration};
+  d.root.enrichHaynesDashboard(d.document,[j]);await settled();
+  assert.equal(d.document.querySelector('.haynesDashboardImage')?.dataset.haynesSource,saved.imageUrl,saved.registration);
+  assert.equal(d.lookups(),0);
+  const offline=device(db,d.storage);offline.root.navigator.onLine=false;offline.root.enrichHaynesDashboard(offline.document,[j]);
+  assert.equal(offline.document.querySelector('.haynesDashboardImage')?.dataset.haynesSource,saved.imageUrl);
+  assert.equal(d.root.VectaHaynesJobTools.artworkSnapshot(saved.registration,saved.make,'Wrong model'),null);
+ }
+});
