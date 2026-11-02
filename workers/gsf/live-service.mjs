@@ -74,13 +74,14 @@ export async function lookupLiveService(page,raw,{capture=captureServiceCategory
  for(const kind of requiredKinds){
   try{
    const evidence=kind===firstKind?first:await capture(page,request.registration,categories[kind]);
-   if(!evidence.selectedRegistration||evidence.registration!==request.registration)throw Error('VEHICLE_MISMATCH');
+   if(evidence.registration!==request.registration)throw Error('VEHICLE_MISMATCH');
+   if(!evidence.selectedRegistration)throw Error('REVIEW_REQUIRED');
    const selected=catalogueSelection(evidence,kind,request.registration,{allowPriceOnly:true});
    if(selected.fuelType!==fuelType)throw Error('VEHICLE_MISMATCH');
    const product=await readFresh(page,selected);
    items.push(kind==='oil'?await chooseOilPack(page,product,{searchTerm:selected.searchTerm}):product);
   }catch(error){
-   if(kind==='oil'||['LOGIN_REQUIRED','PAIRING_REQUIRED','VEHICLE_MISMATCH'].includes(error.message))throw error;
+   if(kind==='oil'||['LOGIN_REQUIRED','PAIRING_REQUIRED','VEHICLE_MISMATCH'].includes(error.message)){error.evidence={category:categories[kind],...error.evidence};throw error;}
    items.push(estimatedFilter(kind));
   }
  }
