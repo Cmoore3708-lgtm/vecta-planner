@@ -1,6 +1,8 @@
 // Read-only DOM extraction for GSF's Part Details dialog or full product page.
 // Self-contained so the identical function runs in Edge and DOM fixture tests.
-export function readProductDialog(doc = document) {
+export function readProductDialog(doc = document, options = {}) {
+  if(!doc?.querySelectorAll){options=doc||{};doc=document;}
+  const priceOnly=options.allowUnavailableOilPrice===true;
   const clean=value=>String(value||'').replace(/\s+/g,' ').trim();
   const visible=element=>!element.hidden && element.getAttribute('aria-hidden')!=='true' &&
     (typeof getComputedStyle!=='function'||getComputedStyle(element).display!=='none');
@@ -36,11 +38,11 @@ export function readProductDialog(doc = document) {
   if(Math.abs(costIncVatPence-Math.round(unitNetPence*1.2))>1)throw Error('SETTINGS_REQUIRED');
   const stockLabels=[...dialog.querySelectorAll('*')].filter(visible).map(el=>clean(el.textContent));
   const inStock=stockLabels.some(text=>/^In stock(?: in (?:RDC|NDC))?\.?(?: Get it tomorrow\.)?$/i.test(text));
-  if(!inStock||stockLabels.some(text=>/^Out of stock\.?$/i.test(text)))throw Error('UNAVAILABLE');
+  if(!priceOnly&&(!inStock||stockLabels.some(text=>/^Out of stock\.?$/i.test(text))))throw Error('UNAVAILABLE');
   const stock=[...dialog.querySelectorAll('tbody tr')].map(row=>[...row.querySelectorAll('td')].map(el=>clean(el.textContent)))
     .filter(cells=>cells.length===2&&/^\d+$/.test(cells[1]))
     .map(([location,quantity])=>({location,quantity:Number(quantity)}));
-  if(!stock.length||stock.some(row=>!row.location||row.location.length>80||!Number.isSafeInteger(row.quantity)||row.quantity>1000000)||!stock.some(row=>row.quantity>0))throw Error('UNAVAILABLE');
+  if((!priceOnly&&!stock.length)||stock.some(row=>!row.location||row.location.length>80||!Number.isSafeInteger(row.quantity)||row.quantity>1000000)||(!priceOnly&&!stock.some(row=>row.quantity>0)))throw Error('UNAVAILABLE');
   if(sku.length>80||brand.length>80||descriptions[0].length>160)throw Error('SETTINGS_REQUIRED');
   const imageUrl=[...dialog.querySelectorAll('img')].map(img=>img.getAttribute('src')||'').find(src=>/^https:\/\//.test(src)&&/ProductImages\//i.test(src))||'';
   return {imageUrl,sku,brand,description:descriptions[0],unitNetPence,costIncVatPence,vatBasis:'EX_VAT',inStock,stock};
