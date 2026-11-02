@@ -56,7 +56,7 @@ test('Something else shows the customer car without wheel effects, examples and 
  const combined=parseHTML(context.otherWorkOptionsHtml()).document;
  assert.equal(combined.querySelector('img'),null,'Tyres selected: avoid repeating the customer car in Something else');assert.equal(combined.querySelectorAll('#other-work-help>li').length,10);assert.ok(combined.querySelector('details summary'));
  form.job_types=['Other'];assert.ok(parseHTML(context.otherWorkOptionsHtml()).document.querySelector('img'),'deselecting Tyres restores the Something else car');
- form.job_types=['Tyres'];assert.equal(context.otherWorkOptionsHtml(),'');
+ form.job_types=['Tyres'];assert.ok(parseHTML(context.otherWorkOptionsHtml()).document.querySelector('#otherWorkTitle'));assert.equal(parseHTML(context.otherWorkOptionsHtml()).document.querySelector('img'),null);
 });
 
 test('Something else omits missing or unsafe artwork while keeping the service examples and NEVOS information',()=>{
@@ -89,4 +89,16 @@ test('NEVOS question and required answer apply only to Nissan Qashqai and Juke v
   assert.equal(Boolean(context.valid()),!expected,'Only eligible models must answer before continuing');
   form.nevos_vehicle='no';assert.equal(Boolean(context.valid()),true);assert.equal(context.nevosHtml(),'');
  }
+});
+
+
+test('other work examples show for every work selection with the existing car rule',()=>{
+ for(const job_types of [[],['Service'],['MOT'],['Tyres'],['Other'],['Service','Tyres']]){
+  const context=vm.createContext({state:{form:{job_types}},haynesState:{vehicle:{make:'Nissan',model:'Juke',imageUrl:'https://www.haynespro-assets.com/workshop/images/123.svg'}},esc});
+  vm.runInContext(fn('otherWorkOptionsHtml','workTypeCardsHtml'),context);
+  const {document}=parseHTML(context.otherWorkOptionsHtml());
+  assert.equal(document.querySelector('h3').textContent,'Other work we do');
+  assert.equal(Boolean(document.querySelector('img')),!job_types.includes('Tyres'));
+ }
+ assert.ok(html.includes('${otherWorkOptionsHtml()}<label>Describe what work'));
 });

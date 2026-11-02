@@ -29,8 +29,9 @@ for (const path of ['public/booking.html','website/booking/index.html']) {
  });
  test(`${path}: servicing shows last MOT mileage beside current mileage and an accessible checkbox`,()=>{
   const form={job_types:['Service'],last_mot_mileage:'110000',mileage:'',mileage_unknown:true,work_required:''};
-  const context=vm.createContext({state:{step:2,form},esc:String,prettyMiles:value=>`${value} miles`,recommendationsHtml:()=>'',workTypeCardsHtml:()=>'',tyreOptionsHtml:()=>'',serviceOptionsHtml:()=>'',workDescriptionRequired:()=>false,prettyDate:value=>value});
+  const context=vm.createContext({state:{step:2,form},esc:String,prettyMiles:value=>`${value} miles`,recommendationsHtml:()=>'',workTypeCardsHtml:()=>'',tyreOptionsHtml:()=>'',serviceOptionsHtml:()=>'',haynesState:{},workDescriptionRequired:()=>false,prettyDate:value=>value});
   vm.runInContext(html.slice(html.indexOf('function lastMotMileageLabel(){'),html.indexOf('function lookupHtml(){')),context);
+  vm.runInContext(html.slice(html.indexOf('function otherWorkOptionsHtml(){'),html.indexOf('function workTypeCardsHtml(')),context);
   vm.runInContext(html.slice(html.indexOf('function stepHtml(){'),html.indexOf('function render(){')),context);
   const {document}=parseHTML(context.stepHtml());
   assert.equal(document.querySelector('[aria-label="Mileage at last MOT"]').value,'110000 miles');
@@ -63,8 +64,9 @@ for(const path of ['public/booking.html','website/booking/index.html']){
  test(path+': mileage dialog restores entered values, validates input and saves unknown or known mileage',()=>{
   const html=fs.readFileSync(path,'utf8');
   const form={job_types:['Service'],service_choice:'Full Service',last_mot_mileage:'110000',mileage:'',mileage_unknown:false,work_required:''};
-  const context=vm.createContext({state:{step:2,mileage_dialog_open:true,form},esc:String,prettyMiles:v=>`${v} miles`,recommendationsHtml:()=>'',workTypeCardsHtml:()=>'',tyreOptionsHtml:()=>'',serviceOptionsHtml:()=>'',pricingHtml:()=>'',workDescriptionRequired:()=>false,prettyDate:v=>v});
+  const context=vm.createContext({state:{step:2,mileage_dialog_open:true,form},esc:String,prettyMiles:v=>`${v} miles`,recommendationsHtml:()=>'',workTypeCardsHtml:()=>'',tyreOptionsHtml:()=>'',serviceOptionsHtml:()=>'',pricingHtml:()=>'',haynesState:{},workDescriptionRequired:()=>false,prettyDate:v=>v});
   vm.runInContext(html.slice(html.indexOf('function lastMotMileageLabel(){'),html.indexOf('function lookupHtml(){')),context);
+  vm.runInContext(html.slice(html.indexOf('function otherWorkOptionsHtml(){'),html.indexOf('function workTypeCardsHtml(')),context);
   vm.runInContext(html.slice(html.indexOf('function stepHtml(){'),html.indexOf('function serviceMileageValid(){')),context);
   const {document}=parseHTML(context.stepHtml());let opened=0,closed=0,renders=0;
   const dialog=document.querySelector('dialog');dialog.showModal=()=>opened++;dialog.close=()=>closed++;
