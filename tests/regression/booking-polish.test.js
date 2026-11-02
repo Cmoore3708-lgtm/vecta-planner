@@ -25,8 +25,8 @@ test('calendar escapes customer notes and folds Unicode lines to valid UTF-8 len
 });
 test('confirmation shortcuts download a calendar and open the same directions used by the homepage',()=>{
  const c=calendar();const {document}=parseHTML(c.bookingReceiptActionsHtml('2026-11-03','receipt'));
- const a=document.querySelector('.receipt-calendar');assert.equal(a.textContent.trim(),'＋ Add to calendar');const url=new URL(a.getAttribute('href'),'https://example.test');assert.equal(url.pathname,'/api/booking-calendar');assert.equal(url.searchParams.get('date'),'2026-11-03');assert.equal(url.searchParams.get('registration'),'AB12 CDE');assert.equal(url.searchParams.get('id'),'receipt');
+ const a=document.querySelector('.receipt-calendar');assert.equal(a.textContent.trim(),'＋ Add to Calendar');const url=new URL(a.getAttribute('href'),'https://example.test');assert.equal(url.pathname,'/api/booking-calendar');assert.equal(url.searchParams.get('date'),'2026-11-03');assert.equal(url.searchParams.get('registration'),'AB12 CDE');assert.equal(url.searchParams.get('id'),'receipt');
  const directions=document.querySelector('.receipt-directions');const home=parseHTML(fs.readFileSync('website/index.html','utf8')).document;assert.equal(directions.getAttribute('href'),home.querySelector('.locationMapLink').getAttribute('href'));assert.equal(directions.getAttribute('target'),'_blank');assert.match(directions.getAttribute('rel'),/noopener/);
  assert.equal(parseHTML(c.bookingReceiptActionsHtml('', 'receipt')).document.querySelector('.receipt-calendar'),null);
- assert.match(html,/bookingReceiptActionsHtml\(d\.date,d\.request_id\)/);
+ assert.match(html,/bookingReceiptActionsHtml\(d\.date\|\|f\.appointment_date,d\.request_id\)/);
 });
