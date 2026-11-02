@@ -847,6 +847,16 @@ window.matchMedia?.('(prefers-reduced-motion: reduce)').addEventListener?.('chan
 .step>.vehicle-photo,.step>.vehicle-summary,.step>.vehicle-top{background:#fff;border-radius:12px}
 .step>.vehicle-photo:not(:empty){box-sizing:border-box;padding:14px}
 .step>.vehicle-photo .vehicle-top{background:#fff}
+/* Without supplier artwork, use the whole row for vehicle selection. */
+.step:not(.later-step):not(:has(.haynes-vehicle)){grid-template-columns:minmax(0,1fr)}
+.step:not(.later-step):not(:has(.haynes-vehicle))>.vehicle-photo:empty{display:none}
+.step:not(.later-step):not(:has(.haynes-vehicle))>.kicker,
+.step:not(.later-step):not(:has(.haynes-vehicle))>h2,
+.step:not(.later-step):not(:has(.haynes-vehicle))>p{grid-column:1/-1;max-width:100%}
+.step:not(.later-step):not(:has(.haynes-vehicle))>.vehicle-top{grid-column:1/-1;width:100%;padding:18px;overflow:hidden}
+.step:not(.later-step):not(:has(.haynes-vehicle)) .reg-wrap{width:230px;max-width:100%}
+.step:not(.later-step):not(:has(.haynes-vehicle)) .vehicle-name{margin-bottom:0}
+
 .booking-soft-background .review>div{background:#fff}
 .tp-scene>.tyre-headlight-artwork{z-index:1;filter:none;pointer-events:none;overflow:visible}
 </style>
