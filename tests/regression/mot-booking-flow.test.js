@@ -10,7 +10,7 @@ test('advisories repeat at appointment choice with the question only on step 3',
  const first=context.advisoryListHtml(),third=context.advisoryListHtml(true);
  assert.match(first,/Latest MOT advisories/);assert.doesNotMatch(first,/Would you like/);
  assert.match(third,/THESE ADVISORIES WERE RECOMMENDED ON YOUR LAST MOT/);assert.match(third,/Would you like/);assert.match(third,/data-advisory-choice="yes" class="selected"/);
- assert.ok(booking.indexOf('advisoryListHtml(true)')<booking.indexOf('<span class="kicker">STEP 3 OF 5'));
+ assert.ok(booking.indexOf('advisoryListHtml(true)')<booking.indexOf('<h2>Choose your date</h2>'));
 });
 test('new MOT bookings stay unallocated until the garage confirms; existing allocations are preserved',()=>{
  const html=fs.readFileSync('index.html','utf8'),tech={value:'Alfie',options:[{value:'Alfie'},{value:'Chris'}]},type={value:'General'};
