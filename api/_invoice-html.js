@@ -23,7 +23,7 @@ export function renderCustomerInvoiceHtml(savedInvoice, settings = {}, job = {},
     const amount = staffInvoice && l.vat_mode === 'inc_vat' ? Number(l.amount || 0) / (1 + vatRate) : Number(l.amount || 0);
     return '<tr><td>' + esc(l.description || '') + '</td><td class="right">' + money(amount) + '</td><td>' + esc(staffInvoice ? l.vat_mode === 'no_vat' ? 'No VAT' : 'Ex VAT' : l.vat_mode || '') + '</td></tr>';
   }).join('');
-  const lines = nmuk ? ['10 Hunter Close','East Boldon','Tyne and Wear','NE36 0TB','Tel: 07721722622','chris@VectaMotors.co.uk','VectaMotors.co.uk','VAT No. 169170002'] : ['Contractors Compound','Nissan Motor Manufacturing','Nissan Way, Washington, SR5 3NS','Tel: 07721722622','chris@VectaMotors.co.uk','VectaMotors.co.uk','VAT No. 169170002'];
+  const lines = nmuk ? ['10 Hunter Close','East Boldon','Tyne and Wear','NE36 0TB','Tel: 07721722622','chris@VectaMotors.co.uk','shirken.moore@talktalk.net','VectaMotors.co.uk','VAT No. 169170002'] : ['Contractors Compound','Nissan Motor Manufacturing','Nissan Way, Washington, SR5 3NS','Tel: 07721722622','chris@VectaMotors.co.uk','VectaMotors.co.uk','VAT No. 169170002'];
   const senderHtml = '<img class="vectaBrandLogo printBrandLogo" src="' + invoiceBrandLogo + '" alt="VECTA Vehicle Servicing and repairs"><b>' + esc(settings.businessName || 'Vecta Motors') + '</b><br>' + lines.map(esc).join('<br>');
   const month = String(inv.eom_month || inv.fleet_month || inv.invoice_date || '').slice(0,7);
   const accountHeading = tax ? '<div class="printInvoiceAccountTitle">' + esc(/^\d{4}-(0[1-9]|1[0-2])$/.test(month) ? 'Vehicle tax ' + new Date(month+'-01T12:00:00Z').toLocaleDateString('en-GB',{month:'long',year:'numeric'}) : inv.vehicle || 'Vehicle tax') + '</div>' : '';
