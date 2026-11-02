@@ -1,23 +1,29 @@
 import {readProductDialog} from './product-dialog.mjs';
 
 const family=value=>String(value||'').replace(/\s*[-–]?\s*\d+(?:\.\d+)?\s*L\s*$/i,'').replace(/\s+/g,' ').trim().toUpperCase();
-// Preserve the vehicle-applied oil family. A guessed pack URL is only a search
-// candidate: fresh matching SKU, brand, name, price and stock must confirm it.
+// A candidate 5L route is not price evidence. Wait for the hydrated product and
+// require its exact SKU, brand, oil family and current ex-VAT price.
 export async function chooseServiceOilPack(page,original,{read=readProductDialog,searchTerm=original.sku}={}){
  if(original.kind!=='oil'||original.packQuantityMilli!==1000||original.quantityMilli<=1000)return original;
- if(!/1L$/i.test(original.sku||''))throw Error('REVIEW_REQUIRED');
+ const fail=reason=>{throw Object.assign(Error('REVIEW_REQUIRED'),{diagnosticReason:reason});};
+ if(!/1L$/i.test(original.sku||''))fail('OIL_PACK_SKU_UNCONFIRMED');
  const requested=original.sku.replace(/1L$/i,'5L');
- let product;
- try{
-  await page.goto('https://trade.gsfcarparts.com/partdetails/'+encodeURIComponent(String(searchTerm).replace(/1L$/i,'5L')),{waitUntil:'domcontentloaded',timeout:8000});
+ try{await page.goto('https://trade.gsfcarparts.com/partdetails/'+encodeURIComponent(String(searchTerm).replace(/1L$/i,'5L')),{waitUntil:'domcontentloaded',timeout:8000});}
+ catch{fail('OIL_PACK_NAVIGATION_FAILED');}
+ const deadline=Date.now()+12000;let reason='OIL_PACK_DETAILS_NOT_READY';
+ while(Date.now()<deadline){
   if(new URL(page.url()).origin!=='https://trade.gsfcarparts.com'||/\/signin/.test(page.url()))throw Error('LOGIN_REQUIRED');
-  product=await page.evaluate(read,{allowUnavailableOilPrice:true});
- }catch(error){if(error.message==='LOGIN_REQUIRED')throw error;throw Error('REVIEW_REQUIRED');}
- const pack=String(product.description||'').match(/\b5\s*L\s*$/i);
- const packsNeeded=Math.ceil(Math.ceil(original.quantityMilli/1000)/5);
- const stock=(product.stock||[]).reduce((sum,row)=>sum+Number(row.quantity||0),0);
- if(!pack||String(product.sku||'').toUpperCase()!==requested.toUpperCase()||String(product.brand||'').toUpperCase()!==String(original.brand||'').toUpperCase()||family(product.description)!==family(original.description)||product.vatBasis!=='EX_VAT'||!Number.isSafeInteger(product.unitNetPence)||product.unitNetPence<=0||product.unitNetPence>original.packNetPence*5)throw Error('REVIEW_REQUIRED');
- // Existing pricing remains per litre consumed, rounded up to a whole litre;
- // leftover oil is reusable workshop stock, not a charge for a second full can.
- return {...original,inStock:product.inStock===true&&stock>=packsNeeded,...(product.inStock!==true||stock<packsNeeded?{pricingOnly:true}:{}),sku:product.sku,description:product.description,packNetPence:product.unitNetPence,packQuantityMilli:5000,unitNetPence:Math.ceil(product.unitNetPence/5)};
+  try{
+   const product=await page.evaluate(read,{allowUnavailableOilPrice:true});
+   const matches=/\b5\s*L\s*$/i.test(String(product.description||''))&&String(product.sku||'').toUpperCase()===requested.toUpperCase()&&String(product.brand||'').toUpperCase()===String(original.brand||'').toUpperCase()&&family(product.description)===family(original.description)&&product.vatBasis==='EX_VAT'&&Number.isSafeInteger(product.unitNetPence)&&product.unitNetPence>0&&product.unitNetPence<=original.packNetPence*5;
+   if(matches){
+    const packsNeeded=Math.ceil(Math.ceil(original.quantityMilli/1000)/5),stock=(product.stock||[]).reduce((sum,row)=>sum+Number(row.quantity||0),0),inStock=product.inStock===true&&stock>=packsNeeded;
+    return {...original,inStock,...(!inStock?{pricingOnly:true}:{}),sku:product.sku,description:product.description,packNetPence:product.unitNetPence,packQuantityMilli:5000,unitNetPence:Math.ceil(product.unitNetPence/5)};
+   }
+   fail('OIL_PACK_IDENTITY_OR_PRICE_UNCONFIRMED');
+  }catch(error){if(error.message==='LOGIN_REQUIRED'||error.diagnosticReason)throw error;reason='OIL_PACK_DETAILS_NOT_READY';}
+  if(typeof page.waitForTimeout!=='function')fail(reason);
+  await page.waitForTimeout(200);
+ }
+ fail(reason);
 }

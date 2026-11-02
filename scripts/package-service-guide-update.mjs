@@ -1,0 +1,47 @@
+import fs from 'node:fs';
+import path from 'node:path';
+import os from 'node:os';
+import {execFileSync} from 'node:child_process';
+import {createHash} from 'node:crypto';
+import {gunzipSync,gzipSync} from 'node:zlib';
+const [baseFile,output]=process.argv.slice(2);
+if(!baseFile||!output)throw Error('Usage: package-service-guide-update.mjs <previous managed update ZIP> <output ZIP>');
+const stage=fs.mkdtempSync(path.join(os.tmpdir(),'vecta-guide-update-'));
+const read=name=>execFileSync('unzip',['-p',path.resolve(baseFile),name],{maxBuffer:8*1024*1024});
+const bundle=JSON.parse(gunzipSync(read('workers.vecta.gz'))),baseVersion=bundle.version;
+const replacements=['lib/service-pricing.js','lib/service-guide-costs.js','workers/gsf/live-service.mjs','workers/gsf/product-dialog.mjs','workers/gsf/oil-pack-choice.mjs','workers/gsf/oil-capacity.mjs'];
+const hash=bytes=>createHash('sha256').update(bytes).digest('hex');
+function replace(file,bytes){const row={path:file,size:bytes.length,sha256:hash(bytes),content:bytes.toString('base64')},i=bundle.files.findIndex(x=>x.path===file);if(i<0)bundle.files.push(row);else bundle.files[i]=row;}
+for(const name of replacements)replace(name,fs.readFileSync(name));
+// Estimated service totals remain review cases in diagnostics, never supplier passes.
+const diagnostic=bundle.files.find(x=>x.path==='workers/gsf/diagnostic-case.mjs');
+let source=Buffer.from(diagnostic.content,'base64').toString();
+const anchor="   return {outcome:'PASSED',reason:'SUPPLIER_CHECKS_PASSED',evidence:cleanEvidence({stage:'SERVICE_VALIDATION'";
+if(!source.includes(anchor))throw Error('Diagnostic source changed; inspect before packaging.');
+if(!source.includes("diagnosticReason:'GUIDE_PRICE_ESTIMATED_ITEMS'"))source=source.replace(anchor,"   if(result.guidePrice)throw Object.assign(Error('REVIEW_REQUIRED'),{diagnosticReason:'GUIDE_PRICE_ESTIMATED_ITEMS'});\n"+anchor);
+replace(diagnostic.path,Buffer.from(source));
+bundle.version=createHash('sha1').update(JSON.stringify(bundle.files.map(x=>[x.path,x.sha256]))).digest('hex');
+const bytes=gzipSync(Buffer.from(JSON.stringify(bundle)));
+fs.writeFileSync(path.join(stage,'workers.vecta.gz'),bytes);
+const manifest=JSON.parse(read('manifest.json'));
+let previousVersions=[];
+if(fs.existsSync(path.resolve(output))){const old=JSON.parse(execFileSync('unzip',['-p',path.resolve(output),'manifest.json'],{maxBuffer:20000}));previousVersions=[old.version,...(old.compatibleVersions||[])];}
+Object.assign(manifest,{baseVersion,compatibleVersions:[...new Set([baseVersion,...previousVersions])],version:bundle.version,sha256:hash(bytes)});
+fs.writeFileSync(path.join(stage,'manifest.json'),JSON.stringify(manifest,null,2));
+for(const name of ['release-cli.mjs','release-store.mjs'])fs.writeFileSync(path.join(stage,name),read(name));
+let installer=read('install.mjs').toString();
+installer=installer.replace("state.active!==manifest.baseVersion&&state.active!==manifest.version","!([manifest.baseVersion,manifest.version,...(manifest.compatibleVersions||[])].includes(state.active))");
+installer=installer.replace("'workers/gsf/diagnostic-bridge.mjs',","'workers/gsf/live-service.mjs','workers/gsf/diagnostic-bridge.mjs',");
+const start=installer.indexOf(" const requestFile=path.join(root,'data/gsf/batch-request.local.json');");
+const end=installer.indexOf(" return {status:'INSTALLED',version:state.active};",start);
+if(start<0||end<0)throw Error('Managed installer changed; inspect before packaging.');
+installer=installer.slice(0,start)+`  const state=await activate(root,manifest.version);
+  await atomicJSON(path.join(root,'state.json'),{...state,blocked:[...new Set([...(state.blocked||[]),state.previous].filter(Boolean))]});
+`+installer.slice(end);
+fs.writeFileSync(path.join(stage,'install.mjs'),installer);
+let ps=read('update.ps1').toString().replace('VECTA - installing the combined evidence-based repair.','VECTA - installing service guide pricing and the oil pack fix.').replace('UPDATE INSTALLED. Return to the test chat and confirm installation is complete.','UPDATE INSTALLED. Service guide pricing worker is ready.').replace('Leave the PC and its Edge windows open. Verification starts after the installed update is checked.','Leave the PC and its Edge windows open. The website must also run the matching approved update.');
+fs.writeFileSync(path.join(stage,'update.ps1'),ps);
+fs.writeFileSync(path.join(stage,'INSTALL-UPDATE.cmd'),'@echo off\r\ncd /d "%~dp0"\r\npowershell.exe -NoProfile -ExecutionPolicy Bypass -File "%~dp0update.ps1"\r\npause\r\n');
+fs.writeFileSync(path.join(stage,'READ-ME.txt'),'VECTA SERVICE GUIDE PRICE UPDATE\r\n\r\nUse only with the matching approved website update.\r\nExtract All, then run INSTALL-UPDATE.cmd. It stages a separate managed release, waits for workers to finish, then switches and restarts them. Existing sign-ins, settings and completed test results remain intact. It does not start another batch test.\r\n\r\nIf asked, close only the old GSF black window. Leave Edge open. If waiting exceeds three minutes, close the old worker black windows and leave this installer open.\r\n\r\nGuide price — includes estimated parts costs.\r\n\r\nMissing filters use recent verified same-vehicle costs, similar-engine/model costs when there are enough samples, then the agreed allowances. Known supplier costs are retained. Oil requires vehicle-specific specification/capacity, and the matching 5L pricing rule is included. A guide never becomes a verified diagnostic pass or a confirmed parts order.\r\n');
+execFileSync('zip',['-qr',path.resolve(output),'.'],{cwd:stage});
+console.log(JSON.stringify({output:path.resolve(output),version:bundle.version,baseVersion,sha256:hash(bytes)}));

@@ -1,5 +1,5 @@
 import {timingSafeEqual} from 'node:crypto';
-import {cleanServiceCosts, servicePriceRequest} from '../lib/service-pricing.js';
+import {cleanServiceQuoteCosts, servicePriceRequest} from '../lib/service-pricing.js';
 import {gsfQueue} from '../lib/gsf-queue.js';
 export function gsfWorkerHandler({env = process.env, queue = gsfQueue} = {}) {
   return async (req,res) => {
@@ -15,7 +15,7 @@ export function gsfWorkerHandler({env = process.env, queue = gsfQueue} = {}) {
       if (body.action !== 'complete' || !/^[a-f0-9-]{36}$/.test(body.id || '') || !/^[a-f0-9-]{36}$/.test(body.lease || '') ||
           !['MATCHED','LOGIN_REQUIRED','REVIEW_REQUIRED','SETTINGS_REQUIRED','UNAVAILABLE'].includes(body.status)) return res.status(400).json({status:'INVALID_REQUEST'});
       const request = servicePriceRequest(body.request);
-      const result = body.status === 'MATCHED' ? cleanServiceCosts(body.result,request) : null;
+      const result = body.status === 'MATCHED' ? cleanServiceQuoteCosts(body.result,request) : null;
       return res.status(200).json(await queue('complete',{id:body.id,lease:body.lease,request,status:body.status,result}));
     } catch { return res.status(200).json({status:'UNAVAILABLE'}); }
   };

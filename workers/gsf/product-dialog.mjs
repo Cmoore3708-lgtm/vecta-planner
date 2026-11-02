@@ -2,7 +2,7 @@
 // Self-contained so the identical function runs in Edge and DOM fixture tests.
 export function readProductDialog(doc = document, options = {}) {
   if(!doc?.querySelectorAll){options=doc||{};doc=document;}
-  const priceOnly=options.allowUnavailableOilPrice===true;
+  const priceOnly=options.allowUnavailableOilPrice===true||options.allowUnavailablePrice===true;
   const clean=value=>String(value||'').replace(/\s+/g,' ').trim();
   const visible=element=>!element.hidden && element.getAttribute('aria-hidden')!=='true' &&
     (typeof getComputedStyle!=='function'||getComputedStyle(element).display!=='none');
@@ -45,6 +45,50 @@ export function readProductDialog(doc = document, options = {}) {
   if((!priceOnly&&!stock.length)||stock.some(row=>!row.location||row.location.length>80||!Number.isSafeInteger(row.quantity)||row.quantity>1000000)||(!priceOnly&&!stock.some(row=>row.quantity>0)))throw Error('UNAVAILABLE');
   if(sku.length>80||brand.length>80||descriptions[0].length>160)throw Error('SETTINGS_REQUIRED');
   const imageUrl=[...dialog.querySelectorAll('img')].map(img=>img.getAttribute('src')||'').find(src=>/^https:\/\//.test(src)&&/ProductImages\//i.test(src))||'';
-  return {imageUrl,sku,brand,description:descriptions[0],unitNetPence,costIncVatPence,vatBasis:'EX_VAT',inStock,stock};
+  return {imageUrl,sku,brand,description:descriptions[0],unitNetPence,costIncVatPence,vatBasis:'EX_VAT',inStock:inStock&&!stockLabels.some(text=>/^Out of stock\.?$/i.test(text))&&stock.some(row=>row.quantity>0),stock};
 }
 
+
+const ORIGIN='https://trade.gsfcarparts.com';
+export function selectedProductUrl(selected){
+ if(selected.detailUrl){
+  const url=new URL(selected.detailUrl,ORIGIN);
+  if(url.origin!==ORIGIN||url.username||url.password||url.search||url.hash||!url.pathname.startsWith('/partdetails/'))throw Error('PRODUCT_LINK_UNCONFIRMED');
+  let sku=url.pathname.slice('/partdetails/'.length);
+  for(let i=0;i<3;i++){if(sku===selected.searchTerm)return url.href;try{const next=decodeURIComponent(sku);if(next===sku)break;sku=next;}catch{break;}}
+  throw Error('PRODUCT_LINK_UNCONFIRMED');
+ }
+ if(selected.searchTerm.includes('/'))throw Error('PRODUCT_LINK_UNCONFIRMED');
+ return ORIGIN+'/partdetails/'+encodeURIComponent(selected.searchTerm);
+}
+export async function openSelectedProduct(page,selected){
+ // MANN slash-bearing catalogue codes fail the constructed product route.
+ // Use the existing calibrated GSF search-and-click flow; the fresh reader still
+ // requires the exact manufacturer code, description, price, VAT and stock.
+ if(!selected.detailUrl&&/^MAN[A-Za-z0-9._-]+\/[A-Za-z0-9._/-]+$/.test(selected.searchTerm)){
+  const term=selected.searchTerm,sku=term.slice(3);
+  let step='PRODUCT_SEARCH_DISMISS';
+  try {
+  await page.keyboard.press('Escape');
+  const search=page.getByRole('textbox',{name:"Search for OE (cross ref), aftermarket or categories like 'Air filter'",exact:true});
+  step='PRODUCT_SEARCH_INPUT';
+  await search.fill(term,{timeout:15000});
+  step='PRODUCT_SEARCH_SUBMIT';await search.press('Enter',{timeout:15000});
+  step='PRODUCT_SEARCH_HEADING';
+  await page.getByRole('heading',{name:'Search Results for "'+term+'"',exact:true}).waitFor({state:'visible',timeout:15000});
+  step='PRODUCT_SEARCH_EXACT_SKU';
+  const code=page.getByRole('main').getByText(new RegExp('^'+sku.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+'$','i'));
+  await code.waitFor({state:'visible',timeout:15000});
+  if(await code.count()!==1||!await code.isVisible())throw Error('PRODUCT_LINK_UNCONFIRMED');
+  step='PRODUCT_SEARCH_OPEN';
+  await code.click({timeout:15000});return;
+  } catch(error) {
+   // Retain the original failure and its exact step, without logging page text,
+   // credentials, URLs or supplier account details. Never relax product checks.
+   error.stage=step;
+   error.evidence={...error.evidence,sku:term,expectedDescription:selected.description,expectedPricePence:selected.expectedPricePence};
+   throw error;
+  }
+ }
+ await page.goto(selectedProductUrl(selected),{waitUntil:'domcontentloaded',timeout:15000});
+}
