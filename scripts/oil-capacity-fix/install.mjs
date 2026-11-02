@@ -5,7 +5,7 @@ import {fileURLToPath,pathToFileURL} from 'node:url';
 import {createHash} from 'node:crypto';
 import {spawnSync} from 'node:child_process';
 import {createInterface} from 'node:readline/promises';
-const files=['oil-capacity.mjs','live-service.mjs','product-dialog.mjs'];
+const files=['oil-capacity.mjs','live-service.mjs','product-dialog.mjs','oil-pack-choice.mjs'];
 export function applyOilFix(target,payload){
  const worker=path.join(target,'workers','gsf');
  for(const name of ['worker.mjs','live-service.mjs','service-capture.mjs','product-dialog.mjs'])if(!existsSync(path.join(worker,name)))throw Error('Choose the existing Vecta-Live-Repair-Quotes folder containing workers/gsf, not the update folder.');
