@@ -20,3 +20,30 @@ test('tyre review retains a matching quote but discards it when size, range or q
  for(const [key,value] of [['tyre_size','205/55R16'],['tyre_choice','Budget'],['tyre_quantity',1]]){const old=form[key];form[key]=value;assert.equal(c.savedTyreGuide(),null);assert.doesNotMatch(c.tyreReviewHtml(),/Michelin/);form[key]=old}
  quote.checkedAt=new Date(Date.now()-300001).toISOString();assert.equal(c.savedTyreGuide(),null);assert.doesNotMatch(c.tyreReviewHtml(),/£280/);
 });
+
+test('confirmation calendar link exports the selected registration, work and date',()=>{
+ for(const path of ['website/booking/index.html','public/booking.html']){
+  const source=fs.readFileSync(path,'utf8');
+  const c=vm.createContext({state:{form:{registration:'AB12 CDE',job_types:['Service','MOT'],service_choice:'Full Service'}},URLSearchParams,esc:String});
+  vm.runInContext(source.slice(source.indexOf('function calendarEscape('),source.indexOf('async function submit(')),c);
+  const html=c.bookingReceiptActionsHtml('2026-12-31','confirmed-booking');
+  assert.match(html,/> Add to Calendar<\/a>/);
+  assert.match(html,/aria-describedby="booking-calendar-help"/);
+  const url=new URL(html.match(/class="receipt-calendar"[^>]*href="([^"]+)"/)[1],'https://vectamotors.co.uk');
+  const r=response();handler({method:'GET',query:Object.fromEntries(url.searchParams)},r);
+  assert.equal(r.code,200);assert.match(r.body,/DTSTART;VALUE=DATE:20261231/);
+  assert.match(r.body,/DTEND;VALUE=DATE:20270101/);assert.match(r.body,/Full Service/);assert.match(r.body,/AB12 CDE/);
+  assert.match(r.body,/UID:confirmed-booking@vectamotors.co.uk/);
+  assert.doesNotMatch(c.bookingReceiptActionsHtml('not-a-date','id'),/class="receipt-calendar"/);
+ }
+});
+
+test('spark plug confirmation omits price-before-fitting sentence while preserving estimates',()=>{
+ const source=fs.readFileSync('website/booking/index.html','utf8');
+ const c=vm.createContext({serviceExtraKind:()=> 'spark_plug',serviceExtraSelection:()=> 'check',serviceExtraOffer:()=>null});
+ vm.runInContext(source.slice(source.indexOf('function serviceExtraSummary('),source.indexOf('function serviceExtraHtml(')),c);
+ assert.match(c.serviceExtraSummary(),/Spark plugs: check manufacturer’s guidance; replace if due\.$/);
+ assert.doesNotMatch(c.serviceExtraSummary(),/confirm the price before fitting/);
+ c.serviceExtraOffer=()=>({totalPence:8500});assert.match(c.serviceExtraSummary(),/Extra £85 including fitting and VAT/);
+ c.serviceExtraOffer=()=>null;c.serviceExtraKind=()=> 'fuel_filter';assert.match(c.serviceExtraSummary(),/We will confirm the price before fitting/);
+});
