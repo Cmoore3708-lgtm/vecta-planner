@@ -3,6 +3,7 @@ import {bookingTypes} from '../lib/booking-input.js';
 import {sendBookingBadges} from './_push.js';
 import {databaseEnvironment} from './_database-environment.js';
 import {bookingServicePrice} from '../lib/booking-service-price.js';
+import {bookingTyreParts} from '../lib/tyre-cost-token.js';
 import {bookingServiceParts} from '../lib/booking-service-parts.js';
 import {bookingServiceExtra,serviceExtraSnapshot} from '../lib/service-extras.js';
 
@@ -23,6 +24,8 @@ export default async function handler(req,res){
   const extra=bookingServiceExtra(b);
   let servicePrice;
   try {servicePrice=bookingServicePrice(b,types);}catch{return res.status(409).json({error:'Your service price has expired or the service details have changed. Please review the service price and try again.'});}
+  let tyreParts;
+  try{tyreParts=bookingTyreParts(b,types);}catch{return res.status(409).json({error:'Your tyre selection has changed or expired. Please refresh the tyre prices and try again.'});}
   const appointment=String(b.appointment_date||b.preferred_date_1||'');
   if(!/^\d{4}-\d{2}-\d{2}$/.test(appointment)||!Number.isFinite(Date.parse(appointment+'T12:00:00Z'))||new Date(appointment+'T12:00:00Z').toISOString().slice(0,10)!==appointment)return res.status(400).json({error:'Choose an available appointment date'});
   if(b.appointment_time&&!/^(?:[01]\d|2[0-3]):[0-5]\d$/.test(String(b.appointment_time)))return res.status(400).json({error:'Invalid appointment time'});
@@ -39,6 +42,7 @@ export default async function handler(req,res){
    const costs=quote.costSnapshot?[]:await rest(url,key,'gsf_service_jobs?'+filter);
    request.gsf_parts=bookingServiceParts(quote,costs||[]);
   }
+  if(tyreParts.length)request.gsf_parts=[...(request.gsf_parts||[]),...tyreParts];
   if(!servicePrice){
    if(types.some(type=>/Service|Oil & Filter/i.test(type))&&request.approximate_cost>0)request.work_required+='\n\nBooking guide total: £'+request.approximate_cost.toFixed(2)+' including VAT.\nGuide price based on engine size.';
    request.work_required+=serviceExtraSnapshot(extra,null);
@@ -50,7 +54,7 @@ export default async function handler(req,res){
   if(!created){
    const rows=await rest(url,key,`website_booking_requests?id=eq.${id}&limit=1`);
    const existing=rows?.[0];receipt=existing;
-   const fields=['customer_name','email','phone','registration','vehicle','mileage','mot_due','job_types','work_required','preferred_date_1','completion_deadline','contact_preference','approximate_cost'];
+   const fields=['customer_name','email','phone','registration','vehicle','mileage','mot_due','job_types','work_required','preferred_date_1','completion_deadline','contact_preference','approximate_cost','gsf_parts'];
    if(photos.length!==Number(existing?.work_photo_count||0))return res.status(409).json({error:'This request identity belongs to different booking photos'});
    if(photos.length){const saved=await rest(url,key,`website_booking_photos?request_id=eq.${id}&select=photos&limit=1`);if(JSON.stringify(saved?.[0]?.photos)!==JSON.stringify(photos))return res.status(409).json({error:'This request identity belongs to different booking photos'});}
    if(!existing||(b.appointment_time&&String(existing.confirmed_time||'').slice(0,5)!==b.appointment_time)||fields.some(field=>JSON.stringify(existing[field])!==JSON.stringify(request[field])))return res.status(409).json({error:'This request identity belongs to different booking details'});

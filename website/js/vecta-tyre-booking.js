@@ -10,7 +10,7 @@
   if(data?.status!=='MATCHED'||data.guideOnly!==true||data.size!==size||data.quantity!==quantity||!Array.isArray(data.options)||data.options.length!==3)throw Error('Guide unavailable');
   const checkedAt=new Date(data.checkedAt).toISOString();
   if(Date.now()-Date.parse(checkedAt)>300000||Date.parse(checkedAt)>Date.now()+60000)throw Error('Guide expired');
-  const cleanOption=(o,category)=>{if(!o||o.category!==category||o.available!==true||typeof o.brand!=='string'||!o.brand.trim()||typeof o.model!=='string'||!Number.isSafeInteger(o.unitPence)||o.unitPence<=0||o.unitPence>500000||o.totalPence!==o.unitPence*quantity)throw Error('Invalid guide');return{category,available:true,brand:o.brand.slice(0,70),model:o.model.slice(0,180),unitPence:o.unitPence,totalPence:o.totalPence};};
+  const cleanOption=(o,category)=>{if(!o||o.category!==category||o.available!==true||typeof o.brand!=='string'||!o.brand.trim()||typeof o.model!=='string'||!Number.isSafeInteger(o.unitPence)||o.unitPence<=0||o.unitPence>500000||o.totalPence!==o.unitPence*quantity)throw Error('Invalid guide');return{category,available:true,brand:o.brand.slice(0,70),model:o.model.slice(0,180),unitPence:o.unitPence,totalPence:o.totalPence,...(typeof o.costToken==='string'&&o.costToken.length<=3000?{costToken:o.costToken}:{})};};
   const options=categories.map(category=>{
    const matches=data.options.filter(o=>o.category===category);if(matches.length!==1)throw Error('Invalid categories');
    const o=matches[0],stockLevels=o.stockLevels===undefined?[]:o.stockLevels;
