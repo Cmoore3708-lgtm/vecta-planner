@@ -105,7 +105,13 @@ function remember(v,persist=true,{replaceArtwork=false}={}){
  cache.set(clean.registration,clean);while(cache.size>300)cache.delete(cache.keys().next().value);
  rememberArtwork(clean,persist,{replace:replaceArtwork});rememberIdentity(clean,persist);
  if(persist)try{root.localStorage?.setItem(KEY,JSON.stringify([...cache.values()].filter(x=>valid(x,x.registration))));}catch{}
+ if(persist&&clean.imageUrl)refreshPlannerArtwork();
  return clean;
+}
+let plannerRefreshTimer=null;
+function refreshPlannerArtwork(){
+ if(plannerRefreshTimer!==null)return;
+ plannerRefreshTimer=setTimeout(()=>{plannerRefreshTimer=null;const container=document.getElementById?.('content');if(container?.isConnected&&typeof root.enrichHaynesDashboard==='function')root.enrichHaynesDashboard(container,root.app?.jobs||[]);},0);
 }
 function snapshot(registration,expectedMake,expectedModel){const v=cache.get(reg(registration));return valid(v,registration,expectedMake)&&compatibleArtwork(v,{make:expectedMake,model:expectedModel})&&(!expectedModel||knownAssetMatches(v,{make:expectedMake,model:expectedModel}))?v:null;}
 // Generic artwork is a visual hint only; it has no registration or technical ID.
@@ -117,7 +123,7 @@ const modelImages=[
 function compatibleArtwork(value,description){
  if(!value)return false;
  if(description?.make&&value.make&&make(description.make)!==make(value.make))return false;
- const normal=(v,manufacturer)=>{let text=modelWords(v);const prefix=modelWords(manufacturer);if(prefix&&text.startsWith(prefix+' '))text=text.slice(prefix.length+1);return text.replace(/^(?:NISSAN|FORD|MERCEDES BENZ|INFINITI|CITROEN|RENAULT|VOLKSWAGEN|VW|AUDI) /,'');};
+ const normal=(v,manufacturer)=>{let text=words(v);const prefix=words(manufacturer);if(prefix&&text.startsWith(prefix+' '))text=text.slice(prefix.length+1);return modelWords(text.replace(/^(?:NISSAN|FORD|MERCEDES BENZ|INFINITI|CITROEN|RENAULT|VOLKSWAGEN|VW|AUDI|MAZDA) /,''));};
  const expected=normal(description?.model||description?.vehicle,description?.make||value.make),actual=normal(String(value.model||'').split(/[(/]/)[0],value.make);
  if(!expected||!actual)return true;
  const family=v=>v.split(' ')[0];
@@ -433,7 +439,7 @@ const requested=current(),expectedMake=make(modal.querySelector('#job_make')?.va
   const run=sequence;
   button.disabled=true;status.textContent='Looking up vehicle…';
   try{
-   const v=await lookup(requested,expectedMake,{force:!!event});
+   const v=await lookup(requested,expectedMake,{force:!!event,background:false});
    if(run!==sequence||!panel.isConnected||current()!==requested||noVehicle?.checked){target?.close();return;}
    if(!v||reg(v?.registration)!==requested||!v?.model||!v?.variant||!v?.make||!vehicleLink(v)||(expectedMake&&make(v.make)!==expectedMake))throw Error('UNAVAILABLE');
    if(target)target.location.replace(vehicleLink(v));
@@ -446,7 +452,9 @@ const requested=current(),expectedMake=make(modal.querySelector('#job_make')?.va
   }catch{target?.close();if(run===sequence&&panel.isConnected&&current()===requested)button.textContent='Haynes Pro';if(run===sequence&&panel.isConnected&&current()===requested)status.textContent=({NOT_CONFIGURED:'HaynesPro lookup is not configured for this preview.',OFFLINE:'The workshop HaynesPro worker is offline.',LOGIN_REQUIRED:'The workshop HaynesPro login needs renewing.',VERIFICATION_REQUIRED:'HaynesPro needs verification on the workshop PC.',BUSY:'HaynesPro is busy. Try again shortly.',DAILY_LIMIT:'The daily HaynesPro lookup limit has been reached.'}[failStatus.get(requested)]||'HaynesPro unavailable or vehicle match uncertain.')+' You can still save this job.';}
   finally{if(run===sequence)button.disabled=!!noVehicle?.checked;}
  };
- if(!noVehicle?.checked&&identitySnapshot(current()))button.onclick();
+ // Only opening this job may request missing artwork; browsing the calendar stays cache-only.
+ const description={registration:current(),make:modal.querySelector('#job_make')?.value,model:modal.querySelector('#job_model')?.value,vehicle:modal.querySelector('#job_vehicle')?.value};
+ if(!noVehicle?.checked&&lookupRegistration(current())&&(identitySnapshot(current())||!storedDrawing(description)?.imageUrl))button.onclick();
 };
 document.addEventListener('DOMContentLoaded',()=>{if(root.view==='planner')root.enrichHaynesDashboard(document.getElementById('content'),root.app?.jobs);});
 function storedArtwork(){const unique=new Map();for(const v of [...sharedArtwork.values(),...artwork.values(),...identities.values(),...cache.values()])if(image(v.imageUrl))unique.set(v.imageUrl,{make:v.make,model:v.model,imageUrl:v.imageUrl});return [...unique.values()].sort((a,b)=>[a.make,a.model].join(" ").localeCompare([b.make,b.model].join(" ")));}
