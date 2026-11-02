@@ -95,3 +95,20 @@ test('private cost snapshot retains the actual estimate used, even when the supp
  assert.equal(row.querySelector('[data-part-cost-price]').value,'18');
  assert.equal(document.querySelectorAll('[data-part-cost-price]').length,4);
 });
+
+test('guide update preserves previously verified CM14 KEL oil capacity and binds it to the engine',async()=>{
+ const {oilFillEvidence}=await import('../../workers/gsf/oil-capacity.mjs');
+ const capture={selectedRegistration:true,registration:'CM14KEL',truncated:false,visibleText:'CM14KEL Clear Nissan Qashqai Hybrid HEV 1.5h 190 e-Power HEV CVT Auto Start/Stop Tekna 1.5 (1497cc) Petrol/Hybrid Electric CVT 5 doors Copy VIN'};
+ assert.equal(oilFillEvidence(capture,'CM14KEL').requiredMl,5100);
+ assert.equal(oilFillEvidence({...capture,registration:'OTHER123'},'CM14KEL'),null);
+ assert.equal(oilFillEvidence({...capture,visibleText:capture.visibleText.replaceAll('1.5','1.3').replace('e-Power','DIG-T')},'CM14KEL'),null);
+});
+
+test('5L pack lookup waits for supplier hydration and keeps unavailable prices as pricing-only',async()=>{
+ const {chooseServiceOilPack}=await import('../../workers/gsf/oil-pack-choice.mjs');
+ const original={kind:'oil',sku:'FIXTURE1L',brand:'Fixture',description:'Fixture oil 0W-30 - 1L',packQuantityMilli:1000,packNetPence:1424,unitNetPence:1424,quantityMilli:8800,vatBasis:'EX_VAT',inStock:true};
+ let reads=0,waits=0;
+ const page={goto:async()=>{},url:()=> 'https://trade.gsfcarparts.com/partdetails/FIXTURE5L',waitForTimeout:async()=>{waits++;},evaluate:async()=>{if(++reads===1)throw Error('PRODUCT_DETAILS_NOT_OPEN');return {sku:'FIXTURE5L',brand:'Fixture',description:'Fixture oil 0W-30 - 5L',unitNetPence:4995,vatBasis:'EX_VAT',inStock:false,stock:[]};}};
+ const oil=await chooseServiceOilPack(page,original);
+ assert.equal(reads,2);assert.equal(waits,1);assert.equal(oil.packQuantityMilli,5000);assert.equal(oil.packNetPence,4995);assert.equal(oil.unitNetPence,999);assert.equal(oil.quantityMilli,8800);assert.equal(oil.pricingOnly,true);assert.equal(oil.inStock,false);
+});

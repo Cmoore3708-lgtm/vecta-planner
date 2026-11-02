@@ -25,3 +25,10 @@ test('XJ07WAL completes each package with fresh checks for all parts and 4.7L re
   const price=calculateServicePrice(costs,costs.request,JSON.parse(readFileSync('workers/gsf/pricing-policy.example.json','utf8')),Date.now());assert.equal(price.lines.find(i=>i.kind==='oil').chargedQuantityMilli,5000);
  }
 });
+
+test('explicit oil price-only read retains a verified price when supplier stock is unavailable',()=>{
+ const fixture=readFileSync('tests/fixtures/gsf-product-dialog.html','utf8');
+ const {document}=parseHTML(fixture.replace('In stock.','Out of stock.').replace(/(<td>)\d+(<\/td>)/g,'$10$2'));
+ assert.throws(()=>readProductDialog(document),/UNAVAILABLE/);
+ const result=readProductDialog(document,{allowUnavailableOilPrice:true});assert.equal(result.inStock,false);assert.ok(result.unitNetPence>0);assert.equal(result.vatBasis,'EX_VAT');
+});

@@ -18,16 +18,19 @@ const diagnostic=bundle.files.find(x=>x.path==='workers/gsf/diagnostic-case.mjs'
 let source=Buffer.from(diagnostic.content,'base64').toString();
 const anchor="   return {outcome:'PASSED',reason:'SUPPLIER_CHECKS_PASSED',evidence:cleanEvidence({stage:'SERVICE_VALIDATION'";
 if(!source.includes(anchor))throw Error('Diagnostic source changed; inspect before packaging.');
-source=source.replace(anchor,"   if(result.guidePrice)throw Object.assign(Error('REVIEW_REQUIRED'),{diagnosticReason:'GUIDE_PRICE_ESTIMATED_ITEMS'});\n"+anchor);
+if(!source.includes("diagnosticReason:'GUIDE_PRICE_ESTIMATED_ITEMS'"))source=source.replace(anchor,"   if(result.guidePrice)throw Object.assign(Error('REVIEW_REQUIRED'),{diagnosticReason:'GUIDE_PRICE_ESTIMATED_ITEMS'});\n"+anchor);
 replace(diagnostic.path,Buffer.from(source));
 bundle.version=createHash('sha1').update(JSON.stringify(bundle.files.map(x=>[x.path,x.sha256]))).digest('hex');
 const bytes=gzipSync(Buffer.from(JSON.stringify(bundle)));
 fs.writeFileSync(path.join(stage,'workers.vecta.gz'),bytes);
 const manifest=JSON.parse(read('manifest.json'));
-Object.assign(manifest,{baseVersion,version:bundle.version,sha256:hash(bytes)});
+let previousVersions=[];
+if(fs.existsSync(path.resolve(output))){const old=JSON.parse(execFileSync('unzip',['-p',path.resolve(output),'manifest.json'],{maxBuffer:20000}));previousVersions=[old.version,...(old.compatibleVersions||[])];}
+Object.assign(manifest,{baseVersion,compatibleVersions:[...new Set([baseVersion,...previousVersions])],version:bundle.version,sha256:hash(bytes)});
 fs.writeFileSync(path.join(stage,'manifest.json'),JSON.stringify(manifest,null,2));
 for(const name of ['release-cli.mjs','release-store.mjs'])fs.writeFileSync(path.join(stage,name),read(name));
 let installer=read('install.mjs').toString();
+installer=installer.replace("state.active!==manifest.baseVersion&&state.active!==manifest.version","!([manifest.baseVersion,manifest.version,...(manifest.compatibleVersions||[])].includes(state.active))");
 installer=installer.replace("'workers/gsf/diagnostic-bridge.mjs',","'workers/gsf/live-service.mjs','workers/gsf/diagnostic-bridge.mjs',");
 const start=installer.indexOf(" const requestFile=path.join(root,'data/gsf/batch-request.local.json');");
 const end=installer.indexOf(" return {status:'INSTALLED',version:state.active};",start);
