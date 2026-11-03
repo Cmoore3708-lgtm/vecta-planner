@@ -4,7 +4,7 @@ import fs from 'node:fs';
 import vm from 'node:vm';
 import {parseHTML} from 'linkedom';
 import {issueProgressToken,verifyProgressToken,claimMatchesJob,progressSnapshot,trackable,trackingUrl,progressSecret,londonDay} from '../../lib/job-progress.js';
-import handler,{customerStatus,startWork,sendInvoice} from '../../lib/job-progress-handler.js';
+import handler,{customerStatus,startWork,sendInvoice,registrationStatus,progressRegistration,allowRegistrationLookup} from '../../lib/job-progress-handler.js';
 import {requiresManagerLogin} from '../../middleware.js';
 
 const now=Date.parse('2026-11-03T11:00:00Z'),id='12345678-1234-4234-8234-123456789012';
@@ -115,4 +115,35 @@ test('Ready to invoice saves through existing invoice rules before requesting em
   assert.equal(await context.vectaReadyInvoiceAndSend(job),true);assert.deepEqual(events,['create','save','email']);
   events.length=0;context.saveInvoice=async()=>false;assert.equal(await context.vectaReadyInvoiceAndSend(job),false);assert.deepEqual(events,['create']);
   events.length=0;context.savedInvoiceForJobId=()=>inv;assert.equal(await context.vectaReadyInvoiceAndSend(job),true);assert.deepEqual(events,['email']);
+});
+test('registration lookup is limited to today, normalises plates and exposes only visual progress',async()=>{
+  const restore=environment(),original=global.fetch,requests=[];
+  let rows=[{...job,status:'completed'}, {...job,id:'22345678-1234-4234-8234-123456789012',status:'in_progress'}];
+  global.fetch=async url=>{const u=new URL(url);requests.push(u);return Response.json(u.pathname.endsWith('/jobs')?rows:[{value:{imageUrl:'https://www.haynespro-assets.com/workshop/images/123.svg',customer_name:'PRIVATE',email:'PRIVATE'}}]);};
+  try{
+    const data=await registrationStatus('cm14 kel',now);
+    assert.deepEqual(Object.keys(data).sort(),['image_url','registration','stage','title']);assert.equal(data.registration,'CM14KEL');assert.equal(data.stage,'underway');
+    assert.doesNotMatch(JSON.stringify(data),/PRIVATE|invoice|driver@example|customer|312/);
+    assert.equal(requests[0].searchParams.get('booking_date'),'eq.2026-11-03');assert.equal(requests[0].searchParams.get('registration'),'ilike.C*M*1*4*K*E*L');
+    assert.equal(requests.length,2);assert.equal(requests[1].searchParams.get('id'),'eq.vehicle_artwork:CM14KEL');
+    for(const patch of [{booking_date:'2026-11-04'},{booking_date:'2026-11-02'},{registration:'CM14 KELL'},{status:'quote'},{status:'cancelled'},{customer_note:'[[VECTA_SOFT_DELETE:abc]]'},{card_type:'mini_task'}]){rows=[{...job,...patch}];await assert.rejects(registrationStatus('CM14KEL',now),/No booking/);}
+    rows=[{...job,status:'completed'},{...job,status:'booked'}];assert.equal((await registrationStatus('CM14KEL',now)).stage,'waiting');
+    rows=[{...job,status:'completed'}];assert.equal((await registrationStatus('CM14KEL',now)).stage,'ready');
+    global.fetch=async url=>{if(String(url).includes('workshop_settings'))throw Error('Unavailable');return Response.json(rows);};assert.equal((await registrationStatus('CM14KEL',now)).image_url,'');
+  }finally{global.fetch=original;restore();}
+});
+test('registration input rejects query injection and lookup throttling has a bounded window',()=>{
+  assert.equal(progressRegistration('cm14-kel'),'CM14KEL');
+  for(const value of ['',null,123,'*','CM14KEL&select=*','CM14KEL,OTHER','AAAAAAAAA','CM14/KEL'])assert.throws(()=>progressRegistration(value));
+  for(let i=0;i<30;i++)assert.equal(allowRegistrationLookup('test-ip',now),true);
+  assert.equal(allowRegistrationLookup('test-ip',now),false);assert.equal(allowRegistrationLookup('test-ip',now+60000),true);
+});
+test('registration form opens visual progress without token, contacts or invoice UI',async()=>{
+  const {document}=parseHTML(fs.readFileSync(new URL('../../public/track.html',import.meta.url),'utf8'));document.hidden=false;
+  const requests=[],data={registration:'CM14KEL',stage:'underway',title:'In the workshop',image_url:'https://www.haynespro-assets.com/workshop/images/123.svg',invoice_url:'/invoice?token=must-not-be-used'};
+  const context={document,window:{addEventListener(){}},location:{hash:''},Intl,Date,AbortSignal,Error,setTimeout:()=>1,clearTimeout(){},fetch:async(url,opts)=>{requests.push(JSON.parse(opts.body));return {ok:true,json:async()=>data};}};
+  vm.runInNewContext(fs.readFileSync(new URL('../../public/js/vecta-progress.js',import.meta.url),'utf8'),context);
+  assert.equal(requests.length,0);document.getElementById('registrationInput').value='cm14 kel';document.getElementById('registrationForm').onsubmit({preventDefault(){}});await new Promise(r=>setImmediate(r));
+  assert.equal(requests[0].action,'registration');assert.equal(requests[0].registration,'cm14 kel');assert.equal(document.getElementById('progressScene').hidden,false);assert.equal(document.getElementById('progressScene').dataset.stage,'underway');
+  assert.equal(document.getElementById('paperwork').hidden,true);assert.equal(document.getElementById('invoice').hasAttribute('href'),false);
 });

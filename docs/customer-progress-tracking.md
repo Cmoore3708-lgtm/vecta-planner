@@ -1,5 +1,13 @@
 # Customer car progress
 
+## Registration access
+
+Customers can open **Track my car** on the homepage, enter a registration and see a visual update for that car's bookings today (Europe/London). Public lookup returns only registration, stage, stage title and an allowlisted saved vehicle artwork URL. It never returns customer/contact details, job IDs, notes, descriptions, prices, invoices, signed tokens, dates or booking history. The date is chosen on the server, and exact normalised registration matching follows the bounded candidate query. Quotes, cancelled/deleted jobs, internal tasks and tax entries are excluded. Multiple eligible jobs are combined conservatively: readiness requires all of them to be ready. Completed jobs remain visible for the rest of that day.
+
+The page uses lightweight workshop scenes with the existing saved car image where available. Artwork failure leaves the workshop/stage visible; it never initiates a Haynes lookup or generates new per-vehicle images. Final photography can still replace these scenes later. Public lookups are throttled per server instance (not a global rate-limit guarantee), responses are not cached, and the frontend polls once a minute only while visible. A missing today's booking shows a clear message rather than exposing previous or future work.
+
+Private links and invoice access below remain separate, so previously sent links continue to work.
+
 Customer tracking is available at `/track` using a signed private link. The link is issued by the authenticated workshop server, added to website booking confirmation drafts and the existing day-before reminder emails, and available from the job editor's **Customer tracking link** button. Registration alone never grants access. Links expire eight days after the booking date and stop working when the booking date, registration or customer email changes, or the job is cancelled/deleted.
 
 ## Existing controls
