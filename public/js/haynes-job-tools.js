@@ -434,7 +434,8 @@ root.initHaynesJobTools=function(modal,{automatic=false,recoverImage=true}={}){
   if(!automatic&&(!recoverImage||!missingExactImage()))return;
   clearTimeout(refreshTimer);refreshTimer=setTimeout(()=>{
    if(!panel.isConnected||noVehicle?.checked||modal.dataset.websiteRequestId)return;
-   if(!automatic){if(!missingExactImage()||Date.now()-(imageRecoveryAt.get(current())||0)<300000)return;imageRecoveryAt.set(current(),Date.now());}
+   if(!automatic&&!missingExactImage())return;
+   if(missingExactImage()){if(Date.now()-(imageRecoveryAt.get(current())||0)<300000)return;imageRecoveryAt.set(current(),Date.now());}
    button.onclick();
   },150);
  }
@@ -469,7 +470,7 @@ const requested=current(),expectedMake=make(modal.querySelector('#job_make')?.va
   }catch{target?.close();if(run===sequence&&panel.isConnected&&current()===requested)button.textContent='Haynes Pro';if(run===sequence&&panel.isConnected&&current()===requested)status.textContent=({NOT_CONFIGURED:'HaynesPro lookup is not configured for this preview.',OFFLINE:'The workshop HaynesPro worker is offline.',LOGIN_REQUIRED:'The workshop HaynesPro login needs renewing.',VERIFICATION_REQUIRED:'HaynesPro needs verification on the workshop PC.',BUSY:'HaynesPro is busy. Try again shortly.',DAILY_LIMIT:'The daily HaynesPro lookup limit has been reached.'}[failStatus.get(requested)]||'HaynesPro unavailable or vehicle match uncertain.')+' You can still save this job.';}
   finally{if(run===sequence)button.disabled=!!noVehicle?.checked;}
  };
- if(!noVehicle?.checked&&identitySnapshot(current()))button.onclick();else automaticLookup();
+ if(!noVehicle?.checked&&image(identitySnapshot(current())?.imageUrl))button.onclick();else automaticLookup();
 };
 document.addEventListener('DOMContentLoaded',()=>{if(root.view==='planner')root.enrichHaynesDashboard(document.getElementById('content'),root.app?.jobs);});
 function storedArtwork(){const unique=new Map();for(const v of [...sharedArtwork.values(),...artwork.values(),...identities.values(),...cache.values()])if(image(v.imageUrl))unique.set(v.imageUrl,{make:v.make,model:v.model,imageUrl:v.imageUrl});return [...unique.values()].sort((a,b)=>[a.make,a.model].join(" ").localeCompare([b.make,b.model].join(" ")));}
