@@ -62,3 +62,12 @@ test('unresolved content prevents a backup replacement and prevents silently gen
 test('backup cloning preserves the complete original format and has a JSON fallback',()=>{
  const c=load({structuredClone:()=>{throw Error('unsupported value');}},['vectaCloneBackupState']);const original={jobs:[{id:'job'}],serviceRecords:[sheet()]},copy=c.vectaCloneBackupState(original);assert.equal(copy.serviceRecords[0].html,original.serviceRecords[0].html);assert.notEqual(copy,original);
 });
+
+test('manual export waits for complete paperwork and includes edits made while it loads',async()=>{
+ let release;const downloads=[],record={id:'sheet',vecta_paperwork_ref:'a'.repeat(64)};
+ const c=load({app:{jobs:[{work_required:'before'}],serviceRecords:[record]},vectaHydratePaperwork:()=>new Promise(r=>release=r),vectaDownloadObject:(data,filename)=>downloads.push({data:JSON.parse(JSON.stringify(data)),filename}),todayIso:()=> '2026-11-03',alert:()=>assert.fail('Unexpected alert'),console},['exportData']);
+ const task=c.exportData();assert.equal(downloads.length,0);record.html='<div>Saved checks</div>';c.app.jobs[0].work_required='latest';release();assert.equal(await task,true);assert.equal(downloads.length,1);assert.equal(downloads[0].data.serviceRecords[0].html,record.html);assert.equal(downloads[0].data.jobs[0].work_required,'latest');assert.equal(downloads[0].filename,'vecta-workshop-pro-backup-2026-11-03.json');
+});
+test('manual export refuses both a failed recovery and unresolved references without downloading',async()=>{
+ for(const reject of [true,false]){let downloads=0,alerts=0;const c=load({app:{serviceRecords:[{id:'sheet',vecta_paperwork_ref:'a'.repeat(64)}]},vectaHydratePaperwork:async()=>{if(reject)throw Error('unavailable');},vectaDownloadObject:()=>downloads++,alert:()=>alerts++,console:{warn(){}}},['exportData']);assert.equal(await c.exportData(),false);assert.equal(downloads,0);assert.equal(alerts,1);}
+});
