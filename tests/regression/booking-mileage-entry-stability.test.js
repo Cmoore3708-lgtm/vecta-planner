@@ -6,10 +6,11 @@ const html=fs.readFileSync('website/booking/index.html','utf8');
 function setup(mileage=''){
  const input={dataset:{field:'mileage'},value:mileage},choice={dataset:{serviceChoice:'Oil & Filter Change'}};
  let renders=0,updates=0;
- const state={step:2,mileage_dialog_open:true,form:{mileage,mileage_unknown:false,job_types:['Service'],service_choice:'Full Service',work_required:'Full Service'}};
+ const state={step:2,mileage_dialog_open:true,form:{registration:'AB12CDE',mileage,mileage_unknown:false,job_types:['Service'],service_choice:'Full Service',work_required:'Full Service'}};
  const document={querySelector:()=>null,querySelectorAll:s=>s==='[data-field]'?[input]:s==='[data-service-choice]'?[choice]:[]};
  const ctx={state,document,bindServiceExtra(){},bindHaynes(){},bindAdvisoryChoices(){},bindTyreCards(){},bindTyreSearch(){},render(){renders++},renderActions(){},updateMileageDialogValidity(){},servicePricing:{update(){updates++}}};
  vm.createContext(ctx);
+ vm.runInContext(html.match(/function confirmedEvServiceVehicle\(\)\{[^\n]+/)[0],ctx);
  vm.runInContext(html.slice(html.indexOf('function serviceMileageValid(){'),html.indexOf('function updateMileageDialogValidity(){')),ctx);
  vm.runInContext(html.slice(html.indexOf('function bind(){'),html.indexOf('\nfunction ',html.indexOf('function bind(){')+1)),ctx);
  ctx.bind();return {input,choice,state,counts:()=>({renders,updates})};
