@@ -15660,6 +15660,9 @@ function openVehicleRecordBase(idOrReg){
   var jobs=allVehicleHistoryJobs(reg),invoices=(app.invoices||[]).filter(function(i){return normReg(i.registration||'')===reg}).sort(function(a,b){return String(vehicleHistoryDate(b)).localeCompare(String(vehicleHistoryDate(a)))}),services=(app.serviceRecords||[]).filter(function(r){return normReg(r.registration||'')===reg});services.sort(function(a,b){return String(vehicleHistoryDate(b)).localeCompare(String(vehicleHistoryDate(a)))});
   var latest=jobs[0]||{},customer=(app.customers||[]).find(function(c){return c.id===v.customer_id})||{},fleetCustomer=fv?searchFleetCustomerName(fv):'',vehicle=v.vehicle||(fv&&fv.model)||latest.vehicle||'',mileage=v.mileage||(jobs.find(function(j){return j.mileage})||{}).mileage||'';
   if(!customer.name)customer={name:latest.customer_name||fleetCustomer||'',phone:latest.customer_phone||'',email:latest.customer_email||(fv&&fv.contactEmail)||''};
+  /* NMUK contacts belong to the vehicle. A shared customer or historical job
+     must never replace the saved fleet address, including an intentional blank. */
+  if(fv&&fv.fleetGroup!=='Contractor Fleet')customer=Object.assign({},customer,{email:String(fv.contactEmail||'').trim()});
   function info(label,value){return '<div class="vehicleInfoItem"><span>'+label+'</span><b>'+esc(String(value||'Not recorded'))+'</b></div>'}
   function dueCard(label,date,notRequired,detail,action){var tone=notRequired?'good':(date?jobVehicleDateTone(date):'unknown'),main=notRequired?'Not Required':(detail||(date?niceDate(date):'Not recorded')),sub=!notRequired&&detail?(date?niceDate(date):'Date not recorded'):'',prompt=action==='tax'?'Open tax website ↗':action==='mot'?'Create MOT job →':'Create service job →',body='<span>'+esc(label)+'</span><b>'+esc(main)+'</b>'+(sub?'<small>'+esc(sub)+'</small>':'')+'<em>'+prompt+'</em>';if(action==='tax')return '<a class="vehicleDueCard dueLink '+tone+'" href="https://vehicletax.service.gov.uk" target="_blank" rel="noopener noreferrer">'+body+'</a>';return '<button type="button" class="vehicleDueCard dueLink '+tone+'" data-vehicle-due-action="'+esc(action)+'">'+body+'</button>'}
   var history=[];
@@ -16294,7 +16297,7 @@ function knownRegistrationDetails(regValue){
     customer_account:account,
     customer_name:customerName,
     customer_phone:(customer&&customer.phone)||latestValue('customer_phone')||'',
-    customer_email:(customer&&customer.email)||latestValue('customer_email')||(fleetVehicle&&fleetVehicle.contactEmail)||'',
+    customer_email:fleetVehicle&&fleetVehicle.fleetGroup!=='Contractor Fleet'?String(fleetVehicle.contactEmail||'').trim():((customer&&customer.email)||latestValue('customer_email')||(fleetVehicle&&fleetVehicle.contactEmail)||''),
     nmuk_vehicle_type:latestValue('nmuk_vehicle_type')||(fleetVehicle&&fleetNmukTypeFromVehicle(reg))||'',
     mileage:(vehicle&&vehicle.mileage)||latestValue('mileage')||''
   }
