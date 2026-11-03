@@ -128,13 +128,14 @@ try {
             $env:VECTA_WORKER_STATUS_FILE = Join-Path $runtimeDir ($Worker + '.json')
             $env:VECTA_WORKER_STOP_FILE = $stopFile
             $env:VECTA_WORKER_VERSION = Split-Path -Leaf $release
+            $env:VECTA_WORKER_NAME = $Worker
             if ($Worker -ne 'GSF') {
                 $secure = (Get-Content -Raw -LiteralPath (Join-Path $env:LOCALAPPDATA 'VectaHaynes\relay-token.txt')).Trim() | ConvertTo-SecureString
                 $env:HAYNES_RELAY_TOKEN = (New-Object System.Net.NetworkCredential('', $secure)).Password
             }
             $entry = switch ($Worker) { 'Haynes' { 'workers\haynes\relay.mjs' }; 'Tyres' { 'workers\tyres\live-worker.mjs' }; 'GSF' { 'workers\repair-quotes\start-paired.mjs' } }
             Set-Location -LiteralPath $release
-            & node (Join-Path $release $entry)
+            & node (Join-Path $release 'workers\control\supervisor.mjs') (Join-Path $release $entry)
             if ($LASTEXITCODE -ne 0) { throw "$Worker needs attention. Read the message above; your settings have been kept." }
         } finally {
             Remove-Item Env:HAYNES_RELAY_TOKEN -ErrorAction SilentlyContinue
@@ -280,7 +281,7 @@ try {
                                     'connected' { 'Relay reachable - supplier lookup not verified' }
                                     'working' { 'Checking requests' }
                                     'attention' { 'Needs attention - see supplier window' }
-                                    'reconnecting' { 'Reconnecting' }
+                                    'reconnecting' { if ($status.reason -eq 'AUTO_RESTART_WAIT') { 'Automatic restart - waiting to retry' } else { 'Reconnecting automatically' } }
                                     default { 'Starting' }
                                 }
                                 if ($status.state -eq 'connected') {

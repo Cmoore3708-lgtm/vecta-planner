@@ -147,3 +147,31 @@ unchanged original installations, and restore the backed-up Haynes Startup
 shortcut if its previous automatic start is wanted. Do not delete the existing
 profile/token folders. A corrupt stable bootstrap or missing first release needs
 support; there is no invented recovery success if no previous version exists.
+
+
+## Automatic worker recovery (prepared; workshop acceptance pending)
+
+Each managed worker now has its own supervisor. Closing the manager panel leaves
+these supervisors running alongside the workers. A crash restarts just that
+worker after 30 seconds, then 2 minutes, 5 minutes and at most once per 15 minutes
+if failures persist. Ten minutes of confirmed healthy operation resets the delay.
+An idle relay connection is not evidence that supplier authentication works.
+
+After two minutes of continuous connection failure, or 90 seconds without the
+worker heartbeat, the supervisor requests a cooperative restart. Current lookups
+finish and supplier browsers close through the worker's existing shutdown path.
+The supervisor never force-kills browser processes or starts a replacement while
+the old worker is still alive. An unresponsive worker that cannot stop safely
+therefore still requires attention; recovery does not promise every freeze can
+be repaired unattended. A safe stop by the operator prevents automatic restart.
+Updates and rollback continue to wait until managed runners have stopped.
+
+A supplier login, verification, settings or pairing problem gets one session
+restart per reason. If the same problem returns, its window remains open and its
+failure remains visible. Restarting cannot supply a password, resolve a supplier
+challenge or restore revoked pairing. Vehicle-specific missing/ambiguous results
+do not trigger worker restarts. No profiles, saved settings or pairing are erased.
+
+Validation includes real child-process crash/restart, recurring login recovery,
+operator stop, heartbeat and transport policies, and the truthful status tests.
+Native Windows and workshop supplier acceptance are still required before release.

@@ -9,7 +9,7 @@ const repository=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'..')
 export async function buildWorkerBundle(root,version){
   if(!/^[a-f0-9]{40}$/.test(version))throw Error('Use the exact approved 40-character Git commit');
   const seeds=['workers/haynes/relay.mjs','workers/tyres/live-worker.mjs','workers/repair-quotes/start-paired.mjs','workers/gsf/worker.mjs',
-    'workers/control/workshop-workers.ps1','workers/control/release-cli.mjs','workers/control/release-store.mjs','workers/control/permanent-start.ps1'];
+    'workers/control/workshop-workers.ps1','workers/control/supervisor.mjs','workers/control/release-cli.mjs','workers/control/release-store.mjs','workers/control/permanent-start.ps1'];
   for(const folder of ['haynes','gsf','tyres'])for(const name of ['package.json','package-lock.json'])seeds.push('workers/'+folder+'/'+name);
   const files=new Map([['package.json',Buffer.from('{"private":true,"type":"module"}\n')]]);
   async function include(relative){
@@ -43,3 +43,4 @@ if(process.argv[1]&&path.resolve(process.argv[1])===fileURLToPath(import.meta.ur
   const [out,version]=process.argv.slice(2);if(!out||!path.isAbsolute(out))throw Error('Provide an absolute empty output folder and exact commit');
   console.log(JSON.stringify(await buildInstaller(repository,out,version)));
 }
+
