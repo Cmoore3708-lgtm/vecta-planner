@@ -2857,18 +2857,19 @@ body.servicePreviewing .servicePreviewControls{position:relative!important;z-ind
 .mobilePlanner .mobileGroup-quotes .mobileJob{background:#e0f2fe!important;border-color:#7dd3fc!important}
 
 </style><style id="vecta-vehicle-tax-print-fix">.printInvoiceAccountTitle{font-size:18px;font-weight:900;line-height:1.2;margin:5px 0 2px;text-transform:none;text-align:right}@media print{.printTotals.printTotalsGrid{margin-left:auto;width:310px;text-align:initial}.printTotals.printTotalsGrid>div{display:grid;grid-template-columns:1fr 120px;column-gap:18px;align-items:baseline}.printTotals.printTotalsGrid b{text-align:right}.printTotals.printTotalsGrid span{text-align:right;font-variant-numeric:tabular-nums}}</style><style id="vecta-invoice-work-normal-weight">.invoiceWorkTable td:first-child,.invoiceWorkTable td:first-child *,.invoiceWorkPrint td:first-child,.invoiceWorkPrint td:first-child *{font-weight:400!important}</style><link rel="stylesheet" href="/js/haynes-service-sheet.css">
-<script src="/js/haynes-service-sheet.js" defer></script>
+<script src="/js/vecta-optional-tools.js" defer></script>
+<link rel="vecta-offline-script" href="/js/haynes-service-sheet.js">
 <link rel="stylesheet" href="/js/haynes-job-tools.css">
 <script src="/js/haynes-job-tools.js" defer></script>
 <link rel="stylesheet" href="/js/vecta-repair-quote.css">
-<script src="/js/vecta-repair-quote.js" defer></script>
+<link rel="vecta-offline-script" href="/js/vecta-repair-quote.js">
 <script src="/js/vecta-vehicle-image.js" defer></script>
 <script src="/js/vecta-fleet-images.js" defer></script>
 <link rel="stylesheet" href="/js/vecta-fleet-images.css">
 <link rel="stylesheet" href="/js/job-card-compact.css">
 <link rel="stylesheet" href="/js/vecta-monthly-pool.css">
 <script src="/js/vecta-monthly-pool.js" defer></script>
-<script src="/js/vecta-monthly-tracker.js" defer></script>
+<link rel="vecta-offline-script" href="/js/vecta-monthly-tracker.js">
 <style id="live-priority-dashboard-layout">
 @media(min-width:901px){
  .plannerLayout.v233Planner.livePriorityPlanner.livePriorityPlanner{grid-template-columns:minmax(0,3fr) minmax(215px,1fr)!important;gap:10px!important}
@@ -10864,7 +10865,7 @@ function init(){safe(async function(){
         try{
           await flushPendingSync();
           await vectaPrimeJobsFromCloud();await vectaLoadTerminalJobStatesFromCloud();vectaApplyTerminalJobStates();
-          await vectaPrimeCompletionEvidenceFromCloud();await vectaRecoverGhostJobsFromTrustedBackups();await vectaRepairConfirmedNk72KtfCompletion();vectaApplyTerminalJobStates();
+          await vectaPrimeCompletionEvidenceFromCloud();await vectaRepairConfirmedNk72KtfCompletion();vectaApplyTerminalJobStates();
           rollOverOutstandingJobs();normaliseLegacyCarryOverJobs();normaliseUnallocatedBookingDates();await syncPendingCarryOvers();
           await restoreAug13JobsMovedByOldOverlapRule();await repairExistingPlannerOverlaps({persistRemote:true});
           render();
@@ -13080,16 +13081,20 @@ function vectaRunDataIngressMigrations(options){
   try{fleetAlignServiceDatesToMot()}catch(e){console.warn('Fleet service-date alignment skipped',e)}
   try{fleetAssignPoolEmail()}catch(e){console.warn('Fleet contact defaulting skipped',e)}
   if(options.legacyStartup===true){
-    try{fleetMigrateNmukInvoiceAddress()}catch(e){console.warn('Legacy NMUK invoice-address migration skipped',e)}
-    try{migrateUnsafeAug25JobTombstones()}catch(e){console.warn('Legacy job-tombstone cleanup skipped',e)}
-    try{fleetImportHistoricalSeed()}catch(e){console.warn('Historical Fleet completion import skipped',e)}
-    try{fleetMigrateExplicitDeletedRegistrations()}catch(e){console.warn('Legacy Fleet deletion tombstone migration skipped',e)}
-    try{applyVehicleAllocationSpreadsheetCorrections()}catch(e){console.warn('Legacy vehicle-allocation corrections skipped',e)}
-    try{fleetMigrateCustomerAliases()}catch(e){console.warn('Legacy Fleet customer-alias migration skipped',e)}
-    try{migrateLegacyServiceNamesOnce()}catch(e){console.warn('Legacy service-name migration skipped',e)}
-    try{fleetRemoveTrackerCreatedNmukVehicles()}catch(e){console.warn('Legacy Fleet tracker cleanup skipped',e)}
-    try{fleetMigrateInternalServiceRule()}catch(e){console.warn('Legacy Fleet internal-service migration skipped',e)}
-    try{migrateNmukVariousJobs()}catch(e){console.warn('Legacy NMUK classification migration skipped',e)}
+    // One ordered upgrade path, with independent failure handling. Keep these
+    // repairs for older offline devices; ordinary refresh/render never runs it.
+    [
+      ['Legacy NMUK invoice-address migration',function(){fleetMigrateNmukInvoiceAddress()}],
+      ['Legacy job-tombstone cleanup',function(){migrateUnsafeAug25JobTombstones()}],
+      ['Historical Fleet completion import',function(){fleetImportHistoricalSeed()}],
+      ['Legacy Fleet deletion tombstone migration',function(){fleetMigrateExplicitDeletedRegistrations()}],
+      ['Legacy vehicle-allocation corrections',function(){applyVehicleAllocationSpreadsheetCorrections()}],
+      ['Legacy Fleet customer-alias migration',function(){fleetMigrateCustomerAliases()}],
+      ['Legacy service-name migration',function(){migrateLegacyServiceNamesOnce()}],
+      ['Legacy Fleet tracker cleanup',function(){fleetRemoveTrackerCreatedNmukVehicles()}],
+      ['Legacy Fleet internal-service migration',function(){fleetMigrateInternalServiceRule()}],
+      ['Legacy NMUK classification migration',function(){migrateNmukVariousJobs()}]
+    ].forEach(function(migration){try{migration[1]()}catch(e){console.warn(migration[0]+' skipped',e)}});
   }
   try{var preJulyAudit=fleetMigratePreJuly2026Overdues();result.preJulyChanged=!!(preJulyAudit&&preJulyAudit.changed)}catch(e){console.warn('Pre-July Fleet baseline migration skipped',e)}
   if(options.parts!==false){try{result.parts=hydrateAutomaticPartsDefaults()}catch(e){console.warn('Parts data-ingress migration skipped',e)}}

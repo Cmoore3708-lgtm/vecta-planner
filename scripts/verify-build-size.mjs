@@ -26,4 +26,15 @@ let raw=0,gzip=0;
 for(const file of files){const bytes=fs.readFileSync('dist/'+file);raw+=bytes.length;gzip+=gzipSync(bytes).length;}
 assert.ok(raw<1_900_000,`main payload exceeded the 1.9 MB budget: ${raw}`);
 assert.ok(gzip<400_000,`gzip main payload exceeded the 400 kB budget: ${gzip}`);
-console.log(JSON.stringify({mainPayloadBytes:raw,mainPayloadGzipBytes:gzip,indexBytes:Buffer.byteLength(html)}));
+const optional=[...html.matchAll(/<link rel="vecta-offline-script" href="([^"]+)">/g)].map(match=>match[1]);
+assert.equal(optional.length,3,'service, supplier quote and monthly export tools must remain available offline');
+const initial=[...new Set([...html.matchAll(/<script\b[^>]*src="([^"]+)"/g)].map(match=>match[1]).filter(url=>url.startsWith('/')))];
+const loader=initial.find(url=>/\/vecta-optional-tools-[a-f0-9]{10}\.js$/.test(url));
+assert.ok(loader,'optional loader must be pinned to the release');
+const loaderSource=fs.readFileSync('dist'+loader,'utf8');
+for(const url of optional){
+  assert.match(url,/^\/assets\/[a-z-]+-[a-f0-9]{10}\.js$/,'optional assets must use immutable release URLs');
+  assert.ok(!initial.includes(url),'optional tools must not execute during startup');
+  assert.ok(loaderSource.includes(url),'offline and runtime optional URLs must identify the same release');
+}
+console.log(JSON.stringify({mainPayloadBytes:raw,mainPayloadGzipBytes:gzip,indexBytes:Buffer.byteLength(html),initialExternalScriptBytes:initial.reduce((sum,url)=>sum+fs.statSync('dist'+url.split('?')[0]).size,0),optionalScriptBytes:optional.reduce((sum,url)=>sum+fs.statSync('dist'+url).size,0)}));

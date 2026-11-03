@@ -63,8 +63,12 @@ html=html.replace(/<(script|style)([^>]*)>([\s\S]*?)<\/\1>/gi,(whole,tag,attribu
   return result.warnings.length?whole:`<style${attributes}>${result.code}</style>`;
 });
 // Give Haynes helpers and stylesheets the same cache-safe treatment.
-for(const name of ['haynes-job-tools.js','haynes-job-tools.css','haynes-service-sheet.js','haynes-service-sheet.css','vecta-vehicle-image.js','vecta-fleet-images.js','vecta-fleet-images.css','vecta-monthly-pool.js','vecta-monthly-pool.css']){
+const optionalAssets=new Map();
+for(const name of ['haynes-job-tools.js','haynes-job-tools.css','haynes-service-sheet.js','haynes-service-sheet.css','vecta-vehicle-image.js','vecta-fleet-images.js','vecta-fleet-images.css','vecta-monthly-pool.js','vecta-monthly-pool.css','vecta-repair-quote.js','vecta-monthly-tracker.js','vecta-optional-tools.js']){
   let source=fs.readFileSync(path.resolve('dist/js',name));
+  if(name==='vecta-optional-tools.js'){
+    let text=source.toString();for(const [original,built] of optionalAssets)text=text.replaceAll(original,built);source=Buffer.from(text);
+  }
   const result=transformSync(source.toString(),{loader:name.endsWith('.js')?'js':'css',
     target:'esnext',charset:'utf8',legalComments:'inline',
     minifyWhitespace:true,minifyIdentifiers:false,minifySyntax:false});
@@ -73,6 +77,7 @@ for(const name of ['haynes-job-tools.js','haynes-job-tools.css','haynes-service-
   const ext=path.extname(name),filename=`${path.basename(name,ext)}-${hash}${ext}`;
   fs.mkdirSync(assetsDir,{recursive:true});
   fs.writeFileSync(path.join(assetsDir,filename),source);
+  optionalAssets.set(`/js/${name}`,`/assets/${filename}`);
   html=html.replaceAll(`/js/${name}`,`/assets/${filename}`);
   mechanicHtml=mechanicHtml.replaceAll(`/js/${name}`,`/assets/${filename}`);
 }
