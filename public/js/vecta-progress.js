@@ -1,23 +1,32 @@
 (()=>{'use strict';
   const el=id=>document.getElementById(id),token=location.hash.slice(1);
   let timer,busy=false,failures=0,registration='',artworkKey='';
+  // Complete, individually composed scene sets. Never reuse one registration's car for another.
+  const sceneSets=Object.freeze({CM14KEL:'cm14kel',YD72OMH:'yd72omh'});
   const normalise=value=>String(value||'').toUpperCase().replace(/[^A-Z0-9]/g,'');
   function renderScenes(data,index){
     const scenes=el('progressScene');scenes.hidden=false;scenes.dataset.stage=data.stage;scenes.classList.remove('stale');
-    const reg=normalise(data.registration),approved=reg==='CM14KEL';
+    const reg=normalise(data.registration),sceneSet=Object.hasOwn(sceneSets,reg)?sceneSets[reg]:'',approved=!!sceneSet;
+    const key=JSON.stringify([reg,data.image_url||'',data.image_colour||'',sceneSet]);
+    const changed=key!==artworkKey;artworkKey=key;
     scenes.querySelectorAll('[data-scene]').forEach((card,i)=>{
       card.classList.toggle('current',i===index);card.classList.toggle('done',i<index);
       if(i===index)card.setAttribute('aria-current','step');else card.removeAttribute('aria-current');
       card.querySelector('.currentBadge').hidden=i!==index;
-      const photo=card.querySelector('.approvedScene');photo.hidden=!approved||photo.dataset.failed==='1';
-      if(approved){const src='/assets/progress/cm14kel-'+card.dataset.scene+'.webp';if(photo.getAttribute('src')!==src)photo.src=src;}else photo.removeAttribute('src');
-      photo.onerror=()=>{photo.dataset.failed='1';photo.hidden=true;};
+      const photo=card.querySelector('.approvedScene');
+      const src=approved?'/assets/progress/'+sceneSet+'-'+card.dataset.scene+'.webp':'';
+      photo.hidden=!approved||photo.dataset.failedUrl===src;
+      photo.alt=(data.registration||'Your car')+' — '+card.querySelector('h3').textContent.toLowerCase()+' illustration';
+      photo.onerror=()=>{photo.dataset.failedUrl=src;photo.hidden=true;};
+      if(src){if(photo.getAttribute('src')!==src)photo.src=src;}else photo.removeAttribute('src');
+      // Complete images already contain the car, number plate and mechanic.
+      // Do not fetch or reveal the old overlays underneath these scenes.
+      if(approved){card.querySelector('.vehicleLayer').hidden=true;card.querySelector('.sceneCar').removeAttribute('src');const mechanic=card.querySelector('.sceneMechanic');if(mechanic)mechanic.hidden=true;}
       card.querySelector('.scenePlate').textContent=data.registration||'';
     });
     el('sceneCaption').hidden=false;el('sceneCaption').textContent=approved?'Illustrations of your car’s workshop visit.':'Illustrative progress scenes using your vehicle’s saved model artwork where available.';
     const safeImage=typeof data.image_url==='string'&&/^https:\/\/www\.haynespro-assets\.com\/workshop\/images\/\d+\.(svgz?|png|jpe?g|webp)$/.test(data.image_url);
-    const key=JSON.stringify([reg,safeImage?data.image_url:'',data.image_colour||'']);
-    if(key===artworkKey)return;artworkKey=key;
+    if(approved||!changed)return;
     scenes.querySelectorAll('.sceneCar').forEach(old=>{
       const car=old.cloneNode(false);car.removeAttribute('src');for(const attr of Array.from(car.attributes))if(attr.name.startsWith('data-'))car.removeAttribute(attr.name);old.replaceWith(car);
       const layer=car.parentElement,card=layer.parentElement.parentElement,mechanic=card.querySelector('.sceneMechanic');layer.hidden=true;if(mechanic)mechanic.hidden=true;
