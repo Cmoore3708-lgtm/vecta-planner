@@ -1,7 +1,7 @@
 name: Workshop worker Windows checks
 on:
   pull_request:
-    paths: ['workers/**', 'lib/worker-runtime.js', 'scripts/*worker*', 'tests/regression/managed-worker-releases.test.mjs', '.github/workflows/workshop-worker-windows.yml']
+    paths: ['workers/**', 'lib/worker-runtime.js', 'scripts/*worker*', 'tests/regression/managed-worker-releases.test.mjs', 'tests/regression/worker-auto-recovery.test.mjs', 'tests/regression/worker-status-truthful.test.mjs', '.github/workflows/workshop-worker-windows.yml']
   workflow_dispatch:
 permissions:
   contents: read
@@ -15,7 +15,7 @@ jobs:
         with:
           node-version: 24
       - name: Exercise release management without supplier access
-        run: node --test tests/regression/managed-worker-releases.test.mjs
+        run: node --test tests/regression/managed-worker-releases.test.mjs tests/regression/worker-auto-recovery.test.mjs tests/regression/worker-status-truthful.test.mjs
       - name: Exercise native PowerShell, DPAPI, duplicate runners and shortcut stability
         shell: powershell
         run: .\scripts\test-worker-windows.ps1
@@ -31,3 +31,4 @@ jobs:
           name: VECTA-Workers-Setup-for-review
           path: ${{ runner.temp }}/VECTA-Workers-Setup.zip
           retention-days: 14
+
