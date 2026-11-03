@@ -5,7 +5,7 @@ function Assert-True($Condition, [string]$Message) { if (!$Condition) { throw $M
 $repository = Split-Path -Parent $PSScriptRoot
 $controller = Join-Path $repository 'workers\control\workshop-workers.ps1'
 $bootstrap = Join-Path $repository 'workers\control\permanent-start.ps1'
-foreach ($file in @($controller,$bootstrap)) {
+foreach ($file in @($controller,$bootstrap,(Join-Path $repository 'workers\control\install-recovery.ps1'))) {
     $tokens=$null; $errors=$null
     $ast=[System.Management.Automation.Language.Parser]::ParseFile($file,[ref]$tokens,[ref]$errors)
     Assert-True ($errors.Count -eq 0) ('PowerShell parse failed: ' + $file)
