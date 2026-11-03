@@ -3,6 +3,14 @@
   "trailingSlash": false,
   "rewrites": [
     {
+      "source": "/api/job-progress",
+      "destination": "https://vecta-planner.vercel.app/api/job-progress"
+    },
+    {
+      "source": "/invoice",
+      "destination": "https://vecta-planner.vercel.app/invoice"
+    },
+    {
       "source": "/api/haynes-image",
       "destination": "https://vecta-planner.vercel.app/api/haynes-image"
     },

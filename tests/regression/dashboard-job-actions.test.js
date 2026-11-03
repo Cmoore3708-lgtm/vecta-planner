@@ -7,7 +7,7 @@ const html=readFileSync('index.html','utf8');
 const helper=html.slice(html.indexOf('function syncOfficeJobActions(account)'),html.indexOf('function openJobModal(id,preset)'));
 function setup({mechanic=true,account='Staff',mileage=true,saved=true}={}){
  const {window,document}=parseHTML('<html><body><div id="jobModal"><input id="job_status" value="booked"><div class="modalFoot"><button id="markComplete">Mark as complete</button><button id="markReady">Ready to invoice</button><button id="deleteJob">Delete</button><button id="saveJob">Save & Close</button></div></div></body></html>');
- window.VECTA_MECHANIC_DEPLOYMENT=mechanic;const saves=[];const c={window,document,requireCurrentJobMileage:()=>mileage,fleetIsContractorIncome:value=>String(value).toUpperCase()==='CONTRACTOR'};vm.createContext(c);
+ window.VECTA_MECHANIC_DEPLOYMENT=mechanic;const saves=[];const c={window,document,vectaStartCustomerProgress:()=>{},vectaInstallTrackingLink:()=>{},requireCurrentJobMileage:()=>mileage,fleetIsContractorIncome:value=>String(value).toUpperCase()==='CONTRACTOR'};vm.createContext(c);
  // Match the real app boundary: app and saveJob are private to its closure.
  vm.runInContext(`(function(){const app={jobs:[{id:'j',status:'booked',customer_account:${JSON.stringify(account)}}]};function gatherJob(){return {id:'j'};}async function saveJob(id){capture(id,document.getElementById('job_status').value);return ${saved};}${helper}window.installForTest=installDashboardJobActions;})();`,Object.assign(c,{capture:(...args)=>saves.push(args)}));
  window.installForTest('j');return {window,document,saves,c};
