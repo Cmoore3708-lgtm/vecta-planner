@@ -8,7 +8,7 @@ import traverseModule from '@babel/traverse';
 const traverse=traverseModule.default||traverseModule;
 const source=readFileSync(new URL('../../public/js/haynes-job-tools.js',import.meta.url),'utf8');
 const vehicle={registration:'FX69XWU',make:'Nissan',model:'Qashqai',variant:'1.7 dCi',typeId:'t_301000368',imageUrl:'https://www.haynespro-assets.com/workshop/images/123.svg',fetchedAt:new Date().toISOString()};
-function setup(fetcher,artwork,identities,explicitLookup=true,extraFields='',mechanic=false,automatic=false){const {window,document}=parseHTML('<html><body><div id="modal"><div class="jobModalHead"><h2>Edit Job</h2><div class="jobModalHeadActions"><button data-close-modal>Close</button><button id="printJobCard" class="jobPrintSmall">Print Job Card</button></div></div><section class="jobVehicleSection"><input id="job_registration" value="FX69 XWU"><input id="job_make" value="Nissan"><input type="checkbox" id="job_no_vehicle">'+extraFields+'</section><div class="jobCardSections"><section class="jobWorkSection"></section><section class="jobPreviousWorkSection"></section><section class="jobContactSection"></section><section class="jobBookingSection"><div class="bookingAvailabilityWorkspace"></div></section><section class="jobFormSection"><div class="jobPartsEditor"></div></section><section class="privatePricingSection"></section></div><div class="modalFoot"><button id="deleteJob">Delete Job</button><button id="save">Save</button></div></div></body></html>');const card=document.createElement('div');card.className='jobModalCard';card.append(...document.querySelector('#modal').children);document.querySelector('#modal').append(card);window.VECTA_MECHANIC_DEPLOYMENT=mechanic;delete window.VectaVehicleImage;delete window.app;delete window.fleetVehicles;window.fetch=fetcher;window.localStorage={getItem:key=>key==='vecta_haynes_vehicle_identity_v1'?JSON.stringify(identities||[]):null,setItem(){}};window.VectaFleetImages={artwork};vm.runInNewContext(source,{window,document,AbortController,AbortSignal,setTimeout,clearTimeout,encodeURIComponent});window.initHaynesJobTools(document.querySelector('#modal'),{automatic});if(explicitLookup)document.querySelector('.jobHeaderHaynesLookup').onclick();return {window,document,panel:document.querySelector('.haynesJobTools')};}
+function setup(fetcher,artwork,identities,explicitLookup=true,extraFields='',mechanic=false,automatic=false,recoverImage=false){const {window,document}=parseHTML('<html><body><div id="modal"><div class="jobModalHead"><h2>Edit Job</h2><div class="jobModalHeadActions"><button data-close-modal>Close</button><button id="printJobCard" class="jobPrintSmall">Print Job Card</button></div></div><section class="jobVehicleSection"><input id="job_registration" value="FX69 XWU"><input id="job_make" value="Nissan"><input type="checkbox" id="job_no_vehicle">'+extraFields+'</section><div class="jobCardSections"><section class="jobWorkSection"></section><section class="jobPreviousWorkSection"></section><section class="jobContactSection"></section><section class="jobBookingSection"><div class="bookingAvailabilityWorkspace"></div></section><section class="jobFormSection"><div class="jobPartsEditor"></div></section><section class="privatePricingSection"></section></div><div class="modalFoot"><button id="deleteJob">Delete Job</button><button id="save">Save</button></div></div></body></html>');const card=document.createElement('div');card.className='jobModalCard';card.append(...document.querySelector('#modal').children);document.querySelector('#modal').append(card);window.VECTA_MECHANIC_DEPLOYMENT=mechanic;delete window.VectaVehicleImage;delete window.app;delete window.fleetVehicles;window.fetch=fetcher;window.localStorage={getItem:key=>key==='vecta_haynes_vehicle_identity_v1'?JSON.stringify(identities||[]):null,setItem(){}};window.VectaFleetImages={artwork};vm.runInNewContext(source,{window,document,AbortController,AbortSignal,setTimeout,clearTimeout,encodeURIComponent});window.initHaynesJobTools(document.querySelector('#modal'),{automatic,recoverImage});if(explicitLookup)document.querySelector('.jobHeaderHaynesLookup').onclick();return {window,document,panel:document.querySelector('.haynesJobTools')};}
 const lookupButton=panel=>panel.ownerDocument.querySelector('.jobHeaderHaynesLookup');
 
 const response=v=>({ok:true,json:async()=>({status:'MATCHED',vehicle:v})});
@@ -389,4 +389,51 @@ test('new job automatically matches a committed registration and fills missing v
  assert.equal(opened,0);
  const input=s.document.querySelector('#job_registration');input.value='AB12 XYZ';input.dispatchEvent(new s.window.Event('input'));
  await new Promise(r=>setTimeout(r,200));assert.equal(calls.length,1,'typing alone must not submit partial plates');
+});
+
+test('opening an existing blank job recovers its exact image without the Haynes button or changing saved vehicle fields',async()=>{
+ for(const mechanic of [false,true]){
+  const calls=[];const s=setup(async(url,options)=>{calls.push({url,options});return response(vehicle);},undefined,undefined,false,'<input id="job_model"><input id="job_vehicle">',mechanic,false,true);
+  let tabs=0;s.window.open=()=>{tabs++;};
+  await new Promise(r=>setTimeout(r,220));
+  assert.equal(calls.length,1);assert.equal(tabs,0);
+  assert.equal(s.document.querySelector('.jobCardHeaderVehicle img').dataset.registration,vehicle.registration);
+  assert.equal(s.document.querySelector('#job_model').value,'');assert.equal(s.document.querySelector('#job_vehicle').value,'');
+  assert.ok(s.window.VectaHaynesJobTools.artworkSnapshot(vehicle.registration)?.imageUrl);
+ }
+});
+
+test('job image recovery retries a temporary failure once and stops after another failure',async()=>{
+ for(const status of ['LOGIN_REQUIRED','OFFLINE','BUSY','UNAVAILABLE']){
+  const calls=[];const s=setup(async(url,options)=>{calls.push({url,options});return calls.length===1?{ok:true,json:async()=>({status})}:response(vehicle);},undefined,undefined,false,'',false,false,true);
+  await new Promise(r=>setTimeout(r,220));assert.equal(calls.length,2,status);
+  assert.equal(calls[1].options.method,'POST');assert.match(calls[1].url,/retry=1/);
+  assert.equal(s.document.querySelector('.jobCardHeaderVehicle img').dataset.registration,vehicle.registration);
+ }
+ let calls=0;const s=setup(async()=>{calls++;return {ok:true,json:async()=>({status:'OFFLINE'})};},undefined,undefined,false,'',false,false,true);
+ await new Promise(r=>setTimeout(r,220));assert.equal(calls,2);
+ const input=s.document.querySelector('#job_registration');input.dispatchEvent(new s.window.Event('blur'));
+ await new Promise(r=>setTimeout(r,220));assert.equal(calls,2,'repeated opening events do not produce a retry loop');
+});
+
+test('uncertain matches and exhausted daily allowances never force an automatic retry',async()=>{
+ for(const status of ['AMBIGUOUS','MISMATCH','NOT_FOUND','DAILY_LIMIT','VERIFICATION_REQUIRED']){
+  let calls=0;setup(async()=>{calls++;return {ok:true,json:async()=>({status})};},undefined,undefined,false,'',false,false,true);
+  await new Promise(r=>setTimeout(r,220));assert.equal(calls,1,status);
+ }
+});
+
+test('existing exact drawings, website review and closed editors do not start image recovery',async()=>{
+ let calls=0;const fetcher=async()=>{calls++;return response(vehicle);};
+ setup(fetcher,undefined,[vehicle],false,'',false,false,true);
+ await new Promise(r=>setTimeout(r,220));assert.equal(calls,0);
+ const review=setup(fetcher,undefined,undefined,false,'',false,false,true);review.document.querySelector('#modal').dataset.websiteRequestId='booking';
+ const closed=setup(fetcher,undefined,undefined,false,'',false,false,true);closed.document.querySelector('#modal').remove();
+ await new Promise(r=>setTimeout(r,220));assert.equal(calls,0);
+});
+
+test('an old technical identity without a drawing does not block job image recovery',async()=>{
+ let calls=0;const s=setup(async()=>{calls++;return response(vehicle);},undefined,[{...vehicle,imageUrl:''}],false,'',false,false,true);
+ await new Promise(r=>setTimeout(r,220));
+ assert.equal(calls,1);assert.equal(s.document.querySelector('.jobCardHeaderVehicle img').dataset.registration,vehicle.registration);
 });
