@@ -64,7 +64,7 @@ html=html.replace(/<(script|style)([^>]*)>([\s\S]*?)<\/\1>/gi,(whole,tag,attribu
 });
 // Give Haynes helpers and stylesheets the same cache-safe treatment.
 const optionalAssets=new Map();
-for(const name of ['haynes-job-tools.js','haynes-job-tools.css','haynes-service-sheet.js','haynes-service-sheet.css','vecta-vehicle-image.js','vecta-fleet-images.js','vecta-fleet-images.css','vecta-monthly-pool.js','vecta-monthly-pool.css','vecta-repair-quote.js','vecta-monthly-tracker.js','vecta-optional-tools.js']){
+for(const name of ['haynes-job-tools.js','haynes-job-tools.css','haynes-service-sheet.js','haynes-service-sheet.css','vecta-vehicle-image.js','vecta-fleet-images.js','vecta-fleet-images.css','vecta-monthly-pool.js','vecta-monthly-pool.css','vecta-repair-quote.js','vecta-monthly-tracker.js','vecta-paperwork-cache.js','vecta-optional-tools.js']){
   let source=fs.readFileSync(path.resolve('dist/js',name));
   if(name==='vecta-optional-tools.js'){
     let text=source.toString();for(const [original,built] of optionalAssets)text=text.replaceAll(original,built);source=Buffer.from(text);
