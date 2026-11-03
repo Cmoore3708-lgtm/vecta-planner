@@ -9746,8 +9746,8 @@ var vectaSyncInFlight=false,vectaSyncProgress=null;
 function updateConnectivityUI(state){var el=document.getElementById('vectaConnectivity'),txt=document.getElementById('vectaConnectivityText'),banner=document.getElementById('vectaOfflineBanner');if(!el||!txt)return;if(VECTA_AUDIT_PREVIEW){el.className='vectaConnectivity offline';txt.textContent='V355 safe test mode';if(banner){banner.classList.add('show');banner.textContent='V355 SAFE TEST MODE — changes stay only on this test page and cannot alter the live workshop.'}return}var pending=vectaPendingSync().length;if(state==='syncing'){el.className='vectaConnectivity syncing';var done=vectaSyncProgress&&Number(vectaSyncProgress.done||0),total=vectaSyncProgress&&Number(vectaSyncProgress.total||0);txt.textContent=total?('Synchronising workshop data… '+done+' of '+total):'Synchronising workshop data…';if(banner)banner.classList.remove('show');return}if(state==='checking'||vectaCloudReachable===null){el.className='vectaConnectivity syncing';txt.textContent='Checking cloud connection…';if(banner)banner.classList.remove('show');return}var online=navigator.onLine&&vectaCloudReachable;if(online){el.className='vectaConnectivity online';var failed=pending&&vectaPendingSync().some(function(x){return Number(x.attempts||0)>0&&x.last_error});txt.textContent=pending?('Online · '+pending+' change'+(pending===1?'':'s')+(failed?' still need sync — retrying':' waiting to sync')):'Online · workshop data protected';if(banner)banner.classList.remove('show')}else{el.className='vectaConnectivity offline';txt.textContent='Offline workshop mode'+(pending?' · '+pending+' queued':'');if(banner)banner.classList.add('show')}}
 function vectaOpenBackupDb(){return new Promise(function(resolve,reject){if(!window.indexedDB)return reject(new Error('IndexedDB is unavailable.'));var settled=false,timer=setTimeout(function(){if(settled)return;settled=true;reject(new Error('Backup storage took too long to open.'))},2500),req=indexedDB.open(VECTA_BACKUP_DB,1);function fail(error){if(settled)return;settled=true;clearTimeout(timer);reject(error||new Error('Could not open backup store.'))}req.onupgradeneeded=function(){var db=req.result;if(!db.objectStoreNames.contains(VECTA_BACKUP_STORE))db.createObjectStore(VECTA_BACKUP_STORE,{keyPath:'id'})};req.onsuccess=function(){if(settled){try{req.result.close()}catch(e){}return}settled=true;clearTimeout(timer);resolve(req.result)};req.onerror=function(){fail(req.error)};req.onblocked=function(){fail(new Error('Backup storage is blocked by an older app window.'))}})}
 async function vectaStoreBackup(snapshot){var db=await vectaOpenBackupDb();await new Promise(function(resolve,reject){var tx=db.transaction(VECTA_BACKUP_STORE,'readwrite'),st=tx.objectStore(VECTA_BACKUP_STORE);st.put(snapshot);tx.oncomplete=resolve;tx.onerror=function(){reject(tx.error)}});db.close();await vectaPruneBackups();return snapshot}
-async function vectaListBackups(){try{var db=await vectaOpenBackupDb();var rows=await new Promise(function(resolve,reject){var tx=db.transaction(VECTA_BACKUP_STORE,'readonly'),req=tx.objectStore(VECTA_BACKUP_STORE).getAll();req.onsuccess=function(){resolve(req.result||[])};req.onerror=function(){reject(req.error)}});db.close();return rows.sort(function(a,b){return String(b.created_at||'').localeCompare(String(a.created_at||''))})}catch(e){console.warn('Backup list unavailable',e);return []}}
-async function vectaPruneBackups(){var rows=await vectaListBackups();if(rows.length<=VECTA_BACKUP_RETENTION)return;var db=await vectaOpenBackupDb();await new Promise(function(resolve,reject){var tx=db.transaction(VECTA_BACKUP_STORE,'readwrite'),st=tx.objectStore(VECTA_BACKUP_STORE);rows.slice(VECTA_BACKUP_RETENTION).forEach(function(r){st.delete(r.id)});tx.oncomplete=resolve;tx.onerror=function(){reject(tx.error)}});db.close()}
+async function vectaListBackups(limit){try{var db=await vectaOpenBackupDb();try{var rows=await new Promise(function(resolve,reject){var tx=db.transaction(VECTA_BACKUP_STORE,'readonly'),rows=[],req=tx.objectStore(VECTA_BACKUP_STORE).openCursor(null,'prev');req.onsuccess=function(){var cursor=req.result;if(!cursor)return;rows.push(cursor.value);if(!limit||rows.length<limit)cursor.continue()};tx.oncomplete=function(){resolve(rows)};tx.onerror=function(){reject(tx.error)};tx.onabort=function(){reject(tx.error||new Error('Backup read aborted'))}});return rows.sort(function(a,b){return String(b.created_at||'').localeCompare(String(a.created_at||''))})}finally{db.close()}}catch(e){console.warn('Backup list unavailable',e);return []}}
+async function vectaPruneBackups(){var db=await vectaOpenBackupDb();try{await new Promise(function(resolve,reject){var tx=db.transaction(VECTA_BACKUP_STORE,'readwrite'),st=tx.objectStore(VECTA_BACKUP_STORE),req=st.getAllKeys();req.onsuccess=function(){var keys=(req.result||[]).slice().sort().reverse();keys.slice(VECTA_BACKUP_RETENTION).forEach(function(key){st.delete(key)})};tx.oncomplete=resolve;tx.onerror=function(){reject(tx.error)};tx.onabort=function(){reject(tx.error||new Error('Backup pruning aborted'))}})}finally{db.close()}}
 function vectaBackupPayload(source){return {id:new Date().toISOString().slice(0,10),created_at:new Date().toISOString(),source:source||'local',version:'offline-continuity-v1',record_counts:{jobs:(app.jobs||[]).length,customers:(app.customers||[]).length,vehicles:(app.vehicles||[]).length,tasks:(app.tasks||[]).length,invoices:(app.invoices||[]).length,serviceRecords:(app.serviceRecords||[]).length,websiteRequests:(app.websiteRequests||[]).length},app:JSON.parse(JSON.stringify(app)),fleetVehicles:(typeof fleetVehicles!=='undefined'&&Array.isArray(fleetVehicles))?JSON.parse(JSON.stringify(fleetVehicles)):[],fleetPlans:(typeof fleetPlans!=='undefined'&&Array.isArray(fleetPlans))?JSON.parse(JSON.stringify(fleetPlans)):[],pendingSync:vectaPendingSync()}}
 function vectaBackupJobCount(snapshot){try{return Number(snapshot&&snapshot.record_counts&&snapshot.record_counts.jobs!=null?snapshot.record_counts.jobs:(snapshot&&snapshot.app&&Array.isArray(snapshot.app.jobs)?snapshot.app.jobs.length:0))||0}catch(e){return 0}}
 function vectaHasUsableWorkshopData(candidate){candidate=candidate||app;return !!(candidate&&Array.isArray(candidate.jobs)&&candidate.jobs.length)}
@@ -9778,19 +9778,29 @@ async function vectaRestoreLatestBackupIfNeeded(){
     return true;
   }catch(e){console.warn('Offline snapshot restore skipped',e);return false}
 }
+var vectaBackupInFlight=null,vectaBackupRequested=false,vectaBackupForce=false,vectaBackupSource='';
 async function vectaCreateDailyBackup(force,source){
   if(!vectaLocalRecoveryReady)return null;
-  var today=new Date().toISOString().slice(0,10),rows=await vectaListBackups(),snap=vectaBackupPayload(source||((navigator.onLine&&vectaCloudReachable)?'cloud-synchronised':'offline-local'));
-  /* Always refresh the current daily snapshot instead of freezing the first startup copy for the whole day.
-     This is what makes the backup genuinely "last known good" rather than "first state seen today". */
-  if(!force&&vectaBackupJobCount(snap)===0){var usable=rows.find(function(r){return vectaBackupJobCount(r)>0});if(usable)return usable}
-  await vectaStoreBackup(snap);
-  try{localStorage.setItem('vecta:offline:last-backup',snap.created_at)}catch(e){}
-  return snap
+  vectaBackupRequested=true;vectaBackupForce=vectaBackupForce||!!force;
+  vectaBackupSource=source||((navigator.onLine&&vectaCloudReachable)?'cloud-synchronised':'offline-local');
+  if(vectaBackupInFlight)return vectaBackupInFlight;
+  // Start immediately; overlapping saves share one writer and finish with the
+  // latest state. No timer leaves an offline edit waiting for a future backup.
+  var work=Promise.resolve().then(async function(){var snap=null;while(vectaBackupRequested){
+    vectaBackupRequested=false;var forced=vectaBackupForce;vectaBackupForce=false;
+    snap=vectaBackupPayload(vectaBackupSource);
+    // Only an empty candidate needs to inspect previous snapshots. Ordinary
+    // saves must not deserialize thirty complete workshop backups first.
+    if(!forced&&vectaBackupJobCount(snap)===0){var rows=await vectaListBackups(),usable=rows.find(function(r){return vectaBackupJobCount(r)>0});if(usable){snap=usable;continue}}
+    await vectaStoreBackup(snap);
+    try{localStorage.setItem('vecta:offline:last-backup',snap.created_at)}catch(e){}
+  }return snap});
+  vectaBackupInFlight=work;
+  try{return await work}finally{if(vectaBackupInFlight===work)vectaBackupInFlight=null}
 }
 function vectaDownloadObject(data,filename){var blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=filename;document.body.appendChild(a);a.click();a.remove();setTimeout(function(){URL.revokeObjectURL(url)},1000)}
-async function vectaDownloadLatestBackup(){var rows=await vectaListBackups();if(!rows.length){await vectaCreateDailyBackup(true,'manual');rows=await vectaListBackups()}if(rows[0])vectaDownloadObject(rows[0],'VECTA-OFFLINE-BACKUP-'+String(rows[0].id)+'.json')}
-async function vectaBackupHealthHtml(){var rows=await vectaListBackups(),last=rows[0]||null,pending=vectaPendingSync().length,lastText=last?new Date(last.created_at).toLocaleString('en-GB',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit',second:'2-digit'}):'No backup yet',count=last?Object.values(last.record_counts||{}).reduce(function(a,b){return a+Number(b||0)},0):0;return '<div class="card panel"><h3>Offline Backup & Recovery</h3><p class="muted">Workshop Pro keeps a daily offline snapshot on this computer and can open without Supabase. The newest 30 daily snapshots are retained locally.</p><div class="backupHealthGrid"><div class="backupHealthItem"><small>Last local backup</small><b class="'+(last?'backupStatusGood':'backupStatusBad')+'">'+esc(lastText)+'</b></div><div class="backupHealthItem"><small>Records in latest snapshot</small><b>'+count.toLocaleString('en-GB',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit',second:'2-digit'})+'</b></div><div class="backupHealthItem"><small>Cloud status</small><b class="'+((navigator.onLine&&vectaCloudReachable)?'backupStatusGood':'backupStatusBad')+'">'+((navigator.onLine&&vectaCloudReachable)?'Connected':'Offline mode')+'</b></div><div class="backupHealthItem"><small>Changes waiting to sync</small><b class="'+(pending?'backupStatusWarn':'backupStatusGood')+'">'+pending+'</b></div></div><div class="backupActions"><button class="btn dark" id="backupNow">Back Up Now</button><button class="btn" id="downloadLatestBackup">Download Latest Backup</button><button class="btn" id="syncOfflineChanges" '+((navigator.onLine&&vectaCloudReachable)?'':'disabled')+'>Sync Offline Changes</button></div><p class="muted" style="margin-top:10px"><b>Important:</b> this local snapshot protects the workshop during an internet/Supabase outage. A separate physical/off-site copy is the next layer and will be added to the automated backup service.</p></div>'}
+async function vectaDownloadLatestBackup(){var rows=await vectaListBackups(1);if(!rows.length){await vectaCreateDailyBackup(true,'manual');rows=await vectaListBackups(1)}if(rows[0])vectaDownloadObject(rows[0],'VECTA-OFFLINE-BACKUP-'+String(rows[0].id)+'.json')}
+async function vectaBackupHealthHtml(){var rows=await vectaListBackups(1),last=rows[0]||null,pending=vectaPendingSync().length,lastText=last?new Date(last.created_at).toLocaleString('en-GB',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit',second:'2-digit'}):'No backup yet',count=last?Object.values(last.record_counts||{}).reduce(function(a,b){return a+Number(b||0)},0):0;return '<div class="card panel"><h3>Offline Backup & Recovery</h3><p class="muted">Workshop Pro keeps a daily offline snapshot on this computer and can open without Supabase. The newest 30 daily snapshots are retained locally.</p><div class="backupHealthGrid"><div class="backupHealthItem"><small>Last local backup</small><b class="'+(last?'backupStatusGood':'backupStatusBad')+'">'+esc(lastText)+'</b></div><div class="backupHealthItem"><small>Records in latest snapshot</small><b>'+count.toLocaleString('en-GB',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit',second:'2-digit'})+'</b></div><div class="backupHealthItem"><small>Cloud status</small><b class="'+((navigator.onLine&&vectaCloudReachable)?'backupStatusGood':'backupStatusBad')+'">'+((navigator.onLine&&vectaCloudReachable)?'Connected':'Offline mode')+'</b></div><div class="backupHealthItem"><small>Changes waiting to sync</small><b class="'+(pending?'backupStatusWarn':'backupStatusGood')+'">'+pending+'</b></div></div><div class="backupActions"><button class="btn dark" id="backupNow">Back Up Now</button><button class="btn" id="downloadLatestBackup">Download Latest Backup</button><button class="btn" id="syncOfflineChanges" '+((navigator.onLine&&vectaCloudReachable)?'':'disabled')+'>Sync Offline Changes</button></div><p class="muted" style="margin-top:10px"><b>Important:</b> this local snapshot protects the workshop during an internet/Supabase outage. A separate physical/off-site copy is the next layer and will be added to the automated backup service.</p></div>'}
 async function vectaRefreshBackupPanel(){var host=document.getElementById('vectaBackupPanelHost');if(host)host.innerHTML=await vectaBackupHealthHtml()}
 function vectaBindBackupPanel(){var a=document.getElementById('backupNow');if(a)a.onclick=async function(){await vectaCreateDailyBackup(true,'manual');await vectaRefreshBackupPanel();vectaBindBackupPanel();alert('Offline backup created on this computer.')};var d=document.getElementById('downloadLatestBackup');if(d)d.onclick=vectaDownloadLatestBackup;var s=document.getElementById('syncOfflineChanges');if(s)s.onclick=async function(){await flushPendingSync();await vectaRefreshBackupPanel();vectaBindBackupPanel()}}
 function shouldQueueRemoteFailure(err){var msg=String(err&&err.message||err||'').toLowerCase();if(vectaIsQuotaError(err))return false;return !navigator.onLine||!vectaCloudReachable||/fetch|network|timeout|timed out|failed to fetch|connection|503|502|504|unavailable/.test(msg)}
@@ -10278,6 +10288,42 @@ async function vectaPrimeAuthoritativeDashboard(){
   try{window.vectaStartupDashboardPullMs=Math.round(performance.now()-started);console.info('Authoritative dashboard ready in '+window.vectaStartupDashboardPullMs+'ms')}catch(e){}
   return true;
 }
+async function vectaRefreshPaperworkFromCloud(){
+  if(!remoteClient)return;
+  for(var pattern of ['service:%','safety:%','onsite:%']){
+    // The small index is authoritative for revisions; complete HTML is needed
+    // only for missing or changed sheets. Keep existing content for offline use.
+    var index=[],lastId=null,pageSize=500;
+    while(true){
+      var query=remoteClient.from('workshop_settings').select('id,updated_at').like('id',pattern).order('id',{ascending:true}).limit(pageSize);
+      if(lastId!==null)query=query.gt('id',lastId);
+      var result=await vectaWithTimeout(query,12000,'Paperwork revision index');
+      if(result.error)throw result.error;
+      if(!Array.isArray(result.data))throw new Error('Invalid paperwork revision index');
+      for(var row of result.data){if(!row||typeof row.id!=='string'||!row.id.startsWith(pattern.slice(0,-1))||(lastId!==null&&row.id<=lastId))throw new Error('Invalid paperwork identity');index.push(row);lastId=row.id}
+      if(index.length>100000)throw new Error('Paperwork index safety limit reached');
+      if(result.data.length<pageSize)break;
+    }
+    var existing=new Map((app.serviceRecords||[]).map(function(record){return [String(record.id||''),record]}));
+    var changed=index.filter(function(row){var record=existing.get(row.id);return !record||!record.html||!row.updated_at||String(record.updated_at||'')!==String(row.updated_at)}),records=[];
+    for(var offset=0;offset<changed.length;offset+=50){
+      var ids=changed.slice(offset,offset+50).map(function(row){return row.id});
+      var response=await vectaWithTimeout(remoteClient.from('workshop_settings').select('id,value,updated_at').in('id',ids),12000,'Changed paperwork download');
+      if(response.error)throw response.error;
+      if(!Array.isArray(response.data))throw new Error('Invalid paperwork contents');
+      var seen=new Set();
+      for(var item of response.data){
+        if(!item||!ids.includes(item.id)||seen.has(item.id))throw new Error('Unexpected paperwork identity');seen.add(item.id);
+        var record=item.value&&typeof item.value==='object'?Object.assign({},item.value):null;
+        if(!record||!record.html)continue;
+        record.id=item.id;record.updated_at=item.updated_at||record.updated_at;records.push(record);
+      }
+    }
+    // No partial batch can replace a known good sheet. Missing/deleted cloud
+    // rows do not erase cached historical paperwork or unsaved local work.
+    app.serviceRecords=mergeRemoteRows(app.serviceRecords,records);
+  }
+}
 async function pullRemote(options){
   options=options||{};
   var __pullStarted=performance.now();
@@ -10310,7 +10356,7 @@ async function pullRemote(options){
   applyTaskStateOverrides();
   await pullFleetCloudState();
   await migrateContractorsIntoMasterList();
-  try{for(var paperworkPattern of ['service:%','safety:%','onsite:%']){var serviceSettings=await remoteClient.from('workshop_settings').select('id,value,updated_at').like('id',paperworkPattern).limit(1000);if(!serviceSettings.error&&Array.isArray(serviceSettings.data)){var settingRecords=serviceSettings.data.map(function(row){var record=row&&row.value&&typeof row.value==='object'?Object.assign({},row.value):null;if(!record||!record.html)return null;if(!record.id)record.id=row.id;if(!record.updated_at)record.updated_at=row.updated_at;return record}).filter(Boolean);app.serviceRecords=mergeRemoteRows(app.serviceRecords,settingRecords)}}}catch(e){console.warn('Shared service / safety-check paperwork pull failed',e)}
+  try{await vectaRefreshPaperworkFromCloud()}catch(e){console.warn('Shared service / safety-check paperwork pull failed',e)}
   vectaRunDataIngressMigrations({reason:'cloud-pull',parts:true,tax:true});
   saveLocal();
   await vectaCreateDailyBackup(false,'cloud-synchronised');

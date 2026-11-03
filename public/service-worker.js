@@ -83,23 +83,56 @@ function isMainNavigation(url){
   return url.pathname==='/' || url.pathname==='/index.html';
 }
 
-async function cacheShell(response){
-  if(!response || !response.ok || response.headers.get('X-Vecta-Manager-Authenticated')!=='1') return response;
-  const cache=await caches.open(MAIN_CACHE);
-  // Save dependencies before the HTML so a newly installed worker can cold-start.
-  const html=await response.clone().text();
-  const assets=new Set(['/supabase.min.js?v=20260901-refresh2', ...CORE.filter(path=>path!=='/' && path!=='/index.html')]);
+const MANAGER_GENERATIONS='/__vecta_manager_asset_generations__';
+let managerShellWrite=Promise.resolve();
+function managerAssets(html){
+  const assets=new Set(['/supabase.min.js?v=20260901-refresh2', ...CORE.filter(path=>path!=='/' && path!=='/index.html')].map(path=>new URL(path,self.location.origin).href));
   for(const match of html.matchAll(/<(?:script|link)\b[^>]*(?:src|href)=["']([^"']+)["']/gi)){
     const url=new URL(match[1],self.location.origin);
-    if(url.origin===self.location.origin && /\.(?:js|css)(?:\?|$)/.test(url.href)) assets.add(url.href);
+    if(url.origin===self.location.origin && /\.(?:js|css)(?:\?|$)/.test(url.href))assets.add(url.href);
   }
-  await Promise.all([...assets].map(async path=>{
+  return [...assets].sort();
+}
+async function pruneManagerAssets(cache,current,previous){
+  let generations=[];
+  const saved=await cache.match(MANAGER_GENERATIONS);
+  if(saved){try{const value=await saved.json();if(Array.isArray(value)&&value.every(group=>Array.isArray(group)&&group.every(url=>typeof url==='string')))generations=value;}catch(_e){}}
+  if(!generations.length&&previous?.headers.get('X-Vecta-Manager-Authenticated')==='1')generations=[managerAssets(await previous.text())];
+  generations=[current,...generations.filter(group=>JSON.stringify(group)!==JSON.stringify(current))].slice(0,2);
+  const keep=new Set(generations.flat());
+  await cache.put(MANAGER_GENERATIONS,new Response(JSON.stringify(generations),{headers:{'Content-Type':'application/json'}}));
+  // Prune only generated Workshop chunks, after a complete authorised shell has
+  // been saved. Keep the previous generation for already-open clients. Never
+  // trim last-known database responses, queued edits, artwork or other apps.
+  for(const name of [MAIN_CACHE,CACHE]){
+    const store=await caches.open(name);
+    for(const request of await store.keys()){
+      const url=new URL(request.url);
+      if(url.origin===self.location.origin&&/^\/assets\/(?:vecta-inline(?:-mechanic)?-\d+|haynes-job-tools|haynes-service-sheet|vecta-vehicle-image|vecta-fleet-images|vecta-monthly-pool)-[a-f0-9]{10}\.(?:js|css)$/.test(url.pathname)&&!keep.has(url.href))await store.delete(request);
+    }
+  }
+}
+async function cacheShell(response){
+  const task=managerShellWrite.catch(()=>{}).then(()=>writeManagerShell(response));
+  managerShellWrite=task;
+  return task;
+}
+async function writeManagerShell(response){
+  if(!response || !response.ok || response.headers.get('X-Vecta-Manager-Authenticated')!=='1') return response;
+  const cache=await caches.open(MAIN_CACHE);
+  const previous=await cache.match('/index.html');
+  // Save dependencies before the HTML so a newly installed worker can cold-start.
+  const html=await response.clone().text();
+  const assets=managerAssets(html);
+  await Promise.all(assets.map(async path=>{
     const request=new Request(new URL(path,self.location.origin),{credentials:'include'});
     const asset=await fetch(request,{cache:'no-store'});
     if(!asset.ok) throw new Error('Offline dependency unavailable');
     await cache.put(request,asset);
   }));
   await cache.put('/index.html',response.clone());
+  // A quota or metadata failure must not discard the newly usable offline shell.
+  try{await pruneManagerAssets(cache,assets,previous)}catch(_e){}
   return response;
 }
 
