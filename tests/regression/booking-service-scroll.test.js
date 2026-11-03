@@ -13,7 +13,7 @@ function setup({dialog=false,step=2}={}){
  window.scrollBy=options=>scrolls.push(options);
  const state={step,mileage_dialog_open:dialog,form:{}};
  const c={state,document,window,app,servicePricing:{update(){}},bookingProgressHtml:()=>'',haynesHtml:()=>'',vehicleSummaryHtml:()=>'',stepHtml:()=>'<div class="tyre-picker"><img data-loaded="false"></div><div class="service-picker"><button class="service-option selected">Full</button></div>',serviceOfferEligible:()=>false,alignVehicleHeader(){},applyAdminCopy(){},bind(){bound.push(document.querySelector('.tyre-picker'));},bindV137(){},renderActions(){},bindMileageDialog(){}};
- vm.createContext(c);const start=html.indexOf('function render(){');vm.runInContext(html.slice(start,html.indexOf('// Reuse one request identity',start)),c);
+ vm.createContext(c);const start=html.indexOf('function reconcileServiceChoice(){');vm.runInContext(html.slice(start,html.indexOf('// Reuse one request identity',start)),c);
  return {c,tyres,document,scrolls,focuses,bound};
 }
 test('switching services retains the loaded tyre picker and restores the service viewport before focusing without scroll',()=>{
