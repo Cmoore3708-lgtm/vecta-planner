@@ -273,16 +273,39 @@ try {
                         $file = Join-Path $Root ('runtime\' + $name + '.json')
                         try {
                             $status = Get-Content -Raw -LiteralPath $file | ConvertFrom-Json
-                            $fresh = ([DateTimeOffset]::UtcNow - [DateTimeOffset]::Parse($status.updatedAt)).TotalSeconds -lt 60
+                            $age = ([DateTimeOffset]::UtcNow - [DateTimeOffset]::Parse($status.updatedAt)).TotalSeconds
+                            $fresh = $age -ge 0 -and $age -lt 60
                             if ($fresh -and @($processes | Where-Object { $_.ProcessId -eq $status.pid }).Count -gt 0) {
                                 $text = switch ($status.state) {
-                                    'connected' { 'Relay reachable - waiting for requests' }
+                                    'connected' { 'Relay reachable - supplier lookup not verified' }
                                     'working' { 'Checking requests' }
                                     'attention' { 'Needs attention - see supplier window' }
                                     'reconnecting' { 'Reconnecting' }
                                     default { 'Starting' }
                                 }
-                                if ($status.state -eq 'connected') { $colour = [System.Drawing.Color]::LightGreen }
+                                if ($status.state -eq 'connected') {
+                                    # A heartbeat proves transport only, never supplier readiness.
+                                    $colour = [System.Drawing.Color]::Khaki
+                                    if ($status.lookupConfirmedAt) {
+                                        $lookupAge = ([DateTimeOffset]::UtcNow - [DateTimeOffset]::Parse($status.lookupConfirmedAt)).TotalSeconds
+                                        if ($lookupAge -ge 0 -and $lookupAge -lt 60) {
+                                            $text = 'Last lookup succeeded - ' + [int][Math]::Floor($lookupAge) + 's ago'
+                                            $colour = [System.Drawing.Color]::LightGreen
+                                        }
+                                    }
+                                }
+                                # Older workers already persist attention in state; newer records
+                                # also retain it while a retry or reconnection is in progress.
+                                if ($status.attentionReason -or $status.state -eq 'attention') {
+                                    $reason = if ($status.attentionReason) { $status.attentionReason } else { $status.reason }
+                                    $text = switch ($reason) {
+                                        'LOGIN_REQUIRED' { 'Sign in required - open supplier window' }
+                                        'PAIRING_REQUIRED' { 'PC pairing needs renewing' }
+                                        'VERIFICATION_REQUIRED' { 'Supplier verification required' }
+                                        default { 'Last lookup failed - see supplier window' }
+                                    }
+                                    $colour = [System.Drawing.Color]::Salmon
+                                }
                                 if ($status.state -eq 'attention') { $colour = [System.Drawing.Color]::Salmon }
                             }
                         } catch {}
@@ -310,3 +333,4 @@ try {
     else { Add-Type -AssemblyName System.Windows.Forms; [System.Windows.Forms.MessageBox]::Show($_.Exception.Message,'VECTA Workers') | Out-Null }
     exit 1
 }
+
