@@ -18,6 +18,7 @@ let dailyBlockedUntil=0;
 // Vehicle identity is stable; service schedules still have their own mileage-aware cache.
 const ID_KEY='vecta_haynes_vehicle_identity_v1',identities=new Map();
 const RETRY_KEY='vecta_haynes_vehicle_retries_v1';
+const transientStatuses=['LOGIN_REQUIRED','VERIFICATION_REQUIRED','OFFLINE','BUSY','NOT_CONFIGURED'];
 const pausedStatuses=['AMBIGUOUS','UNAVAILABLE','UNKNOWN','NOT_FOUND','INCOMPLETE','MISMATCH'];
 function persistRetries(){try{root.localStorage?.setItem(RETRY_KEY,JSON.stringify([...failed].map(([registration,at])=>({registration,at,status:failStatus.get(registration)}))));}catch{}}
 try{for(const entry of JSON.parse(root.localStorage?.getItem(RETRY_KEY)||'[]'))if(/^[A-Z0-9]{2,8}$/.test(entry.registration)&&Number.isFinite(entry.at)&&entry.at<=Date.now()&&(Date.now()-entry.at<TTL||pausedStatuses.includes(entry.status))){failed.set(entry.registration,entry.at);failStatus.set(entry.registration,entry.status||'UNAVAILABLE');if(entry.status==='DAILY_LIMIT')dailyBlockedUntil=(Math.floor(entry.at/TTL)+1)*TTL;}}catch{}
@@ -139,7 +140,7 @@ function genericImage(description){
 async function lookup(registration,expectedMake,{requireImage=false,force=false,background=true}={}){
  const requested=reg(registration);if(!lookupRegistration(requested)){failStatus.set(requested,'INVALID_REGISTRATION');return null;}const hit=identitySnapshot(requested,expectedMake)||snapshot(requested,expectedMake);if(hit&&!force)return hit;
  if(Date.now()<dailyBlockedUntil){failStatus.set(requested,'DAILY_LIMIT');return null;}
- if(!/^[A-Z0-9]{2,8}$/.test(requested)||root.navigator?.onLine===false||!force&&(background&&pausedStatuses.includes(failStatus.get(requested))||Date.now()-(failed.get(requested)||0)<(background?TTL:300000)))return null;
+ if(!/^[A-Z0-9]{2,8}$/.test(requested)||root.navigator?.onLine===false||!force&&(background&&pausedStatuses.includes(failStatus.get(requested))||Date.now()-(failed.get(requested)||0)<(transientStatuses.includes(failStatus.get(requested))?(background?60000:0):(background?TTL:300000))))return null;
  if(!pending.has(requested)){
   const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),30000);
   pending.set(requested,(async()=>{try{const r=await root.fetch('/api/haynes-vehicle?reg='+encodeURIComponent(requested)+(force?'&retry=1':''),{...(force?{method:'POST'}:{}),signal:controller.signal,cache:'no-store'}),d=await r.json();if(!r.ok||d.status!=='MATCHED'||!valid(d.vehicle,requested))throw Error(['NOT_CONFIGURED','OFFLINE','LOGIN_REQUIRED','VERIFICATION_REQUIRED','BUSY','DAILY_LIMIT',...pausedStatuses].includes(d.status)?d.status:'UNAVAILABLE');failed.delete(requested);failStatus.delete(requested);persistRetries();return remember(d.vehicle,true,{replaceArtwork:force});}catch(e){if(e.message==='DAILY_LIMIT')dailyBlockedUntil=(Math.floor(Date.now()/TTL)+1)*TTL;failed.set(requested,Date.now());failStatus.set(requested,e.message);while(failed.size>300){const oldest=failed.keys().next().value;failed.delete(oldest);failStatus.delete(oldest);}persistRetries();return null;}finally{clearTimeout(timer);pending.delete(requested);}})());
@@ -321,7 +322,7 @@ root.enrichHaynesInvoice=function(sheet,invoice){
 
  if(matched){const title=strip.querySelector('.invoiceVehicleMake,.invoiceBookingDetails>strong');if(title)title.textContent=[matched.make,matched.model,matched.variant].filter(Boolean).join(' ');}
 };
-root.initHaynesJobTools=function(modal){
+root.initHaynesJobTools=function(modal,{automatic=false}={}){
  modal?.classList.remove('registrationBooking');
  const section=modal?.querySelector('.jobVehicleSection'),input=modal?.querySelector('#job_registration');
  if(!section||!input||modal.querySelector('.haynesJobTools'))return;
@@ -423,8 +424,12 @@ root.initHaynesJobTools=function(modal){
   if(noVehicleControl){const selected=!!current()||!!String(modal.querySelector('#job_vehicle')?.value||'').trim().replace(/^No Vehicle$/i,'');noVehicleControl.hidden=selected&&!noVehicle.checked;}
   showHeaderVehicle();sequence++;clearTimeout(refreshTimer);body.replaceChildren();status.textContent='';button.disabled=!!noVehicle?.checked;button.textContent='Haynes Pro';showGeneric();}
  function changed(){clear();}
+ function automaticLookup(){
+  if(!automatic||noVehicle?.checked||!lookupRegistration(current())||!panel.isConnected)return;
+  clearTimeout(refreshTimer);refreshTimer=setTimeout(()=>{if(panel.isConnected&&!noVehicle?.checked)button.onclick();},150);
+ }
  const shared=hydrateSharedArtwork();if(shared)shared.then(()=>{if(modal.isConnected)showHeaderVehicle();});
- input.addEventListener('input',changed);input.addEventListener('change',changed);for(const selector of ['#job_vehicle','#job_model','#job_make']){const field=modal.querySelector(selector);field?.addEventListener('change',changed);}noVehicle?.addEventListener('change',changed);clear();
+ input.addEventListener('input',changed);input.addEventListener('change',changed);input.addEventListener('change',automaticLookup);input.addEventListener('blur',automaticLookup);for(const selector of ['#job_vehicle','#job_model','#job_make']){const field=modal.querySelector(selector);field?.addEventListener('change',changed);}noVehicle?.addEventListener('change',changed);clear();
  button.onclick=async(event)=>{
   if(!panel.isConnected)return;clear();if(event){failed.delete(current());}
 const requested=current(),expectedMake=make(modal.querySelector('#job_make')?.value);
@@ -435,11 +440,13 @@ const requested=current(),expectedMake=make(modal.querySelector('#job_make')?.va
   const run=sequence;
   button.disabled=true;status.textContent='Looking up vehicle…';
   try{
-   const v=await lookup(requested,expectedMake,{force:!!event});
+   const v=await lookup(requested,expectedMake,{force:!!event,background:false});
    if(run!==sequence||!panel.isConnected||current()!==requested||noVehicle?.checked){target?.close();return;}
    if(!v||reg(v?.registration)!==requested||!v?.model||!v?.variant||!v?.make||!vehicleLink(v)||(expectedMake&&make(v.make)!==expectedMake))throw Error('UNAVAILABLE');
    if(target)target.location.replace(vehicleLink(v));
-   remember(v);showHeaderVehicle(v);const link=document.createElement('a');link.className='btn dark';link.href=vehicleLink(v);link.target='_blank';link.rel='noopener noreferrer';link.textContent='Open this vehicle in HaynesPro';
+   remember(v);
+   if(automatic)for(const [id,value] of Object.entries({make:v.make,model:v.model,vehicle:[v.make,v.model].join(' ')})){const field=modal.querySelector('#job_'+id);if(field&&!field.value.trim())field.value=value;}
+   showHeaderVehicle(v);const link=document.createElement('a');link.className='btn dark';link.href=vehicleLink(v);link.target='_blank';link.rel='noopener noreferrer';link.textContent='Open this vehicle in HaynesPro';
    const details=document.createElement('div'),title=document.createElement('strong'),note=document.createElement('small');
    title.textContent=[v.make,v.model,v.variant].join(' ');note.textContent=[v.engineCode,v.modelYears].filter(Boolean).join(' · ');details.append(title,note);
    body.replaceChildren();const src=image(v.imageUrl);if(src){const img=document.createElement('img');img.src=artworkUrl(src);img.alt=(v.generic?'Generic model image: ':'Representative ')+v.make+' '+v.model;img.title=v.generic?'Generic model image — appearance may differ':img.alt;img.dataset.generic=String(!!v.generic);img.dataset.vehicleMake=v.make||'';img.dataset.registration=requested;img.dataset.vehicleName=[v.make,v.model].join(' ');img.onerror=()=>img.remove();body.appendChild(img);}
@@ -448,7 +455,7 @@ const requested=current(),expectedMake=make(modal.querySelector('#job_make')?.va
   }catch{target?.close();if(run===sequence&&panel.isConnected&&current()===requested)button.textContent='Haynes Pro';if(run===sequence&&panel.isConnected&&current()===requested)status.textContent=({NOT_CONFIGURED:'HaynesPro lookup is not configured for this preview.',OFFLINE:'The workshop HaynesPro worker is offline.',LOGIN_REQUIRED:'The workshop HaynesPro login needs renewing.',VERIFICATION_REQUIRED:'HaynesPro needs verification on the workshop PC.',BUSY:'HaynesPro is busy. Try again shortly.',DAILY_LIMIT:'The daily HaynesPro lookup limit has been reached.'}[failStatus.get(requested)]||'HaynesPro unavailable or vehicle match uncertain.')+' You can still save this job.';}
   finally{if(run===sequence)button.disabled=!!noVehicle?.checked;}
  };
- if(!noVehicle?.checked&&identitySnapshot(current()))button.onclick();
+ if(!noVehicle?.checked&&identitySnapshot(current()))button.onclick();else automaticLookup();
 };
 document.addEventListener('DOMContentLoaded',()=>{if(root.view==='planner')root.enrichHaynesDashboard(document.getElementById('content'),root.app?.jobs);});
 function storedArtwork(){const unique=new Map();for(const v of [...sharedArtwork.values(),...artwork.values(),...identities.values(),...cache.values()])if(image(v.imageUrl))unique.set(v.imageUrl,{make:v.make,model:v.model,imageUrl:v.imageUrl});return [...unique.values()].sort((a,b)=>[a.make,a.model].join(" ").localeCompare([b.make,b.model].join(" ")));}

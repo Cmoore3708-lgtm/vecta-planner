@@ -107,3 +107,21 @@ test('job header personalisation also avoids a direct supplier image request',()
  root.initHaynesJobTools(document.querySelector('#modal'));
  assert.equal(mounted.dataset.vehicleSource,asset);assert.match(mounted.src,/^\/api\/haynes-image\?asset=/);
 });
+
+
+test('a new booking rechecks a cached login failure without forcing a reset or opening Haynes',async()=>{
+ const values=new Map([['vecta_haynes_vehicle_retries_v1',JSON.stringify([{registration:vehicle.registration,at:Date.now(),status:'LOGIN_REQUIRED'}])]]);
+ const {root,tools,calls}=setup(values);
+ await tools.lookup(vehicle.registration);assert.equal(calls(),0,'background requests retain the short login cooldown');
+ let requests=0;
+ root.fetch=async(url,options)=>{requests++;assert.equal(options.method,undefined);assert.doesNotMatch(url,/retry=1/);return {ok:true,json:async()=>({status:'MATCHED',vehicle})};};
+ const match=await tools.lookup(vehicle.registration,undefined,{background:false});
+ assert.equal(match.registration,vehicle.registration);assert.equal(requests,1);assert.equal(tools.lookupNeedsRetry(vehicle.registration),false);
+});
+
+test('background login failures expire after one minute rather than blocking all day',async()=>{
+ const values=new Map([['vecta_haynes_vehicle_retries_v1',JSON.stringify([{registration:vehicle.registration,at:Date.now()-61000,status:'LOGIN_REQUIRED'}])]]);
+ const {root,tools}=setup(values);let requests=0;
+ root.fetch=async()=>{requests++;return {ok:true,json:async()=>({status:'MATCHED',vehicle})};};
+ assert.equal((await tools.lookup(vehicle.registration)).registration,vehicle.registration);assert.equal(requests,1);
+});
