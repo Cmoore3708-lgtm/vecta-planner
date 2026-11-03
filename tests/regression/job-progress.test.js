@@ -125,7 +125,7 @@ test('registration lookup is limited to today, normalises plates and exposes onl
     assert.deepEqual(Object.keys(data).sort(),['image_colour','image_url','registration','stage','title']);assert.equal(data.registration,'CM14KEL');assert.equal(data.stage,'underway');assert.equal(data.image_colour,'GREEN');
     assert.doesNotMatch(JSON.stringify(data),/PRIVATE|invoice|driver@example|customer|312/);
     assert.equal(requests[0].searchParams.get('booking_date'),'eq.2026-11-03');assert.equal(requests[0].searchParams.get('registration'),'ilike.C*M*1*4*K*E*L');
-    assert.equal(requests.length,2);assert.equal(requests[1].searchParams.get('id'),'in.(vehicle_artwork:CM14KEL,vehicle_colour:CM14KEL)');
+    assert.equal(requests.length,2);assert.equal(requests[1].searchParams.get('id'),'in.(vehicle_artwork:CM14KEL,vehicle_colour:CM14KEL,vehicle_identity:CM14KEL,progress_scenes_v1:CM14KEL)');
     for(const patch of [{booking_date:'2026-11-04'},{booking_date:'2026-11-02'},{registration:'CM14 KELL'},{status:'quote'},{status:'cancelled'},{customer_note:'[[VECTA_SOFT_DELETE:abc]]'},{card_type:'mini_task'}]){rows=[{...job,...patch}];await assert.rejects(registrationStatus('CM14KEL',now),/No booking/);}
     rows=[{...job,status:'completed'},{...job,status:'booked'}];assert.equal((await registrationStatus('CM14KEL',now)).stage,'waiting');
     rows=[{...job,status:'completed'}];assert.equal((await registrationStatus('CM14KEL',now)).stage,'ready');

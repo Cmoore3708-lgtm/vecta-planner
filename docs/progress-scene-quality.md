@@ -15,3 +15,32 @@ The complete images include all vehicle elements. The renderer must not fetch or
 This amendment corrects YD72 OMH specifically. It does **not** implement automatic generation for arbitrary registrations. Other registrations still use the older layered illustration. Do not describe the whole feature as fixed or imply that new cars automatically receive these complete scenes.
 
 A general solution needs an authenticated generation queue triggered before the booking, three images keyed to the actual registration/model/colour, durable image storage, cost limits, retries, and visual validation. No paid generation service is activated by this amendment. Customer lookups should only read cached completed images, never trigger unbounded generation costs.
+
+## Automatic preparation implementation (activation pending)
+
+The separate follow-up now implements a general worker for upcoming bookings, independent of make/model or either example registration. It scans today and the following two London calendar dates every five minutes and prepares one vehicle per run. A complete saved supplier model image and colour are required; missing identity is flagged rather than guessed.
+
+`/api/progress-scenes` routes through the existing additional-work server function. GET requires the scheduler secret. POST requires the same-origin manager login; supported actions are status, inspect, retry, dry-run and run. Public registration lookup only reads completed manifests and cannot trigger generation. The manager page is `/progress-scenes-admin.html` on the planner host, protected by the existing login.
+
+Each vehicle has a fingerprint covering registration, model, colour and supplier artwork. Three full images are generated through the documented AI Gateway Images edit endpoint, using the approved stage photograph and actual model drawing as references. A separate vision request compares the full set against all three approved compositions and checks model, colour, plate, dirty/flat-tyre waiting state, mechanic/toolbox placement and the clean opposite-facing finished state. Every check must be explicitly true. This is automated quality screening, not a guarantee that every AI output is perfect.
+
+Drafts go to private `progress-scene-drafts` storage. Only a passing, complete set is copied into public `progress-scenes` storage and attached to the registration. The public response allowlists only the three trusted image URLs, and the customer renderer suppresses all older component overlays for that set. Completed private drafts are removed after publication. Image files do not go into workshop settings, job records or the Git repository; those contain only small manifest records.
+
+A durable leased worker prevents duplicate concurrent generation. A monthly counter reserves all provider requests before generation, including failed/time-out attempts and the quality check. Each image and quality check gets at most two attempts; unresolved failures require manager attention. Correcting the vehicle identity invalidates the old set. Readiness, invoice rules and workshop job status are not changed by preparation.
+
+### Activation requirements
+
+Paid generation is OFF by default, including in this release. Preview/Test can never activate the paid worker. Do not claim all registrations already have new images.
+
+Before activation, obtain Chris's running-cost approval, provision a **dedicated** AI Gateway key with its own monthly API-key budget, then configure on the production planner only:
+
+- `VECTA_PROGRESS_SCENES_GATEWAY_KEY`: dedicated restricted/budgeted key, never a browser variable.
+- `VECTA_PROGRESS_SCENES_MONTHLY_REQUESTS`: integer 4–2000. Includes image and visual-check requests and retries; this is a request limit, not a currency limit.
+- `VECTA_PROGRESS_SCENES_BUDGET_CONFIRMED=1` only after the dedicated provider budget is set and approved.
+- `VECTA_PROGRESS_SCENES_ENABLED=1` for final activation.
+
+Never fall back to project OIDC or the shared tyre-reader budget. Gateway currency budgets are soft caps: requests already crossing the limit can complete. Explain that limit accurately; do not promise an exact hard currency ceiling. The application request allowance provides an additional independently enforced bound. No provider key, budget or paid request has been created by building this code.
+
+### Verification still needed before activation
+
+Unit/integration fixtures test the complete queue, drafts, screening, publication, cache reuse, concurrency, quota, retry exhaustion, identity changes, authentication and provider payloads without incurring generation charges. The real provider endpoint, actual account billing and fresh storage buckets still require an authorised production smoke test. Run one vehicle through the actual API, inspect all three images on desktop/phone, check request costs, then enable normal scheduled processing. Failed live quality tests must remain private and must not be substituted with the older layered illustration while described as complete scenes.

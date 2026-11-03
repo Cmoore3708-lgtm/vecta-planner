@@ -15,6 +15,10 @@
     {
       "path": "/api/nmuk-service-reminders-winter",
       "schedule": "0 12 * * *"
+    },
+    {
+      "path": "/api/progress-scenes",
+      "schedule": "*/5 * * * *"
     }
   ],
   "functions": {
@@ -31,10 +35,15 @@
       "maxDuration": 30
     },
     "api/additional-work.js": {
-      "includeFiles": "public/assets/{vecta-header.png,manufacturers/*.svg}"
+      "includeFiles": "public/assets/{vecta-header.png,manufacturers/*.svg,progress/*.webp}",
+      "maxDuration": 300
     }
   },
   "rewrites": [
+    {
+      "source": "/api/progress-scenes",
+      "destination": "/api/additional-work?progressScenes=1"
+    },
     {
       "source": "/api/vehicle-artwork",
       "destination": "/api/availability?vehicleArtwork=1"
