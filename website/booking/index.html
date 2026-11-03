@@ -463,6 +463,11 @@ function bindMileageDialog(){
 }
 function reconcileServiceChoice(){
  const f=state.form;
+ if(f.job_types?.includes('Service')&&confirmedEvServiceVehicle()&&f.nevos_vehicle!=='yes'&&f.service_choice!=='EV Servicing'){
+  if(!f.work_required.trim()||['Oil & Filter Change','Interim Service','Full Service','Major Service'].includes(f.work_required.trim()))f.work_required='EV Servicing';
+  f.service_choice='EV Servicing';f.service_extra_choice='none';f.service_extra_kind='';f.service_extra_registration='';state.mileage_dialog_open=!serviceMileageValid();
+  return;
+ }
  if(!f.service_choice)return;
  if(confirmedEvServiceVehicle()===(f.service_choice==='EV Servicing'))return;
  if(['Oil & Filter Change','Interim Service','Full Service','Major Service','EV Servicing'].includes(f.work_required.trim()))f.work_required='';
