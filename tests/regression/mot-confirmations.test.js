@@ -91,3 +91,16 @@ test('confirmed time survives stale local fields and exact quarter-hour times re
  const booked={...job,drop_time:'12:15',mot_time:'09:00',customer_note:'[[MOT_TIME:12:15]]'};
  assert.equal(motBookingStatus(booked,[{...confirmation,time:'12:15'}],[booked]).confirmed,true);
 });
+
+test('already allocated service plus MOT confirms at its independent MOT time without moving the service slot',()=>{
+ const service={...job,id:'service-mot',technician:'Alfie',drop_time:'08:00:00',mot_time:null,registration:'J28NEL',booking_date:'2026-11-19',job_type:'Full Service || MOT',customer_note:'Keep service details\n[[MOT_TIME:14:00]]'};
+ const event={...confirmation,job_id:service.id,registration:'J28NEL',date:'2026-11-19',time:'14:00',confirmation_mode:'existing_appointment'};
+ assert.equal(motBookingStatus(service,[event],[service]).confirmed,true);
+ for(const changes of [{customer_note:'[[MOT_TIME:14:30]]'},{booking_date:'2026-11-20'},{technician:'Unallocated'},{technician:''},{job_type:'Full Service'}]){
+  const changed={...service,...changes};assert.equal(motBookingStatus(changed,[event],[changed]).confirmed,false);
+ }
+ assert.equal(motBookingStatus(service,[event],[service,{...service,id:'duplicate'}]).confirmed,false);
+ // Legacy auto-allocation confirmations retain their Chris/drop-time checks.
+ assert.equal(motBookingStatus(service,[{...event,confirmation_mode:undefined}],[service]).confirmed,false);
+ assert.equal(service.technician,'Alfie');assert.equal(service.drop_time,'08:00:00');
+});
