@@ -36,6 +36,18 @@
   },
   "rewrites": [
     {
+      "source": "/api/job-progress",
+      "destination": "/api/additional-work?progress=1"
+    },
+    {
+      "source": "/track",
+      "destination": "/track.html"
+    },
+    {
+      "source": "/track/",
+      "destination": "/track.html"
+    },
+    {
       "source": "/api/service-guide-prices",
       "destination": "/api/admin-website?guidePrices=1&public=1"
     },
