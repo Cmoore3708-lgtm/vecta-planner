@@ -166,3 +166,29 @@ test('three scenes stay visible and exactly the live stage is highlighted; sampl
   for(const card of cards){assert.equal(card.querySelector('.vehicleLayer').hidden,true);assert.equal(card.querySelector('.sceneCar').hasAttribute('src'),false);}
   failure=Object.assign(Error('No booking'),{permanent:true});await refresh();assert.equal(document.getElementById('progressScene').hidden,true);
 });
+test('YD72 OMH uses complete Leaf scenes and never overlays a floating plate or mechanic',async()=>{
+ const {document}=parseHTML(fs.readFileSync(new URL('../../public/track.html',import.meta.url),'utf8'));document.hidden=false;
+ let data={registration:'YD72 OMH',stage:'underway',title:'In the workshop',image_url:'https://www.haynespro-assets.com/workshop/images/319004630.svgz',image_colour:'GREY'},mounts=0;
+ const context={document,window:{addEventListener(){},VectaVehicleImage:{mount(){mounts++;}}},location:{hash:'#token'},Intl,Date,AbortSignal,Error,setTimeout:()=>1,clearTimeout(){},fetch:async()=>({ok:true,json:async()=>data})};
+ vm.runInNewContext(fs.readFileSync(new URL('../../public/js/vecta-progress.js',import.meta.url),'utf8'),context);await new Promise(r=>setImmediate(r));
+ const cards=Array.from(document.querySelectorAll('[data-scene]')),refresh=()=>document.getElementById('refresh').onclick();
+ for(const stage of ['waiting','underway','checking','ready']){
+  data={...data,stage};await refresh();
+  for(const card of cards){
+   const photo=card.querySelector('.approvedScene');assert.equal(photo.hidden,false);assert.equal(photo.getAttribute('src'),'/assets/progress/yd72omh-'+card.dataset.scene+'.webp');assert.match(photo.alt,/YD72 OMH/);
+   assert.equal(card.querySelector('.vehicleLayer').hidden,true);assert.equal(card.querySelector('.sceneCar').hasAttribute('src'),false);
+   if(card.querySelector('.sceneMechanic'))assert.equal(card.querySelector('.sceneMechanic').hidden,true);
+  }
+ }
+ assert.equal(mounts,0);
+ const photo=cards[0].querySelector('.approvedScene');photo.onerror();await refresh();assert.equal(photo.hidden,true);
+ data={registration:'CM14KEL',stage:'waiting',title:'Waiting'};await refresh();assert.equal(photo.hidden,false);assert.equal(photo.getAttribute('src'),'/assets/progress/cm14kel-waiting.webp');
+ data={registration:'AB12CDE',stage:'waiting',title:'Waiting'};await refresh();for(const card of cards){assert.equal(card.querySelector('.approvedScene').hidden,true);assert.equal(card.querySelector('.approvedScene').hasAttribute('src'),false);}
+});
+test('complete scene sets ship all three files to both customer websites',()=>{
+ for(const reg of ['cm14kel','yd72omh'])for(const stage of ['waiting','underway','ready']){
+  const path='assets/progress/'+reg+'-'+stage+'.webp';
+  const main=fs.readFileSync(new URL('../../public/'+path,import.meta.url)),website=fs.readFileSync(new URL('../../website/'+path,import.meta.url));
+  assert.equal(main.subarray(0,4).toString(),'RIFF');assert.equal(main.subarray(8,12).toString(),'WEBP');assert.ok(main.length>10000);assert.deepEqual(website,main);
+ }
+});
