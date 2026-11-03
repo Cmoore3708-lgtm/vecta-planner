@@ -128,3 +128,9 @@ test('once automatic preparation is enabled, a missing complete set never falls 
  assert.equal(mounts,0);assert.equal(document.getElementById('progressScene').hidden,false);assert.match(document.getElementById('sceneCaption').textContent,/status is up to date/);
  for(const card of document.querySelectorAll('[data-scene]')){assert.equal(card.querySelector('.vehicleLayer').hidden,true);assert.equal(card.querySelector('.approvedScene').hidden,true);}
 });
+test('real Illustrator-style supplier drawings retain the car while scripts, external DTDs and fallback objects are removed',async()=>{
+ const {sceneModelSvg}=await import('../../lib/progress-scene-svg.js');const {Resvg}=await import('@resvg/resvg-js');
+ const source='<?xml version="1.0"?><!DOCTYPE svg PUBLIC "supplier" "https://example.invalid/file.dtd" [<!ENTITY ns_ai "https://ns.adobe.com/">]><svg xmlns="http://www.w3.org/2000/svg" xmlns:i="&ns_ai;" width="299px" height="220px" viewBox="0 0 299 220" onload="RunScript(evt)"><script><![CDATA[top.applyScript()]]></script><switch><foreignObject><div>Unsafe fallback</div></foreignObject><g id="wheels" style="opacity:0.6;filter:url(#shadow)"><path d="M10 10 L100 10 L100 100 Z" fill="#123456" onclick="bad()"/><image href="file:///private/secret"/></g></switch><rect width="20" height="20" fill="url(https://example.invalid/remote)"/></svg>';
+ const svg=sceneModelSvg(source);assert.doesNotMatch(svg,/DOCTYPE|ENTITY|script|foreignObject|onload|onclick|file:|example\.invalid|<image/);assert.match(svg,/id="wheels"/);assert.match(svg,/#123456/);assert.match(svg,/url\(#shadow\)/);
+ const renderer=new Resvg(svg,{fitTo:{mode:'width',value:640}});const rendered=renderer.render();assert.equal(rendered.width,640);assert.ok(rendered.asPng().length>100);
+});
