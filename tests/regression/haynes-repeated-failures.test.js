@@ -25,3 +25,23 @@ test('reset requires an explicit same-origin request and signed-in manager',asyn
  assert.equal((await request('POST','https://workshop.test',cookie)).code,200);assert.equal(fetches,1);
  }finally{global.fetch=oldFetch;process.env=saved;}
 });
+
+import {mechanicCookie} from '../../lib/mechanic-auth.js';
+test('Haynes button accepts mechanics only on mechanics hosts or Preview and retains same-origin protection',async()=>{
+ const saved={...process.env},oldFetch=global.fetch;let fetches=0;
+ try{
+ Object.assign(process.env,{VERCEL_ENV:'production',VECTA_MAIN_USER:'Manager',VECTA_MAIN_PASSWORD:'manager-test',VECTA_MECHANIC_USER:'Mechanic',VECTA_MECHANIC_PASSWORD:'mechanic-test',HAYNES_RELAY_SITE_TOKEN:'b'.repeat(64)});
+ delete process.env.HAYNES_WORKER_TOKEN;delete process.env.HAYNES_WORKER_URL;
+ global.fetch=async(_url,options)=>{fetches++;assert.equal(JSON.parse(options.body).retry,true);return {ok:true,json:async()=>({status:'OFFLINE'})};};
+ const cookie=await mechanicCookie();
+ async function request(host,{origin='https://'+host,session=cookie}={}){let code;const res={setHeader(){},status(c){code=c;return this},json(){return this}};await handler({method:'POST',query:{reg:'CM14KEL',retry:'1'},headers:{host,origin,cookie:session}},res);return code;}
+ for(const host of ['vecta-mechanic-dashboard.vercel.app','vecta-mechanic-dashboard-vectaplanner.vercel.app']){
+ assert.equal(await request(host),200);
+ assert.equal(await request(host,{session:''}),401);
+ assert.equal(await request(host,{origin:'https://other.test'}),403);
+ }
+ assert.equal(fetches,2);
+ assert.equal(await request('main.test'),401);
+ process.env.VERCEL_ENV='preview';assert.equal(await request('preview.test'),200);
+ }finally{global.fetch=oldFetch;process.env=saved;}
+});
