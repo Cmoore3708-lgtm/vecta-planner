@@ -56,6 +56,30 @@ begin
  update public.jobs set customer_note='[[MOT_TIME:14:00]]' where id=j.id;
  r:=public.vecta_apply_mot_confirmation(v||jsonb_build_object('email_id','00000000-0000-4000-8000-000000000e11','reference','99990011'));
  assert r->>'state'='review',r::text;
+ -- Legacy Chris-only cards gain the missing marker without moving their slot.
+ update public.jobs set customer_note='Keep legacy MOT' where id=j.id;
+ r:=public.vecta_apply_mot_confirmation(v||jsonb_build_object('email_id','00000000-0000-4000-8000-000000000e17','reference','99990017'));
+ assert r->>'state'='confirmed',r::text;
+ assert (select technician='Chris' and drop_time='12:15'::time and customer_note like '%[[MOT_TIME:12:15]]%' and customer_note like '%Keep legacy MOT%' from public.jobs where id=j.id);
+ -- A combined Alfie service at 08:00 has an independent 14:00 MOT.
+ update public.jobs set technician='Alfie',booking_date='2099-10-29',drop_time='08:00',job_type='Full Service || MOT',customer_note='Keep service work [[MOT_TIME:14:00]]' where id=j.id;
+ r:=public.vecta_apply_mot_confirmation(v||jsonb_build_object('email_id','00000000-0000-4000-8000-000000000e12','reference','99990012','time','14:00'));
+ assert r->>'state'='confirmed' and r->>'allocation_status'='allocated' and r->>'confirmation_mode'='existing_appointment',r::text;
+ assert (select technician='Alfie' and drop_time='08:00'::time and customer_note='Keep service work [[MOT_TIME:14:00]]' and estimated_hours=1 from public.jobs where id=j.id);
+ -- Exact confirmation must not reserve or clash with Chris's unrelated work.
+ insert into public.jobs(id,registration,job_type,technician,booking_date,drop_time,estimated_hours,status)
+ values('00000000-0000-4000-8000-000000000d04','QZ66 ZZZ','General','Chris','2099-10-29','14:00',1,'booked');
+ r:=public.vecta_apply_mot_confirmation(v||jsonb_build_object('email_id','00000000-0000-4000-8000-000000000e13','reference','99990013','time','14:00'));
+ assert r->>'state'='confirmed',r::text;
+ -- A changed appointment, different date or duplicate exact match needs review.
+ r:=public.vecta_apply_mot_confirmation(v||jsonb_build_object('email_id','00000000-0000-4000-8000-000000000e14','reference','99990014','time','14:30'));
+ assert r->>'state'='review',r::text;
+ r:=public.vecta_apply_mot_confirmation(v||jsonb_build_object('email_id','00000000-0000-4000-8000-000000000e15','reference','99990015','date','2099-10-30','time','14:00'));
+ assert r->>'state'='review',r::text;
+ insert into public.jobs(id,registration,job_type,technician,booking_date,drop_time,estimated_hours,status,customer_note)
+ values('00000000-0000-4000-8000-000000000d05','QZ99 ZZZ','MOT','Chris','2099-10-29','14:00',1,'booked','[[MOT_TIME:14:00]]');
+ r:=public.vecta_apply_mot_confirmation(v||jsonb_build_object('email_id','00000000-0000-4000-8000-000000000e16','reference','99990016','time','14:00'));
+ assert r->>'allocation_status'='multiple_unallocated_mots',r::text;
  -- Unknown registrations never create a new job.
  r:=public.vecta_apply_mot_confirmation(v||jsonb_build_object('email_id','00000000-0000-4000-8000-000000000e07','reference','99990007','registration','QZ77ZZZ'));
  assert r->>'allocation_status'='no_unallocated_mot',r::text;

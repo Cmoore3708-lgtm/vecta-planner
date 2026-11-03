@@ -10,7 +10,8 @@ export function motBookingStatus(job,events,jobs){
  const related=[...latest.values()].filter(e=>e.job_id===job.id||(reg(e.registration)===reg(job.registration)&&(e.date===job.booking_date||(e.state==='review'&&/^unallocated$/i.test(job.technician||''))))).sort((a,b)=>Date.parse(b.received_at)-Date.parse(a.received_at));
  const event=related[0];if(!event)return {confirmed:false,review:false};
  const candidates=(jobs||[]).filter(j=>!j.archived&&j.card_type!=='quote'&&j.status!=='quote'&&mot(j)&&reg(j.registration)===reg(job.registration)&&j.booking_date===job.booking_date&&appointment(j)===appointment(job));
- const confirmed=event.state==='confirmed'&&event.allocation_status==='allocated'&&event.job_id===job.id&&reg(event.registration)===reg(job.registration)&&event.date===job.booking_date&&String(job.technician||'').toLowerCase()==='chris'&&time(job.drop_time)===event.time&&mot(job)&&!!appointment(job)&&event.time===appointment(job)&&candidates.length===1&&candidates[0].id===job.id;
+ const scheduled=event.confirmation_mode==='existing_appointment'?!/^unallocated$|^$/i.test(String(job.technician||'').trim()):(String(job.technician||'').toLowerCase()==='chris'&&time(job.drop_time)===event.time);
+ const confirmed=event.state==='confirmed'&&event.allocation_status==='allocated'&&event.job_id===job.id&&reg(event.registration)===reg(job.registration)&&event.date===job.booking_date&&scheduled&&mot(job)&&!!appointment(job)&&event.time===appointment(job)&&candidates.length===1&&candidates[0].id===job.id;
  return {confirmed,review:!confirmed,email_id:event.email_id,reference:event.reference,time:event.time,date:event.date,reason:event.allocation_status};
 }
 
