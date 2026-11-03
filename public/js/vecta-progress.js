@@ -3,30 +3,32 @@
   let timer,busy=false,failures=0,registration='',artworkKey='';
   // Complete, individually composed scene sets. Never reuse one registration's car for another.
   const sceneSets=Object.freeze({CM14KEL:'cm14kel',YD72OMH:'yd72omh'});
+  const trustedScenes=value=>value&&['waiting','underway','ready'].every(stage=>typeof value[stage]==='string'&&new RegExp('^https://(?:jywufozycuwuoshlulwl|brqsejjykrubxuofavuu)\\.supabase\\.co/storage/v1/object/public/progress-scenes/[a-f0-9]{64}/'+stage+'\\.webp$').test(value[stage]))?value:null;
   const normalise=value=>String(value||'').toUpperCase().replace(/[^A-Z0-9]/g,'');
   function renderScenes(data,index){
     const scenes=el('progressScene');scenes.hidden=false;scenes.dataset.stage=data.stage;scenes.classList.remove('stale');
-    const reg=normalise(data.registration),sceneSet=Object.hasOwn(sceneSets,reg)?sceneSets[reg]:'',approved=!!sceneSet;
-    const key=JSON.stringify([reg,data.image_url||'',data.image_colour||'',sceneSet]);
+    const generated=trustedScenes(data.scenes);
+    const reg=normalise(data.registration),sceneSet=Object.hasOwn(sceneSets,reg)?sceneSets[reg]:'',approved=!!generated||!!sceneSet,waitingForScenes=!approved&&data.scene_state==='unavailable';
+    const key=JSON.stringify([reg,data.image_url||'',data.image_colour||'',sceneSet,generated,waitingForScenes]);
     const changed=key!==artworkKey;artworkKey=key;
     scenes.querySelectorAll('[data-scene]').forEach((card,i)=>{
       card.classList.toggle('current',i===index);card.classList.toggle('done',i<index);
       if(i===index)card.setAttribute('aria-current','step');else card.removeAttribute('aria-current');
       card.querySelector('.currentBadge').hidden=i!==index;
       const photo=card.querySelector('.approvedScene');
-      const src=approved?'/assets/progress/'+sceneSet+'-'+card.dataset.scene+'.webp':'';
+      const src=generated?generated[card.dataset.scene]:(sceneSet?'/assets/progress/'+sceneSet+'-'+card.dataset.scene+'.webp':'');
       photo.hidden=!approved||photo.dataset.failedUrl===src;
       photo.alt=(data.registration||'Your car')+' — '+card.querySelector('h3').textContent.toLowerCase()+' illustration';
       photo.onerror=()=>{photo.dataset.failedUrl=src;photo.hidden=true;};
       if(src){if(photo.getAttribute('src')!==src)photo.src=src;}else photo.removeAttribute('src');
       // Complete images already contain the car, number plate and mechanic.
       // Do not fetch or reveal the old overlays underneath these scenes.
-      if(approved){card.querySelector('.vehicleLayer').hidden=true;card.querySelector('.sceneCar').removeAttribute('src');const mechanic=card.querySelector('.sceneMechanic');if(mechanic)mechanic.hidden=true;}
+      if(approved||waitingForScenes){card.querySelector('.vehicleLayer').hidden=true;card.querySelector('.sceneCar').removeAttribute('src');const mechanic=card.querySelector('.sceneMechanic');if(mechanic)mechanic.hidden=true;}
       card.querySelector('.scenePlate').textContent=data.registration||'';
     });
-    el('sceneCaption').hidden=false;el('sceneCaption').textContent=approved?'Illustrations of your car’s workshop visit.':'Illustrative progress scenes using your vehicle’s saved model artwork where available.';
+    el('sceneCaption').hidden=false;el('sceneCaption').textContent=waitingForScenes?'Your workshop status is up to date. Vehicle illustrations are unavailable at the moment.':approved?'Illustrations of your car’s workshop visit.':'Illustrative progress scenes using your vehicle’s saved model artwork where available.';
     const safeImage=typeof data.image_url==='string'&&/^https:\/\/www\.haynespro-assets\.com\/workshop\/images\/\d+\.(svgz?|png|jpe?g|webp)$/.test(data.image_url);
-    if(approved||!changed)return;
+    if(approved||waitingForScenes||!changed)return;
     scenes.querySelectorAll('.sceneCar').forEach(old=>{
       const car=old.cloneNode(false);car.removeAttribute('src');for(const attr of Array.from(car.attributes))if(attr.name.startsWith('data-'))car.removeAttribute(attr.name);old.replaceWith(car);
       const layer=car.parentElement,card=layer.parentElement.parentElement,mechanic=card.querySelector('.sceneMechanic');layer.hidden=true;if(mechanic)mechanic.hidden=true;
