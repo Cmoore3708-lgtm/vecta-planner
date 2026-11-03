@@ -452,11 +452,11 @@ const requested=current(),expectedMake=make(modal.querySelector('#job_make')?.va
   button.disabled=true;status.textContent='Looking up vehicle…';
   try{
    let v=await lookup(requested,expectedMake,{force:!!event,background:false});
-   if(run!==sequence||!panel.isConnected||current()!==requested||noVehicle?.checked){target?.close();return;}
+   if(run!==sequence||!panel.isConnected||current()!==requested||noVehicle?.checked){if(run!==sequence&&panel.isConnected&&current()===requested&&!noVehicle?.checked)showHeaderVehicle();target?.close();return;}
    // A deliberate job opening may recover once from a stale temporary relay
    // failure, using the same authenticated retry path as the Haynes button.
    if(!event&&(automatic||recoverImage)&&root.navigator?.onLine!==false&&(!v&&['LOGIN_REQUIRED','OFFLINE','BUSY','UNAVAILABLE'].includes(failStatus.get(requested))||v&&recoverImage&&!image(v.imageUrl)))v=await lookup(requested,expectedMake,{force:true,background:false});
-   if(run!==sequence||!panel.isConnected||current()!==requested||noVehicle?.checked){target?.close();return;}
+   if(run!==sequence||!panel.isConnected||current()!==requested||noVehicle?.checked){if(run!==sequence&&panel.isConnected&&current()===requested&&!noVehicle?.checked)showHeaderVehicle();target?.close();return;}
    if(!v||reg(v?.registration)!==requested||!v?.model||!v?.variant||!v?.make||!vehicleLink(v)||(expectedMake&&make(v.make)!==expectedMake))throw Error('UNAVAILABLE');
    if(target)target.location.replace(vehicleLink(v));
    remember(v);

@@ -437,3 +437,11 @@ test('an old technical identity without a drawing does not block job image recov
  await new Promise(r=>setTimeout(r,220));
  assert.equal(calls,1);assert.equal(s.document.querySelector('.jobCardHeaderVehicle img').dataset.registration,vehicle.registration);
 });
+
+test('a same-registration vehicle-field refresh cannot discard a completed automatic image lookup',async()=>{
+ let finish;const s=setup(()=>new Promise(resolve=>{finish=()=>resolve(response(vehicle));}),undefined,undefined,false,'<input id="job_vehicle">',false,false,true);
+ await new Promise(r=>setTimeout(r,180));
+ s.document.querySelector('#job_vehicle').dispatchEvent(new s.window.Event('change'));
+ finish();await new Promise(r=>setImmediate(r));
+ assert.equal(s.document.querySelector('.jobCardHeaderVehicle img')?.dataset.registration,vehicle.registration);
+});
