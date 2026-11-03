@@ -99,3 +99,21 @@ test('failed upgrade preserves previous shell and generation assets, and a later
  w.context.fetch=async()=>new Response('asset');await w.run('cacheShell(shell)');
  assert.match(await (await manager.match('/index.html')).text(),/Planner 2/);assert.ok(await manager.match(versionAsset(1)));
 });
+
+test('fresh navigation returns before slow offline asset downloads finish; replacement stays atomic',async()=>{
+ const w=worker();w.context.shell=versionShell(1);await w.run('cacheShell(shell)');
+ let release;const slow=new Promise(resolve=>release=resolve),background=[];
+ w.context.fetch=async req=>String(req.url||req).endsWith('/')?versionShell(2):(await slow,new Response('asset'));
+ const request=new Request('https://workshop.test/');let response;
+ w.listeners.fetch({request:{url:request.url,method:'GET',mode:'navigate'},respondWith:p=>response=p,waitUntil:p=>background.push(p)});
+ assert.match(await (await response).text(),/Planner 2/);
+ assert.match(await (await w.run('cachedMain()')).text(),/Planner 1/);
+ release();await Promise.all(background);assert.match(await (await w.run('cachedMain()')).text(),/Planner 2/);
+});
+test('background caching includes optional tools without executing them and cannot restore revoked access',async()=>{
+ const w=worker();w.context.shell=new Response('<link rel="vecta-offline-script" href="/assets/haynes-service-sheet-0000000001.js">Planner',{headers:{'X-Vecta-Manager-Authenticated':'1'}});
+ await w.run('cacheShell(shell)');assert.ok(await w.caches.match('https://workshop.test/assets/haynes-service-sheet-0000000001.js'));
+ let release;const slow=new Promise(resolve=>release=resolve);w.context.fetch=async()=>{await slow;return new Response('asset');};w.context.shell=versionShell(2);
+ const task=w.run('cacheShell(shell)');await new Promise(resolve=>setImmediate(resolve));await w.run('clearCachedMain()');release();await task;
+ assert.equal(await w.run('cachedMain()'),null);
+});

@@ -85,6 +85,7 @@ function isMainNavigation(url){
 
 const MANAGER_GENERATIONS='/__vecta_manager_asset_generations__';
 let managerShellWrite=Promise.resolve();
+let managerCacheEpoch=0;
 function managerAssets(html){
   const assets=new Set(['/supabase.min.js?v=20260901-refresh2', ...CORE.filter(path=>path!=='/' && path!=='/index.html')].map(path=>new URL(path,self.location.origin).href));
   for(const match of html.matchAll(/<(?:script|link)\b[^>]*(?:src|href)=["']([^"']+)["']/gi)){
@@ -108,16 +109,17 @@ async function pruneManagerAssets(cache,current,previous){
     const store=await caches.open(name);
     for(const request of await store.keys()){
       const url=new URL(request.url);
-      if(url.origin===self.location.origin&&/^\/assets\/(?:vecta-inline(?:-mechanic)?-\d+|haynes-job-tools|haynes-service-sheet|vecta-vehicle-image|vecta-fleet-images|vecta-monthly-pool)-[a-f0-9]{10}\.(?:js|css)$/.test(url.pathname)&&!keep.has(url.href))await store.delete(request);
+      if(url.origin===self.location.origin&&/^\/assets\/(?:vecta-inline(?:-mechanic)?-\d+|haynes-job-tools|haynes-service-sheet|vecta-vehicle-image|vecta-fleet-images|vecta-monthly-pool|vecta-optional-tools|vecta-repair-quote|vecta-monthly-tracker)-[a-f0-9]{10}\.(?:js|css)$/.test(url.pathname)&&!keep.has(url.href))await store.delete(request);
     }
   }
 }
 async function cacheShell(response){
-  const task=managerShellWrite.catch(()=>{}).then(()=>writeManagerShell(response));
+  const epoch=managerCacheEpoch;
+  const task=managerShellWrite.catch(()=>{}).then(()=>writeManagerShell(response,epoch));
   managerShellWrite=task;
   return task;
 }
-async function writeManagerShell(response){
+async function writeManagerShell(response,epoch){
   if(!response || !response.ok || response.headers.get('X-Vecta-Manager-Authenticated')!=='1') return response;
   const cache=await caches.open(MAIN_CACHE);
   const previous=await cache.match('/index.html');
@@ -130,6 +132,7 @@ async function writeManagerShell(response){
     if(!asset.ok) throw new Error('Offline dependency unavailable');
     await cache.put(request,asset);
   }));
+  if(epoch!==managerCacheEpoch)return response;
   await cache.put('/index.html',response.clone());
   // A quota or metadata failure must not discard the newly usable offline shell.
   try{await pruneManagerAssets(cache,assets,previous)}catch(_e){}
@@ -143,12 +146,13 @@ async function cachedMain(){
 }
 
 async function clearCachedMain(){
+  managerCacheEpoch++;
   await caches.delete(MAIN_CACHE);
   const cache=await caches.open(CACHE);
   await Promise.all([cache.delete('/'),cache.delete('/index.html')]);
 }
 
-async function handleMainNavigation(req){
+async function handleMainNavigation(req,event){
   if(self.navigator?.onLine===false){
     const cached=await cachedMain();
     if(cached) return cached;
@@ -156,7 +160,10 @@ async function handleMainNavigation(req){
   try{
     const fresh=await fetch(req,{cache:'no-store'});
     if(fresh?.ok){
-      try{await cacheShell(fresh)}catch(_e){}
+      const stored=cacheShell(fresh.clone()).catch(()=>{});
+      // Serve the fresh page immediately. Keep the worker alive to finish its
+      // atomic offline replacement, retaining the previous shell on failure.
+      if(event?.waitUntil)event.waitUntil(stored);else await stored;
       return fresh;
     }
     if(fresh && (fresh.status===401 || fresh.status===403)){
@@ -224,7 +231,7 @@ self.addEventListener('fetch',event=>{
     if(url.pathname.startsWith('/api/')) return;
 
     if(req.mode==='navigate'){
-      if(isMainNavigation(url)) event.respondWith(handleMainNavigation(req));
+      if(isMainNavigation(url)) event.respondWith(handleMainNavigation(req,event));
       // Public booking and approval pages never populate or read Main's cache.
       return;
     }
