@@ -11,7 +11,34 @@
     '319009025.svgz': {x:26,y:141,width:45,height:11,skew:8},
     '319118141.svgz': {x:20.5,y:149,width:27,height:10,skew:12}
   };
-  const sources = new Map(), images = new Map(), rendering = new Map();
+  const normaliseMake = value => {
+  const key=String(value||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toUpperCase().replace(/[^A-Z0-9]/g,'');
+  return {VW:'VOLKSWAGEN',MERCEDES:'MERCEDESBENZ'}[key]||key;
+};
+// Compare official model families, allowing trim suffixes and supplier chassis codes.
+// Never equate different numeric models (NV200/NV400, CX3/CX30, 208/2008).
+function vehicleMatches(value, expected={}) {
+  if(!value)return false;
+  if(expected.make&&normaliseMake(value.make)!==normaliseMake(expected.make))return false;
+  const model=(v,manufacturer)=>{
+    let text=String(v||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toUpperCase()
+      .replace(/\([^)]*\)/g,' ').replace(/[^A-Z0-9]+/g,' ').trim().replace(/\s+(?:I|II|III|IV|V|VI|VII|VIII|IX|X)$/,'');
+    const parts=text.split(' ');
+    for(let count=3;count>0;count--)if(parts.length>count&&normaliseMake(parts.slice(0,count).join(' '))===normaliseMake(manufacturer)){text=parts.slice(count).join(' ');break;}
+    const brand=normaliseMake(manufacturer);
+    if(brand&&text.startsWith(brand)&&/^\d/.test(text.slice(brand.length)))text=text.slice(brand.length);
+    text=text.replace(/([A-Z])\s+(?=\d)/g,'$1').replace(/(\d)\s+(?=[A-Z](?:\s|$))/g,'$1');
+    if(brand==='MERCEDESBENZ')text=text.replace(/^([A-Z]{1,3})(?: CLASS|\d{3}[A-Z]*)(?= |$)/,'$1');
+    if(brand==='BMW')text=text.replace(/^([1-8])(?:\d{2}[A-Z]*| SERIES)(?= |$)/,'$1');
+    return text;
+  };
+  const wanted=model(expected.model,expected.make||value.make);if(!wanted)return true;
+  return String(value.model||'').split('/').some(part=>{
+    const actual=model(part,value.make);return !!actual&&(actual===wanted||wanted.startsWith(actual+' ')||actual.startsWith(wanted+' '));
+  });
+}
+
+  const sources = new Map(), images = new Map(), rendering = new Map(), mountTokens = new WeakMap();
   const retryCounts = new WeakMap(), retryTimers = new WeakMap();
   const manufacturers = ['mercedes-benz','land-rover','volkswagen','mitsubishi','vauxhall','infiniti','hyundai','renault','peugeot','citroen','porsche','nissan','toyota','suzuki','jaguar','lexus','mazda','honda','skoda','volvo','tesla','dacia','audi','ford','seat','fiat','mini','bmw','kia','mg'];
   const logos = new Map();
@@ -141,8 +168,11 @@
     const svg = sanitiseSvg(source), paint = svg.querySelector('[id="transparant_colour"], [id="transparent_colour"]');
     if(tight)svg.querySelectorAll('[id="gradients_background"], [id="background"]').forEach(node=>node.remove());
     const hex = colourHex(colour);
-    if (hex && paint) for (const path of paint.querySelectorAll('path, polygon')) {
-      if (path.getAttribute('fill') && path.getAttribute('fill') !== 'none') path.setAttribute('fill',hex);
+    if (hex && paint) {
+      paint.setAttribute('fill',hex);
+      for (const path of paint.querySelectorAll('path, polygon, rect, ellipse')) {
+        if (path.getAttribute('fill') !== 'none') path.setAttribute('fill',hex);
+      }
     }
     // Geometry comes from the actual model, rather than a screen-positioned plate.
     const host = root.document.createElement('div');
@@ -218,15 +248,18 @@
   }
   function mount(scope = root.document) {
     return Promise.all(Array.from(scope.querySelectorAll('img[data-vehicle-image]')).map(async img => {
-      if (img.dataset.personalising) return;
-      img.dataset.personalising = '1';
       const url = img.dataset.vehicleSource || img.getAttribute('src') || '';
       const match = url.match(/^https:\/\/www\.haynespro-assets\.com\/workshop\/images\/(\d+\.svgz?)$/);
       if (!match) return;
       const registration = normaliseReg(img.dataset.registration), colour = img.dataset.colour || '';
       const tight=img.dataset.vehicleCrop==='tight';
-      const baseKey = match[1]+'|render-v4|'+registration+'|'+colourHex(colour)+(tight?'|tight-v4-cutout':''),brand=img.dataset.vehicleLogo==='separate'?'':manufacturer(img.dataset.vehicleMake||img.dataset.vehicleName);
-      const key=brand?baseKey+'|logo-v2-below:'+brand:baseKey;
+      const baseKey = match[1]+'|render-v5|'+registration+'|'+colourHex(colour)+(tight?'|tight-v4-cutout':''),brand=img.dataset.vehicleLogo==='separate'?'':manufacturer(img.dataset.vehicleMake||img.dataset.vehicleName);
+      const key=(brand?baseKey+'|logo-v2-below:'+brand:baseKey)+'|name:'+String(img.dataset.vehicleName||'');
+      if(img.dataset.personalising===key||img.dataset.vehicleRender===key&&img.dataset.vehicleReady==='1')return;
+      const token={};mountTokens.set(img,token);img.dataset.personalising=key;
+      delete img.dataset.vehicleReady;
+      const isCurrent=()=>img.isConnected&&mountTokens.get(img)===token&&(img.dataset.vehicleSource||url)===url&&normaliseReg(img.dataset.registration)===registration&&(img.dataset.colour||'')===colour;
+
       try {
         let result = images.get(key);
         if (!result) {
@@ -237,7 +270,7 @@
               const saved=await persistentRead('render:'+key);
               if(validRender(saved)){cacheRender(key,saved);return saved;}
               const logo=brand?await logoFor(brand):'';
-              const renderKey=brand&&!logo?baseKey:key;
+              const renderKey=brand&&!logo?baseKey+'|name:'+String(img.dataset.vehicleName||''):key;
               if(renderKey!==key){
                 const fallback=images.get(renderKey)||await persistentRead('render:'+renderKey);
                 if(validRender(fallback)){cacheRender(renderKey,fallback);return fallback;}
@@ -254,17 +287,19 @@
           const task = rendering.get(key);
           try { result = await task; } finally { if (rendering.get(key) === task) rendering.delete(key); }
         }
-        if (!img.isConnected) return;
+        if (!isCurrent()) return;
         const retryTimer=retryTimers.get(img);if(retryTimer)clearTimeout(retryTimer);retryTimers.delete(img);retryCounts.delete(img);
         img.src = result.url;
         // Reveal only the decoded, painted image on surfaces that opt in.
         if (typeof img.decode === 'function') await img.decode();
-        if (!img.isConnected) return;
+        if (!isCurrent()) return;
         img.dataset.vehicleReady = '1';
+        img.dataset.vehicleRender=key;delete img.dataset.personalising;
         img.dataset.personalised = String(result.plateAdded);
         img.dataset.recoloured = String(result.recoloured);
         img.alt = [colour, img.dataset.vehicleName, registration,'model illustration'].filter(Boolean).join(' ');
       } catch {
+        if(!isCurrent())return;
         delete img.dataset.personalising;
         // A data-URL placeholder cannot fire onerror when the supplier request fails.
         // Retry the renderer itself, sharing source/render requests across cards.
@@ -279,5 +314,5 @@
       }
     }));
   }
-  root.VectaVehicleImage = {mount,personaliseSvg,sanitiseSvg,colourHex,normaliseReg,resolveColour,rememberColour,manufacturer,colourNames:Object.keys(colours).filter(name=>name!=='GRAY')};
+  root.VectaVehicleImage = {mount,vehicleMatches,personaliseSvg,sanitiseSvg,colourHex,normaliseReg,resolveColour,rememberColour,manufacturer,colourNames:Object.keys(colours).filter(name=>name!=='GRAY')};
 })(typeof window === 'undefined' ? globalThis : window);

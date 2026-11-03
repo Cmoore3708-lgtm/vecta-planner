@@ -3,6 +3,10 @@
   "trailingSlash": false,
   "rewrites": [
     {
+      "source": "/api/vehicle-artwork",
+      "destination": "https://vecta-planner.vercel.app/api/vehicle-artwork"
+    },
+    {
       "source": "/api/job-progress",
       "destination": "https://vecta-planner.vercel.app/api/job-progress"
     },
