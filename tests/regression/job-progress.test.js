@@ -44,7 +44,7 @@ test('public status returns only the selected booking, never contacts or financi
   try{
     const token=issueProgressToken(job,progressSecret(),now),data=await customerStatus(token,now);
     assert.equal(data.registration,'CM14 KEL');assert.doesNotMatch(JSON.stringify(data),/driver@example|Private notes|300|customer_name|service-key/);
-    assert.equal(calls.length,2);assert.ok(calls[0].includes(encodeURIComponent(id)));
+    assert.equal(calls.length,3);assert.ok(calls[0].includes(encodeURIComponent(id)));
     calls.length=0;await assert.rejects(customerStatus('invalid',now));assert.equal(calls.length,0);
   }finally{global.fetch=original;restore();}
 });
@@ -119,13 +119,13 @@ test('Ready to invoice saves through existing invoice rules before requesting em
 test('registration lookup is limited to today, normalises plates and exposes only visual progress',async()=>{
   const restore=environment(),original=global.fetch,requests=[];
   let rows=[{...job,status:'completed'}, {...job,id:'22345678-1234-4234-8234-123456789012',status:'in_progress'}];
-  global.fetch=async url=>{const u=new URL(url);requests.push(u);return Response.json(u.pathname.endsWith('/jobs')?rows:[{value:{imageUrl:'https://www.haynespro-assets.com/workshop/images/123.svg',customer_name:'PRIVATE',email:'PRIVATE'}}]);};
+  global.fetch=async url=>{const u=new URL(url);requests.push(u);return Response.json(u.pathname.endsWith('/jobs')?rows:[{id:'vehicle_artwork:CM14KEL',value:{imageUrl:'https://www.haynespro-assets.com/workshop/images/123.svg',customer_name:'PRIVATE',email:'PRIVATE'}},{id:'vehicle_colour:CM14KEL',value:{colour:'Green',email:'PRIVATE'}}]);};
   try{
     const data=await registrationStatus('cm14 kel',now);
-    assert.deepEqual(Object.keys(data).sort(),['image_url','registration','stage','title']);assert.equal(data.registration,'CM14KEL');assert.equal(data.stage,'underway');
+    assert.deepEqual(Object.keys(data).sort(),['image_colour','image_url','registration','stage','title']);assert.equal(data.registration,'CM14KEL');assert.equal(data.stage,'underway');assert.equal(data.image_colour,'GREEN');
     assert.doesNotMatch(JSON.stringify(data),/PRIVATE|invoice|driver@example|customer|312/);
     assert.equal(requests[0].searchParams.get('booking_date'),'eq.2026-11-03');assert.equal(requests[0].searchParams.get('registration'),'ilike.C*M*1*4*K*E*L');
-    assert.equal(requests.length,2);assert.equal(requests[1].searchParams.get('id'),'eq.vehicle_artwork:CM14KEL');
+    assert.equal(requests.length,2);assert.equal(requests[1].searchParams.get('id'),'in.(vehicle_artwork:CM14KEL,vehicle_colour:CM14KEL)');
     for(const patch of [{booking_date:'2026-11-04'},{booking_date:'2026-11-02'},{registration:'CM14 KELL'},{status:'quote'},{status:'cancelled'},{customer_note:'[[VECTA_SOFT_DELETE:abc]]'},{card_type:'mini_task'}]){rows=[{...job,...patch}];await assert.rejects(registrationStatus('CM14KEL',now),/No booking/);}
     rows=[{...job,status:'completed'},{...job,status:'booked'}];assert.equal((await registrationStatus('CM14KEL',now)).stage,'waiting');
     rows=[{...job,status:'completed'}];assert.equal((await registrationStatus('CM14KEL',now)).stage,'ready');
@@ -146,4 +146,23 @@ test('registration form opens visual progress without token, contacts or invoice
   assert.equal(requests.length,0);document.getElementById('registrationInput').value='cm14 kel';document.getElementById('registrationForm').onsubmit({preventDefault(){}});await new Promise(r=>setImmediate(r));
   assert.equal(requests[0].action,'registration');assert.equal(requests[0].registration,'cm14 kel');assert.equal(document.getElementById('progressScene').hidden,false);assert.equal(document.getElementById('progressScene').dataset.stage,'underway');
   assert.equal(document.getElementById('paperwork').hidden,true);assert.equal(document.getElementById('invoice').hasAttribute('href'),false);
+});
+test('three scenes stay visible and exactly the live stage is highlighted; sample car never follows another registration',async()=>{
+  const {document}=parseHTML(fs.readFileSync(new URL('../../public/track.html',import.meta.url),'utf8'));document.hidden=false;
+  let data={registration:'CM14 KEL',stage:'waiting',title:'Waiting'},failure=null;
+  const context={document,window:{addEventListener(){}},location:{hash:'#token'},Intl,Date,AbortSignal,Error,setTimeout:()=>1,clearTimeout(){},fetch:async()=>{if(failure)throw failure;return {ok:true,json:async()=>data};}};
+  vm.runInNewContext(fs.readFileSync(new URL('../../public/js/vecta-progress.js',import.meta.url),'utf8'),context);await new Promise(r=>setImmediate(r));
+  const cards=Array.from(document.querySelectorAll('[data-scene]')),refresh=()=>document.getElementById('refresh').onclick();
+  assert.equal(cards.length,3);
+  for(const [stage,index] of [['waiting',0],['underway',1],['checking',1],['ready',2],['scheduled',-1]]){
+    data={...data,stage};await refresh();assert.equal(document.getElementById('progressScene').hidden,false);
+    assert.equal(cards.filter(c=>c.classList.contains('current')).length,index<0?0:1);
+    cards.forEach((card,i)=>{assert.equal(card.hidden,false);assert.equal(card.querySelector('.currentBadge').hidden,i!==index);assert.equal(card.hasAttribute('aria-current'),i===index);});
+  }
+  data={registration:'AB12 CDE',stage:'underway',title:'Working',image_url:'https://www.haynespro-assets.com/workshop/images/456.png'};await refresh();
+  for(const card of cards){assert.equal(card.querySelector('.approvedScene').hidden,true);assert.equal(card.querySelector('.approvedScene').hasAttribute('src'),false);assert.equal(card.querySelector('.sceneCar').getAttribute('src'),data.image_url);assert.equal(card.querySelector('.scenePlate').textContent,'AB12 CDE');}
+  failure=Error('Offline');await refresh();assert.equal(document.getElementById('progressScene').classList.contains('stale'),true);assert.match(document.getElementById('error').textContent,/out of date/);
+  failure=null;data={...data,image_url:'https://untrusted.example/car.svg'};await refresh();assert.equal(document.getElementById('progressScene').classList.contains('stale'),false);
+  for(const card of cards){assert.equal(card.querySelector('.vehicleLayer').hidden,true);assert.equal(card.querySelector('.sceneCar').hasAttribute('src'),false);}
+  failure=Object.assign(Error('No booking'),{permanent:true});await refresh();assert.equal(document.getElementById('progressScene').hidden,true);
 });
