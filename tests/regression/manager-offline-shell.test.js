@@ -10,7 +10,7 @@ function worker(){
     async open(name){
       if(!stores.has(name)) stores.set(name,new Map());
       const data=stores.get(name);
-      return {async put(r,s){data.set(key(r),s.clone())},async match(r){return data.get(key(r))?.clone()},async delete(r){return data.delete(key(r))}};
+      return {async put(r,s){data.set(key(r),s.clone())},async match(r){return data.get(key(r))?.clone()},async delete(r){return data.delete(key(r))},async keys(){return [...data.keys()].map(url=>new Request(url))}};
     },
     async keys(){return [...stores.keys()]},
     async delete(name){return stores.delete(name)},
@@ -71,4 +71,31 @@ test('mutable planner helpers refresh online and keep their updated offline copy
  w.listeners.fetch({request:req,respondWith:p=>result=p});assert.equal(await (await result).text(),'new Chris rules');
  w.context.fetch=async()=>{throw Error('offline')};
  w.listeners.fetch({request:req,respondWith:p=>result=p});assert.equal(await (await result).text(),'new Chris rules');
+});
+
+const versionShell=n=>new Response(`<script src="/assets/vecta-inline-10-${String(n).padStart(10,'0')}.js"></script>Planner ${n}`,{headers:{'X-Vecta-Manager-Authenticated':'1'}});
+const versionAsset=n=>'/assets/vecta-inline-10-'+String(n).padStart(10,'0')+'.js';
+test('upgrade prunes obsolete generated chunks while preserving current, previous and offline data',async()=>{
+ const w=worker(),manager=await w.caches.open('vecta-workshop-pro-manager-shell-v1'),data=await w.caches.open('vecta-workshop-pro-data-last-known-v1'),generic=await w.caches.open('vecta-workshop-pro-shell-v58-contractor-startup');
+ await data.put('https://example.supabase.co/rest/v1/jobs',new Response('[{"id":"offline-job"}]'));
+ await manager.put('/assets/manual-artwork.svg',new Response('artwork'));
+ // Upgrade from an existing worker with no generation metadata.
+ await manager.put('/index.html',versionShell(1));await manager.put(versionAsset(1),new Response('one'));
+ for(const n of [2,2,3]){w.context.shell=versionShell(n);await w.run('cacheShell(shell)');}
+ await generic.put(versionAsset(1),new Response('duplicate old chunk'));w.context.shell=versionShell(3);await w.run('cacheShell(shell)');
+ assert.equal(await manager.match(versionAsset(1)),undefined);assert.equal(await generic.match(versionAsset(1)),undefined);
+ for(const n of [2,3])assert.ok(await manager.match(versionAsset(n)));
+ assert.ok(await manager.match('/assets/manual-artwork.svg'));
+ assert.match(await (await data.match('https://example.supabase.co/rest/v1/jobs')).text(),/offline-job/);
+ w.context.self.navigator.onLine=false;w.context.fetch=async()=>{throw Error('offline')};
+ assert.match(await (await w.run("handleMainNavigation(new Request('https://workshop.test/'))")).text(),/Planner 3/);
+});
+test('failed upgrade preserves previous shell and generation assets, and a later upgrade can retry',async()=>{
+ const w=worker(),manager=await w.caches.open('vecta-workshop-pro-manager-shell-v1');
+ w.context.shell=versionShell(1);await w.run('cacheShell(shell)');
+ w.context.shell=versionShell(2);w.context.fetch=async()=>new Response('unavailable',{status:503});
+ await assert.rejects(w.run('cacheShell(shell)'));
+ assert.match(await (await manager.match('/index.html')).text(),/Planner 1/);assert.ok(await manager.match(versionAsset(1)));
+ w.context.fetch=async()=>new Response('asset');await w.run('cacheShell(shell)');
+ assert.match(await (await manager.match('/index.html')).text(),/Planner 2/);assert.ok(await manager.match(versionAsset(1)));
 });
