@@ -36,6 +36,10 @@
   },
   "rewrites": [
     {
+      "source": "/api/vehicle-artwork",
+      "destination": "/api/availability?vehicleArtwork=1"
+    },
+    {
       "source": "/api/job-progress",
       "destination": "/api/additional-work?progress=1"
     },

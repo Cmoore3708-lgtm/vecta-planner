@@ -211,3 +211,11 @@ test('actual dashboard labels retain the same saved drawings as the job sheet',a
   assert.equal(d.root.VectaHaynesJobTools.artworkSnapshot(saved.registration,saved.make,'Wrong model'),null);
  }
 });
+
+test('Mazda 6 base artwork is reused across trim descriptions including the manufacturer prefix',()=>{
+ const mazda={registration:'AB12CDE',make:'Mazda',model:'6 (GJ, GL)',imageUrl:asset};
+ const d=device(database(),new Map([['vecta_haynes_artwork_v1',JSON.stringify([mazda])]])),tools=d.root.VectaHaynesJobTools;
+ for(const vehicle of ['Mazda 6 Sport Nav D','6 SE-L D Nav','MAZDA 6 2.2D'])assert.equal(tools.genericImage({make:'MAZDA',vehicle})?.imageUrl,asset,vehicle);
+ assert.equal(tools.genericImage({make:'Mazda',vehicle:'Mazda 3 Sport'}),null);
+ assert.equal(tools.genericImage({make:'BMW',vehicle:'6 Sport'}),null);
+});

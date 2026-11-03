@@ -5,7 +5,7 @@ import {saveVehicleArtwork} from '../../lib/haynes-shared-artwork.js';
 const vehicle={registration:'DC14 EEZ',make:'VOLKSWAGEN',model:'Tiguan I (5N)',imageUrl:'https://www.haynespro-assets.com/workshop/images/319011560.svgz',vin:'private',typeId:'t_123'};
 test('successful lookup fills shared artwork without overwriting a saved choice or copying technical fields',async()=>{
  let request;
- const result=await saveVehicleArtwork(vehicle,{environment:()=>({url:'https://workshop.example',serviceKey:'server-only'}),fetcher:async(url,options)=>{request={url,...options};return {ok:true};}});
+ const result=await saveVehicleArtwork(vehicle,{environment:()=>({url:'https://workshop.example',serviceKey:'server-only'}),fetcher:async(url,options)=>{if(!options.method)return {ok:true,json:async()=>[]};request={url,...options};return {ok:true};}});
  assert.equal(result,true);assert.match(request.url,/workshop_settings\?on_conflict=id$/);
  assert.match(request.headers.Prefer,/resolution=ignore-duplicates/);
  const row=JSON.parse(request.body);assert.equal(row.id,'vehicle_artwork:DC14EEZ');assert.equal(row.value.imageUrl,vehicle.imageUrl);

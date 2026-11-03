@@ -368,3 +368,25 @@ test('tight dashboard cutouts remove supplier backgrounds while preserving the v
  assert.match(normal.svg,/gradients_background/);assert.doesNotMatch(cut.svg,/gradients_background/);
  assert.match(cut.svg,/id="wheels"/);assert.match(cut.svg,/id="windows"/);assert.match(cut.svg,/DY71 UVE/);
 });
+
+test('reusing an image element for a different registration and colour discards the earlier render',async()=>{
+ const root=browser();let finish;
+ root.fetch=async()=>new Promise(resolve=>{finish=()=>resolve({ok:true,json:async()=>({svg})});});
+ root.document.body.innerHTML='<img data-vehicle-image data-vehicle-logo="separate" data-registration="AB12CDE" data-colour="Red" data-vehicle-source="https://www.haynespro-assets.com/workshop/images/123.svgz">';
+ const img=root.document.querySelector('img'),first=root.VectaVehicleImage.mount();await new Promise(r=>setImmediate(r));
+ img.dataset.registration='CD34EFG';img.dataset.colour='Blue';
+ const second=root.VectaVehicleImage.mount();finish();await Promise.all([first,second]);
+ assert.equal(img.dataset.vehicleReady,'1');assert.match(decodeURIComponent(img.src),/CD34 EFG/);assert.match(decodeURIComponent(img.src),/#1c4778/);assert.doesNotMatch(decodeURIComponent(img.src),/AB12 CDE/);
+ img.dataset.colour='Green';await root.VectaVehicleImage.mount();assert.match(decodeURIComponent(img.src),/#204c36/);
+});
+test('invalid or unfinished image URLs do not permanently block a later valid source',async()=>{
+ const root=browser();root.fetch=async()=>({ok:true,json:async()=>({svg})});
+ root.document.body.innerHTML='<img data-vehicle-image data-vehicle-logo="separate" data-registration="AB12CDE" data-colour="Blue" src="data:image/gif;base64,placeholder">';
+ const img=root.document.querySelector('img');await root.VectaVehicleImage.mount();assert.equal(img.dataset.personalising,undefined);
+ img.dataset.vehicleSource='https://www.haynespro-assets.com/workshop/images/123.svgz';await root.VectaVehicleImage.mount();assert.equal(img.dataset.vehicleReady,'1');
+});
+test('paint inherited from a supplier group is recoloured as well as explicit body fills',()=>{
+ const root=browser(),inherited=svg.replace('<path opacity="0.7" fill="#CCCCCC"','<path opacity="0.7"');
+ const result=root.VectaVehicleImage.personaliseSvg(inherited,'AB12CDE','Blue');
+ const doc=new DOMParser().parseFromString(result.svg,'image/svg+xml');assert.equal(doc.querySelector('#transparant_colour path').getAttribute('fill'),'#1c4778');assert.equal(doc.querySelectorAll('#transparant_colour path')[1].getAttribute('fill'),'none');
+});

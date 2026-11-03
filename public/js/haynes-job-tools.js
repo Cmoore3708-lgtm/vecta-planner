@@ -6,7 +6,7 @@ const make=v=>{const key=String(v||'').toUpperCase().replace(/[^A-Z0-9]/g,'');re
 const image=v=>/^https:\/\/www\.haynespro-assets\.com\/workshop\/images\/\d+\.(svgz?|png|jpe?g|webp)$/.test(v||'')?v:'';
 const words=v=>String(v||'').toUpperCase().replace(/[^A-Z0-9]+/g,' ').trim();
 // Model spacing varies between internal fleet names and Haynes (NV 200 / NV200).
-const modelWords=v=>words(v).replace(/([A-Z])\s+(?=\d)/g,'$1').replace(/(\d)\s+([A-Z])(?=\s|$)/g,'$1$2');
+const modelWords=(v,manufacturer)=>{let text=words(v);const prefix=words(manufacturer);if(prefix&&text.startsWith(prefix+' '))text=text.slice(prefix.length+1);return text.replace(/\s+(?:I|II|III|IV|V|VI|VII|VIII|IX|X)$/,'').replace(/([A-Z])\s+(?=\d)/g,'$1').replace(/(\d)\s+([A-Z])(?=\s|$)/g,'$1$2');};
 function vehicleLink(v){
  if(!/^t_\d+$/.test(v?.typeId||''))return '';
  const confirmed=reg(v.registration)==='CM14KEL'&&v.typeId==='t_619108899'?'148229':'';
@@ -130,11 +130,11 @@ function compatibleArtwork(value,description){
 function knownAssetMatches(value,description){const known=modelImages.find(v=>v.imageUrl===value?.imageUrl);return !known||compatibleArtwork(known,description);}
 function genericImage(description){
  if(!description||description.no_vehicle)return null;
- const text=' '+modelWords(description.model||description.vehicle)+' ',expectedMake=make(description.make);
+ const expectedMake=make(description.make);
  const fleetModel=root.VectaFleetImages?.modelArtwork?.(description.model||description.vehicle);
  if(image(fleetModel?.imageUrl)&&compatibleArtwork(fleetModel,description)&&knownAssetMatches(fleetModel,description)&&(!expectedMake||make(fleetModel.make)===expectedMake))return {make:fleetModel.make,model:fleetModel.model,imageUrl:fleetModel.imageUrl,generic:true};
  const candidates=[...sharedArtwork.values(),...artwork.values(),...identities.values(),...cache.values(),...modelImages].filter(v=>!v.manual&&image(v.imageUrl)&&knownAssetMatches(v,description)).map(v=>({make:v.make,model:String(v.model).split(/[(/]/)[0].trim(),imageUrl:v.imageUrl})).sort((a,b)=>b.model.length-a.model.length);
- for(const v of candidates){const model=modelWords(v.model),family=model.split(' ')[0],modelMatch=model&&text.includes(' '+model+' ')||/^[A-Z]+\d+[A-Z0-9]*$/.test(family)&&text.includes(' '+family+' ');if(modelMatch&&(!expectedMake||make(v.make)===expectedMake))return {make:v.make,model:v.model,imageUrl:v.imageUrl,generic:true};}
+ for(const v of candidates){const text=' '+modelWords(description.model||description.vehicle,description.make||v.make)+' ',model=modelWords(v.model,v.make),family=model.split(' ')[0],modelMatch=model&&text.includes(' '+model+' ')||/^[A-Z]+\d+[A-Z0-9]*$/.test(family)&&text.includes(' '+family+' ');if(modelMatch&&(!expectedMake||make(v.make)===expectedMake))return {make:v.make,model:v.model,imageUrl:v.imageUrl,generic:true};}
  return null;
 }
 async function lookup(registration,expectedMake,{requireImage=false,force=false,background=true}={}){
