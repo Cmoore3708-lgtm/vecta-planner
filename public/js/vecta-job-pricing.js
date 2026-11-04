@@ -2,33 +2,32 @@
  'use strict';
  let editor=null,generation=0,abort=null,debounce=null,tyreDialog=null,tyreController=null;
  const el=id=>document.getElementById(id),value=id=>el(id)?.value||'',money=p=>'£'+(p/100).toFixed(2);
- const escape=value=>root.esc(String(value??''));
- function types(){return root.jobTypeValues(value('job_job_type'));}
- function input(){const service=types().find(t=>/^(Interim|Full) Service$/i.test(t));return service?{registration:value('job_registration').toUpperCase().replace(/\s/g,''),service,mileage:null,range:root.jobPartsRangeDisplay(editor?.job)||'Mid Range'}:null;}
- function fingerprint(){return JSON.stringify([root.gatherJobPartsEditor(),root.gatherPrivatePricingItems(),value('job_vat_mode')]);}
+ function types(){return editor.api.jobTypeValues(value('job_job_type'));}
+ function input(){const service=types().find(t=>/^(Interim|Full) Service$/i.test(t));return service?{registration:value('job_registration').toUpperCase().replace(/\s/g,''),service,mileage:null,range:editor.api.jobPartsRangeDisplay(editor?.job)||'Mid Range'}:null;}
+ function fingerprint(){return JSON.stringify([editor.api.gatherJobPartsEditor(),editor.api.gatherPrivatePricingItems(),value('job_vat_mode')]);}
  function status(text){if(editor?.node.isConnected)editor.status.textContent=text;}
  async function post(body,signal){const response=await fetch('/api/service-price',{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json','X-Vecta-Workshop':'1'},body:JSON.stringify({...body,workshop:true}),signal,cache:'no-store'});const data=await response.json();if(!response.ok)throw Error(data.status==='UNAUTHORISED'?'Workshop manager sign-in required.':'The supplier quote could not be added. Refresh prices and retry.');return data;}
  function parts(rows,scope){
-  const existing=root.gatherJobPartsEditor();
+  const existing=editor.api.gatherJobPartsEditor();
   // Keep manually added parts and anything already ordered or received.
   const retained=existing.filter(p=>!scope(p)||p.ordered||p.arrived);
   const protectedDescriptions=new Set(retained.filter(scope).map(p=>p.description));
   const next=retained.concat(rows.filter(p=>!protectedDescriptions.has(p.description)));
-  const holder=document.createElement('div');holder.innerHTML=root.jobPartsEditorHtml({customer_note:'[[JOB_PARTS_URI:'+encodeURIComponent(JSON.stringify(next))+']]'});
+  const holder=document.createElement('div');holder.innerHTML=editor.api.jobPartsEditorHtml({customer_note:'[[JOB_PARTS_URI:'+encodeURIComponent(JSON.stringify(next))+']]'});
   el('jobPartsEditor').innerHTML=holder.querySelector('#jobPartsEditor').innerHTML;
-  root.bindJobPartsEditor();
+  editor.api.bindJobPartsEditor();
  }
  function price(description,pence,kind){
   const rows=el('privatePricingRows'),all=Array.from(rows.children);
   const matches=all.filter(row=>kind==='service'?/^(?:Interim|Full) Service\b/i.test(row.querySelector('.privatePriceDescription').value):(row.dataset.supplierKey===kind||row.querySelector('.privatePriceDescription').value.startsWith('Tyres · '+kind.slice(5)+' · ')));
   let row=matches[0];
-  if(!row){const holder=document.createElement('div');holder.innerHTML=root.privatePricingRowHtml({description,price:0},rows.children.length);row=holder.firstElementChild;rows.appendChild(row);}
+  if(!row){const holder=document.createElement('div');holder.innerHTML=editor.api.privatePricingRowHtml({description,price:0},rows.children.length);row=holder.firstElementChild;rows.appendChild(row);}
   matches.slice(1).forEach(r=>r.remove());
   row.dataset.supplierKey=kind;
   row.querySelector('.privatePriceDescription').value=description;
   const mode=value('job_vat_mode');
   row.querySelector('.privatePriceAmount').value=(pence/(mode==='ex_vat'?120:100)).toFixed(2);
-  root.bindPrivatePricing();root.syncPrivatePricingTotal(true);
+  editor.api.bindPrivatePricing();editor.api.syncPrivatePricingTotal(true);
  }
  function serviceLookup(){
   clearTimeout(debounce);abort?.abort();const current=++generation,active=editor,request=input();
@@ -100,15 +99,15 @@
   dialog.querySelector('[data-check]').onclick=()=>tyreController.update(size.value,Number(quantity.value),{refresh:true});
   size.focus();
  }
- function install(job){
+ function install(job,api){
   generation++;abort?.abort();clearTimeout(debounce);closeTyres();
   const node=el('job_registration');if(!node)return;
   const panel=document.createElement('div');panel.className='jobFormSection';
   panel.innerHTML='<b>Live service &amp; tyre prices</b><p role="status">Choose a service or tyres to look up prices.</p><button type="button" class="btn" data-service>Check GSF</button> <button type="button" class="btn" data-apply hidden>Use service price</button> <button type="button" class="btn" data-tyres>Choose tyres</button>';
   el('jobPartsEditor').closest('section').before(panel);
-  editor={node,job,status:panel.querySelector('p'),apply:panel.querySelector('[data-apply]')};
+  editor={node,job,api,status:panel.querySelector('p'),apply:panel.querySelector('[data-apply]')};
   panel.querySelector('[data-service]').onclick=serviceLookup;
-  panel.querySelector('[data-tyres]').onclick=()=>{if(!types().some(t=>/^tyres$/i.test(t)))root.applyTemplate('Tyres');else openTyres();};
+  panel.querySelector('[data-tyres]').onclick=()=>{if(!types().some(t=>/^tyres$/i.test(t)))editor.api.applyTemplate('Tyres');else openTyres();};
   node.addEventListener('input',()=>{generation++;abort?.abort();clearTimeout(debounce);editor.apply.hidden=true;debounce=setTimeout(serviceLookup,600);});
  }
  function selected(name,added){

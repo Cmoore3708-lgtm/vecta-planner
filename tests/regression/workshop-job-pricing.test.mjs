@@ -35,8 +35,9 @@ function ui(fetcher){
  const {document,window}=parseHTML('<html><body><div id="editor"><input id="job_registration" value="TEST123"><input id="job_job_type" value="Interim Service"><input id="job_vat_mode" value="inc_vat"><section><div id="jobPartsEditor"></div></section><div id="privatePricingRows"></div></div></body></html>');
  let savedParts=[],prices=[];
  const root={document,esc:String,jobTypeValues:v=>v.split(','),jobPartsRangeDisplay:()=>'',gatherJobPartsEditor:()=>savedParts,gatherPrivatePricingItems:()=>prices,jobPartsEditorHtml:j=>{savedParts=JSON.parse(decodeURIComponent(j.customer_note.match(/URI:(.*?)\]\]/)[1]));return '<div id="jobPartsEditor"></div>';},bindJobPartsEditor(){},privatePricingRowHtml:item=>'<div><input class="privatePriceDescription" value="'+item.description+'"><input class="privatePriceAmount"></div>',bindPrivatePricing(){},syncPrivatePricingTotal(){prices=Array.from(document.querySelectorAll('#privatePricingRows > div')).map(r=>({description:r.querySelector('.privatePriceDescription').value,price:Number(r.querySelector('.privatePriceAmount').value)}));}};
+ const api={};for(const name of ['jobTypeValues','jobPartsRangeDisplay','gatherJobPartsEditor','gatherPrivatePricingItems','jobPartsEditorHtml','bindJobPartsEditor','privatePricingRowHtml','bindPrivatePricing','syncPrivatePricingTotal']){api[name]=root[name];delete root[name];}
  const ctx={window:root,document,fetch:fetcher,AbortController,AbortSignal,setTimeout,clearTimeout,Date,console};vm.runInNewContext(readFileSync('public/js/vecta-job-pricing.js','utf8'),ctx);
- root.VectaJobPricing.install({});return{root,document,parts:()=>savedParts,prices:()=>prices};
+ root.VectaJobPricing.install({},api);return{root,document,parts:()=>savedParts,prices:()=>prices};
 }
 const tick=()=>new Promise(r=>setTimeout(r,20));
 test('service selection fills parts and retail amount; stale results cannot change another job',async()=>{
