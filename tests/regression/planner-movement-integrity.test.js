@@ -251,3 +251,22 @@ test('the completion path closes gaps only after the server accepts the complete
  assert.match(save,/savedJobBeforeEdit&&!wasCompleted&&j.status==='completed'/);
  assert.match(save,/persistPlannerJobsInBackground\(completionShifted,'Close completed job gap'\)/);
 });
+
+test('a late first remaining job moves to 08:00 after completion',()=>{
+ const jobs=[stackedJob('done','10:00',{status:'completed'}),stackedJob('next','11:00')],ctx=stackedPlanner(jobs);
+ ctx.plannerCloseCompletedGap(jobs[0]);assert.equal(jobs[1].drop_time,'08:00');
+});
+
+test('inserting into an empty mechanic column starts at 08:00 even when dropped at 10:00',()=>{
+ const jobs=[stackedJob('a','10:00',{technician:'Unallocated'})],ctx=stackedPlanner(jobs);
+ ctx.plannerInsertJob(jobs[0],'2026-11-04','Alfie',600);assert.equal(jobs[0].drop_time,'08:00');
+});
+
+test('opening the current dashboard closes existing morning and internal gaps once',()=>{
+ const jobs=[stackedJob('a','10:00'),stackedJob('b','12:00'),stackedJob('c','11:00',{technician:'Chris'})],ctx=stackedPlanner(jobs);
+ let saves=0,persists=0;Object.assign(ctx,{plannerInteractionBusy:false,cloudRefreshBusy:false,selectedIso:()=> '2026-11-04',todayIso:()=> '2026-11-04',saveLocal:()=>saves++,persistPlannerJobsInBackground:()=>persists++,console});
+ vm.runInNewContext(namedFunctionSource('plannerPackVisibleDay'),ctx);
+ ctx.plannerPackVisibleDay();assert.deepEqual(jobs.map(j=>j.drop_time),['08:00','09:00','08:00']);
+ ctx.plannerPackVisibleDay();assert.equal(saves,1);assert.equal(persists,1);
+ ctx.selectedIso=()=> '2026-11-03';jobs[0].drop_time='10:00';ctx.plannerPackVisibleDay();assert.equal(jobs[0].drop_time,'10:00');
+});
