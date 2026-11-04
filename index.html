@@ -15053,7 +15053,7 @@ function installDashboardJobActions(id){
   var mechanic=window.VECTA_MECHANIC_DEPLOYMENT===true;
   if(mechanic)vectaStartCustomerProgress(id);
   if(!mechanic){var account=modal.querySelector('#job_customer_account'),officeJob=(app.jobs||[]).find(function(j){return String(j.id)===String(id)});syncOfficeJobActions(account&&account.value||officeJob&&officeJob.customer_account||'');vectaInstallTrackingLink(id,foot);return;}
-  ['markComplete','markCompleteEmail','markReady','createInvoiceFromJob','deleteJob','undoJobCompletion','returnToMechanic','createQuote','convertQuote','createProvisionalBooking','confirmProvisionalBooking','cancelProvisionalBooking'].forEach(function(key){var button=modal.querySelector('#'+key);if(button)button.remove()});
+  ['markComplete','markCompleteEmail','markReady','createInvoiceFromJob','deleteJob','undoJobCompletion','returnToMechanic','createQuote','convertQuote','createProvisionalBooking','confirmProvisionalBooking','cancelProvisionalBooking','saveProvisionalChanges'].forEach(function(key){var button=modal.querySelector('#'+key);if(button)button.remove()});
   var job=(app.jobs||[]).find(function(j){return String(j.id)===String(id)});
   if(!job||job.archived||['completed','work_complete','quote','provisional'].indexOf(String(job.status||'').toLowerCase())>=0||modal.querySelector('#v280MechanicWorkComplete'))return;
   var complete=document.createElement('button');complete.type='button';complete.id='v280MechanicWorkComplete';complete.className='btn v280MechanicComplete';complete.textContent='Complete';
@@ -15087,11 +15087,12 @@ function installProvisionalBookingActions(modal,job,id,historical){
   if(historical)return;
   var foot=modal.querySelector('.modalFoot');if(!foot)return;
   if(job.status==='provisional'){
-    foot.innerHTML='<button type="button" class="btn" id="cancelJob">Close</button><button type="button" class="btn green" id="confirmProvisionalBooking">Confirm Booking</button><button type="button" class="btn danger" id="cancelProvisionalBooking">Cancel booking</button>';
+    foot.innerHTML='<button type="button" class="btn" id="cancelJob">Close</button><button type="button" class="btn green" id="confirmProvisionalBooking">Confirm Booking</button><button type="button" class="btn danger" id="cancelProvisionalBooking">Cancel booking</button><button type="button" class="primary" id="saveProvisionalChanges">Save changes</button>';
     var title=modal.querySelector('.jobModalHead h2');if(title)title.textContent='Provisional Booking';
     ['saveJobMobile','printJobCard'].forEach(function(key){var control=modal.querySelector('#'+key);if(control)control.remove()});
     modal.querySelector('#confirmProvisionalBooking').onclick=function(){return saveProvisionalBooking(job.id,true)};
     modal.querySelector('#cancelProvisionalBooking').onclick=function(){return deleteJobCompletely(job.id,{provisional:true})};
+    modal.querySelector('#saveProvisionalChanges').onclick=function(){return saveProvisionalBooking(job.id,false)};
   }else if(!id||(!jobCompletionEvidence(job)&&job.status==='booked')){
     if(job.status==='quote'||isWebsiteBookingJob(job)||job.card_type==='mini_task')return;
     var button=document.createElement('button');button.type='button';button.className='btn';button.id='createProvisionalBooking';button.textContent='Provisional Booking';

@@ -45,9 +45,9 @@ test('NMUK and Staff reminders and public tracking exclude provisional bookings'
  assert.equal(eligible(reminder,job.booking_date,vehicle),false);assert.equal(eligible({...reminder,status:'booked'},job.booking_date,vehicle),true);
  assert.equal(staffEligible({...reminder,customer_account:'Staff'},job.booking_date),false);assert.equal(trackable(job),false);assert.equal(trackable({...job,status:'booked'}),true);
 });
-test('opening a provisional booking gives exactly Close, Confirm Booking and Cancel booking',()=>{
+test('opening a provisional booking gives Close, Confirm Booking, Cancel booking and Save changes',()=>{
  const c=setup(),modal=c.document.getElementById('jobModal');c.installProvisionalBookingActions(modal,job,job.id,false);
- assert.deepEqual(Array.from(modal.querySelectorAll('.modalFoot button'),x=>x.textContent),['Close','Confirm Booking','Cancel booking']);
+ assert.deepEqual(Array.from(modal.querySelectorAll('.modalFoot button'),x=>x.textContent),['Close','Confirm Booking','Cancel booking','Save changes']);
  assert.equal(modal.querySelector('#saveJobMobile'),null);assert.equal(modal.querySelector('#printJobCard'),null);
 });
 test('new manual jobs expose Provisional Booking and historical/website/quote editors do not',()=>{
@@ -60,6 +60,15 @@ test('new manual jobs expose Provisional Booking and historical/website/quote ed
 test('confirmation keeps the same record and requires a confirmed cloud save',async()=>{
  const c=setup();let savedOptions;c.saveJob=async(id,callback,options)=>{savedOptions=options;assert.equal(id,job.id);c.app.jobs[0].status=c.document.getElementById('job_status').value;return true};
  assert.equal(await c.saveProvisionalBooking(job.id,true),true);assert.equal(c.app.jobs.length,1);assert.equal(c.app.jobs[0].status,'booked');assert.equal(savedOptions.requireCloud,true);
+});
+for(const failWrite of [false,true])test('Save changes '+(failWrite?'retains the original provisional date if saving fails':'reschedules the same provisional booking without confirming it'),async()=>{
+ const c=setup(),modal=c.document.getElementById('jobModal');c.installProvisionalBookingActions(modal,job,job.id,false);
+ const date=c.document.createElement('input');date.id='job_booking_date';date.value='2026-11-09';modal.appendChild(date);
+ const save=modal.querySelector('#saveProvisionalChanges');let writes=0;
+ c.saveJob=async(id,callback,options)=>{writes++;assert.equal(id,job.id);assert.equal(options.requireCloud,true);assert.equal(save.disabled,true);c.app.jobs[0]={...c.app.jobs[0],booking_date:date.value,status:c.document.getElementById('job_status').value};return !failWrite};
+ assert.equal(await save.onclick(),!failWrite);assert.equal(writes,1);assert.equal(c.app.jobs.length,1);assert.equal(c.app.jobs[0].id,job.id);
+ assert.equal(c.app.jobs[0].booking_date,failWrite?job.booking_date:date.value);assert.equal(c.app.jobs[0].status,'provisional');assert.equal(save.disabled,false);
+ assert.match(c.fleetBookedTick(c.app.jobs[0]),/>−</);assert.doesNotMatch(c.fleetBookedTick(c.app.jobs[0]),/✓/);
 });
 test('failed confirmation restores provisional status and releases disabled controls',async()=>{
  const c=setup();c.saveJob=async()=>{c.app.jobs[0]={...job,status:'booked'};return false};
@@ -91,10 +100,10 @@ for(const failWrite of [false,true])test('provisional cancellation '+(failWrite?
  if(!failWrite)assert.match(c.app.jobs[0].customer_note,/VECTA_SOFT_DELETE/);
 });
 
-test('final dashboard action installer preserves exactly three office actions and prevents mechanics from starting or confirming provisional work',()=>{
+test('final dashboard action installer preserves four office actions and prevents mechanics from editing provisional work',()=>{
  for(const mechanic of [false,true]){
   const c=setup({VECTA_MECHANIC_DEPLOYMENT:mechanic,vectaStartCustomerProgress(){},syncOfficeJobActions(){},isUuid:()=>true});
   const modal=c.document.getElementById('jobModal');c.installProvisionalBookingActions(modal,job,job.id,false);c.installDashboardJobActions(job.id);
-  assert.deepEqual(Array.from(modal.querySelectorAll('.modalFoot button'),x=>x.textContent),mechanic?['Close']:['Close','Confirm Booking','Cancel booking']);
+  assert.deepEqual(Array.from(modal.querySelectorAll('.modalFoot button'),x=>x.textContent),mechanic?['Close']:['Close','Confirm Booking','Cancel booking','Save changes']);
  }
 });
