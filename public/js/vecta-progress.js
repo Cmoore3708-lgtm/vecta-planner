@@ -19,7 +19,11 @@
       const src=generated?generated[card.dataset.scene]:(sceneSet?'/assets/progress/'+sceneSet+'-'+card.dataset.scene+'.webp':'');
       photo.hidden=!approved||photo.dataset.failedUrl===src;
       photo.alt=(data.registration||'Your car')+' — '+card.querySelector('h3').textContent.toLowerCase()+' illustration';
-      photo.onerror=()=>{photo.dataset.failedUrl=src;photo.hidden=true;};
+      photo.onerror=()=>{photo.dataset.failedUrl=src;photo.hidden=true;card.querySelector('.sceneArt').hidden=true;};
+      // Never expose the rejected old workshop photos while a complete scene
+      // is missing or fails to load. Status cards remain available.
+      card.querySelector('.sceneBackground').hidden=approved||waitingForScenes;
+      card.querySelector('.sceneArt').hidden=waitingForScenes||photo.dataset.failedUrl===src;
       if(src){if(photo.getAttribute('src')!==src)photo.src=src;}else photo.removeAttribute('src');
       // Complete images already contain the car, number plate and mechanic.
       // Do not fetch or reveal the old overlays underneath these scenes.

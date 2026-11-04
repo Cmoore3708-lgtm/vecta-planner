@@ -123,7 +123,7 @@ test('provider adapter sends real reference images and stores WebP bytes; inspec
  try{
   const identity={registration:reg,make:'MAZDA',model:'6',colour:'RED',image_url:'https://www.haynespro-assets.com/workshop/images/123.svg'};
   assert.equal((await generate(identity,'waiting')).length,bytes.length);assert.equal(requests[0].url,'https://ai-gateway.vercel.sh/v1/images/edits');assert.equal(requests[0].body.output_format,'webp');assert.equal(requests[0].body.quality,'high');assert.equal(requests[0].body.images.length,2);assert.match(requests[0].body.images[1].image_url,/^data:image\/png;base64,/);
-  assert.equal(qualityPassed(await validate(identity,[bytes,bytes,bytes])),true);assert.equal(requests[1].body.messages[1].content.filter(c=>c.type==='image_url').length,6);
+  assert.equal(qualityPassed(await validate(identity,[bytes,bytes,bytes])),true);assert.equal(requests[1].body.messages[1].content.filter(c=>c.type==='image_url').length,6);assert.match(requests[1].body.messages[0].content,/ONLY the large foreground customer car/);assert.match(requests[1].body.messages[0].content,/spacing is immaterial/);
  }finally{global.fetch=original;for(const [k,v]of Object.entries(old))if(v===undefined)delete process.env[k];else process.env[k]=v;}
 });
 test('manager retry is leased and cannot reset a vehicle while another worker owns preparation',async()=>{
@@ -138,11 +138,34 @@ test('once automatic preparation is enabled, a missing complete set never falls 
  const context={document,window:{addEventListener(){},VectaVehicleImage:{mount(){mounts++;}}},location:{hash:'#token'},Intl,Date,AbortSignal,Error,setTimeout:()=>1,clearTimeout(){},fetch:async()=>({ok:true,json:async()=>data})};
  vm.runInNewContext(fs.readFileSync(new URL('../../public/js/vecta-progress.js',import.meta.url),'utf8'),context);await new Promise(r=>setImmediate(r));
  assert.equal(mounts,0);assert.equal(document.getElementById('progressScene').hidden,false);assert.match(document.getElementById('sceneCaption').textContent,/status is up to date/);
- for(const card of document.querySelectorAll('[data-scene]')){assert.equal(card.querySelector('.vehicleLayer').hidden,true);assert.equal(card.querySelector('.approvedScene').hidden,true);}
+ for(const card of document.querySelectorAll('[data-scene]')){assert.equal(card.querySelector('.vehicleLayer').hidden,true);assert.equal(card.querySelector('.approvedScene').hidden,true);assert.equal(card.querySelector('.sceneBackground').hidden,true);assert.equal(card.querySelector('.sceneArt').hidden,true);}
 });
 test('real Illustrator-style supplier drawings retain the car while scripts, external DTDs and fallback objects are removed',async()=>{
  const {sceneModelSvg}=await import('../../lib/progress-scene-svg.js');const {Resvg}=await import('@resvg/resvg-js');
  const source='<?xml version="1.0"?><!DOCTYPE svg PUBLIC "supplier" "https://example.invalid/file.dtd" [<!ENTITY ns_ai "https://ns.adobe.com/">]><svg xmlns="http://www.w3.org/2000/svg" xmlns:i="&ns_ai;" width="299px" height="220px" viewBox="0 0 299 220" onload="RunScript(evt)"><script><![CDATA[top.applyScript()]]></script><switch><foreignObject><div>Unsafe fallback</div></foreignObject><g id="wheels" style="opacity:0.6;filter:url(#shadow)"><path d="M10 10 L100 10 L100 100 Z" fill="#123456" onclick="bad()"/><image href="file:///private/secret"/></g></switch><rect width="20" height="20" fill="url(https://example.invalid/remote)"/></svg>';
  const svg=sceneModelSvg(source);assert.doesNotMatch(svg,/DOCTYPE|ENTITY|script|foreignObject|onload|onclick|file:|example\.invalid|<image/);assert.match(svg,/id="wheels"/);assert.match(svg,/#123456/);assert.match(svg,/url\(#shadow\)/);
  const renderer=new Resvg(svg,{fitTo:{mode:'width',value:640}});const rendered=renderer.render();assert.equal(rendered.width,640);assert.ok(rendered.asPng().length>100);
+});
+test('old rejected drafts get one foreground-only recheck without regenerating images',async()=>{
+ const f=fixture({quality:false});await f.service.run();await f.service.run();
+ const saved=f.rows.get('progress_scenes_v1:'+reg);delete saved.value.review_version;saved.value.drafts={};
+ let checks=0;
+ const service=createSceneService({db:f.db,storage:f.storage,generate:f.generate,validate:async()=>{checks++;return Object.fromEntries(qualityChecks.map(k=>[k,true]));},now:()=>now,limit:()=>40});
+ assert.equal((await service.run()).status,'ready');assert.equal(f.generated.length,6);assert.equal(checks,1);
+ const manifest=f.rows.get('progress_scenes_v1:'+reg).value;assert.ok(publishedScenes(manifest.identity,manifest,base));assert.deepEqual(manifest.failed_checks,[]);
+ assert.equal(f.rows.get('progress_scene_usage_v1:2026-11').value.requests,9);
+ assert.equal((await service.run()).idle,true);assert.equal(checks,1);
+});
+test('a failed recovery remains private and is never repeatedly billed',async()=>{
+ const f=fixture({quality:false});await f.service.run();await f.service.run();delete f.rows.get('progress_scenes_v1:'+reg).value.review_version;
+ assert.equal((await f.service.run()).status,'needs_review');assert.equal((await f.service.run()).idle,true);
+ assert.equal(f.generated.length,6);assert.equal(f.stats().checks,3);assert.equal(f.stats().publishes,0);
+});
+test('recovery honours identity changes and the existing monthly budget',async()=>{
+ for(const scenario of ['identity','budget']){
+  const f=fixture({quality:false});await f.service.run();await f.service.run();delete f.rows.get('progress_scenes_v1:'+reg).value.review_version;
+  const service=createSceneService({db:f.db,storage:f.storage,generate:f.generate,validate:async()=>{f.art.colour='BLUE';return Object.fromEntries(qualityChecks.map(k=>[k,true]));},now:()=>now,limit:()=>scenario==='budget'?8:40});
+  if(scenario==='budget')await assert.rejects(service.run(),/limit reached/);else assert.equal((await service.run()).status,'identity_changed');
+  assert.equal(f.stats().publishes,0);assert.equal(f.generated.length,6);
+ }
 });
