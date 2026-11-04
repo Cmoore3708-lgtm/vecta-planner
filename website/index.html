@@ -40,6 +40,8 @@
     @media(max-width:720px){#how{padding-top:20px}.final .bookingPrompt{font-size:12px;white-space:nowrap}}
 
     .registrationEntry{display:flex;align-items:stretch;gap:10px;max-width:530px;margin:auto}.registrationEntry .plate{flex:1;min-width:0;margin:0}.registrationEnter{flex:0 0 auto;min-width:84px;border:0;border-radius:9px;padding:0 18px;background:var(--red);color:#fff;font-size:18px;font-weight:850;cursor:pointer}.registrationEnter:hover{background:var(--red2)}.registrationEnter:focus-visible{outline:3px solid #fff;outline-offset:3px}
+    .regBox .trackingPrompt{margin:18px auto 0;text-align:center;font-size:13px;line-height:1.5;color:var(--muted)}.trackingPrompt strong{display:block;color:var(--white);font-size:14px;margin-bottom:3px}.trackingPrompt span{text-decoration:underline;text-underline-offset:3px}.trackingRegLink:hover{color:var(--white)}.trackingRegLink:focus-visible{outline:2px solid var(--plate);outline-offset:5px;border-radius:3px}.trackingPrompt .trackingRegLink{display:inline-block}.plate:focus-within{outline:2px solid var(--white);outline-offset:3px}
+    @media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
     @media(max-width:600px){.registrationEntry{gap:8px}.registrationEntry .plate{grid-template-columns:36px 1fr;height:60px}.registrationEntry .plate input{font-size:clamp(21px,5.8vw,30px);letter-spacing:.05em;padding:0 5px}.registrationEnter{min-width:68px;padding:0 10px;font-size:16px}.regBox label{white-space:normal}}
     /* Workshop photograph leads the homepage. */
     .hero{padding-top:24px}.heroText{max-width:760px;margin:0 auto}.heroCards{grid-template-columns:repeat(4,minmax(0,1fr));max-width:760px}.heroPhoto{margin:0 0 32px}.heroText .regBox{max-width:620px;margin:20px auto 0}.heroCards .card h3{font-size:16px}.bookingWorkCard:focus-visible{outline:3px solid #fff;outline-offset:4px}
@@ -63,7 +65,7 @@
         <div class="card bookingWorkCard" data-home-type="Tyres" role="button" tabindex="0" aria-pressed="false"><div class="cardIcon"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3"/><path d="M12 4v3M12 17v3M4 12h3M17 12h3"/></svg></div><h3>TYRES</h3><p>From budget to premium</p></div>
         <div class="card bookingWorkCard" data-home-type="Other" role="button" tabindex="0" aria-pressed="false"><div class="cardIcon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m14 6 4-4 4 4-4 4"/><path d="M18 6 9 15"/><path d="m5 13 6 6-3 3-6-6z"/></svg></div><h3>SOMETHING ELSE</h3><p>Repairs, warning lights or any other problem</p></div>
       </div>
-      <form class="regBox bookingRegForm"><label>Enter your registration number to make your booking</label><div class="registrationEntry"><div class="plate"><div class="gb"><span>GB</span></div><input class="bookingRegInput" maxlength="10" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="YOUR REG" aria-label="Vehicle registration" enterkeyhint="go"></div><button type="submit" class="registrationEnter">Enter</button></div></form><p style="text-align:center;margin:16px 0"><a href="/track" style="color:#fff;text-decoration:underline;font-weight:800">Already booked in today? Track my car</a></p>
+      <form class="regBox bookingRegForm"><label for="heroRegistration">Enter your registration number to book or track your car</label><div class="registrationEntry"><div class="plate"><div class="gb"><span>GB</span></div><input id="heroRegistration" class="bookingRegInput" maxlength="10" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="YOUR REG" aria-label="Vehicle registration" enterkeyhint="go"></div><button type="submit" class="registrationEnter">Enter</button></div><p class="trackingPrompt"><a class="trackingRegLink" href="#heroRegistration"><strong>Got your car booked in with us today?</strong><span>Enter your registration number to track its progress.</span></a></p></form>
     </div>
   </div></div>
 
@@ -76,11 +78,11 @@
 
   <section><div class="wrap split"><img class="photo" src="/assets/technician.jpg" alt="Vehicle technician at work"><div class="copy experience"><h2>We are the longest standing contractor at NMUK.</h2><p id="adminIntro">We have been trusted to manage the fleet here at NMUK for over 30 years. Now you get to benefit from our experience and first class service.</p><div class="ticks"><div class="tick"><div><b>All makes and models</b><span>Not just Nissan.</span></div></div><div class="tick"><div><b>No taking time off work</b><span>Your car is being fixed while you're at work.</span></div></div><div class="tick"><div><b>Convenient on-site workshop</b><span>No arranging lifts or waiting around at a garage.</span></div></div></div></div></div></section>
 
-  <section class="final"><div class="wrap"><h2>Need some work doing?</h2><form class="regBox bookingRegForm" style="max-width:560px;margin:20px auto 0"><label>Enter your registration number to make your booking</label><div class="registrationEntry"><div class="plate"><div class="gb"><span>GB</span></div><input class="bookingRegInput" maxlength="10" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="YOUR REG" aria-label="Vehicle registration" enterkeyhint="go"></div><button type="submit" class="registrationEnter">Enter</button></div></form></div></section>
+  <section class="final"><div class="wrap"><h2>Need some work doing?</h2><form class="regBox bookingRegForm" style="max-width:560px;margin:20px auto 0"><label for="footerRegistration">Enter your registration number to book or track your car</label><div class="registrationEntry"><div class="plate"><div class="gb"><span>GB</span></div><input id="footerRegistration" class="bookingRegInput" maxlength="10" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="YOUR REG" aria-label="Vehicle registration" enterkeyhint="go"></div><button type="submit" class="registrationEnter">Enter</button></div><p class="trackingPrompt"><a class="trackingRegLink" href="#footerRegistration"><strong>Got your car booked in with us today?</strong><span>Enter your registration number to track its progress.</span></a></p></form></div></section>
 
   <section id="location"><div class="wrap"><div class="location"><div class="eyebrow">FIND US</div><h2>We're here at NMUK.</h2><p><strong>Vecta Workshop, Contractors Compound</strong></p><a class="locationMapLink" href="https://maps.app.goo.gl/M3d34Pt96byKtDQV6?g_st=ic" target="_blank" rel="noopener noreferrer" aria-label="Open directions to Vecta Workshop in Google Maps"><img class="locationMap" src="/assets/vecta-location-map.jpg" alt="Map showing Vecta Workshop and the South Gate entrance at NMUK"></a><p>Enter the site via the <span class="southGate">SOUTH GATE security entrance</span>, not the Main Security entrance.</p><p>Park in one of the parking bays outside our workshop. If you're leaving your car before 8am, put your keys through the key-drop letterbox.</p><a class="cta" href="https://maps.app.goo.gl/M3d34Pt96byKtDQV6?g_st=ic" target="_blank" rel="noopener noreferrer">GET DIRECTIONS →</a><a class="whatsappLink" href="https://wa.me/447721722622" target="_blank" rel="noopener noreferrer" aria-label="Message Vecta on WhatsApp"><span class="whatsappLogo" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M20 11.5a8 8 0 0 1-11.9 7L4 20l1.5-4A8 8 0 1 1 20 11.5Z"/><path d="M8.5 7.8c.3-.3.7-.2.9.1l1.1 1.8c.2.3.1.6-.1.8l-.7.7c.8 1.6 1.8 2.6 3.4 3.4l.7-.7c.2-.2.6-.3.8-.1l1.8 1.1c.3.2.4.6.1.9-.6.7-1.4 1-2.2.9-3.7-.5-7-3.8-7.5-7.5-.1-.8.3-1.7 1-2.4Z"/></svg></span><span>WhatsApp 07721 722622</span></a></div></div></section>
 </main>
-<footer class="footer"><div class="wrap foot"><div class="brand">VECTA<small>© 2026 Vecta Motors</small></div><div class="footnav"><a href="/track">Track your car</a><a href="/privacy">Privacy</a><a href="/terms">Terms</a><a href="#location">Find Us</a></div></div></footer>
+<footer class="footer"><div class="wrap foot"><div class="brand">VECTA<small>© 2026 Vecta Motors</small></div><div class="footnav"><a class="trackingRegLink" href="#footerRegistration">Track your car</a><a href="/privacy">Privacy</a><a href="/terms">Terms</a><a href="#location">Find Us</a></div></div></footer>
 <script src="/js/vecta-booking-transfer.js"></script>
 <script>
   // Set this to the live customer booking URL when deployed.
@@ -91,6 +93,14 @@
   const regForms = Array.from(document.querySelectorAll('.bookingRegForm'));
   const bookingWorkCards = Array.from(document.querySelectorAll('[data-home-type]'));
   const selectedWorkTypes = new Set();
+
+  document.querySelectorAll('.trackingRegLink').forEach(link => link.addEventListener('click', e => {
+    const input = document.getElementById(link.getAttribute('href').slice(1));
+    if(!input) return;
+    e.preventDefault();
+    input.focus({preventScroll:true});
+    input.scrollIntoView({behavior:window.matchMedia('(prefers-reduced-motion: reduce)').matches?'auto':'smooth',block:'center'});
+  }));
 
   function cleanReg(value){
     return String(value || '').toUpperCase().replace(/\s+/g,'').replace(/[^A-Z0-9]/g,'').slice(0,8);
