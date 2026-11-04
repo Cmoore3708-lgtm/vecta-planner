@@ -44,7 +44,7 @@
   }
   const date=value=>new Intl.DateTimeFormat('en-GB',{day:'2-digit',month:'2-digit',year:'numeric',timeZone:'Europe/London'}).format(new Date(value+'T12:00:00Z'));
   function render(data){
-    el('identity').hidden=false;el('registration').textContent=data.registration;el('vehicle').textContent=data.vehicle||'';el('bookingDate').textContent=data.booking_date?'Booking date: '+date(data.booking_date):'';
+    el('identity').hidden=false;el('registration').textContent=data.registration;el('vehicle').textContent=[data.vehicle,data.image_colour].filter(Boolean).join(' · ');el('jobDescription').textContent=data.job_description||'';el('jobSummary').hidden=!data.job_description;el('bookingDate').textContent=data.booking_date?'Booking date: '+date(data.booking_date):'';
     el('statusTitle').textContent=data.title;el('statusDescription').textContent=data.description||'';el('steps').hidden=data.stage==='scheduled';
     const index={waiting:0,underway:1,checking:1,ready:2}[data.stage]??-1;
     document.querySelectorAll('[data-step]').forEach((step,i)=>{step.classList.toggle('current',i===index);step.classList.toggle('done',i<index);if(i===index)step.setAttribute('aria-current','step');else step.removeAttribute('aria-current');});

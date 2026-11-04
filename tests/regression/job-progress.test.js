@@ -118,11 +118,11 @@ test('Ready to invoice saves through existing invoice rules before requesting em
 });
 test('registration lookup is limited to today, normalises plates and exposes only visual progress',async()=>{
   const restore=environment(),original=global.fetch,requests=[];
-  let rows=[{...job,status:'completed'}, {...job,id:'22345678-1234-4234-8234-123456789012',status:'in_progress'}];
+  let rows=[{...job,vehicle:'Nissan Qashqai',work_required:'Full service',status:'completed'}, {...job,vehicle:'Nissan Qashqai',work_required:'Full service',id:'22345678-1234-4234-8234-123456789012',status:'in_progress'}];
   global.fetch=async url=>{const u=new URL(url);requests.push(u);return Response.json(u.pathname.endsWith('/jobs')?rows:[{id:'vehicle_artwork:CM14KEL',value:{imageUrl:'https://www.haynespro-assets.com/workshop/images/123.svg',customer_name:'PRIVATE',email:'PRIVATE'}},{id:'vehicle_colour:CM14KEL',value:{colour:'Green',email:'PRIVATE'}}]);};
   try{
     const data=await registrationStatus('cm14 kel',now);
-    assert.deepEqual(Object.keys(data).sort(),['image_colour','image_url','registration','stage','title']);assert.equal(data.registration,'CM14KEL');assert.equal(data.stage,'underway');assert.equal(data.image_colour,'GREEN');
+    assert.deepEqual(Object.keys(data).sort(),['image_colour','image_url','job_description','registration','stage','title','vehicle']);assert.equal(data.registration,'CM14KEL');assert.equal(data.stage,'underway');assert.equal(data.image_colour,'GREEN');assert.equal(data.vehicle,'Nissan Qashqai');assert.equal(data.job_description,'Full service');
     assert.doesNotMatch(JSON.stringify(data),/PRIVATE|invoice|driver@example|customer|312/);
     assert.equal(requests[0].searchParams.get('booking_date'),'eq.2026-11-03');assert.equal(requests[0].searchParams.get('registration'),'ilike.C*M*1*4*K*E*L');
     assert.equal(requests.length,2);assert.equal(requests[1].searchParams.get('id'),'in.(vehicle_artwork:CM14KEL,vehicle_colour:CM14KEL,vehicle_identity:CM14KEL,progress_scenes_v1:CM14KEL)');
