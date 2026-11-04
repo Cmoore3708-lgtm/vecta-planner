@@ -13867,7 +13867,7 @@ function buildFinancialPerformanceDashboards(){
   if(financeDashboardCache.key===key&&financeDashboardCache.html){
     return financeDashboardCache.html;
   }
-  var out=combinedPerformanceHtml()+nmukPerformanceHtml()+contractorPerformanceHtml()+staffPerformanceHtml();
+  var out=financeWithReadCache(function(){return combinedPerformanceHtml()+nmukPerformanceHtml()+contractorPerformanceHtml()+staffPerformanceHtml()});
   financeDashboardCache={key:key,html:out,created:now};
   return out;
 }
@@ -13941,6 +13941,7 @@ function financialIntegrityAudit(){
 }
 function financialIntegrityHtml(){var a=financialIntegrityAudit(),state=a.critical?'fail':(a.warning?'warn':'pass'),headline=a.issues?(a.critical+' critical issue'+(a.critical===1?'':'s')+(a.warning?' · '+a.warning+' warning'+(a.warning===1?'':'s'):'')+' found'):'All financial checks passed',sub=a.issues?'These records need review. Until they are cleared, the system is not claiming the figures are complete.':'Every active completed job and invoice passed all automated checks at '+a.checkedAt.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})+'.';return '<div class="financeIntegrityPage"><section class="financeIntegrityHero '+state+'"><div><span class="financeIntegrityEyebrow">Live control check</span><h2>'+esc(headline)+'</h2><p>'+esc(sub)+'</p></div><div class="financeIntegrityScore"><strong>'+a.passed+'/'+a.checks.length+'</strong><span>rules passed</span></div></section><div class="financeIntegrityStats"><div><small>Completed jobs checked</small><strong>'+a.jobs+'</strong></div><div><small>Active invoices checked</small><strong>'+a.invoices+'</strong></div><div><small>Critical issues</small><strong>'+a.critical+'</strong></div><div><small>Warnings</small><strong>'+a.warning+'</strong></div></div><div class="financeIntegrityRules">'+a.checks.map(function(c){return '<section class="financeIntegrityRule"><div class="financeIntegrityRuleHead"><div><h3>'+esc(c.title)+'</h3><p>'+esc(c.description)+'</p></div><span class="financeIntegrityBadge '+c.severity+'">'+(c.items.length?c.items.length+' '+c.severity.toUpperCase():'PASS')+'</span></div>'+(c.items.length?'<div class="financeIntegrityRows">'+c.items.map(function(x){return '<div class="financeIntegrityRow"><b>'+esc(x.record)+'</b><span>'+esc(x.title)+'</span><span>'+esc(x.detail)+'</span>'+(x.kind&&x.id?'<button type="button" class="btn dark" data-integrity-'+x.kind+'="'+esc(x.id)+'">Open '+esc(x.kind)+'</button>':'<span>'+(x.amount===null?'No value':money(x.amount||0))+'</span>')+'</div>'}).join('')+'</div>':'')+'</section>'}).join('')+'</div></div>'}
 function invoicesHtml(){
+  return financeWithReadCache(function(){
   if(financialSection==='invoiceList'){
     return financialTabsHtml()+invoiceArchiveHtml();
   }
@@ -13963,6 +13964,8 @@ function invoicesHtml(){
     '<div class="card panel financialReadyFull"><div class="financialReadyHead"><div><h3>Jobs ready for invoice</h3><p class="muted">Create invoices from completed staff jobs.</p></div><span class="invoiceReadyCount">'+ready.length+'</span></div>'+
     (ready.length?ready.map(function(j){return '<div class="sideJob financialReadyJob">'+fullPlate(j.registration)+'<div class="financialReadyBody"><b>'+esc(j.vehicle||'Vehicle')+'</b><p>'+esc(j.work_required||'')+'</p></div><div class="financialReadyActions"><button class="btn dark" data-invoice-job="'+j.id+'">Create Invoice</button><button class="btn danger" data-delete-ready-job="'+j.id+'">Delete Job</button></div></div>'}).join(''):'<div class="empty">No completed / ready jobs.</div>')+
     '</div>'+invoiceFinanceHtml()+vehicleTaxFinanceHtml()+'<div id="financialPerformanceDashboards" class="financeDashboardLazy">'+performance+'</div>';
+
+  });
 }
 function invoicePaymentMethodLabel(value){return {card:'Card',cash:'Cash',bacs:'BACS Transfer'}[String(value||'').toLowerCase()]||'Not recorded'}
 function invoicePaymentMethodOptions(value){value=String(value||'').toLowerCase();return '<option value="" '+(!value?'selected':'')+'>Not recorded</option><option value="card" '+(value==='card'?'selected':'')+'>Card</option><option value="cash" '+(value==='cash'?'selected':'')+'>Cash</option><option value="bacs" '+(value==='bacs'?'selected':'')+'>BACS Transfer</option>'}
@@ -16562,12 +16565,41 @@ function fleetEomAudit(month){
   var included=fleetEomJobs(month),unassigned=(app.jobs||[]).map(financeEffectiveJob).filter(function(j){return financeIsRecognisedJob(j)&&financeCompletedDate(j).slice(0,7)===month&&!fleetCustomerForJob(j)&&!fleetEomIsHeld(j,month)}),unpriced=included.filter(function(r){var j=r.job||{},q=j.amount_quoted,blank=q===null||q===undefined||String(q).trim()==='',invoice=financeSavedInvoiceForJob(j);return blank&&financeInvoiceExVatValue(invoice)===null});
   return {finalised:included.length+unassigned.length,unassigned:unassigned.length,unpriced:unpriced.length};
 }
+/* Financial rendering is synchronous. Reuse reads only for this call, then
+   restore every resolver even if rendering fails. No cache survives a job edit,
+   month change, cloud update or invoice approval. Keys are object identities so
+   corrected and raw job records retain their existing ownership semantics. */
+function financeWithReadCache(build){
+  function memoise(read){var values=new Map();return function(key){if(values.has(key))return values.get(key);var value=read.apply(this,arguments);values.set(key,value);return value}}
+  var effective=financeEffectiveJob,allocation=financeLegacyAllocation,nmuk=financeAuthoritativeNmukAllocation,invoice=financeSavedInvoiceForJob,customer=fleetCustomerForJob,rows=fleetEomJobs,allJobs=financeAllJobs,date=financeCompletedDate,revenue=financeRevenueExVatValue,cacheKey=financeDashboardCacheKey;
+  financeEffectiveJob=memoise(effective);
+  financeLegacyAllocation=memoise(allocation);
+  financeAuthoritativeNmukAllocation=memoise(nmuk);
+  financeSavedInvoiceForJob=memoise(invoice);
+  fleetCustomerForJob=memoise(customer);
+  fleetEomJobs=memoise(rows);
+  financeAllJobs=memoise(allJobs);
+  financeCompletedDate=memoise(date);
+  financeRevenueExVatValue=memoise(revenue);
+  financeDashboardCacheKey=memoise(cacheKey);
+  try{return build()}finally{
+    financeEffectiveJob=effective;financeLegacyAllocation=allocation;
+    financeAuthoritativeNmukAllocation=nmuk;financeSavedInvoiceForJob=invoice;
+    fleetCustomerForJob=customer;fleetEomJobs=rows;
+    financeAllJobs=allJobs;financeCompletedDate=date;
+    financeRevenueExVatValue=revenue;financeDashboardCacheKey=cacheKey;
+  }
+}
 function fleetEomHtml(){
-  var html=fleetEomBaseHtml.apply(this,arguments);
+  var receiver=this,args=arguments;
+  return financeWithReadCache(function(){
+  var html=fleetEomBaseHtml.apply(receiver,args);
   if(html.indexOf('id="fleetEomAddJob"')<0)html=html.replace('<div class="fleetEomControls">','<div class="fleetEomControls"><button type="button" class="primary" id="fleetEomAddJob">Add New Job</button>');
   var month=String(fleetEomMonth||todayIso().slice(0,7)).slice(0,7),audit=fleetEomAudit(month),auditHtml='<div class="fleetEomNotice"><b>Month integrity check:</b> '+audit.finalised+' finalised jobs found. '+(audit.unassigned?'<b>'+audit.unassigned+' need an income stream.</b> ':'All are assigned to an income stream. ')+(audit.unpriced?'<b>'+audit.unpriced+' have no saved price.</b>':'All have a saved job or invoice value.')+'</div>';
   if(html.indexOf('Month integrity check:')<0){if(html.indexOf('<div class="fleetEomSummary">')>-1)html=html.replace('<div class="fleetEomSummary">',auditHtml+'<div class="fleetEomSummary">');else html=html.replace('<div class="fleetEomJobs">',auditHtml+'<div class="fleetEomJobs">')}
   return html;
+
+  });
 }
 function fleetBind(){
   var result=fleetBindBase.apply(this,arguments),add=document.getElementById('fleetEomAddJob');
