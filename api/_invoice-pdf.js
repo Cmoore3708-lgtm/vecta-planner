@@ -42,7 +42,7 @@ const money = value => '£' + Number(value || 0).toFixed(2);
 
 export async function renderCustomerInvoicePdf(invoice, settings = {}, job = {}, presentation = {}) {
   const pdf = await PDFDocument.create();
-  pdf.setTitle('VECTA Invoice ' + String(invoice.invoice_number || ''));
+  pdf.setTitle(globalThis.VectaInvoicePrint.documentTitle(invoice,job)||'VECTA Invoice ' + String(invoice.invoice_number || ''));
   pdf.setAuthor('Vecta Motors');
   const regular = await pdf.embedFont(StandardFonts.Helvetica), bold = await pdf.embedFont(StandardFonts.HelveticaBold);
   const red = rgb(0.72, 0.08, 0.12), ink = rgb(0.13, 0.15, 0.18), muted = rgb(0.4, 0.43, 0.47), pale = rgb(0.95, 0.96, 0.97);
@@ -217,7 +217,8 @@ export default async function invoicePdfHandler(req, res) {
       return res.status(200).send(renderCustomerInvoiceHtml(invoice, settingRows[0]?.value || {}, jobRows[0] || {}, claim.presentation || {}));
     }
     const bytes = await renderCustomerInvoicePdf(invoice, settingRows[0]?.value || {}, jobRows[0] || {}, claim.presentation || {});
-    const filename = ('VECTA-Invoice-' + (invoice.invoice_number || '') + '.pdf').replace(/[^a-zA-Z0-9_.-]/g, '-');
+    const documentTitle=globalThis.VectaInvoicePrint.documentTitle(invoice,jobRows[0]||{});
+    const filename = documentTitle?documentTitle+'.pdf':('VECTA-Invoice-' + (invoice.invoice_number || '') + '.pdf').replace(/[^a-zA-Z0-9_.-]/g, '-');
     res.setHeader('Content-Type', 'application/pdf');
     res.setHeader('Content-Disposition', (req.query.download === '1' ? 'attachment' : 'inline') + '; filename="' + filename + '"');
     return res.status(200).send(bytes);

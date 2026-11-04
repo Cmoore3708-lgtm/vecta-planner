@@ -5,6 +5,24 @@
     const name=String(value||'').toLowerCase().replace(/[-_]/g,' ');
     return brands.find(b=>name===b.replace(/-/g,' ')||name.startsWith(b.replace(/-/g,' ')+' '));
   }
+  function documentTitle(inv,job={}){
+    inv=inv||{};
+    const lines=inv.lines||[],account=String(inv.fleet_customer||inv.customer_account||lines.find(l=>l.invoice_customer_account)?.invoice_customer_account||job.customer_account||'').trim();
+    const tax=inv.registration==='NMUK TAX'||inv.source==='vehicle_tax_eom';
+    const nmuk=account.toUpperCase()==='NMUK'||tax||String(inv.customer_name||'').trim().toUpperCase()==='NMUK';
+    const business=nmuk||account.toUpperCase()==='CONTRACTOR'||(account&&account.toUpperCase()!=='STAFF')||inv.source==='fleet_eom';
+    if(!business||account.toUpperCase()==='STAFF')return '';
+    const months=['January','February','March','April','May','June','July','August','September','October','November','December'];
+    let month=String(inv.fleet_month||inv.eom_month||'');
+    if(!/^[1-9]\d{3}-(0[1-9]|1[0-2])$/.test(month)){
+      const label=String(inv.vehicle||'').match(/\b(January|February|March|April|May|June|July|August|September|October|November|December)\s+([1-9]\d{3})\b/i);
+      month=label?label[2]+'-'+String(months.findIndex(m=>m.toLowerCase()===label[1].toLowerCase())+1).padStart(2,'0'):String(inv.invoice_date||'').slice(0,7);
+    }
+    const period=/^[1-9]\d{3}-(0[1-9]|1[0-2])$/.test(month)?months[Number(month.slice(5))-1]+' '+month.slice(2,4):'';
+    const customer=nmuk?'NMUK':(inv.fleet_customer&&String(inv.fleet_customer).toUpperCase()!=='CONTRACTOR'?inv.fleet_customer:inv.contractor_name||inv.customer_name||job.customer_name||account);
+    const number=String(inv.invoice_number||'').replace(/^VECTA[\s-]*/i,'').trim();
+    return ['VECTA Invoice',number,customer,period].filter(Boolean).join(' ').replace(/[<>:"/\\|?*\x00-\x1f]/g,' ').replace(/[^\x20-\x7e]/g,' ').replace(/\s+/g,' ').trim().replace(/[. ]+$/g,'');
+  }
   function render(o){
     const {inv,staffInvoice,isFleet,rows,customer,mileage,motDue,senderHtml,accountHeading,plateHtml,settings}=o;
     const esc=value=>String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -15,7 +33,7 @@
     const sender=isFleet?senderHtml:senderHtml.replace(/^(<img\b[^>]*>)([\s\S]*)$/, '<div class="invoiceLogoAnchor">$1</div><div class="invoiceSenderContacts">$2</div>');
     const hasMileage=mileage!==''&&mileage!=null&&Number.isFinite(Number(String(mileage).replace(/,/g,'')))&&Number(String(mileage).replace(/,/g,''))>=0;
     const vehicleHeader=isFleet?'':'<div class="invoiceBookingHeader"><div class="invoiceBookingDetails"><div class="invoiceBookingPlate">'+plateHtml+'</div><div class="invoiceVehicleIdentityRow"><strong class="invoiceVehicleMake">'+esc(inv.vehicle||'Vehicle')+'</strong>'+(hasMileage?'<span class="invoiceVehicleMileage">'+esc(mileage)+' miles</span>':'')+badge+'</div></div><div class="invoiceBookingArtwork"></div></div>';
-    return '<div class="invoicePrintPage"><div class="invoicePrintHeader'+(isFleet?' invoiceFleetHeader':'')+'"><div class="invoiceSender">'+sender+'</div>'+vehicleHeader+'<div class="printTitle">INVOICE'+accountHeading+'<br><span>'+esc(inv.invoice_number||'')+'</span><br><small>'+esc(formatDate(inv.invoice_date))+'</small>'+customer+'</div></div>'+'<table class="printTable invoiceWorkPrint"><tr><th>Work</th><th>'+(staffInvoice?'Amount (ex VAT)':'Amount')+'</th><th>VAT</th></tr>'+rows+'</table><div class="invoiceBottomBlock noBreak"><div class="printTotals noBreak printTotalsGrid"><div><b>Subtotal:</b><span>'+money(inv.subtotal||0)+'</span></div><div><b>VAT:</b><span>'+money(inv.vat||0)+'</span></div><div><b>Total:</b><span>'+money(inv.total||0)+'</span></div></div><div class="printPayment noBreak"><div><span><b>Bank:</b> '+esc(settings.bankName||'')+'</span> <span><b>Account Name:</b> '+esc(settings.accountName||'Vecta Motors')+'</span> <span><b>Account Number:</b> '+esc(settings.accountNumber||'')+'</span> <span><b>Sort Code:</b> '+esc(settings.sortCode||'')+'</span> <span><b>Reference:</b> '+esc(inv.registration||'Registration number')+'</span></div></div></div></div>';
+    return '<div class="invoicePrintPage"'+(documentTitle(inv,o.job)?' data-invoice-document-title="'+esc(documentTitle(inv,o.job))+'"':'')+'><div class="invoicePrintHeader'+(isFleet?' invoiceFleetHeader':'')+'"><div class="invoiceSender">'+sender+'</div>'+vehicleHeader+'<div class="printTitle">INVOICE'+accountHeading+'<br><span>'+esc(inv.invoice_number||'')+'</span><br><small>'+esc(formatDate(inv.invoice_date))+'</small>'+customer+'</div></div>'+'<table class="printTable invoiceWorkPrint"><tr><th>Work</th><th>'+(staffInvoice?'Amount (ex VAT)':'Amount')+'</th><th>VAT</th></tr>'+rows+'</table><div class="invoiceBottomBlock noBreak"><div class="printTotals noBreak printTotalsGrid"><div><b>Subtotal:</b><span>'+money(inv.subtotal||0)+'</span></div><div><b>VAT:</b><span>'+money(inv.vat||0)+'</span></div><div><b>Total:</b><span>'+money(inv.total||0)+'</span></div></div><div class="printPayment noBreak"><div><span><b>Bank:</b> '+esc(settings.bankName||'')+'</span> <span><b>Account Name:</b> '+esc(settings.accountName||'Vecta Motors')+'</span> <span><b>Account Number:</b> '+esc(settings.accountNumber||'')+'</span> <span><b>Sort Code:</b> '+esc(settings.sortCode||'')+'</span> <span><b>Reference:</b> '+esc(inv.registration||'Registration number')+'</span></div></div></div></div>';
   }
   async function cutout(scope){
     const doc=root.document,NS='http://www.w3.org/2000/svg';
@@ -43,7 +61,7 @@
   async function exporter(){
     if(root.VectaInvoicePdf)return root.VectaInvoicePdf;
     if(!exporterReady)exporterReady=new Promise((resolve,reject)=>{
-      const script=root.document.createElement('script');script.src='/js/vecta-invoice-pdf-client.js?v=20261022-clean-pdf';
+      const script=root.document.createElement('script');script.src='/js/vecta-invoice-pdf-client.js?v=20261104-billing-file-name';
       script.onload=()=>resolve(root.VectaInvoicePdf);script.onerror=()=>{exporterReady=null;script.remove();reject(Error('Invoice PDF could not load'));};root.document.head.appendChild(script);
     });
     return exporterReady;
@@ -53,9 +71,10 @@
     const doc=root.document,frame=doc.createElement('iframe');
     frame.title='VECTA invoice print';frame.setAttribute('aria-hidden','true');
     frame.style.cssText='position:fixed;left:-10000px;top:0;width:794px;height:1123px;border:0';
-    const markup=sheet.querySelector('.invoicePrintPage').outerHTML;
+    const page=sheet.querySelector('.invoicePrintPage'),markup=page.outerHTML;
+    const title=(page.dataset?.invoiceDocumentTitle||'VECTA Invoice').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
     const loaded=new Promise((resolve,reject)=>{frame.onload=resolve;frame.onerror=()=>reject(Error('Invoice print document could not load'));});
-    frame.srcdoc='<!doctype html><html><head><meta charset="utf-8"><base href="'+root.location.origin+'/"><title>VECTA Invoice</title><link rel="stylesheet" href="/js/vecta-customer-invoice.css?v=20261026-compact-bank-footer"></head><body><main class="printSheet">'+markup+'</main></body></html>';
+    frame.srcdoc='<!doctype html><html><head><meta charset="utf-8"><base href="'+root.location.origin+'/"><title>'+title+'</title><link rel="stylesheet" href="/js/vecta-customer-invoice.css?v=20261026-compact-bank-footer"></head><body><main class="printSheet">'+markup+'</main></body></html>';
     doc.body.appendChild(frame);
     try{
       await loaded;
@@ -85,5 +104,5 @@
     }
   }
   function formatDate(value){const match=String(value||'').match(/^(\d{4})-(\d{2})-(\d{2})/);return match?match[3]+'/'+match[2]+'/'+match[1]:String(value||'');}
-  root.VectaInvoicePrint={render,manufacturer,print,cutout,formatDate,fitFooter};
+  root.VectaInvoicePrint={render,manufacturer,print,cutout,formatDate,fitFooter,documentTitle};
 })(globalThis);
