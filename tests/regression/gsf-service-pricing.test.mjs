@@ -277,7 +277,7 @@ test('actual website shows a matched service price and submits its signed snapsh
     return {ok:true,json:async()=>({})};
   };
   vm.createContext(root);
-  for(const file of ['vecta-tyre-booking.js','vecta-haynes-booking.js','vecta-vehicle-image.js','vecta-service-pricing.js'])vm.runInContext(readFileSync(new URL('../../public/js/'+file,import.meta.url),'utf8'),root);
+  for(const file of ['vecta-booking-tracking.js','vecta-tyre-booking.js','vecta-haynes-booking.js','vecta-vehicle-image.js','vecta-service-pricing.js'])vm.runInContext(readFileSync(new URL('../../public/js/'+file,import.meta.url),'utf8'),root);
   const create=root.VectaServicePricing.createController;root.VectaServicePricing.createController=options=>create({...options,wait:async()=>{}});
   for(const script of document.querySelectorAll('script:not([src])'))if(script.textContent.trim())vm.runInContext(script.textContent,root);
   vm.runInContext("state.step=2;state.form.registration='NU67VSE';state.form.vehicle='Nissan Pulsar';state.form.job_types=['Service'];state.form.service_choice='Full Service';state.form.mileage='50000';state.form.parts_range='Mid Range';state.form.engine_size_manual='1600';render();",root);
