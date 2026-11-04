@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import vm from 'node:vm';
 import handler from '../../api/website-booking.js';
+import {verifyProgressToken,requestProgressSecret,requestProgressJob,claimMatchesJob} from '../../lib/job-progress.js';
 
 const html=fs.readFileSync(new URL('../../website/booking/index.html',import.meta.url),'utf8');
 const helper=html.slice(html.indexOf('let bookingSubmission = null;'),html.indexOf('async function submit(){'));
@@ -60,7 +61,12 @@ async function withDatabase(run){
 test('concurrent submissions create one inbox request and return the same receipt',async()=>withDatabase(async db=>{
  const responses=await Promise.all([db.submit({...payload,request_id:id}),db.submit({...payload,request_id:id})]);
  assert.deepEqual(responses.map(r=>r.code).sort(),[200,201]);assert.equal(db.rows.size,1);assert.equal(db.notifications,1);
- for(const response of responses){assert.equal(response.data.request_id,id);assert.equal(response.data.confirmed,false);}
+ for(const response of responses){assert.equal(response.data.request_id,id);assert.equal(response.data.confirmed,false);
+  assert.match(response.data.tracking_url,/^\/track#request\./);
+  const claim=verifyProgressToken(response.data.tracking_url.split('#request.')[1],requestProgressSecret());
+  assert.ok(claimMatchesJob(claim,requestProgressJob(db.rows.get(id))));
+ }
+ assert.equal(responses[0].data.tracking_url,responses[1].data.tracking_url);
  assert.equal(db.rows.get(id).status,'awaiting_review');
 }));
 test('a database insert whose response is lost recovers without a duplicate',async()=>withDatabase(async db=>{

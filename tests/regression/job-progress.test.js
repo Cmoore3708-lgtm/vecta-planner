@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import vm from 'node:vm';
 import {parseHTML} from 'linkedom';
-import {issueProgressToken,verifyProgressToken,claimMatchesJob,progressSnapshot,trackable,trackingUrl,progressSecret,londonDay} from '../../lib/job-progress.js';
+import {issueProgressToken,verifyProgressToken,claimMatchesJob,progressSnapshot,trackable,trackingUrl,progressSecret,londonDay,requestTrackingPath,requestProgressJob} from '../../lib/job-progress.js';
 import handler,{customerStatus,startWork,sendInvoice,registrationStatus,progressRegistration,allowRegistrationLookup} from '../../lib/job-progress-handler.js';
 import {requiresManagerLogin} from '../../middleware.js';
 
@@ -38,6 +38,24 @@ function environment(){
   Object.assign(process.env,{VERCEL_ENV:'production',VERCEL_PROJECT_NAME:'planner',VERCEL_PROJECT_PRODUCTION_URL:'planner.example',VITE_SUPABASE_URL:'https://database.example',SUPABASE_SERVICE_ROLE_KEY:'test-service-key',VECTA_MAIN_USER:'manager',VECTA_MAIN_PASSWORD:'password'});
   return ()=>{for(const [k,v] of Object.entries(previous))if(v===undefined)delete process.env[k];else process.env[k]=v;};
 }
+test('receipt links open future bookings and follow only their matching accepted job',async()=>{
+ const restore=environment(),original=global.fetch;
+ const request={id,registration:job.registration,vehicle:job.vehicle,email:job.customer_email,confirmed_date:'2026-11-27',status:'awaiting_review'};
+ let saved={...job,id:'22345678-1234-4234-8234-123456789012',booking_date:'2026-11-27',work_required:'Mini Valet'};
+ const calls=[];global.fetch=async url=>{calls.push(String(url));return Response.json(String(url).includes('website_booking_requests?')?[request]:String(url).includes('/jobs?')?[saved]:[]);};
+ try{
+  const token=requestTrackingPath(request,now).split('#')[1];
+  let data=await customerStatus(token,now);assert.equal(data.stage,'scheduled');assert.equal(data.registration,job.registration);assert.doesNotMatch(JSON.stringify(data),/driver@example|Private notes|amount_quoted|invoice_url/);
+  request.job_id=saved.id;data=await customerStatus(token,now);assert.equal(data.stage,'scheduled');assert.equal(data.job_description,'Mini Valet');
+  saved={...saved,status:'in_progress'};data=await customerStatus(token,Date.parse('2026-11-27T11:00:00Z'));assert.equal(data.stage,'underway');
+  saved={...saved,customer_email:'other@example.com'};await assert.rejects(customerStatus(token,now),/latest booking confirmation/);
+  saved={...saved,customer_email:request.email,status:'cancelled'};await assert.rejects(customerStatus(token,now));
+  delete request.job_id;request.status='cancelled';await assert.rejects(customerStatus(token,now));request.status='awaiting_review';
+  request.email='changed@example.com';await assert.rejects(customerStatus(token,now));request.email=job.customer_email;
+  const count=calls.length;await assert.rejects(customerStatus(token+'x',now));await assert.rejects(customerStatus(token.slice(8),now));
+  await assert.rejects(customerStatus('request.'+issueProgressToken(requestProgressJob(request),progressSecret(),now),now));assert.equal(calls.length,count);
+ }finally{global.fetch=original;restore();}
+});
 test('public status returns only the selected booking, never contacts or financial data',async()=>{
   const restore=environment(),original=global.fetch,calls=[];
   global.fetch=async url=>{calls.push(String(url));return Response.json(String(url).includes('workshop_settings')?[{value:{customer_account:'Staff'}}]:[job]);};

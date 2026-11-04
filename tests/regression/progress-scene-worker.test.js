@@ -52,6 +52,14 @@ test('worker generates all three once, validates them, publishes together and re
  assert.equal(publishedScenes(manifest.identity,{...manifest,scenes:{...manifest.scenes,ready:'https://evil.example/image.webp'}},base),null);
  assert.equal(f.rows.get('progress_scene_usage_v1:2026-11').value.requests,4);
 });
+test('future bookings prepare their real scenes early and still reuse the approved set',async()=>{
+ const f=fixture();f.jobs[0].booking_date='2026-11-27';
+ assert.equal((await f.service.run()).status,'ready');assert.equal(f.generated.length,3);
+ const query=new URL('https://db.example/'+f.calls.find(c=>c.path.startsWith('jobs?')).path).searchParams;
+ assert.equal(query.get('booking_date'),'gte.2026-11-03');assert.equal(query.has('and'),false);
+ assert.equal((await f.service.run()).idle,true);assert.equal(f.generated.length,3);
+ const past=fixture();past.jobs[0].booking_date='2026-11-02';assert.equal((await past.service.run()).idle,true);assert.equal(past.generated.length,0);
+});
 test('failed visual checks never publish, retries stop after two attempts per image',async()=>{
  const f=fixture({quality:false});assert.equal((await f.service.run()).status,'pending');assert.equal((await f.service.run()).status,'needs_review');assert.equal((await f.service.run()).idle,true);
  assert.equal(f.generated.length,6);assert.equal(f.stats().publishes,0);assert.equal(f.rows.get('progress_scenes_v1:'+reg).value.scenes,undefined);
@@ -93,6 +101,8 @@ test('customer renderer accepts trusted complete sets for any registration and r
  const context={document,window:{addEventListener(){}},location:{hash:'#token'},Intl,Date,AbortSignal,Error,setTimeout:()=>1,clearTimeout(){},fetch:async()=>({ok:true,json:async()=>data})};
  vm.runInNewContext(fs.readFileSync(new URL('../../public/js/vecta-progress.js',import.meta.url),'utf8'),context);await new Promise(r=>setImmediate(r));
  for(const card of document.querySelectorAll('[data-scene]')){assert.equal(card.querySelector('.approvedScene').getAttribute('src'),scenes[card.dataset.scene]);assert.equal(card.querySelector('.vehicleLayer').hidden,true);}
+ data={...data,stage:'scheduled',title:'Your booking is confirmed'};await document.getElementById('refresh').onclick();
+ for(const card of document.querySelectorAll('[data-scene]')){assert.equal(card.querySelector('.approvedScene').hidden,false);assert.equal(card.querySelector('.approvedScene').getAttribute('src'),scenes[card.dataset.scene]);assert.equal(card.classList.contains('current'),false);}
  data={...data,scenes:{...scenes,ready:'https://evil.example/car.webp'}};await document.getElementById('refresh').onclick();for(const card of document.querySelectorAll('[data-scene]'))assert.equal(card.querySelector('.approvedScene').hasAttribute('src'),false);
 });
 test('quality-provider timeouts also stop after two requests without regenerating good drafts',async()=>{
