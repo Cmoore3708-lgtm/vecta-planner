@@ -166,7 +166,9 @@ function vehicleMatches(value, expected={}) {
   }
   function personaliseSvg(source, registration, colour, asset, logo, tight = false, vehicleName = '') {
     const svg = sanitiseSvg(source), paint = svg.querySelector('[id="transparant_colour"], [id="transparent_colour"]');
-    if(tight)svg.querySelectorAll('[id="gradients_background"], [id="background"]').forEach(node=>node.remove());
+    // Haynes' gradients_background is the opaque body beneath its translucent
+    // paint, not a canvas background. Removing it exposes the far-side wheels.
+    if(tight)svg.querySelectorAll('[id="background"]').forEach(node=>node.remove());
     const hex = colourHex(colour);
     if (hex && paint) {
       paint.setAttribute('fill',hex);
@@ -253,7 +255,7 @@ function vehicleMatches(value, expected={}) {
       if (!match) return;
       const registration = normaliseReg(img.dataset.registration), colour = img.dataset.colour || '';
       const tight=img.dataset.vehicleCrop==='tight';
-      const baseKey = match[1]+'|render-v5|'+registration+'|'+colourHex(colour)+(tight?'|tight-v4-cutout':''),brand=img.dataset.vehicleLogo==='separate'?'':manufacturer(img.dataset.vehicleMake||img.dataset.vehicleName);
+      const baseKey = match[1]+'|render-v5|'+registration+'|'+colourHex(colour)+(tight?'|tight-v5-solid-body':''),brand=img.dataset.vehicleLogo==='separate'?'':manufacturer(img.dataset.vehicleMake||img.dataset.vehicleName);
       const key=(brand?baseKey+'|logo-v2-below:'+brand:baseKey)+'|name:'+String(img.dataset.vehicleName||'');
       if(img.dataset.personalising===key||img.dataset.vehicleRender===key&&img.dataset.vehicleReady==='1')return;
       const token={};mountTokens.set(img,token);img.dataset.personalising=key;
