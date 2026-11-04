@@ -6,6 +6,7 @@ import {bookingServicePrice} from '../lib/booking-service-price.js';
 import {bookingTyreParts} from '../lib/tyre-cost-token.js';
 import {bookingServiceParts} from '../lib/booking-service-parts.js';
 import {bookingServiceExtra,serviceExtraSnapshot} from '../lib/service-extras.js';
+import {requestTrackingPath} from '../lib/job-progress.js';
 
 function cfg(){return databaseEnvironment({requireService:true})}
 function reg(v){return String(v||'').toUpperCase().replace(/\s+/g,' ').trim()}
@@ -60,6 +61,7 @@ export default async function handler(req,res){
    if(!existing||(b.appointment_time&&String(existing.confirmed_time||'').slice(0,5)!==b.appointment_time)||fields.some(field=>JSON.stringify(existing[field])!==JSON.stringify(request[field])))return res.status(409).json({error:'This request identity belongs to different booking details'});
   }
   if(created)await sendBookingBadges();
-  return res.status(created?201:200).json({ok:true,confirmed:false,request_id:id,date:receipt?.confirmed_date||appointment,time:String(receipt?.confirmed_time||b.appointment_time||'').slice(0,5)||null});
+  let tracking_url;try{tracking_url=requestTrackingPath(receipt||request);}catch{/* A past receipt must not turn a saved booking into a failed submission. */}
+  return res.status(created?201:200).json({ok:true,confirmed:false,request_id:id,date:receipt?.confirmed_date||appointment,time:String(receipt?.confirmed_time||b.appointment_time||'').slice(0,5)||null,tracking_url});
  }catch(e){if(e.message==='INVALID_SERVICE_EXTRA')return res.status(400).json({error:'Select a valid optional service item.'});if(e.code==='BOOKING_INPUT')return res.status(400).json({error:e.message});if(String(e.message).includes('VECTA_BOOKING_UNAVAILABLE'))return res.status(409).json({error:'That appointment is no longer available or does not meet the booking notice period. Please choose another available date.'});if(String(e.message).includes('VECTA_BOOKING_MONDAY'))return res.status(409).json({error:'Mondays are not available for online bookings. Please choose another day.'});if(String(e.message).includes('VECTA_BOOKING_FRIDAY_CAPACITY'))return res.status(409).json({error:'Alfie’s Friday online booking capacity is now full. Please choose another date.'});console.error(e);return res.status(500).json({error:'Unable to complete booking'});}
 }

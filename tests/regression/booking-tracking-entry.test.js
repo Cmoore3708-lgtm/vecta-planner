@@ -6,6 +6,13 @@ import {parseHTML} from 'linkedom';
 const source=fs.readFileSync('public/js/vecta-booking-tracking.js','utf8');
 function controller(request){const context={window:{},fetch:request,AbortController,setTimeout,clearTimeout};vm.runInNewContext(source,context);let registration='H16 CKK',changes=[];const c=context.window.VectaBookingTracking.createController({request,getRegistration:()=>registration,onChange:x=>changes.push(x)});return {c,changes,setRegistration:r=>registration=r};}
 const response=(registration='H16CKK',stage='underway',status=200)=>({ok:status===200,status,json:async()=>({registration,stage})});
+test('confirmation HERE opens its signed booking receipt and never accepts an external destination',()=>{
+ const html=fs.readFileSync('website/booking/index.html','utf8');
+ const context={state:{form:{registration:'H16 CKK'}},encodeURIComponent};
+ vm.runInNewContext(html.slice(html.indexOf('function bookingTrackingHref('),html.indexOf('function bookingReceiptActionsHtml(')),context);
+ const path='/track#request.payload.'+'a'.repeat(43);assert.equal(context.bookingTrackingHref({tracking_url:path}),path);
+ for(const tracking_url of [undefined,'https://evil.example/','/track#bad','javascript:alert(1)'])assert.equal(context.bookingTrackingHref({tracking_url}),'/track?reg=H16CKK');
+});
 test('only a successful exact same-day tracking result offers the link; errors never block booking',async()=>{
  for(const [r,expected] of [[response(),'booked'],[response('OTHER'),'unavailable'],[response('H16CKK','scheduled'),'unavailable'],[response('H16CKK','',404),'absent'],[response('H16CKK','',503),'unavailable']]){
   const f=controller(async(url,options)=>{assert.equal(url,'/api/job-progress');assert.equal(JSON.parse(options.body).registration,'H16CKK');assert.equal(options.cache,'no-store');return r;});
@@ -25,7 +32,7 @@ test('today booking panel is a safe registration-specific link beneath the vehic
  vm.runInNewContext(html.slice(html.indexOf('function updateTodayTracking(){'),html.indexOf('const haynesLookup=')),context);context.updateTodayTracking();const link=document.querySelector('a');assert.equal(link.getAttribute('href'),'/track?reg=H16CKK');assert.equal(link.textContent,'We see your car is with us today.Click here to track its progress');assert.equal(document.getElementById('todayTracking').hidden,false);
  context.state.form.registration='AB12CDE';context.updateTodayTracking();assert.equal(document.querySelector('a'),null);assert.equal(document.getElementById('todayTracking').hidden,true);
  assert.match(html,/state.step===1&&valid\(\)&&todayTracking.canAdvance\(\)/);
- assert.match(html,/class="confirmation-tracking">Track your car on the day of your booking by clicking <a href="https:\/\/www.vectamotors.co.uk\/">HERE<\/a>\./);
+ assert.match(html,/class="confirmation-tracking">Track your car on the day of your booking by clicking <a href="\$\{esc\(bookingTrackingHref\(d\)\)\}">HERE<\/a>\./);
  const index=fs.readFileSync('index.html','utf8');const email=index.slice(index.indexOf('async function openWebsiteBookingConfirmationEmail('),index.indexOf('async function openWebsiteBookingConfirmationEmail(')+2500);assert.doesNotMatch(email,/You can track the progress|revisiting VectaMotors/);assert.match(email,/VectaBookingEmailDraft.open/);
 });
 test('tracking links prefill and look up the registration without needing a second entry',async()=>{
