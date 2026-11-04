@@ -200,3 +200,54 @@ test('a superseded planner save cannot overwrite a later drag', async()=>{
  await ctx.persistPlannerJobs([{...latest,drop_time:'09:00',updated_at:'2026-10-22T10:00:00Z'},latest]);
  assert.deepEqual(writes,['11:00']);assert.equal(latest.drop_time,'11:00');
 });
+
+function stackedPlanner(jobs){
+ const context={app:{jobs},window:{},plannerStartMinutes:480,
+  plannerTechnicianLane:x=>x,normaliseClock:x=>x,
+  clockMinutes:value=>{const [h,m]=value.split(':').map(Number);return h*60+m},
+  timeFromMinutes:value=>`${String(Math.floor(value/60)).padStart(2,'0')}:${String(value%60).padStart(2,'0')}`,
+  roundPlannerMinutesUp:x=>Math.ceil(x/15)*15,plannerSnapMinutes:x=>Math.round(x/30)*30,
+  isSoftDeletedJob:()=>false,jobCompletionEvidence:x=>x.status==='completed',isJobInvoiced:()=>false};
+ for(const name of ['plannerLaneActiveJobs','plannerSafeStackStart','plannerPackOrderedJobs','plannerCloseCompletedGap','plannerDropOrder','plannerInsertJob'])vm.runInNewContext(namedFunctionSource(name),context);
+ return context;
+}
+const stackedJob=(id,time,extra={})=>({id,drop_time:time,booking_date:'2026-11-04',technician:'Alfie',estimated_hours:1,status:'booked',...extra});
+
+test('completion closes the slot and preserves remaining order and durations',()=>{
+ const jobs=[stackedJob('a','08:00'),stackedJob('b','09:00',{status:'completed'}),stackedJob('c','10:00',{estimated_hours:.5}),stackedJob('d','11:00')];
+ const ctx=stackedPlanner(jobs);ctx.plannerCloseCompletedGap(jobs[1]);
+ assert.deepEqual(jobs.map(j=>j.drop_time),['08:00','09:00','09:00','09:30']);
+ assert.equal(jobs[2].estimated_hours,.5);
+});
+test('dropping between jobs inserts and shifts neighbours instead of rejecting overlap',()=>{
+ const jobs=[stackedJob('a','08:00'),stackedJob('b','09:00'),stackedJob('c','10:00')];const ctx=stackedPlanner(jobs);
+ ctx.plannerInsertJob(jobs[2],'2026-11-04','Alfie',540);
+ assert.deepEqual(jobs.map(j=>j.drop_time),['08:00','10:00','09:00']);
+ ctx.plannerInsertJob(jobs[0],'2026-11-04','Alfie',700);
+ assert.deepEqual(jobs.map(j=>j.drop_time),['10:00','09:00','08:00']);
+});
+test('moving between mechanics closes the source gap and inserts into the destination',()=>{
+ const jobs=[stackedJob('a','08:00'),stackedJob('b','09:00'),stackedJob('c','08:00',{technician:'Chris'})];const ctx=stackedPlanner(jobs);
+ ctx.plannerInsertJob(jobs[0],'2026-11-04','Chris',550);
+ assert.equal(jobs[1].drop_time,'08:00');assert.equal(jobs[0].technician,'Chris');assert.equal(jobs[0].drop_time,'09:00');
+});
+test('closing gaps respects mechanic time off and leaves other dates and mechanics alone',()=>{
+ const jobs=[stackedJob('a','08:00',{status:'completed'}),stackedJob('b','10:00'),stackedJob('c','12:00',{technician:'Chris'}),stackedJob('d','12:00',{booking_date:'2026-11-05'})];const ctx=stackedPlanner(jobs);
+ ctx.window.vectaTimeOffConflict=job=>ctx.clockMinutes(job.drop_time)<540?{}:null;
+ ctx.plannerCloseCompletedGap(jobs[0]);
+ assert.deepEqual(jobs.map(j=>j.drop_time),['08:00','09:00','12:00','12:00']);
+});
+
+test('an impossible rearrangement leaves both mechanic lanes unchanged',()=>{
+ const jobs=[stackedJob('a','08:00'),stackedJob('b','09:00'),stackedJob('c','08:00',{technician:'Chris'})];const ctx=stackedPlanner(jobs),before=JSON.stringify(jobs);
+ ctx.window.vectaTimeOffConflict=()=>({});
+ assert.throws(()=>ctx.plannerInsertJob(jobs[0],'2026-11-04','Chris',550),/available mechanic time/);
+ assert.equal(JSON.stringify(jobs),before);
+});
+
+test('the completion path closes gaps only after the server accepts the completed job',()=>{
+ const save=html.slice(html.indexOf('async function saveJob(id)'),html.indexOf('function prepareLinkedCustomerVehicleLocal(j)'));
+ assert.ok(save.indexOf("if(savedResult===false)")<save.indexOf('plannerCloseCompletedGap(savedJobBeforeEdit||j)'));
+ assert.match(save,/savedJobBeforeEdit&&!wasCompleted&&j.status==='completed'/);
+ assert.match(save,/persistPlannerJobsInBackground\(completionShifted,'Close completed job gap'\)/);
+});
