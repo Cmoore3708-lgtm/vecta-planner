@@ -2864,6 +2864,7 @@ body.servicePreviewing .servicePreviewControls{position:relative!important;z-ind
 <link rel="stylesheet" href="/js/vecta-repair-quote.css">
 <link rel="vecta-offline-script" href="/js/vecta-repair-quote.js">
 <script src="/js/vecta-vehicle-image.js" defer></script>
+<script src="/js/vecta-booking-email-draft.js" defer></script>
 <script src="/js/vecta-fleet-images.js" defer></script>
 <link rel="stylesheet" href="/js/vecta-fleet-images.css">
 <link rel="stylesheet" href="/js/job-card-compact.css">
@@ -12902,11 +12903,12 @@ async function openWebsiteBookingConfirmationEmail(j){
     'Please park your car in the parking spaces outside our Workshop in the morning before your shift and remember to leave your Service book (if required) and locking wheel nut key on the passenger seat.\n\n'+
     'Click here for directions:\nhttps://www.vectamotors.co.uk/find-us\n\n'+
     'If we discover any additional work that requires doing we will contact you for authorisation first, so please check your phone/email when possible.';
-  body+='\n\nYou can track the progress of your vehicle on the day by revisiting VectaMotors.co.uk and entering your registration number.';
-  try{var tracking=await vectaProgressRequest({action:'link',job_id:j.id});body+='\n\nTrack your car on the day of your booking:\n'+tracking.url;}catch(error){console.warn('Tracking link was not available for this confirmation',error);}
-  body=appendVectaEmailSignature(body);
-  if(window.vectaMessages)window.vectaMessages.record({registration:j.registration,job_id:String(j.id||''),method:'email',kind:'booking_confirmation',recipient:email,subject:subject,body:body});
-  window.location.href='mailto:'+encodeURIComponent(email)+'?subject='+encodeURIComponent(subject)+'&body='+encodeURIComponent(body);
+  var trackingUrl='https://www.vectamotors.co.uk/';
+  try{var tracking=await vectaProgressRequest({action:'link',job_id:j.id});trackingUrl=tracking.url||trackingUrl;}catch(error){console.warn('Tracking link was not available for this confirmation',error);}
+  body=appendVectaEmailSignature(body+'\n\nTrack your car on the day of your booking by clicking HERE.');
+  var draft=window.VectaBookingEmailDraft.create({email:email,subject:subject,body:body,trackingUrl:trackingUrl});
+  window.VectaBookingEmailDraft.open(draft,reg);
+  if(window.vectaMessages)window.vectaMessages.record({registration:j.registration,job_id:String(j.id||''),method:'email',kind:'booking_confirmation',recipient:email,subject:subject,body:draft.text});
   return true;
 }
 function isUnresolvedWebsiteService(j){
