@@ -636,3 +636,18 @@
  #jobModal .jobCardSimplified .jobWorkSection #job_work_required{height:110px!important;min-height:110px!important}
 }
 .jobListTotal{white-space:nowrap;font-variant-numeric:tabular-nums}
+
+/* New booking: four compact actions, then a full-width print button. */
+@media screen{
+ #jobModal .modalFoot.newJobFooter{display:grid!important;grid-template-columns:repeat(4,minmax(0,1fr));align-items:stretch}
+ #jobModal .modalFoot.newJobFooter>button{min-width:0;white-space:normal;line-height:1.2;order:1}
+ #jobModal .newJobFooter>#cancelJob{grid-column:1;grid-row:1;order:0}
+ #jobModal .newJobFooter>#createQuote{grid-column:2;grid-row:1;order:0}
+ #jobModal .newJobFooter>#createProvisionalBooking{grid-column:3;grid-row:1;order:0}
+ #jobModal .newJobFooter>#saveJob{grid-column:4;grid-row:1;order:0;min-height:64px}
+ #jobModal .newJobFooter>#printJobCard{grid-column:1/-1;order:2;min-height:44px}
+}
+@media screen and (max-width:760px){
+ #jobModal .modalFoot.newJobFooter>button{padding:6px 3px!important;font-size:clamp(10px,3vw,13px)!important}
+ #jobModal .newJobFooter>#saveJob{aspect-ratio:1;min-height:0}
+}
