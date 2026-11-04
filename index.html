@@ -11900,15 +11900,20 @@ function fleetSafetyCompletionMatchesCycle(completed,due,cycle){
   return !isNaN(dueDate.getTime())&&!isNaN(doneDate.getTime())&&doneDate>=new Date(dueDate.getTime()-62*86400000);
 }
 function fleetPlanCompletedForCurrentCycle(p){
-  /* A user-entered active due date is the authoritative outstanding cycle.
-     Historical completion evidence must not hide it from the Fleet list. */
-  if(p&&p.manualDueDate===true&&fleetMaintenanceCategory(p.type)!=='safety')return false;
   var due=fleetDate(p),planCategory=fleetMaintenanceCategory(p.type),
       vehicle=(fleetVehicles||[]).find(function(v){return v&&String(v.id)===String(p.vehicleId)}),
       latestEvidence=vehicle&&fleetLatestCompletedEvidenceDate(vehicle,planCategory);
   /* A current/future diary booking is direct evidence that this cycle is still
      outstanding. Older completion history must never hide booked Fleet work. */
   if(vehicle&&planCategory&&fleetBookedPlannerJob(vehicle.registration,planCategory))return false;
+  /* This closure owns the live Fleet list; later window overrides cannot replace it.
+     A manual due date still accepts a completed service in the same annual cycle,
+     but imported history alone must not clear a deliberately entered due date. */
+  if(p&&p.manualDueDate===true&&planCategory!=='safety'){
+    var completedJob=planCategory==='service'&&fleetCompletedJobForPlanCycle(p),
+        completedDate=completedJob&&completedJobDateForFleet(completedJob);
+    return !!(due&&completedDate&&fleetServiceCompletionMatchesCycle(completedDate,due));
+  }
   if(planCategory==='service'&&latestEvidence&&(!due||fleetServiceCompletionMatchesCycle(latestEvidence,due)))return true;
   if(planCategory==='safety'&&latestEvidence&&due){
     var safetyDueDate=new Date(String(due).slice(0,10)+'T00:00:00'),safetyDoneDate=new Date(latestEvidence+'T00:00:00');
@@ -12203,7 +12208,7 @@ function syncFleetServiceScheduleFromJob(j){
 
   var completionId='job-service-'+String(j.id),
       completion=fleetCompletions.find(function(c){return c.id===completionId}),
-      record={id:completionId,vehicleId:vehicle.id,planId:plan.id,type:currentType,serviceType:currentType,nextServiceType:nextType,completedDate:completed,datePrecision:'day',nextDue:nextDue,nextSafetyDue:(vehicle.fleetGroup!=='Nissan Internal'?safetyDue:''),source:'job:'+String(j.id),notes:currentType+' completed. Safety check due '+serviceSheetDate(safetyDue)+'; '+nextType+' due '+serviceSheetDate(nextDue)+'.'};
+      record={id:completionId,vehicleId:vehicle.id,planId:plan.id,type:currentType,serviceType:currentType,nextServiceType:nextType,completedDate:completed,datePrecision:'day',nextDue:nextDue,nextSafetyDue:(vehicle.fleetGroup!=='Nissan Internal'?safetyDue:''),source:'job:'+String(j.id),notes:currentType+' completed. '+(vehicle.fleetGroup!=='Nissan Internal'?'Safety check due '+serviceSheetDate(safetyDue)+'; ':'')+nextType+' due '+serviceSheetDate(nextDue)+'.'};
   if(completion)Object.assign(completion,record);else fleetCompletions.push(record);
   saveFleet();return record;
 }
@@ -12254,7 +12259,9 @@ function syncFleetMotScheduleFromJob(j,saveNow){
 function syncFleetMaintenanceFromJob(j){
   if(!completedJobCanUpdateFleet(j))return false;
   var changed=false,cats=fleetPlannerJobCategories(j);
-  if(cats.service&&!isSixMonthSafetyCheck(j)&&!isOnSiteService(j)){if(syncFleetServiceScheduleFromJob(j))changed=true;}
+  /* The service synchroniser admits Internal On-Site Services and rejects other
+     on-site work. Do not exclude them before that vehicle-specific check. */
+  if(cats.service&&!isSixMonthSafetyCheck(j)){if(syncFleetServiceScheduleFromJob(j))changed=true;}
   if(cats.mot){if(syncFleetMotScheduleFromJob(j))changed=true;}
   if((cats.safety||isSixMonthSafetyCheck(j))&&typeof window.v212RecordFleetSafetyCompletion==='function'){if(window.v212RecordFleetSafetyCompletion(j,false))changed=true;}
   if(changed&&typeof saveFleet==='function')saveFleet();
@@ -12267,12 +12274,12 @@ function reconcileFleetMaintenanceFromCompletedJobs(){
   candidates.forEach(function(j){
     var vehicle=fleetVehicleForRegistration(j.registration||'');if(!vehicle)return;
     var completed=completedJobDateForFleet(j),cats=fleetPlannerJobCategories(j);
-    if(cats.service&&!isSixMonthSafetyCheck(j)&&!isOnSiteService(j)){
+    if(cats.service&&!isSixMonthSafetyCheck(j)){
       var sp=fleetPlanMatching(vehicle.id,'service'),sd=sp&&fleetDate(sp)||'',expected=fleetAddMonthsFromDue(completed,12);
       /* A completed service is authoritative. Any service due date earlier than the
          next annual cycle is stale and must be advanced. Keep a genuinely later
          manually-entered date rather than dragging it backwards. */
-      if(!sd||sd<expected){syncFleetServiceScheduleFromJob(j);changed++;}
+      if((!sd||sd<expected)&&syncFleetServiceScheduleFromJob(j))changed++;
     }
     if(cats.mot&&isActualCompletedMotJob(j)){
       var mp=fleetPlanMatching(vehicle.id,'mot'),md=mp&&fleetDate(mp)||'';
@@ -12286,7 +12293,9 @@ function reconcileLatestCompletedServiceAuthority(){
   if(!Array.isArray(app.jobs)||!Array.isArray(fleetVehicles))return 0;
   var latestByReg={};
   app.jobs.forEach(function(j){
-    if(!j||!completedJobCanUpdateFleet(j)||isSixMonthSafetyCheck(j)||isOnSiteService(j))return;
+    if(!j||!completedJobCanUpdateFleet(j)||isSixMonthSafetyCheck(j))return;
+    var vehicle=fleetVehicleForRegistration(j.registration||'');
+    if(isOnSiteService(j)&&(!vehicle||vehicle.fleetGroup!=='Nissan Internal'))return;
     var cats=fleetPlannerJobCategories(j);if(!cats.service)return;
     var reg=normReg(j.registration||''),done=completedJobDateForFleet(j);if(!reg||!done)return;
     var prev=latestByReg[reg];if(!prev||done>prev.done)latestByReg[reg]={job:j,done:done};
