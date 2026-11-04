@@ -14431,6 +14431,39 @@ function plannerLaneActiveJobs(date,tech,excludeId){var wantedLane=plannerTechni
 function plannerSafeStackStart(job,cursor){var start=Math.max(8*60,Math.round(Number(cursor||8*60)/15)*15),guard=0;while(guard++<80){job.drop_time=timeFromMinutes(start);var conflict=window.vectaTimeOffConflict&&window.vectaTimeOffConflict(job,job.id);if(!conflict)return start;start+=15}return start}
 function plannerCompactLane(){return []} /* Explicit positions are retained; legacy callers must not repack a lane. */
 
+function plannerPackOrderedJobs(jobs,startMinutes){
+  var cursor=Number(startMinutes),changed=[],stamp=new Date().toISOString(),planned=[];
+  for(var i=0;i<jobs.length;i++){
+    var job=jobs[i],probe=Object.assign({},job),duration=Math.max(15,roundPlannerMinutesUp(Number(job.estimated_hours||1)*60));
+    var start=plannerSafeStackStart(probe,cursor);
+    if(window.vectaTimeOffConflict&&window.vectaTimeOffConflict(probe,job.id))throw new Error('There is not enough available mechanic time to rearrange these jobs.');
+    planned.push({job:job,time:timeFromMinutes(start)});cursor=start+duration;
+  }
+  planned.forEach(function(item){if(normaliseClock(item.job.drop_time)!==item.time){item.job.drop_time=item.time;item.job.updated_at=stamp;changed.push(item.job)}});
+  return changed;
+}
+function plannerCloseCompletedGap(previous){
+  if(!previous||!previous.booking_date||!previous.technician||previous.technician==='Unallocated')return [];
+  var jobs=plannerLaneActiveJobs(previous.booking_date,previous.technician,previous.id);
+  if(!jobs.length)return [];
+  return plannerPackOrderedJobs(jobs,Math.min(clockMinutes(previous.drop_time||'08:00'),clockMinutes(jobs[0].drop_time||'08:00')));
+}
+function plannerInsertJob(job,date,tech,rawMinutes){
+  var oldDate=job.booking_date,oldTech=job.technician,oldTime=job.drop_time;
+  var order=plannerDropOrder(date,tech,job.id,rawMinutes),start=order.jobs.length?clockMinutes(order.jobs[0].drop_time||'08:00'):plannerSnapMinutes(rawMinutes);
+  if(oldDate===date&&plannerTechnicianLane(oldTech)===plannerTechnicianLane(tech))start=Math.min(start,clockMinutes(oldTime||'08:00'));
+  order.jobs.splice(order.index,0,Object.assign({},job,{booking_date:date,technician:tech}));
+  var copies=order.jobs.map(function(row){return Object.assign({},row)});
+  plannerPackOrderedJobs(copies,start);
+  if(oldDate&&oldTech&&oldTech!=='Unallocated'&&(oldDate!==date||plannerTechnicianLane(oldTech)!==plannerTechnicianLane(tech))){
+    var source=plannerLaneActiveJobs(oldDate,oldTech,job.id).map(function(row){return Object.assign({},row)});
+    if(source.length){plannerPackOrderedJobs(source,Math.min(clockMinutes(oldTime||'08:00'),clockMinutes(source[0].drop_time||'08:00')));copies=copies.concat(source);}
+  }
+  var changed=[],stamp=new Date().toISOString();
+  copies.forEach(function(copy){var live=String(copy.id)===String(job.id)?job:app.jobs.find(function(row){return String(row.id)===String(copy.id)});if(live&&(live.booking_date!==copy.booking_date||live.technician!==copy.technician||normaliseClock(live.drop_time)!==copy.drop_time)){Object.assign(live,{booking_date:copy.booking_date,technician:copy.technician,drop_time:copy.drop_time,updated_at:stamp});changed.push(live)}});
+  return changed;
+}
+
 function plannerDropOrder(date,tech,excludeId,rawMinutes){var jobs=plannerLaneActiveJobs(date,tech,excludeId),index=jobs.length;for(var i=0;i<jobs.length;i++){var start=clockMinutes(jobs[i].drop_time||'08:00'),dur=Math.max(15,roundPlannerMinutesUp(Number(jobs[i].estimated_hours||1)*60)),mid=start+(dur/2);if(rawMinutes<mid){index=i;break}}return {jobs:jobs,index:index}}
 async function vectaVerifyPlannerJobSaved(j){
   if(!remoteClient||!navigator.onLine||!j||!j.id)return true;
@@ -14506,9 +14539,9 @@ function bindLane(lane){
     var minutes=plannerSnapMinutes(plannerStartMinutes+((ev.clientY-rect.top-offset)/PLANNER_PX_PER_HOUR)*60),time=timeFromMinutes(minutes);
     if(taskId){var t=app.tasks.find(function(x){return x.id===taskId});plannerInteractionBusy=false;if(t)createMiniTaskFromDrop(t,lane.dataset.tech,time);return}
     if(!j){plannerInteractionBusy=false;return}
-    var probe=Object.assign({},j,{technician:lane.dataset.tech,booking_date:selectedIso(),drop_time:time}),conflict=plannerPlacementConflict(probe,j.id);
-    if(conflict){plannerInteractionBusy=false;showPlannerAvailabilityNotice(conflict);return}
-    Object.assign(j,probe,{updated_at:new Date().toISOString()});var changed=[j];
+    var changed;
+    try{changed=plannerInsertJob(j,selectedIso(),lane.dataset.tech,plannerStartMinutes+((ev.clientY-rect.top)/PLANNER_PX_PER_HOUR)*60)}
+    catch(err){plannerInteractionBusy=false;showPlannerAvailabilityNotice(err.message);return}
     saveLocal();render();persistPlannerJobsInBackground(changed,'Planner job move');
   };
 }
@@ -15521,6 +15554,12 @@ async function saveJob(id){
     }
     if(acceptingWebsiteRequest&&savedResult==='queued'){alert('This booking is queued on this device and has not been accepted by the server. Reconnect and retry.');return false;}
     if(savedResult==='queued')alert('Saved on this device only. The workshop server has not confirmed this change yet; it is queued for sync.');
+    if(savedJobBeforeEdit&&!wasCompleted&&j.status==='completed'){
+      try{
+        var completionShifted=plannerCloseCompletedGap(savedJobBeforeEdit||j);
+        if(completionShifted.length){saveLocal();persistPlannerJobsInBackground(completionShifted,'Close completed job gap');}
+      }catch(packError){showPlannerAvailabilityNotice('Job saved as complete. '+packError.message)}
+    }
     if(acceptingWebsiteRequest&&await onConfirmed(j)===false)return false;
     if(overlapShifted.length)persistPlannerJobsInBackground(overlapShifted.filter(function(x){return String(x.id)!==String(j.id)}),'New job overlap repair');
 
