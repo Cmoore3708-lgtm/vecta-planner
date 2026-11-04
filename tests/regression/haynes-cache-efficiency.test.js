@@ -10,7 +10,7 @@ const vehicle={registration:'AB12CDE',make:'Nissan',model:'Navara',variant:'2.3'
 function setup(values=new Map()){
  const {document}=parseHTML('<html><body></body></html>');
  let calls=0,writes=0;
- const root={document,navigator:{onLine:true},localStorage:{getItem:key=>values.get(key)||null,setItem:(key,value)=>{writes++;values.set(key,value);}},fetch:async()=>{calls++;throw Error('offline');},VectaVehicleImage:{resolveColour:(_r,c)=>c,colourHex:c=>c==='Blue'?'#1c4778':''},VectaFleetImages:{artwork:()=>'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 10 10"><path d="M0 0h10v10z"/></svg>'}};
+ const root={document,navigator:{onLine:true},localStorage:{getItem:key=>values.get(key)||null,setItem:(key,value)=>{writes++;values.set(key,value);}},fetch:async()=>{calls++;throw Error('offline');},VectaVehicleImage:{mount(){},resolveColour:(_r,c)=>c,colourHex:c=>c==='Blue'?'#1c4778':''},VectaFleetImages:{artwork:()=>'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 10 10"><path d="M0 0h10v10z"/></svg>'}};
  vm.runInNewContext(source,{window:root,document,AbortController,AbortSignal,setTimeout,clearTimeout,encodeURIComponent});
  return {root,document,tools:root.VectaHaynesJobTools,calls:()=>calls,writes:()=>writes};
 }
@@ -124,4 +124,37 @@ test('background login failures expire after one minute rather than blocking all
  const {root,tools}=setup(values);let requests=0;
  root.fetch=async()=>{requests++;return {ok:true,json:async()=>({status:'MATCHED',vehicle})};};
  assert.equal((await tools.lookup(vehicle.registration)).registration,vehicle.registration);assert.equal(requests,1);
+});
+
+function jobModal(document){
+ document.body.innerHTML='<div id="modal"><div class="jobModalHead"><h2>Edit job</h2></div><section class="jobVehicleSection"><input id="job_registration" value="AB12CDE"><input id="job_make" value="Nissan"><input id="job_model" value="Navara"></section></div>';
+ return document.querySelector('#modal');
+}
+
+test('opening a job reuses artwork even when its technical identity has no image',async()=>{
+ const values=new Map([
+  ['vecta_haynes_vehicle_identity_v1',JSON.stringify([{...vehicle,imageUrl:''}])],
+  ['vecta_haynes_artwork_v1',JSON.stringify([vehicle])]
+ ]);
+ const {root,document,calls}=setup(values);
+ root.initHaynesJobTools(jobModal(document));
+ await new Promise(resolve=>setTimeout(resolve,200));
+ assert.equal(calls(),0);assert.match(document.querySelector('.jobCardHeaderVehicle img').src,/haynes-image/);
+});
+
+test('a new booking also reuses existing artwork without requesting technical identity',async()=>{
+ const {root,document,calls}=setup(new Map([['vecta_haynes_artwork_v1',JSON.stringify([vehicle])]]));
+ root.initHaynesJobTools(jobModal(document),{automatic:true});
+ await new Promise(resolve=>setTimeout(resolve,200));assert.equal(calls(),0);
+});
+
+test('opening a job waits for shared artwork before starting image recovery',async()=>{
+ const {root,document,calls}=setup();let finish;
+ const shared=new Promise(resolve=>{finish=resolve;});
+ root.remoteClient={from:()=>({select:()=>({like:()=>({limit:()=>shared})})})};
+ root.initHaynesJobTools(jobModal(document));
+ await new Promise(resolve=>setTimeout(resolve,200));assert.equal(calls(),0);
+ finish({data:[{id:'vehicle_artwork:'+vehicle.registration,value:vehicle}]});
+ await new Promise(resolve=>setTimeout(resolve,20));assert.equal(calls(),0);
+ assert.match(document.querySelector('.jobCardHeaderVehicle img').src,/haynes-image/);
 });
