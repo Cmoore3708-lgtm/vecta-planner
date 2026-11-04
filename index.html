@@ -15099,6 +15099,11 @@ function installProvisionalBookingActions(modal,job,id,historical){
     button.style.cssText='background:#cbd0d7;border-color:#8b949e;color:#111827';
     button.onclick=function(){return saveProvisionalBooking(job.id,false)};
     foot.insertBefore(button,foot.querySelector('#saveJob'));
+    if(!id){
+      foot.classList.add('newJobFooter');
+      var print=modal.querySelector('#printJobCard');
+      if(print){print.classList.remove('jobPrintSmall');print.classList.add('dark');foot.appendChild(print)}
+    }
   }
 }
 async function saveProvisionalBooking(id,confirmBooking){
