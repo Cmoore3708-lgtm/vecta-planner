@@ -432,9 +432,11 @@ root.initHaynesJobTools=function(modal,{automatic=false,recoverImage=true}={}){
  function automaticLookup(){
   if(noVehicle?.checked||!lookupRegistration(current())||!panel.isConnected)return;
   if(!automatic&&(!recoverImage||!missingExactImage()))return;
-  clearTimeout(refreshTimer);refreshTimer=setTimeout(()=>{
+  clearTimeout(refreshTimer);refreshTimer=setTimeout(async()=>{
+   // Shared artwork may still be loading when the job first opens.
+   await hydrateSharedArtwork();
    if(!panel.isConnected||noVehicle?.checked||modal.dataset.websiteRequestId)return;
-   if(!automatic&&!missingExactImage())return;
+   if(!missingExactImage()){showHeaderVehicle();return;}
    if(missingExactImage()){if(Date.now()-(imageRecoveryAt.get(current())||0)<300000)return;imageRecoveryAt.set(current(),Date.now());}
    button.onclick();
   },150);
@@ -455,7 +457,7 @@ const requested=current(),expectedMake=make(modal.querySelector('#job_make')?.va
    if(run!==sequence||!panel.isConnected||current()!==requested||noVehicle?.checked){if(run!==sequence&&panel.isConnected&&current()===requested&&!noVehicle?.checked)showHeaderVehicle();target?.close();return;}
    // A deliberate job opening may recover once from a stale temporary relay
    // failure, using the same authenticated retry path as the Haynes button.
-   if(!event&&(automatic||recoverImage)&&root.navigator?.onLine!==false&&(!v&&['LOGIN_REQUIRED','OFFLINE','BUSY','UNAVAILABLE'].includes(failStatus.get(requested))||v&&recoverImage&&!image(v.imageUrl)))v=await lookup(requested,expectedMake,{force:true,background:false});
+   if(!event&&(automatic||recoverImage)&&root.navigator?.onLine!==false&&(!v&&['LOGIN_REQUIRED','OFFLINE','BUSY','UNAVAILABLE'].includes(failStatus.get(requested))||v&&recoverImage&&!image(v.imageUrl)&&missingExactImage()))v=await lookup(requested,expectedMake,{force:true,background:false});
    if(run!==sequence||!panel.isConnected||current()!==requested||noVehicle?.checked){if(run!==sequence&&panel.isConnected&&current()===requested&&!noVehicle?.checked)showHeaderVehicle();target?.close();return;}
    if(!v||reg(v?.registration)!==requested||!v?.model||!v?.variant||!v?.make||!vehicleLink(v)||(expectedMake&&make(v.make)!==expectedMake))throw Error('UNAVAILABLE');
    if(target)target.location.replace(vehicleLink(v));
