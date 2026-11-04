@@ -389,3 +389,10 @@
  #content .livePriorityPlanner .plannerGrid .lane .job:not(.miniPlannerTask) .plannerWorkRequired{position:static!important;top:auto!important;bottom:auto!important;left:auto!important;right:auto!important;width:100%!important;max-height:calc(100% - 45px);flex:0 1 auto!important;min-height:0!important;margin:4px 0 0!important;line-height:1.25!important;box-sizing:border-box}
 }
 
+
+/* Phone dashboard: keep the parts light beside its registration plate. */
+@media screen and (max-width:768px){
+ .mobilePlanner .mobileJobTop .mobilePlateAndParts{display:inline-flex;align-items:center;gap:7px;max-width:100%;min-width:0}
+ .mobilePlanner .mobilePlateAndParts>.plannerPlateWrap{flex:0 1 auto;min-width:0}
+ .mobilePlanner .mobilePlateAndParts>.cardPartsStatusDot{position:static!important;display:block!important;flex:0 0 12px;width:12px!important;height:12px!important;min-width:12px!important;min-height:12px!important;transform:none!important;margin:0!important;opacity:1!important;visibility:visible!important}
+}
