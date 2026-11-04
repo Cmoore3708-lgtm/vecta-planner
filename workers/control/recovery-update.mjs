@@ -42,7 +42,9 @@ export async function prepareRecoveryUpdate(root,patchRoot,{prepare}={}){
      const relative='workers/'+folder+'/'+name;
      if(hash(await fs.readFile(path.join(source,relative)))!==hash(await fs.readFile(path.join(directory,relative))))throw Error('Pinned dependencies changed unexpectedly');
     }
-    await fs.cp(path.join(source,'workers',folder,'node_modules'),path.join(directory,'workers',folder,'node_modules'),{recursive:true});
+    // Installed dependencies may be Windows junctions. Copy their contents;
+    // recreating a symbolic link requires privileges on ordinary Windows PCs.
+    await fs.cp(path.join(source,'workers',folder,'node_modules'),path.join(directory,'workers',folder,'node_modules'),{recursive:true,dereference:true});
    }
    await new Promise((resolve,reject)=>{
     const child=spawn(process.execPath,['--check',path.join(directory,'workers/control/supervisor.mjs')],{stdio:'ignore',windowsHide:true});

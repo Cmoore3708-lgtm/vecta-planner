@@ -35,6 +35,21 @@ test('failed staging keeps installed version and settings',()=>fixture(async(roo
  assert.equal(JSON.parse(await fs.readFile(path.join(root,'state.json'))).active,'a'.repeat(40));
  assert.equal(await fs.readFile(path.join(root,'data/private.json'),'utf8'),'private fixture');
 }));
+test('installed dependency junctions become independent real directories without symlink permissions',()=>fixture(async(root,release)=>{
+ for(const folder of ['haynes','gsf','tyres']){
+  const original=path.join(release,'workers',folder,'node_modules');
+  const target=path.join(root,'shared-dependencies',folder);
+  await fs.mkdir(path.dirname(target),{recursive:true});await fs.rename(original,target);
+  await fs.symlink(target,original,process.platform==='win32'?'junction':'dir');
+ }
+ const result=await prepareRecoveryUpdate(root,patchRoot);
+ await fs.rm(path.join(root,'shared-dependencies'),{recursive:true});
+ for(const folder of ['haynes','gsf','tyres']){
+  const copied=path.join(root,'releases',result.version,'workers',folder,'node_modules');
+  assert.equal((await fs.lstat(copied)).isSymbolicLink(),false);
+  assert.equal(await fs.readFile(path.join(copied,'fixture.txt'),'utf8'),'pinned installed dependency');
+ }
+}));
 test('live worker prevents update before any activation',()=>fixture(async(root)=>{
  await fs.mkdir(path.join(root,'runtime'));await fs.writeFile(path.join(root,'runtime/Haynes.json'),JSON.stringify({pid:process.pid}));
  await assert.rejects(prepareRecoveryUpdate(root,patchRoot),/still running/);
