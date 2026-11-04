@@ -5,7 +5,7 @@ import {fileURLToPath,pathToFileURL} from 'node:url';
 import {createHash} from 'node:crypto';
 import {spawnSync} from 'node:child_process';
 import {createInterface} from 'node:readline/promises';
-const files=['oil-capacity.mjs','live-service.mjs','product-dialog.mjs','oil-pack-choice.mjs','service-pricing.js','service-guide-costs.js'];
+const files=['oil-capacity.mjs','live-service.mjs','service-kit.mjs','product-dialog.mjs','oil-pack-choice.mjs','service-pricing.js','service-guide-costs.js'];
 export function applyOilFix(target,payload){
  const worker=path.join(target,'workers','gsf');
  const destination=name=>name.endsWith('.js')?path.join(target,'lib',name):path.join(worker,name);

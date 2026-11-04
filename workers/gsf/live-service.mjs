@@ -4,6 +4,7 @@ import {captureServiceCategory} from './service-capture.mjs';
 import {readProductDialog,openSelectedProduct} from './product-dialog.mjs';
 import {oilFillEvidence} from './oil-capacity.mjs';
 import {chooseServiceOilPack} from './oil-pack-choice.mjs';
+import {captureServiceKit,readKitProduct} from './service-kit.mjs';
 const fail=(reason='REVIEW_REQUIRED',evidence={})=>{throw Object.assign(Error('REVIEW_REQUIRED'),{diagnosticReason:reason,evidence});};
 const categories={oil:'Engine Oils (Applied)',oil_filter:'Oil Filter',air_filter:'Air Filter',cabin_filter:'Cabin Filter',fuel_filter:'Fuel Filter'};
 // Parse only the selected product's stock/price panel, never alternative cards or RRP.
@@ -58,22 +59,39 @@ async function freshProduct(page,selected){
  return {kind:selected.kind,sku:product.sku,brand:product.brand,description:product.description,quantityMilli:selected.quantityMilli,
   unitNetPence:Math.ceil(product.unitNetPence*1000/selected.packQuantityMilli),...(selected.kind==='oil'?{packNetPence:product.unitNetPence,packQuantityMilli:selected.packQuantityMilli}:{}),vatBasis:'EX_VAT',inStock:product.inStock===true,...(product.inStock!==true?{pricingOnly:true}:{})};
 }
-export async function lookupLiveService(page,raw,{capture=captureServiceCategory,readFresh=freshProduct,chooseOilPack=chooseServiceOilPack,now=Date.now}={}){
+export async function lookupLiveService(page,raw,{capture=captureServiceCategory,readFresh=freshProduct,chooseOilPack=chooseServiceOilPack,captureKit=capture===captureServiceCategory?captureServiceKit:null,readKit=readKitProduct,now=Date.now}={}){
  const began=Date.now();
  const request=servicePriceRequest(raw);
  if(request.range!=='Mid Range')fail(); // Never mislabel Gold catalogue parts as Budget or Dealer.
  const firstKind=request.service==='EV Major Service'?'cabin_filter':'oil_filter';
- const first=await capture(page,request.registration,categories[firstKind]);
- if(first.status!=='CAPTURED_FOR_REVIEW'||!first.selectedRegistration||first.registration!==request.registration||first.truncated)fail();
+ let kit=null;
+ if(captureKit){
+  try{kit=await captureKit(page,request);}
+  catch(error){if(['LOGIN_REQUIRED','PAIRING_REQUIRED'].includes(error.message))throw error;}
+ }
+ const first=kit?.vehicleCapture||await capture(page,request.registration,categories[firstKind]);
+ if(first.status!=='CAPTURED_FOR_REVIEW'||!first.selectedRegistration||first.registration!==request.registration||first.truncated)fail(first.reason||'SELECTED_VEHICLE_NOT_CONFIRMED');
  const text=first.visibleText||'',boundary=text.indexOf(' Copy VIN'),identity=boundary<0?'':text.slice(0,boundary);
  const fuels=['diesel','petrol','electric'].filter(f=>new RegExp('\\b'+(f==='electric'?'Electric(?:ity)?':f)+'\\b','i').test(identity));
  const combustion=fuels.filter(f=>f!=='electric');
  const fuelType=combustion.length===1?combustion[0]:combustion.length?null:fuels.includes('electric')?'electric':null;
- if(!fuelType)fail();
+ if(!fuelType)fail('FUEL_TYPE_UNCONFIRMED');
  const requiredKinds=serviceRequiredKinds(request.service,fuelType),items=[];
  for(const kind of requiredKinds){
   try{
-   const evidence=kind===firstKind?first:await capture(page,request.registration,categories[kind]);
+   const kitRow=kit?.registration===request.registration?kit.items.find(item=>item.kind===kind):null;
+   if(kitRow){
+    try{
+     const product=await readKit(page,kitRow,request,{capture});
+     items.push(kind==='oil'?await chooseOilPack(page,product,{searchTerm:kitRow.searchTerm}):product);
+     continue;
+    }catch(error){
+     if(['LOGIN_REQUIRED','PAIRING_REQUIRED','VEHICLE_MISMATCH'].includes(error.message))throw error;
+     // A missing field or changed price falls back to the existing independently
+     // verified category flow; kit values are never treated as a completed quote.
+    }
+   }
+   const evidence=kind===firstKind&&!kit?first:await capture(page,request.registration,categories[kind]);
    if(evidence.registration!==request.registration)throw Error('VEHICLE_MISMATCH');
    if(!evidence.selectedRegistration)throw Error('REVIEW_REQUIRED');
    const selected=catalogueSelection(evidence,kind,request.registration,{allowPriceOnly:true});

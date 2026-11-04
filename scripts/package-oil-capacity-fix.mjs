@@ -4,7 +4,7 @@ import {createHash} from 'node:crypto';
 import os from 'node:os';
 import path from 'node:path';
 const stage=mkdtempSync(path.join(os.tmpdir(),'vecta-oil-fix-'));mkdirSync(path.join(stage,'payload'));
-const manifest={};for(const name of ['oil-capacity.mjs','live-service.mjs','product-dialog.mjs','oil-pack-choice.mjs','service-pricing.js','service-guide-costs.js']){const data=readFileSync((name.endsWith('.js')?'lib/':'workers/gsf/')+name);writeFileSync(path.join(stage,'payload',name),data);manifest[name]=createHash('sha256').update(data).digest('hex');}
+const manifest={};for(const name of ['oil-capacity.mjs','live-service.mjs','service-kit.mjs','product-dialog.mjs','oil-pack-choice.mjs','service-pricing.js','service-guide-costs.js']){const data=readFileSync((name.endsWith('.js')?'lib/':'workers/gsf/')+name);writeFileSync(path.join(stage,'payload',name),data);manifest[name]=createHash('sha256').update(data).digest('hex');}
 writeFileSync(path.join(stage,'payload','manifest.json'),JSON.stringify(manifest,null,2));
 writeFileSync(path.join(stage,'install.mjs'),readFileSync('scripts/oil-capacity-fix/install.mjs'));
 writeFileSync(path.join(stage,'APPLY-FIX.cmd'),'@echo off\r\ncd /d "%~dp0"\r\nnode install.mjs\r\npause\r\n');

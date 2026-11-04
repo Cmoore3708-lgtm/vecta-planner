@@ -9,7 +9,7 @@ if(!baseFile||!output)throw Error('Usage: package-service-guide-update.mjs <prev
 const stage=fs.mkdtempSync(path.join(os.tmpdir(),'vecta-guide-update-'));
 const read=name=>execFileSync('unzip',['-p',path.resolve(baseFile),name],{maxBuffer:8*1024*1024});
 const bundle=JSON.parse(gunzipSync(read('workers.vecta.gz'))),baseVersion=bundle.version;
-const replacements=['workers/tyres/esp-dom.mjs','workers/tyres/esp-normalise.mjs','lib/tyre-relay-contract.js','lib/service-pricing.js','lib/service-guide-costs.js','workers/gsf/live-service.mjs','workers/gsf/product-dialog.mjs','workers/gsf/oil-pack-choice.mjs','workers/gsf/oil-capacity.mjs'];
+const replacements=['workers/tyres/esp-dom.mjs','workers/tyres/esp-normalise.mjs','lib/tyre-relay-contract.js','lib/service-pricing.js','lib/service-guide-costs.js','workers/gsf/live-service.mjs','workers/gsf/service-kit.mjs','workers/gsf/product-dialog.mjs','workers/gsf/oil-pack-choice.mjs','workers/gsf/oil-capacity.mjs'];
 const hash=bytes=>createHash('sha256').update(bytes).digest('hex');
 function replace(file,bytes){const row={path:file,size:bytes.length,sha256:hash(bytes),content:bytes.toString('base64')},i=bundle.files.findIndex(x=>x.path===file);if(i<0)bundle.files.push(row);else bundle.files[i]=row;}
 for(const name of replacements)replace(name,fs.readFileSync(name));
