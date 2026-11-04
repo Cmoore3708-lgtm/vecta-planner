@@ -11815,11 +11815,7 @@ function fleetDate(plan){
   return y+'-'+String(m+1).padStart(2,'0')+'-01';
 }
 function fleetTone(date){if(!date)return 'unknown';var today=new Date();today.setHours(0,0,0,0);var due=new Date(date+'T00:00:00'),days=Math.ceil((due-today)/86400000);return days<0?'overdue':days<=30?'soon':'future'}
-function fleetFormat(date, options){
-  if(!date)return 'Not scheduled';
-  var localDate=new Date(String(date).slice(0,10)+'T00:00:00');
-  return localDate.toLocaleDateString('en-GB',options||{day:'2-digit',month:'2-digit',year:'numeric'});
-}
+function fleetFormat(date, options={day:'2-digit',month:'2-digit',year:'numeric'}){if(!date)return 'Not scheduled';return new Date(String(date).slice(0,10)+'T00:00:00').toLocaleDateString('en-GB',options)}
 function fleetMaintenanceCategory(value){return window.VectaFleetRules.maintenanceCategory(value)}
 
 function fleetLatestCompletedEvidenceDate(vehicle,category,index){
