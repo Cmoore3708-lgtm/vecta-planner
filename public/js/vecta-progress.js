@@ -26,7 +26,7 @@
       if(approved||waitingForScenes){card.querySelector('.vehicleLayer').hidden=true;card.querySelector('.sceneCar').removeAttribute('src');const mechanic=card.querySelector('.sceneMechanic');if(mechanic)mechanic.hidden=true;}
       card.querySelector('.scenePlate').textContent=data.registration||'';
     });
-    el('sceneCaption').hidden=false;el('sceneCaption').textContent=waitingForScenes?'Your workshop status is up to date. Vehicle illustrations are unavailable at the moment.':approved?'Illustrations of your car’s workshop visit.':'Illustrative progress scenes using your vehicle’s saved model artwork where available.';
+    el('sceneCaption').hidden=!waitingForScenes;el('sceneCaption').textContent=waitingForScenes?'Your workshop status is up to date. Vehicle illustrations are unavailable at the moment.':'';
     const safeImage=typeof data.image_url==='string'&&/^https:\/\/www\.haynespro-assets\.com\/workshop\/images\/\d+\.(svgz?|png|jpe?g|webp)$/.test(data.image_url);
     if(approved||waitingForScenes||!changed)return;
     scenes.querySelectorAll('.sceneCar').forEach(old=>{
