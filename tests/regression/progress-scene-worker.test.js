@@ -3,7 +3,8 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import vm from 'node:vm';
 import {parseHTML} from 'linkedom';
-import {createSceneService,imageBytes,cronAuthorised,requestLimit,default as handler} from '../../lib/progress-scene-worker.js';
+import sharp from 'sharp';
+import {createSceneService,imageBytes,providerImageBytes,cronAuthorised,requestLimit,default as handler} from '../../lib/progress-scene-worker.js';
 import {sceneIdentity,sceneFingerprint,sceneStages,scenePrompt,qualityChecks,qualityPassed,publishedScenes,sceneUrl} from '../../lib/progress-scene-model.js';
 const reg='AB12CDE',base='https://jywufozycuwuoshlulwl.supabase.co',now=Date.parse('2026-11-03T12:00:00Z');
 function fixture({cap=40,quality=true,generateFailure=false}={}){
@@ -98,7 +99,18 @@ test('quality-provider timeouts also stop after two requests without regeneratin
  const f=fixture();let checks=0;const service=createSceneService({db:f.db,storage:f.storage,generate:f.generate,validate:async()=>{checks++;throw Error('Quality provider timeout');},now:()=>now,limit:()=>40});
  await assert.rejects(service.run(),/timeout/);await assert.rejects(service.run(),/timeout/);assert.equal((await service.run()).idle,true);assert.equal(checks,2);assert.equal(f.generated.length,3);assert.equal(f.rows.get('progress_scenes_v1:'+reg).value.status,'needs_review');
 });
-test('provider adapter sends real reference images and only accepts WebP bytes; inspector receives all scene references',async()=>{
+test('provider image normalization accepts real PNG/JPEG and rejects malformed or oversized images',async()=>{
+ const source=fs.readFileSync(new URL('../../public/assets/progress/yd72omh-ready.webp',import.meta.url)),originalMeta=await sharp(source).metadata();
+ for(const format of ['png','jpeg','webp']){
+  const input=await sharp(source).toFormat(format).toBuffer();
+  const output=await providerImageBytes(input.toString('base64'));
+  const meta=await sharp(output).metadata();assert.equal(meta.format,'webp');assert.equal(meta.width,originalMeta.width);assert.equal(meta.height,originalMeta.height);
+ }
+ await assert.rejects(providerImageBytes(Buffer.alloc(1100).toString('base64')));
+ const huge=await sharp({create:{width:2100,height:2100,channels:3,background:'#888'}}).png().toBuffer();
+ await assert.rejects(providerImageBytes(huge.toString('base64')));
+});
+test('provider adapter sends real reference images and stores WebP bytes; inspector receives all scene references',async()=>{
  const {generate,validate}=await import('../../lib/progress-scene-worker.js');
  const names=['VECTA_PROGRESS_SCENES_GATEWAY_KEY','VITE_SUPABASE_URL','SUPABASE_SERVICE_ROLE_KEY','VERCEL_ENV','VERCEL_PROJECT_NAME','VERCEL_PROJECT_PRODUCTION_URL'],old=Object.fromEntries(names.map(k=>[k,process.env[k]])),original=global.fetch;
  Object.assign(process.env,{VECTA_PROGRESS_SCENES_GATEWAY_KEY:'test-only-key',VITE_SUPABASE_URL:base,SUPABASE_SERVICE_ROLE_KEY:'test-service-key',VERCEL_ENV:'production',VERCEL_PROJECT_NAME:'planner',VERCEL_PROJECT_PRODUCTION_URL:'planner.example'});
