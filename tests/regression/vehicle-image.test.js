@@ -4,6 +4,8 @@ import fs from 'node:fs';
 import vm from 'node:vm';
 import { gzipSync } from 'node:zlib';
 import { parseHTML, DOMParser } from 'linkedom';
+import { Resvg } from '@resvg/resvg-js';
+import sharp from 'sharp';
 import haynesImage from '../../lib/haynes-image.js';
 const helper = fs.readFileSync('public/js/vecta-vehicle-image.js','utf8');
 function browser(storage) {
@@ -362,11 +364,35 @@ test('booking artwork remains hidden until the coloured image has decoded',async
 });
 
 test('tight dashboard cutouts remove supplier backgrounds while preserving the vehicle layers',()=>{
- const root=browser(),source=svg.replace('<g id="wheels">','<g id="gradients_background"><rect width="299" height="220" fill="white"/></g><g id="wheels">');
+ const root=browser(),source=svg.replace('<g id="wheels">','<g id="background"><rect width="299" height="220" fill="white"/></g><g id="gradients_background"><path fill="#CCCCCC" d="M26 59H273V169H26Z"/></g><g id="wheels">');
  const normal=root.VectaVehicleImage.personaliseSvg(source,'DY71UVE','Grey','999.svgz','',false,'Kia XCeed');
  const cut=root.VectaVehicleImage.personaliseSvg(source,'DY71UVE','Grey','999.svgz','',true,'Kia XCeed');
- assert.match(normal.svg,/gradients_background/);assert.doesNotMatch(cut.svg,/gradients_background/);
+ assert.match(normal.svg,/id="background"/);assert.doesNotMatch(cut.svg,/id="background"/);
+ assert.match(cut.svg,/id="gradients_background"/,'opaque body shading must stay beneath translucent paint');
  assert.match(cut.svg,/id="wheels"/);assert.match(cut.svg,/id="windows"/);assert.match(cut.svg,/DY71 UVE/);
+});
+
+test('far-side wheels cannot show through translucent paint in a cropped car',async()=>{
+ const root=browser();
+ const hiddenWheel='<ellipse cx="85" cy="130" rx="16" ry="24" fill="#111111"/>';
+ const source='<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 299 220"><g id="wheels">'+hiddenWheel+'</g><g id="gradients_background"><linearGradient id="bodyShade" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff"/><stop offset="1" stop-color="#888"/></linearGradient><path fill="url(#bodyShade)" d="M26 59H273V169H26Z"/></g><g id="transparant_colour"><path fill="#ccc" opacity="0.7" d="M26 59H273V169H26Z"/></g></svg>';
+ async function pixels(input){const result=root.VectaVehicleImage.personaliseSvg(input,'','Blue','999.svgz','',true);const xml=result.svg.replace('<svg','<svg xmlns="http://www.w3.org/2000/svg"');return sharp(new Resvg(xml).render().asPng()).raw().toBuffer();}
+ assert.deepEqual(await pixels(source),await pixels(source.replace(hiddenWheel,'')),'a wheel fully behind the body must not change any visible pixels');
+});
+
+test('old see-through cutouts regenerate offline from the stored supplier source',async()=>{
+ const indexedDB=artworkStorage(),asset='123.svgz';
+ const source=svg.replace('<g id="transparant_colour">','<g id="gradients_background"><path fill="#ccc" d="M26 59H273V169H26Z"/></g><g id="transparant_colour">');
+ const oldKey=asset+'|render-v5|AB12CDE|#1c4778|tight-v4-cutout|name:';
+ indexedDB.rows.set('source:'+asset,{key:'source:'+asset,value:source});
+ indexedDB.rows.set('render:'+oldKey,{key:'render:'+oldKey,value:{url:'data:image/svg+xml;charset=utf-8,'+encodeURIComponent('<svg><text>OLD GHOST WHEELS</text></svg>')}});
+ const root=browser();root.indexedDB=indexedDB;let downloads=0;
+ root.fetch=async()=>{downloads++;throw Error('offline');};
+ root.document.body.innerHTML='<img data-vehicle-image data-vehicle-logo="separate" data-vehicle-crop="tight" data-registration="AB12CDE" data-colour="Blue" src="https://www.haynespro-assets.com/workshop/images/'+asset+'">';
+ await root.VectaVehicleImage.mount();
+ const rendered=decodeURIComponent(root.document.querySelector('img').src);
+ assert.doesNotMatch(rendered,/OLD GHOST WHEELS/);assert.match(rendered,/id="gradients_background"/);
+ assert.equal(downloads,0);assert.equal(indexedDB.rows.get('source:'+asset).value,source);
 });
 
 test('reusing an image element for a different registration and colour discards the earlier render',async()=>{
