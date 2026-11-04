@@ -20,6 +20,8 @@ function namedFunctionSource(name) {
       else if (char === quote) quote = '';
       continue;
     }
+    if (char === '/' && html[i + 1] === '*') { i = html.indexOf('*/', i + 2) + 1; continue; }
+    if (char === '/' && html[i + 1] === '/') { i = html.indexOf('\n', i + 2); continue; }
     if (char === '"' || char === "'" || char === '`') { quote = char; continue; }
     if (char === '{') depth += 1;
     if (char === '}' && --depth === 0) return html.slice(start, i + 1);
@@ -202,13 +204,13 @@ test('a superseded planner save cannot overwrite a later drag', async()=>{
 });
 
 function stackedPlanner(jobs){
- const context={app:{jobs},window:{},plannerStartMinutes:480,
+ const context={app:{jobs},window:{},plannerStartMinutes:480,confirm:()=>true,
   plannerTechnicianLane:x=>x,normaliseClock:x=>x,
   clockMinutes:value=>{const [h,m]=value.split(':').map(Number);return h*60+m},
   timeFromMinutes:value=>`${String(Math.floor(value/60)).padStart(2,'0')}:${String(value%60).padStart(2,'0')}`,
   roundPlannerMinutesUp:x=>Math.ceil(x/15)*15,plannerSnapMinutes:x=>Math.round(x/30)*30,
   isSoftDeletedJob:()=>false,jobCompletionEvidence:x=>x.status==='completed',isJobInvoiced:()=>false};
- for(const name of ['plannerLaneActiveJobs','plannerSafeStackStart','plannerPackOrderedJobs','plannerCloseCompletedGap','plannerDropOrder','plannerInsertJob'])vm.runInNewContext(namedFunctionSource(name),context);
+ for(const name of ['plannerJobTimeLocked','plannerBookingTimeNote','plannerConfirmTimeMove','plannerLaneActiveJobs','plannerSafeStackStart','plannerPackOrderedJobs','plannerCloseCompletedGap','plannerDropOrder','plannerInsertJob'])vm.runInNewContext(namedFunctionSource(name),context);
  return context;
 }
 const stackedJob=(id,time,extra={})=>({id,drop_time:time,booking_date:'2026-11-04',technician:'Alfie',estimated_hours:1,status:'booked',...extra});
@@ -277,4 +279,77 @@ test('a dashboard rendered during cloud refresh packs once the refresh finishes'
  vm.runInNewContext(namedFunctionSource('plannerPackVisibleDay'),ctx);
  ctx.plannerPackVisibleDay();ctx.plannerPackVisibleDay();assert.equal(timers,1);assert.equal(jobs[0].drop_time,'10:00');
  ctx.cloudRefreshBusy=false;callback();assert.equal(jobs[0].drop_time,'08:00');assert.equal(renders,1);
+});
+
+
+const fixedJob=(id,time,extra={})=>stackedJob(id,time,{customer_note:'[[VECTA_BOOKING_TIME:fixed]]',...extra});
+test('next available is the first and default choice; stored fixed times reopen unchanged',()=>{
+ const ctx={};vm.runInNewContext(namedFunctionSource('halfHourTimeSelect'),ctx);
+ const fresh=ctx.halfHourTimeSelect('Booking time','drop_time','');
+ assert.match(fresh,/<select[^>]*><option value="" selected>Next available space<\/option>/);
+ for(const time of ['07:30','10:00','16:30']){
+  const markup=ctx.halfHourTimeSelect('Booking time','drop_time',time);
+  assert.match(markup,new RegExp('<option value="'+time+'" selected>'));
+  assert.equal((markup.match(/ selected/g)||[]).length,1);
+ }
+});
+test('booking mode survives serialisation and changing to next available preserves all other notes',()=>{
+ const ctx=stackedPlanner([]),note='Call on arrival\n[[MOT_TIME:11:30]]\n[[VECTA_PRIVATE_PRICING:abc]]';
+ const locked={customer_note:ctx.plannerBookingTimeNote(note,true)};
+ assert.equal(ctx.plannerJobTimeLocked(JSON.parse(JSON.stringify(locked))),true);
+ const flexible={customer_note:ctx.plannerBookingTimeNote(locked.customer_note,false)};
+ assert.equal(ctx.plannerJobTimeLocked(flexible),false);assert.ok(flexible.customer_note.startsWith(note));
+ assert.equal((flexible.customer_note.match(/VECTA_BOOKING_TIME/g)||[]).length,1);
+});
+test('completion and automatic gap closing reserve fixed appointments and fill gaps around them',()=>{
+ const jobs=[stackedJob('done','08:00',{status:'completed'}),fixedJob('appointment','10:00'),stackedJob('a','12:00'),stackedJob('b','13:00'),stackedJob('c','14:00')];
+ const ctx=stackedPlanner(jobs);ctx.plannerCloseCompletedGap(jobs[0]);
+ assert.deepEqual(jobs.map(j=>j.drop_time),['08:00','10:00','08:00','09:00','11:00']);
+ assert.equal(ctx.plannerJobTimeLocked(jobs[1]),true);
+ assert.equal(ctx.plannerPackOrderedJobs(ctx.plannerLaneActiveJobs('2026-11-04','Alfie'),480).length,0);
+});
+test('a flexible job that cannot fit before a fixed booking is placed after it',()=>{
+ const jobs=[stackedJob('long','08:00',{estimated_hours:3}),fixedJob('appointment','10:00')];const ctx=stackedPlanner(jobs);
+ ctx.plannerPackOrderedJobs(jobs,480);assert.deepEqual(jobs.map(j=>j.drop_time),['11:00','10:00']);assert.equal(jobs[0].estimated_hours,3);
+});
+test('packing respects both time off and several fixed appointments',()=>{
+ const jobs=[fixedJob('first','09:00'),fixedJob('second','11:00'),stackedJob('work','15:00',{estimated_hours:2})];const ctx=stackedPlanner(jobs);
+ ctx.window.vectaTimeOffConflict=j=>ctx.clockMinutes(j.drop_time)<540?{}:null;
+ ctx.plannerPackOrderedJobs(jobs,480);assert.deepEqual(jobs.map(j=>j.drop_time),['09:00','11:00','12:00']);
+});
+test('declining a fixed drag leaves both lanes and every booking field unchanged',()=>{
+ const jobs=[fixedJob('fixed','10:00'),stackedJob('other','12:00',{technician:'Chris'})],ctx=stackedPlanner(jobs),before=JSON.stringify(jobs);let asks=0;
+ ctx.confirm=message=>{asks++;assert.match(message,/fixed at 10:00/);return false};
+ assert.equal(ctx.plannerInsertJob(jobs[0],'2026-11-04','Chris',690).length,0);assert.equal(asks,1);assert.equal(JSON.stringify(jobs),before);
+});
+test('confirmed fixed drag keeps its new exact time through subsequent packing',()=>{
+ const jobs=[fixedJob('fixed','10:00'),stackedJob('other','12:00')],ctx=stackedPlanner(jobs);let asks=0;
+ ctx.confirm=()=>{asks++;return true};ctx.plannerInsertJob(jobs[0],'2026-11-04','Alfie',690);
+ assert.equal(asks,1);assert.equal(jobs[0].drop_time,'11:30');assert.equal(ctx.plannerJobTimeLocked(jobs[0]),true);
+ ctx.plannerPackOrderedJobs(jobs,480);assert.equal(jobs[0].drop_time,'11:30');
+});
+test('reordering a flexible booking cannot shift a fixed neighbour',()=>{
+ const jobs=[stackedJob('a','08:00'),fixedJob('fixed','09:00'),stackedJob('b','10:00')],ctx=stackedPlanner(jobs);
+ ctx.confirm=()=>{throw Error('A flexible booking must not ask to move the fixed neighbour')};
+ ctx.plannerInsertJob(jobs[2],'2026-11-04','Alfie',480);assert.equal(jobs[1].drop_time,'09:00');assert.equal(jobs[2].drop_time,'08:00');assert.equal(jobs[0].drop_time,'10:00');
+});
+test('unchanged fixed bookings need no confirmation; date, technician and unlock changes do',()=>{
+ const ctx=stackedPlanner([]),job=fixedJob('fixed','10:00');let asks=0;ctx.confirm=()=>{asks++;return false};
+ assert.equal(ctx.plannerConfirmTimeMove(job,{...job,work_required:'New work'}),true);assert.equal(asks,0);
+ for(const change of [{booking_date:'2026-11-05'},{technician:'Chris'},{drop_time:'11:00'},{customer_note:ctx.plannerBookingTimeNote(job.customer_note,false)}])assert.equal(ctx.plannerConfirmTimeMove(job,{...job,...change}),false);
+ assert.equal(asks,4);
+});
+test('next available searches the first usable gap while explicitly chosen times bypass allocation',()=>{
+ const jobs=[stackedJob('busy','08:00'),fixedJob('appointment','10:00')],ctx=stackedPlanner(jobs);
+ for(const name of ['mechanicBookingIntervals','findNextMechanicSlot','shouldAutoAllocateJobSlot'])vm.runInNewContext(namedFunctionSource(name),ctx);
+ const next=stackedJob('new','14:00',{customer_note:'[[VECTA_BOOKING_TIME:next]]'});
+ const slot=ctx.findNextMechanicSlot(next,next.id);assert.equal(slot.drop_time,'09:00');assert.equal(slot.booking_date,next.booking_date);
+ assert.equal(ctx.shouldAutoAllocateJobSlot(null,next),true);assert.equal(ctx.shouldAutoAllocateJobSlot(null,fixedJob('new','10:00')),false);
+ assert.equal(ctx.shouldAutoAllocateJobSlot(fixedJob('new','14:00'),next),true);
+});
+test('phone assignment preserves fixed time and cancelling is side-effect free',()=>{
+ const job=fixedJob('fixed','10:00'),ctx=stackedPlanner([job]);let updates=0;
+ Object.assign(ctx,{findNextMechanicSlot:()=>{throw Error('Fixed time must not be auto-allocated')},updateJobQuick:()=>updates++,confirm:()=>false});
+ vm.runInNewContext(namedFunctionSource('assignPlannerJob'),ctx);assert.equal(ctx.assignPlannerJob(job,'Chris','2026-11-05'),false);assert.equal(job.technician,'Alfie');assert.equal(updates,0);
+ ctx.confirm=()=>true;assert.equal(ctx.assignPlannerJob(job,'Chris','2026-11-05'),true);assert.equal(job.drop_time,'10:00');assert.equal(job.technician,'Chris');assert.equal(updates,1);
 });

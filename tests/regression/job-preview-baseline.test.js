@@ -51,3 +51,15 @@ test('saving selected types replaces a stale website/import type array without c
   assert.equal(draft.job_colour,'Repairs');assert.equal(draft.work_required,saved.work_required);
   assert.deepEqual(saved.job_types,['Interim Service','Repairs']);
 });
+
+
+test('job time choice persists in existing job notes without mutating the cloud conflict baseline',()=>{
+ const saved={id:'fixed',registration:'TEST1',customer_account:'Staff',job_type:'general',status:'booked',booking_date:'2026-11-04',technician:'Alfie',drop_time:'10:00',customer_note:'Call first'};
+ const field={value:'11:30'},ctx={app:{jobs:[saved]},document:{getElementById:key=>key==='job_drop_time'?field:null},
+  syncPrivatePricingTotal:()=>[],gatherJobPartsEditor:()=>[],noteWithPrivatePricing:n=>n,noteWithJobParts:n=>n,dvsaAdvisoryArray:v=>v||[],fleetNormaliseCustomer:v=>v,
+  jobTypeStorageValue:v=>v,jobTypeValues:()=>['general'],hasMotJobType:()=>false,setMotTimeOnNote:n=>n,carryOverMeta:()=>null,isUnallocatedJob:()=>false,isVehicleTaxJob:()=>false,
+  normalisePartsStatus:()=>'',calculatedPartsStatus:()=>'',fleetIncomeCustomerFromVehicle:()=>'',fleetIsContractorIncome:()=>false,partsStatusNote:n=>n,normaliseClock:v=>String(v).slice(0,5)};
+ vm.createContext(ctx);vm.runInContext(html.slice(html.indexOf('function plannerJobTimeLocked('),html.indexOf('function plannerPackOrderedJobs('))+'\n'+html.slice(start,end),ctx);
+ const fixed=ctx.gatherJob(saved.id);assert.equal(fixed.drop_time,'11:30');assert.equal(ctx.plannerJobTimeLocked(fixed),true);assert.match(fixed.customer_note,/Call first/);assert.equal(saved.drop_time,'10:00');assert.equal(saved.customer_note,'Call first');
+ ctx.app.jobs[0]=JSON.parse(JSON.stringify(fixed));field.value='';const flexible=ctx.gatherJob(saved.id);assert.equal(ctx.plannerJobTimeLocked(flexible),false);assert.equal(flexible.drop_time,'11:30');assert.match(flexible.customer_note,/VECTA_BOOKING_TIME:next/);
+});
