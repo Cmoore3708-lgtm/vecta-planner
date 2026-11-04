@@ -8,7 +8,7 @@
     return ak.length===bk.length&&ak.every((k,i)=>k===bk[i]&&same(a[k],b[k]));
   }
   function conflict(path){const e=Error('Fleet changed on another device at '+path+'. Your edit is kept on this device; review it before retrying.');e.code='FLEET_CONFLICT';throw e;}
-  function merge(base,local,remote,path='fleet'){
+  function merge(base,local,remote,path='fleet',onConflict){
     if(same(local,base))return clone(remote);
     if(same(remote,base)||same(local,remote))return clone(local);
     if(path.endsWith('.updated_at'))return String(local||'')>String(remote||'')?clone(local):clone(remote);
@@ -26,18 +26,50 @@
     if(lists.every(Array.isArray)&&lists.every(a=>a.every(v=>v&&typeof v==='object'&&v.id!=null)&&new Set(a.map(v=>String(v.id))).size===a.length)){
       const maps=lists.map(a=>new Map(a.map(v=>[String(v.id),v]))),out=[];
       for(const key of new Set([...maps[2].keys(),...maps[1].keys(),...maps[0].keys()])){
-        const v=merge(maps[0].get(key),maps[1].get(key),maps[2].get(key),path+'.'+key);if(v!==undefined)out.push(v);
+        const v=merge(maps[0].get(key),maps[1].get(key),maps[2].get(key),path+'.'+key,onConflict);if(v!==undefined)out.push(v);
       }
       return out;
     }
     if(lists.every(v=>v&&typeof v==='object'&&!Array.isArray(v))){
       const out={};
       for(const key of new Set(lists.flatMap(Object.keys))){
-        const v=merge(base[key],local[key],remote[key],path+'.'+key);if(v!==undefined)out[key]=v;
+        const v=merge(base[key],local[key],remote[key],path+'.'+key,onConflict);if(v!==undefined)out[key]=v;
       }
       return out;
     }
+    if(onConflict)return onConflict({path,base:clone(base),local:clone(local),remote:clone(remote)});
     return conflict(path);
+  }
+  // Recovery is separate from strict saving: only a cloud download may park
+  // conflicting local fields, and only after their review copy is durable.
+  const recoveryKey='vecta:fleet:conflict-review:v1';
+  function reviews(storage){
+    const raw=storage.getItem(recoveryKey);
+    if(!raw)return [];
+    const saved=JSON.parse(raw);
+    if(!Array.isArray(saved))throw Error('Saved fleet changes could not be read.');
+    return saved;
+  }
+  function recover(base,local,remote,storage){
+    const conflicts=[];
+    const value=merge(base,local,remote,'fleet',entry=>{
+      conflicts.push(entry);return clone(entry.remote);
+    });
+    if(conflicts.length){
+      const saved=reviews(storage);
+      for(const entry of conflicts){
+        if(saved.some(old=>old.path===entry.path&&same(old.base,entry.base)&&same(old.local,entry.local)&&same(old.remote,entry.remote)))continue;
+        const parts=entry.path.split('.'),records=[local,remote,base];
+        const record=records.flatMap(s=>Array.isArray(s?.[parts[1]])?s[parts[1]]:[]).find(r=>String(r.id)===parts[2]);
+        const vehicleId=record?.vehicleId||(parts[1]==='vehicles'?record?.id:null);
+        const vehicle=records.flatMap(s=>s?.vehicles||[]).find(v=>String(v.id)===String(vehicleId));
+        saved.push({...entry,label:[vehicle?.registration,record?.type||parts[1],parts.slice(3).join('.')].filter(Boolean).join(' · '),savedAt:new Date().toISOString()});
+      }
+      // Do not swallow quota/security errors: the caller must keep its original
+      // local state and baseline if we cannot safely preserve the conflict.
+      storage.setItem(recoveryKey,JSON.stringify(saved));
+    }
+    return value;
   }
   async function save(client,{id,base,desired,baseRevision=null}){
     if(!base)throw Error('Fleet must finish its cloud download before changes can be synced. Your edit remains on this device.');
@@ -66,5 +98,5 @@
     }
     return conflict('busy record');
   }
-  root.VectaFleetConcurrency={merge,save,clone};
+  root.VectaFleetConcurrency={merge,save,clone,recover,reviews};
 })(typeof window!=='undefined'?window:globalThis);
