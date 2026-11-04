@@ -27,6 +27,19 @@ export async function installServiceKit(root,patchRoot,{prepare}={}){
    }
   }
   await walk();
+  // The recovery controller cleared HAYNES_RELAY_TOKEN for GSF, although the
+  // installed diagnostic bridge already uses that pairing. Restore its original
+  // connection without replacing the newer recovery controller or its settings.
+  const worker=contents.get('workers/gsf/worker.mjs')?.toString('utf8')||'';
+  if(!worker.includes('batchConnection')||!contents.has('workers/gsf/diagnostic-bridge.mjs'))throw Error('The installed diagnostic bridge needs a compatibility check. Nothing was changed.');
+  const batch=JSON.parse(await fs.readFile(path.join(root,'data/gsf/batch-request.local.json'),'utf8'));
+  if(batch.endpoint!=='https://brqsejjykrubxuofavuu.supabase.co/functions/v1/worker-batch-tests'||!/^[a-f0-9-]{36}$/.test(batch.launchKey||'')||!batch.startedRun)throw Error('The existing diagnostic connection is not ready. Nothing was changed.');
+  const exclusion="if ($Worker -ne 'GSF') {";
+  const restored='if ($true) { # GSF diagnostics use the existing Haynes relay pairing.';
+  let nextController=controller;
+  if(controller.split(exclusion).length===2)nextController=controller.replace(exclusion,restored);
+  else if(!controller.includes(restored)&&!controller.includes('if ($true) { # Paired identity is also used by GSF diagnostics.'))throw Error('The installed worker launcher needs a compatibility check. Nothing was changed.');
+  contents.set('workers/control/workshop-workers.ps1',Buffer.from(nextController));
   // Preserve the installed manager and other suppliers, including later recovery fixes.
   for(const file of patches)contents.set(file,await fs.readFile(path.join(patchRoot,file)));
   const files=[...contents].sort(([a],[b])=>a.localeCompare(b)).map(([file,bytes])=>({path:file,size:bytes.length,sha256:hash(bytes),content:bytes.toString('base64')}));

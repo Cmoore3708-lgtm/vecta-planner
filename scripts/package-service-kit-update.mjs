@@ -5,20 +5,26 @@ const output=path.resolve(process.argv[2]||'VECTA-Service-Kit-Update.zip');
 const files=Object.fromEntries(['install.mjs','install.ps1','release-store.mjs','release-cli.mjs'].map(name=>[name,path.resolve('scripts/service-kit-update',name)]));
 for(const name of ['service-kit.mjs','live-service.mjs'])files['workers/gsf/'+name]=path.resolve('workers/gsf',name);
 for(const source of Object.values(files))fs.accessSync(source);
-const readme=`VECTA SERVICE KIT LOOKUP UPDATE
+const readme=`VECTA SERVICE KIT UPDATE - DIAGNOSTIC CONNECTION REPAIR
 
 1. In Workshop Connections, press Stop safely and wait for the workers to stop.
 2. Close the Workshop Connections panel.
 3. Extract All from this ZIP, then double-click START-HERE.cmd.
-4. When the workers reopen, open H16CKK in Workshop Pro and click Check GSF.
+4. Start the workers when the panel reopens, then tell ChatGPT it is installed.
+
+The recovery update stopped passing the existing diagnostic pairing to GSF.
+This repair reconnects the diagnostic bridge so the actual H16CKK failure can
+be traced remotely. It does not claim the missing price is fixed. It does not
+start another 100-vehicle test or change your pricing calculations.
 
 This update uses GSF Service Kit first and verifies each selected product's
 current ex-VAT price. Existing markup, labour and rounding remain unchanged.
 Oil bottle size is not engine capacity; an unconfirmed fill still needs review.
 The previous category lookup remains available as a fallback.
 
-Only the GSF service reader changes. Current Haynes, tyre and automatic-recovery
-code is copied from your installed version. Settings, sign-ins and supplier
+The Service Kit reader is retained and one GSF diagnostic connection condition
+is repaired. Current Haynes, tyre and automatic-recovery code is copied from
+your installed version. Settings, sign-ins and supplier
 profiles are retained. Nothing is ordered. A previous release is kept for rollback.
 
 Offline regression tests passed. The Service Kit screen still needs live PC

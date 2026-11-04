@@ -32,3 +32,21 @@ product/VAT/price verification, service scope and category fallback. Live GSF
 calibration remains pending: the connected browser returned Vehicle not found
 when selecting H16CKK, so a successful workshop-PC lookup must be observed before
 calling the original pricing failure fixed.
+# H16CKK failure investigation — 4 November 2026
+
+The 15:08:51 request was received and completed with `REVIEW_REQUIRED` at
+15:09:03. The production heartbeat remained current. The completion contains no
+diagnostic reason, so it does not establish which supplier check failed.
+
+The recovery controller excluded GSF when loading `HAYNES_RELAY_TOKEN`, while
+the installed `batchConnection` diagnostic bridge requires that existing token.
+The diagnostic heartbeat stopped at 07:51:24. The installer now repairs that
+single controller condition while retaining the installed recovery code, pairing
+file, previous release and all other workers. It requires an existing, already
+started diagnostic connection, so it cannot launch a fresh 100-vehicle run.
+
+After restart, verify a fresh diagnostic heartbeat/revision and run one H16CKK
+diagnostic cohort before attributing or fixing the price rejection. No live fix
+is claimed. A cached Haynes result confirms a 5.4-litre sump including filter for
+H16CKK/HR13DDT, but the current GSF code does not consume that record; this is a
+possible gap, not proof of the observed failure.

@@ -17,7 +17,7 @@ try {
     $bootstrap=Join-Path $root 'Start-VECTA.ps1'
     $powershell=Join-Path $env:SystemRoot 'System32\WindowsPowerShell\v1.0\powershell.exe'
     Start-Process -FilePath $powershell -ArgumentList @('-NoProfile','-ExecutionPolicy','Bypass','-WindowStyle','Hidden','-File',('"'+$bootstrap+'"')) -WorkingDirectory $root
-    [System.Windows.Forms.MessageBox]::Show('Service Kit lookup is installed. Reopen H16CKK in Workshop Pro and click Check GSF. A live price still needs verifying.','VECTA update installed') | Out-Null
+    [System.Windows.Forms.MessageBox]::Show('The GSF diagnostic connection has been restored. Start the workers, then tell ChatGPT the update is installed so the H16CKK failure can be traced. This does not claim the price failure is fixed.','VECTA diagnostics restored') | Out-Null
 } catch {
     [System.Windows.Forms.MessageBox]::Show($_.Exception.Message,'VECTA Service Kit update') | Out-Null
     exit 1
