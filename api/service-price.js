@@ -1,3 +1,4 @@
+import {workshopPricingAuthorised,workshopServiceResult,workshopTyreResult} from '../lib/workshop-job-pricing.js';
 import {estimateMissingServiceCosts} from '../lib/service-guide-costs.js';
 import {createHash} from 'node:crypto';
 import {servicePriceRequest, serviceRequiredKinds, cleanServiceQuoteCosts, COMPARISON_SERVICES, calculateServicePrice, publicServicePrice, pricingPolicy} from '../lib/service-pricing.js';
@@ -9,6 +10,17 @@ export function servicePriceHandler({env = process.env, queue = gsfQueue, histor
   return async (req, res) => {
     res.setHeader('Cache-Control', 'no-store');
     if (req.method !== 'POST') return res.status(405).json({status:'METHOD_NOT_ALLOWED'});
+    const workshop=req.body?.workshop===true;
+    if(workshop){
+      if(!await workshopPricingAuthorised(req))return res.status(401).json({status:'UNAUTHORISED'});
+      if(req.body.action==='tyreParts'){
+        try{return res.status(200).json(workshopTyreResult(req.body,env.GSF_SERVICE_QUOTE_SECRET));}
+        catch{return res.status(400).json({status:'INVALID_TYRE_QUOTE'});}
+      }
+      if(req.body.allServices)return res.status(400).json({status:'INVALID_REQUEST'});
+      const json=res.json.bind(res);
+      res.json=data=>json(workshopServiceResult(data,env.GSF_SERVICE_QUOTE_SECRET));
+    }
     if (env.GSF_SERVICE_PRICING_ENABLED !== 'true') return res.status(200).json({status:'DISABLED'});
     try {
       const policy = pricingPolicy(JSON.parse(env.GSF_SERVICE_PRICING_POLICY || '{}'));
