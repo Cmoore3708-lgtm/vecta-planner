@@ -9426,12 +9426,28 @@ function vehicleEmailLinkHtml(rawEmail,registration,vehicleModel){
 function appendVectaEmailSignature(body){
   return String(body||'').replace(/\s+$/,'');
 }
-function serviceReminderMailto(email,regHint,vehicleHint){
+function fleetReminderDueLabel(reg,types){
+  if(!Array.isArray(types)||!types.length){
+    var v=reg&&fleetVehicleForRegistration(reg),group=v&&fleetEmailDueGroupForVehicle(v);
+    types=group?group.items.map(function(item){return item.plan.type}):[];
+    if(v&&!types.length){
+      var next=fleetOutstandingPlans(v.id).filter(function(p){return !!fleetDate(p)}).sort(function(a,b){return fleetDate(a).localeCompare(fleetDate(b))})[0];
+      if(next)types=[next.type];
+    }
+  }
+  var labels=[];
+  (types||[]).forEach(function(type){
+    var category=fleetMaintenanceCategory(type),label=category==='safety'?'6 month safety check':category==='mot'?'MOT':category==='tax'?'road tax':/service/i.test(type)?'annual Service':String(type||'').trim();
+    if(label&&labels.indexOf(label)===-1)labels.push(label);
+  });
+  return labels.length>1?labels.slice(0,-1).join(', ')+' and '+labels[labels.length-1]:labels[0]||'annual Service';
+}
+function serviceReminderMailto(email,regHint,vehicleHint,dueTypes){
   email=String(email||'').trim();if(!email)return '#';
   var ctx=vehicleEmailContext(email,regHint,vehicleHint),reg=String(ctx.registration||'').trim(),vehicle=String(ctx.vehicle||'').trim(),
       first=emailFirstNameFromAddress(email),subject=reg||'Vehicle Service',
       vehicleText=[vehicle,reg].filter(Boolean).join(', '),
-      body=appendVectaEmailSignature('Hi '+(first||'there')+',\n\nYour'+(vehicleText?' '+vehicleText:'')+' is due its annual Service. Can we book it in for one day next week please?');
+      body=appendVectaEmailSignature('Hi '+(first||'there')+',\n\nYour'+(vehicleText?' '+vehicleText:'')+' is due its '+fleetReminderDueLabel(reg,dueTypes)+'. Can we book it in for one day next week please?');
   return 'mailto:'+encodeURIComponent(email)+'?subject='+encodeURIComponent(subject)+'&body='+encodeURIComponent(body);
 }
 function emailLinkHtml(email,emptyText,regHint,vehicleHint){
@@ -12487,12 +12503,12 @@ function fleetMaintenanceHtml(){
   if(fleetListMode==='due30'){
     rowsHtml=vectaListWindow('fleet',JSON.stringify([fleetListMode,fleetFilter,fleetQuery]),dueGroups).map(function(group){
       var v=group.vehicle;
-      return '<div class="fleetDueGroup"><div class="fleetRow due30Columns" role="button" tabindex="0" data-fleet-open="'+esc(v.id)+'">'+fleetPlate(v.registration)+'<span title="'+esc(fleetDisplayModel(v.model))+'">'+esc(fleetShortVehicle(v.model))+'</span>'+fleetImageCell(v)+'<span>'+fleetCustomerBadge(v)+'</span>'+fleetContactEmailCell(v)+fleetWorkDueGroupCell(group.items)+fleetBookingTypeGroupCell(group.items)+fleetBookedTickGroupCell(group.items)+fleetBookedGroupCell(group.items,v)+fleetEmailSentCell(group)+'</div></div>';
+      return '<div class="fleetDueGroup"><div class="fleetRow due30Columns" role="button" tabindex="0" data-fleet-open="'+esc(v.id)+'" data-fleet-reminder-types="'+esc(JSON.stringify(group.items.map(function(item){return item.plan.type})))+'">'+fleetPlate(v.registration)+'<span title="'+esc(fleetDisplayModel(v.model))+'">'+esc(fleetShortVehicle(v.model))+'</span>'+fleetImageCell(v)+'<span>'+fleetCustomerBadge(v)+'</span>'+fleetContactEmailCell(v)+fleetWorkDueGroupCell(group.items)+fleetBookingTypeGroupCell(group.items)+fleetBookedTickGroupCell(group.items)+fleetBookedGroupCell(group.items,v)+fleetEmailSentCell(group)+'</div></div>';
     }).join('');
   }else if(workMode){
-    rowsHtml=vectaListWindow('fleet',JSON.stringify([fleetListMode,fleetFilter,fleetQuery]),filteredWork).map(function(r){var v=r.vehicle;return '<div class="fleetRow" role="button" tabindex="0" data-fleet-open="'+esc(v.id)+'">'+fleetPlate(v.registration)+'<span>'+esc(fleetDisplayModel(v.model))+'</span>'+fleetImageCell(v)+'<span>'+fleetCustomerBadge(v)+'</span>'+fleetContactEmailCell(v)+fleetDueCell(r.plan.type,r.due,fleetTone(r.due),r.bookedJob)+'</div>'}).join('');
+    rowsHtml=vectaListWindow('fleet',JSON.stringify([fleetListMode,fleetFilter,fleetQuery]),filteredWork).map(function(r){var v=r.vehicle;return '<div class="fleetRow" role="button" tabindex="0" data-fleet-open="'+esc(v.id)+'" data-fleet-reminder-types="'+esc(JSON.stringify([r.plan.type]))+'">'+fleetPlate(v.registration)+'<span>'+esc(fleetDisplayModel(v.model))+'</span>'+fleetImageCell(v)+'<span>'+fleetCustomerBadge(v)+'</span>'+fleetContactEmailCell(v)+fleetDueCell(r.plan.type,r.due,fleetTone(r.due),r.bookedJob)+'</div>'}).join('');
   }else{
-    rowsHtml=vectaListWindow('fleet',JSON.stringify([fleetListMode,fleetFilter,fleetQuery]),filteredVehicles).map(function(v){return '<div class="fleetRow" role="button" tabindex="0" data-fleet-open="'+esc(v.id)+'">'+fleetPlate(v.registration)+'<span>'+esc(fleetDisplayModel(v.model))+'</span>'+fleetImageCell(v)+'<span>'+fleetCustomerBadge(v)+'</span>'+fleetContactEmailCell(v)+fleetDueCell(v.nextDueType,v.nextDue,v.tone,fleetAnyBookedPlannerJob(v))+'</div>'}).join('');
+    rowsHtml=vectaListWindow('fleet',JSON.stringify([fleetListMode,fleetFilter,fleetQuery]),filteredVehicles).map(function(v){return '<div class="fleetRow" role="button" tabindex="0" data-fleet-open="'+esc(v.id)+'" data-fleet-reminder-types="'+esc(JSON.stringify([v.nextDueType]))+'">'+fleetPlate(v.registration)+'<span>'+esc(fleetDisplayModel(v.model))+'</span>'+fleetImageCell(v)+'<span>'+fleetCustomerBadge(v)+'</span>'+fleetContactEmailCell(v)+fleetDueCell(v.nextDueType,v.nextDue,v.tone,fleetAnyBookedPlannerJob(v))+'</div>'}).join('');
   }
   return '<div class="fleetHero"><div><span class="fleetEyebrow">FLEET ENGINE</span><h2>Fleet Manager</h2><p>Maintenance schedules, contacts and due work in one place.</p></div><div class="fleetTopActions"><button type="button" class="btn" data-fleet-download-contacts="Nissan Internal" title="Download all active internal vehicles and contacts">Download Internal</button><button type="button" class="btn" data-fleet-download-contacts="Nissan Pool Cars" title="Download all active pool cars and contacts">Download Pool</button><button type="button" class="btn" data-fleet-download-contacts="Contractor Fleet" title="Download all active contractor cars and contacts">Download Contractors</button><button class="primary" id="fleetAddVehicle">+ Add Vehicle</button><button class="btn" id="fleetReset">Reset imported data</button></div></div><div class="fleetKpis"><button type="button" class="fleetKpi dueAll '+(fleetListMode==='due30'?'active':'')+'" data-fleet-mode="due30"><small>Due next 30 days</small><strong>'+dueVehicleCount+'</strong></button><button type="button" class="fleetKpi danger '+(fleetListMode==='overdue'?'active':'')+'" data-fleet-mode="overdue"><small>Overdue</small><strong>'+overdue+'</strong></button><button type="button" class="fleetKpi motAlert '+(fleetListMode==='mot30'?'active':'')+'" data-fleet-mode="mot30"><span class="fleetKpiBadge mot">MOT</span><small>Due 30 days</small><strong>'+mot30+'</strong></button><button type="button" class="fleetKpi serviceAlert '+(fleetListMode==='service30'?'active':'')+'" data-fleet-mode="service30"><span class="fleetKpiBadge service">SER</span><small>Due 30 days</small><strong>'+service30+'</strong></button><button type="button" class="fleetKpi taxAlert '+(fleetListMode==='tax30'?'active':'')+'" data-fleet-mode="tax30"><span class="fleetKpiBadge tax">TAX</span><small>Due 30 days</small><strong>'+tax30+'</strong></button><button type="button" class="fleetKpi safetyAlert '+(fleetListMode==='safety30'?'active':'')+'" data-fleet-mode="safety30"><span class="fleetKpiBadge safety">6 mo</span><small>Due 30 days</small><strong>'+safety30+'</strong></button></div><div class="fleetGroups">'+groups.map(function(g){return '<button class="fleetGroup '+g.cls+' '+(fleetFilter===g.value?'active':'')+'" data-fleet-group="'+esc(g.value)+'"><span>'+esc(g.label)+'</span><b>'+g.count+'</b></button>'}).join('')+'<button type="button" class="fleetGroup missingEmail '+(fleetListMode==='missing'?'active':'')+'" data-fleet-mode="missing"><span>Missing email</span><b>'+missing+'</b></button></div><div class="fleetWorkspace"><div>'+fleetCustomerProfileHtml(all,customers)+'<div class="fleetPanel"><div class="fleetToolbar"><div class="fleetSearchWrap"><input class="search" type="search" autocomplete="off" id="fleetSearch" placeholder="Search registration, vehicle or customer..." value="'+esc(fleetQuery)+'"><button type="button" class="fleetSearchClear" id="fleetSearchClear" '+(fleetQuery?'':'hidden')+'>Clear</button></div><select id="fleetGroup"><option value="All">All</option><option value="Nissan Internal">NMUK Internal</option><option value="Nissan Pool Cars">NMUK pool cars</option><option value="Contractor Fleet">Contractor vehicles</option>'+customers.map(function(c){return '<option value="'+esc(c)+'" '+(fleetFilter===c?'selected':'')+'>'+esc(c)+'</option>'}).join('')+'</select><small>'+resultCount+' '+(fleetListMode==='due30'?'vehicles':(workMode?'work items':'vehicles'))+'</small>'+(['due30','overdue','mot30','service30','tax30','safety30'].indexOf(fleetListMode)>-1?'<button type="button" class="btn dark" id="fleetPrintCurrent">🖨 Print this list</button>':'')+'</div><div class="fleetListTitle">'+esc(listTitle)+(fleetFilter!=='All'?' — '+esc(fleetGroupLabel(fleetFilter)):'')+'<span class="fleetBookedLegend"><span class="fleetBookedTick">✓</span> Already booked in planner</span><span class="fleetBookedLegend" style="color:#4b5563">− Provisional booking</span></div><div class="fleetTableHead '+(fleetListMode==='due30'?'due30Columns':'')+'"><span>Registration</span><span>Vehicle</span><span>Image</span><span>Fleet / customer</span><span>Contact email</span><span>'+esc(dueHeading)+'</span>'+(fleetListMode==='due30'?'<span>Booking type</span><span>✓</span><span>Booked</span><span>Email sent</span>':'')+'</div>'+rowsHtml+vectaListMoreHtml('fleet',resultCount)+(resultCount?'':'<div class="fleetEmptyList">No vehicles or work match this view.</div>')+'</div></div>'+myTasksHtml('fleet')+'</div><div class="fleetDrawerBack '+(activeFleetVehicleId?'open':'')+'" id="fleetDrawerBack">'+fleetDrawerHtml()+'</div>';
 }
@@ -13039,7 +13055,11 @@ function bindWebsiteRequests(){if(window.enrichHaynesDashboard)window.enrichHayn
 
 
 function displayedEmailContextForNode(node,email){
-  var el=node&&node.parentElement,scope=el;
+  var el=node&&node.parentElement,scope=el,row=el&&el.closest&&el.closest('[data-fleet-open]');
+  if(row){
+    var v=(fleetVehicles||[]).find(function(vehicle){return String(vehicle.id)===String(row.dataset.fleetOpen)});
+    if(v){var types=[];try{types=JSON.parse(row.dataset.fleetReminderTypes||'[]')}catch(e){}return {registration:v.registration,vehicle:v.model,dueTypes:types}}
+  }
   while(scope&&scope!==document.body){
     var text=String(scope.textContent||''),candidates=[];
     (fleetVehicles||[]).forEach(function(v){if(text.toUpperCase().indexOf(String(v.registration||'').toUpperCase())>-1||text.replace(/[^A-Za-z0-9]/g,'').toUpperCase().indexOf(normReg(v.registration||''))>-1)candidates.push({registration:v.registration,vehicle:v.model})});
@@ -13062,7 +13082,7 @@ function linkifyDisplayedEmails(root){
     while(m=emailRe2.exec(text)){
       if(m.index>last)frag.appendChild(document.createTextNode(text.slice(last,m.index)));
       var email=m[0],ctx=displayedEmailContextForNode(textNode,email),a=document.createElement('a');
-      a.className='contactEmailLink';a.href=serviceReminderMailto(email,ctx.registration,ctx.vehicle);a.title='Email '+email;a.textContent=email;frag.appendChild(a);last=m.index+email.length;
+      a.className='contactEmailLink';a.href=serviceReminderMailto(email,ctx.registration,ctx.vehicle,ctx.dueTypes);a.title='Email '+email;a.textContent=email;frag.appendChild(a);last=m.index+email.length;
     }
     if(last<text.length)frag.appendChild(document.createTextNode(text.slice(last)));
     textNode.parentNode.replaceChild(frag,textNode);
