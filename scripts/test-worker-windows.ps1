@@ -5,7 +5,7 @@ function Assert-True($Condition, [string]$Message) { if (!$Condition) { throw $M
 $repository = Split-Path -Parent $PSScriptRoot
 $controller = Join-Path $repository 'workers\control\workshop-workers.ps1'
 $bootstrap = Join-Path $repository 'workers\control\permanent-start.ps1'
-foreach ($file in @($controller,$bootstrap)) {
+foreach ($file in @($controller,$bootstrap,(Join-Path $repository 'workers\control\install-recovery.ps1'))) {
     $tokens=$null; $errors=$null
     $ast=[System.Management.Automation.Language.Parser]::ParseFile($file,[ref]$tokens,[ref]$errors)
     Assert-True ($errors.Count -eq 0) ('PowerShell parse failed: ' + $file)
@@ -35,6 +35,10 @@ const timer=setInterval(()=>{if(fs.existsSync(process.env.VECTA_WORKER_STOP_FILE
         New-Item -ItemType Directory -Force -Path (Split-Path -Parent $file) | Out-Null
         Set-Content -LiteralPath $file -Value $stub -Encoding UTF8
     }
+    # The native fixture must contain the same supervisor used by installed releases.
+    $controlDir=Join-Path $release 'workers\control'
+    New-Item -ItemType Directory -Force -Path $controlDir | Out-Null
+    Copy-Item -LiteralPath (Join-Path $repository 'workers\control\supervisor.mjs') -Destination (Join-Path $controlDir 'supervisor.mjs')
     foreach ($name in @('Haynes','Tyres','GSF')) {
         $arguments=@('-NoProfile','-ExecutionPolicy','Bypass','-File',('"' + $controller + '"'),'-Root',('"' + $root + '"'),'-Worker',$name)
         $runner=Start-Process powershell.exe -ArgumentList $arguments -PassThru -WindowStyle Hidden
@@ -126,3 +130,4 @@ const timer=setInterval(()=>{if(fs.existsSync(process.env.VECTA_WORKER_STOP_FILE
     $env:LOCALAPPDATA=$oldAppData; $env:GSF_PREVIEW_COOKIE=$oldPreview
     Remove-Item -LiteralPath $testRoot -Recurse -Force -ErrorAction SilentlyContinue
 }
+
