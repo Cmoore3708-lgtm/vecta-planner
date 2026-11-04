@@ -73,5 +73,6 @@
   }
   el('registrationForm').onsubmit=event=>{event.preventDefault();if(busy)return;registration=el('registrationInput').value.trim();if(!registration)return;clearTimeout(timer);el('identity').hidden=true;el('steps').hidden=true;el('progressScene').hidden=true;el('sceneCaption').hidden=true;artworkKey='';el('paperwork').hidden=true;el('invoice').removeAttribute('href');el('error').hidden=true;el('freshness').textContent='';el('statusTitle').textContent='Checking today’s booking…';el('statusDescription').textContent='';el('refresh').hidden=false;refresh();};
   el('refresh').onclick=refresh;document.addEventListener('visibilitychange',()=>{if(document.hidden)clearTimeout(timer);else refresh();});window.addEventListener('online',refresh);
-  if(token){el('refresh').hidden=false;el('statusTitle').textContent='Checking your booking…';el('statusDescription').textContent='Please wait while we retrieve the latest workshop update.';refresh();}
+  if(!token&&location.search){const supplied=new URLSearchParams(location.search).get('reg')||'';if(/^[A-Za-z0-9 -]{2,15}$/.test(supplied)){registration=normalise(supplied);el('registrationInput').value=registration;}}
+  if(token||registration){el('refresh').hidden=false;el('statusTitle').textContent='Checking your booking…';el('statusDescription').textContent='Please wait while we retrieve the latest workshop update.';refresh();}
 })();
