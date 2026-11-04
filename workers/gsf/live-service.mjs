@@ -1,9 +1,13 @@
 import {estimatedFilter} from '../../lib/service-guide-costs.js';
-import {servicePriceRequest,serviceRequiredKinds,cleanServiceQuoteCosts} from '../../lib/service-pricing.js';
+import {servicePriceRequest,serviceRequiredKinds,cleanServiceQuoteCosts,cleanPartialServiceCosts} from '../../lib/service-pricing.js';
 import {captureServiceCategory} from './service-capture.mjs';
 import {readProductDialog,openSelectedProduct} from './product-dialog.mjs';
 import {oilFillEvidence} from './oil-capacity.mjs';
 import {chooseServiceOilPack} from './oil-pack-choice.mjs';
+// Older standalone oil-fix installations have only the category lookup.
+// Resolve the optional Service Kit reader only when that route is attempted.
+const captureServiceKit=async(...args)=>(await import('./service-kit.mjs')).captureServiceKit(...args);
+const readKitProduct=async(...args)=>(await import('./service-kit.mjs')).readKitProduct(...args);
 const fail=(reason='REVIEW_REQUIRED',evidence={})=>{throw Object.assign(Error('REVIEW_REQUIRED'),{diagnosticReason:reason,evidence});};
 const categories={oil:'Engine Oils (Applied)',oil_filter:'Oil Filter',air_filter:'Air Filter',cabin_filter:'Cabin Filter',fuel_filter:'Fuel Filter'};
 // Parse only the selected product's stock/price panel, never alternative cards or RRP.
@@ -58,22 +62,49 @@ async function freshProduct(page,selected){
  return {kind:selected.kind,sku:product.sku,brand:product.brand,description:product.description,quantityMilli:selected.quantityMilli,
   unitNetPence:Math.ceil(product.unitNetPence*1000/selected.packQuantityMilli),...(selected.kind==='oil'?{packNetPence:product.unitNetPence,packQuantityMilli:selected.packQuantityMilli}:{}),vatBasis:'EX_VAT',inStock:product.inStock===true,...(product.inStock!==true?{pricingOnly:true}:{})};
 }
-export async function lookupLiveService(page,raw,{capture=captureServiceCategory,readFresh=freshProduct,chooseOilPack=chooseServiceOilPack,now=Date.now}={}){
+export async function lookupLiveService(page,raw,{capture=captureServiceCategory,readFresh=freshProduct,chooseOilPack=chooseServiceOilPack,captureKit=capture===captureServiceCategory?captureServiceKit:null,readKit=readKitProduct,now=Date.now}={}){
  const began=Date.now();
  const request=servicePriceRequest(raw);
  if(request.range!=='Mid Range')fail(); // Never mislabel Gold catalogue parts as Budget or Dealer.
  const firstKind=request.service==='EV Major Service'?'cabin_filter':'oil_filter';
- const first=await capture(page,request.registration,categories[firstKind]);
- if(first.status!=='CAPTURED_FOR_REVIEW'||!first.selectedRegistration||first.registration!==request.registration||first.truncated)fail();
+ let kit=null;
+ if(captureKit){
+  try{kit=await captureKit(page,request);}
+  catch(error){if(['LOGIN_REQUIRED','PAIRING_REQUIRED'].includes(error.message))throw error;}
+ }
+ // A missing oil-filter category is not proof that the other categories have no stock.
+ // Establish the exact vehicle from another required category before using any prices.
+ let first=kit?.vehicleCapture,identityKind=firstKind;
+ const attempts=new Map();
+ if(!first){for(const kind of new Set([firstKind,...(request.service==='EV Major Service'?[]:['oil',...(/Full|Major/.test(request.service)?['air_filter','cabin_filter']:[])])])){
+  try{const candidate=await capture(page,request.registration,categories[kind]);attempts.set(kind,candidate);
+   if(candidate.registration&&candidate.registration!==request.registration)throw Error('VEHICLE_MISMATCH');
+   if(candidate.status==='CAPTURED_FOR_REVIEW'&&candidate.selectedRegistration&&candidate.registration===request.registration&&!candidate.truncated){first=candidate;identityKind=kind;break;}
+  }catch(error){if(['LOGIN_REQUIRED','PAIRING_REQUIRED','VEHICLE_MISMATCH'].includes(error.message))throw error;attempts.set(kind,null);}
+ }}
+ if(!first||first.status!=='CAPTURED_FOR_REVIEW'||!first.selectedRegistration||first.registration!==request.registration||first.truncated)fail(first?.reason||'SELECTED_VEHICLE_NOT_CONFIRMED');
  const text=first.visibleText||'',boundary=text.indexOf(' Copy VIN'),identity=boundary<0?'':text.slice(0,boundary);
  const fuels=['diesel','petrol','electric'].filter(f=>new RegExp('\\b'+(f==='electric'?'Electric(?:ity)?':f)+'\\b','i').test(identity));
  const combustion=fuels.filter(f=>f!=='electric');
  const fuelType=combustion.length===1?combustion[0]:combustion.length?null:fuels.includes('electric')?'electric':null;
- if(!fuelType)fail();
+ if(!fuelType)fail('FUEL_TYPE_UNCONFIRMED');
  const requiredKinds=serviceRequiredKinds(request.service,fuelType),items=[];
  for(const kind of requiredKinds){
   try{
-   const evidence=kind===firstKind?first:await capture(page,request.registration,categories[kind]);
+   const kitRow=kit?.registration===request.registration?kit.items.find(item=>item.kind===kind):null;
+   if(kitRow){
+    try{
+     const product=await readKit(page,kitRow,request,{capture});
+     items.push(kind==='oil'?await chooseOilPack(page,product,{searchTerm:kitRow.searchTerm}):product);
+     continue;
+    }catch(error){
+     if(['LOGIN_REQUIRED','PAIRING_REQUIRED','VEHICLE_MISMATCH'].includes(error.message))throw error;
+     // A missing field or changed price falls back to the existing independently
+     // verified category flow; kit values are never treated as a completed quote.
+    }
+   }
+   const evidence=kind===identityKind&&!kit?first:attempts.has(kind)?attempts.get(kind):await capture(page,request.registration,categories[kind]);
+   if(!evidence)throw Error('REVIEW_REQUIRED');
    if(evidence.registration!==request.registration)throw Error('VEHICLE_MISMATCH');
    if(!evidence.selectedRegistration)throw Error('REVIEW_REQUIRED');
    const selected=catalogueSelection(evidence,kind,request.registration,{allowPriceOnly:true});
@@ -81,10 +112,11 @@ export async function lookupLiveService(page,raw,{capture=captureServiceCategory
    const product=await readFresh(page,selected);
    items.push(kind==='oil'?await chooseOilPack(page,product,{searchTerm:selected.searchTerm}):product);
   }catch(error){
-   if(kind==='oil'||['LOGIN_REQUIRED','PAIRING_REQUIRED','VEHICLE_MISMATCH'].includes(error.message)){error.evidence={category:categories[kind],...error.evidence};throw error;}
-   items.push(estimatedFilter(kind));
+   if(['LOGIN_REQUIRED','PAIRING_REQUIRED','VEHICLE_MISMATCH'].includes(error.message)){error.evidence={category:categories[kind],...error.evidence};throw error;}
+   if(kind!=='oil')items.push(estimatedFilter(kind));
   }
  }
+ const partial=requiredKinds.some(kind=>!items.some(item=>item.kind===kind));
  const guidePrice=items.some(item=>item.estimated||item.pricingOnly);
  const optionalParts=[];
  // Older PC workers can keep returning the core service unchanged. New workers
@@ -104,9 +136,9 @@ export async function lookupLiveService(page,raw,{capture=captureServiceCategory
   }catch { /* Optional lookup failure must not lose the Full/Interim price. */ }
   finally {clearTimeout(optionalTimer);}
  }
- return cleanServiceQuoteCosts({request,...(guidePrice?{guidePrice:true}:{}),recipeId:'gsf-selected-vehicle-v1',vehicle:serviceVehicleLabel(first,request.registration),
+ return (partial?cleanPartialServiceCosts:cleanServiceQuoteCosts)({request,...(partial?{partial:true}:{}),...(guidePrice?{guidePrice:true}:{}),recipeId:'gsf-selected-vehicle-v1',vehicle:serviceVehicleLabel(first,request.registration),
   fuelType,oilSpecification:request.service==='EV Major Service'?'':'GSF vehicle-applied oil recommendation',requiredKinds,items,optionalParts,
-  fitmentVerified:true,scopeVerified:true,oilVerified:true,checkedAt:new Date(now()).toISOString()},request,now());
+  fitmentVerified:true,scopeVerified:true,oilVerified:items.some(item=>item.kind==='oil'),checkedAt:new Date(now()).toISOString()},request,now());
 }
 
 // Display label only: full identity was checked above and is never truncated for fitment.

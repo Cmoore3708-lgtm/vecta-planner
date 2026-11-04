@@ -52,7 +52,9 @@ test('worker retains a partial service when air filter is missing, but never gue
  assert.equal(costs.items.find(x=>x.kind==='oil_filter').estimated,undefined);
  const missingCategory=await lookupLiveService({},input,{...options,capture:async(page,reg,category)=>category==='Air Filter'?{status:'CAPTURED_FOR_REVIEW',registration:reg,selectedRegistration:false}:options.capture(page,reg,category)});
  assert.equal(missingCategory.items.find(x=>x.kind==='air_filter').estimated,true);
- await assert.rejects(lookupLiveService({},input,{...options,readFresh:async(_,s)=>{if(s.kind==='oil')throw Error('REVIEW_REQUIRED');return options.readFresh(_,s);}}));
+ const noOil=await lookupLiveService({},input,{...options,readFresh:async(_,s)=>{if(s.kind==='oil')throw Error('REVIEW_REQUIRED');return options.readFresh(_,s);}});
+ assert.equal(noOil.partial,true);assert.equal(noOil.oilVerified,false);assert.ok(noOil.items.some(x=>x.kind==='oil_filter'&&!x.estimated));assert.ok(!noOil.items.some(x=>x.kind==='oil'));
+ assert.throws(()=>calculateServicePrice(noOil,input,policy,now),/INCOMPLETE/);
  await assert.rejects(lookupLiveService({},input,{...options,capture:async()=>({...fixture.categories[0],registration:'WRONG123'})}));
 });
 test('authenticated worker → batch API → signed booking preserves guides only for affected services',async()=>{

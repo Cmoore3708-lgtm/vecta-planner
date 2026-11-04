@@ -1,7 +1,8 @@
 import {workshopPricingAuthorised,workshopServiceResult,workshopTyreResult} from '../lib/workshop-job-pricing.js';
+import {estimateWorkshopService} from '../lib/workshop-service-estimate.js';
 import {estimateMissingServiceCosts} from '../lib/service-guide-costs.js';
 import {createHash} from 'node:crypto';
-import {servicePriceRequest, serviceRequiredKinds, cleanServiceQuoteCosts, COMPARISON_SERVICES, calculateServicePrice, publicServicePrice, pricingPolicy} from '../lib/service-pricing.js';
+import {servicePriceRequest, serviceRequiredKinds, cleanServiceQuoteCosts, cleanPartialServiceCosts, COMPARISON_SERVICES, calculateServicePrice, publicServicePrice, pricingPolicy} from '../lib/service-pricing.js';
 import {signServicePrice, verifyServicePrice} from '../lib/service-price-token.js';
 import {gsfQueue,serviceCostHistory} from '../lib/gsf-queue.js';
 import {serviceExtraPrice} from '../lib/service-extras.js';
@@ -21,12 +22,14 @@ export function servicePriceHandler({env = process.env, queue = gsfQueue, histor
       const json=res.json.bind(res);
       res.json=data=>json(workshopServiceResult(data,env.GSF_SERVICE_QUOTE_SECRET));
     }
-    if (env.GSF_SERVICE_PRICING_ENABLED !== 'true') return res.status(200).json({status:'DISABLED'});
+    if (!workshop && env.GSF_SERVICE_PRICING_ENABLED !== 'true') return res.status(200).json({status:'DISABLED'});
     try {
       const policy = pricingPolicy(JSON.parse(env.GSF_SERVICE_PRICING_POLICY || '{}'));
       if (!/^[a-f0-9]{64,128}$/.test(env.GSF_SERVICE_QUOTE_SECRET || '')) throw Error('SETTINGS_REQUIRED');
       if (Buffer.byteLength(JSON.stringify(req.body || {})) > 20000) return res.status(413).json({status:'INVALID_REQUEST'});
       const input = servicePriceRequest(req.body);
+      const estimate=async partial=>{let recent=[];try{recent=await history();}catch{/* Use the saved allowances if no history is available. */}return estimateWorkshopService(input,partial,recent,policy,now());};
+      if(workshop&&(req.body.action==='estimate'||env.GSF_SERVICE_PRICING_ENABLED!=='true'))return res.status(200).json(await estimate(null));
       const batch = req.body.allServices === true;
       const supplierRequest = batch ? {...input,service:'Major Service',mileage:null} : input;
       // An existing signed offer remains valid for its lifetime, even offline.
@@ -35,8 +38,13 @@ export function servicePriceHandler({env = process.env, queue = gsfQueue, histor
       }
       // Hash addresses with a secret salt; never retain raw IPs in supplier jobs.
       const actor = createHash('sha256').update(env.GSF_SERVICE_QUOTE_SECRET || '').update(String(req.headers?.['x-vercel-forwarded-for'] || req.socket?.remoteAddress || 'unknown')).digest('hex');
-      const data = await queue('enqueue', {request:supplierRequest, actor});
+      let data;try{data=await queue('enqueue',{request:supplierRequest,actor});}catch(error){if(!workshop)throw error;data={status:'UNAVAILABLE'};}
+      if(workshop&&!['PENDING','MATCHED'].includes(data.status))return res.status(200).json(await estimate(null));
       if (data.status !== 'MATCHED') return res.status(200).json({status:['PENDING','OFFLINE','BUSY','DAILY_LIMIT','LOGIN_REQUIRED','REVIEW_REQUIRED','SETTINGS_REQUIRED','UNAVAILABLE'].includes(data.status) ? data.status : 'UNAVAILABLE'});
+      if(data.result?.partial){
+        const partial=cleanPartialServiceCosts(data.result,supplierRequest,now());
+        return res.status(200).json(workshop?await estimate(partial):{status:'UNAVAILABLE'});
+      }
       let result=cleanServiceQuoteCosts(data.result,supplierRequest,now());
       if(result.guidePrice){
         let recent=[];try{recent=await history();}catch{ /* Use the agreed allowances when history cannot be read. */ }
