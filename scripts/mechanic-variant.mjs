@@ -22,7 +22,7 @@ export function mechanicVariant(source){
  source=source.replace(/^  invoices\.forEach\(function\(inv\)\{history\.push[^\n]+\n/gm,'');
  source=source.replace('Job Cards, Service Sheets & Invoices','Job Cards & Service Sheets');
 
- source=once(source,'          if(!id) return result;', "          if(IS_MECHANIC){['markComplete','markReady','createInvoiceFromJob','deleteJob','undoJobCompletion','returnToMechanic','createQuote','convertQuote'].forEach(function(key){var control=document.getElementById(key);if(control)control.remove();});}\n          if(!id) return result;");
+ source=once(source,'          if(!id) return result;', "          if(IS_MECHANIC){['markComplete','markReady','createInvoiceFromJob','deleteJob','undoJobCompletion','returnToMechanic','createQuote','convertQuote','createProvisionalBooking','confirmProvisionalBooking','cancelProvisionalBooking'].forEach(function(key){var control=document.getElementById(key);if(control)control.remove();});}\n          if(!id) return result;");
 
  source=once(source,"jobsForList(jobsListMode).filter(function(j){return !q", "(view==='completedJobs'?jobsForList('completed').concat((app.jobs||[]).filter(function(j){return j.status==='work_complete'})):jobsForList(jobsListMode)).filter(function(j){return !q");
  source=source.replace('<head>','<head>\n<meta name="vecta-mechanic-build" content="current-workshop-layout-mechanic">\n<script>window.VECTA_MECHANIC_DEPLOYMENT=true;</script>\n');

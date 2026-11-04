@@ -1,7 +1,7 @@
 {
-  "approvedOn": "2026-10-30",
+  "approvedOn": "2026-11-04",
   "approvedBy": "Chris Moore",
-  "approval": "Chris’s 23 October screenshot request: hide duplicate MOT job-type/template wording when an MOT appointment is displayed, and let the PC vehicle make/model extend to the visible car edge. Shared Main/mechanics renderers checked at PC and phone widths; extra work and appointment remain visible. MOT confirmation request: Chris approved green MOT/time after garage confirmation and automatic allocation of unallocated MOT jobs to Chris. Only mobileMotAppointmentHtml and plannerMotHeaderHtml are additionally changed; both Main/mechanics outputs are covered by regression tests. Chris’s 23 October mechanic screenshot request: remove overlapping card text at PC and iPad widths. Identity rows now reserve their natural height and work follows the header. Checked shared Main/mechanics CSS at 800, 1024 and 1440px; phone rules retained. Chris’s 23 October missing-image and Main text-alignment regression report, followed by “Carry on”: restore the whole card as the artwork positioning container while retaining natural text rows and the Haynes link fix. Only the final header position changes from relative to static; shared Main/mechanics checked at phone, tablet and desktop widths. Chris’s 27 October screenshot request: fix overlapping MOT/service/customer rows and allow make/model text to reach the vehicle. Full-width header keeps artwork sizing independent of silhouette-sized identity; natural flex rows prevent track compression; static work positioning removes legacy relative offsets. Shared Main/mechanics CSS checked at desktop/tablet widths; phone rules unchanged. Chris’s 30 October job-card screenshot request: hide repeated standard descriptions for selected services, six-month checks and MOTs, preserving additional instructions. Only plannerJobDescription changes; shared Main/mechanics renderer and existing responsive styles remain identical.",
+  "approval": "Chris’s 23 October screenshot request: hide duplicate MOT job-type/template wording when an MOT appointment is displayed, and let the PC vehicle make/model extend to the visible car edge. Shared Main/mechanics renderers checked at PC and phone widths; extra work and appointment remain visible. MOT confirmation request: Chris approved green MOT/time after garage confirmation and automatic allocation of unallocated MOT jobs to Chris. Only mobileMotAppointmentHtml and plannerMotHeaderHtml are additionally changed; both Main/mechanics outputs are covered by regression tests. Chris’s 23 October mechanic screenshot request: remove overlapping card text at PC and iPad widths. Identity rows now reserve their natural height and work follows the header. Checked shared Main/mechanics CSS at 800, 1024 and 1440px; phone rules retained. Chris’s 23 October missing-image and Main text-alignment regression report, followed by “Carry on”: restore the whole card as the artwork positioning container while retaining natural text rows and the Haynes link fix. Only the final header position changes from relative to static; shared Main/mechanics checked at phone, tablet and desktop widths. Chris’s 27 October screenshot request: fix overlapping MOT/service/customer rows and allow make/model text to reach the vehicle. Full-width header keeps artwork sizing independent of silhouette-sized identity; natural flex rows prevent track compression; static work positioning removes legacy relative offsets. Shared Main/mechanics CSS checked at desktop/tablet widths; phone rules unchanged. Chris’s 30 October job-card screenshot request: hide repeated standard descriptions for selected services, six-month checks and MOTs, preserving additional instructions. Only plannerJobDescription changes; shared Main/mechanics renderer and existing responsive styles remain identical. Chris’s 4 November request: add grey-filled provisional bookings with explicit confirmation/cancellation and a provisional Fleet marker. Only mobileJobCardHtml is recaptured: its legacy Other-lane blue override must not replace a provisional grey background. Shared jobTypeInlineStyle supplies the requested grey fill on Main/mechanics desktop, phone and unallocated cards. Main and generated mechanics verified with synthetic bookings at desktop (1348px) and phone (390px) widths; normal bookings retain their existing rendering.",
   "layout": {
     "main": {
       "functions": {
@@ -40,7 +40,7 @@
           "e34fc942ef5b6d5524c97a112ffff1ff331642243af2a3a0ba04aaeb0f0dcf3a"
         ],
         "mobileJobCardHtml": [
-          "e093c855956b7e9874e96011e4ac6dbe7b636c6ec573793b3a43b1838e9cb53f"
+          "1ab5db1737d56c4057deecee061782c782088f666bcd504255461e84aa004971"
         ],
         "mobileJobCategoryLabel": [
           "40e9cd14a67e72f9e3f664bac42c93a924ddcd168f900eb37913228dba56c798"
@@ -136,7 +136,7 @@
           "e34fc942ef5b6d5524c97a112ffff1ff331642243af2a3a0ba04aaeb0f0dcf3a"
         ],
         "mobileJobCardHtml": [
-          "e093c855956b7e9874e96011e4ac6dbe7b636c6ec573793b3a43b1838e9cb53f"
+          "1ab5db1737d56c4057deecee061782c782088f666bcd504255461e84aa004971"
         ],
         "mobileJobCategoryLabel": [
           "40e9cd14a67e72f9e3f664bac42c93a924ddcd168f900eb37913228dba56c798"
