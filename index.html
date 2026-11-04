@@ -14442,8 +14442,13 @@ function plannerPackOrderedJobs(jobs,startMinutes){
   planned.forEach(function(item){if(normaliseClock(item.job.drop_time)!==item.time){item.job.drop_time=item.time;item.job.updated_at=stamp;changed.push(item.job)}});
   return changed;
 }
+var plannerGapTimer=null;
 function plannerPackVisibleDay(){
-  if(plannerInteractionBusy||cloudRefreshBusy||!app||!Array.isArray(app.jobs))return [];
+  if(plannerInteractionBusy||cloudRefreshBusy){
+    if(!plannerGapTimer)plannerGapTimer=setTimeout(function(){plannerGapTimer=null;if(view==='planner'){var shifted=plannerPackVisibleDay();if(shifted.length)render()}},300);
+    return [];
+  }
+  if(!app||!Array.isArray(app.jobs))return [];
   var date=selectedIso();if(date<todayIso())return [];
   var lanes={},changed=[];
   (app.jobs||[]).forEach(function(job){if(job&&job.booking_date===date&&job.technician&&job.technician!=='Unallocated')lanes[plannerTechnicianLane(job.technician)]=true});

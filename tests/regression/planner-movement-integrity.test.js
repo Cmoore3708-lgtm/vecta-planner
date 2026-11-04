@@ -270,3 +270,11 @@ test('opening the current dashboard closes existing morning and internal gaps on
  ctx.plannerPackVisibleDay();assert.equal(saves,1);assert.equal(persists,1);
  ctx.selectedIso=()=> '2026-11-03';jobs[0].drop_time='10:00';ctx.plannerPackVisibleDay();assert.equal(jobs[0].drop_time,'10:00');
 });
+
+test('a dashboard rendered during cloud refresh packs once the refresh finishes',()=>{
+ const jobs=[stackedJob('a','10:00')],ctx=stackedPlanner(jobs);let callback,renders=0,timers=0;
+ Object.assign(ctx,{plannerInteractionBusy:false,cloudRefreshBusy:true,plannerGapTimer:null,view:'planner',selectedIso:()=> '2026-11-04',todayIso:()=> '2026-11-04',saveLocal(){},persistPlannerJobsInBackground(){},render:()=>renders++,setTimeout:fn=>{callback=fn;timers++;return 1},console});
+ vm.runInNewContext(namedFunctionSource('plannerPackVisibleDay'),ctx);
+ ctx.plannerPackVisibleDay();ctx.plannerPackVisibleDay();assert.equal(timers,1);assert.equal(jobs[0].drop_time,'10:00');
+ ctx.cloudRefreshBusy=false;callback();assert.equal(jobs[0].drop_time,'08:00');assert.equal(renders,1);
+});
