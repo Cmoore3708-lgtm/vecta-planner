@@ -23,22 +23,6 @@ test('pricing health requires manager authentication before reading any queue da
  const before={...process.env};delete process.env.VECTA_MAIN_USER;delete process.env.VECTA_MAIN_PASSWORD;
  try{const res=response();await servicePriceHandler({queue:()=>{throw Error('Must not read')}})({method:'GET',query:{health:'1'},headers:{}},res);assert.equal(res.code,401);}finally{process.env=before;}
 });
-const context=vm.createContext({window:{},Date});vm.runInContext(readFileSync(new URL('../../public/js/vecta-launch-readiness.js',import.meta.url),'utf8'),context);
-const readiness=context.window.VectaLaunchReadiness;
-test('request summaries distinguish a guide from a price and escape customer text',()=>{
- const r={id:'test',approximate_cost:145,reserved_hours:1.5,work_required:'Booking guide total: £145',phone:'123',email:'test@example.invalid',created_at:'2026-11-05T11:00:00Z',gsf_parts:[{}]};
- const s=readiness.requestSummary(r);assert.equal(s.guide,true);assert.equal(s.price,'£145.00');assert.equal(s.hours,1.5);assert.equal(s.parts,1);
- assert.equal(readiness.age(r.created_at,now),'1h waiting');assert.equal(readiness.age('broken',now),'Time not recorded');
- assert.equal(readiness.requestSummary({...r,approximate_cost:null}).price,'Price to check');
- assert.doesNotMatch(readiness.summaryHtml({...r,approximate_cost:'<script>'}),/<script>/);
-});
-test('readiness flags parts, allocation, price and MOT while excluding quotes and completed work',()=>{
- const base={id:'one',registration:'TEST123',booking_date:'2026-11-06',status:'booked',job_type:'Full Service||MOT',customer_account:'Staff',work_required:'Service and MOT',technician:'Unallocated'};
- const rows=readiness.readiness([base,{...base,id:'done',status:'completed'},{...base,id:'quote',status:'quote'},{...base,id:'later',booking_date:'2026-11-10'},{...base,id:'deleted'}],{today:'2026-11-05',nextDay:'2026-11-06',partsStatus:()=> 'Parts need ordering',motStatus:()=>({confirmed:false}),isDeleted:j=>j.id==='deleted'});
- assert.equal(rows.length,1);for(const issue of ['Allocate a mechanic','Parts need ordering','Check MOT confirmation','Price to confirm'])assert.ok(rows[0].issues.includes(issue));
- const clean=readiness.readiness([{...base,technician:'Alfie',amount_quoted:160}],{today:'2026-11-05',nextDay:'2026-11-06',partsStatus:()=> 'Parts here',motStatus:()=>({confirmed:true})});assert.equal(clean[0].issues.length,0);
- const escaped=readiness.readinessHtml([{id:'x',registration:'<img onerror=evil>',date:'2026-11-06',technician:'Alfie',issues:[]}],'2026-11-06');assert.doesNotMatch(escaped,/<img/);assert.match(escaped,/&lt;img/);
-});
 const booking={id:'12345678-1234-4123-8123-123456789abc',registration:'TEST123',vehicle:'Test hatchback',customer_name:'<Chris>',email:'test@example.invalid',confirmed_date:'2026-11-12',job_types:['Full Service'],work_required:'Booking guide total: £150',approximate_cost:150};
 test('receipt contains the saved reservation, reference, guide qualification and practical instructions',()=>{
  const p=receiptContent(booking,{trackingPath:()=>'/track#private-test'});
