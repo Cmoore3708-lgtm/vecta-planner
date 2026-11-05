@@ -9,7 +9,9 @@ export async function navigateGSFAlternator(page,registration,{log=()=>{}}={}){
  let stage='GSF_CATEGORY_BEFORE_VRM',registrationSubmitted=false;
  try{
   const checkOrigin=()=>{if(new URL(page.url()).origin!==ORIGIN)throw Object.assign(Error('LOGIN_REQUIRED'),{code:'LOGIN_REQUIRED'});};
-  checkOrigin();if(!/^[A-Z0-9]{5,8}$/.test(registration))fail('INVALID_REGISTRATION');
+  // New worker tabs start at about:blank; navigate before checking the supplier origin.
+  if(page.url()!=='about:blank')checkOrigin();
+  if(!/^[A-Z0-9]{5,8}$/.test(registration))fail('INVALID_REGISTRATION');
   log('GSF: opening the alternator category before entering the registration.');
   await page.goto(ALTERNATOR_CATEGORY_URL,{waitUntil:'domcontentloaded',timeout:15000});checkOrigin();
   if(new URL(page.url()).pathname!=='/parts/Alternator')fail('CATEGORY_REDIRECTED');
