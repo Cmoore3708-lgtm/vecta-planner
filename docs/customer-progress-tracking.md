@@ -12,6 +12,7 @@ Customer tracking is available at `/track` using a signed private link. The link
 
 ## Existing controls
 
+- The shared Main/mechanics job editor labels `work_required` **Job description — Readable by customer**, with an amber outline. Save changes normally: all tracking routes read the current saved description, and an open customer page replaces it on its next automatic refresh (once a minute), manual refresh, or return to the tab. Unsaved/offline changes appear after they have successfully synced. The description is independent of private notes and invoice wording; description edits do not require a new tracking link or a stage change.
 - Opening today's saved job in the mechanics deployment marks a waiting booking `in_progress`, using a conditional update of only status and updated_at. Opening an owner card, an old/future booking, quote, task or tax record does not start work.
 - Mechanics keep their existing **Complete** button and `work_complete` state. Customers see “Workshop work finished” and are asked to wait for final collection confirmation.
 - The owner's Staff **Ready to invoice** action retains the normal invoice construction, pricing, VAT and confirmed cloud-save functions, then requests the invoice email. Customers see readiness, and can open the saved invoice from their tracking page.
