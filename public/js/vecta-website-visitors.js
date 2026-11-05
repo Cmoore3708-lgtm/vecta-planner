@@ -3,6 +3,7 @@
   var panel = document.getElementById('websiteVisitorStats');
   if (!panel || (window.VECTA_MECHANIC_DEPLOYMENT === true || document.querySelector('meta[name="vecta-mechanic-build"]'))) return;
   panel.hidden = false;
+  var graphs = document.createElement('script'); graphs.src = '/js/vecta-website-graphs.js'; graphs.defer = true; document.head.appendChild(graphs);
   var pending = false, lastUpdated = 0;
   function value(id, count) { document.getElementById(id).textContent = Number.isSafeInteger(count) && count >= 0 ? count.toLocaleString('en-GB') : '—'; }
   async function refresh() {

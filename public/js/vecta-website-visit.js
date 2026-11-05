@@ -26,6 +26,13 @@
   if (ignored) return;
   if (navigator.webdriver || navigator.doNotTrack === '1' || navigator.globalPrivacyControl) return;
   var sentDay = '', pending = false;
+  window.addEventListener('vecta:website-booking-created', function (event) {
+    try { if (localStorage.getItem(optOutKey) === '1') return; } catch {}
+    var receipt = event.detail && event.detail.receipt;
+    if (typeof receipt !== 'string' || receipt.length > 500) return;
+    // A signed receipt from the booking server proves a request was saved.
+    fetch('https://vecta-planner.vercel.app/api/admin-website?visitors=1', request({ receipt: receipt })).catch(function () {});
+  });
   function record() {
     try { if (localStorage.getItem(optOutKey) === '1') return; } catch {}
     if (pending || document.visibilityState === 'hidden' || !navigator.onLine) return;
@@ -39,8 +46,8 @@
   window.addEventListener('online', record);
   setInterval(record, 60000);
   record();
-  function request() {
-    return { method: 'POST', mode: 'cors', credentials: 'omit', body: '', keepalive: true,
+  function request(data) {
+    return { method: 'POST', mode: 'cors', credentials: 'omit', body: JSON.stringify(data || { kind: /^\/track(?:\/|\.html|$)/.test(location.pathname) ? 'progress' : 'browse' }), keepalive: true,
       referrerPolicy: 'strict-origin-when-cross-origin', signal: AbortSignal.timeout(10000) };
   }
   function notice(text) {

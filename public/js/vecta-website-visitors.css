@@ -14,3 +14,67 @@
  #websiteVisitorStats{grid-column:2;grid-row:1/3}
 }
 @media print{#websiteVisitorStats{display:none!important}}
+#websiteVisitorStats .visitorTrigger{grid-column:1/-1;display:grid;grid-template-columns:repeat(2,minmax(64px,1fr));gap:3px 16px;background:transparent;border:0;border-radius:6px;padding:0;text-align:right;color:inherit;cursor:pointer;font:inherit}
+#websiteVisitorStats .visitorTrigger:hover strong{color:#9ae8db}
+#websiteVisitorStats .visitorTrigger:focus-visible{outline:2px solid #70dbc6;outline-offset:5px}
+#websiteGraphs{box-sizing:border-box;width:min(960px,calc(100% - 32px));max-height:calc(100dvh - 40px);padding:28px;border:1px solid #34434a;border-radius:20px;color:#edf3f2;background:#111b20;box-shadow:0 30px 100px #0009;font:14px/1.5 system-ui;text-align:left;color-scheme:dark}
+#websiteGraphs::backdrop{background:#061016c9;backdrop-filter:blur(5px)}
+#websiteGraphs *{box-sizing:border-box}
+#websiteGraphs [hidden]{display:none!important}
+#websiteGraphs button{font:inherit;cursor:pointer}
+#websiteGraphs .wg-top{display:flex;justify-content:space-between;gap:18px;align-items:flex-start}
+#websiteGraphs .wg-eyebrow{font-size:10px;letter-spacing:.15em;color:#8ed5c8;font-weight:700}
+#websiteGraphs h2{font-size:29px;letter-spacing:-.03em;margin:5px 0;color:#f3f6f5;line-height:1.2}
+#websiteGraphs p{color:#a9b9bf;margin:8px 0}
+#websiteGraphs .wg-close{flex:0 0 36px;width:36px;height:36px;padding:0;display:grid;place-items:center;border:1px solid #36454c;background:#1b292f;color:#d7e2e4;border-radius:50%;font-size:24px;line-height:1}
+#websiteGraphs .wg-toolbar{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:24px 0 20px}
+#websiteGraphs .wg-period{display:flex;border:1px solid #34434a;border-radius:8px;padding:3px;background:#0d171b;gap:3px}
+#websiteGraphs .wg-period button{border:0;border-radius:5px;padding:7px 19px;background:transparent;color:#a8b9bf;font-size:12px;font-weight:650}
+#websiteGraphs .wg-period button[aria-pressed=true]{background:#c8dfd9;color:#112d28}
+#websiteGraphs .wg-dates{font-size:12px;color:#adbec4}
+#websiteGraphs .wg-cards{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+#websiteGraphs .wg-card{padding:18px;background:linear-gradient(145deg,#203237,#17252a);border:1px solid #35484d;border-radius:12px}
+#websiteGraphs .wg-card>span{display:block;color:#bed0d3;font-size:12px}
+#websiteGraphs .wg-card strong{display:block;font-size:36px;font-weight:650;line-height:1.35;letter-spacing:-.03em;font-variant-numeric:tabular-nums;color:#f0f6f3}
+#websiteGraphs .wg-card:last-child strong{color:#9de4d3}
+#websiteGraphs .wg-card small{display:block;font-size:11px;color:#9eb1b8;line-height:1.5}
+#websiteGraphs .wg-chart{margin:24px 0 12px;border:1px solid #304149;border-radius:12px;padding:18px 14px 7px;background:#121f25}
+#websiteGraphs .wg-chart-heading{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:0 6px}
+#websiteGraphs h3{font-size:14px;margin:0;color:#e5eeee}
+#websiteGraphs .wg-legend{display:flex;gap:16px;flex-wrap:wrap;color:#bacace;font-size:11px}
+#websiteGraphs .wg-legend span:before{content:'';display:inline-block;width:8px;height:8px;border-radius:2px;margin-right:6px;background:#70c6b4}
+#websiteGraphs .wg-legend .wg-bookings-key:before{background:#dfba76}
+#websiteGraphs svg{display:block;width:100%;height:auto;min-height:180px}
+#websiteGraphs .wg-grid{stroke:#304149;stroke-width:1}
+#websiteGraphs .wg-axis{fill:#a2b4bb;font:11px system-ui}
+#websiteGraphs .wg-visitor-bar{fill:#70c6b4}
+#websiteGraphs .wg-booking-bar{fill:#dfba76}
+#websiteGraphs .wg-note{font-size:11px;line-height:1.6}
+#websiteGraphs .wg-details{border-top:1px solid #304149;margin-top:18px;padding-top:15px;font-size:12px}
+#websiteGraphs summary{cursor:pointer;color:#c6d9da;font-weight:600}
+#websiteGraphs .wg-table-wrap{overflow:auto}
+#websiteGraphs table{width:100%;border-collapse:collapse;font-size:12px;margin-top:12px}
+#websiteGraphs caption{text-align:left;color:#bbd0d3;padding-bottom:8px}
+#websiteGraphs th,#websiteGraphs td{padding:8px;text-align:right;border-bottom:1px solid #304149;white-space:nowrap;color:#bfcccf}
+#websiteGraphs th:first-child{text-align:left}
+#websiteGraphs .wg-bottom{display:flex;flex-wrap:wrap;justify-content:space-between;gap:8px;border-top:1px solid #304149;margin-top:20px;padding-top:14px;font-size:11px;color:#8fa6af}
+#websiteGraphs a{color:#9bdccb;text-underline-offset:3px}
+#websiteGraphs .wg-status:not(:empty){padding:18px 0;color:#c4d5d8}
+#websiteGraphs .wg-retry{margin-left:12px;background:#234138;color:#d9efe5;border:1px solid #53786b;padding:7px 12px;border-radius:7px}
+#websiteGraphs button:focus-visible,#websiteGraphs summary:focus-visible,#websiteGraphs a:focus-visible{outline:2px solid #9ce6d4;outline-offset:3px}
+@media(max-width:600px){
+ #websiteVisitorStats .visitorTrigger{gap:1px 12px;grid-template-columns:repeat(2,minmax(60px,1fr))}
+ #websiteGraphs{width:calc(100% - 16px);max-height:calc(100dvh - 16px);padding:18px 14px;border-radius:14px}
+ #websiteGraphs h2{font-size:24px}
+ #websiteGraphs .wg-top p{font-size:12px}
+ #websiteGraphs .wg-toolbar{margin:18px 0 14px}
+ #websiteGraphs .wg-cards{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+ #websiteGraphs .wg-card{padding:13px}
+ #websiteGraphs .wg-card:last-child{grid-column:1/-1;display:grid;grid-template-columns:1fr auto;align-items:center}
+ #websiteGraphs .wg-card:last-child small{grid-column:1/-1}
+ #websiteGraphs .wg-card strong{font-size:30px}
+ #websiteGraphs .wg-chart{padding:14px 8px 4px;margin-top:16px}
+ #websiteGraphs .wg-chart-heading{align-items:flex-start;flex-direction:column;gap:8px}
+ #websiteGraphs .wg-period button{padding:7px 14px}
+}
+@media print{#websiteGraphs{display:none!important}}

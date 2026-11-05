@@ -1,3 +1,4 @@
+import {bookingAnalyticsReceipt} from '../lib/website-analytics-receipt.js';
 import {bookingPhotos,readBookingPhotos} from './_booking-photos.js';
 import {bookingTypes} from '../lib/booking-input.js';
 import {sendBookingBadges} from './_push.js';
@@ -62,6 +63,7 @@ export default async function handler(req,res){
   }
   if(created)await sendBookingBadges();
   let tracking_url;try{tracking_url=requestTrackingPath(receipt||request);}catch{/* A past receipt must not turn a saved booking into a failed submission. */}
-  return res.status(created?201:200).json({ok:true,confirmed:false,request_id:id,date:receipt?.confirmed_date||appointment,time:String(receipt?.confirmed_time||b.appointment_time||'').slice(0,5)||null,tracking_url});
+  let analytics_receipt;try{analytics_receipt=bookingAnalyticsReceipt(receipt||request,key);}catch{/* Analytics must never affect a saved booking. */}
+  return res.status(created?201:200).json({analytics_receipt,ok:true,confirmed:false,request_id:id,date:receipt?.confirmed_date||appointment,time:String(receipt?.confirmed_time||b.appointment_time||'').slice(0,5)||null,tracking_url});
  }catch(e){if(e.message==='INVALID_SERVICE_EXTRA')return res.status(400).json({error:'Select a valid optional service item.'});if(e.code==='BOOKING_INPUT')return res.status(400).json({error:e.message});if(String(e.message).includes('VECTA_BOOKING_UNAVAILABLE'))return res.status(409).json({error:'That appointment is no longer available or does not meet the booking notice period. Please choose another available date.'});if(String(e.message).includes('VECTA_BOOKING_MONDAY'))return res.status(409).json({error:'Mondays are not available for online bookings. Please choose another day.'});if(String(e.message).includes('VECTA_BOOKING_FRIDAY_CAPACITY'))return res.status(409).json({error:'Alfie’s Friday online booking capacity is now full. Please choose another date.'});console.error(e);return res.status(500).json({error:'Unable to complete booking'});}
 }
