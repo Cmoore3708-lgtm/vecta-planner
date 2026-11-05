@@ -637,6 +637,24 @@
 }
 .jobListTotal{white-space:nowrap;font-variant-numeric:tabular-nums}
 
+/* Keep the service request beside Email and remove its extra contact row. */
+#jobModal .jobEmailInputWrap{display:flex;gap:5px;align-items:stretch;min-width:0}
+#jobModal .jobEmailInputWrap>input{flex:1 1 0;min-width:0;width:0}
+#jobModal .jobEmailInputWrap>.jobEmailOpenLink{flex:0 0 auto;padding:0 8px}
+#jobModal .jobEmailInputWrap>.poolServiceEmailBtn{flex:0 0 auto;width:auto;margin:0;padding:3px 7px;font-size:10px!important;line-height:1.15;white-space:nowrap;border-radius:7px;min-height:28px}
+#jobModal .jobEmailInputWrap>.poolServiceEmailBtn[hidden]{display:none!important}
+@media screen{
+ #jobModal .jobCardHeaderDetails .jobContactSection .jobSectionGrid{padding:2px 0!important;align-items:start}
+}
+@media screen and (min-width:1050px){
+ #jobModal .jobCardHeaderDetails #jobCustomerEmailField:has(.poolServiceEmailBtn:not([hidden])){grid-column:span 2}
+ #jobModal .jobCardHeaderDetails .jobContactSection .jobSectionGrid:has(#jobTaxReferenceField:not([hidden]):not(.customerNameHidden)){grid-template-columns:repeat(6,minmax(0,1fr))!important}
+}
+@media screen and (max-width:1049px){
+ #jobModal .jobCardHeaderDetails #jobCustomerEmailField:has(.poolServiceEmailBtn:not([hidden])){grid-column:1/-1!important}
+ #jobModal .jobEmailInputWrap>.poolServiceEmailBtn{min-height:36px;font-size:11px!important}
+}
+
 /* New bookings use the standard compact action row and scroll with the card. */
 @media screen{
  #jobModal .jobModalCard>.modalFoot.newJobFooter{position:static!important;bottom:auto;z-index:auto!important;box-shadow:none}
