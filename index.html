@@ -14801,7 +14801,7 @@ function hydrateJobContactDetails(job){
 var PRIVATE_PRICING_PREFIX='[[VECTA_PRIVATE_PRICING:';
 function privatePricingItemsFromNote(note){
   var raw=String(note||''),m=raw.match(/\[\[VECTA_PRIVATE_PRICING:([^\]]*)\]\]/);if(!m)return [];
-  try{var parsed=JSON.parse(decodeURIComponent(m[1]));return Array.isArray(parsed)?parsed.map(function(x){return {description:String((x&&x.description)||''),price:Number((x&&x.price)||0),repair_quote:x&&x.repair_quote||null}}):[]}catch(e){return []}
+  try{var parsed=JSON.parse(decodeURIComponent(m[1]));return Array.isArray(parsed)?parsed.map(function(x){return {description:String((x&&x.description)||''),price:Number((x&&x.price)||0),repair_quote:x&&x.repair_quote||null,...(x&&typeof x.work_description==='string'?{work_description:x.work_description}:{})}}):[]}catch(e){return []}
 }
 function stripPrivatePricingFromNote(note){return String(note||'').replace(/\s*\[\[VECTA_PRIVATE_PRICING:[^\]]*\]\]\s*/g,' ').replace(/\s{2,}/g,' ').trim()}
 function noteWithPrivatePricing(note,items){
@@ -14811,7 +14811,7 @@ function noteWithPrivatePricing(note,items){
 }
 function invoiceDescriptionItems(j){j=j||{};var priced=privatePricingItemsFromNote(j.customer_note).map(function(x){return String(x&&x.description||'').trim()}).filter(Boolean);if(priced.length)return priced;var parts=(typeof jobParts==='function'?jobParts(j):[]).map(function(p){return String(p&&p.description||'').trim()}).filter(Boolean);if(parts.length)return parts;var legacy=String(j.work_required||j.summary_of_work||j.description||'').trim();return legacy?[legacy]:[]}
 function invoiceDescriptionText(j){var items=invoiceDescriptionItems(j);return items.length?items.join(' | '):'Workshop work'}
-function privatePricingRowHtml(item,index){item=item||{};var rawPrice=item.price,priceValue=(rawPrice===undefined||rawPrice===null||String(rawPrice).trim()==='')?'':Number(rawPrice);return '<div class="privatePricingRow" data-price-row="'+index+'"'+(item.repair_quote?' data-repair-quote="'+esc(JSON.stringify(item.repair_quote))+'"':'')+'><div class="field"><input aria-label="Invoice description" class="privatePriceDescription" type="text" value="'+esc(item.description||'')+'" placeholder="e.g. Front brake pads"></div><div class="field"><label>Price (£)</label><input class="privatePriceAmount" type="number" min="0" step="5" value="'+(priceValue===''?'':esc(priceValue))+'" placeholder="0.00"></div><button type="button" class="btn danger privatePricingRemove" title="Remove item" aria-label="Remove item">×</button></div>'}
+function privatePricingRowHtml(item,index){item=item||{};var rawPrice=item.price,priceValue=(rawPrice===undefined||rawPrice===null||String(rawPrice).trim()==='')?'':Number(rawPrice);return '<div class="privatePricingRow" data-price-row="'+index+'"'+(typeof item.work_description==='string'?' data-work-description="'+esc(item.work_description)+'"':'')+(item.repair_quote?' data-repair-quote="'+esc(JSON.stringify(item.repair_quote))+'"':'')+'><div class="field"><input aria-label="Invoice description" class="privatePriceDescription" type="text" value="'+esc(item.description||'')+'" placeholder="e.g. Front brake pads"></div><div class="field"><label>Price (£)</label><input class="privatePriceAmount" type="number" min="0" step="5" value="'+(priceValue===''?'':esc(priceValue))+'" placeholder="0.00"></div><button type="button" class="btn danger privatePricingRemove" title="Remove item" aria-label="Remove item">×</button></div>'}
 function privatePricingPresetItemsForTypes(values){
   return jobTypeValues(values).filter(function(name){return normaliseJobTypeKey(name)!=='general'}).map(function(name){
     var t=templateDataForType(name),fallback=templates&&templates[name]?templates[name]:{},rawPrice=t.amount_quoted;
@@ -14834,10 +14834,16 @@ function saveServicePricingSettings(){var bands=Array.from(document.querySelecto
 
 function privatePricingSectionHtml(j){
   var items=privatePricingItemsFromNote(j&&j.customer_note),hasRecordedTotal=j&&j.amount_quoted!==null&&j.amount_quoted!==undefined&&String(j.amount_quoted).trim()!==''&&Number.isFinite(Number(j.amount_quoted)),presetItems=hasRecordedTotal?[]:privatePricingPresetItemsForTypes(j&&j.job_type),rows=items.length?items:(hasRecordedTotal?[{description:String(j.work_required||jobTypeLabel(j)||'Workshop work'),price:Number(j.amount_quoted)}]:(presetItems.length?presetItems:[{description:'',price:''}])),legacy=Number(j&&j.amount_quoted||0);
+  var workLines=String(j&&j.work_required||'').split(/\r\n|\r|\n/).map(function(line){return line.trim()}).filter(Boolean);
+  var legacyWorkRow=rows.length===1&&!rows[0].repair_quote&&String(rows[0].description||'').trim()===String(j&&j.work_required||'').trim();
+  if(workLines.length&&((!items.length&&!presetItems.length)||legacyWorkRow)){
+    var originalPrice=rows[0].price;
+    rows=workLines.map(function(line,index){return {description:line,price:index?(hasRecordedTotal?0:''):originalPrice,work_description:line}});
+  }
   if(!items.length&&presetItems.length){legacy=presetItems.reduce(function(total,x){return total+(Number(x.price)||0)},0)}
-  return '<section class="jobFormSection privatePricingSection"><div class="jobFormSectionHead"><span class="jobSectionNumber">£</span><div><h3>Invoice description &amp; pricing</h3><p>This wording is used on invoices, Financial and end-of-month lists — separate from Work required</p></div><span class="privatePricingLock">PRIVATE</span></div>'+servicePricingAdvisorHtml(j)+'<div class="privatePricingRows" id="privatePricingRows">'+rows.map(privatePricingRowHtml).join('')+'</div><div class="privatePricingActions"><button type="button" class="btn" id="addPrivatePriceItem">+ Add invoice line</button><div class="privatePricingTotal"><span>Total</span><strong id="privatePricingTotal">£'+legacy.toFixed(2)+'</strong></div></div><input type="hidden" id="job_amount_quoted" value="'+(j&&j.amount_quoted!=null?esc(j.amount_quoted):(presetItems.length?legacy.toFixed(2):''))+'"></section>'
+  return '<section class="jobFormSection privatePricingSection"><div class="jobFormSectionHead"><span class="jobSectionNumber">£</span><div><h3>Invoice description &amp; pricing</h3><p>Each job description line copies here. You can edit invoice wording and prices separately.</p></div><span class="privatePricingLock">PRIVATE</span></div>'+servicePricingAdvisorHtml(j)+'<div class="privatePricingRows" id="privatePricingRows">'+rows.map(privatePricingRowHtml).join('')+'</div><div class="privatePricingActions"><button type="button" class="btn" id="addPrivatePriceItem">+ Add invoice line</button><div class="privatePricingTotal"><span>Total</span><strong id="privatePricingTotal">£'+legacy.toFixed(2)+'</strong></div></div><input type="hidden" id="job_amount_quoted" value="'+(j&&j.amount_quoted!=null?esc(j.amount_quoted):(presetItems.length?legacy.toFixed(2):''))+'"></section>'
 }
-function gatherPrivatePricingItems(){return Array.from(document.querySelectorAll('#privatePricingRows .privatePricingRow')).map(function(row){var d=row.querySelector('.privatePriceDescription'),a=row.querySelector('.privatePriceAmount');var item={description:String(d&&d.value||'').trim(),price:Number(a&&a.value||0)};if(row.dataset.repairQuote){try{item.repair_quote=JSON.parse(row.dataset.repairQuote)}catch(e){}}return item}).filter(function(x){return x.description||x.price!==0})}
+function gatherPrivatePricingItems(){return Array.from(document.querySelectorAll('#privatePricingRows .privatePricingRow')).map(function(row){var d=row.querySelector('.privatePriceDescription'),a=row.querySelector('.privatePriceAmount');var item={description:String(d&&d.value||'').trim(),price:Number(a&&a.value||0)};if(row.dataset.repairQuote){try{item.repair_quote=JSON.parse(row.dataset.repairQuote)}catch(e){}}if(row.dataset.workDescription!==undefined)item.work_description=row.dataset.workDescription;return item}).filter(function(x){return x.description||x.price!==0})}
 function syncPrivatePricingTotal(force){
   var items=gatherPrivatePricingItems(),total=items.reduce(function(n,x){return n+(Number(x.price)||0)},0),hidden=document.getElementById('job_amount_quoted'),label=document.getElementById('privatePricingTotal'),hasPricedItem=Array.from(document.querySelectorAll('#privatePricingRows .privatePriceAmount')).some(function(el){return String(el.value||'').trim()!==''});
   if(hidden&&(force||hasPricedItem))hidden.value=(Math.round(total*100)/100).toFixed(2);var display=hidden&&hidden.value!==''?Number(hidden.value||0):total;if(label)label.textContent='£'+display.toFixed(2);return items
@@ -14857,7 +14863,43 @@ function validatePrivatePricingForFinalStatus(){
   try{firstProblem.classList.add('requiredMissing');firstProblem.focus();firstProblem.scrollIntoView({behavior:'smooth',block:'center'});firstProblem.addEventListener('input',function clearMissing(){if(String(firstProblem.value||'').trim()!==''){firstProblem.classList.remove('requiredMissing');firstProblem.removeEventListener('input',clearMissing)}})}catch(e){}
   return false;
 }
-function syncWorkRequiredToPrivatePricing(){/* Invoice wording is intentionally independent from Work required. */}
+function privatePricingWorkLines(value){return String(value||'').split(/\r\n|\r|\n/).map(function(line){return line.trim()}).filter(Boolean)}
+function syncWorkRequiredToPrivatePricing(){
+  var work=document.getElementById('job_work_required'),rows=document.getElementById('privatePricingRows');if(!work||!rows)return;
+  var previous=privatePricingWorkLines(rows._workRequired),next=privatePricingWorkLines(work.value),existing=Array.from(rows.children),claimedRows=new Set(),used=new Set(),links=[];
+  // Match unchanged lines first, so inserting/reordering work keeps its own price.
+  var oldRows=previous.map(function(line){var row=existing.find(function(candidate){return !claimedRows.has(candidate)&&(candidate.dataset.workDescription===line||(candidate.dataset.workDescription===undefined&&candidate.querySelector('.privatePriceDescription').value.trim()===line))});if(row)claimedRows.add(row);return row});
+  next.forEach(function(line,index){var old=previous.findIndex(function(value,i){return value===line&&!used.has(i)});if(old>=0){links[index]=old;used.add(old)}});
+  next.forEach(function(line,index){if(links[index]===undefined&&index<previous.length&&!used.has(index)){links[index]=index;used.add(index)}});
+  var ordered=[];
+  next.forEach(function(line,index){
+    var old=links[index],row=old===undefined?null:oldRows[old];
+    // An unchanged line may already be covered by a supplier quote or manual invoice line.
+    if(!row&&old!==undefined&&previous[old]===line)return;
+    if(!row){
+      row=existing.find(function(candidate){return !claimedRows.has(candidate)&&candidate.querySelector('.privatePriceDescription').value.trim()===line})||existing.find(function(candidate){return !claimedRows.has(candidate)&&!candidate.querySelector('.privatePriceDescription').value.trim()&&!candidate.querySelector('.privatePriceAmount').value.trim()});
+      if(row)claimedRows.add(row);
+      else{var holder=document.createElement('div');holder.innerHTML=privatePricingRowHtml({},rows.children.length);row=holder.firstElementChild;rows.appendChild(row)}
+      row.querySelector('.privatePriceDescription').value=line;
+    }else{
+      var description=row.querySelector('.privatePriceDescription'),source=row.dataset.workDescription===undefined?previous[old]:row.dataset.workDescription;
+      // A separately edited invoice description remains an intentional override.
+      if(description.value.trim()===source){description.value=line;}
+    }
+    row.dataset.workDescription=line;ordered.push(row);
+  });
+  oldRows.forEach(function(row,index){
+    if(!row||used.has(index))return;
+    var description=row.querySelector('.privatePriceDescription').value.trim(),price=Number(row.querySelector('.privatePriceAmount').value||0);
+    // Never silently discard a charge or independently edited invoice wording.
+    if(description===previous[index]&&price===0)row.remove();else delete row.dataset.workDescription;
+  });
+  // Keep copied lines in description order, followed by independent invoice entries.
+  ordered.concat(Array.from(rows.children).filter(function(row){return ordered.indexOf(row)<0})).forEach(function(row){rows.appendChild(row)});
+  if(!rows.children.length)rows.innerHTML=privatePricingRowHtml({},0);
+  rows._workRequired=work.value;
+  bindPrivatePricing();syncPrivatePricingTotal(false);
+}
 function syncPresetPricingToPrivateBreakdown(beforeTypes,afterTypes){
   var rows=document.getElementById('privatePricingRows');if(!rows)return;
   var beforePreset=privatePricingPresetItemsForTypes(beforeTypes),afterPreset=privatePricingPresetItemsForTypes(afterTypes),beforeAuto=templateWorkForTypes(beforeTypes),existing=gatherPrivatePricingItems();
@@ -14881,7 +14923,14 @@ function syncPresetPricingToPrivateBreakdown(beforeTypes,afterTypes){
 }
 function bindPrivatePricing(){
   var rows=document.getElementById('privatePricingRows'),add=document.getElementById('addPrivatePriceItem');if(!rows)return;
-  function bindRow(row){row.querySelectorAll('input').forEach(function(el){el.addEventListener('input',function(){var isDescription=el.classList.contains('privatePriceDescription');if(row.dataset.repairQuote)delete row.dataset.repairQuote;syncPrivatePricingTotal(!isDescription)})});var rm=row.querySelector('.privatePricingRemove');if(rm)rm.onclick=function(){if(rows.children.length===1){row.querySelector('.privatePriceDescription').value='';row.querySelector('.privatePriceAmount').value='';}else row.remove();syncPrivatePricingTotal(true)}}
+  function bindRow(row){if(row._privatePricingBound)return;row._privatePricingBound=true;row.querySelectorAll('input').forEach(function(el){el.addEventListener('input',function(){var isDescription=el.classList.contains('privatePriceDescription');if(row.dataset.repairQuote)delete row.dataset.repairQuote;syncPrivatePricingTotal(!isDescription)})});var rm=row.querySelector('.privatePricingRemove');if(rm)rm.onclick=function(){if(rows.children.length===1){row.querySelector('.privatePriceDescription').value='';row.querySelector('.privatePriceAmount').value='';delete row.dataset.workDescription;delete row.dataset.repairQuote;}else row.remove();syncPrivatePricingTotal(true)}}
+  var work=document.getElementById('job_work_required');
+  if(work){
+    rows._workRequired=work.value;
+    var lines=privatePricingWorkLines(work.value);
+    Array.from(rows.children).forEach(function(row){var description=row.querySelector('.privatePriceDescription').value.trim();if(row.dataset.workDescription===undefined&&lines.indexOf(description)>=0)row.dataset.workDescription=description});
+    if(!work._privatePricingBound){work._privatePricingBound=true;work.addEventListener('input',syncWorkRequiredToPrivatePricing);work.addEventListener('change',syncWorkRequiredToPrivatePricing)}
+  }
   Array.from(rows.children).forEach(bindRow);if(add)add.onclick=function(){var wrap=document.createElement('div');wrap.innerHTML=privatePricingRowHtml({},rows.children.length);var row=wrap.firstElementChild;rows.appendChild(row);bindRow(row);var input=row.querySelector('.privatePriceDescription');if(input)input.focus()};syncPrivatePricingTotal(false);bindJobPartsEditor()
 }
 function fleetContactEmailAddresses(value){
