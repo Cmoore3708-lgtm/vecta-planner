@@ -46,7 +46,13 @@ test('receipt links open future bookings and follow only their matching accepted
  try{
   const token=requestTrackingPath(request,now).split('#')[1];
   let data=await customerStatus(token,now);assert.equal(data.stage,'scheduled');assert.equal(data.registration,job.registration);assert.doesNotMatch(JSON.stringify(data),/driver@example|Private notes|amount_quoted|invoice_url/);
-  request.job_id=saved.id;data=await customerStatus(token,now);assert.equal(data.stage,'scheduled');assert.equal(data.job_description,'Mini Valet');
+  assert.equal(data.title,'Awaiting booking confirmation');
+  request.job_id=saved.id;
+  saved={...saved,status:'provisional',customer_note:'[[VECTA_WEB_DETAILS:'+encodeURIComponent('{}')+']]'};
+  data=await customerStatus(token,now,{requestScenes:true});assert.equal(data.title,'Awaiting booking confirmation');assert.equal(data.job_description,'Mini Valet');
+  saved={...saved,archived:true};await assert.rejects(customerStatus(token,now),/latest booking confirmation/);
+  saved={...saved,archived:false,status:'booked'};
+  data=await customerStatus(token,now);assert.equal(data.stage,'scheduled');assert.equal(data.job_description,'Mini Valet');
   saved={...saved,status:'in_progress'};data=await customerStatus(token,Date.parse('2026-11-27T11:00:00Z'));assert.equal(data.stage,'underway');
   saved={...saved,customer_email:'other@example.com'};await assert.rejects(customerStatus(token,now),/latest booking confirmation/);
   saved={...saved,customer_email:request.email,status:'cancelled'};await assert.rejects(customerStatus(token,now));
