@@ -66,3 +66,24 @@ Never fall back to project OIDC or the shared tyre-reader budget. Gateway curren
 ### Verification still needed before activation
 
 Unit/integration fixtures test the complete queue, drafts, screening, publication, cache reuse, concurrency, quota, retry exhaustion, identity changes, authentication and provider payloads without incurring generation charges. The real provider endpoint, actual account billing and fresh storage buckets still require an authorised production smoke test. Run one vehicle through the actual API, inspect all three images on desktop/phone, check request costs, then enable normal scheduled processing. Failed live quality tests must remain private and must not be substituted with the older layered illustration while described as complete scenes.
+
+## 5 November: consistent alloy wheels
+
+CM14 KEL's waiting and underway photographs now use the unchanged ready photograph's
+alloy design. Both deployed asset copies are updated. The tracker versions these
+curated URLs so a previously cached Qashqai picture cannot retain the old wheels.
+
+Automatic preparation generates the clean ready scene first and saves it privately.
+Waiting and underway then receive those exact image bytes as a third reference,
+with explicit instructions to preserve spoke count, geometry, finish, centre caps
+and rim diameter. Retries reuse the saved ready reference. A slow first image is
+saved for the next worker run to avoid exceeding the function's 300-second limit;
+only requests reserved for the current phase count against the monthly allowance.
+A normal successful set still uses three image requests and one inspection.
+
+The inspector must explicitly pass `same_alloy_wheels` for both visible rims across
+all three candidate images. Missing, uncertain or mismatched wheels keep the set
+private, with the existing two-attempt limit. Existing completed sets are reused
+without blanket regeneration or a fingerprint-version change. No customer click
+triggers generation. Automated visual screening reduces drift but is not a
+pixel-level guarantee; inspect any reported mismatch before accepting a set.

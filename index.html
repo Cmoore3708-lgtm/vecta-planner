@@ -13423,9 +13423,20 @@ function updateCurrentTimeLine(){
 function plannerLiveControlsHtml(config){if(!config.isToday)return '';var text=config.mode==='unfinished'?'Live view starts at '+timeFromMinutes(config.startMinutes)+' — earliest unfinished job remains visible':config.mode==='now'?'Live view follows the current time — no unfinished jobs remain above the red line':'Full-day view';var button=plannerShowFullDay?'<button id="plannerFollowLive" type="button">Follow current time</button>':'<button id="plannerFullDay" type="button">Show full day</button>';return '<div class="plannerLiveControls"><span class="plannerLiveStatus"><i class="plannerLiveDot"></i>'+esc(text)+'</span>'+button+'</div>'}
 function mobilePlannerHtml(mechanics,jobs){var groups=[];mechanics.forEach(function(m){groups.push({name:m,list:jobs.filter(function(j){return plannerTechnicianName(j,mechanics)===m}).sort(byTime),off:(window.vectaMobileTimeOffHtml?window.vectaMobileTimeOffHtml(m,selectedIso()):'')})});groups.push({name:'Quotes',list:quoteJobs(),off:''});groups.push({name:'Unallocated Jobs',list:unallocatedJobs(),off:''});return '<div class="mobilePlanner">'+groups.map(function(g){var groupClass='mobileGroup mobileGroup-'+String(g.name||'').toLowerCase().replace(/[^a-z0-9]+/g,'-');return '<div class="'+groupClass+'"><div class="mobileGroupHead"><span>'+esc(g.name)+'</span><span class="pill">'+g.list.length+'</span></div>'+g.off+(g.list.length?g.list.map(function(j){var html=mobileJobCardHtml(j,g.name);return String(g.name||'').trim().toLowerCase()==='other'?'<div class="mobileOtherJobWrap">'+html+'</div>':html}).join(''):'<div class="empty">No jobs here.</div>')+'</div>'}).join('')+'<div class="panel"><h3>General Notes</h3><textarea class="notesArea" id="notesArea" placeholder="Workshop notes...">'+esc(app.notes||'')+'</textarea></div></div>'}
 function laneHtml(mech,jobs){var mechanics=(app.settings.mechanics&&app.settings.mechanics.length?app.settings.mechanics:['Alfie','Other','Anyone']);return '<div class="lane" data-tech="'+esc(mech)+'">'+(window.vectaTimeOffBlocksHtml?window.vectaTimeOffBlocksHtml(mech,selectedIso()):'')+jobs.filter(function(j){return plannerTechnicianName(j,mechanics)===mech}).map(jobCardHtml).join('')+'</div>'}
+function mechanicJobCardHtml(j){
+  var task=j.card_type==='mini_task',work=String(j.work_required||''),status=String(j.status||'').toLowerCase();
+  var types=task?'':jobTypeLabels(j).filter(function(label){return normaliseJobTypeKey(label)!=='general'}).map(function(label){return jobTypeChip(j,label)}).join('');
+  return '<article class="mobileJob mechanicQueueCard jobTypeCoded'+(isWebsiteBookingJob(j)?' websiteBookingOutline':'')+'" style="'+jobTypeInlineStyle(j)+'" data-open-job="'+esc(j.id)+'"><div class="mobileJobTop"><span class="mobilePlateAndParts">'+(task?'<span class="mechanicTaskLabel">Internal task</span>':plannerPlate(j)+partsStatusDot(j))+'</span>'+(!task?'<span class="mobileVehicleTop">'+esc(plannerVehicleLabel(j))+'</span><span class="mobileJobCategory">'+esc(mobileJobCategoryLabel(j))+'</span>':'')+(types?'<div class="mobileJobTypes">'+types+'</div>':'')+(task?'':mobileMotAppointmentHtml(j))+'</div>'+carryOverBadgeHtml(j)+(status==='provisional'?'<span class="mechanicBookingState">Provisionally booked</span>':status==='in_progress'||status==='in progress'?'<span class="mechanicBookingState">In the workshop</span>':'')+'<p class="mechanicJobDescription">'+esc(work.trim()?work:'No job description entered.')+'</p><div class="mechanicCardActions"><button type="button" class="btn mechanicOpenJob" data-open-job="'+esc(j.id)+'" aria-label="Open job '+esc(task?'Internal task':j.registration||'')+'">Open job</button></div></article>';
+}
+function mechanicPlannerHtml(mechanics,jobs){
+  function group(name,list,off){return '<section class="mechanicBoardGroup"><h2 class="mechanicGroupHeading"><span>'+esc(name)+'</span><span class="mechanicJobCount">'+list.length+'</span></h2>'+(off||'')+'<div class="mechanicJobList">'+(list.length?list.slice().sort(byTime).map(mechanicJobCardHtml).join(''):'<div class="empty">No jobs here.</div>')+'</div></section>'}
+  var columns=mechanics.map(function(name){return group(name,jobs.filter(function(j){return plannerTechnicianName(j,mechanics)===name}),window.vectaMobileTimeOffHtml?window.vectaMobileTimeOffHtml(name,selectedIso()):'')}).join('');
+  return '<div class="mechanicBoard"><div class="mechanicBoardIntro"><p>Read the full description here. Open a job when you are ready to work on it.</p><button class="btn dark" id="manageTimeOff" type="button">Holidays &amp; time off</button></div><div class="mechanicBoardColumns">'+columns+'</div><div class="mechanicBoardBacklog">'+group('Unallocated jobs',unallocatedJobs())+group('Quotes',quoteJobs())+'</div><div class="panel"><h3>General notes</h3><textarea class="notesArea" id="notesArea" placeholder="Workshop notes...">'+esc(app.notes||'')+'</textarea></div></div><div class="livePriorityTasks">'+myTasksHtml('desktop')+'</div><div class="mobileTasksBottom">'+myTasksHtml('mobile')+'</div>';
+}
 function plannerHtml(){
   if(!app.settings)app.settings={};
   var mechanics=plannerLaneMechanics(),jobs=jobsForDate(),dayJobs=allJobsForDate();
+  if(typeof window!=='undefined'&&window.VECTA_MECHANIC_DEPLOYMENT===true)return mechanicPlannerHtml(mechanics,jobs);
   var live=plannerWindowConfig(jobs,mechanics);plannerStartMinutes=live.startMinutes;
   var bodyHeight=((live.dayLast-plannerStartMinutes)/60)*PLANNER_PX_PER_HOUR;
   var gridStyle='grid-template-columns:62px repeat('+mechanics.length+',minmax(155px,1fr));--planner-body-height:'+bodyHeight+'px;--planner-grid-position:'+live.gridPosition+'px;min-width:650px;';
@@ -14436,6 +14447,14 @@ function installFinancialInvoiceNavigation(){
   },true);
 }
 
+function bindJobOpenControls(root){
+  root.querySelectorAll('[data-open-job]').forEach(function(el){
+    // Keep the card's ID for cached vehicle artwork. Reading/selecting its text
+    // must not open the editor (which starts today's workshop progress).
+    if(el.classList.contains('mechanicQueueCard')){el.onclick=null;return;}
+    el.onclick=function(e){var nested=e.target.closest('button');if(nested&&nested!==el)return;openJobModal(el.dataset.openJob)};
+  });
+}
 function bindView(){
   var manageTimeOff=document.getElementById('manageTimeOff');if(manageTimeOff)manageTimeOff.onclick=openMechanicTimeOff;
   var manageTimeOffSettings=document.getElementById('manageTimeOffSettings');if(manageTimeOffSettings)manageTimeOffSettings.onclick=openMechanicTimeOff;
@@ -14454,7 +14473,7 @@ function bindView(){
   if(view==='invoices'&&financialSection==='tax')bindVehicleTax();
   if(view==='fleet')fleetBind();
   document.querySelectorAll('[data-jump]').forEach(function(el){el.onclick=function(){var ft=el.dataset.filterType,fn=el.dataset.filterName;if(ft&&fn){openPlannerFilter(ft,fn);return}view=el.dataset.jump;render()}});
-  document.querySelectorAll('[data-open-job]').forEach(function(el){el.onclick=function(e){var nested=e.target.closest('button');if(nested&&nested!==el)return;openJobModal(el.dataset.openJob)}});
+  bindJobOpenControls(document);
   document.querySelectorAll('[data-assign-job]').forEach(function(btn){btn.onclick=function(e){e.stopPropagation();var job=app.jobs.find(function(x){return x.id===btn.dataset.assignJob});if(job)assignPlannerJob(job,btn.dataset.assignTech,selectedIso())}});
   if(!window.matchMedia('(max-width: 768px)').matches){document.querySelectorAll('[data-job-id]').forEach(bindDrag);document.querySelectorAll('.lane').forEach(bindLane);document.querySelectorAll('[data-unallocated-drop]').forEach(bindUnallocatedDrop);document.querySelectorAll('[data-task-return]').forEach(bindTaskReturnDrop);}
   document.querySelectorAll('[data-open-unallocated]').forEach(function(card){card.addEventListener('click',function(ev){if(card.dataset.wasDragged==='1'||ev.target.closest('.resizeHandle,.resizeTopHandle'))return;ev.stopPropagation();openJobModal(card.dataset.openUnallocated)})});

@@ -10,9 +10,14 @@ test('accidental mobile card markup and desktop customer removal both fail the l
  for(const [before,after] of [['class="mobileJob jobTypeCoded','class="mobileJob accidentalRedesign jobTypeCoded'],['class="plannerJobCustomer"','class="removedCustomer"']])assert.throws(()=>checkLayout(captureBoth({html:html.replace(before,after)})),/DASHBOARD LAYOUT LOCK/);
 });
 test('late phone and desktop CSS overrides cannot silently change approved cards',()=>{
- for(const css of ['.mobilePlanner .mobileJob{padding:99px!important}', '#content .plannerJobCustomer{display:none!important}']){
+ for(const css of ['.mobilePlanner .mobileJob{padding:99px!important}', '#content .plannerJobCustomer{display:none!important}', '#content .mechanicJobDescription{max-height:20px!important;overflow:hidden!important}']){
   assert.throws(()=>checkLayout(captureBoth({readAsset:url=>readAsset(url)+(url==='/js/haynes-job-tools.css'?css:'')})),/DASHBOARD LAYOUT LOCK/);
  }
+});
+test('the full-description mechanics card renderer cannot silently truncate the work',()=>{
+ const before="function mechanicJobCardHtml(j){\n  var task=j.card_type==='mini_task',work=String(j.work_required||'')";
+ assert.ok(html.includes(before));
+ assert.throws(()=>checkLayout(captureBoth({html:html.replace(before,before+'.slice(0,80)')})),/DASHBOARD LAYOUT LOCK/);
 });
 test('a new inline dashboard override is detected even outside the usual stylesheet',()=>{
  assert.throws(()=>checkLayout(captureBoth({html:html.replace('</head>','<style>.mobileJob{font-size:1px!important}</style></head>')})),/DASHBOARD LAYOUT LOCK/);

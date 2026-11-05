@@ -8,7 +8,7 @@ import {createSceneService,imageBytes,providerImageBytes,cronAuthorised,requestL
 import {sceneIdentity,sceneFingerprint,sceneStages,scenePrompt,qualityChecks,qualityPassed,publishedScenes,sceneUrl} from '../../lib/progress-scene-model.js';
 const reg='AB12CDE',base='https://jywufozycuwuoshlulwl.supabase.co',now=Date.parse('2026-11-03T12:00:00Z');
 function fixture({cap=40,quality=true,generateFailure=false}={}){
- const rows=new Map(),calls=[],generated=[];let clock=now,checks=0,publishes=0;
+ const rows=new Map(),calls=[],generated=[],drafts=new Map();let clock=now,checks=0,publishes=0;
  const art={registration:reg,make:'MAZDA',model:'6',colour:'RED',imageUrl:'https://www.haynespro-assets.com/workshop/images/123.svg'};
  rows.set('vehicle_artwork:'+reg,{id:'vehicle_artwork:'+reg,value:art,updated_at:new Date(now).toISOString()});
  const jobs=[{id:'12345678-1234-4234-8234-123456789012',registration:reg,booking_date:'2026-11-03',status:'booked',archived:false}];
@@ -29,10 +29,10 @@ function fixture({cap=40,quality=true,generateFailure=false}={}){
   }
   const saved={...old,...body,id,updated_at:new Date(++clock).toISOString()};rows.set(id,structuredClone(saved));return [structuredClone(saved)];
  };
- const storage={base,async prepare(){},async draft(){},async read(){return Buffer.from('test-image');},async publish(key){publishes++;return Object.fromEntries(sceneStages.map(s=>[s,base+'/storage/v1/object/public/progress-scenes/'+key+'/'+s+'.webp']));}};
- const generate=async(identity,stage)=>{generated.push({identity,stage});if(generateFailure&&stage==='underway')throw Error('provider timeout');return Buffer.from('image');};
+ const storage={base,async prepare(){},async draft(key,stage,bytes){drafts.set(key+':'+stage,bytes);},async read(key,stage){const bytes=drafts.get(key+':'+stage);if(!bytes)throw Error('Missing draft');return bytes;},async publish(key){publishes++;return Object.fromEntries(sceneStages.map(s=>[s,base+'/storage/v1/object/public/progress-scenes/'+key+'/'+s+'.webp']));}};
+ const generate=async(identity,stage,reference)=>{generated.push({identity,stage,reference});if(generateFailure&&stage==='underway')throw Error('provider timeout');return Buffer.from('image:'+stage);};
  const validate=async()=>{checks++;return Object.fromEntries(qualityChecks.map(k=>[k,quality]));};
- return {rows,calls,jobs,generated,art,storage,db,generate,validate,service:createSceneService({db,storage,generate,validate,now:()=>clock,limit:()=>cap}),stats:()=>({checks,publishes})};
+ return {rows,calls,jobs,generated,art,advance:ms=>{clock+=ms;},storage,db,generate,validate,service:createSceneService({db,storage,generate,validate,now:()=>clock,limit:()=>cap}),stats:()=>({checks,publishes})};
 }
 test('arbitrary makes/models/colours get distinct complete-scene fingerprints and prompts',()=>{
  for(const [make,model,colour]of [['MAZDA','6','RED'],['FORD','Transit','WHITE'],['NISSAN','Leaf (ZE1)','GREY']]){
@@ -45,6 +45,9 @@ test('arbitrary makes/models/colours get distinct complete-scene fingerprints an
 });
 test('worker generates all three once, validates them, publishes together and reuses the set',async()=>{
  const f=fixture();assert.equal((await f.service.run()).status,'ready');assert.equal(f.generated.length,3);assert.deepEqual(f.stats(),{checks:1,publishes:1});
+ assert.deepEqual(f.generated.map(item=>item.stage),['ready','waiting','underway']);
+ assert.equal(f.generated[0].reference,undefined);
+ for(const item of f.generated.slice(1))assert.deepEqual(item.reference,Buffer.from('image:ready'));
  assert.equal((await f.service.run()).idle,true);assert.equal(f.generated.length,3);
  const manifest=f.rows.get('progress_scenes_v1:'+reg).value;assert.equal(manifest.status,'ready');assert.ok(publishedScenes(manifest.identity,manifest,base));
  assert.equal(publishedScenes({...manifest.identity,colour:'BLUE'},manifest,base),null);
@@ -66,6 +69,36 @@ test('failed visual checks never publish, retries stop after two attempts per im
 });
 test('provider failure saves successful drafts and only retries the missing image',async()=>{
  const f=fixture({generateFailure:true});await f.service.run();assert.equal(f.stats().checks,0);await f.service.run();assert.equal(f.generated.length,4);assert.equal(f.generated.filter(x=>x.stage==='waiting').length,1);assert.equal(f.stats().publishes,0);await f.service.run();assert.equal(f.rows.get('progress_scenes_v1:'+reg).value.status,'needs_review');
+ assert.equal(f.generated.filter(x=>x.stage==='ready').length,1);
+ for(const item of f.generated.filter(x=>x.stage==='underway'))assert.deepEqual(item.reference,Buffer.from('image:ready'));
+});
+test('a failed clean reference never generates independent scenes and stops after two attempts',async()=>{
+ const f=fixture(),stages=[];
+ const service=createSceneService({db:f.db,storage:f.storage,generate:async(_identity,stage)=>{stages.push(stage);throw Error('provider timeout');},validate:f.validate,now:()=>now,limit:()=>40});
+ assert.equal((await service.run()).status,'pending');assert.equal((await service.run()).status,'pending');assert.equal((await service.run()).idle,true);
+ assert.deepEqual(stages,['ready','ready']);assert.equal(f.stats().checks,0);assert.equal(f.stats().publishes,0);
+ assert.equal(f.rows.get('progress_scene_usage_v1:2026-11').value.requests,2);
+ assert.equal(f.rows.get('progress_scenes_v1:'+reg).value.status,'needs_review');
+});
+test('a slow reference is saved and resumed without paying to regenerate it',async()=>{
+ const f=fixture(),original=f.storage.draft;
+ f.storage.draft=async(key,stage,bytes)=>{await original(key,stage,bytes);if(stage==='ready')f.advance(95000);};
+ assert.equal((await f.service.run()).status,'pending');assert.deepEqual(f.generated.map(x=>x.stage),['ready']);
+ assert.equal(f.rows.get('progress_scene_usage_v1:2026-11').value.requests,1);
+ assert.equal(f.rows.get('progress_scenes_v1:'+reg).value.drafts.ready,true);
+ assert.equal((await f.service.run()).status,'ready');assert.deepEqual(f.generated.map(x=>x.stage),['ready','waiting','underway']);
+ for(const item of f.generated.slice(1))assert.deepEqual(item.reference,Buffer.from('image:ready'));
+ assert.equal(f.rows.get('progress_scene_usage_v1:2026-11').value.requests,4);
+});
+test('different or uncertain alloys alone reject the entire set with bounded retries',async()=>{
+ for(const mismatch of [false,undefined]){
+  const f=fixture();const validate=async()=>({...Object.fromEntries(qualityChecks.map(k=>[k,true])),same_alloy_wheels:mismatch});
+  assert.equal(qualityPassed(await validate()),false);
+  const service=createSceneService({db:f.db,storage:f.storage,generate:f.generate,validate,now:()=>now,limit:()=>40});
+  assert.equal((await service.run()).status,'pending');assert.equal((await service.run()).status,'needs_review');assert.equal((await service.run()).idle,true);
+  assert.equal(f.stats().publishes,0);assert.equal(f.generated.length,6);
+  assert.deepEqual(f.rows.get('progress_scenes_v1:'+reg).value.failed_checks,['same_alloy_wheels']);
+ }
 });
 test('monthly reservations and distributed worker lock prevent duplicate or over-limit generation',async()=>{
  const f=fixture({cap:3});await assert.rejects(f.service.run(),/limit reached/);assert.equal(f.generated.length,0);
@@ -132,8 +165,8 @@ test('provider adapter sends real reference images and stores WebP bytes; inspec
  };
  try{
   const identity={registration:reg,make:'MAZDA',model:'6',colour:'RED',image_url:'https://www.haynespro-assets.com/workshop/images/123.svg'};
-  assert.equal((await generate(identity,'waiting')).length,bytes.length);assert.equal(requests[0].url,'https://ai-gateway.vercel.sh/v1/images/edits');assert.equal(requests[0].body.output_format,'webp');assert.equal(requests[0].body.quality,'high');assert.equal(requests[0].body.images.length,2);assert.match(requests[0].body.images[1].image_url,/^data:image\/png;base64,/);
-  assert.equal(qualityPassed(await validate(identity,[bytes,bytes,bytes])),true);assert.equal(requests[1].body.messages[1].content.filter(c=>c.type==='image_url').length,6);assert.match(requests[1].body.messages[0].content,/ONLY the large foreground customer car/);assert.match(requests[1].body.messages[0].content,/spacing is immaterial/);
+  assert.equal((await generate(identity,'waiting',bytes)).length,bytes.length);assert.equal(requests[0].url,'https://ai-gateway.vercel.sh/v1/images/edits');assert.equal(requests[0].body.output_format,'webp');assert.equal(requests[0].body.quality,'high');assert.equal(requests[0].body.images.length,3);assert.match(requests[0].body.images[1].image_url,/^data:image\/png;base64,/);assert.equal(requests[0].body.images[2].image_url,'data:image/webp;base64,'+bytes.toString('base64'));assert.match(requests[0].body.prompt,/Reference 3.*EXACT alloy rims/);
+  assert.equal(qualityPassed(await validate(identity,[bytes,bytes,bytes])),true);assert.equal(requests[1].body.messages[1].content.filter(c=>c.type==='image_url').length,6);assert.match(requests[1].body.messages[0].content,/ONLY the large foreground customer car/);assert.match(requests[1].body.messages[0].content,/spacing is immaterial/);assert.match(requests[1].body.messages[0].content,/same_alloy_wheels.*spoke count/);await assert.rejects(generate(identity,'underway'),/clean vehicle reference/);await generate(identity,'ready');assert.equal(requests[2].body.images.length,2);
  }finally{global.fetch=original;for(const [k,v]of Object.entries(old))if(v===undefined)delete process.env[k];else process.env[k]=v;}
 });
 test('manager retry is leased and cannot reset a vehicle while another worker owns preparation',async()=>{
