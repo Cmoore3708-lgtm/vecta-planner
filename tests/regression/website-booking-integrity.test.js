@@ -53,17 +53,17 @@ test('manual acceptance closes the request only after the job is saved', () => {
   assert.ok(save.indexOf('syncSavedJobBundleInBackground') < save.indexOf('await onConfirmed(j)'), 'server save must precede request closure');
 });
 
-test('public booking submissions cannot create or allocate planner jobs', () => {
+test('public submissions remain unconfirmed and cannot supply planner allocation', () => {
   assert.match(api, /status:'awaiting_review'/);
   assert.match(api, /confirmed:false/);
-  assert.match(api, /Accept & create job/);
+  assert.match(api, /Only the workshop can confirm it/);
   assert.doesNotMatch(api, /rest\(url,key,'jobs','POST'/);
   assert.doesNotMatch(api, /job_id:/);
   assert.doesNotMatch(api, /technician:String\(b\.technician\)/);
-  assert.match(bookingPage, /Confirm booking/);
-  assert.match(bookingPage, /Booking confirmed/);
-  assert.match(bookingPage, /Your booking is confirmed/);
-  assert.doesNotMatch(bookingPage, /not yet confirmed|will review your request and confirm whether/);
+  assert.match(bookingPage, /Request booking/);
+  assert.match(bookingPage, /Booking request received/);
+  assert.match(bookingPage, /Vecta will confirm your appointment/);
+  assert.doesNotMatch(bookingPage, /Your booking is confirmed/);
 });
 
 test('website request deletion cannot delete customer, vehicle, job or invoice data', () => {
