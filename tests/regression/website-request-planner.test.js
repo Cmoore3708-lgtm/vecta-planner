@@ -11,6 +11,7 @@ function setup({online=true,updated=true,saved=true}={}){
   document.getElementById('job_booking_date').addEventListener('change',()=>dayUpdates++);
   const context={document,window,Event:window.Event,navigator:{onLine:online},app,alert:message=>calls.push(['alert',message]),openJobModal:(id,draft)=>calls.push(['open',id,draft]),gatherJob:()=>({technician:'Chris'}),isUnallocatedJob:j=>j.technician==='Unallocated',saveLocal:()=>calls.push(['local']),
     remoteClient:{from:table=>({update:patch=>({eq:(key,id)=>({select:async()=>{calls.push(['update',table,id,patch]);return {error:null,data:updated?[{id}]:[]};}})})})},
+    vectaWebsiteBookingCloudCount:1,vectaRefreshWebsiteBookingCount:()=>calls.push(['count']),
     saveJob:async(id,confirmed)=>{calls.push(['save',id]);if(!saved)return false;return confirmed({id});}};
   vm.createContext(context);vm.runInContext(source,context);
   return {context,calls,request,app,document,dayUpdates:()=>dayUpdates};
@@ -24,11 +25,12 @@ test('review opens the existing editor and date planner without saving or accept
 });
 test('acceptance saves edits before closing the inbox request',async()=>{
   const s=setup();await s.context.acceptWebsiteRequestJob('request-1','job-1',s.document.getElementById('saveJob'));
-  assert.deepEqual(s.calls.map(c=>c[0]),['save','update','local','open']);assert.equal(s.calls.at(-1)[1],'job-1');assert.equal(s.calls[1][3].job_id,'job-1');assert.equal(s.app.websiteRequests.length,0);
+  assert.deepEqual(s.calls.map(c=>c[0]),['save','update','count','local','open']);assert.equal(s.calls.at(-1)[1],'job-1');assert.equal(s.calls[1][3].job_id,'job-1');assert.equal(s.app.websiteRequests.length,0);assert.equal(s.context.vectaWebsiteBookingCloudCount,null);
 });
 test('failed saves leave the request pending',async()=>{
   const s=setup({saved:false});await s.context.acceptWebsiteRequestJob('request-1','job-1',s.document.getElementById('saveJob'));
   assert.equal(s.app.websiteRequests.length,1);assert.equal(s.calls.some(c=>c[0]==='update'),false);
+  assert.equal(s.calls.some(c=>c[0]==='count'),false);assert.equal(s.context.vectaWebsiteBookingCloudCount,1);
 });
 test('zero-row inbox updates never claim acceptance',async()=>{
   const s=setup({updated:false});assert.equal(await s.context.acceptWebsiteRequestJob('request-1','job-1',s.document.getElementById('saveJob')),false);assert.equal(s.app.websiteRequests.length,1);
