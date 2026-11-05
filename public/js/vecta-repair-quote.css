@@ -20,3 +20,13 @@
 #vectaRepairQuote small{display:block;color:#62666e;line-height:1.5}
 #vectaRepairQuote [hidden]{display:none!important}
 @media(max-width:600px){#vectaRepairQuote{padding:14px}#vectaRepairQuote .rqPart{gap:10px}#vectaRepairQuote .rqPart img{width:76px;height:76px}#vectaRepairQuote .rqActions button{width:100%}}
+
+
+#vectaRepairQuote .rqBuilder{border:1px solid #d8dbe0;border-radius:8px;padding:14px;margin:0 0 16px;min-width:0;background:#fff}
+#vectaRepairQuote .rqBuilder legend{padding:0 6px;font-weight:700}
+#vectaRepairQuote .rqFields{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px}
+#vectaRepairQuote .rqFields label{display:flex;flex-direction:column;gap:6px;font-weight:600;min-width:0}
+#vectaRepairQuote .rqFields select,#vectaRepairQuote .rqFields input{width:100%;box-sizing:border-box;min-height:44px;padding:9px;border:1px solid #bfc3ca;border-radius:5px;background:#fff;color:#202226;font:inherit}
+#vectaRepairQuote .rqBuilder p{margin:12px 0 8px}
+#vectaRepairQuote .rqBuilder a{display:inline-block;margin-bottom:8px;color:#164a87;text-decoration:underline}
+@media(max-width:600px){#vectaRepairQuote .rqFields{grid-template-columns:1fr}}

@@ -1,5 +1,5 @@
 // Calibration evidence only. No page HTML, input values, cookies or account panels.
-export function inspectRepairCatalogue({registration},doc=document){
+export function inspectRepairCatalogue({registration,anyPart=false},doc=document){
  const clean=value=>String(value||'').replace(/\s+/g,' ').trim();
  const scrub=value=>clean(value).replace(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/gi,'[email]').replace(/\b[A-HJ-NPR-Z0-9]{17}\b/gi,'[VIN]').slice(0,600);
  const visible=el=>{for(let n=el;n&&n.nodeType===1;n=n.parentElement){if(n.hidden||n.getAttribute('aria-hidden')==='true')return false;if(typeof getComputedStyle==='function'){const s=getComputedStyle(n);if(s.display==='none'||s.visibility==='hidden')return false;}}return true;};
@@ -10,9 +10,10 @@ export function inspectRepairCatalogue({registration},doc=document){
  if(!/^[A-Z0-9]{2,8}$/.test(plate))throw Error('INVALID_REGISTRATION');
  // Exclude recent-vehicle menus from identity evidence. Never claim fitment here.
  const identities=nodes.filter(el=>clean(text(el)).replace(/\s/g,'').toUpperCase().includes(plate)&&clean(text(el)).length<=220&&!el.closest('nav,[role="dialog"],[role="menu"]')&&![...el.children].some(c=>clean(text(c)).replace(/\s/g,'').toUpperCase().includes(plate))).slice(0,4).map(el=>({selector:selector(el),text:scrub(text(el.parentElement&&clean(text(el.parentElement)).length<=220?el.parentElement:el))}));
+ const matchesPart=value=>anyPart?/\b(?:Local Branch|RDC|Branch Network|Out Of Stock)\b/i.test(value):/\balternator\b/i.test(value);
  const candidates=[];
- for(const el of nodes){const value=clean(text(el));if(value.length>600||!/^.*\balternator\b/i.test(value)||!/[£]\s*\d/.test(value))continue;
-  if([...el.children].some(child=>/alternator/i.test(text(child))&&/£\s*\d/.test(text(child))))continue;
+ for(const el of nodes){const value=clean(text(el));if(value.length>600||!matchesPart(value)||!/[£]\s*\d/.test(value))continue;
+  if([...el.children].some(child=>matchesPart(text(child))&&/£\s*\d/.test(text(child))))continue;
   const ancestors=[];for(let n=el.parentElement,depth=1;n&&depth<=6;n=n.parentElement,depth++){
    const section=clean(text(n));if(section.length>1200||n.tagName==='MAIN'||n.tagName==='BODY')break;
    ancestors.push({depth,selector:selector(n),text:scrub(section),images:[...n.querySelectorAll('img')].slice(0,8).map(img=>({alt:scrub(img.getAttribute('alt')),src:(()=>{try{const u=new URL(img.getAttribute('src'));return u.protocol==='https:'&&/gsf|catalogue/i.test(u.hostname)&&/ProductImages|brand|logo/i.test(u.pathname)?u.origin+u.pathname:'';}catch{return '';}})()}))});
