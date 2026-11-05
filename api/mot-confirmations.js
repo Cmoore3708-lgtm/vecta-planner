@@ -1,6 +1,7 @@
 import {databaseEnvironment} from './_database-environment.js';
 import {requireWorkshopLogin} from '../lib/workshop-access.js';
 import {address,motSender,motInbox,copyInbox,emailText,parseMotConfirmation,verifyMotWebhook} from '../lib/mot-confirmation.js';
+import {recheckEarlierMot} from '../lib/mot-recheck.js';
 
 export const config={api:{bodyParser:false}};
 const prefix='mot-email:';
@@ -21,6 +22,12 @@ export function createMotHandler({database=db,emailApi=resend,login=requireWorks
  return async function handler(req,res){
   res.setHeader('Cache-Control','no-store');
   try{
+   if(req.method==='PUT'){
+    if(!await login(req,res))return;
+    let body;try{body=JSON.parse(await readRaw(req))}catch(error){if(error.status===413)throw error;return res.status(400).json({error:'Invalid request'})}
+    const {status,...result}=await recheckEarlierMot(body?.job_id,{database,emailApi});
+    return res.status(status).json(result);
+   }
    if(req.method==='GET'){
     if(!await login(req,res))return;
     const events=[];let offset=0;
