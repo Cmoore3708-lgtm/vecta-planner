@@ -335,9 +335,10 @@
  .mobilePlanner .mobileJob>.haynesDashboardImage{top:8px!important;height:88px!important}
 }
 
-/* Identify website-origin jobs without changing card size or job-type colour. */
+/* Website jobs share a light blue fill on Main and mechanics, including phone cards. */
 @media screen{
  .job.websiteBookingOutline,.mobileJob.websiteBookingOutline,.unallocatedSideJob.websiteBookingOutline{outline:1.5px solid #2563eb!important;outline-offset:-1.5px!important}
+ #content .job.websiteBookingOutline,#content .mobileJob.websiteBookingOutline,#content .unallocatedSideJob.websiteBookingOutline{background:#dff0ff!important}
 }
 
 /* PC identity: customer below the plate, with vehicle beside it and no empty type row. */
