@@ -43,3 +43,18 @@ returns jsonb language sql stable security invoker set search_path = '' as $$
 $$;
 revoke all on function public.record_website_visit(date, text), public.website_visitor_summary() from public, anon, authenticated;
 grant execute on function public.record_website_visit(date, text), public.website_visitor_summary() to service_role;
+
+-- A visitor can opt out locally and remove this browser/network's visit today.
+create or replace function public.exclude_website_visit(p_day date, p_hash text)
+returns void language plpgsql security invoker set search_path = '' as $$
+begin
+  if p_day is distinct from (now() at time zone 'Europe/London')::date
+    or p_hash is null or p_hash !~ '^[0-9a-f]{64}$' then
+    raise exception 'Invalid visitor record';
+  end if;
+  insert into public.website_visitor_tracking(id) values (true) on conflict do nothing;
+  delete from public.website_visitor_days where visit_day = p_day and visitor_hash = p_hash;
+end;
+$$;
+revoke all on function public.exclude_website_visit(date, text) from public, anon, authenticated;
+grant execute on function public.exclude_website_visit(date, text) to service_role;

@@ -34,7 +34,7 @@ test('count API is manager-only; collector cannot read totals; Preview cannot wr
   Object.assign(process.env, { VECTA_MAIN_USER: 'manager', VECTA_MAIN_PASSWORD: 'visitor-test', VITE_SUPABASE_URL: 'https://mock.invalid', SUPABASE_SERVICE_ROLE_KEY: 'secret-for-tests', VERCEL_ENV: 'production', VERCEL_PROJECT_NAME: 'vecta-planner', VERCEL_PROJECT_PRODUCTION_URL: 'vecta-planner.vercel.app' });
   const calls = [];
   globalThis.fetch = async (url, options) => { calls.push({url, body:JSON.parse(options.body)}); return {ok:true,status:200,json:async()=>({date:londonDay(),today:4,yesterday:null})}; };
-  async function run(method, headers) { const result = {}; await websiteVisitorsHandler({method,headers}, {setHeader(){},status(s){result.status=s;return this;},json(d){result.data=d;return this;},end(){return this;}}); return result; }
+  async function run(method, headers, query={}) { const result = {}; await websiteVisitorsHandler({method,headers,query}, {setHeader(){},status(s){result.status=s;return this;},json(d){result.data=d;return this;},end(){return this;}}); return result; }
   try {
     assert.equal((await run('GET', visitor)).status, 401); assert.equal(calls.length, 0);
     const cookie = (await managerSessionCookie({user:'manager',password:'visitor-test'})).split(';')[0];
@@ -42,9 +42,31 @@ test('count API is manager-only; collector cannot read totals; Preview cannot wr
     assert.equal((await run('POST', visitor)).status, 204);
     assert.deepEqual(Object.keys(calls[1].body).sort(), ['p_day','p_hash']);
     assert.ok(!JSON.stringify(calls[1]).includes('192.0.2.5'));
+    assert.equal((await run('POST',visitor,{exclude:'1'})).status,204);
+    assert.ok(calls[2].url.endsWith('/exclude_website_visit'));
+    assert.equal(calls[2].body.p_hash,calls[1].body.p_hash);
     process.env.VERCEL_ENV = 'preview';
-    assert.equal((await run('POST', visitor)).status, 204); assert.equal(calls.length, 2);
+    assert.equal((await run('POST', visitor)).status, 204); assert.equal(calls.length, 3);
   } finally { globalThis.fetch=originalFetch; for(const [name,value] of Object.entries(saved)) { if(value===undefined)delete process.env[name];else process.env[name]=value; } }
+});
+
+test('ignore-my-visits persists across page loads, removes today once and suppresses all later collection', async () => {
+  const storage=new Map(),calls=[];
+  function open(search='') {
+    const {document}=parseHTML('<html><body></body></html>');
+    const context={document,URL,Intl,Date,AbortSignal,localStorage:{getItem:key=>storage.get(key),setItem:(key,value)=>storage.set(key,value),removeItem:key=>storage.delete(key)},location:{hostname:'www.vectamotors.co.uk',href:'https://www.vectamotors.co.uk/'+search},history:{state:null,replaceState(){}},navigator:{onLine:true},window:{addEventListener(){}},setInterval(){},fetch:async url=>{calls.push(url);return {ok:true};}};
+    vm.runInNewContext(fs.readFileSync(new URL('../../public/js/vecta-website-visit.js',import.meta.url),'utf8'),context);
+    return document;
+  }
+  const optedOut=open('?vecta_visitors=exclude');
+  await new Promise(resolve=>setImmediate(resolve));
+  assert.equal(storage.get('vecta_ignore_my_visits'),'1');
+  assert.match(optedOut.getElementById('vectaVisitorPreferenceNotice').textContent,/now ignored/);
+  assert.deepEqual(calls,['https://vecta-planner.vercel.app/api/admin-website?visitors=1&exclude=1']);
+  open();open('?reg=EXAMPLE');assert.equal(calls.length,1);
+  open('?vecta_visitors=include');await new Promise(resolve=>setImmediate(resolve));
+  assert.equal(storage.has('vecta_ignore_my_visits'),false);
+  assert.equal(calls.at(-1),'https://vecta-planner.vercel.app/api/admin-website?visitors=1');
 });
 
 test('dashboard distinguishes untracked days, zero visitors and unavailable data; mechanics do not fetch counts', async () => {
