@@ -1,7 +1,7 @@
 {
-  "approvedOn": "2026-11-04",
+  "approvedOn": "2026-11-05",
   "approvedBy": "Chris Moore",
-  "approval": "Chris’s 23 October screenshot request: hide duplicate MOT job-type/template wording when an MOT appointment is displayed, and let the PC vehicle make/model extend to the visible car edge. Shared Main/mechanics renderers checked at PC and phone widths; extra work and appointment remain visible. MOT confirmation request: Chris approved green MOT/time after garage confirmation and automatic allocation of unallocated MOT jobs to Chris. Only mobileMotAppointmentHtml and plannerMotHeaderHtml are additionally changed; both Main/mechanics outputs are covered by regression tests. Chris’s 23 October mechanic screenshot request: remove overlapping card text at PC and iPad widths. Identity rows now reserve their natural height and work follows the header. Checked shared Main/mechanics CSS at 800, 1024 and 1440px; phone rules retained. Chris’s 23 October missing-image and Main text-alignment regression report, followed by “Carry on”: restore the whole card as the artwork positioning container while retaining natural text rows and the Haynes link fix. Only the final header position changes from relative to static; shared Main/mechanics checked at phone, tablet and desktop widths. Chris’s 27 October screenshot request: fix overlapping MOT/service/customer rows and allow make/model text to reach the vehicle. Full-width header keeps artwork sizing independent of silhouette-sized identity; natural flex rows prevent track compression; static work positioning removes legacy relative offsets. Shared Main/mechanics CSS checked at desktop/tablet widths; phone rules unchanged. Chris’s 30 October job-card screenshot request: hide repeated standard descriptions for selected services, six-month checks and MOTs, preserving additional instructions. Only plannerJobDescription changes; shared Main/mechanics renderer and existing responsive styles remain identical. Chris’s 4 November request: add grey-filled provisional bookings with explicit confirmation/cancellation and a provisional Fleet marker. Only mobileJobCardHtml is recaptured: its legacy Other-lane blue override must not replace a provisional grey background. Shared jobTypeInlineStyle supplies the requested grey fill on Main/mechanics desktop, phone and unallocated cards. Main and generated mechanics verified with synthetic bookings at desktop (1348px) and phone (390px) widths; normal bookings retain their existing rendering. Chris’s 4 November phone parts-light request: “Put it to the right of the registration plate, then push to main.” Only mobileJobCardHtml and the phone-scoped plate-row CSS change. Main/mechanics synthetic cards visually checked at 320/390/768px, with 12px red/amber/green dots centred 7px right of the plate; existing 11px desktop indicators verified at 1280px. Other protected renderers and injected styles remain identical.",
+  "approval": "Chris’s 23 October screenshot request: hide duplicate MOT job-type/template wording when an MOT appointment is displayed, and let the PC vehicle make/model extend to the visible car edge. Shared Main/mechanics renderers checked at PC and phone widths; extra work and appointment remain visible. MOT confirmation request: Chris approved green MOT/time after garage confirmation and automatic allocation of unallocated MOT jobs to Chris. Only mobileMotAppointmentHtml and plannerMotHeaderHtml are additionally changed; both Main/mechanics outputs are covered by regression tests. Chris’s 23 October mechanic screenshot request: remove overlapping card text at PC and iPad widths. Identity rows now reserve their natural height and work follows the header. Checked shared Main/mechanics CSS at 800, 1024 and 1440px; phone rules retained. Chris’s 23 October missing-image and Main text-alignment regression report, followed by “Carry on”: restore the whole card as the artwork positioning container while retaining natural text rows and the Haynes link fix. Only the final header position changes from relative to static; shared Main/mechanics checked at phone, tablet and desktop widths. Chris’s 27 October screenshot request: fix overlapping MOT/service/customer rows and allow make/model text to reach the vehicle. Full-width header keeps artwork sizing independent of silhouette-sized identity; natural flex rows prevent track compression; static work positioning removes legacy relative offsets. Shared Main/mechanics CSS checked at desktop/tablet widths; phone rules unchanged. Chris’s 30 October job-card screenshot request: hide repeated standard descriptions for selected services, six-month checks and MOTs, preserving additional instructions. Only plannerJobDescription changes; shared Main/mechanics renderer and existing responsive styles remain identical. Chris’s 4 November request: add grey-filled provisional bookings with explicit confirmation/cancellation and a provisional Fleet marker. Only mobileJobCardHtml is recaptured: its legacy Other-lane blue override must not replace a provisional grey background. Shared jobTypeInlineStyle supplies the requested grey fill on Main/mechanics desktop, phone and unallocated cards. Main and generated mechanics verified with synthetic bookings at desktop (1348px) and phone (390px) widths; normal bookings retain their existing rendering. Chris’s 4 November phone parts-light request: “Put it to the right of the registration plate, then push to main.” Only mobileJobCardHtml and the phone-scoped plate-row CSS change. Main/mechanics synthetic cards visually checked at 320/390/768px, with 12px red/amber/green dots centred 7px right of the plate; existing 11px desktop indicators verified at 1280px. Other protected renderers and injected styles remain identical. Chris’s 5 November request: “Make sure the mechanics dashboard shows the full job description for each vehicle” and approval to remove its timeline to allow different sized cards, followed by “Push to main”. The shared planner selects a mechanics-only natural-height queue; the new card/queue renderers are protected, and scoped CSS preserves Main’s layout. Full multiline descriptions, final instructions, cached images, parts dots, provisional styling and explicit Open job controls verified using synthetic data at desktop 1348px, phone 390px and tablet 820px. Main desktop and phone visually verified unchanged; all existing Main card functions and injected-style hashes remain identical. Reading a mechanics card does not open it or start workshop progress.",
   "layout": {
     "main": {
       "functions": {
@@ -39,6 +39,12 @@
         "laneHtml": [
           "e34fc942ef5b6d5524c97a112ffff1ff331642243af2a3a0ba04aaeb0f0dcf3a"
         ],
+        "mechanicJobCardHtml": [
+          "88658f3661d07f2b99d05ba5ef244b3fe0f13bbfeca0ecc1d0981de3632e06d5"
+        ],
+        "mechanicPlannerHtml": [
+          "1cee40e88bbdbe1d97d1f4bad7fba6012b49a788561c6aa633e36f40aea9dcf8"
+        ],
         "mobileJobCardHtml": [
           "76a7d838f0668b47e73abcb3cfcc53ad86cd5043ccebc8fbfd5572f75a07c73b"
         ],
@@ -55,7 +61,7 @@
           "6f3578d03d6a62e5a707800ce51f656f2f698a5b0b6d03f41d0af13429d637b8"
         ],
         "plannerHtml": [
-          "26e3ed63b218a16ad042afe76e477213faee324788b7a42769dde5369a1a9438"
+          "b07d8cdaf967c356fdcd134a424aa19feccf7f91067b0873b955bc4980084a20"
         ],
         "plannerJobDescription": [
           "c10d60361dfdf47c0ee084c379c63a9b046bf87665205ec53b534a546230dae8"
@@ -94,7 +100,7 @@
           "3a9a42c6c0bf2d0614443fe79675792f688eb5512c394fbfd54ec1fb14fd13de"
         ]
       },
-      "styles": "51337e069b5509b6eaf206ca3a56e4641930b85423b78ce38df2f891fab5523e",
+      "styles": "0a6014f2a072e275ecf47e2c0f3a3ffe24335b29e5a09862920e66d88f0f6182",
       "injectedStyles": [
         "bea850ce68304d8a50a6018729fb5923f614c6708b6a11a3d3d937b525dd855a"
       ]
@@ -135,6 +141,12 @@
         "laneHtml": [
           "e34fc942ef5b6d5524c97a112ffff1ff331642243af2a3a0ba04aaeb0f0dcf3a"
         ],
+        "mechanicJobCardHtml": [
+          "88658f3661d07f2b99d05ba5ef244b3fe0f13bbfeca0ecc1d0981de3632e06d5"
+        ],
+        "mechanicPlannerHtml": [
+          "1cee40e88bbdbe1d97d1f4bad7fba6012b49a788561c6aa633e36f40aea9dcf8"
+        ],
         "mobileJobCardHtml": [
           "76a7d838f0668b47e73abcb3cfcc53ad86cd5043ccebc8fbfd5572f75a07c73b"
         ],
@@ -151,7 +163,7 @@
           "6f3578d03d6a62e5a707800ce51f656f2f698a5b0b6d03f41d0af13429d637b8"
         ],
         "plannerHtml": [
-          "26e3ed63b218a16ad042afe76e477213faee324788b7a42769dde5369a1a9438"
+          "b07d8cdaf967c356fdcd134a424aa19feccf7f91067b0873b955bc4980084a20"
         ],
         "plannerJobDescription": [
           "c10d60361dfdf47c0ee084c379c63a9b046bf87665205ec53b534a546230dae8"
@@ -190,7 +202,7 @@
           "3a9a42c6c0bf2d0614443fe79675792f688eb5512c394fbfd54ec1fb14fd13de"
         ]
       },
-      "styles": "f5f3bf090aa1ac3bc5da69bb59cd960bc780823ee27a5b13fbd04df6fa1d53f2",
+      "styles": "75f8943113cd3ae02ea4147f3e6f18c0aa850c64d64d23e8311cedfc77f17d0b",
       "injectedStyles": [
         "bea850ce68304d8a50a6018729fb5923f614c6708b6a11a3d3d937b525dd855a"
       ]
