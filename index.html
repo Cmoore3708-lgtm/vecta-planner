@@ -13477,7 +13477,7 @@ function plannerHtml(){
 
 
 /* v236: restored original core planner/job-card helpers removed during layout amendments */
-window.vectaMotBookingState=function(){return {jobs:app.jobs,render:render}};
+window.vectaMotBookingState=function(){return {jobs:app.jobs,render:render,refresh:scheduleCloudRefresh}};
 function motConfirmationPresentation(j){var status=window.VectaMotBookings?window.VectaMotBookings.status(j):{confirmed:false,review:false};return {attributes:status.confirmed?' style="color:#15803d!important;background:#f0fdf4;border-color:#86efac" title="MOT confirmed — booking '+esc(status.reference)+'"':status.review?' title="MOT booking needs checking — confirmation does not match a unique planner job"':' title="MOT not yet confirmed by the garage"',tick:status.confirmed?' ✓':status.review?' ⚠':''}}
 function mobileMotAppointmentHtml(j){var time=motTimeFromJob(j),confirmation=motConfirmationPresentation(j);return hasMotJobType(j)&&time?'<span class="mobileMotAppointment"'+confirmation.attributes+' aria-label="MOT appointment time '+esc(time)+confirmation.tick+'">MOT '+esc(time)+confirmation.tick+'</span>':''}
 function mobileJobCategoryLabel(j){
@@ -15858,6 +15858,7 @@ async function saveJob(id){
     if(String(j.source||'').toLowerCase()==='website booking'&&/^\d{4}-\d{2}-\d{2}$/.test(String(j.booking_date||''))){selectedDate=new Date(j.booking_date+'T00:00:00');view='planner';}
     closeModals();
     render();
+    if(savedResult===true&&j.status==='booked'&&window.VectaMotBookings?.recheck&&hasMotJobType(j))window.VectaMotBookings.recheck(j.id);
     if(firstWebsiteConfirmation){openWebsiteBookingConfirmationEmail(j);}
     if(!acceptingWebsiteRequest){if(savedResult===true&&typeof onConfirmed==='function')await onConfirmed(j);}
     /* A new completed record is a direct financial entry; existing staff jobs retain their invoice workflow. */

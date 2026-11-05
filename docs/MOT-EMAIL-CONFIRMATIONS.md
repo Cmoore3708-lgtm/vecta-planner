@@ -76,3 +76,24 @@ then check Resend Receiving or restore the garage's original recipient. Do not
 delete stored confirmation metadata or change the mailbox domain's MX records.
 
 23 October update: job-card confirmation wording ends at “Fault Finder MOT Centre”. Click the centre name to view the saved plain-text garage confirmation; date/time/reference remain in that viewer and the booking data. Earlier records without stored text show their saved booking details.
+
+## Emails received before the job — 5 November update
+
+- After a booked MOT is saved to the server, the dashboard asks the authenticated
+  `PUT /api/mot-confirmations` route to recheck retained unmatched emails for that
+  job. The existing minute refresh also catches older jobs and offline uploads.
+- Match the saved registration, booking date and separate MOT-time marker exactly.
+  Fetch the original receiving email again and verify sender, recipient, DKIM,
+  DMARC, reference and timestamp. The browser supplies only the job ID.
+- `vecta_recheck_mot_confirmation` locks and revalidates the persisted job before
+  calling the existing allocation function. Cancellation/supersession, ambiguity,
+  clashes and time-off rules are retained. An allocated service/MOT is confirmed
+  without moving its service slot; an unallocated MOT uses the existing Chris
+  allocation rule. No new job or extra forwarded email is created.
+- Apply `20261105112358_recheck_earlier_mot_confirmation.sql` to Main only as part
+  of the approved release. It has been applied and tested on isolated Test.
+  It adds one service-role-only function; the existing webhook remains unchanged.
+- Validation: `mot-earlier-confirmation.test.js`, the existing MOT regression
+  suite, both MOT SQL fixtures (rolled back on Test), and `npm run release:gate`.
+  Unmatched records are throttled during background refresh; temporary failures
+  leave the saved job intact and never display a false confirmation.
