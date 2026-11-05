@@ -16,7 +16,7 @@
       if(i===index)card.setAttribute('aria-current','step');else card.removeAttribute('aria-current');
       card.querySelector('.currentBadge').hidden=i!==index;
       const photo=card.querySelector('.approvedScene');
-      const src=generated?generated[card.dataset.scene]:(sceneSet?'/assets/progress/'+sceneSet+'-'+card.dataset.scene+'.webp':'');
+      const src=generated?generated[card.dataset.scene]:(sceneSet?'/assets/progress/'+sceneSet+'-'+card.dataset.scene+'.webp'+(sceneSet==='cm14kel'?'?v=matching-wheels-1':''):'');
       photo.hidden=!approved||photo.dataset.failedUrl===src;
       photo.alt=(data.registration||'Your car')+' — '+card.querySelector('h3').textContent.toLowerCase()+' illustration';
       photo.onerror=()=>{photo.dataset.failedUrl=src;photo.hidden=true;card.querySelector('.sceneArt').hidden=true;};
