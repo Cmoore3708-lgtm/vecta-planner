@@ -353,3 +353,91 @@ test('phone assignment preserves fixed time and cancelling is side-effect free',
  vm.runInNewContext(namedFunctionSource('assignPlannerJob'),ctx);assert.equal(ctx.assignPlannerJob(job,'Chris','2026-11-05'),false);assert.equal(job.technician,'Alfie');assert.equal(updates,0);
  ctx.confirm=()=>true;assert.equal(ctx.assignPlannerJob(job,'Chris','2026-11-05'),true);assert.equal(job.drop_time,'10:00');assert.equal(job.technician,'Chris');assert.equal(updates,1);
 });
+
+function resizePlanner(jobs){
+ const ctx=stackedPlanner(jobs);
+ for(const name of ['plannerResizePlan','plannerResizeJob'])vm.runInNewContext(namedFunctionSource(name),ctx);
+ return ctx;
+}
+test('extending a job through multiple slots shifts the following queue without changing its order',()=>{
+ const jobs=[stackedJob('a','08:00'),stackedJob('b','09:00'),stackedJob('c','10:00'),stackedJob('d','11:00',{estimated_hours:.5})],ctx=resizePlanner(jobs);
+ const changed=ctx.plannerResizeJob(jobs[1],{...jobs[1],estimated_hours:2.5});
+ assert.deepEqual(jobs.map(j=>j.drop_time),['08:00','09:00','11:30','12:30']);
+ assert.deepEqual(jobs.map(j=>j.estimated_hours),[1,2.5,1,.5]);
+ assert.deepEqual(Array.from(changed,j=>j.id),['b','c','d']);
+});
+test('shortening a job pulls all following jobs up and preserves unrelated records',()=>{
+ const jobs=[stackedJob('a','08:00',{estimated_hours:2}),stackedJob('b','10:00'),stackedJob('c','11:00'),stackedJob('other','12:00',{technician:'Chris'}),stackedJob('tomorrow','12:00',{booking_date:'2026-11-05'}),stackedJob('done','08:00',{status:'completed'}),stackedJob('quote','08:00',{status:'quote'})],ctx=resizePlanner(jobs),untouched=JSON.stringify(jobs.slice(3));
+ ctx.plannerResizeJob(jobs[0],{...jobs[0],estimated_hours:.5});
+ assert.deepEqual(jobs.slice(0,3).map(j=>j.drop_time),['08:00','08:30','09:30']);
+ assert.equal(JSON.stringify(jobs.slice(3)),untouched);
+});
+test('resize previews and no-op gestures never mutate jobs',()=>{
+ const jobs=[stackedJob('a','08:00'),stackedJob('b','09:00')],ctx=resizePlanner(jobs),before=JSON.stringify(jobs);
+ const preview=ctx.plannerResizePlan(jobs[0],{...jobs[0],estimated_hours:2});
+ assert.deepEqual(Array.from(preview,j=>j.drop_time),['08:00','10:00']);
+ assert.equal(ctx.plannerResizeJob(jobs[0],{...jobs[0]}).length,0);
+ assert.equal(JSON.stringify(jobs),before);
+});
+test('resizing keeps fixed appointments and skips recorded mechanic time off',()=>{
+ const jobs=[stackedJob('a','08:00'),fixedJob('fixed','10:00'),stackedJob('b','11:00')],ctx=resizePlanner(jobs);
+ ctx.window.vectaTimeOffConflict=j=>{const start=ctx.clockMinutes(j.drop_time);return start<780&&start+j.estimated_hours*60>720?{}:null};
+ ctx.plannerResizeJob(jobs[0],{...jobs[0],estimated_hours:1.5});
+ assert.deepEqual(jobs.map(j=>j.drop_time),['08:00','10:00','11:00']);
+ ctx.plannerResizeJob(jobs[0],{...jobs[0],estimated_hours:3});
+ assert.deepEqual(jobs.map(j=>j.drop_time),['13:00','10:00','16:00']);
+});
+test('a fixed job can grow into flexible jobs without moving its booked start',()=>{
+ const jobs=[fixedJob('fixed','08:00'),stackedJob('a','09:00'),stackedJob('b','10:00')],ctx=resizePlanner(jobs);
+ ctx.confirm=()=>{throw Error('Duration-only change needs no time confirmation')};
+ ctx.plannerResizeJob(jobs[0],{...jobs[0],estimated_hours:2});
+ assert.deepEqual(jobs.map(j=>j.drop_time),['08:00','10:00','11:00']);
+});
+test('a resize cannot overlap two fixed appointments or partially move jobs on failure',()=>{
+ const jobs=[fixedJob('first','08:00'),fixedJob('second','09:00'),stackedJob('a','10:00')],ctx=resizePlanner(jobs),before=JSON.stringify(jobs);
+ assert.throws(()=>ctx.plannerResizeJob(jobs[0],{...jobs[0],estimated_hours:2}),/fixed booking/);
+ ctx.window.vectaTimeOffConflict=()=>({});
+ assert.throws(()=>ctx.plannerResizeJob(jobs[2],{...jobs[2],estimated_hours:2}),/available mechanic time/);
+ assert.equal(JSON.stringify(jobs),before);
+});
+test('declining a top-edge change to a fixed appointment leaves the queue untouched',()=>{
+ const jobs=[fixedJob('fixed','10:00'),stackedJob('a','11:00')],ctx=resizePlanner(jobs),before=JSON.stringify(jobs);
+ ctx.confirm=()=>false;
+ assert.equal(ctx.plannerResizeJob(jobs[0],{...jobs[0],drop_time:'09:30',estimated_hours:1.5}).length,0);
+ assert.equal(JSON.stringify(jobs),before);
+});
+test('a full lane stays on the same day when resize pushes its last job beyond closing time',()=>{
+ const jobs=Array.from({length:9},(_,i)=>stackedJob(String(i),String(8+i).padStart(2,'0')+':00')),ctx=resizePlanner(jobs);
+ ctx.plannerResizeJob(jobs[0],{...jobs[0],estimated_hours:2});
+ assert.equal(jobs[8].drop_time,'17:00');assert.ok(jobs.every(j=>j.booking_date==='2026-11-04'));
+});
+
+function resizeGesture(){
+ const jobs=[stackedJob('a','08:00'),stackedJob('b','09:00')],ctx=resizePlanner(jobs),events={},writes=[];
+ const handle={addEventListener:(name,fn)=>events[name]=fn,removeEventListener:name=>delete events[name],setPointerCapture(){},releasePointerCapture(){}};
+ const classList={add(){},remove(){}};
+ const cards=jobs.map(j=>({dataset:{jobId:j.id},style:{setProperty(){}},classList,querySelector:selector=>j.id==='a'&&selector==='.resizeHandle'?handle:null}));
+ cards[0].parentElement={querySelectorAll:()=>cards};
+ Object.assign(ctx,{PLANNER_PX_PER_HOUR:100,minutesFromTime:ctx.clockMinutes,topFor:j=>(ctx.clockMinutes(j.drop_time)-480)/60*100,heightFor:j=>j.estimated_hours*100,document:{body:{classList}},setTimeout(){},render(){},saveLocal:()=>writes.push('local'),persistPlannerJobsInBackground:rows=>writes.push(Array.from(rows,j=>({...j}))),showPlannerAvailabilityNotice:message=>writes.push(message)});
+ vm.runInNewContext(namedFunctionSource('bindResize'),ctx);ctx.bindResize(cards[0]);
+ const event=y=>({button:0,pointerId:1,clientY:y,preventDefault(){},stopPropagation(){}});
+ handle.onpointerdown(event(100));
+ return {jobs,ctx,events,writes,cards,event};
+}
+test('pointer resize previews the queue and saves the resized job plus every shifted job together',()=>{
+ const g=resizeGesture();g.events.pointermove(g.event(200));
+ assert.equal(g.cards[0].style.height,'200px');assert.equal(g.cards[1].style.top,'200px');
+ assert.equal(g.jobs[0].estimated_hours,1);assert.equal(g.jobs[1].drop_time,'09:00');
+ g.events.pointerup(g.event(200));
+ assert.equal(g.jobs[0].estimated_hours,2);assert.equal(g.jobs[1].drop_time,'10:00');
+ assert.equal(g.writes[0],'local');assert.deepEqual(g.writes[1].map(j=>j.id),['a','b']);
+ assert.deepEqual(Object.keys(g.events),[]);assert.equal(g.ctx.plannerInteractionBusy,false);
+});
+test('pointer cancellation and dragging back to the original size never save preview changes',()=>{
+ for(const cancel of [true,false]){
+  const g=resizeGesture(),before=JSON.stringify(g.jobs);g.events.pointermove(g.event(200));
+  if(cancel)g.events.pointercancel(g.event(200));
+  else{g.events.pointermove(g.event(100));assert.equal(g.cards[1].style.top,'100px');g.events.pointerup(g.event(100))}
+  assert.equal(JSON.stringify(g.jobs),before);assert.deepEqual(g.writes,[]);assert.deepEqual(Object.keys(g.events),[]);
+ }
+});
