@@ -100,6 +100,20 @@ test('different or uncertain alloys alone reject the entire set with bounded ret
   assert.deepEqual(f.rows.get('progress_scenes_v1:'+reg).value.failed_checks,['same_alloy_wheels']);
  }
 });
+test('incorrect or uncertain manufacturer branding cannot publish a new scene set',async()=>{
+ for(const check of ['correct_manufacturer_emblems','exterior_emblems_raised','floor_emblem_painted_in_perspective']){
+  for(const result of [false,undefined]){
+   const f=fixture();
+   const validate=async()=>({...Object.fromEntries(qualityChecks.map(k=>[k,true])),[check]:result});
+   const service=createSceneService({db:f.db,storage:f.storage,generate:f.generate,validate,now:()=>now,limit:()=>40});
+   assert.equal((await service.run()).status,'pending');
+   assert.equal((await service.run()).status,'needs_review');
+   assert.equal((await service.run()).idle,true);
+   assert.equal(f.stats().publishes,0);
+   assert.deepEqual(f.rows.get('progress_scenes_v1:'+reg).value.failed_checks,[check]);
+  }
+ }
+});
 test('monthly reservations and distributed worker lock prevent duplicate or over-limit generation',async()=>{
  const f=fixture({cap:3});await assert.rejects(f.service.run(),/limit reached/);assert.equal(f.generated.length,0);
  const g=fixture();g.rows.set('progress_scene_worker_lock_v1',{id:'progress_scene_worker_lock_v1',value:{owner:'other',until:now+600000},updated_at:new Date(now).toISOString()});assert.deepEqual(await g.service.run(),{busy:true});assert.equal(g.generated.length,0);
