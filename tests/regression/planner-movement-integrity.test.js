@@ -441,3 +441,59 @@ test('pointer cancellation and dragging back to the original size never save pre
   assert.equal(JSON.stringify(g.jobs),before);assert.deepEqual(g.writes,[]);assert.deepEqual(Object.keys(g.events),[]);
  }
 });
+
+test('ordinary job-card edits including preset duration changes do not ask for a new slot',()=>{
+ const original=stackedJob('a','08:00'),ctx=stackedPlanner([original]);
+ vm.runInNewContext(namedFunctionSource('shouldAutoAllocateJobSlot'),ctx);
+ for(const edit of [{work_required:'New instructions'},{amount_quoted:80},{customer_email:'test@example.invalid'},{estimated_hours:2},{estimated_hours:.25},{job_type:'Tyres || MOT',estimated_hours:1.25}]){
+  assert.equal(ctx.shouldAutoAllocateJobSlot(original,{...original,...edit}),false,JSON.stringify(edit));
+ }
+ for(const edit of [{booking_date:'2026-11-05'},{technician:'Chris'},{drop_time:'14:00'}])assert.equal(ctx.shouldAutoAllocateJobSlot(original,{...original,...edit}),true);
+ assert.equal(ctx.shouldAutoAllocateJobSlot(null,original),true);
+ assert.equal(ctx.shouldAutoAllocateJobSlot({...original,technician:'Unallocated',booking_date:null},original),true);
+ assert.equal(ctx.shouldAutoAllocateJobSlot(original,{...original,customer_note:'[[VECTA_BOOKING_TIME:fixed]]',drop_time:'10:00'}),false);
+});
+
+function jobSavePlanner(jobs,editedIndex,changes){
+ const ctx=stackedPlanner(jobs),previous=JSON.parse(JSON.stringify(jobs[editedIndex])),writes=[],scheduled=[];
+ Object.assign(ctx,{
+  document:{getElementById:()=>null,querySelector:()=>null},localStorage:{setItem(){}},console,
+  gatherJob:()=>({...previous,...changes}),privatePricingItemsFromNote:()=>[],
+  vectaConfirmDuplicateBooking:async()=>true,isUuid:()=>true,isWebsiteBookingJob:()=>false,isUnresolvedWebsiteService:()=>false,isVehicleTaxJob:()=>false,
+  prepareLinkedCustomerVehicleLocal:()=>null,syncTaskFromMiniJob(){},ensureContractorSavedFromJob(){},invalidateFinanceDashboardCache(){},saveLocal(){},closeModals(){},
+  syncSavedJobBundleInBackground:async job=>{writes.push({...job});return true;},
+  alert:message=>{throw Error(message);},selectedIso:()=>previous.booking_date,todayIso:()=>previous.booking_date,plannerInteractionBusy:false,cloudRefreshBusy:false,
+  persistPlannerJobsInBackground:rows=>scheduled.push(...rows.map(row=>({...row}))),
+  render:()=>ctx.plannerPackVisibleDay(),
+  findNextMechanicSlot:()=>{throw Error('Ordinary edits must not search for a new planner slot');}
+ });
+ ctx.app.customers=[];ctx.app.vehicles=[];
+ ctx.window.__vectaJobEditorBaseline={id:previous.id,job:previous};
+ for(const name of ['plannerCompactLane','plannerPackVisibleDay','shouldAutoAllocateJobSlot'])vm.runInNewContext(namedFunctionSource(name),ctx);
+ vm.runInNewContext('var plannerGapTimer=null;async '+namedFunctionSource('saveJob'),ctx);
+ return {ctx,writes,scheduled,previous};
+}
+
+test('saving a longer top job retains first place and shifts following jobs in order',async()=>{
+ const jobs=[stackedJob('a','08:00',{customer_account:'Staff',work_required:'MOT',amount_quoted:65}),stackedJob('b','09:00'),stackedJob('c','10:00')];
+ const {ctx,writes,scheduled}=jobSavePlanner(jobs,0,{work_required:'MOT and tyre replacement',job_type:'MOT || Tyres',estimated_hours:1.5});
+ assert.equal(await ctx.saveJob('a'),true);
+ assert.deepEqual(jobs.map(j=>j.drop_time),['08:00','09:30','10:30']);
+ assert.deepEqual(Array.from(ctx.plannerLaneActiveJobs('2026-11-04','Alfie'),j=>j.id),['a','b','c']);
+ assert.equal(writes[0].drop_time,'08:00');assert.equal(writes[0].estimated_hours,1.5);
+ assert.deepEqual(scheduled.map(j=>j.id),['b','c']);
+});
+
+test('saving a shorter middle job keeps its place and pulls only the following queue up',async()=>{
+ const jobs=[stackedJob('a','08:00'),stackedJob('b','09:00',{customer_account:'Staff',work_required:'Service',estimated_hours:2}),stackedJob('c','11:00'),stackedJob('other','08:00',{technician:'Chris'}),stackedJob('tomorrow','08:00',{booking_date:'2026-11-05'})];
+ const untouched=JSON.stringify(jobs.slice(3)),{ctx,scheduled}=jobSavePlanner(jobs,1,{estimated_hours:.5,work_required:'Shorter amended work'});
+ assert.equal(await ctx.saveJob('b'),true);
+ assert.deepEqual(jobs.slice(0,3).map(j=>j.drop_time),['08:00','09:00','09:30']);
+ assert.equal(JSON.stringify(jobs.slice(3)),untouched);assert.deepEqual(scheduled.map(j=>j.id),['c']);
+});
+
+test('description-only job save keeps every planner position unchanged',async()=>{
+ const jobs=[stackedJob('a','08:00',{customer_account:'Staff',work_required:'Original instructions'}),stackedJob('b','09:00'),stackedJob('c','10:00')];
+ const {ctx,scheduled}=jobSavePlanner(jobs,0,{work_required:'Updated instructions'});
+ assert.equal(await ctx.saveJob('a'),true);assert.deepEqual(jobs.map(j=>j.drop_time),['08:00','09:00','10:00']);assert.deepEqual(scheduled,[]);
+});
