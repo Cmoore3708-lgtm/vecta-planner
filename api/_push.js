@@ -21,7 +21,7 @@ export function pushConfig(){
 }
 export async function supabaseRest(path,{method='GET',body}={}){
   const {url,key}=databaseEnvironment({requireService:true});
-  const response=await fetch(`${url}/rest/v1/${path}`,{method,headers:{apikey:key,Authorization:`Bearer ${key}`,'Content-Type':'application/json',Prefer:'resolution=merge-duplicates,return=representation'},body:body===undefined?undefined:JSON.stringify(body)});
+  const response=await fetch(`${url}/rest/v1/${path}`,{method,headers:{apikey:key,Authorization:`Bearer ${key}`,'Content-Type':'application/json',Prefer:'resolution=merge-duplicates,return=representation'},body:body===undefined?undefined:JSON.stringify(body),signal:AbortSignal.timeout(10000)});
   if(!response.ok)throw new Error(await response.text());
   if(response.status===204)return null;
   return response.json().catch(()=>null);
@@ -37,7 +37,7 @@ export async function sendBookingBadges(){
     const [subscriptions,pending]=await Promise.all([supabaseRest('workshop_push_subscriptions?select=endpoint,subscription'),supabaseRest('website_booking_requests?select=id&status=eq.awaiting_review')]);
     const count=Array.isArray(pending)?pending.length:0,payload=JSON.stringify({title:'New VECTA website booking',body:'A new customer booking is waiting for review.',count,url:'/?view=websiteRequests'});
     await Promise.allSettled((subscriptions||[]).map(async row=>{
-      try{await webpush.sendNotification(row.subscription,payload)}catch(error){
+      try{await webpush.sendNotification(row.subscription,payload,{timeout:5000})}catch(error){
         if(error&&[404,410].includes(error.statusCode)){await supabaseRest(`workshop_push_subscriptions?endpoint=eq.${encodeURIComponent(row.endpoint)}`,{method:'DELETE'}).catch(()=>{});return}
         throw error;
       }

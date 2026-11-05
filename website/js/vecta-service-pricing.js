@@ -46,7 +46,7 @@
               expiryTimer=setTimeout(()=>{if(active===generation)publish({status:'unavailable',quote:null});},data.quote.expiresAt-now());
               publish({status:'matched',quote:data.quote});return;
             }
-            publish({status:data.status==='DISABLED'?'disabled':'unavailable',reason:data.status==='REVIEW_REQUIRED'?'REVIEW_REQUIRED':'UNAVAILABLE',quote:null});return;
+            publish({status:data.status==='DISABLED'?'disabled':'unavailable',reason:['BUSY','DAILY_LIMIT','OFFLINE','LOGIN_REQUIRED','REVIEW_REQUIRED'].includes(data.status)?data.status:'UNAVAILABLE',quote:null});return;
           }
           if(active===generation)publish({status:'unavailable',quote:null});
         } catch {if(active===generation)publish({status:'unavailable',quote:null});}

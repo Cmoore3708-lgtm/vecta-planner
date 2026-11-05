@@ -7,6 +7,7 @@ const html=readFileSync(new URL('../../index.html',import.meta.url),'utf8');
 const source=html.slice(html.indexOf('function openWebsiteRequestJobCard('),html.indexOf('async function deleteWebsiteRequestCompletely('));
 function setup({online=true,updated=true,saved=true}={}){
   const {document,window}=parseHTML('<div id="jobModal"><div class="jobModalHead"><h2></h2></div><input id="job_booking_date"><div class="modalFoot"><button id="saveJob"></button><button id="saveJobMobile"></button><button id="createQuote"></button><button id="markReady"></button></div></div>');
+  const helpers={window:{},Date};vm.runInNewContext(readFileSync(new URL('../../public/js/vecta-launch-readiness.js',import.meta.url),'utf8'),helpers);window.VectaLaunchReadiness=helpers.window.VectaLaunchReadiness;
   const calls=[],request={id:'request-1'},app={jobs:[],websiteRequests:[request]};let dayUpdates=0;
   document.getElementById('job_booking_date').addEventListener('change',()=>dayUpdates++);
   const context={document,window,Event:window.Event,navigator:{onLine:online},app,alert:message=>calls.push(['alert',message]),openJobModal:(id,draft)=>calls.push(['open',id,draft]),gatherJob:()=>({technician:'Chris'}),isUnallocatedJob:j=>j.technician==='Unallocated',saveLocal:()=>calls.push(['local']),

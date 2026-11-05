@@ -1,4 +1,7 @@
 import {bookingAnalyticsReceipt} from '../lib/website-analytics-receipt.js';
+import {waitUntil} from '@vercel/functions';
+import {processBookingReceipts,receiptRpc} from '../lib/booking-receipts.js';
+import {managerAuthorised} from './message-centre.js';
 import {bookingPhotos,readBookingPhotos} from './_booking-photos.js';
 import {bookingTypes} from '../lib/booking-input.js';
 import {sendBookingBadges} from './_push.js';
@@ -13,7 +16,20 @@ function cfg(){return databaseEnvironment({requireService:true})}
 function reg(v){return String(v||'').toUpperCase().replace(/\s+/g,' ').trim()}
 async function rest(url,key,path,method='GET',body,prefer='return=representation'){const r=await fetch(`${url}/rest/v1/${path}`,{method,headers:{apikey:key,Authorization:`Bearer ${key}`,'Content-Type':'application/json',Prefer:prefer},body:body?JSON.stringify(body):undefined});if(!r.ok)throw new Error(await r.text());return r.status===204?null:r.json().catch(()=>null)}
 export default async function handler(req,res){
+ if(req.method==='GET'&&req.query?.receipts==='1'){
+  if(!process.env.CRON_SECRET||req.headers?.authorization!=='Bearer '+process.env.CRON_SECRET)return res.status(401).json({error:'Unauthorized'});
+  try{return res.status(200).json(await processBookingReceipts());}catch{return res.status(503).json({error:'Receipt delivery will retry on the next run.'});}
+ }
  const {url,key}=cfg();if(!url||!key)return res.status(500).json({error:'Booking service is not configured'});
+ if(req.method==='GET'&&req.query?.receiptIssues==='1'){
+  res.setHeader('Cache-Control','no-store');
+  if(!await managerAuthorised(req))return res.status(401).json({error:'Manager sign-in required.'});
+  try{
+   const params=new URLSearchParams({select:'id,status,created_at,error,snapshot',status:'in.(pending,sending,failed,needs_review)',order:'created_at.asc',limit:'50'});
+   const rows=await rest(url,key,'website_booking_receipts?'+params);
+   return res.status(200).json({receipts:(rows||[]).map(r=>({id:r.id,status:r.status,created_at:r.created_at,error:r.error,registration:r.snapshot?.registration,email:r.snapshot?.email,date:r.snapshot?.confirmed_date}))});
+  }catch{return res.status(503).json({error:'Email delivery details unavailable.'});}
+ }
  if(req.method==='GET'&&req.query?.photos)return readBookingPhotos(req,res,{url,key});
  if(req.method!=='POST')return res.status(405).json({error:'Method not allowed'});
  try{
@@ -61,9 +77,13 @@ export default async function handler(req,res){
    if(photos.length){const saved=await rest(url,key,`website_booking_photos?request_id=eq.${id}&select=photos&limit=1`);if(JSON.stringify(saved?.[0]?.photos)!==JSON.stringify(photos))return res.status(409).json({error:'This request identity belongs to different booking photos'});}
    if(!existing||(b.appointment_time&&String(existing.confirmed_time||'').slice(0,5)!==b.appointment_time)||fields.some(field=>JSON.stringify(existing[field])!==JSON.stringify(request[field])))return res.status(409).json({error:'This request identity belongs to different booking details'});
   }
-  if(created)await sendBookingBadges();
+  // A saved booking is successful even if push or email is slow or unavailable.
+  if(created)waitUntil(sendBookingBadges());
+  let receipt_email='unavailable';
+  try{const status=await receiptRpc('status',id);if(status?.status)receipt_email=status.status;}catch{/* Keep the saved booking successful. */}
+  if(['pending','failed'].includes(receipt_email))waitUntil(processBookingReceipts({id,limit:1}).catch(()=>console.warn('Booking receipt retained for retry.')));
   let tracking_url;try{tracking_url=requestTrackingPath(receipt||request);}catch{/* A past receipt must not turn a saved booking into a failed submission. */}
   let analytics_receipt;try{analytics_receipt=bookingAnalyticsReceipt(receipt||request,key);}catch{/* Analytics must never affect a saved booking. */}
-  return res.status(created?201:200).json({analytics_receipt,ok:true,confirmed:false,request_id:id,date:receipt?.confirmed_date||appointment,time:String(receipt?.confirmed_time||b.appointment_time||'').slice(0,5)||null,tracking_url});
+  return res.status(created?201:200).json({analytics_receipt,receipt_email,ok:true,confirmed:false,request_id:id,date:receipt?.confirmed_date||appointment,time:String(receipt?.confirmed_time||b.appointment_time||'').slice(0,5)||null,tracking_url});
  }catch(e){if(e.message==='INVALID_SERVICE_EXTRA')return res.status(400).json({error:'Select a valid optional service item.'});if(e.code==='BOOKING_INPUT')return res.status(400).json({error:e.message});if(String(e.message).includes('VECTA_BOOKING_UNAVAILABLE'))return res.status(409).json({error:'That appointment is no longer available or does not meet the booking notice period. Please choose another available date.'});if(String(e.message).includes('VECTA_BOOKING_MONDAY'))return res.status(409).json({error:'Mondays are not available for online bookings. Please choose another day.'});if(String(e.message).includes('VECTA_BOOKING_FRIDAY_CAPACITY'))return res.status(409).json({error:'Alfie’s Friday online booking capacity is now full. Please choose another date.'});console.error(e);return res.status(500).json({error:'Unable to complete booking'});}
 }
