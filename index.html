@@ -14922,24 +14922,34 @@ function syncPresetPricingToPrivateBreakdown(beforeTypes,afterTypes){
   bindPrivatePricing();
   syncPrivatePricingTotal(true);
 }
+function fitPrivatePricingDescription(el){
+  if(!el||!el.clientWidth)return;
+  el.style.height='auto';
+  el.style.height=(el.scrollHeight+el.offsetHeight-el.clientHeight)+'px';
+}
+function schedulePrivatePricingFit(){
+  if(schedulePrivatePricingFit.pending)return;
+  function fitVisibleDescriptions(){
+    schedulePrivatePricingFit.pending=false;
+    document.querySelectorAll('#privatePricingRows .privatePriceDescription').forEach(fitPrivatePricingDescription);
+  }
+  if(typeof window.requestAnimationFrame!=='function'){fitVisibleDescriptions();return;}
+  schedulePrivatePricingFit.pending=true;
+  window.requestAnimationFrame(fitVisibleDescriptions);
+}
+function privatePricingViewportResize(){
+  if(privatePricingViewportResize.width===window.innerWidth)return;
+  privatePricingViewportResize.width=window.innerWidth;
+  schedulePrivatePricingFit();
+}
 function bindPrivatePricing(){
   var rows=document.getElementById('privatePricingRows'),add=document.getElementById('addPrivatePriceItem');if(!rows)return;
-  function fitDescription(el){
-    if(!el||!el.clientWidth)return;
-    el.style.height='auto';
-    el.style.height=(el.scrollHeight+el.offsetHeight-el.clientHeight)+'px';
-  }
   // Fit saved and programmatically updated wording as well as text entered by hand.
-  function bindRow(row){fitDescription(row.querySelector('.privatePriceDescription'));if(row._privatePricingBound)return;row._privatePricingBound=true;row.querySelectorAll('input,textarea').forEach(function(el){el.addEventListener('input',function(){var isDescription=el.classList.contains('privatePriceDescription');if(isDescription)fitDescription(el);if(row.dataset.repairQuote)delete row.dataset.repairQuote;syncPrivatePricingTotal(!isDescription)})});var rm=row.querySelector('.privatePricingRemove');if(rm)rm.onclick=function(){if(rows.children.length===1){var description=row.querySelector('.privatePriceDescription');description.value='';fitDescription(description);row.querySelector('.privatePriceAmount').value='';delete row.dataset.workDescription;delete row.dataset.repairQuote;}else row.remove();syncPrivatePricingTotal(true)}}
-  // Refit when the editor opens or its width changes, including phone rotation.
-  if(typeof ResizeObserver!=='undefined'&&!rows._descriptionResizeObserver){
-    var lastWidth=-1;
-    rows._descriptionResizeObserver=new ResizeObserver(function(entries){
-      var width=entries[0].contentRect.width;if(width===lastWidth)return;lastWidth=width;
-      rows.querySelectorAll('.privatePriceDescription').forEach(fitDescription);
-    });
-    rows._descriptionResizeObserver.observe(rows);
-  }
+  function bindRow(row){fitPrivatePricingDescription(row.querySelector('.privatePriceDescription'));if(row._privatePricingBound)return;row._privatePricingBound=true;row.querySelectorAll('input,textarea').forEach(function(el){el.addEventListener('input',function(){var isDescription=el.classList.contains('privatePriceDescription');if(isDescription)fitPrivatePricingDescription(el);if(row.dataset.repairQuote)delete row.dataset.repairQuote;syncPrivatePricingTotal(!isDescription)})});var rm=row.querySelector('.privatePricingRemove');if(rm)rm.onclick=function(){if(rows.children.length===1){var description=row.querySelector('.privatePriceDescription');description.value='';fitPrivatePricingDescription(description);row.querySelector('.privatePriceAmount').value='';delete row.dataset.workDescription;delete row.dataset.repairQuote;}else row.remove();syncPrivatePricingTotal(true)}}
+  // One shared viewport listener; resizing a description never triggers this event.
+  window.addEventListener('resize',privatePricingViewportResize);
+  privatePricingViewportResize.width=window.innerWidth;
+  schedulePrivatePricingFit();
   var work=document.getElementById('job_work_required');
   if(work){
     rows._workRequired=work.value;
