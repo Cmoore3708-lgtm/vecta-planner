@@ -16,13 +16,14 @@ test('management navigation attempts render the mechanics planner without calcul
  const c={plannerPackVisibleDay:()=>{packed++},vectaCreateInvoiceLookup:()=>({ids:new Set(),jobs:new Set()}),view:'invoices',window:{},document:{body:{classList:{contains:()=>false}},querySelector:()=>null,getElementById:id=>({content,viewTitle:title,currentDate:date}[id]||null)},safe:fn=>fn(),selectedIso:()=> '2026-10-19',renderNav(){},plannerHtml:()=> 'MECHANICS PLANNER',bindView(){},linkifyDisplayedEmails(){},invoicesHtml:()=>{throw Error('Finance screen reached');},invoiceFinancialSummary:()=>{throw Error('Finance calculation reached');}};
  vm.runInNewContext(nav+'\n'+mechanic.match(/var renderInProgress=false;function render\(\)\{[^\n]+/)[0],c);c.render();assert.equal(c.view,'planner');assert.equal(content.innerHTML,'MECHANICS PLANNER');assert.equal(packed,1);
 });
-test('mechanics render the same current planner, all three lanes and right-hand backlog as Main',()=>{
+test('both entries share the current planner functions and preserve Main’s timed lanes and backlog',()=>{
  const expression=/function plannerHtml\(\)\{[\s\S]*?\n\}/;
  const mainPlanner=main.match(expression)[0],mechanicPlanner=mechanic.match(expression)[0];
  function render(source){
   const c={app:{settings:{mechanics:['Alfie','Chris']}},jobsForDate:()=>[],allJobsForDate:()=>[],plannerWindowConfig:()=>({startMinutes:420,dayLast:960,gridPosition:0}),PLANNER_PX_PER_HOUR:60,plannerMetricsHtml:()=>'',unallocatedPanelHtml:()=> 'UNALLOCATED',quotePanelHtml:()=> 'QUOTES',myTasksHtml:()=>'',mobilePlannerHtml:()=>'',plannerLiveControlsHtml:()=>'',esc:s=>s,mechanicHours:()=>0,currentTimeLineHtml:()=>'',plannerTimeRows:()=>'',laneHtml:m=>m};
   vm.runInNewContext(main.match(/function configuredMechanicNames\(\)\{[^\n]+/)[0]+'\n'+main.match(/function plannerLaneMechanics\(\)\{[^\n]+/)[0]+'\n'+source,c);return c.plannerHtml();
  }
+ assert.equal(mainPlanner,mechanicPlanner);assert.match(mechanicPlanner,/VECTA_MECHANIC_DEPLOYMENT===true\)return mechanicPlannerHtml/);
  const rendered=render(mechanicPlanner);assert.equal(rendered,render(mainPlanner));assert.match(rendered,/Anyone/);assert.match(rendered,/livePriorityBacklog[^]*UNALLOCATED/);assert.doesNotMatch(rendered,/mechanicPlannerOnly/);
  assert.doesNotMatch(mechanic,/<style id="v75-mechanic-final-layout"/);
 });

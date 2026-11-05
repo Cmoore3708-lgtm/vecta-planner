@@ -66,6 +66,43 @@ test('public status returns only the selected booking, never contacts or financi
     calls.length=0;await assert.rejects(customerStatus('invalid',now));assert.equal(calls.length,0);
   }finally{global.fetch=original;restore();}
 });
+test('all tracking routes read description edits without changing the stage or replacing the link',async()=>{
+  const restore=environment(),original=global.fetch;
+  let saved={...job,work_required:'Full service',status:'in_progress'};
+  const request={id:'22345678-1234-4234-8234-123456789012',job_id:id,registration:job.registration,vehicle:job.vehicle,email:job.customer_email,confirmed_date:job.booking_date,status:'booked'};
+  global.fetch=async(url,options)=>{
+    assert.equal(options.cache,'no-store');
+    const path=new URL(url).pathname;
+    return Response.json(path.endsWith('/jobs')?[saved]:path.endsWith('/website_booking_requests')?[request]:[]);
+  };
+  try{
+    const token=issueProgressToken(saved,progressSecret(),now),receipt=requestTrackingPath(request,now).split('#')[1];
+    for(const description of ['Full service','Oil and filters changed.\nChecking the brakes.','Brakes checked — road test next.']){
+      saved={...saved,work_required:description};
+      for(const data of [await customerStatus(token,now),await customerStatus(receipt,now),await registrationStatus(job.registration,now)]){
+        assert.equal(data.job_description,description);
+        assert.equal(data.stage,'underway');
+        assert.doesNotMatch(JSON.stringify(data),/driver@example|Private notes|amount_quoted/);
+      }
+    }
+  }finally{global.fetch=original;restore();}
+});
+test('an open customer page replaces description text on its automatic refresh without a stage change',async()=>{
+  const {document}=parseHTML(fs.readFileSync(new URL('../../public/track.html',import.meta.url),'utf8'));document.hidden=false;
+  const timers=[];let data={registration:job.registration,stage:'underway',title:'In the workshop',job_description:'Full service'};
+  const context={document,window:{addEventListener(){}},location:{hash:'#token'},Intl,Date,AbortSignal,Error,setTimeout:(fn,delay)=>{timers.push({fn,delay});return timers.length;},clearTimeout(){},fetch:async(url,options)=>{assert.equal(options.cache,'no-store');return {ok:true,json:async()=>data};}};
+  vm.runInNewContext(fs.readFileSync(new URL('../../public/js/vecta-progress.js',import.meta.url),'utf8'),context);
+  await new Promise(resolve=>setImmediate(resolve));
+  assert.equal(document.getElementById('jobDescription').textContent,'Full service');
+  for(const description of ['Oil changed.\nChecking brakes.','Road test complete. <b>Ready for final checks</b>','']){
+    data={...data,job_description:description};
+    assert.equal(timers.at(-1).delay,60000);await timers.at(-1).fn();
+    assert.equal(document.getElementById('jobDescription').textContent,description);
+    assert.equal(document.getElementById('jobDescription').querySelector('b'),null);
+    assert.equal(document.getElementById('jobSummary').hidden,!description);
+    assert.equal(document.getElementById('progressScene').dataset.stage,'underway');
+  }
+});
 test('mechanic start uses a conditional update of exactly the observed booking',async()=>{
   const restore=environment(),original=global.fetch;let seen;
   global.fetch=async(url,options)=>{seen={url:new URL(url),options};return Response.json([{id,status:'in_progress',updated_at:new Date(now).toISOString()}]);};

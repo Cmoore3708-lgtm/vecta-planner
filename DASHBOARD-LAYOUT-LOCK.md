@@ -2,6 +2,8 @@
 
 Chris explicitly approved the current Main dashboard on PC and phone and requested the same job display for mechanics. Preserve that layout during all unrelated work.
 
+On 5 November, Chris explicitly requested full descriptions on mechanics cards and approved removing their timeline to allow natural card heights. The shared planner now selects a mechanics-only queue through the existing deployment flag. Main retains its approved timed planner. Both new mechanics renderers and their scoped CSS are protected by the lock.
+
 ## Enforced lock
 
 `npm run layout:check` compares the Main and generated mechanics dashboard against `docs/dashboard-layout-baseline.json`. It protects dashboard rendering functions, responsive and global styles that affect the dashboard, injected card styles, and artwork placement helpers. Main and mechanics must use identical shared job display functions; their existing navigation/finance differences remain intentional.

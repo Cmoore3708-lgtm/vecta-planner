@@ -7,8 +7,8 @@ function once(source,before,after){
 export function mechanicVariant(source){
  // Restore the original deployed mechanics fork, carrying current fixes in the core.
  source=source.replace(/function navItems\(\)\{[^\n]*\}/, "function navItems(){return [['planner','Dashboard'],['completedJobs','Completed Jobs']];}\n"+original.mechanicCompletedJobsHtml);
- // Keep today's planner function and CSS exactly as Main, including all three
- // lanes and the unallocated/quote sidebar. Only change the finance metric.
+ // Keep the shared planner functions and CSS. The deployment flag selects the
+ // mechanics' full-description queue; Main retains its timed planner.
  source=once(source,"{label:'Ready To Invoice',value:ready.length,view:'invoices'}", "{label:'Work Complete',value:(app.jobs||[]).filter(function(j){return j.status==='work_complete'}).length,view:'completedJobs'}");
  source=once(source,"if(view==='planner')c.innerHTML=plannerHtml();", "if(view==='planner')c.innerHTML=plannerHtml();if(view==='completedJobs')c.innerHTML=mechanicCompletedJobsHtml();");
  source=once(source,"document.getElementById('currentDate').value=selectedIso();", "if(view!=='planner'&&view!=='completedJobs')view='planner';document.getElementById('currentDate').value=selectedIso();");
