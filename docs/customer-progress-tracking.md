@@ -2,13 +2,13 @@
 
 ## Registration access
 
-Customers can open **Track my car** on the homepage, enter a registration and see a visual update for that car's bookings today (Europe/London). Public lookup returns only registration, stage, stage title and an allowlisted saved vehicle artwork URL. It never returns customer/contact details, job IDs, notes, descriptions, prices, invoices, signed tokens, dates or booking history. The date is chosen on the server, and exact normalised registration matching follows the bounded candidate query. Quotes, cancelled/deleted jobs, internal tasks and tax entries are excluded. Multiple eligible jobs are combined conservatively: readiness requires all of them to be ready. Completed jobs remain visible for the rest of that day.
+Customers can open **Track my car** on the homepage, enter a registration and see a visual update for that car's bookings today (Europe/London). Public lookup returns registration, vehicle, the saved customer-readable job description, stage, stage title, saved vehicle artwork and workshop photo metadata with short-lived image links. It never returns customer/contact details, job IDs, private notes, prices, invoices, tracking tokens, dates or booking history. The date is chosen on the server, and exact normalised registration matching follows the bounded candidate query. Quotes, cancelled/deleted jobs, internal tasks and tax entries are excluded. Multiple eligible jobs are combined conservatively: readiness requires all of them to be ready. Completed jobs remain visible for the rest of that day.
 
 The page uses lightweight workshop scenes with the existing saved car image where available. Artwork failure leaves the workshop/stage visible; it never initiates a Haynes lookup or generates new per-vehicle images. Final photography can still replace these scenes later. Public lookups are throttled per server instance (not a global rate-limit guarantee), responses are not cached, and the frontend polls once a minute only while visible. A missing today's booking shows a clear message rather than exposing previous or future work.
 
 Private links and invoice access below remain separate, so previously sent links continue to work.
 
-Customer tracking is available at `/track` using a signed private link. The link is issued by the authenticated workshop server, added to website booking confirmation drafts and the existing day-before reminder emails, and available from the job editor's **Customer tracking link** button. Registration alone never grants access. Links expire eight days after the booking date and stop working when the booking date, registration or customer email changes, or the job is cancelled/deleted.
+Customer tracking is available at `/track` using a signed private link. The link is issued by the authenticated workshop server, added to website booking confirmation drafts and the existing day-before reminder emails, and available from the job editor's **Customer tracking link** button. Registration lookup shows today’s progress and workshop photos; invoice access requires the signed private link. Links expire eight days after the booking date and stop working when the booking date, registration or customer email changes, or the job is cancelled/deleted.
 
 ## Existing controls
 
@@ -24,7 +24,7 @@ Invoice emails use the configured Resend service, from `chris@vectamotors.co.uk`
 
 ## Structure and data
 
-No new tables, public database permissions, realtime subscriptions, workers or generated car images. The customer endpoint returns a small allowlist of registration, model, booking date, current stage and status wording. It never returns contacts, work notes, part costs or other job records. Only a ready Staff job can expose its own active saved invoice.
+Workshop photos use the private `job_workshop_photos` table and private `job-workshop-photos` Storage bucket. No public database permissions or realtime subscriptions are added. The customer endpoint returns a small allowlist of registration, model, booking date, current stage and status wording. It never returns contacts, work notes, part costs or other job records. Only a ready Staff job can expose its own active saved invoice.
 
 `/api/job-progress` routes through the existing additional-work function. The standalone website proxies that API to the planner, while the shared page/CSS/JS are copied by the booking sync script. The token lives in the URL fragment rather than page-request logs. Public responses are not cached or indexed. Refresh is once a minute while visible, backs off on errors and stops while hidden. Stale updates are labelled and financial links are hidden when refreshing fails.
 
@@ -33,3 +33,15 @@ The page uses text stages until artwork is chosen. The reserved markup slot is i
 ## Release checks
 
 Run the new progress regressions and full release gate. Before merging, check the deployed preview in Main and mechanics on desktop/phone/tablet, including private-link access, mechanic start/Complete, Ready to invoice, saved invoice totals, failure feedback, reopen, offline/reconnect, and confirmation/reminder link handling. Test deliberately does not email customers. After approved production release, move and verify both mechanics aliases per `DASHBOARD-LAYOUT-LOCK.md`. Production email delivery and sender verification require a controlled live check after release.
+
+## Workshop inspection photos
+
+The shared Main/mechanics job editor offers Take photo and Upload photos immediately below the customer-readable description. A saved, confirmed vehicle job is required. Selecting photos creates a local preview with an optional caption; **Upload to progress** saves and shares them immediately, independently of the job Save button. Captions can be edited and photos removed. New jobs ask the user to save/reopen first. Offline upload is explicit and unuploaded previews can be retried while the editor stays open.
+
+Up to 12 active photos per job are enforced by unique numbered slots, including concurrent uploads. Browser resizing bounds uploads; server decoding re-encodes JPEGs to remove metadata and reject fake/oversized image payloads. Stable upload IDs and content hashes allow interrupted uploads to resume without duplicates or replacement bytes. Abandoned pending slots expire after 15 minutes. Files never enter job JSON or planner offline data.
+
+Workshop authentication and same-origin checks protect list/upload/caption/remove actions. The server uses its service role for a table with RLS and no anon/authenticated grants, and a private bucket without public policies. Customer photos are tied to the job, normalised registration and customer email; reassignment cannot expose a previous customer’s photos. Signed image URLs last five minutes. Registration, booking-receipt and job-token tracking routes return matching published photos only. Staff removal hides metadata immediately; any previously issued image links expire within five minutes. Storage-only files are outside the existing JSON backup.
+
+The customer gallery shows captions using text nodes, supports full-size viewing, refreshes once a minute, and retains already loaded images to avoid downloading them again on every poll. Photo-loading failures do not hide job progress. Changing registration or losing tracking access clears the gallery.
+
+Migration `20261105214748_job_workshop_photos.sql` must be applied before production release. It has been applied to isolated Test (with content hash added in a second development migration); production is unchanged until release approval.
