@@ -12,3 +12,6 @@ main{max-width:1440px}header{padding-inline:max(22px,calc((100% - 1396px)/2))}.l
 
 /* Compact brand header replaces the tracking introduction and duplicate lookup. */
 header.trackerHeader{padding:16px 22px 18px;background:#000;text-align:center;border-bottom:1px solid #24262a}.trackerHeader a{display:block;max-width:760px;margin:auto}.trackerHeader .brandLogo{display:block;width:100%;height:auto}.trackerHeader p{margin:7px 0 0;color:#fff;font-size:clamp(13px,2.5vw,20px);font-style:italic;line-height:1.4}.trackerHeader strong{font-weight:800}main{padding-top:18px}main>.card{margin-top:0}main>.lookup:not([hidden]){margin-top:6px;margin-bottom:22px}@media(max-width:500px){header.trackerHeader{padding:12px 14px 14px}main{padding-top:14px}}
+
+/* Keep the enlarged painted floor emblem and wheel contact visible in the interior crop. */
+[data-scene="underway"] .approvedScene{object-position:center bottom}

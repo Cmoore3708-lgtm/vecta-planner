@@ -87,3 +87,9 @@ private, with the existing two-attempt limit. Existing completed sets are reused
 without blanket regeneration or a fingerprint-version change. No customer click
 triggers generation. Automated visual screening reduces drift but is not a
 pixel-level guarantee; inspect any reported mismatch before accepting a set.
+
+## 5 November: approved manufacturer emblems
+
+CM14 KEL now uses the approved raised Nissan exterior badges and the final enlarged, softened-grey floor emblem, partly beneath the car. The interior photograph is anchored to the bottom of its card so the floor emblem remains visible. Both hosts receive the same WebP files; the curated image URLs have a new cache version.
+
+Newly prepared vehicle sets replace the reference Nissan emblem with the actual vehicle manufacturer: raised satin-metal badges outside, and a large muted floor painting inside. The existing visual inspection also checks the manufacturer, raised exterior treatment and painted floor perspective. Previously published sets keep their identity fingerprints and remain available without automatic paid regeneration. This release does not change generation activation, budgets or request limits.
