@@ -403,17 +403,16 @@ test('opening an existing blank job recovers its exact image without the Haynes 
  }
 });
 
-test('job image recovery retries a temporary failure once and stops after another failure',async()=>{
+test('automatic image recovery never forces a retry after a temporary failure',async()=>{
  for(const status of ['LOGIN_REQUIRED','OFFLINE','BUSY','UNAVAILABLE']){
   const calls=[];const s=setup(async(url,options)=>{calls.push({url,options});return calls.length===1?{ok:true,json:async()=>({status})}:response(vehicle);},undefined,undefined,false,'',false,false,true);
-  await new Promise(r=>setTimeout(r,220));assert.equal(calls.length,2,status);
-  assert.equal(calls[1].options.method,'POST');assert.match(calls[1].url,/retry=1/);
-  assert.equal(s.document.querySelector('.jobCardHeaderVehicle img').dataset.registration,vehicle.registration);
+  await new Promise(r=>setTimeout(r,220));assert.equal(calls.length,1,status);
+  assert.equal(calls[0].options.method,undefined);assert.doesNotMatch(calls[0].url,/retry=1/);
  }
  let calls=0;const s=setup(async()=>{calls++;return {ok:true,json:async()=>({status:'OFFLINE'})};},undefined,undefined,false,'',false,false,true);
- await new Promise(r=>setTimeout(r,220));assert.equal(calls,2);
+ await new Promise(r=>setTimeout(r,220));assert.equal(calls,1);
  const input=s.document.querySelector('#job_registration');input.dispatchEvent(new s.window.Event('blur'));
- await new Promise(r=>setTimeout(r,220));assert.equal(calls,2,'repeated opening events do not produce a retry loop');
+ await new Promise(r=>setTimeout(r,220));assert.equal(calls,1,'repeated opening events do not produce a retry loop');
 });
 
 test('uncertain matches and exhausted daily allowances never force an automatic retry',async()=>{
@@ -432,10 +431,11 @@ test('existing exact drawings, website review and closed editors do not start im
  await new Promise(r=>setTimeout(r,220));assert.equal(calls,0);
 });
 
-test('an old technical identity without a drawing does not block job image recovery',async()=>{
+test('an image-less cached identity does not trigger a forced worker refresh',async()=>{
  let calls=0;const s=setup(async()=>{calls++;return response(vehicle);},undefined,[{...vehicle,imageUrl:''}],false,'',false,false,true);
  await new Promise(r=>setTimeout(r,220));
- assert.equal(calls,1);assert.equal(s.document.querySelector('.jobCardHeaderVehicle img').dataset.registration,vehicle.registration);
+ assert.equal(calls,0);
+ assert.equal(s.window.VectaHaynesJobTools.lookupNeedsRetry(vehicle.registration),false);
 });
 
 test('a same-registration vehicle-field refresh cannot discard a completed automatic image lookup',async()=>{

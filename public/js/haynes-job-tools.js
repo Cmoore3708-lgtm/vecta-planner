@@ -100,11 +100,12 @@ try{for(const v of JSON.parse(root.localStorage?.getItem(ART_KEY)||'[]'))remembe
 try{for(const v of JSON.parse(root.localStorage?.getItem(KEY)||'[]'))if(vehicleLink(v)){rememberArtwork(v,false);rememberIdentity(v,false);}}catch{}
 function artworkSnapshot(registration,expectedMake,expectedModel){return [artwork.get(reg(registration)),sharedArtwork.get(reg(registration))].sort((a,b)=>Number(!!a?.generic)-Number(!!b?.generic)).find(v=>v?.manual||compatibleArtwork(v,{make:expectedMake,model:expectedModel})&&(!expectedModel||knownAssetMatches(v,{make:expectedMake,model:expectedModel})))||null;}
 try{for(const v of JSON.parse(root.localStorage?.getItem(KEY)||'[]'))remember(v,false);}catch{}
-function valid(v,registration,expectedMake){return !!(v&&reg(v.registration)===reg(registration)&&vehicleLink(v)&&v.make&&v.model&&v.variant&&(!expectedMake||make(v.make)===make(expectedMake))&&Number.isFinite(Date.parse(v.fetchedAt))&&Date.now()-Date.parse(v.fetchedAt)>=0&&Date.now()-Date.parse(v.fetchedAt)<TTL);}
-function remember(v,persist=true,{replaceArtwork=false}={}){
- if(!valid(v,v?.registration))return;
+function validIdentity(v,registration,expectedMake){return !!(v&&reg(v.registration)===reg(registration)&&vehicleLink(v)&&v.make&&v.model&&v.variant&&(!expectedMake||make(v.make)===make(expectedMake))&&Number.isFinite(Date.parse(v.fetchedAt))&&Date.now()-Date.parse(v.fetchedAt)>=0);}
+function valid(v,registration,expectedMake){return validIdentity(v,registration,expectedMake)&&Date.now()-Date.parse(v.fetchedAt)<TTL;}
+function remember(v,persist=true,{replaceArtwork=false,allowExpiredIdentity=false}={}){
+ if(!(allowExpiredIdentity?validIdentity:valid)(v,v?.registration))return;
  const clean={registration:reg(v.registration),make:String(v.make).slice(0,100),model:String(v.model).slice(0,180),variant:String(v.variant).slice(0,180),engineCode:String(v.engineCode||'').slice(0,100),modelYears:String(v.modelYears||'').slice(0,100),vehicle:String(v.vehicle||[v.make,v.model,v.variant].join(' ')).slice(0,360),typeId:v.typeId,...(/^\d{1,12}$/.test(String(v.ktypNr||''))?{ktypNr:String(v.ktypNr)}:{}),imageUrl:image(v.imageUrl),...(root.VectaVehicleImage?.colourHex(v.colour)?{colour:v.colour}:{}),fetchedAt:v.fetchedAt};
- cache.set(clean.registration,clean);while(cache.size>300)cache.delete(cache.keys().next().value);
+ if(valid(clean,clean.registration))cache.set(clean.registration,clean);while(cache.size>300)cache.delete(cache.keys().next().value);
  rememberArtwork(clean,persist,{replace:replaceArtwork});rememberIdentity(clean,persist);
  if(persist)try{root.localStorage?.setItem(KEY,JSON.stringify([...cache.values()].filter(x=>valid(x,x.registration))));}catch{}
  return clean;
@@ -144,7 +145,7 @@ async function lookup(registration,expectedMake,{requireImage=false,force=false,
  if(!/^[A-Z0-9]{2,8}$/.test(requested)||root.navigator?.onLine===false||!force&&(background&&pausedStatuses.includes(failStatus.get(requested))||Date.now()-(failed.get(requested)||0)<(transientStatuses.includes(failStatus.get(requested))?(background?60000:0):(background?TTL:300000))))return null;
  if(!pending.has(requested)){
   const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),30000);
-  pending.set(requested,(async()=>{try{const r=await root.fetch('/api/haynes-vehicle?reg='+encodeURIComponent(requested)+(force?'&retry=1':''),{...(force?{method:'POST'}:{}),signal:controller.signal,cache:'no-store'}),d=await r.json();if(!r.ok||d.status!=='MATCHED'||!valid(d.vehicle,requested))throw Error(['NOT_CONFIGURED','OFFLINE','LOGIN_REQUIRED','VERIFICATION_REQUIRED','BUSY','DAILY_LIMIT',...pausedStatuses].includes(d.status)?d.status:'UNAVAILABLE');failed.delete(requested);failStatus.delete(requested);persistRetries();return remember(d.vehicle,true,{replaceArtwork:force});}catch(e){if(e.message==='DAILY_LIMIT')dailyBlockedUntil=(Math.floor(Date.now()/TTL)+1)*TTL;failed.set(requested,Date.now());failStatus.set(requested,e.message);while(failed.size>300){const oldest=failed.keys().next().value;failed.delete(oldest);failStatus.delete(oldest);}persistRetries();return null;}finally{clearTimeout(timer);pending.delete(requested);}})());
+  pending.set(requested,(async()=>{try{const r=await root.fetch('/api/haynes-vehicle?reg='+encodeURIComponent(requested)+(force?'&retry=1':''),{...(force?{method:'POST'}:{}),signal:controller.signal,cache:'no-store'}),d=await r.json();if(!r.ok||d.status!=='MATCHED'||!validIdentity(d.vehicle,requested))throw Error(['NOT_CONFIGURED','OFFLINE','LOGIN_REQUIRED','VERIFICATION_REQUIRED','BUSY','DAILY_LIMIT',...pausedStatuses].includes(d.status)?d.status:'UNAVAILABLE');failed.delete(requested);failStatus.delete(requested);persistRetries();return remember(d.vehicle,true,{replaceArtwork:force,allowExpiredIdentity:true});}catch(e){if(e.message==='DAILY_LIMIT')dailyBlockedUntil=(Math.floor(Date.now()/TTL)+1)*TTL;failed.set(requested,Date.now());failStatus.set(requested,e.message);while(failed.size>300){const oldest=failed.keys().next().value;failed.delete(oldest);failStatus.delete(oldest);}persistRetries();return null;}finally{clearTimeout(timer);pending.delete(requested);}})());
  }
  const v=await pending.get(requested);return v&&reg(v.registration)===requested&&(!expectedMake||make(v.make)===make(expectedMake))?v:null;
 }
@@ -376,10 +377,14 @@ root.initHaynesJobTools=function(modal,{automatic=false,recoverImage=true}={}){
   }
  }
 
+ function currentDescription(){
+  const linked=(root.app?.jobs||[]).find(j=>String(j.id)===String(root.editingJobId));
+  return {...linked,registration:reg(input.value),make:modal.querySelector('#job_make')?.value,model:modal.querySelector('#job_model')?.value,vehicle:modal.querySelector('#job_vehicle')?.value};
+ }
  function showHeaderVehicle(drawing){
   picture.replaceChildren();picture.hidden=!!modal.querySelector('#job_no_vehicle')?.checked;
   const value=reg(input.value);plate.hidden=picture.hidden;vehicleTitle.hidden=picture.hidden;if(picture.hidden)return;
-  const registration=reg(input.value),linked=(root.app?.jobs||[]).find(j=>String(j.id)===String(root.editingJobId)),description={...linked,registration,make:modal.querySelector('#job_make')?.value,model:modal.querySelector('#job_model')?.value,vehicle:modal.querySelector('#job_vehicle')?.value};
+  const description=currentDescription(),registration=description.registration;
   const colour=dashboardColour(description),name=[description.make,description.model||description.vehicle].filter(Boolean).join(' ');
   picture.dataset.vehiclePicker='';picture.dataset.registration=registration;if(description.fleet_vehicle_id)picture.dataset.fleetArtworkId=String(description.fleet_vehicle_id);
   const fallback=()=>{picture.innerHTML=root.VectaFleetImages?.artwork?.(name,colour)||'';picture.title='Generic vehicle illustration — appearance may differ';};
@@ -425,20 +430,40 @@ root.initHaynesJobTools=function(modal,{automatic=false,recoverImage=true}={}){
   if(noVehicleControl){const selected=!!current()||!!String(modal.querySelector('#job_vehicle')?.value||'').trim().replace(/^No Vehicle$/i,'');noVehicleControl.hidden=selected&&!noVehicle.checked;}
   showHeaderVehicle();sequence++;clearTimeout(refreshTimer);body.replaceChildren();status.textContent='';button.disabled=!!noVehicle?.checked;button.textContent='Haynes Pro';showGeneric();}
  function changed(){clear();}
- function missingExactImage(){
-  const description={registration:current(),make:modal.querySelector('#job_make')?.value,model:modal.querySelector('#job_model')?.value,vehicle:modal.querySelector('#job_vehicle')?.value};
-  const drawing=storedDrawing(description);return !image(drawing?.imageUrl)||!!drawing?.generic;
- }
+ function fillVehicleFields(v){if(automatic)for(const [id,value] of Object.entries({make:v.make,model:v.model,vehicle:[v.make,v.model].join(' ')})){const field=modal.querySelector('#job_'+id);if(field&&!field.value.trim())field.value=value;}}
+ function missingImage(){return !image(storedDrawing(currentDescription())?.imageUrl);}
  function automaticLookup(){
-  if(noVehicle?.checked||!lookupRegistration(current())||!panel.isConnected)return;
-  if(!automatic&&(!recoverImage||!missingExactImage()))return;
+  if(noVehicle?.checked||!lookupRegistration(current())||!panel.isConnected||(!automatic&&!recoverImage)||!missingImage())return;
+  const requested=current(),run=sequence,description=currentDescription();
+  const active=()=>run===sequence&&modal.getAttribute('aria-hidden')!=='true'&&panel.isConnected&&current()===requested&&!noVehicle?.checked&&!modal.dataset.websiteRequestId;
   clearTimeout(refreshTimer);refreshTimer=setTimeout(async()=>{
-   // Shared artwork may still be loading when the job first opens.
-   await hydrateSharedArtwork();
-   if(!panel.isConnected||noVehicle?.checked||modal.dataset.websiteRequestId)return;
-   if(!missingExactImage()){showHeaderVehicle();return;}
-   if(missingExactImage()){if(Date.now()-(imageRecoveryAt.get(current())||0)<300000)return;imageRecoveryAt.set(current(),Date.now());}
-   button.onclick();
+   // A model drawing is enough for display. Never force technical identification
+   // merely because it is generic, image-less, or older than a service snapshot.
+   const hydrated=await hydrateSharedArtwork();
+   if(!active())return;
+   if(!missingImage()){showHeaderVehicle();return;}
+   if(hydrated===false||Date.now()<sharedRetryAt)return;
+   if(Date.now()-(imageRecoveryAt.get(requested)||0)<300000)return;
+   imageRecoveryAt.set(requested,Date.now());
+   // The batch may be stale/capped, or this browser may not have it yet. Check
+   // the requested registration and saved model catalogue before using the PC.
+   const model=description.model||description.vehicle;
+   if(description.make&&model){
+    try{
+     const url='/api/vehicle-artwork?reg='+encodeURIComponent(requested)+'&make='+encodeURIComponent(description.make)+'&model='+encodeURIComponent(model);
+     const response=await root.fetch(url,{cache:'no-store',signal:AbortSignal.timeout(10000)}),data=await response.json();
+     if(!active())return;
+     if(!missingImage()){showHeaderVehicle();return;}
+     if(response.ok&&data.status==='ARTWORK'&&reg(data.vehicle?.registration)===requested&&image(data.vehicle?.imageUrl)&&(data.vehicle.manual||compatibleArtwork(data.vehicle,description))){
+      rememberArtwork(data.vehicle,false);
+      try{root.localStorage?.setItem(ART_KEY,JSON.stringify([...artwork.values()]));}catch{}
+      showHeaderVehicle();return;
+     }
+     // Unavailable storage is not proof of a missing image.
+     if(!response.ok||data.status!=='NOT_FOUND')return;
+    }catch{return;}
+   }
+   if(active()&&missingImage())button.onclick();
   },150);
  }
  const shared=hydrateSharedArtwork();if(shared)shared.then(()=>{if(modal.isConnected)showHeaderVehicle();});
@@ -453,16 +478,12 @@ const requested=current(),expectedMake=make(modal.querySelector('#job_make')?.va
   const run=sequence;
   button.disabled=true;status.textContent='Looking up vehicle…';
   try{
-   let v=await lookup(requested,expectedMake,{force:!!event,background:false});
-   if(run!==sequence||!panel.isConnected||current()!==requested||noVehicle?.checked){if(run!==sequence&&panel.isConnected&&current()===requested&&!noVehicle?.checked)showHeaderVehicle();target?.close();return;}
-   // A deliberate job opening may recover once from a stale temporary relay
-   // failure, using the same authenticated retry path as the Haynes button.
-   if(!event&&(automatic||recoverImage)&&root.navigator?.onLine!==false&&(!v&&['LOGIN_REQUIRED','OFFLINE','BUSY','UNAVAILABLE'].includes(failStatus.get(requested))||v&&recoverImage&&!image(v.imageUrl)&&missingExactImage()))v=await lookup(requested,expectedMake,{force:true,background:false});
+   const v=await lookup(requested,expectedMake,{force:!!event,background:!event});
    if(run!==sequence||!panel.isConnected||current()!==requested||noVehicle?.checked){if(run!==sequence&&panel.isConnected&&current()===requested&&!noVehicle?.checked)showHeaderVehicle();target?.close();return;}
    if(!v||reg(v?.registration)!==requested||!v?.model||!v?.variant||!v?.make||!vehicleLink(v)||(expectedMake&&make(v.make)!==expectedMake))throw Error('UNAVAILABLE');
    if(target)target.location.replace(vehicleLink(v));
    remember(v);
-   if(automatic)for(const [id,value] of Object.entries({make:v.make,model:v.model,vehicle:[v.make,v.model].join(' ')})){const field=modal.querySelector('#job_'+id);if(field&&!field.value.trim())field.value=value;}
+   fillVehicleFields(v);
    showHeaderVehicle(v);const link=document.createElement('a');link.className='btn dark';link.href=vehicleLink(v);link.target='_blank';link.rel='noopener noreferrer';link.textContent='Open this vehicle in HaynesPro';
    const details=document.createElement('div'),title=document.createElement('strong'),note=document.createElement('small');
    title.textContent=[v.make,v.model,v.variant].join(' ');note.textContent=[v.engineCode,v.modelYears].filter(Boolean).join(' · ');details.append(title,note);
@@ -472,7 +493,9 @@ const requested=current(),expectedMake=make(modal.querySelector('#job_make')?.va
   }catch{target?.close();if(run===sequence&&panel.isConnected&&current()===requested)button.textContent='Haynes Pro';if(run===sequence&&panel.isConnected&&current()===requested)status.textContent=({NOT_CONFIGURED:'HaynesPro lookup is not configured for this preview.',OFFLINE:'The workshop HaynesPro worker is offline.',LOGIN_REQUIRED:'The workshop HaynesPro login needs renewing.',VERIFICATION_REQUIRED:'HaynesPro needs verification on the workshop PC.',BUSY:'HaynesPro is busy. Try again shortly.',DAILY_LIMIT:'The daily HaynesPro lookup limit has been reached.'}[failStatus.get(requested)]||'HaynesPro unavailable or vehicle match uncertain.')+' You can still save this job.';}
   finally{if(run===sequence)button.disabled=!!noVehicle?.checked;}
  };
- if(!noVehicle?.checked&&image(identitySnapshot(current())?.imageUrl))button.onclick();else automaticLookup();
+ const savedIdentity=identitySnapshot(current(),modal.querySelector('#job_make')?.value,modal.querySelector('#job_model')?.value);
+ if(automatic&&!noVehicle?.checked&&savedIdentity){fillVehicleFields(savedIdentity);showHeaderVehicle();}
+ automaticLookup();
 };
 document.addEventListener('DOMContentLoaded',()=>{if(root.view==='planner')root.enrichHaynesDashboard(document.getElementById('content'),root.app?.jobs);});
 function storedArtwork(){const unique=new Map();for(const v of [...sharedArtwork.values(),...artwork.values(),...identities.values(),...cache.values()])if(image(v.imageUrl))unique.set(v.imageUrl,{make:v.make,model:v.model,imageUrl:v.imageUrl});return [...unique.values()].sort((a,b)=>[a.make,a.model].join(" ").localeCompare([b.make,b.model].join(" ")));}
