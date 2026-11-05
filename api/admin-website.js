@@ -1,3 +1,4 @@
+import { websiteVisitorsHandler } from '../lib/website-visitors.js';
 import { guidePricesHandler } from '../lib/website-guide-prices.js';
 import crypto from 'node:crypto';
 import { databaseEnvironment } from './_database-environment.js';
@@ -15,6 +16,7 @@ async function sb(path, options={}){
   const body=await r.text(); if(!r.ok) throw new Error('Database '+r.status+': '+body.slice(0,300)); return body?JSON.parse(body):null;
 }
 export default async function handler(req,res){
+  if(req.query?.visitors==='1')return websiteVisitorsHandler(req,res);
   if(req.query?.guidePrices==='1')return guidePricesHandler(req,res);
   res.setHeader('Cache-Control','no-store');
   if(req.method==='GET' && String(req.query?.public||'')==='1') {
