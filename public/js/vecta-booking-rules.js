@@ -2,7 +2,7 @@
   'use strict';
 
   function statusKey(request){return String(request&&request.status||'awaiting_review').trim().toLowerCase()}
-  function isInboxRequest(request){var status=statusKey(request);return status!=='booked'&&status!=='deleted'}
+  function isInboxRequest(request){var status=statusKey(request);return status!=='booked'&&status!=='deleted'&&status!=='cancelled'}
   function requestIdFromJob(job){
     var direct=String(job&&job.website_request_id||'').trim();
     if(direct)return direct;
