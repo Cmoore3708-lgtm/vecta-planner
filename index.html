@@ -10647,7 +10647,32 @@ async function persistMainSettings(options){
  var pending=vectaSettingsWriteQueue.then(run,run);vectaSettingsWriteQueue=pending.catch(function(){});return pending;
 }
 async function saveAll(options){invalidateFinanceDashboardCache();saveLocal();if(remoteClient)return await persistMainSettings(options);return true}
-function vectaPendingWebsiteBookingCount(){return (app.websiteRequests||[]).filter(function(r){return !r.status||r.status==='awaiting_review'}).length}
+var vectaWebsiteBookingCloudCount=null,vectaWebsiteBookingCountPending=null,vectaWebsiteBookingCountRevision=0;
+function vectaPendingWebsiteBookingCount(){return vectaWebsiteBookingCloudCount!==null?vectaWebsiteBookingCloudCount:(app.websiteRequests||[]).filter(function(r){return !r.status||r.status==='awaiting_review'}).length}
+function vectaRenderWebsiteBookingCount(){
+  var count=vectaPendingWebsiteBookingCount(),button=document.querySelector('#nav [data-view="websiteRequests"]');
+  if(button)button.textContent='Website Bookings'+(count?' ('+count+')':'');
+  vectaUpdateAppBadge();
+}
+function vectaRefreshWebsiteBookingCount(){
+  if(!remoteClient||!navigator.onLine||window.VECTA_MECHANIC_DEPLOYMENT===true)return Promise.resolve(false);
+  vectaWebsiteBookingCountRevision++;
+  if(vectaWebsiteBookingCountPending)return vectaWebsiteBookingCountPending;
+  // Count only: no customer details, full-database pull or dashboard redraw.
+  vectaWebsiteBookingCountPending=(async function(){
+    while(navigator.onLine){
+      var revision=vectaWebsiteBookingCountRevision;
+      var result=await vectaWithTimeout(remoteClient.from('website_booking_requests').select('id',{count:'exact',head:true}).or('status.is.null,status.eq.awaiting_review'),9000,'Website booking count');
+      if(result.error)throw result.error;
+      if(!Number.isInteger(result.count)||result.count<0)throw new Error('Website booking count was not returned.');
+      // An acceptance or live event during this read needs a newer snapshot.
+      if(revision!==vectaWebsiteBookingCountRevision)continue;
+      vectaWebsiteBookingCloudCount=result.count;vectaRenderWebsiteBookingCount();return true;
+    }
+    return false;
+  })().catch(function(error){console.warn('Website booking count refresh failed; keeping the last known count.',error);return false}).finally(function(){vectaWebsiteBookingCountPending=null});
+  return vectaWebsiteBookingCountPending;
+}
 function vectaUpdateAppBadge(){var count=vectaPendingWebsiteBookingCount();if(!('setAppBadge' in navigator))return Promise.resolve(false);return (count?navigator.setAppBadge(count):navigator.clearAppBadge()).then(function(){return true}).catch(function(){return false})}
 function vectaBase64UrlBytes(value){var padding='='.repeat((4-value.length%4)%4),base64=(value+padding).replace(/-/g,'+').replace(/_/g,'/'),raw=atob(base64),bytes=new Uint8Array(raw.length);for(var i=0;i<raw.length;i++)bytes[i]=raw.charCodeAt(i);return bytes}
 async function vectaEnableBookingAlerts(){
@@ -10801,6 +10826,7 @@ function scheduleCloudRefresh(payload){
     vectaRunDataIngressMigrations({reason:'realtime-row',parts:true,tax:false});
     if(table==='jobs')repairExistingPlannerOverlaps({persistRemote:true}).catch(function(e){console.warn('Realtime planner overlap repair could not fully sync',e)});
     saveLocal();
+    if(table==='website_booking_requests')vectaRefreshWebsiteBookingCount();
     if(cloudRefreshDebounce)clearTimeout(cloudRefreshDebounce);
     cloudRefreshDebounce=setTimeout(function(){
       cloudRefreshDebounce=null;
@@ -10812,6 +10838,7 @@ function scheduleCloudRefresh(payload){
 }
 function startCloudSync(){
   if(!remoteClient)return;
+  vectaRefreshWebsiteBookingCount();
   if(cloudSyncChannel){try{remoteClient.removeChannel(cloudSyncChannel)}catch(e){}}
   cloudLastRefreshAt=Date.now();
   cloudSyncChannel=remoteClient.channel('vecta-workshop-live-'+uid())
@@ -10822,11 +10849,12 @@ function startCloudSync(){
     .on('postgres_changes',{event:'*',schema:'public',table:'invoices'},scheduleCloudRefresh)
     .on('postgres_changes',{event:'*',schema:'public',table:'service_records'},scheduleCloudRefresh)
     .on('postgres_changes',{event:'*',schema:'public',table:'website_booking_requests'},scheduleCloudRefresh)
-    .subscribe(function(status){console.log('Supabase live sync:',status)});
+    .subscribe(function(status){console.log('Supabase live sync:',status);if(status==='SUBSCRIBED')vectaRefreshWebsiteBookingCount()});
   if(cloudSyncTimer)clearInterval(cloudSyncTimer);
   /* Realtime is the primary sync path. This slow safety refresh replaces the old
      3-second full-database poll that was generating excessive PostgREST egress. */
   cloudSyncTimer=setInterval(function(){
+    if(document.visibilityState==='visible')vectaRefreshWebsiteBookingCount();
     if(document.visibilityState==='visible'&&Date.now()-cloudLastRefreshAt>=15*60*1000)refreshCloudAndRender();
   },60*1000);
   if(!window.__vectaResumeRefreshBound){
@@ -10836,7 +10864,7 @@ function startCloudSync(){
       if(!wasHidden||document.visibilityState!=='visible')return;
       wasHidden=false;
       if(resumeTimer)clearTimeout(resumeTimer);
-      resumeTimer=setTimeout(function(){resumeTimer=null;refreshPlannerCoreFromCloudAndRender()},180);
+      resumeTimer=setTimeout(function(){resumeTimer=null;vectaRefreshWebsiteBookingCount();refreshPlannerCoreFromCloudAndRender()},180);
     }
     document.addEventListener('visibilitychange',function(){if(document.visibilityState==='hidden'){wasHidden=true;return}resumeRefresh()});
     window.addEventListener('pageshow',resumeRefresh);
@@ -10850,6 +10878,7 @@ function startCloudSync(){
 async function vectaHandleReconnect(){
   cloudLastRefreshAt=0;
   updateConnectivityUI('syncing');
+  vectaRefreshWebsiteBookingCount();
   try{await flushPendingSync()}catch(e){console.warn('Queued workshop changes could not yet sync after reconnect',e)}
   return refreshPlannerCoreFromCloudAndRender();
 }
@@ -12839,7 +12868,7 @@ function websiteRequestCardHtml(r){
   var st=r.status||'awaiting_review',types=Array.isArray(r.job_types)?r.job_types.join(', '):String(r.job_types||''),dates=[r.preferred_date_1,r.preferred_date_2,r.preferred_date_3].filter(Boolean).map(requestDate).join(' · ');
   return '<article class="requestCard '+(st==='awaiting_review'?'new':'')+'" data-request-id="'+esc(r.id||'')+'"><div class="requestTop"><div class="requestIdentity"><span class="requestPlate">'+esc(r.registration||'NO REG')+'</span><div><h3>'+esc(r.customer_name||'Customer')+'</h3><p>'+esc(r.vehicle||'Vehicle not entered')+'</p></div></div><span class="requestStatus '+esc(st)+'">'+requestStatusLabel(st)+'</span><div class="requestVehicleArtwork" aria-label="Vehicle image"></div></div><div class="requestGrid"><div class="requestBlock"><small>Contact</small><b>'+esc(r.phone||'No phone')+'</b><p>'+esc(r.email||'No email')+'<br>Preferred: '+esc(r.contact_preference||'Email')+'</p></div><div class="requestBlock"><small>Requested dates</small><b>'+esc(dates||'No date supplied')+'</b><p>'+(r.completion_deadline?'Needed by: '+esc(r.completion_deadline):'No completion deadline')+'</p></div><div class="requestBlock"><small>Work required</small><b>'+esc(types||'General repair')+'</b><p>'+esc(r.work_required||'No description supplied')+'</p></div></div><div class="requestActions">'+(st==='awaiting_review'?'<button class="btn" data-request-contact="'+esc(r.id)+'">Mark contacted</button>':'')+(st!=='booked'?'<button class="btn green" data-request-create="'+esc(r.id)+'">Open job card</button>':'<button class="btn" disabled>Job created</button>')+(st!=='archived'&&st!=='declined'?'<button class="btn" data-request-archive="'+esc(r.id)+'">Archive</button>':'')+'<button class="btn danger" data-request-delete="'+esc(r.id)+'">Delete request</button></div></article>';
 }
-async function updateWebsiteRequest(id,changes){var row=(app.websiteRequests||[]).find(function(r){return r.id===id});if(!row)return;Object.assign(row,changes,{updated_at:new Date().toISOString()});saveLocal();if(remoteClient){var res=await remoteClient.from('website_booking_requests').update(changes).eq('id',id);if(res.error){console.error(res.error);alert('The website request could not be updated: '+res.error.message);return false}}render();return true}
+async function updateWebsiteRequest(id,changes){var row=(app.websiteRequests||[]).find(function(r){return r.id===id});if(!row)return;Object.assign(row,changes,{updated_at:new Date().toISOString()});saveLocal();if(remoteClient){var res=await remoteClient.from('website_booking_requests').update(changes).eq('id',id);if(res.error){console.error(res.error);alert('The website request could not be updated: '+res.error.message);return false}}vectaWebsiteBookingCloudCount=null;vectaRefreshWebsiteBookingCount();render();return true}
 function websiteRequestNote(r){
   var requestedDate=String(r.preferred_date_1||'').slice(0,10),createdAt=String(r.created_at||''),notes=String(r.work_required||'').replace(/\s+/g,' ').trim();
   return 'Website request ID: '+String(r.id||'')+' || Website booking made: '+createdAt+' || Website requested date: '+requestedDate+' || Website customer notes: '+notes+' || Completion deadline: '+String(r.completion_deadline||'Not provided')+' || Contact preference: '+String(r.contact_preference||'Not provided');
@@ -13043,6 +13072,7 @@ async function acceptWebsiteRequestJob(requestId,jobId,button){
       var result=await remoteClient.from('website_booking_requests').update({status:'booked',job_id:job.id,confirmed_at:new Date().toISOString()}).eq('id',requestId).select('id');
       if(result.error||!result.data||result.data.length!==1){alert('The job was saved, but the booking inbox could not be updated. Retry Accept Booking to finish.');return false;}
       app.websiteRequests=(app.websiteRequests||[]).filter(function(r){return String(r.id)!==String(requestId)});
+      vectaWebsiteBookingCloudCount=null;vectaRefreshWebsiteBookingCount();
       saveLocal();return true;
     });
     if(accepted&&typeof openJobModal==='function')openJobModal(jobId);
@@ -13060,6 +13090,7 @@ async function deleteWebsiteRequestCompletely(id){
       if(!soft.data||!soft.data.length||String(soft.data[0].status)!=='deleted')throw new Error('Supabase did not confirm the deleted request status.');
     }else throw new Error('Cloud connection is unavailable. Please reconnect before deleting this request.');
     app.websiteRequests=(app.websiteRequests||[]).filter(function(r){return String(r.id)!==String(id)});
+    vectaWebsiteBookingCloudCount=null;vectaRefreshWebsiteBookingCount();
     saveLocal();
     render();
   }catch(e){
@@ -13073,6 +13104,7 @@ async function refreshWebsiteRequestsFromCloud(){
   try{
     var rows=await vectaFetchAllRemoteRows('website_booking_requests',12000);
     app.websiteRequests=rows.map(fromRemote);
+    vectaWebsiteBookingCloudCount=null;vectaRefreshWebsiteBookingCount();
     saveLocal();
     return true;
   }catch(e){
