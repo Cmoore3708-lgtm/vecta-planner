@@ -270,6 +270,20 @@ test('first-view preparation keeps status visible, polls for saved images and ne
  const context={document,window:{addEventListener(){}},location:{hash:'#token'},Intl,Date,AbortSignal,Error,setTimeout:(fn,delay)=>{timers.push({fn,delay});return 1;},clearTimeout(){},fetch:async(_url,options)=>{requests.push(JSON.parse(options.body));return {ok:true,json:async()=>({registration:reg,stage:'underway',title:'In the workshop',scene_state:'preparing'})};}};
  vm.runInNewContext(fs.readFileSync(new URL('../../public/js/vecta-progress.js',import.meta.url),'utf8'),context);await new Promise(r=>setImmediate(r));
  assert.equal(requests[0].request_scenes,true);assert.equal(document.getElementById('statusTitle').textContent,'In the workshop');
- assert.match(document.getElementById('sceneCaption').textContent,/preparing your car/);assert.equal(timers.at(-1).delay,15000);
+ assert.equal(document.getElementById('sceneCaption').textContent,'Connecting to our live booking system. This may take several minutes.');assert.equal(document.getElementById('sceneCaption').classList.contains('connecting'),true);assert.equal(timers.at(-1).delay,15000);
  for(const card of document.querySelectorAll('[data-scene]'))assert.equal(card.querySelector('.sceneArt').hidden,true);
+});
+
+
+test('connection banner appears immediately on first open and clears when saved images arrive',async()=>{
+ const {document}=parseHTML(fs.readFileSync(new URL('../../public/track.html',import.meta.url),'utf8'));document.hidden=false;
+ let respond;const pending=new Promise(resolve=>{respond=resolve;});
+ const context={document,window:{addEventListener(){}},location:{hash:'#token'},Intl,Date,AbortSignal,Error,setTimeout:()=>1,clearTimeout(){},fetch:()=>pending};
+ vm.runInNewContext(fs.readFileSync(new URL('../../public/js/vecta-progress.js',import.meta.url),'utf8'),context);
+ const caption=document.getElementById('sceneCaption');assert.equal(caption.hidden,false);assert.equal(caption.classList.contains('connecting'),true);
+ assert.equal(caption.nextElementSibling.id,'progressScene');assert.match(caption.textContent,/Connecting to our live booking system/);assert.match(caption.textContent,/may take several minutes/);
+ const scenes=Object.fromEntries(sceneStages.map(stage=>[stage,base+'/storage/v1/object/public/progress-scenes/'+'a'.repeat(64)+'/'+stage+'.webp']));
+ respond({ok:true,json:async()=>({registration:reg,stage:'underway',title:'In the workshop',scenes})});await new Promise(resolve=>setImmediate(resolve));
+ assert.equal(caption.hidden,true);assert.equal(caption.classList.contains('connecting'),false);
+ for(const card of document.querySelectorAll('[data-scene]'))assert.equal(card.querySelector('.approvedScene').getAttribute('src'),scenes[card.dataset.scene]);
 });

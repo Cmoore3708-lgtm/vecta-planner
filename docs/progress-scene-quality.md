@@ -124,3 +124,9 @@ that registration. The first viewer sees current workshop status immediately and
 preparation message while the images are being created; that page polls for the saved
 set every 15 seconds. Later views load it immediately. Preview/Test never performs
 paid generation, and regression fixtures use mocked providers.
+
+Chris also requested an obvious first-open notice: “Connecting to our live booking
+system. This may take several minutes.” It appears immediately, above the scene
+cards in a prominent green panel, remains while first-time preparation is pending,
+and clears as soon as the saved set is returned. Reduced-motion preferences stop
+the small loading indicator. Both customer hosts carry the same markup and styles.
