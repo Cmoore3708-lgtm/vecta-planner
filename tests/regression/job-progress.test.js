@@ -200,7 +200,7 @@ test('YD72 OMH uses complete Leaf scenes and never overlays a floating plate or 
  }
  assert.equal(mounts,0);
  const photo=cards[0].querySelector('.approvedScene');photo.onerror();await refresh();assert.equal(photo.hidden,true);
- data={registration:'CM14KEL',stage:'waiting',title:'Waiting'};await refresh();assert.equal(photo.hidden,false);assert.equal(photo.getAttribute('src'),'/assets/progress/cm14kel-waiting.webp');
+ data={registration:'CM14KEL',stage:'waiting',title:'Waiting'};await refresh();assert.equal(photo.hidden,false);assert.equal(photo.getAttribute('src'),'/assets/progress/cm14kel-waiting.webp?v=matching-wheels-1');
  data={registration:'AB12CDE',stage:'waiting',title:'Waiting'};await refresh();for(const card of cards){assert.equal(card.querySelector('.approvedScene').hidden,true);assert.equal(card.querySelector('.approvedScene').hasAttribute('src'),false);}
 });
 test('complete scene sets ship all three files to both customer websites',()=>{
