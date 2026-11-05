@@ -1947,14 +1947,15 @@ body.servicePreviewing .servicePreviewControls{position:relative!important;z-ind
 .privatePricingLock{font-size:12px;font-weight:850;letter-spacing:.02em;background:#d71920;color:#fff;border-radius:999px;padding:5px 9px;margin-left:auto;white-space:nowrap}
 .privatePricingRows{display:grid;gap:8px;width:100%}
 .privatePricingRow{display:grid;grid-template-columns:minmax(220px,1fr) 150px 42px;gap:8px;align-items:end}
-.privatePricingRow .field{margin:0}
+.privatePricingRow .field{margin:0;min-width:0}
+.privatePricingRow textarea.privatePriceDescription{display:block;box-sizing:border-box;width:100%;min-height:44px;max-height:none;font:inherit;font-size:16px;line-height:1.45;white-space:pre-wrap;overflow-wrap:anywhere;resize:none;overflow:hidden}
 .privatePricingRow input[type="number"]{text-align:right;font-weight:800}
 .privatePricingRemove{height:42px;min-width:42px;padding:0!important;font-size:20px!important;line-height:1}
 .privatePricingActions{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-top:10px}
 .privatePricingTotal{margin-left:auto;min-width:220px;border:2px solid #20252b;border-radius:9px;padding:10px 14px;background:#fff;display:flex;align-items:center;justify-content:space-between;gap:16px;font-weight:850}
 .privatePricingTotal strong{font-size:20px}
 .privatePricingHint{font-size:12px;color:#606770;margin:8px 0 0}
-@media(max-width:700px){.privatePricingRow{grid-template-columns:1fr 120px 42px}.privatePricingLock{margin-left:0}.privatePricingTotal{width:100%;min-width:0}}
+@media(max-width:700px){.privatePricingRows{gap:16px}.privatePricingRow{grid-template-columns:minmax(0,1fr) 44px}.privatePricingRow .privatePricingDescriptionField{grid-column:1/-1}.privatePricingRow .field:not(.privatePricingDescriptionField){width:100%;max-width:160px}.privatePricingRow+.privatePricingRow{border-top:1px solid #d7cfe5;padding-top:16px}.privatePricingRemove{height:44px;min-width:44px}.privatePricingLock{margin-left:0}.privatePricingTotal{width:100%;min-width:0}}
 </style>
 
 
@@ -14811,7 +14812,7 @@ function noteWithPrivatePricing(note,items){
 }
 function invoiceDescriptionItems(j){j=j||{};var priced=privatePricingItemsFromNote(j.customer_note).map(function(x){return String(x&&x.description||'').trim()}).filter(Boolean);if(priced.length)return priced;var parts=(typeof jobParts==='function'?jobParts(j):[]).map(function(p){return String(p&&p.description||'').trim()}).filter(Boolean);if(parts.length)return parts;var legacy=String(j.work_required||j.summary_of_work||j.description||'').trim();return legacy?[legacy]:[]}
 function invoiceDescriptionText(j){var items=invoiceDescriptionItems(j);return items.length?items.join(' | '):'Workshop work'}
-function privatePricingRowHtml(item,index){item=item||{};var rawPrice=item.price,priceValue=(rawPrice===undefined||rawPrice===null||String(rawPrice).trim()==='')?'':Number(rawPrice);return '<div class="privatePricingRow" data-price-row="'+index+'"'+(typeof item.work_description==='string'?' data-work-description="'+esc(item.work_description)+'"':'')+(item.repair_quote?' data-repair-quote="'+esc(JSON.stringify(item.repair_quote))+'"':'')+'><div class="field"><input aria-label="Invoice description" class="privatePriceDescription" type="text" value="'+esc(item.description||'')+'" placeholder="e.g. Front brake pads"></div><div class="field"><label>Price (£)</label><input class="privatePriceAmount" type="number" min="0" step="5" value="'+(priceValue===''?'':esc(priceValue))+'" placeholder="0.00"></div><button type="button" class="btn danger privatePricingRemove" title="Remove item" aria-label="Remove item">×</button></div>'}
+function privatePricingRowHtml(item,index){item=item||{};var rawPrice=item.price,priceValue=(rawPrice===undefined||rawPrice===null||String(rawPrice).trim()==='')?'':Number(rawPrice);return '<div class="privatePricingRow" data-price-row="'+index+'"'+(typeof item.work_description==='string'?' data-work-description="'+esc(item.work_description)+'"':'')+(item.repair_quote?' data-repair-quote="'+esc(JSON.stringify(item.repair_quote))+'"':'')+'><div class="field privatePricingDescriptionField"><textarea aria-label="Invoice description" class="privatePriceDescription" rows="1" placeholder="e.g. Front brake pads">'+esc(item.description||'')+'</textarea></div><div class="field"><label>Price (£)</label><input class="privatePriceAmount" type="number" min="0" step="5" value="'+(priceValue===''?'':esc(priceValue))+'" placeholder="0.00"></div><button type="button" class="btn danger privatePricingRemove" title="Remove item" aria-label="Remove item">×</button></div>'}
 function privatePricingPresetItemsForTypes(values){
   return jobTypeValues(values).filter(function(name){return normaliseJobTypeKey(name)!=='general'}).map(function(name){
     var t=templateDataForType(name),fallback=templates&&templates[name]?templates[name]:{},rawPrice=t.amount_quoted;
@@ -14923,7 +14924,22 @@ function syncPresetPricingToPrivateBreakdown(beforeTypes,afterTypes){
 }
 function bindPrivatePricing(){
   var rows=document.getElementById('privatePricingRows'),add=document.getElementById('addPrivatePriceItem');if(!rows)return;
-  function bindRow(row){if(row._privatePricingBound)return;row._privatePricingBound=true;row.querySelectorAll('input').forEach(function(el){el.addEventListener('input',function(){var isDescription=el.classList.contains('privatePriceDescription');if(row.dataset.repairQuote)delete row.dataset.repairQuote;syncPrivatePricingTotal(!isDescription)})});var rm=row.querySelector('.privatePricingRemove');if(rm)rm.onclick=function(){if(rows.children.length===1){row.querySelector('.privatePriceDescription').value='';row.querySelector('.privatePriceAmount').value='';delete row.dataset.workDescription;delete row.dataset.repairQuote;}else row.remove();syncPrivatePricingTotal(true)}}
+  function fitDescription(el){
+    if(!el||!el.clientWidth)return;
+    el.style.height='auto';
+    el.style.height=(el.scrollHeight+el.offsetHeight-el.clientHeight)+'px';
+  }
+  // Fit saved and programmatically updated wording as well as text entered by hand.
+  function bindRow(row){fitDescription(row.querySelector('.privatePriceDescription'));if(row._privatePricingBound)return;row._privatePricingBound=true;row.querySelectorAll('input,textarea').forEach(function(el){el.addEventListener('input',function(){var isDescription=el.classList.contains('privatePriceDescription');if(isDescription)fitDescription(el);if(row.dataset.repairQuote)delete row.dataset.repairQuote;syncPrivatePricingTotal(!isDescription)})});var rm=row.querySelector('.privatePricingRemove');if(rm)rm.onclick=function(){if(rows.children.length===1){var description=row.querySelector('.privatePriceDescription');description.value='';fitDescription(description);row.querySelector('.privatePriceAmount').value='';delete row.dataset.workDescription;delete row.dataset.repairQuote;}else row.remove();syncPrivatePricingTotal(true)}}
+  // Refit when the editor opens or its width changes, including phone rotation.
+  if(typeof ResizeObserver!=='undefined'&&!rows._descriptionResizeObserver){
+    var lastWidth=-1;
+    rows._descriptionResizeObserver=new ResizeObserver(function(entries){
+      var width=entries[0].contentRect.width;if(width===lastWidth)return;lastWidth=width;
+      rows.querySelectorAll('.privatePriceDescription').forEach(fitDescription);
+    });
+    rows._descriptionResizeObserver.observe(rows);
+  }
   var work=document.getElementById('job_work_required');
   if(work){
     rows._workRequired=work.value;
