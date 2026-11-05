@@ -247,3 +247,44 @@ test('complete scene sets ship all three files to both customer websites',()=>{
   assert.equal(main.subarray(0,4).toString(),'RIFF');assert.equal(main.subarray(8,12).toString(),'WEBP');assert.ok(main.length>10000);assert.deepEqual(website,main);
  }
 });
+
+test('tracking views queue after booking validation; booking-form lookups and existing saved sets never queue',async()=>{
+ const restore=environment(),original=global.fetch,oldEnabled=process.env.VECTA_PROGRESS_SCENES_ENABLED;
+ process.env.VECTA_PROGRESS_SCENES_ENABLED='1';
+ const {sceneIdentity,sceneFingerprint,sceneStages}=await import('../../lib/progress-scene-model.js');
+ const reg='AB12CDE',savedJob={...job,registration:reg,vehicle:'Mazda 6'},settings=new Map();
+ const artwork={make:'MAZDA',model:'6',colour:'RED',imageUrl:'https://www.haynespro-assets.com/workshop/images/123.svg'};
+ settings.set('vehicle_artwork:'+reg,{id:'vehicle_artwork:'+reg,value:artwork});
+ let writes=0,kicks=0;const schedule=()=>{kicks++;};
+ global.fetch=async(url,options={})=>{
+  const u=new URL(url),method=options.method||'GET';
+  if(u.pathname.endsWith('/jobs'))return Response.json([savedJob]);
+  const filter=u.searchParams.get('id');
+  if(method==='POST'||method==='PATCH'){
+   writes++;const value=JSON.parse(options.body),old=settings.get(value.id);
+   if(old&&options.headers.Prefer.includes('ignore-duplicates'))return Response.json([]);
+   settings.set(value.id,value);return Response.json([value]);
+  }
+  return Response.json(filter.startsWith('in.(')?filter.slice(4,-1).split(',').map(id=>settings.get(id)).filter(Boolean):settings.has(filter.slice(3))?[settings.get(filter.slice(3))]:[]);
+ };
+ try{
+  // The website's booking banner performs this ordinary read, without requesting scenes.
+  await registrationStatus(reg,now);assert.equal(writes,0);assert.equal(kicks,0);
+  const data=await registrationStatus(reg,now,{requestScenes:true,schedule});
+  assert.equal(data.scene_state,'preparing');assert.equal(writes,1);assert.equal(kicks,1);
+  assert.deepEqual(settings.get('progress_scene_request_v1:'+reg).value.source,{kind:'job',id:savedJob.id});
+  await registrationStatus(reg,now,{requestScenes:true,schedule});assert.equal(writes,1);
+  const before=writes;await assert.rejects(customerStatus('bad-token',now,{requestScenes:true,schedule}));assert.equal(writes,before);
+  const identity=sceneIdentity(reg,[...settings.values()]),key='a'.repeat(64);
+  const scenes=Object.fromEntries(sceneStages.map(stage=>[stage,'https://database.example/storage/v1/object/public/progress-scenes/'+key+'/'+stage+'.webp']));
+  settings.set('progress_scenes_v1:'+reg,{id:'progress_scenes_v1:'+reg,value:{identity,registration:reg,fingerprint:sceneFingerprint(identity),key,status:'ready',scenes}});
+  const scheduled=kicks;
+  artwork.imageUrl='https://www.haynespro-assets.com/workshop/images/456.svg';
+  const token=issueProgressToken(savedJob,progressSecret(),now);
+  assert.deepEqual((await customerStatus(token,now,{requestScenes:true,schedule})).scenes,scenes);
+  assert.deepEqual((await registrationStatus(reg,now,{requestScenes:true,schedule})).scenes,scenes);
+  settings.delete('vehicle_artwork:'+reg);
+  assert.deepEqual((await customerStatus(token,now,{requestScenes:true,schedule})).scenes,scenes);
+  assert.equal(writes,before);assert.equal(kicks,scheduled);
+ }finally{global.fetch=original;restore();if(oldEnabled===undefined)delete process.env.VECTA_PROGRESS_SCENES_ENABLED;else process.env.VECTA_PROGRESS_SCENES_ENABLED=oldEnabled;}
+});

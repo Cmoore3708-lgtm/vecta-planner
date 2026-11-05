@@ -93,3 +93,40 @@ pixel-level guarantee; inspect any reported mismatch before accepting a set.
 CM14 KEL now uses the approved raised Nissan exterior badges and the final enlarged, softened-grey floor emblem, partly beneath the car. The interior photograph is anchored to the bottom of its card so the floor emblem remains visible. Both hosts receive the same WebP files; the curated image URLs have a new cache version.
 
 Newly prepared vehicle sets replace the reference Nissan emblem with the actual vehicle manufacturer: raised satin-metal badges outside, and a large muted floor painting inside. The existing visual inspection also checks the manufacturer, raised exterior treatment and painted floor perspective. Previously published sets keep their identity fingerprints and remain available without automatic paid regeneration. This release does not change generation activation, budgets or request limits.
+
+## 5 November: prepare only after a progress-page view
+
+Chris requested reduced spend: generate only when someone follows the car's
+progress link, then save and reuse the result on later visits. This supersedes
+scheduled preparation of all upcoming bookings described above.
+
+The tracking page explicitly requests images after validating its registration
+or signed booking/receipt link. The ordinary booking-form availability check
+remains read-only. First view creates an idempotent demand record in
+`workshop_settings` (`progress_scene_request_v1:<registration>`), bound to the
+verified booking and current vehicle fingerprint. It does not clear any images
+or attempt counts. A background task starts that registration immediately; the
+five-minute cron only resumes these requested records. It never scans unviewed
+bookings for paid work. Cancelled/deleted bookings are rechecked before spending.
+Receipt links can request scenes before their booking is accepted into Jobs.
+
+Published WebP files remain in durable Supabase storage. Refreshes, repeat visits,
+status changes and future jobs for the same car reuse the same approved URLs.
+Changing only the supplier drawing URL no longer invalidates an approved set:
+registration, make, model and colour must still match. A genuine vehicle correction
+requires a new verified view before replacement generation. Missing current supplier
+metadata does not hide a complete trusted saved set belonging to that registration.
+
+The global worker lease, dedicated provider budget, monthly request cap and existing
+bounded retry/quality rules remain in place. Reopening a failed set does not reset
+attempts. The manager retry action only applies after a progress view has requested
+that registration. The first viewer sees current workshop status immediately and a
+preparation message while the images are being created; that page polls for the saved
+set every 15 seconds. Later views load it immediately. Preview/Test never performs
+paid generation, and regression fixtures use mocked providers.
+
+Chris also requested an obvious first-open notice: “Connecting to our live booking
+system. This may take several minutes.” It appears immediately, above the scene
+cards in a prominent green panel, remains while first-time preparation is pending,
+and clears as soon as the saved set is returned. Reduced-motion preferences stop
+the small loading indicator. Both customer hosts carry the same markup and styles.
