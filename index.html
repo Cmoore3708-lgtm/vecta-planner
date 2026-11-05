@@ -2940,7 +2940,7 @@ body.servicePreviewing .servicePreviewControls{position:relative!important;z-ind
 <div class="app">
   <main class="main">
     <header class="top">
-      <div class="workshopHeaderBrand" aria-label="VECTA Workshop Pro"><img src="/assets/vecta-dashboard-logo-transparent.webp" alt="VECTA"><span>Workshop Pro</span></div>
+      <div class="workshopHeaderBrand" aria-label="VECTA Workshop Pro"><img src="/assets/vecta-dashboard-logo-transparent.webp" alt="VECTA"><span>Workshop Pro</span><div id="websiteVisitorStats" hidden role="group" aria-label="Website visitors"><div class="visitorHeading">Website visitors</div><div class="visitorDay">Today<strong id="websiteVisitorsToday">—</strong></div><div class="visitorDay">Yesterday<strong id="websiteVisitorsYesterday">—</strong></div></div></div>
       <h1 id="viewTitle" hidden>Planner</h1><button type="button" id="dashboardBookedToday" class="dashboardBookedToday" title="Open selected day’s financial breakdown"><strong id="dashboardBookedTodayValue">£0.00</strong></button>
       <div class="plannerGlobalSearchWrap"><input id="plannerGlobalSearch" type="search" autocomplete="off" placeholder="Search reg, name, phone or email…" aria-label="Search Workshop Pro"></div>
       <div class="plannerHeaderActions">
@@ -18720,3 +18720,6 @@ try{var foot=document.querySelector('.sideFoot small');if(foot)foot.textContent=
 </style>
 
 
+
+<link rel="stylesheet" href="/js/vecta-website-visitors.css">
+<script src="/js/vecta-website-visitors.js" defer></script>
