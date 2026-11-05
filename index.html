@@ -15254,11 +15254,35 @@ function halfHourMotTimeOptions(val){var current=normaliseMotTime(val),times=[];
 function halfHourTimeSelect(label,key,val){var current=String(val||'').slice(0,5),times=[];for(var mins=7*60;mins<=15*60;mins+=30){var h=String(Math.floor(mins/60)).padStart(2,'0'),m=String(mins%60).padStart(2,'0');times.push(h+':'+m)}if(!/^\d{2}:\d{2}$/.test(current))current='';if(current&&times.indexOf(current)<0)times.push(current);times.sort();var opts='<option value=""'+(!current?' selected':'')+'>Next available space</option>'+times.map(function(t){return '<option value="'+t+'"'+(t===current?' selected':'')+'>'+t+'</option>'}).join('');return '<div class="field"><label>'+label+'</label><select id="job_'+key+'">'+opts+'</select></div>'}
 function inp(label,key,val,type,cls){if(cls==='plateField'){return '<div class="field plateFieldWrap"><label>'+label+'</label><div class="plateInputWrap"><span>GB</span><input class="plateField" id="job_'+key+'" type="'+(type||'text')+'" value="'+esc(val||'')+'"></div></div>'}var attrs=key==='drop_time'?' step="1800"':key==='estimated_hours'?' min="0.5" step="0.5"':'';return '<div class="field"><label>'+label+'</label><input '+(cls?'class="'+cls+'"':'')+' id="job_'+key+'" type="'+(type||'text')+'"'+attrs+' value="'+esc(val==null?'':val)+'"></div>'}
 function select(label,key,val,opts){var blankLabel=key==='ramp'?'Select ramp...':key==='booking_source'?'Select booking source...':key==='customer_account'?'Select customer...':'Select...';return '<div class="field"><label>'+label+'</label><select id="job_'+key+'">'+opts.map(function(o){return '<option value="'+esc(o)+'" '+(String(o)===String(val)?'selected':'')+'>'+esc(o||blankLabel)+'</option>'}).join('')+'</select></div>'}
+function jobTemplateWorkBlock(name){
+  var text=String(templateDataForType(name).work_required||'').trim();
+  if(!text)return '';
+  var normalise=function(value){return String(value||'').toLowerCase().replace(/\s+/g,' ').trim()};
+  return (servicePricingType([name])&&normalise(text).indexOf(normalise(name))!==0?name+'\n':'')+text;
+}
+function removeJobTemplateWork(current,name,remainingTypes){
+  var block=jobTemplateWorkBlock(name),raw=String(templateDataForType(name).work_required||'').trim();
+  var normalise=function(value){return String(value||'').toLowerCase().replace(/\s+/g,' ').trim()};
+  var retained=(remainingTypes||[]).map(function(type){return [jobTemplateWorkBlock(type),String(templateDataForType(type).work_required||'').trim()]});
+  /* Only remove a complete unchanged preset block. Never match a job-type word
+     inside a customer's instructions, or discard a description they edited. */
+  var candidates=[block];if(raw!==block)candidates.push(raw);
+  for(var c=0;c<candidates.length;c++){
+    var candidate=candidates[c];if(!candidate||retained.some(function(values){return values.some(function(value){return normalise(value)===normalise(candidate)})}))continue;
+    var lines=String(current||'').split(/\r?\n/),wanted=candidate.split(/\r?\n/);
+    for(var i=0;i<=lines.length-wanted.length;i++){
+      if(wanted.every(function(line,index){return normalise(line)===normalise(lines[i+index])})){
+        lines.splice(i,wanted.length);return lines.join('\n');
+      }
+    }
+  }
+  return current;
+}
 function applyTemplate(name,removeSelectedTyres){
   var t=templateDataForType(name),jobType=document.getElementById('job_job_type');if(!jobType)return;
   var before=jobTypeValues(jobType.value),key=normaliseJobTypeKey(name),exists=before.some(function(v){return normaliseJobTypeKey(v)===key}),after=before.slice();
   if(exists&&key==='tyres'&&!removeSelectedTyres&&window.VectaJobPricing){window.VectaJobPricing.selected(name,true);return;}
-  if(exists){if(after.length===1&&!removeSelectedTyres)return;after=after.filter(function(v){return normaliseJobTypeKey(v)!==key})}
+  if(exists){after=after.filter(function(v){return normaliseJobTypeKey(v)!==key})}
   else{after=after.filter(function(v){return normaliseJobTypeKey(v)!=='general'&&(!/^(interim|full) service$/.test(key)||!/^(interim|full) service$/.test(normaliseJobTypeKey(v)))});after.push(name)}
   if(!after.length)after=['general'];
   jobType.value=jobTypeStorageValue(after);
@@ -15268,16 +15292,17 @@ function applyTemplate(name,removeSelectedTyres){
   document.querySelectorAll('.jobModalCard .templateBtns [data-template]').forEach(function(btn){btn.classList.toggle('selected',after.some(function(v){return normaliseJobTypeKey(v)===normaliseJobTypeKey(btn.dataset.template)}))});
   var work=document.getElementById('job_work_required'),newAuto=templateWorkForTypes(after);
   if(work){
-    /* Work required is technician/customer instruction text. Job-type presets may
-       ADD useful wording, but must never replace or remove anything already there. */
+    /* Remove only the preset wording for deselected/replaced types, preserving
+       the other selected work and any manually entered instructions. */
     var current=String(work.value||''),typeWork=String((t&&t.work_required)||'').trim();
+    before.forEach(function(type){
+      if(!after.some(function(value){return normaliseJobTypeKey(value)===normaliseJobTypeKey(type)}))current=removeJobTemplateWork(current,type,after);
+    });
+    if(exists&&key==='general')current=removeJobTemplateWork(current,name,[]);
+    work.value=current;
     if(!exists&&typeWork){
       var normaliseWorkLine=function(v){return String(v||'').toLowerCase().replace(/\s+/g,' ').trim()},
-          serviceType=!!servicePricingType([name]),
-          nameKey=normaliseWorkLine(name),
-          typeKey=normaliseWorkLine(typeWork),
-          typeAlreadyNamesJob=!!(nameKey&&typeKey.indexOf(nameKey)===0),
-          block=(serviceType&&!typeAlreadyNamesJob?(name+'\n'):'')+typeWork,
+          block=jobTemplateWorkBlock(name),
           blockKey=normaliseWorkLine(block),
           currentKey=normaliseWorkLine(current),
           hasSame=!!(blockKey&&currentKey.indexOf(blockKey)>-1);
@@ -15309,8 +15334,8 @@ function applyTemplate(name,removeSelectedTyres){
   if(!exists)addTemplatePartsToJob(t);
   applyNewBookingPartsStatusPreset(after);
   var hours=after.reduce(function(total,type){var data=templateDataForType(type),n=Number(data.estimated_hours);return total+(isFinite(n)&&n>0?n:0)},0),hoursInput=document.getElementById('job_estimated_hours');if(hoursInput&&hours>0)hoursInput.value=Math.round(hours*4)/4;
-  if(after.length===1){Object.keys(t).forEach(function(k){if(k==='job_type'||k==='job_colour'||k==='work_required'||k==='estimated_hours')return;var el=document.getElementById('job_'+k);if(el&&t[k]!==undefined&&t[k]!==null)el.value=t[k]})}
-  else{var vat=document.getElementById('job_vat_mode'),account=document.getElementById('job_customer_account');if(vat&&String(vat.value||'')!=='no_vat')vat.value=account&&String(account.value||'').toUpperCase()==='STAFF'?'inc_vat':'ex_vat'}
+  if(after.length===1&&!exists){Object.keys(t).forEach(function(k){if(k==='job_type'||k==='job_colour'||k==='work_required'||k==='estimated_hours')return;var el=document.getElementById('job_'+k);if(el&&t[k]!==undefined&&t[k]!==null)el.value=t[k]})}
+  else if(after.length>1){var vat=document.getElementById('job_vat_mode'),account=document.getElementById('job_customer_account');if(vat&&String(vat.value||'')!=='no_vat')vat.value=account&&String(account.value||'').toUpperCase()==='STAFF'?'inc_vat':'ex_vat'}
   if(typeof window!=='undefined'&&window.VectaJobPricing)window.VectaJobPricing.selected(name,!exists);
 }
 function jobVehicleLabel(j){return j&&j.no_vehicle?'No Vehicle':String((j&&j.registration)||'No Vehicle')}
