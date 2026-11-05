@@ -503,7 +503,10 @@ async function sendBookingRequest(payload){
   try{
    response=await fetch('/api/website-booking',{method:'POST',headers:{'Content-Type':'application/json'},body,signal:AbortSignal.timeout(25000)});
    const data=await response.json();
-   if(response.ok&&data.ok&&data.request_id)return data;
+   if(response.ok&&data.ok&&data.request_id){
+    try{if(data.analytics_receipt)window.dispatchEvent(new CustomEvent('vecta:website-booking-created',{detail:{receipt:data.analytics_receipt}}));}catch{/* Optional analytics must never interrupt confirmation. */}
+    return data;
+   }
    if(![500,502,503,504].includes(response.status))throw new Error(data.error||'Unable to send your booking');
   }catch(error){
    if(response&&![500,502,503,504].includes(response.status))throw error;
