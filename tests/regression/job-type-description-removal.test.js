@@ -58,8 +58,15 @@ test('legacy unheaded service descriptions are removed on reopened jobs',()=>{
 test('identical wording used by a remaining selected type is retained',()=>{
   const {c,work}=setup('MOT || Same work',presets.MOT.work_required);c.applyTemplate('MOT');assert.equal(work.value,presets.MOT.work_required);
 });
-test('tyre picker removal uses the same description cleanup without bypassing its order checks',()=>{
-  const {c,work}=setup('Tyres || MOT','Tyres\n'+presets.MOT.work_required);let picker=false;
-  c.window.VectaJobPricing={selected(){picker=true;}};c.applyTemplate('Tyres');assert.equal(picker,true);assert.equal(work.value,'Tyres\n'+presets.MOT.work_required);
-  c.applyTemplate('Tyres',true);assert.equal(work.value,presets.MOT.work_required);
+test('second click unticks Tyres without reopening the picker and reselecting opens it once',()=>{
+  const {c,work,fields}=setup('MOT',presets.MOT.work_required);let opened=0,removed=0;
+  c.window.VectaJobPricing={selected(name,added){if(name==='Tyres'&&added)opened++;},removeTyres(){removed++;return true;}};
+  c.applyTemplate('Tyres');assert.equal(opened,1);assert.match(work.value,/Tyres/);
+  c.applyTemplate('Tyres');assert.equal(opened,1);assert.equal(removed,1);assert.equal(work.value,presets.MOT.work_required);assert.equal(fields.job_job_type.value,'MOT');
+  c.applyTemplate('Tyres');assert.equal(opened,2);
+});
+test('ordered-tyre refusal preserves selection and description',()=>{
+  const {c,work,fields}=setup('Tyres || MOT','Tyres\n'+presets.MOT.work_required);
+  c.window.VectaJobPricing={removeTyres:()=>false,selected(){assert.fail('Refused removal must not change pricing');}};
+  c.applyTemplate('Tyres');assert.equal(work.value,'Tyres\n'+presets.MOT.work_required);assert.equal(fields.job_job_type.value,'Tyres || MOT');
 });

@@ -157,3 +157,29 @@ test('4 November full-service example: £180 with every cost; £190 when only th
   if(missing){assert.match(app.parts()[3].description,/ESTIMATED COST £19.34/);assert.match(box,/estimate/);assert.match(app.document.querySelector('.job-live-pricing').textContent,/Missing GSF prices: Cabin filter/);}
  }
 });
+
+test('unticking Tyres clears its unplaced parts and closes the picker without another lookup',()=>{
+ const app=ui(()=>{throw Error('Removing tyres must not fetch prices');},[
+  {id:'tyre-205/55R16',description:'Tyres',tyre_selection:{size:'205/55R16',positions:[]},cost_price:21},
+  {id:'brake-pads',description:'Brake pads',cost_price:30,ordered:true}
+ ]);
+ app.document.getElementById('job_job_type').value='Tyres';app.root.VectaJobPricing.selected('Tyres',true);
+ assert.ok(app.document.querySelector('dialog'));
+ assert.equal(app.root.VectaJobPricing.removeTyres(),true);
+ app.root.VectaJobPricing.selected('Tyres',false);
+ assert.equal(app.document.querySelector('dialog'),null);
+ assert.deepEqual(app.parts().map(p=>p.id),['brake-pads']);
+});
+test('unticking ordered or received tyres retains parts and explains the block without opening the picker',()=>{
+ for(const status of ['ordered','arrived']){
+  const tyre={id:'tyre-205/55R16',description:'Tyres',cost_price:21,[status]:true};
+  const app=ui(()=>{throw Error('No lookup expected');},[tyre]);let message='';app.root.alert=text=>{message=text;};
+  assert.equal(app.root.VectaJobPricing.removeTyres(),false);
+  assert.equal(app.parts()[0],tyre);assert.equal(app.document.querySelector('dialog'),null);assert.match(message,/already ordered or received/);
+ }
+});
+test('removing an unpriced tyre selection does not open a picker',()=>{
+ const app=ui(()=>{throw Error('No lookup expected');});
+ assert.equal(app.root.VectaJobPricing.removeTyres(),true);app.root.VectaJobPricing.selected('Tyres',false);
+ assert.equal(app.document.querySelector('dialog'),null);assert.equal(app.parts().length,0);
+});

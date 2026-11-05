@@ -15316,10 +15316,10 @@ function removeJobTemplateWork(current,name,remainingTypes){
   }
   return current;
 }
-function applyTemplate(name,removeSelectedTyres){
+function applyTemplate(name){
   var t=templateDataForType(name),jobType=document.getElementById('job_job_type');if(!jobType)return;
   var before=jobTypeValues(jobType.value),key=normaliseJobTypeKey(name),exists=before.some(function(v){return normaliseJobTypeKey(v)===key}),after=before.slice();
-  if(exists&&key==='tyres'&&!removeSelectedTyres&&window.VectaJobPricing){window.VectaJobPricing.selected(name,true);return;}
+  if(exists&&key==='tyres'&&window.VectaJobPricing&&window.VectaJobPricing.removeTyres&&!window.VectaJobPricing.removeTyres())return;
   if(exists){after=after.filter(function(v){return normaliseJobTypeKey(v)!==key})}
   else{after=after.filter(function(v){return normaliseJobTypeKey(v)!=='general'&&(!/^(interim|full) service$/.test(key)||!/^(interim|full) service$/.test(normaliseJobTypeKey(v)))});after.push(name)}
   if(!after.length)after=['general'];
