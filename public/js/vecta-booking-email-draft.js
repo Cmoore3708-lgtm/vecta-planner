@@ -13,9 +13,33 @@
   const encode=value=>base64(value).match(/.{1,76}/g).join('\r\n');
   const boundary='vecta-booking-draft';
   const eml=['X-Unsent: 1','To: '+email,'Subject: =?UTF-8?B?'+base64(subject.replace(/[\r\n]/g,' '))+'?=','MIME-Version: 1.0','Content-Type: multipart/alternative; boundary="'+boundary+'"','','--'+boundary,'Content-Type: text/plain; charset=UTF-8','Content-Transfer-Encoding: base64','',encode(text),'--'+boundary,'Content-Type: text/html; charset=UTF-8','Content-Transfer-Encoding: base64','',encode(html),'--'+boundary+'--',''].join('\r\n');
-  return {eml,text,html};
+  const mailto='mailto:'+encodeURIComponent(email)+'?subject='+encodeURIComponent(subject.replace(/[\r\n]/g,' '))+'&body='+encodeURIComponent(text);
+  return {eml,text,html,mailto,email};
+ }
+ function mobileDevice(){
+  const nav=root.navigator||{};
+  return !!(nav.userAgentData&&nav.userAgentData.mobile)||/Android|iPhone|iPad|iPod/i.test(nav.userAgent||'')||(/Mac/i.test(nav.platform||'')&&nav.maxTouchPoints>1);
+ }
+ function openMobile(draft){
+  const doc=root.document,previous=doc.getElementById('vectaBookingEmailReady');if(previous)previous.remove();
+  const dialog=doc.createElement('dialog');dialog.id='vectaBookingEmailReady';dialog.setAttribute('aria-labelledby','vectaBookingEmailTitle');
+  dialog.style.cssText='background:#171717;color:#fff;border:1px solid #555;border-radius:14px;padding:24px;width:calc(100vw - 32px);max-width:440px;max-height:85vh;overflow:auto;box-sizing:border-box;';
+  dialog.innerHTML='<h2 id="vectaBookingEmailTitle" style="margin:0 0 12px;font-size:22px;color:#fff">Booking saved</h2>'+
+   '<p style="line-height:1.5">Your confirmation email is ready. Open your email app, then tap Send.</p>'+
+   '<p style="overflow-wrap:anywhere">To: '+escape(draft.email)+'</p>'+
+   '<a data-booking-email-open class="btn green" style="display:block;text-align:center;padding:14px;margin:20px 0 12px;text-decoration:none" href="'+escape(draft.mailto)+'">Open email app</a>'+
+   '<button data-booking-email-close type="button" class="btn" style="width:100%;min-height:44px">Close</button>';
+  doc.body.appendChild(dialog);
+  dialog.querySelector('[data-booking-email-close]').onclick=function(){if(typeof dialog.close==='function')dialog.close();dialog.remove();};
+  dialog.addEventListener('close',function(){dialog.remove();});
+  if(typeof dialog.showModal==='function')dialog.showModal();else dialog.setAttribute('open','');
+  // Saving and fetching the tracking link can outlive iOS's tap permission.
+  // Keep a real link available for a fresh tap, even if an automatic launch fails.
+  const activation=(root.navigator||{}).userActivation;
+  if(activation&&activation.isActive){try{root.location.href=draft.mailto;}catch(error){/* The visible link remains available. */}}
  }
  function open(draft,registration){
+  if(mobileDevice()){openMobile(draft);return;}
   const url=root.URL.createObjectURL(new Blob([draft.eml],{type:'message/rfc822'}));
   const a=root.document.createElement('a');a.href=url;a.download='Vecta-booking-'+String(registration||'confirmation').replace(/[^A-Z0-9]/gi,'')+'.eml';
   root.document.body.appendChild(a);a.click();a.remove();root.setTimeout(()=>root.URL.revokeObjectURL(url),60000);
