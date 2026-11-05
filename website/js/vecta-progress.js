@@ -8,7 +8,7 @@
   function renderScenes(data,index){
     const scenes=el('progressScene');scenes.hidden=false;scenes.dataset.stage=data.stage;scenes.classList.remove('stale');
     const generated=trustedScenes(data.scenes);
-    const reg=normalise(data.registration),sceneSet=Object.hasOwn(sceneSets,reg)?sceneSets[reg]:'',approved=!!generated||!!sceneSet,waitingForScenes=!approved&&data.scene_state==='unavailable';
+    const reg=normalise(data.registration),sceneSet=Object.hasOwn(sceneSets,reg)?sceneSets[reg]:'',approved=!!generated||!!sceneSet,waitingForScenes=!approved&&['unavailable','preparing'].includes(data.scene_state);
     const key=JSON.stringify([reg,data.image_url||'',data.image_colour||'',sceneSet,generated,waitingForScenes]);
     const changed=key!==artworkKey;artworkKey=key;
     scenes.querySelectorAll('[data-scene]').forEach((card,i)=>{
@@ -30,7 +30,7 @@
       if(approved||waitingForScenes){card.querySelector('.vehicleLayer').hidden=true;card.querySelector('.sceneCar').removeAttribute('src');const mechanic=card.querySelector('.sceneMechanic');if(mechanic)mechanic.hidden=true;}
       card.querySelector('.scenePlate').textContent=data.registration||'';
     });
-    el('sceneCaption').hidden=!waitingForScenes;el('sceneCaption').textContent=waitingForScenes?'Your workshop status is up to date. Vehicle illustrations are unavailable at the moment.':'';
+    el('sceneCaption').hidden=!waitingForScenes;el('sceneCaption').textContent=waitingForScenes?(data.scene_state==='preparing'?'We’re preparing your car’s illustrations. This usually takes a few minutes and only needs doing once. Your workshop status is shown below.':'Your workshop status is up to date. Vehicle illustrations are unavailable at the moment.'):'';
     const safeImage=typeof data.image_url==='string'&&/^https:\/\/www\.haynespro-assets\.com\/workshop\/images\/\d+\.(svgz?|png|jpe?g|webp)$/.test(data.image_url);
     if(approved||waitingForScenes||!changed)return;
     scenes.querySelectorAll('.sceneCar').forEach(old=>{
@@ -61,9 +61,9 @@
   async function refresh(){
     clearTimeout(timer);if(busy||(!token&&!registration)||document.hidden)return;busy=true;el('refresh').disabled=true;
     try{
-      const response=await fetch('/api/job-progress',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(registration?{action:'registration',registration}:{action:'status',token}),cache:'no-store',credentials:'omit',signal:AbortSignal.timeout(15000)});
+      const response=await fetch('/api/job-progress',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(registration?{action:'registration',registration,request_scenes:true}:{action:'status',token,request_scenes:true}),cache:'no-store',credentials:'omit',signal:AbortSignal.timeout(15000)});
       const data=await response.json();if(!response.ok){const error=Error(data.error||'Progress is temporarily unavailable.');error.permanent=response.status===404||response.status===400;throw error;}
-      render(data);failures=0;el('error').hidden=true;timer=setTimeout(refresh,60000);
+      render(data);failures=0;el('error').hidden=true;timer=setTimeout(refresh,data.scene_state==='preparing'?15000:60000);
     }catch(error){
       el('error').hidden=false;el('error').textContent=(error.message||'Progress is temporarily unavailable.')+' '+(error.permanent?'':'Your last displayed update may be out of date.');
       el('paperwork').hidden=true;el('invoice').removeAttribute('href');el('progressScene').classList.add('stale');

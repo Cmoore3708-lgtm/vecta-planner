@@ -5,25 +5,29 @@ import vm from 'node:vm';
 import {parseHTML} from 'linkedom';
 import sharp from 'sharp';
 import {createSceneService,imageBytes,providerImageBytes,cronAuthorised,requestLimit,default as handler} from '../../lib/progress-scene-worker.js';
+import {requestScenePreparation,sceneRequestId} from '../../lib/progress-scene-demand.js';
 import {sceneIdentity,sceneFingerprint,sceneStages,scenePrompt,qualityChecks,qualityPassed,publishedScenes,sceneUrl} from '../../lib/progress-scene-model.js';
 const reg='AB12CDE',base='https://jywufozycuwuoshlulwl.supabase.co',now=Date.parse('2026-11-03T12:00:00Z');
-function fixture({cap=40,quality=true,generateFailure=false}={}){
+function fixture({cap=40,quality=true,generateFailure=false,viewed=true}={}){
  const rows=new Map(),calls=[],generated=[],drafts=new Map();let clock=now,checks=0,publishes=0;
  const art={registration:reg,make:'MAZDA',model:'6',colour:'RED',imageUrl:'https://www.haynespro-assets.com/workshop/images/123.svg'};
  rows.set('vehicle_artwork:'+reg,{id:'vehicle_artwork:'+reg,value:art,updated_at:new Date(now).toISOString()});
  const jobs=[{id:'12345678-1234-4234-8234-123456789012',registration:reg,booking_date:'2026-11-03',status:'booked',archived:false}];
+ if(viewed)rows.set(sceneRequestId(reg),{id:sceneRequestId(reg),value:{registration:reg,fingerprint:sceneFingerprint(sceneIdentity(reg,[...rows.values()])),source:{kind:'job',id:jobs[0].id},status:'pending'},updated_at:new Date(now).toISOString()});
  const db=async(path,options={})=>{
   calls.push({path,options});const url=new URL('https://db.example/'+path),method=options.method||'GET';
   if(url.pathname==='/jobs')return jobs;
   const filter=url.searchParams.get('id');
   if(method==='GET'){
    if(filter.startsWith('in.('))return filter.slice(4,-1).split(',').map(id=>rows.get(id)).filter(Boolean);
-   return rows.has(filter.slice(3))?[structuredClone(rows.get(filter.slice(3)))]:[];
+   const found=filter.startsWith('like.')?[...rows.values()].filter(r=>r.id.startsWith(filter.slice(5,-1))):rows.has(filter.slice(3))?[rows.get(filter.slice(3))]:[];
+   return structuredClone(found.filter(r=>!url.searchParams.has('value->>status')||'eq.'+r.value.status===url.searchParams.get('value->>status')));
   }
   const body=JSON.parse(options.body),id=body.id||filter.slice(3),old=rows.get(id);
   if(method==='POST'&&String(options.headers?.Prefer).includes('ignore-duplicates')&&old)return [];
   if(method==='PATCH'){
    if(!old)return [];
+   for(const key of ['fingerprint','status'])if(url.searchParams.has('value->>'+key)&&url.searchParams.get('value->>'+key)!=='eq.'+old.value[key])return [];
    if(url.searchParams.get('updated_at')&&url.searchParams.get('updated_at')!=='eq.'+old.updated_at)return [];
    if(url.searchParams.get('value->>owner')&&url.searchParams.get('value->>owner')!=='eq.'+old.value.owner)return [];
   }
@@ -55,13 +59,12 @@ test('worker generates all three once, validates them, publishes together and re
  assert.equal(publishedScenes(manifest.identity,{...manifest,scenes:{...manifest.scenes,ready:'https://evil.example/image.webp'}},base),null);
  assert.equal(f.rows.get('progress_scene_usage_v1:2026-11').value.requests,4);
 });
-test('future bookings prepare their real scenes early and still reuse the approved set',async()=>{
+test('viewed future bookings prepare scenes and reuse them; unviewed bookings remain idle',async()=>{
  const f=fixture();f.jobs[0].booking_date='2026-11-27';
  assert.equal((await f.service.run()).status,'ready');assert.equal(f.generated.length,3);
- const query=new URL('https://db.example/'+f.calls.find(c=>c.path.startsWith('jobs?')).path).searchParams;
- assert.equal(query.get('booking_date'),'gte.2026-11-03');assert.equal(query.has('and'),false);
+ assert.ok(f.calls.some(c=>c.path.includes('progress_scene_request_v1')));
  assert.equal((await f.service.run()).idle,true);assert.equal(f.generated.length,3);
- const past=fixture();past.jobs[0].booking_date='2026-11-02';assert.equal((await past.service.run()).idle,true);assert.equal(past.generated.length,0);
+ const untouched=fixture({viewed:false});assert.equal((await untouched.service.run()).idle,true);assert.equal(untouched.generated.length,0);
 });
 test('failed visual checks never publish, retries stop after two attempts per image',async()=>{
  const f=fixture({quality:false});assert.equal((await f.service.run()).status,'pending');assert.equal((await f.service.run()).status,'needs_review');assert.equal((await f.service.run()).idle,true);
@@ -205,7 +208,7 @@ test('real Illustrator-style supplier drawings retain the car while scripts, ext
 });
 test('old rejected drafts get one foreground-only recheck without regenerating images',async()=>{
  const f=fixture({quality:false});await f.service.run();await f.service.run();
- const saved=f.rows.get('progress_scenes_v1:'+reg);delete saved.value.review_version;saved.value.drafts={};
+ const saved=f.rows.get('progress_scenes_v1:'+reg);delete saved.value.review_version;saved.value.drafts={};f.rows.get(sceneRequestId(reg)).value.status='pending';
  let checks=0;
  const service=createSceneService({db:f.db,storage:f.storage,generate:f.generate,validate:async()=>{checks++;return Object.fromEntries(qualityChecks.map(k=>[k,true]));},now:()=>now,limit:()=>40});
  assert.equal((await service.run()).status,'ready');assert.equal(f.generated.length,6);assert.equal(checks,1);
@@ -214,15 +217,59 @@ test('old rejected drafts get one foreground-only recheck without regenerating i
  assert.equal((await service.run()).idle,true);assert.equal(checks,1);
 });
 test('a failed recovery remains private and is never repeatedly billed',async()=>{
- const f=fixture({quality:false});await f.service.run();await f.service.run();delete f.rows.get('progress_scenes_v1:'+reg).value.review_version;
+ const f=fixture({quality:false});await f.service.run();await f.service.run();delete f.rows.get('progress_scenes_v1:'+reg).value.review_version;f.rows.get(sceneRequestId(reg)).value.status='pending';
  assert.equal((await f.service.run()).status,'needs_review');assert.equal((await f.service.run()).idle,true);
  assert.equal(f.generated.length,6);assert.equal(f.stats().checks,3);assert.equal(f.stats().publishes,0);
 });
 test('recovery honours identity changes and the existing monthly budget',async()=>{
  for(const scenario of ['identity','budget']){
-  const f=fixture({quality:false});await f.service.run();await f.service.run();delete f.rows.get('progress_scenes_v1:'+reg).value.review_version;
+  const f=fixture({quality:false});await f.service.run();await f.service.run();delete f.rows.get('progress_scenes_v1:'+reg).value.review_version;f.rows.get(sceneRequestId(reg)).value.status='pending';
   const service=createSceneService({db:f.db,storage:f.storage,generate:f.generate,validate:async()=>{f.art.colour='BLUE';return Object.fromEntries(qualityChecks.map(k=>[k,true]));},now:()=>now,limit:()=>scenario==='budget'?8:40});
   if(scenario==='budget')await assert.rejects(service.run(),/limit reached/);else assert.equal((await service.run()).status,'identity_changed');
   assert.equal(f.stats().publishes,0);assert.equal(f.generated.length,6);
  }
+});
+
+test('only a verified view queues work; repeated and simultaneous views never reset saved images',async()=>{
+ const f=fixture({viewed:false}),identity=sceneIdentity(reg,[...f.rows.values()]),source={kind:'job',id:f.jobs[0].id};
+ assert.deepEqual(await f.service.run(),{idle:true});assert.equal(f.generated.length,0);
+ const view=()=>requestScenePreparation({db:f.db,identity,source,now});
+ await Promise.all([view(),view()]);assert.equal([...f.rows.keys()].filter(id=>id.startsWith('progress_scene_request_v1:')).length,1);
+ assert.equal((await f.service.run()).status,'ready');
+ const saved=structuredClone(f.rows.get('progress_scenes_v1:'+reg));
+ for(let i=0;i<5;i++){await view();assert.deepEqual(await f.service.run(),{idle:true});}
+ assert.deepEqual(f.rows.get('progress_scenes_v1:'+reg),saved);assert.equal(f.generated.length,3);assert.equal(f.stats().checks,1);
+});
+test('supplier artwork URL changes keep the complete saved set; model or colour corrections require a new view',async()=>{
+ const f=fixture();await f.service.run();const manifest=f.rows.get('progress_scenes_v1:'+reg).value;
+ f.art.imageUrl='https://www.haynespro-assets.com/workshop/images/456.svg';
+ let identity=sceneIdentity(reg,[...f.rows.values()]);assert.deepEqual(publishedScenes(identity,manifest,base),manifest.scenes);
+ assert.deepEqual(await f.service.run(),{idle:true});assert.equal(f.generated.length,3);
+ f.art.colour='BLUE';identity=sceneIdentity(reg,[...f.rows.values()]);assert.equal(publishedScenes(identity,manifest,base),null);
+ assert.deepEqual(await f.service.run(),{idle:true});assert.equal(f.generated.length,3);
+ await requestScenePreparation({db:f.db,identity,source:{kind:'job',id:f.jobs[0].id},now});
+ assert.equal((await f.service.run()).status,'ready');assert.equal(f.generated.length,6);
+});
+test('viewing a failed set does not reset its attempts or keep paying for regeneration',async()=>{
+ const f=fixture({quality:false});await f.service.run();await f.service.run();
+ const identity=sceneIdentity(reg,[...f.rows.values()]),before=structuredClone(f.rows.get('progress_scenes_v1:'+reg));
+ for(let i=0;i<5;i++){assert.equal(await requestScenePreparation({db:f.db,identity,source:{kind:'job',id:f.jobs[0].id},now}),'unavailable');assert.deepEqual(await f.service.run(),{idle:true});}
+ assert.deepEqual(f.rows.get('progress_scenes_v1:'+reg),before);assert.equal(f.generated.length,6);
+});
+test('a targeted first-view run cannot generate images for an unviewed car or another queued car',async()=>{
+ const f=fixture();assert.deepEqual(await f.service.run({registration:'XX99XXX'}),{idle:true});assert.equal(f.generated.length,0);
+ assert.equal((await f.service.run({registration:reg})).status,'ready');assert.equal(f.generated.length,3);
+});
+test('a changed identity with an old pending view never automatically regenerates',async()=>{
+ const f=fixture();f.art.colour='BLUE';assert.deepEqual(await f.service.run(),{idle:true});assert.equal(f.generated.length,0);
+ assert.equal(f.rows.get(sceneRequestId(reg)).value.status,'identity_changed');
+});
+test('first-view preparation keeps status visible, polls for saved images and never shows old overlays',async()=>{
+ const {document}=parseHTML(fs.readFileSync(new URL('../../public/track.html',import.meta.url),'utf8'));document.hidden=false;
+ const requests=[],timers=[];
+ const context={document,window:{addEventListener(){}},location:{hash:'#token'},Intl,Date,AbortSignal,Error,setTimeout:(fn,delay)=>{timers.push({fn,delay});return 1;},clearTimeout(){},fetch:async(_url,options)=>{requests.push(JSON.parse(options.body));return {ok:true,json:async()=>({registration:reg,stage:'underway',title:'In the workshop',scene_state:'preparing'})};}};
+ vm.runInNewContext(fs.readFileSync(new URL('../../public/js/vecta-progress.js',import.meta.url),'utf8'),context);await new Promise(r=>setImmediate(r));
+ assert.equal(requests[0].request_scenes,true);assert.equal(document.getElementById('statusTitle').textContent,'In the workshop');
+ assert.match(document.getElementById('sceneCaption').textContent,/preparing your car/);assert.equal(timers.at(-1).delay,15000);
+ for(const card of document.querySelectorAll('[data-scene]'))assert.equal(card.querySelector('.sceneArt').hidden,true);
 });
