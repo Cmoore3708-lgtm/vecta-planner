@@ -16,7 +16,9 @@ export function readVehicle() {
   const image = Array.from(document.images).find(i => i.src.startsWith('https://www.haynespro-assets.com/workshop/images/'));
   return {
     login: !!document.querySelector('input[type="password"]'),
-    blocked: /Verify you are human|Checking your browser|unusual traffic|automated traffic/i.test(text),
+    searchReady: !!document.querySelector('#numberPlate,input[name="numberPlate"]')?.getClientRects?.().length,
+    blocked: /Verify you are human|Checking your browser|unusual traffic|automated traffic|enter (?:your |the )?(?:verification|authentication) code/i.test(text) ||
+      Array.from(document.querySelectorAll('input[autocomplete="one-time-code"],iframe[src*="recaptcha"],iframe[src*="hcaptcha"]')).some(el => el.getClientRects().length),
     // A multi-result selection page must never silently select the first result.
     ambiguous: !location.pathname.endsWith('/modelDetail') && anchors.some(a => a.href.includes('/modelDetail?')),
     registration: clean(text.match(/Vehicle Registration Number:\s*([A-Z0-9 ]+?)(?=\s*(?:VIN:|Registration Date:|[\n\r]|$))/)?.[1]).replace(/\s/g, ''),

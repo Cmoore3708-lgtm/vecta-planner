@@ -1,14 +1,14 @@
 import {guidedMaintenance} from './maintenance-menus.mjs';
 import { writeFile } from 'node:fs/promises';
 import { chooseSchedule, ukSchedules } from './schedule-choice.mjs';
-import { START } from './browser.mjs';
+import { START, withHaynesSession } from './session-recovery.mjs';
 import { readVehicle } from './dom.mjs';
 import { readSchedule, readOil, readDirectSchedules, readConditionSchedules, readScheduleDiagnostics, readScheduleSelectors } from './service-dom.mjs';
 import { vehicleResult, HaynesError } from '../../lib/haynes-vehicle.js';
 import { serviceRequest, serviceResult, selectServicePeriod, servicePeriodLinks } from '../../lib/haynes-service.js';
-export const SERVICE_WORKER_VERSION = '2026-10-14.12';
+export const SERVICE_WORKER_VERSION = '2026-11-06.1';
 console.log('VECTA Haynes service worker version '+SERVICE_WORKER_VERSION);
-export function browserServiceLookup(context, { chooseConditions } = {}) {
+export function browserServiceLookup(context, { chooseConditions, withSession = withHaynesSession } = {}) {
   const retainDiagnosticPage=createDiagnosticPageRetainer(context);
   return async raw => {
     const input=serviceRequest(raw);
@@ -19,12 +19,30 @@ export function browserServiceLookup(context, { chooseConditions } = {}) {
       page.setDefaultTimeout(12000);
       deadline=setTimeout(()=>{expired=true;page.close().catch(()=>{});},60000);
       await page.route('**/*',r=>['https://www.workshopdata.com','https://www.haynespro-assets.com'].includes(new URL(r.request().url()).origin)?r.continue():r.abort());
+      return await withSession(page, readService);
+    } catch(error) {
+      const reason=expired?'SERVICE_DEADLINE':error.name==='TimeoutError'?'TIMEOUT':['LOGIN_REQUIRED','VERIFICATION_REQUIRED','SCHEDULE_REQUIRED','MISMATCH','INCOMPLETE','AMBIGUOUS'].includes(error.code)?error.code:/page, context or browser has been closed|target closed/i.test(error.message||'')?'PAGE_CLOSED':'BROWSER_ERROR';
+      console.log('Haynes service '+input.registration+' failed - step '+stage+' - reason '+reason+' - '+Math.round((Date.now()-started)/1000)+'s - version '+SERVICE_WORKER_VERSION);
+      if(process.env.HAYNES_SERVICE_DIAGNOSTICS==='1' && !['LOGIN_REQUIRED','VERIFICATION_REQUIRED'].includes(reason) && page && !page.isClosed()) {
+        clearTimeout(deadline);
+        keepFailedPage=await retainDiagnosticPage(page);
+        try {
+          const controls=await page.evaluate(readScheduleDiagnostics);
+          await writeFile(new URL('./haynes-service-diagnostic.json',import.meta.url),JSON.stringify({version:SERVICE_WORKER_VERSION,stage,reason,controls},null,2));
+          console.log('Diagnostic saved: haynes-service-diagnostic.json in this worker folder. '+(keepFailedPage?'Failed Haynes tab left open.':'Failed tab will close: diagnostic retention unavailable.'));
+          await page.bringToFront();
+        } catch { console.log('Could not finish diagnostic capture.'); }
+      }
+      throw error;
+    } finally { clearTimeout(deadline);if(!keepFailedPage)await page?.close().catch(()=>{}); }
+
+    async function readService() {
       stage='OPEN_SEARCH';
       await page.goto(START,{waitUntil:'domcontentloaded'});
       stage='CHECK_LOGIN';
       const initial=await page.evaluate(readVehicle);
-      if(initial.login)throw new HaynesError('LOGIN_REQUIRED');
       if(initial.blocked)throw new HaynesError('VERIFICATION_REQUIRED');
+      if(initial.login)throw new HaynesError('LOGIN_REQUIRED');
       stage='ENTER_REGISTRATION';
       await page.locator('#numberPlate,input[name="numberPlate"]').fill(input.registration);
       stage='SUBMIT_REGISTRATION';
@@ -35,8 +53,8 @@ export function browserServiceLookup(context, { chooseConditions } = {}) {
         try { data=await page.evaluate(readVehicle); if(String(data.registration||'').replace(/[^A-Z0-9]/gi,'').toUpperCase()===input.registration||data.login||data.blocked||data.ambiguous)break; } catch(e) { if(!/context was destroyed|Cannot find context/i.test(e.message))throw e; }
         await new Promise(r=>setTimeout(r,200));
       }
-      if(data?.login)throw new HaynesError('LOGIN_REQUIRED');
       if(data?.blocked)throw new HaynesError('VERIFICATION_REQUIRED');
+      if(data?.login)throw new HaynesError('LOGIN_REQUIRED');
       stage='VALIDATE_VEHICLE';
       const vehicle=vehicleResult(data,input.registration);
       let conditions,system,links,schedules=[],guided;
@@ -163,21 +181,7 @@ export function browserServiceLookup(context, { chooseConditions } = {}) {
       const result=serviceResult({...schedule,...(guided?{menuFlow:'guided'}:{}),vehicle,mileage:input.mileage,conditions,system,schedules,oil,ageMonths},input);
       console.log('Haynes service '+input.registration+' completed - '+result.schedule+' - engine oil rows '+result.oil.length);
       return result;
-    } catch(error) {
-      const reason=expired?'SERVICE_DEADLINE':error.name==='TimeoutError'?'TIMEOUT':['LOGIN_REQUIRED','VERIFICATION_REQUIRED','SCHEDULE_REQUIRED','MISMATCH','INCOMPLETE','AMBIGUOUS'].includes(error.code)?error.code:/page, context or browser has been closed|target closed/i.test(error.message||'')?'PAGE_CLOSED':'BROWSER_ERROR';
-      console.log('Haynes service '+input.registration+' failed - step '+stage+' - reason '+reason+' - '+Math.round((Date.now()-started)/1000)+'s - version '+SERVICE_WORKER_VERSION);
-      if(process.env.HAYNES_SERVICE_DIAGNOSTICS==='1' && page && !page.isClosed()) {
-        clearTimeout(deadline);
-        keepFailedPage=await retainDiagnosticPage(page);
-        try {
-          const controls=await page.evaluate(readScheduleDiagnostics);
-          await writeFile(new URL('./haynes-service-diagnostic.json',import.meta.url),JSON.stringify({version:SERVICE_WORKER_VERSION,stage,reason,controls},null,2));
-          console.log('Diagnostic saved: haynes-service-diagnostic.json in this worker folder. '+(keepFailedPage?'Failed Haynes tab left open.':'Failed tab will close: diagnostic retention unavailable.'));
-          await page.bringToFront();
-        } catch { console.log('Could not finish diagnostic capture.'); }
-      }
-      throw error;
-    } finally { clearTimeout(deadline);if(!keepFailedPage)await page?.close().catch(()=>{}); }
+    }
   };
 }
 

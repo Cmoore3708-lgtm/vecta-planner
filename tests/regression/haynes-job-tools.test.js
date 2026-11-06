@@ -444,3 +444,21 @@ test('a same-registration vehicle-field refresh cannot discard a completed autom
  finish();await new Promise(r=>setImmediate(r));
  assert.equal(s.document.querySelector('.jobCardHeaderVehicle img')?.dataset.registration,vehicle.registration);
 });
+
+test('the mechanic Haynes button keeps explicit retries and displays a confirmed match in the card', async () => {
+ const requests=[];
+ const {window,panel}=setup(async (url, options)=>{
+   requests.push([url,options.method||'GET']);
+   if(requests.length===1)return {ok:false,json:async()=>({status:'LOGIN_REQUIRED'})};
+   return response(vehicle);
+ },undefined,undefined,false,'',true);
+ window.open=()=>assert.fail('a mechanic lookup must stay in the job card');
+ const button=lookupButton(panel);
+ await button.onclick({type:'click'});
+ assert.match(panel.textContent,/login needs renewing/);
+ await button.onclick({type:'click'});
+ assert.match(panel.textContent,/Qashqai/);
+ assert.equal(panel.querySelector('a[href*="modelDetail"]').href,window.VectaHaynesJobTools.vehicleLink(vehicle));
+ assert.deepEqual(requests,Array(2).fill(['/api/haynes-vehicle?reg=FX69XWU&retry=1','POST']));
+ delete window.open;
+});

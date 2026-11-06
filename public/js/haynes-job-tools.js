@@ -582,8 +582,9 @@ root.initHaynesJobTools=function(modal,{automatic=false,recoverImage=true}={}){
   if(!panel.isConnected)return;clear();if(event){failed.delete(current());}
 const requested=current(),expectedMake=make(modal.querySelector('#job_make')?.value);
   if(noVehicle?.checked||!lookupRegistration(requested)){status.textContent='Enter the actual vehicle registration first. Placeholder names cannot be looked up.';return;}
-  // Open during the click so browsers do not block the eventual vehicle page.
-  const target=event&&typeof root.open==='function'?root.open('about:blank','_blank'):null;
+  // The office shortcut opens the supplier. Mechanics read the match in this
+  // job card; the supplier links remain available as a separate choice.
+  const target=event&&!mechanic&&typeof root.open==='function'?root.open('about:blank','_blank'):null;
   if(target)target.opener=null;
   const run=sequence;
   button.disabled=true;status.textContent='Looking up vehicle…';
