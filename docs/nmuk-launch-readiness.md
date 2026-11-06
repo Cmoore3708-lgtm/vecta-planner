@@ -20,6 +20,7 @@ This change is prepared for the employee email campaign in the week commencing 9
 - Ten concurrent email claims admitted exactly one. Frozen payloads, wrong-lease rejection, retry expiry and private access were verified. The standalone SQL test rolls back all its fixture writes.
 - Node tests cover distinct browser identities behind one IP, tampered/expired cookies, manager-only health, automatic retail-price/VAT import, receipt content, preview sending guard and lost-response retries.
 - No supplier lookups or real emails were triggered by these tests. Real GSF session health and actual email deliverability still require a production check after release. Device-specific preview verification must be recorded before merge; automated tests do not replace Chris's iPhone or mechanics' iPad.
+- Standalone website previews take booking visitors to the Workshop preview for the same Git commit. A missing or mismatched preview stops the request. Direct calls to the standalone preview's booking proxies are blocked so a test submission cannot reserve a live slot.
 
 ## Release and recovery
 

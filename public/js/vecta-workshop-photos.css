@@ -39,3 +39,46 @@
 .workshopFindingReceipt{position:fixed;z-index:100000;left:50%;bottom:18px;transform:translateX(-50%);padding:10px 16px;background:#1c5436;color:white;border-radius:8px;text-align:center;font-weight:700;pointer-events:none}
 
 .mechanicFindings [hidden],.mechanicFindings [data-photo-only]{display:none!important}
+
+.mechanicPhotoAlert{position:fixed;z-index:100001;top:12px;right:12px;width:min(360px,calc(100vw - 24px));box-sizing:border-box;padding:0;border:1px solid #ccab64;border-left:5px solid #a57524;border-radius:10px;background:#fffaf0;color:#211b13;box-shadow:0 5px 20px #18212c38}
+.mechanicPhotoAlert[hidden],.findingDestination[hidden]{display:none}
+.findingAlertOpen{display:grid;width:100%;box-sizing:border-box;gap:5px;padding:14px 46px 12px 14px;border:0;border-radius:8px;background:transparent;color:inherit;font:inherit;text-align:left;cursor:pointer}
+.findingAlertNote{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;overflow-wrap:anywhere}
+.findingAlertAction{font-weight:700;text-decoration:underline}
+.findingAlertDismiss{position:absolute;top:0;right:0;width:42px;height:42px;border:0;background:transparent;color:inherit;font-size:24px;cursor:pointer}
+.mechanicPhotoAlert p{margin:0 12px 12px;font-size:14px}
+.mechanicPhotoAlert p:empty{display:none}
+.findingDestination{margin:10px 0;scroll-margin-block:10px}
+.findingDestination:focus{outline:2px solid #a57524;outline-offset:2px}
+.findingEvidence{display:flex;flex-wrap:wrap;align-items:flex-start;gap:8px;margin:8px 0;min-width:0}
+.findingEvidence figure{margin:0;max-width:100%;min-width:0}
+.findingEvidence figcaption{overflow-wrap:anywhere}
+
+/* Workshop job editor: keep each photo beside the finding it belongs to. */
+.managerFindings {min-width:0}
+.managerFindings .workshopPhotosHeading {display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:4px 10px}
+.managerFindings .workshopPhotosHeading h3 {font-size:14px}
+.managerFindings .workshopPhotoActions {gap:4px}
+.managerFindings .approvalComposer {margin:6px 0 0;padding-top:5px;font-size:13px}
+.managerFindings .workshopPhotoStatus {font-size:12px;line-height:1.3;margin:4px 0 0}
+.managerFindings .workshopPhotoStatus:empty,.managerFindings .findingReview [role=status]:empty {display:none}
+.managerFindings .findingDestination {margin:6px 0}
+.managerFindings .approvalRecord {margin-top:5px;padding:6px 8px;font-size:14px;line-height:1.3}
+.managerFindings .approvalRecord:has(.findingBody) {display:grid;grid-template-columns:clamp(68px,15%,90px) minmax(0,1fr);align-items:start;gap:8px}
+.managerFindings .findingEvidence {margin:0;gap:5px}
+.managerFindings .findingEvidence figure {width:100%}
+.managerFindings .findingEvidence img,.managerFindings .workshopPhotoGrid img,.managerFindings .workshopPhotoDraft img {max-width:min(100%,90px);max-height:84px}
+.managerFindings .findingEvidence figcaption {margin-top:3px;font-size:12px}
+.managerFindings .findingReview {display:flex;align-items:center;flex-wrap:wrap;gap:4px 8px;margin-top:5px}
+.managerFindings .findingReview label {margin:0;font-size:13px}
+.managerFindings .findingReview label:first-child {display:flex;align-items:center;flex-wrap:wrap;gap:3px 6px}
+.managerFindings .findingReview input[type=text] {box-sizing:border-box;width:6em;margin:0;padding:5px}
+.managerFindings .findingReview [role=status] {flex-basis:100%}
+.managerFindings .workshopPhotoGrid,.managerFindings .workshopPhotoDrafts {gap:6px;margin-top:6px}
+.managerFindings .workshopPhotoGrid figure,.managerFindings .workshopPhotoDraft {padding:6px;border-radius:8px}
+.managerFindings .workshopPhotoGrid figure>p {white-space:pre-wrap;overflow-wrap:anywhere;margin:3px 0}
+.managerFindings .workshopPhotoGrid textarea,.managerFindings .workshopPhotoDraft textarea {min-height:0;margin:4px 0;padding:4px 6px}
+@media (min-width:700px) {
+ .managerFindings .approvalRecord:has(.findingEvidence figure:nth-child(2)) {grid-template-columns:min(30%,175px) minmax(0,1fr)}
+ .managerFindings .findingEvidence figure:not(:only-child) {width:calc(50% - 3px)}
+}

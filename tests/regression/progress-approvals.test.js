@@ -314,7 +314,7 @@ test('mechanic camera → Save holds the job open for a note, keeps the photo on
  });
  window.VectaWorkshopPhotos.mount(app,job,true);await new Promise(r=>setImmediate(r));
  const send=app.querySelector('[data-approval-send]'),camera=app.querySelector('[data-photo-camera-input]');
- assert.equal(camera.getAttribute('capture'),'environment');assert.equal(send.textContent,'Send to Workshop');
+ assert.equal(camera.getAttribute('capture'),'environment');assert.equal(send.textContent,'Send to Office');
  assert.equal(send.closest('details'),null);
  assert.ok(Array.from(send.closest('.workshopPhotos').children).indexOf(send.closest('.approvalComposer'))<
            Array.from(send.closest('.workshopPhotos').children).indexOf(app.querySelector('[data-photo-drafts]')));
@@ -322,7 +322,7 @@ test('mechanic camera → Save holds the job open for a note, keeps the photo on
  const prepare=camera.onchange();const saving=mobile.onclick();decoded();await Promise.all([prepare,saving]);
  assert.equal(regularSaves,0);assert.equal(posts.length,0);assert.ok(app.querySelector('.workshopPhotoDraft'));
  assert.match(app.querySelector('[data-approval-notice]').textContent,/Add a message/);
- assert.equal(mobile.textContent,'Save & send to Workshop');
+ assert.equal(mobile.textContent,'Save & send to Office');
  app.querySelector('#cancelJob').onclick();assert.equal(regularCloses,0);
  app.querySelector('[data-approval-message]').value='Nearside front tyre worn to the cords.';
  await save.onclick();assert.equal(regularSaves,0);assert.match(app.querySelector('[data-approval-notice]').textContent,/interrupted/);
@@ -331,7 +331,20 @@ test('mechanic camera → Save holds the job open for a note, keeps the photo on
  assert.equal(regularSaves,0);finishStage();await Promise.all([retry,concurrentSave]);
  assert.equal(posts.length,1);assert.equal(stageIds.length,2);assert.equal(new Set(stageIds).size,1);
  assert.equal(posts[0].review_id,stageIds[0]);assert.equal(regularSaves,1);
- assert.equal(document.querySelector('.workshopFindingReceipt').textContent,'Sent to Workshop for pricing');
+ assert.equal(document.querySelector('.workshopFindingReceipt').textContent,'Sent to Office for pricing');
  assert.equal(mobile.textContent,'Save & Close');
  await save.onclick();assert.equal(regularSaves,2);assert.equal(stageIds.length,2);
+});
+
+test('only a signed-in mechanic’s submitted photo batch is eligible for a dashboard alert',async t=>{
+ const s=setup(t);
+ await stageFinding(s.db,job,{...body,progress_from_mechanic:true},'manager');
+ const queued=()=>reviewQueue(async()=>[{...s.row,jobs:job}]);
+ assert.equal((await queued()).findings[0].mechanic_photo,false);
+ s.row=null;
+ await stageFinding(s.db,job,body,'mechanic');
+ await stageFinding(s.db,job,body,'manager');
+ assert.equal((await queued()).findings[0].mechanic_photo,true);
+ s.row=null;await stageFinding(s.db,job,{...body,photo_ids:[]},'mechanic');
+ assert.equal((await queued()).findings[0].mechanic_photo,false);
 });

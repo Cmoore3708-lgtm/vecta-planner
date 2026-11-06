@@ -324,6 +324,78 @@ root.enrichHaynesInvoice=function(sheet,invoice){
 
  if(matched){const title=strip.querySelector('.invoiceVehicleMake,.invoiceBookingDetails>strong');if(title)title.textContent=[matched.make,matched.model,matched.variant].filter(Boolean).join(' ');}
 };
+// Compare both columns at their rendered sizes. Keep the work, photos and
+// calendar in place; only the lower, independent sections can change sides.
+function balanceJobSections(modal,sections,main,aside,parts,pricing){
+ if(!root.ResizeObserver||!root.MutationObserver||!root.requestAnimationFrame)return;
+ const panels=Array.from(main.children).filter(el=>el===parts||el===pricing||el.matches('.jobMotAdvisories'));
+ if(!panels.length)return;
+ const homes=panels.map(panel=>{
+  const home=document.createComment('Original job section position');
+  main.insertBefore(home,panel);panel.classList.add('jobAdaptiveSection');return home;
+ });
+ let frame=null,stopped=false;
+ const schedule=()=>{
+  if(stopped||frame!==null)return;
+  frame=root.requestAnimationFrame(()=>{frame=null;arrange();});
+ };
+ const sizes=new root.ResizeObserver(schedule);
+ const lifecycle=new root.MutationObserver(()=>{
+  if(!modal.contains(sections)||modal.getAttribute('aria-hidden')==='true')stop();
+ });
+ function stop(){
+  stopped=true;sizes.disconnect();lifecycle.disconnect();
+  if(frame!==null)root.cancelAnimationFrame(frame);
+  sections.removeEventListener('focusout',schedule);
+ }
+ function place(onRight){
+  // Move existing nodes so their inputs and event handlers stay intact.
+  for(const [index,panel] of panels.entries()){
+   if(onRight.includes(panel)){
+    if(panel.parentElement===aside)continue;
+    const next=onRight.slice(onRight.indexOf(panel)+1).find(other=>other.parentElement===aside);
+    aside.insertBefore(panel,next||null);
+   }else if(panel.parentElement!==main)homes[index].after(panel);
+  }
+ }
+ function arrange(){
+  if(!modal.contains(sections)||!sections.isConnected){stop();return;}
+  const active=document.activeElement;
+  // Keep the current field, its neighbours and the caret still while editing.
+  if(active&&sections.contains(active)&&(active.matches('input,textarea,select')||active.isContentEditable||panels.some(panel=>panel.contains(active))))return;
+  const left=main.getBoundingClientRect(),right=aside.getBoundingClientRect();
+  if(right.left<left.right-1||Math.min(left.width,right.width)<360){place([]);return;}
+  const fixed=col=>Array.from(col.children).filter(el=>!panels.includes(el)).map(el=>el.getBoundingClientRect().height);
+  const leftFixed=fixed(main),rightFixed=fixed(aside);
+  const heights=panels.map(panel=>panel.getBoundingClientRect().height);
+  const gap=col=>parseFloat(root.getComputedStyle(col).rowGap)||0;
+  const leftGap=gap(main),rightGap=gap(aside);
+  function stack(rows,gutter){
+   const visible=rows.filter(height=>height>0);
+   return visible.reduce((total,height)=>total+height,0)+Math.max(0,visible.length-1)*gutter;
+  }
+  function pageHeight(onRight){
+   const leftRows=leftFixed.slice(),rightRows=rightFixed.slice();
+   panels.forEach((panel,index)=>(onRight.includes(panel)?rightRows:leftRows).push(heights[index]));
+   return Math.max(stack(leftRows,leftGap),stack(rightRows,rightGap));
+  }
+  // At most three panels. Near ties favour moving fewer, starting with Invoice.
+  let layouts=[[]];
+  for(const panel of panels.slice().reverse())layouts=layouts.concat(layouts.map(onRight=>[panel,...onRight]));
+  const options=layouts.map(onRight=>({onRight,height:pageHeight(onRight)}));
+  const baseline=options[0].height,shortest=Math.min(...options.map(option=>option.height));
+  if(baseline-shortest<8){place([]);return;}
+  const currentHeight=pageHeight(panels.filter(panel=>panel.parentElement===aside));
+  if(currentHeight<=shortest+4&&baseline-currentHeight>=8)return;
+  const best=options.filter(option=>option.height<=shortest+4&&baseline-option.height>=8)
+   .sort((a,b)=>a.onRight.length-b.onRight.length)[0];
+  place(best.onRight);
+ }
+ for(const el of [sections,main,aside,...panels])sizes.observe(el);
+ lifecycle.observe(modal,{childList:true,attributes:true,attributeFilter:['aria-hidden']});
+ sections.addEventListener('focusout',schedule);schedule();
+}
+
 root.initHaynesJobTools=function(modal,{automatic=false,recoverImage=true}={}){
  modal?.classList.remove('registrationBooking');
  const section=modal?.querySelector('.jobVehicleSection'),input=modal?.querySelector('#job_registration');
@@ -352,7 +424,7 @@ root.initHaynesJobTools=function(modal,{automatic=false,recoverImage=true}={}){
    const main=document.createElement('div'),aside=document.createElement('div');
    main.className='jobCardMainColumn';aside.className='jobCardSupportColumn';
    Array.from(sections.children).forEach(child=>{
-    const support=child.matches('.jobContactSection,.jobPreviousWorkSection,.privatePricingSection')||!!child.querySelector('.jobPartsEditor');
+    const support=child.matches('.jobContactSection,.privatePricingSection')||!!child.querySelector('.jobPartsEditor');
     (support?aside:main).appendChild(child);
    });
    const contact=aside.querySelector('.jobContactSection');if(contact)details.appendChild(contact);
@@ -369,11 +441,11 @@ root.initHaynesJobTools=function(modal,{automatic=false,recoverImage=true}={}){
    const parts=aside.querySelector('.jobPartsEditor')?.closest('.jobFormSection'),pricing=aside.querySelector('.privatePricingSection');
    if(parts)main.appendChild(parts);
    if(pricing)main.appendChild(pricing);
-   const previous=aside.querySelector('.jobPreviousWorkSection');
    const booking=main.querySelector('.jobBookingSection');if(booking){
-    booking.classList.add('jobBookingFullWidth');sections.prepend(booking);if(previous){previous.classList.add('jobPreviousWorkAlongside');aside.prepend(previous);}
+    booking.classList.add('jobBookingFullWidth');sections.prepend(booking);
     const calendar=booking.querySelector('.bookingAvailabilityWorkspace');if(calendar)aside.appendChild(calendar);
    }
+   if(!mechanic)balanceJobSections(modal,sections,main,aside,parts,pricing);
   }
  }
 

@@ -385,8 +385,8 @@
  #jobModal .jobCardSupportColumn .bookingInlinePlanner{height:auto!important;contain:size!important}
  #jobModal .jobCardMainColumn>.jobFormSection{flex:0 0 auto}
  #jobModal .jobWorkSection #job_work_required{height:64px!important;min-height:54px!important;resize:vertical}
- #jobModal .jobCardMainColumn .jobFormSectionHead{margin-bottom:4px!important;padding:3px 6px!important}
- #jobModal .jobCardMainColumn .jobFormSection{padding:6px!important}
+ #jobModal .jobCardMainColumn .jobFormSectionHead,#jobModal .jobAdaptiveSection .jobFormSectionHead{margin-bottom:4px!important;padding:3px 6px!important}
+ #jobModal .jobCardMainColumn .jobFormSection,#jobModal .jobCardSupportColumn>.jobAdaptiveSection{padding:6px!important}
  #jobModal .jobCardMainColumn .jobPreviousWorkSection{padding:5px 8px!important}
  #jobModal .jobCardMainColumn .jobPreviousWorkHead{margin-bottom:2px}
  #jobModal .jobCardMainColumn .jobPreviousWorkBody{max-height:65px;overflow:auto}
@@ -409,10 +409,10 @@
  #jobModal .jobCardHeaderDetails .jobVehicleDueItem>span{white-space:nowrap;letter-spacing:0!important;font-size:10px!important}
  #jobModal .jobVehicleQuickFacts>.field label{white-space:nowrap}
  #jobModal .jobVehicleQuickFacts .jobVehicleDuePanel{flex-basis:260px;padding:0!important;border:0!important;background:transparent!important}
- #jobModal .jobCardMainColumn .privatePricingRow input{height:28px!important;min-height:28px!important;padding:3px 5px!important}
- #jobModal .jobCardMainColumn .privatePricingActions{margin-top:4px!important;padding:0!important;gap:4px!important}
- #jobModal .jobCardMainColumn .privatePricingRows{padding:0!important}
- #jobModal .jobCardMainColumn .jobPartsEditor{margin-top:0!important}
+ #jobModal .jobCardSections .privatePricingRow input{height:28px!important;min-height:28px!important;padding:3px 5px!important}
+ #jobModal .jobCardSections .privatePricingActions{margin-top:4px!important;padding:0!important;gap:4px!important}
+ #jobModal .jobCardSections .privatePricingRows{padding:0!important}
+ #jobModal .jobCardSections .jobPartsEditor{margin-top:0!important}
  #jobModal .jobCardMainColumn .jobPreviousWorkBody{font-size:11px!important}
  #jobModal .jobCardMainColumn .jobPreviousWorkHead{font-size:10px!important}
 }
@@ -423,12 +423,12 @@
 @media screen and (min-width:1050px){
  #jobModal .jobModalHead.jobCardPinnedHeader{flex-basis:25%!important;height:25%!important}
  #jobModal .jobCardHeaderDetails .jobContactSection .jobSectionGrid{grid-template-columns:repeat(5,minmax(0,1fr))!important}
- #jobModal .jobCardMainColumn .jobSectionNumber,#jobModal .jobBookingSection .jobSectionNumber{width:16px!important;height:16px!important;min-width:16px!important;font-size:10px!important}
- #jobModal .jobCardMainColumn .jobFormSectionHead,#jobModal .jobBookingSection .jobFormSectionHead{padding:2px 6px!important}
- #jobModal .jobCardMainColumn .jobFormSectionHead h3{line-height:1.15!important}
- #jobModal .jobCardMainColumn .btn,#jobModal .jobCardMainColumn button{min-height:24px!important;height:26px;padding:3px 6px!important;font-size:11px!important}
- #jobModal .jobCardMainColumn .privatePricingTotal{padding:3px 6px!important;min-height:0!important}
- #jobModal .jobCardMainColumn .privatePricingTotal strong{font-size:16px!important}
+ #jobModal :is(.jobCardMainColumn,.jobAdaptiveSection) .jobSectionNumber,#jobModal .jobBookingSection .jobSectionNumber{width:16px!important;height:16px!important;min-width:16px!important;font-size:10px!important}
+ #jobModal :is(.jobCardMainColumn,.jobAdaptiveSection) .jobFormSectionHead,#jobModal .jobBookingSection .jobFormSectionHead{padding:2px 6px!important}
+ #jobModal :is(.jobCardMainColumn,.jobAdaptiveSection) .jobFormSectionHead h3{line-height:1.15!important}
+ #jobModal :is(.jobCardMainColumn,.jobAdaptiveSection) .btn,#jobModal :is(.jobCardMainColumn,.jobAdaptiveSection) button{min-height:24px!important;height:26px;padding:3px 6px!important;font-size:11px!important}
+ #jobModal .jobCardSections .privatePricingTotal{padding:3px 6px!important;min-height:0!important}
+ #jobModal .jobCardSections .privatePricingTotal strong{font-size:16px!important}
  #jobModal .jobWorkSection #job_work_required{height:clamp(42px,6dvh,64px)!important;min-height:42px!important}
  #jobModal .jobCardMainColumn .jobPreviousWorkHead{line-height:1.1!important}
  #jobModal .jobCardMainColumn .jobPreviousWorkBody{line-height:1.2!important}
@@ -668,6 +668,8 @@
  #jobModal .mechanicJobCard .jobFormSection:has(>.jobPartsEditor){display:none!important}
  #jobModal .mechanicJobCard .jobWorkSection,#jobModal .mechanicJobCard .workshopPhotos{width:100%;box-sizing:border-box}
  #jobModal .jobCardSimplified.mechanicJobCard .jobWorkSection #job_work_required{field-sizing:content;height:auto!important;min-height:110px!important}
+ #jobModal .jobVehicleHistory{display:grid;grid-template-columns:minmax(0,1fr);gap:5px}
+ #jobModal .jobMotAdvisories{--job-section-bg:#fff5f5;--job-section-border:#dc2626;color:#991b1b}
  #jobModal .jobMotAdvisories[hidden]{display:none!important}
  #jobModal .jobMotAdvisories h3{font-size:14px;margin:0 0 5px}
  #jobModal .jobMotAdvisories p,#jobModal .jobMotAdvisories ul{margin:4px 0;line-height:1.45}
