@@ -181,7 +181,7 @@ test('tyre picker uses split size entry, three price cards and wheel selection; 
  await dialog.querySelector('[data-save]').onclick();assert.deepEqual(sent.tyre_positions,['Rear passenger','Front driver']);assert.equal(sent.tyre_quantity,2);assert.equal(app.parts()[0].cost_price,21);assert.equal(app.prices()[0].price,120);assert.equal(app.document.querySelector('dialog'),null);
  app.root.VectaJobPricing.install({},app.api);app.root.VectaJobPricing.selected('Tyres',true);dialog=app.document.querySelector('dialog');assert.equal(dialog.querySelector('[data-tyre-part="width"]').value,'205');dialog.querySelector('[data-check]').onclick();emit(result(2));assert.equal(dialog.querySelector('[data-tyre-position="Front driver"]').getAttribute('aria-pressed'),'true');assert.equal(dialog.querySelector('[data-tyre-position="Rear passenger"]').getAttribute('aria-pressed'),'true');dialog.querySelector('[data-close]').onclick();
 });
-test('authenticated partial worker result reaches job sheet with costs but never a complete service total',async()=>{
+test('partial worker result reaches the job sheet and produces a signed public guide total',async()=>{
  const {gsfWorkerHandler}=await import('../../api/gsf-worker.js');
  const {cleanPartialServiceCosts,cleanServiceQuoteCosts}=await import('../../lib/service-pricing.js');
  const incomplete={...costs,partial:true,oilVerified:false,items:costs.items.filter(p=>p.kind!=='oil'),checkedAt:new Date().toISOString()};
@@ -197,7 +197,7 @@ test('authenticated partial worker result reaches job sheet with costs but never
   const headers={authorization:'Basic '+Buffer.from('fixture:fixture').toString('base64'),host:'example.invalid','x-vecta-workshop':'1'};
   const handler=servicePriceHandler({env,queue,history:async()=>[]}),privateRes=response();await handler({method:'POST',headers,body:{...request,workshop:true}},privateRes);
   assert.equal(privateRes.body.status,'ESTIMATED');assert.equal(privateRes.body.parts.find(p=>p.id==='gsf-partial-oil_filter').cost_price,5);assert.equal(privateRes.body.parts.find(p=>p.id==='gsf-estimate-oil').cost_price,43.41);assert.equal(privateRes.body.totalPence,11500);assert.deepEqual(privateRes.body.missingKinds,['oil']);assert.equal(privateRes.body.quote,undefined);
-  const publicRes=response();await handler({method:'POST',headers:{},body:request},publicRes);assert.deepEqual(publicRes.body,{status:'UNAVAILABLE'});
+  const publicRes=response();await handler({method:'POST',headers:{},body:request},publicRes);assert.equal(publicRes.body.status,'MATCHED');assert.equal(publicRes.body.quote.guidePrice,true);assert.equal(publicRes.body.quote.totalPence,privateRes.body.totalPence);assert.equal(publicRes.body.parts,undefined);
  }finally{process.env=old;}
 });
 test('wheel selections survive real part encoding, editor inputs and save/reopen',()=>{

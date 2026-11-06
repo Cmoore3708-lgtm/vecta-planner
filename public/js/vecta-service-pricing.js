@@ -28,15 +28,20 @@
         await wait(500);
         if(active!==generation)return;
         publish(value);
+        let coreOnly=false;
         const started=now();
+        const guideTimer=setTimeout(()=>{
+          if(active===generation)publish({status:'guide_pending',quote:null});
+        },9500);
         try {
           while(active===generation && now()-started<165000) {
-            const response=await fetcher('/api/service-price',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({...input,...(batch?{allServices:true}:{})}),signal:AbortSignal.any([signal,AbortSignal.timeout(10000)]),cache:'no-store'});
+            const response=await fetcher('/api/service-price',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({...input,...(batch?{allServices:true,...(coreOnly?{coreServices:true}:{})}:{})}),signal:AbortSignal.any([signal,AbortSignal.timeout(10000)]),cache:'no-store'});
             const data=await response.json();
             if(active!==generation)return;
             if(!response.ok)throw Error('UNAVAILABLE');
+            if(batch&&!coreOnly&&data.status==='REVIEW_REQUIRED'){coreOnly=true;continue;}
             if(data.status==='PENDING'){await wait(2000);continue;}
-            if(batch&&data.status==='MATCHED'&&Array.isArray(data.quotes)&&['Oil & Filter Change','Full Service','Major Service','Interim Service'].every(service=>data.quotes.filter(q=>q.request?.service===service&&q.request.registration===input.registration&&q.request.range===input.range&&q.request.mileage===input.mileage&&q.expiresAt>now()&&typeof q.token==='string'&&Number.isSafeInteger(q.totalPence)&&q.totalPence>0).length===1)){
+            if(batch&&data.status==='MATCHED'&&Array.isArray(data.quotes)&&['Oil & Filter Change','Full Service'].every(service=>data.quotes.filter(q=>q.request?.service===service&&q.request.registration===input.registration&&q.request.range===input.range&&q.request.mileage===input.mileage&&q.expiresAt>now()&&typeof q.token==='string'&&Number.isSafeInteger(q.totalPence)&&q.totalPence>0).length===1)){
               const expiresAt=Math.min(...data.quotes.map(q=>q.expiresAt));
               expiryTimer=setTimeout(()=>{if(active===generation)publish({status:'unavailable',quote:null});},expiresAt-now());
               publish({status:'matched',quotes:data.quotes,quote:null});return;
@@ -50,6 +55,7 @@
           }
           if(active===generation)publish({status:'unavailable',quote:null});
         } catch {if(active===generation)publish({status:'unavailable',quote:null});}
+        finally {clearTimeout(guideTimer);}
       })();
     }
     function reset(){key='';generation++;controller?.abort();clearTimeout(expiryTimer);value={status:'idle',quote:null};}
