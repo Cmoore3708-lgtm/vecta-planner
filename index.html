@@ -13016,7 +13016,7 @@ async function openWebsiteBookingConfirmationEmail(j){
     'If we discover any additional work that requires doing we will contact you for authorisation first, so please check your phone/email when possible.';
   var trackingUrl='https://www.vectamotors.co.uk/';
   try{var tracking=await vectaProgressRequest({action:'link',job_id:j.id});trackingUrl=tracking.url||trackingUrl;}catch(error){console.warn('Tracking link was not available for this confirmation',error);}
-  body=appendVectaEmailSignature(body+'\n\nTrack your car on the day of your booking by clicking HERE.');
+  body=appendVectaEmailSignature(body+'\n\nTrack your car on the day of your booking by clicking HERE.\n\nYou may receive updates on the day about your car via WhatsApp, so please keep an eye out for them.');
   var draft=window.VectaBookingEmailDraft.create({email:email,subject:subject,body:body,trackingUrl:trackingUrl});
   window.VectaBookingEmailDraft.open(draft,reg);
   if(window.vectaMessages)window.vectaMessages.record({registration:j.registration,job_id:String(j.id||''),method:'email',kind:'booking_confirmation',recipient:email,subject:subject,body:draft.text});
