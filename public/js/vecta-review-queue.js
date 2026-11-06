@@ -73,12 +73,13 @@
   return wrap;
  }
  function card(item){
-  const section=node('details'),summary=node('summary',item.registration+' · '+item.message);
+  const preview=item.message.length>85?item.message.slice(0,82)+'…':item.message;
+  const section=node('details'),summary=node('summary',item.registration+' · '+preview);
   section.className='findingItem';section.append(summary);
   section.ontoggle=async()=>{
    if(!section.open||section.dataset.loaded)return;
    section.dataset.loaded='true';
-   const message=node('p',item.message);section.append(message);
+   if(preview!==item.message)section.append(node('p',item.message));
    if(item.photo_ids.length){
     const photos=node('div');photos.className='findingThumbs';section.append(photos);
     try{
