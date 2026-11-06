@@ -1,6 +1,51 @@
 (()=>{'use strict';
   const el=id=>document.getElementById(id),token=location.hash.slice(1);
   let timer,busy=false,failures=0,registration='',artworkKey='';
+  const approvalId=token.startsWith('approval.') ? token.split('.')[1] : token && location.search ? new URLSearchParams(location.search).get('approval') : null;
+  let deciding=false, approvalRender=0, approvalPhotos=[];
+  async function refreshApproval(decision){
+    if(!approvalId || deciding || registration)return;
+    const seq=++approvalRender, panel=el('approvalPanel'), buttons=el('approvalButtons'), note=el('approvalStatus');
+    if(decision)deciding=true;
+    el('approveWork').disabled=true;el('declineWork').disabled=true;
+    buttons.hidden=true;panel.hidden=false;
+    try{
+      const response=await fetch('/api/job-progress',{method:'POST',headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({action:decision?'approval-decide':'approval-status',approval_id:approvalId,token,decision}),
+        credentials:'omit',cache:'no-store',signal:AbortSignal.timeout(15000)});
+      const data=await response.json();
+      if(!response.ok)throw Error(data.error||'Approval unavailable. Tap Refresh progress to check again.');
+      if(seq!==approvalRender)return;
+      const item=data.approval;
+      el('approvalMessage').textContent=item.message;
+      const estimate=el('approvalEstimate');
+      estimate.hidden=!Number.isInteger(item.estimated_pence);
+      estimate.textContent=estimate.hidden?'':'Estimated total including VAT: '+new Intl.NumberFormat('en-GB',{style:'currency',currency:'GBP'}).format(item.estimated_pence/100);
+      approvalPhotos=Array.isArray(item.photo_ids)?item.photo_ids:[];
+      el('approvalPhotos').hidden=!approvalPhotos.length;
+      el('approvalTitle').textContent=item.status==='pending'?'Your approval is needed':'Your response';
+      const status={approved:'You approved this work. The workshop has your response.',declined:'You declined this work. The workshop has your response.',closed:'This request is closed.'};
+      note.textContent=status[item.status]||'';
+      buttons.hidden=item.status!=='pending';
+    }catch(error){
+      if(seq!==approvalRender)return;
+      el('approvalTitle').textContent='Workshop message';
+      el('approvalMessage').textContent='';el('approvalEstimate').hidden=true;el('approvalPhotos').hidden=true;
+      buttons.hidden=true;note.textContent=error.message+' Tap Refresh progress to check the current decision.';
+    }finally{
+      if(decision)deciding=false;
+      if(seq===approvalRender){el('approveWork').disabled=false;el('declineWork').disabled=false;}
+    }
+  }
+  if(approvalId){
+    el('approveWork').onclick=()=>refreshApproval('approved');
+    el('declineWork').onclick=()=>refreshApproval('declined');
+    el('approvalPhotos').onclick=()=>{
+      const photo=Array.from(el('workshopPhotoGrid').children).find(card=>approvalPhotos.includes(card.dataset.photoId));
+      if(photo)photo.scrollIntoView({behavior:'smooth',block:'center'});
+      else el('approvalStatus').textContent='These photos are unavailable. Tap Refresh progress to check again.';
+    };
+  }
   const connectingMessage='Connecting to our live booking system. This may take several minutes.';
   function showConnectionMessage(){const note=el('sceneCaption');note.textContent=connectingMessage;note.classList.add('connecting');note.hidden=false;}
   // Complete, individually composed scene sets. Never reuse one registration's car for another.
@@ -86,6 +131,7 @@
   async function refresh(){
     clearTimeout(timer);if(busy||(!token&&!registration)||document.hidden)return;busy=true;el('refresh').disabled=true;if(!artworkKey)showConnectionMessage();
     try{
+      if(approvalId)refreshApproval();
       const response=await fetch('/api/job-progress',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(registration?{action:'registration',registration,request_scenes:true}:{action:'status',token,request_scenes:true}),cache:'no-store',credentials:'omit',signal:AbortSignal.timeout(15000)});
       const data=await response.json();if(!response.ok){const error=Error(data.error||'Progress is temporarily unavailable.');error.permanent=response.status===404||response.status===400;throw error;}
       render(data);failures=0;el('error').hidden=true;timer=setTimeout(refresh,data.scene_state==='preparing'?15000:60000);

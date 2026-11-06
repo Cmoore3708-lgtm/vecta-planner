@@ -78,6 +78,14 @@ test('reusing an identity for different details cannot overwrite the original',a
  assert.equal(response.code,409);assert.equal(db.rows.get(id).work_required,payload.work_required);
  assert.equal((await db.submit({...payload,request_id:'invalid'})).code,400);
 }));
+test('replaying a cancelled booking cannot show a fresh customer confirmation',async()=>withDatabase(async db=>{
+ await db.submit({...payload,request_id:id});
+ db.rows.get(id).status='cancelled';
+ const replay=await db.submit({...payload,request_id:id});
+ assert.equal(replay.code,409);
+ assert.match(replay.data.error,/cancelled/);
+ assert.equal(db.notifications,1);
+}));
 test('legacy submissions without a request identity still work',async()=>withDatabase(async db=>{
  const response=await db.submit(payload);assert.equal(response.code,201);assert.equal(db.rows.size,1);
 }));

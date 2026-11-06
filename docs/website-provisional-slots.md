@@ -1,6 +1,6 @@
 # Website provisional reservations
 
-New website requests atomically create a grey provisional job in Alfie's next available one-hour slot. The request remains awaiting review. The database date lock rejects simultaneous attempts at the same slot; retries do not create extra jobs. Availability counts a linked planner job only once. Confirming retains the job ID, while cancellation from either the planner or inbox releases its capacity. Customer confirmation and tracking wording identify the pending review.
+New website requests atomically create a grey provisional job in Alfie's next available one-hour slot. The request remains awaiting review. The database date lock rejects simultaneous attempts at the same slot; retries do not create extra jobs. Availability counts a linked planner job only once. Confirming retains the job ID, while cancellation from either the planner or inbox releases its capacity. Customers see a confirmed appointment as soon as the reservation succeeds. The grey provisional status is private to Workshop Pro.
 
 Existing bookings are not converted. One hour is a holding allowance; the owner must adjust longer jobs during review. Existing online capacity ceilings, closures, notice periods, time off and Friday finish are retained. Existing legacy pending requests retain their original reserved duration.
 

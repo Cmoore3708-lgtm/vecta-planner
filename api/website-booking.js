@@ -10,7 +10,7 @@ import {bookingServicePrice} from '../lib/booking-service-price.js';
 import {bookingTyreParts} from '../lib/tyre-cost-token.js';
 import {bookingServiceParts} from '../lib/booking-service-parts.js';
 import {bookingServiceExtra,serviceExtraSnapshot} from '../lib/service-extras.js';
-import {requestTrackingPath} from '../lib/job-progress.js';
+import {requestProgressJob,requestTrackingPath} from '../lib/job-progress.js';
 
 function cfg(){return databaseEnvironment({requireService:true})}
 function reg(v){return String(v||'').toUpperCase().replace(/\s+/g,' ').trim()}
@@ -78,6 +78,7 @@ export default async function handler(req,res){
    if(photos.length!==Number(existing?.work_photo_count||0))return res.status(409).json({error:'This request identity belongs to different booking photos'});
    if(photos.length){const saved=await rest(url,key,`website_booking_photos?request_id=eq.${id}&select=photos&limit=1`);if(JSON.stringify(saved?.[0]?.photos)!==JSON.stringify(photos))return res.status(409).json({error:'This request identity belongs to different booking photos'});}
    if(!existing||(b.appointment_time&&String(existing.confirmed_time||'').slice(0,5)!==b.appointment_time)||fields.some(field=>JSON.stringify(existing[field])!==JSON.stringify(request[field])))return res.status(409).json({error:'This request identity belongs to different booking details'});
+   if(requestProgressJob(existing).status==='cancelled')return res.status(409).json({error:'This booking has been cancelled. Please choose an available date to book again.'});
   }
   // A saved booking is successful even if push or email is slow or unavailable.
   if(created)waitUntil(sendBookingBadges());

@@ -144,6 +144,7 @@ test('current and future legacy-mechanic bookings do not also appear in Unalloca
   {id:'no-date',registration:'NODATE',technician:'Chris',booking_date:null,status:'booked'},
   {id:'unallocated',registration:'NONE',technician:'Unallocated',booking_date:null,status:'booked'}
  ];
+ jobs.push({id:'hold',technician:'Unallocated',booking_date:null,status:'provisional'});
  const before=JSON.stringify(jobs);
  const ctx={app:{jobs,settings:{mechanics:['Alfie','Other']}},todayIso:()=> '2026-10-12',isVehicleTaxJob:()=>false,isJobInvoiced:()=>false,normReg:v=>String(v||'').replace(/\s/g,'').toUpperCase(),carryOverMeta:()=>null,byTime:()=>0};
  vm.runInNewContext(namedFunctionSource('unallocatedJobs')+';rows=unallocatedJobs()',ctx);
@@ -151,12 +152,34 @@ test('current and future legacy-mechanic bookings do not also appear in Unalloca
  assert.equal(JSON.stringify(jobs),before);
 });
 
+test('the review panel lists active manual and web holds across dates and removes them on review',()=>{
+ const jobs=[
+  {id:'later',status:'provisional',booking_date:'2026-11-12',drop_time:'09:00',source:'website booking'},
+  {id:'earlier',status:'provisional',booking_date:'2026-11-10',drop_time:'08:00',source:'manual'},
+  {id:'undated',status:'provisional'},
+  {id:'archived',status:'provisional',archived:true},
+  {id:'deleted',status:'provisional',tombstone:true},
+  {id:'invoiced',status:'provisional',invoiced:true},
+  {id:'cancelled',status:'cancelled'}
+ ];
+ const ctx={app:{jobs},window:{},esc:v=>String(v??''),vectaJobIsDeletedForLists:j=>j.tombstone,
+  isJobInvoiced:j=>j.invoiced,byTime:(a,b)=>String(a.drop_time||'').localeCompare(String(b.drop_time||'')),
+  listPlate:()=>'',plannerVehicleLabel:()=>'',jobTypeInlineStyle:()=>'',isWebsiteBookingJob:j=>j.source==='website booking'};
+ vm.runInNewContext(namedFunctionSource('provisionalBookingsPanelHtml'),ctx);
+ const ids=()=>Array.from(ctx.provisionalBookingsPanelHtml().matchAll(/data-open-job="([^"]+)"/g),match=>match[1]);
+ assert.deepEqual(ids(),['earlier','later','undated']);
+ assert.match(ctx.provisionalBookingsPanelHtml(),/10\/11 · 08:00/);
+ jobs[1].status='booked';jobs[0].archived=true;
+ assert.deepEqual(ids(),['undated']);
+ jobs[2].status='cancelled';assert.equal(ctx.provisionalBookingsPanelHtml(),'');
+});
+
 test('phone Unallocated uses the shared list without adding assigned multi-day jobs',()=>{
  const allocated={id:'assigned-multi',card_type:'multi_day',technician:'Other',booking_date:'2026-10-13',status:'booked'};
  const unallocated={id:'real-backlog',technician:'Unallocated',status:'booked'};
  const ctx={app:{jobs:[allocated,unallocated],notes:''},window:{},selectedIso:()=> '2026-10-12',quoteJobs:()=>[],unallocatedJobs:()=>[unallocated],byTime:()=>0,esc:v=>String(v||''),mobileJobCardHtml:j=>'<i data-job="'+j.id+'"></i>',plannerTechnicianName:j=>j.technician};
- vm.runInNewContext(namedFunctionSource('mobilePlannerHtml')+";output=mobilePlannerHtml(['Alfie','Other'],[])",ctx);
- assert.match(ctx.output,/data-job="real-backlog"/);assert.doesNotMatch(ctx.output,/assigned-multi/);
+ vm.runInNewContext(namedFunctionSource('mobilePlannerHtml')+";output=mobilePlannerHtml(['Alfie','Other'],[],'<section>HOLDS</section>')",ctx);
+ assert.match(ctx.output,/<section>HOLDS<\/section><div class="mobileGroup mobileGroup-unallocated-jobs"/);assert.match(ctx.output,/data-job="real-backlog"/);assert.doesNotMatch(ctx.output,/assigned-multi/);
  vm.runInNewContext("output=mobilePlannerHtml(['Alfie','Other'],[app.jobs[0]])",ctx);
  assert.equal((ctx.output.match(/assigned-multi/g)||[]).length,1);
 });
@@ -307,6 +330,11 @@ test('completion and automatic gap closing reserve fixed appointments and fill g
  assert.deepEqual(jobs.map(j=>j.drop_time),['08:00','10:00','08:00','09:00','11:00']);
  assert.equal(ctx.plannerJobTimeLocked(jobs[1]),true);
  assert.equal(ctx.plannerPackOrderedJobs(ctx.plannerLaneActiveJobs('2026-11-04','Alfie'),480).length,0);
+});
+test('packing a lane preserves provisional slots displayed in the sidebar',()=>{
+ const jobs=[stackedJob('flex','08:00',{estimated_hours:2}),stackedJob('hold','09:00',{status:'provisional'})];
+ const ctx=stackedPlanner(jobs);ctx.plannerPackOrderedJobs(jobs,480);
+ assert.deepEqual(jobs.map(j=>j.drop_time),['10:00','09:00']);
 });
 test('a flexible job that cannot fit before a fixed booking is placed after it',()=>{
  const jobs=[stackedJob('long','08:00',{estimated_hours:3}),fixedJob('appointment','10:00')];const ctx=stackedPlanner(jobs);
