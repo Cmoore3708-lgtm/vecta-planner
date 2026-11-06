@@ -3,10 +3,14 @@ import {readFileSync,writeFileSync} from 'node:fs';
 import {captureServices,captureRegistrations} from './service-capture.mjs';
 import path from 'node:path';
 import {fileURLToPath} from 'node:url';
-import {createRepairBridge} from '../repair-quotes/shared-bridge.mjs';
 import {resolve} from 'node:path';
 import {createInterface} from 'node:readline/promises';
 import {lookupService,SUPPLIER} from './supplier.mjs';
+
+import {closeOwned,createQuoteDelivery,restartRequired} from './quote-delivery.mjs';
+const runtime=process.env.VECTA_MANAGED_WORKERS==='1'
+ ? (await import('../../lib/worker-runtime.js')).createWorkerRuntime('GSF')
+ : {set(){},stopRequested(){return false;},close(){}};
 
 const here=path.dirname(fileURLToPath(import.meta.url));
 const setup=process.argv.includes('--setup');
@@ -27,6 +31,7 @@ let context;
 try{context=await chromium.launchPersistentContext(profile,{channel:'msedge',headless:false,acceptDownloads:false,chromiumSandbox:true});}
 catch(error){if(!serviceCheck)throw error;console.error('Cannot open the dedicated GSF browser. If the shared GSF worker is running, stop only that worker and try again. Leave tyre and Haynes workers running. No settings were changed.');process.exit(1);}
 let repair=null;
+const serviceDelivery=createQuoteDelivery(rpc);
 
 let stopped=false,lastRepairState='';context.on('close',()=>stopped=true);
 process.on('SIGINT',()=>{stopped=true;void context.close();});
@@ -38,9 +43,12 @@ async function rpc(body) {
   return response.json();
 }
 try {
- if(!setup&&!serviceCheck&&repairEnabled)repair=createRepairBridge({origin:process.env.REPAIR_QUOTE_ORIGIN,token:process.env.REPAIR_QUOTE_WORKER_TOKEN,gsfContext:context,
+ if(!setup&&!serviceCheck&&repairEnabled){
+  const {createRepairBridge}=await import('../repair-quotes/shared-bridge.mjs');
+  repair=createRepairBridge({origin:process.env.REPAIR_QUOTE_ORIGIN,token:process.env.REPAIR_QUOTE_WORKER_TOKEN,gsfContext:context,
  configPath:process.env.REPAIR_QUOTE_CONFIG_FILE||path.resolve(here,'../repair-quotes/repair-config.local.json'),
  openHaynesContext:()=>chromium.launchPersistentContext(path.join(process.env.LOCALAPPDATA||path.resolve(here,'../repair-quotes/profile'),'VectaRepairQuotes','Haynes'),{channel:'msedge',headless:false,acceptDownloads:false,chromiumSandbox:true}),log:console.log});
+ }
   if(serviceCheck) {
     console.log('Read-only service check in the existing shared GSF profile. No prices are published, and nothing is ordered.');
     const report=await captureServices(context,captureRegs,{log:console.log});
@@ -54,13 +62,36 @@ try {
     try {await terminal.question('Once signed in, press Enter to close and save the dedicated browser session: ');}finally{terminal.close();}
   } else {
     console.log('VECTA shared GSF worker started. Service and repair pricing use one supplier browser, with separate pricing policies. No basket or ordering actions.');
-    while(!stopped) {
-      if(repair){try{const state=await repair.tick();if(state!==lastRepairState){if(state==='IDLE')console.log('Repair quote connection ready. Waiting for Workshop Pro requests.');else if(state==='MATCHED')console.log('Fresh repair quote delivered to Workshop Pro.');else if(state==='DISABLED')console.log('Repair quoting is disabled on Workshop Pro.');lastRepairState=state;}}catch{lastRepairState='';console.log('Repair quote connection unavailable; retrying.');}}
+    while(!stopped&&!runtime.stopRequested()) {
+      if(serviceDelivery.pending||serviceDelivery.retiring){
+       try{await serviceDelivery.flush();}
+       catch(error){
+        if([restartRequired,'PAIRING_REQUIRED'].includes(error.message))throw error;
+        runtime.set('reconnecting','RELAY_UNAVAILABLE');await sleep(2000);continue;
+       }
+      }
+      if(repair){
+       try{
+        runtime.set('working');
+        const state=await repair.tick();
+        const attention=['LOGIN_REQUIRED','SETTINGS_REQUIRED','PAIRING_REQUIRED'].includes(state);
+        runtime.set(attention?'attention':'connected',attention?state:state==='MATCHED'?'LOOKUP_CONFIRMED':'RELAY_ONLY');
+        if(state!==lastRepairState&&['IDLE','MATCHED','DISABLED'].includes(state))console.log('Repair quote connection: '+state);
+        lastRepairState=state;
+       }catch(error){
+        if(error.message===restartRequired)throw error;
+        runtime.set('reconnecting','RELAY_UNAVAILABLE');lastRepairState='';
+        console.log('Repair quote connection unavailable; retrying.');
+        if(repair.retiring){await sleep(2000);continue;}
+       }
+      }
+      if(runtime.stopRequested())break;
       if(!serviceEnabled){await sleep(2000);continue;}
       let task;
-      try {task=await rpc({action:'pull'});}catch(error){if(error.message==='PAIRING_REQUIRED')throw error;console.log('Workshop connection unavailable; retrying.');await sleep(5000);continue;}
+      try {task=await rpc({action:'pull'});}catch(error){runtime.set(error.message==='PAIRING_REQUIRED'?'attention':'reconnecting',error.message==='PAIRING_REQUIRED'?'PAIRING_REQUIRED':'RELAY_UNAVAILABLE');if(error.message==='PAIRING_REQUIRED')throw error;console.log('Workshop connection unavailable; retrying.');await sleep(5000);continue;}
       if(task.status==='DISABLED') {console.log('GSF service pricing is disabled on this deployment.');await sleep(repair?2000:15000);continue;}
       if(task.status==='JOB') {
+        runtime.set('working');
         let page,timer,completion;
         try {
           page=await context.newPage();
@@ -70,14 +101,22 @@ try {
           const status=['LOGIN_REQUIRED','SETTINGS_REQUIRED','REVIEW_REQUIRED'].includes(error.message)?error.message:'UNAVAILABLE';
           completion={action:'complete',id:task.id,lease:task.lease,request:task.request,status};
           console.log(status==='LOGIN_REQUIRED'?'GSF sign-in expired. Stop the worker and run SIGN-IN-GSF.cmd.':'Lookup ended: '+status);
-        } finally {clearTimeout(timer);await page?.close().catch(()=>{});}
-        for(let attempt=0;attempt<2;attempt++) {
-          try {const saved=await rpc(completion);console.log(saved.status==='SAVED'?'Result delivered.':'Result expired or unavailable.');break;}
-          catch {if(attempt===1)console.log('Result delivery failed; website will retain its guide price.');else await sleep(1000);}
+          runtime.set('attention',status);
+        } finally {clearTimeout(timer);}
+        try{
+         const ack=await serviceDelivery.finish(completion,[page]);
+         if(ack==='SAVED'&&completion.status==='MATCHED')runtime.set('connected','LOOKUP_CONFIRMED');
+         console.log(ack==='SAVED'?'Result delivered.':'Result expired.');
+        }catch(error){
+         if([restartRequired,'PAIRING_REQUIRED'].includes(error.message))throw error;
+         runtime.set('reconnecting','RELAY_UNAVAILABLE');console.log('Retrying the same service result.');
         }
       }
       await sleep(2000);
     }
   }
-} finally {await repair?.close();await context.close().catch(()=>{});}
+} finally {
+ try{await Promise.all([repair?.close(),closeOwned([context])]);}
+ finally{runtime.close();}
+}
 
