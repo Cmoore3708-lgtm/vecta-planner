@@ -659,3 +659,31 @@
 @media screen{
  #jobModal .jobModalCard>.modalFoot.newJobFooter{position:static!important;bottom:auto;z-index:auto!important;box-shadow:none}
 }
+
+/* Mechanics read the job and record findings in a single column. */
+@media screen{
+ #jobModal .jobCardSimplified.mechanicJobCard .jobCardSections{grid-template-columns:minmax(0,1fr)!important;grid-template-rows:auto!important}
+ #jobModal .jobCardSimplified.mechanicJobCard .jobCardSections>.jobCardMainColumn,
+ #jobModal .jobCardSimplified.mechanicJobCard .jobCardSections>.jobCardSupportColumn{grid-column:1/-1!important;grid-row:auto!important;width:100%!important}
+ #jobModal .mechanicJobCard .jobFormSection:has(>.jobPartsEditor){display:none!important}
+ #jobModal .mechanicJobCard .jobWorkSection,#jobModal .mechanicJobCard .workshopPhotos{width:100%;box-sizing:border-box}
+ #jobModal .jobCardSimplified.mechanicJobCard .jobWorkSection #job_work_required{field-sizing:content;height:auto!important;min-height:110px!important}
+ #jobModal .jobMotAdvisories[hidden]{display:none!important}
+ #jobModal .jobMotAdvisories h3{font-size:14px;margin:0 0 5px}
+ #jobModal .jobMotAdvisories p,#jobModal .jobMotAdvisories ul{margin:4px 0;line-height:1.45}
+ #jobModal .jobMotAdvisories ul{padding-left:1.4em}
+ #jobModal .jobMotAdvisories li{overflow-wrap:anywhere}
+}
+@media screen and (min-width:701px){
+ #jobModal .jobCardSimplified .jobModalHead.jobCardPinnedHeader>.jobCardHeaderDetails{grid-column:1/-1!important;grid-row:3!important;width:100%!important}
+ #jobModal .jobCardSimplified .jobModalHead.jobCardPinnedHeader>.jobCardHeaderVehicle{grid-row:2!important;height:100px!important;min-height:0!important}
+ #jobModal .jobCardSimplified .jobModalHead.jobCardPinnedHeader>.jobVehicleQuickFacts{grid-column:1/-1!important}
+ #jobModal .jobCardSimplified .jobCardHeaderDetails .jobContactSection .jobSectionGrid{display:flex!important;align-items:start;gap:8px!important;width:100%;flex-wrap:nowrap}
+ #jobModal .jobCardSimplified .jobCardHeaderDetails .jobContactSection .jobSectionGrid>.field{flex:1 1 0;min-width:0!important;width:auto!important;box-sizing:border-box}
+ #jobModal .jobCardSimplified .jobCardHeaderDetails .jobContactSection .jobSectionGrid>#jobCustomerEmailField{flex-grow:1.6}
+}
+@media screen and (max-width:700px){
+ #jobModal .jobCardSimplified .jobCardHeaderDetails .jobContactSection .jobSectionGrid{grid-template-columns:repeat(2,minmax(0,1fr))!important}
+ #jobModal .jobCardSimplified .jobCardHeaderDetails .jobContactSection .jobSectionGrid>.field{grid-column:auto!important}
+ #jobModal .jobCardSimplified .jobCardHeaderDetails .jobContactSection .jobSectionGrid>#jobCustomerEmailField{grid-column:1/-1!important}
+}

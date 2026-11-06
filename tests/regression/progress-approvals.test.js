@@ -188,7 +188,7 @@ test('the mechanic submits one private finding after both photos finish; a faile
  assert.equal(approved.length,0);assert.equal(saved.length,1);
  failSecond=false;await send.onclick();
  assert.equal(approved.length,1);assert.equal(saved.length,2);assert.ok(calls.filter(b=>b.action==='photos-upload').every(b=>b.review_id===approved[0]));assert.ok(!calls.some(b=>b.action==='approval-request'));
- assert.match(document.querySelector('[data-approval-notice]').textContent,/Sent to Workshop Pro for pricing/);
+ assert.match(document.querySelector('[data-approval-notice]').textContent,/Sent to Workshop for pricing/);
  input.files=[{size:8,type:'image/jpeg',name:'information-only.jpg'}];
  await input.onchange();
  await document.querySelector('[data-photo-only]').onclick();

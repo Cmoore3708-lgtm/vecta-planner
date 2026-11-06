@@ -81,3 +81,22 @@ test('reusing an identity for different details cannot overwrite the original',a
 test('legacy submissions without a request identity still work',async()=>withDatabase(async db=>{
  const response=await db.submit(payload);assert.equal(response.code,201);assert.equal(db.rows.size,1);
 }));
+
+test('opted-in mini valet adds £30 once on retries and records the work for the workshop',async()=>{
+ await withDatabase(async({submit,rows})=>{
+  const body={...payload,request_id:id,approximate_cost:65,mini_valet:true};
+  assert.equal((await submit(body)).code,201);
+  assert.equal((await submit(body)).code,200);
+  assert.equal(rows.size,1);
+  assert.equal(rows.get(id).approximate_cost,95);
+  assert.equal(rows.get(id).work_required.match(/Mini valet · £30/g).length,1);
+  assert.equal((await submit({...body,mini_valet:false})).code,409);
+ });
+});
+test('leaving a mini valet unticked keeps the original estimate and work description',async()=>{
+ await withDatabase(async({submit,rows})=>{
+  assert.equal((await submit({...payload,request_id:id,approximate_cost:65,mini_valet:false})).code,201);
+  assert.equal(rows.get(id).approximate_cost,65);
+  assert.equal(rows.get(id).work_required,payload.work_required);
+ });
+});

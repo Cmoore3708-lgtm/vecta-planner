@@ -14,7 +14,7 @@ function setup(mechanic=true,savedView=''){
  const opened=[],{window,document}=parseHTML('<html><body><div id="content"></div></body></html>');
  window.VECTA_MECHANIC_DEPLOYMENT=mechanic;
  const saved=new Map([['vecta_mechanic_day_view',savedView]]);
- const c={window,document,console,mechanicBoardSelection:undefined,localStorage:{getItem:key=>saved.get(key),setItem:(key,value)=>saved.set(key,value)},app:{settings:{},notes:'Workshop notes',jobs},vectaJobIsDeletedForLists:()=>false,isJobInvoiced:()=>false,listPlate:reg=>'<span>'+escape(reg)+'</span>',esc:escape,
+ const c={window,document,console,mechanicBoardSelection:undefined,localStorage:{getItem:key=>saved.get(key),setItem:(key,value)=>saved.set(key,value)},app:{settings:{},notes:'Workshop notes',jobs},vectaJobIsDeletedForLists:()=>false,isJobInvoiced:()=>false,listPlate:reg=>'<span class="ukPlate">'+escape(reg)+'</span>',esc:escape,
   jobsForDate:()=>jobs,allJobsForDate:()=>jobs,plannerLaneMechanics:()=>['Alfie','Chris','Anyone'],plannerTechnicianName:j=>j.technician,selectedIso:()=> '2026-11-05',byTime:(a,b)=>a.drop_time.localeCompare(b.drop_time),
   unallocatedJobs:()=>[{id:'unallocated',registration:'DD44 DDD',work_required:longWork,drop_time:''}],quoteJobs:()=>[{id:'quote',registration:'EE55 EEE',work_required:longWork,drop_time:'',amount_quoted:12345}],myTasksHtml:()=>'',
   jobTypeLabels:()=>['Full Service'],normaliseJobTypeKey:s=>s.toLowerCase(),jobTypeChip:(_,label)=>'<span class="jobTypeChip">'+escape(label)+'</span>',isWebsiteBookingJob:()=>false,jobTypeInlineStyle:j=>j.status==='provisional'?'background:#cbd0d7!important':'',plannerPlate:j=>'<span class="ukPlate">'+escape(j.registration)+'</span>',partsStatusDot:()=>'',plannerVehicleLabel:j=>j.vehicle||'Vehicle',mobileJobCategoryLabel:()=> 'Staff',mobileMotAppointmentHtml:()=>'<span class="mobileMotAppointment">MOT 10:30</span>',carryOverBadgeHtml:()=>'',
@@ -35,20 +35,22 @@ test('mechanics read every line including standard service wording and the final
  assert.equal(t.document.querySelector('.plannerGrid,.timeCol,.resizeHandle,.resizeTopHandle'),null);
  assert.deepEqual(t.opened,[]);
 });
-test('reading the card, registration or description never opens a job; its button opens it once',()=>{
+test('the complete mechanic card is one keyboard-accessible button and taps open the job once',()=>{
  const t=setup(),card=t.document.querySelector('.mechanicQueueCard');
- for(const element of [card,card.querySelector('.ukPlate'),card.querySelector('.mechanicJobDescription')])element.dispatchEvent(new t.window.Event('click',{bubbles:true}));
- assert.deepEqual(t.opened,[]);
- card.querySelector('button').click();assert.deepEqual(t.opened,['first']);
+ assert.equal(card.tagName,'BUTTON');assert.equal(card.querySelector('button'),null);
+ for(const element of [card,card.querySelector('.ukPlate'),card.querySelector('.mechanicJobDescription')]){
+  element.dispatchEvent(new t.window.Event('click',{bubbles:true}));
+ }
+ assert.deepEqual(t.opened,['first','first','first']);
 });
 test('natural-height cards preserve queue order, all mechanic groups, backlog and provisional identity',()=>{
  const t=setup(),groups=t.document.querySelectorAll('.mechanicBoardColumns .mechanicBoardGroup');
  assert.equal(groups.length,3);
- assert.deepEqual([...groups[0].querySelectorAll('article')].map(card=>card.dataset.openJob),['first','later']);
+ assert.deepEqual([...groups[0].querySelectorAll('.mechanicQueueCard')].map(card=>card.dataset.openJob),['first','later']);
  assert.match(groups[2].textContent,/Anyone.*No jobs here/s);
  assert.match(t.document.querySelector('[data-open-job="chris"]').textContent,/Provisionally booked/);
  assert.match(t.document.querySelector('[data-open-job="chris"]').getAttribute('style'),/#cbd0d7/);
- assert.equal(t.document.querySelectorAll('.mechanicBoardBacklog article').length,3);
+ assert.equal(t.document.querySelectorAll('.mechanicBoardBacklog .mechanicQueueCard').length,3);
  assert.equal(groups[1].querySelector('[data-open-job="chris"]'),null);
  assert.equal(t.document.querySelector('.provisionalBookingsPanel').nextElementSibling.querySelector('h2').textContent,'Unallocated jobs1');
  assert.equal(t.document.querySelector('#notesArea').value,'Workshop notes');
@@ -85,7 +87,7 @@ test('reopening restores the device choice and a removed mechanic falls back to 
  assert.equal(document.querySelector('[aria-pressed="true"]').textContent,'All jobs');
  assert.equal(document.querySelectorAll('.mechanicBoardColumns .mechanicBoardGroup').length,3);
 });
-test('the generated mechanics entry carries the same complete-description renderer and explicit button binding',()=>{
+test('the generated mechanics entry carries the same complete-description renderer and whole-card binding',()=>{
  const mechanic=mechanicVariant(main);
  for(const name of ['mechanicPlannerHtml','mechanicJobCardHtml','bindJobOpenControls'])assert.ok(mechanic.includes(functionSource(name)));
  assert.match(main,/bindJobOpenControls\(document\);/);

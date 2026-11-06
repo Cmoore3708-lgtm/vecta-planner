@@ -45,8 +45,14 @@ export default async function handler(req,res){
    request.gsf_parts=bookingServiceParts(quote,costs||[]);
   }
   if(tyreParts.length)request.gsf_parts=[...(request.gsf_parts||[]),...tyreParts];
+  // The website supplies the base estimate. Apply the fixed valet price after verifying any service quote.
+  const baseEstimate=request.approximate_cost;
+  if(b.mini_valet===true){
+   request.approximate_cost=(Math.round((baseEstimate||0)*100)+3000)/100;
+   request.work_required+='\n\nMini valet · £30 including VAT: snow-foam pressure wash, hoover inside, dash & screens cleaned.';
+  }
   if(!servicePrice){
-   if(types.some(type=>/Service|Oil & Filter/i.test(type))&&request.approximate_cost>0)request.work_required+='\n\nBooking guide total: £'+request.approximate_cost.toFixed(2)+' including VAT.\nGuide price based on engine size.';
+   if(types.some(type=>/Service|Oil & Filter/i.test(type))&&baseEstimate>0)request.work_required+='\n\nBooking guide total: £'+request.approximate_cost.toFixed(2)+' including VAT.\nGuide price based on engine size.';
    request.work_required+=serviceExtraSnapshot(extra,null);
   }
   const inserted=photos.length
