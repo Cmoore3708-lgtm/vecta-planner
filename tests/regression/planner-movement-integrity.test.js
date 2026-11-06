@@ -171,7 +171,8 @@ test('the review panel lists active manual and web holds across dates and remove
  assert.match(ctx.provisionalBookingsPanelHtml(),/10\/11 · 08:00/);
  jobs[1].status='booked';jobs[0].archived=true;
  assert.deepEqual(ids(),['undated']);
- jobs[2].status='cancelled';assert.equal(ctx.provisionalBookingsPanelHtml(),'');
+ jobs[2].status='cancelled';assert.deepEqual(ids(),[]);
+ assert.match(ctx.provisionalBookingsPanelHtml(),/provisionalPanelEmpty[^]*No provisional bookings/);
 });
 
 test('phone Unallocated uses the shared list without adding assigned multi-day jobs',()=>{
