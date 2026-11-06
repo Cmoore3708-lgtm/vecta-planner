@@ -49,12 +49,35 @@
     });
   }
   const date=value=>new Intl.DateTimeFormat('en-GB',{day:'2-digit',month:'2-digit',year:'numeric',timeZone:'Europe/London'}).format(new Date(value+'T12:00:00Z'));
+  function clearWorkshopPhotos(){el('workshopPhotoGrid').replaceChildren();el('workshopPhotos').hidden=true;}
+  function renderWorkshopPhotos(data){
+    const grid=el('workshopPhotoGrid'),section=el('workshopPhotos'),error=el('workshopPhotoError');
+    const photos=(Array.isArray(data.workshop_photos)?data.workshop_photos:[]).filter(photo=>typeof photo.url==='string'&&/^https:\/\/(?:jywufozycuwuoshlulwl|brqsejjykrubxuofavuu)\.supabase\.co\/storage\/v1\/object\/sign\/job-workshop-photos\/[a-f0-9-]{36}\.jpg\?token=[A-Za-z0-9_.-]+$/.test(photo.url));
+    const keep=new Set(photos.map(photo=>photo.id));
+    for(const card of Array.from(grid.children))if(!keep.has(card.dataset.photoId))card.remove();
+    error.hidden=!data.workshop_photos_error;error.textContent=data.workshop_photos_error||'';section.hidden=!photos.length&&!data.workshop_photos_error;
+    photos.forEach((photo,i)=>{
+      let card=Array.from(grid.children).find(card=>card.dataset.photoId===photo.id);
+      if(!card){
+        card=document.createElement('figure');card.dataset.photoId=photo.id;
+        const link=document.createElement('a'),image=document.createElement('img'),caption=document.createElement('figcaption');link.target='_blank';link.rel='noopener noreferrer';image.loading='lazy';image.decoding='async';image.referrerPolicy='no-referrer';
+        image.onerror=()=>{error.hidden=false;error.textContent='A photo could not be loaded. Tap Refresh progress to try again.';image.dataset.failed='1';};
+        link.append(image);card.append(link,caption);grid.append(card);
+      }
+      const image=card.querySelector('img'),link=card.querySelector('a');link.href=photo.url;link.setAttribute('aria-label','Open workshop photo '+(i+1));
+      // Renew the full-size link, retaining a loaded image to avoid downloading
+      // all photographs again on every one-minute progress poll.
+      if(!image.getAttribute('src')||image.dataset.failed){image.removeAttribute('data-failed');image.src=photo.url;}
+      image.alt=photo.caption||'Workshop photo '+(i+1);card.querySelector('figcaption').textContent=photo.caption||'Workshop photo '+(i+1);
+    });
+  }
   function render(data){
     el('identity').hidden=false;el('registration').textContent=data.registration;el('vehicle').textContent=[data.vehicle,data.image_colour].filter(Boolean).join(' · ');el('jobDescription').textContent=data.job_description||'';el('jobSummary').hidden=!data.job_description;el('bookingDate').textContent=data.booking_date?'Booking date: '+date(data.booking_date):'';
     el('statusTitle').textContent=data.title;el('statusDescription').textContent=data.description||'';el('steps').hidden=data.stage==='scheduled';
     const index={waiting:0,underway:1,checking:1,ready:2}[data.stage]??-1;
     document.querySelectorAll('[data-step]').forEach((step,i)=>{step.classList.toggle('current',i===index);step.classList.toggle('done',i<index);if(i===index)step.setAttribute('aria-current','step');else step.removeAttribute('aria-current');});
     renderScenes(data,index);
+    renderWorkshopPhotos(data);
     // Clear old financial links on every update, including a job returned to the mechanic.
     el('paperwork').hidden=true;el('invoice').removeAttribute('href');
     if(!registration&&data.stage==='ready'&&typeof data.invoice_url==='string'&&data.invoice_url.startsWith('/invoice?token=')){el('invoice').href=data.invoice_url;el('paperwork').hidden=false;}
@@ -70,11 +93,12 @@
       el('sceneCaption').hidden=true;el('sceneCaption').classList.remove('connecting');
       el('error').hidden=false;el('error').textContent=(error.message||'Progress is temporarily unavailable.')+' '+(error.permanent?'':'Your last displayed update may be out of date.');
       el('paperwork').hidden=true;el('invoice').removeAttribute('href');el('progressScene').classList.add('stale');
+      clearWorkshopPhotos();
       if(error.permanent){el('identity').hidden=true;el('steps').hidden=true;el('progressScene').hidden=true;el('sceneCaption').hidden=true;el('statusTitle').textContent=registration?'No booking found today':'Tracking link unavailable';el('statusDescription').textContent=registration?'Check your registration or contact the workshop.':'Please open the latest link in your booking email or contact the workshop.';el('freshness').textContent='';}
       else{failures++;timer=setTimeout(refresh,Math.min(300000,60000*failures));}
     }finally{busy=false;el('refresh').disabled=false;}
   }
-  el('registrationForm').onsubmit=event=>{event.preventDefault();if(busy)return;registration=el('registrationInput').value.trim();if(!registration)return;clearTimeout(timer);el('identity').hidden=true;el('steps').hidden=true;el('progressScene').hidden=true;el('sceneCaption').hidden=true;artworkKey='';el('paperwork').hidden=true;el('invoice').removeAttribute('href');el('error').hidden=true;el('freshness').textContent='';el('statusTitle').textContent='Checking today’s booking…';el('statusDescription').textContent='';el('refresh').hidden=false;refresh();};
+  el('registrationForm').onsubmit=event=>{event.preventDefault();if(busy)return;registration=el('registrationInput').value.trim();if(!registration)return;clearWorkshopPhotos();clearTimeout(timer);el('identity').hidden=true;el('steps').hidden=true;el('progressScene').hidden=true;el('sceneCaption').hidden=true;artworkKey='';el('paperwork').hidden=true;el('invoice').removeAttribute('href');el('error').hidden=true;el('freshness').textContent='';el('statusTitle').textContent='Checking today’s booking…';el('statusDescription').textContent='';el('refresh').hidden=false;refresh();};
   el('refresh').onclick=refresh;document.addEventListener('visibilitychange',()=>{if(document.hidden)clearTimeout(timer);else refresh();});window.addEventListener('online',refresh);
   if(!token&&location.search){const supplied=new URLSearchParams(location.search).get('reg')||'';if(/^[A-Za-z0-9 -]{2,15}$/.test(supplied)){registration=normalise(supplied);el('registrationInput').value=registration;}}
   el('registrationForm').hidden=!!(token||registration);

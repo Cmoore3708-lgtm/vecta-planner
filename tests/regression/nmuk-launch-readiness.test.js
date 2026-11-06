@@ -26,7 +26,7 @@ test('pricing health requires manager authentication before reading any queue da
 const booking={id:'12345678-1234-4123-8123-123456789abc',registration:'TEST123',vehicle:'Test hatchback',customer_name:'<Chris>',email:'test@example.invalid',confirmed_date:'2026-11-12',job_types:['Full Service'],work_required:'Booking guide total: £150',approximate_cost:150};
 test('receipt contains the saved reservation, reference, guide qualification and practical instructions',()=>{
  const p=receiptContent(booking,{trackingPath:()=>'/track#private-test'});
- assert.match(p.text,/12 November 2026/);assert.match(p.text,/12345678/);assert.match(p.text,/Guide total: £150.00/);assert.match(p.text,/confirm the price with you before any work/);assert.match(p.text,/SOUTH GATE/);assert.match(p.html,/&lt;Chris&gt;/);assert.doesNotMatch(p.html,/<Chris>/);assert.match(p.html,/View your car/);
+ assert.match(p.text,/received your booking request for Thursday, 12 November 2026/);assert.doesNotMatch(p.text,/your booking is confirmed/i);assert.match(p.text,/confirm your appointment separately/);assert.match(p.text,/12345678/);assert.match(p.text,/Guide total: £150.00/);assert.match(p.text,/confirm the price with you before any work/);assert.match(p.text,/SOUTH GATE/);assert.match(p.html,/&lt;Chris&gt;/);assert.doesNotMatch(p.html,/<Chris>/);assert.match(p.html,/View your car/);
  assert.deepEqual(p.to,['test@example.invalid']);assert.equal(p.reply_to,'chris@vectamotors.co.uk');
 });
 test('previews and missing email configuration never claim or send receipts',async()=>{

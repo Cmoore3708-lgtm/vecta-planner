@@ -46,7 +46,13 @@ test('receipt links open future bookings and follow only their matching accepted
  try{
   const token=requestTrackingPath(request,now).split('#')[1];
   let data=await customerStatus(token,now);assert.equal(data.stage,'scheduled');assert.equal(data.registration,job.registration);assert.doesNotMatch(JSON.stringify(data),/driver@example|Private notes|amount_quoted|invoice_url/);
-  request.job_id=saved.id;data=await customerStatus(token,now);assert.equal(data.stage,'scheduled');assert.equal(data.job_description,'Mini Valet');
+  assert.equal(data.title,'Awaiting booking confirmation');
+  request.job_id=saved.id;
+  saved={...saved,status:'provisional',customer_note:'[[VECTA_WEB_DETAILS:'+encodeURIComponent('{}')+']]'};
+  data=await customerStatus(token,now,{requestScenes:true});assert.equal(data.title,'Awaiting booking confirmation');assert.equal(data.job_description,'Mini Valet');
+  saved={...saved,archived:true};await assert.rejects(customerStatus(token,now),/latest booking confirmation/);
+  saved={...saved,archived:false,status:'booked'};
+  data=await customerStatus(token,now);assert.equal(data.stage,'scheduled');assert.equal(data.job_description,'Mini Valet');
   saved={...saved,status:'in_progress'};data=await customerStatus(token,Date.parse('2026-11-27T11:00:00Z'));assert.equal(data.stage,'underway');
   saved={...saved,customer_email:'other@example.com'};await assert.rejects(customerStatus(token,now),/latest booking confirmation/);
   saved={...saved,customer_email:request.email,status:'cancelled'};await assert.rejects(customerStatus(token,now));
@@ -62,7 +68,7 @@ test('public status returns only the selected booking, never contacts or financi
   try{
     const token=issueProgressToken(job,progressSecret(),now),data=await customerStatus(token,now);
     assert.equal(data.registration,'CM14 KEL');assert.doesNotMatch(JSON.stringify(data),/driver@example|Private notes|300|customer_name|service-key/);
-    assert.equal(calls.length,3);assert.ok(calls[0].includes(encodeURIComponent(id)));
+    assert.equal(calls.length,4);assert.ok(calls[0].includes(encodeURIComponent(id)));
     calls.length=0;await assert.rejects(customerStatus('invalid',now));assert.equal(calls.length,0);
   }finally{global.fetch=original;restore();}
 });
@@ -177,10 +183,10 @@ test('registration lookup is limited to today, normalises plates and exposes onl
   global.fetch=async url=>{const u=new URL(url);requests.push(u);return Response.json(u.pathname.endsWith('/jobs')?rows:[{id:'vehicle_artwork:CM14KEL',value:{imageUrl:'https://www.haynespro-assets.com/workshop/images/123.svg',customer_name:'PRIVATE',email:'PRIVATE'}},{id:'vehicle_colour:CM14KEL',value:{colour:'Green',email:'PRIVATE'}}]);};
   try{
     const data=await registrationStatus('cm14 kel',now);
-    assert.deepEqual(Object.keys(data).sort(),['image_colour','image_url','job_description','registration','stage','title','vehicle']);assert.equal(data.registration,'CM14KEL');assert.equal(data.stage,'underway');assert.equal(data.image_colour,'GREEN');assert.equal(data.vehicle,'Nissan Qashqai');assert.equal(data.job_description,'Full service');
+    assert.deepEqual(Object.keys(data).sort(),['image_colour','image_url','job_description','registration','stage','title','vehicle','workshop_photos']);assert.equal(data.registration,'CM14KEL');assert.equal(data.stage,'underway');assert.equal(data.image_colour,'GREEN');assert.equal(data.vehicle,'Nissan Qashqai');assert.equal(data.job_description,'Full service');
     assert.doesNotMatch(JSON.stringify(data),/PRIVATE|invoice|driver@example|customer|312/);
     assert.equal(requests[0].searchParams.get('booking_date'),'eq.2026-11-03');assert.equal(requests[0].searchParams.get('registration'),'ilike.C*M*1*4*K*E*L');
-    assert.equal(requests.length,2);assert.equal(requests[1].searchParams.get('id'),'in.(vehicle_artwork:CM14KEL,vehicle_colour:CM14KEL,vehicle_identity:CM14KEL,progress_scenes_v1:CM14KEL)');
+    assert.equal(requests.length,3);assert.equal(requests[1].searchParams.get('id'),'in.(vehicle_artwork:CM14KEL,vehicle_colour:CM14KEL,vehicle_identity:CM14KEL,progress_scenes_v1:CM14KEL)');
     for(const patch of [{booking_date:'2026-11-04'},{booking_date:'2026-11-02'},{registration:'CM14 KELL'},{status:'quote'},{status:'cancelled'},{customer_note:'[[VECTA_SOFT_DELETE:abc]]'},{card_type:'mini_task'}]){rows=[{...job,...patch}];await assert.rejects(registrationStatus('CM14KEL',now),/No booking/);}
     rows=[{...job,status:'completed'},{...job,status:'booked'}];assert.equal((await registrationStatus('CM14KEL',now)).stage,'waiting');
     rows=[{...job,status:'completed'}];assert.equal((await registrationStatus('CM14KEL',now)).stage,'ready');

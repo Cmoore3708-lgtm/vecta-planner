@@ -49,9 +49,11 @@ export default async function handler(req,res){
   if(b.appointment_time&&!/^(?:[01]\d|2[0-3]):[0-5]\d$/.test(String(b.appointment_time)))return res.status(400).json({error:'Invalid appointment time'});
   const id=b.request_id||crypto.randomUUID();
   if(!/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id))return res.status(400).json({error:'Invalid booking request identity'});
-  // Public submissions are requests only. A planner job must only be created by
-  // the workshop's explicit "Accept & create job" action in Workshop Pro.
-  const request={id,customer_name:String(b.customer_name).trim(),email:String(b.email).trim(),phone:String(b.phone).trim(),registration:reg(b.registration),vehicle:String(b.vehicle).trim(),mileage:String(b.mileage||'').trim(),mot_due:b.mot_due||null,job_types:types,work_required:String(b.work_required).trim(),preferred_date_1:appointment,preferred_date_2:null,preferred_date_3:null,completion_deadline:String(b.completion_deadline||'').trim(),contact_preference:String(b.contact_preference||'Email'),source:'Website booking',status:'awaiting_review',confirmed_date:appointment,confirmed_time:b.appointment_time||null,approximate_cost:Number.isFinite(Number(b.approximate_cost))?Number(b.approximate_cost):null,created_at:new Date().toISOString()};
+  // The database reserves a one-hour provisional planner job atomically.
+  // Only the workshop can confirm it; the public receipt remains unconfirmed.
+  const suppliedTotal=b.approximate_cost;
+  const hasTotal=(typeof suppliedTotal==='number'||(typeof suppliedTotal==='string'&&suppliedTotal.trim()!==''))&&Number.isFinite(Number(suppliedTotal))&&Number(suppliedTotal)>=0;
+  const request={id,customer_name:String(b.customer_name).trim(),email:String(b.email).trim(),phone:String(b.phone).trim(),registration:reg(b.registration),vehicle:String(b.vehicle).trim(),mileage:String(b.mileage||'').trim(),mot_due:b.mot_due||null,job_types:types,work_required:String(b.work_required).trim(),preferred_date_1:appointment,preferred_date_2:null,preferred_date_3:null,completion_deadline:String(b.completion_deadline||'').trim(),contact_preference:String(b.contact_preference||'Email'),source:'Website booking',status:'awaiting_review',confirmed_date:appointment,confirmed_time:b.appointment_time||null,approximate_cost:hasTotal?Number(suppliedTotal):null,created_at:new Date().toISOString()};
   // The primary key makes concurrent retries atomic without overwriting a request.
   if(servicePrice){
    request.approximate_cost=servicePrice.approximateCost;request.work_required+=servicePrice.snapshot;
