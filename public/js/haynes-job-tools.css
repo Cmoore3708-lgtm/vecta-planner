@@ -241,7 +241,6 @@
 
 /* One scroll surface; every backlog card owns its complete, fixed-height content. */
 @media screen and (min-width:901px){
- #content .livePriorityBacklog{overflow-y:auto!important;min-height:0;align-self:start}
  #content .livePriorityBacklog>.unallocatedPanel{height:auto!important;max-height:none!important;display:block!important;overflow:visible!important}
  #content .livePriorityBacklog .unallocatedJobList{display:flex!important;flex-direction:column!important;flex:none!important;height:auto!important;max-height:none!important;overflow:visible!important}
  #content .livePriorityBacklog .unallocatedSideJob{box-sizing:border-box!important;position:relative;flex:none!important;width:100%!important;height:120px!important;min-height:120px!important;max-height:120px!important;padding:8px!important;overflow:hidden!important}
@@ -269,11 +268,9 @@
  #content .livePriorityPlanner .plannerGrid .lane .job .plannerJobLeft{width:calc(100% - var(--planner-vehicle-text-inset,150px))!important;position:relative;z-index:2}
 }
 
-/* Scroll each job list independently and allow scrolling on to Quotes at its edge. */
+/* Preserve heading spacing and quote card sizing in the stacked backlog. */
 @media screen and (min-width:901px){
- #content .livePriorityBacklog>.unallocatedPanel{display:flex!important;flex-direction:column!important;min-height:0!important;height:auto!important;overflow:hidden!important}
  #content .livePriorityBacklog .unallocatedHead{flex:0 0 auto;margin-bottom:8px!important}
- #content .livePriorityBacklog .unallocatedJobList{flex:1 1 auto!important;min-height:0!important;height:auto!important;overflow-y:auto!important;overflow-x:hidden!important;overscroll-behavior:auto;scrollbar-gutter:stable}
  #content .livePriorityBacklog .quoteCard{height:140px!important;min-height:140px!important;max-height:140px!important}
  #content .livePriorityBacklog .quoteCard>strong{position:relative;z-index:2;margin-top:6px}
 }

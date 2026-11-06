@@ -69,6 +69,19 @@ test('concurrent submissions create one inbox request and return the same receip
  assert.equal(responses[0].data.tracking_url,responses[1].data.tracking_url);
  assert.equal(db.rows.get(id).status,'awaiting_review');
 }));
+test('saved database defaults and numeric formatting are valid retries, but a changed price conflicts',async()=>withDatabase(async db=>{
+ const body={...payload,request_id:id,approximate_cost:65,job_types:['MOT']};
+ assert.equal((await db.submit(body)).code,201);
+ const row=db.rows.get(id);
+ row.gsf_parts=null;
+ row.approximate_cost='65.00';
+ assert.equal((await db.submit(body)).code,200);
+ row.gsf_parts=[];
+ assert.equal((await db.submit(body)).code,200);
+ assert.equal((await db.submit({...body,approximate_cost:64})).code,409);
+ assert.equal(db.rows.size,1);
+ assert.equal(db.notifications,1);
+}));
 test('a database insert whose response is lost recovers without a duplicate',async()=>withDatabase(async db=>{
  db.loseResponse();const first=await db.submit({...payload,request_id:id});assert.equal(first.code,500);
  const second=await db.submit({...payload,request_id:id});assert.equal(second.code,200);assert.equal(db.rows.size,1);
