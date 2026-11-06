@@ -13539,13 +13539,13 @@ function mechanicPlannerHtml(mechanics,jobs){
   if(mechanicBoardSelection===undefined){
     try{mechanicBoardSelection=localStorage.getItem('vecta_mechanic_day_view')||''}catch(e){mechanicBoardSelection=''}
   }
-  var names=mechanics.filter(function(name){return name!=='Anyone'});
+  var names=mechanics.filter(function(mechanicName){return mechanicName!=='Anyone'});
   var selected=names.includes(mechanicBoardSelection)?mechanicBoardSelection:'';
-  var buttons=[''].concat(names).map(function(name){
-    return '<button type="button" class="btn" data-mechanic-view="'+esc(name)+'" aria-pressed="'+(selected===name)+'">'+esc(name||'All jobs')+'</button>';
+  var buttons=[''].concat(names).map(function(mechanicName){
+    return '<button type="button" class="btn" data-mechanic-view="'+esc(mechanicName)+'" aria-pressed="'+(selected===mechanicName)+'">'+esc(mechanicName||'All jobs')+'</button>';
   }).join('');
-  var columns=(selected?[selected]:mechanics).map(function(name){
-    return group(name,jobs.filter(function(job){return plannerTechnicianName(job,mechanics)===name}),window.vectaMobileTimeOffHtml?window.vectaMobileTimeOffHtml(name,selectedIso()):'');
+  var columns=(selected?[selected]:mechanics).map(function(mechanicName){
+    return group(mechanicName,jobs.filter(function(job){return plannerTechnicianName(job,mechanics)===mechanicName}),window.vectaMobileTimeOffHtml?window.vectaMobileTimeOffHtml(mechanicName,selectedIso()):'');
   }).join('');
   var intro='<div class="mechanicBoardIntro"><div class="mechanicNameFilter" role="group" aria-label="Show jobs for">'+buttons+'</div><button class="btn dark" id="manageTimeOff" type="button">Holidays &amp; time off</button></div>';
   var board='<div class="mechanicBoard">'+intro+'<div class="mechanicBoardColumns'+(selected?' mechanicPersonalDay':'')+'">'+columns+'</div>';
