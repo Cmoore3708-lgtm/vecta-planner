@@ -470,7 +470,6 @@
 #jobModal .mechanicJobCard .jobModalHead.jobCardPinnedHeader>.jobCardHeaderDetails{grid-column:1!important;grid-row:2!important}
 #jobModal .mechanicJobCard .jobModalHead.jobCardPinnedHeader>.jobCardHeaderVehicle{grid-column:2!important;grid-row:2!important;width:100%!important;height:100%!important;min-height:150px!important;max-height:none!important;align-self:stretch!important;overflow:hidden}
 #jobModal .mechanicJobCard .jobCardHeaderVehicle>img,#jobModal .mechanicJobCard .jobCardHeaderVehicle>svg{width:100%!important;height:100%!important;max-width:none!important;max-height:none!important;object-fit:contain!important;object-position:center!important}
-#jobModal .mechanicJobCard .jobModalHead>.haynesJobTools{display:none!important}
 #jobModal .mechanicJobCard .jobCardHeaderDetails>.jobContactSection{margin:0!important;min-width:0}
 #jobModal .mechanicJobCard .jobCardHeaderDetails>.jobContactSection .jobSectionGrid{grid-template-columns:repeat(2,minmax(0,1fr))!important}
 #jobModal .mechanicJobCard .v280MechanicComplete{margin-left:auto;min-width:140px;min-height:44px;font-size:17px!important}
@@ -527,7 +526,7 @@
  #jobModal .jobVehicleQuickFacts>.field input{width:100%;min-width:0;min-height:30px!important;height:30px!important;padding:4px 7px!important;font-size:15px!important}
  #jobModal .jobVehicleQuickFacts .jobVehicleDueItem>span{white-space:normal!important;text-transform:none;line-height:1.2;font-size:10px!important}
  #jobModal .jobVehicleQuickFacts .jobVehicleDueItem:nth-child(n+3){grid-row:2}
- #jobModal .jobCardHeaderDetails .jobVehicleSection:has(.jobSectionGrid:empty){display:none}
+ #jobModal .jobCardHeaderDetails .jobVehicleSection:has(.jobSectionGrid:empty):not(:has(.haynesJobVehicle strong)):not(:has(.haynesJobTools [role=status]:not(:empty))){display:none}
 }
 @media screen and (max-width:1049px){
  #jobModal .jobModalHead.jobCardPinnedHeader>.jobCardHeaderVehicle,#jobModal .mechanicJobCard .jobModalHead.jobCardPinnedHeader>.jobCardHeaderVehicle{height:144px!important}
@@ -688,4 +687,9 @@
  #jobModal .jobCardSimplified .jobCardHeaderDetails .jobContactSection .jobSectionGrid{grid-template-columns:repeat(2,minmax(0,1fr))!important}
  #jobModal .jobCardSimplified .jobCardHeaderDetails .jobContactSection .jobSectionGrid>.field{grid-column:auto!important}
  #jobModal .jobCardSimplified .jobCardHeaderDetails .jobContactSection .jobSectionGrid>#jobCustomerEmailField{grid-column:1/-1!important}
+}
+
+/* Double the main PC job-card vehicle, keeping the entire drawing in view. */
+@media screen and (min-width:1050px){
+ #jobModal .jobCardSimplified:not(.mechanicJobCard) .jobModalHead.jobCardPinnedHeader>.jobCardHeaderVehicle{height:200px!important}
 }

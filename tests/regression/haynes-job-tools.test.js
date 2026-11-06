@@ -330,7 +330,7 @@ test('mechanics place editable contacts left of the dedicated large artwork and 
  assert.ok(document.querySelector('.jobModalCard').classList.contains('mechanicJobCard'));
  assert.equal(document.querySelector('.jobContactSection').parentElement,document.querySelector('.jobCardHeaderDetails'));
  assert.equal(document.querySelector('.jobCardHeaderVehicle').parentElement,document.querySelector('.jobModalHead'));
- assert.equal(document.querySelector('.haynesJobTools').parentElement,document.querySelector('.jobModalHead'));
+ assert.ok(document.querySelector('.jobCardHeaderDetails .jobVehicleSection>.haynesJobTools'));
  assert.ok(document.querySelector('.privatePricingSection'),'retained for the existing gather/save pipeline');
  assert.ok(document.querySelector('.jobWorkSection'));
 });
@@ -362,19 +362,19 @@ test('DY71 UVE reuses the saved Haynes XCeed drawing across model-family aliases
  assert.equal(window.VectaHaynesJobTools.compatibleArtwork(saved,{make:'FORD',model:'XCEED'}),false);
 });
 
-test('explicit header click opens the registration-matched Haynes vehicle in the reserved tab',async()=>{
+test('header click loads the matched vehicle inside the card without opening a supplier tab',async()=>{
  const {window,panel}=setup(async()=>response(vehicle),undefined,undefined,false);
- let destination='',closed=false,opened=false;const target={opener:{},location:{replace:url=>{destination=url}},close:()=>{closed=true}};
- window.open=(url,name)=>{assert.equal(url,'about:blank');assert.equal(name,'_blank');opened=true;return target;};
- const pending=lookupButton(panel).onclick({type:'click'});assert.equal(opened,true);assert.equal(target.opener,null);await pending;
- assert.equal(destination,window.VectaHaynesJobTools.vehicleLink(vehicle));assert.equal(closed,false);
+ window.open=()=>assert.fail('in-card lookup must not open a supplier tab');
+ await lookupButton(panel).onclick({type:'click'});
+ assert.equal(panel.querySelector('a').href,window.VectaHaynesJobTools.vehicleLink(vehicle));
+ assert.match(panel.querySelector('strong').textContent,/1.7 dCi/);
 });
-test('a failed Haynes lookup closes the reserved tab and displays the failure',async()=>{
- const {window,panel}=setup(async()=>({ok:false,json:async()=>({status:'UNAVAILABLE'})}),undefined,undefined,false);
- let closed=false;window.open=()=>({opener:{},location:{replace:()=>assert.fail('must not open an uncertain match')},close:()=>{closed=true}});
- await lookupButton(panel).onclick({type:'click'});assert.equal(closed,true);assert.match(panel.querySelector('[role="status"]').textContent,/unavailable/i);
+test('a failed lookup shows the failure and an explicit retry can recover on the PC worker',async()=>{
+ const calls=[];const {window,panel}=setup(async(url,options)=>{calls.push({url,options});return calls.length===1?{ok:false,json:async()=>({status:'LOGIN_REQUIRED'})}:response(vehicle);},undefined,undefined,false);
+ window.open=()=>assert.fail('retry must not open a supplier tab');
+ await lookupButton(panel).onclick({type:'click'});assert.match(panel.querySelector('[role="status"]').textContent,/workshop PC/);
+ await lookupButton(panel).onclick({type:'click'});assert.match(calls[1].url,/retry=1/);assert.equal(calls[1].options.method,'POST');assert.match(panel.querySelector('strong').textContent,/1.7 dCi/);
 });
-
 
 test('new job automatically matches a committed registration and fills missing vehicle details without opening a tab',async()=>{
  const calls=[];
