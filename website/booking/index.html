@@ -519,6 +519,8 @@ function reconcileServiceChoice(){
  f.service_choice='';f.service_extra_choice='none';f.service_extra_kind='';f.service_extra_registration='';state.mileage_dialog_open=false;
 }
 function render(){
+ // A dismissal lasts for this visit to Review, including redraws while prices load.
+ if(state.step!==5)state.valet_offer_dismissed=false;
  reconcileServiceChoice();
  const preserveServicePosition=arguments[0]?.preserveServicePosition&&state.step===2;
  const tyrePicker=preserveServicePosition?document.querySelector('.tyre-picker'):null;
