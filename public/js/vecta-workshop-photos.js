@@ -1,6 +1,14 @@
 (function(){
  'use strict';
  const MAX=12;
+ const destinations=new WeakMap();
+ function revealFinding(modal,item){
+  const panel=modal?.querySelector('.workshopPhotos');
+  const show=panel&&destinations.get(panel);
+  if(!show||panel.dataset.jobId!==item.job_id)return false;
+  show(item);
+  return true;
+ }
  async function request(job,action,extra){
   if(!navigator.onLine)throw Error('You are offline. Connect to the internet to save or view workshop photos.');
   const r=await fetch('/api/job-progress',{method:'POST',credentials:'same-origin',cache:'no-store',headers:{'Content-Type':'application/json'},body:JSON.stringify({action,job_id:job.id,...extra}),signal:AbortSignal.timeout(45000)});
@@ -26,6 +34,7 @@
   const mechanic=!!window.VECTA_MECHANIC_DEPLOYMENT;
   const after=modal.querySelector('.jobWorkSection');if(!after)return;
   const panel=document.createElement('section');panel.className='jobFormSection workshopPhotos'+(mechanic?' mechanicFindings':'');
+  panel.dataset.jobId=job.id;
   panel.innerHTML='<div class="workshopPhotosHeading"><div><h3>Workshop photos &amp; findings</h3><p>Send a finding to Workshop. The customer sees it after the estimate is sent.</p></div></div>';
   after.after(panel);
   if(!saved){const hint=document.createElement('p');hint.textContent='Save this job, then reopen it to add photos.';panel.append(hint);return;}
@@ -38,6 +47,49 @@
   const approvalButton=panel.querySelector('[data-approval-send]');
   const approvalNotice=panel.querySelector('[data-approval-notice]');
   const history=panel.querySelector('[data-approval-history]');
+  const destination=document.createElement('section');
+  destination.className='findingDestination';destination.hidden=true;destination.tabIndex=-1;
+  destination.setAttribute('aria-label','Selected mechanic finding');
+  panel.querySelector('.workshopPhotosHeading').after(destination);
+  let selectedFinding=null,photoLoad=null,photosLoaded=false,photosError='',historyLoading=false;
+  function showEvidence(){
+   const host=destination.querySelector('[data-finding-evidence]');
+   if(!host||!selectedFinding)return;
+   host.replaceChildren();
+   const linked=photos.filter(photo=>selectedFinding.photo_ids.includes(photo.id)&&safeUrl(photo.url));
+   for(const photo of linked){
+    const link=document.createElement('a');link.href=photo.url;link.target='_blank';link.rel='noopener noreferrer';
+    const img=document.createElement('img');img.src=photo.url;img.alt=photo.caption||'Mechanic inspection photo';
+    link.append(img);host.append(link);
+   }
+   if(photosError||linked.length<selectedFinding.photo_ids.length){
+    const note=document.createElement('p');
+    note.textContent=photosError||(photosLoaded?'A finding photo is no longer available.':'Loading finding photos…');
+    host.append(note);
+    if(photosError||photosLoaded)host.append(button('Refresh photos',()=>load().catch(()=>{})));
+   }
+  }
+  function addEvidence(entry){
+   const host=document.createElement('div');host.className='findingEvidence';host.dataset.findingEvidence='';
+   entry.querySelector('p').after(host);
+  }
+  if(!mechanic)destinations.set(panel,item=>{
+   const previous=destination.firstElementChild;
+   if(previous?.dataset.findingId){
+    previous.querySelector('[data-finding-evidence]')?.remove();history.prepend(previous);
+   }
+   selectedFinding=item;
+   const existing=Array.from(history.children).find(entry=>entry.dataset.findingId===item.id);
+   const entry=existing||document.createElement('div');
+   if(!existing){
+    const heading=document.createElement('strong'),note=document.createElement('p');
+    heading.textContent='Finding from the mechanic';note.textContent=item.message;entry.append(heading,note);
+   }
+   addEvidence(entry);destination.replaceChildren(entry);destination.hidden=false;
+   showEvidence();
+   destination.focus({preventScroll:true});destination.scrollIntoView({block:'start'});
+   loadApprovalHistory();load().catch(()=>{});
+  });
   let busy=false,photos=[],drafts=[],pendingRequest=null,recovered=null,historyTimer;
   let submittedIds=new Set();
   let preparing=null,sending=null,saveInProgress=false,photoError='';
@@ -106,7 +158,13 @@
     savedGrid.append(card);
    });
   }
-  async function load(){const data=await request(job,'photos-list');photos=data.photos||[];renderSaved();}
+  function load(){
+   if(photoLoad)return photoLoad;
+   photoLoad=request(job,'photos-list').then(data=>{
+    photos=data.photos||[];photosLoaded=true;photosError='';renderSaved();
+   }).catch(error=>{photosError=error.message;throw error;}).finally(()=>{photoLoad=null;showEvidence();});
+   return photoLoad;
+  }
   async function refresh(){if(busy)return;loadApprovalHistory();lock(true);status.textContent='Loading workshop photos…';try{await load();status.textContent=photos.length?photos.length+' of 12 photos uploaded.':'No workshop photos yet. Add a photo of anything the customer should see.';}catch(error){status.textContent=error.message;}finally{lock(false);}}
   async function mutate(action,body,message){if(busy)return;lock(true);status.textContent='Saving…';try{await request(job,action,body);await load();status.textContent=message;}catch(error){status.textContent=error.message;}finally{lock(false);}}
   async function prepareFiles(input){
@@ -127,20 +185,22 @@
   }
   async function loadApprovalHistory(){
    clearTimeout(historyTimer);
-   if(document.activeElement?.closest('.findingReview')&&history.contains(document.activeElement)){
+   if(historyLoading)return;
+   if(document.activeElement?.closest('.findingReview')&&panel.contains(document.activeElement)){
     historyTimer=setTimeout(()=>{if(panel.isConnected)loadApprovalHistory();},15000);return;
    }
+   historyLoading=true;
    try {
     const {approvals}=await request(job,'approval-list');
     if (!panel.isConnected) return;
     submittedIds=new Set(approvals.map(row=>row.id));
     if(photos.some(photo=>photo.private_finding))renderSaved();
-    const pricingForms=new Map(Array.from(history.querySelectorAll('.findingReview')).map(form=>[form.dataset.findingId,form]));
+    const pricingForms=new Map(Array.from(panel.querySelectorAll('.findingReview')).map(form=>[form.dataset.findingId,form]));
     history.replaceChildren();
     const labels={awaiting_price:'Awaiting price in Workshop',pending:'Awaiting customer approval',approved:'Customer approved',declined:'Customer declined',closed:'Request closed'};
     for (const item of approvals) {
      const entry=document.createElement('div');
-     entry.className='approvalRecord';
+     entry.className='approvalRecord';entry.dataset.findingId=item.id;
      const title=document.createElement('strong'),message=document.createElement('p');
      title.textContent=labels[item.status]||item.status;
      message.textContent=item.message;
@@ -161,10 +221,12 @@
        finally{lock(false);loadApprovalHistory();}
       }));
      }
-     history.append(entry);
+     if(selectedFinding?.id===item.id){
+      selectedFinding=item;addEvidence(entry);destination.replaceChildren(entry);showEvidence();
+     }else history.append(entry);
     }
     if (approvals.some(item=>['pending','awaiting_price'].includes(item.status))) historyTimer=setTimeout(()=>{if(panel.isConnected) loadApprovalHistory();},60000);
-   } catch(error) {history.textContent='Approval history: '+error.message;}
+   } catch(error) {history.textContent='Approval history: '+error.message;}finally{historyLoading=false;}
   }
   async function uploadDrafts(withApproval){
    if(busy)return false;
@@ -252,5 +314,5 @@
   photosOnly.onclick=()=>uploadDrafts(false);
   camera.onchange=()=>choose(camera);chooseInput.onchange=()=>choose(chooseInput);refresh();
  }
- window.VectaWorkshopPhotos={mount};
+ window.VectaWorkshopPhotos={mount,revealFinding};
 })();
