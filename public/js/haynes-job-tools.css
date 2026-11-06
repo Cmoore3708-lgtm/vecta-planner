@@ -269,12 +269,11 @@
  #content .livePriorityPlanner .plannerGrid .lane .job .plannerJobLeft{width:calc(100% - var(--planner-vehicle-text-inset,150px))!important;position:relative;z-index:2}
 }
 
-/* Keep both backlog collections visible, even when unallocated work is long. */
+/* Scroll each job list independently and allow scrolling on to Quotes at its edge. */
 @media screen and (min-width:901px){
- #content .livePriorityBacklog{height:clamp(360px,calc(100dvh - 190px),900px)!important;max-height:none!important;display:grid!important;grid-template-rows:minmax(0,3fr) minmax(0,2fr);overflow:hidden!important}
  #content .livePriorityBacklog>.unallocatedPanel{display:flex!important;flex-direction:column!important;min-height:0!important;height:auto!important;overflow:hidden!important}
  #content .livePriorityBacklog .unallocatedHead{flex:0 0 auto;margin-bottom:8px!important}
- #content .livePriorityBacklog .unallocatedJobList{flex:1 1 auto!important;min-height:0!important;height:auto!important;overflow-y:auto!important;overflow-x:hidden!important;overscroll-behavior:contain;scrollbar-gutter:stable}
+ #content .livePriorityBacklog .unallocatedJobList{flex:1 1 auto!important;min-height:0!important;height:auto!important;overflow-y:auto!important;overflow-x:hidden!important;overscroll-behavior:auto;scrollbar-gutter:stable}
  #content .livePriorityBacklog .quoteCard{height:140px!important;min-height:140px!important;max-height:140px!important}
  #content .livePriorityBacklog .quoteCard>strong{position:relative;z-index:2;margin-top:6px}
 }
@@ -401,15 +400,19 @@
 /* Mechanics read complete descriptions in natural-height cards, without starting work. */
 #content .mechanicBoard{display:block;min-width:0}
 #content .mechanicBoardIntro{display:flex;align-items:center;justify-content:space-between;gap:16px;margin:0 0 18px;color:#e2e8f0}
-#content .mechanicBoardIntro p{margin:0;font-size:15px;line-height:1.5}
 #content .mechanicBoardIntro button{flex:0 0 auto}
+#content .mechanicNameFilter{display:flex;flex-wrap:wrap;gap:6px;max-width:100%}
+#content .mechanicNameFilter .btn{min-height:44px;max-width:100%;white-space:normal;overflow-wrap:anywhere;background:#fff;color:#132338;border:1px solid #b8c4d2}
+#content .mechanicNameFilter .btn[aria-pressed="true"]{background:#132338;color:#fff;border-color:#132338}
+#content .mechanicNameFilter .btn:focus-visible{outline:3px solid #2563eb;outline-offset:2px}
 #content .mechanicBoardColumns{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:18px;align-items:start}
+#content .mechanicBoardColumns.mechanicPersonalDay{grid-template-columns:minmax(0,1fr)}
 #content .mechanicBoardBacklog{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px;align-items:start;margin:24px 0}
 #content .mechanicBoardGroup{min-width:0}
 #content .mechanicGroupHeading{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:0 0 12px;padding:12px 14px;border-radius:10px;background:#132338;color:#fff;font-size:18px;line-height:1.3}
 #content .mechanicJobCount{min-width:28px;padding:3px 8px;text-align:center;border-radius:7px;background:#ffffff1f;font-size:14px}
 #content .mechanicJobList{display:grid;grid-template-columns:minmax(0,1fr);gap:12px;align-items:start}
-#content .mechanicBoard .mechanicQueueCard{position:relative!important;display:block!important;box-sizing:border-box;width:100%!important;min-width:0!important;max-width:100%!important;height:auto!important;min-height:0!important;max-height:none!important;padding:16px!important;margin:0!important;overflow:visible!important;border:1px solid #d6dee8;border-radius:12px;box-shadow:0 4px 16px #15202b0a;cursor:default;user-select:text}
+#content .mechanicBoard .mechanicQueueCard{position:relative!important;display:block!important;box-sizing:border-box;width:100%!important;min-width:0!important;max-width:100%!important;height:auto!important;min-height:0!important;max-height:none!important;padding:16px!important;margin:0!important;overflow:visible!important;border:1px solid #d6dee8;border-radius:12px;box-shadow:0 4px 16px #15202b0a;cursor:pointer;text-align:left;font:inherit;color:inherit}
 #content .mechanicBoard .mechanicQueueCard .mobileJobTop{display:flex!important;flex-direction:column!important;align-items:flex-start!important;justify-content:flex-start!important;gap:7px!important;min-height:0!important;height:auto!important;width:100%!important;padding:0!important;margin:0 0 14px!important}
 #content .mechanicBoard .mechanicQueueCard.hasHaynesDashboardImage .mobileJobTop{min-height:112px!important;padding-right:138px!important}
 #content .mechanicBoard .mechanicQueueCard .mobileVehicleTop,#content .mechanicBoard .mechanicQueueCard .mobileJobCategory{display:block!important;position:static!important;width:auto!important;max-width:100%!important;white-space:normal!important;overflow:visible!important;text-overflow:clip!important;overflow-wrap:anywhere;line-height:1.35!important;margin:0!important;padding:0!important}
@@ -423,9 +426,8 @@
 #content .mechanicBoard .mechanicQueueCard>.haynesDashboardImage{position:absolute!important;top:16px!important;right:12px!important;width:130px!important;height:100px!important;max-width:40%!important;max-height:100px!important;margin:0!important;object-fit:contain!important;object-position:right top!important}
 #content .mechanicBoard .mechanicQueueCard .mobileManufacturerBadge{display:none!important}
 #content .mechanicBoard .mechanicQueueCard .mechanicJobDescription{display:block!important;position:static!important;float:none!important;clear:both;box-sizing:border-box;width:100%!important;height:auto!important;min-height:0!important;max-height:none!important;margin:0!important;padding:12px 0!important;border-top:1px solid #e2e8f0;white-space:pre-wrap!important;overflow:visible!important;text-overflow:clip!important;-webkit-line-clamp:unset!important;overflow-wrap:anywhere;word-break:normal;font-size:16px!important;font-weight:500!important;line-height:1.55!important;color:#15202b!important}
-#content .mechanicCardActions{display:flex;justify-content:flex-end;margin-top:3px}
-#content .mechanicOpenJob{min-height:42px;padding:9px 16px;font-size:14px;background:#132338;color:#fff;border-color:#132338;cursor:pointer}
-#content .mechanicOpenJob:focus-visible{outline:3px solid #2563eb;outline-offset:3px}
+#content .mechanicBoard .mechanicQueueCard:focus-visible{outline:3px solid #2563eb;outline-offset:2px}
+#content .mechanicQueueCard>.haynesDashboardImage{pointer-events:none}
 #content .mechanicBookingState,#content .mechanicTaskLabel{display:inline-block;margin-bottom:8px;font-size:13px;font-weight:800;color:#334155}
 @media(max-width:1100px){#content .mechanicBoardColumns{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:700px){#content .mechanicBoardColumns,#content .mechanicBoardBacklog{grid-template-columns:minmax(0,1fr);gap:20px}#content .mechanicBoardIntro{align-items:flex-start;flex-direction:column;gap:10px}#content .mechanicBoard .mechanicQueueCard{padding:14px!important}}

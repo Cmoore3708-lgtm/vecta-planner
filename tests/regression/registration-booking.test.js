@@ -60,7 +60,7 @@ test('government MOT results cannot fill the current mileage field with a histor
  await window.VectaHaynesDashboardLookup.open('AB12CDE');
  const current=document.createElement('input');current.id='job_current_mileage';current.value='';document.querySelector('.jobModalHead').append(current);
  const start=html.indexOf('async function lookupVehicleForJob('),end=html.indexOf('\nfunction ',start);
- const context={document,dvsaAutoLookupSequence:0,normReg:s=>String(s).replace(/[^A-Z0-9]/g,''),fetchDvsaVehicle:async()=>({vehicle:'Toyota Hilux',latestMileage:120000,advisories:[]}),dvsaIsoDate:()=>'',dvsaAdvisoryArray:v=>v||[],renderDvsaAdvisoryPreview(){},refreshServicePricingAdvisor(){},updateJobVehicleDuePanel(){}};
+ const context={window,document,dvsaAutoLookupSequence:0,normReg:s=>String(s).replace(/[^A-Z0-9]/g,''),fetchDvsaVehicle:async()=>({vehicle:'Toyota Hilux',latestMileage:120000,advisories:[]}),dvsaIsoDate:()=>'',dvsaAdvisoryArray:v=>v||[],refreshServicePricingAdvisor(){},updateJobVehicleDuePanel(){}};
  vm.createContext(context);vm.runInContext(html.slice(start,end),context);await context.lookupVehicleForJob({});
  assert.equal(document.getElementById('job_current_mileage').value,'');
  assert.equal(document.querySelector('.jobBookingSection #job_mileage'),null);

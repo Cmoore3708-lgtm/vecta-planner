@@ -63,8 +63,16 @@ export default async function handler(req,res){
    request.gsf_parts=bookingServiceParts(quote,costs||[]);
   }
   if(tyreParts.length)request.gsf_parts=[...(request.gsf_parts||[]),...tyreParts];
+  // The website supplies the base estimate. Apply the fixed valet price after verifying any service quote.
+  const baseEstimate=request.approximate_cost;
+  if(b.mini_valet===true){
+   // Keep the paid extra in the receipt and distinguish this from an MOT-only job.
+   request.job_types=[...types,'Mini valet'];
+   request.approximate_cost=(Math.round((baseEstimate||0)*100)+3000)/100;
+   request.work_required+='\n\nMini valet · £30 including VAT: snow-foam pressure wash, hoover inside, dash & screens cleaned.';
+  }
   if(!servicePrice){
-   if(types.some(type=>/Service|Oil & Filter/i.test(type))&&request.approximate_cost>0)request.work_required+='\n\nBooking guide total: £'+request.approximate_cost.toFixed(2)+' including VAT.\nGuide price based on engine size.';
+   if(types.some(type=>/Service|Oil & Filter/i.test(type))&&baseEstimate>0)request.work_required+='\n\nBooking guide total: £'+request.approximate_cost.toFixed(2)+' including VAT.\nGuide price based on engine size.';
    request.work_required+=serviceExtraSnapshot(extra,null);
   }
   const inserted=photos.length
@@ -74,10 +82,13 @@ export default async function handler(req,res){
   if(!created){
    const rows=await rest(url,key,`website_booking_requests?id=eq.${id}&limit=1`);
    const existing=rows?.[0];receipt=existing;
+   // Earlier bookings recorded the valet in work_required only. The work and price still have to match.
+   const comparison=b.mini_valet===true&&Array.isArray(existing?.job_types)&&!existing.job_types.includes('Mini valet')
+    ? {...request,job_types:types} : request;
    const fields=['customer_name','email','phone','registration','vehicle','mileage','mot_due','job_types','work_required','preferred_date_1','completion_deadline','contact_preference','approximate_cost','gsf_parts'];
    if(photos.length!==Number(existing?.work_photo_count||0))return res.status(409).json({error:'This request identity belongs to different booking photos'});
    if(photos.length){const saved=await rest(url,key,`website_booking_photos?request_id=eq.${id}&select=photos&limit=1`);if(JSON.stringify(saved?.[0]?.photos)!==JSON.stringify(photos))return res.status(409).json({error:'This request identity belongs to different booking photos'});}
-   if(!existing||(b.appointment_time&&String(existing.confirmed_time||'').slice(0,5)!==b.appointment_time)||fields.some(field=>JSON.stringify(existing[field])!==JSON.stringify(request[field])))return res.status(409).json({error:'This request identity belongs to different booking details'});
+   if(!existing||(b.appointment_time&&String(existing.confirmed_time||'').slice(0,5)!==b.appointment_time)||fields.some(field=>JSON.stringify(existing[field])!==JSON.stringify(comparison[field])))return res.status(409).json({error:'This request identity belongs to different booking details'});
    if(requestProgressJob(existing).status==='cancelled')return res.status(409).json({error:'This booking has been cancelled. Please choose an available date to book again.'});
   }
   // A saved booking is successful even if push or email is slow or unavailable.

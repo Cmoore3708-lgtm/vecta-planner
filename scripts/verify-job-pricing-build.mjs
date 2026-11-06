@@ -4,13 +4,17 @@ import vm from 'node:vm';
 import assert from 'node:assert/strict';
 const dependencies=['jobTypeValues','jobPartsRangeDisplay','gatherJobPartsEditor','gatherPrivatePricingItems','jobPartsEditorHtml','bindJobPartsEditor','privatePricingRowHtml','bindPrivatePricing','syncPrivatePricingTotal','applyTemplate'];
 export function verifyJobPricingBridge(source){
- const call=source.match(/window\.VectaJobPricing\.install\(j,\{[^}]+\}\)/)?.[0];
+ const call=source.match(/window\.VectaJobPricing\.install\(j,\{[^}]+\},!id\)/)?.[0];
  assert.ok(call,'Job pricing must receive helpers from the private job-editor scope.');
  const functions=Object.fromEntries(dependencies.map(name=>[name,()=>name]));
- let supplied;
- const context={window:{VectaJobPricing:{install(job,api){supplied=api;}}},j:{},...functions};
+ let supplied,isNewJob;
+ const context={window:{VectaJobPricing:{install(job,api,isNew){supplied=api;isNewJob=isNew;}}},j:{},...functions};
  // Functions exist only in the closure, never as properties of window.
- vm.runInNewContext('(function(){'+call+';})()',context);
+ for(const id of ['booked-job',null]){
+  context.id=id;
+  vm.runInNewContext('(function(){'+call+';})()',context);
+  assert.equal(isNewJob,!id);
+ }
  assert.deepEqual(Object.keys(supplied).sort(),dependencies.slice().sort());
  for(const name of dependencies){assert.equal(supplied[name],functions[name]);assert.equal(context.window[name],undefined);}
 }

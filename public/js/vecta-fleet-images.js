@@ -124,13 +124,13 @@ async function openArtwork(id){
 }
 function open(id){return openArtwork(id);}
 function activateImage(e){
- if(e.target.closest?.('.fleetColourPicker'))return;
+ if(e.target.closest?.('.fleetColourPicker,.mechanicQueueCard'))return;
  const node=e.target.closest?.('[data-fleet-image],[data-vehicle-picker],img[data-registration],img[data-fleet-artwork-id]');if(!node)return;
  const v=imageVehicle(node);if(!v)return;e.preventDefault();e.stopImmediatePropagation();openArtwork(v.id);
 }
 document.addEventListener('click',activateImage,true);
 document.addEventListener('keydown',e=>{if((e.key==='Enter'||e.key===' ')&&e.target.matches?.('[data-vehicle-picker],img[data-registration],img[data-fleet-artwork-id]'))activateImage(e);},true);
-function accessibleImages(){for(const img of document.querySelectorAll('[data-vehicle-picker],img[data-registration],img[data-fleet-artwork-id]')){if(img.closest('.fleetColourPicker')||img.matches('[data-vehicle-picker]')&&img.querySelector('img')||(!img.dataset.registration&&!img.dataset.fleetArtworkId))continue;img.tabIndex=0;img.setAttribute('role','button');img.setAttribute('aria-label','Change vehicle image and colour '+(img.dataset.registration||''));img.title='Click to change vehicle image and colour';}}
+function accessibleImages(){for(const img of document.querySelectorAll('[data-vehicle-picker],img[data-registration],img[data-fleet-artwork-id]')){if(img.closest('.fleetColourPicker,.mechanicQueueCard')||img.matches('[data-vehicle-picker]')&&img.querySelector('img')||(!img.dataset.registration&&!img.dataset.fleetArtworkId))continue;img.tabIndex=0;img.setAttribute('role','button');img.setAttribute('aria-label','Change vehicle image and colour '+(img.dataset.registration||''));img.title='Click to change vehicle image and colour';}}
 let scheduled=false;function schedule(){if(scheduled)return;scheduled=true;setTimeout(()=>{scheduled=false;mount();},100);}
 new MutationObserver(records=>{if(records.some(record=>!record.target.closest?.('[data-fleet-image],.fleetColourPreview')&&Array.from(record.addedNodes||[]).some(node=>node.nodeType===1&&(node.matches?.('[data-fleet-image],[data-vehicle-picker],img[data-registration],img[data-fleet-artwork-id]')||node.querySelector?.('[data-fleet-image],[data-vehicle-picker],img[data-registration],img[data-fleet-artwork-id]')))))schedule();}).observe(document.body,{childList:true,subtree:true});
 document.addEventListener('scroll',schedule,{capture:true,passive:true});root.addEventListener?.('resize',schedule,{passive:true});document.addEventListener('visibilitychange',schedule);mount();

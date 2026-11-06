@@ -30,8 +30,12 @@ test('booking saves private GSF costs from the server result and ignores custome
  };
  try{
   const res={status(n){this.code=n;return this;},json(body){this.body=body;return this;}};
-  await handler({method:'POST',body:{request_id:'12345678-1234-4123-8123-123456789abc',customer_name:'Test',email:'test@example.invalid',phone:'000',registration:request.registration,vehicle:'Test',work_required:'Oil change',job_types:[request.service],service_choice:request.service,mileage_unknown:true,parts_range:'Mid Range',appointment_date:'2050-01-04',service_price_token:quote.token,gsf_parts:[{cost_price:0.01}]}},res);
+  const body={request_id:'12345678-1234-4123-8123-123456789abc',customer_name:'Test',email:'test@example.invalid',phone:'000',registration:request.registration,vehicle:'Test',work_required:'Oil change',job_types:[request.service],service_choice:request.service,mileage_unknown:true,parts_range:'Mid Range',appointment_date:'2050-01-04',service_price_token:quote.token,gsf_parts:[{cost_price:0.01}]};
+  await handler({method:'POST',body},res);
   assert.equal(res.code,201);assert.equal(saved.gsf_parts[1].cost_price,4.94);assert.equal(saved.approximate_cost,quote.totalPence/100);
   assert.ok(!JSON.stringify(res.body).includes('cost_price'));
+  await handler({method:'POST',body:{...body,mini_valet:true,approximate_cost:1}},res);
+  assert.equal(res.code,201);assert.equal(saved.approximate_cost,quote.totalPence/100+30);
+  assert.match(saved.work_required,/Mini valet · £30 including VAT/);
  }finally{globalThis.fetch=oldFetch;process.env=oldEnv;}
 });
