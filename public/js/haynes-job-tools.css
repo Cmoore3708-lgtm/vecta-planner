@@ -401,9 +401,13 @@
 /* Mechanics read complete descriptions in natural-height cards, without starting work. */
 #content .mechanicBoard{display:block;min-width:0}
 #content .mechanicBoardIntro{display:flex;align-items:center;justify-content:space-between;gap:16px;margin:0 0 18px;color:#e2e8f0}
-#content .mechanicBoardIntro p{margin:0;font-size:15px;line-height:1.5}
 #content .mechanicBoardIntro button{flex:0 0 auto}
+#content .mechanicNameFilter{display:flex;flex-wrap:wrap;gap:6px;max-width:100%}
+#content .mechanicNameFilter .btn{min-height:44px;max-width:100%;white-space:normal;overflow-wrap:anywhere;background:#fff;color:#132338;border:1px solid #b8c4d2}
+#content .mechanicNameFilter .btn[aria-pressed="true"]{background:#132338;color:#fff;border-color:#132338}
+#content .mechanicNameFilter .btn:focus-visible{outline:3px solid #2563eb;outline-offset:2px}
 #content .mechanicBoardColumns{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:18px;align-items:start}
+#content .mechanicBoardColumns.mechanicPersonalDay{grid-template-columns:minmax(0,1fr)}
 #content .mechanicBoardBacklog{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px;align-items:start;margin:24px 0}
 #content .mechanicBoardGroup{min-width:0}
 #content .mechanicGroupHeading{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:0 0 12px;padding:12px 14px;border-radius:10px;background:#132338;color:#fff;font-size:18px;line-height:1.3}

@@ -9329,6 +9329,7 @@ var editingJobId=null;
 var taskPriorityFilter='all';
 var jobsListMode='completed',jobsSearchQuery='';
 var plannerShowFullDay=false;
+var mechanicBoardSelection;
 var plannerStartMinutes=8*60;
 var carryOverPendingSync={};
 var lastKnownTodayIso=todayIso();
@@ -13533,17 +13534,30 @@ function mechanicJobCardHtml(j){
   var types=task?'':jobTypeLabels(j).filter(function(label){return normaliseJobTypeKey(label)!=='general'}).map(function(label){return jobTypeChip(j,label)}).join('');
   return '<article class="mobileJob mechanicQueueCard jobTypeCoded'+(isWebsiteBookingJob(j)?' websiteBookingOutline':'')+'" style="'+jobTypeInlineStyle(j)+'" data-open-job="'+esc(j.id)+'"><div class="mobileJobTop"><span class="mobilePlateAndParts">'+(task?'<span class="mechanicTaskLabel">Internal task</span>':plannerPlate(j)+partsStatusDot(j))+'</span>'+(!task?'<span class="mobileVehicleTop">'+esc(plannerVehicleLabel(j))+'</span><span class="mobileJobCategory">'+esc(mobileJobCategoryLabel(j))+'</span>':'')+(types?'<div class="mobileJobTypes">'+types+'</div>':'')+(task?'':mobileMotAppointmentHtml(j))+'</div>'+carryOverBadgeHtml(j)+(status==='provisional'?'<span class="mechanicBookingState">Provisionally booked</span>':status==='in_progress'||status==='in progress'?'<span class="mechanicBookingState">In the workshop</span>':'')+'<p class="mechanicJobDescription">'+esc(work.trim()?work:'No job description entered.')+'</p><div class="mechanicCardActions"><button type="button" class="btn mechanicOpenJob" data-open-job="'+esc(j.id)+'" aria-label="Open job '+esc(task?'Internal task':j.registration||'')+'">Open job</button></div></article>';
 }
-function mechanicPlannerHtml(mechanics,jobs,provisionalPanel){
+function mechanicPlannerHtml(mechanics,jobs){
   function group(mechanicName,list,off){return '<section class="mechanicBoardGroup"><h2 class="mechanicGroupHeading"><span>'+esc(mechanicName)+'</span><span class="mechanicJobCount">'+list.length+'</span></h2>'+(off||'')+'<div class="mechanicJobList">'+(list.length?list.slice().sort(byTime).map(mechanicJobCardHtml).join(''):'<div class="empty">No jobs here.</div>')+'</div></section>'}
-  var columns=mechanics.map(function(mechanicName){return group(mechanicName,jobs.filter(function(j){return plannerTechnicianName(j,mechanics)===mechanicName}),window.vectaMobileTimeOffHtml?window.vectaMobileTimeOffHtml(mechanicName,selectedIso()):'')}).join('');
-  return '<div class="mechanicBoard"><div class="mechanicBoardIntro"><p>Read the full description here. Open a job when you are ready to work on it.</p><button class="btn dark" id="manageTimeOff" type="button">Holidays &amp; time off</button></div><div class="mechanicBoardColumns">'+columns+'</div><div class="mechanicBoardBacklog">'+provisionalPanel+group('Unallocated jobs',unallocatedJobs())+group('Quotes',quoteJobs())+'</div><div class="panel"><h3>General notes</h3><textarea class="notesArea" id="notesArea" placeholder="Workshop notes...">'+esc(app.notes||'')+'</textarea></div></div><div class="livePriorityTasks">'+myTasksHtml('desktop')+'</div><div class="mobileTasksBottom">'+myTasksHtml('mobile')+'</div>';
+  if(mechanicBoardSelection===undefined){
+    try{mechanicBoardSelection=localStorage.getItem('vecta_mechanic_day_view')||''}catch(e){mechanicBoardSelection=''}
+  }
+  var names=mechanics.filter(function(name){return name!=='Anyone'});
+  var selected=names.includes(mechanicBoardSelection)?mechanicBoardSelection:'';
+  var buttons=[''].concat(names).map(function(name){
+    return '<button type="button" class="btn" data-mechanic-view="'+esc(name)+'" aria-pressed="'+(selected===name)+'">'+esc(name||'All jobs')+'</button>';
+  }).join('');
+  var columns=(selected?[selected]:mechanics).map(function(name){
+    return group(name,jobs.filter(function(job){return plannerTechnicianName(job,mechanics)===name}),window.vectaMobileTimeOffHtml?window.vectaMobileTimeOffHtml(name,selectedIso()):'');
+  }).join('');
+  var intro='<div class="mechanicBoardIntro"><div class="mechanicNameFilter" role="group" aria-label="Show jobs for">'+buttons+'</div><button class="btn dark" id="manageTimeOff" type="button">Holidays &amp; time off</button></div>';
+  var board='<div class="mechanicBoard">'+intro+'<div class="mechanicBoardColumns'+(selected?' mechanicPersonalDay':'')+'">'+columns+'</div>';
+  if(selected)return board+'</div>';
+  return board+'<div class="mechanicBoardBacklog">'+provisionalBookingsPanelHtml()+group('Unallocated jobs',unallocatedJobs())+group('Quotes',quoteJobs())+'</div><div class="panel"><h3>General notes</h3><textarea class="notesArea" id="notesArea" placeholder="Workshop notes...">'+esc(app.notes||'')+'</textarea></div></div><div class="livePriorityTasks">'+myTasksHtml('desktop')+'</div><div class="mobileTasksBottom">'+myTasksHtml('mobile')+'</div>';
 }
 function plannerHtml(){
   if(!app.settings)app.settings={};
-  var mechanics=plannerLaneMechanics(),jobs=jobsForDate(),dayJobs=allJobsForDate();
+  var mechanics=plannerLaneMechanics(),jobs=jobsForDate();
   var laneJobs=jobs.filter(function(job){return String(job.status||'').toLowerCase()!=='provisional'});
-  var provisionalPanel=provisionalBookingsPanelHtml();
-  if(typeof window!=='undefined'&&window.VECTA_MECHANIC_DEPLOYMENT===true)return mechanicPlannerHtml(mechanics,laneJobs,provisionalPanel);
+  if(typeof window!=='undefined'&&window.VECTA_MECHANIC_DEPLOYMENT===true)return mechanicPlannerHtml(mechanics,laneJobs);
+  var dayJobs=allJobsForDate(),provisionalPanel=provisionalBookingsPanelHtml();
   var live=plannerWindowConfig(jobs,mechanics);plannerStartMinutes=live.startMinutes;
   var bodyHeight=((live.dayLast-plannerStartMinutes)/60)*PLANNER_PX_PER_HOUR;
   var gridStyle='grid-template-columns:62px repeat('+mechanics.length+',minmax(155px,1fr));--planner-body-height:'+bodyHeight+'px;--planner-grid-position:'+live.gridPosition+'px;min-width:650px;';
@@ -14562,7 +14576,19 @@ function bindJobOpenControls(root){
     el.onclick=function(e){var nested=e.target.closest('button');if(nested&&nested!==el)return;openJobModal(el.dataset.openJob)};
   });
 }
+function bindMechanicNameFilter(root){
+  root.querySelectorAll('[data-mechanic-view]').forEach(function(button){
+    button.onclick=function(){
+      if(button.getAttribute('aria-pressed')==='true')return;
+      mechanicBoardSelection=button.dataset.mechanicView;
+      try{localStorage.setItem('vecta_mechanic_day_view',mechanicBoardSelection)}catch(e){/* Keep the choice for this visit. */}
+      render();
+      root.querySelector('[data-mechanic-view][aria-pressed="true"]')?.focus({preventScroll:true});
+    };
+  });
+}
 function bindView(){
+  if(window.VECTA_MECHANIC_DEPLOYMENT===true)bindMechanicNameFilter(document);
   var manageTimeOff=document.getElementById('manageTimeOff');if(manageTimeOff)manageTimeOff.onclick=openMechanicTimeOff;
   var manageTimeOffSettings=document.getElementById('manageTimeOffSettings');if(manageTimeOffSettings)manageTimeOffSettings.onclick=openMechanicTimeOff;
   var financialInvoicesTab=document.getElementById('financialInvoicesTab');if(financialInvoicesTab)financialInvoicesTab.onclick=openFinancialInvoiceList;
