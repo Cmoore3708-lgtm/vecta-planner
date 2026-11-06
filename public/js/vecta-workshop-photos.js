@@ -26,11 +26,11 @@
   const mechanic=!!window.VECTA_MECHANIC_DEPLOYMENT;
   const after=modal.querySelector('.jobWorkSection');if(!after)return;
   const panel=document.createElement('section');panel.className='jobFormSection workshopPhotos';
-  panel.innerHTML='<div class="workshopPhotosHeading"><div><h3>Workshop photos &amp; findings</h3><p>Send a finding to Workshop Pro. The customer sees it after the estimate is sent.</p></div></div>';
+  panel.innerHTML='<div class="workshopPhotosHeading"><div><h3>Workshop photos &amp; findings</h3><p>Send a finding to Workshop. The customer sees it after the estimate is sent.</p></div></div>';
   after.after(panel);
   if(!saved){const hint=document.createElement('p');hint.textContent='Save this job, then reopen it to add photos.';panel.append(hint);return;}
   panel.insertAdjacentHTML('beforeend','<div class="workshopPhotoActions"><button type="button" class="btn" data-photo-camera>Take photo</button><button type="button" class="btn" data-photo-choose>Upload photos</button><button type="button" class="btn" data-photo-refresh>Refresh photos</button></div><input type="file" accept="image/*" capture="environment" data-photo-camera-input hidden><input type="file" accept="image/*" multiple data-photo-choose-input hidden><div class="workshopPhotoDrafts" data-photo-drafts></div><div class="workshopPhotoGrid" data-photo-saved></div><p class="workshopPhotoStatus" data-photo-status role="status" aria-live="polite"></p>');
-  panel.insertAdjacentHTML('beforeend','<details class="approvalComposer"><summary>Send a finding to Workshop Pro</summary><label>Message about the work needed<textarea data-approval-message maxlength="1200" placeholder="The nearside front tyre is worn through on the inner edge. We recommend replacing it."></textarea></label><div class="workshopPhotoActions"><button type="button" class="btn green" data-approval-send>Send to Workshop Pro for pricing</button><button type="button" class="btn" data-photo-only hidden>Upload photos only</button></div><p role="status" data-approval-notice></p></details><div data-approval-history></div>');
+  panel.insertAdjacentHTML('beforeend','<details class="approvalComposer"><summary>Send a finding to Workshop</summary><label>Message about the work needed<textarea data-approval-message maxlength="1200" placeholder="The nearside front tyre is worn through on the inner edge. We recommend replacing it."></textarea></label><div class="workshopPhotoActions"><button type="button" class="btn green" data-approval-send>Send to Workshop for pricing</button><button type="button" class="btn" data-photo-only hidden>Upload photos only</button></div><p role="status" data-approval-notice></p></details><div data-approval-history></div>');
   const composer=panel.querySelector('.approvalComposer');
   const messageInput=panel.querySelector('[data-approval-message]');
   const approvalButton=panel.querySelector('[data-approval-send]');
@@ -51,7 +51,7 @@
   const image=(src,caption)=>{const el=document.createElement('img');el.src=src;el.alt=caption||'Workshop inspection photo';el.loading='lazy';return el;};
   const caption=(value,label)=>{const el=document.createElement('textarea');el.rows=2;el.maxLength=500;el.value=value;el.placeholder='e.g. Nearside front tyre worn through on the inner edge.';el.setAttribute('aria-label',label);return el;};
   function renderDrafts(){
-   approvalButton.textContent='Send to Workshop Pro for pricing';
+   approvalButton.textContent='Send to Workshop for pricing';
    draftGrid.replaceChildren();
    drafts.forEach(draft=>{const card=document.createElement('div');card.className='workshopPhotoDraft';const title=document.createElement('strong');title.textContent='Not uploaded yet';const text=caption(draft.caption,'Caption for new photo');text.oninput=()=>{draft.caption=text.value;};card.append(image(draft.image,draft.caption),title,text,button('Remove',()=>{drafts=drafts.filter(item=>item!==draft);renderDrafts();}));draftGrid.append(card);});
    photosOnly.hidden=mechanic||!drafts.length;
@@ -105,7 +105,7 @@
     if(photos.some(photo=>photo.private_finding))renderSaved();
     const pricingForms=new Map(Array.from(history.querySelectorAll('.findingReview')).map(form=>[form.dataset.findingId,form]));
     history.replaceChildren();
-    const labels={awaiting_price:'Awaiting price in Workshop Pro',pending:'Awaiting customer approval',approved:'Customer approved',declined:'Customer declined',closed:'Request closed'};
+    const labels={awaiting_price:'Awaiting price in Workshop',pending:'Awaiting customer approval',approved:'Customer approved',declined:'Customer declined',closed:'Request closed'};
     for (const item of approvals) {
      const entry=document.createElement('div');
      entry.className='approvalRecord';
@@ -151,9 +151,9 @@
      drafts=drafts.filter(item=>item!==draft);uploaded++;
     }
     if(withApproval){
-     approvalNotice.textContent='Sending the finding to Workshop Pro…';
+     approvalNotice.textContent='Sending the finding to Workshop…';
      await request(job,'approval-stage',pendingRequest);
-     submittedIds.add(pendingRequest.approval_id);pendingRequest=null;recovered=null;messageInput.value='';approvalNotice.textContent='Sent to Workshop Pro for pricing. The customer has not been contacted.';
+     submittedIds.add(pendingRequest.approval_id);pendingRequest=null;recovered=null;messageInput.value='';approvalNotice.textContent='Sent to Workshop for pricing. The customer has not been contacted.';
      window.VectaFindings?.notify();
     }
     await load();
