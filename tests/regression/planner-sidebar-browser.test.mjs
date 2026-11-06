@@ -6,11 +6,25 @@ import {readFileSync,mkdtempSync,writeFileSync,rmSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import path from 'node:path';
 import {pathToFileURL} from 'node:url';
+import vm from 'node:vm';
 import {parseHTML} from 'linkedom';
 import {mechanicVariant} from '../../scripts/mechanic-variant.mjs';
 
 const run=promisify(execFile);
 const source=readFileSync('index.html','utf8');
+
+function bookingColourSamples(entry,mechanic){
+  const ctx=vm.createContext({jobTypeMeta:()=>({colour:'#123',soft:'#eee',contrast:'#fff'})});
+  for(const name of ['isWebsiteBookingJob','jobTypeInlineStyle']){
+    const start=entry.indexOf('function '+name+'(');
+    vm.runInContext(entry.slice(start,entry.indexOf('\nfunction ',start+1)),ctx);
+  }
+  return ['webHold','manualHold','confirmed','unallocated'].map(kind=>{
+    const job={status:kind.endsWith('Hold')?'provisional':'booked',source:kind==='manualHold'?'workshop':'website booking'};
+    const card=kind.endsWith('Hold')?(mechanic?'mobileJob mechanicQueueCard':'sideJob provisionalSideCard'):kind==='unallocated'?'sideJob unallocatedSideJob':mechanic?'mobileJob mechanicQueueCard':'job';
+    return '<button data-colour-check="'+kind+'" class="jobTypeCoded '+card+(ctx.isWebsiteBookingJob(job)?' websiteBookingOutline':'')+'" style="'+ctx.jobTypeInlineStyle(job)+'">Sample</button>';
+  }).join('');
+}
 
 // Exercise the actual cascade in a browser. The markup fixture represents only
 // the sidebar and adjacent lanes, so the check needs no workshop data or login.
@@ -25,12 +39,18 @@ function fixture(entry,mechanic,empty){
   const group=(label,quote)=>mechanic?'<section class="mechanicBoardGroup"><h2 class="mechanicGroupHeading">'+label+'</h2><div class="mechanicJobList">'+cards+'</div></section>':'<aside class="panel unallocatedPanel'+(quote?' quotePanel':'')+'"><div class="unallocatedHead"><h3>'+label+'</h3></div><div class="unallocatedJobList">'+cards+'</div></aside>';
   const backlog=holds+group('Unallocated Jobs',false)+group('Quotes',true);
   const planner=mechanic?'<div class="mechanicBoard"><div class="mechanicBoardIntro">All jobs</div><div class="mechanicBoardColumns"><section data-planner-day></section></div><div class="mechanicBoardBacklog">'+backlog+'</div></div>':'<div class="mobilePlanner">'+holds+'</div><div class="plannerLayout v233Planner livePriorityPlanner"><div class="plannerCard"><div data-planner-day></div></div><div class="livePriorityBacklog">'+backlog+'</div></div>';
-  return '<!doctype html><meta name="viewport" content="width=device-width">'+styles+'<div id="content" style="padding-top:120px">'+planner+'</div><script>('+check.toString()+')('+empty+')</script>';
+  return '<!doctype html><meta name="viewport" content="width=device-width">'+styles+'<div id="content" style="padding-top:120px">'+planner+'<div hidden>'+bookingColourSamples(entry,mechanic)+'</div></div><script>('+check.toString()+')('+empty+')</script>';
 }
 
 function check(empty){
   const failures=[];
   const verify=(ok,message)=>{if(!ok)failures.push(message)};
+  for(const node of document.querySelectorAll('[data-colour-check]')){
+    const kind=node.dataset.colourCheck,style=getComputedStyle(node);
+    verify(style.backgroundColor===(kind.endsWith('Hold')?'rgb(203, 208, 215)':'rgb(223, 240, 255)'),kind+' card face');
+    const blueFrame=style.outlineWidth==='4px'&&style.outlineStyle==='solid'&&style.outlineColor==='rgb(129, 199, 255)'&&style.outlineOffset==='-4px';
+    verify(blueFrame===(kind==='webHold'),kind+' website frame');
+  }
   const sidebar=document.querySelector('.livePriorityBacklog,.mechanicBoardBacklog');
   const planner=sidebar.previousElementSibling;
   if(innerWidth>900){

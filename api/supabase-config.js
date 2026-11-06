@@ -1,7 +1,8 @@
 import {
   databaseEnvironment,
   isAuditPreviewEnvironment,
-  isPreviewEnvironment
+  isPreviewEnvironment,
+  testProjectRef
 } from './_database-environment.js';
 import {workshopSessionHandler,workshopAccessHealth} from '../lib/workshop-access.js';
 
@@ -43,6 +44,24 @@ async function checkCloudHealth(req, res) {
 
 export default function handler(req, res) {
   res.setHeader('Cache-Control', 'no-store');
+  if (req.query?.action === 'open-website-preview') {
+    if (!['GET', 'HEAD'].includes(req.method)) return res.status(405).end();
+    const commit = req.query.commit;
+    if (!isPreviewEnvironment() || typeof commit !== 'string' || !/^[a-f0-9]{40}$/.test(commit) || commit !== process.env.VERCEL_GIT_COMMIT_SHA) {
+      return res.status(409).send('The corresponding Workshop Pro preview is not ready for this website version.');
+    }
+    try {
+      if (databaseEnvironment().url !== 'https://' + testProjectRef + '.supabase.co') throw Error('Wrong preview database');
+      const target = new URL(req.query.to, 'https://preview.invalid');
+      if (target.origin !== 'https://preview.invalid' || !['/booking.html','/track','/track/','/track.html','/invoice','/invoice/'].includes(target.pathname)) {
+        return res.status(400).send('Unknown preview page.');
+      }
+      res.setHeader('Location', target.pathname + target.search);
+      return res.status(307).end();
+    } catch {
+      return res.status(503).send('The isolated Workshop Pro preview is unavailable.');
+    }
+  }
   if(req.query?.action==='release'){
     if(req.method!=='GET')return res.status(405).json({error:'Method not allowed'});
     return res.status(200).json({application:'workshop',commit:/^[a-f0-9]{40}$/i.test(process.env.VERCEL_GIT_COMMIT_SHA||'')?process.env.VERCEL_GIT_COMMIT_SHA:null,environment:process.env.VERCEL_ENV||'development'});

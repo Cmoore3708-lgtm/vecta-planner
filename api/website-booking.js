@@ -1,4 +1,8 @@
+import {isDeepStrictEqual} from 'node:util';
 import {bookingAnalyticsReceipt} from '../lib/website-analytics-receipt.js';
+import {waitUntil} from '@vercel/functions';
+import {processBookingReceipts,receiptRpc} from '../lib/booking-receipts.js';
+import {managerAuthorised} from './message-centre.js';
 import {bookingPhotos,readBookingPhotos} from './_booking-photos.js';
 import {bookingTypes} from '../lib/booking-input.js';
 import {sendBookingBadges} from './_push.js';
@@ -7,14 +11,35 @@ import {bookingServicePrice} from '../lib/booking-service-price.js';
 import {bookingTyreParts} from '../lib/tyre-cost-token.js';
 import {bookingServiceParts} from '../lib/booking-service-parts.js';
 import {bookingServiceExtra,serviceExtraSnapshot} from '../lib/service-extras.js';
-import {requestTrackingPath} from '../lib/job-progress.js';
+import {requestProgressJob,requestTrackingPath} from '../lib/job-progress.js';
 
 const miniValetLine='\n\nMini valet · £30 including VAT: snow-foam pressure wash, hoover inside, Dashboard & Media screens cleaned.';
 function cfg(){return databaseEnvironment({requireService:true})}
 function reg(v){return String(v||'').toUpperCase().replace(/\s+/g,' ').trim()}
 async function rest(url,key,path,method='GET',body,prefer='return=representation'){const r=await fetch(`${url}/rest/v1/${path}`,{method,headers:{apikey:key,Authorization:`Bearer ${key}`,'Content-Type':'application/json',Prefer:prefer},body:body?JSON.stringify(body):undefined});if(!r.ok)throw new Error(await r.text());return r.status===204?null:r.json().catch(()=>null)}
+// Compare the values Postgres persists, including JSONB objects whose keys may be reordered.
+function sameBookingField(field, saved, submitted) {
+  if (field === 'gsf_parts') return isDeepStrictEqual(saved ?? [], submitted ?? []);
+  if (field === 'approximate_cost' && saved != null && submitted != null) {
+    return Number(saved) === Number(submitted);
+  }
+  return isDeepStrictEqual(saved ?? null, submitted ?? null);
+}
 export default async function handler(req,res){
+ if(req.method==='GET'&&req.query?.receipts==='1'){
+  if(!process.env.CRON_SECRET||req.headers?.authorization!=='Bearer '+process.env.CRON_SECRET)return res.status(401).json({error:'Unauthorized'});
+  try{return res.status(200).json(await processBookingReceipts());}catch{return res.status(503).json({error:'Receipt delivery will retry on the next run.'});}
+ }
  const {url,key}=cfg();if(!url||!key)return res.status(500).json({error:'Booking service is not configured'});
+ if(req.method==='GET'&&req.query?.receiptIssues==='1'){
+  res.setHeader('Cache-Control','no-store');
+  if(!await managerAuthorised(req))return res.status(401).json({error:'Manager sign-in required.'});
+  try{
+   const params=new URLSearchParams({select:'id,status,created_at,error,snapshot',status:'in.(pending,sending,failed,needs_review)',order:'created_at.asc',limit:'50'});
+   const rows=await rest(url,key,'website_booking_receipts?'+params);
+   return res.status(200).json({receipts:(rows||[]).map(r=>({id:r.id,status:r.status,created_at:r.created_at,error:r.error,registration:r.snapshot?.registration,email:r.snapshot?.email,date:r.snapshot?.confirmed_date}))});
+  }catch{return res.status(503).json({error:'Email delivery details unavailable.'});}
+ }
  if(req.method==='GET'&&req.query?.photos)return readBookingPhotos(req,res,{url,key});
  if(req.method!=='POST')return res.status(405).json({error:'Method not allowed'});
  try{
@@ -35,8 +60,10 @@ export default async function handler(req,res){
   const id=b.request_id||crypto.randomUUID();
   if(!/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id))return res.status(400).json({error:'Invalid booking request identity'});
   // The database reserves a one-hour provisional planner job atomically.
-  // Only the workshop can confirm it; the public receipt remains unconfirmed.
-  const request={id,customer_name:String(b.customer_name).trim(),email:String(b.email).trim(),phone:String(b.phone).trim(),registration:reg(b.registration),vehicle:String(b.vehicle).trim(),mileage:String(b.mileage||'').trim(),mot_due:b.mot_due||null,job_types:types,work_required:String(b.work_required).trim(),preferred_date_1:appointment,preferred_date_2:null,preferred_date_3:null,completion_deadline:String(b.completion_deadline||'').trim(),contact_preference:String(b.contact_preference||'Email'),source:'Website booking',status:'awaiting_review',confirmed_date:appointment,confirmed_time:b.appointment_time||null,approximate_cost:Number.isFinite(Number(b.approximate_cost))?Number(b.approximate_cost):null,created_at:new Date().toISOString()};
+  // Only the workshop can confirm it internally. The successful reservation confirms the customer’s appointment.
+  const suppliedTotal=b.approximate_cost;
+  const hasTotal=(typeof suppliedTotal==='number'||(typeof suppliedTotal==='string'&&suppliedTotal.trim()!==''))&&Number.isFinite(Number(suppliedTotal))&&Number(suppliedTotal)>=0;
+  const request={id,customer_name:String(b.customer_name).trim(),email:String(b.email).trim(),phone:String(b.phone).trim(),registration:reg(b.registration),vehicle:String(b.vehicle).trim(),mileage:String(b.mileage||'').trim(),mot_due:b.mot_due||null,job_types:types,work_required:String(b.work_required).trim(),preferred_date_1:appointment,preferred_date_2:null,preferred_date_3:null,completion_deadline:String(b.completion_deadline||'').trim(),contact_preference:String(b.contact_preference||'Email'),source:'Website booking',status:'awaiting_review',confirmed_date:appointment,confirmed_time:b.appointment_time||null,approximate_cost:hasTotal?Number(suppliedTotal):null,created_at:new Date().toISOString()};
   // The primary key makes concurrent retries atomic without overwriting a request.
   if(servicePrice){
    request.approximate_cost=servicePrice.approximateCost;request.work_required+=servicePrice.snapshot;
@@ -49,6 +76,8 @@ export default async function handler(req,res){
   // The website supplies the base estimate. Apply the fixed valet price after verifying any service quote.
   const baseEstimate=request.approximate_cost;
   if(b.mini_valet===true){
+   // Keep the paid extra in the receipt and distinguish this from an MOT-only job.
+   request.job_types=[...types,'Mini valet'];
    request.approximate_cost=(Math.round((baseEstimate||0)*100)+3000)/100;
    request.work_required+=miniValetLine;
   }
@@ -71,14 +100,22 @@ export default async function handler(req,res){
     const previousWork=customerWork+request.work_required.slice(customerWork.length).replace(miniValetLine,previousLine);
     if(existing.work_required===previousWork)request.work_required=previousWork;
    }
+   // Earlier bookings recorded the valet in work_required only. The work and price still have to match.
+   const comparison=b.mini_valet===true&&Array.isArray(existing?.job_types)&&!existing.job_types.includes('Mini valet')
+    ? {...request,job_types:types} : request;
    const fields=['customer_name','email','phone','registration','vehicle','mileage','mot_due','job_types','work_required','preferred_date_1','completion_deadline','contact_preference','approximate_cost','gsf_parts'];
    if(photos.length!==Number(existing?.work_photo_count||0))return res.status(409).json({error:'This request identity belongs to different booking photos'});
-   if(photos.length){const saved=await rest(url,key,`website_booking_photos?request_id=eq.${id}&select=photos&limit=1`);if(JSON.stringify(saved?.[0]?.photos)!==JSON.stringify(photos))return res.status(409).json({error:'This request identity belongs to different booking photos'});}
-   if(!existing||(b.appointment_time&&String(existing.confirmed_time||'').slice(0,5)!==b.appointment_time)||fields.some(field=>JSON.stringify(existing[field])!==JSON.stringify(request[field])))return res.status(409).json({error:'This request identity belongs to different booking details'});
+   if(photos.length){const saved=await rest(url,key,`website_booking_photos?request_id=eq.${id}&select=photos&limit=1`);if(!isDeepStrictEqual(saved?.[0]?.photos,photos))return res.status(409).json({error:'This request identity belongs to different booking photos'});}
+   if(!existing||(b.appointment_time&&String(existing.confirmed_time||'').slice(0,5)!==b.appointment_time)||fields.some(field=>!sameBookingField(field,existing[field],comparison[field])))return res.status(409).json({error:'This request identity belongs to different booking details'});
+   if(requestProgressJob(existing).status==='cancelled')return res.status(409).json({error:'This booking has been cancelled. Please choose an available date to book again.'});
   }
-  if(created)await sendBookingBadges();
+  // A saved booking is successful even if push or email is slow or unavailable.
+  if(created)waitUntil(sendBookingBadges());
+  let receipt_email='unavailable';
+  try{const status=await receiptRpc('status',id);if(status?.status)receipt_email=status.status;}catch{/* Keep the saved booking successful. */}
+  if(['pending','failed'].includes(receipt_email))waitUntil(processBookingReceipts({id,limit:1}).catch(()=>console.warn('Booking receipt retained for retry.')));
   let tracking_url;try{tracking_url=requestTrackingPath(receipt||request);}catch{/* A past receipt must not turn a saved booking into a failed submission. */}
   let analytics_receipt;try{analytics_receipt=bookingAnalyticsReceipt(receipt||request,key);}catch{/* Analytics must never affect a saved booking. */}
-  return res.status(created?201:200).json({analytics_receipt,ok:true,confirmed:false,request_id:id,date:receipt?.confirmed_date||appointment,time:String(receipt?.confirmed_time||b.appointment_time||'').slice(0,5)||null,tracking_url});
+  return res.status(created?201:200).json({analytics_receipt,receipt_email,ok:true,confirmed:false,request_id:id,date:receipt?.confirmed_date||appointment,time:String(receipt?.confirmed_time||b.appointment_time||'').slice(0,5)||null,tracking_url});
  }catch(e){if(e.message==='INVALID_SERVICE_EXTRA')return res.status(400).json({error:'Select a valid optional service item.'});if(e.code==='BOOKING_INPUT')return res.status(400).json({error:e.message});if(String(e.message).includes('VECTA_BOOKING_UNAVAILABLE'))return res.status(409).json({error:'That appointment is no longer available or does not meet the booking notice period. Please choose another available date.'});if(String(e.message).includes('VECTA_BOOKING_MONDAY'))return res.status(409).json({error:'Mondays are not available for online bookings. Please choose another day.'});if(String(e.message).includes('VECTA_BOOKING_FRIDAY_CAPACITY'))return res.status(409).json({error:'Alfie’s Friday online booking capacity is now full. Please choose another date.'});console.error(e);return res.status(500).json({error:'Unable to complete booking'});}
 }

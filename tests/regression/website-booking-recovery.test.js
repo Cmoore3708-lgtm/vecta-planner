@@ -69,6 +69,19 @@ test('concurrent submissions create one inbox request and return the same receip
  assert.equal(responses[0].data.tracking_url,responses[1].data.tracking_url);
  assert.equal(db.rows.get(id).status,'awaiting_review');
 }));
+test('saved database defaults and numeric formatting are valid retries, but a changed price conflicts',async()=>withDatabase(async db=>{
+ const body={...payload,request_id:id,approximate_cost:65,job_types:['MOT']};
+ assert.equal((await db.submit(body)).code,201);
+ const row=db.rows.get(id);
+ row.gsf_parts=null;
+ row.approximate_cost='65.00';
+ assert.equal((await db.submit(body)).code,200);
+ row.gsf_parts=[];
+ assert.equal((await db.submit(body)).code,200);
+ assert.equal((await db.submit({...body,approximate_cost:64})).code,409);
+ assert.equal(db.rows.size,1);
+ assert.equal(db.notifications,1);
+}));
 test('a database insert whose response is lost recovers without a duplicate',async()=>withDatabase(async db=>{
  db.loseResponse();const first=await db.submit({...payload,request_id:id});assert.equal(first.code,500);
  const second=await db.submit({...payload,request_id:id});assert.equal(second.code,200);assert.equal(db.rows.size,1);
@@ -78,17 +91,28 @@ test('reusing an identity for different details cannot overwrite the original',a
  assert.equal(response.code,409);assert.equal(db.rows.get(id).work_required,payload.work_required);
  assert.equal((await db.submit({...payload,request_id:'invalid'})).code,400);
 }));
+test('replaying a cancelled booking cannot show a fresh customer confirmation',async()=>withDatabase(async db=>{
+ await db.submit({...payload,request_id:id});
+ db.rows.get(id).status='cancelled';
+ const replay=await db.submit({...payload,request_id:id});
+ assert.equal(replay.code,409);
+ assert.match(replay.data.error,/cancelled/);
+ assert.equal(db.notifications,1);
+}));
 test('legacy submissions without a request identity still work',async()=>withDatabase(async db=>{
  const response=await db.submit(payload);assert.equal(response.code,201);assert.equal(db.rows.size,1);
 }));
 
 test('opted-in mini valet adds £30 once on retries and records the work for the workshop',async()=>{
  await withDatabase(async({submit,rows})=>{
-  const body={...payload,request_id:id,approximate_cost:65,mini_valet:true};
+  const body={...payload,job_types:['MOT'],request_id:id,approximate_cost:65,mini_valet:true};
   assert.equal((await submit(body)).code,201);
   assert.equal((await submit(body)).code,200);
   assert.equal(rows.size,1);
   assert.equal(rows.get(id).approximate_cost,95);
+  assert.deepEqual(rows.get(id).job_types,['MOT','Mini valet']);
+  rows.get(id).job_types=['MOT'];
+  assert.equal((await submit(body)).code,200,'legacy paid-valet retry must reuse its reservation');
   assert.equal(rows.get(id).work_required.match(/Mini valet · £30/g).length,1);
   assert.match(rows.get(id).work_required,/Dashboard & Media screens cleaned/);
   // A booking saved with the old description still gets its original receipt.

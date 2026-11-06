@@ -331,10 +331,13 @@
  .mobilePlanner .mobileJob>.haynesDashboardImage{top:8px!important;height:88px!important}
 }
 
-/* Website jobs share a light blue fill on Main and mechanics, including phone cards. */
+/* A website hold keeps its grey face and has a light-blue frame until confirmed. */
 @media screen{
- .job.websiteBookingOutline,.mobileJob.websiteBookingOutline,.unallocatedSideJob.websiteBookingOutline{outline:1.5px solid #2563eb!important;outline-offset:-1.5px!important}
- #content .job.websiteBookingOutline,#content .mobileJob.websiteBookingOutline,#content .unallocatedSideJob.websiteBookingOutline{background:#dff0ff!important}
+ #content :is(.job,.mobileJob,.unallocatedSideJob,.provisionalSideCard).websiteBookingOutline{
+   background:#dff0ff!important;
+   outline:var(--website-frame-width,1.5px) solid var(--website-frame-colour,#2563eb)!important;
+   outline-offset:calc(0px - var(--website-frame-width,1.5px))!important;
+ }
 }
 
 /* PC identity: customer below the plate, with vehicle beside it and no empty type row. */

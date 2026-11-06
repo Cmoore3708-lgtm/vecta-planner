@@ -1,7 +1,9 @@
 import {workshopPricingAuthorised,workshopServiceResult,workshopTyreResult} from '../lib/workshop-job-pricing.js';
 import {estimateWorkshopService} from '../lib/workshop-service-estimate.js';
 import {estimateMissingServiceCosts} from '../lib/service-guide-costs.js';
-import {createHash} from 'node:crypto';
+import {pricingVisitor} from '../lib/pricing-visitor.js';
+import {managerAuthorised} from './message-centre.js';
+import {receiptRpc} from '../lib/booking-receipts.js';
 import {servicePriceRequest, serviceRequiredKinds, cleanServiceQuoteCosts, cleanPartialServiceCosts, COMPARISON_SERVICES, calculateServicePrice, publicServicePrice, pricingPolicy} from '../lib/service-pricing.js';
 import {signServicePrice, verifyServicePrice} from '../lib/service-price-token.js';
 import {gsfQueue,serviceCostHistory} from '../lib/gsf-queue.js';
@@ -10,6 +12,11 @@ import {serviceExtraPrice} from '../lib/service-extras.js';
 export function servicePriceHandler({env = process.env, queue = gsfQueue, history = serviceCostHistory, now = Date.now} = {}) {
   return async (req, res) => {
     res.setHeader('Cache-Control', 'no-store');
+    if(req.method==='GET'&&req.query?.health==='1'){
+      if(!await managerAuthorised(req))return res.status(401).json({error:'Manager sign-in required.'});
+      try{return res.status(200).json({pricing:await queue('health',{}),receipts:await receiptRpc('health').catch(()=>null)});}
+      catch{return res.status(503).json({error:'Pricing status is temporarily unavailable.'});}
+    }
     if (req.method !== 'POST') return res.status(405).json({status:'METHOD_NOT_ALLOWED'});
     const workshop=req.body?.workshop===true;
     if(workshop){
@@ -36,8 +43,7 @@ export function servicePriceHandler({env = process.env, queue = gsfQueue, histor
       if (!batch && req.body.quoteToken) {
         try { return res.status(200).json({status:'MATCHED', quote:{...verifyServicePrice(req.body.quoteToken,input,env.GSF_SERVICE_QUOTE_SECRET,now()), token:req.body.quoteToken}}); } catch { /* Issue a current quote. */ }
       }
-      // Hash addresses with a secret salt; never retain raw IPs in supplier jobs.
-      const actor = createHash('sha256').update(env.GSF_SERVICE_QUOTE_SECRET || '').update(String(req.headers?.['x-vercel-forwarded-for'] || req.socket?.remoteAddress || 'unknown')).digest('hex');
+      const actor = pricingVisitor(req,res,env.GSF_SERVICE_QUOTE_SECRET,now());
       let data;try{data=await queue('enqueue',{request:supplierRequest,actor});}catch(error){if(!workshop)throw error;data={status:'UNAVAILABLE'};}
       if(workshop&&!['PENDING','MATCHED'].includes(data.status))return res.status(200).json(await estimate(null));
       if (data.status !== 'MATCHED') return res.status(200).json({status:['PENDING','OFFLINE','BUSY','DAILY_LIMIT','LOGIN_REQUIRED','REVIEW_REQUIRED','SETTINGS_REQUIRED','UNAVAILABLE'].includes(data.status) ? data.status : 'UNAVAILABLE'});

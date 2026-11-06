@@ -60,10 +60,10 @@ test('public submissions remain unconfirmed and cannot supply planner allocation
   assert.doesNotMatch(api, /rest\(url,key,'jobs','POST'/);
   assert.doesNotMatch(api, /job_id:/);
   assert.doesNotMatch(api, /technician:String\(b\.technician\)/);
-  assert.match(bookingPage, /Request booking/);
-  assert.match(bookingPage, /Booking request received/);
-  assert.match(bookingPage, /Vecta will confirm your appointment/);
-  assert.doesNotMatch(bookingPage, /Your booking is confirmed/);
+  assert.match(bookingPage, /Confirm booking/);
+  assert.match(bookingPage, /Booking confirmed/);
+  assert.doesNotMatch(bookingPage, /Booking request received|Vecta will confirm your appointment|awaiting booking confirmation/i);
+  assert.match(bookingPage, /Your booking is confirmed/);
 });
 
 test('website request deletion cannot delete customer, vehicle, job or invoice data', () => {
