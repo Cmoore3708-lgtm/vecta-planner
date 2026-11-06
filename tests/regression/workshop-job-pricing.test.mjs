@@ -33,7 +33,7 @@ test('unauthenticated workshop requests fail before queue access, public quote o
   const authorised=res();await handler({method:'POST',headers,body:{...request,workshop:true}},authorised);assert.equal(authorised.body.parts[1].cost_price,5);
  }finally{process.env=old;}
 });
-function ui(fetcher,initial=[]){
+function ui(fetcher,initial=[],isNewJob=false){
  const {document,window}=parseHTML('<html><body><div id="editor"><input id="job_registration" value="TEST123"><input id="job_job_type" value="Interim Service"><input id="job_vat_mode" value="inc_vat"><input id="job_engine_size" value="1198"><div id="servicePricingAdvisor">Full Service estimate £140.00</div><section><div id="jobPartsEditor"></div></section><div id="privatePricingRows"></div></div></body></html>');
  let savedParts=initial,prices=[];
  const root={document,vectaOfflineServiceEstimate:request=>workshopEstimate(request,[],workshopAllowances,offlineWorkshopPolicy),VECTA_SERVICE_PRICING:{quote:()=>({price:140})},esc:String,jobTypeValues:v=>v.split(','),jobPartsRangeDisplay:()=>'',gatherJobPartsEditor:()=>savedParts,gatherPrivatePricingItems:()=>prices,jobPartsEditorHtml:j=>{savedParts=JSON.parse(decodeURIComponent(j.customer_note.match(/URI:(.*?)\]\]/)[1]));return '<div id="jobPartsEditor"></div>';},bindJobPartsEditor(){},privatePricingRowHtml:item=>'<div><input class="privatePriceDescription" value="'+item.description+'"><input class="privatePriceAmount"></div>',bindPrivatePricing(){},syncPrivatePricingTotal(){prices=Array.from(document.querySelectorAll('#privatePricingRows > div')).map(r=>({description:r.querySelector('.privatePriceDescription').value,price:Number(r.querySelector('.privatePriceAmount').value)}));}};
@@ -41,9 +41,75 @@ function ui(fetcher,initial=[]){
  const createElement=document.createElement.bind(document);document.createElement=name=>{const node=createElement(name);if(name==='dialog'){node.showModal=()=>{};node.close=()=>{};}return node;};
  const ctx={window:root,document,fetch:fetcher,AbortController,AbortSignal,setTimeout,clearTimeout,Date,console};vm.runInNewContext(readFileSync('public/js/vecta-job-pricing.js','utf8'),ctx);
  for(const file of ['vecta-tyre-booking.js','vecta-tyre-positions.js'])vm.runInNewContext(readFileSync('public/js/'+file,'utf8'),ctx);
- root.VectaJobPricing.install({},api);return{root,document,api,parts:()=>savedParts,prices:()=>prices};
+ root.VectaJobPricing.install({},api,isNewJob);return{root,document,api,parts:()=>savedParts,prices:()=>prices};
 }
 const tick=()=>new Promise(r=>setTimeout(r,20));
+test('opening saved service cards never requests GSF, including restored plate input events',t=>{
+ t.mock.timers.enable({apis:['setTimeout']});
+ for(const service of ['Interim Service','Full Service']){
+  for(const label of ['GSF','estimate','manual','']){
+   let requests=0;
+   const parts=label?[{id:'saved-filter',description:'Oil filter',cost_price:7.25,ordered:true}]:[];
+   const app=ui(()=>{requests++;return new Promise(()=>{});},structuredClone(parts));
+   app.document.getElementById('job_job_type').value=service;
+   const editor=app.document.getElementById('editor');
+   const rows=app.document.getElementById('privatePricingRows');
+   if(label)rows.innerHTML='<div><input class="privatePriceDescription" value="'+service+' — '+label+'"><input class="privatePriceAmount" value="175.00"></div>';
+   for(let open=0;open<2;open++){
+    // Each openJobModal replaces the form's nodes before installing pricing.
+    editor.querySelector('.job-live-pricing').remove();
+    editor.innerHTML=editor.innerHTML;
+    app.root.VectaJobPricing.install({id:'booked-service',registration:'TEST123'},app.api,false);
+    const reg=app.document.getElementById('job_registration');
+    for(const plate of ['TEST123','','TEST 123']){
+     reg.value=plate;reg.dispatchEvent(new app.document.defaultView.Event('input'));
+     t.mock.timers.tick(750);
+    }
+    assert.equal(requests,0,service+' '+(label||'unpriced'));
+    assert.deepEqual(app.parts(),parts);
+    assert.equal(app.document.querySelector('.privatePriceAmount')?.value,label?'175.00':undefined);
+    assert.equal(app.document.querySelector('.job-live-pricing.is-checking'),null);
+   }
+   app.document.querySelector('[data-service]').click();
+   assert.equal(requests,1,'manual refresh starts one request');
+  }
+ }
+});
+test('entering a plate after selecting a service or starting a prefilled new job requests pricing once',t=>{
+ t.mock.timers.enable({apis:['setTimeout']});
+ for(const isNewJob of [false,true]){
+  let requests=0;
+  const app=ui(()=>{requests++;return new Promise(()=>{});},[],isNewJob);
+  const reg=app.document.getElementById('job_registration');
+  reg.value='';reg.dispatchEvent(new app.document.defaultView.Event('input'));
+  if(!isNewJob)app.root.VectaJobPricing.selected('Interim Service',true);
+  assert.equal(requests,0);
+  for(const plate of ['AB12','AB12CDE','AB12 CDE']){
+   reg.value=plate;reg.dispatchEvent(new app.document.defaultView.Event('input'));
+  }
+  t.mock.timers.tick(750);
+  assert.equal(requests,1);
+  reg.dispatchEvent(new app.document.defaultView.Event('input'));
+  t.mock.timers.tick(750);
+  assert.equal(requests,1);
+ }
+});
+test('closing and reopening a card during a pending lookup stops the previous poll',async t=>{
+ t.mock.timers.enable({apis:['setTimeout']});
+ let requests=0;
+ const app=ui(async()=>{requests++;return {ok:true,json:async()=>({status:'PENDING'})};});
+ app.document.querySelector('[data-service]').click();
+ await new Promise(setImmediate);
+ assert.equal(requests,1);
+ const form=app.document.getElementById('editor');
+ form.querySelector('.job-live-pricing').remove();
+ form.innerHTML=form.innerHTML;
+ app.root.VectaJobPricing.install({id:'reopened-service'},app.api,false);
+ t.mock.timers.tick(2100);
+ await new Promise(setImmediate);
+ assert.equal(requests,1);
+ assert.equal(app.document.querySelector('.job-live-pricing.is-checking'),null);
+});
 test('service selection fills parts and retail amount; stale results cannot change another job',async()=>{
  const result=workshopServiceResult({status:'MATCHED',quote},secret);
  const app=ui(async()=>({ok:true,json:async()=>result}));app.root.VectaJobPricing.selected('Interim Service',true);await tick();
