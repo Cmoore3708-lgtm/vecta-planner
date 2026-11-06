@@ -2881,23 +2881,40 @@ body.servicePreviewing .servicePreviewControls{position:relative!important;z-ind
 .provisionalSlot{display:block;color:#354152;font-size:12px;font-weight:700}
 .provisionalWork{white-space:pre-line;overflow-wrap:anywhere}
 @media(min-width:901px){
- #content .livePriorityBacklog:has(>.provisionalBookingsPanel){grid-template-rows:auto minmax(0,3fr) minmax(0,2fr)}
- .livePriorityBacklog .provisionalBookingList{max-height:min(22vh,240px);overflow-y:auto;overscroll-behavior:contain}
- #content .mechanicBoard:has(.provisionalBookingsPanel){display:grid;grid-template-columns:minmax(0,3fr) minmax(240px,1fr);column-gap:14px;align-items:start}
- #content .mechanicBoard:has(.provisionalBookingsPanel)>.mechanicBoardIntro,
- #content .mechanicBoard:has(.provisionalBookingsPanel)>.panel{grid-column:1/-1}
- #content .mechanicBoardBacklog:has(>.provisionalBookingsPanel){grid-template-columns:minmax(0,1fr);margin:0 0 20px}
- #content .mechanicBoardBacklog .provisionalBookingList{max-height:40vh;overflow-y:auto;overscroll-behavior:contain}
+ #content .livePriorityBacklog,
+ #content .mechanicBoardBacklog{
+   --backlog-gap:10px;
+   height:max(180px,calc(100dvh - var(--backlog-top,190px)));
+   display:grid;grid-template-columns:minmax(0,1fr);gap:var(--backlog-gap);
+   grid-auto-rows:calc((100% - var(--backlog-gap)) / 2);
+   align-items:stretch;align-content:start;align-self:start;
+   overflow-y:auto;overflow-x:hidden;scrollbar-gutter:stable;
+ }
+ #content .livePriorityBacklog>.provisionalBookingsPanel,
+ #content .mechanicBoardBacklog>section{
+   display:flex;flex-direction:column;min-height:0;margin:0;overflow:hidden!important;
+ }
+ #content .provisionalBookingsPanel .unallocatedHead,
+ #content .mechanicBoardBacklog .mechanicGroupHeading{flex:none}
+ #content .livePriorityBacklog .provisionalBookingList,
+ #content .mechanicBoardBacklog :is(.provisionalBookingList,.mechanicJobList){
+   flex:1;min-height:0;overflow-y:auto;align-content:start;scrollbar-gutter:stable;
+ }
+ #content .mechanicBoard:has(.mechanicBoardBacklog){display:grid;grid-template-columns:minmax(0,3fr) minmax(240px,1fr);column-gap:14px;align-items:start}
+ #content .mechanicBoard:has(.mechanicBoardBacklog)>.mechanicBoardIntro,
+ #content .mechanicBoard:has(.mechanicBoardBacklog)>.panel{grid-column:1/-1}
+ #content .mechanicBoard .mechanicBoardBacklog{grid-template-columns:minmax(0,1fr);align-items:stretch;gap:var(--backlog-gap);margin:0 0 20px}
 }
 @media(max-width:900px){
- #content .mechanicBoardBacklog:has(>.provisionalBookingsPanel){grid-template-columns:minmax(0,1fr)}
+ #content .provisionalPanelEmpty{display:none}
+ #content .mechanicBoardBacklog:has(>.provisionalBookingsPanel:not(.provisionalPanelEmpty)){grid-template-columns:minmax(0,1fr)}
 }
 
 @media(min-width:901px){
  .plannerLayout.v233Planner.livePriorityPlanner.livePriorityPlanner{grid-template-columns:minmax(0,3fr) minmax(215px,1fr)!important;gap:10px!important}
  .livePriorityPlanner.livePriorityPlanner .plannerGrid{grid-template-columns:48px minmax(0,1fr) minmax(0,1fr) minmax(0,1fr)!important;min-width:0!important}
  .livePriorityPlanner.livePriorityPlanner .head{padding:10px 8px}
- .livePriorityBacklog{min-width:0;display:flex;flex-direction:column;gap:10px;max-height:calc(100vh - 180px);overflow-y:auto;scrollbar-gutter:stable}
+ .livePriorityBacklog{min-width:0}
  .livePriorityBacklog .panel{margin:0;padding:10px;min-width:0;flex:0 0 auto!important;overflow:visible!important}
  .livePriorityBacklog .unallocatedJobList{display:flex;flex-direction:column;gap:8px;flex:0 0 auto!important;max-height:none!important;overflow:visible!important}
  .livePriorityBacklog .sideJob{min-width:0;max-width:none;width:100%;margin:0;flex:0 0 auto!important}
@@ -13205,7 +13222,22 @@ function linkifyDisplayedEmails(root){
 }
 function plannerHeaderDayLabel(iso){var date=new Date(iso+'T12:00:00'),day=date.getDate(),lastTwo=day%100,suffix=lastTwo>=11&&lastTwo<=13?'th':({1:'st',2:'nd',3:'rd'}[day%10]||'th');return date.toLocaleDateString('en-GB',{weekday:'long'})+' '+day+suffix}
 var vectaRenderInvoiceLookup=null,vectaRenderActiveInvoices=null,vectaRenderContractorNames=null;
-var renderInProgress=false;function render(){if(document.body.classList.contains('vectaStartupLoading')||renderInProgress)return;renderInProgress=true;try{safe(function(){vectaRenderInvoiceLookup=vectaCreateInvoiceLookup();var oldTaskList=document.querySelector('.taskList'),oldUnallocated=document.querySelector('.unallocatedPanel:not(.quotePanel) .unallocatedJobList'),oldQuotes=document.querySelector('.quotePanel .unallocatedJobList'),oldProvisional=document.querySelector('.livePriorityBacklog .provisionalBookingList'),provisionalScroll=oldProvisional?oldProvisional.scrollTop:0,taskScroll=oldTaskList?oldTaskList.scrollTop:0,unallocatedScroll=oldUnallocated?oldUnallocated.scrollTop:0,quoteScroll=oldQuotes?oldQuotes.scrollTop:0;document.getElementById('currentDate').value=selectedIso();if(view==='dashboard')view='planner';if(view==='customers'||view==='vehicles')view='search';renderNav();var navMatch=navItems().find(function(x){return x[0]===view});if(!navMatch){view='planner';navMatch=navItems()[0];}document.getElementById('viewTitle').textContent=navMatch[1];var dayNameEl=document.getElementById('dashboardDayName');if(dayNameEl){if(view==='planner'){dayNameEl.textContent=plannerHeaderDayLabel(selectedIso());dayNameEl.classList.add('show')}else{dayNameEl.textContent='';dayNameEl.classList.remove('show')}}var bookedTodayEl=document.getElementById('dashboardBookedToday'),bookedTodayValue=document.getElementById('dashboardBookedTodayValue');if(bookedTodayEl){if(view==='planner'){var bookedTodayTotal=0;try{bookedTodayTotal=invoiceFinancialSummary().today}catch(e){console.warn('Dashboard booked-today total unavailable',e)}if(bookedTodayValue)bookedTodayValue.textContent=Number(bookedTodayTotal||0).toFixed(2);bookedTodayEl.classList.add('show');bookedTodayEl.onclick=function(){openInvoiceFinanceReport('date:'+financeDailyReferenceDate())}}else{bookedTodayEl.classList.remove('show');bookedTodayEl.onclick=null}}if(view==='planner')plannerPackVisibleDay();var c=document.getElementById('content');if(view==='dashboard')c.innerHTML=dashboardHtml();if(view==='planner')c.innerHTML=plannerHtml();if(view==='fleet')c.innerHTML=fleetHtml();if(view==='jobs')c.innerHTML=jobsHtml();if(view==='vehicleTax')c.innerHTML=vehicleTaxHtml();if(view==='service')c.innerHTML=serviceHtml();if(view==='search')c.innerHTML=searchHtml();if(view==='invoices')c.innerHTML=invoicesHtml();if(view==='invoiceArchive')c.innerHTML=invoiceArchiveHtml();if(view==='websiteRequests')c.innerHTML=websiteRequestsHtml();if(view==='parts')c.innerHTML=partsOrderingHtml();if(view==='settings')c.innerHTML=settingsHtml();bindView();if(view==='planner'&&window.enrichHaynesDashboard)window.enrichHaynesDashboard(c,app.jobs);if(view==='websiteRequests')bindWebsiteRequests();if(view==='parts')bindPartsOrdering();if(view==='vehicleTax')bindVehicleTax();linkifyDisplayedEmails(c);var newTaskList=document.querySelector('.taskList'),newUnallocated=document.querySelector('.unallocatedPanel:not(.quotePanel) .unallocatedJobList'),newQuotes=document.querySelector('.quotePanel .unallocatedJobList');if(newTaskList)newTaskList.scrollTop=taskScroll;if(newUnallocated)newUnallocated.scrollTop=unallocatedScroll;if(newQuotes)newQuotes.scrollTop=quoteScroll;var newProvisional=document.querySelector('.livePriorityBacklog .provisionalBookingList');if(newProvisional)newProvisional.scrollTop=provisionalScroll;},null)}finally{vectaRenderInvoiceLookup=null;vectaRenderActiveInvoices=null;vectaRenderContractorNames=null;renderInProgress=false}}
+function plannerBacklogScrollAreas(){
+  var backlog=document.querySelector('.livePriorityBacklog,.mechanicBoardBacklog');
+  return backlog?[backlog].concat(Array.from(backlog.querySelectorAll('.provisionalBookingList,.unallocatedJobList,.mechanicJobList'))):[];
+}
+function sizePlannerBacklog(){
+  if(!window.matchMedia('(min-width:901px)').matches)return;
+  var backlog=document.querySelector('.livePriorityBacklog,.mechanicBoardBacklog');
+  if(backlog)backlog.style.setProperty('--backlog-top',(backlog.getBoundingClientRect().top+window.scrollY)+'px');
+}
+window.addEventListener('resize',sizePlannerBacklog);
+var renderInProgress=false;function render(){if(document.body.classList.contains('vectaStartupLoading')||renderInProgress)return;renderInProgress=true;try{safe(function(){vectaRenderInvoiceLookup=vectaCreateInvoiceLookup();var taskList=document.querySelector('.taskList'),taskScroll=taskList?taskList.scrollTop:0;
+var backlogScroll=plannerBacklogScrollAreas().map(function(el){return el.scrollTop});
+document.getElementById('currentDate').value=selectedIso();if(view==='dashboard')view='planner';if(view==='customers'||view==='vehicles')view='search';renderNav();var navMatch=navItems().find(function(x){return x[0]===view});if(!navMatch){view='planner';navMatch=navItems()[0];}document.getElementById('viewTitle').textContent=navMatch[1];var dayNameEl=document.getElementById('dashboardDayName');if(dayNameEl){if(view==='planner'){dayNameEl.textContent=plannerHeaderDayLabel(selectedIso());dayNameEl.classList.add('show')}else{dayNameEl.textContent='';dayNameEl.classList.remove('show')}}var bookedTodayEl=document.getElementById('dashboardBookedToday'),bookedTodayValue=document.getElementById('dashboardBookedTodayValue');if(bookedTodayEl){if(view==='planner'){var bookedTodayTotal=0;try{bookedTodayTotal=invoiceFinancialSummary().today}catch(e){console.warn('Dashboard booked-today total unavailable',e)}if(bookedTodayValue)bookedTodayValue.textContent=Number(bookedTodayTotal||0).toFixed(2);bookedTodayEl.classList.add('show');bookedTodayEl.onclick=function(){openInvoiceFinanceReport('date:'+financeDailyReferenceDate())}}else{bookedTodayEl.classList.remove('show');bookedTodayEl.onclick=null}}if(view==='planner')plannerPackVisibleDay();var c=document.getElementById('content');if(view==='dashboard')c.innerHTML=dashboardHtml();if(view==='planner')c.innerHTML=plannerHtml();if(view==='fleet')c.innerHTML=fleetHtml();if(view==='jobs')c.innerHTML=jobsHtml();if(view==='vehicleTax')c.innerHTML=vehicleTaxHtml();if(view==='service')c.innerHTML=serviceHtml();if(view==='search')c.innerHTML=searchHtml();if(view==='invoices')c.innerHTML=invoicesHtml();if(view==='invoiceArchive')c.innerHTML=invoiceArchiveHtml();if(view==='websiteRequests')c.innerHTML=websiteRequestsHtml();if(view==='parts')c.innerHTML=partsOrderingHtml();if(view==='settings')c.innerHTML=settingsHtml();bindView();if(view==='planner'&&window.enrichHaynesDashboard)window.enrichHaynesDashboard(c,app.jobs);if(view==='websiteRequests')bindWebsiteRequests();if(view==='parts')bindPartsOrdering();if(view==='vehicleTax')bindVehicleTax();linkifyDisplayedEmails(c);taskList=document.querySelector('.taskList');if(taskList)taskList.scrollTop=taskScroll;
+sizePlannerBacklog();
+plannerBacklogScrollAreas().forEach(function(el,i){if(backlogScroll[i])el.scrollTop=backlogScroll[i]});
+},null)}finally{vectaRenderInvoiceLookup=null;vectaRenderActiveInvoices=null;vectaRenderContractorNames=null;renderInProgress=false}}
 function vectaCreateInvoiceLookup(){
   var ids=new Set(),jobs=new Set();
   vectaActiveInvoices().forEach(function(inv){ids.add(String(inv.id||''));if(String(inv.status||'saved')!=='draft')jobs.add(String(inv.job_id||''))});
@@ -13388,7 +13420,6 @@ function provisionalBookingsPanelHtml(){
   }).sort(function(a,b){
     return String(a.booking_date||'9999').localeCompare(String(b.booking_date||'9999'))||byTime(a,b)||String(a.id).localeCompare(String(b.id));
   });
-  if(!bookings.length)return '';
   var cards=bookings.map(function(job){
     var date=String(job.booking_date||'').slice(0,10);
     var schedule=/^\d{4}-\d{2}-\d{2}$/.test(date)?date.slice(8)+'/'+date.slice(5,7):'Date to arrange';
@@ -13400,7 +13431,7 @@ function provisionalBookingsPanelHtml(){
       '<span class="provisionalIdentity">'+listPlate(job.registration)+'<strong>'+esc(plannerVehicleLabel(job))+'</strong></span>'+slot+
       '<span class="provisionalWork">'+esc(job.work_required||job.job_type||'')+'</span></button>';
   }).join('');
-  return '<section class="panel provisionalBookingsPanel"><div class="unallocatedHead"><h3>Provisional Bookings <span class="pill">'+bookings.length+'</span></h3></div><div class="provisionalBookingList">'+cards+'</div></section>';
+  return '<section class="panel provisionalBookingsPanel'+(bookings.length?'':' provisionalPanelEmpty')+'"><div class="unallocatedHead"><h3>Provisional Bookings <span class="pill">'+bookings.length+'</span></h3></div><div class="provisionalBookingList">'+(cards||'<div class="empty">No provisional bookings.</div>')+'</div></section>';
 }
 function unallocatedPanelHtml(){var rows=unallocatedJobs(),carried=rows.filter(function(j){return !!carryOverMeta(j)}),body=rows.length?rows.map(unallocatedJobCardHtml).join(''):'<div class="empty">No unallocated jobs.</div>';return '<aside class="panel unallocatedPanel" data-unallocated-drop="true"><div class="unallocatedHead"><h3>Unallocated Jobs <span class="pill">'+rows.length+'</span>'+(carried.length?' <span class="pill" style="background:#dc2626;color:#fff">'+carried.length+' outstanding</span>':'')+'</h3></div><div class="unallocatedJobList">'+body+'</div></aside>'}
 function quoteJobs(){return (app.jobs||[]).filter(function(j){return j&&!j.archived&&!vectaJobIsDeletedForLists(j)&&String(j.status||'').toLowerCase()==='quote'}).sort(function(a,b){return String(b.updated_at||b.created_at||'').localeCompare(String(a.updated_at||a.created_at||''))})}

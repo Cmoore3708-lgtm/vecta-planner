@@ -13,8 +13,8 @@ test('restored mechanics entry has only its original Dashboard and Completed Job
 });
 test('management navigation attempts render the mechanics planner without calculating or displaying financial totals',()=>{
  const content={innerHTML:''},title={},date={};let packed=0;
- const c={plannerPackVisibleDay:()=>{packed++},vectaCreateInvoiceLookup:()=>({ids:new Set(),jobs:new Set()}),view:'invoices',window:{},document:{body:{classList:{contains:()=>false}},querySelector:()=>null,getElementById:id=>({content,viewTitle:title,currentDate:date}[id]||null)},safe:fn=>fn(),selectedIso:()=> '2026-10-19',renderNav(){},plannerHtml:()=> 'MECHANICS PLANNER',bindView(){},linkifyDisplayedEmails(){},invoicesHtml:()=>{throw Error('Finance screen reached');},invoiceFinancialSummary:()=>{throw Error('Finance calculation reached');}};
- vm.runInNewContext(nav+'\n'+mechanic.match(/var renderInProgress=false;function render\(\)\{[^\n]+/)[0],c);c.render();assert.equal(c.view,'planner');assert.equal(content.innerHTML,'MECHANICS PLANNER');assert.equal(packed,1);
+ const c={plannerPackVisibleDay:()=>{packed++},vectaCreateInvoiceLookup:()=>({ids:new Set(),jobs:new Set()}),view:'invoices',window:{addEventListener(){},matchMedia:()=>({matches:false})},document:{body:{classList:{contains:()=>false}},querySelector:()=>null,getElementById:id=>({content,viewTitle:title,currentDate:date}[id]||null)},safe:fn=>fn(),selectedIso:()=> '2026-10-19',renderNav(){},plannerHtml:()=> 'MECHANICS PLANNER',bindView(){},linkifyDisplayedEmails(){},invoicesHtml:()=>{throw Error('Finance screen reached');},invoiceFinancialSummary:()=>{throw Error('Finance calculation reached');}};
+ vm.runInNewContext(nav+'\n'+mechanic.slice(mechanic.indexOf('function plannerBacklogScrollAreas('),mechanic.indexOf('function vectaCreateInvoiceLookup(')),c);c.render();assert.equal(c.view,'planner');assert.equal(content.innerHTML,'MECHANICS PLANNER');assert.equal(packed,1);
 });
 test('both entries share the current planner functions and preserve Main’s timed lanes and backlog',()=>{
  const expression=/function plannerHtml\(\)\{[\s\S]*?\n\}/;
