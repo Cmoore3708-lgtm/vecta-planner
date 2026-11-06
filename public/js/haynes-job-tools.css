@@ -411,7 +411,17 @@
 #content .mechanicJobList{display:grid;grid-template-columns:minmax(0,1fr);gap:12px;align-items:start}
 #content .mechanicBoard .mechanicQueueCard{position:relative!important;display:block!important;box-sizing:border-box;width:100%!important;min-width:0!important;max-width:100%!important;height:auto!important;min-height:0!important;max-height:none!important;padding:16px!important;margin:0!important;overflow:visible!important;border:1px solid #d6dee8;border-radius:12px;box-shadow:0 4px 16px #15202b0a;cursor:pointer;text-align:left;font:inherit;color:inherit}
 #content .mechanicBoard .mechanicQueueCard .mobileJobTop{display:flex!important;flex-direction:column!important;align-items:flex-start!important;justify-content:flex-start!important;gap:7px!important;min-height:0!important;height:auto!important;width:100%!important;padding:0!important;margin:0 0 14px!important}
-#content .mechanicBoard .mechanicQueueCard.hasHaynesDashboardImage .mobileJobTop{min-height:112px!important;padding-right:138px!important}
+/* Keep the car beside the registration when both fit. In a narrow lane it
+   wraps above the full-width work description, without covering the text. */
+#content .mechanicBoard .mechanicQueueCard.hasHaynesDashboardImage{
+ display:flex!important;flex-wrap:wrap;align-items:flex-start;column-gap:12px;
+}
+#content .mechanicBoard .mechanicQueueCard.hasHaynesDashboardImage .mobileJobTop{
+ flex:1 0 min(150px,100%);width:auto!important;
+}
+#content .mechanicBoard .mechanicQueueCard.hasHaynesDashboardImage>:not(.mobileJobTop):not(.haynesDashboardImage){
+ order:1;flex-basis:100%;
+}
 #content .mechanicBoard .mechanicQueueCard .mobileVehicleTop,#content .mechanicBoard .mechanicQueueCard .mobileJobCategory{display:block!important;position:static!important;width:auto!important;max-width:100%!important;white-space:normal!important;overflow:visible!important;text-overflow:clip!important;overflow-wrap:anywhere;line-height:1.35!important;margin:0!important;padding:0!important}
 #content .mechanicBoard .mechanicQueueCard .mobileVehicleTop{font-size:16px!important;font-weight:800!important}
 #content .mechanicBoard .mechanicQueueCard .mobileJobCategory{font-size:13px!important;color:#526276!important}
@@ -420,7 +430,10 @@
 #content .mechanicBoard .mechanicQueueCard .mobilePlateAndParts{display:flex;align-items:center;gap:7px;min-width:0;max-width:100%}
 #content .mechanicBoard .mechanicQueueCard .mobilePlateAndParts .partsStatusDot{position:static!important;flex:0 0 12px!important;width:12px!important;height:12px!important;transform:none!important;margin:0!important}
 #content .mechanicBoard .mechanicQueueCard .mobileMotAppointment{position:static!important;display:block!important;white-space:normal!important;max-width:100%;font-size:14px!important}
-#content .mechanicBoard .mechanicQueueCard>.haynesDashboardImage{position:absolute!important;top:16px!important;right:12px!important;width:130px!important;height:100px!important;max-width:40%!important;max-height:100px!important;margin:0!important;object-fit:contain!important;object-position:right top!important}
+#content .mechanicBoard .mechanicQueueCard>.haynesDashboardImage{
+ position:static!important;width:260px!important;height:auto!important;max-width:100%!important;max-height:200px!important;
+ margin:0 0 8px auto!important;object-fit:contain!important;object-position:right top!important;
+}
 #content .mechanicBoard .mechanicQueueCard .mobileManufacturerBadge{display:none!important}
 #content .mechanicBoard .mechanicQueueCard .mechanicJobDescription{display:block!important;position:static!important;float:none!important;clear:both;box-sizing:border-box;width:100%!important;height:auto!important;min-height:0!important;max-height:none!important;margin:0!important;padding:12px 0!important;border-top:1px solid #e2e8f0;white-space:pre-wrap!important;overflow:visible!important;text-overflow:clip!important;-webkit-line-clamp:unset!important;overflow-wrap:anywhere;word-break:normal;font-size:16px!important;font-weight:500!important;line-height:1.55!important;color:#15202b!important}
 #content .mechanicBoard .mechanicQueueCard:focus-visible{outline:3px solid #2563eb;outline-offset:2px}
@@ -428,4 +441,4 @@
 #content .mechanicBookingState,#content .mechanicTaskLabel{display:inline-block;margin-bottom:8px;font-size:13px;font-weight:800;color:#334155}
 @media(max-width:1100px){#content .mechanicBoardColumns{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:700px){#content .mechanicBoardColumns,#content .mechanicBoardBacklog{grid-template-columns:minmax(0,1fr);gap:20px}#content .mechanicBoardIntro{align-items:flex-start;flex-direction:column;gap:10px}#content .mechanicBoard .mechanicQueueCard{padding:14px!important}}
-@media(max-width:400px){#content .mechanicBoard .mechanicQueueCard.hasHaynesDashboardImage .mobileJobTop{padding-right:110px!important}#content .mechanicBoard .mechanicQueueCard>.haynesDashboardImage{width:100px!important}}
+@media(max-width:400px){#content .mechanicBoard .mechanicQueueCard>.haynesDashboardImage{width:200px!important}}
