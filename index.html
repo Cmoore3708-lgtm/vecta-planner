@@ -2883,6 +2883,14 @@ body.servicePreviewing .servicePreviewControls{position:relative!important;z-ind
 @media(min-width:901px){
  #content .livePriorityBacklog:has(>.provisionalBookingsPanel){grid-template-rows:auto minmax(0,3fr) minmax(0,2fr)}
  .livePriorityBacklog .provisionalBookingList{max-height:min(22vh,240px);overflow-y:auto;overscroll-behavior:contain}
+ #content .mechanicBoard:has(.provisionalBookingsPanel){display:grid;grid-template-columns:minmax(0,3fr) minmax(240px,1fr);column-gap:14px;align-items:start}
+ #content .mechanicBoard:has(.provisionalBookingsPanel)>.mechanicBoardIntro,
+ #content .mechanicBoard:has(.provisionalBookingsPanel)>.panel{grid-column:1/-1}
+ #content .mechanicBoardBacklog:has(>.provisionalBookingsPanel){grid-template-columns:minmax(0,1fr);margin:0 0 20px}
+ #content .mechanicBoardBacklog .provisionalBookingList{max-height:40vh;overflow-y:auto;overscroll-behavior:contain}
+}
+@media(max-width:900px){
+ #content .mechanicBoardBacklog:has(>.provisionalBookingsPanel){grid-template-columns:minmax(0,1fr)}
 }
 
 @media(min-width:901px){
