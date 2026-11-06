@@ -14,7 +14,7 @@ const first={id:'00000002-0000-4000-8000-000000000001',job_id:job.id,registratio
 const second={...first,id:'00000002-0000-4000-8000-000000000002',message:'Second finding',photo_ids:['00000003-0000-4000-8000-000000000002']};
 const signed=id=>'https://brqsejjykrubxuofavuu.supabase.co/storage/v1/object/sign/job-workshop-photos/'+id+'.jpg?token=sample';
 const flush=()=>new Promise(resolve=>setImmediate(resolve));
-function app(seen=new Map(),mechanic=false){
+function app(seen=new Map(),mechanic=false,extraPhotos=[]){
  const {document,window:dom}=parseHTML('<html><body><main class="main"><header class="top"></header></main><div class="modal" id="jobModal"></div><div class="modal" id="other"></div></body></html>');
  let jobs=[job],mounted=0,openedId='',scrolls=0,interval,alerts=[],requests=[];
  const events={};
@@ -33,7 +33,7 @@ function app(seen=new Map(),mechanic=false){
    if(b.action==='approval-queue')return Response.json({findings:alerts});
    assert.equal(b.job_id,job.id);
    if(b.action==='approval-list')return Response.json({approvals:[first,second]});
-   if(b.action==='photos-list')return Response.json({photos:[first,second].map(f=>({id:f.photo_ids[0],review_id:f.id,private_finding:true,caption:f.message,url:signed(f.photo_ids[0])}))});
+   if(b.action==='photos-list')return Response.json({photos:[...[first,second].map(f=>({id:f.photo_ids[0],review_id:f.id,private_finding:true,caption:f.message,url:signed(f.photo_ids[0])})),...extraPhotos]});
    throw Error('Unexpected action '+b.action);
   }
  });
@@ -43,6 +43,28 @@ function app(seen=new Map(),mechanic=false){
   get popup(){return document.querySelector('.mechanicPhotoAlert');},
   get action(){return document.querySelector('.findingAlertOpen');}};
 }
+
+test('opening a Workshop job directly pairs each private thumbnail with its own note and price field',async()=>{
+ const orphanId='00000003-0000-4000-8000-000000000003',publicId='00000003-0000-4000-8000-000000000004';
+ const ui=app(new Map(),false,[
+  {id:orphanId,private_finding:true,review_id:'unfinished',caption:'',url:signed(orphanId)},
+  {id:publicId,private_finding:false,caption:'Repair complete',url:signed(publicId)}
+ ]);
+ ui.window.openJobModal(job.id);await flush();
+ for(const item of [first,second]){
+  const entry=ui.modal.querySelector('[data-approval-history] .approvalRecord[data-finding-id="'+item.id+'"]');
+  assert.equal(entry.querySelector('img').src,signed(item.photo_ids[0]));
+  assert.equal(entry.querySelector('a').href,signed(item.photo_ids[0]));
+  assert.equal(entry.querySelector('.findingBody p').textContent,item.message);
+  assert.equal(entry.querySelector('.findingReview').dataset.findingId,item.id);
+  assert.equal(entry.querySelectorAll('img').length,1);
+ }
+ const gallery=ui.modal.querySelector('[data-photo-saved]');
+ assert.equal(gallery.querySelectorAll('figure').length,2);
+ assert.equal(gallery.querySelectorAll('textarea').length,1);
+ assert.match(gallery.textContent,/Finish private finding/);
+ assert.match(gallery.textContent,/Save caption/);
+});
 
 test('click opens the matching saved job, focuses the specific finding with only its photos, and remembers acknowledgement',async()=>{
  const seen=new Map(),ui=app(seen);await flush();
