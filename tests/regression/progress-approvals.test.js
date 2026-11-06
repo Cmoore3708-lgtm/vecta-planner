@@ -335,3 +335,16 @@ test('mechanic camera → Save holds the job open for a note, keeps the photo on
  assert.equal(mobile.textContent,'Save & Close');
  await save.onclick();assert.equal(regularSaves,2);assert.equal(stageIds.length,2);
 });
+
+test('only a signed-in mechanic’s submitted photo batch is eligible for a dashboard alert',async t=>{
+ const s=setup(t);
+ await stageFinding(s.db,job,{...body,progress_from_mechanic:true},'manager');
+ const queued=()=>reviewQueue(async()=>[{...s.row,jobs:job}]);
+ assert.equal((await queued()).findings[0].mechanic_photo,false);
+ s.row=null;
+ await stageFinding(s.db,job,body,'mechanic');
+ await stageFinding(s.db,job,body,'manager');
+ assert.equal((await queued()).findings[0].mechanic_photo,true);
+ s.row=null;await stageFinding(s.db,job,{...body,photo_ids:[]},'mechanic');
+ assert.equal((await queued()).findings[0].mechanic_photo,false);
+});

@@ -17121,6 +17121,24 @@ document.addEventListener('change',function(ev){
 
 /* Expose the job editor to dashboard tools before later UI wrappers load. */
 window.openJobModal=function(id,preset){return openJobModal(id,preset);};
+window.vectaOpenFindingJob=async function(jobId){
+  function activeCard(){
+    var open=Array.from(document.querySelectorAll('.modal.open'));
+    if(!open.length)return '';
+    return open.length===1&&open[0].id==='jobModal'&&editingJobId===jobId?'open':'busy';
+  }
+  var active=activeCard();
+  if(active)return active;
+  function hasJob(){return (app.jobs||[]).some(function(job){return job.id===jobId});}
+  if(!hasJob()){
+    await vectaPrimeJobsFromCloud();
+    active=activeCard();
+    if(active)return active;
+    if(!hasJob())return 'missing';
+  }
+  window.openJobModal(jobId);
+  return 'open';
+};
 /* Read-only booking lookup shares the editor's customer/fleet resolution. */
 window.VectaBookingVehicles={
  resolve:function(value){
