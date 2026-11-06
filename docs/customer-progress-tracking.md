@@ -45,3 +45,33 @@ Workshop authentication and same-origin checks protect list/upload/caption/remov
 The customer gallery shows captions using text nodes, supports full-size viewing, refreshes once a minute, and retains already loaded images to avoid downloading them again on every poll. Photo-loading failures do not hide job progress. Changing registration or losing tracking access clears the gallery.
 
 Migration `20261105214748_job_workshop_photos.sql` must be applied before production release. It has been applied to isolated Test (with content hash added in a second development migration); production is unchanged until release approval.
+
+## Customer approval messages
+
+On the mechanics dashboard, take or choose a photo, describe the finding and select **Send to Workshop Pro for pricing**. No customer message is sent at this stage. Draft photos stay private, including on older trackers, until the owner releases them.
+
+Main shows **Workshop findings to price (N)** when there is work to review. Open a finding to see its photos and note, enter the **estimated total including VAT**, and select **Send estimate to customer**. The price and photos are released together. Only Main can publish estimates or retry customer notifications. The customer's private progress link displays the finding, photographs, exact estimate, and Approve/Decline controls. The decision returns to the same job. None of these actions adds an invoice line or changes an invoice total.
+
+Email is sent automatically to the address saved on the job. With no Meta sender configured, Workshop Pro prepares WhatsApp for the authorised mobile number and opens it when the browser allows; the owner taps **Send** in WhatsApp. If the pop-up is blocked, **Open WhatsApp and tap Send** is available on the receipt and can be reopened from the job. A prepared WhatsApp message is never labelled sent. With a configured sender, both channels are dispatched independently. Email and WhatsApp use the same private link. Retrying an outstanding channel does not repeat an accepted email or WhatsApp API submission. Test never sends either channel or opens a real WhatsApp chat.
+
+WhatsApp permission comes from the matching website booking's WhatsApp preference or an agreement recorded on the job. A replacement contact cannot use an old link. Public registration lookups cannot read a finding, price or decision. Apply the three migrations in order: `20261106062646_customer_progress_approvals.sql`, `20261106065751_whatsapp_approval_contact_guard.sql`, `20261106070818_workshop_review_estimates.sql`.
+
+### Connect the WhatsApp sender
+
+Use the Vecta WhatsApp Business Platform phone number in Meta WhatsApp Manager. Submit an English (UK) utility template, for example `vecta_workshop_approval`, with one body variable for the customer's first name:
+
+> Hi {{1}}. There is a message relating to your car waiting for your approval. Click below to see it.
+
+Add one **Visit website** button labelled **View message**. Its dynamic URL must be `https://www.vectamotors.co.uk/track#{{1}}`. The button parameter is the complete fragment after the hash; the email uses the same URL. Use synthetic values for the template review sample, never a customer link.
+
+Once Meta approves the template, configure the planner project's Production server environment and redeploy:
+
+| Variable | Value |
+| --- | --- |
+| `WHATSAPP_PHONE_NUMBER_ID` | Sender's phone number ID from Meta |
+| `WHATSAPP_ACCESS_TOKEN` | Server-only system-user token authorised to send with that number |
+| `WHATSAPP_APPROVAL_TEMPLATE` | Approved template name |
+| `WHATSAPP_TEMPLATE_LANGUAGE` | Approved language, default `en_GB` |
+| `WHATSAPP_GRAPH_VERSION` | Supported Graph API version, default `v23.0` |
+
+Store the token as a sensitive server-side variable. A Meta acceptance receipt in the job card means the provider accepted the message; it does not confirm arrival on the handset. Use a controlled opt-in recipient to verify actual delivery after setup.

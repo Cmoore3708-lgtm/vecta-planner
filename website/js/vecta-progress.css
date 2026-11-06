@@ -23,3 +23,14 @@ header.trackerHeader{padding:16px 22px 18px;background:#000;text-align:center;bo
 .stageCard:not(.current):not(.done) .sceneArt{filter:brightness(.35)}
 
 .inspectionPhotos{margin:28px 0 10px;padding-top:24px;border-top:1px solid #52504a;text-align:left}.inspectionPhotos h2{font-size:24px;margin:8px 0}.inspectionPhotos>p{color:#c4c9d0;font-size:14px;line-height:1.6}.inspectionPhotos .summaryLabel{color:#d9bd83;letter-spacing:.14em;font-size:11px}.inspectionPhotoGrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:16px;margin-top:18px}.inspectionPhotoGrid figure{margin:0;border:1px solid #45494f;background:#16191f;border-radius:12px;overflow:hidden;min-width:0}.inspectionPhotoGrid a{display:block}.inspectionPhotoGrid img{display:block;width:100%;height:260px;object-fit:contain;background:#0c0e12}.inspectionPhotoGrid figcaption{padding:14px 16px;color:#eee8dc;font-size:15px;line-height:1.6;white-space:pre-wrap;overflow-wrap:anywhere}#workshopPhotoError{color:#f0c98c}@media(max-width:560px){.inspectionPhotoGrid{grid-template-columns:1fr}.inspectionPhotoGrid img{height:auto;max-height:440px}}
+
+.progressApproval{padding:16px;margin:16px 0;border:1px solid #ad8748;border-radius:12px;background:#211e19;color:#fff}
+.progressApproval h2{margin:0 0 6px;font-size:1.25rem}
+.progressApproval p{white-space:pre-wrap;overflow-wrap:anywhere}
+#approvalPhotos{display:inline-block;color:#ffdc9d;background:none;border:0;padding:6px 0;margin-bottom:8px;text-decoration:underline;cursor:pointer}
+#approvalButtons{display:flex;gap:10px;flex-wrap:wrap}
+#approvalButtons button{min-height:44px;padding:8px 22px;border:0;border-radius:8px;font-weight:bold;cursor:pointer}
+#approveWork{background:#247448;color:white}
+#declineWork{background:#eee;color:#222}
+.progressApproval [hidden]{display:none!important}
+#approvalStatus:empty{display:none}
