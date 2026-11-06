@@ -1,0 +1,38 @@
+name: Haynes sign-in
+on:
+  pull_request:
+    paths:
+      - 'workers/haynes/**'
+      - 'scripts/haynes-sign-in-update/**'
+      - 'tests/integration/haynes-session-edge.mjs'
+      - '.github/workflows/haynes-sign-in.yml'
+permissions:
+  contents: read
+jobs:
+  edge:
+    runs-on: windows-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - run: npm ci --prefix workers/haynes --ignore-scripts
+      - name: Verify Windows credential recovery and Edge lookup
+        shell: powershell
+        run: |
+          $fixture = Join-Path $env:RUNNER_TEMP 'haynes-fixture'
+          New-Item -ItemType Directory -Path $fixture | Out-Null
+          $env:LOCALAPPDATA = $fixture
+          function Read-Host($Prompt, [switch]$AsSecureString) {
+              if ($AsSecureString) { return (ConvertTo-SecureString 'test-only' -AsPlainText -Force) }
+              return 'fixture'
+          }
+          & .\workers\haynes\save-login.ps1
+          & .\workers\haynes\save-login.ps1
+          $saved = Get-Content -Raw (Join-Path $fixture 'VectaHaynes\supplier-login.xml')
+          if ($saved.Contains('test-only')) { throw 'Password stored in clear text' }
+          openssl req -x509 -newkey rsa:2048 -keyout "$fixture/server.key" -out "$fixture/server.crt" -days 1 -nodes -subj '/CN=www.workshopdata.com'
+          if ($LASTEXITCODE -ne 0) { throw 'Could not initialise fixture TLS' }
+          node tests/integration/haynes-session-edge.mjs $fixture
+          if ($LASTEXITCODE -ne 0) { throw 'Edge acceptance failed' }
