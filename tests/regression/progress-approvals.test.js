@@ -147,7 +147,7 @@ test('opening a tracker only displays the request; one explicit decision updates
  assert.equal(decisions,1);assert.equal(document.getElementById('approvalButtons').hidden,true);
  assert.match(document.getElementById('approvalStatus').textContent,/You approved/);
 });
-test('the mechanic submits one private finding after both photos finish; a failed upload can be retried without contacting anyone',async()=>{
+test('Main submits one private finding after both photos finish; a failed upload can be retried without contacting anyone',async()=>{
  const {document}=parseHTML('<html><body><main><section class="jobWorkSection"></section></main></body></html>');
  const element=document.createElement.bind(document);
  document.createElement=name=>{
@@ -168,7 +168,7 @@ test('the mechanic submits one private finding after both photos finish; a faile
      saved.push(b.photo_id);return Response.json({ok:true});
    }
    if(b.action==='approval-stage'){
-     assert.deepEqual(b.photo_ids,saved);approved.push(b.approval_id);return Response.json({channels:{email:'sent',whatsapp:'sent'}});
+     assert.deepEqual(b.photo_ids,saved);approved.push(b.approval_id);return Response.json({approval_id:b.approval_id,stage:'draft'});
    }
    return Response.json({photos:[],approvals:[]});
  };
@@ -277,4 +277,61 @@ test('without a Meta connection the owner gets the identical private link in a p
  assert.equal(response.manual_url,retry.manual_url);assert.equal(s.emails.length,1);
  s.preference='Email';const denied=await requestApproval(s.db,job,{action:'approval-retry',approval_id:id},site);
  assert.equal(denied.manual_url,undefined);assert.equal(denied.channels.whatsapp,'no_permission');
+});
+
+test('mechanic camera → Save holds the job open for a note, keeps the photo on a failed handoff, and closes only after Workshop confirms',async()=>{
+ const {document}=parseHTML('<html><body><main><section class="jobWorkSection"></section><button id="saveJobMobile">Save &amp; Close</button><button id="saveJob">Save &amp; Close</button><button id="cancelJob">Close</button></main></body></html>');
+ const app=document.querySelector('main'),save=app.querySelector('#saveJob'),mobile=app.querySelector('#saveJobMobile');
+ let regularSaves=0,regularCloses=0;
+ save.onclick=()=>{regularSaves++;};
+ mobile.onclick=()=>save.onclick();
+ document.getElementById('cancelJob').onclick=()=>{regularCloses++;};
+ const create=document.createElement.bind(document);
+ document.createElement=name=>{
+  const el=create(name);
+  if(name==='canvas'){el.getContext=()=>({drawImage(){},fillRect(){}});el.toDataURL=()=>'data:image/jpeg;base64,/9j/2Q==';}
+  return el;
+ };
+ let decoded;
+ class Image {naturalWidth=300;naturalHeight=200;decode(){return new Promise(r=>{decoded=r;});}}
+ const posts=[],stageIds=[];let fail=true,finishStage;
+ const fetch=async(_url,options)=>{
+  const data=JSON.parse(options.body);
+  if(data.action==='photos-upload'){posts.push(data);return Response.json({ok:true});}
+  if(data.action==='approval-stage'){
+   stageIds.push(data.approval_id);
+   if(fail)return Response.json({error:'Connection interrupted'},{status:503});
+   await new Promise(r=>{finishStage=r;});
+   return Response.json({approval_id:data.approval_id,stage:'draft'});
+  }
+  assert.ok(['approval-list','photos-list'].includes(data.action));
+  return Response.json({photos:[],approvals:[]});
+ };
+ const window={VECTA_MECHANIC_DEPLOYMENT:true,confirm:()=>false};
+ vm.runInNewContext(readFileSync(new URL('../../public/js/vecta-workshop-photos.js',import.meta.url),'utf8'),{
+  document,window,navigator:{onLine:true},Image,crypto,fetch,AbortSignal,
+  URL:{createObjectURL(){return 'blob:test';},revokeObjectURL(){}},setTimeout(){},clearTimeout(){}
+ });
+ window.VectaWorkshopPhotos.mount(app,job,true);await new Promise(r=>setImmediate(r));
+ const send=app.querySelector('[data-approval-send]'),camera=app.querySelector('[data-photo-camera-input]');
+ assert.equal(camera.getAttribute('capture'),'environment');assert.equal(send.textContent,'Send to Workshop');
+ assert.equal(send.closest('details'),null);
+ assert.ok(Array.from(send.closest('.workshopPhotos').children).indexOf(send.closest('.approvalComposer'))<
+           Array.from(send.closest('.workshopPhotos').children).indexOf(app.querySelector('[data-photo-drafts]')));
+ camera.files=[{size:100,type:'image/jpeg',name:'camera.jpg'}];
+ const prepare=camera.onchange();const saving=mobile.onclick();decoded();await Promise.all([prepare,saving]);
+ assert.equal(regularSaves,0);assert.equal(posts.length,0);assert.ok(app.querySelector('.workshopPhotoDraft'));
+ assert.match(app.querySelector('[data-approval-notice]').textContent,/Add a message/);
+ assert.equal(mobile.textContent,'Save & send to Workshop');
+ app.querySelector('#cancelJob').onclick();assert.equal(regularCloses,0);
+ app.querySelector('[data-approval-message]').value='Nearside front tyre worn to the cords.';
+ await save.onclick();assert.equal(regularSaves,0);assert.match(app.querySelector('[data-approval-notice]').textContent,/interrupted/);
+ fail=false;
+ const retry=send.onclick(),concurrentSave=mobile.onclick();await new Promise(r=>setImmediate(r));
+ assert.equal(regularSaves,0);finishStage();await Promise.all([retry,concurrentSave]);
+ assert.equal(posts.length,1);assert.equal(stageIds.length,2);assert.equal(new Set(stageIds).size,1);
+ assert.equal(posts[0].review_id,stageIds[0]);assert.equal(regularSaves,1);
+ assert.equal(document.querySelector('.workshopFindingReceipt').textContent,'Sent to Workshop for pricing');
+ assert.equal(mobile.textContent,'Save & Close');
+ await save.onclick();assert.equal(regularSaves,2);assert.equal(stageIds.length,2);
 });
