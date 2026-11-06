@@ -60,7 +60,12 @@
    for(const photo of linked){
     const link=document.createElement('a');link.href=photo.url;link.target='_blank';link.rel='noopener noreferrer';
     const img=document.createElement('img');img.src=photo.url;img.alt=photo.caption||'Mechanic inspection photo';
-    link.append(img);host.append(link);
+    link.append(img);
+    const figure=document.createElement('figure');figure.append(link);
+    if(photo.caption&&photo.caption!==selectedFinding.message){
+     const caption=document.createElement('figcaption');caption.textContent=photo.caption;figure.append(caption);
+    }
+    host.append(figure);
    }
    if(photosError||linked.length<selectedFinding.photo_ids.length){
     const note=document.createElement('p');
@@ -86,7 +91,7 @@
     heading.textContent='Finding from the mechanic';note.textContent=item.message;entry.append(heading,note);
    }
    addEvidence(entry);destination.replaceChildren(entry);destination.hidden=false;
-   showEvidence();
+   renderSaved();showEvidence();
    destination.focus({preventScroll:true});destination.scrollIntoView({block:'start'});
    loadApprovalHistory();load().catch(()=>{});
   });
@@ -135,6 +140,7 @@
   function renderSaved(){
    savedGrid.replaceChildren();
    photos.forEach(photo=>{
+    if(photo.private_finding&&selectedFinding?.photo_ids.includes(photo.id))return;
     const card=document.createElement('figure'),text=caption(photo.caption||'','Caption for uploaded photo');
     if(safeUrl(photo.url)){const link=document.createElement('a');link.href=photo.url;link.target='_blank';link.rel='noopener noreferrer';link.setAttribute('aria-label','Open full photo');const img=image(photo.url,photo.caption);img.onerror=()=>{status.textContent='A photo could not be opened. Refresh photos to try again.';};link.append(img);card.append(link);}
     const label=document.createElement('figcaption');label.textContent=photo.private_finding?'Private workshop photo':'Visible to customer';

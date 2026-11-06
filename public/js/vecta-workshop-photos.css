@@ -51,4 +51,5 @@
 .findingDestination{margin:10px 0;scroll-margin-block:10px}
 .findingDestination:focus{outline:2px solid #a57524;outline-offset:2px}
 .findingEvidence{display:flex;flex-wrap:wrap;align-items:flex-start;gap:8px;margin:8px 0;min-width:0}
-.findingEvidence>a{max-width:100%}
+.findingEvidence figure{margin:0;max-width:100%;min-width:0}
+.findingEvidence figcaption{overflow-wrap:anywhere}

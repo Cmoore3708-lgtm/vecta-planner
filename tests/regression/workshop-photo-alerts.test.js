@@ -56,6 +56,7 @@ test('click opens the matching saved job, focuses the specific finding with only
  assert.equal(focused.querySelector('[data-finding-evidence] img').src,signed(first.photo_ids[0]));
  assert.equal(focused.querySelectorAll('[data-finding-evidence] img').length,1);
  assert.doesNotMatch(focused.textContent,/Second finding/);
+ assert.ok(!ui.modal.querySelector('[data-photo-saved]').innerHTML.includes(first.photo_ids[0]),'no duplicate private photo below the focused finding');
  assert.match(ui.action.textContent,/Second finding/);
  await ui.action.onclick();await flush();
  assert.equal(ui.mounted,1,'do not reopen an existing job and lose edits');

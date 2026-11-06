@@ -125,6 +125,7 @@
    stopWaiting();active=next;opening=false;open.disabled=false;status.textContent='';popup.hidden=!next;
    if(!next)return;
    headline.textContent='New mechanic photo · '+next.registration;
+   open.setAttribute('aria-label','Open job card for '+next.registration+' to see the mechanic’s photo');
    description.textContent=next.message;
   }
   async function openFinding(){
@@ -136,7 +137,7 @@
     if(state==='busy'){
      status.textContent='Finish or close the open card. This finding will open next.';
      stopWaiting();
-     const dialogs=Array.from(document.querySelectorAll('.modal.open'));
+     const dialogs=Array.from(document.querySelectorAll('.modal'));
      if(dialogs.length){
       waiting=new MutationObserver(()=>{
        if(document.querySelector('.modal.open'))return;
