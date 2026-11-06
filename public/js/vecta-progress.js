@@ -18,6 +18,9 @@
       if(seq!==approvalRender)return;
       const item=data.approval;
       el('approvalMessage').textContent=item.message;
+      const estimate=el('approvalEstimate');
+      estimate.hidden=!Number.isInteger(item.estimated_pence);
+      estimate.textContent=estimate.hidden?'':'Estimated total including VAT: '+new Intl.NumberFormat('en-GB',{style:'currency',currency:'GBP'}).format(item.estimated_pence/100);
       approvalPhotos=Array.isArray(item.photo_ids)?item.photo_ids:[];
       el('approvalPhotos').hidden=!approvalPhotos.length;
       el('approvalTitle').textContent=item.status==='pending'?'Your approval is needed':'Your response';
@@ -27,7 +30,7 @@
     }catch(error){
       if(seq!==approvalRender)return;
       el('approvalTitle').textContent='Workshop message';
-      el('approvalMessage').textContent='';el('approvalPhotos').hidden=true;
+      el('approvalMessage').textContent='';el('approvalEstimate').hidden=true;el('approvalPhotos').hidden=true;
       buttons.hidden=true;note.textContent=error.message+' Tap Refresh progress to check the current decision.';
     }finally{
       if(decision)deciding=false;

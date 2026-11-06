@@ -6,7 +6,7 @@
 <form id="registrationForm" class="lookup" hidden><label for="registrationInput">Enter your car registration</label><div class="lookupRow"><input id="registrationInput" maxlength="15" placeholder="YOUR REG" autocomplete="off" autocapitalize="characters" spellcheck="false" required><button id="findProgress" type="submit">Track my car</button></div></form>
 <section class="card" aria-label="Booking progress"><div id="identity" class="vehicleSummary" hidden><strong id="registration" class="plate"></strong><p id="vehicle"></p><p id="bookingDate"></p><div id="jobSummary" hidden><span class="summaryLabel">BOOKED WORK</span><p id="jobDescription"></p></div></div>
 <section id="approvalPanel" class="progressApproval" aria-labelledby="approvalTitle" hidden>
-<h2 id="approvalTitle">Your approval is needed</h2><p id="approvalMessage"></p>
+<h2 id="approvalTitle">Your approval is needed</h2><p id="approvalMessage"></p><p id="approvalEstimate" hidden></p>
 <button type="button" id="approvalPhotos" hidden>View workshop photos</button>
 <div id="approvalButtons"><button type="button" id="approveWork">Approve</button><button type="button" id="declineWork">Decline</button></div>
 <p id="approvalStatus" role="status" aria-live="polite"></p></section>

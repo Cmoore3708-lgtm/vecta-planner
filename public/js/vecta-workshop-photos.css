@@ -11,3 +11,14 @@
 .approvalComposer [data-wa-permission]{display:flex;align-items:center;flex-wrap:wrap;gap:5px;font-size:13px}
 .approvalComposer [data-wa-permission][hidden]{display:none}
 .approvalComposer [data-wa-allowed]{width:auto;min-height:0}
+
+.findingQueue{margin:6px 0;padding:8px;border:1px solid #bc9452;border-radius:8px;background:#fff9ee;color:#221c16}
+.findingQueue[hidden],.findingReview [hidden]{display:none}
+.findingQueue>p:empty{display:none}
+.findingItem{border-top:1px solid #dbc7a8;margin-top:8px;padding:8px 0}
+.findingItem summary{cursor:pointer;font-weight:bold;overflow-wrap:anywhere}
+.findingItem p,.findingReview [role=status]{overflow-wrap:anywhere;white-space:pre-wrap}
+.findingReview label{display:block;margin:8px 0;font-weight:600}
+.findingReview input[type=text]{display:block;max-width:180px;margin:4px 0;padding:8px;border:1px solid #817668;border-radius:6px;font-size:16px}
+.findingReview input[type=checkbox]{width:auto;margin-right:5px}
+.findingThumbs{display:flex;gap:8px;flex-wrap:wrap}.findingThumbs img{width:100px;height:78px;object-fit:contain;background:#202124;border-radius:6px}

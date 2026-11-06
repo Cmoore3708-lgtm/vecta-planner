@@ -23,31 +23,22 @@
  const safeUrl=url=>typeof url==='string'&&/^https:\/\/(?:jywufozycuwuoshlulwl|brqsejjykrubxuofavuu)\.supabase\.co\/storage\/v1\/object\/sign\/job-workshop-photos\/[a-f0-9-]{36}\.jpg\?token=[A-Za-z0-9_.-]+$/.test(url);
  function mount(modal,job,saved){
   if(job.no_vehicle||job.card_type&&job.card_type!=='job'||['quote','provisional','cancelled','deleted'].includes(job.status)||/vehicle tax|pool car tax/i.test(job.job_type||''))return;
+  const mechanic=!!window.VECTA_MECHANIC_DEPLOYMENT;
   const after=modal.querySelector('.jobWorkSection');if(!after)return;
   const panel=document.createElement('section');panel.className='jobFormSection workshopPhotos';
-  panel.innerHTML='<div class="workshopPhotosHeading"><div><h3>Workshop photos <span>— Visible to customer</span></h3><p>Show what you have found. Uploaded photos appear on the customer’s progress page.</p></div></div>';
+  panel.innerHTML='<div class="workshopPhotosHeading"><div><h3>Workshop photos &amp; findings</h3><p>Send a finding to Workshop Pro. The customer sees it after the estimate is sent.</p></div></div>';
   after.after(panel);
   if(!saved){const hint=document.createElement('p');hint.textContent='Save this job, then reopen it to add photos.';panel.append(hint);return;}
   panel.insertAdjacentHTML('beforeend','<div class="workshopPhotoActions"><button type="button" class="btn" data-photo-camera>Take photo</button><button type="button" class="btn" data-photo-choose>Upload photos</button><button type="button" class="btn" data-photo-refresh>Refresh photos</button></div><input type="file" accept="image/*" capture="environment" data-photo-camera-input hidden><input type="file" accept="image/*" multiple data-photo-choose-input hidden><div class="workshopPhotoDrafts" data-photo-drafts></div><div class="workshopPhotoGrid" data-photo-saved></div><p class="workshopPhotoStatus" data-photo-status role="status" aria-live="polite"></p>');
-  panel.insertAdjacentHTML('beforeend','<details class="approvalComposer"><summary>Request customer approval</summary><label>What would you like the customer to approve?<textarea data-approval-message maxlength="1200" placeholder="Replace the nearside front tyre for £85 including VAT?"></textarea></label><label data-wa-permission hidden><input type="checkbox" data-wa-allowed>Customer agreed to WhatsApp job updates <span data-wa-number></span></label><div class="workshopPhotoActions"><button type="button" class="btn green" data-approval-send>Request approval by email &amp; WhatsApp</button><button type="button" class="btn" data-photo-only hidden>Upload photos only</button></div><p role="status" data-approval-notice></p></details><div data-approval-history></div>');
+  panel.insertAdjacentHTML('beforeend','<details class="approvalComposer"><summary>Send a finding to Workshop Pro</summary><label>Message about the work needed<textarea data-approval-message maxlength="1200" placeholder="The nearside front tyre is worn through on the inner edge. We recommend replacing it."></textarea></label><div class="workshopPhotoActions"><button type="button" class="btn green" data-approval-send>Send to Workshop Pro for pricing</button><button type="button" class="btn" data-photo-only hidden>Upload photos only</button></div><p role="status" data-approval-notice></p></details><div data-approval-history></div>');
   const composer=panel.querySelector('.approvalComposer');
   const messageInput=panel.querySelector('[data-approval-message]');
   const approvalButton=panel.querySelector('[data-approval-send]');
   const approvalNotice=panel.querySelector('[data-approval-notice]');
   const history=panel.querySelector('[data-approval-history]');
-  let busy=false,photos=[],drafts=[],pendingRequest=null,historyTimer;
+  let busy=false,photos=[],drafts=[],pendingRequest=null,recovered=null,historyTimer;
+  let submittedIds=new Set();
   const status=panel.querySelector('[data-photo-status]'),draftGrid=panel.querySelector('[data-photo-drafts]'),savedGrid=panel.querySelector('[data-photo-saved]');
-  const waChoice=panel.querySelector('[data-wa-allowed]');
-  let waContact=null, savingPermission=false;
-  waChoice.onchange=async()=>{
-   if(!waContact||savingPermission)return;
-   savingPermission=true;lock(true);
-   try{
-    await request(job,'approval-whatsapp-permission',{allowed:waChoice.checked,phone:waContact.phone,contact_binding:waContact.contact_binding});
-    waContact.allowed=waChoice.checked;
-   }catch(error){waChoice.checked=waContact.allowed;approvalNotice.textContent=error.message;}
-   finally{savingPermission=false;lock(false);loadApprovalHistory();}
-  };
   const photosOnly=panel.querySelector('[data-photo-only]');
   draftGrid.after(composer);
   function lock(value){
@@ -60,20 +51,35 @@
   const image=(src,caption)=>{const el=document.createElement('img');el.src=src;el.alt=caption||'Workshop inspection photo';el.loading='lazy';return el;};
   const caption=(value,label)=>{const el=document.createElement('textarea');el.rows=2;el.maxLength=500;el.value=value;el.placeholder='e.g. Nearside front tyre worn through on the inner edge.';el.setAttribute('aria-label',label);return el;};
   function renderDrafts(){
-   approvalButton.textContent=drafts.length?'Upload & request approval':'Request approval by email & WhatsApp';
+   approvalButton.textContent='Send to Workshop Pro for pricing';
    draftGrid.replaceChildren();
    drafts.forEach(draft=>{const card=document.createElement('div');card.className='workshopPhotoDraft';const title=document.createElement('strong');title.textContent='Not uploaded yet';const text=caption(draft.caption,'Caption for new photo');text.oninput=()=>{draft.caption=text.value;};card.append(image(draft.image,draft.caption),title,text,button('Remove',()=>{drafts=drafts.filter(item=>item!==draft);renderDrafts();}));draftGrid.append(card);});
-   photosOnly.hidden=!drafts.length;
+   photosOnly.hidden=mechanic||!drafts.length;
   }
   function renderSaved(){
    savedGrid.replaceChildren();
    photos.forEach(photo=>{
     const card=document.createElement('figure'),text=caption(photo.caption||'','Caption for uploaded photo');
     if(safeUrl(photo.url)){const link=document.createElement('a');link.href=photo.url;link.target='_blank';link.rel='noopener noreferrer';link.setAttribute('aria-label','Open full photo');const img=image(photo.url,photo.caption);img.onerror=()=>{status.textContent='A photo could not be opened. Refresh photos to try again.';};link.append(img);card.append(link);}
-    const label=document.createElement('figcaption');label.textContent='Visible to customer';
+    const label=document.createElement('figcaption');label.textContent=photo.private_finding?'Private workshop photo':'Visible to customer';
     const actions=document.createElement('div');actions.className='workshopPhotoActions';
     actions.append(button('Save caption',()=>mutate('photos-caption',{photo_id:photo.id,caption:text.value},'Caption saved.')),button('Remove',()=>{if(confirm('Remove this photo from the job and customer’s progress page?'))mutate('photos-delete',{photo_id:photo.id},'Photo removed.');}));
-    card.append(label,text,actions);savedGrid.append(card);
+    card.append(label,text);
+    if(!photo.private_finding&&!mechanic)card.append(actions);
+    else {
+     text.readOnly=true;
+     if(photo.private_finding && photo.review_id && !submittedIds.has(photo.review_id)){
+      card.append(button('Finish private finding',()=>{
+       if(busy||pendingRequest)return;
+       const group=photos.filter(item=>item.private_finding&&item.review_id===photo.review_id);
+       recovered={id:photo.review_id,photo_ids:group.map(item=>item.id)};
+       composer.open=true;messageInput.value=group.map(item=>item.caption).filter(Boolean).join('\n');
+       approvalNotice.textContent='Add the finding for these saved private photos.';messageInput.focus();
+      }));
+      card.append(button('Remove private photo',()=>{if(confirm('Remove this private photo?'))mutate('photos-delete',{photo_id:photo.id},'Photo removed.');}));
+     }
+    }
+    savedGrid.append(card);
    });
   }
   async function load(){const data=await request(job,'photos-list');photos=data.photos||[];renderSaved();}
@@ -83,32 +89,23 @@
    const files=Array.from(input.files||[]);input.value='';if(busy||pendingRequest||!files.length)return;
    if(photos.length+drafts.length+files.length>MAX){status.textContent='You can save up to 12 photos per job. Choose fewer photos or remove one first.';return;}
    lock(true);status.textContent='Preparing photos…';
-   try{composer.open=true;for(const file of files){drafts.push({id:crypto.randomUUID(),image:await compress(file),caption:''});}status.textContent='Add a caption or write the work you want approved below.';}
+   try{composer.open=true;for(const file of files){drafts.push({id:crypto.randomUUID(),image:await compress(file),caption:''});}status.textContent='Write the finding below or use the photo caption.';}
    catch(error){status.textContent=error.message;}
    finally{renderDrafts();lock(false);}
   }
-  function channelText(name,state){
-   const label={sent:name==='WhatsApp'?'accepted':'sent',pending:'send unconfirmed',failed:'send failed',test:'Test only',
-     missing_contact:name==='WhatsApp'?'no valid number':'no valid address',no_permission:'no customer permission',
-     not_configured:'sender not connected',unsent:'not sent',unavailable:'status unavailable',contact_changed:'contact changed'};
-   return name+' '+(label[state]||'status unavailable');
-  }
-  function deliveryLabel(channels){
-   return channelText('Email',channels?.email)+' · '+channelText('WhatsApp',channels?.whatsapp);
-  }
   async function loadApprovalHistory(){
    clearTimeout(historyTimer);
+   if(document.activeElement?.closest('.findingReview')&&history.contains(document.activeElement)){
+    historyTimer=setTimeout(()=>{if(panel.isConnected)loadApprovalHistory();},15000);return;
+   }
    try {
-    const {approvals,whatsapp}=await request(job,'approval-list');
+    const {approvals}=await request(job,'approval-list');
     if (!panel.isConnected) return;
-    if(!savingPermission&&whatsapp){
-     waContact=whatsapp;
-     panel.querySelector('[data-wa-permission]').hidden=!whatsapp.phone||whatsapp.unavailable;
-     panel.querySelector('[data-wa-number]').textContent=whatsapp.phone?'(ending '+whatsapp.phone.slice(-4)+')':'';
-     waChoice.checked=whatsapp.allowed;
-    }
+    submittedIds=new Set(approvals.map(row=>row.id));
+    if(photos.some(photo=>photo.private_finding))renderSaved();
+    const pricingForms=new Map(Array.from(history.querySelectorAll('.findingReview')).map(form=>[form.dataset.findingId,form]));
     history.replaceChildren();
-    const labels={pending:'Awaiting customer approval',approved:'Customer approved',declined:'Customer declined',closed:'Request closed'};
+    const labels={awaiting_price:'Awaiting price in Workshop Pro',pending:'Awaiting customer approval',approved:'Customer approved',declined:'Customer declined',closed:'Request closed'};
     for (const item of approvals) {
      const entry=document.createElement('div');
      entry.className='approvalRecord';
@@ -116,55 +113,51 @@
      title.textContent=labels[item.status]||item.status;
      message.textContent=item.message;
      entry.append(title,message);
-     if (item.status==='pending') {
-      const delivery=document.createElement('small');
-      delivery.textContent=deliveryLabel(item.channels);
-      entry.append(delivery);
-      if (Object.values(item.channels||{}).some(value=>['failed','unsent','unavailable'].includes(value))) entry.append(button('Retry unsent messages',async()=>{
+     if(item.status==='awaiting_price' && !mechanic && window.VectaFindings)
+      entry.append(pricingForms.get(item.id)||window.VectaFindings.pricingForm(job.id,item));
+     if(Number.isInteger(item.estimated_pence)){
+      const estimate=document.createElement('small');estimate.textContent='Estimated total including VAT: £'+(item.estimated_pence/100).toFixed(2);entry.append(estimate);
+     }
+     if(item.status==='pending' && window.VectaFindings){
+      const delivery=document.createElement('small');delivery.textContent=window.VectaFindings.delivery(item.channels);entry.append(delivery);
+      const canRetry=Object.values(item.channels||{}).some(value=>['failed','unsent','unavailable','manual'].includes(value));
+      if(!mechanic&&canRetry)entry.append(button(item.channels.whatsapp==='manual'?'Prepare WhatsApp message':'Retry unsent messages',async()=>{
        if(busy)return;
-       lock(true);
-       try {showDelivery(await request(job,'approval-retry',{approval_id:item.id}));}
+       lock(true);composer.open=true;
+       try{window.VectaFindings.showResult(approvalNotice,await request(job,'approval-retry',{approval_id:item.id}));}
        catch(error){approvalNotice.textContent=error.message;}
-       finally{composer.open=true;lock(false);loadApprovalHistory();}
+       finally{lock(false);loadApprovalHistory();}
       }));
      }
      history.append(entry);
     }
-    if (approvals.some(item=>item.status==='pending')) historyTimer=setTimeout(()=>{if(panel.isConnected) loadApprovalHistory();},60000);
+    if (approvals.some(item=>['pending','awaiting_price'].includes(item.status))) historyTimer=setTimeout(()=>{if(panel.isConnected) loadApprovalHistory();},60000);
    } catch(error) {history.textContent='Approval history: '+error.message;}
-  }
-  function showDelivery(result){
-   approvalNotice.replaceChildren();
-   approvalNotice.append(deliveryLabel(result.channels)+'. ');
-   if(result.url){
-    const link=document.createElement('a');
-    link.href=result.url;link.textContent='Preview customer approval';link.target='_blank';link.rel='noopener noreferrer';
-    approvalNotice.append(link);
-   }
   }
   async function uploadDrafts(withApproval){
    if(busy)return;
    if (pendingRequest && !withApproval){approvalNotice.textContent='Finish the pending approval request before sharing more photos.';return;}
    if (withApproval && !pendingRequest) {
     const message=messageInput.value.trim()||drafts.map(item=>item.caption.trim()).filter(Boolean).join('\n');
-    if(!message||message.length>1200){composer.open=true;approvalNotice.textContent='Enter the work you want approved. Include the price if you have quoted one.';messageInput.focus();return;}
-    pendingRequest={approval_id:crypto.randomUUID(),message,photo_ids:drafts.map(item=>item.id)};
+    if(!message||message.length>1200){composer.open=true;approvalNotice.textContent='Describe what you found or add a photo caption.';messageInput.focus();return;}
+    pendingRequest={approval_id:recovered?.id||crypto.randomUUID(),message,photo_ids:[...(recovered?.photo_ids||[]),...drafts.map(item=>item.id)]};
     messageInput.value=message;
    }
    lock(true);let uploaded=0;const total=drafts.length;
    try{
     for(const draft of drafts.slice()){
      status.textContent='Uploading photo '+(uploaded+1)+' of '+total+'… Keep this job open.';
-     await request(job,'photos-upload',{photo_id:draft.id,image:draft.image,caption:draft.caption});
+     await request(job,'photos-upload',{photo_id:draft.id,image:draft.image,caption:draft.caption,...(withApproval?{review_id:pendingRequest.approval_id}:{})});
      drafts=drafts.filter(item=>item!==draft);uploaded++;
     }
     if(withApproval){
-     approvalNotice.textContent='Sending the approval by email and WhatsApp…';
-     const result=await request(job,'approval-request',pendingRequest);
-     pendingRequest=null;messageInput.value='';showDelivery(result);
+     approvalNotice.textContent='Sending the finding to Workshop Pro…';
+     await request(job,'approval-stage',pendingRequest);
+     submittedIds.add(pendingRequest.approval_id);pendingRequest=null;recovered=null;messageInput.value='';approvalNotice.textContent='Sent to Workshop Pro for pricing. The customer has not been contacted.';
+     window.VectaFindings?.notify();
     }
     await load();
-    if(uploaded)status.textContent=uploaded+' photo'+(uploaded===1?'':'s')+' uploaded. Visible on the customer’s next progress refresh.';
+    if(uploaded)status.textContent=uploaded+' photo'+(uploaded===1?'':'s')+(withApproval?' saved privately.':' uploaded to customer progress.');
    }catch(error){
     status.textContent=(uploaded?uploaded+' photo(s) saved. ':'')+error.message;
     if(withApproval)approvalNotice.textContent=error.message;
@@ -173,7 +166,7 @@
     renderDrafts();lock(false);
     if(pendingRequest) {
      messageInput.readOnly=true;
-     approvalButton.textContent='Retry approval request';
+     approvalButton.textContent='Retry sending finding';
     } else messageInput.readOnly=false;
    }
   }
