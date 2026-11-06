@@ -363,10 +363,28 @@
 .mobilePlanner .mobileJob>b{color:#000!important}
 .mobileMotAppointment{color:#c1121f!important}
 @media(min-width:769px){
- #jobList .rowCard{grid-template-columns:116px 160px minmax(180px,260px) 130px 85px 80px 120px!important;gap:12px!important;width:max-content;max-width:none}
- #jobList{max-width:100%;overflow-x:auto}
  #jobModal .modalFoot{justify-content:flex-start!important}
  #jobModal .modalFoot>*{margin-left:0!important;margin-right:0!important}
+}
+
+/* Workshop Jobs lists, including registration search results. */
+#jobList{min-width:0}
+#jobList .rowCard{grid-template-columns:minmax(344px,1.45fr) minmax(140px,1fr) minmax(296px,1.15fr);gap:14px}
+.jobListIdentity{display:grid;grid-template-columns:max-content 76px minmax(0,1fr);gap:10px;align-items:center;min-width:0}
+.jobListArtwork{display:grid;place-items:center;height:48px;min-width:0}
+.jobListArtwork img{display:block;width:100%;height:100%;object-fit:contain}
+.jobListVehicle,#jobList .jobWorkBlock,.jobListDetails{min-width:0;overflow-wrap:anywhere}
+.jobListDetails{display:grid;grid-template-columns:minmax(76px,1.15fr) minmax(54px,.8fr) max-content minmax(78px,1fr);align-items:center;gap:8px}
+.jobListDetails .pill{justify-self:start}
+@media(max-width:1040px){
+  #jobList .rowCard{grid-template-columns:minmax(330px,1.2fr) minmax(0,1fr)}
+  .jobListDetails{grid-column:1/-1;display:flex;flex-wrap:wrap;gap:6px 16px}
+}
+@media(max-width:680px){
+  #jobList .rowCard{grid-template-columns:minmax(0,1fr);gap:8px;padding:10px}
+  .jobListIdentity{grid-template-columns:max-content clamp(40px,12vw,62px) minmax(0,1fr);gap:7px}
+  .jobListIdentity > :first-child{max-width:108px!important}
+  .jobListArtwork{height:38px}
 }
 
 /* PC/iPad work text follows the visible vehicle outline, including generic fallback cars. */
