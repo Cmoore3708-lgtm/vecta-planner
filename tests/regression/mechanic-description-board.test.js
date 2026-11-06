@@ -13,12 +13,12 @@ const jobs=[{id:'later',technician:'Alfie',registration:'AA11 AAA',vehicle:'Niss
 function setup(mechanic=true){
  const opened=[],{window,document}=parseHTML('<html><body><div id="content"></div></body></html>');
  window.VECTA_MECHANIC_DEPLOYMENT=mechanic;
- const c={window,document,console,app:{settings:{},notes:'Workshop notes'},esc:escape,
+ const c={window,document,console,app:{settings:{},notes:'Workshop notes',jobs},vectaJobIsDeletedForLists:()=>false,isJobInvoiced:()=>false,listPlate:reg=>'<span>'+escape(reg)+'</span>',esc:escape,
   jobsForDate:()=>jobs,allJobsForDate:()=>jobs,plannerLaneMechanics:()=>['Alfie','Chris','Anyone'],plannerTechnicianName:j=>j.technician,selectedIso:()=> '2026-11-05',byTime:(a,b)=>a.drop_time.localeCompare(b.drop_time),
   unallocatedJobs:()=>[{id:'unallocated',registration:'DD44 DDD',work_required:longWork,drop_time:''}],quoteJobs:()=>[{id:'quote',registration:'EE55 EEE',work_required:longWork,drop_time:'',amount_quoted:12345}],myTasksHtml:()=>'',
   jobTypeLabels:()=>['Full Service'],normaliseJobTypeKey:s=>s.toLowerCase(),jobTypeChip:(_,label)=>'<span class="jobTypeChip">'+escape(label)+'</span>',isWebsiteBookingJob:()=>false,jobTypeInlineStyle:j=>j.status==='provisional'?'background:#cbd0d7!important':'',plannerPlate:j=>'<span class="ukPlate">'+escape(j.registration)+'</span>',partsStatusDot:()=>'',plannerVehicleLabel:j=>j.vehicle||'Vehicle',mobileJobCategoryLabel:()=> 'Staff',mobileMotAppointmentHtml:()=>'<span class="mobileMotAppointment">MOT 10:30</span>',carryOverBadgeHtml:()=>'',
   openJobModal:id=>opened.push(id),plannerWindowConfig:()=>({startMinutes:480,dayLast:960,gridPosition:0}),PLANNER_PX_PER_HOUR:60,plannerMetricsHtml:()=>'',mobilePlannerHtml:()=>'',plannerLiveControlsHtml:()=>'',mechanicHours:()=>0,currentTimeLineHtml:()=>'',plannerTimeRows:()=> '08:00',laneHtml:m=>m,unallocatedPanelHtml:()=> 'UNALLOCATED',quotePanelHtml:()=> 'QUOTES'};
- vm.createContext(c);vm.runInContext(['mechanicJobCardHtml','mechanicPlannerHtml','plannerHtml','bindJobOpenControls'].map(functionSource).join('\n'),c);
+ vm.createContext(c);vm.runInContext(['mechanicJobCardHtml','provisionalBookingsPanelHtml','mechanicPlannerHtml','plannerHtml','bindJobOpenControls'].map(functionSource).join('\n'),c);
  document.getElementById('content').innerHTML=c.plannerHtml();c.bindJobOpenControls(document);
  return {c,document,window,opened};
 }
@@ -46,7 +46,9 @@ test('natural-height cards preserve queue order, all mechanic groups, backlog an
  assert.match(groups[2].textContent,/Anyone.*No jobs here/s);
  assert.match(t.document.querySelector('[data-open-job="chris"]').textContent,/Provisionally booked/);
  assert.match(t.document.querySelector('[data-open-job="chris"]').getAttribute('style'),/#cbd0d7/);
- assert.equal(t.document.querySelectorAll('.mechanicBoardBacklog article').length,2);
+ assert.equal(t.document.querySelectorAll('.mechanicBoardBacklog article').length,3);
+ assert.equal(groups[1].querySelector('[data-open-job="chris"]'),null);
+ assert.equal(t.document.querySelector('.provisionalBookingsPanel').nextElementSibling.querySelector('h2').textContent,'Unallocated jobs1');
  assert.equal(t.document.querySelector('#notesArea').value,'Workshop notes');
 });
 test('Main still renders the timed planner and its cards retain the existing open action',()=>{

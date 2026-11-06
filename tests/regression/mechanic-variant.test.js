@@ -20,11 +20,11 @@ test('both entries share the current planner functions and preserve Main’s tim
  const expression=/function plannerHtml\(\)\{[\s\S]*?\n\}/;
  const mainPlanner=main.match(expression)[0],mechanicPlanner=mechanic.match(expression)[0];
  function render(source){
-  const c={app:{settings:{mechanics:['Alfie','Chris']}},jobsForDate:()=>[],allJobsForDate:()=>[],plannerWindowConfig:()=>({startMinutes:420,dayLast:960,gridPosition:0}),PLANNER_PX_PER_HOUR:60,plannerMetricsHtml:()=>'',unallocatedPanelHtml:()=> 'UNALLOCATED',quotePanelHtml:()=> 'QUOTES',myTasksHtml:()=>'',mobilePlannerHtml:()=>'',plannerLiveControlsHtml:()=>'',esc:s=>s,mechanicHours:()=>0,currentTimeLineHtml:()=>'',plannerTimeRows:()=>'',laneHtml:m=>m};
+  const c={app:{settings:{mechanics:['Alfie','Chris']}},jobsForDate:()=>[],allJobsForDate:()=>[],plannerWindowConfig:()=>({startMinutes:420,dayLast:960,gridPosition:0}),PLANNER_PX_PER_HOUR:60,plannerMetricsHtml:()=>'',provisionalBookingsPanelHtml:()=> 'PROVISIONAL',unallocatedPanelHtml:()=> 'UNALLOCATED',quotePanelHtml:()=> 'QUOTES',myTasksHtml:()=>'',mobilePlannerHtml:()=>'',plannerLiveControlsHtml:()=>'',esc:s=>s,mechanicHours:()=>0,currentTimeLineHtml:()=>'',plannerTimeRows:()=>'',laneHtml:m=>m};
   vm.runInNewContext(main.match(/function configuredMechanicNames\(\)\{[^\n]+/)[0]+'\n'+main.match(/function plannerLaneMechanics\(\)\{[^\n]+/)[0]+'\n'+source,c);return c.plannerHtml();
  }
  assert.equal(mainPlanner,mechanicPlanner);assert.match(mechanicPlanner,/VECTA_MECHANIC_DEPLOYMENT===true\)return mechanicPlannerHtml/);
- const rendered=render(mechanicPlanner);assert.equal(rendered,render(mainPlanner));assert.match(rendered,/Anyone/);assert.match(rendered,/livePriorityBacklog[^]*UNALLOCATED/);assert.doesNotMatch(rendered,/mechanicPlannerOnly/);
+ const rendered=render(mechanicPlanner);assert.equal(rendered,render(mainPlanner));assert.match(rendered,/Anyone/);assert.match(rendered,/livePriorityBacklog[^]*PROVISIONALUNALLOCATEDQUOTES/);assert.doesNotMatch(rendered,/mechanicPlannerOnly/);
  assert.doesNotMatch(mechanic,/<style id="v75-mechanic-final-layout"/);
 });
 
