@@ -26,7 +26,7 @@ function fixture(entry,mechanic,empty){
   const backlog=holds+group('Unallocated Jobs',false)+group('Quotes',true);
   const planner=mechanic?'<div class="mechanicBoard"><div class="mechanicBoardIntro">All jobs</div><div class="mechanicBoardColumns"></div><div class="mechanicBoardBacklog">'+backlog+'</div></div>':'<div class="mobilePlanner">'+holds+'</div><div class="plannerLayout v233Planner livePriorityPlanner"><div class="plannerCard"></div><div class="livePriorityBacklog">'+backlog+'</div></div>';
   const helpers=entry.slice(entry.indexOf('function plannerBacklogScrollAreas('),entry.indexOf('var renderInProgress=false;'));
-  return '<!doctype html><meta name="viewport" content="width=device-width">'+styles+'<div id="content" style="padding-top:120px">'+planner+'</div><pre id="out"></pre><script>'+helpers+'\n('+check.toString()+')('+empty+')</script>';
+  return '<!doctype html><meta name="viewport" content="width=device-width">'+styles+'<div id="content" style="padding-top:120px">'+planner+'</div><script>'+helpers+'\n('+check.toString()+')('+empty+')</script>';
 }
 
 function check(empty){
@@ -49,7 +49,7 @@ function check(empty){
     const hold=document.querySelector('.mobilePlanner .provisionalBookingsPanel,.mechanicBoardBacklog .provisionalBookingsPanel');
     verify(!!hold.getBoundingClientRect().height!==empty,'mobile provisional visibility');
   }
-  document.getElementById('out').textContent=failures.join(', ')||'PASS';
+  parent.postMessage({page:location.pathname.split('/').pop(),result:failures.join(', ')||'PASS'},'*');
 }
 
 test('desktop backlog fills two equal panels with Quotes below, and small screens keep the stacked layout',{
@@ -58,13 +58,19 @@ test('desktop backlog fills two equal panels with Quotes below, and small screen
 },async()=>{
   const directory=mkdtempSync(path.join(tmpdir(),'vecta-sidebar-'));
   try{
+    const frames=[];
     for(const mechanic of [false,true]){
       for(const [width,height,empty] of [[1440,900,false],[1024,768,true],[390,844,false],[820,1180,true]]){
-        const file=path.join(directory,'fixture.html');
-        writeFileSync(file,fixture(mechanic?mechanicVariant(source):source,mechanic,empty));
-        const {stdout}=await run(process.env.VECTA_CHROME_BIN||'google-chrome',['--headless','--no-sandbox','--disable-gpu','--disable-background-networking','--no-first-run','--user-data-dir='+directory+'/profile','--window-size='+width+','+height,'--dump-dom',pathToFileURL(file).href],{maxBuffer:4*1024*1024,timeout:20000});
-        assert.equal(stdout.match(/<pre id="out">([^<]*)<\/pre>/)?.[1],'PASS',(mechanic?'Mechanic':'Main')+' at '+width+' px');
+        const file=(mechanic?'mechanic':'main')+'-'+width+'.html';
+        writeFileSync(path.join(directory,file),fixture(mechanic?mechanicVariant(source):source,mechanic,empty));
+        frames.push('<iframe width="'+width+'" height="'+height+'" src="'+file+'"></iframe>');
       }
     }
+    const report=path.join(directory,'report.html');
+    writeFileSync(report,'<!doctype html><pre id="results"></pre><script>onmessage=e=>{const d=e.data;results.textContent+=d.page+" "+d.result+"\\n"}</script>'+frames.join(''));
+    const {stdout}=await run(process.env.VECTA_CHROME_BIN||'google-chrome',['--headless','--no-sandbox','--disable-gpu','--disable-background-networking','--no-first-run','--user-data-dir='+directory+'/profile','--virtual-time-budget=3000','--dump-dom',pathToFileURL(report).href],{maxBuffer:1024*1024,timeout:90000});
+    const results=stdout.match(/<pre id="results">([^<]*)<\/pre>/)?.[1].trim().split('\n')||[];
+    assert.equal(results.length,frames.length,results.join('\n'));
+    for(const result of results)assert.match(result,/ PASS$/,result);
   }finally{rmSync(directory,{force:true,recursive:true})}
 });

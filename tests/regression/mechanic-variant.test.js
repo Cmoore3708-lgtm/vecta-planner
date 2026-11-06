@@ -16,6 +16,20 @@ test('management navigation attempts render the mechanics planner without calcul
  const c={plannerPackVisibleDay:()=>{packed++},vectaCreateInvoiceLookup:()=>({ids:new Set(),jobs:new Set()}),view:'invoices',window:{addEventListener(){},matchMedia:()=>({matches:false})},document:{body:{classList:{contains:()=>false}},querySelector:()=>null,getElementById:id=>({content,viewTitle:title,currentDate:date}[id]||null)},safe:fn=>fn(),selectedIso:()=> '2026-10-19',renderNav(){},plannerHtml:()=> 'MECHANICS PLANNER',bindView(){},linkifyDisplayedEmails(){},invoicesHtml:()=>{throw Error('Finance screen reached');},invoiceFinancialSummary:()=>{throw Error('Finance calculation reached');}};
  vm.runInNewContext(nav+'\n'+mechanic.slice(mechanic.indexOf('function plannerBacklogScrollAreas('),mechanic.indexOf('function vectaCreateInvoiceLookup(')),c);c.render();assert.equal(c.view,'planner');assert.equal(content.innerHTML,'MECHANICS PLANNER');assert.equal(packed,1);
 });
+test('refresh preserves the sidebar and all three independent list positions',()=>{
+ for(const entry of [main,mechanic]){
+  const {document}=parseHTML('<html><body><input id="currentDate"><h1 id="viewTitle"></h1><div id="content"></div></body></html>');
+  const isMechanic=entry===mechanic,area=isMechanic?'mechanicBoardBacklog':'livePriorityBacklog',list=isMechanic?'mechanicJobList':'unallocatedJobList';
+  const plannerHtml=()=>'<div class="'+area+'"><div class="provisionalBookingList"></div><div class="'+list+'"></div><div class="'+list+'"></div></div>';
+  const c={document,window:{addEventListener(){},matchMedia:()=>({matches:false})},view:'planner',safe:fn=>fn(),plannerHtml,
+   navItems:()=>[['planner','Dashboard']],selectedIso:()=> '2026-11-06',vectaCreateInvoiceLookup:()=>({}),renderNav(){},plannerPackVisibleDay(){},bindView(){},linkifyDisplayedEmails(){}};
+  vm.runInNewContext(entry.slice(entry.indexOf('function plannerBacklogScrollAreas('),entry.indexOf('function vectaCreateInvoiceLookup(')),c);
+  c.render();const before=c.plannerBacklogScrollAreas();assert.equal(before.length,4);
+  before.forEach((el,i)=>{el.scrollTop=(i+1)*20});
+  c.render();const after=c.plannerBacklogScrollAreas();
+  assert.notEqual(after[0],before[0]);assert.deepEqual(Array.from(after,el=>el.scrollTop),[20,40,60,80]);
+ }
+});
 test('both entries share the current planner functions and preserve Main’s timed lanes and backlog',()=>{
  const expression=/function plannerHtml\(\)\{[\s\S]*?\n\}/;
  const mainPlanner=main.match(expression)[0],mechanicPlanner=mechanic.match(expression)[0];
