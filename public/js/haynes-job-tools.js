@@ -424,7 +424,7 @@ root.initHaynesJobTools=function(modal,{automatic=false,recoverImage=true}={}){
    const main=document.createElement('div'),aside=document.createElement('div');
    main.className='jobCardMainColumn';aside.className='jobCardSupportColumn';
    Array.from(sections.children).forEach(child=>{
-    const support=child.matches('.jobContactSection,.jobPreviousWorkSection,.privatePricingSection')||!!child.querySelector('.jobPartsEditor');
+    const support=child.matches('.jobContactSection,.privatePricingSection')||!!child.querySelector('.jobPartsEditor');
     (support?aside:main).appendChild(child);
    });
    const contact=aside.querySelector('.jobContactSection');if(contact)details.appendChild(contact);
@@ -441,9 +441,8 @@ root.initHaynesJobTools=function(modal,{automatic=false,recoverImage=true}={}){
    const parts=aside.querySelector('.jobPartsEditor')?.closest('.jobFormSection'),pricing=aside.querySelector('.privatePricingSection');
    if(parts)main.appendChild(parts);
    if(pricing)main.appendChild(pricing);
-   const previous=aside.querySelector('.jobPreviousWorkSection');
    const booking=main.querySelector('.jobBookingSection');if(booking){
-    booking.classList.add('jobBookingFullWidth');sections.prepend(booking);if(previous){previous.classList.add('jobPreviousWorkAlongside');aside.prepend(previous);}
+    booking.classList.add('jobBookingFullWidth');sections.prepend(booking);
     const calendar=booking.querySelector('.bookingAvailabilityWorkspace');if(calendar)aside.appendChild(calendar);
    }
    if(!mechanic)balanceJobSections(modal,sections,main,aside,parts,pricing);
