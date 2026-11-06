@@ -46,10 +46,14 @@ for(const path of ['public/booking.html','website/booking/index.html'])test(`${p
  checkbox.checked=true;checkbox.onchange();
  assert.equal(offer.dataset.selected,'true');assert.match(document.querySelector('[data-valet-summary]').textContent,/£30/);
  offer.querySelector('[data-close-valet]').onclick();
- vm.runInContext("state.step=4;render();state.step=5;render()",root);
+ vm.runInContext('render()',root);
+ assert.equal(document.querySelector('.mini-valet-offer').hasAttribute('open'),false,'redrawing Review must respect dismissal');
+ document.querySelector('#back').onclick();
+ assert.equal(document.querySelector('.mini-valet-offer'),null);
+ vm.runInContext("Object.assign(state.form,{customer_name:'Test customer',phone:'0000',email:'test@example.invalid'});renderActions()",root);
+ assert.equal(document.querySelector('#next').hasAttribute('disabled'),false);
+ await document.querySelector('#next').onclick();
  const reopened=document.querySelector('.mini-valet-offer');
- assert.equal(reopened.hasAttribute('open'),false);
- document.querySelector('[data-edit-valet]').onclick();
  assert.ok(reopened.hasAttribute('open'));assert.equal(reopened.querySelector('input').checked,true);
  const restored=reopened.querySelector('input');
  restored.checked=false;restored.onchange();assert.equal(document.querySelector('[data-valet-summary]').textContent,'');
