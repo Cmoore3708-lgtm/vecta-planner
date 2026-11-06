@@ -1,4 +1,9 @@
-.workshopPhotos{border:1px solid #c49c51!important;background:#fffcf6!important}.workshopPhotos h3{margin:0;font-size:16px}.workshopPhotos h3 span{color:#866327;font-size:12px}.workshopPhotosHeading p,.workshopPhotoStatus{font-size:13px;line-height:1.5;color:#5a5345;margin:7px 0 12px}.workshopPhotoActions{display:flex;flex-wrap:wrap;gap:8px}.workshopPhotoGrid,.workshopPhotoDrafts{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px;margin-top:12px}.workshopPhotoGrid:empty,.workshopPhotoDrafts:empty{display:none}.workshopPhotoGrid figure,.workshopPhotoDraft{margin:0;padding:10px;background:#fff;border:1px solid #ded8ca;border-radius:12px;min-width:0}.workshopPhotos img{display:block;width:100%;height:200px;object-fit:contain;background:#16191d;border-radius:8px}.workshopPhotos textarea{display:block;box-sizing:border-box;width:100%;min-height:70px;margin:9px 0;resize:vertical;font-size:16px;padding:9px;border:1px solid #c7cbd0;border-radius:8px;color:#19212b;background:#fff}.workshopPhotos figcaption,.workshopPhotoDraft strong{display:block;font-size:12px;color:#866327;margin-top:8px}.workshopPhotos .btn{min-height:42px}.workshopPhotoDrafts>.btn{align-self:end}.workshopPhotos[aria-busy=true]{cursor:progress}@media(max-width:520px){.workshopPhotoGrid,.workshopPhotoDrafts{grid-template-columns:1fr}.workshopPhotos .workshopPhotoActions .btn{flex:1 1 auto}}
+.workshopPhotos{border:1px solid #c49c51!important;background:#fffcf6!important}.workshopPhotos h3{margin:0;font-size:16px}.workshopPhotos h3 span{color:#866327;font-size:12px}.workshopPhotosHeading p,.workshopPhotoStatus{font-size:13px;line-height:1.5;color:#5a5345;margin:7px 0 12px}.workshopPhotoActions{display:flex;flex-wrap:wrap;gap:8px}
+.workshopPhotoGrid,.workshopPhotoDrafts{display:flex;flex-wrap:wrap;align-items:flex-start;gap:14px;margin-top:12px}
+.workshopPhotoGrid:empty,.workshopPhotoDrafts:empty{display:none}.workshopPhotoGrid figure,.workshopPhotoDraft{box-sizing:border-box;margin:0;padding:10px;background:#fff;border:1px solid #ded8ca;border-radius:12px;min-width:0;max-width:100%}
+.workshopPhotoGrid figure>a{display:block;width:fit-content;max-width:100%}
+.workshopPhotos img{display:block;width:auto;height:auto;max-width:100%;max-height:200px;border-radius:8px}
+.workshopPhotos textarea{display:block;box-sizing:border-box;width:100%;min-height:70px;margin:9px 0;resize:vertical;font-size:16px;padding:9px;border:1px solid #c7cbd0;border-radius:8px;color:#19212b;background:#fff}.workshopPhotos figcaption,.workshopPhotoDraft strong{display:block;font-size:12px;color:#866327;margin-top:8px}.workshopPhotos .btn{min-height:42px}.workshopPhotos[aria-busy=true]{cursor:progress}@media(max-width:520px){.workshopPhotos .workshopPhotoActions .btn{flex:1 1 auto}}
 
 .workshopPhotos .approvalComposer{margin-top:12px;padding-top:10px;border-top:1px solid #ded8ca}
 .approvalComposer summary{cursor:pointer;font-weight:700}
@@ -21,13 +26,14 @@
 .findingReview label{display:block;margin:8px 0;font-weight:600}
 .findingReview input[type=text]{display:block;max-width:180px;margin:4px 0;padding:8px;border:1px solid #817668;border-radius:6px;font-size:16px}
 .findingReview input[type=checkbox]{width:auto;margin-right:5px}
-.findingThumbs{display:flex;gap:8px;flex-wrap:wrap}.findingThumbs img{width:100px;height:78px;object-fit:contain;background:#202124;border-radius:6px}
+.findingThumbs{display:flex;gap:8px;flex-wrap:wrap}.findingThumbs a{max-width:100%}
+.findingThumbs img{display:block;width:auto;height:auto;max-width:min(100%,100px);max-height:78px;border-radius:6px}
 
 .mechanicFindings .approvalComposer{margin:8px 0;padding:0;border:0}
 .mechanicFindings [data-approval-message]{min-height:56px;margin:4px 0 8px}
 .mechanicFindings [data-approval-send]{width:100%;min-height:44px;background:#226542;color:#fff;font-weight:700}
 .mechanicFindings .workshopPhotoDraft{display:flex;align-items:center;gap:8px}
-.mechanicFindings .workshopPhotoDraft img{width:68px;height:68px;flex:none}
+.mechanicFindings .workshopPhotoDraft img{max-width:min(100%,68px);max-height:68px;flex:none}
 .mechanicFindings .workshopPhotoDraft strong{margin:0}
 .mechanicFindings .workshopPhotoDraft button{margin-left:auto}
 .workshopFindingReceipt{position:fixed;z-index:100000;left:50%;bottom:18px;transform:translateX(-50%);padding:10px 16px;background:#1c5436;color:white;border-radius:8px;text-align:center;font-weight:700;pointer-events:none}
