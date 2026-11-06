@@ -115,7 +115,8 @@ async function lookupVehicle(registration) {
       const code = payload.errorCode || payload.code || '';
       const message = payload.errorMessage || payload.message || (response.status === 404 ? 'Vehicle not found' : `DVSA request failed (${response.status})`);
       if(response.status===401)tokenCache={accessToken:'',expiresAt:0};
-      return {status:response.status,body:{error:message,code}};
+      const retryAfter=[429,503].includes(response.status)?response.headers?.get?.('Retry-After'):null;
+      return {status:response.status,body:{error:message,code},retryAfter};
     }
 
     const vehicle = Array.isArray(payload) ? payload[0] : payload;
@@ -188,6 +189,7 @@ async function handler(req, res) {
     pending.finally(() => {if(pendingVehicles.get(registration)===pending)pendingVehicles.delete(registration);});
   }
   const result = await pending;
+  if(result.retryAfter)res.setHeader('Retry-After',result.retryAfter);
   if(result.status===200&&onColour){try{onColour(result.body);}catch{ /* Optional artwork storage must not fail an MOT lookup. */ }}
   return res.status(result.status).json(structuredClone(result.body));
 }
