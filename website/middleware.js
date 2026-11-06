@@ -9,7 +9,7 @@ const previewUnavailable = () => new Response('Use the matching Workshop Pro pre
   headers: { 'Cache-Control': 'no-store' }
 });
 
-export default async function middleware(request) {
+export default function middleware(request) {
   if (process.env.VERCEL_ENV === 'production') return next();
 
   const url = new URL(request.url);
@@ -18,24 +18,19 @@ export default async function middleware(request) {
   if (url.pathname === '/api/availability' && url.search === '?action=release' && request.method === 'GET') return next();
   if (url.pathname.startsWith('/api/') || !['GET', 'HEAD'].includes(request.method)) return previewUnavailable();
 
-  const branch = /^vecta-website-git-([a-z0-9-]+)-vectaplanner\.vercel\.app$/.exec(process.env.VERCEL_BRANCH_URL || '');
+  const branchUrl = process.env.VERCEL_BRANCH_URL;
+  const branch = branchUrl
+    ? /^vecta-website-git-([a-z0-9-]+)-vectaplanner\.vercel\.app$/.exec(branchUrl)?.[1]
+    : (process.env.VERCEL_GIT_COMMIT_REF || '').toLowerCase().replace(/[^a-z0-9-]+/g, '-');
   const commit = process.env.VERCEL_GIT_COMMIT_SHA;
   if (!branch || !/^[0-9a-f]{40}$/.test(commit || '')) return previewUnavailable();
-  const origin = 'https://vecta-planner-git-' + branch[1] + '-vectaplanner.vercel.app';
-  try {
-    const probe = await fetch(origin + '/api/supabase-config?action=release', {
-      cache: 'no-store', redirect: 'error', signal: AbortSignal.timeout(5000)
-    });
-    if (!probe.ok) return previewUnavailable();
-    const release = await probe.json();
-    if (release.application !== 'workshop' || release.environment !== 'preview' || release.commit !== commit) return previewUnavailable();
-  } catch {
-    return previewUnavailable();
-  }
-
+  const target = new URL('https://vecta-planner-git-' + branch + '-vectaplanner.vercel.app/api/supabase-config');
   const pathname = /^\/booking(?:\/|\.html|$)/.test(url.pathname) ? '/booking.html' : url.pathname;
+  // Let the receiving deployment check its own commit and database. A browser
+  // can complete deployment sign-in here without a server-to-server bypass.
+  target.search = new URLSearchParams({action:'open-website-preview', commit, to:pathname + url.search}).toString();
   return new Response(null, {
     status: 307,
-    headers: { Location: origin + pathname + url.search, 'Cache-Control': 'no-store' }
+    headers: { Location: target.href, 'Cache-Control': 'no-store' }
   });
 }
