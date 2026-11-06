@@ -25,12 +25,14 @@
   if(job.no_vehicle||job.card_type&&job.card_type!=='job'||['quote','provisional','cancelled','deleted'].includes(job.status)||/vehicle tax|pool car tax/i.test(job.job_type||''))return;
   const mechanic=!!window.VECTA_MECHANIC_DEPLOYMENT;
   const after=modal.querySelector('.jobWorkSection');if(!after)return;
-  const panel=document.createElement('section');panel.className='jobFormSection workshopPhotos';
+  const panel=document.createElement('section');panel.className='jobFormSection workshopPhotos'+(mechanic?' mechanicFindings':'');
   panel.innerHTML='<div class="workshopPhotosHeading"><div><h3>Workshop photos &amp; findings</h3><p>Send a finding to Workshop. The customer sees it after the estimate is sent.</p></div></div>';
   after.after(panel);
   if(!saved){const hint=document.createElement('p');hint.textContent='Save this job, then reopen it to add photos.';panel.append(hint);return;}
   panel.insertAdjacentHTML('beforeend','<div class="workshopPhotoActions"><button type="button" class="btn" data-photo-camera>Take photo</button><button type="button" class="btn" data-photo-choose>Upload photos</button><button type="button" class="btn" data-photo-refresh>Refresh photos</button></div><input type="file" accept="image/*" capture="environment" data-photo-camera-input hidden><input type="file" accept="image/*" multiple data-photo-choose-input hidden><div class="workshopPhotoDrafts" data-photo-drafts></div><div class="workshopPhotoGrid" data-photo-saved></div><p class="workshopPhotoStatus" data-photo-status role="status" aria-live="polite"></p>');
-  panel.insertAdjacentHTML('beforeend','<details class="approvalComposer"><summary>Send a finding to Workshop</summary><label>Message about the work needed<textarea data-approval-message maxlength="1200" placeholder="The nearside front tyre is worn through on the inner edge. We recommend replacing it."></textarea></label><div class="workshopPhotoActions"><button type="button" class="btn green" data-approval-send>Send to Workshop for pricing</button><button type="button" class="btn" data-photo-only hidden>Upload photos only</button></div><p role="status" data-approval-notice></p></details><div data-approval-history></div>');
+  const messageForm='<label>Message to Workshop<textarea data-approval-message maxlength="1200" placeholder="e.g. The nearside front tyre is worn on its inner edge."></textarea></label><div class="workshopPhotoActions"><button type="button" class="btn green" data-approval-send>Send to Workshop</button><button type="button" class="btn" data-photo-only hidden>Upload photos only</button></div><p role="status" data-approval-notice></p>';
+  const container=mechanic?'<div class="approvalComposer">'+messageForm+'</div>':'<details class="approvalComposer"><summary>Send a finding to Workshop</summary>'+messageForm+'</details>';
+  panel.insertAdjacentHTML('beforeend',container+'<div data-approval-history></div>');
   const composer=panel.querySelector('.approvalComposer');
   const messageInput=panel.querySelector('[data-approval-message]');
   const approvalButton=panel.querySelector('[data-approval-send]');
@@ -38,9 +40,22 @@
   const history=panel.querySelector('[data-approval-history]');
   let busy=false,photos=[],drafts=[],pendingRequest=null,recovered=null,historyTimer;
   let submittedIds=new Set();
+  let preparing=null,sending=null,saveInProgress=false,photoError='';
+  const save=mechanic?modal.querySelector('#saveJob'):null;
+  const saveControls=save?[save,modal.querySelector('#saveJobMobile')].filter(Boolean).map(el=>[el,el.textContent]):[];
+  function hasDraft(){return !!(drafts.length||pendingRequest||recovered||photoError||messageInput.value.trim()||preparing||sending);}
+  function syncSaveLabels(){
+   for(const [el,label] of saveControls)el.textContent=hasDraft()?'Save & send to Workshop':label;
+  }
+  messageInput.addEventListener('input',syncSaveLabels);
   const status=panel.querySelector('[data-photo-status]'),draftGrid=panel.querySelector('[data-photo-drafts]'),savedGrid=panel.querySelector('[data-photo-saved]');
   const photosOnly=panel.querySelector('[data-photo-only]');
-  draftGrid.after(composer);
+  if(mechanic)draftGrid.before(composer);else draftGrid.after(composer);
+  const discardFailed=mechanic?document.createElement('button'):null;
+  if(discardFailed){
+   discardFailed.type='button';discardFailed.className='btn';discardFailed.textContent='Discard failed photo';discardFailed.hidden=true;composer.append(discardFailed);
+   discardFailed.onclick=()=>{photoError='';discardFailed.hidden=true;approvalNotice.textContent='';status.textContent='';syncSaveLabels();};
+  }
   function lock(value){
    busy=value;
    panel.querySelectorAll('button,input,textarea').forEach(el=>el.disabled=value);
@@ -51,9 +66,18 @@
   const image=(src,caption)=>{const el=document.createElement('img');el.src=src;el.alt=caption||'Workshop inspection photo';el.loading='lazy';return el;};
   const caption=(value,label)=>{const el=document.createElement('textarea');el.rows=2;el.maxLength=500;el.value=value;el.placeholder='e.g. Nearside front tyre worn through on the inner edge.';el.setAttribute('aria-label',label);return el;};
   function renderDrafts(){
-   approvalButton.textContent='Send to Workshop for pricing';
+   approvalButton.textContent=mechanic?'Send to Workshop':'Send to Workshop for pricing';
    draftGrid.replaceChildren();
-   drafts.forEach(draft=>{const card=document.createElement('div');card.className='workshopPhotoDraft';const title=document.createElement('strong');title.textContent='Not uploaded yet';const text=caption(draft.caption,'Caption for new photo');text.oninput=()=>{draft.caption=text.value;};card.append(image(draft.image,draft.caption),title,text,button('Remove',()=>{drafts=drafts.filter(item=>item!==draft);renderDrafts();}));draftGrid.append(card);});
+   drafts.forEach(draft=>{
+    const card=document.createElement('div');card.className='workshopPhotoDraft';
+    const title=document.createElement('strong');title.textContent=mechanic?'Ready to send':'Not uploaded yet';
+    card.append(image(draft.image,draft.caption),title);
+    if(!mechanic){
+     const text=caption(draft.caption,'Caption for new photo');text.oninput=()=>{draft.caption=text.value;};card.append(text);
+    }
+    card.append(button('Remove',()=>{drafts=drafts.filter(item=>item!==draft);renderDrafts();}));draftGrid.append(card);
+   });
+   syncSaveLabels();
    photosOnly.hidden=mechanic||!drafts.length;
   }
   function renderSaved(){
@@ -85,13 +109,21 @@
   async function load(){const data=await request(job,'photos-list');photos=data.photos||[];renderSaved();}
   async function refresh(){if(busy)return;loadApprovalHistory();lock(true);status.textContent='Loading workshop photos…';try{await load();status.textContent=photos.length?photos.length+' of 12 photos uploaded.':'No workshop photos yet. Add a photo of anything the customer should see.';}catch(error){status.textContent=error.message;}finally{lock(false);}}
   async function mutate(action,body,message){if(busy)return;lock(true);status.textContent='Saving…';try{await request(job,action,body);await load();status.textContent=message;}catch(error){status.textContent=error.message;}finally{lock(false);}}
-  async function choose(input){
+  async function prepareFiles(input){
    const files=Array.from(input.files||[]);input.value='';if(busy||pendingRequest||!files.length)return;
    if(photos.length+drafts.length+files.length>MAX){status.textContent='You can save up to 12 photos per job. Choose fewer photos or remove one first.';return;}
-   lock(true);status.textContent='Preparing photos…';
-   try{composer.open=true;for(const file of files){drafts.push({id:crypto.randomUUID(),image:await compress(file),caption:''});}status.textContent='Write the finding below or use the photo caption.';}
-   catch(error){status.textContent=error.message;}
+   lock(true);photoError='';if(discardFailed)discardFailed.hidden=true;status.textContent='Preparing photos…';
+   try{composer.open=true;for(const file of files){drafts.push({id:crypto.randomUUID(),image:await compress(file),caption:''});}approvalNotice.textContent='';status.textContent=mechanic?'Photo ready. Add your message and tap Send to Workshop.':'Write the finding or use the photo caption.';}
+   catch(error){
+    status.textContent=error.message;
+    if(mechanic){photoError=error.message;approvalNotice.textContent=photoError;discardFailed.hidden=false;}
+   }
    finally{renderDrafts();lock(false);}
+  }
+  function choose(input){
+   if(preparing)return preparing;
+   preparing=prepareFiles(input).finally(()=>{preparing=null;syncSaveLabels();});
+   syncSaveLabels();return preparing;
   }
   async function loadApprovalHistory(){
    clearTimeout(historyTimer);
@@ -135,11 +167,12 @@
    } catch(error) {history.textContent='Approval history: '+error.message;}
   }
   async function uploadDrafts(withApproval){
-   if(busy)return;
+   if(busy)return false;
+   if(photoError){approvalNotice.textContent=photoError+' Retake or discard the failed photo before sending.';discardFailed?.focus();return false;}
    if (pendingRequest && !withApproval){approvalNotice.textContent='Finish the pending approval request before sharing more photos.';return;}
    if (withApproval && !pendingRequest) {
     const message=messageInput.value.trim()||drafts.map(item=>item.caption.trim()).filter(Boolean).join('\n');
-    if(!message||message.length>1200){composer.open=true;approvalNotice.textContent='Describe what you found or add a photo caption.';messageInput.focus();return;}
+    if(!message||message.length>1200){composer.open=true;approvalNotice.textContent=mechanic?'Add a message for Workshop. Your photo is still here.':'Describe what you found or add a photo caption.';messageInput.focus();return false;}
     pendingRequest={approval_id:recovered?.id||crypto.randomUUID(),message,photo_ids:[...(recovered?.photo_ids||[]),...drafts.map(item=>item.id)]};
     messageInput.value=message;
    }
@@ -152,15 +185,24 @@
     }
     if(withApproval){
      approvalNotice.textContent='Sending the finding to Workshop…';
-     await request(job,'approval-stage',pendingRequest);
+     const receipt=await request(job,'approval-stage',pendingRequest);
+     if(receipt.approval_id!==pendingRequest.approval_id||!['draft','sent'].includes(receipt.stage))
+      throw Error('Workshop has not confirmed this finding. Retry to check it.');
      submittedIds.add(pendingRequest.approval_id);pendingRequest=null;recovered=null;messageInput.value='';approvalNotice.textContent='Sent to Workshop for pricing. The customer has not been contacted.';
      window.VectaFindings?.notify();
+     if(mechanic)confirmSent();
     }
-    await load();
+    try{await load();}catch(error){
+     status.textContent=error.message;
+     // The server already confirmed the submission. A gallery refresh cannot undo it.
+     return true;
+    }
     if(uploaded)status.textContent=uploaded+' photo'+(uploaded===1?'':'s')+(withApproval?' saved privately.':' uploaded to customer progress.');
+    return true;
    }catch(error){
     status.textContent=(uploaded?uploaded+' photo(s) saved. ':'')+error.message;
     if(withApproval)approvalNotice.textContent=error.message;
+    return false;
    } finally {
     if(withApproval)loadApprovalHistory();
     renderDrafts();lock(false);
@@ -170,9 +212,43 @@
     } else messageInput.readOnly=false;
    }
   }
+  function sendFinding(){
+   if(sending)return sending;
+   sending=(async()=>{if(preparing)await preparing;return uploadDrafts(true);})().finally(()=>{sending=null;syncSaveLabels();});
+   return sending;
+  }
+  function confirmSent(){
+   document.querySelector('.workshopFindingReceipt')?.remove();
+   const receipt=document.createElement('div');receipt.className='workshopFindingReceipt';
+   receipt.setAttribute('role','status');receipt.textContent='Sent to Workshop for pricing';
+   document.body.append(receipt);setTimeout(()=>receipt.remove(),5000);
+  }
+  if(save && typeof save.onclick==='function'){
+   // The mobile Save button delegates to this same footer action.
+   for(const close of modal.querySelectorAll('#cancelJob,[data-close-modal]')){
+    const closeJob=close.onclick;
+    if(typeof closeJob!=='function')continue;
+    close.onclick=function(event){
+     if(preparing||sending||saveInProgress){approvalNotice.textContent='Please wait for the photo or finding to finish.';return;}
+     if(hasDraft()&&!window.confirm('Discard this unsent finding and close the job?'))return;
+     return closeJob.call(this,event);
+    };
+   }
+   const saveJob=save.onclick;
+   save.onclick=async function(event){
+    if(saveInProgress)return;
+    if(!hasDraft())return saveJob.call(this,event);
+    saveInProgress=true;
+    try {
+     if(preparing)await preparing;
+     if((sending||hasDraft())&&!await sendFinding())return;
+     if(panel.isConnected&&modal.contains(panel))return saveJob.call(this,event);
+    } finally{saveInProgress=false;}
+   };
+  }
   const camera=panel.querySelector('[data-photo-camera-input]'),chooseInput=panel.querySelector('[data-photo-choose-input]');
   panel.querySelector('[data-photo-camera]').onclick=()=>camera.click();panel.querySelector('[data-photo-choose]').onclick=()=>chooseInput.click();panel.querySelector('[data-photo-refresh]').onclick=refresh;
-  approvalButton.onclick=()=>uploadDrafts(true);
+  approvalButton.onclick=sendFinding;
   photosOnly.onclick=()=>uploadDrafts(false);
   camera.onchange=()=>choose(camera);chooseInput.onchange=()=>choose(chooseInput);refresh();
  }

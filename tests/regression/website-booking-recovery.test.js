@@ -114,6 +114,11 @@ test('opted-in mini valet adds £30 once on retries and records the work for the
   rows.get(id).job_types=['MOT'];
   assert.equal((await submit(body)).code,200,'legacy paid-valet retry must reuse its reservation');
   assert.equal(rows.get(id).work_required.match(/Mini valet · £30/g).length,1);
+  assert.match(rows.get(id).work_required,/Dashboard & Media screens cleaned/);
+  // A booking saved with the old description still gets its original receipt.
+  rows.get(id).work_required=rows.get(id).work_required.replace('Dashboard & Media','dash &');
+  assert.equal((await submit(body)).code,200);
+  assert.equal((await submit({...body,work_required:'Different work'})).code,409);
   assert.equal((await submit({...body,mini_valet:false})).code,409);
  });
 });

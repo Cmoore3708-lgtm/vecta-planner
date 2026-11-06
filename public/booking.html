@@ -420,7 +420,7 @@ function miniValetReviewHtml(){
   <span data-valet-summary aria-live="polite"></span><button type="button" class="secondary" data-edit-valet></button>
   <dialog class="mini-valet-offer" aria-labelledby="miniValetTitle">
    <header><h3 id="miniValetTitle"><small>Why not treat yourself to a</small> mini valet?</h3><strong>£30</strong></header>
-   <div class="mini-valet-body"><ul><li>Snow-foam pressure wash</li><li>Hoover inside</li><li>Dash &amp; screens cleaned</li></ul>${car}</div>
+   <div class="mini-valet-body"><ul><li>Snow-foam pressure wash</li><li>Hoover inside</li><li>Dashboard &amp; Media screens cleaned</li></ul>${car}</div>
    <footer><label><input type="checkbox" data-mini-valet aria-label="Add the £30 mini valet to booking"><span data-valet-caption></span></label><button type="button" data-close-valet></button></footer>
   </dialog></section>`;
 }
@@ -448,7 +448,11 @@ function bindMiniValetReview(){
   edit.focus({preventScroll:true});
  }
  refresh();
- check.onchange=()=>{state.form.mini_valet=check.checked;refresh();};
+ check.onchange=()=>{
+  state.form.mini_valet=check.checked;
+  refresh();
+  if(check.checked)dismiss();
+ };
  close.onclick=dismiss;
  dialog.oncancel=event=>{event.preventDefault();dismiss();};
  edit.onclick=open;
