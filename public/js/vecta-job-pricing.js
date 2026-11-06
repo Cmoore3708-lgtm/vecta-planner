@@ -6,7 +6,8 @@
  const partNames={oil:'Engine oil',oil_filter:'Oil filter',air_filter:'Air filter',cabin_filter:'Cabin filter'};
  const serviceScope=p=>/^(gsf-|service-estimate-)/.test(p.id)||((p.cost_price===null||p.cost_price===''||p.cost_price===undefined)&&/^(?:Engine oil|Oil|Oil filter|Air filter|Cabin filter|Pollen filter)(?: — cost to confirm)?$/i.test(p.description));
  function types(){return editor.api.jobTypeValues(value('job_job_type'));}
- function input(){const service=types().find(t=>/^(Interim|Full) Service$/i.test(t));return service?{registration:value('job_registration').toUpperCase().replace(/\s/g,''),service,mileage:null,range:editor.api.jobPartsRangeDisplay(editor?.job)||'Mid Range'}:null;}
+ function registration(){return value('job_registration').toUpperCase().replace(/\s/g,'');}
+ function input(){const service=types().find(t=>/^(Interim|Full) Service$/i.test(t));return service?{registration:registration(),service,mileage:null,range:editor.api.jobPartsRangeDisplay(editor?.job)||'Mid Range'}:null;}
  function fingerprint(){return JSON.stringify([editor.api.gatherJobPartsEditor().filter(serviceScope),editor.api.gatherPrivatePricingItems().filter(p=>/^(Interim|Full) Service\b/i.test(p.description)),value('job_vat_mode')]);}
  function styles(){for(const name of ['vecta-tyre-booking','vecta-tyre-positions','vecta-job-pricing']){if(document.querySelector('link[data-job-pricing="'+name+'"]'))continue;const link=document.createElement('link');link.rel='stylesheet';link.href='/js/'+name+'.css';link.dataset.jobPricing=name;document.head.appendChild(link);}}
  function showActivity(busy){document.querySelectorAll('.templateBtns [data-template]').forEach(b=>{if(/^(Interim|Full) Service$/i.test(b.dataset.template))b.setAttribute('aria-busy',String(busy&&b.classList.contains('selected')));});}
@@ -44,8 +45,9 @@
   editor.api.bindPrivatePricing();editor.api.syncPrivatePricingTotal(true);renderAdvisor();
  }
  function serviceLookup(){
-  clearTimeout(debounce);abort?.abort();const current=++generation,active=editor,request=input();if(!active)return;
-  active.apply.hidden=true;active.busy=false;active.lookupKey=JSON.stringify(request);
+  clearTimeout(debounce);abort?.abort();const current=++generation,active=editor;if(!active?.node.isConnected)return;
+  const request=input();
+  active.apply.hidden=true;active.busy=false;active.lookupKey=request&&JSON.stringify(request);
   active.panel.hidden=!request;if(!request){showActivity(false);return;}
   if(!/^[A-Z0-9]{5,8}$/.test(request.registration)){status('Enter a registration to look up oil and filter prices.');return;}
   const key=JSON.stringify(request),before=fingerprint();abort=new AbortController();const signal=abort.signal;
@@ -63,12 +65,12 @@
    try{const data=await post({...request,action:'estimate'},AbortSignal.any([signal,AbortSignal.timeout(5000)]));if(data.status==='ESTIMATED'){useEstimate(data,reason);return;}}catch{/* Workshop connection unavailable. */}
    if(!valid())return;
    if(root.vectaOfflineServiceEstimate)useEstimate(root.vectaOfflineServiceEstimate(request),reason);
-   else {finish();status(reason+' Reopen the job to load the service estimate.');}
+   else {finish();status(reason+' Select Refresh service prices to try again.');}
   };
   active.busy=true;status('Looking up oil and filter prices… '+(request.service==='Full Service'?'Engine oil, oil filter, air filter and cabin filter.':'Engine oil and oil filter.'),true);renderAdvisor();
   const started=Date.now();
   void(async()=>{try{
-   while(Date.now()-started<165000){
+   while(valid()&&Date.now()-started<165000){
     const data=await post(request,AbortSignal.any([signal,AbortSignal.timeout(12000)]));
     if(!valid())return;
     if(data.status==='PENDING'){await new Promise(r=>setTimeout(r,2000));continue;}
@@ -145,15 +147,26 @@
   };
   draw();fields[0].focus();
  }
- function install(job,api){
+ function install(job,api,isNewJob=false){
   generation++;abort?.abort();clearTimeout(debounce);closeTyres();styles();
   const node=el('job_registration');if(!node)return;
   const panel=document.createElement('div');panel.className='jobFormSection job-live-pricing';
-  panel.innerHTML='<div class="job-live-heading"><span class="job-price-spinner" aria-hidden="true"></span><b>Service parts &amp; price</b></div><p role="status" aria-live="polite">Select Interim or Full Service to look up oil and filter prices automatically.</p><button type="button" class="btn" data-service>Refresh service prices</button> <button type="button" class="btn" data-apply hidden>Use service price</button>';
+  panel.innerHTML='<div class="job-live-heading"><span class="job-price-spinner" aria-hidden="true"></span><b>Service parts &amp; price</b></div><p role="status" aria-live="polite">Select Refresh service prices to check GSF.</p><button type="button" class="btn" data-service>Refresh service prices</button> <button type="button" class="btn" data-apply hidden>Use service price</button>';
   const choices=document.querySelector('.jobModalCard .templateBtns');if(choices)choices.after(panel);else el('jobPartsEditor').closest('section').before(panel);
   editor={node,job,api,panel,status:panel.querySelector('p'),retry:panel.querySelector('[data-service]'),apply:panel.querySelector('[data-apply]'),busy:false};
   panel.hidden=!input();editor.retry.onclick=serviceLookup;if(renderAdvisor())status('Saved service price and parts are shown below.');
-  node.addEventListener('input',()=>{generation++;abort?.abort();clearTimeout(debounce);editor.busy=false;editor.apply.hidden=true;closeTyres();debounce=setTimeout(serviceLookup,600);});
+  const active=editor;
+  let lastPlate=registration();
+  node.addEventListener('input',()=>{
+   if(editor!==active||!node.isConnected)return;
+   const plate=registration();
+   if(plate===lastPlate)return;
+   lastPlate=plate;
+   generation++;abort?.abort();clearTimeout(debounce);active.busy=false;active.apply.hidden=true;closeTyres();
+   // Restoring a saved card must never initiate pricing. A deliberate service
+   // selection or refresh can still wait for the user to finish entering a plate.
+   if((isNewJob||active.lookupKey)&&input())debounce=setTimeout(serviceLookup,600);
+  });
   el('privatePricingRows')?.addEventListener('input',()=>renderAdvisor());
   el('job_vat_mode')?.addEventListener('change',()=>renderAdvisor());
  }
