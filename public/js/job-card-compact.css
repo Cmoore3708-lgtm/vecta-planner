@@ -668,6 +668,8 @@
  #jobModal .mechanicJobCard .jobFormSection:has(>.jobPartsEditor){display:none!important}
  #jobModal .mechanicJobCard .jobWorkSection,#jobModal .mechanicJobCard .workshopPhotos{width:100%;box-sizing:border-box}
  #jobModal .jobCardSimplified.mechanicJobCard .jobWorkSection #job_work_required{field-sizing:content;height:auto!important;min-height:110px!important}
+ #jobModal .jobVehicleHistory{display:grid;grid-template-columns:minmax(0,1fr);gap:5px}
+ #jobModal .jobMotAdvisories{--job-section-bg:#fff5f5;--job-section-border:#dc2626;color:#991b1b}
  #jobModal .jobMotAdvisories[hidden]{display:none!important}
  #jobModal .jobMotAdvisories h3{font-size:14px;margin:0 0 5px}
  #jobModal .jobMotAdvisories p,#jobModal .jobMotAdvisories ul{margin:4px 0;line-height:1.45}

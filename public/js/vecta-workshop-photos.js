@@ -37,11 +37,13 @@
   panel.dataset.jobId=job.id;
   panel.innerHTML='<div class="workshopPhotosHeading"><h3>Workshop photos &amp; findings</h3></div>';
   const heading=panel.querySelector('.workshopPhotosHeading');
-  if(mechanic)heading.insertAdjacentHTML('beforeend','<p>Send a finding to Workshop. The customer sees it after the estimate is sent.</p>');
+  if(mechanic)heading.insertAdjacentHTML('beforeend','<p>Send a finding to the office. The customer sees it after the estimate is sent.</p>');
   after.after(panel);
   if(!saved){const hint=document.createElement('p');hint.textContent='Save this job, then reopen it to add photos.';panel.append(hint);return;}
   panel.insertAdjacentHTML('beforeend','<div class="workshopPhotoActions"><button type="button" class="btn" data-photo-camera>Take photo</button><button type="button" class="btn" data-photo-choose>Upload photos</button><button type="button" class="btn" data-photo-refresh>Refresh photos</button></div><input type="file" accept="image/*" capture="environment" data-photo-camera-input hidden><input type="file" accept="image/*" multiple data-photo-choose-input hidden><div class="workshopPhotoDrafts" data-photo-drafts></div><div class="workshopPhotoGrid" data-photo-saved></div><p class="workshopPhotoStatus" data-photo-status role="status" aria-live="polite"></p>');
-  const messageForm='<label>Message to Workshop<textarea data-approval-message maxlength="1200" placeholder="e.g. The nearside front tyre is worn on its inner edge."></textarea></label><div class="workshopPhotoActions"><button type="button" class="btn green" data-approval-send>Send to Workshop</button><button type="button" class="btn" data-photo-only hidden>Upload photos only</button></div><p role="status" data-approval-notice></p>';
+  const recipient=mechanic?'Office':'Workshop';
+  const sendLabel=mechanic?'Send to Office':'Send to Workshop for pricing';
+  const messageForm='<label>Message to '+recipient+'<textarea data-approval-message maxlength="1200" placeholder="e.g. The nearside front tyre is worn on its inner edge."></textarea></label><div class="workshopPhotoActions"><button type="button" class="btn green" data-approval-send>'+sendLabel+'</button><button type="button" class="btn" data-photo-only hidden>Upload photos only</button></div><p role="status" data-approval-notice></p>';
   const container=mechanic?'<div class="approvalComposer">'+messageForm+'</div>':'<details class="approvalComposer"><summary>Send a finding to Workshop</summary>'+messageForm+'</details>';
   panel.insertAdjacentHTML('beforeend',container+'<div data-approval-history></div>');
   const composer=panel.querySelector('.approvalComposer');
@@ -114,7 +116,7 @@
   const saveControls=save?[save,modal.querySelector('#saveJobMobile')].filter(Boolean).map(el=>[el,el.textContent]):[];
   function hasDraft(){return !!(drafts.length||pendingRequest||recovered||photoError||messageInput.value.trim()||preparing||sending);}
   function syncSaveLabels(){
-   for(const [el,label] of saveControls)el.textContent=hasDraft()?'Save & send to Workshop':label;
+   for(const [el,label] of saveControls)el.textContent=hasDraft()?'Save & send to Office':label;
   }
   messageInput.addEventListener('input',syncSaveLabels);
   const status=panel.querySelector('[data-photo-status]'),draftGrid=panel.querySelector('[data-photo-drafts]'),savedGrid=panel.querySelector('[data-photo-saved]');
@@ -135,7 +137,7 @@
   const image=(src,caption)=>{const el=document.createElement('img');el.src=src;el.alt=caption||'Workshop inspection photo';el.loading='lazy';return el;};
   const caption=(value,label)=>{const el=document.createElement('textarea');el.rows=2;el.maxLength=500;el.value=value;el.placeholder='e.g. Nearside front tyre worn through on the inner edge.';el.setAttribute('aria-label',label);return el;};
   function renderDrafts(){
-   approvalButton.textContent=mechanic?'Send to Workshop':'Send to Workshop for pricing';
+   approvalButton.textContent=sendLabel;
    draftGrid.replaceChildren();
    drafts.forEach(draft=>{
     const card=document.createElement('div');card.className='workshopPhotoDraft';
@@ -193,7 +195,7 @@
    const files=Array.from(input.files||[]);input.value='';if(busy||pendingRequest||!files.length)return;
    if(photos.length+drafts.length+files.length>MAX){status.textContent='You can save up to 12 photos per job. Choose fewer photos or remove one first.';return;}
    lock(true);photoError='';if(discardFailed)discardFailed.hidden=true;status.textContent='Preparing photos…';
-   try{composer.open=true;for(const file of files){drafts.push({id:crypto.randomUUID(),image:await compress(file),caption:''});}approvalNotice.textContent='';status.textContent=mechanic?'Photo ready. Add your message and tap Send to Workshop.':'Write the finding or use the photo caption.';}
+   try{composer.open=true;for(const file of files){drafts.push({id:crypto.randomUUID(),image:await compress(file),caption:''});}approvalNotice.textContent='';status.textContent=mechanic?'Photo ready. Add your message and tap '+sendLabel+'.':'Write the finding or use the photo caption.';}
    catch(error){
     status.textContent=error.message;
     if(mechanic){photoError=error.message;approvalNotice.textContent=photoError;discardFailed.hidden=false;}
@@ -218,7 +220,7 @@
     submittedIds=new Set(approvals.map(row=>row.id));
     const pricingForms=new Map(Array.from(panel.querySelectorAll('.findingReview')).map(form=>[form.dataset.findingId,form]));
     history.replaceChildren();
-    const labels={awaiting_price:'Awaiting price in Workshop',pending:'Awaiting customer approval',approved:'Customer approved',declined:'Customer declined',closed:'Request closed'};
+    const labels={awaiting_price:mechanic?'Awaiting price from the office':'Awaiting price in Workshop',pending:'Awaiting customer approval',approved:'Customer approved',declined:'Customer declined',closed:'Request closed'};
     for (const item of approvals) {
      const entry=document.createElement('div');
      entry.className='approvalRecord';entry.dataset.findingId=item.id;
@@ -259,7 +261,7 @@
    if (pendingRequest && !withApproval){approvalNotice.textContent='Finish the pending approval request before sharing more photos.';return;}
    if (withApproval && !pendingRequest) {
     const message=messageInput.value.trim()||drafts.map(item=>item.caption.trim()).filter(Boolean).join('\n');
-    if(!message||message.length>1200){composer.open=true;approvalNotice.textContent=mechanic?'Add a message for Workshop. Your photo is still here.':'Describe what you found or add a photo caption.';messageInput.focus();return false;}
+    if(!message||message.length>1200){composer.open=true;approvalNotice.textContent=mechanic?'Add a message for the office. Your photo is still here.':'Describe what you found or add a photo caption.';messageInput.focus();return false;}
     pendingRequest={approval_id:recovered?.id||crypto.randomUUID(),message,photo_ids:[...(recovered?.photo_ids||[]),...drafts.map(item=>item.id)]};
     messageInput.value=message;
    }
@@ -271,11 +273,11 @@
      drafts=drafts.filter(item=>item!==draft);uploaded++;
     }
     if(withApproval){
-     approvalNotice.textContent='Sending the finding to Workshop…';
+     approvalNotice.textContent='Sending the finding to '+recipient+'…';
      const receipt=await request(job,'approval-stage',pendingRequest);
      if(receipt.approval_id!==pendingRequest.approval_id||!['draft','sent'].includes(receipt.stage))
-      throw Error('Workshop has not confirmed this finding. Retry to check it.');
-     submittedIds.add(pendingRequest.approval_id);pendingRequest=null;recovered=null;messageInput.value='';approvalNotice.textContent='Sent to Workshop for pricing. The customer has not been contacted.';
+      throw Error(recipient+' has not confirmed this finding. Retry to check it.');
+     submittedIds.add(pendingRequest.approval_id);pendingRequest=null;recovered=null;messageInput.value='';approvalNotice.textContent='Sent to '+recipient+' for pricing. The customer has not been contacted.';
      window.VectaFindings?.notify();
      if(mechanic)confirmSent();
     }
@@ -307,7 +309,7 @@
   function confirmSent(){
    document.querySelector('.workshopFindingReceipt')?.remove();
    const receipt=document.createElement('div');receipt.className='workshopFindingReceipt';
-   receipt.setAttribute('role','status');receipt.textContent='Sent to Workshop for pricing';
+   receipt.setAttribute('role','status');receipt.textContent='Sent to Office for pricing';
    document.body.append(receipt);setTimeout(()=>receipt.remove(),5000);
   }
   if(save && typeof save.onclick==='function'){
