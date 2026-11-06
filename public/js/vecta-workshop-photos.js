@@ -33,9 +33,11 @@
   if(job.no_vehicle||job.card_type&&job.card_type!=='job'||['quote','provisional','cancelled','deleted'].includes(job.status)||/vehicle tax|pool car tax/i.test(job.job_type||''))return;
   const mechanic=!!window.VECTA_MECHANIC_DEPLOYMENT;
   const after=modal.querySelector('.jobWorkSection');if(!after)return;
-  const panel=document.createElement('section');panel.className='jobFormSection workshopPhotos'+(mechanic?' mechanicFindings':'');
+  const panel=document.createElement('section');panel.className='jobFormSection workshopPhotos '+(mechanic?'mechanicFindings':'managerFindings');
   panel.dataset.jobId=job.id;
-  panel.innerHTML='<div class="workshopPhotosHeading"><div><h3>Workshop photos &amp; findings</h3><p>Send a finding to Workshop. The customer sees it after the estimate is sent.</p></div></div>';
+  panel.innerHTML='<div class="workshopPhotosHeading"><h3>Workshop photos &amp; findings</h3></div>';
+  const heading=panel.querySelector('.workshopPhotosHeading');
+  if(mechanic)heading.insertAdjacentHTML('beforeend','<p>Send a finding to Workshop. The customer sees it after the estimate is sent.</p>');
   after.after(panel);
   if(!saved){const hint=document.createElement('p');hint.textContent='Save this job, then reopen it to add photos.';panel.append(hint);return;}
   panel.insertAdjacentHTML('beforeend','<div class="workshopPhotoActions"><button type="button" class="btn" data-photo-camera>Take photo</button><button type="button" class="btn" data-photo-choose>Upload photos</button><button type="button" class="btn" data-photo-refresh>Refresh photos</button></div><input type="file" accept="image/*" capture="environment" data-photo-camera-input hidden><input type="file" accept="image/*" multiple data-photo-choose-input hidden><div class="workshopPhotoDrafts" data-photo-drafts></div><div class="workshopPhotoGrid" data-photo-saved></div><p class="workshopPhotoStatus" data-photo-status role="status" aria-live="polite"></p>');
@@ -50,47 +52,57 @@
   const destination=document.createElement('section');
   destination.className='findingDestination';destination.hidden=true;destination.tabIndex=-1;
   destination.setAttribute('aria-label','Selected mechanic finding');
-  panel.querySelector('.workshopPhotosHeading').after(destination);
+  if(!mechanic)heading.append(panel.querySelector('.workshopPhotoActions'));
+  heading.after(destination);
+  const evidenceItems=new WeakMap();
   let selectedFinding=null,photoLoad=null,photosLoaded=false,photosError='',historyLoading=false;
   function showEvidence(){
-   const host=destination.querySelector('[data-finding-evidence]');
-   if(!host||!selectedFinding)return;
+   for(const host of panel.querySelectorAll('[data-finding-evidence]'))renderEvidence(host,evidenceItems.get(host));
+  }
+  function renderEvidence(host,item){
    host.replaceChildren();
-   const linked=photos.filter(photo=>selectedFinding.photo_ids.includes(photo.id)&&safeUrl(photo.url));
+   const linked=photos.filter(photo=>item.photo_ids.includes(photo.id)&&safeUrl(photo.url));
    for(const photo of linked){
     const link=document.createElement('a');link.href=photo.url;link.target='_blank';link.rel='noopener noreferrer';
     const img=document.createElement('img');img.src=photo.url;img.alt=photo.caption||'Mechanic inspection photo';
     link.append(img);
     const figure=document.createElement('figure');figure.append(link);
-    if(photo.caption&&photo.caption!==selectedFinding.message){
+    if(photo.caption&&photo.caption!==item.message){
      const caption=document.createElement('figcaption');caption.textContent=photo.caption;figure.append(caption);
     }
     host.append(figure);
    }
-   if(photosError||linked.length<selectedFinding.photo_ids.length){
+   if(photosError||linked.length<item.photo_ids.length){
     const note=document.createElement('p');
     note.textContent=photosError||(photosLoaded?'A finding photo is no longer available.':'Loading finding photos…');
     host.append(note);
     if(photosError||photosLoaded)host.append(button('Refresh photos',()=>load().catch(()=>{})));
    }
   }
-  function addEvidence(entry){
-   const host=document.createElement('div');host.className='findingEvidence';host.dataset.findingEvidence='';
-   entry.querySelector('p').after(host);
+  function addEvidence(entry,item){
+   if(!item.photo_ids?.length)return;
+   let host=entry.querySelector('[data-finding-evidence]');
+   if(!host){
+    host=document.createElement('div');host.className='findingEvidence';host.dataset.findingEvidence='';
+    const body=document.createElement('div');body.className='findingBody';
+    body.append(...Array.from(entry.childNodes));entry.append(host,body);
+   }
+   evidenceItems.set(host,item);
   }
   if(!mechanic)destinations.set(panel,item=>{
    const previous=destination.firstElementChild;
    if(previous?.dataset.findingId){
-    previous.querySelector('[data-finding-evidence]')?.remove();history.prepend(previous);
+    history.prepend(previous);
    }
    selectedFinding=item;
    const existing=Array.from(history.children).find(entry=>entry.dataset.findingId===item.id);
    const entry=existing||document.createElement('div');
    if(!existing){
+    entry.className='approvalRecord';entry.dataset.findingId=item.id;
     const heading=document.createElement('strong'),note=document.createElement('p');
     heading.textContent='Finding from the mechanic';note.textContent=item.message;entry.append(heading,note);
    }
-   addEvidence(entry);destination.replaceChildren(entry);destination.hidden=false;
+   addEvidence(entry,item);destination.replaceChildren(entry);destination.hidden=false;
    renderSaved();showEvidence();
    destination.focus({preventScroll:true});destination.scrollIntoView({block:'start'});
    loadApprovalHistory();load().catch(()=>{});
@@ -139,14 +151,18 @@
   }
   function renderSaved(){
    savedGrid.replaceChildren();
+   const groupedIds=new Set(Array.from(panel.querySelectorAll('[data-finding-evidence]')).flatMap(host=>evidenceItems.get(host).photo_ids));
    photos.forEach(photo=>{
-    if(photo.private_finding&&selectedFinding?.photo_ids.includes(photo.id))return;
+    if(photo.private_finding&&groupedIds.has(photo.id))return;
     const card=document.createElement('figure'),text=caption(photo.caption||'','Caption for uploaded photo');
     if(safeUrl(photo.url)){const link=document.createElement('a');link.href=photo.url;link.target='_blank';link.rel='noopener noreferrer';link.setAttribute('aria-label','Open full photo');const img=image(photo.url,photo.caption);img.onerror=()=>{status.textContent='A photo could not be opened. Refresh photos to try again.';};link.append(img);card.append(link);}
     const label=document.createElement('figcaption');label.textContent=photo.private_finding?'Private workshop photo':'Visible to customer';
     const actions=document.createElement('div');actions.className='workshopPhotoActions';
     actions.append(button('Save caption',()=>mutate('photos-caption',{photo_id:photo.id,caption:text.value},'Caption saved.')),button('Remove',()=>{if(confirm('Remove this photo from the job and customer’s progress page?'))mutate('photos-delete',{photo_id:photo.id},'Photo removed.');}));
-    card.append(label,text);
+    card.append(label);
+    if(photo.private_finding&&!mechanic){
+     if(photo.caption){const note=document.createElement('p');note.textContent=photo.caption;card.append(note);}
+    }else card.append(text);
     if(!photo.private_finding&&!mechanic)card.append(actions);
     else {
      text.readOnly=true;
@@ -171,7 +187,7 @@
    }).catch(error=>{photosError=error.message;throw error;}).finally(()=>{photoLoad=null;showEvidence();});
    return photoLoad;
   }
-  async function refresh(){if(busy)return;loadApprovalHistory();lock(true);status.textContent='Loading workshop photos…';try{await load();status.textContent=photos.length?photos.length+' of 12 photos uploaded.':'No workshop photos yet. Add a photo of anything the customer should see.';}catch(error){status.textContent=error.message;}finally{lock(false);}}
+  async function refresh(){if(busy)return;loadApprovalHistory();lock(true);status.textContent='Loading workshop photos…';try{await load();status.textContent=photos.length?photos.length+' of 12 photos uploaded.':(mechanic?'No workshop photos yet. Add a photo of anything the customer should see.':'');}catch(error){status.textContent=error.message;}finally{lock(false);}}
   async function mutate(action,body,message){if(busy)return;lock(true);status.textContent='Saving…';try{await request(job,action,body);await load();status.textContent=message;}catch(error){status.textContent=error.message;}finally{lock(false);}}
   async function prepareFiles(input){
    const files=Array.from(input.files||[]);input.value='';if(busy||pendingRequest||!files.length)return;
@@ -200,7 +216,6 @@
     const {approvals}=await request(job,'approval-list');
     if (!panel.isConnected) return;
     submittedIds=new Set(approvals.map(row=>row.id));
-    if(photos.some(photo=>photo.private_finding))renderSaved();
     const pricingForms=new Map(Array.from(panel.querySelectorAll('.findingReview')).map(form=>[form.dataset.findingId,form]));
     history.replaceChildren();
     const labels={awaiting_price:'Awaiting price in Workshop',pending:'Awaiting customer approval',approved:'Customer approved',declined:'Customer declined',closed:'Request closed'};
@@ -227,12 +242,16 @@
        finally{lock(false);loadApprovalHistory();}
       }));
      }
-     if(selectedFinding?.id===item.id){
-      selectedFinding=item;addEvidence(entry);destination.replaceChildren(entry);showEvidence();
+     const selected=selectedFinding?.id===item.id;
+     if(!mechanic&&(item.status==='awaiting_price'||selected))addEvidence(entry,item);
+     if(selected){
+      selectedFinding=item;destination.replaceChildren(entry);
      }else history.append(entry);
     }
+    if(photos.some(photo=>photo.private_finding))renderSaved();
+    showEvidence();
     if (approvals.some(item=>['pending','awaiting_price'].includes(item.status))) historyTimer=setTimeout(()=>{if(panel.isConnected) loadApprovalHistory();},60000);
-   } catch(error) {history.textContent='Approval history: '+error.message;}finally{historyLoading=false;}
+   } catch(error) {history.textContent='Approval history: '+error.message;if(photos.some(photo=>photo.private_finding))renderSaved();}finally{historyLoading=false;}
   }
   async function uploadDrafts(withApproval){
    if(busy)return false;

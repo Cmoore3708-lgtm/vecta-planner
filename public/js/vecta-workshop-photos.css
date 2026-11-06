@@ -53,3 +53,32 @@
 .findingEvidence{display:flex;flex-wrap:wrap;align-items:flex-start;gap:8px;margin:8px 0;min-width:0}
 .findingEvidence figure{margin:0;max-width:100%;min-width:0}
 .findingEvidence figcaption{overflow-wrap:anywhere}
+
+/* Workshop job editor: keep each photo beside the finding it belongs to. */
+.managerFindings {min-width:0}
+.managerFindings .workshopPhotosHeading {display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:4px 10px}
+.managerFindings .workshopPhotosHeading h3 {font-size:14px}
+.managerFindings .workshopPhotoActions {gap:4px}
+.managerFindings .approvalComposer {margin:6px 0 0;padding-top:5px;font-size:13px}
+.managerFindings .workshopPhotoStatus {font-size:12px;line-height:1.3;margin:4px 0 0}
+.managerFindings .workshopPhotoStatus:empty,.managerFindings .findingReview [role=status]:empty {display:none}
+.managerFindings .findingDestination {margin:6px 0}
+.managerFindings .approvalRecord {margin-top:5px;padding:6px 8px;font-size:14px;line-height:1.3}
+.managerFindings .approvalRecord:has(.findingBody) {display:grid;grid-template-columns:clamp(68px,15%,90px) minmax(0,1fr);align-items:start;gap:8px}
+.managerFindings .findingEvidence {margin:0;gap:5px}
+.managerFindings .findingEvidence figure {width:100%}
+.managerFindings .findingEvidence img,.managerFindings .workshopPhotoGrid img,.managerFindings .workshopPhotoDraft img {max-width:min(100%,90px);max-height:84px}
+.managerFindings .findingEvidence figcaption {margin-top:3px;font-size:12px}
+.managerFindings .findingReview {display:flex;align-items:center;flex-wrap:wrap;gap:4px 8px;margin-top:5px}
+.managerFindings .findingReview label {margin:0;font-size:13px}
+.managerFindings .findingReview label:first-child {display:flex;align-items:center;flex-wrap:wrap;gap:3px 6px}
+.managerFindings .findingReview input[type=text] {box-sizing:border-box;width:6em;margin:0;padding:5px}
+.managerFindings .findingReview [role=status] {flex-basis:100%}
+.managerFindings .workshopPhotoGrid,.managerFindings .workshopPhotoDrafts {gap:6px;margin-top:6px}
+.managerFindings .workshopPhotoGrid figure,.managerFindings .workshopPhotoDraft {padding:6px;border-radius:8px}
+.managerFindings .workshopPhotoGrid figure>p {white-space:pre-wrap;overflow-wrap:anywhere;margin:3px 0}
+.managerFindings .workshopPhotoGrid textarea,.managerFindings .workshopPhotoDraft textarea {min-height:0;margin:4px 0;padding:4px 6px}
+@media (min-width:700px) {
+ .managerFindings .approvalRecord:has(.findingEvidence figure:nth-child(2)) {grid-template-columns:min(30%,175px) minmax(0,1fr)}
+ .managerFindings .findingEvidence figure:not(:only-child) {width:calc(50% - 3px)}
+}
