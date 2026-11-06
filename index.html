@@ -13561,6 +13561,7 @@ function mechanicWorkLines(text){
 }
 function mechanicWorkView(j){
   var website=isWebsiteBookingJob(j),raw=String(j.work_required||''),labels=jobTypeLabels(j).filter(function(label){return normaliseJobTypeKey(label)!=='general'});
+  var description=website?window.VectaBookingRules.bookingWorkDescription(raw):raw;
   var editable=[],retained=[],board=[],reference=[],insertion=-1;
   function remember(block,extra){
     retained.push(block);
@@ -13568,13 +13569,10 @@ function mechanicWorkView(j){
     if(notes){reference.push(notes);board.push(notes)}
   }
   function sameAsTypes(text){return text.split(/\s*(?:,|\|\||\n)\s*/).every(function(part){return labels.some(function(label){return normaliseJobTypeKey(part)===normaliseJobTypeKey(label)})})}
-  raw.split(/\r?\n[ \t]*\r?\n/).forEach(function(block){
+  description.split(/\r?\n[ \t]*\r?\n/).forEach(function(block){
     var text=block.trim();if(!text)return;
     var lines=text.split(/\r?\n/);
-    if(website&&/^Mini valet\s*[·:–-]\s*(?:£|GBP\b)/i.test(text)){
-      if(!labels.some(function(label){return normaliseJobTypeKey(label)==='mini valet'})){labels.push('Mini valet');reference.push('Mini valet')}
-      remember(block,lines.slice(1).join('\n'));return;
-    }
+    if(website&&lines.some(function(line){return /^Mini Valet$/i.test(line.trim())})&&!labels.some(function(label){return normaliseJobTypeKey(label)==='mini valet'}))labels.push('Mini valet');
     if(website&&/^(?:Current mileage unknown\. Check mileage on arrival|NEVOS vehicle:\s*NO\s*$|Booking guide total:|MOT \+ Service offer:)/i.test(lines[0])){remember(block,lines.slice(1).join('\n'));return}
     if(website&&/^Optional service item\s*[—–-]/i.test(text)){
       var decision=lines.filter(function(line){return /^(?:Optional service item|Customer requests replacement\.|Check the manufacturer)/i.test(line)});
@@ -13592,10 +13590,10 @@ function mechanicWorkView(j){
     }
     if(insertion<0)insertion=retained.length;
     editable.push(text);
-    var detail=website?lines.filter(function(line){return !sameAsTypes(line)}).join('\n'):text;
+    var detail=website?lines.filter(function(line){return !sameAsTypes(line)&&!window.VectaBookingRules.isSparkPlugInstruction(line)}).join('\n'):text;
     if(detail)board.push(detail);
   });
-  var editorText=retained.length?editable.join('\n\n'):raw;
+  var editorText=retained.length?editable.join('\n\n'):description;
   return {labels:labels,details:reference.filter(Boolean).join('\n\n'),board:!website&&!retained.length?raw:board.join('\n\n'),editor:editorText,
     save:function(value){
       if(value===editorText)return raw;
@@ -15520,7 +15518,7 @@ inp('Registration','registration',j.registration,'text','plateField')+'<label cl
 '<div id="dvsaLookupStatus" class="dvsaLookupStatus"></div>'+jobVehicleDuePanelHtml(j.registration)+
 '<input type="hidden" id="job_mot_due" value="'+esc(j.mot_due||'')+'"><input type="hidden" id="job_mot_status" value="'+esc(j.mot_status||'')+'"><input type="hidden" id="job_mot_advisories" value="'+esc(JSON.stringify(dvsaAdvisoryArray(j.mot_advisories)))+'"><input type="hidden" id="job_make" value="'+esc(j.make||'')+'"><input type="hidden" id="job_model" value="'+esc(j.model||'')+'"><input type="hidden" id="job_fuel_type" value="'+esc(j.fuel_type||'')+'"><input type="hidden" id="job_colour" value="'+esc(j.colour||'')+'"><input type="hidden" id="job_engine_size" value="'+esc(j.engine_size||'')+'"><input type="hidden" id="job_dvsa_last_checked" value="'+esc(j.dvsa_last_checked||'')+'"><input type="hidden" id="job_dvsa_mot_tests" value="'+esc(JSON.stringify(Array.isArray(j.dvsa_mot_tests)?j.dvsa_mot_tests:[]))+'"></div></section>'+
 '<div class="jobVehicleHistory"><section class="jobFormSection jobMotAdvisories" aria-label="Previous MOT advisories" hidden><h3>Previous MOT advisories</h3><div data-mot-history-body aria-live="polite"></div></section>'+previousVehicleWorkPanelHtml(j.registration,id)+'</div>'+
-'<section class="jobFormSection jobWorkSection"><div class="jobFormSectionHead"><span class="jobSectionNumber">2</span><div><h3>Job description <span class="customerReadableLabel">— Readable by customer</span></h3><p>Saved changes appear on the customer\'s progress screen.</p></div></div><div class="formGrid jobFormGrid jobSectionGrid"><div class="field wide"><textarea id="job_work_required" aria-label="Job description — Readable by customer" required>'+esc(mechanicWork?mechanicWork.editor:(j.work_required||''))+'</textarea></div></div>'+(mechanicWork&&mechanicWork.details?'<div class="mechanicJobDescription">'+esc(mechanicWork.details)+'</div>':'')+jobPartsRangeWorkHtml(j)+'</section>'+
+'<section class="jobFormSection jobWorkSection"><div class="jobFormSectionHead"><span class="jobSectionNumber">2</span><div><h3>Job description <span class="customerReadableLabel">— Readable by customer</span></h3><p>Saved changes appear on the customer\'s progress screen.</p></div></div><div class="formGrid jobFormGrid jobSectionGrid"><div class="field wide"><textarea id="job_work_required" aria-label="Job description — Readable by customer" required>'+esc(mechanicWork?mechanicWork.editor:(isWebsiteBookingJob(j)?window.VectaBookingRules.bookingWorkDescription(j.work_required||''):(j.work_required||'')))+'</textarea></div></div>'+(mechanicWork&&mechanicWork.details?'<div class="mechanicJobDescription">'+esc(mechanicWork.details)+'</div>':'')+jobPartsRangeWorkHtml(j)+'</section>'+
 
 '<section class="jobFormSection jobContactSection"><div class="jobFormSectionHead"><span class="jobSectionNumber">3</span><div><h3>Customer & contact details</h3><p>Who the booking belongs to and how to contact them</p></div></div><div class="formGrid jobFormGrid jobSectionGrid">'+
 select('Customer / Income Stream <b class="requiredMark">*</b>','customer_account',selectedIncome,incomeCustomers)+'<div class="field existingCustomerLookupField"><label class="existingCustomerToggle"><input type="checkbox" id="job_existing_customer"> Existing customer / another vehicle</label><small class="existingCustomerHelp">Use this when an existing customer brings a different car or changes vehicle.</small><div class="existingCustomerSearchPanel" id="existingCustomerSearchPanel" hidden><div class="existingCustomerSearchWrap"><input id="job_existing_customer_search" type="search" placeholder="Search customer name, phone or email" autocomplete="off"><input type="hidden" id="job_customer_id" value="'+esc(j.customer_id||'')+'"><div class="existingCustomerResults" id="existingCustomerResults"></div><div class="existingCustomerSelected" id="existingCustomerSelected"></div></div></div></div><div class="field '+(showCustomerName?'':'customerNameHidden')+'" id="jobCustomerNameField"><label id="jobCustomerNameLabel">Name'+(selectedIncome==='CONTRACTOR'?' <b class="requiredMark">*</b>':' <small class="optionalFieldLabel">(optional)</small>')+'</label><input id="job_customer_name" value="'+esc(customerNameValue)+'" autocomplete="name"></div><div class="field '+(selectedIncome==='NMUK'?'':'nmukTypeHidden')+'" id="nmukVehicleTypeField"><label>NMUK vehicle type <b class="requiredMark">*</b></label><select id="job_nmuk_vehicle_type"><option value="">Select NMUK type...</option>'+['Internal','Pool','MVOS','Various'].map(function(o){return '<option value="'+o+'" '+(o===selectedNmukType?'selected':'')+'>'+o+'</option>'}).join('')+'</select></div><div class="field '+(selectedIncome==='NMUK'?'customerNameHidden':'')+'" id="jobCustomerPhoneField"><label>Phone</label><input id="job_customer_phone" value="'+esc(j.customer_phone||'')+'"></div><div class="field '+(selectedIncome==='NMUK'&&['INTERNAL','POOL'].indexOf(String(selectedNmukType||'').toUpperCase())<0?'customerNameHidden':'')+'" id="jobCustomerEmailField"><label>Email</label><div class="jobEmailInputWrap"><input id="job_customer_email" type="text" value="'+esc(j.customer_email||(selectedFleetContact&&selectedFleetContact.contactEmail)||'')+'"><a class="jobEmailOpenLink" id="job_customer_email_link" href="'+(String(j.customer_email||(selectedFleetContact&&selectedFleetContact.contactEmail)||'').trim()?serviceReminderMailto(emailAddressList(String(j.customer_email||(selectedFleetContact&&selectedFleetContact.contactEmail)||'').trim())[0]||String(j.customer_email||(selectedFleetContact&&selectedFleetContact.contactEmail)||'').trim(),j.registration,j.vehicle):'#')+'" title="Open new email">Email</a><button type="button" class="btn poolServiceEmailBtn" id="job_pool_service_email" '+(selectedIncome==='NMUK'&&['INTERNAL','POOL'].indexOf(String(selectedNmukType||'').toUpperCase())>=0?'':'hidden')+'>Email service request</button></div></div><div class="field taxReferenceField '+(selectedIncome==='NMUK'&&['POOL'].indexOf(String(selectedNmukType||'').toUpperCase())>=0?'':'customerNameHidden')+'" id="jobTaxReferenceField"><label>Tax reference</label><input id="job_tax_reference" type="text" readonly value="'+esc(selectedTaxReference)+'"></div></div></section>'+

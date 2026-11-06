@@ -113,14 +113,34 @@ test('opted-in mini valet adds £30 once on retries and records the work for the
   assert.deepEqual(rows.get(id).job_types,['MOT','Mini valet']);
   rows.get(id).job_types=['MOT'];
   assert.equal((await submit(body)).code,200,'legacy paid-valet retry must reuse its reservation');
-  assert.equal(rows.get(id).work_required.match(/Mini valet · £30/g).length,1);
-  assert.match(rows.get(id).work_required,/Dashboard & Media screens cleaned/);
+  assert.equal(rows.get(id).work_required,payload.work_required+'\n\nMini Valet');
   // A booking saved with the old description still gets its original receipt.
+  rows.get(id).work_required=payload.work_required+'\n\nMini valet · £30 including VAT: snow-foam pressure wash, hoover inside, Dashboard & Media screens cleaned.';
+  assert.equal((await submit(body)).code,200);
   rows.get(id).work_required=rows.get(id).work_required.replace('Dashboard & Media','dash &');
   assert.equal((await submit(body)).code,200);
   assert.equal((await submit({...body,work_required:'Different work'})).code,409);
   assert.equal((await submit({...body,mini_valet:false})).code,409);
  });
+});
+test('website service choices become job instructions and retain the original reservation on retry',async()=>{
+ for(const [choice,label] of [['replace','Spark plugs: Yes please, change them.'],['check','Spark plugs: Check first — replace if due. If service history is unclear, contact the customer first.'],['none','']]){
+  await withDatabase(async({submit,rows})=>{
+   const body={...payload,request_id:id,job_types:['Full Service'],service_choice:'Full Service',approximate_cost:155,mini_valet:true,service_extra_kind:'spark_plug',service_extra_choice:choice};
+   assert.equal((await submit(body)).code,201);
+   const row=rows.get(id);assert.equal(row.approximate_cost,185);
+   const [own,instructions]=row.work_required.split('\n\n');
+   assert.equal(own,payload.work_required);assert.equal(instructions,['Mini Valet',label].filter(Boolean).join('\n'));
+   assert.doesNotMatch(row.work_required,/Optional service item|Dashboard & Media screens cleaned/);
+   assert.equal((await submit(body)).code,200);
+   if(choice!=='none'){
+    const decision=choice==='replace'?'Customer requests replacement.':'Check the manufacturer’s guidance; replace if due. If service history is unclear, contact the customer first.';
+    row.work_required=[payload.work_required,'Mini valet · £30 including VAT: snow-foam pressure wash, hoover inside, Dashboard & Media screens cleaned.','Booking guide total: £185.00 including VAT.\nGuide price based on engine size.','Optional service item — Spark plugs\n'+decision+'\nWe will confirm the price before fitting. Obtain price approval before replacement.'].join('\n\n');
+    assert.equal((await submit(body)).code,200);
+    assert.equal((await submit({...body,service_extra_choice:choice==='check'?'replace':'check'})).code,409);
+   }
+  });
+ }
 });
 test('leaving a mini valet unticked keeps the original estimate and work description',async()=>{
  await withDatabase(async({submit,rows})=>{

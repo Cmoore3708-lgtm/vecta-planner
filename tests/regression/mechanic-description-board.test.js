@@ -9,6 +9,7 @@ import path from 'node:path';
 import {pathToFileURL} from 'node:url';
 import {parseHTML} from 'linkedom';
 import {mechanicVariant} from '../../scripts/mechanic-variant.mjs';
+import '../../public/js/vecta-booking-rules.js';
 
 const main=fs.readFileSync('index.html','utf8');
 const functionSource=name=>main.slice(main.indexOf('function '+name+'('),main.indexOf('\nfunction ',main.indexOf('function '+name+'(')+1));
@@ -25,6 +26,7 @@ const jobs=[{id:'later',technician:'Alfie',registration:'AA11 AAA',vehicle:'Niss
 function setup(mechanic=true,savedView=''){
  const opened=[],{window,document}=parseHTML('<html><body><div id="content"></div></body></html>');
  window.VECTA_MECHANIC_DEPLOYMENT=mechanic;
+ window.VectaBookingRules=globalThis.VectaBookingRules;
  const saved=new Map([['vecta_mechanic_day_view',savedView]]);
  const c={window,document,console,mechanicBoardSelection:undefined,localStorage:{getItem:key=>saved.get(key),setItem:(key,value)=>saved.set(key,value)},app:{settings:{},notes:'Workshop notes',jobs},vectaJobIsDeletedForLists:()=>false,isJobInvoiced:()=>false,listPlate:reg=>'<span class="ukPlate">'+escape(reg)+'</span>',esc:escape,
   jobsForDate:()=>jobs,allJobsForDate:()=>jobs,plannerLaneMechanics:()=>['Alfie','Chris','Anyone'],plannerTechnicianName:j=>j.technician,selectedIso:()=> '2026-11-05',byTime:(a,b)=>a.drop_time.localeCompare(b.drop_time),
@@ -68,12 +70,41 @@ test('website service and valet show once, with the original office notes retain
    assert.equal(document.querySelector('.mechanicJobDescription'),null);
    assert.doesNotMatch(document.getElementById('content').innerHTML,/£|185|including VAT|mileage unknown|NEVOS|Spark plugs|confirm the price/i);
    const view=c.mechanicWorkView(copy);
-   assert.equal(view.editor,'Full Service');assert.match(view.details,/Spark plugs\nCustomer requests replacement/);
+   assert.equal(view.editor,'Full Service\n\nMini Valet\nSpark plugs: Yes please, change them.');assert.equal(view.details,'');
    assert.equal(view.save(view.editor),original);
-   const saved=view.save('Full Service\nInspect noisy rear brakes');
-   assert.equal(saved,original.replace('\n\nFull Service\n\n','\n\nFull Service\nInspect noisy rear brakes\n\n'));
-   assert.match(c.mechanicWorkView({...copy,work_required:saved}).board,/Inspect noisy rear brakes/);
+   const edited=view.editor+'\nInspect noisy rear brakes',saved=view.save(edited);
+   assert.match(saved,/Booking guide total: £185\.00/);assert.match(saved,/Obtain price approval/);
+   const reopened=c.mechanicWorkView({...copy,work_required:saved});
+   assert.equal(reopened.editor,edited);assert.equal(reopened.details,'');assert.match(reopened.board,/Inspect noisy rear brakes/);
+   assert.equal((saved.match(/^Mini Valet$/gm)||[]).length,1);
    assert.equal(c.mechanicListJob(copy).amount_quoted,null);assert.equal(copy.work_required,original);
+ }
+});
+test('a saved conditional spark-plug choice appears in the editable description without the old section',()=>{
+ const {c}=setup();c.isWebsiteBookingJob=()=>true;
+ const work=websiteServiceNotes.replace('Customer requests replacement.','Check the manufacturer’s guidance; replace if due. If service history is unclear, contact the customer first.');
+ const job={work_required:work};
+ const view=c.mechanicWorkView(job);
+ assert.match(view.editor,/Spark plugs: Check first — replace if due\. If service history is unclear, contact the customer first\./);
+ assert.doesNotMatch(view.editor+' '+view.details,/Optional service item|confirm the price|£/);
+ assert.equal(view.save(view.editor),work);
+ const saved=view.save(view.editor.replace('Check first — replace if due','Customer has approved replacement'));
+ assert.match(c.mechanicWorkView({...job,work_required:saved}).editor,/approved replacement/);
+ assert.doesNotMatch(saved,/Check first — replace if due/);
+});
+test('Main and mechanics render selected extras in the job description textarea',()=>{
+ const section=main.split('\n').find(line=>line.startsWith("'<section class=\"jobFormSection jobWorkSection\">")).slice(0,-1);
+ for(const isMechanic of [true,false]){
+  const {c}=setup(isMechanic);c.isWebsiteBookingJob=()=>true;
+  c.j={job_type:'Full Service',work_required:websiteServiceNotes};c.jobPartsRangeWorkHtml=()=>'';
+  c.mechanicWork=isMechanic?c.mechanicWorkView(c.j):null;
+  const {document}=parseHTML(vm.runInContext(section,c));
+  const value=document.querySelector('#job_work_required').value;
+  assert.match(value,/^Mini Valet$/m);assert.match(value,/^Spark plugs: Yes please, change them\.$/m);
+  assert.doesNotMatch(value,/Optional service item/);
+  assert.equal(document.querySelector('.mechanicJobDescription'),null);
+  if(isMechanic)assert.doesNotMatch(value,/£|confirm the price/i);
+  else assert.match(value,/Booking guide total: £185\.00/);
  }
 });
 test('website repairs keep customer instructions, tyre positions and advisories visible without fitted prices',()=>{
