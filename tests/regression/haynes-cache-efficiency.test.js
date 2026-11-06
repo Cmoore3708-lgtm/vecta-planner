@@ -142,10 +142,11 @@ test('opening a job reuses artwork even when its technical identity has no image
  assert.equal(calls(),0);assert.match(document.querySelector('.jobCardHeaderVehicle img').src,/haynes-image/);
 });
 
-test('a new booking also reuses existing artwork without requesting technical identity',async()=>{
+test('a new booking retains existing artwork while checking for its missing technical identity',async()=>{
  const {root,document,calls}=setup(new Map([['vecta_haynes_artwork_v1',JSON.stringify([vehicle])]]));
  root.initHaynesJobTools(jobModal(document),{automatic:true});
- await new Promise(resolve=>setTimeout(resolve,200));assert.equal(calls(),0);
+ await new Promise(resolve=>setTimeout(resolve,200));assert.equal(calls(),1);
+ assert.match(document.querySelector('.jobCardHeaderVehicle img').src,/haynes-image/);
 });
 
 test('opening a job waits for shared artwork before starting image recovery',async()=>{
@@ -155,6 +156,6 @@ test('opening a job waits for shared artwork before starting image recovery',asy
  root.initHaynesJobTools(jobModal(document));
  await new Promise(resolve=>setTimeout(resolve,200));assert.equal(calls(),0);
  finish({data:[{id:'vehicle_artwork:'+vehicle.registration,value:vehicle}]});
- await new Promise(resolve=>setTimeout(resolve,20));assert.equal(calls(),0);
+ await new Promise(resolve=>setTimeout(resolve,20));assert.equal(calls(),1);
  assert.match(document.querySelector('.jobCardHeaderVehicle img').src,/haynes-image/);
 });

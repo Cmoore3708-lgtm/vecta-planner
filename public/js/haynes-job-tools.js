@@ -17,7 +17,6 @@ const KEY='vecta_haynes_vehicle_snapshots_v1',TTL=86400000,cache=new Map(),pendi
 let dailyBlockedUntil=0;
 // Vehicle identity is stable; service schedules still have their own mileage-aware cache.
 const ID_KEY='vecta_haynes_vehicle_identity_v1',identities=new Map();
-const imageRecoveryAt=new Map();
 const RETRY_KEY='vecta_haynes_vehicle_retries_v1';
 const transientStatuses=['LOGIN_REQUIRED','VERIFICATION_REQUIRED','OFFLINE','BUSY','NOT_CONFIGURED'];
 const pausedStatuses=['AMBIGUOUS','UNAVAILABLE','UNKNOWN','NOT_FOUND','INCOMPLETE','MISMATCH'];
@@ -148,6 +147,26 @@ async function lookup(registration,expectedMake,{requireImage=false,force=false,
   pending.set(requested,(async()=>{try{const r=await root.fetch('/api/haynes-vehicle?reg='+encodeURIComponent(requested)+(force?'&retry=1':''),{...(force?{method:'POST'}:{}),signal:controller.signal,cache:'no-store'}),d=await r.json();if(!r.ok||d.status!=='MATCHED'||!validIdentity(d.vehicle,requested))throw Error(['NOT_CONFIGURED','OFFLINE','LOGIN_REQUIRED','VERIFICATION_REQUIRED','BUSY','DAILY_LIMIT',...pausedStatuses].includes(d.status)?d.status:'UNAVAILABLE');failed.delete(requested);failStatus.delete(requested);persistRetries();return remember(d.vehicle,true,{replaceArtwork:force,allowExpiredIdentity:true});}catch(e){if(e.message==='DAILY_LIMIT')dailyBlockedUntil=(Math.floor(Date.now()/TTL)+1)*TTL;failed.set(requested,Date.now());failStatus.set(requested,e.message);while(failed.size>300){const oldest=failed.keys().next().value;failed.delete(oldest);failStatus.delete(oldest);}persistRetries();return null;}finally{clearTimeout(timer);pending.delete(requested);}})());
  }
  const v=await pending.get(requested);return v&&reg(v.registration)===requested&&(!expectedMake||make(v.make)===make(expectedMake))?v:null;
+}
+// A previous failure on this device must not hide a match saved by another device.
+// This is a read of workshop storage only; it cannot start a supplier lookup.
+const failedMatchReads=new Map();
+function restoreSharedMatch(registration){
+ const client=workshopClient();
+ if(!failed.has(registration)||!client||root.navigator?.onLine===false)return null;
+ const previous=failedMatchReads.get(registration);
+ if(previous&&Date.now()-previous.at<60000)return previous.request;
+ const request=(async()=>{try{
+  const result=await sharedArtworkResponse(client.from('workshop_settings').select('value').eq('id','vehicle_identity:'+registration).maybeSingle());
+  const value=result.data?.value;
+  if(result.error||!validIdentity(value,registration))return null;
+  const match=remember(value,true,{allowExpiredIdentity:true});
+  failed.delete(registration);failStatus.delete(registration);persistRetries();
+  return match;
+ }catch{return null;}})();
+ failedMatchReads.set(registration,{at:Date.now(),request});
+ if(failedMatchReads.size>300)failedMatchReads.delete(failedMatchReads.keys().next().value);
+ return request;
 }
 function artworkUrl(src){const safe=image(src);return /\.svgz?$/.test(safe)?'/api/haynes-image?asset='+encodeURIComponent(safe.split('/').pop())+'&format=svg':safe;}
 function storedDrawing(description){const internal=root.VectaFleetImages?.forJob?.(description);if(internal)return internal.drawing;return artworkSnapshot(description.registration,description.make,description.model||description.vehicle)||[identitySnapshot(description.registration,description.make,description.model||description.vehicle),snapshot(description.registration,description.make,description.model||description.vehicle)].find(v=>v?.imageUrl)||genericImage(description);}
@@ -506,7 +525,7 @@ root.initHaynesJobTools=function(modal,{automatic=false,recoverImage=true}={}){
  }
  const panel=document.createElement('div');panel.className='haynesJobTools';
  panel.innerHTML='<button type="button" class="btn">Haynes Pro</button><span role="status" aria-live="polite"></span><div class="haynesJobVehicle"></div>';
- if(mechanic&&header)header.appendChild(panel);else section.appendChild(panel);
+ section.appendChild(panel);
  const button=panel.querySelector('button'),status=panel.querySelector('[role="status"]'),body=panel.querySelector('.haynesJobVehicle'),noVehicle=modal.querySelector('#job_no_vehicle');
  // Keep the original controls and handlers while arranging the compact header.
  const vehicleField=section.querySelector('#job_vehicle')?.closest('.field');if(vehicleField)vehicleField.hidden=true;
@@ -539,72 +558,80 @@ root.initHaynesJobTools=function(modal,{automatic=false,recoverImage=true}={}){
   const noVehicleControl=noVehicle?.closest('.noVehicleToggle')||noVehicle;
   if(noVehicleControl){const selected=!!current()||!!String(modal.querySelector('#job_vehicle')?.value||'').trim().replace(/^No Vehicle$/i,'');noVehicleControl.hidden=selected&&!noVehicle.checked;}
   showHeaderVehicle();sequence++;clearTimeout(refreshTimer);body.replaceChildren();status.textContent='';button.disabled=!!noVehicle?.checked;button.textContent='Haynes Pro';showGeneric();}
- function changed(){clear();}
  function fillVehicleFields(v){if(automatic)for(const [id,value] of Object.entries({make:v.make,model:v.model,vehicle:[v.make,v.model].join(' ')})){const field=modal.querySelector('#job_'+id);if(field&&!field.value.trim())field.value=value;}}
- function missingImage(){return !image(storedDrawing(currentDescription())?.imageUrl);}
- function automaticLookup(){
-  if(noVehicle?.checked||!lookupRegistration(current())||!panel.isConnected||(!automatic&&!recoverImage)||!missingImage())return;
+ function savedMatch(){
+  const d=currentDescription();
+  return !noVehicle?.checked&&identitySnapshot(d.registration,d.make,d.model);
+ }
+ function showMatch(v){
+  fillVehicleFields(v);
+   showHeaderVehicle();const link=document.createElement('a');link.className='btn dark';link.href=vehicleLink(v);link.target='_blank';link.rel='noopener noreferrer';link.textContent='Open this vehicle in HaynesPro';
+   const details=document.createElement('div'),title=document.createElement('strong'),note=document.createElement('small');
+   title.textContent=[v.make,v.model,v.variant].join(' ');note.textContent=[v.engineCode,v.modelYears].filter(Boolean).join(' · ');details.append(title,note);
+   body.replaceChildren();const src=image(v.imageUrl);if(src){const img=document.createElement('img');img.src=artworkUrl(src);img.alt=(v.generic?'Generic model image: ':'Representative ')+v.make+' '+v.model;img.title=v.generic?'Generic model image — appearance may differ':img.alt;img.dataset.generic=String(!!v.generic);img.dataset.vehicleMake=v.make||'';img.dataset.registration=v.registration;img.dataset.vehicleName=[v.make,v.model].join(' ');img.onerror=()=>img.remove();body.appendChild(img);}
+   const times=document.createElement('a');times.className='btn';times.href='https://www.workshopdata.com/touch/site/layout/repairTimes?typeId='+encodeURIComponent(v.typeId)+'&groupId=QUICKGUIDES';times.target='_blank';times.rel='noopener noreferrer';times.textContent='Repair times';
+   const service=document.createElement('button');service.type='button';service.className='btn';service.textContent='View service data';service.onclick=()=>root.VectaHaynesDashboardLookup.openTechnical(v.registration,true);
+   if(!src)showGeneric();body.append(details,service,link,times);status.textContent='Matched vehicle — check the variant before using technical data.';button.textContent='Haynes Pro';
+ }
+ function active(requested,run){return run===sequence&&modal.getAttribute('aria-hidden')!=='true'&&panel.isConnected&&current()===requested&&!noVehicle?.checked&&!modal.dataset.websiteRequestId;}
+ async function matchVehicle(event){
   const requested=current(),run=sequence,description=currentDescription();
-  const active=()=>run===sequence&&modal.getAttribute('aria-hidden')!=='true'&&panel.isConnected&&current()===requested&&!noVehicle?.checked&&!modal.dataset.websiteRequestId;
-  clearTimeout(refreshTimer);refreshTimer=setTimeout(async()=>{
-   // A model drawing is enough for display. Never force technical identification
-   // merely because it is generic, image-less, or older than a service snapshot.
+  if(noVehicle?.checked||!lookupRegistration(requested)){status.textContent='Enter the actual vehicle registration first. Placeholder names cannot be looked up.';return;}
+  const saved=savedMatch();
+  if(saved){showMatch(saved);return;}
+  // A normal lookup reads the shared permanent identity first. Only retry a
+  // failed/mismatched identification when the user explicitly asks to retry.
+  const retry=!!event&&(failed.has(requested)||identities.has(requested));
+  button.disabled=true;status.textContent='Looking up vehicle…';
+  try{
+   const sharedRead=event?null:restoreSharedMatch(requested);
+   const restored=sharedRead?await sharedRead:null;
+   if(!active(requested,run))return;
+   const v=restored||await lookup(requested,description.make,{force:retry,background:!event});
+   if(!active(requested,run)){
+    // A same-plate details refresh can finish while this lookup is pending.
+    if(active(requested,sequence)&&savedMatch())showMatch(savedMatch());
+    return;
+   }
+   if(!v||!compatibleArtwork(v,{make:description.make,model:description.model})||!knownAssetMatches(v,description))throw Error('UNAVAILABLE');
+   showMatch(v);
+  }catch{
+   if(active(requested,run))status.textContent=({NOT_CONFIGURED:'HaynesPro lookup is not configured for this preview.',OFFLINE:'The workshop HaynesPro worker is offline.',LOGIN_REQUIRED:'The workshop HaynesPro login needs renewing on the workshop PC.',VERIFICATION_REQUIRED:'HaynesPro needs verification on the workshop PC.',BUSY:'HaynesPro is busy. Try again shortly.',DAILY_LIMIT:'The daily HaynesPro lookup limit has been reached.'}[failStatus.get(requested)]||'HaynesPro unavailable or vehicle match uncertain.')+' You can still save this job.';
+  }finally{if(active(requested,run))button.disabled=false;}
+ }
+ function automaticLookup(){
+  clearTimeout(refreshTimer);
+  const saved=savedMatch();
+  if(saved){showMatch(saved);return;}
+  if(noVehicle?.checked||!lookupRegistration(current())||!panel.isConnected||(!automatic&&!recoverImage))return;
+  const requested=current(),run=sequence,description=currentDescription();
+  refreshTimer=setTimeout(async()=>{
    const hydrated=await hydrateSharedArtwork();
-   if(!active())return;
-   if(!missingImage()){showHeaderVehicle();return;}
-   if(hydrated===false||Date.now()<sharedRetryAt)return;
-   if(Date.now()-(imageRecoveryAt.get(requested)||0)<300000)return;
-   imageRecoveryAt.set(requested,Date.now());
-   // The batch may be stale/capped, or this browser may not have it yet. Check
-   // the requested registration and saved model catalogue before using the PC.
+   if(!active(requested,run)||hydrated===false||Date.now()<sharedRetryAt)return;
    const model=description.model||description.vehicle;
-   if(description.make&&model){
+   // Recover saved artwork independently; a model drawing never identifies an engine.
+   if(!image(storedDrawing(description)?.imageUrl)&&description.make&&model){
     try{
      const url='/api/vehicle-artwork?reg='+encodeURIComponent(requested)+'&make='+encodeURIComponent(description.make)+'&model='+encodeURIComponent(model);
      const response=await root.fetch(url,{cache:'no-store',signal:AbortSignal.timeout(10000)}),data=await response.json();
-     if(!active())return;
-     if(!missingImage()){showHeaderVehicle();return;}
+     if(!active(requested,run))return;
      if(response.ok&&data.status==='ARTWORK'&&reg(data.vehicle?.registration)===requested&&image(data.vehicle?.imageUrl)&&(data.vehicle.manual||compatibleArtwork(data.vehicle,description))){
       rememberArtwork(data.vehicle,false);
       try{root.localStorage?.setItem(ART_KEY,JSON.stringify([...artwork.values()]));}catch{}
-      showHeaderVehicle();return;
-     }
-     // Unavailable storage is not proof of a missing image.
-     if(!response.ok||data.status!=='NOT_FOUND')return;
+      showHeaderVehicle();
+     }else if(!response.ok||data.status!=='NOT_FOUND')return;
     }catch{return;}
    }
-   if(active()&&missingImage())button.onclick();
+   if(active(requested,run))await matchVehicle();
   },150);
  }
- const shared=hydrateSharedArtwork();if(shared)shared.then(()=>{if(modal.isConnected)showHeaderVehicle();});
- input.addEventListener('input',changed);input.addEventListener('change',changed);input.addEventListener('change',automaticLookup);input.addEventListener('blur',automaticLookup);for(const selector of ['#job_vehicle','#job_model','#job_make']){const field=modal.querySelector(selector);field?.addEventListener('change',changed);}noVehicle?.addEventListener('change',changed);clear();
- button.onclick=async(event)=>{
-  if(!panel.isConnected)return;clear();if(event){failed.delete(current());}
-const requested=current(),expectedMake=make(modal.querySelector('#job_make')?.value);
-  if(noVehicle?.checked||!lookupRegistration(requested)){status.textContent='Enter the actual vehicle registration first. Placeholder names cannot be looked up.';return;}
-  // Open during the click so browsers do not block the eventual vehicle page.
-  const target=event&&typeof root.open==='function'?root.open('about:blank','_blank'):null;
-  if(target)target.opener=null;
-  const run=sequence;
-  button.disabled=true;status.textContent='Looking up vehicle…';
-  try{
-   const v=await lookup(requested,expectedMake,{force:!!event,background:!event});
-   if(run!==sequence||!panel.isConnected||current()!==requested||noVehicle?.checked){if(run!==sequence&&panel.isConnected&&current()===requested&&!noVehicle?.checked)showHeaderVehicle();target?.close();return;}
-   if(!v||reg(v?.registration)!==requested||!v?.model||!v?.variant||!v?.make||!vehicleLink(v)||(expectedMake&&make(v.make)!==expectedMake))throw Error('UNAVAILABLE');
-   if(target)target.location.replace(vehicleLink(v));
-   remember(v);
-   fillVehicleFields(v);
-   showHeaderVehicle(v);const link=document.createElement('a');link.className='btn dark';link.href=vehicleLink(v);link.target='_blank';link.rel='noopener noreferrer';link.textContent='Open this vehicle in HaynesPro';
-   const details=document.createElement('div'),title=document.createElement('strong'),note=document.createElement('small');
-   title.textContent=[v.make,v.model,v.variant].join(' ');note.textContent=[v.engineCode,v.modelYears].filter(Boolean).join(' · ');details.append(title,note);
-   body.replaceChildren();const src=image(v.imageUrl);if(src){const img=document.createElement('img');img.src=artworkUrl(src);img.alt=(v.generic?'Generic model image: ':'Representative ')+v.make+' '+v.model;img.title=v.generic?'Generic model image — appearance may differ':img.alt;img.dataset.generic=String(!!v.generic);img.dataset.vehicleMake=v.make||'';img.dataset.registration=requested;img.dataset.vehicleName=[v.make,v.model].join(' ');img.onerror=()=>img.remove();body.appendChild(img);}
-   const times=document.createElement('a');times.className='btn';times.href='https://www.workshopdata.com/touch/site/layout/repairTimes?typeId='+encodeURIComponent(v.typeId)+'&groupId=QUICKGUIDES';times.target='_blank';times.rel='noopener noreferrer';times.textContent='Repair times';
-   if(!src)showGeneric();body.append(details,link,times);status.textContent='Matched vehicle — check the variant before using technical data.';button.textContent='Haynes Pro';
-  }catch{target?.close();if(run===sequence&&panel.isConnected&&current()===requested)button.textContent='Haynes Pro';if(run===sequence&&panel.isConnected&&current()===requested)status.textContent=({NOT_CONFIGURED:'HaynesPro lookup is not configured for this preview.',OFFLINE:'The workshop HaynesPro worker is offline.',LOGIN_REQUIRED:'The workshop HaynesPro login needs renewing.',VERIFICATION_REQUIRED:'HaynesPro needs verification on the workshop PC.',BUSY:'HaynesPro is busy. Try again shortly.',DAILY_LIMIT:'The daily HaynesPro lookup limit has been reached.'}[failStatus.get(requested)]||'HaynesPro unavailable or vehicle match uncertain.')+' You can still save this job.';}
-  finally{if(run===sequence)button.disabled=!!noVehicle?.checked;}
- };
- const savedIdentity=identitySnapshot(current(),modal.querySelector('#job_make')?.value,modal.querySelector('#job_model')?.value);
- if(automatic&&!noVehicle?.checked&&savedIdentity){fillVehicleFields(savedIdentity);showHeaderVehicle();}
+ const shared=hydrateSharedArtwork();if(shared)shared.then(()=>{if(panel.isConnected)showHeaderVehicle();});
+ function changed(){clear();automaticLookup();}
+ input.addEventListener('input',clear);input.addEventListener('change',changed);input.addEventListener('blur',automaticLookup);
+ for(const selector of ['#job_vehicle','#job_model','#job_make'])modal.querySelector(selector)?.addEventListener('change',changed);
+ noVehicle?.addEventListener('change',changed);clear();
+ button.onclick=event=>{clearTimeout(refreshTimer);return matchVehicle(event);};
+
  automaticLookup();
 };
 document.addEventListener('DOMContentLoaded',()=>{if(root.view==='planner')root.enrichHaynesDashboard(document.getElementById('content'),root.app?.jobs);});
@@ -673,12 +700,12 @@ async function openTechnical(registration,bookingContext){
  // overwrite the newer drawing, and a completed data URL is not a source SVG.
  if(img.dataset.colour!==colour&&img.dataset.personalising){const next=document.createElement('img');next.src=img.dataset.vehicleSource||root.VectaHaynesJobTools.safeImage(vehicle.imageUrl);next.alt=img.alt;next.onerror=()=>next.remove();img.replaceWith(next);img=next;}
  img.dataset.vehicleSource=root.VectaHaynesJobTools.safeImage(vehicle.imageUrl);img.dataset.registration=reg;img.dataset.colour=colour;img.dataset.vehicleName=vehicle.make+' '+vehicle.model;img.setAttribute('data-vehicle-image','');img.dataset.vehicleLogo='separate';img.dataset.vehicleCrop='tight';root.VectaVehicleImage.mount(identity);}
- function showMatchedVehicle(value){vehicle=root.VectaHaynesJobTools.remember(value);if(!vehicle)throw Error('MISMATCH');identity.innerHTML='<div><h2>'+esc(vehicle.make+' '+vehicle.model)+'</h2><p>'+esc(vehicle.variant)+'</p><dl>'+[['Engine code',vehicle.engineCode],['Model years',vehicle.modelYears]].map(([k,v])=>'<dt>'+k+'</dt><dd>'+esc(v||'Not supplied')+'</dd>').join('')+'</dl><a target="_blank" rel="noopener noreferrer" href="'+esc(root.VectaHaynesJobTools.vehicleLink(vehicle))+'">Open full HaynesPro vehicle data</a></div>';
+ function showMatchedVehicle(value){vehicle=root.VectaHaynesJobTools.remember(value,true,{allowExpiredIdentity:true});if(!vehicle)throw Error('MISMATCH');identity.innerHTML='<div><h2>'+esc(vehicle.make+' '+vehicle.model)+'</h2><p>'+esc(vehicle.variant)+'</p><dl>'+[['Engine code',vehicle.engineCode],['Model years',vehicle.modelYears]].map(([k,v])=>'<dt>'+k+'</dt><dd>'+esc(v||'Not supplied')+'</dd>').join('')+'</dl><a target="_blank" rel="noopener noreferrer" href="'+esc(root.VectaHaynesJobTools.vehicleLink(vehicle))+'">Open full HaynesPro vehicle data</a></div>';
  const src=root.VectaHaynesJobTools.safeImage(vehicle.imageUrl);if(src){const img=document.createElement('img');img.dataset.vehicleSource=src;img.src=root.VectaHaynesJobTools.artworkUrl?.(src)||src;img.alt=vehicle.make+' '+vehicle.model;img.onerror=()=>img.remove();identity.append(img);}paintLookupVehicle();status.textContent='Vehicle matched. Enter the current mileage to load its service schedule.';page.querySelectorAll('[data-create]').forEach(b=>b.disabled=false);}
  const motLookup=(async()=>{
  try{government=await json('/api/vehicle-lookup?reg='+encodeURIComponent(reg));if(normalise(government.registration)!==reg)government=null;else root.VectaHaynesJobTools.rememberLookupColour?.(government);const raw=String(government?.latestMileage??'').replace(/[, ]/g,''),available=/^\d+$/.test(raw),unit=String(government?.latestMileageUnit||'').toLowerCase();if(isCurrent()){paintLookupVehicle();page.querySelector('[data-mot-mileage]').textContent=available?Number(raw).toLocaleString('en-GB')+' '+(unit==='mi'?'miles':unit==='km'?'km':unit||'units'):'Not available';page.querySelector('[data-mot-date]').textContent=(government?.lastMotTestDate?'MOT date: '+String(government.lastMotTestDate).slice(0,10).split('-').reverse().join('/')+'. ':'')+'Historical MOT reading; enter current mileage separately.';}}catch{if(isCurrent())page.querySelector('[data-mot-mileage]').textContent='Not available';}
  })();
- try{const matched=await root.VectaHaynesJobTools.lookup(reg,undefined,{background:false,force:root.VectaHaynesJobTools.lookupNeedsRetry?.(reg)||false});const d=matched?{status:'MATCHED',vehicle:matched}:{status:root.VectaHaynesJobTools.lookupStatus(reg)};if(!isCurrent())return;if(d.status!=='MATCHED'||normalise(d.vehicle?.registration)!==reg)throw Error(d.status);vehicle=root.VectaHaynesJobTools.remember(d.vehicle);if(!vehicle)throw Error('MISMATCH');showMatchedVehicle(d.vehicle);
+ try{const matched=await root.VectaHaynesJobTools.lookup(reg,undefined,{background:false,force:root.VectaHaynesJobTools.lookupNeedsRetry?.(reg)||false});const d=matched?{status:'MATCHED',vehicle:matched}:{status:root.VectaHaynesJobTools.lookupStatus(reg)};if(!isCurrent())return;if(d.status!=='MATCHED'||normalise(d.vehicle?.registration)!==reg)throw Error(d.status);showMatchedVehicle(d.vehicle);
 
  }catch(err){if(isCurrent()&&!vehicle)status.textContent=messages[err.message]||'Vehicle match unavailable. Check the registration and retry.';}
  await motLookup;
@@ -715,7 +742,7 @@ function openBooking(registration){
    root.VectaHaynesJobTools.remember(vehicle);
    for(const [id,v] of Object.entries({make:vehicle.make,model:vehicle.model,vehicle:[vehicle.make,vehicle.model].filter(Boolean).join(' ')}))if(field(id)&&!dirty.has(id)&&v)field(id).value=v;
    field('vehicle')?.dispatchEvent(new root.Event('change',{bubbles:true}));
-   setStatus('Vehicle matched.');
+   if(!modal.querySelector('.haynesJobVehicle strong'))setStatus('Vehicle matched.');
   }catch{if(current())setStatus('Vehicle lookup unavailable. You can enter the details and save this booking.');}
  })();
 }

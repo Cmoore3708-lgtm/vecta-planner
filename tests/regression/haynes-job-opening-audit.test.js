@@ -21,24 +21,25 @@ function setup({storage=new Map(),mechanic=false,fetcher=async()=>({ok:true,json
  return {root,document,Event,requests,open,tools:root.VectaHaynesJobTools};
 }
 
-test('saved model drawings suppress all Haynes requests on Main and mechanics, including reopening and blur',async()=>{
+test('a drawing and a saved technical match restore independently on Main and mechanics, including reopening and blur',async()=>{
  for(const mechanic of [false,true])for(const automatic of [false,true]){
-  const s=setup({mechanic,storage:new Map([['vecta_haynes_artwork_v1',JSON.stringify([{...vehicle,generic:true}])]])});
+  const s=setup({mechanic,storage:new Map([['vecta_haynes_artwork_v1',JSON.stringify([{...vehicle,generic:true}])],['vecta_haynes_vehicle_identity_v1',JSON.stringify([{...vehicle,imageUrl:''}])]])});
   for(let reopen=0;reopen<2;reopen++){
    const modal=s.open({automatic});modal.querySelector('#job_registration').dispatchEvent(new s.Event('blur'));await tick();
    assert.match(modal.querySelector('.jobCardHeaderVehicle img').src,/haynes-image/);
+   assert.match(modal.querySelector('.haynesJobVehicle strong').textContent,/Toyota Yaris 1.0/);
   }
   assert.equal(s.requests.length,0);
  }
 });
 
-test('model catalogue drawings are sufficient even without a registration-specific image',async()=>{
+test('a model drawing alone never supplies technical details',async()=>{
  const s=setup();s.root.VectaFleetImages.modelArtwork=()=>({...vehicle,generic:true});s.open();await tick();
- assert.equal(s.requests.length,0);assert.ok(s.document.querySelector('.jobCardHeaderVehicle img'));
+ assert.equal(s.requests.length,1);assert.match(s.requests[0].url,/haynes-vehicle/);assert.equal(s.document.querySelector('.haynesJobVehicle strong'),null);assert.ok(s.document.querySelector('.jobCardHeaderVehicle img'));
 });
 
 test('a manually chosen fleet image is checked using the same fleet ID used for display',async()=>{
- const s=setup();s.root.app={jobs:[{id:'job',fleet_vehicle_id:'chosen'}]};s.root.editingJobId='job';
+ const s=setup();s.tools.remember(vehicle,true,{allowExpiredIdentity:true});s.root.app={jobs:[{id:'job',fleet_vehicle_id:'chosen'}]};s.root.editingJobId='job';
  s.root.VectaFleetImages.forJob=description=>description.fleet_vehicle_id==='chosen'?{drawing:{...vehicle,manual:true}}:null;
  s.open();await tick();assert.equal(s.requests.length,0);assert.ok(s.document.querySelector('.jobCardHeaderVehicle img'));
 });
@@ -47,7 +48,7 @@ test('conflicting old technical identity cannot bypass a saved manual image on o
  const s=setup({storage:new Map([
   ['vecta_haynes_vehicle_identity_v1',JSON.stringify([{...vehicle,make:'Ford',model:'Fiesta'}])],
   ['vecta_haynes_artwork_v1',JSON.stringify([{...vehicle,manual:true}])]
- ])});s.open();await tick();assert.equal(s.requests.length,0);
+ ])});s.open();await tick();assert.equal(s.requests.length,1);assert.equal(s.document.querySelector('.haynesJobVehicle strong'),null);assert.ok(s.document.querySelector('.jobCardHeaderVehicle img'));
 });
 
 test('a cold browser accepts permanent server identity without renewing its technical timestamp',async()=>{
@@ -68,11 +69,11 @@ test('wrong-registration and future-dated server identities remain rejected',asy
  }
 });
 
-test('a targeted saved-image check recovers artwork missing from the batch without asking the PC',async()=>{
- const s=setup({fetcher:async()=>({ok:true,json:async()=>({status:'ARTWORK',vehicle:{...vehicle,generic:true}})})});
- s.open();await tick();assert.equal(s.requests.length,1);assert.match(s.requests[0].url,/^\/api\/vehicle-artwork\?/);
+test('targeted artwork recovery and shared technical identity are reused independently on reopen',async()=>{
+ const s=setup({fetcher:async url=>({ok:true,json:async()=>url.includes('vehicle-artwork')?{status:'ARTWORK',vehicle:{...vehicle,generic:true}}:{status:'MATCHED',vehicle}})});
+ s.open();await tick();assert.equal(s.requests.length,2);assert.match(s.requests[0].url,/^\/api\/vehicle-artwork\?/);
  assert.ok(s.document.querySelector('.jobCardHeaderVehicle img'));
- s.open();await tick();assert.equal(s.requests.length,1);
+ s.open();await tick();assert.equal(s.requests.length,2);assert.match(s.document.querySelector('.haynesJobVehicle strong').textContent,/Yaris/);
 });
 
 test('confirmed artwork absence permits one ordinary identity lookup for a genuinely missing image',async()=>{
@@ -110,13 +111,18 @@ test('saved failed identifications retain their cooldown on job opening and brow
  }
 });
 
-test('only an explicit Haynes click can force refresh and open the technical vehicle page',async()=>{
- const s=setup({storage:new Map([['vecta_haynes_artwork_v1',JSON.stringify([vehicle])]]),fetcher:async()=>({ok:true,json:async()=>({status:'MATCHED',vehicle})})});
- let destination,opened=0;s.root.open=()=>{opened++;return {location:{replace:url=>{destination=url;}}};};
- s.open();await tick();assert.equal(s.requests.length,0);
- await s.document.querySelector('.jobHeaderHaynesLookup').onclick({type:'click'});
- assert.equal(s.requests.length,1);assert.equal(s.requests[0].options.method,'POST');assert.match(s.requests[0].url,/retry=1/);
- assert.equal(opened,1);assert.match(destination,/modelDetail\?typeId=t_123/);
+test('new and legacy cards with artwork match once, then reopen offline with the full Haynes section',async()=>{
+ for(const automatic of [true,false]){
+  const storage=new Map([['vecta_haynes_artwork_v1',JSON.stringify([vehicle])]]);
+  const s=setup({storage,fetcher:async()=>({ok:true,json:async()=>({status:'MATCHED',vehicle})})});
+  let opened=0;s.root.open=()=>{opened++;};
+  s.open({automatic});await tick();
+  await s.document.querySelector('.jobHeaderHaynesLookup').onclick({type:'click'});
+  assert.equal(s.requests.length,1);assert.equal(s.requests[0].options.method,undefined);assert.equal(opened,0);
+  const mechanic=setup({storage,mechanic:true});mechanic.root.navigator.onLine=false;
+  const reopened=mechanic.open();assert.match(reopened.querySelector('.haynesJobVehicle strong').textContent,/Toyota Yaris 1.0/);
+  assert.match(reopened.querySelector('.haynesJobVehicle a').href,/modelDetail\?typeId=t_123/);assert.equal(mechanic.requests.length,0);
+ }
 });
 
  test('new bookings fill missing fields from a saved identity without requesting it again',async()=>{
@@ -124,4 +130,18 @@ test('only an explicit Haynes click can force refresh and open the technical veh
  const modal=s.open({automatic:true,model:'',make:''});await tick();
  assert.equal(modal.querySelector('#job_make').value,'Toyota');assert.equal(modal.querySelector('#job_model').value,'Yaris');
  assert.equal(s.requests.length,0);
+});
+
+test('an earlier failure on the iPad cannot mask an identity since saved on the PC',async()=>{
+ const s=setup({mechanic:true,storage:new Map([
+  ['vecta_haynes_vehicle_retries_v1',JSON.stringify([{registration:vehicle.registration,at:Date.now(),status:'UNAVAILABLE'}])],
+  ['vecta_haynes_artwork_v1',JSON.stringify([vehicle])]
+ ])});
+ let reads=0;
+ s.root.remoteClient={from:()=>({select:()=>({
+  like:()=>({limit:async()=>({data:[]})}),
+  eq:(key,id)=>({maybeSingle:async()=>{reads++;assert.equal(key,'id');assert.equal(id,'vehicle_identity:'+vehicle.registration);return {data:{value:vehicle}};}})
+ }),upsert:async()=>({})})};
+ const modal=s.open();await tick();assert.match(modal.querySelector('.haynesJobVehicle strong').textContent,/Toyota Yaris/);
+ assert.equal(s.requests.length,0);assert.equal(reads,1);
 });

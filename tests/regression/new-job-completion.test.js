@@ -50,3 +50,15 @@ test('new flexible booking allocates silently while fixed selection keeps the re
   assert.equal(await context.saveJob(draft.id),true);assert.equal(calls.saved[0].drop_time,mode==='next'?'10:00':'08:00');assert.equal(calls.closed,1);
  }
 });
+
+test('only a successful save for a new or changed registration starts the shared Haynes lookup',async()=>{
+ for(const scenario of ['new','changed','unchanged','no vehicle','failed','queued']){
+  const {context,draft}=setup({existing:['changed','unchanged'].includes(scenario),cloudResult:scenario==='failed'?false:scenario==='queued'?'queued':true});
+  context.normReg=value=>String(value||'').replace(/\s/g,'').toUpperCase();
+  if(scenario==='changed')draft.registration='XY34ABC';
+  if(scenario==='no vehicle')draft.no_vehicle=true;
+  const requests=[];context.window.VectaHaynesJobTools={lookup:async(reg,make,options)=>requests.push([reg,options.background])};
+  await context.saveJob(draft.id);
+  assert.deepEqual(requests,['new','changed'].includes(scenario)?[[draft.registration,false]]:[],scenario);
+ }
+});
