@@ -29,7 +29,7 @@
   after.after(panel);
   if(!saved){const hint=document.createElement('p');hint.textContent='Save this job, then reopen it to add photos.';panel.append(hint);return;}
   panel.insertAdjacentHTML('beforeend','<div class="workshopPhotoActions"><button type="button" class="btn" data-photo-camera>Take photo</button><button type="button" class="btn" data-photo-choose>Upload photos</button><button type="button" class="btn" data-photo-refresh>Refresh photos</button></div><input type="file" accept="image/*" capture="environment" data-photo-camera-input hidden><input type="file" accept="image/*" multiple data-photo-choose-input hidden><div class="workshopPhotoDrafts" data-photo-drafts></div><div class="workshopPhotoGrid" data-photo-saved></div><p class="workshopPhotoStatus" data-photo-status role="status" aria-live="polite"></p>');
-  panel.insertAdjacentHTML('beforeend','<details class="approvalComposer"><summary>Request customer approval</summary><label>What would you like the customer to approve?<textarea data-approval-message maxlength="1200" placeholder="Replace the nearside front tyre for £85 including VAT?"></textarea></label><div class="workshopPhotoActions"><button type="button" class="btn green" data-approval-send>Request approval by email</button><button type="button" class="btn" data-photo-only hidden>Upload photos only</button></div><p role="status" data-approval-notice></p></details><div data-approval-history></div>');
+  panel.insertAdjacentHTML('beforeend','<details class="approvalComposer"><summary>Request customer approval</summary><label>What would you like the customer to approve?<textarea data-approval-message maxlength="1200" placeholder="Replace the nearside front tyre for £85 including VAT?"></textarea></label><label data-wa-permission hidden><input type="checkbox" data-wa-allowed>Customer agreed to WhatsApp job updates <span data-wa-number></span></label><div class="workshopPhotoActions"><button type="button" class="btn green" data-approval-send>Request approval by email &amp; WhatsApp</button><button type="button" class="btn" data-photo-only hidden>Upload photos only</button></div><p role="status" data-approval-notice></p></details><div data-approval-history></div>');
   const composer=panel.querySelector('.approvalComposer');
   const messageInput=panel.querySelector('[data-approval-message]');
   const approvalButton=panel.querySelector('[data-approval-send]');
@@ -37,6 +37,17 @@
   const history=panel.querySelector('[data-approval-history]');
   let busy=false,photos=[],drafts=[],pendingRequest=null,historyTimer;
   const status=panel.querySelector('[data-photo-status]'),draftGrid=panel.querySelector('[data-photo-drafts]'),savedGrid=panel.querySelector('[data-photo-saved]');
+  const waChoice=panel.querySelector('[data-wa-allowed]');
+  let waContact=null, savingPermission=false;
+  waChoice.onchange=async()=>{
+   if(!waContact||savingPermission)return;
+   savingPermission=true;lock(true);
+   try{
+    await request(job,'approval-whatsapp-permission',{allowed:waChoice.checked,phone:waContact.phone,contact_binding:waContact.contact_binding});
+    waContact.allowed=waChoice.checked;
+   }catch(error){waChoice.checked=waContact.allowed;approvalNotice.textContent=error.message;}
+   finally{savingPermission=false;lock(false);loadApprovalHistory();}
+  };
   const photosOnly=panel.querySelector('[data-photo-only]');
   draftGrid.after(composer);
   function lock(value){
@@ -49,7 +60,7 @@
   const image=(src,caption)=>{const el=document.createElement('img');el.src=src;el.alt=caption||'Workshop inspection photo';el.loading='lazy';return el;};
   const caption=(value,label)=>{const el=document.createElement('textarea');el.rows=2;el.maxLength=500;el.value=value;el.placeholder='e.g. Nearside front tyre worn through on the inner edge.';el.setAttribute('aria-label',label);return el;};
   function renderDrafts(){
-   approvalButton.textContent=drafts.length?'Upload & request approval by email':'Request approval by email';
+   approvalButton.textContent=drafts.length?'Upload & request approval':'Request approval by email & WhatsApp';
    draftGrid.replaceChildren();
    drafts.forEach(draft=>{const card=document.createElement('div');card.className='workshopPhotoDraft';const title=document.createElement('strong');title.textContent='Not uploaded yet';const text=caption(draft.caption,'Caption for new photo');text.oninput=()=>{draft.caption=text.value;};card.append(image(draft.image,draft.caption),title,text,button('Remove',()=>{drafts=drafts.filter(item=>item!==draft);renderDrafts();}));draftGrid.append(card);});
    photosOnly.hidden=!drafts.length;
@@ -76,14 +87,28 @@
    catch(error){status.textContent=error.message;}
    finally{renderDrafts();lock(false);}
   }
+  function channelText(name,state){
+   const label={sent:name==='WhatsApp'?'accepted':'sent',pending:'send unconfirmed',failed:'send failed',test:'Test only',
+     missing_contact:name==='WhatsApp'?'no valid number':'no valid address',no_permission:'no customer permission',
+     not_configured:'sender not connected',unsent:'not sent',unavailable:'status unavailable',contact_changed:'contact changed'};
+   return name+' '+(label[state]||'status unavailable');
+  }
+  function deliveryLabel(channels){
+   return channelText('Email',channels?.email)+' · '+channelText('WhatsApp',channels?.whatsapp);
+  }
   async function loadApprovalHistory(){
    clearTimeout(historyTimer);
    try {
-    const {approvals}=await request(job,'approval-list');
+    const {approvals,whatsapp}=await request(job,'approval-list');
     if (!panel.isConnected) return;
+    if(!savingPermission&&whatsapp){
+     waContact=whatsapp;
+     panel.querySelector('[data-wa-permission]').hidden=!whatsapp.phone||whatsapp.unavailable;
+     panel.querySelector('[data-wa-number]').textContent=whatsapp.phone?'(ending '+whatsapp.phone.slice(-4)+')':'';
+     waChoice.checked=whatsapp.allowed;
+    }
     history.replaceChildren();
     const labels={pending:'Awaiting customer approval',approved:'Customer approved',declined:'Customer declined',closed:'Request closed'};
-    const methods={sent:'Email sent',pending:'Email delivery unconfirmed',failed:'Email failed',unsent:'Email not sent',test:'Test only — no email sent'};
     for (const item of approvals) {
      const entry=document.createElement('div');
      entry.className='approvalRecord';
@@ -93,12 +118,12 @@
      entry.append(title,message);
      if (item.status==='pending') {
       const delivery=document.createElement('small');
-      delivery.textContent=methods[item.delivery]||'Check email delivery';
+      delivery.textContent=deliveryLabel(item.channels);
       entry.append(delivery);
-      if (['failed','unsent'].includes(item.delivery)) entry.append(button('Retry email',async()=>{
+      if (Object.values(item.channels||{}).some(value=>['failed','unsent','unavailable'].includes(value))) entry.append(button('Retry unsent messages',async()=>{
        if(busy)return;
        lock(true);
-       try {await request(job,'approval-retry',{approval_id:item.id});approvalNotice.textContent='Approval email sent.';}
+       try {showDelivery(await request(job,'approval-retry',{approval_id:item.id}));}
        catch(error){approvalNotice.textContent=error.message;}
        finally{composer.open=true;lock(false);loadApprovalHistory();}
       }));
@@ -110,12 +135,12 @@
   }
   function showDelivery(result){
    approvalNotice.replaceChildren();
-   if(result.delivery==='test'){
-    approvalNotice.append('Test only. ');
+   approvalNotice.append(deliveryLabel(result.channels)+'. ');
+   if(result.url){
     const link=document.createElement('a');
     link.href=result.url;link.textContent='Preview customer approval';link.target='_blank';link.rel='noopener noreferrer';
     approvalNotice.append(link);
-   } else approvalNotice.textContent=result.delivery==='sent'?'Approval request emailed to the customer.':'Approval saved. Check email delivery in Message Centre.';
+   }
   }
   async function uploadDrafts(withApproval){
    if(busy)return;
@@ -134,7 +159,7 @@
      drafts=drafts.filter(item=>item!==draft);uploaded++;
     }
     if(withApproval){
-     approvalNotice.textContent='Saving the request and emailing the customer…';
+     approvalNotice.textContent='Sending the approval by email and WhatsApp…';
      const result=await request(job,'approval-request',pendingRequest);
      pendingRequest=null;messageInput.value='';showDelivery(result);
     }

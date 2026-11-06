@@ -74,7 +74,10 @@ export default async function handler(req,res) {
       return res.status(200).json({recorded:true,id:row.id});
     }
     const rows=await database('workshop_message_history?'+historyQuery(req.query));
-    for (const row of rows) if (row.id?.startsWith('email:approval:')) row.kind='customer_approval';
+    for (const row of rows) {
+      if(row.id?.startsWith('email:approval:')) row.kind='customer_approval';
+      if(row.id?.startsWith('email:approval-wa:')) {row.kind='customer_approval';row.method='whatsapp';}
+    }
     if(req.query?.id){if(!rows?.[0])return res.status(404).json({error:'Message not found.'});return res.status(200).json({message:rows[0]});}
     const messages=rows.slice(0,50),last=messages.at(-1);
     return res.status(200).json({messages,next_cursor:rows.length>50?Buffer.from(JSON.stringify({time:last.occurred_at,id:last.id})).toString('base64url'):null});

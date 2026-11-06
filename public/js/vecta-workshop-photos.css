@@ -7,3 +7,7 @@
 .approvalRecord{margin-top:10px;padding:9px 12px;border-left:3px solid #b28b42;background:#fff}
 .approvalRecord p{margin:4px 0;white-space:pre-wrap;overflow-wrap:anywhere}
 .approvalRecord small{display:block}
+
+.approvalComposer [data-wa-permission]{display:flex;align-items:center;flex-wrap:wrap;gap:5px;font-size:13px}
+.approvalComposer [data-wa-permission][hidden]{display:none}
+.approvalComposer [data-wa-allowed]{width:auto;min-height:0}

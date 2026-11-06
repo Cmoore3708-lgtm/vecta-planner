@@ -48,8 +48,28 @@ Migration `20261105214748_job_workshop_photos.sql` must be applied before produc
 
 ## Customer approval messages
 
-On a saved vehicle job, the workshop can upload a batch of inspection photos and request approval in one action, or request approval without photos. The mechanic writes the proposed work and quoted price in the message; if the message is blank, the photo captions are used. **Upload photos only** shares evidence without creating a request or sending email.
+On a saved job, one approval request starts email and WhatsApp together for the same message and photos. Put the work and any quoted price in the message, or use the photo captions. **Upload photos only** shares evidence without sending a request. Both notifications open the same private progress link, and the job card shows the customer's single decision. Each channel has its own delivery status. An accepted send is never repeated when retrying the other channel. An uncertain provider outcome stays reserved. Test sends neither message and returns a preview link.
 
-An approval uses the email saved on the job and sends one personalised notification via the workshop sender. The link opens the specific request on the private progress page. The public registration lookup cannot read or answer approval requests. Opening the email or tracker never authorises work. Approve and Decline record a single decision visible on the job card; they do not change invoice totals. The existing send ledger prevents retries of uncertain deliveries from sending a duplicate. In Test, the workshop gets a preview link instead of sending a real customer email.
+WhatsApp uses the customer's saved mobile number and their agreement to receive WhatsApp updates from Vecta. A matching website booking with WhatsApp selected supplies that permission. For other jobs the workshop can record or withdraw it on the job card. The choice is bound to the job, customer and phone. A missing address, number, permission or provider configuration is shown separately and the available channel still runs. The public registration lookup never grants access to approvals.
 
-The additive migration `20261106062646_customer_progress_approvals.sql` uses the existing private approval table. Decisions check that the job, registration, customer and booking date still match and that the request is open.
+The email and WhatsApp links share the same per-request secret in the URL fragment. A changed job registration, booking date, email address or phone invalidates the link. Apply both `20261106062646_customer_progress_approvals.sql` and `20261106065751_whatsapp_approval_contact_guard.sql` before production release.
+
+### Connect the WhatsApp sender
+
+Use the Vecta WhatsApp Business Platform phone number in Meta WhatsApp Manager. Submit an English (UK) utility template, for example `vecta_workshop_approval`, with one body variable for the customer's first name:
+
+> Hi {{1}}. There is a message relating to your car waiting for your approval. Click below to see it.
+
+Add one **Visit website** button labelled **View message**. Its dynamic URL must be `https://www.vectamotors.co.uk/track#{{1}}`. The button parameter is the complete fragment after the hash; the email uses the same URL. Use synthetic values for the template review sample, never a customer link.
+
+Once Meta approves the template, configure the planner project's Production server environment and redeploy:
+
+| Variable | Value |
+| --- | --- |
+| `WHATSAPP_PHONE_NUMBER_ID` | Sender's phone number ID from Meta |
+| `WHATSAPP_ACCESS_TOKEN` | Server-only system-user token authorised to send with that number |
+| `WHATSAPP_APPROVAL_TEMPLATE` | Approved template name |
+| `WHATSAPP_TEMPLATE_LANGUAGE` | Approved language, default `en_GB` |
+| `WHATSAPP_GRAPH_VERSION` | Supported Graph API version, default `v23.0` |
+
+Store the token as a sensitive server-side variable. A Meta acceptance receipt in the job card means the provider accepted the message; it does not confirm arrival on the handset. Use a controlled opt-in recipient to verify actual delivery after setup.
