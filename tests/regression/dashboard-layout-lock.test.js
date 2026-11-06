@@ -15,9 +15,9 @@ test('late phone and desktop CSS overrides cannot silently change approved cards
  }
 });
 test('the full-description mechanics card renderer cannot silently truncate the work',()=>{
- const before="work=view.board,status=String(j.status||'').toLowerCase()";
+ const before="work=cardWork.board,status=String(j.status||'').toLowerCase()";
  assert.ok(html.includes(before));
- assert.throws(()=>checkLayout(captureBoth({html:html.replace(before,before.replace('view.board','view.board.slice(0,80)'))})),/DASHBOARD LAYOUT LOCK/);
+ assert.throws(()=>checkLayout(captureBoth({html:html.replace(before,before.replace('cardWork.board','cardWork.board.slice(0,80)'))})),/DASHBOARD LAYOUT LOCK/);
 });
 test('a new inline dashboard override is detected even outside the usual stylesheet',()=>{
  assert.throws(()=>checkLayout(captureBoth({html:html.replace('</head>','<style>.mobileJob{font-size:1px!important}</style></head>')})),/DASHBOARD LAYOUT LOCK/);

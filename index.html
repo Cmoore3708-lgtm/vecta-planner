@@ -13607,8 +13607,8 @@ function mechanicListJob(j){
   return Object.assign({},j,{job_type:jobTypeStorageValue(view.labels),work_required:view.board,amount_quoted:null});
 }
 function mechanicJobCardHtml(j){
-  var task=j.card_type==='mini_task',view=mechanicWorkView(j),work=view.board,status=String(j.status||'').toLowerCase();
-  var types=task?'':view.labels.map(function(label){return jobTypeChip(j,label)}).join('');
+  var task=j.card_type==='mini_task',cardWork=mechanicWorkView(j),work=cardWork.board,status=String(j.status||'').toLowerCase();
+  var types=task?'':cardWork.labels.map(function(label){return jobTypeChip(j,label)}).join('');
   var description=work.trim()||!types?'<span class="mechanicJobDescription">'+esc(work.trim()?work:'No job description entered.')+'</span>':'';
   return '<button type="button" class="mobileJob mechanicQueueCard jobTypeCoded'+(isWebsiteBookingJob(j)?' websiteBookingOutline':'')+'" style="'+jobTypeInlineStyle(j)+'" data-open-job="'+esc(j.id)+'"><span class="mechanicCardDetails"><span class="mobileJobTop"><span class="mobilePlateAndParts">'+(task?'<span class="mechanicTaskLabel">Internal task</span>':'<span class="plannerPlateWrap">'+listPlate(j.registration)+'</span>'+partsStatusDot(j))+'</span>'+(!task?'<span class="mobileVehicleTop">'+esc(plannerVehicleLabel(j))+'</span><span class="mobileJobCategory">'+esc(mobileJobCategoryLabel(j))+'</span>':'')+(types?'<span class="mobileJobTypes">'+types+'</span>':'')+(task?'':mobileMotAppointmentHtml(j))+'</span>'+carryOverBadgeHtml(j)+(status==='provisional'?'<span class="mechanicBookingState">Provisionally booked</span>':status==='in_progress'||status==='in progress'?'<span class="mechanicBookingState">In the workshop</span>':'')+description+'</span></button>';
 }
