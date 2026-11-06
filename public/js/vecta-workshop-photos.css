@@ -22,3 +22,14 @@
 .findingReview input[type=text]{display:block;max-width:180px;margin:4px 0;padding:8px;border:1px solid #817668;border-radius:6px;font-size:16px}
 .findingReview input[type=checkbox]{width:auto;margin-right:5px}
 .findingThumbs{display:flex;gap:8px;flex-wrap:wrap}.findingThumbs img{width:100px;height:78px;object-fit:contain;background:#202124;border-radius:6px}
+
+.mechanicFindings .approvalComposer{margin:8px 0;padding:0;border:0}
+.mechanicFindings [data-approval-message]{min-height:56px;margin:4px 0 8px}
+.mechanicFindings [data-approval-send]{width:100%;min-height:44px;background:#226542;color:#fff;font-weight:700}
+.mechanicFindings .workshopPhotoDraft{display:flex;align-items:center;gap:8px}
+.mechanicFindings .workshopPhotoDraft img{width:68px;height:68px;flex:none}
+.mechanicFindings .workshopPhotoDraft strong{margin:0}
+.mechanicFindings .workshopPhotoDraft button{margin-left:auto}
+.workshopFindingReceipt{position:fixed;z-index:100000;left:50%;bottom:18px;transform:translateX(-50%);padding:10px 16px;background:#1c5436;color:white;border-radius:8px;text-align:center;font-weight:700;pointer-events:none}
+
+.mechanicFindings [hidden],.mechanicFindings [data-photo-only]{display:none!important}
