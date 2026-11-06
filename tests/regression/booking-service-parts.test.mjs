@@ -36,6 +36,7 @@ test('booking saves private GSF costs from the server result and ignores custome
   assert.ok(!JSON.stringify(res.body).includes('cost_price'));
   await handler({method:'POST',body:{...body,mini_valet:true,approximate_cost:1}},res);
   assert.equal(res.code,201);assert.equal(saved.approximate_cost,quote.totalPence/100+30);
-  assert.match(saved.work_required,/Mini valet · £30 including VAT/);
+  assert.match(saved.work_required,/^Mini Valet$/m);
+  assert.ok(saved.work_required.indexOf('Mini Valet')<saved.work_required.indexOf('Service price agreed:'));
  }finally{globalThis.fetch=oldFetch;process.env=oldEnv;}
 });

@@ -12,6 +12,7 @@ import {bookingTyreParts} from '../lib/tyre-cost-token.js';
 import {bookingServiceParts} from '../lib/booking-service-parts.js';
 import {bookingServiceExtra,serviceExtraSnapshot} from '../lib/service-extras.js';
 import {requestProgressJob,requestTrackingPath} from '../lib/job-progress.js';
+import '../public/js/vecta-booking-rules.js';
 
 const miniValetLine='\n\nMini valet · £30 including VAT: snow-foam pressure wash, hoover inside, Dashboard & Media screens cleaned.';
 function cfg(){return databaseEnvironment({requireService:true})}
@@ -85,6 +86,8 @@ export default async function handler(req,res){
    if(types.some(type=>/Service|Oil & Filter/i.test(type))&&baseEstimate>0)request.work_required+='\n\nBooking guide total: £'+request.approximate_cost.toFixed(2)+' including VAT.\nGuide price based on engine size.';
    request.work_required+=serviceExtraSnapshot(extra,null);
   }
+  const previousFormatWork=request.work_required;
+  request.work_required=globalThis.VectaBookingRules.bookingWorkDescription(previousFormatWork);
   const inserted=photos.length
    ? await rest(url,key,'rpc/insert_website_booking_with_photos','POST',{p_request:request,p_photos:photos})
    : await rest(url,key,'website_booking_requests?on_conflict=id','POST',request,'resolution=ignore-duplicates,return=representation');
@@ -94,11 +97,14 @@ export default async function handler(req,res){
    const existing=rows?.[0];receipt=existing;
    // A retry can straddle the wording change. Compare the generated note only,
    // so an edit to the customer's own description still conflicts.
-   if(b.mini_valet===true && existing && existing.work_required!==request.work_required){
-    const customerWork=b.work_required.trim();
-    const previousLine=miniValetLine.replace('Dashboard & Media','dash &');
-    const previousWork=customerWork+request.work_required.slice(customerWork.length).replace(miniValetLine,previousLine);
-    if(existing.work_required===previousWork)request.work_required=previousWork;
+   if(existing && existing.work_required!==request.work_required){
+    const legacyDescriptions=[previousFormatWork];
+    if(b.mini_valet===true){
+     const customerWork=b.work_required.trim();
+     const olderValetLine=miniValetLine.replace('Dashboard & Media','dash &');
+     legacyDescriptions.push(customerWork+previousFormatWork.slice(customerWork.length).replace(miniValetLine,olderValetLine));
+    }
+    if(legacyDescriptions.includes(existing.work_required))request.work_required=existing.work_required;
    }
    // Earlier bookings recorded the valet in work_required only. The work and price still have to match.
    const comparison=b.mini_valet===true&&Array.isArray(existing?.job_types)&&!existing.job_types.includes('Mini valet')
