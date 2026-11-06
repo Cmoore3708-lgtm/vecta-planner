@@ -43,9 +43,11 @@ for(const path of ['public/booking.html','website/booking/index.html'])test(`${p
  }
  const offer=document.querySelector('.mini-valet-offer'),checkbox=offer.querySelector('input');
  assert.ok(offer.hasAttribute('open'));assert.equal(checkbox.checked,false);
+ assert.equal(offer.querySelector('li:last-child').textContent,'Dashboard & Media screens cleaned');
  checkbox.checked=true;checkbox.onchange();
  assert.equal(offer.dataset.selected,'true');assert.match(document.querySelector('[data-valet-summary]').textContent,/£30/);
- offer.querySelector('[data-close-valet]').onclick();
+ assert.equal(offer.hasAttribute('open'),false,'adding the valet closes the popup immediately');
+ assert.ok(document.querySelector('#send'),'the booking is still on Review');
  vm.runInContext('render()',root);
  assert.equal(document.querySelector('.mini-valet-offer').hasAttribute('open'),false,'redrawing Review must respect dismissal');
  document.querySelector('#back').onclick();
@@ -57,7 +59,7 @@ for(const path of ['public/booking.html','website/booking/index.html'])test(`${p
  assert.ok(reopened.hasAttribute('open'));assert.equal(reopened.querySelector('input').checked,true);
  const restored=reopened.querySelector('input');
  restored.checked=false;restored.onchange();assert.equal(document.querySelector('[data-valet-summary]').textContent,'');
- restored.checked=true;restored.onchange();reopened.querySelector('[data-close-valet]').onclick();
+ restored.checked=true;restored.onchange();assert.equal(reopened.hasAttribute('open'),false);
  assert.equal(document.querySelector('#send').hasAttribute('disabled'),false);
  await document.querySelector('#send').onclick();
  const write=requests.find(r=>r.url==='/api/website-booking');assert.ok(write,'live submit must remain enabled');

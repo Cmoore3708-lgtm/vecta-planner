@@ -9,6 +9,7 @@ import {bookingServiceParts} from '../lib/booking-service-parts.js';
 import {bookingServiceExtra,serviceExtraSnapshot} from '../lib/service-extras.js';
 import {requestTrackingPath} from '../lib/job-progress.js';
 
+const miniValetLine='\n\nMini valet · £30 including VAT: snow-foam pressure wash, hoover inside, Dashboard & Media screens cleaned.';
 function cfg(){return databaseEnvironment({requireService:true})}
 function reg(v){return String(v||'').toUpperCase().replace(/\s+/g,' ').trim()}
 async function rest(url,key,path,method='GET',body,prefer='return=representation'){const r=await fetch(`${url}/rest/v1/${path}`,{method,headers:{apikey:key,Authorization:`Bearer ${key}`,'Content-Type':'application/json',Prefer:prefer},body:body?JSON.stringify(body):undefined});if(!r.ok)throw new Error(await r.text());return r.status===204?null:r.json().catch(()=>null)}
@@ -49,7 +50,7 @@ export default async function handler(req,res){
   const baseEstimate=request.approximate_cost;
   if(b.mini_valet===true){
    request.approximate_cost=(Math.round((baseEstimate||0)*100)+3000)/100;
-   request.work_required+='\n\nMini valet · £30 including VAT: snow-foam pressure wash, hoover inside, dash & screens cleaned.';
+   request.work_required+=miniValetLine;
   }
   if(!servicePrice){
    if(types.some(type=>/Service|Oil & Filter/i.test(type))&&baseEstimate>0)request.work_required+='\n\nBooking guide total: £'+request.approximate_cost.toFixed(2)+' including VAT.\nGuide price based on engine size.';
@@ -62,6 +63,14 @@ export default async function handler(req,res){
   if(!created){
    const rows=await rest(url,key,`website_booking_requests?id=eq.${id}&limit=1`);
    const existing=rows?.[0];receipt=existing;
+   // A retry can straddle the wording change. Compare the generated note only,
+   // so an edit to the customer's own description still conflicts.
+   if(b.mini_valet===true && existing && existing.work_required!==request.work_required){
+    const customerWork=b.work_required.trim();
+    const previousLine=miniValetLine.replace('Dashboard & Media','dash &');
+    const previousWork=customerWork+request.work_required.slice(customerWork.length).replace(miniValetLine,previousLine);
+    if(existing.work_required===previousWork)request.work_required=previousWork;
+   }
    const fields=['customer_name','email','phone','registration','vehicle','mileage','mot_due','job_types','work_required','preferred_date_1','completion_deadline','contact_preference','approximate_cost','gsf_parts'];
    if(photos.length!==Number(existing?.work_photo_count||0))return res.status(409).json({error:'This request identity belongs to different booking photos'});
    if(photos.length){const saved=await rest(url,key,`website_booking_photos?request_id=eq.${id}&select=photos&limit=1`);if(JSON.stringify(saved?.[0]?.photos)!==JSON.stringify(photos))return res.status(409).json({error:'This request identity belongs to different booking photos'});}
