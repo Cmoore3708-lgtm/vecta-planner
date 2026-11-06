@@ -25,26 +25,38 @@ function fixture(entry,mechanic,empty){
   const group=(label,quote)=>mechanic?'<section class="mechanicBoardGroup"><h2 class="mechanicGroupHeading">'+label+'</h2><div class="mechanicJobList">'+cards+'</div></section>':'<aside class="panel unallocatedPanel'+(quote?' quotePanel':'')+'"><div class="unallocatedHead"><h3>'+label+'</h3></div><div class="unallocatedJobList">'+cards+'</div></aside>';
   const backlog=holds+group('Unallocated Jobs',false)+group('Quotes',true);
   const planner=mechanic?'<div class="mechanicBoard"><div class="mechanicBoardIntro">All jobs</div><div class="mechanicBoardColumns"></div><div class="mechanicBoardBacklog">'+backlog+'</div></div>':'<div class="mobilePlanner">'+holds+'</div><div class="plannerLayout v233Planner livePriorityPlanner"><div class="plannerCard"></div><div class="livePriorityBacklog">'+backlog+'</div></div>';
-  const helpers=entry.slice(entry.indexOf('function plannerBacklogScrollAreas('),entry.indexOf('var renderInProgress=false;'));
-  return '<!doctype html><meta name="viewport" content="width=device-width">'+styles+'<div id="content" style="padding-top:120px">'+planner+'</div><script>'+helpers+'\n('+check.toString()+')('+empty+')</script>';
+  return '<!doctype html><meta name="viewport" content="width=device-width">'+styles+'<div id="content" style="padding-top:120px">'+planner+'</div><script>('+check.toString()+')('+empty+')</script>';
 }
 
 function check(empty){
   const failures=[];
   const verify=(ok,message)=>{if(!ok)failures.push(message)};
-  sizePlannerBacklog();
-  const [sidebar,...lists]=plannerBacklogScrollAreas(),rect=sidebar.getBoundingClientRect();
+  const sidebar=document.querySelector('.livePriorityBacklog,.mechanicBoardBacklog');
+  const planner=sidebar.previousElementSibling;
   if(innerWidth>900){
-    const rows=Array.from(sidebar.children,el=>el.getBoundingClientRect());
-    verify(rect.left>innerWidth/2,'sidebar position');
-    verify(Math.abs(rect.bottom+scrollY-innerHeight)<1,'sidebar height');
-    verify(Math.abs(rows[0].height-rows[1].height)<1,'50/50 split');
-    verify(Math.abs(rows[1].bottom-rect.bottom)<1&&rows[2].top>=rect.bottom,'Quotes below the fold');
-    lists.forEach((list,i)=>{if(i||!empty){list.scrollTop=50;verify(list.scrollTop===50,'list '+i+' scroll')}});
-    sidebar.scrollTop=sidebar.scrollHeight;
-    verify(sidebar.scrollTop>0&&sidebar.lastElementChild.getBoundingClientRect().bottom<=rect.bottom+1,'Quotes reachable');
+    const sections=Array.from(sidebar.children);
+    verify(sidebar.getBoundingClientRect().left>innerWidth/2,'sidebar position');
+    verify(sections.map(s=>s.querySelector('h2,h3').textContent).join('|')==='Provisional Bookings|Unallocated Jobs|Quotes','section order');
+    for(const height of [270,1150]){
+      planner.style.height=height+'px';
+      const rect=sidebar.getBoundingClientRect(),lane=planner.getBoundingClientRect();
+      verify(Math.abs(rect.top-lane.top)<1&&Math.abs(rect.bottom-lane.bottom)<1,'sidebar matches planner at '+height);
+      for(const [i,section] of sections.entries()){
+        const list=section.lastElementChild;
+        verify(list.scrollHeight<=list.clientHeight+1,'all jobs expand inside section '+i);
+        verify(section.scrollHeight<=section.clientHeight+1,'no clipped jobs in section '+i);
+        if(i){const gap=section.getBoundingClientRect().top-sections[i-1].getBoundingClientRect().bottom;verify(gap>=0&&gap<=12,'natural section spacing '+i)}
+      }
+      if(empty)verify(sections[0].getBoundingClientRect().height<120,'empty bookings take only their content height');
+      sidebar.scrollTop=sidebar.scrollHeight;
+      verify(sidebar.scrollTop>0&&sections[2].getBoundingClientRect().bottom<=rect.bottom+1,'last quote reachable');
+      sidebar.scrollTop=0;
+    }
+    sections.forEach(section=>section.lastElementChild.textContent='No jobs');
+    verify(sidebar.scrollHeight<=sidebar.clientHeight+1,'short lists fit without scrolling');
+    verify(sections[2].getBoundingClientRect().bottom<sidebar.getBoundingClientRect().top+360,'Quotes follows short lists');
   }else{
-    if(sidebar.matches('.livePriorityBacklog'))verify(!rect.height,'phone uses mobile planner');
+    if(sidebar.matches('.livePriorityBacklog'))verify(!sidebar.getBoundingClientRect().height,'phone uses mobile planner');
     else verify(sidebar.scrollHeight<=sidebar.clientHeight+1,'mechanic lists stack');
     const hold=document.querySelector('.mobilePlanner .provisionalBookingsPanel,.mechanicBoardBacklog .provisionalBookingsPanel');
     verify(!!hold.getBoundingClientRect().height!==empty,'mobile provisional visibility');
@@ -52,7 +64,7 @@ function check(empty){
   parent.postMessage({page:location.pathname.split('/').pop(),result:failures.join(', ')||'PASS'},'*');
 }
 
-test('desktop backlog fills two equal panels with Quotes below, and small screens keep the stacked layout',{
+test('the backlog has one scroll area matching the current planner height, with small screens stacking naturally',{
   skip:!process.env.GITHUB_ACTIONS&&!process.env.VECTA_CHROME_BIN,
   timeout:120000
 },async()=>{
