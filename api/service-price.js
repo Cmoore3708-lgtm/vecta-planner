@@ -1,10 +1,10 @@
 import {workshopPricingAuthorised,workshopServiceResult,workshopTyreResult} from '../lib/workshop-job-pricing.js';
-import {estimateWorkshopService} from '../lib/workshop-service-estimate.js';
-import {estimateMissingServiceCosts} from '../lib/service-guide-costs.js';
+import {estimateWorkshopService,serviceCostAllowances} from '../lib/workshop-service-estimate.js';
+import {estimateMissingServiceCosts,estimatedFilter} from '../lib/service-guide-costs.js';
 import {pricingVisitor} from '../lib/pricing-visitor.js';
 import {managerAuthorised} from './message-centre.js';
 import {receiptRpc} from '../lib/booking-receipts.js';
-import {servicePriceRequest, serviceRequiredKinds, cleanServiceQuoteCosts, cleanPartialServiceCosts, COMPARISON_SERVICES, calculateServicePrice, publicServicePrice, pricingPolicy} from '../lib/service-pricing.js';
+import {servicePriceRequest, serviceRequiredKinds, cleanServiceQuoteCosts, cleanPartialServiceCosts, COMPARISON_SERVICES, priceVerifiedServiceCosts, publicServicePrice, pricingPolicy} from '../lib/service-pricing.js';
 import {signServicePrice, verifyServicePrice} from '../lib/service-price-token.js';
 import {gsfQueue,serviceCostHistory} from '../lib/gsf-queue.js';
 import {serviceExtraPrice} from '../lib/service-extras.js';
@@ -38,7 +38,11 @@ export function servicePriceHandler({env = process.env, queue = gsfQueue, histor
       const estimate=async partial=>{let recent=[];try{recent=await history();}catch{/* Use the saved allowances if no history is available. */}return estimateWorkshopService(input,partial,recent,policy,now());};
       if(workshop&&(req.body.action==='estimate'||env.GSF_SERVICE_PRICING_ENABLED!=='true'))return res.status(200).json(await estimate(null));
       const batch = req.body.allServices === true;
-      const supplierRequest = batch ? {...input,service:'Major Service',mileage:null} : input;
+      // The broad request also prices optional extras when the supplier can
+      // match them. A catalogue review can retry just the two advertised services.
+      const coreOnly = batch && req.body.coreServices === true;
+      const packages = coreOnly ? ['Oil & Filter Change','Interim Service','Full Service'] : [...COMPARISON_SERVICES,'Interim Service'];
+      const supplierRequest = batch ? {...input,service:coreOnly?'Full Service':'Major Service',mileage:null} : input;
       // An existing signed offer remains valid for its lifetime, even offline.
       if (!batch && req.body.quoteToken) {
         try { return res.status(200).json({status:'MATCHED', quote:{...verifyServicePrice(req.body.quoteToken,input,env.GSF_SERVICE_QUOTE_SECRET,now()), token:req.body.quoteToken}}); } catch { /* Issue a current quote. */ }
@@ -47,29 +51,45 @@ export function servicePriceHandler({env = process.env, queue = gsfQueue, histor
       let data;try{data=await queue('enqueue',{request:supplierRequest,actor});}catch(error){if(!workshop)throw error;data={status:'UNAVAILABLE'};}
       if(workshop&&!['PENDING','MATCHED'].includes(data.status))return res.status(200).json(await estimate(null));
       if (data.status !== 'MATCHED') return res.status(200).json({status:['PENDING','OFFLINE','BUSY','DAILY_LIMIT','LOGIN_REQUIRED','REVIEW_REQUIRED','SETTINGS_REQUIRED','UNAVAILABLE'].includes(data.status) ? data.status : 'UNAVAILABLE'});
+      let result;
       if(data.result?.partial){
-        const partial=cleanPartialServiceCosts(data.result,supplierRequest,now());
-        return res.status(200).json(workshop?await estimate(partial):{status:'UNAVAILABLE'});
-      }
-      let result=cleanServiceQuoteCosts(data.result,supplierRequest,now());
-      if(result.guidePrice){
-        let recent=[];try{recent=await history();}catch{ /* Use the agreed allowances when history cannot be read. */ }
-        result=estimateMissingServiceCosts(result,supplierRequest,recent,now());
+        result=cleanPartialServiceCosts(data.result,supplierRequest,now());
+        if(workshop)return res.status(200).json(await estimate(result));
+        let recent=[];
+        try{recent=await history();}catch{ /* Use the same ex-VAT allowances as the job card. */ }
+        const allowances=serviceCostAllowances(supplierRequest,result,recent,now());
+        result.items=result.requiredKinds.map(kind=>{
+          const found=result.items.find(item=>item.kind===kind);
+          if(found&&!found.estimated)return found;
+          // Oil is priced as one allowance per service. No litre quantity or
+          // specification can be inferred when the supplier did not return it.
+          if(kind==='oil')return {kind,sku:'',brand:'',description:'Estimated engine oil allowance',
+            serviceAllowance:true,estimated:true,quantityMilli:1000,unitNetPence:allowances.oil,vatBasis:'EX_VAT',inStock:false};
+          if(!Number.isSafeInteger(allowances[kind]))throw Error('INCOMPLETE');
+          return {...estimatedFilter(kind),unitNetPence:allowances[kind]};
+        });
+        result.guidePrice=result.items.some(item=>item.estimated||item.pricingOnly);
+      }else{
+        result=cleanServiceQuoteCosts(data.result,supplierRequest,now());
+        if(result.guidePrice){
+          let recent=[];try{recent=await history();}catch{ /* Use the agreed allowances when history cannot be read. */ }
+          result=estimateMissingServiceCosts(result,supplierRequest,recent,now());
+        }
       }
       if(batch){
         const costs=result;
-        const quotes=[...COMPARISON_SERVICES,'Interim Service'].map(service=>{
+        const quotes=packages.map(service=>{
           const request={...input,service},requiredKinds=serviceRequiredKinds(service,costs.fuelType);
           const items=costs.items.filter(item=>requiredKinds.includes(item.kind));
           const guidePrice=items.some(item=>item.estimated||item.pricingOnly);
           const selected={...costs,request,requiredKinds,items,guidePrice,fitmentVerified:!guidePrice};
-          const price=publicServicePrice(calculateServicePrice(selected,request,policy,now()));
+          const price=publicServicePrice(priceVerifiedServiceCosts(selected,policy));
           if(service==='Full Service')price.serviceExtra=serviceExtraPrice(costs,policy);
           return signServicePrice(price,env.GSF_SERVICE_QUOTE_SECRET,now(),costs);
         });
         return res.status(200).json({status:'MATCHED',quotes});
       }
-      const price = publicServicePrice(calculateServicePrice(result, input, policy, now()));
+      const price = publicServicePrice(priceVerifiedServiceCosts(result, policy));
       return res.status(200).json({status:'MATCHED', quote:signServicePrice(price,env.GSF_SERVICE_QUOTE_SECRET,now(),result)});
     } catch (error) {
       return res.status(error.message === 'INVALID_REQUEST' ? 400 : 200).json({status:error.message === 'INVALID_REQUEST' ? 'INVALID_REQUEST' : 'UNAVAILABLE'});
