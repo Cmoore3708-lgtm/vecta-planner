@@ -30,11 +30,24 @@ async function until(f){
 test('registration, guide prices, calendar and competing bookings', {skip:!hosted&&!local}, async()=>{
   if(hosted){
     assert.ok(Date.now() < Date.parse('2026-11-07T00:00:00Z'),'one-off rehearsal expired');
-    const get=async path=>{const r=await fetch(origin+path,{redirect:'error'});assert.equal(r.status,200);return r.json()};
+    const getPreview=async path=>{
+      let url=new URL(path,origin);
+      for(let n=0;n<4;n++){
+        const r=await fetch(url,{redirect:'manual'});
+        if(r.status===200)return r;
+        const loc=r.headers.get('location');
+        if(!loc)throw Error('Test '+url.pathname+' returned '+r.status);
+        const next=new URL(loc,url);
+        assert.equal(next.origin,origin,'Test '+url.pathname+' redirected to '+next.origin+next.pathname);
+        url=next;
+      }
+      throw Error('Test preview redirected repeatedly');
+    };
+    const get=async path=>(await getPreview(path)).json();
     const [release,config]=await Promise.all([get('/api/supabase-config?action=release'),get('/api/supabase-config')]);
     assert.equal(release.environment,'preview');assert.equal(release.commit,revision);
     assert.equal(config.supabaseUrl,'https://brqsejjykrubxuofavuu.supabase.co');
-    const page=await fetch(origin+'/booking.html',{redirect:'error'});
+    const page=await getPreview('/booking.html');
     assert.equal(page.status,200);assert.equal(await page.text(),html);
   }
   const saved=new Map(),reserved=new Set(),requests=[];
