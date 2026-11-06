@@ -5,6 +5,7 @@ import { createHash } from 'node:crypto';
 import { gzipSync } from 'node:zlib';
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
+import { patchSupervisor, patchTyreStartup } from './managed-repair.mjs';
 
 const run = promisify(execFile);
 const hash = data => createHash('sha256').update(data).digest('hex');
@@ -37,6 +38,9 @@ async function prepare(source, staged) {
     const relative = path.join('workers', folder, 'node_modules');
     await fs.cp(path.join(source,relative), path.join(staged,relative), { recursive:true, dereference:true });
   }
+  for (const name of ['workers/control/supervisor.mjs','workers/tyres/live-worker.mjs']) {
+    await run(process.execPath,['--check',path.join(staged,name)],{windowsHide:true});
+  }
   for (const name of ['service-browser.mjs','vehicle-browser.mjs']) {
     const url = pathToFileURL(path.join(staged,'workers','haynes',name)).href;
     await run(process.execPath,['--input-type=module','--eval','await import('+JSON.stringify(url)+')'],{windowsHide:true});
@@ -64,16 +68,29 @@ export async function install(root) {
       }
       files.set(key,replacement);
     }
+    for (const [key, repair] of [
+      ['workers/control/supervisor.mjs',patchSupervisor],
+      ['workers/tyres/live-worker.mjs',patchTyreStartup]
+    ]) {
+      const installed = files.get(key);
+      if (!installed) throw Error('Installed worker file missing: ' + key);
+      files.set(key,Buffer.from(repair(installed.toString('utf8'))));
+    }
+    for (const key of ['workers/control/recovery-status.mjs','workers/tyres/open-supplier.mjs']) {
+      const bytes = await fs.readFile(path.join(patchDir,key));
+      if (files.has(key) && hashText(files.get(key)) !== hashText(bytes)) throw Error('Unrecognised installed helper: ' + key);
+      files.set(key,bytes);
+    }
     const entries = Array.from(files).sort(([a],[b]) => a.localeCompare(b)).map(([name,bytes]) => ({
       path:name, size:bytes.length, sha256:hash(bytes), content:bytes.toString('base64')
     }));
     const version = hash(JSON.stringify({ kind:'haynes-sign-in-v1', files:entries })).slice(0,40);
-    if (version === current.active) return 'Haynes sign-in update is already installed.';
+    if (version === current.active) return 'Haynes sign-in and tyre recovery are already installed.';
     if (current.blocked?.includes(version)) throw Error('This release was rolled back. Existing workers were kept.');
     const bytes = gzipSync(JSON.stringify({format:1,version,files:entries}));
     await stageRelease(root,bytes,{prepare:directory => prepare(source,directory)});
     await activate(root,version);
-    return 'Haynes sign-in update installed.';
+    return 'Haynes sign-in and tyre recovery installed.';
   });
 }
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {

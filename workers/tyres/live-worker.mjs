@@ -1,3 +1,4 @@
+import { openTyreSupplier } from './open-supplier.mjs';
 import {chromium} from 'playwright';
 import {resolve} from 'node:path';
 import {createSessionRecovery,timeout} from './session-recovery.mjs';
@@ -17,7 +18,7 @@ const recovery=createSessionRecovery({supplier:SUPPLIER,username:process.env.ESP
 let browserFailures=0,lastRecovery=0;
 const report=error=>/LOGIN_REQUIRED/.test(error.message)?'LOGIN_REQUIRED':/SETTINGS_NOT_VERIFIED/.test(error.message)?'SETTINGS_REQUIRED':'UNAVAILABLE';
 try{
- const page=context.pages()[0]||await context.newPage();await page.goto(SUPPLIER,{timeout:20000});
+ const page=context.pages()[0]||await context.newPage();await openTyreSupplier(page, SUPPLIER);
  console.log('Automatic recovery active. Sign into ESP if requested; select Vecta, Sellout, VAT and multiplier 1. The worker resumes automatically, with no Enter key needed.');
  try{await recovery.ensure(page);await ensureEnquiry(page);}catch{console.log('Supplier needs attention. Waiting for login or connection recovery.');}
  let firstTask=await rpc({action:'pull'});if(!['JOB','IDLE'].includes(firstTask.status))throw Error('RELAY_NOT_READY');

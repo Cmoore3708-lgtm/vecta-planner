@@ -3,6 +3,10 @@ on:
   pull_request:
     paths:
       - 'workers/haynes/**'
+      - 'workers/control/recovery-status.mjs'
+      - 'workers/tyres/open-supplier.mjs'
+      - 'workers/tyres/live-worker.mjs'
+      - 'tests/integration/tyre-recovery-windows.mjs'
       - 'scripts/haynes-sign-in-update/**'
       - 'tests/integration/haynes-session-edge.mjs'
       - '.github/workflows/haynes-sign-in.yml'
@@ -36,3 +40,21 @@ jobs:
           if ($LASTEXITCODE -ne 0) { throw 'Could not initialise fixture TLS' }
           node tests/integration/haynes-session-edge.mjs $fixture
           if ($LASTEXITCODE -ne 0) { throw 'Edge acceptance failed' }
+      - name: Check out the managed supervisor version in the workshop error
+        uses: actions/checkout@v4
+        with:
+          ref: a29283bd97d4b5edee970bd49ca2803c002d0dc8
+          path: installed-source
+          sparse-checkout: workers/control
+      - name: Verify automatic retry with the Windows status file locked
+        shell: powershell
+        run: |
+          $fixture = Join-Path $env:RUNNER_TEMP 'tyre-recovery-fixture'
+          New-Item -ItemType Directory -Path $fixture | Out-Null
+          $status = Join-Path $fixture 'Tyres.json'
+          [IO.File]::WriteAllText($status,'{"state":"previous"}')
+          $held = [IO.File]::Open($status,[IO.FileMode]::Open,[IO.FileAccess]::Read,[IO.FileShare]::Read)
+          try {
+              node tests/integration/tyre-recovery-windows.mjs $fixture installed-source/workers/control/supervisor.mjs
+              if ($LASTEXITCODE -ne 0) { throw 'Tyre worker recovery failed' }
+          } finally { $held.Dispose() }
