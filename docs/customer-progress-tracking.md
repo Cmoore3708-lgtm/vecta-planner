@@ -45,3 +45,11 @@ Workshop authentication and same-origin checks protect list/upload/caption/remov
 The customer gallery shows captions using text nodes, supports full-size viewing, refreshes once a minute, and retains already loaded images to avoid downloading them again on every poll. Photo-loading failures do not hide job progress. Changing registration or losing tracking access clears the gallery.
 
 Migration `20261105214748_job_workshop_photos.sql` must be applied before production release. It has been applied to isolated Test (with content hash added in a second development migration); production is unchanged until release approval.
+
+## Customer approval messages
+
+On a saved vehicle job, the workshop can upload a batch of inspection photos and request approval in one action, or request approval without photos. The mechanic writes the proposed work and quoted price in the message; if the message is blank, the photo captions are used. **Upload photos only** shares evidence without creating a request or sending email.
+
+An approval uses the email saved on the job and sends one personalised notification via the workshop sender. The link opens the specific request on the private progress page. The public registration lookup cannot read or answer approval requests. Opening the email or tracker never authorises work. Approve and Decline record a single decision visible on the job card; they do not change invoice totals. The existing send ledger prevents retries of uncertain deliveries from sending a duplicate. In Test, the workshop gets a preview link instead of sending a real customer email.
+
+The additive migration `20261106062646_customer_progress_approvals.sql` uses the existing private approval table. Decisions check that the job, registration, customer and booking date still match and that the request is open.
