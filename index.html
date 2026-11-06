@@ -13677,7 +13677,7 @@ function jobRows(list,mode){
     var deleted=mode==='deleted'||isSoftDeletedJob(j);
     var action=deleted?'<button type="button" class="btn green" data-restore-job="'+esc(j.id)+'">Restore</button>':'<span class="pill">'+statusText(j.status)+'</span>';
     var hasVehicle=!j.no_vehicle&&j.card_type!=='mini_task'&&!/^no vehicle$/i.test(String(j.vehicle||'').trim())&&!!(j.registration||j.vehicle||j.model||j.fleet_vehicle_id||j.vehicle_id);
-    var thumbnail='<span class="jobListArtwork"'+(hasVehicle?' data-job-list-image="'+index+'"':'')+' aria-hidden="true"></span>';
+    var thumbnail='<span class="jobListArtwork"'+(hasVehicle?' data-job-list-image="'+index+'"':'')+' inert aria-hidden="true"></span>';
     var identity='<div class="jobListIdentity">'+jobVehicleBadge(j)+thumbnail+'<div class="jobListVehicle"><b>'+esc(j.no_vehicle?'No Vehicle':(j.vehicle||'Vehicle'))+'</b><br><span class="muted">'+esc(j.customer_name||'')+' '+esc(j.customer_phone||'')+'</span></div></div>';
     var work='<div class="jobWorkBlock">'+jobTypeChip(j)+'<span>'+esc(j.work_required||'No work description entered')+'</span></div>';
     var details='<div class="jobListDetails"><span>'+esc(j.booking_date||'')+' '+esc(j.drop_time||'')+'</span><span>'+esc(j.technician||'Unallocated')+'</span><strong class="jobListTotal">'+(j.amount_quoted==null||String(j.amount_quoted).trim()===''?'Unpriced':money(Number(j.amount_quoted)))+'</strong>'+action+'</div>';
