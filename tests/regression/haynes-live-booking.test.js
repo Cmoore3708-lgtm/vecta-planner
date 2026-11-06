@@ -25,6 +25,7 @@ for(const path of ['public/booking.html','website/booking/index.html'])test(`${p
   vm.runInContext(`state.step=${step};render()`,root);
   assert.equal(document.querySelectorAll('[data-haynes-slot]').length,1);
   assert.match(document.querySelector('[data-haynes-slot]').textContent,/MR16DDT/);
+  assert.equal(Boolean(document.querySelector('.mini-valet-offer')),step===5);
   if(step===1){
    assert.match(document.querySelector('.advisories').textContent,/Tyre worn/);
    const details=document.querySelector('.haynes-vehicle');
@@ -40,10 +41,23 @@ for(const path of ['public/booking.html','website/booking/index.html'])test(`${p
   else {assert.equal(document.querySelector('.vehicle-summary'),null);assert.doesNotMatch(document.querySelector('[data-haynes-slot]').textContent,/Mileage at last MOT|MOT due|Tyre worn/);}
   assert.equal(document.querySelector('[data-image-colour]'),null);
  }
+ const offer=document.querySelector('.mini-valet-offer'),checkbox=offer.querySelector('input');
+ assert.ok(offer.hasAttribute('open'));assert.equal(checkbox.checked,false);
+ checkbox.checked=true;checkbox.onchange();
+ assert.equal(offer.dataset.selected,'true');assert.match(document.querySelector('[data-valet-summary]').textContent,/£30/);
+ offer.querySelector('[data-close-valet]').onclick();
+ vm.runInContext("state.step=4;render();state.step=5;render()",root);
+ const reopened=document.querySelector('.mini-valet-offer');
+ assert.equal(reopened.hasAttribute('open'),false);
+ document.querySelector('[data-edit-valet]').onclick();
+ assert.ok(reopened.hasAttribute('open'));assert.equal(reopened.querySelector('input').checked,true);
+ const restored=reopened.querySelector('input');
+ restored.checked=false;restored.onchange();assert.equal(document.querySelector('[data-valet-summary]').textContent,'');
+ restored.checked=true;restored.onchange();reopened.querySelector('[data-close-valet]').onclick();
  assert.equal(document.querySelector('#send').hasAttribute('disabled'),false);
  await document.querySelector('#send').onclick();
  const write=requests.find(r=>r.url==='/api/website-booking');assert.ok(write,'live submit must remain enabled');
- const body=JSON.parse(write.options.body);assert.equal(body.approximate_cost,155);assert.match(body.work_required,/Tyre worn/);
+ const body=JSON.parse(write.options.body);assert.equal(body.approximate_cost,155);assert.equal(body.mini_valet,true);assert.equal(document.querySelector('.mini-valet-offer'),null);assert.match(document.querySelector('.booking-receipt').textContent,/Mini valet · £30/);assert.match(body.work_required,/Tyre worn/);
  assert.doesNotMatch(html,/Bookings cannot be submitted|Test — booking disabled/);
 });
 for(const path of ['public/booking.html','website/booking/index.html'])test(`${path}: optional copy cannot delay the form or override the approved confirmation message`,async()=>{
