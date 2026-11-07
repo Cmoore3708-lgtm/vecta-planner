@@ -6,6 +6,8 @@ export default async function handler(req,res){
   if(!reg)return res.status(400).json({error:'Registration is required'});
   try{
     const r=await fetch('https://vecta-planner.vercel.app/api/vehicle-lookup?reg='+encodeURIComponent(reg),{signal:AbortSignal.timeout(14000),cache:'no-store'});
+    const retryAfter=r.headers.get('Retry-After');
+    if((r.status===429||r.status===503)&&retryAfter)res.setHeader('Retry-After',retryAfter);
     const text=await r.text();
     res.status(r.status); res.setHeader('Content-Type',r.headers.get('content-type')||'application/json'); return res.send(text);
   }catch(e){return res.status(502).json({error:'Vehicle lookup is temporarily unavailable'});}
