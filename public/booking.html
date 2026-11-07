@@ -270,7 +270,7 @@ function selectedTyreGuide(){
  const f=state.form,r=tyreGuideState.result;if(!r||r.quantity!==(f.tyre_quantity||1)||Date.now()-Date.parse(r.checkedAt)>=300000)return null;const category={'Budget':'budget','Mid Range':'midrange','Premium':'premium'}[f.tyre_choice],options=tyreCategoryOptions(category);
  const o=f.tyre_brand?options.find(o=>o.brand===f.tyre_brand):options[0];return o?{...o,size:r.size,quantity:r.quantity,checkedAt:r.checkedAt,guideOnly:true}:null;
 }
-function tyreStatusText(){if(state.form.tyre_size_unknown)return 'Tyre size unknown — we’ll contact you when we have your car to discuss your options.';if(tyreGuideState.status==='stale')return 'Last checked prices shown. We couldn’t refresh them; we’ll confirm availability and price before ordering.';if(['waiting','loading'].includes(tyreGuideState.status)&&tyreGuideState.result)return 'Refreshing live prices…';if(state.form.tyre_photo_spec?.commercial)return 'Commercial tyre: '+state.form.tyre_photo_spec.label+'. We’ll confirm the correct tyre and price before ordering.';return tyreGuideState.status==='invalid'?'Enter all three numbers, for example 205 / 55 R 16.': ['waiting','loading'].includes(tyreGuideState.status)?'Checking live database for availability & prices.':tyreGuideState.status==='unavailable'?'Live tyre prices are currently unavailable. We will contact you with a price':tyreGuideState.status==='matched'?'Fully fitted prices · including VAT':'Enter the three numbers, then press Check Live Prices.'}
+function tyreStatusText(){if(state.form.tyre_size_unknown)return 'Tyre size unknown — we’ll contact you when we have your car to discuss your options.';if(tyreGuideState.status==='stale')return 'Last checked prices shown. We couldn’t refresh them; we’ll confirm availability and price before ordering.';if(['waiting','loading'].includes(tyreGuideState.status)&&tyreGuideState.result)return 'Refreshing live prices…';if(state.form.tyre_photo_spec?.commercial)return 'Commercial tyre: '+state.form.tyre_photo_spec.label+'. We’ll confirm the correct tyre and price before ordering.';return tyreGuideState.status==='invalid'?'Enter all three numbers, for example 205 / 55 R 16.': ['waiting','loading'].includes(tyreGuideState.status)?'Checking live database for availability & prices.':tyreGuideState.status==='unavailable'?'Live tyre prices are currently unavailable. Select either Budget, Mid range or Premium and which tyres you need and we will contact you with a price.':tyreGuideState.status==='matched'?'Fully fitted prices · including VAT':'Enter the three numbers, then press Check Live Prices.'}
 
 function tyreCardsHtml(){
  const f=state.form,q=Array.isArray(f.tyre_positions)?f.tyre_positions.length:(f.tyre_quantity||1),nevos=f.nevos_vehicle==='yes',current=selectedTyreGuide();
@@ -387,7 +387,40 @@ function engineSizeFromLookup(data){let direct=data&&(data.engineSize||data.engi
 function startBookingTransfer(){VectaBookingTransfer.waitForVehicle(()=>({failed:state.lookup==='error'||(state.lookup==='success'&&['unavailable','ambiguous','rejected'].includes(haynesState.status)),ready:state.lookup==='success'&&['matched','confirmed'].includes(haynesState.status),hasImage:!!haynesState.vehicle?.imageUrl}))}
 async function lookup(reg){void todayTracking.check(reg);state.lookup='loading';startBookingTransfer();try{let r=await fetch('/api/vehicle-lookup?reg='+encodeURIComponent(reg),{signal:AbortSignal.timeout(30000)}),d=await r.json().catch(()=>({}));if(!r.ok)throw new Error(d.error||'Vehicle not found');if(state.form.registration.toUpperCase().replace(/[^A-Z0-9]/g,'')!==reg)return;state.form.fuel_type=d.fuelType||'';state.form.fuel_registration=reg;state.form.vehicle=d.vehicle||d.make||state.form.vehicle;state.form.vehicle_make=d.make||d.manufacturer||d.vehicleMake||'';state.form.vehicle_model=d.model||'';state.form.vehicle_colour=VectaVehicleImage.resolveColour(reg,d.primaryColour||d.colour||'');state.form.nevos_vehicle='';state.form.last_mot_mileage=d.latestMileage?String(d.latestMileage):'';state.form.last_mot_date=d.latestMotDate||d.latestMOTDate||d.lastMotDate||d.lastMOTDate||((Array.isArray(d.motTests)&&d.motTests.length)?(d.motTests[0].completedDate||d.motTests[0].testDate||d.motTests[0].date||''):'');state.form.mot_due=d.motExpiryDate||'';state.form.engine_size=engineSizeFromLookup(d)||'';state.form.engine_size_manual='';state.form.mot_advisories=Array.isArray(d.advisories)?d.advisories:[];state.form.inspect_mot_advisories='';state.form.advisory_tyre_choice='';state.lookup='success';render();void haynesLookup.lookup(reg);}catch(e){if(state.form.registration.toUpperCase().replace(/[^A-Z0-9]/g,'')!==reg)return;state.lookup='error';state.lookupMessage=e.message||'Lookup unavailable. Please enter the vehicle details manually.';refreshHaynes()}}
 function bind(){if(state.step===5)bindMiniValetReview();bindServiceExtra();const unknown=document.querySelector('[data-mileage-unknown]');if(unknown)unknown.onchange=()=>{state.form.mileage_unknown=unknown.checked;if(unknown.checked)state.form.mileage='';const input=document.querySelector('[data-field="mileage"]');if(input){input.disabled=unknown.checked;input.value=state.form.mileage;}updateMileageDialogValidity();renderActions()};bindHaynes();bindAdvisoryChoices();document.querySelectorAll('[data-nevos-choice]').forEach(el=>el.onclick=()=>{state.form.nevos_vehicle=el.dataset.nevosChoice;if(state.form.nevos_vehicle==='yes'){let oldChoice=state.form.service_choice;state.form.job_types=state.form.job_types.filter(x=>x!=='Service');state.form.service_choice='';state.form.mileage='';if(state.form.tyre_choice!=='Premium')state.form.tyre_choice='';state.form.tyre_guide=null;if(state.form.parts_range!=='Premium/Dealer')state.form.parts_range='';if(oldChoice&&state.form.work_required.trim()===oldChoice)state.form.work_required=''}render()});let engineSelect=document.querySelector('[data-engine-size]');if(engineSelect)engineSelect.onchange=e=>{state.form.engine_size_manual=e.target.value;render()};document.querySelectorAll('[data-field]').forEach(el=>el.oninput=e=>{let k=el.dataset.field;state.form[k]=k==='registration'||k==='tyre_size'?e.target.value.toUpperCase():e.target.value;if(k==='registration'){state.form.mini_valet=false;state.valet_offer_dismissed=false;state.form.mileage='';state.form.mileage_unknown=false;state.form.tyre_size_unknown=false;e.target.value=state.form[k];delete state.form.tyre_positions;delete state.form.tyre_prices_checked;state.form.customer_found=false;state.form.customer_vehicles=[];state.form.latest_service_date='';state.form.customer_name='';state.form.phone='';state.form.email='';scheduleLookup()}else if(k==='returning_contact'){state.customer_lookup_error='';scheduleCustomerLookup();renderActions()}else{if(k==='mileage'){updateMileageDialogValidity();}if(k==='tyre_size'){e.target.value=state.form[k];state.form.tyre_guide=null;tyreLookup.update(state.form.tyre_size,state.form.tyre_quantity||1);}renderActions()}});document.querySelectorAll('[data-type]').forEach(el=>el.onclick=()=>{let t=el.dataset.type;if(t==='Service'&&state.form.nevos_vehicle==='yes')return;if(t==='Service'&&state.form.job_types.includes('Service')){state.form.job_types=state.form.job_types.filter(x=>x!=='Service');state.form.service_choice=''}else if(t==='Tyres'&&state.form.job_types.includes('Tyres')){state.form.job_types=state.form.job_types.filter(x=>x!=='Tyres');state.form.tyre_size_unknown=false;state.form.tyre_choice='';state.form.tyre_brand='';state.form.tyre_size='';state.form.tyre_photo_spec=null;state.form.tyre_quantity=1;delete state.form.tyre_positions;delete state.form.tyre_prices_checked;state.form.tyre_guide=null;tyreLookup.update('',1)}else if(state.form.job_types.includes(t)){state.form.job_types=state.form.job_types.filter(x=>x!==t);if(t==='Service'){state.form.service_choice='';state.form.mileage=''}}else{state.form.job_types=[...state.form.job_types,t];if(t==='MOT'){state.form.appointment_date='';state.form.appointment_time='';state.form.technician='';state.mot_calendar_month=''}}render()});document.querySelectorAll('[data-service-choice]').forEach(el=>el.onclick=()=>{if(state.form.nevos_vehicle==='yes')return;let choice=el.dataset.serviceChoice;if(confirmedEvServiceVehicle()!==(choice==='EV Servicing'))return;state.form.service_choice=choice;if(!state.form.job_types.includes('Service'))state.form.job_types=[...state.form.job_types,'Service'];let serviceNames=['Oil & Filter Change','Interim Service','Full Service','Major Service'];let current=state.form.work_required.trim();if(!current||serviceNames.includes(current))state.form.work_required=choice==='Oil & Filter Change'?'Interim Service':choice;state.mileage_dialog_open=!serviceMileageValid();render({preserveServicePosition:true,focusServiceChoice:true})});bindTyreCards();bindTyreSearch();document.querySelectorAll('[data-parts-range]').forEach(el=>el.onclick=()=>{if(state.form.nevos_vehicle==='yes'&&el.dataset.partsRange!=='Premium/Dealer')return;state.form.parts_range=el.dataset.partsRange;renderActions();render()})}
-function renderActions(){let a=document.getElementById('actions');if(!a)return;let hideNext=state.step===1&&(!valid()||state.lookup==='loading'||haynesState.status==='loading');let label=state.step===5?'Confirm booking':state.step===1?'Choose work':'Continue';a.innerHTML=`<button type="button" class="secondary" id="back">Back</button>${hideNext?'':state.step<5?`<button class="primary" id="next" ${valid()?'':'disabled'}>${label}</button>`:`<button class="primary" id="send">${label}</button>`}`;let back=document.getElementById('back'),next=document.getElementById('next'),send=document.getElementById('send');if(back)back.onclick=()=>{if(typeof VectaWorkPhotos!=='undefined'&&VectaWorkPhotos.isBusy())return;if(state.step===1){window.location.href='/';return;}state.step--;render()};if(next)next.onclick=async()=>{if(!valid())return;if(state.step===2){state.step=3;state.general_calendar_month='';state.availability_loading=true;render();await fetchAvailability();return}state.step++;render()};if(send){send.disabled=false;send.onclick=submit}}
+function bookingMissingRequirements(){
+ const f=state.form,missing=[];
+ if(typeof VectaWorkPhotos!=='undefined'&&VectaWorkPhotos.isBusy())missing.push('Wait for your photos to finish uploading.');
+ if(state.step===1){
+  if(!f.registration.trim())missing.push('Enter your registration.');
+  if(!f.vehicle.trim())missing.push(state.lookup==='loading'?'Wait for your vehicle details to load.':'Enter your vehicle make and model.');
+ }
+ if(state.step===2){
+  if(isNevosEligibleVehicle()&&!f.nevos_vehicle)missing.push('Tell us whether this is a NEVOS vehicle.');
+  if(!f.job_types.length)missing.push('Select the work you need.');
+  if(f.job_types.includes('Service')){
+   if(!f.service_choice)missing.push('Choose your service.');
+   if(!(f.mileage_unknown===true||(String(f.mileage??'').trim()&&Number.isInteger(Number(f.mileage))&&Number(f.mileage)>=0)))missing.push('Enter your current mileage or tick “Unsure of your mileage?”.');
+  }
+  if(f.job_types.includes('Tyres')&&f.tyre_size_unknown!==true){
+   if(!/^\d{3}\/\d{2}R\d{2}$/i.test(f.tyre_size))missing.push('Enter all three tyre-size numbers or select “I don’t know”.');
+   if(!f.tyre_choice)missing.push(f.nevos_vehicle==='yes'?'Select Premium tyres for your NEVOS vehicle.':'Select Budget, Mid range or Premium tyres.');
+   if(Array.isArray(f.tyre_positions)&&!f.tyre_positions.length)missing.push('Select which tyres you need on the car diagram.');
+   if(f.tyre_brand&&tyreGuideState.status==='matched'&&!selectedTyreGuide()&&!(f.tyre_brand==='Brand to be confirmed'&&!tyreCategoryOptions({'Budget':'budget','Mid Range':'midrange','Premium':'premium'}[f.tyre_choice]).length))missing.push('Choose an available tyre brand for the quantity you need.');
+  }
+  if(workDescriptionRequired()&&!f.work_required.trim())missing.push('Describe the work you would like us to do.');
+ }
+ if(state.step===3){
+  if(f.mot_advisories.length&&!['yes','no'].includes(f.inspect_mot_advisories))missing.push('Answer Yes or No to checking your MOT advisories.');
+  if(!(f.appointment_date&&f.appointment_time&&f.technician))missing.push(state.availability_loading?'Wait for the available dates to load.':f.available_slots?.length?'Choose an available appointment date.':'Contact Vecta Motors to arrange a date — no online appointments are available.');
+ }
+ if(state.step===4){
+  if(!f.customer_name.trim())missing.push('Enter your full name.');
+  if(!f.phone.trim())missing.push('Enter your telephone number.');
+  if(!f.email.trim())missing.push('Enter your email address.');
+ }
+ return missing;
+}
+function renderActions(){let a=document.getElementById('actions');if(!a)return;let hideNext=state.step===1&&(!valid()||state.lookup==='loading'||haynesState.status==='loading');let missing=state.step<5&&!valid()?bookingMissingRequirements():[];let label=state.step===5?'Confirm booking':state.step===1?'Choose work':'Continue';a.innerHTML=`<button type="button" class="secondary" id="back">Back</button><div class="booking-next-help" id="bookingNextHelp" role="status" aria-live="polite" aria-atomic="true">${missing.length?`<strong>To continue:</strong><ul>${missing.map(item=>`<li>${esc(item)}</li>`).join('')}</ul>`:''}</div>${hideNext?'':state.step<5?`<button class="primary" id="next" aria-describedby="bookingNextHelp" ${valid()?'':'disabled'}>${label}</button>`:`<button class="primary" id="send">${label}</button>`}`;let back=document.getElementById('back'),next=document.getElementById('next'),send=document.getElementById('send');if(back)back.onclick=()=>{if(typeof VectaWorkPhotos!=='undefined'&&VectaWorkPhotos.isBusy())return;if(state.step===1){window.location.href='/';return;}state.step--;render()};if(next)next.onclick=async()=>{if(!valid())return;if(state.step===2){state.step=3;state.general_calendar_month='';state.availability_loading=true;render();await fetchAvailability();return}state.step++;render()};if(send){send.disabled=false;send.onclick=submit}}
 function advisoryListHtml(appointment=false){let f=state.form;return `<div class="advisories${appointment?' appointment-advisories':''}"><b>${appointment?'THESE ADVISORIES WERE RECOMMENDED ON YOUR LAST MOT':'Latest MOT advisories'}</b>${f.mot_advisories.length?`<ul>${f.mot_advisories.map(x=>`<li>${esc(x)}</li>`).join('')}</ul>`:'<p>No advisories recorded at the latest MOT.</p>'}${appointment?advisoryQuestionHtml():''}</div>`}
 function hasTyreAdvisory(){return state.form.mot_advisories.some(text=>/\b(?:tyres?|tires?)\b/i.test(String(text)));}
 function advisoryQuestionHtml(){let f=state.form;if(!f.mot_advisories.length)return '';return `<div class="advisory-response"><div class="advisory-question"><strong>Would you like us to have a look at them?</strong><div class="advisory-choice"><button type="button" data-advisory-choice="yes" class="${f.inspect_mot_advisories==='yes'?'selected':''}">Yes</button><button type="button" data-advisory-choice="no" class="${f.inspect_mot_advisories==='no'?'selected':''}">No</button></div></div>${f.inspect_mot_advisories==='yes'&&hasTyreAdvisory()?`<aside class="advisory-tyre-options" aria-label="Tyre advisory options"><strong>Would you like to go back to pre-select your tyres?</strong><button type="button" data-advisory-tyres="select" class="${f.advisory_tyre_choice==='select'?'selected':''}">Go back and pre-select tyres</button><button type="button" data-advisory-tyres="workshop" class="${f.advisory_tyre_choice==='workshop'?'selected':''}">Let us find the best-priced tyres when we have your vehicle</button>${f.advisory_tyre_choice==='workshop'?'<p>We’ll check your tyres and discuss the best-priced options with you when your vehicle arrives.</p>':''}</aside>`:''}</div>`}
@@ -417,7 +450,7 @@ function workTypeCardsHtml(nevosBlocksService){let f=state.form;let meta={
 function miniValetReviewHtml(){
  const car=serviceVehicleHtml();
  return `<section class="mini-valet-review" aria-label="Mini valet">
-  <span data-valet-summary aria-live="polite"></span><button type="button" class="secondary" data-edit-valet></button>
+  <div class="mini-valet-summary" data-valet-summary aria-live="polite" tabindex="-1" hidden></div><button type="button" class="secondary" data-edit-valet></button>
   <dialog class="mini-valet-offer" aria-labelledby="miniValetTitle">
    <header><h3 id="miniValetTitle"><small>Why not treat yourself to a</small> mini valet?</h3><strong>£30</strong></header>
    <div class="mini-valet-body"><ul><li>Snow-foam pressure wash</li><li>Hoover inside</li><li>Dashboard &amp; Media screens cleaned</li></ul>${car}</div>
@@ -435,8 +468,11 @@ function bindMiniValetReview(){
   dialog.dataset.selected=String(selected);
   dialog.querySelector('[data-valet-caption]').textContent=selected?'Added to booking':'Add to booking';
   close.textContent=selected?'Done':'No thanks';
-  section.querySelector('[data-valet-summary]').textContent=selected?'Mini valet · £30':'';
-  edit.textContent=selected?'Edit mini valet':'View mini valet offer';
+  const summary=section.querySelector('[data-valet-summary]');
+  summary.hidden=!selected;
+  summary.innerHTML=selected?'<small>Mini valet</small><b>£30</b><p>Snow-foam pressure wash, hoover inside, dashboard &amp; media screens cleaned.</p>':'';
+  edit.textContent='View mini valet offer';
+  edit.hidden=selected;
  }
  function open(){
   state.valet_offer_dismissed=false;
@@ -445,7 +481,7 @@ function bindMiniValetReview(){
  function dismiss(){
   state.valet_offer_dismissed=true;
   if(dialog.close)dialog.close();else dialog.removeAttribute('open');
-  edit.focus({preventScroll:true});
+  (state.form.mini_valet?section.querySelector('[data-valet-summary]'):edit).focus({preventScroll:true});
  }
  refresh();
  check.onchange=()=>{
@@ -766,6 +802,11 @@ if(typeof VectaGuidePrices!=='undefined')VectaGuidePrices.load().then(()=>{if(st
 
 <style id="booking-vehicle-confirmation-footer">
 #actions:has(.vehicle-confirmation){justify-content:space-between}
+#actions{align-items:center;gap:16px}
+#actions .booking-next-help{flex:1;min-width:0;color:#ffe1e5;font-size:13px;line-height:1.5}
+.booking-next-help:empty{display:none}.booking-next-help ul{margin:4px 0 0;padding-left:18px}
+#actions #next,#actions #send{flex:0 0 auto}
+@media(max-width:600px){#actions{flex-wrap:wrap;gap:12px}#actions .booking-next-help{order:1;flex-basis:100%}}
 #actions #back{margin-right:auto;flex:0 0 auto}
 #actions .vehicle-confirmation{margin-left:auto;text-align:right}
 #actions .vehicle-confirmation p{margin:0 0 10px;font-size:14px}
@@ -788,7 +829,7 @@ if(typeof VectaGuidePrices!=='undefined')VectaGuidePrices.load().then(()=>{if(st
 </style>
 
 <style id="tyre-supplier-check-notice">
-.tyre-picker .tyre-guide-status.is-unavailable{display:block;margin:18px 0;padding:18px 20px;border:2px solid #e7bd69;border-radius:12px;background:#fff4d8;color:#241b0b;font-size:17px;font-weight:800;line-height:1.55;opacity:1;animation:none}
+.tyre-picker .tyre-guide-status.is-unavailable{display:block;margin:18px 0;padding:18px 20px;border:2px solid #f1a5ad;border-radius:12px;background:#ffe4e7;color:#84202c;font-size:17px;font-weight:800;line-height:1.55;opacity:1;animation:none}
 @media(max-width:600px){.tyre-picker .tyre-guide-status.is-unavailable{padding:15px 16px;font-size:16px}}
 </style>
 
@@ -970,7 +1011,11 @@ window.matchMedia?.('(prefers-reduced-motion: reduce)').addEventListener?.('chan
 </style>
 <style id="mini-valet-review-style">
 .mini-valet-review{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;color:#fff}
-.mini-valet-review>span:empty{display:none}
+.mini-valet-summary{width:100%;padding:18px 20px;border:1px solid var(--line);border-radius:14px;background:#fff;color:var(--ink)}
+.mini-valet-summary[hidden],.mini-valet-review>button[hidden]{display:none}
+.mini-valet-summary>small{font-size:10px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;margin-bottom:9px}
+.mini-valet-summary>b{font-size:18px}.mini-valet-summary>p{margin:8px 0 0;font-size:14px;line-height:1.5;color:#475467}
+@media(max-width:600px){.mini-valet-summary{padding:16px}}
 .mini-valet-review>button{padding:8px 12px;min-height:44px;font-size:13px}
 dialog.mini-valet-offer{width:344px;max-width:calc(100% - 28px);max-height:calc(100% - 28px);margin:auto;padding:11px 13px 1px;border:2px solid #ef3340;border-radius:14px;background:#252c33;color:#fff;text-align:left;box-shadow:0 0 9px #ef334032,0 5px 18px #080c1060}
 dialog.mini-valet-offer::backdrop{background:rgba(7,11,17,.45)}

@@ -48,6 +48,11 @@ for(const path of ['public/booking.html','website/booking/index.html'])test(`${p
  assert.equal(offer.dataset.selected,'true');assert.match(document.querySelector('[data-valet-summary]').textContent,/£30/);
  assert.equal(offer.hasAttribute('open'),false,'adding the valet closes the popup immediately');
  assert.ok(document.querySelector('#send'),'the booking is still on Review');
+ assert.equal(document.querySelector('[data-valet-summary]').hidden,false);
+ assert.equal(document.querySelector('[data-edit-valet]').hidden,true);
+ assert.equal(document.querySelector('[data-valet-summary] small').textContent,'Mini valet');
+ assert.match(document.querySelector('[data-valet-summary]').textContent,/Snow-foam pressure wash/);
+ assert.doesNotMatch(document.querySelector('.mini-valet-review').textContent,/Edit mini valet/);
  vm.runInContext('render()',root);
  assert.equal(document.querySelector('.mini-valet-offer').hasAttribute('open'),false,'redrawing Review must respect dismissal');
  document.querySelector('#back').onclick();
