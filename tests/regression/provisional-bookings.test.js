@@ -61,6 +61,39 @@ test('confirmation keeps the same record and requires a confirmed cloud save',as
  const c=setup();let savedOptions;c.saveJob=async(id,callback,options)=>{savedOptions=options;assert.equal(id,job.id);c.app.jobs[0].status=c.document.getElementById('job_status').value;return true};
  assert.equal(await c.saveProvisionalBooking(job.id,true),true);assert.equal(c.app.jobs.length,1);assert.equal(c.app.jobs[0].status,'booked');assert.equal(savedOptions.requireCloud,true);
 });
+test('only confirming a website provisional booking opens the saved email draft',async()=>{
+ for(const website of [false,true])for(const confirmBooking of [false,true]){
+  const opened=[],c=setup({isWebsiteBookingJob:()=>website,openWebsiteBookingConfirmationEmail:async saved=>opened.push(saved)});
+  let savedOptions;
+  c.saveJob=async(id,callback,options)=>{
+   savedOptions=options;
+   assert.equal(opened.length,0);
+   c.app.jobs[0]={...c.app.jobs[0],status:c.document.getElementById('job_status').value,booking_date:'2026-11-12',amount_quoted:275};
+   return true;
+  };
+  assert.equal(await c.saveProvisionalBooking(job.id,confirmBooking),true);
+  assert.equal(savedOptions.prepareWebsiteConfirmation,website&&confirmBooking);
+  assert.equal(opened.length,website&&confirmBooking?1:0);
+  if(opened.length){
+   assert.equal(opened[0].status,'booked');assert.equal(opened[0].booking_date,'2026-11-12');assert.equal(opened[0].amount_quoted,275);
+   assert.equal(await c.saveProvisionalBooking(job.id,true),false);assert.equal(opened.length,1);
+  }
+ }
+});
+test('failed and disconnected website confirmations never open an email draft',async()=>{
+ for(const online of [false,true]){
+  const c=setup({navigator:{onLine:online},isWebsiteBookingJob:()=>true,openWebsiteBookingConfirmationEmail:()=>{throw Error('Must not open draft');}});
+  c.saveJob=async()=>false;
+  assert.equal(await c.saveProvisionalBooking(job.id,true),false);
+  assert.equal(c.app.jobs[0].status,'provisional');assert.equal(c.alerts.some(message=>message.includes('email draft')),false);
+ }
+});
+test('an email-app failure keeps the successfully confirmed website booking saved',async()=>{
+ const c=setup({isWebsiteBookingJob:()=>true,openWebsiteBookingConfirmationEmail:async()=>{throw Error('Email app unavailable');}});
+ c.saveJob=async()=>{c.app.jobs[0].status='booked';return true;};
+ assert.equal(await c.saveProvisionalBooking(job.id,true),true);
+ assert.equal(c.app.jobs[0].status,'booked');assert.match(c.alerts[0],/Booking confirmed.*Email app unavailable/);
+});
 for(const failWrite of [false,true])test('Save changes '+(failWrite?'retains the original provisional date if saving fails':'reschedules the same provisional booking without confirming it'),async()=>{
  const c=setup(),modal=c.document.getElementById('jobModal');c.installProvisionalBookingActions(modal,job,job.id,false);
  const date=c.document.createElement('input');date.id='job_booking_date';date.value='2026-11-09';modal.appendChild(date);
