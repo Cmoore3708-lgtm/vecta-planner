@@ -24,7 +24,7 @@ test('requested schedule is part of request identity and mismatched schedule dat
 });
 test('worker discovers Audi schedule descriptions and returns choices without terminal prompts or opening a service',async()=>{
  let evaluations=0,selected=0,closed=0;
- const page={setDefaultTimeout(){},route:async()=>{},goto:async()=>{},waitForFunction:async()=>{},close:async()=>closed++,locator(){return {fill:async()=>{},click:async()=>{},nth(){return {}},selectOption:async()=>selected++}},evaluate:async fn=>{
+ const page={url:()=> 'https://www.workshopdata.com/touch/site/layout/makesOverview',setDefaultTimeout(){},route:async()=>{},goto:async()=>{},waitForFunction:async()=>{},close:async()=>closed++,locator(){return {fill:async()=>{},click:async()=>{},nth(){return {}},selectOption:async()=>selected++}},evaluate:async fn=>{
   if(fn.name==='readVehicle'){evaluations++;return evaluations===1?{}:vehicle;}
   if(fn.name==='readDirectSchedules')return null;
   if(fn.name==='readScheduleSelectors')return [{index:0,options:schedules.map(s=>({value:s.id+',UK',label:s.label}))}];

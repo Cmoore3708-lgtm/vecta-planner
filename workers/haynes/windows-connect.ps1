@@ -36,6 +36,7 @@ try {
     try { $ownsWorker = $workerMutex.WaitOne(0) } catch [System.Threading.AbandonedMutexException] { $ownsWorker = $true }
     if (!$ownsWorker) { Write-Host 'Haynes Test is already running in another window.'; return }
     do {
+      . (Join-Path $PSScriptRoot 'read-supplier-login.ps1')
       & node relay.mjs
       if (!$Startup) {
         if ($LASTEXITCODE -ne 0) { throw 'Worker stopped with an error. Please report the message above.' }
@@ -48,4 +49,4 @@ try {
     if ($ownsWorker) { $workerMutex.ReleaseMutex() }
     $workerMutex.Dispose()
   }
-} finally { Remove-Item Env:HAYNES_RELAY_TOKEN -ErrorAction SilentlyContinue }
+} finally { Remove-Item Env:HAYNES_RELAY_TOKEN,Env:HAYNES_USERNAME,Env:HAYNES_PASSWORD -ErrorAction SilentlyContinue }

@@ -13,6 +13,17 @@ for(const name of ['APPLY-REPAIR.cmd','CHECK-FIRST.cmd','SAVE-ESP-LOGIN.cmd','RE
   await fs.writeFile(path.join(destination,name),text.replace(/\r?\n/g,'\r\n'));
  }else await fs.copyFile(source,path.join(destination,name));
 }
+
+if(process.argv.includes('--with-haynes')){
+ for(const [source,target] of [['session-recovery.mjs','haynes-session-recovery.mjs'],['read-supplier-login.ps1','read-haynes-login.ps1'],['save-supplier-login.ps1','save-haynes-login.ps1']]){
+  await fs.copyFile(path.join('workers/haynes',source),path.join(destination,target));
+ }
+ await fs.writeFile(path.join(destination,'SAVE-HAYNES-LOGIN.cmd'),'@echo off\r\npowershell.exe -NoProfile -ExecutionPolicy Bypass -File "%~dp0save-haynes-login.ps1"\r\npause\r\n');
+ const launcher=path.join(destination,'APPLY-REPAIR.cmd');
+ await fs.writeFile(launcher,(await fs.readFile(launcher,'utf8')).replace(' -Repair',' -Repair -IncludeHaynes'));
+ const readme=path.join(destination,'README.txt');
+ await fs.writeFile(readme,(await fs.readFile(readme,'utf8'))+'\n\nHAYNES OPTIONAL SIGN-IN RECOVERY\nWhile the readers are stopped, run SAVE-HAYNES-LOGIN once using your normal Haynes account. It is encrypted for this Windows account; passwords are never uploaded. The vehicle and service readers can then recover an expired password login. A rejected or interrupted automatic login stops retries until you save the login again. Human verification still needs you. The separate repair-quote Haynes profile is unchanged. Delete %LOCALAPPDATA%\\VectaHaynes\\supplier-login.xml to remove the saved credentials.\n');
+}
 for(const name of ['session-recovery.mjs','managed-session.mjs','save-supplier-login.ps1']){
  await fs.copyFile(path.join(folder,name),path.join(destination,name));
 }

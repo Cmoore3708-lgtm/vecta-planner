@@ -1,4 +1,5 @@
 import { readVehicle } from './dom.mjs';
+import { ensureHaynesSession } from './session-recovery.mjs';
 import { HaynesError, vehicleResult } from '../../lib/haynes-vehicle.js';
 
 export const START = 'https://www.workshopdata.com/touch/site/layout/makesOverview';
@@ -22,7 +23,7 @@ export function browserLookup(context, { keepFailedPage = false, reusePage = fal
       if (!reusePage || !await page.locator('#numberPlate,input[name="numberPlate"]').isVisible()) {
         await page.goto(START, { waitUntil: 'domcontentloaded' });
       }
-      let data = await page.evaluate(readVehicle);
+      let data = await ensureHaynesSession(page);
       if (data.login) throw new HaynesError('LOGIN_REQUIRED');
       if (data.blocked) throw new HaynesError('VERIFICATION_REQUIRED');
       stage = 'ENTER_REGISTRATION';
