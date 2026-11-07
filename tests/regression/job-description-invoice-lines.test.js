@@ -3,14 +3,16 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import vm from 'node:vm';
 import {parseHTML} from 'linkedom';
+import '../../public/js/vecta-booking-rules.js';
 import {mechanicVariant} from '../../scripts/mechanic-variant.mjs';
 const main=readFileSync('index.html','utf8');
 function fn(source,name){const start=source.indexOf('function '+name+'(');assert.ok(start>=0,name);return source.slice(start,source.indexOf('\nfunction ',start+1));}
 function setup(source,job={}){
   const {document,window}=parseHTML('<html><body><textarea id="job_work_required"></textarea><div id="pricing"></div></body></html>');
-  const c={document,window,PRIVATE_PRICING_PREFIX:'[[VECTA_PRIVATE_PRICING:',esc:v=>String(v??'').replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch])),privatePricingPresetItemsForTypes:()=>[],jobTypeLabel:()=> 'General',servicePricingAdvisorHtml:()=>'',bindJobPartsEditor(){},app:{jobs:[],settings:{vatRate:20}},savedInvoiceForJobId:()=>null,invoiceIsStaff:()=>true,invoiceMotTestLine:l=>l.description==='MOT test',invoiceLineWithMotVat:l=>l,jobVehicleDueData:()=>({}),knownRegistrationDetails:()=>({}),latestServiceMileage:()=>'',currentJobMileageUnknown:()=>false,confirmedJobMileage:()=>'',uid:()=> 'draft',nextInvoiceNumberText:()=> 'TEST',fleetInvoiceJobDate:()=> '2026-11-05',openInvoice:(_id,inv)=>c.invoice=inv};
+  window.VectaBookingRules=globalThis.VectaBookingRules;
+  const c={document,window,JOB_TYPE_SEPARATOR:' || ',PRIVATE_PRICING_PREFIX:'[[VECTA_PRIVATE_PRICING:',esc:v=>String(v??'').replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch])),privatePricingPresetItemsForTypes:()=>[],jobTypeLabel:()=> 'General',servicePricingAdvisorHtml:()=>'',bindJobPartsEditor(){},app:{jobs:[],settings:{vatRate:20}},savedInvoiceForJobId:()=>null,invoiceIsStaff:()=>true,invoiceMotTestLine:l=>l.description==='MOT test',invoiceLineWithMotVat:l=>l,jobVehicleDueData:()=>({}),knownRegistrationDetails:()=>({}),latestServiceMileage:()=>'',currentJobMileageUnknown:()=>false,confirmedJobMileage:()=>'',uid:()=> 'draft',nextInvoiceNumberText:()=> 'TEST',fleetInvoiceJobDate:()=> '2026-11-05',openInvoice:(_id,inv)=>c.invoice=inv};
   vm.createContext(c);
-  for(const name of ['privatePricingItemsFromNote','stripPrivatePricingFromNote','noteWithPrivatePricing','privatePricingRowHtml','privatePricingSectionHtml','gatherPrivatePricingItems','syncPrivatePricingTotal','privatePricingWorkLines','syncWorkRequiredToPrivatePricing','fitPrivatePricingDescription','schedulePrivatePricingFit','privatePricingViewportResize','bindPrivatePricing','openInvoiceForJob','invoiceTotals'])vm.runInContext(fn(source,name),c);
+  for(const name of ['isWebsiteBookingJob','jobTypeValues','normaliseJobTypeKey','formatJobTypeLabel','jobTypeLabels','privatePricingItemsForJob','privatePricingItemsFromNote','stripPrivatePricingFromNote','noteWithPrivatePricing','privatePricingRowHtml','privatePricingSectionHtml','gatherPrivatePricingItems','syncPrivatePricingTotal','privatePricingWorkLines','syncWorkRequiredToPrivatePricing','fitPrivatePricingDescription','schedulePrivatePricingFit','privatePricingViewportResize','bindPrivatePricing','openInvoiceForJob','invoiceTotals'])vm.runInContext(fn(source,name),c);
   const work=document.getElementById('job_work_required');work.value=job.work_required||'';
   document.getElementById('pricing').innerHTML=c.privatePricingSectionHtml(job);c.bindPrivatePricing();
   const input=(node,value)=>{node.value=value;node.dispatchEvent(new window.Event('input',{bubbles:true}));};
@@ -60,5 +62,45 @@ for(const [variant,source] of [['Main',main],['mechanics',mechanicVariant(main)]
   const h=setup(source);h.type('Inspect tyre\nInspect tyre');assert.equal(h.rows().length,2);
   h.rows()[0].querySelector('.privatePricingRemove').onclick();h.work.dispatchEvent(new h.c.window.Event('change'));assert.equal(h.rows().length,1);
   h.type('Inspect tyre\nInspect tyre\nCheck wheel');assert.equal(h.rows().length,2);
+ });
+}
+
+const webWork='Current mileage unknown. Check mileage on arrival.\n\nFull Service\n\nMini Valet\n\nService price agreed: £180 including VAT.\nQuote: TEST · Policy: test\nOil specification: 5W30\nSupplier Oil [OIL] · Required 5L; charged 5L\nSupplier Oil filter [FILTER] × 1';
+const webJob={id:'web',source:'website booking',job_type:'Full Service',work_required:webWork,amount_quoted:210};
+for(const [variant,source] of [['Main',main],['mechanics',mechanicVariant(main)]]){
+ test(variant+': website invoice uses booked types without copying parts or booking notes',()=>{
+  const h=setup(source,webJob);
+  assert.deepEqual(h.items(),[{description:'Full Service + Mini Valet',price:210}]);
+  h.type(webWork+'\nSupplier Cabin filter [CABIN] × 1');
+  assert.deepEqual(h.items(),[{description:'Full Service + Mini Valet',price:210}]);
+  assert.equal(h.total(),'210.00');
+  assert.equal(h.work.value,webWork+'\nSupplier Cabin filter [CABIN] × 1');
+ });
+ test(variant+': existing auto-copied website rows collapse without losing manual charges or the total',()=>{
+  const seed=setup(source),lines=webWork.split(/\n/).filter(Boolean).map((description,i)=>({description,work_description:description,price:i?0:210}));
+  lines.push({description:'Fit wipers',price:25},{description:'Adjusted service labour',work_description:'Full Service',price:15});
+  const job={...webJob,amount_quoted:250,customer_note:seed.c.noteWithPrivatePricing('Original note',lines)};
+  const original=JSON.stringify(job),h=setup(source,job);
+  assert.deepEqual(h.items().map(x=>[x.description,x.price]),[['Full Service + Mini Valet',210],['Fit wipers',25],['Adjusted service labour',15]]);
+  assert.equal(h.total(),'250.00');assert.equal(JSON.stringify(job),original,'opening does not rewrite the stored booking');
+  const saved={...job,customer_note:h.c.noteWithPrivatePricing(job.customer_note,h.c.gatherPrivatePricingItems())};
+  assert.deepEqual(setup(source,saved).items(),h.items());
+  h.c.app.jobs=[saved];h.c.openInvoiceForJob('web');
+  assert.deepEqual(JSON.parse(JSON.stringify(h.c.invoice.lines)).map(x=>x.description),['Full Service + Mini Valet','Fit wipers','Adjusted service labour']);
+  assert.equal(h.c.invoiceTotals(h.c.invoice.lines).total,250);
+ });
+ test(variant+': blank website quotes stay blank and legacy descriptions become one summary',()=>{
+  const unknown=setup(source,{...webJob,amount_quoted:null});assert.equal(unknown.total(),'');
+  unknown.c.privatePricingPresetItemsForTypes=()=>[{description:'Full Service',price:180}];
+  const unknownHtml=parseHTML(unknown.c.privatePricingSectionHtml({...webJob,amount_quoted:null})).document;
+  assert.equal(unknownHtml.querySelector('#job_amount_quoted').value,'');assert.equal(unknownHtml.querySelector('.privatePriceAmount').value,'');
+  const h=setup(source,{...webJob,customer_note:setup(source).c.noteWithPrivatePricing('',[{description:webWork,price:210}])});
+  assert.equal(h.rows().length,1);assert.equal(h.items()[0].description,'Full Service + Mini Valet');assert.equal(h.total(),'210.00');
+ });
+ test(variant+': separately priced MOT fees and supplier quote metadata survive website cleanup',()=>{
+  const seed=setup(source),job={...webJob,job_type:'Full Service || MOT',work_required:webWork+'\nMOT',amount_quoted:275};
+  job.customer_note=seed.c.noteWithPrivatePricing('',[{description:job.work_required,price:210},{description:'MOT',work_description:'MOT',price:60},{description:'Fit bulb',price:5,repair_quote:{id:'keep'}}]);
+  const h=setup(source,job);assert.deepEqual(h.items().map(x=>[x.description,x.price]),[['Full Service + Mini Valet',210],['MOT',60],['Fit bulb',5]]);
+  assert.equal(h.items()[2].repair_quote.id,'keep');assert.equal(h.total(),'275.00');
  });
 }

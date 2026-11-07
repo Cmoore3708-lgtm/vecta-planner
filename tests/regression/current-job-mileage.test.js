@@ -26,7 +26,7 @@ test('valid current mileage clears validation and no-vehicle tasks do not demand
  const {c,document}=setup('54,321');assert.equal(await c.requireCurrentJobMileage({}),true);assert.equal(document.getElementById('job_current_mileage').value,'54321');document.getElementById('job_current_mileage').value='';assert.equal(await c.requireCurrentJobMileage({no_vehicle:true}),true);assert.equal(await c.requireCurrentJobMileage({card_type:'mini_task'}),true);
 });
 test('new invoice uses confirmed job mileage before an older service sheet and leaves invoice totals untouched',()=>{
- const {c}=setup();let invoice;c.app.jobs=[{id:'j',registration:'ABC123',mileage:54321,customer_note:'[[VECTA_CURRENT_MILEAGE:54321]]',amount_quoted:120}];Object.assign(c,{savedInvoiceForJobId:()=>null,privatePricingItemsFromNote:()=>[],invoiceLineWithMotVat:x=>x,invoiceDescriptionText:()=> 'Service',invoiceJobTypeLabel:()=> 'Service',jobVehicleDueData:()=>({}),knownRegistrationDetails:()=>({mileage:10000}),latestServiceMileage:()=>45000,uid:()=> 'i',nextInvoiceNumberText:()=> '123',todayIso:()=> '2026-10-20',openInvoice:(_,inv)=>invoice=inv});c.openInvoiceForJob('j');assert.equal(invoice.mileage,'54321');assert.equal(invoice.lines[0].amount,120);
+ const {c}=setup();let invoice;c.app.jobs=[{id:'j',registration:'ABC123',mileage:54321,customer_note:'[[VECTA_CURRENT_MILEAGE:54321]]',amount_quoted:120}];Object.assign(c,{savedInvoiceForJobId:()=>null,privatePricingItemsForJob:()=>[],invoiceLineWithMotVat:x=>x,invoiceDescriptionText:()=> 'Service',invoiceJobTypeLabel:()=> 'Service',jobVehicleDueData:()=>({}),knownRegistrationDetails:()=>({mileage:10000}),latestServiceMileage:()=>45000,uid:()=> 'i',nextInvoiceNumberText:()=> '123',todayIso:()=> '2026-10-20',openInvoice:(_,inv)=>invoice=inv});c.openInvoiceForJob('j');assert.equal(invoice.mileage,'54321');assert.equal(invoice.lines[0].amount,120);
 });
 test('reopening paperwork for the job displays its current mileage while old stored HTML remains intact',()=>{
  const {c}=setup(),saved='<div class="servicePrint"><div class="ssHeader"></div><span class="ssMileageEntry">45000</span></div>';
@@ -71,7 +71,7 @@ test('completion resumes after unknown without changing the saved baseline early
 });
 test('new invoices preserve explicit unknown instead of reusing a previous MOT reading',()=>{
  const {c}=setup();let invoice;c.app.jobs=[{id:'j',registration:'ABC123',mileage:50000,customer_note:'[[VECTA_CURRENT_MILEAGE_UNKNOWN]]',amount_quoted:120}];
- Object.assign(c,{savedInvoiceForJobId:()=>null,privatePricingItemsFromNote:()=>[],invoiceLineWithMotVat:x=>x,invoiceDescriptionText:()=> 'Service',invoiceJobTypeLabel:()=> 'Service',jobVehicleDueData:()=>({}),knownRegistrationDetails:()=>({mileage:10000}),latestServiceMileage:()=>45000,uid:()=> 'i',nextInvoiceNumberText:()=> '123',todayIso:()=> '2026-10-20',openInvoice:(_,inv)=>invoice=inv});
+ Object.assign(c,{savedInvoiceForJobId:()=>null,privatePricingItemsForJob:()=>[],invoiceLineWithMotVat:x=>x,invoiceDescriptionText:()=> 'Service',invoiceJobTypeLabel:()=> 'Service',jobVehicleDueData:()=>({}),knownRegistrationDetails:()=>({mileage:10000}),latestServiceMileage:()=>45000,uid:()=> 'i',nextInvoiceNumberText:()=> '123',todayIso:()=> '2026-10-20',openInvoice:(_,inv)=>invoice=inv});
  c.openInvoiceForJob('j');assert.equal(invoice.mileage,'Unknown');assert.equal(invoice.lines[0].amount,120);
 });
 
