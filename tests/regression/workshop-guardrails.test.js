@@ -25,8 +25,8 @@ test('Fleet due list links booked dates to planner days and dates email audit ti
   assert.match(html,/function fleetEmailSentDisplayDate\(record\)[\s\S]*?toLocaleDateString\('en-GB',\{day:'2-digit',month:'2-digit'\}\)/, 'email audit dates must omit the year');
   assert.match(html,/data-fleet-email-registration=/, 'vehicle email links must identify their Fleet registration');
   assert.match(html,/document\.querySelectorAll\('\.fleetReminderEmailLink'\)[\s\S]*?link\.dataset\.fleetEmailRegistration=normReg\(v\.registration/, 'the drawer Email button must inherit the active registration');
-  assert.match(html,/async function fleetMarkEmailSentForVehicle\(v\)[\s\S]*?if\(remoteClient\)await persistFleetCloudSnapshot\(\)/, 'email audit must reach cloud storage before Outlook opens');
-  assert.match(html,/async function fleetOpenTrackedEmail\(link,ev\)[\s\S]*?await fleetMarkEmailSentForVehicle\(v\);[\s\S]*?render\(\);[\s\S]*?window\.location\.href=mailto/, 'email click must save and refresh before opening Outlook');
+  assert.match(html,/async function fleetMarkEmailSentForVehicle\(v\)[\s\S]*?if\(remoteClient\)await persistFleetCloudSnapshot\(\)/, 'confirmed email audit must reach cloud storage');
+  assert.match(html,/async function fleetOpenTrackedEmail\(link,ev\)[\s\S]*?fleetOpenEmailBooking\(v,plans\);[\s\S]*?window\.location\.href=mailto/, 'email click must open the job card before opening Outlook');
   assert.match(html,/document\.addEventListener\('click',[\s\S]*?closest\('\.contactEmailLink,\.fleetReminderEmailLink'\)[\s\S]*?fleetOpenTrackedEmail\(link,ev\)[\s\S]*?,true\)/, 'dynamically opened vehicle email links must be captured');
   assert.match(html,/<span>Booking type<\/span><span>✓<\/span><span>Booked<\/span><span>Email sent<\/span>/, 'the due list headers must keep the booked tick in its own column');
   assert.match(html,/fleetWorkDueGroupCell\(group\.items\)\+fleetBookingTypeGroupCell\(group\.items\)\+fleetBookedTickGroupCell\(group\.items\)\+fleetBookedGroupCell\(group\.items,v\)\+fleetEmailSentCell\(group\)/, 'Email sent must remain the far-right cell');
@@ -36,7 +36,7 @@ test('Fleet due list links booked dates to planner days and dates email audit ti
   assert.match(html,/\.fleetWorkDueGroupCell\{align-items:flex-end\}/);
 });
 
-test('Fleet email clicks finish the audit save before refreshing and opening Outlook',async()=>{
+test('Fleet email clicks save the audit, open the job card and open Outlook',async()=>{
   const source=html.match(/async function fleetMarkEmailSentForVehicle\(v\)[\s\S]*?(?=function fleetEmailSentDisplayDate)/)?.[0];
   assert.ok(source,'Fleet email audit functions must remain available');
   const actions=[],vehicle={id:'dc-kaizen',registration:'DC KAIZEN'};
@@ -57,12 +57,14 @@ test('Fleet email clicks finish the audit save before refreshing and opening Out
   };
   vm.createContext(context);
   vm.runInContext(source,context);
+  context.fleetEmailBookingPlans=()=>[];context.fleetOpenEmailBooking=()=>actions.push('job-card');
   const link={dataset:{fleetEmailRegistration:'DC KAIZEN'},getAttribute:()=> 'mailto:test@example.com',closest:()=>null};
   const event={preventDefault(){actions.push('prevent')},stopPropagation(){actions.push('stop')}};
   await context.fleetOpenTrackedEmail(link,event);
-  assert.ok(actions.indexOf('cloud-finished')<actions.indexOf('render'));
-  assert.ok(actions.indexOf('render')<actions.indexOf('open:mailto:test@example.com'));
+  assert.ok(actions.indexOf('cloud-start')<actions.indexOf('job-card'));
+  assert.ok(actions.indexOf('job-card')<actions.indexOf('open:mailto:test@example.com'));
   assert.equal(context.fleetEmailSent['dc-kaizen|service'].sent,true);
+  assert.ok(actions.includes('cloud-finished'));
 });
 
 test('Fleet email due-group creation declares its items collection before use',()=>{
