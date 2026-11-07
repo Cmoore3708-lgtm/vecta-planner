@@ -1,5 +1,13 @@
 # Customer car progress
 
+## 7 November: booking-day images and formatted confirmation
+
+Before the booking date in Europe/London, tracking returns booking details with `images_allowed: false` and no artwork, scene set or workshop photo URLs. The page does not load scene assets until the server allows images. Saved scenes can be displayed on and after the booking day; new generation requires a verified progress-page view on the actual booking day.
+
+The worker rechecks both the live booking date and the demand's `requested_at` date before reserving provider calls. Early, stale, undated and rescheduled requests cannot start paid work. A fresh view on the correct day can replace old demand without clearing saved scenes, drafts or attempt ceilings. Existing successful scenes are reused.
+
+Website booking confirmation drafts show a named **HERE** hyperlink. Since `mailto:` bodies are plain text, the confirmation dialog copies HTML plus a plain-text alternative to the clipboard, then opens the default email app with recipient and subject. The owner pastes the formatted message and sends it manually. Clipboard denial exposes a selectable formatted preview; nothing is automatically sent. Native Outlook iOS paste still needs a device check; local browser testing verifies the HTML copy, visible hyperlink and mailto recipient/subject.
+
 ## Registration access
 
 Customers can open **Track my car** on the homepage, enter a registration and see a visual update for that car's bookings today (Europe/London). Public lookup returns registration, vehicle, the saved customer-readable job description, stage, stage title, saved vehicle artwork and workshop photo metadata with short-lived image links. It never returns customer/contact details, job IDs, private notes, prices, invoices, tracking tokens, dates or booking history. The date is chosen on the server, and exact normalised registration matching follows the bounded candidate query. Quotes, cancelled/deleted jobs, internal tasks and tax entries are excluded. Multiple eligible jobs are combined conservatively: readiness requires all of them to be ready. Completed jobs remain visible for the rest of that day.
