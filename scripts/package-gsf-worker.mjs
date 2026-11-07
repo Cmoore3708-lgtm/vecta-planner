@@ -5,8 +5,8 @@ import {spawnSync} from 'node:child_process';
 const destination=resolve(process.argv[2]||'Vecta-GSF-PC-Price-Check.zip');
 mkdirSync(resolve(destination,'..'),{recursive:true});
 const names=['README.md','CHECK-GSF-PRICES.cmd','COMPARE-TEN-CARS.cmd','SIGN-IN-GSF.cmd','START-GSF-PRICING.cmd',
-  'setup.cmd','readiness.mjs','probe.mjs','worker.mjs','supplier.mjs','product-dialog.mjs','self-check.mjs',
-  'live-service.mjs','oil-capacity.mjs','oil-pack-choice.mjs','service-capture.mjs','comparison.mjs','compare.mjs','comparison-input.example.json','gsf-config.example.json','pricing-policy.example.json',
+  'setup.cmd','readiness.mjs','probe.mjs','worker.mjs','quote-delivery.mjs','supplier.mjs','product-dialog.mjs','self-check.mjs',
+  'live-service.mjs','service-kit.mjs','oil-capacity.mjs','oil-pack-choice.mjs','service-capture.mjs','comparison.mjs','compare.mjs','comparison-input.example.json','gsf-config.example.json','pricing-policy.example.json',
   'recipe.template.json','package.json','package-lock.json'];
 const files=names.map(name=>'workers/gsf/'+name).concat('lib/service-pricing.js','lib/service-guide-costs.js');
 for(const file of files)if(!existsSync(file))throw Error('Missing package file: '+file);

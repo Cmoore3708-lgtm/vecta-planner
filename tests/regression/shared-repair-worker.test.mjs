@@ -57,3 +57,27 @@ test('category flow records that registration was submitted but refuses unconfir
  const {page}=navigationPage({loseFilter:true});
  await assert.rejects(navigateGSFAlternator(page,'FV65JTY'),error=>error.stage==='GSF_FILTER_READY'&&error.registrationSubmitted===true&&error.detail==='FILTERED_CATEGORY_NOT_CONFIRMED'&&error.observed.selectedRegistration===false);
 });
+
+test('delivers before a stuck Edge tab closes and retires only the shared worker',async t=>{
+ const f=fixture(t),actions=[];
+ const stuck={newPage:async()=>({close:()=>{actions.push('close');return new Promise(()=>{});}})};
+ const bridge=createRepairBridge({...settings,...f,gsfContext:stuck,cleanupMs:10,
+  lookup:async()=>({ok:true}),rpc:async body=>{
+   actions.push(body.action);return body.action==='pull'?{status:'JOB',id:'one',lease:'lease',request:{}}:{status:'SAVED'};
+  }});
+ await assert.rejects(bridge.tick(),/GSF_BROWSER_RESTART_REQUIRED/);
+ assert.deepEqual(actions,['pull','complete','close']);assert.equal(bridge.retiring,true);
+ await assert.rejects(bridge.tick(),/GSF_BROWSER_RESTART_REQUIRED/);assert.deepEqual(actions,['pull','complete','close']);
+});
+test('lost acknowledgement and hung cleanup retry the same lease before recovery',async t=>{
+ const f=fixture(t),deliveries=[];let reads=0,pulls=0;
+ const bridge=createRepairBridge({...settings,...f,cleanupMs:10,
+  gsfContext:{newPage:async()=>({close:()=>new Promise(()=>{})})},
+  lookup:async()=>{reads++;return {record:'same'};},rpc:async body=>{
+   if(body.action==='pull'){pulls++;return {status:'JOB',id:'one',lease:'lease',request:{}};}
+   deliveries.push(body);if(deliveries.length===1)throw Error('lost response');return {status:'SAVED'};
+  }});
+ await assert.rejects(bridge.tick(),/lost response/);assert.equal(bridge.retiring,true);
+ await assert.rejects(bridge.tick(),/GSF_BROWSER_RESTART_REQUIRED/);
+ assert.equal(deliveries.length,2);assert.equal(deliveries[0],deliveries[1]);assert.equal(pulls,1);assert.equal(reads,1);
+});

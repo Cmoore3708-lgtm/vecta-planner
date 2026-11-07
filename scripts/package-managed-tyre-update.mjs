@@ -16,3 +16,15 @@ for(const name of ['APPLY-REPAIR.cmd','CHECK-FIRST.cmd','SAVE-ESP-LOGIN.cmd','RE
 for(const name of ['session-recovery.mjs','managed-session.mjs','save-supplier-login.ps1']){
  await fs.copyFile(path.join(folder,name),path.join(destination,name));
 }
+
+if(process.argv.includes('--with-gsf')){
+ for(const name of ['workers/gsf/worker.mjs','workers/gsf/quote-delivery.mjs','workers/repair-quotes/shared-bridge.mjs']){
+  await fs.copyFile(name,path.join(destination,path.basename(name)));
+ }
+ const launcher=path.join(destination,'APPLY-REPAIR.cmd');
+ const cmd=await fs.readFile(launcher,'utf8');
+ await fs.writeFile(launcher,cmd.replace(' -Repair',' -Repair -IncludeGsf'));
+ const readme=path.join(destination,'README.txt');
+ const previous=await fs.readFile(readme,'utf8');
+ await fs.writeFile(readme,'VECTA | Combined GSF and tyre worker update\n\nRun CHECK-FIRST, then stop the workers safely and run APPLY-REPAIR as below. This bundle also installs GSF result delivery before tab cleanup for repair and service quotes. It preserves GSF catalogue data and existing sign-ins. After installation verify one GSF service lookup and one repair quote as well as the tyre check.\n\n'+previous.replace('and preserves the existing Haynes and GSF files','and preserves existing Haynes files and GSF catalogue/settings'));
+}
