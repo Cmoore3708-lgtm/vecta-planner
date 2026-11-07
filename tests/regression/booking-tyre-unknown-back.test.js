@@ -18,7 +18,7 @@ test('unknown tyre size clears previous size, brand and price, permits continuat
 test('all five booking steps retain a Back button, including direct registration entry and invalid initial forms',()=>{
  for(const step of [1,2,3,4,5])for(const valid of [true,false]){
   const {document}=parseHTML('<div id="actions"></div>');let renders=0;
-  const state={step,lookup:'idle',form:{job_types:['Tyres']}},window={location:{href:''}},c={document,state,window,haynesState:{status:'idle'},directBooking:true,valid:()=>valid,render:()=>renders++,submit(){}};vm.createContext(c);load('renderActions',c);c.renderActions();
+  const state={step,lookup:'idle',form:{job_types:['Tyres']}},window={location:{href:''}},c={document,state,window,haynesState:{status:'idle'},directBooking:true,bookingMissingRequirements:()=>[],valid:()=>valid,render:()=>renders++,submit(){}};vm.createContext(c);load('renderActions',c);c.renderActions();
   const back=document.querySelector('#back');assert.equal(document.getElementById('actions').firstElementChild,back);assert.equal(back.textContent,'Back');back.click();
   if(step===1){assert.equal(window.location.href,'/');assert.equal(state.step,1);}else{assert.equal(state.step,step-1);assert.equal(renders,1);}
  }
