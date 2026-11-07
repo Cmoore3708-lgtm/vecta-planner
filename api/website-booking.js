@@ -1,7 +1,6 @@
 import {isDeepStrictEqual} from 'node:util';
 import {bookingAnalyticsReceipt} from '../lib/website-analytics-receipt.js';
 import {waitUntil} from '@vercel/functions';
-import {processBookingReceipts,receiptRpc} from '../lib/booking-receipts.js';
 import {managerAuthorised} from './message-centre.js';
 import {bookingPhotos,readBookingPhotos} from './_booking-photos.js';
 import {bookingTypes} from '../lib/booking-input.js';
@@ -29,7 +28,7 @@ function sameBookingField(field, saved, submitted) {
 export default async function handler(req,res){
  if(req.method==='GET'&&req.query?.receipts==='1'){
   if(!process.env.CRON_SECRET||req.headers?.authorization!=='Bearer '+process.env.CRON_SECRET)return res.status(401).json({error:'Unauthorized'});
-  try{return res.status(200).json(await processBookingReceipts());}catch{return res.status(503).json({error:'Receipt delivery will retry on the next run.'});}
+  return res.status(200).json({sent:0,skipped:'Booking confirmation emails are prepared manually in Workshop Pro.'});
  }
  const {url,key}=cfg();if(!url||!key)return res.status(500).json({error:'Booking service is not configured'});
  if(req.method==='GET'&&req.query?.receiptIssues==='1'){
@@ -115,11 +114,9 @@ export default async function handler(req,res){
    if(!existing||(b.appointment_time&&String(existing.confirmed_time||'').slice(0,5)!==b.appointment_time)||fields.some(field=>!sameBookingField(field,existing[field],comparison[field])))return res.status(409).json({error:'This request identity belongs to different booking details'});
    if(requestProgressJob(existing).status==='cancelled')return res.status(409).json({error:'This booking has been cancelled. Please choose an available date to book again.'});
   }
-  // A saved booking is successful even if push or email is slow or unavailable.
+  // Customer email is prepared by the workshop when it accepts the provisional job.
   if(created)waitUntil(sendBookingBadges());
-  let receipt_email='unavailable';
-  try{const status=await receiptRpc('status',id);if(status?.status)receipt_email=status.status;}catch{/* Keep the saved booking successful. */}
-  if(['pending','failed'].includes(receipt_email))waitUntil(processBookingReceipts({id,limit:1}).catch(()=>console.warn('Booking receipt retained for retry.')));
+  const receipt_email='manual';
   let tracking_url;try{tracking_url=requestTrackingPath(receipt||request);}catch{/* A past receipt must not turn a saved booking into a failed submission. */}
   let analytics_receipt;try{analytics_receipt=bookingAnalyticsReceipt(receipt||request,key);}catch{/* Analytics must never affect a saved booking. */}
   return res.status(created?201:200).json({analytics_receipt,receipt_email,ok:true,confirmed:false,request_id:id,date:receipt?.confirmed_date||appointment,time:String(receipt?.confirmed_time||b.appointment_time||'').slice(0,5)||null,tracking_url});

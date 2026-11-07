@@ -19,10 +19,6 @@
     {
       "path": "/api/progress-scenes",
       "schedule": "*/5 * * * *"
-    },
-    {
-      "path": "/api/booking-receipts",
-      "schedule": "*/5 * * * *"
     }
   ],
   "functions": {

@@ -20,7 +20,7 @@
   const nav=root.navigator||{};
   return !!(nav.userAgentData&&nav.userAgentData.mobile)||/Android|iPhone|iPad|iPod/i.test(nav.userAgent||'')||(/Mac/i.test(nav.platform||'')&&nav.maxTouchPoints>1);
  }
- function openMobile(draft){
+ function open(draft){
   const doc=root.document,previous=doc.getElementById('vectaBookingEmailReady');if(previous)previous.remove();
   const dialog=doc.createElement('dialog');dialog.id='vectaBookingEmailReady';dialog.setAttribute('aria-labelledby','vectaBookingEmailTitle');
   dialog.style.cssText='background:#171717;color:#fff;border:1px solid #555;border-radius:14px;padding:24px;width:calc(100vw - 32px);max-width:440px;max-height:85vh;overflow:auto;box-sizing:border-box;';
@@ -36,13 +36,7 @@
   // Saving and fetching the tracking link can outlive iOS's tap permission.
   // Keep a real link available for a fresh tap, even if an automatic launch fails.
   const activation=(root.navigator||{}).userActivation;
-  if(activation&&activation.isActive){try{root.location.href=draft.mailto;}catch(error){/* The visible link remains available. */}}
- }
- function open(draft,registration){
-  if(mobileDevice()){openMobile(draft);return;}
-  const url=root.URL.createObjectURL(new Blob([draft.eml],{type:'message/rfc822'}));
-  const a=root.document.createElement('a');a.href=url;a.download='Vecta-booking-'+String(registration||'confirmation').replace(/[^A-Z0-9]/gi,'')+'.eml';
-  root.document.body.appendChild(a);a.click();a.remove();root.setTimeout(()=>root.URL.revokeObjectURL(url),60000);
+  if(!mobileDevice()||(activation&&activation.isActive)){try{root.location.href=draft.mailto;}catch(error){/* The visible link remains available. */}}
  }
  root.VectaBookingEmailDraft={create,open};
 })(window);

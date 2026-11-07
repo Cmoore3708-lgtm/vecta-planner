@@ -13008,7 +13008,6 @@ function applyWebsiteDefaultService(j){
   return j;
 }
 var WEBSITE_CONFIRMATION_MARKER='[[VECTA_WEBSITE_CONFIRMATION_PREPARED]]';
-function websiteConfirmationAlreadyPrepared(j){return String(j&&j.customer_note||'').indexOf(WEBSITE_CONFIRMATION_MARKER)>-1}
 function markWebsiteConfirmationPrepared(j){if(!j)return j;var note=String(j.customer_note||'').trim();if(note.indexOf(WEBSITE_CONFIRMATION_MARKER)<0)j.customer_note=(note?note+' ':'')+WEBSITE_CONFIRMATION_MARKER;return j}
 function websiteConfirmationCostText(j){
   if(j.amount_quoted===null||j.amount_quoted===undefined||j.amount_quoted==='')return '';
@@ -15611,14 +15610,21 @@ async function saveProvisionalBooking(id,confirmBooking){
   if(confirmBooking&&(!before||before.status!=='provisional'))return false;
   if(before&&(!remoteClient||!navigator.onLine)){alert('Reconnect to the workshop server before changing booking status.');return false;}
   var baseline=before?JSON.parse(JSON.stringify(before)):null,target=confirmBooking?'booked':'provisional';
+  var prepareWebsiteConfirmation=!!confirmBooking&&isWebsiteBookingJob(before);
   var buttons=Array.from(modal.querySelectorAll('.modalFoot button,#saveJobMobile'));
   modal.dataset.provisionalSaving='true';buttons.forEach(function(button){button.disabled=true});status.value=target;
   try{
-    var saved=await saveJob(id,undefined,{requireCloud:!!before});
+    var saved=await saveJob(id,undefined,{requireCloud:!!before,prepareWebsiteConfirmation:prepareWebsiteConfirmation});
     if(saved!==true){
       var current=(app.jobs||[]).find(function(job){return String(job.id)===String(id)});
       if(baseline&&current&&current.status===target){Object.assign(current,baseline);saveLocal();render()}
       status.value=previous;
+    }else if(prepareWebsiteConfirmation){
+      var confirmedJob=(app.jobs||[]).find(function(job){return String(job.id)===String(id)});
+      if(confirmedJob&&confirmedJob.status==='booked'){
+        try{await openWebsiteBookingConfirmationEmail(confirmedJob);}
+        catch(error){alert('Booking confirmed. The email draft could not be opened. '+String(error&&error.message||error));}
+      }
     }
     return saved;
   }finally{delete modal.dataset.provisionalSaving;buttons.forEach(function(button){button.disabled=false})}
@@ -16118,7 +16124,7 @@ async function saveJob(id){
     (app.invoices||[]).forEach(function(inv){if(String(inv.job_id||'')===originalJobId)inv.job_id=migratedJobId});
     (app.serviceRecords||[]).forEach(function(rec){if(String(rec.job_id||'')===originalJobId)rec.job_id=migratedJobId});
   }
-  var firstWebsiteConfirmation=j.status!=='provisional'&&isWebsiteBookingJob(j)&&(acceptingWebsiteRequest||!websiteConfirmationAlreadyPrepared(existingJob||j));
+  var firstWebsiteConfirmation=saveOptions.prepareWebsiteConfirmation===true&&existingJob&&existingJob.status==='provisional'&&j.status==='booked'&&isWebsiteBookingJob(existingJob)&&isWebsiteBookingJob(j);
   var workField=document.getElementById('job_work_required');
   if(isUnresolvedWebsiteService(j)){applyWebsiteDefaultService(j);}
   if(!j.customer_account){alert('Please select a customer before saving this job card.');var customerField=document.getElementById('job_customer_account');if(customerField){customerField.classList.add('requiredMissing');customerField.focus();customerField.onchange=function(){if(this.value)this.classList.remove('requiredMissing')}}return;}
@@ -16126,7 +16132,8 @@ async function saveJob(id){
   if(j.customer_account==='NMUK'&&!j.nmuk_vehicle_type){alert('Please select the NMUK type: Internal, Pool, MVOS or Various.');var nmukField=document.getElementById('job_nmuk_vehicle_type');if(nmukField){nmukField.classList.add('requiredMissing');nmukField.focus();nmukField.onchange=function(){if(this.value)this.classList.remove('requiredMissing')}}return;}
   if(j.customer_account==='NMUK'&&j.nmuk_vehicle_type==='MVOS'&&!String(j.customer_name||'').trim()){alert('Please enter the name for this MVOS job before saving.');var mvosNameField=document.getElementById('job_customer_name');if(mvosNameField){mvosNameField.classList.add('requiredMissing');mvosNameField.focus();mvosNameField.oninput=function(){if(String(this.value||'').trim())this.classList.remove('requiredMissing')}}return;}
   if(firstWebsiteConfirmation){
-    if(!String(j.customer_email||'').trim()){alert('This website booking does not have a customer email address. Add the email address before saving the confirmed booking.');var emailField=document.getElementById('job_customer_email');if(emailField){emailField.classList.add('requiredMissing');emailField.focus();}return;}
+    saveOptions.requireCloud=true;
+    if(!/^[^\s<>@]+@[^\s<>@]+\.[^\s<>@]+$/.test(String(j.customer_email||'').trim())){alert('Add a valid customer email address before confirming this website booking.');var emailField=document.getElementById('job_customer_email');if(emailField){emailField.classList.add('requiredMissing');emailField.focus();}return;}
     if(!j.booking_date){alert('Please allocate this website booking to a date and technician before confirming it to the customer.');var bookingDateField=document.getElementById('job_booking_date');if(bookingDateField)bookingDateField.focus();return;}
     if(j.amount_quoted===null){alert('Please enter the estimated cost in the Private pricing breakdown before confirming this website booking. The confirmation email will include this figure.');var priceInput=document.querySelector('#privatePricingRows .privatePriceAmount');if(priceInput){priceInput.classList.add('requiredMissing');priceInput.focus();}return;}
     markWebsiteConfirmationPrepared(j);
@@ -16204,7 +16211,6 @@ async function saveJob(id){
     render();
     if(savedResult===true&&j.status==='booked'&&window.VectaMotBookings?.recheck&&hasMotJobType(j))window.VectaMotBookings.recheck(j.id);
     if(savedResult===true&&window.VectaHaynesJobTools&&!j.no_vehicle&&j.registration&&(!existingJob||normReg(existingJob.registration)!==normReg(j.registration)))window.VectaHaynesJobTools.lookup(j.registration,j.make,{background:false}).catch(()=>{});
-    if(firstWebsiteConfirmation){openWebsiteBookingConfirmationEmail(j);}
     if(!acceptingWebsiteRequest){if(savedResult===true&&typeof onConfirmed==='function')await onConfirmed(j);}
     /* A new completed record is a direct financial entry; existing staff jobs retain their invoice workflow. */
     if(existingJob&&j.status==='completed'&&j.customer_account==='Staff'&&!wasCompleted){openInvoiceForJob(j.id);return true;}
