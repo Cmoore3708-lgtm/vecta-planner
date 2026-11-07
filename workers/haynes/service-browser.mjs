@@ -3,6 +3,7 @@ import { writeFile } from 'node:fs/promises';
 import { chooseSchedule, ukSchedules } from './schedule-choice.mjs';
 import { START } from './browser.mjs';
 import { readVehicle } from './dom.mjs';
+import { ensureHaynesSession } from './session-recovery.mjs';
 import { readSchedule, readOil, readDirectSchedules, readConditionSchedules, readScheduleDiagnostics, readScheduleSelectors } from './service-dom.mjs';
 import { vehicleResult, HaynesError } from '../../lib/haynes-vehicle.js';
 import { serviceRequest, serviceResult, selectServicePeriod, servicePeriodLinks } from '../../lib/haynes-service.js';
@@ -22,7 +23,7 @@ export function browserServiceLookup(context, { chooseConditions } = {}) {
       stage='OPEN_SEARCH';
       await page.goto(START,{waitUntil:'domcontentloaded'});
       stage='CHECK_LOGIN';
-      const initial=await page.evaluate(readVehicle);
+      const initial=await ensureHaynesSession(page);
       if(initial.login)throw new HaynesError('LOGIN_REQUIRED');
       if(initial.blocked)throw new HaynesError('VERIFICATION_REQUIRED');
       stage='ENTER_REGISTRATION';
