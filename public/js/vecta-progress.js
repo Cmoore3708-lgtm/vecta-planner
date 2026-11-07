@@ -52,6 +52,11 @@
   const sceneSets=Object.freeze({CM14KEL:'cm14kel',YD72OMH:'yd72omh'});
   const trustedScenes=value=>value&&['waiting','underway','ready'].every(stage=>typeof value[stage]==='string'&&new RegExp('^https://(?:jywufozycuwuoshlulwl|brqsejjykrubxuofavuu)\\.supabase\\.co/storage/v1/object/public/progress-scenes/[a-f0-9]{64}/'+stage+'\\.webp$').test(value[stage]))?value:null;
   const normalise=value=>String(value||'').toUpperCase().replace(/[^A-Z0-9]/g,'');
+  function clearScenes(){
+    const scenes=el('progressScene');scenes.hidden=true;artworkKey='scheduled';
+    scenes.querySelectorAll('img').forEach(image=>{image.removeAttribute('src');image.hidden=true;});
+    el('sceneCaption').hidden=true;el('sceneCaption').classList.remove('connecting');
+  }
   function renderScenes(data,index){
     const scenes=el('progressScene');scenes.hidden=false;scenes.dataset.stage=data.stage;scenes.classList.remove('stale');
     const generated=trustedScenes(data.scenes);
@@ -69,21 +74,22 @@
       photo.onerror=()=>{photo.dataset.failedUrl=src;photo.hidden=true;card.querySelector('.sceneArt').hidden=true;};
       // Never expose the rejected old workshop photos while a complete scene
       // is missing or fails to load. Status cards remain available.
-      card.querySelector('.sceneBackground').hidden=approved||waitingForScenes;
+      const background=card.querySelector('.sceneBackground');background.hidden=approved||waitingForScenes;
+      if(!background.hidden)background.src=background.dataset.src;else background.removeAttribute('src');
       card.querySelector('.sceneArt').hidden=waitingForScenes||photo.dataset.failedUrl===src;
       if(src){if(photo.getAttribute('src')!==src)photo.src=src;}else photo.removeAttribute('src');
       // Complete images already contain the car, number plate and mechanic.
       // Do not fetch or reveal the old overlays underneath these scenes.
-      if(approved||waitingForScenes){card.querySelector('.vehicleLayer').hidden=true;card.querySelector('.sceneCar').removeAttribute('src');const mechanic=card.querySelector('.sceneMechanic');if(mechanic)mechanic.hidden=true;}
+      if(approved||waitingForScenes){card.querySelector('.vehicleLayer').hidden=true;card.querySelector('.sceneCar').removeAttribute('src');const mechanic=card.querySelector('.sceneMechanic');if(mechanic){mechanic.hidden=true;mechanic.removeAttribute('src');}}
       card.querySelector('.scenePlate').textContent=data.registration||'';
     });
     el('sceneCaption').hidden=!waitingForScenes;el('sceneCaption').classList.toggle('connecting',waitingForScenes&&data.scene_state==='preparing');el('sceneCaption').textContent=waitingForScenes?(data.scene_state==='preparing'?connectingMessage:'Your workshop status is up to date. Vehicle illustrations are unavailable at the moment.'):'';
     const safeImage=typeof data.image_url==='string'&&/^https:\/\/www\.haynespro-assets\.com\/workshop\/images\/\d+\.(svgz?|png|jpe?g|webp)$/.test(data.image_url);
     if(approved||waitingForScenes||!changed)return;
     scenes.querySelectorAll('.sceneCar').forEach(old=>{
-      const car=old.cloneNode(false);car.removeAttribute('src');for(const attr of Array.from(car.attributes))if(attr.name.startsWith('data-'))car.removeAttribute(attr.name);old.replaceWith(car);
+      const car=old.cloneNode(false);car.hidden=false;car.removeAttribute('src');for(const attr of Array.from(car.attributes))if(attr.name.startsWith('data-'))car.removeAttribute(attr.name);old.replaceWith(car);
       const layer=car.parentElement,card=layer.parentElement.parentElement,mechanic=card.querySelector('.sceneMechanic');layer.hidden=true;if(mechanic)mechanic.hidden=true;
-      car.onload=()=>{if(artworkKey!==key)return;layer.hidden=false;if(mechanic)mechanic.hidden=false;};
+      car.onload=()=>{if(artworkKey!==key)return;layer.hidden=false;if(mechanic){mechanic.src=mechanic.dataset.src;mechanic.hidden=false;}};
       car.onerror=()=>{layer.hidden=true;if(mechanic)mechanic.hidden=true;};
       if(!safeImage)return;
       if(/\.svgz?$/.test(data.image_url)&&window.VectaVehicleImage){
@@ -121,8 +127,8 @@
     el('statusTitle').textContent=data.title;el('statusDescription').textContent=data.description||'';el('steps').hidden=data.stage==='scheduled';
     const index={waiting:0,underway:1,checking:1,ready:2}[data.stage]??-1;
     document.querySelectorAll('[data-step]').forEach((step,i)=>{step.classList.toggle('current',i===index);step.classList.toggle('done',i<index);if(i===index)step.setAttribute('aria-current','step');else step.removeAttribute('aria-current');});
-    renderScenes(data,index);
-    renderWorkshopPhotos(data);
+    if(data.images_allowed===false||data.stage==='scheduled'){clearScenes();clearWorkshopPhotos();}
+    else{renderScenes(data,index);renderWorkshopPhotos(data);}
     // Clear old financial links on every update, including a job returned to the mechanic.
     el('paperwork').hidden=true;el('invoice').removeAttribute('href');
     if(!registration&&data.stage==='ready'&&typeof data.invoice_url==='string'&&data.invoice_url.startsWith('/invoice?token=')){el('invoice').href=data.invoice_url;el('paperwork').hidden=false;}

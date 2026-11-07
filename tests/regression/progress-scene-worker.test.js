@@ -13,7 +13,7 @@ function fixture({cap=40,quality=true,generateFailure=false,viewed=true}={}){
  const art={registration:reg,make:'MAZDA',model:'6',colour:'RED',imageUrl:'https://www.haynespro-assets.com/workshop/images/123.svg'};
  rows.set('vehicle_artwork:'+reg,{id:'vehicle_artwork:'+reg,value:art,updated_at:new Date(now).toISOString()});
  const jobs=[{id:'12345678-1234-4234-8234-123456789012',registration:reg,booking_date:'2026-11-03',status:'booked',archived:false}];
- if(viewed)rows.set(sceneRequestId(reg),{id:sceneRequestId(reg),value:{registration:reg,fingerprint:sceneFingerprint(sceneIdentity(reg,[...rows.values()])),source:{kind:'job',id:jobs[0].id},status:'pending'},updated_at:new Date(now).toISOString()});
+ if(viewed)rows.set(sceneRequestId(reg),{id:sceneRequestId(reg),value:{registration:reg,fingerprint:sceneFingerprint(sceneIdentity(reg,[...rows.values()])),source:{kind:'job',id:jobs[0].id},status:'pending',requested_at:new Date(now).toISOString()},updated_at:new Date(now).toISOString()});
  const db=async(path,options={})=>{
   calls.push({path,options});const url=new URL('https://db.example/'+path),method=options.method||'GET';
   if(url.pathname==='/jobs')return jobs;
@@ -59,12 +59,35 @@ test('worker generates all three once, validates them, publishes together and re
  assert.equal(publishedScenes(manifest.identity,{...manifest,scenes:{...manifest.scenes,ready:'https://evil.example/image.webp'}},base),null);
  assert.equal(f.rows.get('progress_scene_usage_v1:2026-11').value.requests,4);
 });
-test('viewed future bookings prepare scenes and reuse them; unviewed bookings remain idle',async()=>{
- const f=fixture();f.jobs[0].booking_date='2026-11-27';
- assert.equal((await f.service.run()).status,'ready');assert.equal(f.generated.length,3);
- assert.ok(f.calls.some(c=>c.path.includes('progress_scene_request_v1')));
- assert.equal((await f.service.run()).idle,true);assert.equal(f.generated.length,3);
+test('future and past bookings never generate, even with queued demand',async()=>{
+ for(const day of ['2026-11-02','2026-11-27']){
+  const f=fixture();f.jobs[0].booking_date=day;
+  assert.deepEqual(await f.service.run(),{idle:true});assert.equal(f.generated.length,0);
+  assert.equal(f.rows.get(sceneRequestId(reg)).value.status,'booking_unavailable');
+  assert.equal(f.rows.has('progress_scene_usage_v1:2026-11'),false);
+ }
  const untouched=fixture({viewed:false});assert.equal((await untouched.service.run()).idle,true);assert.equal(untouched.generated.length,0);
+});
+test('an early or legacy view cannot trigger generation on the booking day; a fresh view can',async()=>{
+ for(const timestamp of [undefined,'invalid','2026-11-02T12:00:00Z']){
+  const f=fixture();f.rows.get(sceneRequestId(reg)).value.requested_at=timestamp;
+  assert.deepEqual(await f.service.run(),{idle:true});assert.equal(f.generated.length,0);
+  const identity=sceneIdentity(reg,[...f.rows.values()]);
+  await requestScenePreparation({db:f.db,identity,source:{kind:'job',id:f.jobs[0].id},now});
+  assert.equal((await f.service.run()).status,'ready');assert.equal(f.generated.length,3);
+ }
+});
+test('UK summer midnight, not UTC midnight, controls booking-day generation',async()=>{
+ for(const [instant,expected] of [['2026-07-01T22:59:59Z',0],['2026-07-01T23:00:00Z',3]]){
+  const f=fixture(),time=Date.parse(instant);f.jobs[0].booking_date='2026-07-02';
+  f.rows.get(sceneRequestId(reg)).value.requested_at=instant;
+  const service=createSceneService({db:f.db,storage:f.storage,generate:f.generate,validate:f.validate,now:()=>time,limit:()=>40});
+  await service.run();assert.equal(f.generated.length,expected);
+ }
+});
+test('rescheduling while preparing prevents further paid image requests',async()=>{
+ const f=fixture();const service=createSceneService({db:f.db,storage:f.storage,generate:async(...args)=>{const image=await f.generate(...args);f.jobs[0].booking_date='2026-11-04';return image;},validate:f.validate,now:()=>now,limit:()=>40});
+ await assert.rejects(service.run(),/booking day/);assert.equal(f.generated.length,1);assert.equal(f.stats().checks,0);
 });
 test('failed visual checks never publish, retries stop after two attempts per image',async()=>{
  const f=fixture({quality:false});assert.equal((await f.service.run()).status,'pending');assert.equal((await f.service.run()).status,'needs_review');assert.equal((await f.service.run()).idle,true);
@@ -152,7 +175,7 @@ test('customer renderer accepts trusted complete sets for any registration and r
  vm.runInNewContext(fs.readFileSync(new URL('../../public/js/vecta-progress.js',import.meta.url),'utf8'),context);await new Promise(r=>setImmediate(r));
  for(const card of document.querySelectorAll('[data-scene]')){assert.equal(card.querySelector('.approvedScene').getAttribute('src'),scenes[card.dataset.scene]);assert.equal(card.querySelector('.vehicleLayer').hidden,true);}
  data={...data,stage:'scheduled',title:'Your booking is confirmed'};await document.getElementById('refresh').onclick();
- for(const card of document.querySelectorAll('[data-scene]')){assert.equal(card.querySelector('.approvedScene').hidden,false);assert.equal(card.querySelector('.approvedScene').getAttribute('src'),scenes[card.dataset.scene]);assert.equal(card.classList.contains('current'),false);}
+ for(const card of document.querySelectorAll('[data-scene]')){assert.equal(card.querySelector('.approvedScene').hidden,true);assert.equal(card.querySelector('.approvedScene').hasAttribute('src'),false);}
  data={...data,scenes:{...scenes,ready:'https://evil.example/car.webp'}};await document.getElementById('refresh').onclick();for(const card of document.querySelectorAll('[data-scene]'))assert.equal(card.querySelector('.approvedScene').hasAttribute('src'),false);
 });
 test('quality-provider timeouts also stop after two requests without regenerating good drafts',async()=>{
