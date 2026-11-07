@@ -34,6 +34,7 @@
     "web-push": "^3.6.7"
   },
   "devDependencies": {
+    "@electric-sql/pglite": "0.5.15",
     "@vitejs/plugin-react": "^5.0.1",
     "esbuild": "0.28.1",
     "vite": "^7.1.3"

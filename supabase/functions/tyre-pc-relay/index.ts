@@ -11,9 +11,9 @@ Deno.serve(async req=>{
   const chunks:Uint8Array[]=[];let size=0;while(true){const x=await reader.read();if(x.done)break;size+=x.value.byteLength;if(size>250000){await reader.cancel();return reply({status:'INVALID_REQUEST'},413)}chunks.push(x.value)}
   const bytes=new Uint8Array(size);let offset=0;for(const chunk of chunks){bytes.set(chunk,offset);offset+=chunk.byteLength}
   const body=JSON.parse(new TextDecoder().decode(bytes)),action=body.action;
-  if(!['enqueue','poll','pull','complete'].includes(action))return reply({status:'INVALID_ACTION'},400);
+  if(!['enqueue','cached','poll','pull','complete'].includes(action))return reply({status:'INVALID_ACTION'},400);
   let payload:Record<string,unknown>={};const uuid=/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/;
-  if(action==='enqueue'){if(!Number.isInteger(body.quantity)||body.quantity<1||body.quantity>4)return reply({status:'INVALID_REQUEST'},400);payload={size:parseSize(body.size).key,quantity:body.quantity}}
+  if(action==='enqueue'||action==='cached'){if(!Number.isInteger(body.quantity)||body.quantity<1||body.quantity>4)return reply({status:'INVALID_REQUEST'},400);payload={size:parseSize(body.size).key,quantity:body.quantity}}
   if(action==='poll'){if(!uuid.test(body.id))return reply({status:'INVALID_REQUEST'},400);payload={id:body.id}}
   if(action==='complete'){if(!uuid.test(body.id)||!uuid.test(body.lease)||!['MATCHED','UNAVAILABLE','LOGIN_REQUIRED','SETTINGS_REQUIRED'].includes(body.status))return reply({status:'INVALID_RESULT'},400);payload={id:body.id,lease:body.lease,status:body.status};if(body.status==='MATCHED')payload.result=cleanTyreCatalogue(body.result,body.result?.size)}
   const tokenHash=Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',new TextEncoder().encode(token)))).map(b=>b.toString(16).padStart(2,'0')).join('');

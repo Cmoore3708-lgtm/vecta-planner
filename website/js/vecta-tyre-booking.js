@@ -6,35 +6,39 @@
  root.document?.addEventListener('error',event=>{const img=event.target;if(img?.parentElement?.classList.contains('tyre-brand-logo')){const fallback=root.document.createElement('span');fallback.className='tyre-guide-brand';fallback.textContent=img.alt;img.replaceWith(fallback);}},true);
  const categories=['budget','midrange','premium'];
  function sizeKey(value){const m=String(value||'').trim().match(/^(\d{3})\s*[/ ]\s*(\d{2})\s*(?:R|[/ ])\s*(\d{2})$/i);if(!m)return null;const [w,p,r]=m.slice(1).map(Number);return w>=125&&w<=355&&w%5===0&&p>=20&&p<=85&&p%5===0&&r>=10&&r<=24?`${w}/${p}R${r}`:null;}
+ function priceTime(result){return Date.parse(result?.priceSource==='saved'?result.servedAt:result?.checkedAt);}
+ function priceNote(result){return result?.priceSource==='saved'?'Saved guide prices · last checked '+new Date(result.checkedAt).toLocaleDateString('en-GB')+'. Includes fitting and VAT; price and availability to be confirmed.':'Fully fitted prices · including VAT';}
  function cleanResult(data,size,quantity){
   if(data?.status!=='MATCHED'||data.guideOnly!==true||data.size!==size||data.quantity!==quantity||!Array.isArray(data.options)||data.options.length!==3)throw Error('Guide unavailable');
-  const checkedAt=new Date(data.checkedAt).toISOString();
-  if(Date.now()-Date.parse(checkedAt)>300000||Date.parse(checkedAt)>Date.now()+60000)throw Error('Guide expired');
+  const checkedAt=new Date(data.checkedAt).toISOString(),saved=data.priceSource==='saved';
+  const servedAt=saved?new Date(data.servedAt).toISOString():checkedAt;
+  if(Date.now()-Date.parse(checkedAt)>(saved?90*86400000:300000)||Date.parse(checkedAt)>Date.now()+60000||Date.now()-Date.parse(servedAt)>300000||Date.parse(servedAt)>Date.now()+60000)throw Error('Guide expired');
+  if(saved&&data.availabilityUnconfirmed!==true)throw Error('Invalid saved guide');
   const cleanOption=(o,category)=>{if(!o||o.category!==category||o.available!==true||typeof o.brand!=='string'||!o.brand.trim()||typeof o.model!=='string'||!Number.isSafeInteger(o.unitPence)||o.unitPence<=0||o.unitPence>500000||o.totalPence!==o.unitPence*quantity)throw Error('Invalid guide');return{category,available:true,brand:o.brand.slice(0,70),model:o.model.slice(0,180),unitPence:o.unitPence,totalPence:o.totalPence,...(typeof o.costToken==='string'&&o.costToken.length<=3000?{costToken:o.costToken}:{})};};
   const options=categories.map(category=>{
    const matches=data.options.filter(o=>o.category===category);if(matches.length!==1)throw Error('Invalid categories');
    const o=matches[0],stockLevels=o.stockLevels===undefined?[]:o.stockLevels;
    if(!Array.isArray(stockLevels)||stockLevels.length>60||stockLevels.some(s=>typeof s?.brand!=='string'||!s.brand.trim()||s.brand.length>70||!Number.isInteger(s.availableQuantity)||s.availableQuantity<0||s.availableQuantity>4)||new Set(stockLevels.map(s=>s.brand.toUpperCase())).size!==stockLevels.length)throw Error('Invalid stock');
    const stock=stockLevels.map(s=>({brand:s.brand,availableQuantity:s.availableQuantity}));
-   if(o.available!==true)return{category,available:false,choices:[],stockLevels:stock};
+   if(o.available!==true)return{category,available:false,choices:[],stockLevels:saved?[]:stock};
    const first=cleanOption(o,category),raw=o.choices===undefined?[o]:o.choices;
    if(!Array.isArray(raw)||raw.length<1||raw.length>3)throw Error('Invalid choices');
    const choices=raw.map(choice=>cleanOption(choice,category));
    if(new Set(choices.map(choice=>choice.brand.toUpperCase())).size!==choices.length||JSON.stringify(first)!==JSON.stringify(choices[0]))throw Error('Invalid choices');
-   return{...first,choices,stockLevels:stock};
+   return{...first,choices,stockLevels:saved?[]:stock};
   });
-  return{size,quantity,checkedAt,guideOnly:true,options};
+  return{size,quantity,checkedAt,guideOnly:true,options,...(saved?{priceSource:'saved',servedAt,availabilityUnconfirmed:true}:{})};
  }
  function createController({onChange=()=>{},fetchGuide=async(size,quantity,signal)=>{const r=await fetch('/api/availability?tyres=1',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({size,quantity}),signal});if(!r.ok)throw Error('Guide unavailable');return r.json();},delay=600}={}){
   let sequence=0,timer,expiry,request,state={status:'idle',result:null},key='';const cache=new Map();
-  const emit=(status,result=null)=>{clearTimeout(expiry);state={status,result};onChange(state);if(status==='matched'){expiry=setTimeout(()=>{if(state.result===result)api.update(result.size,result.quantity,{refresh:true});},Math.max(1,300050-(Date.now()-Date.parse(result.checkedAt))));expiry.unref?.();}};
+  const emit=(status,result=null)=>{clearTimeout(expiry);state={status,result};onChange(state);if(status==='matched'){expiry=setTimeout(()=>{if(state.result===result)api.update(result.size,result.quantity,{refresh:true});},Math.max(1,300050-(Date.now()-priceTime(result))));expiry.unref?.();}};
   const api={getState:()=>state,update(value,quantity=1,{refresh=false}={}){const size=sizeKey(value);const next=size&&Number.isInteger(quantity)&&quantity>=1&&quantity<=4?size+':'+quantity:'';
-   if(!refresh&&next&&next===key&&(['waiting','loading'].includes(state.status)||(state.status==='matched'&&Date.now()-Date.parse(state.result.checkedAt)<300000)))return;
+   if(!refresh&&next&&next===key&&(['waiting','loading'].includes(state.status)||(state.status==='matched'&&Date.now()-priceTime(state.result)<300000)))return;
    const previous=state.result?.size===size?state.result:null;sequence++;const current=sequence;clearTimeout(timer);request?.abort();key=next;
    if(!next){emit('idle');return;}
-   const saved=cache.get(next);if(!refresh&&saved&&Date.now()-Date.parse(saved.checkedAt)<300000){emit('matched',saved);return;}
+   const saved=cache.get(next);if(!refresh&&saved&&Date.now()-priceTime(saved)<300000){emit('matched',saved);return;}
    emit('waiting',previous);timer=setTimeout(async()=>{request=new AbortController();const abort=request;const timeout=setTimeout(()=>abort.abort(),50000);emit('loading',previous);try{let data=await fetchGuide(size,quantity,abort.signal);if(current!==sequence||abort.signal.aborted)return;if(data?.status==='UNAVAILABLE'){data=await fetchGuide(size,quantity,abort.signal);if(current!==sequence||abort.signal.aborted)return;}const result=cleanResult(data,size,quantity);if(cache.size>=30)cache.delete(cache.keys().next().value);cache.set(next,result);emit('matched',result);}catch{if(current===sequence)emit(previous?'stale':'unavailable',previous);}finally{clearTimeout(timeout);}},delay);
   },dispose(){sequence++;clearTimeout(timer);clearTimeout(expiry);request?.abort();}};return api;
  }
- root.VectaTyreBooking={createController,sizeKey,cleanResult,brandLogo};
+ root.VectaTyreBooking={createController,sizeKey,cleanResult,brandLogo,priceTime,priceNote};
 })(typeof window!=='undefined'?window:globalThis);
