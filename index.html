@@ -9664,6 +9664,7 @@ function jobTypeInlineStyle(j){
   if(String(j&&j.status||'').toLowerCase()==='provisional'){
     style+='background:#cbd0d7!important;background-image:none!important;border-color:#8b949e!important;--website-frame-width:4px;--website-frame-colour:#81c7ff;';
   }
+  if(isOutstandingCarryOver(j))style+='outline:3px solid #dc2626!important;outline-offset:-3px!important;';
   return style;
 }
 function singleJobTypeChip(label,extra){var m=jobTypeMetaForLabel(label);return '<span class="jobTypeChip '+esc(extra||'')+'" style="--job-type-color:'+m.colour+';--job-type-soft:'+m.soft+';--job-type-contrast:'+m.contrast+';">'+esc(label)+'</span>'}
@@ -9712,33 +9713,34 @@ function carryOverBadgeHtml(j){
   return '';
 }
 function shouldCarryOverJob(j,today){
-  if(!j||j.archived||j.status==='completed'||j.status==='ready_to_invoice')return false;
+  if(!j||j.archived||vectaJobIsDeletedForLists(j)||jobCompletionEvidence(j))return false;
   if(j.card_type==='mini_task'||j.card_type==='waiting'||j.card_type==='multi_day')return false;
   if(String(j.source||'').indexOf('task:')===0)return false;
   var status=String(j.status||'booked').toLowerCase();
-  /* V285: never auto-carry a merely BOOKED historical row. Ghost/deleted rows that
-     survived in cloud were being silently moved onto today's planner. Only a job
-     explicitly marked as actively being worked on may roll into the next workshop day. */
-  if(['in_progress','arrived'].indexOf(status)===-1)return false;
-  if(!j.booking_date||String(j.booking_date)>=today)return false;
+  /* Confirmed unfinished bookings carry forward. Completion/invoice evidence and
+     deletion tombstones above remain authoritative, including for stale rows. */
+  if(['booked','in_progress','arrived'].indexOf(status)===-1)return false;
+  if(!/^\d{4}-\d{2}-\d{2}$/.test(String(j.booking_date||''))||String(j.booking_date)>=today)return false;
   if(!j.technician||j.technician==='Unallocated'||j.technician==='Waiting')return false;
   return true;
+}
+function isOutstandingCarryOver(j){
+  return !!(j&&carryOverMeta(j)&&['booked','in_progress','arrived'].indexOf(String(j.status||'booked').toLowerCase())>=0&&!vectaJobIsDeletedForLists(j)&&!jobCompletionEvidence(j));
 }
 function carryOverWorkshopDate(today){var d=new Date(String(today||todayIso())+'T12:00:00');if(isNaN(d.getTime()))return today||todayIso();if(d.getDay()===0||d.getDay()===6)return nextWorkshopDate(plannerIsoDate(d));return plannerIsoDate(d)}
 function carryOverAvailableSlot(job,date,mechanic){if(!job||!date||!mechanic||mechanic==='Unallocated')return null;var duration=Math.max(15,roundPlannerMinutesUp(Number(job.estimated_hours||1)*60)),dayStart=8*60,dayEnd=17*60,intervals=mechanicBookingIntervals(date,mechanic,job.id),candidate=dayStart,guard=0;while(candidate+duration<=dayEnd&&guard++<100){var conflict=null;for(var i=0;i<intervals.length;i++){var occupied=intervals[i];if(candidate<occupied.end&&candidate+duration>occupied.start){conflict=occupied;break}}if(!conflict)return timeFromMinutes(candidate);candidate=roundPlannerMinutesUp(conflict.end)}return null}
 
 function carriedOverPreferredMechanics(job,mechanics){
-  var original=String(job&&job.technician||''),out=[];
+  var original=configuredMechanicChoice(job&&job.technician)||String(job&&job.technician||''),out=[];
   if(original&&mechanics.indexOf(original)>-1)out.push(original);
-  var other=mechanics.find(function(m){return String(m).toLowerCase()==='other'});
-  if(other&&out.indexOf(other)===-1)out.push(other);
   mechanics.forEach(function(m){if(out.indexOf(m)===-1)out.push(m)});
   return out;
 }
 function rollOverOutstandingJobs(){
-  var today=todayIso(),targetDate=carryOverWorkshopDate(today),now=new Date().toISOString(),changed=[],mechanics=(app.settings&&app.settings.mechanics||['Alfie','Other']).filter(function(m){return m&&m!=='Unallocated'&&m!=='Waiting'});
-  (app.jobs||[]).forEach(function(j){
-    if(!shouldCarryOverJob(j,today)||plannerJobTimeLocked(j))return;
+  var today=todayIso(),targetDate=carryOverWorkshopDate(today),now=new Date().toISOString(),changed=[],mechanics=configuredMechanicNames().filter(function(m){return !/^(waiting|anyone)$/i.test(m)});
+  if(!mechanics.length)return changed;
+  (app.jobs||[]).slice().sort(function(a,b){return String(a.booking_date||'').localeCompare(String(b.booking_date||''))||String(a.drop_time||'').localeCompare(String(b.drop_time||''))||String(a.id||'').localeCompare(String(b.id||''))}).forEach(function(j){
+    if(!shouldCarryOverJob(j,today))return;
     /* Keep the timestamp of the cloud row on which this automatic decision was
        based. A stale phone/tab must not turn a locally-generated updated_at into
        permission to overwrite a newer diary change from another device. */
@@ -9761,7 +9763,8 @@ function rollOverOutstandingJobs(){
       changed.push(j);
       return;
     }
-    j.customer_note=clearCarryOverMeta(j.customer_note);
+    var previousCarry=carryOverMeta(j)||{};
+    j.customer_note=setCarryOverMeta(plannerBookingTimeNote(j.customer_note,false),{original_date:previousCarry.original_date||j.booking_date,last_date:targetDate,reason:'Unfinished job moved to the next workshop day'});
     j.technician=assignedMechanic;
     j.booking_date=targetDate;
     j.drop_time=assignedTime||normaliseClock(j.drop_time||'08:00');
@@ -12510,15 +12513,42 @@ async function fleetMarkEmailSentForVehicle(v){
   if(remoteClient)await persistFleetCloudSnapshot();
   return true;
 }
+function fleetEmailBookingPlans(v){
+  var group=fleetEmailDueGroupForVehicle(v),plans=group?group.items.map(function(item){return item.plan}):[];
+  if(!plans.length){var next=fleetOutstandingPlans(v.id).filter(function(p){return !!fleetDate(p)}).sort(function(a,b){return fleetDate(a).localeCompare(fleetDate(b))})[0];if(next)plans=[next]}
+  return plans;
+}
+function fleetOpenEmailBooking(v,plans){
+  var existing=null,types=[];
+  (plans||[]).forEach(function(p){
+    var category=fleetMaintenanceCategory(p.type),booked=fleetBookedPlannerJob(v.registration,category);
+    if(booked){existing=existing||booked;return}
+    var type=category==='safety'?'6 Month Safety Check':category==='mot'?'MOT':category==='tax'?'Vehicle Tax':category==='service'?(v.fleetGroup==='Nissan Internal'?'On-Site Service':'Full Service'):String(p.type||'Other');
+    if(types.indexOf(type)===-1)types.push(type);
+  });
+  closeModals();activeFleetVehicleId='';view='planner';
+  if(!types.length&&existing){selectedDate=new Date(existing.booking_date+'T12:00:00');render();openJobModal(existing.id);return}
+  if(!types.length)types.push(v.fleetGroup==='Nissan Internal'?'On-Site Service':'Full Service');
+  var date=nextWorkshopDate(todayIso()),preset=Object.assign({},window.VectaBookingVehicles&&window.VectaBookingVehicles.resolve(v.registration)||{}, {
+    registration:v.registration,vehicle:v.model,customer_account:fleetIncomeCustomerFromVehicle(v.registration),
+    customer_email:fleetEffectiveContactEmail(v),customer_phone:v.contactPhone||'',nmuk_vehicle_type:fleetNmukTypeFromVehicle(v.registration),
+    booking_date:date,status:'provisional',job_type:jobTypeStorageValue(types),job_types:types,
+    work_required:types.join('\n'),estimated_hours:1.5,technician:configuredMechanicNames()[0]||'Unallocated',
+    customer_note:'',source:'manual',booking_source:'Email'
+  });
+  selectedDate=new Date(date+'T12:00:00');render();openJobModal(null,preset);
+}
 async function fleetOpenTrackedEmail(link,ev){
   var mailto=String(link&&link.getAttribute&&link.getAttribute('href')||'');
   if(!/^mailto:/i.test(mailto))return false;
   var reg=normReg(link.dataset&&link.dataset.fleetEmailRegistration||''),row=link.closest&&link.closest('[data-fleet-open]'),id=row&&row.dataset?row.dataset.fleetOpen:activeFleetVehicleId,v=reg?fleetVehicleForRegistration(reg):(fleetVehicles||[]).find(function(x){return String(x.id)===String(id||'')});
   if(!v)return false;
   if(ev){ev.preventDefault();ev.stopPropagation()}
-  await fleetMarkEmailSentForVehicle(v);
+  var plans=fleetEmailBookingPlans(v);
+  /* Opening the email and draft must not depend on cloud connectivity. */
+  Promise.resolve(fleetMarkEmailSentForVehicle(v)).catch(function(error){console.warn('Fleet email audit sync failed',error)});
   if(window.vectaMessages)window.vectaMessages.fromUrl(mailto,{registration:v.registration,kind:'service_reminder'});
-  render();
+  fleetOpenEmailBooking(v,plans);
   window.location.href=mailto;
   return true;
 }
@@ -15532,11 +15562,11 @@ function installProvisionalBookingActions(modal,job,id,historical){
   if(historical)return;
   var foot=modal.querySelector('.modalFoot');if(!foot)return;
   if(job.status==='provisional'){
-    foot.innerHTML='<button type="button" class="btn" id="cancelJob">Close</button><button type="button" class="btn green" id="confirmProvisionalBooking">Confirm Booking</button><button type="button" class="btn danger" id="cancelProvisionalBooking">Cancel booking</button><button type="button" class="primary" id="saveProvisionalChanges">Save changes</button>';
+    foot.innerHTML='<button type="button" class="btn" id="cancelJob">Close</button>'+(id?'<button type="button" class="btn green" id="confirmProvisionalBooking">Confirm Booking</button><button type="button" class="btn danger" id="cancelProvisionalBooking">Cancel booking</button>':'')+'<button type="button" class="primary" id="saveProvisionalChanges">'+(id?'Save changes':'Save provisional booking')+'</button>';
     var title=modal.querySelector('.jobModalHead h2');if(title)title.textContent='Provisional Booking';
     ['saveJobMobile','printJobCard'].forEach(function(key){var control=modal.querySelector('#'+key);if(control)control.remove()});
-    modal.querySelector('#confirmProvisionalBooking').onclick=function(){return saveProvisionalBooking(job.id,true)};
-    modal.querySelector('#cancelProvisionalBooking').onclick=function(){return deleteJobCompletely(job.id,{provisional:true})};
+    if(id){modal.querySelector('#confirmProvisionalBooking').onclick=function(){return saveProvisionalBooking(job.id,true)};
+    modal.querySelector('#cancelProvisionalBooking').onclick=function(){return deleteJobCompletely(job.id,{provisional:true})};}
     modal.querySelector('#saveProvisionalChanges').onclick=function(){return saveProvisionalBooking(job.id,false)};
   }else if(!id||(!jobCompletionEvidence(job)&&job.status==='booked')){
     if(job.status==='quote'||isWebsiteBookingJob(job)||job.card_type==='mini_task')return;

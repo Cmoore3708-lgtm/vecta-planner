@@ -14,7 +14,7 @@ const run=promisify(execFile);
 const source=readFileSync('index.html','utf8');
 
 function bookingColourSamples(entry,mechanic){
-  const ctx=vm.createContext({jobTypeMeta:()=>({colour:'#123',soft:'#eee',contrast:'#fff'})});
+  const ctx=vm.createContext({isOutstandingCarryOver:()=>false,jobTypeMeta:()=>({colour:'#123',soft:'#eee',contrast:'#fff'})});
   for(const name of ['isWebsiteBookingJob','jobTypeInlineStyle']){
     const start=entry.indexOf('function '+name+'(');
     vm.runInContext(entry.slice(start,entry.indexOf('\nfunction ',start+1)),ctx);
