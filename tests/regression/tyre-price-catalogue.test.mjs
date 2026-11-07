@@ -105,7 +105,7 @@ test('Postgres upgrade, learning, queue priority, throttling, failed results and
   const late=await rpc('enqueue',{size:'205/65R15',quantity:1});const lease=await rpc('pull');assert.equal(lease.id,late.id);
   await db.query("update public.tyre_relay_jobs set deadline=now()-interval '1 second' where id=$1",[late.id]);
   assert.equal((await rpc('complete',{id:late.id,lease:lease.lease,status:'MATCHED',result:captured('205/65R15',new Date().toISOString())})).status,'EXPIRED');
-  await db.exec("update public.tyre_relay_jobs set created_at=now()-interval '3 days'; update public.tyre_price_catalogue set last_requested_at=null;");
+  await db.exec("delete from public.tyre_relay_jobs; update public.tyre_price_catalogue set last_requested_at=null;");
   const next=await rpc('pull');assert.equal(next.status,'JOB');
   await rpc('complete',{id:next.id,lease:next.lease,status:'LOGIN_REQUIRED'});
   await db.exec("update public.tyre_relay_jobs set created_at=now()-interval '11 minutes';");assert.equal((await rpc('pull')).status,'IDLE'); // login pause

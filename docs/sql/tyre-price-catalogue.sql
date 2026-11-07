@@ -57,8 +57,7 @@ begin
   if found then return jsonb_build_object('status','MATCHED','result',c.result,'priceSource','saved');end if;
   return jsonb_build_object('status','UNAVAILABLE');
  end if;
- -- Cleanup touches only transient jobs, never the durable catalogue.
- delete from public.tyre_relay_jobs where created_at<now()-interval '2 days';
+ -- Keep lookup history. Expire leases without deleting any stored prices or jobs.
  update public.tyre_relay_jobs set status='UNAVAILABLE' where status in ('PENDING','WORKING') and deadline<now();
  if p_action='enqueue' then
   insert into public.tyre_price_catalogue(size,search_count,last_requested_at)

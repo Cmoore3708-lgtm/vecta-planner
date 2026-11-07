@@ -1,6 +1,6 @@
 # Saved tyre prices and idle catalogue building
 
-Successful ESP relay results now persist in `tyre_price_catalogue`, independently of the two-day job queue. Each size retains its complete verified catalogue and original capture time. Empty results, failed searches and expired leases never overwrite a good snapshot. Existing retained successful queue results are imported during upgrade; no example prices are inserted.
+Successful ESP relay results now persist in `tyre_price_catalogue`, independently of the lookup job history. Each size retains its complete verified catalogue and original capture time. Empty results, failed searches and expired leases never overwrite a good snapshot. Existing retained successful queue results are imported during upgrade; no example prices are inserted. The upgraded relay expires old leases without deleting lookup history. Queue retention can be maintained independently of saved prices.
 
 The public route tries live prices first. Offline, login/settings problems, a busy worker, daily limits and timeouts fall back to the exact saved size. The website and Workshop tyre picker label these **Saved guide prices**, display the original check date and ask to confirm price and availability. Old stock quantities are never shown as live; previously stocked products can provide guides for quantities 1–4. NEVOS premium-only rules and exclusion of special tyres remain unchanged. Commercial tyres still use the separate confirmation route.
 
