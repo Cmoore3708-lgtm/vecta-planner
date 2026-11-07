@@ -7,7 +7,7 @@ const main=fs.readFileSync('index.html','utf8');
 for(const [name,html] of [['Main',main],['mechanics',mechanicVariant(main)]]){
  test(name+' preserves a recorded job total instead of applying current template prices',()=>{
   const code=html.slice(html.indexOf('function privatePricingSectionHtml('),html.indexOf('function gatherPrivatePricingItems('));
-  const context={privatePricingItemsFromNote:()=>[],privatePricingPresetItemsForTypes:()=>[{description:'MOT',price:55}],jobTypeLabel:()=> 'MOT',servicePricingAdvisorHtml:()=>'',privatePricingRowHtml:row=>JSON.stringify(row),esc:String};
+  const context={isWebsiteBookingJob:()=>false,privatePricingItemsForJob:()=>[],privatePricingPresetItemsForTypes:()=>[{description:'MOT',price:55}],jobTypeLabel:()=> 'MOT',servicePricingAdvisorHtml:()=>'',privatePricingRowHtml:row=>JSON.stringify(row),esc:String};
   vm.runInNewContext(code,context);
   for(const total of [390,0]){const result=context.privatePricingSectionHtml({amount_quoted:total,work_required:'Historical work',job_type:'MOT'});assert.ok(result.includes('"price":'+total));assert.ok(result.includes('value="'+total+'"'));assert.ok(!result.includes('"price":55'));}
   assert.ok(context.privatePricingSectionHtml({job_type:'MOT'}).includes('"price":55'));

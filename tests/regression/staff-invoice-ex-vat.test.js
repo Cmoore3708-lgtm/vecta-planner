@@ -81,7 +81,7 @@ test('MOT fee retains manual VAT override when editor dropdown is changed',()=>{
 });
 test('new mixed job invoice exempts only MOT and stores Staff evidence in JSON lines',()=>{
  const prior={...ctx};
- ctx.savedInvoiceForJobId=()=>null;ctx.uid=()=> 'new-invoice';ctx.privatePricingItemsFromNote=()=>[{description:'MOT test',price:65},{description:'Rear coupling',price:130}];ctx.nextInvoiceNumberText=()=> 'VECTA-TEST';ctx.todayIso=()=> '2026-10-07';ctx.openInvoice=(_id,inv)=>ctx.draft=inv;
+ ctx.savedInvoiceForJobId=()=>null;ctx.uid=()=> 'new-invoice';ctx.privatePricingItemsForJob=()=>[{description:'MOT test',price:65},{description:'Rear coupling',price:130}];ctx.nextInvoiceNumberText=()=> 'VECTA-TEST';ctx.todayIso=()=> '2026-10-07';ctx.openInvoice=(_id,inv)=>ctx.draft=inv;
  ctx.app.jobs.find(j=>j.id==='s').vat_mode='no_vat';
  ctx.openInvoiceForJob('s');
  assert.equal(ctx.draft.lines[0].vat_mode,'no_vat');assert.equal(ctx.draft.lines[1].vat_mode,'inc_vat');

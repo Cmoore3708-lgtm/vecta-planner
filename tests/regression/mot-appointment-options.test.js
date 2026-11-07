@@ -48,7 +48,7 @@ test('planner MOT label keeps the vehicle name visible and uses appointment time
 
 test('standard service and safety wording is hidden while added work survives',()=>{
  const source=html.slice(html.indexOf('function plannerJobDescription(j){'),html.indexOf('\nfunction jobCardHtml'));
- const context={jobTypeLabels:j=>[j.job_type],templateDataForType:()=>({work_required:'On-Site Service - health check, tyres, brakes and fluid levels / top-ups.'})};
+ const context={isWebsiteBookingJob:()=>false,jobTypeLabels:j=>[j.job_type],templateDataForType:()=>({work_required:'On-Site Service - health check, tyres, brakes and fluid levels / top-ups.'})};
  vm.createContext(context);vm.runInContext(source,context);
  for(const type of ['On-Site Service','Full Service','Interim Service','6 Month Safety Check','Six Month Safety Check','MOT']){
   assert.equal(context.plannerJobDescription({job_type:type,work_required:type}), '');
