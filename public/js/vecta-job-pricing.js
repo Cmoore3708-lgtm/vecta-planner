@@ -109,10 +109,10 @@
   dialog.querySelector('[data-remove]').onclick=()=>active.api.applyTemplate('Tyres');
   const fields=Array.from(dialog.querySelectorAll('[data-tyre-part]')),message=dialog.querySelector('[data-status]'),options=dialog.querySelector('[data-options]'),save=dialog.querySelector('[data-save]'),check=dialog.querySelector('[data-check]');
   let state={status:'idle',result:null},saving=false;
-  const currentChoice=()=>state.status==='matched'&&state.result?.size===root.VectaTyreBooking.sizeKey(form.tyre_size)&&state.result.quantity===(form.tyre_quantity||1)&&Date.now()-Date.parse(state.result.checkedAt)<300000?state.result.options.find(g=>g.category===form.tyre_choice)?.choices.find(c=>c.brand===form.tyre_brand):null;
+  const currentChoice=()=>state.status==='matched'&&state.result?.size===root.VectaTyreBooking.sizeKey(form.tyre_size)&&state.result.quantity===(form.tyre_quantity||1)&&Date.now()-root.VectaTyreBooking.priceTime(state.result)<300000?state.result.options.find(g=>g.category===form.tyre_choice)?.choices.find(c=>c.brand===form.tyre_brand):null;
   function draw(){
    const selected=currentChoice(),busy=['waiting','loading'].includes(state.status),q=form.tyre_quantity;
-   message.textContent=({idle:'Enter the three numbers, then press Check Live Prices.',waiting:'Checking live database for availability & prices…',loading:'Checking live database for availability & prices…',unavailable:'Live prices unavailable. Check the worker connection and retry.',stale:'Prices could not be refreshed. Check live prices again.',matched:'Fully fitted prices · including VAT'})[state.status]||'';
+   message.textContent=({idle:'Enter the three numbers, then press Check Live Prices.',waiting:'Checking live database for availability & prices…',loading:'Checking live database for availability & prices…',unavailable:'Live prices unavailable. Check the worker connection and retry.',stale:'Prices could not be refreshed. Check live prices again.',matched:root.VectaTyreBooking.priceNote(state.result)})[state.status]||'';
    message.classList.toggle('is-checking',busy);check.disabled=busy||saving;check.textContent=busy?'Checking…':'Check Live Prices';
    options.innerHTML=[['Budget','budget'],['Mid-range','midrange'],['Premium','premium']].map(([label,category])=>{
     const group=state.status==='matched'?state.result?.options.find(g=>g.category===category):null,choices=group?.choices||[],chosen=selected?.category===category;
