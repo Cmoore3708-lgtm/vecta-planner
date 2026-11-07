@@ -30,37 +30,35 @@ function browser(navigator){
  vm.runInNewContext(fs.readFileSync('public/js/vecta-booking-email-draft.js','utf8'),{window:win,URL,Blob,encodeURIComponent,unescape});
  return {win,document,events,api:win.VectaBookingEmailDraft};
 }
-for(const [device,navigator] of [
- ['iPhone Safari',{userAgent:'Mozilla/5.0 (iPhone; CPU iPhone OS 26_0 like Mac OS X) AppleWebKit/605.1.15 Version/26.0 Mobile Safari/604.1'}],
- ['iPhone embedded browser',{userAgent:'Mozilla/5.0 (iPhone; CPU iPhone OS 26_0 like Mac OS X) AppleWebKit/605.1.15 Mobile/15E148'}],
- ['iPad desktop mode',{userAgent:'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15) Safari/605.1.15',platform:'MacIntel',maxTouchPoints:5}],
- ['Android',{userAgent:'Mozilla/5.0 (Linux; Android 15) Chrome/130.0 Mobile Safari/537.36'}],
- ['reduced mobile user agent',{userAgentData:{mobile:true}}],
-])test(device+' prepares a usable email link after the save without downloading an EML file',async()=>{
- const {api,document,events,win}=browser({...navigator,userActivation:{isActive:false}});
- // The confirmation runs only after asynchronous booking persistence and tracking-link creation.
- await Promise.resolve();const draft=api.create(input);api.open(draft,'LM21 CFD');
- assert.equal(events.blob,undefined);assert.deepEqual(events.downloads,[]);
- assert.equal(win.location.href,'https://planner.example/');
- const dialog=document.querySelector('dialog[open]'),link=dialog.querySelector('[data-booking-email-open]'),url=new URL(link.getAttribute('href'));
+for(const device of ['iPhone','iPad','Android','Windows'])test(device+' copies an HTML HERE link then opens a blank unsent message for paste',async()=>{
+ const {api,document,events,win}=browser({userAgent:device});const copied=[];
+ win.ClipboardItem=class {constructor(data){this.data=data;}};
+ win.navigator.clipboard={write:async items=>copied.push(...items)};
+ const draft=api.create(input);api.open(draft);
+ assert.equal(win.location.href,'https://planner.example/');assert.deepEqual(events.downloads,[]);
+ const dialog=document.querySelector('dialog[open]'),link=dialog.querySelector('[data-booking-email-open]');
+ assert.equal(link.hidden,true);
+ await dialog.querySelector('[data-booking-email-copy]').onclick();
+ assert.equal(copied.length,1);assert.equal(link.hidden,false);
+ const html=await copied[0].data['text/html'].text(),message=parseHTML(html).document;
+ assert.equal(message.querySelector('a').textContent,'HERE');assert.equal(message.querySelector('a').getAttribute('href'),input.trackingUrl);
+ assert.equal(message.body.textContent.includes(input.trackingUrl),false);
+ const url=new URL(link.getAttribute('href'));
  assert.equal(url.protocol,'mailto:');assert.equal(decodeURIComponent(url.pathname),input.email);
- assert.equal(url.searchParams.get('subject'),input.subject);assert.equal(url.searchParams.get('body'),draft.text);
- assert.match(draft.text,/Full Service & MOT\nEstimated cost: £120/);assert.ok(draft.text.includes(input.trackingUrl));
- assert.doesNotMatch(draft.text,/clicking HERE/);assert.match(dialog.textContent,/then tap Send/);
- assert.equal(link.hasAttribute('download'),false);
- api.open(draft,'LM21CFD');assert.equal(document.querySelectorAll('dialog').length,1);
+ assert.equal(url.searchParams.get('subject'),input.subject);assert.equal(url.searchParams.has('body'),false);
+ assert.match(dialog.querySelector('[data-booking-email-status]').textContent,/Copied.*Paste before sending/);
+ assert.equal(dialog.querySelector('[data-booking-email-message] a').textContent,'HERE');
+ assert.equal(dialog.querySelector('[data-booking-email-message]').textContent.includes(input.trackingUrl),false);
+ api.open(draft);assert.equal(document.querySelectorAll('dialog').length,1);
  document.querySelector('[data-booking-email-close]').click();assert.equal(document.querySelector('dialog'),null);
 });
-test('mobile can launch immediately with an active tap and retains a retry link',()=>{
- const {api,win,document}=browser({userAgent:'iPhone',userActivation:{isActive:true}}),draft=api.create(input);
- api.open(draft,'LM21CFD');assert.equal(win.location.href,draft.mailto);
- assert.equal(document.querySelector('[data-booking-email-open]').getAttribute('href'),draft.mailto);
-});
-test('desktop opens the default email app with an unsent confirmation and a retry link',()=>{
- for(const navigator of [{userAgent:'Mozilla/5.0 (Windows NT 10.0; Win64; x64)',maxTouchPoints:10},{userAgent:'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15)',platform:'MacIntel',maxTouchPoints:0}]){
-  const {api,events,document,win}=browser(navigator),draft=api.create(input);api.open(draft,'LM21 CFD');
-  assert.equal(win.location.href,draft.mailto);
-  assert.equal(document.querySelector('[data-booking-email-open]').getAttribute('href'),draft.mailto);
-  assert.deepEqual(events.downloads,[]);assert.equal(events.blob,undefined);
- }
+test('blocked clipboard leaves a selectable formatted message and never claims it copied',async()=>{
+ const {api,document,win}=browser({userAgent:'iPhone'});
+ win.ClipboardItem=class {};
+ win.navigator.clipboard={write:async()=>{throw Error('Permission denied');}};
+ api.open(api.create(input));await document.querySelector('[data-booking-email-copy]').onclick();
+ assert.match(document.querySelector('[data-booking-email-status]').textContent,/Select and copy/);
+ assert.equal(document.querySelector('[data-booking-email-preview]').open,true);
+ assert.equal(document.querySelector('[data-booking-email-copy]').disabled,false);
+ assert.equal(win.location.href,'https://planner.example/');
 });

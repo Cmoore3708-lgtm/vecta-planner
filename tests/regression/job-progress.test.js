@@ -183,7 +183,7 @@ test('registration lookup is limited to today, normalises plates and exposes onl
   global.fetch=async url=>{const u=new URL(url);requests.push(u);return Response.json(u.pathname.endsWith('/jobs')?rows:[{id:'vehicle_artwork:CM14KEL',value:{imageUrl:'https://www.haynespro-assets.com/workshop/images/123.svg',customer_name:'PRIVATE',email:'PRIVATE'}},{id:'vehicle_colour:CM14KEL',value:{colour:'Green',email:'PRIVATE'}}]);};
   try{
     const data=await registrationStatus('cm14 kel',now);
-    assert.deepEqual(Object.keys(data).sort(),['image_colour','image_url','job_description','registration','stage','title','vehicle','workshop_photos']);assert.equal(data.registration,'CM14KEL');assert.equal(data.stage,'underway');assert.equal(data.image_colour,'GREEN');assert.equal(data.vehicle,'Nissan Qashqai');assert.equal(data.job_description,'Full service');
+    assert.deepEqual(Object.keys(data).sort(),['image_colour','image_url','images_allowed','job_description','registration','stage','title','vehicle','workshop_photos']);assert.equal(data.registration,'CM14KEL');assert.equal(data.stage,'underway');assert.equal(data.image_colour,'GREEN');assert.equal(data.vehicle,'Nissan Qashqai');assert.equal(data.job_description,'Full service');
     assert.doesNotMatch(JSON.stringify(data),/PRIVATE|invoice|driver@example|customer|312/);
     assert.equal(requests[0].searchParams.get('booking_date'),'eq.2026-11-03');assert.equal(requests[0].searchParams.get('registration'),'ilike.C*M*1*4*K*E*L');
     assert.equal(requests.length,3);assert.equal(requests[1].searchParams.get('id'),'in.(vehicle_artwork:CM14KEL,vehicle_colour:CM14KEL,vehicle_identity:CM14KEL,progress_scenes_v1:CM14KEL)');
@@ -215,11 +215,13 @@ test('three scenes stay visible and exactly the live stage is highlighted; sampl
   vm.runInNewContext(fs.readFileSync(new URL('../../public/js/vecta-progress.js',import.meta.url),'utf8'),context);await new Promise(r=>setImmediate(r));
   const cards=Array.from(document.querySelectorAll('[data-scene]')),refresh=()=>document.getElementById('refresh').onclick();
   assert.equal(cards.length,3);
-  for(const [stage,index] of [['waiting',0],['underway',1],['checking',1],['ready',2],['scheduled',-1]]){
+  for(const [stage,index] of [['waiting',0],['underway',1],['checking',1],['ready',2]]){
     data={...data,stage};await refresh();assert.equal(document.getElementById('progressScene').hidden,false);
     assert.equal(cards.filter(c=>c.classList.contains('current')).length,index<0?0:1);
     cards.forEach((card,i)=>{assert.equal(card.hidden,false);assert.equal(card.querySelector('.currentBadge').hidden,i!==index);assert.equal(card.hasAttribute('aria-current'),i===index);});
   }
+  data={...data,stage:'scheduled'};await refresh();assert.equal(document.getElementById('progressScene').hidden,true);
+  assert.equal(document.querySelectorAll('#progressScene img[src]').length,0);
   data={registration:'AB12 CDE',stage:'underway',title:'Working',image_url:'https://www.haynespro-assets.com/workshop/images/456.png'};await refresh();
   for(const card of cards){assert.equal(card.querySelector('.approvedScene').hidden,true);assert.equal(card.querySelector('.approvedScene').hasAttribute('src'),false);assert.equal(card.querySelector('.sceneCar').getAttribute('src'),data.image_url);assert.equal(card.querySelector('.scenePlate').textContent,'AB12 CDE');}
   failure=Error('Offline');await refresh();assert.equal(document.getElementById('progressScene').classList.contains('stale'),true);assert.match(document.getElementById('error').textContent,/out of date/);
@@ -292,5 +294,31 @@ test('tracking views queue after booking validation; booking-form lookups and ex
   settings.delete('vehicle_artwork:'+reg);
   assert.deepEqual((await customerStatus(token,now,{requestScenes:true,schedule})).scenes,scenes);
   assert.equal(writes,before);assert.equal(kicks,scheduled);
+ }finally{global.fetch=original;restore();if(oldEnabled===undefined)delete process.env.VECTA_PROGRESS_SCENES_ENABLED;else process.env.VECTA_PROGRESS_SCENES_ENABLED=oldEnabled;}
+});
+
+test('future job and receipt links expose no images or photo URLs and never queue paid work',async()=>{
+ const restore=environment(),original=global.fetch,oldEnabled=process.env.VECTA_PROGRESS_SCENES_ENABLED;
+ process.env.VECTA_PROGRESS_SCENES_ENABLED='1';
+ const saved={...job,registration:'AB12CDE',booking_date:'2026-11-04'};
+ const request={id:'22345678-1234-4234-8234-123456789012',job_id:saved.id,registration:saved.registration,vehicle:saved.vehicle,email:saved.customer_email,confirmed_date:saved.booking_date,status:'booked'};
+ const calls=[];let kicks=0;
+ global.fetch=async(url,options={})=>{
+  calls.push({url:String(url),method:options.method||'GET'});
+  if(String(url).includes('/jobs?'))return Response.json([saved]);
+  if(String(url).includes('/website_booking_requests?'))return Response.json([request]);
+  if(String(url).includes('jobcustomer'))return Response.json([]);
+  throw Error('Future tracking must not read artwork or photographs');
+ };
+ try{
+  const tokens=[issueProgressToken(saved,progressSecret(),now),requestTrackingPath(request,now).split('#')[1]];
+  for(const token of tokens){
+   const result=await customerStatus(token,now,{requestScenes:true,schedule:()=>{kicks++;}});
+   assert.equal(result.stage,'scheduled');assert.equal(result.images_allowed,false);
+   assert.equal(result.image_url,'');assert.equal(result.scenes,undefined);assert.equal(result.scene_state,'scheduled');
+   assert.ok(!result.workshop_photos?.length);
+  }
+  assert.equal(kicks,0);assert.ok(calls.every(c=>c.method==='GET'));
+  assert.ok(calls.every(c=>!c.url.includes('vehicle_artwork')&&!c.url.includes('job-workshop-photos')));
  }finally{global.fetch=original;restore();if(oldEnabled===undefined)delete process.env.VECTA_PROGRESS_SCENES_ENABLED;else process.env.VECTA_PROGRESS_SCENES_ENABLED=oldEnabled;}
 });
