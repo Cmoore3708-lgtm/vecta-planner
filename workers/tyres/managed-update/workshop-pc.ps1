@@ -1,4 +1,4 @@
-param([switch]$Repair)
+param([switch]$Repair,[switch]$IncludeGsf,[switch]$IncludeHaynes)
 $ErrorActionPreference='Stop'
 $root=Join-Path $env:LOCALAPPDATA 'VectaWorkers'
 $stateFile=Join-Path $root 'state.json'
@@ -14,6 +14,7 @@ function Show-Diagnostic {
     $standalone = Join-Path $env:LOCALAPPDATA 'VectaTyres\Worker\START-TYRES.cmd'
     Write-Host ('Standalone tyre launcher installed: '+(Test-Path -LiteralPath $standalone))
     Write-Host ('Saved ESP sign-in file present: '+(Test-Path -LiteralPath (Join-Path $env:LOCALAPPDATA 'VectaTyres\supplier-login.xml')))
+    Write-Host ('Saved Haynes sign-in file present: '+(Test-Path -LiteralPath (Join-Path $env:LOCALAPPDATA 'VectaHaynes\supplier-login.xml')))
     if (!(Test-Path -LiteralPath $stateFile)) {
         Write-Host 'Managed Workshop Connections installation not found for this Windows account.'
         return
@@ -24,6 +25,7 @@ function Show-Diagnostic {
     $reader=Get-Content -LiteralPath (Join-Path $release 'workers\tyres\live-worker.mjs') -Raw
     $controller=Get-Content -LiteralPath (Join-Path $release 'workers\control\workshop-workers.ps1') -Raw
     Write-Host ('Managed release: '+$state.active)
+    Write-Host ('GSF result-delivery update present: '+(Test-Path -LiteralPath (Join-Path $release 'workers\gsf\quote-delivery.mjs')))
     Write-Host ('Managed tyre reader can pause for Enter: '+[bool]($reader -match 'terminal\.question'))
     Write-Host ('Managed launcher loads the saved ESP login: '+[bool]($controller -match 'read-esp-login\.ps1|supplier-login\.xml'))
     $runners=@(Get-Runners)
@@ -49,7 +51,10 @@ try {
     try {
         try { $owns=$mutex.WaitOne(0) } catch [System.Threading.AbandonedMutexException] { $owns=$true }
         if (!$owns -or @(Get-Runners).Count -gt 0) { throw 'Use Stop safely in Workshop Connections, wait for the readers to stop, close the panel and re-run APPLY-REPAIR. No processes were stopped by this update.' }
-        & node (Join-Path $PSScriptRoot 'patch-release.mjs') $root
+        $patchArgs=@((Join-Path $PSScriptRoot 'patch-release.mjs'),$root)
+        if ($IncludeGsf) { $patchArgs += '--with-gsf' }
+        if ($IncludeHaynes) { $patchArgs += '--with-haynes' }
+        & node @patchArgs
         if ($LASTEXITCODE -ne 0) { throw 'The managed release was not switched. Read the message above.' }
     } finally {
         if ($owns) { $mutex.ReleaseMutex() }

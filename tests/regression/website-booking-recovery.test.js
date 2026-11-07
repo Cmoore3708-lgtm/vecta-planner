@@ -61,7 +61,7 @@ async function withDatabase(run){
 test('concurrent submissions create one inbox request and return the same receipt',async()=>withDatabase(async db=>{
  const responses=await Promise.all([db.submit({...payload,request_id:id}),db.submit({...payload,request_id:id})]);
  assert.deepEqual(responses.map(r=>r.code).sort(),[200,201]);assert.equal(db.rows.size,1);assert.equal(db.notifications,1);
- for(const response of responses){assert.equal(response.data.request_id,id);assert.equal(response.data.confirmed,false);
+ for(const response of responses){assert.equal(response.data.request_id,id);assert.equal(response.data.confirmed,false);assert.equal(response.data.receipt_email,'manual');
   assert.match(response.data.tracking_url,/^\/track#request\./);
   const claim=verifyProgressToken(response.data.tracking_url.split('#request.')[1],requestProgressSecret());
   assert.ok(claimMatchesJob(claim,requestProgressJob(db.rows.get(id))));

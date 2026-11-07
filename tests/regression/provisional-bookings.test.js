@@ -19,7 +19,7 @@ for(const m of html.matchAll(/<script(?:\s[^>]*)?>([\s\S]*?)<\/script>/gi)){
 const job={id:'11111111-1111-4111-8111-111111111111',registration:'AB12 CDE',vehicle:'Nissan Qashqai',booking_date:'2026-11-05',drop_time:'08:00',technician:'Alfie',estimated_hours:1,status:'provisional',job_type:'Full Service || MOT',customer_account:'NMUK',customer_name:'NMUK',archived:false,amount_quoted:200,customer_note:''};
 function setup(extra={}){
  const {document}=parseHTML('<html><body><div id="jobModal"><div class="jobModalHead"><h2>New Job</h2><button id="saveJobMobile">Save</button><button id="printJobCard">Print</button></div><input id="job_status" value="provisional"><div class="modalFoot"><button id="cancelJob">Cancel</button><button id="saveJob">Save</button></div></div></body></html>');
- const c={document,console,app:{jobs:[{...job}],settings:{}},navigator:{onLine:true},remoteClient:{},todayIso:()=> '2026-11-04',niceDate:x=>x,esc:x=>String(x??''),normReg:x=>String(x||'').replace(/\s/g,'').toUpperCase(),jobTypeValues:j=>String(j.job_type||'').split(' || '),isVehicleTaxJob:()=>false,vectaJobIsDeletedForLists:j=>!!j.deleted||j.archived,isJobInvoiced:()=>false,jobCompletionEvidence:j=>j.status==='completed',isWebsiteBookingJob:()=>false,jobTypeMeta:()=>({colour:'#008844',soft:'#eeffee',contrast:'#fff'}),financeBaseJob:j=>j,plannerTechnicianLane:x=>x,clockMinutes:x=>Number(x.slice(0,2))*60+Number(x.slice(3)),saveLocal(){},render(){},alert(message){c.alerts.push(message)},alerts:[],...extra};
+ const c={document,console,isOutstandingCarryOver:()=>false,app:{jobs:[{...job}],settings:{}},navigator:{onLine:true},remoteClient:{},todayIso:()=> '2026-11-04',niceDate:x=>x,esc:x=>String(x??''),normReg:x=>String(x||'').replace(/\s/g,'').toUpperCase(),jobTypeValues:j=>String(j.job_type||'').split(' || '),isVehicleTaxJob:()=>false,vectaJobIsDeletedForLists:j=>!!j.deleted||j.archived,isJobInvoiced:()=>false,jobCompletionEvidence:j=>j.status==='completed',isWebsiteBookingJob:()=>false,jobTypeMeta:()=>({colour:'#008844',soft:'#eeffee',contrast:'#fff'}),financeBaseJob:j=>j,plannerTechnicianLane:x=>x,clockMinutes:x=>Number(x.slice(0,2))*60+Number(x.slice(3)),saveLocal(){},render(){},alert(message){c.alerts.push(message)},alerts:[],...extra};
  c.window=c;vm.createContext(c);vm.runInContext(source,c);return c;
 }
 test('provisional reservation is a grey card and remains in capacity calculations',()=>{
@@ -60,6 +60,39 @@ test('new manual jobs expose Provisional Booking and historical/website/quote ed
 test('confirmation keeps the same record and requires a confirmed cloud save',async()=>{
  const c=setup();let savedOptions;c.saveJob=async(id,callback,options)=>{savedOptions=options;assert.equal(id,job.id);c.app.jobs[0].status=c.document.getElementById('job_status').value;return true};
  assert.equal(await c.saveProvisionalBooking(job.id,true),true);assert.equal(c.app.jobs.length,1);assert.equal(c.app.jobs[0].status,'booked');assert.equal(savedOptions.requireCloud,true);
+});
+test('only confirming a website provisional booking opens the saved email draft',async()=>{
+ for(const website of [false,true])for(const confirmBooking of [false,true]){
+  const opened=[],c=setup({isWebsiteBookingJob:()=>website,openWebsiteBookingConfirmationEmail:async saved=>opened.push(saved)});
+  let savedOptions;
+  c.saveJob=async(id,callback,options)=>{
+   savedOptions=options;
+   assert.equal(opened.length,0);
+   c.app.jobs[0]={...c.app.jobs[0],status:c.document.getElementById('job_status').value,booking_date:'2026-11-12',amount_quoted:275};
+   return true;
+  };
+  assert.equal(await c.saveProvisionalBooking(job.id,confirmBooking),true);
+  assert.equal(savedOptions.prepareWebsiteConfirmation,website&&confirmBooking);
+  assert.equal(opened.length,website&&confirmBooking?1:0);
+  if(opened.length){
+   assert.equal(opened[0].status,'booked');assert.equal(opened[0].booking_date,'2026-11-12');assert.equal(opened[0].amount_quoted,275);
+   assert.equal(await c.saveProvisionalBooking(job.id,true),false);assert.equal(opened.length,1);
+  }
+ }
+});
+test('failed and disconnected website confirmations never open an email draft',async()=>{
+ for(const online of [false,true]){
+  const c=setup({navigator:{onLine:online},isWebsiteBookingJob:()=>true,openWebsiteBookingConfirmationEmail:()=>{throw Error('Must not open draft');}});
+  c.saveJob=async()=>false;
+  assert.equal(await c.saveProvisionalBooking(job.id,true),false);
+  assert.equal(c.app.jobs[0].status,'provisional');assert.equal(c.alerts.some(message=>message.includes('email draft')),false);
+ }
+});
+test('an email-app failure keeps the successfully confirmed website booking saved',async()=>{
+ const c=setup({isWebsiteBookingJob:()=>true,openWebsiteBookingConfirmationEmail:async()=>{throw Error('Email app unavailable');}});
+ c.saveJob=async()=>{c.app.jobs[0].status='booked';return true;};
+ assert.equal(await c.saveProvisionalBooking(job.id,true),true);
+ assert.equal(c.app.jobs[0].status,'booked');assert.match(c.alerts[0],/Booking confirmed.*Email app unavailable/);
 });
 for(const failWrite of [false,true])test('Save changes '+(failWrite?'retains the original provisional date if saving fails':'reschedules the same provisional booking without confirming it'),async()=>{
  const c=setup(),modal=c.document.getElementById('jobModal');c.installProvisionalBookingActions(modal,job,job.id,false);

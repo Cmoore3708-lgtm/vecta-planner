@@ -54,7 +54,35 @@ async function installedFiles(source){
  }
  await walk('');return contents;
 }
-export async function install(root,assets,{prepare}={}){
+const baseGsfFiles={
+ 'workers/gsf/worker.mjs':['a41f1ca234ae9e39cb795daba59fa0974608c10849bd2ff2992419c97a0ecf15','0138125c6d51644821a247df11dbef2cbc11c5d589f580bc6f913c3bcb827567'],
+ 'workers/repair-quotes/shared-bridge.mjs':['dd8dc8f3e8b3324fc0656d9a56576c97912108b5d7999f40b2b677bc6ae0c8f6'],
+ 'workers/gsf/quote-delivery.mjs':[]
+};
+async function addGsfChanges(changes,installed,assets){
+ for(const [name,known] of Object.entries(baseGsfFiles)){
+  const next=await fs.readFile(path.join(assets,path.basename(name)));
+  const old=installed.get(name);
+  if(old&&!old.equals(next)&&!known.includes(hash(Buffer.from(old.toString().replace(/\r\n/g,'\n')))))throw Error('Unknown GSF reader version. No workers were changed.');
+  if(!old&&known.length)throw Error('The installed GSF source is incomplete.');
+  changes.set(name,next);
+ }
+}
+export function patchHaynesLookup(source,kind){
+ const expression=kind==='vehicle'?'let data = await page.evaluate(readVehicle);':'const initial=await page.evaluate(readVehicle);';
+ const replacement=kind==='vehicle'?'let data = await ensureHaynesSession(page);':'const initial=await ensureHaynesSession(page);';
+ if(source.includes("from './session-recovery.mjs'")&&source.includes(replacement))return source;
+ if(source.split(expression).length!==2||!source.includes("from './dom.mjs'"))throw Error('Unknown Haynes reader. No workers were changed.');
+ return "import {ensureHaynesSession} from './session-recovery.mjs';\n"+source.replace(expression,replacement);
+}
+export function patchHaynesLauncher(source){
+ if(source.includes("workers\\haynes\\read-supplier-login.ps1"))return source;
+ const marker='$entry = switch ($Worker)';
+ if(source.split(marker).length!==2)throw Error('Unknown Haynes launcher. No workers were changed.');
+ return replaceOnce(source,/Remove-Item Env:HAYNES_RELAY_TOKEN -ErrorAction SilentlyContinue/,'Remove-Item Env:HAYNES_RELAY_TOKEN,Env:HAYNES_USERNAME,Env:HAYNES_PASSWORD -ErrorAction SilentlyContinue')
+  .replace(marker,"if ($Worker -eq 'Haynes') { . (Join-Path $release 'workers\\haynes\\read-supplier-login.ps1') }\n            "+marker);
+}
+export async function install(root,assets,{prepare,includeGsf=false,includeHaynes=false}={}){
  const stateFile=path.join(root,'state.json'),initial=JSON.parse(await read(stateFile));
  if(!/^[a-f0-9]{40}$/.test(initial.active))throw Error('Invalid managed release identity');
  const source=path.join(root,'releases',initial.active);
@@ -68,6 +96,16 @@ export async function install(root,assets,{prepare}={}){
   const reader='workers/tyres/live-worker.mjs',launcher='workers/control/workshop-workers.ps1';
   const changes=new Map([[reader,Buffer.from(patchReader(files.get(reader).toString()))],[launcher,Buffer.from(patchLauncher(files.get(launcher).toString()))]]);
   for(const name of ['managed-session.mjs','session-recovery.mjs','read-esp-login.ps1'])changes.set('workers/tyres/'+name,await fs.readFile(path.join(assets,name)));
+  if(includeGsf)await addGsfChanges(changes,files,assets);
+  if(includeHaynes){
+   for(const [kind,file] of [['vehicle','vehicle-browser.mjs'],['service','service-browser.mjs']]){
+    const name='workers/haynes/'+file;
+    changes.set(name,Buffer.from(patchHaynesLookup(files.get(name).toString(),kind)));
+   }
+   changes.set(launcher,Buffer.from(patchHaynesLauncher(changes.get(launcher).toString())));
+   changes.set('workers/haynes/session-recovery.mjs',await fs.readFile(path.join(assets,'haynes-session-recovery.mjs')));
+   changes.set('workers/haynes/read-supplier-login.ps1',await fs.readFile(path.join(assets,'read-haynes-login.ps1')));
+  }
   if([...changes].every(([name,value])=>files.get(name)?.equals(value)))return 'already installed';
   for(const [name,value] of changes)files.set(name,value);
   const rows=[...files].sort(([a],[b])=>a.localeCompare(b)).map(([name,bytes])=>({path:name,size:bytes.length,sha256:hash(bytes),content:bytes.toString('base64')}));
@@ -80,13 +118,23 @@ export async function install(root,assets,{prepare}={}){
     await fs.cp(path.join(source,relative),path.join(staging,relative),{recursive:true,dereference:true});
    }
    const helper=pathToFileURL(path.join(staging,'workers/tyres/managed-session.mjs')).href;
-   for(const args of [['--check',path.join(staging,reader)],['--input-type=module','--eval','await import('+JSON.stringify(helper)+')']]){
-    const check=spawnSync(process.execPath,args,{encoding:'utf8'});if(check.status!==0)throw Error('Staged tyre code did not pass its checks. The previous release is still active.');
+   const checks=[['--check',path.join(staging,reader)],['--input-type=module','--eval','await import('+JSON.stringify(helper)+')']];
+   if(includeGsf){
+    checks.push(['--check',path.join(staging,'workers/gsf/worker.mjs')]);
+    const bridge=pathToFileURL(path.join(staging,'workers/repair-quotes/shared-bridge.mjs')).href;
+    checks.push(['--input-type=module','--eval','await import('+JSON.stringify(bridge)+')']);
+   }
+   if(includeHaynes){
+    const haynes=pathToFileURL(path.join(staging,'workers/haynes/service-browser.mjs')).href;
+    checks.push(['--input-type=module','--eval','await import('+JSON.stringify(haynes)+')']);
+   }
+   for(const args of checks){
+    const check=spawnSync(process.execPath,args,{encoding:'utf8'});if(check.status!==0)throw Error('Staged worker code did not pass its checks. The previous release is still active.');
    }
    if(process.platform==='win32'){
     const ps=path.join(process.env.SystemRoot,'System32','WindowsPowerShell','v1.0','powershell.exe');
     const cmd="$errors=$null;$tokens=$null;[void][System.Management.Automation.Language.Parser]::ParseFile($env:VECTA_VALIDATE_FILE,[ref]$tokens,[ref]$errors);if($errors.Count){exit 1}";
-    for(const name of [launcher,'workers/tyres/read-esp-login.ps1']){
+    for(const name of [launcher,'workers/tyres/read-esp-login.ps1',...(includeHaynes?['workers/haynes/read-supplier-login.ps1']:[])]){
      if(spawnSync(ps,['-NoProfile','-Command',cmd],{env:{...process.env,VECTA_VALIDATE_FILE:path.join(staging,name)}}).status!==0)throw Error('Staged PowerShell script validation failed.');
     }
    }
@@ -96,6 +144,6 @@ export async function install(root,assets,{prepare}={}){
  });
 }
 if(process.argv[1]&&path.resolve(process.argv[1])===fileURLToPath(import.meta.url)){
- try{console.log(await install(process.argv[2],path.dirname(fileURLToPath(import.meta.url))));}
+ try{console.log(await install(process.argv[2],path.dirname(fileURLToPath(import.meta.url)),{includeGsf:process.argv.includes('--with-gsf'),includeHaynes:process.argv.includes('--with-haynes')}));}
  catch(error){console.error(error.message);process.exitCode=1;}
 }

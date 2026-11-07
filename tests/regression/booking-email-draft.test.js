@@ -56,12 +56,11 @@ test('mobile can launch immediately with an active tap and retains a retry link'
  api.open(draft,'LM21CFD');assert.equal(win.location.href,draft.mailto);
  assert.equal(document.querySelector('[data-booking-email-open]').getAttribute('href'),draft.mailto);
 });
-test('desktop keeps the formatted unsent email download and cleans up its URL',async()=>{
+test('desktop opens the default email app with an unsent confirmation and a retry link',()=>{
  for(const navigator of [{userAgent:'Mozilla/5.0 (Windows NT 10.0; Win64; x64)',maxTouchPoints:10},{userAgent:'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15)',platform:'MacIntel',maxTouchPoints:0}]){
-  const {api,events,document}=browser(navigator),draft=api.create(input);api.open(draft,'LM21 CFD');
-  assert.equal(document.querySelector('dialog'),null);
-  assert.deepEqual(events.downloads,[{href:'blob:email-draft',filename:'Vecta-booking-LM21CFD.eml'}]);
-  assert.equal(events.blob.type,'message/rfc822');assert.equal(await events.blob.text(),draft.eml);
-  assert.equal(events.timers[0].delay,60000);events.timers[0].fn();assert.deepEqual(events.revoked,['blob:email-draft']);
+  const {api,events,document,win}=browser(navigator),draft=api.create(input);api.open(draft,'LM21 CFD');
+  assert.equal(win.location.href,draft.mailto);
+  assert.equal(document.querySelector('[data-booking-email-open]').getAttribute('href'),draft.mailto);
+  assert.deepEqual(events.downloads,[]);assert.equal(events.blob,undefined);
  }
 });

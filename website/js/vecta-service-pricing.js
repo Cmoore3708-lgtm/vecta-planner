@@ -28,7 +28,7 @@
         await wait(500);
         if(active!==generation)return;
         publish(value);
-        let coreOnly=false;
+        let coreOnly=false,busyDelay=2000;
         const started=now();
         const guideTimer=setTimeout(()=>{
           if(active===generation)publish({status:'guide_pending',quote:null});
@@ -40,6 +40,10 @@
             if(active!==generation)return;
             if(!response.ok)throw Error('UNAVAILABLE');
             if(batch&&!coreOnly&&data.status==='REVIEW_REQUIRED'){coreOnly=true;continue;}
+            if(data.status==='BUSY'){
+              publish({status:'guide_pending',quote:null});
+              await wait(busyDelay);busyDelay=Math.min(busyDelay*2,10000);continue;
+            }
             if(data.status==='PENDING'){await wait(2000);continue;}
             if(batch&&data.status==='MATCHED'&&Array.isArray(data.quotes)&&['Oil & Filter Change','Full Service'].every(service=>data.quotes.filter(q=>q.request?.service===service&&q.request.registration===input.registration&&q.request.range===input.range&&q.request.mileage===input.mileage&&q.expiresAt>now()&&typeof q.token==='string'&&Number.isSafeInteger(q.totalPence)&&q.totalPence>0).length===1)){
               const expiresAt=Math.min(...data.quotes.map(q=>q.expiresAt));
