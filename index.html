@@ -13675,7 +13675,7 @@ function mechanicPlannerHtml(mechanics,jobs){
 function plannerHtml(){
   if(!app.settings)app.settings={};
   var mechanics=plannerLaneMechanics(),jobs=jobsForDate();
-  var laneJobs=jobs.filter(function(job){return String(job.status||'').toLowerCase()!=='provisional'});
+  var laneJobs=jobs; // Provisional bookings reserve their assigned diary slots as grey cards.
   if(typeof window!=='undefined'&&window.VECTA_MECHANIC_DEPLOYMENT===true)return mechanicPlannerHtml(mechanics,laneJobs);
   var dayJobs=allJobsForDate(),provisionalPanel=provisionalBookingsPanelHtml();
   var live=plannerWindowConfig(jobs,mechanics);plannerStartMinutes=live.startMinutes;
