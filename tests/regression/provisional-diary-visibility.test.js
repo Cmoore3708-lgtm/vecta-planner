@@ -73,7 +73,9 @@ export function diaryFixture(mechanic=false){
 function checkDiaryInBrowser(mechanic){
  const failures=[],check=(ok,label)=>{if(!ok)failures.push(label)};
  const group=mechanic?[...document.querySelectorAll('.mechanicBoardColumns .mechanicBoardGroup')].find(n=>n.querySelector('h2 span').textContent==='Chris'):
-  document.querySelector(innerWidth<=900?'.mobileGroup-chris':'.lane[data-tech="Chris"]');
+  [...document.querySelectorAll('.mobileGroup-chris,.lane[data-tech="Chris"]')].find(n=>n.getBoundingClientRect().height>0);
+ check(!!group,'Chris diary rendered');
+ if(!group){parent.postMessage({page:location.pathname.split('/').pop(),result:failures.join(', ')},'*');return}
  check(group.getBoundingClientRect().height>0,'Chris diary visible');
  for(const id of ['chris-hold','chris-web-hold']){
   const card=group.querySelector('[data-open-job="'+id+'"],[data-job-id="'+id+'"]');
@@ -103,6 +105,6 @@ test('grey provisional cards remain visible in their assigned diary on phone, ta
   const {stdout}=await promisify(execFile)(process.env.VECTA_CHROME_BIN||'google-chrome',['--headless','--no-sandbox','--disable-gpu','--disable-background-networking','--no-first-run','--user-data-dir='+directory+'/profile','--virtual-time-budget=3000','--dump-dom',pathToFileURL(report).href],{maxBuffer:1024*1024,timeout:90000});
   const results=stdout.match(/<pre id="results">([^<]*)<\/pre>/)?.[1].trim().split('\n')||[];
   assert.equal(results.length,frames.length,results.join('\n'));
-  for(const result of results)assert.match(result,/ PASS$/,result);
+  assert.deepEqual(results.filter(result=>!/ PASS$/.test(result)),[],results.join('\n'));
  }finally{fs.rmSync(directory,{force:true,recursive:true})}
 });
