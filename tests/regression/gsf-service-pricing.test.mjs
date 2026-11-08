@@ -285,7 +285,7 @@ test('actual website shows a matched service price and submits its signed snapsh
   assert.equal(vm.runInContext('estimateCost()',root),145.32);
   assert.match(document.querySelector('.service-option.selected').textContent,/Price including VAT£145.32/);
   assert.match(document.querySelector('.guide-price-card').textContent,/VEHICLE PRICE/);
-  vm.runInContext("state.step=5;state.form.customer_name='Test';state.form.phone='Test';state.form.email='test@example.test';state.form.work_required='Full Service';render()",root);
+  vm.runInContext("state.step=5;state.form.parts_preference='mid_range';state.form.serious_repair_choice='book_later';state.form.customer_name='Test';state.form.phone='Test';state.form.email='test@example.test';state.form.work_required='Full Service';render()",root);
   await document.querySelector('#send').onclick();assert.ok(writes[0].service_price_token);
   assert.equal(writes[0].approximate_cost,145.32);assert.equal(verifyServicePrice(writes[0].service_price_token,request,secret).totalPence,14532);
   assert.ok(document.querySelector('.success'));

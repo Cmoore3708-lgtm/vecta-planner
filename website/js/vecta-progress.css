@@ -43,3 +43,5 @@ header.trackerHeader{padding:16px 22px 18px;background:#000;text-align:center;bo
 #declineWork{background:#eee;color:#222}
 .progressApproval [hidden]{display:none!important}
 #approvalStatus:empty{display:none}
+
+.customerInstructions{margin:18px 0;padding:18px 20px;border:2px solid #c4a05a;border-radius:14px;background:#fff8e8;color:#34280f}.customerInstructions h2{margin:0 0 10px;font-size:18px}.customerInstructions p{margin:10px 0;font-size:15px;font-weight:700;line-height:1.5;overflow-wrap:anywhere}

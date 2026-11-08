@@ -27,7 +27,7 @@ test('booking shows four accessible choices and retains NEVOS restriction',()=>{
  assert.deepEqual(cards.map(c=>c.dataset.type),['Service','MOT','Tyres','Other']);assert.equal(cards[0].hasAttribute('disabled'),true);assert.equal(cards[3].getAttribute('aria-pressed'),'true');assert.equal(cards[3].querySelector('strong').textContent,'Something else');
 });
 test('Something else requires a description while Service and MOT retain their rules',()=>{
- const form={job_types:['Other'],work_required:'',mot_advisories:[]};const context=vm.createContext({state:{step:2,form},isNevosEligibleVehicle:()=>false});
+ const form={parts_preference:'mid_range',job_types:['Other'],work_required:'',mot_advisories:[]};const context=vm.createContext({state:{step:2,form},isNevosEligibleVehicle:()=>false});
  vm.runInContext(fn('workDescriptionRequired','valid')+html.match(/function valid\(\)\{.*\}/)[0],context);
  assert.equal(Boolean(context.valid()),false);form.work_required='Rattle when braking';assert.equal(Boolean(context.valid()),true);
  form.job_types=['MOT'];form.work_required='';assert.equal(Boolean(context.valid()),true);
@@ -35,7 +35,7 @@ test('Something else requires a description while Service and MOT retain their r
 });
 test('receipt preserves the already rendered vehicle image, chosen service, tyres and escaped problem details',()=>{
  const {document}=parseHTML('<div class="vehicle-photo"><figure class="haynes-image"><img src="data:image/svg+xml,coloured-car" data-vehicle-ready="1" alt="Blue Nissan Qashqai"></figure></div>');
- const form={registration:'AB12 CDE',vehicle:'Nissan Qashqai',job_types:['Service','MOT','Tyres','Other'],service_choice:'Full Service',tyre_size:'225/45 R18',tyre_choice:'Premium',work_required:'Noise <script>alert(1)</script>\non braking',inspect_mot_advisories:'yes',mot_advisories:['Brake pads worn']};
+ const form={parts_preference:'mid_range',registration:'AB12 CDE',vehicle:'Nissan Qashqai',job_types:['Service','MOT','Tyres','Other'],service_choice:'Full Service',tyre_size:'225/45 R18',tyre_choice:'Premium',work_required:'Noise <script>alert(1)</script>\non braking',inspect_mot_advisories:'yes',mot_advisories:['Brake pads worn']};
  const context=vm.createContext({document,state:{form},esc,selectedTyreGuide:()=>null,savedTyreGuide:()=>null});vm.runInContext(fn('tyreReviewHtml','partsRangeHtml')+fn('bookingConfirmationSummaryHtml','submit').replace(/async $/,''),context);
  let receipt=parseHTML(context.bookingConfirmationSummaryHtml()).document;
  assert.equal(receipt.querySelector('img').getAttribute('src'),'data:image/svg+xml,coloured-car');assert.match(receipt.textContent||receipt.toString(),/AB12 CDE/);assert.match(receipt.toString(),/Full Service, MOT, Tyres, Something else/);assert.match(receipt.toString(),/225\/45 R18/);assert.match(receipt.toString(),/Premium/);assert.equal(receipt.querySelector('script'),null);assert.match(receipt.toString(),/Brake pads worn/);
@@ -43,7 +43,7 @@ test('receipt preserves the already rendered vehicle image, chosen service, tyre
 });
 
 test('Something else shows the customer car without wheel effects, examples and a closed NEVOS disclosure',()=>{
- const form={job_types:['Other'],registration:'CM14KEL',vehicle:'Nissan Qashqai',vehicle_colour:'white'};
+ const form={parts_preference:'mid_range',job_types:['Other'],registration:'CM14KEL',vehicle:'Nissan Qashqai',vehicle_colour:'white'};
  const context=vm.createContext({state:{form},haynesState:{vehicle:{imageUrl:'https://www.haynespro-assets.com/workshop/images/319106279.svg',make:'Nissan',model:'Qashqai'}},esc});
  vm.runInContext(fn('otherWorkOptionsHtml','workTypeCardsHtml'),context);
  const {document}=parseHTML(context.otherWorkOptionsHtml()),image=document.querySelector('img');
@@ -82,7 +82,7 @@ test('NEVOS question and required answer apply only to Nissan Qashqai and Juke v
   [{vehicle:'Qashqai'},false]
  ];
  for(const [identity,expected] of examples){
-  const form={...identity,job_types:['MOT'],work_required:'',nevos_vehicle:''};
+  const form={parts_preference:'mid_range',...identity,job_types:['MOT'],work_required:'',nevos_vehicle:''};
   const context=vm.createContext({state:{step:2,form},workDescriptionRequired:()=>false});
   vm.runInContext(fn('isNevosEligibleVehicle','isMotBooking')+fn('nevosHtml','workDescriptionRequired')+html.match(/function valid\(\)\{.*\}/)[0],context);
   assert.equal(context.isNevosEligibleVehicle(),expected,JSON.stringify(identity));assert.equal(context.nevosHtml().includes('Is this a NEVOS vehicle?'),expected);

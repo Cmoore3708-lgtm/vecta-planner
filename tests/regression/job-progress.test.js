@@ -183,8 +183,8 @@ test('registration lookup is limited to today, normalises plates and exposes onl
   global.fetch=async url=>{const u=new URL(url);requests.push(u);return Response.json(u.pathname.endsWith('/jobs')?rows:[{id:'vehicle_artwork:CM14KEL',value:{imageUrl:'https://www.haynespro-assets.com/workshop/images/123.svg',customer_name:'PRIVATE',email:'PRIVATE'}},{id:'vehicle_colour:CM14KEL',value:{colour:'Green',email:'PRIVATE'}}]);};
   try{
     const data=await registrationStatus('cm14 kel',now);
-    assert.deepEqual(Object.keys(data).sort(),['image_colour','image_url','images_allowed','job_description','registration','stage','title','vehicle','workshop_photos']);assert.equal(data.registration,'CM14KEL');assert.equal(data.stage,'underway');assert.equal(data.image_colour,'GREEN');assert.equal(data.vehicle,'Nissan Qashqai');assert.equal(data.job_description,'Full service');
-    assert.doesNotMatch(JSON.stringify(data),/PRIVATE|invoice|driver@example|customer|312/);
+    assert.deepEqual(Object.keys(data).sort(),['customer_instructions','image_colour','image_url','images_allowed','job_description','registration','stage','title','vehicle','workshop_photos']);assert.equal(data.registration,'CM14KEL');assert.equal(data.stage,'underway');assert.equal(data.image_colour,'GREEN');assert.equal(data.vehicle,'Nissan Qashqai');assert.equal(data.job_description,'Full service');
+    assert.doesNotMatch(JSON.stringify(data),/PRIVATE|invoice|driver@example|customer_note|customer_name|customer_email|312/);
     assert.equal(requests[0].searchParams.get('booking_date'),'eq.2026-11-03');assert.equal(requests[0].searchParams.get('registration'),'ilike.C*M*1*4*K*E*L');
     assert.equal(requests.length,3);assert.equal(requests[1].searchParams.get('id'),'in.(vehicle_artwork:CM14KEL,vehicle_colour:CM14KEL,vehicle_identity:CM14KEL,progress_scenes_v1:CM14KEL)');
     for(const patch of [{booking_date:'2026-11-04'},{booking_date:'2026-11-02'},{registration:'CM14 KELL'},{status:'quote'},{status:'cancelled'},{customer_note:'[[VECTA_SOFT_DELETE:abc]]'},{card_type:'mini_task'}]){rows=[{...job,...patch}];await assert.rejects(registrationStatus('CM14KEL',now),/No booking/);}
@@ -321,4 +321,21 @@ test('future job and receipt links expose no images or photo URLs and never queu
   assert.equal(kicks,0);assert.ok(calls.every(c=>c.method==='GET'));
   assert.ok(calls.every(c=>!c.url.includes('vehicle_artwork')&&!c.url.includes('job-workshop-photos')));
  }finally{global.fetch=original;restore();if(oldEnabled===undefined)delete process.env.VECTA_PROGRESS_SCENES_ENABLED;else process.env.VECTA_PROGRESS_SCENES_ENABLED=oldEnabled;}
+});
+
+test('customer instructions appear on registration, private and receipt progress even after description edits',async()=>{
+ const restore=environment(),original=global.fetch;
+ const preferences={version:1,parts:'mid_range',serious_repairs:'book_later'};
+ const request={id,registration:job.registration,vehicle:job.vehicle,email:job.customer_email,confirmed_date:job.booking_date,status:'awaiting_review',customer_preferences:preferences};
+ const saved={...job,work_required:'Description edited by mechanic',customer_note:globalThis.VectaBookingRules.customerPreferencesNote(request)};
+ global.fetch=async url=>Response.json(String(url).includes('website_booking_requests?')?[request]:String(url).includes('/jobs?')?[saved]:[]);
+ try{
+  const receiptToken=requestTrackingPath(request,now).split('#')[1];
+  const direct=issueProgressToken(saved,progressSecret(),now);
+  for(const result of [await customerStatus(receiptToken,now),await customerStatus(direct,now),await registrationStatus(job.registration,now)]){
+   assert.equal(result.customer_instructions[0],'Customer would like mid range parts');assert.match(result.customer_instructions[1],/Put the car back together/);
+   assert.doesNotMatch(JSON.stringify(result),/customer_note|VECTA_WEB_DETAILS|driver@example/);
+  }
+  request.job_id=saved.id;const result=await customerStatus(receiptToken,now);assert.equal(result.customer_instructions.length,2);assert.equal(result.job_description,'Description edited by mechanic');
+ }finally{global.fetch=original;restore();}
 });

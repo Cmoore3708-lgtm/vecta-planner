@@ -6,7 +6,7 @@ import {parseHTML} from 'linkedom';
 const html=fs.readFileSync('website/booking/index.html','utf8');
 function setup(step,form={}){
  const {document}=parseHTML('<div id="actions"></div>');
- const c={document,state:{step,lookup:'idle',form:{registration:'AB12CDE',vehicle:'Test car',job_types:[],service_choice:'',mileage:'',tyre_size:'',tyre_choice:'',tyre_positions:[],work_required:'',mot_advisories:[],customer_name:'',email:'',phone:'',...form}},haynesState:{status:'idle'},tyreGuideState:{status:'unavailable'},VectaWorkPhotos:{isBusy:()=>false},selectedTyreGuide:()=>null,tyreCategoryOptions:()=>[],esc:String,render(){},submit(){}};
+ const c={document,state:{step,lookup:'idle',form:{parts_preference:'mid_range',registration:'AB12CDE',vehicle:'Test car',job_types:[],service_choice:'',mileage:'',tyre_size:'',tyre_choice:'',tyre_positions:[],work_required:'',mot_advisories:[],customer_name:'',email:'',phone:'',...form}},haynesState:{status:'idle'},tyreGuideState:{status:'unavailable'},VectaWorkPhotos:{isBusy:()=>false},selectedTyreGuide:()=>null,tyreCategoryOptions:()=>[],esc:String,render(){},submit(){}};
  vm.createContext(c);
  for(const name of ['isNevosEligibleVehicle','workDescriptionRequired','valid','bookingMissingRequirements','renderActions']){
   const start=html.indexOf('function '+name+'(');vm.runInContext(html.slice(start,html.indexOf('\nfunction ',start+1)),c);

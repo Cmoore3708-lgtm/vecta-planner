@@ -52,7 +52,42 @@
     return kept.join('\n\n');
   }
 
+  var partsChoices={budget:'budget',mid_range:'mid range',oem:'OEM'};
+  var repairChoices={change_parts:'Change the parts',book_later:'Put the car back together, I’ll book it back in later.'};
+  function validCustomerPreferences(value){
+    return !!value&&value.version===1&&typeof value.parts==='string'&&Object.hasOwn(partsChoices,value.parts)&&typeof value.serious_repairs==='string'&&Object.hasOwn(repairChoices,value.serious_repairs);
+  }
+  function customerPreferences(record){
+    if(validCustomerPreferences(record&&record.customer_preferences))return record.customer_preferences;
+    // Read the server-created snapshot at the end of the note. A later edit to
+    // the job description must not erase the customer's original instructions.
+    var matches=Array.from(String(record&&record.customer_note||'').matchAll(/\[\[VECTA_WEB_DETAILS:([^\]]+)\]\]/g));
+    try{var details=JSON.parse(decodeURIComponent(matches[matches.length-1][1]));return validCustomerPreferences(details.customer_preferences)?details.customer_preferences:null;}catch(e){return null;}
+  }
+  function customerPreferenceLines(record){
+    var value=customerPreferences(record);if(!value)return [];
+    return ['Customer would like '+partsChoices[value.parts]+' parts',
+      'If we find anything serious that needs changing and cannot get hold of the customer: '+repairChoices[value.serious_repairs]];
+  }
+  function customerPreferencesNote(record){
+    var value=customerPreferences(record);return value?'\n[[VECTA_WEB_DETAILS:'+encodeURIComponent(JSON.stringify({customer_preferences:value}))+']]':'';
+  }
+  function customerPartsLabel(record){
+    var value=customerPreferences(record);return value?partsChoices[value.parts]:'';
+  }
+  function customerInstructionsHtml(record){
+    // Fixed allow-listed labels only; never include customer-written HTML here.
+    var lines=customerPreferenceLines(record);
+    return lines.length?'<aside class="jobCustomerInstructions" aria-label="Customer instructions"><h4>Customer instructions</h4>'+lines.map(function(line){return '<p>'+line+'</p>'}).join('')+'</aside>':'';
+  }
+
   root.VectaBookingRules=Object.freeze({
+    customerPartsLabel:customerPartsLabel,
+    customerInstructionsHtml:customerInstructionsHtml,
+    validCustomerPreferences:validCustomerPreferences,
+    customerPreferences:customerPreferences,
+    customerPreferenceLines:customerPreferenceLines,
+    customerPreferencesNote:customerPreferencesNote,
     bookingWorkDescription:bookingWorkDescription,
     isSparkPlugInstruction:isSparkPlugInstruction,
     statusKey:statusKey,

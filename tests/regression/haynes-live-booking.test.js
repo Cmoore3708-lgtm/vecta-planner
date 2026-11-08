@@ -19,13 +19,13 @@ for(const path of ['public/booking.html','website/booking/index.html'])test(`${p
  assert.equal(vm.runInContext('state.step',root),2);
  assert.equal(document.querySelector('[data-haynes-confirm]'),null);
  for(const answer of ['yes','no']){vm.runInContext("state.form.nevos_vehicle='';render()",root);assert.ok(document.querySelector('.nevos-question'));document.querySelector('[data-nevos-choice="'+answer+'"]').onclick();assert.equal(document.querySelector('.nevos-question'),null);assert.equal(vm.runInContext('state.form.nevos_vehicle',root),answer);}
- vm.runInContext("state.form.job_types=['Service'];state.form.service_choice='Full Service';state.form.parts_range='Mid Range';state.form.inspect_mot_advisories='yes'",root);
+ vm.runInContext("state.form.job_types=['Service'];state.form.service_choice='Full Service';state.form.parts_range='Mid Range';state.form.parts_preference='oem';state.form.serious_repair_choice='book_later';state.form.inspect_mot_advisories='yes'",root);
  assert.equal(vm.runInContext('estimateCost()',root),155);
  for(let step=1;step<=5;step++){
   vm.runInContext(`state.step=${step};render()`,root);
   assert.equal(document.querySelectorAll('[data-haynes-slot]').length,1);
   assert.match(document.querySelector('[data-haynes-slot]').textContent,/MR16DDT/);
-  assert.equal(Boolean(document.querySelector('.mini-valet-offer')),step===5);
+  assert.equal(document.querySelector('.mini-valet-offer'),null,'Full Service never offers a paid Mini Valet');
   if(step===1){
    assert.match(document.querySelector('.advisories').textContent,/Tyre worn/);
    const details=document.querySelector('.haynes-vehicle');
@@ -41,6 +41,8 @@ for(const path of ['public/booking.html','website/booking/index.html'])test(`${p
   else {assert.equal(document.querySelector('.vehicle-summary'),null);assert.doesNotMatch(document.querySelector('[data-haynes-slot]').textContent,/Mileage at last MOT|MOT due|Tyre worn/);}
   assert.equal(document.querySelector('[data-image-colour]'),null);
  }
+ vm.runInContext("state.form.service_choice='Oil & Filter Change';render()",root);
+ const baseEstimate=vm.runInContext('estimateCost()',root);
  const offer=document.querySelector('.mini-valet-offer'),checkbox=offer.querySelector('input');
  assert.ok(offer.hasAttribute('open'));assert.equal(checkbox.checked,false);
  assert.equal(offer.querySelector('li:last-child').textContent,'Dashboard & Media screens cleaned');
@@ -68,7 +70,7 @@ for(const path of ['public/booking.html','website/booking/index.html'])test(`${p
  assert.equal(document.querySelector('#send').hasAttribute('disabled'),false);
  await document.querySelector('#send').onclick();
  const write=requests.find(r=>r.url==='/api/website-booking');assert.ok(write,'live submit must remain enabled');
- const body=JSON.parse(write.options.body);assert.equal(body.approximate_cost,155);assert.equal(body.mini_valet,true);assert.equal(document.querySelector('.mini-valet-offer'),null);assert.match(document.querySelector('.booking-receipt').textContent,/Mini valet · £30/);assert.match(body.work_required,/Tyre worn/);
+ const body=JSON.parse(write.options.body);assert.equal(body.approximate_cost,baseEstimate);assert.equal(body.mini_valet,true);assert.deepEqual(body.customer_preferences,{version:1,parts:'oem',serious_repairs:'book_later'});assert.equal(document.querySelector('.mini-valet-offer'),null);assert.match(document.querySelector('.booking-receipt').textContent,/Mini valet · £30/);assert.match(body.work_required,/Tyre worn/);
  assert.doesNotMatch(html,/Bookings cannot be submitted|Test — booking disabled/);
 });
 for(const path of ['public/booking.html','website/booking/index.html'])test(`${path}: optional copy cannot delay the form or override the approved confirmation message`,async()=>{
