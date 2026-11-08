@@ -108,11 +108,12 @@ test('data migrations run at explicit local, cloud and realtime ingress boundari
 test('Fleet snapshot and due-list features are owned by their canonical functions', () => {
   const snapshot = namedFunctionSource('applyFleetCloudSnapshot');
   const maintenance = namedFunctionSource('fleetMaintenanceHtml');
+  const dueRow = namedFunctionSource('fleetDueRow');
   assert.match(snapshot, /applyFleetEmailSentSnapshot\s*\(value\)/, 'cloud snapshots must retain email-sent state');
-  assert.match(maintenance, /fleetListMode==='due30'\?'due30Columns'/, 'the due-30 table must retain its compact dedicated layout');
-  assert.match(maintenance, /fleetListMode==='due30'\?'<span>Booking type<\/span><span>✓<\/span><span>Booked<\/span><span>Email sent<\/span>'/, 'the due-30 table must retain the requested right-side headings');
-  assert.match(maintenance, /fleetShortVehicle\(v\.model\)/, 'the due-30 vehicle column must show only the first model word');
-  assert.match(maintenance, /fleetWorkDueGroupCell\(group\.items\)\+fleetBookingTypeGroupCell\(group\.items\)\+fleetBookedTickGroupCell\(group\.items\)\+fleetBookedGroupCell\(group\.items,v\)\+fleetEmailSentCell\(group\)/, 'work due, booking type, booked tick, booked date and email audit must retain dedicated ordered columns');
+  assert.match(maintenance, /workMode\?'due30Columns'/, 'the due-30 table must retain its compact dedicated layout');
+  assert.match(maintenance, /workMode\?'<span>Booking type<\/span><span>✓<\/span><span>Booked<\/span><span>Email sent<\/span>'/, 'the due-30 table must retain the requested right-side headings');
+  assert.match(dueRow, /fleetShortVehicle\(v\.model\)/, 'the due-30 vehicle column must show only the first model word');
+  assert.match(dueRow, /fleetWorkDueGroupCell\(group\.items\)\+fleetBookingTypeGroupCell\(group\.items\)\+fleetBookedTickGroupCell\(group\.items\)\+fleetBookedGroupCell\(group\.items,v\)\+fleetEmailSentCell\(emailGroup\|\|group\)/, 'work due, booking type, booked tick, booked date and email audit must retain dedicated ordered columns');
   assert.doesNotMatch(html, /fleetApplyCloudSnapshotBase|fleetMaintenanceHtmlV330Base/, 'Fleet behavior must not be installed through base-function wrappers');
 });
 

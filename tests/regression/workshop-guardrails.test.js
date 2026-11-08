@@ -29,7 +29,7 @@ test('Fleet due list links booked dates to planner days and dates email audit ti
   assert.match(html,/async function fleetOpenTrackedEmail\(link,ev\)[\s\S]*?fleetOpenEmailBooking\(v,plans\);[\s\S]*?window\.location\.href=mailto/, 'email click must open the job card before opening Outlook');
   assert.match(html,/document\.addEventListener\('click',[\s\S]*?closest\('\.contactEmailLink,\.fleetReminderEmailLink'\)[\s\S]*?fleetOpenTrackedEmail\(link,ev\)[\s\S]*?,true\)/, 'dynamically opened vehicle email links must be captured');
   assert.match(html,/<span>Booking type<\/span><span>✓<\/span><span>Booked<\/span><span>Email sent<\/span>/, 'the due list headers must keep the booked tick in its own column');
-  assert.match(html,/fleetWorkDueGroupCell\(group\.items\)\+fleetBookingTypeGroupCell\(group\.items\)\+fleetBookedTickGroupCell\(group\.items\)\+fleetBookedGroupCell\(group\.items,v\)\+fleetEmailSentCell\(group\)/, 'Email sent must remain the far-right cell');
+  assert.match(html,/fleetWorkDueGroupCell\(group\.items\)\+fleetBookingTypeGroupCell\(group\.items\)\+fleetBookedTickGroupCell\(group\.items\)\+fleetBookedGroupCell\(group\.items,v\)\+fleetEmailSentCell\(emailGroup\|\|group\)/, 'Email sent must remain the far-right cell');
   assert.match(html,/function fleetBookedTickGroupCell\(items\)[\s\S]*?fleetBookedTick\(item\.bookedJob\)/, 'the red booked tick must be rendered by its own dedicated column');
   assert.match(html,/\.fleetRow\.due30Columns\{padding-top:7px;padding-bottom:7px\}/, 'single-work Fleet rows must remain compact');
   assert.match(html,/\.fleetEmailSentCheck input\{width:16px!important;height:16px!important\}/, 'the far-right email checkbox must remain compact');
