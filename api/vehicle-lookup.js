@@ -1,5 +1,6 @@
 import {waitUntil} from '@vercel/functions';
 import {saveVehicleColour} from '../lib/haynes-shared-artwork.js';
+import {cachedVehicleLookup} from '../lib/vehicle-lookup-fallback.js';
 export function createVehicleLookup({fetch: request = (...args) => fetch(...args), env = process.env, now = Date.now, tokenTimeout = 4000, motTimeout = 8000, taxTimeout = 4000, maxInFlight = 64, onColour = null} = {}) {
 let tokenCache = { accessToken: '', expiresAt: 0 };
 let tokenPending = null;
@@ -188,7 +189,11 @@ async function handler(req, res) {
     pendingVehicles.set(registration, pending);
     pending.finally(() => {if(pendingVehicles.get(registration)===pending)pendingVehicles.delete(registration);});
   }
-  const result = await pending;
+  let result = await pending;
+  if([429,500,502,503,504].includes(result.status)){
+    const saved=await cachedVehicleLookup(registration);
+    if(saved)result={status:200,body:saved};
+  }
   if(result.retryAfter)res.setHeader('Retry-After',result.retryAfter);
   if(result.status===200&&onColour){try{onColour(result.body);}catch{ /* Optional artwork storage must not fail an MOT lookup. */ }}
   return res.status(result.status).json(structuredClone(result.body));
