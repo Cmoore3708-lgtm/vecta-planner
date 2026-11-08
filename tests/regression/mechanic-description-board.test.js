@@ -122,7 +122,7 @@ test('natural-height cards preserve queue order, all mechanic groups, backlog an
  assert.match(t.document.querySelector('[data-open-job="chris"]').textContent,/Provisionally booked/);
  assert.match(t.document.querySelector('[data-open-job="chris"]').getAttribute('style'),/#cbd0d7/);
  assert.equal(t.document.querySelectorAll('.mechanicBoardBacklog .mechanicQueueCard').length,3);
- assert.equal(groups[1].querySelector('[data-open-job="chris"]'),null);
+ assert.ok(groups[1].querySelector('[data-open-job="chris"]'),'provisional bookings also appear in their assigned diary');
  assert.equal(t.document.querySelector('.provisionalBookingsPanel').nextElementSibling.querySelector('h2').textContent,'Unallocated jobs1');
  assert.equal(t.document.querySelector('#notesArea').value,'Workshop notes');
 });

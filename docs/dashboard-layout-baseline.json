@@ -61,7 +61,7 @@
           "6f3578d03d6a62e5a707800ce51f656f2f698a5b0b6d03f41d0af13429d637b8"
         ],
         "plannerHtml": [
-          "fb7b1d61a1356b46c39869390718b67f91c7446d45d205b6fe3289720f72d2b3"
+          "9b076df7228b59d2162d07eb27ab5f2dcbd8e78036e7fb32bbfc407a60094331"
         ],
         "plannerJobDescription": [
           "b065de30a6defeafe986041288227930b82520135cda2fd7f1e489fec8b23b34"
@@ -166,7 +166,7 @@
           "6f3578d03d6a62e5a707800ce51f656f2f698a5b0b6d03f41d0af13429d637b8"
         ],
         "plannerHtml": [
-          "fb7b1d61a1356b46c39869390718b67f91c7446d45d205b6fe3289720f72d2b3"
+          "9b076df7228b59d2162d07eb27ab5f2dcbd8e78036e7fb32bbfc407a60094331"
         ],
         "plannerJobDescription": [
           "b065de30a6defeafe986041288227930b82520135cda2fd7f1e489fec8b23b34"
@@ -219,6 +219,11 @@
       "date": "2026-10-22",
       "request": "Move the customer/name down a few pixels so it is not touching the registration plate; move MOT details to the left; move the work description up one full line.",
       "reason": "Requested desktop spacing refinement: customer row gap 3px to 6px, MOT row spans from left, standard description 64px to 46px and MOT description 72px to 54px. Preserve space for additional booking-type rows and compact cards. Phone CSS and shared renderers unchanged."
+    },
+    {
+      "date": "2026-11-08",
+      "request": "Chris reports Tuesday 10 November provisional bookings assigned to Chris appear only in Provisional Bookings and asks for grey diary entries under Chris.",
+      "reason": "Only plannerHtml is recaptured. It now passes the active dated jobs, including provisional reservations, to the existing desktop, phone and mechanics renderers. Existing grey styles, saved dates/times, confirmation controls and provisional review panel remain unchanged. Actual Main desktop/phone and generated mechanics markup verified with manual and website provisional fixtures; automated Chromium checks at 320, 390, 820 and 1440px are included in the release gate."
     }
   ],
   "verification": {
