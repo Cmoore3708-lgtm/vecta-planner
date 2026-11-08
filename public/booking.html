@@ -1084,9 +1084,11 @@ window.matchMedia?.('(prefers-reduced-motion: reduce)').addEventListener?.('chan
 </style>
 <style id="customer-choices-style">
 .step>label:has([data-field="work_required"]),.customer-choice legend{font-weight:400}
-.customer-choice{margin:20px 0 0;padding:18px;border:1px solid #667280;border-radius:14px;background:#202831;color:#fff;min-width:0}
-.customer-choice legend{padding:0 6px;font-size:16px;line-height:1.5;color:#fff;max-width:100%}
-.customer-choice-options{display:flex;gap:12px;flex-wrap:wrap}.customer-choice label{box-sizing:border-box;display:flex;align-items:center;gap:10px;flex:1;min-width:90px;min-height:48px;padding:12px;margin:0;border:2px solid #697586;border-radius:9px;cursor:pointer;font-size:15px;font-weight:400;color:#fff;background:#303b48}
+.customer-choice{box-sizing:border-box;width:100%;max-width:100%;margin:20px 0 0;padding:18px;border:1px solid #667280;border-radius:14px;background:#202831;color:#fff;min-width:0}
+/* Keep the accessible legend inside the card, including multi-line questions. */
+.customer-choice legend{float:left;width:100%;padding:0;margin:0 0 18px;font-size:16px;line-height:1.5;color:#fff;max-width:100%;overflow-wrap:anywhere}
+.customer-choice-options{clear:both;display:flex;gap:12px;flex-wrap:wrap}.customer-choice label{box-sizing:border-box;display:flex;align-items:center;gap:10px;flex:1;min-width:90px;min-height:48px;padding:12px;margin:0;border:2px solid #697586;border-radius:9px;cursor:pointer;font-size:15px;font-weight:400;color:#fff;background:#303b48}
+.customer-choice label>span{min-width:0;overflow-wrap:anywhere}
 .parts-choice label:has([value="budget"]){color:#d49a6a;border-color:#8e684a;background:linear-gradient(145deg,#47382d,#2c2926)}
 .parts-choice label:has([value="mid_range"]){color:#d5dae1;border-color:#8d959f;background:linear-gradient(145deg,#41474f,#293039)}
 .parts-choice label:has([value="oem"]){color:#ddba5f;border-color:#9f8648;background:linear-gradient(145deg,#453d29,#2e2b23)}
@@ -1127,4 +1129,22 @@ dialog.mini-valet-offer[data-selected="true"]{border-color:var(--selection-green
 .mini-valet-offer footer input{appearance:none;display:inline-grid;place-items:center;width:16px;height:16px;flex:none;margin:0;padding:0;border:1.5px solid #acb4bd;border-radius:4px;background:#1d242a}
 .mini-valet-offer footer input:checked{border-color:#42c87b;color:#42c87b;background:#172d22}
 .mini-valet-offer footer input:checked::after{content:"✓";font:bold 11px/1 Arial,sans-serif}
+</style>
+<style id="booking-mobile-containment">
+/* Let form grids shrink to the available width instead of their content width. */
+.grid2>*,.grid3>*,.review>*{min-width:0}
+.step input,.step select,.step textarea{min-width:0;max-width:100%}
+.review{grid-template-columns:minmax(0,1fr)}
+.review,.success{overflow-wrap:anywhere}
+.actions{flex-wrap:wrap;gap:12px}
+.actions button{max-width:100%;white-space:normal}
+.actions .primary{margin-left:auto}
+@media(max-width:1024px){
+ /* iPhone Safari zooms focused fields below 16px; keep user pinch zoom enabled. */
+ .step input[data-field]:not(.reg),.step select,.step label:has(textarea) textarea{font-size:16px}
+ .grid2{grid-template-columns:repeat(2,minmax(0,1fr))}
+ .grid3{grid-template-columns:repeat(3,minmax(0,1fr))}
+ .mot-notice{max-height:calc(100dvh - 40px);overflow:auto}
+}
+@media(max-width:700px){.grid2,.grid3{grid-template-columns:minmax(0,1fr)}}
 </style>
