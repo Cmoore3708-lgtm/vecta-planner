@@ -436,6 +436,9 @@ async function lookupRegistration(request){
     state.form.inspect_mot_advisories='';
     state.form.advisory_tyre_choice='';
     state.lookup='success';
+    // Move straight to Work once the registration has been identified.
+    // Failed lookups remain on the vehicle step for manual entry.
+    state.step=2;
     render();
     void haynesLookup.lookup(reg);
   }catch(error){
