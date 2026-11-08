@@ -47,6 +47,8 @@ export default async function handler(req,res){
   for(const [field,limit] of Object.entries({customer_name:200,email:254,phone:40,registration:12,vehicle:200,work_required:10000,mileage:20,completion_deadline:500,contact_preference:30})){
    if(b[field]!=null&&(typeof b[field]!=='string'||b[field].length>limit))return res.status(400).json({error:'Invalid '+field});
   }
+  const preferences=b.customer_preferences;
+  if(preferences!=null&&!globalThis.VectaBookingRules.validCustomerPreferences(preferences))return res.status(400).json({error:'Choose your parts preference and serious-repair instruction.'});
   const photos=bookingPhotos(b.work_photos);
   const types=bookingTypes(b);
   const extra=bookingServiceExtra(b);
@@ -64,6 +66,7 @@ export default async function handler(req,res){
   const suppliedTotal=b.approximate_cost;
   const hasTotal=(typeof suppliedTotal==='number'||(typeof suppliedTotal==='string'&&suppliedTotal.trim()!==''))&&Number.isFinite(Number(suppliedTotal))&&Number(suppliedTotal)>=0;
   const request={id,customer_name:String(b.customer_name).trim(),email:String(b.email).trim(),phone:String(b.phone).trim(),registration:reg(b.registration),vehicle:String(b.vehicle).trim(),mileage:String(b.mileage||'').trim(),mot_due:b.mot_due||null,job_types:types,work_required:String(b.work_required).trim(),preferred_date_1:appointment,preferred_date_2:null,preferred_date_3:null,completion_deadline:String(b.completion_deadline||'').trim(),contact_preference:String(b.contact_preference||'Email'),source:'Website booking',status:'awaiting_review',confirmed_date:appointment,confirmed_time:b.appointment_time||null,approximate_cost:hasTotal?Number(suppliedTotal):null,created_at:new Date().toISOString()};
+  if(preferences)request.customer_preferences={version:1,parts:preferences.parts,serious_repairs:preferences.serious_repairs};
   // The primary key makes concurrent retries atomic without overwriting a request.
   if(servicePrice){
    request.approximate_cost=servicePrice.approximateCost;request.work_required+=servicePrice.snapshot;
@@ -108,7 +111,7 @@ export default async function handler(req,res){
    // Earlier bookings recorded the valet in work_required only. The work and price still have to match.
    const comparison=b.mini_valet===true&&Array.isArray(existing?.job_types)&&!existing.job_types.includes('Mini valet')
     ? {...request,job_types:types} : request;
-   const fields=['customer_name','email','phone','registration','vehicle','mileage','mot_due','job_types','work_required','preferred_date_1','completion_deadline','contact_preference','approximate_cost','gsf_parts'];
+   const fields=['customer_name','email','phone','registration','vehicle','mileage','mot_due','job_types','work_required','preferred_date_1','completion_deadline','contact_preference','approximate_cost','gsf_parts','customer_preferences'];
    if(photos.length!==Number(existing?.work_photo_count||0))return res.status(409).json({error:'This request identity belongs to different booking photos'});
    if(photos.length){const saved=await rest(url,key,`website_booking_photos?request_id=eq.${id}&select=photos&limit=1`);if(!isDeepStrictEqual(saved?.[0]?.photos,photos))return res.status(409).json({error:'This request identity belongs to different booking photos'});}
    if(!existing||(b.appointment_time&&String(existing.confirmed_time||'').slice(0,5)!==b.appointment_time)||fields.some(field=>!sameBookingField(field,existing[field],comparison[field])))return res.status(409).json({error:'This request identity belongs to different booking details'});

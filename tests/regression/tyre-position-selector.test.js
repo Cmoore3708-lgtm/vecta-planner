@@ -142,9 +142,9 @@ test('last-checked prices remain visible after a refresh failure but never becom
  assert.equal(context.selectedTyreGuide(),null);assert.equal(context.savedTyreGuide(),null);assert.doesNotMatch(context.tyreBookingDescription(),/£85/);
 });
 test('tyres-only notes are optional with the requested placeholder; mixed repair work retains its required description',()=>{
- const {context,root,document,form}=setup();context.state.step=2;form.work_required='';
+ const {context,root,document,form}=setup();context.state.step=2;form.parts_preference='mid_range';form.work_required='';
  Object.assign(root,{recommendationsHtml:()=>'',workTypeCardsHtml:()=>'',serviceOptionsHtml:()=>'',isNevosEligibleVehicle:()=>false});
- for(const name of ['workDescriptionRequired','otherWorkOptionsHtml','stepHtml']){const start=booking.indexOf('function '+name+'('),end=booking.indexOf('\nfunction ',start+1);vm.runInContext(booking.slice(start,end),context);}
+ for(const name of ['workDescriptionRequired','partsRangeHtml','otherWorkOptionsHtml','stepHtml']){const start=booking.indexOf('function '+name+'('),end=booking.indexOf('\nfunction ',start+1);vm.runInContext(booking.slice(start,end),context);}
  vm.runInContext(booking.match(/function valid\(\)\{.*\}/)[0],context);
  form.tyre_positions=['Front passenger'];form.tyre_quantity=1;form.tyre_brand='';
  document.querySelector('main').innerHTML=context.stepHtml();

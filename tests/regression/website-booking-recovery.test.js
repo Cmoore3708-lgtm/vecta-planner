@@ -149,3 +149,18 @@ test('leaving a mini valet unticked keeps the original estimate and work descrip
   assert.equal(rows.get(id).work_required,payload.work_required);
  });
 });
+
+test('customer preferences are validated, persisted separately and included in retry identity',async()=>withDatabase(async db=>{
+ const preferences={version:1,parts:'oem',serious_repairs:'book_later'};
+ const body={...payload,request_id:id,customer_preferences:preferences};
+ for(const invalid of [{}, {...preferences,parts:'premium'}, {...preferences,serious_repairs:''}, {...preferences,serious_repairs:'__proto__'}, {...preferences,version:'1'}]){
+  assert.equal((await db.submit({...body,customer_preferences:invalid})).code,400);assert.equal(db.rows.size,0);
+ }
+ assert.equal((await db.submit(body)).code,201);
+ assert.deepEqual(db.rows.get(id).customer_preferences,preferences);
+ assert.equal(db.rows.get(id).work_required,payload.work_required,'preferences cannot become editable work or invoice lines');
+ assert.equal((await db.submit(body)).code,200);
+ assert.equal((await db.submit({...body,customer_preferences:{...preferences,parts:'budget'}})).code,409);
+ assert.equal((await db.submit({...body,customer_preferences:{...preferences,serious_repairs:'change_parts'}})).code,409);
+ assert.deepEqual(db.rows.get(id).customer_preferences,preferences);
+}));

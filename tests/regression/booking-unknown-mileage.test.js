@@ -8,7 +8,7 @@ for (const path of ['public/booking.html','website/booking/index.html']) {
  const html=fs.readFileSync(path,'utf8');
  const valid=html.match(/function valid\(\)\{.*\}/)[0];
  test(`${path}: service bookings require mileage or the explicit unknown choice`,()=>{
-  const form={vehicle:'Test vehicle',vehicle_make:'Test',mot_advisories:[],job_types:['Service'],service_choice:'Full Service',mileage:'',mileage_unknown:false};
+  const form={parts_preference:'mid_range',vehicle:'Test vehicle',vehicle_make:'Test',mot_advisories:[],job_types:['Service'],service_choice:'Full Service',mileage:'',mileage_unknown:false};
   const context=vm.createContext({state:{step:2,form},isNevosEligibleVehicle:()=>false,workDescriptionRequired:()=>false});
   vm.runInContext(valid,context);
   assert.equal(Boolean(context.valid()),false);
@@ -28,8 +28,8 @@ for (const path of ['public/booking.html','website/booking/index.html']) {
   checkbox.checked=false;checkbox.onchange();assert.equal(context.state.form.mileage_unknown,false);assert.equal(renders,0);assert.equal(validityUpdates,2);assert.equal(input.disabled,false);assert.equal(input.value,'');
  });
  test(`${path}: servicing shows last MOT mileage beside current mileage and an accessible checkbox`,()=>{
-  const form={job_types:['Service'],last_mot_mileage:'110000',mileage:'',mileage_unknown:true,work_required:''};
-  const context=vm.createContext({state:{step:2,form},esc:String,prettyMiles:value=>`${value} miles`,recommendationsHtml:()=>'',workTypeCardsHtml:()=>'',tyreOptionsHtml:()=>'',serviceOptionsHtml:()=>'',haynesState:{},workDescriptionRequired:()=>false,prettyDate:value=>value});
+  const form={parts_preference:'mid_range',job_types:['Service'],last_mot_mileage:'110000',mileage:'',mileage_unknown:true,work_required:''};
+  const context=vm.createContext({state:{step:2,form},esc:String,prettyMiles:value=>`${value} miles`,recommendationsHtml:()=>'',partsRangeHtml:()=>'',workTypeCardsHtml:()=>'',tyreOptionsHtml:()=>'',serviceOptionsHtml:()=>'',haynesState:{},workDescriptionRequired:()=>false,prettyDate:value=>value});
   vm.runInContext(html.slice(html.indexOf('function lastMotMileageLabel(){'),html.indexOf('function lookupHtml(){')),context);
   vm.runInContext(html.slice(html.indexOf('function otherWorkOptionsHtml(){'),html.indexOf('function workTypeCardsHtml(')),context);
   vm.runInContext(html.slice(html.indexOf('function stepHtml(){'),html.indexOf('function render(){')),context);
@@ -63,8 +63,8 @@ for(const path of ['public/booking.html','website/booking/index.html']){
 for(const path of ['public/booking.html','website/booking/index.html']){
  test(path+': mileage dialog restores entered values, validates input and saves unknown or known mileage',()=>{
   const html=fs.readFileSync(path,'utf8');
-  const form={job_types:['Service'],service_choice:'Full Service',last_mot_mileage:'110000',mileage:'',mileage_unknown:false,work_required:''};
-  const context=vm.createContext({state:{step:2,mileage_dialog_open:true,form},esc:String,prettyMiles:v=>`${v} miles`,recommendationsHtml:()=>'',workTypeCardsHtml:()=>'',tyreOptionsHtml:()=>'',serviceOptionsHtml:()=>'',pricingHtml:()=>'',haynesState:{},workDescriptionRequired:()=>false,prettyDate:v=>v});
+  const form={parts_preference:'mid_range',job_types:['Service'],service_choice:'Full Service',last_mot_mileage:'110000',mileage:'',mileage_unknown:false,work_required:''};
+  const context=vm.createContext({state:{step:2,mileage_dialog_open:true,form},esc:String,prettyMiles:v=>`${v} miles`,recommendationsHtml:()=>'',partsRangeHtml:()=>'',workTypeCardsHtml:()=>'',tyreOptionsHtml:()=>'',serviceOptionsHtml:()=>'',pricingHtml:()=>'',haynesState:{},workDescriptionRequired:()=>false,prettyDate:v=>v});
   vm.runInContext(html.slice(html.indexOf('function lastMotMileageLabel(){'),html.indexOf('function lookupHtml(){')),context);
   vm.runInContext(html.slice(html.indexOf('function otherWorkOptionsHtml(){'),html.indexOf('function workTypeCardsHtml(')),context);
   vm.runInContext(html.slice(html.indexOf('function stepHtml(){'),html.indexOf('function serviceMileageValid(){')),context);

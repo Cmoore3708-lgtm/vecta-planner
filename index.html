@@ -12973,7 +12973,7 @@ async function updateWebsiteRequest(id,changes){
 
 function websiteRequestNote(r){
   var requestedDate=String(r.preferred_date_1||'').slice(0,10),createdAt=String(r.created_at||''),notes=String(r.work_required||'').replace(/\s+/g,' ').trim();
-  return 'Website request ID: '+String(r.id||'')+' || Website booking made: '+createdAt+' || Website requested date: '+requestedDate+' || Website customer notes: '+notes+' || Completion deadline: '+String(r.completion_deadline||'Not provided')+' || Contact preference: '+String(r.contact_preference||'Not provided');
+  return 'Website request ID: '+String(r.id||'')+' || Website booking made: '+createdAt+' || Website requested date: '+requestedDate+' || Website customer notes: '+notes+' || Completion deadline: '+String(r.completion_deadline||'Not provided')+' || Contact preference: '+String(r.contact_preference||'Not provided')+window.VectaBookingRules.customerPreferencesNote(r);
 }
 function websiteRequestIdFromJob(j){return window.VectaBookingRules.requestIdFromJob(j)}
 
@@ -13369,6 +13369,7 @@ function bindPartsOrdering(){document.querySelectorAll('[data-part-ordered]').fo
 
 var PARTS_RANGE_MARKER=/\[\[PARTS_RANGE:([^\]]+)\]\]/i;
 function jobPartsRange(j){
+  var preference=window.VectaBookingRules.customerPartsLabel(j);if(preference)return preference;
   var direct=String(j&&j.parts_range||'').trim();
   if(direct)return direct;
   var m=String(j&&j.customer_note||'').match(PARTS_RANGE_MARKER);
@@ -13383,8 +13384,9 @@ function jobPartsRangeDisplay(j){
   return raw;
 }
 function jobPartsRangeWorkHtml(j){
+  var instructions=window.VectaBookingRules.customerInstructionsHtml(j);if(instructions)return instructions;
   var range=jobPartsRangeDisplay(j);
-  return range?'<div class="jobPartsRangeWork"><span>Customer parts choice</span><strong>'+esc(range)+'</strong></div>':'';
+  return range?'<div class="jobPartsRangeWork"><strong>Customer would like '+esc(range)+' parts</strong></div>':'';
 }
 
 function jobPartsEditorHtml(j){var rows=jobParts(j),range=jobPartsRangeDisplay(j);function row(p){return '<div class="jobPartRow" data-job-part data-part-id="'+esc(p.id||uid())+'"'+(p.tyre_selection?' data-tyre-selection="'+esc(JSON.stringify(p.tyre_selection))+'"':'')+'><input type="text" data-part-description placeholder="Part description" value="'+esc(p.description||'')+'"><input type="number" data-part-quantity min="1" step="1" value="'+esc(p.quantity||1)+'"><input type="number" data-part-cost-price aria-label="Cost price excluding VAT (£)" placeholder="Cost ex VAT £" min="0" step="0.01" value="'+esc(p.cost_price==null?'':p.cost_price)+'"><label class="jobPartCheck"><input type="checkbox" data-part-ordered-edit '+(p.ordered?'checked':'')+'>Ordered</label><label class="jobPartCheck"><input type="checkbox" data-part-arrived-edit '+(p.arrived?'checked':'')+'>Arrived</label><button type="button" class="jobPartRemove" data-remove-job-part>×</button></div>'}return '<section class="jobFormSection"><div class="jobFormSectionHead"><span class="jobSectionNumber">P</span><div><h3>Parts ordering list'+(range?' <span class="jobPartsRangeHeading">*('+esc(range)+')*</span>':'')+'</h3><p>Purchase costs exclude VAT. For ordering and arrival tracking only — this does not change Work required</p></div></div><div class="jobPartsEditor" id="jobPartsEditor">'+rows.map(row).join('')+'</div><div class="jobPartsActions"><button type="button" class="btn" id="addJobPart">+ Add part</button>'+select('Parts status','parts_status',partsStatusFromJob(j),PARTS_STATUS_VALUES)+'</div></section>'}
@@ -16765,7 +16767,7 @@ function printDay(){
   document.getElementById('printSheet').innerHTML='<div class="printPlannerDay">'+head+grid+'<div class="printPlannerFooter"><div><b>Notes</b></div><div><b>Manager sign-off</b></div></div></div>';
   printWhenImagesReady()
 }
-function printJob(j){document.getElementById('printSheet').innerHTML='<div class="printHead"><div><img class="vectaBrandLogo printBrandLogo" src="'+BRAND_LOGO_SRC+'" alt="VECTA Vehicle Servicing and repairs"><div>Job Card</div></div><div class="printTitle">'+esc(jobVehicleLabel(j))+'</div></div><div class="printGrid"><div class="printBox"><h3>Customer</h3>'+esc(j.customer_name||'')+'<br>'+esc(j.customer_phone||'')+'</div><div class="printBox"><h3>Vehicle</h3>'+esc(j.vehicle||'')+'<br>'+esc(j.booking_date||'')+' '+esc(j.drop_time||'')+'</div><div class="printBox"><h3>Work Required</h3>'+esc(j.work_required||'')+'</div><div class="printBox"><h3>Technician</h3>'+esc(j.technician||'')+' · '+esc(j.ramp||'')+'</div></div><div class="printBox" style="margin-top:10px;min-height:80px"><h3>Technician Notes</h3>'+esc(j.technician_notes||'')+'</div><div class="sign"><div class="signature">Technician signature</div><div class="signature">Customer / authorisation</div></div>';printWhenImagesReady()}
+function printJob(j){document.getElementById('printSheet').innerHTML='<div class="printHead"><div><img class="vectaBrandLogo printBrandLogo" src="'+BRAND_LOGO_SRC+'" alt="VECTA Vehicle Servicing and repairs"><div>Job Card</div></div><div class="printTitle">'+esc(jobVehicleLabel(j))+'</div></div><div class="printGrid"><div class="printBox"><h3>Customer</h3>'+esc(j.customer_name||'')+'<br>'+esc(j.customer_phone||'')+'</div><div class="printBox"><h3>Vehicle</h3>'+esc(j.vehicle||'')+'<br>'+esc(j.booking_date||'')+' '+esc(j.drop_time||'')+'</div><div class="printBox"><h3>Work Required</h3>'+esc(j.work_required||'')+jobPartsRangeWorkHtml(j)+'</div><div class="printBox"><h3>Technician</h3>'+esc(j.technician||'')+' · '+esc(j.ramp||'')+'</div></div><div class="printBox" style="margin-top:10px;min-height:80px"><h3>Technician Notes</h3>'+esc(j.technician_notes||'')+'</div><div class="sign"><div class="signature">Technician signature</div><div class="signature">Customer / authorisation</div></div>';printWhenImagesReady()}
 function closeServicePreviewPrompt(){if(activeServiceKind==='service'&&!confirm('Has the Service book been stamped?'))return;closeServicePreview()}
 function closeServicePreview(){document.body.classList.remove('servicePreviewing');var controls=document.getElementById('servicePreviewControls');if(controls)controls.remove();var sheet=document.getElementById('printSheet');if(sheet){sheet.style.display='';sheet.innerHTML=''}}
 function updateServiceHealthScore(){var groups={};Array.prototype.forEach.call(document.querySelectorAll('.servicePrint .ssRagDot.selected'),function(el){groups[el.getAttribute('data-group')]=Number(el.getAttribute('data-score')||0)});var vals=Object.keys(groups).map(function(k){return groups[k]});var out=document.getElementById('serviceHealthPercent');var panel=document.querySelector('.servicePrint .ssHealth');if(!out)return;var score=vals.length?Math.round(vals.reduce(function(a,b){return a+b},0)/vals.length):null;out.textContent=score===null?'—%':score+'%';if(panel){panel.classList.remove('scorePass','scoreAdvisory','scoreFail');if(score!==null)panel.classList.add(score>=90?'scorePass':score>=60?'scoreAdvisory':'scoreFail')}}

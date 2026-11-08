@@ -22,7 +22,7 @@ test('new MOT bookings stay unallocated until the garage confirms; existing allo
 
 test('advisory answers are required only on the step where the question is displayed',()=>{
  for(const path of ['public/booking.html','website/booking/index.html']){
-  const source=fs.readFileSync(path,'utf8'),context={state:{step:1,form:{registration:'DC14EEZ',vehicle:'Volkswagen Tiguan',mot_advisories:['Pads worn'],inspect_mot_advisories:'',job_types:['MOT'],appointment_date:'2026-10-29',appointment_time:'08:00',technician:'Chris'}},isNevosEligibleVehicle:()=>false,workDescriptionRequired:()=>false};
+  const source=fs.readFileSync(path,'utf8'),context={state:{step:1,form:{parts_preference:'mid_range',registration:'DC14EEZ',vehicle:'Volkswagen Tiguan',mot_advisories:['Pads worn'],inspect_mot_advisories:'',job_types:['MOT'],appointment_date:'2026-10-29',appointment_time:'08:00',technician:'Chris'}},isNevosEligibleVehicle:()=>false,workDescriptionRequired:()=>false};
   vm.createContext(context);vm.runInContext(fn(source,'valid'),context);
   assert.equal(context.valid(),true,path+' step 1');context.state.step=2;assert.ok(context.valid(),path+' step 2');
   context.state.step=3;assert.equal(context.valid(),false,path+' unanswered step 3');
