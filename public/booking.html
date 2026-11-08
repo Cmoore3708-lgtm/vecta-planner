@@ -972,7 +972,7 @@ if(typeof VectaGuidePrices!=='undefined')VectaGuidePrices.load().then(()=>{if(st
 
 <style id="booking-selection-glow">
 :root{--selection-green:#35d58a;--selection-glow:0 0 0 2px rgba(53,213,138,.3),0 0 22px rgba(53,213,138,.55),0 0 40px rgba(53,213,138,.2)}
-.service-option.selected,.work-type-option.on,.tyre-option.selected,.tyre-guide-card.selected,.tyre-brand-choice.selected,.parts-range-option.selected,.returning-buttons button.selected,.advisory-choice button.selected,.nevos-choice button.selected,.slot.selected,.mot-calendar-day.selected,.type.on{border-color:var(--selection-green);box-shadow:var(--selection-glow)}
+.service-option.selected,.work-type-option.on,.tyre-option.selected,.tyre-guide-card.selected,.tyre-brand-choice.selected,.parts-range-option.selected,.returning-buttons button.selected,.advisory-choice button.selected,.nevos-choice button.selected,.slot.selected,.mot-calendar-day.selected,.type.on,.customer-choice label:has(input:checked),.advisory-tyre-options button.selected{border-color:var(--selection-green);box-shadow:var(--selection-glow)}
 .service-option.selected,.work-type-option.on{background:#30363e}
 .service-option.recommended:not(.selected){border-color:#4a535e}
 .tyre-brand-choice.selected{background:#17392b}
@@ -984,14 +984,14 @@ input[type="checkbox"]:checked,input[type="radio"]:checked{box-shadow:0 0 12px r
 
 @keyframes vecta-frame-pulse{0%,100%{border-color:rgb(var(--pulse-rgb));box-shadow:0 0 5px rgba(var(--pulse-rgb),.27)}50%{border-color:var(--pulse-bright);box-shadow:0 0 0 4px rgba(var(--pulse-rgb),.2),0 0 18px rgba(var(--pulse-rgb),.8),0 0 32px rgba(var(--pulse-rgb),.4)}}
 @keyframes vecta-tick-pulse{0%,100%{scale:1;filter:drop-shadow(0 0 1px currentColor)}50%{scale:1.13;filter:drop-shadow(0 0 5px currentColor)}}
-.service-option.selected,.work-type-option.on,.tyre-option.selected,.tyre-guide-card.selected,.tyre-brand-choice.selected,.parts-range-option.selected,.returning-buttons button.selected,.advisory-choice button.selected,.nevos-choice button.selected,.slot.selected,.mot-calendar-day.selected,.type.on{--pulse-rgb:53,213,138;--pulse-bright:#92ffbf;border-width:2px;animation:vecta-frame-pulse 3.4s ease-in-out infinite}
+.service-option.selected,.work-type-option.on,.tyre-option.selected,.tyre-guide-card.selected,.tyre-brand-choice.selected,.parts-range-option.selected,.returning-buttons button.selected,.advisory-choice button.selected,.nevos-choice button.selected,.slot.selected,.mot-calendar-day.selected,.type.on,.customer-choice label:has(input:checked),.advisory-tyre-options button.selected{--pulse-rgb:53,213,138;--pulse-bright:#92ffbf;border-width:2px;animation:vecta-frame-pulse 3.4s ease-in-out infinite}
 .service-price-notice{--pulse-rgb:255,41,61;--pulse-bright:#ff8993;padding:18px;border:2px solid #c93a48;border-radius:12px;background:#291b20;animation:vecta-frame-pulse 3.4s ease-in-out infinite;text-shadow:none}
 .service-notice-label{display:block;color:#ffadb2;font-size:11px;font-weight:700;letter-spacing:1.8px;margin-bottom:9px}
 .service-picker-head .service-price-notice p{color:#fff;margin:0}
 .work-type-option.on:after,.tyre-option.selected:after,.parts-range-option.selected:before,.tyre-brand-choice.selected .tyre-brand-check,.service-feature:before,.vehicle-identified-tick,.progress-number.complete{animation:vecta-tick-pulse 3.4s ease-in-out infinite;transform-origin:center}
 .vehicle-identified-tick{display:inline-block}
 input[type="checkbox"]:checked,input[type="radio"]:checked{--pulse-rgb:53,213,138;--pulse-bright:#92ffbf;animation:vecta-frame-pulse 3.4s ease-in-out infinite}
-@media(prefers-reduced-motion:reduce){.service-option.selected,.work-type-option.on,.tyre-option.selected,.tyre-guide-card.selected,.tyre-brand-choice.selected,.parts-range-option.selected,.returning-buttons button.selected,.advisory-choice button.selected,.nevos-choice button.selected,.slot.selected,.mot-calendar-day.selected,.type.on,.work-type-option.on:after,.tyre-option.selected:after,.parts-range-option.selected:before,.tyre-brand-choice.selected .tyre-brand-check,.service-feature:before,.vehicle-identified-tick,.progress-number.complete,.service-price-notice,input[type="checkbox"]:checked,input[type="radio"]:checked{animation:none}}
+@media(prefers-reduced-motion:reduce){.service-option.selected,.work-type-option.on,.tyre-option.selected,.tyre-guide-card.selected,.tyre-brand-choice.selected,.parts-range-option.selected,.returning-buttons button.selected,.advisory-choice button.selected,.nevos-choice button.selected,.slot.selected,.mot-calendar-day.selected,.type.on,.customer-choice label:has(input:checked),.advisory-tyre-options button.selected,.work-type-option.on:after,.tyre-option.selected:after,.parts-range-option.selected:before,.tyre-brand-choice.selected .tyre-brand-check,.service-feature:before,.vehicle-identified-tick,.progress-number.complete,.service-price-notice,input[type="checkbox"]:checked,input[type="radio"]:checked{animation:none}}
 </style>
 
 
@@ -1083,13 +1083,20 @@ window.matchMedia?.('(prefers-reduced-motion: reduce)').addEventListener?.('chan
 @media(max-width:359px){.other-work-services>ul{grid-template-columns:minmax(0,1fr)}}
 </style>
 <style id="customer-choices-style">
+.step>label:has([data-field="work_required"]),.customer-choice legend{font-weight:400}
 .customer-choice{margin:20px 0 0;padding:18px;border:1px solid #667280;border-radius:14px;background:#202831;color:#fff;min-width:0}
-.customer-choice legend{padding:0 6px;font-size:16px;font-weight:800;line-height:1.5;color:#fff;max-width:100%}
-.customer-choice-options{display:flex;gap:12px;flex-wrap:wrap}.customer-choice label{display:flex;align-items:center;gap:10px;flex:1;min-width:90px;min-height:48px;padding:12px;margin:0;border:1px solid #697586;border-radius:9px;cursor:pointer;font-size:15px;color:#fff;background:#303b48}
-.customer-choice label:has(:checked){border-color:#e9c878;background:#413a2c;box-shadow:inset 0 0 0 1px #e9c878}.customer-choice label:focus-within{outline:2px solid #fff;outline-offset:3px}
-.customer-choice input{width:18px;height:18px;padding:0;margin:0;flex:none;accent-color:#d5b166}.customer-choice p{font-size:14px;line-height:1.5;color:#d1d7df;margin:14px 0 0}
+.customer-choice legend{padding:0 6px;font-size:16px;line-height:1.5;color:#fff;max-width:100%}
+.customer-choice-options{display:flex;gap:12px;flex-wrap:wrap}.customer-choice label{box-sizing:border-box;display:flex;align-items:center;gap:10px;flex:1;min-width:90px;min-height:48px;padding:12px;margin:0;border:2px solid #697586;border-radius:9px;cursor:pointer;font-size:15px;font-weight:400;color:#fff;background:#303b48}
+.parts-choice label:has([value="budget"]){color:#d49a6a;border-color:#8e684a;background:linear-gradient(145deg,#47382d,#2c2926)}
+.parts-choice label:has([value="mid_range"]){color:#d5dae1;border-color:#8d959f;background:linear-gradient(145deg,#41474f,#293039)}
+.parts-choice label:has([value="oem"]){color:#ddba5f;border-color:#9f8648;background:linear-gradient(145deg,#453d29,#2e2b23)}
+.customer-choice label:has(input:checked){border-color:var(--selection-green);box-shadow:var(--selection-glow)}
+.customer-choice label:focus-within{outline:2px solid #fff;outline-offset:3px}
+.customer-choice input{width:18px;height:18px;padding:0;margin:0;flex:none;accent-color:#23834f}.customer-choice p{font-size:14px;line-height:1.5;color:#d1d7df;margin:14px 0 0}
 @media(max-width:480px){.parts-choice label{flex-direction:column;min-width:0;padding:10px 6px;gap:7px;text-align:center}}
-.repair-choice .customer-choice-options{flex-direction:column}.repair-choice label{flex:auto}.repair-choice{margin-top:24px;border-color:#d5b166}
+.repair-choice .customer-choice-options{flex-direction:column}.repair-choice label{flex:auto}.repair-choice{margin-top:24px}.repair-choice label:has(input:checked){background:#25332e}
+.review .review-contact>b,.review .review-appointment>b,.review .review-parts>b{font-weight:500}
+.review .review-contact>small,.review .review-appointment>small,.review .review-parts>small{font-weight:600}
 </style>
 <style id="mini-valet-review-style">
 .mini-valet-review{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;color:#fff}
@@ -1099,23 +1106,23 @@ window.matchMedia?.('(prefers-reduced-motion: reduce)').addEventListener?.('chan
 .mini-valet-summary>b{font-size:18px}.mini-valet-summary>p{margin:8px 0 0;font-size:14px;line-height:1.5;color:#475467}
 @media(max-width:600px){.mini-valet-summary{padding:16px}}
 .mini-valet-review>button{padding:8px 12px;min-height:44px;font-size:13px}
-dialog.mini-valet-offer{width:344px;max-width:calc(100% - 28px);max-height:calc(100% - 28px);margin:auto;padding:11px 13px 1px;border:2px solid #ef3340;border-radius:14px;background:#252c33;color:#fff;text-align:left;box-shadow:0 0 9px #ef334032,0 5px 18px #080c1060}
+dialog.mini-valet-offer{box-sizing:border-box;width:320px;max-width:calc(100vw - 32px);max-height:calc(100dvh - 32px);overflow:auto;margin:auto;padding:11px 13px 1px;border:2px solid #ef3340;border-radius:14px;background:#252c33;color:#fff;text-align:left;box-shadow:0 0 9px #ef334032,0 5px 18px #080c1060}
 dialog.mini-valet-offer::backdrop{background:rgba(7,11,17,.45)}
-dialog.mini-valet-offer[data-selected="true"]{border-color:#42c87b;box-shadow:0 0 9px #42c87b36,0 5px 18px #080c1060}
+dialog.mini-valet-offer[data-selected="true"]{border-color:var(--selection-green);box-shadow:var(--selection-glow)}
 .mini-valet-offer header,.mini-valet-offer footer{display:flex;align-items:center;justify-content:space-between;gap:8px}
 .mini-valet-offer header{padding-bottom:8px;border-bottom:1px solid #59616b}
 .mini-valet-offer h3{margin:0;color:#d5dae1;font-size:22px;line-height:1.08;letter-spacing:-.4px}
 .mini-valet-offer h3 small{display:block;margin:0 0 2px;color:#c4cbd2;font-size:13px;line-height:1.28;font-weight:500;letter-spacing:0;text-transform:none}
 .mini-valet-offer header>strong{color:#f5f6f6;font-size:21px;white-space:nowrap}
 .mini-valet-body{display:flex;align-items:center;justify-content:space-between;gap:5px;padding:6px 0;border-bottom:1px solid #59616b}
-.mini-valet-body ul{flex:1;list-style:none;margin:0;padding:0}
+.mini-valet-body ul{flex:1;min-width:0;list-style:none;margin:0;padding:0}
 .mini-valet-body li{position:relative;padding:2px 0 2px 14px;font-size:13px;line-height:1.32;color:white}
 .mini-valet-body li::before{content:"✓";position:absolute;top:4px;left:1px;color:#42c87b;font:bold 10px/1.3 Arial,sans-serif}
-.mini-valet-body .service-vehicle-stage{width:40%;height:auto;aspect-ratio:1.55;margin:0}
+.mini-valet-body .service-vehicle-stage{width:38%;min-width:0;flex:0 0 38%;height:auto;aspect-ratio:1.55;margin:0}
 .mini-valet-body .service-vehicle-stage:has([data-vehicle-ready="1"])::before,.mini-valet-body .service-vehicle-stage:has([data-vehicle-ready="1"])::after{content:"✦";position:absolute;z-index:1;left:29%;top:35%;color:white;font:14px/1 Arial,sans-serif;text-shadow:0 0 3px #e2f6ff;pointer-events:none}
 .mini-valet-body .service-vehicle-stage:has([data-vehicle-ready="1"])::after{left:62%;top:10%;font-size:10px}
 .mini-valet-offer footer label,.mini-valet-offer footer button{display:inline-flex;align-items:center;gap:8px;min-height:44px;margin:0;padding:0;cursor:pointer}
-.mini-valet-offer footer label{font-size:14px;color:#fff;font-weight:700}
+.mini-valet-offer footer label{font-size:14px;color:#fff;font-weight:400}
 .mini-valet-offer footer button{border:0;background:transparent;color:#c4cbd2;font-size:13px}
 .mini-valet-offer footer input{appearance:none;display:inline-grid;place-items:center;width:16px;height:16px;flex:none;margin:0;padding:0;border:1.5px solid #acb4bd;border-radius:4px;background:#1d242a}
 .mini-valet-offer footer input:checked{border-color:#42c87b;color:#42c87b;background:#172d22}
