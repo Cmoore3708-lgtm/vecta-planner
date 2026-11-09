@@ -57,7 +57,7 @@ function setup(t,preview=false){
      if(state.row.progress_review_state==='sent' && (state.row.progress_estimate_pence!==data.p_pence||state.row.progress_message!==data.p_message))return {code:409,error:'Already sent'};
      Object.assign(state.row,{progress_review_state:'sent',progress_message:data.p_message,progress_estimate_pence:data.p_pence,expires_at:new Date(Date.now()+86400000).toISOString()});return {code:200};
    }
-   if(url.pathname==='/rpc/vecta_decide_progress_approval'){
+   if(url.pathname==='/rpc/vecta_decide_progress_work'){
      assert.ok(state.allowDecide);assert.equal(data.p_approval_id,id);assert.equal(data.p_job_id,job.id);
      state.row.status=data.p_decision;state.row.decided_at=new Date().toISOString();return {code:200,status:state.row.status,decided_at:state.row.decided_at};
    }
@@ -148,6 +148,7 @@ test('workshop approval writes require sign-in and same-origin',async t=>{
 test('opening a tracker only displays the request; one explicit decision updates the panel, with customer text safely rendered',async()=>{
  const base=new URL('../../public/',import.meta.url);
  const {document}=parseHTML(readFileSync(new URL('track.html',base),'utf8'));document.hidden=false;
+ const dialog=document.getElementById('approvalDialog');dialog.showModal=()=>{dialog.open=true;};dialog.close=()=>{dialog.open=false;};
  let decisions=0;
  const fetch=async(_url,options)=>{
    const b=JSON.parse(options.body);
@@ -206,7 +207,7 @@ test('Main submits one private finding after both photos finish; a failed upload
  assert.equal(approved.length,0);assert.equal(saved.length,1);
  failSecond=false;await send.onclick();
  assert.equal(approved.length,1);assert.equal(saved.length,2);assert.ok(calls.filter(b=>b.action==='photos-upload').every(b=>b.review_id===approved[0]));assert.ok(!calls.some(b=>b.action==='approval-request'));
- assert.match(document.querySelector('[data-approval-notice]').textContent,/Sent to Workshop for pricing/);
+ assert.match(document.querySelector('[data-approval-notice]').textContent,/Message saved/);
  input.files=[{size:8,type:'image/jpeg',name:'information-only.jpg'}];
  await input.onchange();
  await document.querySelector('[data-photo-only]').onclick();

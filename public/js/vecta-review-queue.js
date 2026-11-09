@@ -100,9 +100,9 @@
   };
   return section;
  }
- function findingAlerts(){
+ function findingAlerts(mechanic=false){
   const key='vecta:acknowledged-finding-photos:v1';
-  const decisionKey='vecta:acknowledged-customer-decisions:v1';
+  const decisionKey='vecta:acknowledged-customer-decisions:v1'+(mechanic?':mechanic':'');
   const acknowledged=new Set(),seenDecisions=new Set();
   let findings=[],decisions=[],active=null,waiting=null,opening=false;
   const eventId=item=>item.decision?item.id+':'+item.status+':'+item.decided_at:item.id;
@@ -131,18 +131,18 @@
   function stopWaiting(){waiting?.disconnect();waiting=null;}
   function redraw(){
    const decision=decisions.find(item=>!seenDecisions.has(eventId({...item,decision:true})));
-   const next=decision?{...decision,decision:true}:findings.find(item=>item.mechanic_photo && item.photo_ids.length && !acknowledged.has(item.id));
+   const next=decision?{...decision,decision:true}:findings.find(item=>(item.mechanic_finding||item.mechanic_photo&&item.photo_ids.length) && !acknowledged.has(item.id));
    if(active&&next&&eventId(active)===eventId(next)){active=next;return;}
    stopWaiting();active=next;opening=false;open.disabled=false;status.textContent='';popup.hidden=!next;
    if(!next)return;
-   const title=next.decision?'Customer '+next.status:'New mechanic photo';
+   const title=next.decision?'Customer '+next.status:(next.photo_ids.length?'New mechanic photo':'New mechanic finding');
    popup.classList.toggle('customerDecisionAlert',!!next.decision);popup.dataset.decision=next.decision?next.status:'';
    popup.setAttribute('aria-label',next.decision?'Customer approval response':'Mechanic photo alert');
    close.setAttribute('aria-label',next.decision?'Dismiss this customer response':'Dismiss this photo alert');
    headline.textContent=title+' · '+next.registration;
    open.setAttribute('aria-label','Open job card for '+next.registration+(next.decision?' — customer '+next.status:' to see the mechanic’s photo'));
    description.textContent=next.message;
-   estimate.hidden=!next.decision||!Number.isInteger(next.estimated_pence);
+   estimate.hidden=mechanic||!next.decision||!Number.isInteger(next.estimated_pence);
    estimate.textContent=estimate.hidden?'':'Estimated total including VAT: £'+(next.estimated_pence/100).toFixed(2);
   }
   async function openFinding(){
@@ -176,7 +176,17 @@
   return (rows,responses=[])=>{findings=rows;decisions=responses;redraw();};
  }
  function install(){
-  if(window.VECTA_MECHANIC_DEPLOYMENT||!document.querySelector('main.main>header.top'))return;
+  const mechanic=!!window.VECTA_MECHANIC_DEPLOYMENT;
+  if(!document.querySelector('main.main>header.top'))return;
+  if(mechanic){
+   const updateAlerts=findingAlerts(true);let busy=false;
+   async function refresh(){
+    if(busy||document.hidden||!navigator.onLine)return;busy=true;
+    try{const data=await api('approval-decisions');updateAlerts([],data.decisions);}catch{}finally{busy=false;}
+   }
+   document.addEventListener('visibilitychange',()=>{if(!document.hidden)refresh();});
+   window.addEventListener('online',refresh);refresh();setInterval(refresh,10000);return;
+  }
   const tray=node('aside'),toggle=node('button'),list=node('div'),status=node('p');tray.className='findingQueue';tray.hidden=true;
   toggle.type='button';toggle.className='btn';toggle.setAttribute('aria-expanded','false');list.hidden=true;
   tray.append(toggle,list,status);document.querySelector('main.main>header.top').after(tray);

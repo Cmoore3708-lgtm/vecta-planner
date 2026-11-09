@@ -35,16 +35,16 @@
   const after=modal.querySelector('.jobWorkSection');if(!after)return;
   const panel=document.createElement('section');panel.className='jobFormSection workshopPhotos '+(mechanic?'mechanicFindings':'managerFindings');
   panel.dataset.jobId=job.id;
-  panel.innerHTML='<div class="workshopPhotosHeading"><h3>Workshop photos &amp; findings</h3></div>';
+  panel.innerHTML='<div class="workshopPhotosHeading"><h3>Customer messages &amp; findings</h3></div>';
   const heading=panel.querySelector('.workshopPhotosHeading');
   if(mechanic)heading.insertAdjacentHTML('beforeend','<p>Send a finding to the office. The customer sees it after the estimate is sent.</p>');
   after.after(panel);
-  if(!saved){const hint=document.createElement('p');hint.textContent='Save this job, then reopen it to add photos.';panel.append(hint);return;}
+  if(!saved){const hint=document.createElement('p');hint.textContent='Save this job, then reopen it to send a message or add photos.';panel.append(hint);return;}
   panel.insertAdjacentHTML('beforeend','<div class="workshopPhotoActions"><button type="button" class="btn" data-photo-camera>Take photo</button><button type="button" class="btn" data-photo-choose>Upload photos</button><button type="button" class="btn" data-photo-refresh>Refresh photos</button></div><input type="file" accept="image/*" capture="environment" data-photo-camera-input hidden><input type="file" accept="image/*" multiple data-photo-choose-input hidden><div class="workshopPhotoDrafts" data-photo-drafts></div><div class="workshopPhotoGrid" data-photo-saved></div><p class="workshopPhotoStatus" data-photo-status role="status" aria-live="polite"></p>');
-  const recipient=mechanic?'Office':'Workshop';
-  const sendLabel=mechanic?'Send to Office':'Send to Workshop for pricing';
-  const messageForm='<label>Message to '+recipient+'<textarea data-approval-message maxlength="1200" placeholder="e.g. The nearside front tyre is worn on its inner edge."></textarea></label><div class="workshopPhotoActions"><button type="button" class="btn green" data-approval-send>'+sendLabel+'</button><button type="button" class="btn" data-photo-only hidden>Upload photos only</button></div><p role="status" data-approval-notice></p>';
-  const container=mechanic?'<div class="approvalComposer">'+messageForm+'</div>':'<details class="approvalComposer"><summary>Send a finding to Workshop</summary>'+messageForm+'</details>';
+  const recipient=mechanic?'Office':'customer';
+  const sendLabel=mechanic?'Send to Office':'Continue to price & send';
+  const messageForm='<label>Message to '+recipient+'<textarea data-approval-message maxlength="1200" placeholder="e.g. Your front brake pads are worn and need replacing."></textarea></label><div class="workshopPhotoActions"><button type="button" class="btn green" data-approval-send>'+sendLabel+'</button><button type="button" class="btn" data-photo-only hidden>Upload photos only</button></div><p role="status" data-approval-notice></p>';
+  const container=mechanic?'<div class="approvalComposer"><p>Photos are optional.</p>'+messageForm+'</div>':'<details class="approvalComposer"><summary>Send customer message</summary><p>Photos are optional. Describe the work here; enter the price separately.</p>'+messageForm+'</details>';
   panel.insertAdjacentHTML('beforeend',container+'<div data-approval-history></div>');
   const composer=panel.querySelector('.approvalComposer');
   const messageInput=panel.querySelector('[data-approval-message]');
@@ -93,7 +93,7 @@
    }
    evidenceItems.set(host,item);
   }
-  if(!mechanic)destinations.set(panel,item=>{
+  destinations.set(panel,item=>{
    const previous=destination.firstElementChild;
    if(previous?.dataset.findingId){
     history.prepend(previous);
@@ -104,7 +104,7 @@
    if(!existing){
     entry.className='approvalRecord';entry.dataset.findingId=item.id;
     const heading=document.createElement('strong'),note=document.createElement('p');
-    heading.textContent='Finding from the mechanic';note.textContent=item.message;entry.append(heading,note);
+    heading.textContent=item.status==='approved'?'Customer approved':'Workshop finding';note.textContent=item.message;entry.append(heading,note);
    }
    addEvidence(entry,item);destination.replaceChildren(entry);destination.hidden=false;
    renderSaved();showEvidence();
@@ -248,10 +248,10 @@
      entry.append(title,message);
      if(item.status==='awaiting_price' && !mechanic && window.VectaFindings)
       entry.append(pricingForms.get(item.id)||window.VectaFindings.pricingForm(job.id,item));
-     if(Number.isInteger(item.estimated_pence)){
+     if(!mechanic&&Number.isInteger(item.estimated_pence)){
       const estimate=document.createElement('small');estimate.textContent='Estimated total including VAT: £'+(item.estimated_pence/100).toFixed(2);entry.append(estimate);
      }
-     if(item.status==='pending' && window.VectaFindings){
+     if(!mechanic&&item.status==='pending' && window.VectaFindings){
       const delivery=document.createElement('small');delivery.textContent=window.VectaFindings.delivery(item.channels);entry.append(delivery);
       const canRetry=Object.values(item.channels||{}).some(value=>['failed','unsent','unavailable','manual'].includes(value));
       if(!mechanic&&canRetry)entry.append(button(item.channels.whatsapp==='manual'?'Prepare WhatsApp message':'Retry unsent messages',async()=>{
@@ -265,11 +265,12 @@
      const selected=selectedFinding?.id===item.id;
      if(!mechanic)addEvidence(entry,item);
      if(selected){
-      selectedFinding=item;destination.replaceChildren(entry);
+      selectedFinding=item;destination.replaceChildren(entry);destination.hidden=false;
      }else history.append(entry);
     }
     renderSaved();
     showEvidence();
+    if(!mechanic&&selectedFinding?.status==='awaiting_price')destination.scrollIntoView({block:'nearest'});
     if (approvals.some(item=>['pending','awaiting_price'].includes(item.status))) historyTimer=setTimeout(()=>{if(panel.isConnected) loadApprovalHistory();},60000);
    } catch(error) {history.textContent='Approval history: '+error.message;renderSaved();}finally{historyLoading=false;}
   }
@@ -295,7 +296,8 @@
      const receipt=await request(job,'approval-stage',pendingRequest);
      if(receipt.approval_id!==pendingRequest.approval_id||!['draft','sent'].includes(receipt.stage))
       throw Error(recipient+' has not confirmed this finding. Retry to check it.');
-     submittedIds.add(pendingRequest.approval_id);pendingRequest=null;recovered=null;messageInput.value='';approvalNotice.textContent='Sent to '+recipient+' for pricing. The customer has not been contacted.';
+     submittedIds.add(pendingRequest.approval_id);pendingRequest=null;recovered=null;messageInput.value='';approvalNotice.textContent=mechanic?'Sent to Office for pricing. The customer has not been contacted.':'Message saved. Add the price below, then send to your customer.';
+     if(!mechanic){selectedFinding={id:receipt.approval_id};}
      window.VectaFindings?.notify();
      if(mechanic)confirmSent();
     }

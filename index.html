@@ -17285,7 +17285,7 @@ window.vectaOpenFindingJob=async function(jobId){
   var active=activeCard();
   if(active)return active;
   function hasJob(){return (app.jobs||[]).some(function(job){return job.id===jobId});}
-  if(!hasJob()){
+  {
     await vectaPrimeJobsFromCloud();
     active=activeCard();
     if(active)return active;
