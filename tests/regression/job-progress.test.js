@@ -2,8 +2,9 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import vm from 'node:vm';
+import {createHash,createHmac} from 'node:crypto';
 import {parseHTML} from 'linkedom';
-import {issueProgressToken,verifyProgressToken,claimMatchesJob,progressSnapshot,trackable,trackingUrl,progressSecret,londonDay,requestTrackingPath,requestProgressJob} from '../../lib/job-progress.js';
+import {issueProgressToken,verifyProgressToken,claimMatchesJob,progressSnapshot,trackable,trackingUrl,progressSecret,londonDay,requestTrackingPath,requestProgressJob,requestProgressSecret} from '../../lib/job-progress.js';
 import handler,{customerStatus,startWork,sendInvoice,registrationStatus,progressRegistration,allowRegistrationLookup} from '../../lib/job-progress-handler.js';
 import {requiresManagerLogin} from '../../middleware.js';
 
@@ -11,8 +12,9 @@ const now=Date.parse('2026-11-03T11:00:00Z'),id='12345678-1234-4234-8234-1234567
 const job={id,booking_date:'2026-11-03',registration:'CM14 KEL',vehicle:'Nissan Qashqai',customer_email:'driver@example.com',customer_name:'Driver',customer_account:'Staff',status:'booked',archived:false,updated_at:'2026-11-03T08:00:00Z',customer_note:'Private notes',amount_quoted:300};
 test('private links reject tampering and expiry, and are bound to one booking and customer',()=>{
   const token=issueProgressToken(job,'secret',now),claim=verifyProgressToken(token,'secret',now);
-  assert.ok(claimMatchesJob(claim,job));
-  for(const patch of [{id:'22345678-1234-4234-8234-123456789012'},{booking_date:'2026-11-04'},{registration:'OTHER'},{customer_email:'someone@example.com'}])assert.equal(claimMatchesJob(claim,{...job,...patch}),false);
+  assert.ok(claimMatchesJob(claim,job,now));
+  assert.ok(claimMatchesJob(claim,{...job,booking_date:'2026-11-04'},now));
+  for(const patch of [{id:'22345678-1234-4234-8234-123456789012'},{registration:'OTHER'},{customer_email:'someone@example.com'}])assert.equal(claimMatchesJob(claim,{...job,...patch},now),false);
   assert.equal(verifyProgressToken(token+'x','secret',now),null);assert.equal(verifyProgressToken(token,'other',now),null);
   assert.equal(verifyProgressToken(token,'secret',now+10*86400000),null);
   const payload=Buffer.from(token.split('.')[0],'base64url').toString();assert.doesNotMatch(payload,/driver@example|CM14|Private notes/);
@@ -38,6 +40,66 @@ function environment(){
   Object.assign(process.env,{VERCEL_ENV:'production',VERCEL_PROJECT_NAME:'planner',VERCEL_PROJECT_PRODUCTION_URL:'planner.example',VITE_SUPABASE_URL:'https://database.example',SUPABASE_SERVICE_ROLE_KEY:'test-service-key',VECTA_MAIN_USER:'manager',VECTA_MAIN_PASSWORD:'password'});
   return ()=>{for(const [k,v] of Object.entries(previous))if(v===undefined)delete process.env[k];else process.env[k]=v;};
 }
+// Freeze the pre-fix link format independently of the current issuer, so these
+// cases prove that links already delivered in emails do not need replacing.
+function originalEmailToken(record,secret){
+ const exp=Math.floor((Date.parse(record.booking_date+'T00:00:00Z')+8*86400000)/1000);
+ const b=createHash('sha256').update(JSON.stringify([record.id,record.booking_date,record.registration.toUpperCase().replace(/[^A-Z0-9]/g,''),record.customer_email.trim().toLowerCase()])).digest('hex');
+ const payload=Buffer.from(JSON.stringify({id:record.id,exp,b})).toString('base64url');
+ return payload+'.'+createHmac('sha256',secret).update('vecta-progress-v1.'+payload).digest('base64url');
+}
+test('existing email links follow earlier, later and repeated reschedules and expire from the live date',async()=>{
+ const restore=environment(),original=global.fetch,testNow=Date.parse('2026-11-09T12:00:00Z');
+ const booked={...job,booking_date:'2026-11-12'};
+ let saved={...booked,booking_date:'2026-11-09'};
+ const calls=[];global.fetch=async url=>{calls.push(String(url));return Response.json(String(url).includes('/jobs?')?[saved]:[]);};
+ try{
+  for(const token of [originalEmailToken(booked,progressSecret()),issueProgressToken(booked,progressSecret(),testNow)]){
+   saved={...booked,booking_date:'2026-11-09'};
+   let data=await customerStatus(token,testNow);assert.equal(data.stage,'waiting');assert.equal(data.booking_date,'2026-11-09');
+   saved={...saved,booking_date:'2026-11-26',status:'in_progress'};
+   data=await customerStatus(token,testNow);assert.equal(data.stage,'scheduled');assert.equal(data.images_allowed,false);
+   // The original link expired on 20 November, but the booking moved later.
+   data=await customerStatus(token,Date.parse('2026-11-26T12:00:00Z'));assert.equal(data.stage,'underway');assert.equal(data.booking_date,'2026-11-26');
+   await customerStatus(token,Date.parse('2026-12-04T00:00:00Z')-1);
+   calls.length=0;await assert.rejects(customerStatus(token,Date.parse('2026-12-04T00:00:00Z')),/expired/);
+   assert.equal(calls.length,1,'expired access must stop before photos, artwork and invoices');
+   // Moving earlier also shortens access, even while the original exp is valid.
+   saved={...saved,booking_date:'2026-11-01'};
+   await assert.rejects(customerStatus(token,testNow),/expired/);
+   saved={...booked,booking_date:'2026-11-09'};
+   for(const patch of [{registration:'AB12CDE'},{customer_email:'other@example.com'},{status:'cancelled'},{deleted_at:'2026-11-09'},{customer_note:'[[VECTA_SOFT_DELETE:test]]'}]){
+    saved={...booked,booking_date:'2026-11-09',...patch};calls.length=0;
+    await assert.rejects(customerStatus(token,testNow),/unavailable/);assert.equal(calls.length,1);
+   }
+   calls.length=0;await assert.rejects(customerStatus(token+'x',testNow));assert.equal(calls.length,0);
+  }
+ }finally{global.fetch=original;restore();}
+});
+test('receipt links follow request changes and the accepted job date even when receipt dates are stale',async()=>{
+ const restore=environment(),original=global.fetch,testNow=Date.parse('2026-11-09T12:00:00Z');
+ let request={id,registration:job.registration,vehicle:job.vehicle,email:job.customer_email,preferred_date_1:'2026-11-12',confirmed_date:'2026-11-12',status:'awaiting_review'};
+ let saved={...job,id:'22345678-1234-4234-8234-123456789012',booking_date:'2026-11-09'};
+ global.fetch=async url=>Response.json(String(url).includes('/website_booking_requests?')?[request]:String(url).includes('/jobs?')?[saved]:[]);
+ try{
+  const token='request.'+originalEmailToken(requestProgressJob(request),requestProgressSecret());
+  request.confirmed_date='2026-11-09';
+  let data=await customerStatus(token,testNow);assert.equal(data.booking_date,'2026-11-09');
+  request={...request,job_id:saved.id,status:'booked',confirmed_date:'2026-11-12'};
+  data=await customerStatus(token,testNow);assert.equal(data.stage,'waiting');assert.equal(data.booking_date,'2026-11-09');
+  saved.booking_date='2026-11-26';
+  data=await customerStatus(token,Date.parse('2026-11-26T12:00:00Z'));assert.equal(data.booking_date,'2026-11-26');assert.equal(data.stage,'waiting');
+  assert.doesNotMatch(JSON.stringify(data),/invoice_url|customer_email|driver@example|Private notes/);
+  await assert.rejects(customerStatus(token,Date.parse('2026-12-04T00:00:00Z')),/expired/);
+  saved.booking_date='2026-11-01';await assert.rejects(customerStatus(token,testNow),/expired/);
+  saved.booking_date='2026-11-09';
+  request.status='cancelled';await assert.rejects(customerStatus(token,testNow));request.status='booked';
+  saved.customer_email='other@example.com';await assert.rejects(customerStatus(token,testNow));
+  request.email='other@example.com';await assert.rejects(customerStatus(token,testNow));
+  saved.customer_email=request.email=job.customer_email;saved.status='cancelled';await assert.rejects(customerStatus(token,testNow));
+  saved=null;await assert.rejects(customerStatus(token,testNow));
+ }finally{global.fetch=original;restore();}
+});
 test('receipt links open future bookings and follow only their matching accepted job',async()=>{
  const restore=environment(),original=global.fetch;
  const request={id,registration:job.registration,vehicle:job.vehicle,email:job.customer_email,confirmed_date:'2026-11-27',status:'awaiting_review'};

@@ -16,7 +16,7 @@ The page uses lightweight workshop scenes with the existing saved car image wher
 
 Private links and invoice access below remain separate, so previously sent links continue to work.
 
-Customer tracking is available at `/track` using a signed private link. The link is issued by the authenticated workshop server, added to website booking confirmation drafts and the existing day-before reminder emails, and available from the job editor's **Customer tracking link** button. Registration lookup shows today’s progress and workshop photos; invoice access requires the signed private link. Links expire eight days after the booking date and stop working when the booking date, registration or customer email changes, or the job is cancelled/deleted.
+Customer tracking is available at `/track` using a signed private link. The link is issued by the authenticated workshop server, added to website booking confirmation drafts and the existing day-before reminder emails, and available from the job editor's **Customer tracking link** button. Registration lookup shows today’s progress and workshop photos; invoice access requires the signed private link. Existing and new links follow the same saved booking when its date changes, and expire eight days after its current booking date. Registration or customer email changes and cancelled/deleted jobs still invalidate access. Accepted website receipts use the saved planner job's date even if the request retains its original date. The original signed expiry reconstructs the original date binding; its signature, job/request ID, registration and customer email are still verified before any progress, photos or invoice access is returned.
 
 ## Existing controls
 
