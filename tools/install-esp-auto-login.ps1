@@ -2,13 +2,27 @@
 # Does not stop or alter GSF/Haynes. Restart Tyres from Vecta Connections after SUCCESS.
 $ErrorActionPreference='Stop'
 $root=Join-Path $env:LOCALAPPDATA 'VectaWorkers\releases'
-$release=Get-ChildItem -LiteralPath $root -Directory | Where-Object { $_.Name -like '20d5c2f8*' } | Select-Object -First 1
-if (!$release) { throw 'Expected VectaWorkers release 20d5c2f8 not found. Nothing changed.' }
-$dir=Join-Path $release.FullName 'tyres'
+$candidates=@(Get-ChildItem -LiteralPath $root -Directory | Where-Object { $_.Name -like '20d5c2f8*' })
+if ($candidates.Count -eq 0) { throw 'Expected VectaWorkers release 20d5c2f8 not found. Nothing changed.' }
+$matches=@(foreach ($candidate in $candidates) {
+ $folder=Join-Path $candidate.FullName 'tyres'
+ $w=Join-Path $folder 'live-worker.mjs'
+ $st=Join-Path $folder 'startup.mjs'
+ if ((Test-Path -LiteralPath $w -PathType Leaf) -and (Test-Path -LiteralPath $st -PathType Leaf)) { $folder }
+})
+if ($matches.Count -ne 1) {
+ Write-Host ('Found '+$candidates.Count+' matching release folder(s), but '+$matches.Count+' matching tyre worker pair(s).')
+ foreach($candidate in $candidates) {
+  Write-Host ('Release: '+$candidate.FullName)
+  Get-ChildItem -LiteralPath $candidate.FullName -Name | ForEach-Object { Write-Host ('  '+$_) }
+ }
+ throw 'Could not uniquely locate installed tyre worker. Nothing changed. Send a photo of this window.'
+}
+$dir=$matches[0]
 $worker=Join-Path $dir 'live-worker.mjs'
 $startup=Join-Path $dir 'startup.mjs'
 $recovery=Join-Path $dir 'session-recovery.mjs'
-if (!(Test-Path $worker) -or !(Test-Path $startup)) { throw 'Expected tyre worker files not found. Nothing changed.' }
+Write-Host ('Located tyre worker: '+$dir)
 $original=[IO.File]::ReadAllText($worker)
 if ($original -notmatch "import \{prepareTyreStartup\} from './startup.mjs';" -or $original -notmatch "const runtime=createWorkerRuntime\('Tyres'\)") { throw 'Worker layout does not match the uploaded files. Nothing changed.' }
 $source="https://raw.githubusercontent.com/Cmoore3708-lgtm/vecta-planner/11c6d0d98e9065ab9af17798d677b247fdb711ba/workers/tyres/session-recovery.mjs"
