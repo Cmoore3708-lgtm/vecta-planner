@@ -23,10 +23,10 @@ function Replace-Once([string]$old,[string]$new) {
  $script:updated=$script:updated.Replace($old,$new)
 }
 Replace-Once "import {prepareTyreStartup} from './startup.mjs';" "import {prepareTyreStartup} from './startup.mjs';`nimport {createSessionRecovery} from './session-recovery.mjs';"
-Replace-Once "let stopped=false;context.on('close',()=>stopped=true);" "let stopped=false;context.on('close',()=>stopped=true);`nconst recovery=createSessionRecovery({supplier:SUPPLIER,username:process.env.ESP_USERNAME,password:process.env.ESP_PASSWORD});"
+Replace-Once "   await new Promise(r=>setTimeout(r,2000));" "   if(task.status!=='JOB'&&Date.now()-lastEspRecovery>60000){lastEspRecovery=Date.now();try{await recovery.ensure(page);await ensureEnquiry(page);}catch{ /* retry later without stopping relay */ }}`n   await new Promise(r=>setTimeout(r,2000));"
 Replace-Once "const page=context.pages()[0]||await context.newPage();await openTyreSupplier(page, SUPPLIER);" "const page=context.pages()[0]||await context.newPage();await openTyreSupplier(page, SUPPLIER);`n try{await recovery.ensure(page,{keepLoginPage:true});await ensureEnquiry(page);}catch(e){console.log('ESP needs sign-in or enquiry settings: '+e.message);}"
 Replace-Once "const lookup=async()=>{await tab.goto(SUPPLIER,{waitUntil:'domcontentloaded',timeout:10000});if(/\/Account\/LogOn/i.test(tab.url()))throw Error('SUPPLIER_LOGIN_REQUIRED');await ensureEnquiry(tab);" "const lookup=async()=>{await recovery.ensure(tab);await ensureEnquiry(tab);"
-Replace-Once "   await new Promise(r=>setTimeout(r,2000));" "   if(task.status!=='JOB'){try{await recovery.ensure(page);await ensureEnquiry(page);}catch{ /* retry later without stopping relay */ }}`n   await new Promise(r=>setTimeout(r,2000));"
+Replace-Once "let stopped=false;context.on('close',()=>stopped=true);" "let stopped=false;context.on('close',()=>stopped=true);`nlet lastEspRecovery=0;`nconst recovery=createSessionRecovery({supplier:SUPPLIER,username:process.env.ESP_USERNAME,password:process.env.ESP_PASSWORD});"
 $node=(Get-Command node -ErrorAction SilentlyContinue)
 if (!$node) { throw 'Node.js not found. Nothing changed.' }
 $checkdir=Join-Path $env:TEMP ('vecta-esp-check-'+[guid]::NewGuid().ToString('N'))
