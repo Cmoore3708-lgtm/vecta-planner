@@ -58,7 +58,7 @@
 .findingEvidence figcaption{overflow-wrap:anywhere}
 
 /* The photo, caption and customer response share the full job-editor width. */
-.managerFindings {min-width:0;container-type:inline-size}
+.managerFindings {min-width:0}
 .managerFindings .workshopPhotosHeading {display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px 14px}
 .managerFindings .workshopPhotosHeading h3 {font-size:16px}
 .managerFindings .workshopPhotoActions {gap:6px}
@@ -88,14 +88,14 @@
 .managerFindings .photoCaptionEditor label {display:block;margin:0;font-size:14px}
 .managerFindings .workshopPhotoGrid figure>p {white-space:pre-wrap;overflow-wrap:anywhere;margin:5px 0}
 .managerFindings .workshopPhotoDraft textarea {min-height:120px;line-height:1.5}
-@container (min-width:500px) {
+@media (min-width:700px) {
  .managerFindings .findingPublicPhoto {grid-template-columns:180px minmax(0,1fr)}
  .managerFindings .approvalRecord:has(.findingBody):not(:has(.findingPublicPhoto)) {display:grid;grid-template-columns:200px minmax(0,1fr);gap:16px}
  .managerFindings .workshopPhotoDraft {display:grid;grid-template-columns:180px minmax(0,1fr);gap:6px 16px;align-items:start}
  .managerFindings .workshopPhotoDraft>img {grid-row:1/4}
  .managerFindings .workshopPhotoDraft>button {grid-column:2;justify-self:start}
 }
-@container (min-width:760px) {
+@media (min-width:1200px) {
  .managerFindings .approvalRecord:has(.findingPublicPhoto) {display:grid;grid-template-columns:minmax(0,2fr) minmax(200px,1fr);gap:18px;align-items:start}
  .managerFindings .approvalRecord .findingEvidence {margin:0}
 }
