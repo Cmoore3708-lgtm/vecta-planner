@@ -26,6 +26,9 @@
 .findingReview label{display:block;margin:8px 0;font-weight:600}
 .findingReview input[type=text]{display:block;max-width:180px;margin:4px 0;padding:8px;border:1px solid #817668;border-radius:6px;font-size:16px}
 .findingReview input[type=checkbox]{width:auto;margin-right:5px}
+.findingReview .findingMessageLabel{flex-basis:100%;min-width:0;width:100%}
+.findingReview textarea{display:block;box-sizing:border-box;width:100%;min-height:80px;margin:4px 0;padding:8px;border:1px solid #817668;border-radius:6px;resize:vertical;font:inherit;font-size:16px;color:#19212b;background:#fff}
+.findingMessageLabel small{display:block;font-size:12px;font-weight:400;line-height:1.4}
 .findingThumbs{display:flex;gap:8px;flex-wrap:wrap}.findingThumbs a{max-width:100%}
 .findingThumbs img{display:block;width:auto;height:auto;max-width:min(100%,100px);max-height:78px;border-radius:6px}
 
@@ -71,7 +74,7 @@
 .managerFindings .findingEvidence figcaption {margin-top:3px;font-size:12px}
 .managerFindings .findingReview {display:flex;align-items:center;flex-wrap:wrap;gap:4px 8px;margin-top:5px}
 .managerFindings .findingReview label {margin:0;font-size:13px}
-.managerFindings .findingReview label:first-child {display:flex;align-items:center;flex-wrap:wrap;gap:3px 6px}
+.managerFindings .findingReview .findingPriceLabel {display:flex;align-items:center;flex-wrap:wrap;gap:3px 6px}
 .managerFindings .findingReview input[type=text] {box-sizing:border-box;width:6em;margin:0;padding:5px}
 .managerFindings .findingReview [role=status] {flex-basis:100%}
 .managerFindings .workshopPhotoGrid,.managerFindings .workshopPhotoDrafts {gap:6px;margin-top:6px}

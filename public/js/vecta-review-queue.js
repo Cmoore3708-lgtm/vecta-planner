@@ -27,13 +27,17 @@
  // Shared between the job card and Main's waiting-for-price list.
  function pricingForm(jobId,item){
   const wrap=node('div');wrap.className='findingReview';wrap.dataset.findingId=item.id;
+  const messageLabel=node('label','Customer description'),message=node('textarea');
+  messageLabel.className='findingMessageLabel';message.rows=3;message.maxLength=1200;message.value=item.message||'';
+  messageLabel.append(message,node('small','This wording will appear on the customer’s approval page.'));
   const priceLabel=node('label','Estimated total including VAT (£)'),price=node('input');
+  priceLabel.className='findingPriceLabel';
   price.type='text';price.inputMode='decimal';price.placeholder='0.00';priceLabel.append(price);
   const consentLabel=node('label'),consent=node('input');consent.type='checkbox';consentLabel.hidden=true;
   const contactText=node('span');consentLabel.append(consent,contactText);
   const button=node('button','Send estimate to customer');button.type='button';button.className='btn green';button.disabled=true;
   const result=node('div');result.setAttribute('role','status');
-  wrap.append(priceLabel,consentLabel,button,result);
+  wrap.append(messageLabel,priceLabel,consentLabel,button,result);
   let contact=null,manual=false;
   async function load(){
    try{
@@ -49,25 +53,27 @@
   }
   load();
   button.onclick=async()=>{
+   const description=message.value.trim();
+   if(!description||description.length>1200){result.textContent='Enter a customer description (up to 1,200 characters).';message.focus();return;}
    if(!/^\d{1,6}(?:\.\d{1,2})?$/.test(price.value.trim())){result.textContent='Enter the estimated total in pounds, including VAT.';price.focus();return;}
    let tab=null;
    if(manual && consent.checked && contact?.phone){
     tab=window.open('about:blank','_blank');
     if(tab)tab.opener=null;
    }
-   button.disabled=true;price.disabled=true;consent.disabled=true;
+   button.disabled=true;price.disabled=true;message.disabled=true;consent.disabled=true;
    result.textContent='Saving the estimate and preparing the customer messages…';
    try{
     if(contact?.phone && !contact.unavailable && consent.checked!==contact.allowed){
      await api('approval-whatsapp-permission',{job_id:jobId,allowed:consent.checked,phone:contact.phone,contact_binding:contact.contact_binding});
      contact.allowed=consent.checked;
     }
-    const receipt=await api('approval-request',{job_id:jobId,approval_id:item.id,estimate:price.value.trim()});
+    const receipt=await api('approval-request',{job_id:jobId,approval_id:item.id,estimate:price.value.trim(),message:description});
     showResult(result,receipt,tab);
     button.textContent='Estimate saved';wrap.dataset.finished='true';notify();
    }catch(error){
     if(tab)tab.close();result.textContent=error.message;
-    price.disabled=false;consent.disabled=false;button.disabled=false;
+    price.disabled=false;message.disabled=false;consent.disabled=false;button.disabled=false;
    }
   };
   return wrap;
