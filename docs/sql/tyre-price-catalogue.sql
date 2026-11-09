@@ -85,8 +85,8 @@ begin
    -- A customer already waiting always wins. An in-flight lookup stays bounded.
    if r.background_after>now()
     or exists(select 1 from public.tyre_price_catalogue where last_requested_at>now()-interval '1 minute')
-    or exists(select 1 from public.tyre_relay_jobs where background and created_at>now()-interval '2 minutes')
-    or (select count(*) from public.tyre_relay_jobs where background and created_at>now()-interval '24 hours')>=60
+    or exists(select 1 from public.tyre_relay_jobs where background and created_at>now()-interval '30 seconds')
+    or (select count(*) from public.tyre_relay_jobs where background and created_at>now()-interval '24 hours')>=75
     then return jsonb_build_object('status','IDLE');end if;
    select * into c from public.tyre_price_catalogue
     where (checked_at is null or checked_at<now()-interval '7 days')
