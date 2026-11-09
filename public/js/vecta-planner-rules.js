@@ -6,6 +6,18 @@
     return !technician||technician.toLowerCase()==='unallocated';
   }
 
+  function provisionalOrder(a,b){
+    return (String(a.status||'').toLowerCase()==='provisional')-(String(b.status||'').toLowerCase()==='provisional');
+  }
+
+  function byTime(a,b){
+    return provisionalOrder(a,b)||String(a.drop_time||'08:00').localeCompare(String(b.drop_time||'08:00'));
+  }
+
+  function timeLocked(job){
+    return String(job&&job.status||'').toLowerCase()!=='provisional'&&/\[\[VECTA_BOOKING_TIME:fixed\]\]/.test(String(job&&job.customer_note||''));
+  }
+
   function technicianName(job,mechanics){
     var raw=String(job&&job.technician||'').trim();
     var list=Array.isArray(mechanics)?mechanics:[];
@@ -65,6 +77,9 @@ function updateContent(container,markup){
     return hours>0?Math.round(hours*4)/4:1;
   }
   root.VectaPlannerRules=Object.freeze({
+    provisionalOrder:provisionalOrder,
+    byTime:byTime,
+    timeLocked:timeLocked,
     hoursForTypes:hoursForTypes,
     deferRender:deferRender,
     updateContent:updateContent,

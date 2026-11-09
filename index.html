@@ -13264,7 +13264,7 @@ function configuredMechanicChoice(value){var names=configuredMechanicNames(),raw
 function plannerLaneMechanics(){return configuredMechanicNames().concat('Anyone')}
 function plannerTechnicianName(job,mechanics){var list=mechanics&&mechanics.length?mechanics:plannerLaneMechanics();return window.VectaPlannerRules.technicianName(job,list)}
 function plannerTechnicianLane(value){return plannerTechnicianName({technician:value},plannerLaneMechanics())}
-function jobsForDate(){return allJobsForDate().filter(function(j){return !jobCompletionEvidence(j)&&String(j.status||'').toLowerCase()!=='ready_to_invoice'&&!isJobInvoiced(j)})}
+function jobsForDate(){return allJobsForDate().filter(function(j){return !jobCompletionEvidence(j)&&String(j.status||'').toLowerCase()!=='ready_to_invoice'&&!isJobInvoiced(j)}).sort(byTime)}
 function workloadValueForJob(job,hourlyRate){
   job=job||{};
   var quoted=job.amount_quoted;
@@ -13761,7 +13761,7 @@ function jobCardHtml(j){if(j.card_type==='mini_task'){var mins=Math.max(15,Math.
 function myTasksHtml(instance){instance=instance||'desktop';var bodyId='myTasksBody-'+instance;var active=(app.tasks||[]).filter(function(t){return !t.done&&!taskIsAllocated(t)}).sort(taskSort),done=(app.tasks||[]).filter(function(t){return t.done}).slice(-10).reverse(),counts={high:0,normal:0,low:0};active.forEach(function(t){counts[taskMeta(t).priority]=(counts[taskMeta(t).priority]||0)+1});var visible=taskPriorityFilter==='all'?active:active.filter(function(t){return taskMeta(t).priority===taskPriorityFilter});function countBox(priority,label){var selected=taskPriorityFilter===priority;return '<button type="button" class="taskCount'+(selected?' active':'')+'" data-task-priority-filter="'+priority+'" aria-pressed="'+(selected?'true':'false')+'" title="Show '+label.toLowerCase()+' priority tasks"><b>'+counts[priority]+'</b><span>'+label+'</span></button>'}return '<aside class="panel myTasksPanel" data-task-return="true"><div class="myTasksHead"><h3>My Tasks <span class="pill">'+active.length+'</span></h3><button class="btn small" data-collapse-tasks="'+bodyId+'" title="Collapse tasks">−</button></div><div id="'+bodyId+'"><div class="taskCounts">'+countBox('high','High')+countBox('normal','Normal')+countBox('low','Low')+'</div><div class="taskList">'+(visible.length?visible.map(taskCardHtml).join(''):'<div class="empty">'+(active.length?'No '+esc(taskPriorityFilter)+' priority tasks. Click the selected box again to show all.':'No outstanding tasks.')+'</div>')+'</div><button class="btn dark" data-add-task="true">+ New Task</button><details class="completedTasks"><summary>Completed ('+done.length+')</summary>'+done.map(function(t){return '<div class="completedTask">✓ '+esc(t.task_text)+'</div>'}).join('')+'</details></div></aside>'}
 function taskCardHtml(t){var m=taskMeta(t),overdue=m.due&&m.due<todayIso();return '<div draggable="true" class="taskCard '+esc(m.priority)+(overdue?' overdue':'')+(m.allocated?' allocated':'')+'" data-task-drag="'+t.id+'" data-task-open="'+t.id+'" title="Click to open task"><button class="taskPin" data-task-pin="'+t.id+'" title="Pin task">'+(m.pinned?'★':'☆')+'</button><div class="taskCardTop"><input type="checkbox" data-task="'+t.id+'"><div><div class="taskTitle">'+esc(t.task_text)+'</div><div class="taskMeta"><span>📅 '+esc(taskDueLabel(m.due))+(m.scheduled_time?' · '+esc(m.scheduled_time):'')+'</span>'+(m.owner?'<span>👤 '+esc(m.owner)+'</span>':'')+(m.allocated?'<span>🛠 '+esc(m.allocated_to)+' · '+esc(m.allocated_time)+'</span>':'')+(m.recurrence_label?'<span>↻ '+esc(m.recurrence_label)+'</span>':'')+(m.notes&&!m.recurrence_label?'<span title="'+esc(m.notes)+'">📝 Notes</span>':'')+'</div></div></div><div class="taskActions"><button data-task-delete="'+t.id+'" title="Delete task">Delete</button></div></div>'}
 
-function byTime(a,b){return String(a.drop_time||'08:00').localeCompare(String(b.drop_time||'08:00'))}
+function byTime(a,b){return window.VectaPlannerRules.byTime(a,b)}
 function mechanicHours(jobs,m){return jobs.filter(function(j){return plannerTechnicianLane(j.technician)===plannerTechnicianLane(m)}).reduce(function(a,j){return a+Number(j.estimated_hours||1)},0)}
 var PLANNER_PX_PER_HOUR=100.8;
 function topFor(j){var mins=clockMinutes(j.drop_time||'08:00')-plannerStartMinutes;return Math.max(0,(mins/60)*PLANNER_PX_PER_HOUR)}
@@ -14791,7 +14791,7 @@ function plannerLaneActiveJobs(date,tech,excludeId){var wantedLane=plannerTechni
 function plannerSafeStackStart(job,cursor){var start=Math.max(8*60,Math.round(Number(cursor||8*60)/15)*15),guard=0;while(guard++<80){job.drop_time=timeFromMinutes(start);var conflict=window.vectaTimeOffConflict&&window.vectaTimeOffConflict(job,job.id);if(!conflict)return start;start+=15}return start}
 function plannerCompactLane(){return []} /* Explicit positions are retained; legacy callers must not repack a lane. */
 
-function plannerJobTimeLocked(job){return /\[\[VECTA_BOOKING_TIME:fixed\]\]/.test(String(job&&job.customer_note||''))}
+function plannerJobTimeLocked(job){return window.VectaPlannerRules.timeLocked(job)}
 function plannerBookingTimeNote(note,locked){
   var clean=String(note||'').replace(/\s*\[\[VECTA_BOOKING_TIME:(?:fixed|next)\]\]/g,'').trim();
   return (clean?clean+'\n':'')+'[[VECTA_BOOKING_TIME:'+(locked?'fixed':'next')+']]';
@@ -14805,12 +14805,13 @@ function plannerConfirmTimeMove(before,after){
 }
 function plannerPackOrderedJobs(jobs,startMinutes){
   var cursor=Number(startMinutes),changed=[],stamp=new Date().toISOString(),planned=[];
-  // A provisional card lives in the sidebar, but its reserved time still belongs to it.
-  var fixedJobs=jobs.filter(function(job){return String(job.status||'').toLowerCase()==='provisional'||plannerJobTimeLocked(job)});
+  jobs=jobs.slice().sort(window.VectaPlannerRules.provisionalOrder);
+  var fixedJobs=jobs.filter(plannerJobTimeLocked);
   var fixed=fixedJobs.map(function(job){var start=clockMinutes(job.drop_time||'08:00');return {start:start,end:start+Math.max(15,roundPlannerMinutesUp(Number(job.estimated_hours||1)*60))}}).sort(function(a,b){return a.start-b.start});
   for(var i=0;i<jobs.length;i++){
     var job=jobs[i],probe=Object.assign({},job),duration=Math.max(15,roundPlannerMinutesUp(Number(job.estimated_hours||1)*60));
     if(fixedJobs.includes(job))continue;
+    if(String(job.status||'').toLowerCase()==='provisional')cursor=fixed.reduce(function(end,slot){return Math.max(end,slot.end)},cursor);
     var start=plannerSafeStackStart(probe,cursor),guard=0,occupied;
     while((occupied=fixed.find(function(slot){return start<slot.end&&start+duration>slot.start}))&&guard++<=fixed.length){start=plannerSafeStackStart(probe,occupied.end)}
     if(window.vectaTimeOffConflict&&window.vectaTimeOffConflict(probe,job.id))throw new Error('There is not enough available mechanic time to rearrange these jobs.');
@@ -14917,7 +14918,7 @@ function plannerResizePlan(job,proposal){
   if(!Number.isFinite(resized.estimated_hours))throw new Error('Choose a valid job duration.');
   if(plannerJobTimeLocked(resized)){
     var start=clockMinutes(resized.drop_time),end=start+resized.estimated_hours*60;
-    var fixedConflict=copies.some(function(row){if(row===resized||(String(row.status||'').toLowerCase()!=='provisional'&&!plannerJobTimeLocked(row)))return false;var otherStart=clockMinutes(row.drop_time);return start<otherStart+Number(row.estimated_hours||1)*60&&end>otherStart});
+    var fixedConflict=copies.some(function(row){if(row===resized||!plannerJobTimeLocked(row))return false;var otherStart=clockMinutes(row.drop_time);return start<otherStart+Number(row.estimated_hours||1)*60&&end>otherStart});
     if(fixedConflict)throw new Error('This resize would overlap another fixed booking. Move that booking first.');
     if(window.vectaTimeOffConflict&&window.vectaTimeOffConflict(resized,resized.id))throw new Error('This resize would overlap recorded mechanic time off.');
   }

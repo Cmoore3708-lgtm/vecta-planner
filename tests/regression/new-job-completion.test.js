@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import vm from 'node:vm';
+import '../../public/js/vecta-planner-rules.js';
 
 const html=fs.readFileSync(new URL('../../index.html',import.meta.url),'utf8');
 const saveSource=html.slice(html.indexOf('async function saveJob(id)'),html.indexOf('function prepareLinkedCustomerVehicleLocal(j)'));
@@ -9,7 +10,7 @@ function setup({existing=false,priceValid=true,cloudResult=true,account='Staff',
  const draft={id:'completed-entry',status,registration:'TEST1',customer_account:account,nmuk_vehicle_type:account==='NMUK'?'Internal':'',work_required:'Replace battery',amount_quoted:60,booking_date:new Date().toISOString().slice(0,10),created_at:new Date().toISOString(),customer_note:''};
  const app={jobs:existing?[{...draft,status:'booked',archived:false}]:[],invoices:[],serviceRecords:[],customers:[],vehicles:[]};
  const calls={saved:[],invoices:[],closed:0,rendered:0,compacted:0,gaps:0};
- const context={app,window:{},document:{getElementById:()=>null},localStorage:{setItem(){}},console,alert(){},confirm:()=>true,
+ const context={app,window:{VectaPlannerRules:globalThis.VectaPlannerRules},document:{getElementById:()=>null},localStorage:{setItem(){}},console,alert(){},confirm:()=>true,
  gatherJob:()=>({...draft}),privatePricingItemsFromNote:()=>[],vectaConfirmDuplicateBooking:async()=>true,newBookingPartsStatusForTypes:()=> 'Not required',partsStatusNote:note=>note,
  isUuid:()=>true,isWebsiteBookingJob:()=>false,isUnresolvedWebsiteService:()=>false,validatePrivatePricingForFinalStatus:()=>priceValid,
  vectaRecordWorkCompleted:j=>{j.customer_note+='[[VECTA_WORK_COMPLETED:'+j.completed_at+']]'},vectaAlignActualCompletion(){},prepareLinkedCustomerVehicleLocal:()=>null,
@@ -17,7 +18,7 @@ function setup({existing=false,priceValid=true,cloudResult=true,account='Staff',
  syncSavedJobBundleInBackground:async j=>{calls.saved.push(j);return cloudResult},closeModals:()=>calls.closed++,render:()=>calls.rendered++,openInvoiceForJob:id=>calls.invoices.push(id),
  normaliseClock:value=>String(value||'08:00').slice(0,5),plannerTechnicianLane:value=>value,selectedIso:()=>draft.booking_date,vectaJobIsDeletedForLists:()=>false,isUnallocatedJob:()=>false,jobCompletionEvidence:j=>j.status==='completed'||j.archived,isJobInvoiced:()=>false,todayIso:()=>draft.booking_date};
  vm.createContext(context);vm.runInContext(html.slice(html.indexOf('function plannerJobTimeLocked('),html.indexOf('function plannerPackOrderedJobs('))+'\n'+html.slice(html.indexOf('function shouldAutoAllocateJobSlot('),html.indexOf('async function restoreAug13JobsMovedByOldOverlapRule('))+'\n'+saveSource,context);
- for(const name of ['allJobsForDate','jobsForDate','jobsForList']){const line=html.split('\n').find(x=>x.startsWith('function '+name+'('));vm.runInContext(line,context)}
+ for(const name of ['byTime','allJobsForDate','jobsForDate','jobsForList']){const line=html.split('\n').find(x=>x.startsWith('function '+name+'('));vm.runInContext(line,context)}
  return{context,calls,draft};
 }
 

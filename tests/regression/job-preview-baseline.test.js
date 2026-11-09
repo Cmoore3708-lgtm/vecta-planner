@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import vm from 'node:vm';
+import '../../public/js/vecta-planner-rules.js';
 
 const html=fs.readFileSync(new URL('../../index.html',import.meta.url),'utf8');
 const start=html.indexOf('function gatherJob(id){');
@@ -55,7 +56,7 @@ test('saving selected types replaces a stale website/import type array without c
 
 test('job time choice persists in existing job notes without mutating the cloud conflict baseline',()=>{
  const saved={id:'fixed',registration:'TEST1',customer_account:'Staff',job_type:'general',status:'booked',booking_date:'2026-11-04',technician:'Alfie',drop_time:'10:00',customer_note:'Call first'};
- const field={value:'11:30'},ctx={app:{jobs:[saved]},document:{getElementById:key=>key==='job_drop_time'?field:null},
+ const field={value:'11:30'},ctx={app:{jobs:[saved]},window:{VectaPlannerRules:globalThis.VectaPlannerRules},document:{getElementById:key=>key==='job_drop_time'?field:null},
   syncPrivatePricingTotal:()=>[],gatherJobPartsEditor:()=>[],noteWithPrivatePricing:n=>n,noteWithJobParts:n=>n,dvsaAdvisoryArray:v=>v||[],fleetNormaliseCustomer:v=>v,
   jobTypeStorageValue:v=>v,jobTypeValues:()=>['general'],hasMotJobType:()=>false,setMotTimeOnNote:n=>n,carryOverMeta:()=>null,isUnallocatedJob:()=>false,isVehicleTaxJob:()=>false,
   normalisePartsStatus:()=>'',calculatedPartsStatus:()=>'',fleetIncomeCustomerFromVehicle:()=>'',fleetIsContractorIncome:()=>false,partsStatusNote:n=>n,normaliseClock:v=>String(v).slice(0,5)};
