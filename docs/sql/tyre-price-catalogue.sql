@@ -85,8 +85,8 @@ begin
    -- A customer already waiting always wins. An in-flight lookup stays bounded.
    if r.background_after>now()
     or exists(select 1 from public.tyre_price_catalogue where last_requested_at>now()-interval '1 minute')
-    or exists(select 1 from public.tyre_relay_jobs where background and created_at>now()-interval '10 minutes')
-    or (select count(*) from public.tyre_relay_jobs where background and created_at>now()-interval '24 hours')>=40
+    or exists(select 1 from public.tyre_relay_jobs where background and created_at>now()-interval '2 minutes')
+    or (select count(*) from public.tyre_relay_jobs where background and created_at>now()-interval '24 hours')>=60
     then return jsonb_build_object('status','IDLE');end if;
    select * into c from public.tyre_price_catalogue
     where (checked_at is null or checked_at<now()-interval '7 days')
@@ -112,8 +112,10 @@ begin
     on conflict(size) do update set result=excluded.result,checked_at=excluded.checked_at,last_attempt_at=excluded.last_attempt_at
      where public.tyre_price_catalogue.checked_at is null or public.tyre_price_catalogue.checked_at<=excluded.checked_at;
   end if;
-  if j.status in ('LOGIN_REQUIRED','SETTINGS_REQUIRED') or (j.background and j.status<>'MATCHED') then
+  if j.status in ('LOGIN_REQUIRED','SETTINGS_REQUIRED') then
    update public.tyre_relay_runtime set background_after=now()+interval '1 hour' where id=1;
+  elsif j.background and j.status<>'MATCHED' then
+   update public.tyre_relay_runtime set background_after=now()+interval '10 minutes' where id=1;
   end if;
   return jsonb_build_object('status','SAVED');
  end if;
