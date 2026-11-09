@@ -88,10 +88,14 @@ begin
     or exists(select 1 from public.tyre_relay_jobs where background and created_at>now()-interval '30 seconds')
     or (select count(*) from public.tyre_relay_jobs where background and created_at>now()-interval '24 hours')>=75
     then return jsonb_build_object('status','IDLE');end if;
-   select * into c from public.tyre_price_catalogue
+   select * into c from public.tyre_price_catalogue catalogue
     where (checked_at is null or checked_at<now()-interval '7 days')
-     and (last_attempt_at is null or last_attempt_at<now()-interval '1 day')
-    order by (checked_at is not null),search_count desc,priority,checked_at nulls first,size limit 1;
+     and (last_attempt_at is null or last_attempt_at<now()-interval '1 day'
+      or (checked_at is null and (select count(*) from public.tyre_relay_jobs failed
+       where failed.background and failed.size=catalogue.size and failed.status='UNAVAILABLE'
+        and failed.created_at>now()-interval '1 day')<2))
+    order by (checked_at is not null),(last_attempt_at is not null),last_attempt_at nulls first,
+     search_count desc,priority,checked_at nulls first,size limit 1;
    if not found then return jsonb_build_object('status','IDLE');end if;
    insert into public.tyre_relay_jobs(size,quantity,background) values(c.size,1,true) returning * into j;
   end if;
@@ -115,7 +119,7 @@ begin
   if j.status in ('LOGIN_REQUIRED','SETTINGS_REQUIRED') then
    update public.tyre_relay_runtime set background_after=now()+interval '1 hour' where id=1;
   elsif j.background and j.status<>'MATCHED' then
-   update public.tyre_relay_runtime set background_after=now()+interval '10 minutes' where id=1;
+   update public.tyre_relay_runtime set background_after=now()+interval '30 seconds' where id=1;
   end if;
   return jsonb_build_object('status','SAVED');
  end if;
