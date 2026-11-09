@@ -30,14 +30,14 @@ function browser(navigator){
  vm.runInNewContext(fs.readFileSync('public/js/vecta-booking-email-draft.js','utf8'),{window:win,URL,Blob,encodeURIComponent,unescape});
  return {win,document,events,api:win.VectaBookingEmailDraft};
 }
-for(const device of ['iPhone','iPad','Android','Windows'])test(device+' copies an HTML HERE link then opens a blank unsent message for paste',async()=>{
+for(const device of ['iPhone','iPad','Android','Windows'])test(device+' automatically opens a prefilled unsent email and retains optional formatted copying',async()=>{
  const {api,document,events,win}=browser({userAgent:device});const copied=[];
  win.ClipboardItem=class {constructor(data){this.data=data;}};
  win.navigator.clipboard={write:async items=>copied.push(...items)};
  const draft=api.create(input);api.open(draft);
- assert.equal(win.location.href,'https://planner.example/');assert.deepEqual(events.downloads,[]);
+ assert.equal(win.location.href,draft.mailto);assert.deepEqual(events.downloads,[]);assert.equal(copied.length,0);
  const dialog=document.querySelector('dialog[open]'),link=dialog.querySelector('[data-booking-email-open]');
- assert.equal(link.hidden,true);
+ assert.equal(link.hidden,false);
  await dialog.querySelector('[data-booking-email-copy]').onclick();
  assert.equal(copied.length,1);assert.equal(link.hidden,false);
  const html=await copied[0].data['text/html'].text(),message=parseHTML(html).document;
@@ -45,7 +45,7 @@ for(const device of ['iPhone','iPad','Android','Windows'])test(device+' copies a
  assert.equal(message.body.textContent.includes(input.trackingUrl),false);
  const url=new URL(link.getAttribute('href'));
  assert.equal(url.protocol,'mailto:');assert.equal(decodeURIComponent(url.pathname),input.email);
- assert.equal(url.searchParams.get('subject'),input.subject);assert.equal(url.searchParams.has('body'),false);
+ assert.equal(url.searchParams.get('subject'),input.subject);assert.equal(url.searchParams.get('body'),draft.text);
  assert.match(dialog.querySelector('[data-booking-email-status]').textContent,/Copied.*Paste before sending/);
  assert.equal(dialog.querySelector('[data-booking-email-message] a').textContent,'HERE');
  assert.equal(dialog.querySelector('[data-booking-email-message]').textContent.includes(input.trackingUrl),false);
@@ -60,5 +60,5 @@ test('blocked clipboard leaves a selectable formatted message and never claims i
  assert.match(document.querySelector('[data-booking-email-status]').textContent,/Select and copy/);
  assert.equal(document.querySelector('[data-booking-email-preview]').open,true);
  assert.equal(document.querySelector('[data-booking-email-copy]').disabled,false);
- assert.equal(win.location.href,'https://planner.example/');
+ assert.equal(win.location.href,api.create(input).mailto);
 });
