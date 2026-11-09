@@ -13242,7 +13242,7 @@ function plannerHeaderDayLabel(iso){var date=new Date(iso+'T12:00:00'),day=date.
 var vectaRenderInvoiceLookup=null,vectaRenderActiveInvoices=null,vectaRenderContractorNames=null;
 /* Keep a grabbed card mounted, including the pointer-down before native dragstart.
    Background writes must never own the gesture lock. */
-function deferPlannerRender(options){window.VectaPlannerRules.deferRender(options)}
+function deferPlannerRender(options){window.VectaPlannerRules.deferRender(options,render)}
 function updatePlannerContent(container,markup){return window.VectaPlannerRules.updateContent(container,markup)}
 var renderInProgress=false;function render(){var renderOptions=arguments[0]||{};if(view==='planner'&&((typeof plannerInteractionBusy!=='undefined'&&plannerInteractionBusy)||window.__vectaPlannerPointerHeld)){deferPlannerRender(renderOptions);return;}if(document.body.classList.contains('vectaStartupLoading')||renderInProgress)return;renderInProgress=true;try{safe(function(){vectaRenderInvoiceLookup=vectaCreateInvoiceLookup();var taskList=document.querySelector('.taskList'),taskScroll=taskList?taskList.scrollTop:0;
 var backlog=document.querySelector('.livePriorityBacklog,.mechanicBoardBacklog'),backlogScroll=backlog?backlog.scrollTop:0;

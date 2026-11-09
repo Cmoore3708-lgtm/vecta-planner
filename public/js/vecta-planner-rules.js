@@ -17,12 +17,12 @@
   }
 
 var plannerRenderTimer=null,plannerRenderNeedsPacking=false;
-function deferRender(options){
+function deferRender(options,render){
   if(!options||!options.fromCloud)plannerRenderNeedsPacking=true;
   if(plannerRenderTimer)return;
   plannerRenderTimer=root.setTimeout(function(){
     plannerRenderTimer=null;var needsPacking=plannerRenderNeedsPacking;plannerRenderNeedsPacking=false;
-    root.render({fromCloud:!needsPacking});
+    render({fromCloud:!needsPacking});
   },180);
 }
 function updateContent(container,markup){

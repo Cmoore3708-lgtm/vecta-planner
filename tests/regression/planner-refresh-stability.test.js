@@ -19,7 +19,7 @@ function setup(mechanic=false){
   plannerHtml(){return '<section>'+c.app.jobs.map(j=>'<div class="job" draggable="true" data-job-id="'+j.id+'"><span>'+j.drop_time+'</span><p>'+j.work_required+'</p></div>').join('')+'</section>';}
  };
  window.enrichHaynesDashboard=container=>{stats.enriched++;for(const card of container.querySelectorAll('.job'))if(!card.querySelector('img'))card.append(document.createElement('img'));};
- window.setTimeout=c.setTimeout;window.render=options=>c.render(options);
+ window.setTimeout=c.setTimeout; // The planner render function lives inside its application closure.
  vm.runInNewContext(readFileSync(new URL('../../public/js/vecta-planner-rules.js',import.meta.url),'utf8'),{window});
  vm.createContext(c);
  vm.runInContext(html.slice(html.indexOf('function deferPlannerRender('),html.indexOf('function vectaCreateInvoiceLookup(')),c);
