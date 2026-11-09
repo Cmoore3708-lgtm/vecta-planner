@@ -8,17 +8,26 @@ export function createSessionRecovery({supplier,username='',password='',now=Date
   if(new URL(page.url()).origin!==origin)throw Error('SUPPLIER_LOGIN_REQUIRED');
   if(!isLogin(page))return;
   // A fresh navigation can restore a valid cookie session without credentials.
-  if(!username||!password||now()-lastAttempt<cooldownMs)throw Error('SUPPLIER_LOGIN_REQUIRED');
+  // Never repeatedly submit a stale password: one attempt per cooldown.
+  if(now()-lastAttempt<cooldownMs)throw Error('SUPPLIER_LOGIN_REQUIRED');
   const user=page.locator('input[name="UserName"],input[name="Username"],input[name="username"],input[autocomplete="username"]');
   const pass=page.locator('input[type="password"]');
-  const submit=page.getByRole('button',{name:/^(?:log\s*in|sign\s*in)$/i});
+  const submit=page.getByRole('button',{name:/^(?:log\\s*in|sign\\s*in)$/i});
   if(await user.count()!==1||await pass.count()!==1||await submit.count()!==1||!await user.isVisible()||!await pass.isVisible())throw Error('SUPPLIER_LOGIN_REQUIRED');
-  // One attempt per cooldown, shared by all lookups. Never repeat a bad password.
   const at=now();
   if(!isLogin(page)||!reserveAttempt(at,cooldownMs))throw Error('SUPPLIER_LOGIN_REQUIRED');
-  lastAttempt=at;await user.fill(username);await pass.fill(password);
+  // Edge can have an encrypted, browser-autofilled login even when worker
+  // environment credentials are not configured. Only test presence of values;
+  // never read them into Node, print them, or send them to the relay.
+  if(!username||!password){
+   const prefilled=await page.evaluate(()=>{const u=document.querySelector('input[name="UserName"],input[name="Username"],input[name="username"],input[autocomplete="username"]');const p=document.querySelector('input[type="password"]');return !!(u?.value?.trim()&&p?.value);});
+   if(!prefilled)throw Error('SUPPLIER_LOGIN_REQUIRED');
+  }else{
+   await user.fill(username);await pass.fill(password);
+  }
+  lastAttempt=at;
   await submit.click({timeout:10000});
-  await page.waitForURL(url=>url.origin===origin&&!/\/Account\/LogOn/i.test(url.pathname),{timeout:15000}).catch(()=>{});
+  await page.waitForURL(url=>url.origin===origin&&!/\\/Account\\/LogOn/i.test(url.pathname),{timeout:15000}).catch(()=>{});
   if(new URL(page.url()).origin!==origin||isLogin(page))throw Error('SUPPLIER_LOGIN_REQUIRED');
  }
  return {ensure};
