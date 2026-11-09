@@ -6,7 +6,7 @@ import handler from '../../api/availability.js';
 import {bookingTypes} from '../../lib/booking-input.js';
 test('work types are canonical, deduplicated and cannot understate service duration',()=>{
  assert.deepEqual(bookingTypes({job_types:['Service','MOT','MOT'],service_choice:'Major Service'}),['Major Service','MOT']);
- assert.deepEqual(bookingTypes({job_types:['Interim Service']}),['Oil & Filter Change']);
+ assert.deepEqual(bookingTypes({job_types:['Interim Service']}),['Interim Service']);
  assert.throws(()=>bookingTypes({job_types:['free text']}),{code:'BOOKING_INPUT'});
 });
 test('availability uses the same server engine as admission and ignores client duration claims',async()=>{

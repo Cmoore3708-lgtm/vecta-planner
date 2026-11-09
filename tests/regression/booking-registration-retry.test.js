@@ -9,7 +9,7 @@ const html=readFileSync('public/booking.html','utf8');
 const lookupCode=html.slice(html.indexOf('async function lookup(reg)'),html.indexOf('\nfunction bind(){',html.indexOf('async function lookup(reg)')));
 const json=(body,status=200,headers={})=>Response.json(body,{status,headers});
 function customer(fetch,timer=fn=>queueMicrotask(fn)){
- const state={form:{registration:'AA12ABC'}},message={textContent:''};
+ const state={step:1,form:{registration:'AA12ABC'}},message={textContent:''};
  const ctx=vm.createContext({state,fetch,setTimeout:timer,AbortSignal,document:{getElementById:()=>message},todayTracking:{check(){}},startBookingTransfer(){},engineSizeFromLookup:()=>1600,VectaVehicleImage:{resolveColour:()=>''},render(){},refreshHaynes(){},haynesLookup:{lookup(){}}});
  vm.runInContext('let activeRegistrationLookup=null;'+lookupCode,ctx);
  return {ctx,state,message};
@@ -18,7 +18,7 @@ test('a busy lookup waits for the server, combines repeated Enter presses and sh
  let calls=0,wake,delay;const {ctx,state,message}=customer(async()=>++calls===1?json({error:'busy'},503,{'Retry-After':'5'}):json({vehicle:'Test Nissan'}),(fn,n)=>{wake=fn;delay=n});
  const first=ctx.lookup('AA12ABC'),second=ctx.lookup('AA12ABC');await new Promise(r=>setImmediate(r));
  assert.equal(calls,1);assert.ok(delay>=5000&&delay<6000);assert.match(message.textContent,/automatically/);
- wake();await Promise.all([first,second]);assert.equal(calls,2);assert.equal(state.lookup,'success');assert.equal(state.form.vehicle,'Test Nissan');
+ wake();await Promise.all([first,second]);assert.equal(calls,2);assert.equal(state.lookup,'success');assert.equal(state.form.vehicle,'Test Nissan');assert.equal(state.step,2);
 });
 test('retry exhaustion and long Retry-After fall back, and ordinary errors do not repeat',async()=>{
  for(const [status,header,expected] of [[503,'0',3],[429,null,3],[429,'60',1],[503,null,1],[404,null,1],[400,null,1]]){

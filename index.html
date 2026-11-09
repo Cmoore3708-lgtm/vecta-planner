@@ -13020,8 +13020,8 @@ function applyWebsiteDefaultService(j){
 var WEBSITE_CONFIRMATION_MARKER='[[VECTA_WEBSITE_CONFIRMATION_PREPARED]]';
 function markWebsiteConfirmationPrepared(j){if(!j)return j;var note=String(j.customer_note||'').trim();if(note.indexOf(WEBSITE_CONFIRMATION_MARKER)<0)j.customer_note=(note?note+' ':'')+WEBSITE_CONFIRMATION_MARKER;return j}
 function websiteConfirmationCostText(j){
-  if(j.amount_quoted===null||j.amount_quoted===undefined||j.amount_quoted==='')return '';
-  var value='£'+Number(j.amount_quoted||0).toFixed(2),mode=String(j.vat_mode||'').toLowerCase();
+  if(j.amount_quoted===null||j.amount_quoted===undefined||String(j.amount_quoted).trim()===''||!Number.isFinite(Number(j.amount_quoted)))return 'unknown';
+  var value='£'+Number(j.amount_quoted).toFixed(2),mode=String(j.vat_mode||'').toLowerCase();
   if(mode==='inc_vat')return value+' including VAT';
   if(mode==='ex_vat')return value+' + VAT';
   if(mode==='no_vat')return value+' (no VAT)';
@@ -16147,7 +16147,6 @@ async function saveJob(id){
     saveOptions.requireCloud=true;
     if(!/^[^\s<>@]+@[^\s<>@]+\.[^\s<>@]+$/.test(String(j.customer_email||'').trim())){alert('Add a valid customer email address before confirming this website booking.');var emailField=document.getElementById('job_customer_email');if(emailField){emailField.classList.add('requiredMissing');emailField.focus();}return;}
     if(!j.booking_date){alert('Please allocate this website booking to a date and technician before confirming it to the customer.');var bookingDateField=document.getElementById('job_booking_date');if(bookingDateField)bookingDateField.focus();return;}
-    if(j.amount_quoted===null){alert('Please enter the estimated cost in the Private pricing breakdown before confirming this website booking. The confirmation email will include this figure.');var priceInput=document.querySelector('#privatePricingRows .privatePriceAmount');if(priceInput){priceInput.classList.add('requiredMissing');priceInput.focus();}return;}
     markWebsiteConfirmationPrepared(j);
   }
   if((j.status==='completed'||j.status==='ready_to_invoice')&&!validatePrivatePricingForFinalStatus())return false;
