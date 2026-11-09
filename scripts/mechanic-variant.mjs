@@ -10,7 +10,7 @@ export function mechanicVariant(source){
  // Keep the shared planner functions and CSS. The deployment flag selects the
  // mechanics' full-description queue; Main retains its timed planner.
  source=once(source,"{label:'Ready To Invoice',value:ready.length,view:'invoices'}", "{label:'Work Complete',value:(app.jobs||[]).filter(function(j){return j.status==='work_complete'}).length,view:'completedJobs'}");
- source=once(source,"if(view==='planner')c.innerHTML=plannerHtml();", "if(view==='planner')c.innerHTML=plannerHtml();if(view==='completedJobs')c.innerHTML=mechanicCompletedJobsHtml();");
+ source=once(source,"if(view==='planner'&&!updatePlannerContent(c,plannerHtml())){window.VectaPlannerRules.refreshArtwork(c,app.jobs);return;}", "if(view==='planner'&&!updatePlannerContent(c,plannerHtml())){window.VectaPlannerRules.refreshArtwork(c,app.jobs);return;}if(view==='completedJobs')c.innerHTML=mechanicCompletedJobsHtml();");
  source=once(source,"document.getElementById('currentDate').value=selectedIso();", "if(view!=='planner'&&view!=='completedJobs')view='planner';document.getElementById('currentDate').value=selectedIso();");
  source=source.replace(/<button[^>]*id="dashboardBookedToday"[^>]*>[\s\S]*?<\/button>/,'');
  source=source.replace(/<button[^>]*id="newQuoteTop"[^>]*>[\s\S]*?<\/button>/,'');

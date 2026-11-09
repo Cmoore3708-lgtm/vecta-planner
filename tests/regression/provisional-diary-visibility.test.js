@@ -70,6 +70,21 @@ export function diaryFixture(mechanic=false){
  const styles=[...document.querySelectorAll('style,link[rel="stylesheet"]')].map(n=>n.tagName==='STYLE'?n.outerHTML:'<style>'+fs.readFileSync('public'+n.getAttribute('href'),'utf8')+'</style>').join('');
  return '<!doctype html><html><head><meta name="viewport" content="width=device-width,initial-scale=1">'+styles+'</head><body><main id="content">'+c.plannerHtml()+'</main><script>('+checkDiaryInBrowser.toString()+')('+mechanic+')</script></body></html>';
 }
+
+for(const mechanic of [false,true])test((mechanic?'mechanics':'Main')+': provisional review cards follow unallocated jobs and quotes',()=>{
+ const c=diaryContext(mechanic),before=JSON.stringify(c.app.jobs);
+ c.unallocatedPanelHtml=()=>'<aside class="unallocatedPanel"><h3>Unallocated Jobs</h3></aside>';
+ const {document}=parseHTML(c.plannerHtml());
+ const backlog=document.querySelector(mechanic?'.mechanicBoardBacklog':'.livePriorityBacklog');
+ assert.deepEqual([...backlog.children].map(n=>n.querySelector('h2,h3').textContent.trim().replace(/\s+/g,' ').replace(/\s*\d+$/,'')),['Unallocated '+(mechanic?'jobs':'Jobs'),'Quotes','Provisional Bookings']);
+ assert.ok(backlog.lastElementChild.matches('.provisionalBookingsPanel'));
+ if(!mechanic){
+  const mobile=document.querySelector('.mobilePlanner'),panel=mobile.querySelector('.provisionalBookingsPanel');
+  assert.ok(panel.previousElementSibling.matches('.mobileGroup-quotes'));
+  assert.ok(panel.previousElementSibling.previousElementSibling.matches('.mobileGroup-unallocated-jobs'));
+ }
+ assert.equal(JSON.stringify(c.app.jobs),before,'moving the review section must not reschedule reserved diary slots');
+});
 function checkDiaryInBrowser(mechanic){
  const failures=[],check=(ok,label)=>{if(!ok)failures.push(label)};
  const group=mechanic?[...document.querySelectorAll('.mechanicBoardColumns .mechanicBoardGroup')].find(n=>n.querySelector('h2 span').textContent==='Chris'):

@@ -12,21 +12,23 @@ test('restored mechanics entry has only its original Dashboard and Completed Job
  assert.match(mechanic,/name="vecta-mechanic-build" content="current-workshop-layout-mechanic"/);
 });
 test('management navigation attempts render the mechanics planner without calculating or displaying financial totals',()=>{
- const content={innerHTML:''},title={},date={};let packed=0;
- const c={plannerPackVisibleDay:()=>{packed++},vectaCreateInvoiceLookup:()=>({ids:new Set(),jobs:new Set()}),view:'invoices',window:{addEventListener(){},matchMedia:()=>({matches:false})},document:{body:{classList:{contains:()=>false}},querySelector:()=>null,getElementById:id=>({content,viewTitle:title,currentDate:date}[id]||null)},safe:fn=>fn(),selectedIso:()=> '2026-10-19',renderNav(){},plannerHtml:()=> 'MECHANICS PLANNER',bindView(){},linkifyDisplayedEmails(){},invoicesHtml:()=>{throw Error('Finance screen reached');},invoiceFinancialSummary:()=>{throw Error('Finance calculation reached');}};
- vm.runInNewContext(nav+'\n'+mechanic.slice(mechanic.indexOf('var renderInProgress=false;'),mechanic.indexOf('function vectaCreateInvoiceLookup(')),c);c.render();assert.equal(c.view,'planner');assert.equal(content.innerHTML,'MECHANICS PLANNER');assert.equal(packed,1);
+ const {document}=parseHTML('<html><body><div id="content"></div></body></html>');const content=document.getElementById('content'),title={},date={};let packed=0;
+ const c={app:{jobs:[]},plannerPackVisibleDay:()=>{packed++},vectaCreateInvoiceLookup:()=>({ids:new Set(),jobs:new Set()}),view:'invoices',window:{addEventListener(){},matchMedia:()=>({matches:false})},document:{createElement:tag=>document.createElement(tag),body:{classList:{contains:()=>false}},querySelector:()=>null,getElementById:id=>({content,viewTitle:title,currentDate:date}[id]||null)},safe:fn=>fn(),selectedIso:()=> '2026-10-19',renderNav(){},plannerHtml:()=> 'MECHANICS PLANNER',bindView(){},linkifyDisplayedEmails(){},invoicesHtml:()=>{throw Error('Finance screen reached');},invoiceFinancialSummary:()=>{throw Error('Finance calculation reached');}};
+ vm.runInNewContext(readFileSync(new URL('../../public/js/vecta-planner-rules.js',import.meta.url),'utf8'),{window:c.window});
+ vm.runInNewContext(nav+'\n'+mechanic.slice(mechanic.indexOf('function updatePlannerContent('),mechanic.indexOf('function vectaCreateInvoiceLookup(')),c);c.render();assert.equal(c.view,'planner');assert.equal(content.innerHTML,'MECHANICS PLANNER');assert.equal(packed,1);
 });
 test('refresh preserves the single sidebar scroll position',()=>{
  for(const entry of [main,mechanic]){
   const {document}=parseHTML('<html><body><input id="currentDate"><h1 id="viewTitle"></h1><div id="content"></div></body></html>');
   const isMechanic=entry===mechanic,area=isMechanic?'mechanicBoardBacklog':'livePriorityBacklog',list=isMechanic?'mechanicJobList':'unallocatedJobList';
   const plannerHtml=()=>'<div class="'+area+'"><div class="provisionalBookingList"></div><div class="'+list+'"></div><div class="'+list+'"></div></div>';
-  const c={document,window:{addEventListener(){},matchMedia:()=>({matches:false})},view:'planner',safe:fn=>fn(),plannerHtml,
+  const c={app:{jobs:[]},document,window:{addEventListener(){},matchMedia:()=>({matches:false})},view:'planner',safe:fn=>fn(),plannerHtml,
    navItems:()=>[['planner','Dashboard']],selectedIso:()=> '2026-11-06',vectaCreateInvoiceLookup:()=>({}),renderNav(){},plannerPackVisibleDay(){},bindView(){},linkifyDisplayedEmails(){}};
-  vm.runInNewContext(entry.slice(entry.indexOf('var renderInProgress=false;'),entry.indexOf('function vectaCreateInvoiceLookup(')),c);
+  vm.runInNewContext(readFileSync(new URL('../../public/js/vecta-planner-rules.js',import.meta.url),'utf8'),{window:c.window});
+  vm.runInNewContext(entry.slice(entry.indexOf('function updatePlannerContent('),entry.indexOf('function vectaCreateInvoiceLookup(')),c);
   c.render();const before=document.querySelector('.'+area);before.scrollTop=120;
   c.render();const after=document.querySelector('.'+area);
-  assert.notEqual(after,before);assert.equal(after.scrollTop,120);
+  assert.equal(after,before);assert.equal(after.scrollTop,120);
  }
 });
 test('both entries share the current planner functions and preserve Main’s timed lanes and backlog',()=>{
@@ -37,7 +39,7 @@ test('both entries share the current planner functions and preserve Main’s tim
   vm.runInNewContext(main.match(/function configuredMechanicNames\(\)\{[^\n]+/)[0]+'\n'+main.match(/function plannerLaneMechanics\(\)\{[^\n]+/)[0]+'\n'+source,c);return c.plannerHtml();
  }
  assert.equal(mainPlanner,mechanicPlanner);assert.match(mechanicPlanner,/VECTA_MECHANIC_DEPLOYMENT===true\)return mechanicPlannerHtml/);
- const rendered=render(mechanicPlanner);assert.equal(rendered,render(mainPlanner));assert.match(rendered,/Anyone/);assert.match(rendered,/livePriorityBacklog[^]*PROVISIONALUNALLOCATEDQUOTES/);assert.doesNotMatch(rendered,/mechanicPlannerOnly/);
+ const rendered=render(mechanicPlanner);assert.equal(rendered,render(mainPlanner));assert.match(rendered,/Anyone/);assert.match(rendered,/livePriorityBacklog[^]*UNALLOCATEDQUOTESPROVISIONAL/);assert.doesNotMatch(rendered,/mechanicPlannerOnly/);
  assert.doesNotMatch(mechanic,/<style id="v75-mechanic-final-layout"/);
 });
 
