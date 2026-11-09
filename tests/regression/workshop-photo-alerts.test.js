@@ -30,7 +30,7 @@ function app(seen=new Map(),mechanic=false,extraPhotos=[]){
   localStorage:{getItem:k=>seen.get(k),setItem:(k,v)=>seen.set(k,v)},setInterval(fn){interval=fn;},setTimeout(){},clearTimeout(){},
   fetch:async(_url,opt)=>{
    const b=JSON.parse(opt.body);requests.push(b.action);
-   if(b.action==='approval-queue')return Response.json({findings:alerts,decisions});
+   if(['approval-queue','approval-decisions'].includes(b.action))return Response.json({findings:alerts,decisions});
    assert.equal(b.job_id,job.id);
    if(b.action==='approval-list')return Response.json({approvals:approvalRows});
    if(b.action==='photos-list')return Response.json({photos:[...approvalRows.filter(f=>f.photo_ids.length).map(f=>({id:f.photo_ids[0],review_id:f.id,private_finding:f.status==='awaiting_price',caption:f.message,url:signed(f.photo_ids[0])})),...extraPhotos]});
@@ -98,8 +98,12 @@ test('dismissing an alert preserves the pricing queue; a different open editor s
  other.classList.remove('open');await flush();await flush();
  assert.equal(ui.mounted,1);assert.equal(ui.popup.hidden,true);
 });
-test('mechanics never install dashboard alerts; completed findings disappear on the next poll',async()=>{
- const mechanic=app(new Map(),true);await flush();assert.equal(mechanic.popup,null);assert.deepEqual(mechanic.requests,[]);
+test('mechanics receive customer decision alerts without pricing; completed findings disappear on the next poll',async()=>{
+ const mechanic=app(new Map(),true);await flush();assert.equal(mechanic.popup.hidden,true);assert.deepEqual(mechanic.requests,['approval-decisions']);
+ mechanic.setDecisions([{...first,status:'approved',estimated_pence:12345,decided_at:'2026-11-09T14:00:00Z'}]);await mechanic.poll();
+ assert.match(mechanic.action.textContent,/Customer approved/);assert.doesNotMatch(mechanic.action.textContent,/123|£|VAT/);
+ mechanic.setApprovalRows([{...first,status:'approved',estimated_pence:12345}]);await mechanic.action.onclick();await flush();
+ assert.doesNotMatch(mechanic.modal.textContent,/123|£|VAT/);assert.match(mechanic.modal.textContent,/Customer approved/);
  const manager=app();await flush();manager.setRows([first]);await manager.poll();manager.setRows([]);await manager.poll();
  assert.equal(manager.popup.hidden,true);
 });

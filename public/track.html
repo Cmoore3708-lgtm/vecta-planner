@@ -6,11 +6,12 @@
 <form id="registrationForm" class="lookup" hidden><label for="registrationInput">Enter your car registration</label><div class="lookupRow"><input id="registrationInput" maxlength="15" placeholder="YOUR REG" autocomplete="off" autocapitalize="characters" spellcheck="false" required><button id="findProgress" type="submit">Track my car</button></div></form>
 <section class="card" aria-label="Booking progress"><div id="identity" class="vehicleSummary" hidden><strong id="registration" class="plate"></strong><p id="vehicle"></p><p id="bookingDate"></p><div id="jobSummary" hidden><span class="summaryLabel">BOOKED WORK</span><p id="jobDescription"></p></div></div>
 <section id="customerInstructions" class="customerInstructions" aria-labelledby="customerInstructionsTitle" hidden><h2 id="customerInstructionsTitle">Your booking instructions</h2><div id="customerInstructionsList"></div></section>
-<section id="approvalPanel" class="progressApproval" aria-labelledby="approvalTitle" hidden>
-<h2 id="approvalTitle">Your approval is needed</h2><p id="approvalMessage"></p><p id="approvalEstimate" hidden></p>
+<button type="button" id="openApproval" hidden>View workshop message</button>
+<dialog id="approvalDialog" aria-labelledby="approvalTitle"><section id="approvalPanel" class="progressApproval" aria-labelledby="approvalTitle" hidden>
+<h2 id="approvalTitle" tabindex="-1">Workshop message</h2><p id="approvalMessage"></p><p id="approvalEstimate" hidden></p>
 <button type="button" id="approvalPhotos" hidden>View workshop photos</button>
-<div id="approvalButtons"><button type="button" id="approveWork">Approve</button><button type="button" id="declineWork">Decline</button></div>
-<p id="approvalStatus" role="status" aria-live="polite"></p></section>
+<div id="approvalButtons"><button type="button" id="approveWork">Approve work</button><button type="button" id="declineWork">Decline work</button></div>
+<p id="approvalStatus" role="status" aria-live="polite"></p><button type="button" id="retryApproval" hidden>Check message again</button><button type="button" id="closeApproval">Back to progress</button></section></dialog>
 <div id="live" role="status" aria-live="polite"><h2 id="statusTitle">Your car’s progress</h2><p id="statusDescription">Enter your registration above to see today’s workshop progress.</p></div>
 <ol id="steps" hidden><li data-step="waiting">Waiting for the workshop</li><li data-step="underway">Work underway</li><li data-step="ready">Ready for collection</li></ol>
 <p id="sceneCaption" class="illustrationNote" role="status" aria-live="polite" hidden></p>
