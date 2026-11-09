@@ -7,7 +7,7 @@ import traverseModule from '@babel/traverse';
 import {parseHTML} from 'linkedom';
 const traverse=traverseModule.default||traverseModule;
 const html=fs.readFileSync(new URL('../../index.html',import.meta.url),'utf8');
-const names=new Set(['fleetEmailBookingPlans','fleetOpenEmailBooking','fleetOpenTrackedEmail','fleetMarkEmailSentForVehicle','installProvisionalBookingActions','shouldCarryOverJob','carryOverMeta','setCarryOverMeta','clearCarryOverMeta','isOutstandingCarryOver','carryOverWorkshopDate','carryOverAvailableSlot','carriedOverPreferredMechanics','rollOverOutstandingJobs','syncPendingCarryOvers','nextWorkshopDate','plannerIsoDate','roundPlannerMinutesUp','mechanicBookingIntervals','plannerBookingTimeNote','configuredMechanicNames','configuredMechanicChoice','jobTypeInlineStyle']);
+const names=new Set(['templateDataForType','fleetEmailBookingPlans','fleetOpenEmailBooking','fleetOpenTrackedEmail','fleetMarkEmailSentForVehicle','installProvisionalBookingActions','shouldCarryOverJob','carryOverMeta','setCarryOverMeta','clearCarryOverMeta','isOutstandingCarryOver','carryOverWorkshopDate','carryOverAvailableSlot','carriedOverPreferredMechanics','rollOverOutstandingJobs','syncPendingCarryOvers','nextWorkshopDate','plannerIsoDate','roundPlannerMinutesUp','mechanicBookingIntervals','plannerBookingTimeNote','configuredMechanicNames','configuredMechanicChoice','jobTypeInlineStyle']);
 let source='';
 for(const m of html.matchAll(/<script(?:\s[^>]*)?>([\s\S]*?)<\/script>/gi)){
  if(![...names].some(n=>m[1].includes('function '+n+'(')))continue;
@@ -23,7 +23,7 @@ function setup(jobs=[],today='2026-11-09'){
   fleetMaintenanceCategory:t=>/safety|six|6.month/i.test(t)?'safety':/mot/i.test(t)?'mot':/service/i.test(t)?'service':'other',
   fleetIncomeCustomerFromVehicle:()=> 'NMUK',fleetEffectiveContactEmail:v=>v.contactEmail,fleetNmukTypeFromVehicle:()=> 'Pool',jobTypeStorageValue:types=>types.join(' || '),normReg:s=>String(s||'').replace(/\s/g,''),activeFleetVehicleId:'',fleetVehicles:[],location:{},
  };
- c.window=c;vm.createContext(c);vm.runInContext(source,c);return c;
+ c.jobTypeValues=values=>Array.isArray(values)?values:String(values||'').split(' || ');c.normaliseJobTypeKey=value=>String(value).toLowerCase();c.templates={'On-Site Service':{estimated_hours:1},'Full Service':{estimated_hours:1.5},'MOT':{estimated_hours:.5},'6 Month Safety Check':{estimated_hours:1}};c.window=c;vm.createContext(c);vm.runInContext(fs.readFileSync(new URL('../../public/js/vecta-planner-rules.js',import.meta.url),'utf8'),c);vm.runInContext(source,c);return c;
 }
 const row=(id,extra={})=>({id,status:'booked',booking_date:'2026-11-06',drop_time:'08:00',technician:'Alfie',estimated_hours:1,card_type:'job',customer_note:'Customer note',updated_at:'2026-11-06T10:00:00Z',...extra});
 test('unfinished confirmed jobs move to first gap with the same mechanic and retain their original date',()=>{
@@ -79,3 +79,17 @@ test('existing reservation is opened and combined work only prefills unbooked it
 });
 
 test('slow cloud audit never delays opening the email or provisional draft',async()=>{const c=setup();c.fleetVehicleForRegistration=()=>vehicle;c.fleetEmailDueGroupForVehicle=()=>({vehicle,items:[{plan:{type:'Annual Service'}}]});c.persistFleetCloudSnapshot=()=>new Promise(()=>{});await c.fleetOpenTrackedEmail({dataset:{fleetEmailRegistration:vehicle.registration},getAttribute:()=>'mailto:driver@example.invalid',closest:()=>null});assert.ok(c.opened);assert.equal(c.location.href,'mailto:driver@example.invalid');});
+
+test('Fleet email bookings use configured service durations and sum combined work',()=>{
+ const c=setup();
+ for(const [group,plans,hours] of [
+  ['Nissan Internal',[{type:'Internal Service'}],1],
+  ['Nissan Pool Cars',[{type:'Annual Service'}],1.5],
+  ['Nissan Internal',[{type:'Internal Service'},{type:'MOT'}],1.5],
+  ['Nissan Pool Cars',[{type:'Six-month Safety Check'}],1]
+ ]){c.fleetOpenEmailBooking({...vehicle,fleetGroup:group},plans);assert.equal(c.opened.preset.estimated_hours,hours);}
+ c.app.settings.jobTemplates={'On-Site Service':{estimated_hours:.75}};
+ c.fleetOpenEmailBooking({...vehicle,fleetGroup:'Nissan Internal'},[{type:'Internal Service'}]);assert.equal(c.opened.preset.estimated_hours,.75);
+ c.templates={};delete c.app.settings.jobTemplates;
+ c.fleetOpenEmailBooking(vehicle,[]);assert.equal(c.opened.preset.estimated_hours,1);
+});
