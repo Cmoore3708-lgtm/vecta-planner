@@ -366,3 +366,19 @@ test('only a signed-in mechanic’s submitted photo batch is eligible for a dash
  s.row=null;await stageFinding(s.db,job,{...body,photo_ids:[]},'mechanic');
  assert.equal((await queued()).findings[0].mechanic_photo,false);
 });
+
+test('owner queue includes recorded customer decisions with registration, price and exact wording, excluding reassigned jobs',async t=>{
+ const s=setup(t,true);const response=await createAndPrice(s.db,job,body,site);s.allowDecide=true;
+ await customerApproval(s.db,{action:'approval-decide',approval_id:id,decision:'approved',token:new URL(response.url).hash.slice(1)});
+ const requested=[];
+ const result=await reviewQueue(async path=>{
+  const query=new URL(path,'https://test.invalid').searchParams;requested.push(query);
+  if(query.get('progress_review_state')==='eq.draft')return [];
+  return [{...s.row,jobs:job},{...s.row,id:photo,jobs:{...job,customer_email:'someone-else@example.invalid'}},{...s.row,id:photo,status:'pending',jobs:job}];
+ });
+ assert.equal(result.findings.length,0);assert.equal(result.decisions.length,1);
+ assert.equal(result.decisions[0].status,'approved');assert.equal(result.decisions[0].registration,job.registration);
+ assert.equal(result.decisions[0].message,body.message);assert.equal(result.decisions[0].estimated_pence,8500);assert.ok(result.decisions[0].decided_at);
+ assert.doesNotMatch(JSON.stringify(result),/customer_email|customer_phone|progress:/);
+ assert.equal(requested[1].get('status'),'in.(approved,declined)');assert.match(requested[1].get('decided_at'),/^gte\./);
+});

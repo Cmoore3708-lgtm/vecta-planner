@@ -16,7 +16,7 @@ const signed=id=>'https://brqsejjykrubxuofavuu.supabase.co/storage/v1/object/sig
 const flush=()=>new Promise(resolve=>setImmediate(resolve));
 function app(seen=new Map(),mechanic=false,extraPhotos=[]){
  const {document,window:dom}=parseHTML('<html><body><main class="main"><header class="top"></header></main><div class="modal" id="jobModal"></div><div class="modal" id="other"></div></body></html>');
- let jobs=[job],mounted=0,openedId='',scrolls=0,interval,alerts=[],requests=[];
+ let jobs=[job],mounted=0,openedId='',scrolls=0,interval,alerts=[],decisions=[],approvalRows=[first,second],requests=[];
  const events={};
  const window={VECTA_MECHANIC_DEPLOYMENT:mechanic,addEventListener(type,fn){events[type]=fn;},dispatchEvent(event){events[event.type]?.();}};
  const modal=document.getElementById('jobModal');
@@ -30,16 +30,16 @@ function app(seen=new Map(),mechanic=false,extraPhotos=[]){
   localStorage:{getItem:k=>seen.get(k),setItem:(k,v)=>seen.set(k,v)},setInterval(fn){interval=fn;},setTimeout(){},clearTimeout(){},
   fetch:async(_url,opt)=>{
    const b=JSON.parse(opt.body);requests.push(b.action);
-   if(b.action==='approval-queue')return Response.json({findings:alerts});
+   if(b.action==='approval-queue')return Response.json({findings:alerts,decisions});
    assert.equal(b.job_id,job.id);
-   if(b.action==='approval-list')return Response.json({approvals:[first,second]});
-   if(b.action==='photos-list')return Response.json({photos:[...[first,second].map(f=>({id:f.photo_ids[0],review_id:f.id,private_finding:true,caption:f.message,url:signed(f.photo_ids[0])})),...extraPhotos]});
+   if(b.action==='approval-list')return Response.json({approvals:approvalRows});
+   if(b.action==='photos-list')return Response.json({photos:[...approvalRows.filter(f=>f.photo_ids.length).map(f=>({id:f.photo_ids[0],review_id:f.id,private_finding:f.status==='awaiting_price',caption:f.message,url:signed(f.photo_ids[0])})),...extraPhotos]});
    throw Error('Unexpected action '+b.action);
   }
  });
  vm.runInContext(photos,ctx);vm.runInContext(bridge,ctx);vm.runInContext(queue,ctx);
  return {document,window,modal,ctx,requests,get mounted(){return mounted;},get opened(){return openedId;},get scrolls(){return scrolls;},
-  setRows(rows){alerts=rows;},async poll(){await interval?.();await flush();},
+  setRows(rows){alerts=rows;},setDecisions(rows){decisions=rows;},setApprovalRows(rows){approvalRows=rows;},async poll(){await interval?.();await flush();},
   get popup(){return document.querySelector('.mechanicPhotoAlert');},
   get action(){return document.querySelector('.findingAlertOpen');}};
 }
@@ -102,4 +102,42 @@ test('mechanics never install dashboard alerts; completed findings disappear on 
  const mechanic=app(new Map(),true);await flush();assert.equal(mechanic.popup,null);assert.deepEqual(mechanic.requests,[]);
  const manager=app();await flush();manager.setRows([first]);await manager.poll();manager.setRows([]);await manager.poll();
  assert.equal(manager.popup.hidden,true);
+});
+
+test('approval and decline responses pop up without an open job, persist until acknowledged and do not repeat after reopening',async()=>{
+ const seen=new Map(),ui=app(seen);await flush();assert.equal(ui.popup.hidden,true);
+ const approved={...first,status:'approved',estimated_pence:10000,decided_at:'2026-11-09T14:00:00Z'},declined={...second,status:'declined',estimated_pence:8500,decided_at:'2026-11-09T14:01:00Z',photo_ids:[]};
+ ui.setRows([first]);ui.setDecisions([approved,declined]);await ui.poll();
+ assert.match(ui.action.textContent,/Customer approved · TEST001/);assert.match(ui.action.textContent,/£100.00/);
+ assert.equal(ui.popup.dataset.decision,'approved');assert.equal(ui.mounted,0);
+ await ui.poll();assert.match(ui.action.textContent,/Customer approved/,'refresh cannot dismiss an unread response');
+ ui.popup.querySelector('.findingAlertDismiss').click();assert.match(ui.action.textContent,/Customer declined/);assert.equal(ui.popup.dataset.decision,'declined');
+ ui.setApprovalRows([approved,declined]);await ui.action.onclick();await flush();
+ assert.equal(ui.opened,job.id);assert.match(ui.modal.querySelector('.findingDestination').textContent,/Customer declined/);
+ assert.match(ui.action.textContent,/New mechanic photo/,'photo alerts resume after customer responses');
+ const reopened=app(seen);await flush();reopened.setDecisions([approved,declined]);await reopened.poll();assert.equal(reopened.popup.hidden,true);
+ assert.ok(ui.requests.every(action=>['approval-queue','photos-list','approval-list'].includes(action)),'displaying a response cannot write the job or contact a customer');
+});
+
+test('response notification waits for unsaved work and acknowledgements are shared between tabs',async()=>{
+ const seen=new Map(),ui=app(seen);await flush();
+ const decision={...first,status:'approved',estimated_pence:10000,decided_at:'2026-11-09T14:00:00Z'};
+ ui.setDecisions([decision]);ui.setApprovalRows([decision]);await ui.poll();
+ const other=ui.document.getElementById('other');other.innerHTML='<input value="unsaved work">';other.classList.add('open');
+ await ui.action.onclick();assert.equal(ui.mounted,0);assert.equal(other.querySelector('input').value,'unsaved work');
+ assert.equal(ui.popup.hidden,false);
+ other.classList.remove('open');await flush();await flush();assert.equal(ui.mounted,1);assert.equal(ui.popup.hidden,true);
+ const another=app(seen);await flush();another.setDecisions([decision]);await another.poll();assert.equal(another.popup.hidden,true);
+});
+
+test('sent findings keep their public photo, large caption editor and decision together without duplicating the image; refresh preserves an unsaved caption',async()=>{
+ const ui=app();ui.setApprovalRows([{...first,status:'approved',estimated_pence:10000}]);
+ ui.window.openJobModal(job.id);await flush();
+ let entry=ui.modal.querySelector('.approvalRecord');
+ assert.equal(entry.querySelectorAll('img').length,1);assert.match(entry.querySelector('.findingBody').textContent,/Customer approved.*Inner shoulder worn.*£100.00/s);
+ assert.equal(ui.modal.querySelector('[data-photo-saved]').querySelectorAll('img').length,0);
+ const caption=entry.querySelector('.photoCaptionEditor textarea');caption.value='Clearer caption for the customer';caption.oninput();
+ await ui.modal.querySelector('[data-photo-refresh]').onclick();await flush();
+ entry=ui.modal.querySelector('.approvalRecord');assert.equal(entry.querySelector('.photoCaptionEditor textarea').value,'Clearer caption for the customer');
+ assert.equal(entry.querySelector('.findingBody .findingReview'),null,'sent approval wording stays fixed');
 });
