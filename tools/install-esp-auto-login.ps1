@@ -5,7 +5,7 @@ $root=Join-Path $env:LOCALAPPDATA 'VectaWorkers\releases'
 $candidates=@(Get-ChildItem -LiteralPath $root -Directory | Where-Object { $_.Name -like '20d5c2f8*' })
 if ($candidates.Count -eq 0) { throw 'Expected VectaWorkers release 20d5c2f8 not found. Nothing changed.' }
 $matches=@(foreach ($candidate in $candidates) {
- $folder=Join-Path $candidate.FullName 'tyres'
+ $folder=Join-Path $candidate.FullName 'workers\tyres'
  $w=Join-Path $folder 'live-worker.mjs'
  $st=Join-Path $folder 'startup.mjs'
  if ((Test-Path -LiteralPath $w -PathType Leaf) -and (Test-Path -LiteralPath $st -PathType Leaf)) { $folder }
