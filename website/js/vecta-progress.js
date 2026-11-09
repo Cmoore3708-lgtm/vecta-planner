@@ -20,9 +20,9 @@
     try{
       const response=await fetch('/api/job-progress',{method:'POST',headers:{'Content-Type':'application/json'},
         body:JSON.stringify({action:decision?'approval-decide':'approval-status',approval_id:approvalId,token,decision}),
-        credentials:'omit',cache:'no-store',signal:AbortSignal.timeout(15000)});
+        credentials:'same-origin',cache:'no-store',signal:AbortSignal.timeout(15000)});
       const data=await response.json();
-      if(!response.ok)throw Error(data.error||'Approval unavailable. Tap Refresh progress to check again.');
+      if(!response.ok)throw Error(typeof data.error==='string'?data.error:'Approval unavailable. Tap Check message again to retry.');
       if(seq!==approvalRender)return;
       const item=data.approval;
       el('approvalMessage').textContent=item.message;
@@ -156,8 +156,8 @@
     clearTimeout(timer);if(busy||(!token&&!registration)||document.hidden)return;busy=true;el('refresh').disabled=true;if(!artworkKey)showConnectionMessage();
     try{
       if(approvalId)refreshApproval();
-      const response=await fetch('/api/job-progress',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(registration?{action:'registration',registration,request_scenes:true}:{action:'status',token,request_scenes:true}),cache:'no-store',credentials:'omit',signal:AbortSignal.timeout(15000)});
-      const data=await response.json();if(!response.ok){const error=Error(data.error||'Progress is temporarily unavailable.');error.permanent=response.status===404||response.status===400;throw error;}
+      const response=await fetch('/api/job-progress',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(registration?{action:'registration',registration,request_scenes:true}:{action:'status',token,request_scenes:true}),cache:'no-store',credentials:'same-origin',signal:AbortSignal.timeout(15000)});
+      const data=await response.json();if(!response.ok){const error=Error(typeof data.error==='string'?data.error:'Progress is temporarily unavailable.');error.permanent=response.status===404||response.status===400;throw error;}
       render(data);failures=0;el('error').hidden=true;timer=setTimeout(refresh,data.scene_state==='preparing'?15000:60000);
     }catch(error){
       el('sceneCaption').hidden=true;el('sceneCaption').classList.remove('connecting');

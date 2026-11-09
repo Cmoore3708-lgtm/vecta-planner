@@ -151,6 +151,7 @@ test('opening a tracker only displays the request; one explicit decision updates
  const dialog=document.getElementById('approvalDialog');dialog.showModal=()=>{dialog.open=true;};dialog.close=()=>{dialog.open=false;};
  let decisions=0;
  const fetch=async(_url,options)=>{
+   assert.equal(options.credentials,'same-origin','protected previews retain their same-origin access cookie');
    const b=JSON.parse(options.body);
    if(b.action.startsWith('approval-')){
      if(b.action==='approval-decide'){decisions++;assert.equal(b.decision,'approved');}
