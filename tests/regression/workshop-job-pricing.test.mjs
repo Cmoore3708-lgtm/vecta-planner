@@ -202,7 +202,8 @@ test('partial worker result reaches the job sheet and produces a signed public g
 });
 test('wheel selections survive real part encoding, editor inputs and save/reopen',()=>{
  const html=readFileSync('index.html','utf8'),context={uid:()=>'fixture',esc:v=>String(v).replaceAll('&','&amp;').replaceAll('"','&quot;').replaceAll('<','&lt;'),jobPartsRangeDisplay:()=>'',select:()=>'',partsStatusFromJob:()=>'',PARTS_STATUS_VALUES:[],decodeURIComponent,encodeURIComponent};
- for(const name of ['jobParts','noteWithJobParts','jobPartsEditorHtml','gatherJobPartsEditor']){const begin=html.indexOf('function '+name+'('),end=html.indexOf('\nfunction ',begin+1);vm.runInNewContext(html.slice(begin,end),context);}
+ context.window=context;vm.runInNewContext(readFileSync('public/js/vecta-job-pricing.js','utf8'),context);
+ for(const name of ['jobParts','noteWithJobParts','jobPartDisplayName','jobPartRowHtml','jobPartsEditorHtml','gatherJobPartsEditor']){const begin=html.indexOf('function '+name+'('),end=html.indexOf('\nfunction ',begin+1);vm.runInNewContext(html.slice(begin,end),context);}
  const selected={size:'205/55R16',category:'budget',brand:'ACCELERA',model:'PHI',positions:['Front driver','Rear passenger']};
  const note=context.noteWithJobParts('Keep my note',[{id:'tyre-205/55R16',description:'Tyres · Front driver, Rear passenger',quantity:2,cost_price:21,tyre_selection:selected}]);
  const {document}=parseHTML(context.jobPartsEditorHtml({customer_note:note}));context.document=document;
