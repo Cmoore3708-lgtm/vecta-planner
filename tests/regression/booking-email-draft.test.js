@@ -38,6 +38,7 @@ for(const device of ['iPhone','iPad','Android','Windows'])test(device+' automati
  assert.equal(win.location.href,draft.mailto);assert.deepEqual(events.downloads,[]);assert.equal(copied.length,0);
  const dialog=document.querySelector('dialog[open]'),link=dialog.querySelector('[data-booking-email-open]');
  assert.equal(link.hidden,false);
+ assert.equal(link.getAttribute('href'),draft.mailto);
  await dialog.querySelector('[data-booking-email-copy]').onclick();
  assert.equal(copied.length,1);assert.equal(link.hidden,false);
  const html=await copied[0].data['text/html'].text(),message=parseHTML(html).document;
