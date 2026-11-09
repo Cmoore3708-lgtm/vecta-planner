@@ -123,7 +123,8 @@ test('natural-height cards preserve queue order, all mechanic groups, backlog an
  assert.match(t.document.querySelector('[data-open-job="chris"]').getAttribute('style'),/#cbd0d7/);
  assert.equal(t.document.querySelectorAll('.mechanicBoardBacklog .mechanicQueueCard').length,3);
  assert.ok(groups[1].querySelector('[data-open-job="chris"]'),'provisional bookings also appear in their assigned diary');
- assert.equal(t.document.querySelector('.provisionalBookingsPanel').nextElementSibling.querySelector('h2').textContent,'Unallocated jobs1');
+ assert.equal(t.document.querySelector('.provisionalBookingsPanel').previousElementSibling.querySelector('h2').textContent,'Quotes1');
+ assert.equal(t.document.querySelector('.provisionalBookingsPanel').nextElementSibling,null);
  assert.equal(t.document.querySelector('#notesArea').value,'Workshop notes');
 });
 test('Main still renders the timed planner and its cards retain the existing open action',()=>{

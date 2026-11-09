@@ -180,7 +180,7 @@ test('phone Unallocated uses the shared list without adding assigned multi-day j
  const unallocated={id:'real-backlog',technician:'Unallocated',status:'booked'};
  const ctx={app:{jobs:[allocated,unallocated],notes:''},window:{},selectedIso:()=> '2026-10-12',quoteJobs:()=>[],unallocatedJobs:()=>[unallocated],byTime:()=>0,esc:v=>String(v||''),mobileJobCardHtml:j=>'<i data-job="'+j.id+'"></i>',plannerTechnicianName:j=>j.technician};
  vm.runInNewContext(namedFunctionSource('mobilePlannerHtml')+";output=mobilePlannerHtml(['Alfie','Other'],[],'<section>HOLDS</section>')",ctx);
- assert.match(ctx.output,/<section>HOLDS<\/section><div class="mobileGroup mobileGroup-unallocated-jobs"[^]*mobileGroup-quotes/);assert.match(ctx.output,/data-job="real-backlog"/);assert.doesNotMatch(ctx.output,/assigned-multi/);
+ assert.match(ctx.output,/<div class="mobileGroup mobileGroup-unallocated-jobs"[^]*mobileGroup-quotes[^]*<section>HOLDS<\/section>/);assert.match(ctx.output,/data-job="real-backlog"/);assert.doesNotMatch(ctx.output,/assigned-multi/);
  vm.runInNewContext("output=mobilePlannerHtml(['Alfie','Other'],[app.jobs[0]])",ctx);
  assert.equal((ctx.output.match(/assigned-multi/g)||[]).length,1);
 });

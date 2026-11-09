@@ -39,7 +39,7 @@ test('both entries share the current planner functions and preserve Main’s tim
   vm.runInNewContext(main.match(/function configuredMechanicNames\(\)\{[^\n]+/)[0]+'\n'+main.match(/function plannerLaneMechanics\(\)\{[^\n]+/)[0]+'\n'+source,c);return c.plannerHtml();
  }
  assert.equal(mainPlanner,mechanicPlanner);assert.match(mechanicPlanner,/VECTA_MECHANIC_DEPLOYMENT===true\)return mechanicPlannerHtml/);
- const rendered=render(mechanicPlanner);assert.equal(rendered,render(mainPlanner));assert.match(rendered,/Anyone/);assert.match(rendered,/livePriorityBacklog[^]*PROVISIONALUNALLOCATEDQUOTES/);assert.doesNotMatch(rendered,/mechanicPlannerOnly/);
+ const rendered=render(mechanicPlanner);assert.equal(rendered,render(mainPlanner));assert.match(rendered,/Anyone/);assert.match(rendered,/livePriorityBacklog[^]*UNALLOCATEDQUOTESPROVISIONAL/);assert.doesNotMatch(rendered,/mechanicPlannerOnly/);
  assert.doesNotMatch(mechanic,/<style id="v75-mechanic-final-layout"/);
 });
 

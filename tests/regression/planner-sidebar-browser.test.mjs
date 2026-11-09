@@ -37,7 +37,7 @@ function fixture(entry,mechanic,empty){
   const cards='<div style="height:90px;flex:none">Test job</div>'.repeat(12);
   const holds='<section class="panel provisionalBookingsPanel'+(empty?' provisionalPanelEmpty':'')+'"><div class="unallocatedHead"><h3>Provisional Bookings</h3></div><div class="provisionalBookingList">'+(empty?'No provisional bookings.':cards)+'</div></section>';
   const group=(label,quote)=>mechanic?'<section class="mechanicBoardGroup"><h2 class="mechanicGroupHeading">'+label+'</h2><div class="mechanicJobList">'+cards+'</div></section>':'<aside class="panel unallocatedPanel'+(quote?' quotePanel':'')+'"><div class="unallocatedHead"><h3>'+label+'</h3></div><div class="unallocatedJobList">'+cards+'</div></aside>';
-  const backlog=holds+group('Unallocated Jobs',false)+group('Quotes',true);
+  const backlog=group('Unallocated Jobs',false)+group('Quotes',true)+holds;
   const planner=mechanic?'<div class="mechanicBoard"><div class="mechanicBoardIntro">All jobs</div><div class="mechanicBoardColumns"><section data-planner-day></section></div><div class="mechanicBoardBacklog">'+backlog+'</div></div>':'<div class="mobilePlanner">'+holds+'</div><div class="plannerLayout v233Planner livePriorityPlanner"><div class="plannerCard"><div data-planner-day></div></div><div class="livePriorityBacklog">'+backlog+'</div></div>';
   return '<!doctype html><meta name="viewport" content="width=device-width">'+styles+'<div id="content" style="padding-top:120px">'+planner+'<div hidden>'+bookingColourSamples(entry,mechanic)+'</div></div><script>('+check.toString()+')('+empty+')</script>';
 }
@@ -56,7 +56,7 @@ function check(empty){
   if(innerWidth>900){
     const sections=Array.from(sidebar.children);
     verify(sidebar.getBoundingClientRect().left>innerWidth/2,'sidebar position');
-    verify(sections.map(s=>s.querySelector('h2,h3').textContent).join('|')==='Provisional Bookings|Unallocated Jobs|Quotes','section order');
+    verify(sections.map(s=>s.querySelector('h2,h3').textContent).join('|')==='Unallocated Jobs|Quotes|Provisional Bookings','section order');
     for(const height of [270,1150]){
       planner.querySelector('[data-planner-day]').style.height=height+'px';
       const rect=sidebar.getBoundingClientRect(),lane=planner.getBoundingClientRect();
@@ -68,14 +68,14 @@ function check(empty){
         verify(section.scrollHeight<=section.clientHeight+1,'no clipped jobs in section '+i);
         if(i){const gap=section.getBoundingClientRect().top-sections[i-1].getBoundingClientRect().bottom;verify(gap>=0&&gap<=12,'natural section spacing '+i)}
       }
-      if(empty)verify(sections[0].getBoundingClientRect().height<120,'empty bookings take only their content height');
+      if(empty)verify(sections[2].getBoundingClientRect().height<120,'empty bookings take only their content height');
       sidebar.scrollTop=sidebar.scrollHeight;
-      verify(sidebar.scrollTop>0&&sections[2].getBoundingClientRect().bottom<=rect.bottom+1,'last quote reachable');
+      verify(sidebar.scrollTop>0&&sections[2].getBoundingClientRect().bottom<=rect.bottom+1,'last provisional booking reachable');
       sidebar.scrollTop=0;
     }
     sections.forEach(section=>section.lastElementChild.textContent='No jobs');
     verify(sidebar.scrollHeight<=sidebar.clientHeight+1,'short lists fit without scrolling');
-    verify(sections[2].getBoundingClientRect().bottom<sidebar.getBoundingClientRect().top+360,'Quotes follows short lists');
+    verify(sections[2].getBoundingClientRect().bottom<sidebar.getBoundingClientRect().top+360,'Provisional bookings follow short lists');
   }else{
     if(sidebar.matches('.livePriorityBacklog'))verify(!sidebar.getBoundingClientRect().height,'phone uses mobile planner');
     else verify(sidebar.scrollHeight<=sidebar.clientHeight+1,'mechanic lists stack');

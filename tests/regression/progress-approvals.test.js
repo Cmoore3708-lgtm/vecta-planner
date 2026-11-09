@@ -52,10 +52,10 @@ function setup(t,preview=false){
      const row=key?.includes('approval-wa:')?state.waLedger:state.ledger;
      return row?[row]:[];
    }
-   if(url.pathname==='/rpc/vecta_publish_progress_estimate'){
+   if(url.pathname==='/rpc/vecta_publish_progress_estimate_review'){
      if(!state.row||state.row.id!==data.p_id||state.row.job_id!==data.p_job_id)return {code:404,error:'Invalid finding'};
-     if(state.row.progress_review_state==='sent' && state.row.progress_estimate_pence!==data.p_pence)return {code:409,error:'Already sent'};
-     Object.assign(state.row,{progress_review_state:'sent',progress_estimate_pence:data.p_pence,expires_at:new Date(Date.now()+86400000).toISOString()});return {code:200};
+     if(state.row.progress_review_state==='sent' && (state.row.progress_estimate_pence!==data.p_pence||state.row.progress_message!==data.p_message))return {code:409,error:'Already sent'};
+     Object.assign(state.row,{progress_review_state:'sent',progress_message:data.p_message,progress_estimate_pence:data.p_pence,expires_at:new Date(Date.now()+86400000).toISOString()});return {code:200};
    }
    if(url.pathname==='/rpc/vecta_decide_progress_approval'){
      assert.ok(state.allowDecide);assert.equal(data.p_approval_id,id);assert.equal(data.p_job_id,job.id);
@@ -96,6 +96,24 @@ test('one request for a photo batch emails a private, targeted progress link onc
  await customerApproval(s.db,{...call,action:'approval-decide',decision:'declined'});
  const list=await workshopApprovalList(s.db,job);assert.equal(list.approvals[0].status,'declined');
  assert.equal(list.approvals[0].channels.whatsapp,'sent');assert.equal(approval.estimated_pence,8500);
+});
+test('owner reviews the wording before publication; customer and retries retain that exact description',async t=>{
+ const s=setup(t,true);await stageFinding(s.db,job,{...body,message:'Here it is'},'mechanic');
+ const message='Replace both front tyres.\nThe inner shoulders are worn.';
+ const result=await requestApproval(s.db,job,{...body,message},site);
+ const token=new URL(result.url).hash.slice(1);
+ assert.equal((await customerApproval(s.db,{action:'approval-status',approval_id:id,token})).approval.message,message);
+ await requestApproval(s.db,job,{...body,message},site);
+ await assert.rejects(requestApproval(s.db,job,{...body,message:'Different work'},site),/Already sent/);
+ await requestApproval(s.db,job,{action:'approval-retry',approval_id:id},site);
+ assert.equal(s.row.progress_message,message);assert.equal(s.emails.length+s.whatsapps.length,0);
+});
+test('invalid reviewed descriptions cannot publish; older tabs retain the original finding',async t=>{
+ const s=setup(t,true);await stageFinding(s.db,job,body);
+ for(const message of ['', ' \n ',null,12,'a'.repeat(1201)])await assert.rejects(requestApproval(s.db,job,{...body,message},site),/customer description/);
+ assert.equal(s.row.progress_review_state,'draft');assert.equal(s.emails.length+s.whatsapps.length,0);
+ await requestApproval(s.db,job,{action:'approval-request',approval_id:id,estimate:'85'},site);
+ assert.equal(s.row.progress_message,body.message);
 });
 test('an ambiguous provider response keeps a reserved send; retry does not deliver a second email',async t=>{
  const s=setup(t);s.providerResponse=Response.json({}, {status:503});
