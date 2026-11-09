@@ -11,7 +11,7 @@ export function createGsfRecovery({now=Date.now,cooldownMs=30*60*1000}={}){
   if(now()-lastAttempt<cooldownMs)throw Error('LOGIN_REQUIRED');
   const user=page.locator('input[type="email"],input[autocomplete="username"],input[name="email"],input[name="username"],input[name="Email"]');
   const pass=page.locator('input[type="password"]');
-  const submit=page.getByRole('button',{name:/^(?:sign\\s*in|log\\s*in)$/i});
+  const submit=page.getByRole('button',{name:/^(?:sign\s*in|log\s*in)$/i});
   if(await user.count()!==1||await pass.count()!==1||await submit.count()!==1||!await user.isVisible()||!await pass.isVisible()||!await submit.isVisible())throw Error('LOGIN_REQUIRED');
   // The boolean result never exposes the credential values outside the browser.
   const filled=await page.evaluate(()=>{const u=document.querySelector('input[type="email"],input[autocomplete="username"],input[name="email"],input[name="username"],input[name="Email"]');const p=document.querySelector('input[type="password"]');return !!(u?.value?.trim()&&p?.value);});
