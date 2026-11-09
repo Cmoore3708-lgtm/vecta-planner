@@ -57,31 +57,49 @@
 .findingEvidence figure{margin:0;max-width:100%;min-width:0}
 .findingEvidence figcaption{overflow-wrap:anywhere}
 
-/* Workshop job editor: keep each photo beside the finding it belongs to. */
-.managerFindings {min-width:0}
-.managerFindings .workshopPhotosHeading {display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:4px 10px}
-.managerFindings .workshopPhotosHeading h3 {font-size:14px}
-.managerFindings .workshopPhotoActions {gap:4px}
-.managerFindings .approvalComposer {margin:6px 0 0;padding-top:5px;font-size:13px}
-.managerFindings .workshopPhotoStatus {font-size:12px;line-height:1.3;margin:4px 0 0}
+/* The photo, caption and customer response share the full job-editor width. */
+.managerFindings {min-width:0;container-type:inline-size}
+.managerFindings .workshopPhotosHeading {display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px 14px}
+.managerFindings .workshopPhotosHeading h3 {font-size:16px}
+.managerFindings .workshopPhotoActions {gap:6px}
+.managerFindings .approvalComposer {margin:8px 0;padding-top:8px;font-size:14px}
+.managerFindings .workshopPhotoStatus {font-size:12px;line-height:1.3;margin:6px 0 0}
 .managerFindings .workshopPhotoStatus:empty,.managerFindings .findingReview [role=status]:empty {display:none}
-.managerFindings .findingDestination {margin:6px 0}
-.managerFindings .approvalRecord {margin-top:5px;padding:6px 8px;font-size:14px;line-height:1.3}
-.managerFindings .approvalRecord:has(.findingBody) {display:grid;grid-template-columns:clamp(68px,15%,90px) minmax(0,1fr);align-items:start;gap:8px}
-.managerFindings .findingEvidence {margin:0;gap:5px}
-.managerFindings .findingEvidence figure {width:100%}
-.managerFindings .findingEvidence img,.managerFindings .workshopPhotoGrid img,.managerFindings .workshopPhotoDraft img {max-width:min(100%,90px);max-height:84px}
-.managerFindings .findingEvidence figcaption {margin-top:3px;font-size:12px}
-.managerFindings .findingReview {display:flex;align-items:center;flex-wrap:wrap;gap:4px 8px;margin-top:5px}
-.managerFindings .findingReview label {margin:0;font-size:13px}
-.managerFindings .findingReview .findingPriceLabel {display:flex;align-items:center;flex-wrap:wrap;gap:3px 6px}
-.managerFindings .findingReview input[type=text] {box-sizing:border-box;width:6em;margin:0;padding:5px}
+.managerFindings .findingDestination {margin:8px 0}
+.managerFindings .approvalRecord {margin-top:8px;padding:12px;font-size:15px;line-height:1.4;border-radius:8px}
+.managerFindings .approvalRecord strong {font-size:16px}
+.managerFindings .approvalRecord[data-review-state=approved] {border-left-color:#26804a}
+.managerFindings .approvalRecord[data-review-state=declined] {border-left-color:#b93f3f}
+.managerFindings .findingBody {min-width:0}
+.managerFindings .findingEvidence {display:grid;gap:12px;margin:0 0 12px}
+.managerFindings .findingEvidence figure {width:100%;min-width:0}
+.managerFindings .findingEvidence img,.managerFindings .workshopPhotoGrid img,.managerFindings .workshopPhotoDraft img {width:200px;max-width:100%;max-height:200px;object-fit:contain;border-radius:8px;background:#f5f1e9}
+.managerFindings .findingEvidence figcaption {margin-top:5px;font-size:13px}
+.managerFindings .findingReview {display:flex;align-items:center;flex-wrap:wrap;gap:10px 14px;margin-top:8px}
+.managerFindings .findingReview label {margin:0;font-size:14px}
+.managerFindings .findingReview .findingPriceLabel {display:flex;align-items:center;flex-wrap:wrap;gap:5px 8px}
+.managerFindings .findingReview input[type=text] {box-sizing:border-box;width:7em;margin:0;padding:8px}
 .managerFindings .findingReview [role=status] {flex-basis:100%}
-.managerFindings .workshopPhotoGrid,.managerFindings .workshopPhotoDrafts {gap:6px;margin-top:6px}
-.managerFindings .workshopPhotoGrid figure,.managerFindings .workshopPhotoDraft {padding:6px;border-radius:8px}
-.managerFindings .workshopPhotoGrid figure>p {white-space:pre-wrap;overflow-wrap:anywhere;margin:3px 0}
-.managerFindings .workshopPhotoGrid textarea,.managerFindings .workshopPhotoDraft textarea {min-height:0;margin:4px 0;padding:4px 6px}
-@media (min-width:700px) {
- .managerFindings .approvalRecord:has(.findingEvidence figure:nth-child(2)) {grid-template-columns:min(30%,175px) minmax(0,1fr)}
- .managerFindings .findingEvidence figure:not(:only-child) {width:calc(50% - 3px)}
+.managerFindings .findingReview textarea,.managerFindings .photoCaptionEditor textarea,.managerFindings [data-approval-message] {min-height:120px;margin:6px 0;padding:10px;line-height:1.5;font-size:16px}
+.managerFindings .workshopPhotoGrid,.managerFindings .workshopPhotoDrafts {display:grid;gap:12px;margin-top:8px}
+.managerFindings .workshopPhotoGrid figure,.managerFindings .workshopPhotoDraft {width:100%;padding:12px;border-radius:8px}
+.managerFindings .findingPublicPhoto {display:grid;grid-template-columns:minmax(0,1fr);align-items:start;gap:12px}
+.managerFindings .photoCaptionEditor {min-width:0}
+.managerFindings .photoCaptionEditor label {display:block;margin:0;font-size:14px}
+.managerFindings .workshopPhotoGrid figure>p {white-space:pre-wrap;overflow-wrap:anywhere;margin:5px 0}
+.managerFindings .workshopPhotoDraft textarea {min-height:120px;line-height:1.5}
+@container (min-width:500px) {
+ .managerFindings .findingPublicPhoto {grid-template-columns:180px minmax(0,1fr)}
+ .managerFindings .approvalRecord:has(.findingBody):not(:has(.findingPublicPhoto)) {display:grid;grid-template-columns:200px minmax(0,1fr);gap:16px}
+ .managerFindings .workshopPhotoDraft {display:grid;grid-template-columns:180px minmax(0,1fr);gap:6px 16px;align-items:start}
+ .managerFindings .workshopPhotoDraft>img {grid-row:1/4}
+ .managerFindings .workshopPhotoDraft>button {grid-column:2;justify-self:start}
 }
+@container (min-width:760px) {
+ .managerFindings .approvalRecord:has(.findingPublicPhoto) {display:grid;grid-template-columns:minmax(0,2fr) minmax(200px,1fr);gap:18px;align-items:start}
+ .managerFindings .approvalRecord .findingEvidence {margin:0}
+}
+.customerDecisionAlert[data-decision=approved] {border-color:#69a77c;border-left-color:#26804a;background:#f0faf3;color:#153b24}
+.customerDecisionAlert[data-decision=declined] {border-color:#d79292;border-left-color:#b93f3f;background:#fff4f4;color:#582020}
+.findingAlertEstimate {font-size:14px;line-height:1.4}
+.findingAlertEstimate[hidden] {display:none}

@@ -100,46 +100,57 @@
   };
   return section;
  }
- function photoAlerts(){
+ function findingAlerts(){
   const key='vecta:acknowledged-finding-photos:v1';
-  const acknowledged=new Set();
-  let findings=[],active=null,waiting=null,opening=false;
+  const decisionKey='vecta:acknowledged-customer-decisions:v1';
+  const acknowledged=new Set(),seenDecisions=new Set();
+  let findings=[],decisions=[],active=null,waiting=null,opening=false;
+  const eventId=item=>item.decision?item.id+':'+item.status+':'+item.decided_at:item.id;
   const popup=node('aside');popup.className='mechanicPhotoAlert';popup.hidden=true;
   popup.setAttribute('aria-label','Mechanic photo alert');
   const open=node('button'),close=node('button','×'),headline=node('strong'),description=node('span'),action=node('span','Open job card');
   open.type=close.type='button';open.className='findingAlertOpen';action.className='findingAlertAction';
   close.className='findingAlertDismiss';close.setAttribute('aria-label','Dismiss this photo alert');
   headline.setAttribute('role','status');description.className='findingAlertNote';
+  const estimate=node('span');estimate.className='findingAlertEstimate';estimate.hidden=true;
   const status=node('p');status.setAttribute('role','status');
-  open.append(headline,description,action);popup.append(open,close,status);document.body.append(popup);
+  open.append(headline,description,estimate,action);popup.append(open,close,status);document.body.append(popup);
 
   function readSeen(){
-   try{
-    const ids=JSON.parse(localStorage.getItem(key)||'[]');
-    if(Array.isArray(ids))for(const id of ids.slice(-512))acknowledged.add(id);
+   for(const [storageKey,seen] of [[key,acknowledged],[decisionKey,seenDecisions]])try{
+    const ids=JSON.parse(localStorage.getItem(storageKey)||'[]');
+    if(Array.isArray(ids))for(const id of ids.slice(-512))seen.add(id);
    }catch{}
   }
-  function acknowledge(id){
-   readSeen();acknowledged.add(id);
-   try{localStorage.setItem(key,JSON.stringify(Array.from(acknowledged).slice(-512)));}catch{}
+  function acknowledge(item){
+   const seen=item.decision?seenDecisions:acknowledged,storageKey=item.decision?decisionKey:key;
+   readSeen();seen.add(eventId(item));
+   try{localStorage.setItem(storageKey,JSON.stringify(Array.from(seen).slice(-512)));}catch{}
    redraw();
   }
   function stopWaiting(){waiting?.disconnect();waiting=null;}
   function redraw(){
-   const next=findings.find(item=>item.mechanic_photo && item.photo_ids.length && !acknowledged.has(item.id));
-   if(active?.id===next?.id){active=next;return;}
+   const decision=decisions.find(item=>!seenDecisions.has(eventId({...item,decision:true})));
+   const next=decision?{...decision,decision:true}:findings.find(item=>item.mechanic_photo && item.photo_ids.length && !acknowledged.has(item.id));
+   if(active&&next&&eventId(active)===eventId(next)){active=next;return;}
    stopWaiting();active=next;opening=false;open.disabled=false;status.textContent='';popup.hidden=!next;
    if(!next)return;
-   headline.textContent='New mechanic photo · '+next.registration;
-   open.setAttribute('aria-label','Open job card for '+next.registration+' to see the mechanic’s photo');
+   const title=next.decision?'Customer '+next.status:'New mechanic photo';
+   popup.classList.toggle('customerDecisionAlert',!!next.decision);popup.dataset.decision=next.decision?next.status:'';
+   popup.setAttribute('aria-label',next.decision?'Customer approval response':'Mechanic photo alert');
+   close.setAttribute('aria-label',next.decision?'Dismiss this customer response':'Dismiss this photo alert');
+   headline.textContent=title+' · '+next.registration;
+   open.setAttribute('aria-label','Open job card for '+next.registration+(next.decision?' — customer '+next.status:' to see the mechanic’s photo'));
    description.textContent=next.message;
+   estimate.hidden=!next.decision||!Number.isInteger(next.estimated_pence);
+   estimate.textContent=estimate.hidden?'':'Estimated total including VAT: £'+(next.estimated_pence/100).toFixed(2);
   }
   async function openFinding(){
    if(!active||opening)return;
    const item=active;opening=true;open.disabled=true;
    try{
     const state=await window.vectaOpenFindingJob?.(item.job_id);
-    if(active?.id!==item.id)return;
+    if(!active||eventId(active)!==eventId(item))return;
     if(state==='busy'){
      status.textContent='Finish or close the open card. This finding will open next.';
      stopWaiting();
@@ -155,21 +166,21 @@
     }
     if(state!=='open'||!window.VectaWorkshopPhotos?.revealFinding(document.getElementById('jobModal'),item))
      throw Error('This job could not be opened. Tap the alert to retry.');
-    acknowledge(item.id);
-   }catch{if(active?.id===item.id)status.textContent='This job could not be opened. Tap the alert to retry.';}
-   finally{if(active?.id===item.id){opening=false;open.disabled=false;}}
+    acknowledge(item);
+   }catch{if(active&&eventId(active)===eventId(item))status.textContent='This job could not be opened. Tap the alert to retry.';}
+   finally{if(active&&eventId(active)===eventId(item)){opening=false;open.disabled=false;}}
   }
-  open.onclick=openFinding;close.onclick=()=>{if(active)acknowledge(active.id);};
-  window.addEventListener('storage',event=>{if(event.key===key){readSeen();redraw();}});
+  open.onclick=openFinding;close.onclick=()=>{if(active)acknowledge(active);};
+  window.addEventListener('storage',event=>{if(event.key===key||event.key===decisionKey){readSeen();redraw();}});
   readSeen();
-  return rows=>{findings=rows;redraw();};
+  return (rows,responses=[])=>{findings=rows;decisions=responses;redraw();};
  }
  function install(){
   if(window.VECTA_MECHANIC_DEPLOYMENT||!document.querySelector('main.main>header.top'))return;
   const tray=node('aside'),toggle=node('button'),list=node('div'),status=node('p');tray.className='findingQueue';tray.hidden=true;
   toggle.type='button';toggle.className='btn';toggle.setAttribute('aria-expanded','false');list.hidden=true;
   tray.append(toggle,list,status);document.querySelector('main.main>header.top').after(tray);
-  const entries=new Map(),updateAlerts=photoAlerts();
+  const entries=new Map(),updateAlerts=findingAlerts();
   let busy=false,activeCount=0;
   function redraw(){
    tray.hidden=activeCount===0&&list.hidden;
@@ -189,7 +200,7 @@
     for(const item of data.findings){
      if(!entries.has(item.id)){const el=card(item);entries.set(item.id,el);list.append(el);}
     }
-    status.textContent='';redraw();updateAlerts(data.findings);
+    status.textContent='';redraw();updateAlerts(data.findings,data.decisions);
    }catch(error){status.textContent=error.message;}finally{busy=false;}
   }
   window.addEventListener('vecta-findings-changed',refresh);
