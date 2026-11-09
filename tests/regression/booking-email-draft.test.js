@@ -30,12 +30,12 @@ function browser(navigator){
  vm.runInNewContext(fs.readFileSync('public/js/vecta-booking-email-draft.js','utf8'),{window:win,URL,Blob,encodeURIComponent,unescape});
  return {win,document,events,api:win.VectaBookingEmailDraft};
 }
-for(const device of ['iPhone','iPad','Android','Windows'])test(device+' automatically opens a prefilled unsent email and keeps formatted copy available',async()=>{
+for(const device of ['iPhone','iPad','Android','Windows'])test(device+' automatically opens a prefilled unsent email and retains optional formatted copying',async()=>{
  const {api,document,events,win}=browser({userAgent:device});const copied=[];
  win.ClipboardItem=class {constructor(data){this.data=data;}};
  win.navigator.clipboard={write:async items=>copied.push(...items)};
  const draft=api.create(input);api.open(draft);
- assert.equal(win.location.href,draft.mailto);assert.deepEqual(events.downloads,[]);
+ assert.equal(win.location.href,draft.mailto);assert.deepEqual(events.downloads,[]);assert.equal(copied.length,0);
  const dialog=document.querySelector('dialog[open]'),link=dialog.querySelector('[data-booking-email-open]');
  assert.equal(link.hidden,false);
  assert.equal(link.getAttribute('href'),draft.mailto);

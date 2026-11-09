@@ -87,16 +87,17 @@ test('private cost snapshot retains the actual estimate used, even when the supp
  assert.throws(()=>readServiceCostSnapshot(quote,'d'.repeat(64)));
  // Render and reopen the real owner job-card Parts editor using persisted metadata.
  const html=readFileSync('index.html','utf8'),ctx={decodeURIComponent,encodeURIComponent,uid:()=> 'part-id',esc:v=>String(v).replaceAll('&','&amp;').replaceAll('"','&quot;').replaceAll('<','&lt;'),jobPartsRangeDisplay:()=>'',select:()=>'',partsStatusFromJob:()=>'',PARTS_STATUS_VALUES:[]};
- vm.createContext(ctx);
- for(const name of ['jobParts','noteWithJobParts','jobPartsEditorHtml']){
-  const start=html.indexOf('function '+name+'('),end=html.indexOf('\n',start);
+ vm.createContext(ctx);ctx.window=ctx;vm.runInContext(readFileSync('public/js/vecta-job-pricing.js','utf8'),ctx);
+ for(const name of ['jobParts','noteWithJobParts','jobPartDisplayName','jobPartRowHtml','jobPartsEditorHtml']){
+  const start=html.indexOf('function '+name+'('),end=html.indexOf('\nfunction ',start+1);
   vm.runInContext(html.slice(start,end),ctx);
  }
  const job={customer_note:ctx.noteWithJobParts('Website booking — Guide price',parts)};
  const reopened=ctx.jobParts(job),{document}=parseHTML(ctx.jobPartsEditorHtml(job));
  assert.equal(reopened.find(x=>x.description.startsWith('ESTIMATED COST')).cost_price,18);
- const row=[...document.querySelectorAll('[data-job-part]')].find(x=>x.querySelector('[data-part-description]').value.startsWith('ESTIMATED COST'));
- assert.equal(row.querySelector('[data-part-cost-price]').value,'18');
+ const row=[...document.querySelectorAll('[data-job-part]')].find(x=>x.querySelector('[data-part-description]').value.endsWith('(est.)'));
+ assert.equal(row.querySelector('[data-part-cost-price]').value,'18.00');
+ assert.match(row.querySelector('.jobPartSupplierDetail').textContent,/ESTIMATED COST £18.00/);
  assert.equal(document.querySelectorAll('[data-part-cost-price]').length,4);
 });
 

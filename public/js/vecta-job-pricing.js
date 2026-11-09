@@ -5,6 +5,32 @@
  const esc=value=>String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
  const partNames={oil:'Engine oil',oil_filter:'Oil filter',air_filter:'Air filter',cabin_filter:'Cabin filter'};
  const serviceScope=p=>/^(gsf-|service-estimate-)/.test(p.id)||((p.cost_price===null||p.cost_price===''||p.cost_price===undefined)&&/^(?:Engine oil|Oil|Oil filter|Air filter|Cabin filter|Pollen filter)(?: — cost to confirm)?$/i.test(p.description));
+function jobPartDisplayName(p){
+  var description=String(p.description||'').trim();
+  // Keep manual descriptions intact; shorten only the supplier-generated format.
+  if(!/^(?:GSF\s*[·:]|ESTIMATED COST\b)/i.test(description))return description;
+  var kind=(String(p.id||'').match(/-(oil_filter|air_filter|cabin_filter|fuel_filter|spark_plugs|oil)$/)||[])[1];
+  var names={oil_filter:'Oil filter',air_filter:'Air filter',cabin_filter:'Cabin filter',fuel_filter:'Fuel filter',spark_plugs:'Spark plugs',oil:'Engine oil'};
+  var name=names[kind]||'';
+  if(!name){
+    if(/\boil filter\b/i.test(description))name='Oil filter';
+    else if(/\b(?:cabin|pollen) filter\b/i.test(description))name='Cabin filter';
+    else if(/\bair filter\b/i.test(description))name='Air filter';
+    else if(/\bfuel filter\b/i.test(description))name='Fuel filter';
+    else if(/\bspark plugs?\b/i.test(description))name='Spark plugs';
+    else if(/\b(?:engine|motor) oil\b/i.test(description))name='Engine oil';
+  }
+  if(!name)return description;
+  if(name==='Oil filter'&&/\bspin[\s-]*on\b/i.test(description))name+=' – spin on';
+  if(name==='Engine oil'){
+    var grade=description.match(/\b\d{1,2}W\s*[-–]?\s*\d{2}\b/i),pack=description.match(/\bGSF\s+(\d+(?:\.\d+)?)L pack\b/i);
+    if(grade)name+=' '+grade[0].toUpperCase().replace(/\s+/g,'').replace(/^(\d+W)[–-]?(\d+)$/,'$1-$2');
+    if(pack)name+=' · '+pack[1]+'L';
+  }
+  if(/^ESTIMATED COST\b/i.test(description))name+=' (est.)';
+  else if(/\b(?:cost unavailable|availability unconfirmed)\b/i.test(description))name+=' (check)';
+  return name;
+}
  function types(){return editor.api.jobTypeValues(value('job_job_type'));}
  function registration(){return value('job_registration').toUpperCase().replace(/\s/g,'');}
  function input(){const service=types().find(t=>/^(Interim|Full) Service$/i.test(t));return service?{registration:registration(),service,mileage:null,range:editor.api.jobPartsRangeDisplay(editor?.job)||'Mid Range'}:null;}
@@ -175,5 +201,5 @@
   if(/^(interim|full) service$/i.test(name))serviceLookup();
   if(/^tyres$/i.test(name)&&added)openTyres();
  }
- root.VectaJobPricing={install,selected,removeTyres,renderAdvisor};
+ root.VectaJobPricing={install,selected,removeTyres,renderAdvisor,partDisplayName:jobPartDisplayName};
 })(window);
