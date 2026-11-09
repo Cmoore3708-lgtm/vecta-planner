@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import test from 'node:test';
 import vm from 'node:vm';
+import '../../public/js/vecta-planner-rules.js';
 
 const html = fs.readFileSync(new URL('../../index.html', import.meta.url), 'utf8');
 
@@ -228,7 +229,7 @@ test('a superseded planner save cannot overwrite a later drag', async()=>{
 });
 
 function stackedPlanner(jobs){
- const context={app:{jobs},window:{},plannerStartMinutes:480,confirm:()=>true,
+ const context={app:{jobs},window:{VectaPlannerRules:globalThis.VectaPlannerRules},plannerStartMinutes:480,confirm:()=>true,
   plannerTechnicianLane:x=>x,normaliseClock:x=>x,
   clockMinutes:value=>{const [h,m]=value.split(':').map(Number);return h*60+m},
   timeFromMinutes:value=>`${String(Math.floor(value/60)).padStart(2,'0')}:${String(value%60).padStart(2,'0')}`,
@@ -332,10 +333,25 @@ test('completion and automatic gap closing reserve fixed appointments and fill g
  assert.equal(ctx.plannerJobTimeLocked(jobs[1]),true);
  assert.equal(ctx.plannerPackOrderedJobs(ctx.plannerLaneActiveJobs('2026-11-04','Alfie'),480).length,0);
 });
-test('packing a lane preserves provisional slots displayed in the sidebar',()=>{
+test('packing puts provisional bookings after confirmed jobs regardless of their old times',()=>{
  const jobs=[stackedJob('flex','08:00',{estimated_hours:2}),stackedJob('hold','09:00',{status:'provisional'})];
  const ctx=stackedPlanner(jobs);ctx.plannerPackOrderedJobs(jobs,480);
- assert.deepEqual(jobs.map(j=>j.drop_time),['10:00','09:00']);
+ assert.deepEqual(jobs.map(j=>j.drop_time),['08:00','10:00']);
+});
+test('provisional bookings follow even the last fixed appointment and ignore their own time lock',()=>{
+ const jobs=[fixedJob('hold','08:00',{status:'provisional'}),fixedJob('appointment','14:00'),stackedJob('work','11:00'),stackedJob('hold2','09:00',{status:'provisional',estimated_hours:.5})];
+ const ctx=stackedPlanner(jobs);ctx.plannerPackOrderedJobs(jobs,480);
+ assert.deepEqual(jobs.map(j=>j.drop_time),['15:00','14:00','08:00','16:00']);
+ assert.equal(ctx.plannerJobTimeLocked(jobs[0]),false);
+ assert.equal(ctx.plannerPackOrderedJobs(ctx.plannerLaneActiveJobs('2026-11-04','Alfie'),480).length,0);
+ assert.deepEqual(jobs.map(j=>[j.status,j.booking_date,j.technician]),[['provisional','2026-11-04','Alfie'],['booked','2026-11-04','Alfie'],['booked','2026-11-04','Alfie'],['provisional','2026-11-04','Alfie']]);
+});
+test('dragging a provisional booking ahead of confirmed work keeps it at the bottom',()=>{
+ const jobs=[stackedJob('work','08:00'),stackedJob('hold','09:00',{status:'provisional'})],ctx=stackedPlanner(jobs);
+ ctx.plannerInsertJob(jobs[1],'2026-11-04','Alfie',480);
+ assert.deepEqual(jobs.map(j=>j.drop_time),['08:00','09:00']);
+ jobs[1].status='booked';ctx.plannerInsertJob(jobs[1],'2026-11-04','Alfie',480);
+ assert.deepEqual(jobs.map(j=>j.drop_time),['09:00','08:00']);
 });
 test('a flexible job that cannot fit before a fixed booking is placed after it',()=>{
  const jobs=[stackedJob('long','08:00',{estimated_hours:3}),fixedJob('appointment','10:00')];const ctx=stackedPlanner(jobs);

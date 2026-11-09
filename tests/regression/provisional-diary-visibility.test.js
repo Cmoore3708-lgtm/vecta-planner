@@ -50,8 +50,8 @@ for(const mechanic of [false,true])test((mechanic?'mechanics':'Main')+': dated p
  assert.equal(groups.length,mechanic?1:2);
  for(const group of groups){
   const cards=group.querySelectorAll('[data-open-job],[data-job-id]');
-  assert.deepEqual([...cards].map(n=>n.dataset.openJob||n.dataset.jobId),['chris-hold','chris-web-hold','booked']);
-  for(const card of [...cards].slice(0,2))assert.match(card.getAttribute('style'),/background:#cbd0d7!important/);
+  assert.deepEqual([...cards].map(n=>n.dataset.openJob||n.dataset.jobId),['booked','chris-hold','chris-web-hold']);
+  for(const card of [...cards].slice(1))assert.match(card.getAttribute('style'),/background:#cbd0d7!important/);
  }
  assert.ok(document.querySelector('.provisionalBookingsPanel [data-open-job="chris-hold"]'),'review list remains available');
  assert.equal(JSON.stringify(c.app.jobs),before,'rendering must not change bookings, dates, times or statuses');
@@ -60,7 +60,7 @@ for(const mechanic of [false,true])test((mechanic?'mechanics':'Main')+': dated p
  if(mechanic){
   c.selectedDate='2026-11-10';c.mechanicBoardSelection='Chris';
   const personal=parseHTML(c.plannerHtml()).document;
-  assert.deepEqual([...personal.querySelectorAll('.mechanicPersonalDay [data-open-job]')].map(n=>n.dataset.openJob),['chris-hold','chris-web-hold','booked']);
+  assert.deepEqual([...personal.querySelectorAll('.mechanicPersonalDay [data-open-job]')].map(n=>n.dataset.openJob),['booked','chris-hold','chris-web-hold']);
  }
 });
 
