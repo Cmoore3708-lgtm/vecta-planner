@@ -112,9 +112,13 @@ test('Postgres upgrade, learning, queue priority, throttling, failed results and
   await db.exec("update public.tyre_relay_runtime set background_after=null; delete from public.tyre_relay_jobs; update public.tyre_price_catalogue set last_attempt_at=null;");
   const retry=await rpc('pull');assert.equal(retry.status,'JOB');
   await rpc('complete',{id:retry.id,lease:retry.lease,status:'UNAVAILABLE'});
-  assert.equal((await rpc('pull')).status,'IDLE'); // ordinary failure cools off without disabling the sweep for an hour
+  assert.equal((await rpc('pull')).status,'IDLE'); // ordinary failure gets only a brief cooldown
+  await db.query("update public.tyre_price_catalogue set last_attempt_at=now() where checked_at is null and size<>$1",[retry.size]);
   await db.exec("update public.tyre_relay_runtime set background_after=now()-interval '1 second'; update public.tyre_relay_jobs set created_at=now()-interval '31 seconds';");
-  assert.equal((await rpc('pull')).status,'JOB'); // continue with another unpriced size after the short backoff
+  const secondTry=await rpc('pull');assert.equal(secondTry.status,'JOB');assert.equal(secondTry.size,retry.size); // retry once after the first sweep
+  await rpc('complete',{id:secondTry.id,lease:secondTry.lease,status:'UNAVAILABLE'});
+  await db.exec("update public.tyre_relay_runtime set background_after=now()-interval '1 second'; update public.tyre_relay_jobs set created_at=now()-interval '31 seconds';");
+  const afterSecondFailure=await rpc('pull');assert.equal(afterSecondFailure.status,'JOB');assert.notEqual(afterSecondFailure.size,retry.size); // never loop one unavailable size forever
   assert.equal((await rpc('cached',{size:bg.size,quantity:1})).result.catalogue[0].unitPence,9900);
   await db.exec("update public.tyre_price_catalogue set checked_at=now()-interval '91 days' where result is not null;");assert.equal((await rpc('cached',{size:bg.size,quantity:1})).status,'UNAVAILABLE');
  }finally{await db.close();}
