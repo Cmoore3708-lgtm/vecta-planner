@@ -12,7 +12,7 @@ export function createSessionRecovery({supplier,username='',password='',now=Date
   if(now()-lastAttempt<cooldownMs)throw Error('SUPPLIER_LOGIN_REQUIRED');
   const user=page.locator('input[name="UserName"],input[name="Username"],input[name="username"],input[autocomplete="username"]');
   const pass=page.locator('input[type="password"]');
-  const submit=page.getByRole('button',{name:/^(?:log\\s*in|sign\\s*in)$/i});
+  const submit=page.getByRole('button',{name:/^(?:log\s*in|sign\s*in)$/i});
   if(await user.count()!==1||await pass.count()!==1||await submit.count()!==1||!await user.isVisible()||!await pass.isVisible())throw Error('SUPPLIER_LOGIN_REQUIRED');
   const at=now();
   if(!isLogin(page)||!reserveAttempt(at,cooldownMs))throw Error('SUPPLIER_LOGIN_REQUIRED');
@@ -27,7 +27,7 @@ export function createSessionRecovery({supplier,username='',password='',now=Date
   }
   lastAttempt=at;
   await submit.click({timeout:10000});
-  await page.waitForURL(url=>url.origin===origin&&!/\\/Account\\/LogOn/i.test(url.pathname),{timeout:15000}).catch(()=>{});
+  await page.waitForURL(url=>url.origin===origin&&!/\/Account\/LogOn/i.test(url.pathname),{timeout:15000}).catch(()=>{});
   if(new URL(page.url()).origin!==origin||isLogin(page))throw Error('SUPPLIER_LOGIN_REQUIRED');
  }
  return {ensure};
