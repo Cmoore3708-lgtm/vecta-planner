@@ -95,7 +95,7 @@ test('Postgres upgrade, learning, queue priority, throttling, failed results and
   assert.equal((await rpc('complete',{id:work.id,lease:bg.lease,status:'MATCHED',result:captured(initial.size,new Date().toISOString())})).status,'EXPIRED');
   assert.equal((await rpc('complete',{id:work.id,lease:work.lease,status:'UNAVAILABLE'})).status,'SAVED');
   assert.equal((await rpc('cached',{size:initial.size,quantity:2})).result.checkedAt,initial.checkedAt); // failure never overwrites
-  await db.exec("update public.tyre_price_catalogue set last_requested_at=null;");assert.equal((await rpc('pull')).status,'IDLE'); // two-minute rate limit
+  await db.exec("update public.tyre_price_catalogue set last_requested_at=null;");assert.equal((await rpc('pull')).status,'IDLE'); // 30-second rate limit
   assert.equal((await rpc('enqueue',{size:bg.size,quantity:1})).status,'MATCHED'); // real fresh cache
   // Completing an empty search preserves the previous successful snapshot.
   const job=await rpc('enqueue',{size:initial.size,quantity:1});const pulled=await rpc('pull');assert.equal(pulled.id,job.id);
@@ -113,7 +113,7 @@ test('Postgres upgrade, learning, queue priority, throttling, failed results and
   const retry=await rpc('pull');assert.equal(retry.status,'JOB');
   await rpc('complete',{id:retry.id,lease:retry.lease,status:'UNAVAILABLE'});
   assert.equal((await rpc('pull')).status,'IDLE'); // ordinary failure cools off without disabling the sweep for an hour
-  await db.exec("update public.tyre_relay_runtime set background_after=now()-interval '1 second'; update public.tyre_relay_jobs set created_at=now()-interval '3 minutes';");
+  await db.exec("update public.tyre_relay_runtime set background_after=now()-interval '1 second'; update public.tyre_relay_jobs set created_at=now()-interval '31 seconds';");
   assert.equal((await rpc('pull')).status,'JOB'); // continue with another unpriced size after the short backoff
   assert.equal((await rpc('cached',{size:bg.size,quantity:1})).result.catalogue[0].unitPence,9900);
   await db.exec("update public.tyre_price_catalogue set checked_at=now()-interval '91 days' where result is not null;");assert.equal((await rpc('cached',{size:bg.size,quantity:1})).status,'UNAVAILABLE');
