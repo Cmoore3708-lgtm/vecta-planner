@@ -182,7 +182,7 @@
    const updateAlerts=findingAlerts(true);let busy=false;
    async function refresh(){
     if(busy||document.hidden||!navigator.onLine)return;busy=true;
-    try{const data=await api('approval-decisions');updateAlerts([],data.decisions);}catch{}finally{busy=false;}
+    try{const data=await api('approval-decisions');updateAlerts([],window.VectaPortalWorkshop?[]:data.decisions);}catch{}finally{busy=false;}
    }
    document.addEventListener('visibilitychange',()=>{if(!document.hidden)refresh();});
    window.addEventListener('online',refresh);refresh();setInterval(refresh,10000);return;
@@ -210,7 +210,7 @@
     for(const item of data.findings){
      if(!entries.has(item.id)){const el=card(item);entries.set(item.id,el);list.append(el);}
     }
-    status.textContent='';redraw();updateAlerts(data.findings,data.decisions);
+    status.textContent='';redraw();updateAlerts(data.findings,window.VectaPortalWorkshop?[]:data.decisions);
    }catch(error){status.textContent=error.message;}finally{busy=false;}
   }
   window.addEventListener('vecta-findings-changed',refresh);

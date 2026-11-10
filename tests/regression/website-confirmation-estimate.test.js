@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import vm from 'node:vm';
+import {confirmationContent} from '../../lib/portal-email.js';
 
 const html=fs.readFileSync(new URL('../../index.html',import.meta.url),'utf8');
 function section(start,end){
@@ -28,12 +29,12 @@ function setup(changes={}){
     niceDate:()=> '12/11/2026',websiteConfirmationWorkText:j=>j.work_required,normReg:x=>x,
     vectaProgressRequest:async()=>({url:'https://www.vectamotors.co.uk/track?token=test'}),
     appendVectaEmailSignature:body=>body,
-    VectaBookingEmailDraft:{create:input=>input,open:draft=>drafts.push(draft)}};
+    VectaPortalWorkshop:{confirmation:async job=>drafts.push(confirmationContent(job,'https://www.vectamotors.co.uk/track#test'))}};
   c.window=c;vm.createContext(c);vm.runInContext(source,c);
   return {c,saved,drafts,alerts};
 }
 
-test('website booking without an estimate saves and opens an email showing unknown',async()=>{
+test('website booking without an estimate saves and opens a formatted confirmation showing To be confirmed',async()=>{
   const {c,saved,drafts,alerts}=setup();
   const ok=await c.saveJob(base.id,j=>c.openWebsiteBookingConfirmationEmail(j),{prepareWebsiteConfirmation:true});
   assert.equal(ok,true);
@@ -43,8 +44,8 @@ test('website booking without an estimate saves and opens an email showing unkno
   assert.equal(saved[0].row.status,'booked');
   assert.equal(saved[0].row.amount_quoted,null);
   assert.equal(drafts.length,1);
-  assert.match(drafts[0].body,/Estimated cost: unknown\n/);
-  assert.doesNotMatch(drafts[0].body,/£0\.00|NaN/);
+  assert.match(drafts[0].text,/Estimated cost: To be confirmed\n/);
+  assert.doesNotMatch(drafts[0].text,/£0\.00|NaN/);
 });
 
 test('empty or invalid estimates display unknown without a currency or VAT suffix',()=>{
@@ -57,11 +58,11 @@ test('empty or invalid estimates display unknown without a currency or VAT suffi
 });
 
 test('entered estimates retain their amount and VAT wording, including an explicit zero',async()=>{
-  for(const [mode,suffix] of [['inc_vat',' including VAT'],['ex_vat',' + VAT'],['no_vat',' (no VAT)'],['','']]){
+  for(const [mode,suffix] of [['inc_vat',' including VAT'],['ex_vat',' + VAT'],['no_vat',' (no VAT)'],['',' including VAT']]){
     for(const amount of [0,120,'120.50']){
       const {c,drafts}=setup();
       await c.openWebsiteBookingConfirmationEmail({...base,amount_quoted:amount,vat_mode:mode});
-      assert.ok(drafts[0].body.includes('Estimated cost: £'+Number(amount).toFixed(2)+suffix+'\n'));
+      assert.ok(drafts[0].text.includes('Estimated cost: £'+Number(amount).toFixed(2)+suffix+'\n'));
     }
   }
 });

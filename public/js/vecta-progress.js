@@ -1,7 +1,7 @@
 (()=>{'use strict';
   const el=id=>document.getElementById(id),token=location.hash.slice(1);
   let timer,busy=false,failures=0,registration='',artworkKey='';
-  const approvalId=token.startsWith('approval.') ? token.split('.')[1] : token && location.search ? new URLSearchParams(location.search).get('approval') : null;
+  let approvalId=token.startsWith('approval.') ? token.split('.')[1] : token && location.search ? new URLSearchParams(location.search).get('approval') : null;
   let deciding=false, approvalRender=0, approvalPhotos=[];
   function openApproval(){
     const dialog=el('approvalDialog');
@@ -24,7 +24,8 @@
       const data=await response.json();
       if(!response.ok)throw Error(typeof data.error==='string'?data.error:'Approval unavailable. Tap Check message again to retry.');
       if(seq!==approvalRender)return;
-      const item=data.approval;
+      const item=data.approval;el('approvalPanel').dataset.signal=item.status==='approved'?'green':item.status==='declined'?'red':'amber';
+      if(decision)window.VectaCustomerPortal?.refresh();
       el('approvalMessage').textContent=item.message;
       const estimate=el('approvalEstimate');
       estimate.hidden=!Number.isInteger(item.estimated_pence);
@@ -46,13 +47,13 @@
       if(seq===approvalRender){el('approveWork').disabled=false;el('declineWork').disabled=false;}
     }
   }
-  if(approvalId){
+  {
     el('approvalPanel').hidden=false;el('approvalButtons').hidden=true;
     el('approvalStatus').textContent='Loading your workshop message…';
-    el('openApproval').hidden=false;el('openApproval').onclick=openApproval;
+    el('openApproval').hidden=!approvalId;el('openApproval').onclick=openApproval;
     el('closeApproval').onclick=()=>el('approvalDialog').close();
     el('retryApproval').onclick=()=>refreshApproval();
-    openApproval();
+    if(approvalId)openApproval();
     el('approveWork').onclick=()=>refreshApproval('approved');
     el('declineWork').onclick=()=>refreshApproval('declined');
     el('approvalPhotos').onclick=()=>{
@@ -61,6 +62,7 @@
       else el('approvalStatus').textContent='These photos are unavailable. Tap Refresh progress to check again.';
     };
   }
+  window.VectaProgressApproval={open(id){approvalId=id;el('openApproval').hidden=false;openApproval();refreshApproval();}};
   const connectingMessage='Connecting to our live booking system. This may take several minutes.';
   function showConnectionMessage(){const note=el('sceneCaption');note.textContent=connectingMessage;note.classList.add('connecting');note.hidden=false;}
   // Complete, individually composed scene sets. Never reuse one registration's car for another.
@@ -138,6 +140,7 @@
     });
   }
   function render(data){
+    if(window.VectaCustomerPortal?.isCancelled())return;
     const instructions=el('customerInstructions'),list=el('customerInstructionsList');list.replaceChildren();
     for(const line of data.customer_instructions||[]){const p=document.createElement('p');p.textContent=line;list.append(p);}
     instructions.hidden=!list.children.length;
@@ -161,6 +164,7 @@
       render(data);failures=0;el('error').hidden=true;timer=setTimeout(refresh,data.scene_state==='preparing'?15000:60000);
     }catch(error){
       el('sceneCaption').hidden=true;el('sceneCaption').classList.remove('connecting');
+      if(window.VectaCustomerPortal?.isCancelled()){timer=setTimeout(refresh,60000);return;}
       el('error').hidden=false;el('error').textContent=(error.message||'Progress is temporarily unavailable.')+' '+(error.permanent?'':'Your last displayed update may be out of date.');
       el('paperwork').hidden=true;el('invoice').removeAttribute('href');el('progressScene').classList.add('stale');
       clearWorkshopPhotos();
@@ -169,7 +173,8 @@
     }finally{busy=false;el('refresh').disabled=false;}
   }
   el('registrationForm').onsubmit=event=>{event.preventDefault();if(busy)return;el('customerInstructions').hidden=true;registration=el('registrationInput').value.trim();if(!registration)return;clearWorkshopPhotos();clearTimeout(timer);el('identity').hidden=true;el('steps').hidden=true;el('progressScene').hidden=true;el('sceneCaption').hidden=true;artworkKey='';el('paperwork').hidden=true;el('invoice').removeAttribute('href');el('error').hidden=true;el('freshness').textContent='';el('statusTitle').textContent='Checking today’s booking…';el('statusDescription').textContent='';el('refresh').hidden=false;refresh();};
-  el('refresh').onclick=refresh;document.addEventListener('visibilitychange',()=>{if(document.hidden)clearTimeout(timer);else refresh();});window.addEventListener('online',refresh);
+  window.addEventListener('vecta-portal-updated',refresh);
+  el('refresh').onclick=async()=>{await refresh();await window.VectaCustomerPortal?.refresh();};document.addEventListener('visibilitychange',()=>{if(document.hidden)clearTimeout(timer);else refresh();});window.addEventListener('online',refresh);
   if(!token&&location.search){const supplied=new URLSearchParams(location.search).get('reg')||'';if(/^[A-Za-z0-9 -]{2,15}$/.test(supplied)){registration=normalise(supplied);el('registrationInput').value=registration;}}
   el('registrationForm').hidden=!!(token||registration);
   if(token||registration){el('refresh').hidden=false;el('statusTitle').textContent='Checking your booking…';el('statusDescription').textContent='';refresh();}

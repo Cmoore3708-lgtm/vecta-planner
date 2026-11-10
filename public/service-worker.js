@@ -290,16 +290,17 @@ self.addEventListener('push',event=>{
     try{data=event.data?event.data.json():{}}catch(_e){data={body:event.data?event.data.text():''}}
     const count=Math.max(0,Number(data.count)||0);
     try{
-      if(self.navigator&&typeof self.navigator.setAppBadge==='function'){
+      if(!data.portal&&self.navigator&&typeof self.navigator.setAppBadge==='function'){
         if(count)await self.navigator.setAppBadge(count);
         else if(typeof self.navigator.clearAppBadge==='function')await self.navigator.clearAppBadge();
       }
     }catch(_e){}
+    if(data.portal){const windows=await self.clients.matchAll({type:'window',includeUncontrolled:true});for(const client of windows)client.postMessage({type:'vecta-portal-notification'});}
     await self.registration.showNotification(data.title||'New VECTA website booking',{
       body:data.body||'A new customer booking is waiting for review.',
       icon:'/icons/vecta-192.png',badge:'/icons/vecta-192.png',
       tag:data.tag||'vecta-website-bookings',renotify:true,
-      data:{url:data.url||'/?view=websiteRequests',count}
+      data:{url:data.url||'/?view=websiteRequests',count,portal:!!data.portal}
     });
   })());
 });
@@ -310,6 +311,7 @@ self.addEventListener('notificationclick',event=>{
     const target=new URL((event.notification.data&&event.notification.data.url)||'/?view=websiteRequests',self.location.origin).href;
     const windows=await self.clients.matchAll({type:'window',includeUncontrolled:true});
     for(const client of windows){
+      if(event.notification.data?.portal&&'focus' in client){client.postMessage({type:'vecta-portal-notification',eventId:new URL(target).searchParams.get('portal_event')});return client.focus();}
       if('focus' in client){try{await client.navigate(target)}catch(_e){};return client.focus()}
     }
     return self.clients.openWindow?self.clients.openWindow(target):undefined;

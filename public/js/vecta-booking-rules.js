@@ -58,6 +58,9 @@
     return !!value&&value.version===1&&typeof value.parts==='string'&&Object.hasOwn(partsChoices,value.parts)&&typeof value.serious_repairs==='string'&&Object.hasOwn(repairChoices,value.serious_repairs);
   }
   function customerPreferences(record){
+    var portal=String(record&&record.customer_note||'').match(/\[\[VECTA_PORTAL_PREFERENCES:([^\]]+)\]\]/);
+    try{var choice=JSON.parse(portal&&portal[1]);if(validCustomerPreferences(choice))return choice;}catch(e){}
+
     if(validCustomerPreferences(record&&record.customer_preferences))return record.customer_preferences;
     // Read the server-created snapshot at the end of the note. A later edit to
     // the job description must not erase the customer's original instructions.
@@ -78,7 +81,8 @@
   function customerInstructionsHtml(record){
     // Fixed allow-listed labels only; never include customer-written HTML here.
     var lines=customerPreferenceLines(record);
-    return lines.length?'<aside class="jobCustomerInstructions" aria-label="Customer instructions"><h4>Customer instructions</h4>'+lines.map(function(line){return '<p>'+line+'</p>'}).join('')+'</aside>':'';
+    var authorised=customerPreferences(record)?.serious_repairs==='change_parts';
+    return lines.length?'<aside data-authorised="'+authorised+'" class="jobCustomerInstructions" aria-label="Customer instructions"><h4>Customer instructions</h4>'+lines.map(function(line){return '<p>'+line+'</p>'}).join('')+'</aside>':'';
   }
 
   root.VectaBookingRules=Object.freeze({
