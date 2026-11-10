@@ -105,8 +105,9 @@ test('Test suppresses both providers and real WhatsApp links',async t=>{
 test('contact replacement, wrong job IDs and cancelled bookings cannot send old customer alerts',async t=>{
  const s=setup(t);s.enqueue();
  await assert.rejects(sendCustomerPortalAlerts(s.db,eventId,{jobId:eventId}),/unavailable/);
- for(const changes of [{customer_email:'other@example.invalid'},{customer_phone:'07700 900999'},{registration:'OTHER'}]){Object.assign(s.job,job,changes);const r=await sendCustomerPortalAlerts(s.db,eventId,{retry:true});assert.equal(r.channels.email,'contact_changed');}
+ for(const changes of [{customer_email:'other@example.invalid'},{customer_phone:'07700 900999'},{registration:'OTHER'}]){Object.assign(s.job,job,changes);const r=await sendCustomerPortalAlerts(s.db,eventId,{retry:true});assert.equal(r.channels.email,'contact_changed');assert.equal(s.alert.email_status,'contact_changed');assert.equal(s.alert.whatsapp_status,'contact_changed');}
  Object.assign(s.job,job,{status:'cancelled'});assert.equal((await sendCustomerPortalAlerts(s.db,eventId)).channels.email,'closed');assert.equal(s.emails.length+s.whatsapps.length,0);
+ assert.equal(s.alert.email_status,'closed');assert.equal(s.alert.whatsapp_status,'closed');
 });
 test('the scheduled retry recovers a saved message when its original request did not send alerts',async t=>{
  const s=setup(t);s.enqueue();await retryCustomerPortalAlerts(s.db);assert.equal(s.emails.length,1);assert.equal(s.whatsapps.length,1);

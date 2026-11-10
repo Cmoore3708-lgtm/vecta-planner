@@ -36,7 +36,7 @@ The page uses lightweight workshop scenes with the existing saved car image wher
 
 Private links and invoice access below remain separate, so previously sent links continue to work.
 
-Customer tracking is available at `/track` using a signed private link. The link is issued by the authenticated workshop server, added to website booking confirmation drafts and the existing day-before reminder emails, and available from the job editor's **Customer portal link** button. Registration lookup shows today’s progress and workshop photos; invoice access requires the signed private link. Existing and new links follow the same saved booking when its date changes, and expire eight days after its current booking date. Registration or customer email changes and deleted jobs invalidate access. Cancelled bookings retain a private portal receipt, while progress and invoice routes are closed. Accepted website receipts use the saved planner job's date even if the request retains its original date. The original signed expiry reconstructs the original date binding; its signature, job/request ID, registration and customer email are still verified before any progress, photos or invoice access is returned.
+Customer tracking is available at `/track` using a signed private link. The link is issued by the authenticated workshop server, added to website booking confirmation drafts and non-NMUK day-before reminder emails, and available from the job editor's **Customer portal link** button. Registration lookup shows today’s progress and workshop photos; invoice access requires the signed private link. Existing and new links follow the same saved booking when its date changes, and expire eight days after its current booking date. Registration or customer email changes and deleted jobs invalidate access. Cancelled bookings retain a private portal receipt, while progress and invoice routes are closed. Accepted website receipts use the saved planner job's date even if the request retains its original date. The original signed expiry reconstructs the original date binding; its signature, job/request ID, registration and customer email are still verified before any progress, photos or invoice access is returned.
 
 ## Existing controls
 
@@ -119,3 +119,18 @@ Once Meta approves the template, configure the planner project's Production serv
 | `WHATSAPP_GRAPH_VERSION` | Supported Graph API version, default `v23.0` |
 
 Store the token as a sensitive server-side variable. A Meta acceptance receipt in the job card means the provider accepted the message; it does not confirm arrival on the handset. Use a controlled opt-in recipient to verify actual delivery after setup.
+
+
+### Day-before customer reminders
+
+The existing Vercel cron routes run at 11:00 and 12:00 UTC; the handler accepts only the run at 12:00 Europe/London, so the reminder stays at UK lunchtime through BST/GMT changes. It selects tomorrow's confirmed, active vehicle bookings with a valid saved email across Staff, Contractor and other non-NMUK accounts, including records without account memory. Quotes, provisional/cancelled/completed/deleted jobs, non-vehicle tasks and tax records are excluded. A booking entered or confirmed after the noon run cannot receive that day's scheduled reminder.
+
+The customer email includes the registration and date, designated customer parking outside the workshop, the Key Drop letterbox when closed, reception during opening hours, and a reminder to check the customer portal for progress and authorisation messages. Its HTML portal link is a HERE button. Private links are only sent to the email currently bound to the job; a remembered fallback contact gets the public portal entry.
+
+Chris explicitly requested that NMUK keep its existing separate email and selection rules: Nissan Internal annual-service reminders still use the existing Fleet contact and Nissan Fleet sender, wording and signature. NMUK receives no customer-portal link, service-book or locking-wheel-key instructions.
+
+The original job/date audit ID is retained, preventing an upgrade from sending a second reminder. Delivery uses the existing email ledger; known rejections are saved with the provider's reason and can be retried safely, while accepted and uncertain/pending sends are never repeated automatically. Test/preview suppresses customer sends. The email audit trigger already records correspondence in the portal without recursively generating message alerts.
+
+Production verification on 10 November found successful Nissan Fleet reminders and rejected Vecta Motors reminders (403); the latest detailed Vecta provider response reported an unverified sender domain. The scheduled code and passing tests do not prove inbox delivery. Resend domain verification and a controlled recipient check are still required. No live test messages were sent during this amendment.
+
+Obsolete portal alert queue entries are marked closed/contact-changed so cancelled or reassigned jobs do not block subsequent customers in the retry queue. Links for still-active rescheduled jobs use the current booking date.

@@ -33,7 +33,7 @@ test('cron uses Fleet contact email, sends once and records the result', async (
   const OriginalDate=globalThis.Date;
   const originalEnv={CRON_SECRET:process.env.CRON_SECRET,RESEND_API_KEY:process.env.RESEND_API_KEY,SUPABASE_SERVICE_ROLE_KEY:process.env.SUPABASE_SERVICE_ROLE_KEY,VITE_SUPABASE_URL:process.env.VITE_SUPABASE_URL,VERCEL_ENV:process.env.VERCEL_ENV};
   const requestLog=[];
-  const reserved=new Set();
+  const reserved=new Map();
   let customerEmail='old-driver@example.com';
   let fleetEmail='driver@example.com';
   try {
@@ -48,9 +48,13 @@ test('cron uses Fleet contact email, sends once and records the result', async (
       if(path.endsWith('/rest/v1/nmuk_service_reminder_sends') && options.method==='POST') {
         const id=JSON.parse(options.body).id;
         if(reserved.has(id))return result({message:'duplicate key value violates unique constraint',code:'23505'},409);
-        reserved.add(id);return result([{id}],201);
+        reserved.set(id,{...JSON.parse(options.body),created_at:new Date().toISOString()});return result([{id}],201);
       }
-      if(path.includes('/rest/v1/nmuk_service_reminder_sends?') && options.method==='PATCH')return result([]);
+      if(path.includes('/rest/v1/nmuk_service_reminder_sends?')) {
+        const p=new URL(path).searchParams,id=p.get('id').slice(3),row=reserved.get(id);
+        if(options.method==='PATCH'&&row)Object.assign(row,JSON.parse(options.body));
+        return result(row?[row]:[]);
+      }
       if(path==='https://api.resend.com/emails')return result({id:'sent-test-id'});
       throw Error('Unexpected request: '+path);
     };
@@ -74,6 +78,7 @@ test('cron uses Fleet contact email, sends once and records the result', async (
     assert.deepEqual(JSON.parse(sends[2].options.body).to,['job-only@example.com']);
     assert.equal(email.from,'Chris@Nissan-Fleet.co.uk');
     assert.equal(email.subject,'NK75BBV Service tomorrow');
+    assert.doesNotMatch(email.text+' '+email.html,/portal|track#|service book|locking wheel/i);
   } finally {
     globalThis.fetch=originalFetch;globalThis.Date=OriginalDate;
     for(const [key,value] of Object.entries(originalEnv)) if(value===undefined)delete process.env[key];else process.env[key]=value;
