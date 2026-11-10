@@ -119,3 +119,23 @@ test('an approval portal can view another published request for the same custome
  saved={...saved,status:'cancelled',archived:true};assert.equal((await portalAccess(db,token,now)).job.status,'cancelled');await assert.rejects(customerApproval(db,{action:'approval-decide',token,approval_id:event,decision:'approved'}),/no longer available/);
  saved={...saved,customer_email:'replacement@example.invalid'};await assert.rejects(portalAccess(db,token,now),/no longer available/);
 });
+
+test('approval controls and authorised work stay in dated conversation order, with no separate top banner',async()=>{
+ const {document}=parseHTML(readFileSync('public/track.html','utf8'));document.hidden=false;
+ const opened=[],timers=[];
+ const requested={id:'request-event',seq:1,kind:'approval_request',actor:'workshop',message:'Replace front brake pads',created_at:'2026-11-10T09:00:00Z',details:{approval_id:event,status:'pending',estimated_pence:12000}};
+ const approved={id:'decision-event',seq:3,kind:'approval_response',actor:'customer',message:requested.message,created_at:'2026-11-10T10:15:00Z',details:{approval_id:event,status:'approved',estimated_pence:12000}};
+ const message={id:'message-event',seq:2,kind:'message',actor:'customer',message:'Please keep the old parts.',created_at:'2026-11-10T09:45:00Z',details:{}};
+ let data={booking:{registration:'TEST001',booking_date:'2026-11-13',can_message:true,can_amend:true,can_cancel:true,cancellation_deadline:'2026-11-12T08:00:00Z'},preferences:null,original:{created_at:'2026-11-10T08:00:00Z',booking_date:'2026-11-13',work_required:'MOT'},events:[requested],approvals:[{id:event,message:requested.message,status:'pending'}]};
+ const window={addEventListener(){},VectaProgressApproval:{open:id=>opened.push(id)}};
+ vm.runInNewContext(readFileSync('public/js/vecta-customer-portal.js','utf8'),{document,window,location:{hash:'#private-link',search:''},Intl,Date,URLSearchParams,AbortSignal,clearTimeout(){},setTimeout:fn=>timers.push(fn),fetch:async()=>({ok:true,json:async()=>data})});
+ await new Promise(r=>setImmediate(r));
+ const history=document.getElementById('portalHistory'),top=document.getElementById('customerPortal');
+ assert.equal(top.querySelector('.portalApproval'),null);assert.equal(document.getElementById('portalApprovals'),null);
+ assert.equal(history.querySelector('button').textContent,'View request & respond');history.querySelector('button').onclick();assert.equal(opened.at(-1),event);
+ data={...data,events:[approved,message,requested],approvals:[{...data.approvals[0],status:'approved'}]};await window.VectaCustomerPortal.refresh();
+ assert.deepEqual([...history.children].map(c=>c.dataset.eventId),['request-event','message-event','decision-event']);
+ const decision=history.lastElementChild;assert.equal(decision.dataset.signal,'green');assert.match(decision.textContent,/Authorised/);assert.equal(decision.querySelector('time').dateTime,approved.created_at);
+ assert.equal(history.firstElementChild.querySelector('button'),null);assert.equal(decision.querySelector('button').textContent,'View work details');assert.equal(top.querySelector('.portalApproval'),null);
+ await window.VectaCustomerPortal.refresh();assert.equal(history.children.length,3,'refresh must not duplicate the authorisation');
+});

@@ -66,8 +66,10 @@ test('database decision and invoice preparation are atomic, idempotent and rejec
   assert.equal((await call('approved',before)).code,409);assert.equal(await state(),'pending');
   const current=await job();
   assert.equal((await call('approved',current)).code,200);assert.equal(await state(),'approved');
+  assert.equal((await job()).work_required,'MOT test\nReplace front brake pads','approval must immediately add the authorised task to the saved job card');
   assert.equal(Number((await job()).amount_quoted),165);assert.equal(pricing((await job()).customer_note).length,2);
   assert.equal((await call('approved')).code,200);assert.equal(Number((await job()).amount_quoted),165,'retry cannot add another charge');
+  assert.equal((await job()).work_required,'MOT test\nReplace front brake pads','retry cannot duplicate the authorised task');
   assert.equal((await call('declined')).code,409);
   const second='22222222-2222-4222-8222-222222222223';await add(second);
   assert.equal((await call('declined',await job(),second)).code,200);assert.equal(Number((await job()).amount_quoted),165);

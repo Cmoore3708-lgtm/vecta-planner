@@ -13,11 +13,12 @@
  const labels={message:'Message',amendment:'Booking amendment requested',additional_work:'Additional work requested',cancelled:'Booking cancelled',preferences:'Authorisation updated',booking_update:'Booking updated',approval_request:'Work requested',approval_response:'Customer decision',correspondence:'Workshop message'};
  function colour(item){if(item.kind==='preferences')return item.details?.preferences?.serious_repairs==='change_parts'?'green':'red';const s=item.details?.status;return s==='approved'?'green':s==='declined'?'red':item.kind==='approval_request'||item.kind==='amendment'||item.kind==='additional_work'?'amber':'';}
  function renderHistory(){
-  const ordered=Array.from(events.values()).sort((a,b)=>a.created_at.localeCompare(b.created_at)||a.seq-b.seq),key=JSON.stringify(ordered);
+  const ordered=Array.from(events.values()).sort((a,b)=>a.created_at.localeCompare(b.created_at)||a.seq-b.seq),key=JSON.stringify([ordered,current?.approvals]);
   if(key===historyKey)return;historyKey=key;history.replaceChildren();
   for(const item of ordered){
-   const card=node('article');card.className='portalEvent';card.dataset.signal=colour(item);
-   const heading=node('div');heading.className='portalEventHeading';heading.append(node('strong',(item.actor==='customer'?'You · ':'Vecta · ')+(labels[item.kind]||'Update')),node('time',date(item.created_at)));
+   const card=node('article');card.className='portalEvent';card.dataset.signal=colour(item);card.dataset.eventId=item.id;
+   const timestamp=node('time',date(item.created_at));timestamp.dateTime=item.created_at;
+   const heading=node('div');heading.className='portalEventHeading';heading.append(node('strong',(item.actor==='customer'?'You · ':'Vecta · ')+(labels[item.kind]||'Update')),timestamp);
    card.append(heading);
    if(item.details?.status==='approved'||item.details?.status==='declined'){const badge=node('span',item.details.status==='approved'?'Authorised':'Not authorised');badge.className='portalSignal';card.append(badge);}
    // Raw tracking credentials in historical email bodies stay out of the view.
@@ -26,6 +27,10 @@
    if(item.details?.work_required)card.append(node('p',item.details.work_required));
    if(Number.isInteger(item.details?.estimated_pence))card.append(node('b','£'+(item.details.estimated_pence/100).toFixed(2)+' including VAT'));
    if(item.details?.delivery==='prepared')card.append(node('small','Email draft prepared — sending has not been confirmed.'));
+   const approval=current?.approvals.find(a=>a.id===item.details?.approval_id);
+   if(approval&&(item.kind==='approval_request'&&approval.status==='pending'||item.kind==='approval_response')){
+    const button=node('button',approval.status==='pending'?'View request & respond':'View work details');button.type='button';button.className='portalApproval';button.dataset.signal=colour(item);button.onclick=()=>showApproval(approval);card.append(button);
+   }
    history.append(card);
   }
  }
@@ -44,8 +49,6 @@
   const o=data.original;if(o){$('portalOriginalDate').textContent='Booking created: '+date(o.created_at);$('portalOriginalWork').textContent='Booked for '+date(o.booking_date)+'\n'+o.work_required;$('portalOriginalLegacy').hidden=!o.legacy;}
   for(const e of data.events)events.set(e.id,e);if(!older)older=data.older_cursor;
   $('portalOlder').hidden=!older;renderHistory();
-  const approvals=$('portalApprovals');approvals.replaceChildren();
-  for(const item of data.approvals){const button=node('button',(item.status==='pending'?'Approval needed':item.status==='approved'?'Authorised':item.status==='declined'?'Not authorised':'Closed')+' · '+item.message);button.type='button';button.className='portalApproval';button.dataset.signal=item.status==='approved'?'green':item.status==='declined'?'red':'amber';button.onclick=()=>showApproval(item);approvals.append(button);}
   const pending=data.approvals.find(item=>item.status==='pending'&&!announced.has(item.id));
   if(pending&&!$('approvalDialog').open&&!dialog.open){announced.add(pending.id);showApproval(pending);}
   if(cancelled){$('identity').hidden=false;$('registration').textContent=b.registration;$('vehicle').textContent=b.vehicle;$('bookingDate').textContent='Booking date: '+date(b.booking_date);$('statusTitle').textContent='Your booking is cancelled';$('statusDescription').textContent='Your reason and cancellation are saved in your conversation.';$('error').hidden=true;$('steps').hidden=true;$('progressScene').hidden=true;$('sceneCaption').hidden=true;}
