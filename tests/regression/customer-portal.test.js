@@ -85,6 +85,7 @@ test('24-hour cutoff uses London daylight saving and exact appointment time; sce
 test('confirmation is HTML with HERE button, optional inline image and an accessible text alternative',()=>{
  const content=confirmationContent({...job,vehicle:'Nissan Qashqai',amount_quoted:45,vat_mode:'no_vat'},'https://www.vectamotors.co.uk/track#private','base64image');
  assert.match(content.html,/>HERE<\/a>/);assert.match(content.html,/personalised customer portal/);assert.match(content.html,/cid:booking-vehicle/);assert.equal(content.attachments[0].content_id,'booking-vehicle');assert.match(content.text,/24 hours/);assert.match(content.text,/45.00 \(no VAT\)/);
+ const {document}=parseHTML(content.html);const portalLink=[...document.querySelectorAll('a')].find(a=>a.textContent==='customer portal');assert.equal(portalLink?.getAttribute('href'),'https://www.vectamotors.co.uk/track#private');assert.match(content.text,/contact you via your customer portal for authorisation first/);
  const without=confirmationContent(job,'https://www.vectamotors.co.uk/track#private');assert.doesNotMatch(without.html,/<img/);assert.equal(without.attachments,undefined);
 });
 
