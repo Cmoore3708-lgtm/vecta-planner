@@ -16811,19 +16811,9 @@ function serviceSheetDraftKey(){return 'vecta:paperwork-draft:v1:'+serviceRemote
 function serviceSheetDraftIdentity(){return {registration:normReg(activeServiceRegistration),job_id:String(activeServiceJobId||''),sheet_type:normalisePaperworkKind(activeServiceKind)}}
 function serviceSheetSnapshot(sheet){return window.VectaServiceSheetRecovery.snapshot(sheet,BRAND_LOGO_FILE_SRC)}
 function serviceSheetSaveStatus(message){var status=document.getElementById('serviceSheetSaveStatus');if(status)status.textContent=message}
-function persistServiceSheetDraft(){
-  var sheet=document.querySelector('#printSheet .servicePrint');if(!sheet||!activeServiceRegistration)return true;
-  try{return window.VectaServiceSheetRecovery.persist(localStorage,serviceSheetDraftKey(),serviceSheetDraftIdentity(),sheet,BRAND_LOGO_FILE_SRC)}
-  catch(error){console.warn('Paperwork draft could not be kept',error);serviceSheetSaveStatus('Draft could not be kept on this device. Keep this sheet open and use Save.');return false}
-}
-function restoreServiceSheetDraft(){
-  try{return window.VectaServiceSheetRecovery.restore(localStorage,serviceSheetDraftKey(),serviceSheetDraftIdentity(),document.getElementById('printSheet'),latestSavedServiceSheet(activeServiceRegistration,activeServiceKind,activeServiceJobId))}
-  catch(error){console.warn('Paperwork draft could not be opened',error);return false}
-}
-function watchServiceSheetDraft(){
-  var sheet=document.querySelector('#printSheet .servicePrint');if(!sheet)return;
-  ['input','change','click'].forEach(function(name){sheet.addEventListener(name,function(){if(sheet.getAttribute('data-saving')!=='true'&&persistServiceSheetDraft())serviceSheetSaveStatus('Draft kept on this device. Press Save to share it.')})});
-}
+function persistServiceSheetDraft(){return window.VectaServiceSheetRecovery.persistCurrent(document,localStorage,serviceSheetDraftKey(),serviceSheetDraftIdentity(),BRAND_LOGO_FILE_SRC,serviceSheetSaveStatus)}
+function restoreServiceSheetDraft(){return window.VectaServiceSheetRecovery.restore(localStorage,serviceSheetDraftKey(),serviceSheetDraftIdentity(),document.getElementById('printSheet'),latestSavedServiceSheet(activeServiceRegistration,activeServiceKind,activeServiceJobId))}
+function watchServiceSheetDraft(){window.VectaServiceSheetRecovery.watch(document.querySelector('#printSheet .servicePrint'),persistServiceSheetDraft,serviceSheetSaveStatus)}
 window.addEventListener('pagehide',persistServiceSheetDraft);
 document.addEventListener('visibilitychange',function(){if(document.visibilityState==='hidden')persistServiceSheetDraft()});
 function serviceStorageKey(reg,kind,jobId){kind=normalisePaperworkKind(kind);return 'vecta_service_sheet_'+kind+'_'+normReg(reg||'')+(jobId?'_'+String(jobId):'')}
@@ -16885,8 +16875,7 @@ async function saveServiceSheet(){
   if(!validateServiceSheetDates(sheet)){serviceSheetSaveStatus('Check the highlighted dates, then press Save again.');return false}
   var sheetMileage=requireServiceSheetMileage(sheet);if(!sheetMileage)return false;
   var reg=normReg(activeServiceRegistration),kind=normalisePaperworkKind(activeServiceKind);
-  sheet.setAttribute('data-saving','true');sheet.setAttribute('inert','');
-  var saveButton=document.querySelector('#servicePreviewControls .savePreview'),buttons=document.querySelectorAll('#servicePreviewControls button');Array.prototype.forEach.call(buttons,function(button){button.disabled=true});if(saveButton)saveButton.textContent='Saving…'
+  window.VectaServiceSheetRecovery.setSaving(sheet,document,true);
   serviceSheetSaveStatus('Saving paperwork…');
   var completed=false;
   try{
@@ -16906,27 +16895,13 @@ async function saveServiceSheet(){
   try{localStorage.removeItem(serviceSheetDraftKey())}catch(e){}
   return true;
   }catch(error){console.error('Paperwork save failed',error);alert('The paperwork save could not finish. Your entries are still open. Please retry.\n\n'+(error&&error.message?error.message:'Unknown error'));return false}
-  finally{sheet.removeAttribute('data-saving');sheet.removeAttribute('inert');Array.prototype.forEach.call(buttons,function(button){button.disabled=false});if(saveButton)saveButton.textContent='Save';if(!completed){var kept=persistServiceSheetDraft();serviceSheetSaveStatus(kept?'Save did not finish. Draft kept on this device — press Save to retry.':'Save did not finish. Keep this sheet open and retry.')}}
+  finally{window.VectaServiceSheetRecovery.finishSave(sheet,document,completed,persistServiceSheetDraft,serviceSheetSaveStatus)}
 }
 async function saveServiceSheetAndClose(){var jobId=String(activeServiceJobId||'');var saved=await saveServiceSheet();if(saved!==true)return false;closeServicePreview(true);if(jobId&&(app.jobs||[]).some(function(j){return String(j.id)===jobId}))openJobModal(jobId);return true}
 function loadSavedServiceSheet(reg,kind,jobId){kind=normalisePaperworkKind(kind);try{var keys=[serviceStorageKey(reg,kind,jobId)];if(kind==='service')keys.push('vecta_service_sheet_'+normReg(reg||''));for(var i=0;i<keys.length;i++){var raw=localStorage.getItem(keys[i]);if(raw){var record=JSON.parse(raw);if(record&&record.html)return record}}return null}catch(e){return null}}
 function latestSavedServiceSheet(reg,kind,jobId){reg=normReg(reg||'');kind=normalisePaperworkKind(kind);var all=(app.serviceRecords||[]).filter(function(r){return normReg(r.registration||'')===reg&&r.html&&serviceRecordKind(r)===kind}),rows=jobId?all.filter(function(r){return String(r.job_id||'')===String(jobId)}):all.slice();if(!rows.length&&jobId&&kind==='service')rows=all.filter(function(r){return !r.job_id});var local=loadSavedServiceSheet(reg,kind,jobId);if(local&&(!jobId||String(local.job_id||'')===String(jobId)||kind==='service'&&!local.job_id))rows.push(local);rows.sort(function(a,b){return serviceRecordTime(b)-serviceRecordTime(a)});return rows[0]||null}
 function serviceRecordJobId(record){var direct=String(record&&record.job_id||'');if(direct)return direct;var match=String(record&&record.html||'').match(/data-job-id=[\"']([^\"']+)[\"']/i);return match?String(match[1]||''):''}
-async function saveServiceRecordRemote(record){
-  if(!remoteClient)throw new Error('Supabase is not connected.');
-  var reg=normReg(record.registration||''),kind=serviceRecordKind(record),jobId=String(record.job_id||''),id=serviceRemoteKey(reg,kind,jobId),canonicalId=serviceRemoteKey(reg,kind,''),updatedAt=record.updated_at||new Date().toISOString(),baseValue=Object.assign({},record,{registration:reg,sheet_type:kind,job_id:jobId,updated_at:updatedAt}),payloads=[{id:id,value:Object.assign({},baseValue,{id:id}),updated_at:updatedAt}];
-  if(canonicalId!==id)payloads.push({id:canonicalId,value:Object.assign({},baseValue,{id:canonicalId}),updated_at:updatedAt});
-  var controller=new AbortController(),timer=setTimeout(function(){controller.abort()},20000),saved;
-  try{saved=await remoteClient.from('workshop_settings').upsert(payloads,{onConflict:'id'}).select('id,value,updated_at').abortSignal(controller.signal)}finally{clearTimeout(timer)}
-  if(saved.error)throw new Error(controller.signal.aborted?'The cloud save timed out. Check the connection and retry.':saved.error.message||'Shared paperwork save failed.');
-  var rows=Array.isArray(saved.data)?saved.data:(saved.data?[saved.data]:[]),row=rows.find(function(item){return item&&item.id===id});
-  if(!row||!row.value||row.value.html!==record.html)throw new Error('The cloud did not confirm this paperwork. Keep the sheet open and retry.');
-  var confirmed=Object.assign({},row.value,{id:id,registration:reg,sheet_type:kind,job_id:jobId,updated_at:row.updated_at||updatedAt});
-  // The canonical workshop_settings write is required. The legacy mirror must
-  // never hold the Save button open after the canonical write has succeeded.
-  try{Promise.resolve(remoteClient.from('service_records').upsert(confirmed,{onConflict:'id'})).then(function(optional){if(optional.error)console.warn('Optional service_records mirror unavailable',optional.error)}).catch(function(error){console.warn('Optional service_records mirror unavailable',error)})}catch(error){console.warn('Optional service_records mirror unavailable',error)}
-  return confirmed;
-}
+async function saveServiceRecordRemote(record){return window.VectaServiceSheetRecovery.saveRemote(remoteClient,record,normReg,serviceRecordKind,serviceRemoteKey)}
 async function fetchLatestServiceRecordRemote(reg,kind,jobId){reg=normReg(reg||'');kind=normalisePaperworkKind(kind);jobId=String(jobId||'');if(!remoteClient||!reg||!navigator.onLine)return null;var exactId=serviceRemoteKey(reg,kind,jobId),canonicalId=serviceRemoteKey(reg,kind,''),prefix=kind+':'+reg;var result=await remoteClient.from('workshop_settings').select('id,value,updated_at').like('id',prefix+'%').order('updated_at',{ascending:false}).limit(100);if(result.error)throw result.error;var rows=(Array.isArray(result.data)?result.data:[]).map(function(row){if(!row||!row.value||typeof row.value!=='object'||!row.value.html)return null;var record=Object.assign({},row.value,{id:row.id,registration:reg,sheet_type:kind,updated_at:row.updated_at||row.value.updated_at});record.job_id=serviceRecordJobId(record)||String(row.value.job_id||'');return record}).filter(Boolean);if(jobId){var matching=rows.filter(function(record){var recordJobId=serviceRecordJobId(record);return record.id===exactId||recordJobId===jobId||(record.id===canonicalId&&!recordJobId)});if(matching.length)rows=matching;else return null}rows.sort(function(a,b){return serviceRecordTime(b)-serviceRecordTime(a)});var latest=rows[0]||null;return latest?storeServiceRecordLocal(latest):null}
 async function openLatestServiceSheet(reg,job,fallbackRecord,kind){reg=normReg(reg||'');kind=normalisePaperworkKind(kind||serviceRecordKind(fallbackRecord)||(job?paperworkKindForJob(job):'service'));var jobId=String((fallbackRecord&&fallbackRecord.job_id)||(job&&job.id)||'');var record=null;if(remoteClient&&navigator.onLine){try{record=await vectaWithTimeout(fetchLatestServiceRecordRemote(reg,kind,jobId),2500,'Latest shared service sheet')}catch(e){console.warn('Latest shared paperwork could not be fetched',e)}}if(!record&&typeof vectaHydratePaperwork==='function'){await vectaHydratePaperwork(reg,kind,jobId);if(fallbackRecord&&!fallbackRecord.html)fallbackRecord=(app.serviceRecords||[]).find(function(row){return row.id===fallbackRecord.id})||fallbackRecord}record=record||fallbackRecord||latestSavedServiceSheet(reg,kind,jobId);if(!record||!record.html)return false;activeServiceRegistration=reg;activeServiceKind=kind;activeServiceJobId=jobId;document.getElementById('printSheet').innerHTML=upgradeSavedServiceSheet(record.html,job||{},kind);openServicePreview();return true}
 window.selectServiceRag=selectServiceRag;window.tickAllServiceGreen=tickAllServiceGreen;window.openServiceResetProcedure=openServiceResetProcedure;window.toggleServiceCheck=toggleServiceCheck;window.printWhenImagesReady=printWhenImagesReady;window.closeServicePreview=closeServicePreview;window.closeServicePreviewPrompt=closeServicePreviewPrompt;window.saveServiceSheet=saveServiceSheet;window.saveServiceSheetAndClose=saveServiceSheetAndClose;
