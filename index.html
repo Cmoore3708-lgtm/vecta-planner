@@ -12032,7 +12032,7 @@ function importContractor2026Spreadsheet(){
 }
 
 function fleetEnriched(){fleetApplyDeletionTombstones();try{fleetApplyMotAuthority()}catch(e){console.warn('V317 MOT authority apply skipped',e)}return fleetVehicles.filter(function(v){return String(v&&v.status||'Active').toLowerCase()!=='archived'}).map(function(v){var allPlans=fleetVehiclePlans(v.id),ps=fleetOutstandingPlans(v.id),dated=ps.map(function(p){return {plan:p,date:fleetDate(p)||''}}).filter(function(x){return !!x.date}).sort(function(a,b){return a.date.localeCompare(b.date)}),first=dated[0]||null,next=first?first.date:'';return Object.assign({},v,{plans:ps,allPlans:allPlans,nextDue:next,nextDueType:first&&first.plan?first.plan.type:'',tone:fleetTone(next)})})}
-function fleetDueIcon(type){var raw=String(type||''),value=raw.toLowerCase();if(value.indexOf('six-month')>-1||value.indexOf('six month')>-1||value.indexOf('6-month')>-1||value.indexOf('6 month')>-1||value.indexOf('safety check')>-1)return '<span class="fleetDueIcon safety" title="6 month safety check due" aria-label="6 month safety check due">6 mo</span>';if(value.indexOf('service')>-1){var serviceLabel=serviceTypeFromValue(raw);if(!serviceLabel||serviceLabel==='Service')serviceLabel='Service';return '<span class="fleetDueIcon service" title="'+esc(serviceLabel)+' due" aria-label="'+esc(serviceLabel)+' due">SER</span>'}if(value.indexOf('mot')>-1)return '<span class="fleetDueIcon mot" title="MOT due" aria-label="MOT due">MOT</span>';if(value.indexOf('tax')>-1)return '<span class="fleetDueIcon tax" title="Tax due" aria-label="Tax due">TAX</span>';return ''}
+function fleetDueIcon(type){var raw=String(type||''),value=raw.toLowerCase();if(value.indexOf('six-month')>-1||value.indexOf('six month')>-1||value.indexOf('6-month')>-1||value.indexOf('6 month')>-1||value.indexOf('safety check')>-1)return '<span class="fleetDueIcon safety" title="6 month safety check due" aria-label="6 month safety check due">6 mo</span>';if(value.indexOf('service')>-1){var serviceLabel=serviceTypeFromValue(raw);if(!serviceLabel||serviceLabel==='Service')serviceLabel='Service';return '<span class="fleetDueIcon service" title="'+esc(serviceLabel)+' due" aria-label="'+esc(serviceLabel)+' due">SER</span>'}if(value.indexOf('mot')>-1)return '<span class="fleetDueIcon mot" title="MOT due" aria-label="MOT due">MOT</span>';if(value.indexOf('tax')>-1)return '<span class="fleetDueIcon tax" title="Tax due" aria-label="Tax due">TAX</span>';if(!raw.trim())return '';return '<span class="fleetDueIcon" title="'+esc(raw)+' due" aria-label="'+esc(raw)+' due">'+(/\bdpf\b/i.test(raw)?'DPF':'Other')+'</span>'}
 /* V190: Fleet booked-work matching.
    One normalised registration is used across the fleet and planner, and current/future
    open jobs are classified from every useful job-description field. This deliberately
@@ -12384,7 +12384,7 @@ function fleetPrintCurrentView(){
   var printableModes=['due30','overdue','mot30','service30','tax30','safety30'];
   if(printableModes.indexOf(mode)===-1){alert('Select one of the six Fleet Manager due-work tabs first.');return}
   var today=new Date();today.setHours(0,0,0,0);var limit=new Date(today);limit.setDate(limit.getDate()+30);
-  function planTypeKey(p){var value=String(p&&p.type||'').toLowerCase();if(value.indexOf('safety')>-1||value.indexOf('six month')>-1||value.indexOf('six-month')>-1||value.indexOf('6 month')>-1||value.indexOf('6-month')>-1)return 'safety';if(value.indexOf('service')>-1)return 'service';if(value.indexOf('mot')>-1)return 'mot';if(value.indexOf('tax')>-1)return 'tax';return 'other'}
+  function planTypeKey(p){var value=String(p&&p.type||'').toLowerCase();if(value.indexOf('safety')>-1||value.indexOf('six month')>-1||value.indexOf('six-month')>-1||value.indexOf('6 month')>-1||value.indexOf('6-month')>-1)return 'safety';if(value.indexOf('service')>-1)return 'service';if(value.indexOf('mot')>-1)return 'mot';if(value.indexOf('tax')>-1)return 'tax';return fleetMaintenanceCategory(p&&p.type||'')||'other'}
   function typeLabel(p){var key=planTypeKey(p);if(key==='safety')return '6 month safety check';if(key==='service')return serviceTypeFromValue(String(p&&p.type||''))||'Service';if(key==='mot')return 'MOT';if(key==='tax')return 'Tax';return String(p&&p.type||'Maintenance')}
   function in30(date){if(!date)return false;var d=new Date(date+'T00:00:00');return d>=today&&d<=limit}
   function overdue(date){if(!date)return false;var d=new Date(date+'T00:00:00');return d<today}
@@ -12546,7 +12546,7 @@ function fleetMaintenanceHtml(){
     if(value.indexOf('service')>-1)return 'service';
     if(value.indexOf('mot')>-1)return 'mot';
     if(value.indexOf('tax')>-1)return 'tax';
-    return 'other';
+    return fleetMaintenanceCategory(p&&p.type||'')||'other';
   }
   function isDueInWindow(date){if(!date)return false;var d=new Date(date+'T00:00:00');return d<=limit}
   function rowMatches(v){

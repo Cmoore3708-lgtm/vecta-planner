@@ -7,7 +7,7 @@ import traverseModule from '@babel/traverse';
 import {parseHTML} from 'linkedom';
 const traverse=traverseModule.default||traverseModule;
 const html=fs.readFileSync(new URL('../../index.html',import.meta.url),'utf8');
-const names=new Set(['fleetShortVehicle','fleetMaintenanceHtml','fleetDueRow','fleetEmailSentCell','fleetEmailCycleKey','fleetEmailSentDisplayDate','fleetBindEmailSent','fleetWorkDueGroupCell','fleetBookingTypeGroupCell','fleetBookedTickGroupCell','fleetBookedGroupCell','fleetBookedLink','fleetImageCell','fleetContactEmailCell','fleetDueCell','fleetDueIcon','fleetBookedTick']);
+const names=new Set(['fleetShortVehicle','fleetMaintenanceHtml','fleetPrintCurrentView','fleetDueRow','fleetEmailSentCell','fleetEmailCycleKey','fleetEmailSentDisplayDate','fleetBindEmailSent','fleetWorkDueGroupCell','fleetBookingTypeGroupCell','fleetBookedTickGroupCell','fleetBookedGroupCell','fleetBookedLink','fleetImageCell','fleetContactEmailCell','fleetDueCell','fleetDueIcon','fleetBookedTick']);
 let source='';
 for(const m of html.matchAll(/<script(?:\s[^>]*)?>([\s\S]*?)<\/script>/gi)){
  if(![...names].some(n=>m[1].includes('function '+n+'(')))continue;
@@ -62,3 +62,47 @@ test('combined rows retain all work badges and filtered rows only show their sel
  render(c,'all');assert.equal(c.document.querySelectorAll('[data-fleet-email-sent]').length,0);
 });
 
+
+function customMaintenance(){
+ const c=setup();
+ vm.runInContext(fs.readFileSync(new URL('../../public/js/vecta-fleet-rules.js',import.meta.url),'utf8'),c);
+ c.fleetMaintenanceCategory=value=>c.VectaFleetRules.maintenanceCategory(value);
+ c.fleetIsMaintenanceRemoved=(_id,type)=>type==='Removed custom work';
+ c.vehicle.plans=['DPF regeneration','Battery inspection','Removed custom work'].map((type,i)=>({id:'custom-'+i,vehicleId:c.vehicle.id,type,status:'Active',due:'2026-11-13',currentDueDate:'2026-11-13',intervalMonths:4}));
+ c.fleetPlans=c.vehicle.plans;
+ vm.runInContext(html.match(/function fleetHasActiveMaintenanceRecord\(vehicleId,typeKey\)\{[\s\S]*?\n\}/)[0],c);
+ const RealDate=Date;
+ c.Date=class extends RealDate{constructor(...args){super(...(args.length?args:['2026-11-10T12:00:00Z']))}};
+ c.todayIso=()=> '2026-11-10';
+ return c;
+}
+test('custom DPF work appears in the due list alongside another custom item on the same day',()=>{
+ const c=customMaintenance();render(c,'due30');
+ const entries=[...c.document.querySelectorAll('.fleetBookingTypeEntry')];
+ assert.equal(entries.length,2);
+ assert.equal(entries[0].textContent,'Other');
+ assert.equal(entries[1].textContent,'DPF');
+ assert.equal(c.document.querySelector('[aria-label="DPF regeneration due"]').textContent,'DPF');
+ assert.equal(c.document.querySelector('[aria-label="Removed custom work due"]'),null);
+ render(c,'service30');assert.equal(c.document.querySelector('[aria-label="DPF regeneration due"]'),null);
+});
+test('custom DPF work prints with its full name and date, and removed maintenance stays excluded',()=>{
+ const c=customMaintenance();let printed='';
+ c.window={open:()=>({document:{open(){},write:s=>printed=s,close(){}},focus(){},print(){}})};
+ c.setTimeout=fn=>fn();c.alert=message=>{throw Error(message)};
+ c.fleetPrintCurrentView();
+ assert.match(printed,/DPF regeneration/);assert.match(printed,/Battery inspection/);
+ assert.match(printed,/2026-11-13/);assert.doesNotMatch(printed,/Removed custom work/);
+});
+test('completing a four-month DPF plan advances November to March and July without altering annual service',()=>{
+ const c=customMaintenance();
+ c.fleetVehicles=[{id:'sample',fleetGroup:'Nissan Internal'}];c.fleetCompletions=[];
+ c.todayIso=()=> '2026-11-10';c.saveFleet=()=>{};c.serviceTypeFromValue=()=>'';
+ const service={id:'annual',vehicleId:'sample',type:'Internal Service',currentDueDate:'2027-07-13',intervalMonths:12};c.fleetPlans.push(service);
+ for(const name of ['fleetAddMonthsFromDue','fleetCompletePlanNow'])vm.runInContext(html.split('\n').find(line=>line.startsWith('function '+name+'(')),c);
+ c.fleetDate=p=>p.currentDueDate;
+ c.fleetCompletePlanNow('custom-0');assert.equal(c.fleetPlans[0].currentDueDate,'2027-03-13');
+ c.fleetCompletePlanNow('custom-0');assert.equal(c.fleetPlans[0].currentDueDate,'2027-07-13');
+ assert.equal(c.fleetPlans[0].intervalMonths,4);assert.equal(c.fleetPlans[0].type,'DPF regeneration');
+ assert.equal(service.currentDueDate,'2027-07-13');assert.equal(service.intervalMonths,12);
+});
