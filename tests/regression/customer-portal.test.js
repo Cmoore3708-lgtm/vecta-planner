@@ -139,3 +139,15 @@ test('approval controls and authorised work stay in dated conversation order, wi
  assert.equal(history.firstElementChild.querySelector('button'),null);assert.equal(decision.querySelector('button').textContent,'View work details');assert.equal(top.querySelector('.portalApproval'),null);
  await window.VectaCustomerPortal.refresh();assert.equal(history.children.length,3,'refresh must not duplicate the authorisation');
 });
+
+test('a failed job-card refresh keeps the approval alert visible and retries until this device has the saved work',async()=>{
+ const {document}=parseHTML('<html><body><main class="main"><header class="top"></header></main></body></html>');document.hidden=false;
+ const events=[{id:event,job_id:id,registration:'TEST001',kind:'approval_response',actor:'customer',message:'Replace brake pads',created_at:'2026-11-10T09:00:00Z',decision:'approved',forwarded:true}];
+ const timers=[];let refreshes=0;
+ const window={VECTA_MECHANIC_DEPLOYMENT:true,addEventListener(){},vectaRefreshPortalJobs:async()=>{refreshes++;if(refreshes===1)throw Error('Offline');return refreshes>2;}};
+ vm.runInNewContext(readFileSync('public/js/vecta-portal-workshop.js','utf8'),{window,document,location:{search:''},navigator:{onLine:true},localStorage:{getItem:()=>null},Intl,Date,Event,URLSearchParams,AbortSignal,setInterval:fn=>timers.push(fn),fetch:async()=>({ok:true,json:async()=>({events})})});
+ await new Promise(r=>setImmediate(r));const popup=document.querySelector('.portalWorkshopPopup');assert.equal(popup.hidden,false);assert.match(popup.textContent,/Work authorised/);assert.match(popup.textContent,/Reconnecting/);
+ await timers[0]();assert.equal(refreshes,2);assert.match(popup.textContent,/Reconnecting/,'an uninitialised database must also retry');
+ await timers[0]();assert.equal(refreshes,3);assert.doesNotMatch(popup.textContent,/Reconnecting/);assert.match(popup.textContent,/Work authorised/);
+ await timers[0]();assert.equal(refreshes,3,'successful refresh is not repeated without a new event');
+});

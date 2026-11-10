@@ -17265,7 +17265,7 @@ document.addEventListener('change',function(ev){
 
 /* Expose the job editor to dashboard tools before later UI wrappers load. */
 window.vectaEnablePortalAlerts=vectaEnableBookingAlerts;
-window.vectaRefreshPortalJobs=async function(){await vectaPrimeJobsFromCloud();if(!document.querySelector('.modal.open'))render();};
+window.vectaRefreshPortalJobs=async function(){if(!await vectaPrimeJobsFromCloud())return false;if(!document.querySelector('.modal.open'))render();return true;};
 window.openJobModal=function(id,preset){return openJobModal(id,preset);};
 window.vectaOpenFindingJob=async function(jobId){
   function activeCard(){

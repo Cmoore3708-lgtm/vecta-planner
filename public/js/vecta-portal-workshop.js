@@ -58,13 +58,19 @@
    if(busy||document.hidden||!navigator.onLine)return;busy=true;
    try{
     const {events}=await api('portal-queue');
-    const fresh=events.filter(item=>!known.has(item.id));for(const e of events)known.add(e.id);
-    if(fresh.length){await window.vectaRefreshPortalJobs?.();for(const [id,p]of panels)if(p.panel.isConnected)p.refresh();else panels.delete(id);}
+    const fresh=events.filter(item=>!known.has(item.id));let synced=true;
+    if(fresh.length){
+     try{synced=typeof window.vectaRefreshPortalJobs==='function'&&await window.vectaRefreshPortalJobs()!==false;}catch{synced=false;}
+     // A failed refresh must not acknowledge receipt of the saved job update.
+     // Keep its alert visible and retry on the next poll/reconnection.
+     if(synced)for(const e of events)known.add(e.id);
+     for(const [id,p]of panels)if(p.panel.isConnected)p.refresh();else panels.delete(id);
+    }
     const ids=seen(),next=events.find(x=>x.id===pendingEvent)||events.find(x=>!ids.has(x.id));
     if(!next){active=null;popup.hidden=true;return;}
-    if(active&&active.id===next.id&&active.forwarded===next.forwarded)return;
-    active=next;popup.hidden=false;popup.replaceChildren(node('strong',(mechanic()?'Job update':'Customer message')+' · '+next.registration),eventCard(next,!mechanic()));
-    const message=node('p');message.setAttribute('role','status');
+    if(active&&active.id===next.id&&active.forwarded===next.forwarded&&active.synced===synced)return;
+    active={...next,synced};popup.hidden=false;popup.replaceChildren(node('strong',(mechanic()?'Job update':'Customer message')+' · '+next.registration),eventCard(next,!mechanic()));
+    const message=node('p',synced?'':'Message saved. Reconnecting to update this device’s job card…');message.setAttribute('role','status');
     popup.append(button('Open job card',async()=>{
      if(!next.job_id){message.textContent='This booking is waiting in Website Bookings. Accept it to create its job card.';return;}
      const state=await window.vectaOpenFindingJob?.(next.job_id);
