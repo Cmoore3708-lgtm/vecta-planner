@@ -5,7 +5,7 @@
 <main>
 <h1 id="portalHeading" hidden>Your customer portal</h1>
 <form id="registrationForm" class="lookup" hidden><label for="registrationInput">Enter your car registration</label><div class="lookupRow"><input id="registrationInput" maxlength="15" placeholder="YOUR REG" autocomplete="off" autocapitalize="characters" spellcheck="false" required><button id="findProgress" type="submit">Track my car</button></div></form>
-<section class="card" aria-label="Booking progress"><div id="identity" class="vehicleSummary" hidden><strong id="registration" class="plate"></strong><p id="vehicle"></p><p id="bookingDate"></p><div id="jobSummary" hidden><span class="summaryLabel">BOOKED WORK</span><p id="jobDescription"></p></div></div>
+<section class="card" aria-label="Booking progress"><div id="identity" class="vehicleSummary" hidden><div class="vehicleSummaryHeading"><strong id="registration" class="plate"></strong><p id="vehicle"></p></div><p id="bookingDate"></p><div id="jobSummary" hidden><span class="summaryLabel">BOOKED WORK</span><p id="jobDescription"></p></div><figure id="portalVehicle" class="portalVehicle" hidden></figure></div>
 <section id="customerInstructions" class="customerInstructions" aria-labelledby="customerInstructionsTitle" hidden><h2 id="customerInstructionsTitle">Your booking instructions</h2><div id="customerInstructionsList"></div></section>
 <section id="customerPortal" hidden aria-label="Manage your booking">
 <div id="portalAuthorisation" class="portalAuthorisation"><strong id="portalAuthorisationTitle"></strong><p id="portalAuthorisationText"></p><small id="portalParts"></small></div>
