@@ -39,8 +39,16 @@
   const after=modal.querySelector('.jobWorkSection');if(!after||!saved||job.no_vehicle||job.card_type&&job.card_type!=='job')return;
   const panel=node('section');panel.className='jobFormSection portalWorkshop';panel.dataset.jobId=job.id;
   const heading=node('h3',mechanic()?'Office messages & approvals':'Customer portal & conversation'),consent=node('p'),list=node('div'),status=node('p');status.setAttribute('role','status');
-  const enable=button('Enable notifications on this device',async()=>{await window.vectaEnablePortalAlerts?.();});
-  panel.append(heading,consent,enable,status,list);after.after(panel);
+  const notifications=node('div'),notificationNote=node('p');
+  const enable=button('Allow device notifications',async()=>{enable.disabled=true;try{await window.vectaEnablePortalAlerts?.();}finally{enable.disabled=false;updateNotifications();}});
+  function updateNotifications(){
+   const state=window.vectaPortalAlertsState?.();
+   notifications.hidden=!state||state.status==='enabled';
+   enable.hidden=!state?.canEnable;
+   notificationNote.textContent=state?.message||'';
+  }
+  notifications.className='portalDeviceNotifications';notificationNote.setAttribute('role','status');notifications.append(notificationNote,enable);updateNotifications();
+  panel.append(heading,consent,notifications,status,list);after.after(panel);
   let busy=false,key='',older=null;
   async function refresh(before){
    if(busy||!panel.isConnected||document.hidden||!navigator.onLine)return;busy=true;
@@ -48,8 +56,11 @@
     const data=await api('portal-job',{job_id:job.id,...(before?{before}:{})});
     const allowed=data.preferences?.serious_repairs==='change_parts';consent.className='portalWorkshopConsent';consent.dataset.signal=allowed?'green':'red';consent.textContent=allowed?'Additional parts pre-authorised':'Additional parts not pre-authorised — approval required';
     const hash=JSON.stringify([data.events,data.alerts]);
-    if(hash!==key){key=hash;const cards=data.events.map(item=>eventCard(item,!mechanic(),data.alerts?.find(a=>a.event_id===item.id)));if(before)list.prepend(...cards);else list.replaceChildren(...cards);}
-    if(!data.events.length&&!before)list.append(node('p',mechanic()?'No office messages or approvals yet.':'No messages yet.'));
+    if(hash!==key){
+     key=hash;const cards=data.events.map(item=>eventCard(item,!mechanic(),data.alerts?.find(a=>a.event_id===item.id)));
+     if(!cards.length&&!before){const empty=node('p',mechanic()?'No office messages or approvals yet.':'No messages yet.');empty.className='portalWorkshopEmpty';cards.push(empty);}
+     if(before)list.prepend(...cards);else list.replaceChildren(...cards);
+    }
     older=data.older_cursor;olderButton.hidden=!older;status.textContent='';
    }catch(e){status.textContent=e.message;}finally{busy=false;}
   }
@@ -64,7 +75,7 @@
    let id=crypto.randomUUID(),sending=false;input.oninput=()=>{if(!sending)id=crypto.randomUUID();};
    form.onsubmit=async e=>{e.preventDefault();if(sending||permissionBox.disabled)return;sending=true;send.disabled=true;permissionBox.disabled=true;note.textContent='Saving your message and preparing customer alerts…';try{const result=await api('portal-reply',{job_id:job.id,id,message:input.value});input.value='';id=crypto.randomUUID();note.replaceChildren(node('p','Message saved in the customer portal.'));const delivery=node('div');showAlerts(delivery,result.alerts,job.id);note.append(delivery);await refresh();}catch(error){note.textContent=error.message;}finally{sending=false;send.disabled=false;permissionBox.disabled=false;}};
   }
-  panels.set(job.id,{panel,refresh});refresh();
+  panels.set(job.id,{panel,refresh,updateNotifications});refresh();
  }
  function seen(){try{return new Set(JSON.parse(localStorage.getItem('vecta:portal:seen:'+ (mechanic()?'mechanic':'manager'))||'[]'));}catch{return new Set();}}
  function ack(item){const ids=seen();ids.add(item.id);try{localStorage.setItem('vecta:portal:seen:'+(mechanic()?'mechanic':'manager'),JSON.stringify([...ids].slice(-1000)));}catch{}if(pendingEvent===item.id)pendingEvent=null;refreshQueue?.();}
@@ -74,6 +85,7 @@
   let busy=false;
   refreshQueue=async()=>{
    if(busy||document.hidden||!navigator.onLine)return;busy=true;
+   window.vectaMaintainPortalAlerts?.();
    try{
     const {events}=await api('portal-queue');
     const fresh=events.filter(item=>!known.has(item.id));let synced=true;
@@ -98,7 +110,9 @@
    }catch{}finally{busy=false;}
   };
   window.addEventListener('vecta-portal-changed',()=>{active=null;refreshQueue();});
-  document.addEventListener('visibilitychange',()=>{if(!document.hidden)refreshQueue();});window.addEventListener('online',refreshQueue);
+  window.addEventListener('vecta-notification-state',()=>{for(const [id,p]of panels)if(p.panel.isConnected)p.updateNotifications();else panels.delete(id);});
+  document.addEventListener('visibilitychange',()=>{if(!document.hidden)refreshQueue();});
+  window.addEventListener('online',()=>{window.vectaMaintainPortalAlerts?.(true);refreshQueue();});
   navigator.serviceWorker?.addEventListener('message',e=>{if(e.data?.type==='vecta-portal-notification'){if(e.data.eventId)pendingEvent=e.data.eventId;refreshQueue();}});
   refreshQueue();setInterval(refreshQueue,10000);
   setInterval(()=>{for(const [id,p]of panels)if(p.panel.isConnected)p.refresh();else panels.delete(id);},15000);
