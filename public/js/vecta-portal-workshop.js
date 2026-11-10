@@ -8,11 +8,12 @@
  function button(text,fn){const b=node('button',text);b.type='button';b.className='btn';b.onclick=fn;return b;}
  function eventCard(item,canForward){
   const c=node('article');c.className='portalWorkshopEvent';c.dataset.eventId=item.id;
-  const titles={message:'Message',preferences:'Parts authorisation',amendment:'Amendment requested',additional_work:'Additional work requested',cancelled:'Booking cancelled',approval_response:'Customer '+(item.details?.status||'decision'),approval_request:'Approval requested',booking_update:'Booking updated',correspondence:'Workshop message'};
+  const decision=item.decision||item.details?.status;
+  const titles={message:'Message',preferences:'Parts authorisation',amendment:'Amendment requested',additional_work:'Additional work requested',cancelled:'Booking cancelled',approval_response:decision==='approved'?'Work authorised':decision==='declined'?'Work not authorised':'Customer decision',approval_request:'Approval requested',booking_update:'Booking updated',correspondence:'Workshop message'};
   c.append(node('strong',titles[item.kind]||'Job update'),node('small',date(item.created_at)),node('p',item.message));
   if(item.details?.requested_date)c.append(node('p','Requested date: '+item.details.requested_date+' — awaiting workshop confirmation.'));
   if(item.details?.work_required)c.append(node('p',item.details.work_required));
-  const green=item.details?.status==='approved'||item.details?.preferences?.serious_repairs==='change_parts',red=item.details?.status==='declined'||item.details?.preferences?.serious_repairs==='book_later';
+  const green=decision==='approved'||item.authorised===true||item.details?.preferences?.serious_repairs==='change_parts',red=decision==='declined'||item.authorised===false||item.details?.preferences?.serious_repairs==='book_later';
   c.dataset.signal=green?'green':red?'red':item.kind==='approval_request'?'amber':'';
   if(Number.isInteger(item.details?.estimated_pence))c.append(node('p','£'+(item.details.estimated_pence/100).toFixed(2)+' including VAT'));
   if(canForward&&item.actor==='customer'){

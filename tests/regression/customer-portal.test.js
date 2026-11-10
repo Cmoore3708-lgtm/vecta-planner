@@ -2,9 +2,12 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {PGlite} from '@electric-sql/pglite';
+import vm from 'node:vm';
+import {parseHTML} from 'linkedom';
 import {bookingRules,portalAccess,portalSnapshot,portalQueue} from '../../lib/customer-portal.js';
 import {issueProgressToken,requestTrackingPath,progressSecret} from '../../lib/job-progress.js';
 import {confirmationContent} from '../../lib/portal-email.js';
+import {customerApproval} from '../../lib/progress-approvals.js';
 const migration=readFileSync('supabase/migrations/20261110053559_customer_portal.sql','utf8');
 const id='11111111-1111-4111-8111-111111111111',rid='22222222-2222-4222-8222-222222222222',event='33333333-3333-4333-8333-333333333333';
 const job={id,booking_date:'2026-11-12',drop_time:'08:00',registration:'TEST001',customer_email:'driver@example.invalid',status:'booked',work_required:'MOT'};
@@ -83,4 +86,36 @@ test('confirmation is HTML with HERE button, optional inline image and an access
  const content=confirmationContent({...job,vehicle:'Nissan Qashqai',amount_quoted:45,vat_mode:'no_vat'},'https://www.vectamotors.co.uk/track#private','base64image');
  assert.match(content.html,/>HERE<\/a>/);assert.match(content.html,/personalised customer portal/);assert.match(content.html,/cid:booking-vehicle/);assert.equal(content.attachments[0].content_id,'booking-vehicle');assert.match(content.text,/24 hours/);assert.match(content.text,/45.00 \(no VAT\)/);
  const without=confirmationContent(job,'https://www.vectamotors.co.uk/track#private');assert.doesNotMatch(without.html,/<img/);assert.equal(without.attachments,undefined);
+});
+
+test('workshop queues exclude reassigned customer records and mechanics receive decisions without prices',async()=>{
+ const events=[{id:event,seq:1,job_id:id,registration:'TEST001',customer_email:'driver@example.invalid',actor:'customer',kind:'approval_response',message:'Replace two tyres for £120 or 120 pounds',details:{status:'approved',estimated_pence:12000},mechanic_at:'2026-11-10T09:00:00Z',created_at:'2026-11-10T09:00:00Z'},
+ {id:rid,seq:2,job_id:rid,registration:'OLD001',customer_email:'old@example.invalid',actor:'customer',kind:'message',message:'Old private message',details:{},created_at:'2026-11-10T09:01:00Z'}];
+ const db=async path=>{const u=new URL(path,'https://test.invalid');if(u.pathname==='/customer_portal_events'){assert.equal(u.searchParams.get('mechanic_at'),'not.is.null');return events;}if(u.pathname==='/jobs')return [job,{id:rid,registration:'NEW001',customer_email:'new@example.invalid'}];throw Error(path);};
+ const result=await portalQueue(db,'mechanic');assert.equal(result.events.length,1);assert.equal(result.events[0].decision,'approved');assert.equal(result.events[0].details,undefined);assert.doesNotMatch(result.events[0].message,/120/);assert.match(result.events[0].message,/two tyres/);
+});
+
+test('owner popup forwards a saved message; mechanic popup displays green authorisation without owner controls',async()=>{
+ for(const mechanic of [false,true]){
+  const {document}=parseHTML('<html><body><main class="main"><header class="top"></header></main></body></html>');document.hidden=false;
+  const events=[{id:event,job_id:id,registration:'TEST001',kind:'approval_response',actor:'customer',message:'Replace brake pads',created_at:'2026-11-10T09:00:00Z',...(mechanic?{decision:'approved',forwarded:true}:{details:{status:'approved',estimated_pence:12000}})}];
+  const requests=[],timers=[],listeners=new Map();let refreshed=0;
+  const window={VECTA_MECHANIC_DEPLOYMENT:mechanic,vectaRefreshPortalJobs:async()=>{refreshed++;},addEventListener:(n,fn)=>listeners.set(n,fn),dispatchEvent:e=>listeners.get(e.type)?.()};
+  const context={window,document,location:{search:''},navigator:{onLine:true},localStorage:{getItem:()=>null,setItem(){}},Intl,Date,Event,URLSearchParams,AbortSignal,setInterval:fn=>timers.push(fn),fetch:async(_url,options)=>{const body=JSON.parse(options.body);requests.push(body);return {ok:true,json:async()=>body.action==='portal-queue'?{events}:{ok:true}};}};
+  vm.runInNewContext(readFileSync('public/js/vecta-portal-workshop.js','utf8'),context);await new Promise(r=>setImmediate(r));
+  const popup=document.querySelector('.portalWorkshopPopup');assert.equal(popup.hidden,false);assert.match(popup.textContent,/Work authorised/);assert.equal(popup.querySelector('article').dataset.signal,'green');assert.equal(refreshed,1);
+  const forward=[...popup.querySelectorAll('button')].find(b=>b.textContent==='Send to mechanic');
+  if(mechanic){assert.equal(forward,undefined);assert.doesNotMatch(popup.textContent,/120/);}else{assert.ok(forward);await forward.onclick();assert.ok(requests.some(r=>r.action==='portal-forward'&&r.event_id===event));assert.equal(forward.textContent,'Sent to mechanic');}
+ }
+});
+
+test('an approval portal can view another published request for the same customer, never another job; cancellation keeps its receipt only',async()=>{
+ const nonce='55555555-5555-4555-8555-555555555555',token='approval.'+event+'.'+nonce,now=Date.parse('2026-11-10T09:00:00Z');
+ const base={id:event,job_id:id,registration:job.registration,customer_email:job.customer_email,progress_booking_date:job.booking_date,progress_review_state:'sent',progress_message:'Brake pads',status:'pending',expires_at:'2099-01-01T00:00:00Z',token:'progress:'+nonce};
+ let saved={...job},second={...base,id:rid,progress_message:'Wiper blades'};
+ const db=async path=>{const u=new URL(path,'https://test.invalid');if(u.pathname==='/jobs')return [saved];if(u.pathname==='/website_booking_requests')return [];if(u.pathname==='/additional_work_approvals')return [u.searchParams.get('id')==='eq.'+event?base:second];throw Error(path);};
+ assert.equal((await customerApproval(db,{action:'approval-status',token,approval_id:rid})).approval.message,'Wiper blades');
+ second={...second,job_id:rid};await assert.rejects(customerApproval(db,{action:'approval-status',token,approval_id:rid}),/no longer available/);
+ saved={...saved,status:'cancelled',archived:true};assert.equal((await portalAccess(db,token,now)).job.status,'cancelled');await assert.rejects(customerApproval(db,{action:'approval-decide',token,approval_id:event,decision:'approved'}),/no longer available/);
+ saved={...saved,customer_email:'replacement@example.invalid'};await assert.rejects(portalAccess(db,token,now),/no longer available/);
 });

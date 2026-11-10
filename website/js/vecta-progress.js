@@ -50,7 +50,7 @@
   {
     el('approvalPanel').hidden=false;el('approvalButtons').hidden=true;
     el('approvalStatus').textContent='Loading your workshop message…';
-    el('openApproval').hidden=false;el('openApproval').onclick=openApproval;
+    el('openApproval').hidden=!approvalId;el('openApproval').onclick=openApproval;
     el('closeApproval').onclick=()=>el('approvalDialog').close();
     el('retryApproval').onclick=()=>refreshApproval();
     if(approvalId)openApproval();

@@ -1,12 +1,32 @@
-# Customer car progress
+# Customer portal and car progress
 
-## 7 November: booking-day images and formatted confirmation
+## 10 November: personalised customer portal
 
-Before the booking date in Europe/London, tracking returns booking details with `images_allowed: false` and no artwork, scene set or workshop photo URLs. The page does not load scene assets until the server allows images. Saved scenes can be displayed on and after the booking day; new generation requires a verified progress-page view on the actual booking day.
+The signed job, booking-receipt and approval links open a private portal. The booking summary, parts authorisation and action buttons appear above one dated conversation. The original booking snapshot stays first and is immutable. Historic records use the oldest available request or job snapshot and are labelled accordingly; the migration does not pretend to reconstruct missing history.
 
-The worker rechecks both the live booking date and the demand's `requested_at` date before reserving provider calls. Early, stale, undated and rescheduled requests cannot start paid work. A fresh view on the correct day can replace old demand without clearing saved scenes, drafts or attempt ceilings. Existing successful scenes are reused.
+Before the booking day (Europe/London), customers can request amendments or additional work and update their parts preferences. Date and work requests remain pending until the workshop confirms them, so customers cannot silently move another booking or authorise an unknown price. Cancellation needs a reason and is allowed until exactly 24 hours before the appointment time (08:00 if none is recorded). The server rechecks the cutoff, status, current customer binding and invoices in the same transaction that cancels both the request and job. The ordinary signed portal link retains the cancellation receipt.
 
-Website booking confirmation drafts show a named **HERE** hyperlink. Since `mailto:` bodies are plain text, the confirmation dialog copies HTML plus a plain-text alternative to the clipboard, then opens the default email app with recipient and subject. The owner pastes the formatted message and sends it manually. Clipboard denial exposes a selectable formatted preview; nothing is automatically sent. Native Outlook iOS paste still needs a device check; local browser testing verifies the HTML copy, visible hyperlink and mailto recipient/subject.
+Green means authorised, red means not authorised/declined, and amber means awaiting a decision. A general pre-authorisation retains the existing qualification: serious repairs if the customer cannot be contacted. Specific approvals remain individual recorded decisions and use the existing atomic approved-work pricing function, including its duplicate protection.
+
+Car scenes and workshop photos appear **only on the booking day**. Both API routes and the page enforce this. Image generation is still demand-driven and cached; opening the portal early does not start a supplier lookup or paid generation.
+
+### Messages, job cards and alerts
+
+`customer_portal_events` stores portal messages, amendment requests, cancellations, preference changes, published estimates, customer decisions, saved booking changes and recorded outgoing workshop correspondence. Original booking details precede the chronological, paginated history. Messages sent outside Workshop Pro cannot be captured unless their delivery is recorded by an existing integration. A prepared external-message draft is explicitly labelled prepared, never sent.
+
+Customer changes are saved before alerts. The owner receives the persisted in-app queue on each device and Web Push where enabled. The job card gains its conversation immediately after cloud refresh, without overwriting an unsaved editor. Each owner popup offers **Send to mechanic**. Forwarding saves the mechanic-visible event and refreshes their job. Mechanics automatically receive only an approved decision for a finding originally submitted by a mechanic; other customer messages require owner forwarding. Server-derived roles enforce this and omit pricing from mechanic payloads. Push failures use a persisted retry queue; in-app history remains available even if a notification provider fails.
+
+Notification permission must be enabled separately on each device. iPhone background Web Push requires the Home Screen web app. Real PC/iPhone/iPad notification delivery and offline/reconnection upgrade checks remain device release checks; automated tests cannot prove handset receipt.
+
+### Confirmation email
+
+The booking confirmation dialog previews a real HTML email, then **Send confirmation email** uses the configured email provider. It contains the personalised-portal wording and a **HERE** button, plus an accessible plain-text alternative. A saved vehicle SVG is rendered safely to an inline PNG when available; email clients may still hide inline images. Missing artwork does not block confirmation and does not initiate a Haynes lookup. The send ledger freezes retry content and prevents duplicate deliveries for the same booking/date/recipient. Test permits preview but blocks customer delivery.
+
+### Migration and verification
+
+Apply `20261110053559_customer_portal.sql` before deploying this portal to production. It adds private service-only event storage, immutable original snapshots, audited writes, atomic cancellation/forwarding and role-specific push subscriptions. The migration has been applied to isolated Test only. Public and authenticated database roles have no direct event read/write or RPC execution grants.
+
+The Test browser flow covers saved amendments, approvals, chronological history and parts pre-authorisation. SQL verification checks the corresponding owner/mechanic events and pricing; PGlite tests exercise the actual migration for cutoff, atomic cancellation, original-snapshot immutability, idempotency and privileges. The full release gate and device checks below remain required before production approval.
 
 ## Registration access
 
@@ -16,7 +36,7 @@ The page uses lightweight workshop scenes with the existing saved car image wher
 
 Private links and invoice access below remain separate, so previously sent links continue to work.
 
-Customer tracking is available at `/track` using a signed private link. The link is issued by the authenticated workshop server, added to website booking confirmation drafts and the existing day-before reminder emails, and available from the job editor's **Customer tracking link** button. Registration lookup shows today’s progress and workshop photos; invoice access requires the signed private link. Existing and new links follow the same saved booking when its date changes, and expire eight days after its current booking date. Registration or customer email changes and cancelled/deleted jobs still invalidate access. Accepted website receipts use the saved planner job's date even if the request retains its original date. The original signed expiry reconstructs the original date binding; its signature, job/request ID, registration and customer email are still verified before any progress, photos or invoice access is returned.
+Customer tracking is available at `/track` using a signed private link. The link is issued by the authenticated workshop server, added to website booking confirmation drafts and the existing day-before reminder emails, and available from the job editor's **Customer portal link** button. Registration lookup shows today’s progress and workshop photos; invoice access requires the signed private link. Existing and new links follow the same saved booking when its date changes, and expire eight days after its current booking date. Registration or customer email changes and deleted jobs invalidate access. Cancelled bookings retain a private portal receipt, while progress and invoice routes are closed. Accepted website receipts use the saved planner job's date even if the request retains its original date. The original signed expiry reconstructs the original date binding; its signature, job/request ID, registration and customer email are still verified before any progress, photos or invoice access is returned.
 
 ## Existing controls
 
@@ -60,7 +80,7 @@ On the mechanics dashboard, take or choose a photo, describe the finding and sel
 
 When a mechanic sends a finding with photos, the visible Workshop Pro dashboard checks for it every ten seconds. An in-app alert shows the registration and description. **Open job card** opens the saved job at the exact finding and its photos. Opening or dismissing acknowledges the alert in that browser and leaves the finding in the pricing queue. If a different card is open, the alert waits for it to close before navigating. Manager submissions and text-only notes do not generate photo alerts.
 
-Main shows **Workshop findings to price (N)** when there is work to review. Open a finding to see its photos and note, enter the **estimated total including VAT**, and select **Send estimate to customer**. The price and photos are released together. Only Main can publish estimates or retry customer notifications. The customer's private progress link displays the finding, photographs, exact estimate, and Approve/Decline controls. The decision returns to the same job. None of these actions adds an invoice line or changes an invoice total.
+Main shows **Workshop findings to price (N)** when there is work to review. Open a finding to see its photos and note, enter the **estimated total including VAT**, and select **Send estimate to customer**. The price and photos are released together. Only Main can publish estimates or retry customer notifications. The customer's private progress link displays the finding, photographs, exact estimate, and Approve/Decline controls. The decision returns to the same job. An approved decision adds its description and agreed price to the job once through the existing atomic approved-work function; repeated decisions do not duplicate the charge. A declined decision changes no price.
 
 Email is sent automatically to the address saved on the job. With no Meta sender configured, Workshop Pro prepares WhatsApp for the authorised mobile number and opens it when the browser allows; the owner taps **Send** in WhatsApp. If the pop-up is blocked, **Open WhatsApp and tap Send** is available on the receipt and can be reopened from the job. A prepared WhatsApp message is never labelled sent. With a configured sender, both channels are dispatched independently. Email and WhatsApp use the same private link. Retrying an outstanding channel does not repeat an accepted email or WhatsApp API submission. Test never sends either channel or opens a real WhatsApp chat.
 

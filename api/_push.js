@@ -28,7 +28,7 @@ export async function supabaseRest(path,{method='GET',body}={}){
 }
 export async function sendPushSubscription(subscription,payload){
   pushConfig();
-  return webpush.sendNotification(subscription,typeof payload==='string'?payload:JSON.stringify(payload));
+  return webpush.sendNotification(subscription,typeof payload==='string'?payload:JSON.stringify(payload),{timeout:5000});
 }
 
 export async function sendBookingBadges(){

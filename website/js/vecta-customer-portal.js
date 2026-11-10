@@ -4,7 +4,8 @@
  const date=value=>value?new Intl.DateTimeFormat('en-GB',{dateStyle:'medium',...(value.includes('T')?{timeStyle:'short'}:{}),timeZone:'Europe/London'}).format(new Date(value.includes('T')?value:value+'T12:00:00Z')):'Date not recorded';
  const root=$('customerPortal'),history=$('portalHistory'),form=$('portalForm'),dialog=$('portalDialog');
  let current=null,busy=false,sending=false,kind='message',requestId=null,older=null,timer,historyKey='',cancelled=false;
- const events=new Map(),announced=new Set();
+ const initialApproval=token.startsWith('approval.')?token.split('.')[1]:new URLSearchParams(location.search).get('approval');
+ const events=new Map(),announced=new Set(initialApproval?[initialApproval]:[]);
  async function api(action,body={}){
   const r=await fetch('/api/job-progress',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action,token,...body}),cache:'no-store',credentials:'same-origin',signal:AbortSignal.timeout(20000)});
   const data=await r.json();if(!r.ok)throw Error(data.error||'The portal is unavailable. Please try again.');return data;
