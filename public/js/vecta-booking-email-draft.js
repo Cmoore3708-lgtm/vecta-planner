@@ -1,5 +1,6 @@
 (function(root){
  'use strict';
+ const portalText='via your customer portal';
  const sentence='Track your car on the day of your booking by clicking HERE.';
  const escape=value=>String(value).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
  const base64=value=>root.btoa(unescape(encodeURIComponent(value)));
@@ -8,8 +9,8 @@
   let url=new URL(trackingUrl);
   if(url.protocol!=='https:'||url.username||url.password)throw Error('Invalid tracking link.');
   const link=url.href;
-  const text=body.replace(sentence,'Track your car on the day of your booking: '+link);
-  const html='<!doctype html><html><body style="font-family:Arial,sans-serif;font-size:15px;line-height:1.6">'+escape(body).replace(escape(sentence),'Track your car on the day of your booking by clicking <a href="'+escape(link)+'">HERE</a>.').replace(/\r?\n/g,'<br>')+'</body></html>';
+  const text=body.replace(sentence,'Track your car on the day of your booking: '+link).replaceAll(portalText,portalText+' ('+link+')');
+  const html='<!doctype html><html><body style="font-family:Arial,sans-serif;font-size:15px;line-height:1.6">'+escape(body).replaceAll(portalText,'via your <a href="'+escape(link)+'">customer portal</a>').replace(escape(sentence),'Track your car on the day of your booking by clicking <a href="'+escape(link)+'">HERE</a>.').replace(/\r?\n/g,'<br>')+'</body></html>';
   const encode=value=>base64(value).match(/.{1,76}/g).join('\r\n');
   const boundary='vecta-booking-draft';
   const eml=['X-Unsent: 1','To: '+email,'Subject: =?UTF-8?B?'+base64(subject.replace(/[\r\n]/g,' '))+'?=','MIME-Version: 1.0','Content-Type: multipart/alternative; boundary="'+boundary+'"','','--'+boundary,'Content-Type: text/plain; charset=UTF-8','Content-Transfer-Encoding: base64','',encode(text),'--'+boundary,'Content-Type: text/html; charset=UTF-8','Content-Transfer-Encoding: base64','',encode(html),'--'+boundary+'--',''].join('\r\n');
