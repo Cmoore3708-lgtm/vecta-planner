@@ -88,6 +88,20 @@ WhatsApp permission comes from the matching website booking's WhatsApp preferenc
 
 ### Connect the WhatsApp sender
 
+Every new **Reply to customer** now saves an email/WhatsApp alert intent atomically with the portal message. Approval requests retain their existing two-channel sender. Customer replies, unpublished mechanic notes, booking audit entries and notification correspondence do not create extra customer alerts.
+
+The job-card conversation shows each message's email and WhatsApp status. **Check / retry alerts** uses the saved message ID; it never posts the message again or repeats an accepted/uncertain submission. Confirmed failures and interrupted requests have bounded background retries through the existing five-minute scheduler. Test suppresses both providers. A replaced customer, changed phone number or closed booking cannot receive an old queued alert.
+
+Email alerts say there is a new portal message needing attention and use a **HERE** button. They contain no copy of the private message or prices. The sending domain `vectamotors.co.uk` must be verified in Resend; the existing production delivery ledger recorded a domain-verification rejection. A configured API key alone does not prove sending works.
+
+General message alerts use `WHATSAPP_PORTAL_TEMPLATE` with the same sender ID, access token, language, and button format below. Suggested English (UK) utility wording:
+
+> Hi {{1}}. You have a new message in your Vecta customer portal that needs your attention. Open your portal below.
+
+Until that approved template and sender are configured, the job card explicitly offers **Open WhatsApp and tap Send**, for customers who agreed to WhatsApp. Opening that link is never recorded as sent. Store credentials directly in the hosting provider; do not put them in chat or source code.
+
+Apply `20261110065303_customer_portal_message_alerts.sql` before releasing the message-alert code. It adds a private outbox and a trigger for new messages only; it does not send alerts for historical conversations. Actual handset/email inbox receipt still requires a controlled recipient check after the two providers are configured.
+
 Use the Vecta WhatsApp Business Platform phone number in Meta WhatsApp Manager. Submit an English (UK) utility template, for example `vecta_workshop_approval`, with one body variable for the customer's first name:
 
 > Hi {{1}}. There is a message relating to your car waiting for your approval. Click below to see it.
