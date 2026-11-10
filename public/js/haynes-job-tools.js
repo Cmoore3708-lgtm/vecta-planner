@@ -478,6 +478,9 @@ root.initHaynesJobTools=function(modal,{automatic=false,recoverImage=true}={}){
   // Independent columns prevent short history/parts panels from reserving tall rows.
   const sections=modal.querySelector('.jobCardSections');
   if(sections){
+   // The hidden note lives in the booking section. Capture it before those
+   // fields move into detached columns, or reopening a card blanks its mileage.
+   const mileageNote=modal.querySelector('#job_customer_note')?.value||'';
    const main=document.createElement('div'),aside=document.createElement('div');
    main.className='jobCardMainColumn';aside.className='jobCardSupportColumn';
    Array.from(sections.children).forEach(child=>{
@@ -489,7 +492,7 @@ root.initHaynesJobTools=function(modal,{automatic=false,recoverImage=true}={}){
     const field=document.createElement('div');field.className='field jobCurrentMileageField';
     const label=document.createElement('label');label.htmlFor='job_current_mileage';label.textContent='Enter current mileage';
     const mileageInput=document.createElement('input');mileageInput.id='job_current_mileage';mileageInput.type='text';mileageInput.inputMode='numeric';mileageInput.autocomplete='off';mileageInput.placeholder='';mileageInput.setAttribute('aria-label','Enter current mileage');mileageInput.setAttribute('aria-required',String(typeof root.currentJobMileageRequired==='function'?root.currentJobMileageRequired({job_type:modal.querySelector('#job_job_type')?.value}):true));
-    const note=modal.querySelector('#job_customer_note')?.value||'';const saved=note.match(/\[\[VECTA_CURRENT_MILEAGE:(\d+)\]\]/);mileageInput.value=saved?saved[1]:'';if(!saved&&/\[\[VECTA_CURRENT_MILEAGE_UNKNOWN\]\]/.test(note)){mileageInput.dataset.mileageUnknown='true';mileageInput.placeholder='Mileage unknown';}
+    const saved=mileageNote.match(/\[\[VECTA_CURRENT_MILEAGE:(\d+)\]\]/);mileageInput.value=saved?saved[1]:'';if(!saved&&/\[\[VECTA_CURRENT_MILEAGE_UNKNOWN\]\]/.test(mileageNote)){mileageInput.dataset.mileageUnknown='true';mileageInput.placeholder='Mileage unknown';}
     const noVehicle=modal.querySelector('#job_no_vehicle');const toggleMileage=()=>{field.hidden=!!noVehicle?.checked;mileageInput.disabled=field.hidden;};toggleMileage();noVehicle?.addEventListener('change',toggleMileage);
     mileageInput.addEventListener('input',()=>{delete mileageInput.dataset.mileageUnknown;mileageInput.placeholder='';mileageInput.classList.remove('requiredMissing');mileageInput.removeAttribute('aria-invalid');});
     field.append(label,mileageInput);contact.after(field);
