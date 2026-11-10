@@ -9,6 +9,7 @@ import {issueProgressToken,requestTrackingPath,progressSecret} from '../../lib/j
 import {confirmationContent} from '../../lib/portal-email.js';
 import {customerApproval} from '../../lib/progress-approvals.js';
 const migration=readFileSync('supabase/migrations/20261110053559_customer_portal.sql','utf8');
+const dateAuditFix=readFileSync('supabase/migrations/20261110133720_portal_null_booking_date.sql','utf8');
 const id='11111111-1111-4111-8111-111111111111',rid='22222222-2222-4222-8222-222222222222',event='33333333-3333-4333-8333-333333333333';
 const job={id,booking_date:'2026-11-12',drop_time:'08:00',registration:'TEST001',customer_email:'driver@example.invalid',status:'booked',work_required:'MOT'};
 async function database(){
@@ -22,6 +23,7 @@ async function database(){
  create table workshop_messages(id uuid primary key,job_id text,body text,recipient text,occurred_at timestamptz);
  create view workshop_message_history as select ''::text id,''::text job_id,''::text body,''::text status,''::text kind,''::text recipient,now() occurred_at where false;`);
  await db.exec(migration);
+ await db.exec(dateAuditFix);
  await db.query("insert into jobs(id,booking_date,drop_time,status,registration,customer_email,work_required) values($1,current_date+3,'08:00','booked','TEST001','driver@example.invalid','MOT')",[id]);
  await db.query("insert into website_booking_requests(id,job_id,registration,email,status,confirmed_date,confirmed_time,work_required) values($1,$2,'TEST001','driver@example.invalid','booked',current_date+3,'08:00','MOT')",[rid,id]);
  return db;
@@ -53,6 +55,32 @@ test('cancellation requires a reason, closes request and job together, rejects l
   assert.equal((await write(db,'cancelled','Plans changed')).code,200);
   assert.equal((await db.query('select status,archived from jobs')).rows[0].status,'cancelled');assert.equal((await db.query('select status from website_booking_requests')).rows[0].status,'cancelled');
   assert.equal((await write(db,'cancelled','Plans changed')).replayed,true);
+ }finally{await db.close();}
+});
+test('ready-to-invoice saves when the planner date is cleared, preserving the original booking',async()=>{
+ const db=await database();try{
+  const original=(await db.query('select portal_original from jobs where id=$1',[id])).rows[0].portal_original;
+  await db.query("update jobs set booking_date=null,status='ready_to_invoice' where id=$1",[id]);
+  const saved=(await db.query('select booking_date,status,portal_original from jobs where id=$1',[id])).rows[0];
+  assert.equal(saved.status,'ready_to_invoice');assert.equal(saved.booking_date,null);assert.deepEqual(saved.portal_original,original);
+  const events=(await db.query('select kind,actor,message,details from customer_portal_events where job_id=$1',[id])).rows;
+  assert.deepEqual(events,[{kind:'booking_update',actor:'workshop',message:'Workshop progress updated.',details:{booking_date:null,work_required:'MOT',status:'ready_to_invoice'}}]);
+  await db.query("update jobs set booking_date=null,status='ready_to_invoice' where id=$1",[id]);
+  assert.equal((await db.query('select count(*)::int n from customer_portal_events where job_id=$1',[id])).rows[0].n,1);
+ }finally{await db.close();}
+});
+test('portal audit handles clearing, restoring and changing dates and edits on undated jobs',async()=>{
+ const db=await database();try{
+  await db.query('update jobs set booking_date=null where id=$1',[id]);
+  await db.query("update jobs set work_required='MOT and service' where id=$1",[id]);
+  await db.query("update jobs set booking_date='2026-11-20' where id=$1",[id]);
+  await db.query("update jobs set booking_date='2026-11-21' where id=$1",[id]);
+  await db.query("update jobs set status='in_progress' where id=$1",[id]);
+  assert.deepEqual((await db.query('select message from customer_portal_events where job_id=$1 order by seq',[id])).rows.map(x=>x.message),[
+   'Booking date cleared.','Booked work updated.','Booking date updated to 20/11/2026.','Booking date updated to 21/11/2026.','Workshop progress updated.'
+  ]);
+  const access=(await db.query("select has_function_privilege('anon','vecta_portal_job_audit()','execute') a,has_function_privilege('authenticated','vecta_portal_job_audit()','execute') b")).rows[0];
+  assert.deepEqual(access,{a:false,b:false});
  }finally{await db.close();}
 });
 test('preferences persist for both records and forwarding is idempotent without changing financial data',async()=>{
