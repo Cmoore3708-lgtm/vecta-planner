@@ -13057,7 +13057,7 @@ async function vectaReadyInvoiceAndSend(job){
 }
 async function openWebsiteBookingConfirmationEmail(j){
   var email=String(j&&j.customer_email||'').trim();if(!email)return false;
-  var name=String(j.customer_name||'').trim(),first=name&&name.toUpperCase()!=='STAFF'?name.split(/\s+/)[0]:'',date=j.booking_date?niceDate(j.booking_date):'',work=websiteConfirmationWorkText(j)||'the work requested',cost=websiteConfirmationCostText(j),reg=normReg(j.registration||'');
+  var date=j.booking_date?niceDate(j.booking_date):'',work=websiteConfirmationWorkText(j)||'the work requested',cost=websiteConfirmationCostText(j),reg=normReg(j.registration||'');
   var subject='Vecta booking confirmation'+(reg?' - '+reg:'')+(date?' - '+date:'');
   var body='We are pleased to confirm your booking on '+date+' for '+work+'.\n\n'+
     'Estimated cost: '+cost+'\n\n'+
