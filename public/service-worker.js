@@ -109,7 +109,7 @@ async function pruneManagerAssets(cache,current,previous){
     const store=await caches.open(name);
     for(const request of await store.keys()){
       const url=new URL(request.url);
-      if(url.origin===self.location.origin&&/^\/assets\/(?:vecta-inline(?:-mechanic)?-\d+|haynes-job-tools|haynes-service-sheet|vecta-vehicle-image|vecta-fleet-images|vecta-monthly-pool|vecta-optional-tools|vecta-repair-quote|vecta-monthly-tracker|vecta-paperwork-cache)-[a-f0-9]{10}\.(?:js|css)$/.test(url.pathname)&&!keep.has(url.href))await store.delete(request);
+      if(url.origin===self.location.origin&&/^\/assets\/(?:vecta-inline(?:-mechanic)?-\d+|haynes-job-tools|haynes-service-sheet|vecta-vehicle-image|vecta-fleet-images|vecta-monthly-pool|vecta-optional-tools|vecta-repair-quote|vecta-monthly-tracker|vecta-paperwork-cache|vecta-paperwork-recovery)-[a-f0-9]{10}\.(?:js|css)$/.test(url.pathname)&&!keep.has(url.href))await store.delete(request);
     }
   }
 }
