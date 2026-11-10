@@ -142,6 +142,15 @@ test('website service choices become job instructions and retain the original re
   });
  }
 });
+test('the £130 service and £30 valet shown on review persist as £160 exactly once',async()=>withDatabase(async db=>{
+ const body={...payload,request_id:id,job_types:['Oil & Filter Change'],service_choice:'Oil & Filter Change',approximate_cost:130,mini_valet:true};
+ assert.equal((await db.submit(body)).code,201);
+ assert.equal(db.rows.get(id).approximate_cost,160);
+ assert.equal((await db.submit(body)).code,200);
+ assert.equal(db.rows.size,1);
+ assert.equal(db.rows.get(id).approximate_cost,160);
+}));
+
 test('leaving a mini valet unticked keeps the original estimate and work description',async()=>{
  await withDatabase(async({submit,rows})=>{
   assert.equal((await submit({...payload,request_id:id,approximate_cost:65,mini_valet:false})).code,201);

@@ -270,7 +270,7 @@ function serviceOptionsHtml(){
 }
 
 let tyreGuideState={status:'idle',result:null};
-const tyreLookup=VectaTyreBooking.createController({delay:0,onChange:value=>{tyreGuideState=value;state.form.tyre_guide=value.status==='matched'?selectedTyreGuide():(selectedTyreGuide()||savedTyreGuide());refreshTyrePanel();renderActions();}});
+const tyreLookup=VectaTyreBooking.createController({delay:0,onChange:value=>{tyreGuideState=value;state.form.tyre_guide=value.status==='matched'?selectedTyreGuide():(selectedTyreGuide()||savedTyreGuide());refreshTyrePanel();refreshBookingTotal();renderActions();}});
 function tyreMoney(pence){return new Intl.NumberFormat('en-GB',{style:'currency',currency:'GBP',minimumFractionDigits:0,maximumFractionDigits:2}).format(pence/100)}
 function tyreCategoryOptions(category){
  const f=state.form,r=tyreGuideState.result;if(f.tyre_photo_spec?.commercial||!r||(Date.now()-VectaTyreBooking.priceTime(r)>=300000&&!['waiting','loading','stale'].includes(tyreGuideState.status))||r.size!==VectaTyreBooking.sizeKey(f.tyre_size)||(r.quantity!==(f.tyre_quantity||1)&&!['waiting','loading','stale'].includes(tyreGuideState.status)))return [];
@@ -355,9 +355,13 @@ function liveServiceQuote(choice){return servicePricing.currentQuote(choice);}
 function serviceGuideFallback(){return ['unavailable','disabled','guide_pending'].includes(servicePriceState.status)||liveServiceQuote()?.guidePrice===true;}
 function majorServiceFuelFilterNote(choice){if(choice!=='Major Service')return '';const major=liveServiceQuote('Major Service'),full=liveServiceQuote('Full Service');return major&&full&&major.totalPence-full.totalPence>5000&&major.items?.some(item=>item.kind==='fuel_filter')?'<p class="service-fuel-filter-note" style="font-weight:700">The high price is due to the expensive Fuel filter</p>':'';}
 function servicePriceLabel(choice,band){const q=liveServiceQuote(choice);if(q&&q.request.service===choice)return '£'+(q.totalPence/100).toLocaleString('en-GB',{maximumFractionDigits:2});if(servicePriceState.status==='loading')return 'Retrieving live prices…';if(serviceGuideFallback())return serviceChoicePrice(choice,band)||'Price on request';return 'Click here to see your price';}
+function refreshBookingTotal(){
+ const total=document.querySelector('[data-booking-total]');
+ if(total)total.innerHTML=bookingTotalContent();
+}
 function pricingHtml(){let f=state.form,band=serviceGuidePrices(serviceEngineSize()),choice=f.service_choice==='Oil & Filter Change'?'Interim Service':f.service_choice||'Service',q=liveServiceQuote(),isGuide=q?.guidePrice||(serviceExtraSelection()==='replace'&&serviceExtraOffer()?.guidePrice);
  if(q)return `<div class="guide-price-wrap"><div class="guide-price-card"><small>${esc(choice.toUpperCase())} · ${isGuide?'GUIDE PRICE':'VEHICLE PRICE'}</small><strong>£${((q.totalPence+serviceExtraAddedPence())/100).toLocaleString('en-GB',{maximumFractionDigits:2})}</strong><p>${isGuide?'Guide price — includes estimated parts costs.':'Includes the selected service parts, engine oil, labour and VAT. Valid for 30 minutes.'}</p></div></div>`;
- return `<div class="guide-price-wrap"><div class="guide-price-card"><small>${esc(choice.toUpperCase())}${serviceGuideFallback()?' · GUIDE PRICE':''}</small><strong>${servicePriceState.status==='loading'?'Retrieving live prices…':serviceGuideFallback()?(serviceChoicePrice(choice,band)||'Price on request'):'Price to be confirmed'}</strong><p role="status" aria-live="polite">${servicePriceState.status==='loading'?'Checking service parts and oil prices…':'Guide price based on engine size.'}</p></div></div>`;
+ return `<div class="guide-price-wrap"><div class="guide-price-card"><small>${esc(choice.toUpperCase())}${serviceGuideFallback()?' · GUIDE PRICE':''}</small><strong>${servicePriceState.status==='loading'?'Retrieving live prices…':serviceGuideFallback()?(serviceChoicePrice(f.service_choice,band)||'Price on request'):'Price to be confirmed'}</strong><p role="status" aria-live="polite">${servicePriceState.status==='loading'?'Checking service parts and oil prices…':'Guide price based on engine size.'}</p></div></div>`;
 }
 function isNevosEligibleVehicle(){const f=state.form,identity=f.haynes_identity||{},make=f.vehicle_make||identity.make||f.vehicle||'',model=[f.vehicle,identity.model,identity.vehicle].filter(Boolean).join(' ');return /\bnissan\b/i.test(make)&&/\b(qashqai|juke)\b/i.test(model)}
 function isMotBooking(){return (state.form.job_types||[]).some(x=>/(^|\b)mot(\b|$)/i.test(String(x||'').trim()))}
@@ -553,6 +557,19 @@ function miniValetReviewHtml(){
    <footer><label><input type="checkbox" data-mini-valet aria-label="Add the £30 mini valet to booking"><span data-valet-caption></span></label><button type="button" data-close-valet></button></footer>
   </dialog></section>`;
 }
+function bookingTotalContent(){
+ const f=state.form,q=liveServiceQuote(),band=serviceGuidePrices(serviceEngineSize());
+ let pence=Math.round((estimateCost()||0)*100),pending=[];
+ if(f.job_types.includes('Service')&&!q&&(!band||band.individual))pending.push('Service');
+ if(f.job_types.includes('Tyres')){
+  const tyre=f.tyre_size_unknown?null:(selectedTyreGuide()||savedTyreGuide());
+  if(tyre&&Number.isSafeInteger(tyre.totalPence)&&tyre.totalPence>0)pence+=tyre.totalPence;
+  else pending.push('Tyres');
+ }
+ if(f.mini_valet&&!fullServiceSelected())pence+=3000;
+ if(f.job_types.includes('Other'))pending.push('Additional work');
+ return `<small>${pending.length?'Total so far':'Booking total'}</small><b class="booking-total-amount">${pence>0?tyreMoney(pence):'Price to be confirmed'}</b>${pence>0?'<p>Including VAT</p>':''}<p class="booking-total-note">${pending.length?esc(pending.join(' and '))+' price to be confirmed. ':''}Guide prices remain estimates. Any extra work will be agreed separately.</p>`;
+}
 function bindMiniValetReview(){
  const section=document.querySelector('.mini-valet-review');
  if(!section)return;
@@ -569,6 +586,7 @@ function bindMiniValetReview(){
   summary.innerHTML=selected?'<small>Mini valet</small><b>£30</b><p>Snow-foam pressure wash, hoover inside, dashboard &amp; media screens cleaned.</p>':'';
   edit.textContent='View mini valet offer';
   edit.hidden=selected;
+  refreshBookingTotal();
  }
  function open(){
   state.valet_offer_dismissed=false;
@@ -608,7 +626,7 @@ function stepHtml(){
  const combinedMotService=f.job_types.includes('MOT')&&f.job_types.includes('Service');
  const additionalWorkHtml=additionalWorkLabels.map(label=>label==='MOT'?`<span class="review-mot-line"><b>MOT</b><span class="review-mot-price">${combinedMotService?'<del aria-label="Original MOT price £65">£65</del> <strong aria-label="Discounted MOT price £60">£60</strong>':'<strong>£65</strong>'}</span></span>${combinedMotService?'<span class="review-mot-saving">£5 saving with your service</span>':''}`:`<b class="review-additional-item">${esc(label)}</b>`).join('');
 
- return `<h2>Review your booking</h2><div class="review">${f.job_types.includes('Service')?`<div class="review-price" aria-label="Service guide pricing">${pricingHtml()}</div>`:''}${serviceExtraSummary()?`<div class="review-service-extra">${esc(serviceExtraSummary())}</div>`:''}${additionalWorkLabels.length||showDescription?`<div class="review-work"><small>${f.job_types.includes('Service')?'Additional work':'Work required'}</small>${additionalWorkHtml}${showDescription?`<p>${esc(description)}</p>`:''}</div>`:''}${typeof VectaWorkPhotos!=='undefined'?VectaWorkPhotos.html(f,true):''}${tyreReviewHtml()}${customerPartsSummaryHtml()}${miniValetReviewHtml()}<div class="review-appointment"><small>Appointment</small><b class="appointment-review">${f.appointment_date?prettyDate(f.appointment_date):'No appointment selected'}</b></div><div class="review-contact"><small>Contact</small><b>${esc(f.customer_name)}</b><p>${esc(f.email)}<br>${esc(f.phone)}</p></div></div>${seriousRepairChoiceHtml()}`
+ return `<h2>Review your booking</h2><div class="review">${f.job_types.includes('Service')?`<div class="review-price" aria-label="Service guide pricing">${pricingHtml()}</div>`:''}${serviceExtraSummary()?`<div class="review-service-extra">${esc(serviceExtraSummary())}</div>`:''}${additionalWorkLabels.length||showDescription?`<div class="review-work"><small>${f.job_types.includes('Service')?'Additional work':'Work required'}</small>${additionalWorkHtml}${showDescription?`<p>${esc(description)}</p>`:''}</div>`:''}${typeof VectaWorkPhotos!=='undefined'?VectaWorkPhotos.html(f,true):''}${tyreReviewHtml()}${customerPartsSummaryHtml()}${miniValetReviewHtml()}<div class="review-total" data-booking-total aria-live="polite" aria-atomic="true">${bookingTotalContent()}</div><div class="review-appointment"><small>Appointment</small><b class="appointment-review">${f.appointment_date?prettyDate(f.appointment_date):'No appointment selected'}</b></div><div class="review-contact"><small>Contact</small><b>${esc(f.customer_name)}</b><p>${esc(f.email)}<br>${esc(f.phone)}</p></div></div>${seriousRepairChoiceHtml()}`
 }
 // Keep the journey clock outside render: availability/photo updates must not replay it.
 function bookingProgressHtml(){
@@ -972,6 +990,10 @@ if(typeof VectaGuidePrices!=='undefined')VectaGuidePrices.load().then(()=>{if(st
 .review-work b{font-size:18px}.review-work p{color:#fff}
 .review .review-appointment{background:#edf7f2;border-color:#c5dfd1;border-left:4px solid #28734f}
 .review-appointment>small{color:#28734f}.review-appointment b{color:#184c35}
+.review .review-total{grid-column:1/-1;background:#edf7f2;border:2px solid #28734f;color:#184c35}
+.review-total>small{color:#28734f}
+.review-total .booking-total-amount{display:block;font-size:clamp(28px,6vw,38px);font-weight:900;line-height:1.2;overflow-wrap:anywhere}
+.review-total .booking-total-note{font-size:12px;color:#455f52}
 .review .review-contact{background:#f1f5fa;border-color:#d4deec;border-left:4px solid #526b8e}
 .review-contact>small{color:#455f82}
 @media(max-width:600px){.review>div{padding:16px}.review-work b{font-size:16px}.review-price .guide-price-card strong{font-size:26px}}
