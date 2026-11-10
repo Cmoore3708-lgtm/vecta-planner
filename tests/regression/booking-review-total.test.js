@@ -9,8 +9,9 @@ function browser(form={}) {
  const c=vm.createContext({state:{form:{job_types:['Service'],service_choice:'Oil & Filter Change',mini_valet:false,...form}},
   serviceEngineSize:()=>1600,serviceGuidePrices:()=>({oil:130,full:180,major:220}),
   liveServiceQuote:()=>null,serviceExtraAddedPence:()=>0,selectedTyreGuide:()=>null,savedTyreGuide:()=>null,
+  servicePriceState:{status:'unavailable'},serviceExtraSelection:()=>'',serviceExtraOffer:()=>null,
   serviceVehicleHtml:()=>'',esc:s=>s});
- for(const name of ['fullServiceSelected','miniValetReviewHtml','bookingTotalContent','bindMiniValetReview','estimateCost','tyreMoney']){
+ for(const name of ['fullServiceSelected','miniValetReviewHtml','bookingTotalContent','refreshBookingTotal','bindMiniValetReview','estimateCost','tyreMoney','serviceChoicePrice','serviceGuideFallback','pricingHtml']){
   const start=html.indexOf('function '+name+'('),end=html.indexOf('\nfunction ',start+1);
   vm.runInContext(html.slice(start,end),c);
  }
@@ -25,6 +26,26 @@ test('review combines £130 service and £30 valet without double-charging the s
  assert.match(c.bookingTotalContent(),/Booking total/);
  assert.match(c.bookingTotalContent(),/Including VAT/);
  c.state.form.mini_valet=false;assert.equal(amount(c),'£130');
+});
+
+test('renaming Oil & Filter Change to Interim Service never selects the Major guide price',()=>{
+ const c=browser({mini_valet:true});
+ const {document}=parseHTML(c.pricingHtml());
+ assert.match(document.querySelector('small').textContent,/INTERIM SERVICE/);
+ assert.equal(document.querySelector('strong').textContent,'£130');
+ assert.equal(amount(c),'£160');
+ assert.doesNotMatch(c.pricingHtml(),/£220/);
+});
+
+test('a newly returned tyre price refreshes the review total without reopening the page',()=>{
+ const c=browser({job_types:['Service','Tyres']});
+ c.document=parseHTML('<div data-booking-total></div>').document;
+ c.refreshBookingTotal();
+ assert.match(c.document.body.innerHTML||c.document.toString(),/Total so far/);
+ c.selectedTyreGuide=()=>({totalPence:16000});
+ c.refreshBookingTotal();
+ assert.equal(c.document.querySelector('.booking-total-amount').textContent,'£290');
+ assert.match(html,/refreshTyrePanel\(\);refreshBookingTotal\(\);renderActions\(\)/);
 });
 
 test('valet checkbox immediately updates the visible total on adding and removing',()=>{
