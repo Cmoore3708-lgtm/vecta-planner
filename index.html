@@ -13063,7 +13063,7 @@ async function openWebsiteBookingConfirmationEmail(j){
     'Estimated cost: '+cost+'\n\n'+
     'Please park your car in the parking spaces outside our Workshop in the morning before your shift and remember to leave your Service book (if required) and locking wheel nut key on the passenger seat.\n\n'+
     'Click here for directions:\nhttps://www.vectamotors.co.uk/find-us\n\n'+
-    'If we discover any additional work that requires doing we will contact you for authorisation first, so please check your phone/email when possible.';
+    'If we discover any additional work that requires doing we will contact you via your customer portal for authorisation first, so please check your phone/email when possible.';
   var trackingUrl='https://www.vectamotors.co.uk/';
   try{var tracking=await vectaProgressRequest({action:'link',job_id:j.id});trackingUrl=tracking.url||trackingUrl;}catch(error){console.warn('Tracking link was not available for this confirmation',error);}
   body=appendVectaEmailSignature(body+'\n\nTrack your car on the day of your booking by clicking HERE.\n\nYou may receive updates on the day about your car via WhatsApp, so please keep an eye out for them.');
