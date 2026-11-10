@@ -355,6 +355,10 @@ function liveServiceQuote(choice){return servicePricing.currentQuote(choice);}
 function serviceGuideFallback(){return ['unavailable','disabled','guide_pending'].includes(servicePriceState.status)||liveServiceQuote()?.guidePrice===true;}
 function majorServiceFuelFilterNote(choice){if(choice!=='Major Service')return '';const major=liveServiceQuote('Major Service'),full=liveServiceQuote('Full Service');return major&&full&&major.totalPence-full.totalPence>5000&&major.items?.some(item=>item.kind==='fuel_filter')?'<p class="service-fuel-filter-note" style="font-weight:700">The high price is due to the expensive Fuel filter</p>':'';}
 function servicePriceLabel(choice,band){const q=liveServiceQuote(choice);if(q&&q.request.service===choice)return '£'+(q.totalPence/100).toLocaleString('en-GB',{maximumFractionDigits:2});if(servicePriceState.status==='loading')return 'Retrieving live prices…';if(serviceGuideFallback())return serviceChoicePrice(choice,band)||'Price on request';return 'Click here to see your price';}
+function refreshBookingTotal(){
+ const total=document.querySelector('[data-booking-total]');
+ if(total)total.innerHTML=bookingTotalContent();
+}
 function pricingHtml(){let f=state.form,band=serviceGuidePrices(serviceEngineSize()),choice=f.service_choice==='Oil & Filter Change'?'Interim Service':f.service_choice||'Service',q=liveServiceQuote(),isGuide=q?.guidePrice||(serviceExtraSelection()==='replace'&&serviceExtraOffer()?.guidePrice);
  if(q)return `<div class="guide-price-wrap"><div class="guide-price-card"><small>${esc(choice.toUpperCase())} · ${isGuide?'GUIDE PRICE':'VEHICLE PRICE'}</small><strong>£${((q.totalPence+serviceExtraAddedPence())/100).toLocaleString('en-GB',{maximumFractionDigits:2})}</strong><p>${isGuide?'Guide price — includes estimated parts costs.':'Includes the selected service parts, engine oil, labour and VAT. Valid for 30 minutes.'}</p></div></div>`;
  return `<div class="guide-price-wrap"><div class="guide-price-card"><small>${esc(choice.toUpperCase())}${serviceGuideFallback()?' · GUIDE PRICE':''}</small><strong>${servicePriceState.status==='loading'?'Retrieving live prices…':serviceGuideFallback()?(serviceChoicePrice(f.service_choice,band)||'Price on request'):'Price to be confirmed'}</strong><p role="status" aria-live="polite">${servicePriceState.status==='loading'?'Checking service parts and oil prices…':'Guide price based on engine size.'}</p></div></div>`;
@@ -565,10 +569,6 @@ function bookingTotalContent(){
  if(f.mini_valet&&!fullServiceSelected())pence+=3000;
  if(f.job_types.includes('Other'))pending.push('Additional work');
  return `<small>${pending.length?'Total so far':'Booking total'}</small><b class="booking-total-amount">${pence>0?tyreMoney(pence):'Price to be confirmed'}</b>${pence>0?'<p>Including VAT</p>':''}<p class="booking-total-note">${pending.length?esc(pending.join(' and '))+' price to be confirmed. ':''}Guide prices remain estimates. Any extra work will be agreed separately.</p>`;
-}
-function refreshBookingTotal(){
- const total=document.querySelector('[data-booking-total]');
- if(total)total.innerHTML=bookingTotalContent();
 }
 function bindMiniValetReview(){
  const section=document.querySelector('.mini-valet-review');
