@@ -47,15 +47,15 @@ test('noon cron reads staff account memory, records send, and prevents duplicate
   let clock='2026-12-14T12:00:00Z';
   globalThis.Date=class extends OriginalDate{constructor(...args){super(...(args.length?args:[clock]));}static now(){return OriginalDate.parse(clock);}};
   Object.assign(process.env,{CRON_SECRET:'cron-test',RESEND_API_KEY:'email-test',SUPABASE_SERVICE_ROLE_KEY:'db-test',VITE_SUPABASE_URL:'https://mock.invalid',VERCEL_ENV:'production'});
-  const sends=[],reserved=new Set();
+  const sends=[],reserved=new Map();
   globalThis.fetch=async(url,options={})=>{
     const result=(data,status=200)=>({ok:status<300,status,json:async()=>data});
     if(url.includes('/jobs?'))return result([{id:'staff-1',booking_date:'2026-12-15',archived:false,status:'booked',card_type:'job',registration:'AB12 CDE',customer_name:'Driver',customer_email:'driver@example.com',job_type:'MOT'}]);
     if(url.includes('id=eq.fleet_state_v77'))return result([{value:{vehicles:[]}}]);
     if(url.includes('workshop_settings?'))return result([{id:'jobcustomer:staff-1',value:{customer_account:'Staff'}}]);
     if(url==='https://api.resend.com/emails'){sends.push(JSON.parse(options.body));return result({id:'provider-staff'});}
-    if(options.method==='POST'){const id=JSON.parse(options.body).id;if(reserved.has(id))return result({message:'duplicate'},409);reserved.add(id);return result([]);}
-    if(options.method==='PATCH')return result([]);
+    if(options.method==='POST'){const id=JSON.parse(options.body).id;if(reserved.has(id))return result({message:'duplicate'},409);reserved.set(id,{...JSON.parse(options.body),created_at:new Date().toISOString()});return result([]);}
+    if(url.includes('/nmuk_service_reminder_sends?')){const id=new URL(url).searchParams.get('id').slice(3),row=reserved.get(id);if(options.method==='PATCH'&&row)Object.assign(row,JSON.parse(options.body));return result(row?[row]:[]);}
     throw Error('Unexpected URL');
   };
   const run=async()=>{let status,body;await cron({method:'GET',headers:{authorization:'Bearer cron-test'}},{status(code){status=code;return this;},json(value){body=value;return this;}});return {status,body};};
