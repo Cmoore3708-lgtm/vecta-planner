@@ -89,7 +89,7 @@ function maintenanceCategory(value) {
 }
 function planFor(plans, vehicleId, type) {
   const category = maintenanceCategory(type);
-  return plans.find(p=>String(p?.vehicleId||'')===String(vehicleId) && String(p?.status||'Active').toLowerCase()!=='paused' && maintenanceCategory(p?.type)===category) || null;
+  return plans.find(p=>String(p?.vehicleId||'')===String(vehicleId) && String(p?.status||'Active').trim().toLowerCase()==='active' && maintenanceCategory(p?.type)===category) || null;
 }
 function shouldScanMot(vehicle, plans, full) {
   const mot = planFor(plans, vehicle.id, 'MOT');
@@ -104,6 +104,21 @@ function shouldScanTax(vehicle, plans) {
   if (!tax) return false;
   const due = tax.currentDueDate || tax.dueDate || vehicle.taxDueDate || '';
   return !due || daysFromNow(due) <= 60;
+}
+
+export function fleetRefreshScope(state, full = false) {
+  const deleted = new Set((Array.isArray(state.deletedRegistrations) ? state.deletedRegistrations : []).map(reg));
+  const removed = state.removedMaintenance || {};
+  const plans = (Array.isArray(state.plans) ? state.plans : []).filter(p=>p &&
+    String(p.status||'Active').trim().toLowerCase()==='active' &&
+    !removed[String(p.vehicleId)+'|'+maintenanceCategory(p.type)]);
+  const candidates = (Array.isArray(state.vehicles) ? state.vehicles : []).filter(v=>{
+    if (!v || String(v.status||'Active').trim().toLowerCase()!=='active') return false;
+    const registration = reg(v.registration);
+    return registration.length>=2 && registration.length<=8 && !deleted.has(registration) &&
+      (shouldScanMot(v,plans,full) || shouldScanTax(v,plans));
+  });
+  return {candidates,plans};
 }
 
 function completionExists(completions, vehicleId, type, date) {
@@ -175,18 +190,17 @@ export default async function handler(req,res){
     status.monthlyMotAudit = firstOfMonth;
     status.motChecked = 0;
     status.taxChecked = 0;
-    const baseEligible = v=>v && String(v.status||'Active').toLowerCase()!=='inactive' && reg(v.registration).length>=2 && reg(v.registration).length<=8;
-    const candidates = vehicles.filter(v=>baseEligible(v) && (shouldScanMot(v,plans,full) || shouldScanTax(v,plans)));
+    const {candidates,plans:scanPlans} = fleetRefreshScope(state,full);
     for(const v of candidates){
       const registration=reg(v.registration);
       let changed=false, hadSuccess=false;
-      if(shouldScanMot(v,plans,full)){
+      if(shouldScanMot(v,scanPlans,full)){
         try{
           const mot=await lookupMot(registration);
           const checkedAt=new Date().toISOString();
           const motDueDate=mot.motExpiryDate||firstMotDueDate(mot.firstUsedDate);
           hadSuccess=true;status.motChecked++;
-          if(motDueDate) changed = updatePlanDate(plans,v.id,'MOT',motDueDate) || changed;
+          if(motDueDate) changed = updatePlanDate(scanPlans,v.id,'MOT',motDueDate) || changed;
           const oldTest=isoDate(v.lastMotTestDate);
           if(mot.lastMotTestDate && mot.lastMotTestDate!==oldTest && !completionExists(completions,v.id,'MOT',mot.lastMotTestDate)){
             completions.push({id:`auto-mot-${String(v.id).replace(/[^A-Za-z0-9_-]/g,'')}-${mot.lastMotTestDate}`,vehicleId:v.id,type:'MOT',completedDate:mot.lastMotTestDate,datePrecision:'day',notes:`Automatically detected from DVSA${mot.latestMileage?` · ${mot.latestMileage} miles`:''}`,source:'DVSA automatic nightly refresh',created_at:new Date().toISOString()});
@@ -199,12 +213,12 @@ export default async function handler(req,res){
           }
         }catch(e){status.errors++;if(status.errorSamples.length<10)status.errorSamples.push({registration,kind:'MOT',error:String(e?.message||e)});}
       }
-      if(shouldScanTax(v,plans)){
+      if(shouldScanTax(v,scanPlans)){
         try{
           const tax=await lookupTax(registration);
           if(tax){
             hadSuccess=true;status.taxChecked++;
-            if(tax.taxDueDate) changed = updatePlanDate(plans,v.id,'Tax',tax.taxDueDate) || changed;
+            if(tax.taxDueDate) changed = updatePlanDate(scanPlans,v.id,'Tax',tax.taxDueDate) || changed;
             Object.assign(v,{taxDueDate:tax.taxDueDate||v.taxDueDate||'',taxStatus:tax.taxStatus||'',taxLastChecked:new Date().toISOString()});
           }
         }catch(e){status.errors++;if(status.errorSamples.length<10)status.errorSamples.push({registration,kind:'Tax',error:String(e?.message||e)});}
