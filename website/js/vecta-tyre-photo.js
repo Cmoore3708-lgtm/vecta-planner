@@ -16,12 +16,19 @@
  }
  root.VectaTyrePhoto = { candidates, mount };
  if (typeof document === 'undefined') return;
+ let photoHelpCount = 0;
  function mount(host, onConfirm, onUnknown) {
   if (!host || host.querySelector('.tyre-photo')) return;
   const panel = document.createElement('section');
   panel.className = 'tyre-photo';
-  panel.innerHTML = '<h4>Don’t know your tyre size?</h4><p>Take a photo showing the writing on the side of the tyre. Look for numbers like <strong>225/40 R18</strong>.</p><p class="tyre-photo-hint">Photograph the tyre you want replaced. Front and rear tyres can be different sizes.</p><div class="tyre-photo-actions"><button type="button" data-photo-camera>Take photo</button><button type="button" data-photo-upload>Upload photo</button><button type="button" data-photo-unknown>I don’t know</button></div><input type="file" data-photo-camera-input accept="image/*" capture="environment" hidden><input type="file" data-photo-upload-input accept="image/*" hidden><img class="tyre-photo-preview" alt="Your tyre sidewall photograph" hidden><p data-photo-status role="status" aria-live="polite"></p><div data-photo-results></div><button type="button" data-photo-cancel hidden>Cancel reading</button>';
+  const helpId = 'tyre-photo-help-' + (++photoHelpCount);
+  panel.innerHTML = '<button type="button" class="tyre-photo-toggle" aria-expanded="false" aria-controls="' + helpId + '">Don’t know your tyre size?<span aria-hidden="true"></span></button><div id="' + helpId + '" class="tyre-photo-content" hidden><p>Take a photo showing the writing on the side of the tyre. Look for numbers like <strong>225/40 R18</strong>.</p><p class="tyre-photo-hint">Photograph the tyre you want replaced. Front and rear tyres can be different sizes.</p><div class="tyre-photo-actions"><button type="button" data-photo-camera>Take photo</button><button type="button" data-photo-upload>Upload photo</button><button type="button" data-photo-unknown>I don’t know</button></div><input type="file" data-photo-camera-input accept="image/*" capture="environment" hidden><input type="file" data-photo-upload-input accept="image/*" hidden><img class="tyre-photo-preview" alt="Your tyre sidewall photograph" hidden><p data-photo-status role="status" aria-live="polite"></p><div data-photo-results></div><button type="button" data-photo-cancel hidden>Cancel reading</button></div>';
   host.appendChild(panel);
+  const toggle = panel.querySelector('.tyre-photo-toggle'), content = panel.querySelector('.tyre-photo-content');
+  toggle.onclick = () => {
+   content.hidden = !content.hidden;
+   toggle.setAttribute('aria-expanded', String(!content.hidden));
+  };
   const status = panel.querySelector('[data-photo-status]'), results = panel.querySelector('[data-photo-results]');
   const preview = panel.querySelector('img'), cancel = panel.querySelector('[data-photo-cancel]');
   const inputs = Array.from(panel.querySelectorAll('input'));
