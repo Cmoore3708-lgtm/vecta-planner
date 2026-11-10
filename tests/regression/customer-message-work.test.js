@@ -36,7 +36,7 @@ test('mechanic API summaries are explicitly non-financial, including prices type
  const item={id,message:'Front pads for £120 including VAT',photo_ids:[],status:'approved',decided_at:new Date().toISOString(),estimated_pence:12000,channels:{email:'sent'},token:'secret'};
  const summary=mechanicApprovalSummary(item);assert.doesNotMatch(JSON.stringify(summary),/120|VAT|estimated|channels|secret/);
  const job={id:jobId,booking_date:'2026-11-09',registration:'TEST001',status:'in_progress',customer_email:'fixture@example.invalid',customer_phone:''};
- const row={...job,job_id:jobId,id,progress_booking_date:job.booking_date,progress_message:item.message,progress_photo_ids:[],progress_review_state:'sent',status:'approved',decided_at:item.decided_at,progress_estimate_pence:12000,jobs:job};
+ const row={...job,job_id:jobId,id,progress_from_mechanic:true,progress_booking_date:job.booking_date,progress_message:item.message,progress_photo_ids:[],progress_review_state:'sent',status:'approved',decided_at:item.decided_at,progress_estimate_pence:12000,jobs:job};
  let reads=0;const db=async()=>{reads++;return [row];};
  const list=await workshopApprovalList(db,job,'mechanic');assert.equal(reads,1);assert.doesNotMatch(JSON.stringify(list),/120|VAT|estimated|channels|whatsapp/);
  const queue=await reviewQueue(db,'mechanic');assert.equal(queue.findings.length,0);assert.equal(queue.decisions.length,1);assert.doesNotMatch(JSON.stringify(queue),/120|VAT|estimated|channels/);

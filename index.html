@@ -9275,6 +9275,8 @@ window.CONTRACTOR_2026_NEW_VEHICLES=[{"id":"CONTRACTOR|RV63SYG","fleetGroup":"Co
 <script src="/js/vecta-job-mot-advisories.js"></script>
 <script src="/js/vecta-workshop-photos.js"></script>
 <script src="/js/vecta-review-queue.js" defer></script>
+<script src="/js/vecta-portal-workshop.js" defer></script>
+<link rel="stylesheet" href="/js/vecta-portal-workshop.css">
 <script>
 (function(){
 'use strict';
@@ -10712,24 +10714,21 @@ function vectaRefreshWebsiteBookingCount(){
 function vectaUpdateAppBadge(){var count=vectaPendingWebsiteBookingCount();if(!('setAppBadge' in navigator))return Promise.resolve(false);return (count?navigator.setAppBadge(count):navigator.clearAppBadge()).then(function(){return true}).catch(function(){return false})}
 function vectaBase64UrlBytes(value){var padding='='.repeat((4-value.length%4)%4),base64=(value+padding).replace(/-/g,'+').replace(/_/g,'/'),raw=atob(base64),bytes=new Uint8Array(raw.length);for(var i=0;i<raw.length;i++)bytes[i]=raw.charCodeAt(i);return bytes}
 async function vectaEnableBookingAlerts(){
-  if(!('serviceWorker' in navigator)||!('PushManager' in window)||!('Notification' in window)){alert('This iPhone does not support Home Screen booking badges.');return false}
+  if(!('serviceWorker' in navigator)||!('PushManager' in window)||!('Notification' in window)){alert('To receive iPhone notifications, add Workshop Pro to your Home Screen and open it from there. On a PC, use a browser that supports notifications.');return false}
   try{
     var permission=await Notification.requestPermission();
-    if(permission!=='granted'){alert('Booking alerts were not enabled. Allow notifications to show the red booking number on the VECTA icon.');return false}
+    if(permission!=='granted'){alert('Booking alerts were not enabled. Allow notifications to receive customer messages and booking alerts.');return false}
     var configResponse=await fetch('/api/push-config',{cache:'no-store'}),config=await configResponse.json();
     if(!configResponse.ok)throw new Error(config.error||'Booking alerts are unavailable');
     var registration=await navigator.serviceWorker.ready,subscription=await registration.pushManager.getSubscription();
     if(!subscription)subscription=await registration.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:vectaBase64UrlBytes(config.publicKey)});
     var saveResponse=await fetch('/api/push-subscribe',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({subscription:subscription.toJSON()})});
     if(!saveResponse.ok){var saveError=await saveResponse.json().catch(function(){return {}});throw new Error(saveError.error||'Could not save notification settings')}
-    /* Do not claim alerts are enabled until the server has successfully sent a
-       real Web Push message to this exact iPhone subscription. This catches a
-       missing VAPID/service-role configuration immediately rather than only
-       discovering it when the next customer books. */
+    // Verify a test push before confirming this device is subscribed.
     var testResponse=await fetch('/api/push-test',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({endpoint:subscription.endpoint})});
     var testResult=await testResponse.json().catch(function(){return {}});
     if(!testResponse.ok||!testResult.ok)throw new Error(testResult.error||'The server could not send a test notification to this iPhone');
-    localStorage.setItem('vecta:booking-alerts-enabled','1');await vectaUpdateAppBadge();render();alert('Background website booking alerts are enabled. A VECTA test notification has been sent to this iPhone.');return true;
+    localStorage.setItem('vecta:booking-alerts-enabled','1');await vectaUpdateAppBadge();render();alert('Customer message and booking notifications are enabled on this device. A test notification has been sent.');return true;
   }catch(error){console.error(error);alert('Booking alerts could not be enabled. '+(error&&error.message||''));return false}
 }
 function navItems(){var newCount=vectaPendingWebsiteBookingCount(),partsCount=(app.jobs||[]).filter(function(j){var ps=partsStatusFromJob(j);return !vectaJobIsDeletedForLists(j)&&!!ps&&ps!=='Parts here'&&ps!=='Not required'&&!j.archived&&j.status!=='completed'&&j.status!=='ready_to_invoice'}).length,paymentWarnCount=typeof overduePaymentMethodInvoices==='function'?overduePaymentMethodInvoices().length:0;return [['planner','Dashboard'],['fleet','Fleet Manager'],['jobs','Jobs'],['invoices','Financial'],['invoiceArchive','Invoices'+(paymentWarnCount?' ⚠ '+paymentWarnCount:'')],['websiteRequests','Website Bookings'+(newCount?' ('+newCount+')':'')],['parts','Parts'+(partsCount?' ('+partsCount+')':'')],['settings','Settings']];}
@@ -13009,7 +13008,7 @@ async function vectaProgressRequest(body){
 function vectaInstallTrackingLink(id,foot){
   var job=(app.jobs||[]).find(function(j){return String(j.id)===String(id)});
   if(!job||!isUuid(job.id)||job.no_vehicle||isVehicleTaxJob(job)||['quote','provisional'].indexOf(job.status)>=0||!job.booking_date||foot.querySelector('#customerTrackingLink'))return;
-  var button=document.createElement('button');button.type='button';button.id='customerTrackingLink';button.className='btn';button.textContent='Customer tracking link';
+  var button=document.createElement('button');button.type='button';button.id='customerTrackingLink';button.className='btn';button.textContent='Customer portal link';
   button.onclick=async function(){button.disabled=true;try{var result=await vectaProgressRequest({action:'link',job_id:id});prompt('Private customer tracking link — copy and send to the customer:',result.url);}catch(error){alert(error.message);}finally{button.disabled=false;}};
   foot.appendChild(button);
 }
@@ -13056,20 +13055,9 @@ async function vectaReadyInvoiceAndSend(job){
   await vectaSendReadyInvoice(job,invoice);return true;
 }
 async function openWebsiteBookingConfirmationEmail(j){
-  var email=String(j&&j.customer_email||'').trim();if(!email)return false;
-  var name=String(j.customer_name||'').trim(),first=name&&name.toUpperCase()!=='STAFF'?name.split(/\s+/)[0]:'',date=j.booking_date?niceDate(j.booking_date):'',work=websiteConfirmationWorkText(j)||'the work requested',cost=websiteConfirmationCostText(j),reg=normReg(j.registration||'');
-  var subject='Vecta booking confirmation'+(reg?' - '+reg:'')+(date?' - '+date:'');
-  var body='We are pleased to confirm your booking on '+date+' for '+work+'.\n\n'+
-    'Estimated cost: '+cost+'\n\n'+
-    'Please park your car in the parking spaces outside our Workshop in the morning before your shift and remember to leave your Service book (if required) and locking wheel nut key on the passenger seat.\n\n'+
-    'Click here for directions:\nhttps://www.vectamotors.co.uk/find-us\n\n'+
-    'If we discover any additional work that requires doing we will contact you for authorisation first, so please check your phone/email when possible.';
-  var trackingUrl='https://www.vectamotors.co.uk/';
-  try{var tracking=await vectaProgressRequest({action:'link',job_id:j.id});trackingUrl=tracking.url||trackingUrl;}catch(error){console.warn('Tracking link was not available for this confirmation',error);}
-  body=appendVectaEmailSignature(body+'\n\nTrack your car on the day of your booking by clicking HERE.\n\nYou may receive updates on the day about your car via WhatsApp, so please keep an eye out for them.');
-  var draft=window.VectaBookingEmailDraft.create({email:email,subject:subject,body:body,trackingUrl:trackingUrl});
-  window.VectaBookingEmailDraft.open(draft,reg);
-  if(window.vectaMessages)window.vectaMessages.record({registration:j.registration,job_id:String(j.id||''),method:'email',kind:'booking_confirmation',recipient:email,subject:subject,body:draft.text});
+  if(!String(j&&j.customer_email||'').trim())return false;
+  if(!window.VectaPortalWorkshop)throw Error('Customer portal tools have not loaded. Refresh Workshop Pro and try again.');
+  await window.VectaPortalWorkshop.confirmation(j);
   return true;
 }
 function isUnresolvedWebsiteService(j){
@@ -17276,6 +17264,8 @@ document.addEventListener('change',function(ev){
 },true);
 
 /* Expose the job editor to dashboard tools before later UI wrappers load. */
+window.vectaEnablePortalAlerts=vectaEnableBookingAlerts;
+window.vectaRefreshPortalJobs=async function(){await vectaPrimeJobsFromCloud();if(!document.querySelector('.modal.open'))render();};
 window.openJobModal=function(id,preset){return openJobModal(id,preset);};
 window.vectaOpenFindingJob=async function(jobId){
   function activeCard(){

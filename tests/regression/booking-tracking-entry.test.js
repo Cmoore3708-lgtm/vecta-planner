@@ -33,7 +33,7 @@ test('today booking panel is a safe registration-specific link beneath the vehic
  context.state.form.registration='AB12CDE';context.updateTodayTracking();assert.equal(document.querySelector('a'),null);assert.equal(document.getElementById('todayTracking').hidden,true);
  assert.match(html,/state.step===1&&valid\(\)&&todayTracking.canAdvance\(\)/);
  assert.match(html,/class="confirmation-tracking">Track your car on the day of your booking by clicking <a href="\$\{esc\(bookingTrackingHref\(d\)\)\}">HERE<\/a>\./);
- const index=fs.readFileSync('index.html','utf8');const email=index.slice(index.indexOf('async function openWebsiteBookingConfirmationEmail('),index.indexOf('async function openWebsiteBookingConfirmationEmail(')+2500);assert.doesNotMatch(email,/You can track the progress|revisiting VectaMotors/);assert.match(email,/VectaBookingEmailDraft.open/);
+ const index=fs.readFileSync('index.html','utf8');const email=index.slice(index.indexOf('async function openWebsiteBookingConfirmationEmail('),index.indexOf('async function openWebsiteBookingConfirmationEmail(')+2500);assert.doesNotMatch(email,/You can track the progress|revisiting VectaMotors/);assert.match(email,/VectaPortalWorkshop.confirmation/);
 });
 test('tracking links prefill and look up the registration without needing a second entry',async()=>{
  const {document}=parseHTML(fs.readFileSync('public/track.html','utf8'));document.hidden=false;let payload;
