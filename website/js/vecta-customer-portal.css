@@ -3,7 +3,7 @@
 
 /* Compact booking summary: details left, saved vehicle illustration right. */
 #portalHeading{margin-bottom:16px}.card{margin-top:16px}
-.vehicleSummary{grid-template-columns:minmax(0,1fr);gap:10px 28px;padding-bottom:18px;align-items:start}
+.vehicleSummary{grid-template-columns:minmax(0,1fr);grid-template-rows:auto auto minmax(0,1fr);gap:10px 28px;padding-bottom:18px;align-items:start}
 .vehicleSummary.hasVehicleImage{grid-template-columns:minmax(0,1fr) minmax(220px,34%)}
 .vehicleSummaryHeading{grid-column:1;display:flex;align-items:center;flex-wrap:wrap;gap:8px 16px;min-width:0}
 .vehicleSummary .plate{font-size:22px;padding:8px 12px;white-space:nowrap}
