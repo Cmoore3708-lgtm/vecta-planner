@@ -69,7 +69,7 @@ test('each workshop reply is saved first and independently alerts email and What
 });
 test('a rejected email does not prevent WhatsApp; retry only resends the failed channel',async t=>{
  const s=setup(t);s.enqueue();s.emailResponse=Response.json({message:'Domain not verified'},{status:403});
- assert.deepEqual((await sendCustomerPortalAlerts(s.db,eventId)).channels,{email:'failed',whatsapp:'sent'});
+ assert.deepEqual((await sendCustomerPortalAlerts(s.db,eventId)).channels,{email:'sender_unverified',whatsapp:'sent'});
  s.emailResponse=null;
  assert.deepEqual((await sendCustomerPortalAlerts(s.db,eventId,{retry:true})).channels,{email:'sent',whatsapp:'sent'});
  assert.equal(s.emails.length,2);assert.equal(s.whatsapps.length,1);

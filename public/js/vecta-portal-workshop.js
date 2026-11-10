@@ -6,7 +6,7 @@
  let pendingEvent=new URLSearchParams(location.search).get('portal_event'),popup,active,refreshQueue;
  const panels=new Map(),known=new Set();
  function button(text,fn){const b=node('button',text);b.type='button';b.className='btn';b.onclick=fn;return b;}
- const alertStates={sent:'accepted by provider',pending:'send unconfirmed — check before resending',failed:'send failed',queued:'queued',unavailable:'status unavailable',missing_contact:'missing contact details',no_permission:'customer agreement needed',manual:'tap to send',not_configured:'sender not connected',test:'Test only',contact_changed:'contact changed — not sent',closed:'booking closed — not sent'};
+ const alertStates={sent:'accepted by provider',pending:'send unconfirmed — check before resending',failed:'send failed',queued:'queued',unavailable:'status unavailable',missing_contact:'missing contact details',no_permission:'customer agreement needed',manual:'tap to send',not_configured:'sender not connected',sender_unverified:'sender domain needs verification',test:'Test only',contact_changed:'contact changed — not sent',closed:'booking closed — not sent'};
  function showAlerts(host,receipt,jobId){
   host.replaceChildren();host.classList.add('portalAlertReceipt');host.setAttribute('role','status');
   const channels=receipt?.channels||{};
