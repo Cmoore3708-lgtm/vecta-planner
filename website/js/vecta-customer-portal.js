@@ -3,7 +3,7 @@
  const $=id=>document.getElementById(id),node=(tag,text)=>{const n=document.createElement(tag);if(text!=null)n.textContent=text;return n;};
  const date=value=>value?new Intl.DateTimeFormat('en-GB',{dateStyle:'medium',...(value.includes('T')?{timeStyle:'short'}:{}),timeZone:'Europe/London'}).format(new Date(value.includes('T')?value:value+'T12:00:00Z')):'Date not recorded';
  const root=$('customerPortal'),history=$('portalHistory'),form=$('portalForm'),dialog=$('portalDialog');
- let current=null,busy=false,sending=false,kind='message',requestId=null,older=null,timer,historyKey='',cancelled=false;
+ let current=null,busy=false,sending=false,kind='message',requestId=null,older=null,timer,historyKey='',cancelled=false,vehicleImageKey='';
  const initialApproval=token.startsWith('approval.')?token.split('.')[1]:new URLSearchParams(location.search).get('approval');
  const events=new Map(),announced=new Set(initialApproval?[initialApproval]:[]);
  async function api(action,body={}){
@@ -35,9 +35,26 @@
   }
  }
  function showApproval(item){window.VectaProgressApproval?.open(item.id);}
+ function renderVehicleImage(booking){
+  const frame=$('portalVehicle'),identity=$('identity');if(!frame)return;
+  const url=String(booking.image_url||''),registration=String(booking.registration||'').toUpperCase().replace(/[^A-Z0-9]/g,'');
+  const key=JSON.stringify([registration,url,booking.image_colour,booking.vehicle]);
+  if(key===vehicleImageKey)return;vehicleImageKey=key;
+  frame.replaceChildren();frame.hidden=true;identity.classList.remove('hasVehicleImage');
+  if(!/^https:\/\/www\.haynespro-assets\.com\/workshop\/images\/\d+\.(svgz?|png|jpe?g|webp)$/.test(url))return;
+  const img=node('img');img.alt=[booking.image_colour,booking.vehicle||'Your vehicle'].filter(Boolean).join(' ')+' — vehicle illustration';img.referrerPolicy='no-referrer';img.decoding='async';
+  const isCurrent=()=>frame.firstElementChild===img&&vehicleImageKey===key;
+  img.onload=()=>{if(isCurrent()){frame.hidden=false;identity.classList.add('hasVehicleImage');}};
+  img.onerror=()=>{if(isCurrent()){frame.hidden=true;identity.classList.remove('hasVehicleImage');vehicleImageKey='';}};
+  frame.append(img);
+  if(/\.svgz?$/.test(url)&&window.VectaVehicleImage){
+   Object.assign(img.dataset,{vehicleImage:'1',vehicleSource:url,registration,colour:booking.image_colour||'',vehicleName:booking.vehicle||'',vehicleCrop:'tight',vehicleLogo:'separate'});
+   window.VectaVehicleImage.mount(frame);
+  }else img.src=url;
+ }
  function render(data){
   current=data;root.hidden=false;$('portalConversation').hidden=false;
-  const b=data.booking;cancelled=b.cancelled;
+  const b=data.booking;cancelled=b.cancelled;renderVehicleImage(b);
   document.title='Your customer portal | Vecta Motors';
   $('portalHeading').hidden=false;$('portalHeading').textContent='Your customer portal';
   $('portalAuthorisation').dataset.signal=data.preferences?.serious_repairs==='change_parts'?'green':'red';
