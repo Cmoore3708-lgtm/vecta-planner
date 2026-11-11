@@ -1,4 +1,4 @@
-import {captureServiceCategory,readServiceCategory,readServiceAttributes} from '../gsf/service-capture.mjs';
+import {readServiceCategory,readServiceAttributes} from '../gsf/service-capture.mjs';
 import {readProductDialog,openSelectedProduct} from '../gsf/product-dialog.mjs';
 import {repairScope} from '../../lib/repair-quote.js';
 import {choiceId,requireChoice} from './choice-result.mjs';
@@ -26,20 +26,68 @@ export function readRepairGroups(doc=document){
   const headings=[...group.querySelectorAll('h2,h3,h4,h5')].filter(visible).map(n=>clean(text(n))).filter(s=>s&&!/^£|^(Fitment|Attributes)$/i.test(s));
   const descriptions=[...new Set(headings)];
   const attributes=[...group.querySelectorAll('button')].filter(visible).filter(n=>clean(text(n))==='Attributes');
-  const options=[];
+  const options=[];let unavailableCount=0;
+  const optionMatch=value=>{
+   if((value.match(/£\s*\d/g)||[]).length!==1)return null;
+   return value.match(/^£\s*(\d+(?:,\d{3})*\.\d{2})\s+(.*?)\b(Gold|Silver|Bronze)(?:\s+(.+?))?\s+(Local Branch|RDC|NDC|Branch Network|Out Of Stock)$/i);
+  };
   for(const n of [...group.querySelectorAll('*')].filter(visible)){
    const t=clean(text(n));
-   const m=t.match(/^£\s*(\d+(?:,\d{3})*\.\d{2})\s+(.*?)\b(?:Gold|Silver|Bronze)\s+(.+?)\s+(Local Branch|RDC|NDC|Branch Network|Out Of Stock)$/i);
-   if(!m||[...n.children].some(c=>/^£\s*\d[\s\S]*\b(?:Gold|Silver|Bronze)\b[\s\S]*(?:Local Branch|RDC|NDC|Branch Network|Out Of Stock)$/i.test(clean(text(c)))))continue;
+   const m=optionMatch(t);
+   if(!m||[...n.children].some(c=>optionMatch(clean(text(c)))))continue;
    const price=Math.round(Number(m[1].replaceAll(',',''))*100);
-   if(!Number.isSafeInteger(price)||price<=0)continue;
-   options.push({selector:selector(n),pricePence:price,description:m[3],grade:(t.match(/\b(Gold|Silver|Bronze)\b/i)||[])[1]||'',brand:[...n.querySelectorAll('img[alt]')].map(i=>i.getAttribute('alt')).filter(Boolean).join(' ').slice(0,80),inStock:!/^Out Of Stock$/i.test(m[4])});
+   // Calibrated GSF unavailable cards omit a description and display £0.00.
+   // Count them only with explicit Out Of Stock evidence; never offer £0 parts.
+   if(price===0&&!m[4]&&/^Out Of Stock$/i.test(m[5])){unavailableCount++;continue;}
+   if(!Number.isSafeInteger(price)||price<=0||!m[4])continue;
+   options.push({selector:selector(n),pricePence:price,description:m[4],grade:m[3],brand:[...n.querySelectorAll('img[alt]')].map(i=>i.getAttribute('alt')).filter(Boolean).join(' ').slice(0,80),inStock:!/^Out Of Stock$/i.test(m[5])});
   }
   const links=[...group.querySelectorAll('a[href]')].map(a=>a.getAttribute('href')).filter(h=>/^(?:https:\/\/trade\.gsfcarparts\.com)?\/partdetails\//.test(h));
   const gradeCount=[...group.querySelectorAll('*')].filter(visible).filter(n=>/^(?:Gold|Silver|Bronze)$/i.test(clean(text(n)))&&!n.children.length).length;
-  groups.push({parsedAll:gradeCount===options.length,selector:selector(group),sku:clean(text(sku)).replace(/^SKU:\s*/i,''),description:descriptions.length===1?descriptions[0]:'',attributesSelector:attributes.length===1?selector(attributes[0]):'',options,links:[...new Set(links)]});
+  const priceCount=(text(group).match(/£\s*\d/g)||[]).length,parsedCount=options.length+unavailableCount;
+  groups.push({parsedAll:gradeCount>0&&gradeCount===parsedCount&&priceCount===parsedCount,unavailableCount,selector:selector(group),sku:clean(text(sku)).replace(/^SKU:\s*/i,''),description:descriptions.length===1?descriptions[0]:'',attributesSelector:attributes.length===1?selector(attributes[0]):'',options,links:[...new Set(links)]});
  }
- return {complete:!loading&&!pagination.length&&groups.length>0&&groups.length<=40&&groups.every(g=>g.parsedAll&&g.description&&g.options.length),groups};
+ const moreSelectors=pagination.filter(n=>/^show more$/i.test(clean(text(n)))&&groups.some(g=>doc.querySelector(g.selector)?.contains(n))).map(selector);
+ return {complete:!loading&&!pagination.length&&groups.length>0&&groups.length<=40&&groups.every(g=>g.parsedAll&&g.description&&(g.options.length||g.unavailableCount)),groups,moreSelectors};
+}
+
+function checkCataloguePage(page,category){
+ const url=new URL(page.url());
+ if(url.origin!=='https://trade.gsfcarparts.com'||/^\/(?:sign-?in|log-?in)(?:\/|$)/i.test(url.pathname))throw Object.assign(Error('LOGIN_REQUIRED'),{code:'LOGIN_REQUIRED',supplier:'GSF'});
+ if(observedCategory(url.href)!==category)reject('CATEGORY_REDIRECTED');
+}
+// Discovery already selected the vehicle. Keep that context and the category
+// reached through GSF; the service-calibration flow clears/reselects it and can
+// open an Attributes dialog, which is unnecessary for a general parts lookup.
+export async function captureRepairCatalogue(page,registration,category,{attempts=75}={}){
+ if(observedCategory(page.url())!==category)await page.goto('https://trade.gsfcarparts.com/parts/'+encodeURIComponent(encodeURIComponent(category)),{waitUntil:'domcontentloaded',timeout:15000});
+ for(let i=0;i<attempts;i++){
+  checkCataloguePage(page,category);
+  const vehicle=await page.evaluate(readServiceCategory,{registration,category});
+  if(vehicle.selectedRegistration&&vehicle.registration===registration)return vehicle;
+  if(i+1<attempts)await page.waitForTimeout(200);
+ }
+ reject('VEHICLE_NOT_CONFIRMED');
+}
+export async function waitForRepairGroups(page,registration,category,{attempts=100}={}){
+ let previous='',stable=0,expanded='',clicks=0;
+ for(let i=0;i<attempts;i++){
+  checkCataloguePage(page,category);
+  const vehicle=await page.evaluate(readServiceCategory,{registration,category});
+  if(!vehicle.selectedRegistration||vehicle.registration!==registration)reject('VEHICLE_CHANGED');
+  const snapshot=await page.evaluate(readRepairGroups),signature=JSON.stringify(snapshot);
+  if(snapshot.complete){stable=signature===previous?stable+1:1;if(stable>=4)return snapshot;}
+  else stable=0;
+  // Expand only observed product-group controls. Wait for a changed snapshot
+  // before clicking again so a slow response cannot trigger repeated clicks.
+  if(snapshot.moreSelectors?.length&&signature!==expanded){
+   if(++clicks>40)reject('CATALOGUE_INCOMPLETE');
+   await page.locator(snapshot.moreSelectors[0]).click({timeout:8000});expanded=signature;stable=0;
+  }
+  previous=signature;
+  if(i+1<attempts)await page.waitForTimeout(200);
+ }
+ reject('CATALOGUE_INCOMPLETE');
 }
 export function repairFitment(rows,scope){
  const values=(rows||[]).filter(r=>/^fitting position$/i.test(r.attribute)).map(r=>String(r.value).toLowerCase());
@@ -56,23 +104,13 @@ export function repairFitment(rows,scope){
  if(pack.some(r=>!/^1$/.test(String(r.value))))return false;
  return true;
 }
-export async function lookupGeneralGSF(page,request,{capture=captureServiceCategory,selectVehicle=selectCatalogueVehicle,now=Date.now}={}){
+export async function lookupGeneralGSF(page,request,{capture=captureRepairCatalogue,selectVehicle=selectCatalogueVehicle,now=Date.now}={}){
  const scope=repairScope.resolve(request.work);
  if(scope.status!=='SUPPORTED')reject('PART_NOT_RECOGNISED');
  const category=await discoverRepairCategory(page,scope.query,{request,now,selectVehicle});
  const vehicle=await capture(page,request.registration,category);
  if(vehicle.status!=='CAPTURED_FOR_REVIEW'||vehicle.registration!==request.registration||!vehicle.selectedRegistration||vehicle.truncated)reject('VEHICLE_NOT_CONFIRMED');
- // The service reader can leave its read-only Attributes dialog open.
- await page.keyboard.press('Escape');
- for(let clicks=0;clicks<40;clicks++){
-  const more=page.getByText('Show More',{exact:true}),visible=[];
-  for(let i=0;i<await more.count();i++)if(await more.nth(i).isVisible())visible.push(more.nth(i));
-  if(!visible.length)break;
-  await visible[0].click({timeout:8000});await page.waitForTimeout(250);
- }
- let snapshot=await page.evaluate(readRepairGroups);await page.waitForTimeout(300);
- const repeated=await page.evaluate(readRepairGroups);
- if(JSON.stringify(snapshot)!==JSON.stringify(repeated)||!snapshot.complete)reject('CATALOGUE_INCOMPLETE');
+ let snapshot=await waitForRepairGroups(page,request.registration,category);
  const candidates=[];let matchingGroups=0;
  for(const group of snapshot.groups){
   if(!request.flow&&!repairScope.matchesDescription(group.description,scope.query))reject('WRONG_CATEGORY_PRODUCT');

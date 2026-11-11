@@ -7,11 +7,9 @@ import path from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {lookupGeneralRepair} from './general-repair.mjs';
 import {repairRequest,repairScope,calculateRepairQuote,cleanRepairChoices} from '../../lib/repair-quote.js';
-import {readCatalogueResults,observedCategory} from './catalogue-results.mjs';
-import {readCatalogueSearchState} from './catalogue-search.mjs';
-import {readRepairGroups} from './general-gsf.mjs';
+import {captureCatalogueDiagnostics} from './catalogue-diagnostics.mjs';
 const here=path.dirname(fileURLToPath(import.meta.url)),terminal=createInterface({input:process.stdin,output:process.stdout});
-const checkerVersion='2026-11-11-category-ids-v5';
+const checkerVersion='2026-11-11-product-list-v6';
 let gsf,haynes,gsfPage,haynesPage;
 try{
  console.log('VECTA parts and fitting check — '+checkerVersion+'. Stop GSF safely in Workshop Connections first.');
@@ -25,12 +23,15 @@ try{
   gsfPage=await gsf.newPage();haynesPage=await haynes.newPage();
   report.steps=[];let loginRetries=0;
   for(let step=0;step<20;step++){
-   let timer;
+   let timer,timedOut=false;
    try{
     console.log(request.choices.part?'Rechecking your GSF part, then finding its Haynes fitting operation...':'Selecting '+request.registration+' in GSF, then searching for the part...');
-    const evidence=await Promise.race([lookupGeneralRepair({gsfPage,haynesPage},request),new Promise((_,reject)=>{timer=setTimeout(()=>reject(Error('LOOKUP_TIMEOUT')),120000);})]);
+    const evidence=await Promise.race([lookupGeneralRepair({gsfPage,haynesPage},request),new Promise((_,reject)=>{timer=setTimeout(()=>{timedOut=true;void Promise.allSettled([gsfPage.close(),haynesPage.close()]).then(()=>reject(Error('LOOKUP_TIMEOUT')));},120000);})]);
     report.status='PASSED_READ_ONLY';report.quote=calculateRepairQuote(evidence,request);report.evidence=evidence;break;
    }catch(error){
+    // Close timed-out lookup pages before any manual inspection; an abandoned
+    // lookup must not continue clicking while the mechanic reviews a failure.
+    if(timedOut){await Promise.allSettled([gsfPage.close(),haynesPage.close()]);throw Object.assign(Error('LOOKUP_TIMEOUT'),{code:'LOOKUP_TIMEOUT'});}
     if(error.code==='LOGIN_REQUIRED'&&loginRetries<2){
      clearTimeout(timer);loginRetries++;
      const answer=await terminal.question('Sign in to '+(error.supplier||'the supplier')+' in its Edge window, then press Enter to retry (or Q to finish): ');
@@ -68,12 +69,18 @@ try{
  // failures after category discovery. Never store input values or page HTML.
  if(report.status!=='PASSED_READ_ONLY'&&gsfPage&&!gsfPage.isClosed()){
   try{
-   report.lastGsfPage={observedCategory:observedCategory(gsfPage.url()),...await gsfPage.evaluate(readCatalogueResults,{query:repairScope.resolve(request.work).query}),searchControls:await gsfPage.evaluate(readCatalogueSearchState)};
-   const catalogue=await gsfPage.evaluate(readRepairGroups);
-   report.lastGsfPage.catalogue={complete:catalogue.complete,groupCount:catalogue.groups.length,groups:catalogue.groups.slice(0,40).map(g=>({sku:g.sku,description:g.description,parsedAll:g.parsedAll,hasAttributes:!!g.attributesSelector,productLinkCount:g.links.length,options:g.options.slice(0,20).map(({description,brand,grade,pricePence,inStock})=>({description,brand,grade,pricePence,inStock}))}))};
+   report.lastGsfPage=await captureCatalogueDiagnostics(gsfPage,repairScope.resolve(request.work).query);
   }
   catch{report.diagnosticCaptureUnavailable=true;}
  }
  const output=path.join(here,'catalogue-check-result.local.json');writeFileSync(output,JSON.stringify(report,null,2)+'\n',{mode:0o600});
+ if(report.status==='NEEDS_CHECK'&&gsfPage&&!gsfPage.isClosed()){
+  const answer=await terminal.question('The report is saved and GSF is staying open. If needed, select the vehicle and part manually as normal. Press Enter to capture that screen and close, or Q to close without another capture: ');
+  if(answer.trim().toUpperCase()!=='Q'){
+   try{report.manualPageReview={diagnosticOnly:true,...await captureCatalogueDiagnostics(gsfPage,repairScope.resolve(request.work).query)};}
+   catch{report.manualReviewUnavailable=true;}
+   writeFileSync(output,JSON.stringify(report,null,2)+'\n',{mode:0o600});
+  }
+ }
  console.log(report.status+' — report saved beside this checker. Restart GSF in Workshop Connections when finished.');
 }finally{await Promise.allSettled([gsf?.close(),haynes?.close()]);terminal.close();}

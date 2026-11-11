@@ -178,3 +178,44 @@ route, additional part families, direct-navigation labels, rejection of stale or
 unrelated evidence and the part-selection flow using a numeric category. A new
 live check is still required; the fourth report contains no priced part or
 Haynes operation.
+
+## Workshop-PC report: priced category and product-list readiness
+
+The v5 report reached the numeric category but failed `CATALOGUE_INCOMPLETE`,
+with no captured groups. Subsequent user photographs show the supplier's
+related-category selection followed by a priced radiator category, selected
+vehicle, multiple-fitment warning and both priced and zero-price alternatives.
+They establish that a product list exists, but do not establish its full DOM,
+stock labels, VAT basis or which fitment is correct. No live Haynes result has
+been captured yet.
+
+Version `2026-11-11-product-list-v6` keeps the already-selected vehicle and
+resolved category instead of using service calibration, which navigates,
+clears/reselects the vehicle and may open an Attributes dialog. The unchanged
+service-pricing reader continues to use its original calibration flow. General
+parts capture now waits for four matching complete snapshots, polls for up to
+20 seconds, expands observed product-group Show More controls, and verifies
+category/vehicle context while waiting. It no longer sends an unprompted Escape
+before reading the list.
+
+Zero-price cards count toward catalogue completeness only when they have the
+previously calibrated unavailable-card shape: no description and explicit
+Out Of Stock text. They never become selectable parts or free prices. Unknown
+cards and zero-price stock claims still stop the lookup. Every visible card
+price and grade must be accounted for. Separately available fitment groups
+remain separate choices before Haynes.
+
+The PC checker records bounded visible price-card text without input values,
+account panels, raw HTML, URL parameters, emails or VINs. A review failure leaves
+GSF open and offers an additional manual-page diagnostic capture; this never
+changes the failed status or supplies quote evidence. Timed-out lookup pages
+are closed to stop background actions before inspection. The report is saved
+before waiting for manual review.
+
+Synthetic regressions cover retained category/vehicle context, delayed and
+changing product lists, late expansion controls, unavailable placeholders,
+unknown cards, separate fitment choices and diagnostic redaction. These fix
+observable code gaps; the v5 report and photographs do not prove which gap
+caused that run. Actual product selection and the subsequent Haynes flow still
+require verification on the workshop PC. Main, feature flags and the database
+remain unchanged by this update.
