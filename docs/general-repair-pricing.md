@@ -219,3 +219,26 @@ observable code gaps; the v5 report and photographs do not prove which gap
 caused that run. Actual product selection and the subsequent Haynes flow still
 require verification on the workshop PC. Main, feature flags and the database
 remain unchanged by this update.
+
+## Workshop-PC report: input error before supplier launch
+
+The next v6 photograph shows `UNSUPPORTED_OPERATION` at the initial request
+parser, before either supplier session starts. The entered prefix has a
+duplicated ampersand (`Supply && fit`). That form and the spaced `Supply & & fit`
+both reproduced the error; `Supply and fit radiator` passed the same parser.
+This run provides no new evidence about the live supplier readers.
+
+Version `2026-11-11-input-retry-v7` tolerates repeated ampersands only within the
+leading supply-and-fit phrase. The shared browser and worker grammar stays
+identical. Separators between actual parts, conditional work, position and
+quantity requirements retain their existing validation.
+
+The checker now catches input errors before opening supplier sessions, explains
+the needed correction in plain language and retries the affected prompt. A
+valid registration is retained when only the work description needs correction.
+Invalid option numbers or later search refinements similarly keep the current
+choices available. Q exits cleanly from either initial prompt or a choice.
+Regression tests cover the duplicated prefix across several part families,
+multi-part rejection, browser parity, retries, cancellation and preservation of
+the selected GSF part during Haynes refinement. Live GSF-to-Haynes verification
+is still outstanding.

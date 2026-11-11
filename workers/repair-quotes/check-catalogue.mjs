@@ -6,16 +6,18 @@ import {writeFileSync} from 'node:fs';
 import path from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {lookupGeneralRepair} from './general-repair.mjs';
-import {repairRequest,repairScope,calculateRepairQuote,cleanRepairChoices} from '../../lib/repair-quote.js';
+import {repairScope,calculateRepairQuote,cleanRepairChoices} from '../../lib/repair-quote.js';
 import {captureCatalogueDiagnostics} from './catalogue-diagnostics.mjs';
+import {promptInitialRepairRequest,promptRepairChoice} from './checker-input.mjs';
 const here=path.dirname(fileURLToPath(import.meta.url)),terminal=createInterface({input:process.stdin,output:process.stdout});
-const checkerVersion='2026-11-11-product-list-v6';
+const checkerVersion='2026-11-11-input-retry-v7';
 let gsf,haynes,gsfPage,haynesPage;
 try{
  console.log('VECTA parts and fitting check — '+checkerVersion+'. Stop GSF safely in Workshop Connections first.');
  console.log('This checks current GSF and Haynes screens. It does not save or send prices.');
- const registration=await terminal.question('Registration: '),work=await terminal.question('Part/work to price (any part, e.g. supply and fit fuel pressure regulator): ');
- let request=repairRequest({registration,work,flow:'guided-v1'});const report={readOnly:true,checkerVersion,request,startedAt:new Date().toISOString()};
+ let request=await promptInitialRepairRequest(terminal);
+ if(request){
+ const report={readOnly:true,checkerVersion,request,startedAt:new Date().toISOString()};
  try{
   const local=process.env.LOCALAPPDATA;if(!local)throw Error('Run this check on the workshop Windows PC.');
   gsf=await chromium.launchPersistentContext(process.env.GSF_PROFILE_DIR||path.join(local,'VectaGSF','EdgeProfile'),{channel:'msedge',headless:false,acceptDownloads:false,chromiumSandbox:true});
@@ -50,17 +52,9 @@ try{
     result.options.forEach((o,i)=>console.log((i+1)+'. '+o.label+' — '+o.detail+(o.costPence?' — £'+(o.costPence/100).toFixed(2)+' each ex VAT':'')+(o.hoursMilli?' — '+o.hoursMilli/1000+' hours':'')));
     // End the lookup timer before waiting for the mechanic's choice.
     clearTimeout(timer);
-    const answer=await terminal.question('Choose an option number, type different search wording, or Q to finish: ');
-    if(answer.trim().toUpperCase()==='Q'){report.status='STOPPED_FOR_REVIEW';break;}
-    const choice=result.options[Number(answer)-1],c=request.choices;
-    if(choice){
-     if(result.stage==='GSF_CATEGORY')request=repairRequest({...request,work:choice.work,operation:undefined,quantity:undefined,choices:choice.categoryChoice?{gsfCategory:choice.categoryChoice}:{}});
-     if(result.stage==='GSF_PART')request=repairRequest({...request,work:choice.work,operation:undefined,quantity:undefined,choices:{...(c.gsfCategory?{gsfCategory:c.gsfCategory}:{}),part:choice.id}});
-     if(result.stage==='HAYNES_MENU')request=repairRequest({...request,choices:{...c,menus:[...(c.menus||[]),choice.label],labour:undefined}});
-     if(result.stage==='HAYNES_LABOUR')request=repairRequest({...request,choices:{...c,labour:choice.id}});
-    }else if(answer.trim()){
-     request=result.stage.startsWith('HAYNES_')?repairRequest({...request,choices:{...(c.gsfCategory?{gsfCategory:c.gsfCategory}:{}),part:c.part,labourSearch:answer.trim()}}):repairRequest({registration,work:answer.trim(),flow:'guided-v1'});
-    }
+    const next=await promptRepairChoice(terminal,request,result);
+    if(!next){report.status='STOPPED_FOR_REVIEW';break;}
+    request=next;
    }finally{clearTimeout(timer);}
   }
   report.status||='STOPPED_FOR_REVIEW';
@@ -83,4 +77,5 @@ try{
   }
  }
  console.log(report.status+' — report saved beside this checker. Restart GSF in Workshop Connections when finished.');
+ }else console.log('Check cancelled. Restart GSF in Workshop Connections when finished.');
 }finally{await Promise.allSettled([gsf?.close(),haynes?.close()]);terminal.close();}

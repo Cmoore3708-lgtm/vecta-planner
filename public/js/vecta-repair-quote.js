@@ -15,7 +15,9 @@
  function resolve(work){
   var value=normal(work).replace(/[.!]$/,'').toLowerCase();
   if(!value||value.length>220||/[\n\r;]/.test(String(work))||/\b(?:if|diagnose|inspect|check|possibly|maybe|suspect|unless)\b/.test(value))return {status:'UNSUPPORTED_OPERATION'};
-  value=value.replace(/^(?:(?:supply\s*(?:and|&)\s*fit|replace|fit|renew)\s+)(?:a |an |the )?/,'').replace(/^(?:a |an |the )/,'');
+  // Tolerate a repeated ampersand in the action prefix only. Separators between
+  // actual parts still require separate repairs rather than one guessed price.
+  value=value.replace(/^(?:(?:supply\s*(?:and|&(?:\s*&)*)\s*fit|replace|fit|renew)\s+)(?:a |an |the )?/,'').replace(/^(?:a |an |the )/,'');
   value=value.replace(/\b(?:n\/?s|nearside)\b/g,'left').replace(/\b(?:o\/?s|offside)\b/g,'right').replace(/[–-]/g,' ');
   if(/(?:\band\b|[&,+])/.test(value)&&!(/\bkit\b/.test(value)))return {status:'UNSUPPORTED_OPERATION'};
   var count=value.match(/^(\d{1,2})\s+(?:x\s+)?/),quantity=count?Number(count[1]):null;
