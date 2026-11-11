@@ -16,7 +16,7 @@ export function createRepairBridge({origin,token,gsfContext,openHaynesContext,co
    if(busy)return 'BUSY';if(unpaired)return 'PAIRING_REQUIRED';busy=true;
    try{
     if(delivery.pending||delivery.retiring){const ack=await delivery.flush();return ack==='SAVED'?'DELIVERED':'EXPIRED';}
-    const task=await rpc({action:'pull',repairProtocol:2});
+    const task=await rpc({action:'pull',repairProtocol:3});
     if(task.status!=='JOB')return task.status;
     let gsfPage,haynesPage,timer,result=null,status='MATCHED';
     try{
@@ -28,7 +28,8 @@ export function createRepairBridge({origin,token,gsfContext,openHaynesContext,co
      result=await Promise.race([lookup({gsfPage,haynesPage},task.request,config),new Promise((_,reject)=>{timer=setTimeout(()=>reject(Error('LOOKUP_TIMEOUT')),timeoutMs);})]);
     }catch(error){
      const code=error.code||error.message;
-     status=['LOGIN_REQUIRED','REVIEW_REQUIRED','LABOUR_REVIEW_REQUIRED','OUT_OF_STOCK'].includes(code)?code:['SETTINGS_REQUIRED','ENOENT'].includes(code)?'SETTINGS_REQUIRED':'UNAVAILABLE';
+     status=['CHOICE_REQUIRED','LOGIN_REQUIRED','REVIEW_REQUIRED','LABOUR_REVIEW_REQUIRED','OUT_OF_STOCK'].includes(code)?code:['SETTINGS_REQUIRED','ENOENT'].includes(code)?'SETTINGS_REQUIRED':'UNAVAILABLE';
+     if(status==='CHOICE_REQUIRED')result=error.result;
      log('Repair lookup: '+status);
     }finally{clearTimeout(timer);}
     const completion={action:'complete',id:task.id,lease:task.lease,request:task.request,status,result};

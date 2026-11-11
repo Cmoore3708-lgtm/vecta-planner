@@ -1,6 +1,7 @@
 import {captureServiceCategory,readServiceCategory,readServiceAttributes} from '../gsf/service-capture.mjs';
 import {readProductDialog,openSelectedProduct} from '../gsf/product-dialog.mjs';
 import {repairScope} from '../../lib/repair-quote.js';
+import {choiceId,requireChoice} from './choice-result.mjs';
 const reject=detail=>{throw Object.assign(Error('REVIEW_REQUIRED'),{code:'REVIEW_REQUIRED',detail});};
 
 // Read the rendered catalogue, keeping each SKU, its alternatives and its
@@ -29,7 +30,7 @@ export function readRepairGroups(doc=document){
    if(!m||[...n.children].some(c=>/^£\s*\d[\s\S]*\b(?:Gold|Silver|Bronze)\b[\s\S]*(?:Local Branch|RDC|NDC|Branch Network|Out Of Stock)$/i.test(clean(text(c)))))continue;
    const price=Math.round(Number(m[1].replaceAll(',',''))*100);
    if(!Number.isSafeInteger(price)||price<=0)continue;
-   options.push({selector:selector(n),pricePence:price,description:m[3],inStock:!/^Out Of Stock$/i.test(m[4])});
+   options.push({selector:selector(n),pricePence:price,description:m[3],grade:(t.match(/\b(Gold|Silver|Bronze)\b/i)||[])[1]||'',brand:[...n.querySelectorAll('img[alt]')].map(i=>i.getAttribute('alt')).filter(Boolean).join(' ').slice(0,80),inStock:!/^Out Of Stock$/i.test(m[4])});
   }
   const links=[...group.querySelectorAll('a[href]')].map(a=>a.getAttribute('href')).filter(h=>/^(?:https:\/\/trade\.gsfcarparts\.com)?\/partdetails\//.test(h));
   const gradeCount=[...group.querySelectorAll('*')].filter(visible).filter(n=>/^(?:Gold|Silver|Bronze)$/i.test(clean(text(n)))&&!n.children.length).length;
@@ -55,7 +56,7 @@ export function repairFitment(rows,scope){
 export async function lookupGeneralGSF(page,request,{capture=captureServiceCategory,now=Date.now}={}){
  const scope=repairScope.resolve(request.work);
  if(scope.status!=='SUPPORTED')reject('PART_NOT_RECOGNISED');
- const category=await discoverRepairCategory(page,scope.query);
+ const category=await discoverRepairCategory(page,scope.query,{request,now});
  const vehicle=await capture(page,request.registration,category);
  if(vehicle.status!=='CAPTURED_FOR_REVIEW'||vehicle.registration!==request.registration||!vehicle.selectedRegistration||vehicle.truncated)reject('VEHICLE_NOT_CONFIRMED');
  // The service reader can leave its read-only Attributes dialog open.
@@ -71,7 +72,7 @@ export async function lookupGeneralGSF(page,request,{capture=captureServiceCateg
  if(JSON.stringify(snapshot)!==JSON.stringify(repeated)||!snapshot.complete)reject('CATALOGUE_INCOMPLETE');
  const candidates=[];let matchingGroups=0;
  for(const group of snapshot.groups){
-  if(!repairScope.matchesDescription(group.description,scope.query))reject('WRONG_CATEGORY_PRODUCT');
+  if(!request.flow&&!repairScope.matchesDescription(group.description,scope.query))reject('WRONG_CATEGORY_PRODUCT');
   let rows=[];
   if(group.attributesSelector||scope.axle||scope.side||request.quantity>1){
    if(!group.attributesSelector)reject('POSITION_ATTRIBUTES_MISSING');
@@ -80,16 +81,25 @@ export async function lookupGeneralGSF(page,request,{capture=captureServiceCateg
    for(let attempt=0;attempt<25;attempt++){attributes=await page.evaluate(readServiceAttributes);if(attributes.status==='ATTRIBUTES_CAPTURED')break;await page.waitForTimeout(200);}
    await page.keyboard.press('Escape');
    if(attributes?.status!=='ATTRIBUTES_CAPTURED')reject('POSITION_ATTRIBUTES_MISSING');rows=attributes.rows;
-   if(!repairFitment(rows,scope))continue;
+   if(!repairFitment(rows,scope)&&!request.flow)continue;
   }
+  const candidateScope=request.flow?scopeForFitment(rows,scope):scope;
+  if(!candidateScope)continue;
   matchingGroups++;
-  for(const option of group.options.filter(o=>o.inStock))candidates.push({group,option});
+  for(const option of group.options.filter(o=>o.inStock))candidates.push({group,option,rows,scope:candidateScope});
  }
- if(matchingGroups>1)reject('MULTIPLE_FITMENT_VARIANTS');
+ if(!request.flow&&matchingGroups>1)reject('MULTIPLE_FITMENT_VARIANTS');
+ if(request.flow){
+  const options=gsfPartChoices(candidates,request,category);
+  const index=options.findIndex(o=>o.id===request.choices?.part&&o.work===scope.work);
+  if(index<0)requireChoice(request,'GSF_PART',options,{now});
+  // Preserve the selected row, even when another compatible row is cheaper.
+  candidates.splice(0,candidates.length,candidates[index]);
+ }
  if(!candidates.length)reject('NO_CONFIRMED_POSITION');
  candidates.sort((a,b)=>a.option.pricePence-b.option.pricePence);
  const {group,option}=candidates[0];
- if(!repairScope.matchesDescription(option.description,scope.query))reject('OPTION_DESCRIPTION_MISMATCH');
+ if(!request.flow&&!repairScope.matchesDescription(option.description,scope.query))reject('OPTION_DESCRIPTION_MISMATCH');
  // Use the actual rendered choice, then re-read its selected SKU. A group's
  // original/default SKU is never assigned to another brand's cheaper option.
  await page.locator(option.selector).click({timeout:8000});await page.waitForTimeout(300);
@@ -104,7 +114,23 @@ export async function lookupGeneralGSF(page,request,{capture=captureServiceCateg
  let product;
  for(let i=0;i<40;i++){try{product=await page.evaluate(readProductDialog);break;}catch{await page.waitForTimeout(200);}}
  if(!product||product.unitNetPence!==option.pricePence||product.description.toLowerCase()!==option.description.toLowerCase()||product.inStock!==true||!product.stock?.some(row=>row.quantity>=request.quantity)||product.vatBasis!=='EX_VAT'||!searchTerm.toUpperCase().endsWith(product.sku.toUpperCase()))reject('SELECTED_PRODUCT_CHANGED');
- return {vehicle:vehicle.visibleText.split(' Copy VIN')[0].slice(0,250),fitmentEvidence:'GSF registration '+request.registration+'; '+scope.label+'; catalogue position attributes checked',catalogueComplete:true,alternativesChecked:candidates.length,part:{source:'GSF',registration:request.registration,fitmentConfirmed:true,vatBasis:'EX_VAT',sku:product.sku,brand:product.brand,description:product.description,costPence:product.unitNetPence,corePence:0,inStock:true,imageUrl:product.imageUrl,gsfUrl:url.href,checkedAt:new Date(now()).toISOString()}};
+ return {vehicle:vehicle.visibleText.split(' Copy VIN')[0].slice(0,250),fitmentEvidence:'GSF registration '+request.registration+'; '+scope.label+'; catalogue position attributes checked',catalogueComplete:true,alternativesChecked:candidates.length,part:{source:'GSF',registration:request.registration,fitmentConfirmed:true,vatBasis:'EX_VAT',sku:product.sku,brand:product.brand,description:product.description,costPence:product.unitNetPence,corePence:0,inStock:true,imageUrl:product.imageUrl,gsfUrl:url.href,checkedAt:new Date(now()).toISOString(),...(request.flow?{choiceId:request.choices.part}:{})}};
+}
+
+export function scopeForFitment(rows,scope){
+ const position=rows.filter(r=>/^fitting position$/i.test(r.attribute)).map(r=>r.value).join(' ').toLowerCase();
+ const axis=[...new Set(position.match(/\b(front|rear)\b/g)||[])],sides=[...new Set(position.match(/\b(left|right)\b/g)||[])];
+ const candidate=repairScope.scope(scope.part,scope.axle||(axis.length===1?axis[0]:''),scope.side||(sides.length===1?sides[0]:''),scope.quantity);
+ return candidate.status==='SUPPORTED'&&repairFitment(rows,candidate)?candidate:null;
+}
+export function gsfPartChoices(candidates,request,category){
+ candidates.sort((a,b)=>a.option.pricePence-b.option.pricePence);
+ return candidates.map(({group,option,rows,scope})=>({
+  id:choiceId(request.registration,category,group.sku,group.description,option.description,option.brand,option.grade,option.pricePence,rows.map(r=>[r.attribute,r.value]).sort()),
+  label:[option.brand,option.description,option.grade].filter(Boolean).join(' · '),
+  detail:('GSF fitment group '+group.sku+' · '+rows.map(r=>r.attribute+': '+r.value).join(' · ')).slice(0,500),
+  costPence:option.pricePence,work:scope.work
+ }));
 }
 
 // Resolve the supplier's own category link from its live search. The label/URL
@@ -120,18 +146,34 @@ export function matchingCatalogueCategories(links,query){
  }
  return [...found.values()];
 }
-export async function discoverRepairCategory(page,query){
+export function catalogueCategoryOptions(links,query,scope){
+ const found=new Map(),terms=repairScope.words(query);
+ for(const link of links){
+  let url,category;try{url=new URL(link.href,'https://trade.gsfcarparts.com');category=decodeURIComponent(decodeURIComponent(url.pathname.slice(7)));}catch{continue;}
+  if(url.origin!=='https://trade.gsfcarparts.com'||url.username||url.password||url.hash||url.search||!url.pathname.startsWith('/parts/')||!category||category.length>150||category.includes('/'))continue;
+  const label=String(link.text||category).trim();if(!label||label.length>150)continue;
+  const score=repairScope.words(label).filter(t=>terms.includes(t)).length;
+  const work='Supply and fit '+(scope.quantity!==1?scope.quantity+' ':'')+[scope.axle,scope.side,category].filter(Boolean).join(' ');
+  found.set(category,{id:choiceId(category),label,detail:'GSF catalogue category',work,score});
+ }
+ return [...found.values()].sort((a,b)=>b.score-a.score||a.label.localeCompare(b.label)).slice(0,40).map(({score,...o})=>o);
+}
+export async function discoverRepairCategory(page,query,{request,now=Date.now}={}){
  const origin='https://trade.gsfcarparts.com';
  await page.goto(origin,{waitUntil:'domcontentloaded',timeout:15000});
  const check=()=>{const url=new URL(page.url());if(url.origin!==origin||/^\/signin/.test(url.pathname))throw Object.assign(Error('LOGIN_REQUIRED'),{code:'LOGIN_REQUIRED'});};check();
  const search=page.getByRole('textbox',{name:"Search for OE (cross ref), aftermarket or categories like 'Air filter'",exact:true});
  if(await search.count()!==1)reject('CATALOGUE_SEARCH_UNAVAILABLE');
  await search.fill(query,{timeout:10000});
- async function find(){return matchingCatalogueCategories(await page.locator('a[href]').evaluateAll(nodes=>nodes.map(n=>({href:n.href,text:(n.innerText||n.textContent||'').trim()}))),query);}
+ let observed=[];
+ async function find(){observed=await page.locator('a[href]').evaluateAll(nodes=>nodes.filter(n=>n.getClientRects().length&&!n.closest('[hidden],[aria-hidden="true"]')).map(n=>({href:n.href,text:(n.innerText||n.textContent||'').trim()})));return matchingCatalogueCategories(observed,query);}
  let categories=[];
  // The search may offer category links before submission, or on its results page.
  for(let i=0;i<8;i++){check();categories=await find();if(categories.length)break;await page.waitForTimeout(200);}
  if(!categories.length){await search.press('Enter',{timeout:10000});for(let i=0;i<40;i++){check();categories=await find();if(categories.length)break;await page.waitForTimeout(200);}}
- if(categories.length!==1)reject(categories.length?'MULTIPLE_CATALOGUE_CATEGORIES':'CATALOGUE_CATEGORY_NOT_FOUND');
+ if(categories.length!==1){
+  if(request?.flow)requireChoice(request,'GSF_CATEGORY',catalogueCategoryOptions(observed,query,repairScope.resolve(request.work)),{now});
+  reject(categories.length?'MULTIPLE_CATALOGUE_CATEGORIES':'CATALOGUE_CATEGORY_NOT_FOUND');
+ }
  return categories[0];
 }

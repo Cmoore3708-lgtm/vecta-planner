@@ -2,6 +2,7 @@ import {readVehicle} from '../haynes/dom.mjs';
 import {readRepairVehicle,repairTimesLink} from './haynes-navigation.mjs';
 import {readAlternatorTime} from './repair-time-reader.mjs';
 import {repairScope} from '../../lib/repair-quote.js';
+import {lookupHaynesChoices} from './guided-haynes.mjs';
 const reject=detail=>{throw Object.assign(Error('LABOUR_REVIEW_REQUIRED'),{code:'LABOUR_REVIEW_REQUIRED',detail});};
 export function operationPattern(scope){
  if(scope.status!=='SUPPORTED')reject('UNKNOWN_OPERATION');
@@ -11,7 +12,7 @@ export function operationPattern(scope){
  const side=scope.side?(scope.side==='left'?'right':'left'):'';
  return '\\b(?:Renew|Replace|Remove\\s+and\\s+refit)\\b'+positions+(opposite?'(?![^\\n]*\\b'+opposite+'\\b)':'')+(side?'(?![^\\n]*\\b'+side+'\\b)':'')+repairScope.pattern(scope.query)+'[^\\n]*?\\b'+repairScope.words(scope.query).at(-1).replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+'(?:s|es)?\\b';
 }
-export async function lookupGeneralHaynes(page,request,{now=Date.now}={}){
+export async function lookupGeneralHaynes(page,request,{now=Date.now,selectedPart}={}){
  const scope=repairScope.resolve(request.work),origin='https://www.workshopdata.com';
  await page.goto(origin+'/touch/site/layout/makesOverview',{waitUntil:'domcontentloaded',timeout:15000});
  const check=()=>{if(new URL(page.url()).origin!==origin)throw Object.assign(Error('LOGIN_REQUIRED'),{code:'LOGIN_REQUIRED'});};check();
@@ -25,6 +26,7 @@ export async function lookupGeneralHaynes(page,request,{now=Date.now}={}){
  const links=await page.locator('a[href]').evaluateAll(nodes=>nodes.map(n=>n.href));
  await page.goto(repairTimesLink(links,vehicle.typeId),{waitUntil:'domcontentloaded',timeout:15000});check();
  if(new URL(page.url()).searchParams.get('typeId')!==vehicle.typeId)reject('VEHICLE_CHANGED');
+ if(request.flow)return lookupHaynesChoices(page,request,{vehicle,selectedPart,now});
  const pattern=operationPattern(scope),captures=[];
  async function read(){
   captures.length=0;

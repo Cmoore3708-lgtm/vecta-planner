@@ -14,15 +14,13 @@ invoice rows and costs. Existing supplier replay is available only with the
 explicit `repairReplay` query parameter. The panel does not issue supplier
 requests while the user types.
 
-The general GSF reader discovers an exact matching category link from the live
-supplier search, selects the requested registration, requires all rendered
-alternatives to be parsed, checks positional attributes, and refuses multiple
-fitment groups. It follows an observed product link and checks SKU, price, stock
-for the quantity and EX VAT basis again. The Haynes reader selects the same
-registration, uses its actual type ID and repair-times link, and looks for a
-single visible replacement operation containing the requested part and position.
-No manually configured time, guessed price, category URL or manufacturer SKU is
-substituted after a failed lookup.
+The general GSF reader discovers supplier category links and confirms the selected
+registration. It offers the observed part alternatives with cost and fitment
+attributes, then re-reads the selected product's SKU, price, stock and EX VAT
+basis. Only after the user selects a part does Haynes look up the same vehicle
+and present fitting operations or repair groups. Both searches allow different
+wording. No guessed category URL, SKU, price or fitting time substitutes for a
+failed lookup.
 
 ## Verification and remaining work
 
@@ -43,8 +41,9 @@ substituted after a failed lookup.
 1. Run the read-only `CHECK-PRICING.cmd` package on the workshop PC, with the GSF
    worker safely stopped. Check several different part families. Retain its
    diagnostic report, fix any DOM mismatch, then repeat only the affected checks.
-2. Apply `20261111064559_catalogue_repair_pricing.sql` to isolated Test and run the
-   queue round trip with the updated PC reader. It adds protocol 2; old readers
+2. Apply `20261111064559_catalogue_repair_pricing.sql`, then
+   `20261111073607_guided_repair_choices.sql` to isolated Test and run the queue
+   round trip with the updated PC reader. Guided choices require protocol 3; old readers
    cannot claim general requests. Existing RLS, expiry, quotas, leases and shared
    GSF BUSY behaviour remain intact.
 3. Enable `REPAIR_GENERAL_PRICING_ENABLED=true` only in the reviewed Test/preview
@@ -57,3 +56,32 @@ substituted after a failed lookup.
 
 No production flag, database schema, installed PC reader, customer message, job
 or invoice is changed by this amendment or by the read-only checker package.
+
+## Part-first choice flow — 11 November update
+
+Chris clarified that identification must happen in order: GSF part first, then
+Haynes labour. Both stages now pause for an explicit single selection. GSF
+category alternatives come from observed catalogue links; part options include
+observed cost and fitment attributes. Haynes uses the selected part description
+and offers observed repair headings or priced operations. Search wording can be
+changed at either stage. Changing the part clears the previous labour choice;
+changing only Haynes wording retains the chosen part. No part or operation is
+preselected and no job price is added until the final price is explicitly used.
+
+Every selection is re-discovered on the supplier page before it is used. Choice
+identifiers include the displayed price/time, so a changed row asks for a fresh
+selection. Vehicle, axle/side, stock, VAT, quantities and evidence age checks
+remain in place. A user's confirmed terminology match does not bypass those
+checks. Missing supplier evidence still requires review.
+
+The second additive migration, `20261111073607_guided_repair_choices.sql`, adds
+CHOICE_REQUIRED results and protocol 3. Apply it after the catalogue migration;
+protocols 1 and 2 cannot claim guided requests, including guided alternators.
+The PC check package now follows the same staged choices in its terminal.
+
+New regression checks cover request/response validation, GSF-before-Haynes
+ordering, persisted choice payloads, old-worker isolation, stale/changed prices
+and times, actual operation extraction, wrong vehicle/axle, UI selection and
+search refinement, invalidation and escaped supplier labels. Supplier DOM and
+live desktop/mobile checks remain outstanding. No production activation or
+installation has been performed.

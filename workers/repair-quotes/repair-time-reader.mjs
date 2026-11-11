@@ -49,13 +49,16 @@ export function readAlternatorTime(input={},doc=globalThis.document){
   }
  }
  if(ambiguous)fail('MULTIPLE_TIMES');
- if(matches.size!==1)fail(matches.size?'MULTIPLE_PRICED_OPERATIONS':'TIME_NOT_FOUND');
- const matched=[...matches.values()][0],unitText=clean(textOf(doc.body,false));
+ if(!matches.size||!input.allowMultiple&&matches.size!==1)fail(matches.size?'MULTIPLE_PRICED_OPERATIONS':'TIME_NOT_FOUND');
+ const unitText=clean(textOf(doc.body,false));
  if(!/TOTAL\s*TIME\s*\(H\)/i.test(unitText)&&!/hours\s+and\s+hundredths\s+of\s+hours/i.test(unitText))fail('HOURS_UNIT_NOT_CONFIRMED');
- const hoursMilli=Math.round(Number(matched.hoursText)*1000);
- if(hoursMilli<=0||hoursMilli>100000)fail('INVALID_TIME');
  const plate=doc.querySelector('#numberPlate,input[name="numberPlate"]');
- return {...matched,hoursMilli,unit:'hours',registrationVisible:String(plate?.value||'').toUpperCase().replace(/\s/g,''),fitmentConfirmed:false};
+ const results=[...matches.values()].map(matched=>{
+  const hoursMilli=Math.round(Number(matched.hoursText)*1000);
+  if(hoursMilli<=0||hoursMilli>100000)fail('INVALID_TIME');
+  return {...matched,hoursMilli,unit:'hours',registrationVisible:String(plate?.value||'').toUpperCase().replace(/\s/g,''),fitmentConfirmed:false};
+ });
+ return input.allowMultiple?results:results[0];
 }
 // Minimal diagnostic fields only; no page HTML, account text or credentials.
 export function repairTimeDiagnostics(doc=document){
