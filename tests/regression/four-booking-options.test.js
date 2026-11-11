@@ -51,7 +51,7 @@ test('Something else shows the customer car without wheel effects, examples and 
  assert.equal(document.querySelector('.tp-wheels,[data-tyre-car],[data-service-car],[data-tyre-position]'),null);
  assert.deepEqual([...document.querySelectorAll('#other-work-help>li')].map(x=>x.textContent),['ECU remaps','Bodywork repairs','Diagnostics','Exhausts','Brakes','Suspension','Towbars','Valeting','Batteries','Puncture repairs']);
  const details=document.querySelector('details');assert.equal(details.querySelector('summary').textContent,'NEVOS?');assert.equal(details.hasAttribute('open'),false);
- assert.equal(details.querySelectorAll('li').length,5);assert.match(details.textContent,/Pre handover valet & inspection/);assert.match(details.textContent,/literally works magic on dents/);assert.match(details.textContent,/OEM standard/);assert.match(details.textContent,/We aren’t able to service your NEVOS/);
+ assert.equal(details.querySelectorAll('li').length,7);assert.match(details.textContent,/Pre handover valet & inspection/);assert.match(details.textContent,/literally works magic on dents/);assert.match(details.textContent,/OEM standard/);assert.match(details.textContent,/We aren’t able to service your NEVOS/);
  form.job_types=['Tyres','Other'];
  const combined=parseHTML(context.otherWorkOptionsHtml()).document;
  assert.equal(combined.querySelector('img'),null,'Tyres selected: avoid repeating the customer car in Something else');assert.equal(combined.querySelectorAll('#other-work-help>li').length,10);assert.ok(combined.querySelector('details summary'));
@@ -101,4 +101,59 @@ test('other work examples show for every work selection with the existing car ru
   assert.equal(Boolean(document.querySelector('img')),!job_types.includes('Tyres'));
  }
  assert.ok(html.includes('${otherWorkOptionsHtml()}<label>Describe what work'));
+});
+
+
+test('selecting NEVOS shows the complete priced services panel without opening a disclosure',()=>{
+ const form={job_types:[],nevos_vehicle:'yes',registration:'CM14KEL',vehicle:'Nissan Qashqai',vehicle_colour:'white'};
+ const context=vm.createContext({state:{form},haynesState:{vehicle:{imageUrl:'https://www.haynespro-assets.com/workshop/images/319106279.svg',make:'Nissan',model:'Qashqai'}},esc});
+ vm.runInContext(fn('otherWorkOptionsHtml','workTypeCardsHtml'),context);
+ const {document}=parseHTML(context.otherWorkOptionsHtml());
+ assert.equal(document.querySelector('h3').textContent,'We offer a range of services for NEVOS customers:');
+ assert.equal(document.querySelector('details'),null);
+ assert.equal(document.querySelector('img').dataset.registration,'CM14KEL');
+ assert.equal(document.querySelector('img').dataset.colour,'white');
+ const rows=[...document.querySelectorAll('#other-work-help>li')];
+ assert.deepEqual(rows.slice(0,5).map(row=>[row.querySelector('span').textContent,row.querySelector('strong').textContent]),[
+  ['Mini valet','£30'],['Pre handover valet & inspection','£50'],['Tyre rotation','£24'],['Puncture repairs','£20'],['New tyres','from £120']
+ ]);
+ assert.equal(rows[5].querySelector('span').textContent,'Our Paint-less dent repairer literally works magic on dents');
+ assert.equal(rows[6].querySelector('span').textContent,'We can repair your NEVOS bodywork damage to OEM standard.');
+ assert.doesNotMatch(document.toString(),/ECU remaps/);
+ form.job_types=['Tyres'];
+ const withTyres=parseHTML(context.otherWorkOptionsHtml()).document;
+ assert.equal(withTyres.querySelectorAll('#other-work-help>li').length,7);
+ assert.equal(withTyres.querySelector('img'),null,'Tyres already show the customer car');
+ form.job_types=['Other'];form.nevos_vehicle='no';
+ assert.equal(parseHTML(context.otherWorkOptionsHtml()).document.querySelector('h3').textContent,'Other work we do');
+});
+
+test('priced NEVOS rows append distinct description lines, preserve customer notes and select Other work',()=>{
+ const {document}=parseHTML('<html><body><main></main></body></html>');
+ const form={job_types:['MOT'],nevos_vehicle:'yes',work_required:'Please keep the keys at reception.\nExisting note',parts_preference:'oem'};
+ const context=vm.createContext({document,state:{step:2,form},haynesState:{},esc,
+  bindServiceExtra(){},bindHaynes(){},bindAdvisoryChoices(){},bindTyreCards(){},bindTyreSearch(){},renderActions(){}});
+ vm.runInContext(fn('otherWorkOptionsHtml','workTypeCardsHtml')+fn('bind','bookingMissingRequirements'),context);
+ context.render=()=>{document.querySelector('main').innerHTML=context.otherWorkOptionsHtml()+'<textarea data-field="work_required"></textarea>';document.querySelector('[data-field="work_required"]').value=form.work_required;context.bind();};
+ context.render();
+ const expected=['Mini valet £30','Pre handover valet & inspection £50','Tyre rotation £24','Puncture repairs £20','New tyres from £120'];
+ assert.deepEqual([...document.querySelectorAll('[data-nevos-service]')].map(b=>b.dataset.nevosService),expected);
+ assert.equal(document.querySelectorAll('.nevos-repair button').length,0);
+ for(const line of expected){
+  [...document.querySelectorAll('[data-nevos-service]')].find(b=>b.dataset.nevosService===line).click();
+  assert.equal(document.querySelector('[data-field="work_required"]').value,form.work_required);
+ }
+ assert.equal(form.work_required,'Please keep the keys at reception.\nExisting note\n'+expected.join('\n'));
+ assert.deepEqual(Array.from(form.job_types),['MOT','Other']);
+ document.querySelector('[data-nevos-service]').click();
+ assert.equal(form.work_required.split('\n').filter(line=>line===expected[0]).length,1,'Repeated clicks do not duplicate a requested service');
+ assert.equal(document.querySelectorAll('.nevos-service-button.added').length,5);
+ const description=document.querySelector('[data-field="work_required"]');
+ description.value='Customer edited the notes.';description.oninput({target:description});
+ assert.equal(document.querySelectorAll('.nevos-service-button.added').length,0,'Manual edits update the added indicators');
+ document.querySelector('[data-nevos-service]').click();
+ assert.equal(form.work_required,'Customer edited the notes.\nMini valet £30');
+ form.work_required='';form.job_types=[];context.render();document.querySelector('[data-nevos-service]').click();
+ assert.equal(form.work_required,'Mini valet £30','An empty description gets no leading blank line');
+ assert.deepEqual(Array.from(form.job_types),['Other']);
 });

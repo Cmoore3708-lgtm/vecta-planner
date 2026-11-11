@@ -1,14 +1,17 @@
 import fs from 'node:fs';
 import {closeOwned,createQuoteDelivery,restartRequired} from '../gsf/quote-delivery.mjs';
 import {lookupRepair} from './catalogue.mjs';
+import {createGeneralRepairSession} from './general-repair.mjs';
 const validOrigin=value=>/^https:\/\/[a-z0-9.-]+\.vercel\.app$/.test(value||'');
-export function createRepairBridge({origin,token,gsfContext,openHaynesContext,configPath,lookup=lookupRepair,rpc:providedRpc,log=()=>{},timeoutMs=60000,cleanupMs=4000}){
+export function createRepairBridge({origin,token,gsfContext,openHaynesContext,configPath,lookup,rpc:providedRpc,log=()=>{},timeoutMs=60000,cleanupMs=4000}){
  if(!validOrigin(origin)||!/^[a-f0-9]{64}$/.test(token||''))throw Error('SETTINGS_REQUIRED');
  const rpc=providedRpc||async function(body){
   const response=await fetch(origin+'/api/repair-quote-worker',{method:'POST',redirect:'error',headers:{Authorization:'Bearer '+token,'Content-Type':'application/json'},body:JSON.stringify(body),signal:AbortSignal.timeout(10000)});
   if(response.status===401)throw Error('PAIRING_REQUIRED');if(!response.ok)throw Error('RELAY_UNAVAILABLE');return response.json();
  };
  let haynesContext=null,busy=false,unpaired=false;
+ const general=createGeneralRepairSession();
+ const runLookup=lookup||((pages,request,config)=>lookupRepair(pages,request,config,{general}));
  const delivery=createQuoteDelivery(rpc,{cleanupMs,retryWindowMs:120000});
  return {
   get retiring(){return delivery.retiring;},
@@ -25,7 +28,7 @@ export function createRepairBridge({origin,token,gsfContext,openHaynesContext,co
      // Do not claim/setup a second GSF browser: use the service worker's context.
      gsfPage=await gsfContext.newPage();
      haynesContext||=await openHaynesContext();haynesPage=await haynesContext.newPage();
-     result=await Promise.race([lookup({gsfPage,haynesPage},task.request,config),new Promise((_,reject)=>{timer=setTimeout(()=>reject(Error('LOOKUP_TIMEOUT')),timeoutMs);})]);
+     result=await Promise.race([runLookup({gsfPage,haynesPage},task.request,config),new Promise((_,reject)=>{timer=setTimeout(()=>reject(Error('LOOKUP_TIMEOUT')),timeoutMs);})]);
     }catch(error){
      const code=error.code||error.message;
      status=['CHOICE_REQUIRED','LOGIN_REQUIRED','REVIEW_REQUIRED','LABOUR_REVIEW_REQUIRED','OUT_OF_STOCK'].includes(code)?code:['SETTINGS_REQUIRED','ENOENT'].includes(code)?'SETTINGS_REQUIRED':'UNAVAILABLE';
@@ -44,6 +47,6 @@ export function createRepairBridge({origin,token,gsfContext,openHaynesContext,co
    }
    finally{busy=false;}
   },
-  async close(){await closeOwned([haynesContext],cleanupMs);}
+  async close(){general.clear();await closeOwned([haynesContext],cleanupMs);}
  };
 }

@@ -24,7 +24,7 @@ try{
    page=await context.newPage();
    for(let attempt=0;attempt<3;attempt++){
     try{
-     const result=await Promise.race([lookupGeneralHaynes(page,request),new Promise((_,reject)=>{timer=setTimeout(()=>{void page.close().finally(()=>reject(Object.assign(Error('LOOKUP_TIMEOUT'),{code:'LOOKUP_TIMEOUT'})));},90000);})]);
+     const result=await Promise.race([lookupGeneralHaynes(page,request),new Promise((_,reject)=>{timer=setTimeout(()=>{void Promise.allSettled([page.close()]).then(()=>reject(Object.assign(Error('LOOKUP_TIMEOUT'),{code:'LOOKUP_TIMEOUT'})));},90000);})]);
      report.status='PASSED_LABOUR_ONLY';report.labour=result.labour;report.variant=result.variant;
      console.log(result.labour.operationLabel+' — '+(result.labour.hoursMilli/1000)+' hours from Haynes.');break;
     }catch(error){

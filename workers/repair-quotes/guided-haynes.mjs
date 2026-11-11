@@ -33,7 +33,7 @@ export async function lookupHaynesChoices(page,request,{vehicle,selectedPart,now
  // Navigation and tree expansion fetch content asynchronously. Read every
  // same-origin frame, waiting for stable nonempty content before offering it.
  const wait=async({changedFrom='',allowSearch=false,attempts=60}={})=>{
-  let previous='',stable=0;
+  let previous='',stable=0,lastReadReason='';
   for(let attempt=0;attempt<attempts;attempt++){
    check();const available=[],captures=[],searches=[];let busy=false;
    for(const frame of page.frames()){
@@ -45,13 +45,18 @@ export async function lookupHaynesChoices(page,request,{vehicle,selectedPart,now
     busy||=state.busy||state.readyState==='loading';
     available.push(...state.menus.map(m=>({...m,frame})));searches.push(...state.searches.map(s=>({...s,frame})));
     try{captures.push(...await frame.evaluate(readAlternatorTime,{operationPattern:'\\b(?:Renew|Replace|Remove\\s+and\\s+refit)\\b',allowMultiple:true}));}
-    catch(error){if(/MULTIPLE_TIMES/.test(error.message||''))reject('AMBIGUOUS_TIME_ROW');}
+    catch(error){
+     const reason=(error.message||'').match(/LABOUR_REVIEW_REQUIRED:([A-Z_]+)/)?.[1];
+     if(reason==='MULTIPLE_TIMES')reject('AMBIGUOUS_TIME_ROW');
+     if(reason==='INVALID_TIME')reject('HAYNES_INVALID_TIME_ROW');
+     if(['TIME_NOT_FOUND','HOURS_UNIT_NOT_CONFIRMED'].includes(reason)){lastReadReason=reason;busy=true;}
+    }
    }
    check();const options=haynesLabourOptions(captures,request,query),signature=JSON.stringify([available.map(({frame,...m})=>m),options.map(o=>o.id)]),contentSignature=JSON.stringify([available.map(({label,selector})=>({label,selector})),options.map(o=>o.id)]);
    if(!busy&&(available.length||options.length||allowSearch&&searches.length)&&contentSignature!==changedFrom){stable=signature===previous?stable+1:1;if(stable>=3)return {available,options,searches,signature,contentSignature};}else stable=0;
    previous=signature;if(attempt+1<attempts)await page.waitForTimeout(200);
   }
-  reject(changedFrom?'HAYNES_REPAIR_GROUP_DID_NOT_OPEN':'HAYNES_REPAIR_TREE_NOT_READABLE');
+  reject(lastReadReason?'HAYNES_'+lastReadReason:changedFrom?'HAYNES_REPAIR_GROUP_DID_NOT_OPEN':'HAYNES_REPAIR_TREE_NOT_READABLE');
  };
  let state=await wait();
  // Reopen only the headings selected by the user, re-discovered after each

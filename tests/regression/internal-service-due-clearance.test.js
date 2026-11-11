@@ -43,6 +43,7 @@ test('completing an internal On-Site Service advances its Fleet plan by 12 month
     isOnSiteService: () => true, fleetVehicleForRegistration: () => vehicle,
     fleetIsMaintenanceRemoved: () => false, completedJobDateForFleet: () => '2026-09-24',
     currentServiceTypeForJob: () => 'Service', fleetDate: p => p.currentDueDate,
+    fleetPlannerJobCategories: () => ({ service: true }),
     fleetMaintenanceCategory: () => 'service',
     fleetAddMonthsFromDue: () => '2027-09-24',
     serviceSheetDate: x => x, saveFleet: () => {},

@@ -9,3 +9,29 @@ export async function lookupGeneralRepair({gsfPage,haynesPage},raw,{gsf=lookupGe
  catch(error){error.supplier||='Haynes';if(error.code==='CHOICE_REQUIRED')error.result.selectedPart=part.part;throw error;}
  return cleanRepairEvidence({request,scope,variant:time.variant,fitmentEvidence:part.fitmentEvidence,catalogueComplete:part.catalogueComplete,parts:[{...part.part,variant:time.variant}],labour:time.labour,checkedAt:new Date(now()).toISOString()},request,{now:now()});
 }
+
+// One worker's short-lived part selections. No disk/DB cache and no cached
+// final quotes: selecting a labour operation always triggers a fresh GSF read.
+export function createGeneralRepairSession({gsf=lookupGeneralGSF,haynes=lookupGeneralHaynes,now=Date.now}={}){
+ const parts=new Map(),ttlMs=5*60*1000,maxEntries=8;
+ const keyFor=r=>r.flow==='guided-v1'&&r.choices.part?JSON.stringify([r.registration,r.work,r.operation,r.quantity,r.choices.gsfCategory||'',r.choices.part]):null;
+ const reusable=(value,r,at)=>{
+  const p=value?.part,checked=Date.parse(p?.checkedAt);
+  return value?.catalogueComplete===true&&p?.source==='GSF'&&p.registration===r.registration&&p.choiceId===r.choices.part&&p.fitmentConfirmed===true&&p.vatBasis==='EX_VAT'&&typeof p.inStock==='boolean'&&Number.isFinite(checked)&&checked<=at&&at-checked<ttlMs;
+ };
+ const lookup=(pages,raw)=>lookupGeneralRepair(pages,raw,{now,haynes,gsf:async(page,r,options)=>{
+  const at=now(),key=keyFor(r),final=!!r.choices?.labour;
+  for(const [k,entry] of parts)if(at<entry.at||at-entry.at>=ttlMs)parts.delete(k);
+  const entry=key&&parts.get(key);
+  if(!final&&entry&&reusable(entry.value,r,at))return structuredClone(entry.value);
+  if(key)parts.delete(key);
+  const value=await gsf(page,r,options);
+  if(key&&!final&&reusable(value,r,now())){
+   parts.set(key,{at:now(),value:structuredClone(value)});
+   while(parts.size>maxEntries)parts.delete(parts.keys().next().value);
+  }
+  return value;
+ }});
+ lookup.clear=()=>parts.clear();
+ return lookup;
+}

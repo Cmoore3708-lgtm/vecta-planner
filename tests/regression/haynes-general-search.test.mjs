@@ -89,3 +89,11 @@ test('multiple renew operations are explicit choices and changed hours cannot re
  const stale=repairRequest({...request,choices:{...request.choices,labour:choices[0].id}}),changed=pageFixture({rows:row('1FX00000001','Renew the radiator','+2.10')});
  await assert.rejects(lookupHaynesChoices(changed.page,stale,{vehicle,selectedPart}),e=>e.code==='CHOICE_REQUIRED'&&e.result.options[0].hoursMilli===2100);
 });
+
+test('unpriced or invalid replacement rows do not fall back to unrelated menu choices',async()=>{
+ const request=repairRequest({registration:'AB12CDE',work:'Supply and fit radiator',flow:'guided-v1',choices:{part:'a'.repeat(32)}}),selectedPart={description:'radiator'};
+ for(const [time,reason] of [['','HAYNES_TIME_NOT_FOUND'],['-1.90','HAYNES_INVALID_TIME_ROW']]){
+  const f=pageFixture({rows:row('1FX00000001','Renew the radiator',time)+'<li><span>Cooling system</span></li>'});
+  await assert.rejects(lookupHaynesChoices(f.page,request,{vehicle,selectedPart}),e=>e.detail===reason);
+ }
+});
