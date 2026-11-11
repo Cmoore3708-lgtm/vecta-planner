@@ -242,3 +242,42 @@ Regression tests cover the duplicated prefix across several part families,
 multi-part rejection, browser parity, retries, cancellation and preservation of
 the selected GSF part during Haynes refinement. Live GSF-to-Haynes verification
 is still outstanding.
+
+## Workshop-PC report: two parsed radiator groups
+
+The next v7 report reached the correct category and captured two product groups,
+their prices, explicit out-of-stock placeholders and one Branch Network option.
+Automatic and optional manual diagnostics agree. Both group descriptions were
+empty because the rendered titles were not recognised heading elements. The
+first group also contained a separate h6 repeating one parsed card's price, so
+counting every currency value as a distinct option made it incomplete. Neither
+group exposed a product-detail anchor. The run stopped before offering a part
+choice and before Haynes; the captured amounts are not approved quotes.
+
+Version `2026-11-11-product-cards-v8` uses the unanimous actual alternative
+description when a group has no heading. It accounts for at most one separate
+heading that repeats a parsed price outside the alternatives container. Unknown
+prices, extra cards, contradictory descriptions and ambiguous group boundaries
+continue to require review. Unavailable groups remain in the completeness check
+but do not trigger unnecessary attribute reads or become offered parts.
+
+The price text, neighbouring brand logo and any selection control are kept in
+one card. A trusted GSF brand-logo filename may label the choice; it never
+supplies a manufacturer SKU. After the explicit choice, the reader waits for
+stable group evidence while checking the vehicle and category. When a semantic
+radio is present, its checked state must match the choice. For drawn circles,
+the click alone is not selection evidence: a unique matching option and a brand
+identity are required, followed by independent product-detail verification.
+
+If no anchor exists, the existing calibrated detail-route helper uses the full
+observed GSF SKU from the refreshed group. Existing links must match that SKU;
+ambiguous links or invalid SKUs stop. The fresh product must match the chosen
+description, brand when available, price, stock/quantity, VAT basis and SKU.
+There is no part-family whitelist or guessed manufacturer-code mapping.
+
+Synthetic fixtures reproduce the report's text/price/group shape, including
+plain titles, missing anchors, repeated headings, placeholders and the single
+available option. They also test changed product identity/prices/stock and
+selection controls. Their DOM structure is synthetic, not a captured live page.
+The next workshop-PC run still needs to verify actual selection, product-detail
+layout, fitment and Haynes labour. Main and activation settings remain unchanged.

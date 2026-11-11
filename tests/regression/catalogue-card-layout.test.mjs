@@ -1,0 +1,83 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {parseHTML} from 'linkedom';
+import {readRepairGroups,selectedRepairProduct,waitForSelectedRepairProduct,lookupGeneralGSF} from '../../workers/repair-quotes/general-gsf.mjs';
+import {repairRequest} from '../../lib/repair-quote.js';
+
+// Synthetic structure using the observed v7 card texts and missing headings /
+// links. It is not a captured supplier DOM or a live compatibility assertion.
+const card=(price,stock,brand='ava',description='Radiator',radio='')=>`<div class="choice">${radio}<img alt="" src="https://gsfappstorage.blob.core.windows.net/catalogue-assets/Brands/${brand}.svg"><div>£${price} <span>${price==='0.00'?'Bronze':'Gold'}</span> ${description} <span>${stock}</span></div></div>`;
+const unavailable=()=>card('0.00','Out Of Stock','','');
+const group=(sku,body,summary='')=>`<section><p>Radiator</p><p>SKU: ${sku}</p><button>Attributes</button><div class="alternatives">${body}</div>${summary}</section>`;
+const fixture=()=>group('AVAFIX100',card('124.40','Out Of Stock')+card('152.16','Out Of Stock','other')+unavailable().repeat(5),'<h6>£124.40</h6>')+group('AVAFIX200',card('113.97','Branch Network')+card('165.31','Out Of Stock','other')+unavailable().repeat(4));
+const doc=html=>parseHTML('<html><body><main>'+html+'</main></body></html>').document;
+const read=html=>readRepairGroups(doc(html));
+
+test('plain titles, duplicated price headings and unavailable placeholders retain the two observed groups',()=>{
+ const result=read(fixture());assert.equal(result.complete,true);assert.equal(result.groups.length,2);
+ assert.deepEqual(result.groups.map(g=>g.description),['Radiator','Radiator']);
+ assert.deepEqual(result.groups.map(g=>g.summaryPriceCount),[1,0]);
+ assert.deepEqual(result.groups.map(g=>g.unavailableCount),[5,4]);
+ assert.deepEqual(result.groups.flatMap(g=>g.options.filter(o=>o.inStock).map(o=>[g.sku,o.brand,o.pricePence])),[['AVAFIX200','ava',11397]]);
+ assert.equal(result.groups[1].links.length,0);
+});
+test('only a single separate duplicate heading is excluded; unknown or extra cards still fail',()=>{
+ const body=card('124.40','NDC')+card('152.16','RDC','other');
+ for(const summary of ['<h6>£99.00</h6>','<h6>£124.40</h6><h6>£124.40</h6>','<div>£124.40 Unknown option</div>'])assert.equal(read(group('AVAFIX100',body,summary)).complete,false);
+ assert.equal(read(group('AVAFIX100',body+'<h6>£124.40</h6>')).complete,false);
+ assert.equal(read(group('AVAFIX100',body+card('0.00','NDC','',''))).complete,false);
+ const mixed=read(group('AVAFIX100',body+card('10.00','RDC','third','Radiator Cap')));assert.equal(mixed.complete,false);assert.equal(mixed.groups[0].description,'');
+});
+test('radio/image siblings stay with their card, and a stale checked attribute cannot override live state',()=>{
+ const d=doc(group('AVAFIX100',card('124.40','NDC','ava','Radiator','<input type="radio" checked>')+card('152.16','RDC','other','Radiator','<input type="radio">')));
+ let result=readRepairGroups(d);assert.equal(result.groups[0].options[0].selected,true);assert.equal(result.groups[0].options[0].brand,'ava');
+ assert.equal(d.querySelector(result.groups[0].options[0].selector).querySelectorAll('input').length,1);
+ Object.defineProperty(d.querySelector('input'),'checked',{value:false});result=readRepairGroups(d);assert.equal(result.groups[0].options[0].selected,false);
+});
+test('the observed full SKU supplies the calibrated detail route when there is no product link',()=>{
+ const g=read(fixture()).groups[1],option=g.options[0];
+ assert.equal(selectedRepairProduct(g,option).url,'https://trade.gsfcarparts.com/partdetails/AVAFIX200');
+ for(const sku of ['', '../basket','WRONG/CODE','https://example.test'])assert.throws(()=>selectedRepairProduct({...g,sku},option),e=>e.detail==='SELECTED_PRODUCT_SKU_MISSING');
+ assert.throws(()=>selectedRepairProduct({...g,links:['/partdetails/OTHER']},option),/PRODUCT_LINK_UNCONFIRMED/);
+ assert.throws(()=>selectedRepairProduct({...g,links:['/partdetails/AVAFIX200','/partdetails/OTHER']},option),e=>e.detail==='SELECTED_PRODUCT_LINK_AMBIGUOUS');
+ assert.throws(()=>selectedRepairProduct({...g,options:[{...option,brand:''}]},{...option,brand:''}),e=>e.detail==='SELECTED_PRODUCT_BRAND_MISSING');
+ assert.throws(()=>selectedRepairProduct({...g,options:[option,option]},option),e=>e.detail==='SELECTED_OPTION_NOT_CONFIRMED');
+ assert.equal(selectedRepairProduct({...g,sku:'MANW123/4',links:['/partdetails/MANW123%2F4']},option).url,'https://trade.gsfcarparts.com/partdetails/MANW123%2F4');
+});
+test('semantic selection evidence must match; an unrelated checked card cannot establish selection',()=>{
+ const g=read(fixture()).groups[1],option=g.options[0];
+ assert.throws(()=>selectedRepairProduct({...g,options:g.options.map((o,i)=>({...o,selectionControlPresent:true,selected:i===1}))},option),e=>e.detail==='SELECTED_OPTION_NOT_CONFIRMED');
+ const selected={...g,options:g.options.map((o,i)=>({...o,selectionControlPresent:true,selected:i===0}))};
+ assert.equal(selectedRepairProduct(selected,option).searchTerm,'AVAFIX200');
+});
+test('selection waits for stable refreshed SKU evidence and keeps checking the vehicle',async()=>{
+ const group=read(fixture()).groups[1],option=group.options[0];let tick=0;
+ const page={url:()=> 'https://trade.gsfcarparts.com/parts/848',waitForTimeout:async()=>{tick++;},evaluate:async fn=>fn.name==='readServiceCategory'?{registration:'AB12CDE',selectedRegistration:true}:{complete:true,groups:[{...group,sku:tick<2?'AVAFIXOLD':'AVAFIX200'}]}};
+ assert.equal((await waitForSelectedRepairProduct(page,'AB12CDE','848',group,option)).target.searchTerm,'AVAFIX200');assert.equal(tick,5);
+ page.evaluate=async()=>({registration:'WRONG',selectedRegistration:false});await assert.rejects(waitForSelectedRepairProduct(page,'AB12CDE','848',group,option),e=>e.detail==='VEHICLE_CHANGED');
+});
+function lookupFixture(){
+ let url='https://trade.gsfcarparts.com/',productOverride={};const events=[],document=doc(fixture());
+ const request=repairRequest({registration:'AB12CDE',work:'Supply and fit radiator',flow:'guided-v1'});
+ const page={url:()=>url,goto:async value=>{url=value;events.push(value);},waitForTimeout:async()=>{},keyboard:{press:async()=>{}},locator:selector=>({count:async()=>1,isVisible:async()=>true,fill:async()=>{},click:async()=>{events.push(document.querySelector(selector)?.textContent?.trim()||selector);},evaluateAll:async()=>[{href:'/parts/848',text:'Radiator'}]}),evaluate:async(fn,input)=>{
+  if(fn.name==='readCatalogueSearchState')return {fields:[{catalogue:true,selector:'#search'}]};
+  if(fn.name==='readRepairGroups')return readRepairGroups(document);
+  if(fn.name==='readServiceCategory')return {status:'CAPTURED_FOR_REVIEW',registration:request.registration,selectedRegistration:true,visibleText:'Fixture vehicle'};
+  if(fn.name==='readServiceAttributes')return {status:'ATTRIBUTES_CAPTURED',rows:[{attribute:'Core width',value:'Fixture width'}]};
+  if(fn.name==='readProductDialog')return {unitNetPence:11397,description:'Radiator',brand:'AVA',sku:'FIX200',inStock:true,stock:[{quantity:1}],vatBasis:'EX_VAT',...productOverride};
+  throw Error('Unexpected reader '+fn.name);
+ }};
+ const deps={selectVehicle:async()=>({registration:request.registration,selectedRegistration:true})};
+ return {request,page,deps,events,changeProduct:value=>{productOverride=value;}};
+}
+test('observed catalogue shape offers its available part, then verifies the selected SKU without an anchor',async()=>{
+ const f=lookupFixture();let options;
+ await assert.rejects(lookupGeneralGSF(f.page,f.request,f.deps),e=>{options=e.result?.options;return e.code==='CHOICE_REQUIRED'&&e.result.stage==='GSF_PART';});
+ assert.equal(options.length,1);assert.equal(options[0].costPence,11397);
+ const selected=repairRequest({...f.request,choices:{part:options[0].id}}),result=await lookupGeneralGSF(f.page,selected,f.deps);
+ assert.equal(result.part.sku,'FIX200');assert.equal(result.part.costPence,11397);assert.equal(result.part.brand,'AVA');
+ assert.ok(f.events.includes('https://trade.gsfcarparts.com/partdetails/AVAFIX200'));
+ for(const changed of [{unitNetPence:11398},{brand:'OTHER'},{sku:'WRONG'},{inStock:false},{stock:[{quantity:0}]},{vatBasis:'INC_VAT'}]){
+  f.changeProduct(changed);await assert.rejects(lookupGeneralGSF(f.page,selected,f.deps),e=>e.detail==='SELECTED_PRODUCT_CHANGED');
+ }
+});

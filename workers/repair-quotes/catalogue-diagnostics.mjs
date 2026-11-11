@@ -24,5 +24,5 @@ export function readRepairCardDiagnostics(doc=document){
 export async function captureCatalogueDiagnostics(page,query){
  const catalogue=await page.evaluate(readRepairGroups);
  return {observedCategory:observedCategory(page.url()),...await page.evaluate(readCatalogueResults,{query}),searchControls:await page.evaluate(readCatalogueSearchState),priceCards:await page.evaluate(readRepairCardDiagnostics),
-  catalogue:{complete:catalogue.complete,groupCount:catalogue.groups.length,groups:catalogue.groups.slice(0,40).map(g=>({sku:g.sku,description:g.description,parsedAll:g.parsedAll,unavailableCount:g.unavailableCount,hasAttributes:!!g.attributesSelector,productLinkCount:g.links.length,options:g.options.slice(0,20).map(({description,brand,grade,pricePence,inStock})=>({description,brand,grade,pricePence,inStock}))}))}};
+  catalogue:{complete:catalogue.complete,groupCount:catalogue.groups.length,groups:catalogue.groups.slice(0,40).map(g=>({sku:g.sku,description:g.description,parsedAll:g.parsedAll,unavailableCount:g.unavailableCount,summaryPriceCount:g.summaryPriceCount,hasAttributes:!!g.attributesSelector,productLinkCount:g.links.length,options:g.options.slice(0,20).map(({description,brand,grade,pricePence,inStock,selected,selectionControlPresent})=>({description,brand,grade,pricePence,inStock,selected,selectionControlPresent}))}))}};
 }

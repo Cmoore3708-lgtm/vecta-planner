@@ -1,5 +1,5 @@
 import {readServiceCategory,readServiceAttributes} from '../gsf/service-capture.mjs';
-import {readProductDialog,openSelectedProduct} from '../gsf/product-dialog.mjs';
+import {readProductDialog,openSelectedProduct,selectedProductUrl} from '../gsf/product-dialog.mjs';
 import {repairScope} from '../../lib/repair-quote.js';
 import {choiceId,requireChoice} from './choice-result.mjs';
 import {findCatalogueSearch} from './catalogue-search.mjs';
@@ -23,10 +23,10 @@ export function readRepairGroups(doc=document){
  for(const sku of skus){
   let group=sku;
   for(let parent=sku.parentElement;parent&&parent!==main&&skus.filter(s=>parent.contains(s)).length===1;parent=parent.parentElement)group=parent;
-  const headings=[...group.querySelectorAll('h2,h3,h4,h5')].filter(visible).map(n=>clean(text(n))).filter(s=>s&&!/^£|^(Fitment|Attributes)$/i.test(s));
-  const descriptions=[...new Set(headings)];
+  const headings=[...group.querySelectorAll('h1,h2,h3,h4,h5,h6')].filter(visible).map(n=>clean(text(n))).filter(s=>s&&!/^£|^(Fitment|Attributes)$/i.test(s));
+  let descriptions=[...new Set(headings)];
   const attributes=[...group.querySelectorAll('button')].filter(visible).filter(n=>clean(text(n))==='Attributes');
-  const options=[];let unavailableCount=0;
+  const options=[],cards=[];let unavailableCount=0;
   const optionMatch=value=>{
    if((value.match(/£\s*\d/g)||[]).length!==1)return null;
    return value.match(/^£\s*(\d+(?:,\d{3})*\.\d{2})\s+(.*?)\b(Gold|Silver|Bronze)(?:\s+(.+?))?\s+(Local Branch|RDC|NDC|Branch Network|Out Of Stock)$/i);
@@ -35,17 +35,37 @@ export function readRepairGroups(doc=document){
    const t=clean(text(n));
    const m=optionMatch(t);
    if(!m||[...n.children].some(c=>optionMatch(clean(text(c)))))continue;
+   // A radio and brand image can be siblings of the price/text div. Keep the
+   // whole observed card, stopping before any other card or the SKU header.
+   let card=n;
+   while(card.parentElement&&card.parentElement!==group&&clean(text(card.parentElement))===t)card=card.parentElement;
    const price=Math.round(Number(m[1].replaceAll(',',''))*100);
    // Calibrated GSF unavailable cards omit a description and display £0.00.
    // Count them only with explicit Out Of Stock evidence; never offer £0 parts.
-   if(price===0&&!m[4]&&/^Out Of Stock$/i.test(m[5])){unavailableCount++;continue;}
+   if(price===0&&!m[4]&&/^Out Of Stock$/i.test(m[5])){unavailableCount++;cards.push(card);continue;}
    if(!Number.isSafeInteger(price)||price<=0||!m[4])continue;
-   options.push({selector:selector(n),pricePence:price,description:m[4],grade:m[3],brand:[...n.querySelectorAll('img[alt]')].map(i=>i.getAttribute('alt')).filter(Boolean).join(' ').slice(0,80),inStock:!/^Out Of Stock$/i.test(m[5])});
+   cards.push(card);
+   const radios=[...card.querySelectorAll('input[type="radio"],[role="radio"]')];
+   const selected=radios.length===1&&(radios[0].tagName==='INPUT'?(typeof radios[0].checked==='boolean'?radios[0].checked:radios[0].hasAttribute('checked')):radios[0].getAttribute('aria-checked')==='true');
+   const logos=[...card.querySelectorAll('img[src]')].map(img=>{try{const url=new URL(img.getAttribute('src'));return url.origin==='https://gsfappstorage.blob.core.windows.net'?url.pathname.match(/^\/catalogue-assets\/Brands\/([a-z0-9_-]{1,60})\.(?:svg|png|webp)$/i)?.[1]||'':'';}catch{return '';}}).filter(Boolean);
+   const brands=[...new Set(logos)];
+   const brand=brands.length===1?brands[0].replace(/[_-]/g,' '):[...card.querySelectorAll('img[alt]')].map(i=>i.getAttribute('alt')).filter(Boolean).join(' ').slice(0,80);
+   options.push({selector:selector(card),pricePence:price,description:m[4],grade:m[3],brand,selected,selectionControlPresent:radios.length>0,inStock:!/^Out Of Stock$/i.test(m[5])});
   }
+  // Some catalogue titles are plain text rather than HTML headings. Use only
+  // the unanimous description actually present on the priced alternatives.
+  if(!descriptions.length)descriptions=[...new Set(options.map(o=>o.description))];
   const links=[...group.querySelectorAll('a[href]')].map(a=>a.getAttribute('href')).filter(h=>/^(?:https:\/\/trade\.gsfcarparts\.com)?\/partdetails\//.test(h));
-  const gradeCount=[...group.querySelectorAll('*')].filter(visible).filter(n=>/^(?:Gold|Silver|Bronze)$/i.test(clean(text(n)))&&!n.children.length).length;
+  const gradeNodes=[...group.querySelectorAll('*')].filter(visible).filter(n=>/^(?:Gold|Silver|Bronze)$/i.test(clean(text(n)))&&!n.children.length),gradeCount=gradeNodes.length;
+  let list=cards[0];
+  while(list&&!cards.concat(gradeNodes).every(n=>list.contains(n)))list=list.parentElement;
+  const listConfirmed=!!list&&list!==group&&!list.contains(sku);
+  // A separate heading repeats an already-parsed card price. It is outside
+  // the alternatives list and supplies neither another option nor selection
+  // evidence. Unknown prices and any extra grade/card still require review.
+  const summaries=listConfirmed?[...group.querySelectorAll('h1,h2,h3,h4,h5,h6')].filter(visible).filter(n=>!list.contains(n)&&/^£\s*\d+(?:,\d{3})*\.\d{2}$/.test(clean(text(n)))&&options.some(o=>o.pricePence===Math.round(Number(clean(text(n)).replace(/[£,\s]/g,''))*100))):[];
   const priceCount=(text(group).match(/£\s*\d/g)||[]).length,parsedCount=options.length+unavailableCount;
-  groups.push({parsedAll:gradeCount>0&&gradeCount===parsedCount&&priceCount===parsedCount,unavailableCount,selector:selector(group),sku:clean(text(sku)).replace(/^SKU:\s*/i,''),description:descriptions.length===1?descriptions[0]:'',attributesSelector:attributes.length===1?selector(attributes[0]):'',options,links:[...new Set(links)]});
+  groups.push({parsedAll:gradeCount>0&&gradeCount===parsedCount&&priceCount===parsedCount+summaries.length&&summaries.length<=1,unavailableCount,summaryPriceCount:summaries.length,selector:selector(group),sku:clean(text(sku)).replace(/^SKU:\s*/i,''),description:descriptions.length===1?descriptions[0]:'',attributesSelector:attributes.length===1?selector(attributes[0]):'',options,links:[...new Set(links)]});
  }
  const moreSelectors=pagination.filter(n=>/^show more$/i.test(clean(text(n)))&&groups.some(g=>doc.querySelector(g.selector)?.contains(n))).map(selector);
  return {complete:!loading&&!pagination.length&&groups.length>0&&groups.length<=40&&groups.every(g=>g.parsedAll&&g.description&&(g.options.length||g.unavailableCount)),groups,moreSelectors};
@@ -89,6 +109,41 @@ export async function waitForRepairGroups(page,registration,category,{attempts=1
  }
  reject('CATALOGUE_INCOMPLETE');
 }
+function sameOption(a,b){return a.pricePence===b.pricePence&&a.description===b.description&&a.grade===b.grade&&a.brand===b.brand;}
+export function selectedRepairProduct(group,option){
+ const matches=group?.options.filter(o=>sameOption(o,option)&&o.inStock)||[],chosen=group?.options.filter(o=>o.selected)||[];
+ if(matches.length!==1)reject('SELECTED_OPTION_NOT_CONFIRMED');
+ if(group.options.some(o=>o.selectionControlPresent||o.selected)){
+  if(chosen.length!==1||!sameOption(chosen[0],option))reject('SELECTED_OPTION_NOT_CONFIRMED');
+ }else if(!option.brand)reject('SELECTED_PRODUCT_BRAND_MISSING');
+ const skuPattern=group.links.length?/^[A-Za-z0-9][A-Za-z0-9._/-]{1,99}$/:/^[A-Za-z0-9][A-Za-z0-9._-]{1,99}$/;
+ if(!skuPattern.test(group.sku||'')||group.sku.split('/').some(s=>!s||s==='.'||s==='..'))reject('SELECTED_PRODUCT_SKU_MISSING');
+ if(group.links.length>1)reject('SELECTED_PRODUCT_LINK_AMBIGUOUS');
+ const target={searchTerm:group.sku,...(group.links.length?{detailUrl:new URL(group.links[0],'https://trade.gsfcarparts.com').href}:{})};
+ // Some cards use drawn circles rather than semantic radios. In that case the
+ // click is not proof of selection: the observed SKU's fresh product details
+ // must match the chosen brand, description, price, stock and VAT before use.
+ // Never manufacture a SKU from the brand logo.
+ return {...target,url:selectedProductUrl(target)};
+}
+export async function waitForSelectedRepairProduct(page,registration,category,group,option,{attempts=40}={}){
+ let previous='',stable=0;
+ for(let i=0;i<attempts;i++){
+  checkCataloguePage(page,category);
+  const vehicle=await page.evaluate(readServiceCategory,{registration,category});
+  if(!vehicle.selectedRegistration||vehicle.registration!==registration)reject('VEHICLE_CHANGED');
+  const snapshot=await page.evaluate(readRepairGroups),selected=snapshot.groups.find(g=>g.selector===group.selector);
+  if(snapshot.complete&&selected){
+   try{
+    const target=selectedRepairProduct(selected,option),signature=JSON.stringify(selected);
+    stable=signature===previous?stable+1:1;previous=signature;
+    if(stable>=4)return {group:selected,target};
+   }catch(error){if(error.detail!=='SELECTED_OPTION_NOT_CONFIRMED')throw error;stable=0;previous='';}
+  }else{stable=0;previous='';}
+  if(i+1<attempts)await page.waitForTimeout(200);
+ }
+ reject('SELECTED_OPTION_NOT_CONFIRMED');
+}
 export function repairFitment(rows,scope){
  const values=(rows||[]).filter(r=>/^fitting position$/i.test(r.attribute)).map(r=>String(r.value).toLowerCase());
  if(!scope.axle&&values.some(v=>/\b(?:front|rear)\b/.test(v)))return false;
@@ -113,6 +168,7 @@ export async function lookupGeneralGSF(page,request,{capture=captureRepairCatalo
  let snapshot=await waitForRepairGroups(page,request.registration,category);
  const candidates=[];let matchingGroups=0;
  for(const group of snapshot.groups){
+  if(!group.options.some(option=>option.inStock))continue;
   if(!request.flow&&!repairScope.matchesDescription(group.description,scope.query))reject('WRONG_CATEGORY_PRODUCT');
   let rows=[];
   if(group.attributesSelector||scope.axle||scope.side||request.quantity>1){
@@ -143,19 +199,15 @@ export async function lookupGeneralGSF(page,request,{capture=captureRepairCatalo
  if(!request.flow&&!repairScope.matchesDescription(option.description,scope.query))reject('OPTION_DESCRIPTION_MISMATCH');
  // Use the actual rendered choice, then re-read its selected SKU. A group's
  // original/default SKU is never assigned to another brand's cheaper option.
- await page.locator(option.selector).click({timeout:8000});await page.waitForTimeout(300);
- snapshot=await page.evaluate(readRepairGroups);
- const selected=snapshot.groups.find(g=>g.selector===group.selector);
- if(!selected||selected.links.length!==1)reject('SELECTED_PRODUCT_LINK_MISSING');
- const stillSelected=await page.evaluate(readServiceCategory,{registration:request.registration,category});
- if(!stillSelected.selectedRegistration||stillSelected.registration!==request.registration)reject('VEHICLE_CHANGED');
- const url=new URL(selected.links[0],'https://trade.gsfcarparts.com');
- const searchTerm=decodeURIComponent(url.pathname.slice('/partdetails/'.length));
- await openSelectedProduct(page,{detailUrl:url.href,searchTerm});
+ await page.locator(option.selector).click({timeout:8000});
+ const selected=await waitForSelectedRepairProduct(page,request.registration,category,group,option);
+ const {searchTerm,url,...target}=selected.target;
+ await openSelectedProduct(page,{...target,searchTerm});
  let product;
  for(let i=0;i<40;i++){try{product=await page.evaluate(readProductDialog);break;}catch{await page.waitForTimeout(200);}}
- if(!product||product.unitNetPence!==option.pricePence||product.description.toLowerCase()!==option.description.toLowerCase()||product.inStock!==true||!product.stock?.some(row=>row.quantity>=request.quantity)||product.vatBasis!=='EX_VAT'||!searchTerm.toUpperCase().endsWith(product.sku.toUpperCase()))reject('SELECTED_PRODUCT_CHANGED');
- return {vehicle:vehicle.visibleText.split(' Copy VIN')[0].slice(0,250),fitmentEvidence:'GSF registration '+request.registration+'; '+scope.label+'; catalogue position attributes checked',catalogueComplete:true,alternativesChecked:candidates.length,part:{source:'GSF',registration:request.registration,fitmentConfirmed:true,vatBasis:'EX_VAT',sku:product.sku,brand:product.brand,description:product.description,costPence:product.unitNetPence,corePence:0,inStock:true,imageUrl:product.imageUrl,gsfUrl:url.href,checkedAt:new Date(now()).toISOString(),...(request.flow?{choiceId:request.choices.part}:{})}};
+ const brandKey=value=>String(value||'').toLowerCase().replace(/[^a-z0-9]/g,'');
+ if(!product||product.unitNetPence!==option.pricePence||product.description.toLowerCase()!==option.description.toLowerCase()||option.brand&&brandKey(product.brand)!==brandKey(option.brand)||product.inStock!==true||!product.stock?.some(row=>row.quantity>=request.quantity)||product.vatBasis!=='EX_VAT'||!searchTerm.toUpperCase().endsWith(product.sku.toUpperCase()))reject('SELECTED_PRODUCT_CHANGED');
+ return {vehicle:vehicle.visibleText.split(' Copy VIN')[0].slice(0,250),fitmentEvidence:'GSF registration '+request.registration+'; '+scope.label+'; catalogue position attributes checked',catalogueComplete:true,alternativesChecked:candidates.length,part:{source:'GSF',registration:request.registration,fitmentConfirmed:true,vatBasis:'EX_VAT',sku:product.sku,brand:product.brand,description:product.description,costPence:product.unitNetPence,corePence:0,inStock:true,imageUrl:product.imageUrl,gsfUrl:url,checkedAt:new Date(now()).toISOString(),...(request.flow?{choiceId:request.choices.part}:{})}};
 }
 
 export function scopeForFitment(rows,scope){
