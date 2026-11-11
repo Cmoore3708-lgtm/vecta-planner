@@ -22,17 +22,22 @@ test('repair menus exclude navigation, hidden rows, operations and mutating or e
  const d=doc('<nav>'+tree('Cooling')+'</nav><header><h3>Account</h3></header><aside>'+tree('Private')+'</aside>'+tree('Cooling')+'<ul><li hidden><span>Secret</span></li><li><a href="https://other.example/">External</a></li><li><a href="/touch/site/layout/estimate">Estimate</a></li><li><span>Add to estimate</span></li><li><span>Renew radiator</span></li><li><span>Print</span></li><li><span>Buy now</span></li></ul>');
  assert.deepEqual(readRepairMenus(d).map(m=>m.label),['Cooling']);
 });
+test('observed Jobs and note headings never become repair choices, while actual groups remain readable',()=>{
+ const headings='<h2>Jobs</h2><h3>Note</h3><h4>Important note</h4><h3>Total time (H)</h3>';
+ assert.deepEqual(readRepairMenus(doc(headings)),[]);
+ assert.deepEqual(readRepairMenus(doc(headings+tree('Cooling'))).map(m=>m.label),['Cooling']);
+});
 
 function fixture({delay=4,empty=false,login=false,search=false,alreadyExpanded=false,duplicate=false}={}){
- let tick=0,clickedAt=-1,current=url;const clicks=[];
+ let tick=0,clickedAt=-1,current=search?url:url+'&searchedKey=Radiator';const clicks=[];
  const frame={url:()=>current,evaluate:async(fn,input)=>{
   let html=empty?'':tick<delay?'<p>Loading…</p>':tree(duplicate?'Cooling':'Radiator')+(duplicate?tree('Cooling'):'');
-  if(search&&clickedAt<0)html='<input aria-label="Search repair operations">';
+  if(search&&clickedAt<0)html='<div><input aria-label="Search repair operations"><button>Search</button></div>';
   if(alreadyExpanded)html=tree('Cooling').replace('false','true')+operation;
   if(clickedAt>=0){html=tree('Radiator').replace('false','true');if(tick-clickedAt>=5)html+=operation;else if(search)html+='<div aria-busy="true">Loading…</div>';}
   if(login)html='<input type="password" value="SECRET">';
   return fn(input,doc(html));
- },locator:selector=>({click:async()=>{clicks.push(selector);clickedAt=tick;},fill:async value=>clicks.push('search:'+value),press:async()=>{clickedAt=tick;}})};
+ },locator:selector=>({click:async()=>{clicks.push(selector);clickedAt=tick;if(search)current=url+'&searchedKey=Radiator';},fill:async value=>clicks.push('search:'+value),press:async()=>{clickedAt=tick;}})};
  const foreign={url:()=> 'https://other.example/repairTimes',evaluate:async()=>{throw Error('Foreign frame must not be read');}};
  const page={url:()=>current,frames:()=>[frame,foreign],waitForTimeout:async()=>{tick++;}};
  return {page,frame,clicks,tick:()=>tick,redirect:value=>{current=value;}};
@@ -47,7 +52,7 @@ test('delayed menu loading and delayed operation insertion yield real choices af
 });
 test('repair search works inside its same-origin frame and waits for returned operations',async()=>{
  const f=fixture({search:true});await assert.rejects(lookupHaynesChoices(f.page,request,{vehicle,selectedPart}),e=>e.code==='CHOICE_REQUIRED'&&e.result.stage==='HAYNES_LABOUR');
- assert.deepEqual(f.clicks,['search:Radiator']);assert.ok(f.tick()>=7);
+ assert.equal(f.clicks[0],'search:Radiator');assert.equal(f.clicks.length,2);assert.ok(f.tick()>=7);
 });
 test('already expanded user groups are not toggled closed',async()=>{
  const f=fixture({alreadyExpanded:true}),r=repairRequest({...request,choices:{...request.choices,menus:['Cooling']}});

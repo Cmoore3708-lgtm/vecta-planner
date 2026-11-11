@@ -392,3 +392,18 @@ failed supplier's page, allowing a Haynes repair group to be captured when that
 is the failed stage. Synthetic delayed-tree/operation, nested-label, changed
 vehicle, login, ambiguity and diagnostic-privacy tests do not prove the cause
 of the live empty menu or live compatibility. Haynes verification is pending.
+### Latest live Haynes evidence — 11 November, 16:41 UTC
+
+The v12 report returned the four GSF radiator prices in approximately nine seconds and again verified the selected out-of-stock Nissens product. Haynes then offered only `Jobs`, `Note`, and `Important note`; the mechanic selected `Jobs` and the next lookup stopped. The Haynes diagnostic shows a complete, non-busy repairTimes document, no password field, no detected repair search, and `OPERATION_NOT_VISIBLE`. These observations confirm page-heading false positives, not the structure or availability of the actual repair controls. The generic `LOOKUP_UNAVAILABLE` error does not establish the exact subsequent browser failure.
+
+The reader now excludes those observed page headings, with regression coverage retaining actual repair groups. This limited correction does not claim to restore live labour lookup. No further checker package has been issued: the next evidence needed is the actual Haynes radiator operation/repair-group screen, rather than another repeat of GSF. The last delivered checker remains v12.
+
+### Search-first Haynes flow — v13
+
+Chris supplied the repair screen and demonstrated the reusable workflow: enter the item, click Search, then read its Renew operation. The photo exposes the repairTimes QUICKGUIDES destination with `searchedKey` and a `FOLLOW UP` Renew row displaying `+1.90`, alongside separate Check, Clean and Repair rows. The photo establishes the displayed radiator time and search route, not the actual HTML structure or an automated successful capture.
+
+The shared reader now pairs an unlabelled visible text field with its nearby exact Search button. It fills the selected part/refined wording and clicks Search, verifies that the searchedKey and previously verified typeId agree, then waits for results. If no unambiguous accessible pair is found, it uses the observed GET search destination with encoded wording and that verified vehicle. Multiple detected pairs stop for review. No part name or labour time is hardcoded. Actual matching replacement operations remain choices, with different source times invalidating prior selections.
+
+Time parsing accepts attached or separated positive prefixes and decimal commas. It keeps the Renew time within its own operation row, rejects negatives/multiple times and cannot borrow an adjacent Check time or a page total. The non-guided diagnostic recognises FOLLOW UP as a displayed badge when comparing the repair label. Existing legacy alternator tests remain applicable.
+
+CHECK-LABOUR.cmd is a read-only Haynes-only diagnostic using the same verified vehicle navigation, search and time reader. It leaves GSF running, calculates no quote and writes haynes-search-result.local.json. The full checker remains available. The package filename includes v13 to distinguish it from old downloads. Tests model the same search-to-choice-to-evidence flow for sixteen different part descriptions across cooling, brakes, suspension, electrical, fuel, air conditioning, clutch and body systems; these are synthetic fixtures, not live coverage claims. A live automatic Haynes result and broader supplier coverage remain outstanding. Main, flags, migrations and installed workers remain unchanged.

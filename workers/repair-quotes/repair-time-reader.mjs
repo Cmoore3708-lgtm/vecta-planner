@@ -34,8 +34,12 @@ export function readAlternatorTime(input={},doc=globalThis.document){
   for(let node=target,depth=0;node&&depth<8;depth++,node=node.parentElement){
    const label=clean(textOf(node));
    if(label.length>350||(label.match(new RegExp(operation.source,'ig'))||[]).length>1)break;
-   const times=[...label.matchAll(/(?:^|\s)(\d{1,2}[.,]\d{2})(?=\s|$)/g)].map(m=>m[1].replace(',','.'));
    const codes=label.match(/\b[0-9][A-Z0-9]{9,23}\b/g)||[];
+   // Never climb into a neighbouring operation to borrow its time.
+   if(codes.length>1)break;
+   const timeMatches=[...label.matchAll(/(?:^|\s)([+-]?)\s*(\d{1,2}[.,]\d{2})(?=\s|$)/g)];
+   if(timeMatches.some(m=>m[1]==='-'))fail('INVALID_TIME');
+   const times=timeMatches.map(m=>m[2].replace(',','.'));
    if(times.length&&expectedOperationId&&(codes.length!==1||codes[0]!==expectedOperationId))break;
    if(times.length>1){ambiguous=true;break;}
    if(times.length===1){
@@ -46,6 +50,7 @@ export function readAlternatorTime(input={},doc=globalThis.document){
     const identity=operationId||label.toUpperCase();
     matches.set(identity+'|'+times[0],match);break;
    }
+   if(node.matches?.('li,tr,[role="row"]'))break;
   }
  }
  if(ambiguous)fail('MULTIPLE_TIMES');

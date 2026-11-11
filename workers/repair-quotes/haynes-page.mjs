@@ -10,7 +10,10 @@ export function readHaynesRepairPage(input={},doc=globalThis.document){
  const selector=el=>{const parts=[];for(let n=el;n&&n.nodeType===1;n=n.parentElement){const siblings=n.parentElement?[...n.parentElement.children].filter(c=>c.tagName===n.tagName):[n];parts.unshift(n.tagName.toLowerCase()+':nth-of-type('+(siblings.indexOf(n)+1)+')');if(n.tagName==='BODY')break;}return parts.join(' > ');};
  const denied=/\b(?:renew|replace|remove|refit|add|estimate|print|order|basket|cart|checkout|buy|login|logout|sign|save|delete|back|home|help|account|subscription|settings|privacy|cookie)\b|\d{2,}|@/i;
  const nodes=[...doc.querySelectorAll('[aria-expanded],[role="treeitem"],li span,li a,li button,li label,h2,h3,h4')].filter(visible).filter(n=>!n.closest(excluded));
- const candidates=nodes.map(n=>({node:n,label:clean(text(n))})).filter(o=>o.label&&o.label.length<=100&&!denied.test(o.label)&&!/^repair times?$|^total time/i.test(o.label));
+ // These observed page headings are not selectable repair groups. Never
+ // turn the empty jobs panel or explanatory notes into supplier choices.
+ const pageHeading=/^(?:jobs|(?:important )?notes?|repair times?|total time)(?:\s*\([^)]*\))?\s*:?$/i;
+ const candidates=nodes.map(n=>({node:n,label:clean(text(n))})).filter(o=>o.label&&o.label.length<=100&&!denied.test(o.label)&&!pageHeading.test(o.label));
  const menus=[];
  for(const item of candidates){
   // An ARIA tree item and its inner label describe one control. Distinct
@@ -21,7 +24,19 @@ export function readHaynesRepairPage(input={},doc=globalThis.document){
   const expansion=item.node.closest('[aria-expanded]');
   menus.push({label:item.label,selector:selector(item.node),expanded:expansion?.getAttribute('aria-expanded')==='true'});
  }
- const searches=[...doc.querySelectorAll('input:not([type="password"])')].filter(visible).filter(n=>!n.closest('nav,header,footer,aside')).map(n=>({selector:selector(n),label:clean([n.getAttribute('aria-label'),n.getAttribute('placeholder'),n.getAttribute('title')].filter(Boolean).join(' '))})).filter(n=>/search.*(?:repair|operation)|(?:repair|operation).*search/i.test(n.label));
+ const searchFields=[...doc.querySelectorAll('input:not([type]),input[type="text"],input[type="search"]')].filter(visible).filter(n=>!n.disabled&&!n.readOnly&&!n.closest('nav,header,footer,aside'));
+ const searchButtons=[...doc.querySelectorAll('button,a,[role="button"],input[type="submit"],input[type="button"]')].filter(visible).filter(n=>!n.disabled&&!n.closest('nav,header,footer,aside')).filter(n=>/^search$/i.test(clean(n.getAttribute('aria-label')||n.getAttribute('title')||((n.tagName==='INPUT')?n.getAttribute('value'):text(n)))));
+ const searches=[];
+ for(const field of searchFields){
+  const label=clean([field.getAttribute('aria-label'),field.getAttribute('placeholder'),field.getAttribute('title')].filter(Boolean).join(' '));
+  let submit;
+  for(let parent=field.parentElement;parent&&parent.tagName!=='BODY';parent=parent.parentElement){
+   const fields=searchFields.filter(n=>parent.contains(n)),buttons=searchButtons.filter(n=>parent.contains(n));
+   if(fields.length===1&&buttons.length===1){submit=buttons[0];break;}
+   if(fields.length>1)break;
+  }
+  if(submit||/search.*(?:repair|operation)|(?:repair|operation).*search/i.test(label))searches.push({selector:selector(field),label:label||'Search',...(submit?{submitSelector:selector(submit)}:{})});
+ }
  const scoped=[...doc.querySelectorAll('h1,h2,h3,h4,h5,li,span,p,div,label')].filter(visible).filter(n=>!n.closest(excluded));
  const query=clean(input.query).toLowerCase(),terms=query.split(/\s+/).filter(t=>t.length>2);
  const matchingLabels=scoped.map(n=>({node:n,label:clean(text(n))})).filter(o=>o.label&&o.label.length<=200&&(terms.some(t=>o.label.toLowerCase().includes(t))||/\b(?:Renew|Replace|Remove and refit)\b/i.test(o.label))).filter(o=>![...o.node.children].some(n=>clean(text(n))===o.label)).slice(0,20).map(o=>({tag:o.node.tagName.toLowerCase(),text:o.label}));

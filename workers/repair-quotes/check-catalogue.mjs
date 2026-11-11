@@ -8,10 +8,11 @@ import {fileURLToPath} from 'node:url';
 import {lookupGeneralRepair} from './general-repair.mjs';
 import {repairScope,calculateRepairQuote,cleanRepairChoices} from '../../lib/repair-quote.js';
 import {captureCatalogueDiagnostics} from './catalogue-diagnostics.mjs';
+import {repairBrowserReason} from './browser-errors.mjs';
 import {captureHaynesDiagnostics} from './haynes-page.mjs';
 import {promptInitialRepairRequest,promptRepairChoice} from './checker-input.mjs';
 const here=path.dirname(fileURLToPath(import.meta.url)),terminal=createInterface({input:process.stdin,output:process.stdout});
-const checkerVersion='2026-11-11-haynes-tree-v12';
+const checkerVersion='2026-11-11-haynes-search-v13';
 let gsf,haynes,gsfPage,haynesPage;
 try{
  console.log('VECTA parts and fitting check — '+checkerVersion+'. Stop GSF safely in Workshop Connections first.');
@@ -59,7 +60,7 @@ try{
    }finally{clearTimeout(timer);}
   }
   report.status||='STOPPED_FOR_REVIEW';
- }catch(error){report.status='NEEDS_CHECK';report.reason=error.code||'LOOKUP_UNAVAILABLE';report.detail=error.detail||'';report.supplier=error.supplier||'';if(error.observed)report.observed=error.observed;console.log('The '+(report.supplier||'supplier')+' check stopped: '+(report.detail||report.reason)+'. Send the report back so this step can be checked.');}
+ }catch(error){report.status='NEEDS_CHECK';report.reason=error.code||repairBrowserReason(error);report.detail=error.detail||'';report.supplier=error.supplier||'';if(error.observed)report.observed=error.observed;console.log('The '+(report.supplier||'supplier')+' check stopped: '+(report.detail||report.reason)+'. Send the report back so this step can be checked.');}
  // Retain bounded page-state evidence for every unfinished run, including
  // failures after category discovery. Never store input values or page HTML.
  if(report.status!=='PASSED_READ_ONLY'&&gsfPage&&!gsfPage.isClosed()){

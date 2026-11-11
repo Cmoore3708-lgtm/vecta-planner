@@ -1,6 +1,7 @@
 import {readAlternatorTime} from './repair-time-reader.mjs';
 import {repairScope} from '../../lib/repair-quote.js';
 import {choiceId,requireChoice} from './choice-result.mjs';
+import {searchHaynesRepair} from './haynes-search.mjs';
 const origin='https://www.workshopdata.com';
 const reject=detail=>{throw Object.assign(Error('LABOUR_REVIEW_REQUIRED'),{code:'LABOUR_REVIEW_REQUIRED',detail});};
 
@@ -28,6 +29,7 @@ export async function lookupHaynesChoices(page,request,{vehicle,selectedPart,now
  if(!request.choices?.part||!selectedPart)reject('PART_SELECTION_REQUIRED');
  const check=()=>{const u=new URL(page.url());if(u.origin!==origin||u.pathname!=='/touch/site/layout/repairTimes'||u.searchParams.get('typeId')!==vehicle.typeId)reject('VEHICLE_CHANGED');};
  const query=request.choices.labourSearch||selectedPart.description.split(/\s+[-–]\s+|\s*\(/)[0];
+ await searchHaynesRepair(page,vehicle.typeId,query);
  // Navigation and tree expansion fetch content asynchronously. Read every
  // same-origin frame, waiting for stable nonempty content before offering it.
  const wait=async({changedFrom='',allowSearch=false,attempts=60}={})=>{
@@ -51,8 +53,7 @@ export async function lookupHaynesChoices(page,request,{vehicle,selectedPart,now
   }
   reject(changedFrom?'HAYNES_REPAIR_GROUP_DID_NOT_OPEN':'HAYNES_REPAIR_TREE_NOT_READABLE');
  };
- let state=await wait({allowSearch:true});
- if(state.searches.length===1){const search=state.searches[0];await search.frame.locator(search.selector).fill(query);await search.frame.locator(search.selector).press('Enter');state=await wait();}
+ let state=await wait();
  // Reopen only the headings selected by the user, re-discovered after each
  // expansion. An already-expanded heading must not be toggled closed.
  for(const label of request.choices.menus||[]){
