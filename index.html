@@ -12050,13 +12050,20 @@ function fleetPlannerJobCategories(j){
   var text=parts.map(function(value){return Array.isArray(value)?value.join(' '):String(value||'')}).join(' ').replace(/monthly\s+safety\s+check\s*&(?:amp;)?\s*clean/gi,' ').replace(/[_|]+/g,' ').replace(/\s+/g,' ').toLowerCase();
   var explicitOnsite=/\bon[ -]?site\s+service\b/.test(text);
   var service=explicitOnsite||/\b(?:service|servicing)\b/.test(text)||/\boil\s*(?:&|and)?\s*filter(?:\s+change)?\b/.test(text);
+  var dpf=/\bdpf\s+(?:regen(?:eration)?|renewal|region)\b|\bregen(?:erate|eration)?\s+(?:the\s+)?dpf\b/.test(text);
+  /* Older Vehicle Record bookings assigned generic Service to every custom plan.
+     A DPF-only description must not reset annual servicing; explicit combined
+     services and DPF work still count towards both schedules. */
+  if(dpf&&/^service$/i.test(String(j.job_type||'').trim())&&
+      !/\bservic(?:e|ing)\b|\boil\s*(?:&|and)?\s*filter\b/i.test([j.work_required,j.description,j.title].join(' '))&&
+      !typeValues.some(function(type){return !/^service$/i.test(String(type).trim())&&/\bservice\b/i.test(String(type));}))service=false;
   var mot=/(^|[^a-z])mot([^a-z]|$)/i.test(text);
   var tax=/\b(?:vehicle|road|pool\s+car)\s+tax\b|\btax(?:ing)?\s+(?:the\s+)?vehicle\b/.test(text)||isVehicleTaxJob(j);
   var safety=/\b(?:six|6)[ -]?month(?:ly)?\s+(?:safety\s+)?check\b|\bsafety\s+check\b/.test(text);
   /* Historical On-Site Service wording can mention a safety check as part of the work;
      do not let that turn an On-Site Service into a six-month safety-check booking. */
   if(explicitOnsite)safety=false;
-  return {mot:mot,service:service,safety:safety,tax:tax};
+  return {mot:mot,service:service,safety:safety,tax:tax,dpf:dpf};
 }
 function fleetPlannerJobTypeKeyMatches(j,typeKey){
   var categories=fleetPlannerJobCategories(j);
@@ -12196,6 +12203,7 @@ function confirmServiceBookStampedBeforeComplete(j){
 }
 function syncFleetServiceScheduleFromJob(j){
   if(!j||!completedJobCanUpdateFleet(j)||isSixMonthSafetyCheck(j))return null;
+  if(!fleetPlannerJobCategories(j).service)return null;
   var vehicle=fleetVehicleForRegistration(j.registration||'');if(!vehicle||fleetIsMaintenanceRemoved(vehicle.id,'service'))return null;
   var internalOnSite=vehicle.fleetGroup==='Nissan Internal'&&isOnSiteService(j);
   if(!internalOnSite&&(isOnSiteService(j)||!serviceTypeFromValue(jobTypeValues(j).concat([j.work_required||'']).join(' '))))return null;
@@ -12298,9 +12306,37 @@ function syncFleetMotScheduleFromJob(j,saveNow){
   if(saveNow!==false)saveFleet();
   return record;
 }
+function syncFleetDpfScheduleFromJob(j){
+  if(!j||!j.id||!completedJobCanUpdateFleet(j)||!fleetPlannerJobCategories(j).dpf)return null;
+  if(/^(?:cancelled|deleted|quote|provisional)$/i.test(String(j.status||'')))return null;
+  var vehicle=fleetVehicleForRegistration(j.registration||'');
+  if(!vehicle||fleetIsMaintenanceRemoved(vehicle.id,'dpf'))return null;
+  var completed=completedJobDateForFleet(j);
+  if(!completed||completed>todayIso())return null;
+  var plan=(fleetPlans||[]).filter(function(p){return p&&p.vehicleId===vehicle.id&&String(p.status||'Active')==='Active'&&fleetMaintenanceCategory(p.type)==='dpf';})
+    .sort(function(a,b){return String(a.currentDueDate||'').localeCompare(String(b.currentDueDate||''));})[0];
+  if(!plan)return null;
+  /* Saving/reconciling the same job must never advance another cycle. */
+  var source='job:'+String(j.id),cid='job-dpf-'+String(j.id);
+  if((fleetCompletions||[]).some(function(c){return c.id===cid||(c.source===source&&c.planId===plan.id);}))return null;
+  var previousDue=String(plan.currentDueDate||fleetDate(plan)||'').slice(0,10),interval=Number(plan.intervalMonths);
+  if(!/^\d{4}-\d{2}-\d{2}$/.test(previousDue)||!Number.isInteger(interval)||interval<1)return null;
+  /* Only the current cycle can be completed early. July history cannot clear
+     November, and November cannot clear the following March. */
+  var daysEarly=(new Date(previousDue+'T00:00:00')-new Date(completed+'T00:00:00'))/86400000;
+  if(!Number.isFinite(daysEarly)||daysEarly>31)return null;
+  var nextDue=fleetAddMonthsFromDue(previousDue,interval);
+  while(nextDue&&nextDue<=completed)nextDue=fleetAddMonthsFromDue(nextDue,interval);
+  if(!nextDue)return null;
+  plan.currentDueDate=nextDue;plan.targetMonth=Number(nextDue.slice(5,7));plan.manualDueDate=false;delete plan.manualDueDateUpdatedAt;
+  var record={id:cid,vehicleId:vehicle.id,planId:plan.id,type:plan.type,completedDate:completed,datePrecision:'day',cycleDue:previousDue,previousDue:previousDue,nextDue:nextDue,source:source,notes:'DPF regeneration completed '+completed+' for the cycle due '+previousDue+'. Next due '+nextDue+'.'};
+  fleetCompletions.push(record);
+  return record;
+}
 function syncFleetMaintenanceFromJob(j){
   if(!completedJobCanUpdateFleet(j))return false;
   var changed=false,cats=fleetPlannerJobCategories(j);
+  if(cats.dpf&&syncFleetDpfScheduleFromJob(j))changed=true;
   /* The service synchroniser admits Internal On-Site Services and rejects other
      on-site work. Do not exclude them before that vehicle-specific check. */
   if(cats.service&&!isSixMonthSafetyCheck(j)){if(syncFleetServiceScheduleFromJob(j))changed=true;}
@@ -16433,7 +16469,7 @@ function openVehicleRecordBase(idOrReg){
     }
   };
   modal.querySelectorAll('[data-unified-save-plan]').forEach(function(b){b.onclick=function(){var p=fleetPlans.find(function(x){return x.id===b.dataset.unifiedSavePlan}),input=modal.querySelector('[data-unified-plan-date="'+b.dataset.unifiedSavePlan+'"]');if(p&&input){p.currentDueDate=input.value||'';p.targetMonth=input.value?Number(input.value.slice(5,7)):null;p.manualDueDate=true;p.manualDueDateUpdatedAt=new Date().toISOString();p.notes='Due date manually set in Vehicle Record.';saveFleet();openVehicleRecord(reg)}}});
-  modal.querySelectorAll('[data-unified-new-job]').forEach(function(b){b.onclick=function(){var p=fleetPlans.find(function(x){return x.id===b.dataset.unifiedNewJob});if(!p)return;var type=String(p.type||'Maintenance'),kind=fleetMaintenanceKind(p),jobType=kind==='mot'?'MOT':kind==='safety'?'6 Month Safety Check':kind==='tax'?'Vehicle Tax':(type==='Internal Service'?'On-Site Service':(serviceTypeFromValue(type)||'Service')),work=kind==='mot'?'MOT':kind==='safety'?'6 Month Safety Check':kind==='tax'?'Vehicle Tax':(type==='Internal Service'?'On-Site Service':type);closeModals();openJobModal(null,{registration:reg,vehicle:vehicle,customer_account:fv?fleetIncomeCustomerFromVehicle(reg):'',customer_name:customer.name||fleetCustomer||'',customer_phone:customer.phone||'',customer_email:customer.email||(fv&&fv.contactEmail)||'',nmuk_vehicle_type:fv?fleetNmukTypeFromVehicle(reg):'',job_type:jobType,work_required:work,booking_date:fleetDate(p)||todayIso()})}});
+  modal.querySelectorAll('[data-unified-new-job]').forEach(function(b){b.onclick=function(){var p=fleetPlans.find(function(x){return x.id===b.dataset.unifiedNewJob});if(!p)return;var type=String(p.type||'Maintenance'),kind=fleetMaintenanceKind(p),jobType=kind==='mot'?'MOT':kind==='safety'?'6 Month Safety Check':kind==='tax'?'Vehicle Tax':(type==='Internal Service'?'On-Site Service':(serviceTypeFromValue(type)||'Other')),work=kind==='mot'?'MOT':kind==='safety'?'6 Month Safety Check':kind==='tax'?'Vehicle Tax':(type==='Internal Service'?'On-Site Service':type);closeModals();openJobModal(null,{registration:reg,vehicle:vehicle,customer_account:fv?fleetIncomeCustomerFromVehicle(reg):'',customer_name:customer.name||fleetCustomer||'',customer_phone:customer.phone||'',customer_email:customer.email||(fv&&fv.contactEmail)||'',nmuk_vehicle_type:fv?fleetNmukTypeFromVehicle(reg):'',job_type:jobType,work_required:work,booking_date:fleetDate(p)||todayIso()})}});
   modal.querySelectorAll('[data-unified-complete-plan]').forEach(function(b){b.onclick=function(){var p=fleetPlans.find(function(x){return x.id===b.dataset.unifiedCompletePlan});if(!p)return;if(!confirm('Mark '+String(p.type||'maintenance')+' complete? This will not complete any other maintenance item.'))return;fleetCompletePlanNow(p.id);openVehicleRecord(reg)}});
   modal.querySelectorAll('[data-unified-remove-plan]').forEach(function(b){b.onclick=function(){
     var p=fleetPlans.find(function(x){return String(x.id)===String(b.dataset.unifiedRemovePlan)});if(!p)return;
@@ -17595,6 +17631,7 @@ init();
   window.syncFleetMaintenanceFromJob=function(j){
     if(typeof completedJobCanUpdateFleet==='function'&&!completedJobCanUpdateFleet(j))return false;
     var changed=false,cats=typeof fleetPlannerJobCategories==='function'?fleetPlannerJobCategories(j):{};
+    if(cats.dpf&&typeof syncFleetDpfScheduleFromJob==='function'&&syncFleetDpfScheduleFromJob(j))changed=true;
     if(cats.service&&!(typeof isSixMonthSafetyCheck==='function'&&isSixMonthSafetyCheck(j))){
       if(typeof syncFleetServiceScheduleFromJob==='function'&&syncFleetServiceScheduleFromJob(j))changed=true;
       var sv=typeof fleetVehicleForRegistration==='function'?fleetVehicleForRegistration(j.registration||''):null;if(sv&&sv.fleetGroup!=='Nissan Internal'&&anchorSafetyToLatestService(sv,false))changed=true;

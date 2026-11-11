@@ -3,6 +3,7 @@
 
   function maintenanceCategory(value){
     var text=String(value||'').toLowerCase();
+    if(/\bdpf\b/.test(text))return 'dpf';
     if(/six[- ]?month|6[- ]?month|safety check/.test(text))return 'safety';
     if(/\bmot\b/.test(text))return 'mot';
     if(/\btax\b|road tax/.test(text))return 'tax';
@@ -12,6 +13,7 @@
 
   function maintenanceKind(plan){
     var text=String(plan&&plan.type||'').toLowerCase();
+    if(/\bdpf\b/.test(text))return 'dpf';
     if(text.indexOf('mot')>-1)return 'mot';
     if(text.indexOf('tax')>-1)return 'tax';
     if(text.indexOf('safety')>-1||text.indexOf('6 month')>-1||text.indexOf('six-month')>-1)return 'safety';
