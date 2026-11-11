@@ -65,12 +65,16 @@ export function readRepairGroups(doc=document){
   // A separate heading repeats an already-parsed card price. It is outside
   // the alternatives list and supplies neither another option nor selection
   // evidence. A decorative grade badge outside the cards is not another part.
-  // Every price still needs an exact card or this single repeated heading.
+  // A clearly labelled RRP is reference information, never a selectable price.
+  // Every other price still needs an exact card or this single repeated heading.
   const summaries=listConfirmed?[...group.querySelectorAll('h1,h2,h3,h4,h5,h6')].filter(visible).filter(n=>!list.contains(n)&&/^£\s*\d+(?:,\d{3})*\.\d{2}$/.test(clean(text(n)))&&options.some(o=>o.pricePence===Math.round(Number(clean(text(n)).replace(/[£,\s]/g,''))*100))):[];
+  const rrpLabel=n=>/^RRP:\s*£\s*\d+(?:,\d{3})*\.\d{2}$/i.test(clean(text(n)));
+  const interactive='a,button,input,select,textarea,[role="button"],[role="radio"],[role="option"],[role="checkbox"]';
+  const references=[...group.querySelectorAll('*')].filter(visible).filter(n=>rrpLabel(n)&&![...n.children].some(rrpLabel)&&!cards.some(card=>card.contains(n))&&!n.closest(interactive)&&!n.querySelector(interactive));
   const priceCount=(text(group).match(/£\s*\d/g)||[]).length,parsedCount=options.length+unavailableCount;
-  const cardGradesValid=cardGrades.length===parsedCount&&parsedCount>0&&cardGrades.every(count=>count===1),pricesAccounted=priceCount===parsedCount+summaries.length&&summaries.length<=1;
-  const unparsedPriceNodes=[...group.querySelectorAll('*')].filter(visible).filter(n=>!n.closest('nav,aside,form')&&/£\s*\d/.test(clean(text(n)))&&![...n.children].some(c=>/£\s*\d/.test(clean(text(c))))&&!cards.some(card=>card.contains(n))&&!summaries.some(summary=>summary.contains(n))).slice(0,20).map(n=>({tag:n.tagName.toLowerCase(),text:clean(text(n)).replace(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/gi,'[email]').replace(/\b[A-HJ-NPR-Z0-9]{17}\b/gi,'[VIN]').replace(/https?:\/\/\S+/gi,'[link]').slice(0,200)}));
-  const checks={priceCount,parsedCardCount:parsedCount,cardGradeCounts:cardGrades,decorativeGradeCount:gradeNodes.filter(n=>!cards.some(card=>card.contains(n))).length,summaryPriceCount:summaries.length,cardGradesValid,pricesAccounted,listConfirmed,unparsedPriceNodes};
+  const cardGradesValid=cardGrades.length===parsedCount&&parsedCount>0&&cardGrades.every(count=>count===1),pricesAccounted=priceCount===parsedCount+summaries.length+references.length&&summaries.length<=1&&references.length<=1;
+  const unparsedPriceNodes=[...group.querySelectorAll('*')].filter(visible).filter(n=>!n.closest('nav,aside,form')&&/£\s*\d/.test(clean(text(n)))&&![...n.children].some(c=>/£\s*\d/.test(clean(text(c))))&&!cards.some(card=>card.contains(n))&&!summaries.some(summary=>summary.contains(n))&&!references.some(reference=>reference.contains(n))).slice(0,20).map(n=>({tag:n.tagName.toLowerCase(),text:clean(text(n)).replace(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/gi,'[email]').replace(/\b[A-HJ-NPR-Z0-9]{17}\b/gi,'[VIN]').replace(/https?:\/\/\S+/gi,'[link]').slice(0,200)}));
+  const checks={priceCount,parsedCardCount:parsedCount,cardGradeCounts:cardGrades,decorativeGradeCount:gradeNodes.filter(n=>!cards.some(card=>card.contains(n))).length,summaryPriceCount:summaries.length,rrpPriceCount:references.length,cardGradesValid,pricesAccounted,listConfirmed,unparsedPriceNodes};
   groups.push({parsedAll:cardGradesValid&&pricesAccounted,checks,unavailableCount,summaryPriceCount:summaries.length,selector:selector(group),sku:clean(text(sku)).replace(/^SKU:\s*/i,''),description:descriptions.length===1?descriptions[0]:'',attributesSelector:attributes.length===1?selector(attributes[0]):'',options,links:[...new Set(links)]});
  }
  const moreSelectors=pagination.filter(n=>/^show more$/i.test(clean(text(n)))&&groups.some(g=>doc.querySelector(g.selector)?.contains(n))).map(selector);

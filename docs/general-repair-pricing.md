@@ -312,3 +312,26 @@ duplicate identities, decorative badges, embedded icons and unknown prices.
 Actual supplier selection, product-detail layout, fitment and Haynes labour
 remain unverified. This remains a draft with general pricing disabled; the
 checker is read-only and Main, databases and installed workers are unchanged.
+
+## Workshop-PC report: RRP identified as the remaining unmatched price
+
+The v9 report identifies the exact completeness failure: the first group has
+nine currency values, seven parsed cards and one repeated heading. All seven
+card-grade checks pass. The remaining node is a paragraph labelled `RRP:`.
+The second group is complete. No part choice or Haynes operation was reached.
+This establishes a reference-price counting failure; the earlier decorative
+badge and embedded-icon hypotheses were not the cause recorded in this report.
+
+Version `2026-11-11-rrp-reference-v10` accounts for at most one explicitly
+labelled `RRP: £amount` reference per group, including nested label/amount spans.
+It must be separate from parsed cards and have no interactive control or link.
+Its amount never becomes an option or quote cost. Unlabelled prices, multiple
+RRPs, extra text or currency, incomplete cards and ambiguous interactive prices
+still stop the lookup. The diagnostic counts now include `rrpPriceCount`.
+
+Synthetic tests reproduce the reported nine-value group, verify that only the
+available trade-price option is offered, and verify its fresh product identity
+with the unreadable catalogue logo. Additional part names use the same reader;
+there is no radiator-specific exception. Live product selection, product-detail
+layout and Haynes labour remain to be verified. Main and activation settings
+remain unchanged.

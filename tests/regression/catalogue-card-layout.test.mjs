@@ -9,7 +9,7 @@ import {repairRequest} from '../../lib/repair-quote.js';
 const card=(price,stock,brand='ava',description='Radiator',radio='')=>`<div class="choice">${radio}<img alt="" src="https://gsfappstorage.blob.core.windows.net/catalogue-assets/Brands/${brand}.svg"><div>£${price} <span>${price==='0.00'?'Bronze':'Gold'}</span> ${description} <span>${stock}</span></div></div>`;
 const unavailable=()=>card('0.00','Out Of Stock','','');
 const group=(sku,body,summary='')=>`<section><p>Radiator</p><p>SKU: ${sku}</p><button>Attributes</button><div class="alternatives">${body}</div>${summary}</section>`;
-const fixture=()=>group('AVAFIX100',card('124.40','Out Of Stock')+card('152.16','Out Of Stock','other')+unavailable().repeat(5),'<h6>£124.40</h6>')+group('AVAFIX200',card('113.97','Branch Network')+card('165.31','Out Of Stock','other')+unavailable().repeat(4));
+const fixture=(reference='')=>group('AVAFIX100',card('124.40','Out Of Stock')+card('152.16','Out Of Stock','other')+unavailable().repeat(5),'<h6>£124.40</h6>'+reference)+group('AVAFIX200',card('113.97','Branch Network')+card('165.31','Out Of Stock','other')+unavailable().repeat(4));
 const doc=html=>parseHTML('<html><body><main>'+html+'</main></body></html>').document;
 const read=html=>readRepairGroups(doc(html));
 
@@ -42,6 +42,23 @@ test('every unrecognised price stays a failure with a precise, bounded diagnosti
  assert.deepEqual(result.groups[0].checks.unparsedPriceNodes,[{tag:'h6',text:'£99.00'}]);
  const unknown=read(group('AVAFIX100',card('124.40','NDC')+'<div>£5.00 Mystery part Local Branch</div>'));
  assert.equal(unknown.complete,false);assert.equal(unknown.groups[0].checks.priceCount,2);assert.equal(unknown.groups[0].checks.parsedCardCount,1);
+});
+test('the observed RRP is reference information, not another priced part or a quote amount',()=>{
+ for(const reference of ['<p>RRP: £212.58</p>','<div><p><span>RRP:</span> <span>£212.58</span></p></div>']){
+  const result=read(fixture(reference)),checks=result.groups[0].checks;
+  assert.equal(result.complete,true);assert.equal(checks.priceCount,9);assert.equal(checks.parsedCardCount,7);
+  assert.equal(checks.summaryPriceCount,1);assert.equal(checks.rrpPriceCount,1);assert.equal(checks.pricesAccounted,true);assert.deepEqual(checks.unparsedPriceNodes,[]);
+  assert.deepEqual(result.groups.flatMap(g=>g.options.filter(o=>o.inStock).map(o=>o.pricePence)),[11397]);
+  assert.ok(result.groups.every(g=>g.options.every(o=>o.pricePence!==21258)));
+ }
+ for(const part of ['Alternator','Brake Pad Set','Fuel Pressure Regulator'])assert.equal(read(fixture('<p>RRP: £212.58</p>').replaceAll('Radiator',part)).complete,true);
+});
+test('reference prices cannot conceal unknown prices, interactive choices or incomplete cards',()=>{
+ for(const reference of ['<p>£212.58</p>','<p>Price: £212.58</p>','<p>RRP: £212.58 £5.00</p>','<p>RRP: £212.58 Radiator</p>','<button>RRP: £212.58</button>','<p>RRP: <button>£212.58</button></p>','<p>RRP: £212.58</p><p>RRP: £300.00</p>','<p>RRP: £212.58</p><p>Unknown price: £5.00</p>'])assert.equal(read(fixture(reference)).complete,false,reference);
+ const broken=read(group('AVAFIX100','<div>£124.40 Unrecognised part NDC</div>','<p>RRP: £212.58</p>'));
+ assert.equal(broken.complete,false);assert.equal(broken.groups[0].checks.parsedCardCount,0);
+ const nested=read(group('AVAFIX100',card('124.40','NDC').replace('<span>NDC</span>','<p>RRP: £212.58</p><span>NDC</span>')));
+ assert.equal(nested.complete,false);
 });
 test('radio/image siblings stay with their card, and a stale checked attribute cannot override live state',()=>{
  const d=doc(group('AVAFIX100',card('124.40','NDC','ava','Radiator','<input type="radio" checked>')+card('152.16','RDC','other','Radiator','<input type="radio">')));
@@ -78,8 +95,8 @@ test('selection waits for stable refreshed SKU evidence and keeps checking the v
  assert.equal((await waitForSelectedRepairProduct(page,'AB12CDE','848',group,option)).target.searchTerm,'AVAFIX200');assert.equal(tick,5);
  page.evaluate=async()=>({registration:'WRONG',selectedRegistration:false});await assert.rejects(waitForSelectedRepairProduct(page,'AB12CDE','848',group,option),e=>e.detail==='VEHICLE_CHANGED');
 });
-function lookupFixture({missingBrand=false}={}){
- let url='https://trade.gsfcarparts.com/',productOverride={};const events=[],document=doc(missingBrand?fixture().replaceAll('https://gsfappstorage.blob.core.windows.net/catalogue-assets/Brands/ava.svg','/images/unreadable-logo.svg'):fixture());
+function lookupFixture({missingBrand=false,reference=''}={}){
+ let url='https://trade.gsfcarparts.com/',productOverride={};const events=[],document=doc(missingBrand?fixture(reference).replaceAll('https://gsfappstorage.blob.core.windows.net/catalogue-assets/Brands/ava.svg','/images/unreadable-logo.svg'):fixture(reference));
  const request=repairRequest({registration:'AB12CDE',work:'Supply and fit radiator',flow:'guided-v1'});
  const page={url:()=>url,goto:async value=>{url=value;events.push(value);},waitForTimeout:async()=>{},keyboard:{press:async()=>{}},locator:selector=>({count:async()=>1,isVisible:async()=>true,fill:async()=>{},click:async()=>{events.push(document.querySelector(selector)?.textContent?.trim()||selector);},evaluateAll:async()=>[{href:'/parts/848',text:'Radiator'}]}),evaluate:async(fn,input)=>{
   if(fn.name==='readCatalogueSearchState')return {fields:[{catalogue:true,selector:'#search'}]};
@@ -103,12 +120,12 @@ test('observed catalogue shape offers its available part, then verifies the sele
   f.changeProduct(changed);await assert.rejects(lookupGeneralGSF(f.page,selected,f.deps),e=>e.detail==='SELECTED_PRODUCT_CHANGED');
  }
 });
-test('a missing catalogue logo is resolved from fresh product details, never from the SKU prefix',async()=>{
- const f=lookupFixture({missingBrand:true});let options;
+test('the RRP-bearing catalogue still offers its part and resolves the missing logo from product details',async()=>{
+ const f=lookupFixture({missingBrand:true,reference:'<p>RRP: £212.58</p>'});let options;
  await assert.rejects(lookupGeneralGSF(f.page,f.request,f.deps),e=>{options=e.result?.options;return e.code==='CHOICE_REQUIRED';});
- assert.ok(!options[0].label.toLowerCase().includes('ava'));
+ assert.ok(!options[0].label.toLowerCase().includes('ava'));assert.equal(options.length,1);assert.equal(options[0].costPence,11397);
  const selected=repairRequest({...f.request,choices:{part:options[0].id}}),result=await lookupGeneralGSF(f.page,selected,f.deps);
- assert.equal(result.part.brand,'AVA');assert.equal(result.part.sku,'FIX200');
+ assert.equal(result.part.brand,'AVA');assert.equal(result.part.sku,'FIX200');assert.equal(result.part.costPence,11397);
  for(const changed of [{brand:''},{unitNetPence:11398},{description:'Radiator Cap'},{sku:'WRONG'},{inStock:false}]){
   f.changeProduct(changed);await assert.rejects(lookupGeneralGSF(f.page,selected,f.deps),e=>e.detail==='SELECTED_PRODUCT_CHANGED');
  }
