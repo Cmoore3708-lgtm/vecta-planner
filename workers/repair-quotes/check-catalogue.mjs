@@ -13,7 +13,7 @@ try{
  console.log('VECTA parts and fitting check. Stop GSF safely in Workshop Connections first.');
  console.log('This checks current GSF and Haynes screens. It does not save or send prices.');
  const registration=await terminal.question('Registration: '),work=await terminal.question('Part/work to price (any part, e.g. supply and fit fuel pressure regulator): ');
- let request=repairRequest({registration,work,flow:'guided-v1'});const report={readOnly:true,checkerVersion:'2026-11-11-search-ready-v2',request,startedAt:new Date().toISOString()};
+ let request=repairRequest({registration,work,flow:'guided-v1'});const report={readOnly:true,checkerVersion:'2026-11-11-search-results-v3',request,startedAt:new Date().toISOString()};
  try{
   const local=process.env.LOCALAPPDATA;if(!local)throw Error('Run this check on the workshop Windows PC.');
   gsf=await chromium.launchPersistentContext(process.env.GSF_PROFILE_DIR||path.join(local,'VectaGSF','EdgeProfile'),{channel:'msedge',headless:false,acceptDownloads:false,chromiumSandbox:true});
@@ -33,7 +33,12 @@ try{
      continue;
     }
     if(error.code!=='CHOICE_REQUIRED')throw error;
+    if(error.observed){report.diagnostics||=[];report.diagnostics.push(error.observed);}
     const result=cleanRepairChoices(error.result,request);report.steps.push(result);
+    if(result.stage==='GSF_CATEGORY'&&!result.options.length){
+     report.status='NEEDS_CHECK';report.reason='GSF_RESULTS_NEED_REVIEW';report.detail='The search ran, but no selectable category was captured. The report includes the visible search-result labels and controls.';
+     console.log(report.detail);break;
+    }
     console.log('\n'+result.stage.replaceAll('_',' '));
     if(result.selectedPart)console.log('GSF part: '+result.selectedPart.description+' '+result.selectedPart.sku);
     result.options.forEach((o,i)=>console.log((i+1)+'. '+o.label+' — '+o.detail+(o.costPence?' — £'+(o.costPence/100).toFixed(2)+' each ex VAT':'')+(o.hoursMilli?' — '+o.hoursMilli/1000+' hours':'')));
@@ -43,12 +48,12 @@ try{
     if(answer.trim().toUpperCase()==='Q'){report.status='STOPPED_FOR_REVIEW';break;}
     const choice=result.options[Number(answer)-1],c=request.choices;
     if(choice){
-     if(result.stage==='GSF_CATEGORY')request=repairRequest({...request,work:choice.work,operation:undefined,quantity:undefined,choices:{}});
-     if(result.stage==='GSF_PART')request=repairRequest({...request,work:choice.work,operation:undefined,quantity:undefined,choices:{part:choice.id}});
+     if(result.stage==='GSF_CATEGORY')request=repairRequest({...request,work:choice.work,operation:undefined,quantity:undefined,choices:choice.categoryChoice?{gsfCategory:choice.categoryChoice}:{}});
+     if(result.stage==='GSF_PART')request=repairRequest({...request,work:choice.work,operation:undefined,quantity:undefined,choices:{...(c.gsfCategory?{gsfCategory:c.gsfCategory}:{}),part:choice.id}});
      if(result.stage==='HAYNES_MENU')request=repairRequest({...request,choices:{...c,menus:[...(c.menus||[]),choice.label],labour:undefined}});
      if(result.stage==='HAYNES_LABOUR')request=repairRequest({...request,choices:{...c,labour:choice.id}});
     }else if(answer.trim()){
-     request=result.stage.startsWith('HAYNES_')?repairRequest({...request,choices:{part:c.part,labourSearch:answer.trim()}}):repairRequest({registration,work:answer.trim(),flow:'guided-v1'});
+     request=result.stage.startsWith('HAYNES_')?repairRequest({...request,choices:{...(c.gsfCategory?{gsfCategory:c.gsfCategory}:{}),part:c.part,labourSearch:answer.trim()}}):repairRequest({registration,work:answer.trim(),flow:'guided-v1'});
     }
    }finally{clearTimeout(timer);}
   }

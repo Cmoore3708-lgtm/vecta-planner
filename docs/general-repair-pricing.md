@@ -101,4 +101,29 @@ reported separately and the read-only checker allows two manual sign-in retries.
 If the control still cannot be identified, the report records field types and
 labels, without input values, raw HTML, credentials or URL query strings.
 This fix is covered by delayed-render, changed-wording, ambiguous-control and
-radiator-category tests; it still needs the next real workshop-PC result.
+radiator-category tests. The second workshop report confirmed that the search
+control was found, but returned a GSF_CATEGORY choice with no options and stopped
+for review. It did not reach a priced part or Haynes and does not prove that the
+supplier has no suitable part.
+
+## Workshop-PC report: empty category choices
+
+The result reader now handles observed non-link suggestion buttons/options and
+searches that navigate directly to a matching GSF category. Related but different
+labels remain explicit choices. A selected suggestion is re-discovered by its
+identity; only an actual matching GSF category URL is accepted after navigation.
+The choice is retained through part selection and Haynes refinement. Product
+links and purchase controls are not treated as category actions.
+
+Checker version `2026-11-11-search-results-v3` records relevant visible result
+labels, headings, selectable controls and category/product link counts if
+identification still fails. It records no input values, page HTML or URL query
+strings. An empty category list now produces a diagnostic report immediately,
+instead of asking the user to select from an empty list. The report is still
+read-only and does not update a job or order a part.
+
+Automated fixtures cover exact/ambiguous suggestions, direct navigation,
+changed choices, preservation through the guided flow, and diagnostics when
+only product results are visible. The actual GSF result layout and subsequent
+GSF-part/Haynes stages remain unverified until the replacement checker is run
+on the workshop PC.

@@ -142,3 +142,11 @@ test('supplier labels render as text and changing the GSF part discards labour c
  await e.click('[data-rq-find]');assert.equal(e.document.querySelector('[data-rq-result] img'),null);assert.equal(e.document.querySelector('[data-rq-result] script'),null);
  await e.click('[data-rq-change-part]');assert.deepEqual(e.sent.at(-1).choices,{});
 });
+test('the selected GSF suggestion survives part selection and Haynes search refinement',async()=>{
+ const category='c'.repeat(32);
+ const e=editor((r,n)=>n===1?{status:'CHOICE_REQUIRED',choices:selection(r,'GSF_CATEGORY',[{id:category,categoryChoice:category,label:'Control arm',detail:'GSF suggestion',work:'Supply and fit front left control arm'}])}:n===2?{status:'CHOICE_REQUIRED',choices:selection(r,'GSF_PART',[{...option,work:r.work}])}:{status:'CHOICE_REQUIRED',choices:{...selection(r,'HAYNES_LABOUR',[{id:labourId,label:'Renew control arm',detail:'Observed operation',hoursMilli:700}]),selectedPart:{description:'Control arm',brand:'Fixture',sku:'ARM1',costPence:5000}}});
+ await e.click('[data-rq-find]');e.choose(0);await e.click('[data-rq-choose]');assert.equal(e.sent[1].choices.gsfCategory,category);
+ e.choose(0);await e.click('[data-rq-choose]');assert.equal(e.sent[2].choices.gsfCategory,category);assert.equal(e.sent[2].choices.part,partId);
+ e.document.querySelector('[data-rq-refine]').value='suspension arm';await e.click('[data-rq-search-again]');assert.equal(e.sent[3].choices.gsfCategory,category);
+ await e.click('[data-rq-change-part]');assert.deepEqual(e.sent.at(-1).choices,{gsfCategory:category});
+});

@@ -84,14 +84,14 @@
    result.querySelectorAll('[name="rqSupplierChoice"]').forEach(function(input){input.onchange=function(){chosen=data.options[Number(input.value)];next.disabled=false;};});
    next.onclick=function(){
     if(!chosen||run!==generation||Date.now()>expires||key()!==lastKey){message.textContent='These choices have expired or the repair changed. Refresh the search.';next.disabled=true;return;}
-    if(data.stage==='GSF_CATEGORY'){choices={};useScope(chosen.work);}
-    if(data.stage==='GSF_PART'){choices={part:chosen.id};useScope(chosen.work);}
+    if(data.stage==='GSF_CATEGORY'){choices=chosen.categoryChoice?{gsfCategory:chosen.categoryChoice}:{};useScope(chosen.work);}
+    if(data.stage==='GSF_PART'){choices=Object.assign({},choices.gsfCategory?{gsfCategory:choices.gsfCategory}:{},{part:chosen.id});useScope(chosen.work);}
     if(data.stage==='HAYNES_MENU'){choices=Object.assign({},choices,{menus:(choices.menus||[]).concat(chosen.label)});delete choices.labour;if(choices.menus.length>8){message.textContent='Try more specific Haynes wording below.';return;}}
     if(data.stage==='HAYNES_LABOUR')choices=Object.assign({},choices,{labour:chosen.id});
     lookup(false);
    };
-   var change=result.querySelector('[data-rq-change-part]');if(change)change.onclick=function(){choices={};lookup(false);};
-   result.querySelector('[data-rq-search-again]').onclick=function(){var value=result.querySelector('[data-rq-refine]').value.trim();if(!value)return;if(haynes)choices={part:choices.part,labourSearch:value};else{choices={};partSelect.value=value;manualScope=true;}lookup(false);};
+   var change=result.querySelector('[data-rq-change-part]');if(change)change.onclick=function(){choices=choices.gsfCategory?{gsfCategory:choices.gsfCategory}:{};lookup(false);};
+   result.querySelector('[data-rq-search-again]').onclick=function(){var value=result.querySelector('[data-rq-refine]').value.trim();if(!value)return;if(haynes)choices=Object.assign({},choices.gsfCategory?{gsfCategory:choices.gsfCategory}:{},{part:choices.part,labourSearch:value});else{choices={};partSelect.value=value;manualScope=true;}lookup(false);};
    timer=setTimeout(function(){if(run===generation&&panel.isConnected){next.disabled=true;message.textContent='Refresh these choices before continuing.';}},Math.max(0,expires-Date.now()));
   }
   function show(q,restored){

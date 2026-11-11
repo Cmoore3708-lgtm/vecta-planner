@@ -3,6 +3,7 @@ import {readProductDialog,openSelectedProduct} from '../gsf/product-dialog.mjs';
 import {repairScope} from '../../lib/repair-quote.js';
 import {choiceId,requireChoice} from './choice-result.mjs';
 import {findCatalogueSearch} from './catalogue-search.mjs';
+import {observedCategory,categoryMatches,readCatalogueResults,followExactCategorySuggestion,suggestedCategoryChoices} from './catalogue-results.mjs';
 const reject=detail=>{throw Object.assign(Error('REVIEW_REQUIRED'),{code:'REVIEW_REQUIRED',detail});};
 
 // Read the rendered catalogue, keeping each SKU, its alternatives and its
@@ -168,13 +169,23 @@ export async function discoverRepairCategory(page,query,{request,now=Date.now}={
  const search=await findCatalogueSearch(page);
  await search.fill(query,{timeout:10000});
  let observed=[];
- async function find(){observed=await page.locator('a[href]').evaluateAll(nodes=>nodes.filter(n=>n.getClientRects().length&&!n.closest('[hidden],[aria-hidden="true"]')).map(n=>({href:n.href,text:(n.innerText||n.textContent||'').trim()})));return matchingCatalogueCategories(observed,query);}
- let categories=[];
+ async function find(){const current=observedCategory(page.url());if(categoryMatches(current,query))return [current];observed=await page.locator('a[href]').evaluateAll(nodes=>nodes.filter(n=>n.getClientRects().length&&!n.closest('[hidden],[aria-hidden="true"]')).map(n=>({href:n.href,text:(n.innerText||n.textContent||'').trim()})));return matchingCatalogueCategories(observed,query);}
+ let categories=[],suggestionFollowed=false;
  // The search may offer category links before submission, or on its results page.
  for(let i=0;i<8;i++){check();categories=await find();if(categories.length)break;await page.waitForTimeout(200);}
- if(!categories.length){await search.press('Enter',{timeout:10000});for(let i=0;i<40;i++){check();categories=await find();if(categories.length)break;await page.waitForTimeout(200);}}
+ if(!categories.length){const suggestion=await followExactCategorySuggestion(page,query,request?.choices?.gsfCategory);if(suggestion.category)return suggestion.category;suggestionFollowed=suggestion.followed===true;}
+ if(!categories.length&&!suggestionFollowed){await search.press('Enter',{timeout:10000});for(let i=0;i<40;i++){check();categories=await find();if(categories.length)break;await page.waitForTimeout(200);}}
+ if(!categories.length&&!suggestionFollowed){const suggestion=await followExactCategorySuggestion(page,query,request?.choices?.gsfCategory);if(suggestion.category)return suggestion.category;}
  if(categories.length!==1){
-  if(request?.flow)requireChoice(request,'GSF_CATEGORY',catalogueCategoryOptions(observed,query,repairScope.resolve(request.work)),{now});
+  if(request?.flow){
+   const diagnostics=await page.evaluate(readCatalogueResults,{query});
+   const route=new URL(page.url()).pathname;diagnostics.pageType=route.startsWith('/parts/')?'category':route.startsWith('/partdetails/')?'product':route.startsWith('/enhancedSearch/')?'search':route==='/'?'home':'other';
+   const options=catalogueCategoryOptions(observed,query,repairScope.resolve(request.work));
+   const labels=new Set(options.map(o=>o.label));
+   options.push(...suggestedCategoryChoices(diagnostics,request).filter(o=>!labels.has(o.label)));
+   try{requireChoice(request,'GSF_CATEGORY',options,{now});}
+   catch(error){error.observed={stage:'GSF_SEARCH_RESULTS',...diagnostics};throw error;}
+  }
   reject(categories.length?'MULTIPLE_CATALOGUE_CATEGORIES':'CATALOGUE_CATEGORY_NOT_FOUND');
  }
  return categories[0];
