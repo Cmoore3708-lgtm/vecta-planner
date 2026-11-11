@@ -5,7 +5,7 @@ export function readAlternatorTime(input={},doc=globalThis.document){
  const clean=v=>String(v||'').replace(/\s+/g,' ').trim();
  const fail=reason=>{throw Error('LABOUR_REVIEW_REQUIRED:'+reason);};
  if(expectedOperationId&&!/^[0-9][A-Z0-9]{9,23}$/.test(expectedOperationId))fail('INVALID_OPERATION_ID');
- const operation=/\b(?:Renew|Replace|Remove\s+and\s+refit)\s+(?:the\s+)?alternator\b/i;
+ const operation=input.operationPattern?new RegExp(input.operationPattern,'i'):/\b(?:Renew|Replace|Remove\s+and\s+refit)\s+(?:the\s+)?alternator\b/i;
  const visible=(el,viewport=!expectedOperationId)=>{
   let bounds=null;if(Number.isFinite(doc.defaultView?.innerHeight)&&doc.defaultView.innerHeight>0&&typeof el.getBoundingClientRect==='function'){
    const r=el.getBoundingClientRect(),view=doc.defaultView;

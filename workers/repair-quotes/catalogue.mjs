@@ -1,3 +1,4 @@
+import {lookupGeneralRepair} from './general-repair.mjs';
 import {navigateGSFAlternator} from './gsf-navigation.mjs';
 import {readLiveGSFAlternator} from './gsf-live-reader.mjs';
 import {navigateHaynesRepair} from './haynes-navigation.mjs';
@@ -82,7 +83,11 @@ export async function readReviewedHaynesOperation(page,mapping,origin){
  return {operationId:result.operationId,operationLabel:label,hoursMilli:parseHours(String(result.hoursMilli/1000),result.unit)};
 }
 export async function lookupRepair({gsfPage,haynesPage},raw,config,{now=Date.now}={}){
- const request=repairRequest(raw),mapping=reviewedMapping(config,request,now()),g=config.gsf,h=config.haynes;
+ const request=repairRequest(raw);
+ // Existing alternator calibration remains usable. All other repairs use the
+ // selected live vehicle and operation, without registration-specific recipes.
+ if(request.operation!=='alternator-replacement'||config?.lookupMode==='vehicle-catalogue'||!config?.vehicles?.some(v=>v.registration===request.registration&&v.approved===true))return lookupGeneralRepair({gsfPage,haynesPage},request,{now});
+ const mapping=reviewedMapping(config,request,now()),g=config.gsf,h=config.haynes;
  if(!g||!h||!/^https:\/\//.test(h.startUrl||''))fail('SETTINGS_REQUIRED');
  const haynesOrigin=new URL(h.startUrl).origin;
  if(!/^(?:https:\/\/)(?:[a-z0-9-]+\.)*(?:haynespro\.com|workshopdata\.com)$/.test(haynesOrigin))fail('SETTINGS_REQUIRED');

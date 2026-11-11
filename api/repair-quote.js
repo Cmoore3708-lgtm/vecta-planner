@@ -26,14 +26,14 @@ export function repairQuoteHandler({env=process.env,authenticate=requireQuoteMan
    if(Buffer.byteLength(JSON.stringify(req.body||{}))>2000)return res.status(413).json({status:'INVALID_REQUEST'});
    const request=repairRequest(req.body);
    const scope=String(env.REPAIR_QUOTE_ALLOWED_REGISTRATIONS||'').split(',').map(s=>s.trim()).filter(Boolean);
-   if(scope.length&&!scope.includes(request.registration))return res.status(200).json({status:'SETTINGS_REQUIRED'});
+   if(env.REPAIR_GENERAL_PRICING_ENABLED!=='true'&&(request.operation!=='alternator-replacement'||scope.length&&!scope.includes(request.registration)))return res.status(200).json({status:'SETTINGS_REQUIRED'});
    // Shared manager account, no customer contact details or raw cookies in DB.
    const actor=createHash('sha256').update('repair-quotes|'+String(env.VECTA_MAIN_USER||'manager')).digest('hex');
    const result=await queue('enqueue',{request,actor});
    if(result.status==='MATCHED')return res.status(200).json({status:'MATCHED',quote:calculateRepairQuote(result.result,request,{now:now()})});
    const allowed=['PENDING','OFFLINE','BUSY','LOGIN_REQUIRED','REVIEW_REQUIRED','LABOUR_REVIEW_REQUIRED','SETTINGS_REQUIRED','OUT_OF_STOCK','UNAVAILABLE','DAILY_LIMIT'];
    return res.status(200).json({status:allowed.includes(result.status)?result.status:'UNAVAILABLE'});
-  }catch(e){return res.status(e.code==='INVALID_REQUEST'||e.code==='UNSUPPORTED_OPERATION'?400:200).json({status:['INVALID_REQUEST','UNSUPPORTED_OPERATION','REVIEW_REQUIRED','LABOUR_REVIEW_REQUIRED','OUT_OF_STOCK'].includes(e.code)?e.code:'UNAVAILABLE'});}
+  }catch(e){return res.status(['INVALID_REQUEST','UNSUPPORTED_OPERATION','POSITION_REQUIRED','SIDE_REQUIRED','AXLE_SCOPE_REQUIRED','QUANTITY_REQUIRED'].includes(e.code)?400:200).json({status:['INVALID_REQUEST','UNSUPPORTED_OPERATION','POSITION_REQUIRED','SIDE_REQUIRED','AXLE_SCOPE_REQUIRED','QUANTITY_REQUIRED','REVIEW_REQUIRED','LABOUR_REVIEW_REQUIRED','OUT_OF_STOCK'].includes(e.code)?e.code:'UNAVAILABLE'});}
  };
 }
 export default repairQuoteHandler();

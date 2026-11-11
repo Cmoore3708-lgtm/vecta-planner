@@ -16,11 +16,12 @@ export function createRepairBridge({origin,token,gsfContext,openHaynesContext,co
    if(busy)return 'BUSY';if(unpaired)return 'PAIRING_REQUIRED';busy=true;
    try{
     if(delivery.pending||delivery.retiring){const ack=await delivery.flush();return ack==='SAVED'?'DELIVERED':'EXPIRED';}
-    const task=await rpc({action:'pull'});
+    const task=await rpc({action:'pull',repairProtocol:2});
     if(task.status!=='JOB')return task.status;
     let gsfPage,haynesPage,timer,result=null,status='MATCHED';
     try{
-     const config=JSON.parse(fs.readFileSync(configPath,'utf8'));
+     let config={lookupMode:'vehicle-catalogue'};
+     try{config=JSON.parse(fs.readFileSync(configPath,'utf8'));}catch(error){if(error.code!=='ENOENT')throw error;}
      // Do not claim/setup a second GSF browser: use the service worker's context.
      gsfPage=await gsfContext.newPage();
      haynesContext||=await openHaynesContext();haynesPage=await haynesContext.newPage();
