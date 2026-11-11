@@ -484,7 +484,7 @@ console.log('Finance integrity regression tests passed.');
 {
   const job={id:'notify-job',customer_account:'Staff',customer_name:'Jane Smith',customer_phone:'07712 345678',customer_email:'jane@example.com'};
   const app={jobs:[job],customers:[]};
-  const context=contextWith(['invoiceCustomerAccount','invoiceEmailRecipient','invoiceCustomerNotification','invoiceCustomerContactPreference','saveInvoiceAndNotify'],{app,render(){},financialSection:'main',view:'planner',invoiceNotificationSaves:{},gatherInvoice:()=>app.invoices[0],reserveInvoiceMessageWindow:()=>null,closeInvoiceMessageWindow:()=>{},vehicleTaxInvoiceTitle:()=>'',fleetInvoiceFormatRegistration:v=>v,fleetEomCustomerEmail:()=>'',saveInvoice:async()=>false,promptInvoiceCustomerNotification:()=>{throw Error('Must not notify after failed save')}});
+  const context=contextWith(['invoiceCustomerAccount','invoiceEmailRecipient','invoiceCustomerNotification','saveInvoiceAndNotify'],{app,render(){},financialSection:'main',view:'planner',invoiceNotificationSaves:{},gatherInvoice:()=>app.invoices[0],reserveInvoiceMessageWindow:()=>null,closeInvoiceMessageWindow:()=>{},vehicleTaxInvoiceTitle:()=>'',fleetInvoiceFormatRegistration:v=>v,fleetEomCustomerEmail:()=>'',saveInvoice:async()=>false,promptInvoiceCustomerNotification:()=>{throw Error('Must not notify after failed save')}});
   const inv={id:'invoice',job_id:job.id,registration:'AB12 CDE',total:120,status:'saved'};
   app.invoices=[inv];
   let result=context.invoiceCustomerNotification(inv);
@@ -495,16 +495,16 @@ console.log('Finance integrity regression tests passed.');
   job.customer_account='Contractors';assert.equal(context.invoiceCustomerNotification(inv),null);
   job.customer_account='NMUK';job.nmuk_vehicle_type='Internal';result=context.invoiceCustomerNotification(inv);assert.equal(result.whatsapp,'');assert.match(result.body,/ready to collect/);assert.doesNotMatch(result.body,/payment link|£/);
   job.nmuk_vehicle_type='MVOS';assert.equal(context.invoiceCustomerNotification(inv),null);
-  job.customer_account='Staff';assert.equal(context.invoiceCustomerNotification({...inv,source:'fleet_eom'}),null);
+  job.customer_account='Staff';job.customer_phone='07712 345678';assert.equal(context.invoiceCustomerNotification({...inv,source:'fleet_eom'}),null);
   assert.equal(await context.saveInvoiceAndNotify(inv.id),false);
   let prompts=0;context.saveInvoice=async()=>true;context.promptInvoiceCustomerNotification=()=>{prompts++};
-  await context.saveInvoiceAndNotify(inv.id);assert.equal(prompts,1,'Explicit Save opens the preferred message on existing invoices');assert.equal(context.view,'invoices');assert.equal(context.financialSection,'invoiceList');
+  await context.saveInvoiceAndNotify(inv.id);assert.equal(prompts,1,'Explicit Save & Message opens WhatsApp on existing invoices');assert.equal(context.view,'invoices');assert.equal(context.financialSection,'invoiceList');
   inv.status='draft';await context.saveInvoiceAndNotify(inv.id);assert.equal(prompts,2,'Newly saved invoices must prompt');
 }
 
 {
   const app={jobs:[{id:'pdf-job',customer_account:'Staff',customer_phone:'07712345678',customer_name:'Jane Smith',customer_email:'jane@example.com'}],customers:[]};
-  const context=contextWith(['invoiceCustomerAccount','invoiceEmailRecipient','invoiceCustomerNotification','invoiceCustomerContactPreference'],{app,vehicleTaxInvoiceTitle:()=>'',fleetInvoiceFormatRegistration:v=>v,fleetEomCustomerEmail:()=>''});
+  const context=contextWith(['invoiceCustomerAccount','invoiceEmailRecipient','invoiceCustomerNotification'],{app,vehicleTaxInvoiceTitle:()=>'',fleetInvoiceFormatRegistration:v=>v,fleetEomCustomerEmail:()=>''});
   const link='https://workshop.example/invoice?token=secure-token';
   const result=context.invoiceCustomerNotification({job_id:'pdf-job',registration:'AB12 CDE',total:174},link);
   assert.ok(decodeURIComponent(result.whatsapp).includes(link));

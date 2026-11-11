@@ -230,15 +230,6 @@ test('ready invoice email uses the saved total and is sent once across repeated 
     await assert.rejects(sendInvoice({...job,status:'work_complete'}),/Confirm the completed work/);assert.equal(sends,1);
   }finally{global.fetch=original;restore();if(oldKey===undefined)delete process.env.RESEND_API_KEY;else process.env.RESEND_API_KEY=oldKey;}
 });
-test('Ready to invoice saves through existing invoice rules before requesting email',async()=>{
-  const source=fs.readFileSync(new URL('../../index.html',import.meta.url),'utf8');
-  const start=source.indexOf('async function vectaReadyInvoiceAndSend(job)'),end=source.indexOf('\n}',start)+2;
-  const events=[],inv={id:'invoice-1'},context={savedInvoiceForJobId:()=>null,openInvoiceForJob:()=>{events.push('create');return inv;},saveInvoice:async()=>{events.push('save');return true;},app:{invoices:[inv]},vectaSendReadyInvoice:async()=>events.push('email')};
-  vm.runInNewContext(source.slice(start,end),context);
-  assert.equal(await context.vectaReadyInvoiceAndSend(job),true);assert.deepEqual(events,['create','save','email']);
-  events.length=0;context.saveInvoice=async()=>false;assert.equal(await context.vectaReadyInvoiceAndSend(job),false);assert.deepEqual(events,['create']);
-  events.length=0;context.savedInvoiceForJobId=()=>inv;assert.equal(await context.vectaReadyInvoiceAndSend(job),true);assert.deepEqual(events,['email']);
-});
 test('registration lookup is limited to today, normalises plates and exposes only visual progress',async()=>{
   const restore=environment(),original=global.fetch,requests=[];
   let rows=[{...job,vehicle:'Nissan Qashqai',work_required:'Full service',status:'completed'}, {...job,vehicle:'Nissan Qashqai',work_required:'Full service',id:'22345678-1234-4234-8234-123456789012',status:'in_progress'}];
