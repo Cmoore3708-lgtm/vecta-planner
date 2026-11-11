@@ -13,19 +13,25 @@ try{
  console.log('VECTA parts and fitting check. Stop GSF safely in Workshop Connections first.');
  console.log('This checks current GSF and Haynes screens. It does not save or send prices.');
  const registration=await terminal.question('Registration: '),work=await terminal.question('Part/work to price (any part, e.g. supply and fit fuel pressure regulator): ');
- let request=repairRequest({registration,work,flow:'guided-v1'});const report={readOnly:true,request,startedAt:new Date().toISOString()};
+ let request=repairRequest({registration,work,flow:'guided-v1'});const report={readOnly:true,checkerVersion:'2026-11-11-search-ready-v2',request,startedAt:new Date().toISOString()};
  try{
   const local=process.env.LOCALAPPDATA;if(!local)throw Error('Run this check on the workshop Windows PC.');
   gsf=await chromium.launchPersistentContext(process.env.GSF_PROFILE_DIR||path.join(local,'VectaGSF','EdgeProfile'),{channel:'msedge',headless:false,acceptDownloads:false,chromiumSandbox:true});
   haynes=await chromium.launchPersistentContext(path.join(local,'VectaRepairQuotes','Haynes'),{channel:'msedge',headless:false,acceptDownloads:false,chromiumSandbox:true});
   const gsfPage=await gsf.newPage(),haynesPage=await haynes.newPage();
-  report.steps=[];
+  report.steps=[];let loginRetries=0;
   for(let step=0;step<20;step++){
    let timer;
    try{
     const evidence=await Promise.race([lookupGeneralRepair({gsfPage,haynesPage},request),new Promise((_,reject)=>{timer=setTimeout(()=>reject(Error('LOOKUP_TIMEOUT')),120000);})]);
     report.status='PASSED_READ_ONLY';report.quote=calculateRepairQuote(evidence,request);report.evidence=evidence;break;
    }catch(error){
+    if(error.code==='LOGIN_REQUIRED'&&loginRetries<2){
+     clearTimeout(timer);loginRetries++;
+     const answer=await terminal.question('Sign in to '+(error.supplier||'the supplier')+' in its Edge window, then press Enter to retry (or Q to finish): ');
+     if(answer.trim().toUpperCase()==='Q'){report.status='STOPPED_FOR_LOGIN';break;}
+     continue;
+    }
     if(error.code!=='CHOICE_REQUIRED')throw error;
     const result=cleanRepairChoices(error.result,request);report.steps.push(result);
     console.log('\n'+result.stage.replaceAll('_',' '));
@@ -47,7 +53,7 @@ try{
    }finally{clearTimeout(timer);}
   }
   report.status||='STOPPED_FOR_REVIEW';
- }catch(error){report.status='NEEDS_CHECK';report.reason=error.code||'LOOKUP_UNAVAILABLE';report.detail=error.detail||'';console.log('The check needs attention. If Edge is already in use, stop GSF safely and retry.');}
+ }catch(error){report.status='NEEDS_CHECK';report.reason=error.code||'LOOKUP_UNAVAILABLE';report.detail=error.detail||'';report.supplier=error.supplier||'';if(error.observed)report.observed=error.observed;console.log('The '+(report.supplier||'supplier')+' check stopped: '+(report.detail||report.reason)+'. Send the report back so this step can be checked.');}
  const output=path.join(here,'catalogue-check-result.local.json');writeFileSync(output,JSON.stringify(report,null,2)+'\n',{mode:0o600});
  console.log(report.status+' — report saved beside this checker. Restart GSF in Workshop Connections when finished.');
 }finally{await Promise.allSettled([gsf?.close(),haynes?.close()]);terminal.close();}

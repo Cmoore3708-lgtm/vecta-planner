@@ -2,6 +2,7 @@ import {captureServiceCategory,readServiceCategory,readServiceAttributes} from '
 import {readProductDialog,openSelectedProduct} from '../gsf/product-dialog.mjs';
 import {repairScope} from '../../lib/repair-quote.js';
 import {choiceId,requireChoice} from './choice-result.mjs';
+import {findCatalogueSearch} from './catalogue-search.mjs';
 const reject=detail=>{throw Object.assign(Error('REVIEW_REQUIRED'),{code:'REVIEW_REQUIRED',detail});};
 
 // Read the rendered catalogue, keeping each SKU, its alternatives and its
@@ -162,8 +163,9 @@ export async function discoverRepairCategory(page,query,{request,now=Date.now}={
  const origin='https://trade.gsfcarparts.com';
  await page.goto(origin,{waitUntil:'domcontentloaded',timeout:15000});
  const check=()=>{const url=new URL(page.url());if(url.origin!==origin||/^\/signin/.test(url.pathname))throw Object.assign(Error('LOGIN_REQUIRED'),{code:'LOGIN_REQUIRED'});};check();
- const search=page.getByRole('textbox',{name:"Search for OE (cross ref), aftermarket or categories like 'Air filter'",exact:true});
- if(await search.count()!==1)reject('CATALOGUE_SEARCH_UNAVAILABLE');
+ // GSF hydrates the catalogue after DOMContentLoaded. Wait for its actual
+ // visible control; wording and text/search input roles can vary by layout.
+ const search=await findCatalogueSearch(page);
  await search.fill(query,{timeout:10000});
  let observed=[];
  async function find(){observed=await page.locator('a[href]').evaluateAll(nodes=>nodes.filter(n=>n.getClientRects().length&&!n.closest('[hidden],[aria-hidden="true"]')).map(n=>({href:n.href,text:(n.innerText||n.textContent||'').trim()})));return matchingCatalogueCategories(observed,query);}

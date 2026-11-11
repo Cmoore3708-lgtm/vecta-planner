@@ -85,3 +85,20 @@ and times, actual operation extraction, wrong vehicle/axle, UI selection and
 search refinement, invalidation and escaped supplier labels. Supplier DOM and
 live desktop/mobile checks remain outstanding. No production activation or
 installation has been performed.
+
+## Workshop-PC report: initial catalogue search
+
+The first attached live check reached the guided request parser but stopped with
+`CATALOGUE_SEARCH_UNAVAILABLE` before any GSF category or Haynes operation was
+read. The previous code checked an exact search-box name immediately after
+DOMContentLoaded; this report does not establish whether the cause was delayed
+page rendering, changed field wording or an unauthenticated page.
+
+The reader now waits up to 15 seconds for a unique, visible catalogue-search
+input, using observed accessible labels/placeholders rather than one exact name.
+Registration/account fields and hidden duplicates are excluded. Sign-in is
+reported separately and the read-only checker allows two manual sign-in retries.
+If the control still cannot be identified, the report records field types and
+labels, without input values, raw HTML, credentials or URL query strings.
+This fix is covered by delayed-render, changed-wording, ambiguous-control and
+radiator-category tests; it still needs the next real workshop-PC result.
