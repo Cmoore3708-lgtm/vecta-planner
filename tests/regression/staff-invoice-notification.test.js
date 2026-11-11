@@ -7,7 +7,7 @@ import gen from '@babel/generator';
 import traverse from '@babel/traverse';
 import {parseHTML} from 'linkedom';
 const html=fs.readFileSync(new URL('../../index.html',import.meta.url),'utf8');
-const names=['invoiceCustomerContactPreference','invoiceCustomerNotification','reserveInvoiceMessageWindow','closeInvoiceMessageWindow','promptInvoiceCustomerNotification','saveInvoiceAndNotify'];
+const names=['invoiceCustomerNotification','reserveInvoiceMessageWindow','closeInvoiceMessageWindow','promptInvoiceCustomerNotification','saveInvoiceAndNotify'];
 function setup(){
  const {document}=parseHTML('<html><body><div id="invoiceModal"></div></body></html>');
  const events=[],tab={closed:false,document:{body:{}},location:{replace:url=>events.push(['navigate',url])},close(){this.closed=true;events.push(['close'])}};
@@ -19,14 +19,14 @@ function setup(){
  }
  return {ctx,events,tab,inv};
 }
-test('selected Email overrides available WhatsApp; exact message contains gross total and signed link',()=>{
+test('Staff Save & Message uses WhatsApp even with an older Email preference; includes gross total and signed link',()=>{
  const {ctx,inv}=setup(),url='https://workshop.example/invoice?token=secure',n=ctx.invoiceCustomerNotification(inv,url);
- assert.equal(n.channel,'email');assert.equal(n.preferredUrl,n.email);
+ assert.equal(n.channel,'whatsapp');assert.equal(n.preferredUrl,n.whatsapp);
  assert.equal(new URL(n.email).searchParams.get('body'),'Hi Jane,\n\nWe have completed the work on your car. The total price is £175.00.\n\nYou can view your invoice here:\n'+url+'\n\nWe will send a payment link from BeePaid via text message shortly… Thank you for your custom.');
  ctx.app.jobs[0].customer_note='Contact preference: WhatsApp';const w=ctx.invoiceCustomerNotification(inv,url);assert.equal(w.preferredUrl,w.whatsapp);assert.equal(new URL(w.whatsapp).pathname,'/447700123456');
 });
 test('reserve on click before asynchronous save; open only with confirmed invoice and PDF link; repeat saves supported',async()=>{
- const {ctx,events}=setup();assert.equal(await ctx.saveInvoiceAndNotify('i'),true);assert.equal(ctx.view,'invoices');assert.equal(ctx.financialSection,'invoiceList');assert.deepEqual(events.map(e=>e[0]),['open','save','link','navigate']);assert.match(events[3][1],/^mailto:/);
+ const {ctx,events,inv}=setup();inv.customer_email='';assert.equal(await ctx.saveInvoiceAndNotify('i'),true);assert.equal(ctx.view,'invoices');assert.equal(ctx.financialSection,'invoiceList');assert.deepEqual(events.map(e=>e[0]),['open','save','link','navigate']);assert.match(events[3][1],/^https:\/\/wa.me\/447700123456/);assert.match(new URL(events[3][1]).searchParams.get('text'),/https:\/\/workshop.example\/invoice\?token=secure/);
  events.length=0;assert.equal(await ctx.saveInvoiceAndNotify('i'),true);assert.equal(ctx.view,'invoices');assert.equal(ctx.financialSection,'invoiceList');assert.deepEqual(events.map(e=>e[0]),['open','save','link','navigate']);
 });
 test('failed save closes reserved window and never issues invoice link or message',async()=>{
@@ -38,9 +38,17 @@ test('failed PDF leaves saved invoice intact and offers retry without resaving',
 test('blocked popup retains ready message with direct email/WhatsApp links',async()=>{
  const {ctx}=setup();ctx.window.open=()=>null;await ctx.saveInvoiceAndNotify('i');assert.ok(ctx.document.querySelector('a[href^="mailto:"]'));assert.match(ctx.document.getElementById('invoiceModal').textContent,/£175.00/);
 });
-test('missing preferred contact does not silently use another channel; double-click saves only once',async()=>{
- const {ctx,inv,events}=setup();inv.customer_email='';assert.equal(ctx.invoiceCustomerNotification(inv).preferredUrl,'');
- let resolve;ctx.saveInvoice=()=>new Promise(r=>{resolve=r});const first=ctx.saveInvoiceAndNotify('i');assert.equal(await ctx.saveInvoiceAndNotify('i'),false);ctx.app.invoices=[inv];resolve(true);await first;assert.ok(!events.some(e=>e[0]==='navigate'));
+test('missing mobile leaves invoice open without saving or falling back to email',async()=>{
+ const {ctx,inv,events}=setup();inv.customer_phone='0191 1234567';assert.equal(ctx.invoiceCustomerNotification(inv).preferredUrl,'');
+ const modal=ctx.document.getElementById('invoiceModal');modal.innerHTML='<input id="inv_customer_phone">';modal.classList.add('open');const editor=modal.firstElementChild,alerts=[];ctx.alert=message=>alerts.push(message);
+ assert.equal(await ctx.saveInvoiceAndNotify('i'),false);assert.deepEqual(events,[]);assert.equal(ctx.app.invoices.length,0);assert.equal(modal.firstElementChild,editor);assert.equal(modal.classList.contains('open'),true);assert.match(alerts[0],/mobile number/);
+});
+test('double-click saves and prepares WhatsApp only once',async()=>{
+ const {ctx,inv,events}=setup();let resolve;ctx.saveInvoice=()=>new Promise(r=>{resolve=r});const first=ctx.saveInvoiceAndNotify('i');assert.equal(await ctx.saveInvoiceAndNotify('i'),false);ctx.app.invoices=[inv];resolve(true);await first;assert.deepEqual(events.map(e=>e[0]),['open','link','navigate']);
+});
+test('NMUK Internal and Pool notifications remain email only',()=>{
+ const {ctx,inv}=setup();ctx.invoiceCustomerAccount=()=> 'NMUK';
+ for(const subtype of ['Internal','Pool']){ctx.app.jobs[0].nmuk_vehicle_type=subtype;const notice=ctx.invoiceCustomerNotification(inv,'https://workshop.example/invoice?token=secure');assert.equal(notice.channel,'email');assert.equal(notice.preferredUrl,notice.email);assert.equal(notice.whatsapp,'');}
 });
 
 
