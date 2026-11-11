@@ -5,6 +5,57 @@
  async function api(action,body={}){const r=await fetch('/api/job-progress',{method:'POST',credentials:'same-origin',cache:'no-store',headers:{'Content-Type':'application/json'},body:JSON.stringify({action,...body}),signal:AbortSignal.timeout(45000)});const data=await r.json();if(!r.ok)throw Error(data.error||'Customer messages are unavailable.');return data;}
  let pendingEvent=new URLSearchParams(location.search).get('portal_event'),popup,active,refreshQueue;
  const panels=new Map(),known=new Set();
+ // Pop-up dismissal and reading are separate: hiding a notification must not
+ // clear the persistent badge. Read receipts remain local to this device/role.
+ const readKey=()=> 'vecta:portal:read:'+(mechanic()?'mechanic':'manager');
+ function readIds(){try{const ids=JSON.parse(localStorage.getItem(readKey())||'[]');return new Set(Array.isArray(ids)?ids:[]);}catch{return new Set();}}
+ const inboxKey=()=> 'vecta:portal:inbox:'+(mechanic()?'mechanic':'manager');
+ function cachedInbox(){try{const items=JSON.parse(localStorage.getItem(inboxKey())||'[]');return Array.isArray(items)?items:[];}catch{return [];}}
+ let inbox=cachedInbox(),read=readIds();
+ const cardSelector='.job[data-job-id],.mobileJob[data-open-job],.sideJob[data-open-job],.sideJob[data-job-id]';
+ const incoming=item=>mechanic()?item.forwarded:item.actor==='customer';
+ function unread(items){return items.filter(item=>incoming(item)&&!read.has(item.id));}
+ function paintBadges(){
+  const counts=new Map();for(const item of unread(inbox))if(item.job_id)counts.set(item.job_id,(counts.get(item.job_id)||0)+1);
+  for(const card of document.querySelectorAll(cardSelector)){
+   const id=card.dataset.jobId||card.dataset.openJob,count=counts.get(id)||0;
+   let badge=card.querySelector('.portalMessageBadge');
+   const descriptions=card.querySelectorAll('.plannerWorkRequired,.mechanicJobDescription,.provisionalWork,:scope>b,:scope>p');
+   for(const description of descriptions)description.classList.toggle('portalMessageText',!!count);
+   if(!count){badge?.remove();card.classList.remove('portalMessageHost');continue;}
+   card.classList.add('portalMessageHost');
+   if(!badge){
+    // Some cards are already native buttons; never nest a button inside one.
+    badge=node(card.tagName==='BUTTON'?'span':'button');badge.className='portalMessageBadge';
+    if(badge.tagName==='BUTTON')badge.type='button';
+    const icon=node('span','✉');icon.setAttribute('aria-hidden','true');badge.append(icon,node('span'));card.append(badge);
+    badge.onpointerdown=e=>e.stopPropagation();badge.onmousedown=e=>e.stopPropagation();badge.ondragstart=e=>{e.preventDefault();e.stopPropagation();};
+    badge.addEventListener('click',async e=>{
+     e.preventDefault();e.stopPropagation();
+     try{
+      const state=await window.vectaOpenFindingJob?.(id);
+      if(state!=='open')throw Error(state==='busy'?'Save or close your current card, then open this message.':'The job could not be opened. Please retry.');
+      const panel=panels.get(id)?.panel;
+      panel?.scrollIntoView({behavior:'smooth',block:'center'});
+      const heading=panel?.querySelector('h3');heading?.focus({preventScroll:true});
+     }catch(error){window.alert?.(error.message);}
+    });
+   }
+   const label=count+' unread '+(mechanic()?'office update':'customer message')+(count===1?'':'s')+' — open conversation';
+   if(badge.getAttribute('aria-label')!==label){badge.setAttribute('aria-label',label);badge.title=label;badge.lastElementChild.textContent=String(count);}
+  }
+ }
+ function refreshReadState(){read=readIds();paintBadges();for(const p of panels.values())if(p.panel.isConnected)p.updateRead?.();}
+ function markRead(items){
+  const ids=readIds();for(const item of items)if(incoming(item))ids.add(item.id);
+  // Only clear after persistence succeeds; an unavailable store leaves the alert.
+  localStorage.setItem(readKey(),JSON.stringify([...ids]));read=ids;
+  const dismissed=seen();for(const item of items)dismissed.add(item.id);
+  try{localStorage.setItem('vecta:portal:seen:'+(mechanic()?'mechanic':'manager'),JSON.stringify([...dismissed].slice(-1000)));}catch{}
+  if(ids.has(pendingEvent))pendingEvent=null;
+  refreshReadState();active=null;refreshQueue?.();
+ }
+
  function button(text,fn){const b=node('button',text);b.type='button';b.className='btn';b.onclick=fn;return b;}
  const alertStates={sent:'accepted by provider',pending:'send unconfirmed — check before resending',failed:'send failed',queued:'queued',unavailable:'status unavailable',missing_contact:'missing contact details',no_permission:'customer agreement needed',manual:'tap to send',not_configured:'sender not connected',sender_unverified:'sender domain needs verification',test:'Test only',contact_changed:'contact changed — not sent',closed:'booking closed — not sent'};
  function showAlerts(host,receipt,jobId){
@@ -48,8 +99,13 @@
    notificationNote.textContent=state?.message||'';
   }
   notifications.className='portalDeviceNotifications';notificationNote.setAttribute('role','status');notifications.append(notificationNote,enable);updateNotifications();
-  panel.append(heading,consent,notifications,status,list);after.after(panel);
-  let busy=false,key='',older=null;
+  heading.tabIndex=-1;
+  const readButton=button('Mark messages as read',()=>{try{markRead([...displayed.values()]);status.textContent='Messages marked as read on this device.';}catch{status.textContent='Unable to save the read status on this device. The message alert is still active.';}});
+  readButton.classList.add('portalMarkRead');readButton.hidden=true;
+  panel.append(heading,consent,notifications,status,readButton,list);after.after(panel);
+  let busy=false,key='',older=null;const displayed=new Map();
+  function updateRead(){const count=unread([...displayed.values()]).length;readButton.hidden=!count;readButton.textContent='Mark '+count+' '+(count===1?'message':'messages')+' as read';}
+
   async function refresh(before){
    if(busy||!panel.isConnected||document.hidden||!navigator.onLine)return;busy=true;
    try{
@@ -57,11 +113,11 @@
     const allowed=data.preferences?.serious_repairs==='change_parts';consent.className='portalWorkshopConsent';consent.dataset.signal=allowed?'green':'red';consent.textContent=allowed?'Additional parts pre-authorised':'Additional parts not pre-authorised — approval required';
     const hash=JSON.stringify([data.events,data.alerts]);
     if(hash!==key){
-     key=hash;const cards=data.events.map(item=>eventCard(item,!mechanic(),data.alerts?.find(a=>a.event_id===item.id)));
+     key=hash;if(!before)displayed.clear();for(const item of data.events)displayed.set(item.id,item);const cards=data.events.map(item=>eventCard(item,!mechanic(),data.alerts?.find(a=>a.event_id===item.id)));
      if(!cards.length&&!before){const empty=node('p',mechanic()?'No office messages or approvals yet.':'No messages yet.');empty.className='portalWorkshopEmpty';cards.push(empty);}
      if(before)list.prepend(...cards);else list.replaceChildren(...cards);
     }
-    older=data.older_cursor;olderButton.hidden=!older;status.textContent='';
+    older=data.older_cursor;olderButton.hidden=!older;status.textContent='';updateRead();
    }catch(e){status.textContent=e.message;}finally{busy=false;}
   }
   const olderButton=button('Earlier messages',()=>refresh(older));olderButton.hidden=true;panel.insertBefore(olderButton,list);
@@ -75,7 +131,7 @@
    let id=crypto.randomUUID(),sending=false;input.oninput=()=>{if(!sending)id=crypto.randomUUID();};
    form.onsubmit=async e=>{e.preventDefault();if(sending||permissionBox.disabled)return;sending=true;send.disabled=true;permissionBox.disabled=true;note.textContent='Saving your message and preparing customer alerts…';try{const result=await api('portal-reply',{job_id:job.id,id,message:input.value});input.value='';id=crypto.randomUUID();note.replaceChildren(node('p','Message saved in the customer portal.'));const delivery=node('div');showAlerts(delivery,result.alerts,job.id);note.append(delivery);await refresh();}catch(error){note.textContent=error.message;}finally{sending=false;send.disabled=false;permissionBox.disabled=false;}};
   }
-  panels.set(job.id,{panel,refresh,updateNotifications});refresh();
+  panels.set(job.id,{panel,refresh,updateNotifications,updateRead});refresh();
  }
  function seen(){try{return new Set(JSON.parse(localStorage.getItem('vecta:portal:seen:'+ (mechanic()?'mechanic':'manager'))||'[]'));}catch{return new Set();}}
  function ack(item){const ids=seen();ids.add(item.id);try{localStorage.setItem('vecta:portal:seen:'+(mechanic()?'mechanic':'manager'),JSON.stringify([...ids].slice(-1000)));}catch{}if(pendingEvent===item.id)pendingEvent=null;refreshQueue?.();}
@@ -87,7 +143,11 @@
    if(busy||document.hidden||!navigator.onLine)return;busy=true;
    window.vectaMaintainPortalAlerts?.();
    try{
-    const {events}=await api('portal-queue');
+    const events=[];let before;
+    do{const page=await api('portal-queue',before?{before}:{});events.push(...page.events);before=page.older_cursor;}while(before);
+    inbox=[...new Map(events.map(item=>[item.id,item])).values()];
+    try{localStorage.setItem(inboxKey(),JSON.stringify(inbox.map(({id,job_id,actor,forwarded})=>({id,job_id,actor,forwarded}))));}catch{}
+    paintBadges();
     const fresh=events.filter(item=>!known.has(item.id));let synced=true;
     if(fresh.length){
      try{synced=typeof window.vectaRefreshPortalJobs==='function'&&await window.vectaRefreshPortalJobs()!==false;}catch{synced=false;}
@@ -96,7 +156,7 @@
      if(synced)for(const e of events)known.add(e.id);
      for(const [id,p]of panels)if(p.panel.isConnected)p.refresh();else panels.delete(id);
     }
-    const ids=seen(),next=events.find(x=>x.id===pendingEvent)||events.find(x=>!ids.has(x.id));
+    const ids=seen(),next=events.find(x=>x.id===pendingEvent)||events.find(x=>!ids.has(x.id)&&!read.has(x.id));
     if(!next){active=null;popup.hidden=true;return;}
     if(active&&active.id===next.id&&active.forwarded===next.forwarded&&active.synced===synced)return;
     active={...next,synced};popup.hidden=false;popup.replaceChildren(node('strong',(mechanic()?'Job update':'Customer message')+' · '+next.registration),eventCard(next,!mechanic()));
@@ -109,12 +169,18 @@
     }),button('Dismiss',()=>ack(next)),message);
    }catch{}finally{busy=false;}
   };
+  if(typeof MutationObserver!=='undefined'){
+   // Observe card replacements, not every attribute/text change on the page.
+   const observer=new MutationObserver(records=>{if(records.some(r=>[...r.addedNodes].some(n=>n.nodeType===1&&(n.matches?.(cardSelector)||n.querySelector?.(cardSelector)))))paintBadges();});
+   observer.observe(document.querySelector('main.main'),{childList:true,subtree:true});
+  }
+  window.addEventListener('storage',e=>{if(e.key===readKey()||e.key===null){refreshReadState();active=null;refreshQueue();}});
   window.addEventListener('vecta-portal-changed',()=>{active=null;refreshQueue();});
   window.addEventListener('vecta-notification-state',()=>{for(const [id,p]of panels)if(p.panel.isConnected)p.updateNotifications();else panels.delete(id);});
   document.addEventListener('visibilitychange',()=>{if(!document.hidden)refreshQueue();});
   window.addEventListener('online',()=>{window.vectaMaintainPortalAlerts?.(true);refreshQueue();});
   navigator.serviceWorker?.addEventListener('message',e=>{if(e.data?.type==='vecta-portal-notification'){if(e.data.eventId)pendingEvent=e.data.eventId;refreshQueue();}});
-  refreshQueue();setInterval(refreshQueue,10000);
+  paintBadges();refreshQueue();setInterval(refreshQueue,10000);
   setInterval(()=>{for(const [id,p]of panels)if(p.panel.isConnected)p.refresh();else panels.delete(id);},15000);
  }
  async function confirmation(job){
