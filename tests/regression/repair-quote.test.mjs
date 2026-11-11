@@ -71,6 +71,21 @@ test('saved multi-part breakdown reopens with cost, sale, source hours and VAT t
  const first=editor();first.document.querySelector('[data-rq-find]').click();await new Promise(r=>setImmediate(r));first.document.querySelector('[data-rq-add]').click();const extra=first.document.querySelector('[data-rq-items]').children[1];for(const [sel,val] of [['[data-rq-description]','Belt'],['[data-rq-cost]','20']]){const input=extra.querySelector(sel);input.value=val;input.dispatchEvent(new first.window.Event('input'));}first.document.querySelector('[data-rq-apply]').click();const note=first.ctx.noteWithPrivatePricing('',first.ctx.gatherPrivatePricingItems());
  const next=editor({status:'quote',customer_note:note});assert.equal(next.document.querySelector('[data-rq-items]').children.length,2);assert.equal(next.document.querySelector('[data-rq-total]').textContent,'£290.00');assert.equal(next.document.querySelector('[data-rq-cost]').value,'100.01');
 });
+test('an explicitly selected unavailable part prices through the APIs and keeps its label after saving and reopening',async()=>{
+ const partId='a'.repeat(32),labourId='b'.repeat(32),r=repairRequest({...request,flow:'guided-v1',choices:{part:partId,labour:labourId}}),raw=fixture();
+ raw.request=r;raw.parts=[{...raw.parts[0],choiceId:partId}];raw.labour.choiceId=labourId;
+ const token='a'.repeat(64);let delivered;const worker=response();
+ await repairWorkerHandler({env:{REPAIR_QUOTING_ENABLED:'true',REPAIR_QUOTE_WORKER_TOKEN:token},queue:async(a,p)=>{delivered=p.result;return {status:'SAVED'};},now:()=>now})({method:'POST',headers:{authorization:'Bearer '+token},body:{action:'complete',id:'11111111-1111-4111-8111-111111111111',lease:'22222222-2222-4222-8222-222222222222',status:'MATCHED',request:r,result:raw}},worker);
+ assert.equal(worker.body.status,'SAVED');assert.equal(delivered.parts[0].inStock,false);
+ const res=response();await repairQuoteHandler({env:{REPAIR_QUOTING_ENABLED:'true',REPAIR_GENERAL_PRICING_ENABLED:'true'},authenticate:async()=>true,queue:async()=>({status:'MATCHED',result:delivered}),now:()=>now})({method:'POST',body:r},res);
+ assert.equal(res.body.status,'MATCHED');assert.equal(res.body.quote.part.sku,'NO-STOCK');assert.equal(res.body.quote.part.inStock,false);assert.equal(res.body.quote.totalIncVatPence,18000);
+ for(const change of [x=>delete x.request.choices.part,x=>x.parts[0].choiceId='c'.repeat(32),x=>x.parts[0].costPence=0,x=>x.parts[0].inStock='false']){const bad=structuredClone(raw);change(bad);assert.throws(()=>calculateRepairQuote(bad,bad.request,{now}));}
+ const first=editor();first.ctx.fetch=async()=>({status:200,json:async()=>res.body});first.document.querySelector('[data-rq-find]').click();await new Promise(resolve=>setImmediate(resolve));
+ assert.match(first.document.querySelector('[data-rq-availability]').textContent,/Out of stock/);assert.equal(first.document.querySelector('[data-rq-total]').textContent,'£180.00');
+ first.document.querySelector('[data-rq-apply]').click();const items=first.ctx.gatherPrivatePricingItems();assert.ok(items.every(i=>i.repair_quote.part.inStock===false));
+ const note=first.ctx.noteWithPrivatePricing('',items),next=editor({status:'quote',customer_note:note});
+ assert.match(next.document.querySelector('[data-rq-availability]').textContent,/Out of stock/);assert.equal(next.document.querySelector('[data-rq-total]').textContent,'£180.00');
+});
 test('captured replay is restricted to reviewed test environments and never queries the live queue',async()=>{
  const env={VERCEL_ENV:'preview',VERCEL_GIT_COMMIT_REF:'amendment/repair-quote-lookup'};
  assert.equal(repairReplayAvailable(env),true);

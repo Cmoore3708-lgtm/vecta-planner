@@ -32,3 +32,10 @@ test('explicit oil price-only read retains a verified price when supplier stock 
  assert.throws(()=>readProductDialog(document),/UNAVAILABLE/);
  const result=readProductDialog(document,{allowUnavailableOilPrice:true});assert.equal(result.inStock,false);assert.ok(result.unitNetPence>0);assert.equal(result.vatBasis,'EX_VAT');
 });
+test('general unavailable-price reads retain exact price and VAT without manufacturing stock',()=>{
+ const fixture=readFileSync('tests/fixtures/gsf-product-dialog.html','utf8').replace('In stock.','Out of stock.').replace(/(<td>)\d+(<\/td>)/g,'$10$2');
+ const read=html=>readProductDialog(parseHTML(html).document,{allowUnavailablePrice:true});
+ const result=read(fixture);assert.equal(result.unitNetPence,494);assert.equal(result.inStock,false);assert.ok(result.stock.every(s=>s.quantity===0));assert.equal(result.vatBasis,'EX_VAT');
+ for(const bad of [fixture.replace('£5.93','£8.00'),fixture.replace('ex vat','inc vat'),fixture.replace('£4.94','£0.00'),fixture.replace('<p>UFI</p>','<p></p>')])assert.throws(()=>read(bad));
+ assert.throws(()=>readProductDialog(parseHTML(fixture).document),/UNAVAILABLE/);
+});

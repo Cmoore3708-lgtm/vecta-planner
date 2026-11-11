@@ -10,7 +10,7 @@ import {repairScope,calculateRepairQuote,cleanRepairChoices} from '../../lib/rep
 import {captureCatalogueDiagnostics} from './catalogue-diagnostics.mjs';
 import {promptInitialRepairRequest,promptRepairChoice} from './checker-input.mjs';
 const here=path.dirname(fileURLToPath(import.meta.url)),terminal=createInterface({input:process.stdin,output:process.stdout});
-const checkerVersion='2026-11-11-rrp-reference-v10';
+const checkerVersion='2026-11-11-stock-prices-v11';
 let gsf,haynes,gsfPage,haynesPage;
 try{
  console.log('VECTA parts and fitting check — '+checkerVersion+'. Stop GSF safely in Workshop Connections first.');
@@ -29,7 +29,7 @@ try{
    try{
     console.log(request.choices.part?'Rechecking your GSF part, then finding its Haynes fitting operation...':'Selecting '+request.registration+' in GSF, then searching for the part...');
     const evidence=await Promise.race([lookupGeneralRepair({gsfPage,haynesPage},request),new Promise((_,reject)=>{timer=setTimeout(()=>{timedOut=true;void Promise.allSettled([gsfPage.close(),haynesPage.close()]).then(()=>reject(Error('LOOKUP_TIMEOUT')));},120000);})]);
-    report.status='PASSED_READ_ONLY';report.quote=calculateRepairQuote(evidence,request);report.evidence=evidence;break;
+    report.status='PASSED_READ_ONLY';report.quote=calculateRepairQuote(evidence,request);report.evidence=evidence;console.log('Parts and fitting: £'+(report.quote.totalIncVatPence/100).toFixed(2)+' including VAT. '+(report.quote.part.inStock?'In stock at last check.':'Out of stock — price available; confirm supply before booking.'));break;
    }catch(error){
     // Close timed-out lookup pages before any manual inspection; an abandoned
     // lookup must not continue clicking while the mechanic reviews a failure.
@@ -48,8 +48,8 @@ try{
      console.log(report.detail);break;
     }
     console.log('\n'+result.stage.replaceAll('_',' '));
-    if(result.selectedPart)console.log('GSF part: '+result.selectedPart.description+' '+result.selectedPart.sku);
-    result.options.forEach((o,i)=>console.log((i+1)+'. '+o.label+' — '+o.detail+(o.costPence?' — £'+(o.costPence/100).toFixed(2)+' each ex VAT':'')+(o.hoursMilli?' — '+o.hoursMilli/1000+' hours':'')));
+    if(result.selectedPart)console.log('GSF part: '+result.selectedPart.description+' '+result.selectedPart.sku+(result.selectedPart.inStock===false?' — Out of stock':result.selectedPart.inStock===true?' — In stock':''));
+    result.options.forEach((o,i)=>console.log((i+1)+'. '+o.label+' — '+o.detail+(o.costPence?' — £'+(o.costPence/100).toFixed(2)+' each ex VAT':'')+(o.inStock===false?' — Out of stock':o.inStock===true?' — In stock':'')+(o.hoursMilli?' — '+o.hoursMilli/1000+' hours':'')));
     // End the lookup timer before waiting for the mechanic's choice.
     clearTimeout(timer);
     const next=await promptRepairChoice(terminal,request,result);

@@ -52,10 +52,11 @@ test('part choices retain distinct fitment variants and detect supplier price ch
  assert.equal(scopeForFitment(rows,scope).work,scope.work);
  assert.equal(scopeForFitment([{attribute:'Fitting Position',value:'Rear Axle Left'}],scope),null);
  assert.equal(scopeForFitment(rows,repairScope.resolve('Replace wishbone')).work,scope.work);
- const candidate={group:{sku:'GROUP1',description:'Control Arm'},option:{description:'Control Arm',brand:'Brand',grade:'Silver',pricePence:5000},rows,scope};
+ const candidate={group:{sku:'GROUP1',description:'Control Arm'},option:{description:'Control Arm',brand:'Brand',grade:'Silver',pricePence:5000,inStock:true},rows,scope};
  const opts=gsfPartChoices([candidate,{...candidate,group:{...candidate.group,sku:'GROUP2'}}],request,'Control Arm');
  assert.notEqual(opts[0].id,opts[1].id);
  assert.notEqual(opts[0].id,gsfPartChoices([{...candidate,option:{...candidate.option,pricePence:5001}}],request,'Control Arm')[0].id);
+ assert.notEqual(opts[0].id,gsfPartChoices([{...candidate,option:{...candidate.option,inStock:false}}],request,'Control Arm')[0].id);
 });
 test('Haynes offers multiple actual operations, rejects wrong axle and changed times invalidate selections',()=>{
  const {document}=parseHTML('<html><body><p>TOTAL TIME (H)</p><ul><li><span>Renew front left track control arm</span> <span>1BR1234567</span> <span>0.70</span></li><li><span>Renew rear left track control arm</span> <span>1BR1234568</span> <span>1.20</span></li><li><span>Renew front left suspension arm with ball joint</span> <span>1BR1234569</span> <span>0.90</span></li></ul></body></html>');
@@ -149,4 +150,17 @@ test('the selected GSF suggestion survives part selection and Haynes search refi
  e.choose(0);await e.click('[data-rq-choose]');assert.equal(e.sent[2].choices.gsfCategory,category);assert.equal(e.sent[2].choices.part,partId);
  e.document.querySelector('[data-rq-refine]').value='suspension arm';await e.click('[data-rq-search-again]');assert.equal(e.sent[3].choices.gsfCategory,category);
  await e.click('[data-rq-change-part]');assert.deepEqual(e.sent.at(-1).choices,{gsfCategory:category});
+});
+test('out-of-stock status survives both API relays and appears beside part and labour choices',async()=>{
+ const out={...option,inStock:false},choice=selection(request,'GSF_PART',[out]),res=response();
+ await repairQuoteHandler({env:{REPAIR_QUOTING_ENABLED:'true',REPAIR_GENERAL_PRICING_ENABLED:'true'},authenticate:async()=>true,queue:async()=>({status:'CHOICE_REQUIRED',result:choice}),now:()=>now})({method:'POST',body:request},res);
+ assert.equal(res.body.choices.options[0].inStock,false);
+ for(const bad of ['false',null,0])assert.throws(()=>cleanRepairChoices(selection(request,'GSF_PART',[{...out,inStock:bad}]),request,{now}),/INVALID_CHOICES/);
+ const selectedPart={description:'Control arm',brand:'Fixture',sku:'ARM1',costPence:5000,inStock:false};
+ const e=editor((r,n)=>({status:'CHOICE_REQUIRED',choices:n===1?selection(r,'GSF_PART',[out]):{...selection(r,'HAYNES_LABOUR',[{id:labourId,label:'Renew control arm',detail:'Observed operation',hoursMilli:700}]),selectedPart}}));
+ await e.click('[data-rq-find]');assert.match(e.document.querySelector('[data-rq-availability]').textContent,/Out of stock/);
+ e.choose(0);await e.click('[data-rq-choose]');assert.equal(e.sent[1].choices.part,partId);assert.match(e.document.querySelector('.rqConfirmed').textContent,/Out of stock/);
+ let delivered;const token='a'.repeat(64),worker=response(),r=repairRequest({...request,choices:{part:partId}});
+ await repairWorkerHandler({env:{REPAIR_QUOTING_ENABLED:'true',REPAIR_QUOTE_WORKER_TOKEN:token},now:()=>now,queue:async(a,p)=>{delivered=p.result;return {status:'SAVED'};}})({method:'POST',headers:{authorization:'Bearer '+token},body:{action:'complete',id:'11111111-1111-1111-1111-111111111111',lease:'22222222-2222-2222-2222-222222222222',request:r,status:'CHOICE_REQUIRED',result:{...selection(r,'HAYNES_LABOUR',[]),selectedPart}}},worker);
+ assert.equal(worker.body.status,'SAVED');assert.equal(delivered.selectedPart.inStock,false);
 });

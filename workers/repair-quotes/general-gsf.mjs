@@ -119,9 +119,9 @@ export async function waitForRepairGroups(page,registration,category,{attempts=1
  }
  reject('CATALOGUE_INCOMPLETE');
 }
-function sameOption(a,b){return a.pricePence===b.pricePence&&a.description===b.description&&a.grade===b.grade&&a.brand===b.brand;}
+function sameOption(a,b){return a.pricePence===b.pricePence&&a.description===b.description&&a.grade===b.grade&&a.brand===b.brand&&a.inStock===b.inStock;}
 export function selectedRepairProduct(group,option){
- const matches=group?.options.filter(o=>sameOption(o,option)&&o.inStock)||[],chosen=group?.options.filter(o=>o.selected)||[];
+ const matches=group?.options.filter(o=>sameOption(o,option)&&typeof o.inStock==='boolean')||[],chosen=group?.options.filter(o=>o.selected)||[];
  if(matches.length!==1)reject('SELECTED_OPTION_NOT_CONFIRMED');
  if(group.options.some(o=>o.selectionControlPresent||o.selected)){
   if(chosen.length!==1||!sameOption(chosen[0],option))reject('SELECTED_OPTION_NOT_CONFIRMED');
@@ -180,7 +180,7 @@ export async function lookupGeneralGSF(page,request,{capture=captureRepairCatalo
  let snapshot=await waitForRepairGroups(page,request.registration,category);
  const candidates=[];let matchingGroups=0;
  for(const group of snapshot.groups){
-  if(!group.options.some(option=>option.inStock))continue;
+  if(!group.options.some(option=>request.flow||option.inStock))continue;
   if(!request.flow&&!repairScope.matchesDescription(group.description,scope.query))reject('WRONG_CATEGORY_PRODUCT');
   let rows=[];
   if(group.attributesSelector||scope.axle||scope.side||request.quantity>1){
@@ -195,7 +195,7 @@ export async function lookupGeneralGSF(page,request,{capture=captureRepairCatalo
   const candidateScope=request.flow?scopeForFitment(rows,scope):scope;
   if(!candidateScope)continue;
   matchingGroups++;
-  for(const option of group.options.filter(o=>o.inStock))candidates.push({group,option,rows,scope:candidateScope});
+  for(const option of group.options.filter(o=>request.flow||o.inStock))candidates.push({group,option,rows,scope:candidateScope});
  }
  if(!request.flow&&matchingGroups>1)reject('MULTIPLE_FITMENT_VARIANTS');
  if(request.flow){
@@ -216,10 +216,10 @@ export async function lookupGeneralGSF(page,request,{capture=captureRepairCatalo
  const {searchTerm,url,...target}=selected.target;
  await openSelectedProduct(page,{...target,searchTerm});
  let product;
- for(let i=0;i<40;i++){try{product=await page.evaluate(readProductDialog);break;}catch{await page.waitForTimeout(200);}}
+ for(let i=0;i<40;i++){try{product=await page.evaluate(readProductDialog,{allowUnavailablePrice:request.flow==='guided-v1'&&option.inStock===false});break;}catch{await page.waitForTimeout(200);}}
  const brandKey=value=>String(value||'').toLowerCase().replace(/[^a-z0-9]/g,'');
- if(!product||typeof product.brand!=='string'||!product.brand.trim()||product.unitNetPence!==option.pricePence||product.description.toLowerCase()!==option.description.toLowerCase()||option.brand&&brandKey(product.brand)!==brandKey(option.brand)||product.inStock!==true||!product.stock?.some(row=>row.quantity>=request.quantity)||product.vatBasis!=='EX_VAT'||!searchTerm.toUpperCase().endsWith(product.sku.toUpperCase()))reject('SELECTED_PRODUCT_CHANGED');
- return {vehicle:vehicle.visibleText.split(' Copy VIN')[0].slice(0,250),fitmentEvidence:'GSF registration '+request.registration+'; '+scope.label+'; catalogue position attributes checked',catalogueComplete:true,alternativesChecked:candidates.length,part:{source:'GSF',registration:request.registration,fitmentConfirmed:true,vatBasis:'EX_VAT',sku:product.sku,brand:product.brand,description:product.description,costPence:product.unitNetPence,corePence:0,inStock:true,imageUrl:product.imageUrl,gsfUrl:url,checkedAt:new Date(now()).toISOString(),...(request.flow?{choiceId:request.choices.part}:{})}};
+ if(!product||typeof product.brand!=='string'||!product.brand.trim()||product.unitNetPence!==option.pricePence||product.description.toLowerCase()!==option.description.toLowerCase()||option.brand&&brandKey(product.brand)!==brandKey(option.brand)||product.inStock!==option.inStock||product.inStock&&!product.stock?.some(row=>row.quantity>=request.quantity)||product.vatBasis!=='EX_VAT'||!searchTerm.toUpperCase().endsWith(product.sku.toUpperCase()))reject('SELECTED_PRODUCT_CHANGED');
+ return {vehicle:vehicle.visibleText.split(' Copy VIN')[0].slice(0,250),fitmentEvidence:'GSF registration '+request.registration+'; '+scope.label+'; catalogue position attributes checked',catalogueComplete:true,alternativesChecked:candidates.length,part:{source:'GSF',registration:request.registration,fitmentConfirmed:true,vatBasis:'EX_VAT',sku:product.sku,brand:product.brand,description:product.description,costPence:product.unitNetPence,corePence:0,inStock:product.inStock,imageUrl:product.imageUrl,gsfUrl:url,checkedAt:new Date(now()).toISOString(),...(request.flow?{choiceId:request.choices.part}:{})}};
 }
 
 export function scopeForFitment(rows,scope){
@@ -229,12 +229,12 @@ export function scopeForFitment(rows,scope){
  return candidate.status==='SUPPORTED'&&repairFitment(rows,candidate)?candidate:null;
 }
 export function gsfPartChoices(candidates,request,category){
- candidates.sort((a,b)=>a.option.pricePence-b.option.pricePence);
+ candidates.sort((a,b)=>Number(b.option.inStock)-Number(a.option.inStock)||a.option.pricePence-b.option.pricePence);
  return candidates.map(({group,option,rows,scope})=>({
-  id:choiceId(request.registration,category,group.sku,group.description,option.description,option.brand,option.grade,option.pricePence,rows.map(r=>[r.attribute,r.value]).sort()),
+  id:choiceId(request.registration,category,group.sku,group.description,option.description,option.brand,option.grade,option.pricePence,option.inStock,rows.map(r=>[r.attribute,r.value]).sort()),
   label:[option.brand,option.description,option.grade].filter(Boolean).join(' · '),
   detail:('GSF fitment group '+group.sku+' · '+rows.map(r=>r.attribute+': '+r.value).join(' · ')).slice(0,500),
-  costPence:option.pricePence,work:scope.work
+  costPence:option.pricePence,inStock:option.inStock,work:scope.work
  }));
 }
 

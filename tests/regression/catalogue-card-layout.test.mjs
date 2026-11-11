@@ -2,7 +2,9 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {parseHTML} from 'linkedom';
 import {readRepairGroups,selectedRepairProduct,waitForSelectedRepairProduct,lookupGeneralGSF} from '../../workers/repair-quotes/general-gsf.mjs';
-import {repairRequest} from '../../lib/repair-quote.js';
+import {repairRequest,cleanRepairChoices,calculateRepairQuote} from '../../lib/repair-quote.js';
+import {lookupGeneralRepair} from '../../workers/repair-quotes/general-repair.mjs';
+import {requireChoice} from '../../workers/repair-quotes/choice-result.mjs';
 
 // Synthetic structure using the observed v7 card texts and missing headings /
 // links. It is not a captured supplier DOM or a live compatibility assertion.
@@ -95,15 +97,16 @@ test('selection waits for stable refreshed SKU evidence and keeps checking the v
  assert.equal((await waitForSelectedRepairProduct(page,'AB12CDE','848',group,option)).target.searchTerm,'AVAFIX200');assert.equal(tick,5);
  page.evaluate=async()=>({registration:'WRONG',selectedRegistration:false});await assert.rejects(waitForSelectedRepairProduct(page,'AB12CDE','848',group,option),e=>e.detail==='VEHICLE_CHANGED');
 });
-function lookupFixture({missingBrand=false,reference=''}={}){
+function lookupFixture({missingBrand=false,reference='',allOutOfStock=false}={}){
  let url='https://trade.gsfcarparts.com/',productOverride={};const events=[],document=doc(missingBrand?fixture(reference).replaceAll('https://gsfappstorage.blob.core.windows.net/catalogue-assets/Brands/ava.svg','/images/unreadable-logo.svg'):fixture(reference));
+ if(allOutOfStock){for(const el of document.querySelectorAll('span'))if(el.textContent==='Branch Network')el.textContent='Out Of Stock';}
  const request=repairRequest({registration:'AB12CDE',work:'Supply and fit radiator',flow:'guided-v1'});
  const page={url:()=>url,goto:async value=>{url=value;events.push(value);},waitForTimeout:async()=>{},keyboard:{press:async()=>{}},locator:selector=>({count:async()=>1,isVisible:async()=>true,fill:async()=>{},click:async()=>{events.push(document.querySelector(selector)?.textContent?.trim()||selector);},evaluateAll:async()=>[{href:'/parts/848',text:'Radiator'}]}),evaluate:async(fn,input)=>{
   if(fn.name==='readCatalogueSearchState')return {fields:[{catalogue:true,selector:'#search'}]};
   if(fn.name==='readRepairGroups')return readRepairGroups(document);
   if(fn.name==='readServiceCategory')return {status:'CAPTURED_FOR_REVIEW',registration:request.registration,selectedRegistration:true,visibleText:'Fixture vehicle'};
   if(fn.name==='readServiceAttributes')return {status:'ATTRIBUTES_CAPTURED',rows:[{attribute:'Core width',value:'Fixture width'}]};
-  if(fn.name==='readProductDialog')return {unitNetPence:11397,description:'Radiator',brand:'AVA',sku:'FIX200',inStock:true,stock:[{quantity:1}],vatBasis:'EX_VAT',...productOverride};
+  if(fn.name==='readProductDialog'){events.push({productOptions:input});return {unitNetPence:11397,description:'Radiator',brand:'AVA',sku:'FIX200',inStock:true,stock:[{quantity:1}],vatBasis:'EX_VAT',...productOverride};}
   throw Error('Unexpected reader '+fn.name);
  }};
  const deps={selectVehicle:async()=>({registration:request.registration,selectedRegistration:true})};
@@ -112,7 +115,7 @@ function lookupFixture({missingBrand=false,reference=''}={}){
 test('observed catalogue shape offers its available part, then verifies the selected SKU without an anchor',async()=>{
  const f=lookupFixture();let options;
  await assert.rejects(lookupGeneralGSF(f.page,f.request,f.deps),e=>{options=e.result?.options;return e.code==='CHOICE_REQUIRED'&&e.result.stage==='GSF_PART';});
- assert.equal(options.length,1);assert.equal(options[0].costPence,11397);
+ assert.equal(options.length,4);assert.equal(options[0].costPence,11397);
  const selected=repairRequest({...f.request,choices:{part:options[0].id}}),result=await lookupGeneralGSF(f.page,selected,f.deps);
  assert.equal(result.part.sku,'FIX200');assert.equal(result.part.costPence,11397);assert.equal(result.part.brand,'AVA');
  assert.ok(f.events.includes('https://trade.gsfcarparts.com/partdetails/AVAFIX200'));
@@ -123,10 +126,34 @@ test('observed catalogue shape offers its available part, then verifies the sele
 test('the RRP-bearing catalogue still offers its part and resolves the missing logo from product details',async()=>{
  const f=lookupFixture({missingBrand:true,reference:'<p>RRP: £212.58</p>'});let options;
  await assert.rejects(lookupGeneralGSF(f.page,f.request,f.deps),e=>{options=e.result?.options;return e.code==='CHOICE_REQUIRED';});
- assert.ok(!options[0].label.toLowerCase().includes('ava'));assert.equal(options.length,1);assert.equal(options[0].costPence,11397);
+ assert.ok(!options[0].label.toLowerCase().includes('ava'));assert.equal(options.length,4);assert.equal(options[0].costPence,11397);
  const selected=repairRequest({...f.request,choices:{part:options[0].id}}),result=await lookupGeneralGSF(f.page,selected,f.deps);
  assert.equal(result.part.brand,'AVA');assert.equal(result.part.sku,'FIX200');assert.equal(result.part.costPence,11397);
  for(const changed of [{brand:''},{unitNetPence:11398},{description:'Radiator Cap'},{sku:'WRONG'},{inStock:false}]){
   f.changeProduct(changed);await assert.rejects(lookupGeneralGSF(f.page,selected,f.deps),e=>e.detail==='SELECTED_PRODUCT_CHANGED');
+ }
+});
+test('priced out-of-stock parts pass explicit GSF and Haynes choices without losing their stock status',async()=>{
+ for(const allOutOfStock of [false,true]){
+  const f=lookupFixture({missingBrand:true,reference:'<p>RRP: £212.58</p>',allOutOfStock}),now=Date.now(),stamp=new Date(now).toISOString(),labourId='b'.repeat(32);let options,haynesCalls=0;
+  const deps={now:()=>now,gsf:(page,r)=>lookupGeneralGSF(page,r,{...f.deps,now:()=>now}),haynes:async(_page,r,{selectedPart})=>{
+   haynesCalls++;assert.equal(selectedPart.inStock,false);
+   if(!r.choices.labour)requireChoice(r,'HAYNES_LABOUR',[{id:labourId,label:'Renew radiator',detail:'Synthetic Haynes operation',hoursMilli:700}],{now:()=>now,selectedPart});
+   return {variant:'Fixture vehicle',labour:{source:'HAYNES_PRO',registration:r.registration,variant:'Fixture vehicle',operation:r.operation,operationId:'1BR1234567',operationLabel:'Renew radiator',hoursMilli:700,unit:'hours',scopeConfirmed:true,checkedAt:stamp,choiceId:labourId}};
+  }};
+  await assert.rejects(lookupGeneralRepair({gsfPage:f.page},f.request,deps),e=>{options=cleanRepairChoices(e.result,f.request,{now}).options;return e.code==='CHOICE_REQUIRED';});
+  assert.equal(haynesCalls,0);assert.equal(options.length,4);assert.ok(options.every(o=>o.costPence>0&&o.costPence!==21258));
+  assert.equal(options[0].inStock,!allOutOfStock);
+  const chosen=options.find(o=>o.costPence===12440);assert.equal(chosen.inStock,false);
+  f.changeProduct({unitNetPence:12440,sku:'FIX100',inStock:false,stock:[{quantity:0}]});
+  const selected=repairRequest({...f.request,choices:{part:chosen.id}});
+  await assert.rejects(lookupGeneralRepair({gsfPage:f.page},selected,deps),e=>{const cleaned=cleanRepairChoices(e.result,selected,{now});assert.equal(cleaned.selectedPart.inStock,false);return e.code==='CHOICE_REQUIRED'&&cleaned.stage==='HAYNES_LABOUR';});
+  const final=repairRequest({...selected,choices:{...selected.choices,labour:labourId}}),evidence=await lookupGeneralRepair({gsfPage:f.page},final,deps),quote=calculateRepairQuote(evidence,final,{now});
+  assert.equal(quote.part.inStock,false);assert.equal(quote.part.costPence,12440);assert.equal(quote.chargedHoursMilli,1000);assert.equal(quote.netPence+quote.vatPence,quote.totalIncVatPence);
+  assert.ok(f.events.some(e=>e.productOptions?.allowUnavailablePrice===true));
+  for(const changed of [{unitNetPence:12441},{sku:'WRONG'},{vatBasis:'INC_VAT'},{inStock:true},{brand:''}]){
+   f.changeProduct({unitNetPence:12440,sku:'FIX100',inStock:false,stock:[{quantity:0}],...changed});
+   await assert.rejects(lookupGeneralRepair({gsfPage:f.page},final,deps),e=>e.detail==='SELECTED_PRODUCT_CHANGED');
+  }
  }
 });

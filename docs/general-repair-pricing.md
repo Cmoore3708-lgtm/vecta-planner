@@ -335,3 +335,29 @@ with the unreadable catalogue logo. Additional part names use the same reader;
 there is no radiator-specific exception. Live product selection, product-detail
 layout and Haynes labour remain to be verified. Main and activation settings
 remain unchanged.
+
+## Priced parts remain selectable when out of stock
+
+Chris explicitly requested that out-of-stock parts with a price remain available
+for pricing. Version `2026-11-11-stock-prices-v11` offers all priced compatible
+alternatives in the guided flow, with stocked choices first and each status
+shown separately from its price. Zero-price placeholders are never offered.
+An out-of-stock part requires the same explicit selection, fitment checks,
+refreshed SKU, fresh product price/description/brand and ex-VAT verification.
+The existing product reader's unavailable-price mode is enabled only for that
+explicit guided choice. The returned stock status must agree with the selected
+card; changes invalidate its choice ID and require a refreshed selection.
+
+Both API relays preserve stock status through the Haynes choice and final
+quote. Guided calculation uses the single confirmed part even when unavailable;
+legacy automatic cheapest-in-stock selection remains unchanged. The job editor
+and PC checker label unavailable prices, and saved/reopened breakdowns retain
+the label. No availability or delivery promise is inferred from a price.
+
+Synthetic tests cover mixed and entirely unavailable catalogues, both supplier
+choice stages, fresh product identity/VAT/price checks, API relay validation,
+quote arithmetic, and saving/reopening the out-of-stock breakdown. These tests
+do not establish live supplier compatibility. The previous confirmed live
+blocker was the extra RRP paragraph, not the unavailable cards. Successful live
+GSF product selection and Haynes labour are still outstanding; this remains a
+draft and the general-pricing flag is disabled.
