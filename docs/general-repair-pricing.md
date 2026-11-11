@@ -361,3 +361,34 @@ do not establish live supplier compatibility. The previous confirmed live
 blocker was the extra RRP paragraph, not the unavailable cards. Successful live
 GSF product selection and Haynes labour are still outstanding; this remains a
 draft and the general-pricing flag is disabled.
+
+## Workshop-PC report: selected GSF product verified, Haynes groups empty
+
+The later v11 run reached all four GSF part choices, selected a priced
+out-of-stock NISSENS radiator, opened its actual product details and verified
+the manufacturer SKU and ex-VAT price. It then reached `HAYNES_MENU` with no
+options and stopped for review. GSF product selection is now demonstrated for
+this case; there is still no verified Haynes labour time. The final GSF
+diagnostic describes a product-detail page, so its incomplete category flag is
+not the cause of this run's stop.
+
+The report contains no Haynes page state, so it cannot establish why the menu
+was empty. Code review found immediate reads after navigation/short fixed waits
+and overlapping tree-item/label selectors whose duplicate labels were removed
+as ambiguous. Version `2026-11-11-haynes-tree-v12` waits for stable nonempty
+repair content, checks same-origin frames and vehicle context, waits for content
+changes after expansion, and avoids closing already-expanded selected groups.
+Nested wrappers for the same label collapse to one control; distinct sibling
+groups with identical labels remain ambiguous. Observed headings and nested
+list labels are read without a part-family menu map. Account, purchase,
+estimate and external-link controls remain excluded. Login pages are explicit;
+an unreadable tree no longer becomes an empty successful choice result.
+
+Unfinished checker runs now record bounded Haynes frame paths (without query
+parameters), loading/login state, menu labels, matching operation labels and
+time-reader failure codes. They never capture input values, raw HTML, cookies
+or account panels, and redact emails, VINs and links. Manual review opens the
+failed supplier's page, allowing a Haynes repair group to be captured when that
+is the failed stage. Synthetic delayed-tree/operation, nested-label, changed
+vehicle, login, ambiguity and diagnostic-privacy tests do not prove the cause
+of the live empty menu or live compatibility. Haynes verification is pending.

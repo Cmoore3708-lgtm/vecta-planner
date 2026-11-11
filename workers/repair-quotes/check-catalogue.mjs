@@ -8,9 +8,10 @@ import {fileURLToPath} from 'node:url';
 import {lookupGeneralRepair} from './general-repair.mjs';
 import {repairScope,calculateRepairQuote,cleanRepairChoices} from '../../lib/repair-quote.js';
 import {captureCatalogueDiagnostics} from './catalogue-diagnostics.mjs';
+import {captureHaynesDiagnostics} from './haynes-page.mjs';
 import {promptInitialRepairRequest,promptRepairChoice} from './checker-input.mjs';
 const here=path.dirname(fileURLToPath(import.meta.url)),terminal=createInterface({input:process.stdin,output:process.stdout});
-const checkerVersion='2026-11-11-stock-prices-v11';
+const checkerVersion='2026-11-11-haynes-tree-v12';
 let gsf,haynes,gsfPage,haynesPage;
 try{
  console.log('VECTA parts and fitting check — '+checkerVersion+'. Stop GSF safely in Workshop Connections first.');
@@ -67,11 +68,17 @@ try{
   }
   catch{report.diagnosticCaptureUnavailable=true;}
  }
+ if(report.status!=='PASSED_READ_ONLY'&&haynesPage&&!haynesPage.isClosed()){
+  try{report.lastHaynesPage=await captureHaynesDiagnostics(haynesPage,request.choices.labourSearch||repairScope.resolve(request.work).query);}catch{report.haynesDiagnosticCaptureUnavailable=true;}
+ }
+ report.lastRequest=request;
  const output=path.join(here,'catalogue-check-result.local.json');writeFileSync(output,JSON.stringify(report,null,2)+'\n',{mode:0o600});
- if(report.status==='NEEDS_CHECK'&&gsfPage&&!gsfPage.isClosed()){
-  const answer=await terminal.question('The report is saved and GSF is staying open. If needed, select the vehicle and part manually as normal. Press Enter to capture that screen and close, or Q to close without another capture: ');
+ const haynesReview=report.supplier?report.supplier==='Haynes':report.steps?.at(-1)?.stage?.startsWith('HAYNES_'),reviewPage=haynesReview?haynesPage:gsfPage;
+ if(report.status==='NEEDS_CHECK'&&reviewPage&&!reviewPage.isClosed()){
+  const supplier=haynesReview?'Haynes':'GSF';
+  const answer=await terminal.question('The report is saved and '+supplier+' is staying open. '+(haynesReview?'If needed, open the repair group and fitting operation manually.':'If needed, select the vehicle and part manually as normal.')+' Press Enter to capture that screen and close, or Q to close without another capture: ');
   if(answer.trim().toUpperCase()!=='Q'){
-   try{report.manualPageReview={diagnosticOnly:true,...await captureCatalogueDiagnostics(gsfPage,repairScope.resolve(request.work).query)};}
+   try{if(haynesReview)report.manualHaynesReview={diagnosticOnly:true,...await captureHaynesDiagnostics(reviewPage,request.choices.labourSearch||repairScope.resolve(request.work).query)};else report.manualPageReview={diagnosticOnly:true,...await captureCatalogueDiagnostics(reviewPage,repairScope.resolve(request.work).query)};}
    catch{report.manualReviewUnavailable=true;}
    writeFileSync(output,JSON.stringify(report,null,2)+'\n',{mode:0o600});
   }
