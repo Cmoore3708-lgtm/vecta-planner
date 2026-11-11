@@ -42,6 +42,31 @@ test('parts question is immediately below the work description and repair questi
  assert.deepEqual([...document.querySelectorAll('.repair-choice label')].map(x=>x.textContent),['Change the parts','Put the car back together, I’ll book it back in later.']);
  assert.equal(document.querySelectorAll('[checked]').length,0);
 });
+test('NEVOS switches existing parts preferences to OEM and prevents cheaper choices',()=>{
+ const {document}=parseHTML('<html><body><main></main></body></html>');
+ const form={nevos_vehicle:'',parts_preference:'budget',job_types:['Other'],work_required:'Check brakes'};
+ const c={document,state:{step:2,form},bindServiceExtra(){},bindHaynes(){},bindAdvisoryChoices(){},bindTyreCards(){},bindTyreSearch(){},renderActions(){}};
+ vm.createContext(c);for(const name of ['partsRangeHtml','customerPartsSummaryHtml','bind'])load(name,c);
+ c.render=()=>{document.querySelector('main').innerHTML=c.partsRangeHtml()+'<button data-nevos-choice="yes">Yes</button>';c.bind();};
+ c.render();
+ assert.equal(document.querySelectorAll('[disabled]').length,0);
+ assert.equal(document.querySelector('[checked]').value,'budget');
+ document.querySelector('[data-nevos-choice]').click();
+ assert.equal(form.parts_preference,'oem');
+ assert.deepEqual([...document.querySelectorAll('input[disabled]')].map(x=>x.value),['budget','mid_range']);
+ assert.equal(document.querySelector('[checked]').value,'oem');
+ assert.equal(document.querySelector('[value="oem"]').disabled,false);
+ for(const input of document.querySelectorAll('input[disabled]'))input.onchange();
+ assert.equal(form.parts_preference,'oem','Disabled choices cannot overwrite the preference');
+ assert.match(c.customerPartsSummaryHtml(),/Customer would like OEM parts/);
+ for(const stale of ['','budget','mid_range']){
+  form.parts_preference=stale;c.render();assert.equal(form.parts_preference,'oem','Redraws reconcile older NEVOS selections');
+ }
+ form.nevos_vehicle='no';c.render();
+ assert.equal(document.querySelectorAll('[disabled]').length,0);
+ document.querySelector('[value="mid_range"]').onchange();
+ assert.equal(form.parts_preference,'mid_range','Other customers can still choose their parts');
+});
 test('the job card and printed job card display both original customer instructions',()=>{
  const source=read('index.html');const c={window:{VectaBookingRules:rules},esc:value=>String(value).replace(/[<>&]/g,'_')};vm.createContext(c);
  for(const name of ['jobPartsRange','jobPartsRangeDisplay','jobPartsRangeWorkHtml']){
