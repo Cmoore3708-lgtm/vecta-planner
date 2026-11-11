@@ -12050,20 +12050,15 @@ function fleetPlannerJobCategories(j){
   var text=parts.map(function(value){return Array.isArray(value)?value.join(' '):String(value||'')}).join(' ').replace(/monthly\s+safety\s+check\s*&(?:amp;)?\s*clean/gi,' ').replace(/[_|]+/g,' ').replace(/\s+/g,' ').toLowerCase();
   var explicitOnsite=/\bon[ -]?site\s+service\b/.test(text);
   var service=explicitOnsite||/\b(?:service|servicing)\b/.test(text)||/\boil\s*(?:&|and)?\s*filter(?:\s+change)?\b/.test(text);
-  var dpf=/\bdpf\s+(?:regen(?:eration)?|renewal|region)\b|\bregen(?:erate|eration)?\s+(?:the\s+)?dpf\b/.test(text);
-  /* Older Vehicle Record bookings assigned generic Service to every custom plan.
-     A DPF-only description must not reset annual servicing; explicit combined
-     services and DPF work still count towards both schedules. */
-  if(dpf&&/^service$/i.test(String(j.job_type||'').trim())&&
-      !/\bservic(?:e|ing)\b|\boil\s*(?:&|and)?\s*filter\b/i.test([j.work_required,j.description,j.title].join(' '))&&
-      !typeValues.some(function(type){return !/^service$/i.test(String(type).trim())&&/\bservice\b/i.test(String(type));}))service=false;
+  var dpf=/\bdpf\b/.test(text)&&window.VectaFleetRules.dpfJob(j,typeValues,text,service);
+  if(dpf)service=dpf.service;
   var mot=/(^|[^a-z])mot([^a-z]|$)/i.test(text);
   var tax=/\b(?:vehicle|road|pool\s+car)\s+tax\b|\btax(?:ing)?\s+(?:the\s+)?vehicle\b/.test(text)||isVehicleTaxJob(j);
   var safety=/\b(?:six|6)[ -]?month(?:ly)?\s+(?:safety\s+)?check\b|\bsafety\s+check\b/.test(text);
   /* Historical On-Site Service wording can mention a safety check as part of the work;
      do not let that turn an On-Site Service into a six-month safety-check booking. */
   if(explicitOnsite)safety=false;
-  return {mot:mot,service:service,safety:safety,tax:tax,dpf:dpf};
+  return {mot:mot,service:service,safety:safety,tax:tax,dpf:!!(dpf&&dpf.dpf)};
 }
 function fleetPlannerJobTypeKeyMatches(j,typeKey){
   var categories=fleetPlannerJobCategories(j);
@@ -12287,51 +12282,15 @@ function syncFleetMotScheduleFromJob(j,saveNow){
   /* Government MOT data is the sole authority. Completing a workshop job must not
      advance an MOT plan or manufacture MOT completion history. */
   return null;
-  /* Legacy implementation below is temporarily retained as unreachable reference
-     until the Fleet module extraction is complete. */
-  if(!completedJobCanUpdateFleet(j)||!isActualCompletedMotJob(j))return null;
-  var vehicle=fleetVehicleForRegistration(j.registration||'');if(!vehicle||fleetIsMaintenanceRemoved(vehicle.id,'mot'))return null;
-  var completed=completedJobDateForFleet(j);if(!completed)return null;
-  var plan=fleetPlanMatching(vehicle.id,'mot'),previousDue=plan&&fleetDate(plan)||'',nextDue='';
-  /* If the MOT was passed within the normal early-test carry-forward window, keep the
-     original anniversary. Otherwise start a fresh 12-month cycle from the pass date. */
-  if(previousDue){
-    var pd=new Date(previousDue+'T00:00:00'),cd=new Date(completed+'T00:00:00'),days=Math.round((pd-cd)/86400000);
-    nextDue=(days>=0&&days<=31)?fleetAddMonthsFromDue(previousDue,12):fleetAddMonthsFromDue(completed,12);
-  }else nextDue=fleetAddMonthsFromDue(completed,12);
-  if(plan){plan.type='MOT';plan.intervalMonths=12;plan.currentDueDate=nextDue;plan.status='Active';plan.notes='Updated from completed MOT job '+String(j.id||'')+'.';}
-  else{plan={id:'plan-mot-'+vehicle.id,vehicleId:vehicle.id,type:'MOT',intervalMonths:12,targetMonth:null,currentDueDate:nextDue,notes:'Updated from completed MOT job '+String(j.id||'')+'.',status:'Active',source:'Workshop job'};fleetPlans.push(plan);}
-  var cid='job-mot-'+String(j.id),record={id:cid,vehicleId:vehicle.id,planId:plan.id,type:'MOT',completedDate:completed,datePrecision:'day',nextDue:nextDue,source:'job:'+String(j.id),notes:'MOT completed. Next MOT due '+serviceSheetDate(nextDue)+'.'},existing=fleetCompletions.find(function(c){return c.id===cid});
-  if(existing)Object.assign(existing,record);else fleetCompletions.push(record);
-  if(saveNow!==false)saveFleet();
-  return record;
+
 }
 function syncFleetDpfScheduleFromJob(j){
-  if(!j||!j.id||!completedJobCanUpdateFleet(j)||!fleetPlannerJobCategories(j).dpf)return null;
-  if(/^(?:cancelled|deleted|quote|provisional)$/i.test(String(j.status||'')))return null;
-  var vehicle=fleetVehicleForRegistration(j.registration||'');
-  if(!vehicle||fleetIsMaintenanceRemoved(vehicle.id,'dpf'))return null;
-  var completed=completedJobDateForFleet(j);
-  if(!completed||completed>todayIso())return null;
-  var plan=(fleetPlans||[]).filter(function(p){return p&&p.vehicleId===vehicle.id&&String(p.status||'Active')==='Active'&&fleetMaintenanceCategory(p.type)==='dpf';})
-    .sort(function(a,b){return String(a.currentDueDate||'').localeCompare(String(b.currentDueDate||''));})[0];
-  if(!plan)return null;
-  /* Saving/reconciling the same job must never advance another cycle. */
-  var source='job:'+String(j.id),cid='job-dpf-'+String(j.id);
-  if((fleetCompletions||[]).some(function(c){return c.id===cid||(c.source===source&&c.planId===plan.id);}))return null;
-  var previousDue=String(plan.currentDueDate||fleetDate(plan)||'').slice(0,10),interval=Number(plan.intervalMonths);
-  if(!/^\d{4}-\d{2}-\d{2}$/.test(previousDue)||!Number.isInteger(interval)||interval<1)return null;
-  /* Only the current cycle can be completed early. July history cannot clear
-     November, and November cannot clear the following March. */
-  var daysEarly=(new Date(previousDue+'T00:00:00')-new Date(completed+'T00:00:00'))/86400000;
-  if(!Number.isFinite(daysEarly)||daysEarly>31)return null;
-  var nextDue=fleetAddMonthsFromDue(previousDue,interval);
-  while(nextDue&&nextDue<=completed)nextDue=fleetAddMonthsFromDue(nextDue,interval);
-  if(!nextDue)return null;
-  plan.currentDueDate=nextDue;plan.targetMonth=Number(nextDue.slice(5,7));plan.manualDueDate=false;delete plan.manualDueDateUpdatedAt;
-  var record={id:cid,vehicleId:vehicle.id,planId:plan.id,type:plan.type,completedDate:completed,datePrecision:'day',cycleDue:previousDue,previousDue:previousDue,nextDue:nextDue,source:source,notes:'DPF regeneration completed '+completed+' for the cycle due '+previousDue+'. Next due '+nextDue+'.'};
-  fleetCompletions.push(record);
-  return record;
+  return window.VectaFleetRules.completeDpf(j,{
+    plans:fleetPlans,completions:fleetCompletions,today:todayIso(),
+    canComplete:completedJobCanUpdateFleet,categories:fleetPlannerJobCategories,
+    vehicleForRegistration:fleetVehicleForRegistration,isRemoved:fleetIsMaintenanceRemoved,
+    completedDate:completedJobDateForFleet,date:fleetDate,addMonths:fleetAddMonthsFromDue
+  });
 }
 function syncFleetMaintenanceFromJob(j){
   if(!completedJobCanUpdateFleet(j))return false;
