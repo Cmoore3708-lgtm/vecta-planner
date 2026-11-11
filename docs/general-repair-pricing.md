@@ -127,3 +127,29 @@ changed choices, preservation through the guided flow, and diagnostics when
 only product results are visible. The actual GSF result layout and subsequent
 GSF-part/Haynes stages remain unverified until the replacement checker is run
 on the workshop PC.
+
+## Workshop-PC report: category page without captured results
+
+The third attached check, using v3, reached a `/parts/` page but captured no
+matching text, category links, product links or empty-result message. It did not
+record the actual category name, loading state or selected vehicle. This is not
+evidence of a supplier no-stock response or a successful part lookup.
+
+Review found that discovery searched for a part before selecting the request's
+vehicle. Version `2026-11-11-vehicle-first-v4` now selects the registration through
+the same visible controls used by the service reader and requires selected-vehicle
+evidence before searching. It still selects/confirms the vehicle on the resolved
+category afterwards, preserving the earlier category-page retention safeguard.
+Results can take up to 15 seconds after search submission. A related but
+differently named category reached by actual navigation is offered for explicit
+confirmation even when it has no link pointing to itself; it is never accepted
+as the requested part automatically.
+
+Failure reports now include the observed category name, confirmation of the
+vehicle before/after the search, document readiness, main-content headings and
+loading/vehicle-prompt indicators. URL queries, input values and page HTML are
+excluded. Tests cover vehicle selection order, delayed rendering, wrong or
+ambiguous vehicle evidence, sign-in redirects and related category destinations
+with no matching page text. These fixes address code gaps; the v3 report alone
+does not establish which gap caused the live failure. Another workshop-PC run
+is needed to verify the actual part-to-labour flow.

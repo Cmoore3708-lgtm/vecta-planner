@@ -6,23 +6,27 @@ import {writeFileSync} from 'node:fs';
 import path from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {lookupGeneralRepair} from './general-repair.mjs';
-import {repairRequest,calculateRepairQuote,cleanRepairChoices} from '../../lib/repair-quote.js';
+import {repairRequest,repairScope,calculateRepairQuote,cleanRepairChoices} from '../../lib/repair-quote.js';
+import {readCatalogueResults,observedCategory} from './catalogue-results.mjs';
+import {readCatalogueSearchState} from './catalogue-search.mjs';
 const here=path.dirname(fileURLToPath(import.meta.url)),terminal=createInterface({input:process.stdin,output:process.stdout});
-let gsf,haynes;
+const checkerVersion='2026-11-11-vehicle-first-v4';
+let gsf,haynes,gsfPage,haynesPage;
 try{
- console.log('VECTA parts and fitting check. Stop GSF safely in Workshop Connections first.');
+ console.log('VECTA parts and fitting check — '+checkerVersion+'. Stop GSF safely in Workshop Connections first.');
  console.log('This checks current GSF and Haynes screens. It does not save or send prices.');
  const registration=await terminal.question('Registration: '),work=await terminal.question('Part/work to price (any part, e.g. supply and fit fuel pressure regulator): ');
- let request=repairRequest({registration,work,flow:'guided-v1'});const report={readOnly:true,checkerVersion:'2026-11-11-search-results-v3',request,startedAt:new Date().toISOString()};
+ let request=repairRequest({registration,work,flow:'guided-v1'});const report={readOnly:true,checkerVersion,request,startedAt:new Date().toISOString()};
  try{
   const local=process.env.LOCALAPPDATA;if(!local)throw Error('Run this check on the workshop Windows PC.');
   gsf=await chromium.launchPersistentContext(process.env.GSF_PROFILE_DIR||path.join(local,'VectaGSF','EdgeProfile'),{channel:'msedge',headless:false,acceptDownloads:false,chromiumSandbox:true});
   haynes=await chromium.launchPersistentContext(path.join(local,'VectaRepairQuotes','Haynes'),{channel:'msedge',headless:false,acceptDownloads:false,chromiumSandbox:true});
-  const gsfPage=await gsf.newPage(),haynesPage=await haynes.newPage();
+  gsfPage=await gsf.newPage();haynesPage=await haynes.newPage();
   report.steps=[];let loginRetries=0;
   for(let step=0;step<20;step++){
    let timer;
    try{
+    console.log(request.choices.part?'Rechecking your GSF part, then finding its Haynes fitting operation...':'Selecting '+request.registration+' in GSF, then searching for the part...');
     const evidence=await Promise.race([lookupGeneralRepair({gsfPage,haynesPage},request),new Promise((_,reject)=>{timer=setTimeout(()=>reject(Error('LOOKUP_TIMEOUT')),120000);})]);
     report.status='PASSED_READ_ONLY';report.quote=calculateRepairQuote(evidence,request);report.evidence=evidence;break;
    }catch(error){
@@ -59,6 +63,12 @@ try{
   }
   report.status||='STOPPED_FOR_REVIEW';
  }catch(error){report.status='NEEDS_CHECK';report.reason=error.code||'LOOKUP_UNAVAILABLE';report.detail=error.detail||'';report.supplier=error.supplier||'';if(error.observed)report.observed=error.observed;console.log('The '+(report.supplier||'supplier')+' check stopped: '+(report.detail||report.reason)+'. Send the report back so this step can be checked.');}
+ // Retain bounded page-state evidence for every unfinished run, including
+ // failures after category discovery. Never store input values or page HTML.
+ if(report.status!=='PASSED_READ_ONLY'&&gsfPage&&!gsfPage.isClosed()){
+  try{report.lastGsfPage={observedCategory:observedCategory(gsfPage.url()),...await gsfPage.evaluate(readCatalogueResults,{query:repairScope.resolve(request.work).query}),searchControls:await gsfPage.evaluate(readCatalogueSearchState)};}
+  catch{report.diagnosticCaptureUnavailable=true;}
+ }
  const output=path.join(here,'catalogue-check-result.local.json');writeFileSync(output,JSON.stringify(report,null,2)+'\n',{mode:0o600});
  console.log(report.status+' — report saved beside this checker. Restart GSF in Workshop Connections when finished.');
 }finally{await Promise.allSettled([gsf?.close(),haynes?.close()]);terminal.close();}

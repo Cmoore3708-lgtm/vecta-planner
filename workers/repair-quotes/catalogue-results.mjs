@@ -37,9 +37,13 @@ export function readCatalogueResults({query},doc=document){
  const labels=[...new Set(leaf.map(n=>clean(n.innerText||n.textContent)).filter(t=>t&&related(t)).map(scrub))].slice(0,30);
  const headings=[...doc.querySelectorAll('h1,h2,h3,h4,h5,[role="heading"]')].filter(visible).map(n=>clean(n.innerText||n.textContent)).filter(t=>t.length<=220&&(/search|results?|categor/i.test(t)||related(t))).map(scrub).slice(0,12);
  const emptyMessages=[...new Set(leaf.map(n=>clean(n.innerText||n.textContent)).filter(t=>/\bno (?:matching )?(?:parts|products|results|items|matches)\b|\b0 (?:results|products|items)\b/i.test(t)).map(scrub))].slice(0,4);
+ const mains=[...doc.querySelectorAll('main,[role="main"]')].filter(visible);
+ const mainHeadings=[...new Set(mains.flatMap(m=>[...m.querySelectorAll('h1,h2,h3,h4,h5,[role="heading"]')]).filter(visible).map(n=>scrub(n.innerText||n.textContent)).filter(Boolean))].slice(0,15);
+ const statusText=leaf.map(n=>clean(n.innerText||n.textContent)).join(' ');
+ const pageState={readyState:doc.readyState||'unknown',visibleMainCount:mains.length,mainHeadings,busy:[...doc.querySelectorAll('[aria-busy="true"],[role="progressbar"]')].some(visible),loadingMessage:/\b(?:loading|please wait)\b/i.test(statusText),vehiclePrompt:/\b(?:enter|select|search|add) (?:a |your |the )?(?:vehicle|registration|reg(?:istration)? number)\b/i.test(statusText),loginVisible:[...doc.querySelectorAll('input[type="password"]')].some(visible),iframeCount:doc.querySelectorAll('iframe').length};
  let categoryLinks=0,productLinks=0;
  for(const n of [...doc.querySelectorAll('a[href]')].filter(visible)){try{const u=new URL(n.getAttribute('href'),'https://trade.gsfcarparts.com');if(u.origin!=='https://trade.gsfcarparts.com')continue;if(u.pathname.startsWith('/parts/'))categoryLinks++;if(u.pathname.startsWith('/partdetails/'))productLinks++;}catch{}}
- return {headings,matchingLabels:labels,controls:controls.slice(0,30),categoryLinks,productLinks,emptyMessages};
+ return {headings,matchingLabels:labels,controls:controls.slice(0,30),categoryLinks,productLinks,emptyMessages,pageState};
 }
 
 // An exact observed suggestion can be a button/option rather than an anchor.

@@ -3,6 +3,7 @@ import {readProductDialog,openSelectedProduct} from '../gsf/product-dialog.mjs';
 import {repairScope} from '../../lib/repair-quote.js';
 import {choiceId,requireChoice} from './choice-result.mjs';
 import {findCatalogueSearch} from './catalogue-search.mjs';
+import {selectCatalogueVehicle} from './catalogue-vehicle.mjs';
 import {observedCategory,categoryMatches,readCatalogueResults,followExactCategorySuggestion,suggestedCategoryChoices} from './catalogue-results.mjs';
 const reject=detail=>{throw Object.assign(Error('REVIEW_REQUIRED'),{code:'REVIEW_REQUIRED',detail});};
 
@@ -55,10 +56,10 @@ export function repairFitment(rows,scope){
  if(pack.some(r=>!/^1$/.test(String(r.value))))return false;
  return true;
 }
-export async function lookupGeneralGSF(page,request,{capture=captureServiceCategory,now=Date.now}={}){
+export async function lookupGeneralGSF(page,request,{capture=captureServiceCategory,selectVehicle=selectCatalogueVehicle,now=Date.now}={}){
  const scope=repairScope.resolve(request.work);
  if(scope.status!=='SUPPORTED')reject('PART_NOT_RECOGNISED');
- const category=await discoverRepairCategory(page,scope.query,{request,now});
+ const category=await discoverRepairCategory(page,scope.query,{request,now,selectVehicle});
  const vehicle=await capture(page,request.registration,category);
  if(vehicle.status!=='CAPTURED_FOR_REVIEW'||vehicle.registration!==request.registration||!vehicle.selectedRegistration||vehicle.truncated)reject('VEHICLE_NOT_CONFIRMED');
  // The service reader can leave its read-only Attributes dialog open.
@@ -160,10 +161,12 @@ export function catalogueCategoryOptions(links,query,scope){
  }
  return [...found.values()].sort((a,b)=>b.score-a.score||a.label.localeCompare(b.label)).slice(0,40).map(({score,...o})=>o);
 }
-export async function discoverRepairCategory(page,query,{request,now=Date.now}={}){
+export async function discoverRepairCategory(page,query,{request,now=Date.now,selectVehicle=selectCatalogueVehicle}={}){
  const origin='https://trade.gsfcarparts.com';
  await page.goto(origin,{waitUntil:'domcontentloaded',timeout:15000});
  const check=()=>{const url=new URL(page.url());if(url.origin!==origin||/^\/signin/.test(url.pathname))throw Object.assign(Error('LOGIN_REQUIRED'),{code:'LOGIN_REQUIRED'});};check();
+ let vehicle;
+ if(request?.registration)vehicle=await selectVehicle(page,request.registration);
  // GSF hydrates the catalogue after DOMContentLoaded. Wait for its actual
  // visible control; wording and text/search input roles can vary by layout.
  const search=await findCatalogueSearch(page);
@@ -174,12 +177,23 @@ export async function discoverRepairCategory(page,query,{request,now=Date.now}={
  // The search may offer category links before submission, or on its results page.
  for(let i=0;i<8;i++){check();categories=await find();if(categories.length)break;await page.waitForTimeout(200);}
  if(!categories.length){const suggestion=await followExactCategorySuggestion(page,query,request?.choices?.gsfCategory);if(suggestion.category)return suggestion.category;suggestionFollowed=suggestion.followed===true;}
- if(!categories.length&&!suggestionFollowed){await search.press('Enter',{timeout:10000});for(let i=0;i<40;i++){check();categories=await find();if(categories.length)break;await page.waitForTimeout(200);}}
+ if(!categories.length&&!suggestionFollowed){await search.press('Enter',{timeout:10000});for(let i=0;i<75;i++){check();categories=await find();if(categories.length)break;await page.waitForTimeout(200);}}
  if(!categories.length&&!suggestionFollowed){const suggestion=await followExactCategorySuggestion(page,query,request?.choices?.gsfCategory);if(suggestion.category)return suggestion.category;}
  if(categories.length!==1){
   if(request?.flow){
    const diagnostics=await page.evaluate(readCatalogueResults,{query});
    const route=new URL(page.url()).pathname;diagnostics.pageType=route.startsWith('/parts/')?'category':route.startsWith('/partdetails/')?'product':route.startsWith('/enhancedSearch/')?'search':route==='/'?'home':'other';
+   diagnostics.observedCategory=observedCategory(page.url());
+   diagnostics.vehicleConfirmedBeforeSearch=vehicle?.selectedRegistration===true;
+   const currentVehicle=await page.evaluate(readServiceCategory,{registration:request.registration,category:'Catalogue search'});
+   diagnostics.vehicleConfirmedAfterSearch=currentVehicle.selectedRegistration===true&&currentVehicle.registration===request.registration;
+   // GSF can open a differently named category without leaving a category
+   // link on the page. Offer that actual destination for confirmation rather
+   // than treating it as an empty search or accepting a related part silently.
+   if(diagnostics.observedCategory&&repairScope.words(diagnostics.observedCategory).some(w=>repairScope.words(query).includes(w))){
+    const reached=new URL(page.url());reached.search='';reached.hash='';
+    observed.push({href:reached.href,text:diagnostics.observedCategory});
+   }
    const options=catalogueCategoryOptions(observed,query,repairScope.resolve(request.work));
    const labels=new Set(options.map(o=>o.label));
    options.push(...suggestedCategoryChoices(diagnostics,request).filter(o=>!labels.has(o.label)));
