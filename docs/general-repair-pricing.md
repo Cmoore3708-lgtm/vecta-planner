@@ -153,3 +153,28 @@ ambiguous vehicle evidence, sign-in redirects and related category destinations
 with no matching page text. These fixes address code gaps; the v3 report alone
 does not establish which gap caused the live failure. Another workshop-PC run
 is needed to verify the actual part-to-labour flow.
+
+## Workshop-PC report: numeric category IDs
+
+The fourth report confirmed the requested registration before and after the
+search. The rendered page showed `Radiator`, while its observed category route
+was `/parts/848`. The document was complete, with one main content region and no
+loading or sign-in indicator. The reader was comparing the numeric route segment
+to the part wording and stopped before capturing product choices.
+
+Version `2026-11-11-category-ids-v5` separates category routing from its displayed
+meaning. It accepts a numeric category reached by clicking the exact observed
+suggestion, or by a changed route with an exact matching label in the rendered
+main content. Header search suggestions, stale routes, unrelated labels and
+other domains do not establish that match. Numeric category alternatives keep
+their human-readable labels in subsequent repair requests. No category-ID table
+or radiator-only route has been added; each route is discovered from GSF.
+
+The observed category ID is passed to the existing category capture, which still
+confirms the vehicle and reads actual prices, fitment and stock before offering
+part choices. The checker also reports bounded parsed product-group details on
+unfinished runs, without product URL queries. Fixtures cover the observed numeric
+route, additional part families, direct-navigation labels, rejection of stale or
+unrelated evidence and the part-selection flow using a numeric category. A new
+live check is still required; the fourth report contains no priced part or
+Haynes operation.

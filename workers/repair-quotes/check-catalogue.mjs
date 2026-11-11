@@ -9,8 +9,9 @@ import {lookupGeneralRepair} from './general-repair.mjs';
 import {repairRequest,repairScope,calculateRepairQuote,cleanRepairChoices} from '../../lib/repair-quote.js';
 import {readCatalogueResults,observedCategory} from './catalogue-results.mjs';
 import {readCatalogueSearchState} from './catalogue-search.mjs';
+import {readRepairGroups} from './general-gsf.mjs';
 const here=path.dirname(fileURLToPath(import.meta.url)),terminal=createInterface({input:process.stdin,output:process.stdout});
-const checkerVersion='2026-11-11-vehicle-first-v4';
+const checkerVersion='2026-11-11-category-ids-v5';
 let gsf,haynes,gsfPage,haynesPage;
 try{
  console.log('VECTA parts and fitting check — '+checkerVersion+'. Stop GSF safely in Workshop Connections first.');
@@ -66,7 +67,11 @@ try{
  // Retain bounded page-state evidence for every unfinished run, including
  // failures after category discovery. Never store input values or page HTML.
  if(report.status!=='PASSED_READ_ONLY'&&gsfPage&&!gsfPage.isClosed()){
-  try{report.lastGsfPage={observedCategory:observedCategory(gsfPage.url()),...await gsfPage.evaluate(readCatalogueResults,{query:repairScope.resolve(request.work).query}),searchControls:await gsfPage.evaluate(readCatalogueSearchState)};}
+  try{
+   report.lastGsfPage={observedCategory:observedCategory(gsfPage.url()),...await gsfPage.evaluate(readCatalogueResults,{query:repairScope.resolve(request.work).query}),searchControls:await gsfPage.evaluate(readCatalogueSearchState)};
+   const catalogue=await gsfPage.evaluate(readRepairGroups);
+   report.lastGsfPage.catalogue={complete:catalogue.complete,groupCount:catalogue.groups.length,groups:catalogue.groups.slice(0,40).map(g=>({sku:g.sku,description:g.description,parsedAll:g.parsedAll,hasAttributes:!!g.attributesSelector,productLinkCount:g.links.length,options:g.options.slice(0,20).map(({description,brand,grade,pricePence,inStock})=>({description,brand,grade,pricePence,inStock}))}))};
+  }
   catch{report.diagnosticCaptureUnavailable=true;}
  }
  const output=path.join(here,'catalogue-check-result.local.json');writeFileSync(output,JSON.stringify(report,null,2)+'\n',{mode:0o600});

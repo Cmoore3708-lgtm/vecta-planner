@@ -4,7 +4,7 @@ import {repairScope} from '../../lib/repair-quote.js';
 import {choiceId,requireChoice} from './choice-result.mjs';
 import {findCatalogueSearch} from './catalogue-search.mjs';
 import {selectCatalogueVehicle} from './catalogue-vehicle.mjs';
-import {observedCategory,categoryMatches,readCatalogueResults,followExactCategorySuggestion,suggestedCategoryChoices} from './catalogue-results.mjs';
+import {observedCategory,categoryMatches,labelledDestinationCategory,readCatalogueResults,followExactCategorySuggestion,suggestedCategoryChoices} from './catalogue-results.mjs';
 const reject=detail=>{throw Object.assign(Error('REVIEW_REQUIRED'),{code:'REVIEW_REQUIRED',detail});};
 
 // Read the rendered catalogue, keeping each SKU, its alternatives and its
@@ -154,9 +154,9 @@ export function catalogueCategoryOptions(links,query,scope){
  for(const link of links){
   let url,category;try{url=new URL(link.href,'https://trade.gsfcarparts.com');category=decodeURIComponent(decodeURIComponent(url.pathname.slice(7)));}catch{continue;}
   if(url.origin!=='https://trade.gsfcarparts.com'||url.username||url.password||url.hash||url.search||!url.pathname.startsWith('/parts/')||!category||category.length>150||category.includes('/'))continue;
-  const label=String(link.text||category).trim();if(!label||label.length>150)continue;
+  const label=String(link.text||category).trim();if(!label||label.length>150||!/[a-z]/i.test(label))continue;
   const score=repairScope.words(label).filter(t=>terms.includes(t)).length;
-  const work='Supply and fit '+(scope.quantity!==1?scope.quantity+' ':'')+[scope.axle,scope.side,category].filter(Boolean).join(' ');
+  const work='Supply and fit '+(scope.quantity!==1?scope.quantity+' ':'')+[scope.axle,scope.side,/^\d+$/.test(category)?label:category].filter(Boolean).join(' ');
   found.set(category,{id:choiceId(category),label,detail:'GSF catalogue category',work,score});
  }
  return [...found.values()].sort((a,b)=>b.score-a.score||a.label.localeCompare(b.label)).slice(0,40).map(({score,...o})=>o);
@@ -170,9 +170,17 @@ export async function discoverRepairCategory(page,query,{request,now=Date.now,se
  // GSF hydrates the catalogue after DOMContentLoaded. Wait for its actual
  // visible control; wording and text/search input roles can vary by layout.
  const search=await findCatalogueSearch(page);
+ const beforeSearchUrl=page.url();
  await search.fill(query,{timeout:10000});
  let observed=[];
- async function find(){const current=observedCategory(page.url());if(categoryMatches(current,query))return [current];observed=await page.locator('a[href]').evaluateAll(nodes=>nodes.filter(n=>n.getClientRects().length&&!n.closest('[hidden],[aria-hidden="true"]')).map(n=>({href:n.href,text:(n.innerText||n.textContent||'').trim()})));return matchingCatalogueCategories(observed,query);}
+ async function find(){
+  const current=observedCategory(page.url());if(categoryMatches(current,query))return [current];
+  if(/^\d+$/.test(current)){
+   const results=await page.evaluate(readCatalogueResults,{query});
+   const labelled=labelledDestinationCategory(page.url(),beforeSearchUrl,query,results);if(labelled)return [labelled];
+  }
+  observed=await page.locator('a[href]').evaluateAll(nodes=>nodes.filter(n=>n.getClientRects().length&&!n.closest('[hidden],[aria-hidden="true"]')).map(n=>({href:n.href,text:(n.innerText||n.textContent||'').trim()})));return matchingCatalogueCategories(observed,query);
+ }
  let categories=[],suggestionFollowed=false;
  // The search may offer category links before submission, or on its results page.
  for(let i=0;i<8;i++){check();categories=await find();if(categories.length)break;await page.waitForTimeout(200);}
@@ -190,9 +198,10 @@ export async function discoverRepairCategory(page,query,{request,now=Date.now,se
    // GSF can open a differently named category without leaving a category
    // link on the page. Offer that actual destination for confirmation rather
    // than treating it as an empty search or accepting a related part silently.
-   if(diagnostics.observedCategory&&repairScope.words(diagnostics.observedCategory).some(w=>repairScope.words(query).includes(w))){
+   const numericLabel=/^\d+$/.test(diagnostics.observedCategory)&&diagnostics.mainMatchingLabels.length===1?diagnostics.mainMatchingLabels[0]:'';
+   if(numericLabel||diagnostics.observedCategory&&repairScope.words(diagnostics.observedCategory).some(w=>repairScope.words(query).includes(w))){
     const reached=new URL(page.url());reached.search='';reached.hash='';
-    observed.push({href:reached.href,text:diagnostics.observedCategory});
+    observed.push({href:reached.href,text:numericLabel||diagnostics.observedCategory});
    }
    const options=catalogueCategoryOptions(observed,query,repairScope.resolve(request.work));
    const labels=new Set(options.map(o=>o.label));

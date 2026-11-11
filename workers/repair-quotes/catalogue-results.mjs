@@ -6,6 +6,14 @@ export function observedCategory(value){
  return url.origin===ORIGIN&&!url.username&&!url.password&&url.pathname.startsWith('/parts/')&&category&&category.length<=150&&!category.includes('/')?category:'';
 }
 export function categoryMatches(category,query){return !!category&&repairScope.words(category).sort().join(' ')===repairScope.words(query).sort().join(' ');}
+// The URL segment may be an opaque supplier ID. Its meaning comes from an
+// observed label, never from a local ID-to-part mapping.
+export function labelledDestinationCategory(url,beforeUrl,query,results){
+ const category=observedCategory(url);if(!/^\d+$/.test(category))return '';
+ if(new URL(url,ORIGIN).pathname===new URL(beforeUrl,ORIGIN).pathname)return '';
+ if(results.pageState?.visibleMainCount!==1||results.pageState?.busy||results.pageState?.loginVisible)return '';
+ return (results.mainMatchingLabels||[]).some(label=>categoryMatches(label,query))?category:'';
+}
 export const categoryChoiceId=control=>choiceId('gsf-category',control.label,control.path);
 export function suggestedCategoryChoices(results,request){
  const scope=repairScope.resolve(request.work),counts=new Map();
@@ -38,16 +46,19 @@ export function readCatalogueResults({query},doc=document){
  const headings=[...doc.querySelectorAll('h1,h2,h3,h4,h5,[role="heading"]')].filter(visible).map(n=>clean(n.innerText||n.textContent)).filter(t=>t.length<=220&&(/search|results?|categor/i.test(t)||related(t))).map(scrub).slice(0,12);
  const emptyMessages=[...new Set(leaf.map(n=>clean(n.innerText||n.textContent)).filter(t=>/\bno (?:matching )?(?:parts|products|results|items|matches)\b|\b0 (?:results|products|items)\b/i.test(t)).map(scrub))].slice(0,4);
  const mains=[...doc.querySelectorAll('main,[role="main"]')].filter(visible);
+ const mainMatchingLabels=[...new Set(mains.flatMap(m=>[...m.querySelectorAll('*')]).filter(visible).filter(n=>!n.closest('nav,aside,form,a,button,select,[contenteditable="true"],[role="option"],[role="listbox"]')&&!['SCRIPT','STYLE','INPUT','TEXTAREA'].includes(n.tagName)&&![...n.children].some(c=>clean(c.innerText||c.textContent))).map(n=>clean(n.innerText||n.textContent)).filter(t=>t&&t.length<=150&&related(t)).map(scrub))].slice(0,30);
  const mainHeadings=[...new Set(mains.flatMap(m=>[...m.querySelectorAll('h1,h2,h3,h4,h5,[role="heading"]')]).filter(visible).map(n=>scrub(n.innerText||n.textContent)).filter(Boolean))].slice(0,15);
  const statusText=leaf.map(n=>clean(n.innerText||n.textContent)).join(' ');
  const pageState={readyState:doc.readyState||'unknown',visibleMainCount:mains.length,mainHeadings,busy:[...doc.querySelectorAll('[aria-busy="true"],[role="progressbar"]')].some(visible),loadingMessage:/\b(?:loading|please wait)\b/i.test(statusText),vehiclePrompt:/\b(?:enter|select|search|add) (?:a |your |the )?(?:vehicle|registration|reg(?:istration)? number)\b/i.test(statusText),loginVisible:[...doc.querySelectorAll('input[type="password"]')].some(visible),iframeCount:doc.querySelectorAll('iframe').length};
  let categoryLinks=0,productLinks=0;
  for(const n of [...doc.querySelectorAll('a[href]')].filter(visible)){try{const u=new URL(n.getAttribute('href'),'https://trade.gsfcarparts.com');if(u.origin!=='https://trade.gsfcarparts.com')continue;if(u.pathname.startsWith('/parts/'))categoryLinks++;if(u.pathname.startsWith('/partdetails/'))productLinks++;}catch{}}
- return {headings,matchingLabels:labels,controls:controls.slice(0,30),categoryLinks,productLinks,emptyMessages,pageState};
+ return {headings,matchingLabels:labels,mainMatchingLabels,controls:controls.slice(0,30),categoryLinks,productLinks,emptyMessages,pageState};
 }
 
 // An exact observed suggestion can be a button/option rather than an anchor.
-// Only accept it after GSF itself navigates to the matching category URL.
+// Accept a matching named route, or a new numeric route reached by clicking
+// the exact observed category label. The subsequent capture still verifies
+// the selected registration and presents actual parts for explicit selection.
 export async function followExactCategorySuggestion(page,query,selected){
  const current=observedCategory(page.url());if(categoryMatches(current,query))return {category:current};
  const results=await page.evaluate(readCatalogueResults,{query});
@@ -55,10 +66,17 @@ export async function followExactCategorySuggestion(page,query,selected){
  if(exact.length!==1)return {category:'',observed:results};
  const control=page.locator(exact[0].selector);
  if(await control.count()!==1||!await control.isVisible())return {category:'',observed:results};
- await control.click({timeout:8000});
+ const beforePath=new URL(page.url()).pathname;await control.click({timeout:8000});
  for(let i=0;i<20;i++){
   const u=new URL(page.url());if(u.origin!==ORIGIN||/^\/(?:signin|login)/i.test(u.pathname))throw Object.assign(Error('LOGIN_REQUIRED'),{code:'LOGIN_REQUIRED',supplier:'GSF'});
   const category=observedCategory(u.href);if(categoryMatches(category,query))return {category};
+  if(/^\d+$/.test(category)&&categoryMatches(exact[0].label,query)){
+   if(u.pathname!==beforePath)return {category};
+   // Re-selecting the current category need not change its URL. Require its
+   // matching main-content label as well as the explicit suggestion click.
+   const reached=await page.evaluate(readCatalogueResults,{query});
+   if(reached.pageState?.visibleMainCount===1&&!reached.pageState?.busy&&reached.mainMatchingLabels?.some(label=>categoryMatches(label,query)))return {category};
+  }
   if(i<19)await page.waitForTimeout(200);
  }
  return {category:'',followed:true,observed:await page.evaluate(readCatalogueResults,{query})};
