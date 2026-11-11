@@ -42,7 +42,7 @@ async function setup(t){
 test('an image confirmation retries unchanged after a real JSONB round trip and sends once',async t=>{
  const s=await setup(t),original=JSON.stringify(s.payload);
  assert.notEqual(JSON.stringify(s.record.message_payload.attachments),JSON.stringify(s.payload.attachments));
- const preview=await bookingConfirmation(s.db,job);assert.match(preview.html,/data:image\/png;base64,aW1hZ2U=/);assert.equal(s.sends.length,0);
+ const preview=await bookingConfirmation(s.db,job);assert.match(preview.html,/data:image\/png;base64,aW1hZ2U=/);assert.doesNotMatch(preview.html,/cid:booking-/);assert.match(preview.html,/VECTA — Vehicle Servicing and repairs/);assert.equal(s.sends.length,0);
  assert.equal((await bookingConfirmation(s.db,job,true)).accepted,true);
  assert.equal(s.sends[0].body,original,'retry must replay the exact original provider payload');
  assert.equal(s.sends[0].key,id);assert.equal(s.record.status,'sent');
