@@ -10,7 +10,7 @@ import {repairScope,calculateRepairQuote,cleanRepairChoices} from '../../lib/rep
 import {captureCatalogueDiagnostics} from './catalogue-diagnostics.mjs';
 import {promptInitialRepairRequest,promptRepairChoice} from './checker-input.mjs';
 const here=path.dirname(fileURLToPath(import.meta.url)),terminal=createInterface({input:process.stdin,output:process.stdout});
-const checkerVersion='2026-11-11-product-cards-v8';
+const checkerVersion='2026-11-11-card-boundaries-v9';
 let gsf,haynes,gsfPage,haynesPage;
 try{
  console.log('VECTA parts and fitting check — '+checkerVersion+'. Stop GSF safely in Workshop Connections first.');

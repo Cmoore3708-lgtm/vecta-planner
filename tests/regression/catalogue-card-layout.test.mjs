@@ -28,6 +28,21 @@ test('only a single separate duplicate heading is excluded; unknown or extra car
  assert.equal(read(group('AVAFIX100',body+card('0.00','NDC','',''))).complete,false);
  const mixed=read(group('AVAFIX100',body+card('10.00','RDC','third','Radiator Cap')));assert.equal(mixed.complete,false);assert.equal(mixed.groups[0].description,'');
 });
+test('decorative badges and grade labels containing icons do not create or remove priced cards',()=>{
+ const html=fixture().replace('<h6>£124.40</h6>','<span>Gold</span><h6>£124.40</h6>').replace('<span>Gold</span> Radiator','<span>Gold<svg><path></path></svg></span> Radiator');
+ const result=read(html),checks=result.groups[0].checks;
+ assert.equal(result.complete,true);assert.equal(checks.priceCount,8);assert.equal(checks.parsedCardCount,7);
+ assert.deepEqual(checks.cardGradeCounts,[1,1,1,1,1,1,1]);assert.equal(checks.decorativeGradeCount,1);assert.equal(checks.summaryPriceCount,1);assert.deepEqual(checks.unparsedPriceNodes,[]);
+ const double=read(group('AVAFIX100',card('124.40','NDC').replace(' Radiator',' <b>Silver</b> Radiator')));
+ assert.equal(double.complete,false);assert.equal(double.groups[0].checks.cardGradesValid,false);
+});
+test('every unrecognised price stays a failure with a precise, bounded diagnostic',()=>{
+ const result=read(fixture().replace('<h6>£124.40</h6>','<h6>£99.00</h6>'));
+ assert.equal(result.complete,false);assert.equal(result.groups[0].checks.pricesAccounted,false);
+ assert.deepEqual(result.groups[0].checks.unparsedPriceNodes,[{tag:'h6',text:'£99.00'}]);
+ const unknown=read(group('AVAFIX100',card('124.40','NDC')+'<div>£5.00 Mystery part Local Branch</div>'));
+ assert.equal(unknown.complete,false);assert.equal(unknown.groups[0].checks.priceCount,2);assert.equal(unknown.groups[0].checks.parsedCardCount,1);
+});
 test('radio/image siblings stay with their card, and a stale checked attribute cannot override live state',()=>{
  const d=doc(group('AVAFIX100',card('124.40','NDC','ava','Radiator','<input type="radio" checked>')+card('152.16','RDC','other','Radiator','<input type="radio">')));
  let result=readRepairGroups(d);assert.equal(result.groups[0].options[0].selected,true);assert.equal(result.groups[0].options[0].brand,'ava');
@@ -40,7 +55,7 @@ test('the observed full SKU supplies the calibrated detail route when there is n
  for(const sku of ['', '../basket','WRONG/CODE','https://example.test'])assert.throws(()=>selectedRepairProduct({...g,sku},option),e=>e.detail==='SELECTED_PRODUCT_SKU_MISSING');
  assert.throws(()=>selectedRepairProduct({...g,links:['/partdetails/OTHER']},option),/PRODUCT_LINK_UNCONFIRMED/);
  assert.throws(()=>selectedRepairProduct({...g,links:['/partdetails/AVAFIX200','/partdetails/OTHER']},option),e=>e.detail==='SELECTED_PRODUCT_LINK_AMBIGUOUS');
- assert.throws(()=>selectedRepairProduct({...g,options:[{...option,brand:''}]},{...option,brand:''}),e=>e.detail==='SELECTED_PRODUCT_BRAND_MISSING');
+ assert.equal(selectedRepairProduct({...g,options:[{...option,brand:''}]},{...option,brand:''}).searchTerm,g.sku);
  assert.throws(()=>selectedRepairProduct({...g,options:[option,option]},option),e=>e.detail==='SELECTED_OPTION_NOT_CONFIRMED');
  assert.equal(selectedRepairProduct({...g,sku:'MANW123/4',links:['/partdetails/MANW123%2F4']},option).url,'https://trade.gsfcarparts.com/partdetails/MANW123%2F4');
 });
@@ -50,14 +65,21 @@ test('semantic selection evidence must match; an unrelated checked card cannot e
  const selected={...g,options:g.options.map((o,i)=>({...o,selectionControlPresent:true,selected:i===0}))};
  assert.equal(selectedRepairProduct(selected,option).searchTerm,'AVAFIX200');
 });
+test('unreadable brands require a unique price/description when selection controls are absent',()=>{
+ const g=read(fixture()).groups[1],option={...g.options[0],brand:''};
+ assert.equal(selectedRepairProduct({...g,options:[option]},option).searchTerm,g.sku);
+ for(const duplicate of [{...option,brand:'Other'},{...option,grade:'Silver'},{...option,inStock:false,brand:'Other'}]){
+  assert.throws(()=>selectedRepairProduct({...g,options:[option,duplicate]},option),e=>['SELECTED_PRODUCT_IDENTITY_AMBIGUOUS','SELECTED_OPTION_NOT_CONFIRMED'].includes(e.detail));
+ }
+});
 test('selection waits for stable refreshed SKU evidence and keeps checking the vehicle',async()=>{
  const group=read(fixture()).groups[1],option=group.options[0];let tick=0;
  const page={url:()=> 'https://trade.gsfcarparts.com/parts/848',waitForTimeout:async()=>{tick++;},evaluate:async fn=>fn.name==='readServiceCategory'?{registration:'AB12CDE',selectedRegistration:true}:{complete:true,groups:[{...group,sku:tick<2?'AVAFIXOLD':'AVAFIX200'}]}};
  assert.equal((await waitForSelectedRepairProduct(page,'AB12CDE','848',group,option)).target.searchTerm,'AVAFIX200');assert.equal(tick,5);
  page.evaluate=async()=>({registration:'WRONG',selectedRegistration:false});await assert.rejects(waitForSelectedRepairProduct(page,'AB12CDE','848',group,option),e=>e.detail==='VEHICLE_CHANGED');
 });
-function lookupFixture(){
- let url='https://trade.gsfcarparts.com/',productOverride={};const events=[],document=doc(fixture());
+function lookupFixture({missingBrand=false}={}){
+ let url='https://trade.gsfcarparts.com/',productOverride={};const events=[],document=doc(missingBrand?fixture().replaceAll('https://gsfappstorage.blob.core.windows.net/catalogue-assets/Brands/ava.svg','/images/unreadable-logo.svg'):fixture());
  const request=repairRequest({registration:'AB12CDE',work:'Supply and fit radiator',flow:'guided-v1'});
  const page={url:()=>url,goto:async value=>{url=value;events.push(value);},waitForTimeout:async()=>{},keyboard:{press:async()=>{}},locator:selector=>({count:async()=>1,isVisible:async()=>true,fill:async()=>{},click:async()=>{events.push(document.querySelector(selector)?.textContent?.trim()||selector);},evaluateAll:async()=>[{href:'/parts/848',text:'Radiator'}]}),evaluate:async(fn,input)=>{
   if(fn.name==='readCatalogueSearchState')return {fields:[{catalogue:true,selector:'#search'}]};
@@ -78,6 +100,16 @@ test('observed catalogue shape offers its available part, then verifies the sele
  assert.equal(result.part.sku,'FIX200');assert.equal(result.part.costPence,11397);assert.equal(result.part.brand,'AVA');
  assert.ok(f.events.includes('https://trade.gsfcarparts.com/partdetails/AVAFIX200'));
  for(const changed of [{unitNetPence:11398},{brand:'OTHER'},{sku:'WRONG'},{inStock:false},{stock:[{quantity:0}]},{vatBasis:'INC_VAT'}]){
+  f.changeProduct(changed);await assert.rejects(lookupGeneralGSF(f.page,selected,f.deps),e=>e.detail==='SELECTED_PRODUCT_CHANGED');
+ }
+});
+test('a missing catalogue logo is resolved from fresh product details, never from the SKU prefix',async()=>{
+ const f=lookupFixture({missingBrand:true});let options;
+ await assert.rejects(lookupGeneralGSF(f.page,f.request,f.deps),e=>{options=e.result?.options;return e.code==='CHOICE_REQUIRED';});
+ assert.ok(!options[0].label.toLowerCase().includes('ava'));
+ const selected=repairRequest({...f.request,choices:{part:options[0].id}}),result=await lookupGeneralGSF(f.page,selected,f.deps);
+ assert.equal(result.part.brand,'AVA');assert.equal(result.part.sku,'FIX200');
+ for(const changed of [{brand:''},{unitNetPence:11398},{description:'Radiator Cap'},{sku:'WRONG'},{inStock:false}]){
   f.changeProduct(changed);await assert.rejects(lookupGeneralGSF(f.page,selected,f.deps),e=>e.detail==='SELECTED_PRODUCT_CHANGED');
  }
 });

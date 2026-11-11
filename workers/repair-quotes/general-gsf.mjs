@@ -56,16 +56,22 @@ export function readRepairGroups(doc=document){
   // the unanimous description actually present on the priced alternatives.
   if(!descriptions.length)descriptions=[...new Set(options.map(o=>o.description))];
   const links=[...group.querySelectorAll('a[href]')].map(a=>a.getAttribute('href')).filter(h=>/^(?:https:\/\/trade\.gsfcarparts\.com)?\/partdetails\//.test(h));
-  const gradeNodes=[...group.querySelectorAll('*')].filter(visible).filter(n=>/^(?:Gold|Silver|Bronze)$/i.test(clean(text(n)))&&!n.children.length),gradeCount=gradeNodes.length;
+  const gradeLabel=n=>/^(?:Gold|Silver|Bronze)$/i.test(clean(text(n)));
+  const gradeNodes=[...group.querySelectorAll('*')].filter(visible).filter(n=>gradeLabel(n)&&![...n.children].some(gradeLabel));
+  const cardGrades=cards.map(card=>gradeNodes.filter(n=>card.contains(n)).length);
   let list=cards[0];
-  while(list&&!cards.concat(gradeNodes).every(n=>list.contains(n)))list=list.parentElement;
+  while(list&&!cards.every(n=>list.contains(n)))list=list.parentElement;
   const listConfirmed=!!list&&list!==group&&!list.contains(sku);
   // A separate heading repeats an already-parsed card price. It is outside
   // the alternatives list and supplies neither another option nor selection
-  // evidence. Unknown prices and any extra grade/card still require review.
+  // evidence. A decorative grade badge outside the cards is not another part.
+  // Every price still needs an exact card or this single repeated heading.
   const summaries=listConfirmed?[...group.querySelectorAll('h1,h2,h3,h4,h5,h6')].filter(visible).filter(n=>!list.contains(n)&&/^£\s*\d+(?:,\d{3})*\.\d{2}$/.test(clean(text(n)))&&options.some(o=>o.pricePence===Math.round(Number(clean(text(n)).replace(/[£,\s]/g,''))*100))):[];
   const priceCount=(text(group).match(/£\s*\d/g)||[]).length,parsedCount=options.length+unavailableCount;
-  groups.push({parsedAll:gradeCount>0&&gradeCount===parsedCount&&priceCount===parsedCount+summaries.length&&summaries.length<=1,unavailableCount,summaryPriceCount:summaries.length,selector:selector(group),sku:clean(text(sku)).replace(/^SKU:\s*/i,''),description:descriptions.length===1?descriptions[0]:'',attributesSelector:attributes.length===1?selector(attributes[0]):'',options,links:[...new Set(links)]});
+  const cardGradesValid=cardGrades.length===parsedCount&&parsedCount>0&&cardGrades.every(count=>count===1),pricesAccounted=priceCount===parsedCount+summaries.length&&summaries.length<=1;
+  const unparsedPriceNodes=[...group.querySelectorAll('*')].filter(visible).filter(n=>!n.closest('nav,aside,form')&&/£\s*\d/.test(clean(text(n)))&&![...n.children].some(c=>/£\s*\d/.test(clean(text(c))))&&!cards.some(card=>card.contains(n))&&!summaries.some(summary=>summary.contains(n))).slice(0,20).map(n=>({tag:n.tagName.toLowerCase(),text:clean(text(n)).replace(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/gi,'[email]').replace(/\b[A-HJ-NPR-Z0-9]{17}\b/gi,'[VIN]').replace(/https?:\/\/\S+/gi,'[link]').slice(0,200)}));
+  const checks={priceCount,parsedCardCount:parsedCount,cardGradeCounts:cardGrades,decorativeGradeCount:gradeNodes.filter(n=>!cards.some(card=>card.contains(n))).length,summaryPriceCount:summaries.length,cardGradesValid,pricesAccounted,listConfirmed,unparsedPriceNodes};
+  groups.push({parsedAll:cardGradesValid&&pricesAccounted,checks,unavailableCount,summaryPriceCount:summaries.length,selector:selector(group),sku:clean(text(sku)).replace(/^SKU:\s*/i,''),description:descriptions.length===1?descriptions[0]:'',attributesSelector:attributes.length===1?selector(attributes[0]):'',options,links:[...new Set(links)]});
  }
  const moreSelectors=pagination.filter(n=>/^show more$/i.test(clean(text(n)))&&groups.some(g=>doc.querySelector(g.selector)?.contains(n))).map(selector);
  return {complete:!loading&&!pagination.length&&groups.length>0&&groups.length<=40&&groups.every(g=>g.parsedAll&&g.description&&(g.options.length||g.unavailableCount)),groups,moreSelectors};
@@ -115,15 +121,17 @@ export function selectedRepairProduct(group,option){
  if(matches.length!==1)reject('SELECTED_OPTION_NOT_CONFIRMED');
  if(group.options.some(o=>o.selectionControlPresent||o.selected)){
   if(chosen.length!==1||!sameOption(chosen[0],option))reject('SELECTED_OPTION_NOT_CONFIRMED');
- }else if(!option.brand)reject('SELECTED_PRODUCT_BRAND_MISSING');
+ }else if(!option.brand&&group.options.filter(o=>o.pricePence===option.pricePence&&o.description===option.description).length!==1)reject('SELECTED_PRODUCT_IDENTITY_AMBIGUOUS');
  const skuPattern=group.links.length?/^[A-Za-z0-9][A-Za-z0-9._/-]{1,99}$/:/^[A-Za-z0-9][A-Za-z0-9._-]{1,99}$/;
  if(!skuPattern.test(group.sku||'')||group.sku.split('/').some(s=>!s||s==='.'||s==='..'))reject('SELECTED_PRODUCT_SKU_MISSING');
  if(group.links.length>1)reject('SELECTED_PRODUCT_LINK_AMBIGUOUS');
  const target={searchTerm:group.sku,...(group.links.length?{detailUrl:new URL(group.links[0],'https://trade.gsfcarparts.com').href}:{})};
  // Some cards use drawn circles rather than semantic radios. In that case the
  // click is not proof of selection: the observed SKU's fresh product details
- // must match the chosen brand, description, price, stock and VAT before use.
- // Never manufacture a SKU from the brand logo.
+ // must match the chosen brand when known, description, price, stock and VAT.
+ // Without a readable logo, a unique price/description in this fitment group
+ // identifies the card and the full observed SKU identifies the fresh product.
+ // The product reader must supply its brand; never infer one from the SKU.
  return {...target,url:selectedProductUrl(target)};
 }
 export async function waitForSelectedRepairProduct(page,registration,category,group,option,{attempts=40}={}){
@@ -206,7 +214,7 @@ export async function lookupGeneralGSF(page,request,{capture=captureRepairCatalo
  let product;
  for(let i=0;i<40;i++){try{product=await page.evaluate(readProductDialog);break;}catch{await page.waitForTimeout(200);}}
  const brandKey=value=>String(value||'').toLowerCase().replace(/[^a-z0-9]/g,'');
- if(!product||product.unitNetPence!==option.pricePence||product.description.toLowerCase()!==option.description.toLowerCase()||option.brand&&brandKey(product.brand)!==brandKey(option.brand)||product.inStock!==true||!product.stock?.some(row=>row.quantity>=request.quantity)||product.vatBasis!=='EX_VAT'||!searchTerm.toUpperCase().endsWith(product.sku.toUpperCase()))reject('SELECTED_PRODUCT_CHANGED');
+ if(!product||typeof product.brand!=='string'||!product.brand.trim()||product.unitNetPence!==option.pricePence||product.description.toLowerCase()!==option.description.toLowerCase()||option.brand&&brandKey(product.brand)!==brandKey(option.brand)||product.inStock!==true||!product.stock?.some(row=>row.quantity>=request.quantity)||product.vatBasis!=='EX_VAT'||!searchTerm.toUpperCase().endsWith(product.sku.toUpperCase()))reject('SELECTED_PRODUCT_CHANGED');
  return {vehicle:vehicle.visibleText.split(' Copy VIN')[0].slice(0,250),fitmentEvidence:'GSF registration '+request.registration+'; '+scope.label+'; catalogue position attributes checked',catalogueComplete:true,alternativesChecked:candidates.length,part:{source:'GSF',registration:request.registration,fitmentConfirmed:true,vatBasis:'EX_VAT',sku:product.sku,brand:product.brand,description:product.description,costPence:product.unitNetPence,corePence:0,inStock:true,imageUrl:product.imageUrl,gsfUrl:url,checkedAt:new Date(now()).toISOString(),...(request.flow?{choiceId:request.choices.part}:{})}};
 }
 

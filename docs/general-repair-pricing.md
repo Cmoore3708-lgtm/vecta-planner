@@ -281,3 +281,34 @@ available option. They also test changed product identity/prices/stock and
 selection controls. Their DOM structure is synthetic, not a captured live page.
 The next workshop-PC run still needs to verify actual selection, product-detail
 layout, fitment and Haynes labour. Main and activation settings remain unchanged.
+
+## Workshop-PC report: remaining completeness failure and unreadable logo
+
+The v8 report recognises both radiator descriptions and the repeated summary
+price. The second group is complete and has an available Branch Network option;
+the first remains incomplete. This report does not contain the internal price
+and grade counts, so it does not establish which count failed or the exact live
+DOM cause. It still stops before part selection, product details and Haynes.
+
+Version `2026-11-11-card-boundaries-v9` measures grade labels inside each parsed
+price card, allowing an embedded icon in a label. A separate decorative grade
+badge does not create another priced alternative. Every currency value must
+still belong to a parsed card or the single allowed repeated price heading;
+unrecognised prices and contradictory card labels continue to stop the lookup.
+Diagnostics now include raw price/card counts, per-card grade counts, summary
+and decorative badge counts, and bounded, redacted unmatched price text. These
+changes address synthetic cases; they are not proof of the live failure's cause.
+
+The available option's logo is also unreadable in the v8 report. Without semantic
+selection controls, an unreadable brand is accepted only when its exact price
+and description identify one alternative in that fitment group, including
+out-of-stock alternatives in the ambiguity check. The refreshed full GSF SKU
+and independently read product details must still agree on SKU, description,
+price, stock, quantity and VAT. Product details must supply a nonempty brand;
+the reader never derives one from a SKU prefix. A readable catalogue brand must
+also match the product detail brand. Regression fixtures cover missing logos,
+duplicate identities, decorative badges, embedded icons and unknown prices.
+
+Actual supplier selection, product-detail layout, fitment and Haynes labour
+remain unverified. This remains a draft with general pricing disabled; the
+checker is read-only and Main, databases and installed workers are unchanged.
