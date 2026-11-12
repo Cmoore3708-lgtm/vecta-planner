@@ -90,7 +90,7 @@
   return c;
  }
  function mount(modal,job,saved){
-  const after=modal.querySelector('.jobWorkSection');if(!after||!saved||job.no_vehicle||job.card_type&&job.card_type!=='job')return;
+  const after=modal.querySelector('.jobInternalNotesSection')||modal.querySelector('.jobWorkSection');if(!after||!saved||job.no_vehicle||job.card_type&&job.card_type!=='job')return;
   const panel=node('section');panel.className='jobFormSection portalWorkshop';panel.dataset.jobId=job.id;
   const heading=node('h3',mechanic()?'Office messages & approvals':'Customer messages & updates'),consent=node('p'),list=node('div'),status=node('p');status.setAttribute('role','status');
   const notifications=node('div'),notificationNote=node('p');

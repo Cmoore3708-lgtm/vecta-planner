@@ -335,12 +335,12 @@ test('mechanic camera → Save holds the job open for a note, keeps the photo on
  window.VectaWorkshopPhotos.mount(app,job,true);await new Promise(r=>setImmediate(r));
  const send=app.querySelector('[data-approval-send]'),camera=app.querySelector('[data-photo-camera-input]');
  assert.equal(camera.getAttribute('capture'),'environment');assert.equal(send.textContent,'Send to Office');
- assert.equal(send.closest('details'),null);
+ assert.equal(send.closest('details'),send.closest('.workshopPhotos'));
  assert.ok(Array.from(send.closest('.workshopPhotos').children).indexOf(send.closest('.approvalComposer'))<
            Array.from(send.closest('.workshopPhotos').children).indexOf(app.querySelector('[data-photo-drafts]')));
  camera.files=[{size:100,type:'image/jpeg',name:'camera.jpg'}];
  const prepare=camera.onchange();const saving=mobile.onclick();decoded();await Promise.all([prepare,saving]);
- assert.equal(regularSaves,0);assert.equal(posts.length,0);assert.ok(app.querySelector('.workshopPhotoDraft'));
+ assert.equal(regularSaves,0);assert.equal(posts.length,0);assert.ok(app.querySelector('.workshopPhotoDraft'));assert.equal(app.querySelector('.workshopPhotos').hasAttribute('open'),true);
  assert.match(app.querySelector('[data-approval-notice]').textContent,/Add a message/);
  assert.equal(mobile.textContent,'Save & send to Office');
  app.querySelector('#cancelJob').onclick();assert.equal(regularCloses,0);
