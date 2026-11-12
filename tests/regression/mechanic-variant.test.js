@@ -69,7 +69,7 @@ test('the real registration lookup installs beside the restored mechanics search
 
 test('quote cards and vehicle history do not display quoted prices or invoice rows',()=>{
  const source=mechanic.match(/function quotePanelHtml\(\)\{[^\n]+/)[0];
- const c={isWebsiteBookingJob:()=>false,quoteJobs:()=>[{id:'quote',registration:'ABC123',customer_name:'Example',work_required:'Service',amount_quoted:98765}],esc:s=>s,compactUnallocatedPlate:s=>s,money:()=>{throw Error('Mechanics must not render quote money');}};
+ const c={isWebsiteBookingJob:()=>false,quoteJobs:()=>[{id:'quote',registration:'ABC123',customer_name:'Example',work_required:'Service',amount_quoted:98765}],esc:s=>s,compactUnallocatedPlate:s=>s,plannerVehicleLabel:()=> 'Vehicle',mobileJobCategoryLabel:j=>j.customer_name,money:()=>{throw Error('Mechanics must not render quote money');}};
  vm.runInNewContext(source,c);assert.match(c.quotePanelHtml(),/Service/);assert.doesNotMatch(c.quotePanelHtml(),/98765/);
  assert.doesNotMatch(mechanic,/<small>Amount quoted:|^  invoices\.forEach\(function\(inv\)\{history\.push/m);
 });
