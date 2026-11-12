@@ -45,10 +45,11 @@
  function eventBody(item){
    const body=node('div');body.className='portalEventBody';
    if(item.details?.status==='approved'||item.details?.status==='declined'){const badge=node('span',item.details.status==='approved'?'Authorised':'Not authorised');badge.className='portalSignal';body.append(badge);}
+   const progress=window.VectaMessageSummary?.progress?.(item);
    // Raw tracking credentials in historical email bodies stay out of the view.
-   body.append(node('p',String(item.message||'').replace(/https:\/\/[^\s]+\/track[^\s]*/g,'[Your personalised portal]')));
+   body.append(node('p',String(progress?.message||item.message||'').replace(/https:\/\/[^\s]+\/track[^\s]*/g,'[Your personalised portal]')));
    if(item.details?.requested_date)body.append(node('p','Requested date: '+date(item.details.requested_date)+'. Your current date stays booked until Vecta confirms the change.'));
-   if(item.details?.work_required)body.append(node('p',item.details.work_required));
+   if(item.details?.work_required&&!progress)body.append(node('p',item.details.work_required));
    if(Number.isInteger(item.details?.estimated_pence))body.append(node('b','£'+(item.details.estimated_pence/100).toFixed(2)+' including VAT'));
    if(item.details?.delivery==='prepared')body.append(node('small','Email draft prepared — sending has not been confirmed.'));
    const approval=current?.approvals.find(a=>a.id===item.details?.approval_id);
