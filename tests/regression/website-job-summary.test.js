@@ -26,12 +26,15 @@ export function summaryContext(entry=main,mechanic=false){
  return c;
 }
 for(const [name,entry] of [['Main',main],['mechanics',mechanicVariant(main)]]){
- test(name+': all website dashboard cards show job types without descriptions or part details',()=>{
+ test(name+': office website summaries stay compact while mechanics see complete work instructions',()=>{
   const c=summaryContext(entry,name==='mechanics'),before=JSON.stringify(webJob);
   for(const html of [c.jobCardHtml(webJob),c.mobileJobCardHtml(webJob),c.unallocatedJobCardHtml(webJob),c.provisionalBookingsPanelHtml(),c.mechanicJobCardHtml(webJob)]){
    const {document}=parseHTML(html),text=document.documentElement.textContent;
    assert.match(text,/Full Service/);assert.match(text,/Mini Valet/);
-   assert.doesNotMatch(text,/210|5W30|PART123|noisy brakes|price agreed|including VAT/);
+   if(document.querySelector('.mechanicQueueCard')){
+    assert.match(text,/5W30/);assert.match(text,/PART123/);assert.match(text,/Check noisy brakes/);
+    assert.doesNotMatch(text,/210|price agreed|including VAT/);
+   }else assert.doesNotMatch(text,/210|5W30|PART123|noisy brakes|price agreed|including VAT/);
   }
   assert.doesNotMatch(c.quotePanelHtml(),/5W30|PART123|noisy brakes/);
   assert.equal(JSON.stringify(webJob),before);

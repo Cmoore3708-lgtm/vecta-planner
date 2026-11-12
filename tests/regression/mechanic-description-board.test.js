@@ -67,8 +67,8 @@ test('website service and valet show once, with the original office notes retain
    const copy={...job,job_type:types};
    document.getElementById('content').innerHTML=c.mechanicJobCardHtml(copy);
    assert.deepEqual([...document.querySelectorAll('.jobTypeChip')].map(n=>n.textContent),['Full Service','Mini valet']);
-   assert.equal(document.querySelector('.mechanicJobDescription'),null);
-   assert.doesNotMatch(document.getElementById('content').innerHTML,/£|185|including VAT|mileage unknown|NEVOS|Spark plugs|confirm the price/i);
+   assert.equal(document.querySelector('.mechanicJobDescription').textContent,'Spark plugs: Yes please, change them.');
+   assert.doesNotMatch(document.getElementById('content').innerHTML,/£|185|including VAT|mileage unknown|NEVOS|confirm the price/i);
    const view=c.mechanicWorkView(copy);
    assert.equal(view.editor,'Full Service\n\nMini Valet\nSpark plugs: Yes please, change them.');assert.equal(view.details,'');
    assert.equal(view.save,undefined,'mechanic views cannot rewrite customer wording');
@@ -107,6 +107,20 @@ test('website repairs keep customer instructions, tyre positions and advisories 
  const view=c.mechanicWorkView(job);
  assert.match(view.board,/205\/55R16/);assert.match(view.board,/Both fronts/);assert.match(view.board,/Front brakes/);assert.match(view.board,/Check noise on left turns/);
  assert.doesNotMatch(view.board+' '+view.details,/£|\bprice|VAT/i);assert.equal(view.save,undefined);
+});
+test('website overheating symptoms and collection instructions remain visible on every mechanic card',()=>{
+ const {c,document}=setup();c.isWebsiteBookingJob=()=>true;c.jobTypeLabels=()=>['Other'];
+ const work='NEVOS vehicle: NO\nVehicle is overheating - temperature gauge is climbing towards red and engine fan is staying on after the engine is turned off. There is no warm air coming through cabin fans. Potentially thermostat or water pump.\nPicking up Friday';
+ const job={id:'overheating',registration:'TEST123',source:'website booking',status:'in_progress',work_required:work};
+ document.getElementById('content').innerHTML=c.mechanicJobCardHtml(job);
+ assert.equal(document.querySelector('.mechanicJobDescription').textContent,work.split('\n').slice(1).join('\n'));
+ assert.equal(document.querySelector('.mechanicBookingInWorkshop').textContent,'In the workshop');
+ assert.equal(job.work_required,work);
+ for(const status of ['booked','provisional','quote','work_complete','ready_to_invoice']){
+  document.getElementById('content').innerHTML=c.mechanicJobCardHtml({...job,status});
+  assert.equal(!!document.querySelector('.mechanicBookingWaiting'),status==='booked');
+  assert.equal(document.querySelector('.mechanicBookingInWorkshop'),null);
+ }
 });
 test('natural-height cards preserve queue order, all mechanic groups, backlog and provisional identity',()=>{
  const t=setup(),groups=t.document.querySelectorAll('.mechanicBoardColumns .mechanicBoardGroup');
