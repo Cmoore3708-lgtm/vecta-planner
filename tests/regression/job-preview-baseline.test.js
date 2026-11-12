@@ -77,3 +77,31 @@ test('internal workshop notes survive save/reopen and clearing without altering 
  field.value='Updated private note';const edited=ctx.gatherJob(saved.id);assert.equal(ctx.internalWorkshopNotes(edited),field.value);assert.equal((edited.customer_note.match(/VECTA_INTERNAL_NOTES:/g)||[]).length,1);
  ctx.app.jobs[0]=edited;field.value='';assert.equal(ctx.gatherJob(saved.id).customer_note,saved.customer_note);
 });
+
+test('mechanic saves and completion retain office wording and carry one private alert revision with each changed note',()=>{
+ const saved={id:'11111111-1111-4111-8111-111111111111',registration:'TEST001',customer_account:'Staff',job_type:'general',work_required:'Office approved instructions',customer_note:''};
+ const fields={job_work_required:{value:'Mechanic must not publish this',defaultValue:saved.work_required},job_customer_note:{value:''},job_internal_workshop_notes:{value:'Front pads worn. Ask Chris to review.'},job_status:{value:'work_complete'}};
+ let revision=0;
+ const ctx={app:{jobs:[saved]},window:{VECTA_MECHANIC_DEPLOYMENT:true},uid:()=> '22222222-2222-4222-8222-'+String(++revision).padStart(12,'0'),document:{getElementById:key=>fields[key]||null},
+  syncPrivatePricingTotal:()=>[],gatherJobPartsEditor:()=>[],noteWithPrivatePricing:n=>n,noteWithJobParts:n=>n,dvsaAdvisoryArray:v=>v||[],fleetNormaliseCustomer:v=>v,
+  jobTypeStorageValue:v=>v,jobTypeValues:()=>['general'],hasMotJobType:()=>false,setMotTimeOnNote:n=>n,carryOverMeta:()=>null,isUnallocatedJob:()=>false,isVehicleTaxJob:()=>false,
+  normalisePartsStatus:()=>'',calculatedPartsStatus:()=>'',fleetIncomeCustomerFromVehicle:()=>'',fleetIsContractorIncome:()=>false,partsStatusNote:n=>n,vectaJobIsDeletedForLists:j=>j.deleted};
+ vm.createContext(ctx);vm.runInContext(html.slice(html.indexOf('function internalWorkshopNotes('),end),ctx);
+ const queue=fs.readFileSync(new URL('../../public/js/vecta-review-queue.js',import.meta.url),'utf8');
+ vm.runInContext(queue.slice(queue.indexOf(' function noteAlerts('),queue.indexOf(' function workshopNotes('))+';window.VectaFindings={noteAlerts};',ctx);
+ vm.runInContext(html.slice(html.indexOf('window.vectaWorkshopNoteAlerts='),html.indexOf('window.vectaOpenFindingJob=')),ctx);
+ const changed=ctx.gatherJob(saved.id);
+ assert.equal(changed.work_required,saved.work_required);assert.equal(changed.status,'work_complete');assert.equal(ctx.internalWorkshopNotes(changed),fields.job_internal_workshop_notes.value);assert.equal(saved.customer_note,'');
+ assert.match(changed.customer_note,/VECTA_INTERNAL_NOTE_UPDATE:22222222-2222-4222-8222-000000000001/);
+ ctx.app.jobs=[JSON.parse(JSON.stringify(changed))];
+ assert.equal(ctx.gatherJob(saved.id).customer_note,changed.customer_note,'retry and unchanged saves must keep the same alert ID');
+ assert.equal(ctx.window.vectaWorkshopNoteAlerts().length,0,'mechanics must not alert themselves');
+ ctx.window.VECTA_MECHANIC_DEPLOYMENT=false;
+ let alerts=ctx.window.vectaWorkshopNoteAlerts();assert.equal(alerts.length,1);assert.equal(alerts[0].message,fields.job_internal_workshop_notes.value);assert.equal(alerts[0].job_id,saved.id);assert.equal(alerts[0].internal_note,true);
+ assert.equal(ctx.gatherJob(saved.id).work_required,fields.job_work_required.value,'office can still edit customer wording');
+ fields.job_internal_workshop_notes.value='';ctx.window.VECTA_MECHANIC_DEPLOYMENT=true;
+ const cleared=ctx.gatherJob(saved.id);assert.equal(ctx.internalWorkshopNotes(cleared),'');assert.match(cleared.customer_note,/VECTA_INTERNAL_NOTE_UPDATE:22222222-2222-4222-8222-000000000002/);
+ ctx.app.jobs=[cleared];ctx.window.VECTA_MECHANIC_DEPLOYMENT=false;
+ assert.equal(ctx.window.vectaWorkshopNoteAlerts()[0].message,'Workshop notes cleared.');
+ ctx.app.jobs[0].deleted=true;assert.equal(ctx.window.vectaWorkshopNoteAlerts().length,0);
+});

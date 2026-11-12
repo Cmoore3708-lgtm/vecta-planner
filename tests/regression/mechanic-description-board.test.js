@@ -57,7 +57,7 @@ test('the complete mechanic card is one keyboard-accessible button and taps open
  }
  assert.deepEqual(t.opened,['first','first','first']);
 });
-test('website service and valet show once, with the original office notes retained through mechanic edits',()=>{
+test('website service and valet show once, with the original office notes retained in read-only views',()=>{
  const {c,document}=setup();
  c.isWebsiteBookingJob=j=>j.source==='website booking';
  c.jobTypeLabels=j=>j.job_type.split(' || ');c.jobTypeStorageValue=labels=>labels.join(' || ');
@@ -71,26 +71,18 @@ test('website service and valet show once, with the original office notes retain
    assert.doesNotMatch(document.getElementById('content').innerHTML,/£|185|including VAT|mileage unknown|NEVOS|Spark plugs|confirm the price/i);
    const view=c.mechanicWorkView(copy);
    assert.equal(view.editor,'Full Service\n\nMini Valet\nSpark plugs: Yes please, change them.');assert.equal(view.details,'');
-   assert.equal(view.save(view.editor),original);
-   const edited=view.editor+'\nInspect noisy rear brakes',saved=view.save(edited);
-   assert.match(saved,/Booking guide total: £185\.00/);assert.match(saved,/Obtain price approval/);
-   const reopened=c.mechanicWorkView({...copy,work_required:saved});
-   assert.equal(reopened.editor,edited);assert.equal(reopened.details,'');assert.match(reopened.board,/Inspect noisy rear brakes/);
-   assert.equal((saved.match(/^Mini Valet$/gm)||[]).length,1);
+   assert.equal(view.save,undefined,'mechanic views cannot rewrite customer wording');
    assert.equal(c.mechanicListJob(copy).amount_quoted,null);assert.equal(copy.work_required,original);
  }
 });
-test('a saved conditional spark-plug choice appears in the editable description without the old section',()=>{
+test('a saved conditional spark-plug choice appears in the read-only description without the old section',()=>{
  const {c}=setup();c.isWebsiteBookingJob=()=>true;
  const work=websiteServiceNotes.replace('Customer requests replacement.','Check the manufacturer’s guidance; replace if due. If service history is unclear, contact the customer first.');
  const job={work_required:work};
  const view=c.mechanicWorkView(job);
  assert.match(view.editor,/Spark plugs: Check first — replace if due\. If service history is unclear, contact the customer first\./);
  assert.doesNotMatch(view.editor+' '+view.details,/Optional service item|confirm the price|£/);
- assert.equal(view.save(view.editor),work);
- const saved=view.save(view.editor.replace('Check first — replace if due','Customer has approved replacement'));
- assert.match(c.mechanicWorkView({...job,work_required:saved}).editor,/approved replacement/);
- assert.doesNotMatch(saved,/Check first — replace if due/);
+ assert.equal(job.work_required,work);
 });
 test('Main and mechanics render selected extras in the job description textarea',()=>{
  const section=main.split('\n').find(line=>line.startsWith("'<section class=\"jobFormSection jobWorkSection\">")).slice(0,-1);
@@ -100,6 +92,8 @@ test('Main and mechanics render selected extras in the job description textarea'
   c.mechanicWork=isMechanic?c.mechanicWorkView(c.j):null;
   const {document}=parseHTML(vm.runInContext(section,c));
   const value=document.querySelector('#job_work_required').value;
+  assert.equal(document.querySelector('#job_work_required').hasAttribute('readonly'),isMechanic);
+  if(isMechanic)assert.match(document.querySelector('.jobWorkSection').textContent,/Read only.*Workshop notes/s);
   assert.match(value,/^Mini Valet$/m);assert.match(value,/^Spark plugs: Yes please, change them\.$/m);
   assert.doesNotMatch(value,/Optional service item/);
   assert.equal(document.querySelector('.mechanicJobDescription'),null);
@@ -112,7 +106,7 @@ test('website repairs keep customer instructions, tyre positions and advisories 
  const job={job_type:'Tyres || Other',work_required:'Tyre size: 205/55R16\nTyre quantity: 2\nTyre positions: Both fronts\nFully fitted price: £85 per tyre; £170 total including VAT.\nTyre: Test Tyre. All prices include fitting, balancing, a standard valve, disposal and VAT.\n\nMOT Advisories, customer would like these done: Front brakes\n\nCheck noise on left turns'};
  const view=c.mechanicWorkView(job);
  assert.match(view.board,/205\/55R16/);assert.match(view.board,/Both fronts/);assert.match(view.board,/Front brakes/);assert.match(view.board,/Check noise on left turns/);
- assert.doesNotMatch(view.board+' '+view.details,/£|\bprice|VAT/i);assert.equal(view.save(view.editor),job.work_required);
+ assert.doesNotMatch(view.board+' '+view.details,/£|\bprice|VAT/i);assert.equal(view.save,undefined);
 });
 test('natural-height cards preserve queue order, all mechanic groups, backlog and provisional identity',()=>{
  const t=setup(),groups=t.document.querySelectorAll('.mechanicBoardColumns .mechanicBoardGroup');
