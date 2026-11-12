@@ -76,9 +76,10 @@
   const heading=node('summary');heading.className='portalWorkshopEventHeading';
   const timestamp=node('time',date(item.created_at));timestamp.dateTime=item.created_at;
   heading.append(node('strong',window.VectaMessageSummary?.title(item)||titles[item.kind]||'Job update'),timestamp);
-  const body=node('div');body.className='portalWorkshopEventBody';c.append(heading,body);body.append(node('p',item.message));
+  const progress=window.VectaMessageSummary?.progress?.(item);
+  const body=node('div');body.className='portalWorkshopEventBody';c.append(heading,body);body.append(node('p',progress?.message||item.message));
   if(item.details?.requested_date)body.append(node('p','Requested date: '+item.details.requested_date+' — awaiting workshop confirmation.'));
-  if(item.details?.work_required)body.append(node('p',item.details.work_required));
+  if(item.details?.work_required&&!progress)body.append(node('p',item.details.work_required));
   const green=decision==='approved'||item.authorised===true||item.details?.preferences?.serious_repairs==='change_parts',red=decision==='declined'||item.authorised===false||item.details?.preferences?.serious_repairs==='book_later';
   c.dataset.signal=green?'green':red?'red':item.kind==='approval_request'?'amber':'';
   if(Number.isInteger(item.details?.estimated_pence))body.append(node('p','£'+(item.details.estimated_pence/100).toFixed(2)+' including VAT'));
