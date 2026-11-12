@@ -2,67 +2,86 @@
   const el=id=>document.getElementById(id),token=location.hash.slice(1);
   let timer,busy=false,failures=0,registration='',artworkKey='';
   let approvalId=token.startsWith('approval.') ? token.split('.')[1] : token && location.search ? new URLSearchParams(location.search).get('approval') : null;
-  let deciding=false, approvalRender=0, approvalPhotos=[];
+  let deciding=false, approvalRender=0, approvalPhotos=[],replyId=null,replyAttempt=null;
   function openApproval(){
     const dialog=el('approvalDialog');
     if(!dialog.open)dialog.showModal();
     el('approvalTitle').focus();
   }
-
+  function lockReply(value){
+    for(const id of ['approveWork','declineWork'])el(id).disabled=value;
+    el('quoteReply').readOnly=value||!!replyAttempt;
+  }
   async function refreshApproval(decision){
     if(!approvalId || deciding || registration)return;
-    const seq=++approvalRender, panel=el('approvalPanel'), buttons=el('approvalButtons'), note=el('approvalStatus');
-    if(decision)deciding=true;
-    el('approveWork').disabled=true;el('declineWork').disabled=true;
-    if(decision||!el('approvalMessage').textContent)buttons.hidden=true;panel.hidden=false;
-    el('retryApproval').hidden=true;
-    if(decision)note.textContent='Saving your response…';
+    const writing=!!decision;
+    if(writing){
+      const reply=el('quoteReply').value.trim();
+      if(reply.length>3000){el('approvalStatus').textContent='Enter a message of up to 3,000 characters.';el('quoteReply').focus();return;}
+      if(replyAttempt&&(replyAttempt.decision!==decision)){el('approvalStatus').textContent='Check or retry your previous response before sending another.';return;}
+      replyAttempt??={decision,reply,reply_id:replyId||crypto.randomUUID()};deciding=true;
+    }
+    const seq=++approvalRender,panel=el('approvalPanel'),buttons=el('approvalButtons'),note=el('approvalStatus');
+    lockReply(true);panel.hidden=false;el('retryApproval').hidden=true;
+    if(writing)note.textContent='Saving your response…';
     try{
       const response=await fetch('/api/job-progress',{method:'POST',headers:{'Content-Type':'application/json'},
-        body:JSON.stringify({action:decision?'approval-decide':'approval-status',approval_id:approvalId,token,decision}),
+        body:JSON.stringify({action:decision?'approval-decide':'approval-status',approval_id:approvalId,token,
+          ...(writing?{decision,reply:replyAttempt.reply,reply_id:replyAttempt.reply_id}:{})}),
         credentials:'same-origin',cache:'no-store',signal:AbortSignal.timeout(15000)});
       const data=await response.json();
-      if(!response.ok)throw Error(typeof data.error==='string'?data.error:'Approval unavailable. Tap Check message again to retry.');
+      if(!response.ok)throw Object.assign(Error(typeof data.error==='string'?data.error:'Response unavailable. Please retry.'),{status:response.status});
       if(seq!==approvalRender)return;
-      const item=data.approval;el('approvalPanel').dataset.signal=item.status==='approved'?'green':item.status==='declined'?'red':'amber';
-      if(decision)window.VectaCustomerPortal?.refresh();
+      const item=data.approval;panel.dataset.signal=item.status==='approved'?'green':item.status==='declined'?'red':'amber';
+      if(writing){replyAttempt=null;replyId=crypto.randomUUID();el('quoteReply').value='';window.VectaCustomerPortal?.refresh();}
       el('approvalMessage').textContent=item.message;
-      const estimate=el('approvalEstimate');
-      estimate.hidden=!Number.isInteger(item.estimated_pence);
-      estimate.textContent=estimate.hidden?'':'Estimated total including VAT: '+new Intl.NumberFormat('en-GB',{style:'currency',currency:'GBP'}).format(item.estimated_pence/100);
-      approvalPhotos=Array.isArray(item.photo_ids)?item.photo_ids:[];
-      el('approvalPhotos').hidden=!approvalPhotos.length;
-      el('approvalTitle').textContent=item.status==='pending'?'Your approval is needed':'Your response';
-      const status={approved:'You approved this work. The workshop has your response.',declined:'You declined this work. The workshop has your response.',closed:'This request is closed.'};
+      const estimate=el('approvalEstimate');estimate.hidden=!Number.isInteger(item.estimated_pence);
+      estimate.textContent=estimate.hidden?'':'Estimated price including VAT: '+new Intl.NumberFormat('en-GB',{style:'currency',currency:'GBP'}).format(item.estimated_pence/100);
+      const money=pence=>new Intl.NumberFormat('en-GB',{style:'currency',currency:'GBP'}).format(pence/100);
+      const current=el('approvalCurrentTotal'),revised=el('approvalRevisedTotal');
+      el('approvalTotals').hidden=estimate.hidden;
+      current.hidden=item.status!=='pending'||!Number.isSafeInteger(item.job_total_pence);
+      current.textContent=current.hidden?'':'Current job total: '+money(item.job_total_pence);
+      el('approvalTotalLabel').textContent=item.status==='pending'?'Revised total if accepted':item.status==='approved'?'Revised job total':'Job total (unchanged)';
+      revised.textContent=Number.isSafeInteger(item.revised_total_pence)?money(item.revised_total_pence):'To be confirmed';
+      approvalPhotos=Array.isArray(item.photo_ids)?item.photo_ids:[];el('approvalPhotos').hidden=!approvalPhotos.length;
+      el('approvalTitle').textContent=item.status==='pending'?'Additional work required:':item.status==='approved'?'✓ Work authorised':item.status==='declined'?'✕ Work not authorised':'Additional work required:';
+      const status={approved:'You accepted this quote. The workshop has your response.',declined:'You refused this quote. The workshop has your response.',closed:'This request is closed.'};
       note.textContent=status[item.status]||'';
-      buttons.hidden=item.status!=='pending';
-      el('openApproval').textContent=item.status==='pending'?'View message & respond':'View your response';
+      buttons.hidden=item.status!=='pending';el('quoteReplyFields').hidden=item.status!=='pending';
+      el('openApproval').textContent=item.status==='pending'?'View quote & respond':'View your response';
+      if(replyAttempt){el('retryApproval').hidden=false;note.textContent+=' Your previous send is unconfirmed. Retry the same response to check it.';}
+      if(writing&&item.status===decision)el('approvalDialog').close();
     }catch(error){
       if(seq!==approvalRender)return;
-      el('approvalTitle').textContent='Workshop message';
-      el('approvalMessage').textContent='';el('approvalEstimate').hidden=true;el('approvalPhotos').hidden=true;
-      el('retryApproval').hidden=false;buttons.hidden=true;note.textContent=error.message+' Tap Refresh progress to check the current decision.';
-    }finally{
-      if(decision)deciding=false;
-      if(seq===approvalRender){el('approveWork').disabled=false;el('declineWork').disabled=false;}
-    }
+      if(writing&&[400,403,404,409,410].includes(error.status)){replyAttempt=null;replyId=null;}
+      el('retryApproval').hidden=false;note.textContent=error.message;
+    }finally{if(writing)deciding=false;if(seq===approvalRender)lockReply(false);}
   }
   {
-    el('approvalPanel').hidden=false;el('approvalButtons').hidden=true;
+    el('approvalPanel').hidden=false;el('approvalButtons').hidden=true;el('quoteReplyFields').hidden=true;
     el('approvalStatus').textContent='Loading your workshop message…';
     el('openApproval').hidden=!approvalId;el('openApproval').onclick=openApproval;
-    el('closeApproval').onclick=()=>el('approvalDialog').close();
-    el('retryApproval').onclick=()=>refreshApproval();
+    el('approvalDialog').addEventListener('cancel',event=>{if(deciding)event.preventDefault();});
+    el('approvalDialog').addEventListener('click',event=>{if(!deciding&&event.target===el('approvalDialog'))el('approvalDialog').close();});
+    el('retryApproval').onclick=()=>replyAttempt?refreshApproval(replyAttempt.decision):refreshApproval();
     if(approvalId)openApproval();
-    el('approveWork').onclick=()=>refreshApproval('approved');
-    el('declineWork').onclick=()=>refreshApproval('declined');
+    el('approveWork').onclick=()=>refreshApproval('approved');el('declineWork').onclick=()=>refreshApproval('declined');
+    el('quoteReply').oninput=()=>{if(!deciding&&!replyAttempt)replyId=crypto.randomUUID();};
     el('approvalPhotos').onclick=()=>{
       const photo=Array.from(el('workshopPhotoGrid').children).find(card=>approvalPhotos.includes(card.dataset.photoId));
       if(photo){el('approvalDialog').close();photo.scrollIntoView({behavior:'smooth',block:'center'});}
       else el('approvalStatus').textContent='These photos are unavailable. Tap Refresh progress to check again.';
     };
   }
-  window.VectaProgressApproval={open(id){approvalId=id;el('openApproval').hidden=false;openApproval();refreshApproval();}};
+  window.VectaProgressApproval={open(id){
+    if(deciding)return;
+    if(id!==approvalId){
+      if(el('quoteReply').value.trim()||replyAttempt){openApproval();el('approvalStatus').textContent='Send or clear your current reply before opening another quote.';return;}
+      approvalId=id;replyId=crypto.randomUUID();el('approvalMessage').textContent='';el('approvalEstimate').hidden=true;el('approvalTotals').hidden=true;el('approvalButtons').hidden=true;el('quoteReplyFields').hidden=true;
+    }
+    el('openApproval').hidden=false;openApproval();refreshApproval();
+  }};
   const connectingMessage='Connecting to our live booking system. This may take several minutes.';
   function showConnectionMessage(){const note=el('sceneCaption');note.textContent=connectingMessage;note.classList.add('connecting');note.hidden=false;}
   // Complete, individually composed scene sets. Never reuse one registration's car for another.

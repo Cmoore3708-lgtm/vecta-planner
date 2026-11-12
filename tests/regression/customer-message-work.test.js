@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import vm from 'node:vm';
 import {PGlite} from '@electric-sql/pglite';
-import {approvedJobChanges,mechanicApprovalSummary} from '../../lib/approved-work.js';
+import {approvedJobChanges,customerQuoteTotals,mechanicApprovalSummary} from '../../lib/approved-work.js';
 import {reviewQueue,workshopApprovalList,stageFinding} from '../../lib/progress-approvals.js';
 const read=f=>readFileSync(f,'utf8');
 const jobId='11111111-1111-4111-8111-111111111111',id='22222222-2222-4222-8222-222222222222';
@@ -37,8 +37,8 @@ test('mechanic API summaries are explicitly non-financial, including prices type
  const summary=mechanicApprovalSummary(item);assert.doesNotMatch(JSON.stringify(summary),/120|VAT|estimated|channels|secret/);
  const job={id:jobId,booking_date:'2026-11-09',registration:'TEST001',status:'in_progress',customer_email:'fixture@example.invalid',customer_phone:''};
  const row={...job,job_id:jobId,id,progress_from_mechanic:true,progress_booking_date:job.booking_date,progress_message:item.message,progress_photo_ids:[],progress_review_state:'sent',status:'approved',decided_at:item.decided_at,progress_estimate_pence:12000,jobs:job};
- let reads=0;const db=async()=>{reads++;return [row];};
- const list=await workshopApprovalList(db,job,'mechanic');assert.equal(reads,1);assert.doesNotMatch(JSON.stringify(list),/120|VAT|estimated|channels|whatsapp/);
+ let reads=0;const db=async path=>{reads++;return path.startsWith('customer_portal_events')?[{details:{approval_id:id}}]:[row];};
+ const list=await workshopApprovalList(db,job,'mechanic');assert.equal(reads,2);assert.doesNotMatch(JSON.stringify(list),/120|VAT|estimated|channels|whatsapp/);
  const queue=await reviewQueue(db,'mechanic');assert.equal(queue.findings.length,0);assert.equal(queue.decisions.length,1);assert.doesNotMatch(JSON.stringify(queue),/120|VAT|estimated|channels/);
 });
 
@@ -84,4 +84,21 @@ test('database decision and invoice preparation are atomic, idempotent and rejec
   const perms=(await db.query("select has_function_privilege('anon','public.vecta_decide_progress_work(uuid,uuid,text,jsonb,jsonb)','execute') anon,has_function_privilege('authenticated','public.vecta_decide_progress_work(uuid,uuid,text,jsonb,jsonb)','execute') authenticated")).rows[0];
   assert.deepEqual(perms,{anon:false,authenticated:false});
  }finally{await db.close();}
+});
+
+
+test('customer revised totals include VAT, preserve MOT exemptions, and never add an accepted quote twice',()=>{
+ const pending={...approval,status:'pending'};
+ assert.deepEqual(customerQuoteTotals(base,pending),{job_total_pence:13000,revised_total_pence:25000});
+ assert.deepEqual(customerQuoteTotals({...base,vat_mode:'ex_vat'},pending),{job_total_pence:15600,revised_total_pence:27600});
+ const mot={...base,work_required:'MOT',amount_quoted:45,vat_mode:'no_vat'};
+ assert.deepEqual(customerQuoteTotals(mot,pending),{job_total_pence:4500,revised_total_pence:16500});
+ const approved={...base,...approvedJobChanges(base,approval)};
+ assert.deepEqual(customerQuoteTotals(approved,{...approval,status:'approved'}),{job_total_pence:25000,revised_total_pence:25000});
+ assert.deepEqual(customerQuoteTotals(base,{...approval,status:'declined'}),{job_total_pence:13000,revised_total_pence:13000});
+ assert.deepEqual(customerQuoteTotals(approved,{...pending,id:'second',progress_estimate_pence:6000}),{job_total_pence:25000,revised_total_pence:31000});
+ const mixed={...base,amount_quoted:145,vat_mode:'ex_vat',customer_note:'[[VECTA_PRIVATE_PRICING:'+encodeURIComponent(JSON.stringify([{description:'MOT test fee',price:45},{description:'Service',price:100}]))+']]'};
+ assert.deepEqual(customerQuoteTotals(mixed,pending),{job_total_pence:16500,revised_total_pence:28500});
+ for(const amount of [null,undefined,'','invalid',-10])assert.deepEqual(customerQuoteTotals({...base,amount_quoted:amount},pending),{job_total_pence:null,revised_total_pence:null});
+ assert.deepEqual(customerQuoteTotals({...base,amount_quoted:0},pending),{job_total_pence:0,revised_total_pence:12000});
 });

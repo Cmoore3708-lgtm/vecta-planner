@@ -59,6 +59,7 @@ function setup(t,preview=false){
    }
    if(url.pathname==='/rpc/vecta_decide_progress_work'){
      assert.ok(state.allowDecide);assert.equal(data.p_approval_id,id);assert.equal(data.p_job_id,job.id);
+     if(data.p_decision==='approved'&&state.row.status==='pending')Object.assign(state.job,data.p_changes);
      state.row.status=data.p_decision;state.row.decided_at=new Date().toISOString();return {code:200,status:state.row.status,decided_at:state.row.decided_at};
    }
    throw Error('Unexpected DB path '+url.pathname);
@@ -159,13 +160,13 @@ test('opening a tracker only displays the request; one explicit decision updates
    }
    return Response.json({registration:'ZX11TST',stage:'underway',title:'In workshop'});
  };
- vm.runInNewContext(readFileSync(new URL('js/vecta-progress.js',base),'utf8'),{document,window:{addEventListener(){}},location:{search:'',hash:'#approval.'+id+'.'+photo},URLSearchParams,fetch,Intl,Date,AbortSignal,setTimeout(){},clearTimeout(){}});
+ vm.runInNewContext(readFileSync(new URL('js/vecta-progress.js',base),'utf8'),{document,crypto,window:{addEventListener(){}},location:{search:'',hash:'#approval.'+id+'.'+photo},URLSearchParams,fetch,Intl,Date,AbortSignal,setTimeout(){},clearTimeout(){}});
  await new Promise(r=>setImmediate(r));
  assert.equal(decisions,0);assert.equal(document.getElementById('approvalButtons').hidden,false);
  assert.equal(document.getElementById('approvalMessage').querySelector('script'),null);assert.match(document.getElementById('approvalEstimate').textContent,/£85.00/);
  await document.getElementById('approveWork').onclick();
  assert.equal(decisions,1);assert.equal(document.getElementById('approvalButtons').hidden,true);
- assert.match(document.getElementById('approvalStatus').textContent,/You approved/);
+ assert.match(document.getElementById('approvalStatus').textContent,/You accepted/);
 });
 test('Main submits one private finding after both photos finish; a failed upload can be retried without contacting anyone',async()=>{
  const {document}=parseHTML('<html><body><main><section class="jobWorkSection"></section></main></body></html>');
@@ -383,4 +384,19 @@ test('owner queue includes recorded customer decisions with registration, price 
  assert.equal(result.decisions[0].message,body.message);assert.equal(result.decisions[0].estimated_pence,8500);assert.ok(result.decisions[0].decided_at);
  assert.doesNotMatch(JSON.stringify(result),/customer_email|customer_phone|progress:/);
  assert.equal(requested[1].get('status'),'in.(approved,declined)');assert.match(requested[1].get('decided_at'),/^gte\./);
+});
+
+
+test('customer quote API returns the current and proposed bill, then the committed total on acceptance and retry',async t=>{
+ const s=setup(t,true);Object.assign(s.job,{amount_quoted:130,vat_mode:'inc_vat',work_required:'Full service'});
+ await createAndPrice(s.db,s.job,{...body,estimate:'120.00'},site);
+ const token='approval.'+id+'.'+s.row.token.slice('progress:'.length);
+ const payload={action:'approval-status',approval_id:id,token};
+ let result=await customerApproval(s.db,payload);
+ assert.equal(result.approval.job_total_pence,13000);assert.equal(result.approval.revised_total_pence,25000);
+ s.allowDecide=true;
+ result=await customerApproval(s.db,{...payload,action:'approval-decide',decision:'approved'});
+ assert.equal(result.approval.job_total_pence,25000);assert.equal(result.approval.revised_total_pence,25000);
+ result=await customerApproval(s.db,{...payload,action:'approval-decide',decision:'approved'});
+ assert.equal(result.approval.revised_total_pence,25000);
 });

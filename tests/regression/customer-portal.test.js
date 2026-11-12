@@ -93,7 +93,7 @@ test('preferences persist for both records and forwarding is idempotent without 
   assert.equal((await db.query('select count(*)::int n from customer_portal_events where mechanic_at is not null')).rows[0].n,1);
  }finally{await db.close();}
 });
-test('only approvals originating with mechanics automatically alert mechanics; all decisions alert the owner',async()=>{
+test('legacy portal migration recorded automatic mechanic forwards before the quote upgrade',async()=>{
  const db=await database();try{
   for(const [i,from,status]of [[1,true,'approved'],[2,false,'approved'],[3,true,'declined']]){
    await db.query("insert into additional_work_approvals(id,job_id,registration,customer_email,progress_message,progress_review_state,progress_estimate_pence,progress_from_mechanic,status,decided_at) values($1,$2,'TEST001','driver@example.invalid','Brake pads','sent',12000,$3,$4,now())",[`44444444-4444-4444-8444-44444444444${i}`,id,from,status]);
