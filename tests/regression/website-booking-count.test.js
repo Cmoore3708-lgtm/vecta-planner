@@ -32,7 +32,7 @@ function harness(){
   mergeRemoteRows(local,remote){const map=new Map(local.map(r=>[r.id,r]));for(const row of remote)map.set(row.id,row);return [...map.values()]},
   view:'planner',render(){throw Error('Counter must not rebuild the dashboard')},
  };
- vm.runInNewContext(countSource+'\n'+syncSource,c);
+ vm.runInNewContext(fs.readFileSync('public/js/vecta-device-notifications.js','utf8')+'\n'+countSource+'\n'+syncSource,c);
  return {c,document,button,calls,badges,timers,intervals,events,live,subscription:status=>subscription(status)};
 }
 
@@ -43,7 +43,7 @@ test('cold startup shows the server count before deferred inbox hydration using 
  assert.equal(h.document.querySelector('input').value,'unsaved work');assert.equal(h.c.app.websiteRequests.length,0);
  assert.equal(h.calls.length,1);assert.equal(h.calls[0].method,'HEAD');assert.equal(h.calls[0].url.pathname,'/rest/v1/website_booking_requests');
  assert.equal(h.calls[0].url.searchParams.get('select'),'id');assert.equal(h.calls[0].url.searchParams.get('or'),'(status.is.null,status.eq.awaiting_review)');
- assert.equal(h.calls[0].headers.get('prefer'),'count=exact');assert.deepEqual(h.badges,[3]);
+ assert.equal(h.calls[0].url.searchParams.get('reviewed_at'),'is.null');assert.equal(h.calls[0].headers.get('prefer'),'count=exact');assert.deepEqual(h.badges,[3]);
 });
 test('returning to the app refreshes missed bookings even when planner refresh cannot run',async()=>{
  const h=harness();h.c.startCloudSync();await h.c.vectaWebsiteBookingCountPending;
@@ -86,7 +86,7 @@ test('failed counts retain the last confirmed value; offline and mechanics do no
  h.c.navigator.onLine=true;h.c.window.VECTA_MECHANIC_DEPLOYMENT=true;await h.c.vectaRefreshWebsiteBookingCount();assert.equal(h.calls.length,before);
 });
 test('cached pending requests remain available before an online count is known',()=>{
- const h=harness();h.c.app.websiteRequests=[{status:'awaiting_review'},{status:null},{status:'booked'},{status:'contacted'},{status:'archived'},{status:'deleted'}];
+ const h=harness();h.c.app.websiteRequests=[{status:'awaiting_review',reviewed_at:'2026-11-12T12:00:00Z'},{status:'awaiting_review'},{status:null},{status:'booked'},{status:'contacted'},{status:'archived'},{status:'deleted'}];
  assert.equal(h.c.vectaPendingWebsiteBookingCount(),2);
 });
 test('local acceptance and request changes discard the pre-change remote count',()=>{
@@ -94,4 +94,18 @@ test('local acceptance and request changes discard the pre-change remote count',
   const source=html.slice(html.indexOf(start),html.indexOf(end));
   assert.match(source,/vectaWebsiteBookingCloudCount=null;vectaRefreshWebsiteBookingCount\(\)/);
  }
+});
+
+test('opening a website booking updates only its receipt and clears the confirmed count',async()=>{
+ const h=harness();h.c.app.websiteRequests=[{id:'request-1',status:'awaiting_review'}];await h.c.vectaRefreshWebsiteBookingCount();
+ const calls=[];h.c.vectaProgressRequest=async body=>{calls.push(body);h.live.count=0;return {requests:[{id:'request-1',reviewed_at:'2026-11-12T12:00:00Z'}]};};
+ assert.equal(await h.c.window.vectaMarkWebsiteBookingRead({request_id:'request-1'}),true);
+ assert.equal(calls[0].action,'booking-read');assert.equal(calls[0].request_id,'request-1');assert.equal(h.c.app.websiteRequests[0].status,'awaiting_review');
+ assert.equal(h.button.textContent,'Website Bookings');assert.equal(h.badges.at(-1),0);
+});
+test('a failed booking receipt retains its alert and does not change booking status',async()=>{
+ const h=harness();h.c.app.websiteRequests=[{id:'request-1',status:'awaiting_review'}];await h.c.vectaRefreshWebsiteBookingCount();
+ h.c.vectaProgressRequest=async()=>{throw Error('Offline');};
+ assert.equal(await h.c.window.vectaMarkWebsiteBookingRead({request_id:'request-1'}),false);
+ assert.equal(h.button.textContent,'Website Bookings (1)');assert.equal(h.c.app.websiteRequests[0].reviewed_at,undefined);
 });

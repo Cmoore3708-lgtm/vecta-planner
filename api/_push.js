@@ -34,7 +34,7 @@ export async function sendPushSubscription(subscription,payload){
 export async function sendBookingBadges(){
   try{
     pushConfig();
-    const [subscriptions,pending]=await Promise.all([supabaseRest('workshop_push_subscriptions?select=endpoint,subscription&audience=eq.manager'),supabaseRest('website_booking_requests?select=id&status=eq.awaiting_review')]);
+    const [subscriptions,pending]=await Promise.all([supabaseRest('workshop_push_subscriptions?select=endpoint,subscription&audience=eq.manager'),supabaseRest('website_booking_requests?select=id&or=(status.is.null,status.eq.awaiting_review)&reviewed_at=is.null')]);
     const count=Array.isArray(pending)?pending.length:0,payload=JSON.stringify({title:'New VECTA website booking',body:'A new customer booking is waiting for review.',count,url:'/?view=websiteRequests'});
     await Promise.allSettled((subscriptions||[]).map(async row=>{
       try{await webpush.sendNotification(row.subscription,payload,{timeout:5000})}catch(error){
