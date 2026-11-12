@@ -56,3 +56,16 @@
  .portalOriginal{padding-inline:12px}
  #portalForm textarea,#portalForm input,#portalForm select{font-size:16px}
 }
+
+/* Title and date are all that show until a conversation row is tapped. */
+.portalEvent{padding:0;margin:4px 0}
+.portalEvent>summary{display:flex;flex-wrap:nowrap;align-items:center;gap:8px;min-height:44px;padding:10px 14px;cursor:pointer;list-style:none}
+.portalEvent>summary::-webkit-details-marker{display:none}
+.portalEvent>summary::before{content:'›';flex:none;font-size:19px;line-height:1;transition:transform .15s}
+.portalEvent[open]>summary::before{transform:rotate(90deg)}
+.portalEvent>summary strong{flex:1;min-width:0;font-size:13px;line-height:1.35}
+.portalEvent>summary time{flex:none;font-size:11px}
+.portalEvent>summary:focus-visible{outline:2px solid currentColor;outline-offset:-3px;border-radius:9px}
+.portalEventBody{padding:0 14px 12px}
+.portalEventBody>p:empty{display:none}
+@media(max-width:600px){.portalEvent{padding:0}.portalEvent>summary{padding:10px 12px;gap:6px}.portalEvent>summary time{font-size:10px}.portalEventBody{padding:0 12px 10px}}

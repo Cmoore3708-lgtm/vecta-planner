@@ -132,7 +132,7 @@ test('owner popup forwards a saved message; mechanic popup displays green author
   const window={VECTA_MECHANIC_DEPLOYMENT:mechanic,vectaRefreshPortalJobs:async()=>{refreshed++;},addEventListener:(n,fn)=>listeners.set(n,fn),dispatchEvent:e=>listeners.get(e.type)?.()};
   const context={window,document,location:{search:''},navigator:{onLine:true},localStorage:{getItem:()=>null,setItem(){}},Intl,Date,Event,URLSearchParams,AbortSignal,setInterval:fn=>timers.push(fn),fetch:async(_url,options)=>{const body=JSON.parse(options.body);requests.push(body);return {ok:true,json:async()=>body.action==='portal-queue'?{events}:{ok:true}};}};
   vm.runInNewContext(readFileSync('public/js/vecta-portal-workshop.js','utf8'),context);await new Promise(r=>setImmediate(r));
-  const popup=document.querySelector('.portalWorkshopPopup');assert.equal(popup.hidden,false);assert.match(popup.textContent,/Work authorised/);assert.equal(popup.querySelector('article').dataset.signal,'green');assert.equal(refreshed,1);
+  const popup=document.querySelector('.portalWorkshopPopup');assert.equal(popup.hidden,false);assert.match(popup.textContent,/Work authorised/);assert.equal(popup.querySelector('.portalWorkshopEvent').dataset.signal,'green');assert.equal(refreshed,1);
   const forward=[...popup.querySelectorAll('button')].find(b=>b.textContent==='Send to mechanic');
   if(mechanic){assert.equal(forward,undefined);assert.doesNotMatch(popup.textContent,/120/);}else{assert.ok(forward);await forward.onclick();assert.ok(requests.some(r=>r.action==='portal-forward'&&r.event_id===event));assert.equal(forward.textContent,'Sent to mechanic');}
  }
@@ -179,4 +179,17 @@ test('a failed job-card refresh keeps the approval alert visible and retries unt
  await timers[0]();assert.equal(refreshes,2);assert.match(popup.textContent,/Reconnecting/,'an uninitialised database must also retry');
  await timers[0]();assert.equal(refreshes,3);assert.doesNotMatch(popup.textContent,/Reconnecting/);assert.match(popup.textContent,/Work authorised/);
  await timers[0]();assert.equal(refreshes,3,'successful refresh is not repeated without a new event');
+});
+
+test('internal workshop notes produce no customer event and are excluded from portal and confirmation content',async()=>{
+ const db=await database();try{
+  const secret='PRIVATE WORKSHOP NOTE — supplier dispute';
+  const note='[[VECTA_INTERNAL_NOTES:'+encodeURIComponent(secret)+']]';
+  await db.query('update jobs set customer_note=$1 where id=$2',[note,id]);
+  assert.equal((await db.query('select count(*)::int n from customer_portal_events')).rows[0].n,0);
+  const record={...job,customer_note:note};
+  const snapshot=await portalSnapshot(async()=>[],{job:record});
+  const email=confirmationContent(record,'https://www.vectamotors.co.uk/track#test');
+  for(const value of [snapshot,email]){const text=JSON.stringify(value);assert.ok(!text.includes(secret));assert.ok(!text.includes(encodeURIComponent(secret)));assert.ok(!text.includes('VECTA_INTERNAL_NOTES'));}
+ }finally{await db.close();}
 });

@@ -5,10 +5,10 @@ import {readFileSync} from 'node:fs';
 import {parseHTML} from 'linkedom';
 const html=readFileSync(new URL('../../index.html',import.meta.url),'utf8');
 const start=html.indexOf('function installNewJobAvailabilityCalendar('),end=html.indexOf('\n\nfunction previousVehicleWork(',start),source=html.slice(start,end);
-function setup(fieldId='job_booking_date'){
+function setup(fieldId='job_booking_date',editingJobId=null){
  const {document,window}=parseHTML('<html><body><section class="jobBookingSection"><div class="jobSectionGrid"><div class="field"><input id="'+fieldId+'" value="2026-10-16"></div><div class="field">Drop-off time</div></div></section></body></html>');
  const lane=v=>v==='Other'?'Chris':v,app={settings:{mechanics:['Alfie','Chris','Anyone']},jobs:[{registration:'TODAY',booking_date:'2026-10-16',status:'booked',technician:'Alfie',estimated_hours:1},{registration:'NEXTDAY',booking_date:'2026-10-19',status:'booked',technician:'Other',estimated_hours:2},{registration:'DONE',booking_date:'2026-10-19',status:'completed',technician:'Chris'}]};
- const ctx={document,Event:window.Event,app,selectedIso:()=> '2026-10-16',todayIso:()=> '2026-10-16',esc:v=>String(v||''),niceDate:v=>v,isVehicleTaxJob:()=>false,vectaJobIsDeletedForLists:()=>false,isUnallocatedJob:()=>false,plannerTechnicianLane:lane,mechanicHours:(jobs,mech)=>jobs.filter(j=>lane(j.technician)===lane(mech)).reduce((sum,j)=>sum+Number(j.estimated_hours||1),0),byTime:()=>0,jobTitle:()=> 'Work'};
+ const ctx={document,Event:window.Event,app,editingJobId,selectedIso:()=> '2026-10-16',todayIso:()=> '2026-10-16',esc:v=>String(v||''),niceDate:v=>v,isVehicleTaxJob:()=>false,vectaJobIsDeletedForLists:()=>false,isUnallocatedJob:()=>false,plannerTechnicianLane:lane,mechanicHours:(jobs,mech)=>jobs.filter(j=>lane(j.technician)===lane(mech)).reduce((sum,j)=>sum+Number(j.estimated_hours||1),0),byTime:()=>0,jobTitle:()=> 'Work'};
  vm.createContext(ctx);vm.runInContext(source,ctx);ctx.installNewJobAvailabilityCalendar(true,fieldId);return {document,window};
 }
 test('selecting a day updates the existing booking field and adjacent allocated work without a popup',()=>{
@@ -55,3 +55,13 @@ test('rolling dates cross year and leap-month boundaries correctly',()=>{
  assert.ok(preview.querySelector('[data-v243-calendar-day="2028-02-29"]'));
 });
 
+
+test('saved job calendar starts collapsed, opens from the date field and keeps its state across date changes',()=>{
+ const {document,window}=setup('job_booking_date','saved-1'),field=document.getElementById('job_booking_date');
+ const details=()=>document.querySelector('.bookingDateDisclosure');
+ assert.equal(details().hasAttribute('open'),false);assert.equal(details().querySelector('summary').textContent,'Change booking date');
+ field.onclick({preventDefault(){}});assert.equal(details().hasAttribute('open'),true);
+ field.value='2026-10-19';field.dispatchEvent(new window.Event('change'));assert.equal(details().hasAttribute('open'),true);assert.match(details().textContent,/NEXTDAY/);
+ details().removeAttribute('open');field.dispatchEvent(new window.Event('change'));assert.equal(details().hasAttribute('open'),false);
+ assert.equal(setup().document.querySelector('.bookingDateDisclosure').hasAttribute('open'),true);
+});

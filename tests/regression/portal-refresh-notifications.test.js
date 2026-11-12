@@ -82,7 +82,7 @@ function portal(mechanic=false){
   localStorage:{getItem:()=>null},setInterval:(fn,ms)=>timers.push({fn,ms}),
   fetch:async(_url,{body})=>({ok:true,json:async()=>JSON.parse(body).action==='portal-job'?{events:JSON.parse(body).before?live.earlier:live.events,alerts:[],older_cursor:JSON.parse(body).before?null:live.older}:JSON.parse(body).action==='portal-queue'?{events:[]}:{whatsapp:null}})
  };
- vm.runInNewContext(portalSource,c);window.VectaPortalWorkshop.mount(document.getElementById('jobModal'),{id:'test-job'},true);
+ vm.runInNewContext(readFileSync('public/js/vecta-message-summary.js','utf8')+'\n'+portalSource,c);window.VectaPortalWorkshop.mount(document.getElementById('jobModal'),{id:'test-job'},true);
  return {window,document,live,timers,maintenance};
 }
 test('empty workshop and mechanic conversations stay one line through repeated polling and message changes',async()=>{
@@ -124,8 +124,9 @@ test('workshop and mechanic history stays newest first and retains expanded earl
   const draft=panel.querySelector('textarea');if(draft){draft.value='Keep this unsent reply';assert.equal(panel.querySelector('.portalWorkshopComposer').hasAttribute('open'),false);}
   const more=panel.querySelector('.portalWorkshopHistoryActions button');await more.onclick();assert.equal(ids().length,8);
   await more.onclick();assert.equal(ids().length,10);assert.equal(ids().at(-1),'message-1');assert.equal(more.hidden,true);
+  const expanded=panel.querySelector('.portalWorkshopEvent');assert.equal(expanded.tagName,'DETAILS');assert.equal(expanded.hasAttribute('open'),false);expanded.setAttribute('open','');
   h.live.events.push(event(11));poll();await tick();assert.equal(ids()[0],'message-11');assert.equal(ids().at(-1),'message-1');assert.equal(more.hidden,true);
-  poll();await tick();assert.equal(ids().length,11);
+  poll();await tick();assert.equal(ids().length,11);assert.equal(panel.querySelector('[data-event-id="message-10"]').hasAttribute('open'),true);assert.equal(panel.querySelector('[data-event-id="message-11"]').hasAttribute('open'),false);
   if(draft)assert.equal(draft.value,'Keep this unsent reply');
  }
 });

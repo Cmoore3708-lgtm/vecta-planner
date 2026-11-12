@@ -15,23 +15,23 @@
  function renderHistory(){
   const ordered=Array.from(events.values()).sort((a,b)=>b.created_at.localeCompare(a.created_at)||Number(b.seq||0)-Number(a.seq||0)),key=JSON.stringify([ordered,current?.approvals,visibleCount]);
   $('portalOlder').hidden=ordered.length<=visibleCount&&!older;$('portalLatest').hidden=visibleCount<=5;
-  if(key===historyKey)return;historyKey=key;history.replaceChildren();
+  if(key===historyKey)return;historyKey=key;const expanded=new Set([...history.querySelectorAll('.portalEvent[open]')].map(card=>card.dataset.eventId));history.replaceChildren();
   if(!ordered.length){const empty=node('p','No messages yet. Send us a message whenever you need to.');empty.className='portalEmpty';history.append(empty);}
   for(const item of ordered.slice(0,visibleCount)){
-   const card=node('article');card.className='portalEvent';card.dataset.signal=colour(item);card.dataset.eventId=item.id;
+   const card=node('details');card.className='portalEvent';card.dataset.signal=colour(item);card.dataset.eventId=item.id;
    const timestamp=node('time',date(item.created_at));timestamp.dateTime=item.created_at;
-   const heading=node('div');heading.className='portalEventHeading';heading.append(node('strong',(item.actor==='customer'?'You · ':'Vecta · ')+(labels[item.kind]||'Update')),timestamp);
-   card.append(heading);
-   if(item.details?.status==='approved'||item.details?.status==='declined'){const badge=node('span',item.details.status==='approved'?'Authorised':'Not authorised');badge.className='portalSignal';card.append(badge);}
+   const heading=node('summary');heading.className='portalEventHeading';heading.append(node('strong',window.VectaMessageSummary?.title(item)||(labels[item.kind]||'Update')),timestamp);
+   const body=node('div');body.className='portalEventBody';card.append(heading,body);if(expanded.has(item.id))card.setAttribute('open','');
+   if(item.details?.status==='approved'||item.details?.status==='declined'){const badge=node('span',item.details.status==='approved'?'Authorised':'Not authorised');badge.className='portalSignal';body.append(badge);}
    // Raw tracking credentials in historical email bodies stay out of the view.
-   card.append(node('p',String(item.message||'').replace(/https:\/\/[^\s]+\/track[^\s]*/g,'[Your personalised portal]')));
-   if(item.details?.requested_date)card.append(node('p','Requested date: '+date(item.details.requested_date)+'. Your current date stays booked until Vecta confirms the change.'));
-   if(item.details?.work_required)card.append(node('p',item.details.work_required));
-   if(Number.isInteger(item.details?.estimated_pence))card.append(node('b','£'+(item.details.estimated_pence/100).toFixed(2)+' including VAT'));
-   if(item.details?.delivery==='prepared')card.append(node('small','Email draft prepared — sending has not been confirmed.'));
+   body.append(node('p',String(item.message||'').replace(/https:\/\/[^\s]+\/track[^\s]*/g,'[Your personalised portal]')));
+   if(item.details?.requested_date)body.append(node('p','Requested date: '+date(item.details.requested_date)+'. Your current date stays booked until Vecta confirms the change.'));
+   if(item.details?.work_required)body.append(node('p',item.details.work_required));
+   if(Number.isInteger(item.details?.estimated_pence))body.append(node('b','£'+(item.details.estimated_pence/100).toFixed(2)+' including VAT'));
+   if(item.details?.delivery==='prepared')body.append(node('small','Email draft prepared — sending has not been confirmed.'));
    const approval=current?.approvals.find(a=>a.id===item.details?.approval_id);
    if(approval&&(item.kind==='approval_request'&&approval.status==='pending'||item.kind==='approval_response')){
-    const button=node('button',approval.status==='pending'?'View request & respond':'View work details');button.type='button';button.className='portalApproval';button.dataset.signal=colour(item);button.onclick=()=>showApproval(approval);card.append(button);
+    const button=node('button',approval.status==='pending'?'View request & respond':'View work details');button.type='button';button.className='portalApproval';button.dataset.signal=colour(item);button.onclick=()=>showApproval(approval);body.append(button);
    }
    history.append(card);
   }
