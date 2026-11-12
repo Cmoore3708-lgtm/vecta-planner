@@ -113,7 +113,7 @@
    destination.focus({preventScroll:true});destination.scrollIntoView({block:'start'});
    loadApprovalHistory();load().catch(()=>{});
   });
-  let busy=false,photos=[],drafts=[],pendingRequest=null,recovered=null,historyTimer,messagePhotos=0;
+  let busy=false,photos=[],drafts=[],pendingRequest=null,recovered=null,historyTimer,messagePhotos=0,quoteUpload=null;
   let submittedIds=new Set();
   const captionDrafts=new Map();
   let preparing=null,sending=null,saveInProgress=false,photoError='';
@@ -136,6 +136,7 @@
    busy=value;
    for(const root of [panel,...(integrated?[conversation.form]:[])])root.querySelectorAll('button,input,textarea').forEach(el=>el.disabled=value);
    if(pendingRequest)panel.querySelectorAll('[data-photo-only],[data-photo-choose],[data-photo-camera],[data-photo-drafts] button,[data-photo-drafts] textarea').forEach(el=>el.disabled=true);
+   if(quoteUpload&&integrated)conversation.attachments.querySelectorAll('button,input,textarea').forEach(el=>el.disabled=true);
    panel.setAttribute('aria-busy',String(value));
   }
   const button=(label,fn)=>{const el=document.createElement('button');el.type='button';el.className='btn';el.textContent=label;el.onclick=fn;return el;};
@@ -212,7 +213,7 @@
   async function refresh(){if(busy)return;loadApprovalHistory();lock(true);status.textContent='Loading workshop photos…';try{await load();status.textContent=photos.length?photos.length+' of 12 photos uploaded.':(mechanic?'No workshop photos yet. Add a photo of anything the customer should see.':'');}catch(error){status.textContent=error.message;}finally{lock(false);}}
   async function mutate(action,body,message){if(busy)return false;lock(true);status.textContent='Saving…';try{await request(job,action,body);await load();status.textContent=message;return true;}catch(error){status.textContent=error.message;return false;}finally{lock(false);}}
   async function prepareFiles(input){
-   const files=Array.from(input.files||[]);input.value='';if(busy||pendingRequest||!files.length)return;
+   const files=Array.from(input.files||[]);input.value='';if(busy||pendingRequest||quoteUpload||!files.length)return;
    if(photos.length+drafts.length+files.length>MAX){status.textContent='You can save up to 12 photos per job. Choose fewer photos or remove one first.';return;}
    lock(true);photoError='';if(discardFailed)discardFailed.hidden=true;status.textContent='Preparing photos…';
    try{if(!integrated)composer.open=true;for(const file of files){drafts.push({id:crypto.randomUUID(),image:await compress(file),caption:''});}approvalNotice.textContent='';status.textContent=integrated?'Photo ready. Add a message if you wish, then send.':mechanic?'Photo ready. Add your message and tap '+sendLabel+'.':'Write the finding or use the photo caption.';}
@@ -323,6 +324,20 @@
     } else messageInput.readOnly=false;
    }
   }
+  async function uploadQuote(approvalId){
+   if(busy||photoError){status.textContent=photoError||'Wait for the photo to finish.';return false;}
+   if(quoteUpload&&quoteUpload!==approvalId)return false;
+   quoteUpload=approvalId;lock(true);
+   try{
+    for(const draft of drafts.slice()){
+     status.textContent='Uploading quote photo…';
+     await request(job,'photos-upload',{photo_id:draft.id,image:draft.image,caption:draft.caption,review_id:approvalId});
+     drafts=drafts.filter(item=>item!==draft);
+    }
+    status.textContent='';return true;
+   }catch(error){status.textContent=error.message;return false;}
+   finally{renderDrafts();lock(false);}
+  }
   function sendFinding(){
    if(sending)return sending;
    sending=(async()=>{if(preparing)await preparing;return uploadDrafts(true);})().finally(()=>{sending=null;syncSaveLabels();});
@@ -371,7 +386,8 @@
     busy:()=>!!(busy||preparing||sending||pendingRequest||recovered),
     hasDraft:()=>!!(drafts.length||messagePhotos||photoError),
     upload:()=>drafts.length||photoError?uploadDrafts(false):Promise.resolve(true),
-    complete:()=>{messagePhotos=0;},lock
+    complete:()=>{messagePhotos=0;},quotePhotoIds:()=>drafts.map(item=>item.id),uploadQuote,
+    completeQuote:()=>{quoteUpload=null;messagePhotos=0;load().catch(()=>{});loadApprovalHistory();},lock
    });
   }
   camera.onchange=()=>choose(camera);chooseInput.onchange=()=>choose(chooseInput);refresh();

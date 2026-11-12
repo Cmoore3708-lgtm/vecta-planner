@@ -132,7 +132,7 @@ test('owner popup forwards a saved message; mechanic popup displays green author
   const window={VECTA_MECHANIC_DEPLOYMENT:mechanic,vectaRefreshPortalJobs:async()=>{refreshed++;},addEventListener:(n,fn)=>listeners.set(n,fn),dispatchEvent:e=>listeners.get(e.type)?.()};
   const context={window,document,location:{search:''},navigator:{onLine:true},localStorage:{getItem:()=>null,setItem(){}},Intl,Date,Event,URLSearchParams,AbortSignal,setInterval:fn=>timers.push(fn),fetch:async(_url,options)=>{const body=JSON.parse(options.body);requests.push(body);return {ok:true,json:async()=>body.action==='portal-queue'?{events}:{ok:true}};}};
   vm.runInNewContext(readFileSync('public/js/vecta-portal-workshop.js','utf8'),context);await new Promise(r=>setImmediate(r));
-  const popup=document.querySelector('.portalWorkshopPopup');assert.equal(popup.hidden,false);assert.match(popup.textContent,/Work authorised/);assert.equal(popup.querySelector('.portalWorkshopEvent').dataset.signal,'green');assert.equal(refreshed,1);
+  const popup=document.querySelector('.portalWorkshopPopup');assert.equal(popup.hidden,false);assert.match(popup.textContent,/has authorised the extra work/);assert.equal(popup.querySelector('.portalDecisionBody').dataset.signal,'green');assert.equal(refreshed,1);
   const forward=[...popup.querySelectorAll('button')].find(b=>b.textContent==='Send to mechanic');
   if(mechanic){assert.equal(forward,undefined);assert.doesNotMatch(popup.textContent,/120/);}else{assert.ok(forward);await forward.onclick();assert.ok(requests.some(r=>r.action==='portal-forward'&&r.event_id===event));assert.equal(forward.textContent,'Sent to mechanic');}
  }
@@ -175,9 +175,9 @@ test('a failed job-card refresh keeps the approval alert visible and retries unt
  const timers=[];let refreshes=0;
  const window={VECTA_MECHANIC_DEPLOYMENT:true,addEventListener(){},vectaRefreshPortalJobs:async()=>{refreshes++;if(refreshes===1)throw Error('Offline');return refreshes>2;}};
  vm.runInNewContext(readFileSync('public/js/vecta-portal-workshop.js','utf8'),{window,document,location:{search:''},navigator:{onLine:true},localStorage:{getItem:()=>null},Intl,Date,Event,URLSearchParams,AbortSignal,setInterval:fn=>timers.push(fn),fetch:async()=>({ok:true,json:async()=>({events})})});
- await new Promise(r=>setImmediate(r));const popup=document.querySelector('.portalWorkshopPopup');assert.equal(popup.hidden,false);assert.match(popup.textContent,/Work authorised/);assert.match(popup.textContent,/Reconnecting/);
+ await new Promise(r=>setImmediate(r));const popup=document.querySelector('.portalWorkshopPopup');assert.equal(popup.hidden,false);assert.match(popup.textContent,/has authorised the extra work/);assert.match(popup.textContent,/Reconnecting/);
  await timers[0]();assert.equal(refreshes,2);assert.match(popup.textContent,/Reconnecting/,'an uninitialised database must also retry');
- await timers[0]();assert.equal(refreshes,3);assert.doesNotMatch(popup.textContent,/Reconnecting/);assert.match(popup.textContent,/Work authorised/);
+ await timers[0]();assert.equal(refreshes,3);assert.doesNotMatch(popup.textContent,/Reconnecting/);assert.match(popup.textContent,/has authorised the extra work/);
  await timers[0]();assert.equal(refreshes,3,'successful refresh is not repeated without a new event');
 });
 
