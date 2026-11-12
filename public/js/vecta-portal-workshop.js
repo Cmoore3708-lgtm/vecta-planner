@@ -146,18 +146,35 @@
   const olderButton=button('Show earlier messages',()=>{if(displayed.size>visibleCount){visibleCount+=5;renderMessages();}else if(older)return refresh(older);});olderButton.hidden=true;
   const latestButton=button('Show latest only',()=>{visibleCount=5;renderMessages();heading.focus({preventScroll:true});panel.scrollIntoView({block:'start'});});latestButton.hidden=true;
   const historyActions=node('div');historyActions.className='portalWorkshopHistoryActions';historyActions.append(olderButton,latestButton);panel.append(historyActions);
+  const controller={panel};
   if(!mechanic()){
-   const form=node('form'),label=node('label','Reply to customer'),input=node('textarea'),send=node('button','Send message & alerts'),note=node('div');input.rows=2;input.maxLength=3000;input.required=true;label.append(input);send.type='submit';send.className='btn green';
+   const form=node('form'),label=node('label','Message'),input=node('textarea'),attachments=node('div'),send=node('button','Send message & alerts'),note=node('div');input.rows=3;input.maxLength=3000;input.required=true;input.placeholder='Type your message to the customer…';label.append(input);send.type='submit';send.className='btn green';attachments.className='portalMessageAttachments';note.setAttribute('role','status');
    const permissionLabel=node('label'),permissionBox=node('input'),permissionText=node('span'),permissionStatus=node('p');permissionBox.type='checkbox';permissionLabel.className='portalWhatsappPermission';permissionLabel.hidden=true;permissionLabel.append(permissionBox,permissionText);
-   form.append(label,permissionLabel,permissionStatus,send,note);
-   const composer=node('details');composer.className='portalWorkshopComposer';composer.append(node('summary','Reply to customer'),form);panel.insertBefore(composer,list);
+   form.append(label,attachments,permissionLabel,permissionStatus,send,note);
+   const composer=node('details');composer.className='portalWorkshopComposer';composer.append(node('summary','Message customer'),form);panel.insertBefore(composer,list);
+   let photos=null;
+   Object.assign(controller,{form,attachments,bindPhotos(value){photos=value;input.required=false;}});
    let contact=null;
    api('approval-list',{job_id:job.id}).then(data=>{contact=data.whatsapp;if(contact?.phone&&!contact.unavailable){permissionBox.checked=contact.allowed;permissionText.textContent='Customer agreed to WhatsApp updates on the number ending '+contact.phone.slice(-4);permissionLabel.hidden=false;}}).catch(()=>{});
    permissionBox.onchange=async()=>{permissionBox.disabled=true;send.disabled=true;try{await api('approval-whatsapp-permission',{job_id:job.id,phone:contact.phone,contact_binding:contact.contact_binding,allowed:permissionBox.checked});contact.allowed=permissionBox.checked;permissionStatus.textContent='WhatsApp preference saved.';}catch(e){permissionBox.checked=contact.allowed;permissionStatus.textContent=e.message;}finally{permissionBox.disabled=false;send.disabled=false;}};
    let id=crypto.randomUUID(),sending=false;input.oninput=()=>{if(!sending)id=crypto.randomUUID();};
-   form.onsubmit=async e=>{e.preventDefault();if(sending||permissionBox.disabled)return;sending=true;send.disabled=true;permissionBox.disabled=true;note.textContent='Saving your message and preparing customer alerts…';try{const result=await api('portal-reply',{job_id:job.id,id,message:input.value});input.value='';id=crypto.randomUUID();note.replaceChildren(node('p','Message saved in the customer portal.'));const delivery=node('div');showAlerts(delivery,result.alerts,job.id);note.append(delivery);await refresh();}catch(error){note.textContent=error.message;}finally{sending=false;send.disabled=false;permissionBox.disabled=false;}};
+   form.onsubmit=async e=>{
+    e.preventDefault();if(sending||permissionBox.disabled)return;
+    if(photos?.busy()){note.textContent='Please finish the current photo or finding before sending.';return;}
+    const message=input.value.trim()||(photos?.hasDraft()?'Workshop photos added. You can view them on your vehicle progress page.':'');
+    if(!message){note.textContent='Type a message or add a photo.';input.focus();return;}
+    sending=true;send.disabled=true;permissionBox.disabled=true;input.readOnly=true;note.textContent='Saving your message and preparing customer alerts…';
+    try{
+     if(photos&&!await photos.upload())throw Error('Your message has not been sent. Check the photo notice and retry.');
+     photos?.lock(true);send.disabled=true;permissionBox.disabled=true;
+     const result=await api('portal-reply',{job_id:job.id,id,message});
+     photos?.complete();input.value='';id=crypto.randomUUID();note.replaceChildren(node('p','Message saved in the customer portal.'));const delivery=node('div');showAlerts(delivery,result.alerts,job.id);note.append(delivery);await refresh();
+    }catch(error){note.textContent=error.message;}
+    finally{sending=false;photos?.lock(false);send.disabled=false;permissionBox.disabled=false;input.readOnly=false;}
+   };
   }
   panels.set(job.id,{panel,refresh,updateNotifications,updateRead});refresh();
+  return controller;
  }
  function seen(){try{return new Set(JSON.parse(localStorage.getItem('vecta:portal:seen:'+ (mechanic()?'mechanic':'manager'))||'[]'));}catch{return new Set();}}
  function ack(item){const ids=seen();ids.add(item.id);try{localStorage.setItem('vecta:portal:seen:'+(mechanic()?'mechanic':'manager'),JSON.stringify([...ids].slice(-1000)));}catch{}if(pendingEvent===item.id)pendingEvent=null;refreshQueue?.();}

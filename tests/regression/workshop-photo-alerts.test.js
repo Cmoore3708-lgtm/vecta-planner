@@ -52,7 +52,7 @@ test('opening a Workshop job directly pairs each private thumbnail with its own 
   {id:publicId,private_finding:false,caption:'Repair complete',url:signed(publicId)}
  ]);
  ui.window.openJobModal(job.id);await flush();
- const panel=ui.modal.querySelector('.workshopPhotos');assert.equal(panel.tagName,'DETAILS');assert.equal(panel.hasAttribute('open'),false);assert.equal(ui.modal.querySelector('.jobWorkSection').nextElementSibling.className,'jobInternalNotesSection');assert.equal(ui.modal.querySelector('.jobInternalNotesSection').nextElementSibling,panel);assert.equal(panel.querySelector('summary').textContent,'Customer messages & findings');assert.equal(panel.querySelector('summary button'),null);assert.ok(panel.querySelector('[data-photo-camera]'));
+ const panel=ui.modal.querySelector('.workshopPhotos');assert.equal(panel.tagName,'DETAILS');assert.equal(panel.hasAttribute('open'),false);assert.equal(ui.modal.querySelector('.jobWorkSection').nextElementSibling.className,'jobInternalNotesSection');assert.equal(ui.modal.querySelector('.jobInternalNotesSection').nextElementSibling,panel);assert.equal(panel.querySelector('summary').textContent,'Customer messages & updates');assert.equal(panel.querySelector('summary button'),null);assert.ok(panel.querySelector('[data-photo-camera]'));
  for(const item of [first,second]){
   const entry=ui.modal.querySelector('[data-approval-history] .approvalRecord[data-finding-id="'+item.id+'"]');
   assert.equal(entry.querySelector('img').src,signed(item.photo_ids[0]));

@@ -30,6 +30,17 @@
 .portalWorkshopComposer form{padding:0 0 12px}.portalWorkshopComposer label{font-size:13px}
 .portalWorkshopComposer textarea{min-height:66px;max-height:200px;resize:vertical;margin:7px 0;padding:10px;font-size:16px;box-sizing:border-box}
 .portalWorkshopComposer button[type="submit"]{min-height:44px}
+.portalMessageAttachments .workshopPhotoToolbar{margin:8px 0}
+.portalMessageAttachments .btn{min-height:44px}
+.portalMessageAttachments img{display:block;width:auto;height:auto;max-width:100%;max-height:160px;border-radius:8px}
+.portalMessageAttachments .workshopPhotoDraft{width:min(240px,100%);color:#19212b}
+.portalMessageAttachments .workshopPhotoDraft textarea{background:#fff;color:#19212b}
+.portalMessageAttachments .workshopPhotoStatus{color:inherit;overflow-wrap:anywhere}
+.portalMessageAttachments [hidden],.portalWorkshopPhotos [hidden]{display:none!important}
+.portalWorkshop .portalWorkshopPhotos{margin:8px 0 0;padding:0;border:0!important;background:transparent!important;min-width:0}
+.portalWorkshopPhotos .workshopPhotosHeading:empty{display:none}
+.portalWorkshopPhotos .approvalRecord,.portalWorkshopPhotos .workshopPhotoGrid figure{color:#19212b}
+.portalWorkshopPhotos>.approvalComposer{color:inherit}
 .portalWorkshopHistoryActions{display:flex;flex-wrap:wrap;gap:6px}
 .portalWorkshopHistoryActions button{min-height:44px;padding:8px 10px;margin-top:4px;font-size:12px}
 .portalWorkshopEmpty{margin:8px 0;font-size:13px;opacity:.75}

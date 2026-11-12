@@ -30,22 +30,23 @@
  }
  const safeUrl=url=>typeof url==='string'&&/^https:\/\/(?:jywufozycuwuoshlulwl|brqsejjykrubxuofavuu)\.supabase\.co\/storage\/v1\/object\/sign\/job-workshop-photos\/[a-f0-9-]{36}\.jpg\?token=[A-Za-z0-9_.-]+$/.test(url);
  function mount(modal,job,saved){
-  window.VectaPortalWorkshop?.mount(modal,job,saved);
+  const conversation=window.VectaPortalWorkshop?.mount(modal,job,saved);
   if(job.no_vehicle||job.card_type&&job.card_type!=='job'||['quote','provisional','cancelled','deleted'].includes(job.status)||/vehicle tax|pool car tax/i.test(job.job_type||''))return;
   const mechanic=!!window.VECTA_MECHANIC_DEPLOYMENT;
   const after=modal.querySelector('.jobInternalNotesSection')||modal.querySelector('.jobWorkSection');if(!after)return;
-  const panel=document.createElement('details');panel.className='jobFormSection workshopPhotos '+(mechanic?'mechanicFindings':'managerFindings');
+  const integrated=!mechanic&&!!conversation?.bindPhotos;
+  const panel=document.createElement(integrated?'div':'details');panel.className=(integrated?'portalWorkshopPhotos ':'jobFormSection ')+'workshopPhotos '+(mechanic?'mechanicFindings':'managerFindings');
   panel.dataset.jobId=job.id;
-  panel.innerHTML='<summary class="workshopPhotosHeading"><h3>Customer messages &amp; findings</h3></summary>';
+  panel.innerHTML=integrated?'<div class="workshopPhotosHeading"></div>':'<summary class="workshopPhotosHeading"><h3>'+(mechanic?'Findings for the office':'Customer messages &amp; updates')+'</h3></summary>';
   const heading=panel.querySelector('.workshopPhotosHeading');
   if(mechanic)heading.insertAdjacentHTML('afterend','<p>Send a finding to the office. The customer sees it after the estimate is sent.</p>');
-  after.after(panel);
+  if(integrated)conversation.panel.append(panel);else after.after(panel);
   if(!saved){const hint=document.createElement('p');hint.textContent='Save this job, then reopen it to send a message or add photos.';panel.append(hint);return;}
   panel.insertAdjacentHTML('beforeend','<div class="workshopPhotoActions workshopPhotoToolbar"><button type="button" class="btn" data-photo-camera>Take photo</button><button type="button" class="btn" data-photo-choose>Upload photos</button><button type="button" class="btn" data-photo-refresh>Refresh photos</button></div><input type="file" accept="image/*" capture="environment" data-photo-camera-input hidden><input type="file" accept="image/*" multiple data-photo-choose-input hidden><div class="workshopPhotoDrafts" data-photo-drafts></div><div class="workshopPhotoGrid" data-photo-saved></div><p class="workshopPhotoStatus" data-photo-status role="status" aria-live="polite"></p>');
   const recipient=mechanic?'Office':'customer';
   const sendLabel=mechanic?'Send to Office':'Continue to price & send';
   const messageForm='<label>Message to '+recipient+'<textarea data-approval-message maxlength="1200" placeholder="e.g. Your front brake pads are worn and need replacing."></textarea></label><div class="workshopPhotoActions"><button type="button" class="btn green" data-approval-send>'+sendLabel+'</button><button type="button" class="btn" data-photo-only hidden>Upload photos only</button></div><p role="status" data-approval-notice></p>';
-  const container=mechanic?'<div class="approvalComposer"><p>Photos are optional.</p>'+messageForm+'</div>':'<details class="approvalComposer"><summary>Send customer message</summary><p>Photos are optional. Describe the work here; enter the price separately.</p>'+messageForm+'</details>';
+  const container=mechanic?'<div class="approvalComposer"><p>Photos are optional.</p>'+messageForm+'</div>':'<details class="approvalComposer"'+(integrated?' hidden':'')+'><summary>Finish private finding</summary><p>Describe the work here; enter the price separately.</p>'+messageForm+'</details>';
   panel.insertAdjacentHTML('beforeend',container+'<div data-approval-history></div>');
   const composer=panel.querySelector('.approvalComposer');
   const messageInput=panel.querySelector('[data-approval-message]');
@@ -112,7 +113,7 @@
    destination.focus({preventScroll:true});destination.scrollIntoView({block:'start'});
    loadApprovalHistory();load().catch(()=>{});
   });
-  let busy=false,photos=[],drafts=[],pendingRequest=null,recovered=null,historyTimer;
+  let busy=false,photos=[],drafts=[],pendingRequest=null,recovered=null,historyTimer,messagePhotos=0;
   let submittedIds=new Set();
   const captionDrafts=new Map();
   let preparing=null,sending=null,saveInProgress=false,photoError='';
@@ -126,14 +127,14 @@
   const status=panel.querySelector('[data-photo-status]'),draftGrid=panel.querySelector('[data-photo-drafts]'),savedGrid=panel.querySelector('[data-photo-saved]');
   const photosOnly=panel.querySelector('[data-photo-only]');
   if(mechanic)draftGrid.before(composer);else draftGrid.after(composer);
-  const discardFailed=mechanic?document.createElement('button'):null;
+  const discardFailed=document.createElement('button');
   if(discardFailed){
-   discardFailed.type='button';discardFailed.className='btn';discardFailed.textContent='Discard failed photo';discardFailed.hidden=true;composer.append(discardFailed);
+   discardFailed.type='button';discardFailed.className='btn';discardFailed.textContent='Discard failed photo';discardFailed.hidden=true;(integrated?conversation.attachments:composer).append(discardFailed);
    discardFailed.onclick=()=>{photoError='';discardFailed.hidden=true;approvalNotice.textContent='';status.textContent='';syncSaveLabels();};
   }
   function lock(value){
    busy=value;
-   panel.querySelectorAll('button,input,textarea').forEach(el=>el.disabled=value);
+   for(const root of [panel,...(integrated?[conversation.form]:[])])root.querySelectorAll('button,input,textarea').forEach(el=>el.disabled=value);
    if(pendingRequest)panel.querySelectorAll('[data-photo-only],[data-photo-choose],[data-photo-camera],[data-photo-drafts] button,[data-photo-drafts] textarea').forEach(el=>el.disabled=true);
    panel.setAttribute('aria-busy',String(value));
   }
@@ -165,7 +166,7 @@
     card.append(button('Remove',()=>{drafts=drafts.filter(item=>item!==draft);renderDrafts();}));draftGrid.append(card);
    });
    syncSaveLabels();
-   photosOnly.hidden=mechanic||!drafts.length;
+   photosOnly.hidden=integrated||mechanic||!drafts.length;
   }
   function renderSaved(){
    savedGrid.replaceChildren();
@@ -192,7 +193,7 @@
        if(busy||pendingRequest)return;
        const group=photos.filter(item=>item.private_finding&&item.review_id===photo.review_id);
        recovered={id:photo.review_id,photo_ids:group.map(item=>item.id)};
-       composer.open=true;messageInput.value=group.map(item=>item.caption).filter(Boolean).join('\n');
+       composer.hidden=false;composer.open=true;messageInput.value=group.map(item=>item.caption).filter(Boolean).join('\n');
        approvalNotice.textContent='Add the finding for these saved private photos.';messageInput.focus();
       }));
       card.append(button('Remove private photo',()=>{if(confirm('Remove this private photo?'))mutate('photos-delete',{photo_id:photo.id},'Photo removed.');}));
@@ -214,10 +215,10 @@
    const files=Array.from(input.files||[]);input.value='';if(busy||pendingRequest||!files.length)return;
    if(photos.length+drafts.length+files.length>MAX){status.textContent='You can save up to 12 photos per job. Choose fewer photos or remove one first.';return;}
    lock(true);photoError='';if(discardFailed)discardFailed.hidden=true;status.textContent='Preparing photos…';
-   try{composer.open=true;for(const file of files){drafts.push({id:crypto.randomUUID(),image:await compress(file),caption:''});}approvalNotice.textContent='';status.textContent=mechanic?'Photo ready. Add your message and tap '+sendLabel+'.':'Write the finding or use the photo caption.';}
+   try{if(!integrated)composer.open=true;for(const file of files){drafts.push({id:crypto.randomUUID(),image:await compress(file),caption:''});}approvalNotice.textContent='';status.textContent=integrated?'Photo ready. Add a message if you wish, then send.':mechanic?'Photo ready. Add your message and tap '+sendLabel+'.':'Write the finding or use the photo caption.';}
    catch(error){
     status.textContent=error.message;
-    if(mechanic){photoError=error.message;approvalNotice.textContent=photoError;discardFailed.hidden=false;}
+    photoError=error.message;approvalNotice.textContent=photoError;discardFailed.hidden=false;
    }
    finally{renderDrafts();lock(false);}
   }
@@ -290,7 +291,7 @@
     for(const draft of drafts.slice()){
      status.textContent='Uploading photo '+(uploaded+1)+' of '+total+'… Keep this job open.';
      await request(job,'photos-upload',{photo_id:draft.id,image:draft.image,caption:draft.caption,...(withApproval?{review_id:pendingRequest.approval_id}:{})});
-     drafts=drafts.filter(item=>item!==draft);uploaded++;
+     drafts=drafts.filter(item=>item!==draft);uploaded++;if(integrated&&!withApproval)messagePhotos++;
     }
     if(withApproval){
      approvalNotice.textContent='Sending the finding to '+recipient+'…';
@@ -298,7 +299,7 @@
      if(receipt.approval_id!==pendingRequest.approval_id||!['draft','sent'].includes(receipt.stage))
       throw Error(recipient+' has not confirmed this finding. Retry to check it.');
      submittedIds.add(pendingRequest.approval_id);pendingRequest=null;recovered=null;messageInput.value='';approvalNotice.textContent=mechanic?'Sent to Office for pricing. The customer has not been contacted.':'Message saved. Add the price below, then send to your customer.';
-     if(!mechanic){selectedFinding={id:receipt.approval_id};}
+     if(!mechanic){selectedFinding={id:receipt.approval_id};if(integrated)composer.hidden=true;}
      window.VectaFindings?.notify();
      if(mechanic)confirmSent();
     }
@@ -361,6 +362,18 @@
   panel.querySelector('[data-photo-camera]').onclick=()=>camera.click();panel.querySelector('[data-photo-choose]').onclick=()=>chooseInput.click();panel.querySelector('[data-photo-refresh]').onclick=refresh;
   approvalButton.onclick=sendFinding;
   photosOnly.onclick=()=>uploadDrafts(false);
+  if(integrated){
+   const toolbar=panel.querySelector('.workshopPhotoToolbar'),refreshButton=panel.querySelector('[data-photo-refresh]');
+   panel.querySelector('[data-photo-choose]').textContent='Upload photo';
+   heading.append(refreshButton);
+   conversation.attachments.prepend(toolbar,camera,chooseInput,draftGrid,status);
+   conversation.bindPhotos({
+    busy:()=>!!(busy||preparing||sending||pendingRequest||recovered),
+    hasDraft:()=>!!(drafts.length||messagePhotos||photoError),
+    upload:()=>drafts.length||photoError?uploadDrafts(false):Promise.resolve(true),
+    complete:()=>{messagePhotos=0;},lock
+   });
+  }
   camera.onchange=()=>choose(camera);chooseInput.onchange=()=>choose(chooseInput);refresh();
  }
  window.VectaWorkshopPhotos={mount,revealFinding};
