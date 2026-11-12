@@ -12,7 +12,7 @@ import {mechanicVariant} from '../../scripts/mechanic-variant.mjs';
 const run=promisify(execFile);
 const main=readFileSync('index.html','utf8');
 const helper=readFileSync('public/js/haynes-job-tools.js','utf8');
-const match={registration:'AB12CDE',make:'Toyota',model:'Yaris',variant:'1.0',typeId:'t_123',engineCode:'1KR',fetchedAt:'2021-01-01T00:00:00Z'};
+const match={registration:'AB12CDE',make:'MERCEDES-BENZ',model:'EQC 400 AMG LINE 4MATIC',variant:'400 4MATIC',typeId:'t_123',engineCode:'1KR',fetchedAt:'2021-01-01T00:00:00Z'};
 
 function card(mechanic){
  const {document}=parseHTML(mechanic?mechanicVariant(main):main);
@@ -21,18 +21,38 @@ function card(mechanic){
  ).join('');
  return '<!doctype html><meta name="viewport" content="width=device-width">'+styles+
   '<div id="jobModal" class="modal open" aria-hidden="false"><div class="modalCard jobModalCard">'+
-  '<header class="jobModalHead"><h2>Edit job</h2></header><section class="jobVehicleSection"><div class="jobSectionGrid">'+
-  '<input id="job_registration" value="AB12CDE"><input id="job_make" value="Toyota"><input id="job_model" value="Yaris"></div></section></div></div>'+
+  '<header class="jobModalHead"><h2>Edit job</h2></header><div class="jobCardSections">'+
+  '<section class="jobVehicleSection"><div class="jobSectionGrid"><div class="field"><input id="job_registration" value="AB12CDE"></div>'+
+  '<input type="hidden" id="job_make" value="MERCEDES-BENZ"><input type="hidden" id="job_model" value="EQC 400 AMG LINE 4MATIC">'+
+  '<label class="noVehicleToggle"><input type="checkbox" id="job_no_vehicle">No Vehicle</label>'+
+  '<div class="field"><label>Last MOT mileage</label><input id="job_mileage" value="50000"></div></div></section>'+
+  '<details class="jobFormSection jobContactSection jobSectionDisclosure"><summary class="jobFormSectionHead">Customer details</summary>'+
+  '<div class="jobSectionGrid"><div class="field"><label>Customer</label><input id="job_customer_name" value="chris stoker"></div>'+
+  '<div class="field"><label>Account</label><input id="job_customer_account" value="Staff"></div></div></details>'+
+  '<section class="jobBookingSection"><input type="hidden" id="job_customer_note" value="[[VECTA_CURRENT_MILEAGE:54321]]"></section>'+
+  '</div></div></div>'+
   '<script>window.VECTA_MECHANIC_DEPLOYMENT='+mechanic+';window.fetch=()=>{throw Error("Unexpected network lookup")};'+
   'window.VectaFleetImages={artwork:()=>\'<svg viewBox="0 0 220 120" xmlns="http://www.w3.org/2000/svg"></svg>\'};</script>'+
   '<script>'+helper+'</script><script>VectaHaynesJobTools.remember('+JSON.stringify(match)+',true,{allowExpiredIdentity:true});'+
   'initHaynesJobTools(document.querySelector("#jobModal"));'+
-  'const height=document.querySelector(".jobCardHeaderVehicle svg").getBoundingClientRect().height;'+
-  'const details=document.querySelector(".haynesJobVehicle strong");'+
-  'parent.postMessage({width:innerWidth,mechanic:'+mechanic+',height,visible:details.textContent.includes("Yaris")&&details.getBoundingClientRect().height>0},"*");</script>';
+  `const rect=selector=>document.querySelector(selector).getBoundingClientRect();
+  const caption=document.querySelector('.jobCardCustomerCaption'),details=document.querySelector('.haynesJobVehicle strong');
+  const body=rect('.jobCardHeaderBody'),matchBox=rect('.haynesJobTools'),customer=rect('.jobContactSection'),haynes=rect('.jobHeaderHaynesLookup'),mot=rect('#job_mileage'),current=rect('#job_current_mileage'),model=rect('.jobCardHeaderModel');
+  const result={width:innerWidth,mechanic:${mechanic},visible:details.textContent.includes('EQC')&&details.getBoundingClientRect().height>0,
+   pictureHeight:rect('.jobCardHeaderVehicle').height,imageHeight:rect('.jobCardHeaderVehicle svg').height,
+   caption:caption.textContent,fontSize:parseFloat(getComputedStyle(caption).fontSize),
+   matchGap:customer.top-matchBox.bottom,aligned:Math.max(customer.bottom,haynes.bottom,mot.bottom,current.bottom)-Math.min(customer.bottom,haynes.bottom,mot.bottom,current.bottom)<2,
+   modelOneLine:model.height<=parseFloat(getComputedStyle(document.querySelector('.jobCardHeaderModel')).lineHeight)+1,
+   overflow:document.querySelector('.jobModalCard').scrollWidth>document.querySelector('.jobModalCard').clientWidth+1,
+   savedMileage:document.querySelector('#job_current_mileage').value,lastMileage:document.querySelector('#job_mileage').value};
+  document.querySelector('.jobContactSection').open=true;
+  result.openContactWidth=rect('.jobContactSection').width;result.bodyWidth=body.width;
+  const name=document.querySelector('#job_customer_name');name.value="anne-marie o'neill";name.dispatchEvent(new Event('input',{bubbles:true}));
+  result.editedCaption=caption.textContent;result.savedName=name.value;
+  parent.postMessage(result,'*');</script>`;
 }
 
-test('the reopened card shows Haynes on each screen and doubles the vehicle only on the Main PC editor',{
+test('the reopened job header keeps identity, matching, customer controls and mileage compact on Main and mechanics',{
  skip:!process.env.GITHUB_ACTIONS&&!process.env.VECTA_CHROME_BIN,timeout:120000
 },async()=>{
  const dir=mkdtempSync(path.join(tmpdir(),'vecta-haynes-card-'));
@@ -49,7 +69,19 @@ test('the reopened card shows Haynes on each screen and doubles the vehicle only
   assert.equal(rows.length,6);
   for(const row of rows){
    assert.equal(row.visible,true,JSON.stringify(row));
-   assert.equal(row.height,!row.mechanic&&row.width>=1050?200:100,JSON.stringify(row));
+   const context=JSON.stringify(row);
+   assert.equal(row.pictureHeight,!row.mechanic&&row.width>=1050?200:100,context);
+   assert.ok(row.imageHeight>=35,context);
+   assert.equal(row.caption,'Chris Stoker',context);
+   assert.equal(row.fontSize,row.width<=700?24:28,context);
+   assert.ok(row.matchGap>=0&&row.matchGap<=12,context);
+   if(row.width>=820)assert.equal(row.aligned,true,context);
+   if(row.width>=1440)assert.equal(row.modelOneLine,true,context);
+   assert.equal(row.overflow,false,context);
+   assert.ok(row.openContactWidth>=row.bodyWidth-2,context);
+   assert.equal(row.savedMileage,'54321');assert.equal(row.lastMileage,'50000');
+   assert.equal(row.editedCaption,"Anne-Marie O'Neill");
+   assert.equal(row.savedName,"anne-marie o'neill");
   }
  }finally{rmSync(dir,{force:true,recursive:true});}
 });

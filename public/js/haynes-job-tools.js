@@ -511,7 +511,7 @@ root.initHaynesJobTools=function(modal,{automatic=false,recoverImage=true}={}){
  function updateCustomerCaption(){
   const name=String(modal.querySelector('#job_customer_name')?.value||'').trim();
   const account=String(modal.querySelector('#job_customer_account')?.value||'').trim();
-  customerCaption.textContent=name||(!/^(staff|contractor)$/i.test(account)?account:'');
+  customerCaption.textContent=name?name.replace(/(^|[\s'’\-])(\p{L})/gu,(_,separator,initial)=>separator+initial.toLocaleUpperCase('en-GB')):(!/^(staff|contractor)$/i.test(account)?account:'');
   customerCaption.hidden=!customerCaption.textContent;
  }
  modal.addEventListener('input',updateCustomerCaption);modal.addEventListener('change',updateCustomerCaption);
@@ -584,17 +584,21 @@ root.initHaynesJobTools=function(modal,{automatic=false,recoverImage=true}={}){
   if(due){due.before(facts);facts.appendChild(due);}else mileage.before(facts);
   facts.appendChild(mileage);
   const currentMileage=modal.querySelector('.jobCurrentMileageField');if(currentMileage)facts.appendChild(currentMileage);
-  // Facts align with the customer details in the left header column.
+  // Keep the original mileage controls together when arranging the header.
   if(header)header.appendChild(facts);
  }
  if(header){
   let actions=header.querySelector('.jobModalHeadActions');
   if(!actions){actions=document.createElement('div');actions.className='jobModalHeadActions';}
   button.classList.add('jobHeaderHaynesLookup');
-  const lookupRow=document.createElement('div');lookupRow.className='jobHeaderHaynesRow';lookupRow.appendChild(button);heading.appendChild(lookupRow);
-  // The matched vehicle belongs directly beneath the plate/model, independent
-  // of the artwork height in the neighbouring grid column.
-  heading.appendChild(panel);
+  const lookupRow=document.createElement('div');lookupRow.className='jobHeaderHaynesRow';lookupRow.appendChild(button);
+  // Identity uses the full top line. Keep the match and its controls in one
+  // flowing column so the artwork cannot insert a blank row between them.
+  const headerBody=document.createElement('div');headerBody.className='jobCardHeaderBody';
+  const controls=document.createElement('div');controls.className='jobCardHeaderControls';
+  const details=header.querySelector('.jobCardHeaderDetails'),facts=header.querySelector('.jobVehicleQuickFacts');
+  if(details)controls.appendChild(details);controls.appendChild(lookupRow);if(facts)controls.appendChild(facts);
+  headerBody.append(panel,controls);header.appendChild(headerBody);
   actions.querySelector('[data-close-modal]')?.remove();
   const print=actions.querySelector('#printJobCard'),foot=modal.querySelector('.modalFoot'),remove=foot?.querySelector('#deleteJob');
   if(print&&foot){print.classList.remove('jobPrintSmall');if(remove)remove.after(print);else foot.prepend(print);}
