@@ -93,7 +93,56 @@
    const retry=button('Check / retry alerts',async()=>{retry.disabled=true;try{showAlerts(host,await api('portal-alert-retry',{job_id:jobId,event_id:receipt.event_id}),jobId);}catch(e){host.append(node('p',e.message));retry.disabled=false;}});host.append(retry);
   }
  }
+ const decisionOf=item=>item.decision||item.details?.status;
+ function responseBody(item){
+  const body=node('div');body.className='portalDecisionBody';
+  const approved=decisionOf(item)==='approved';body.dataset.signal=approved?'green':'red';
+  const vehicle=node('div');vehicle.className='portalDecisionVehicle';
+  const fallback=node('p',item.vehicle||'Vehicle image unavailable');vehicle.append(fallback);body.append(vehicle);
+  const paint=()=>{
+   if(vehicle.querySelector('img'))return;
+   const tools=window.VectaHaynesJobTools,drawing=tools?.storedDrawing?.(item),src=tools?.safeImage?.(drawing?.imageUrl);
+   if(!src)return;
+   const img=node('img');img.src=tools.artworkUrl?.(src)||src;img.alt='Vehicle for '+item.registration;
+   img.dataset.vehicleSource=src;img.dataset.registration=item.registration;img.dataset.vehicleMake=drawing.make||'';
+   img.onerror=()=>{img.remove();fallback.hidden=false;};fallback.hidden=true;vehicle.prepend(img);window.VectaVehicleImage?.mount(vehicle);
+  };
+  paint();Promise.resolve(window.VectaHaynesJobTools?.hydrateSharedArtwork?.()).then(paint).catch(()=>{});
+  const title=node('h2',(approved?'Good news, ':'Bad news, ')+(item.customer_name||'the customer')+(approved?' has authorised the extra work.':' has declined the work.'));
+  const symbol=node('span',approved?'✓':'✕');symbol.className='portalDecisionSymbol';symbol.setAttribute('aria-hidden','true');title.prepend(symbol);body.append(title);
+  const work=node('p',item.message);work.className='portalDecisionWork';body.append(work);
+  const parts=item.parts||item.details?.parts||[];
+  if(parts.length){const list=node('ul');list.className='portalDecisionParts';for(const part of parts)list.append(node('li',(part.quantity>1?part.quantity+' × ':'')+part.description));body.append(list);}
+  const reply=item.reply||item.details?.customer_reply;
+  if(reply){const message=node('div');message.className='portalQuoteReply';message.append(node('strong','Customer message'),node('p',reply));body.append(message);}
+  if(!mechanic()&&Number.isInteger(item.details?.estimated_pence)){const price=node('p','Additional work: £'+(item.details.estimated_pence/100).toFixed(2)+' including VAT');price.className='portalDecisionPrice';body.append(price);}
+  const status=node('p');status.className='portalDecisionStatus';status.setAttribute('role','status');
+  if(!mechanic()){
+   const send=button(item.forwarded?'Sent to mechanic':'Send to mechanic',async()=>{
+    send.disabled=true;status.textContent='Saving to the job card…';
+    try{
+     await api('portal-forward',{event_id:item.id});item.forwarded=true;send.textContent='Sent to mechanic';
+     let synced=false;try{synced=typeof window.vectaRefreshPortalJobs==='function'&&await window.vectaRefreshPortalJobs()!==false;}catch{}
+     const panel=panels.get(item.job_id),reopened=synced&&panel?.refreshAfterForward?.();
+     status.textContent=!synced?'Saved and sent. Reconnecting to refresh this device…':panel&&!reopened?'Saved and sent. Close and reopen your job card to see the update; your current edits are still here.':approved?'Work, parts and price saved to the job card. Mechanic notified.':'Refusal saved to the job card. Mechanic notified.';
+     ack(item);window.dispatchEvent(new Event('vecta-portal-changed'));
+    }catch(error){send.disabled=false;status.textContent=error.message;}
+   });send.classList.add('portalForwardQuote');send.disabled=!!item.forwarded;body.append(send);
+  }
+  body.append(status);return body;
+ }
+ function showResponse(item){
+  document.querySelector('.portalDecisionDialog')?.close();
+  const dialog=node('dialog');dialog.className='portalDecisionDialog';dialog.setAttribute('aria-label','Customer response for '+item.registration);
+  dialog.append(responseBody(item),button('Close',()=>dialog.close()));document.body.append(dialog);dialog.addEventListener('close',()=>dialog.remove(),{once:true});dialog.showModal();
+  markRead([item]).catch(()=>{dialog.querySelector('[role=status]').textContent='Read status has not synced. Reconnect to retry.';});ack(item);
+ }
  function eventCard(item,canForward,alerts){
+  if(item.kind==='approval_response'&&['approved','declined'].includes(decisionOf(item))){
+   const card=node('div');card.className='portalWorkshopEvent portalResponseLink';card.dataset.eventId=item.id;
+   const approved=decisionOf(item)==='approved';card.dataset.signal=approved?'green':'red';
+   card.append(button((approved?'✓ Work authorised':'✕ Work declined')+' · View response',()=>showResponse(item)),node('time',date(item.created_at)));return card;
+  }
   const c=node('details');c.className='portalWorkshopEvent';c.dataset.eventId=item.id;
   const decision=item.decision||item.details?.status;
   const titles={message:'Message',preferences:'Parts authorisation',amendment:'Amendment requested',additional_work:'Additional work requested',cancelled:'Booking cancelled',approval_response:decision==='approved'?'Work authorised':decision==='declined'?'Work not authorised':'Customer decision',approval_request:'Approval requested',booking_update:'Booking updated',correspondence:'Workshop message'};
@@ -183,7 +232,8 @@
    const messageMode=button('Send message',()=>setMode('message')),quoteMode=button('Send quote',()=>setMode('quote'));
    modes.append(messageMode,quoteMode);
    const priceLabel=node('label','Estimated price including VAT (£)'),price=node('input');price.type='text';price.inputMode='decimal';price.placeholder='0.00';price.maxLength=9;priceLabel.className='portalQuotePrice';priceLabel.append(price);priceLabel.hidden=true;
-   form.append(modes,label,priceLabel,attachments,permissionLabel,permissionStatus,send,note);
+   const partsLabel=node('label','Parts to add to the job (optional, one per line)'),parts=node('textarea');parts.rows=2;parts.maxLength=6000;partsLabel.className='portalQuoteParts';partsLabel.append(parts);partsLabel.hidden=true;
+   form.append(modes,label,priceLabel,partsLabel,attachments,permissionLabel,permissionStatus,send,note);
    const composer=node('details');composer.className='portalWorkshopComposer';composer.append(node('summary','Message customer'),form);panel.insertBefore(composer,list);
    let photos=null;
    Object.assign(controller,{form,attachments,bindPhotos(value){photos=value;input.required=false;}});
@@ -196,11 +246,11 @@
     messageMode.setAttribute('aria-pressed',String(!quote));quoteMode.setAttribute('aria-pressed',String(quote));
     labelText.textContent=quote?'Work required':'Message';input.maxLength=quote?1200:3000;
     input.placeholder=quote?'Describe what needs doing and why…':'Type your message to the customer…';
-    priceLabel.hidden=!quote;price.required=quote;price.disabled=!quote;attachments.hidden=quote;
+    priceLabel.hidden=!quote;price.required=quote;price.disabled=!quote;attachments.hidden=false;partsLabel.hidden=!quote;
     send.textContent=quote?'Send quote & alerts':'Send message & alerts';note.replaceChildren();
    }
    setMode('message');
-   input.oninput=price.oninput=()=>{if(!sending&&!quoteAttempt)id=crypto.randomUUID();};
+   input.oninput=price.oninput=parts.oninput=()=>{if(!sending&&!quoteAttempt)id=crypto.randomUUID();};
    form.onsubmit=async e=>{
     e.preventDefault();if(sending||permissionBox.disabled)return;
     if(photos?.busy()){note.textContent='Please finish the current photo or finding before sending.';return;}
@@ -208,23 +258,27 @@
     const message=input.value.trim()||(!quote&&photos?.hasDraft()?'Workshop photos added. You can view them on your vehicle progress page.':'');
     if(!message||message.length>(quote?1200:3000)){note.textContent=quote?'Describe the work in up to 1,200 characters.':'Type a message or add a photo (up to 3,000 characters).';input.focus();return;}
     if(quote&&!/^\d{1,6}(?:\.\d{1,2})?$/.test(price.value.trim())){note.textContent='Enter the estimated price in pounds, including VAT.';price.focus();return;}
-    if(quote)quoteAttempt??={approval_id:id,message,estimate:price.value.trim()};
+    const partRows=parts.value.split(/\n/).map(value=>value.trim()).filter(Boolean).map(description=>({description,quantity:1}));
+    if(quote&&(partRows.length>30||partRows.some(part=>part.description.length>200))){note.textContent='Enter up to 30 parts, using up to 200 characters per line.';return;}
+    if(quote)quoteAttempt??={approval_id:id,message,estimate:price.value.trim(),parts:partRows,photo_ids:photos?.quotePhotoIds?.()||[]};
     sending=true;send.disabled=true;permissionBox.disabled=true;input.readOnly=true;note.textContent=quote?'Saving your quote and preparing customer alerts…':'Saving your message and preparing customer alerts…';
     try{
-     messageMode.disabled=quoteMode.disabled=true;price.readOnly=true;
+     messageMode.disabled=quoteMode.disabled=true;price.readOnly=parts.readOnly=true;
      if(quote){
-      await api('approval-stage',{job_id:job.id,approval_id:quoteAttempt.approval_id,message:quoteAttempt.message,photo_ids:[]});
+      if(photos&&!await photos.uploadQuote(quoteAttempt.approval_id))throw Error('The quote has not been sent. Check the photo notice and retry.');
+      photos?.lock(true);
+      await api('approval-stage',{job_id:job.id,approval_id:quoteAttempt.approval_id,message:quoteAttempt.message,photo_ids:quoteAttempt.photo_ids,parts:quoteAttempt.parts});
       const result=await api('approval-request',{job_id:job.id,...quoteAttempt});
       note.replaceChildren(node('p','Quote saved in the customer portal. Waiting for the customer’s decision.'));
       const delivery=node('div');note.append(delivery);if(window.VectaFindings)window.VectaFindings.showResult(delivery,result);else showAlerts(delivery,result,job.id);
-      quoteAttempt=null;input.value='';price.value='';id=crypto.randomUUID();window.VectaFindings?.notify();await refresh();return;
+      photos?.completeQuote?.();quoteAttempt=null;input.value='';price.value='';parts.value='';id=crypto.randomUUID();window.VectaFindings?.notify();await refresh();return;
      }
      if(photos&&!await photos.upload())throw Error('Your message has not been sent. Check the photo notice and retry.');
      photos?.lock(true);send.disabled=true;permissionBox.disabled=true;
      const result=await api('portal-reply',{job_id:job.id,id,message});
      photos?.complete();input.value='';id=crypto.randomUUID();note.replaceChildren(node('p','Message saved in the customer portal.'));const delivery=node('div');showAlerts(delivery,result.alerts,job.id);note.append(delivery);await refresh();
     }catch(error){note.textContent=error.message;}
-    finally{sending=false;photos?.lock(false);send.disabled=false;permissionBox.disabled=false;input.readOnly=!!quoteAttempt;price.readOnly=!!quoteAttempt;messageMode.disabled=quoteMode.disabled=!!quoteAttempt;if(quoteAttempt)note.append(node('p','The quote is not confirmed. Press Send quote & alerts again to safely retry the same quote.'));}
+    finally{sending=false;photos?.lock(false);send.disabled=false;permissionBox.disabled=false;input.readOnly=!!quoteAttempt;price.readOnly=parts.readOnly=!!quoteAttempt;messageMode.disabled=quoteMode.disabled=!!quoteAttempt;if(quoteAttempt)note.append(node('p','The quote is not confirmed. Press Send quote & alerts again to safely retry the same quote.'));}
    };
   }
   async function openMessage(item){
@@ -233,9 +287,12 @@
    visibleCount=Math.max(visibleCount,orderedEvents().findIndex(event=>event.id===item.id)+1);
    renderMessages();
    const card=[...list.querySelectorAll('.portalWorkshopEvent')].find(card=>card.dataset.eventId===item.id);
+   if(item.kind==='approval_response'){showResponse(item);return;}
    if(card){card.setAttribute('open','');await markRead([item]);}
   }
-  panels.set(job.id,{panel,refresh,updateNotifications,updateRead,openMessage});refresh();
+  let edited=false;const detectEdit=e=>{if(!panel.contains(e.target))edited=true;};modal.addEventListener('input',detectEdit);modal.addEventListener('change',detectEdit);
+  const refreshAfterForward=()=>{if(edited||!panel.isConnected||[...panel.querySelectorAll('.portalWorkshopComposer textarea')].some(el=>el.value)||panel.querySelector('.workshopPhotoDraft')||!window.openJobModal)return false;window.openJobModal(job.id);return true;};
+  panels.set(job.id,{panel,refresh,updateNotifications,updateRead,openMessage,refreshAfterForward});refresh();
   return controller;
  }
  function seen(){try{return new Set(JSON.parse(localStorage.getItem('vecta:portal:seen:'+ (mechanic()?'mechanic':'manager'))||'[]'));}catch{return new Set();}}
@@ -270,7 +327,9 @@
     const ids=seen(),next=events.find(x=>x.id===pendingEvent&&!read.has(x.id))||events.find(x=>!ids.has(x.id)&&!read.has(x.id));
     if(!next){active=null;popup.hidden=true;return;}
     if(active&&active.id===next.id&&active.forwarded===next.forwarded&&active.synced===synced)return;
-    active={...next,synced};popup.hidden=false;popup.replaceChildren(node('strong',(mechanic()?'Job update':'Customer message')+' · '+next.registration),eventCard(next,!mechanic()));
+    active={...next,synced};popup.hidden=false;
+    const decision=next.kind==='approval_response'&&['approved','declined'].includes(decisionOf(next));popup.classList.toggle('portalQuotePopup',decision);
+    if(decision)popup.replaceChildren(responseBody(next));else popup.replaceChildren(node('strong',(mechanic()?'Job update':'Customer message')+' · '+next.registration),eventCard(next,!mechanic()));
     const message=node('p',synced?'':'Message saved. Reconnecting to update this device’s job card…');message.setAttribute('role','status');
     popup.append(button('Open job card',async()=>{
      if(!next.job_id){message.textContent='This booking is waiting in Website Bookings. Accept it to create its job card.';return;}
@@ -308,6 +367,6 @@
    for(const notification of await registration?.getNotifications?.()||[])if(bookingCount===0&&notification.tag==='vecta-website-bookings')notification.close();
   }).catch(()=>{});
  }
- window.VectaPortalWorkshop={mount,confirmation,clearBookingNotifications};
+ window.VectaPortalWorkshop={mount,confirmation,clearBookingNotifications,showResponse};
  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',install,{once:true});else install();
 })();

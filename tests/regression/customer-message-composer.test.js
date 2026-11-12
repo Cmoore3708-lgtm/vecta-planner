@@ -93,20 +93,29 @@ test('removing a prepared photo cancels its upload and a failed photo cannot be 
 });
 
 
-test('quote mode requires description and price, sends one quote, and retains ordinary message photo drafts',async()=>{
+test('quote mode requires description and price, sends one quote with private photos and explicit parts',async()=>{
  const h=app();await tick();await h.add();
  const quote=[...h.form.querySelectorAll('button')].find(b=>b.textContent==='Send quote');quote.click();
  await h.send();assert.equal(h.calls.filter(c=>c.action==='approval-stage').length,0);
  h.input.value='Replace front brake pads';await h.send();assert.equal(h.calls.filter(c=>c.action==='approval-stage').length,0);
+ h.form.querySelector('.portalQuoteParts textarea').value='Front brake pad set';
  const price=h.form.querySelector('.portalQuotePrice input');price.value='120.50';await h.send();
  assert.deepEqual(h.calls.filter(c=>['approval-stage','approval-request'].includes(c.action)).map(c=>c.action),['approval-stage','approval-request']);
  assert.equal(h.calls.find(c=>c.action==='approval-request').estimate,'120.50');assert.equal(h.calls.find(c=>c.action==='approval-request').message,'Replace front brake pads');
- assert.equal(h.calls.filter(c=>['portal-reply','photos-upload'].includes(c.action)).length,0);
- assert.ok(h.form.querySelector('.workshopPhotoDraft'));assert.match(h.form.textContent,/Waiting for the customer/);
+ assert.equal(h.calls.filter(c=>c.action==='portal-reply').length,0);
+ const upload=h.calls.find(c=>c.action==='photos-upload'),stage=h.calls.find(c=>c.action==='approval-stage');assert.equal(upload.review_id,stage.approval_id);assert.deepEqual(stage.photo_ids,[upload.photo_id]);assert.deepEqual(stage.parts,[{description:'Front brake pad set',quantity:1}]);
+ assert.equal(h.form.querySelector('.workshopPhotoDraft'),null);assert.match(h.form.textContent,/Waiting for the customer/);
 });
 test('uncertain quote retries retain ID, description and amount and block switching mode',async()=>{
  const h=app();await tick();[...h.form.querySelectorAll('button')].find(b=>b.textContent==='Send quote').click();
  h.input.value='Replace pads';h.form.querySelector('.portalQuotePrice input').value='120';h.state.quoteFailure=true;
  await h.send();assert.equal(h.input.readOnly,true);assert.match(h.form.textContent,/not confirmed/);
  h.state.quoteFailure=false;await h.send();const requests=h.calls.filter(c=>c.action==='approval-request');assert.equal(requests.length,2);assert.equal(requests[0].approval_id,requests[1].approval_id);assert.equal(requests[0].estimate,requests[1].estimate);
+});
+
+test('partial quote photo failure and uncertain send retry keep the exact attachments without repeat uploads',async()=>{
+ const h=app();await tick();await h.add(2);[...h.form.querySelectorAll('button')].find(b=>b.textContent==='Send quote').click();h.input.value='Replace pads';h.form.querySelector('.portalQuotePrice input').value='120';h.state.uploadFailure=2;
+ await h.send();assert.equal(h.calls.filter(c=>c.action==='approval-stage').length,0);assert.equal(h.form.querySelector('[data-photo-choose]').disabled,true);
+ h.state.quoteFailure=true;await h.send();const stage=h.calls.find(c=>c.action==='approval-stage');assert.equal(stage.photo_ids.length,2);
+ h.state.quoteFailure=false;await h.send();const uploads=h.calls.filter(c=>c.action==='photos-upload');assert.equal(uploads.length,3);assert.equal(uploads[1].photo_id,uploads[2].photo_id);assert.ok(uploads.every(c=>c.review_id===stage.approval_id));assert.deepEqual(h.calls.filter(c=>c.action==='approval-stage')[0],h.calls.filter(c=>c.action==='approval-stage')[1]);assert.equal(h.form.querySelector('[data-photo-choose]').disabled,false);
 });
