@@ -25,7 +25,8 @@ export function readSearchProducts({query},doc=document){
  // GSF can return a different name (drop link -> Stabiliser Rod/Strut).
  // Trust the supplier's current Parts section, not a local synonym list or
  // any arbitrary price elsewhere on the page. Keep pending descriptions too.
- const sections=currentSearch?leaf.filter(n=>/^Parts\s*[-–]\s*\d+\s+products? found$/i.test(clean(text(n)))).map(n=>n.parentElement).filter(n=>n!==main&&!n.querySelector('h1,h2,h3,[role="heading"]')):[];
+ // Hydrated TradeHub renders the plural suffix as a separate text node.
+ const sections=currentSearch?leaf.filter(n=>/^Parts\s*[-–]\s*\d+\s+product(?:\s*s)?\s+found$/i.test(clean(text(n)))).map(n=>n.parentElement).filter(n=>n!==main&&!n.querySelector('h1,h2,h3,[role="heading"]')):[];
  const section=sections.length===1?sections[0]:null;
  const code=value=>/^(?=.{3,80}$)(?=.*\d)[a-z0-9][a-z0-9._/-]*$/i.test(value)&&!/^\d{1,4}$|^\d+(?:\.\d+)?(?:mm|cm|m|v|w|kg|g|l)$/i.test(value);
  const precedingCodes=(title,boundary)=>{

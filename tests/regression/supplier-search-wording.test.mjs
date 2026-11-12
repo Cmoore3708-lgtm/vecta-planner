@@ -46,6 +46,21 @@ test('drop link results retain different supplier names, part numbers, prices an
  for(const p of snapshot.products)assert.equal(d.querySelector(p.selector).textContent,p.label);
 });
 
+test('live hydrated product-count text fragments still identify the supplier result section',()=>{
+ for(const cards of [[drops[0]],[drops[0],drops[3]]]){
+  const d=doc(search('drop link',['Stabiliser Link'],cards));
+  const count=[...d.querySelectorAll('div')].find(n=>n.textContent==='Parts - '+cards.length+' products found');
+  // React's live page has five adjacent text nodes, even though outerHTML
+  // serialises them as one string. The plural suffix is its own text node.
+  count.replaceChildren(...['Parts - ',String(cards.length),' product',cards.length===1?'':'s',' found'].map(t=>d.createTextNode(t)));
+  assert.equal(count.childNodes.length,5);
+  const snapshot=readSearchProducts({query:'drop link'},d);
+  assert.equal(snapshot.products.length,cards.length);
+  assert.equal(snapshot.productTitleCount,cards.length);
+  assert.deepEqual(snapshot.products.map(p=>p.sku),cards.length===1?['FDL7578']:['FDL7578','FDL7584']);
+ }
+});
+
 test('synonym products cannot come from stale headings, other sections, hidden cards or purchase controls',()=>{
  const d=doc(search('drop link',['Stabiliser Link'],[drops[0]]));
  d.querySelector('main').insertAdjacentHTML('beforeend','<section><h2>Recommended products</h2>'+card('OTHER12','Stabiliser Rod/Strut','1.00')+'</section><div hidden>'+parts([drops[3]])+'</div>');
