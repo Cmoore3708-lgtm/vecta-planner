@@ -60,11 +60,10 @@ header.trackerHeader{padding:16px 22px 18px;background:#000;text-align:center;bo
 .approvalRevised small{grid-column:1/-1;color:#ded3c0;font-size:.8rem}
 #approvalButtons{margin-top:20px}
 #approvalButtons button{flex:1;min-height:50px}
-#closeApproval,#retryApproval{margin-top:16px;min-height:44px;padding:10px 14px;border-radius:8px;border:1px solid #8d7b62;background:transparent;color:#fff;cursor:pointer}
+#retryApproval{margin-top:16px;min-height:44px;padding:10px 14px;border-radius:8px;border:1px solid #8d7b62;background:transparent;color:#fff;cursor:pointer}
 #openApproval{margin:16px 0;padding:12px 18px;border:1px solid #ad8748;border-radius:10px;background:#211e19;color:#fff;font-weight:700;cursor:pointer}
 @media(max-width:560px){#approvalDialog .progressApproval{padding:22px 18px}#approvalButtons{flex-direction:column}}
 
-#sendQuoteMessage{min-height:44px;padding:12px 16px;border:1px solid #b79a69;border-radius:8px;background:transparent;color:#fff;cursor:pointer;margin-top:12px}
 #quoteReplyFields{margin-top:16px;border-top:1px solid #ffffff26;padding-top:16px}
 #quoteReplyFields label{display:block;font-weight:600}
 #quoteReply{display:block;width:100%;box-sizing:border-box;margin-top:8px;padding:12px;min-height:100px;border:1px solid #847256;border-radius:8px;background:#151310;color:#fff;font:inherit;resize:vertical}

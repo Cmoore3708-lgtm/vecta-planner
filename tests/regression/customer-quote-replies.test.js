@@ -102,21 +102,20 @@ function customer(){
  vm.runInNewContext(read('public/js/vecta-progress.js'),{document,crypto,window:{addEventListener(){}},location:{search:'',hash:'#approval.'+quoteId+'.'+replyId},URLSearchParams,fetch,Intl,Date,AbortSignal,setTimeout(){},clearTimeout(){}});
  return {el,calls,state};
 }
-test('customer can message only, then accept or refuse with a note; empty text does not block a decision',async()=>{
+test('accept or refuse includes the optional message and returns to the portal only after saving',async()=>{
  for(const decision of ['approved','declined']){
   const h=customer();await tick();assert.equal(h.el('quoteReplyFields').hidden,false);assert.equal(h.el('approvalRevisedTotal').textContent,'£250.00');
-  h.el('quoteReply').value='Can it be ready by 3?';await h.el('sendQuoteMessage').onclick();assert.equal(h.state.status,'pending');assert.equal(h.calls.filter(x=>x.action==='approval-message').length,1);
-  assert.match(h.el('approvalStatus').textContent,/not accepted or refused/);
+  assert.equal(h.el('approvalTitle').textContent,'Additional work required:');assert.equal(h.el('sendQuoteMessage'),null);assert.equal(h.el('closeApproval'),null);assert.equal(h.el('approvalDialog').open,true);
   h.el('quoteReply').value='Please keep old parts.';
   await h.el(decision==='approved'?'approveWork':'declineWork').onclick();
-  const request=h.calls.find(x=>x.action==='approval-decide');assert.equal(request.reply,'Please keep old parts.');assert.equal(h.el('approvalPanel').dataset.signal,decision==='approved'?'green':'red');assert.equal(h.el('approvalButtons').hidden,true);assert.equal(h.el('approvalMessage').querySelector('img'),null);assert.equal(h.el('approvalRevisedTotal').textContent,decision==='approved'?'£250.00':'£130.00');assert.equal(h.el('approvalCurrentTotal').hidden,true);
+  const request=h.calls.find(x=>x.action==='approval-decide');assert.equal(request.reply,'Please keep old parts.');assert.equal(h.el('approvalPanel').dataset.signal,decision==='approved'?'green':'red');assert.equal(h.el('approvalButtons').hidden,true);assert.equal(h.el('approvalMessage').querySelector('img'),null);assert.equal(h.el('approvalRevisedTotal').textContent,decision==='approved'?'£250.00':'£130.00');assert.equal(h.el('approvalCurrentTotal').hidden,true);assert.equal(h.el('approvalDialog').open,false);assert.equal(h.el('quoteReplyFields').hidden,true);
  }
  const h=customer();await tick();await h.el('approveWork').onclick();assert.equal(h.calls.find(x=>x.action==='approval-decide').reply,'');
 });
 test('uncertain customer responses retain note and UUID, block duplicate taps, and cannot switch to a contrary decision',async()=>{
  const h=customer();await tick();h.el('quoteReply').value='Keep the old parts';h.state.fail=true;
- await h.el('approveWork').onclick();assert.equal(h.el('quoteReply').value,'Keep the old parts');assert.equal(h.el('quoteReply').readOnly,true);
+ await h.el('approveWork').onclick();assert.equal(h.el('quoteReply').value,'Keep the old parts');assert.equal(h.el('quoteReply').readOnly,true);assert.equal(h.el('approvalDialog').open,true);
  await h.el('declineWork').onclick();assert.equal(h.calls.filter(x=>x.action==='approval-decide').length,1);
- h.state.fail=false;let release;h.state.hold=new Promise(r=>release=r);const pending=h.el('retryApproval').onclick();await tick();await h.el('approveWork').onclick();release();await pending;
- const requests=h.calls.filter(x=>x.action==='approval-decide');assert.equal(requests.length,2);assert.equal(requests[0].reply_id,requests[1].reply_id);assert.equal(requests[0].reply,requests[1].reply);
+ h.state.fail=false;let release;h.state.hold=new Promise(r=>release=r);const pending=h.el('retryApproval').onclick();await tick();assert.equal(h.el('approvalDialog').open,true);await h.el('approveWork').onclick();release();await pending;
+ const requests=h.calls.filter(x=>x.action==='approval-decide');assert.equal(requests.length,2);assert.equal(requests[0].reply_id,requests[1].reply_id);assert.equal(requests[0].reply,requests[1].reply);assert.equal(h.el('approvalDialog').open,false);
 });
