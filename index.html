@@ -13620,8 +13620,8 @@ function mobileJobCategoryLabel(j){
   var account=fleetIncomeCustomerForJob(j)||String(j.customer_account||'').trim();
   if(/^staff$/i.test(String(account).trim()))return String(j.customer_name||'').trim().split(/\s+/)[0]||'Staff';
   if(String(account).toUpperCase()==='NMUK'){
-    var type=String(fleetNmukTypeFromVehicle(j.registration)||j.nmuk_vehicle_type||'').trim();
-    return /^pool$/i.test(type)?'NMUK Pool Cars':type?'NMUK '+type:'NMUK';
+    var type=String(fleetNmukTypeFromVehicle(j.registration)||j.nmuk_vehicle_type||j.nmuk_type||'').replace(/\b(?:NMUK|cars)\b/gi,'').trim();
+    return /^pool$/i.test(type)?'Pool':/^internal$/i.test(type)?'Internal':/^mvos$/i.test(type)?'MVOS':type;
   }
   return /^contractor$/i.test(account)?'Contractor':account;
 }
