@@ -201,8 +201,55 @@ test('tracking page clears invoice links on reopening and pauses while hidden',a
   const context={document,window:{addEventListener:(name,fn)=>events[name]=fn},location:{hash:'#token'},Intl,Date,AbortSignal,URL,Error,setTimeout:(fn,delay)=>{timers.push({fn,delay});return timers.length;},clearTimeout(){},fetch:async()=>({ok:true,json:async()=>data})};
   vm.runInNewContext(script,context);await new Promise(resolve=>setImmediate(resolve));
   assert.equal(document.getElementById('paperwork').hidden,false);assert.equal(timers.at(-1).delay,60000);
+  data={...data,stage:'scheduled'};await document.getElementById('refresh').onclick();
+  assert.equal(document.getElementById('paperwork').hidden,false,'a final saved invoice remains available even before its booking date');
   data={...data,stage:'underway',invoice_url:undefined};await document.getElementById('refresh').onclick();
   assert.equal(document.getElementById('paperwork').hidden,true);assert.equal(document.getElementById('invoice').hasAttribute('href'),false);
+});
+test('saved invoices appear automatically through booking, direct and approval portal links',async()=>{
+ const restore=environment(),original=global.fetch;
+ let saved={...job,status:'completed',archived:true};
+ const request={id:'22345678-1234-4234-8234-123456789012',job_id:id,registration:job.registration,email:job.customer_email,confirmed_date:job.booking_date,status:'booked'};
+ const approval={id:'32345678-1234-4234-8234-123456789012',job_id:id,registration:job.registration,customer_email:job.customer_email,progress_booking_date:job.booking_date,progress_review_state:'sent',token:'progress:42345678-1234-4234-8234-123456789012',expires_at:'2026-11-10T00:00:00Z'};
+ const invoice={id:'invoice-portal',job_id:id,registration:job.registration,status:'saved',invoice_number:'V123',invoice_date:'2026-11-03',customer_name:'Driver',vehicle:job.vehicle,subtotal:145.83,vat:29.17,total:175,lines:[{description:'Full service',amount:175,vat_mode:'inc_vat'}]};
+ let invoices=[],invoiceReads=0;
+ global.fetch=async(url,opts={})=>{
+  assert.ok(!opts.method||opts.method==='GET','displaying an invoice must not send a customer message or alter data');
+  const u=new URL(url);
+  if(u.pathname.endsWith('/jobs'))return Response.json([saved]);
+  if(u.pathname.endsWith('/website_booking_requests'))return Response.json([request]);
+  if(u.pathname.endsWith('/additional_work_approvals'))return Response.json([approval]);
+  if(u.pathname.endsWith('/invoices')){invoiceReads++;if(u.searchParams.has('job_id'))assert.equal(u.searchParams.get('job_id'),'eq.'+id);else assert.equal(u.searchParams.get('id'),'eq.'+invoice.id);return Response.json(invoices);}
+  return Response.json([]);
+ };
+ try{
+  const tokens=[issueProgressToken(job,progressSecret(),now),'request.'+issueProgressToken(requestProgressJob(request),requestProgressSecret(),now),'approval.'+approval.id+'.'+approval.token.slice(9)];
+  for(const token of tokens){
+   invoices=[];assert.equal((await customerStatus(token,now)).invoice_url,undefined);
+   invoices=[invoice];let data=await customerStatus(token,now);
+   assert.equal(data.stage,'ready');assert.match(data.description,/invoice is available/);assert.match(data.invoice_url,/^\/invoice\?token=/);
+   const {default:invoiceHandler,verifyInvoiceToken,invoiceFingerprint}=await import('../../api/_invoice-pdf.js');
+   const secret=process.env.VECTA_INVOICE_LINK_SECRET||createHmac('sha256',process.env.SUPABASE_SERVICE_ROLE_KEY).update('VECTA invoice links v1').digest('hex');
+   const claim=verifyInvoiceToken(new URL(data.invoice_url,'https://example.invalid').searchParams.get('token'),secret);
+   assert.equal(claim.id,invoice.id);assert.equal(claim.hash,invoiceFingerprint(invoice));
+   const receipt={status(code){this.code=code;return this;},setHeader(){},send(body){this.body=body;return this;},json(body){this.body=body;return this;}};
+   await invoiceHandler({method:'GET',headers:{host:'www.vectamotors.co.uk'},query:{token:new URL(data.invoice_url,'https://example.invalid').searchParams.get('token')}},receipt);
+   assert.equal(receipt.code,200);assert.match(receipt.body,/Full service/);assert.match(receipt.body,/£175\.00/);
+   assert.doesNotMatch(JSON.stringify(data),/driver@example|Private notes|customer_phone/);
+   saved.booking_date=approval.progress_booking_date='2026-11-04';
+   data=await customerStatus(token,now);assert.equal(data.stage,'scheduled');assert.match(data.invoice_url,/^\/invoice\?token=/,'a final invoice must not be hidden by the calendar date');
+   saved.booking_date=approval.progress_booking_date=job.booking_date;
+   for(const status of ['draft','void','cancelled','deleted']){invoices=[{...invoice,status}];assert.equal((await customerStatus(token,now)).invoice_url,undefined);}
+   invoices=[{...invoice,registration:'OTHER'}];assert.equal((await customerStatus(token,now)).invoice_url,undefined);
+   invoices=[invoice];saved={...saved,status:'in_progress',archived:false};const before=invoiceReads;
+   assert.equal((await customerStatus(token,now)).invoice_url,undefined);assert.equal(invoiceReads,before,'unfinished work must not query invoices');
+   saved={...saved,status:'completed',archived:true,customer_account:'NMUK'};
+   assert.equal((await customerStatus(token,now)).invoice_url,undefined);saved.customer_account='Staff';
+   const beforeInvalid=invoiceReads;saved.customer_email='someone-else@example.com';await assert.rejects(customerStatus(token,now));assert.equal(invoiceReads,beforeInvalid);saved.customer_email=job.customer_email;
+  }
+  invoices=[invoice];const before=invoiceReads;
+  assert.equal((await registrationStatus(job.registration,now)).invoice_url,undefined);assert.equal(invoiceReads,before,'a public registration lookup cannot access invoices');
+ }finally{global.fetch=original;restore();}
 });
 test('ready invoice email uses the saved total and is sent once across repeated requests',async()=>{
   const restore=environment(),original=global.fetch,oldKey=process.env.RESEND_API_KEY;process.env.RESEND_API_KEY='fake-test-key';
