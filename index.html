@@ -13617,11 +13617,11 @@ function motConfirmationPresentation(j){var status=window.VectaMotBookings?windo
 function mobileMotAppointmentHtml(j){var time=motTimeFromJob(j),confirmation=motConfirmationPresentation(j);return hasMotJobType(j)&&time?'<span class="mobileMotAppointment"'+confirmation.attributes+' aria-label="MOT appointment time '+esc(time)+confirmation.tick+'">MOT '+esc(time)+confirmation.tick+'</span>':''}
 function mobileJobCategoryLabel(j){
   if(j.card_type==='mini_task')return '';
-  var account=fleetIncomeCustomerForJob(j)||String(j.customer_account||'').trim();
-  if(/^staff$/i.test(String(account).trim()))return String(j.customer_name||'').trim().split(/\s+/)[0]||'Staff';
-  if(String(account).toUpperCase()==='NMUK'){
+  var account=String(fleetIncomeCustomerForJob(j)||j.customer_account||'').trim();
+  if(/^staff$/i.test(account))return String(j.customer_name||'').trim().split(/\s+/)[0]||'Staff';
+  if(account.toUpperCase()==='NMUK'){
     var type=String(fleetNmukTypeFromVehicle(j.registration)||j.nmuk_vehicle_type||j.nmuk_type||'').replace(/\b(?:NMUK|cars)\b/gi,'').trim();
-    return /^pool$/i.test(type)?'Pool':/^internal$/i.test(type)?'Internal':/^mvos$/i.test(type)?'MVOS':type;
+    return {pool:'Pool',internal:'Internal',mvos:'MVOS'}[type.toLowerCase()]||type;
   }
   return /^contractor$/i.test(account)?'Contractor':account;
 }
