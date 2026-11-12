@@ -466,12 +466,12 @@
  #content .livePriorityPlanner .plannerGrid .lane .job .plannerJobCustomer{grid-column:2;grid-row:1;font-size:14px!important;line-height:1.25}
  #content .livePriorityPlanner .plannerGrid .lane .job .plannerJobVehicle{grid-column:1/-1;grid-row:2;display:block!important}
  #content .livePriorityPlanner .plannerGrid .lane .job:not(.miniPlannerTask) .plannerJobLeft{width:100%!important}
- #content .livePriorityPlanner .plannerGrid .lane .job .plannerJobVehicle{max-width:calc(100% - var(--planner-identity-text-inset,var(--planner-vehicle-text-inset,0px)))!important}
- #content .livePriorityPlanner .plannerGrid .lane .job .plannerJobCustomer{max-width:calc(100% - var(--planner-customer-text-inset,var(--planner-vehicle-text-inset,0px)))!important}
+ #content .livePriorityPlanner .plannerGrid .lane .job .plannerJobVehicle{max-width:min(100%,var(--planner-identity-text-width,100%))!important}
+ #content .livePriorityPlanner .plannerGrid .lane .job .plannerJobCustomer{max-width:100%!important}
 }
 #content .mobilePlanner .mobileJobTop .mobileJobCategory{font-size:14px!important;line-height:1.3!important}
 @media screen and (min-width:769px){
- #content .livePriorityPlanner .plannerGrid .lane .job:not(.miniPlannerTask) .plannerJobHeader>.plannerJobRightText{width:calc(100% - var(--planner-types-text-inset,var(--planner-vehicle-text-inset,0px)))!important}
+ #content .livePriorityPlanner .plannerGrid .lane .job:not(.miniPlannerTask) .plannerJobHeader>.plannerJobRightText{width:min(100%,var(--planner-types-text-width,100%))!important}
  #content .livePriorityPlanner .plannerGrid .lane .job .plannerJobHeader>.haynesDashboardImage{background:transparent!important;border:0!important;box-shadow:none!important}
 }
 /* Mechanics: plate/make above customer/job types, with full work below. */
@@ -493,3 +493,19 @@
 #content .provisionalIdentity>:first-child{grid-column:1;grid-row:1/3}
 #content .provisionalIdentity>strong{grid-column:2;grid-row:1}
 #content .unallocatedPanel .unallocatedSideJob{height:auto!important;max-height:none!important}
+
+/* Keep the top identity row clear; the remaining text follows the vehicle silhouette. */
+@media screen and (min-width:769px){
+ #content .livePriorityPlanner .plannerGrid .lane .job .plannerJobCustomer{white-space:normal;overflow-wrap:anywhere}
+ #content .livePriorityPlanner .plannerGrid .lane .job .plannerJobHeader>.haynesDashboardImage{top:var(--planner-artwork-top,32px)!important;height:min(90px,max(0px,calc(100% - var(--planner-artwork-top,32px) - 4px)))!important}
+ #content .livePriorityBacklog .unallocatedSideJob .unallocatedVehicleHeader{grid-template-columns:92px minmax(0,1fr);gap:4px 8px;align-items:start}
+ #content .livePriorityBacklog .unallocatedVehicleHeader>.uniformRegPlate{grid-row:1}
+ #content .livePriorityBacklog .unallocatedVehicleHeader .dashboardCustomerName{grid-column:2;grid-row:1;margin-top:0;max-width:100%}
+ #content .livePriorityBacklog .unallocatedVehicleHeader .unallocatedVehicleName{grid-column:1/-1;grid-row:2;width:min(100%,var(--planner-identity-text-width,100%))!important}
+ #content .livePriorityBacklog .unallocatedSideJob>.haynesDashboardImage{top:var(--planner-artwork-top,34px)!important;background:transparent!important;border:0!important;box-shadow:none!important}
+ #content .livePriorityBacklog .unallocatedSideJob>.sideJobType{width:min(100%,var(--planner-types-text-width,100%))!important}
+ #content .livePriorityBacklog .unallocatedSideJob>strong{display:block;width:min(100%,var(--planner-price-text-width,100%))!important}
+ #content .livePriorityBacklog .unallocatedSideJob.plannerArtworkWrapped>b,
+ #content .livePriorityBacklog .unallocatedSideJob.plannerArtworkWrapped>p{display:block!important;width:100%!important;height:auto!important;max-height:none!important;-webkit-line-clamp:unset!important;white-space:normal!important;overflow:visible!important;overflow-wrap:anywhere!important}
+ .unallocatedSideJob .plannerArtworkExclusion{display:block;float:right;pointer-events:none;user-select:none;margin:0;padding:0;border:0;shape-margin:0}
+}

@@ -281,41 +281,50 @@ function plannerArtworkPolygon(profile,box){
  return 'polygon('+[[width,0],[width,extent],...points.reverse(),[width,0]].map(point).join(',')+')';
 }
 function trackTimedArtwork(card,img){
- if(!card?.matches('.job'))return;
+ if(!card?.matches('.job,.unallocatedSideJob'))return;
+ const sidebar=card.matches('.unallocatedSideJob');
  const tracked=timedArtwork.get(img);if(tracked){tracked();return;}
  let observer;
- const work=card.querySelector('.plannerWorkRequired');
+ const work=card.querySelector(sidebar?':scope > b, :scope > p':'.plannerWorkRequired');
+ const heading=card.querySelector(sidebar?'.unallocatedVehicleHeader':'.plannerJobLeft');
  const clear=()=>{card.classList.remove('plannerArtworkWrapped');work?.querySelector('.plannerArtworkExclusion')?.remove();};
  const update=()=>{
   if(!img.isConnected){observer?.disconnect();work?.removeEventListener('scroll',update);return;}
+  const customer=card.querySelector(sidebar?'.dashboardCustomerName':'.plannerJobCustomer');
+  const plate=card.querySelector(sidebar?'.uniformRegPlate':'.plannerPlateAndMot');
+  if(customer&&plate){
+   const top=Math.max(customer.getBoundingClientRect().bottom,plate.getBoundingClientRect().bottom)-card.getBoundingClientRect().top+6;
+   card.style.setProperty('--planner-artwork-top',Math.ceil(top)+'px');
+  }
   const box=img.getBoundingClientRect();
   if(!img.naturalWidth||!img.naturalHeight||!box.width||!box.height){clear();return;}
   const drawnWidth=Math.min(box.width,box.height*img.naturalWidth/img.naturalHeight);
   card.style.setProperty('--planner-vehicle-text-inset',Math.ceil(drawnWidth+12)+'px');
-  // The make/model sits near the roof: reserve its painted edge, not the wider bonnet below.
-  const profile=plannerArtworkProfile(img);
-  for(const [selector,property] of [['.plannerJobVehicle','--planner-identity-text-inset'],['.plannerJobCustomer','--planner-customer-text-inset'],['.plannerJobRightText','--planner-types-text-inset']]){
-  const identity=card.querySelector(selector);
-  if(identity&&profile){
-   const line=identity.getBoundingClientRect(),header=card.querySelector('.plannerJobHeader').getBoundingClientRect();
-   const drawnHeight=drawnWidth*img.naturalHeight/img.naturalWidth;
+  // Measure from each text row's own left edge. A grid's second column must not
+  // subtract the plate width a second time when reserving the painted car.
+  const profile=plannerArtworkProfile(img)||{width:1,height:1,left:[0]};
+  const drawnHeight=drawnWidth*img.naturalHeight/img.naturalWidth;
+  const rows=sidebar?
+   [['.unallocatedVehicleName','--planner-identity-text-width'],['.sideJobType','--planner-types-text-width'],[':scope > strong','--planner-price-text-width']]:
+   [['.plannerJobVehicle','--planner-identity-text-width'],['.plannerJobRightText','--planner-types-text-width']];
+  for(const [selector,property] of rows){
+   const identity=card.querySelector(selector);
+   if(!identity){card.style.removeProperty(property);continue;}
+   const line=identity.getBoundingClientRect();
    let edge=box.right;
    const first=Math.max(0,Math.floor((line.top-box.top-6)/drawnHeight*profile.height));
    const last=Math.min(profile.height-1,Math.ceil((line.bottom-box.top+6)/drawnHeight*profile.height));
    for(let row=first;row<=last;row++)if(profile.left[row]<profile.width)edge=Math.min(edge,box.right-drawnWidth+profile.left[row]/profile.width*drawnWidth);
-   const available=Math.max(0,edge-header.left-6);
-   card.style.setProperty(property,Math.max(0,Math.ceil(card.clientWidth-available))+'px');
-  }else card.style.removeProperty(property);
+   card.style.setProperty(property,Math.max(0,Math.floor(edge-line.left-6))+'px');
   }
   if(!work||!work.textContent.trim()||root.matchMedia?.('(max-width:768px)').matches||root.CSS?.supports&&!root.CSS.supports('shape-outside','polygon(0 0,100% 0,100% 100%)')){clear();return;}
-  if(!profile){clear();return;}
   card.classList.add('plannerArtworkWrapped');
   let exclusion=work.querySelector('.plannerArtworkExclusion');
   if(!exclusion){exclusion=document.createElement('span');exclusion.className='plannerArtworkExclusion';exclusion.setAttribute('aria-hidden','true');work.prepend(exclusion);}
-  const textBox=work.getBoundingClientRect(),drawnHeight=drawnWidth*img.naturalHeight/img.naturalWidth;
+  const textBox=work.getBoundingClientRect();
   // Dashboard artwork uses object-position:right top; the float occupies that same coordinate space.
   const width=Math.max(0,Math.min(textBox.width,textBox.right-(box.right-drawnWidth)+6));
-  const geometry={width,height:work.clientHeight,scrollTop:work.scrollTop,imageLeft:box.right-drawnWidth-(textBox.right-width),imageTop:box.top-textBox.top,imageWidth:drawnWidth,imageHeight:drawnHeight};
+  const geometry={width,height:sidebar?Math.max(0,box.top+drawnHeight-textBox.top+6):work.clientHeight,scrollTop:sidebar?0:work.scrollTop,imageLeft:box.right-drawnWidth-(textBox.right-width),imageTop:box.top-textBox.top,imageWidth:drawnWidth,imageHeight:drawnHeight};
   const shape=plannerArtworkPolygon(profile,geometry);
   exclusion.style.width=width+'px';exclusion.style.height=Math.ceil(geometry.height+geometry.scrollTop)+'px';
   if(exclusion.style.shapeOutside!==shape)exclusion.style.shapeOutside=shape;
@@ -324,7 +333,7 @@ function trackTimedArtwork(card,img){
  // Resize notifications run after layout; defer our writes to avoid observer feedback errors.
  let frame=null;
  const schedule=()=>{if(frame!==null)return;if(!root.requestAnimationFrame){update();return;}frame=root.requestAnimationFrame(()=>{frame=null;update();});};
- if(root.ResizeObserver){observer=new root.ResizeObserver(schedule);observer.observe(img);if(work)observer.observe(work);}
+ if(root.ResizeObserver){observer=new root.ResizeObserver(schedule);observer.observe(img);observer.observe(card);if(heading)observer.observe(heading);if(work)observer.observe(work);}
  update();
 }
 
