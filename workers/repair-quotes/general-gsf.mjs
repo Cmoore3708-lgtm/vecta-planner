@@ -348,7 +348,12 @@ export function productVerificationCategory(results,query){
  const exact=unique.filter(c=>categoryMatches(c.label,query));
  if(exact.length)return exact.length===1?exact[0]:null;
  const related=unique.filter(c=>{const words=repairScope.words(c.label);return terms.length&&terms.every(t=>words.includes(t));});
- return related.length===1?related[0]:null;
+ if(related.length)return related.length===1?related[0]:null;
+ // A single actual related category is a place to verify the chosen SKU,
+ // even when GSF calls it something else. This is navigation only: the final
+ // catalogue product must still match its manufacturer number and brand.
+ const supplied=controls.filter(c=>c.searchSuggestion===true);
+ return supplied.length===1&&unique.includes(supplied[0])?supplied[0]:null;
 }
 
 export async function searchProductVehicleCategory(page,request,selected,{selectVehicle=selectCatalogueVehicle}={}){
@@ -372,7 +377,7 @@ export async function searchProductVehicleCategory(page,request,selected,{select
  if(results?.pageState?.visibleMainCount!==1||results.pageState.busy||results.pageState.loadingMessage)fail('SEARCH_PRODUCT_RESULTS_NOT_RESTORED');
  const control=productVerificationCategory(results,selected.scope.query);
  if(!control)fail('SEARCH_PRODUCT_VEHICLE_CATEGORY_AMBIGUOUS');
- const followed=await followExactCategorySuggestion(page,control.label,categoryChoiceId(control));
+ const followed=await followExactCategorySuggestion(page,control.label,categoryChoiceId(control),{searchQuery:selected.scope.query});
  if(!followed.category)fail('SEARCH_PRODUCT_VEHICLE_CATEGORY_NOT_OPEN');
  observed.category=followed.category;
  // Category pages carry the selected vehicle even when the global search and
@@ -434,7 +439,7 @@ export async function discoverRepairCategory(page,query,{request,now=Date.now,se
     const selected=results.controls.filter(c=>categoryChoiceId(c)===request.choices.gsfCategory);
     if(selected.length===1){
      onProgress('GSF_SELECTED_CATEGORY');
-     const followed=await followExactCategorySuggestion(page,selected[0].label,request.choices.gsfCategory);
+     const followed=await followExactCategorySuggestion(page,selected[0].label,request.choices.gsfCategory,{searchQuery:query});
      if(!followed.category)reject('SELECTED_CATEGORY_NOT_OPEN',{stage:'GSF_SELECTED_CATEGORY',...followed.observed});
      return [followed.category];
     }

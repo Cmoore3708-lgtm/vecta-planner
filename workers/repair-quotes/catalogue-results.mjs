@@ -32,21 +32,31 @@ export function readCatalogueResults({query},doc=document){
  const words=v=>clean(v).toLowerCase().replace(/[.,:;()]/g,' ').split(/\s+/).filter(Boolean).map(w=>w.replace(/s$/,''));
  const terms=words(query),related=label=>terms.some(t=>words(label).includes(t));
  const nodes=[...doc.querySelectorAll('a,button,[role="button"],[role="option"],h1,h2,h3,h4,h5,span,p,li')].filter(visible);
+ const mains=[...doc.querySelectorAll('main,[role="main"]')].filter(visible);
+ const main=mains.length===1?mains[0]:null;
+ const searchTerms=main?[...main.querySelectorAll('h1,h2,h3,[role="heading"]')].filter(visible).map(n=>clean(n.innerText||n.textContent).match(/^Search Results for\s+["“]?(.+?)["”]?$/i)?.[1]).filter(Boolean):[];
+ const currentSearch=searchTerms.length===1&&clean(searchTerms[0]).toLowerCase()===clean(query).toLowerCase();
+ // The supplier's own related-category controls can be synonyms with no
+ // shared words: wishbone -> Suspension Arm. Bind them to this search and
+ // its bounded section; global navigation and other page panels do not qualify.
+ const sections=currentSearch?[...main.querySelectorAll('*')].filter(visible).filter(n=>!n.closest('nav,aside,form,a,button,[role="button"]')&&/^Related categories$/i.test(clean(n.innerText||n.textContent))&&![...n.children].some(c=>clean(c.innerText||c.textContent))).map(n=>n.parentElement).filter(n=>n!==main&&!n.querySelector('h1,h2,h3,[role="heading"]')):[];
  const controls=[];
  for(const n of nodes){
   const label=clean(n.getAttribute('aria-label')||n.innerText||n.textContent),role=n.getAttribute('role')||'';
-  if(!label||label.length>180||!related(label)||n.disabled||n.getAttribute('type')==='submit')continue;
+  const searchSuggestion=sections.length===1&&sections[0].contains(n)&&!n.closest('nav,aside,form');
+  if(searchTerms.length&&!currentSearch||!label||label.length>180||!related(label)&&!searchSuggestion||n.disabled||n.getAttribute('type')==='submit')continue;
+  if(currentSearch&&sections.length===1&&!searchSuggestion)continue;
   if(!['A','BUTTON'].includes(n.tagName)&&!['option','button'].includes(role))continue;
+  if(!/[a-z]/i.test(label)||/^(?:\+\d+\s*)?(?:(?:show|see|view|load)\s+(?:more|less)|next(?: page)?|previous(?: page)?)$/i.test(label))continue;
   if(/\b(?:buy|add|basket|checkout|order|delete|remove|quote|estimate|account)\b/i.test(label))continue;
   let path='';const href=n.getAttribute('href')||n.closest('a[href]')?.getAttribute('href');
   if(href){try{const u=new URL(href,'https://trade.gsfcarparts.com');if(u.origin!=='https://trade.gsfcarparts.com'||!u.pathname.startsWith('/parts/'))continue;path=u.pathname;}catch{continue;}}
-  controls.push({label:scrub(label),selector:selector(n),tag:n.tagName,role,path});
+  controls.push({label:scrub(label),selector:selector(n),tag:n.tagName,role,path,...(searchSuggestion?{searchSuggestion:true}:{})});
  }
  const leaf=nodes.filter(n=>clean(n.innerText||n.textContent).length<=220&&![...n.children].some(c=>clean(c.innerText||c.textContent)===clean(n.innerText||n.textContent)));
  const labels=[...new Set(leaf.map(n=>clean(n.innerText||n.textContent)).filter(t=>t&&related(t)).map(scrub))].slice(0,30);
  const headings=[...doc.querySelectorAll('h1,h2,h3,h4,h5,[role="heading"]')].filter(visible).map(n=>clean(n.innerText||n.textContent)).filter(t=>t.length<=220&&(/search|results?|categor/i.test(t)||related(t))).map(scrub).slice(0,12);
  const emptyMessages=[...new Set(leaf.map(n=>clean(n.innerText||n.textContent)).filter(t=>/\bno (?:matching )?(?:parts|products|results|items|matches)\b|\b0 (?:results|products|items)\b/i.test(t)).map(scrub))].slice(0,4);
- const mains=[...doc.querySelectorAll('main,[role="main"]')].filter(visible);
  const mainMatchingLabels=[...new Set(mains.flatMap(m=>[...m.querySelectorAll('*')]).filter(visible).filter(n=>!n.closest('nav,aside,form,a,button,select,[contenteditable="true"],[role="option"],[role="listbox"]')&&!['SCRIPT','STYLE','INPUT','TEXTAREA'].includes(n.tagName)&&![...n.children].some(c=>clean(c.innerText||c.textContent))).map(n=>clean(n.innerText||n.textContent)).filter(t=>t&&t.length<=150&&related(t)).map(scrub))].slice(0,30);
  const mainHeadings=[...new Set(mains.flatMap(m=>[...m.querySelectorAll('h1,h2,h3,h4,h5,[role="heading"]')]).filter(visible).map(n=>scrub(n.innerText||n.textContent)).filter(Boolean))].slice(0,15);
  const statusText=leaf.map(n=>clean(n.innerText||n.textContent)).join(' ');
@@ -60,9 +70,9 @@ export function readCatalogueResults({query},doc=document){
 // Accept a matching named route, or a new numeric route reached by clicking
 // the exact observed category label. The subsequent capture still verifies
 // the selected registration and presents actual parts for explicit selection.
-export async function followExactCategorySuggestion(page,query,selected){
+export async function followExactCategorySuggestion(page,query,selected,{searchQuery=query}={}){
  const current=observedCategory(page.url());if(categoryMatches(current,query))return {category:current};
- const results=await page.evaluate(readCatalogueResults,{query});
+ const results=await page.evaluate(readCatalogueResults,{query:searchQuery});
  const exact=results.controls.filter(c=>selected?categoryChoiceId(c)===selected:categoryMatches(c.label,query));
  if(exact.length!==1)return {category:'',observed:results};
  const control=page.locator(exact[0].selector);

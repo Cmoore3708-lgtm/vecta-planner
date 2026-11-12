@@ -19,13 +19,41 @@ export function readSearchProducts({query},doc=document){
  const main=mains[0],nodes=[...main.querySelectorAll('*')].filter(visible);
  const excluded=n=>n.closest('nav,aside,form,[role="listbox"],[role="option"],[contenteditable="true"]')||['SCRIPT','STYLE','INPUT','TEXTAREA'].includes(n.tagName);
  const leaf=nodes.filter(n=>!excluded(n)&&![...n.children].some(c=>clean(text(c))===clean(text(n))));
- const titles=leaf.filter(n=>{const value=clean(text(n));return value.length>=2&&value.length<=160&&wanted.length&&wanted.every(w=>words(value).includes(w))&&!/£|\b(?:search|results?|related|categor(?:y|ies)|buy|add|basket|checkout|order|account)\b/i.test(value);});
+ const searchTerms=[...main.querySelectorAll('h1,h2,h3,[role="heading"]')].filter(visible).map(n=>clean(text(n)).match(/^Search Results for\s+["“]?(.+?)["”]?$/i)?.[1]).filter(Boolean);
+ const currentSearch=searchTerms.length===1&&clean(searchTerms[0]).toLowerCase()===clean(query).toLowerCase();
+ if(searchTerms.length&&!currentSearch)return {products:[],busy:false,productTitleCount:0};
+ // GSF can return a different name (drop link -> Stabiliser Rod/Strut).
+ // Trust the supplier's current Parts section, not a local synonym list or
+ // any arbitrary price elsewhere on the page. Keep pending descriptions too.
+ const sections=currentSearch?leaf.filter(n=>/^Parts\s*[-–]\s*\d+\s+products? found$/i.test(clean(text(n)))).map(n=>n.parentElement).filter(n=>n!==main&&!n.querySelector('h1,h2,h3,[role="heading"]')):[];
+ const section=sections.length===1?sections[0]:null;
+ const code=value=>/^(?=.{3,80}$)(?=.*\d)[a-z0-9][a-z0-9._/-]*$/i.test(value)&&!/^\d{1,4}$|^\d+(?:\.\d+)?(?:mm|cm|m|v|w|kg|g|l)$/i.test(value);
+ const precedingCodes=(title,boundary)=>{
+  const codes=[];
+  for(let branch=title;branch&&branch!==boundary;branch=branch.parentElement){
+   const previous=branch.previousElementSibling;
+   if(previous&&boundary.contains(previous)&&visible(previous)&&!excluded(previous)&&!previous.closest('button,[role="button"]')&&!previous.querySelector('button,input,select,textarea,[role="button"]')){
+    const value=clean(text(previous));if(code(value))codes.push({value,container:branch.parentElement});
+   }
+  }
+  return codes;
+ };
+ const bounds=new WeakMap();
+ const titles=leaf.filter(n=>{
+  const value=clean(text(n));
+  if(value.length<2||value.length>160||!wanted.length||/£|\b(?:search|results?|related|categor(?:y|ies)|buy|add|basket|checkout|order|account)\b/i.test(value))return false;
+  if(section&&!section.contains(n))return false;
+  const pairs=section?precedingCodes(n,section):[];
+  if(pairs.length===1)bounds.set(n,pairs[0].container);
+  return wanted.every(w=>words(value).includes(w))||!!section&&!code(value)&&!n.closest('a,button,[role="button"]')&&pairs.length===1;
+ });
  const prices=leaf.filter(n=>/^£\s*\d+(?:,\d{3})*\.\d{2}(?:\s+(?:ex|excluding|inc|including)\s+VAT)?$/i.test(clean(text(n)))&&!n.closest('button,[role="button"]'));
  const products=[];
  for(const title of titles){
   let card=title.parentElement;
   while(card&&card!==main&&!prices.some(p=>card.contains(p)))card=card.parentElement;
   if(!card||card===main||titles.filter(t=>card.contains(t)).length!==1)continue;
+  if(bounds.has(title)&&!bounds.get(title).contains(card))continue;
   const cardPrices=prices.filter(p=>card.contains(p));if(cardPrices.length!==1)continue;
   const price=Number(clean(text(cardPrices[0])).match(/£\s*([\d,.]+)/)[1].replaceAll(',',''));
   const displayPricePence=Math.round(price*100);if(!Number.isSafeInteger(displayPricePence)||displayPricePence<=0)continue;
@@ -38,14 +66,7 @@ export function readSearchProducts({query},doc=document){
   // Live TradeHub cards put an unprefixed manufacturer code immediately
   // before the description. Read only that sibling inside this card, never
   // another product, a basket count, a length or an arbitrary page number.
-  const code=value=>/^(?=.{3,80}$)(?=.*\d)[a-z0-9][a-z0-9._/-]*$/i.test(value)&&!/^\d{1,4}$|^\d+(?:\.\d+)?(?:mm|cm|m|v|w|kg|g|l)$/i.test(value);
-  const bare=[];
-  for(let branch=title;branch&&branch!==card;branch=branch.parentElement){
-   const previous=branch.previousElementSibling;
-   if(previous&&card.contains(previous)&&visible(previous)&&!excluded(previous)&&!previous.closest('button,[role="button"]')&&!previous.querySelector('button,input,select,textarea,[role="button"]')){
-    const value=clean(text(previous));if(code(value))bare.push(value);
-   }
-  }
+  const bare=precedingCodes(title,card).map(pair=>pair.value);
   const labelled=skuNodes.length===1?clean(text(skuNodes[0])).replace(/^SKU:\s*/i,''):'';
   const codes=[...new Set([...bare,...(labelled?[labelled]:[])].map(value=>value.toUpperCase()))];
   const sku=skuNodes.length<=1&&codes.length===1?labelled||bare[0]:'';
