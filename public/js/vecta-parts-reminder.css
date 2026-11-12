@@ -1,0 +1,13 @@
+/* Chris approved option 2 on 12 November: a separate red spanner / Order parts
+   badge below the car. Job duration, order and existing traffic lights stay intact. */
+.partsOrderHost[data-open-job],.partsOrderHost[data-open-unallocated]{position:relative}
+.partsOrderBadge{position:absolute;bottom:6px;right:22px;z-index:9;display:inline-flex;align-items:center;justify-content:center;gap:7px;box-sizing:border-box;margin:0;min-height:28px;padding:4px 8px;border:1.5px solid #dc2626;border-radius:7px;background:#fff7f7;color:#b91c1c;font:800 12px/1.1 Arial,sans-serif;cursor:pointer;white-space:nowrap;touch-action:manipulation;box-shadow:0 1px 3px #7f1d1d15}
+.partsOrderBadge svg{width:21px;height:21px;flex:none;stroke:currentColor;stroke-width:2.5;fill:none;stroke-linecap:round;stroke-linejoin:round}
+.partsOrderBadge:hover{background:#fee2e2}.partsOrderBadge:focus-visible{outline:3px solid #fb7185;outline-offset:3px}.partsOrderBadge[aria-disabled=true]{opacity:.7;cursor:wait}
+.partsOrderHost.portalMessageHost .partsOrderBadge{right:70px}
+.job.partsOrderHost .plannerWorkRequired{max-height:var(--parts-work-height)!important;overflow-y:auto!important}
+.sideJob.partsOrderHost,.mobileJob.partsOrderHost{padding-bottom:43px!important}
+.partsOrderNotice{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);z-index:30000;display:flex;align-items:center;gap:12px;max-width:calc(100vw - 32px);box-sizing:border-box;padding:12px 16px;background:#fff;border:1px solid #15803d;border-radius:10px;color:#14532d;box-shadow:0 6px 28px #0013;font:700 13px/1.4 Arial,sans-serif}
+.partsOrderNotice button{border:0;background:none;color:inherit;font:inherit;text-decoration:underline;min-height:36px;cursor:pointer}
+.portalWorkshop .portalPartsRequired{display:flex;align-items:center;gap:8px;margin:10px 0}.portalWorkshop .portalPartsRequired input{width:auto;margin:0}.portalWorkshop .portalPartsRequired[hidden]{display:none}
+@media(max-width:900px){.partsOrderBadge{min-height:34px}.partsOrderNotice{flex-wrap:wrap;width:max-content}}

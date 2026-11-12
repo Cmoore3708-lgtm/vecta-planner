@@ -26,6 +26,7 @@ async function database(){
  await db.query("insert into jobs(id,booking_date,drop_time,status,registration,customer_email,customer_phone,work_required,amount_quoted,vat_mode) values($1,current_date,'08:00','in_progress','TEST001','driver@example.invalid','','MOT',45,'no_vat')",[jobId]);
  await db.exec(read(migration));
  await db.exec(read('supabase/migrations/20261112172951_quote_popup_forwarding.sql'));
+ await db.exec(read('supabase/migrations/20261112182907_approved_parts_reminder.sql'));
  await db.query("insert into additional_work_approvals(id,job_id,registration,customer_email,customer_phone,progress_booking_date,progress_message,progress_photo_ids,progress_from_mechanic,status,progress_review_state,progress_estimate_pence,expires_at) values($1,$2,'TEST001','driver@example.invalid','',current_date,'Replace front brake pads','{}',true,'pending','sent',12000,now()+interval '1 day')",[quoteId,jobId]);
  const job=async()=>(await db.query('select *,updated_at::text updated_at from jobs where id=$1',[jobId])).rows[0];
  const respond=async(decision,reply='',id=replyId,j)=>{
@@ -79,4 +80,24 @@ test('popup has a saved car image, coloured named decision and optional message;
   window.VectaPortalWorkshop.showResponse({id:replyId,kind:'approval_response',actor:'customer',registration:'TEST001',customer_name:'Chris',message:'Replace pads',created_at:'2026-11-12T12:00:00Z',forwarded:mechanic,...(mechanic?{decision:'declined',reply:'Please leave these for now'}:{details:{status:'approved',estimated_pence:12000,customer_reply:'Please keep old parts'}})});await tick();
   const popup=document.querySelector('.portalDecisionDialog');assert.ok(popup.querySelector('img'));assert.equal(popup.querySelector('.plate'),null);assert.match(popup.querySelector('h2').textContent,mechanic?/Bad news, Chris has declined/:/Good news, Chris has authorised/);assert.ok(popup.querySelector('.portalQuoteReply'));if(mechanic)assert.doesNotMatch(popup.textContent,/£|120|VAT|Send to mechanic/);else{assert.match(popup.textContent,/£120.00/);assert.ok(popup.querySelector('.portalForwardQuote'));}
  }
+});
+
+test('parts ordering is durable before/after forwarding; newer approvals survive and undo is scoped to its receipt',async()=>{
+ const h=await database();try{
+  await h.db.exec("update additional_work_approvals set progress_parts_required=true,progress_parts='[{\"description\":\"Pads\",\"quantity\":1}]'");
+  const orderId='44444444-4444-4444-8444-444444444444',otherId='55555555-5555-4555-8555-555555555555',newQuote='66666666-6666-4666-8666-666666666666';
+  const order=async(ids=[quoteId],id=orderId,undo=false)=>(await h.db.query('select vecta_record_quote_parts_order($1,$2,$3,$4) result',[jobId,ids,id,undo])).rows[0].result;
+  assert.equal((await order()).code,409,'cannot order an unapproved quote');
+  await h.respond('approved');const original=await h.job();assert.equal((await h.approval()).progress_parts_ordered_at,null);
+  assert.equal((await order()).code,200);assert.deepEqual((await order()).undo_ids,[quoteId]);assert.deepEqual(await h.job(),original,'ordering does not alter prices, job contents or traffic lights');
+  await h.forward();assert.ok((await h.approval()).progress_parts_ordered_at,'forwarding cannot clear or reset the receipt');
+  assert.deepEqual((await order([quoteId],otherId)).undo_ids,[],'another device cannot undo the first device’s receipt');
+  await h.db.query("insert into additional_work_approvals(id,job_id,registration,customer_email,progress_message,status,progress_review_state,progress_parts_required) values($1,$2,'TEST001','driver@example.invalid','Another part','approved','sent',true)",[newQuote,jobId]);
+  assert.equal((await h.db.query('select progress_parts_ordered_at from additional_work_approvals where id=$1',[newQuote])).rows[0].progress_parts_ordered_at,null);
+  assert.equal((await order([quoteId],otherId,true)).code,409);
+  assert.equal((await order([quoteId],orderId,true)).code,200);assert.equal((await h.approval()).progress_parts_ordered_at,null);
+  await order([quoteId],otherId);assert.equal((await order([quoteId],orderId,true)).code,409,'old Undo cannot reverse a newer order');
+  await h.db.query("update jobs set customer_email='replacement@example.invalid'");assert.equal((await order([newQuote])).code,409);
+  const rights=(await h.db.query("select has_function_privilege('anon','vecta_record_quote_parts_order(uuid,uuid[],uuid,boolean)','execute') a,has_function_privilege('authenticated','vecta_record_quote_parts_order(uuid,uuid[],uuid,boolean)','execute') b")).rows[0];assert.deepEqual(rights,{a:false,b:false});
+ }finally{await h.db.close();}
 });
