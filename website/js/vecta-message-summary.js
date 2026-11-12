@@ -1,5 +1,10 @@
 /* Titles for saved conversation entries, including older emails without a subject. */
 (()=>{'use strict';
+ function visible(item){
+  // Delivery notices point back to the real message; keep their audit record
+  // without showing a second conversation entry about the notification itself.
+  return !(item.kind==='correspondence'&&item.actor==='workshop'&&/^Hi [^\r\n]+\. You have a new message in your Vecta customer portal that needs your attention\.\s+Open your customer portal:\s+https:\/\/[^\s]+\/track[^\s]*\s*$/i.test(String(item.message||'')));
+ }
  function progress(item){
   // Older audit entries already contain the status at the time of the change.
   // Only reinterpret generic progress events, never genuine booking/work edits.
@@ -23,5 +28,5 @@
   }
   return {message:item.actor==='customer'?'Customer message':'Workshop message',note:'Workshop note',preferences:'Parts authorisation',amendment:'Booking amendment requested',additional_work:'Additional work requested',cancelled:'Booking cancelled',approval_response:decision==='approved'?'Work authorised':decision==='declined'?'Work not authorised':'Customer decision',approval_request:'Approval requested',booking_update:'Booking updated'}[item.kind]||'Job update';
  }
- window.VectaMessageSummary={title,progress};
+ window.VectaMessageSummary={title,progress,visible};
 })();
