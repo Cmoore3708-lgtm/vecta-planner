@@ -103,3 +103,8 @@
 .customerDecisionAlert[data-decision=declined] {border-color:#d79292;border-left-color:#b93f3f;background:#fff4f4;color:#582020}
 .findingAlertEstimate {font-size:14px;line-height:1.4}
 .findingAlertEstimate[hidden] {display:none}
+
+/* Keep all three photo controls on one row, including narrow phones. */
+#jobModal .workshopPhotos .workshopPhotoToolbar{display:flex;flex-wrap:nowrap;gap:5px;max-width:100%}
+#jobModal .workshopPhotos .workshopPhotoToolbar .btn{flex:1 1 0;min-width:0;min-height:44px;margin:0;padding:7px 8px;font-size:12px;line-height:1.25;white-space:normal}
+@media(max-width:520px){#jobModal .workshopPhotos .workshopPhotoToolbar{width:100%}}

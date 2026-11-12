@@ -36,3 +36,21 @@
 .portalWorkshop .portalAlertReceipt{margin-top:0}
 .portalDeliveryDetails{margin-top:4px}.portalDeliveryDetails>summary{font-size:12px;opacity:.8}
 @media(max-width:600px){.portalWorkshop{padding:10px}.portalWorkshopEvent{padding:10px}.portalWorkshop .portalWorkshopHeading h3{font-size:15px}}
+
+/* Conversation rows reveal the full message only when opened. */
+.portalWorkshopEvent{padding:0;margin:4px 0}
+.portalWorkshopEvent>summary{display:flex;align-items:center;gap:8px;min-height:44px;padding:10px 12px;cursor:pointer;list-style:none}
+.portalWorkshopEvent>summary::-webkit-details-marker{display:none}
+.portalWorkshopEvent>summary::before{content:'›';flex:none;font-size:19px;line-height:1;transition:transform .15s}
+.portalWorkshopEvent[open]>summary::before{transform:rotate(90deg)}
+.portalWorkshopEvent>summary strong{flex:1;min-width:0;font-size:13px;line-height:1.35}
+.portalWorkshopEvent>summary time{flex:none;font-size:11px}
+.portalWorkshopEvent>summary:focus-visible{outline:2px solid currentColor;outline-offset:-3px;border-radius:8px}
+.portalWorkshopEventBody{padding:0 12px 12px}
+.portalWorkshopEventBody p{margin:6px 0 0;overflow-wrap:anywhere}
+.portalWorkshopEventBody>p:empty{display:none}
+.jobModalCard .jobTypesDisclosure{margin:0 0 8px}
+.jobModalCard .jobTypesDisclosure>summary{width:fit-content;min-height:44px;padding:12px 2px;cursor:pointer;font-size:13px;line-height:20px;font-weight:650;text-decoration:underline;text-underline-offset:3px}
+.jobModalCard .jobTypesDisclosure>summary:focus-visible{outline:2px solid currentColor;outline-offset:2px}
+.jobModalCard .jobTypesDisclosure[open]>.templateBtns{margin-top:3px}
+@media(max-width:600px){.portalWorkshopEvent{padding:0}.portalWorkshopEvent>summary{padding:10px;gap:6px}.portalWorkshopEvent>summary time{font-size:10px}.portalWorkshopEventBody{padding:0 10px 10px}}

@@ -64,3 +64,16 @@ test('job time choice persists in existing job notes without mutating the cloud 
  const fixed=ctx.gatherJob(saved.id);assert.equal(fixed.drop_time,'11:30');assert.equal(ctx.plannerJobTimeLocked(fixed),true);assert.match(fixed.customer_note,/Call first/);assert.equal(saved.drop_time,'10:00');assert.equal(saved.customer_note,'Call first');
  ctx.app.jobs[0]=JSON.parse(JSON.stringify(fixed));field.value='';const flexible=ctx.gatherJob(saved.id);assert.equal(ctx.plannerJobTimeLocked(flexible),false);assert.equal(flexible.drop_time,'11:30');assert.match(flexible.customer_note,/VECTA_BOOKING_TIME:next/);
 });
+
+test('internal workshop notes survive save/reopen and clearing without altering public work or other metadata',()=>{
+ const saved={id:'internal-1',customer_account:'Staff',job_type:'general',work_required:'Replace front pads',technician_notes:'Service sheet note',customer_note:'[[VECTA_PRIVATE_PRICING:saved-price]]\n[[JOB_PARTS_URI:saved-parts]]'};
+ const field={value:'Office only: supplier query [[bracket]]\nKeep this private £25'},ctx={app:{jobs:[saved]},document:{getElementById:key=>key==='job_internal_workshop_notes'?field:null},
+  syncPrivatePricingTotal:()=>[],gatherJobPartsEditor:()=>[],noteWithPrivatePricing:n=>n,noteWithJobParts:n=>n,dvsaAdvisoryArray:v=>v||[],fleetNormaliseCustomer:v=>v,
+  jobTypeStorageValue:v=>v,jobTypeValues:()=>['general'],hasMotJobType:()=>false,setMotTimeOnNote:n=>n,carryOverMeta:()=>null,isUnallocatedJob:()=>false,isVehicleTaxJob:()=>false,
+  normalisePartsStatus:()=>'',calculatedPartsStatus:()=>'',fleetIncomeCustomerFromVehicle:()=>'',fleetIsContractorIncome:()=>false,partsStatusNote:n=>n};
+ vm.createContext(ctx);vm.runInContext(html.slice(html.indexOf('function internalWorkshopNotes('),end),ctx);
+ const draft=ctx.gatherJob(saved.id);assert.equal(ctx.internalWorkshopNotes(draft),field.value);assert.equal(draft.work_required,saved.work_required);assert.equal(draft.technician_notes,saved.technician_notes);assert.equal(ctx.internalWorkshopNotes(saved),'');
+ assert.ok(draft.customer_note.startsWith(saved.customer_note));ctx.app.jobs[0]=JSON.parse(JSON.stringify(draft));assert.equal(ctx.internalWorkshopNotes(ctx.app.jobs[0]),field.value);
+ field.value='Updated private note';const edited=ctx.gatherJob(saved.id);assert.equal(ctx.internalWorkshopNotes(edited),field.value);assert.equal((edited.customer_note.match(/VECTA_INTERNAL_NOTES:/g)||[]).length,1);
+ ctx.app.jobs[0]=edited;field.value='';assert.equal(ctx.gatherJob(saved.id).customer_note,saved.customer_note);
+});

@@ -698,3 +698,23 @@
 #jobModal .jobCustomerInstructions,#printSheet .jobCustomerInstructions{margin-top:14px;padding:14px 16px;border:2px solid #b68b32;border-radius:10px;background:#fff9e9;color:#34280f}
 #jobModal .jobCustomerInstructions h4,#printSheet .jobCustomerInstructions h4{margin:0 0 9px;font-size:14px}
 #jobModal .jobCustomerInstructions p,#printSheet .jobCustomerInstructions p{margin:7px 0;font-size:15px;line-height:1.5;font-weight:700}
+
+/* Saved job details stay available without filling the phone screen. */
+#jobModal details.jobSectionDisclosure>summary.jobFormSectionHead,
+#jobModal .jobCardHeaderDetails>details.jobSectionDisclosure>summary.jobFormSectionHead{
+ display:list-item!important;box-sizing:border-box;min-height:44px;padding:12px 10px!important;margin:0!important;cursor:pointer;font-size:13px;font-weight:700;text-decoration:underline;text-underline-offset:3px;list-style-position:inside
+}
+#jobModal details.jobSectionDisclosure:not([open])>summary{border-bottom:0}
+#jobModal details.jobSectionDisclosure>summary:focus-visible,
+#jobModal .bookingDateDisclosure>summary:focus-visible{outline:2px solid #2764a3;outline-offset:-2px}
+#jobModal .bookingAvailabilityWorkspace:has(>.bookingDateDisclosure),
+#jobModal .jobCardSupportColumn .bookingAvailabilityWorkspace.hasDayPlanner:has(>.bookingDateDisclosure){display:block!important;height:auto!important;min-height:0!important;align-self:start}
+#jobModal .bookingDateDisclosure>summary{box-sizing:border-box;min-height:44px;padding:12px 10px;cursor:pointer;font-size:13px;font-weight:700;text-decoration:underline;text-underline-offset:3px;list-style-position:inside;color:#174778;background:#eef5fc;border:1px solid #b7cce2;border-radius:7px}
+#jobModal .bookingDateBody{display:grid;grid-template-columns:minmax(165px,220px) minmax(0,1fr);gap:8px;margin-top:8px;min-width:0}
+#jobModal .jobWorkSection .customerReadableLabel{display:inline-block;padding:5px 8px;background:#8a4308;color:#fff;border-radius:5px;font-size:12px;font-weight:800;line-height:1.3}
+#jobModal .jobInternalNotesSection{--job-section-bg:#f2f4f7;--job-section-border:#bdc7d2;--job-section-heading:#e8edf2;background:#f2f4f7;border:1px solid #bdc7d2}
+#jobModal .jobInternalNotesSection .jobFormSectionHead{flex-wrap:wrap;gap:4px 10px}
+#jobModal .jobInternalNotesSection h3 label{font:inherit;color:inherit;margin:0}
+#jobModal .internalNotesLabel{font-size:12px;font-weight:700;color:#334155}
+#jobModal #job_internal_workshop_notes{display:block;box-sizing:border-box;width:100%;min-height:64px;resize:vertical;padding:9px;border:1px solid #aab7c6;border-radius:6px;font:inherit;font-size:16px;line-height:1.4;background:#fff;color:#17202d}
+@media(max-width:1049px){#jobModal .bookingDateBody{grid-template-columns:minmax(0,1fr)}}

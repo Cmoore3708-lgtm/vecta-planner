@@ -70,23 +70,23 @@
   }
  }
  function eventCard(item,canForward,alerts){
-  const c=node('article');c.className='portalWorkshopEvent';c.dataset.eventId=item.id;
+  const c=node('details');c.className='portalWorkshopEvent';c.dataset.eventId=item.id;
   const decision=item.decision||item.details?.status;
   const titles={message:'Message',preferences:'Parts authorisation',amendment:'Amendment requested',additional_work:'Additional work requested',cancelled:'Booking cancelled',approval_response:decision==='approved'?'Work authorised':decision==='declined'?'Work not authorised':'Customer decision',approval_request:'Approval requested',booking_update:'Booking updated',correspondence:'Workshop message'};
-  const heading=node('div');heading.className='portalWorkshopEventHeading';
+  const heading=node('summary');heading.className='portalWorkshopEventHeading';
   const timestamp=node('time',date(item.created_at));timestamp.dateTime=item.created_at;
-  heading.append(node('strong',(item.actor==='customer'?'Customer · ':'Vecta · ')+(titles[item.kind]||'Job update')),timestamp);
-  c.append(heading,node('p',item.message));
-  if(item.details?.requested_date)c.append(node('p','Requested date: '+item.details.requested_date+' — awaiting workshop confirmation.'));
-  if(item.details?.work_required)c.append(node('p',item.details.work_required));
+  heading.append(node('strong',window.VectaMessageSummary?.title(item)||titles[item.kind]||'Job update'),timestamp);
+  const body=node('div');body.className='portalWorkshopEventBody';c.append(heading,body);body.append(node('p',item.message));
+  if(item.details?.requested_date)body.append(node('p','Requested date: '+item.details.requested_date+' — awaiting workshop confirmation.'));
+  if(item.details?.work_required)body.append(node('p',item.details.work_required));
   const green=decision==='approved'||item.authorised===true||item.details?.preferences?.serious_repairs==='change_parts',red=decision==='declined'||item.authorised===false||item.details?.preferences?.serious_repairs==='book_later';
   c.dataset.signal=green?'green':red?'red':item.kind==='approval_request'?'amber':'';
-  if(Number.isInteger(item.details?.estimated_pence))c.append(node('p','£'+(item.details.estimated_pence/100).toFixed(2)+' including VAT'));
+  if(Number.isInteger(item.details?.estimated_pence))body.append(node('p','£'+(item.details.estimated_pence/100).toFixed(2)+' including VAT'));
   if(canForward&&item.actor==='customer'){
    const send=button(item.forwarded?'Sent to mechanic':'Send to mechanic',async()=>{send.disabled=true;try{await api('portal-forward',{event_id:item.id});send.textContent='Sent to mechanic';window.dispatchEvent(new Event('vecta-portal-changed'));}catch(e){send.disabled=false;status.textContent=e.message;}});
-   send.disabled=item.forwarded;const status=node('p');status.setAttribute('role','status');c.append(send,status);
+   send.disabled=item.forwarded;const status=node('p');status.setAttribute('role','status');body.append(send,status);
   }
-  if(canForward&&alerts){const details=node('details'),delivery=node('div');details.className='portalDeliveryDetails';details.append(node('summary','Alert delivery'),delivery);showAlerts(delivery,alerts,item.job_id);c.append(details);}
+  if(canForward&&alerts){const details=node('details'),delivery=node('div');details.className='portalDeliveryDetails';details.append(node('summary','Alert delivery'),delivery);showAlerts(delivery,alerts,item.job_id);body.append(details);}
   return c;
  }
  function mount(modal,job,saved){
@@ -114,8 +114,10 @@
    const ordered=orderedEvents();
    const hash=JSON.stringify([ordered,[...receipts],visibleCount]);
    if(hash!==key){
+    const expanded=new Set([...list.querySelectorAll('.portalWorkshopEvent[open]')].map(card=>card.dataset.eventId));
     key=hash;const cards=ordered.slice(0,visibleCount).map(item=>eventCard(item,!mechanic(),receipts.get(item.id)));
     if(!cards.length){const empty=node('p',mechanic()?'No office messages or approvals yet.':'No messages yet.');empty.className='portalWorkshopEmpty';cards.push(empty);}
+    for(const card of cards)if(expanded.has(card.dataset.eventId))card.setAttribute('open','');
     list.replaceChildren(...cards);
    }
    olderButton.hidden=ordered.length<=visibleCount&&!older;latestButton.hidden=visibleCount<=5;updateRead();
