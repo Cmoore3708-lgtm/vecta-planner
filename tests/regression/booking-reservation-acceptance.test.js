@@ -21,3 +21,8 @@ test('website service draft loads saved GSF costs into the existing parts list',
  const {saved}=await accept({gsf_parts:parts});const marker=saved.customer_note.match(/\[\[JOB_PARTS_URI:([^\]]+)\]\]/);
  assert.deepEqual(JSON.parse(decodeURIComponent(marker[1])),parts);assert.equal(saved.parts_status,'Parts need ordering');
 });
+
+test('EV service reservation retains its work type when opened as a workshop job',async()=>{
+ const {saved,closed}=await accept({job_types:['EV Servicing','MOT'],confirmed_date:'2050-01-11',confirmed_time:'09:30:00',reserved_hours:1});
+ assert.equal(saved.job_type,'EV Servicing || MOT');assert.equal(saved.booking_date,'2050-01-11');assert.equal(saved.estimated_hours,1);assert.equal(closed,undefined);
+});

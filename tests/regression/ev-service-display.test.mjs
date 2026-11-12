@@ -1,3 +1,4 @@
+import {bookingTypes} from '../../lib/booking-input.js';
 import test from 'node:test';import assert from 'node:assert/strict';import fs from 'node:fs';import vm from 'node:vm';
 const html=fs.readFileSync('website/booking/index.html','utf8');
 test('EV offer requires registration-bound electric identity, never hybrid or unknown',()=>{
@@ -31,4 +32,16 @@ test('choosing Service for an EV automatically selects the glowing EV card and n
 });
 test('automatic EV selection requires Service intent and confirmed current registration',()=>{
  for(const variant of ['other','hybrid','changed-reg','nevos']){const c=context(),f=c.state.form;if(variant==='other')f.job_types=['MOT'];if(variant==='hybrid')f.fuel_type='Petrol Hybrid';if(variant==='changed-reg')f.registration='ZZ99ZZZ';if(variant==='nevos')f.nevos_vehicle='yes';c.reconcileServiceChoice();assert.equal(f.service_choice,'',variant);}
+});
+
+test('every rendered service option is accepted by the shared availability and submission validator',()=>{
+ for(const fuel of ['Electric','Petrol','Diesel','Petrol Hybrid','Plug-in Hybrid','']){
+  const c=context();c.state.form.fuel_type=fuel;
+  const choices=[...c.serviceOptionsHtml().matchAll(/data-service-choice="([^"]+)"/g)].map(match=>match[1]);
+  assert.ok(choices.length,'The customer must have a service option');
+  for(const choice of choices)for(const mot of [[],['MOT']]){
+   assert.deepEqual(bookingTypes({job_types:[choice,...mot],service_choice:choice}),[choice,...mot]);
+   assert.deepEqual(bookingTypes({job_types:['Service',...mot],service_choice:choice}),[choice,...mot]);
+  }
+ }
 });
