@@ -6,7 +6,7 @@ import {parseHTML} from 'linkedom';
 
 const script=readFileSync(new URL('../../public/js/haynes-job-tools.js',import.meta.url),'utf8');
 
-test('the job editor fits the invoice below the calendar and returns it in order when the space disappears',()=>{
+test('the job editor keeps Parts and Invoice together on the right as the calendar grows or columns stack',()=>{
  const {document,window}=parseHTML(`<html><body><div id="modal"><div class="jobModalCard">
   <div class="jobModalHead"><h2>Job</h2></div>
   <div class="jobVehicleSection"><input id="job_registration"></div>
@@ -46,20 +46,21 @@ test('the job editor fits the invoice below the calendar and returns it in order
  const layout=()=>{notifyResize();assert.ok(frame);const run=frame;frame=null;run();};
  layout();
  assert.ok(invoice.parentElement===aside,'invoice.parentElement should be aside');
- assert.ok(parts.parentElement===main,'parts.parentElement should be main');
+ assert.ok(parts.parentElement===aside,'parts.parentElement should be aside');
  field.value='Front tyre replacement';
  Object.defineProperty(document,'activeElement',{configurable:true,value:field});
  calendarHeight=900;layout();
  assert.ok(invoice.parentElement===aside,'invoice.parentElement should be aside');
  Object.defineProperty(document,'activeElement',{configurable:true,value:null});
  field.dispatchEvent(new window.Event('focusout',{bubbles:true}));assert.ok(frame);layout();
- assert.ok(invoice.parentElement===main,'invoice.parentElement should be main');
+ assert.ok(invoice.parentElement===aside,'invoice.parentElement should be aside');
  assert.ok(invoice.previousElementSibling===parts,'invoice.previousElementSibling should be parts');
  calendarHeight=320;layout();assert.ok(invoice.parentElement===aside,'invoice.parentElement should be aside');
  wide=false;layout();
- assert.ok(invoice.parentElement===main,'invoice.parentElement should be main');
+ assert.ok(invoice.parentElement===aside,'invoice.parentElement should be aside');
  assert.ok(invoice.previousElementSibling===parts,'invoice.previousElementSibling should be parts');
- assert.ok(parts.previousElementSibling===advisories,'parts.previousElementSibling should be advisories');
+ assert.ok(parts.previousElementSibling.matches('.bookingAvailabilityWorkspace'),'commercial sections remain after the calendar');
+ assert.ok(advisories.parentElement===main,'reading content stays before the commercial column on phone');
  assert.ok(find('textarea')===field,'find("textarea") should be field');
  assert.equal(field.value,'Front tyre replacement');
  modal.replaceChildren();layout();

@@ -727,3 +727,10 @@
 #jobModal .internalNotesLabel{font-size:12px;font-weight:700;color:#334155}
 #jobModal #job_internal_workshop_notes{display:block;box-sizing:border-box;width:100%;min-height:64px;resize:vertical;padding:9px;border:1px solid #aab7c6;border-radius:6px;font:inherit;font-size:16px;line-height:1.4;background:#fff;color:#17202d}
 @media(max-width:1049px){#jobModal .bookingDateBody{grid-template-columns:minmax(0,1fr)}}
+
+/* Independent sections share the available width; Parts and Invoice finish the right column. */
+@media screen and (min-width:701px){
+ #jobModal .jobCardSimplified:not(.mechanicJobCard) .jobCardSections{align-items:stretch!important}
+ #jobModal .jobCardSimplified:not(.mechanicJobCard) .jobCardSupportColumn{align-self:stretch!important}
+ #jobModal .jobCardSimplified:not(.mechanicJobCard) .jobCardSupportColumn>.jobCommercialStart{margin-top:auto!important}
+}

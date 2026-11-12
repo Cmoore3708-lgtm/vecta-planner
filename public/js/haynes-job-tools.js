@@ -393,16 +393,14 @@ root.enrichHaynesInvoice=function(sheet,invoice){
 
  if(matched){const title=strip.querySelector('.invoiceVehicleMake,.invoiceBookingDetails>strong');if(title)title.textContent=[matched.make,matched.model,matched.variant].filter(Boolean).join(' ');}
 };
-// Compare both columns at their rendered sizes. Keep the work, photos and
-// calendar in place; only the lower, independent sections can change sides.
+// Balance independent sections while keeping work on the left and commercial
+// sections together at the end of the right column. Reuse nodes and live inputs.
 function balanceJobSections(modal,sections,main,aside,parts,pricing){
+ const commercial=[parts,pricing].filter(Boolean);
+ for(const panel of commercial){panel.classList.add('jobAdaptiveSection');aside.appendChild(panel);}
+ commercial[0]?.classList.add('jobCommercialStart');
  if(!root.ResizeObserver||!root.MutationObserver||!root.requestAnimationFrame)return;
- const panels=Array.from(main.children).filter(el=>el===parts||el===pricing||el.matches('.jobMotAdvisories'));
- if(!panels.length)return;
- const homes=panels.map(panel=>{
-  const home=document.createComment('Original job section position');
-  main.insertBefore(home,panel);panel.classList.add('jobAdaptiveSection');return home;
- });
+ const homes=new Map();
  let frame=null,stopped=false;
  const schedule=()=>{
   if(stopped||frame!==null)return;
@@ -411,32 +409,41 @@ function balanceJobSections(modal,sections,main,aside,parts,pricing){
  const sizes=new root.ResizeObserver(schedule);
  const lifecycle=new root.MutationObserver(()=>{
   if(!modal.contains(sections)||modal.getAttribute('aria-hidden')==='true')stop();
+  else schedule();
  });
  function stop(){
   stopped=true;sizes.disconnect();lifecycle.disconnect();
   if(frame!==null)root.cancelAnimationFrame(frame);
   sections.removeEventListener('focusout',schedule);
  }
- function place(onRight){
-  // Move existing nodes so their inputs and event handlers stay intact.
-  for(const [index,panel] of panels.entries()){
-   if(onRight.includes(panel)){
-    if(panel.parentElement===aside)continue;
-    const next=onRight.slice(onRight.indexOf(panel)+1).find(other=>other.parentElement===aside);
-    aside.insertBefore(panel,next||null);
-   }else if(panel.parentElement!==main)homes[index].after(panel);
+ function collect(){
+  for(const panel of [...main.children,...aside.children]){
+   if(commercial.includes(panel)||panel.matches('.jobWorkSection,.bookingAvailabilityWorkspace')||!panel.matches('.jobFormSection,.jobVehicleHistory'))continue;
+   if(homes.has(panel))continue;
+   const home=document.createComment('Original job section position');
+   if(panel.parentElement===main)main.insertBefore(home,panel);else main.appendChild(home);
+   homes.set(panel,home);panel.classList.add('jobAdaptiveSection');sizes.observe(panel);
+  }
+  for(const [panel,home] of homes)if(!sections.contains(panel)){home.remove();homes.delete(panel);sizes.unobserve(panel);}
+  return [...homes.keys()];
+ }
+ function place(panels,onRight){
+  for(const panel of panels)if(!onRight.includes(panel)&&panel.parentElement!==main)homes.get(panel).after(panel);
+  let anchor=commercial.find(panel=>panel.parentElement===aside)||null;
+  for(const panel of onRight.slice().reverse()){
+   if(panel.parentElement!==aside||panel.nextElementSibling!==anchor)aside.insertBefore(panel,anchor);
+   anchor=panel;
   }
  }
  function arrange(){
   if(!modal.contains(sections)||!sections.isConnected){stop();return;}
-  const active=document.activeElement;
-  // Keep the current field, its neighbours and the caret still while editing.
-  if(active&&sections.contains(active)&&(active.matches('input,textarea,select')||active.isContentEditable||panels.some(panel=>panel.contains(active))))return;
+  const panels=collect(),active=document.activeElement;
+  // Do not move a section or its neighbours while somebody is editing it.
+  if(active&&sections.contains(active)&&(active.matches('input,textarea,select')||active.isContentEditable))return;
   const left=main.getBoundingClientRect(),right=aside.getBoundingClientRect();
-  if(right.left<left.right-1||Math.min(left.width,right.width)<360){place([]);return;}
+  if(right.left<left.right-1||Math.min(left.width,right.width)<260){place(panels,[]);return;}
   const fixed=col=>Array.from(col.children).filter(el=>!panels.includes(el)).map(el=>el.getBoundingClientRect().height);
-  const leftFixed=fixed(main),rightFixed=fixed(aside);
-  const heights=panels.map(panel=>panel.getBoundingClientRect().height);
+  const leftFixed=fixed(main),rightFixed=fixed(aside),heights=panels.map(panel=>panel.getBoundingClientRect().height);
   const gap=col=>parseFloat(root.getComputedStyle(col).rowGap)||0;
   const leftGap=gap(main),rightGap=gap(aside);
   function stack(rows,gutter){
@@ -448,20 +455,18 @@ function balanceJobSections(modal,sections,main,aside,parts,pricing){
    panels.forEach((panel,index)=>(onRight.includes(panel)?rightRows:leftRows).push(heights[index]));
    return Math.max(stack(leftRows,leftGap),stack(rightRows,rightGap));
   }
-  // At most three panels. Near ties favour moving fewer, starting with Invoice.
+  // There are normally four movable sections. Bound the search if more are added.
   let layouts=[[]];
-  for(const panel of panels.slice().reverse())layouts=layouts.concat(layouts.map(onRight=>[panel,...onRight]));
+  for(const panel of panels.slice(0,10))layouts=layouts.concat(layouts.map(onRight=>[...onRight,panel]));
   const options=layouts.map(onRight=>({onRight,height:pageHeight(onRight)}));
-  const baseline=options[0].height,shortest=Math.min(...options.map(option=>option.height));
-  if(baseline-shortest<8){place([]);return;}
-  const currentHeight=pageHeight(panels.filter(panel=>panel.parentElement===aside));
-  if(currentHeight<=shortest+4&&baseline-currentHeight>=8)return;
-  const best=options.filter(option=>option.height<=shortest+4&&baseline-option.height>=8)
-   .sort((a,b)=>a.onRight.length-b.onRight.length)[0];
-  place(best.onRight);
+  const shortest=Math.min(...options.map(option=>option.height));
+  const current=panels.filter(panel=>panel.parentElement===aside);
+  if(pageHeight(current)<=shortest+4){place(panels,current);return;}
+  const best=options.filter(option=>option.height<=shortest+4).sort((a,b)=>a.onRight.length-b.onRight.length)[0];
+  place(panels,best.onRight);
  }
- for(const el of [sections,main,aside,...panels])sizes.observe(el);
- lifecycle.observe(modal,{childList:true,attributes:true,attributeFilter:['aria-hidden']});
+ for(const el of [sections,main,aside,...commercial])sizes.observe(el);
+ lifecycle.observe(modal,{childList:true,subtree:true,attributes:true,attributeFilter:['aria-hidden','hidden','open']});
  sections.addEventListener('focusout',schedule);schedule();
 }
 

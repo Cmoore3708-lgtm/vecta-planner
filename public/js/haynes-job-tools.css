@@ -77,11 +77,11 @@
  .main:has(.livePriorityPlanner) .metric .sub{font-size:12px!important}
  .main:has(.livePriorityPlanner) .metric{padding:10px!important}
  .livePriorityPlanner .plannerLiveControls,.livePriorityPlanner .plannerLiveStatus{font-size:13px!important}
- .livePriorityPlanner .plannerGrid.liveWindow .timeCol .time{height:100.8px!important;font-size:13px!important;padding-top:9px!important}
+ .livePriorityPlanner .plannerGrid.liveWindow .timeCol .time{height:136px!important;font-size:13px!important;padding-top:9px!important}
  .livePriorityPlanner .plannerGrid.liveWindow .timeCol .time.partial{height:var(--partial-height)!important}
  .livePriorityPlanner .plannerGrid.liveWindow .lane{
-  background-image:linear-gradient(to bottom,transparent 99.8px,#edf1f5 99.8px,#edf1f5 100.8px)!important;
-  background-size:100% 100.8px!important
+  background-image:linear-gradient(to bottom,transparent 135px,#edf1f5 135px,#edf1f5 136px)!important;
+  background-size:100% 136px!important
  }
  .livePriorityPlanner .head{font-size:14px!important}
  .livePriorityPlanner .head small{font-size:11px!important}
