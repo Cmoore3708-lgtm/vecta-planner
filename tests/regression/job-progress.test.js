@@ -201,6 +201,8 @@ test('tracking page clears invoice links on reopening and pauses while hidden',a
   const context={document,window:{addEventListener:(name,fn)=>events[name]=fn},location:{hash:'#token'},Intl,Date,AbortSignal,URL,Error,setTimeout:(fn,delay)=>{timers.push({fn,delay});return timers.length;},clearTimeout(){},fetch:async()=>({ok:true,json:async()=>data})};
   vm.runInNewContext(script,context);await new Promise(resolve=>setImmediate(resolve));
   assert.equal(document.getElementById('paperwork').hidden,false);assert.equal(timers.at(-1).delay,60000);
+  data={...data,stage:'scheduled'};await document.getElementById('refresh').onclick();
+  assert.equal(document.getElementById('paperwork').hidden,false,'a final saved invoice remains available even before its booking date');
   data={...data,stage:'underway',invoice_url:undefined};await document.getElementById('refresh').onclick();
   assert.equal(document.getElementById('paperwork').hidden,true);assert.equal(document.getElementById('invoice').hasAttribute('href'),false);
 });
@@ -234,6 +236,9 @@ test('saved invoices appear automatically through booking, direct and approval p
    await invoiceHandler({method:'GET',headers:{host:'www.vectamotors.co.uk'},query:{token:new URL(data.invoice_url,'https://example.invalid').searchParams.get('token')}},receipt);
    assert.equal(receipt.code,200);assert.match(receipt.body,/Full service/);assert.match(receipt.body,/£175\.00/);
    assert.doesNotMatch(JSON.stringify(data),/driver@example|Private notes|customer_phone/);
+   saved.booking_date=approval.progress_booking_date='2026-11-04';
+   data=await customerStatus(token,now);assert.equal(data.stage,'scheduled');assert.match(data.invoice_url,/^\/invoice\?token=/,'a final invoice must not be hidden by the calendar date');
+   saved.booking_date=approval.progress_booking_date=job.booking_date;
    for(const status of ['draft','void','cancelled','deleted']){invoices=[{...invoice,status}];assert.equal((await customerStatus(token,now)).invoice_url,undefined);}
    invoices=[{...invoice,registration:'OTHER'}];assert.equal((await customerStatus(token,now)).invoice_url,undefined);
    invoices=[invoice];saved={...saved,status:'in_progress',archived:false};const before=invoiceReads;

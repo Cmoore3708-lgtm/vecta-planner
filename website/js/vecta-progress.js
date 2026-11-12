@@ -152,7 +152,7 @@
     else{renderScenes(data,index);renderWorkshopPhotos(data);}
     // Clear old financial links on every update, including a job returned to the mechanic.
     el('paperwork').hidden=true;el('invoice').removeAttribute('href');
-    if(!registration&&data.stage==='ready'&&typeof data.invoice_url==='string'&&data.invoice_url.startsWith('/invoice?token=')){el('invoice').href=data.invoice_url;el('paperwork').hidden=false;}
+    if(!registration&&typeof data.invoice_url==='string'&&data.invoice_url.startsWith('/invoice?token=')){el('invoice').href=data.invoice_url;el('paperwork').hidden=false;}
     el('freshness').textContent='Last checked at '+new Intl.DateTimeFormat('en-GB',{hour:'2-digit',minute:'2-digit',timeZone:'Europe/London'}).format(new Date())+'. Updates refresh automatically.';
   }
   async function refresh(){
