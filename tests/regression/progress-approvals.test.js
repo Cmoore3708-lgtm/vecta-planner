@@ -138,7 +138,7 @@ test('preview suppresses real sends and fails closed for wrong photos, amended r
 });
 test('workshop approval writes require sign-in and same-origin',async t=>{
  setup(t);
- for(const action of ['approval-list','approval-stage','approval-queue','approval-request','approval-retry','approval-whatsapp-permission']){
+ for(const action of ['parts-order-queue','parts-order-save','approval-list','approval-stage','approval-queue','approval-request','approval-retry','approval-whatsapp-permission']){
    for(const [headers,status] of [[{},401],[{origin:'https://elsewhere.invalid'},403]]){
      const res={setHeader(){},status(n){this.code=n;return this;},json(){}};
      await handler({method:'POST',headers:{'content-type':'application/json',host:'planner.invalid',...headers},body:{action,job_id:job.id}},res);
@@ -281,7 +281,7 @@ test('mechanics sign-in cannot access the owner queue, send a price or retry a c
  const keys=['VECTA_MECHANIC_USER','VECTA_MECHANIC_PASSWORD'];const old=keys.map(k=>process.env[k]);
  process.env.VECTA_MECHANIC_USER='mechanic';process.env.VECTA_MECHANIC_PASSWORD='test-mechanic';
  t.after(()=>keys.forEach((k,i)=>old[i]===undefined?delete process.env[k]:process.env[k]=old[i]));
- for(const action of ['approval-queue','approval-request','approval-retry','approval-whatsapp-permission']){
+ for(const action of ['parts-order-queue','parts-order-save','approval-queue','approval-request','approval-retry','approval-whatsapp-permission']){
   const res={setHeader(){},status(code){this.code=code;return this;},json(data){this.data=data;}};
   await handler({method:'POST',headers:{host:'vecta-mechanic-dashboard.vercel.app','content-type':'application/json',authorization:'Basic '+Buffer.from('mechanic:test-mechanic').toString('base64')},body:{action,job_id:job.id}},res);
   assert.equal(res.code,403);assert.match(res.data.error,/Workshop Pro/);
@@ -399,4 +399,12 @@ test('customer quote API returns the current and proposed bill, then the committ
  assert.equal(result.approval.job_total_pence,25000);assert.equal(result.approval.revised_total_pence,25000);
  result=await customerApproval(s.db,{...payload,action:'approval-decide',decision:'approved'});
  assert.equal(result.approval.revised_total_pence,25000);
+});
+
+test('ordering reminders are explicit for new quotes and immutable across a staged retry',async t=>{
+ const s=setup(t,true);
+ await stageFinding(s.db,job,{...body,parts_need_ordering:true});assert.equal(s.row.progress_parts_required,true);
+ await assert.rejects(stageFinding(s.db,job,{...body,parts_need_ordering:false}),/request changed/);
+ s.row=null;await stageFinding(s.db,job,{...body,parts_need_ordering:false,parts:[{description:'Already in stock',quantity:1}]});assert.equal(s.row.progress_parts_required,false);
+ await assert.rejects(stageFinding(s.db,job,{...body,parts_need_ordering:'yes'}),/Choose whether/);
 });

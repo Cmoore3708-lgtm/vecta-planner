@@ -233,7 +233,8 @@
    modes.append(messageMode,quoteMode);
    const priceLabel=node('label','Estimated price including VAT (£)'),price=node('input');price.type='text';price.inputMode='decimal';price.placeholder='0.00';price.maxLength=9;priceLabel.className='portalQuotePrice';priceLabel.append(price);priceLabel.hidden=true;
    const partsLabel=node('label','Parts to add to the job (optional, one per line)'),parts=node('textarea');parts.rows=2;parts.maxLength=6000;partsLabel.className='portalQuoteParts';partsLabel.append(parts);partsLabel.hidden=true;
-   form.append(modes,label,priceLabel,partsLabel,attachments,permissionLabel,permissionStatus,send,note);
+   const orderLabel=node('label'),orderParts=node('input');orderLabel.className='portalPartsRequired';orderParts.type='checkbox';orderParts.checked=true;orderLabel.append(orderParts,node('span','Parts need ordering after approval'));orderLabel.hidden=true;
+   form.append(modes,label,priceLabel,partsLabel,orderLabel,attachments,permissionLabel,permissionStatus,send,note);
    const composer=node('details');composer.className='portalWorkshopComposer';composer.append(node('summary','Message customer'),form);panel.insertBefore(composer,list);
    let photos=null;
    Object.assign(controller,{form,attachments,bindPhotos(value){photos=value;input.required=false;}});
@@ -246,11 +247,11 @@
     messageMode.setAttribute('aria-pressed',String(!quote));quoteMode.setAttribute('aria-pressed',String(quote));
     labelText.textContent=quote?'Work required':'Message';input.maxLength=quote?1200:3000;
     input.placeholder=quote?'Describe what needs doing and why…':'Type your message to the customer…';
-    priceLabel.hidden=!quote;price.required=quote;price.disabled=!quote;attachments.hidden=false;partsLabel.hidden=!quote;
+    priceLabel.hidden=!quote;price.required=quote;price.disabled=!quote;attachments.hidden=false;partsLabel.hidden=!quote;orderLabel.hidden=!quote;
     send.textContent=quote?'Send quote & alerts':'Send message & alerts';note.replaceChildren();
    }
    setMode('message');
-   input.oninput=price.oninput=parts.oninput=()=>{if(!sending&&!quoteAttempt)id=crypto.randomUUID();};
+   orderParts.onchange=input.oninput=price.oninput=parts.oninput=()=>{if(!sending&&!quoteAttempt)id=crypto.randomUUID();};
    form.onsubmit=async e=>{
     e.preventDefault();if(sending||permissionBox.disabled)return;
     if(photos?.busy()){note.textContent='Please finish the current photo or finding before sending.';return;}
@@ -260,25 +261,25 @@
     if(quote&&!/^\d{1,6}(?:\.\d{1,2})?$/.test(price.value.trim())){note.textContent='Enter the estimated price in pounds, including VAT.';price.focus();return;}
     const partRows=parts.value.split(/\n/).map(value=>value.trim()).filter(Boolean).map(description=>({description,quantity:1}));
     if(quote&&(partRows.length>30||partRows.some(part=>part.description.length>200))){note.textContent='Enter up to 30 parts, using up to 200 characters per line.';return;}
-    if(quote)quoteAttempt??={approval_id:id,message,estimate:price.value.trim(),parts:partRows,photo_ids:photos?.quotePhotoIds?.()||[]};
+    if(quote)quoteAttempt??={approval_id:id,message,estimate:price.value.trim(),parts:partRows,parts_need_ordering:orderParts.checked,photo_ids:photos?.quotePhotoIds?.()||[]};
     sending=true;send.disabled=true;permissionBox.disabled=true;input.readOnly=true;note.textContent=quote?'Saving your quote and preparing customer alerts…':'Saving your message and preparing customer alerts…';
     try{
-     messageMode.disabled=quoteMode.disabled=true;price.readOnly=parts.readOnly=true;
+     messageMode.disabled=quoteMode.disabled=true;price.readOnly=parts.readOnly=true;orderParts.disabled=true;
      if(quote){
       if(photos&&!await photos.uploadQuote(quoteAttempt.approval_id))throw Error('The quote has not been sent. Check the photo notice and retry.');
       photos?.lock(true);
-      await api('approval-stage',{job_id:job.id,approval_id:quoteAttempt.approval_id,message:quoteAttempt.message,photo_ids:quoteAttempt.photo_ids,parts:quoteAttempt.parts});
+      await api('approval-stage',{job_id:job.id,approval_id:quoteAttempt.approval_id,message:quoteAttempt.message,photo_ids:quoteAttempt.photo_ids,parts:quoteAttempt.parts,parts_need_ordering:quoteAttempt.parts_need_ordering});
       const result=await api('approval-request',{job_id:job.id,...quoteAttempt});
       note.replaceChildren(node('p','Quote saved in the customer portal. Waiting for the customer’s decision.'));
       const delivery=node('div');note.append(delivery);if(window.VectaFindings)window.VectaFindings.showResult(delivery,result);else showAlerts(delivery,result,job.id);
-      photos?.completeQuote?.();quoteAttempt=null;input.value='';price.value='';parts.value='';id=crypto.randomUUID();window.VectaFindings?.notify();await refresh();return;
+      photos?.completeQuote?.();quoteAttempt=null;input.value='';price.value='';parts.value='';orderParts.checked=true;id=crypto.randomUUID();window.VectaFindings?.notify();await refresh();return;
      }
      if(photos&&!await photos.upload())throw Error('Your message has not been sent. Check the photo notice and retry.');
      photos?.lock(true);send.disabled=true;permissionBox.disabled=true;
      const result=await api('portal-reply',{job_id:job.id,id,message});
      photos?.complete();input.value='';id=crypto.randomUUID();note.replaceChildren(node('p','Message saved in the customer portal.'));const delivery=node('div');showAlerts(delivery,result.alerts,job.id);note.append(delivery);await refresh();
     }catch(error){note.textContent=error.message;}
-    finally{sending=false;photos?.lock(false);send.disabled=false;permissionBox.disabled=false;input.readOnly=!!quoteAttempt;price.readOnly=parts.readOnly=!!quoteAttempt;messageMode.disabled=quoteMode.disabled=!!quoteAttempt;if(quoteAttempt)note.append(node('p','The quote is not confirmed. Press Send quote & alerts again to safely retry the same quote.'));}
+    finally{sending=false;photos?.lock(false);send.disabled=false;permissionBox.disabled=false;input.readOnly=!!quoteAttempt;price.readOnly=parts.readOnly=!!quoteAttempt;orderParts.disabled=!!quoteAttempt;messageMode.disabled=quoteMode.disabled=!!quoteAttempt;if(quoteAttempt)note.append(node('p','The quote is not confirmed. Press Send quote & alerts again to safely retry the same quote.'));}
    };
   }
   async function openMessage(item){
