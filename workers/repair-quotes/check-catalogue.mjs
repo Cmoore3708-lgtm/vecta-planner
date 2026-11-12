@@ -12,7 +12,7 @@ import {repairBrowserReason} from './browser-errors.mjs';
 import {captureHaynesDiagnostics} from './haynes-page.mjs';
 import {promptInitialRepairRequest,promptRepairChoice} from './checker-input.mjs';
 const here=path.dirname(fileURLToPath(import.meta.url)),terminal=createInterface({input:process.stdin,output:process.stdout});
-const checkerVersion='2026-11-12-search-navigation-v19';
+const checkerVersion='2026-11-12-supplier-wording-v20';
 let gsf,haynes,gsfPage,haynesPage;
 try{
  console.log('VECTA parts and fitting check — '+checkerVersion+'. For fit, supply and fit, or supply checks, stop GSF safely in Workshop Connections first.');
