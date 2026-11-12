@@ -1,4 +1,4 @@
-import {repairRequest} from '../../lib/repair-quote.js';
+import {repairRequest,repairScope} from '../../lib/repair-quote.js';
 
 const messages={
  INVALID_REQUEST:'Enter a registration and one part or repair to price.',
@@ -41,7 +41,7 @@ export async function promptRepairChoice(terminal,request,result,{log=console.lo
     if(result.stage==='HAYNES_LABOUR')return repairRequest({...request,choices:{...c,labour:choice.id}});
     throw Error('UNKNOWN_CHOICE_STAGE');
    }
-   return result.stage.startsWith('HAYNES_')?repairRequest({...request,choices:{...(c.gsfCategory?{gsfCategory:c.gsfCategory}:{}),part:c.part,labourSearch:answer}}):repairRequest({registration:request.registration,work:answer,flow:'guided-v1'});
+   return result.stage.startsWith('HAYNES_')?repairRequest({...request,choices:{...(c.gsfCategory?{gsfCategory:c.gsfCategory}:{}),part:c.part,labourSearch:answer}}):repairRequest({registration:request.registration,work:request.lookup?repairScope.prefix(request.lookup)+answer:answer,flow:'guided-v1'});
   }catch(error){explain(error,log);}
  }
 }

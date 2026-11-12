@@ -1,7 +1,7 @@
 import {readRepairVehicle,repairTimesLink} from './haynes-navigation.mjs';
 import {readAlternatorTime} from './repair-time-reader.mjs';
 import {repairScope} from '../../lib/repair-quote.js';
-import {lookupHaynesChoices} from './guided-haynes.mjs';
+import {lookupHaynesChoices,lookupHaynesLabourChoices} from './guided-haynes.mjs';
 import {searchHaynesRepair} from './haynes-search.mjs';
 const reject=detail=>{throw Object.assign(Error('LABOUR_REVIEW_REQUIRED'),{code:'LABOUR_REVIEW_REQUIRED',detail});};
 export function operationPattern(scope){
@@ -31,6 +31,7 @@ export async function openGeneralHaynesRepair(page,request){
 export async function lookupGeneralHaynes(page,request,{now=Date.now,selectedPart}={}){
  const scope=repairScope.resolve(request.work),origin='https://www.workshopdata.com';
  const vehicle=await openGeneralHaynesRepair(page,request);
+ if(request.lookup==='labour')return lookupHaynesLabourChoices(page,request,{vehicle,choices:request.choices,query:request.choices.labourSearch||scope.query,now});
  if(request.flow)return lookupHaynesChoices(page,request,{vehicle,selectedPart,now});
  await searchHaynesRepair(page,vehicle.typeId,scope.query);
  const pattern=operationPattern(scope),captures=[];

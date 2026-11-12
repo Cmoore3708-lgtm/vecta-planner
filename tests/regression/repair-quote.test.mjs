@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import vm from 'node:vm';
 import {parseHTML} from 'linkedom';
-import {repairRequest,cleanRepairEvidence,calculateRepairQuote,repairPartsPrice,repairPartUrl} from '../../lib/repair-quote.js';
+import {repairRequest,repairScope,cleanRepairEvidence,calculateRepairQuote,repairPartsPrice,repairPartUrl} from '../../lib/repair-quote.js';
 import {repairQuoteHandler} from '../../api/repair-quote.js';
 import {repairReplayAvailable,repairReplayQuote} from '../../lib/repair-quote-replay.js';
 import {repairWorkerHandler} from '../../api/repair-quote-worker.js';
@@ -124,4 +124,48 @@ test('initial activation scope rejects other registrations before any queue oper
  let calls=0;const h=repairQuoteHandler({env:{REPAIR_QUOTING_ENABLED:'true',REPAIR_QUOTE_ALLOWED_REGISTRATIONS:'FV65JTY'},authenticate:async()=>true,queue:async()=>{calls++;return {status:'PENDING'};}});
  let res=response();await h({method:'POST',body:request},res);assert.equal(res.body.status,'SETTINGS_REQUIRED');assert.equal(calls,0);
  res=response();await h({method:'POST',body:{registration:'FV65 JTY',work:'Supply and fit alternator'}},res);assert.equal(res.body.status,'PENDING');assert.equal(calls,1);
+});
+
+test('supply-only and fit-only breakdowns apply and reopen without adding the other charge',async()=>{
+ for(const mode of ['parts','labour']){
+  const work=mode==='parts'?'Please supply alternator':'Alternator to fit',r=repairRequest({registration:'AB12CDE',work,flow:'guided-v1',choices:mode==='parts'?{part:'a'.repeat(32)}:{labour:'b'.repeat(32)}});
+  const raw=fixture();raw.request=r;raw.scope=repairScope.resolve(work);raw.parts=mode==='parts'?[{...raw.parts[1],choiceId:r.choices.part}]:[];raw.labour=mode==='labour'?{...raw.labour,choiceId:r.choices.labour}:null;
+  const q=calculateRepairQuote(raw,r,{now}),e=editor(),w=e.document.getElementById('job_work_required');
+  e.document.getElementById('job_estimated_hours').value='3';w.value=work;w.dispatchEvent(new e.window.Event('input'));e.ctx.fetch=async()=>({status:200,json:async()=>({status:'MATCHED',quote:q})});
+  assert.equal(e.document.querySelector('[data-rq-find]').textContent,mode==='labour'?'Find fitting time':'Find GSF part');
+  e.document.querySelector('[data-rq-find]').click();await new Promise(r=>setImmediate(r));
+  assert.ok(e.document.querySelector('[data-rq-apply]'),e.document.querySelector('.rqStatus').textContent);
+  if(mode==='parts')assert.equal(e.document.querySelector('[data-rq-hours]').disabled,true);
+  else {assert.equal(e.document.querySelector('[data-rq-cost]').disabled,true);assert.equal(e.document.querySelector('.rqPart'),null);}
+  e.document.querySelector('[data-rq-apply]').click();
+  const items=e.ctx.gatherPrivatePricingItems(),meta=items[0].repair_quote;
+  if(mode==='parts')assert.equal(e.document.getElementById('job_estimated_hours').value,'3');assert.equal(meta.request.lookup,mode);assert.equal(meta[mode==='parts'?'labourPence':'partsPence'],0);
+  assert.ok(items.every(i=>mode==='parts'?!/^Fit /.test(i.description):/^Fit |rounding/.test(i.description)));
+  const note=e.ctx.noteWithPrivatePricing('',items),next=editor();next.document.getElementById('vectaRepairQuote').remove();next.window.VectaRepairQuote.mount({status:'quote',customer_note:note});
+  assert.equal(next.document.querySelector('[data-rq-total]').textContent,'£'+(q.totalIncVatPence/100).toFixed(2));
+  assert.equal(next.document.querySelector('[data-rq-find]').textContent,mode==='labour'?'Find fitting time':'Find GSF part');
+ }
+});
+
+test('changing the same repair from supply and fit to fit replaces its old parts charge',async()=>{
+ const e=editor();e.document.querySelector('[data-rq-find]').click();await new Promise(r=>setImmediate(r));e.document.querySelector('[data-rq-apply]').click();
+ const work='Fit alternator',r=repairRequest({registration:'AB12CDE',work,choices:{labour:'b'.repeat(32)}}),raw=fixture();raw.request=r;raw.scope=repairScope.resolve(work);raw.parts=[];raw.labour.choiceId=r.choices.labour;
+ const q=calculateRepairQuote(raw,r,{now});e.ctx.fetch=async()=>({status:200,json:async()=>({status:'MATCHED',quote:q})});
+ const field=e.document.getElementById('job_work_required');field.value=work;field.dispatchEvent(new e.window.Event('input'));
+ e.document.querySelector('[data-rq-find]').click();await new Promise(r=>setImmediate(r));e.document.querySelector('[data-rq-apply]').click();
+ const items=e.ctx.gatherPrivatePricingItems();assert.ok(items.length);assert.ok(items.every(i=>i.repair_quote.request.lookup==='labour'));assert.equal(Number(e.document.getElementById('job_amount_quoted').value),q.netPence/100);
+});
+
+test('fit-only application clears its unordered source part but preserves ordered and unrelated parts',async()=>{
+ for(const ordered of [false,true]){
+  const e=editor(),work='Fit alternator',r=repairRequest({registration:'AB12CDE',work,choices:{labour:'b'.repeat(32)}}),raw=fixture();raw.request=r;raw.scope=repairScope.resolve(work);raw.parts=[];raw.labour.choiceId=r.choices.labour;
+  const q=calculateRepairQuote(raw,r,{now}),source={id:'repair-'+encodeURIComponent('Supply and fit alternator'),description:'Alternator',ordered},manual={id:'manual',description:'Unrelated part'};let retained;
+  e.document.getElementById('job_work_required').value=work;e.document.getElementById('vectaRepairQuote').remove();
+  const holder=e.document.createElement('div');holder.id='jobPartsEditor';e.document.body.appendChild(holder);
+  const partsApi={privatePricingRowHtml:e.ctx.privatePricingRowHtml,bindPrivatePricing:e.ctx.bindPrivatePricing,syncPrivatePricingTotal:e.ctx.syncPrivatePricingTotal,
+   gatherJobPartsEditor:()=>[source,manual],jobPartsEditorHtml:job=>{retained=JSON.parse(decodeURIComponent(job.customer_note.slice('[[JOB_PARTS_URI:'.length,-2)));return '<div id="jobPartsEditor"></div>';},bindJobPartsEditor:()=>{}};
+  e.window.VectaRepairQuote.mount({status:'quote'},partsApi);e.ctx.fetch=async()=>({status:200,json:async()=>({status:'MATCHED',quote:q})});
+  e.document.querySelector('[data-rq-find]').click();await new Promise(r=>setImmediate(r));e.document.querySelector('[data-rq-apply]').click();
+  assert.deepEqual(JSON.parse(JSON.stringify(retained)),ordered?[source,manual]:[manual]);
+ }
 });

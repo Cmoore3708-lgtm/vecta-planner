@@ -225,7 +225,7 @@ export async function lookupGeneralGSF(page,request,{capture=captureRepairCatalo
 export function scopeForFitment(rows,scope){
  const position=rows.filter(r=>/^fitting position$/i.test(r.attribute)).map(r=>r.value).join(' ').toLowerCase();
  const axis=[...new Set(position.match(/\b(front|rear)\b/g)||[])],sides=[...new Set(position.match(/\b(left|right)\b/g)||[])];
- const candidate=repairScope.scope(scope.part,scope.axle||(axis.length===1?axis[0]:''),scope.side||(sides.length===1?sides[0]:''),scope.quantity);
+ const candidate=repairScope.scope(scope.part,scope.axle||(axis.length===1?axis[0]:''),scope.side||(sides.length===1?sides[0]:''),scope.quantity,scope.lookup);
  return candidate.status==='SUPPORTED'&&repairFitment(rows,candidate)?candidate:null;
 }
 export function gsfPartChoices(candidates,request,category){
@@ -258,7 +258,7 @@ export function catalogueCategoryOptions(links,query,scope){
   if(url.origin!=='https://trade.gsfcarparts.com'||url.username||url.password||url.hash||url.search||!url.pathname.startsWith('/parts/')||!category||category.length>150||category.includes('/'))continue;
   const label=String(link.text||category).trim();if(!label||label.length>150||!/[a-z]/i.test(label))continue;
   const score=repairScope.words(label).filter(t=>terms.includes(t)).length;
-  const work='Supply and fit '+(scope.quantity!==1?scope.quantity+' ':'')+[scope.axle,scope.side,/^\d+$/.test(category)?label:category].filter(Boolean).join(' ');
+  const work=repairScope.prefix(scope.lookup)+(scope.quantity!==1?scope.quantity+' ':'')+[scope.axle,scope.side,/^\d+$/.test(category)?label:category].filter(Boolean).join(' ');
   found.set(category,{id:choiceId(category),label,detail:'GSF catalogue category',work,score});
  }
  return [...found.values()].sort((a,b)=>b.score-a.score||a.label.localeCompare(b.label)).slice(0,40).map(({score,...o})=>o);

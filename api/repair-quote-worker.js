@@ -11,7 +11,7 @@ export function repairWorkerHandler({env=process.env,queue=repairQueue,now=Date.
   try{
    const b=req.body||{};
    if(Buffer.byteLength(JSON.stringify(b))>60000)return res.status(413).json({status:'INVALID_REQUEST'});
-   if(b.action==='pull')return res.status(200).json(await queue('pull',{repairProtocol:[2,3].includes(b.repairProtocol)?b.repairProtocol:1}));
+   if(b.action==='pull')return res.status(200).json(await queue('pull',{repairProtocol:[2,3,4].includes(b.repairProtocol)?b.repairProtocol:1}));
    if(b.action!=='complete'||!/^[a-f0-9-]{36}$/.test(b.id||'')||!/^[a-f0-9-]{36}$/.test(b.lease||'')||!['CHOICE_REQUIRED','MATCHED','LOGIN_REQUIRED','REVIEW_REQUIRED','LABOUR_REVIEW_REQUIRED','SETTINGS_REQUIRED','OUT_OF_STOCK','UNAVAILABLE'].includes(b.status))return res.status(400).json({status:'INVALID_REQUEST'});
    const request=repairRequest(b.request),result=b.status==='MATCHED'?cleanRepairEvidence(b.result,request,{now:now()}):b.status==='CHOICE_REQUIRED'?cleanRepairChoices(b.result,request,{now:now()}):null;
    return res.status(200).json(await queue('complete',{id:b.id,lease:b.lease,request,status:b.status,result}));
