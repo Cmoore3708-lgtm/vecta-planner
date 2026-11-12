@@ -95,7 +95,7 @@ function customer(){
    if(state.hold&&b.action!=='approval-status')await state.hold;
    if(state.fail&&b.action!=='approval-status')return Response.json({error:'Connection lost'},{status:503});
    if(b.action==='approval-decide')state.status=b.decision;
-   return Response.json({approval:{id:quoteId,message:'Brake pads <img src=x>',estimated_pence:12000,status:state.status,photo_ids:[]}});
+   return Response.json({approval:{id:quoteId,message:'Brake pads <img src=x>',estimated_pence:12000,status:state.status,photo_ids:[],job_total_pence:state.status==='approved'?25000:13000,revised_total_pence:state.status==='declined'?13000:25000}});
   }
   return Response.json({registration:'TEST001',stage:'underway'});
  };
@@ -104,12 +104,12 @@ function customer(){
 }
 test('customer can message only, then accept or refuse with a note; empty text does not block a decision',async()=>{
  for(const decision of ['approved','declined']){
-  const h=customer();await tick();h.el('messageQuote').onclick();assert.equal(h.el('quoteReplyFields').hidden,false);
+  const h=customer();await tick();assert.equal(h.el('quoteReplyFields').hidden,false);assert.equal(h.el('approvalRevisedTotal').textContent,'£250.00');
   h.el('quoteReply').value='Can it be ready by 3?';await h.el('sendQuoteMessage').onclick();assert.equal(h.state.status,'pending');assert.equal(h.calls.filter(x=>x.action==='approval-message').length,1);
   assert.match(h.el('approvalStatus').textContent,/not accepted or refused/);
-  h.el('messageQuote').onclick();h.el('quoteReply').value='Please keep old parts.';
+  h.el('quoteReply').value='Please keep old parts.';
   await h.el(decision==='approved'?'approveWork':'declineWork').onclick();
-  const request=h.calls.find(x=>x.action==='approval-decide');assert.equal(request.reply,'Please keep old parts.');assert.equal(h.el('approvalPanel').dataset.signal,decision==='approved'?'green':'red');assert.equal(h.el('approvalButtons').hidden,true);assert.equal(h.el('approvalMessage').querySelector('img'),null);
+  const request=h.calls.find(x=>x.action==='approval-decide');assert.equal(request.reply,'Please keep old parts.');assert.equal(h.el('approvalPanel').dataset.signal,decision==='approved'?'green':'red');assert.equal(h.el('approvalButtons').hidden,true);assert.equal(h.el('approvalMessage').querySelector('img'),null);assert.equal(h.el('approvalRevisedTotal').textContent,decision==='approved'?'£250.00':'£130.00');assert.equal(h.el('approvalCurrentTotal').hidden,true);
  }
  const h=customer();await tick();await h.el('approveWork').onclick();assert.equal(h.calls.find(x=>x.action==='approval-decide').reply,'');
 });

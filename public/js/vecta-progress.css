@@ -52,17 +52,22 @@ header.trackerHeader{padding:16px 22px 18px;background:#000;text-align:center;bo
 #approvalDialog h2{font-size:1.5rem;padding-right:10px}
 #approvalMessage{font-size:1.05rem;line-height:1.6}
 #approvalEstimate{background:#ffffff0c;padding:14px;border-radius:8px;font-weight:700}
+#approvalTotals{margin-top:12px;padding:14px;border:1px solid #ad8748;border-radius:8px;background:#d9b66f0d}
+#approvalCurrentTotal{margin:0 0 10px;color:#ded3c0;font-size:.9rem}
+.approvalRevised{margin:0;display:grid;grid-template-columns:1fr auto;gap:5px 14px;align-items:center}
+#approvalTotalLabel{font-weight:600}
+#approvalRevisedTotal{font-size:1.4rem;color:#f3d69c;white-space:nowrap}
+.approvalRevised small{grid-column:1/-1;color:#ded3c0;font-size:.8rem}
 #approvalButtons{margin-top:20px}
 #approvalButtons button{flex:1;min-height:50px}
 #closeApproval,#retryApproval{margin-top:16px;min-height:44px;padding:10px 14px;border-radius:8px;border:1px solid #8d7b62;background:transparent;color:#fff;cursor:pointer}
 #openApproval{margin:16px 0;padding:12px 18px;border:1px solid #ad8748;border-radius:10px;background:#211e19;color:#fff;font-weight:700;cursor:pointer}
 @media(max-width:560px){#approvalDialog .progressApproval{padding:22px 18px}#approvalButtons{flex-direction:column}}
 
-#messageQuote,#sendQuoteMessage{min-height:44px;padding:12px 16px;border:1px solid #b79a69;border-radius:8px;background:transparent;color:#fff;cursor:pointer;margin-top:12px}
+#sendQuoteMessage{min-height:44px;padding:12px 16px;border:1px solid #b79a69;border-radius:8px;background:transparent;color:#fff;cursor:pointer;margin-top:12px}
 #quoteReplyFields{margin-top:16px;border-top:1px solid #ffffff26;padding-top:16px}
 #quoteReplyFields label{display:block;font-weight:600}
 #quoteReply{display:block;width:100%;box-sizing:border-box;margin-top:8px;padding:12px;min-height:100px;border:1px solid #847256;border-radius:8px;background:#151310;color:#fff;font:inherit;resize:vertical}
-#quoteReplyFields p{font-size:14px;line-height:1.5;color:#ded3c0}
 #approvalMessage{white-space:pre-wrap;overflow-wrap:anywhere}
 #approvalDialog button:disabled{opacity:.6;cursor:wait}
 #approvalDialog button:focus-visible,#quoteReply:focus-visible{outline:3px solid #e4c58a;outline-offset:3px}

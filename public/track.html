@@ -15,10 +15,10 @@
 <button type="button" id="openApproval" hidden>View workshop message</button>
 <dialog id="approvalDialog" aria-labelledby="approvalTitle"><section id="approvalPanel" class="progressApproval" aria-labelledby="approvalTitle" hidden>
 <h2 id="approvalTitle" tabindex="-1">Workshop message</h2><p id="approvalMessage"></p><p id="approvalEstimate" hidden></p>
+<div id="approvalTotals" hidden><p id="approvalCurrentTotal" hidden></p><p class="approvalRevised"><span id="approvalTotalLabel">Revised total if accepted</span><strong id="approvalRevisedTotal"></strong><small>Including VAT</small></p></div>
 <button type="button" id="approvalPhotos" hidden>View workshop photos</button>
-<button type="button" id="messageQuote" aria-expanded="false" aria-controls="quoteReplyFields">Message the workshop</button>
-<div id="quoteReplyFields" hidden><label for="quoteReply">Your message (optional with a decision)</label><textarea id="quoteReply" rows="3" maxlength="3000" placeholder="Ask a question or add a note…"></textarea><p>Accept or refuse below to include this message with your decision, or send the message on its own.</p><button type="button" id="sendQuoteMessage">Send message only</button></div>
 <div id="approvalButtons"><button type="button" id="approveWork"><span aria-hidden="true">✓</span> Accept</button><button type="button" id="declineWork"><span aria-hidden="true">✕</span> Refuse</button></div>
+<div id="quoteReplyFields" hidden><label for="quoteReply">Optional message</label><textarea id="quoteReply" rows="3" maxlength="3000" placeholder="Ask a question or add a note…"></textarea><button type="button" id="sendQuoteMessage">Send message only</button></div>
 <p id="approvalStatus" role="status" aria-live="polite"></p><button type="button" id="retryApproval" hidden>Check message again</button><button type="button" id="closeApproval">Back to portal</button></section></dialog>
 <div id="live" role="status" aria-live="polite"><h2 id="statusTitle">Your car’s progress</h2><p id="statusDescription">Enter your registration above to see today’s workshop progress.</p></div>
 <ol id="steps" hidden><li data-step="waiting">Waiting for the workshop</li><li data-step="underway">Work underway</li><li data-step="ready">Ready for collection</li></ol>

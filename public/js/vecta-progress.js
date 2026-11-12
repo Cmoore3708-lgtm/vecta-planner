@@ -9,7 +9,7 @@
     el('approvalTitle').focus();
   }
   function lockReply(value){
-    for(const id of ['approveWork','declineWork','messageQuote','sendQuoteMessage','closeApproval'])el(id).disabled=value;
+    for(const id of ['approveWork','declineWork','sendQuoteMessage','closeApproval'])el(id).disabled=value;
     el('quoteReply').readOnly=value||!!replyAttempt;
   }
   async function refreshApproval(decision,messageOnly=false){
@@ -33,15 +33,22 @@
       if(!response.ok)throw Object.assign(Error(typeof data.error==='string'?data.error:'Response unavailable. Please retry.'),{status:response.status});
       if(seq!==approvalRender)return;
       const item=data.approval;panel.dataset.signal=item.status==='approved'?'green':item.status==='declined'?'red':'amber';
-      if(writing){replyAttempt=null;replyId=crypto.randomUUID();el('quoteReply').value='';el('quoteReplyFields').hidden=true;el('messageQuote').setAttribute('aria-expanded','false');window.VectaCustomerPortal?.refresh();}
+      if(writing){replyAttempt=null;replyId=crypto.randomUUID();el('quoteReply').value='';window.VectaCustomerPortal?.refresh();}
       el('approvalMessage').textContent=item.message;
       const estimate=el('approvalEstimate');estimate.hidden=!Number.isInteger(item.estimated_pence);
       estimate.textContent=estimate.hidden?'':'Estimated price including VAT: '+new Intl.NumberFormat('en-GB',{style:'currency',currency:'GBP'}).format(item.estimated_pence/100);
+      const money=pence=>new Intl.NumberFormat('en-GB',{style:'currency',currency:'GBP'}).format(pence/100);
+      const current=el('approvalCurrentTotal'),revised=el('approvalRevisedTotal');
+      el('approvalTotals').hidden=estimate.hidden;
+      current.hidden=item.status!=='pending'||!Number.isSafeInteger(item.job_total_pence);
+      current.textContent=current.hidden?'':'Current job total: '+money(item.job_total_pence);
+      el('approvalTotalLabel').textContent=item.status==='pending'?'Revised total if accepted':item.status==='approved'?'Revised job total':'Job total (unchanged)';
+      revised.textContent=Number.isSafeInteger(item.revised_total_pence)?money(item.revised_total_pence):'To be confirmed';
       approvalPhotos=Array.isArray(item.photo_ids)?item.photo_ids:[];el('approvalPhotos').hidden=!approvalPhotos.length;
       el('approvalTitle').textContent=item.status==='pending'?'Your quote':item.status==='approved'?'✓ Work authorised':item.status==='declined'?'✕ Work not authorised':'Your quote';
       const status={approved:'You accepted this quote. The workshop has your response.',declined:'You refused this quote. The workshop has your response.',closed:'This request is closed.'};
       note.textContent=messageOnly?'Your message has been sent to the workshop. '+(item.status==='pending'?'You have not accepted or refused the quote.':status[item.status]||''):status[item.status]||'';
-      buttons.hidden=item.status!=='pending';el('messageQuote').hidden=item.status==='closed';
+      buttons.hidden=item.status!=='pending';el('quoteReplyFields').hidden=item.status==='closed';
       el('openApproval').textContent=item.status==='pending'?'View quote & respond':'View your response';
       if(replyAttempt){el('retryApproval').hidden=false;note.textContent+=' Your previous send is unconfirmed. Retry the same response to check it.';}
     }catch(error){
@@ -51,7 +58,7 @@
     }finally{if(writing)deciding=false;if(seq===approvalRender)lockReply(false);}
   }
   {
-    el('approvalPanel').hidden=false;el('approvalButtons').hidden=true;el('messageQuote').hidden=true;
+    el('approvalPanel').hidden=false;el('approvalButtons').hidden=true;el('quoteReplyFields').hidden=true;
     el('approvalStatus').textContent='Loading your workshop message…';
     el('openApproval').hidden=!approvalId;el('openApproval').onclick=openApproval;
     el('closeApproval').onclick=()=>{if(!deciding)el('approvalDialog').close();};
@@ -59,7 +66,6 @@
     el('retryApproval').onclick=()=>replyAttempt?refreshApproval(replyAttempt.decision,replyAttempt.messageOnly):refreshApproval();
     if(approvalId)openApproval();
     el('approveWork').onclick=()=>refreshApproval('approved');el('declineWork').onclick=()=>refreshApproval('declined');
-    el('messageQuote').onclick=()=>{el('quoteReplyFields').hidden=false;el('messageQuote').setAttribute('aria-expanded','true');el('quoteReply').focus();};
     el('sendQuoteMessage').onclick=()=>refreshApproval(undefined,true);
     el('quoteReply').oninput=()=>{if(!deciding&&!replyAttempt)replyId=crypto.randomUUID();};
     el('approvalPhotos').onclick=()=>{
@@ -72,7 +78,7 @@
     if(deciding)return;
     if(id!==approvalId){
       if(el('quoteReply').value.trim()||replyAttempt){openApproval();el('approvalStatus').textContent='Send or clear your current reply before opening another quote.';return;}
-      approvalId=id;replyId=crypto.randomUUID();el('approvalMessage').textContent='';el('approvalEstimate').hidden=true;el('approvalButtons').hidden=true;el('messageQuote').hidden=true;
+      approvalId=id;replyId=crypto.randomUUID();el('approvalMessage').textContent='';el('approvalEstimate').hidden=true;el('approvalTotals').hidden=true;el('approvalButtons').hidden=true;el('quoteReplyFields').hidden=true;
     }
     el('openApproval').hidden=false;openApproval();refreshApproval();
   }};
