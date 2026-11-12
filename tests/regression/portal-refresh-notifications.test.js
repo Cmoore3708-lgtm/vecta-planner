@@ -71,7 +71,7 @@ test('only the explicit setup click requests permission and sends a test; repeat
 });
 
 function portal(mechanic=false){
- const {window,document}=parseHTML('<html><body><main class="main"><header class="top"></header></main><div id="jobModal"><section class="jobWorkSection"></section></div></body></html>');
+ const {window,document}=parseHTML('<html><body><main class="main"><header class="top"></header></main><div id="jobModal"><section class="jobWorkSection"></section><section class="jobInternalNotesSection"></section></div></body></html>');
  document.hidden=false;document.readyState='complete';
  const timers=[],maintenance=[],live={events:[],state:{status:'enabled',canEnable:false,message:''},enabled:0,older:null,earlier:[]};
  window.VECTA_MECHANIC_DEPLOYMENT=mechanic;
@@ -88,6 +88,7 @@ function portal(mechanic=false){
 test('empty workshop and mechanic conversations stay one line through repeated polling and message changes',async()=>{
  for(const mechanic of [false,true]){
   const h=portal(mechanic);await tick();const panel=h.document.querySelector('.portalWorkshop');
+  assert.equal(h.document.querySelector('.jobWorkSection').nextElementSibling.className,'jobInternalNotesSection');assert.equal(panel.previousElementSibling.className,'jobInternalNotesSection');
   const draft=panel.querySelector('textarea');if(draft)draft.value='Do not lose this draft';
   const poll=h.timers.find(t=>t.ms===15000).fn;
   for(let i=0;i<24;i++){poll();await tick();}

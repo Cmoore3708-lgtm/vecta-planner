@@ -22,7 +22,7 @@ function app(seen=new Map(),mechanic=false,extraPhotos=[]){
  const modal=document.getElementById('jobModal');
  dom.HTMLElement.prototype.scrollIntoView=function(){scrolls++;};
  window.openJobModal=id=>{
-  mounted++;openedId=id;ctx.editingJobId=id;modal.classList.add('open');modal.innerHTML='<section class="jobWorkSection"></section>';
+  mounted++;openedId=id;ctx.editingJobId=id;modal.classList.add('open');modal.innerHTML='<section class="jobWorkSection"></section><section class="jobInternalNotesSection"><textarea id="job_internal_workshop_notes">Private note</textarea></section>';
   window.VectaWorkshopPhotos.mount(modal,job,true);
  };
  const ctx=vm.createContext({document,window,app:{jobs},editingJobId:null,
@@ -51,6 +51,7 @@ test('opening a Workshop job directly pairs each private thumbnail with its own 
   {id:publicId,private_finding:false,caption:'Repair complete',url:signed(publicId)}
  ]);
  ui.window.openJobModal(job.id);await flush();
+ const panel=ui.modal.querySelector('.workshopPhotos');assert.equal(panel.tagName,'DETAILS');assert.equal(panel.hasAttribute('open'),false);assert.equal(ui.modal.querySelector('.jobWorkSection').nextElementSibling.className,'jobInternalNotesSection');assert.equal(ui.modal.querySelector('.jobInternalNotesSection').nextElementSibling,panel);assert.equal(panel.querySelector('summary').textContent,'Customer messages & findings');assert.equal(panel.querySelector('summary button'),null);assert.ok(panel.querySelector('[data-photo-camera]'));
  for(const item of [first,second]){
   const entry=ui.modal.querySelector('[data-approval-history] .approvalRecord[data-finding-id="'+item.id+'"]');
   assert.equal(entry.querySelector('img').src,signed(item.photo_ids[0]));
@@ -72,7 +73,7 @@ test('click opens the matching saved job, focuses the specific finding with only
  await ui.poll();
  assert.equal(ui.popup.hidden,false);assert.match(ui.action.textContent,/TEST001/);assert.match(ui.action.textContent,/Inner shoulder/);
  await ui.action.onclick();await flush();
- assert.equal(ui.opened,job.id);assert.equal(ui.mounted,1);assert.ok(ui.scrolls);
+ assert.equal(ui.opened,job.id);assert.equal(ui.mounted,1);assert.ok(ui.scrolls);assert.equal(ui.modal.querySelector('.workshopPhotos').hasAttribute('open'),true);
  const focused=ui.modal.querySelector('.findingDestination');
  assert.equal(focused.hidden,false);assert.match(focused.textContent,/Inner shoulder worn/);
  assert.equal(focused.querySelector('[data-finding-evidence] img').src,signed(first.photo_ids[0]));

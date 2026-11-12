@@ -108,3 +108,9 @@
 #jobModal .workshopPhotos .workshopPhotoToolbar{display:flex;flex-wrap:nowrap;gap:5px;max-width:100%}
 #jobModal .workshopPhotos .workshopPhotoToolbar .btn{flex:1 1 0;min-width:0;min-height:44px;margin:0;padding:7px 8px;font-size:12px;line-height:1.25;white-space:normal}
 @media(max-width:520px){#jobModal .workshopPhotos .workshopPhotoToolbar{width:100%}}
+
+/* Findings are a single disclosure below the always-visible private notes. */
+#jobModal details.workshopPhotos>summary.workshopPhotosHeading{display:list-item;box-sizing:border-box;min-height:44px;padding:12px 2px;cursor:pointer;list-style-position:inside;font-weight:700;text-decoration:underline;text-underline-offset:3px}
+#jobModal details.workshopPhotos>summary.workshopPhotosHeading h3{display:inline;font-size:14px}
+#jobModal details.workshopPhotos>summary:focus-visible{outline:2px solid #a57524;outline-offset:2px}
+#jobModal details.workshopPhotos[open]>summary{margin-bottom:6px}

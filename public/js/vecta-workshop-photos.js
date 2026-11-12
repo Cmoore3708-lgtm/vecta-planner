@@ -33,12 +33,12 @@
   window.VectaPortalWorkshop?.mount(modal,job,saved);
   if(job.no_vehicle||job.card_type&&job.card_type!=='job'||['quote','provisional','cancelled','deleted'].includes(job.status)||/vehicle tax|pool car tax/i.test(job.job_type||''))return;
   const mechanic=!!window.VECTA_MECHANIC_DEPLOYMENT;
-  const after=modal.querySelector('.jobWorkSection');if(!after)return;
-  const panel=document.createElement('section');panel.className='jobFormSection workshopPhotos '+(mechanic?'mechanicFindings':'managerFindings');
+  const after=modal.querySelector('.jobInternalNotesSection')||modal.querySelector('.jobWorkSection');if(!after)return;
+  const panel=document.createElement('details');panel.className='jobFormSection workshopPhotos '+(mechanic?'mechanicFindings':'managerFindings');
   panel.dataset.jobId=job.id;
-  panel.innerHTML='<div class="workshopPhotosHeading"><h3>Customer messages &amp; findings</h3></div>';
+  panel.innerHTML='<summary class="workshopPhotosHeading"><h3>Customer messages &amp; findings</h3></summary>';
   const heading=panel.querySelector('.workshopPhotosHeading');
-  if(mechanic)heading.insertAdjacentHTML('beforeend','<p>Send a finding to the office. The customer sees it after the estimate is sent.</p>');
+  if(mechanic)heading.insertAdjacentHTML('afterend','<p>Send a finding to the office. The customer sees it after the estimate is sent.</p>');
   after.after(panel);
   if(!saved){const hint=document.createElement('p');hint.textContent='Save this job, then reopen it to send a message or add photos.';panel.append(hint);return;}
   panel.insertAdjacentHTML('beforeend','<div class="workshopPhotoActions workshopPhotoToolbar"><button type="button" class="btn" data-photo-camera>Take photo</button><button type="button" class="btn" data-photo-choose>Upload photos</button><button type="button" class="btn" data-photo-refresh>Refresh photos</button></div><input type="file" accept="image/*" capture="environment" data-photo-camera-input hidden><input type="file" accept="image/*" multiple data-photo-choose-input hidden><div class="workshopPhotoDrafts" data-photo-drafts></div><div class="workshopPhotoGrid" data-photo-saved></div><p class="workshopPhotoStatus" data-photo-status role="status" aria-live="polite"></p>');
@@ -55,7 +55,6 @@
   const destination=document.createElement('section');
   destination.className='findingDestination';destination.hidden=true;destination.tabIndex=-1;
   destination.setAttribute('aria-label','Selected mechanic finding');
-  if(!mechanic)heading.append(panel.querySelector('.workshopPhotoActions'));
   heading.after(destination);
   const evidenceItems=new WeakMap();
   let selectedFinding=null,photoLoad=null,photosLoaded=false,photosError='',historyLoading=false;
@@ -95,6 +94,7 @@
    evidenceItems.set(host,item);
   }
   destinations.set(panel,item=>{
+   panel.setAttribute('open','');
    const previous=destination.firstElementChild;
    if(previous?.dataset.findingId){
     history.prepend(previous);
@@ -348,6 +348,7 @@
    save.onclick=async function(event){
     if(saveInProgress)return;
     if(!hasDraft())return saveJob.call(this,event);
+    panel.setAttribute('open','');
     saveInProgress=true;
     try {
      if(preparing)await preparing;
