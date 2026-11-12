@@ -23,8 +23,9 @@
  }
  const labels={message:'Message',amendment:'Booking amendment requested',additional_work:'Additional work requested',cancelled:'Booking cancelled',preferences:'Authorisation updated',booking_update:'Booking updated',approval_request:'Work requested',approval_response:'Customer decision',correspondence:'Workshop message'};
  function colour(item){if(item.kind==='preferences')return item.details?.preferences?.serious_repairs==='change_parts'?'green':'red';const s=item.details?.status;return s==='approved'?'green':s==='declined'?'red':item.kind==='approval_request'||item.kind==='amendment'||item.kind==='additional_work'?'amber':'';}
+ const historyEvents=()=>Array.from(events.values()).filter(item=>window.VectaMessageSummary?.visible?.(item)!==false);
  function renderHistory(){
-  const ordered=Array.from(events.values()).sort((a,b)=>b.created_at.localeCompare(a.created_at)||Number(b.seq||0)-Number(a.seq||0)),key=JSON.stringify([ordered,current?.approvals,visibleCount]);
+  const ordered=historyEvents().sort((a,b)=>b.created_at.localeCompare(a.created_at)||Number(b.seq||0)-Number(a.seq||0)),key=JSON.stringify([ordered,current?.approvals,visibleCount]);
   $('portalOlder').hidden=ordered.length<=visibleCount&&!older;$('portalLatest').hidden=visibleCount<=5;
   if(key===historyKey)return;historyKey=key;const expanded=new Set([...history.querySelectorAll('.portalEvent[open]')].map(card=>card.dataset.eventId));history.replaceChildren();
   if(!ordered.length){const empty=node('p','No messages yet. Send us a message whenever you need to.');empty.className='portalEmpty';history.append(empty);}
@@ -46,8 +47,13 @@
    const body=node('div');body.className='portalEventBody';
    if(item.details?.status==='approved'||item.details?.status==='declined'){const badge=node('span',item.details.status==='approved'?'Authorised':'Not authorised');badge.className='portalSignal';body.append(badge);}
    const progress=window.VectaMessageSummary?.progress?.(item);
-   // Raw tracking credentials in historical email bodies stay out of the view.
-   body.append(node('p',String(progress?.message||item.message||'').replace(/https:\/\/[^\s]+\/track[^\s]*/g,'[Your personalised portal]')));
+   // Link to the currently authorised portal, never an old email's credentials.
+   const message=node('p'),parts=String(progress?.message||item.message||'').split(/https:\/\/[^\s]+\/track[^\s]*/g);
+   parts.forEach((part,index)=>{
+    if(index){const link=node('a','Your personalised portal');link.href='/track#'+encodeURIComponent(token);link.onclick=()=>{if(emailDialog.open)emailDialog.close();};message.append(link);}
+    message.append(document.createTextNode(part));
+   });
+   body.append(message);
    if(item.details?.requested_date)body.append(node('p','Requested date: '+date(item.details.requested_date)+'. Your current date stays booked until Vecta confirms the change.'));
    if(item.details?.work_required&&!progress)body.append(node('p',item.details.work_required));
    if(Number.isInteger(item.details?.estimated_pence))body.append(node('b','£'+(item.details.estimated_pence/100).toFixed(2)+' including VAT'));
@@ -125,7 +131,7 @@
  // retry keeps its original UUID and cannot duplicate the saved message.
  form.addEventListener('input',()=>{if(!sending)requestId=crypto.randomUUID();});
  $('portalOlder').onclick=async()=>{
-  if(events.size>visibleCount){visibleCount+=5;renderHistory();return;}
+  if(historyEvents().length>visibleCount){visibleCount+=5;renderHistory();return;}
   if(!older)return;$('portalOlder').disabled=true;
   try{const data=await api('portal-status',{before:older});for(const e of data.events)events.set(e.id,e);older=data.older_cursor;visibleCount+=5;renderHistory();}
   catch(e){$('portalError').textContent=e.message;}finally{$('portalOlder').disabled=false;}

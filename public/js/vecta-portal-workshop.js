@@ -109,7 +109,7 @@
   const header=node('div');header.className='portalWorkshopHeading';header.append(heading,readButton);
   panel.append(header,consent,notifications,status,list);after.after(panel);
   let busy=false,key='',older=null,visibleCount=5,paged=false;const displayed=new Map(),receipts=new Map();let latestIds=[];
-  const orderedEvents=()=>[...displayed.values()].sort((a,b)=>b.created_at.localeCompare(a.created_at)||Number(b.seq||0)-Number(a.seq||0));
+  const orderedEvents=()=>[...displayed.values()].filter(item=>window.VectaMessageSummary?.visible?.(item)!==false).sort((a,b)=>b.created_at.localeCompare(a.created_at)||Number(b.seq||0)-Number(a.seq||0));
   const visibleEvents=()=>orderedEvents().slice(0,visibleCount);
   function renderMessages(){
    const ordered=orderedEvents();
@@ -143,7 +143,7 @@
     renderMessages();status.textContent='';
    }catch(e){status.textContent=e.message;}finally{busy=false;}
   }
-  const olderButton=button('Show earlier messages',()=>{if(displayed.size>visibleCount){visibleCount+=5;renderMessages();}else if(older)return refresh(older);});olderButton.hidden=true;
+  const olderButton=button('Show earlier messages',()=>{if(orderedEvents().length>visibleCount){visibleCount+=5;renderMessages();}else if(older)return refresh(older);});olderButton.hidden=true;
   const latestButton=button('Show latest only',()=>{visibleCount=5;renderMessages();heading.focus({preventScroll:true});panel.scrollIntoView({block:'start'});});latestButton.hidden=true;
   const historyActions=node('div');historyActions.className='portalWorkshopHistoryActions';historyActions.append(olderButton,latestButton);panel.append(historyActions);
   const controller={panel};

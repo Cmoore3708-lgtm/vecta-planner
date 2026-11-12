@@ -6,6 +6,15 @@ import {parseHTML} from 'linkedom';
 const titles=readFileSync('public/js/vecta-message-summary.js','utf8');
 const titleContext={window:{}};vm.runInNewContext(titles,titleContext);
 const title=titleContext.window.VectaMessageSummary.title;
+const alertText='Hi Michael. You have a new message in your Vecta customer portal that needs your attention.\n\nOpen your customer portal: https://www.vectamotors.co.uk/track#old-private-token';
+test('only automated portal-alert correspondence is hidden; actual messages and confirmations stay visible',()=>{
+ const visible=titleContext.window.VectaMessageSummary.visible;
+ assert.equal(visible({kind:'correspondence',actor:'workshop',message:alertText}),false);
+ assert.equal(visible({kind:'message',actor:'workshop',message:alertText}),true);
+ assert.equal(visible({kind:'message',actor:'customer',message:alertText}),true);
+ assert.equal(visible({kind:'correspondence',actor:'workshop',message:'Your booking is confirmed. Open your customer portal: https://www.vectamotors.co.uk/track#test'}),true);
+ assert.equal(visible({kind:'correspondence',actor:'workshop',message:alertText+'\nPlease bring your locking wheel nut key.'}),true);
+});
 test('old confirmations and reminders receive useful headings without mistaking customer text for email types',()=>{
  assert.equal(title({kind:'correspondence',message:'We are pleased to confirm your booking on Thu, 12 Nov 2026 for Other.'}),'Initial booking confirmation');
  assert.equal(title({kind:'correspondence',message:'Your booking is confirmed\n\nAB12 CDE'}),'Initial booking confirmation');
@@ -30,8 +39,11 @@ test('customer emails stay as links and open in a separate view through refresh,
  card().querySelector('button').click();assert.equal(shows,1);assert.equal(dialog.open,true);
  assert.equal(document.getElementById('portalEmailTitle').textContent,'Initial booking confirmation');
  assert.match(body.textContent,/parking instructions/);assert.match(body.textContent,/Email draft prepared/);assert.doesNotMatch(body.textContent,/private-token/);
+ const portalLink=body.querySelector('a');assert.equal(portalLink.textContent,'Your personalised portal');assert.equal(portalLink.getAttribute('href'),'/track#fixture');assert.doesNotMatch(body.innerHTML,/private-token/);
+ data.events.push({id:'alert-notice',seq:10,kind:'correspondence',actor:'workshop',created_at:'2026-11-12T12:56:00Z',message:alertText});
  data.events.push({id:'reminder',seq:3,kind:'correspondence',actor:'workshop',created_at:'2026-11-12T09:00:00Z',message:'This is a reminder that your car is booked in tomorrow.'});
  await window.VectaCustomerPortal.refresh();assert.equal(dialog.open,true);assert.equal(shows,1);assert.match(body.textContent,/parking instructions/);
+ assert.equal(document.querySelector('[data-event-id="alert-notice"]'),null);
  assert.equal(document.querySelector('[data-event-id="note"]').hasAttribute('open'),true);
  const newest=document.querySelector('.portalEvent');assert.equal(newest.dataset.eventId,'reminder');assert.equal(newest.querySelector('button strong').textContent,'Booking reminder');assert.equal(newest.querySelector('.portalEventBody'),null);
  card().querySelector('button').focus=()=>{focusId='confirmation';};document.getElementById('portalEmailClose').click();
