@@ -165,7 +165,7 @@ test('the review panel lists active manual and web holds across dates and remove
  ];
  const ctx={app:{jobs},window:{},esc:v=>String(v??''),vectaJobIsDeletedForLists:j=>j.tombstone,
   isJobInvoiced:j=>j.invoiced,byTime:(a,b)=>String(a.drop_time||'').localeCompare(String(b.drop_time||'')),
-  listPlate:()=>'',plannerVehicleLabel:()=>'',jobTypeInlineStyle:()=>'',jobTypeLabels:j=>[j.job_type||'General'],isWebsiteBookingJob:j=>j.source==='website booking'};
+  listPlate:()=>'',plannerVehicleLabel:()=>'',mobileJobCategoryLabel:()=>'',jobTypeInlineStyle:()=>'',jobTypeLabels:j=>[j.job_type||'General'],isWebsiteBookingJob:j=>j.source==='website booking'};
  vm.runInNewContext(namedFunctionSource('provisionalBookingsPanelHtml'),ctx);
  const ids=()=>Array.from(ctx.provisionalBookingsPanelHtml().matchAll(/data-open-job="([^"]+)"/g),match=>match[1]);
  assert.deepEqual(ids(),['earlier','later','undated']);

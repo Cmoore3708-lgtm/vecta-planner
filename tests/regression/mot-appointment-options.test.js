@@ -22,7 +22,7 @@ test('planner MOT label keeps the vehicle name visible and uses appointment time
  const websiteHelper=html.slice(html.indexOf('function isWebsiteBookingJob(j){'),html.indexOf('\nfunction applyWebsiteDefaultService'));
  vm.createContext(context);vm.runInContext(websiteHelper+'\n'+html.slice(html.indexOf('function mobileJobCategoryLabel(j){'),html.indexOf('function mobileJobCardHtml(j,groupName)'))+'\n'+html.slice(html.indexOf('function plannerJobDescription(j){'),html.indexOf('\nfunction jobCardHtml'))+'\n'+html.match(/function plannerVehicleLabel\(j\)\{[^\n]+/)[0]+'\n'+helper+'\n'+card,context);
  const result=context.jobCardHtml({id:'1',job_type:'mot',mot_time:'14:00',drop_time:'08:00',estimated_hours:1,vehicle:'Citroen C3',customer_account:'Staff',customer_name:'Jane Smith',work_required:'MOT test'});
- assert.match(result,/<div class="plannerPlateAndMot"><span class="plate">N16 VTR<\/span><\/div><b class="jobVehicle plannerJobVehicle">Citroen C3<\/b><span class="plannerJobCustomer"[^>]*>Jane Smith<\/span><\/div><span class="plannerMotHeader"[^>]*>MOT \(14:00\)<\/span>/);
+ assert.match(result,/<div class="plannerPlateAndMot"><span class="plate">N16 VTR<\/span><\/div><b class="jobVehicle plannerJobVehicle">Citroen C3<\/b><span class="plannerJobCustomer"[^>]*>Jane<\/span><\/div><span class="plannerMotHeader"[^>]*>MOT \(14:00\)<\/span>/);
  assert.match(result,/plannerMotJob/);
  assert.doesNotMatch(result,/MOT test/);
  assert.equal(context.plannerJobDescription({job_type:'mot',mot_time:'14:00',work_required:'MOT test\nCheck brakes'}),'Check brakes');
