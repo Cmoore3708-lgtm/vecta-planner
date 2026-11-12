@@ -461,12 +461,28 @@
 @media(max-width:700px){#content .mechanicBoardColumns,#content .mechanicBoardBacklog{grid-template-columns:minmax(0,1fr);gap:20px}#content .mechanicBoardIntro{align-items:flex-start;flex-direction:column;gap:10px}#content .mechanicBoard .mechanicQueueCard{padding:10px 12px!important}}
 @media(max-width:400px){#content .mechanicBoard .mechanicQueueCard>.haynesDashboardImage{width:200px!important}}
 
-/* Customer names always follow the vehicle model on dashboard cards. */
+/* Main PC: registration and customer, then the vehicle underneath. */
 @media screen and (min-width:769px){
- #content .livePriorityPlanner .plannerGrid .lane .job .plannerJobCustomer{grid-column:2;font-size:14px!important;line-height:1.25}
+ #content .livePriorityPlanner .plannerGrid .lane .job .plannerJobCustomer{grid-column:2;grid-row:1;font-size:14px!important;line-height:1.25}
+ #content .livePriorityPlanner .plannerGrid .lane .job .plannerJobVehicle{grid-column:1/-1;grid-row:2;display:block!important}
+ #content .livePriorityPlanner .plannerGrid .lane .job:not(.miniPlannerTask) .plannerJobLeft{width:100%!important}
+ #content .livePriorityPlanner .plannerGrid .lane .job .plannerJobVehicle{max-width:calc(100% - var(--planner-identity-text-inset,var(--planner-vehicle-text-inset,0px)))!important}
+ #content .livePriorityPlanner .plannerGrid .lane .job .plannerJobCustomer{max-width:calc(100% - var(--planner-customer-text-inset,var(--planner-vehicle-text-inset,0px)))!important}
 }
 #content .mobilePlanner .mobileJobTop .mobileJobCategory{font-size:14px!important;line-height:1.3!important}
-#content .mechanicBoard .mechanicQueueCard .mobileJobCategory{font-size:15px!important;font-weight:700}
+@media screen and (min-width:769px){
+ #content .livePriorityPlanner .plannerGrid .lane .job:not(.miniPlannerTask) .plannerJobHeader>.plannerJobRightText{width:calc(100% - var(--planner-types-text-inset,var(--planner-vehicle-text-inset,0px)))!important}
+ #content .livePriorityPlanner .plannerGrid .lane .job .plannerJobHeader>.haynesDashboardImage{background:transparent!important;border:0!important;box-shadow:none!important}
+}
+/* Mechanics: plate/make above customer/job types, with full work below. */
+#content .mechanicBoard .mechanicQueueCard .mobileJobTop{display:grid!important;grid-template-columns:max-content minmax(0,1fr);gap:5px 10px!important;align-items:center!important}
+#content .mechanicBoard .mechanicQueueCard .mobilePlateAndParts{grid-column:1;grid-row:1}
+#content .mechanicBoard .mechanicQueueCard .mobileVehicleTop{grid-column:2;grid-row:1;font-size:15px!important;text-align:left!important;justify-self:start}
+#content .mechanicBoard .mechanicQueueCard .mobileJobCategory{grid-column:1;grid-row:2;font-size:19px!important;line-height:1.25!important;font-weight:800;color:#15202b!important;max-width:145px!important}
+#content .mechanicBoard .mechanicQueueCard .mobileJobTypes{grid-column:2;grid-row:2}
+#content .mechanicBoard .mechanicQueueCard .mobileMotAppointment{grid-column:1/-1}
+#content .mechanicBookingState.mechanicBookingInWorkshop{color:#15803d}
+#content .mechanicBookingState.mechanicBookingWaiting{color:#b91c1c}
 #content .dashboardCustomerName{display:block;font-size:14px;font-weight:700;line-height:1.25;min-width:0;overflow-wrap:anywhere}
 #content .livePriorityBacklog .unallocatedVehicleHeader,#content .unallocatedVehicleHeader{display:grid;grid-template-columns:max-content minmax(0,1fr);gap:2px 8px}
 #content .unallocatedVehicleHeader>.uniformRegPlate{grid-column:1;grid-row:1/3}

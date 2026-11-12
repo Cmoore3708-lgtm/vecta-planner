@@ -15,7 +15,7 @@ test('late phone and desktop CSS overrides cannot silently change approved cards
  }
 });
 test('the full-description mechanics card renderer cannot silently truncate the work',()=>{
- const before="work=isWebsiteBookingJob(j)?'':cardWork.board,status=String(j.status||'').toLowerCase()";
+ const before="work=cardWork.board,status=String(j.status||'').toLowerCase()";
  assert.ok(html.includes(before));
  assert.throws(()=>checkLayout(captureBoth({html:html.replace(before,before.replace('cardWork.board','cardWork.board.slice(0,80)'))})),/DASHBOARD LAYOUT LOCK/);
 });

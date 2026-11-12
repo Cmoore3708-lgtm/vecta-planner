@@ -13551,12 +13551,12 @@ function mechanicWorkView(j){
     if(website&&/^(?:Current mileage unknown\. Check mileage on arrival|NEVOS vehicle:\s*NO\s*$|Booking guide total:|MOT \+ Service offer:)/i.test(lines[0])){remember(block,lines.slice(1).join('\n'));return}
     if(website&&/^Optional service item\s*[—–-]/i.test(text)){
       var decision=lines.filter(function(line){return /^(?:Optional service item|Customer requests replacement\.|Check the manufacturer)/i.test(line)});
-      reference.push(mechanicWorkLines(decision.join('\n')));remember(block,lines.filter(function(line){return !decision.includes(line)}).join('\n'));return;
+      var decisionText=mechanicWorkLines(decision.join('\n'));reference.push(decisionText);if(decisionText)board.push(decisionText);remember(block,lines.filter(function(line){return !decision.includes(line)}).join('\n'));return;
     }
     if(website&&/^Service (?:guide price|price agreed):/i.test(text)){
       // Keep oil specs and part references available when the mechanic opens the job.
       var parts=lines.filter(function(line){return /^Oil specification:/i.test(line)||/\[[^\]]+\]/.test(line)});
-      reference.push(mechanicWorkLines(parts.map(function(line){return line.split(/; charged\s/i)[0]}).join('\n')));
+      var partsText=mechanicWorkLines(parts.map(function(line){return line.split(/; charged\s/i)[0]}).join('\n'));reference.push(partsText);if(partsText)board.push(partsText);
       remember(block,lines.filter(function(line){return !parts.includes(line)}).join('\n'));return;
     }
     var safe=mechanicWorkLines(text);
@@ -13564,7 +13564,7 @@ function mechanicWorkView(j){
       remember(block);if(safe){reference.push(safe);board.push(safe)}return;
     }
     editable.push(text);
-    var detail=website?lines.filter(function(line){return !sameAsTypes(line)&&!window.VectaBookingRules.isSparkPlugInstruction(line)}).join('\n'):text;
+    var detail=website?lines.filter(function(line){return !sameAsTypes(line)}).join('\n'):text;
     if(detail)board.push(detail);
   });
   var editorText=retained.length?editable.join('\n\n'):description;
@@ -13575,10 +13575,10 @@ function mechanicListJob(j){
   return Object.assign({},j,{job_type:jobTypeStorageValue(view.labels),work_required:view.board,amount_quoted:null});
 }
 function mechanicJobCardHtml(j){
-  var task=j.card_type==='mini_task',cardWork=mechanicWorkView(j),work=isWebsiteBookingJob(j)?'':cardWork.board,status=String(j.status||'').toLowerCase();
+  var task=j.card_type==='mini_task',cardWork=mechanicWorkView(j),work=cardWork.board,status=String(j.status||'').toLowerCase();
   var types=task?'':cardWork.labels.map(function(label){return jobTypeChip(j,label)}).join('');
   var description=work.trim()||!types?'<span class="mechanicJobDescription">'+esc(work.trim()?work:'No job description entered.')+'</span>':'';
-  return '<button type="button" class="mobileJob mechanicQueueCard jobTypeCoded'+(isWebsiteBookingJob(j)?' websiteBookingOutline':'')+'" style="'+jobTypeInlineStyle(j)+'" data-open-job="'+esc(j.id)+'"><span class="mechanicCardDetails"><span class="mobileJobTop"><span class="mobilePlateAndParts">'+(task?'<span class="mechanicTaskLabel">Internal task</span>':'<span class="plannerPlateWrap">'+listPlate(j.registration)+'</span>'+partsStatusDot(j))+'</span>'+(!task?'<span class="mobileVehicleTop">'+esc(plannerVehicleLabel(j))+'</span><span class="mobileJobCategory">'+esc(mobileJobCategoryLabel(j))+'</span>':'')+(types?'<span class="mobileJobTypes">'+types+'</span>':'')+(task?'':mobileMotAppointmentHtml(j))+'</span>'+carryOverBadgeHtml(j)+(status==='provisional'?'<span class="mechanicBookingState">Provisionally booked</span>':status==='in_progress'||status==='in progress'?'<span class="mechanicBookingState">In the workshop</span>':'')+description+'</span></button>';
+  return '<button type="button" class="mobileJob mechanicQueueCard jobTypeCoded'+(isWebsiteBookingJob(j)?' websiteBookingOutline':'')+'" style="'+jobTypeInlineStyle(j)+'" data-open-job="'+esc(j.id)+'"><span class="mechanicCardDetails"><span class="mobileJobTop"><span class="mobilePlateAndParts">'+(task?'<span class="mechanicTaskLabel">Internal task</span>':'<span class="plannerPlateWrap">'+listPlate(j.registration)+'</span>'+partsStatusDot(j))+'</span>'+(!task?'<span class="mobileVehicleTop">'+esc(plannerVehicleLabel(j))+'</span><span class="mobileJobCategory">'+esc(mobileJobCategoryLabel(j))+'</span>':'')+(types?'<span class="mobileJobTypes">'+types+'</span>':'')+(task?'':mobileMotAppointmentHtml(j))+'</span>'+carryOverBadgeHtml(j)+(status==='provisional'?'<span class="mechanicBookingState">Provisionally booked</span>':status==='in_progress'||status==='in progress'?'<span class="mechanicBookingState mechanicBookingInWorkshop">In the workshop</span>':!task&&(!status||status==='booked')?'<span class="mechanicBookingState mechanicBookingWaiting">Waiting to come in</span>':'')+description+'</span></button>';
 }
 function mechanicPlannerHtml(mechanics,jobs){
   function group(mechanicName,list,off){return '<section class="mechanicBoardGroup"><h2 class="mechanicGroupHeading"><span>'+esc(mechanicName)+'</span><span class="mechanicJobCount">'+list.length+'</span></h2>'+(off||'')+'<div class="mechanicJobList">'+(list.length?list.slice().sort(byTime).map(mechanicJobCardHtml).join(''):'<div class="empty">No jobs here.</div>')+'</div></section>'}
