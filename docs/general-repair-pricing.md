@@ -492,3 +492,24 @@ The checker prints and saves bounded stage/timestamp progress before supplier op
 All 112 focused tests passed. New regressions reproduce delayed prices after related controls, explicit category navigation despite priced products, unfinished product review, distinguishable displayed-price choices, fifty nested cards with bounded style reads, missing-position choices and final selected-SKU confirmation while skipping 45 unrelated attribute groups. These are simulated supplier transitions using report-observed labels; V19 live confirmation and fresh complete GSF/Haynes pricing remain pending. The checker stays read-only and the application stays on the existing draft branch.
 
 V19 verification: the full local release gate passed with 1,984 regression passes, four skipped and no failures; phone/cloud sync, finance integrity, production build and source/built dashboard layout/pricing-dependency checks also passed. All 24 packaged scripts match tested source, pass syntax validation and have complete relative imports. Main, migrations, feature activation and installed workers remain unchanged. Existing live supplier and desktop/iPhone/iPad release checks remain outstanding.
+
+### Direct supplier-browser observations — 12 November
+
+After Chris asked to stop the repeated checker-download cycle and observe the live process directly, the connected cloud browser exposed a signed-in GSF session. This is not remote access to the workshop Windows PC. No further checker package was issued during this investigation.
+
+GSF's visible home-page registration lookup returned `Vehicle not found` for YX13OEG, despite listing that registration among recent vehicles. Selecting the recent entry did not establish a selected vehicle. The actual `abs sensor` search navigated to `/enhancedSearch/abs%2520sensor` and displayed 50 product cards with manufacturer part numbers, descriptions, prices and stock. The unprefixed manufacturer code is a separate text node above the description; the existing reader's `SKU:`-only recognition misses that identifier on this real card layout.
+
+Opening the actual `Wheel Speed / ABS Sensor - Front/Rear LH` card showed HELLA manufacturer SKU `6PU012039-011`, £38.95 ex VAT / £46.74 inc VAT, with branch quantity 2 and national quantity 483. Its attributes included Front Axle LH and Rear Axle LH. These are observed product facts, not proof it fits YX13OEG. Following the actual ABS / Traction Control Sensor category opened `/parts/868`, which required a vehicle selection. The registration lookup again failed there for YX13OEG and for the previously successful BG18CJV example. Entering the VIN returned by Haynes also failed to establish a selected vehicle. No vehicle-filtered GSF part or complete quote was therefore verified. This does not establish why the workshop's V18 timed out, nor prove a GSF-wide outage. GSF's Haynes shortcut offered a trial; it was cancelled without starting a subscription.
+
+Chris completed secure authentication to the existing separate WorkshopData/Logicat service. A live YX13OEG lookup matched MERCEDES-BENZ E (W212), 220 CDI BlueEFF, -T (651.924), 2009–2013, type `t_102001561`, K-type 31048. Its actual Repair Times search returned no results for `abs sensor`. Searching `wheel speed sensor`, terminology present in the GSF product title, returned replacement operations:
+
+| Operation | Observed ID | Hours |
+| --- | --- | --- |
+| Renew the front left wheel speed sensor | 1M50010000WV0 | 0.50 |
+| Renew the front right wheel speed sensor | 1M50020000WV0 | 0.50 |
+| Renew the rear left wheel speed sensor | 1M50024000WV0 | 0.60 |
+| Renew the rear right wheel speed sensor | 1M50026000WV0 | 0.60 |
+
+The results also contain wiring-renewal jobs, remove/refit jobs, duplicate operations under different groups, and optional difficult-removal follow-ups of +0.30 hours. Those are distinct from the base sensor replacement. The live DOM repeats the base checkbox ID on associated follow-up list elements, so an unqualified ID selector is ambiguous. No repair was added to Haynes's estimate; its job count and estimate remained zero. The live front-sensor result was retained for Chris to inspect.
+
+The observations establish a real cross-supplier terminology gap and the product-card identifier structure. They do not validate the full worker or authorise a fixed ABS-only mapping. The next implementation must use observed alternative terminology and retain explicit operation/position confirmation, with fixtures based on this real markup. Full end-to-end verification remains blocked by GSF vehicle selection in the connected session; further unverified installer/checker iterations are paused.
