@@ -45,6 +45,32 @@ test('the same product chooser handles arbitrary descriptions and retains supply
  }
 });
 
+// Core DOM structure observed directly in TradeHub on 12 November. No account
+// data, remote assets or supplier actions are needed to replay these cards.
+const observedCard=(code,label,price)=>'<div class="MuiBox-root css-1tzyzib"><div class="transition group-hover:text-[#ed1c24] text-base md:text-base font-semibold line-clamp-1 MuiBox-root css-c7yo1x">'+code+'</div><div class="MuiBox-root css-10kmt1v">'+label+'</div><p class="MuiTypography-root MuiTypography-body1 css-1sxzzle">£'+price+'</p><div><span>In stock.</span></div><div><span data-testid="basket-count" aria-label="current basket count"><button data-testid="add-basket-button">Add to basket</button><span>0</span></span></div></div>';
+test('observed unprefixed manufacturer codes remain paired with their own description and price',()=>{
+ const d=doc('<main>'+observedCard('6PU012039-011','Wheel Speed / ABS Sensor - Front/Rear LH','38.95')+observedCard('21.0134','Wheel Speed / ABS Sensor - Rear','21.18')+observedCard('0265007790','ABS Sensor','48.58')+'</main>');
+ const products=readSearchProducts({query:'abs sensor'},d).products;
+ assert.deepEqual(products.map(p=>[p.sku,p.displayPricePence]),[['6PU012039-011',3895],['21.0134',2118],['0265007790',4858]]);
+ for(const p of products){assert.equal(d.querySelector(p.selector).textContent,p.label);assert.equal(d.querySelector(p.selector).closest('button'),null);}
+ assert.ok(searchProductChoices(products,request).some(c=>c.choice.detail.startsWith('SKU 6PU012039-011')));
+});
+test('equal names and prices no longer hide distinct manufacturer parts or lose selection after reordering',()=>{
+ const a=observedCard('SS20301','ABS Sensor','28.83'),b=observedCard('SS20211','ABS Sensor','28.83');
+ const options=html=>searchProductChoices(readSearchProducts({query:'abs sensor'},doc('<main>'+html+'</main>')).products,request);
+ const choices=options(a+b);assert.equal(choices.length,2);assert.notEqual(choices[0].choice.id,choices[1].choice.id);
+ assert.equal(choices[0].choice.id,options(b+a)[1].choice.id);assert.equal(choices[0].product.sku,'SS20301');
+});
+test('manufacturer-code capture excludes hidden codes, dimensions, counts and purchase controls',()=>{
+ const cards=['<span hidden>SS20301</span>','<span>711mm</span>','<span>24V</span>','<span>12</span>','<button>SS20301</button>','<div><button>SS20301</button></div>'];
+ for(const before of cards){const products=readSearchProducts({query:'abs sensor'},doc('<main><div>'+before+'<div>ABS sensor</div><p>£20.00</p></div></main>')).products;assert.equal(products.length,1);assert.equal(products[0].sku,'',before);}
+ const outside=readSearchProducts({query:'abs sensor'},doc('<main><div>SS20301</div>'+card('ABS sensor')+'</main>')).products;assert.equal(outside[0].sku,'');
+});
+test('contradictory labelled and unprefixed identifiers remain unresolved rather than choosing one',()=>{
+ const products=readSearchProducts({query:'abs sensor'},doc('<main><div><p>SKU: SS20211</p><div>SS20301</div><div>ABS sensor</div><p>£20.00</p></div></main>')).products;
+ assert.equal(products.length,1);assert.equal(products[0].sku,'');
+});
+
 function browser({fitment=true,vehicle=true,price=2000,description='Wheel Speed / ABS Sensor - Front LH'}={}){
  let url='',opened=false,presses=0,clicks=[];
  const productsDoc=()=>description==='ABS Sensor'?doc('<main>'+suggestions+card(description)+'</main>'):searchDoc();

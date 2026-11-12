@@ -35,7 +35,20 @@ export function readSearchProducts({query},doc=document){
   let path='';const href=target.getAttribute('href');
   if(href){try{const u=new URL(href,'https://trade.gsfcarparts.com');if(u.origin!=='https://trade.gsfcarparts.com'||u.username||u.password||u.search||u.hash||!/^\/(?:partdetails|parts)\/[^/]+\/?$/.test(u.pathname))continue;path=u.pathname;}catch{continue;}}
   const skuNodes=leaf.filter(n=>card.contains(n)&&/^SKU:\s*[a-z0-9][a-z0-9._/-]{1,99}$/i.test(clean(text(n))));
-  const sku=skuNodes.length===1?clean(text(skuNodes[0])).replace(/^SKU:\s*/i,''):'';
+  // Live TradeHub cards put an unprefixed manufacturer code immediately
+  // before the description. Read only that sibling inside this card, never
+  // another product, a basket count, a length or an arbitrary page number.
+  const code=value=>/^(?=.{3,80}$)(?=.*\d)[a-z0-9][a-z0-9._/-]*$/i.test(value)&&!/^\d{1,4}$|^\d+(?:\.\d+)?(?:mm|cm|m|v|w|kg|g|l)$/i.test(value);
+  const bare=[];
+  for(let branch=title;branch&&branch!==card;branch=branch.parentElement){
+   const previous=branch.previousElementSibling;
+   if(previous&&card.contains(previous)&&visible(previous)&&!excluded(previous)&&!previous.closest('button,[role="button"]')&&!previous.querySelector('button,input,select,textarea,[role="button"]')){
+    const value=clean(text(previous));if(code(value))bare.push(value);
+   }
+  }
+  const labelled=skuNodes.length===1?clean(text(skuNodes[0])).replace(/^SKU:\s*/i,''):'';
+  const codes=[...new Set([...bare,...(labelled?[labelled]:[])].map(value=>value.toUpperCase()))];
+  const sku=skuNodes.length<=1&&codes.length===1?labelled||bare[0]:'';
   products.push({label,sku,path,displayPricePence,selector:selector(target),cardSelector:selector(card)});
  }
  const productTitleCount=titles.filter(n=>!n.closest('button,[role="button"],a[href^="/parts/"]')).length;
