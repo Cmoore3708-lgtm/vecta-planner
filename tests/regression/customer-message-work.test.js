@@ -33,7 +33,7 @@ test('accepted text-only work preserves existing charges, metadata and VAT; the 
 });
 
 test('mechanic API summaries are explicitly non-financial, including prices typed into the message',async()=>{
- const item={id,message:'Front pads for £120 including VAT',photo_ids:[],status:'approved',decided_at:new Date().toISOString(),estimated_pence:12000,channels:{email:'sent'},token:'secret'};
+ const item={id,message:'Front pads for £120 including VAT',photo_ids:[],status:'approved',decided_at:'2026-11-09T09:00:00.000Z',estimated_pence:12000,channels:{email:'sent'},token:'secret'};
  const summary=mechanicApprovalSummary(item);assert.doesNotMatch(JSON.stringify(summary),/120|VAT|estimated|channels|secret/);
  const job={id:jobId,booking_date:'2026-11-09',registration:'TEST001',status:'in_progress',customer_email:'fixture@example.invalid',customer_phone:''};
  const row={...job,job_id:jobId,id,progress_from_mechanic:true,progress_booking_date:job.booking_date,progress_message:item.message,progress_photo_ids:[],progress_review_state:'sent',status:'approved',decided_at:item.decided_at,progress_estimate_pence:12000,jobs:job};
