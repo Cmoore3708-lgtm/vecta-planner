@@ -70,3 +70,18 @@ test('unallocated work wraps to the vehicle and releases full width below it, in
   if(!sampled)assert.ok(points(exclusion.style.shapeOutside).some(([x,y])=>x===0&&y===0),'unreadable artwork retains a safe rectangular exclusion');
  }
 });
+
+test('allocated cars rise beside short names but stay clear of long or wrapped names',()=>{
+ for(const [right,bottom,expected] of [[160,25,4],[270,25,31],[270,42,48]]){
+  const values=new Map();let samples=0;
+  const customer={getBoundingClientRect:()=>({left:110,right:300,top:8,bottom})};
+  const plate={getBoundingClientRect:()=>({left:10,right:104,top:5,bottom:30})};
+  const card={matches:s=>s==='.job,.unallocatedSideJob',getBoundingClientRect:()=>({top:0}),style:{setProperty:(k,v)=>values.set(k,v),removeProperty(){}},classList:{remove(){}},querySelector:s=>s==='.plannerJobCustomer'?customer:s==='.plannerPlateAndMot'?plate:null};
+  const img={isConnected:true,naturalWidth:200,naturalHeight:100,getBoundingClientRect:()=>({top:parseFloat(values.get('--planner-artwork-top'))||4,right:310,width:160,height:80}),addEventListener(){}};
+  const ctx={timedArtwork:new WeakMap(),root:{},document:{createRange:()=>({selectNodeContents(){},getClientRects:()=>[{left:110,right,top:8,bottom}]})},plannerArtworkProfile:()=>{samples++;return {width:100,height:5,left:[80,40,10,10,100]};}};
+  vm.runInNewContext(functions.get('trackTimedArtwork'),ctx);ctx.trackTimedArtwork(card,img);
+  assert.equal(values.get('--planner-artwork-top'),expected+'px');
+  img.naturalWidth=0;img.naturalHeight=0;ctx.trackTimedArtwork(card,img);
+  assert.equal(samples,1,'an unloaded image must not cache an empty silhouette');
+ }
+});

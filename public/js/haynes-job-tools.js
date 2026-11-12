@@ -292,8 +292,28 @@ function trackTimedArtwork(card,img){
   if(!img.isConnected){observer?.disconnect();work?.removeEventListener('scroll',update);return;}
   const customer=card.querySelector(sidebar?'.dashboardCustomerName':'.plannerJobCustomer');
   const plate=card.querySelector(sidebar?'.uniformRegPlate':'.plannerPlateAndMot');
+  const profile=(img.naturalWidth&&img.naturalHeight?plannerArtworkProfile(img):null)||{width:1,height:1,left:[0]};
   if(customer&&plate){
-   const top=Math.max(customer.getBoundingClientRect().bottom,plate.getBoundingClientRect().bottom)-card.getBoundingClientRect().top+6;
+   const cardBox=card.getBoundingClientRect();
+   let top=Math.max(customer.getBoundingClientRect().bottom,plate.getBoundingClientRect().bottom)-cardBox.top+6;
+   if(!sidebar&&img.naturalWidth&&img.naturalHeight){
+    // Start at full size near the top. Use the actual letters, rather than the
+    // whole grid cell, to leave unused space beside a short customer name free.
+    card.style.setProperty('--planner-artwork-top','4px');
+    const raised=img.getBoundingClientRect(),width=Math.min(raised.width,raised.height*img.naturalWidth/img.naturalHeight),height=width*img.naturalHeight/img.naturalWidth;
+    let names=[customer.getBoundingClientRect()];
+    if(typeof document!=='undefined'&&document.createRange){const range=document.createRange();range.selectNodeContents(customer);names=Array.from(range.getClientRects());}
+    const text=[plate.getBoundingClientRect(),...names];
+    if(height>0)for(let candidate=4;candidate<top;candidate++){
+     const imageTop=raised.top+candidate-4;
+     const clear=text.every(line=>{
+      const first=Math.max(0,Math.floor((line.top-imageTop-6)/height*profile.height)),last=Math.min(profile.height-1,Math.ceil((line.bottom-imageTop+6)/height*profile.height));
+      for(let row=first;row<=last;row++)if(profile.left[row]<profile.width&&line.right+6>raised.right-width+profile.left[row]/profile.width*width)return false;
+      return true;
+     });
+     if(clear){top=candidate;break;}
+    }
+   }
    card.style.setProperty('--planner-artwork-top',Math.ceil(top)+'px');
   }
   const box=img.getBoundingClientRect();
@@ -302,7 +322,6 @@ function trackTimedArtwork(card,img){
   card.style.setProperty('--planner-vehicle-text-inset',Math.ceil(drawnWidth+12)+'px');
   // Measure from each text row's own left edge. A grid's second column must not
   // subtract the plate width a second time when reserving the painted car.
-  const profile=plannerArtworkProfile(img)||{width:1,height:1,left:[0]};
   const drawnHeight=drawnWidth*img.naturalHeight/img.naturalWidth;
   const rows=sidebar?
    [['.unallocatedVehicleName','--planner-identity-text-width'],['.sideJobType','--planner-types-text-width'],[':scope > strong','--planner-price-text-width']]:
