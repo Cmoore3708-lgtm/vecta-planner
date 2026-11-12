@@ -26,7 +26,7 @@ test('duplicate controls are not offered as if they were unambiguous options',()
 });
 function page(body,{destination='/parts/Radiator',enterDestination,links=[],initialUrl='https://trade.gsfcarparts.com/'}={}){
  let url=initialUrl,clicks=0,presses=0;const d=doc(body);
- const p={url:()=>url,goto:async v=>{url=v;},waitForTimeout:async()=>{},evaluate:async(fn,input)=>fn===readCatalogueSearchState?readCatalogueSearchState(d):fn===readServiceCategory?{registration:input.registration,selectedRegistration:true}:readCatalogueResults(input,d),locator:selector=>({count:async()=>1,isVisible:async()=>true,fill:async()=>{},press:async()=>{presses++;if(enterDestination)url='https://trade.gsfcarparts.com'+enterDestination;},click:async()=>{clicks++;url='https://trade.gsfcarparts.com'+destination;},evaluateAll:async()=>links})};
+ const p={url:()=>url,goto:async v=>{url=v;},waitForTimeout:async()=>{},evaluate:async(fn,input)=>fn===readCatalogueSearchState?readCatalogueSearchState(d):fn===readServiceCategory?{registration:input.registration,selectedRegistration:true}:readCatalogueResults(input,d),locator:selector=>({count:async()=>1,isVisible:async()=>true,fill:async()=>{},press:async()=>{assert.ok(!url.includes('/partdetails/'),'Do not reuse a search selector after opening product details');presses++;if(enterDestination)url='https://trade.gsfcarparts.com'+enterDestination;},click:async()=>{clicks++;url='https://trade.gsfcarparts.com'+destination;},evaluateAll:async()=>links})};
  return {p,counts:()=>({clicks,presses})};
 }
 test('an exact non-link suggestion is followed only into its matching actual category',async()=>{
@@ -54,7 +54,7 @@ test('empty selectable results retain observed product labels for the next works
 });
 test('a click into product details never presses an old search selector after navigation',async()=>{
  const f=page('<button role="option">Radiator</button>',{destination:'/partdetails/RAD1'});
- await assert.rejects(discoverRepairCategory(f.p,'radiator',{request,selectVehicle}),error=>error.code==='CHOICE_REQUIRED'&&error.observed.pageType==='product');assert.equal(f.counts().presses,0);
+ await assert.rejects(discoverRepairCategory(f.p,'radiator',{request,selectVehicle}),error=>error.code==='CHOICE_REQUIRED'&&error.observed.pageType==='product');assert.equal(f.counts().presses,1);
 });
 test('an empty category page reports its actual category and vehicle context without query parameters',async()=>{
  const f=page('<main><h1>Select a vehicle</h1><p>Please wait</p><div role="progressbar"></div></main><input type="password" hidden value="secret">',{enterDestination:'/parts/All?session=secret'});
@@ -75,7 +75,7 @@ test('an actual related destination is offered for confirmation even with no cat
 test('the exact observed suggestion may navigate to a numeric GSF category ID',async()=>{
  // Same route shape and label as the v4 workshop report; no local part map.
  const f=page('<button role="option">Radiator</button>',{destination:'/parts/848'});
- assert.equal(await discoverRepairCategory(f.p,'radiator',{request,selectVehicle}),'848');assert.deepEqual(f.counts(),{clicks:1,presses:0});
+ assert.equal(await discoverRepairCategory(f.p,'radiator',{request,selectVehicle}),'848');assert.deepEqual(f.counts(),{clicks:1,presses:1});
  for(const [part,id] of [['Fuel Pressure Regulator','29001'],['Door Lock Actuator','29002'],['Air Conditioning Compressor','29003']]){
   const row=page('<button role="option">'+part+'</button>',{destination:'/parts/'+id});
   const r=repairRequest({registration:request.registration,work:'Supply and fit '+part,flow:'guided-v1'});

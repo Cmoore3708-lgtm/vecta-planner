@@ -93,8 +93,8 @@
   }
   function showChoices(data){
    var haynes=data.stage.indexOf('HAYNES_')===0,part=data.selectedPart,chosen=null,run=generation,expires=Date.parse(data.checkedAt)+300000;
-   var title={GSF_CATEGORY:'Which GSF description matches your part?',GSF_PART:'1. Choose the correct GSF part',HAYNES_MENU:'2. Choose the Haynes repair group',HAYNES_LABOUR:'2. Choose the correct fitting operation'}[data.stage];
-   var button={GSF_CATEGORY:'Use this description',GSF_PART:lookupMode==='parts'?'Use selected part':'Use selected part & find labour',HAYNES_MENU:'Show fitting operations',HAYNES_LABOUR:'Use selected labour'}[data.stage];
+   var title={GSF_CATEGORY:data.selectionKind==='product'?'Choose the product and fitting position':'Which GSF description matches your part?',GSF_PART:'1. Choose the correct GSF part',HAYNES_MENU:'2. Choose the Haynes repair group',HAYNES_LABOUR:'2. Choose the correct fitting operation'}[data.stage];
+   var button={GSF_CATEGORY:data.selectionKind==='product'?'Check selected product':'Use this description',GSF_PART:lookupMode==='parts'?'Use selected part':'Use selected part & find labour',HAYNES_MENU:'Show fitting operations',HAYNES_LABOUR:'Use selected labour'}[data.stage];
    if(!title||!Array.isArray(data.options))return;
    find.textContent='Refresh choices';
    message.textContent=data.options.length?'Tick the correct option, then continue.':'No matching options were returned. Try another description below.';

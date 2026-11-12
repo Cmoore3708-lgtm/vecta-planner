@@ -18,7 +18,7 @@ export const categoryChoiceId=control=>choiceId('gsf-category',control.label,con
 export function suggestedCategoryChoices(results,request){
  const scope=repairScope.resolve(request.work),counts=new Map();
  for(const c of results.controls){const id=categoryChoiceId(c);counts.set(id,(counts.get(id)||0)+1);}
- return results.controls.filter(c=>counts.get(categoryChoiceId(c))===1).map(c=>({id:categoryChoiceId(c),categoryChoice:categoryChoiceId(c),label:c.label,detail:'GSF search suggestion',work:'Supply and fit '+(scope.quantity!==1?scope.quantity+' ':'')+[scope.axle,scope.side,c.label].filter(Boolean).join(' ')}));
+ return results.controls.filter(c=>counts.get(categoryChoiceId(c))===1).map(c=>({id:categoryChoiceId(c),categoryChoice:categoryChoiceId(c),label:c.label,detail:'GSF search suggestion',work:repairScope.prefix(scope.lookup)+(scope.quantity!==1?scope.quantity+' ':'')+[scope.axle,scope.side,c.label].filter(Boolean).join(' ')}));
 }
 
 // Minimal evidence from the rendered results only. Excludes input values,

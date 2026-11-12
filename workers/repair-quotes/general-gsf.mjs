@@ -5,6 +5,7 @@ import {choiceId,requireChoice} from './choice-result.mjs';
 import {findCatalogueSearch} from './catalogue-search.mjs';
 import {selectCatalogueVehicle} from './catalogue-vehicle.mjs';
 import {observedCategory,categoryMatches,labelledDestinationCategory,readCatalogueResults,followExactCategorySuggestion,suggestedCategoryChoices} from './catalogue-results.mjs';
+import {readSearchProducts,searchProductChoices,readSearchProductFitment,searchProductPositions} from './catalogue-products.mjs';
 const reject=detail=>{throw Object.assign(Error('REVIEW_REQUIRED'),{code:'REVIEW_REQUIRED',detail});};
 
 // Read the rendered catalogue, keeping each SKU, its alternatives and its
@@ -175,6 +176,7 @@ export async function lookupGeneralGSF(page,request,{capture=captureRepairCatalo
  const scope=repairScope.resolve(request.work);
  if(scope.status!=='SUPPORTED')reject('PART_NOT_RECOGNISED');
  const category=await discoverRepairCategory(page,scope.query,{request,now,selectVehicle});
+ if(typeof category==='object'&&category.kind==='search-product')return lookupSearchProduct(page,request,category,{now});
  const vehicle=await capture(page,request.registration,category);
  if(vehicle.status!=='CAPTURED_FOR_REVIEW'||vehicle.registration!==request.registration||!vehicle.selectedRegistration||vehicle.truncated)reject('VEHICLE_NOT_CONFIRMED');
  let snapshot=await waitForRepairGroups(page,request.registration,category);
@@ -238,6 +240,55 @@ export function gsfPartChoices(candidates,request,category){
  }));
 }
 
+async function chooseSearchProduct(page,products,request,{now}){
+ const candidates=searchProductChoices(products,request),chosen=candidates.find(c=>c.choice.id===request.choices?.gsfCategory);
+ if(!chosen){
+  // Reuse the existing navigation-choice protocol; product choices are labelled
+  // separately for the user and do not pretend to be priced/verified parts yet.
+  try{requireChoice(request,'GSF_CATEGORY',candidates.map(c=>c.choice),{now});}
+  catch(error){error.result.selectionKind='product';error.observed={stage:'GSF_SEARCH_PRODUCTS',productCount:products.length,choiceCount:candidates.length};throw error;}
+ }
+ const control=page.locator(chosen.product.selector);
+ if(await control.count()!==1||!await control.isVisible())reject('SEARCH_PRODUCT_CHANGED');
+ await control.click({timeout:8000});
+ for(let i=0;i<40;i++){
+  const url=new URL(page.url());
+  if(url.origin!=='https://trade.gsfcarparts.com'||/^\/(?:signin|login)/i.test(url.pathname))throw Object.assign(Error('LOGIN_REQUIRED'),{code:'LOGIN_REQUIRED',supplier:'GSF'});
+  const category=observedCategory(url.href);if(category)return category;
+  try{const product=await page.evaluate(readProductDialog,{allowUnavailablePrice:true});return {kind:'search-product',...chosen,productDetails:product};}catch{}
+  if(i<39)await page.waitForTimeout(200);
+ }
+ reject('SEARCH_PRODUCT_DETAILS_NOT_OPEN');
+}
+
+export async function lookupSearchProduct(page,request,selected,{now=Date.now}={}){
+ const {product:card,productDetails:product,scope}=selected;
+ const sameLabel=(a,b)=>String(a).toLowerCase().replace(/[^a-z0-9]/g,'')===String(b).toLowerCase().replace(/[^a-z0-9]/g,'');
+ // The card price is only a navigation identity; the detail reader establishes
+ // VAT, brand, SKU and price. Do not treat an isolated search-page £ value as net.
+ if(!sameLabel(product.description,card.label)||card.sku&&!card.sku.toUpperCase().endsWith(product.sku.toUpperCase()))reject('SEARCH_PRODUCT_CHANGED');
+ if(card.displayPricePence!==product.unitNetPence&&card.displayPricePence!==product.costIncVatPence)reject('SEARCH_PRODUCT_PRICE_CHANGED');
+ const vehicle=await page.evaluate(readServiceCategory,{registration:request.registration,category:'Selected search product'});
+ const fitment=await page.evaluate(readSearchProductFitment);
+ if(!vehicle.selectedRegistration||vehicle.registration!==request.registration||!fitment.fitsSelectedVehicle)reject('SEARCH_PRODUCT_FITMENT_NOT_CONFIRMED');
+ const positions=searchProductPositions(fitment.rows.filter(r=>/^fitting position$/i.test(r.attribute)).map(r=>r.value).join(' ')||product.description);
+ if(scope.axle&&!positions.axles.includes(scope.axle)||scope.side&&!positions.sides.includes(scope.side))reject('SEARCH_PRODUCT_POSITION_REQUIRED');
+ const pack=fitment.rows.filter(r=>/^(?:quantity per pack|pack quantity|pack size)$/i.test(r.attribute));
+ if(request.quantity>1&&pack.length!==1||pack.some(r=>String(r.value)!=='1'))reject('SEARCH_PRODUCT_PACK_REQUIRED');
+ if(product.inStock&&!product.stock?.some(row=>row.quantity>=request.quantity))reject('SELECTED_PRODUCT_CHANGED');
+ const axes=scope.axle?[scope.axle]:positions.axles.length?positions.axles:[''],sides=scope.side?[scope.side]:positions.sides.length?positions.sides:[''];
+ const options=[];
+ for(const axle of axes)for(const side of sides){
+  const fitted=repairScope.scope(scope.part,axle,side,scope.quantity,scope.lookup);if(fitted.status!=='SUPPORTED')continue;
+  const id=choiceId(request.registration,'search-product',selected.choice.id,product.sku,product.brand,product.description,product.unitNetPence,product.inStock,fitment.rows,fitted.work);
+  options.push({id,label:product.brand+' · '+product.description,detail:'SKU '+product.sku+' · '+fitted.label+' · GSF confirms this part fits the selected vehicle',costPence:product.unitNetPence,inStock:product.inStock,work:fitted.work});
+ }
+ const confirmed=options.find(o=>o.id===request.choices.part&&o.work===scope.work);
+ if(!confirmed)requireChoice(request,'GSF_PART',options,{now});
+ const url=new URL(page.url()),gsfUrl=url.origin==='https://trade.gsfcarparts.com'&&/^\/partdetails\/[a-z0-9._-]+$/i.test(url.pathname)&&!url.search&&!url.hash?url.href:'';
+ return {vehicle:vehicle.visibleText.split(' Copy VIN')[0].slice(0,250),fitmentEvidence:'GSF selected registration '+request.registration+'; explicit product compatibility; '+scope.label,catalogueComplete:true,alternativesChecked:1,part:{source:'GSF',registration:request.registration,fitmentConfirmed:true,vatBasis:'EX_VAT',sku:product.sku,brand:product.brand,description:product.description,costPence:product.unitNetPence,corePence:0,inStock:product.inStock,imageUrl:product.imageUrl,gsfUrl,checkedAt:new Date(now()).toISOString(),choiceId:confirmed.id}};
+}
+
 // Resolve the supplier's own category link from its live search. The label/URL
 // comes from GSF; there is no finite list of supported parts or guessed category.
 export function matchingCatalogueCategories(links,query){
@@ -274,8 +325,12 @@ export async function discoverRepairCategory(page,query,{request,now=Date.now,se
  const search=await findCatalogueSearch(page);
  const beforeSearchUrl=page.url();
  await search.fill(query,{timeout:10000});
- let observed=[];
+ let observed=[],products=[];
  async function find(){
+  if(request?.flow&&new URL(page.url()).pathname.startsWith('/enhancedSearch/')){
+   const results=await page.evaluate(readSearchProducts,{query});
+   if(!results.busy&&results.products?.length){products=results.products;return [];}
+  }
   const current=observedCategory(page.url());if(categoryMatches(current,query))return [current];
   if(/^\d+$/.test(current)){
    const results=await page.evaluate(readCatalogueResults,{query});
@@ -284,10 +339,22 @@ export async function discoverRepairCategory(page,query,{request,now=Date.now,se
   observed=await page.locator('a[href]').evaluateAll(nodes=>nodes.filter(n=>n.getClientRects().length&&!n.closest('[hidden],[aria-hidden="true"]')).map(n=>({href:n.href,text:(n.innerText||n.textContent||'').trim()})));return matchingCatalogueCategories(observed,query);
  }
  let categories=[],suggestionFollowed=false;
- // The search may offer category links before submission, or on its results page.
- for(let i=0;i<8;i++){check();categories=await find();if(categories.length)break;await page.waitForTimeout(200);}
- if(!categories.length){const suggestion=await followExactCategorySuggestion(page,query,request?.choices?.gsfCategory);if(suggestion.category)return suggestion.category;suggestionFollowed=suggestion.followed===true;}
- if(!categories.length&&!suggestionFollowed){await search.press('Enter',{timeout:10000});for(let i=0;i<75;i++){check();categories=await find();if(categories.length)break;await page.waitForTimeout(200);}}
+ if(request?.flow){
+  // Submit the item first. Autocomplete/related categories must not divert a
+  // guided lookup before the actual product results have been inspected.
+  await search.press('Enter',{timeout:10000});
+  for(let i=0;i<75;i++){
+   check();categories=await find();if(products.length||categories.length&&observedCategory(page.url()))break;
+   if(i>=4){const state=await page.evaluate(readCatalogueResults,{query});if(!state.pageState?.busy&&!state.pageState?.loadingMessage&&(categories.length||state.controls?.length||state.emptyMessages?.length))break;}
+   if(i<74)await page.waitForTimeout(200);
+  }
+ }else{
+  // Retain the calibrated strict-category path for older requests.
+  for(let i=0;i<8;i++){check();categories=await find();if(categories.length)break;await page.waitForTimeout(200);}
+  if(!categories.length){const suggestion=await followExactCategorySuggestion(page,query);if(suggestion.category)return suggestion.category;suggestionFollowed=suggestion.followed===true;}
+  if(!categories.length&&!suggestionFollowed){await search.press('Enter',{timeout:10000});for(let i=0;i<75;i++){check();categories=await find();if(categories.length)break;await page.waitForTimeout(200);}}
+ }
+ if(products.length)return chooseSearchProduct(page,products,request,{now});
  if(!categories.length&&!suggestionFollowed){const suggestion=await followExactCategorySuggestion(page,query,request?.choices?.gsfCategory);if(suggestion.category)return suggestion.category;}
  if(categories.length!==1){
   if(request?.flow){

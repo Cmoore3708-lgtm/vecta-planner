@@ -101,7 +101,8 @@ function lookupFixture({missingBrand=false,reference='',allOutOfStock=false}={})
  let url='https://trade.gsfcarparts.com/',productOverride={};const events=[],document=doc(missingBrand?fixture(reference).replaceAll('https://gsfappstorage.blob.core.windows.net/catalogue-assets/Brands/ava.svg','/images/unreadable-logo.svg'):fixture(reference));
  if(allOutOfStock){for(const el of document.querySelectorAll('span'))if(el.textContent==='Branch Network')el.textContent='Out Of Stock';}
  const request=repairRequest({registration:'AB12CDE',work:'Supply and fit radiator',flow:'guided-v1'});
- const page={url:()=>url,goto:async value=>{url=value;events.push(value);},waitForTimeout:async()=>{},keyboard:{press:async()=>{}},locator:selector=>({count:async()=>1,isVisible:async()=>true,fill:async()=>{},click:async()=>{events.push(document.querySelector(selector)?.textContent?.trim()||selector);},evaluateAll:async()=>[{href:'/parts/848',text:'Radiator'}]}),evaluate:async(fn,input)=>{
+ const page={url:()=>url,goto:async value=>{url=value;events.push(value);},waitForTimeout:async()=>{},keyboard:{press:async()=>{}},locator:selector=>({count:async()=>1,isVisible:async()=>true,fill:async()=>{},press:async()=>{},click:async()=>{events.push(document.querySelector(selector)?.textContent?.trim()||selector);},evaluateAll:async()=>[{href:'/parts/848',text:'Radiator'}]}),evaluate:async(fn,input)=>{
+  if(fn.name==='readCatalogueResults')return {controls:[],emptyMessages:[],pageState:{busy:false}};
   if(fn.name==='readCatalogueSearchState')return {fields:[{catalogue:true,selector:'#search'}]};
   if(fn.name==='readRepairGroups')return readRepairGroups(document);
   if(fn.name==='readServiceCategory')return {status:'CAPTURED_FOR_REVIEW',registration:request.registration,selectedRegistration:true,visibleText:'Fixture vehicle'};

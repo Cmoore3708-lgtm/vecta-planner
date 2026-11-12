@@ -12,11 +12,11 @@ import {repairBrowserReason} from './browser-errors.mjs';
 const terminal=createInterface({input:process.stdin,output:process.stdout}),here=path.dirname(fileURLToPath(import.meta.url));
 let context,page;
 try{
- console.log('VECTA — HAYNES ONLY — v16. GSF can keep running. Choose the correct fitting operation; this does not calculate or save a quote.');
+ console.log('VECTA — HAYNES ONLY — v17. GSF can keep running. Choose the correct fitting operation; this does not calculate or save a quote.');
  const input=await promptInitialRepairRequest(terminal);
  if(input){
   const request=repairRequest({registration:input.registration,work:input.work});
-  const report={readOnly:true,labourOnly:true,checkerVersion:'2026-11-12-fit-includes-supply-v16',request,startedAt:new Date().toISOString(),steps:[]};
+  const report={readOnly:true,labourOnly:true,checkerVersion:'2026-11-12-product-results-first-v17',request,startedAt:new Date().toISOString(),steps:[]};
   const output=path.join(here,'haynes-search-result.local.json');
   const save=()=>writeFileSync(output,JSON.stringify(report,null,2)+'\n',{mode:0o600});
   let timer;

@@ -14,7 +14,7 @@ function fixture({delay=2,result='AB12CDE',clearCount=1,fieldCount=1,login=false
  const page={url:()=>url,goto:async v=>{url=v;events.push('home');},waitForTimeout:async()=>events.push('wait'),getByPlaceholder:()=>field,getByRole:(_role,{name})=>name==='Clear'?{count:async()=>clearCount,isVisible:async()=>true,click:async()=>events.push('clear')}: {click:async()=>{events.push('submit-vrm');submitted=true;}},evaluate:async(fn,input)=>{
   if(fn===readServiceCategory){reads++;const value=readServiceCategory(input,document());selected=value.selectedRegistration;events.push(selected?'vehicle-confirmed':'vehicle-pending');return value;}
   if(fn===readCatalogueSearchState)return readCatalogueSearchState(document());throw Error('Unexpected evaluate');
- },locator:s=>s==='a[href]'?{evaluateAll:async()=>[{href:'/parts/Radiator',text:'Radiator'}]}:{count:async()=>1,isVisible:async()=>true,fill:async()=>{assert.equal(selected,true);events.push('search-part');}}};
+ },locator:s=>s==='a[href]'?{evaluateAll:async()=>[{href:'/parts/Radiator',text:'Radiator'}]}:{count:async()=>1,isVisible:async()=>true,press:async()=>{assert.equal(selected,true);events.push('submit-part');url='https://trade.gsfcarparts.com/parts/Radiator';},fill:async()=>{assert.equal(selected,true);events.push('search-part');}}};
  return {page,events};
 }
 test('registration is selected and confirmed before the first part search, including delayed vehicle rendering',async()=>{
@@ -23,6 +23,7 @@ test('registration is selected and confirmed before the first part search, inclu
  assert.ok(f.events.indexOf('clear')<f.events.indexOf('fill-vrm:AB12CDE'));
  assert.ok(f.events.indexOf('submit-vrm')<f.events.indexOf('vehicle-confirmed'));
  assert.ok(f.events.indexOf('vehicle-confirmed')<f.events.indexOf('search-part'));
+ assert.ok(f.events.indexOf('search-part')<f.events.indexOf('submit-part'));
  assert.equal(f.events.filter(e=>e==='vehicle-pending').length,2);
 });
 test('wrong registration and recent-vehicle mentions cannot establish the selected vehicle',async()=>{
