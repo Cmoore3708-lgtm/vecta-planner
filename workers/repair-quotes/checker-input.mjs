@@ -35,6 +35,7 @@ export async function promptRepairChoice(terminal,request,result,{log=console.lo
   if(numeric&&!choice){log('Choose one of the option numbers shown, or enter different search wording.');continue;}
   try{
    if(choice){
+    if(result.stage==='HAYNES_MENU'&&result.selectionKind==='wording')return repairRequest({...request,choices:{...(c.gsfCategory?{gsfCategory:c.gsfCategory}:{}),...(c.part?{part:c.part}:{}),labourSearch:choice.searchQuery}});
     if(result.stage==='GSF_CATEGORY')return repairRequest({...request,work:choice.work,operation:undefined,quantity:undefined,choices:choice.categoryChoice?{gsfCategory:choice.categoryChoice}:{}});
     if(result.stage==='GSF_PART')return repairRequest({...request,work:choice.work,operation:undefined,quantity:undefined,choices:{...(c.gsfCategory?{gsfCategory:c.gsfCategory}:{}),part:choice.id}});
     if(result.stage==='HAYNES_MENU')return repairRequest({...request,choices:{...c,menus:[...(c.menus||[]),choice.label],labour:undefined}});
@@ -56,6 +57,7 @@ export async function promptHaynesLabourChoice(terminal,choices,result,{log=cons
   if(/^\d+$/.test(answer)){
    const option=result.options[Number(answer)-1];
    if(!option){log('Choose one of the option numbers shown.');continue;}
+   if(result.stage==='HAYNES_MENU'&&result.selectionKind==='wording')return {labourSearch:option.searchQuery};
    if(result.stage==='HAYNES_LABOUR')return {...choices,labour:option.id};
    if(result.stage==='HAYNES_MENU'){
     if((choices.menus||[]).length>=8){log('Enter more specific search wording to narrow the repair groups.');continue;}

@@ -2,6 +2,7 @@ import {readAlternatorTime} from './repair-time-reader.mjs';
 import {repairScope} from '../../lib/repair-quote.js';
 import {choiceId,requireChoice} from './choice-result.mjs';
 import {searchHaynesRepair} from './haynes-search.mjs';
+import {haynesWordingOptions} from './search-wording.mjs';
 const origin='https://www.workshopdata.com';
 const reject=detail=>{throw Object.assign(Error('LABOUR_REVIEW_REQUIRED'),{code:'LABOUR_REVIEW_REQUIRED',detail});};
 
@@ -40,7 +41,7 @@ export async function lookupHaynesLabourChoices(page,request,{vehicle,query,choi
  const wait=async({changedFrom='',allowSearch=false,attempts=60}={})=>{
   let previous='',stable=0,lastReadReason='';
   for(let attempt=0;attempt<attempts;attempt++){
-   check();const available=[],captures=[],searches=[];let busy=false;
+   check();const available=[],captures=[],searches=[];let busy=false,noResults=false;
    for(const frame of page.frames()){
     if(!frame.url().startsWith(origin+'/'))continue;
     const frameType=new URL(frame.url()).searchParams.get('typeId');if(frameType&&frameType!==vehicle.typeId)reject('VEHICLE_CHANGED');
@@ -48,22 +49,24 @@ export async function lookupHaynesLabourChoices(page,request,{vehicle,query,choi
     catch(error){if(/Execution context was destroyed|Cannot find context|detached/i.test(error.message||'')){busy=true;continue;}throw error;}
     if(state.login)throw Object.assign(Error('LOGIN_REQUIRED'),{code:'LOGIN_REQUIRED',supplier:'Haynes'});
     busy||=state.busy||state.readyState==='loading';
+    noResults||=state.noResults===true;
     available.push(...state.menus.map(m=>({...m,frame})));searches.push(...state.searches.map(s=>({...s,frame})));
     try{captures.push(...await frame.evaluate(readAlternatorTime,{operationPattern:'\\b(?:Renew|Replace|Remove\\s+and\\s+refit)\\b',allowMultiple:true}));}
     catch(error){
      const reason=(error.message||'').match(/LABOUR_REVIEW_REQUIRED:([A-Z_]+)/)?.[1];
      if(reason==='MULTIPLE_TIMES')reject('AMBIGUOUS_TIME_ROW');
      if(reason==='INVALID_TIME')reject('HAYNES_INVALID_TIME_ROW');
-     if(['TIME_NOT_FOUND','HOURS_UNIT_NOT_CONFIRMED'].includes(reason)){lastReadReason=reason;busy=true;}
+     if(!state.noResults&&['TIME_NOT_FOUND','HOURS_UNIT_NOT_CONFIRMED'].includes(reason)){lastReadReason=reason;busy=true;}
     }
    }
-   check();const options=haynesLabourOptions(captures,request,query),signature=JSON.stringify([available.map(({frame,...m})=>m),options.map(o=>o.id)]),contentSignature=JSON.stringify([available.map(({label,selector})=>({label,selector})),options.map(o=>o.id)]);
-   if(!busy&&(available.length||options.length||allowSearch&&searches.length)&&contentSignature!==changedFrom){stable=signature===previous?stable+1:1;if(stable>=3)return {available,options,searches,signature,contentSignature};}else stable=0;
+   check();const options=haynesLabourOptions(captures,request,query),signature=JSON.stringify([available.map(({frame,...m})=>m),options.map(o=>o.id),noResults]),contentSignature=JSON.stringify([available.map(({label,selector})=>({label,selector})),options.map(o=>o.id)]);
+   if(!busy&&(noResults||available.length||options.length||allowSearch&&searches.length)&&contentSignature!==changedFrom){stable=signature===previous?stable+1:1;if(stable>=3)return {available,options,searches,signature,contentSignature,noResults};}else stable=0;
    previous=signature;if(attempt+1<attempts)await page.waitForTimeout(200);
   }
   reject(lastReadReason?'HAYNES_'+lastReadReason:changedFrom?'HAYNES_REPAIR_GROUP_DID_NOT_OPEN':'HAYNES_REPAIR_TREE_NOT_READABLE');
  };
  let state=await wait();
+ if(state.noResults&&!state.options.length)requireChoice(request,'HAYNES_MENU',haynesWordingOptions(request,query,selectedPart),{now,selectedPart,selectionKind:'wording'});
  // Reopen only the headings selected by the user, re-discovered after each
  // expansion. An already-expanded heading must not be toggled closed.
  for(const label of choices.menus||[]){

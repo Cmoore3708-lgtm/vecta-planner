@@ -23,6 +23,17 @@ function browser({delay=0,neverReady=false}={}){
  return {page,clicks,progress,reads:()=>reads,options:{request,selectVehicle:async()=>({selectedRegistration:true}),onProgress:(stage,counts)=>progress.push({stage,...counts})}};
 }
 
+test('empty GSF product search offers actual related categories under Did you mean',async()=>{
+ const f=browser(),original=f.page.evaluate;
+ f.page.evaluate=async(fn,input)=>{
+  if(fn===readSearchProducts)return {products:[],productTitleCount:0,busy:false};
+  if(fn===readCatalogueResults)return readCatalogueResults(input,doc('<p>No products found</p>'+suggestions));
+  return original(fn,input);
+ };
+ let result;await assert.rejects(discoverRepairCategory(f.page,'abs sensor',f.options),e=>{result=cleanRepairChoices(e.result,request);return e.code==='CHOICE_REQUIRED';});
+ assert.equal(result.selectionKind,'wording');assert.ok(result.options.some(o=>o.label==='ABS / Traction Control Sensor'));assert.equal(f.clicks.length,0);
+});
+
 test('early related controls cannot win the race against delayed product prices',async()=>{
  const f=browser({delay:8});let choices;
  await assert.rejects(discoverRepairCategory(f.page,'abs sensor',f.options),e=>{choices=cleanRepairChoices(e.result,request);return e.code==='CHOICE_REQUIRED'&&choices.selectionKind==='product';});

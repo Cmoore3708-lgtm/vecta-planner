@@ -42,7 +42,10 @@ export function readHaynesRepairPage(input={},doc=globalThis.document){
  const matchingLabels=scoped.map(n=>({node:n,label:clean(text(n))})).filter(o=>o.label&&o.label.length<=200&&(terms.some(t=>o.label.toLowerCase().includes(t))||/\b(?:Renew|Replace|Remove and refit)\b/i.test(o.label))).filter(o=>![...o.node.children].some(n=>clean(text(n))===o.label)).slice(0,20).map(o=>({tag:o.node.tagName.toLowerCase(),text:o.label}));
  const busy=[...doc.querySelectorAll('[aria-busy="true"],[role="progressbar"]')].some(visible)||scoped.some(n=>/^(?:loading|please wait)(?:\s*[.…]+)?$/i.test(clean(text(n))));
  const login=[...doc.querySelectorAll('input[type="password"]')].some(visible);
- return {readyState:doc.readyState||'complete',busy,login,menus,searches,candidateCount:nodes.length,matchingLabels};
+ // Only the current filter's explicit empty result counts. A blank/loading
+ // page, hidden stale message or login screen must not trigger suggestions.
+ const noResults=!!query&&scoped.some(n=>clean(text(n)).toLowerCase()==='no results found for the filter used: '+query);
+ return {readyState:doc.readyState||'complete',busy,login,noResults,menus,searches,candidateCount:nodes.length,matchingLabels};
 }
 
 export function readRepairMenus(doc=globalThis.document){return readHaynesRepairPage({},doc).menus.map(({expanded,...item})=>item);}

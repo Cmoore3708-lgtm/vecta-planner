@@ -53,11 +53,12 @@ try{
     if(error.code!=='CHOICE_REQUIRED')throw error;
     if(error.observed){report.diagnostics||=[];report.diagnostics.push(error.observed);}
     const result=cleanRepairChoices(error.result,request);report.steps.push(result);
-    if(result.stage==='GSF_CATEGORY'&&!result.options.length){
+    if(result.stage==='GSF_CATEGORY'&&!result.options.length&&result.selectionKind!=='wording'){
      report.status='NEEDS_CHECK';report.reason='GSF_RESULTS_NEED_REVIEW';report.detail='The search ran, but no selectable product or category was captured. The report includes the visible search-result labels and controls.';
      console.log(report.detail);break;
     }
-    console.log('\n'+(result.selectionKind==='product'?'GSF PRODUCTS — choose the part and fitting position':result.stage.replaceAll('_',' ')));
+    console.log('\n'+(result.selectionKind==='wording'?'Did you mean?':result.selectionKind==='product'?'GSF PRODUCTS — choose the part and fitting position':result.stage.replaceAll('_',' ')));
+    if(!result.options.length)console.log('No alternative wording was available. Enter a different description to search again.');
     if(result.selectedPart)console.log('GSF part: '+result.selectedPart.description+' '+result.selectedPart.sku+(result.selectedPart.inStock===false?' — Out of stock':result.selectedPart.inStock===true?' — In stock':''));
     result.options.forEach((o,i)=>console.log((i+1)+'. '+o.label+' — '+o.detail+(o.costPence?' — £'+(o.costPence/100).toFixed(2)+' each ex VAT':'')+(o.inStock===false?' — Out of stock':o.inStock===true?' — In stock':'')+(o.hoursMilli?' — '+o.hoursMilli/1000+' hours':'')));
     // End the lookup timer before waiting for the mechanic's choice.

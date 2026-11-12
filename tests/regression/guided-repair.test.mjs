@@ -175,3 +175,27 @@ test('out-of-stock status survives both API relays and appears beside part and l
  await repairWorkerHandler({env:{REPAIR_QUOTING_ENABLED:'true',REPAIR_QUOTE_WORKER_TOKEN:token},now:()=>now,queue:async(a,p)=>{delivered=p.result;return {status:'SAVED'};}})({method:'POST',headers:{authorization:'Bearer '+token},body:{action:'complete',id:'11111111-1111-1111-1111-111111111111',lease:'22222222-2222-2222-2222-222222222222',request:r,status:'CHOICE_REQUIRED',result:{...selection(r,'HAYNES_LABOUR',[]),selectedPart}}},worker);
  assert.equal(worker.body.status,'SAVED');assert.equal(delivered.selectedPart.inStock,false);
 });
+
+test('editor wording suggestion retries Haynes without treating the wording as a menu or accepted operation',async()=>{
+ const selectedPart={description:'Control arm / Wishbone',brand:'Fixture',sku:'ARM1',costPence:5000};
+ const e=editor((r,n)=>({status:'CHOICE_REQUIRED',choices:n===1?selection(r):{...selection(r,'HAYNES_MENU',[{id:'d'.repeat(32),label:'control arm',detail:'Supplier wording',searchQuery:'control arm'}]),selectionKind:'wording',selectedPart}}));
+ await e.click('[data-rq-find]');e.choose(0);await e.click('[data-rq-choose]');
+ assert.equal(e.document.querySelector('legend').textContent,'Did you mean?');assert.match(e.document.querySelector('.rqStatus').textContent,/No matching fitting operations/);
+ assert.equal(e.document.querySelector('[data-rq-choose]').disabled,true);assert.equal(e.document.querySelector('[data-rq-apply]'),null);
+ e.choose(0);await e.click('[data-rq-choose]');
+ assert.deepEqual(e.sent.at(-1).choices,{part:partId,labourSearch:'control arm'});assert.equal(e.sent.at(-1).work,'Supply and fit front left wishbone');
+});
+test('editor GSF Did you mean selects the observed category and keeps the requested position',async()=>{
+ const category='c'.repeat(32);
+ const e=editor(r=>({status:'CHOICE_REQUIRED',choices:{...selection(r,'GSF_CATEGORY',[{id:category,categoryChoice:category,label:'Control arm',detail:'GSF suggestion',work:'Supply and fit front left control arm'}]),selectionKind:'wording'}}));
+ await e.click('[data-rq-find]');assert.equal(e.document.querySelector('legend').textContent,'Did you mean?');
+ e.choose(0);await e.click('[data-rq-choose]');assert.deepEqual(e.sent.at(-1).choices,{gsfCategory:category});assert.equal(e.sent.at(-1).work,'Supply and fit front left control arm');
+});
+test('wording suggestions survive worker and manager API validation without acquiring prices or hours',async()=>{
+ const r=repairRequest({...request,choices:{part:partId}}),choice={...selection(r,'HAYNES_MENU',[{id:'d'.repeat(32),label:'control arm',detail:'Supplier wording',searchQuery:'control arm'}]),selectionKind:'wording',selectedPart:{description:'Control arm / Wishbone',brand:'Fixture',sku:'ARM1',costPence:5000}};
+ let delivered;const token='a'.repeat(64),worker=response();
+ await repairWorkerHandler({env:{REPAIR_QUOTING_ENABLED:'true',REPAIR_QUOTE_WORKER_TOKEN:token},now:()=>now,queue:async(a,p)=>{delivered=p.result;return {status:'SAVED'};}})({method:'POST',headers:{authorization:'Bearer '+token},body:{action:'complete',id:'11111111-1111-1111-1111-111111111111',lease:'22222222-2222-2222-2222-222222222222',request:r,status:'CHOICE_REQUIRED',result:choice}},worker);
+ assert.equal(worker.body.status,'SAVED');const manager=response();
+ await repairQuoteHandler({env:{REPAIR_QUOTING_ENABLED:'true',REPAIR_GENERAL_PRICING_ENABLED:'true'},authenticate:async()=>true,queue:async()=>({status:'CHOICE_REQUIRED',result:delivered}),now:()=>now})({method:'POST',body:r},manager);
+ assert.equal(manager.body.choices.selectionKind,'wording');assert.deepEqual(manager.body.choices.options,choice.options);assert.equal(manager.body.quote,undefined);
+});

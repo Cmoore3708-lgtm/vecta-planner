@@ -96,8 +96,9 @@
    var title={GSF_CATEGORY:data.selectionKind==='product'?'Choose the product and fitting position':'Which GSF description matches your part?',GSF_PART:'1. Choose the correct GSF part',HAYNES_MENU:'2. Choose the Haynes repair group',HAYNES_LABOUR:'2. Choose the correct fitting operation'}[data.stage];
    var button={GSF_CATEGORY:data.selectionKind==='product'?'Check selected product':'Use this description',GSF_PART:lookupMode==='parts'?'Use selected part':'Use selected part & find labour',HAYNES_MENU:'Show fitting operations',HAYNES_LABOUR:'Use selected labour'}[data.stage];
    if(!title||!Array.isArray(data.options))return;
+   var wording=data.selectionKind==='wording';if(wording){title='Did you mean?';button=haynes?'Search Haynes with this wording':'Use this description';}
    find.textContent='Refresh choices';
-   message.textContent=data.options.length?'Tick the correct option, then continue.':'No matching options were returned. Try another description below.';
+   message.textContent=data.options.length?(wording?'No matching '+(haynes?'fitting operations':'products')+' found. Tick an alternative description to try.':'Tick the correct option, then continue.'):'No matching options were returned. Try another description below.';
    result.innerHTML=(part?'<div class="rqConfirmed"><strong>GSF part selected</strong><p>'+esc(part.description+' — '+part.brand+' '+part.sku)+'</p><small>'+money(part.costPence)+' each, excluding VAT</small><strong data-rq-availability>'+esc(availability(part))+'</strong></div>':'')+'<fieldset class="rqChoices"><legend>'+title+'</legend>'+data.options.map(function(o,i){return '<label class="rqChoice"><input type="radio" name="rqSupplierChoice" value="'+i+'"><span><strong>'+esc(o.label)+'</strong><small>'+esc(o.detail)+'</small>'+(o.work&&data.stage==='GSF_PART'?'<small>'+esc(scopes.resolve(o.work).label)+'</small>':'')+(o.costPence!==undefined?'<b>'+money(o.costPence)+' each, excluding VAT</b>':'')+(data.stage==='GSF_PART'?'<strong data-rq-availability>'+esc(availability(o))+'</strong>':'')+(o.hoursMilli!==undefined?'<b>'+(o.hoursMilli/1000)+' hours</b>':'')+'</span></label>';}).join('')+'</fieldset><div class="rqActions"><button type="button" class="btn primary" data-rq-choose disabled>'+button+'</button>'+(haynes&&lookupMode!=='labour'?'<button type="button" class="btn" data-rq-change-part>Change GSF part</button>':'')+'</div><div class="rqRefine"><label>'+ (haynes?'Search Haynes using different wording':'Search GSF using different wording')+'<input data-rq-refine maxlength="150" value="'+esc(haynes?choices.labourSearch||(part?part.description:partSelect.value):partSelect.value)+'"></label><button type="button" class="btn" data-rq-search-again>Search again</button></div>';
    var next=result.querySelector('[data-rq-choose]');
    result.querySelectorAll('[name="rqSupplierChoice"]').forEach(function(input){input.onchange=function(){chosen=data.options[Number(input.value)];next.disabled=false;};});
@@ -105,7 +106,10 @@
     if(!chosen||run!==generation||Date.now()>expires||key()!==lastKey){message.textContent='These choices have expired or the repair changed. Refresh the search.';next.disabled=true;return;}
     if(data.stage==='GSF_CATEGORY'){choices=chosen.categoryChoice?{gsfCategory:chosen.categoryChoice}:{};useScope(chosen.work);}
     if(data.stage==='GSF_PART'){choices=Object.assign({},choices.gsfCategory?{gsfCategory:choices.gsfCategory}:{},{part:chosen.id});useScope(chosen.work);}
-    if(data.stage==='HAYNES_MENU'){choices=Object.assign({},choices,{menus:(choices.menus||[]).concat(chosen.label)});delete choices.labour;if(choices.menus.length>8){message.textContent='Try more specific Haynes wording below.';return;}}
+    if(data.stage==='HAYNES_MENU'){
+     if(wording)choices=Object.assign({},choices.gsfCategory?{gsfCategory:choices.gsfCategory}:{},choices.part?{part:choices.part}:{},{labourSearch:chosen.searchQuery});
+     else{choices=Object.assign({},choices,{menus:(choices.menus||[]).concat(chosen.label)});delete choices.labour;if(choices.menus.length>8){message.textContent='Try more specific Haynes wording below.';return;}}
+    }
     if(data.stage==='HAYNES_LABOUR')choices=Object.assign({},choices,{labour:chosen.id});
     lookup(false);
    };

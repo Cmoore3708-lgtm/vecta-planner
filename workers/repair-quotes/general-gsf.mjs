@@ -492,7 +492,7 @@ export async function discoverRepairCategory(page,query,{request,now=Date.now,se
    const options=catalogueCategoryOptions(observed,query,repairScope.resolve(request.work));
    const labels=new Set(options.map(o=>o.label));
    options.push(...suggestedCategoryChoices(diagnostics,request).filter(o=>!labels.has(o.label)));
-   try{requireChoice(request,'GSF_CATEGORY',options,{now});}
+   try{requireChoice(request,'GSF_CATEGORY',options,{now,selectionKind:'wording'});}
    catch(error){error.observed={stage:'GSF_SEARCH_RESULTS',...diagnostics};throw error;}
   }
   reject(categories.length?'MULTIPLE_CATALOGUE_CATEGORIES':'CATALOGUE_CATEGORY_NOT_FOUND');

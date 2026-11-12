@@ -35,7 +35,8 @@ try{
      if(error.code==='LOGIN_REQUIRED'&&loginRetries++<2){session=undefined;choices={};const answer=await terminal.question('Sign in to Haynes in its window, then press Enter (or Q to stop): ');if(answer.trim().toUpperCase()==='Q'){report.status='STOPPED_FOR_LOGIN';break;}continue;}
      if(error.code==='CHOICE_REQUIRED'){
       const result=error.result;report.steps.push(result);report.status='AWAITING_LABOUR_CHOICE';save();
-      console.log('\nChoose the correct Haynes fitting operation or repair group:');
+      console.log(result.selectionKind==='wording'?'\nDid you mean?':'\nChoose the correct Haynes fitting operation or repair group:');
+      if(!result.options.length)console.log('No alternative wording was available. Enter a different description to search again.');
       result.options.forEach((o,i)=>console.log((i+1)+'. '+o.label+(o.hoursMilli?' — '+(o.hoursMilli/1000)+' hours':'')));
       const next=await promptHaynesLabourChoice(terminal,choices,result);
       if(!next){report.status='STOPPED_FOR_REVIEW';break;}
