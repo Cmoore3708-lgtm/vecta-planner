@@ -149,7 +149,7 @@ test('an approval portal can view another published request for the same custome
  saved={...saved,customer_email:'replacement@example.invalid'};await assert.rejects(portalAccess(db,token,now),/no longer available/);
 });
 
-test('approval controls and authorised work stay in dated conversation order, with no separate top banner',async()=>{
+test('approval controls and authorised work stay in newest-first conversation order, with no separate top banner',async()=>{
  const {document}=parseHTML(readFileSync('public/track.html','utf8'));document.hidden=false;
  const opened=[],timers=[];
  const requested={id:'request-event',seq:1,kind:'approval_request',actor:'workshop',message:'Replace front brake pads',created_at:'2026-11-10T09:00:00Z',details:{approval_id:event,status:'pending',estimated_pence:12000}};
@@ -163,9 +163,9 @@ test('approval controls and authorised work stay in dated conversation order, wi
  assert.equal(top.querySelector('.portalApproval'),null);assert.equal(document.getElementById('portalApprovals'),null);
  assert.equal(history.querySelector('button').textContent,'View request & respond');history.querySelector('button').onclick();assert.equal(opened.at(-1),event);
  data={...data,events:[approved,message,requested],approvals:[{...data.approvals[0],status:'approved'}]};await window.VectaCustomerPortal.refresh();
- assert.deepEqual([...history.children].map(c=>c.dataset.eventId),['request-event','message-event','decision-event']);
- const decision=history.lastElementChild;assert.equal(decision.dataset.signal,'green');assert.match(decision.textContent,/Authorised/);assert.equal(decision.querySelector('time').dateTime,approved.created_at);
- assert.equal(history.firstElementChild.querySelector('button'),null);assert.equal(decision.querySelector('button').textContent,'View work details');assert.equal(top.querySelector('.portalApproval'),null);
+ assert.deepEqual([...history.children].map(c=>c.dataset.eventId),['decision-event','message-event','request-event']);
+ const decision=history.firstElementChild;assert.equal(decision.dataset.signal,'green');assert.match(decision.textContent,/Authorised/);assert.equal(decision.querySelector('time').dateTime,approved.created_at);
+ assert.equal(history.lastElementChild.querySelector('button'),null);assert.equal(decision.querySelector('button').textContent,'View work details');assert.equal(top.querySelector('.portalApproval'),null);
  await window.VectaCustomerPortal.refresh();assert.equal(history.children.length,3,'refresh must not duplicate the authorisation');
 });
 

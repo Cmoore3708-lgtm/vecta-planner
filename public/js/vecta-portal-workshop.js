@@ -73,7 +73,10 @@
   const c=node('article');c.className='portalWorkshopEvent';c.dataset.eventId=item.id;
   const decision=item.decision||item.details?.status;
   const titles={message:'Message',preferences:'Parts authorisation',amendment:'Amendment requested',additional_work:'Additional work requested',cancelled:'Booking cancelled',approval_response:decision==='approved'?'Work authorised':decision==='declined'?'Work not authorised':'Customer decision',approval_request:'Approval requested',booking_update:'Booking updated',correspondence:'Workshop message'};
-  c.append(node('strong',titles[item.kind]||'Job update'),node('small',date(item.created_at)),node('p',item.message));
+  const heading=node('div');heading.className='portalWorkshopEventHeading';
+  const timestamp=node('time',date(item.created_at));timestamp.dateTime=item.created_at;
+  heading.append(node('strong',(item.actor==='customer'?'Customer · ':'Vecta · ')+(titles[item.kind]||'Job update')),timestamp);
+  c.append(heading,node('p',item.message));
   if(item.details?.requested_date)c.append(node('p','Requested date: '+item.details.requested_date+' — awaiting workshop confirmation.'));
   if(item.details?.work_required)c.append(node('p',item.details.work_required));
   const green=decision==='approved'||item.authorised===true||item.details?.preferences?.serious_repairs==='change_parts',red=decision==='declined'||item.authorised===false||item.details?.preferences?.serious_repairs==='book_later';
@@ -83,13 +86,13 @@
    const send=button(item.forwarded?'Sent to mechanic':'Send to mechanic',async()=>{send.disabled=true;try{await api('portal-forward',{event_id:item.id});send.textContent='Sent to mechanic';window.dispatchEvent(new Event('vecta-portal-changed'));}catch(e){send.disabled=false;status.textContent=e.message;}});
    send.disabled=item.forwarded;const status=node('p');status.setAttribute('role','status');c.append(send,status);
   }
-  if(canForward&&alerts){const delivery=node('div');showAlerts(delivery,alerts,item.job_id);c.append(delivery);}
+  if(canForward&&alerts){const details=node('details'),delivery=node('div');details.className='portalDeliveryDetails';details.append(node('summary','Alert delivery'),delivery);showAlerts(delivery,alerts,item.job_id);c.append(details);}
   return c;
  }
  function mount(modal,job,saved){
   const after=modal.querySelector('.jobWorkSection');if(!after||!saved||job.no_vehicle||job.card_type&&job.card_type!=='job')return;
   const panel=node('section');panel.className='jobFormSection portalWorkshop';panel.dataset.jobId=job.id;
-  const heading=node('h3',mechanic()?'Office messages & approvals':'Customer portal & conversation'),consent=node('p'),list=node('div'),status=node('p');status.setAttribute('role','status');
+  const heading=node('h3',mechanic()?'Office messages & approvals':'Customer messages & updates'),consent=node('p'),list=node('div'),status=node('p');status.setAttribute('role','status');
   const notifications=node('div'),notificationNote=node('p');
   const enable=button('Allow device notifications',async()=>{enable.disabled=true;try{await window.vectaEnablePortalAlerts?.();}finally{enable.disabled=false;updateNotifications();}});
   function updateNotifications(){
@@ -100,31 +103,51 @@
   }
   notifications.className='portalDeviceNotifications';notificationNote.setAttribute('role','status');notifications.append(notificationNote,enable);updateNotifications();
   heading.tabIndex=-1;
-  const readButton=button('Mark messages as read',()=>{try{markRead([...displayed.values()]);status.textContent='Messages marked as read on this device.';}catch{status.textContent='Unable to save the read status on this device. The message alert is still active.';}});
+  const readButton=button('Mark messages as read',()=>{try{markRead(visibleEvents());status.textContent='Messages marked as read on this device.';}catch{status.textContent='Unable to save the read status on this device. The message alert is still active.';}});
   readButton.classList.add('portalMarkRead');readButton.hidden=true;
-  panel.append(heading,consent,notifications,status,readButton,list);after.after(panel);
-  let busy=false,key='',older=null;const displayed=new Map();
-  function updateRead(){const count=unread([...displayed.values()]).length;readButton.hidden=!count;readButton.textContent='Mark '+count+' '+(count===1?'message':'messages')+' as read';}
+  const header=node('div');header.className='portalWorkshopHeading';header.append(heading,readButton);
+  panel.append(header,consent,notifications,status,list);after.after(panel);
+  let busy=false,key='',older=null,visibleCount=5,paged=false;const displayed=new Map(),receipts=new Map();let latestIds=[];
+  const orderedEvents=()=>[...displayed.values()].sort((a,b)=>b.created_at.localeCompare(a.created_at)||Number(b.seq||0)-Number(a.seq||0));
+  const visibleEvents=()=>orderedEvents().slice(0,visibleCount);
+  function renderMessages(){
+   const ordered=orderedEvents();
+   const hash=JSON.stringify([ordered,[...receipts],visibleCount]);
+   if(hash!==key){
+    key=hash;const cards=ordered.slice(0,visibleCount).map(item=>eventCard(item,!mechanic(),receipts.get(item.id)));
+    if(!cards.length){const empty=node('p',mechanic()?'No office messages or approvals yet.':'No messages yet.');empty.className='portalWorkshopEmpty';cards.push(empty);}
+    list.replaceChildren(...cards);
+   }
+   olderButton.hidden=ordered.length<=visibleCount&&!older;latestButton.hidden=visibleCount<=5;updateRead();
+  }
+  function updateRead(){const count=unread(visibleEvents()).length;readButton.hidden=!count;readButton.textContent='Mark '+count+' '+(count===1?'message':'messages')+' as read';}
 
   async function refresh(before){
    if(busy||!panel.isConnected||document.hidden||!navigator.onLine)return;busy=true;
    try{
     const data=await api('portal-job',{job_id:job.id,...(before?{before}:{})});
     const allowed=data.preferences?.serious_repairs==='change_parts';consent.className='portalWorkshopConsent';consent.dataset.signal=allowed?'green':'red';consent.textContent=allowed?'Additional parts pre-authorised':'Additional parts not pre-authorised — approval required';
-    const hash=JSON.stringify([data.events,data.alerts]);
-    if(hash!==key){
-     key=hash;if(!before)displayed.clear();for(const item of data.events)displayed.set(item.id,item);const cards=data.events.map(item=>eventCard(item,!mechanic(),data.alerts?.find(a=>a.event_id===item.id)));
-     if(!cards.length&&!before){const empty=node('p',mechanic()?'No office messages or approvals yet.':'No messages yet.');empty.className='portalWorkshopEmpty';cards.push(empty);}
-     if(before)list.prepend(...cards);else list.replaceChildren(...cards);
+    if(!before){
+     // Retain entries that roll beyond the first server page as new messages arrive.
+     const floor=data.events.length?Math.min(...data.events.map(item=>Number(item.seq)||0)):0;
+     if(!data.events.length){displayed.clear();receipts.clear();paged=false;}
+     for(const id of latestIds)if((Number(displayed.get(id)?.seq)||0)>=floor){displayed.delete(id);receipts.delete(id);}
+     latestIds=data.events.map(item=>item.id);
     }
-    older=data.older_cursor;olderButton.hidden=!older;status.textContent='';updateRead();
+    for(const item of data.events)displayed.set(item.id,item);
+    for(const receipt of data.alerts||[])receipts.set(receipt.event_id,receipt);
+    if(before){paged=true;older=data.older_cursor;visibleCount+=5;}else if(!paged)older=data.older_cursor;
+    renderMessages();status.textContent='';
    }catch(e){status.textContent=e.message;}finally{busy=false;}
   }
-  const olderButton=button('Earlier messages',()=>refresh(older));olderButton.hidden=true;panel.insertBefore(olderButton,list);
+  const olderButton=button('Show earlier messages',()=>{if(displayed.size>visibleCount){visibleCount+=5;renderMessages();}else if(older)return refresh(older);});olderButton.hidden=true;
+  const latestButton=button('Show latest only',()=>{visibleCount=5;renderMessages();heading.focus({preventScroll:true});panel.scrollIntoView({block:'start'});});latestButton.hidden=true;
+  const historyActions=node('div');historyActions.className='portalWorkshopHistoryActions';historyActions.append(olderButton,latestButton);panel.append(historyActions);
   if(!mechanic()){
-   const form=node('form'),label=node('label','Reply to customer'),input=node('textarea'),send=node('button','Send message & alerts'),note=node('div');input.rows=3;input.maxLength=3000;input.required=true;label.append(input);send.type='submit';send.className='btn green';
+   const form=node('form'),label=node('label','Reply to customer'),input=node('textarea'),send=node('button','Send message & alerts'),note=node('div');input.rows=2;input.maxLength=3000;input.required=true;label.append(input);send.type='submit';send.className='btn green';
    const permissionLabel=node('label'),permissionBox=node('input'),permissionText=node('span'),permissionStatus=node('p');permissionBox.type='checkbox';permissionLabel.className='portalWhatsappPermission';permissionLabel.hidden=true;permissionLabel.append(permissionBox,permissionText);
-   form.append(label,permissionLabel,permissionStatus,send,note);panel.append(form);
+   form.append(label,permissionLabel,permissionStatus,send,note);
+   const composer=node('details');composer.className='portalWorkshopComposer';composer.append(node('summary','Reply to customer'),form);panel.insertBefore(composer,list);
    let contact=null;
    api('approval-list',{job_id:job.id}).then(data=>{contact=data.whatsapp;if(contact?.phone&&!contact.unavailable){permissionBox.checked=contact.allowed;permissionText.textContent='Customer agreed to WhatsApp updates on the number ending '+contact.phone.slice(-4);permissionLabel.hidden=false;}}).catch(()=>{});
    permissionBox.onchange=async()=>{permissionBox.disabled=true;send.disabled=true;try{await api('approval-whatsapp-permission',{job_id:job.id,phone:contact.phone,contact_binding:contact.contact_binding,allowed:permissionBox.checked});contact.allowed=permissionBox.checked;permissionStatus.textContent='WhatsApp preference saved.';}catch(e){permissionBox.checked=contact.allowed;permissionStatus.textContent=e.message;}finally{permissionBox.disabled=false;send.disabled=false;}};

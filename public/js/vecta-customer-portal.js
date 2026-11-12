@@ -3,7 +3,7 @@
  const $=id=>document.getElementById(id),node=(tag,text)=>{const n=document.createElement(tag);if(text!=null)n.textContent=text;return n;};
  const date=value=>value?new Intl.DateTimeFormat('en-GB',{dateStyle:'medium',...(value.includes('T')?{timeStyle:'short'}:{}),timeZone:'Europe/London'}).format(new Date(value.includes('T')?value:value+'T12:00:00Z')):'Date not recorded';
  const root=$('customerPortal'),history=$('portalHistory'),form=$('portalForm'),dialog=$('portalDialog');
- let current=null,busy=false,sending=false,kind='message',requestId=null,older=null,timer,historyKey='',cancelled=false,vehicleImageKey='';
+ let current=null,busy=false,sending=false,kind='message',requestId=null,older=null,timer,historyKey='',cancelled=false,vehicleImageKey='',visibleCount=5,historyLoaded=false;
  const initialApproval=token.startsWith('approval.')?token.split('.')[1]:new URLSearchParams(location.search).get('approval');
  const events=new Map(),announced=new Set(initialApproval?[initialApproval]:[]);
  async function api(action,body={}){
@@ -13,9 +13,11 @@
  const labels={message:'Message',amendment:'Booking amendment requested',additional_work:'Additional work requested',cancelled:'Booking cancelled',preferences:'Authorisation updated',booking_update:'Booking updated',approval_request:'Work requested',approval_response:'Customer decision',correspondence:'Workshop message'};
  function colour(item){if(item.kind==='preferences')return item.details?.preferences?.serious_repairs==='change_parts'?'green':'red';const s=item.details?.status;return s==='approved'?'green':s==='declined'?'red':item.kind==='approval_request'||item.kind==='amendment'||item.kind==='additional_work'?'amber':'';}
  function renderHistory(){
-  const ordered=Array.from(events.values()).sort((a,b)=>a.created_at.localeCompare(b.created_at)||a.seq-b.seq),key=JSON.stringify([ordered,current?.approvals]);
+  const ordered=Array.from(events.values()).sort((a,b)=>b.created_at.localeCompare(a.created_at)||Number(b.seq||0)-Number(a.seq||0)),key=JSON.stringify([ordered,current?.approvals,visibleCount]);
+  $('portalOlder').hidden=ordered.length<=visibleCount&&!older;$('portalLatest').hidden=visibleCount<=5;
   if(key===historyKey)return;historyKey=key;history.replaceChildren();
-  for(const item of ordered){
+  if(!ordered.length){const empty=node('p','No messages yet. Send us a message whenever you need to.');empty.className='portalEmpty';history.append(empty);}
+  for(const item of ordered.slice(0,visibleCount)){
    const card=node('article');card.className='portalEvent';card.dataset.signal=colour(item);card.dataset.eventId=item.id;
    const timestamp=node('time',date(item.created_at));timestamp.dateTime=item.created_at;
    const heading=node('div');heading.className='portalEventHeading';heading.append(node('strong',(item.actor==='customer'?'You · ':'Vecta · ')+(labels[item.kind]||'Update')),timestamp);
@@ -61,11 +63,10 @@
   $('portalAuthorisationTitle').textContent=data.preferences?.serious_repairs==='change_parts'?'Additional parts pre-authorised':'Additional parts not pre-authorised';
   $('portalAuthorisationText').textContent=data.preferences?.serious_repairs==='change_parts'?'If we find a serious repair and cannot reach you, you have asked us to change the parts.':'We need your approval before fitting additional parts.';
   $('portalParts').textContent=data.preferences?'Your parts preference: '+({budget:'Budget',mid_range:'Mid range',oem:'OEM'}[data.preferences.parts]):'No parts preference recorded.';
-  $('portalAmend').hidden=!b.can_amend;$('portalPreferences').hidden=!b.can_amend;$('portalAddWork').hidden=!b.can_amend;$('portalCancel').hidden=!b.can_cancel;$('portalMessage').hidden=!b.can_message;
+  $('portalAmend').hidden=!b.can_amend;$('portalPreferences').hidden=!b.can_amend;$('portalAddWork').hidden=!b.can_amend;$('portalCancel').hidden=!b.can_cancel;$('portalMessage').hidden=!b.can_message;$('portalReply').hidden=!b.can_message;
   $('portalDeadline').textContent=b.cancelled?'Your cancellation is recorded below.':b.can_cancel?'Cancel online until '+date(b.cancellation_deadline)+'.':!b.can_amend?'For booking changes, please contact the workshop.':'Online cancellation has closed. Please call us if you need to cancel.';
   const o=data.original;if(o){$('portalOriginalDate').textContent='Booking created: '+date(o.created_at);$('portalOriginalWork').textContent='Booked for '+date(o.booking_date)+'\n'+o.work_required;$('portalOriginalLegacy').hidden=!o.legacy;}
-  for(const e of data.events)events.set(e.id,e);if(!older)older=data.older_cursor;
-  $('portalOlder').hidden=!older;renderHistory();
+  for(const e of data.events)events.set(e.id,e);if(!historyLoaded){older=data.older_cursor;historyLoaded=true;}renderHistory();
   const pending=data.approvals.find(item=>item.status==='pending'&&!announced.has(item.id));
   if(pending&&!$('approvalDialog').open&&!dialog.open){announced.add(pending.id);showApproval(pending);}
   if(cancelled){$('identity').hidden=false;$('registration').textContent=b.registration;$('vehicle').textContent=b.vehicle;$('bookingDate').textContent='Booking date: '+date(b.booking_date);$('statusTitle').textContent='Your booking is cancelled';$('statusDescription').textContent='Your reason and cancellation are saved in your conversation.';$('error').hidden=true;$('steps').hidden=true;$('progressScene').hidden=true;$('sceneCaption').hidden=true;}
@@ -89,6 +90,7 @@
   dialog.showModal();(action==='preferences'?$('portalPartChoice'):$('portalText')).focus();
  }
  for(const [id,action] of [['portalMessage','message'],['portalAmend','amendment'],['portalAddWork','additional_work'],['portalCancel','cancelled'],['portalPreferences','preferences']])$(id).onclick=()=>compose(action);
+ $('portalReply').onclick=()=>compose('message');
  $('portalFormClose').onclick=()=>dialog.close();
  form.onsubmit=async e=>{
   e.preventDefault();if(sending)return;sending=true;$('portalSubmit').disabled=true;$('portalFormStatus').textContent='Saving…';
@@ -100,7 +102,13 @@
  // Editing after a failed/uncertain send starts a new operation; an unchanged
  // retry keeps its original UUID and cannot duplicate the saved message.
  form.addEventListener('input',()=>{if(!sending)requestId=crypto.randomUUID();});
- $('portalOlder').onclick=async()=>{if(!older)return;$('portalOlder').disabled=true;try{const data=await api('portal-status',{before:older});for(const e of data.events)events.set(e.id,e);older=data.older_cursor;$('portalOlder').hidden=!older;renderHistory();}catch(e){$('portalError').textContent=e.message;}finally{$('portalOlder').disabled=false;}};
+ $('portalOlder').onclick=async()=>{
+  if(events.size>visibleCount){visibleCount+=5;renderHistory();return;}
+  if(!older)return;$('portalOlder').disabled=true;
+  try{const data=await api('portal-status',{before:older});for(const e of data.events)events.set(e.id,e);older=data.older_cursor;visibleCount+=5;renderHistory();}
+  catch(e){$('portalError').textContent=e.message;}finally{$('portalOlder').disabled=false;}
+ };
+ $('portalLatest').onclick=()=>{visibleCount=5;renderHistory();$('portalConversationTitle').setAttribute('tabindex','-1');$('portalConversationTitle').focus({preventScroll:true});$('portalConversation').scrollIntoView({block:'start'});};
  document.addEventListener('visibilitychange',()=>{if(document.hidden)clearTimeout(timer);else refresh();});window.addEventListener('online',refresh);window.addEventListener('vecta-approval-decided',refresh);
  window.VectaCustomerPortal={refresh,isCancelled:()=>cancelled};refresh();
 })();
