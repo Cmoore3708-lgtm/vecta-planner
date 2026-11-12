@@ -6,13 +6,16 @@ import {choiceId} from './choice-result.mjs';
 // pair the separate diagnostic lists of titles and prices by their indices.
 export function readSearchProducts({query},doc=document){
  const clean=v=>String(v||'').replace(/\s+/g,' ').trim();
- const visible=el=>{for(let n=el;n&&n.nodeType===1;n=n.parentElement){if(n.hidden||n.getAttribute('aria-hidden')==='true')return false;const s=doc.defaultView?.getComputedStyle?.(n)||n.style;if(s&&(s.display==='none'||s.visibility==='hidden'||s.opacity==='0'))return false;}return true;};
- const text=n=>n.nodeType===3?n.textContent:n.nodeType===1&&!visible(n)?'':[...n.childNodes].filter(c=>!['SCRIPT','STYLE','INPUT','TEXTAREA','NAV','ASIDE'].includes(c.tagName)).map(text).join(' ');
+ // One style/text read per node for this snapshot. Fifty deeply nested cards
+ // must not repeatedly recalculate styles and traverse the whole result tree.
+ const visibility=new WeakMap(),texts=new WeakMap();
+ const visible=n=>{if(!n||n.nodeType!==1)return true;if(visibility.has(n))return visibility.get(n);const s=doc.defaultView?.getComputedStyle?.(n)||n.style;const result=!n.hidden&&n.getAttribute('aria-hidden')!=='true'&&!(s&&(s.display==='none'||s.visibility==='hidden'||s.opacity==='0'))&&visible(n.parentElement);visibility.set(n,result);return result;};
+ const text=n=>{if(texts.has(n))return texts.get(n);const value=n.nodeType===3?n.textContent:n.nodeType===1&&!visible(n)?'':[...n.childNodes].filter(c=>!['SCRIPT','STYLE','INPUT','TEXTAREA','NAV','ASIDE'].includes(c.tagName)).map(text).join(' ');texts.set(n,value);return value;};
  const selector=el=>{const p=[];for(let n=el;n&&n.nodeType===1;n=n.parentElement){const siblings=n.parentElement?[...n.parentElement.children].filter(c=>c.tagName===n.tagName):[n];p.unshift(n.tagName.toLowerCase()+':nth-of-type('+(siblings.indexOf(n)+1)+')');if(n.tagName==='BODY')break;}return p.join(' > ');};
  const words=v=>clean(v).toLowerCase().replace(/[^a-z0-9]+/g,' ').trim().split(/\s+/).map(w=>w.replace(/s$/,''));
  const wanted=words(query).filter(w=>!['the','a','an','and','for','with'].includes(w));
  const mains=[...doc.querySelectorAll('main,[role="main"]')].filter(visible);
- if(mains.length!==1)return {products:[],busy:false};
+ if(mains.length!==1)return {products:[],busy:false,productTitleCount:0};
  const main=mains[0],nodes=[...main.querySelectorAll('*')].filter(visible);
  const excluded=n=>n.closest('nav,aside,form,[role="listbox"],[role="option"],[contenteditable="true"]')||['SCRIPT','STYLE','INPUT','TEXTAREA'].includes(n.tagName);
  const leaf=nodes.filter(n=>!excluded(n)&&![...n.children].some(c=>clean(text(c))===clean(text(n))));
@@ -35,7 +38,8 @@ export function readSearchProducts({query},doc=document){
   const sku=skuNodes.length===1?clean(text(skuNodes[0])).replace(/^SKU:\s*/i,''):'';
   products.push({label,sku,path,displayPricePence,selector:selector(target),cardSelector:selector(card)});
  }
- return {products:products.slice(0,100),busy:nodes.some(n=>n.getAttribute('aria-busy')==='true'||n.getAttribute('role')==='progressbar')};
+ const productTitleCount=titles.filter(n=>!n.closest('button,[role="button"],a[href^="/parts/"]')).length;
+ return {products:products.slice(0,100),productTitleCount,busy:nodes.some(n=>n.getAttribute('aria-busy')==='true'||n.getAttribute('role')==='progressbar')};
 }
 
 export function searchProductPositions(value){
@@ -54,7 +58,7 @@ export function searchProductChoices(products,request){
    // Keep navigation identity stable across that refinement, while distinguishing
    // the explicit alternatives offered by a Front/Rear or LH/RH card.
    const id=choiceId('gsf-search-product',product.label,product.sku,product.path,product.displayPricePence,p.axles.length?axle:'',p.sides.length?side:'');
-   found.push({product,scope:selected,choice:{id,categoryChoice:id,label:product.label,detail:[product.sku?'SKU '+product.sku:'',axle,side,'Product result — check vehicle fitment and price next'].filter(Boolean).join(' · '),work:selected.work}});
+   found.push({product,scope:selected,choice:{id,categoryChoice:id,label:product.label,detail:[product.sku?'SKU '+product.sku:'',axle,side,'Displayed £'+(product.displayPricePence/100).toFixed(2),'VAT and vehicle fitment to confirm'].filter(Boolean).join(' · '),work:selected.work}});
   }
  }
  const counts=new Map();for(const item of found)counts.set(item.choice.id,(counts.get(item.choice.id)||0)+1);

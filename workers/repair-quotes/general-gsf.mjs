@@ -176,29 +176,41 @@ export function repairFitment(rows,scope,{allowAlternatives=false}={}){
  if(pack.some(r=>!/^1$/.test(String(r.value))))return false;
  return true;
 }
-export async function lookupGeneralGSF(page,request,{capture=captureRepairCatalogue,selectVehicle=selectCatalogueVehicle,now=Date.now}={}){
+export async function lookupGeneralGSF(page,request,{capture=captureRepairCatalogue,selectVehicle=selectCatalogueVehicle,now=Date.now,onProgress=()=>{}}={}){
  const scope=repairScope.resolve(request.work);
  if(scope.status!=='SUPPORTED')reject('PART_NOT_RECOGNISED');
- let category=await discoverRepairCategory(page,scope.query,{request,now,selectVehicle}),searchProduct;
+ let category=await discoverRepairCategory(page,scope.query,{request,now,selectVehicle,onProgress}),searchProduct;
  if(typeof category==='object'&&category.kind==='search-product'){
   const selected=category;
+  onProgress('GSF_PRODUCT_FITMENT');
   try{return await lookupSearchProduct(page,request,selected,{now});}
   catch(error){if(error.detail!=='SEARCH_PRODUCT_FITMENT_NOT_CONFIRMED')throw error;}
   // Product dialogs can hide the selected-vehicle panel and need not contain
   // a literal compatibility sentence. Verify the SKU in the vehicle catalogue.
+  onProgress('GSF_VEHICLE_CATEGORY');
   category=await searchProductVehicleCategory(page,request,selected,{selectVehicle});
   searchProduct=selected.productDetails;
  }
+ onProgress('GSF_CATALOGUE');
  const vehicle=await capture(page,request.registration,category);
  if(vehicle.status!=='CAPTURED_FOR_REVIEW'||vehicle.registration!==request.registration||!vehicle.selectedRegistration||vehicle.truncated)reject('VEHICLE_NOT_CONFIRMED');
  let snapshot=await waitForRepairGroups(page,request.registration,category);
- const candidates=[];let matchingGroups=0;
- for(const group of snapshot.groups){
+ let groups=snapshot.groups;
+ const selectedProductOption=option=>!searchProduct||option.description.toLowerCase()===searchProduct.description.toLowerCase()&&(!option.brand||option.brand.toLowerCase().replace(/[^a-z0-9]/g,'')===searchProduct.brand.toLowerCase().replace(/[^a-z0-9]/g,''));
+ if(searchProduct){
+  groups=groups.filter(g=>g.options.some(selectedProductOption));
+  const sameSku=groups.filter(g=>g.sku.toUpperCase().endsWith(searchProduct.sku.toUpperCase()));
+  if(sameSku.length)groups=sameSku;
+ }
+ const candidates=[];let matchingGroups=0,groupNumber=0;
+ for(const group of groups){
+  groupNumber++;
   if(!group.options.some(option=>request.flow||option.inStock))continue;
   if(!request.flow&&!repairScope.matchesDescription(group.description,scope.query))reject('WRONG_CATEGORY_PRODUCT');
   let rows=[];
   if(group.attributesSelector||scope.axle||scope.side||request.quantity>1){
    if(!group.attributesSelector)reject('POSITION_ATTRIBUTES_MISSING');
+   onProgress('GSF_ATTRIBUTES',{group:groupNumber,total:groups.length});
    await page.locator(group.attributesSelector).click({timeout:8000});
    let attributes;
    for(let attempt=0;attempt<25;attempt++){attributes=await page.evaluate(readServiceAttributes);if(attributes.status==='ATTRIBUTES_CAPTURED')break;await page.waitForTimeout(200);}
@@ -206,12 +218,12 @@ export async function lookupGeneralGSF(page,request,{capture=captureRepairCatalo
    if(attributes?.status!=='ATTRIBUTES_CAPTURED')reject('POSITION_ATTRIBUTES_MISSING');rows=attributes.rows;
    if(!repairFitment(rows,scope)&&!request.flow)continue;
   }
-  const candidateScope=request.flow?scopeForFitment(rows,scope):scope;
-  if(!candidateScope)continue;
+  const scopes=request.flow?scopesForFitment(rows,scope):[scope];
+  if(!scopes.length)continue;
   matchingGroups++;
   for(const option of group.options.filter(o=>request.flow||o.inStock)){
-   if(searchProduct&&(option.description.toLowerCase()!==searchProduct.description.toLowerCase()||option.brand&&option.brand.toLowerCase().replace(/[^a-z0-9]/g,'')!==searchProduct.brand.toLowerCase().replace(/[^a-z0-9]/g,'')))continue;
-   candidates.push({group,option,rows,scope:candidateScope});
+   if(!selectedProductOption(option))continue;
+   for(const candidateScope of scopes)candidates.push({group,option,rows,scope:candidateScope});
   }
  }
  if(searchProduct){
@@ -221,6 +233,7 @@ export async function lookupGeneralGSF(page,request,{capture=captureRepairCatalo
  }
  if(!request.flow&&matchingGroups>1)reject('MULTIPLE_FITMENT_VARIANTS');
  if(request.flow){
+  onProgress('GSF_PART_CHOICES',{count:candidates.length});
   const options=gsfPartChoices(candidates,request,category);
   const index=options.findIndex(o=>o.id===request.choices?.part&&o.work===scope.work);
   if(index<0)requireChoice(request,'GSF_PART',options,{now});
@@ -233,6 +246,7 @@ export async function lookupGeneralGSF(page,request,{capture=captureRepairCatalo
  if(!request.flow&&!repairScope.matchesDescription(option.description,scope.query))reject('OPTION_DESCRIPTION_MISMATCH');
  // Use the actual rendered choice, then re-read its selected SKU. A group's
  // original/default SKU is never assigned to another brand's cheaper option.
+ onProgress('GSF_FINAL_PRODUCT');
  await page.locator(option.selector).click({timeout:8000});
  const selected=await waitForSelectedRepairProduct(page,request.registration,category,group,option);
  const {searchTerm,url,...target}=selected.target;
@@ -251,17 +265,30 @@ export function scopeForFitment(rows,scope){
  const candidate=repairScope.scope(scope.part,scope.axle||(axis.length===1?axis[0]:''),scope.side||(sides.length===1?sides[0]:''),scope.quantity,scope.lookup);
  return candidate.status==='SUPPORTED'&&repairFitment(rows,candidate,{allowAlternatives:true})?candidate:null;
 }
+export function scopesForFitment(rows,scope){
+ const positions=rows.filter(r=>/^fitting position$/i.test(r.attribute)).map(r=>searchProductPositions(r.value));
+ if(!positions.length)positions.push({axles:[],sides:[]});
+ const found=new Map();
+ for(const p of positions){
+  const axles=scope.axle?[scope.axle]:p.axles.length?p.axles:[''],sides=scope.side?[scope.side]:p.sides.length?p.sides:[''];
+  for(const axle of axles)for(const side of sides){
+   const candidate=repairScope.scope(scope.part,axle,side,scope.quantity,scope.lookup);
+   if(candidate.status==='SUPPORTED'&&repairFitment(rows,candidate,{allowAlternatives:true}))found.set(candidate.work,candidate);
+  }
+ }
+ return [...found.values()];
+}
 export function gsfPartChoices(candidates,request,category){
  candidates.sort((a,b)=>Number(b.option.inStock)-Number(a.option.inStock)||a.option.pricePence-b.option.pricePence);
  return candidates.map(({group,option,rows,scope})=>({
-  id:choiceId(request.registration,category,group.sku,group.description,option.description,option.brand,option.grade,option.pricePence,option.inStock,rows.map(r=>[r.attribute,r.value]).sort()),
+  id:choiceId(request.registration,category,group.sku,group.description,option.description,option.brand,option.grade,option.pricePence,option.inStock,rows.map(r=>[r.attribute,r.value]).sort(),scope.axle,scope.side),
   label:[option.brand,option.description,option.grade].filter(Boolean).join(' · '),
-  detail:('GSF fitment group '+group.sku+' · '+rows.map(r=>r.attribute+': '+r.value).join(' · ')).slice(0,500),
+  detail:([scope.axle,scope.side].filter(Boolean).join(' ')+' · GSF fitment group '+group.sku+' · '+rows.map(r=>r.attribute+': '+r.value).join(' · ')).slice(0,500),
   costPence:option.pricePence,inStock:option.inStock,work:scope.work
  }));
 }
 
-async function chooseSearchProduct(page,products,request,{now}){
+async function chooseSearchProduct(page,products,request,{now,onProgress=()=>{}}){
  const candidates=searchProductChoices(products,request),chosen=candidates.find(c=>c.choice.id===request.choices?.gsfCategory);
  if(!chosen){
   // Reuse the existing navigation-choice protocol; product choices are labelled
@@ -271,7 +298,9 @@ async function chooseSearchProduct(page,products,request,{now}){
  }
  const control=page.locator(chosen.product.selector);
  if(await control.count()!==1||!await control.isVisible())reject('SEARCH_PRODUCT_CHANGED');
+ onProgress('GSF_PRODUCT_OPEN');
  const searchUrl=page.url();await control.click({timeout:8000});
+ onProgress('GSF_PRODUCT_DETAILS');
  for(let i=0;i<40;i++){
   const url=new URL(page.url());
   if(url.origin!=='https://trade.gsfcarparts.com'||/^\/(?:signin|login)/i.test(url.pathname))throw Object.assign(Error('LOGIN_REQUIRED'),{code:'LOGIN_REQUIRED',supplier:'GSF'});
@@ -382,21 +411,36 @@ export function catalogueCategoryOptions(links,query,scope){
  }
  return [...found.values()].sort((a,b)=>b.score-a.score||a.label.localeCompare(b.label)).slice(0,40).map(({score,...o})=>o);
 }
-export async function discoverRepairCategory(page,query,{request,now=Date.now,selectVehicle=selectCatalogueVehicle}={}){
+export async function discoverRepairCategory(page,query,{request,now=Date.now,selectVehicle=selectCatalogueVehicle,onProgress=()=>{}}={}){
  const origin='https://trade.gsfcarparts.com';
+ onProgress('GSF_OPEN');
  await page.goto(origin,{waitUntil:'domcontentloaded',timeout:15000});
  const check=()=>{const url=new URL(page.url());if(url.origin!==origin||/^\/signin/.test(url.pathname))throw Object.assign(Error('LOGIN_REQUIRED'),{code:'LOGIN_REQUIRED'});};check();
  let vehicle;
- if(request?.registration)vehicle=await selectVehicle(page,request.registration);
+ if(request?.registration){onProgress('GSF_VEHICLE');vehicle=await selectVehicle(page,request.registration);}
  // GSF hydrates the catalogue after DOMContentLoaded. Wait for its actual
  // visible control; wording and text/search input roles can vary by layout.
+ onProgress('GSF_SEARCH');
  const search=await findCatalogueSearch(page);
  const beforeSearchUrl=page.url();
  await search.fill(query,{timeout:10000});
- let observed=[],products=[];
+ let observed=[],products=[],productSnapshot={},sawProductTitles=false;
  async function find(){
   if(request?.flow&&new URL(page.url()).pathname.startsWith('/enhancedSearch/')){
+   // A confirmed category is navigation intent, not a fresh free-text search.
+   // Re-discover that exact observed control before considering product cards.
+   if(request.choices?.gsfCategory){
+    const results=await page.evaluate(readCatalogueResults,{query});
+    const selected=results.controls.filter(c=>categoryChoiceId(c)===request.choices.gsfCategory);
+    if(selected.length===1){
+     onProgress('GSF_SELECTED_CATEGORY');
+     const followed=await followExactCategorySuggestion(page,selected[0].label,request.choices.gsfCategory);
+     if(!followed.category)reject('SELECTED_CATEGORY_NOT_OPEN',{stage:'GSF_SELECTED_CATEGORY',...followed.observed});
+     return [followed.category];
+    }
+   }
    const results=await page.evaluate(readSearchProducts,{query});
+   productSnapshot=results;products=[];sawProductTitles||=results.productTitleCount>0;
    if(!results.busy&&results.products?.length){products=results.products;return [];}
   }
   const current=observedCategory(page.url());if(categoryMatches(current,query))return [current];
@@ -411,9 +455,13 @@ export async function discoverRepairCategory(page,query,{request,now=Date.now,se
   // Submit the item first. Autocomplete/related categories must not divert a
   // guided lookup before the actual product results have been inspected.
   await search.press('Enter',{timeout:10000});
+  onProgress('GSF_SEARCH_RESULTS');
+  let previousProducts='';
   for(let i=0;i<75;i++){
-   check();categories=await find();if(products.length||categories.length&&observedCategory(page.url()))break;
-   if(i>=4){const state=await page.evaluate(readCatalogueResults,{query});if(!state.pageState?.busy&&!state.pageState?.loadingMessage&&(categories.length||state.controls?.length||state.emptyMessages?.length))break;}
+   check();categories=await find();if(categories.length&&observedCategory(page.url()))break;
+   const signature=products.length?JSON.stringify(products.map(p=>[p.label,p.sku,p.path,p.displayPricePence])):'';
+   if(signature&&signature===previousProducts)break;previousProducts=signature;
+   if(i>=4&&!products.length){const state=await page.evaluate(readCatalogueResults,{query});const searchPage=new URL(page.url()).pathname.startsWith('/enhancedSearch/');if(!state.pageState?.busy&&!state.pageState?.loadingMessage&&(searchPage?state.emptyMessages?.length&&!sawProductTitles:categories.length||state.controls?.length||state.emptyMessages?.length))break;}
    if(i<74)await page.waitForTimeout(200);
   }
  }else{
@@ -422,7 +470,8 @@ export async function discoverRepairCategory(page,query,{request,now=Date.now,se
   if(!categories.length){const suggestion=await followExactCategorySuggestion(page,query);if(suggestion.category)return suggestion.category;suggestionFollowed=suggestion.followed===true;}
   if(!categories.length&&!suggestionFollowed){await search.press('Enter',{timeout:10000});for(let i=0;i<75;i++){check();categories=await find();if(categories.length)break;await page.waitForTimeout(200);}}
  }
- if(products.length)return chooseSearchProduct(page,products,request,{now});
+ if(products.length)return chooseSearchProduct(page,products,request,{now,onProgress});
+ if(sawProductTitles)reject('SEARCH_PRODUCTS_NOT_READY',{stage:'GSF_SEARCH_PRODUCTS',productCount:0,productTitleCount:productSnapshot.productTitleCount||0,busy:productSnapshot.busy===true,...await page.evaluate(readCatalogueResults,{query})});
  if(!categories.length&&!suggestionFollowed){const suggestion=await followExactCategorySuggestion(page,query,request?.choices?.gsfCategory);if(suggestion.category)return suggestion.category;}
  if(categories.length!==1){
   if(request?.flow){

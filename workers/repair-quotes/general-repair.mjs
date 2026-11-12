@@ -1,11 +1,11 @@
 import {repairRequest,repairScope,cleanRepairEvidence} from '../../lib/repair-quote.js';
 import {lookupGeneralGSF} from './general-gsf.mjs';
 import {lookupGeneralHaynes} from './general-haynes.mjs';
-export async function lookupGeneralRepair({gsfPage,haynesPage},raw,{gsf=lookupGeneralGSF,haynes=lookupGeneralHaynes,now=Date.now}={}){
+export async function lookupGeneralRepair({gsfPage,haynesPage},raw,{gsf=lookupGeneralGSF,haynes=lookupGeneralHaynes,now=Date.now,onProgress=()=>{}}={}){
  const request=repairRequest(raw),scope=repairScope.resolve(request.work);
- let part;if(request.lookup!=='labour')try{part=await gsf(gsfPage,request,{now});}catch(error){error.supplier||='GSF';throw error;}
+ let part;if(request.lookup!=='labour')try{part=await gsf(gsfPage,request,{now,onProgress});}catch(error){error.supplier||='GSF';throw error;}
  // A GSF choice pauses here. Haynes is never searched before that choice.
- let time;if(request.lookup!=='parts')try{time=await haynes(haynesPage,request,{now,selectedPart:part?.part});}
+ let time;if(request.lookup!=='parts')try{onProgress('HAYNES_LOOKUP');time=await haynes(haynesPage,request,{now,selectedPart:part?.part});}
  catch(error){error.supplier||='Haynes';if(error.code==='CHOICE_REQUIRED'&&part)error.result.selectedPart=part.part;throw error;}
  const variant=time?.variant||part?.vehicle;
  return cleanRepairEvidence({request,scope,variant,fitmentEvidence:part?.fitmentEvidence||'Haynes registration '+request.registration+'; selected replacement operation '+time.labour.operationId,catalogueComplete:part?part.catalogueComplete:true,parts:part?[{...part.part,variant}]:[],labour:time?.labour||null,checkedAt:new Date(now()).toISOString()},request,{now:now()});

@@ -37,25 +37,28 @@ test('vehicle catalogue navigation uses one observed category matching all terms
 });
 
 // Synthetic supplier data; the uploaded report did not retain a SKU or price.
-function browser({wrongVehicle=false,missingProduct=false,crossedPositions=false,otherSku=false,fullPage=false,restoreVehicle=false}={}){
+function browser({wrongVehicle=false,missingProduct=false,crossedPositions=false,otherSku=false,fullPage=false,restoreVehicle=false,extraGroups=0,productLabel=label}={}){
  let url='',state='home',hasVehicle=!restoreVehicle,selected=false;const events=[];
  const catalogueSku=otherSku?'SENSOR2':'SENSOR1';
- const part=sku=>({sku,brand:'Fixture',description:label,unitNetPence:2000,costIncVatPence:2400,vatBasis:'EX_VAT',inStock:false,stock:[]});
+ const part=sku=>({sku,brand:'Fixture',description:productLabel,unitNetPence:2000,costIncVatPence:2400,vatBasis:'EX_VAT',inStock:false,stock:[]});
  const page={url:()=>url,goto:async v=>{url=v;selected=false;state=v.includes('/partdetails/')?'final-product':v.includes('/enhancedSearch/')?'search':'home';events.push('goto:'+state);},waitForTimeout:async()=>{},keyboard:{press:async()=>{events.push('escape:'+state);if(state==='product')state='search';if(state==='attributes')state='category';}},
   locator:selector=>({count:async()=>1,isVisible:async()=>true,fill:async()=>{},press:async()=>{state='search';url='https://trade.gsfcarparts.com/enhancedSearch/abs%20sensor';},evaluateAll:async()=>[],click:async()=>{
    if(selector==='#product'){state='product';if(fullPage)url='https://trade.gsfcarparts.com/partdetails/SENSOR1';}
-   else if(selector==='#attributes')state='attributes';
+   else if(selector==='#attributes'){state='attributes';events.push('attributes');}
    else if(selector==='#option')selected=true;
    else {state='category';url='https://trade.gsfcarparts.com/parts/123';events.push('vehicle-category');}
   }}),evaluate:async(fn,input)=>{
    if(fn.name==='readCatalogueSearchState')return {fields:[{catalogue:true,selector:'#search'}]};
-   if(fn.name==='readSearchProducts')return {busy:false,products:[{label,sku:'',path:'',displayPricePence:2000,selector:'#product',cardSelector:'#card'}]};
+   if(fn.name==='readSearchProducts')return {busy:false,products:[{label:productLabel,sku:'',path:'',displayPricePence:2000,selector:'#product',cardSelector:'#card'}]};
    if(fn.name==='readCatalogueResults')return related();
    if(fn.name==='readProductDialog'){if(state==='product')return part('SENSOR1');if(state==='final-product')return part(catalogueSku);throw Error('PRODUCT_DETAILS_NOT_OPEN');}
    if(fn.name==='readSearchProductFitment')return {fitsSelectedVehicle:false,rows};
    if(fn.name==='readServiceCategory')return {status:'CAPTURED_FOR_REVIEW',selectedRegistration:state==='category'&&hasVehicle&&!wrongVehicle,registration:wrongVehicle?'WRONG':r.registration,visibleText:'Fixture vehicle'};
    if(fn.name==='readServiceAttributes')return {status:'ATTRIBUTES_CAPTURED',rows:crossedPositions?[{attribute:'Fitting Position',value:'Front Axle RH'},{attribute:'Fitting Position',value:'Rear Axle LH'}]:rows};
-   if(fn.name==='readRepairGroups')return {complete:true,groups:[{selector:'#group',sku:'FIX'+catalogueSku,description:label,attributesSelector:'#attributes',links:[],options:[{selector:'#option',description:missingProduct?'Different sensor':label,brand:'Fixture',grade:'Gold',pricePence:2000,inStock:false,selected,selectionControlPresent:true}]}]};
+   if(fn.name==='readRepairGroups'){
+    const group={selector:'#group',sku:'FIX'+catalogueSku,description:productLabel,attributesSelector:'#attributes',links:[],options:[{selector:'#option',description:missingProduct?'Different sensor':productLabel,brand:'Fixture',grade:'Gold',pricePence:2000,inStock:false,selected,selectionControlPresent:true}]};
+    return {complete:true,groups:[group,...Array.from({length:extraGroups},(_,i)=>({...group,sku:'OTHER'+i}))]};
+   }
    throw Error('Unexpected reader '+fn.name);
   }};
  return {page,events,deps:{selectVehicle:async()=>{events.push('select-vehicle:'+state);if(state==='category')hasVehicle=true;return {selectedRegistration:!wrongVehicle,registration:r.registration};}}};
@@ -84,4 +87,14 @@ test('wrong vehicle, conflicting positions and a missing product never bypass ca
  }
  const other=browser({otherSku:true}),prices=await choice(other,selected),final=await first(selected,prices);
  await assert.rejects(lookupGeneralGSF(other.page,final,other.deps),e=>e.detail==='SEARCH_PRODUCT_NOT_LISTED_FOR_VEHICLE');
+});
+
+test('selected SKU verification skips unrelated attribute dialogs and offers missing positions before Haynes',async()=>{
+ const request=repairRequest({...r,work:'Fit abs sensor'}),f=browser({extraGroups:45,productLabel:'ABS Sensor'});
+ const navigation=await choice(f,request),selected=await first(request,navigation);
+ const prices=await choice(f,selected);
+ assert.equal(f.events.filter(e=>e==='attributes').length,1);
+ assert.deepEqual(prices.options.map(o=>o.work),['Supply and fit front left abs sensor','Supply and fit rear left abs sensor']);
+ const final=await first(selected,prices),evidence=await lookupGeneralGSF(f.page,final,f.deps);
+ assert.equal(evidence.part.sku,'SENSOR1');assert.equal(evidence.part.choiceId,prices.options[0].id);
 });

@@ -12,14 +12,23 @@ import {repairBrowserReason} from './browser-errors.mjs';
 import {captureHaynesDiagnostics} from './haynes-page.mjs';
 import {promptInitialRepairRequest,promptRepairChoice} from './checker-input.mjs';
 const here=path.dirname(fileURLToPath(import.meta.url)),terminal=createInterface({input:process.stdin,output:process.stdout});
-const checkerVersion='2026-11-12-vehicle-catalogue-verification-v18';
+const checkerVersion='2026-11-12-search-navigation-v19';
 let gsf,haynes,gsfPage,haynesPage;
 try{
  console.log('VECTA parts and fitting check — '+checkerVersion+'. For fit, supply and fit, or supply checks, stop GSF safely in Workshop Connections first.');
  console.log('This checks current GSF and Haynes screens. It does not save or send prices.');
  let request=await promptInitialRepairRequest(terminal);
  if(request){
- const report={readOnly:true,checkerVersion,request,startedAt:new Date().toISOString()};
+ const report={readOnly:true,checkerVersion,request,startedAt:new Date().toISOString()},output=path.join(here,'catalogue-check-result.local.json');
+ const onProgress=(stage,counts={})=>{
+  report.progress||=[];
+  report.progress.push({stage,...counts,at:new Date().toISOString()});report.progress=report.progress.slice(-80);
+  // Keep the last completed transition even if a browser call hangs and its
+  // page must be closed. Do not capture page HTML or account/input values.
+  writeFileSync(output,JSON.stringify({...report,status:'RUNNING',lastRequest:request},null,2)+'\n',{mode:0o600});
+  const messages={GSF_OPEN:'Opening GSF',GSF_VEHICLE:'Selecting the vehicle',GSF_SEARCH:'Entering the part search',GSF_SEARCH_RESULTS:'Waiting for product results',GSF_SELECTED_CATEGORY:'Opening your chosen category',GSF_PRODUCT_OPEN:'Opening your chosen product',GSF_PRODUCT_DETAILS:'Reading the product details',GSF_PRODUCT_FITMENT:'Checking product fitment',GSF_VEHICLE_CATEGORY:'Checking the product in the vehicle catalogue',GSF_CATALOGUE:'Reading vehicle-specific parts',GSF_ATTRIBUTES:'Checking fitting positions',GSF_PART_CHOICES:'Preparing priced part choices',GSF_FINAL_PRODUCT:'Confirming the selected part and price',HAYNES_LOOKUP:'Searching Haynes for fitting time'};
+  console.log((messages[stage]||stage)+(counts.group?' ('+counts.group+' of '+counts.total+')':'')+'...');
+ };
  try{
   const local=process.env.LOCALAPPDATA;if(!local)throw Error('Run this check on the workshop Windows PC.');
   report.steps=[];let loginRetries=0;
@@ -29,12 +38,12 @@ try{
     if(request.lookup!=='labour'&&!gsfPage){gsf=await chromium.launchPersistentContext(process.env.GSF_PROFILE_DIR||path.join(local,'VectaGSF','EdgeProfile'),{channel:'msedge',headless:false,acceptDownloads:false,chromiumSandbox:true});gsfPage=await gsf.newPage();}
     if(request.lookup!=='parts'&&!haynesPage){haynes=await chromium.launchPersistentContext(path.join(local,'VectaRepairQuotes','Haynes'),{channel:'msedge',headless:false,acceptDownloads:false,chromiumSandbox:true});haynesPage=await haynes.newPage();}
     console.log(request.lookup==='labour'?'Searching Haynes for fitting time...':request.lookup==='parts'?'Searching GSF for the part...':request.choices.part?'Rechecking your GSF part, then finding its Haynes fitting operation...':'Selecting '+request.registration+' in GSF, then searching for the part...');
-    const evidence=await Promise.race([lookupGeneralRepair({gsfPage,haynesPage},request),new Promise((_,reject)=>{timer=setTimeout(()=>{timedOut=true;void Promise.allSettled([gsfPage?.close(),haynesPage?.close()]).then(()=>reject(Error('LOOKUP_TIMEOUT')));},120000);})]);
+    const evidence=await Promise.race([lookupGeneralRepair({gsfPage,haynesPage},request,{onProgress}),new Promise((_,reject)=>{timer=setTimeout(()=>{timedOut=true;void Promise.allSettled([gsfPage?.close(),haynesPage?.close()]).then(()=>reject(Error('LOOKUP_TIMEOUT')));},120000);})]);
     report.status='PASSED_READ_ONLY';report.quote=calculateRepairQuote(evidence,request);report.evidence=evidence;console.log((request.lookup==='labour'?'Fitting':request.lookup==='parts'?'Parts':'Parts and fitting')+': £'+(report.quote.totalIncVatPence/100).toFixed(2)+' including VAT. '+(report.quote.part?(report.quote.part.inStock?'In stock at last check.':'Out of stock — price available; confirm supply before booking.'):'No parts charge.'));break;
    }catch(error){
     // Close timed-out lookup pages before any manual inspection; an abandoned
     // lookup must not continue clicking while the mechanic reviews a failure.
-    if(timedOut){await Promise.allSettled([gsfPage?.close(),haynesPage?.close()]);throw Object.assign(Error('LOOKUP_TIMEOUT'),{code:'LOOKUP_TIMEOUT'});}
+    if(timedOut){await Promise.allSettled([gsfPage?.close(),haynesPage?.close()]);const stage=report.progress?.at(-1)?.stage||'';throw Object.assign(Error('LOOKUP_TIMEOUT'),{code:'LOOKUP_TIMEOUT',detail:stage,supplier:stage.startsWith('HAYNES_')?'Haynes':stage.startsWith('GSF_')?'GSF':''});}
     if(error.code==='LOGIN_REQUIRED'&&loginRetries<2){
      clearTimeout(timer);loginRetries++;
      const answer=await terminal.question('Sign in to '+(error.supplier||'the supplier')+' in its Edge window, then press Enter to retry (or Q to finish): ');
@@ -72,7 +81,7 @@ try{
   try{report.lastHaynesPage=await captureHaynesDiagnostics(haynesPage,request.choices.labourSearch||repairScope.resolve(request.work).query);}catch{report.haynesDiagnosticCaptureUnavailable=true;}
  }
  report.lastRequest=request;
- const output=path.join(here,'catalogue-check-result.local.json');writeFileSync(output,JSON.stringify(report,null,2)+'\n',{mode:0o600});
+ report.finishedAt=new Date().toISOString();writeFileSync(output,JSON.stringify(report,null,2)+'\n',{mode:0o600});
  const haynesReview=report.supplier?report.supplier==='Haynes':report.steps?.at(-1)?.stage?.startsWith('HAYNES_'),reviewPage=haynesReview?haynesPage:gsfPage;
  if(report.status==='NEEDS_CHECK'&&reviewPage&&!reviewPage.isClosed()){
   const supplier=haynesReview?'Haynes':'GSF';

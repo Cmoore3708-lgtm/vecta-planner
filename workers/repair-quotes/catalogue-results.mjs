@@ -26,7 +26,8 @@ export function suggestedCategoryChoices(results,request){
 export function readCatalogueResults({query},doc=document){
  const clean=v=>String(v||'').replace(/\s+/g,' ').trim();
  const scrub=v=>clean(v).replace(/[\w.+-]+@[\w.-]+\.[a-z]{2,}/gi,'[email]').replace(/\b[A-HJ-NPR-Z0-9]{17}\b/gi,'[VIN]').replace(/https?:\/\/\S+/gi,'[url]').slice(0,220);
- const visible=el=>{for(let n=el;n&&n.nodeType===1;n=n.parentElement){if(n.hidden||n.getAttribute('aria-hidden')==='true')return false;const s=doc.defaultView?.getComputedStyle?.(n)||n.style;if(s&&(s.display==='none'||s.visibility==='hidden'||s.opacity==='0'))return false;}return true;};
+ const visibility=new WeakMap();
+ const visible=n=>{if(!n||n.nodeType!==1)return true;if(visibility.has(n))return visibility.get(n);const s=doc.defaultView?.getComputedStyle?.(n)||n.style;const result=!n.hidden&&n.getAttribute('aria-hidden')!=='true'&&!(s&&(s.display==='none'||s.visibility==='hidden'||s.opacity==='0'))&&visible(n.parentElement);visibility.set(n,result);return result;};
  const selector=el=>{const p=[];for(let n=el;n&&n.nodeType===1;n=n.parentElement){const siblings=n.parentElement?[...n.parentElement.children].filter(c=>c.tagName===n.tagName):[n];p.unshift(n.tagName.toLowerCase()+':nth-of-type('+(siblings.indexOf(n)+1)+')');if(n.tagName==='BODY')break;}return p.join(' > ');};
  const words=v=>clean(v).toLowerCase().replace(/[.,:;()]/g,' ').split(/\s+/).filter(Boolean).map(w=>w.replace(/s$/,''));
  const terms=words(query),related=label=>terms.some(t=>words(label).includes(t));
