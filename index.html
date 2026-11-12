@@ -10674,31 +10674,13 @@ async function persistMainSettings(options){
 }
 async function saveAll(options){invalidateFinanceDashboardCache();saveLocal();if(remoteClient)return await persistMainSettings(options);return true}
 var vectaWebsiteBookingCloudCount=null,vectaWebsiteBookingCountPending=null,vectaWebsiteBookingCountRevision=0;
-function vectaPendingWebsiteBookingCount(){return vectaWebsiteBookingCloudCount!==null?vectaWebsiteBookingCloudCount:(app.websiteRequests||[]).filter(function(r){return !r.status||r.status==='awaiting_review'}).length}
+function vectaPendingWebsiteBookingCount(){return vectaWebsiteBookingCloudCount!==null?vectaWebsiteBookingCloudCount:(app.websiteRequests||[]).filter(function(r){return (!r.status||r.status==='awaiting_review')&&!r.reviewed_at}).length}
 function vectaRenderWebsiteBookingCount(){
   var count=vectaPendingWebsiteBookingCount(),button=document.querySelector('#nav [data-view="websiteRequests"]');
   if(button)button.textContent='Website Bookings'+(count?' ('+count+')':'');
-  vectaUpdateAppBadge();
+  vectaUpdateAppBadge();window.VectaPortalWorkshop?.clearBookingNotifications(count);
 }
-function vectaRefreshWebsiteBookingCount(){
-  if(!remoteClient||!navigator.onLine||window.VECTA_MECHANIC_DEPLOYMENT===true)return Promise.resolve(false);
-  vectaWebsiteBookingCountRevision++;
-  if(vectaWebsiteBookingCountPending)return vectaWebsiteBookingCountPending;
-  // Count only: no customer details, full-database pull or dashboard redraw.
-  vectaWebsiteBookingCountPending=(async function(){
-    while(navigator.onLine){
-      var revision=vectaWebsiteBookingCountRevision;
-      var result=await vectaWithTimeout(remoteClient.from('website_booking_requests').select('id',{count:'exact',head:true}).or('status.is.null,status.eq.awaiting_review'),9000,'Website booking count');
-      if(result.error)throw result.error;
-      if(!Number.isInteger(result.count)||result.count<0)throw new Error('Website booking count was not returned.');
-      // An acceptance or live event during this read needs a newer snapshot.
-      if(revision!==vectaWebsiteBookingCountRevision)continue;
-      vectaWebsiteBookingCloudCount=result.count;vectaRenderWebsiteBookingCount();return true;
-    }
-    return false;
-  })().catch(function(error){console.warn('Website booking count refresh failed; keeping the last known count.',error);return false}).finally(function(){vectaWebsiteBookingCountPending=null});
-  return vectaWebsiteBookingCountPending;
-}
+function vectaRefreshWebsiteBookingCount(){return window.vectaRefreshBookingCount()}
 function vectaUpdateAppBadge(){var count=vectaPendingWebsiteBookingCount();if(!('setAppBadge' in navigator))return Promise.resolve(false);return (count?navigator.setAppBadge(count):navigator.clearAppBadge()).then(function(){return true}).catch(function(){return false})}
 function vectaBase64UrlBytes(value){var padding='='.repeat((4-value.length%4)%4),base64=(value+padding).replace(/-/g,'+').replace(/_/g,'/'),raw=atob(base64),bytes=new Uint8Array(raw.length);for(var i=0;i<raw.length;i++)bytes[i]=raw.charCodeAt(i);return bytes}
 var vectaDeviceNotifications=window.createVectaDeviceNotifications({decodeKey:vectaBase64UrlBytes,withTimeout:vectaWithTimeout,updateBadge:vectaUpdateAppBadge});
@@ -12906,12 +12888,12 @@ function websiteRequestsHtml(){
   if(websiteRequestFilter==='booked'){websiteRequestFilter='all';rows=all;}
   function tab(key,label){return '<button class="'+(websiteRequestFilter===key?'active':'')+'" data-request-filter="'+key+'">'+label+' ('+(counts[key]||0)+')</button>'}
   var alertsEnabled=vectaBookingAlertsState().status==='enabled';
-  return '<div class="websiteRequestsHead"><div><h2>Website Bookings</h2><p>Review new requests and create planner jobs from them.</p></div><div><button class="btn" id="refreshWebsiteRequests">Refresh requests</button> <button class="btn red" id="enableBookingAlerts" '+(alertsEnabled?'disabled':'')+'>'+(alertsEnabled?'Background alerts enabled':'Enable background alerts')+'</button></div></div>'+websiteBookingStatsHtml()+'<div class="requestFilters">'+tab('all','All')+tab('awaiting_review','New')+tab('contacted','Contacted')+tab('archived','Archived')+'</div><div class="requestList">'+(rows.length?rows.map(websiteRequestCardHtml).join(''):'<div class="requestEmpty"><b>No website bookings in this section.</b><p>New customer requests will appear here automatically.</p></div>')+'</div>';
+  return '<div class="websiteRequestsHead"><div><h2>Website Bookings</h2><p>Review new requests and create planner jobs from them.</p></div><div><button class="btn" id="refreshWebsiteRequests">Refresh requests</button> <button class="btn red" id="enableBookingAlerts" '+(alertsEnabled?'disabled':'')+'>'+(alertsEnabled?'Background alerts enabled':'Enable background alerts')+'</button></div></div>'+websiteBookingStatsHtml()+'<div class="requestFilters">'+tab('all','All')+tab('awaiting_review','Awaiting acceptance')+tab('contacted','Contacted')+tab('archived','Archived')+'</div><div class="requestList">'+(rows.length?rows.map(websiteRequestCardHtml).join(''):'<div class="requestEmpty"><b>No website bookings in this section.</b><p>New customer requests will appear here automatically.</p></div>')+'</div>';
 }
 
 function websiteRequestCardHtml(r){
   var st=r.status||'awaiting_review',types=Array.isArray(r.job_types)?r.job_types.join(', '):String(r.job_types||''),dates=[r.preferred_date_1,r.preferred_date_2,r.preferred_date_3].filter(Boolean).map(requestDate).join(' · ');
-  return '<article class="requestCard '+(st==='awaiting_review'?'new':'')+'" data-request-id="'+esc(r.id||'')+'"><div class="requestTop"><div class="requestIdentity"><span class="requestPlate">'+esc(r.registration||'NO REG')+'</span><div><h3>'+esc(r.customer_name||'Customer')+'</h3><p>'+esc(r.vehicle||'Vehicle not entered')+'</p></div></div><span class="requestStatus '+esc(st)+'">'+requestStatusLabel(st)+'</span><div class="requestVehicleArtwork" aria-label="Vehicle image"></div></div><div class="requestGrid"><div class="requestBlock"><small>Contact</small><b>'+esc(r.phone||'No phone')+'</b><p>'+esc(r.email||'No email')+'<br>Preferred: '+esc(r.contact_preference||'Email')+'</p></div><div class="requestBlock"><small>Requested dates</small><b>'+esc(dates||'No date supplied')+'</b><p>'+(r.completion_deadline?'Needed by: '+esc(r.completion_deadline):'No completion deadline')+'</p></div><div class="requestBlock"><small>Work required</small><b>'+esc(types||'General repair')+'</b><p>'+esc(r.work_required||'No description supplied')+'</p></div></div><div class="requestActions">'+(st==='awaiting_review'?'<button class="btn" data-request-contact="'+esc(r.id)+'">Mark contacted</button>':'')+(st!=='booked'?'<button class="btn green" data-request-create="'+esc(r.id)+'">Open job card</button>':'<button class="btn" disabled>Job created</button>')+(st!=='archived'&&st!=='declined'?'<button class="btn" data-request-archive="'+esc(r.id)+'">Archive</button>':'')+'<button class="btn danger" data-request-delete="'+esc(r.id)+'">Delete request</button></div></article>';
+  return '<article class="requestCard '+(st==='awaiting_review'&&!r.reviewed_at?'new':'')+'" data-request-id="'+esc(r.id||'')+'"><div class="requestTop"><div class="requestIdentity"><span class="requestPlate">'+esc(r.registration||'NO REG')+'</span><div><h3>'+esc(r.customer_name||'Customer')+'</h3><p>'+esc(r.vehicle||'Vehicle not entered')+'</p></div></div><span class="requestStatus '+esc(st)+'">'+(st==='awaiting_review'&&r.reviewed_at?'Opened — awaiting acceptance':requestStatusLabel(st))+'</span><div class="requestVehicleArtwork" aria-label="Vehicle image"></div></div><div class="requestGrid"><div class="requestBlock"><small>Contact</small><b>'+esc(r.phone||'No phone')+'</b><p>'+esc(r.email||'No email')+'<br>Preferred: '+esc(r.contact_preference||'Email')+'</p></div><div class="requestBlock"><small>Requested dates</small><b>'+esc(dates||'No date supplied')+'</b><p>'+(r.completion_deadline?'Needed by: '+esc(r.completion_deadline):'No completion deadline')+'</p></div><div class="requestBlock"><small>Work required</small><b>'+esc(types||'General repair')+'</b><p>'+esc(r.work_required||'No description supplied')+'</p></div></div><div class="requestActions">'+(st==='awaiting_review'?'<button class="btn" data-request-contact="'+esc(r.id)+'">Mark contacted</button>':'')+(st!=='booked'?'<button class="btn green" data-request-create="'+esc(r.id)+'">Open job card</button>':'<button class="btn" disabled>Job created</button>')+(st!=='archived'&&st!=='declined'?'<button class="btn" data-request-archive="'+esc(r.id)+'">Archive</button>':'')+'<button class="btn danger" data-request-delete="'+esc(r.id)+'">Delete request</button></div></article>';
 }
 async function updateWebsiteRequest(id,changes){
   var row=(app.websiteRequests||[]).find(function(r){return r.id===id});if(!row)return false;
@@ -13079,6 +13061,7 @@ function openWebsiteRequestJobCard(request,draft){
   // Review uses the existing unsaved editor; closing it does not accept the request.
   draft.lookup_local_only=true;
   openJobModal((app.jobs||[]).some(function(j){return String(j.id)===String(draft.id)})?draft.id:null,draft);
+  globalThis.window?.vectaMarkWebsiteBookingRead?.({request_id:String(request.id)});
   // Server-created holds use the existing four provisional controls from either entry point.
   if(draft.status==='provisional')return;
   var modal=document.getElementById('jobModal'),button=modal.querySelector('#saveJob');

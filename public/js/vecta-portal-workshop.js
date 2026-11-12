@@ -6,12 +6,13 @@
  let pendingEvent=new URLSearchParams(location.search).get('portal_event'),popup,active,refreshQueue;
  const panels=new Map(),known=new Set();
  // Pop-up dismissal and reading are separate: hiding a notification must not
- // clear the persistent badge. Read receipts remain local to this device/role.
+ // clear the persistent badge. The server shares receipts across this role’s devices.
  const readKey=()=> 'vecta:portal:read:'+(mechanic()?'mechanic':'manager');
  function readIds(){try{const ids=JSON.parse(localStorage.getItem(readKey())||'[]');return new Set(Array.isArray(ids)?ids:[]);}catch{return new Set();}}
  const inboxKey=()=> 'vecta:portal:inbox:'+(mechanic()?'mechanic':'manager');
  function cachedInbox(){try{const items=JSON.parse(localStorage.getItem(inboxKey())||'[]');return Array.isArray(items)?items:[];}catch{return [];}}
  let inbox=cachedInbox(),read=readIds();
+ const reading=new Set();
  const cardSelector='.job[data-job-id],.mobileJob[data-open-job],.sideJob[data-open-job],.sideJob[data-job-id]';
  const incoming=item=>mechanic()?item.forwarded:item.actor==='customer';
  function unread(items){return items.filter(item=>incoming(item)&&!read.has(item.id));}
@@ -38,6 +39,8 @@
       const panel=panels.get(id)?.panel;
       panel?.scrollIntoView({behavior:'smooth',block:'center'});
       const heading=panel?.querySelector('h3');heading?.focus({preventScroll:true});
+      const latest=unread(inbox).find(item=>item.job_id===id);
+      if(latest)await panels.get(id)?.openMessage(latest);
      }catch(error){window.alert?.(error.message);}
     });
    }
@@ -45,16 +48,37 @@
    if(badge.getAttribute('aria-label')!==label){badge.setAttribute('aria-label',label);badge.title=label;badge.lastElementChild.textContent=String(count);}
   }
  }
- function refreshReadState(){read=readIds();paintBadges();for(const p of panels.values())if(p.panel.isConnected)p.updateRead?.();}
- function markRead(items){
-  const ids=readIds();for(const item of items)if(incoming(item))ids.add(item.id);
-  // Only clear after persistence succeeds; an unavailable store leaves the alert.
-  localStorage.setItem(readKey(),JSON.stringify([...ids]));read=ids;
-  const dismissed=seen();for(const item of items)dismissed.add(item.id);
-  try{localStorage.setItem('vecta:portal:seen:'+(mechanic()?'mechanic':'manager'),JSON.stringify([...dismissed].slice(-1000)));}catch{}
-  if(ids.has(pendingEvent))pendingEvent=null;
-  refreshReadState();active=null;refreshQueue?.();
+ function refreshReadState(){for(const id of readIds())read.add(id);paintBadges();for(const p of panels.values())if(p.panel.isConnected)p.updateRead?.();}
+ function rememberRead(ids){
+  for(const id of ids)read.add(id);
+  try{localStorage.setItem(readKey(),JSON.stringify([...read]));}catch{}
+  if(read.has(pendingEvent))pendingEvent=null;
+  if(active&&read.has(active.id)){active=null;if(popup)popup.hidden=true;}
+  refreshReadState();
+  // Remove delivered notifications belonging to messages confirmed read by the
+  // server. This also runs when another device's receipt arrives on resume.
+  Promise.resolve(navigator.serviceWorker?.getRegistration?.()).then(async registration=>{
+   for(const notification of await registration?.getNotifications?.()||[]){
+    const id=notification.tag?.replace(/^vecta-portal-/,'');if(read.has(id))notification.close();
+   }
+  }).catch(()=>{});
  }
+ async function saveReadIds(ids){
+  ids=[...new Set(ids)].filter(id=>!reading.has(id));if(!ids.length)return;
+  for(const id of ids)reading.add(id);
+  try{
+   for(let offset=0;offset<ids.length;offset+=100){
+    const result=await api('portal-read',{event_ids:ids.slice(offset,offset+100)});
+    if(!Array.isArray(result.read_ids))throw Error('Unable to confirm the shared read status.');
+    rememberRead(result.read_ids);
+   }
+  }finally{for(const id of ids)reading.delete(id);}
+ }
+ async function markRead(items){
+  await saveReadIds(unread(items).map(item=>item.id));
+  refreshQueue?.();
+ }
+ function receiveReadState(items){rememberRead(items.filter(item=>item.read_at).map(item=>item.id));}
 
  function button(text,fn){const b=node('button',text);b.type='button';b.className='btn';b.onclick=fn;return b;}
  const alertStates={sent:'accepted by provider',pending:'send unconfirmed — check before resending',failed:'send failed',queued:'queued',unavailable:'status unavailable',missing_contact:'missing contact details',no_permission:'customer agreement needed',manual:'tap to send',not_configured:'sender not connected',sender_unverified:'sender domain needs verification',test:'Test only',contact_changed:'contact changed — not sent',closed:'booking closed — not sent'};
@@ -88,9 +112,11 @@
    send.disabled=item.forwarded;const status=node('p');status.setAttribute('role','status');body.append(send,status);
   }
   if(canForward&&alerts){const details=node('details'),delivery=node('div');details.className='portalDeliveryDetails';details.append(node('summary','Alert delivery'),delivery);showAlerts(delivery,alerts,item.job_id);body.append(details);}
+  c.addEventListener('toggle',()=>{if(c.open&&c.isConnected&&!document.hidden&&incoming(item))markRead([item]).catch(()=>{c.title='Read status could not sync. Reopen this message or use Mark messages as read to retry.';});});
   return c;
  }
  function mount(modal,job,saved){
+  if(saved&&!mechanic()&&(job.website_request_id||/website booking/i.test(job.source||job.booking_source||'')||window.VectaBookingRules?.requestIdFromJob(job)))window.vectaMarkWebsiteBookingRead?.({job_id:job.id});
   const after=modal.querySelector('.jobInternalNotesSection')||modal.querySelector('.jobWorkSection');if(!after||!saved||job.no_vehicle||job.card_type&&job.card_type!=='job')return;
   const panel=node('section');panel.className='jobFormSection portalWorkshop';panel.dataset.jobId=job.id;
   const heading=node('h3',mechanic()?'Office messages & approvals':'Customer messages & updates'),consent=node('p'),list=node('div'),status=node('p');status.setAttribute('role','status');
@@ -104,7 +130,7 @@
   }
   notifications.className='portalDeviceNotifications';notificationNote.setAttribute('role','status');notifications.append(notificationNote,enable);updateNotifications();
   heading.tabIndex=-1;
-  const readButton=button('Mark messages as read',()=>{try{markRead(visibleEvents());status.textContent='Messages marked as read on this device.';}catch{status.textContent='Unable to save the read status on this device. The message alert is still active.';}});
+  const readButton=button('Mark messages as read',async()=>{readButton.disabled=true;try{await markRead(visibleEvents());status.textContent='Read status saved across your devices.';}catch{status.textContent='Unable to sync the read status. The message alert is still active. Reconnect and retry.';}finally{readButton.disabled=false;}});
   readButton.classList.add('portalMarkRead');readButton.hidden=true;
   const header=node('div');header.className='portalWorkshopHeading';header.append(heading,readButton);
   panel.append(header,consent,notifications,status,list);after.after(panel);
@@ -137,6 +163,7 @@
      for(const id of latestIds)if((Number(displayed.get(id)?.seq)||0)>=floor){displayed.delete(id);receipts.delete(id);}
      latestIds=data.events.map(item=>item.id);
     }
+    receiveReadState(data.events);
     for(const item of data.events)displayed.set(item.id,item);
     for(const receipt of data.alerts||[])receipts.set(receipt.event_id,receipt);
     if(before){paged=true;older=data.older_cursor;visibleCount+=5;}else if(!paged)older=data.older_cursor;
@@ -173,7 +200,15 @@
     finally{sending=false;photos?.lock(false);send.disabled=false;permissionBox.disabled=false;input.readOnly=false;}
    };
   }
-  panels.set(job.id,{panel,refresh,updateNotifications,updateRead});refresh();
+  async function openMessage(item){
+   if(!panel.isConnected||document.hidden)return;
+   displayed.set(item.id,item);
+   visibleCount=Math.max(visibleCount,orderedEvents().findIndex(event=>event.id===item.id)+1);
+   renderMessages();
+   const card=[...list.querySelectorAll('.portalWorkshopEvent')].find(card=>card.dataset.eventId===item.id);
+   if(card){card.setAttribute('open','');await markRead([item]);}
+  }
+  panels.set(job.id,{panel,refresh,updateNotifications,updateRead,openMessage});refresh();
   return controller;
  }
  function seen(){try{return new Set(JSON.parse(localStorage.getItem('vecta:portal:seen:'+ (mechanic()?'mechanic':'manager'))||'[]'));}catch{return new Set();}}
@@ -188,6 +223,11 @@
    try{
     const events=[];let before;
     do{const page=await api('portal-queue',before?{before}:{});events.push(...page.events);before=page.older_cursor;}while(before);
+    receiveReadState(events);
+    // Upgrade existing device-only receipts once; a failed upload stays eligible
+    // for the next poll. Never upload popup dismissals as read receipts.
+    const legacy=events.filter(item=>incoming(item)&&!item.read_at&&read.has(item.id));
+    if(legacy.length)await saveReadIds(legacy.map(item=>item.id)).catch(()=>{});
     inbox=[...new Map(events.map(item=>[item.id,item])).values()];
     try{localStorage.setItem(inboxKey(),JSON.stringify(inbox.map(({id,job_id,actor,forwarded})=>({id,job_id,actor,forwarded}))));}catch{}
     paintBadges();
@@ -199,7 +239,8 @@
      if(synced)for(const e of events)known.add(e.id);
      for(const [id,p]of panels)if(p.panel.isConnected)p.refresh();else panels.delete(id);
     }
-    const ids=seen(),next=events.find(x=>x.id===pendingEvent)||events.find(x=>!ids.has(x.id)&&!read.has(x.id));
+    for(const p of panels.values())if(p.panel.isConnected)p.updateRead?.();
+    const ids=seen(),next=events.find(x=>x.id===pendingEvent&&!read.has(x.id))||events.find(x=>!ids.has(x.id)&&!read.has(x.id));
     if(!next){active=null;popup.hidden=true;return;}
     if(active&&active.id===next.id&&active.forwarded===next.forwarded&&active.synced===synced)return;
     active={...next,synced};popup.hidden=false;popup.replaceChildren(node('strong',(mechanic()?'Job update':'Customer message')+' · '+next.registration),eventCard(next,!mechanic()));
@@ -208,7 +249,7 @@
      if(!next.job_id){message.textContent='This booking is waiting in Website Bookings. Accept it to create its job card.';return;}
      const state=await window.vectaOpenFindingJob?.(next.job_id);
      if(state==='busy'){message.textContent='Save or close your current card, then open this message.';return;}
-     if(state==='open'){document.querySelector('.portalWorkshop')?.scrollIntoView({behavior:'smooth',block:'center'});ack(next);}else message.textContent='The job could not be opened. Please retry.';
+     if(state==='open'){document.querySelector('.portalWorkshop')?.scrollIntoView({behavior:'smooth',block:'center'});try{await panels.get(next.job_id)?.openMessage(next);ack(next);}catch{message.textContent='Unable to sync the read status. Reconnect and reopen this message.';}}else message.textContent='The job could not be opened. Please retry.';
     }),button('Dismiss',()=>ack(next)),message);
    }catch{}finally{busy=false;}
   };
@@ -220,6 +261,7 @@
   window.addEventListener('storage',e=>{if(e.key===readKey()||e.key===null){refreshReadState();active=null;refreshQueue();}});
   window.addEventListener('vecta-portal-changed',()=>{active=null;refreshQueue();});
   window.addEventListener('vecta-notification-state',()=>{for(const [id,p]of panels)if(p.panel.isConnected)p.updateNotifications();else panels.delete(id);});
+  window.addEventListener('focus',()=>refreshQueue());
   document.addEventListener('visibilitychange',()=>{if(!document.hidden)refreshQueue();});
   window.addEventListener('online',()=>{window.vectaMaintainPortalAlerts?.(true);refreshQueue();});
   navigator.serviceWorker?.addEventListener('message',e=>{if(e.data?.type==='vecta-portal-notification'){if(e.data.eventId)pendingEvent=e.data.eventId;refreshQueue();}});
@@ -232,6 +274,13 @@
   status.setAttribute('role','status');status.setAttribute('aria-live','polite');
   try{const data=await api('confirmation-preview',{job_id:job.id});preview.srcdoc=data.html;status.textContent='To: '+data.email+(data.has_image?' · Includes saved vehicle image.':' · No saved vehicle image available.')+(data.test?' Test preview — email sending is disabled.':data.status==='pending'?' The earlier send is not yet confirmed. Check its status before sending another copy.':data.send_error?' '+data.send_error:'');send.disabled=data.test||data.status==='sent'||data.status==='pending';if(data.status==='sent')send.textContent='Already sent';else if(data.status==='failed')send.textContent='Retry confirmation email';}catch(e){status.textContent=e.message;}
  }
- window.VectaPortalWorkshop={mount,confirmation};
+ let bookingCount=null;
+ function clearBookingNotifications(count){
+  bookingCount=count;if(count!==0)return;
+  Promise.resolve(navigator.serviceWorker?.getRegistration?.()).then(async registration=>{
+   for(const notification of await registration?.getNotifications?.()||[])if(bookingCount===0&&notification.tag==='vecta-website-bookings')notification.close();
+  }).catch(()=>{});
+ }
+ window.VectaPortalWorkshop={mount,confirmation,clearBookingNotifications};
  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',install,{once:true});else install();
 })();
