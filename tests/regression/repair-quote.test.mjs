@@ -126,9 +126,21 @@ test('initial activation scope rejects other registrations before any queue oper
  res=response();await h({method:'POST',body:{registration:'FV65 JTY',work:'Supply and fit alternator'}},res);assert.equal(res.body.status,'PENDING');assert.equal(calls,1);
 });
 
+test('plain fit in the job editor offers GSF parts first and requests combined pricing',async()=>{
+ const e=editor(),sent=[],work=e.document.getElementById('job_work_required');
+ e.ctx.fetch=async(_url,options)=>{sent.push(JSON.parse(options.body));return {status:200,json:async()=>({status:'CHOICE_REQUIRED',choices:{stage:'GSF_PART',options:[{id:'a'.repeat(32),label:'Alternator',costPence:5000,inStock:false}]}})};};
+ work.value='I want a price to fit an new alternator';work.dispatchEvent(new e.window.Event('input'));
+ assert.equal(sent.length,0);assert.equal(e.document.querySelector('[data-rq-part]').value,'alternator');
+ assert.equal(e.document.querySelector('[data-rq-find]').textContent,'Find GSF part');
+ assert.match(e.document.querySelector('[data-rq-scope]').textContent,/GSF parts and Haynes fitting/);
+ e.document.querySelector('[data-rq-find]').click();await new Promise(r=>setImmediate(r));
+ assert.equal(sent.length,1);assert.equal(repairScope.resolve(sent[0].work).work,'Supply and fit alternator');assert.equal(sent[0].lookup,undefined);
+ assert.equal(e.document.querySelector('[data-rq-choose]').textContent,'Use selected part & find labour');
+});
+
 test('supply-only and fit-only breakdowns apply and reopen without adding the other charge',async()=>{
  for(const mode of ['parts','labour']){
-  const work=mode==='parts'?'Please supply alternator':'Alternator to fit',r=repairRequest({registration:'AB12CDE',work,flow:'guided-v1',choices:mode==='parts'?{part:'a'.repeat(32)}:{labour:'b'.repeat(32)}});
+  const work=mode==='parts'?'Please supply alternator':'Alternator to fit only',r=repairRequest({registration:'AB12CDE',work,flow:'guided-v1',choices:mode==='parts'?{part:'a'.repeat(32)}:{labour:'b'.repeat(32)}});
   const raw=fixture();raw.request=r;raw.scope=repairScope.resolve(work);raw.parts=mode==='parts'?[{...raw.parts[1],choiceId:r.choices.part}]:[];raw.labour=mode==='labour'?{...raw.labour,choiceId:r.choices.labour}:null;
   const q=calculateRepairQuote(raw,r,{now}),e=editor(),w=e.document.getElementById('job_work_required');
   e.document.getElementById('job_estimated_hours').value='3';w.value=work;w.dispatchEvent(new e.window.Event('input'));e.ctx.fetch=async()=>({status:200,json:async()=>({status:'MATCHED',quote:q})});
@@ -147,9 +159,9 @@ test('supply-only and fit-only breakdowns apply and reopen without adding the ot
  }
 });
 
-test('changing the same repair from supply and fit to fit replaces its old parts charge',async()=>{
+test('changing the same repair from supply and fit to fit only replaces its old parts charge',async()=>{
  const e=editor();e.document.querySelector('[data-rq-find]').click();await new Promise(r=>setImmediate(r));e.document.querySelector('[data-rq-apply]').click();
- const work='Fit alternator',r=repairRequest({registration:'AB12CDE',work,choices:{labour:'b'.repeat(32)}}),raw=fixture();raw.request=r;raw.scope=repairScope.resolve(work);raw.parts=[];raw.labour.choiceId=r.choices.labour;
+ const work='Fit only alternator',r=repairRequest({registration:'AB12CDE',work,choices:{labour:'b'.repeat(32)}}),raw=fixture();raw.request=r;raw.scope=repairScope.resolve(work);raw.parts=[];raw.labour.choiceId=r.choices.labour;
  const q=calculateRepairQuote(raw,r,{now});e.ctx.fetch=async()=>({status:200,json:async()=>({status:'MATCHED',quote:q})});
  const field=e.document.getElementById('job_work_required');field.value=work;field.dispatchEvent(new e.window.Event('input'));
  e.document.querySelector('[data-rq-find]').click();await new Promise(r=>setImmediate(r));e.document.querySelector('[data-rq-apply]').click();
@@ -158,7 +170,7 @@ test('changing the same repair from supply and fit to fit replaces its old parts
 
 test('fit-only application clears its unordered source part but preserves ordered and unrelated parts',async()=>{
  for(const ordered of [false,true]){
-  const e=editor(),work='Fit alternator',r=repairRequest({registration:'AB12CDE',work,choices:{labour:'b'.repeat(32)}}),raw=fixture();raw.request=r;raw.scope=repairScope.resolve(work);raw.parts=[];raw.labour.choiceId=r.choices.labour;
+  const e=editor(),work='Fit only alternator',r=repairRequest({registration:'AB12CDE',work,choices:{labour:'b'.repeat(32)}}),raw=fixture();raw.request=r;raw.scope=repairScope.resolve(work);raw.parts=[];raw.labour.choiceId=r.choices.labour;
   const q=calculateRepairQuote(raw,r,{now}),source={id:'repair-'+encodeURIComponent('Supply and fit alternator'),description:'Alternator',ordered},manual={id:'manual',description:'Unrelated part'};let retained;
   e.document.getElementById('job_work_required').value=work;e.document.getElementById('vectaRepairQuote').remove();
   const holder=e.document.createElement('div');holder.id='jobPartsEditor';e.document.body.appendChild(holder);

@@ -12,8 +12,12 @@
   if(wanted.join(' ')==='brake pad')actual=actual.filter(function(w){return w!=='set';});
   return actual.slice().sort().join(' ')===wanted.slice().sort().join(' ');
  }
- function actions(work){var supply=/\bsupply\b/i.test(work),fit=/\bfit\b/i.test(work);return supply&&!fit?'parts':fit&&!supply?'labour':'both';}
- function prefix(mode){return mode==='parts'?'Supply ':mode==='labour'?'Fit ':'Supply and fit ';}
+ function actions(work){
+  // In workshop requests, "fit" includes supplying the part unless explicitly limited.
+  if(/\b(?:fit\s+only|only\s+fit)\b/i.test(work))return 'labour';
+  return /\bsupply\b/i.test(work)&&!/\bfit\b/i.test(work)?'parts':'both';
+ }
+ function prefix(mode){return mode==='parts'?'Supply ':mode==='labour'?'Fit only ':'Supply and fit ';}
  function resolve(work){
   var mode=actions(work),value=normal(work).replace(/[.!?]$/,'').toLowerCase();
   if(!value||value.length>220||/[\n\r;]/.test(String(work))||/\b(?:if|diagnose|inspect|check|possibly|maybe|suspect|unless)\b/.test(value))return {status:'UNSUPPORTED_OPERATION'};
@@ -21,8 +25,13 @@
   // actual parts still require separate repairs rather than one guessed price.
   if(/\b(?:not|never|don't|do not|no)\s+(?:supply|fit)\b/.test(value))return {status:'UNSUPPORTED_OPERATION'};
   value=value.replace(/^(?:please\s+|(?:can|could|would)\s+you\s+|i\s+(?:need|want)\s+)+/,'').replace(/\s+please$/,'');
+  value=value.replace(/^(?:(?:a\s+)?(?:price|quote)\s+(?:to|for)\s+|how\s+much\s+(?:to|for)\s+)/,'');
   var paired=false;value=value.replace(/\b(?:supply\s*(?:and|&(?:\s*&)*|[,+/])?\s*fit|fit\s*(?:and|&(?:\s*&)*|[,+/])?\s*supply)\b/,function(){paired=true;return ' ';});
-  if(!paired)value=value.replace(/\bsupply\b/,' ').replace(/\bfit\b/,' ');
+  if(!paired){
+   // Preserve "supply" within names such as "fuel supply pipe" after a fit action.
+   if(/\bfit\b/.test(value))value=value.replace(/\bfit\b/,' ').replace(/^\s*supply\b/,' ').replace(/\s+and\s+supply(?:\s+it)?\s*$/,' ');
+   else value=value.replace(/\bsupply\b/,' ');
+  }
   value=normal(value).replace(/^(?:(?:replace|renew|and|to|a|an|the|new|only)\s+|[&,+/:]\s*)+/,'').replace(/(?:\s+(?:and|only|it|to be|to)|\s*[&,+/:])+$/,'');
   value=value.replace(/\b(?:n\/?s|nearside)\b/g,'left').replace(/\b(?:o\/?s|offside)\b/g,'right').replace(/[–—-]/g,' ');
   if(/(?:\band\b|[&,+])/.test(value)&&!(/\bkit\b/.test(value)))return {status:'UNSUPPORTED_OPERATION'};
@@ -62,7 +71,7 @@
   var pricingApi=partsApi||window;
   var scopes=window.VectaRepairScope||globalThis.VectaRepairScope;if(!scopes)return;
   var panel=document.createElement('section');panel.id='vectaRepairQuote';
-  panel.innerHTML='<h3>Parts &amp; labour lookup</h3><p class="rqIntro">Supply searches GSF · Fit searches Haynes · Use both words for parts and fitting</p><div class="rqSelection"><label>Part to find<input data-rq-part list="rqPartExamples" placeholder="e.g. fuel pressure regulator" autocomplete="off"><datalist id="rqPartExamples"></datalist></label><label data-rq-axle-label>Position<select data-rq-axle><option value="">Not specified</option><option value="front">Front</option><option value="rear">Rear</option></select></label><label data-rq-side-label>Side<select data-rq-side><option value="">Not specified</option><option value="left">Left / nearside</option><option value="right">Right / offside</option></select></label><label>Quantity<input data-rq-quantity type="number" min="1" max="20" step="1" value="1"></label></div><p data-rq-scope></p><div class="rqActions"><button type="button" class="btn" data-rq-find>Find GSF part</button><button type="button" class="btn" data-rq-replay hidden>Test captured FV65 JTY quote</button><button type="button" class="btn" data-rq-cancel hidden>Cancel lookup</button></div><p class="rqStatus" role="status" aria-live="polite">Type the repair in Work required, or enter any part above, then select Find GSF part.</p><div data-rq-result></div>';
+  panel.innerHTML='<h3>Parts &amp; labour lookup</h3><p class="rqIntro">Fit includes parts and fitting · Supply means parts only · Fit only means labour only</p><div class="rqSelection"><label>Part to find<input data-rq-part list="rqPartExamples" placeholder="e.g. fuel pressure regulator" autocomplete="off"><datalist id="rqPartExamples"></datalist></label><label data-rq-axle-label>Position<select data-rq-axle><option value="">Not specified</option><option value="front">Front</option><option value="rear">Rear</option></select></label><label data-rq-side-label>Side<select data-rq-side><option value="">Not specified</option><option value="left">Left / nearside</option><option value="right">Right / offside</option></select></label><label>Quantity<input data-rq-quantity type="number" min="1" max="20" step="1" value="1"></label></div><p data-rq-scope></p><div class="rqActions"><button type="button" class="btn" data-rq-find>Find GSF part</button><button type="button" class="btn" data-rq-replay hidden>Test captured FV65 JTY quote</button><button type="button" class="btn" data-rq-cancel hidden>Cancel lookup</button></div><p class="rqStatus" role="status" aria-live="polite">Type the repair in Work required, or enter any part above, then select Find GSF part.</p><div data-rq-result></div>';
   work.closest('.jobWorkSection').appendChild(panel);
   var find=panel.querySelector('[data-rq-find]'),cancel=panel.querySelector('[data-rq-cancel]'),message=panel.querySelector('.rqStatus'),result=panel.querySelector('[data-rq-result]'),generation=0,controller=null,timer=null,quote=null,lastKey='',appliedKey='',additionalDrafts=[],draftScope='',choices={};
   var partSelect=panel.querySelector('[data-rq-part]'),axleSelect=panel.querySelector('[data-rq-axle]'),sideSelect=panel.querySelector('[data-rq-side]'),quantityInput=panel.querySelector('[data-rq-quantity]'),manualScope=false,lookupMode='both';
@@ -175,7 +184,7 @@
    timer=setTimeout(function(){if(panel.isConnected&&quote){quote=null;apply.disabled=true;message.textContent='Lookup price expired. Refresh before adding it to a quote.';}},Math.max(0,Date.parse(q.expiresAt)-Date.now()));
   }
   async function lookup(replay){
-   if(replay!==true){var selected=manualScope?selectedScope():scopes.resolve(work.value);if(selected.status!=='SUPPORTED'){message.textContent=messages[selected.status]||messages.UNSUPPORTED_OPERATION;scopeDisplay();if(selected.status==='POSITION_REQUIRED'&&selected.part)showPositionChoices(selected);else{message.textContent='Check the part description above, then search. Use one repair at a time; supply checks parts and fit checks labour.';partSelect.focus();}return;}}
+   if(replay!==true){var selected=manualScope?selectedScope():scopes.resolve(work.value);if(selected.status!=='SUPPORTED'){message.textContent=messages[selected.status]||messages.UNSUPPORTED_OPERATION;scopeDisplay();if(selected.status==='POSITION_REQUIRED'&&selected.part)showPositionChoices(selected);else{message.textContent='Check the part description above, then search. Use one repair at a time; fit includes parts and fitting; use fit only for labour alone.';partSelect.focus();}return;}}
    stop();quote=null;result.replaceChildren();lastKey=key();var input=read(),run=generation,started=Date.now();var nextScope=scopes.resolve(input.work).work;if(nextScope!==draftScope)additionalDrafts=[];draftScope=nextScope;find.disabled=true;cancel.hidden=false;
    async function poll(){
     if(run!==generation||!panel.isConnected||key()!==lastKey)return;

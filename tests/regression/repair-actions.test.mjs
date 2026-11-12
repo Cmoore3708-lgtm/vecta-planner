@@ -12,15 +12,15 @@ import {repairWorkerHandler} from '../../api/repair-quote-worker.js';
 const now=Date.now(),stamp=new Date(now).toISOString(),partId='a'.repeat(32),labourId='b'.repeat(32),variant='Fixture vehicle';
 const make=work=>repairRequest({registration:'AB12CDE',work,flow:'guided-v1'});
 function selected(work){const r=make(work);return repairRequest({...r,choices:{...(r.lookup!=='labour'?{part:partId}:{}),...(r.lookup!=='parts'?{labour:labourId}:{})}});}
-const part=r=>({vehicle:variant,fitmentEvidence:'Verified GSF registration and fitment',catalogueComplete:true,part:{source:'GSF',registration:r.registration,variant,fitmentConfirmed:true,vatBasis:'EX_VAT',sku:'PART1',brand:'Fixture',description:'Radiator',costPence:5000,inStock:false,checkedAt:stamp,choiceId:partId}});
-const labour=r=>({variant,labour:{source:'HAYNES_PRO',registration:r.registration,variant,operation:r.operation,operationId:'1FX00000001',operationLabel:'Renew the radiator',hoursMilli:1900,unit:'hours',scopeConfirmed:true,checkedAt:stamp,choiceId:labourId}});
+const part=r=>({vehicle:variant,fitmentEvidence:'Verified GSF registration and fitment',catalogueComplete:true,part:{source:'GSF',registration:r.registration,variant,fitmentConfirmed:true,vatBasis:'EX_VAT',sku:'PART1',brand:'Fixture',description:repairScope.resolve(r.work).part,costPence:5000,inStock:false,checkedAt:stamp,choiceId:partId}});
+const labour=r=>({variant,labour:{source:'HAYNES_PRO',registration:r.registration,variant,operation:r.operation,operationId:'1FX00000001',operationLabel:'Renew the '+repairScope.resolve(r.work).part,hoursMilli:1900,unit:'hours',scopeConfirmed:true,checkedAt:stamp,choiceId:labourId}});
 const response=()=>({setHeader(){},status(code){this.code=code;return this;},json(body){this.body=body;return this;}});
 
 test('supply and fit are whole-word actions anywhere in varied requests, across hundreds of descriptions',()=>{
  const parts=['radiator','fuel pressure regulator','window regulator','ABS sensor','door lock actuator','clutch slave cylinder','air conditioning compressor','thermostat housing','starter motor','coolant pump','suspension arm','wheel bearing','wiper motor','ignition coil','turbocharger','exhaust silencer'];
  for(const noun of parts)for(const position of ['', 'front ', 'rear ', 'left ', 'right ', 'front left ', 'front right ', 'rear left ', 'rear right ', 'upper ', 'lower ', 'inner ', 'outer ', 'centre ', 'auxiliary ']){
   const item=position+noun;
-  for(const [work,mode] of [['Please supply a '+item,'parts'],['Could you fit a new '+item+' please','labour'],[item+' — supply and fit','both'],['Supply '+item+' and fit it','both']]){
+  for(const [work,mode] of [['Please supply a '+item,'parts'],['Could you fit a new '+item+' please','both'],['I want a price to fit an new '+item,'both'],['Please fit only a '+item,'labour'],[item+' — supply and fit','both'],['Supply '+item+' and fit it','both']]){
    const s=repairScope.resolve(work);assert.equal(s.status,'SUPPORTED',work);assert.equal(s.lookup||'both',mode,work);assert.ok(!/\b(?:please|supply|fit)\b/.test(s.query),work);
   }
  }
@@ -30,11 +30,27 @@ test('supply and fit are whole-word actions anywhere in varied requests, across 
  for(const work of ['Supply radiator, fit brake pads','Supply radiator but do not fit it','Fit radiator if required'])assert.notEqual(repairScope.resolve(work).status,'SUPPORTED');
 });
 
+test('plain fit and price requests resolve to supply and fit, while explicit fit only survives round trips',()=>{
+ for(const work of ['Fit alternator','FIT an new alternator','I want a price to fit an new alternator','Please quote to fit a new alternator','How much to fit an alternator?','Alternator to fit']){
+  assert.deepEqual(repairScope.resolve(work),repairScope.resolve('Supply and fit alternator'),work);
+  assert.throws(()=>repairRequest({...make(work),choices:{labour:labourId}}),undefined,work);
+ }
+ for(const work of ['Fit fuel supply pipe','Fuel supply pipe to fit','Fit fuel supply pipe and supply it']){
+  assert.equal(repairScope.resolve(work).part,'fuel supply pipe',work);assert.equal(make(work).lookup,undefined,work);
+ }
+ for(const work of ['Fit only alternator','Only fit an alternator','Alternator to fit only','I want a price to fit only an new alternator','Fit only fuel supply pipe']){
+  const s=repairScope.resolve(work),r=make(s.work);assert.equal(r.lookup,'labour',work);assert.match(r.work,/^Fit only /);assert.deepEqual(repairRequest(r),r);
+  assert.equal(repairScope.scope(s.part,s.axle,s.side,s.quantity,s.lookup).lookup,'labour');
+ }
+ assert.deepEqual(repairScope.resolve('I want a price to supply a new alternator'),repairScope.resolve('Supply alternator'));
+});
+
 test('only requested sources are called and included in the final totals',async()=>{
- for(const [work,partsCalls,labourCalls,gross] of [['Please supply radiator',1,0,9000],['Radiator to fit',0,1,12000],['Radiator supply and fit',1,1,21000]]){
+ for(const [work,partsCalls,labourCalls,gross] of [['Please supply radiator',1,0,9000],['Radiator to fit only',0,1,12000],['Radiator to fit',1,1,21000],['I want a price to fit an new alternator',1,1,21000],['Radiator supply and fit',1,1,21000]]){
   const r=selected(work),calls=[];
   const evidence=await lookupGeneralRepair({},r,{now:()=>now,gsf:async()=>{calls.push('GSF');return part(r);},haynes:async()=>{calls.push('Haynes');return labour(r);}});
   assert.equal(calls.filter(x=>x==='GSF').length,partsCalls);assert.equal(calls.filter(x=>x==='Haynes').length,labourCalls);
+  if(partsCalls&&labourCalls)assert.deepEqual(calls,['GSF','Haynes']);
   const q=calculateRepairQuote(cleanRepairEvidence(evidence,r,{now}),r,{now});assert.equal(q.totalIncVatPence,gross);
   assert.equal(q.parts,undefined);
   if(!partsCalls){assert.equal(q.part,null);assert.equal(q.partsPence,0);assert.deepEqual(evidence.parts,[]);}
@@ -44,7 +60,7 @@ test('only requested sources are called and included in the final totals',async(
 });
 
 test('choice validation allows labour without a GSF part only for fit-only requests',()=>{
- const r=make('Fit radiator'),result={request:r,stage:'HAYNES_LABOUR',options:[{id:labourId,label:'Renew the radiator',hoursMilli:1900}],checkedAt:stamp};
+ const r=make('Fit only radiator'),result={request:r,stage:'HAYNES_LABOUR',options:[{id:labourId,label:'Renew the radiator',hoursMilli:1900}],checkedAt:stamp};
  assert.equal(cleanRepairChoices(result,r,{now}).options[0].hoursMilli,1900);
  assert.equal(repairRequest({...r,choices:{labour:labourId}}).choices.labour,labourId);
  assert.throws(()=>repairRequest({...r,choices:{part:partId}}));
@@ -58,7 +74,7 @@ test('choice validation allows labour without a GSF part only for fit-only reque
 });
 
 test('fit-only and supply-only worker tasks never open the unused supplier browser',async()=>{
- for(const work of ['Fit radiator','Supply radiator']){
+ for(const work of ['Fit only radiator','Supply radiator']){
   const r=make(work),calls=[],stage=r.lookup==='labour'?'HAYNES_LABOUR':'GSF_PART';let completed;
   const page=()=>({close:async()=>{}});
   const bridge=createRepairBridge({origin:'https://fixture.vercel.app',token:'a'.repeat(64),configPath:'/tmp/no-repair-action-config',
@@ -69,7 +85,7 @@ test('fit-only and supply-only worker tasks never open the unused supplier brows
 });
 
 test('both API boundaries preserve single-source evidence without adding the omitted charge',async()=>{
- for(const work of ['Supply radiator','Fit radiator']){
+ for(const work of ['Supply radiator','Fit only radiator']){
   const r=selected(work),evidence=await lookupGeneralRepair({},r,{now:()=>now,gsf:async()=>part(r),haynes:async()=>labour(r)}),token='a'.repeat(64);let saved;
   const worker=repairWorkerHandler({env:{REPAIR_QUOTING_ENABLED:'true',REPAIR_QUOTE_WORKER_TOKEN:token},now:()=>now,queue:async(_a,p)=>{saved=p;return {status:'SAVED'};}}),res=response();
   await worker({method:'POST',headers:{authorization:'Bearer '+token},body:{action:'complete',id:'11111111-1111-1111-1111-111111111111',lease:'22222222-2222-2222-2222-222222222222',request:r,status:'MATCHED',result:evidence}},res);assert.equal(res.body.status,'SAVED');
@@ -83,7 +99,7 @@ test('protocol 4 queues single-source requests while older workers cannot claim 
   await db.exec('create role anon;create role authenticated;create role service_role;create table public.gsf_service_jobs(status text,lease uuid,deadline timestamptz);');
   for(const p of ['docs/sql/repair-quote-queue.sql','supabase/migrations/20261111064559_catalogue_repair_pricing.sql','supabase/migrations/20261111073607_guided_repair_choices.sql','supabase/migrations/20261112101239_repair_action_lookups.sql'])await db.exec(fs.readFileSync(p,'utf8'));
   const rpc=async(a,p)=>(await db.query('select public.vecta_repair_quote_queue($1,$2::jsonb) as value',[a,JSON.stringify(p)])).rows[0].value;
-  for(const work of ['Supply radiator','Fit radiator']){
+  for(const work of ['Supply radiator','Fit only radiator']){
    const r=selected(work),job={actor:'a'.repeat(64),request:r};await rpc('pull',{repairProtocol:3});assert.equal((await rpc('enqueue',job)).status,'SETTINGS_REQUIRED');
    await rpc('pull',{repairProtocol:4});assert.equal((await rpc('enqueue',job)).status,'PENDING');
    for(const version of [1,2,3])assert.equal((await rpc('pull',{repairProtocol:version})).status,'IDLE');
