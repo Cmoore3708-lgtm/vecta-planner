@@ -23,3 +23,21 @@ test('both booking pages compile and use server-checked dates without browser 48
   assert.match(html,/f.available_slots=d.slots\|\|\[\]/);
  }
 });
+
+test('EV servicing reaches the availability engine unchanged, with and without MOT',async t=>{
+ const oldEnv={...process.env};t.after(()=>{process.env=oldEnv;});
+ Object.assign(process.env,{VERCEL_ENV:'production',VITE_SUPABASE_URL:'https://test.invalid',SUPABASE_SERVICE_ROLE_KEY:'test'});
+ const calls=[];
+ t.mock.method(globalThis,'fetch',async(url,options)=>{
+  assert.equal(new URL(url).pathname,'/rest/v1/rpc/vecta_online_booking_availability');
+  calls.push(JSON.parse(options.body));
+  return new Response(JSON.stringify({slots:[{date:'2050-01-04',time:'08:00',technician:'Alfie'}]}));
+ });
+ for(const service of ['EV Servicing','Service'])for(const mot of [[],['MOT']]){
+  const r={setHeader(){},status(n){this.code=n;return this;},json(data){this.data=data;return this;}};
+  await handler({method:'POST',body:{job_types:[service,...mot],service_choice:'EV Servicing'}},r);
+  assert.equal(r.code,200,JSON.stringify(r.data));assert.equal(r.data.slots.length,1);
+  assert.deepEqual(calls.at(-1),{p_types:['EV Servicing',...mot]});
+ }
+ assert.equal(calls.length,4);
+});

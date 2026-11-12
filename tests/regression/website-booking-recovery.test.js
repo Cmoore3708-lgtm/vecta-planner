@@ -173,3 +173,11 @@ test('customer preferences are validated, persisted separately and included in r
  assert.equal((await db.submit({...body,customer_preferences:{...preferences,serious_repairs:'change_parts'}})).code,409);
  assert.deepEqual(db.rows.get(id).customer_preferences,preferences);
 }));
+
+for(const service of ['EV Servicing','Service'])for(const mot of [[],['MOT']])test(`EV booking submission and retry preserve the electric service: ${service} ${mot.join('')}`,async()=>withDatabase(async db=>{
+ const body={...payload,request_id:id,vehicle:'Electric vehicle',job_types:[service,...mot],service_choice:'EV Servicing',work_required:'EV Servicing',mileage_unknown:true,approximate_cost:mot.length?60:null,customer_preferences:{version:1,parts:'mid_range',serious_repairs:'book_later'}};
+ const first=await db.submit(body);assert.equal(first.code,201,JSON.stringify(first.data));assert.equal(first.data.ok,true);
+ assert.deepEqual(db.rows.get(id).job_types,['EV Servicing',...mot]);assert.equal(db.rows.get(id).work_required,'EV Servicing');
+ assert.equal(db.rows.get(id).preferred_date_1,body.appointment_date);
+ const retry=await db.submit(body);assert.equal(retry.code,200);assert.equal(retry.data.request_id,first.data.request_id);assert.equal(db.rows.size,1);assert.equal(db.notifications,1);
+}));
