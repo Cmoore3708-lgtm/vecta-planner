@@ -16,9 +16,10 @@ const signed=id=>'https://brqsejjykrubxuofavuu.supabase.co/storage/v1/object/sig
 const flush=()=>new Promise(resolve=>setImmediate(resolve));
 function app(seen=new Map(),mechanic=false,extraPhotos=[]){
  const {document,window:dom}=parseHTML('<html><body><main class="main"><header class="top"></header></main><div class="modal" id="jobModal"></div><div class="modal" id="other"></div></body></html>');
- let jobs=[job],mounted=0,openedId='',scrolls=0,interval,alerts=[],decisions=[],approvalRows=[first,second],requests=[];
+ let jobs=[job],mounted=0,openedId='',scrolls=0,interval,alerts=[],decisions=[],notes=[],approvalRows=[first,second],requests=[];
  const events={};
  const window={VECTA_MECHANIC_DEPLOYMENT:mechanic,addEventListener(type,fn){events[type]=fn;},dispatchEvent(event){events[event.type]?.();}};
+ window.vectaWorkshopNoteAlerts=()=>notes;
  const modal=document.getElementById('jobModal');
  dom.HTMLElement.prototype.scrollIntoView=function(){scrolls++;};
  window.openJobModal=id=>{
@@ -39,7 +40,7 @@ function app(seen=new Map(),mechanic=false,extraPhotos=[]){
  });
  vm.runInContext(photos,ctx);vm.runInContext(bridge,ctx);vm.runInContext(queue,ctx);
  return {document,window,modal,ctx,requests,get mounted(){return mounted;},get opened(){return openedId;},get scrolls(){return scrolls;},
-  setRows(rows){alerts=rows;},setDecisions(rows){decisions=rows;},setApprovalRows(rows){approvalRows=rows;},async poll(){await interval?.();await flush();},
+  setRows(rows){alerts=rows;},setNotes(rows){notes=rows;},setDecisions(rows){decisions=rows;},setApprovalRows(rows){approvalRows=rows;},async poll(){await interval?.();await flush();},
   get popup(){return document.querySelector('.mechanicPhotoAlert');},
   get action(){return document.querySelector('.findingAlertOpen');}};
 }
@@ -145,4 +146,19 @@ test('sent findings keep their public photo, large caption editor and decision t
  await ui.modal.querySelector('[data-photo-refresh]').onclick();await flush();
  entry=ui.modal.querySelector('.approvalRecord');assert.equal(entry.querySelector('.photoCaptionEditor textarea').value,'Clearer caption for the customer');
  assert.equal(entry.querySelector('.findingBody .findingReview'),null,'sent approval wording stays fixed');
+});
+
+test('private note updates alert Main, open the note without overwriting office edits, and only alert again for a new revision',async()=>{
+ const storage=new Map(),ui=app(storage);await flush();
+ const note={id:'private-note-1',job_id:job.id,registration:job.registration,internal_note:true,mechanic_finding:true,photo_ids:[],message:'Pads worn. Office to review before contacting the customer.'};
+ ui.window.openJobModal(job.id);await flush();
+ const field=ui.modal.querySelector('#job_internal_workshop_notes');field.value='Unsaved office details';
+ ui.setNotes([note]);await ui.poll();assert.equal(ui.popup.hidden,false);assert.match(ui.action.textContent,/Workshop notes updated.*TEST001/);assert.equal(ui.document.querySelector('.findingQueue').hidden,true,'internal notes do not become customer estimates');
+ await ui.action.onclick();await flush();
+ assert.equal(ui.mounted,1);assert.equal(field.value,'Unsaved office details');assert.match(ui.modal.querySelector('[data-mechanic-note-review]').textContent,/Pads worn/);assert.equal(ui.popup.hidden,true);
+ await ui.poll();assert.equal(ui.popup.hidden,true);
+ const reopened=app(storage);await flush();reopened.setNotes([note]);await reopened.poll();assert.equal(reopened.popup.hidden,true);
+ reopened.setNotes([{...note,id:'private-note-2',message:'Workshop notes cleared.'}]);await reopened.poll();assert.equal(reopened.popup.hidden,false);assert.match(reopened.action.textContent,/Workshop notes cleared/);
+ assert.ok(ui.requests.every(action=>['approval-queue','photos-list','approval-list'].includes(action)),'reviewing notes cannot send to the customer');
+ const mechanic=app(new Map(),true);await flush();mechanic.setNotes([note]);await mechanic.poll();assert.equal(mechanic.popup.hidden,true);
 });

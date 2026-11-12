@@ -9,6 +9,14 @@
   return result;
  }
  function notify(){window.dispatchEvent(new Event('vecta-findings-changed'));}
+ function noteAlerts(jobs,isDeleted,readNotes){
+  if(window.VECTA_MECHANIC_DEPLOYMENT===true)return [];
+  return jobs.filter(job=>job&&!isDeleted(job)).map(job=>{
+   const match=String(job.customer_note||'').match(/\[\[VECTA_INTERNAL_NOTE_UPDATE:([a-f0-9-]{36})\]\]/i);
+   return match?{id:match[1],job_id:job.id,registration:job.registration||job.vehicle||'Job',message:readNotes(job)||'Workshop notes cleared.',internal_note:true,mechanic_finding:true,photo_ids:[]}:null;
+  }).filter(Boolean);
+ }
+ function workshopNotes(){return window.vectaWorkshopNoteAlerts?.()||[];}
  const states={sent:'sent',pending:'send unconfirmed',failed:'send failed',test:'Test only',missing_contact:'missing contact',no_permission:'no permission',
    not_configured:'sender not connected',manual:'ready to send in WhatsApp',unsent:'not sent',unavailable:'status unavailable'};
  function delivery(channels){return 'Email '+(states[channels?.email]||'status unavailable')+' · WhatsApp '+(channels?.whatsapp==='sent'?'accepted':states[channels?.whatsapp]||'status unavailable');}
@@ -135,12 +143,12 @@
    if(active&&next&&eventId(active)===eventId(next)){active=next;return;}
    stopWaiting();active=next;opening=false;open.disabled=false;status.textContent='';popup.hidden=!next;
    if(!next)return;
-   const title=next.decision?'Customer '+next.status:(next.photo_ids.length?'New mechanic photo':'New mechanic finding');
+   const title=next.decision?'Customer '+next.status:next.internal_note?'Workshop notes updated':(next.photo_ids.length?'New mechanic photo':'New mechanic finding');
    popup.classList.toggle('customerDecisionAlert',!!next.decision);popup.dataset.decision=next.decision?next.status:'';
-   popup.setAttribute('aria-label',next.decision?'Customer approval response':'Mechanic photo alert');
-   close.setAttribute('aria-label',next.decision?'Dismiss this customer response':'Dismiss this photo alert');
+   popup.setAttribute('aria-label',next.decision?'Customer approval response':'Mechanic update alert');
+   close.setAttribute('aria-label',next.decision?'Dismiss this customer response':'Dismiss this mechanic update');
    headline.textContent=title+' · '+next.registration;
-   open.setAttribute('aria-label','Open job card for '+next.registration+(next.decision?' — customer '+next.status:' to see the mechanic’s photo'));
+   open.setAttribute('aria-label','Open job card for '+next.registration+(next.decision?' — customer '+next.status:next.internal_note?' to review workshop notes':' to review the mechanic’s finding'));
    description.textContent=next.message;
    estimate.hidden=mechanic||!next.decision||!Number.isInteger(next.estimated_pence);
    estimate.textContent=estimate.hidden?'':'Estimated total including VAT: £'+(next.estimated_pence/100).toFixed(2);
@@ -164,8 +172,19 @@
      }
      return;
     }
-    if(state!=='open'||!window.VectaWorkshopPhotos?.revealFinding(document.getElementById('jobModal'),item))
+    const modal=document.getElementById('jobModal');
+    const notes=item.internal_note&&modal?.querySelector('#job_internal_workshop_notes');
+    if(state!=='open'||!(notes||window.VectaWorkshopPhotos?.revealFinding(modal,item)))
      throw Error('This job could not be opened. Tap the alert to retry.');
+    if(notes){
+     const section=notes.closest('.jobInternalNotesSection');
+     let preview=section.querySelector('[data-mechanic-note-review]');
+     if(!preview){preview=node('div');preview.dataset.mechanicNoteReview='';section.append(preview);}
+     const text=node('p',item.message);text.style.whiteSpace='pre-wrap';
+     preview.replaceChildren(node('strong','Mechanic update — not seen by customer'),text);
+     // Show the received note without overwriting any unsaved office edits.
+     section.scrollIntoView({block:'center'});notes.focus({preventScroll:true});
+    }
     acknowledge(item);
    }catch{if(active&&eventId(active)===eventId(item))status.textContent='This job could not be opened. Tap the alert to retry.';}
    finally{if(active&&eventId(active)===eventId(item)){opening=false;open.disabled=false;}}
@@ -191,7 +210,7 @@
   toggle.type='button';toggle.className='btn';toggle.setAttribute('aria-expanded','false');list.hidden=true;
   tray.append(toggle,list,status);document.querySelector('main.main>header.top').after(tray);
   const entries=new Map(),updateAlerts=findingAlerts();
-  let busy=false,activeCount=0;
+  let busy=false,activeCount=0,lastFindings=[],lastDecisions=[];
   function redraw(){
    tray.hidden=activeCount===0&&list.hidden;
    toggle.textContent=activeCount?'Workshop findings to price ('+activeCount+')':'Workshop findings';
@@ -200,7 +219,9 @@
    list.hidden=!list.hidden;toggle.setAttribute('aria-expanded',String(!list.hidden));redraw();if(!list.hidden)refresh();
   };
   async function refresh(){
-   if(busy||document.hidden||!navigator.onLine)return;
+   if(document.hidden)return;
+   updateAlerts([...workshopNotes(),...lastFindings],lastDecisions);
+   if(busy||!navigator.onLine)return;
    busy=true;
    try{
     const data=await api('approval-queue');const current=new Set(data.findings.map(row=>row.id));activeCount=current.size;
@@ -210,7 +231,8 @@
     for(const item of data.findings){
      if(!entries.has(item.id)){const el=card(item);entries.set(item.id,el);list.append(el);}
     }
-    status.textContent='';redraw();updateAlerts(data.findings,window.VectaPortalWorkshop?[]:data.decisions);
+    lastFindings=data.findings;lastDecisions=window.VectaPortalWorkshop?[]:data.decisions;
+    status.textContent='';redraw();updateAlerts([...workshopNotes(),...lastFindings],lastDecisions);
    }catch(error){status.textContent=error.message;}finally{busy=false;}
   }
   window.addEventListener('vecta-findings-changed',refresh);
@@ -218,6 +240,6 @@
   window.addEventListener('online',refresh);
   refresh();setInterval(refresh,10000);
  }
- window.VectaFindings={pricingForm,showResult,notify,delivery};
+ window.VectaFindings={noteAlerts,pricingForm,showResult,notify,delivery};
  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',install,{once:true});else install();
 })();

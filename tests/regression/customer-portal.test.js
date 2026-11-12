@@ -184,12 +184,12 @@ test('a failed job-card refresh keeps the approval alert visible and retries unt
 test('internal workshop notes produce no customer event and are excluded from portal and confirmation content',async()=>{
  const db=await database();try{
   const secret='PRIVATE WORKSHOP NOTE — supplier dispute';
-  const note='[[VECTA_INTERNAL_NOTES:'+encodeURIComponent(secret)+']]';
+  const note='[[VECTA_INTERNAL_NOTES:'+encodeURIComponent(secret)+']]\n[[VECTA_INTERNAL_NOTE_UPDATE:11111111-1111-4111-8111-111111111111]]';
   await db.query('update jobs set customer_note=$1 where id=$2',[note,id]);
   assert.equal((await db.query('select count(*)::int n from customer_portal_events')).rows[0].n,0);
   const record={...job,customer_note:note};
   const snapshot=await portalSnapshot(async()=>[],{job:record});
   const email=confirmationContent(record,'https://www.vectamotors.co.uk/track#test');
-  for(const value of [snapshot,email]){const text=JSON.stringify(value);assert.ok(!text.includes(secret));assert.ok(!text.includes(encodeURIComponent(secret)));assert.ok(!text.includes('VECTA_INTERNAL_NOTES'));}
+  for(const value of [snapshot,email]){const text=JSON.stringify(value);assert.ok(!text.includes(secret));assert.ok(!text.includes(encodeURIComponent(secret)));assert.ok(!text.includes('VECTA_INTERNAL_NOTE'));}
  }finally{await db.close();}
 });
