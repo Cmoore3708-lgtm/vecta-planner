@@ -73,14 +73,14 @@ test('only the explicit setup click requests permission and sends a test; repeat
 function portal(mechanic=false){
  const {window,document}=parseHTML('<html><body><main class="main"><header class="top"></header></main><div id="jobModal"><section class="jobWorkSection"></section></div></body></html>');
  document.hidden=false;document.readyState='complete';
- const timers=[],maintenance=[],live={events:[],state:{status:'enabled',canEnable:false,message:''},enabled:0};
+ const timers=[],maintenance=[],live={events:[],state:{status:'enabled',canEnable:false,message:''},enabled:0,older:null,earlier:[]};
  window.VECTA_MECHANIC_DEPLOYMENT=mechanic;
  window.vectaPortalAlertsState=()=>live.state;
  window.vectaMaintainPortalAlerts=force=>{maintenance.push(force);return Promise.resolve(true);};
  window.vectaEnablePortalAlerts=async()=>{live.enabled++;live.state={status:'enabled',canEnable:false,message:''};window.dispatchEvent(new window.Event('vecta-notification-state'));};
  const c={window,document,navigator:{onLine:true},location:{search:''},crypto:{randomUUID:()=> 'synthetic-message'},Intl,Date,URLSearchParams,AbortSignal,Event:window.Event,
   localStorage:{getItem:()=>null},setInterval:(fn,ms)=>timers.push({fn,ms}),
-  fetch:async(_url,{body})=>({ok:true,json:async()=>JSON.parse(body).action==='portal-job'?{events:live.events,alerts:[],older_cursor:null}:JSON.parse(body).action==='portal-queue'?{events:[]}:{whatsapp:null}})
+  fetch:async(_url,{body})=>({ok:true,json:async()=>JSON.parse(body).action==='portal-job'?{events:JSON.parse(body).before?live.earlier:live.events,alerts:[],older_cursor:JSON.parse(body).before?null:live.older}:JSON.parse(body).action==='portal-queue'?{events:[]}:{whatsapp:null}})
  };
  vm.runInNewContext(portalSource,c);window.VectaPortalWorkshop.mount(document.getElementById('jobModal'),{id:'test-job'},true);
  return {window,document,live,timers,maintenance};
@@ -110,4 +110,22 @@ test('notification setup disappears after connection and startup/online/returnin
  h.document.dispatchEvent(new h.window.Event('visibilitychange'));await tick();assert.ok(h.maintenance.length>count+1);
  h.live.state={status:'blocked',canEnable:false,message:'Allow in device settings'};h.window.dispatchEvent(new h.window.Event('vecta-notification-state'));
  assert.equal(controls.hidden,false);assert.equal(controls.querySelector('button').hidden,true);assert.match(controls.textContent,/device settings/);
+});
+
+test('workshop and mechanic history stays newest first and retains expanded earlier messages on polling',async()=>{
+ for(const mechanic of [false,true]){
+  const h=portal(mechanic);await tick();
+  const event=i=>({id:'message-'+i,seq:i,actor:'customer',kind:'message',created_at:'2026-11-11T12:00:00Z',message:'Update '+i});
+  h.live.events=Array.from({length:8},(_,i)=>event(i+3));h.live.earlier=[event(1),event(2)];h.live.older='3';
+  const poll=h.timers.find(t=>t.ms===15000).fn;poll();await tick();
+  const panel=h.document.querySelector('.portalWorkshop'),ids=()=>[...panel.querySelectorAll('.portalWorkshopEvent')].map(c=>c.dataset.eventId);
+  assert.deepEqual(ids(),['message-10','message-9','message-8','message-7','message-6']);
+  if(!mechanic)assert.equal(panel.querySelector('.portalMarkRead').textContent,'Mark 5 messages as read','collapsed history must not be marked read');
+  const draft=panel.querySelector('textarea');if(draft){draft.value='Keep this unsent reply';assert.equal(panel.querySelector('.portalWorkshopComposer').hasAttribute('open'),false);}
+  const more=panel.querySelector('.portalWorkshopHistoryActions button');await more.onclick();assert.equal(ids().length,8);
+  await more.onclick();assert.equal(ids().length,10);assert.equal(ids().at(-1),'message-1');assert.equal(more.hidden,true);
+  h.live.events.push(event(11));poll();await tick();assert.equal(ids()[0],'message-11');assert.equal(ids().at(-1),'message-1');assert.equal(more.hidden,true);
+  poll();await tick();assert.equal(ids().length,11);
+  if(draft)assert.equal(draft.value,'Keep this unsent reply');
+ }
 });

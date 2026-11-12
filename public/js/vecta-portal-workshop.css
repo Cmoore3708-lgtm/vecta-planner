@@ -10,3 +10,29 @@
 .portalMarkRead{margin:8px 0;background:#bd182b;color:#fff;min-height:44px}
 .portalMarkRead[hidden]{display:none}
 .portalMessageText{padding-right:64px!important;box-sizing:border-box}
+
+/* Scoped conversation density; planner cards retain their approved layout. */
+.portalWorkshop{margin:12px 0;padding:12px;border-radius:10px;min-width:0}
+.portalWorkshopHeading{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:6px 12px}
+.portalWorkshop .portalWorkshopHeading h3{margin:0;font-size:16px;line-height:1.4}
+.portalWorkshop .portalMarkRead{margin:0;padding:8px 10px;font-size:12px}
+.portalWorkshopConsent{margin:8px 0;padding:8px 10px;font-size:12px;line-height:1.4}
+.portalWorkshop>p:empty,.portalWorkshop form>p:empty,.portalWorkshopEvent>p:empty,.portalWorkshop form>div:empty{display:none}
+.portalWorkshopEvent{padding:10px 12px;margin:6px 0;border-radius:8px}
+.portalWorkshopEventHeading{display:flex;justify-content:space-between;align-items:baseline;flex-wrap:wrap;gap:3px 10px}
+.portalWorkshopEventHeading strong{font-size:13px;line-height:1.4;overflow-wrap:anywhere}
+.portalWorkshopEventHeading time{font-size:11px;opacity:.75;white-space:nowrap}
+.portalWorkshopEvent p{margin:6px 0 0;font-size:14px;line-height:1.5}
+.portalWorkshopEvent button{min-height:44px;padding:8px 10px;font-size:12px;margin-top:6px}
+.portalWorkshopComposer{border-bottom:1px solid #555;margin:4px 0 8px}
+.portalWorkshopComposer>summary,.portalDeliveryDetails>summary{min-height:44px;box-sizing:border-box;padding:12px 0;cursor:pointer;font-size:13px}
+.portalWorkshopComposer>summary:focus-visible,.portalDeliveryDetails>summary:focus-visible{outline:2px solid currentColor;outline-offset:2px}
+.portalWorkshopComposer form{padding:0 0 12px}.portalWorkshopComposer label{font-size:13px}
+.portalWorkshopComposer textarea{min-height:66px;max-height:200px;resize:vertical;margin:7px 0;padding:10px;font-size:16px;box-sizing:border-box}
+.portalWorkshopComposer button[type="submit"]{min-height:44px}
+.portalWorkshopHistoryActions{display:flex;flex-wrap:wrap;gap:6px}
+.portalWorkshopHistoryActions button{min-height:44px;padding:8px 10px;margin-top:4px;font-size:12px}
+.portalWorkshopEmpty{margin:8px 0;font-size:13px;opacity:.75}
+.portalWorkshop .portalAlertReceipt{margin-top:0}
+.portalDeliveryDetails{margin-top:4px}.portalDeliveryDetails>summary{font-size:12px;opacity:.8}
+@media(max-width:600px){.portalWorkshop{padding:10px}.portalWorkshopEvent{padding:10px}.portalWorkshop .portalWorkshopHeading h3{font-size:15px}}
