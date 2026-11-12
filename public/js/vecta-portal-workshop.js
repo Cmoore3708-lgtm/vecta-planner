@@ -99,9 +99,11 @@
   const titles={message:'Message',preferences:'Parts authorisation',amendment:'Amendment requested',additional_work:'Additional work requested',cancelled:'Booking cancelled',approval_response:decision==='approved'?'Work authorised':decision==='declined'?'Work not authorised':'Customer decision',approval_request:'Approval requested',booking_update:'Booking updated',correspondence:'Workshop message'};
   const heading=node('summary');heading.className='portalWorkshopEventHeading';
   const timestamp=node('time',date(item.created_at));timestamp.dateTime=item.created_at;
-  heading.append(node('strong',window.VectaMessageSummary?.title(item)||titles[item.kind]||'Job update'),timestamp);
+  heading.append(node('strong',(decision==='approved'?'✓ ':decision==='declined'?'✕ ':'')+(window.VectaMessageSummary?.title(item)||titles[item.kind]||'Job update')),timestamp);
   const progress=window.VectaMessageSummary?.progress?.(item);
   const body=node('div');body.className='portalWorkshopEventBody';c.append(heading,body);body.append(node('p',progress?.message||item.message));
+  if(item.reply||item.details?.customer_reply){const reply=node('div');reply.className='portalQuoteReply';reply.append(node('strong','Customer message'),node('p',item.reply||item.details.customer_reply));body.append(reply);}
+  if(item.details?.quote_description)body.prepend(node('p','About quote: '+item.details.quote_description));
   if(item.details?.requested_date)body.append(node('p','Requested date: '+item.details.requested_date+' — awaiting workshop confirmation.'));
   if(item.details?.work_required&&!progress)body.append(node('p',item.details.work_required));
   const green=decision==='approved'||item.authorised===true||item.details?.preferences?.serious_repairs==='change_parts',red=decision==='declined'||item.authorised===false||item.details?.preferences?.serious_repairs==='book_later';
@@ -175,29 +177,54 @@
   const historyActions=node('div');historyActions.className='portalWorkshopHistoryActions';historyActions.append(olderButton,latestButton);panel.append(historyActions);
   const controller={panel};
   if(!mechanic()){
-   const form=node('form'),label=node('label','Message'),input=node('textarea'),attachments=node('div'),send=node('button','Send message & alerts'),note=node('div');input.rows=3;input.maxLength=3000;input.required=true;input.placeholder='Type your message to the customer…';label.append(input);send.type='submit';send.className='btn green';attachments.className='portalMessageAttachments';note.setAttribute('role','status');
+   const form=node('form'),label=node('label'),labelText=node('span','Message'),input=node('textarea'),attachments=node('div'),send=node('button','Send message & alerts'),note=node('div');input.rows=3;input.maxLength=3000;input.required=true;input.placeholder='Type your message to the customer…';label.append(labelText,input);send.type='submit';send.className='btn green';attachments.className='portalMessageAttachments';note.setAttribute('role','status');
    const permissionLabel=node('label'),permissionBox=node('input'),permissionText=node('span'),permissionStatus=node('p');permissionBox.type='checkbox';permissionLabel.className='portalWhatsappPermission';permissionLabel.hidden=true;permissionLabel.append(permissionBox,permissionText);
-   form.append(label,attachments,permissionLabel,permissionStatus,send,note);
+   const modes=node('div');modes.className='portalComposeModes';modes.setAttribute('role','group');modes.setAttribute('aria-label','Message type');
+   const messageMode=button('Send message',()=>setMode('message')),quoteMode=button('Send quote',()=>setMode('quote'));
+   modes.append(messageMode,quoteMode);
+   const priceLabel=node('label','Estimated price including VAT (£)'),price=node('input');price.type='text';price.inputMode='decimal';price.placeholder='0.00';price.maxLength=9;priceLabel.className='portalQuotePrice';priceLabel.append(price);priceLabel.hidden=true;
+   form.append(modes,label,priceLabel,attachments,permissionLabel,permissionStatus,send,note);
    const composer=node('details');composer.className='portalWorkshopComposer';composer.append(node('summary','Message customer'),form);panel.insertBefore(composer,list);
    let photos=null;
    Object.assign(controller,{form,attachments,bindPhotos(value){photos=value;input.required=false;}});
    let contact=null;
    api('approval-list',{job_id:job.id}).then(data=>{contact=data.whatsapp;if(contact?.phone&&!contact.unavailable){permissionBox.checked=contact.allowed;permissionText.textContent='Customer agreed to WhatsApp updates on the number ending '+contact.phone.slice(-4);permissionLabel.hidden=false;}}).catch(()=>{});
    permissionBox.onchange=async()=>{permissionBox.disabled=true;send.disabled=true;try{await api('approval-whatsapp-permission',{job_id:job.id,phone:contact.phone,contact_binding:contact.contact_binding,allowed:permissionBox.checked});contact.allowed=permissionBox.checked;permissionStatus.textContent='WhatsApp preference saved.';}catch(e){permissionBox.checked=contact.allowed;permissionStatus.textContent=e.message;}finally{permissionBox.disabled=false;send.disabled=false;}};
-   let id=crypto.randomUUID(),sending=false;input.oninput=()=>{if(!sending)id=crypto.randomUUID();};
+   let id=crypto.randomUUID(),sending=false,mode='message',quoteAttempt=null;
+   function setMode(value){
+    if(sending||quoteAttempt)return;mode=value;const quote=mode==='quote';
+    messageMode.setAttribute('aria-pressed',String(!quote));quoteMode.setAttribute('aria-pressed',String(quote));
+    labelText.textContent=quote?'Work required':'Message';input.maxLength=quote?1200:3000;
+    input.placeholder=quote?'Describe what needs doing and why…':'Type your message to the customer…';
+    priceLabel.hidden=!quote;price.required=quote;price.disabled=!quote;attachments.hidden=quote;
+    send.textContent=quote?'Send quote & alerts':'Send message & alerts';note.replaceChildren();
+   }
+   setMode('message');
+   input.oninput=price.oninput=()=>{if(!sending&&!quoteAttempt)id=crypto.randomUUID();};
    form.onsubmit=async e=>{
     e.preventDefault();if(sending||permissionBox.disabled)return;
     if(photos?.busy()){note.textContent='Please finish the current photo or finding before sending.';return;}
-    const message=input.value.trim()||(photos?.hasDraft()?'Workshop photos added. You can view them on your vehicle progress page.':'');
-    if(!message){note.textContent='Type a message or add a photo.';input.focus();return;}
-    sending=true;send.disabled=true;permissionBox.disabled=true;input.readOnly=true;note.textContent='Saving your message and preparing customer alerts…';
+    const quote=mode==='quote';
+    const message=input.value.trim()||(!quote&&photos?.hasDraft()?'Workshop photos added. You can view them on your vehicle progress page.':'');
+    if(!message||message.length>(quote?1200:3000)){note.textContent=quote?'Describe the work in up to 1,200 characters.':'Type a message or add a photo (up to 3,000 characters).';input.focus();return;}
+    if(quote&&!/^\d{1,6}(?:\.\d{1,2})?$/.test(price.value.trim())){note.textContent='Enter the estimated price in pounds, including VAT.';price.focus();return;}
+    if(quote)quoteAttempt??={approval_id:id,message,estimate:price.value.trim()};
+    sending=true;send.disabled=true;permissionBox.disabled=true;input.readOnly=true;note.textContent=quote?'Saving your quote and preparing customer alerts…':'Saving your message and preparing customer alerts…';
     try{
+     messageMode.disabled=quoteMode.disabled=true;price.readOnly=true;
+     if(quote){
+      await api('approval-stage',{job_id:job.id,approval_id:quoteAttempt.approval_id,message:quoteAttempt.message,photo_ids:[]});
+      const result=await api('approval-request',{job_id:job.id,...quoteAttempt});
+      note.replaceChildren(node('p','Quote saved in the customer portal. Waiting for the customer’s decision.'));
+      const delivery=node('div');note.append(delivery);if(window.VectaFindings)window.VectaFindings.showResult(delivery,result);else showAlerts(delivery,result,job.id);
+      quoteAttempt=null;input.value='';price.value='';id=crypto.randomUUID();window.VectaFindings?.notify();await refresh();return;
+     }
      if(photos&&!await photos.upload())throw Error('Your message has not been sent. Check the photo notice and retry.');
      photos?.lock(true);send.disabled=true;permissionBox.disabled=true;
      const result=await api('portal-reply',{job_id:job.id,id,message});
      photos?.complete();input.value='';id=crypto.randomUUID();note.replaceChildren(node('p','Message saved in the customer portal.'));const delivery=node('div');showAlerts(delivery,result.alerts,job.id);note.append(delivery);await refresh();
     }catch(error){note.textContent=error.message;}
-    finally{sending=false;photos?.lock(false);send.disabled=false;permissionBox.disabled=false;input.readOnly=false;}
+    finally{sending=false;photos?.lock(false);send.disabled=false;permissionBox.disabled=false;input.readOnly=!!quoteAttempt;price.readOnly=!!quoteAttempt;messageMode.disabled=quoteMode.disabled=!!quoteAttempt;if(quoteAttempt)note.append(node('p','The quote is not confirmed. Press Send quote & alerts again to safely retry the same quote.'));}
    };
   }
   async function openMessage(item){

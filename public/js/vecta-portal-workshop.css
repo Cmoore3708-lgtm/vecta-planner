@@ -65,3 +65,12 @@
 .jobModalCard .jobTypesDisclosure>summary:focus-visible{outline:2px solid currentColor;outline-offset:2px}
 .jobModalCard .jobTypesDisclosure[open]>.templateBtns{margin-top:3px}
 @media(max-width:600px){.portalWorkshopEvent{padding:0}.portalWorkshopEvent>summary{padding:10px;gap:6px}.portalWorkshopEvent>summary time{font-size:10px}.portalWorkshopEventBody{padding:0 10px 10px}}
+
+/* Message/quote controls are scoped to the existing job conversation. */
+.portalComposeModes{display:flex;gap:8px;margin:4px 0 14px}
+.portalComposeModes button{flex:1;min-height:44px}
+.portalComposeModes button[aria-pressed="true"]{background:#234f3e;color:#fff;border-color:#234f3e}
+.portalWorkshopComposer [hidden]{display:none!important}
+.portalQuotePrice input{display:block;width:100%;box-sizing:border-box;font-size:18px;padding:12px;margin:7px 0 14px}
+.portalQuoteReply{border-top:1px solid currentColor;margin-top:12px;padding-top:10px}
+.portalWorkshopEventBody p{white-space:pre-wrap}

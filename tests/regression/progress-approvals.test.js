@@ -159,13 +159,13 @@ test('opening a tracker only displays the request; one explicit decision updates
    }
    return Response.json({registration:'ZX11TST',stage:'underway',title:'In workshop'});
  };
- vm.runInNewContext(readFileSync(new URL('js/vecta-progress.js',base),'utf8'),{document,window:{addEventListener(){}},location:{search:'',hash:'#approval.'+id+'.'+photo},URLSearchParams,fetch,Intl,Date,AbortSignal,setTimeout(){},clearTimeout(){}});
+ vm.runInNewContext(readFileSync(new URL('js/vecta-progress.js',base),'utf8'),{document,crypto,window:{addEventListener(){}},location:{search:'',hash:'#approval.'+id+'.'+photo},URLSearchParams,fetch,Intl,Date,AbortSignal,setTimeout(){},clearTimeout(){}});
  await new Promise(r=>setImmediate(r));
  assert.equal(decisions,0);assert.equal(document.getElementById('approvalButtons').hidden,false);
  assert.equal(document.getElementById('approvalMessage').querySelector('script'),null);assert.match(document.getElementById('approvalEstimate').textContent,/£85.00/);
  await document.getElementById('approveWork').onclick();
  assert.equal(decisions,1);assert.equal(document.getElementById('approvalButtons').hidden,true);
- assert.match(document.getElementById('approvalStatus').textContent,/You approved/);
+ assert.match(document.getElementById('approvalStatus').textContent,/You accepted/);
 });
 test('Main submits one private finding after both photos finish; a failed upload can be retried without contacting anyone',async()=>{
  const {document}=parseHTML('<html><body><main><section class="jobWorkSection"></section></main></body></html>');

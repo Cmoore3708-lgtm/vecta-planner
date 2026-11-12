@@ -11,7 +11,7 @@ function app(){
  const create=document.createElement.bind(document);
  document.createElement=tag=>{const el=create(tag);if(tag==='canvas'){el.getContext=()=>({drawImage(){},fillRect(){}});el.toDataURL=()=>'data:image/jpeg;base64,/9j/2Q==';}return el;};
  class Image{naturalWidth=300;naturalHeight=200;async decode(){}}
- const calls=[],photos=[],state={uploadFailure:0,replyFailure:false,holdReply:null};let next=0;
+ const calls=[],photos=[],state={uploadFailure:0,replyFailure:false,holdReply:null,quoteFailure:false};let next=0;
  const fetch=async(_url,{body})=>{
   const b=JSON.parse(body);calls.push(b);
   if(b.action==='portal-job')return Response.json({events:[],alerts:[]});
@@ -21,6 +21,8 @@ function app(){
    if(state.uploadFailure===calls.filter(c=>c.action==='photos-upload').length)return Response.json({error:'Photo upload interrupted'},{status:503});
    photos.push({id:b.photo_id,caption:b.caption,private_finding:false});return Response.json({ok:true});
   }
+  if(b.action==='approval-stage')return Response.json({approval_id:b.approval_id,stage:'draft'});
+  if(b.action==='approval-request')return state.quoteFailure?Response.json({error:'Quote send unconfirmed'},{status:503}):Response.json({channels:{email:'test',whatsapp:'test'}});
   if(b.action==='portal-reply'){
    if(state.holdReply)await state.holdReply;
    return state.replyFailure?Response.json({error:'Message not confirmed; retry'},{status:503}):Response.json({ok:true,alerts:{channels:{email:'test',whatsapp:'test'}}});
@@ -88,4 +90,23 @@ test('removing a prepared photo cancels its upload and a failed photo cannot be 
  const field=h.form.querySelector('[data-photo-choose-input]');field.files=[{size:100,type:'text/plain',name:'wrong.txt'}];await field.onchange();
  h.input.value='Photo attached';await h.send();assert.equal(h.calls.filter(c=>c.action==='portal-reply').length,0);assert.match(h.form.textContent,/Choose an image/);
  const discard=[...h.form.querySelectorAll('button')].find(b=>b.textContent==='Discard failed photo');assert.equal(discard.hidden,false);discard.click();await h.send();assert.equal(h.calls.filter(c=>c.action==='portal-reply').length,1);
+});
+
+
+test('quote mode requires description and price, sends one quote, and retains ordinary message photo drafts',async()=>{
+ const h=app();await tick();await h.add();
+ const quote=[...h.form.querySelectorAll('button')].find(b=>b.textContent==='Send quote');quote.click();
+ await h.send();assert.equal(h.calls.filter(c=>c.action==='approval-stage').length,0);
+ h.input.value='Replace front brake pads';await h.send();assert.equal(h.calls.filter(c=>c.action==='approval-stage').length,0);
+ const price=h.form.querySelector('.portalQuotePrice input');price.value='120.50';await h.send();
+ assert.deepEqual(h.calls.filter(c=>['approval-stage','approval-request'].includes(c.action)).map(c=>c.action),['approval-stage','approval-request']);
+ assert.equal(h.calls.find(c=>c.action==='approval-request').estimate,'120.50');assert.equal(h.calls.find(c=>c.action==='approval-request').message,'Replace front brake pads');
+ assert.equal(h.calls.filter(c=>['portal-reply','photos-upload'].includes(c.action)).length,0);
+ assert.ok(h.form.querySelector('.workshopPhotoDraft'));assert.match(h.form.textContent,/Waiting for the customer/);
+});
+test('uncertain quote retries retain ID, description and amount and block switching mode',async()=>{
+ const h=app();await tick();[...h.form.querySelectorAll('button')].find(b=>b.textContent==='Send quote').click();
+ h.input.value='Replace pads';h.form.querySelector('.portalQuotePrice input').value='120';h.state.quoteFailure=true;
+ await h.send();assert.equal(h.input.readOnly,true);assert.match(h.form.textContent,/not confirmed/);
+ h.state.quoteFailure=false;await h.send();const requests=h.calls.filter(c=>c.action==='approval-request');assert.equal(requests.length,2);assert.equal(requests[0].approval_id,requests[1].approval_id);assert.equal(requests[0].estimate,requests[1].estimate);
 });
