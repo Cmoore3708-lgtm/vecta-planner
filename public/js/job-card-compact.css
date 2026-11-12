@@ -734,3 +734,17 @@
  #jobModal .jobCardSimplified:not(.mechanicJobCard) .jobCardSupportColumn{align-self:stretch!important}
  #jobModal .jobCardSimplified:not(.mechanicJobCard) .jobCardSupportColumn>.jobCommercialStart{margin-top:auto!important}
 }
+
+/* Keep the matched vehicle immediately below the plate and vehicle name. */
+@media screen{
+ #jobModal .jobCardHeaderHeading>.haynesJobTools{grid-column:1/-1;grid-row:2;min-width:0;width:100%;box-sizing:border-box;padding:2px 0!important}
+ #jobModal .jobCardHeaderHeading>.haynesJobTools [role=status]{margin-top:2px;font-size:11px!important;line-height:1.35;overflow-wrap:anywhere}
+ #jobModal .jobCardHeaderHeading>.haynesJobTools [role=status]:empty{display:none}
+ #jobModal .jobCardHeaderHeading>.haynesJobTools .haynesJobVehicle{min-width:0;gap:4px;margin-top:3px;flex-wrap:wrap}
+ #jobModal .jobCardHeaderHeading>.haynesJobTools .haynesJobVehicle>div{flex:1 1 160px;min-width:0;line-height:1.3;overflow-wrap:anywhere}
+ #jobModal .jobCardHeaderHeading>.haynesJobTools .haynesJobVehicle img{display:none}
+ #jobModal .jobCardHeaderHeading>.haynesJobTools button,#jobModal .jobCardHeaderHeading>.haynesJobTools a{padding:3px 6px!important;font-size:11px!important}
+}
+@media screen and (max-width:700px){
+ #jobModal .jobCardHeaderHeading>.haynesJobTools{grid-row:3}
+}

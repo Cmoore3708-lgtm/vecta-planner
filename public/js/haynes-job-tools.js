@@ -592,6 +592,9 @@ root.initHaynesJobTools=function(modal,{automatic=false,recoverImage=true}={}){
   if(!actions){actions=document.createElement('div');actions.className='jobModalHeadActions';}
   button.classList.add('jobHeaderHaynesLookup');
   const lookupRow=document.createElement('div');lookupRow.className='jobHeaderHaynesRow';lookupRow.appendChild(button);heading.appendChild(lookupRow);
+  // The matched vehicle belongs directly beneath the plate/model, independent
+  // of the artwork height in the neighbouring grid column.
+  heading.appendChild(panel);
   actions.querySelector('[data-close-modal]')?.remove();
   const print=actions.querySelector('#printJobCard'),foot=modal.querySelector('.modalFoot'),remove=foot?.querySelector('#deleteJob');
   if(print&&foot){print.classList.remove('jobPrintSmall');if(remove)remove.after(print);else foot.prepend(print);}

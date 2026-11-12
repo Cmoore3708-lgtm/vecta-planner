@@ -330,7 +330,7 @@ test('mechanics place editable contacts left of the dedicated large artwork and 
  assert.ok(document.querySelector('.jobModalCard').classList.contains('mechanicJobCard'));
  assert.equal(document.querySelector('.jobContactSection').parentElement,document.querySelector('.jobCardHeaderDetails'));
  assert.equal(document.querySelector('.jobCardHeaderVehicle').parentElement,document.querySelector('.jobModalHead'));
- assert.ok(document.querySelector('.jobCardHeaderDetails .jobVehicleSection>.haynesJobTools'));
+ assert.ok(document.querySelector('.jobCardHeaderHeading>.haynesJobTools'));
  assert.ok(document.querySelector('.privatePricingSection'),'retained for the existing gather/save pipeline');
  assert.ok(document.querySelector('.jobWorkSection'));
 });
