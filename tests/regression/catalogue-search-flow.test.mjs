@@ -34,12 +34,15 @@ test('empty GSF product search offers actual related categories under Did you me
  assert.equal(result.selectionKind,'wording');assert.ok(result.options.some(o=>o.label==='ABS / Traction Control Sensor'));assert.equal(f.clicks.length,0);
 });
 
-test('early related controls cannot win the race against delayed product prices',async()=>{
- const f=browser({delay:8});let choices;
- await assert.rejects(discoverRepairCategory(f.page,'abs sensor',f.options),e=>{choices=cleanRepairChoices(e.result,request);return e.code==='CHOICE_REQUIRED'&&choices.selectionKind==='product';});
- assert.equal(choices.options.length,2);assert.equal(f.clicks.length,0);assert.ok(f.reads()>=10);
- assert.match(choices.options[0].detail,/Displayed £20.00/);assert.match(choices.options[1].detail,/Displayed £30.00/);
- assert.ok(f.progress.some(e=>e.stage==='GSF_SEARCH_RESULTS'));
+test('global product prices never become choices, whether loaded or still pending',async()=>{
+ for(const options of [{delay:0},{delay:8},{neverReady:true}]){
+  const f=browser(options);let choices;
+  await assert.rejects(discoverRepairCategory(f.page,'abs sensor',f.options),e=>{choices=cleanRepairChoices(e.result,request);return e.code==='CHOICE_REQUIRED';});
+  assert.equal(choices.selectionKind,'wording');
+  assert.deepEqual(choices.options.map(o=>o.label),['ABS / Traction Control Sensor']);
+  assert.equal(f.reads(),0);assert.equal(f.clicks.length,0);
+  assert.ok(choices.options.every(o=>!o.costPence&&!o.detail.includes('Displayed')));
+ }
 });
 
 test('an explicit related-category choice opens that category instead of offering broad products again',async()=>{
@@ -47,12 +50,6 @@ test('an explicit related-category choice opens that category instead of offerin
  const chosen=repairRequest({...request,work:'Supply and fit ABS / Traction Control Sensor',choices:{gsfCategory:categoryChoiceId(control)}});
  assert.equal(await discoverRepairCategory(f.page,'abs / traction control sensor',{...f.options,request:chosen}),'123');
  assert.equal(f.clicks.length,1);assert.equal(f.reads(),0);assert.equal(f.progress.at(-1).stage,'GSF_SELECTED_CATEGORY');
-});
-
-test('visible unfinished product cards produce a specific review result, never unrelated category choices',async()=>{
- const f=browser({neverReady:true});
- await assert.rejects(discoverRepairCategory(f.page,'abs sensor',f.options),e=>e.detail==='SEARCH_PRODUCTS_NOT_READY'&&e.observed.productTitleCount>0&&e.observed.stage==='GSF_SEARCH_PRODUCTS');
- assert.equal(f.clicks.length,0);assert.equal(f.reads(),75);
 });
 
 test('identically named cards show their own displayed prices without asserting VAT or confirmed cost',()=>{

@@ -6,8 +6,8 @@ import {readCatalogueResults} from '../../workers/repair-quotes/catalogue-result
 import {readCatalogueSearchState} from '../../workers/repair-quotes/catalogue-search.mjs';
 import {readServiceCategory} from '../../workers/gsf/service-capture.mjs';
 import {readProductDialog} from '../../workers/gsf/product-dialog.mjs';
-import {discoverRepairCategory,lookupGeneralGSF} from '../../workers/repair-quotes/general-gsf.mjs';
-import {repairRequest,cleanRepairChoices} from '../../lib/repair-quote.js';
+import {discoverRepairCategory,lookupSearchProduct} from '../../workers/repair-quotes/general-gsf.mjs';
+import {repairRequest,repairScope,cleanRepairChoices} from '../../lib/repair-quote.js';
 import {promptRepairChoice} from '../../workers/repair-quotes/checker-input.mjs';
 const request=repairRequest({registration:'AB12CDE',work:'Fit front ABS sensor',flow:'guided-v1'});
 const doc=body=>parseHTML('<html><body><input type="search" placeholder="Search parts">'+body+'</body></html>').document;
@@ -72,7 +72,7 @@ test('contradictory labelled and unprefixed identifiers remain unresolved rather
 });
 
 function browser({fitment=true,vehicle=true,price=2000,description='Wheel Speed / ABS Sensor - Front LH'}={}){
- let url='',opened=false,presses=0,clicks=[];
+ let url='https://trade.gsfcarparts.com/partdetails/SENSOR1',opened=false,presses=0,clicks=[];
  const productsDoc=()=>description==='ABS Sensor'?doc('<main>'+suggestions+card(description)+'</main>'):searchDoc();
  const page={keyboard:{press:async()=>{}},url:()=>url,goto:async v=>{url=v;opened=false;},waitForTimeout:async()=>{},evaluate:async(fn,input)=>{
   if(fn===readCatalogueSearchState)return readCatalogueSearchState(doc(suggestions));
@@ -85,36 +85,27 @@ function browser({fitment=true,vehicle=true,price=2000,description='Wheel Speed 
  },locator:selector=>({fill:async()=>{},press:async()=>{presses++;url='https://trade.gsfcarparts.com/enhancedSearch/abs%20sensor';},count:async()=>1,isVisible:async()=>true,evaluateAll:async()=>[{href:'https://trade.gsfcarparts.com/parts/123',text:'ABS sensor'}],click:async()=>{clicks.push(selector);opened=true;url='https://trade.gsfcarparts.com/partdetails/SENSOR1';}})};
  return {page,counts:()=>({presses,clicks})};
 }
-const selectVehicle=async()=>({selectedRegistration:true,registration:request.registration});
-async function navigationChoice(f,r=request){let result;await assert.rejects(discoverRepairCategory(f.page,'abs sensor',{request:r,selectVehicle}),e=>{result=e.result;return e.code==='CHOICE_REQUIRED'&&result.selectionKind==='product';});return cleanRepairChoices(result,r);}
-
-test('guided search submits first and prioritises product cards over even an exact related category',async()=>{
- const f=browser(),result=await navigationChoice(f);assert.equal(result.options.length,3);assert.equal(f.counts().presses,1);assert.deepEqual(f.counts().clicks,[]);
- const next=await promptRepairChoice({question:async()=>'1'},request,result,{log:()=>{}});
- assert.equal(next.choices.gsfCategory,result.options[0].id);assert.match(next.work,/front left abs sensor/i);
- const selected=await discoverRepairCategory(f.page,'abs sensor',{request:next,selectVehicle});
- assert.equal(selected.kind,'search-product');assert.equal(selected.productDetails.sku,'SENSOR1');assert.match(f.counts().clicks[0],/span/);
+// Compatibility reader tests are kept independent of discovery: the guided
+// workflow no longer asks users to select any global search product.
+const selectedProduct=(description='Wheel Speed / ABS Sensor - Front LH')=>({
+ product:{label:description,sku:'SENSOR1',displayPricePence:2000},
+ productDetails:{description,sku:'SENSOR1',brand:'Fixture',unitNetPence:2000,costIncVatPence:2400,vatBasis:'EX_VAT',inStock:false,stock:[]},
+ scope:repairScope.resolve(request.work),choice:{id:'a'.repeat(32)}
 });
-
-test('selected product details supply the verified price, include out-of-stock choices and re-read on final selection',async()=>{
- const f=browser(),result=await navigationChoice(f),r=await promptRepairChoice({question:async()=>'1'},request,result,{log:()=>{}});let choice;
- await assert.rejects(lookupGeneralGSF(f.page,r,{selectVehicle}),e=>{choice=cleanRepairChoices(e.result,r);return e.code==='CHOICE_REQUIRED'&&choice.stage==='GSF_PART';});
- assert.equal(choice.options[0].costPence,2000);assert.equal(choice.options[0].inStock,false);
- const final=await promptRepairChoice({question:async()=>'1'},r,choice,{log:()=>{}}),evidence=await lookupGeneralGSF(f.page,final,{selectVehicle});
- assert.equal(evidence.part.sku,'SENSOR1');assert.equal(evidence.part.costPence,2000);assert.equal(evidence.part.inStock,false);
- assert.equal(f.counts().clicks.length,2);
- for(const options of [{fitment:false},{vehicle:false},{price:2100}]){
-  await assert.rejects(lookupGeneralGSF(browser(options).page,final,{selectVehicle}),e=>e.code==='REVIEW_REQUIRED');
- }
+test('explicit product compatibility still requires current registration, price and fitting-position evidence',async()=>{
+ const f=browser(),selected=selectedProduct();let result;
+ await assert.rejects(lookupSearchProduct(f.page,request,selected),e=>{result=e.result;return e.code==='CHOICE_REQUIRED'&&result.stage==='GSF_PART';});
+ const choices=cleanRepairChoices(result,request);assert.equal(choices.options[0].costPence,2000);assert.equal(choices.options[0].inStock,false);
+ const final=await promptRepairChoice({question:async()=>'1'},request,choices,{log:()=>{}});
+ const evidence=await lookupSearchProduct(f.page,final,{...selected,scope:repairScope.resolve(final.work)});
+ assert.equal(evidence.part.sku,'SENSOR1');assert.equal(evidence.part.inStock,false);
+ for(const options of [{fitment:false},{vehicle:false}])await assert.rejects(lookupSearchProduct(browser(options).page,final,selected),e=>e.code==='REVIEW_REQUIRED');
+ await assert.rejects(lookupSearchProduct(f.page,final,{...selected,productDetails:{...selected.productDetails,unitNetPence:2100,costIncVatPence:2520}}),e=>e.detail==='SEARCH_PRODUCT_PRICE_CHANGED');
 });
-
-test('a position discovered in product attributes is offered without losing the selected search product',async()=>{
- const f=browser({description:'ABS Sensor'}),result=await navigationChoice(f),r=await promptRepairChoice({question:async()=>'1'},request,result,{log:()=>{}});let choice;
- await assert.rejects(lookupGeneralGSF(f.page,r,{selectVehicle}),e=>{choice=cleanRepairChoices(e.result,r);return e.code==='CHOICE_REQUIRED';});
- assert.equal(choice.options[0].work,'Supply and fit front left abs sensor');
- const final=await promptRepairChoice({question:async()=>'1'},r,choice,{log:()=>{}});
- assert.equal(final.choices.gsfCategory,r.choices.gsfCategory);
- assert.equal((await lookupGeneralGSF(f.page,final,{selectVehicle})).part.costPence,2000);
+test('product attribute positions remain distinct even when the title has no position',async()=>{
+ const f=browser({description:'ABS Sensor'});let result;
+ await assert.rejects(lookupSearchProduct(f.page,request,selectedProduct('ABS Sensor')),e=>{result=e.result;return e.code==='CHOICE_REQUIRED';});
+ assert.equal(result.options[0].work,'Supply and fit front left abs sensor');
 });
 
 test('search-page product selection does not assert vehicle fitment from the original registration alone',()=>{

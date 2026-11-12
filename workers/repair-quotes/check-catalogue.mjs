@@ -12,7 +12,7 @@ import {repairBrowserReason} from './browser-errors.mjs';
 import {captureHaynesDiagnostics} from './haynes-page.mjs';
 import {promptInitialRepairRequest,promptRepairChoice} from './checker-input.mjs';
 const here=path.dirname(fileURLToPath(import.meta.url)),terminal=createInterface({input:process.stdin,output:process.stdout});
-const checkerVersion='2026-11-12-supplier-wording-v20';
+const checkerVersion='2026-11-12-vehicle-catalogue-v21';
 let gsf,haynes,gsfPage,haynesPage;
 try{
  console.log('VECTA parts and fitting check — '+checkerVersion+'. For fit, supply and fit, or supply checks, stop GSF safely in Workshop Connections first.');
@@ -26,7 +26,7 @@ try{
   // Keep the last completed transition even if a browser call hangs and its
   // page must be closed. Do not capture page HTML or account/input values.
   writeFileSync(output,JSON.stringify({...report,status:'RUNNING',lastRequest:request},null,2)+'\n',{mode:0o600});
-  const messages={GSF_OPEN:'Opening GSF',GSF_VEHICLE:'Selecting the vehicle',GSF_SEARCH:'Entering the part search',GSF_SEARCH_RESULTS:'Waiting for product results',GSF_SELECTED_CATEGORY:'Opening your chosen category',GSF_PRODUCT_OPEN:'Opening your chosen product',GSF_PRODUCT_DETAILS:'Reading the product details',GSF_PRODUCT_FITMENT:'Checking product fitment',GSF_VEHICLE_CATEGORY:'Checking the product in the vehicle catalogue',GSF_CATALOGUE:'Reading vehicle-specific parts',GSF_ATTRIBUTES:'Checking fitting positions',GSF_PART_CHOICES:'Preparing priced part choices',GSF_FINAL_PRODUCT:'Confirming the selected part and price',HAYNES_LOOKUP:'Searching Haynes for fitting time'};
+  const messages={GSF_OPEN:'Opening GSF',GSF_VEHICLE:'Selecting the vehicle',GSF_VEHICLE_READY:'Vehicle details confirmed',GSF_CATEGORY_VEHICLE_CONFIRMED:'Vehicle confirmed in the parts catalogue',GSF_SEARCH:'Entering the part search',GSF_SEARCH_RESULTS:'Waiting for product results',GSF_SELECTED_CATEGORY:'Opening your chosen category',GSF_PRODUCT_OPEN:'Opening your chosen product',GSF_PRODUCT_DETAILS:'Reading the product details',GSF_PRODUCT_FITMENT:'Checking product fitment',GSF_VEHICLE_CATEGORY:'Checking the product in the vehicle catalogue',GSF_CATALOGUE:'Reading vehicle-specific parts',GSF_ATTRIBUTES:'Checking fitting positions',GSF_PART_CHOICES:'Preparing priced part choices',GSF_FINAL_PRODUCT:'Confirming the selected part and price',HAYNES_LOOKUP:'Searching Haynes for fitting time'};
   console.log((messages[stage]||stage)+(counts.group?' ('+counts.group+' of '+counts.total+')':'')+'...');
  };
  try{

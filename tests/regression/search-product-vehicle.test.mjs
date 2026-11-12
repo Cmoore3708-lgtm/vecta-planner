@@ -36,65 +36,64 @@ test('vehicle catalogue navigation uses one observed category matching all terms
  assert.equal(productVerificationCategory({controls:[{label:'ABS Ring',path:''},{label:'Camshaft Sensor',path:''}]},'abs sensor'),null);
 });
 
-// Synthetic supplier data; the uploaded report did not retain a SKU or price.
-function browser({wrongVehicle=false,missingProduct=false,crossedPositions=false,otherSku=false,fullPage=false,restoreVehicle=false,extraGroups=0,productLabel=label}={}){
- let url='',state='home',hasVehicle=!restoreVehicle,selected=false;const events=[];
- const catalogueSku=otherSku?'SENSOR2':'SENSOR1';
- const part=sku=>({sku,brand:'Fixture',description:productLabel,unitNetPence:2000,costIncVatPence:2400,vatBasis:'EX_VAT',inStock:false,stock:[]});
- const page={url:()=>url,goto:async v=>{url=v;selected=false;state=v.includes('/partdetails/')?'final-product':v.includes('/enhancedSearch/')?'search':'home';events.push('goto:'+state);},waitForTimeout:async()=>{},keyboard:{press:async()=>{events.push('escape:'+state);if(state==='product')state='search';if(state==='attributes')state='category';}},
-  locator:selector=>({count:async()=>1,isVisible:async()=>true,fill:async()=>{},press:async()=>{state='search';url='https://trade.gsfcarparts.com/enhancedSearch/abs%20sensor';},evaluateAll:async()=>[],click:async()=>{
-   if(selector==='#product'){state='product';if(fullPage)url='https://trade.gsfcarparts.com/partdetails/SENSOR1';}
-   else if(selector==='#attributes'){state='attributes';events.push('attributes');}
-   else if(selector==='#option')selected=true;
-   else {state='category';url='https://trade.gsfcarparts.com/parts/123';events.push('vehicle-category');}
+// Replays the failure boundary: 50 broad search products, but just two
+// vehicle-catalogue groups. Global products must never reach the choice list.
+function browser({wrongVehicle=false,missingProduct=false,crossedPositions=false,changedSku=false}={}){
+ let url='',state='home',active=0,selected=-1;const events=[];
+ const groups=['left','right'].map((side,i)=>({selector:'#group'+i,sku:'FIXSENSOR'+i,description:'ABS Sensor',attributesSelector:'#attributes'+i,links:[],options:[{selector:'#option'+i,description:'ABS Sensor',brand:'Fixture',grade:'Gold',pricePence:2000+i*500,inStock:false,selectionControlPresent:true}]}));
+ const page={url:()=>url,goto:async value=>{url=value;selected=-1;state=value.includes('/partdetails/')?'product':'home';if(state==='product')active=value.endsWith('FIXSENSOR1')?1:0;},waitForTimeout:async()=>{},keyboard:{press:async()=>{state='category';}},
+  locator:selector=>({count:async()=>1,isVisible:async()=>true,fill:async()=>{},press:async()=>{events.push('search');state='search';url='https://trade.gsfcarparts.com/enhancedSearch/abs%20sensor';},evaluateAll:async()=>[],click:async()=>{
+   if(selector.startsWith('#attributes')){active=Number(selector.slice(-1));events.push('attributes:'+active);}
+   else if(selector.startsWith('#option')){selected=Number(selector.slice(-1));events.push('select:'+selected);}
+   else{state='category';url='https://trade.gsfcarparts.com/parts/123';events.push('vehicle-category');}
   }}),evaluate:async(fn,input)=>{
    if(fn.name==='readCatalogueSearchState')return {fields:[{catalogue:true,selector:'#search'}]};
-   if(fn.name==='readSearchProducts')return {busy:false,products:[{label:productLabel,sku:'',path:'',displayPricePence:2000,selector:'#product',cardSelector:'#card'}]};
+   if(fn.name==='readSearchProducts'){events.push('global-products');return {products:Array.from({length:50},(_,i)=>({sku:'GLOBAL'+i,label:'ABS Sensor',displayPricePence:1000+i}))};}
    if(fn.name==='readCatalogueResults')return related();
-   if(fn.name==='readProductDialog'){if(state==='product')return part('SENSOR1');if(state==='final-product')return part(catalogueSku);throw Error('PRODUCT_DETAILS_NOT_OPEN');}
-   if(fn.name==='readSearchProductFitment')return {fitsSelectedVehicle:false,rows};
-   if(fn.name==='readServiceCategory')return {status:'CAPTURED_FOR_REVIEW',selectedRegistration:state==='category'&&hasVehicle&&!wrongVehicle,registration:wrongVehicle?'WRONG':r.registration,visibleText:'Fixture vehicle'};
-   if(fn.name==='readServiceAttributes')return {status:'ATTRIBUTES_CAPTURED',rows:crossedPositions?[{attribute:'Fitting Position',value:'Front Axle RH'},{attribute:'Fitting Position',value:'Rear Axle LH'}]:rows};
-   if(fn.name==='readRepairGroups'){
-    const group={selector:'#group',sku:'FIX'+catalogueSku,description:productLabel,attributesSelector:'#attributes',links:[],options:[{selector:'#option',description:missingProduct?'Different sensor':productLabel,brand:'Fixture',grade:'Gold',pricePence:2000,inStock:false,selected,selectionControlPresent:true}]};
-    return {complete:true,groups:[group,...Array.from({length:extraGroups},(_,i)=>({...group,sku:'OTHER'+i}))]};
+   if(fn.name==='readServiceCategory')return {status:'CAPTURED_FOR_REVIEW',selectedRegistration:state==='category'&&!wrongVehicle,registration:wrongVehicle?'WRONG':r.registration,visibleText:'Fixture vehicle'};
+   if(fn.name==='readRepairGroups')return {complete:!missingProduct,groups:missingProduct?[]:groups.map((g,i)=>({...g,options:g.options.map(o=>({...o,selected:i===selected}))}))};
+   if(fn.name==='readServiceAttributes')return {status:'ATTRIBUTES_CAPTURED',rows:crossedPositions?[{attribute:'Fitting Position',value:'Rear Axle Right'}]:[{attribute:'Fitting Position',value:'Front Axle '+(active===0?'Left':'Right')}]};
+   if(fn.name==='readProductDialog'){
+    assert.equal(state,'product');const o=groups[active].options[0];
+    return {sku:changedSku?'OTHER':'SENSOR'+active,brand:o.brand,description:o.description,unitNetPence:o.pricePence,costIncVatPence:Math.round(o.pricePence*1.2),vatBasis:'EX_VAT',inStock:false,stock:[]};
    }
    throw Error('Unexpected reader '+fn.name);
   }};
- return {page,events,deps:{selectVehicle:async()=>{events.push('select-vehicle:'+state);if(state==='category')hasVehicle=true;return {selectedRegistration:!wrongVehicle,registration:r.registration};}}};
+ return {page,events,deps:{selectVehicle:async()=>{events.push('vehicle-ready');return {selectedRegistration:true,registration:r.registration};}}};
 }
 async function choice(f,request){let result;await assert.rejects(lookupGeneralGSF(f.page,request,f.deps),e=>{result=e.result;return e.code==='CHOICE_REQUIRED';});return cleanRepairChoices(result,request);}
 const first=async(request,result)=>promptRepairChoice({question:async()=>'1'},request,result,{log:()=>{}});
 
-test('a product modal without a visible vehicle is verified against its vehicle catalogue before pricing and Haynes',async()=>{
- for(const fullPage of [false,true]){
-  const f=browser({fullPage,restoreVehicle:true}),navigation=await choice(f,r),selected=await first(r,navigation);
-  assert.equal(navigation.selectionKind,'product');assert.equal(selected.work,'Supply and fit front left abs sensor');
-  const prices=await choice(f,selected);assert.equal(prices.stage,'GSF_PART');assert.equal(prices.options[0].costPence,2000);assert.equal(prices.options[0].inStock,false);
-  assert.ok(f.events.includes('escape:product'));assert.ok(f.events.includes('vehicle-category'));assert.ok(f.events.includes('select-vehicle:category'));
-  const final=await first(selected,prices);let haynesCalls=0;
-  await assert.rejects(lookupGeneralRepair({gsfPage:f.page},final,{gsf:(p,req)=>lookupGeneralGSF(p,req,f.deps),haynes:async(_p,req,{selectedPart})=>{haynesCalls++;assert.equal(selectedPart.sku,'SENSOR1');assert.equal(selectedPart.fitmentConfirmed,true);throw Object.assign(Error('CHOICE_REQUIRED'),{code:'CHOICE_REQUIRED',result:{request:req,stage:'HAYNES_LABOUR',options:[]}});}}),e=>e.code==='CHOICE_REQUIRED'&&e.result.stage==='HAYNES_LABOUR');
-  assert.equal(haynesCalls,1);
- }
+test('50 global sensors produce no product choices; only the two vehicle groups are offered before Haynes',async()=>{
+ const f=browser(),navigation=await choice(f,r);
+ assert.equal(navigation.selectionKind,'wording');assert.deepEqual(navigation.options.map(o=>o.label),['ABS / Traction Control Sensor']);
+ const request=await first(r,navigation),parts=await choice(f,request);
+ assert.equal(parts.stage,'GSF_PART');assert.equal(parts.options.length,2);
+ assert.deepEqual(parts.options.map(o=>o.costPence),[2000,2500]);
+ assert.deepEqual(parts.options.map(o=>repairScope.resolve(o.work).side),['left','right']);
+ assert.ok(parts.options.every(o=>o.inStock===false));assert.ok(!JSON.stringify(parts).includes('GLOBAL'));
+ assert.ok(!f.events.includes('global-products'));assert.ok(f.events.indexOf('vehicle-ready')<f.events.indexOf('search'));
+ assert.ok(f.events.indexOf('vehicle-category')<f.events.indexOf('attributes:0'));
+ const final=await first(request,parts);let haynesCalls=0;
+ await assert.rejects(lookupGeneralRepair({gsfPage:f.page},final,{gsf:(p,req)=>lookupGeneralGSF(p,req,f.deps),haynes:async(_p,req,{selectedPart})=>{
+  haynesCalls++;assert.equal(selectedPart.sku,'SENSOR0');assert.equal(selectedPart.fitmentConfirmed,true);
+  throw Object.assign(Error('CHOICE_REQUIRED'),{code:'CHOICE_REQUIRED',result:{request:req,stage:'HAYNES_LABOUR',options:[]}});
+ }}),e=>e.code==='CHOICE_REQUIRED'&&e.result.stage==='HAYNES_LABOUR');
+ assert.equal(haynesCalls,1);
 });
 
-test('wrong vehicle, conflicting positions and a missing product never bypass catalogue verification',async()=>{
- const valid=browser(),navigation=await choice(valid,r),selected=await first(r,navigation);
+test('wrong vehicle, missing catalogue and conflicting positions never reach Haynes or fall back to global products',async()=>{
+ const valid=browser(),navigation=await choice(valid,r),request=await first(r,navigation);
  for(const options of [{wrongVehicle:true},{missingProduct:true},{crossedPositions:true}]){
   const f=browser(options);let haynesCalls=0;
-  await assert.rejects(lookupGeneralRepair({gsfPage:f.page},selected,{gsf:(p,req)=>lookupGeneralGSF(p,req,f.deps),haynes:async()=>{haynesCalls++;}}),e=>e.code==='REVIEW_REQUIRED');
-  assert.equal(haynesCalls,0);
+  await assert.rejects(lookupGeneralRepair({gsfPage:f.page},request,{gsf:(p,req)=>lookupGeneralGSF(p,req,f.deps),haynes:async()=>{haynesCalls++;}}),e=>e.code==='REVIEW_REQUIRED'||e.code==='CHOICE_REQUIRED'&&e.result.stage==='GSF_PART'&&e.result.options.length===0);
+  assert.equal(haynesCalls,0);assert.ok(!f.events.includes('global-products'));
  }
- const other=browser({otherSku:true}),prices=await choice(other,selected),final=await first(selected,prices);
- await assert.rejects(lookupGeneralGSF(other.page,final,other.deps),e=>e.detail==='SEARCH_PRODUCT_NOT_LISTED_FOR_VEHICLE');
 });
 
-test('selected SKU verification skips unrelated attribute dialogs and offers missing positions before Haynes',async()=>{
- const request=repairRequest({...r,work:'Fit abs sensor'}),f=browser({extraGroups:45,productLabel:'ABS Sensor'});
- const navigation=await choice(f,request),selected=await first(request,navigation);
- const prices=await choice(f,selected);
- assert.equal(f.events.filter(e=>e==='attributes').length,1);
- assert.deepEqual(prices.options.map(o=>o.work),['Supply and fit front left abs sensor','Supply and fit rear left abs sensor']);
- const final=await first(selected,prices),evidence=await lookupGeneralGSF(f.page,final,f.deps);
- assert.equal(evidence.part.sku,'SENSOR1');assert.equal(evidence.part.choiceId,prices.options[0].id);
+test('the chosen vehicle-catalogue part is re-read and a different manufacturer SKU is rejected',async()=>{
+ const f=browser(),navigation=await choice(f,r),request=await first(r,navigation),parts=await choice(f,request),final=await first(request,parts);
+ assert.equal((await lookupGeneralGSF(f.page,final,f.deps)).part.sku,'SENSOR0');
+ const changed=browser({changedSku:true});
+ await assert.rejects(lookupGeneralGSF(changed.page,final,changed.deps),e=>e.detail==='SELECTED_PRODUCT_CHANGED');
 });

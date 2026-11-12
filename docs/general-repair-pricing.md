@@ -563,3 +563,34 @@ The checked source launches Microsoft Edge on the workshop Windows PC with its p
 A further live product-page inspection identified a reader defect independent of vehicle lookup. The rendered `Parts - 49 products found` label comprises five adjacent text nodes: `Parts - `, `49`, ` product`, `s`, ` found`. Serialised HTML hides those boundaries, whereas the reader's visible-text joining adds a space before the plural suffix. The section matcher now accepts that exact fragmented singular/plural form, retaining the current-query and bounded-section checks. A regression recreating the live text nodes failed before the correction (zero of two synonym products captured) and passes afterwards for both singular and plural results. All 50 focused catalogue/product/search/vehicle tests passed. No vehicle-selection behaviour or browser identity was altered.
 
 The full local release gate passed with 2,010 regression passes, four skips and no failures, plus phone/cloud sync, finance integrity, production build and source/built dashboard-layout and pricing-dependency checks. This correction remains in the draft; no new checker package, installation, migration or production activation was issued.
+
+
+### Vehicle catalogue before product choices — 12 November (v21)
+
+Chris's CM14KEL v20 report (15:23–15:25) found 50 global search products and
+presented 37 front-compatible descriptions before any vehicle compatibility
+was established. The first selected SKU was then taken to category 868, where
+the reader captured no groups or prices and stopped before Haynes. The report
+does not establish whether that page was truly empty or unreadable.
+
+Chris confirmed the choices were excessive and suspected the part search began
+before GSF completed selecting the vehicle. The code did wait for a Clear/plate
+panel, but that was only a first-render signal; the stronger proven defect was
+presenting the global enhanced-search products before checking fitment.
+
+The guided flow now waits for the exact selected registration, the observed
+More Details control in the same panel, no loading indicator, and four stable
+reads. It uses enhanced search only to discover the supplier category. An exact
+category opens automatically; differing wording is offered for confirmation.
+Product and position choices are generated exclusively from the selected
+vehicle catalogue, whose registration is checked again before and throughout
+reading products. Missing catalogue evidence cannot fall back to global SKUs.
+The selected part is still re-read before Haynes, and priced out-of-stock parts
+remain selectable. This applies to all part descriptions, without a part list.
+
+Regression coverage replays 50 global sensor hits alongside two compatible
+vehicle catalogue groups, checks that only the latter are offered, and checks
+slow vehicle details, loading states, incorrect registrations, missing groups,
+position conflicts and changed manufacturer SKUs. V21 records the explicit
+vehicle-ready and category-vehicle-confirmed transitions. Live Windows
+acceptance remains outstanding; no Main release or worker installation.

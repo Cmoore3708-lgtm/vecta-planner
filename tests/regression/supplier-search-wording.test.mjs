@@ -71,7 +71,7 @@ test('synonym products cannot come from stale headings, other sections, hidden c
  assert.deepEqual(readSearchProducts({query:'drop link'},unsafe).products,[]);
 });
 
-test('unpriced or zero-priced synonym cards cannot divert the lookup to a related category',()=>{
+test('unpriced or zero-priced synonym cards are never treated as usable prices',()=>{
  for(const price of ['', '0.00']){
   const snapshot=readSearchProducts({query:'drop link'},doc(search('drop link',['Stabiliser Link'],[card('FDL7578','Stabiliser Rod/Strut - Front LH/RH',price)])));
   assert.equal(snapshot.products.length,0);assert.equal(snapshot.productTitleCount,1);
@@ -96,12 +96,12 @@ function browser(render){
  return {page,clicks,reads:()=>reads,selectVehicle:async()=>({selectedRegistration:true})};
 }
 
-test('actual product results win over related wording for drop link and lambda sensor searches',async()=>{
+test('supplier wording choices precede vehicle catalogue products for drop links and lambda sensors',async()=>{
  for(const [query,labels,cards] of [['drop link',['Stabiliser Link'],drops],['lambda sensor',['O2 Sensor','Camshaft Sensor','Brake Pad Wear Sensor'],[card('SKU350-34466','Lambda Sensor','52.69'),card('0258986729','Lambda Sensor','95.44')]]]){
   const f=browser(()=>search(query,labels,cards)),r=request('Fit '+query);let result;
   await assert.rejects(discoverRepairCategory(f.page,query,{request:r,selectVehicle:f.selectVehicle}),e=>{result=cleanRepairChoices(e.result,r);return e.code==='CHOICE_REQUIRED';});
-  assert.equal(result.selectionKind,'product');assert.ok(result.options.some(o=>o.detail.includes('Displayed £'+(query==='drop link'?'26.98':'52.69'))));assert.deepEqual(f.clicks,[]);
-  assert.ok(result.options.every(o=>!labels.includes(o.label)));
+  assert.equal(result.selectionKind,'wording');assert.deepEqual(result.options.map(o=>o.label),labels);assert.deepEqual(f.clicks,[]);
+  assert.ok(result.options.every(o=>!o.costPence&&!o.detail.includes('Displayed')));assert.equal(f.reads(),0);
  }
 });
 
@@ -114,12 +114,10 @@ test('wishbone Did you mean selection preserves scope and opens the selected obs
  assert.equal(f.clicks.length,1);assert.equal(next.quantity,2);assert.equal(repairScope.resolve(next.work).axle,'front');
 });
 
-test('delayed synonym prices are awaited and unfinished products cannot become wording choices',async()=>{
- for(const ready of [true,false]){
-  const f=browser((query,reads)=>search(query,['Stabiliser Link'],[card('FDL7578','Stabiliser Rod/Strut - Front LH/RH',ready&&reads>8?'26.98':'')]));
-  await assert.rejects(discoverRepairCategory(f.page,'drop link',{request:request('Fit drop link'),selectVehicle:f.selectVehicle}),e=>ready?e.code==='CHOICE_REQUIRED'&&e.result.selectionKind==='product':e.detail==='SEARCH_PRODUCTS_NOT_READY');
-  assert.ok(f.reads()>=10);assert.deepEqual(f.clicks,[]);
- }
+test('global synonym prices are irrelevant until the vehicle catalogue is open',async()=>{
+ const f=browser(query=>search(query,['Stabiliser Link'],[card('FDL7578','Stabiliser Rod/Strut - Front LH/RH','')]));
+ await assert.rejects(discoverRepairCategory(f.page,'drop link',{request:request('Fit drop link'),selectVehicle:f.selectVehicle}),e=>e.code==='CHOICE_REQUIRED'&&e.result.selectionKind==='wording');
+ assert.equal(f.reads(),0);assert.deepEqual(f.clicks,[]);
 });
 
 test('a single supplier synonym category can verify the selected SKU, while ambiguity still stops',async()=>{

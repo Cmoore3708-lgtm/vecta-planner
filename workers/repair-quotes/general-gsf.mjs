@@ -5,7 +5,7 @@ import {choiceId,requireChoice} from './choice-result.mjs';
 import {findCatalogueSearch} from './catalogue-search.mjs';
 import {selectCatalogueVehicle} from './catalogue-vehicle.mjs';
 import {observedCategory,categoryMatches,labelledDestinationCategory,readCatalogueResults,followExactCategorySuggestion,suggestedCategoryChoices,categoryChoiceId} from './catalogue-results.mjs';
-import {readSearchProducts,searchProductChoices,readSearchProductFitment,searchProductPositions} from './catalogue-products.mjs';
+import {readSearchProductFitment,searchProductPositions} from './catalogue-products.mjs';
 const reject=(detail,observed)=>{throw Object.assign(Error('REVIEW_REQUIRED'),{code:'REVIEW_REQUIRED',detail,...(observed?{observed}:{})});};
 const searchedProductEvidence=(product,category)=>({stage:'GSF_SEARCH_PRODUCT_VEHICLE_CHECK',category,selectedProduct:{sku:product.sku,brand:product.brand,description:product.description,unitNetPence:product.unitNetPence,inStock:product.inStock}});
 
@@ -194,6 +194,7 @@ export async function lookupGeneralGSF(page,request,{capture=captureRepairCatalo
  onProgress('GSF_CATALOGUE');
  const vehicle=await capture(page,request.registration,category);
  if(vehicle.status!=='CAPTURED_FOR_REVIEW'||vehicle.registration!==request.registration||!vehicle.selectedRegistration||vehicle.truncated)reject('VEHICLE_NOT_CONFIRMED');
+ onProgress('GSF_CATEGORY_VEHICLE_CONFIRMED',{registration:request.registration,category});
  let snapshot=await waitForRepairGroups(page,request.registration,category);
  let groups=snapshot.groups;
  const selectedProductOption=option=>!searchProduct||option.description.toLowerCase()===searchProduct.description.toLowerCase()&&(!option.brand||option.brand.toLowerCase().replace(/[^a-z0-9]/g,'')===searchProduct.brand.toLowerCase().replace(/[^a-z0-9]/g,''));
@@ -286,29 +287,6 @@ export function gsfPartChoices(candidates,request,category){
   detail:([scope.axle,scope.side].filter(Boolean).join(' ')+' · GSF fitment group '+group.sku+' · '+rows.map(r=>r.attribute+': '+r.value).join(' · ')).slice(0,500),
   costPence:option.pricePence,inStock:option.inStock,work:scope.work
  }));
-}
-
-async function chooseSearchProduct(page,products,request,{now,onProgress=()=>{}}){
- const candidates=searchProductChoices(products,request),chosen=candidates.find(c=>c.choice.id===request.choices?.gsfCategory);
- if(!chosen){
-  // Reuse the existing navigation-choice protocol; product choices are labelled
-  // separately for the user and do not pretend to be priced/verified parts yet.
-  try{requireChoice(request,'GSF_CATEGORY',candidates.map(c=>c.choice),{now});}
-  catch(error){error.result.selectionKind='product';error.observed={stage:'GSF_SEARCH_PRODUCTS',productCount:products.length,choiceCount:candidates.length};throw error;}
- }
- const control=page.locator(chosen.product.selector);
- if(await control.count()!==1||!await control.isVisible())reject('SEARCH_PRODUCT_CHANGED');
- onProgress('GSF_PRODUCT_OPEN');
- const searchUrl=page.url();await control.click({timeout:8000});
- onProgress('GSF_PRODUCT_DETAILS');
- for(let i=0;i<40;i++){
-  const url=new URL(page.url());
-  if(url.origin!=='https://trade.gsfcarparts.com'||/^\/(?:signin|login)/i.test(url.pathname))throw Object.assign(Error('LOGIN_REQUIRED'),{code:'LOGIN_REQUIRED',supplier:'GSF'});
-  const category=observedCategory(url.href);if(category)return category;
-  try{const product=await page.evaluate(readProductDialog,{allowUnavailablePrice:true});return {kind:'search-product',...chosen,searchUrl,productDetails:product};}catch{}
-  if(i<39)await page.waitForTimeout(200);
- }
- reject('SEARCH_PRODUCT_DETAILS_NOT_OPEN');
 }
 
 export async function lookupSearchProduct(page,request,selected,{now=Date.now}={}){
@@ -422,32 +400,19 @@ export async function discoverRepairCategory(page,query,{request,now=Date.now,se
  await page.goto(origin,{waitUntil:'domcontentloaded',timeout:15000});
  const check=()=>{const url=new URL(page.url());if(url.origin!==origin||/^\/signin/.test(url.pathname))throw Object.assign(Error('LOGIN_REQUIRED'),{code:'LOGIN_REQUIRED'});};check();
  let vehicle;
- if(request?.registration){onProgress('GSF_VEHICLE');vehicle=await selectVehicle(page,request.registration);}
+ if(request?.registration){onProgress('GSF_VEHICLE');vehicle=await selectVehicle(page,request.registration);onProgress('GSF_VEHICLE_READY',{registration:request.registration,detailsReady:vehicle?.detailsReady===true});}
  // GSF hydrates the catalogue after DOMContentLoaded. Wait for its actual
  // visible control; wording and text/search input roles can vary by layout.
  onProgress('GSF_SEARCH');
  const search=await findCatalogueSearch(page);
  const beforeSearchUrl=page.url();
  await search.fill(query,{timeout:10000});
- let observed=[],products=[],productSnapshot={},sawProductTitles=false;
+ // Enhanced search is a broad catalogue. A selected registration does not
+ // make its product cards vehicle-specific. Use it only to identify the part
+ // category; actual product/position choices come from the vehicle catalogue.
+ if(request?.flow)return discoverVehicleCategory(page,search,query,{request,now,beforeSearchUrl,onProgress,vehicle});
+ let observed=[];
  async function find(){
-  if(request?.flow&&new URL(page.url()).pathname.startsWith('/enhancedSearch/')){
-   // A confirmed category is navigation intent, not a fresh free-text search.
-   // Re-discover that exact observed control before considering product cards.
-   if(request.choices?.gsfCategory){
-    const results=await page.evaluate(readCatalogueResults,{query});
-    const selected=results.controls.filter(c=>categoryChoiceId(c)===request.choices.gsfCategory);
-    if(selected.length===1){
-     onProgress('GSF_SELECTED_CATEGORY');
-     const followed=await followExactCategorySuggestion(page,selected[0].label,request.choices.gsfCategory,{searchQuery:query});
-     if(!followed.category)reject('SELECTED_CATEGORY_NOT_OPEN',{stage:'GSF_SELECTED_CATEGORY',...followed.observed});
-     return [followed.category];
-    }
-   }
-   const results=await page.evaluate(readSearchProducts,{query});
-   productSnapshot=results;products=[];sawProductTitles||=results.productTitleCount>0;
-   if(!results.busy&&results.products?.length){products=results.products;return [];}
-  }
   const current=observedCategory(page.url());if(categoryMatches(current,query))return [current];
   if(/^\d+$/.test(current)){
    const results=await page.evaluate(readCatalogueResults,{query});
@@ -456,51 +421,56 @@ export async function discoverRepairCategory(page,query,{request,now=Date.now,se
   observed=await page.locator('a[href]').evaluateAll(nodes=>nodes.filter(n=>n.getClientRects().length&&!n.closest('[hidden],[aria-hidden="true"]')).map(n=>({href:n.href,text:(n.innerText||n.textContent||'').trim()})));return matchingCatalogueCategories(observed,query);
  }
  let categories=[],suggestionFollowed=false;
- if(request?.flow){
-  // Submit the item first. Autocomplete/related categories must not divert a
-  // guided lookup before the actual product results have been inspected.
-  await search.press('Enter',{timeout:10000});
-  onProgress('GSF_SEARCH_RESULTS');
-  let previousProducts='';
-  for(let i=0;i<75;i++){
-   check();categories=await find();if(categories.length&&observedCategory(page.url()))break;
-   const signature=products.length?JSON.stringify(products.map(p=>[p.label,p.sku,p.path,p.displayPricePence])):'';
-   if(signature&&signature===previousProducts)break;previousProducts=signature;
-   if(i>=4&&!products.length){const state=await page.evaluate(readCatalogueResults,{query});const searchPage=new URL(page.url()).pathname.startsWith('/enhancedSearch/');if(!state.pageState?.busy&&!state.pageState?.loadingMessage&&(searchPage?state.emptyMessages?.length&&!sawProductTitles:categories.length||state.controls?.length||state.emptyMessages?.length))break;}
-   if(i<74)await page.waitForTimeout(200);
-  }
- }else{
-  // Retain the calibrated strict-category path for older requests.
-  for(let i=0;i<8;i++){check();categories=await find();if(categories.length)break;await page.waitForTimeout(200);}
-  if(!categories.length){const suggestion=await followExactCategorySuggestion(page,query);if(suggestion.category)return suggestion.category;suggestionFollowed=suggestion.followed===true;}
-  if(!categories.length&&!suggestionFollowed){await search.press('Enter',{timeout:10000});for(let i=0;i<75;i++){check();categories=await find();if(categories.length)break;await page.waitForTimeout(200);}}
- }
- if(products.length)return chooseSearchProduct(page,products,request,{now,onProgress});
- if(sawProductTitles)reject('SEARCH_PRODUCTS_NOT_READY',{stage:'GSF_SEARCH_PRODUCTS',productCount:0,productTitleCount:productSnapshot.productTitleCount||0,busy:productSnapshot.busy===true,...await page.evaluate(readCatalogueResults,{query})});
- if(!categories.length&&!suggestionFollowed){const suggestion=await followExactCategorySuggestion(page,query,request?.choices?.gsfCategory);if(suggestion.category)return suggestion.category;}
- if(categories.length!==1){
-  if(request?.flow){
-   const diagnostics=await page.evaluate(readCatalogueResults,{query});
-   const route=new URL(page.url()).pathname;diagnostics.pageType=route.startsWith('/parts/')?'category':route.startsWith('/partdetails/')?'product':route.startsWith('/enhancedSearch/')?'search':route==='/'?'home':'other';
-   diagnostics.observedCategory=observedCategory(page.url());
-   diagnostics.vehicleConfirmedBeforeSearch=vehicle?.selectedRegistration===true;
-   const currentVehicle=await page.evaluate(readServiceCategory,{registration:request.registration,category:'Catalogue search'});
-   diagnostics.vehicleConfirmedAfterSearch=currentVehicle.selectedRegistration===true&&currentVehicle.registration===request.registration;
-   // GSF can open a differently named category without leaving a category
-   // link on the page. Offer that actual destination for confirmation rather
-   // than treating it as an empty search or accepting a related part silently.
-   const numericLabel=/^\d+$/.test(diagnostics.observedCategory)&&diagnostics.mainMatchingLabels.length===1?diagnostics.mainMatchingLabels[0]:'';
-   if(numericLabel||diagnostics.observedCategory&&repairScope.words(diagnostics.observedCategory).some(w=>repairScope.words(query).includes(w))){
-    const reached=new URL(page.url());reached.search='';reached.hash='';
-    observed.push({href:reached.href,text:numericLabel||diagnostics.observedCategory});
-   }
-   const options=catalogueCategoryOptions(observed,query,repairScope.resolve(request.work));
-   const labels=new Set(options.map(o=>o.label));
-   options.push(...suggestedCategoryChoices(diagnostics,request).filter(o=>!labels.has(o.label)));
-   try{requireChoice(request,'GSF_CATEGORY',options,{now,selectionKind:'wording'});}
-   catch(error){error.observed={stage:'GSF_SEARCH_RESULTS',...diagnostics};throw error;}
-  }
-  reject(categories.length?'MULTIPLE_CATALOGUE_CATEGORIES':'CATALOGUE_CATEGORY_NOT_FOUND');
- }
+ for(let i=0;i<8;i++){check();categories=await find();if(categories.length)break;await page.waitForTimeout(200);}
+ if(!categories.length){const suggestion=await followExactCategorySuggestion(page,query);if(suggestion.category)return suggestion.category;suggestionFollowed=suggestion.followed===true;}
+ if(!categories.length&&!suggestionFollowed){await search.press('Enter',{timeout:10000});for(let i=0;i<75;i++){check();categories=await find();if(categories.length)break;await page.waitForTimeout(200);}}
+
+ if(categories.length!==1)reject(categories.length?'MULTIPLE_CATALOGUE_CATEGORIES':'CATALOGUE_CATEGORY_NOT_FOUND');
  return categories[0];
+}
+
+async function discoverVehicleCategory(page,search,query,{request,now,beforeSearchUrl,onProgress,vehicle}){
+ await search.press('Enter',{timeout:10000});onProgress('GSF_SEARCH_RESULTS');
+ let results,previous='',stable=0;
+ for(let i=0;i<75;i++){
+  const url=new URL(page.url());
+  if(url.origin!=='https://trade.gsfcarparts.com'||/^\/(?:sign-?in|log-?in)(?:\/|$)/i.test(url.pathname))throw Object.assign(Error('LOGIN_REQUIRED'),{code:'LOGIN_REQUIRED',supplier:'GSF'});
+  results=await page.evaluate(readCatalogueResults,{query});
+  const current=observedCategory(url.href);
+  if(current&&(categoryMatches(current,query)||labelledDestinationCategory(url.href,beforeSearchUrl,query,results)))return current;
+  const controls=results.controls||[],signature=JSON.stringify(controls.map(c=>[c.label,c.path]));
+  const ready=!results.pageState?.busy&&!results.pageState?.loadingMessage&&(controls.length||results.emptyMessages?.length);
+  stable=ready&&signature===previous?stable+1:ready?1:0;previous=signature;
+  if(stable>=4){
+   const selected=request.choices?.gsfCategory;
+   const matches=controls.filter(c=>selected?categoryChoiceId(c)===selected:categoryMatches(c.label,query));
+   if(matches.length===1){
+    onProgress('GSF_SELECTED_CATEGORY');
+    const followed=await followExactCategorySuggestion(page,matches[0].label,categoryChoiceId(matches[0]),{searchQuery:query});
+    if(!followed.category)reject('SELECTED_CATEGORY_NOT_OPEN',{stage:'GSF_SELECTED_CATEGORY',...followed.observed,pageType:new URL(page.url()).pathname.startsWith('/partdetails/')?'product':'other'});
+    return followed.category;
+   }
+   break;
+  }
+  if(i<74)await page.waitForTimeout(200);
+ }
+ // Different terminology needs a part-type confirmation, never a list of
+ // unverified manufacturer SKUs from the global search. Preserve free wording
+ // when none of the supplier's categories applies.
+ const controls=results?.controls||[],terms=repairScope.words(query);
+ const matching=controls.filter(c=>terms.length&&terms.every(t=>repairScope.words(c.label).includes(t)));
+ const options=suggestedCategoryChoices({...results,controls:matching.length?matching:controls},request);
+ const reached=new URL(page.url()),current=observedCategory(reached.href),route=reached.pathname;
+ const numericLabel=/^\d+$/.test(current)&&results?.mainMatchingLabels?.length===1?results.mainMatchingLabels[0]:'';
+ if(numericLabel||current&&repairScope.words(current).some(w=>terms.includes(w))){
+  reached.search='';reached.hash='';
+  const found=catalogueCategoryOptions([{href:reached.href,text:numericLabel||current}],query,repairScope.resolve(request.work));
+  options.push(...found.filter(o=>!options.some(existing=>existing.label===o.label)));
+ }
+ const currentVehicle=await page.evaluate(readServiceCategory,{registration:request.registration,category:'Catalogue search'});
+ const observed={...results,stage:'GSF_VEHICLE_CATEGORY_DISCOVERY',globalProductsOffered:false,categoryLabels:controls.map(c=>c.label).slice(0,30),
+  observedCategory:current,pageType:route.startsWith('/parts/')?'category':route.startsWith('/partdetails/')?'product':route.startsWith('/enhancedSearch/')?'search':route==='/'?'home':'other',
+  vehicleConfirmedBeforeSearch:vehicle?.selectedRegistration===true,vehicleConfirmedAfterSearch:currentVehicle.selectedRegistration===true&&currentVehicle.registration===request.registration};
+ try{requireChoice(request,'GSF_CATEGORY',options,{now,selectionKind:'wording'});}
+ catch(error){error.observed=observed;throw error;}
 }

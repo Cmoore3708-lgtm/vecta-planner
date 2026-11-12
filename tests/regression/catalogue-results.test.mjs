@@ -54,7 +54,7 @@ test('empty selectable results retain observed product labels for the next works
 });
 test('a click into product details never presses an old search selector after navigation',async()=>{
  const f=page('<button role="option">Radiator</button>',{destination:'/partdetails/RAD1'});
- await assert.rejects(discoverRepairCategory(f.p,'radiator',{request,selectVehicle}),error=>error.code==='CHOICE_REQUIRED'&&error.observed.pageType==='product');assert.equal(f.counts().presses,1);
+ await assert.rejects(discoverRepairCategory(f.p,'radiator',{request,selectVehicle}),error=>error.code==='REVIEW_REQUIRED'&&error.detail==='SELECTED_CATEGORY_NOT_OPEN'&&error.observed.pageType==='product');assert.equal(f.counts().presses,1);
 });
 test('an empty category page reports its actual category and vehicle context without query parameters',async()=>{
  const f=page('<main><h1>Select a vehicle</h1><p>Please wait</p><div role="progressbar"></div></main><input type="password" hidden value="secret">',{enterDestination:'/parts/All?session=secret'});
