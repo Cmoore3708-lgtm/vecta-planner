@@ -1,4 +1,3 @@
-import {readVehicle} from '../haynes/dom.mjs';
 import {readRepairVehicle,repairTimesLink} from './haynes-navigation.mjs';
 import {readAlternatorTime} from './repair-time-reader.mjs';
 import {repairScope} from '../../lib/repair-quote.js';
@@ -13,8 +12,8 @@ export function operationPattern(scope){
  const side=scope.side?(scope.side==='left'?'right':'left'):'';
  return '\\b(?:Renew|Replace|Remove\\s+and\\s+refit)\\b'+positions+(opposite?'(?![^\\n]*\\b'+opposite+'\\b)':'')+(side?'(?![^\\n]*\\b'+side+'\\b)':'')+repairScope.pattern(scope.query)+'[^\\n]*?\\b'+repairScope.words(scope.query).at(-1).replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+'(?:s|es)?\\b';
 }
-export async function lookupGeneralHaynes(page,request,{now=Date.now,selectedPart}={}){
- const scope=repairScope.resolve(request.work),origin='https://www.workshopdata.com';
+export async function openGeneralHaynesRepair(page,request){
+ const origin='https://www.workshopdata.com';
  await page.goto(origin+'/touch/site/layout/makesOverview',{waitUntil:'domcontentloaded',timeout:15000});
  const check=()=>{if(new URL(page.url()).origin!==origin)throw Object.assign(Error('LOGIN_REQUIRED'),{code:'LOGIN_REQUIRED'});};check();
  let vehicle=await readRepairVehicle(page);if(vehicle.login)throw Object.assign(Error('LOGIN_REQUIRED'),{code:'LOGIN_REQUIRED'});
@@ -27,6 +26,11 @@ export async function lookupGeneralHaynes(page,request,{now=Date.now,selectedPar
  const links=await page.locator('a[href]').evaluateAll(nodes=>nodes.map(n=>n.href));
  await page.goto(repairTimesLink(links,vehicle.typeId),{waitUntil:'domcontentloaded',timeout:15000});check();
  if(new URL(page.url()).searchParams.get('typeId')!==vehicle.typeId)reject('VEHICLE_CHANGED');
+ return vehicle;
+}
+export async function lookupGeneralHaynes(page,request,{now=Date.now,selectedPart}={}){
+ const scope=repairScope.resolve(request.work),origin='https://www.workshopdata.com';
+ const vehicle=await openGeneralHaynesRepair(page,request);
  if(request.flow)return lookupHaynesChoices(page,request,{vehicle,selectedPart,now});
  await searchHaynesRepair(page,vehicle.typeId,scope.query);
  const pattern=operationPattern(scope),captures=[];

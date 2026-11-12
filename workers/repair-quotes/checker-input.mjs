@@ -45,3 +45,25 @@ export async function promptRepairChoice(terminal,request,result,{log=console.lo
   }catch(error){explain(error,log);}
  }
 }
+
+// Diagnostic-only selection has no GSF identity. Keep it out of the pricing
+// request protocol, which still requires a part before any labour selection.
+export async function promptHaynesLabourChoice(terminal,choices,result,{log=console.log}={}){
+ while(true){
+  const answer=(await terminal.question('Choose the correct operation/group number, type different search wording, or Q to finish: ')).trim();
+  if(quit(answer))return null;
+  if(!answer){log('Choose an option or enter the wording to search.');continue;}
+  if(/^\d+$/.test(answer)){
+   const option=result.options[Number(answer)-1];
+   if(!option){log('Choose one of the option numbers shown.');continue;}
+   if(result.stage==='HAYNES_LABOUR')return {...choices,labour:option.id};
+   if(result.stage==='HAYNES_MENU'){
+    if((choices.menus||[]).length>=8){log('Enter more specific search wording to narrow the repair groups.');continue;}
+    return {...choices,menus:[...(choices.menus||[]),option.label],labour:undefined};
+   }
+   throw Error('UNKNOWN_CHOICE_STAGE');
+  }
+  if(answer.length>150){log('Keep the search wording under 150 characters.');continue;}
+  return {labourSearch:answer};
+ }
+}

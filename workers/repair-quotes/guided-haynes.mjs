@@ -27,8 +27,13 @@ export function haynesLabourOptions(captures,request,query){
 }
 export async function lookupHaynesChoices(page,request,{vehicle,selectedPart,now=Date.now}){
  if(!request.choices?.part||!selectedPart)reject('PART_SELECTION_REQUIRED');
- const check=()=>{const u=new URL(page.url());if(u.origin!==origin||u.pathname!=='/touch/site/layout/repairTimes'||u.searchParams.get('typeId')!==vehicle.typeId)reject('VEHICLE_CHANGED');};
  const query=request.choices.labourSearch||selectedPart.description.split(/\s+[-–]\s+|\s*\(/)[0];
+ return lookupHaynesLabourChoices(page,request,{vehicle,selectedPart,query,choices:request.choices,now});
+}
+// Shared read-only labour selection. The pricing entry point above still
+// requires a verified GSF selection; the standalone diagnostic never prices.
+export async function lookupHaynesLabourChoices(page,request,{vehicle,query,choices={},selectedPart,now=Date.now}){
+ const check=()=>{const u=new URL(page.url());if(u.origin!==origin||u.pathname!=='/touch/site/layout/repairTimes'||u.searchParams.get('typeId')!==vehicle.typeId)reject('VEHICLE_CHANGED');};
  await searchHaynesRepair(page,vehicle.typeId,query);
  // Navigation and tree expansion fetch content asynchronously. Read every
  // same-origin frame, waiting for stable nonempty content before offering it.
@@ -61,7 +66,7 @@ export async function lookupHaynesChoices(page,request,{vehicle,selectedPart,now
  let state=await wait();
  // Reopen only the headings selected by the user, re-discovered after each
  // expansion. An already-expanded heading must not be toggled closed.
- for(const label of request.choices.menus||[]){
+ for(const label of choices.menus||[]){
   const matches=state.available.filter(m=>m.label===label);
   if(matches.length!==1)reject('HAYNES_REPAIR_GROUP_CHANGED');
   if(!matches[0].expanded){await matches[0].frame.locator(matches[0].selector).click({timeout:8000});state=await wait({changedFrom:state.contentSignature});}
@@ -71,14 +76,14 @@ export async function lookupHaynesChoices(page,request,{vehicle,selectedPart,now
   if(exact.length===1&&!exact[0].expanded){await exact[0].frame.locator(exact[0].selector).click({timeout:8000});state=await wait({changedFrom:state.contentSignature});}
  }
  const options=state.options;
- const chosen=options.find(o=>o.id===request.choices.labour);
+ const chosen=options.find(o=>o.id===choices.labour);
  if(!chosen){
   if(options.length)requireChoice(request,'HAYNES_LABOUR',options.map(({capture,score,...o})=>o),{now,selectedPart});
   const terms=repairScope.words(query),available=state.available,counts=new Map();
   for(const m of available)counts.set(m.label,(counts.get(m.label)||0)+1);
-  const choices=available.filter(m=>counts.get(m.label)===1&&!(request.choices.menus||[]).includes(m.label)).sort((a,b)=>terms.filter(t=>repairScope.words(b.label).includes(t)).length-terms.filter(t=>repairScope.words(a.label).includes(t)).length).map(m=>({id:choiceId(m.label),label:m.label,detail:'Open this Haynes repair group'}));
-  if(!choices.length)reject('HAYNES_NO_SELECTABLE_REPAIR_GROUP');
-  requireChoice(request,'HAYNES_MENU',choices,{now,selectedPart});
+  const menuChoices=available.filter(m=>counts.get(m.label)===1&&!(choices.menus||[]).includes(m.label)).sort((a,b)=>terms.filter(t=>repairScope.words(b.label).includes(t)).length-terms.filter(t=>repairScope.words(a.label).includes(t)).length).map(m=>({id:choiceId(m.label),label:m.label,detail:'Open this Haynes repair group'}));
+  if(!menuChoices.length)reject('HAYNES_NO_SELECTABLE_REPAIR_GROUP');
+  requireChoice(request,'HAYNES_MENU',menuChoices,{now,selectedPart});
  }
  check();const c=chosen.capture,variant=[vehicle.make,vehicle.model,vehicle.variant,vehicle.engineCode].filter(Boolean).join(' ');
  return {variant,labour:{source:'HAYNES_PRO',registration:request.registration,variant,operation:request.operation,operationId:c.operationId,operationLabel:c.operationText,hoursMilli:c.hoursMilli,unit:'hours',scopeConfirmed:true,checkedAt:new Date(now()).toISOString(),choiceId:chosen.id}};

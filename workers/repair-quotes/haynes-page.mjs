@@ -55,7 +55,7 @@ export async function captureHaynesDiagnostics(page,query){
   if(u.origin!=='https://www.workshopdata.com'){skippedFrames++;continue;}
   if(frames.length>=8)break;
   try{const s=await frame.evaluate(readHaynesRepairPage,{query});let operations;
-   try{const found=await frame.evaluate(readAlternatorTime,{operationPattern:'\\b(?:Renew|Replace|Remove\\s+and\\s+refit)\\b',allowMultiple:true});operations={operationCount:found.length};}
+   try{const found=await frame.evaluate(readAlternatorTime,{operationPattern:'\\b(?:Renew|Replace|Remove\\s+and\\s+refit)\\b',allowMultiple:true});operations={operationCount:found.length,operations:found.slice(0,40).map(c=>({operationId:scrub(c.operationId),label:scrub(c.operationText),hoursMilli:c.hoursMilli,unit:c.unit}))};}
    catch(error){operations={operationReadError:(error.message||'').match(/LABOUR_REVIEW_REQUIRED:([A-Z_]+)/)?.[1]||'READ_UNAVAILABLE'};}
    frames.push({path:u.pathname,readyState:s.readyState,busy:s.busy,login:s.login,candidateCount:s.candidateCount,menuCount:s.menus.length,menus:s.menus.slice(0,40).map(m=>({label:scrub(m.label),expanded:m.expanded})),searches:s.searches.map(m=>({label:scrub(m.label)})),matchingLabels:s.matchingLabels.map(m=>({tag:m.tag,text:scrub(m.text)})),...operations});}
   catch{frames.push({path:u.pathname,captureUnavailable:true});}

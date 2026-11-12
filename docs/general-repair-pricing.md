@@ -414,6 +414,16 @@ The draft was reconciled with Main at dceb2bb, retaining the latest staff invoic
 
 The repair worker now owns a bounded in-memory session for up to eight verified GSF selections, valid for at most five minutes. Vehicle, work, quantity, category and part-choice identity form the key. Labour group/refinement steps reuse only that verified source capture; source timestamps are preserved and returned objects are copied. Clock reversal, expiry, worker closure and changed request identity invalidate reuse. Final labour selection always reads GSF again before any quote is returned; a changed price or availability returns part choices instead of using the cached cost. No result delivery retry repeats a supplier lookup. The standalone v13 download remains unchanged for the pending live Haynes check.
 
+### Haynes-only choice check — v14
+
+The 12 November v13 report reached the repair-times page, found one priced replacement operation, and stopped at `REPLACEMENT_SCOPE_MISMATCH`. It recorded neither the operation label nor its hours. This confirms failure at the standalone checker's strict automatic description comparison; it does not prove which supplier wording triggered the mismatch or that the captured time was 1.90 hours. GSF was not involved in this run.
+
+CHECK-LABOUR now uses the same labour chooser as guided pricing, after the same verified vehicle navigation. It displays actual replacement operations, accepts the mechanic's selection or revised search wording, and re-reads the selection before returning `PASSED_LABOUR_ONLY`. Changed times require a fresh selection. No GSF part is invented to make the diagnostic fit the pricing protocol; the pricing entry point and request validation still require a selected GSF part. The isolated diagnostic produces no supplied-and-fitted quote and does not save or install anything.
+
+The report saves each choice before waiting for input, and bounded diagnostics now retain operation labels, IDs and hours even when repair text is excluded from generic page-label diagnostics. Input values, account panels, foreign frames and URL queries remain excluded; email, VIN and links are redacted. Supplier lookup timers stop while waiting for the mechanic.
+
+Synthetic regressions cover a supplier badge that causes the old exact-match rejection, operation rows inside a form, alternate terminology across sixteen part descriptions, multiple choices, changed hours, changed vehicle and the requirement for a real GSF selection in pricing. The badge fixture is a reproduction of the failure class, not a claim about the unrecorded live row. Live automatic capture and broader supplier coverage remain unverified. No production settings, migrations or installed workers have changed.
+
 Haynes rows with missing time/units now wait for that evidence and report the specific missing field, rather than returning unrelated menu headings; invalid negative times stop immediately. The diagnostic timeout also handles a rejected browser-close operation without an unhandled promise rejection.
 
 Official integration research checked on 11 November 2026:
