@@ -694,6 +694,15 @@
  #jobModal .jobCardSimplified:not(.mechanicJobCard) .jobModalHead.jobCardPinnedHeader>.jobCardHeaderVehicle{height:200px!important}
 }
 
+/* Keep the customer name directly below the job-card vehicle illustration. */
+#jobModal .jobCardHeaderVehicle{display:flex!important;flex-direction:column;gap:4px}
+#jobModal .jobCardSimplified .jobModalHead.jobCardPinnedHeader>.jobCardHeaderVehicle{max-width:280px!important;justify-self:end}
+#jobModal .jobCardHeaderVehicle>img,#jobModal .jobCardHeaderVehicle>svg{object-position:center!important}
+#jobModal .jobCardHeaderVehicle>img,#jobModal .jobCardHeaderVehicle>svg{flex:1 1 0;min-height:0!important;height:0!important}
+#jobModal .jobCardCustomerCaption{flex:none;width:100%;min-width:0;text-align:center;font-size:14px;line-height:1.25;font-weight:700;color:#17202d;overflow-wrap:anywhere}
+#jobModal .jobCardCustomerCaption[hidden]{display:none!important}
+@media(max-width:700px){#jobModal .jobCardCustomerCaption{font-size:12px}}
+
 /* Saved customer instructions remain visible below the editable work description. */
 #jobModal .jobCustomerInstructions,#printSheet .jobCustomerInstructions{margin-top:14px;padding:14px 16px;border:2px solid #b68b32;border-radius:10px;background:#fff9e9;color:#34280f}
 #jobModal .jobCustomerInstructions h4,#printSheet .jobCustomerInstructions h4{margin:0 0 9px;font-size:14px}
