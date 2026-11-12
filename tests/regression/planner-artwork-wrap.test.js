@@ -41,10 +41,32 @@ test('outline sampling is cached per loaded image and an unreadable image fails 
 
 test('make/model width follows the roof silhouette even when the description is empty',()=>{
  const values=new Map(),style={setProperty:(k,v)=>values.set(k,v),removeProperty:k=>values.delete(k)};
- const card={matches:()=>true,clientWidth:400,style,classList:{remove(){}},querySelector:s=>s==='.plannerJobVehicle'?{getBoundingClientRect:()=>({top:0,bottom:10})}:s==='.plannerJobHeader'?{getBoundingClientRect:()=>({left:10})}:null};
+ const card={matches:s=>s==='.job,.unallocatedSideJob',clientWidth:400,style,classList:{remove(){}},querySelector:s=>s==='.plannerJobVehicle'?{getBoundingClientRect:()=>({top:0,bottom:10,left:10})}:s==='.plannerJobHeader'?{getBoundingClientRect:()=>({left:10})}:null};
  const img={isConnected:true,naturalWidth:200,naturalHeight:100,getBoundingClientRect:()=>({top:0,right:400,width:200,height:100}),addEventListener(){}};
  const ctx={timedArtwork:new WeakMap(),root:{},plannerArtworkProfile:()=>({width:100,height:5,left:[80,40,10,10,100]})};
  vm.runInNewContext(functions.get('trackTimedArtwork'),ctx);ctx.trackTimedArtwork(card,img);
  assert.equal(values.get('--planner-vehicle-text-inset'),'212px');
- assert.equal(values.get('--planner-identity-text-inset'),'136px','roof clearance leaves extra width for the vehicle name');
+ assert.equal(values.get('--planner-identity-text-width'),'264px','roof clearance leaves extra width for the vehicle name');
+});
+
+
+test('unallocated work wraps to the vehicle and releases full width below it, including unreadable artwork',()=>{
+ for(const sampled of [profile,null]){
+  const values=new Map(),classes=new Set();let shapeBox;
+  const exclusion={style:{},remove(){}};
+  const work={textContent:'Complete repair instructions',clientHeight:600,scrollTop:0,getBoundingClientRect:()=>({left:10,right:310,top:70,width:300}),querySelector:()=>exclusion,addEventListener(){}};
+  const customer={getBoundingClientRect:()=>({left:110,top:5,bottom:40})};
+  const plate={getBoundingClientRect:()=>({top:5,bottom:30})};
+  const make={getBoundingClientRect:()=>({left:10,top:46,bottom:60})};
+  const card={matches:()=>true,getBoundingClientRect:()=>({top:0}),style:{setProperty:(k,v)=>values.set(k,v),removeProperty:k=>values.delete(k)},classList:{add:k=>classes.add(k),remove:k=>classes.delete(k)},querySelector:s=>s===':scope > b, :scope > p'?work:s==='.dashboardCustomerName'?customer:s==='.uniformRegPlate'?plate:s==='.unallocatedVehicleName'?make:null};
+  const img={isConnected:true,naturalWidth:200,naturalHeight:100,getBoundingClientRect:()=>({top:46,right:310,width:160,height:80}),addEventListener(){}};
+  const ctx={timedArtwork:new WeakMap(),root:{},plannerArtworkProfile:()=>sampled,plannerArtworkPolygon:(p,b)=>{shapeBox=b;return polygon(p,b);}};
+  vm.runInNewContext(functions.get('trackTimedArtwork'),ctx);ctx.trackTimedArtwork(card,img);
+  assert.equal(values.get('--planner-artwork-top'),'46px','a wrapped customer name keeps its entire row above the car');
+  assert.ok(classes.has('plannerArtworkWrapped'),'sidebar work gets an actual exclusion float');
+  assert.equal(shapeBox.height,62,'exclusion ends below the wheels instead of growing with the full job description');
+  assert.equal(shapeBox.imageTop,-24);
+  assert.ok(points(exclusion.style.shapeOutside).some(([x,y])=>x===shapeBox.width&&y===62),'full width is available below the car');
+  if(!sampled)assert.ok(points(exclusion.style.shapeOutside).some(([x,y])=>x===0&&y===0),'unreadable artwork retains a safe rectangular exclusion');
+ }
 });
