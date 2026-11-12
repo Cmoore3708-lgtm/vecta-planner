@@ -181,6 +181,20 @@ test('customer renderer accepts trusted complete sets for any registration and r
 test('quality-provider timeouts also stop after two requests without regenerating good drafts',async()=>{
  const f=fixture();let checks=0;const service=createSceneService({db:f.db,storage:f.storage,generate:f.generate,validate:async()=>{checks++;throw Error('Quality provider timeout');},now:()=>now,limit:()=>40});
  await assert.rejects(service.run(),/timeout/);await assert.rejects(service.run(),/timeout/);assert.equal((await service.run()).idle,true);assert.equal(checks,2);assert.equal(f.generated.length,3);assert.equal(f.rows.get('progress_scenes_v1:'+reg).value.status,'needs_review');
+ assert.equal(f.rows.get('progress_scenes_v1:'+reg).value.last_error.stage,'validation');
+ assert.deepEqual(f.rows.get('progress_scenes_v1:'+reg).value.drafts,{ready:true,waiting:true,underway:true});
+});
+test('provider rejection is recorded safely for both first-image and saved-image inspection failures',async()=>{
+ for(const stage of ['ready','validation']){
+  const f=fixture(),error=Object.assign(Error('private-provider-response'),{providerStatus:402,providerCode:'quota_for_entity_exceeded'});
+  const service=createSceneService({db:f.db,storage:f.storage,generate:stage==='ready'?async()=>{throw error;}:f.generate,validate:stage==='validation'?async()=>{throw error;}:f.validate,now:()=>now,limit:()=>40});
+  if(stage==='validation')await assert.rejects(service.run(),/private-provider/);else assert.equal((await service.run()).status,'pending');
+  const state=f.rows.get('progress_scenes_v1:'+reg).value;
+  assert.deepEqual(state.last_error,{stage,reason:'provider_budget',provider_status:402,provider_code:'quota_for_entity_exceeded',at:new Date(now).toISOString()});
+  assert.doesNotMatch(JSON.stringify(state),/private-provider-response/);
+  assert.equal((await service.status()).items[0].last_error.reason,'provider_budget');
+  if(stage==='validation'){assert.equal(f.generated.length,3);assert.equal((await f.service.run()).status,'ready');assert.equal(f.generated.length,3);assert.equal(f.rows.get('progress_scenes_v1:'+reg).value.last_error,null);}
+ }
 });
 test('provider image normalization accepts real PNG/JPEG and rejects malformed or oversized images',async()=>{
  const source=fs.readFileSync(new URL('../../public/assets/progress/yd72omh-ready.webp',import.meta.url)),originalMeta=await sharp(source).metadata();
