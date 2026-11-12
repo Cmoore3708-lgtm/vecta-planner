@@ -196,6 +196,15 @@ test('provider rejection is recorded safely for both first-image and saved-image
   if(stage==='validation'){assert.equal(f.generated.length,3);assert.equal((await f.service.run()).status,'ready');assert.equal(f.generated.length,3);assert.equal(f.rows.get('progress_scenes_v1:'+reg).value.last_error,null);}
  }
 });
+test('a validation-only diagnostic recheck retains saved drafts even when the quality check rejects them',async()=>{
+ const f=fixture(),service=createSceneService({db:f.db,storage:f.storage,generate:f.generate,validate:async()=>{throw Error('provider unavailable');},now:()=>now,limit:()=>40});
+ await assert.rejects(service.run(),/unavailable/);
+ f.rows.get('progress_scenes_v1:'+reg).value.validation_only=true;
+ const recheck=createSceneService({db:f.db,storage:f.storage,generate:f.generate,validate:async()=>({}),now:()=>now,limit:()=>40});
+ assert.equal((await recheck.run()).status,'needs_review');
+ assert.equal((await recheck.run()).idle,true);assert.equal(f.generated.length,3);
+ assert.deepEqual(f.rows.get('progress_scenes_v1:'+reg).value.drafts,{ready:true,waiting:true,underway:true});
+});
 test('provider image normalization accepts real PNG/JPEG and rejects malformed or oversized images',async()=>{
  const source=fs.readFileSync(new URL('../../public/assets/progress/yd72omh-ready.webp',import.meta.url)),originalMeta=await sharp(source).metadata();
  for(const format of ['png','jpeg','webp']){
