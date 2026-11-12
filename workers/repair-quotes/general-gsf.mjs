@@ -4,9 +4,10 @@ import {repairScope} from '../../lib/repair-quote.js';
 import {choiceId,requireChoice} from './choice-result.mjs';
 import {findCatalogueSearch} from './catalogue-search.mjs';
 import {selectCatalogueVehicle} from './catalogue-vehicle.mjs';
-import {observedCategory,categoryMatches,labelledDestinationCategory,readCatalogueResults,followExactCategorySuggestion,suggestedCategoryChoices} from './catalogue-results.mjs';
+import {observedCategory,categoryMatches,labelledDestinationCategory,readCatalogueResults,followExactCategorySuggestion,suggestedCategoryChoices,categoryChoiceId} from './catalogue-results.mjs';
 import {readSearchProducts,searchProductChoices,readSearchProductFitment,searchProductPositions} from './catalogue-products.mjs';
-const reject=detail=>{throw Object.assign(Error('REVIEW_REQUIRED'),{code:'REVIEW_REQUIRED',detail});};
+const reject=(detail,observed)=>{throw Object.assign(Error('REVIEW_REQUIRED'),{code:'REVIEW_REQUIRED',detail,...(observed?{observed}:{})});};
+const searchedProductEvidence=(product,category)=>({stage:'GSF_SEARCH_PRODUCT_VEHICLE_CHECK',category,selectedProduct:{sku:product.sku,brand:product.brand,description:product.description,unitNetPence:product.unitNetPence,inStock:product.inStock}});
 
 // Read the rendered catalogue, keeping each SKU, its alternatives and its
 // Attributes control together. Never derive a manufacturer's SKU from a logo.
@@ -157,14 +158,17 @@ export async function waitForSelectedRepairProduct(page,registration,category,gr
  }
  reject('SELECTED_OPTION_NOT_CONFIRMED');
 }
-export function repairFitment(rows,scope){
- const values=(rows||[]).filter(r=>/^fitting position$/i.test(r.attribute)).map(r=>String(r.value).toLowerCase());
- if(!scope.axle&&values.some(v=>/\b(?:front|rear)\b/.test(v)))return false;
- if(!scope.side&&values.some(v=>/\b(?:left|right)\b/.test(v)))return false;
- if(scope.axle&&!values.some(v=>new RegExp('\\b'+scope.axle+'(?: axle)?\\b').test(v)))return false;
- if(scope.axle&&values.some(v=>new RegExp('\\b'+(scope.axle==='front'?'rear':'front')+'\\b').test(v)))return false;
- if(scope.side&&!values.some(v=>new RegExp('\\b'+scope.side+'\\b').test(v)))return false;
- if(scope.side&&values.some(v=>new RegExp('\\b'+(scope.side==='left'?'right':'left')+'\\b').test(v)))return false;
+export function repairFitment(rows,scope,{allowAlternatives=false}={}){
+ const positions=(rows||[]).filter(r=>/^fitting position$/i.test(r.attribute)).map(r=>searchProductPositions(r.value));
+ if(!scope.axle&&positions.some(p=>p.axles.length)||!scope.side&&positions.some(p=>p.sides.length))return false;
+ // Each Fitting Position row is an allowed location. Keep its axle and side
+ // together: Front LH plus Rear RH must never become Front RH.
+ if(allowAlternatives){
+  if((scope.axle||scope.side)&&!positions.some(p=>(!scope.axle||p.axles.includes(scope.axle))&&(!scope.side||p.sides.includes(scope.side))))return false;
+ }else{
+  if(scope.axle&&(!positions.some(p=>p.axles.includes(scope.axle))||positions.some(p=>p.axles.includes(scope.axle==='front'?'rear':'front'))))return false;
+  if(scope.side&&(!positions.some(p=>p.sides.includes(scope.side))||positions.some(p=>p.sides.includes(scope.side==='left'?'right':'left'))))return false;
+ }
  // A set of pads is one axle set; a pair of discs requires two individually
  // priced discs. Ambiguous pack sizes must not silently double/halve a price.
  const pack=(rows||[]).filter(r=>/^(?:quantity per pack|pack quantity|pack size)$/i.test(r.attribute));
@@ -175,8 +179,16 @@ export function repairFitment(rows,scope){
 export async function lookupGeneralGSF(page,request,{capture=captureRepairCatalogue,selectVehicle=selectCatalogueVehicle,now=Date.now}={}){
  const scope=repairScope.resolve(request.work);
  if(scope.status!=='SUPPORTED')reject('PART_NOT_RECOGNISED');
- const category=await discoverRepairCategory(page,scope.query,{request,now,selectVehicle});
- if(typeof category==='object'&&category.kind==='search-product')return lookupSearchProduct(page,request,category,{now});
+ let category=await discoverRepairCategory(page,scope.query,{request,now,selectVehicle}),searchProduct;
+ if(typeof category==='object'&&category.kind==='search-product'){
+  const selected=category;
+  try{return await lookupSearchProduct(page,request,selected,{now});}
+  catch(error){if(error.detail!=='SEARCH_PRODUCT_FITMENT_NOT_CONFIRMED')throw error;}
+  // Product dialogs can hide the selected-vehicle panel and need not contain
+  // a literal compatibility sentence. Verify the SKU in the vehicle catalogue.
+  category=await searchProductVehicleCategory(page,request,selected,{selectVehicle});
+  searchProduct=selected.productDetails;
+ }
  const vehicle=await capture(page,request.registration,category);
  if(vehicle.status!=='CAPTURED_FOR_REVIEW'||vehicle.registration!==request.registration||!vehicle.selectedRegistration||vehicle.truncated)reject('VEHICLE_NOT_CONFIRMED');
  let snapshot=await waitForRepairGroups(page,request.registration,category);
@@ -197,7 +209,15 @@ export async function lookupGeneralGSF(page,request,{capture=captureRepairCatalo
   const candidateScope=request.flow?scopeForFitment(rows,scope):scope;
   if(!candidateScope)continue;
   matchingGroups++;
-  for(const option of group.options.filter(o=>request.flow||o.inStock))candidates.push({group,option,rows,scope:candidateScope});
+  for(const option of group.options.filter(o=>request.flow||o.inStock)){
+   if(searchProduct&&(option.description.toLowerCase()!==searchProduct.description.toLowerCase()||option.brand&&option.brand.toLowerCase().replace(/[^a-z0-9]/g,'')!==searchProduct.brand.toLowerCase().replace(/[^a-z0-9]/g,'')))continue;
+   candidates.push({group,option,rows,scope:candidateScope});
+  }
+ }
+ if(searchProduct){
+  const sameSku=candidates.filter(c=>c.group.sku.toUpperCase().endsWith(searchProduct.sku.toUpperCase()));
+  if(sameSku.length)candidates.splice(0,candidates.length,...sameSku);
+  if(!candidates.length)reject('SEARCH_PRODUCT_NOT_LISTED_FOR_VEHICLE',searchedProductEvidence(searchProduct,category));
  }
  if(!request.flow&&matchingGroups>1)reject('MULTIPLE_FITMENT_VARIANTS');
  if(request.flow){
@@ -221,14 +241,15 @@ export async function lookupGeneralGSF(page,request,{capture=captureRepairCatalo
  for(let i=0;i<40;i++){try{product=await page.evaluate(readProductDialog,{allowUnavailablePrice:request.flow==='guided-v1'&&option.inStock===false});break;}catch{await page.waitForTimeout(200);}}
  const brandKey=value=>String(value||'').toLowerCase().replace(/[^a-z0-9]/g,'');
  if(!product||typeof product.brand!=='string'||!product.brand.trim()||product.unitNetPence!==option.pricePence||product.description.toLowerCase()!==option.description.toLowerCase()||option.brand&&brandKey(product.brand)!==brandKey(option.brand)||product.inStock!==option.inStock||product.inStock&&!product.stock?.some(row=>row.quantity>=request.quantity)||product.vatBasis!=='EX_VAT'||!searchTerm.toUpperCase().endsWith(product.sku.toUpperCase()))reject('SELECTED_PRODUCT_CHANGED');
+ if(searchProduct&&(product.sku.toUpperCase()!==searchProduct.sku.toUpperCase()||brandKey(product.brand)!==brandKey(searchProduct.brand)))reject('SEARCH_PRODUCT_NOT_LISTED_FOR_VEHICLE',searchedProductEvidence(searchProduct,category));
  return {vehicle:vehicle.visibleText.split(' Copy VIN')[0].slice(0,250),fitmentEvidence:'GSF registration '+request.registration+'; '+scope.label+'; catalogue position attributes checked',catalogueComplete:true,alternativesChecked:candidates.length,part:{source:'GSF',registration:request.registration,fitmentConfirmed:true,vatBasis:'EX_VAT',sku:product.sku,brand:product.brand,description:product.description,costPence:product.unitNetPence,corePence:0,inStock:product.inStock,imageUrl:product.imageUrl,gsfUrl:url,checkedAt:new Date(now()).toISOString(),...(request.flow?{choiceId:request.choices.part}:{})}};
 }
 
 export function scopeForFitment(rows,scope){
- const position=rows.filter(r=>/^fitting position$/i.test(r.attribute)).map(r=>r.value).join(' ').toLowerCase();
- const axis=[...new Set(position.match(/\b(front|rear)\b/g)||[])],sides=[...new Set(position.match(/\b(left|right)\b/g)||[])];
+ const position=searchProductPositions(rows.filter(r=>/^fitting position$/i.test(r.attribute)).map(r=>r.value).join(' '));
+ const axis=position.axles,sides=position.sides;
  const candidate=repairScope.scope(scope.part,scope.axle||(axis.length===1?axis[0]:''),scope.side||(sides.length===1?sides[0]:''),scope.quantity,scope.lookup);
- return candidate.status==='SUPPORTED'&&repairFitment(rows,candidate)?candidate:null;
+ return candidate.status==='SUPPORTED'&&repairFitment(rows,candidate,{allowAlternatives:true})?candidate:null;
 }
 export function gsfPartChoices(candidates,request,category){
  candidates.sort((a,b)=>Number(b.option.inStock)-Number(a.option.inStock)||a.option.pricePence-b.option.pricePence);
@@ -250,12 +271,12 @@ async function chooseSearchProduct(page,products,request,{now}){
  }
  const control=page.locator(chosen.product.selector);
  if(await control.count()!==1||!await control.isVisible())reject('SEARCH_PRODUCT_CHANGED');
- await control.click({timeout:8000});
+ const searchUrl=page.url();await control.click({timeout:8000});
  for(let i=0;i<40;i++){
   const url=new URL(page.url());
   if(url.origin!=='https://trade.gsfcarparts.com'||/^\/(?:signin|login)/i.test(url.pathname))throw Object.assign(Error('LOGIN_REQUIRED'),{code:'LOGIN_REQUIRED',supplier:'GSF'});
   const category=observedCategory(url.href);if(category)return category;
-  try{const product=await page.evaluate(readProductDialog,{allowUnavailablePrice:true});return {kind:'search-product',...chosen,productDetails:product};}catch{}
+  try{const product=await page.evaluate(readProductDialog,{allowUnavailablePrice:true});return {kind:'search-product',...chosen,searchUrl,productDetails:product};}catch{}
   if(i<39)await page.waitForTimeout(200);
  }
  reject('SEARCH_PRODUCT_DETAILS_NOT_OPEN');
@@ -280,6 +301,8 @@ export async function lookupSearchProduct(page,request,selected,{now=Date.now}={
  const options=[];
  for(const axle of axes)for(const side of sides){
   const fitted=repairScope.scope(scope.part,axle,side,scope.quantity,scope.lookup);if(fitted.status!=='SUPPORTED')continue;
+  const positionRows=fitment.rows.some(r=>/^fitting position$/i.test(r.attribute))?fitment.rows:[...fitment.rows,{attribute:'Fitting Position',value:product.description}];
+  if(!repairFitment(positionRows,fitted,{allowAlternatives:true}))continue;
   const id=choiceId(request.registration,'search-product',selected.choice.id,product.sku,product.brand,product.description,product.unitNetPence,product.inStock,fitment.rows,fitted.work);
   options.push({id,label:product.brand+' · '+product.description,detail:'SKU '+product.sku+' · '+fitted.label+' · GSF confirms this part fits the selected vehicle',costPence:product.unitNetPence,inStock:product.inStock,work:fitted.work});
  }
@@ -287,6 +310,51 @@ export async function lookupSearchProduct(page,request,selected,{now=Date.now}={
  if(!confirmed)requireChoice(request,'GSF_PART',options,{now});
  const url=new URL(page.url()),gsfUrl=url.origin==='https://trade.gsfcarparts.com'&&/^\/partdetails\/[a-z0-9._-]+$/i.test(url.pathname)&&!url.search&&!url.hash?url.href:'';
  return {vehicle:vehicle.visibleText.split(' Copy VIN')[0].slice(0,250),fitmentEvidence:'GSF selected registration '+request.registration+'; explicit product compatibility; '+scope.label,catalogueComplete:true,alternativesChecked:1,part:{source:'GSF',registration:request.registration,fitmentConfirmed:true,vatBasis:'EX_VAT',sku:product.sku,brand:product.brand,description:product.description,costPence:product.unitNetPence,corePence:0,inStock:product.inStock,imageUrl:product.imageUrl,gsfUrl,checkedAt:new Date(now()).toISOString(),choiceId:confirmed.id}};
+}
+
+export function productVerificationCategory(results,query){
+ const controls=results.controls||[],terms=repairScope.words(query),counts=new Map();
+ for(const c of controls){const id=categoryChoiceId(c);counts.set(id,(counts.get(id)||0)+1);}
+ const unique=controls.filter(c=>counts.get(categoryChoiceId(c))===1);
+ const exact=unique.filter(c=>categoryMatches(c.label,query));
+ if(exact.length)return exact.length===1?exact[0]:null;
+ const related=unique.filter(c=>{const words=repairScope.words(c.label);return terms.length&&terms.every(t=>words.includes(t));});
+ return related.length===1?related[0]:null;
+}
+
+export async function searchProductVehicleCategory(page,request,selected,{selectVehicle=selectCatalogueVehicle}={}){
+ const {sku,brand,description,unitNetPence,inStock}=selected.productDetails;
+ const observed={stage:'GSF_SEARCH_PRODUCT_VEHICLE_CHECK',selectedProduct:{sku,brand,description,unitNetPence,inStock}};
+ const fail=detail=>{throw Object.assign(Error('REVIEW_REQUIRED'),{code:'REVIEW_REQUIRED',supplier:'GSF',detail,observed});};
+ let searchUrl;try{searchUrl=new URL(selected.searchUrl);}catch{fail('SEARCH_PRODUCT_RESULTS_URL_MISSING');}
+ if(searchUrl.origin!=='https://trade.gsfcarparts.com'||searchUrl.username||searchUrl.password||!searchUrl.pathname.startsWith('/enhancedSearch/'))fail('SEARCH_PRODUCT_RESULTS_URL_MISSING');
+ const check=()=>{const u=new URL(page.url());if(u.origin!==searchUrl.origin||/^\/(?:sign-?in|log-?in)(?:\/|$)/i.test(u.pathname))throw Object.assign(Error('LOGIN_REQUIRED'),{code:'LOGIN_REQUIRED',supplier:'GSF'});};
+ check();await page.keyboard.press('Escape');
+ if(new URL(page.url()).pathname!==searchUrl.pathname)await page.goto(searchUrl.href,{waitUntil:'domcontentloaded',timeout:15000});
+ let results;
+ for(let i=0;i<15;i++){
+  check();results=await page.evaluate(readCatalogueResults,{query:selected.scope.query});
+  if(results.pageState?.visibleMainCount===1&&!results.pageState.busy&&!results.pageState.loadingMessage)break;
+  // Some product overlays ignore Escape; reload only the actual results URL.
+  if(i===4)await page.goto(searchUrl.href,{waitUntil:'domcontentloaded',timeout:15000});
+  if(i<14)await page.waitForTimeout(200);
+ }
+ observed.categoryLabels=results?.controls?.map(c=>c.label).slice(0,30)||[];
+ if(results?.pageState?.visibleMainCount!==1||results.pageState.busy||results.pageState.loadingMessage)fail('SEARCH_PRODUCT_RESULTS_NOT_RESTORED');
+ const control=productVerificationCategory(results,selected.scope.query);
+ if(!control)fail('SEARCH_PRODUCT_VEHICLE_CATEGORY_AMBIGUOUS');
+ const followed=await followExactCategorySuggestion(page,control.label,categoryChoiceId(control));
+ if(!followed.category)fail('SEARCH_PRODUCT_VEHICLE_CATEGORY_NOT_OPEN');
+ observed.category=followed.category;
+ // Category pages carry the selected vehicle even when the global search and
+ // product overlay do not. Restore the requested registration if necessary.
+ for(let i=0;i<5;i++){
+  check();const vehicle=await page.evaluate(readServiceCategory,{registration:request.registration,category:followed.category});
+  if(vehicle.selectedRegistration&&vehicle.registration===request.registration)return followed.category;
+  if(i<4)await page.waitForTimeout(200);
+ }
+ await selectVehicle(page,request.registration);
+ return followed.category; // The normal catalogue capture verifies it again.
 }
 
 // Resolve the supplier's own category link from its live search. The label/URL

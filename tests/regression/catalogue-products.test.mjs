@@ -48,7 +48,7 @@ test('the same product chooser handles arbitrary descriptions and retains supply
 function browser({fitment=true,vehicle=true,price=2000,description='Wheel Speed / ABS Sensor - Front LH'}={}){
  let url='',opened=false,presses=0,clicks=[];
  const productsDoc=()=>description==='ABS Sensor'?doc('<main>'+suggestions+card(description)+'</main>'):searchDoc();
- const page={url:()=>url,goto:async v=>{url=v;opened=false;},waitForTimeout:async()=>{},evaluate:async(fn,input)=>{
+ const page={keyboard:{press:async()=>{}},url:()=>url,goto:async v=>{url=v;opened=false;},waitForTimeout:async()=>{},evaluate:async(fn,input)=>{
   if(fn===readCatalogueSearchState)return readCatalogueSearchState(doc(suggestions));
   if(fn===readSearchProducts)return readSearchProducts(input,productsDoc());
   if(fn===readCatalogueResults)return readCatalogueResults(input,productsDoc());
