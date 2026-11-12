@@ -14,19 +14,30 @@ test('old confirmations and reminders receive useful headings without mistaking 
  assert.equal(title({kind:'correspondence',message:'The parts have arrived.'}),'Workshop message');
  assert.equal(title({kind:'approval_response',details:{status:'declined'}}),'Work not authorised');
 });
-test('customer conversation hides message bodies initially and keeps an opened email open after a new message arrives',async()=>{
+test('customer emails stay as links and open in a separate view through refresh, close and reopen',async()=>{
  const {window,document}=parseHTML(readFileSync('public/track.html','utf8'));document.hidden=false;
- const data={booking:{registration:'TEST001',booking_date:'2026-11-12',can_message:true},events:[{id:'confirmation',seq:1,kind:'correspondence',actor:'workshop',created_at:'2026-11-11T09:00:00Z',message:'Your booking is confirmed\n\nFull message with parking instructions.'}],approvals:[],original:null};
+ const data={booking:{registration:'TEST001',booking_date:'2026-11-12',can_message:true},events:[{id:'confirmation',seq:1,kind:'correspondence',actor:'workshop',created_at:'2026-11-11T09:00:00Z',message:'Your booking is confirmed\n\nFull message with parking instructions. https://www.vectamotors.co.uk/track#private-token',details:{delivery:'prepared'}},{id:'note',seq:2,kind:'note',created_at:'2026-11-11T10:00:00Z',message:'Please leave your locking wheel nut key.'}],approvals:[],original:null};
+ const dialog=document.getElementById('portalEmailDialog');let shows=0,focusId=null;
+ dialog.showModal=()=>{shows++;dialog.open=true;};dialog.close=()=>{dialog.open=false;dialog.dispatchEvent(new window.Event('close'));};
  const c={window,document,location:{hash:'#fixture',search:''},Intl,Date,URLSearchParams,AbortSignal,clearTimeout(){},setTimeout(){},fetch:async()=>({ok:true,json:async()=>data})};
  vm.runInNewContext(titles+'\n'+readFileSync('public/js/vecta-customer-portal.js','utf8'),c);await new Promise(r=>setImmediate(r));
- const card=()=>document.querySelector('[data-event-id="confirmation"]');
- assert.equal(card().tagName,'DETAILS');assert.equal(card().hasAttribute('open'),false);
- assert.equal(card().querySelector('summary strong').textContent,'Initial booking confirmation');
- assert.doesNotMatch(card().querySelector('summary').textContent,/parking instructions/);
- assert.match(card().querySelector('.portalEventBody').textContent,/parking instructions/);
- card().setAttribute('open','');data.events.push({id:'reminder',seq:2,kind:'correspondence',actor:'workshop',created_at:'2026-11-12T09:00:00Z',message:'This is a reminder that your car is booked in tomorrow.'});
- await window.VectaCustomerPortal.refresh();
- assert.equal(card().hasAttribute('open'),true);const newest=document.querySelector('.portalEvent');assert.equal(newest.dataset.eventId,'reminder');assert.equal(newest.hasAttribute('open'),false);assert.equal(newest.querySelector('summary strong').textContent,'Booking reminder');
+ const card=()=>document.querySelector('[data-event-id="confirmation"]'),body=document.getElementById('portalEmailBody');
+ assert.equal(card().tagName,'ARTICLE');assert.equal(card().querySelector('.portalEventBody'),null);
+ assert.equal(card().querySelector('button strong').textContent,'Initial booking confirmation');
+ assert.equal(card().querySelector('button').getAttribute('aria-haspopup'),'dialog');
+ assert.doesNotMatch(document.getElementById('portalHistory').textContent,/parking instructions/);assert.equal(body.children.length,0);
+ const note=document.querySelector('[data-event-id="note"]');assert.equal(note.tagName,'DETAILS');assert.equal(note.hasAttribute('open'),false);note.setAttribute('open','');
+ card().querySelector('button').click();assert.equal(shows,1);assert.equal(dialog.open,true);
+ assert.equal(document.getElementById('portalEmailTitle').textContent,'Initial booking confirmation');
+ assert.match(body.textContent,/parking instructions/);assert.match(body.textContent,/Email draft prepared/);assert.doesNotMatch(body.textContent,/private-token/);
+ data.events.push({id:'reminder',seq:3,kind:'correspondence',actor:'workshop',created_at:'2026-11-12T09:00:00Z',message:'This is a reminder that your car is booked in tomorrow.'});
+ await window.VectaCustomerPortal.refresh();assert.equal(dialog.open,true);assert.equal(shows,1);assert.match(body.textContent,/parking instructions/);
+ assert.equal(document.querySelector('[data-event-id="note"]').hasAttribute('open'),true);
+ const newest=document.querySelector('.portalEvent');assert.equal(newest.dataset.eventId,'reminder');assert.equal(newest.querySelector('button strong').textContent,'Booking reminder');assert.equal(newest.querySelector('.portalEventBody'),null);
+ card().querySelector('button').focus=()=>{focusId='confirmation';};document.getElementById('portalEmailClose').click();
+ assert.equal(dialog.open,false);assert.equal(body.children.length,0);assert.equal(focusId,'confirmation');
+ newest.querySelector('button').click();assert.equal(shows,2);assert.equal(document.getElementById('portalEmailTitle').textContent,'Booking reminder');assert.match(body.textContent,/booked in tomorrow/);assert.doesNotMatch(body.textContent,/parking instructions/);
+ dialog.close();assert.equal(body.children.length,0);
 });
 test('saved job types collapse without losing selected types; new jobs, quotes and provisional bookings stay open',()=>{
  const html=readFileSync('index.html','utf8'),expression=html.split('\n').find(line=>line.startsWith("'<details class=\"jobTypesDisclosure\"" )).replace(/\+$/,'');
