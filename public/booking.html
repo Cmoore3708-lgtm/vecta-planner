@@ -237,6 +237,14 @@ function serviceExtraSummary(){
  const price=offer?'Extra £'+(offer.totalPence/100).toLocaleString('en-GB',{maximumFractionDigits:2})+' including fitting and VAT.':kind==='spark_plug'?'':'We will confirm the price before fitting.';
  return label+': '+(choice==='check'?'check manufacturer’s guidance; replace if due.':'replacement requested.')+(price?' '+price:'');
 }
+function serviceExtraReviewHtml(){
+ const summary=serviceExtraSummary();if(!summary)return '';
+ const offer=serviceExtraOffer(),quote=liveServiceQuote();
+ if(serviceExtraSelection()!=='replace'||!offer||!quote)return `<div class="review-service-extra">${esc(summary)}</div>`;
+ const label=serviceExtraKind()==='fuel_filter'?'Fuel filter replacement':'Spark plug replacement';
+ const money=pence=>'£'+(pence/100).toLocaleString('en-GB',{maximumFractionDigits:2});
+ return `<div class="review-service-extra"><div class="review-service-extra-heading"><b>${label}</b><span class="review-service-extra-included">Included</span></div><p>${money(offer.totalPence)} of your ${money(quote.totalPence+serviceExtraAddedPence())} service total, including fitting and VAT.</p></div>`;
+}
 function serviceExtraHtml(){
  const kind=serviceExtraKind();if(!kind)return '';
  const petrol=kind==='spark_plug',label=petrol?'Spark plugs':'Fuel filter',choice=serviceExtraSelection(),offer=serviceExtraOffer();
@@ -643,7 +651,7 @@ function stepHtml(){
  const combinedMotService=f.job_types.includes('MOT')&&f.job_types.includes('Service');
  const additionalWorkHtml=additionalWorkLabels.map(label=>label==='MOT'?`<span class="review-mot-line"><b>MOT</b><span class="review-mot-price">${combinedMotService?'<del aria-label="Original MOT price £65">£65</del> <strong aria-label="Discounted MOT price £60">£60</strong>':'<strong>£65</strong>'}</span></span>${combinedMotService?'<span class="review-mot-saving">£5 saving with your service</span>':''}`:`<b class="review-additional-item">${esc(label)}</b>`).join('');
 
- return `<h2>Review your booking</h2><div class="review">${f.job_types.includes('Service')?`<div class="review-price" aria-label="Service guide pricing">${pricingHtml()}</div>`:''}${serviceExtraSummary()?`<div class="review-service-extra">${esc(serviceExtraSummary())}</div>`:''}${additionalWorkLabels.length||showDescription?`<div class="review-work"><small>${f.job_types.includes('Service')?'Additional work':'Work required'}</small>${additionalWorkHtml}${showDescription?`<p>${esc(description)}</p>`:''}</div>`:''}${typeof VectaWorkPhotos!=='undefined'?VectaWorkPhotos.html(f,true):''}${tyreReviewHtml()}${customerPartsSummaryHtml()}${miniValetReviewHtml()}<div class="review-total" data-booking-total aria-live="polite" aria-atomic="true">${bookingTotalContent()}</div><div class="review-appointment"><small>Appointment</small><b class="appointment-review">${f.appointment_date?prettyDate(f.appointment_date):'No appointment selected'}</b></div><div class="review-contact"><small>Contact</small><b>${esc(f.customer_name)}</b><p>${esc(f.email)}<br>${esc(f.phone)}</p></div></div>${seriousRepairChoiceHtml()}`
+ return `<h2>Review your booking</h2><div class="review">${f.job_types.includes('Service')?`<div class="review-price" aria-label="Service guide pricing">${pricingHtml()}${serviceExtraReviewHtml()}</div>`:''}${additionalWorkLabels.length||showDescription?`<div class="review-work"><small>${f.job_types.includes('Service')?'Additional work':'Work required'}</small>${additionalWorkHtml}${showDescription?`<p>${esc(description)}</p>`:''}</div>`:''}${typeof VectaWorkPhotos!=='undefined'?VectaWorkPhotos.html(f,true):''}${tyreReviewHtml()}${customerPartsSummaryHtml()}${miniValetReviewHtml()}<div class="review-total" data-booking-total aria-live="polite" aria-atomic="true">${bookingTotalContent()}</div><div class="review-appointment"><small>Appointment</small><b class="appointment-review">${f.appointment_date?prettyDate(f.appointment_date):'No appointment selected'}</b></div><div class="review-contact"><small>Contact</small><b>${esc(f.customer_name)}</b><p>${esc(f.email)}<br>${esc(f.phone)}</p></div></div>${seriousRepairChoiceHtml()}`
 }
 // Keep the journey clock outside render: availability/photo updates must not replay it.
 function bookingProgressHtml(){
@@ -1126,7 +1134,10 @@ window.matchMedia?.('(prefers-reduced-motion: reduce)').addEventListener?.('chan
 .service-extra-strip select{display:block;width:100%;max-width:100%;min-height:40px;border:1px solid #74808c;border-radius:5px;padding:5px 8px;background:#303943;color:#fff;font:16px Arial,sans-serif;margin:0}
 .service-extra-strip p.service-extra-price{font-size:12px;line-height:1.3;margin:5px 0 0;color:#e0e5eb}
 .service-extra-plugs{display:block;width:38px;height:28px;background:url('/assets/service-parts.webp') right center/200% 100% no-repeat;filter:invert(1) grayscale(1);mix-blend-mode:screen}
-.review-service-extra{padding:10px 0;font:14px/1.5 Arial,sans-serif;color:#17212b;border-bottom:1px solid #e5e7eb}
+.review-service-extra{margin-top:16px;padding-top:14px;font:14px/1.5 Arial,sans-serif;color:#17212b;border-top:1px solid #e5e7eb}
+.review-service-extra-heading{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px 12px}
+.review-service-extra-included{padding:3px 9px;border-radius:6px;background:#eaf6ee;color:#27643d;font-size:12px;font-weight:800}
+.review .review-service-extra p{margin:7px 0 0;color:#4b5e53;font-size:13px}
 </style>
 
 <style id="booking-soft-final-pages">
