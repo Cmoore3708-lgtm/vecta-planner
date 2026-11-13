@@ -261,7 +261,9 @@ test('legacy repairs cannot wrap cloud loading or Fleet navigation', () => {
 test('reconnect performs one guarded foreground dashboard refresh', () => {
   const html = fs.readFileSync(new URL('../../index.html', import.meta.url), 'utf8');
   assert.equal((html.match(/addEventListener\('online'/g) || []).length, 1);
-  assert.match(html, /addEventListener\('online',[\s\S]{0,300}refreshPlannerCoreFromCloudAndRender\(\)/);
+  assert.match(html, /addEventListener\('online',vectaHandleReconnect\)/);
+  const reconnect=html.slice(html.indexOf('async function vectaHandleReconnect(){'),html.indexOf('function init(){'));
+  assert.equal((reconnect.match(/refreshPlannerCoreFromCloudAndRender\(\)/g)||[]).length,1);
   assert.doesNotMatch(html, /await vectaPrimeJobsFromCloud\(\);await vectaLoadTerminalJobStatesFromCloud\(\);vectaApplyTerminalJobStates\(\);await flushPendingSync\(\);await vectaPrimeJobsFromCloud\(\)/);
 });
 
