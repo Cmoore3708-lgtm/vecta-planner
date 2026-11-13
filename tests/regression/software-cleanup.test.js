@@ -2,18 +2,20 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import test from 'node:test';
 import vm from 'node:vm';
+import '../../public/js/vecta-job-rules.js';
 
 const html=readFileSync(new URL('../../index.html',import.meta.url),'utf8');
 const source=name=>html.split('\n').find(line=>line.startsWith('function '+name+'('));
 
 test('Admin retains existing monthly charges and tax entries, newest first, without generating jobs',()=>{
  const jobs=[
+  {id:'deleted-admin',source:'monthly_admin',status:'deleted',booking_date:'2026-11-30'},
   {id:'monthly-old',source:'monthly_admin',booking_date:'2026-09-30',work_required:'Fleet maintenance'},
   {id:'ordinary',booking_date:'2026-10-21',work_required:'Repair'},
   {id:'tax',tax:true,booking_date:'2026-10-20',work_required:'Vehicle tax'},
   {id:'monthly-new',source:'monthly_admin',booking_date:'2026-10-31',work_required:'Fleet maintenance'}
  ];
- const before=JSON.stringify(jobs),context={app:{jobs},isVehicleTaxJob:j=>j.tax===true};
+ const before=JSON.stringify(jobs),context={app:{jobs},vectaJobIsDeletedForLists:j=>globalThis.VectaJobRules.isDeleted(j),isVehicleTaxJob:j=>j.tax===true};
  vm.runInNewContext(source('jobsForList'),context);
  assert.deepEqual(Array.from(context.jobsForList('admin'),j=>j.id),['monthly-new','tax','monthly-old']);
  assert.equal(JSON.stringify(jobs),before);

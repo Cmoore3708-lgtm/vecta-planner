@@ -3,8 +3,8 @@
  const doc=root.document,pending=new Map();
  // The build pins these URLs to the current release. Offline-only links in the
  // shell let the worker store the files without executing optional tools.
- const paths={service:'/js/haynes-service-sheet.js',repair:'/js/vecta-repair-quote.js',tracker:'/js/vecta-monthly-tracker.js'};
- const ready={service:()=>typeof root.initHaynesServiceSheet==='function'&&root.initHaynesServiceSheet!==initService,repair:()=>typeof root.VectaRepairQuote?.mount==='function'&&root.VectaRepairQuote.mount!==mountRepair,tracker:()=>typeof root.VectaMonthlyTracker?.download==='function'&&root.VectaMonthlyTracker.download!==downloadTracker};
+ const paths={service:'/js/haynes-service-sheet.js',repair:'/js/vecta-repair-quote.js',tracker:'/js/vecta-monthly-tracker.js',recovery:'/js/vecta-job-recovery.js'};
+ const ready={recovery:()=>typeof root.VectaJobRecovery?.restore==='function'&&root.VectaJobRecovery.restore!==restoreJob,service:()=>typeof root.initHaynesServiceSheet==='function'&&root.initHaynesServiceSheet!==initService,repair:()=>typeof root.VectaRepairQuote?.mount==='function'&&root.VectaRepairQuote.mount!==mountRepair,tracker:()=>typeof root.VectaMonthlyTracker?.download==='function'&&root.VectaMonthlyTracker.download!==downloadTracker};
  function load(name){
   if(ready[name]())return Promise.resolve();
   if(pending.has(name))return pending.get(name);
@@ -49,6 +49,11 @@
   try{await load('tracker');return root.VectaMonthlyTracker.download(...args);}
   catch(error){root.alert('The monthly spreadsheet could not be downloaded. '+error.message);}
  }
+ async function restoreJob(id){
+  try{await load('recovery');return await root.VectaJobRecovery.restore(id);}
+  catch(error){root.alert('Could not load job recovery. '+error.message);return false;}
+ }
+ root.VectaJobRecovery={restore:restoreJob};
  root.initHaynesServiceSheet=initService;
  root.prepareHaynesServicePrint=async function(scope){await load('service');return root.prepareHaynesServicePrint(scope);};
  root.openServiceResetProcedure=function(){load('service').then(()=>root.openServiceResetProcedure()).catch(error=>root.alert(error.message));};

@@ -38,3 +38,8 @@ for(const url of optional){
   assert.ok(loaderSource.includes(url),'offline and runtime optional URLs must identify the same release');
 }
 console.log(JSON.stringify({mainPayloadBytes:raw,mainPayloadGzipBytes:gzip,indexBytes:Buffer.byteLength(html),initialExternalScriptBytes:initial.reduce((sum,url)=>sum+fs.statSync('dist'+url.split('?')[0]).size,0),optionalScriptBytes:optional.reduce((sum,url)=>sum+fs.statSync('dist'+url).size,0)}));
+
+const recovery=loaderSource.match(/\/assets\/vecta-job-recovery-[a-f0-9]{10}\.js/);
+assert.ok(recovery,'job recovery must load from an immutable release URL');
+assert.ok(!initial.includes(recovery[0]),'job recovery must not execute at startup');
+assert.ok(fs.existsSync('dist'+recovery[0]),'job recovery asset must be deployed');
