@@ -20,7 +20,7 @@ const deleted={...original,archived:true,updated_at:deletedAt,customer_note:orig
 const restored={...original,updated_at:restoredAt,customer_note:original.customer_note+'\n[[VECTA_RESTORE_JOB:'+restoredAt+']]'};
 function context(extra={}){
  const storage=new Map(),c={Date,console,window:{VectaJobRules:globalThis.VectaJobRules},navigator:{onLine:true},localStorage:{getItem:k=>storage.get(k)||null,setItem:(k,v)=>storage.set(k,v)},VECTA_DELETED_JOB_IDS_KEY:'tombstones',vectaTerminalJobStates:{},app:{jobs:[],invoices:[]},saveLocal(){},render(){},invalidateFinanceDashboardCache(){},fromRemote:x=>({...x}),vectaApplyExplicitUndo:x=>x,vectaUndoStamp:()=>0,isJobInvoiced:()=>false,vectaSyntheticCompletionNeedsRepair:()=>false,vectaValidJobDate:v=>String(v||'').slice(0,10),vectaCompletionDateRepairs:{},vectaQueuedJobOperations:()=>({}),normReg:v=>v.replace(/\s/g,''),isVehicleTaxJob:()=>false,financeBaseJob:x=>x,isUnallocatedJob:x=>x.technician==='Unallocated',todayIso:()=>meta.booking_date,plannerTechnicianLane:x=>x,clockMinutes:v=>Number(v.split(':')[0])*60+Number(v.split(':')[1]),jobVehicleLabel:x=>x.registration,vectaPendingSync:()=>[],vectaSavePendingSync(){},vectaArchiveSyncItems(){},vectaNormaliseQueuedItem:x=>x,confirm:()=>true,...extra};
- vm.createContext(c);vm.runInContext(source,c);return c;
+ vm.createContext(c);vm.runInContext(source,c);vm.runInContext(fs.readFileSync(new URL('../../public/js/vecta-job-recovery.js',import.meta.url),'utf8'),c);return c;
 }
 function markDeleted(c,at=deletedAt){c.vectaSetTerminalJobStateLocal('job-1',{state:'deleted',deleted_at:at,updated_at:at});}
 test('cloud refresh and terminal reconciliation retain recoverable rows only in Deleted Jobs',()=>{

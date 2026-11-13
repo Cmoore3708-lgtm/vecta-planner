@@ -39,3 +39,10 @@ test('monthly export waits for its helper and a failed export can be tried again
  const c=setup(),exports=[];const first=c.window.VectaMonthlyTracker.download('2026-11',[['TEST',100]],[],{total:100});assert.equal(c.scripts().length,1);c.scripts()[0].onerror();await first;assert.equal(c.messages.length,1);
  const next=c.window.VectaMonthlyTracker.download('2026-11',[['TEST',100]],[],{total:100});c.window.VectaMonthlyTracker={download:(...args)=>exports.push(args)};c.scripts()[0].onload();await next;assert.equal(exports.length,1);assert.equal(exports[0][0],'2026-11');assert.equal(exports[0][3].total,100);
 });
+
+test('job recovery loads only on Restore, shares downloads and retries after load failure',async()=>{
+ const c=setup();assert.equal(c.scripts().length,0);
+ const failed=c.window.VectaJobRecovery.restore('job-1');assert.match(c.scripts()[0].src,/vecta-job-recovery\.js$/);c.scripts()[0].onerror();assert.equal(await failed,false);assert.equal(c.messages.length,1);
+ const a=c.window.VectaJobRecovery.restore('job-1'),b=c.window.VectaJobRecovery.restore('job-2'),calls=[];assert.equal(c.scripts().length,1);
+ c.window.VectaJobRecovery={restore:async id=>{calls.push(id);return true}};c.scripts()[0].onload();assert.deepEqual(await Promise.all([a,b]),[true,true]);assert.deepEqual(calls,['job-1','job-2']);
+});
