@@ -2,14 +2,14 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import vm from 'node:vm';
-const html=fs.readFileSync('index.html','utf8');
-const source=html.slice(html.indexOf('var vectaSupabaseLoadPending='),html.indexOf('async function loadCloudConfig('));
+const source=fs.readFileSync('public/js/vecta-workshop-access.js','utf8');
 const tick=()=>new Promise(resolve=>setImmediate(resolve));
 function harness(){
  const timers=[],scripts=[],nodes=new Map(),window={};
  const document={getElementById:id=>nodes.get(id),createElement:()=>({remove(){nodes.delete(this.id);this.removed=true}}),head:{appendChild(script){scripts.push(script);nodes.set(script.id,script)}}};
+ window.document=document;
  const c={window,document,Promise,setTimeout(fn){timers.push(fn);return timers.length},clearTimeout(){}};
- vm.runInNewContext(source,c);return {c,window,timers,scripts,load:()=>new Promise(resolve=>c.ensureSupabase(resolve))};
+ vm.runInNewContext(source,c);return {c,window,timers,scripts,load:()=>new Promise(resolve=>window.VectaWorkshopAccess.loadSdk(resolve))};
 }
 test('a failed SDK fetch is removed and retried successfully without reloading the page',async()=>{
  const h=harness(),first=h.load();await tick();h.scripts[0].onerror();assert.equal(await first,false);assert.equal(h.scripts[0].removed,true);

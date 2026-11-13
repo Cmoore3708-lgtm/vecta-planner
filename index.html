@@ -10019,32 +10019,8 @@ function vectaWithTimeout(value,ms,label){
     new Promise(function(_resolve,reject){timer=setTimeout(function(){reject(new Error((label||'Cloud request')+' timed out after '+Math.round(ms/1000)+' seconds.'));},ms);})
   ]).finally(function(){if(timer)clearTimeout(timer)});
 }
-var vectaSupabaseLoadPending=null;
 function ensureSupabase(cb){
-  if(window.supabase){cb(true);return;}
-  if(!vectaSupabaseLoadPending){
-    vectaSupabaseLoadPending=new Promise(function(resolve){
-      var finished=false,script=null;
-      function done(ok){
-        if(finished)return;finished=true;clearTimeout(timer);
-        if(!ok&&script)script.remove();
-        vectaSupabaseLoadPending=null;resolve(!!ok);
-      }
-      var timer=setTimeout(function(){done(false)},15000);
-      Promise.resolve(window.__vectaCacheResetPromise).catch(function(){}).then(function(){
-        if(finished)return;
-        // A failed download must be replaceable on the next recovery attempt.
-        script=document.getElementById('supabaseScript');
-        if(script)script.remove();
-        script=document.createElement('script');script.id='supabaseScript';
-        script.src='/supabase.min.js?v=20260901-refresh2';script.async=true;
-        script.onload=function(){done(!!window.supabase)};
-        script.onerror=function(){done(false)};
-        document.head.appendChild(script);
-      });
-    });
-  }
-  vectaSupabaseLoadPending.then(cb);
+  if(window.VectaWorkshopAccess)window.VectaWorkshopAccess.loadSdk(cb);else cb(false);
 }
 async function loadCloudConfig(options){
   options=options||{};
@@ -10883,7 +10859,7 @@ function startCloudSync(){
   }
 }
 async function vectaHandleReconnect(){
-  if(window.__vectaRetryCloudStartup){var startup=window.__vectaRetryCloudStartup();if(startup!==null)return startup;}
+  if(window.__vectaRetryStartup){var startup=window.__vectaRetryStartup();if(startup!==null)return startup;}
   if(!navigator.onLine||cloudRefreshBusy)return false;
   cloudLastRefreshAt=0;
   updateConnectivityUI('syncing');
@@ -10924,11 +10900,10 @@ function init(){safe(async function(){
   /* Backups must never block startup. */
   vectaCreateDailyBackup(false,'startup-local').catch(function(e){console.warn('Startup backup skipped',e)});
   setInterval(function(){checkForNewWorkshopDay();if(view==='planner')updateCurrentTimeLine()},30000);
-  var cloudStartupPending=null,cloudStartupComplete=false;
+  var startupPending=false,startupComplete=false;
   async function connectCloud(){
-    if(cloudStartupPending)return cloudStartupPending;
-    cloudStartupPending=(async function(){
-      try{
+    startupPending=true;
+    try{
       var configured=await loadCloudConfig({silent:true});
       if(!navigator.onLine||!configured){
         vectaCloudReachable=false;
@@ -10936,17 +10911,11 @@ function init(){safe(async function(){
         if(typeof window.v359RepairFalseServiceCompletions==='function')window.v359RepairFalseServiceCompletions();
         clearTimeout(vectaStartupWatchdog);vectaSetStartupLoading(false);render();updateConnectivityUI();return;
       }
-      var ok=await new Promise(function(resolve){ensureSupabase(resolve)});
-      if(!ok)throw new Error('Workshop connection library could not be loaded.');
-      if(!connectSupabase())throw new Error('Workshop cloud connection could not be created.');
+      if(!(await new Promise(ensureSupabase))||!connectSupabase())throw new Error('Cloud client unavailable.');
       if(window.VectaWorkshopAccess)await window.VectaWorkshopAccess.token();
-      /* V344: do not spend the mobile startup budget on a duplicate short ping.
-         The authoritative jobs/tasks download below is the real connection test. */
       /* Do not advertise Online until the authoritative jobs/tasks request has
          completed. navigator.onLine only proves that the device has a network. */
       vectaCloudReachable=null;updateConnectivityUI('syncing');
-      /* V288: jobs + tasks + terminal states are fetched in parallel, reconciled in memory,
-         and only then is the dashboard exposed. Stale local cards can no longer flash first. */
       await vectaPrimeAuthoritativeDashboard();
       /* Fleet is a whole-snapshot record. Hydrate it before any startup import can
          call saveFleet(), otherwise a stale device can overwrite newer manual dates. */
@@ -10956,14 +10925,12 @@ function init(){safe(async function(){
         var falseServiceAudit=window.v359RepairFalseServiceCompletions();
         if((authoritativeIngress.preJulyChanged||falseServiceAudit.changed)&&remoteClient)await persistFleetCloudSnapshot();
       }
-      /* V343: never wait for IndexedDB before displaying downloaded jobs. iOS can
-         leave a backup write pending indefinitely; persistence must be background-only. */
+      // iOS backup storage must not block downloaded jobs.
       vectaCreateDailyBackup(true,'cloud-synchronised').catch(function(e){console.warn('Cloud-synchronised backup skipped',e)});
       importContractor2026Spreadsheet();ensureServiceTemplates();ensureRecurringWorkshopTasks();
       clearTimeout(vectaStartupWatchdog);vectaSetStartupLoading(false);render();updateConnectivityUI();
-      startCloudSync();cloudStartupComplete=true;
-      /* V345: allow the iPhone's main thread to remain fully interactive. Heavy
-         repair/synchronisation is delayed instead of starting on the next tick. */
+      startCloudSync();startupComplete=true;
+      // Defer heavy maintenance so the phone remains responsive.
       setTimeout(async function(){
         try{
           await flushPendingSync();
@@ -10978,24 +10945,23 @@ function init(){safe(async function(){
       },120000);
       return true;
     }catch(e){
-      console.warn('Supabase startup unavailable; continuing in offline workshop mode.',e);clearTimeout(vectaStartupWatchdog);vectaCloudReachable=false;updateConnectivityUI();vectaSetStartupLoading(false);render();return false;
+      console.warn('Cloud startup failed; will retry.',e);clearTimeout(vectaStartupWatchdog);vectaCloudReachable=false;updateConnectivityUI();vectaSetStartupLoading(false);render();return false;
     }
-    })();
-    try{return await cloudStartupPending}finally{cloudStartupPending=null}
+    finally{startupPending=false}
   }
   async function recoverCloud(){
-    if(VECTA_AUDIT_PREVIEW||!navigator.onLine||document.visibilityState==='hidden'||cloudStartupPending||cloudRefreshBusy)return false;
-    if(cloudStartupComplete&&vectaCloudReachable===true)return true;
+    if(VECTA_AUDIT_PREVIEW||!navigator.onLine||document.visibilityState==='hidden'||startupPending||cloudRefreshBusy)return false;
+    if(startupComplete&&vectaCloudReachable===true)return true;
     // Do not replace a job card or an invoice while somebody is editing it.
     var active=document.activeElement;
     if(document.querySelector('.modal.open')||(active&&active.matches&&active.matches('input,textarea,select')))return false;
     updateConnectivityUI('checking');
-    return cloudStartupComplete?vectaHandleReconnect():connectCloud();
+    return startupComplete?vectaHandleReconnect():connectCloud();
   }
   // Install recovery before the first request: a failed cold start must not
   // depend on startCloudSync having already succeeded. iOS may remain online
   // throughout a suspension, so foreground events and a slow retry are needed.
-  window.__vectaRetryCloudStartup=function(){return cloudStartupComplete?null:recoverCloud()};
+  window.__vectaRetryStartup=function(){return startupComplete?null:recoverCloud()};
   if(!window.__vectaOnlineRefreshBound){
     window.__vectaOnlineRefreshBound=true;
     window.addEventListener('online',vectaHandleReconnect);

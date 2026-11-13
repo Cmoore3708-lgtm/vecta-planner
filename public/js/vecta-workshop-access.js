@@ -3,6 +3,28 @@
  let session=null,pending=null,timer=null;
  const clients=new Map();
  let writeVersion=0,activeWrites=0;
+ // Keep SDK loading retryable after a phone network timeout.
+var sdkPending=null;
+function loadSdk(cb){
+  if(root.supabase){cb(true);return;}
+  if(sdkPending){sdkPending.push(cb);return;}
+  sdkPending=[cb];
+  var finished=false,script=null,timer=setTimeout(function(){done(false)},15000);
+  function done(ok){
+    if(finished)return;finished=true;clearTimeout(timer);
+    if(!ok&&script)script.remove();
+    var callbacks=sdkPending;sdkPending=null;
+    callbacks.forEach(function(callback){callback(!!ok)});
+  }
+  Promise.resolve(root.__vectaCacheResetPromise).catch(function(){}).then(function(){
+    if(finished)return;
+    script=root.document.getElementById('supabaseScript');if(script)script.remove();
+    script=root.document.createElement('script');script.id='supabaseScript';
+    script.src='/supabase.min.js?v=20260901-refresh2';script.async=true;
+    script.onload=function(){done(!!root.supabase)};script.onerror=function(){done(false)};
+    root.document.head.appendChild(script);
+  });
+}
  function schedule(){
   clearTimeout(timer);
   if(!session)return;
@@ -42,5 +64,5 @@
  }
  root.addEventListener?.('online',()=>{if(clients.size)token().catch(()=>{});});
  root.addEventListener?.('focus',()=>{if(clients.size)token().catch(()=>{});});
- root.VectaWorkshopAccess={createClient,token,readState:()=>({version:writeVersion,writing:activeWrites>0})};
+ root.VectaWorkshopAccess={createClient,token,loadSdk,readState:()=>({version:writeVersion,writing:activeWrites>0})};
 })(window);
