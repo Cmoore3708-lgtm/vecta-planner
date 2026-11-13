@@ -261,7 +261,7 @@ function serviceOptionsHtml(){
     const interval=choice==='Oil & Filter Change'?'6 months / 6,000 miles':choice==='Major Service'?'24 months / 24,000 miles':'12 months / 12,000 miles';
     return `<button type="button" class="service-option service-compact ${tier} ${f.service_choice===choice?'selected':''}" data-service-choice="${choice}" aria-pressed="${f.service_choice===choice}"><span class="service-compact-head"><span class="service-title-row"><strong>${title}</strong></span><span class="service-compact-price">${choice==='EV Servicing'?'<span class="price">Price on request</span><span class="ev-price-guide">Normally £90 - £150</span>':`<span class="price-label">${liveServiceQuote(choice)?.request.service===choice?(liveServiceQuote(choice).guidePrice?'Guide price':'Price including VAT'):serviceGuideFallback()&&band&&!band.individual?'Guide price':''}</span><span class="price ${servicePriceState.status==='loading'?'service-price-pulsing':''}" aria-live="polite">${servicePriceLabel(choice,band)}</span>`}</span></span><span class="service-compact-middle"><span class="service-interval"><span class="service-interval-top"><span class="service-calendar">${calendar}</span>${freeClean?'<span class="free-clean">FREE<br>WASH &amp; HOOVER</span>':''}</span><span class="service-interval-caption">Ideal every</span><b>${interval}</b></span>${serviceVehicleHtml()||`<span class="service-icon ${tier}">${icons[tier]}</span>`}</span>${majorServiceFuelFilterNote(choice)}<span class="service-features">${features.map(x=>`<span class="service-feature">${x}</span>`).join('')}</span></button>`;
   };
-  return `<div class="service-picker"><div class="service-picker-head"><h3>Select a Service</h3>${ev?'':'<div class="service-price-notice"><span class="service-notice-label">SERVICE PRICE UPDATE</span><p>Engine oil prices have almost doubled since 2025</p></div>'}</div>${enginePicker}${livePriceNotice}<div class="service-options">
+  return `<div class="service-picker"><div class="service-picker-head">${ev?'':'<div class="service-price-notice"><span class="service-notice-label">SERVICE PRICE UPDATE</span><p>Engine oil prices have almost doubled since 2025</p></div>'}<h3>Select a Service</h3></div>${enginePicker}${livePriceNotice}<div class="service-options">
     ${ev?'':card('Oil & Filter Change','Interim Service','bronze','Engine oil & Filter change with all other fluids checked and topped up - ideal every 6 months or 6,000 miles.',['Engine oil changed','Oil filter replaced','All other fluids topped up and tested','Service book stamped'],false,false)}
     ${ev?'':`<div class="service-full-with-extra">${card('Full Service','Full Service','silver','Our annual comprehensive service covering the key safety and service items.',['Engine oil & filter change','Air filter change','Cabin/Pollen filter change','All other fluids topped up and tested','Comprehensive health check & report','Service book stamped'],true,false)}${serviceExtraHtml()}</div>`}
 
@@ -556,7 +556,7 @@ function otherWorkOptionsHtml(){
   <li class="nevos-repair"><strong>Local paint/crash damage:</strong><span>We can repair your NEVOS bodywork damage to OEM standard.</span></li>
  </ul>`;
  if(nevos)return `<section class="other-work-options nevos-services-options" aria-labelledby="otherWorkTitle">${car}<div class="other-work-services"><h3 id="otherWorkTitle">We offer a range of services for NEVOS customers:</h3>${nevosServices}</div></section>`;
- return `<section class="other-work-options" aria-labelledby="otherWorkTitle">${car}<div class="other-work-services"><h3 id="otherWorkTitle">Other work we do</h3><ul id="other-work-help"><li>ECU remaps</li><li>Bodywork repairs</li><li>Diagnostics</li><li>Exhausts</li><li>Brakes</li><li>Suspension</li><li>Towbars</li><li>Valeting</li><li>Batteries</li><li>Puncture repairs</li></ul><details class="other-work-nevos"><summary>NEVOS?</summary><div class="other-work-nevos-content">${nevosServices}<p class="other-work-nevos-note">*We aren’t able to service your NEVOS</p></div></details></div></section>`;
+ return `<section class="other-work-options" aria-labelledby="otherWorkTitle">${car}<div class="other-work-services"><h3 id="otherWorkTitle">Other work we do</h3><ul id="other-work-help"><li>ECU remaps</li><li>Bodywork repairs</li><li>Diagnostics</li><li>Exhausts</li><li>Brakes</li><li>Suspension</li><li>Towbars</li><li>Valeting</li><li>Batteries</li><li>Puncture repairs</li></ul></div></section>`;
 }
 function workTypeCardsHtml(nevosBlocksService){let f=state.form;let meta={
 'Service':['Service','All makes and models','<svg viewBox="0 0 24 24"><path d="M12 3v6"/><path d="M8.5 5.5 12 2l3.5 3.5"/><path d="M5 11h14"/><path d="M7 11v8h10v-8"/></svg>'],
@@ -1088,7 +1088,7 @@ input[type="checkbox"]:checked,input[type="radio"]:checked{box-shadow:0 0 12px r
 @keyframes vecta-frame-pulse{0%,100%{border-color:rgb(var(--pulse-rgb));box-shadow:0 0 5px rgba(var(--pulse-rgb),.27)}50%{border-color:var(--pulse-bright);box-shadow:0 0 0 4px rgba(var(--pulse-rgb),.2),0 0 18px rgba(var(--pulse-rgb),.8),0 0 32px rgba(var(--pulse-rgb),.4)}}
 @keyframes vecta-tick-pulse{0%,100%{scale:1;filter:drop-shadow(0 0 1px currentColor)}50%{scale:1.13;filter:drop-shadow(0 0 5px currentColor)}}
 .service-option.selected,.work-type-option.on,.tyre-option.selected,.tyre-guide-card.selected,.tyre-brand-choice.selected,.parts-range-option.selected,.returning-buttons button.selected,.advisory-choice button.selected,.nevos-choice button.selected,.slot.selected,.mot-calendar-day.selected,.type.on,.customer-choice label:has(input:checked),.advisory-tyre-options button.selected{--pulse-rgb:53,213,138;--pulse-bright:#92ffbf;border-width:2px;animation:vecta-frame-pulse 3.4s ease-in-out infinite}
-.service-price-notice{--pulse-rgb:255,41,61;--pulse-bright:#ff8993;padding:18px;border:2px solid #c93a48;border-radius:12px;background:#291b20;animation:vecta-frame-pulse 3.4s ease-in-out infinite;text-shadow:none}
+.service-price-notice{margin:0 0 18px;--pulse-rgb:255,41,61;--pulse-bright:#ff8993;padding:18px;border:2px solid #c93a48;border-radius:12px;background:#291b20;animation:vecta-frame-pulse 3.4s ease-in-out infinite;text-shadow:none}
 .service-notice-label{display:block;color:#ffadb2;font-size:11px;font-weight:700;letter-spacing:1.8px;margin-bottom:9px}
 .service-picker-head .service-price-notice p{color:#fff;margin:0}
 .work-type-option.on:after,.tyre-option.selected:after,.parts-range-option.selected:before,.tyre-brand-choice.selected .tyre-brand-check,.service-feature:before,.vehicle-identified-tick,.progress-number.complete{animation:vecta-tick-pulse 3.4s ease-in-out infinite;transform-origin:center}
@@ -1175,13 +1175,6 @@ window.matchMedia?.('(prefers-reduced-motion: reduce)').addEventListener?.('chan
 .other-work-services h3{margin:0 0 16px;color:#fff;font-size:20px;line-height:1.3}
 .other-work-services>ul{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px 24px;margin:0;padding-left:20px;color:#e5eaf0;font-size:16px;line-height:1.5}
 .other-work-services li::marker{color:#ef3340}
-.other-work-nevos{margin-top:22px;border-top:1px solid #46505c;padding-top:8px}
-.other-work-nevos>summary{display:list-item;width:max-content;max-width:100%;padding:12px 0;color:#ff9ca6;font-size:16px;font-weight:800;line-height:1.4;cursor:pointer;text-decoration:underline;text-underline-offset:4px;list-style:none}
-.other-work-nevos>summary::-webkit-details-marker{display:none}
-.other-work-nevos>summary:focus-visible{outline:3px solid #fff;outline-offset:4px;border-radius:3px}
-.other-work-nevos-content{padding:2px 0 0;color:#e5eaf0;font-size:15px;line-height:1.65}
-.other-work-nevos-content ul{display:grid;gap:12px;margin:0;padding-left:20px}
-.other-work-nevos-note{margin:18px 0 0;color:#ff9ca6;font-size:14px;font-weight:700}
 @media(min-width:768px){
  .other-work-services>ul:not(.nevos-service-list){grid-template-columns:repeat(3,minmax(0,1fr))}
  .other-work-car:has(img[data-vehicle-ready="1"]){aspect-ratio:auto}
