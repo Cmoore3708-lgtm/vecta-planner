@@ -26,7 +26,7 @@ function harness(){
   remoteClient:{from:client.from.bind(client),channel:()=>channel,removeChannel(){}},
   vectaWithTimeout:async query=>query,uid:()=> 'count-test',saveLocal(){},
   setTimeout(fn,ms){timers.push({fn,ms});return timers.length},clearTimeout(){},setInterval(fn,ms){intervals.push({fn,ms});return intervals.length},clearInterval(){},
-  cloudSyncChannel:null,cloudSyncTimer:null,cloudLastRefreshAt:Date.now(),cloudRefreshDebounce:null,plannerInteractionBusy:false,
+  cloudSyncChannel:null,cloudSyncTimer:null,cloudLastRefreshAt:Date.now(),cloudRefreshDebounce:null,plannerInteractionBusy:false,cloudRefreshBusy:false,
   refreshPlannerCoreFromCloudAndRender:async()=>false,refreshCloudAndRender(){throw Error('Unexpected full cloud reload')},
   flushPendingSync:async()=>{},updateConnectivityUI(){},vectaRunDataIngressMigrations(){},vectaApplyTerminalJobStates(){},
   mergeRemoteRows(local,remote){const map=new Map(local.map(r=>[r.id,r]));for(const row of remote)map.set(row.id,row);return [...map.values()]},
