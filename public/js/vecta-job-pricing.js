@@ -40,8 +40,19 @@ function jobPartDisplayName(p){
  function status(text,busy=false){showActivity(busy);if(!editor?.node.isConnected)return;editor.status.textContent=text;editor.panel.classList.toggle('is-checking',busy);editor.panel.setAttribute('aria-busy',String(busy));editor.retry.disabled=busy;editor.retry.textContent=busy?'Looking up prices…':'Refresh service prices';}
  function renderAdvisor(box=el('servicePricingAdvisor')){
   if(!box||!editor?.node.isConnected||editor.node!==el('job_registration'))return false;
+  // Remove the previous loading/offer view even when no priced invoice row exists.
+  if(box.querySelector('.job-service-loading,[data-service-offer]')){box.innerHTML='';box.style.display='none';}
   const request=input();if(!request)return false;
   if(editor.lookupKey===JSON.stringify(request)&&editor.busy){box.innerHTML='<div class="job-service-loading" role="status"><span class="job-price-spinner" aria-hidden="true"></span><div><strong>Looking up oil and filter prices…</strong><p>'+esc(request.service==='Full Service'?'Engine oil, oil filter, air filter and cabin filter':'Engine oil and oil filter')+'</p></div></div>';box.style.display='';return true;}
+  if(editor.lookupKey===JSON.stringify(request)&&editor.pending){
+   const pending=editor.pending,vat=value('job_vat_mode'),amount=vat==='ex_vat'?Math.round(pending.totalPence/1.2):pending.totalPence;
+   box.style.display='';box.innerHTML='<div data-service-offer role="status"><div class="servicePricingActions"><div><strong>'+esc(request.service)+' price ready</strong><div class="servicePricingNote">Your edits were kept. Use this price when ready.</div></div><div class="servicePricingPrice">'+money(amount)+'<small class="job-price-vat">'+(vat==='ex_vat'?'ex VAT':vat==='no_vat'?'No VAT':'inc VAT')+'</small></div></div><p class="servicePricingNote">'+esc(pending.label)+'</p><button type="button" class="btn dark" data-use-service-price>Use service price</button></div>';
+   box.querySelector('[data-use-service-price]').onclick=editor.apply.onclick;return true;
+  }
+  if(editor.lookupKey===JSON.stringify(request)&&editor.notice){
+   box.style.display='';box.innerHTML='<div data-service-offer role="status"><strong>Service price needs checking</strong><p class="servicePricingNote">'+esc(editor.notice)+'</p><button type="button" class="btn" data-retry-service-price>Refresh service prices</button></div>';
+   box.querySelector('[data-retry-service-price]').onclick=serviceLookup;return true;
+  }
   const row=Array.from(el('privatePricingRows')?.children||[]).find(row=>row.querySelector('.privatePriceDescription')?.value.startsWith(request.service+' — ')&&/ — (GSF|guide price|estimate)\b/.test(row.querySelector('.privatePriceDescription').value));
   if(!row)return false;
   const description=row.querySelector('.privatePriceDescription').value,amount=Number(row.querySelector('.privatePriceAmount').value);if(!Number.isFinite(amount))return false;
@@ -73,25 +84,36 @@ function jobPartDisplayName(p){
  function serviceLookup(){
   clearTimeout(debounce);abort?.abort();const current=++generation,active=editor;if(!active?.node.isConnected)return;
   const request=input();
-  active.apply.hidden=true;active.busy=false;active.lookupKey=request&&JSON.stringify(request);
-  active.panel.hidden=!request;if(!request){showActivity(false);return;}
-  if(!/^[A-Z0-9]{5,8}$/.test(request.registration)){status('Enter a registration to look up oil and filter prices.');return;}
+  active.apply.hidden=true;active.pending=null;active.notice='';active.busy=false;active.lookupKey=request&&JSON.stringify(request);
+  active.panel.hidden=!request;if(!request){status('Select a service to look up prices.');renderAdvisor();return;}
+  if(!/^[A-Z0-9]{5,8}$/.test(request.registration)){status('Enter a registration to look up oil and filter prices.');renderAdvisor();return;}
   const key=JSON.stringify(request),before=fingerprint();abort=new AbortController();const signal=abort.signal;
   const valid=()=>current===generation&&editor===active&&active.node.isConnected&&JSON.stringify(input())===key;
   const finish=()=>{showActivity(false);active.busy=false;active.retry.disabled=false;active.retry.textContent='Refresh service prices';active.panel.classList.remove('is-checking');active.panel.setAttribute('aria-busy','false');};
-  const offer=(label,apply)=>{finish();if(fingerprint()===before){apply();}else{status(label+' Your edits were kept. Select Use service price to apply.');active.apply.hidden=false;active.apply.onclick=()=>{if(valid()){apply();active.apply.hidden=true;}};}renderAdvisor();};
+  const offer=(label,totalPence,apply,expiresAt)=>{
+   finish();
+   const accept=()=>{
+    if(!valid())return;
+    active.pending=null;active.apply.hidden=true;
+    if(expiresAt&&expiresAt<=Date.now()){active.notice='This service price has expired. Refresh service prices to try again.';status(active.notice);renderAdvisor();return;}
+    apply();renderAdvisor();
+   };
+   if(fingerprint()===before)accept();
+   else{active.pending={label,totalPence};status(label+' Your edits were kept. Select Use service price to apply.');active.apply.hidden=false;active.apply.onclick=accept;renderAdvisor();}
+  };
   const useEstimate=(data,reason)=>{
-   if(!valid()||JSON.stringify(data.request)!==key||!Number.isSafeInteger(data.totalPence)||data.totalPence<=0||!Array.isArray(data.parts)||!Array.isArray(data.missingKinds))return;
+   if(!valid())return;
+   if(JSON.stringify(data.request)!==key||!Number.isSafeInteger(data.totalPence)||data.totalPence<=0||!Array.isArray(data.parts)||!Array.isArray(data.missingKinds))throw Error('The service estimate could not be read.');
    const label=reason+' Estimated costs: '+data.missingKinds.map(k=>partNames[k]||k).join(', ')+'. The service total includes these estimates.';
-   offer(label,()=>{parts(data.parts,serviceScope);price(request.service+' — estimate',data.totalPence,'service');status(label);});
+   offer(label,data.totalPence,()=>{parts(data.parts,serviceScope);price(request.service+' — estimate',data.totalPence,'service');status(label);});
   };
   const fallback=async reason=>{
    if(!valid())return;
    // A timed-out worker can still have recent costs for this registration.
    try{const data=await post({...request,action:'estimate'},AbortSignal.any([signal,AbortSignal.timeout(5000)]));if(data.status==='ESTIMATED'){useEstimate(data,reason);return;}}catch{/* Workshop connection unavailable. */}
    if(!valid())return;
-   if(root.vectaOfflineServiceEstimate)useEstimate(root.vectaOfflineServiceEstimate(request),reason);
-   else {finish();status(reason+' Select Refresh service prices to try again.');}
+   try{if(root.vectaOfflineServiceEstimate){useEstimate(root.vectaOfflineServiceEstimate(request),reason);return;}}catch{/* Keep the job editable even if no usable estimate can be made. */}
+   finish();active.notice=reason+' Select Refresh service prices to try again.';status(active.notice);renderAdvisor();
   };
   active.busy=true;status('Looking up oil and filter prices… '+(request.service==='Full Service'?'Engine oil, oil filter, air filter and cabin filter.':'Engine oil and oil filter.'),true);renderAdvisor();
   const started=Date.now();
@@ -106,10 +128,11 @@ function jobPartDisplayName(p){
     if(quote.expiresAt<=Date.now()||JSON.stringify(quote.request)!==key)throw Error('Quote expired. Refresh prices to retry.');
     const missing=(data.missingKinds||quote.items?.filter(p=>p.estimated).map(p=>p.kind)||[]).map(k=>partNames[k]||k);
     const label=quote.guidePrice?'Estimated service price ready. '+(missing.length?'Missing GSF prices: '+missing.join(', ')+'. These costs are clearly marked as estimated.':'Some supplier availability is unconfirmed.'):'Oil and filter prices received. Parts and calculated service price filled in below.';
-    offer(label,()=>{if(!valid()||quote.expiresAt<=Date.now())return;parts(data.parts,serviceScope);price(request.service+(quote.guidePrice?' — guide price':' — GSF'),quote.totalPence,'service');status(label);active.apply.hidden=true;});return;
+    offer(label,quote.totalPence,()=>{parts(data.parts,serviceScope);price(request.service+(quote.guidePrice?' — guide price':' — GSF'),quote.totalPence,'service');status(label);},quote.expiresAt);return;
    }
    await fallback('GSF lookup timed out.');
-  }catch(error){if(valid()&&!signal.aborted)await fallback(error.message||'GSF lookup unavailable.');}})();
+  }catch(error){if(valid()&&!signal.aborted)await fallback(error.message||'GSF lookup unavailable.');}
+  finally{if(current===generation&&editor===active){finish();renderAdvisor();}}})();
  }
  function closeTyres(){const dialog=tyreDialog;tyreDialog=null;tyreController?.dispose();tyreController=null;if(dialog){dialog.close();dialog.remove();}}
  function removeTyres(){
@@ -188,7 +211,7 @@ function jobPartDisplayName(p){
    const plate=registration();
    if(plate===lastPlate)return;
    lastPlate=plate;
-   generation++;abort?.abort();clearTimeout(debounce);active.busy=false;active.apply.hidden=true;closeTyres();
+   generation++;abort?.abort();clearTimeout(debounce);active.busy=false;active.pending=null;active.notice='';active.apply.hidden=true;status('Registration changed. Refresh service prices for this vehicle.');renderAdvisor();closeTyres();
    // Restoring a saved card must never initiate pricing. A deliberate service
    // selection or refresh can still wait for the user to finish entering a plate.
    if((isNewJob||active.lookupKey)&&input())debounce=setTimeout(serviceLookup,600);

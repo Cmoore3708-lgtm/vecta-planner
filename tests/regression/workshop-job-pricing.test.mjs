@@ -161,7 +161,51 @@ test('partial result retains known supplier costs and explicitly marks missing o
 test('manual edits during service lookup are kept until explicitly applied',async()=>{
  let complete;const app=ui(()=>new Promise(resolve=>{complete=resolve;}));app.root.VectaJobPricing.selected('Interim Service',true);
  app.parts().push({id:'mine',description:'Oil filter',quantity:1,cost_price:null});complete({ok:true,json:async()=>workshopServiceResult({status:'MATCHED',quote},secret)});await tick();
- assert.equal(app.prices().length,0);assert.equal(app.document.querySelector('[data-apply]').hidden,false);app.document.querySelector('[data-apply]').onclick();assert.equal(app.prices()[0].price,quote.totalPence/100);
+ assert.doesNotMatch(app.document.getElementById('servicePricingAdvisor').textContent,/Looking up oil and filter prices/);
+ assert.match(app.document.getElementById('servicePricingAdvisor').textContent,/Use service price/);
+ assert.equal(app.prices().length,0);assert.equal(app.document.querySelector('[data-apply]').hidden,false);
+ app.document.querySelector('[data-use-service-price]').click();assert.equal(app.prices()[0].price,quote.totalPence/100);
+ assert.equal(app.document.querySelector('[data-use-service-price]'),null);
+ assert.doesNotMatch(app.document.getElementById('servicePricingAdvisor').textContent,/Looking up|Your edits/);
+});
+test('full service result remains visible beside edited invoice lines and preserves brake work when applied',async()=>{
+ const full={...request,service:'Full Service'},source={...costs,request:full,guidePrice:true,fitmentVerified:false,requiredKinds:['oil','oil_filter','air_filter','cabin_filter'],items:[...costs.items,{...costs.items[1],kind:'air_filter',sku:'AIR'},{...costs.items[1],kind:'cabin_filter',sku:'CABIN',pricingOnly:true,inStock:false}]};
+ const fullQuote=signServicePrice(publicServicePrice(calculateServicePrice(source,full,policy)),secret,Date.now(),source);
+ let complete;const app=ui(()=>new Promise(resolve=>{complete=resolve;}));app.document.getElementById('job_job_type').value='Full Service';
+ app.root.VectaJobPricing.selected('Full Service',true);
+ app.document.getElementById('privatePricingRows').innerHTML='<div><input class="privatePriceDescription" value="Full Service - annual comprehensive service"><input class="privatePriceAmount" value="150"></div><div><input class="privatePriceDescription" value="Rear brake pads"><input class="privatePriceAmount" value="65"></div>';
+ app.api.syncPrivatePricingTotal();
+ complete({ok:true,json:async()=>workshopServiceResult({status:'MATCHED',quote:fullQuote},secret)});await tick();
+ const box=app.document.getElementById('servicePricingAdvisor');assert.match(box.textContent,/Full Service price ready/);assert.match(box.textContent,/availability is unconfirmed/);assert.equal(box.querySelector('.job-price-spinner'),null);
+ assert.equal(app.prices()[0].price,150);assert.equal(app.parts().length,0);
+ app.document.getElementById('job_vat_mode').value='ex_vat';app.root.VectaJobPricing.renderAdvisor();
+ assert.ok(box.textContent.includes('£'+(fullQuote.totalPence/120).toFixed(2)));assert.match(box.textContent,/ex VAT/);
+ box.querySelector('[data-use-service-price]').click();
+ assert.equal(app.parts().length,4);assert.equal(app.prices()[0].price,Number((fullQuote.totalPence/120).toFixed(2)));assert.equal(app.prices()[1].description,'Rear brake pads');assert.equal(app.prices()[1].price,65);
+});
+test('an expired held quote offers a refresh and keeps manual edits',async t=>{
+ t.mock.timers.enable({apis:['Date'],now:Date.now()});
+ let complete;const result=workshopServiceResult({status:'MATCHED',quote:structuredClone(quote)},secret);
+ const app=ui(()=>new Promise(resolve=>{complete=resolve;}));app.root.VectaJobPricing.selected('Interim Service',true);
+ app.parts().push({id:'mine',description:'Oil filter',quantity:1,cost_price:null});complete({ok:true,json:async()=>result});await tick();
+ t.mock.timers.tick(1800001);app.document.querySelector('[data-use-service-price]').click();
+ assert.match(app.document.getElementById('servicePricingAdvisor').textContent,/expired/);assert.ok(app.document.querySelector('[data-retry-service-price]'));assert.equal(app.prices().length,0);assert.equal(app.parts()[0].id,'mine');assert.equal(app.document.querySelector('[data-apply]').hidden,true);
+});
+test('malformed estimates and unavailable fallback clear the spinner and leave retry available',async()=>{
+ for(const offline of [true,false]){
+  const app=ui(async()=>({ok:true,json:async()=>({status:'ESTIMATED',request,totalPence:0,parts:[],missingKinds:[]})}));
+  if(!offline)delete app.root.vectaOfflineServiceEstimate;
+  app.root.VectaJobPricing.selected('Interim Service',true);await tick();
+  const box=app.document.getElementById('servicePricingAdvisor');assert.equal(box.querySelector('.job-price-spinner'),null);assert.equal(app.document.querySelector('[data-service]').disabled,false);
+  if(offline){assert.ok(app.prices()[0].price>0);assert.match(box.textContent,/estimate/);}
+  else{assert.match(box.textContent,/needs checking/);assert.ok(box.querySelector('[data-retry-service-price]'));assert.equal(app.prices().length,0);}
+ }
+});
+test('deselecting a service clears its old loading view without adding prices',async()=>{
+ let complete;const app=ui(()=>new Promise(resolve=>{complete=resolve;}));app.root.VectaJobPricing.selected('Interim Service',true);
+ app.document.getElementById('job_job_type').value='MOT';app.root.VectaJobPricing.selected('Interim Service',false);
+ complete({ok:true,json:async()=>workshopServiceResult({status:'MATCHED',quote},secret)});await tick();
+ assert.equal(app.document.querySelector('#servicePricingAdvisor .job-price-spinner'),null);assert.equal(app.prices().length,0);assert.equal(app.document.querySelector('.job-live-pricing.is-checking'),null);
 });
 test('adding an unrelated job type does not cancel an in-flight service quote',async()=>{
  let complete;const app=ui(()=>new Promise(resolve=>{complete=resolve;}));app.root.VectaJobPricing.selected('Interim Service',true);
