@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import vm from 'node:vm';
 import {parseHTML} from 'linkedom';
-import {repairRequest,cleanRepairEvidence,calculateRepairQuote,repairPartsPrice,repairPartUrl} from '../../lib/repair-quote.js';
+import {repairRequest,repairScope,cleanRepairEvidence,calculateRepairQuote,repairPartsPrice,repairPartUrl} from '../../lib/repair-quote.js';
 import {repairQuoteHandler} from '../../api/repair-quote.js';
 import {repairReplayAvailable,repairReplayQuote} from '../../lib/repair-quote-replay.js';
 import {repairWorkerHandler} from '../../api/repair-quote-worker.js';
@@ -14,7 +14,7 @@ function fixture(){const part=(sku,costPence,inStock=true,corePence=0)=>({source
 function response(){return {code:200,setHeader(){},status(n){this.code=n;return this;},json(body){this.body=body;return this;}};}
 test('select cheapest stocked part; sliding markup and fractional labour at £50 without VAT',()=>{const q=calculateRepairQuote(fixture(),request,{now});assert.equal(q.part.sku,'AVAILABLE');assert.equal(q.partsPence,13501);assert.equal(q.labourPence,7500);assert.equal(q.netPence,21250);assert.equal(q.vatBasis,'EX_VAT');});
 test('exchange deposit is excluded from the quote for now',()=>{const r=fixture();r.parts[1].corePence=3000;const q=calculateRepairQuote(r,request,{now});assert.equal(q.netPence,21250);assert.equal(q.payableNetPence,21250);assert.equal(q.corePence,0);assert.equal(q.surchargeExcluded,true);});
-test('do not price multi-part or unsupported requests as one alternator',()=>{for(const work of ['alternator and belt','Supply and fit alternator and battery','diagnose alternator','fit starter motor'])assert.throws(()=>repairRequest({...request,work}),/UNSUPPORTED_OPERATION/);});
+test('do not price multi-part or unsupported requests as one alternator',()=>{for(const work of ['alternator and belt','Supply and fit alternator and battery','diagnose alternator'])assert.throws(()=>repairRequest({...request,work}),/UNSUPPORTED_OPERATION/);});
 test('reject stale/wrong vehicle, uncertain VAT, partial catalogue and ambiguous labour',()=>{for(const mutate of [r=>r.parts[1].registration='WRONG',r=>r.parts[1].variant='other engine',r=>r.parts[1].vatBasis='INC_VAT',r=>r.catalogueComplete=false,r=>r.labour.unit='minutes',r=>r.labour.scopeConfirmed=false,r=>r.labour.hoursMilli=0,r=>r.labour.hoursMilli=NaN,r=>r.checkedAt='2020-01-01',r=>r.parts[1].costPence=-1]){const r=fixture();mutate(r);assert.throws(()=>calculateRepairQuote(r,request,{now}));}const r=fixture();r.parts.forEach(p=>p.inStock=false);assert.throws(()=>calculateRepairQuote(r,request,{now}),/OUT_OF_STOCK/);});
 test('expiry uses oldest source; unsafe images stripped',()=>{const r=fixture();r.parts[1].checkedAt=new Date(now-240000).toISOString();r.parts[1].imageUrl='javascript:alert(1)';const q=calculateRepairQuote(r,request,{now});assert.equal(q.part.imageUrl,'');assert.equal(Date.parse(q.expiresAt),now+660000);});
 test('strict currency and hours parsers; no unapproved PC calibration',()=>{assert.equal(parsePence('£1,234.56'),123456);assert.equal(parseHours('1.25','hours'),1250);for(const s of ['£15.00 £18.00','15','£0.001','RRP £15.00'])assert.throws(()=>parsePence(s));assert.throws(()=>parseHours('90','minutes'));assert.throws(()=>reviewedMapping({calibrationApproved:false},request));});
@@ -22,7 +22,7 @@ test('manager endpoint authenticates, blocks cross-origin and uses setup gate',a
 test('worker endpoint checks secret and validates evidence before saving',async()=>{const token='a'.repeat(64);let calls=0;const h=repairWorkerHandler({env:{REPAIR_QUOTING_ENABLED:'true',REPAIR_QUOTE_WORKER_TOKEN:token},queue:async()=>{calls++;return {status:'SAVED'};},now:()=>now});let res=response();await h({method:'POST',headers:{},body:{action:'pull'}},res);assert.equal(res.code,401);assert.equal(calls,0);const body={action:'complete',id:'11111111-1111-4111-8111-111111111111',lease:'22222222-2222-4222-8222-222222222222',status:'MATCHED',request,result:fixture()};res=response();await h({method:'POST',headers:{authorization:'Bearer '+token},body},res);assert.equal(res.body.status,'SAVED');body.result.labour.registration='WRONG';res=response();await h({method:'POST',headers:{authorization:'Bearer '+token},body},res);assert.equal(res.code,400);assert.equal(calls,1);});
 const html=fs.readFileSync(new URL('../../index.html',import.meta.url),'utf8');
 function functionSource(name){const start=html.indexOf('function '+name+'('),end=html.indexOf('\nfunction ',start+1);assert.ok(start>=0);return html.slice(start,end<0?undefined:end);}
-function editor(jobOverride){const {window,document}=parseHTML('<html><body><div id="jobModal" class="open"><section class="jobWorkSection"><textarea id="job_work_required">Supply and fit alternator</textarea></section><input id="job_registration" value="AB12 CDE"><input id="job_status" value="quote"><input id="job_vat_mode" value="ex_vat"><input id="job_estimated_hours"><input id="job_amount_quoted"><strong id="privatePricingTotal"></strong><div id="privatePricingRows"></div></div></body></html>');const ctx={window,document,console,MutationObserver:window.MutationObserver,fetch:async()=>({status:200,json:async()=>({status:'MATCHED',quote:calculateRepairQuote(fixture(),request,{now})})}),setTimeout:()=>1,clearTimeout:()=>{},AbortController,Date:class extends Date{static now(){return now;}},esc:v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])),bindJobPartsEditor:()=>{}};vm.createContext(ctx);for(const name of ['privatePricingRowHtml','gatherPrivatePricingItems','syncPrivatePricingTotal','privatePricingWorkLines','syncWorkRequiredToPrivatePricing','fitPrivatePricingDescription','schedulePrivatePricingFit','privatePricingViewportResize','bindPrivatePricing','privatePricingItemsFromNote','noteWithPrivatePricing','stripPrivatePricingFromNote'])vm.runInContext(functionSource(name),ctx);ctx.PRIVATE_PRICING_PREFIX='[[VECTA_PRIVATE_PRICING:';for(const name of ['privatePricingRowHtml','bindPrivatePricing','syncPrivatePricingTotal','privatePricingItemsFromNote'])window[name]=ctx[name];vm.runInContext(fs.readFileSync(new URL('../../public/js/vecta-repair-quote.js',import.meta.url),'utf8'),ctx);window.VectaRepairQuote.mount(jobOverride||{status:'quote'});return {ctx,document,window};}
+function editor(jobOverride){const {window,document}=parseHTML('<html><body><div id="jobModal" class="open"><section class="jobWorkSection"><textarea id="job_work_required">Supply and fit alternator</textarea></section><input id="job_registration" value="AB12 CDE"><input id="job_status" value="quote"><input id="job_vat_mode" value="ex_vat"><input id="job_estimated_hours"><input id="job_amount_quoted"><strong id="privatePricingTotal"></strong><div id="privatePricingRows"></div></div></body></html>');Object.defineProperty(window.HTMLSelectElement.prototype,'value',{configurable:true,get(){return Array.from(this.options).find(o=>o.selected)?.value||this.options[0]?.value||'';},set(value){Array.from(this.options).forEach(o=>o.selected=o.value===value);}});const ctx={window,document,console,MutationObserver:window.MutationObserver,fetch:async()=>({status:200,json:async()=>({status:'MATCHED',quote:calculateRepairQuote(fixture(),request,{now})})}),setTimeout:()=>1,clearTimeout:()=>{},AbortController,Date:class extends Date{static now(){return now;}},esc:v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])),bindJobPartsEditor:()=>{}};vm.createContext(ctx);for(const name of ['privatePricingRowHtml','gatherPrivatePricingItems','syncPrivatePricingTotal','privatePricingWorkLines','syncWorkRequiredToPrivatePricing','fitPrivatePricingDescription','schedulePrivatePricingFit','privatePricingViewportResize','bindPrivatePricing','privatePricingItemsFromNote','noteWithPrivatePricing','stripPrivatePricingFromNote'])vm.runInContext(functionSource(name),ctx);ctx.PRIVATE_PRICING_PREFIX='[[VECTA_PRIVATE_PRICING:';for(const name of ['privatePricingRowHtml','bindPrivatePricing','syncPrivatePricingTotal','privatePricingItemsFromNote'])window[name]=ctx[name];vm.runInContext(fs.readFileSync(new URL('../../public/js/vecta-repair-quote.js',import.meta.url),'utf8'),ctx);window.VectaRepairQuote.mount(jobOverride||{status:'quote'});return {ctx,document,window};}
 test('editor preserves manual lines, adds net parts/labour once and persists private audit',async()=>{const {ctx,document}=editor(),rows=document.getElementById('privatePricingRows');rows.innerHTML=ctx.privatePricingRowHtml({description:'Existing work',price:20},0);document.querySelector('[data-rq-find]').click();await new Promise(r=>setImmediate(r));assert.match(document.querySelector('[data-rq-result]').textContent,/212.50/);document.querySelector('[data-rq-apply]').click();document.querySelector('[data-rq-apply]').click();const items=ctx.gatherPrivatePricingItems();assert.equal(items.length,4);assert.equal(items[0].description,'Existing work');assert.equal(document.getElementById('job_amount_quoted').value,'232.50');assert.equal(document.getElementById('job_estimated_hours').value,'1.5');const note=ctx.noteWithPrivatePricing('Customer note',items),saved=ctx.privatePricingItemsFromNote(note);assert.equal(saved[1].repair_quote.part.sku,'AVAILABLE');assert.equal(saved[2].repair_quote.labour.hoursMilli,1500);assert.equal(ctx.stripPrivatePricingFromNote(note),'Customer note');const amount=rows.children[1].querySelector('.privatePriceAmount');amount.value='160';amount.dispatchEvent(new ctx.window.Event('input'));assert.equal(rows.children[1].dataset.repairQuote,undefined);});
 test('gross existing lines block application; registration edit invalidates result',async()=>{let e=editor();e.document.getElementById('privatePricingRows').innerHTML=e.ctx.privatePricingRowHtml({description:'Gross existing',price:120},0);e.document.getElementById('job_vat_mode').value='inc_vat';e.document.querySelector('[data-rq-find]').click();await new Promise(r=>setImmediate(r));e.document.querySelector('[data-rq-apply]').click();assert.equal(e.document.getElementById('privatePricingRows').children.length,1);assert.match(e.document.querySelector('.rqStatus').textContent,/different VAT mode/);e=editor();e.document.querySelector('[data-rq-find]').click();await new Promise(r=>setImmediate(r));e.document.getElementById('job_registration').value='XY99ZZZ';e.document.getElementById('job_registration').dispatchEvent(new e.window.Event('input'));assert.equal(e.document.querySelector('[data-rq-apply]'),null);});
 test('cleaned worker evidence survives relay validation and quote calculation',()=>{const raw=fixture();const cleaned=cleanRepairEvidence(raw,request,{now});const twice=cleanRepairEvidence(cleaned,request,{now});const q=calculateRepairQuote(twice,request,{now});assert.equal(q.netPence,21250);});
@@ -71,6 +71,21 @@ test('saved multi-part breakdown reopens with cost, sale, source hours and VAT t
  const first=editor();first.document.querySelector('[data-rq-find]').click();await new Promise(r=>setImmediate(r));first.document.querySelector('[data-rq-add]').click();const extra=first.document.querySelector('[data-rq-items]').children[1];for(const [sel,val] of [['[data-rq-description]','Belt'],['[data-rq-cost]','20']]){const input=extra.querySelector(sel);input.value=val;input.dispatchEvent(new first.window.Event('input'));}first.document.querySelector('[data-rq-apply]').click();const note=first.ctx.noteWithPrivatePricing('',first.ctx.gatherPrivatePricingItems());
  const next=editor({status:'quote',customer_note:note});assert.equal(next.document.querySelector('[data-rq-items]').children.length,2);assert.equal(next.document.querySelector('[data-rq-total]').textContent,'£290.00');assert.equal(next.document.querySelector('[data-rq-cost]').value,'100.01');
 });
+test('an explicitly selected unavailable part prices through the APIs and keeps its label after saving and reopening',async()=>{
+ const partId='a'.repeat(32),labourId='b'.repeat(32),r=repairRequest({...request,flow:'guided-v1',choices:{part:partId,labour:labourId}}),raw=fixture();
+ raw.request=r;raw.parts=[{...raw.parts[0],choiceId:partId}];raw.labour.choiceId=labourId;
+ const token='a'.repeat(64);let delivered;const worker=response();
+ await repairWorkerHandler({env:{REPAIR_QUOTING_ENABLED:'true',REPAIR_QUOTE_WORKER_TOKEN:token},queue:async(a,p)=>{delivered=p.result;return {status:'SAVED'};},now:()=>now})({method:'POST',headers:{authorization:'Bearer '+token},body:{action:'complete',id:'11111111-1111-4111-8111-111111111111',lease:'22222222-2222-4222-8222-222222222222',status:'MATCHED',request:r,result:raw}},worker);
+ assert.equal(worker.body.status,'SAVED');assert.equal(delivered.parts[0].inStock,false);
+ const res=response();await repairQuoteHandler({env:{REPAIR_QUOTING_ENABLED:'true',REPAIR_GENERAL_PRICING_ENABLED:'true'},authenticate:async()=>true,queue:async()=>({status:'MATCHED',result:delivered}),now:()=>now})({method:'POST',body:r},res);
+ assert.equal(res.body.status,'MATCHED');assert.equal(res.body.quote.part.sku,'NO-STOCK');assert.equal(res.body.quote.part.inStock,false);assert.equal(res.body.quote.totalIncVatPence,18000);
+ for(const change of [x=>delete x.request.choices.part,x=>x.parts[0].choiceId='c'.repeat(32),x=>x.parts[0].costPence=0,x=>x.parts[0].inStock='false']){const bad=structuredClone(raw);change(bad);assert.throws(()=>calculateRepairQuote(bad,bad.request,{now}));}
+ const first=editor();first.ctx.fetch=async()=>({status:200,json:async()=>res.body});first.document.querySelector('[data-rq-find]').click();await new Promise(resolve=>setImmediate(resolve));
+ assert.match(first.document.querySelector('[data-rq-availability]').textContent,/Out of stock/);assert.equal(first.document.querySelector('[data-rq-total]').textContent,'£180.00');
+ first.document.querySelector('[data-rq-apply]').click();const items=first.ctx.gatherPrivatePricingItems();assert.ok(items.every(i=>i.repair_quote.part.inStock===false));
+ const note=first.ctx.noteWithPrivatePricing('',items),next=editor({status:'quote',customer_note:note});
+ assert.match(next.document.querySelector('[data-rq-availability]').textContent,/Out of stock/);assert.equal(next.document.querySelector('[data-rq-total]').textContent,'£180.00');
+});
 test('captured replay is restricted to reviewed test environments and never queries the live queue',async()=>{
  const env={VERCEL_ENV:'preview',VERCEL_GIT_COMMIT_REF:'amendment/repair-quote-lookup'};
  assert.equal(repairReplayAvailable(env),true);
@@ -109,4 +124,60 @@ test('initial activation scope rejects other registrations before any queue oper
  let calls=0;const h=repairQuoteHandler({env:{REPAIR_QUOTING_ENABLED:'true',REPAIR_QUOTE_ALLOWED_REGISTRATIONS:'FV65JTY'},authenticate:async()=>true,queue:async()=>{calls++;return {status:'PENDING'};}});
  let res=response();await h({method:'POST',body:request},res);assert.equal(res.body.status,'SETTINGS_REQUIRED');assert.equal(calls,0);
  res=response();await h({method:'POST',body:{registration:'FV65 JTY',work:'Supply and fit alternator'}},res);assert.equal(res.body.status,'PENDING');assert.equal(calls,1);
+});
+
+test('plain fit in the job editor offers GSF parts first and requests combined pricing',async()=>{
+ const e=editor(),sent=[],work=e.document.getElementById('job_work_required');
+ e.ctx.fetch=async(_url,options)=>{sent.push(JSON.parse(options.body));return {status:200,json:async()=>({status:'CHOICE_REQUIRED',choices:{stage:'GSF_PART',options:[{id:'a'.repeat(32),label:'Alternator',costPence:5000,inStock:false}]}})};};
+ work.value='I want a price to fit an new alternator';work.dispatchEvent(new e.window.Event('input'));
+ assert.equal(sent.length,0);assert.equal(e.document.querySelector('[data-rq-part]').value,'alternator');
+ assert.equal(e.document.querySelector('[data-rq-find]').textContent,'Find GSF part');
+ assert.match(e.document.querySelector('[data-rq-scope]').textContent,/GSF parts and Haynes fitting/);
+ e.document.querySelector('[data-rq-find]').click();await new Promise(r=>setImmediate(r));
+ assert.equal(sent.length,1);assert.equal(repairScope.resolve(sent[0].work).work,'Supply and fit alternator');assert.equal(sent[0].lookup,undefined);
+ assert.equal(e.document.querySelector('[data-rq-choose]').textContent,'Use selected part & find labour');
+});
+
+test('supply-only and fit-only breakdowns apply and reopen without adding the other charge',async()=>{
+ for(const mode of ['parts','labour']){
+  const work=mode==='parts'?'Please supply alternator':'Alternator to fit only',r=repairRequest({registration:'AB12CDE',work,flow:'guided-v1',choices:mode==='parts'?{part:'a'.repeat(32)}:{labour:'b'.repeat(32)}});
+  const raw=fixture();raw.request=r;raw.scope=repairScope.resolve(work);raw.parts=mode==='parts'?[{...raw.parts[1],choiceId:r.choices.part}]:[];raw.labour=mode==='labour'?{...raw.labour,choiceId:r.choices.labour}:null;
+  const q=calculateRepairQuote(raw,r,{now}),e=editor(),w=e.document.getElementById('job_work_required');
+  e.document.getElementById('job_estimated_hours').value='3';w.value=work;w.dispatchEvent(new e.window.Event('input'));e.ctx.fetch=async()=>({status:200,json:async()=>({status:'MATCHED',quote:q})});
+  assert.equal(e.document.querySelector('[data-rq-find]').textContent,mode==='labour'?'Find fitting time':'Find GSF part');
+  e.document.querySelector('[data-rq-find]').click();await new Promise(r=>setImmediate(r));
+  assert.ok(e.document.querySelector('[data-rq-apply]'),e.document.querySelector('.rqStatus').textContent);
+  if(mode==='parts')assert.equal(e.document.querySelector('[data-rq-hours]').disabled,true);
+  else {assert.equal(e.document.querySelector('[data-rq-cost]').disabled,true);assert.equal(e.document.querySelector('.rqPart'),null);}
+  e.document.querySelector('[data-rq-apply]').click();
+  const items=e.ctx.gatherPrivatePricingItems(),meta=items[0].repair_quote;
+  if(mode==='parts')assert.equal(e.document.getElementById('job_estimated_hours').value,'3');assert.equal(meta.request.lookup,mode);assert.equal(meta[mode==='parts'?'labourPence':'partsPence'],0);
+  assert.ok(items.every(i=>mode==='parts'?!/^Fit /.test(i.description):/^Fit |rounding/.test(i.description)));
+  const note=e.ctx.noteWithPrivatePricing('',items),next=editor();next.document.getElementById('vectaRepairQuote').remove();next.window.VectaRepairQuote.mount({status:'quote',customer_note:note});
+  assert.equal(next.document.querySelector('[data-rq-total]').textContent,'£'+(q.totalIncVatPence/100).toFixed(2));
+  assert.equal(next.document.querySelector('[data-rq-find]').textContent,mode==='labour'?'Find fitting time':'Find GSF part');
+ }
+});
+
+test('changing the same repair from supply and fit to fit only replaces its old parts charge',async()=>{
+ const e=editor();e.document.querySelector('[data-rq-find]').click();await new Promise(r=>setImmediate(r));e.document.querySelector('[data-rq-apply]').click();
+ const work='Fit only alternator',r=repairRequest({registration:'AB12CDE',work,choices:{labour:'b'.repeat(32)}}),raw=fixture();raw.request=r;raw.scope=repairScope.resolve(work);raw.parts=[];raw.labour.choiceId=r.choices.labour;
+ const q=calculateRepairQuote(raw,r,{now});e.ctx.fetch=async()=>({status:200,json:async()=>({status:'MATCHED',quote:q})});
+ const field=e.document.getElementById('job_work_required');field.value=work;field.dispatchEvent(new e.window.Event('input'));
+ e.document.querySelector('[data-rq-find]').click();await new Promise(r=>setImmediate(r));e.document.querySelector('[data-rq-apply]').click();
+ const items=e.ctx.gatherPrivatePricingItems();assert.ok(items.length);assert.ok(items.every(i=>i.repair_quote.request.lookup==='labour'));assert.equal(Number(e.document.getElementById('job_amount_quoted').value),q.netPence/100);
+});
+
+test('fit-only application clears its unordered source part but preserves ordered and unrelated parts',async()=>{
+ for(const ordered of [false,true]){
+  const e=editor(),work='Fit only alternator',r=repairRequest({registration:'AB12CDE',work,choices:{labour:'b'.repeat(32)}}),raw=fixture();raw.request=r;raw.scope=repairScope.resolve(work);raw.parts=[];raw.labour.choiceId=r.choices.labour;
+  const q=calculateRepairQuote(raw,r,{now}),source={id:'repair-'+encodeURIComponent('Supply and fit alternator'),description:'Alternator',ordered},manual={id:'manual',description:'Unrelated part'};let retained;
+  e.document.getElementById('job_work_required').value=work;e.document.getElementById('vectaRepairQuote').remove();
+  const holder=e.document.createElement('div');holder.id='jobPartsEditor';e.document.body.appendChild(holder);
+  const partsApi={privatePricingRowHtml:e.ctx.privatePricingRowHtml,bindPrivatePricing:e.ctx.bindPrivatePricing,syncPrivatePricingTotal:e.ctx.syncPrivatePricingTotal,
+   gatherJobPartsEditor:()=>[source,manual],jobPartsEditorHtml:job=>{retained=JSON.parse(decodeURIComponent(job.customer_note.slice('[[JOB_PARTS_URI:'.length,-2)));return '<div id="jobPartsEditor"></div>';},bindJobPartsEditor:()=>{}};
+  e.window.VectaRepairQuote.mount({status:'quote'},partsApi);e.ctx.fetch=async()=>({status:200,json:async()=>({status:'MATCHED',quote:q})});
+  e.document.querySelector('[data-rq-find]').click();await new Promise(r=>setImmediate(r));e.document.querySelector('[data-rq-apply]').click();
+  assert.deepEqual(JSON.parse(JSON.stringify(retained)),ordered?[source,manual]:[manual]);
+ }
 });

@@ -35,15 +35,15 @@
   catch(error){if(sheet.isConnected)notice(sheet,error.message,()=>initService(sheet,registration,kind),'service');}
  }
  const repairRuns=new WeakMap();
- function mountRepair(job){
+ function mountRepair(job,api){
   if(root.VECTA_MECHANIC_DEPLOYMENT===true)return;
   const modal=doc.getElementById('jobModal'),work=modal?.querySelector('.jobWorkSection');
-  if(!work||doc.getElementById('job_status')?.value!=='quote'||!doc.getElementById('privatePricingRows'))return;
+  if(!work||['completed','work_complete','ready_to_invoice'].includes(doc.getElementById('job_status')?.value)||!doc.getElementById('privatePricingRows'))return;
   const run={};repairRuns.set(work,run);
   load('repair').then(()=>{
    if(repairRuns.get(work)!==run||!work.isConnected||!modal.classList.contains('open'))return;
-   work.querySelector('[data-optional-tool="repair"]')?.remove();root.VectaRepairQuote.mount(job);
-  }).catch(error=>{if(repairRuns.get(work)===run&&work.isConnected&&modal.classList.contains('open'))notice(work,error.message,()=>mountRepair(job),'repair');});
+   work.querySelector('[data-optional-tool="repair"]')?.remove();root.VectaRepairQuote.mount(job,api);
+  }).catch(error=>{if(repairRuns.get(work)===run&&work.isConnected&&modal.classList.contains('open'))notice(work,error.message,()=>mountRepair(job,api),'repair');});
  }
  async function downloadTracker(...args){
   try{await load('tracker');return root.VectaMonthlyTracker.download(...args);}

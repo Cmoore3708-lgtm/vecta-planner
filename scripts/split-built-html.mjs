@@ -8,6 +8,9 @@ import { mechanicVariant } from './mechanic-variant.mjs';
 const htmlPath=path.resolve('dist/index.html');
 const assetsDir=path.resolve('dist/assets');
 let html=fs.readFileSync(htmlPath,'utf8');
+// Keep historical release notes in source without sending them to every phone.
+// Preserve script/style contents and functional/safety comments verbatim.
+html=html.replace(/<(script|style)\b[^>]*>[\s\S]*?<\/\1>|<!--\s*VECTA\s+V\d[\s\S]*?-->/gi,(whole,tag)=>tag?whole:'');
 let mechanicHtml=mechanicVariant(html);
 // A running phone must receive an update signal for every changed release,
 // including helper-only changes; do not rely on manually bumping app versions.

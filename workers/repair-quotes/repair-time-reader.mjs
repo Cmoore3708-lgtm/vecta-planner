@@ -5,7 +5,7 @@ export function readAlternatorTime(input={},doc=globalThis.document){
  const clean=v=>String(v||'').replace(/\s+/g,' ').trim();
  const fail=reason=>{throw Error('LABOUR_REVIEW_REQUIRED:'+reason);};
  if(expectedOperationId&&!/^[0-9][A-Z0-9]{9,23}$/.test(expectedOperationId))fail('INVALID_OPERATION_ID');
- const operation=/\b(?:Renew|Replace|Remove\s+and\s+refit)\s+(?:the\s+)?alternator\b/i;
+ const operation=input.operationPattern?new RegExp(input.operationPattern,'i'):/\b(?:Renew|Replace|Remove\s+and\s+refit)\s+(?:the\s+)?alternator\b/i;
  const visible=(el,viewport=!expectedOperationId)=>{
   let bounds=null;if(Number.isFinite(doc.defaultView?.innerHeight)&&doc.defaultView.innerHeight>0&&typeof el.getBoundingClientRect==='function'){
    const r=el.getBoundingClientRect(),view=doc.defaultView;
@@ -34,8 +34,12 @@ export function readAlternatorTime(input={},doc=globalThis.document){
   for(let node=target,depth=0;node&&depth<8;depth++,node=node.parentElement){
    const label=clean(textOf(node));
    if(label.length>350||(label.match(new RegExp(operation.source,'ig'))||[]).length>1)break;
-   const times=[...label.matchAll(/(?:^|\s)(\d{1,2}[.,]\d{2})(?=\s|$)/g)].map(m=>m[1].replace(',','.'));
    const codes=label.match(/\b[0-9][A-Z0-9]{9,23}\b/g)||[];
+   // Never climb into a neighbouring operation to borrow its time.
+   if(codes.length>1)break;
+   const timeMatches=[...label.matchAll(/(?:^|\s)([+-]?)\s*(\d{1,2}[.,]\d{2})(?=\s|$)/g)];
+   if(timeMatches.some(m=>m[1]==='-'))fail('INVALID_TIME');
+   const times=timeMatches.map(m=>m[2].replace(',','.'));
    if(times.length&&expectedOperationId&&(codes.length!==1||codes[0]!==expectedOperationId))break;
    if(times.length>1){ambiguous=true;break;}
    if(times.length===1){
@@ -46,16 +50,20 @@ export function readAlternatorTime(input={},doc=globalThis.document){
     const identity=operationId||label.toUpperCase();
     matches.set(identity+'|'+times[0],match);break;
    }
+   if(node.matches?.('li,tr,[role="row"]'))break;
   }
  }
  if(ambiguous)fail('MULTIPLE_TIMES');
- if(matches.size!==1)fail(matches.size?'MULTIPLE_PRICED_OPERATIONS':'TIME_NOT_FOUND');
- const matched=[...matches.values()][0],unitText=clean(textOf(doc.body,false));
+ if(!matches.size||!input.allowMultiple&&matches.size!==1)fail(matches.size?'MULTIPLE_PRICED_OPERATIONS':'TIME_NOT_FOUND');
+ const unitText=clean(textOf(doc.body,false));
  if(!/TOTAL\s*TIME\s*\(H\)/i.test(unitText)&&!/hours\s+and\s+hundredths\s+of\s+hours/i.test(unitText))fail('HOURS_UNIT_NOT_CONFIRMED');
- const hoursMilli=Math.round(Number(matched.hoursText)*1000);
- if(hoursMilli<=0||hoursMilli>100000)fail('INVALID_TIME');
  const plate=doc.querySelector('#numberPlate,input[name="numberPlate"]');
- return {...matched,hoursMilli,unit:'hours',registrationVisible:String(plate?.value||'').toUpperCase().replace(/\s/g,''),fitmentConfirmed:false};
+ const results=[...matches.values()].map(matched=>{
+  const hoursMilli=Math.round(Number(matched.hoursText)*1000);
+  if(hoursMilli<=0||hoursMilli>100000)fail('INVALID_TIME');
+  return {...matched,hoursMilli,unit:'hours',registrationVisible:String(plate?.value||'').toUpperCase().replace(/\s/g,''),fitmentConfirmed:false};
+ });
+ return input.allowMultiple?results:results[0];
 }
 // Minimal diagnostic fields only; no page HTML, account text or credentials.
 export function repairTimeDiagnostics(doc=document){

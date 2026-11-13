@@ -12,10 +12,13 @@ function setup(markup=''){
  return {window,document,timers,messages,scripts:()=>[...document.querySelectorAll('script')],context};
 }
 function quoteMarkup(){return '<div id="jobModal" class="open"><section class="jobWorkSection"><textarea id="job_work_required">Supply and fit alternator</textarea></section><input id="job_status" value="quote"><div id="privatePricingRows"></div></div>';}
-test('startup executes no optional scripts and ordinary/mechanics cards do not start supplier tools',()=>{
+test('startup is lazy, booked jobs load the pricing panel, and mechanics/completed cards do not',async()=>{
  const c=setup(quoteMarkup());assert.equal(c.scripts().length,0);
- c.document.getElementById('job_status').value='booked';c.window.VectaRepairQuote.mount({id:'normal'});assert.equal(c.scripts().length,0);
- c.document.getElementById('job_status').value='quote';c.window.VECTA_MECHANIC_DEPLOYMENT=true;c.window.VectaRepairQuote.mount({id:'mechanic'});assert.equal(c.scripts().length,0);
+ const api={privatePricingRowHtml:()=>{}};let received;
+ c.document.getElementById('job_status').value='booked';c.window.VectaRepairQuote.mount({id:'normal'},api);assert.equal(c.scripts().length,1);
+ c.window.VectaRepairQuote={mount:(job,helpers)=>received=helpers};c.scripts()[0].onload();await settle();assert.equal(received,api);
+ for(const status of ['completed','work_complete','ready_to_invoice']){const done=setup(quoteMarkup());done.document.getElementById('job_status').value=status;done.window.VectaRepairQuote.mount({id:'done'});assert.equal(done.scripts().length,0);}
+ const mechanic=setup(quoteMarkup());mechanic.window.VECTA_MECHANIC_DEPLOYMENT=true;mechanic.window.VectaRepairQuote.mount({id:'mechanic'});assert.equal(mechanic.scripts().length,0);
 });
 test('rapid quote opens share one download and only mount the current connected card',async()=>{
  const c=setup(quoteMarkup()),mounted=[];c.window.VectaRepairQuote.mount({id:'old'});c.window.VectaRepairQuote.mount({id:'current'});assert.equal(c.scripts().length,1);

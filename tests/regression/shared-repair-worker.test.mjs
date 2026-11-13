@@ -15,7 +15,7 @@ function fixture(t){
 }
 test('shared bridge borrows GSF context and retries result delivery without repeating the lookup',async t=>{
  const f=fixture(t);let pulls=0,lookups=0,deliveries=0;
- const task={status:'JOB',id:'id',lease:'lease',request:{registration:'FV65JTY',operation:'alternator'}};
+ const task={status:'JOB',id:'id',lease:'lease',request:{registration:'FV65JTY',work:'Supply and fit alternator'}};
  const bridge=createRepairBridge({...settings,...f,lookup:async()=>{lookups++;return {source:'captured'};},rpc:async body=>{
   if(body.action==='pull'){pulls++;return pulls===1?task:{status:'DISABLED'};}
   assert.equal(body.id,'id');assert.equal(body.lease,'lease');assert.equal(body.status,'MATCHED');
@@ -28,7 +28,7 @@ test('shared bridge borrows GSF context and retries result delivery without repe
 });
 test('shared bridge reports labour review without manufacturing a quote',async t=>{
  const f=fixture(t);let delivered;
- const bridge=createRepairBridge({...settings,...f,lookup:async()=>{throw Object.assign(Error('scope'),{code:'LABOUR_REVIEW_REQUIRED'});},rpc:async body=>body.action==='pull'?{status:'JOB',id:'id',lease:'lease',request:{}}:(delivered=body,{status:'SAVED'})});
+ const bridge=createRepairBridge({...settings,...f,lookup:async()=>{throw Object.assign(Error('scope'),{code:'LABOUR_REVIEW_REQUIRED'});},rpc:async body=>body.action==='pull'?{status:'JOB',id:'id',lease:'lease',request:{registration:'FV65JTY',work:'Supply and fit alternator'}}:(delivered=body,{status:'SAVED'})});
  assert.equal(await bridge.tick(),'LABOUR_REVIEW_REQUIRED');assert.equal(delivered.result,null);assert.equal(delivered.status,'LABOUR_REVIEW_REQUIRED');assert.equal(f.counts().closed,2);await bridge.close();
 });
 test('shared bridge serialises supplier access and isolates repair pairing failures',async t=>{
@@ -63,7 +63,7 @@ test('delivers before a stuck Edge tab closes and retires only the shared worker
  const stuck={newPage:async()=>({close:()=>{actions.push('close');return new Promise(()=>{});}})};
  const bridge=createRepairBridge({...settings,...f,gsfContext:stuck,cleanupMs:10,
   lookup:async()=>({ok:true}),rpc:async body=>{
-   actions.push(body.action);return body.action==='pull'?{status:'JOB',id:'one',lease:'lease',request:{}}:{status:'SAVED'};
+   actions.push(body.action);return body.action==='pull'?{status:'JOB',id:'one',lease:'lease',request:{registration:'FV65JTY',work:'Supply and fit alternator'}}:{status:'SAVED'};
   }});
  await assert.rejects(bridge.tick(),/GSF_BROWSER_RESTART_REQUIRED/);
  assert.deepEqual(actions,['pull','complete','close']);assert.equal(bridge.retiring,true);
@@ -74,7 +74,7 @@ test('lost acknowledgement and hung cleanup retry the same lease before recovery
  const bridge=createRepairBridge({...settings,...f,cleanupMs:10,
   gsfContext:{newPage:async()=>({close:()=>new Promise(()=>{})})},
   lookup:async()=>{reads++;return {record:'same'};},rpc:async body=>{
-   if(body.action==='pull'){pulls++;return {status:'JOB',id:'one',lease:'lease',request:{}};}
+   if(body.action==='pull'){pulls++;return {status:'JOB',id:'one',lease:'lease',request:{registration:'FV65JTY',work:'Supply and fit alternator'}};}
    deliveries.push(body);if(deliveries.length===1)throw Error('lost response');return {status:'SAVED'};
   }});
  await assert.rejects(bridge.tick(),/lost response/);assert.equal(bridge.retiring,true);

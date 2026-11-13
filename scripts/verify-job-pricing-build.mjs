@@ -24,9 +24,20 @@ export function verifyBuiltJobPricing(directory='dist'){
   const paths=[...html.matchAll(/<script[^>]+src="(\/assets\/vecta-inline-[^"]+)"/g)].map(m=>m[1]);
   const source=paths.map(path=>readFileSync(resolve(directory,'.'+path),'utf8')).join('\n');
   verifyJobPricingBridge(source);
+  verifyRepairPricingBridge(source);
  }
  const helper=readFileSync(resolve(directory,'js/vecta-job-pricing.js'),'utf8');
  for(const name of dependencies)assert.ok(!helper.includes('root.'+name),'Pricing must not read private '+name+' from window.');
  console.log('Built Main and mechanics pricing bridges verified with private editor helpers.');
 }
 if(process.argv[1]&&resolve(process.argv[1])===resolve(new URL(import.meta.url).pathname))verifyBuiltJobPricing();
+
+export function verifyRepairPricingBridge(source){
+ const call=source.match(/window\.VectaRepairQuote\.mount\(j,\{[^}]+\}\)/)?.[0];
+ assert.ok(call,'Repair pricing must receive private invoice and parts helpers.');
+ const names=['privatePricingRowHtml','bindPrivatePricing','syncPrivatePricingTotal','privatePricingItemsFromNote','gatherJobPartsEditor','jobPartsEditorHtml','bindJobPartsEditor'];
+ let supplied;const functions=Object.fromEntries(names.map(name=>[name,()=>name]));
+ vm.runInNewContext(call,{window:{VectaRepairQuote:{mount(job,api){supplied=api;}}},j:{},...functions});
+ assert.deepEqual(Object.keys(supplied).sort(),names.slice().sort());
+ for(const name of names)assert.equal(supplied[name],functions[name]);
+}
