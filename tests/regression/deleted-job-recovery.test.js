@@ -72,3 +72,9 @@ test('offline, concurrent edit and server error never mutate the local deleted r
 test('durable row restore remains effective if secondary ledger write fails',async()=>{
  const x=restoreContext({ledgerFail:true});assert.equal(await x.c.restoreSoftDeletedJob('job-1'),true);markDeleted(x.c);x.c.vectaReconcileJobsFromCloud([x.row]);x.c.vectaApplyTerminalJobStates();assert.equal(x.c.jobsForList('open').length,1);assert.equal(x.c.jobsForList('deleted').length,0);
 });
+
+
+test('recoverable admin deletions stay out of Admin Jobs until explicitly restored',()=>{
+ const c=context();c.vectaReconcileJobsFromCloud([{...deleted,source:'monthly_admin'}]);c.vectaApplyTerminalJobStates();assert.equal(c.jobsForList('deleted').length,1);assert.equal(c.jobsForList('admin').length,0);
+ c.vectaReconcileJobsFromCloud([{...restored,source:'monthly_admin'}]);c.vectaApplyTerminalJobStates();assert.equal(c.jobsForList('admin').length,1);
+});
