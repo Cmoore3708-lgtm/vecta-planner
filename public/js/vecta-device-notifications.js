@@ -55,31 +55,43 @@ async function vectaEnableBookingAlerts(){
 return {state:vectaBookingAlertsState,maintain:vectaMaintainBookingAlerts,enable:vectaEnableBookingAlerts};
 };
 
-// Shared booking receipts use the existing app cache and count refresh only.
-window.vectaMarkWebsiteBookingRead=async function(body){
+// Main and mechanics keep app state inside a closure. Receive those dependencies
+// explicitly instead of looking for private variables on the browser global.
+window.createVectaBookingReceipts=function({getClient,getRequests,request,saveLocal,withTimeout,updateBadge}){
+var cloudCount=null,pending=null,revision=0;
+function count(){return cloudCount!==null?cloudCount:getRequests().filter(function(r){return (!r.status||r.status==='awaiting_review')&&!r.reviewed_at}).length}
+function invalidate(){cloudCount=null}
+function renderCount(){
+  var value=count(),button=document.querySelector('#nav [data-view="websiteRequests"]');
+  if(button)button.textContent='Website Bookings'+(value?' ('+value+')':'');
+  updateBadge();window.VectaPortalWorkshop?.clearBookingNotifications(value);
+}
+async function markRead(body){
   if(window.VECTA_MECHANIC_DEPLOYMENT||!navigator.onLine)return false;
-  try{var result=await vectaProgressRequest(Object.assign({action:'booking-read'},body));
-    for(var receipt of result.requests||[]){var row=(app.websiteRequests||[]).find(function(r){return r.id===receipt.id});if(row&&receipt.reviewed_at)row.reviewed_at=receipt.reviewed_at;}
-    saveLocal();vectaWebsiteBookingCloudCount=null;await vectaRefreshWebsiteBookingCount();return true;
+  try{var result=await request(Object.assign({action:'booking-read'},body));
+    for(var receipt of result.requests||[]){var row=getRequests().find(function(r){return r.id===receipt.id});if(row&&receipt.reviewed_at)row.reviewed_at=receipt.reviewed_at;}
+    saveLocal();invalidate();await refresh();return true;
   }catch(error){console.warn('Booking read status will retry when the card is reopened.',error);return false;}
-};
-
-window.vectaRefreshBookingCount=function(){
-  if(!remoteClient||!navigator.onLine||window.VECTA_MECHANIC_DEPLOYMENT===true)return Promise.resolve(false);
-  vectaWebsiteBookingCountRevision++;
-  if(vectaWebsiteBookingCountPending)return vectaWebsiteBookingCountPending;
+}
+function refresh(){
+  var client=getClient();
+  if(!client||!navigator.onLine||window.VECTA_MECHANIC_DEPLOYMENT===true)return Promise.resolve(false);
+  revision++;
+  if(pending)return pending;
   // Count only: no customer details, full-database pull or dashboard redraw.
-  vectaWebsiteBookingCountPending=(async function(){
+  pending=(async function(){
     while(navigator.onLine){
-      var revision=vectaWebsiteBookingCountRevision;
-      var result=await vectaWithTimeout(remoteClient.from('website_booking_requests').select('id',{count:'exact',head:true}).or('status.is.null,status.eq.awaiting_review').is('reviewed_at',null),9000,'Website booking count');
+      var requestedRevision=revision;
+      var result=await withTimeout(client.from('website_booking_requests').select('id',{count:'exact',head:true}).or('status.is.null,status.eq.awaiting_review').is('reviewed_at',null),9000,'Website booking count');
       if(result.error)throw result.error;
       if(!Number.isInteger(result.count)||result.count<0)throw new Error('Website booking count was not returned.');
       // An acceptance or live event during this read needs a newer snapshot.
-      if(revision!==vectaWebsiteBookingCountRevision)continue;
-      vectaWebsiteBookingCloudCount=result.count;vectaRenderWebsiteBookingCount();return true;
+      if(requestedRevision!==revision)continue;
+      cloudCount=result.count;renderCount();return true;
     }
     return false;
-  })().catch(function(error){console.warn('Website booking count refresh failed; keeping the last known count.',error);return false}).finally(function(){vectaWebsiteBookingCountPending=null});
-  return vectaWebsiteBookingCountPending;
+  })().catch(function(error){console.warn('Website booking count refresh failed; keeping the last known count.',error);return false}).finally(function(){pending=null});
+  return pending;
+}
+return {count,invalidate,refresh,markRead};
 };

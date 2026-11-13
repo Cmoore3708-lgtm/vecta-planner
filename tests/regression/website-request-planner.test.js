@@ -11,7 +11,7 @@ function setup({online=true,updated=true,saved=true}={}){
   document.getElementById('job_booking_date').addEventListener('change',()=>dayUpdates++);
   const context={document,window,Event:window.Event,navigator:{onLine:online},app,alert:message=>calls.push(['alert',message]),openJobModal:(id,draft)=>calls.push(['open',id,draft]),gatherJob:()=>({technician:'Chris'}),isUnallocatedJob:j=>j.technician==='Unallocated',saveLocal:()=>calls.push(['local']),
     remoteClient:{from:table=>({update:patch=>({eq:(key,id)=>({select:async()=>{calls.push(['update',table,id,patch]);return {error:null,data:updated?[{id}]:[]};}})})})},
-    vectaWebsiteBookingCloudCount:1,vectaRefreshWebsiteBookingCount:()=>calls.push(['count']),
+    vectaWebsiteBookingCloudCount:1,vectaBookingReceipts:{invalidate(){context.vectaWebsiteBookingCloudCount=null}},vectaRefreshWebsiteBookingCount:()=>calls.push(['count']),
     saveJob:async(id,confirmed)=>{calls.push(['save',id]);if(!saved)return false;return confirmed({id});}};
   vm.createContext(context);vm.runInContext(source,context);
   return {context,calls,request,app,document,dayUpdates:()=>dayUpdates};
