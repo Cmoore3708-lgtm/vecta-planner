@@ -18,6 +18,49 @@ function browser(form={}) {
  return c;
 }
 function amount(c){const {document}=parseHTML(c.bookingTotalContent());return document.querySelector('.booking-total-amount').textContent;}
+function serviceReview(form={}){
+ const c=browser({service_choice:'Full Service',registration:'FX69XWU',fuel_registration:'FX69XWU',fuel_type:'Diesel',service_extra_registration:'FX69XWU',service_extra_kind:'fuel_filter',service_extra_choice:'replace',...form});
+ c.state.step=5;
+ c.liveServiceQuote=()=>({totalPence:22000,serviceExtra:{kind:c.state.form.service_extra_kind,totalPence:11000}});
+ Object.assign(c,{tyreReviewHtml:()=>'',customerPartsSummaryHtml:()=>'',seriousRepairChoiceHtml:()=>''});
+ for(const name of ['serviceExtraKind','serviceExtraOffer','serviceExtraSelection','serviceExtraAddedPence','serviceExtraSummary','serviceExtraReviewHtml','stepHtml']){
+  const start=html.indexOf('function '+name+'('),end=html.indexOf('\nfunction ',start+1);
+  vm.runInContext(html.slice(start,end),c);
+ }
+ return c;
+}
+
+test('replacement price is included once and shown at the bottom of the service card',()=>{
+ for(const [fuel,kind,label] of [['Diesel','fuel_filter','Fuel filter replacement'],['Petrol','spark_plug','Spark plug replacement']]){
+  const c=serviceReview({fuel_type:fuel,service_extra_kind:kind});
+  const {document}=parseHTML(c.stepHtml()),service=document.querySelector('.review-price'),extra=service.lastElementChild;
+  assert.equal(extra.className,'review-service-extra');
+  assert.match(extra.textContent,new RegExp(label));
+  assert.equal(extra.querySelector('.review-service-extra-included').textContent,'Included');
+  assert.match(extra.textContent,/£110 of your £330 service total, including fitting and VAT/);
+  assert.doesNotMatch(extra.textContent,/Extra £/);
+  assert.equal(service.querySelector('.guide-price-card strong').textContent,'£330');
+  assert.equal(amount(c),'£330');
+  assert.equal(c.estimateCost(),330);
+  assert.equal(document.querySelectorAll('.review-service-extra').length,1);
+ }
+});
+
+test('check-first and unavailable extras are never described as already included',()=>{
+ const c=serviceReview({service_extra_choice:'check'});
+ assert.doesNotMatch(c.serviceExtraReviewHtml(),/Included|of your/);
+ assert.match(c.serviceExtraReviewHtml(),/check manufacturer’s guidance/);
+ assert.equal(amount(c),'£220');
+ c.state.form.service_extra_choice='replace';
+ c.liveServiceQuote=()=>({totalPence:22000});
+ assert.doesNotMatch(c.serviceExtraReviewHtml(),/Included|of your/);
+ assert.match(c.serviceExtraReviewHtml(),/confirm the price before fitting/);
+ assert.equal(amount(c),'£220');
+ c.liveServiceQuote=()=>null;
+ assert.doesNotMatch(c.serviceExtraReviewHtml(),/Included|of your/);
+ c.state.form.service_extra_choice='none';
+ assert.equal(c.serviceExtraReviewHtml(),'');
+});
 
 test('review combines £130 service and £30 valet without double-charging the submitted base estimate',()=>{
  const c=browser({mini_valet:true});
