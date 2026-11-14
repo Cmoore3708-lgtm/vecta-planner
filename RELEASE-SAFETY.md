@@ -2,6 +2,10 @@
 
 The current approved recovery point is the Git tag `V355-approved-stable`.
 
+## Release authorisation
+
+Follow the standing authorisation in `AGENTS.md`, recorded on 14 November 2026. Chris's request for a fix or change authorises implementation, branch push, PR, testing, merge to Main and deployment within that scope. A separate "I approve" or "Push to main" is not required. Respect any later instruction to hold, preview only or avoid deployment.
+
 ## Non-negotiable release process
 
 1. Create one `amendment/<short-name>` branch for one amendment.
@@ -11,8 +15,10 @@ The current approved recovery point is the Git tag `V355-approved-stable`.
 5. Check Dashboard, Fleet Manager, Jobs, Financial, Invoices and Website Bookings.
 6. On iPhone, test a cold start, a second reopen, offline last-known data and reconnection.
 7. Compare the preview with production for unrelated changes.
-8. Merge only after Chris explicitly approves the tested preview.
+8. Once the required checks and preview verification pass, merge under the standing authorisation in `AGENTS.md` unless Chris has explicitly limited the task. Do not pause for repeat approval.
 9. After production verification, create the next `Vxxx-approved-stable` tag.
+
+For documentation-only changes that do not affect application code, configuration, dependencies or generated output, review the exact diff and pass the release gate. Device/preview checks, mechanics alias moves and a new application recovery tag are not required for those documentation-only changes. Record that scope in the PR.
 
 ## Automatic gate
 
