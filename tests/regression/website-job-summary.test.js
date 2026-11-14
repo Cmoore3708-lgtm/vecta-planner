@@ -15,7 +15,7 @@ export function summaryContext(entry=main,mechanic=false){
   plannerPlate:j=>'<span class="ukPlate">'+escape(j.registration)+'</span>',listPlate:r=>'<span class="ukPlate">'+escape(r)+'</span>',compactUnallocatedPlate:r=>'<span class="ukPlate">'+escape(r)+'</span>',
   jobTypeInlineStyle:j=>j.status==='provisional'?'background:#cbd0d7!important':'',hasMotJobType:()=>false,topFor:()=>0,heightFor:()=>120,
   jobTypeMetaForLabel:()=>({colour:'#444'}),motTimeFromJob:()=>'',isJobInvoiced:()=>false,vectaJobIsDeletedForLists:()=>false,byTime:()=>0,templateDataForType:()=>({}),
-  quoteJobs:()=>[webJob],money:n=>'£'+n,
+  quoteJobs:()=>[webJob],money:n=>'£'+n,plannerTechnicianLane:value=>value,
  };
  c.jobTypeChip=(j,label)=>'<span class="jobTypeChip">'+escape(label||c.jobTypeLabels(j).join(' · '))+'</span>';
  vm.createContext(c);
@@ -34,7 +34,11 @@ for(const [name,entry] of [['Main',main],['mechanics',mechanicVariant(main)]]){
    if(document.querySelector('.mechanicQueueCard')){
     assert.match(text,/5W30/);assert.match(text,/PART123/);assert.match(text,/Check noisy brakes/);
     assert.doesNotMatch(text,/210|price agreed|including VAT/);
-   }else assert.doesNotMatch(text,/210|5W30|PART123|noisy brakes|price agreed|including VAT/);
+   }else{
+    const price=document.querySelector('.mobileJobPrice');
+    if(price){assert.equal(name,'Main');assert.equal(price.textContent,'£210');price.remove();}
+    assert.doesNotMatch(document.documentElement.textContent,/210|5W30|PART123|noisy brakes|price agreed|including VAT/);
+   }
   }
   assert.doesNotMatch(c.quotePanelHtml(),/5W30|PART123|noisy brakes/);
   assert.equal(JSON.stringify(webJob),before);
