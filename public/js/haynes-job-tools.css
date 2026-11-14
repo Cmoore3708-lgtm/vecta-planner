@@ -497,15 +497,14 @@
 #content .provisionalIdentity>strong{grid-column:2;grid-row:1}
 #content .unallocatedPanel .unallocatedSideJob{height:auto!important;max-height:none!important}
 
-/* Phone dashboard: mechanic/price beside the parts light, customer beneath the car. */
+/* Phone dashboard: mechanic beside the parts light, customer beneath the car. */
 @media screen and (max-width:768px){
  #content .mobilePlanner .mobileJob{display:grid!important;grid-template-columns:minmax(0,1fr) minmax(0,46%);grid-template-rows:auto auto auto auto auto;gap:3px 8px!important;padding-right:14px!important}
  #content .mobilePlanner .mobileJob .mobileJobTop{display:contents!important}
  #content .mobilePlanner .mobileJobTop .mobilePlateAndParts{grid-column:1/-1;grid-row:1;align-items:flex-start;gap:8px;width:100%;margin-bottom:4px}
  #content .mobilePlanner .mobilePlateAndParts>.cardPartsStatusDot{margin-top:7px!important}
- #content .mobilePlanner .mobileJobAssignment{display:flex;flex-direction:column;align-items:flex-start;gap:1px;min-width:0;padding-top:2px;font-size:13px;line-height:18px;color:#111827;overflow-wrap:anywhere}
+ #content .mobilePlanner .mobileJobAssignment{display:block;min-width:0;padding-top:2px;font-size:13px;line-height:18px;color:#111827;overflow-wrap:anywhere}
  #content .mobilePlanner .mobileJobMechanic{font-weight:800}
- #content .mobilePlanner .mobileJobPrice{font-size:14px;line-height:19px;font-weight:800}
  #content .mobilePlanner .mobileJob .mobileVehicleTop{grid-column:1;grid-row:2;align-self:start}
  #content .mobilePlanner .mobileJobTop .mobileJobTypes{grid-column:1;grid-row:3;min-width:0}
  #content .mobilePlanner .mobileJobTop .mobileMotAppointment{grid-column:1;grid-row:4;max-width:100%;white-space:normal}
@@ -513,6 +512,7 @@
  #content .mobilePlanner .mobileJobTop .mobileJobCategory{grid-column:2;grid-row:5;align-self:start!important;justify-self:center;width:100%;margin:0 0 4px!important;text-align:center;font-weight:700;overflow-wrap:anywhere}
  #content .mobilePlanner .mobileJob:not(.hasHaynesDashboardImage) .mobileJobCategory{grid-column:1/-1;justify-self:start;text-align:left}
  #content .mobilePlanner .mobileJob>b,#content .mobilePlanner .mobileJob>.carryOverBadge{grid-column:1/-1}
+ #content .mobilePlanner .mobileJob>b{display:block!important;white-space:pre-wrap!important;overflow:visible!important;max-height:none!important;line-height:1.35!important;overflow-wrap:anywhere}
 }
 
 /* Keep the top identity row clear; the remaining text follows the vehicle silhouette. */
