@@ -29,7 +29,8 @@ function card(mechanic){
   '<details class="jobFormSection jobContactSection jobSectionDisclosure"><summary class="jobFormSectionHead">Customer details</summary>'+
   '<div class="jobSectionGrid"><div class="field"><label>Customer</label><input id="job_customer_name" value="chris stoker"></div>'+
   '<div class="field"><label>Account</label><input id="job_customer_account" value="Staff"></div></div></details>'+
-  '<section class="jobBookingSection"><input type="hidden" id="job_customer_note" value="[[VECTA_CURRENT_MILEAGE:54321]]"></section>'+
+  '<details class="jobTypesDisclosure"><summary>Job Types</summary><div class="templateBtns"><button type="button">Full Service</button></div></details>'+
+  '<details class="jobBookingSection jobSectionDisclosure"><summary class="jobFormSectionHead">Booking details</summary><div class="jobSectionGrid"><input id="job_booking_date" value="2026-11-14"></div><input type="hidden" id="job_customer_note" value="[[VECTA_CURRENT_MILEAGE:54321]]"></details>'+
   '</div></div></div>'+
   '<script>window.VECTA_MECHANIC_DEPLOYMENT='+mechanic+';window.fetch=()=>{throw Error("Unexpected network lookup")};'+
   'window.VectaFleetImages={artwork:()=>\'<svg viewBox="0 0 220 120" xmlns="http://www.w3.org/2000/svg"></svg>\'};</script>'+
@@ -37,21 +38,36 @@ function card(mechanic){
   'initHaynesJobTools(document.querySelector("#jobModal"));'+
   `const rect=selector=>document.querySelector(selector).getBoundingClientRect();
   const caption=document.querySelector(innerWidth<=700?'.jobCardPhoneCustomerName':'.jobCardCustomerCaption'),details=document.querySelector('.haynesJobVehicle strong');
-  const body=rect('.jobCardHeaderBody'),matchBox=rect('.haynesJobTools'),customer=rect('.jobContactSection'),haynes=rect('.jobHeaderHaynesLookup'),mot=rect('#job_mileage'),current=rect('#job_current_mileage'),model=rect('.jobCardHeaderModel');
+  const body=rect('.jobCardHeaderBody'),matchBox=rect('.haynesJobTools'),mot=rect('#job_mileage'),current=rect('#job_current_mileage'),model=rect('.jobCardHeaderModel');
+  const buttons=[...document.querySelectorAll('.jobCardDetailButtons>button')],buttonBoxes=buttons.map(el=>el.getBoundingClientRect());
   const result={width:innerWidth,mechanic:${mechanic},visible:details.textContent.includes('EQC')&&details.getBoundingClientRect().height>0,
    pictureHeight:rect('.jobCardHeaderVehicle').height,pictureWidth:rect('.jobCardHeaderVehicle').width,imageHeight:rect('.jobCardHeaderVehicle svg').height,
    mileageWidth:current.width,modelFits:model.right<=rect('.jobCardHeaderVehicle').left&&model.bottom<=body.top,
    caption:caption.textContent,fontSize:parseFloat(getComputedStyle(caption).fontSize),
    visibleNames:[...document.querySelectorAll('.jobCardCustomerCaption,.jobCardPhoneCustomerName')].filter(el=>el.getBoundingClientRect().height>0).length,
    nameBelowModel:caption.getBoundingClientRect().top>=model.bottom&&caption.getBoundingClientRect().right<=rect('.jobCardHeaderVehicle').left,
-   matchGap:customer.top-matchBox.bottom,aligned:Math.max(customer.bottom,haynes.bottom,mot.bottom,current.bottom)-Math.min(customer.bottom,haynes.bottom,mot.bottom,current.bottom)<2,
+   buttonLabels:buttons.map(el=>el.textContent),buttonsOneRow:buttonBoxes.every(box=>Math.abs(box.top-buttonBoxes[0].top)<1),
+   buttonsFit:buttonBoxes.every((box,i)=>box.width>0&&box.right<=body.right+1&&(!i||box.left>=buttonBoxes[i-1].right)&&buttons[i].scrollWidth<=buttons[i].clientWidth+1),
+   buttonsBelowMatch:buttonBoxes[0].top>=matchBox.bottom,panelsClosed:buttons.every(el=>el.getAttribute('aria-expanded')==='false'&&document.getElementById(el.getAttribute('aria-controls')).hidden),
+   mileageAboveHaynes:Math.max(mot.bottom,current.bottom)<=rect('.haynesJobVehicle>a.dark').top,
+   mileageTogether:Math.abs(mot.bottom-current.bottom)<2,
    modelOneLine:model.height<=parseFloat(getComputedStyle(document.querySelector('.jobCardHeaderModel')).lineHeight)+1,
    overflow:document.querySelector('.jobModalCard').scrollWidth>document.querySelector('.jobModalCard').clientWidth+1,
    savedMileage:document.querySelector('#job_current_mileage').value,lastMileage:document.querySelector('#job_mileage').value};
-  document.querySelector('.jobContactSection').open=true;
+  buttons[0].click();
   result.openContactWidth=rect('.jobContactSection').width;result.bodyWidth=body.width;
+  result.noDuplicateSummary=rect('.jobContactSection>summary').height===0;
   const name=document.querySelector('#job_customer_name');name.value="anne-marie o'neill";name.dispatchEvent(new Event('input',{bubbles:true}));
   result.editedCaption=caption.textContent;result.savedName=name.value;
+  buttons[0].click();result.customerCloses=document.querySelector('.jobContactSection').hidden&&buttons[0].getAttribute('aria-expanded')==='false';
+  buttons[0].click();result.customerReopens=!document.querySelector('.jobContactSection').hidden&&name.value===result.savedName;
+  result.independentPanels=true;
+  for(const button of buttons.slice(1)){
+   button.click();const target=document.getElementById(button.getAttribute('aria-controls'));
+   result.independentPanels=result.independentPanels&&!target.hidden&&target.open&&button.getAttribute('aria-expanded')==='true'&&!document.querySelector('.jobContactSection').hidden;
+   result.noDuplicateSummary=result.noDuplicateSummary&&target.querySelector('summary').getBoundingClientRect().height===0;
+   button.click();result.independentPanels=result.independentPanels&&target.hidden&&button.getAttribute('aria-expanded')==='false';
+  }
   parent.postMessage(result,'*');</script>`;
 }
 
@@ -81,8 +97,8 @@ test('the reopened job header keeps identity, matching, customer controls and mi
    assert.equal(row.fontSize,row.width<=700?14:28,context);
    assert.equal(row.visibleNames,1,context);
    if(row.width<=700){assert.equal(row.nameBelowModel,true,context);assert.ok(row.pictureWidth>=130&&row.imageHeight>=135,context);}
-   assert.ok(row.matchGap>=0&&row.matchGap<=12,context);
-   if(row.width>=1050)assert.equal(row.aligned,true,context);
+   assert.deepEqual(row.buttonLabels,row.mechanic?['Customer details']:['Customer details','Job types','Booking details'],context);
+   for(const key of ['buttonsOneRow','buttonsFit','buttonsBelowMatch','panelsClosed','mileageAboveHaynes','mileageTogether','customerCloses','customerReopens','independentPanels','noDuplicateSummary'])assert.equal(row[key],true,key+': '+context);
    // The wider car may wrap a long model name; it must remain clear of the car and controls.
    assert.equal(row.modelFits,true,context);
    assert.equal(row.overflow,false,context);
