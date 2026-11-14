@@ -737,10 +737,10 @@
 
 /* Give identity the available top line; flow matching and controls beneath it. */
 @media screen{
- #jobModal .jobCardSimplified .jobModalHead.jobCardPinnedHeader{grid-template-columns:minmax(0,1fr) 280px!important;grid-template-rows:auto min-content 1fr!important;gap:8px 16px!important}
+ #jobModal .jobCardSimplified .jobModalHead.jobCardPinnedHeader{grid-template-columns:minmax(0,1.4fr) minmax(0,1fr)!important;grid-template-rows:auto min-content 1fr!important;gap:6px 14px!important}
  #jobModal .jobCardSimplified .jobModalHead.jobCardPinnedHeader>.jobCardHeaderHeading{grid-column:1!important;grid-row:2!important;grid-template-columns:max-content minmax(0,1fr)!important;grid-template-rows:auto!important}
  #jobModal .jobCardSimplified .jobCardHeaderModel{grid-column:2!important;grid-row:1!important}
- #jobModal .jobCardHeaderBody{grid-column:1;grid-row:3;display:flex;flex-direction:column;gap:8px;min-width:0}
+ #jobModal .jobCardHeaderBody{grid-column:1;grid-row:3;display:flex;flex-direction:column;gap:4px;min-width:0}
  #jobModal .jobCardSimplified .jobModalHead.jobCardPinnedHeader>.jobCardHeaderVehicle{grid-column:2!important;grid-row:2/4!important}
  #jobModal .jobCardHeaderBody>.haynesJobTools{min-width:0;width:100%;box-sizing:border-box;padding:2px 0!important}
  #jobModal .jobCardHeaderBody>.haynesJobTools [role=status]{margin-top:2px;font-size:11px!important;line-height:1.35;overflow-wrap:anywhere}
@@ -764,7 +764,21 @@
  #jobModal .jobCardCustomerCaption{font-size:28px}
 }
 @media screen and (max-width:1049px){
- #jobModal .jobCardSimplified .jobModalHead.jobCardPinnedHeader{grid-template-columns:minmax(0,1fr) 200px!important}
+ #jobModal .jobCardSimplified .jobModalHead.jobCardPinnedHeader{grid-template-columns:minmax(0,1.5fr) minmax(0,1fr)!important}
+}
+/* Compact editable details leave a generous, uncropped vehicle area on PC and tablet. */
+@media screen and (min-width:701px){
+ #jobModal .jobModalCard.jobCardSimplified .jobModalHead.jobCardPinnedHeader>.jobCardHeaderVehicle{width:100%!important;max-width:none!important;height:clamp(220px,23vw,310px)!important;min-height:0!important;align-self:start!important}
+ #jobModal .jobCardSimplified .jobCardHeaderControls .jobContactSection .jobSectionGrid{display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:5px 8px!important}
+ #jobModal .jobCardSimplified .jobCardHeaderControls .jobContactSection .jobSectionGrid>.field{grid-column:auto!important;width:auto!important}
+ #jobModal .jobCardSimplified .jobCardHeaderControls .jobContactSection .jobSectionGrid>.existingCustomerLookupField{grid-column:1/-1!important;grid-row:1}
+ #jobModal .jobCardSimplified .jobCardHeaderControls .jobContactSection #jobCustomerEmailField{grid-column:span 2!important}
+ #jobModal .jobCardSimplified .jobCardHeaderControls .jobVehicleQuickFacts>.field{flex:0 1 145px;max-width:160px}
+ #jobModal .jobCardSimplified .jobCardHeaderControls .jobContactSection>summary.jobFormSectionHead{min-height:32px;padding:6px 7px!important}
+ #jobModal .jobCardSimplified .jobCardHeaderControls .jobHeaderHaynesLookup{min-height:32px}
+ #jobModal .jobCardSimplified .jobCardHeaderControls .jobContactSection input:not([type=checkbox]),
+ #jobModal .jobCardSimplified .jobCardHeaderControls .jobContactSection select,
+ #jobModal .jobCardSimplified .jobCardHeaderControls .jobVehicleQuickFacts input{background:#f3f6f8!important}
 }
 @media screen and (max-width:700px){
  #jobModal .jobCardSimplified .jobModalHead.jobCardPinnedHeader{grid-template-columns:minmax(0,1fr) 35%!important;gap:8px!important}
