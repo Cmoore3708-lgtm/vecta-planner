@@ -39,7 +39,8 @@ function card(mechanic){
   const caption=document.querySelector('.jobCardCustomerCaption'),details=document.querySelector('.haynesJobVehicle strong');
   const body=rect('.jobCardHeaderBody'),matchBox=rect('.haynesJobTools'),customer=rect('.jobContactSection'),haynes=rect('.jobHeaderHaynesLookup'),mot=rect('#job_mileage'),current=rect('#job_current_mileage'),model=rect('.jobCardHeaderModel');
   const result={width:innerWidth,mechanic:${mechanic},visible:details.textContent.includes('EQC')&&details.getBoundingClientRect().height>0,
-   pictureHeight:rect('.jobCardHeaderVehicle').height,imageHeight:rect('.jobCardHeaderVehicle svg').height,
+   pictureHeight:rect('.jobCardHeaderVehicle').height,pictureWidth:rect('.jobCardHeaderVehicle').width,imageHeight:rect('.jobCardHeaderVehicle svg').height,
+   mileageWidth:current.width,modelFits:model.right<=rect('.jobCardHeaderVehicle').left&&model.bottom<=body.top,
    caption:caption.textContent,fontSize:parseFloat(getComputedStyle(caption).fontSize),
    matchGap:customer.top-matchBox.bottom,aligned:Math.max(customer.bottom,haynes.bottom,mot.bottom,current.bottom)-Math.min(customer.bottom,haynes.bottom,mot.bottom,current.bottom)<2,
    modelOneLine:model.height<=parseFloat(getComputedStyle(document.querySelector('.jobCardHeaderModel')).lineHeight)+1,
@@ -70,13 +71,16 @@ test('the reopened job header keeps identity, matching, customer controls and mi
   for(const row of rows){
    assert.equal(row.visible,true,JSON.stringify(row));
    const context=JSON.stringify(row);
-   assert.equal(row.pictureHeight,!row.mechanic&&row.width>=1050?200:100,context);
+   assert.ok(Math.abs(row.pictureHeight-(row.width>700?Math.min(310,Math.max(220,row.width*.23)):100))<1,context);
+   if(row.width>=1440)assert.ok(row.pictureWidth>=500,context);
+   if(row.width>700)assert.ok(row.mileageWidth>=110&&row.mileageWidth<=160,context);
    assert.ok(row.imageHeight>=35,context);
    assert.equal(row.caption,'Chris Stoker',context);
    assert.equal(row.fontSize,row.width<=700?24:28,context);
    assert.ok(row.matchGap>=0&&row.matchGap<=12,context);
-   if(row.width>=820)assert.equal(row.aligned,true,context);
-   if(row.width>=1440)assert.equal(row.modelOneLine,true,context);
+   if(row.width>=1050)assert.equal(row.aligned,true,context);
+   // The wider car may wrap a long model name; it must remain clear of the car and controls.
+   assert.equal(row.modelFits,true,context);
    assert.equal(row.overflow,false,context);
    assert.ok(row.openContactWidth>=row.bodyWidth-2,context);
    assert.equal(row.savedMileage,'54321');assert.equal(row.lastMileage,'50000');
