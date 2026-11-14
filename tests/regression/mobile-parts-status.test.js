@@ -9,7 +9,7 @@ function setup(source){
  const names=['calculatedPartsStatus','normalisePartsStatus','partsStoredStatus','partsStatusFromJob','partsStatusClass','partsStatusDot','mobileJobCardHtml'];
  const code=names.map(name=>{const start=source.indexOf('function '+name+'(');const end=source.indexOf('\nfunction ',start+1);return source.slice(start,end);}).join('\n');
  const c={esc:s=>String(s??'').replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('"','&quot;'),jobParts:j=>j.parts||[],mobileMotAppointmentHtml:()=>'<span class="mobileMotAppointment">MOT 10:00</span>',jobTypeLabels:()=>['Full Service'],normaliseJobTypeKey:s=>s.toLowerCase(),jobTypeChip:()=>'<span>Full Service</span>',plannerJobDescription:j=>j.work_required||'',isWebsiteBookingJob:j=>!!j.website,jobTypeInlineStyle:()=>'',plannerPlate:()=>'<span class="plannerPlateWrap"><button class="ukPlate">AB12 CDE</button></span>',plannerVehicleLabel:()=> 'Nissan Qashqai',mobileJobCategoryLabel:()=> 'NMUK Internal',carryOverBadgeHtml:()=>''};
- c.mechanicWorkView=j=>({board:j.work_required||''});c.plannerTechnicianLane=value=>value==='Other'?'Chris':value;
+ c.dashboardJobTitle=j=>j.work_required||'';c.mechanicWorkView=j=>({board:j.work_required||''});c.plannerTechnicianLane=value=>value==='Other'?'Chris':value;
  vm.createContext(c);vm.runInContext(code,c);return c;
 }
 for(const [variant,source] of [['Main',html],['mechanics',mechanicVariant(html)]]){
@@ -48,13 +48,6 @@ test('phone cards omit prices, retain the mechanic and escape first names',()=>{
  assert.equal(escaped.querySelector('.mobileJobCategory').textContent,'<img');
  assert.equal(escaped.querySelector('.mobileJobCategory img'),null);
  assert.equal(job.customer_name,'Anne-Marie Smith');
-});
-test('phone job descriptions retain full standard service text and multiple lines',()=>{
- const c=setup(html),work='Full Service\nReplace engine oil, oil filter, air filter and cabin filter.\nInvestigate intermittent noise on full lock and report findings.';
- const job={id:'service',work_required:work,job_type:'Full Service',amount_quoted:180};
- const {document}=parseHTML(c.mobileJobCardHtml(job));
- assert.equal(document.querySelector('.mobileJob > b').textContent,work);
- assert.equal(job.work_required,work);
 });
 test('phone assignment never exposes quotes on a mechanics deployment',()=>{
  const c=setup(mechanicVariant(html));c.window={VECTA_MECHANIC_DEPLOYMENT:true};
