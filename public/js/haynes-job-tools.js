@@ -600,7 +600,25 @@ root.initHaynesJobTools=function(modal,{automatic=false,recoverImage=true}={}){
   const controls=document.createElement('div');controls.className='jobCardHeaderControls';
   const details=header.querySelector('.jobCardHeaderDetails'),facts=header.querySelector('.jobVehicleQuickFacts');
   if(details)controls.appendChild(details);controls.appendChild(lookupRow);if(facts)controls.appendChild(facts);
-  headerBody.append(panel,controls);header.appendChild(headerBody);
+  headerBody.append(controls,panel);header.appendChild(headerBody);
+  const detailButtons=document.createElement('div'),detailPanels=document.createElement('div');
+  detailButtons.className='jobCardDetailButtons';detailButtons.setAttribute('aria-label','Job details');
+  detailPanels.className='jobCardDetailPanels';
+  for(const [key,selector,label] of [['customer','.jobContactSection','Customer details'],['types','.jobTypesDisclosure','Job types'],['booking','.jobBookingSection','Booking details']]){
+   // Mechanics keep their existing read-only job/booking restrictions.
+   if(mechanic&&key!=='customer')continue;
+   const content=modal.querySelector(selector);if(!content?.matches('details'))continue;
+   const toggle=document.createElement('button');toggle.type='button';toggle.className='jobCardDetailButton '+key;
+   toggle.id='job_detail_button_'+key;toggle.textContent=label;
+   content.id=content.id||'job_detail_panel_'+key;content.classList.add('jobCardDetailPanel');
+   content.setAttribute('aria-labelledby',toggle.id);toggle.setAttribute('aria-controls',content.id);
+   const sync=()=>{content.hidden=!content.open;toggle.setAttribute('aria-expanded',String(content.open));};
+   toggle.addEventListener('click',()=>{content.open=!content.open;sync();});
+   content.addEventListener('toggle',sync);
+   content.addEventListener('invalid',()=>{content.open=true;sync();},true);
+   sync();detailButtons.appendChild(toggle);detailPanels.appendChild(content);
+  }
+  if(detailButtons.children.length)headerBody.append(detailButtons,detailPanels);
   actions.querySelector('[data-close-modal]')?.remove();
   const print=actions.querySelector('#printJobCard'),foot=modal.querySelector('.modalFoot'),remove=foot?.querySelector('#deleteJob');
   if(print&&foot){print.classList.remove('jobPrintSmall');if(remove)remove.after(print);else foot.prepend(print);}
