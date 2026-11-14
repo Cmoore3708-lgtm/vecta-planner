@@ -1,11 +1,13 @@
 import {chromium} from 'playwright';
 import {resolve} from 'node:path';
+import {writeFile,mkdir} from 'node:fs/promises';
 import {createSessionRecovery,timeout} from './session-recovery.mjs';
 import {SUPPLIER} from './browser.mjs';
 import {ensureEnquiry} from './esp-enquiry.mjs';
 import {testEspSearch} from './esp-search.mjs';
 import {readEspSettings,requireEspSettings} from './esp-settings.mjs';
 import {cleanTyreCatalogue} from '../../lib/tyre-relay-contract.js';
+console.log('VECTA TYRE WORKER — WAREHOUSE STOCK V2 (Company + Default)');
 const endpoint='https://brqsejjykrubxuofavuu.supabase.co/functions/v1/tyre-pc-relay';
 const token=process.env.HAYNES_RELAY_TOKEN;
 if(!/^[a-f0-9]{64}$/.test(token||''))throw Error('Run START-LIVE-TYRE-PRICES.cmd on the paired Haynes PC.');
@@ -29,7 +31,13 @@ try{
    let tab;
    try{
     tab=await context.newPage();
-    const lookup=async()=>{await recovery.ensure(tab);await ensureEnquiry(tab);requireEspSettings(await tab.evaluate(source=>(new Function('return ('+source+')')())(document),readEspSettings.toString()));const found=await testEspSearch(tab,task.size,{trackRefresh:true});return cleanTyreCatalogue({size:found.requestedSize,checkedAt:new Date().toISOString(),catalogue:found.guideCatalogue,settings:found.settings},task.size)};
+    const lookup=async()=>{await recovery.ensure(tab);await ensureEnquiry(tab);requireEspSettings(await tab.evaluate(source=>(new Function('return ('+source+')')())(document),readEspSettings.toString()));const found=await testEspSearch(tab,task.size,{trackRefresh:true});
+     // Bounded diagnostic: tyre products, public Sellout and stock only.
+     // Omit trade costs, account details, tokens and browser/session data.
+     const diagnostic={workerVersion:'warehouse-stock-v2',size:task.size,checkedAt:new Date().toISOString(),headings:found.headings||[],products:found.stockSample||[]};
+     try{const dir=resolve(process.env.LOCALAPPDATA||'.','VectaTyres');await mkdir(dir,{recursive:true});await writeFile(resolve(dir,'last-tyre-lookup.json'),JSON.stringify(diagnostic,null,2));}catch{console.log('Could not save local stock diagnostic.');}
+     console.log('Stock read: '+found.guideCatalogue.slice(0,15).map(row=>row.brand+' £'+(row.unitPence/100).toFixed(2)+' stock '+(row.defaultStockMinimum??'unknown')).join(' | '));
+     return cleanTyreCatalogue({size:found.requestedSize,checkedAt:new Date().toISOString(),catalogue:found.guideCatalogue,settings:found.settings},task.size)};
     const result=await timeout(lookup(),35000);
     const saved=await rpc({action:'complete',id:task.id,lease:task.lease,status:'MATCHED',result});if(saved.status!=='SAVED')throw Error('RESULT_NOT_SAVED');browserFailures=0;console.log('Guide updated: '+task.size);
    }catch(e){const status=report(e);if(status==='UNAVAILABLE')browserFailures++;else browserFailures=0;console.log('Guide unavailable: '+task.size+' ('+status+').');try{await rpc({action:'complete',id:task.id,lease:task.lease,status})}catch{console.log('Result could not be delivered.')}}
