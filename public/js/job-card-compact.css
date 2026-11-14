@@ -740,7 +740,7 @@
  #jobModal .jobCardSimplified .jobModalHead.jobCardPinnedHeader{grid-template-columns:minmax(0,1.4fr) minmax(0,1fr)!important;grid-template-rows:auto min-content 1fr!important;gap:6px 14px!important}
  #jobModal .jobCardSimplified .jobModalHead.jobCardPinnedHeader>.jobCardHeaderHeading{grid-column:1!important;grid-row:2!important;grid-template-columns:max-content minmax(0,1fr)!important;grid-template-rows:auto!important}
  #jobModal .jobCardSimplified .jobCardHeaderModel{grid-column:2!important;grid-row:1!important}
- #jobModal .jobCardHeaderBody{grid-column:1;grid-row:3;display:flex;flex-direction:column;gap:5px;min-width:0}
+ #jobModal .jobCardHeaderBody{grid-column:1;grid-row:3;display:flex;flex-direction:column;gap:4px;min-width:0}
  #jobModal .jobCardSimplified .jobModalHead.jobCardPinnedHeader>.jobCardHeaderVehicle{grid-column:2!important;grid-row:2/4!important}
  #jobModal .jobCardHeaderBody>.haynesJobTools{min-width:0;width:100%;box-sizing:border-box;padding:2px 0!important}
  #jobModal .jobCardHeaderBody>.haynesJobTools [role=status]{margin-top:2px;font-size:11px!important;line-height:1.35;overflow-wrap:anywhere}
