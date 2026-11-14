@@ -36,12 +36,14 @@ function card(mechanic){
   '<script>'+helper+'</script><script>VectaHaynesJobTools.remember('+JSON.stringify(match)+',true,{allowExpiredIdentity:true});'+
   'initHaynesJobTools(document.querySelector("#jobModal"));'+
   `const rect=selector=>document.querySelector(selector).getBoundingClientRect();
-  const caption=document.querySelector('.jobCardCustomerCaption'),details=document.querySelector('.haynesJobVehicle strong');
+  const caption=document.querySelector(innerWidth<=700?'.jobCardPhoneCustomerName':'.jobCardCustomerCaption'),details=document.querySelector('.haynesJobVehicle strong');
   const body=rect('.jobCardHeaderBody'),matchBox=rect('.haynesJobTools'),customer=rect('.jobContactSection'),haynes=rect('.jobHeaderHaynesLookup'),mot=rect('#job_mileage'),current=rect('#job_current_mileage'),model=rect('.jobCardHeaderModel');
   const result={width:innerWidth,mechanic:${mechanic},visible:details.textContent.includes('EQC')&&details.getBoundingClientRect().height>0,
    pictureHeight:rect('.jobCardHeaderVehicle').height,pictureWidth:rect('.jobCardHeaderVehicle').width,imageHeight:rect('.jobCardHeaderVehicle svg').height,
    mileageWidth:current.width,modelFits:model.right<=rect('.jobCardHeaderVehicle').left&&model.bottom<=body.top,
    caption:caption.textContent,fontSize:parseFloat(getComputedStyle(caption).fontSize),
+   visibleNames:[...document.querySelectorAll('.jobCardCustomerCaption,.jobCardPhoneCustomerName')].filter(el=>el.getBoundingClientRect().height>0).length,
+   nameBelowModel:caption.getBoundingClientRect().top>=model.bottom&&caption.getBoundingClientRect().right<=rect('.jobCardHeaderVehicle').left,
    matchGap:customer.top-matchBox.bottom,aligned:Math.max(customer.bottom,haynes.bottom,mot.bottom,current.bottom)-Math.min(customer.bottom,haynes.bottom,mot.bottom,current.bottom)<2,
    modelOneLine:model.height<=parseFloat(getComputedStyle(document.querySelector('.jobCardHeaderModel')).lineHeight)+1,
    overflow:document.querySelector('.jobModalCard').scrollWidth>document.querySelector('.jobModalCard').clientWidth+1,
@@ -61,22 +63,24 @@ test('the reopened job header keeps identity, matching, customer controls and mi
   const frames=[];
   for(const mechanic of [false,true]){
    const file=(mechanic?'mechanic':'main')+'.html';writeFileSync(path.join(dir,file),card(mechanic));
-   for(const width of [1440,820,390])frames.push('<iframe width="'+width+'" height="900" src="'+file+'"></iframe>');
+   for(const width of [1440,820,390,320])frames.push('<iframe width="'+width+'" height="900" src="'+file+'"></iframe>');
   }
   const report=path.join(dir,'report.html');
   writeFileSync(report,'<!doctype html><pre id="results"></pre><script>onmessage=e=>results.textContent+=JSON.stringify(e.data)+"\\n"</script>'+frames.join(''));
   const {stdout}=await run(process.env.VECTA_CHROME_BIN||'google-chrome',['--headless','--no-sandbox','--disable-gpu','--disable-background-networking','--allow-file-access-from-files','--no-first-run','--user-data-dir='+dir+'/profile','--virtual-time-budget=3000','--dump-dom',pathToFileURL(report).href],{timeout:90000,maxBuffer:1024*1024});
   const rows=stdout.match(/<pre id="results">([^<]*)<\/pre>/)?.[1].trim().split('\n').filter(Boolean).map(JSON.parse)||[];
-  assert.equal(rows.length,6);
+  assert.equal(rows.length,8);
   for(const row of rows){
    assert.equal(row.visible,true,JSON.stringify(row));
    const context=JSON.stringify(row);
-   assert.ok(Math.abs(row.pictureHeight-(row.width>700?Math.min(310,Math.max(220,row.width*.23)):100))<1,context);
+   assert.ok(Math.abs(row.pictureHeight-(row.width>700?Math.min(310,Math.max(220,row.width*.23)):140))<1,context);
    if(row.width>=1440)assert.ok(row.pictureWidth>=500,context);
    if(row.width>700)assert.ok(row.mileageWidth>=110&&row.mileageWidth<=160,context);
    assert.ok(row.imageHeight>=35,context);
    assert.equal(row.caption,'Chris Stoker',context);
-   assert.equal(row.fontSize,row.width<=700?24:28,context);
+   assert.equal(row.fontSize,row.width<=700?14:28,context);
+   assert.equal(row.visibleNames,1,context);
+   if(row.width<=700){assert.equal(row.nameBelowModel,true,context);assert.ok(row.pictureWidth>=130&&row.imageHeight>=135,context);}
    assert.ok(row.matchGap>=0&&row.matchGap<=12,context);
    if(row.width>=1050)assert.equal(row.aligned,true,context);
    // The wider car may wrap a long model name; it must remain clear of the car and controls.
