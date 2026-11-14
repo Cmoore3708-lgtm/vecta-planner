@@ -47,7 +47,7 @@ function card(mechanic){
    visibleNames:[...document.querySelectorAll('.jobCardCustomerCaption,.jobCardPhoneCustomerName')].filter(el=>el.getBoundingClientRect().height>0).length,
    nameBelowModel:caption.getBoundingClientRect().top>=model.bottom&&caption.getBoundingClientRect().right<=rect('.jobCardHeaderVehicle').left,
    buttonLabels:buttons.map(el=>el.textContent),buttonsOneRow:buttonBoxes.every(box=>Math.abs(box.top-buttonBoxes[0].top)<1),
-   buttonsFit:buttonBoxes.every((box,i)=>box.width>0&&box.right<=body.right+1&&(!i||box.left>=buttonBoxes[i-1].right)),
+   buttonsFit:buttonBoxes.every((box,i)=>box.width>0&&box.right<=body.right+1&&(!i||box.left>=buttonBoxes[i-1].right)&&buttons[i].scrollWidth<=buttons[i].clientWidth+1),
    buttonsBelowMatch:buttonBoxes[0].top>=matchBox.bottom,panelsClosed:buttons.every(el=>el.getAttribute('aria-expanded')==='false'&&document.getElementById(el.getAttribute('aria-controls')).hidden),
    mileageAboveHaynes:Math.max(mot.bottom,current.bottom)<=rect('.haynesJobVehicle>a.dark').top,
    mileageTogether:Math.abs(mot.bottom-current.bottom)<2,
