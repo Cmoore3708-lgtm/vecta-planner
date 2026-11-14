@@ -782,15 +782,22 @@
 }
 #jobModal .jobCardPhoneCustomerName{display:none}
 @media screen and (max-width:700px){
- #jobModal .jobCardSimplified .jobModalHead.jobCardPinnedHeader{grid-template-columns:minmax(0,1fr) 46%!important;gap:8px!important}
- #jobModal .jobCardSimplified .jobModalHead.jobCardPinnedHeader>.jobCardHeaderHeading{grid-column:1!important;grid-template-columns:minmax(0,1fr)!important;grid-template-rows:auto auto auto!important;row-gap:4px!important}
+ #jobModal .jobCardSimplified .jobModalHead.jobCardPinnedHeader{grid-template-columns:repeat(2,minmax(0,1fr)) 46%!important;grid-template-rows:auto auto auto!important;gap:8px!important}
+ #jobModal .jobCardSimplified .jobModalHead.jobCardPinnedHeader>.jobCardHeaderHeading{grid-column:1/3!important;grid-template-columns:minmax(0,1fr)!important;grid-template-rows:auto auto auto!important;row-gap:4px!important}
  #jobModal .jobCardSimplified .jobCardHeaderModel{grid-column:1!important;grid-row:2!important}
- #jobModal .jobModalCard.jobCardSimplified .jobModalHead.jobCardPinnedHeader>.jobCardHeaderVehicle{grid-column:2!important;grid-row:2!important;width:100%!important;max-width:none!important;height:140px!important;min-height:0!important}
+ #jobModal .jobModalCard.jobCardSimplified .jobModalHead.jobCardPinnedHeader>.jobCardHeaderVehicle{grid-column:3!important;grid-row:2/4!important;width:100%!important;max-width:none!important;height:140px!important;min-height:0!important;align-self:start!important}
  #jobModal .jobCardSimplified .jobCardHeaderRegistration{width:100%!important}
  #jobModal .jobCardSimplified .jobCardHeaderRegistration input{width:100%!important;font-size:clamp(18px,5vw,22px)!important;padding:3px 5px!important;letter-spacing:.7px}
  #jobModal .jobCardPhoneCustomerName:not([hidden]){display:block;grid-column:1;grid-row:3;min-width:0;text-align:left;font-size:14px;line-height:1.3;font-weight:600;color:#475569;overflow-wrap:anywhere}
- #jobModal .jobCardHeaderBody{grid-column:1/-1;grid-row:3}
- #jobModal .jobCardHeaderControls .jobVehicleQuickFacts>.field{flex-basis:calc(50% - 8px)}
+ /* Share the header grid so mileage sits under the name, beside the artwork. */
+ #jobModal .jobCardHeaderBody,#jobModal .jobCardHeaderControls{display:contents}
+ #jobModal .jobCardHeaderBody>*,#jobModal .jobCardHeaderControls .jobVehicleSection,#jobModal .jobCardHeaderControls .jobHeaderHaynesRow{grid-column:1/-1}
+ #jobModal .jobCardSimplified .jobCardHeaderControls .jobVehicleQuickFacts>.field:has(#job_mileage){grid-column:1!important;grid-row:3!important}
+ #jobModal .jobCardSimplified .jobCardHeaderControls .jobVehicleQuickFacts>.jobCurrentMileageField{grid-column:2!important;grid-row:3!important}
+ #jobModal .jobCardHeaderControls .jobVehicleQuickFacts>.field{width:100%;max-width:110px;min-width:0;align-self:end}
+ #jobModal .jobCardHeaderControls .jobVehicleQuickFacts>.field label{font-size:9px!important;line-height:1.2;min-height:22px;margin:0 0 3px!important;letter-spacing:0}
+ #jobModal .jobCardHeaderControls .jobVehicleQuickFacts>.field input{font-size:16px!important;height:32px!important;min-height:32px!important;padding:4px!important;box-sizing:border-box}
+ #jobModal .jobCardHeaderControls .jobVehicleQuickFacts .jobVehicleDuePanel{grid-column:1/-1;grid-row:4}
  #jobModal .jobCardCustomerCaption{display:none!important}
 }
 
