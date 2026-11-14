@@ -26,19 +26,16 @@ export function summaryContext(entry=main,mechanic=false){
  return c;
 }
 for(const [name,entry] of [['Main',main],['mechanics',mechanicVariant(main)]]){
- test(name+': office website summaries stay compact while mechanics see complete work instructions',()=>{
+ test(name+': phone and mechanics cards show website work while desktop summaries stay compact',()=>{
   const c=summaryContext(entry,name==='mechanics'),before=JSON.stringify(webJob);
   for(const html of [c.jobCardHtml(webJob),c.mobileJobCardHtml(webJob),c.unallocatedJobCardHtml(webJob),c.provisionalBookingsPanelHtml(),c.mechanicJobCardHtml(webJob)]){
    const {document}=parseHTML(html),text=document.documentElement.textContent;
    assert.match(text,/Full Service/);assert.match(text,/Mini Valet/);
-   if(document.querySelector('.mechanicQueueCard')){
+   if(document.querySelector('.mobileJob')){
     assert.match(text,/5W30/);assert.match(text,/PART123/);assert.match(text,/Check noisy brakes/);
     assert.doesNotMatch(text,/210|price agreed|including VAT/);
-   }else{
-    const price=document.querySelector('.mobileJobPrice');
-    if(price){assert.equal(name,'Main');assert.equal(price.textContent,'£210');price.remove();}
-    assert.doesNotMatch(document.documentElement.textContent,/210|5W30|PART123|noisy brakes|price agreed|including VAT/);
-   }
+   }else assert.doesNotMatch(text,/210|5W30|PART123|noisy brakes|price agreed|including VAT/);
+   assert.equal(document.querySelector('.mobileJobPrice'),null);
   }
   assert.doesNotMatch(c.quotePanelHtml(),/5W30|PART123|noisy brakes/);
   assert.equal(JSON.stringify(webJob),before);
