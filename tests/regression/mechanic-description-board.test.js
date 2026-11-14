@@ -10,6 +10,7 @@ import {pathToFileURL} from 'node:url';
 import {parseHTML} from 'linkedom';
 import {mechanicVariant} from '../../scripts/mechanic-variant.mjs';
 import '../../public/js/vecta-booking-rules.js';
+import '../../public/js/vecta-dashboard-titles.js';
 
 const main=fs.readFileSync('index.html','utf8');
 const functionSource=name=>main.slice(main.indexOf('function '+name+'('),main.indexOf('\nfunction ',main.indexOf('function '+name+'(')+1));
@@ -34,6 +35,7 @@ function setup(mechanic=true,savedView=''){
   jobTypeLabels:()=>['Full Service'],normaliseJobTypeKey:s=>s.toLowerCase(),jobTypeChip:(_,label)=>'<span class="jobTypeChip">'+escape(label)+'</span>',isWebsiteBookingJob:()=>false,jobTypeInlineStyle:j=>j.status==='provisional'?'background:#cbd0d7!important':'',plannerPlate:j=>'<span class="ukPlate">'+escape(j.registration)+'</span>',partsStatusDot:()=>'',plannerVehicleLabel:j=>j.vehicle||'Vehicle',mobileJobCategoryLabel:()=> 'Staff',mobileMotAppointmentHtml:()=>'<span class="mobileMotAppointment">MOT 10:30</span>',carryOverBadgeHtml:()=>'',
   openJobModal:id=>opened.push(id),plannerWindowConfig:()=>({startMinutes:480,dayLast:960,gridPosition:0}),PLANNER_PX_PER_HOUR:60,plannerMetricsHtml:()=>'',mobilePlannerHtml:()=>'',plannerLiveControlsHtml:()=>'',mechanicHours:()=>0,currentTimeLineHtml:()=>'',plannerTimeRows:()=> '08:00',laneHtml:m=>m,unallocatedPanelHtml:()=> 'UNALLOCATED',quotePanelHtml:()=> 'QUOTES'};
  vm.createContext(c);vm.runInContext(['dashboardTitleText','savedDashboardTitle','automaticDashboardTitle','dashboardJobTitle','dashboardTitleEditorHtml','mechanicWorkLines','mechanicWorkView','mechanicListJob','mechanicJobCardHtml','provisionalBookingsPanelHtml','mechanicPlannerHtml','plannerHtml','bindJobOpenControls','bindMechanicNameFilter'].map(functionSource).join('\n'),c);
+ c.dashboardTitles=globalThis.VectaDashboardTitles.create({workView:c.mechanicWorkView,labels:c.jobTypeLabels,escape:c.esc,isWebsite:c.isWebsiteBookingJob,template:c.templateDataForType,document:()=>c.document});
  c.render=()=>{document.getElementById('content').innerHTML=c.plannerHtml();c.bindJobOpenControls(document);c.bindMechanicNameFilter(document)};
  c.render();
  return {c,document,window,opened,saved};

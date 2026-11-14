@@ -5,6 +5,7 @@ import vm from 'node:vm';
 import {parseHTML} from 'linkedom';
 import {mechanicVariant} from '../../scripts/mechanic-variant.mjs';
 import '../../public/js/vecta-booking-rules.js';
+import '../../public/js/vecta-dashboard-titles.js';
 
 export const main=fs.readFileSync('index.html','utf8');
 const escape=value=>String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -23,6 +24,7 @@ export function summaryContext(entry=main,mechanic=false){
   const start=entry.indexOf('function '+name+'(');assert.ok(start>=0,name);
   vm.runInContext(entry.slice(start,entry.indexOf('\nfunction ',start+1)),c);
  }
+ c.dashboardTitles=globalThis.VectaDashboardTitles.create({workView:c.mechanicWorkView,labels:c.jobTypeLabels,escape:c.esc,isWebsite:c.isWebsiteBookingJob,template:c.templateDataForType,document:()=>c.document});
  return c;
 }
 for(const [name,entry] of [['Main',main],['mechanics',mechanicVariant(main)]]){
