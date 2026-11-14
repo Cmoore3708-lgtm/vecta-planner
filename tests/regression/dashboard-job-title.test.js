@@ -15,7 +15,7 @@ test('existing long jobs get concise fault summaries without rewriting instructi
   for(const card of [c.mobileJobCardHtml(job),c.jobCardHtml(job),c.unallocatedJobCardHtml(job)])assert.ok(card.includes(title));
   const {document}=parseHTML(c.mobileJobCardHtml(job));
   assert.equal(document.querySelector('.mobileJob > b').textContent,title);
-  assert.equal(document.querySelector('.mobilePlateAndParts .mobileJobCategory').textContent,'Michael');
+  assert.equal(document.querySelector('.mobileJobAssignment + .mobileJobCategory').textContent,'Michael');
   assert.doesNotMatch(c.mobileJobCardHtml(job),/water pump|Picking up Friday|dodgy sensor/);
   assert.equal(c.mechanicWorkView(job).editor,work);
   assert.equal(JSON.stringify(job),before);
@@ -61,4 +61,21 @@ test('custom title survives the normal save/reopen path, clears to automatic and
  assert.equal(c.dashboardJobTitle(cleared),'Overheating · No cabin heat');assert.equal(cleared.work_required,overheating);
  c.window.VECTA_MECHANIC_DEPLOYMENT=true;field.value='Mechanic title change';
  assert.equal(c.dashboardJobTitle(c.gatherJob(saved.id)),'Oil cooler and cooling checks');
+});
+
+
+test('service and six-month check cards show their types without dashboard description text',()=>{
+ const c=summaryContext();
+ for(const job_type of ['Service','Full Service','Interim Service','On-Site Service','6 Month Safety Check','Six Month Safety Check','6 monthly check','Full Service || MOT']){
+  const job={id:'routine',source:'manual',job_type,work_required:'Carry out all scheduled checks and record results',customer_note:c.noteWithDashboardTitle('', 'Saved dashboard summary')},before=JSON.stringify(job);
+  assert.equal(c.dashboardJobTitle(job),'',job_type);
+  const phone=parseHTML(c.mobileJobCardHtml(job)).document;
+  assert.equal(phone.querySelector('.mobileJob > b'),null,job_type);
+  assert.ok(phone.querySelector('.mobileJobTypes'),job_type);
+  assert.equal(parseHTML(c.jobCardHtml(job)).document.querySelector('.plannerWorkRequired').textContent,'',job_type);
+  assert.equal(parseHTML(c.unallocatedJobCardHtml(job)).document.querySelector('b').textContent,'',job_type);
+  assert.match(c.mechanicJobCardHtml(job),/Carry out all scheduled checks/);
+  assert.equal(JSON.stringify(job),before);
+ }
+ for(const job_type of ['Other','Brakes','MOT','Diagnostics'])assert.notEqual(c.dashboardJobTitle({job_type,work_required:'Investigate clicking noise'}),'',job_type);
 });

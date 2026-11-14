@@ -28,7 +28,7 @@ export function summaryContext(entry=main,mechanic=false){
  return c;
 }
 for(const [name,entry] of [['Main',main],['mechanics',mechanicVariant(main)]]){
- test(name+': dashboard titles are compact while mechanics retain full website work',()=>{
+ test(name+': routine service cards omit descriptions while mechanics retain full website work',()=>{
   const c=summaryContext(entry,name==='mechanics'),before=JSON.stringify(webJob);
   for(const html of [c.jobCardHtml(webJob),c.mobileJobCardHtml(webJob),c.unallocatedJobCardHtml(webJob),c.provisionalBookingsPanelHtml(),c.mechanicJobCardHtml(webJob)]){
    const {document}=parseHTML(html),text=document.documentElement.textContent;
@@ -36,7 +36,7 @@ for(const [name,entry] of [['Main',main],['mechanics',mechanicVariant(main)]]){
    if(document.querySelector('.mechanicQueueCard')||(name==='mechanics'&&document.querySelector('.mobileJob'))){
     assert.match(text,/5W30/);assert.match(text,/PART123/);assert.match(text,/Check noisy brakes/);
     assert.doesNotMatch(text,/210|price agreed|including VAT/);
-   }else {assert.doesNotMatch(text,/210|5W30|PART123|price agreed|including VAT/);assert.match(text,/Check noisy brakes/);}
+   }else {assert.doesNotMatch(text,/210|5W30|PART123|price agreed|including VAT/);assert.doesNotMatch(text,/Check noisy brakes/);}
    assert.equal(document.querySelector('.mobileJobPrice'),null);
   }
   assert.doesNotMatch(c.quotePanelHtml(),/5W30|PART123/);
@@ -44,7 +44,7 @@ for(const [name,entry] of [['Main',main],['mechanics',mechanicVariant(main)]]){
   assert.match(c.mechanicWorkView(webJob).editor,/Check noisy brakes/,'opening the job still exposes the instructions');
  });
  test(name+': manual dashboard descriptions remain visible and legacy website valet appears once',()=>{
-  const c=summaryContext(entry,name==='mechanics'),manual={...webJob,source:'manual',work_required:'Inspect noisy brakes'};
+  const c=summaryContext(entry,name==='mechanics'),manual={...webJob,source:'manual',job_type:'Other',work_required:'Inspect noisy brakes'};
   for(const html of [c.jobCardHtml(manual),c.mobileJobCardHtml(manual),c.unallocatedJobCardHtml(manual),c.mechanicJobCardHtml(manual)])assert.match(html,/Inspect noisy brakes/);
   for(const job_type of ['Full Service','Full Service || Mini Valet']){
    const job={...webJob,job_type,work_required:'Full Service\n\nMini valet · £30 including VAT: snow-foam pressure wash, hoover inside, Dashboard & Media screens cleaned.'};
