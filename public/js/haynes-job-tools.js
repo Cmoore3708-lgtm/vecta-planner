@@ -508,11 +508,13 @@ root.initHaynesJobTools=function(modal,{automatic=false,recoverImage=true}={}){
  }
  const picture=document.createElement('div');picture.className='jobCardHeaderVehicle';
  const customerCaption=document.createElement('div');customerCaption.className='jobCardCustomerCaption';
+ const phoneCustomerName=document.createElement('div');phoneCustomerName.className='jobCardPhoneCustomerName';heading.appendChild(phoneCustomerName);
  function updateCustomerCaption(){
   const name=String(modal.querySelector('#job_customer_name')?.value||'').trim();
   const account=String(modal.querySelector('#job_customer_account')?.value||'').trim();
   customerCaption.textContent=name?name.replace(/(^|[\s'’\-])(\p{L})/gu,(_,separator,initial)=>separator+initial.toLocaleUpperCase('en-GB')):(!/^(staff|contractor)$/i.test(account)?account:'');
   customerCaption.hidden=!customerCaption.textContent;
+  phoneCustomerName.textContent=customerCaption.textContent;phoneCustomerName.hidden=customerCaption.hidden;
  }
  modal.addEventListener('input',updateCustomerCaption);modal.addEventListener('change',updateCustomerCaption);
  modal.addEventListener('click',event=>{if(event.target.closest('[data-pick-existing-customer]'))updateCustomerCaption();});
