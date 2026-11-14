@@ -40,9 +40,14 @@ test('phone cards omit prices, retain the mechanic and escape first names',()=>{
  const c=setup(html);
  const job={id:'job',technician:'Other',customer_name:'Anne-Marie Smith',customer_account:'Staff',amount_quoted:0,parts_status:'Parts here'};
  const {document}=parseHTML(c.mobileJobCardHtml(job,'Chris'));
- assert.equal(document.querySelector('.cardPartsStatusDot + .mobileJobAssignment .mobileJobMechanic').textContent,'Chris');
+ assert.equal(document.querySelector('.mobileJobTypes + .mobileJobAssignment .mobileJobMechanic').textContent,'Chris');
  assert.equal(document.querySelector('.mobileJobPrice'),null);
  assert.equal(document.querySelector('.mobileJobCategory').textContent,'Anne-Marie');
+ assert.ok(document.querySelector('.mobileJobAssignment + .mobileJobCategory'));
+ c.jobTypeLabels=()=>['General'];
+ const noType=parseHTML(c.mobileJobCardHtml(job)).document;
+ assert.ok(noType.querySelector('.mobileVehicleTop + .mobileJobAssignment'));
+ assert.ok(noType.querySelector('.mobileJobAssignment + .mobileJobCategory'));
  for(const price of [0,145,null,undefined,''])assert.doesNotMatch(c.mobileJobCardHtml({...job,amount_quoted:price}),/mobileJobPrice|Unpriced|£/);
  const escaped=parseHTML(c.mobileJobCardHtml({...job,customer_name:'<img src=x> Smith'})).document;
  assert.equal(escaped.querySelector('.mobileJobCategory').textContent,'<img');

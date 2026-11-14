@@ -55,7 +55,10 @@ function automaticDashboardTitle(job){
   // Unfamiliar work gets a short first sentence which the office can refine.
   return dashboardTitleText(text.split(/(?<=[.!?])\s/)[0]||'Job');
 }
-function dashboardJobTitle(job){return savedDashboardTitle(job)||automaticDashboardTitle(job)}
+function dashboardJobTitle(job){
+  var routine=jobTypeLabels(job).some(function(label){return /\bservice\b|^(?:six|6)[ -]*month(?:ly)?(?: safety)? check$/i.test(label)});
+  return routine?'':savedDashboardTitle(job)||automaticDashboardTitle(job);
+}
 function dashboardTitleEditorHtml(job){
   return '<div class="field wide"><label for="job_dashboard_title">Dashboard title</label><input id="job_dashboard_title" maxlength="90" value="'+esc(savedDashboardTitle(job))+'" placeholder="'+esc(automaticDashboardTitle(job))+'" aria-describedby="job_dashboard_title_hint"><small id="job_dashboard_title_hint">Short summary for the dashboard. Leave blank to generate from the full description.</small></div>';
 }
