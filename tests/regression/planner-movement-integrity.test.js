@@ -163,7 +163,7 @@ test('the review panel lists active manual and web holds across dates and remove
   {id:'invoiced',status:'provisional',invoiced:true},
   {id:'cancelled',status:'cancelled'}
  ];
- const ctx={app:{jobs},window:{},esc:v=>String(v??''),vectaJobIsDeletedForLists:j=>j.tombstone,
+ const ctx={dashboardJobTitle:j=>j.work_required||j.job_type||'Job',app:{jobs},window:{},esc:v=>String(v??''),vectaJobIsDeletedForLists:j=>j.tombstone,
   isJobInvoiced:j=>j.invoiced,byTime:(a,b)=>String(a.drop_time||'').localeCompare(String(b.drop_time||'')),
   listPlate:()=>'',plannerVehicleLabel:()=>'',mobileJobCategoryLabel:()=>'',jobTypeInlineStyle:()=>'',jobTypeLabels:j=>[j.job_type||'General'],isWebsiteBookingJob:j=>j.source==='website booking'};
  vm.runInNewContext(namedFunctionSource('provisionalBookingsPanelHtml'),ctx);

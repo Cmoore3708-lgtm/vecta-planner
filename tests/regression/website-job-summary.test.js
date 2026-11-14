@@ -19,25 +19,25 @@ export function summaryContext(entry=main,mechanic=false){
  };
  c.jobTypeChip=(j,label)=>'<span class="jobTypeChip">'+escape(label||c.jobTypeLabels(j).join(' · '))+'</span>';
  vm.createContext(c);
- for(const name of ['normaliseJobTypeKey','jobTypeValues','formatJobTypeLabel','jobTypeLabels','isWebsiteBookingJob','plannerVehicleLabel','plannerJobTypesHtml','plannerJobDescription','mechanicWorkLines','mechanicWorkView','mechanicJobCardHtml','jobCardHtml','mobileJobCardHtml','unallocatedJobCardHtml','provisionalBookingsPanelHtml','quotePanelHtml']){
+ for(const name of ['normaliseJobTypeKey','jobTypeValues','formatJobTypeLabel','jobTypeLabels','isWebsiteBookingJob','plannerVehicleLabel','plannerJobTypesHtml','plannerJobDescription','dashboardTitleText','savedDashboardTitle','noteWithDashboardTitle','automaticDashboardTitle','dashboardJobTitle','dashboardTitleEditorHtml','bindDashboardTitleEditor','mechanicWorkLines','mechanicWorkView','mechanicJobCardHtml','jobCardHtml','mobileJobCardHtml','unallocatedJobCardHtml','provisionalBookingsPanelHtml','quotePanelHtml']){
   const start=entry.indexOf('function '+name+'(');assert.ok(start>=0,name);
   vm.runInContext(entry.slice(start,entry.indexOf('\nfunction ',start+1)),c);
  }
  return c;
 }
 for(const [name,entry] of [['Main',main],['mechanics',mechanicVariant(main)]]){
- test(name+': phone and mechanics cards show website work while desktop summaries stay compact',()=>{
+ test(name+': dashboard titles are compact while mechanics retain full website work',()=>{
   const c=summaryContext(entry,name==='mechanics'),before=JSON.stringify(webJob);
   for(const html of [c.jobCardHtml(webJob),c.mobileJobCardHtml(webJob),c.unallocatedJobCardHtml(webJob),c.provisionalBookingsPanelHtml(),c.mechanicJobCardHtml(webJob)]){
    const {document}=parseHTML(html),text=document.documentElement.textContent;
    assert.match(text,/Full Service/);assert.match(text,/Mini Valet/);
-   if(document.querySelector('.mobileJob')){
+   if(document.querySelector('.mechanicQueueCard')||(name==='mechanics'&&document.querySelector('.mobileJob'))){
     assert.match(text,/5W30/);assert.match(text,/PART123/);assert.match(text,/Check noisy brakes/);
     assert.doesNotMatch(text,/210|price agreed|including VAT/);
-   }else assert.doesNotMatch(text,/210|5W30|PART123|noisy brakes|price agreed|including VAT/);
+   }else {assert.doesNotMatch(text,/210|5W30|PART123|price agreed|including VAT/);assert.match(text,/Check noisy brakes/);}
    assert.equal(document.querySelector('.mobileJobPrice'),null);
   }
-  assert.doesNotMatch(c.quotePanelHtml(),/5W30|PART123|noisy brakes/);
+  assert.doesNotMatch(c.quotePanelHtml(),/5W30|PART123/);
   assert.equal(JSON.stringify(webJob),before);
   assert.match(c.mechanicWorkView(webJob).editor,/Check noisy brakes/,'opening the job still exposes the instructions');
  });

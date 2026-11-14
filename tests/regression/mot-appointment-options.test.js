@@ -18,13 +18,13 @@ test('special MOT appointment choices are preserved when jobs are saved and reop
 test('planner MOT label keeps the vehicle name visible and uses appointment time without inferring drop-off time',()=>{
  const helper=html.match(/function motConfirmationPresentation\(j\)\{[^\n]+/)[0]+'\n'+html.match(/function plannerMotHeaderHtml\(j\)\{[^\n]+/)[0];
  const card=html.match(/function jobCardHtml\(j\)\{[^\n]+/)[0];
- const context={jobTypeLabels:j=>String(j.job_type||'general').split('||').map(s=>s.trim()),templateDataForType:()=>({}),window:{},fleetIncomeCustomerForJob:j=>j.customer_account||'',fleetNmukTypeFromVehicle:()=>'',esc:v=>String(v||''),hasMotJobType:j=>String(j.job_type).includes('mot'),motTimeFromJob:j=>j.mot_time||'',topFor:()=>0,heightFor:()=>95.8,jobTypeInlineStyle:()=>'',plannerPlate:()=>'<span class="plate">N16 VTR</span>',partsStatusDot:()=>'',plannerJobTypesHtml:(_j,_size,exclude)=>{assert.equal(exclude,true);return ''}};
+ const context={dashboardJobTitle:j=>j.work_required||'',jobTypeLabels:j=>String(j.job_type||'general').split('||').map(s=>s.trim()),templateDataForType:()=>({}),window:{},fleetIncomeCustomerForJob:j=>j.customer_account||'',fleetNmukTypeFromVehicle:()=>'',esc:v=>String(v||''),hasMotJobType:j=>String(j.job_type).includes('mot'),motTimeFromJob:j=>j.mot_time||'',topFor:()=>0,heightFor:()=>95.8,jobTypeInlineStyle:()=>'',plannerPlate:()=>'<span class="plate">N16 VTR</span>',partsStatusDot:()=>'',plannerJobTypesHtml:(_j,_size,exclude)=>{assert.equal(exclude,true);return ''}};
  const websiteHelper=html.slice(html.indexOf('function isWebsiteBookingJob(j){'),html.indexOf('\nfunction applyWebsiteDefaultService'));
  vm.createContext(context);vm.runInContext(websiteHelper+'\n'+html.slice(html.indexOf('function mobileJobCategoryLabel(j){'),html.indexOf('function mobileJobCardHtml(j,groupName)'))+'\n'+html.slice(html.indexOf('function plannerJobDescription(j){'),html.indexOf('\nfunction jobCardHtml'))+'\n'+html.match(/function plannerVehicleLabel\(j\)\{[^\n]+/)[0]+'\n'+helper+'\n'+card,context);
  const result=context.jobCardHtml({id:'1',job_type:'mot',mot_time:'14:00',drop_time:'08:00',estimated_hours:1,vehicle:'Citroen C3',customer_account:'Staff',customer_name:'Jane Smith',work_required:'MOT test'});
  assert.match(result,/<div class="plannerPlateAndMot"><span class="plate">N16 VTR<\/span><\/div><b class="jobVehicle plannerJobVehicle">Citroen C3<\/b><span class="plannerJobCustomer"[^>]*>Jane<\/span><\/div><span class="plannerMotHeader"[^>]*>MOT \(14:00\)<\/span>/);
  assert.match(result,/plannerMotJob/);
- assert.doesNotMatch(result,/MOT test/);
+ assert.match(result,/MOT test/);
  assert.equal(context.plannerJobDescription({job_type:'mot',mot_time:'14:00',work_required:'MOT test\nCheck brakes'}),'Check brakes');
  assert.equal(context.plannerJobDescription({job_type:'mot',work_required:'MOT test'}),'');
  assert.equal(context.plannerJobDescription({job_type:'general',work_required:'General\nInvestigate noise'}),'Investigate noise');
