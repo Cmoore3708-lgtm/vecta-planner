@@ -33,13 +33,20 @@ async function build(source,directory,prefix){
 const pro=await build('public/icons/vecta-512.png','public/icons/pro','v-pro');
 const mechanic=await build('design/icons/mechanic-v.png','public/icons/mechanic','v');
 await mkdir('website/icons',{recursive:true});
-for(const size of [16,32,180,192,512])await copyFile(`${pro.directory}/${pro.prefix}-${size}-${revision}.png`,`website/icons/v-pro-${size}-${revision}.png`);
-await copyFile(`${pro.directory}/favicon-${revision}.ico`,`website/icons/favicon-${revision}.ico`);
-for(const directory of ['public','website']){
- for(const file of ['apple-touch-icon.png','apple-touch-icon-precomposed.png','apple-touch-icon-180x180.png'])await copyFile(`${pro.directory}/v-pro-180-${revision}.png`,`${directory}/${file}`);
- await copyFile(`${pro.directory}/favicon-${revision}.ico`,`${directory}/favicon.ico`);
- await copyFile(`${pro.directory}/v-pro-32-${revision}.png`,`${directory}/favicon.png`);
+// The customer website and mechanics use V only; PRO belongs to Workshop Pro.
+for(const size of [16,32,180,192,512]){
+ const source=`${mechanic.directory}/v-${size}-${revision}.png`;
+ await copyFile(source,`website/icons/v-${size}-${revision}.png`);
+ // Correct previously published website URLs too, including saved icon checks.
+ await copyFile(source,`website/icons/v-pro-${size}-${revision}.png`);
+}
+await copyFile(`${mechanic.directory}/favicon-${revision}.ico`,`website/icons/favicon-v-${revision}.ico`);
+await copyFile(`${mechanic.directory}/favicon-${revision}.ico`,`website/icons/favicon-${revision}.ico`);
+for(const [directory,artwork] of [['public',pro],['website',mechanic]]){
+ for(const file of ['apple-touch-icon.png','apple-touch-icon-precomposed.png','apple-touch-icon-180x180.png'])await copyFile(`${artwork.directory}/${artwork.prefix}-180-${revision}.png`,`${directory}/${file}`);
+ await copyFile(`${artwork.directory}/favicon-${revision}.ico`,`${directory}/favicon.ico`);
+ await copyFile(`${artwork.directory}/${artwork.prefix}-32-${revision}.png`,`${directory}/favicon.png`);
 }
 const inset=await sharp('design/icons/mechanic-v.png').resize(352,352).toBuffer();
 await sharp({create:{width:512,height:512,channels:3,background:'#080808'}}).composite([{input:inset,left:80,top:80}]).png().toFile(`${mechanic.directory}/v-maskable-512-${revision}.png`);
-console.log('Built V PRO and mechanics V shortcut assets.');
+console.log('Built Workshop Pro V PRO and website/mechanics V-only shortcut assets.');
