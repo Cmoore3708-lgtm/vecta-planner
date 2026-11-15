@@ -28,5 +28,13 @@ export function mechanicVariant(source){
  source=source.replace('<head>','<head>\n<meta name="vecta-mechanic-build" content="current-workshop-layout-mechanic">\n<script>window.VECTA_MECHANIC_DEPLOYMENT=true;</script>\n');
  source=source.replace('</head>','<style>.top .plannerHeaderActions{grid-template-columns:minmax(0,1fr)!important}.top .haynesDashboardLookup{max-width:100%}</style></head>');
  source=source.replace(/<title>[^<]*<\/title>/,'<title>VECTA Mechanics Dashboard</title>');
+ // A separate shortcut identity; the dashboard and its login stay unchanged.
+ source=source.replace(/<link\b[^>]*rel="(?:apple-touch-icon|manifest|icon)"[^>]*>/g,'');
+ source=source.replace('</head>',`<meta name="apple-mobile-web-app-title" content="VECTA Mechanics">
+<link rel="apple-touch-icon" sizes="180x180" href="/icons/mechanic/v-180-20261115.png">
+<link rel="icon" type="image/png" sizes="32x32" href="/icons/mechanic/v-32-20261115.png">
+<link rel="icon" type="image/png" sizes="16x16" href="/icons/mechanic/v-16-20261115.png">
+<link rel="manifest" href="/icons/mechanic/manifest.webmanifest">
+</head>`);
  return source;
 }
