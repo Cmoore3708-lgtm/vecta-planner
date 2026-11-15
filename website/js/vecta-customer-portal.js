@@ -19,7 +19,7 @@
  });
  async function api(action,body={}){
   const r=await fetch('/api/job-progress',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action,token,...body}),cache:'no-store',credentials:'same-origin',signal:AbortSignal.timeout(20000)});
-  const data=await r.json();if(!r.ok)throw Error(data.error||'The portal is unavailable. Please try again.');return data;
+  const data=await r.json();if(!r.ok)throw Object.assign(Error(data.error||'The portal is unavailable. Please try again.'),{status:r.status});return data;
  }
  const labels={message:'Message',amendment:'Booking amendment requested',additional_work:'Additional work requested',cancelled:'Booking cancelled',preferences:'Authorisation updated',booking_update:'Booking updated',approval_request:'Work requested',approval_response:'Customer decision',correspondence:'Workshop message'};
  function colour(item){if(item.kind==='preferences')return item.details?.preferences?.serious_repairs==='change_parts'?'green':'red';const s=item.details?.status;return s==='approved'?'green':s==='declined'?'red':item.kind==='approval_request'||item.kind==='amendment'||item.kind==='additional_work'?'amber':'';}
@@ -85,7 +85,7 @@
   }else img.src=url;
  }
  function render(data){
-  current=data;root.hidden=false;$('portalConversation').hidden=false;
+  current=data;if(window.VectaCustomerAppLink)window.dispatchEvent(new CustomEvent('vecta:portal-verified'));root.hidden=false;$('portalConversation').hidden=false;
   const b=data.booking;cancelled=b.cancelled;renderVehicleImage(b);
   document.title='Your customer portal | Vecta Motors';
   $('portalHeading').hidden=false;$('portalHeading').textContent='Your customer portal';
@@ -104,7 +104,7 @@
  async function refresh(){
   clearTimeout(timer);if(busy||document.hidden)return;busy=true;
   try{render(await api('portal-status'));$('portalError').textContent='';form.querySelector('button[type="submit"]').disabled=false;}
-  catch(e){$('portalError').textContent=e.message+' Your last displayed conversation may be out of date.';form.querySelector('button[type="submit"]').disabled=true;}
+  catch(e){if(window.VectaCustomerAppLink)window.dispatchEvent(new CustomEvent('vecta:portal-unavailable',{detail:{status:e.status}}));$('portalError').textContent=e.message+' Your last displayed conversation may be out of date.';form.querySelector('button[type="submit"]').disabled=true;}
   finally{busy=false;timer=setTimeout(refresh,15000);}
  }
  function compose(action){
@@ -136,7 +136,7 @@
   if(historyEvents().length>visibleCount){visibleCount+=5;renderHistory();return;}
   if(!older)return;$('portalOlder').disabled=true;
   try{const data=await api('portal-status',{before:older});for(const e of data.events)events.set(e.id,e);older=data.older_cursor;visibleCount+=5;renderHistory();}
-  catch(e){$('portalError').textContent=e.message;}finally{$('portalOlder').disabled=false;}
+  catch(e){if(window.VectaCustomerAppLink)window.dispatchEvent(new CustomEvent('vecta:portal-unavailable',{detail:{status:e.status}}));$('portalError').textContent=e.message;}finally{$('portalOlder').disabled=false;}
  };
  $('portalLatest').onclick=()=>{visibleCount=5;renderHistory();$('portalConversationTitle').setAttribute('tabindex','-1');$('portalConversationTitle').focus({preventScroll:true});$('portalConversation').scrollIntoView({block:'start'});};
  document.addEventListener('visibilitychange',()=>{if(document.hidden)clearTimeout(timer);else refresh();});window.addEventListener('online',refresh);window.addEventListener('vecta-approval-decided',refresh);

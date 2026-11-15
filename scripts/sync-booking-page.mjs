@@ -11,6 +11,8 @@ export function syncBookingPage({check=false}={}){
  pairs.push(['public/js/vecta-website-visit.js','website/js/vecta-website-visit.js']);
  pairs.push(['public/js/vecta-message-summary.js','website/js/vecta-message-summary.js']);
  pairs.push(['public/js/vecta-customer-portal.js','website/js/vecta-customer-portal.js'],['public/js/vecta-customer-portal.css','website/js/vecta-customer-portal.css']);
+ pairs.push(['public/js/vecta-customer-app-entry.js','website/js/vecta-customer-app-entry.js']);
+ pairs.push(['public/js/vecta-garage-booking.js','website/js/vecta-garage-booking.js']);
  const changed=pairs.filter(([source,output])=>!fs.existsSync(output)||!fs.readFileSync(output).equals(fs.readFileSync(source)));
  if(!changed.length)return false;
  if(check)throw Error('Booking pages or tyre assets differ. Run node scripts/sync-booking-page.mjs.');
