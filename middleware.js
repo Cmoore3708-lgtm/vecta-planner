@@ -1,12 +1,13 @@
 import { next, rewrite } from '@vercel/functions';
 import { mechanicGate, mechanicCookie, mechanicAuthorised, isMechanicHost } from './lib/mechanic-auth.js';
+import { mechanicShortcutTarget } from './lib/shortcut-icons.js';
 
 // The public booking and approval pages share this deployment with Main.
 // The mechanic dashboard is a separate Vercel project and is unaffected.
 const PUBLIC_PATHS = new Set(['/track', '/track/', '/track.html', '/invoice', '/booking', '/booking/', '/booking.html', '/approval.html', '/vecta-site-index.html', '/vecta-site-booking.html']);
 const PREVIEW_ADMIN_PATHS = new Set(['/admin.html', '/site-preview.html', '/booking-preview.html']);
 const PUBLIC_PREFIXES = ['/i/', '/api/', '/assets/', '/icons/', '/js/'];
-const PUBLIC_FILES = new Set(['/favicon.ico', '/manifest.webmanifest', '/service-worker.js', '/supabase.min.js']);
+const PUBLIC_FILES = new Set(['/favicon.ico', '/favicon.png', '/apple-touch-icon.png', '/apple-touch-icon-precomposed.png', '/apple-touch-icon-180x180.png', '/manifest.webmanifest', '/service-worker.js', '/supabase.min.js']);
 const PUBLIC_WEBSITE_HOSTS = new Set(['www.vectamotors.co.uk', 'vectamotors.co.uk']);
 const PUBLIC_WEBSITE_PATHS = new Set(['/', '/track', '/track/', '/track.html', '/booking', '/booking/', '/privacy', '/terms', '/vecta-site-index.html', '/vecta-site-booking.html']);
 
@@ -113,6 +114,12 @@ export async function validManagerSession(request,credentials,now=Date.now()){
 
 export default async function middleware(request) {
   const url=new URL(request.url);
+  const shortcutTarget=mechanicShortcutTarget(url.hostname,url.pathname);
+  if(shortcutTarget){
+    const response=rewrite(new URL(shortcutTarget,url));
+    response.headers.set('Cache-Control','public, max-age=0, must-revalidate');
+    return response;
+  }
   const protectedPath=requiresManagerLogin(url.pathname);
   // The live mechanics alias serves the same planner, with independent credentials.
   // On Preview only, /mechanic.html is a byte-identical build of that planner.
