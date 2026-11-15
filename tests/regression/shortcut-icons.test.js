@@ -52,6 +52,13 @@ test('website and mechanics metadata resolves to valid files with distinct artwo
   }
  }
  assert.notDeepEqual(readFileSync('public/icons/mechanic/v-180-20261115.png'),readFileSync('public/icons/vecta-180.png'));
+ const website=parseHTML(readFileSync('website/index.html','utf8')).document;
+ const websiteTouch=website.querySelector('link[rel="apple-touch-icon"]').getAttribute('href');
+ assert.equal(websiteTouch,'/icons/v-180-20261115.png');
+ const vOnly=readFileSync('public/icons/mechanic/v-180-20261115.png');
+ for(const path of [websiteTouch,'/apple-touch-icon.png','/apple-touch-icon-precomposed.png','/apple-touch-icon-180x180.png','/icons/v-pro-180-20261115.png'])assert.deepEqual(readFileSync('website'+path),vOnly);
+ assert.notDeepEqual(readFileSync('public/apple-touch-icon.png'),vOnly,'Workshop Pro retains PRO');
+ assert.deepEqual(readFileSync('website/favicon.ico'),readFileSync('public/icons/mechanic/favicon-20261115.ico'));
  const ico=readFileSync('website/favicon.ico');
  assert.equal(ico.readUInt16LE(2),1);assert.equal(ico.readUInt16LE(4),3);
  assert.deepEqual([ico[6],ico[22],ico[38]],[16,32,48]);
