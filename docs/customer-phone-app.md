@@ -17,7 +17,7 @@
 
 The user replaced the proposed visit milestones with 5% of spend, displayed in a box at the bottom of the app. The previous wash/£10/£20 milestones and minimum £75 threshold are removed. Fully paid, completed personal Staff invoices earn 5% of their total including VAT; MOT-only invoices also count. Invoice IDs are counted once and each bonus is rounded to the nearest penny. Unpaid, partial, refunded, cancelled, draft, void, wrong-registration and fleet invoices are excluded. Ownership remains bound to the verified account's jobs.
 
-Default assumption: earning starts when the app launches, without retroactive credit. On release, set the service-managed `workshop_settings` record `customer_loyalty_v1` to `{ "starts_on": "<actual UK launch date YYYY-MM-DD>" }`. Without a valid start date the box shows £0.00 and explains that earning begins at launch. Use the existing `invoice_paid_date` in invoice lines; never infer payment date from booking/invoice/update dates. Undated payments require a workshop check. History truncation fails explicitly instead of showing a partial total.
+Earning starts on 16 November 2026, without retroactive credit. Main now has the service-managed `workshop_settings` record `customer_loyalty_v1` set to `{ "starts_on": "2026-11-16" }`. Without a valid start date the box shows £0.00 and explains that earning begins at launch. Use the existing `invoice_paid_date` in invoice lines; never infer payment date from booking/invoice/update dates. Undated payments require a workshop check. History truncation fails explicitly instead of showing a partial total.
 
 This is a read-only earned-bonus total with invoice-level history. It does not write invoices, send refunds, apply discounts or claim a spendable wallet balance. The interface explicitly says redemption is not enabled yet. A transactional earning/redemption ledger and booking/invoice integration are still required before customers can spend the bonus; do not activate redemption by simply relabelling this earned total.
 
@@ -27,7 +27,7 @@ Apply migrations in order:
 1. `20261115190658_customer_phone_app.sql`
 2. `20261115192103_customer_garage_accounts.sql`
 
-Both migrations have been applied to Test (`brqsejjykrubxuofavuu`) only. Main is unchanged. All six new tables have RLS enabled, no anon/authenticated table grants, and service-role access. Every private action revalidates the session and ownership server-side. Owning/adding a registration never proves ownership of previous invoices or service records. Explicit job email takes precedence over customer-ID fallback.
+Both migrations have been applied to Test (`brqsejjykrubxuofavuu`) and, for the approved launch on 16 November 2026, Main (`jywufozycuwuoshlulwl`). All six new tables have RLS enabled, no anon/authenticated table grants, and service-role access. Every private action revalidates the session and ownership server-side. Owning/adding a registration never proves ownership of previous invoices or service records. Explicit job email takes precedence over customer-ID fallback.
 
 Email sign-in is disabled in Test/preview, as are push sending and scheduled live vehicle refreshes. Automated tests use isolated in-memory databases and PGlite. Local browser QA uses clearly labelled sample data and stubs every network operation; it does not send emails, create customer bookings or invoke supplier workers.
 
@@ -52,3 +52,7 @@ After confirming the updated installation worked, Chris requested removal of fam
 ## Loyalty visibility correction — 16 November 2026
 
 The welcome page previously hid the loyalty box inside the signed-in container, so it was invisible in the preview where email sign-in is disabled. The shared box now sits at the bottom of the page outside that container. Before sign-in it displays the 5% offer and £100 → £5 example, never a fabricated account balance; after verified sign-in it displays the earned amount. Sign-out and expired sessions restore the public offer and remove the previous account total. The welcome-page action returns to the email field without sending a code.
+
+## Production launch — 16 November 2026
+
+Chris approved the signed-in design and instructed “Make it live”. PR #720 was merged after its automated release gate, regression and worker checks passed. The six app tables were added to Main and verified to deny direct anon/authenticated access, with RLS enabled and service-role access. Loyalty earning starts 16 November 2026. The public welcome page no longer describes the launch as a future event. Redemption remains disabled. Physical iPad, real customer email sign-in and lockscreen delivery were not verified during this release; no customer email, push, supplier lookup or test booking was sent by release QA.
