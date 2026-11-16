@@ -621,6 +621,7 @@ root.initHaynesJobTools=function(modal,{automatic=false,recoverImage=true}={}){
   // Keep the buttons directly beneath the vehicle match, beside the artwork.
   // Expanded details still share the full width below the vehicle.
   if(detailButtons.children.length){headerBody.appendChild(detailButtons);header.appendChild(detailPanels);}
+  const advisories=modal.querySelector('.jobMotAdvisories');if(advisories)headerBody.appendChild(advisories);
   actions.querySelector('[data-close-modal]')?.remove();
   const print=actions.querySelector('#printJobCard'),foot=modal.querySelector('.modalFoot'),remove=foot?.querySelector('#deleteJob');
   if(print&&foot){print.classList.remove('jobPrintSmall');if(remove)remove.after(print);else foot.prepend(print);}
