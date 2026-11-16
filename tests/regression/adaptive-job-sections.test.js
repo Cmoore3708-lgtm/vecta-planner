@@ -60,7 +60,7 @@ test('the job editor keeps Parts and Invoice together on the right as the calend
  assert.ok(invoice.parentElement===aside,'invoice.parentElement should be aside');
  assert.ok(invoice.previousElementSibling===parts,'invoice.previousElementSibling should be parts');
  assert.ok(parts.previousElementSibling.matches('.bookingAvailabilityWorkspace'),'commercial sections remain after the calendar');
- assert.ok(advisories.parentElement===main,'reading content stays before the commercial column on phone');
+ assert.ok(advisories.parentElement===find('.jobCardHeaderBody'),'MOT advisories stay in the header when the body columns rebalance or stack');
  assert.ok(find('textarea')===field,'find("textarea") should be field');
  assert.equal(field.value,'Front tyre replacement');
  modal.replaceChildren();layout();
