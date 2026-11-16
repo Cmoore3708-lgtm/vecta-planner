@@ -12,6 +12,23 @@ function setup(fetcher,artwork,identities,explicitLookup=true,extraFields='',mec
 const lookupButton=panel=>panel.ownerDocument.querySelector('.jobHeaderHaynesLookup');
 
 const response=v=>({ok:true,json:async()=>({status:'MATCHED',vehicle:v})});
+test('phone job chat uses one valid current customer number and clears stale links',()=>{
+ const {window,document}=setup(()=>{throw Error('No lookup expected');},null,[],false,'<input id="job_customer_phone">');
+ const phone=document.querySelector('#job_customer_phone'),link=document.querySelector('.jobCardWhatsApp');
+ assert.ok(link.closest('.jobCardDetailButtons'));
+ assert.equal(link.textContent,'');assert.equal(link.target,'_blank');
+ for(const value of ['07700 900123','+44 7700 900123','0044 7700 900123','447700900123']){
+  phone.value=value;phone.dispatchEvent(new window.Event('input'));
+  assert.equal(link.getAttribute('href'),'https://wa.me/447700900123');
+ }
+ phone.value='+353 85 123 4567';phone.dispatchEvent(new window.Event('change'));
+ assert.equal(link.getAttribute('href'),'https://wa.me/353851234567');
+ // Programmatic customer changes must be rechecked before following the link.
+ phone.value='07700 900456';link.click();assert.equal(link.getAttribute('href'),'https://wa.me/447700900456');
+ for(const value of ['', 'not known','0191 123 4567','07700900123 / 07700900456','07700']){
+  phone.value=value;link.click();assert.equal(link.hasAttribute('href'),false);assert.equal(link.getAttribute('aria-disabled'),'true');
+ }
+});
 test('vehicle details sit below the single editable header registration',async()=>{
  const {window,document}=setup(async()=>response(vehicle));
  await new Promise(r=>setImmediate(r));

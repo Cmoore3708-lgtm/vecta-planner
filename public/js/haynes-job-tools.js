@@ -618,6 +618,32 @@ root.initHaynesJobTools=function(modal,{automatic=false,recoverImage=true}={}){
    content.addEventListener('invalid',()=>{content.open=true;sync();},true);
    sync();detailButtons.appendChild(toggle);detailPanels.appendChild(content);
   }
+  if(!mechanic){
+   const whatsapp=document.createElement('a');whatsapp.className='jobCardWhatsApp';
+   whatsapp.target='_blank';whatsapp.rel='noopener noreferrer';whatsapp.setAttribute('role','link');whatsapp.tabIndex=0;
+   whatsapp.innerHTML='<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path fill="currentColor" d="M20.52 3.48A11.91 11.91 0 0 0 12.04 0C5.43 0 .05 5.38.05 12c0 2.11.55 4.17 1.6 6L0 24l6.15-1.61a11.96 11.96 0 0 0 5.88 1.5h.01C18.65 23.89 24 18.51 24 11.9c0-3.18-1.24-6.17-3.48-8.42ZM12.04 21.87a9.9 9.9 0 0 1-5.05-1.38l-.36-.21-3.65.96.97-3.56-.24-.37a9.9 9.9 0 0 1-1.52-5.31c0-5.5 4.47-9.97 9.97-9.97 2.66 0 5.16 1.04 7.04 2.92a9.9 9.9 0 0 1 2.91 7.05c0 5.5-4.47 9.97-9.97 9.97Zm5.47-7.46c-.3-.15-1.77-.87-2.04-.97-.28-.1-.48-.15-.68.15-.2.3-.77.97-.94 1.17-.18.2-.35.22-.65.07-.3-.15-1.26-.46-2.4-1.48-.89-.79-1.49-1.77-1.66-2.07-.18-.3-.02-.46.13-.61.14-.13.3-.35.45-.52.15-.18.2-.3.3-.5.1-.2.05-.37-.03-.52-.07-.15-.67-1.62-.92-2.22-.24-.58-.49-.5-.67-.51h-.58c-.2 0-.52.07-.8.37-.27.3-1.04 1.02-1.04 2.49s1.07 2.89 1.22 3.09c.15.2 2.1 3.2 5.09 4.49.71.3 1.27.48 1.7.62.72.23 1.37.2 1.88.12.58-.09 1.77-.72 2.02-1.42.25-.7.25-1.3.18-1.42-.08-.13-.28-.2-.58-.35Z"/></svg>';
+   const phone=detailPanels.querySelector('#job_customer_phone')||modal.querySelector('#job_customer_phone');
+   function syncWhatsApp(){
+    let number=String(phone?.value||'').trim().replace(/[\s().-]/g,'');
+    if(/^07\d{9}$/.test(number))number='+44'+number.slice(1);
+    else if(/^447\d{9}$/.test(number))number='+'+number;
+    else if(number.startsWith('00'))number='+'+number.slice(2);
+    const valid=/^\+[1-9]\d{7,14}$/.test(number)&&(!number.startsWith('+44')||/^\+447\d{9}$/.test(number));
+    if(valid)whatsapp.href='https://wa.me/'+number.slice(1);else whatsapp.removeAttribute('href');
+    whatsapp.setAttribute('aria-disabled',String(!valid));
+    whatsapp.title=valid?'Open WhatsApp chat with customer':'Add a customer mobile number to use WhatsApp';
+    whatsapp.setAttribute('aria-label',whatsapp.title);return valid;
+   }
+   whatsapp.addEventListener('click',event=>{
+    if(syncWhatsApp())return;
+    event.preventDefault();const contact=modal.querySelector('.jobContactSection');
+    if(contact){contact.open=true;contact.hidden=false;detailButtons.querySelector('.customer')?.setAttribute('aria-expanded','true');}
+    phone?.focus();
+   });
+   whatsapp.addEventListener('keydown',event=>{if(event.key==='Enter'&&!whatsapp.hasAttribute('href')){event.preventDefault();whatsapp.click();}});
+   phone?.addEventListener('input',syncWhatsApp);phone?.addEventListener('change',syncWhatsApp);
+   syncWhatsApp();detailButtons.appendChild(whatsapp);
+  }
   // Keep the buttons directly beneath the vehicle match, beside the artwork.
   // Expanded details still share the full width below the vehicle.
   if(detailButtons.children.length){headerBody.appendChild(detailButtons);header.appendChild(detailPanels);}
