@@ -1,0 +1,41 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {readFileSync} from 'node:fs';
+import vm from 'node:vm';
+import {parseHTML} from 'linkedom';
+
+const settle=()=>new Promise(resolve=>setImmediate(resolve));
+test('separate WhatsApp list searches and pages on the server, escapes content, opens replies and survives offline refresh',async()=>{
+  const {window,document}=parseHTML('<html><head></head><body><div id="vectaMessageCentre"></div></body></html>');
+  const calls=[];let offline=false;
+  const reply={id:'whatsapp:'+'a'.repeat(64),occurred_at:'2026-11-16T10:00:00Z',method:'whatsapp',status:'received',kind:'message',subject:'WhatsApp message',sender:'447700900123',recipient:'447700900999',registration:'',content_available:true,body:'Hello Chris, <script>private text</script> can I collect at 4?'};
+  const draft={...reply,id:'prepared:fixture',status:'prepared',sender:'',recipient:'447700900124',registration:'AB12CDE',kind:'invoice'};
+  const email={...reply,id:'email:fixture',method:'email',status:'sent',kind:'booking_confirmation'};
+  const storage={};
+  const originalCreate=document.createElement.bind(document);
+  document.createElement=function(tag){const element=originalCreate(tag);if(tag==='dialog'){element.showModal=()=>{element.open=true};element.close=()=>{element.dispatchEvent(new window.Event('close'))}}return element};
+  const context={window,document,localStorage:storage,crypto,URL,URLSearchParams,AbortSignal,console,setTimeout(){},fetch:async url=>{
+    calls.push(url);if(offline)throw Error('Offline');const p=new URL(url,'https://fixture.invalid').searchParams;
+    const result=p.has('connection')?{state:'not_configured'}:p.has('id')?{message:reply}:p.get('method')==='whatsapp'?{messages:p.has('cursor')?[draft]:[reply],next_cursor:p.has('cursor')?null:'fixture-cursor'}:{messages:[email],next_cursor:null};
+    return {ok:true,json:async()=>result};
+  }};
+  vm.runInNewContext(readFileSync('public/js/vecta-message-centre.js','utf8'),context);
+  window.vectaMessages.mount();await settle();
+  const host=document.getElementById('vectaMessageCentre'),button=host.querySelector('[data-message-channel="whatsapp"]');
+  button.click();await settle();
+  assert.equal(button.getAttribute('aria-pressed'),'true');assert.match(host.textContent,/not connected yet/);
+  assert.match(calls.at(-1),/method=whatsapp/);assert.match(host.textContent,/Received/);assert.match(host.textContent,/447700900123/);
+  assert.doesNotMatch(host.querySelector('[data-message-list]').textContent,/Initial booking|Booking confirmation/);
+  const input=host.querySelector('input');input.value='07700 900123';host.querySelector('form').dispatchEvent(new window.Event('submit',{cancelable:true}));await settle();
+  assert.match(calls.at(-1),/contact=07700\+900123/);
+  host.querySelector('[data-message-more]').click();await settle();
+  const page=new URL(calls.at(-1),'https://fixture.invalid');assert.equal(page.searchParams.get('method'),'whatsapp');assert.equal(page.searchParams.get('cursor'),'fixture-cursor');assert.equal(page.searchParams.get('contact'),'07700 900123');
+  assert.equal(host.querySelectorAll('tbody tr').length,2);assert.match(host.textContent,/Prepared/);
+  host.querySelector('.messageOpen').click();await settle();
+  const dialog=document.getElementById('vectaMessageDetail');assert.equal(dialog.open,true);assert.match(dialog.textContent,/collect at 4/);assert.equal(dialog.querySelector('script'),null);assert.match(dialog.textContent,/Not linked to a vehicle/);
+  dialog.querySelector('[data-message-close]').click();assert.equal(document.getElementById('vectaMessageDetail'),null);
+  offline=true;host.querySelector('[data-message-refresh]').click();await settle();assert.match(host.textContent,/could not be loaded/);
+  offline=false;host.querySelector('[data-message-refresh]').click();await settle();assert.match(host.textContent,/Received/);
+  host.querySelector('[data-message-channel="email"]').click();await settle();assert.match(calls.at(-1),/method=email/);assert.equal(input.value,'');assert.equal(host.querySelector('[data-message-connection]').hidden,true);assert.match(input.placeholder,/registration/);
+  host.querySelector('[data-message-channel=""]').click();await settle();assert.equal(new URL(calls.at(-1),'https://fixture.invalid').searchParams.has('method'),false);
+});

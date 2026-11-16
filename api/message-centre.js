@@ -1,6 +1,7 @@
 import {databaseEnvironment} from './_database-environment.js';
 import {validManagerSession, managerGate} from '../middleware.js';
 import {sameOriginRequest} from '../lib/workshop-access.js';
+import {whatsappHistoryConfig} from '../lib/whatsapp-history.js';
 
 const normalise = value => String(value || '').toUpperCase().replace(/[^A-Z0-9]/g,'');
 const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -40,10 +41,22 @@ export function preparedRecord(body,now=Date.now()) {
   return row; // status is never accepted from the browser: these are prepared records.
 }
 export function historyQuery(query={}) {
-  const params=new URLSearchParams({select:'id,occurred_at,registration,method,kind,subject,status',order:'occurred_at.desc,id.desc',limit:'51'});
+  const params=new URLSearchParams({select:'id,occurred_at,registration,method,kind,subject,status,sender,recipient',order:'occurred_at.desc,id.desc',limit:'51'});
   if(query.id) {
-    if(typeof query.id!=='string'||query.id.length>200||!/^(prepared|email|booking):[a-zA-Z0-9:-]+$/.test(query.id))throw fail('Invalid message reference.');
+    if(typeof query.id!=='string'||query.id.length>200||!/^(prepared|email|booking|whatsapp):[a-zA-Z0-9:-]+$/.test(query.id))throw fail('Invalid message reference.');
     return new URLSearchParams({select:'*',id:'eq.'+query.id,limit:'1'});
+  }
+  if(query.method){
+    if(!['email','whatsapp','sms','system'].includes(query.method))throw fail('Invalid message method.');
+    params.set('method','eq.'+query.method);
+  }
+  if(query.contact){
+    if(typeof query.contact!=='string'||query.contact.length>30||!/^[+\d\s().-]+$/.test(query.contact))throw fail('Enter a phone number.');
+    let number=query.contact.replace(/\D/g,'');
+    if(number.startsWith('07'))number='44'+number.slice(1);
+    else if(number.startsWith('00'))number=number.slice(2);
+    if(number.length<4)throw fail('Enter at least four digits.');
+    params.set('and','(or(sender.like.*'+number+'*,recipient.like.*'+number+'*))');
   }
   if(query.registration){
     if(typeof query.registration!=='string'||query.registration.length>20)throw fail('Invalid registration.');
@@ -53,7 +66,7 @@ export function historyQuery(query={}) {
   }
   if(query.cursor){
     let cursor;try{cursor=JSON.parse(Buffer.from(String(query.cursor),'base64url').toString());}catch{throw fail('Invalid page reference.');}
-    if(!cursor||typeof cursor.time!=='string'||!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{1,6})?(?:Z|[+-]\d{2}:\d{2})$/.test(cursor.time)||!Number.isFinite(Date.parse(cursor.time))||!/^(prepared|email|booking):[a-zA-Z0-9:-]+$/.test(cursor.id||'')||cursor.id.length>200)throw fail('Invalid page reference.');
+    if(!cursor||typeof cursor.time!=='string'||!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{1,6})?(?:Z|[+-]\d{2}:\d{2})$/.test(cursor.time)||!Number.isFinite(Date.parse(cursor.time))||!/^(prepared|email|booking|whatsapp):[a-zA-Z0-9:-]+$/.test(cursor.id||'')||cursor.id.length>200)throw fail('Invalid page reference.');
     // Preserve Postgres microseconds: rounding to JS milliseconds skips rows.
     const time=cursor.time;
     params.set('or',`(occurred_at.lt.${time},and(occurred_at.eq.${time},id.lt.${cursor.id}))`);
@@ -72,6 +85,12 @@ export default async function handler(req,res) {
       // or removed while this record waited offline. Only managers can write here.
       await database('workshop_messages?on_conflict=id',{method:'POST',headers:{Prefer:'resolution=ignore-duplicates,return=minimal'},body:JSON.stringify(row)});
       return res.status(200).json({recorded:true,id:row.id});
+    }
+    if(req.query?.connection==='whatsapp'){
+      const settings=whatsappHistoryConfig();
+      if(!settings)return res.status(200).json({state:'not_configured'});
+      const rows=await database('workshop_whatsapp_events?'+new URLSearchParams({select:'recorded_at',phone_number_id:'eq.'+settings.phoneId,order:'recorded_at.desc',limit:'1'}));
+      return res.status(200).json({state:rows.length?'receiving':'waiting',last_received_at:rows[0]?.recorded_at||null});
     }
     const rows=await database('workshop_message_history?'+historyQuery(req.query));
     for (const row of rows) {
