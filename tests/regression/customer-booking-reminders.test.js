@@ -37,6 +37,10 @@ test('customer email has date, safe arrival instructions and a private HERE butt
  setup(t);const content=bookingReminderContent({...base,recipient:base.customer_email});
  for(const phrase of ['15 December 2026','park outside the workshop','designated customer parking spaces','Key Drop letterbox','at reception','Keep an eye on your personalised customer portal'])assert.ok(content.text.includes(phrase));
  const {document}=parseHTML(content.html),link=document.querySelector('a');assert.equal(link.textContent,'HERE');
+ const logo=document.querySelector('img');assert.equal(logo.getAttribute('src'),'cid:reminder-logo');
+ assert.equal(logo.getAttribute('alt'),'VECTA — Vehicle Servicing and repairs');
+ assert.equal(content.attachments.length,1);assert.equal(content.attachments[0].content_id,'reminder-logo');
+ assert.deepEqual(Buffer.from(content.attachments[0].content,'base64'),readFileSync('public/assets/vecta-header.png'));
  const claim=verifyProgressToken(new URL(link.href).hash.slice(1),progressSecret());assert.equal(claimMatchesJob(claim,base),true);
  const fallback=bookingReminderContent({...base,recipient:'other@example.invalid'});assert.doesNotMatch(fallback.text,/track#/);
  const escaped=bookingReminderContent({...base,customer_name:'<script>unsafe</script>'});assert.doesNotMatch(escaped.html,/<script>/);
@@ -47,6 +51,7 @@ test('noon cron covers customers without account memory and contractors, while N
  s.jobs=[{...base},{...base,id:'22222222-2222-4222-8222-222222222222',customer_name:'Contractor'},{...base,id:'33333333-3333-4333-8333-333333333333',customer_name:'NMUK',job_type:'MOT'},{...base,id:'44444444-4444-4444-8444-444444444444',status:'provisional'}];
  s.settings=[{id:'jobcustomer:'+s.jobs[1].id,value:{customer_account:'Contractor'}}];
  const r=await s.run();assert.equal(r.code,200);assert.equal(r.body.sent,2);assert.equal(s.sends.length,2);assert.ok(s.sends.every(m=>m.from==='chris@vectamotors.co.uk'&&m.text.includes('customer portal')));
+ assert.ok(s.sends.every(m=>m.attachments?.[0]?.content_id==='reminder-logo'&&m.html.includes('cid:reminder-logo')));
  assert.equal((await s.run()).body.sent,0);assert.equal(s.sends.length,2);
 });
 test('schedule fires at UK noon in winter, summer and clock-change weekends, never the other UTC hour',async t=>{
