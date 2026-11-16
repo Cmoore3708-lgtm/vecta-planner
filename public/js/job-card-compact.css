@@ -694,7 +694,7 @@
  #jobModal .jobCardSimplified:not(.mechanicJobCard) .jobModalHead.jobCardPinnedHeader>.jobCardHeaderVehicle{height:200px!important}
 }
 
-/* Keep the customer name directly below the job-card vehicle illustration. */
+/* Vehicle artwork and the live customer label share the job header. */
 #jobModal .jobCardHeaderVehicle{display:flex!important;flex-direction:column;gap:4px}
 #jobModal .jobCardSimplified .jobModalHead.jobCardPinnedHeader>.jobCardHeaderVehicle{max-width:280px!important;justify-self:end}
 #jobModal .jobCardHeaderVehicle>img,#jobModal .jobCardHeaderVehicle>svg{object-position:center!important}
@@ -828,5 +828,22 @@
  #jobModal .jobCardDetailPanels .jobContactSection .jobSectionGrid{grid-template-columns:repeat(2,minmax(0,1fr))!important}
  #jobModal .jobCardDetailPanels .jobContactSection .jobSectionGrid>.field{grid-column:auto!important;min-width:0}
  #jobModal .jobCardDetailPanels .jobContactSection .existingCustomerLookupField,
+ #jobModal .jobCardDetailPanels .jobContactSection #jobCustomerEmailField{grid-column:1/-1!important}
+}
+
+/* Full-width details use the space below the car instead of lengthening its left column. */
+@media screen{
+ #jobModal .jobCardSimplified .jobModalHead.jobCardPinnedHeader>.jobCardDetailButtons,
+ #jobModal .jobCardSimplified .jobModalHead.jobCardPinnedHeader>.jobCardDetailPanels{grid-column:1/-1!important;grid-row:auto!important}
+ #jobModal .jobCardDetailPanels:not(:has(>.jobCardDetailPanel:not([hidden]))){display:none}
+}
+@media screen and (min-width:701px){
+ #jobModal .jobCardSimplified .jobModalHead.jobCardPinnedHeader{grid-template-rows:auto auto auto auto auto!important}
+ #jobModal .jobCardSimplified .jobModalHead.jobCardPinnedHeader>.jobCardHeaderHeading{grid-column:1/-1!important;grid-template-columns:max-content minmax(0,max-content) minmax(0,1fr)!important;column-gap:18px!important}
+ #jobModal .jobCardSimplified .jobCardHeaderHeading>.jobCardCustomerCaption{grid-column:3;grid-row:1;min-width:0;width:auto;text-align:left;font-size:24px;line-height:1.2}
+ #jobModal .jobModalCard.jobCardSimplified .jobModalHead.jobCardPinnedHeader>.jobCardHeaderVehicle{grid-row:3!important}
+ #jobModal .jobCardDetailPanels{grid-template-columns:repeat(auto-fit,minmax(min(100%,360px),1fr));align-items:start}
+ #jobModal .jobCardDetailPanels .jobBookingSection>.jobSectionGrid{grid-template-columns:repeat(3,minmax(0,1fr))!important}
+ #jobModal .jobCardDetailPanels .jobContactSection .jobSectionGrid{grid-template-columns:repeat(2,minmax(0,1fr))!important}
  #jobModal .jobCardDetailPanels .jobContactSection #jobCustomerEmailField{grid-column:1/-1!important}
 }
