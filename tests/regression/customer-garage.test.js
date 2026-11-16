@@ -68,3 +68,32 @@ test('loyalty stays at zero before launch and reads only the verified customer�
  const active=database({workshop_settings:[config],jobs:[job,otherJob],invoices:[invoice,loyaltyInvoice({job_id:otherJob.id,total:900})]});result=await garageRewards(active.db,account,{now});assert.equal(result.active,true);assert.equal(result.earned_bonus_pence,500);assert.equal(result.paid_spend_pence,10000);assert.equal(result.payments.length,1);assert.equal(result.redemption_enabled,false);assert.deepEqual(active.writes,[]);
  const future=database({workshop_settings:[{...config,value:{starts_on:'2027-01-01'}}],invoices:[invoice]});assert.equal((await garageRewards(future.db,account,{now})).active,false);
 });
+
+test('loyalty offer is visible without signing in and sign-out removes the private bonus',async()=>{
+ const boot=(signedIn=false)=>{
+  const {document,window:dom}=parseHTML(fs.readFileSync('public/app/home.html','utf8')),requests=[],$=id=>document.getElementById(id);
+  let focused=false;
+  $('modal').close=()=>{};$('signin').scrollIntoView=()=>{};$('email').focus=()=>{focused=true;};
+  const context={document,window:{addEventListener(){}},navigator:{onLine:true,userAgent:'test',platform:'test'},matchMedia:()=>({matches:false}),localStorage:{getItem:()=>signedIn?'session':null,removeItem(){}},requestAnimationFrame:fn=>fn(),AbortSignal,setTimeout,clearTimeout,URL,URLSearchParams,fetch:async(url,options)=>{const {action}=JSON.parse(options.body);requests.push(action);return {ok:true,json:async()=>action==='garage-status'?{email:'owner@example.com',vehicles:[],suggestions:[],profile:{name:'Alex'}}:action==='garage-rewards'?{active:true,starts_on:'2026-11-01',earned_bonus_pence:1250,paid_spend_pence:25000,payments:[],terms:'5%'}:{ok:true}};}};
+  vm.runInNewContext(fs.readFileSync('public/app/garage.js','utf8'),context);
+  return {$,document,dom,requests,focused:()=>focused};
+ };
+ const flush=()=>new Promise(resolve=>setImmediate(resolve));
+ const guest=boot();await flush();
+ assert.equal(guest.$('loyaltyBox').closest('[hidden]'),null);
+ assert.equal(guest.$('loyaltyAmount').textContent,'5%');
+ assert.equal(guest.$('accountFooter').hidden,true);
+ guest.$('viewLoyalty').onclick({currentTarget:guest.$('viewLoyalty')});
+ assert.equal(guest.focused(),true);assert.deepEqual(guest.requests,[]);
+ const customer=boot(true);await flush();
+ assert.equal(customer.$('loyaltyBox').closest('[hidden]'),null);
+ assert.equal(customer.$('loyaltyAmount').textContent,'£12.50');
+ customer.$('viewLoyalty').onclick({currentTarget:customer.$('viewLoyalty')});await flush();
+ assert.equal(customer.$('view-rewards').hidden,false);
+ assert.equal(customer.$('loyaltyBox').hidden,true);
+ customer.$('signout').onclick({currentTarget:customer.$('signout')});await flush();
+ assert.equal(customer.$('loyaltyBox').closest('[hidden]'),null);
+ assert.equal(customer.$('loyaltyAmount').textContent,'5%');
+ assert.equal(customer.$('accountFooter').hidden,true);
+ assert.doesNotMatch(customer.document.body.textContent,/£12\.50/);
+});
