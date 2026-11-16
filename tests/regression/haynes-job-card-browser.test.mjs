@@ -44,7 +44,9 @@ function card(mechanic){
    pictureHeight:rect('.jobCardHeaderVehicle').height,pictureWidth:rect('.jobCardHeaderVehicle').width,imageHeight:rect('.jobCardHeaderVehicle svg').height,
    mileageWidth:current.width,modelFits:model.right<=rect('.jobCardHeaderHeading').right&&model.bottom<=mot.top,
    nameBesideModel:caption.getBoundingClientRect().left>=model.right&&Math.abs(caption.getBoundingClientRect().top-model.top)<10,
-   detailsUseCarSpace:rect('.jobCardDetailButtons').right>=rect('.jobCardHeaderVehicle').right-1&&rect('.jobCardDetailButtons').top>=rect('.jobCardHeaderVehicle').bottom,
+   buttonsBesideCar:body.right<=rect('.jobCardHeaderVehicle').left&&body.top<rect('.jobCardHeaderVehicle').bottom,
+   buttonsFitMatch:Math.abs(body.left-matchBox.left)<1&&Math.abs(body.right-matchBox.right)<1,
+   buttonsMatchGap:body.top-matchBox.bottom,
    mileageUnderCustomer:mot.top>=caption.getBoundingClientRect().bottom&&current.right<=rect('.jobCardHeaderVehicle').left&&mot.left===model.left,
    caption:caption.textContent,fontSize:parseFloat(getComputedStyle(caption).fontSize),
    visibleNames:[...document.querySelectorAll('.jobCardCustomerCaption,.jobCardPhoneCustomerName')].filter(el=>el.getBoundingClientRect().height>0).length,
@@ -58,6 +60,7 @@ function card(mechanic){
    overflow:document.querySelector('.jobModalCard').scrollWidth>document.querySelector('.jobModalCard').clientWidth+1,
    savedMileage:document.querySelector('#job_current_mileage').value,lastMileage:document.querySelector('#job_mileage').value};
   buttons[0].click();
+  result.panelsUseCarSpace=rect('.jobCardDetailPanels').right>=rect('.jobCardHeaderVehicle').right-1&&rect('.jobCardDetailPanels').top>=rect('.jobCardHeaderVehicle').bottom;
   result.openContactWidth=rect('.jobContactSection').width;result.bodyWidth=body.width;
   result.noDuplicateSummary=rect('.jobContactSection>summary').height===0;
   const name=document.querySelector('#job_customer_name');name.value="anne-marie o'neill";name.dispatchEvent(new Event('input',{bubbles:true}));
@@ -99,7 +102,7 @@ test('the reopened job header keeps identity, matching, customer controls and mi
    assert.equal(row.caption,'Chris Stoker',context);
    assert.equal(row.fontSize,row.width<=700?14:24,context);
    assert.equal(row.visibleNames,1,context);
-   if(row.width>700){assert.equal(row.nameBesideModel,true,context);assert.equal(row.detailsUseCarSpace,true,context);}
+   if(row.width>700){assert.equal(row.nameBesideModel,true,context);assert.equal(row.buttonsBesideCar,true,context);assert.equal(row.buttonsFitMatch,true,context);assert.ok(row.buttonsMatchGap>=0&&row.buttonsMatchGap<=12,context);assert.equal(row.panelsUseCarSpace,true,context);}
    if(row.width<=700){assert.equal(row.nameBelowModel,true,context);assert.ok(row.pictureWidth>=130&&row.imageHeight>=135,context);assert.equal(row.mileageUnderCustomer,true,context);assert.ok(row.mileageWidth>=60&&row.mileageWidth<=110,context);}
    assert.deepEqual(row.buttonLabels,row.mechanic?['Customer details']:['Customer details','Job types','Booking details'],context);
    for(const key of ['buttonsOneRow','buttonsFit','buttonsBelowMatch','panelsClosed','mileageAboveHaynes','mileageTogether','customerCloses','customerReopens','independentPanels','noDuplicateSummary'])assert.equal(row[key],true,key+': '+context);
