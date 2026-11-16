@@ -9268,6 +9268,8 @@ window.CONTRACTOR_2026_NEW_VEHICLES=[{"id":"CONTRACTOR|RV63SYG","fleetGroup":"Co
 <link rel="stylesheet" href="/js/vecta-portal-workshop.css">
 <link rel="stylesheet" href="/js/vecta-parts-reminder.css">
 <script src="/js/vecta-parts-reminder.js" defer></script>
+<link rel="stylesheet" href="/js/calendar-job-popup.css">
+<script src="/js/calendar-job-popup.js" defer></script>
 <script>
 (function(){
 'use strict';
@@ -15175,12 +15177,7 @@ function installNewJobAvailabilityCalendar(allowHistoricalDates,fieldId){
   var dashboardMode=String(fieldId||'')==='currentDate';
   allowHistoricalDates=!!allowHistoricalDates;
   if(!field)return;
-  // Capture the editor after its synchronous setup; switching jobs must never
-  // silently discard an unfinished booking, quote, parts list or price edit.
   var editor=field.closest('.jobModalCard');
-  function formState(){return editor?JSON.stringify(Array.from(editor.querySelectorAll('input,select,textarea')).map(function(el){return [el.id,el.value,el.checked]})):''}
-  var baseline;
-  Promise.resolve().then(function(){baseline=formState()});
   /* V246: Never allow the phone/browser native date picker to appear.
      The Workshop Pro workload calendar is the only booking-date chooser. */
   try{field.type='text'}catch(e){}
@@ -15271,9 +15268,19 @@ function installNewJobAvailabilityCalendar(allowHistoricalDates,fieldId){
     // Recheck current records in case a card was removed while the calendar was open.
     var job=id&&calendarDayJobs(chosen).find(function(j){return String(j.id)===id});
     if(!job||(editor&&String(editingJobId||'')===id))return true;
-    if(editor&&(!editingJobId||formState()!==baseline)&&!confirm('Open '+(job.registration||'this job')+'? Unsaved work will be lost. Cancel to keep editing.'))return true;
-    modal.classList.remove('open');modal.setAttribute('aria-hidden','true');
-    openJobModal(job.id);
+    if(editor){
+      window.VectaCalendarJobPopup.open(job.id,job.registration,function(){
+        return window.vectaRefreshCalendarJobs().catch(function(){return false}).finally(function(){
+          if(!preview.isConnected)return;
+          var restoreFocus=document.activeElement===card||document.activeElement===document.body;
+          renderPreview();
+          if(restoreFocus){var returned=Array.from(preview.querySelectorAll('[data-v243-open-job]')).find(function(button){return button.dataset.v243OpenJob===id});if(returned)returned.focus({preventScroll:true});}
+        });
+      });
+    }else{
+      modal.classList.remove('open');modal.setAttribute('aria-hidden','true');
+      openJobModal(job.id);
+    }
     return true;
   }
 
@@ -16187,6 +16194,7 @@ async function saveJob(id){
     if(!acceptingWebsiteRequest){if(savedResult===true&&typeof onConfirmed==='function')await onConfirmed(j);}
     /* A new completed record is a direct financial entry; existing staff jobs retain their invoice workflow. */
     if(existingJob&&j.status==='completed'&&j.customer_account==='Staff'&&!wasCompleted){openInvoiceForJob(j.id);return true;}
+    window.VectaCalendarJobPopup?.saved();
     return true;
   }catch(e){
     console.error('Local job save failed',e);
@@ -17321,6 +17329,25 @@ window.vectaMaintainPortalAlerts=vectaMaintainBookingAlerts;
 window.vectaPortalAlertsState=vectaBookingAlertsState;
 window.vectaRefreshPortalJobs=async function(){if(!await vectaPrimeJobsFromCloud())return false;if(!document.querySelector('.modal.open'))render();return true;};
 window.openJobModal=function(id,preset){return openJobModal(id,preset);};
+// Bring queued pop-up edits into this document before refreshing the calendar.
+// The open form and its save baseline stay untouched, including new bookings.
+window.vectaRefreshCalendarJobs=async function(){
+  var queued=vectaQueuedJobOperations();
+  Object.keys(queued).forEach(function(id){
+    var item=queued[id],row=item&&item.payload;
+    if(!row||Array.isArray(row)||item.operation!=='upsert'||!row.id)return;
+    var index=(app.jobs||[]).findIndex(function(job){return String(job.id)===String(row.id)}),current=app.jobs[index];
+    if(current&&vectaPendingUpsertIsNewerThanCloud(item,current))app.jobs[index]=normaliseCompletedJobState(Object.assign({},current,fromRemote(row)));
+  });
+  return window.vectaRefreshPortalJobs();
+};
+// A separate document keeps the calendar job's editor state out of the original form.
+window.vectaOpenCalendarPopupJob=function(id){
+  if(document.body.classList.contains('vectaStartupLoading'))return 'loading';
+  var job=(app.jobs||[]).find(function(row){return String(row.id)===String(id)&&!vectaJobIsDeletedForLists(row)});
+  if(!job)return 'missing';
+  window.openJobModal(job.id);return 'open';
+};
 // The alert parser lives with the findings UI; notes travel with the saved job.
 window.vectaWorkshopNoteAlerts=function(){return window.VectaFindings?.noteAlerts(app.jobs||[],vectaJobIsDeletedForLists,internalWorkshopNotes)||[];};
 window.vectaOpenFindingJob=async function(jobId){

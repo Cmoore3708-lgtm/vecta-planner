@@ -28,6 +28,7 @@ function fixture(mechanic,dashboard){
   const selectedIso=()=> '2026-11-18',todayIso=()=> '2026-11-16',esc=v=>String(v||''),niceDate=v=>v;
   const isVehicleTaxJob=()=>false,vectaJobIsDeletedForLists=()=>false,isUnallocatedJob=()=>false,plannerTechnicianLane=v=>v,mechanicHours=()=>1,byTime=()=>0,jobTitle=()=> 'Work';
   const openJobModal=id=>opened.push(id),confirm=()=>{throw Error('Unexpected discard prompt')};
+  window.VectaCalendarJobPopup={open:openJobModal};
   ${calendar}
   installNewJobAvailabilityCalendar(true,'${field}');
   ${dashboard?"document.getElementById('currentDate').onclick({preventDefault(){}});":"document.querySelector('.bookingDateDisclosure').open=true;"}
