@@ -341,7 +341,7 @@
  #jobModal .privatePricingSection{--job-section-bg:#f4f0fa;--job-section-border:#d8cce8}
  #jobModal .jobBookingSection{--job-section-bg:#fff8e5;--job-section-border:#e5d39d;--job-section-heading:#f8edc8}
  #jobModal .jobPreviousWorkSection{--job-section-bg:#f2f5f8;--job-section-border:#d0d9e3;--job-section-heading:#e7edf3}
- #jobModal .jobCardSections .jobFormSection,#jobModal .jobPreviousWorkSection{background:var(--job-section-bg,#fff)!important;border:1px solid var(--job-section-border,#d6dfea)!important}
+ #jobModal .jobCardSections .jobFormSection,#jobModal .jobPreviousWorkSection,#jobModal .jobMotAdvisories{background:var(--job-section-bg,#fff)!important;border:1px solid var(--job-section-border,#d6dfea)!important}
  #jobModal .jobCardSections .jobFormSection:not(.privatePricingSection)>.jobFormSectionHead{background:var(--job-section-heading,#f2f5f8)!important}
  #jobModal .jobCardHeaderDetails>.jobContactSection{background:#edf7ee!important;border:1px solid #bad8c1!important;border-radius:7px!important;padding:6px 8px!important}
  #jobModal .jobCardHeaderDetails>.jobVehicleSection{background:#f0f5fb!important;border:1px solid #d2dfed!important;border-radius:7px!important;padding:5px 7px!important}
