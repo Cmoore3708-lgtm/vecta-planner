@@ -3,11 +3,14 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import vm from 'node:vm';
 import {parseHTML} from 'linkedom';
+const popupSource=fs.readFileSync('public/js/calendar-job-popup.js','utf8');
+const helpers={};vm.runInNewContext(popupSource.slice(popupSource.indexOf('  function calendarPlannerHtml('),popupSource.indexOf(' function mergeQueuedJobs(')),helpers);
 const html=fs.readFileSync(new URL('../../index.html',import.meta.url),'utf8');
 const source=html.slice(html.indexOf('function installNewJobAvailabilityCalendar('),html.indexOf('\nfunction previousVehicleWork('));
 test('month navigation reaches November from October even from the 31st, and returns one month at a time',()=>{
- const {document}=parseHTML('<html><body><div class="jobSectionGrid"><input id="job_booking_date" value="2026-10-31"></div></body></html>');
- const ctx={document,app:{jobs:[],settings:{mechanics:['Alfie','Chris','Anyone']}},selectedIso:()=> '2026-10-31',todayIso:()=> '2026-10-22',esc:String,mechanicHours:()=>0,niceDate:String,plannerTechnicianLane:String,byTime:()=>0};
+ const {document,window}=parseHTML('<html><body><div class="jobSectionGrid"><input id="job_booking_date" value="2026-10-31"></div></body></html>');
+ window.VectaCalendarJobPopup={plannerHtml:helpers.calendarPlannerHtml};
+ const ctx={document,window,jobTitle:()=>'',app:{jobs:[],settings:{mechanics:['Alfie','Chris','Anyone']}},selectedIso:()=> '2026-10-31',todayIso:()=> '2026-10-22',esc:String,mechanicHours:()=>0,niceDate:String,plannerTechnicianLane:String,byTime:()=>0};
  vm.runInNewContext(source,ctx);ctx.installNewJobAvailabilityCalendar(true);
  const preview=document.querySelector('.bookingAvailabilityWorkspace');
  const title=()=>preview.querySelector('.v243MonthHead strong').textContent;
