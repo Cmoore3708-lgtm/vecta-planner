@@ -6,7 +6,7 @@ import {randomUUID} from 'node:crypto';
 import {PGlite} from '@electric-sql/pglite';
 import {parseHTML} from 'linkedom';
 import {requestGarageCode,verifyGarageCode,garageAccount,garageHash} from '../../lib/customer-garage-auth.js';
-import {garageDay,annualServiceDate,publicVehicleData,accountJobs,garageHistory,garageHistoryReport,garageDocument,customerGarageAction,loyaltyFromInvoices,garageRewards} from '../../lib/customer-garage.js';
+import {garageDay,annualServiceDate,firstGarageMotDate,garageServiceSchedule,garageSnapshot,publicVehicleData,accountJobs,garageHistory,garageHistoryReport,garageDocument,customerGarageAction,loyaltyFromInvoices,garageRewards} from '../../lib/customer-garage.js';
 import {garageReminderItems,runGarageAlerts,refreshGarageDueDates} from '../../lib/customer-garage-alerts.js';
 import {serviceSheetSections,customerServicePdf} from '../../lib/customer-service-pdf.js';
 const account={id:'11111111-1111-4111-8111-111111111111',email:'owner@example.com',name:'Alex',phone:'07700000000'};
@@ -19,7 +19,7 @@ function database(initial={}){
  const db=async(path,options={})=>{
   const [table,query]=path.split('?'),p=new URLSearchParams(query);assert.ok(tables[table],table);const rows=tables[table];
   const matches=row=>[...p].every(([key,value])=>{if(['select','order','offset','limit','on_conflict','or'].includes(key))return true;const dot=value.indexOf('.'),op=value.slice(0,dot),v=value.slice(dot+1),actual=row[key];if(op==='eq')return String(actual)===v;if(op==='is')return v==='null'?actual==null:false;if(op==='gt')return actual>v;if(op==='gte')return actual>=v;if(op==='lt')return actual<v;if(op==='lte')return actual<=v;if(op==='in')return v.slice(1,-1).split(',').includes(String(actual));if(op==='ilike'){const pattern=v.replace(/\\([_%])/g,'$1').replace(/[.+?^${}()|[\]\\]/g,'\\$&').replaceAll('*','.*');return new RegExp('^'+pattern+'$','i').test(String(actual||''));}throw Error(op);});
-  if(options.method){const body=options.body?JSON.parse(options.body):null;writes.push({table,method:options.method,body});if(options.method==='POST'){const conflict=p.get('on_conflict');const exists=conflict&&rows.find(r=>r[conflict]===body[conflict]);if(exists){if(options.headers?.Prefer?.includes('ignore-duplicates'))return [];Object.assign(exists,body);return [structuredClone(exists)];}const row={id:randomUUID(),attempts:0,created_at:new Date(now).toISOString(),...body};rows.push(row);return [structuredClone(row)];}const chosen=rows.filter(matches);if(options.method==='PATCH'){chosen.forEach(r=>Object.assign(r,body));return structuredClone(chosen);}if(options.method==='DELETE'){tables[table]=rows.filter(r=>!matches(r));return [];}throw Error(options.method);}
+  if(options.method){const body=options.body?JSON.parse(options.body):null;writes.push({table,method:options.method,body});if(options.method==='POST'){const conflict=p.get('on_conflict');const exists=conflict&&rows.find(r=>r[conflict]===body[conflict]);if(exists){if(options.headers?.Prefer?.includes('ignore-duplicates'))return [];Object.assign(exists,body);return [structuredClone(exists)];}const row={id:randomUUID(),attempts:0,created_at:new Date(now).toISOString(),...body};rows.push(row);return [structuredClone(row)];}const chosen=rows.filter(matches);if(options.method==='PATCH'){chosen.forEach(r=>Object.assign(r,body));return structuredClone(chosen);}if(options.method==='DELETE'){tables[table]=rows.filter(r=>!matches(r));return structuredClone(chosen);}throw Error(options.method);}
   let result=rows.filter(matches);const order=p.get('order');if(order){const [key,dir]=order.split('.');result.sort((a,b)=>String(a[key]).localeCompare(String(b[key]))*(dir==='desc'?-1:1));}return structuredClone(result.slice(Number(p.get('offset')||0),Number(p.get('offset')||0)+Number(p.get('limit')||100000)));
  };return {db,tables,writes};
 }
@@ -96,4 +96,89 @@ test('loyalty offer is visible without signing in and sign-out removes the priva
  assert.equal(customer.$('loyaltyAmount').textContent,'5%');
  assert.equal(customer.$('accountFooter').hidden,true);
  assert.doesNotMatch(customer.document.body.textContent,/£12\.50/);
+});
+
+
+test('new cars get a calculated first MOT while official MOT and tax dates take precedence',()=>{
+ const raw={firstUsedDate:'2024-11-28',motTests:[],taxDueDate:'2027-11-01'};
+ const data=publicVehicleData(raw);assert.equal(data.mot_due,'2027-11-27');assert.equal(data.tax_due,'2027-11-01');assert.match(data.mot_date_source,/calculated/);
+ assert.equal(publicVehicleData({...raw,motExpiryDate:'2027-06-03'}).mot_due,'2027-06-03');
+ assert.equal(publicVehicleData({...raw,motExpiryDate:'bad',dvlaMotExpiryDate:'2027-06-04'}).mot_due,'2027-06-04');
+ assert.equal(publicVehicleData({...raw,motTests:[{testResult:'FAILED'}]}).mot_due,null);
+ assert.equal(publicVehicleData({...raw,lookupPartial:true}).mot_due,null);
+ assert.equal(publicVehicleData({...raw,dvlaMotStatus:'Exempt'}).mot_due,null);
+ assert.equal(firstGarageMotDate('2024-02-30'),null);assert.equal(firstGarageMotDate('2024-02-29'),'2027-02-28');
+});
+test('adding a new car saves looked-up dates immediately, including its first MOT reminder',async()=>{
+ const {db,tables,session}=signedDatabase({customer_garage_vehicles:[]});
+ await customerGarageAction(db,{action:'garage-add',session,registration:'AB12 CDE'},{now,lookup:async()=>publicVehicleData({firstUsedDate:'2024-11-28',taxDueDate:'2027-11-01',fetchedAt:new Date(now).toISOString()})});
+ assert.equal(tables.customer_garage_vehicles[0].mot_due,'2027-11-27');assert.equal(tables.customer_garage_vehicles[0].tax_due,'2027-11-01');
+});
+test('service reminder follows the nearest active booking, rescheduling and completed visit date',()=>{
+ const booked={...job,status:'booked',booking_date:'2026-11-20'},options={today:'2026-11-16'};
+ let schedule=garageServiceSchedule(vehicle,[job,{...booked,booking_date:'2026-11-30'},booked],options);
+ assert.equal(schedule.service_due,'2026-11-20');assert.equal(schedule.service_booked,true);
+ assert.equal(garageServiceSchedule(vehicle,[job,{...booked,booking_date:'2026-11-25'}],options).service_due,'2026-11-25');
+ for(const status of ['cancelled','canceled','provisional'])assert.equal(garageServiceSchedule(vehicle,[job,{...booked,status}],options).service_due,'2027-11-14');
+ assert.equal(garageServiceSchedule(vehicle,[{...job,completed_at:'2026-11-15T00:00:00Z'}],options).service_due,'2027-11-14','booking date anchors the annual reminder');
+ assert.equal(garageServiceSchedule(vehicle,[{...job,job_type:'6 month safety service'}],options).service_due,null);
+ assert.equal(garageServiceSchedule({...vehicle,service_due:'2027-03-01'},[booked],options).service_due,'2027-03-01');
+ assert.equal(garageReminderItems([{...vehicle,...schedule}],{now}).some(item=>item.label==='Annual service'),false,'a booked service does not request another booking');
+});
+test('automatic service date survives preference saves and updates when the booking changes',async()=>{
+ const {db,tables,session}=signedDatabase({jobs:[{...job,status:'booked',booking_date:'2026-11-20'}]});
+ let status=await customerGarageAction(db,{action:'garage-status',session},{now});assert.equal(status.vehicles[0].service_due,'2026-11-20');
+ await customerGarageAction(db,{action:'garage-save',session,vehicle_id:vehicle.id,service_due:'2026-11-20',service_automatic:true,reminders:true},{now});
+ assert.equal(tables.customer_garage_vehicles[0].service_due,null);
+ tables.jobs[0].booking_date='2026-11-25';status=await customerGarageAction(db,{action:'garage-status',session},{now});assert.equal(status.vehicles[0].service_due,'2026-11-25');
+ tables.jobs[0]={...job,completed_at:'2026-11-15T00:00:00Z'};status=await customerGarageAction(db,{action:'garage-status',session},{now});assert.equal(status.vehicles[0].service_due,'2027-11-14');
+ await customerGarageAction(db,{action:'garage-save',session,vehicle_id:vehicle.id,service_due:'2027-02-01',service_automatic:false,reminders:true},{now});status=await customerGarageAction(db,{action:'garage-status',session},{now});assert.equal(status.vehicles[0].service_due,'2027-02-01');
+});
+test('service dates only use the account’s bookings, including when other cars fill the first history page',async()=>{
+ const jobs=Array.from({length:102},()=>({...job,id:randomUUID(),registration:'XY99ZZZ',booking_date:'2027-01-01'}));jobs.push({...job});jobs.push({...job,id:randomUUID(),customer_email:'someone@example.com',booking_date:'2026-11-15'});
+ const {db}=database({jobs});const snapshot=await garageSnapshot(db,account,{now});assert.equal(snapshot.vehicles[0].service_due,'2027-11-14');
+});
+function insuranceStore(){const objects=new Map(),calls=[];return {objects,calls,upload:async(path,bytes)=>{calls.push(['upload',path]);objects.set(path,Buffer.from(bytes));return {data:{path}};},download:async path=>{calls.push(['download',path]);return objects.has(path)?{data:new Blob([objects.get(path)])}:{error:true};},remove:async paths=>{calls.push(['remove',paths]);paths.forEach(path=>objects.delete(path));return {data:paths};}};}
+async function insuranceJpeg(){const {default:sharp}=await import('sharp');return 'data:image/jpeg;base64,'+(await sharp({create:{width:60,height:100,channels:3,background:'#fff'}}).jpeg().toBuffer()).toString('base64');}
+test('private insurance photo upload, view, replacement and removal are scoped to the owned car',async()=>{
+ const {db,tables,session}=signedDatabase(),storage=insuranceStore(),options={now,insuranceStorage:storage};const call=(action,extra={})=>customerGarageAction(db,{action,session,vehicle_id:vehicle.id,...extra},options),image=await insuranceJpeg();
+ await call('garage-insurance-upload',{image});const first=tables.customer_garage_vehicles[0].insurance_document_id;assert.ok(first);assert.equal(storage.objects.size,1);
+ assert.ok([...storage.objects.keys()][0].startsWith(account.id+'/'+vehicle.id+'/'));
+ const viewed=await call('garage-insurance-view');assert.equal(viewed.content_type,'image/jpeg');assert.ok(viewed.base64.length>20);assert.equal(viewed.url,undefined);
+ const snapshot=await call('garage-status');assert.equal(snapshot.vehicles[0].insurance_document_id,undefined);assert.equal(snapshot.vehicles[0].insurance_cleanup,undefined);assert.ok(snapshot.vehicles[0].insurance_uploaded_at);
+ await call('garage-insurance-upload',{image});assert.notEqual(tables.customer_garage_vehicles[0].insurance_document_id,first);assert.equal(storage.objects.size,1,'old photo removed');
+ tables.customer_garage_vehicles[0].insurance_due='2027-01-01';await call('garage-insurance-remove');assert.equal(storage.objects.size,0);assert.equal(tables.customer_garage_vehicles[0].insurance_due,'2027-01-01');await assert.rejects(call('garage-insurance-view'),/no insurance photo/);
+ await call('garage-insurance-upload',{image});await call('garage-remove');assert.equal(storage.objects.size,0);assert.equal(tables.customer_garage_vehicles.length,0);assert.equal(tables.jobs.length,1);
+});
+test('insurance actions reject unauthenticated or foreign car access before touching storage',async()=>{
+ const {db,session}=signedDatabase({customer_garage_vehicles:[{...vehicle,account_id:randomUUID()}]}),storage=insuranceStore();
+ for(const action of ['garage-insurance-upload','garage-insurance-view','garage-insurance-remove']){
+  await assert.rejects(customerGarageAction(db,{action,session,vehicle_id:vehicle.id,image:'anything'},{now,insuranceStorage:storage}),/not in your garage/);
+  await assert.rejects(customerGarageAction(db,{action,vehicle_id:vehicle.id},{now,insuranceStorage:storage}),/Sign in/);
+ }assert.deepEqual(storage.calls,[]);
+});
+test('invalid insurance images cannot replace the saved document; storage failures leave it recoverable',async()=>{
+ const {db,tables,session}=signedDatabase(),storage=insuranceStore(),options={now,insuranceStorage:storage},body={session,vehicle_id:vehicle.id};
+ await customerGarageAction(db,{...body,action:'garage-insurance-upload',image:await insuranceJpeg()},options);const before=structuredClone(tables.customer_garage_vehicles[0]);
+ for(const image of ['data:image/svg+xml;base64,PHN2Zz4=', 'data:image/jpeg;base64,YmFk', 'data:image/jpeg;base64,'+'A'.repeat(2400004)])await assert.rejects(customerGarageAction(db,{...body,action:'garage-insurance-upload',image},options));
+ assert.deepEqual(tables.customer_garage_vehicles[0],before);
+ storage.remove=async()=>({error:true});await assert.rejects(customerGarageAction(db,{...body,action:'garage-insurance-remove'},options),/could not be removed/);assert.equal(tables.customer_garage_vehicles[0].insurance_document_id,before.insurance_document_id);
+ await customerGarageAction(db,{...body,action:'garage-insurance-upload',image:await insuranceJpeg()},options);assert.deepEqual(tables.customer_garage_vehicles[0].insurance_cleanup,[before.insurance_document_id]);
+});
+test('simultaneous insurance replacements keep one active photo and remove a losing upload',async()=>{
+ const {db,tables,session}=signedDatabase(),storage=insuranceStore(),image=await insuranceJpeg();let release;const gate=new Promise(r=>release=r),upload=storage.upload;let count=0;
+ storage.upload=async(...args)=>{const result=await upload(...args);if(++count===2)release();await gate;return result;};
+ const results=await Promise.allSettled([1,2].map(()=>customerGarageAction(db,{action:'garage-insurance-upload',session,vehicle_id:vehicle.id,image},{now,insuranceStorage:storage})));
+ assert.equal(results.filter(r=>r.status==='fulfilled').length,1);assert.equal(storage.objects.size,1);assert.ok(tables.customer_garage_vehicles[0].insurance_document_id);
+});
+test('insurance migration preserves existing records and gives no public table or bucket access',async()=>{
+ const db=new PGlite();try{
+  await db.exec('create role anon;create role authenticated;create role service_role bypassrls;create schema storage;create table storage.buckets(id text primary key,name text,public boolean,file_size_limit bigint,allowed_mime_types text[]);');
+  await db.exec(fs.readFileSync('supabase/migrations/20261115192103_customer_garage_accounts.sql','utf8'));
+  await db.exec("insert into customer_garage_accounts(id,email) values ('"+account.id+"','owner@example.com');insert into customer_garage_vehicles(id,account_id,registration,tax_due) values ('"+vehicle.id+"','"+account.id+"','AB12CDE','2027-11-01');");
+  await db.exec(fs.readFileSync('supabase/migrations/20261116075950_customer_garage_insurance.sql','utf8'));
+  const row=(await db.query("select tax_due::text,insurance_document_id,insurance_cleanup from customer_garage_vehicles")).rows[0];assert.equal(row.tax_due,'2027-11-01');assert.equal(row.insurance_document_id,null);assert.deepEqual(row.insurance_cleanup,[]);
+  const bucket=(await db.query("select * from storage.buckets")).rows[0];assert.equal(bucket.public,false);assert.deepEqual(bucket.allowed_mime_types,['image/jpeg']);
+  const access=(await db.query("select relrowsecurity,has_table_privilege('anon',oid,'SELECT') anon,has_table_privilege('authenticated',oid,'UPDATE') authenticated from pg_class where relname='customer_garage_vehicles'")).rows[0];assert.equal(access.relrowsecurity,true);assert.equal(access.anon,false);assert.equal(access.authenticated,false);
+ }finally{await db.close();}
 });
