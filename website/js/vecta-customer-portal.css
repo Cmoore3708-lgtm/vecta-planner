@@ -4,7 +4,7 @@
 /* Compact booking summary: details left, saved vehicle illustration right. */
 #portalHeading{margin-bottom:16px}.card{margin-top:16px}
 .vehicleSummary{grid-template-columns:minmax(0,1fr);grid-template-rows:auto auto minmax(0,1fr);gap:10px 28px;padding-bottom:18px;align-items:start}
-.vehicleSummary.hasVehicleImage{grid-template-columns:minmax(0,1fr) minmax(220px,34%)}
+.vehicleSummary.hasVehicleImage{grid-template-columns:minmax(0,1fr) minmax(260px,44%)}
 .vehicleSummaryHeading{grid-column:1;display:flex;align-items:center;flex-wrap:wrap;gap:8px 16px;min-width:0}
 .vehicleSummary .plate{font-size:22px;padding:8px 12px;white-space:nowrap}
 .vehicleSummary #vehicle{margin:0;font-size:16px;line-height:1.4;overflow-wrap:anywhere}
@@ -12,15 +12,15 @@
 .vehicleSummary #jobSummary{grid-column:1;grid-row:3;margin:0;min-width:0}
 .vehicleSummary #jobDescription{margin:5px 0 0;font-size:14px;line-height:1.5}
 .portalVehicle{grid-column:2;grid-row:1/4;margin:0;align-self:start;min-width:0}
-.portalVehicle img{display:block;width:100%;max-height:220px;object-fit:contain}
+.portalVehicle img{display:block;width:100%;max-height:280px;object-fit:contain}
 .portalAuthorisation{margin-top:18px}
 @media(max-width:600px){
- .vehicleSummary{gap:8px 14px}
- .vehicleSummary.hasVehicleImage{grid-template-columns:minmax(0,1fr) minmax(100px,35%)}
+ .vehicleSummary{gap:8px 12px}
+ .vehicleSummary.hasVehicleImage{grid-template-columns:minmax(0,1fr) minmax(0,48%)}
  .vehicleSummaryHeading{gap:8px}.vehicleSummary .plate{font-size:20px;padding:7px 10px;letter-spacing:1px}
  .vehicleSummary #vehicle{font-size:13px}.vehicleSummary #bookingDate{font-size:12px}
  .vehicleSummary #jobSummary{grid-column:1/-1;margin-top:4px}
- .portalVehicle{grid-row:1/3;align-self:center}.portalVehicle img{max-height:135px}
+ .portalVehicle{grid-row:1/3;align-self:center}.portalVehicle img{max-height:190px}
 }
 
 /* Recent messages first; older history and the booking record stay within reach. */
