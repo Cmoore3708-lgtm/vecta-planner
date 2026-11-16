@@ -38,11 +38,13 @@ function card(mechanic){
   'initHaynesJobTools(document.querySelector("#jobModal"));'+
   `const rect=selector=>document.querySelector(selector).getBoundingClientRect();
   const caption=document.querySelector(innerWidth<=700?'.jobCardPhoneCustomerName':'.jobCardCustomerCaption'),details=document.querySelector('.haynesJobVehicle strong');
-  const body=rect(innerWidth<=700?'.jobCardDetailPanels':'.jobCardHeaderBody'),matchBox=rect('.haynesJobTools'),mot=rect('#job_mileage'),current=rect('#job_current_mileage'),model=rect('.jobCardHeaderModel');
+  const body=rect('.jobCardDetailButtons'),matchBox=rect('.haynesJobTools'),mot=rect('#job_mileage'),current=rect('#job_current_mileage'),model=rect('.jobCardHeaderModel');
   const buttons=[...document.querySelectorAll('.jobCardDetailButtons>button')],buttonBoxes=buttons.map(el=>el.getBoundingClientRect());
   const result={width:innerWidth,mechanic:${mechanic},visible:details.textContent.includes('EQC')&&details.getBoundingClientRect().height>0,
    pictureHeight:rect('.jobCardHeaderVehicle').height,pictureWidth:rect('.jobCardHeaderVehicle').width,imageHeight:rect('.jobCardHeaderVehicle svg').height,
-   mileageWidth:current.width,modelFits:model.right<=rect('.jobCardHeaderVehicle').left&&model.bottom<=mot.top,
+   mileageWidth:current.width,modelFits:model.right<=rect('.jobCardHeaderHeading').right&&model.bottom<=mot.top,
+   nameBesideModel:caption.getBoundingClientRect().left>=model.right&&Math.abs(caption.getBoundingClientRect().top-model.top)<10,
+   detailsUseCarSpace:rect('.jobCardDetailButtons').right>=rect('.jobCardHeaderVehicle').right-1&&rect('.jobCardDetailButtons').top>=rect('.jobCardHeaderVehicle').bottom,
    mileageUnderCustomer:mot.top>=caption.getBoundingClientRect().bottom&&current.right<=rect('.jobCardHeaderVehicle').left&&mot.left===model.left,
    caption:caption.textContent,fontSize:parseFloat(getComputedStyle(caption).fontSize),
    visibleNames:[...document.querySelectorAll('.jobCardCustomerCaption,.jobCardPhoneCustomerName')].filter(el=>el.getBoundingClientRect().height>0).length,
@@ -95,8 +97,9 @@ test('the reopened job header keeps identity, matching, customer controls and mi
    if(row.width>700)assert.ok(row.mileageWidth>=110&&row.mileageWidth<=160,context);
    assert.ok(row.imageHeight>=35,context);
    assert.equal(row.caption,'Chris Stoker',context);
-   assert.equal(row.fontSize,row.width<=700?14:28,context);
+   assert.equal(row.fontSize,row.width<=700?14:24,context);
    assert.equal(row.visibleNames,1,context);
+   if(row.width>700){assert.equal(row.nameBesideModel,true,context);assert.equal(row.detailsUseCarSpace,true,context);}
    if(row.width<=700){assert.equal(row.nameBelowModel,true,context);assert.ok(row.pictureWidth>=130&&row.imageHeight>=135,context);assert.equal(row.mileageUnderCustomer,true,context);assert.ok(row.mileageWidth>=60&&row.mileageWidth<=110,context);}
    assert.deepEqual(row.buttonLabels,row.mechanic?['Customer details']:['Customer details','Job types','Booking details'],context);
    for(const key of ['buttonsOneRow','buttonsFit','buttonsBelowMatch','panelsClosed','mileageAboveHaynes','mileageTogether','customerCloses','customerReopens','independentPanels','noDuplicateSummary'])assert.equal(row[key],true,key+': '+context);
