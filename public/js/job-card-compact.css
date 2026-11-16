@@ -851,3 +851,22 @@
  #jobModal .jobCardDetailPanels .jobContactSection .jobSectionGrid{grid-template-columns:repeat(2,minmax(0,1fr))!important}
  #jobModal .jobCardDetailPanels .jobContactSection #jobCustomerEmailField{grid-column:1/-1!important}
 }
+
+/* Independent calendar job editors. */
+@media screen{
+ dialog.calendarJobPopup{padding:0;border:1px solid #cbd5e1;border-radius:12px;width:calc(100vw - 64px);max-width:1400px;height:calc(100dvh - 64px);max-height:none;overflow:hidden;box-shadow:0 16px 70px #0f172a66;background:#fff;color:#172033}
+ dialog.calendarJobPopup[open]{display:flex;flex-direction:column}
+ dialog.calendarJobPopup::backdrop{background:#0f172a66}
+ dialog.calendarJobPopup>header{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:9px 14px;background:#f1f5f9;border-bottom:1px solid #cbd5e1;flex:none}
+ dialog.calendarJobPopup>header strong{font-size:15px}
+ dialog.calendarJobPopup>iframe{display:block;width:100%;flex:1;min-height:0;border:0;background:#fff}
+ html.calendarJobPopupChild #jobModal{padding:0!important;background:#fff}
+ html.calendarJobPopupChild #jobModal>.jobModalCard{width:100%!important;max-width:none!important;height:100dvh!important;max-height:100dvh!important;border:0!important;border-radius:0!important;margin:0!important}
+ .calendarJobPopupStatus{position:fixed;inset:0;z-index:10001;background:#fff;display:flex;flex-direction:column;align-items:flex-start;justify-content:center;padding:28px;font-size:15px;color:#334155}
+}
+@media screen and (max-width:600px){
+ dialog.calendarJobPopup{width:calc(100vw - 16px);height:calc(100dvh - 24px);border-radius:8px}
+ dialog.calendarJobPopup>header{padding:7px 9px}
+ dialog.calendarJobPopup>header strong{font-size:13px}
+ dialog.calendarJobPopup>header .btn{font-size:12px;padding:6px 8px}
+}

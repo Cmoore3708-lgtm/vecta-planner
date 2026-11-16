@@ -4,6 +4,9 @@ import vm from 'node:vm';
 import {readFileSync} from 'node:fs';
 import {parseHTML} from 'linkedom';
 
+const popupSource=readFileSync('public/js/calendar-job-popup.js','utf8');
+const helper=popupSource.slice(popupSource.indexOf('  function calendarPlannerHtml('),popupSource.indexOf(' function mergeQueuedJobs('));
+const helpers={};vm.runInNewContext(helper,helpers);
 const html=readFileSync(new URL('../../index.html',import.meta.url),'utf8');
 const start=html.indexOf('function installNewJobAvailabilityCalendar(');
 const source=html.slice(start,html.indexOf('\n\nfunction previousVehicleWork(',start));
@@ -12,9 +15,9 @@ async function setup({dashboard=false,currentId='editing-1'}={}){
   const {document,window}=parseHTML('<html><body><div class="'+(dashboard?'':'jobModalCard')+'"><input id="'+fieldId+'" value="2026-11-18"><textarea id="work">Original work</textarea><input id="part" value="Filter"><input id="ordered" type="checkbox"></div></body></html>');
   const jobs=[{id:'job-1',registration:'TEST01',booking_date:'2026-11-18',technician:'Alfie',status:'booked',work_required:'Full Service',estimated_hours:1}];
   const opened=[],popups=[],prompts=[];
-  window.VectaCalendarJobPopup={open:(id)=>{popups.push(id);opened.push(id);}};
+  window.VectaCalendarJobPopup={plannerHtml:helpers.calendarPlannerHtml,open:(id)=>{popups.push(id);opened.push(id);}};
   const ctx={document,window,Event:window.Event,app:{jobs,settings:{mechanics:['Alfie','Chris','Anyone']}},editingJobId:currentId,selectedIso:()=> '2026-11-18',todayIso:()=> '2026-11-16',esc:v=>String(v||'').replaceAll('"','&quot;'),niceDate:v=>v,isVehicleTaxJob:()=>false,vectaJobIsDeletedForLists:j=>!!j.deleted,isUnallocatedJob:()=>false,plannerTechnicianLane:v=>v,mechanicHours:()=>1,byTime:()=>0,jobTitle:()=> 'Work',openJobModal:id=>opened.push(id),confirm:message=>{prompts.push(message);return ctx.allowDiscard;},allowDiscard:false};
-  vm.runInNewContext(source,ctx);ctx.installNewJobAvailabilityCalendar(true,fieldId);
+  vm.runInNewContext("\'use strict\';\n"+source,ctx);ctx.installNewJobAvailabilityCalendar(true,fieldId);
   await Promise.resolve();
   if(dashboard)document.getElementById(fieldId).onclick({preventDefault(){}});
   const card=()=>document.querySelector('[data-v243-open-job]');

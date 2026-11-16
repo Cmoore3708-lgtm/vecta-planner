@@ -18,7 +18,8 @@ export function popupFixture(mechanic){
  <script>
  const child=new URLSearchParams(location.search).get('calendarJobPopup');
  let refreshes=0;const parentNode=document.getElementById('jobModal');
- window.vectaOpenCalendarPopupJob=id=>{document.getElementById('job_registration').value=id;document.getElementById('job_work_required').value='Child work';return 'open';};
+ window.vectaCalendarPopupState=()=>({jobs:[{id:'CHILD'}],isDeleted:()=>false});
+ window.openJobModal=id=>{document.getElementById('job_registration').value=id;document.getElementById('job_work_required').value='Child work';return 'open';};
  </script><script>${readFileSync('public/js/calendar-job-popup.js','utf8')}</script><script>
  document.getElementById('calendarCard').onclick=()=>VectaCalendarJobPopup.open('CHILD','AB12 CDE',()=>{refreshes++;});
  document.getElementById('saveJob').onclick=()=>VectaCalendarJobPopup.saved();
