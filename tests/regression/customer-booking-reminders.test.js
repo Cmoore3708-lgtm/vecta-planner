@@ -40,7 +40,7 @@ test('customer email has date, safe arrival instructions and a private HERE butt
  const logo=document.querySelector('img');assert.equal(logo.getAttribute('src'),'cid:reminder-logo');
  assert.equal(logo.getAttribute('alt'),'VECTA — Vehicle Servicing and repairs');
  assert.equal(content.attachments.length,1);assert.equal(content.attachments[0].content_id,'reminder-logo');
- assert.deepEqual(Buffer.from(content.attachments[0].content,'base64'),readFileSync('public/assets/vecta-header.png'));
+ assert.deepEqual(Buffer.from(content.attachments[0].content,'base64'),readFileSync('public/assets/vecta-reminder-logo-white.png'));
  const claim=verifyProgressToken(new URL(link.href).hash.slice(1),progressSecret());assert.equal(claimMatchesJob(claim,base),true);
  const fallback=bookingReminderContent({...base,recipient:'other@example.invalid'});assert.doesNotMatch(fallback.text,/track#/);
  const escaped=bookingReminderContent({...base,customer_name:'<script>unsafe</script>'});assert.doesNotMatch(escaped.html,/<script>/);
