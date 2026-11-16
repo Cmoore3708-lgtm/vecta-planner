@@ -44,6 +44,14 @@
   },
   "rewrites": [
     {
+      "source": "/app/booking",
+      "destination": "/app/booking.html"
+    },
+    {
+      "source": "/app/home",
+      "destination": "/app/home.html"
+    },
+    {
       "source": "/api/booking-receipts",
       "destination": "/api/website-booking?receipts=1"
     },
@@ -171,6 +179,18 @@
           "value": "no-store, no-cache, must-revalidate"
         }
       ]
+    }
+  ],
+  "redirects": [
+    {
+      "source": "/app",
+      "destination": "/app/home",
+      "permanent": false
+    },
+    {
+      "source": "/app/",
+      "destination": "/app/home",
+      "permanent": false
     }
   ]
 }

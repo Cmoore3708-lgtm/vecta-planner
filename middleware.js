@@ -4,9 +4,10 @@ import { mechanicShortcutTarget } from './lib/shortcut-icons.js';
 
 // The public booking and approval pages share this deployment with Main.
 // The mechanic dashboard is a separate Vercel project and is unaffected.
-const PUBLIC_PATHS = new Set(['/track', '/track/', '/track.html', '/invoice', '/booking', '/booking/', '/booking.html', '/approval.html', '/vecta-site-index.html', '/vecta-site-booking.html']);
+const PUBLIC_PATHS = new Set(['/app', '/track', '/track/', '/track.html', '/invoice', '/booking', '/booking/', '/booking.html', '/approval.html', '/vecta-site-index.html', '/vecta-site-booking.html']);
 const PREVIEW_ADMIN_PATHS = new Set(['/admin.html', '/site-preview.html', '/booking-preview.html']);
 const PUBLIC_PREFIXES = ['/i/', '/api/', '/assets/', '/icons/', '/js/'];
+const PUBLIC_APP_FILES = new Set(['/app/vecta-header.jpg','/app/booking', '/app/booking.html', '/app/garage.js', '/app/garage.css', '/app/car-placeholder.svg', '/app', '/app/', '/app/home', '/app/home.html', '/app/bootstrap.js', '/app/app.js', '/app/app.css', '/app/service-worker.js', '/app/manifest.webmanifest', '/app/icon-180.png', '/app/icon-192.png', '/app/icon-512.png']);
 const PUBLIC_FILES = new Set(['/favicon.ico', '/favicon.png', '/apple-touch-icon.png', '/apple-touch-icon-precomposed.png', '/apple-touch-icon-180x180.png', '/manifest.webmanifest', '/service-worker.js', '/supabase.min.js']);
 const PUBLIC_WEBSITE_HOSTS = new Set(['www.vectamotors.co.uk', 'vectamotors.co.uk']);
 const PUBLIC_WEBSITE_PATHS = new Set(['/', '/track', '/track/', '/track.html', '/booking', '/booking/', '/privacy', '/terms', '/vecta-site-index.html', '/vecta-site-booking.html']);
@@ -20,7 +21,8 @@ export function requiresManagerLogin(pathname) {
   // Extracted app chunks contain historical workshop records. They are not
   // public website assets, even though the build places them under /assets/.
   if(/^\/assets\/vecta-inline-/.test(pathname))return true;
-  return !PUBLIC_PATHS.has(pathname)
+  return !PUBLIC_APP_FILES.has(pathname)
+    && !PUBLIC_PATHS.has(pathname)
     && !PUBLIC_FILES.has(pathname)
     && !PUBLIC_PREFIXES.some(prefix => pathname.startsWith(prefix));
 }
