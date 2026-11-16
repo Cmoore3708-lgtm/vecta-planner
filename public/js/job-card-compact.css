@@ -831,9 +831,8 @@
  #jobModal .jobCardDetailPanels .jobContactSection #jobCustomerEmailField{grid-column:1/-1!important}
 }
 
-/* Full-width details use the space below the car instead of lengthening its left column. */
+/* Compact buttons sit under the vehicle match; expanded details use the full sheet. */
 @media screen{
- #jobModal .jobCardSimplified .jobModalHead.jobCardPinnedHeader>.jobCardDetailButtons,
  #jobModal .jobCardSimplified .jobModalHead.jobCardPinnedHeader>.jobCardDetailPanels{grid-column:1/-1!important;grid-row:auto!important}
  #jobModal .jobCardDetailPanels:not(:has(>.jobCardDetailPanel:not([hidden]))){display:none}
 }
