@@ -857,8 +857,14 @@
  #jobModal .jobModalCard.jobCardSimplified .jobModalHead.jobCardPinnedHeader>.jobCardHeaderVehicle{grid-row:3!important}
  #jobModal .jobCardDetailPanels{grid-template-columns:repeat(auto-fit,minmax(min(100%,360px),1fr));align-items:start}
  #jobModal .jobCardDetailPanels .jobBookingSection>.jobSectionGrid{grid-template-columns:repeat(3,minmax(0,1fr))!important}
- #jobModal .jobCardDetailPanels .jobContactSection .jobSectionGrid{grid-template-columns:repeat(2,minmax(0,1fr))!important}
- #jobModal .jobCardDetailPanels .jobContactSection #jobCustomerEmailField{grid-column:1/-1!important}
+ /* Contact fields share one compact row; extra panels keep their own row below. */
+ #jobModal .jobCardDetailPanels>.jobContactSection{grid-column:1/-1!important}
+ #jobModal .jobCardDetailPanels .jobContactSection .jobSectionGrid{display:flex!important;flex-wrap:wrap;align-items:flex-start;gap:6px 10px!important}
+ #jobModal .jobCardDetailPanels .jobContactSection .jobSectionGrid>.field{flex:0 1 190px;width:auto!important;min-width:0;max-width:100%;box-sizing:border-box}
+ #jobModal .jobCardDetailPanels .jobContactSection .jobSectionGrid>#jobCustomerPhoneField{flex-basis:150px}
+ #jobModal .jobCardDetailPanels .jobContactSection .jobSectionGrid>#jobCustomerEmailField{flex-basis:320px}
+ #jobModal .jobCardDetailPanels .jobContactSection .jobSectionGrid>.existingCustomerLookupField{order:1;flex-basis:205px;align-self:flex-end}
+ #jobModal .jobCardDetailPanels .jobContactSection .jobSectionGrid>.existingCustomerLookupField:has(input:checked){flex-basis:100%}
 }
 
 /* Independent calendar job editors. */
