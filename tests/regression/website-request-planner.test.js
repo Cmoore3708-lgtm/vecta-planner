@@ -3,6 +3,8 @@ import assert from 'node:assert/strict';
 import vm from 'node:vm';
 import {readFileSync} from 'node:fs';
 import {parseHTML} from 'linkedom';
+const popupSource=readFileSync('public/js/calendar-job-popup.js','utf8');
+const helpers={};vm.runInNewContext(popupSource.slice(popupSource.indexOf('  function calendarPlannerHtml('),popupSource.indexOf(' function mergeQueuedJobs(')),helpers);
 const html=readFileSync(new URL('../../index.html',import.meta.url),'utf8');
 const source=html.slice(html.indexOf('function openWebsiteRequestJobCard('),html.indexOf('async function deleteWebsiteRequestCompletely('));
 function setup({online=true,updated=true,saved=true}={}){
@@ -45,6 +47,7 @@ test('retry reuses a saved job',()=>{
 test('the real job-card calendar immediately shows work on the requested date and follows date changes',()=>{
   const {document,window}=parseHTML('<div class="jobSectionGrid"><input id="job_booking_date" value="2026-10-23"></div>');
   const context={document,window,Event:window.Event,app:{settings:{mechanics:['Alfie','Chris','Anyone']},jobs:[{booking_date:'2026-10-23',technician:'Alfie',registration:'AB12 CDE',drop_time:'09:00',estimated_hours:1,work_required:'Service'}]},selectedIso:()=> '2026-10-18',todayIso:()=> '2026-10-18',esc:String,niceDate:String,isVehicleTaxJob:()=>false,vectaJobIsDeletedForLists:()=>false,isUnallocatedJob:()=>false,mechanicHours:()=>1,plannerTechnicianLane:String,byTime:()=>0,jobTitle:()=>''};
+  window.VectaCalendarJobPopup={plannerHtml:helpers.calendarPlannerHtml};
   vm.createContext(context);
   vm.runInContext(html.slice(html.indexOf('function installNewJobAvailabilityCalendar('),html.indexOf('function previousVehicleWork(')),context);
   context.installNewJobAvailabilityCalendar(true);

@@ -10,6 +10,8 @@ import {parseHTML} from 'linkedom';
 import {mechanicVariant} from '../../scripts/mechanic-variant.mjs';
 
 const run=promisify(execFile),main=readFileSync('index.html','utf8');
+const popupSource=readFileSync('public/js/calendar-job-popup.js','utf8');
+const planner=popupSource.slice(popupSource.indexOf('  function calendarPlannerHtml('),popupSource.indexOf(' function mergeQueuedJobs('));
 const start=main.indexOf('function installNewJobAvailabilityCalendar(');
 const calendar=main.slice(start,main.indexOf('\n\nfunction previousVehicleWork(',start));
 
@@ -28,6 +30,8 @@ function fixture(mechanic,dashboard){
   const selectedIso=()=> '2026-11-18',todayIso=()=> '2026-11-16',esc=v=>String(v||''),niceDate=v=>v;
   const isVehicleTaxJob=()=>false,vectaJobIsDeletedForLists=()=>false,isUnallocatedJob=()=>false,plannerTechnicianLane=v=>v,mechanicHours=()=>1,byTime=()=>0,jobTitle=()=> 'Work';
   const openJobModal=id=>opened.push(id),confirm=()=>{throw Error('Unexpected discard prompt')};
+  ${planner}
+  window.VectaCalendarJobPopup={plannerHtml:calendarPlannerHtml,open:openJobModal};
   ${calendar}
   installNewJobAvailabilityCalendar(true,'${field}');
   ${dashboard?"document.getElementById('currentDate').onclick({preventDefault(){}});":"document.querySelector('.bookingDateDisclosure').open=true;"}
