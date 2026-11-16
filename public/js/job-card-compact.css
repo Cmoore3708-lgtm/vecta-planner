@@ -836,6 +836,15 @@
  #jobModal .jobCardDetailPanels .jobContactSection #jobCustomerEmailField{grid-column:1/-1!important}
 }
 
+/* Phone-only customer chat shortcut, alongside the existing three detail tabs. */
+#jobModal .jobCardWhatsApp{display:none}
+@media screen and (max-width:700px){
+ #jobModal .jobCardDetailButtons>.jobCardWhatsApp{display:inline-flex;flex:0 0 44px;min-width:44px;min-height:44px;align-items:center;justify-content:center;align-self:center;color:#25d366;background:transparent;border:0;padding:0;text-decoration:none;cursor:pointer}
+ #jobModal .jobCardWhatsApp svg{display:block;width:30px;height:30px}
+ #jobModal .jobCardWhatsApp[aria-disabled=true]{opacity:.4}
+ #jobModal .jobCardWhatsApp:focus-visible{outline:2px solid #128c7e;outline-offset:1px;border-radius:7px}
+}
+
 /* Compact buttons sit under the vehicle match; expanded details use the full sheet. */
 @media screen{
  #jobModal .jobCardSimplified .jobModalHead.jobCardPinnedHeader>.jobCardDetailPanels{grid-column:1/-1!important;grid-row:auto!important}

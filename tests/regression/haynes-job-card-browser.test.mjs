@@ -14,7 +14,7 @@ const main=readFileSync('index.html','utf8');
 const helper=readFileSync('public/js/haynes-job-tools.js','utf8');
 const match={registration:'AB12CDE',make:'MERCEDES-BENZ',model:'EQC 400 AMG LINE 4MATIC',variant:'400 4MATIC',typeId:'t_123',engineCode:'1KR',fetchedAt:'2021-01-01T00:00:00Z'};
 
-function card(mechanic){
+export function card(mechanic){
  const {document}=parseHTML(mechanic?mechanicVariant(main):main);
  const styles=[...document.querySelectorAll('style,link[rel="stylesheet"]')].map(node=>
   node.tagName==='STYLE'?node.outerHTML:'<style>'+readFileSync('public'+node.getAttribute('href'),'utf8')+'</style>'
@@ -28,7 +28,7 @@ function card(mechanic){
   '<div class="field"><label>Last MOT mileage</label><input id="job_mileage" value="50000"></div></div></section>'+
   '<details class="jobFormSection jobContactSection jobSectionDisclosure"><summary class="jobFormSectionHead">Customer details</summary>'+
   '<div class="jobSectionGrid"><div class="field"><label>Customer</label><input id="job_customer_name" value="chris stoker"></div>'+
-  '<div class="field"><label>Account</label><input id="job_customer_account" value="Staff"></div></div></details>'+
+  '<div class="field"><label>Account</label><input id="job_customer_account" value="Staff"></div><div class="field"><label>Phone</label><input id="job_customer_phone" value="07700 900123"></div></div></details>'+
   '<details class="jobTypesDisclosure"><summary>Job Types</summary><div class="templateBtns"><button type="button">Full Service</button></div></details>'+
   '<details class="jobBookingSection jobSectionDisclosure"><summary class="jobFormSectionHead">Booking details</summary><div class="jobSectionGrid"><input id="job_booking_date" value="2026-11-14"></div><input type="hidden" id="job_customer_note" value="[[VECTA_CURRENT_MILEAGE:54321]]"></details>'+
   '<div class="jobVehicleHistory"><section class="jobFormSection jobMotAdvisories" aria-label="Previous MOT advisories"><h3>Previous MOT advisories</h3><div data-mot-history-body><ul><li>Front windscreen wiper blade defective</li><li>Nearside rear tyre worn close to legal limit on inner edge</li></ul></div></section></div>'+
@@ -81,6 +81,9 @@ function card(mechanic){
    result.noDuplicateSummary=result.noDuplicateSummary&&target.querySelector('summary').getBoundingClientRect().height===0;
    button.click();result.independentPanels=result.independentPanels&&target.hidden&&button.getAttribute('aria-expanded')==='false';
   }
+  const chat=document.querySelector('.jobCardWhatsApp'),chatBox=chat?.getBoundingClientRect();
+  result.whatsappFits=${mechanic}?chat===null:innerWidth>700?chatBox.width===0:chatBox.width>=44&&chatBox.height>=44&&chatBox.right<=body.right+1&&chatBox.left>=buttonBoxes.at(-1).right&&Math.abs(chatBox.top-body.top)<2;
+  result.whatsappDestination=${mechanic}||chat.getAttribute('href')==='https://wa.me/447700900123';
   parent.postMessage(result,'*');</script>`;
 }
 
@@ -101,6 +104,7 @@ test('the reopened job header keeps identity, matching, customer controls and mi
   assert.equal(rows.length,8);
   for(const row of rows){
    assert.equal(row.visible,true,JSON.stringify(row));
+   assert.equal(row.whatsappFits,true,JSON.stringify(row));assert.equal(row.whatsappDestination,true,JSON.stringify(row));
    const context=JSON.stringify(row);
    assert.ok(Math.abs(row.pictureHeight-(row.width>700?Math.min(310,Math.max(220,row.width*.23)):140))<1,context);
    if(row.width>=1440)assert.ok(row.pictureWidth>=500,context);
