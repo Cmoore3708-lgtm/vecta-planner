@@ -1,7 +1,7 @@
 /* Customer-only worker. Never caches booking APIs, photos, invoices, tokens or
    workshop data, and never deletes the workshop's offline cache. */
-const CACHE='vecta-customer-shell-v2';
-const SHELL=['/app/home','/app/booking','/app/garage.js','/app/garage.css','/app/car-placeholder.svg','/app/bootstrap.js','/app/app.js','/app/app.css','/app/icon-180.png','/app/icon-192.png','/app/icon-512.png','/app/manifest.webmanifest','/js/vecta-progress.js','/js/vecta-progress.css','/js/vecta-vehicle-image.js','/js/vecta-message-summary.js','/js/vecta-customer-portal.js','/js/vecta-customer-portal.css','/js/vecta-website-visit.js','/assets/vecta-header.png'];
+const CACHE='vecta-customer-shell-v3';
+const SHELL=['/app/vecta-header.jpg','/app/home','/app/booking','/app/garage.js','/app/garage.css','/app/car-placeholder.svg','/app/bootstrap.js','/app/app.js','/app/app.css','/app/icon-180.png','/app/icon-192.png','/app/icon-512.png','/app/manifest.webmanifest','/js/vecta-progress.js','/js/vecta-progress.css','/js/vecta-vehicle-image.js','/js/vecta-message-summary.js','/js/vecta-customer-portal.js','/js/vecta-customer-portal.css','/js/vecta-website-visit.js','/assets/vecta-header.png'];
 self.addEventListener('install',event=>{event.waitUntil(caches.open(CACHE).then(cache=>cache.addAll(SHELL)));});
 self.addEventListener('activate',event=>{event.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(key=>key.startsWith('vecta-customer-shell-')&&key!==CACHE).map(key=>caches.delete(key)))).then(()=>self.clients.claim()));});
 self.addEventListener('fetch',event=>{

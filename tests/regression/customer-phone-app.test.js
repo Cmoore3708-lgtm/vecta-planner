@@ -87,7 +87,7 @@ test('cold start restores a verified private link, accepts approval links and cl
 });
 test('manifest, website copies and worker keep customer data out of offline caches',()=>{
  const manifest=JSON.parse(fs.readFileSync('public/app/manifest.webmanifest'));assert.equal(manifest.id,'/app/');assert.equal(manifest.start_url,'/app/home');assert.equal(manifest.scope,'/app/');assert.equal(manifest.display,'standalone');
- for(const name of ['home.html','booking.html','garage.js','garage.css','car-placeholder.svg','bootstrap.js','app.js','app.css','service-worker.js','manifest.webmanifest','icon-180.png','icon-192.png','icon-512.png'])assert.ok(fs.readFileSync('public/app/'+name).equals(fs.readFileSync('website/app/'+name)),name);
+ for(const name of ['vecta-header.jpg','home.html','booking.html','garage.js','garage.css','car-placeholder.svg','bootstrap.js','app.js','app.css','service-worker.js','manifest.webmanifest','icon-180.png','icon-192.png','icon-512.png'])assert.ok(fs.readFileSync('public/app/'+name).equals(fs.readFileSync('website/app/'+name)),name);
  const handlers={},cacheWrites=[],context={self:{location:{origin:'https://www.vectamotors.co.uk'},addEventListener:(name,fn)=>handlers[name]=fn},URL,Response,caches:{},fetch:()=>{throw Error('Should not cache private requests');}};
  vm.runInNewContext(fs.readFileSync('public/app/service-worker.js','utf8'),context);
  for(const [url,method] of [['/api/job-progress','POST'],['/invoice?token=private','GET'],['/app/?token=private','GET'],['/assets/private-photo.jpg','GET']])handlers.fetch({request:{url:'https://www.vectamotors.co.uk'+url,method},respondWith:()=>cacheWrites.push(url)});
