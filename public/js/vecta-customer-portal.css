@@ -6,7 +6,8 @@
 .vehicleSummary{grid-template-columns:minmax(0,1fr);grid-template-rows:auto auto minmax(0,1fr);gap:10px 28px;padding-bottom:18px;align-items:start}
 .vehicleSummary.hasVehicleImage{grid-template-columns:minmax(0,1fr) minmax(260px,44%)}
 .vehicleSummaryHeading{grid-column:1;display:flex;align-items:center;flex-wrap:wrap;gap:8px 16px;min-width:0}
-.vehicleSummary .plate{font-size:22px;padding:8px 12px;white-space:nowrap}
+.vehicleSummary .plate{position:relative;overflow:hidden;font-size:22px;padding:8px 12px 8px 43px;white-space:nowrap}
+.vehicleSummary .plate::before{content:'GB';position:absolute;inset:0 auto 0 0;width:31px;display:grid;place-items:center;background:#1755a6;color:#fff;font-size:11px;font-weight:700;letter-spacing:.02em}
 .vehicleSummary #vehicle{margin:0;font-size:16px;line-height:1.4;overflow-wrap:anywhere}
 .vehicleSummary #bookingDate{grid-column:1;grid-row:2;margin:0;font-size:13px;line-height:1.4}
 .vehicleSummary #jobSummary{grid-column:1;grid-row:3;margin:0;min-width:0}
@@ -17,11 +18,13 @@
 @media(max-width:600px){
  .vehicleSummary{gap:8px 12px}
  .vehicleSummary.hasVehicleImage{grid-template-columns:minmax(0,1fr) minmax(0,48%)}
- .vehicleSummaryHeading{gap:8px}.vehicleSummary .plate{font-size:20px;padding:7px 10px;letter-spacing:1px}
+ .vehicleSummaryHeading{gap:8px}.vehicleSummary .plate{font-size:20px;padding:7px 10px 7px 34px;letter-spacing:1px}
+ .vehicleSummary .plate::before{width:26px;font-size:10px}
  .vehicleSummary #vehicle{font-size:13px}.vehicleSummary #bookingDate{font-size:12px}
  .vehicleSummary #jobSummary{grid-column:1/-1;margin-top:4px}
  .portalVehicle{grid-row:1/3;align-self:center}.portalVehicle img{max-height:190px}
 }
+@media(max-width:360px){.vehicleSummary .plate{font-size:16px;padding-right:7px;padding-left:29px;letter-spacing:.5px}.vehicleSummary .plate::before{width:23px;font-size:9px}}
 
 /* Recent messages first; older history and the booking record stay within reach. */
 .portalConversation{padding-top:22px;scroll-margin-top:16px}
