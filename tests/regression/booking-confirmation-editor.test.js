@@ -46,4 +46,37 @@ test('click-to-edit sends the latest text, retains multiline edits, locks the su
  const send=document.querySelector('button');await send.onclick();
  assert.deepEqual(requests[1].edits,{work:'Service plus tyre check\nCall Chris first'});
  assert.equal(send.disabled,true);assert.equal(field.hasAttribute('contenteditable'),false);assert.deepEqual(events,['vecta-portal-changed']);
+ assert.equal(document.querySelector('dialog'),null,'successful send closes the confirmation window');
+});
+test('the selected work precedes mileage notes in both email formats without changing the saved job',()=>{
+ const mileage='Current mileage unknown. Check mileage on arrival and carry out the selected service package. Discuss additional items separately.';
+ const advisory='MOT Advisories, customer would like these done: inspect rear tyres';
+ const booking={...job,job_type:'Full Service',work_required:[mileage,advisory,'Full Service','Spark plugs: Check first — replace if due.'].join('\n\n')};
+ const before=structuredClone(booking),mail=confirmationContent(booking,link),{document}=parseHTML(mail.html);
+ const work=document.querySelector('[data-confirmation-field="work"]');for(const br of work.querySelectorAll('br'))br.replaceWith('\n');
+ const expected=['Full Service',mileage,advisory,'Spark plugs: Check first — replace if due.'].join('\n\n');
+ assert.equal(work.textContent,expected);assert.ok(mail.text.includes('Job Description\n'+expected));assert.deepEqual(booking,before);
+ const edited=confirmationContent(booking,link,null,{work:'My own amended description'});assert.ok(edited.text.includes('Job Description\nMy own amended description'));
+});
+test('combined jobs and freeform work retain all notes when moved above mileage, and ordinary descriptions stay unchanged',()=>{
+ for(const [job_type,work_required,expected]of [
+  ['Full Service || MOT','Mileage: 25,000 miles\n\nFull Service\n\nMOT','Full Service\n\nMOT\n\nMileage: 25,000 miles'],
+  ['Other','Current mileage unknown. Check on arrival.\n\nInvestigate intermittent rattle','Investigate intermittent rattle\n\nCurrent mileage unknown. Check on arrival.'],
+  ['Full Service','Customer request: inspect tyres\n\nFull Service','Customer request: inspect tyres\n\nFull Service']
+ ])assert.ok(confirmationContent({...job,job_type,work_required},link).text.includes('Job Description\n'+expected));
+});
+test('an unconfirmed or failed send and an outstanding delivery-record warning keep the confirmation window open',async()=>{
+ for(const outcome of ['pending','failed','audit']){
+  const {document}=parseHTML('<html><body></body></html>'),create=document.createElement.bind(document);
+  document.createElement=tag=>{const el=create(tag);if(tag==='dialog'){el.showModal=()=>{};el.close=()=>el.remove();}return el;};
+  const window={};let complete;
+  vm.runInNewContext(readFileSync('public/js/vecta-portal-workshop.js','utf8'),{document,window,location:{search:''},URLSearchParams,AbortSignal,fetch:async(url,options)=>{
+   if(JSON.parse(options.body).action==='confirmation-preview')return Response.json({editable:false,email:'driver@example.invalid',status:'unsent',html:'<p>Saved preview</p>'});
+   return new Promise(resolve=>complete=()=>resolve(outcome==='audit'?Response.json({accepted:true,audit_pending:true}):Response.json({error:outcome==='failed'?'Email rejected':'Sending could not be confirmed'},{status:503})));
+  }});
+  await window.VectaPortalWorkshop.confirmation(job);const send=document.querySelector('button'),pending=send.onclick();
+  assert.ok(document.querySelector('dialog'));assert.equal(send.disabled,true);
+  complete();await pending;assert.ok(document.querySelector('dialog'));
+  assert.match(document.querySelector('[role="status"]').textContent,outcome==='audit'?/delivery record needs checking/:outcome==='failed'?/Email rejected/:/could not be confirmed/);
+ }
 });

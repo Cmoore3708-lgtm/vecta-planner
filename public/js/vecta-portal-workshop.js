@@ -431,6 +431,7 @@
     status.textContent=result.audit_pending?'Accepted by the email provider; the delivery record needs checking.':'Confirmation email sent.';
     hint.textContent='The sent wording is recorded in Messages.';
     window.dispatchEvent?.(new Event('vecta-portal-changed'));
+    if(result.accepted&&!result.audit_pending)dialog.close();
    }catch(e){
     status.textContent=e.message;send.disabled=false;
     hint.textContent='Your wording is kept for retry. Reopen the preview to check the send status.';
