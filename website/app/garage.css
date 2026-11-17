@@ -30,3 +30,5 @@ body.bookingActive{position:fixed;inset:var(--booking-viewport-top,0px) 0 auto;h
 .loyaltyBox.bookingBonusCompact{flex:none;display:block;margin:8px 0 0;padding:10px 12px;border-radius:8px}
 .bookingBonusCompact .loyaltyIntro,.bookingBonusCompact .loyaltyTotal,.bookingBonusCompact #viewLoyalty{display:none}
 .bookingBonusCompact #loyaltyNote{margin:0;color:var(--white);font-size:13px;line-height:1.4;font-weight:650}
+
+#vehicleForm select{width:100%;padding:14px 12px;border:1px solid #444;border-radius:8px;background:var(--black);color:var(--white);font:inherit;min-height:48px}
