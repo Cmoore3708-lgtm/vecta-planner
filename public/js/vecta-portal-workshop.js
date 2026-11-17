@@ -4,7 +4,7 @@
  const date=value=>new Intl.DateTimeFormat('en-GB',{dateStyle:'short',timeStyle:'short',timeZone:'Europe/London'}).format(new Date(value));
  async function api(action,body={}){const r=await fetch('/api/job-progress',{method:'POST',credentials:'same-origin',cache:'no-store',headers:{'Content-Type':'application/json'},body:JSON.stringify({action,...body}),signal:AbortSignal.timeout(45000)});const data=await r.json();if(!r.ok)throw Error(data.error||'Customer messages are unavailable.');return data;}
  let pendingEvent=new URLSearchParams(location.search).get('portal_event'),popup,active,refreshQueue;
- const panels=new Map(),known=new Set();
+ const panels=new Map(),known=new Set();let viewingEvent=null;
  // Pop-up dismissal and reading are separate: hiding a notification must not
  // clear the persistent badge. The server shares receipts across this role’s devices.
  const readKey=()=> 'vecta:portal:read:'+(mechanic()?'mechanic':'manager');
@@ -34,13 +34,8 @@
     badge.addEventListener('click',async e=>{
      e.preventDefault();e.stopPropagation();
      try{
-      const state=await window.vectaOpenFindingJob?.(id);
-      if(state!=='open')throw Error(state==='busy'?'Save or close your current card, then open this message.':'The job could not be opened. Please retry.');
-      const panel=panels.get(id)?.panel;
-      panel?.scrollIntoView({behavior:'smooth',block:'center'});
-      const heading=panel?.querySelector('h3');heading?.focus({preventScroll:true});
       const latest=unread(inbox).find(item=>item.job_id===id);
-      if(latest)await panels.get(id)?.openMessage(latest);
+      if(latest)await openJobMessage(latest);
      }catch(error){window.alert?.(error.message);}
     });
    }
@@ -53,7 +48,7 @@
   for(const id of ids)read.add(id);
   try{localStorage.setItem(readKey(),JSON.stringify([...read]));}catch{}
   if(read.has(pendingEvent))pendingEvent=null;
-  if(active&&read.has(active.id)){active=null;if(popup)popup.hidden=true;}
+  if(active&&read.has(active.id)&&viewingEvent!==active.id){active=null;if(popup)popup.hidden=true;}
   refreshReadState();
   // Remove delivered notifications belonging to messages confirmed read by the
   // server. This also runs when another device's receipt arrives on resume.
@@ -163,7 +158,11 @@
    send.disabled=item.forwarded;const status=node('p');status.setAttribute('role','status');body.append(send,status);
   }
   if(canForward&&alerts){const details=node('details'),delivery=node('div');details.className='portalDeliveryDetails';details.append(node('summary','Alert delivery'),delivery);showAlerts(delivery,alerts,item.job_id);body.append(details);}
-  c.addEventListener('toggle',()=>{if(c.open&&c.isConnected&&!document.hidden&&incoming(item))markRead([item]).catch(()=>{c.title='Read status could not sync. Reopen this message or use Mark messages as read to retry.';});});
+  c.addEventListener('toggle',()=>{if(c.open&&c.isConnected&&!document.hidden&&incoming(item)){
+   // Reading inside the notification must not remove the text being read.
+   if(popup?.contains(c))viewingEvent=item.id;
+   markRead([item]).catch(()=>{c.title='Read status could not sync. Reopen this message or use Mark messages as read to retry.';});
+  }});
   return c;
  }
  function mount(modal,job,saved){
@@ -283,13 +282,16 @@
    };
   }
   async function openMessage(item){
-   if(!panel.isConnected||document.hidden)return;
+   if(!panel.isConnected||document.hidden)throw Error('The message has not opened. Please retry.');
    displayed.set(item.id,item);
    visibleCount=Math.max(visibleCount,orderedEvents().findIndex(event=>event.id===item.id)+1);
    renderMessages();
    const card=[...list.querySelectorAll('.portalWorkshopEvent')].find(card=>card.dataset.eventId===item.id);
-   if(item.kind==='approval_response'){showResponse(item);return;}
-   if(card){card.setAttribute('open','');await markRead([item]);}
+   if(!card)throw Error('The message has not opened. Please retry.');
+   if(item.kind==='approval_response'&&['approved','declined'].includes(decisionOf(item))){showResponse(item);return true;}
+   card.setAttribute('open','');card.tabIndex=-1;
+   card.scrollIntoView({behavior:'instant',block:'center'});card.focus({preventScroll:true});
+   await markRead([item]);return true;
   }
   let edited=false;const detectEdit=e=>{if(!panel.contains(e.target))edited=true;};modal.addEventListener('input',detectEdit);modal.addEventListener('change',detectEdit);
   const refreshAfterForward=()=>{if(edited||!panel.isConnected||[...panel.querySelectorAll('.portalWorkshopComposer textarea')].some(el=>el.value)||panel.querySelector('.workshopPhotoDraft')||!window.openJobModal)return false;window.openJobModal(job.id);return true;};
@@ -297,7 +299,47 @@
   return controller;
  }
  function seen(){try{return new Set(JSON.parse(localStorage.getItem('vecta:portal:seen:'+ (mechanic()?'mechanic':'manager'))||'[]'));}catch{return new Set();}}
- function ack(item){const ids=seen();ids.add(item.id);try{localStorage.setItem('vecta:portal:seen:'+(mechanic()?'mechanic':'manager'),JSON.stringify([...ids].slice(-1000)));}catch{}if(pendingEvent===item.id)pendingEvent=null;refreshQueue?.();}
+ function ack(item){const ids=seen();ids.add(item.id);try{localStorage.setItem('vecta:portal:seen:'+(mechanic()?'mechanic':'manager'),JSON.stringify([...ids].slice(-1000)));}catch{}if(pendingEvent===item.id)pendingEvent=null;if(viewingEvent===item.id)viewingEvent=null;if(active?.id===item.id){active=null;if(popup)popup.hidden=true;}refreshQueue?.();}
+ async function openJobMessage(item){
+  if(!item.job_id)throw Error('This booking is waiting in Website Bookings. Accept it to create its job card.');
+  const state=await window.vectaOpenFindingJob?.(item.job_id);
+  if(state!=='open')throw Error(state==='busy'?'Save or close your current card, then open this message.':'The job could not be opened. Please retry.');
+  const conversation=panels.get(item.job_id);
+  if(!conversation?.panel.isConnected||await conversation.openMessage(item)!==true)throw Error('The message has not opened. Please retry.');
+  ack(item);
+ }
+ function mountInbox(host){
+  const section=node('section');section.className='portalMessageHistory';
+  const heading=node('h4','Customer messages'),note=node('p','Received messages stay here after reading or dismissing their alerts.');
+  const search=node('input');search.type='search';search.placeholder='Search registration, name or message';search.setAttribute('aria-label',search.placeholder);
+  const status=node('p'),list=node('div');status.setAttribute('role','status');
+  let events=[],limit=25,busy=false;
+  const more=button('Show earlier messages',()=>{limit+=25;draw();});
+  function draw(){
+   const query=search.value.trim().toLowerCase().replace(/\s+/g,'');
+   const matches=events.filter(item=>[item.registration,item.customer_name,item.message,item.reply,item.details?.customer_reply].join(' ').toLowerCase().replace(/\s+/g,'').includes(query));
+   list.replaceChildren();
+   for(const item of matches.slice(0,limit)){
+    const row=node('article');row.className='portalInboxRow';
+    row.append(node('strong',[item.registration,item.customer_name].filter(Boolean).join(' · ')),eventCard(item,true));
+    const error=node('p');error.setAttribute('role','status');
+    const open=button('Open job card',async()=>{if(open.disabled)return;open.disabled=true;error.textContent='Opening message…';try{await openJobMessage(item);error.textContent='';}catch(e){error.textContent=e.message;}finally{open.disabled=false;}});
+    row.append(open,error);list.append(row);
+   }
+   if(!matches.length)list.append(node('p',events.length?'No matching customer messages.':'No customer messages yet.'));
+   more.hidden=matches.length<=limit;
+  }
+  async function load(){
+   if(busy)return;busy=true;refresh.disabled=true;status.textContent='Loading customer messages…';
+   try{
+    const result=[];let before;
+    do{const page=await api('portal-queue',before?{before}:{});if(!section.isConnected)return;result.push(...page.events);before=page.older_cursor;}while(before);
+    events=[...new Map(result.filter(incoming).map(item=>[item.id,item])).values()];receiveReadState(events);draw();status.textContent='';
+   }catch(e){status.textContent=e.message;}finally{busy=false;refresh.disabled=false;}
+  }
+  const refresh=button('Refresh',load);search.oninput=()=>{limit=25;draw();};
+  section.append(heading,note,search,refresh,status,list,more);host.append(section);more.hidden=true;load();
+ }
  function install(){
   if(!document.querySelector('main.main>header.top'))return;
   popup=node('aside');popup.className='portalWorkshopPopup';popup.hidden=true;popup.setAttribute('aria-label','Customer portal notification');document.body.append(popup);
@@ -325,19 +367,18 @@
      for(const [id,p]of panels)if(p.panel.isConnected)p.refresh();else panels.delete(id);
     }
     for(const p of panels.values())if(p.panel.isConnected)p.updateRead?.();
-    const ids=seen(),next=events.find(x=>x.id===pendingEvent&&!read.has(x.id))||events.find(x=>!ids.has(x.id)&&!read.has(x.id));
+    const ids=seen(),next=events.find(x=>x.id===viewingEvent)||events.find(x=>x.id===pendingEvent&&!read.has(x.id))||events.find(x=>!ids.has(x.id)&&!read.has(x.id));
     if(!next){active=null;popup.hidden=true;return;}
-    if(active&&active.id===next.id&&active.forwarded===next.forwarded&&active.synced===synced)return;
+    if(active&&active.id===next.id&&(viewingEvent===next.id||active.forwarded===next.forwarded&&active.synced===synced))return;
     active={...next,synced};popup.hidden=false;
     const decision=next.kind==='approval_response'&&['approved','declined'].includes(decisionOf(next));popup.classList.toggle('portalQuotePopup',decision);
     if(decision)popup.replaceChildren(responseBody(next));else popup.replaceChildren(node('strong',(mechanic()?'Job update':'Customer message')+' · '+next.registration),eventCard(next,!mechanic()));
     const message=node('p',synced?'':'Message saved. Reconnecting to update this device’s job card…');message.setAttribute('role','status');
-    popup.append(button('Open job card',async()=>{
-     if(!next.job_id){message.textContent='This booking is waiting in Website Bookings. Accept it to create its job card.';return;}
-     const state=await window.vectaOpenFindingJob?.(next.job_id);
-     if(state==='busy'){message.textContent='Save or close your current card, then open this message.';return;}
-     if(state==='open'){document.querySelector('.portalWorkshop')?.scrollIntoView({behavior:'smooth',block:'center'});try{await panels.get(next.job_id)?.openMessage(next);ack(next);}catch{message.textContent='Unable to sync the read status. Reconnect and reopen this message.';}}else message.textContent='The job could not be opened. Please retry.';
-    }),button('Dismiss',()=>ack(next)),message);
+    const open=button('Open job card',async()=>{
+     if(open.disabled)return;open.disabled=true;viewingEvent=next.id;message.textContent='Opening message…';
+     try{await openJobMessage(next);}catch(error){message.textContent=error.message;}finally{open.disabled=false;}
+    });
+    popup.append(open,button('Dismiss',()=>ack(next)),message);
    }catch{}finally{busy=false;}
   };
   if(typeof MutationObserver!=='undefined'){
@@ -368,6 +409,6 @@
    for(const notification of await registration?.getNotifications?.()||[])if(bookingCount===0&&notification.tag==='vecta-website-bookings')notification.close();
   }).catch(()=>{});
  }
- window.VectaPortalWorkshop={mount,confirmation,clearBookingNotifications,showResponse};
+ window.VectaPortalWorkshop={mount,mountInbox,confirmation,clearBookingNotifications,showResponse};
  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',install,{once:true});else install();
 })();

@@ -15,7 +15,7 @@ function setup({mechanic=false,storage=new Map(),online=true,receipts=new Map()}
  document.hidden=false;document.readyState='complete';
  const state={queue:[message()],messages:[message()],open:'open',fail:false,storageFail:false,scrolled:0,alerts:[],opened:[]},calls=[],timers=[];
  window.VECTA_MECHANIC_DEPLOYMENT=mechanic;window.vectaRefreshPortalJobs=async()=>true;
- window.vectaOpenFindingJob=async id=>{state.opened.push(id);if(state.open==='open'&&!document.querySelector('.portalWorkshop'))window.VectaPortalWorkshop.mount(document.getElementById('jobModal'),{id},true);return state.open;};
+ window.vectaOpenFindingJob=async id=>{state.opened.push(id);if(state.openError)throw Error('Job load failed');if(state.open==='open'&&!state.noPanel&&!document.querySelector('.portalWorkshop'))window.VectaPortalWorkshop.mount(document.getElementById('jobModal'),{id},true);return state.open;};
  window.alert=message=>state.alerts.push(message);window.HTMLElement.prototype.scrollIntoView=function(){state.scrolled++;};
  const closed=[];const navigator={onLine:online,serviceWorker:{addEventListener(){},getRegistration:async()=>({getNotifications:async()=>[{tag:'vecta-portal-m1',close:()=>closed.push('m1')} ]})}};
  vm.runInNewContext(source,{window,document,location:{search:''},navigator,MutationObserver:window.MutationObserver,Intl,Date,Event:window.Event,URLSearchParams,AbortSignal,crypto:{randomUUID:()=> 'draft'},
@@ -104,4 +104,50 @@ test('queue pagination retains older messages and validates page cursors before 
  const last=await portalQueue(db,'manager',undefined,first.older_cursor);assert.equal(last.events.length,1);assert.equal(last.events[0].id,'m250');assert.equal(last.older_cursor,null);
  assert.equal(calls[0].searchParams.get('manager_alert'),'eq.true');
  await assert.rejects(portalQueue(()=>{throw Error('Must not query');},'manager',undefined,'invalid'),/Invalid notification page/);
+});
+
+test('expanding the notification keeps its full message visible after read confirmation and later polling',async()=>{
+ for(const mechanic of [false,true]){
+  const h=setup({mechanic});h.state.queue=[{...message(),forwarded:true}];await h.poll();
+  const popup=h.document.querySelector('.portalWorkshopPopup'),card=popup.querySelector('.portalWorkshopEvent');
+  card.open=true;card.setAttribute('open','');card.dispatchEvent(new h.window.Event('toggle'));await tick();
+  assert.equal(h.badges().length,0,'the displayed message can be marked read');
+  assert.equal(popup.hidden,false,'reading must never remove the notification body');
+  h.state.queue.unshift({...message('new','other'),forwarded:true});await h.poll();
+  assert.equal(popup.querySelector('.portalWorkshopEvent'),card,'polling must not replace the message being read');
+  assert.equal(card.hasAttribute('open'),true);assert.match(card.textContent,/Please call before replacing/);
+  await [...popup.querySelectorAll('button')].find(b=>b.textContent==='Dismiss').onclick();await tick();
+  assert.equal(popup.querySelector('.portalWorkshopEvent').dataset.eventId,'new');
+ }
+});
+
+test('notification open failures never dismiss or read the message and can be retried',async()=>{
+ for(const failure of ['noPanel','detached','hidden','openError','busy','missing']){
+  const h=setup();await tick();const popup=h.document.querySelector('.portalWorkshopPopup');
+  if(failure==='detached'){await h.window.vectaOpenFindingJob('j1');await tick();h.document.querySelector('.portalWorkshop').remove();h.state.noPanel=true;}
+  else if(failure==='hidden')h.document.hidden=true;
+  else if(['busy','missing'].includes(failure))h.state.open=failure;
+  else h.state[failure]=true;
+  const open=[...popup.querySelectorAll('button')].find(b=>b.textContent==='Open job card');await open.onclick();await tick();
+  assert.equal(popup.hidden,false,failure);assert.equal(h.receipts.size,0,failure);assert.equal(h.badges().length,4,failure);
+  assert.equal(h.storage.get('vecta:portal:seen:manager'),undefined,failure);assert.equal(open.disabled,false);
+  assert.match(popup.querySelector(':scope > [role=status]').textContent,/retry|Save or close|Job load failed/i);
+  h.state.noPanel=false;h.state.openError=false;h.state.open='open';h.document.hidden=false;
+  await open.onclick();await tick();assert.equal(popup.hidden,true);assert.equal(h.badges().length,0);
+  assert.equal(h.document.querySelector('.portalWorkshop [data-event-id="m1"]').hasAttribute('open'),true);assert.ok(h.state.scrolled>0);
+ }
+});
+
+test('Customer messages recovers dismissed and read messages without opening each vehicle',async()=>{
+ const h=setup();h.state.queue.push({...message('m2','j2'),registration:'OTHER02',customer_name:'Second customer'});await h.poll();
+ const popup=h.document.querySelector('.portalWorkshopPopup');await [...popup.querySelectorAll('button')].find(b=>b.textContent==='Dismiss').onclick();await tick();
+ const host=h.document.createElement('div');h.document.body.append(host);h.window.VectaPortalWorkshop.mountInbox(host);await tick();
+ assert.equal(host.querySelectorAll('.portalInboxRow').length,2);assert.equal(h.receipts.size,0,'listing does not read messages');
+ const search=host.querySelector('input');search.value='TEST 001';search.oninput();assert.equal(host.querySelectorAll('.portalInboxRow').length,1);
+ const open=[...host.querySelectorAll('button')].find(b=>b.textContent==='Open job card');await open.onclick();await tick();
+ assert.deepEqual(h.state.opened,['j1']);assert.ok(h.receipts.has('manager:m1'));
+ await [...host.querySelectorAll('button')].find(b=>b.textContent==='Refresh').onclick();await tick();
+ assert.equal(host.querySelectorAll('.portalInboxRow').length,1,'read messages remain recoverable');
+ search.value='second customer';search.oninput();assert.match(host.querySelector('.portalInboxRow').textContent,/OTHER02/);
+ search.value='parts';search.oninput();assert.equal(host.querySelectorAll('.portalInboxRow').length,2);
 });

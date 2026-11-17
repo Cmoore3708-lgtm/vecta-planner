@@ -113,7 +113,7 @@
     var host=document.getElementById('vectaMessageCentre');if(!host||host.dataset.mounted)return;
     host.dataset.mounted='true';styles();
     host.innerHTML='<h3>Message Centre</h3><p>Messages and booking records, newest first. Click an entry to read it.</p>'+
-      '<div class="messageChannels" role="group" aria-label="Message lists"><button type="button" data-message-channel="" aria-pressed="true">All messages</button><button type="button" data-message-channel="whatsapp" aria-pressed="false">WhatsApp</button><button type="button" data-message-channel="email" aria-pressed="false">Email</button></div>'+
+      '<div class="messageChannels" role="group" aria-label="Message lists"><button type="button" data-message-channel="" aria-pressed="true">All messages</button><button type="button" data-message-channel="portal" aria-pressed="false">Customer messages</button><button type="button" data-message-channel="whatsapp" aria-pressed="false">WhatsApp</button><button type="button" data-message-channel="email" aria-pressed="false">Email</button></div>'+
       '<p class="messageConnection" data-message-connection hidden role="status"></p><p class="muted" data-message-help>Messages opened in WhatsApp or your mail app are recorded as prepared until sending is confirmed.</p>'+
       '<form class="messageControls"><input name="registration" aria-label="Search by registration" placeholder="Search registration" autocomplete="off"><button class="btn" type="submit">Search</button><button class="btn" type="button" data-message-clear>Show all</button><button class="btn" type="button" data-message-refresh>Refresh</button></form>'+
       '<p class="messageQueue" id="vectaMessageQueueStatus" role="status"></p><div data-message-list aria-live="polite"></div><p data-message-error role="status"></p><button class="btn" type="button" data-message-more hidden>Load more</button>';
@@ -130,6 +130,8 @@
     }
     async function load(append){
       var current=++version,selectedChannel=channel;more.disabled=true;error.textContent='';if(!append){filter=input.value;items=[];cursor=null;list.textContent='Loading messages…';more.hidden=true;}
+      var portal=selectedChannel==='portal';form.hidden=portal;host.querySelector('[data-message-help]').hidden=portal;
+      if(portal){list.replaceChildren();if(window.VectaPortalWorkshop?.mountInbox)window.VectaPortalWorkshop.mountInbox(list);else error.textContent='Customer messages could not be loaded. Refresh Workshop Pro and retry.';return;}
       if(channel==='whatsapp')connectionStatus(current);
       try{
         await flush();if(current!==version)return;notice();var params=new URLSearchParams();if(filter)params.set(selectedChannel==='whatsapp'?'contact':'registration',filter);if(selectedChannel)params.set('method',selectedChannel);if(append&&cursor)params.set('cursor',cursor);

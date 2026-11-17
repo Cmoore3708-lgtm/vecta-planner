@@ -9,6 +9,11 @@
 .portalMessageBadge:focus-visible{outline:3px solid #111;outline-offset:2px}
 .portalMarkRead{margin:8px 0;background:#bd182b;color:#fff;min-height:44px}
 .portalMarkRead[hidden]{display:none}
+.portalMessageHistory input{width:100%;max-width:360px!important;min-height:44px;margin:0 8px 12px 0;padding:10px;border:1px solid #cfd5dc;border-radius:8px;font:inherit}
+.portalMessageHistory .portalInboxRow{margin:14px 0;padding:14px;border:1px solid #cfd5dc;border-radius:10px}
+.portalMessageHistory .portalInboxRow>strong{display:block;margin-bottom:8px}
+.portalMessageHistory p:empty{display:none}
+#vectaMessageCentre .messageControls[hidden],.portalMessageHistory [hidden]{display:none!important}
 .portalMessageText{padding-right:64px!important;box-sizing:border-box}
 
 /* Scoped conversation density; planner cards retain their approved layout. */
