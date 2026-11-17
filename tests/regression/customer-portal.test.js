@@ -193,3 +193,18 @@ test('internal workshop notes produce no customer event and are excluded from po
   for(const value of [snapshot,email]){const text=JSON.stringify(value);assert.ok(!text.includes(secret));assert.ok(!text.includes(encodeURIComponent(secret)));assert.ok(!text.includes('VECTA_INTERNAL_NOTE'));}
  }finally{await db.close();}
 });
+
+test('amended confirmation wording reaches the job and customer message history only after sending',async()=>{
+ const db=await database();try{
+  const edits={heading:'Your revised booking confirmation',work:'Full service\nCheck the rear tyres first.',parking:'Please leave your keys with Chris.'};
+  const content=confirmationContent(job,'https://www.vectamotors.co.uk/track#test',null,edits);
+  await db.query("insert into nmuk_service_reminder_sends(id,job_id,recipient,status,message_payload) values('portal-confirmation:edit',$1,$2,'pending',$3)",[id,job.customer_email,JSON.stringify(content)]);
+  assert.equal((await db.query("select count(*)::int n from customer_portal_events where kind='correspondence'")).rows[0].n,0);
+  await db.query("update nmuk_service_reminder_sends set status='sent',sent_at=now() where id='portal-confirmation:edit'");
+  const rows=(await db.query("select message,details from customer_portal_events where kind='correspondence'")).rows;
+  assert.equal(rows.length,1);assert.equal(rows[0].message,content.text);assert.equal(rows[0].details.delivery,'sent');
+  assert.ok(rows[0].message.includes(edits.work));assert.ok(rows[0].message.includes(edits.parking));
+  await db.query("update nmuk_service_reminder_sends set status='sent' where id='portal-confirmation:edit'");
+  assert.equal((await db.query("select count(*)::int n from customer_portal_events where kind='correspondence'")).rows[0].n,1);
+ }finally{await db.close();}
+});

@@ -397,10 +397,57 @@
   setInterval(()=>{for(const [id,p]of panels)if(p.panel.isConnected)p.refresh();else panels.delete(id);},15000);
  }
  async function confirmation(job){
-  const dialog=node('dialog');dialog.className='portalEmailDialog';const title=node('h2','Booking confirmation'),status=node('p','Preparing your formatted email…'),preview=node('iframe');preview.title='Customer confirmation email preview';preview.setAttribute('sandbox','');const send=button('Send confirmation email',async()=>{send.disabled=true;status.textContent='Sending…';try{const result=await api('confirmation-send',{job_id:job.id});status.textContent=result.audit_pending?'Accepted by the email provider; the delivery record needs checking.':'Confirmation email sent.';}catch(e){status.textContent=e.message;send.disabled=false;}});send.disabled=true;
-  dialog.append(title,status,preview,send,button('Close',()=>dialog.close()));document.body.append(dialog);dialog.addEventListener('close',()=>dialog.remove(),{once:true});dialog.showModal();
+  const dialog=node('dialog');dialog.className='portalEmailDialog';
+  const title=node('h2','Booking confirmation'),status=node('p','Preparing your formatted email…'),hint=node('p'),preview=node('iframe');
+  hint.className='portalEmailHint';preview.title='Customer confirmation email — click text to edit';
+  // The parent can edit text, while scripts and navigation remain sandboxed.
+  preview.setAttribute('sandbox','allow-same-origin');
+  let editable=false,dirty=false,sending=false,submittedEdits=null;
+  const fields=()=>[...preview.contentDocument?.querySelectorAll('[data-confirmation-field]')||[]];
+  const fieldText=el=>(el.innerText??el.textContent??'').replace(/\r\n?/g,'\n').replace(/\u00a0/g,' ');
+  const edits=()=>Object.fromEntries(fields().filter(el=>fieldText(el)!==el.dataset.originalText).map(el=>[el.dataset.confirmationField,fieldText(el)]));
+  function lock(){editable=false;for(const el of fields())el.removeAttribute('contenteditable');}
+  function prepareEditor(){
+   const doc=preview.contentDocument;if(!doc?.body)return;
+   const style=doc.createElement('style');style.textContent='[contenteditable]{cursor:text;white-space:pre-wrap;overflow-wrap:anywhere;min-width:1ch;min-height:1em}[contenteditable]:empty{display:inline-block}[contenteditable]:hover{outline:1px dashed #aaa;outline-offset:3px}[contenteditable]:focus{outline:2px solid #bd1830;outline-offset:3px;border-radius:2px}';doc.head.append(style);
+   for(const el of fields()){
+    el.dataset.originalText=fieldText(el);
+    if(editable){el.setAttribute('contenteditable','plaintext-only');el.setAttribute('role','textbox');el.setAttribute('aria-label','Edit '+el.dataset.confirmationField.replace(/_/g,' '));el.setAttribute('aria-multiline','true');}
+   }
+   doc.addEventListener('click',e=>{if(e.target.closest?.('a'))e.preventDefault();});
+   doc.addEventListener('drop',e=>e.preventDefault());
+   doc.addEventListener('input',()=>{dirty=Object.keys(edits()).length>0;hint.textContent=dirty?'Email amended — your changes will be sent and recorded in Messages.':'Click any text below to edit it. Changes apply to this email only.';});
+   // Always paste plain text, including in browsers with older editing support.
+   doc.addEventListener('paste',e=>{if(!editable)return;e.preventDefault();doc.execCommand('insertText',false,e.clipboardData?.getData('text/plain')||'');});
+  }
+  preview.addEventListener('load',prepareEditor);
+  const send=button('Send confirmation email',async()=>{
+   if(sending)return;
+   if(editable&&!fields().length){status.textContent='Wait for the email preview to finish loading.';return;}
+   submittedEdits??=editable?edits():{};
+   sending=true;send.disabled=true;lock();status.textContent='Sending…';
+   try{
+    const result=await api('confirmation-send',{job_id:job.id,edits:submittedEdits});dirty=false;
+    status.textContent=result.audit_pending?'Accepted by the email provider; the delivery record needs checking.':'Confirmation email sent.';
+    hint.textContent='The sent wording is recorded in Messages.';
+    window.dispatchEvent?.(new Event('vecta-portal-changed'));
+   }catch(e){
+    status.textContent=e.message;send.disabled=false;
+    hint.textContent='Your wording is kept for retry. Reopen the preview to check the send status.';
+   }finally{sending=false;}
+  });send.disabled=true;
+  function close(){if(dirty&&!sending&&!window.confirm('Discard your unsent email changes?'))return;dialog.close();}
+  dialog.append(title,status,hint,preview,send,button('Close',close));document.body.append(dialog);
+  dialog.addEventListener('cancel',e=>{e.preventDefault();close();});dialog.addEventListener('close',()=>dialog.remove(),{once:true});dialog.showModal();
   status.setAttribute('role','status');status.setAttribute('aria-live','polite');
-  try{const data=await api('confirmation-preview',{job_id:job.id});preview.srcdoc=data.html;status.textContent='To: '+data.email+(data.has_image?' · Includes saved vehicle image.':' · No saved vehicle image available.')+(data.test?' Test preview — email sending is disabled.':data.status==='pending'?' The earlier send is not yet confirmed. Check its status before sending another copy.':data.send_error?' '+data.send_error:'');send.disabled=data.test||data.status==='sent'||data.status==='pending';if(data.status==='sent')send.textContent='Already sent';else if(data.status==='failed')send.textContent='Retry confirmation email';}catch(e){status.textContent=e.message;}
+  try{
+   const data=await api('confirmation-preview',{job_id:job.id});editable=data.editable===true;
+   preview.srcdoc=data.html;
+   hint.textContent=editable?'Click any text below to edit it. Changes apply to this email only.':'This email keeps its original wording because it has already been submitted.';
+   status.textContent='To: '+data.email+(data.has_image?' · Includes saved vehicle image.':' · No saved vehicle image available.')+(data.test?' Test preview — email sending is disabled.':data.status==='pending'?' The earlier send is not yet confirmed. Check its status before sending another copy.':data.send_error?' '+data.send_error:'');
+   send.disabled=data.test||data.status==='sent'||data.status==='pending';
+   if(data.status==='sent')send.textContent='Already sent';else if(data.status==='failed')send.textContent='Retry confirmation email';
+  }catch(e){status.textContent=e.message;}
  }
  let bookingCount=null;
  function clearBookingNotifications(count){

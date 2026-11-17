@@ -11,7 +11,7 @@ import {parseHTML} from 'linkedom';
 const job={id:'11111111-1111-4111-8111-111111111111',registration:'TEST001',booking_date:'2026-11-20',status:'booked',customer_email:'driver@example.invalid',work_required:'One premium tyre'};
 const id='portal-confirmation:'+createHash('sha256').update(job.id+':'+job.booking_date+':'+job.customer_email).digest('hex');
 const rejection='The vectamotors.co.uk domain is not verified. Please, add and verify your domain on https://resend.com/domains';
-async function setup(t){
+async function setup(t,{fresh=false}={}){
  const vars={VERCEL_ENV:'production',VERCEL_PROJECT_NAME:'planner',VERCEL_PROJECT_PRODUCTION_URL:'planner.example',VITE_SUPABASE_URL:'https://database.invalid',SUPABASE_SERVICE_ROLE_KEY:'test-db',RESEND_API_KEY:'test-key',VECTA_TEST_SUPABASE_SERVICE_ROLE_KEY:'test-db'};
  const old=Object.fromEntries(Object.keys(vars).map(k=>[k,process.env[k]])),fetch=globalThis.fetch;Object.assign(process.env,vars);
  const db=new PGlite();await db.exec('create table ledger (error text, message_payload jsonb)');
@@ -24,14 +24,17 @@ async function setup(t){
  const stored=(await db.query('select * from ledger')).rows[0];
  const s={record:{id,job_id:job.id,status:'failed',created_at:new Date().toISOString(),...stored},sends:[],providerStatus:200};
  s.db=async(path,options={})=>{
+  if(path.startsWith('workshop_settings?'))return [];
   assert.match(path,/^nmuk_service_reminder_sends/);
   if(!options.method)return s.record?[structuredClone(s.record)]:[];
+  if(options.method==='POST'){s.record={...JSON.parse(options.body),created_at:new Date().toISOString()};return [];}
   if(options.method==='PATCH'){
    if(path.includes('status=eq.failed')&&s.record.status!=='failed')return [];
    Object.assign(s.record,JSON.parse(options.body));return [structuredClone(s.record)];
   }
   throw Error('Unexpected database write');
  };
+ if(fresh)s.record=null;
  globalThis.fetch=async(url,options)=>{
   if(url.startsWith('https://database.invalid/rest/v1/'))return Response.json(await s.db(url.split('/rest/v1/')[1],options));
   assert.equal(url,'https://api.resend.com/emails');s.sends.push({body:options.body,key:options.headers['Idempotency-Key']});
@@ -86,4 +89,17 @@ test('the confirmation button displays rejection, retries after sender repair an
  await send.onclick();assert.match(status.textContent,/not verified/);assert.equal(send.disabled,false);assert.equal(s.sends.length,1);
  s.providerStatus=200;await send.onclick();assert.equal(status.textContent,'Confirmation email sent.');assert.equal(send.disabled,true);assert.equal(s.sends.length,2);
  assert.deepEqual(requests,['confirmation-preview','confirmation-send','confirmation-send']);assert.equal(s.sends[0].body,s.sends[1].body);
+});
+
+test('the submitted edits are sent, stored for Messages, and replayed unchanged on retry',async t=>{
+ const s=await setup(t,{fresh:true}),edits={work:'Service and tyre check\nPlease call before replacing anything.',phone:'07721 722622 ext 1'};
+ const preview=await bookingConfirmation(s.db,job);assert.equal(preview.editable,true);assert.equal(s.record,null);
+ s.providerStatus=403;await assert.rejects(bookingConfirmation(s.db,job,true,edits),/not verified/);
+ const sent=JSON.parse(s.sends[0].body);
+ assert.ok(sent.text.includes(edits.work));assert.match(sent.html,/Service and tyre check<br>Please call/);
+ assert.equal(s.record.message_payload.text,sent.text);assert.equal(s.record.message_payload.html,sent.html);
+ assert.equal((await bookingConfirmation(s.db,job)).editable,false);
+ await assert.rejects(bookingConfirmation(s.db,job,true,{work:'Changed after sending'}),/already been submitted/);assert.equal(s.sends.length,1);
+ s.providerStatus=200;await bookingConfirmation(s.db,job,true,edits);
+ assert.equal(s.sends[1].body,s.sends[0].body);assert.equal(s.record.status,'sent');
 });
