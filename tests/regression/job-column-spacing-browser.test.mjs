@@ -25,14 +25,17 @@ export function columnCard(){
  <section class="jobFormSection privatePricingSection" id="pricing" style="min-height:190px"><h3>Invoice description &amp; pricing</h3><textarea>Brake check</textarea></section>
  </div><div class="jobCardSupportColumn"><div class="bookingAvailabilityWorkspace hasDayPlanner"><details class="bookingDateDisclosure"><summary>Change booking date</summary><div class="bookingDateBody" style="min-height:400px">Calendar</div></details></div></div>
  </div></div><div class="modalFoot"><button>Cancel</button><button>Save &amp; Close</button></div></div></div>
- <script>const root=window;${balance}
+ <script>
+ // Chrome's virtual clock can finish without painting off-screen iframes.
+ // Keep real DOM, styles and observers; schedule layout frames on that clock.
+ const root={ResizeObserver,MutationObserver,getComputedStyle:el=>getComputedStyle(el),requestAnimationFrame:fn=>setTimeout(fn,16),cancelAnimationFrame:id=>clearTimeout(id)};${balance}
  const modal=document.querySelector('#jobModal'),sections=modal.querySelector('.jobCardSections'),main=sections.querySelector('.jobCardMainColumn'),aside=sections.querySelector('.jobCardSupportColumn'),parts=document.querySelector('#parts'),pricing=document.querySelector('#pricing');
  balanceJobSections(modal,sections,main,aside,parts,pricing);
  const note=document.querySelector('#job_internal_workshop_notes');
  setTimeout(()=>{
   const messages=document.createElement('section');messages.className='jobFormSection portalWorkshop';messages.style.minHeight='900px';messages.innerHTML='<h3>Customer messages</h3><p>A long customer conversation.</p>';
   main.append(messages);
-  requestAnimationFrame(()=>requestAnimationFrame(()=>{
+  root.requestAnimationFrame(()=>root.requestAnimationFrame(()=>{
    const visible=[...aside.children].filter(el=>el.getBoundingClientRect().height>0),rect=el=>el.getBoundingClientRect();
    const report={width:innerWidth,gaps:visible.slice(1).map((el,i)=>rect(el).top-rect(visible[i]).bottom),rightUsed:rect(parts).top-rect(aside).top,
     lastTwo:[...aside.children].slice(-2).map(el=>el.id),preserved:note===document.querySelector('#job_internal_workshop_notes')&&note.value==='Keep this note',
