@@ -64,7 +64,7 @@ test('standalone website ships the same tyre assets and forwards only the tyre l
 test('number-only size entry keeps separators fixed and searches only on Check Live Prices',async()=>{
  const {parseHTML}=await import('linkedom'),{document}=parseHTML('<html><body><main></main></body></html>'),calls=[];
  const form={job_types:['Tyres'],tyre_size:'',tyre_quantity:1,tyre_choice:'Budget',nevos_vehicle:'no'};
- const context=vm.createContext({document,state:{form},setTimeout,clearTimeout,AbortController,Intl,Date,renderActions(){},esc:String,fetch:async(url,options)=>{calls.push({url,body:JSON.parse(options.body)});return{ok:true,json:async()=>payload()}}});
+ const context=vm.createContext({get window(){return this;},document,state:{form},setTimeout,clearTimeout,AbortController,Intl,Date,renderActions(){},esc:String,fetch:async(url,options)=>{calls.push({url,body:JSON.parse(options.body)});return{ok:true,json:async()=>payload()}}});
  vm.runInContext(readFileSync(new URL('../../public/js/vecta-tyre-booking.js',import.meta.url),'utf8'),context);
  const html=readFileSync(new URL('../../website/booking/index.html',import.meta.url),'utf8');vm.runInContext(html.slice(html.indexOf('let tyreGuideState='),html.indexOf('function pricingHtml(')),context);
  document.querySelector('main').innerHTML=context.tyreOptionsHtml();context.bindTyreCards();context.bindTyreSearch();
@@ -79,7 +79,7 @@ test('number-only size entry keeps separators fixed and searches only on Check L
 test('quantity buttons automatically refresh checked prices and select sufficient stock without another search click',async()=>{
  const {parseHTML}=await import('linkedom'),{document}=parseHTML('<html><body><main></main></body></html>'),calls=[];
  const form={job_types:['Tyres'],tyre_size:'205/55R16',tyre_quantity:1,tyre_choice:'Budget',nevos_vehicle:'no'};
- const context=vm.createContext({document,state:{form},setTimeout,clearTimeout,AbortController,Intl,Date,renderActions(){},esc:String,fetch:async(url,options)=>{const body=JSON.parse(options.body);calls.push(body);return{ok:true,json:async()=>payload(body.quantity)}}});
+ const context=vm.createContext({get window(){return this;},document,state:{form},setTimeout,clearTimeout,AbortController,Intl,Date,renderActions(){},esc:String,fetch:async(url,options)=>{const body=JSON.parse(options.body);calls.push(body);return{ok:true,json:async()=>payload(body.quantity)}}});
  vm.runInContext(readFileSync(new URL('../../public/js/vecta-tyre-booking.js',import.meta.url),'utf8'),context);
  const html=readFileSync(new URL('../../website/booking/index.html',import.meta.url),'utf8');vm.runInContext(html.slice(html.indexOf('let tyreGuideState='),html.indexOf('function pricingHtml(')),context);
  document.querySelector('main').innerHTML=context.tyreOptionsHtml();context.bindTyreCards();context.bindTyreSearch();
@@ -100,7 +100,7 @@ test('quantity buttons automatically refresh checked prices and select sufficien
 test('a temporary lookup failure retries once while the customer still sees a pulsing checking message',async()=>{
  const {parseHTML}=await import('linkedom'),{document}=parseHTML('<html><body><main></main></body></html>'),pending=[];
  const form={job_types:['Tyres'],tyre_size:'205/55R16',tyre_quantity:1,tyre_choice:'Budget',nevos_vehicle:'no'};
- const context=vm.createContext({document,state:{form},setTimeout,clearTimeout,AbortController,Intl,Date,renderActions(){},esc:String,fetch:async(_url,options)=>({ok:true,json:()=>new Promise(resolve=>pending.push({body:JSON.parse(options.body),resolve}))})});
+ const context=vm.createContext({get window(){return this;},document,state:{form},setTimeout,clearTimeout,AbortController,Intl,Date,renderActions(){},esc:String,fetch:async(_url,options)=>({ok:true,json:()=>new Promise(resolve=>pending.push({body:JSON.parse(options.body),resolve}))})});
  vm.runInContext(readFileSync(new URL('../../public/js/vecta-tyre-booking.js',import.meta.url),'utf8'),context);
  const html=readFileSync(new URL('../../website/booking/index.html',import.meta.url),'utf8');vm.runInContext(html.slice(html.indexOf('let tyreGuideState='),html.indexOf('function pricingHtml(')),context);
  document.querySelector('main').innerHTML=context.tyreOptionsHtml();context.bindTyreCards();context.bindTyreSearch();

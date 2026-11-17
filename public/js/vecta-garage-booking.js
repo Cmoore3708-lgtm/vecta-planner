@@ -19,5 +19,7 @@
   root.addEventListener('message',receive);root.parent.postMessage({type:'vecta-booking-ready'},root.location.origin);
   return {confirmed(){root.parent.postMessage({type:'vecta-booking-confirmed'},root.location.origin);}};
  }
- root.VectaGarageBooking={connect};
+ root.VectaGarageBooking={connect,updateTotal(total){
+  if(root.parent!==root&&new URLSearchParams(root.location.search).get('app')==='1')root.parent.postMessage({type:'vecta-booking-total',registration:total.registration,pence:total.pence,pending:total.pending.length>0},root.location.origin);
+ }};
 })(window);

@@ -366,6 +366,9 @@ function servicePriceLabel(choice,band){const q=liveServiceQuote(choice);if(q&&q
 function refreshBookingTotal(){
  const total=document.querySelector('[data-booking-total]');
  if(total)total.innerHTML=bookingTotalContent();
+ const bonus=document.querySelector('[data-booking-bonus]');
+ if(bonus)bonus.innerHTML=bookingBonusContent();
+ window.VectaGarageBooking?.updateTotal?.({...bookingTotal(),registration:state.form.registration});
 }
 function pricingHtml(){let f=state.form,band=serviceGuidePrices(serviceEngineSize()),choice=f.service_choice==='Oil & Filter Change'?'Interim Service':f.service_choice||'Service',q=liveServiceQuote(),isGuide=q?.guidePrice||(serviceExtraSelection()==='replace'&&serviceExtraOffer()?.guidePrice);
  if(q)return `<div class="guide-price-wrap"><div class="guide-price-card"><small>${esc(choice.toUpperCase())} · ${isGuide?'GUIDE PRICE':'VEHICLE PRICE'}</small><strong>£${((q.totalPence+serviceExtraAddedPence())/100).toLocaleString('en-GB',{maximumFractionDigits:2})}</strong><p>${isGuide?'Guide price — includes estimated parts costs.':'Includes the selected service parts, engine oil, labour and VAT. Valid for 30 minutes.'}</p></div></div>`;
@@ -582,7 +585,7 @@ function miniValetReviewHtml(){
    <footer><label><input type="checkbox" data-mini-valet aria-label="Add the £30 mini valet to booking"><span data-valet-caption></span></label><button type="button" data-close-valet></button></footer>
   </dialog></section>`;
 }
-function bookingTotalContent(){
+function bookingTotal(){
  const f=state.form,q=liveServiceQuote(),band=serviceGuidePrices(serviceEngineSize());
  let pence=Math.round((estimateCost()||0)*100),pending=[];
  if(f.job_types.includes('Service')&&!q&&(!band||band.individual))pending.push('Service');
@@ -593,6 +596,14 @@ function bookingTotalContent(){
  }
  if(f.mini_valet&&!fullServiceSelected())pence+=3000;
  if(f.job_types.includes('Other'))pending.push('Additional work');
+ return {pence,pending};
+}
+function bookingBonusContent(){
+ const {pence,pending}=bookingTotal(),bonus=new Intl.NumberFormat('en-GB',{style:'currency',currency:'GBP'}).format(Math.round(pence*5/100)/100);
+ return `<small>YOUR BOOKING BONUS · 5% BACK</small><strong>${pence>0?pending.length?`Estimated bonus so far: ${bonus}`:`You will earn ${bonus} from this booking.`:'Earn 5% back on everything you spend.'}</strong><p>${pence>0?`Based on ${tyreMoney(pence)} including VAT${pending.length?' of priced work so far':''}. `:''}${pending.length||!pence?'Your bonus will update when the remaining prices are confirmed. ':''}Added to your loyalty balance after payment. Guide prices and their bonus remain estimates.</p>`;
+}
+function bookingTotalContent(){
+ const {pence,pending}=bookingTotal();
  return `<small>${pending.length?'Total so far':'Booking total'}</small><b class="booking-total-amount">${pence>0?tyreMoney(pence):'Price to be confirmed'}</b>${pence>0?'<p>Including VAT</p>':''}<p class="booking-total-note">${pending.length?esc(pending.join(' and '))+' price to be confirmed. ':''}Guide prices remain estimates. Any extra work will be agreed separately.</p>`;
 }
 function bindMiniValetReview(){
@@ -704,7 +715,7 @@ function render(){
  const preserveServicePosition=arguments[0]?.preserveServicePosition&&state.step===2;
  const tyrePicker=preserveServicePosition?document.querySelector('.tyre-picker'):null;
  const serviceTop=preserveServicePosition?document.querySelector('.service-picker')?.getBoundingClientRect().top:null;
- servicePricing.update();app.innerHTML=`<header class="booking-page-header"><div class="top"><h1>Booking Form</h1></div>${bookingProgressHtml()}</header><div class="step ${state.step>1?'later-step':''} booking-soft-background"><div class="vehicle-photo" data-haynes-slot>${haynesHtml()}</div>${vehicleSummaryHtml()}${stepHtml()}</div><div class="actions" id="actions"></div>${serviceOfferEligible()?'<div class="mot-notice-backdrop"><div class="mot-notice" role="dialog" aria-modal="true" aria-labelledby="motNoticeTitle"><div class="mot-notice-icon">£5</div><h3 id="motNoticeTitle">Add a Service and save</h3><p>If you book a Service at the same time, you’ll get £5 off the price. Plus with a Full Service your car will get a good clean!</p><button type="button" id="addServiceOffer">Add a Service</button><button type="button" id="closeMotNotice" style="margin-left:12px;background:#475569">No thanks</button></div></div>':''}`;if(tyrePicker)document.querySelector('.tyre-picker')?.replaceWith(tyrePicker);alignVehicleHeader();if(state.step===1)updateTodayTracking();applyAdminCopy();bind();bindV137();if(typeof VectaWorkPhotos!=='undefined')VectaWorkPhotos.mount(state.form,render,renderActions);renderActions();bindMileageDialog();let addService=document.getElementById('addServiceOffer');if(addService)addService.onclick=()=>{state.service_offer_dismissed=true;if(!state.form.job_types.includes('Service'))state.form.job_types.push('Service');state.form.appointment_date='';state.form.appointment_time='';state.form.technician='';render();document.querySelector('.service-picker-head')?.scrollIntoView({block:'center',behavior:'smooth'})};let motClose=document.getElementById('closeMotNotice');if(motClose)motClose.onclick=()=>{state.service_offer_dismissed=true;render()};
+ servicePricing.update();app.innerHTML=`<header class="booking-page-header"><div class="top"><h1>Booking Form</h1></div>${bookingProgressHtml()}</header><div class="step ${state.step>1?'later-step':''} booking-soft-background"><div class="vehicle-photo" data-haynes-slot>${haynesHtml()}</div>${vehicleSummaryHtml()}${stepHtml()}${state.step>=2?'<section class="booking-bonus" data-booking-bonus aria-live="polite" aria-atomic="true">'+bookingBonusContent()+'</section>':''}</div><div class="actions" id="actions"></div>${serviceOfferEligible()?'<div class="mot-notice-backdrop"><div class="mot-notice" role="dialog" aria-modal="true" aria-labelledby="motNoticeTitle"><div class="mot-notice-icon">£5</div><h3 id="motNoticeTitle">Add a Service and save</h3><p>If you book a Service at the same time, you’ll get £5 off the price. Plus with a Full Service your car will get a good clean!</p><button type="button" id="addServiceOffer">Add a Service</button><button type="button" id="closeMotNotice" style="margin-left:12px;background:#475569">No thanks</button></div></div>':''}`;if(tyrePicker)document.querySelector('.tyre-picker')?.replaceWith(tyrePicker);alignVehicleHeader();if(state.step===1)updateTodayTracking();applyAdminCopy();bind();bindV137();if(typeof VectaWorkPhotos!=='undefined')VectaWorkPhotos.mount(state.form,render,renderActions);renderActions();bindMileageDialog();refreshBookingTotal();let addService=document.getElementById('addServiceOffer');if(addService)addService.onclick=()=>{state.service_offer_dismissed=true;if(!state.form.job_types.includes('Service'))state.form.job_types.push('Service');state.form.appointment_date='';state.form.appointment_time='';state.form.technician='';render();document.querySelector('.service-picker-head')?.scrollIntoView({block:'center',behavior:'smooth'})};let motClose=document.getElementById('closeMotNotice');if(motClose)motClose.onclick=()=>{state.service_offer_dismissed=true;render()};
  // Retain the loaded tyre artwork above the services, so it cannot collapse
  // during a service change. Restore the service section's viewport position.
  if(preserveServicePosition){
@@ -740,7 +751,7 @@ async function sendBookingRequest(payload){
 function bookingConfirmationSummaryHtml(){
  const f=state.form,image=document.querySelector('.vehicle-photo .haynes-image img')?.outerHTML||'';
  const work=f.job_types.map(type=>type==='Service'?(f.service_choice==='Oil & Filter Change'?'Interim Service':f.service_choice||type):type==='Other'?'Something else':type).join(', ');
- return `<section class="booking-receipt" aria-label="Your booking"><div class="receipt-vehicle"><div><small>Your vehicle</small><div class="summary-plate"><span class="summary-plate-gb">GB</span><strong class="summary-plate-reg">${esc(f.registration)}</strong></div><b>${esc(f.vehicle)}</b></div>${image?`<figure class="receipt-image">${image}</figure>`:''}</div><div class="receipt-work"><small>Booked work</small><strong>${esc(work)}</strong>${f.mini_valet?'<p>Mini valet · £30</p>':''}${tyreReviewHtml()}${f.work_required.trim()?`<p class="receipt-description">${esc(f.work_required)}</p>`:''}${f.inspect_mot_advisories==='yes'&&f.mot_advisories.length?`<p>Please check the MOT advisories:</p><ul>${f.mot_advisories.map(item=>`<li>${esc(item)}</li>`).join('')}</ul>`:''}</div></section>`;
+ return `<section class="booking-receipt" aria-label="Your booking"><div class="receipt-vehicle"><div><small>Your vehicle</small><div class="summary-plate"><span class="summary-plate-gb">GB</span><strong class="summary-plate-reg">${esc(f.registration)}</strong></div><b>${esc(f.vehicle)}</b></div>${image?`<figure class="receipt-image">${image}</figure>`:''}</div><div class="receipt-work"><small>Booked work</small><strong>${esc(work)}</strong>${f.mini_valet?'<p>Mini valet · £30</p>':''}${tyreReviewHtml()}${f.work_required.trim()?`<p class="receipt-description">${esc(f.work_required)}</p>`:''}${f.inspect_mot_advisories==='yes'&&f.mot_advisories.length?`<p>Please check the MOT advisories:</p><ul>${f.mot_advisories.map(item=>`<li>${esc(item)}</li>`).join('')}</ul>`:''}</div></section><section class="booking-bonus" data-booking-bonus aria-live="polite" aria-atomic="true">${bookingBonusContent()}</section>`;
 }
 function calendarEscape(value){return String(value||'').replace(/\\/g,'\\\\').replace(/\r\n|\r|\n/g,'\\n').replace(/;/g,'\\;').replace(/,/g,'\\,');}
 function bookingCalendarContent(date,requestId){
@@ -1297,4 +1308,8 @@ dialog.mini-valet-offer[data-selected="true"]{border-color:var(--selection-green
 
 <style id="customer-app-offer-style">
 .customer-app-offer{margin:28px 0;padding:26px;background:#121212;color:#f7f7f5;border:1px solid #383838;border-top:3px solid #e51d2a;border-radius:12px;text-align:left}.customer-app-offer-heading{display:flex;gap:14px;align-items:center}.customer-app-offer-heading img{border-radius:12px;flex:0 0 56px}.customer-app-offer-heading small{color:#e51d2a;font-size:10px;letter-spacing:.15em;font-weight:800}.customer-app-offer h2{color:#f7f7f5!important;font-size:24px;margin:5px 0!important;line-height:1.2}.customer-app-offer>p{color:#b9b9b6!important;font-size:14px;line-height:1.65}.customer-app-offer ul{list-style:none;padding:0;margin:22px 0;display:grid;grid-template-columns:1fr 1fr;gap:20px}.customer-app-offer li{padding-left:16px;position:relative}.customer-app-offer li:before{content:'';width:5px;height:5px;position:absolute;left:0;top:7px;background:#e51d2a;border-radius:50%}.customer-app-offer li strong{display:block;color:#f7f7f5;font-size:14px;line-height:1.5}.customer-app-offer li span{display:block;color:#b9b9b6;font-size:12px;line-height:1.6;margin-top:4px}.customer-app-offer-button{display:flex;align-items:center;justify-content:space-between;gap:20px;padding:15px 18px;min-height:50px;color:white!important;background:#e51d2a;border-radius:8px;font-weight:800;text-decoration:none}.customer-app-offer-button:hover{background:#f22635}.customer-app-offer .customer-app-offer-note{font-size:11px!important;margin:13px 0 0!important;line-height:1.6}.customer-app-offer-button:focus-visible{outline:3px solid #fff;outline-offset:3px}@media(max-width:600px){.customer-app-offer{padding:20px}.customer-app-offer ul{grid-template-columns:1fr;gap:16px}.customer-app-offer h2{font-size:21px}.customer-app-offer-heading img{width:48px;height:48px;flex-basis:48px}}
+</style>
+
+<style>
+.booking-bonus{clear:both;display:grid;gap:10px;margin-top:24px;padding:24px;border:1px solid #8f3039;border-radius:14px;background:linear-gradient(120deg,#251013,#121212 65%);color:#fff;overflow-wrap:anywhere}.booking-bonus>small{font-size:12px;font-weight:800;letter-spacing:.08em;color:#ffd5d9}.booking-bonus>strong{font-size:clamp(21px,4.5vw,28px);line-height:1.3}.booking-bonus>p{margin:0;font-size:13px;line-height:1.6;color:#c7babc}.vecta-app-booking .booking-bonus{display:none}
 </style>

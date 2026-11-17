@@ -12,7 +12,7 @@ function setup({dialog=false,step=2}={}){
  window.HTMLElement.prototype.focus=function(options){focuses.push(options);};
  window.scrollBy=options=>scrolls.push(options);
  const state={step,mileage_dialog_open:dialog,form:{}};
- const c={state,document,window,app,servicePricing:{update(){}},bookingProgressHtml:()=>'',haynesHtml:()=>'',vehicleSummaryHtml:()=>'',stepHtml:()=>'<div class="tyre-picker"><img data-loaded="false"></div><div class="service-picker"><button class="service-option selected">Full</button></div>',serviceOfferEligible:()=>false,alignVehicleHeader(){},applyAdminCopy(){},bind(){bound.push(document.querySelector('.tyre-picker'));},bindV137(){},renderActions(){},bindMileageDialog(){}};
+ const c={state,document,window,app,bookingBonusContent:()=>'',refreshBookingTotal(){},servicePricing:{update(){}},bookingProgressHtml:()=>'',haynesHtml:()=>'',vehicleSummaryHtml:()=>'',stepHtml:()=>'<div class="tyre-picker"><img data-loaded="false"></div><div class="service-picker"><button class="service-option selected">Full</button></div>',serviceOfferEligible:()=>false,alignVehicleHeader(){},applyAdminCopy(){},bind(){bound.push(document.querySelector('.tyre-picker'));},bindV137(){},renderActions(){},bindMileageDialog(){}};
  vm.createContext(c);const start=html.indexOf('function reconcileServiceChoice(){');vm.runInContext(html.slice(start,html.indexOf('// Reuse one request identity',start)),c);
  return {c,tyres,document,scrolls,focuses,bound};
 }
