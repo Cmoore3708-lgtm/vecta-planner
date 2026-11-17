@@ -71,8 +71,9 @@ function flushSharedArtwork(){
 }
 function hydrateSharedArtwork({refresh=false}={}){
  const client=workshopClient();
- if(!client||root.VECTA_AUDIT_PREVIEW||root.navigator?.onLine===false||sharedClient===client&&(!refresh||Date.now()-sharedReadAt<60000)||Date.now()<sharedRetryAt)return null;
+ if(!client||root.VECTA_AUDIT_PREVIEW||root.navigator?.onLine===false||Date.now()<sharedRetryAt)return null;
  if(sharedLoading)return sharedLoading;
+ if(sharedClient===client&&(!refresh||Date.now()-sharedReadAt<60000))return null;
  sharedReadAt=Date.now();
  sharedLoading=(async()=>{try{
   const query=client.from('workshop_settings').select('id,value');const response=await sharedArtworkResponse((typeof query.or==='function'?query.or('id.like.vehicle_artwork:%,id.like.vehicle_colour:%'):query.like('id',SHARED_ART_PREFIX+'%')).limit(2000));
@@ -729,7 +730,9 @@ root.initHaynesJobTools=function(modal,{automatic=false,recoverImage=true}={}){
    if(active(requested,run))await matchVehicle();
   },150);
  }
- const shared=hydrateSharedArtwork();if(shared)shared.then(()=>{if(panel.isConnected)showHeaderVehicle();});
+ // A website lookup may have saved the colour since this workshop session began.
+ // Recheck stored artwork on opening, retaining the one-minute read limit.
+ const shared=hydrateSharedArtwork({refresh:true});if(shared)shared.then(()=>{if(panel.isConnected)showHeaderVehicle();});
  function changed(){clear();automaticLookup();}
  input.addEventListener('input',clear);input.addEventListener('change',changed);input.addEventListener('blur',automaticLookup);
  for(const selector of ['#job_vehicle','#job_model','#job_make'])modal.querySelector(selector)?.addEventListener('change',changed);

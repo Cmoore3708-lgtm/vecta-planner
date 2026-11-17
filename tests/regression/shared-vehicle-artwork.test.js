@@ -146,6 +146,41 @@ test('shared colour is reused on a new device and survives offline reopening',as
  const offline=device(db,first.storage);offline.root.navigator.onLine=false;assert.equal(offline.root.VectaHaynesJobTools.dashboardColour({registration:'AB12CDE',make:'NISSAN'}),'Blue');assert.equal(offline.lookups(),0);
 });
 
+function qashqaiModal(d){
+ d.document.body.innerHTML='<div id="modal"><div class="jobModalHead"><h2>Edit job</h2></div><section class="jobVehicleSection"><input id="job_registration" value="OW24UFM"><input id="job_make" value="NISSAN"><input id="job_model" value="QASHQAI TEKNA + DIG-T MHEV CVT"></section></div>';
+ const modal=d.document.querySelector('#modal');d.root.initHaynesJobTools(modal);return modal;
+}
+const qashqai={registration:'OW24UFM',make:'NISSAN',model:'Qashqai (J12)',variant:'1.3 DIG-T mHEV',typeId:'t_123',imageUrl:'https://www.haynespro-assets.com/workshop/images/319106279.svgz',fetchedAt:new Date().toISOString()};
+async function earlierHydration(d){
+ const now=Date.now;Date.now=()=>now()-61000;
+ try{await d.root.VectaHaynesJobTools.hydrateSharedArtwork();}finally{Date.now=now;}
+}
+test('opening an already identified job refreshes a colour saved later by the website and retains it offline',async()=>{
+ const db=database(new Map([['vehicle_artwork:OW24UFM',qashqai]]));
+ const d=device(db,new Map([['vecta_haynes_vehicle_identity_v1',JSON.stringify([qashqai])]]));
+ await earlierHydration(d);
+ db.rows.set('vehicle_colour:OW24UFM',{registration:'OW24UFM',make:'NISSAN',colour:'GREEN'});
+ const modal=qashqaiModal(d);await settled();
+ assert.equal(modal.querySelector('.jobCardHeaderVehicle img').dataset.colour,'GREEN');
+ assert.equal(db.reads(),2);assert.equal(d.lookups(),0);
+ qashqaiModal(d);await settled();assert.equal(db.reads(),2,'quick reopening reuses the refreshed colour');
+ const offline=device(db,d.storage);offline.root.navigator.onLine=false;
+ assert.equal(qashqaiModal(offline).querySelector('.jobCardHeaderVehicle img').dataset.colour,'GREEN');
+ assert.equal(db.reads(),2);assert.equal(offline.lookups(),0);
+});
+test('a job opened during a shared refresh joins that read and repaints when its colour arrives',async()=>{
+ const db=database(new Map([['vehicle_artwork:OW24UFM',qashqai]]));
+ const d=device(db,new Map([['vecta_haynes_vehicle_identity_v1',JSON.stringify([qashqai])]]));
+ await earlierHydration(d);
+ let finish,reads=0;db.client.from=()=>({select:()=>({like:()=>({limit:()=>{reads++;return new Promise(resolve=>{finish=resolve;});}})})});
+ const refreshing=d.root.VectaHaynesJobTools.hydrateSharedArtwork({refresh:true});
+ const modal=qashqaiModal(d);
+ finish({data:[{id:'vehicle_colour:OW24UFM',value:{registration:'OW24UFM',make:'NISSAN',colour:'GREEN'}}]});
+ await refreshing;await settled();
+ assert.equal(modal.querySelector('.jobCardHeaderVehicle img').dataset.colour,'GREEN');
+ assert.equal(reads,1);assert.equal(d.lookups(),0);
+});
+
 test('planner reads shared Hilux artwork through the main app private-client bridge on a fresh PC',async()=>{
  const hilux={registration:'J321WPC',make:'TOYOTA',model:'Hilux (GUN; GGN; LAN)',imageUrl:'https://www.haynespro-assets.com/workshop/images/319009548.svgz'};
  const db=database(new Map([['vehicle_artwork:J321WPC',hilux],['vehicle_colour:J321WPC',{registration:'J321WPC',make:'TOYOTA',colour:'White'}]])),d=device(db);
