@@ -4,20 +4,20 @@
  const date=value=>new Intl.DateTimeFormat('en-GB',{dateStyle:'short',timeStyle:'short',timeZone:'Europe/London'}).format(new Date(value));
  async function api(action,body={}){const r=await fetch('/api/job-progress',{method:'POST',credentials:'same-origin',cache:'no-store',headers:{'Content-Type':'application/json'},body:JSON.stringify({action,...body}),signal:AbortSignal.timeout(45000)});const data=await r.json();if(!r.ok)throw Error(data.error||'Customer messages are unavailable.');return data;}
  let pendingEvent=new URLSearchParams(location.search).get('portal_event'),popup,active,refreshQueue;
- const panels=new Map(),known=new Set();let viewingEvent=null;
- // Pop-up dismissal and reading are separate: hiding a notification must not
- // clear the persistent badge. The server shares receipts across this role’s devices.
- const readKey=()=> 'vecta:portal:read:'+(mechanic()?'mechanic':'manager');
- function readIds(){try{const ids=JSON.parse(localStorage.getItem(readKey())||'[]');return new Set(Array.isArray(ids)?ids:[]);}catch{return new Set();}}
+ const panels=new Map(),known=new Set();let viewingEvent=null,paintOutstanding=()=>{},queueReady=false;
+ // Opening is device-local; acknowledgement is shared across this role’s devices.
+ // Old read receipts deliberately cannot clear the outstanding queue.
+ const acknowledgedKey=()=> 'vecta:portal:acknowledged:'+(mechanic()?'mechanic':'manager');
+ function acknowledgedIds(){try{const ids=JSON.parse(localStorage.getItem(acknowledgedKey())||'[]');return new Set(Array.isArray(ids)?ids:[]);}catch{return new Set();}}
  const inboxKey=()=> 'vecta:portal:inbox:'+(mechanic()?'mechanic':'manager');
  function cachedInbox(){try{const items=JSON.parse(localStorage.getItem(inboxKey())||'[]');return Array.isArray(items)?items:[];}catch{return [];}}
- let inbox=cachedInbox(),read=readIds();
- const reading=new Set();
+ let inbox=cachedInbox(),acknowledged=acknowledgedIds();
+ const acknowledging=new Set();
  const cardSelector='.job[data-job-id],.mobileJob[data-open-job],.sideJob[data-open-job],.sideJob[data-job-id]';
  const incoming=item=>mechanic()?item.forwarded:item.actor==='customer';
- function unread(items){return items.filter(item=>incoming(item)&&!read.has(item.id));}
+ function outstanding(items){return items.filter(item=>incoming(item)&&!acknowledged.has(item.id));}
  function paintBadges(){
-  const counts=new Map();for(const item of unread(inbox))if(item.job_id)counts.set(item.job_id,(counts.get(item.job_id)||0)+1);
+  const counts=new Map();for(const item of outstanding(inbox))if(item.job_id)counts.set(item.job_id,(counts.get(item.job_id)||0)+1);
   for(const card of document.querySelectorAll(cardSelector)){
    const id=card.dataset.jobId||card.dataset.openJob,count=counts.get(id)||0;
    let badge=card.querySelector('.portalMessageBadge');
@@ -34,47 +34,57 @@
     badge.addEventListener('click',async e=>{
      e.preventDefault();e.stopPropagation();
      try{
-      const latest=unread(inbox).find(item=>item.job_id===id);
+      const latest=outstanding(inbox).find(item=>item.job_id===id);
       if(latest)await openJobMessage(latest);
      }catch(error){window.alert?.(error.message);}
     });
    }
-   const label=count+' unread '+(mechanic()?'office update':'customer message')+(count===1?'':'s')+' — open conversation';
+   const label=count+' outstanding '+(mechanic()?'office update':'customer message')+(count===1?'':'s')+' — open conversation';
    if(badge.getAttribute('aria-label')!==label){badge.setAttribute('aria-label',label);badge.title=label;badge.lastElementChild.textContent=String(count);}
   }
  }
- function refreshReadState(){for(const id of readIds())read.add(id);paintBadges();for(const p of panels.values())if(p.panel.isConnected)p.updateRead?.();}
- function rememberRead(ids){
-  for(const id of ids)read.add(id);
-  try{localStorage.setItem(readKey(),JSON.stringify([...read]));}catch{}
-  if(read.has(pendingEvent))pendingEvent=null;
-  if(active&&read.has(active.id)&&viewingEvent!==active.id){active=null;if(popup)popup.hidden=true;}
-  refreshReadState();
-  // Remove delivered notifications belonging to messages confirmed read by the
+ function refreshAcknowledgements(){for(const id of acknowledgedIds())acknowledged.add(id);paintBadges();paintOutstanding();for(const p of panels.values())if(p.panel.isConnected)p.updateRead?.();}
+ function rememberAcknowledged(ids){
+  for(const id of ids)acknowledged.add(id);
+  try{localStorage.setItem(acknowledgedKey(),JSON.stringify([...acknowledged]));}catch{}
+  if(acknowledged.has(pendingEvent))pendingEvent=null;
+  if(active&&acknowledged.has(active.id)){active=null;if(popup)popup.hidden=true;}
+  refreshAcknowledgements();
+  // Remove delivered notifications belonging to messages confirmed acknowledged by the
   // server. This also runs when another device's receipt arrives on resume.
   Promise.resolve(navigator.serviceWorker?.getRegistration?.()).then(async registration=>{
    for(const notification of await registration?.getNotifications?.()||[]){
-    const id=notification.tag?.replace(/^vecta-portal-/,'');if(read.has(id))notification.close();
+    const id=notification.tag?.replace(/^vecta-portal-/,'');if(acknowledged.has(id))notification.close();
    }
   }).catch(()=>{});
  }
- async function saveReadIds(ids){
-  ids=[...new Set(ids)].filter(id=>!reading.has(id));if(!ids.length)return;
-  for(const id of ids)reading.add(id);
+ async function saveAcknowledgements(ids){
+  ids=[...new Set(ids)].filter(id=>!acknowledging.has(id));if(!ids.length)return;
+  for(const id of ids)acknowledging.add(id);
   try{
    for(let offset=0;offset<ids.length;offset+=100){
-    const result=await api('portal-read',{event_ids:ids.slice(offset,offset+100)});
-    if(!Array.isArray(result.read_ids))throw Error('Unable to confirm the shared read status.');
-    rememberRead(result.read_ids);
+    const result=await api('portal-acknowledge',{event_ids:ids.slice(offset,offset+100)});
+    if(!Array.isArray(result.acknowledged_ids))throw Error('Unable to confirm the shared acknowledgement.');
+    rememberAcknowledged(result.acknowledged_ids);
+    if(ids.slice(offset,offset+100).some(id=>!result.acknowledged_ids.includes(id)))throw Error('Acknowledgement not confirmed. Please retry.');
    }
-  }finally{for(const id of ids)reading.delete(id);}
+  }finally{for(const id of ids)acknowledging.delete(id);}
  }
- async function markRead(items){
-  await saveReadIds(unread(items).map(item=>item.id));
+ async function acknowledge(items){
+  await saveAcknowledgements(outstanding(items).map(item=>item.id));
   refreshQueue?.();
  }
- function receiveReadState(items){rememberRead(items.filter(item=>item.read_at).map(item=>item.id));}
+ function receiveAcknowledgements(items){rememberAcknowledged(items.filter(item=>item.acknowledged_at).map(item=>item.id));}
 
+ function acknowledgeButton(item,status){
+  const control=button('Acknowledge message',async()=>{
+   control.disabled=true;status.textContent='Saving acknowledgement…';
+   try{await acknowledge([item]);control.hidden=acknowledged.has(item.id);status.textContent=control.hidden?'Acknowledged.':'Acknowledgement not confirmed. Please retry.';}
+   catch{status.textContent='Unable to save the acknowledgement. This message remains outstanding. Reconnect and retry.';}
+   finally{control.disabled=false;}
+  });
+  control.dataset.acknowledgeId=item.id;control.hidden=acknowledged.has(item.id);return control;
+ }
  function button(text,fn){const b=node('button',text);b.type='button';b.className='btn';b.onclick=fn;return b;}
  const alertStates={sent:'accepted by provider',pending:'send unconfirmed — check before resending',failed:'send failed',queued:'queued',unavailable:'status unavailable',missing_contact:'missing contact details',no_permission:'customer agreement needed',manual:'tap to send',not_configured:'sender not connected',sender_unverified:'sender domain needs verification',test:'Test only',contact_changed:'contact changed — not sent',closed:'booking closed — not sent'};
  function showAlerts(host,receipt,jobId){
@@ -120,17 +130,18 @@
      let synced=false;try{synced=typeof window.vectaRefreshPortalJobs==='function'&&await window.vectaRefreshPortalJobs()!==false;}catch{}
      const panel=panels.get(item.job_id),reopened=synced&&panel?.refreshAfterForward?.();
      status.textContent=!synced?'Saved and sent. Reconnecting to refresh this device…':panel&&!reopened?'Saved and sent. Close and reopen your job card to see the update; your current edits are still here.':approved?'Work, parts and price saved to the job card. Mechanic notified.':'Refusal saved to the job card. Mechanic notified.';
-     ack(item);window.dispatchEvent(new Event('vecta-portal-changed'));
+     window.dispatchEvent(new Event('vecta-portal-changed'));
     }catch(error){send.disabled=false;status.textContent=error.message;}
    });send.classList.add('portalForwardQuote');send.disabled=!!item.forwarded;body.append(send);
   }
+  if(incoming(item))body.append(acknowledgeButton(item,status));
   body.append(status);return body;
  }
  function showResponse(item){
   document.querySelector('.portalDecisionDialog')?.close();
   const dialog=node('dialog');dialog.className='portalDecisionDialog';dialog.setAttribute('aria-label','Customer response for '+item.registration);
   dialog.append(responseBody(item),button('Close',()=>dialog.close()));document.body.append(dialog);dialog.addEventListener('close',()=>dialog.remove(),{once:true});dialog.showModal();
-  markRead([item]).catch(()=>{dialog.querySelector('[role=status]').textContent='Read status has not synced. Reconnect to retry.';});ack(item);
+  rememberOpened(item);
  }
  function eventCard(item,canForward,alerts){
   if(item.kind==='approval_response'&&['approved','declined'].includes(decisionOf(item))){
@@ -158,10 +169,11 @@
    send.disabled=item.forwarded;const status=node('p');status.setAttribute('role','status');body.append(send,status);
   }
   if(canForward&&alerts){const details=node('details'),delivery=node('div');details.className='portalDeliveryDetails';details.append(node('summary','Alert delivery'),delivery);showAlerts(delivery,alerts,item.job_id);body.append(details);}
+  if(incoming(item)){const status=node('p');status.setAttribute('role','status');body.append(acknowledgeButton(item,status),status);}
   c.addEventListener('toggle',()=>{if(c.open&&c.isConnected&&!document.hidden&&incoming(item)){
-   // Reading inside the notification must not remove the text being read.
+   // Reading inside the notification must not remove the text being acknowledged.
    if(popup?.contains(c))viewingEvent=item.id;
-   markRead([item]).catch(()=>{c.title='Read status could not sync. Reopen this message or use Mark messages as read to retry.';});
+   if(!popup?.contains(c))rememberOpened(item);
   }});
   return c;
  }
@@ -180,15 +192,16 @@
   }
   notifications.className='portalDeviceNotifications';notificationNote.setAttribute('role','status');notifications.append(notificationNote,enable);updateNotifications();
   heading.tabIndex=-1;
-  const readButton=button('Mark messages as read',async()=>{readButton.disabled=true;try{await markRead(visibleEvents());status.textContent='Read status saved across your devices.';}catch{status.textContent='Unable to sync the read status. The message alert is still active. Reconnect and retry.';}finally{readButton.disabled=false;}});
+  const readButton=button('Acknowledge messages',async()=>{readButton.disabled=true;try{await acknowledge(visibleEvents());status.textContent='Acknowledged across your devices.';}catch{status.textContent='Unable to save the acknowledgement. The message alert is still active. Reconnect and retry.';}finally{readButton.disabled=false;}});
   readButton.classList.add('portalMarkRead');readButton.hidden=true;
   const header=node('div');header.className='portalWorkshopHeading';header.append(heading,readButton);
   panel.append(header,consent,notifications,status,list);after.after(panel);
-  let busy=false,key='',older=null,visibleCount=5,paged=false;const displayed=new Map(),receipts=new Map();let latestIds=[];
+  let busy=false,key='',older=null,visibleCount=5,paged=false;const displayed=new Map(),receipts=new Map();let latestIds=[],initialMessageOpened=false;
   const orderedEvents=()=>[...displayed.values()].filter(item=>window.VectaMessageSummary?.visible?.(item)!==false).sort((a,b)=>b.created_at.localeCompare(a.created_at)||Number(b.seq||0)-Number(a.seq||0));
   const visibleEvents=()=>orderedEvents().slice(0,visibleCount);
   function renderMessages(){
    const ordered=orderedEvents();
+   if(!initialMessageOpened){const latest=outstanding(ordered)[0];if(latest)visibleCount=Math.max(visibleCount,ordered.indexOf(latest)+1);}
    const hash=JSON.stringify([ordered,[...receipts],visibleCount]);
    if(hash!==key){
     const expanded=new Set([...list.querySelectorAll('.portalWorkshopEvent[open]')].map(card=>card.dataset.eventId));
@@ -196,10 +209,15 @@
     if(!cards.length){const empty=node('p',mechanic()?'No office messages or approvals yet.':'No messages yet.');empty.className='portalWorkshopEmpty';cards.push(empty);}
     for(const card of cards)if(expanded.has(card.dataset.eventId))card.setAttribute('open','');
     list.replaceChildren(...cards);
+    const latest=outstanding(ordered)[0];
+    if(!initialMessageOpened&&latest){
+     const card=cards.find(card=>card.dataset.eventId===latest.id);
+     if(card){card.setAttribute('open','');initialMessageOpened=true;rememberOpened(latest);}
+    }
    }
    olderButton.hidden=ordered.length<=visibleCount&&!older;latestButton.hidden=visibleCount<=5;updateRead();
   }
-  function updateRead(){const count=unread(visibleEvents()).length;readButton.hidden=!count;readButton.textContent='Mark '+count+' '+(count===1?'message':'messages')+' as read';}
+  function updateRead(){for(const control of panel.querySelectorAll('[data-acknowledge-id]'))control.hidden=acknowledged.has(control.dataset.acknowledgeId);const count=outstanding(visibleEvents()).length;readButton.hidden=!count;readButton.textContent='Acknowledge '+count+' '+(count===1?'message':'messages');}
 
   async function refresh(before){
    if(busy||!panel.isConnected||document.hidden||!navigator.onLine)return;busy=true;
@@ -213,7 +231,7 @@
      for(const id of latestIds)if((Number(displayed.get(id)?.seq)||0)>=floor){displayed.delete(id);receipts.delete(id);}
      latestIds=data.events.map(item=>item.id);
     }
-    receiveReadState(data.events);
+    receiveAcknowledgements(data.events);
     for(const item of data.events)displayed.set(item.id,item);
     for(const receipt of data.alerts||[])receipts.set(receipt.event_id,receipt);
     if(before){paged=true;older=data.older_cursor;visibleCount+=5;}else if(!paged)older=data.older_cursor;
@@ -240,7 +258,7 @@
    let contact=null;
    api('approval-list',{job_id:job.id}).then(data=>{contact=data.whatsapp;if(contact?.phone&&!contact.unavailable){permissionBox.checked=contact.allowed;permissionText.textContent='Customer agreed to WhatsApp updates on the number ending '+contact.phone.slice(-4);permissionLabel.hidden=false;}}).catch(()=>{});
    permissionBox.onchange=async()=>{permissionBox.disabled=true;send.disabled=true;try{await api('approval-whatsapp-permission',{job_id:job.id,phone:contact.phone,contact_binding:contact.contact_binding,allowed:permissionBox.checked});contact.allowed=permissionBox.checked;permissionStatus.textContent='WhatsApp preference saved.';}catch(e){permissionBox.checked=contact.allowed;permissionStatus.textContent=e.message;}finally{permissionBox.disabled=false;send.disabled=false;}};
-   let id=crypto.randomUUID(),sending=false,mode='message',quoteAttempt=null;
+   let id=crypto.randomUUID(),sending=false,mode='message',quoteAttempt=null,replyAttempt=null;
    function setMode(value){
     if(sending||quoteAttempt)return;mode=value;const quote=mode==='quote';
     messageMode.setAttribute('aria-pressed',String(!quote));quoteMode.setAttribute('aria-pressed',String(quote));
@@ -250,7 +268,7 @@
     send.textContent=quote?'Send quote & alerts':'Send message & alerts';note.replaceChildren();
    }
    setMode('message');
-   orderParts.onchange=input.oninput=price.oninput=parts.oninput=()=>{if(!sending&&!quoteAttempt)id=crypto.randomUUID();};
+   orderParts.onchange=input.oninput=price.oninput=parts.oninput=()=>{if(!sending&&!quoteAttempt){id=crypto.randomUUID();replyAttempt=null;}};
    form.onsubmit=async e=>{
     e.preventDefault();if(sending||permissionBox.disabled)return;
     if(photos?.busy()){note.textContent='Please finish the current photo or finding before sending.';return;}
@@ -261,6 +279,7 @@
     const partRows=parts.value.split(/\n/).map(value=>value.trim()).filter(Boolean).map(description=>({description,quantity:1}));
     if(quote&&(partRows.length>30||partRows.some(part=>part.description.length>200))){note.textContent='Enter up to 30 parts, using up to 200 characters per line.';return;}
     if(quote)quoteAttempt??={approval_id:id,message,estimate:price.value.trim(),parts:partRows,parts_need_ordering:orderParts.checked,photo_ids:photos?.quotePhotoIds?.()||[]};
+    if(!quote)replyAttempt??={id,message,reply_to_event_ids:outstanding(visibleEvents()).filter(item=>list.querySelector('[data-event-id="'+item.id+'"]')?.hasAttribute('open')).map(item=>item.id)};
     sending=true;send.disabled=true;permissionBox.disabled=true;input.readOnly=true;note.textContent=quote?'Saving your quote and preparing customer alerts…':'Saving your message and preparing customer alerts…';
     try{
      messageMode.disabled=quoteMode.disabled=true;price.readOnly=parts.readOnly=true;orderParts.disabled=true;
@@ -275,8 +294,9 @@
      }
      if(photos&&!await photos.upload())throw Error('Your message has not been sent. Check the photo notice and retry.');
      photos?.lock(true);send.disabled=true;permissionBox.disabled=true;
-     const result=await api('portal-reply',{job_id:job.id,id,message});
-     photos?.complete();input.value='';id=crypto.randomUUID();note.replaceChildren(node('p','Message saved in the customer portal.'));const delivery=node('div');showAlerts(delivery,result.alerts,job.id);note.append(delivery);await refresh();
+     const result=await api('portal-reply',{job_id:job.id,...replyAttempt});
+     rememberAcknowledged(result.acknowledged_ids||[]);replyAttempt=null;refreshQueue?.();
+     photos?.complete();input.value='';id=crypto.randomUUID();note.replaceChildren(node('p','Message saved in the customer portal.'));const delivery=node('div');showAlerts(delivery,result.alerts,job.id);note.append(delivery);if(result.acknowledgement_pending)note.append(node('p','Your reply is saved. The incoming message remains outstanding until its acknowledgement syncs; use Acknowledge message to retry.'));await refresh();
     }catch(error){note.textContent=error.message;}
     finally{sending=false;photos?.lock(false);send.disabled=false;permissionBox.disabled=false;input.readOnly=!!quoteAttempt;price.readOnly=parts.readOnly=!!quoteAttempt;orderParts.disabled=!!quoteAttempt;messageMode.disabled=quoteMode.disabled=!!quoteAttempt;if(quoteAttempt)note.append(node('p','The quote is not confirmed. Press Send quote & alerts again to safely retry the same quote.'));}
    };
@@ -291,26 +311,27 @@
    if(item.kind==='approval_response'&&['approved','declined'].includes(decisionOf(item))){showResponse(item);return true;}
    card.setAttribute('open','');card.tabIndex=-1;
    card.scrollIntoView({behavior:'instant',block:'center'});card.focus({preventScroll:true});
-   await markRead([item]);return true;
+   return true;
   }
   let edited=false;const detectEdit=e=>{if(!panel.contains(e.target))edited=true;};modal.addEventListener('input',detectEdit);modal.addEventListener('change',detectEdit);
   const refreshAfterForward=()=>{if(edited||!panel.isConnected||[...panel.querySelectorAll('.portalWorkshopComposer textarea')].some(el=>el.value)||panel.querySelector('.workshopPhotoDraft')||!window.openJobModal)return false;window.openJobModal(job.id);return true;};
   panels.set(job.id,{panel,refresh,updateNotifications,updateRead,openMessage,refreshAfterForward});refresh();
   return controller;
  }
- function seen(){try{return new Set(JSON.parse(localStorage.getItem('vecta:portal:seen:'+ (mechanic()?'mechanic':'manager'))||'[]'));}catch{return new Set();}}
- function ack(item){const ids=seen();ids.add(item.id);try{localStorage.setItem('vecta:portal:seen:'+(mechanic()?'mechanic':'manager'),JSON.stringify([...ids].slice(-1000)));}catch{}if(pendingEvent===item.id)pendingEvent=null;if(viewingEvent===item.id)viewingEvent=null;if(active?.id===item.id){active=null;if(popup)popup.hidden=true;}refreshQueue?.();}
+ const opened=new Set();
+ function seen(){try{for(const id of JSON.parse(localStorage.getItem('vecta:portal:opened:'+ (mechanic()?'mechanic':'manager'))||'[]'))opened.add(id);}catch{}return opened;}
+ function rememberOpened(item){const ids=seen();ids.add(item.id);try{localStorage.setItem('vecta:portal:opened:'+(mechanic()?'mechanic':'manager'),JSON.stringify([...ids].slice(-1000)));}catch{}if(pendingEvent===item.id)pendingEvent=null;if(viewingEvent===item.id)viewingEvent=null;if(active?.id===item.id){active=null;if(popup)popup.hidden=true;}refreshQueue?.();}
  async function openJobMessage(item){
   if(!item.job_id)throw Error('This booking is waiting in Website Bookings. Accept it to create its job card.');
   const state=await window.vectaOpenFindingJob?.(item.job_id);
   if(state!=='open')throw Error(state==='busy'?'Save or close your current card, then open this message.':'The job could not be opened. Please retry.');
   const conversation=panels.get(item.job_id);
   if(!conversation?.panel.isConnected||await conversation.openMessage(item)!==true)throw Error('The message has not opened. Please retry.');
-  ack(item);
+  rememberOpened(item);
  }
  function mountInbox(host){
   const section=node('section');section.className='portalMessageHistory';
-  const heading=node('h4','Customer messages'),note=node('p','Received messages stay here after reading or dismissing their alerts.');
+  const heading=node('h4','Customer messages'),note=node('p','Messages stay outstanding until acknowledged or replied to. Your full history stays here.');
   const search=node('input');search.type='search';search.placeholder='Search registration, name or message';search.setAttribute('aria-label',search.placeholder);
   const status=node('p'),list=node('div');status.setAttribute('role','status');
   let events=[],limit=25,busy=false;
@@ -334,11 +355,50 @@
    try{
     const result=[];let before;
     do{const page=await api('portal-queue',before?{before}:{});if(!section.isConnected)return;result.push(...page.events);before=page.older_cursor;}while(before);
-    events=[...new Map(result.filter(incoming).map(item=>[item.id,item])).values()];receiveReadState(events);draw();status.textContent='';
+    events=[...new Map(result.filter(incoming).map(item=>[item.id,item])).values()];receiveAcknowledgements(events);draw();status.textContent='';
    }catch(e){status.textContent=e.message;}finally{busy=false;refresh.disabled=false;}
   }
   const refresh=button('Refresh',load);search.oninput=()=>{limit=25;draw();};
   section.append(heading,note,search,refresh,status,list,more);host.append(section);more.hidden=true;load();
+ }
+ function mountOutstanding(){
+  if(mechanic())return;
+  const section=node('section');section.className='portalOutstanding';section.setAttribute('aria-label','Outstanding messages');
+  const header=node('div'),title=node('h2','Outstanding messages'),count=node('span'),note=node('p'),list=node('div');
+  header.className='portalOutstandingHeading';count.className='portalOutstandingCount';header.append(title,count);
+  note.textContent='Stays here until you acknowledge or reply.';list.className='portalOutstandingList';section.append(header,note,list);
+  document.querySelector('main.main>header.top').after(section);
+  let key='';
+  paintOutstanding=()=>{
+   const content=document.getElementById('content');
+   section.hidden=!!content&&!content.querySelector('.plannerLayout,.mobilePlanner,.mechanicBoard');
+   if(section.hidden)return;
+   const items=outstanding(inbox),groups=new Map();
+   for(const item of items){const id=item.job_id||item.id;const group=groups.get(id);if(group){group.count++;if(Number(item.seq||0)>Number(group.item.seq||0))group.item=item;}else groups.set(id,{item,count:1});}
+   const hash=JSON.stringify([items,queueReady,navigator.onLine]);if(key===hash)return;key=hash;
+   count.textContent=String(items.length);count.hidden=!items.length;list.replaceChildren();
+   note.textContent=!navigator.onLine?'Offline — showing saved alerts. Reconnect to open messages.':'Stays here until you acknowledge or reply.';
+   if(!items.length){list.append(node('p',queueReady?'No outstanding messages.':'Checking for outstanding messages…'));return;}
+   for(const {item,count:n}of groups.values()){
+    const row=node('article');row.className='portalOutstandingRow';
+    const identity=node('div');identity.append(node('strong',item.registration||'Customer message'),node('span',item.customer_name||''));
+    const preview=node('p',item.reply||item.details?.customer_reply||item.message||'Message details will load when reconnected.');preview.className='portalOutstandingPreview';
+    const meta=node('small',n+' outstanding'+(item.created_at?' · '+date(item.created_at):''));
+    const status=node('p');status.setAttribute('role','status');
+    const open=button(item.job_id?'Open job & message':'View booking message',async()=>{
+     if(open.disabled)return;open.disabled=true;
+     try{if(!navigator.onLine)throw Error('Reconnect to open this message. It remains outstanding.');if(item.job_id)await openJobMessage(item);else showBookingMessage(item);status.textContent='';}
+     catch(error){status.textContent=error.message;}finally{open.disabled=false;}
+    });
+    row.append(identity,preview,meta,open,status);list.append(row);
+   }
+  };
+ }
+ function showBookingMessage(item){
+  const dialog=node('dialog');dialog.className='portalDecisionDialog';dialog.setAttribute('aria-label','Customer booking message');
+  const card=eventCard(item,false);card.setAttribute('open','');
+  dialog.append(node('h2',item.registration||'Customer message'),card,node('p','This booking is in Website Bookings and does not yet have a job card.'),button('Close',()=>dialog.close()));
+  document.body.append(dialog);dialog.addEventListener('close',()=>dialog.remove(),{once:true});dialog.showModal();rememberOpened(item);
  }
  function install(){
   if(!document.querySelector('main.main>header.top'))return;
@@ -350,14 +410,10 @@
    try{
     const events=[];let before;
     do{const page=await api('portal-queue',before?{before}:{});events.push(...page.events);before=page.older_cursor;}while(before);
-    receiveReadState(events);
-    // Upgrade existing device-only receipts once; a failed upload stays eligible
-    // for the next poll. Never upload popup dismissals as read receipts.
-    const legacy=events.filter(item=>incoming(item)&&!item.read_at&&read.has(item.id));
-    if(legacy.length)await saveReadIds(legacy.map(item=>item.id)).catch(()=>{});
+    receiveAcknowledgements(events);
     inbox=[...new Map(events.map(item=>[item.id,item])).values()];
     try{localStorage.setItem(inboxKey(),JSON.stringify(inbox.map(({id,job_id,actor,forwarded})=>({id,job_id,actor,forwarded}))));}catch{}
-    paintBadges();
+    queueReady=true;paintBadges();paintOutstanding();
     const fresh=events.filter(item=>!known.has(item.id));let synced=true;
     if(fresh.length){
      try{synced=typeof window.vectaRefreshPortalJobs==='function'&&await window.vectaRefreshPortalJobs()!==false;}catch{synced=false;}
@@ -367,33 +423,33 @@
      for(const [id,p]of panels)if(p.panel.isConnected)p.refresh();else panels.delete(id);
     }
     for(const p of panels.values())if(p.panel.isConnected)p.updateRead?.();
-    const ids=seen(),next=events.find(x=>x.id===viewingEvent)||events.find(x=>x.id===pendingEvent&&!read.has(x.id))||events.find(x=>!ids.has(x.id)&&!read.has(x.id));
+    const ids=seen(),next=events.find(x=>x.id===viewingEvent&&!acknowledged.has(x.id)&&!ids.has(x.id))||events.find(x=>x.id===pendingEvent&&!acknowledged.has(x.id))||events.find(x=>x.id===active?.id&&!ids.has(x.id)&&!acknowledged.has(x.id))||events.find(x=>!ids.has(x.id)&&!acknowledged.has(x.id));
     if(!next){active=null;popup.hidden=true;return;}
     if(active&&active.id===next.id&&(viewingEvent===next.id||active.forwarded===next.forwarded&&active.synced===synced))return;
     active={...next,synced};popup.hidden=false;
     const decision=next.kind==='approval_response'&&['approved','declined'].includes(decisionOf(next));popup.classList.toggle('portalQuotePopup',decision);
     if(decision)popup.replaceChildren(responseBody(next));else popup.replaceChildren(node('strong',(mechanic()?'Job update':'Customer message')+' · '+next.registration),eventCard(next,!mechanic()));
     const message=node('p',synced?'':'Message saved. Reconnecting to update this device’s job card…');message.setAttribute('role','status');
-    const open=button('Open job card',async()=>{
+    const open=button(next.job_id?'Open job card':'View booking message',async()=>{
      if(open.disabled)return;open.disabled=true;viewingEvent=next.id;message.textContent='Opening message…';
-     try{await openJobMessage(next);}catch(error){message.textContent=error.message;}finally{open.disabled=false;}
+     try{if(next.job_id)await openJobMessage(next);else showBookingMessage(next);}catch(error){message.textContent=error.message;}finally{open.disabled=false;}
     });
-    popup.append(open,button('Dismiss',()=>ack(next)),message);
+    popup.append(open,message);
    }catch{}finally{busy=false;}
   };
   if(typeof MutationObserver!=='undefined'){
    // Observe card replacements, not every attribute/text change on the page.
-   const observer=new MutationObserver(records=>{if(records.some(r=>[...r.addedNodes].some(n=>n.nodeType===1&&(n.matches?.(cardSelector)||n.querySelector?.(cardSelector)))))paintBadges();});
+   const observer=new MutationObserver(records=>{if(records.some(r=>r.target.id==='content'||[...r.addedNodes].some(n=>n.nodeType===1&&(n.matches?.(cardSelector)||n.querySelector?.(cardSelector))))){paintBadges();paintOutstanding();}});
    observer.observe(document.querySelector('main.main'),{childList:true,subtree:true});
   }
-  window.addEventListener('storage',e=>{if(e.key===readKey()||e.key===null){refreshReadState();active=null;refreshQueue();}});
+  window.addEventListener('storage',e=>{if(e.key===acknowledgedKey()||e.key===null){refreshAcknowledgements();active=null;refreshQueue();}});
   window.addEventListener('vecta-portal-changed',()=>{active=null;refreshQueue();});
   window.addEventListener('vecta-notification-state',()=>{for(const [id,p]of panels)if(p.panel.isConnected)p.updateNotifications();else panels.delete(id);});
   window.addEventListener('focus',()=>refreshQueue());
   document.addEventListener('visibilitychange',()=>{if(!document.hidden)refreshQueue();});
   window.addEventListener('online',()=>{window.vectaMaintainPortalAlerts?.(true);refreshQueue();});
   navigator.serviceWorker?.addEventListener('message',e=>{if(e.data?.type==='vecta-portal-notification'){if(e.data.eventId)pendingEvent=e.data.eventId;refreshQueue();}});
-  paintBadges();refreshQueue();setInterval(refreshQueue,10000);
+  mountOutstanding();paintBadges();paintOutstanding();refreshQueue();setInterval(refreshQueue,10000);
   setInterval(()=>{for(const [id,p]of panels)if(p.panel.isConnected)p.refresh();else panels.delete(id);},15000);
  }
  async function confirmation(job){
