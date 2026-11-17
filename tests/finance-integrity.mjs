@@ -488,7 +488,7 @@ console.log('Finance integrity regression tests passed.');
   const inv={id:'invoice',job_id:job.id,registration:'AB12 CDE',total:120,status:'saved'};
   app.invoices=[inv];
   let result=context.invoiceCustomerNotification(inv);
-  assert.match(result.whatsapp,/wa.me\/447712345678/);
+  assert.match(result.whatsapp,/^https:\/\/web\.whatsapp\.com\/send\?phone=447712345678&text=/);
   assert.match(result.body,/We have completed the work.*£120.00/);
   assert.match(result.email,/jane%40example.com/);
   job.customer_phone='0191 1234567';assert.equal(context.invoiceCustomerNotification(inv).whatsapp,'');

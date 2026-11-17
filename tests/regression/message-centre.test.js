@@ -70,6 +70,18 @@ test('offline WhatsApp preparation preserves exact text and retries with the sam
   b.online();await b.api.flush();assert.equal(Object.keys(b.storage).length,0);assert.equal(b.calls.at(-1).body.id,saved);
   assert.ok(b.calls.every(c=>c.url==='/api/message-centre'));
 });
+test('WhatsApp Web invoice preparation retains invoice context, encoded text and offline retry without claiming sent',async()=>{
+  const b=browser(),body='Hi Jane,\nYour total is £175.00 & paid 0%.\nhttps://workshop.example/i/test?view=pdf&lang=en';
+  const saved=b.api.fromUrl('https://web.whatsapp.com/send?phone=447700900123&text='+encodeURIComponent(body),{registration:'AB12 CDE',job_id:'job-1',invoice_id:'invoice-1',kind:'invoice'});
+  await b.api.flush();assert.equal(Object.keys(b.storage).length,1);
+  const row=b.calls[0].body;assert.equal(row.body,body);assert.equal(row.recipient,'447700900123');assert.equal(row.method,'whatsapp');assert.equal(row.registration,'AB12CDE');assert.equal(row.job_id,'job-1');assert.equal(row.invoice_id,'invoice-1');assert.equal(row.kind,'invoice');assert.equal(row.status,undefined);
+  b.online();await b.api.flush();assert.equal(Object.keys(b.storage).length,0);assert.equal(b.calls.at(-1).body.id,saved);assert.ok(b.calls.every(c=>c.url==='/api/message-centre'));
+});
+test('unrelated, insecure or misleading Web URLs are not recorded as WhatsApp messages',()=>{
+  const b=browser();
+  for(const base of ['http://web.whatsapp.com/send','https://web.whatsapp.com/other','https://web.whatsapp.com.evil.example/send','https://user@web.whatsapp.com/send','https://web.whatsapp.com:444/send'])assert.equal(b.api.fromUrl(base+'?phone=447700900123&text=Hello'),undefined);
+  assert.equal(Object.keys(b.storage).length,0);assert.equal(b.calls.length,0);
+});
 test('new records added during an in-flight flush all save, without changing previously queued records',async()=>{
   const b=browser();b.online();
   b.api.fromUrl('mailto:jane%40example.com?subject=Booking&body=First',{registration:'AB12 CDE',kind:'booking_confirmation'});

@@ -52,6 +52,8 @@
         details.method='email';details.recipient=decodeURIComponent(url.pathname);details.subject=url.searchParams.get('subject')||'';details.body=url.searchParams.get('body')||'';
       }else if(url.protocol==='https:'&&url.hostname==='wa.me'){
         details.method='whatsapp';details.recipient=url.pathname.replace(/^\//,'');details.body=url.searchParams.get('text')||'';
+      }else if(url.protocol==='https:'&&url.host==='web.whatsapp.com'&&url.pathname==='/send'&&!url.username&&!url.password){
+        details.method='whatsapp';details.recipient=url.searchParams.get('phone')||'';details.body=url.searchParams.get('text')||'';
       }else return;
       return record(details);
     }catch(e){console.warn('Message record could not be prepared',e);}
