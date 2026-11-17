@@ -6,7 +6,7 @@ import {randomUUID} from 'node:crypto';
 import {PGlite} from '@electric-sql/pglite';
 import {parseHTML} from 'linkedom';
 import {requestGarageCode,verifyGarageCode,garageAccount,garageHash} from '../../lib/customer-garage-auth.js';
-import {garageDay,annualServiceDate,firstGarageMotDate,garageServiceSchedule,garageSnapshot,publicVehicleData,accountJobs,garageHistory,garageHistoryReport,garageDocument,customerGarageAction,loyaltyFromInvoices,garageRewards} from '../../lib/customer-garage.js';
+import {garageNevosStatus,garageDay,annualServiceDate,firstGarageMotDate,garageServiceSchedule,garageSnapshot,publicVehicleData,accountJobs,garageHistory,garageHistoryReport,garageDocument,customerGarageAction,loyaltyFromInvoices,garageRewards} from '../../lib/customer-garage.js';
 import {garageReminderItems,runGarageAlerts,refreshGarageDueDates} from '../../lib/customer-garage-alerts.js';
 import {serviceSheetSections,customerServicePdf} from '../../lib/customer-service-pdf.js';
 const account={id:'11111111-1111-4111-8111-111111111111',email:'owner@example.com',name:'Alex',phone:'07700000000'};
@@ -179,6 +179,45 @@ test('insurance migration preserves existing records and gives no public table o
   await db.exec(fs.readFileSync('supabase/migrations/20261116075950_customer_garage_insurance.sql','utf8'));
   const row=(await db.query("select tax_due::text,insurance_document_id,insurance_cleanup from customer_garage_vehicles")).rows[0];assert.equal(row.tax_due,'2027-11-01');assert.equal(row.insurance_document_id,null);assert.deepEqual(row.insurance_cleanup,[]);
   const bucket=(await db.query("select * from storage.buckets")).rows[0];assert.equal(bucket.public,false);assert.deepEqual(bucket.allowed_mime_types,['image/jpeg']);
+  const access=(await db.query("select relrowsecurity,has_table_privilege('anon',oid,'SELECT') anon,has_table_privilege('authenticated',oid,'UPDATE') authenticated from pg_class where relname='customer_garage_vehicles'")).rows[0];assert.equal(access.relrowsecurity,true);assert.equal(access.anon,false);assert.equal(access.authenticated,false);
+ }finally{await db.close();}
+});
+
+
+test('NEVOS preference is per owned car, survives refresh and is returned to a new booking',async()=>{
+ const {db,tables,session,writes}=signedDatabase({customer_garage_vehicles:[{...vehicle},{...vehicle,id:randomUUID(),registration:'XY99ZZZ'},{...vehicle,id:randomUUID(),account_id:randomUUID()}]});
+ const call=(action,extra={})=>customerGarageAction(db,{action,session,vehicle_id:vehicle.id,...extra},{now,lookup:async()=>({vehicle:'Nissan Juke',tax_due:'2027-01-01'})});
+ assert.equal((await call('garage-booking-prefill')).nevos_vehicle,null);
+ for(const choice of ['yes','no']){
+  await call('garage-nevos-save',{nevos_vehicle:choice});await call('garage-refresh');
+  const prefill=await call('garage-booking-prefill');assert.equal(prefill.nevos_vehicle,choice);assert.equal(prefill.vehicle_id,vehicle.id);
+  assert.equal((await call('garage-status')).vehicles[0].nevos_vehicle,choice);
+ }
+ assert.equal(tables.customer_garage_vehicles[1].nevos_vehicle,undefined);
+ await assert.rejects(call('garage-nevos-save',{nevos_vehicle:'yes',vehicle_id:tables.customer_garage_vehicles[2].id}),/not in your garage/);
+ await assert.rejects(call('garage-booking-prefill',{vehicle_id:tables.customer_garage_vehicles[2].id}),/not in your garage/);
+ for(const bad of ['',null,true,'YES','maybe'])await assert.rejects(call('garage-nevos-save',{nevos_vehicle:bad}),/Yes or No/);
+ await call('garage-save',{nevos_vehicle:'yes',nickname:'Mine'});assert.equal((await call('garage-booking-prefill')).nevos_vehicle,'yes');
+ await call('garage-save',{nickname:'Old app save'});assert.equal((await call('garage-booking-prefill')).nevos_vehicle,'yes','older app does not erase the preference');
+ assert.ok(writes.every(w=>w.table==='customer_garage_vehicles'));
+});
+test('only an explicit answer in the verified customer’s own history supplies a missing NEVOS preference',async()=>{
+ const {db,session}=signedDatabase({jobs:[{...job,work_required:'NEVOS vehicle: NO\n\nMOT'}, {...job,id:randomUUID(),booking_date:'2026-11-16',customer_email:'someone@example.com',work_required:'NEVOS vehicle: YES'}]});
+ const prefill=await customerGarageAction(db,{action:'garage-booking-prefill',session,vehicle_id:vehicle.id},{now});assert.equal(prefill.nevos_vehicle,'no');
+ assert.equal(garageNevosStatus({...vehicle,nevos_vehicle:'yes'},[{...job,work_required:'NEVOS vehicle: NO'}]),'yes');
+ assert.equal(garageNevosStatus(vehicle,[{...job,work_required:'NEVOS servicing enquiry'}]),null);
+ assert.equal(garageNevosStatus(vehicle,[{...job,registration:'XY99ZZZ',work_required:'NEVOS vehicle: YES'}]),null);
+ assert.equal(garageNevosStatus(vehicle,[{...job,work_required:'NEVOS vehicle: YES'},{...job,booking_date:'2026-11-16',work_required:'NEVOS vehicle: NO'}]),'no');
+});
+test('NEVOS migration upgrades existing vehicles without defaulting to No or granting browser access',async()=>{
+ const db=new PGlite();try{
+  await db.exec('create role anon;create role authenticated;create role service_role bypassrls;');
+  await db.exec(fs.readFileSync('supabase/migrations/20261115192103_customer_garage_accounts.sql','utf8'));
+  await db.exec("insert into customer_garage_accounts(id,email) values ('"+account.id+"','owner@example.com');insert into customer_garage_vehicles(id,account_id,registration,tax_due) values ('"+vehicle.id+"','"+account.id+"','AB12CDE','2027-11-01');");
+  await db.exec(fs.readFileSync('supabase/migrations/20261117072241_customer_garage_nevos.sql','utf8'));
+  const row=(await db.query('select nevos_vehicle,tax_due::text from customer_garage_vehicles')).rows[0];assert.equal(row.nevos_vehicle,null);assert.equal(row.tax_due,'2027-11-01');
+  for(const choice of ['yes','no'])await db.query('update customer_garage_vehicles set nevos_vehicle=$1',[choice]);
+  await assert.rejects(db.query('update customer_garage_vehicles set nevos_vehicle=$1',['maybe']),/check constraint/);
   const access=(await db.query("select relrowsecurity,has_table_privilege('anon',oid,'SELECT') anon,has_table_privilege('authenticated',oid,'UPDATE') authenticated from pg_class where relname='customer_garage_vehicles'")).rows[0];assert.equal(access.relrowsecurity,true);assert.equal(access.anon,false);assert.equal(access.authenticated,false);
  }finally{await db.close();}
 });

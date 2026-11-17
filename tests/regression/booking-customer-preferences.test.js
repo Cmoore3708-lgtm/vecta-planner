@@ -45,8 +45,8 @@ test('parts question is immediately below the work description and repair questi
 test('NEVOS switches existing parts preferences to OEM and prevents cheaper choices',()=>{
  const {document}=parseHTML('<html><body><main></main></body></html>');
  const form={nevos_vehicle:'',parts_preference:'budget',job_types:['Other'],work_required:'Check brakes'};
- const c={document,state:{step:2,form},bindServiceExtra(){},bindHaynes(){},bindAdvisoryChoices(){},bindTyreCards(){},bindTyreSearch(){},renderActions(){}};
- vm.createContext(c);for(const name of ['partsRangeHtml','customerPartsSummaryHtml','bind'])load(name,c);
+ const c={document,window:{},state:{step:2,form},bindServiceExtra(){},bindHaynes(){},bindAdvisoryChoices(){},bindTyreCards(){},bindTyreSearch(){},renderActions(){}};
+ vm.createContext(c);for(const name of ['applyNevosChoice','partsRangeHtml','customerPartsSummaryHtml','bind'])load(name,c);
  c.render=()=>{document.querySelector('main').innerHTML=c.partsRangeHtml()+'<button data-nevos-choice="yes">Yes</button>';c.bind();};
  c.render();
  assert.equal(document.querySelectorAll('[disabled]').length,0);
