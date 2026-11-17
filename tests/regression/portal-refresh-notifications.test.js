@@ -121,11 +121,11 @@ test('workshop and mechanic history stays newest first and retains expanded earl
   const poll=h.timers.find(t=>t.ms===15000).fn;poll();await tick();
   const panel=h.document.querySelector('.portalWorkshop'),ids=()=>[...panel.querySelectorAll('.portalWorkshopEvent')].map(c=>c.dataset.eventId);
   assert.deepEqual(ids(),['message-10','message-9','message-8','message-7','message-6']);
-  if(!mechanic)assert.equal(panel.querySelector('.portalMarkRead').textContent,'Mark 5 messages as read','collapsed history must not be marked read');
+  if(!mechanic)assert.equal(panel.querySelector('.portalMarkRead').textContent,'Acknowledge 5 messages','collapsed history must not be marked read');
   const draft=panel.querySelector('textarea');if(draft){draft.value='Keep this unsent reply';assert.equal(panel.querySelector('.portalWorkshopComposer').hasAttribute('open'),false);}
   const more=panel.querySelector('.portalWorkshopHistoryActions button');await more.onclick();assert.equal(ids().length,8);
   await more.onclick();assert.equal(ids().length,10);assert.equal(ids().at(-1),'message-1');assert.equal(more.hidden,true);
-  const expanded=panel.querySelector('.portalWorkshopEvent');assert.equal(expanded.tagName,'DETAILS');assert.equal(expanded.hasAttribute('open'),false);expanded.setAttribute('open','');
+  const expanded=panel.querySelector('.portalWorkshopEvent');assert.equal(expanded.tagName,'DETAILS');assert.equal(expanded.hasAttribute('open'),!mechanic);expanded.setAttribute('open','');
   h.live.events.push(event(11));poll();await tick();assert.equal(ids()[0],'message-11');assert.equal(ids().at(-1),'message-1');assert.equal(more.hidden,true);
   poll();await tick();assert.equal(ids().length,11);assert.equal(panel.querySelector('[data-event-id="message-10"]').hasAttribute('open'),true);assert.equal(panel.querySelector('[data-event-id="message-11"]').hasAttribute('open'),false);
   if(draft)assert.equal(draft.value,'Keep this unsent reply');

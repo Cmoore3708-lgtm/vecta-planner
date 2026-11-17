@@ -23,12 +23,18 @@ function setup({mechanic=false,storage=new Map(),online=true,receipts=new Map()}
   setInterval:(fn,ms)=>timers.push({fn,ms}),fetch:async(_url,{body})=>{
    const b=JSON.parse(body);calls.push(b);if(state.fail)throw Error('Offline');
    const role=mechanic?'mechanic':'manager';
-   if(b.action==='portal-read'){
+   if(b.action==='portal-acknowledge'){
     if(state.failRead)throw Error('Read save failed');
     for(const id of b.event_ids)receipts.set(role+':'+id,'2026-11-12T12:00:00Z');
-    return {ok:true,json:async()=>({read_ids:b.event_ids})};
+    return {ok:true,json:async()=>({acknowledged_ids:b.event_ids})};
    }
-   const events=items=>items.map(item=>({...item,read_at:receipts.get(role+':'+item.id)||null}));
+   if(b.action==='portal-reply'){
+    if(state.holdReply)await state.holdReply;
+    if(state.replyFailure)throw Error('Reply failed');
+    for(const id of b.reply_to_event_ids||[])receipts.set(role+':'+id,'2026-11-17T12:00:00Z');
+    return {ok:true,json:async()=>({ok:true,acknowledged_ids:b.reply_to_event_ids,alerts:{channels:{email:'test',whatsapp:'test'}}})};
+   }
+   const events=items=>items.map(item=>({...item,acknowledged_at:receipts.get(role+':'+item.id)||null}));
    return {ok:true,json:async()=>b.action==='portal-queue'?{events:events(state.queue)}:b.action==='portal-job'?{events:events(state.messages),older_cursor:null}:{} };
   }
 
@@ -39,25 +45,25 @@ function setup({mechanic=false,storage=new Map(),online=true,receipts=new Map()}
 test('correct cards show distinct incoming counts; re-rendering never duplicates the badge or nests a button',async()=>{
  const h=setup();h.state.queue=[message(),message(),message('m2'),{...message('reply'),actor:'workshop'}];await h.poll();
  assert.equal(h.document.querySelector('.plannerWorkRequired').classList.contains('portalMessageText'),true);
- assert.equal(h.badges().length,4);for(const badge of h.badges())assert.match(badge.getAttribute('aria-label'),/^2 unread customer messages/);
+ assert.equal(h.badges().length,4);for(const badge of h.badges())assert.match(badge.getAttribute('aria-label'),/^2 outstanding customer messages/);
  assert.equal(h.document.querySelector('[data-job-id="other"] .portalMessageBadge'),null);
  assert.equal(h.document.querySelector('button.sideJob .portalMessageBadge').tagName,'SPAN');
  for(let i=0;i<3;i++){h.document.getElementById('cards').innerHTML=cards;await tick();assert.equal(h.badges().length,4);}
  await h.poll();assert.equal(h.badges().length,4);
 });
-test('opening a message acknowledges it across independent devices without clearing later messages or drafts',async()=>{
+test('opening keeps messages outstanding until explicit acknowledgement syncs across devices',async()=>{
  const receipts=new Map(),pc=setup({receipts}),phone=setup({receipts});await tick();
- const dismiss=[...pc.document.querySelectorAll('.portalWorkshopPopup>button')].find(b=>b.textContent==='Dismiss');await dismiss.onclick();await tick();
- assert.equal(pc.badges().length,4);assert.equal(phone.badges().length,4);
+ assert.equal([...pc.document.querySelectorAll('.portalWorkshopPopup>button')].some(b=>b.textContent==='Dismiss'),false);
  let cardClicks=0;pc.badges()[0].parentElement.addEventListener('click',()=>cardClicks++);
- await pc.click(pc.badges()[0]);assert.equal(cardClicks,0);assert.deepEqual(pc.state.opened,['j1']);assert.equal(pc.badges().length,0);
- assert.equal(pc.document.querySelector('[data-event-id="m1"]').hasAttribute('open'),true);
+ await pc.click(pc.badges()[0]);assert.equal(cardClicks,0);assert.deepEqual(pc.state.opened,['j1']);assert.equal(pc.badges().length,4);
+ assert.equal(pc.document.querySelector('.portalWorkshop [data-event-id="m1"]').hasAttribute('open'),true);
+ assert.equal(pc.document.querySelector('.portalWorkshopPopup').hidden,true);assert.equal(receipts.size,0);
  const draft=pc.document.querySelector('textarea');draft.value='Keep my unsent reply';
- phone.window.dispatchEvent(new phone.window.Event('focus'));await tick();
- assert.equal(phone.badges().length,0);assert.equal(phone.document.querySelector('.portalWorkshopPopup').hidden,true);assert.ok(phone.closed.includes('m1'));
+ phone.window.dispatchEvent(new phone.window.Event('focus'));await tick();assert.equal(phone.badges().length,4);
  pc.state.queue.push(message('m2'));phone.state.queue.push(message('m2'));await pc.poll();await phone.poll();
- assert.equal(pc.badges().length,4);assert.equal(phone.badges().length,4);assert.match(pc.badges()[0].title,/^1 unread/);
- await pc.mark().onclick();await tick();assert.equal(pc.badges().length,4,'unloaded messages remain unread');
+ await pc.mark().onclick();await tick();await phone.poll();
+ assert.equal(pc.badges().length,4,'unloaded messages remain outstanding');assert.match(pc.badges()[0].title,/^1 outstanding/);
+ assert.equal(receipts.has('manager:m2'),false);assert.ok(phone.closed.includes('m1'));
  pc.state.messages.push(message('m2'));await pc.refresh();await pc.mark().onclick();await tick();await phone.poll();
  assert.equal(phone.badges().length,0);assert.equal(draft.value,'Keep my unsent reply');
  const reopened=setup({storage:phone.storage,online:false,receipts});await tick();assert.equal(reopened.badges().length,0);
@@ -68,22 +74,23 @@ test('busy editors and failed opens or saves leave unread alerts; server receipt
  assert.match(h.state.alerts[0],/Save or close/);assert.match(h.state.alerts[1],/could not be opened/);
  h.state.fail=true;await h.poll();assert.equal(h.badges().length,4);
  h.state.fail=false;h.state.failRead=true;h.state.open='open';await h.click(h.badges()[0]);await h.mark().onclick();
- assert.equal(h.badges().length,4);assert.match(h.document.querySelector('.portalWorkshop').textContent,/Unable to sync the read status/);
+ assert.equal(h.badges().length,4);assert.match(h.document.querySelector('.portalWorkshop').textContent,/Unable to save the acknowledgement/);
  h.state.failRead=false;h.state.storageFail=true;await h.mark().onclick();await tick();assert.equal(h.badges().length,0);
  const other=setup({receipts:h.receipts});await tick();assert.equal(other.badges().length,0);
 });
-test('expanding one message directly reads only that message and reconnect refreshes the other device',async()=>{
+test('expanding keeps messages outstanding; acknowledging only that message and reconnect refreshes the other device',async()=>{
  const receipts=new Map(),pc=setup({receipts}),phone=setup({receipts});await tick();
  pc.state.messages.push(message('m2'));pc.state.queue.push(message('m2'));await pc.poll();
  await pc.window.vectaOpenFindingJob('j1');await tick();
  const card=pc.document.querySelector('[data-event-id="m1"]');card.open=true;card.dispatchEvent(new pc.window.Event('toggle'));await tick();
- assert.equal(pc.badges().length,4);assert.match(pc.badges()[0].title,/^1 unread/);assert.equal(receipts.has('manager:m2'),false);
+ assert.equal(pc.badges().length,4);assert.match(pc.badges()[0].title,/^2 outstanding/);assert.equal(receipts.size,0);
+ await card.querySelector('[data-acknowledge-id]').onclick();await tick();assert.match(pc.badges()[0].title,/^1 outstanding/);assert.equal(receipts.has('manager:m2'),false);
  phone.navigator.onLine=false;await phone.poll();assert.equal(phone.badges().length,4);
  phone.navigator.onLine=true;phone.window.dispatchEvent(new phone.window.Event('online'));await tick();assert.equal(phone.badges().length,0);
 });
-test('legacy local read receipts upload, but local popup dismissals do not',async()=>{
+test('upgrade never treats old read receipts or popup dismissals as acknowledgement',async()=>{
  const h=setup({storage:new Map([['vecta:portal:read:manager','["m1"]'],['vecta:portal:seen:manager','["m2"]']])});h.state.queue.push(message('m2'));await h.poll();
- assert.ok(h.receipts.has('manager:m1'));assert.equal(h.receipts.has('manager:m2'),false);assert.equal(h.badges().length,4);
+ assert.equal(h.receipts.size,0);assert.equal(h.badges().length,4);assert.match(h.badges()[0].title,/^2 outstanding/);assert.equal(h.calls.some(c=>c.action==='portal-acknowledge'),false);
 });
 test('cached unread indicators survive offline reload and clear only after a successful live queue replacement',async()=>{
  const h=setup();await tick();const offline=setup({storage:h.storage,online:false});await tick();
@@ -92,10 +99,10 @@ test('cached unread indicators survive offline reload and clear only after a suc
  offline.navigator.onLine=true;offline.state.queue=[];await offline.poll();assert.equal(offline.badges().length,0);
 });
 test('read status is separate for mechanics and updates other tabs on the same device',async()=>{
- const storage=new Map([['vecta:portal:read:manager','["m1"]']]);const h=setup({mechanic:true,storage});
+ const storage=new Map([['vecta:portal:acknowledged:manager','["m1"]']]);const h=setup({mechanic:true,storage});
  h.state.queue=[{...message(),forwarded:true},message('not-forwarded')];await h.poll();
- assert.equal(h.badges().length,4);assert.match(h.badges()[0].title,/^1 unread office update/);
- storage.set('vecta:portal:read:mechanic','["m1"]');const event=new h.window.Event('storage');event.key='vecta:portal:read:mechanic';h.window.dispatchEvent(event);await tick();assert.equal(h.badges().length,0);
+ assert.equal(h.badges().length,4);assert.match(h.badges()[0].title,/^1 outstanding office update/);
+ storage.set('vecta:portal:acknowledged:mechanic','["m1"]');const event=new h.window.Event('storage');event.key='vecta:portal:acknowledged:mechanic';h.window.dispatchEvent(event);await tick();assert.equal(h.badges().length,0);
 });
 test('queue pagination retains older messages and validates page cursors before accessing the database',async()=>{
  const rows=Array.from({length:251},(_,i)=>({...message('m'+i),seq:251-i,customer_email:'driver@example.invalid'}));const calls=[];
@@ -111,12 +118,12 @@ test('expanding the notification keeps its full message visible after read confi
   const h=setup({mechanic});h.state.queue=[{...message(),forwarded:true}];await h.poll();
   const popup=h.document.querySelector('.portalWorkshopPopup'),card=popup.querySelector('.portalWorkshopEvent');
   card.open=true;card.setAttribute('open','');card.dispatchEvent(new h.window.Event('toggle'));await tick();
-  assert.equal(h.badges().length,0,'the displayed message can be marked read');
+  assert.equal(h.badges().length,4,'reading does not acknowledge the message');assert.equal(h.receipts.size,0);
   assert.equal(popup.hidden,false,'reading must never remove the notification body');
   h.state.queue.unshift({...message('new','other'),forwarded:true});await h.poll();
   assert.equal(popup.querySelector('.portalWorkshopEvent'),card,'polling must not replace the message being read');
   assert.equal(card.hasAttribute('open'),true);assert.match(card.textContent,/Please call before replacing/);
-  await [...popup.querySelectorAll('button')].find(b=>b.textContent==='Dismiss').onclick();await tick();
+  await [...popup.querySelectorAll('button')].find(b=>b.textContent==='Open job card').onclick();await tick();
   assert.equal(popup.querySelector('.portalWorkshopEvent').dataset.eventId,'new');
  }
 });
@@ -124,7 +131,7 @@ test('expanding the notification keeps its full message visible after read confi
 test('notification open failures never dismiss or read the message and can be retried',async()=>{
  for(const failure of ['noPanel','detached','hidden','openError','busy','missing']){
   const h=setup();await tick();const popup=h.document.querySelector('.portalWorkshopPopup');
-  if(failure==='detached'){await h.window.vectaOpenFindingJob('j1');await tick();h.document.querySelector('.portalWorkshop').remove();h.state.noPanel=true;}
+  if(failure==='detached'){h.state.messages=[];await h.window.vectaOpenFindingJob('j1');await tick();h.document.querySelector('.portalWorkshop').remove();h.state.noPanel=true;h.state.messages=[message()];}
   else if(failure==='hidden')h.document.hidden=true;
   else if(['busy','missing'].includes(failure))h.state.open=failure;
   else h.state[failure]=true;
@@ -133,21 +140,43 @@ test('notification open failures never dismiss or read the message and can be re
   assert.equal(h.storage.get('vecta:portal:seen:manager'),undefined,failure);assert.equal(open.disabled,false);
   assert.match(popup.querySelector(':scope > [role=status]').textContent,/retry|Save or close|Job load failed/i);
   h.state.noPanel=false;h.state.openError=false;h.state.open='open';h.document.hidden=false;
-  await open.onclick();await tick();assert.equal(popup.hidden,true);assert.equal(h.badges().length,0);
+  await open.onclick();await tick();assert.equal(popup.hidden,true);assert.equal(h.badges().length,4);assert.equal(h.receipts.size,0);
   assert.equal(h.document.querySelector('.portalWorkshop [data-event-id="m1"]').hasAttribute('open'),true);assert.ok(h.state.scrolled>0);
  }
 });
 
 test('Customer messages recovers dismissed and read messages without opening each vehicle',async()=>{
  const h=setup();h.state.queue.push({...message('m2','j2'),registration:'OTHER02',customer_name:'Second customer'});await h.poll();
- const popup=h.document.querySelector('.portalWorkshopPopup');await [...popup.querySelectorAll('button')].find(b=>b.textContent==='Dismiss').onclick();await tick();
+ const popup=h.document.querySelector('.portalWorkshopPopup');await [...popup.querySelectorAll('button')].find(b=>b.textContent==='Open job card').onclick();await tick();
  const host=h.document.createElement('div');h.document.body.append(host);h.window.VectaPortalWorkshop.mountInbox(host);await tick();
- assert.equal(host.querySelectorAll('.portalInboxRow').length,2);assert.equal(h.receipts.size,0,'listing does not read messages');
+ assert.equal(host.querySelectorAll('.portalInboxRow').length,2);assert.equal(h.receipts.size,0,'listing does not acknowledge messages');
  const search=host.querySelector('input');search.value='TEST 001';search.oninput();assert.equal(host.querySelectorAll('.portalInboxRow').length,1);
  const open=[...host.querySelectorAll('button')].find(b=>b.textContent==='Open job card');await open.onclick();await tick();
- assert.deepEqual(h.state.opened,['j1']);assert.ok(h.receipts.has('manager:m1'));
+ assert.deepEqual(h.state.opened,['j1','j1']);assert.equal(h.receipts.size,0);
  await [...host.querySelectorAll('button')].find(b=>b.textContent==='Refresh').onclick();await tick();
  assert.equal(host.querySelectorAll('.portalInboxRow').length,1,'read messages remain recoverable');
  search.value='second customer';search.oninput();assert.match(host.querySelector('.portalInboxRow').textContent,/OTHER02/);
  search.value='parts';search.oninput();assert.equal(host.querySelectorAll('.portalInboxRow').length,2);
+});
+
+test('dashboard groups all dates and latest messages; opening and refresh never remove outstanding rows',async()=>{
+ const h=setup();h.state.queue=[{...message('new'),seq:3,customer_name:'Alex',message:'Latest question'}, {...message('old'),seq:1}, {...message('another','j2'),seq:2,registration:'OTHER02'}];await h.poll();
+ const section=h.document.querySelector('.portalOutstanding');assert.equal(section.querySelectorAll('.portalOutstandingRow').length,2);assert.equal(section.querySelector('.portalOutstandingCount').textContent,'3');assert.match(section.textContent,/Latest question/);
+ await section.querySelector('button').onclick();await tick();await h.poll();assert.equal(section.querySelectorAll('.portalOutstandingRow').length,2);assert.equal(h.receipts.size,0);
+ const reload=setup({storage:h.storage,online:false});await tick();assert.equal(reload.document.querySelectorAll('.portalOutstandingRow').length,2);assert.match(reload.document.querySelector('.portalOutstanding').textContent,/Offline/);
+ h.state.fail=true;await h.poll();assert.equal(section.querySelectorAll('.portalOutstandingRow').length,2);
+});
+test('a failed reply stays outstanding; successful retry clears only the messages open when sending began',async()=>{
+ const h=setup();await tick();await h.click(h.badges()[0]);
+ const form=h.document.querySelector('.portalWorkshopComposer form'),input=form.querySelector('textarea');input.value='Yes, we will call first.';
+ h.state.replyFailure=true;await form.onsubmit({preventDefault(){}});assert.equal(h.receipts.size,0);assert.equal(input.value,'Yes, we will call first.');
+ h.state.messages.push(message('m2'));h.state.queue.push(message('m2'));await h.refresh();await h.poll();
+ h.state.replyFailure=false;await form.onsubmit({preventDefault(){}});await tick();
+ const sends=h.calls.filter(c=>c.action==='portal-reply');assert.equal(sends[0].id,sends[1].id);assert.deepEqual(sends[1].reply_to_event_ids,['m1']);
+ assert.ok(h.receipts.has('manager:m1'));assert.equal(h.receipts.has('manager:m2'),false);assert.equal(h.badges().length,4);assert.equal(input.value,'');
+});
+test('latest outstanding message opens on a direct job-card visit and survives close/reopen without acknowledgement',async()=>{
+ const h=setup();await tick();await h.window.vectaOpenFindingJob('j1');await tick();
+ assert.equal(h.document.querySelector('.portalWorkshop [data-event-id="m1"]').hasAttribute('open'),true);assert.equal(h.receipts.size,0);assert.equal(h.badges().length,4);
+ h.document.querySelector('.portalWorkshop').remove();await h.window.vectaOpenFindingJob('j1');await tick();assert.equal(h.document.querySelector('.portalWorkshop [data-event-id="m1"]').hasAttribute('open'),true);assert.equal(h.badges().length,4);
 });
