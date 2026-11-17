@@ -13009,6 +13009,24 @@ async function openWebsiteBookingConfirmationEmail(j){
   await window.VectaPortalWorkshop.confirmation(j);
   return true;
 }
+function installWebsiteBookingConfirmationButton(modal,job){
+  if(window.VECTA_MECHANIC_DEPLOYMENT===true||!job||!isWebsiteBookingJob(job)||vectaJobIsDeletedForLists(job)||['quote','provisional','cancelled','canceled','deleted'].indexOf(String(job.status||'').toLowerCase())>=0)return;
+  var panel=modal.querySelector('.websiteJobRequestPanel');if(!panel||panel.querySelector('[data-reopen-booking-confirmation]'))return;
+  var row=document.createElement('div'),button=document.createElement('button'),note=document.createElement('p');
+  button.type='button';button.className='btn';button.setAttribute('data-reopen-booking-confirmation','');button.textContent='View / edit confirmation email';
+  note.setAttribute('role','status');note.textContent='Uses saved booking details. Opening does not send the email.';
+  button.onclick=async function(){
+    if(button.disabled)return;button.disabled=true;
+    try{
+      var saved=(app.jobs||[]).find(function(item){return String(item.id)===String(job.id)});
+      if(!saved||vectaJobIsDeletedForLists(saved))throw Error('This booking is no longer available.');
+      if(!await openWebsiteBookingConfirmationEmail(saved))throw Error('Save a customer email address on the job card first.');
+      note.textContent='Confirmation preview opened.';
+    }catch(error){note.textContent=error.message||'Unable to open email. Please try again.';}
+    finally{button.disabled=false;}
+  };
+  row.append(button,note);panel.append(row);
+}
 function isUnresolvedWebsiteService(j){
   if(!isWebsiteBookingJob(j))return false;
   var types=jobTypeValues(j),hasGeneric=types.some(function(t){return normaliseJobTypeKey(t)==='service'}),hasResolved=types.some(function(t){var k=normaliseJobTypeKey(t);return k==='full service'||k==='major service'});
@@ -15478,7 +15496,7 @@ function installDashboardJobActions(id){
   var modal=document.getElementById('jobModal'),foot=modal&&modal.querySelector('.modalFoot');if(!foot)return;
   var mechanic=window.VECTA_MECHANIC_DEPLOYMENT===true;
   if(mechanic)vectaStartCustomerProgress(id);
-  if(!mechanic){var account=modal.querySelector('#job_customer_account'),officeJob=(app.jobs||[]).find(function(j){return String(j.id)===String(id)});syncOfficeJobActions(account&&account.value||officeJob&&officeJob.customer_account||'');vectaInstallTrackingLink(id,foot);return;}
+  if(!mechanic){var account=modal.querySelector('#job_customer_account'),officeJob=(app.jobs||[]).find(function(j){return String(j.id)===String(id)});syncOfficeJobActions(account&&account.value||officeJob&&officeJob.customer_account||'');vectaInstallTrackingLink(id,foot);installWebsiteBookingConfirmationButton(modal,officeJob);return;}
   ['markComplete','markCompleteEmail','markReady','createInvoiceFromJob','deleteJob','undoJobCompletion','returnToMechanic','createQuote','convertQuote','createProvisionalBooking','confirmProvisionalBooking','cancelProvisionalBooking','saveProvisionalChanges'].forEach(function(key){var button=modal.querySelector('#'+key);if(button)button.remove()});
   var job=(app.jobs||[]).find(function(j){return String(j.id)===String(id)});
   if(!job||job.archived||['completed','work_complete','quote','provisional'].indexOf(String(job.status||'').toLowerCase())>=0||modal.querySelector('#v280MechanicWorkComplete'))return;
