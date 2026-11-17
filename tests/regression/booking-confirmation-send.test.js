@@ -72,7 +72,7 @@ test('pending, expired and Test confirmations never send a retry',async t=>{
  process.env.VERCEL_ENV='preview';await assert.rejects(bookingConfirmation(s.db,job,true),/Test preview only/);
  assert.equal(s.sends.length,0);
 });
-test('the confirmation button displays rejection, retries after sender repair and disables after success',async t=>{
+test('the confirmation button displays rejection, retries after sender repair and closes after success',async t=>{
  const s=await setup(t);s.providerStatus=403;
  const {document}=parseHTML('<html><body></body></html>'),create=document.createElement.bind(document);
  document.createElement=tag=>{const el=create(tag);if(tag==='dialog'){el.showModal=()=>{};el.close=()=>el.remove();}return el;};
@@ -86,8 +86,9 @@ test('the confirmation button displays rejection, retries after sender repair an
  await window.VectaPortalWorkshop.confirmation(job);
  const dialog=document.querySelector('dialog'),status=dialog.querySelector('[role="status"]'),send=dialog.querySelector('button');
  assert.match(status.textContent,/not verified/);assert.equal(send.textContent,'Retry confirmation email');assert.equal(send.disabled,false);assert.equal(s.sends.length,0);
- await send.onclick();assert.match(status.textContent,/not verified/);assert.equal(send.disabled,false);assert.equal(s.sends.length,1);
+ await send.onclick();assert.match(status.textContent,/not verified/);assert.equal(send.disabled,false);assert.equal(s.sends.length,1);assert.ok(dialog.isConnected);
  s.providerStatus=200;await send.onclick();assert.equal(status.textContent,'Confirmation email sent.');assert.equal(send.disabled,true);assert.equal(s.sends.length,2);
+ assert.equal(document.querySelector('dialog'),null);
  assert.deepEqual(requests,['confirmation-preview','confirmation-send','confirmation-send']);assert.equal(s.sends[0].body,s.sends[1].body);
 });
 
