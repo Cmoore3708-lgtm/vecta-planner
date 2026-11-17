@@ -123,13 +123,13 @@
   if(!garage)return;
   const booking=currentTab==='book'&&prefill;
   bookingLayout(booking);
-  $('loyaltyTitle').textContent=booking?'Your booking bonus':'Your loyalty bonus';
+  $('loyaltyTitle').textContent=booking?'Your 5% loyalty bonus':'Your loyalty bonus';
   $('viewLoyalty').textContent='View earned bonus details →';
   if(booking){
    const pence=bookingTotal?.pence||0,partial=bookingTotal?.pending,bonus=money(Math.round(pence*5/100));
-   $('loyaltyAmount').textContent=pence>0?bonus:'5%';
+   $('loyaltyAmount').textContent=bonus;
    $('loyaltyLabel').textContent=pence>0?partial?'estimated bonus so far':'from this booking':'back on this booking';
-   $('loyaltyNote').textContent=pence>0?(partial?'Estimated bonus so far: '+bonus+'.':'You will earn '+bonus+' from this booking.'):'Earn 5% back on this booking.';
+   $('loyaltyNote').textContent=pence>0?(partial?'Estimated bonus so far. Updates as prices are confirmed.':'You’ll get this back from your booking.'):'Choose your work to see how much you’ll get back.';
    return;
   }
   $('loyaltyAmount').textContent=loyalty?money(loyalty.earned_bonus_pence):'—';
