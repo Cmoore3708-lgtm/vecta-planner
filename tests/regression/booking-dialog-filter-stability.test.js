@@ -25,3 +25,13 @@ test('editing mileage opens the existing dialog, and closing preserves the servi
  document.querySelector('[data-save-service-mileage]').click();assert.equal(closed,1);assert.equal(state.mileage_dialog_open,false);assert.equal(renderOptions.preserveServicePosition,true);assert.equal(focusOptions.preventScroll,true);
  assert.doesNotMatch(html,/data-field="mileage" autofocus/);
 });
+
+test('mileage dialog opens before a service level is selected and saving returns focus to service choices',()=>{
+ const {document}=parseHTML('<button data-service-choice="Oil & Filter Change">Interim</button><dialog id="serviceMileageDialog"><button data-close-service-mileage>Close</button><input data-field="mileage"><button data-save-service-mileage>Save</button></dialog>');
+ const dialog=document.querySelector('dialog'),choice=document.querySelector('[data-service-choice]');let shown=0,closed=0,focusOptions;
+ dialog.showModal=()=>shown++;dialog.close=()=>closed++;choice.focus=options=>focusOptions=options;
+ const state={step:2,mileage_dialog_open:true,form:{job_types:['Service'],service_choice:'',mileage:'35000'}};
+ const c={document,state,serviceMileageValid:()=>true,updateMileageDialogValidity(){},render(){}};vm.createContext(c);load('bindMileageDialog',c);c.bindMileageDialog();
+ assert.equal(shown,1);document.querySelector('[data-save-service-mileage]').click();
+ assert.equal(closed,1);assert.equal(state.mileage_dialog_open,false);assert.equal(state.form.mileage,'35000');assert.equal(focusOptions.preventScroll,true);
+});
