@@ -9,10 +9,11 @@ const source=readFileSync('public/js/vecta-portal-workshop.js','utf8');
 const tick=()=>new Promise(r=>setImmediate(r));
 const message=(id='m1',job_id='j1')=>({id,job_id,actor:'customer',kind:'message',message:'Please call before replacing the parts.',registration:'TEST001',created_at:'2026-11-11T12:00:00Z'});
 const cards='<div class="job" data-job-id="j1"><div class="plannerWorkRequired">Keep the full job description readable</div></div><div class="mobileJob" data-open-job="j1"></div><div class="sideJob" data-job-id="j1" data-open-unallocated="j1"></div><button class="sideJob" data-open-job="j1"></button><div class="job" data-job-id="other"></div>';
-function setup({mechanic=false,storage=new Map(),online=true,receipts=new Map()}={}){
+function setup({mechanic=false,storage=new Map(),online=true,receipts=new Map(),editorOpen=false}={}){
  const dom=parseHTML('<html><body><main class="main"><header class="top"></header><section id="cards">'+cards+'</section></main><div id="jobModal"><section class="jobWorkSection"></section></div></body></html>');
  const document=dom.document,window=new dom.window.EventTarget();Object.assign(window,{Event:dom.window.Event,HTMLElement:dom.window.HTMLElement,MutationObserver:dom.window.MutationObserver});
  document.hidden=false;document.readyState='complete';
+ if(editorOpen)document.getElementById('jobModal').className='modal open';
  const state={queue:[message()],messages:[message()],open:'open',fail:false,storageFail:false,scrolled:0,alerts:[],opened:[]},calls=[],timers=[];
  window.VECTA_MECHANIC_DEPLOYMENT=mechanic;window.vectaRefreshPortalJobs=async()=>true;
  window.vectaOpenFindingJob=async id=>{state.opened.push(id);if(state.openError)throw Error('Job load failed');if(state.open==='open'&&!state.noPanel&&!document.querySelector('.portalWorkshop'))window.VectaPortalWorkshop.mount(document.getElementById('jobModal'),{id},true);return state.open;};
@@ -179,4 +180,31 @@ test('latest outstanding message opens on a direct job-card visit and survives c
  const h=setup();await tick();await h.window.vectaOpenFindingJob('j1');await tick();
  assert.equal(h.document.querySelector('.portalWorkshop [data-event-id="m1"]').hasAttribute('open'),true);assert.equal(h.receipts.size,0);assert.equal(h.badges().length,4);
  h.document.querySelector('.portalWorkshop').remove();await h.window.vectaOpenFindingJob('j1');await tick();assert.equal(h.document.querySelector('.portalWorkshop [data-event-id="m1"]').hasAttribute('open'),true);assert.equal(h.badges().length,4);
+});
+
+test('a pending popup pauses for another job and resumes offline without losing messages or unsaved edits',async()=>{
+ for(const mechanic of [false,true]){
+  const h=setup({mechanic});h.state.queue=[{...message(),forwarded:true}];await h.poll();
+  const popup=h.document.querySelector('.portalWorkshopPopup'),original=popup.querySelector('[data-event-id="m1"]'),editor=h.document.getElementById('jobModal');
+  assert.equal(popup.hidden,false);
+  editor.innerHTML='<input value="OTHER02"><textarea>Unsaved work on another car</textarea>';editor.className='modal open';await tick();
+  assert.equal(popup.hidden,true,'opening an unrelated card immediately hides the popup');
+  h.state.queue.unshift({...message('m2','other'),forwarded:true});await h.poll();
+  assert.equal(popup.hidden,true,'polling/new arrivals must not cover the editor');
+  assert.equal(editor.querySelector('textarea').value,'Unsaved work on another car');
+  assert.deepEqual(h.state.opened,[]);assert.equal(h.receipts.size,0);assert.equal(h.storage.get('vecta:portal:opened:'+(mechanic?'mechanic':'manager')),undefined);
+  h.navigator.onLine=false;const calls=h.calls.length;editor.classList.remove('open');await tick();
+  assert.equal(popup.hidden,false,'closing restores the same alert even offline');assert.equal(h.calls.length,calls);
+  assert.equal(popup.querySelector('[data-event-id="m1"]'),original,'the paused message remains intact');
+  assert.equal(h.badges().length,5,'both jobs retain their outstanding alerts');
+ }
+});
+test('messages arriving during an open editor or nested dialog wait until all overlays close',async()=>{
+ const h=setup({editorOpen:true});await tick();const popup=h.document.querySelector('.portalWorkshopPopup'),editor=h.document.getElementById('jobModal');
+ assert.equal(popup.hidden,true,'cold-start queue cannot overlay an existing editor');
+ const dialog=h.document.createElement('dialog');dialog.setAttribute('open','');h.document.body.append(dialog);await tick();
+ editor.classList.remove('open');await tick();assert.equal(popup.hidden,true,'a nested dialog still blocks the popup');
+ dialog.removeAttribute('open');await tick();assert.equal(popup.hidden,false);
+ dialog.setAttribute('open','');await tick();assert.equal(popup.hidden,true);dialog.remove();await tick();assert.equal(popup.hidden,false);
+ assert.equal(h.receipts.size,0);assert.equal(h.calls.some(c=>c.action==='portal-acknowledge'||c.action==='portal-read'),false);
 });

@@ -319,6 +319,11 @@
   return controller;
  }
  const opened=new Set();
+ function syncPopupVisibility(){
+  // A pending alert must never cover an editor, replace its job, or discard a draft.
+  // Pause only its display; closing the editor restores it without a network request.
+  if(popup)popup.hidden=!active||!!document.querySelector('.modal.open,dialog[open]');
+ }
  function seen(){try{for(const id of JSON.parse(localStorage.getItem('vecta:portal:opened:'+ (mechanic()?'mechanic':'manager'))||'[]'))opened.add(id);}catch{}return opened;}
  function rememberOpened(item){const ids=seen();ids.add(item.id);try{localStorage.setItem('vecta:portal:opened:'+(mechanic()?'mechanic':'manager'),JSON.stringify([...ids].slice(-1000)));}catch{}if(pendingEvent===item.id)pendingEvent=null;if(viewingEvent===item.id)viewingEvent=null;if(active?.id===item.id){active=null;if(popup)popup.hidden=true;}refreshQueue?.();}
  async function openJobMessage(item){
@@ -405,6 +410,7 @@
   popup=node('aside');popup.className='portalWorkshopPopup';popup.hidden=true;popup.setAttribute('aria-label','Customer portal notification');document.body.append(popup);
   let busy=false;
   refreshQueue=async()=>{
+   syncPopupVisibility();
    if(busy||document.hidden||!navigator.onLine)return;busy=true;
    window.vectaMaintainPortalAlerts?.();
    try{
@@ -425,8 +431,8 @@
     for(const p of panels.values())if(p.panel.isConnected)p.updateRead?.();
     const ids=seen(),next=events.find(x=>x.id===viewingEvent&&!acknowledged.has(x.id)&&!ids.has(x.id))||events.find(x=>x.id===pendingEvent&&!acknowledged.has(x.id))||events.find(x=>x.id===active?.id&&!ids.has(x.id)&&!acknowledged.has(x.id))||events.find(x=>!ids.has(x.id)&&!acknowledged.has(x.id));
     if(!next){active=null;popup.hidden=true;return;}
-    if(active&&active.id===next.id&&(viewingEvent===next.id||active.forwarded===next.forwarded&&active.synced===synced))return;
-    active={...next,synced};popup.hidden=false;
+    if(active&&active.id===next.id&&(viewingEvent===next.id||active.forwarded===next.forwarded&&active.synced===synced)){syncPopupVisibility();return;}
+    active={...next,synced};
     const decision=next.kind==='approval_response'&&['approved','declined'].includes(decisionOf(next));popup.classList.toggle('portalQuotePopup',decision);
     if(decision)popup.replaceChildren(responseBody(next));else popup.replaceChildren(node('strong',(mechanic()?'Job update':'Customer message')+' · '+next.registration),eventCard(next,!mechanic()));
     const message=node('p',synced?'':'Message saved. Reconnecting to update this device’s job card…');message.setAttribute('role','status');
@@ -435,12 +441,20 @@
      try{if(next.job_id)await openJobMessage(next);else showBookingMessage(next);}catch(error){message.textContent=error.message;}finally{open.disabled=false;}
     });
     popup.append(open,message);
+    syncPopupVisibility();
    }catch{}finally{busy=false;}
   };
   if(typeof MutationObserver!=='undefined'){
    // Observe card replacements, not every attribute/text change on the page.
    const observer=new MutationObserver(records=>{if(records.some(r=>r.target.id==='content'||[...r.addedNodes].some(n=>n.nodeType===1&&(n.matches?.(cardSelector)||n.querySelector?.(cardSelector))))){paintBadges();paintOutstanding();}});
    observer.observe(document.querySelector('main.main'),{childList:true,subtree:true});
+   // Job/invoice editors live outside main. Watch their open/close transitions,
+   // including native dialogs, without rerendering the message or polling the API.
+   const overlaySelector='.modal,dialog';
+   const overlays=new MutationObserver(records=>{
+    if(records.some(r=>r.type==='attributes'?r.target.matches?.(overlaySelector):[...r.addedNodes,...r.removedNodes].some(n=>n.nodeType===1&&(n.matches?.(overlaySelector)||n.querySelector?.(overlaySelector)))))syncPopupVisibility();
+   });
+   overlays.observe(document.body,{childList:true,subtree:true,attributes:true,attributeFilter:['class','open']});
   }
   window.addEventListener('storage',e=>{if(e.key===acknowledgedKey()||e.key===null){refreshAcknowledgements();active=null;refreshQueue();}});
   window.addEventListener('vecta-portal-changed',()=>{active=null;refreshQueue();});
