@@ -12,3 +12,21 @@
 .formGrid>.fullRow{grid-column:1/-1}.insurancePanel{margin:24px 0;padding:22px;border:1px solid var(--line);border-radius:12px;background:var(--charcoal2)}.insurancePanel h2{margin-top:8px}.insuranceActions{display:flex;gap:10px;flex-wrap:wrap}.insuranceActions button{flex:1}.insuranceSaved{color:#bde9c9}.insurancePanel .detailActions{margin:12px 0}#insurancePhoto img{display:block;width:100%;height:auto;border-radius:6px;margin:14px 0}input[readonly]{opacity:.7}@media(max-width:500px){.insurancePanel{padding:18px}.insuranceActions{flex-direction:column}}
 
 .formGrid>label{min-width:0}.formGrid input{max-width:100%}@media(max-width:500px){#vehicleForm{grid-template-columns:minmax(0,1fr)}}
+
+/* Booking is one viewport: only the form scrolls, with a compact bonus below. */
+.bookingBar{display:flex;align-items:center;gap:10px}.bookingBar .bookingSelected{flex:1;min-width:0}.bookingBar #bookingChange{flex-shrink:0}
+body.bookingActive{position:fixed;inset:var(--booking-viewport-top,0px) 0 auto;height:var(--booking-viewport-height,100dvh);overflow:hidden;overscroll-behavior:none}
+.bookingActive .garageHeader,.bookingActive #accountFooter,.bookingActive #view-book>.sectionHead,.bookingActive .bookingHelp,.bookingActive .bookingFallback{display:none}
+.bookingActive main{width:100%;height:100%;min-height:0;display:flex;flex-direction:column;padding:calc(8px + env(safe-area-inset-top)) 12px calc(8px + env(safe-area-inset-bottom));overflow:hidden}
+.bookingActive #signedin,.bookingActive #view-book,.bookingActive #bookingHost{display:flex;flex-direction:column;flex:1;min-height:0;overflow:hidden}
+.bookingActive .tabs{position:static;flex:none;margin:0 0 8px;padding:4px;gap:3px}
+.bookingActive .tabs button{min-height:40px}
+.bookingActive .bookingBar{flex:none;margin:0 0 8px;min-width:0}
+.bookingActive .bookingSelected{padding:0;margin:0;border:0;background:none;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px}
+.bookingActive .bookingSelected .plate{margin:0 8px 0 0;font-size:17px}
+.bookingActive #bookingChange{min-height:36px;padding:8px 10px;font-size:11px}
+.bookingActive #bookingFrame{display:block;flex:1;width:100%;height:0;min-height:0;border-radius:8px}
+.bookingActive .status:not(:empty),.bookingActive .notice{flex:none;margin:0 0 8px;padding:8px 10px;font-size:12px}
+.loyaltyBox.bookingBonusCompact{flex:none;display:block;margin:8px 0 0;padding:10px 12px;border-radius:8px}
+.bookingBonusCompact .loyaltyIntro,.bookingBonusCompact .loyaltyTotal,.bookingBonusCompact #viewLoyalty{display:none}
+.bookingBonusCompact #loyaltyNote{margin:0;color:var(--white);font-size:13px;line-height:1.4;font-weight:650}
