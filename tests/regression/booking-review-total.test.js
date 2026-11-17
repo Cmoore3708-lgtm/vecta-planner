@@ -9,9 +9,9 @@ function browser(form={}) {
  const c=vm.createContext({state:{form:{job_types:['Service'],service_choice:'Oil & Filter Change',mini_valet:false,...form}},
   serviceEngineSize:()=>1600,serviceGuidePrices:()=>({oil:130,full:180,major:220}),
   liveServiceQuote:()=>null,serviceExtraAddedPence:()=>0,selectedTyreGuide:()=>null,savedTyreGuide:()=>null,
-  servicePriceState:{status:'unavailable'},serviceExtraSelection:()=>'',serviceExtraOffer:()=>null,
+  window:{},servicePriceState:{status:'unavailable'},serviceExtraSelection:()=>'',serviceExtraOffer:()=>null,
   serviceVehicleHtml:()=>'',esc:s=>s});
- for(const name of ['fullServiceSelected','miniValetReviewHtml','bookingTotalContent','refreshBookingTotal','bindMiniValetReview','estimateCost','tyreMoney','serviceChoicePrice','serviceGuideFallback','pricingHtml']){
+ for(const name of ['fullServiceSelected','miniValetReviewHtml','bookingTotal','bookingBonusContent','bookingTotalContent','refreshBookingTotal','bindMiniValetReview','estimateCost','tyreMoney','serviceChoicePrice','serviceGuideFallback','pricingHtml']){
   const start=html.indexOf('function '+name+'('),end=html.indexOf('\nfunction ',start+1);
   vm.runInContext(html.slice(start,end),c);
  }
@@ -132,4 +132,40 @@ test('unknown repairs, missing service prices and unknown tyres cannot look like
 test('both booking entry points contain the same accessible total after the valet selection',()=>{
  assert.equal(fs.readFileSync(new URL('../../public/booking.html',import.meta.url),'utf8'),html);
  assert.match(html,/\$\{miniValetReviewHtml\(\)\}<div class="review-total" data-booking-total aria-live="polite" aria-atomic="true">\$\{bookingTotalContent\(\)\}/);
+});
+
+
+test('booking bonus uses the entire inclusive total with discounts and rounds once to pennies',()=>{
+ const c=browser({job_types:['Service','MOT','Tyres'],mini_valet:true});
+ c.liveServiceQuote=()=>({totalPence:13099});c.serviceExtraAddedPence=()=>3500;c.selectedTyreGuide=()=>({totalPence:16000});
+ assert.equal(amount(c),'£415.99');
+ assert.match(c.bookingBonusContent(),/You will earn £20.80 from this booking/);
+ assert.match(c.bookingBonusContent(),/Based on £415.99 including VAT/);
+ c.state.form.mini_valet=false;
+ assert.match(c.bookingBonusContent(),/You will earn £19.30 from this booking/);
+ assert.match(browser({job_types:['MOT']}).bookingBonusContent(),/You will earn £3.25/);
+ assert.match(browser({mini_valet:true}).bookingBonusContent(),/You will earn £8.00/);
+});
+
+test('incomplete prices show an estimate, never a guaranteed full bonus or a zero reward',()=>{
+ const c=browser({job_types:['MOT','Tyres'],tyre_size_unknown:true});
+ assert.match(c.bookingBonusContent(),/Estimated bonus so far: £3.25/);
+ assert.doesNotMatch(c.bookingBonusContent(),/You will earn/);
+ c.state.form.job_types=['Other'];
+ assert.match(c.bookingBonusContent(),/bonus will update when the remaining prices are confirmed/);
+ assert.doesNotMatch(c.bookingBonusContent(),/£0/);
+});
+
+test('price updates refresh the visible bonus and publish the same overall total to My Garage',()=>{
+ const c=browser({mini_valet:true}),sent=[];
+ c.state.form.registration='AB12CDE';
+ c.window={VectaGarageBooking:{updateTotal:total=>sent.push(total)}};
+ c.document=parseHTML('<div data-booking-total></div><section data-booking-bonus></section>').document;
+ c.refreshBookingTotal();
+ assert.match(c.document.querySelector('[data-booking-bonus]').textContent,/You will earn £8.00/);
+ assert.equal(sent.at(-1).pence,16000);
+ c.state.form.mini_valet=false;c.refreshBookingTotal();
+ assert.match(c.document.querySelector('[data-booking-bonus]').textContent,/You will earn £6.50/);
+ assert.equal(sent.at(-1).pence,13000);
+ assert.equal(sent.at(-1).registration,'AB12CDE');
 });

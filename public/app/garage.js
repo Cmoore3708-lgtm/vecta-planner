@@ -3,7 +3,7 @@
  const esc=value=>String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
  const standalone=()=>matchMedia('(display-mode: standalone)').matches||navigator.standalone===true;
  const ios=/iPhone|iPad|iPod/.test(navigator.userAgent)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
- let session='',garage=null,loyalty=null,challenge='',installPrompt=null,worker=null,currentTab='garage',prefill=null,historyOffset=null,historyVehicle=null,modalVersion=0,selectedCar=0;
+ let session='',garage=null,loyalty=null,challenge='',installPrompt=null,worker=null,currentTab='garage',prefill=null,bookingTotal=null,historyOffset=null,historyVehicle=null,modalVersion=0,selectedCar=0;
  try{session=localStorage.getItem(key)||'';}catch{}
  function message(text,modal=false){$(modal?'modalStatus':'status').textContent=text;}
  async function api(action,body={}){
@@ -13,7 +13,7 @@
   const data=await response.json().catch(()=>({}));if(expectedSession&&session!==expectedSession)throw Error('Your sign-in changed. Please reopen your garage.');if(!response.ok){if(response.status===401&&action!=='garage-verify'){session='';try{localStorage.removeItem(key);}catch{}showSignedOut();}throw Error(data.error||'We couldn’t load this. Please try again.');}return data;
  }
  async function run(button,fn,{modal=false}={}){if(button?.disabled)return;if(button)button.disabled=true;message('',modal);try{await fn();}catch(error){message(error.name==='TimeoutError'?'This is taking longer than expected. Please try again.':error.message,modal);}finally{if(button)button.disabled=false;}}
- function showSignedOut(){garage=null;loyalty=null;prefill=null;$('loyaltyBox').hidden=false;$('loyaltyAmount').textContent='5%';$('loyaltyLabel').textContent='back on paid invoices';$('loyaltyNote').textContent='£100 paid earns £5. Sign in to see your bonus.';$('viewLoyalty').textContent='Sign in to view your bonus →';$('accountFooter').hidden=true;$('bookingFrame').removeAttribute('src');$('bookingHost').hidden=true;$('signedin').hidden=true;$('signin').hidden=false;$('modal').close();for(const id of ['vehicleGrid','bookingCars','historyCars','rewardsContent','suggestions','modalBody'])$(id).replaceChildren();$('codeForm').hidden=true;$('emailForm').hidden=false;}
+ function showSignedOut(){garage=null;loyalty=null;prefill=null;bookingTotal=null;$('loyaltyTitle').textContent='Your loyalty bonus';$('loyaltyBox').hidden=false;$('loyaltyAmount').textContent='5%';$('loyaltyLabel').textContent='back on paid invoices';$('loyaltyNote').textContent='£100 paid earns £5. Sign in to see your bonus.';$('viewLoyalty').textContent='Sign in to view your bonus →';$('accountFooter').hidden=true;$('bookingFrame').removeAttribute('src');$('bookingHost').hidden=true;$('signedin').hidden=true;$('signin').hidden=false;$('modal').close();for(const id of ['vehicleGrid','bookingCars','historyCars','rewardsContent','suggestions','modalBody'])$(id).replaceChildren();$('codeForm').hidden=true;$('emailForm').hidden=false;}
  const date=value=>value&&/^\d{4}-\d{2}-\d{2}/.test(value)?value.slice(8,10)+'/'+value.slice(5,7)+'/'+value.slice(0,4):'Add date';
  function plate(reg){return '<span class="plate">'+esc(reg)+'</span>';}
  function carArt(vehicle){const url=vehicle.image_url;return '<div class="carArt"><img src="'+esc(url||'/app/car-placeholder.svg')+'" alt="'+esc(url?vehicle.vehicle_data?.vehicle||'Your vehicle':'Vehicle illustration')+'"'+(url?' data-vehicle-image data-vehicle-crop="tight" data-vehicle-logo="separate" data-registration="'+esc(vehicle.registration)+'" data-colour="'+esc(vehicle.colour||vehicle.vehicle_data?.colour||'')+'"':'')+' loading="lazy">'+(!url?'<small>Illustration</small>':'')+'</div>';}
@@ -32,8 +32,8 @@
   $('suggestions').innerHTML=garage.suggestions?.length?'<p class="small">Cars from your verified booking history — add the ones you still look after:</p>'+garage.suggestions.map(v=>'<button class="quiet" data-suggest="'+esc(v.registration)+'">＋ '+esc(v.registration)+'</button>').join(''):'';
   selectedCar=Math.min(selectedCar,Math.max(0,garage.vehicles.length-1));$('carDots').innerHTML=garage.vehicles.map((v,i)=>'<button aria-label="Show '+esc(v.registration)+'" data-car-index="'+i+'"></button>').join('');requestAnimationFrame(()=>{const card=$('vehicleGrid').children[selectedCar];if(card)$('vehicleGrid').scrollLeft=card.offsetLeft-$('vehicleGrid').children[0].offsetLeft;carouselState();});mountImages();
  }
- async function refresh(){garage=await api('garage-status');render();$('loyaltyAmount').textContent='—';$('loyaltyLabel').textContent='bonus earned';$('loyaltyNote').textContent='Loading your loyalty bonus…';$('viewLoyalty').textContent='View bonus details →';await refreshLoyalty().catch(error=>{if(!garage)return;$('loyaltyAmount').textContent='—';$('loyaltyNote').textContent=error.message;});}
- async function tab(name){if(!garage)return;currentTab=name;for(const view of document.querySelectorAll('.view'))view.hidden=view.id!=='view-'+name;document.querySelectorAll('[data-tab]').forEach(b=>{b.classList.toggle('active',b.dataset.tab===name);if(b.dataset.tab===name)b.setAttribute('aria-current','page');else b.removeAttribute('aria-current');});$('loyaltyBox').hidden=name==='rewards';if(name==='rewards')await rewards();if(name==='book'&&!prefill&&garage.vehicles.length===1)await startBooking(garage.vehicles[0].id);}
+ async function refresh(){garage=await api('garage-status');render();renderLoyalty();await refreshLoyalty().catch(error=>{if(!garage)return;if(currentTab==='book'&&prefill)return;$('loyaltyAmount').textContent='—';$('loyaltyNote').textContent=error.message;});}
+ async function tab(name){if(!garage)return;currentTab=name;for(const view of document.querySelectorAll('.view'))view.hidden=view.id!=='view-'+name;document.querySelectorAll('[data-tab]').forEach(b=>{b.classList.toggle('active',b.dataset.tab===name);if(b.dataset.tab===name)b.setAttribute('aria-current','page');else b.removeAttribute('aria-current');});$('loyaltyBox').hidden=name==='rewards';renderLoyalty();if(name==='rewards')await rewards();if(name==='book'&&!prefill&&garage.vehicles.length===1)await startBooking(garage.vehicles[0].id);}
  function carouselState(){const grid=$('vehicleGrid'),width=grid.clientWidth+18;selectedCar=Math.max(0,Math.min((garage?.vehicles.length||1)-1,Math.round(grid.scrollLeft/width)));$('carouselLabel').textContent=garage?.vehicles.length>1?'Swipe to change cars · '+(selectedCar+1)+' of '+garage.vehicles.length:'Your car, at a glance';$('previousCar').disabled=selectedCar===0;$('nextCar').disabled=selectedCar>=(garage?.vehicles.length||1)-1;document.querySelectorAll('[data-car-index]').forEach((b,i)=>{b.classList.toggle('active',i===selectedCar);b.setAttribute('aria-pressed',String(i===selectedCar));});}
  function scrollCar(index){const grid=$('vehicleGrid'),card=grid.children[index];if(card)grid.scrollTo({left:card.offsetLeft-grid.children[0].offsetLeft,behavior:matchMedia('(prefers-reduced-motion: reduce)').matches?'instant':'smooth'});}
  $('vehicleGrid').addEventListener('scroll',carouselState,{passive:true});$('previousCar').onclick=()=>scrollCar(selectedCar-1);$('nextCar').onclick=()=>scrollCar(selectedCar+1);$('vehicleGrid').onkeydown=e=>{if(e.target!==$('vehicleGrid'))return;if(e.key==='ArrowRight'){e.preventDefault();scrollCar(selectedCar+1);}if(e.key==='ArrowLeft'){e.preventDefault();scrollCar(selectedCar-1);}};
@@ -83,17 +83,33 @@
  function savePdf(data){const bytes=Uint8Array.from(atob(data.base64),c=>c.charCodeAt(0)),url=URL.createObjectURL(new Blob([bytes],{type:'application/pdf'})),a=document.createElement('a');a.href=url;a.download=data.filename;a.rel='noopener';document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),60000);message('Your PDF is ready. Check your phone’s downloads or share menu.',true);}
  async function startBooking(id){const v=garage.vehicles.find(v=>v.id===id);if(!v)return;
   if(prefill&&!confirm('Start a new booking for this car? Any unfinished booking in this page will be discarded.'))return;
-  const data=await api('garage-booking-prefill',{vehicle_id:id});prefill=data;$('modal').close();await tab('book');$('bookingCars').hidden=true;$('bookingHost').hidden=false;$('bookingChange').hidden=false;$('bookingSelected').innerHTML=plate(v.registration)+' '+esc(v.nickname||v.vehicle_data?.vehicle||'Your car');$('bookingIntro').textContent='Choose your work and date. We’ve filled in your details.';
+  const data=await api('garage-booking-prefill',{vehicle_id:id});prefill=data;bookingTotal=null;$('modal').close();await tab('book');$('bookingCars').hidden=true;$('bookingHost').hidden=false;$('bookingChange').hidden=false;$('bookingSelected').innerHTML=plate(v.registration)+' '+esc(v.nickname||v.vehicle_data?.vehicle||'Your car');$('bookingIntro').textContent='Choose your work and date. We’ve filled in your details.';
   const url='/booking?app=1&reg='+encodeURIComponent(v.registration);$('bookingFallback').href=url;$('bookingFrame').src=url;
  }
  // No names, email addresses, telephone numbers or session tokens in iframe URLs.
  // Only the selected same-origin booking frame can receive the verified prefill.
- window.addEventListener('message',event=>{if(event.origin!==location.origin||event.source!==$('bookingFrame').contentWindow||!prefill)return;if(event.data?.type==='vecta-booking-ready')event.source.postMessage({type:'vecta-garage-prefill',...prefill},location.origin);if(event.data?.type==='vecta-booking-confirmed'){message('Booking confirmed. Your garage will update once the workshop record is available.');refresh().catch(()=>{});}});
- $('bookingChange').onclick=()=>{if(!confirm('Change car? This will discard the unfinished booking in this page.'))return;prefill=null;$('bookingFrame').removeAttribute('src');$('bookingCars').hidden=false;$('bookingHost').hidden=true;$('bookingChange').hidden=true;$('bookingIntro').textContent='Choose your car. We’ll fill in your saved details.';};
+ window.addEventListener('message',event=>{if(event.origin!==location.origin||event.source!==$('bookingFrame').contentWindow||!prefill)return;if(event.data?.type==='vecta-booking-ready')event.source.postMessage({type:'vecta-garage-prefill',...prefill},location.origin);if(event.data?.type==='vecta-booking-total'){const data=event.data,reg=value=>String(value||'').toUpperCase().replace(/[^A-Z0-9]/g,'');if(reg(data.registration)===reg(prefill.registration)&&Number.isSafeInteger(data.pence)&&data.pence>=0&&typeof data.pending==='boolean'){bookingTotal={pence:data.pence,pending:data.pending};renderLoyalty();}}if(event.data?.type==='vecta-booking-confirmed'){message('Booking confirmed. Your garage will update once the workshop record is available.');refresh().catch(()=>{});}});
+ $('bookingChange').onclick=()=>{if(!confirm('Change car? This will discard the unfinished booking in this page.'))return;prefill=null;bookingTotal=null;renderLoyalty();$('bookingFrame').removeAttribute('src');$('bookingCars').hidden=false;$('bookingHost').hidden=true;$('bookingChange').hidden=true;$('bookingIntro').textContent='Choose your car. We’ll fill in your saved details.';};
  const money=pence=>new Intl.NumberFormat('en-GB',{style:'currency',currency:'GBP'}).format(pence/100);
  function loyaltyNote(data){return data.active?'5% of your paid invoices since '+date(data.starts_on)+'. Bonus redemption is not enabled yet.':data.starts_on?'Earning starts '+date(data.starts_on)+'.':'Earning starts when the app launches. Previous spending is not included.';}
+ function renderLoyalty(){
+  if(!garage)return;
+  const booking=currentTab==='book'&&prefill;
+  $('loyaltyTitle').textContent=booking?'Your booking bonus':'Your loyalty bonus';
+  $('viewLoyalty').textContent='View earned bonus details →';
+  if(booking){
+   const pence=bookingTotal?.pence||0,partial=bookingTotal?.pending,bonus=money(Math.round(pence*5/100));
+   $('loyaltyAmount').textContent=pence>0?bonus:'5%';
+   $('loyaltyLabel').textContent=pence>0?partial?'estimated bonus so far':'from this booking':'back on this booking';
+   $('loyaltyNote').textContent=pence>0?(partial?'Estimated bonus so far: '+bonus+'.':'You will earn '+bonus+' from this booking.')+' Based on '+money(pence)+' including VAT'+(partial?' of priced work so far':'')+'. Added after payment; guide prices and their bonus remain estimates.':'Choose your work to see how much bonus you will earn. Your bonus is added after payment.';
+   return;
+  }
+  $('loyaltyAmount').textContent=loyalty?money(loyalty.earned_bonus_pence):'—';
+  $('loyaltyLabel').textContent='bonus earned';
+  $('loyaltyNote').textContent=loyalty?loyaltyNote(loyalty):'Loading your loyalty bonus…';
+ }
  async function refreshLoyalty(){
-  const data=await api('garage-rewards');loyalty=data;$('loyaltyAmount').textContent=money(data.earned_bonus_pence);$('loyaltyNote').textContent=loyaltyNote(data);return data;
+  const data=await api('garage-rewards');loyalty=data;renderLoyalty();return data;
  }
  async function rewards(){
   const data=await refreshLoyalty();
