@@ -21,6 +21,12 @@
     if(job.visit_presence_date===job.booking_date&&job.visit_presence==='missing')return 'missing';
     return 'waiting';
   }
+  function invoiceMessage(body,invoice,job){
+    const billing=invoiceState(invoice,job||{id:invoice.job_id,registration:invoice.registration});
+    const collected=job&&job.visit_presence==='collected'&&job.visit_presence_date===job.booking_date;
+    body=body.replace('We have completed the work on your car.',collected?'Your car has been collected.':'Work is complete and your car is ready to collect.');
+    return billing==='paid'?body.replace('We will send a payment link from BeePaid via text message shortly…','Your invoice has been paid.'):body;
+  }
   const dayFormat=new Intl.DateTimeFormat('en-CA',{timeZone:'Europe/London',year:'numeric',month:'2-digit',day:'2-digit'});
-  root.VectaVisitRules={labels,state,invoiceState,today:()=>dayFormat.format(new Date())};
+  root.VectaVisitRules={labels,state,invoiceState,invoiceMessage,today:()=>dayFormat.format(new Date())};
 })(globalThis);

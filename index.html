@@ -13207,15 +13207,7 @@ var vectaRenderInvoiceLookup=null,vectaRenderActiveInvoices=null,vectaRenderCont
 function deferPlannerRender(options){window.VectaPlannerRules.deferRender(options,render)}
 function updatePlannerContent(container,markup){
   var changed=window.VectaPlannerRules.updateContent(container,markup);
-  if(!window.VECTA_MECHANIC_DEPLOYMENT&&window.VectaVisitBoard)window.VectaVisitBoard.paint(container,{
-    date:selectedIso(),jobs:app.jobs||[],invoices:app.invoices||[],website:isWebsiteBookingJob,
-    excluded:function(j){return vectaJobIsDeletedForLists(j)||isVehicleTaxJob(j)},
-    staff:function(j){return String(fleetIncomeCustomerForJob(j)||j.customer_account||'Staff').toUpperCase()==='STAFF'},
-    finish:function(j,action){openJobModal(j.id);var control=document.getElementById(action==='complete'?'markComplete':'createInvoiceFromJob');if(control&&control.style.display!=='none')control.click();else if(action==='create_invoice'){var ready=document.getElementById('markReady');if(ready)ready.click()}},
-    openJob:openJobModal,openInvoice:openInvoice,paymentList:openFinancialInvoiceList,notice:showPlannerAvailabilityNotice,
-    apply:function(saved){var job=app.jobs.find(function(j){return j.id===saved.id});if(job)Object.assign(job,saved);saveLocal()},
-    refresh:scheduleCloudRefresh,render:render
-  });
+  if(window.VectaVisitBoard)window.VectaVisitBoard.update(container,selectedIso(),app,{isWebsiteBookingJob,vectaJobIsDeletedForLists,isVehicleTaxJob,fleetIncomeCustomerForJob,openJobModal,openInvoice,openFinancialInvoiceList,showPlannerAvailabilityNotice,saveLocal,scheduleCloudRefresh,render});
   return changed;
 }
 var renderInProgress=false;function render(){var renderOptions=arguments[0]||{};if(view==='planner'&&((typeof plannerInteractionBusy!=='undefined'&&plannerInteractionBusy)||window.__vectaPlannerPointerHeld)){deferPlannerRender(renderOptions);return;}if(document.body.classList.contains('vectaStartupLoading')||renderInProgress)return;renderInProgress=true;try{safe(function(){vectaRenderInvoiceLookup=vectaCreateInvoiceLookup();var taskList=document.querySelector('.taskList'),taskScroll=taskList?taskList.scrollTop:0;
@@ -16596,12 +16588,7 @@ function invoiceCustomerNotification(inv,invoiceUrl){
   if(phone.indexOf('0044')===0)phone=phone.slice(2);else if(phone.indexOf('0')===0)phone='44'+phone.slice(1);
   var mobile=/^447\d{9}$/.test(phone),reg=fleetInvoiceFormatRegistration(inv.registration||(job&&job.registration)||'');
   var body=account==='STAFF'?'Hi '+(recipient.name.trim().split(/\s+/)[0]||'Customer')+',\n\nWe have completed the work on your car. The total price is £'+Number(inv.total||0).toFixed(2)+'.\n\nYou can view your invoice here:\n'+(invoiceUrl||'')+'\n\nWe will send a payment link from BeePaid via text message shortly… Thank you for your custom.':'Hi '+(recipient.name.split(/\s+/)[0]||'Customer')+'. The work on your car ('+reg+') is complete. It is ready to collect from our workshop.'+(invoiceUrl?'\n\nView or download your invoice PDF: '+invoiceUrl:'');
-  if(account==='STAFF'&&window.VectaVisitRules){
-    var billing=window.VectaVisitRules.invoiceState(inv,job||{id:inv.job_id,registration:inv.registration});
-    var collected=job&&job.visit_presence==='collected'&&job.visit_presence_date===job.booking_date;
-    body=body.replace('We have completed the work on your car.',collected?'Your car has been collected.':'Work is complete and your car is ready to collect.');
-    if(billing==='paid')body=body.replace('We will send a payment link from BeePaid via text message shortly…','Your invoice has been paid.');
-  }
+  if(account==='STAFF'&&window.VectaVisitRules)body=window.VectaVisitRules.invoiceMessage(body,inv,job);
   var emailBody=account==='STAFF'?body:(typeof appendVectaEmailSignature==='function'?appendVectaEmailSignature(body):body);
   var device=typeof navigator==='undefined'?{}:navigator,useWhatsAppApp=/Android|iPhone|iPad|iPod/i.test(device.userAgent||'')||(device.platform==='MacIntel'&&device.maxTouchPoints>1);
   var whatsappBase=useWhatsAppApp?'https://wa.me/'+phone+'?text=':'https://web.whatsapp.com/send?phone='+phone+'&text=';

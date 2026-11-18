@@ -85,5 +85,22 @@
     }
     for(const card of previous.values())card.remove();
   }
-  root.VectaVisitBoard={paint};
+  function update(container,date,app,ui){
+    if(root.VECTA_MECHANIC_DEPLOYMENT||document.querySelector('meta[name="vecta-mechanic-build"]'))return;
+    paint(container,{
+      date,jobs:app.jobs||[],invoices:app.invoices||[],website:ui.isWebsiteBookingJob,
+      excluded:job=>ui.vectaJobIsDeletedForLists(job)||ui.isVehicleTaxJob(job),
+      staff:job=>String(ui.fleetIncomeCustomerForJob(job)||job.customer_account||'Staff').toUpperCase()==='STAFF',
+      finish(job,action){
+        ui.openJobModal(job.id);
+        const control=document.getElementById(action==='complete'?'markComplete':'createInvoiceFromJob');
+        if(control&&control.style.display!=='none')control.click();
+        else if(action==='create_invoice')document.getElementById('markReady')?.click();
+      },
+      openJob:ui.openJobModal,openInvoice:ui.openInvoice,paymentList:ui.openFinancialInvoiceList,notice:ui.showPlannerAvailabilityNotice,
+      apply(saved){const job=app.jobs.find(job=>job.id===saved.id);if(job)Object.assign(job,saved);ui.saveLocal();},
+      refresh:ui.scheduleCloudRefresh,render:()=>ui.render({fromCloud:true})
+    });
+  }
+  root.VectaVisitBoard={update};
 })(globalThis);
