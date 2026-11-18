@@ -4,13 +4,16 @@ import fs from 'node:fs';
 import vm from 'node:vm';
 import {parseHTML} from 'linkedom';
 import {mechanicVariant} from '../../scripts/mechanic-variant.mjs';
+import '../../public/js/vecta-dashboard-parts.js';
 const html=fs.readFileSync('index.html','utf8');
 function setup(source){
  const names=['calculatedPartsStatus','normalisePartsStatus','partsStoredStatus','partsStatusFromJob','partsStatusClass','partsStatusDot','mobileJobCategoryLabel','mobileJobCardHtml'];
  const code=names.map(name=>{const start=source.indexOf('function '+name+'(');const end=source.indexOf('\nfunction ',start+1);return source.slice(start,end);}).join('\n');
  const c={esc:s=>String(s??'').replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('"','&quot;'),jobParts:j=>j.parts||[],mobileMotAppointmentHtml:()=>'<span class="mobileMotAppointment">MOT 10:00</span>',jobTypeLabels:()=>['Full Service'],normaliseJobTypeKey:s=>s.toLowerCase(),jobTypeChip:()=>'<span>Full Service</span>',plannerJobDescription:j=>j.work_required||'',isWebsiteBookingJob:j=>!!j.website,jobTypeInlineStyle:()=>'',plannerPlate:()=>'<span class="plannerPlateWrap"><button class="ukPlate">AB12 CDE</button></span>',plannerVehicleLabel:()=> 'Nissan Qashqai',fleetIncomeCustomerForJob:j=>j.customer_account,fleetNmukTypeFromVehicle:()=>'',PARTS_STATUS_VALUES:['','Not required','Parts need ordering','Awaiting parts','Parts here'],carryOverBadgeHtml:()=>''};
  c.dashboardJobTitle=j=>j.work_required||'';c.mechanicWorkView=j=>({board:j.work_required||''});c.plannerTechnicianLane=value=>value==='Other'?'Chris':value;
- vm.createContext(c);vm.runInContext(code,c);return c;
+ vm.createContext(c);vm.runInContext(code,c);
+ c.dashboardParts=globalThis.VectaDashboardParts.create({...c,values:c.PARTS_STATUS_VALUES});
+ return c;
 }
 for(const [variant,source] of [['Main',html],['mechanics',mechanicVariant(html)]]){
  test(variant+' phone cards have one editable parts light at the card edge',()=>{
@@ -58,26 +61,26 @@ test('phone assignment never exposes quotes on a mechanics deployment',()=>{
 
 test('dashboard updates use the saved job, retain part costs and notes and recover from write failures',async()=>{
  const c=setup(html),written=[],alerts=[];
- Object.assign(c,{alert:text=>alerts.push(text),document:{querySelectorAll:()=>[]},saveLocal:()=>{},render:()=>{},dashboardPartsSaving:new Set(),upsertRemote:async(_table,next,options)=>{written.push({next,options});return [{id:next.id}]}});
+ Object.assign(c,{alert:text=>alerts.push(text),document:{querySelectorAll:()=>[]},saveLocal:()=>{},render:()=>{},upsertRemote:async(_table,next,options)=>{written.push({next,options});return [{id:next.id}]}});
  for(const name of ['jobParts','noteWithJobParts','partsStatusNote']){
   const start=html.indexOf('function '+name+'(');vm.runInContext(html.slice(start,html.indexOf('\nfunction ',start+1)),c);
  }
- vm.runInContext(html.slice(html.indexOf('function bindDashboardPartsControls('),html.indexOf('function bindPartsOrdering(')),c);
+ const controls=globalThis.VectaDashboardParts.create({...c,values:c.PARTS_STATUS_VALUES,jobs:()=>c.app.jobs,persist:(next,options)=>c.upsertRemote('jobs',next,options)});
  const rows=['Oil filter','Air filter'].map((description,i)=>({description,id:String(i),quantity:1,cost_price:12.5,ordered:i===0,arrived:i===0}));
  const job={id:'sample',customer_note:c.noteWithJobParts('Keep this note',rows),amount_quoted:140};
  c.app={jobs:[job]};
- await c.saveDashboardPartsStatus('sample','Awaiting parts');
+ await controls.save('sample','Awaiting parts');
  assert.equal(c.partsStatusFromJob(job),'Awaiting parts');
  assert.deepEqual(Array.from(c.jobParts(job),p=>[p.ordered,p.arrived]),[[true,true],[true,false]]);
  assert.equal(written.length,1);assert.notEqual(written[0].options.expectedRemoteRow.customer_note,job.customer_note);
  for(const state of ['Parts here','Not required','Parts need ordering']){
-  await c.saveDashboardPartsStatus('sample',state);
+  await controls.save('sample',state);
   assert.equal(c.partsStatusFromJob({customer_note:job.customer_note}),state);
   assert.deepEqual(Array.from(c.jobParts(job),p=>p.cost_price),[12.5,12.5]);
   assert.match(job.customer_note,/Keep this note/);assert.equal(job.amount_quoted,140);
  }
  const before=JSON.stringify(job);
- c.upsertRemote=async()=>{throw Error('Save failed')};await c.saveDashboardPartsStatus('sample','Awaiting parts');
- c.upsertRemote=async()=>[{vecta_conflict_skipped:true}];await c.saveDashboardPartsStatus('sample','Parts here');
- assert.equal(alerts.length,2);assert.equal(JSON.stringify(job),before);assert.equal(c.dashboardPartsSaving.size,0);
+ c.upsertRemote=async()=>{throw Error('Save failed')};await controls.save('sample','Awaiting parts');
+ c.upsertRemote=async()=>[{vecta_conflict_skipped:true}];await controls.save('sample','Parts here');
+ assert.equal(alerts.length,2);assert.equal(JSON.stringify(job),before);
 });

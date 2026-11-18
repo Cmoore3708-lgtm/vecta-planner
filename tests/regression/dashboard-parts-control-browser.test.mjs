@@ -11,6 +11,8 @@ import {parseHTML} from 'linkedom';
 import {mechanicVariant} from '../../scripts/mechanic-variant.mjs';
 import {main,summaryContext} from './website-job-summary.test.js';
 
+import '../../public/js/vecta-dashboard-parts.js';
+
 function fixture(variant,width,sidebar){
   const src=variant==='mechanic'?mechanicVariant(main):main;
   const c=summaryContext(src,variant==='mechanic');
@@ -20,6 +22,7 @@ function fixture(variant,width,sidebar){
     const start=src.indexOf('function '+name+'(');
     vm.runInContext(src.slice(start,src.indexOf('\nfunction ',start+1)).split('\nvar PARTS_STATUS_VALUES')[0],c);
   }
+  c.dashboardParts=globalThis.VectaDashboardParts.create({...c,values:c.PARTS_STATUS_VALUES});
   const j={id:'sample',customer_account:'Staff',customer_name:'Alexandrianna Smith',technician:'Alfie',job_type:'Other',registration:'AB12ABC',
     vehicle:'Nissan Qashqai',parts_status:'Parts need ordering',work_required:'Check brakes',estimated_hours:1,source:'website booking'};
   let body;
