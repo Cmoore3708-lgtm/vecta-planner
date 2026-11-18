@@ -14,3 +14,10 @@
 .visitHandoverCard{display:inline-flex;align-items:center;flex-wrap:wrap;gap:4px 8px;padding:3px 6px;border-radius:7px;margin:2px;background:#f3f6f7}
 .visitHandoverCard.visitWebsite{background:#d9efff}
 .visitHandoverIdentity{padding:2px;border:0;background:transparent;color:#142435;font:650 12px system-ui;cursor:pointer}
+
+@media screen and (min-width:769px){
+ #content .livePriorityPlanner .plannerGrid .lane .job:not(.miniPlannerTask) .plannerWorkRequired{font-size:13px!important}
+ #content .livePriorityPlanner .plannerGrid .lane .job.plannerJobMedium .plannerWorkRequired{font-size:12px!important}
+ #content .livePriorityPlanner .plannerGrid .lane .job.plannerJobCompact .plannerWorkRequired{font-size:11px!important}
+ #content .job.plannerArtworkWrapped .plannerWorkRequired,#content .sideJob.plannerArtworkWrapped>b{padding-right:0!important}
+}

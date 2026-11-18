@@ -19,6 +19,13 @@ test('outline follows windscreen/bonnet edges and releases clear space above and
  assert.ok(shape.some(([x,y])=>x===100&&y===96),'text can use the full row below the wheels');
  assert.ok(shape.every(([x,y])=>x>=0&&x<=100&&y>=0&&y<=100));
 });
+test('the status dropdown only reserves space on the rows it occupies',()=>{
+ const base=points(polygon(profile,geometry));
+ const wrapped=points(polygon(profile,{...geometry,control:{left:35,top:88,bottom:100}}));
+ assert.deepEqual(wrapped.filter(([,y])=>y<84),base.filter(([,y])=>y<84));
+ assert.ok(wrapped.some(([x,y])=>y===80&&x===100),'full width below the wheels');
+ assert.ok(wrapped.some(([x,y])=>y===94&&x===35),'last lines clear the dropdown');
+});
 test('scrolling anchors the outline to the stationary car and resize scales its silhouette',()=>{
  const base=points(polygon(profile,geometry)),scrolled=points(polygon(profile,{...geometry,scrollTop:30}));
  assert.ok(base.some(([x,y])=>x===4&&y===42));assert.ok(scrolled.some(([x,y])=>x===4&&y===72));
