@@ -36,12 +36,15 @@ export async function sendBookingBadges(){
     pushConfig();
     const [subscriptions,pending]=await Promise.all([supabaseRest('workshop_push_subscriptions?select=endpoint,subscription&audience=eq.manager'),supabaseRest('website_booking_requests?select=id&or=(status.is.null,status.eq.awaiting_review)&reviewed_at=is.null')]);
     const count=Array.isArray(pending)?pending.length:0,payload=JSON.stringify({title:'New VECTA website booking',body:'A new customer booking is waiting for review.',count,url:'/?view=websiteRequests'});
-    await Promise.allSettled((subscriptions||[]).map(async row=>{
+    const deliveries=await Promise.allSettled((subscriptions||[]).map(async row=>{
       try{await webpush.sendNotification(row.subscription,payload,{timeout:5000})}catch(error){
         if(error&&[404,410].includes(error.statusCode)){await supabaseRest(`workshop_push_subscriptions?endpoint=eq.${encodeURIComponent(row.endpoint)}`,{method:'DELETE'}).catch(()=>{});return}
         throw error;
       }
     }));
+    for(const delivery of deliveries){
+      if(delivery.status==='rejected')console.warn('Website booking push failed',delivery.reason?.statusCode||delivery.reason?.code||'unknown');
+    }
   }catch(error){console.warn('Website booking badge delivery skipped',error&&error.message||error)}
 }
 
