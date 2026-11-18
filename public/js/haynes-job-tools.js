@@ -276,6 +276,7 @@ function plannerArtworkPolygon(profile,box){
   // Include a small vertical clearance as well, so letters never touch the body or wheels.
   const first=Math.floor((y-imageTop-clearance)/imageHeight*profile.height),last=Math.ceil((y-imageTop+clearance+2)/imageHeight*profile.height);
   for(let row=Math.max(0,first);row<=Math.min(profile.height-1,last);row++)if(profile.left[row]<profile.width)left=Math.min(left,imageLeft+profile.left[row]/profile.width*imageWidth-clearance);
+  if(box.control&&y+2>=box.control.top&&y<=box.control.bottom)left=Math.min(left,box.control.left);
   points.push([Math.max(0,Math.min(width,left)),Math.min(extent,y+scrollTop)]);
  }
  const point=p=>p.map(v=>Math.round(v*10)/10+'px').join(' ');
@@ -343,8 +344,11 @@ function trackTimedArtwork(card,img){
   if(!exclusion){exclusion=document.createElement('span');exclusion.className='plannerArtworkExclusion';exclusion.setAttribute('aria-hidden','true');work.prepend(exclusion);}
   const textBox=work.getBoundingClientRect();
   // Dashboard artwork uses object-position:right top; the float occupies that same coordinate space.
-  const width=Math.max(0,Math.min(textBox.width,textBox.right-(box.right-drawnWidth)+6));
+  const control=card.querySelector('.visitSelector')?.getBoundingClientRect();
+  const leftEdge=Math.min(box.right-drawnWidth,control?.left??Infinity);
+  const width=Math.max(0,Math.min(textBox.width,textBox.right-leftEdge+6));
   const geometry={width,height:sidebar?Math.max(0,box.top+drawnHeight-textBox.top+6):work.clientHeight,scrollTop:sidebar?0:work.scrollTop,imageLeft:box.right-drawnWidth-(textBox.right-width),imageTop:box.top-textBox.top,imageWidth:drawnWidth,imageHeight:drawnHeight};
+  if(control)geometry.control={left:control.left-(textBox.right-width)-4,top:control.top-textBox.top-3,bottom:control.bottom-textBox.top+3};
   const shape=plannerArtworkPolygon(profile,geometry);
   exclusion.style.width=width+'px';exclusion.style.height=Math.ceil(geometry.height+geometry.scrollTop)+'px';
   if(exclusion.style.shapeOutside!==shape)exclusion.style.shapeOutside=shape;
