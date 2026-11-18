@@ -6,8 +6,9 @@
 [data-visit-state="paid"],[data-visit-state="ready"]{--visit-colour:#198544}
 #content [data-visit-state][data-visit-state]{--website-frame-colour:var(--visit-colour);border:3px solid var(--visit-colour)!important}
 .visitSelector{position:relative;z-index:6;display:block;max-width:100%;width:fit-content;min-height:23px;height:23px;padding:0 2px;border:1px solid var(--visit-colour);border-radius:4px;background:#fff;color:#17232b;font:600 11px/1.1 system-ui;cursor:pointer}
-[data-job-id][draggable="true"]>.visitSelector{position:absolute;left:4px;bottom:5px;max-width:56%}
-[data-open-job]>.visitSelector{margin:2px 0 0;max-width:63%}
+#content [data-visit-state] .dashboardPartsControl{top:0;right:0;bottom:auto}
+#content [data-visit-state]:is([data-job-id],[data-open-job])>.visitSelector{position:absolute;right:3px;bottom:3px;left:auto;margin:0;width:78px;max-width:45%}
+#content .job[data-visit-state] .plannerWorkRequired,#content .mobilePlanner .mobileJob[data-visit-state]>b,#content .sideJob[data-visit-state]>b{box-sizing:border-box;padding-right:85px!important}
 .visitOverflow{margin:5px 0;padding:7px 10px;border:1px solid #cbd5df;border-radius:9px;background:#fff;color:#18242f}
 .visitOverflow h3{font:700 13px system-ui;margin:0 0 4px}
 .visitHandoverCard{display:inline-flex;align-items:center;flex-wrap:wrap;gap:4px 8px;padding:3px 6px;border-radius:7px;margin:2px;background:#f3f6f7}

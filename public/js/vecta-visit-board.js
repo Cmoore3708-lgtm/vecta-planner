@@ -15,6 +15,7 @@
     if(state==='collected')return ['collected','undo_collection'];
     return [state,...(state==='due'?['record_payment']:[]),'collected'];
   }
+  const compact={missing:'Not here',waiting:'Waiting',underway:'Workshop',checking:'Done',due:'Done',paid:'Done',ready:'Done',collected:'Collected',create_invoice:'Done',complete:'Done'};
   const actions={create_invoice:'Create invoice…',record_payment:'Record payment…',undo_collection:'Undo collection',complete:'Complete job…'};
   function mount(card,row,context){
     card.dataset.visitState=row.state;
@@ -43,7 +44,7 @@
     }
     const options=choices(row),signature=options.join(',');
     if(select.dataset.options!==signature){
-      select.replaceChildren(...options.map(value=>new Option(actions[value]||rules.labels[value],value)));
+      select.replaceChildren(...options.map(value=>new Option((row.state==='checking'&&actions[value])||compact[value]||actions[value]||rules.labels[value],value)));
       select.dataset.options=signature;
     }
     select.value=row.state;select.disabled=busy.has(row.job.id);select.visitControl={row,context};
