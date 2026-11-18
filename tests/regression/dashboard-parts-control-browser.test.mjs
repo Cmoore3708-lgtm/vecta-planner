@@ -25,7 +25,7 @@ function fixture(variant,width,sidebar){
   let body;
   if(variant==='mechanic')body='<div class="mechanicBoard"><section class="mechanicJobList">'+c.mechanicJobCardHtml(j)+'</section></div>';
   else if(width<=768)body='<div class="mobilePlanner"><div class="mobileGroup">'+c.mobileJobCardHtml(j)+'</div></div>';
-  else if(sidebar)body='<div class="livePriorityBacklog" style="width:330px"><div class="unallocatedPanel">'+c.unallocatedJobCardHtml(j)+'</div></div>';
+  else if(sidebar)body='<div class="plannerLayout v233Planner livePriorityPlanner"><div class="plannerCard" style="height:420px"></div><div class="livePriorityBacklog"><aside class="panel unallocatedPanel"><div class="unallocatedJobList">'+c.unallocatedJobCardHtml(j)+'</div></aside></div></div>';
   else body='<div class="livePriorityPlanner"><div class="plannerGrid"><div class="lane" style="width:330px;height:320px">'+c.jobCardHtml(j)+'</div></div></div>';
 
   const {document}=parseHTML(src);
@@ -53,7 +53,7 @@ function checkLayout(){
     if(Math.abs(r.right-a.right)>10||Math.abs(r.bottom-a.bottom)>10)errors.push('parts control corner');
     control.scrollIntoView({block:'center',inline:'center'});
     const hit=control.getBoundingClientRect();
-    if(document.elementFromPoint(hit.x+hit.width/2,hit.y+hit.height/2)!==control)errors.push('parts control covered');
+    if(document.elementFromPoint(hit.x+hit.width/2,hit.y+hit.height/2)!==control)errors.push('parts control covered by '+document.elementFromPoint(hit.x+hit.width/2,hit.y+hit.height/2)?.className+' at '+JSON.stringify(hit));
     parent.postMessage(errors.join(' / ')||'PASS','*');
   };
 }
