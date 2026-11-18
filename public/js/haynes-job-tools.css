@@ -554,3 +554,9 @@
 @media(max-width:768px){
  #content .dashboardPartsControl{width:36px;height:36px;right:0;bottom:0}
 }
+
+@media screen and (max-width:768px){
+ #content .mobilePlanner .mobileJob{container-type:inline-size}
+ #content .mobilePlanner .mobileJobTop .mobilePlateAndParts{position:relative;z-index:2;width:100cqi;max-width:none}
+ #content .mobilePlanner .mobileJobTop .mobileJobCategory{font-size:12px!important;white-space:normal!important;overflow-wrap:anywhere;text-overflow:clip}
+}

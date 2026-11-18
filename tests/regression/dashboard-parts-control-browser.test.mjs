@@ -52,7 +52,13 @@ function checkLayout(){
     const n=name.getBoundingClientRect(),a=card.getBoundingClientRect(),i=image.getBoundingClientRect(),r=control.getBoundingClientRect();
     const errors=[];
     if(name.textContent!=='Alexandrianna'||n.width<18||n.x<plate.right-1||n.y>=plate.bottom)errors.push('name placement '+JSON.stringify([n,plate]));
-    if(card.matches('.mobileJob,.unallocatedSideJob')&&n.right>i.x+1&&n.bottom>i.y+1&&n.x<i.right&&n.y<i.bottom)errors.push('name touches artwork');
+    // The phone name may extend into the image background; its letters must remain visible.
+    if(card.closest('.mobilePlanner')){
+      const range=document.createRange();range.selectNodeContents(name);
+      for(const rect of range.getClientRects()){
+        if(rect.right>n.right+1||rect.bottom>n.bottom+1||!name.contains(document.elementFromPoint(rect.right-1,rect.y+rect.height/2)))errors.push('phone name clipped or covered');
+      }
+    }else if(card.matches('.mobileJob,.unallocatedSideJob')&&n.right>i.x+1&&n.bottom>i.y+1&&n.x<i.right&&n.y<i.bottom)errors.push('name touches artwork');
     if(Math.abs(r.right-a.right)>10||Math.abs(r.bottom-a.bottom)>10)errors.push('parts control corner');
     control.scrollIntoView({block:'center',inline:'center'});
     const hit=control.getBoundingClientRect();
