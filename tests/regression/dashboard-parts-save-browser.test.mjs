@@ -19,13 +19,13 @@ test('parts light saves from the running planner and survives phone reopening an
   const today=new Date().toISOString().slice(0,10);
   const seed={settings:{mechanics:['Alfie','Chris']},jobs:[{id:jobId,customer_account:'Staff',customer_name:'Alexandra Smith',registration:'QA12ABC',technician:'Alfie',
     booking_date:today,drop_time:'09:00',status:'booked',estimated_hours:1,job_type:'Other',card_type:'job',
-    vehicle:'Nissan Qashqai',work_required:'Check brakes',amount_quoted:55,customer_note:'Keep this note\n[[PARTS_STATUS:Parts need ordering]]'}]};
+    vehicle:'BMW 120',work_required:'Check brakes',amount_quoted:55,customer_note:'Keep this note\n[[PARTS_STATUS:Parts need ordering]]'}]};
   try{
     for(const [device,mechanics] of [['Desktop Chrome',false],['iPhone 13',false],['iPad (gen 7)',true]]){
       const context=await browser.newContext({...devices[device],serviceWorkers:'block',timezoneId:'Europe/London'});
       try{
         await context.addInitScript(({storeKey,seed})=>{
-          if(!localStorage.getItem('synthetic-parts-job')){localStorage.setItem(storeKey,JSON.stringify(seed));localStorage.setItem('synthetic-parts-job','1');}
+          localStorage.setItem('vecta_haynes_artwork_v1',JSON.stringify([{registration:'QA12ABC',make:'BMW',model:'1 (F20, F21)',imageUrl:'https://www.haynespro-assets.com/workshop/images/319003265.svgz'}]));if(!localStorage.getItem('synthetic-parts-job')){localStorage.setItem(storeKey,JSON.stringify(seed));localStorage.setItem('synthetic-parts-job','1');}
         },{storeKey,seed});
         await context.route('**/*',async route=>{
           const url=new URL(route.request().url());
@@ -51,6 +51,13 @@ test('parts light saves from the running planner and survives phone reopening an
           throw new Error(device+' '+JSON.stringify({diagnostic,errors}),{cause:error});
         }
         assert.equal(await control.inputValue(),'Parts need ordering',device);
+        if(device==='iPhone 13'){
+          const card=page.locator('.mobilePlanner .mobileJob[data-open-job="'+jobId+'"]:visible').first();
+          await card.locator('img[data-haynes-source$="319003265.svgz"]').waitFor();
+          const name=card.locator('.mobileJobCategory');
+          assert.equal(await name.textContent(),'Alexandra');
+          assert.ok(await name.evaluate(el=>el.clientWidth>=el.scrollWidth && el.clientWidth>70));
+        }
         await control.click();await page.keyboard.press('Escape');
         await control.selectOption('Awaiting parts');
         await page.waitForFunction(({storeKey,jobId})=>JSON.parse(localStorage.getItem(storeKey)).jobs.find(j=>j.id===jobId)?.parts_status==='Awaiting parts',{storeKey,jobId});
