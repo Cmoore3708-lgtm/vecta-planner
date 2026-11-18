@@ -51,7 +51,7 @@
     select.title=rules.labels[row.state];
   }
   function paint(container,context){
-    if(root.VECTA_MECHANIC_DEPLOYMENT)return;
+    if(root.VECTA_MECHANIC_DEPLOYMENT||document.querySelector('meta[name="vecta-mechanic-build"]'))return;
     const today=rules.today(),existing=container.querySelector('.visitOverflow');
     if(context.date!==today){existing?.remove();for(const card of container.querySelectorAll('[data-visit-state]')){delete card.dataset.visitState;card.querySelector('.visitSelector')?.remove();}return;}
     const invoices=new Map();

@@ -23,7 +23,7 @@ test('morning checks, invoice handover and website colours survive reopening acr
         await context.route('**/*',async route=>{
           const url=new URL(route.request().url());
           if(url.origin!==origin)return route.abort();
-          if(url.pathname==='/')return route.fulfill({contentType:'text/html',body:owner?main:mechanic});
+          if(url.pathname==='/'||url.pathname==='/mechanic.html')return route.fulfill({contentType:'text/html',body:owner?main:mechanic});
           if(url.pathname==='/api/job-progress'&&route.request().postDataJSON()?.action==='visit-status'){
             const body=route.request().postDataJSON();return route.fulfill({json:{job:{id:body.job_id,status:'booked',visit_presence:body.visit_state,visit_presence_date:date}}});
           }
@@ -33,7 +33,7 @@ test('morning checks, invoice handover and website colours survive reopening acr
           return route.fulfill({status:404,body:''});
         });
         const page=await context.newPage();
-        await page.goto(origin,{waitUntil:'domcontentloaded'});
+        await page.goto(origin+(owner?'/':'/mechanic.html'),{waitUntil:'domcontentloaded'});
         const card=page.locator('[data-job-id="'+job.id+'"]:visible,[data-open-job="'+job.id+'"]:visible').first();
         await card.waitFor({timeout:20000});
         if(!owner){assert.equal(await page.locator('.visitSelector').count(),0);continue;}
