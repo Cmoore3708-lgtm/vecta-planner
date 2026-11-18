@@ -27,7 +27,8 @@ test('statuses distinguish mechanic completion from readiness; reopening removes
   const stage=status=>progressSnapshot({...job,status},{account:'Staff',now});
   assert.equal(stage('booked').stage,'waiting');assert.equal(stage('in_progress').stage,'underway');
   assert.equal(stage('work_complete').stage,'checking');assert.match(stage('work_complete').description,/Please wait/);
-  assert.equal(stage('ready_to_invoice').stage,'ready');assert.match(stage('completed').title,/payment/);
+  assert.equal(stage('ready_to_invoice').stage,'checking');assert.doesNotMatch(stage('completed').title,/payment/);
+  assert.match(progressSnapshot({...job,status:'completed',visit_billing:'due'},{account:'Staff',now}).title,/payment/);
   assert.doesNotMatch(progressSnapshot({...job,status:'completed'},{account:'NMUK',now}).title,/payment/);
   assert.equal(stage('booked').stage,'waiting');
   assert.equal(progressSnapshot({...job,booking_date:'2026-11-04'},{now}).stage,'scheduled');

@@ -9267,6 +9267,9 @@ window.CONTRACTOR_2026_NEW_VEHICLES=[{"id":"CONTRACTOR|RV63SYG","fleetGroup":"Co
 <script src="/js/vecta-device-notifications.js"></script>
 <script src="/js/vecta-message-summary.js" defer></script><script src="/js/vecta-portal-workshop.js" defer></script>
 <link rel="stylesheet" href="/js/vecta-portal-workshop.css">
+<script src="/js/vecta-visit-rules.js"></script>
+<script src="/js/vecta-visit-board.js" defer></script>
+<link rel="stylesheet" href="/js/vecta-visit-board.css">
 <link rel="stylesheet" href="/js/vecta-parts-reminder.css">
 <script src="/js/vecta-parts-reminder.js" defer></script>
 <script src="/js/calendar-job-popup.js" defer></script>
@@ -9686,6 +9689,7 @@ function carryOverBadgeHtml(j){
   return '';
 }
 function shouldCarryOverJob(j,today){
+  if(j&&j.visit_presence==='missing'&&j.visit_presence_date===j.booking_date)return false;
   if(!j||j.archived||vectaJobIsDeletedForLists(j)||jobCompletionEvidence(j))return false;
   if(j.card_type==='mini_task'||j.card_type==='waiting'||j.card_type==='multi_day')return false;
   if(String(j.source||'').indexOf('task:')===0)return false;
@@ -10579,6 +10583,7 @@ async function upsertRemote(table,row,options){
   if(table==='jobs'){var pendingCreate=vectaPendingSync().some(function(item){return item.table==='jobs'&&item.jobWriteIntent==='create'&&String(item.payload&&item.payload.id)===String(row.id)});if(pendingCreate)options.jobWriteIntent='create';var guard=await vectaGuardJobUpsert(row,options);if(guard.check_failed)throw new Error('The workshop server could not verify this job identity. Keep the card and retry when connected.');if(guard.missing&&!guard.allow)throw new Error('This existing job is missing from the workshop server. It has not been recreated. Keep this card for recovery review.');if(!guard.allow)return [{id:String(row&&row.id||''),vecta_conflict_skipped:true}];}
   if(table==='tasks')ensureTaskUuid(row);
   var data=vectaStripKnownMissingColumns(table,Object.assign({},row)),removed=[],res=null;
+  if(table==='jobs'){delete data.visit_presence;delete data.visit_presence_date;delete data.visit_billing;}
   /* Customer and vehicle timestamps are optional in older Vecta schemas. */
   if(table==='customers'||table==='vehicles'){delete data.updated_at;}
   /* Optional number inputs are blank for many Fleet vehicles. PostgreSQL integer
@@ -13200,7 +13205,19 @@ var vectaRenderInvoiceLookup=null,vectaRenderActiveInvoices=null,vectaRenderCont
 /* Keep a grabbed card mounted, including the pointer-down before native dragstart.
    Background writes must never own the gesture lock. */
 function deferPlannerRender(options){window.VectaPlannerRules.deferRender(options,render)}
-function updatePlannerContent(container,markup){return window.VectaPlannerRules.updateContent(container,markup)}
+function updatePlannerContent(container,markup){
+  var changed=window.VectaPlannerRules.updateContent(container,markup);
+  if(!window.VECTA_MECHANIC_DEPLOYMENT&&window.VectaVisitBoard)window.VectaVisitBoard.paint(container,{
+    date:selectedIso(),jobs:app.jobs||[],invoices:app.invoices||[],website:isWebsiteBookingJob,
+    excluded:function(j){return vectaJobIsDeletedForLists(j)||isVehicleTaxJob(j)},
+    staff:function(j){return String(fleetIncomeCustomerForJob(j)||j.customer_account||'Staff').toUpperCase()==='STAFF'},
+    finish:function(j,action){openJobModal(j.id);var control=document.getElementById(action==='complete'?'markComplete':'createInvoiceFromJob');if(control&&control.style.display!=='none')control.click();else if(action==='create_invoice'){var ready=document.getElementById('markReady');if(ready)ready.click()}},
+    openJob:openJobModal,openInvoice:openInvoice,paymentList:openFinancialInvoiceList,notice:showPlannerAvailabilityNotice,
+    apply:function(saved){var job=app.jobs.find(function(j){return j.id===saved.id});if(job)Object.assign(job,saved);saveLocal()},
+    refresh:scheduleCloudRefresh,render:render
+  });
+  return changed;
+}
 var renderInProgress=false;function render(){var renderOptions=arguments[0]||{};if(view==='planner'&&((typeof plannerInteractionBusy!=='undefined'&&plannerInteractionBusy)||window.__vectaPlannerPointerHeld)){deferPlannerRender(renderOptions);return;}if(document.body.classList.contains('vectaStartupLoading')||renderInProgress)return;renderInProgress=true;try{safe(function(){vectaRenderInvoiceLookup=vectaCreateInvoiceLookup();var taskList=document.querySelector('.taskList'),taskScroll=taskList?taskList.scrollTop:0;
 var backlog=document.querySelector('.livePriorityBacklog,.mechanicBoardBacklog'),backlogScroll=backlog?backlog.scrollTop:0;
 document.getElementById('currentDate').value=selectedIso();if(view==='dashboard')view='planner';if(view==='customers'||view==='vehicles')view='search';renderNav();var navMatch=navItems().find(function(x){return x[0]===view});if(!navMatch){view='planner';navMatch=navItems()[0];}document.getElementById('viewTitle').textContent=navMatch[1];var dayNameEl=document.getElementById('dashboardDayName');if(dayNameEl){if(view==='planner'){dayNameEl.textContent=plannerHeaderDayLabel(selectedIso());dayNameEl.classList.add('show')}else{dayNameEl.textContent='';dayNameEl.classList.remove('show')}}var bookedTodayEl=document.getElementById('dashboardBookedToday'),bookedTodayValue=document.getElementById('dashboardBookedTodayValue');if(bookedTodayEl){if(view==='planner'){var bookedTodayTotal=0;try{bookedTodayTotal=invoiceFinancialSummary().today}catch(e){console.warn('Dashboard booked-today total unavailable',e)}if(bookedTodayValue)bookedTodayValue.textContent=Number(bookedTodayTotal||0).toFixed(2);bookedTodayEl.classList.add('show');bookedTodayEl.onclick=function(){openInvoiceFinanceReport('date:'+financeDailyReferenceDate())}}else{bookedTodayEl.classList.remove('show');bookedTodayEl.onclick=null}}if(view==='planner'&&!renderOptions.fromCloud)plannerPackVisibleDay();var c=document.getElementById('content');if(view!=='planner'){delete c.__vectaPlannerMarkup;delete c.__vectaPlannerRoot;}if(view==='dashboard')c.innerHTML=dashboardHtml();if(view==='planner'&&!updatePlannerContent(c,plannerHtml())){window.VectaPlannerRules.refreshArtwork(c,app.jobs);return;}if(view==='fleet')c.innerHTML=fleetHtml();if(view==='jobs')c.innerHTML=jobsHtml();if(view==='vehicleTax')c.innerHTML=vehicleTaxHtml();if(view==='service')c.innerHTML=serviceHtml();if(view==='search')c.innerHTML=searchHtml();if(view==='invoices')c.innerHTML=invoicesHtml();if(view==='invoiceArchive')c.innerHTML=invoiceArchiveHtml();if(view==='websiteRequests')c.innerHTML=websiteRequestsHtml();if(view==='parts')c.innerHTML=partsOrderingHtml();if(view==='settings')c.innerHTML=settingsHtml();bindView();if(view==='planner')window.VectaPlannerRules.refreshArtwork(c,app.jobs,true);if(view==='websiteRequests')bindWebsiteRequests();if(view==='parts')bindPartsOrdering();if(view==='vehicleTax')bindVehicleTax();linkifyDisplayedEmails(c);taskList=document.querySelector('.taskList');if(taskList)taskList.scrollTop=taskScroll;
@@ -16579,6 +16596,12 @@ function invoiceCustomerNotification(inv,invoiceUrl){
   if(phone.indexOf('0044')===0)phone=phone.slice(2);else if(phone.indexOf('0')===0)phone='44'+phone.slice(1);
   var mobile=/^447\d{9}$/.test(phone),reg=fleetInvoiceFormatRegistration(inv.registration||(job&&job.registration)||'');
   var body=account==='STAFF'?'Hi '+(recipient.name.trim().split(/\s+/)[0]||'Customer')+',\n\nWe have completed the work on your car. The total price is £'+Number(inv.total||0).toFixed(2)+'.\n\nYou can view your invoice here:\n'+(invoiceUrl||'')+'\n\nWe will send a payment link from BeePaid via text message shortly… Thank you for your custom.':'Hi '+(recipient.name.split(/\s+/)[0]||'Customer')+'. The work on your car ('+reg+') is complete. It is ready to collect from our workshop.'+(invoiceUrl?'\n\nView or download your invoice PDF: '+invoiceUrl:'');
+  if(account==='STAFF'&&window.VectaVisitRules){
+    var billing=window.VectaVisitRules.invoiceState(inv,job||{id:inv.job_id,registration:inv.registration});
+    var collected=job&&job.visit_presence==='collected'&&job.visit_presence_date===job.booking_date;
+    body=body.replace('We have completed the work on your car.',collected?'Your car has been collected.':'Work is complete and your car is ready to collect.');
+    if(billing==='paid')body=body.replace('We will send a payment link from BeePaid via text message shortly…','Your invoice has been paid.');
+  }
   var emailBody=account==='STAFF'?body:(typeof appendVectaEmailSignature==='function'?appendVectaEmailSignature(body):body);
   var device=typeof navigator==='undefined'?{}:navigator,useWhatsAppApp=/Android|iPhone|iPad|iPod/i.test(device.userAgent||'')||(device.platform==='MacIntel'&&device.maxTouchPoints>1);
   var whatsappBase=useWhatsAppApp?'https://wa.me/'+phone+'?text=':'https://web.whatsapp.com/send?phone='+phone+'&text=';
