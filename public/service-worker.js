@@ -283,12 +283,15 @@ self.addEventListener('fetch',event=>{
 
 self.addEventListener('push',event=>{
   event.waitUntil((async()=>{
-    /* A push can wake an iPhone PWA that has not been opened for days. Ask the
-       browser to check for the newest worker while it is already awake. */
-    try{await self.registration.update()}catch(_e){}
     let data={};
     try{data=event.data?event.data.json():{}}catch(_e){data={body:event.data?event.data.text():''}}
     const count=Math.max(0,Number(data.count)||0);
+    await self.registration.showNotification(data.title||'New VECTA website booking',{
+      body:data.body||'A new customer booking is waiting for review.',
+      icon:'/icons/vecta-192.png',badge:'/icons/vecta-192.png',
+      tag:data.tag||'vecta-website-bookings',renotify:true,
+      data:{url:data.url||'/?view=websiteRequests',count,portal:!!data.portal}
+    });
     try{
       if(!data.portal&&self.navigator&&typeof self.navigator.setAppBadge==='function'){
         if(count)await self.navigator.setAppBadge(count);
@@ -296,12 +299,7 @@ self.addEventListener('push',event=>{
       }
     }catch(_e){}
     if(data.portal){const windows=await self.clients.matchAll({type:'window',includeUncontrolled:true});for(const client of windows)client.postMessage({type:'vecta-portal-notification'});}
-    await self.registration.showNotification(data.title||'New VECTA website booking',{
-      body:data.body||'A new customer booking is waiting for review.',
-      icon:'/icons/vecta-192.png',badge:'/icons/vecta-192.png',
-      tag:data.tag||'vecta-website-bookings',renotify:true,
-      data:{url:data.url||'/?view=websiteRequests',count,portal:!!data.portal}
-    });
+
   })());
 });
 
