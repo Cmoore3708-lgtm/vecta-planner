@@ -125,6 +125,8 @@ function compatibleArtwork(value,description){
  const normal=(v,manufacturer)=>{let text=words(v);const prefix=words(manufacturer);if(prefix&&text.startsWith(prefix+' '))text=text.slice(prefix.length+1);text=text.replace(/^(?:NISSAN|FORD|MERCEDES BENZ|INFINITI|CITROEN|RENAULT|VOLKSWAGEN|VW|AUDI) /,'');return text.replace(/^([A-Z]{1,2})\s+(?=\d)/,'$1').replace(/(\d)\s+([A-Z])(?=\s|$)/g,'$1$2');};
  const expected=normal(description?.model||description?.vehicle,description?.make||value.make),actual=normal(String(value.model||'').split(/[(/]/)[0],value.make);
  if(!expected||!actual)return true;
+ // BMW derivatives such as 120d are filed under the numeric series in Haynes.
+ if(make(value.make)==='BMW'&&/^([1-8])\d{2}(?:[DIEX]+)?(?: |$)/.test(expected)&&actual===expected[0])return true;
  const family=v=>v.split(' ')[0];
  const alternatives=String(value.model||'').split('/').map(part=>normal(part.split('(')[0],value.make)).filter(Boolean);
  return alternatives.some(model=>expected===model||family(expected)===family(model)||(' '+model+' ').includes(' '+expected+' '));
