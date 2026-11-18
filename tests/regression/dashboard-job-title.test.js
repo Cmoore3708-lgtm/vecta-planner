@@ -15,7 +15,7 @@ test('existing long jobs get concise fault summaries without rewriting instructi
   for(const card of [c.mobileJobCardHtml(job),c.jobCardHtml(job),c.unallocatedJobCardHtml(job)])assert.ok(card.includes(title));
   const {document}=parseHTML(c.mobileJobCardHtml(job));
   assert.equal(document.querySelector('.mobileJob > b').textContent,title);
-  assert.equal(document.querySelector('.mobileJobAssignment + .mobileJobCategory').textContent,'Michael');
+  assert.equal(document.querySelector('.mobilePlateAndParts > .mobileJobCategory').textContent,'Michael');
   assert.doesNotMatch(c.mobileJobCardHtml(job),/water pump|Picking up Friday|dodgy sensor/);
   assert.equal(c.mechanicWorkView(job).editor,work);
   assert.equal(JSON.stringify(job),before);

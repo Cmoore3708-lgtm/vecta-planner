@@ -12,7 +12,7 @@ const escape=value=>String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&
 export const webJob={id:'web',registration:'TEST123',vehicle:'Nissan Qashqai',source:'website booking',job_type:'Full Service',work_required:'Full Service\n\nMini Valet\n\nService price agreed: £210 including VAT.\nOil specification: 5W30\nOil filter [PART123]\n\nCheck noisy brakes',amount_quoted:210,booking_date:'2026-11-09',drop_time:'08:00',technician:'Alfie'};
 export function summaryContext(entry=main,mechanic=false){
  const c={window:{VECTA_MECHANIC_DEPLOYMENT:mechanic,VectaBookingRules:globalThis.VectaBookingRules},JOB_TYPE_SEPARATOR:' || ',app:{jobs:[{...webJob,status:'provisional'}]},esc:escape,
-  partsStatusDot:()=>'',carryOverMeta:()=>null,carryOverBadgeHtml:()=>'',mobileMotAppointmentHtml:()=>'',plannerMotHeaderHtml:()=>'',mobileJobCategoryLabel:()=> 'Staff',
+  partsStatusDot:()=>'',carryOverMeta:()=>null,carryOverBadgeHtml:()=>'',mobileMotAppointmentHtml:()=>'',plannerMotHeaderHtml:()=>'',fleetIncomeCustomerForJob:j=>j.customer_account||'Staff',fleetNmukTypeFromVehicle:()=>'',
   plannerPlate:j=>'<span class="ukPlate">'+escape(j.registration)+'</span>',listPlate:r=>'<span class="ukPlate">'+escape(r)+'</span>',compactUnallocatedPlate:r=>'<span class="ukPlate">'+escape(r)+'</span>',
   jobTypeInlineStyle:j=>j.status==='provisional'?'background:#cbd0d7!important':'',hasMotJobType:()=>false,topFor:()=>0,heightFor:()=>120,
   jobTypeMetaForLabel:()=>({colour:'#444'}),motTimeFromJob:()=>'',isJobInvoiced:()=>false,vectaJobIsDeletedForLists:()=>false,byTime:()=>0,templateDataForType:()=>({}),
@@ -20,7 +20,7 @@ export function summaryContext(entry=main,mechanic=false){
  };
  c.jobTypeChip=(j,label)=>'<span class="jobTypeChip">'+escape(label||c.jobTypeLabels(j).join(' · '))+'</span>';
  vm.createContext(c);
- for(const name of ['normaliseJobTypeKey','jobTypeValues','formatJobTypeLabel','jobTypeLabels','isWebsiteBookingJob','plannerVehicleLabel','plannerJobTypesHtml','plannerJobDescription','dashboardTitleText','savedDashboardTitle','noteWithDashboardTitle','automaticDashboardTitle','dashboardJobTitle','dashboardTitleEditorHtml','bindDashboardTitleEditor','mechanicWorkLines','mechanicWorkView','mechanicJobCardHtml','jobCardHtml','mobileJobCardHtml','unallocatedJobCardHtml','provisionalBookingsPanelHtml','quotePanelHtml']){
+ for(const name of ['mobileJobCategoryLabel','normaliseJobTypeKey','jobTypeValues','formatJobTypeLabel','jobTypeLabels','isWebsiteBookingJob','plannerVehicleLabel','plannerJobTypesHtml','plannerJobDescription','dashboardTitleText','savedDashboardTitle','noteWithDashboardTitle','automaticDashboardTitle','dashboardJobTitle','dashboardTitleEditorHtml','bindDashboardTitleEditor','mechanicWorkLines','mechanicWorkView','mechanicJobCardHtml','jobCardHtml','mobileJobCardHtml','unallocatedJobCardHtml','provisionalBookingsPanelHtml','quotePanelHtml']){
   const start=entry.indexOf('function '+name+'(');assert.ok(start>=0,name);
   vm.runInContext(entry.slice(start,entry.indexOf('\nfunction ',start+1)),c);
  }
