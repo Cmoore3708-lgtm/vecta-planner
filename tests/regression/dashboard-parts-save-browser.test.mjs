@@ -7,7 +7,7 @@ import {mechanicVariant} from '../../scripts/mechanic-variant.mjs';
 
 const runBrowser=process.env.GITHUB_ACTIONS||process.env.VECTA_CHROME_BIN;
 const storeKey='vecta_workshop_pro_v41_data';
-const origin='https://vecta-cards.test';
+const origin='https://vecta-planner-audit-system-simplification.test';
 const jobId='54c12951-734d-4091-b513-d9d56338c707';
 
 test('parts light saves from the running planner and survives phone reopening and reconnection',{
@@ -17,7 +17,7 @@ test('parts light saves from the running planner and survives phone reopening an
   const browser=await chromium.launch({executablePath:process.env.VECTA_CHROME_BIN||'/usr/bin/google-chrome',args:['--no-sandbox']});
   const main=fs.readFileSync('index.html','utf8'),mechanic=mechanicVariant(main);
   const today=new Date().toISOString().slice(0,10);
-  const seed={jobs:[{id:jobId,customer_account:'Staff',customer_name:'Alexandra Smith',registration:'QA12ABC',technician:'Alfie',
+  const seed={settings:{mechanics:['Alfie','Chris']},jobs:[{id:jobId,customer_account:'Staff',customer_name:'Alexandra Smith',registration:'QA12ABC',technician:'Alfie',
     booking_date:today,drop_time:'09:00',status:'booked',estimated_hours:1,job_type:'Other',card_type:'job',
     vehicle:'Nissan Qashqai',work_required:'Check brakes',amount_quoted:55,customer_note:'Keep this note\n[[PARTS_STATUS:Parts need ordering]]'}]};
   try{
@@ -36,11 +36,20 @@ test('parts light saves from the running planner and survives phone reopening an
           if(file.startsWith(path.resolve('public')+path.sep)&&fs.existsSync(file)&&fs.statSync(file).isFile())return route.fulfill({path:file});
           return route.fulfill({status:404,body:''});
         });
-        const page=await context.newPage();
+        const page=await context.newPage(),errors=[];
+        page.on('pageerror',error=>errors.push(error.message));
         const open=()=>page.goto(origin,{waitUntil:'domcontentloaded'});
         const selector='select[data-dashboard-parts="'+jobId+'"]:visible';
         const control=page.locator(selector).first();
-        await open();await control.waitFor({timeout:25000});
+        await open();
+        try{await control.waitFor({timeout:25000})}
+        catch(error){
+          const diagnostic=await page.evaluate(({storeKey,jobId})=>({loading:document.body.className,
+            localJobs:JSON.parse(localStorage.getItem(storeKey))?.jobs?.filter(j=>j.id===jobId).length,
+            date:document.querySelector('#currentDate')?.value,lanes:[...document.querySelectorAll('[data-tech]')].map(el=>el.dataset.tech),
+            fatal:document.querySelector('#fatalError')?.textContent}),{storeKey,jobId});
+          throw new Error(device+' '+JSON.stringify({diagnostic,errors}),{cause:error});
+        }
         assert.equal(await control.inputValue(),'Parts need ordering',device);
         await control.click();await page.keyboard.press('Escape');
         await control.selectOption('Awaiting parts');
