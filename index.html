@@ -23,12 +23,7 @@
   <link rel="apple-touch-icon" sizes="180x180" href="/icons/vecta-180.png?v=20261114-vpro" />
   <link rel="manifest" href="/manifest.webmanifest?v=20261114-vpro" />
   <link rel="icon" type="image/png" sizes="192x192" href="/icons/vecta-192.png?v=20261114-vpro" />
-  <!-- VECTA V84: DVLA Vehicle Enquiry Service tax API ready -->
-  <!-- VECTA V87: Planner description raised for one-hour cards + 30-minute MOT appointment selector -->
-  <!-- VECTA V86: Existing job cards retain their planner-allocated drop-off time -->
   <!-- VECTA V320: completion invoice description + price validation -->
-  <!-- VECTA V83: Drop-off 07:00-15:00 + NK16 CYO migrated to Vehicle Tax admin -->
-  <!-- VECTA V81: Job sheet 15-minute drop-off, 0.5-hour estimates, ramp label and pricing prefill -->
   <!-- VECTA V80: Same-day job reflow; no automatic next-day moves -->
   <!-- VECTA V79: Clickable MOT, tax and service due cards -->
   <!-- VECTA V77: Automatic nightly MOT/tax fleet refresh + cloud fleet state -->
@@ -10689,7 +10684,8 @@ function vectaBookingAlertsState(){return vectaDeviceNotifications.state();}
 function vectaMaintainBookingAlerts(force){return vectaDeviceNotifications.maintain(force);}
 function vectaEnableBookingAlerts(){return vectaDeviceNotifications.enable();}
 function navItems(){var newCount=vectaPendingWebsiteBookingCount(),partsCount=(app.jobs||[]).filter(function(j){var ps=partsStatusFromJob(j);return !vectaJobIsDeletedForLists(j)&&!!ps&&ps!=='Parts here'&&ps!=='Not required'&&!j.archived&&j.status!=='completed'&&j.status!=='ready_to_invoice'}).length,paymentWarnCount=typeof overduePaymentMethodInvoices==='function'?overduePaymentMethodInvoices().length:0;return [['planner','Dashboard'],['fleet','Fleet Manager'],['jobs','Jobs'],['invoices','Financial'],['invoiceArchive','Invoices'+(paymentWarnCount?' ⚠ '+paymentWarnCount:'')],['websiteRequests','Website Bookings'+(newCount?' ('+newCount+')':'')],['parts','Parts'+(partsCount?' ('+partsCount+')':'')],['settings','Settings']];}
-/* Paint first and discard superseded navigation. */
+/* Page navigation paints feedback before starting synchronous list construction.
+   A superseded navigation must never replace the user's newer page. */
 var vectaNavigationSequence=0;
 function vectaNavigateTo(next){
   view=next;
