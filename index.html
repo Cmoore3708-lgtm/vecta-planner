@@ -13374,10 +13374,7 @@ function unallocatedJobs(){
   var scheduled=includeOutstanding?new Set(jobsForDate().map(job=>job.id)):new Set();
   return (app.jobs||[]).filter(function(j){
     if(!j||isVehicleTaxJob(j))return false;
-    if(includeOutstanding && !scheduled.has(j.id) && j.booking_date>='2026-11-18' && j.booking_date<=today &&
-       j.registration && !j.no_vehicle && (!j.card_type||j.card_type==='job') && !vectaJobIsDeletedForLists(j) &&
-       !(j.visit_presence_date===j.booking_date && ['missing','collected'].includes(j.visit_presence)) &&
-       (['due','paid'].includes(j.visit_billing)||['work_complete','completed','ready_to_invoice','invoiced','invoice_created'].includes(j.status)))return true;
+    if(includeOutstanding && !scheduled.has(j.id) && !vectaJobIsDeletedForLists(j) && window.VectaVisitBoard?.outstanding(j,today))return true;
     if(j.archived||isJobInvoiced(j))return false;
     var st=String(j.status||'booked').toLowerCase();
     if(st==='provisional'||st==='quote'||st==='completed'||st==='ready_to_invoice'||st==='ready'||st==='cancelled')return false;
