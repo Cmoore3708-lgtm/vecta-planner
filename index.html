@@ -23,12 +23,7 @@
   <link rel="apple-touch-icon" sizes="180x180" href="/icons/vecta-180.png?v=20261114-vpro" />
   <link rel="manifest" href="/manifest.webmanifest?v=20261114-vpro" />
   <link rel="icon" type="image/png" sizes="192x192" href="/icons/vecta-192.png?v=20261114-vpro" />
-  <!-- VECTA V84: DVLA Vehicle Enquiry Service tax API ready -->
-  <!-- VECTA V87: Planner description raised for one-hour cards + 30-minute MOT appointment selector -->
-  <!-- VECTA V86: Existing job cards retain their planner-allocated drop-off time -->
   <!-- VECTA V320: completion invoice description + price validation -->
-  <!-- VECTA V83: Drop-off 07:00-15:00 + NK16 CYO migrated to Vehicle Tax admin -->
-  <!-- VECTA V81: Job sheet 15-minute drop-off, 0.5-hour estimates, ramp label and pricing prefill -->
   <!-- VECTA V80: Same-day job reflow; no automatic next-day moves -->
   <!-- VECTA V79: Clickable MOT, tax and service due cards -->
   <!-- VECTA V77: Automatic nightly MOT/tax fleet refresh + cloud fleet state -->
@@ -10738,7 +10733,7 @@ function vectaJobsListHtml(rows,mode){
   var visible=vectaListWindow('jobs',JSON.stringify([mode,jobsSearchQuery]),rows);
   return jobRows(visible,mode)+vectaListMoreHtml('jobs',rows.length);
 }
-function renderNav(){vectaUpdateAppBadge();var n=document.getElementById('nav');n.innerHTML=navItems().map(function(it){var active=(view===it[0])||(it[0]==='invoiceArchive'&&view==='invoices'&&financialSection==='invoiceList');if(it[0]==='invoices'&&view==='invoices'&&financialSection==='invoiceList')active=false;return '<button data-view="'+it[0]+'" class="'+(active?'active':'')+'">'+it[1]+'</button>'}).join('');n.querySelectorAll('button').forEach(function(b){b.onclick=function(){if(b.dataset.view!=='invoices'&&financeDashboardTimer){clearTimeout(financeDashboardTimer);financeDashboardTimer=null}if(b.dataset.view==='fleet'){fleetSection='maintenance';fleetListMode='due30';fleetFilter='All';fleetQuery='';fleetDueOnly=false;activeFleetVehicleId=''}if(b.dataset.view==='jobs'){jobsListMode='completed';jobsSearchQuery=''}if(b.dataset.view==='invoices')financialSection='main';if(b.dataset.view==='invoiceArchive'){openFinancialInvoiceList();return}vectaNavigateTo(b.dataset.view)}})}
+function renderNav(){vectaUpdateAppBadge();var n=document.getElementById('nav');n.innerHTML=navItems().map(function(it){var active=(view===it[0])||(it[0]==='invoiceArchive'&&view==='invoices'&&financialSection==='invoiceList');if(it[0]==='invoices'&&view==='invoices'&&financialSection==='invoiceList')active=false;return '<button data-view="'+it[0]+'" class="'+(active?'active':'')+'">'+it[1]+'</button>'}).join('');n.querySelectorAll('button').forEach(function(b){b.onclick=function(){if(b.dataset.view!=='invoices'&&financeDashboardTimer){clearTimeout(financeDashboardTimer);financeDashboardTimer=null}if(b.dataset.view==='fleet'){fleetSection='maintenance';fleetListMode='due30';fleetFilter='All';fleetQuery='';fleetDueOnly=false;activeFleetVehicleId=''}if(b.dataset.view==='jobs'){jobsListMode='completed';jobsSearchQuery=''}if(b.dataset.view==='invoices')financialSection='main';if(b.dataset.view==='invoiceArchive'){openFinancialInvoiceList();return}vectaNavigateTo(b.dataset.view)}});window.VectaJobPricing?.addDesktopTyreTab?.(n)}
 var cloudSyncChannel=null,cloudSyncTimer=null,cloudRefreshBusy=false,plannerInteractionBusy=false,cloudRefreshDebounce=null,cloudLastRefreshAt=0;
 async function refreshCloudAndRender(){
   if(window.__vectaJobSaveFenceUntil&&Date.now()<window.__vectaJobSaveFenceUntil){

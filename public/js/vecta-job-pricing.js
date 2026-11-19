@@ -145,18 +145,21 @@ function jobPartDisplayName(p){
   }
   parts([],tyre);closeTyres();return true;
  }
- function openTyres(){
-  closeTyres();const active=editor;if(!active)return;styles();
-  const existing=active.api.gatherJobPartsEditor().find(p=>p.tyre_selection),saved=existing?.tyre_selection;
-  const form={registration:value('job_registration'),vehicle:value('job_vehicle'),vehicle_colour:value('job_colour'),tyre_size:saved?.size||'',tyre_positions:saved?.positions?.slice()||[],tyre_brand:saved?.brand||'',tyre_choice:saved?.category||'',tyre_prices_checked:false};
+ function openTyres(active){
+  closeTyres();styles();
+  const existing=active?.api.gatherJobPartsEditor().find(p=>p.tyre_selection),saved=existing?.tyre_selection;
+  const form={registration:active?value('job_registration'):'',vehicle:active?value('job_vehicle'):'',vehicle_colour:active?value('job_colour'):'',tyre_size:saved?.size||'',tyre_positions:saved?.positions?.slice()||[],tyre_brand:saved?.brand||'',tyre_choice:saved?.category||'',tyre_prices_checked:false};
   root.VectaTyrePositions.initialise(form);
-  const vehicle=root.VectaHaynesJobTools?.storedDrawing({registration:form.registration,make:value('job_make'),model:value('job_model'),vehicle:form.vehicle})||null;
+  const vehicle=active&&root.VectaHaynesJobTools?.storedDrawing({registration:form.registration,make:value('job_make'),model:value('job_model'),vehicle:form.vehicle})||null;
   const dialog=document.createElement('dialog');tyreDialog=dialog;dialog.className='job-tyre-dialog';dialog.setAttribute('aria-label','Tyre sizes, prices and wheels');
   const digits=form.tyre_size.match(/^(\d{3})\/(\d{2})R(\d{2})$/)?.slice(1)||['','',''];
   dialog.innerHTML='<div class="job-tyre-head"><div><small>'+esc(form.registration)+'</small><h2>Select your tyres</h2></div><button type="button" class="btn" data-close>Close</button></div><div class="tyre-picker tyre-position-picker"><div class="tyre-size-field"><span id="jobTyreSizeLabel">Enter your tyre size</span><div class="tyre-search-row"><div class="tyre-size-parts" role="group" aria-labelledby="jobTyreSizeLabel">'+['width','profile','rim'].map((p,i)=>(i?'<span aria-hidden="true">'+(i===1?'/':'R')+'</span>':'')+'<input data-tyre-part="'+p+'" aria-label="Tyre '+p+'" placeholder="'+['205','55','16'][i]+'" value="'+esc(digits[i])+'" inputmode="numeric" maxlength="'+(i===0?3:2)+'" autocomplete="off">').join('')+'</div><button type="button" class="tyre-check-button" data-check>Check Live<br>Prices</button></div></div><p data-status class="tyre-guide-status" role="status" aria-live="polite">Enter the three numbers, then press Check Live Prices.</p><div data-options class="tyre-options"></div>'+root.VectaTyrePositions.html(form,vehicle)+'<p class="tyre-guide-note">All prices include fitting, balancing, a standard valve, disposal and VAT.</p></div><div class="job-tyre-foot"><span data-summary>Select a tyre and the wheels to replace.</span><button type="button" class="btn green" data-save disabled>Use selected tyres</button></div><button type="button" class="job-tyre-remove" data-remove>Remove Tyres from this job</button>';
   document.body.appendChild(dialog);dialog.showModal();dialog.addEventListener('close',()=>{if(tyreDialog===dialog)closeTyres();});dialog.querySelector('[data-close]').onclick=closeTyres;
-  dialog.querySelector('[data-remove]').onclick=()=>active.api.applyTemplate('Tyres');
+  const remove=dialog.querySelector('[data-remove]');
+  if(active)remove.onclick=()=>active.api.applyTemplate('Tyres');
+  else remove.remove();
   const fields=Array.from(dialog.querySelectorAll('[data-tyre-part]')),message=dialog.querySelector('[data-status]'),options=dialog.querySelector('[data-options]'),save=dialog.querySelector('[data-save]'),check=dialog.querySelector('[data-check]');
+  if(!active)save.remove();
   let state={status:'idle',result:null},saving=false;
   const currentChoice=()=>state.status==='matched'&&state.result?.size===root.VectaTyreBooking.sizeKey(form.tyre_size)&&state.result.quantity===(form.tyre_quantity||1)&&Date.now()-root.VectaTyreBooking.priceTime(state.result)<300000?state.result.options.find(g=>g.category===form.tyre_choice)?.choices.find(c=>c.brand===form.tyre_brand):null;
   function draw(){
@@ -222,7 +225,25 @@ function jobPartDisplayName(p){
  function selected(name,added){
   if(!editor)return;
   if(/^(interim|full) service$/i.test(name))serviceLookup();
-  if(/^tyres$/i.test(name)&&added)openTyres();
+  if(/^tyres$/i.test(name)&&added)openTyres(editor);
  }
- root.VectaJobPricing={install,selected,removeTyres,renderAdvisor,partDisplayName:jobPartDisplayName};
+ const desktop=root.matchMedia?.('(min-width:901px)');
+ function addDesktopTyreTab(nav){
+  const previous=nav.querySelector('[data-tyre-lookup]');
+  const settings=nav.querySelector('[data-view="settings"]');
+  if(!desktop?.matches||!settings){previous?.remove();return;}
+  if(previous)return;
+  const button=document.createElement('button');
+  button.type='button';
+  button.dataset.tyreLookup='';
+  button.textContent='TYRES';
+  button.setAttribute('aria-haspopup','dialog');
+  button.onclick=()=>openTyres(null);
+  settings.after(button);
+ }
+ desktop?.addEventListener?.('change',()=>{
+  const nav=el('nav');
+  if(nav)addDesktopTyreTab(nav);
+ });
+ root.VectaJobPricing={addDesktopTyreTab,install,selected,removeTyres,renderAdvisor,partDisplayName:jobPartDisplayName};
 })(window);
