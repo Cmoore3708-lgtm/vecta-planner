@@ -46,7 +46,7 @@ test('morning checks, invoice handover and website colours survive reopening acr
           return Math.abs(dot.top-box.top)<10&&Math.abs(dot.right-box.right)<10&&Math.abs(status.right-box.right)<10&&Math.abs(status.bottom-box.bottom)<10;
         });
         assert.equal(corners,true,device);
-        assert.equal(await page.locator('[data-visit-id="'+paid.id+'"] select').inputValue(),'paid',device);
+        assert.equal(await page.locator('[data-job-id="'+paid.id+'"]:visible select,[data-open-job="'+paid.id+'"]:visible select').first().inputValue(),'paid',device);
         const style=await card.evaluate(node=>{const s=getComputedStyle(node),box=node.getBoundingClientRect(),control=node.querySelector('.visitSelector').getBoundingClientRect();return {border:s.borderTopColor,blue:s.backgroundColor,inside:control.top>=box.top-1&&control.bottom<=box.bottom+1&&control.left>=box.left-1&&control.right<=box.right+1};});
         assert.equal(style.inside,true,device);assert.equal(style.border,'rgb(0, 122, 128)',device);assert.equal(style.blue,'rgb(223, 240, 255)',device);
         await select.selectOption('missing');await page.waitForFunction(()=>!!document.querySelector('[data-visit-state="missing"]'));
