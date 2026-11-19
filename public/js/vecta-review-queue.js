@@ -46,6 +46,20 @@
   const button=node('button','Send estimate to customer');button.type='button';button.className='btn green';button.disabled=true;
   const result=node('div');result.setAttribute('role','status');
   wrap.append(messageLabel,priceLabel,consentLabel,button,result);
+  const draftKey='vecta:finding-estimate:v1:'+JSON.stringify([jobId,item.id]);
+  try{
+   const draft=JSON.parse(window.sessionStorage.getItem(draftKey));
+   if(typeof draft?.message==='string'&&typeof draft.price==='string'){
+    message.value=draft.message;price.value=draft.price;
+   }
+  }catch{}
+  function saveDraft(){
+   try{
+    window.sessionStorage.setItem(draftKey,JSON.stringify({message:message.value,price:price.value}));
+   }catch{result.textContent='Draft recovery unavailable. Keep this page open until you send.';}
+  }
+  message.addEventListener('input',saveDraft);
+  price.addEventListener('input',saveDraft);
   let contact=null,manual=false;
   async function load(){
    try{
@@ -77,6 +91,7 @@
      contact.allowed=consent.checked;
     }
     const receipt=await api('approval-request',{job_id:jobId,approval_id:item.id,estimate:price.value.trim(),message:description});
+    try{window.sessionStorage.removeItem(draftKey);}catch{}
     showResult(result,receipt,tab);
     button.textContent='Estimate saved';wrap.dataset.finished='true';notify();
    }catch(error){
