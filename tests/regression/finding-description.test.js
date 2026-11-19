@@ -9,7 +9,9 @@ const read=file=>readFileSync(file,'utf8');
 test('owner can edit the customer wording beside the price and retains it after a failed send',async()=>{
  const {document,window:dom}=parseHTML('<html><body></body></html>');
  const calls=[];let fail=true;
- const window={dispatchEvent(){}};
+ const drafts=new Map();
+ const window={dispatchEvent(){},sessionStorage:{getItem:key=>drafts.get(key)??null,
+  setItem:(key,value)=>drafts.set(key,value),removeItem:key=>drafts.delete(key)}};
  vm.runInNewContext(read('public/js/vecta-review-queue.js'),{document,window,AbortSignal,Event:dom.Event,
   fetch:async(_url,options)=>{
    const body=JSON.parse(options.body);calls.push(body);
@@ -29,8 +31,20 @@ test('owner can edit the customer wording beside the price and retains it after 
  await button.onclick();assert.match(form.textContent,/Connection interrupted/);
  assert.equal(message.disabled,false);assert.equal(price.disabled,false);assert.equal(button.disabled,false);
  assert.equal(calls[1].message,message.value);assert.equal(calls[1].estimate,'100.00');
- fail=false;await button.onclick();assert.deepEqual(calls[2],calls[1]);
- assert.equal(message.disabled,true);assert.equal(form.dataset.finished,'true');
+ const reopen=(job,id)=>window.VectaFindings.pricingForm(job,{id,message:'Here it is'});
+ message.dispatchEvent(new dom.Event('input'));price.dispatchEvent(new dom.Event('input'));
+ const restored=reopen('test-job','test-finding');
+ assert.equal(restored.querySelector('textarea').value,message.value);
+ assert.equal(restored.querySelector('input[type=text]').value,'100.00');
+ for(const other of [reopen('another-job','test-finding'),reopen('test-job','another-finding')]){
+  assert.equal(other.querySelector('textarea').value,'Here it is');
+ }
+ await new Promise(r=>setImmediate(r));
+ fail=false;await restored.querySelector('button').onclick();
+ assert.deepEqual(calls.at(-1),calls[1]);
+ assert.equal(restored.querySelector('textarea').disabled,true);assert.equal(restored.dataset.finished,'true');
+ assert.equal(drafts.size,0);
+ assert.equal(reopen('test-job','test-finding').querySelector('textarea').value,'Here it is');
 });
 
 test('database publishes reviewed wording, price and photos atomically and freezes sent wording',async()=>{
