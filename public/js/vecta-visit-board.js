@@ -92,5 +92,9 @@
       refresh:ui.scheduleCloudRefresh,render:()=>ui.render({fromCloud:true})
     });
   }
-  root.VectaVisitBoard={update};
+  function outstanding(j,today){return j.booking_date>='2026-11-18' && j.booking_date<=today &&
+       j.registration && !j.no_vehicle && (!j.card_type||j.card_type==='job') &&
+       !(j.visit_presence_date===j.booking_date && ['missing','collected'].includes(j.visit_presence)) &&
+       (['due','paid'].includes(j.visit_billing)||['work_complete','completed','ready_to_invoice','invoiced','invoice_created'].includes(j.status));}
+  root.VectaVisitBoard={update,outstanding};
 })(globalThis);
