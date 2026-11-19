@@ -96,5 +96,10 @@
        j.registration && !j.no_vehicle && (!j.card_type||j.card_type==='job') &&
        !(j.visit_presence_date===j.booking_date && ['missing','collected'].includes(j.visit_presence)) &&
        (['due','paid'].includes(j.visit_billing)||['work_complete','completed','ready_to_invoice','invoiced','invoice_created'].includes(j.status));}
-  root.VectaVisitBoard={update,outstanding};
+  function filterForDay(date,today,getScheduled,isDeleted){
+    if(date!==today||root.VECTA_MECHANIC_DEPLOYMENT||document.querySelector('meta[name="vecta-mechanic-build"]'))return null;
+    const scheduled=new Set(getScheduled().map(job=>job.id));
+    return job=>!scheduled.has(job.id)&&!isDeleted(job)&&outstanding(job,today);
+  }
+  root.VectaVisitBoard={update,filterForDay};
 })(globalThis);

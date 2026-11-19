@@ -13370,11 +13370,10 @@ function listPlate(reg){var r=normReg(reg||''),internal=fleetIsInternalRegistrat
 
 function unallocatedJobs(){
   var today=todayIso();
-  var includeOutstanding=!window.VECTA_MECHANIC_DEPLOYMENT && !document.querySelector('meta[name="vecta-mechanic-build"]') && selectedIso()===today;
-  var scheduled=includeOutstanding?new Set(jobsForDate().map(job=>job.id)):new Set();
+  var outstanding=window.VectaVisitBoard?.filterForDay(selectedIso(),today,jobsForDate,vectaJobIsDeletedForLists);
   return (app.jobs||[]).filter(function(j){
     if(!j||isVehicleTaxJob(j))return false;
-    if(includeOutstanding && !scheduled.has(j.id) && !vectaJobIsDeletedForLists(j) && window.VectaVisitBoard?.outstanding(j,today))return true;
+    if(outstanding?.(j))return true;
     if(j.archived||isJobInvoiced(j))return false;
     var st=String(j.status||'booked').toLowerCase();
     if(st==='provisional'||st==='quote'||st==='completed'||st==='ready_to_invoice'||st==='ready'||st==='cancelled')return false;
