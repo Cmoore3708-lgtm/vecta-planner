@@ -42,9 +42,12 @@
         finally{busy.delete(job.id);select.disabled=false;context.render();}
       };
     }
-    const options=choices(row),signature=options.join(',');
+    const handover=card.classList.contains('visitHandoverCard');
+    const invoiceStatus=String(row.invoice?.status||'').toLowerCase();
+    const handoverLabels={checking:row.staff?'To invoice':'Final checks',due:invoiceStatus==='sent'?'Invoice sent':invoiceStatus==='part_paid'?'Part paid':'Awaiting payment',paid:'Invoice paid',ready:'Ready to collect'};
+    const options=choices(row),signature=options.join(',')+(handover?invoiceStatus:'');
     if(select.dataset.options!==signature){
-      select.replaceChildren(...options.map(value=>new Option((row.state==='checking'&&actions[value])||compact[value]||actions[value]||rules.labels[value],value)));
+      select.replaceChildren(...options.map(value=>new Option((handover&&(handoverLabels[value]||actions[value]))||(row.state==='checking'&&actions[value])||compact[value]||actions[value]||rules.labels[value],value)));
       select.dataset.options=signature;
     }
     select.value=row.state;select.disabled=busy.has(row.job.id);select.visitControl={row,context};
@@ -81,8 +84,18 @@
     for(const row of extras){
       const id=String(row.job.id);let card=previous.get(id);
       if(!card){card=element('div','visitHandoverCard');card.dataset.visitId=id;const open=element('button','visitHandoverIdentity');open.type='button';open.onclick=()=>context.openJob(id);card.append(open);section.append(card);}
-      const label=row.job.registration+' · '+(row.job.vehicle||'Vehicle')+(row.job.booking_date<today?' · Still on site':'');
-      card.firstChild.textContent=label;card.classList.toggle('visitWebsite',context.website(row.job));mount(card,row,context);previous.delete(id);
+      const open=card.firstChild;
+      const work=(root.dashboardJobTitle?.(row.job)||row.job.work_required||row.job.job_type||'Work unspecified').trim();
+      if(!open.firstChild){
+        const thumb=element('span','jobListArtwork');
+        thumb.dataset.jobListImage='0';thumb.setAttribute('aria-hidden','true');
+        open.append(thumb,element('strong'),element('span','visitWork'));
+        root.VectaHaynesJobTools?.mountJobListImages(open,[row.job]);
+      }
+      open.children[1].textContent=row.job.registration;
+      open.children[2].textContent=work;
+      open.title=[row.job.registration,row.job.vehicle,work].filter(Boolean).join(' · ');
+      card.classList.toggle('visitWebsite',context.website(row.job));mount(card,row,context);previous.delete(id);
     }
     for(const card of previous.values())card.remove();
   }
