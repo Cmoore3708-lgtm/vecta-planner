@@ -84,6 +84,11 @@ export function card(mechanic){
   const chat=document.querySelector('.jobCardWhatsApp'),chatBox=chat?.getBoundingClientRect();
   result.whatsappFits=${mechanic}?chat===null:innerWidth>700?chatBox.width===0:chatBox.width>=44&&chatBox.height>=44&&chatBox.right<=body.right+1&&chatBox.left>=buttonBoxes.at(-1).right&&Math.abs(chatBox.top-body.top)<2;
   result.whatsappDestination=${mechanic}||chat.getAttribute('href')==='https://wa.me/447700900123';
+  if(innerWidth<=700){
+   document.querySelector('.haynesJobVehicle').replaceChildren();
+   const lookup=rect('.jobHeaderHaynesLookup');
+   result.lookupClearsIdentity=lookup.height>0&&lookup.top>=caption.getBoundingClientRect().bottom&&lookup.top>=rect('.jobCardHeaderModel').bottom;
+  }
   parent.postMessage(result,'*');</script>`;
 }
 
@@ -114,7 +119,7 @@ test('the reopened job header keeps identity, matching, customer controls and mi
    assert.equal(row.fontSize,row.width<=700?14:24,context);
    assert.equal(row.visibleNames,1,context);
    if(row.width>700){assert.equal(row.nameBesideModel,true,context);assert.equal(row.buttonsBesideCar,true,context);assert.equal(row.buttonsFitMatch,true,context);assert.ok(row.buttonsMatchGap>=0&&row.buttonsMatchGap<=12,context);assert.equal(row.panelsUseCarSpace,true,context);}
-   if(row.width<=700){assert.equal(row.nameBelowModel,true,context);assert.ok(row.pictureWidth>=130&&row.imageHeight>=135,context);assert.equal(row.mileageUnderCustomer,true,context);assert.ok(row.mileageWidth>=60&&row.mileageWidth<=110,context);}
+   if(row.width<=700){assert.equal(row.lookupClearsIdentity,true,context);assert.equal(row.nameBelowModel,true,context);assert.ok(row.pictureWidth>=130&&row.imageHeight>=135,context);assert.equal(row.mileageUnderCustomer,true,context);assert.ok(row.mileageWidth>=60&&row.mileageWidth<=110,context);}
    assert.deepEqual(row.buttonLabels,row.mechanic?['Customer details']:['Customer details','Job types','Booking details'],context);
    for(const key of ['buttonsOneRow','buttonsFit','buttonsBelowMatch','advisoriesBelowTabs','advisoriesFit','advisoriesKeepColour','advisoriesStayPut','advisoriesCanHide','panelsClosed','mileageAboveHaynes','mileageTogether','customerCloses','customerReopens','independentPanels','noDuplicateSummary'])assert.equal(row[key],true,key+': '+context);
    // The wider car may wrap a long model name; it must remain clear of the car and controls.
