@@ -416,3 +416,30 @@ test('paint inherited from a supplier group is recoloured as well as explicit bo
  const result=root.VectaVehicleImage.personaliseSvg(inherited,'AB12CDE','Blue');
  const doc=new DOMParser().parseFromString(result.svg,'image/svg+xml');assert.equal(doc.querySelector('#transparant_colour path').getAttribute('fill'),'#1c4778');assert.equal(doc.querySelectorAll('#transparant_colour path')[1].getAttribute('fill'),'none');
 });
+
+test('a src-only car image retries decode twice and can recover on the next dashboard mount',async()=>{
+  const root = browser();
+  const retries = [];
+  root.setTimeout = (callback, delay) => {
+    if ([1500, 5000].includes(delay)) retries.push(callback);
+    return 1;
+  };
+  root.fetch = async () => ({ok:true, json:async()=>({svg})});
+  root.document.body.innerHTML = '<img data-vehicle-image src="https://www.haynespro-assets.com/workshop/images/123.svgz">';
+  const img = root.document.querySelector('img');
+  let attempts = 0;
+  img.decode = async () => {
+    attempts++;
+    if (attempts <= 3) throw Error('decode failed');
+  };
+  await root.VectaVehicleImage.mount();
+  for (let i = 0; i < 2; i++) {
+    assert.equal(retries.length, 1);
+    retries.shift()();
+    await new Promise(resolve => setImmediate(resolve));
+  }
+  assert.equal(attempts, 3);
+  assert.equal(retries.length, 0);
+  await root.VectaVehicleImage.mount();
+  assert.equal(img.dataset.vehicleReady, '1');
+});

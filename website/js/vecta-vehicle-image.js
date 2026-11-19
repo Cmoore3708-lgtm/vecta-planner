@@ -290,11 +290,15 @@ function vehicleMatches(value, expected={}) {
           try { result = await task; } finally { if (rendering.get(key) === task) rendering.delete(key); }
         }
         if (!isCurrent()) return;
-        const retryTimer=retryTimers.get(img);if(retryTimer)clearTimeout(retryTimer);retryTimers.delete(img);retryCounts.delete(img);
+        if (!img.dataset.vehicleSource) img.dataset.vehicleSource = url;
         img.src = result.url;
         // Reveal only the decoded, painted image on surfaces that opt in.
         if (typeof img.decode === 'function') await img.decode();
         if (!isCurrent()) return;
+        const retryTimer = retryTimers.get(img);
+        if (retryTimer) clearTimeout(retryTimer);
+        retryTimers.delete(img);
+        retryCounts.delete(img);
         img.dataset.vehicleReady = '1';
         img.dataset.vehicleRender=key;delete img.dataset.personalising;
         img.dataset.personalised = String(result.plateAdded);
