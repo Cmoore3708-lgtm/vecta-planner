@@ -34,6 +34,15 @@ for(const [variant,html] of [['Main',main],['mechanics',mechanicVariant(main)]])
   const s=setup();assert.equal(s.c.vectaSafeApplyAppUpdate('next'),false);assert.equal(s.reloads.length,0);
   s.document.getElementById('printSheet').innerHTML='';assert.equal(s.c.vectaSafeApplyAppUpdate('next'),true);await new Promise(resolve=>setImmediate(resolve));assert.equal(s.reloads.length,1);
  });
+ test(variant+': a confirmation opening during update backup defers the reload',async()=>{
+  const s=setup();s.document.getElementById('printSheet').replaceChildren();
+  let finish;s.c.vectaCreateDailyBackup=()=>new Promise(resolve=>{finish=resolve;});
+  assert.equal(s.c.vectaSafeApplyAppUpdate('next'),true);
+  const dialog=s.document.createElement('dialog');dialog.setAttribute('open','');s.document.body.append(dialog);
+  finish();await new Promise(resolve=>setImmediate(resolve));
+  assert.equal(s.reloads.length,0);assert.equal(s.c.vectaAppUpdateWaiting,'next');
+  assert.equal(s.c.vectaSafeApplyAppUpdate('next'),false);
+ });
  test(variant+': a failed Fleet save cannot prevent the completed paperwork reaching its own storage',async()=>{
   const s=setup();s.c.syncServiceSheetDueDateToFleet=async()=>{throw Error('Fleet unavailable')};assert.equal(await s.c.saveServiceSheet(),false);assert.equal(s.writes.length,1);assert.match(s.writes[0].html,/Front pads checked/);assert.match(s.alerts[0],/paperwork was saved/);assert.equal(s.storage.size,1);assert.equal(s.document.querySelector('.savePreview').disabled,false);assert.equal(s.document.querySelector('.servicePrint').hasAttribute('inert'),false);assert.match(s.document.getElementById('serviceSheetSaveStatus').textContent,/retry/);
  });
