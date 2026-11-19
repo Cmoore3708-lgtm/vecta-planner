@@ -227,11 +227,10 @@ function jobPartDisplayName(p){
   if(/^(interim|full) service$/i.test(name))serviceLookup();
   if(/^tyres$/i.test(name)&&added)openTyres(editor);
  }
- const desktop=root.matchMedia?.('(min-width:901px)');
  function addDesktopTyreTab(nav){
   const previous=nav.querySelector('[data-tyre-lookup]');
   const settings=nav.querySelector('[data-view="settings"]');
-  if(!desktop?.matches||!settings){previous?.remove();return;}
+  if(!settings){previous?.remove();return;}
   if(previous)return;
   const button=document.createElement('button');
   button.type='button';
@@ -241,9 +240,5 @@ function jobPartDisplayName(p){
   button.onclick=()=>openTyres(null);
   settings.after(button);
  }
- desktop?.addEventListener?.('change',()=>{
-  const nav=el('nav');
-  if(nav)addDesktopTyreTab(nav);
- });
  root.VectaJobPricing={addDesktopTyreTab,install,selected,removeTyres,renderAdvisor,partDisplayName:jobPartDisplayName};
 })(window);
