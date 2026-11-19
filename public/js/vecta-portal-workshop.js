@@ -407,6 +407,8 @@
  }
  function install(){
   if(!document.querySelector('main.main>header.top'))return;
+  const interrupted=readConfirmationDraft();
+  if(!mechanic()&&interrupted?.jobId)confirmation({id:interrupted.jobId});
   popup=node('aside');popup.className='portalWorkshopPopup';popup.hidden=true;popup.setAttribute('aria-label','Customer portal notification');document.body.append(popup);
   let busy=false;
   refreshQueue=async()=>{
@@ -466,7 +468,25 @@
   mountOutstanding();paintBadges();paintOutstanding();refreshQueue();setInterval(refreshQueue,10000);
   setInterval(()=>{for(const [id,p]of panels)if(p.panel.isConnected)p.refresh();else panels.delete(id);},15000);
  }
+ // A tab owns one open email. Keep its job reference before the editor is shown.
+ const confirmationKey='vecta:booking-confirmation:review';
+ function readConfirmationDraft(){
+  try{return JSON.parse(sessionStorage.getItem(confirmationKey));}catch{return null;}
+ }
+ function storeConfirmationDraft(draft){
+  try{sessionStorage.setItem(confirmationKey,JSON.stringify(draft));}catch{}
+ }
+ function prepareConfirmation(job){
+  const existing=readConfirmationDraft();
+  if(existing?.jobId===job.id)return existing;
+  const draft={jobId:job.id,edits:{}};
+  storeConfirmationDraft(draft);return draft;
+ }
  async function confirmation(job){
+  if(document.querySelector('dialog.portalEmailDialog'))return;
+  const draft=prepareConfirmation(job);
+  function forget(){try{sessionStorage.removeItem(confirmationKey);}catch{}}
+
   const dialog=node('dialog');dialog.className='portalEmailDialog';
   const title=node('h2','Booking confirmation'),status=node('p','Preparing your formatted email…'),hint=node('p'),preview=node('iframe');
   hint.className='portalEmailHint';preview.title='Customer confirmation email — click text to edit';
@@ -482,17 +502,19 @@
    const style=doc.createElement('style');style.textContent='[contenteditable]{cursor:text;white-space:pre-wrap;overflow-wrap:anywhere;min-width:1ch;min-height:1em}[contenteditable]:empty{display:inline-block}[contenteditable]:hover{outline:1px dashed #aaa;outline-offset:3px}[contenteditable]:focus{outline:2px solid #bd1830;outline-offset:3px;border-radius:2px}';doc.head.append(style);
    for(const el of fields()){
     el.dataset.originalText=fieldText(el);
+    if(editable&&Object.hasOwn(draft.edits,el.dataset.confirmationField))el.textContent=draft.edits[el.dataset.confirmationField];
     if(editable){el.setAttribute('contenteditable','plaintext-only');el.setAttribute('role','textbox');el.setAttribute('aria-label','Edit '+el.dataset.confirmationField.replace(/_/g,' '));el.setAttribute('aria-multiline','true');}
    }
+   dirty=editable&&Object.keys(draft.edits).length>0;
    doc.addEventListener('click',e=>{if(e.target.closest?.('a'))e.preventDefault();});
    doc.addEventListener('drop',e=>e.preventDefault());
-   doc.addEventListener('input',()=>{dirty=Object.keys(edits()).length>0;hint.textContent=dirty?'Email amended — your changes will be sent and recorded in Messages.':'Click any text below to edit it. Changes apply to this email only.';});
+   doc.addEventListener('input',()=>{draft.edits=edits();storeConfirmationDraft(draft);dirty=Object.keys(draft.edits).length>0;hint.textContent=dirty?'Email amended — your changes will be sent and recorded in Messages.':'Click any text below to edit it. Changes apply to this email only.';});
    // Always paste plain text, including in browsers with older editing support.
    doc.addEventListener('paste',e=>{if(!editable)return;e.preventDefault();doc.execCommand('insertText',false,e.clipboardData?.getData('text/plain')||'');});
   }
   preview.addEventListener('load',prepareEditor);
   const send=button('Send confirmation email',async()=>{
-   if(sending)return;
+   if(sending||send.disabled)return;
    if(editable&&!fields().length){status.textContent='Wait for the email preview to finish loading.';return;}
    submittedEdits??=editable?edits():{};
    sending=true;send.disabled=true;lock();status.textContent='Sending…';
@@ -501,18 +523,23 @@
     status.textContent=result.audit_pending?'Accepted by the email provider; the delivery record needs checking.':'Confirmation email sent.';
     hint.textContent='The sent wording is recorded in Messages.';
     window.dispatchEvent?.(new Event('vecta-portal-changed'));
-    if(result.accepted&&!result.audit_pending)dialog.close();
+    if(result.accepted){forget();if(!result.audit_pending)dialog.close();}
    }catch(e){
     status.textContent=e.message;send.disabled=false;
     hint.textContent='Your wording is kept for retry. Reopen the preview to check the send status.';
    }finally{sending=false;}
   });send.disabled=true;
-  function close(){if(dirty&&!sending&&!window.confirm('Discard your unsent email changes?'))return;dialog.close();}
+  function close(){if(sending)return;if(dirty&&!window.confirm('Discard your unsent email changes?'))return;forget();dialog.close();}
   dialog.append(title,status,hint,preview,send,button('Close',close));document.body.append(dialog);
-  dialog.addEventListener('cancel',e=>{e.preventDefault();close();});dialog.addEventListener('close',()=>dialog.remove(),{once:true});dialog.showModal();
+  dialog.addEventListener('cancel',e=>{e.preventDefault();close();});dialog.addEventListener('close',()=>dialog.remove(),{once:true});title.tabIndex=-1;title.setAttribute('autofocus','');dialog.showModal();title.focus?.();
   status.setAttribute('role','status');status.setAttribute('aria-live','polite');
   try{
-   const data=await api('confirmation-preview',{job_id:job.id});editable=data.editable===true;
+   const data=await api('confirmation-preview',{job_id:job.id});
+   if(!dialog.isConnected||dialog.open===false)return;
+   editable=data.editable===true;
+   if(draft.identity!==data.confirmation_id)draft.edits={};
+   draft.identity=data.confirmation_id;
+   if(data.status==='sent')forget();else storeConfirmationDraft(draft);
    preview.srcdoc=data.html;
    hint.textContent=editable?'Click any text below to edit it. Changes apply to this email only.':'This email keeps its original wording because it has already been submitted.';
    status.textContent='To: '+data.email+(data.has_image?' · Includes saved vehicle image.':' · No saved vehicle image available.')+(data.test?' Test preview — email sending is disabled.':data.status==='pending'?' The earlier send is not yet confirmed. Check its status before sending another copy.':data.send_error?' '+data.send_error:'');
@@ -527,6 +554,6 @@
    for(const notification of await registration?.getNotifications?.()||[])if(bookingCount===0&&notification.tag==='vecta-website-bookings')notification.close();
   }).catch(()=>{});
  }
- window.VectaPortalWorkshop={mount,mountInbox,confirmation,clearBookingNotifications,showResponse};
+ window.VectaPortalWorkshop={mount,mountInbox,confirmation,prepareConfirmation,clearBookingNotifications,showResponse};
  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',install,{once:true});else install();
 })();

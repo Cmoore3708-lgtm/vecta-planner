@@ -80,3 +80,35 @@ test('an unconfirmed or failed send and an outstanding delivery-record warning k
   assert.match(document.querySelector('[role="status"]').textContent,outcome==='audit'?/delivery record needs checking/:outcome==='failed'?/Email rejected/:/could not be confirmed/);
  }
 });
+
+test('refresh restores the same booking and its amended email, and only Send delivers it',async()=>{
+ const stored=new Map(),requests=[];
+ const sessionStorage={getItem:key=>stored.get(key)||null,setItem:(key,value)=>stored.set(key,value),removeItem:key=>stored.delete(key)};
+ function page(){
+  const {document,window}=parseHTML('<html><body><main class="main"><header class="top"></header></main></body></html>');
+  const create=document.createElement.bind(document);
+  document.createElement=tag=>{
+   const el=create(tag);
+   if(tag==='dialog'){el.showModal=()=>el.setAttribute('open','');el.close=()=>el.remove();}
+   if(tag==='iframe')Object.defineProperty(el,'srcdoc',{set(html){
+    Object.defineProperty(el,'contentDocument',{value:parseHTML(html).document});
+    el.dispatchEvent(new window.Event('load'));
+   }});
+   return el;
+  };
+  const workshopWindow={addEventListener(){}};
+  vm.runInNewContext(readFileSync('public/js/vecta-portal-workshop.js','utf8'),{window:workshopWindow,document,navigator:{onLine:false},sessionStorage,setInterval(){},location:{search:''},URLSearchParams,AbortSignal,Event,fetch:async(url,opts)=>{
+   const body=JSON.parse(opts.body);requests.push(body);
+   return Response.json(body.action==='confirmation-preview'?{confirmation_id:'visit-1',status:'unsent',editable:true,email:'driver@example.invalid',html:confirmationPreviewHtml(confirmationContent(job,link))}:{accepted:true});
+  }});
+  return {document,workshop:workshopWindow.VectaPortalWorkshop,field:()=>document.querySelector('iframe').contentDocument.querySelector('[data-confirmation-field="work"]')};
+ }
+ const first=page();first.workshop.prepareConfirmation(job);
+ const opened=page();await new Promise(resolve=>setImmediate(resolve));
+ opened.field().textContent='Check the tyres first';opened.field().dispatchEvent(new (opened.field().ownerDocument.defaultView.Event)('input',{bubbles:true}));
+ const restored=page();await new Promise(resolve=>setImmediate(resolve));
+ assert.equal(restored.field().textContent,'Check the tyres first');
+ assert.deepEqual(requests.map(r=>[r.action,r.job_id]),Array(2).fill(['confirmation-preview',job.id]));
+ await restored.document.querySelector('.portalEmailDialog button').onclick();
+ assert.deepEqual(requests[2].edits,{work:'Check the tyres first'});assert.equal(requests[2].action,'confirmation-send');assert.equal(stored.size,0);
+});

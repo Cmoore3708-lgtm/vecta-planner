@@ -9892,13 +9892,21 @@ function vectaSafeApplyAppUpdate(version){
   vectaAppUpdateWaiting=nextVersion;
   /* Never reload over offline work, a save, or an open editor. The update stays
      waiting and is applied on a later foreground event when the screen is safe. */
-  if(vectaPendingSync().length||vectaSyncInFlight||plannerInteractionBusy||document.querySelector('.modal.open')||document.querySelector('#printSheet .servicePrint'))return false;
+  function busy(){return vectaPendingSync().length||vectaSyncInFlight||plannerInteractionBusy||document.querySelector('.modal.open')||document.querySelector('dialog[open],#jobModal[data-provisional-saving="true"]')||document.querySelector('#printSheet .servicePrint')}
+  if(busy())return false;
   try{
     if(sessionStorage.getItem('vecta:app-reloaded:'+nextVersion)==='1')return false;
     sessionStorage.setItem('vecta:app-reloaded:'+nextVersion,'1');
   }catch(_e){}
   vectaAppUpdateWaiting=false;
-  Promise.resolve(vectaCreateDailyBackup(true,'before-app-update')).finally(function(){location.reload()});
+  Promise.resolve(vectaCreateDailyBackup(true,'before-app-update')).finally(function(){
+    if(busy()){
+      vectaAppUpdateWaiting=nextVersion;
+      try{sessionStorage.removeItem('vecta:app-reloaded:'+nextVersion)}catch(_e){}
+      return;
+    }
+    location.reload();
+  });
   return true;
 }
 function registerVectaServiceWorker(){
@@ -13120,7 +13128,11 @@ async function acceptWebsiteRequestJob(requestId,jobId,button){
       vectaBookingReceipts.invalidate();vectaRefreshWebsiteBookingCount();
       saveLocal();return true;
     });
-    if(accepted&&typeof openJobModal==='function')openJobModal(jobId);
+    if(accepted&&typeof openJobModal==='function'){
+      openJobModal(jobId);
+      var booked=(app.jobs||[]).find(function(job){return String(job.id)===String(jobId)});
+      if(booked&&booked.customer_email)await openWebsiteBookingConfirmationEmail(booked);
+    }
     return accepted;
   }finally{button.disabled=false;button.textContent='Accept Booking';}
 }
@@ -16190,6 +16202,7 @@ async function saveJob(id){
       }catch(packError){showPlannerAvailabilityNotice('Job saved as complete. '+packError.message)}
     }
     if(acceptingWebsiteRequest&&await onConfirmed(j)===false)return false;
+    if(savedResult===true&&(firstWebsiteConfirmation||acceptingWebsiteRequest)&&String(j.customer_email||'').trim())window.VectaPortalWorkshop?.prepareConfirmation?.(j);
     if(overlapShifted.length)persistPlannerJobsInBackground(overlapShifted.filter(function(x){return String(x.id)!==String(j.id)}),'New job overlap repair');
 
     if(String(j.source||'').toLowerCase()==='website booking'&&/^\d{4}-\d{2}-\d{2}$/.test(String(j.booking_date||''))){selectedDate=new Date(j.booking_date+'T00:00:00');view='planner';}
