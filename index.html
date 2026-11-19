@@ -2934,6 +2934,7 @@ body.servicePreviewing .servicePreviewControls{position:relative!important;z-ind
 .fleetKpi strong{font-size:22px}
 }
 </style>
+<style>@media(max-width:900px){#nav button[data-view="tyres"]{display:none}}</style>
 </head>
 <body class="vectaStartupLoading">
 <!-- VECTA v200: unfinished jobs stay allocated; no carried-over column -->
@@ -10688,7 +10689,7 @@ var vectaDeviceNotifications=window.createVectaDeviceNotifications({decodeKey:ve
 function vectaBookingAlertsState(){return vectaDeviceNotifications.state();}
 function vectaMaintainBookingAlerts(force){return vectaDeviceNotifications.maintain(force);}
 function vectaEnableBookingAlerts(){return vectaDeviceNotifications.enable();}
-function navItems(){var newCount=vectaPendingWebsiteBookingCount(),partsCount=(app.jobs||[]).filter(function(j){var ps=partsStatusFromJob(j);return !vectaJobIsDeletedForLists(j)&&!!ps&&ps!=='Parts here'&&ps!=='Not required'&&!j.archived&&j.status!=='completed'&&j.status!=='ready_to_invoice'}).length,paymentWarnCount=typeof overduePaymentMethodInvoices==='function'?overduePaymentMethodInvoices().length:0;return [['planner','Dashboard'],['fleet','Fleet Manager'],['jobs','Jobs'],['invoices','Financial'],['invoiceArchive','Invoices'+(paymentWarnCount?' ⚠ '+paymentWarnCount:'')],['websiteRequests','Website Bookings'+(newCount?' ('+newCount+')':'')],['parts','Parts'+(partsCount?' ('+partsCount+')':'')],['settings','Settings']];}
+function navItems(){var newCount=vectaPendingWebsiteBookingCount(),partsCount=(app.jobs||[]).filter(function(j){var ps=partsStatusFromJob(j);return !vectaJobIsDeletedForLists(j)&&!!ps&&ps!=='Parts here'&&ps!=='Not required'&&!j.archived&&j.status!=='completed'&&j.status!=='ready_to_invoice'}).length,paymentWarnCount=typeof overduePaymentMethodInvoices==='function'?overduePaymentMethodInvoices().length:0;return [['planner','Dashboard'],['fleet','Fleet Manager'],['jobs','Jobs'],['invoices','Financial'],['invoiceArchive','Invoices'+(paymentWarnCount?' ⚠ '+paymentWarnCount:'')],['websiteRequests','Website Bookings'+(newCount?' ('+newCount+')':'')],['parts','Parts'+(partsCount?' ('+partsCount+')':'')],['settings','Settings'],['tyres','TYRES']];}
 /* Page navigation paints feedback before starting synchronous list construction.
    A superseded navigation must never replace the user's newer page. */
 var vectaNavigationSequence=0;
@@ -10738,7 +10739,7 @@ function vectaJobsListHtml(rows,mode){
   var visible=vectaListWindow('jobs',JSON.stringify([mode,jobsSearchQuery]),rows);
   return jobRows(visible,mode)+vectaListMoreHtml('jobs',rows.length);
 }
-function renderNav(){vectaUpdateAppBadge();var n=document.getElementById('nav');n.innerHTML=navItems().map(function(it){var active=(view===it[0])||(it[0]==='invoiceArchive'&&view==='invoices'&&financialSection==='invoiceList');if(it[0]==='invoices'&&view==='invoices'&&financialSection==='invoiceList')active=false;return '<button data-view="'+it[0]+'" class="'+(active?'active':'')+'">'+it[1]+'</button>'}).join('');n.querySelectorAll('button').forEach(function(b){b.onclick=function(){if(b.dataset.view!=='invoices'&&financeDashboardTimer){clearTimeout(financeDashboardTimer);financeDashboardTimer=null}if(b.dataset.view==='fleet'){fleetSection='maintenance';fleetListMode='due30';fleetFilter='All';fleetQuery='';fleetDueOnly=false;activeFleetVehicleId=''}if(b.dataset.view==='jobs'){jobsListMode='completed';jobsSearchQuery=''}if(b.dataset.view==='invoices')financialSection='main';if(b.dataset.view==='invoiceArchive'){openFinancialInvoiceList();return}vectaNavigateTo(b.dataset.view)}})}
+function renderNav(){vectaUpdateAppBadge();var n=document.getElementById('nav');n.innerHTML=navItems().map(function(it){var active=(view===it[0])||(it[0]==='invoiceArchive'&&view==='invoices'&&financialSection==='invoiceList');if(it[0]==='invoices'&&view==='invoices'&&financialSection==='invoiceList')active=false;return '<button data-view="'+it[0]+'" class="'+(active?'active':'')+'">'+it[1]+'</button>'}).join('');n.querySelectorAll('button').forEach(function(b){b.onclick=function(){if(b.dataset.view==='tyres'){window.VectaJobPricing.openTyreLookup();return}if(b.dataset.view!=='invoices'&&financeDashboardTimer){clearTimeout(financeDashboardTimer);financeDashboardTimer=null}if(b.dataset.view==='fleet'){fleetSection='maintenance';fleetListMode='due30';fleetFilter='All';fleetQuery='';fleetDueOnly=false;activeFleetVehicleId=''}if(b.dataset.view==='jobs'){jobsListMode='completed';jobsSearchQuery=''}if(b.dataset.view==='invoices')financialSection='main';if(b.dataset.view==='invoiceArchive'){openFinancialInvoiceList();return}vectaNavigateTo(b.dataset.view)}})}
 var cloudSyncChannel=null,cloudSyncTimer=null,cloudRefreshBusy=false,plannerInteractionBusy=false,cloudRefreshDebounce=null,cloudLastRefreshAt=0;
 async function refreshCloudAndRender(){
   if(window.__vectaJobSaveFenceUntil&&Date.now()<window.__vectaJobSaveFenceUntil){
