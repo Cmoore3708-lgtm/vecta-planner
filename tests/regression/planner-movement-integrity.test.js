@@ -143,12 +143,15 @@ test('current and future legacy-mechanic bookings do not also appear in Unalloca
   {id:'today',registration:'AB12XYZ',technician:'Chris',booking_date:'2026-10-12',status:'booked'},
   {id:'past',registration:'PAST',technician:'Chris',booking_date:'2026-10-09',status:'booked'},
   {id:'no-date',registration:'NODATE',technician:'Chris',booking_date:null,status:'booked'},
+  {id:'finished',technician:'Unallocated',completed_at:'2026-10-11T16:00:00Z',status:'booked'},
+  {id:'work-finished',technician:'Unallocated',status:'work_complete'},
+  {id:'paid',technician:'Unallocated',status:'booked',visit_billing:'paid'},
   {id:'unallocated',registration:'NONE',technician:'Unallocated',booking_date:null,status:'booked'}
  ];
  jobs.push({id:'hold',technician:'Unallocated',booking_date:null,status:'provisional'});
  const before=JSON.stringify(jobs);
- const ctx={window:{},app:{jobs,settings:{mechanics:['Alfie','Other']}},todayIso:()=> '2026-10-12',isVehicleTaxJob:()=>false,isJobInvoiced:()=>false,normReg:v=>String(v||'').replace(/\s/g,'').toUpperCase(),carryOverMeta:()=>null,byTime:()=>0};
- vm.runInNewContext(namedFunctionSource('unallocatedJobs')+';rows=unallocatedJobs()',ctx);
+ const ctx={window:{},app:{jobs,settings:{mechanics:['Alfie','Other']}},todayIso:()=> '2026-10-12',vectaJobIsDeletedForLists:()=>false,isVehicleTaxJob:()=>false,isJobInvoiced:()=>false,normReg:v=>String(v||'').replace(/\s/g,'').toUpperCase(),carryOverMeta:()=>null,byTime:()=>0};
+ vm.runInNewContext(namedFunctionSource('jobCompletionEvidence')+';'+namedFunctionSource('unallocatedJobs')+';rows=unallocatedJobs()',ctx);
  assert.deepEqual(Array.from(ctx.rows,j=>j.id).sort(),['no-date','past','unallocated']);
  assert.equal(JSON.stringify(jobs),before);
 });
