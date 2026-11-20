@@ -22,7 +22,25 @@
     return false;
   }
 
+  function bindRegistration(field,actions){
+    var timer;
+    field.oninput=function(){
+      var typed=actions.clean(field.value);
+      field.value=actions.stored(typed)||typed;
+      clearTimeout(timer);
+      timer=setTimeout(function(){actions.applyStored(field);actions.refresh()},220);
+      actions.lookup(field.value,650);
+    };
+    field.onchange=field.onblur=function(){
+      actions.applyStored(field);
+      actions.refresh();
+      actions.commit();
+      actions.lookup(field.value,80);
+    };
+  }
+
   root.VectaJobRules=Object.freeze({
+    bindRegistration:bindRegistration,
     softDeleteMeta:softDeleteMeta,
     isSoftDeleted:isSoftDeleted,
     isDeleted:isDeleted
