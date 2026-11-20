@@ -1,5 +1,12 @@
 (function(root){
   'use strict';
+  root.document?.addEventListener('submit',function(event){
+    if(event.target.id!=='haynesDashboardLookup'||!event.defaultPrevented)return;
+    const input=event.target.querySelector('#haynesDashboardRegistration');
+    if(!input?.validity.valid||!root.document.querySelector('#jobModal.open'))return;
+    input.value='';
+    input.dispatchEvent(new root.Event('input',{bubbles:true}));
+  });
   function create(dependencies){
     var mechanicWorkView=dependencies.workView,jobTypeLabels=dependencies.labels,esc=dependencies.escape,isWebsiteBookingJob=dependencies.isWebsite,templateDataForType=dependencies.template;
 // A dashboard label is separate from the full customer/workshop instructions.
