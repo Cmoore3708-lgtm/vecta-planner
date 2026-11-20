@@ -69,6 +69,35 @@ test('ignore-my-visits persists across page loads, removes today once and suppre
   assert.equal(calls.at(-1),'https://vecta-planner.vercel.app/api/admin-website?visitors=1');
 });
 
+test('workshop confirmation requires a saved website preference and goes to the initiating planner only', () => {
+  const script = fs.readFileSync(new URL('../../public/js/vecta-website-visit.js',import.meta.url),'utf8');
+  assert.equal(script, fs.readFileSync(new URL('../../website/js/vecta-website-visit.js',import.meta.url),'utf8'));
+  function open(referrer, blocked = false) {
+    const {document} = parseHTML('<html><body></body></html>');
+    document.referrer = referrer;
+    const messages = [], storage = new Map();
+    const context = {
+      document, URL, AbortSignal,
+      window:{opener:{postMessage:(...args)=>messages.push(args)}},
+      localStorage:{
+        setItem(key,value){ if (blocked) throw Error('Storage blocked'); storage.set(key,value); },
+        getItem:key=>storage.get(key)
+      },
+      location:{hostname:'www.vectamotors.co.uk',href:'https://www.vectamotors.co.uk/?vecta_visitors=exclude#workshop-statistics'},
+      history:{replaceState(){}}, fetch:async()=>({ok:true})
+    };
+    vm.runInNewContext(script, context);
+    return {messages, document};
+  }
+  const planner = 'https://vecta-planner.vercel.app';
+  assert.deepEqual(open(planner+'/').messages,[['vecta:visits-excluded',planner]]);
+  const blocked = open(planner+'/',true);
+  assert.deepEqual(blocked.messages,[]);
+  assert.match(blocked.document.body.textContent,/could not save/);
+  assert.deepEqual(open('https://example.com/').messages,[]);
+  assert.deepEqual(open('').messages,[]);
+});
+
 test('dashboard distinguishes untracked days, zero visitors and unavailable data; mechanics do not fetch counts', async () => {
   async function browser(data, mechanic=false) {
     const {document}=parseHTML('<div id="websiteVisitorStats" hidden><strong id="websiteVisitorsToday">—</strong><strong id="websiteVisitorsYesterday">—</strong></div>');

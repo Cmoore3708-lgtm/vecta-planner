@@ -16,11 +16,43 @@
     var node = document.createElement(tag); if (className) node.className = className;
     if (text !== undefined) node.textContent = text; return node;
   }
+  function addWorkshopExclusionLink() {
+    // Keep the already-configured phone's compact statistics view clear.
+    if (window.matchMedia('(max-width: 600px) and (pointer: coarse)').matches) return;
+    var marker = 'vecta_workshop_visitor_link_used';
+    function alreadyUsed() {
+      try { return localStorage.getItem(marker) === '1'; } catch { return false; }
+    }
+    if (alreadyUsed()) return;
+    var website = 'https://www.vectamotors.co.uk';
+    var link = el('a', '', 'Exclude this browser from website visits');
+    link.href = website + '/?vecta_visitors=exclude#workshop-statistics';
+    link.target = '_blank';
+    link.rel = 'noopener';
+    var setupTab;
+    link.addEventListener('click', function (event) {
+      if (event.ctrlKey || event.metaKey || event.shiftKey || event.altKey) return;
+      // Keep a handle to this specific trusted tab to verify its confirmation.
+      setupTab = window.open(link.href, '_blank');
+      if (setupTab) event.preventDefault();
+    });
+    window.addEventListener('message', function (event) {
+      if (!setupTab || event.source !== setupTab || event.origin !== website || event.data !== 'vecta:visits-excluded') return;
+      setupTab = null;
+      try { localStorage.setItem(marker, '1'); } catch {}
+      link.remove();
+    });
+    window.addEventListener('storage', function (event) {
+      if (event.key === marker && alreadyUsed()) link.remove();
+    });
+    modal.querySelector('.wg-top p').append(' ', link);
+  }
   function build() {
     modal = el('dialog', 'websiteGraphs'); modal.id = 'websiteGraphs';
     modal.setAttribute('aria-labelledby', 'websiteGraphsTitle');
     modal.innerHTML = '<div class="wg-top"><div><span class="wg-eyebrow">VECTA · WEBSITE PERFORMANCE</span><h2 id="websiteGraphsTitle">Visits into bookings</h2><p>See how your website is working for the workshop.</p></div><button type="button" class="wg-close" aria-label="Close website graphs">×</button></div><div class="wg-toolbar"><div class="wg-period" role="group" aria-label="Chart period"><button type="button" data-days="7" aria-pressed="true">7 days</button><button type="button" data-days="30" aria-pressed="false">30 days</button></div><span class="wg-dates"></span></div><div class="wg-status" role="status"></div><div class="wg-content" hidden></div><div class="wg-bottom"><span>UK dates · Updates every minute</span></div>';
     document.body.appendChild(modal);
+    addWorkshopExclusionLink();
     modal.querySelector('.wg-close').addEventListener('click', function () { modal.close(); });
     modal.addEventListener('click', function (event) { if (event.target === modal) { var rect = modal.getBoundingClientRect(); if (event.clientX < rect.left || event.clientX > rect.right || event.clientY < rect.top || event.clientY > rect.bottom) modal.close(); } });
     modal.addEventListener('close', function () { serial++; if (controller) controller.abort(); trigger.focus(); });

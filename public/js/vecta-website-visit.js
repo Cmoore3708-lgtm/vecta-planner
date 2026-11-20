@@ -4,10 +4,12 @@
   if (!['vectamotors.co.uk', 'www.vectamotors.co.uk', 'vecta-website.vercel.app', 'vecta-planner.vercel.app'].includes(location.hostname)) return;
   var optOutKey = 'vecta_ignore_my_visits', ignored = false;
   var url = new URL(location.href), preference = url.searchParams.get('vecta_visitors');
+  var savedExclusion = false;
   try {
     if (preference === 'exclude') localStorage.setItem(optOutKey, '1');
     if (preference === 'include') localStorage.removeItem(optOutKey);
     ignored = localStorage.getItem(optOutKey) === '1';
+    savedExclusion = ignored && preference === 'exclude';
   } catch {
     if (preference === 'exclude') {
       ignored = true;
@@ -15,6 +17,16 @@
     }
   }
   if (preference === 'exclude' || preference === 'include') {
+    if (url.hash === '#workshop-statistics' && preference === 'exclude') {
+      url.hash = '';
+      if (window.opener) {
+        var planner = document.referrer && new URL(document.referrer);
+        if (savedExclusion && planner && planner.protocol === 'https:' && /^vecta-planner(?:-(?:[a-z0-9-]+-)?vectaplanner)?\.vercel\.app$/.test(planner.hostname)) {
+          window.opener.postMessage('vecta:visits-excluded', planner.origin);
+        }
+        window.opener = null;
+      }
+    }
     url.searchParams.delete('vecta_visitors');
     history.replaceState(history.state, '', url.pathname + url.search + url.hash);
     if (ignored) {

@@ -49,7 +49,8 @@ function fixture(days=7) {
   return {date,started_at:new Date().toISOString(),activity_started_at:new Date().toISOString(),days:Array.from({length:days},(_,i)=>{const d=new Date(date+'T12:00:00Z');d.setUTCDate(d.getUTCDate()-days+1+i);return {date:d.toISOString().slice(0,10),visitors:10,booking_visitors:8,requests:3,confirmed:2,converted_visitors:1,partial:i===days-1};})};
 }
 test('click-through graphs distinguish requests, bookings, unique conversions and missing history', async () => {
-  const {document,window}=parseHTML('<html><head></head><body><div id="websiteVisitorStats"><div class="visitorHeading">Website visitors</div><div class="visitorDay">Today</div><div class="visitorDay">Yesterday</div><a class="visitorExclude">Ignore my visits</a></div></body></html>');
+  const {document,window}=parseHTML('<html><head></head><body><div id="websiteVisitorStats"><div class="visitorHeading">Website visitors</div><div class="visitorDay">Today</div><div class="visitorDay">Yesterday</div></div></body></html>');
+  window.matchMedia = () => ({matches:false});
   let response=fixture(), calls=0;
   const context={document,window,navigator:{onLine:true},Intl,Date,Number,AbortController,setTimeout,clearTimeout,setInterval(){},fetch:async()=>{calls++;return {ok:true,json:async()=>response};}};
   vm.runInNewContext(fs.readFileSync(new URL('../../public/js/vecta-website-graphs.js',import.meta.url),'utf8'),context);
@@ -70,6 +71,40 @@ test('click-through graphs distinguish requests, bookings, unique conversions an
   response=fixture(30);response.date='2000-01-01';modal.querySelector('[data-days="30"]').click();await flush();
   assert.equal(modal.querySelector('.wg-content').hidden,true);assert.match(modal.querySelector('.wg-status').textContent,/temporarily unavailable/);
   modal.querySelector('.wg-close').click();assert.equal(modal.open,false);
+});
+
+test('the workshop statistics link stays available until its own website tab confirms exclusion', () => {
+  const storage = new Map();
+  const popup = {};
+  let opens = [];
+  function dashboard(phone = false) {
+    const {document,window} = parseHTML('<html><body><div id="websiteVisitorStats"></div></body></html>');
+    window.matchMedia = () => ({matches:phone});
+    window.open = url => { opens.push(url); return popup; };
+    window.HTMLElement.prototype.showModal = function () { this.open = true; };
+    const context = {
+      document, window, navigator:{onLine:false}, setInterval(){},
+      localStorage:{getItem:key=>storage.get(key), setItem:(key,value)=>storage.set(key,value)}
+    };
+    vm.runInNewContext(fs.readFileSync(new URL('../../public/js/vecta-website-graphs.js',import.meta.url),'utf8'),context);
+    document.querySelector('.visitorTrigger').click();
+    return {window, link:() => document.querySelector('.wg-top a')};
+  }
+  const desk = dashboard();
+  assert.equal(dashboard(true).link(), null);
+  desk.link().click();
+  assert.deepEqual(opens, ['https://www.vectamotors.co.uk/?vecta_visitors=exclude#workshop-statistics']);
+  function confirm(origin, source) {
+    const event = Object.assign(new desk.window.Event('message'), {origin,source,data:'vecta:visits-excluded'});
+    desk.window.dispatchEvent(event);
+  }
+  confirm('https://example.com', popup);
+  confirm('https://www.vectamotors.co.uk', {});
+  assert.ok(desk.link());
+  assert.equal(storage.size, 0);
+  confirm('https://www.vectamotors.co.uk', popup);
+  assert.equal(desk.link(), null);
+  assert.equal(dashboard().link(), null);
 });
 
 test('public collector classifies progress-only views and suppresses opt-out booking events', async () => {
