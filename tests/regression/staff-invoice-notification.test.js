@@ -27,6 +27,7 @@ test('Staff Save & Message uses WhatsApp even with an older Email preference; in
 });
 test('reserve on click before asynchronous save; open only with confirmed invoice and PDF link; repeat saves supported',async()=>{
  const {ctx,events,inv}=setup();inv.customer_email='';assert.equal(await ctx.saveInvoiceAndNotify('i'),true);assert.equal(ctx.view,'invoices');assert.equal(ctx.financialSection,'invoiceList');assert.deepEqual(events.map(e=>e[0]),['open','save','link','navigate']);assert.match(events[3][1],/^https:\/\/web\.whatsapp\.com\/send\?phone=447700123456&text=/);assert.match(new URL(events[3][1]).searchParams.get('text'),/https:\/\/workshop.example\/invoice\?token=secure/);
+ assert.equal(ctx.document.getElementById('invoiceModal').classList.contains('open'),false,'Returning from WhatsApp should reveal the invoice list');
  events.length=0;assert.equal(await ctx.saveInvoiceAndNotify('i'),true);assert.equal(ctx.view,'invoices');assert.equal(ctx.financialSection,'invoiceList');assert.deepEqual(events.map(e=>e[0]),['open','save','link','navigate']);
 });
 test('desktop invoices use WhatsApp Web; phone and iPad invoices retain the app link and identical message',()=>{
@@ -48,10 +49,16 @@ test('desktop invoices use WhatsApp Web; phone and iPad invoices retain the app 
 });
 test('invoice preparation logs the same Web URL used by the reserved tab and fallback button once',async()=>{
  const {ctx,events}=setup(),records=[];ctx.window.vectaMessages={fromUrl:(url,context)=>records.push({url,context})};
- await ctx.saveInvoiceAndNotify('i');const link=ctx.document.querySelector('a[href^="https://web.whatsapp.com/send?"]');
- assert.equal(records.length,1);assert.equal(records[0].url,events.find(e=>e[0]==='navigate')[1]);assert.equal(link.getAttribute('href'),records[0].url);
+ await ctx.saveInvoiceAndNotify('i');
+ assert.equal(records.length,1);assert.equal(records[0].url,events.find(e=>e[0]==='navigate')[1]);
  assert.equal(records[0].context.invoice_id,'i');assert.equal(records[0].context.job_id,'j');assert.equal(records[0].context.kind,'invoice');
- link.click();assert.equal(records.length,1);
+ const automaticUrl=records[0].url;
+ records.length=0;
+ ctx.window.open=()=>null;
+ await ctx.saveInvoiceAndNotify('i');
+ const link=ctx.document.querySelector('a[href^="https://web.whatsapp.com/send?"]');
+ assert.equal(link.getAttribute('href'),automaticUrl);
+ link.click();assert.equal(records.length,1);assert.equal(records[0].url,automaticUrl);
 });
 test('failed save closes reserved window and never issues invoice link or message',async()=>{
  const {ctx,events,tab}=setup();ctx.saveInvoice=async()=>false;assert.equal(await ctx.saveInvoiceAndNotify('i'),false);assert.equal(tab.closed,true);assert.deepEqual(events.map(e=>e[0]),['open','close']);
