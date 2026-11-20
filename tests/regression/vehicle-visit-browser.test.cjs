@@ -14,7 +14,9 @@ test('morning checks, invoice handover and website colours survive reopening acr
   const date=new Intl.DateTimeFormat('en-CA',{timeZone:'Europe/London'}).format(new Date());
   const job={id:'11111111-1111-4111-8111-111111111111',customer_account:'Staff',customer_name:'Alex Example',registration:'QA12ABC',technician:'Alfie',booking_date:date,drop_time:'09:00',status:'booked',estimated_hours:1,job_type:'Other',card_type:'job',vehicle:'Nissan Leaf',work_required:'Check brakes',source:'website booking'};
   const paid={...job,id:'11111111-1111-4111-8111-111111111112',registration:'QA12ABD',status:'completed',archived:true,visit_billing:'paid'};
-  const seed={settings:{mechanics:['Alfie','Chris']},jobs:[job,paid]};
+  const backlog={...job,id:'11111111-1111-4111-8111-111111111113',registration:'QA12ABE',technician:'Unallocated',booking_date:''};
+  const completed={...backlog,id:'11111111-1111-4111-8111-111111111114',registration:'QA12ABF',booking_date:date,status:'completed'};
+  const seed={settings:{mechanics:['Alfie','Chris']},jobs:[job,paid,backlog,completed]};
   try{
     for(const [device,owner] of [['Desktop Chrome',true],['iPhone 13',true],['iPad (gen 7)',false],['iPhone 13',false]]){
       const context=await browser.newContext({...devices[device],serviceWorkers:'block',timezoneId:'Europe/London'});
@@ -46,7 +48,10 @@ test('morning checks, invoice handover and website colours survive reopening acr
           return Math.abs(dot.top-box.top)<10&&Math.abs(dot.right-box.right)<10&&Math.abs(status.right-box.right)<10&&Math.abs(status.bottom-box.bottom)<10;
         });
         assert.equal(corners,true,device);
-        assert.equal(await page.locator('[data-job-id="'+paid.id+'"]:visible .visitSelector,[data-open-job="'+paid.id+'"]:visible .visitSelector').first().inputValue(),'paid',device);
+        const backlogIds=await page.evaluate(()=>unallocatedJobs().map(job=>job.id));
+        assert.ok(backlogIds.includes(backlog.id),device);
+        assert.ok(!backlogIds.includes(paid.id),device);
+        assert.ok(!backlogIds.includes(completed.id),device);
         const style=await card.evaluate(node=>{const s=getComputedStyle(node),box=node.getBoundingClientRect(),control=node.querySelector('.visitSelector').getBoundingClientRect();return {border:s.borderTopColor,blue:s.backgroundColor,inside:control.top>=box.top-1&&control.bottom<=box.bottom+1&&control.left>=box.left-1&&control.right<=box.right+1};});
         assert.equal(style.inside,true,device);assert.equal(style.border,'rgb(0, 122, 128)',device);assert.equal(style.blue,'rgb(223, 240, 255)',device);
         await select.selectOption('missing');await page.waitForFunction(()=>!!document.querySelector('[data-visit-state="missing"]'));
