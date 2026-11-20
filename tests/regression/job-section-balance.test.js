@@ -28,3 +28,18 @@ test('job sections fill both columns, including sections mounted later, with Par
  s.focus(null);s.resize();s.flush();assert.deepEqual([...s.aside.children].slice(-2),[s.parts,s.pricing]);
  s.narrow();s.resize();s.flush();assert.equal(messages.parentElement,s.main);assert.equal(note.closest('.jobCardMainColumn'),s.main);assert.deepEqual([...s.aside.children].slice(-2),[s.parts,s.pricing]);
 });
+
+test('column-dependent text wrapping cannot send sections back and forth on consecutive frames',()=>{
+ const s=setup();
+ const panels=[s.main.querySelector('.jobVehicleHistory'),s.main.querySelector('.jobInternalNotesSection'),s.document.createElement('section')];
+ panels[2].className='jobFormSection portalWorkshop';s.main.append(panels[2]);
+ panels.forEach((panel,i)=>{
+  panel.getBoundingClientRect=()=>({height:(panel.parentElement===s.main?[280,220,200]:[420,360,300])[i]});
+ });
+ s.flush();
+ const columns=panels.map(panel=>panel.parentElement);
+ for(let i=0;i<8;i++){
+  s.resize();s.mutate();s.flush();
+  assert.ok(panels.every((panel,index)=>panel.parentElement===columns[index]),'settled sections must stay in place');
+ }
+});

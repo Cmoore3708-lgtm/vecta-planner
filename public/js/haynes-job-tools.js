@@ -427,7 +427,7 @@ function balanceJobSections(modal,sections,main,aside,parts,pricing){
  commercial[0]?.classList.add('jobCommercialStart');
  if(!root.ResizeObserver||!root.MutationObserver||!root.requestAnimationFrame)return;
  const homes=new Map();
- let frame=null,stopped=false;
+ let frame=null,stopped=false,settledGeometry=[];
  const schedule=()=>{
   if(stopped||frame!==null)return;
   frame=root.requestAnimationFrame(()=>{frame=null;arrange();});
@@ -466,8 +466,21 @@ function balanceJobSections(modal,sections,main,aside,parts,pricing){
   const panels=collect(),active=document.activeElement;
   // Do not move a section or its neighbours while somebody is editing it.
   if(active&&sections.contains(active)&&(active.matches('input,textarea,select')||active.isContentEditable))return;
+  // Wrapping changes when a section moves. Treat the resulting geometry as
+  // settled so observer callbacks only rebalance after an independent change.
+  function geometry(){
+   const values=[];
+   for(const column of [main,aside]){
+    const rect=column.getBoundingClientRect();
+    values.push(column,rect.left,rect.width,root.getComputedStyle(column).rowGap);
+    for(const child of column.children)values.push(child,child.getBoundingClientRect().height);
+   }
+   return values;
+  }
+  const measured=geometry();
+  if(measured.length===settledGeometry.length&&measured.every((value,i)=>value===settledGeometry[i]))return;
   const left=main.getBoundingClientRect(),right=aside.getBoundingClientRect();
-  if(right.left<left.right-1||Math.min(left.width,right.width)<260){place(panels,[]);return;}
+  if(right.left<left.right-1||Math.min(left.width,right.width)<260){place(panels,[]);settledGeometry=geometry();return;}
   const fixed=col=>Array.from(col.children).filter(el=>!panels.includes(el)).map(el=>el.getBoundingClientRect().height);
   const leftFixed=fixed(main),rightFixed=fixed(aside),heights=panels.map(panel=>panel.getBoundingClientRect().height);
   const gap=col=>parseFloat(root.getComputedStyle(col).rowGap)||0;
@@ -487,9 +500,10 @@ function balanceJobSections(modal,sections,main,aside,parts,pricing){
   const options=layouts.map(onRight=>({onRight,height:pageHeight(onRight)}));
   const shortest=Math.min(...options.map(option=>option.height));
   const current=panels.filter(panel=>panel.parentElement===aside);
-  if(pageHeight(current)<=shortest+4){place(panels,current);return;}
+  if(pageHeight(current)<=shortest+4){place(panels,current);settledGeometry=geometry();return;}
   const best=options.filter(option=>option.height<=shortest+4).sort((a,b)=>a.onRight.length-b.onRight.length)[0];
   place(panels,best.onRight);
+  settledGeometry=geometry();
  }
  for(const el of [sections,main,aside,...commercial])sizes.observe(el);
  lifecycle.observe(modal,{childList:true,subtree:true,attributes:true,attributeFilter:['aria-hidden','hidden','open']});
