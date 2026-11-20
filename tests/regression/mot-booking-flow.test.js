@@ -13,9 +13,10 @@ test('advisories repeat at appointment choice with the question only on step 3',
  assert.ok(booking.indexOf('advisoryListHtml(true)')<booking.indexOf('<h2>Choose your date</h2>'));
 });
 test('new MOT bookings stay unallocated until the garage confirms; existing allocations are preserved',()=>{
- const html=fs.readFileSync('index.html','utf8'),tech={value:'Alfie',options:[{value:'Alfie'},{value:'Chris'}]},type={value:'General'};
- const ctx={editingJobId:null,document:{getElementById:id=>id==='job_technician'?tech:id==='job_job_type'?type:null,querySelectorAll:()=>[]},templateDataForType:()=>({}),jobTypeValues:x=>x.split(','),normaliseJobTypeKey:x=>x.toLowerCase(),jobTypeStorageValue:x=>x.join(','),updateMotTimeField:()=>{throw new Error('stop after allocation')}};vm.createContext(ctx);vm.runInContext(fn(html,'applyTemplate'),ctx);
+ const html=fs.readFileSync('index.html','utf8'),tech={value:'Alfie',options:[{value:'Alfie'},{value:'Chris'}]},type={value:'General'},registration={value:'NJ63PLO'};
+ const ctx={app:{settings:{mechanics:['Alfie','Chris']}},editingJobId:null,document:{getElementById:id=>id==='job_technician'?tech:id==='job_job_type'?type:id==='job_registration'?registration:null,querySelectorAll:()=>[]},templateDataForType:()=>({}),jobTypeValues:x=>x.split(','),normaliseJobTypeKey:x=>x.toLowerCase(),jobTypeStorageValue:x=>x.join(','),updateMotTimeField:()=>{throw new Error('stop after allocation')}};vm.createContext(ctx);vm.runInContext(['normReg','configuredMechanicNames','configuredMechanicChoice','technicianForNmukRegistration','applyTemplate'].map(name=>fn(html,name)).join('\n'),ctx);
  assert.throws(()=>ctx.applyTemplate('MOT'),/stop/);assert.equal(tech.value,'Unallocated');
+ registration.value='nmuk';type.value='General';assert.throws(()=>ctx.applyTemplate('MOT'),/stop/);assert.equal(tech.value,'Chris');
  ctx.editingJobId='existing-job';tech.value='Alfie';type.value='General';assert.throws(()=>ctx.applyTemplate('MOT'),/stop/);assert.equal(tech.value,'Alfie');
  type.value='MOT,Service';tech.value='Alfie';assert.throws(()=>ctx.applyTemplate('MOT'),/stop/);assert.equal(tech.value,'Alfie');
 });
