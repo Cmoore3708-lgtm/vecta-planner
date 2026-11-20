@@ -208,3 +208,22 @@ test('messages arriving during an open editor or nested dialog wait until all ov
  dialog.setAttribute('open','');await tick();assert.equal(popup.hidden,true);dialog.remove();await tick();assert.equal(popup.hidden,false);
  assert.equal(h.receipts.size,0);assert.equal(h.calls.some(c=>c.action==='portal-acknowledge'||c.action==='portal-read'),false);
 });
+
+test('mechanic can close a quote notification and still find the outstanding response on the job',async()=>{
+ const h=setup({mechanic:true});
+ const decision={...message('approval'),kind:'approval_response',decision:'approved',forwarded:true};
+ h.state.queue=[decision];
+ await tick();await h.poll();
+ const popup=h.document.querySelector('.portalWorkshopPopup');
+ assert.match(popup.textContent,/has authorised/);
+ assert.equal(popup.firstElementChild.textContent,'Close');
+ popup.firstElementChild.onclick();
+ await tick();await h.poll();
+ assert.equal(popup.hidden,true);
+ assert.match(h.badges()[0].title,/1 outstanding/);
+ assert.equal(h.receipts.size,0);
+ h.state.queue.unshift({...decision,id:'later',decision:'declined'});
+ await h.poll();
+ assert.equal(popup.hidden,false);
+ assert.match(popup.textContent,/has declined/);
+});

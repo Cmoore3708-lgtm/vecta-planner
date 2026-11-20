@@ -437,6 +437,7 @@
     active={...next,synced};
     const decision=next.kind==='approval_response'&&['approved','declined'].includes(decisionOf(next));popup.classList.toggle('portalQuotePopup',decision);
     if(decision)popup.replaceChildren(responseBody(next));else popup.replaceChildren(node('strong',(mechanic()?'Job update':'Customer message')+' · '+next.registration),eventCard(next,!mechanic()));
+    if(decision&&mechanic())popup.prepend(button('Close',()=>rememberOpened(next)));
     const message=node('p',synced?'':'Message saved. Reconnecting to update this device’s job card…');message.setAttribute('role','status');
     const open=button(next.job_id?'Open job card':'View booking message',async()=>{
      if(open.disabled)return;open.disabled=true;viewingEvent=next.id;message.textContent='Opening message…';
