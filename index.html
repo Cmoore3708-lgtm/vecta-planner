@@ -13377,11 +13377,9 @@ function listPlate(reg){var r=normReg(reg||''),internal=fleetIsInternalRegistrat
 
 function unallocatedJobs(){
   var today=todayIso();
-  var outstanding=window.VectaVisitBoard?.filterForDay(selectedIso(),today,jobsForDate,vectaJobIsDeletedForLists);
   return (app.jobs||[]).filter(function(j){
-    if(!j||isVehicleTaxJob(j))return false;
-    if(outstanding?.(j))return true;
-    if(j.archived||isJobInvoiced(j))return false;
+    if(!j||isVehicleTaxJob(j)||jobCompletionEvidence(j)||vectaJobIsDeletedForLists(j))return false;
+    if(['work_complete','invoiced','invoice_created'].includes(j.status)||['due','paid'].includes(j.visit_billing))return false;
     var st=String(j.status||'booked').toLowerCase();
     if(st==='provisional'||st==='quote'||st==='completed'||st==='ready_to_invoice'||st==='ready'||st==='cancelled')return false;
     if(j.card_type==='mini_task'||j.card_type==='waiting'||j.card_type==='multi_day')return false;
