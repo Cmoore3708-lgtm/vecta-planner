@@ -16630,7 +16630,12 @@ async function promptInvoiceCustomerNotification(inv,messageWindow){
   if(!modal.classList.contains('open')||modal.firstElementChild!==pending){closeInvoiceMessageWindow(messageWindow);return false;}
   var preparedChannels={};function recordPreparedInvoice(channel,url){if(!url||preparedChannels[channel])return;preparedChannels[channel]=true;if(window.vectaMessages)window.vectaMessages.fromUrl(url,{registration:inv.registration,job_id:String(inv.job_id||''),invoice_id:String(inv.id||''),kind:'invoice'});}
   recordPreparedInvoice(notice.channel,notice.preferredUrl);
-  if(messageWindow&&notice.preferredUrl){try{if(!messageWindow.closed)messageWindow.location.replace(notice.preferredUrl)}catch(e){closeInvoiceMessageWindow(messageWindow)}}else closeInvoiceMessageWindow(messageWindow);
+  if(messageWindow&&!messageWindow.closed&&notice.preferredUrl){
+    try{
+      messageWindow.location.replace(notice.preferredUrl);
+      if(notice.channel==='whatsapp'){closeModals();return true;}
+    }catch(e){closeInvoiceMessageWindow(messageWindow)}
+  }else closeInvoiceMessageWindow(messageWindow);
   modal.innerHTML='<div class="modalCard"><div class="modalHead"><h2>Invoice saved · Notify customer</h2><button class="btn" data-close-notice>Close</button></div><div class="modalBody"><p style="white-space:pre-wrap;overflow-wrap:anywhere">'+esc(notice.body)+'</p>'+(!notice.whatsapp&&!notice.email?'<p>No suitable customer contact details are saved. Update the job, then use Save &amp; Message on the invoice.</p>':(!notice.preferredUrl?'<p>Your preferred contact method is unavailable. Choose an available method below or update the customer contact details.</p>':'<p>Your message is ready in '+(notice.channel==='email'?'email':notice.whatsappLabel)+'. If it did not open, use the button below, then review and send.</p>'))+'</div><div class="modalFoot">'+(notice.whatsapp?'<a class="primary" href="'+esc(notice.whatsapp)+'" target="_blank" rel="noopener noreferrer">Open '+notice.whatsappLabel+'</a>':'')+(notice.email?'<a class="btn" href="'+esc(notice.email)+'">Open Email</a>':'')+'<button class="btn" data-close-notice>Later</button></div></div>';
   modal.querySelectorAll('[data-close-notice]').forEach(function(b){b.onclick=closeModals});modal.querySelectorAll('a').forEach(function(a){a.addEventListener('click',function(){recordPreparedInvoice(a.href.indexOf('mailto:')===0?'email':'whatsapp',a.href);closeModals();financialSection='invoiceList';view='invoices';render()})});return true;
 }
