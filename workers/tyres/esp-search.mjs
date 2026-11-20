@@ -40,5 +40,5 @@ export async function testEspSearch(page,size,{trackRefresh=false}={}){
  if(mismatches.length)throw Error('ESP_RESULTS_SIZE_MISMATCH');
  const settings=await page.evaluate(source=>(new Function('return ('+source+')')())(document),readEspSettings.toString());
  const catalogue=result.products.map(row=>parseEspProduct(row)).filter(Boolean);
- return {requestedSize:parsed.key,productsRead:result.products.length,selloutSample:result.products.slice(0,5),settings,guideCatalogue:catalogue};
+ return {headings:result.headings,stockSample:result.products.slice(0,30).map(({product,sellout,stockColumns})=>({product,sellout,stockColumns})),requestedSize:parsed.key,productsRead:result.products.length,selloutSample:result.products.slice(0,5),settings,guideCatalogue:catalogue};
 }

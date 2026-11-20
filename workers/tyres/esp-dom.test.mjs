@@ -33,3 +33,10 @@ test('removes real ESP hidden SKU prefixes and duplicate tooltip descriptions',(
 test('different sizes within one product cell are rejected',()=>{
  assert.throws(()=>readEspGrid(doc('<table id="OrderWindowGrid"><tr><th>Product</th><th>Sellout</th></tr><tr><td>205/55R16 EXAMPLE 225/45R17 EXAMPLE</td><td>£62.00</td></tr></table>')),/SIZE_AMBIGUOUS/);
 });
+
+test('reads transfer warehouse stock beside green arrows before Sellout',()=>{
+ const document=doc('<table id="OrderWindowGrid"><tr><th>Product</th><th>Default</th><th>Company</th><th></th><th>Sellout</th><th>Cart</th></tr><tr><td>175/65R17 ACCELERA IOTA 84WXL</td><td></td><td></td><td>2<img src="green-down.gif"></td><td>£64.00</td><td><input value="99"></td></tr><tr><td>175/65R17 MASSIMO OTTP 84WXL</td><td></td><td></td><td>7<img src="green-down.gif"></td><td>£65.00</td><td></td></tr></table>');
+ const rows=readEspGrid(document).products;
+ assert.equal(rows[0].stockColumns.Warehouse,'2');assert.equal(rows[1].stockColumns.Warehouse,'7');
+ assert.equal(rows[0].sellout,'£64.00');assert.ok(!JSON.stringify(rows).includes('99'));
+});

@@ -16,10 +16,17 @@ export function readEspGrid(document) {
   const productIndex = index('Product'), selloutIndex = index('Sellout');
   const costColumns = headings.flatMap((h,i)=>/^cost$/i.test(h)?[i]:[]);
   const costIndex = costColumns.length===1?costColumns[0]:null;
-  const stocks = ['Default','Company','Centre Stock'].flatMap(label => {
-    const matches = headings.flatMap((heading,i) => heading === label ? [{label,index:i}] : []);
+  const stocks = ['Default','Company','Centre Stock','Warehouse','Other Warehouse','Other Stock'].flatMap(label => {
+    const matches = headings.flatMap((heading,i) => heading.toLowerCase() === label.toLowerCase() ? [{label,index:i}] : []);
     return matches.length === 1 ? matches : [];
   });
+  // ESP shows transfer-warehouse quantities beside green down arrows in an
+  // unlabelled stock column immediately before Sellout (workshop photo 02/11/26).
+  // Restrict this fallback to that column, after the named stock columns.
+  const warehouseIndex = selloutIndex - 1;
+  if (headings[warehouseIndex] === '' && stocks.some(stock => stock.index < warehouseIndex)) {
+    stocks.push({label:'Warehouse',index:warehouseIndex});
+  }
   const products = [];
   for (const row of rows) {
     const cells = Array.from(row.children);
