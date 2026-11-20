@@ -48,7 +48,7 @@ test('conflicting old technical identity cannot bypass a saved manual image on o
  const s=setup({storage:new Map([
   ['vecta_haynes_vehicle_identity_v1',JSON.stringify([{...vehicle,make:'Ford',model:'Fiesta'}])],
   ['vecta_haynes_artwork_v1',JSON.stringify([{...vehicle,manual:true}])]
- ])});s.open();await tick();assert.equal(s.requests.length,1);assert.equal(s.document.querySelector('.haynesJobVehicle strong'),null);assert.ok(s.document.querySelector('.jobCardHeaderVehicle img'));
+ ])});s.open();await tick();assert.equal(s.requests.length,0);assert.equal(s.document.querySelector('.haynesJobVehicle strong'),null);assert.ok(s.document.querySelector('.jobCardHeaderVehicle img'));
 });
 
 test('a cold browser accepts permanent server identity without renewing its technical timestamp',async()=>{
@@ -69,11 +69,11 @@ test('wrong-registration and future-dated server identities remain rejected',asy
  }
 });
 
-test('targeted artwork recovery and shared technical identity are reused independently on reopen',async()=>{
+test('targeted artwork recovery reuses the saved drawing without requesting technical data on reopen',async()=>{
  const s=setup({fetcher:async url=>({ok:true,json:async()=>url.includes('vehicle-artwork')?{status:'ARTWORK',vehicle:{...vehicle,generic:true}}:{status:'MATCHED',vehicle}})});
- s.open();await tick();assert.equal(s.requests.length,2);assert.match(s.requests[0].url,/^\/api\/vehicle-artwork\?/);
+ s.open();await tick();assert.equal(s.requests.length,1);assert.match(s.requests[0].url,/^\/api\/vehicle-artwork\?/);
  assert.ok(s.document.querySelector('.jobCardHeaderVehicle img'));
- s.open();await tick();assert.equal(s.requests.length,2);assert.match(s.document.querySelector('.haynesJobVehicle strong').textContent,/Yaris/);
+ s.open();await tick();assert.equal(s.requests.length,1);assert.equal(s.document.querySelector('.haynesJobVehicle strong'),null);
 });
 
 test('confirmed artwork absence permits one ordinary identity lookup for a genuinely missing image',async()=>{
@@ -117,6 +117,7 @@ test('new and legacy cards with artwork match once, then reopen offline with the
   const s=setup({storage,fetcher:async()=>({ok:true,json:async()=>({status:'MATCHED',vehicle})})});
   let opened=0;s.root.open=()=>{opened++;};
   s.open({automatic});await tick();
+  assert.equal(s.requests.length,0);
   await s.document.querySelector('.jobHeaderHaynesLookup').onclick({type:'click'});
   assert.equal(s.requests.length,1);assert.equal(s.requests[0].options.method,undefined);assert.equal(opened,0);
   const mechanic=setup({storage,mechanic:true});mechanic.root.navigator.onLine=false;
