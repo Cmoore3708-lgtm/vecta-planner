@@ -16229,7 +16229,7 @@ async function saveJob(id){
     closeModals();
     render();
     if(savedResult===true&&j.status==='booked'&&window.VectaMotBookings?.recheck&&hasMotJobType(j))window.VectaMotBookings.recheck(j.id);
-    if(savedResult===true&&window.VectaHaynesJobTools&&!j.no_vehicle&&j.registration&&(!existingJob||normReg(existingJob.registration)!==normReg(j.registration)))window.VectaHaynesJobTools.lookup(j.registration,j.make,{background:false}).catch(()=>{});
+    if(savedResult===true&&window.VectaHaynesJobTools&&!j.no_vehicle&&j.registration&&!window.VectaHaynesJobTools.hasAssignedArtwork?.(j)&&(!existingJob||normReg(existingJob.registration)!==normReg(j.registration)))window.VectaHaynesJobTools.lookup(j.registration,j.make,{background:false}).catch(()=>{});
     if(!acceptingWebsiteRequest){if(savedResult===true&&typeof onConfirmed==='function')await onConfirmed(j);}
     /* A new completed record is a direct financial entry; existing staff jobs retain their invoice workflow. */
     if(existingJob&&j.status==='completed'&&j.customer_account==='Staff'&&!wasCompleted){openInvoiceForJob(j.id);return true;}
