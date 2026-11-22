@@ -8,7 +8,9 @@ function setup(extras=true){
  const jobs=[{id:'a',amount:2860,nmuk_vehicle_type:'Internal',completed_at:'2026-09-30'},{id:'b',amount:5685,nmuk_vehicle_type:'Pool',completed_at:'2026-09-30'},{id:'c',amount:1805,nmuk_vehicle_type:'MVOS',completed_at:'2026-09-30'}];
  const invoices=[{id:'invoice',fleet_customer:'NMUK',fleet_month:'2026-09',invoice_number:'78763',fleet_job_ids:['a','b','c'],subtotal:12770,lines:[{amount:12770,...(extras?{nmuk_monthly_extras:[{amount:200,section:'internal',description:'Puncture repairs'},{amount:2220,section:'other',description:'Other monthly charges'}]}:{})}]}];
  const ctx={financeAllJobs:()=>jobs,vectaActiveInvoices:()=>invoices,financeIsRecognisedJob:()=>true,isVehicleTaxJob:()=>false,financeInvoiceExVatValue:i=>i.subtotal,financeRevenueExVatValue:j=>j.amount,financeDailyReferenceDate:()=> '2026-09-30',iso:d=>d.toISOString().slice(0,10),financeDashboardCacheKey:()=>JSON.stringify([jobs,invoices]),financeCompletedDate:j=>j.completed_at||'',invoiceFinanceJobs:()=>jobs,financeLegacyAllocation:()=>({type:'NMUK'}),financeCanonicalCustomer:x=>x};
- vm.createContext(ctx);vm.runInContext(source,ctx);return {ctx,jobs,invoices};
+ ctx.window=ctx;vm.createContext(ctx);
+ vm.runInContext(fs.readFileSync('public/js/vecta-invoice-rules.js','utf8'),ctx);
+ vm.runInContext(source,ctx);return {ctx,jobs,invoices};
 }
 test('one shared report includes charges once and categories reconcile without changing job count',()=>{
  const {ctx}=setup();const r=ctx.financeSharedReport('month');
