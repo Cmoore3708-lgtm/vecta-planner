@@ -8,7 +8,9 @@ function setup(extras=true){
  const jobs=[{id:'a',amount:2860,nmuk_vehicle_type:'Internal',completed_at:'2026-09-30'},{id:'b',amount:5685,nmuk_vehicle_type:'Pool',completed_at:'2026-09-30'},{id:'c',amount:1805,nmuk_vehicle_type:'MVOS',completed_at:'2026-09-30'}];
  const invoices=[{id:'invoice',fleet_customer:'NMUK',fleet_month:'2026-09',invoice_number:'78763',fleet_job_ids:['a','b','c'],subtotal:12770,lines:[{amount:12770,...(extras?{nmuk_monthly_extras:[{amount:200,section:'internal',description:'Puncture repairs'},{amount:2220,section:'other',description:'Other monthly charges'}]}:{})}]}];
  const ctx={financeAllJobs:()=>jobs,vectaActiveInvoices:()=>invoices,financeIsRecognisedJob:()=>true,isVehicleTaxJob:()=>false,financeInvoiceExVatValue:i=>i.subtotal,financeRevenueExVatValue:j=>j.amount,financeDailyReferenceDate:()=> '2026-09-30',iso:d=>d.toISOString().slice(0,10),financeDashboardCacheKey:()=>JSON.stringify([jobs,invoices]),financeCompletedDate:j=>j.completed_at||'',invoiceFinanceJobs:()=>jobs,financeLegacyAllocation:()=>({type:'NMUK'}),financeCanonicalCustomer:x=>x};
- vm.createContext(ctx);vm.runInContext(source,ctx);return {ctx,jobs,invoices};
+ ctx.window=ctx;vm.createContext(ctx);
+ vm.runInContext(fs.readFileSync('public/js/vecta-invoice-rules.js','utf8'),ctx);
+ vm.runInContext(source,ctx);return {ctx,jobs,invoices};
 }
 test('one shared report includes charges once and categories reconcile without changing job count',()=>{
  const {ctx}=setup();const r=ctx.financeSharedReport('month');
@@ -56,3 +58,22 @@ test('headline and breakdown consumers read shared data',()=>{
 });
 
 test('NMUK date range performance uses the same shared totals',()=>{const {ctx}=setup();assert.equal(ctx.financeSharedReport('range:2026-04-01:2026-09-30').nmukTotal,12770);assert.equal(ctx.financeSharedReport('range:2026-04-01:2026-09-29').nmukTotal,0)});
+
+test('standalone NMUK fuel counts once on its invoice date at net value with no jobs',()=>{
+ const {ctx,invoices}=setup();
+ ctx.financeDailyReferenceDate=()=> '2026-11-22';
+ const fuel={source:'nmuk_bulk_fuel',customer_name:'NMUK',invoice_number:'VECTA-78837',
+   invoice_date:'2026-11-20',status:'saved',subtotal:15900,total:19080};
+ const baseline=ctx.financeSharedReport('fy');
+ invoices.push(fuel);
+ const november=ctx.financeSharedReport('range:2026-11-01:2026-11-30');
+ assert.equal(november.total,15900);assert.equal(november.nmukCount,0);
+ assert.equal(november.nmukTotals.Fuel,15900);
+ assert.equal(november.adjustments[0].description,'NMUK Fleet – bulk fuel');
+ assert.equal(ctx.financeSharedReport('fy').total,baseline.total+15900);
+ assert.equal(ctx.financeSharedReport('range:2026-12-01:2026-12-31').total,0);
+ for(const change of [{job_id:'linked'},{fleet_month:'2026-11'},{status:'draft'},{customer_name:'Staff'},{source:null}]){
+   invoices[invoices.length-1]={...fuel,...change};
+   assert.equal(ctx.financeSharedReport('fy').total,baseline.total);
+ }
+});
