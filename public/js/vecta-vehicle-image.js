@@ -241,12 +241,31 @@ function vehicleMatches(value, expected={}) {
         const response=await root.fetch('/api/haynes-image?asset='+encodeURIComponent(asset), {signal:root.AbortSignal.timeout(10000)});
         if(!response.ok)throw Error('Image unavailable');const source=(await response.json()).svg;
         if(typeof source!=='string'||!source.includes('<svg')||source.length>MAX_SOURCE_LENGTH)throw Error('Invalid image');
-        persistentWrite('source:'+asset,source);return source;
+        await persistentWrite('source:'+asset,source);return source;
       })();
       sources.set(asset,task); task.catch(() => sources.delete(asset));
       if (sources.size > 64) sources.delete(sources.keys().next().value);
     }
     return sources.get(asset);
+  }
+  const pendingSources=new Set(), preparedSources=new Set(), retryAfter=new Map();
+  let preparing=false;
+  async function prepareSources(urls){
+    if(!root.indexedDB||root.navigator?.onLine===false)return;
+    for(const url of urls){
+      const asset=url?.match(/^https:\/\/www\.haynespro-assets\.com\/workshop\/images\/(\d+\.svgz?)$/)?.[1];
+      if(asset&&!preparedSources.has(asset)&&!(retryAfter.get(asset)>Date.now()))pendingSources.add(asset);
+    }
+    if(preparing)return;
+    preparing=true;
+    try{
+      for(const asset of pendingSources){
+        if(root.navigator?.onLine===false)break;
+        try{await sourceFor(asset);preparedSources.add(asset);retryAfter.delete(asset);}
+        catch{retryAfter.set(asset,Date.now()+60000);}
+        pendingSources.delete(asset);
+      }
+    }finally{preparing=false;}
   }
   function mount(scope = root.document) {
     return Promise.all(Array.from(scope.querySelectorAll('img[data-vehicle-image]')).map(async img => {
@@ -320,5 +339,5 @@ function vehicleMatches(value, expected={}) {
       }
     }));
   }
-  root.VectaVehicleImage = {mount,vehicleMatches,personaliseSvg,sanitiseSvg,colourHex,normaliseReg,resolveColour,rememberColour,manufacturer,colourNames:Object.keys(colours).filter(name=>name!=='GRAY')};
+  root.VectaVehicleImage = {mount,prepareSources,vehicleMatches,personaliseSvg,sanitiseSvg,colourHex,normaliseReg,resolveColour,rememberColour,manufacturer,colourNames:Object.keys(colours).filter(name=>name!=='GRAY')};
 })(typeof window === 'undefined' ? globalThis : window);
