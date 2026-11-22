@@ -254,3 +254,13 @@ test('Mazda 6 base artwork is reused across trim descriptions including the manu
  assert.equal(tools.genericImage({make:'Mazda',vehicle:'Mazda 3 Sport'}),null);
  assert.equal(tools.genericImage({make:'BMW',vehicle:'6 Sport'}),null);
 });
+
+test('an identity-only drawing survives an offline restart without granting technical identity',async()=>{
+ const db=database(new Map([['vehicle_identity:'+van.registration,{...van,typeId:'t_123'}]]));
+ const online=device(db);await online.root.VectaHaynesJobTools.hydrateSharedArtwork();
+ const offline=device(database(),online.storage);offline.root.navigator.onLine=false;
+ const drawing=offline.root.VectaHaynesJobTools.storedDrawing(van);
+ assert.equal(drawing.imageUrl,van.imageUrl);assert.equal(drawing.typeId,undefined);
+ assert.equal(offline.root.VectaHaynesJobTools.snapshot(van.registration),null);
+ assert.equal(db.writes(),0);
+});

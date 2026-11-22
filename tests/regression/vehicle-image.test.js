@@ -443,3 +443,17 @@ test('a src-only car image retries decode twice and can recover on the next dash
   await root.VectaVehicleImage.mount();
   assert.equal(img.dataset.vehicleReady, '1');
 });
+
+test('unopened bookings can render from prepared drawings after an offline cold start',async()=>{
+ const indexedDB=artworkStorage(),online=browser(),offline=browser();
+ online.indexedDB=offline.indexedDB=indexedDB;
+ const url='https://www.haynespro-assets.com/workshop/images/123.svgz';
+ let downloads=0;online.fetch=async()=>{downloads++;return {ok:true,json:async()=>({svg})}};
+ await online.VectaVehicleImage.prepareSources([url,url,undefined]);
+ assert.equal(downloads,1);assert.ok(indexedDB.rows.has('source:123.svgz'));
+ let requests=0;offline.fetch=async()=>{requests++;throw Error('offline')};
+ offline.document.body.innerHTML='<img data-vehicle-image data-vehicle-logo="separate" data-registration="AB12CDE" src="'+url+'">';
+ await offline.VectaVehicleImage.mount();
+ assert.equal(offline.document.querySelector('img').dataset.vehicleReady,'1');
+ assert.equal(requests,0);
+});

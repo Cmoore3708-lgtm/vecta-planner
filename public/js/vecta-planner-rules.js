@@ -58,6 +58,11 @@ function updateContent(container,markup){
   function refreshArtwork(container,jobs,changed){
     if(!root.enrichHaynesDashboard)return;
     var byId=new Map((jobs||[]).map(function(job){return [String(job.id),job]})),tools=root.VectaHaynesJobTools;
+    if(tools?.prepareBookingArtwork){
+      const ready=tools.hydrateSharedArtwork();
+      if(ready)ready.then(()=>tools.prepareBookingArtwork(jobs));
+      else tools.prepareBookingArtwork(jobs);
+    }
     var signature=JSON.stringify(Array.from(container.querySelectorAll('[data-job-id],[data-open-job],[data-open-unallocated]')).map(function(card){
       var job=byId.get(card.dataset.jobId||card.dataset.openJob||card.dataset.openUnallocated);if(!job)return null;
       var drawing=tools&&tools.storedDrawing?tools.storedDrawing(job):null;
