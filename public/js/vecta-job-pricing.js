@@ -145,6 +145,7 @@ function jobPartDisplayName(p){
   }
   parts([],tyre);closeTyres();return true;
  }
+ function tyreName(choice){return choice.brand+' '+choice.model+(choice.allSeason===true?' (All season)':'');}
  function openTyres(active){
   closeTyres();styles();
   const existing=active?.api.gatherJobPartsEditor().find(p=>p.tyre_selection),saved=existing?.tyre_selection;
@@ -168,14 +169,14 @@ function jobPartDisplayName(p){
    message.classList.toggle('is-checking',busy);check.disabled=busy||saving;check.textContent=busy?'Checking…':'Check Live Prices';
    options.innerHTML=[['Budget','budget'],['Mid-range','midrange'],['Premium','premium']].map(([label,category])=>{
     const group=state.status==='matched'?state.result?.options.find(g=>g.category===category):null,choices=group?.choices||[],chosen=selected?.category===category;
-    return '<div class="tyre-guide-card '+(chosen?'selected':'')+'"><div class="tyre-option"><picture class="tyre-roll-picture"><source media="(prefers-reduced-motion: reduce)" srcset="/assets/tyre-axle-still.webp"><img class="tyre-cutout" src="/assets/tyre-axle-'+(chosen?'rolling':'still')+'.webp" alt="" width="240" height="240"></picture><strong>'+label+'</strong></div><div class="tyre-brand-choices"><span class="tyre-brand-label">Choose your brand</span>'+(choices.map((c,i)=>'<button type="button" class="tyre-brand-choice '+(chosen&&c.brand===selected.brand?'selected':'')+'" data-category="'+category+'" data-choice="'+i+'" aria-pressed="'+Boolean(chosen&&c.brand===selected.brand)+'" aria-label="'+esc(c.brand+' '+c.model+', '+money(c.unitPence)+' per tyre')+'" '+(saving?'disabled':'')+'>'+root.VectaTyreBooking.brandLogo(c.brand)+'<span class="tyre-guide-price">'+money(c.unitPence)+'</span></button>').join('')||'<span class="tyre-brand-empty">'+(busy?'Checking prices…':state.status==='matched'?'No stock for this quantity':'£TBC')+'</span>')+'<small class="tyre-guide-unit">per tyre · fully fitted</small></div><span class="tyre-guide-total">'+(chosen?q+' tyre'+(q===1?'':'s')+': '+money(selected.unitPence*q):'Choose a brand')+'</span></div>';
+    return '<div class="tyre-guide-card '+(chosen?'selected':'')+'"><div class="tyre-option"><picture class="tyre-roll-picture"><source media="(prefers-reduced-motion: reduce)" srcset="/assets/tyre-axle-still.webp"><img class="tyre-cutout" src="/assets/tyre-axle-'+(chosen?'rolling':'still')+'.webp" alt="" width="240" height="240"></picture><strong>'+label+'</strong></div><div class="tyre-brand-choices"><span class="tyre-brand-label">Choose your brand</span>'+(choices.map((c,i)=>'<button type="button" class="tyre-brand-choice '+(chosen&&c.brand===selected.brand?'selected':'')+'" data-category="'+category+'" data-choice="'+i+'" aria-pressed="'+Boolean(chosen&&c.brand===selected.brand)+'" aria-label="'+esc(tyreName(c)+', '+money(c.unitPence)+' per tyre')+'" '+(saving?'disabled':'')+'>'+root.VectaTyreBooking.brandLogo(c.brand)+'<span class="tyre-guide-price">'+money(c.unitPence)+(c.allSeason===true?'<small class="job-tyre-season">All season</small>':'')+'</span></button>').join('')||'<span class="tyre-brand-empty">'+(busy?'Checking prices…':state.status==='matched'?'No stock for this quantity':'£TBC')+'</span>')+'<small class="tyre-guide-unit">per tyre · fully fitted</small></div><span class="tyre-guide-total">'+(chosen?q+' tyre'+(q===1?'':'s')+': '+money(selected.unitPence*q):'Choose a brand')+'</span></div>';
    }).join('');
    options.querySelectorAll('[data-choice]').forEach(button=>button.onclick=()=>{form.tyre_choice=button.dataset.category;form.tyre_brand=state.result.options.find(g=>g.category===form.tyre_choice).choices[Number(button.dataset.choice)].brand;draw();});
    const selector=dialog.querySelector('#tyrePositions');if(selector&&selector.hidden===form.tyre_prices_checked)selector.outerHTML=root.VectaTyrePositions.html(form,vehicle);
    root.VectaTyrePositions.mount(form,()=>{tyreController.update(form.tyre_size,form.tyre_quantity||1);draw();});
    dialog.querySelectorAll('[data-tyre-position]').forEach(button=>button.disabled=saving);
    save.disabled=saving||!selected||!q;save.textContent=saving?'Adding tyres…':'Use selected tyres';
-   dialog.querySelector('[data-summary]').textContent=selected&&q?selected.brand+' '+selected.model+' · '+form.tyre_positions.join(', ')+' · '+money(selected.unitPence*q)+' inc VAT':'Select a tyre and the wheels to replace.';
+   dialog.querySelector('[data-summary]').textContent=selected&&q?tyreName(selected)+' · '+form.tyre_positions.join(', ')+' · '+money(selected.unitPence*q)+' inc VAT':'Select a tyre and the wheels to replace.';
   }
   tyreController=root.VectaTyreBooking.createController({delay:0,onChange(next){state=next;if(dialog.isConnected)draw();}});
   function invalidate(){form.tyre_size=fields[0].value+'/'+fields[1].value+'R'+fields[2].value;form.tyre_prices_checked=false;form.tyre_brand='';tyreController.update('',1);}
@@ -194,7 +195,7 @@ function jobPartDisplayName(p){
     const oldKey=existing?.id;
     parts(data.parts.map(p=>({...p,id:key,tyre_selection:selection})),p=>p.id===key||p.id===oldKey||(!p.cost_price&&/^Tyres$/i.test(p.description)));
     if(oldKey&&oldKey!==key){Array.from(el('privatePricingRows').children).filter(r=>r.querySelector('.privatePriceDescription')?.value.startsWith('Tyres · '+saved.size+' · ')).forEach(r=>r.remove());}
-    price('Tyres · '+selection.size+' · '+choice.brand+' '+choice.model+' × '+selection.quantity+' · '+selection.positions.join(', '),data.totalPence,key);closeTyres();
+    price('Tyres · '+selection.size+' · '+tyreName(choice)+' × '+selection.quantity+' · '+selection.positions.join(', '),data.totalPence,key);closeTyres();
    }catch(error){if(tyreDialog===dialog){saving=false;fields.forEach(f=>f.disabled=false);draw();message.textContent=error.message;}}
   };
   draw();fields[0].focus();

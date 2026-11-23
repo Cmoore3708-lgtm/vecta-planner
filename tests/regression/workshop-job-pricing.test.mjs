@@ -220,6 +220,15 @@ test('tyre picker uses split size entry, three price cards and wheel selection; 
  for(const [i,v] of ['205','55','16'].entries()){const f=dialog.querySelectorAll('[data-tyre-part]')[i];f.value=v;f.oninput();}
  dialog.querySelector('[data-check]').onclick();
  const result=q=>({status:'matched',result:{size:'205/55R16',quantity:q,checkedAt:new Date().toISOString(),options:['budget','midrange','premium'].map(category=>({category,choices:[{category,brand:'ACCELERA',model:'PHI',unitPence:6000,totalPence:6000*q,costToken:'fixture'}]}))}});
+ const saved=result(1);saved.result.priceSource='saved';saved.result.servedAt=saved.result.checkedAt;saved.result.availabilityUnconfirmed=true;
+ saved.result.options[1].choices=[
+  {category:'midrange',brand:'KUMHO',model:'HA32 103V AS',allSeason:true,unitPence:9900},
+  {category:'midrange',brand:'NANKANG',model:'AW6 99V AS',allSeason:true,unitPence:10800}
+ ];
+ emit(saved);
+ assert.deepEqual(Array.from(dialog.querySelectorAll('[data-category="midrange"] .job-tyre-season'),node=>node.textContent),['All season','All season']);
+ assert.equal(dialog.querySelector('[data-category="budget"] .job-tyre-season'),null);
+ assert.match(dialog.querySelector('[data-category="midrange"]').getAttribute('aria-label'),/KUMHO HA32 103V AS \(All season\)/);
  emit(result(1));dialog.querySelector('[data-category="budget"]').onclick();assert.equal(dialog.querySelector('[data-save]').disabled,true);
  dialog.querySelector('[data-tyre-position="Front driver"]').onclick();dialog.querySelector('[data-tyre-position="Rear passenger"]').onclick();emit(result(2));
  await dialog.querySelector('[data-save]').onclick();assert.deepEqual(sent.tyre_positions,['Rear passenger','Front driver']);assert.equal(sent.tyre_quantity,2);assert.equal(app.parts()[0].cost_price,21);assert.equal(app.prices()[0].price,120);assert.equal(app.document.querySelector('dialog'),null);
