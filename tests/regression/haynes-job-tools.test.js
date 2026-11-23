@@ -212,7 +212,10 @@ test('vehicle artwork remains available when timed card shrinks below one hour',
  const host=document.createElement('div');host.innerHTML='<div class="job plannerJobCompact" data-job-id="short"><div class="plannerJobHeader"></div></div><div class="job miniPlannerTask" data-job-id="task"><div class="plannerJobHeader"></div></div>';document.body.appendChild(host);
  window.enrichHaynesDashboard(host,[{id:'short',registration:'FX69XWU',make:'Nissan'},{id:'task',registration:'FX69XWU',make:'Nissan',card_type:'mini_task'}]);
  await new Promise(r=>setImmediate(r));await new Promise(r=>setImmediate(r));
- assert.equal(host.querySelector('.plannerJobCompact .haynesDashboardImage')?.alt,'Representative Nissan Qashqai');assert.equal(host.querySelector('.miniPlannerTask .haynesDashboardImage'),null);
+ const thumbnail=host.querySelector('.plannerJobCompact .haynesDashboardImage');
+ assert.equal(thumbnail?.alt,'Representative Nissan Qashqai');
+ thumbnail.onerror();assert.equal(thumbnail.style.opacity,'0');
+ thumbnail.onload();assert.equal(thumbnail.style.opacity,'');assert.equal(host.querySelector('.miniPlannerTask .haynesDashboardImage'),null);
 });
 
 test('existing generic model artwork avoids new technical lookups for dashboard decoration',async()=>{
