@@ -14,7 +14,7 @@
   const servedAt=saved?new Date(data.servedAt).toISOString():checkedAt;
   if(Date.now()-Date.parse(checkedAt)>(saved?90*86400000:300000)||Date.parse(checkedAt)>Date.now()+60000||Date.now()-Date.parse(servedAt)>300000||Date.parse(servedAt)>Date.now()+60000)throw Error('Guide expired');
   if(saved&&data.availabilityUnconfirmed!==true)throw Error('Invalid saved guide');
-  const cleanOption=(o,category)=>{if(!o||o.category!==category||o.available!==true||typeof o.brand!=='string'||!o.brand.trim()||typeof o.model!=='string'||!Number.isSafeInteger(o.unitPence)||o.unitPence<=0||o.unitPence>500000||o.totalPence!==o.unitPence*quantity)throw Error('Invalid guide');return{category,available:true,brand:o.brand.slice(0,70),model:o.model.slice(0,180),unitPence:o.unitPence,totalPence:o.totalPence,...(typeof o.costToken==='string'&&o.costToken.length<=3000?{costToken:o.costToken}:{})};};
+  const cleanOption=(o,category)=>{if(!o||o.category!==category||o.available!==true||typeof o.brand!=='string'||!o.brand.trim()||typeof o.model!=='string'||!Number.isSafeInteger(o.unitPence)||o.unitPence<=0||o.unitPence>500000||o.totalPence!==o.unitPence*quantity)throw Error('Invalid guide');return{category,available:true,brand:o.brand.slice(0,70),model:o.model.slice(0,180),...(o.allSeason===true?{allSeason:true}:{}),unitPence:o.unitPence,totalPence:o.totalPence,...(typeof o.costToken==='string'&&o.costToken.length<=3000?{costToken:o.costToken}:{})};};
   const options=categories.map(category=>{
    const matches=data.options.filter(o=>o.category===category);if(matches.length!==1)throw Error('Invalid categories');
    const o=matches[0],stockLevels=o.stockLevels===undefined?[]:o.stockLevels;

@@ -14,8 +14,11 @@ export function canonicalBrand(row){
  const rule=aliases[brand];
  return rule?(rule[1].test(String(row.model||'').toUpperCase())?rule[0]:null):brand;
 }
+function isAllSeason(row){
+ return /\b(?:ALL[ -]?SEASONS?|4[ -]?SEAS\w*|ASEAS|A\/S|AS|(?:CROSS|X)CLIMATE\w*|QUATRAC\w*)\b/i.test(row.model||'');
+}
 export function isSpecialTyre(row){
- return /\b(?:RFT|RUN[ -]?FLAT|ROF|SSR|ZP|WINTER|ALLSEASON|4SEAS\w*|ASEAS|AS|XCLIMATE\w*|QUAT\w*|SNP\d*|SNW\d*|WIN\d*|WP\d*|EUWIN\w*)\b/i.test(row.model||'');
+ return /\b(?:RFT|RUN[ -]?FLAT|ROF|SSR|ZP|WINTER|SNP\d*|SNW\d*|WIN\d*|WP\d*|EUWIN\w*)\b/i.test(row.model||'');
 }
 export function selectCatalogueGuides(catalogue,{size,quantity=1,settings,groups=BRAND_GROUPS,now=Date.now()}={}){
  requireEspSettings(settings);
@@ -39,7 +42,7 @@ export function selectCatalogueGuides(catalogue,{size,quantity=1,settings,groups
   const seen=new Set(),choices=[];
   for(const tyre of eligible){
    const brand=canonicalBrand(tyre);if(seen.has(brand))continue;
-   seen.add(brand);choices.push({category,available:true,brand,model:tyre.model,unitPence:tyre.unitPence,totalPence:tyre.unitPence*quantity,specificationUnverified:true});
+   seen.add(brand);choices.push({category,available:true,brand,model:tyre.model,...(isAllSeason(tyre)?{allSeason:true}:{}),unitPence:tyre.unitPence,totalPence:tyre.unitPence*quantity,specificationUnverified:true});
    if(choices.length===3)break;
   }
   // Keep the cheapest fields for older website clients while offering more brands.

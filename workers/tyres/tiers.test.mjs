@@ -14,8 +14,8 @@ test('quantities use sufficient Default stock and preserve exact penny totals',(
  const f=fixtures.find(f=>f.requestedSize==='205/55R16');const r=selectCatalogueGuides(f.guideCatalogue,{size:f.requestedSize,quantity:4,settings:f.settings});assert.equal(r.options[2].unitPence,10100);
 });
 test('unknown or mismatched supplier abbreviations do not acquire a tier',()=>{assert.equal(canonicalBrand({brand:'PI',model:'UNKNOWN'}),null);assert.equal(canonicalBrand({brand:'PI',model:'PWRGY2 94YXL'}),'PIRELLI');});
-test('explicit winter, all-season and run-flat variants are excluded',()=>{
- for(const model of ['WIN5 94V','SNP3 94H','EUWIN HS02PRO 94VXL','HA32 91H AS','DMX 4SEAS 94W','XCLIMATE3 94YXL','DMX R8+ RFT 94YXL'])assert.equal(isSpecialTyre({model}),true,model);
+test('explicit winter and run-flat variants are excluded',()=>{
+ for(const model of ['WIN5 94V','SNP3 94H','EUWIN HS02PRO 94VXL','DMX R8+ RFT 94YXL'])assert.equal(isSpecialTyre({model}),true,model);
 });
 test('unverified settings, bad quantities and conflicting tier rules fail',()=>{
  const f=fixtures[0],args={size:f.requestedSize,settings:f.settings};
@@ -46,4 +46,16 @@ test('insufficient stock retains the confirmed brand quantity without mixing mod
  const four=selectCatalogueGuides(rows,{size:f.requestedSize,quantity:4,settings:f.settings}).options[0];assert.equal(four.available,false);assert.deepEqual(four.stockLevels,[{brand:'RADAR',availableQuantity:3}]);
  const three=selectCatalogueGuides(rows,{size:f.requestedSize,quantity:3,settings:f.settings}).options[0];assert.equal(three.available,true);assert.equal(three.totalPence,18000);
  const unknown=selectCatalogueGuides([{...base,defaultStockMinimum:null}],{size:f.requestedSize,quantity:4,settings:f.settings}).options[0];assert.deepEqual(unknown.stockLevels,[]);
+});
+
+test('all-season models carry a label on both the first offer and its selectable row',()=>{
+ const settings=fixtures[0].settings, size='215/65R17';
+ for(const model of ['HA32 103V AS','AW6 99V A/S','DMX 4SEAS 103VXL','ALL-SEASON 99V','XCLIMATE3 94YXL','QUATRAC 99V']){
+  const row={size,model,brand:'KUMHO',unitPence:9900,defaultStockMinimum:2};
+  const guide=quantity=>selectCatalogueGuides([row],{size,quantity,settings}).options[1];
+  assert.equal(guide(2).allSeason,true,model);
+  assert.equal(guide(2).choices[0].allSeason,true,model);
+  assert.equal(guide(3).available,false);
+  assert.equal(selectCatalogueGuides([{...row,model:model+' RFT'}],{size,settings}).options[1].available,false);
+ }
 });
