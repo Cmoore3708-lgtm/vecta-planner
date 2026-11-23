@@ -62,3 +62,5 @@
   .jobModalCard .jobPartCheck{font-size:9px!important}
   .jobModalCard .jobPartRemove{grid-column:auto;grid-row:auto}
 }
+
+.job-tyre-dialog .job-tyre-season{display:block;font-size:.75rem;line-height:1.35;font-weight:700;white-space:nowrap;color:inherit}
