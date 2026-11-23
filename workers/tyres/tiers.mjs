@@ -32,7 +32,7 @@ export function selectCatalogueGuides(catalogue,{size,quantity=1,settings,groups
    return rowKey===key && membership.get(canonicalBrand(row))===category && !isSpecialTyre(row) && Number.isSafeInteger(row.unitPence) && row.unitPence>0 && Number.isInteger(row.defaultStockMinimum) && row.defaultStockMinimum>=0;
   });
   // Publish only the confirmed online quantity per brand, capped at the four
-  // positions a customer can book. Never add Company/Centre stock or mix models.
+  // positions a customer can book. Counts are already resolved per row. Never pool different models.
   const stock=new Map();for(const row of known){const brand=canonicalBrand(row);stock.set(brand,Math.max(stock.get(brand)||0,Math.min(4,row.defaultStockMinimum)));}
   const stockLevels=[...stock].sort(([a],[b])=>a.localeCompare(b)).map(([brand,availableQuantity])=>({brand,availableQuantity}));
   const eligible=known.filter(row=>row.defaultStockMinimum>=quantity).sort((a,b)=>a.unitPence-b.unitPence || canonicalBrand(a).localeCompare(canonicalBrand(b)) || a.model.localeCompare(b.model));
