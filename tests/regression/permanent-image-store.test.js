@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import {gzipSync} from 'node:zlib';
 import {imageSource} from '../../lib/haynes-image-source.js';
 import {readVehicleIdentity,saveVehicleIdentity,saveVehicleColour} from '../../lib/haynes-shared-artwork.js';
 const svg='<svg xmlns="http://www.w3.org/2000/svg"><path d="M0 0h10v10z"/></svg>';
@@ -13,4 +14,14 @@ test('a database read failure never triggers a supplier retry for an existing as
 test('the genuine Primastar-sized supplier file is accepted before its Illustrator editing payload is removed',async()=>{
  const db=database(),fetcher=db.options.fetcher;db.options.fetcher=async(url,options)=>url.includes('haynespro-assets')?new Response('<svg xmlns="http://www.w3.org/2000/svg"><i:aipgf>'+ 'x'.repeat(1050000)+'</i:aipgf><path d="M0 0h10v10z"/></svg>',{headers:{'content-length':'1402733'}}):fetcher(url,options);
  const result=await imageSource('319110408.svgz',db.options);assert.ok(result.includes('<path'));assert.ok(!result.includes('i:aipgf'));assert.ok(result.length<1000);assert.equal(db.rows.get('vehicle_image_source:319110408.svgz').svg,result);
+});
+
+test('large Jaguar exports are stripped before the stored drawing limit is applied',async()=>{
+ const db=database(), original=db.options.fetcher;
+ const drawing=svg.replace('<path', '<i:aipgf>'+'x'.repeat(3800000)+'</i:aipgf><path');
+ const compressed=gzipSync(drawing);
+ db.options.fetcher=(url,options)=>url.includes('haynespro-assets')
+  ?new Response(compressed,{headers:{'content-length':'2801603'}}):original(url,options);
+ assert.equal(await imageSource('319010163.svgz',db.options),svg);
+ assert.equal(db.rows.get('vehicle_image_source:319010163.svgz').svg,svg);
 });
