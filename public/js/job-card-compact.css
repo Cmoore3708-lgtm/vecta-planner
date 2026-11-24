@@ -890,7 +890,8 @@
  #jobModal .jobCardSimplified .jobCardHeaderControls>.jobVehicleQuickFacts:has(.jobVehicleDuePanel:not([hidden])){display:flex!important;flex:1 0 100%;order:-2;align-items:end;flex-wrap:wrap;gap:5px;max-width:100%;min-width:0}
  #jobModal .jobCardHeaderControls .jobVehicleQuickFacts .jobVehicleDuePanel:not([hidden]){display:contents!important}
  #jobModal .jobVehicleQuickFacts .jobVehicleDuePanel>.jobVehicleDueItem{flex:0 0 auto;width:max-content;max-width:100%}
- #jobModal .jobCardSimplified .jobCardHeaderControls .jobVehicleQuickFacts:has(.jobVehicleDuePanel:not([hidden]))>.field{order:0;flex:0 1 auto;width:120px;min-width:0}
+ #jobModal .jobCardSimplified .jobCardHeaderControls .jobVehicleQuickFacts:has(.jobVehicleDuePanel:not([hidden]))>.field{order:0;flex:0 1 auto;width:clamp(80px,10vw,120px);min-width:0}
+ #jobModal .jobVehicleQuickFacts .jobVehicleDueItem:nth-child(n+3){order:1}
 }
 @media screen and (max-width:700px) {
  #jobModal .jobCardSimplified .jobCardHeaderHeading:has(.jobCardNumber)>.jobCardHeaderModel{grid-row:3!important}
