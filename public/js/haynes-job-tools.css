@@ -561,4 +561,4 @@
  #content .mobilePlanner .mobileJobTop .mobileJobCategory{font-size:12px!important;white-space:normal!important;overflow-wrap:anywhere;text-overflow:clip}
 }
 
-.jobEngineOil:not([hidden]){display:flex;align-items:center;gap:.45rem;flex-wrap:wrap;font-size:.85rem}
+.jobEngineOil:not([hidden]){display:flex;grid-column:1/-1;flex:1 0 100%;min-width:0;overflow-wrap:anywhere;align-items:center;gap:.45rem;flex-wrap:wrap;font-size:.85rem}
