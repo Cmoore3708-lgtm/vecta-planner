@@ -27,7 +27,7 @@ test('printed Polestar header fits the registration and keeps the three fields o
  <div class="ssBrand"><img class="ssWebsiteLogo" alt="VECTA" src="${pathToFileURL(join(process.cwd(),'public/assets/vecta-service-logo.webp'))}"></div>
  <div class="ssPlate"><div class="ssPlateGb">GB</div><div class="ssPlateReg">WA15TEL</div></div>
  <div class="ssHaynesHeaderInfo"><div class="ssInfoRow"><b>Vehicle:</b><span>POLESTAR POLESTAR 2 EV AWD</span></div><div class="ssInfoRow"><b>Mileage:</b><span>23022</span></div><div class="ssInfoRow"><b>Date:</b><span>24/11/2026</span></div></div>
- <img class="ssManufacturerLogo" alt="Polestar" src="${pathToFileURL(join(process.cwd(),'public/assets/manufacturers/polestar.svg'))}"><div class="ssHaynesVehicle"><img alt="Sample vehicle" src="${pathToFileURL(join(process.cwd(),'public/assets/progress/cm14kel-ready.webp'))}"></div></div>${body}</div></div><script>${previewScript}</script>`);
+ <img class="ssManufacturerLogo" alt="Polestar" src="${pathToFileURL(join(process.cwd(),'public/assets/manufacturers/polestar.svg'))}"><div class="ssHaynesVehicle"><img alt="Sample vehicle" src="${pathToFileURL(join(process.cwd(),'public/assets/progress/cm14kel-ready.webp'))}"></div></div>${body}</div></div><script>${previewScript}</script><script>${readFileSync("public/js/haynes-service-sheet.js","utf8")}</script>`);
  const proc=spawn(chrome,['--headless','--no-sandbox','--disable-dev-shm-usage','--remote-debugging-port=0','--user-data-dir='+dir,pathToFileURL(page).href],{stdio:'ignore'});
  let socket;
  try{
@@ -70,6 +70,36 @@ test('printed Polestar header fits the registration and keeps the three fields o
     return {edges:Math.abs(header.right-title.right)<2&&Math.abs(header.left-title.left)<2&&Math.abs(car.right-title.right)<2,viewport:Math.abs(paper.width-document.documentElement.clientWidth)<2&&Math.abs(toolbar.width-paper.width)<2&&document.documentElement.scrollWidth<=document.documentElement.clientWidth+2,buttons:buttons.every(b=>b.width>0&&b.height>=44&&b.left>=0&&b.right<=innerWidth),full:bar.scrollWidth<=bar.clientWidth+1,car:car.width,badge:badge.width,separate:plate.right<=car.left+1&&badge.right<=car.left+1,visible:car.right<=innerWidth+1};
    })()`});
    const m=mobile.result.value;assert.ok(m.edges&&m.viewport&&m.buttons&&m.full&&m.visible&&m.separate&&m.badge>=24&&m.car>=119,JSON.stringify({width,...m}));
+  }
+  // Reopen a saved combustion sheet whose old oil controls sit beside mileage.
+  await command('Page.reload',{});
+  for(let i=0;i<100;i++){
+   const ready=await command('Runtime.evaluate',{expression:"typeof initHaynesServiceSheet==='function'&&!document.body.classList.contains('servicePreviewing')"});
+   if(ready.result.value)break;
+   await delay(30);
+  }
+  const setup=await command('Runtime.evaluate',{awaitPromise:true,returnByValue:true,expression:`(async()=>{
+   const sheet=document.querySelector('.servicePrint'),info=sheet.querySelector('.ssHaynesHeaderInfo');
+   document.body.classList.add('servicePreviewing');sheet.querySelector('.ssHeader').style.removeProperty('width');
+   sheet.dataset.sheetChoice='standard';sheet.dataset.jobId='test-peugeot';
+   sheet.querySelector('.ssPlateReg').textContent='CV72JSX';
+   info.querySelector('span').textContent='PEUGEOT 208 ACTIVE PREMIUM PURETECH S/S';
+   info.children[1].insertAdjacentHTML('afterend','<div class="ssEngineOilSummary"></div><div class="ssJobOilLookup"></div>');
+   const oil={applicability:'Cold and temperate climates (Europe, Azerbaijan, Russia, Canada, Georgia, North Korea, South Korea, Kazakhstan, Mauritius, New Zealand)',specification:'SAE 5W-30 STELLANTIS FPW9.55535/03',capacity:'3.25 L'};
+   window.fetch=async url=>({json:async()=>String(url).includes('supabase-config')?{haynesServiceTest:false}:{status:'MATCHED',result:{registration:'CV72JSX',selected:0,oil:[oil,oil]}}});
+   await initHaynesServiceSheet(sheet,'CV72JSX','service');
+   await new Promise(resolve=>setTimeout(resolve,30));
+   return info.children.length===3&&!sheet.querySelector('.ssOilChoice')&&sheet.querySelector('.ssEngineOilSummary').textContent.includes('3.25 L');
+  })()`});assert.equal(setup.result.value,true);
+  for(const [width,media] of [[1366,'screen'],[390,'screen'],[794,'print']]){
+   await command('Emulation.setDeviceMetricsOverride',{width,height:900,deviceScaleFactor:1,mobile:width===390});
+   await command('Emulation.setEmulatedMedia',{media});
+   const bounds=await command('Runtime.evaluate',{returnByValue:true,expression:`(()=>{
+    sizeServicePaper();
+    const box=s=>document.querySelector(s).getBoundingClientRect();
+    const header=box('.ssHeader'),info=box('.ssHaynesHeaderInfo'),oil=box('.ssEngineOilSummary');
+    return info.left>=header.left-1&&info.right<=header.right+1&&info.height<55&&header.height<230&&oil.top>=header.bottom-1;
+   })()`});assert.ok(bounds.result.value,'Peugeot layout at '+width+' '+media);
   }
  }finally{socket?.close();proc.kill();await delay(150);rmSync(dir,{recursive:true,force:true,maxRetries:4,retryDelay:100});}
 });
