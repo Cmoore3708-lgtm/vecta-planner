@@ -40,7 +40,7 @@ function vehicleMatches(value, expected={}) {
 
   const sources = new Map(), images = new Map(), rendering = new Map(), mountTokens = new WeakMap();
   const retryCounts = new WeakMap(), retryTimers = new WeakMap();
-  const manufacturers = ['mercedes-benz','land-rover','volkswagen','mitsubishi','vauxhall','infiniti','hyundai','renault','peugeot','citroen','porsche','nissan','toyota','suzuki','jaguar','lexus','mazda','honda','skoda','volvo','tesla','dacia','audi','ford','seat','fiat','mini','bmw','kia','mg'];
+  const manufacturers = ['mercedes-benz','land-rover','volkswagen','mitsubishi','vauxhall','infiniti','hyundai','renault','peugeot','citroen','porsche','polestar','nissan','toyota','suzuki','jaguar','lexus','mazda','honda','skoda','volvo','tesla','dacia','audi','ford','seat','fiat','mini','bmw','kia','mg'];
   const logos = new Map();
   function manufacturer(name) {
     const normal = String(name||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,' ').trim();
