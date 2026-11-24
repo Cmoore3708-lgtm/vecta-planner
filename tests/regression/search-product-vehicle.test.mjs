@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {parseHTML} from 'linkedom';
 import {repairRequest,repairScope,cleanRepairChoices} from '../../lib/repair-quote.js';
-import {lookupGeneralGSF,repairFitment,scopeForFitment,productVerificationCategory} from '../../workers/repair-quotes/general-gsf.mjs';
+import {lookupGeneralGSF,openRepairAttributes,repairFitment,scopeForFitment,productVerificationCategory} from '../../workers/repair-quotes/general-gsf.mjs';
 import {readCatalogueResults} from '../../workers/repair-quotes/catalogue-results.mjs';
 import {readServiceCategory} from '../../workers/gsf/service-capture.mjs';
 import {readSearchProductFitment} from '../../workers/repair-quotes/catalogue-products.mjs';
@@ -106,4 +106,17 @@ test('a verified vehicle part retains its price when the detail page cannot conf
  assert.equal(part.inStock,false);assert.equal(part.costPence,2000);assert.equal(part.sku,'SENSOR0');
  const changed=browser({listedStock:true,changedSku:true});
  await assert.rejects(lookupGeneralGSF(changed.page,final,changed.deps),e=>e.detail==='SELECTED_PRODUCT_CHANGED');
+});
+
+test('a blocked Attributes button is retried against the same SKU after catalogue reload',async()=>{
+ const group={sku:'FEB183696',description:'Timing Belt Kit',options:[],attributesSelector:'#old'};
+ let vehicle='KM12EAD',sku=group.sku;const clicks=[];
+ const page={url:()=> 'https://trade.gsfcarparts.com/parts/955',reload:async()=>{},waitForTimeout:async()=>{},
+  evaluate:async fn=>fn.name==='readServiceCategory'?{selectedRegistration:true,registration:vehicle}:
+   {complete:true,groups:[{...group,sku,attributesSelector:'#new'}]},
+  locator:id=>({click:async()=>{clicks.push(id);if(id==='#old')throw Object.assign(Error('blocked'),{name:'TimeoutError'});}})};
+ await openRepairAttributes(page,group,'KM12EAD','955');assert.deepEqual(clicks,['#old','#new']);
+ sku='OTHER';await assert.rejects(openRepairAttributes(page,group,'KM12EAD','955'),e=>e.detail==='ATTRIBUTES_GROUP_CHANGED');
+ vehicle='OTHER';await assert.rejects(openRepairAttributes(page,group,'KM12EAD','955'),e=>e.detail==='VEHICLE_CHANGED');
+ assert.deepEqual(clicks,['#old','#new','#old','#old']);
 });

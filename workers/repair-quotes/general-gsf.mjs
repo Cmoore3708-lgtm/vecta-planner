@@ -158,6 +158,28 @@ export async function waitForSelectedRepairProduct(page,registration,category,gr
  }
  reject('SELECTED_OPTION_NOT_CONFIRMED');
 }
+export async function openRepairAttributes(page,group,registration,category){
+ try{
+  await page.locator(group.attributesSelector).click({timeout:4000});
+  return;
+ }catch(error){
+  if(error.name!=='TimeoutError')throw error;
+ }
+ // A stale catalogue control or lingering dialog can block an ordinary click.
+ // Reload once and resolve this same SKU again before reading its attributes.
+ checkCataloguePage(page,category);
+ await page.reload({waitUntil:'domcontentloaded',timeout:12000});
+ const snapshot=await waitForRepairGroups(page,registration,category);
+ const matches=snapshot.groups.filter(g=>g.sku===group.sku&&g.description===group.description&&
+  g.options.length===group.options.length&&group.options.every(o=>g.options.filter(candidate=>sameOption(candidate,o)).length===1));
+ if(matches.length!==1||!matches[0].attributesSelector)reject('ATTRIBUTES_GROUP_CHANGED',{sku:group.sku});
+ try{
+  await page.locator(matches[0].attributesSelector).click({timeout:4000});
+ }catch(error){
+  if(error.name!=='TimeoutError')throw error;
+  reject('ATTRIBUTES_CONTROL_TIMEOUT',{sku:group.sku});
+ }
+}
 export function repairFitment(rows,scope,{allowAlternatives=false}={}){
  const positions=(rows||[]).filter(r=>/^fitting position$/i.test(r.attribute)).map(r=>searchProductPositions(r.value));
  if(!scope.axle&&positions.some(p=>p.axles.length)||!scope.side&&positions.some(p=>p.sides.length))return false;
@@ -211,8 +233,8 @@ export async function lookupGeneralGSF(page,request,{capture=captureRepairCatalo
   let rows=[];
   if(group.attributesSelector||scope.axle||scope.side||request.quantity>1){
    if(!group.attributesSelector)reject('POSITION_ATTRIBUTES_MISSING');
-   onProgress('GSF_ATTRIBUTES',{group:groupNumber,total:groups.length});
-   await page.locator(group.attributesSelector).click({timeout:8000});
+   onProgress('GSF_ATTRIBUTES',{group:groupNumber,total:groups.length,sku:group.sku});
+   await openRepairAttributes(page,group,request.registration,category);
    let attributes;
    for(let attempt=0;attempt<25;attempt++){attributes=await page.evaluate(readServiceAttributes);if(attributes.status==='ATTRIBUTES_CAPTURED')break;await page.waitForTimeout(200);}
    await page.keyboard.press('Escape');
