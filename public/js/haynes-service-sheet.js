@@ -72,29 +72,18 @@ function mountOilLookup(host,jobId,reg,onOil){
   text.textContent=message||oilWarning;
   const retry=document.createElement('button');retry.type='button';retry.textContent='Retry oil lookup';retry.onclick=()=>load();actions.replaceChildren(retry);
  }
- async function load(choices=[]){
+ async function load(){
   const run=++generation;
-  actions.replaceChildren();text.textContent='Checking HaynesPro engine oil…';
+  actions.replaceChildren();text.textContent='Checking HaynesPro Lubricants…';
   try{
-   while(active(run)){
-    const query=new URLSearchParams(url);if(choices.length)query.set('menuChoices',JSON.stringify(choices));
-    // Re-read the shared job record on reopen, including choices made on another device.
-    const reply=await serviceReply(null,query);
-    if(!active(run))return;
-    const data=reply.result;
-    if(reply.status!=='MATCHED'||data?.registration!==reg)throw Error(reply.status);
-    if(data.oil?.length){remember(data);render(data);return;}
-    const menu=data.menu;
-    if(!menu?.options?.length)throw Error();
-    const prefix=choices.slice(0,data.resetFrom??choices.length);
-    const next=i=>[...prefix,{menu:menu.id,option:menu.options[i].id}];
-    const preferred=menu.options.filter(o=>/^Normal conditions(?:\s*\(United Kingdom\))?$|^Oil service(?:\s*\(service indicator\))?(?::.*)?$/i.test(o.label.trim()));
-    const interval=/^[\d,]+ miles\s*\/\s*\d+ months(?:\s*\(OEM: [^)]+\))?$/i;
-    const intervalsOnly=menu.options.every(o=>interval.test(o.label.trim()));
-    const auto=menu.options.length===1||intervalsOnly?0:preferred.length===1?menu.options.indexOf(preferred[0]):-1;
-    if(auto>=0&&choices.length<20&&!choices.some(c=>c.menu===menu.id)){choices=next(auto);continue;}
-    text.textContent=menu.label;choose('Choose Haynes option',menu.options.map(o=>o.label),i=>load(next(i)));return;
-   }
+   const reply=await serviceReply(null,url);
+   if(!active(run))return;
+   const data=reply.result;
+   if(reply.status!=='MATCHED'||data?.registration!==reg)throw Error(reply.status);
+   if(data.oil?.length){remember(data);render(data);return;}
+   if(!/^t_\d+$/.test(data.typeId||''))throw Error();
+   text.textContent=data.workerUpdateRequired?'Open the vehicle’s Lubricants page for its oil details.':'Check the engine oil on the vehicle’s Lubricants page.';
+   const link=document.createElement('a');link.href='https://www.workshopdata.com/touch/site/layout/lubricants?typeId='+encodeURIComponent(data.typeId);link.target='_blank';link.rel='noopener noreferrer';link.textContent='Open Lubricants';actions.replaceChildren(link);
   }catch(error){
    if(!active(run))return;
    try{const cached=JSON.parse(root.localStorage?.getItem(cacheKey)||'null');if(cached?.registration===reg&&cached.oil?.length){render(cached);text.textContent+=' · Saved result';return;}}catch{}

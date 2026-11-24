@@ -11,7 +11,8 @@ test('oil lookup keeps its vehicle result and selected row per visit independent
  t.mock.method(globalThis,'fetch',async(url,options)=>{
   if(url.includes('/functions/v1/')){
    lookups++;const {request}=JSON.parse(options.body);
-   return Response.json({status:'MATCHED',result:{menuFlow:'guided',mileage:request.mileage,period:'mp_1',schedule:'Oil service',vehicle:{registration:reg,typeId:'t_1',make:'Test',model:'Example',variant:'Petrol'},oil}});
+   assert.equal(request.purpose,'lubricants');assert.deepEqual(request.menuChoices,[]);
+   return Response.json({status:'MATCHED',result:{kind:'lubricants',mileage:request.mileage,period:'',vehicle:{registration:reg,typeId:'t_1',make:'Test',model:'Example',variant:'Petrol'},oil}});
   }
   assert.match(url,/workshop_settings/);
   if(options.method==='POST'){assert.equal(JSON.parse(options.body).id,'job_oil:visit:'+reg);row=JSON.parse(options.body);}

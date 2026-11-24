@@ -40,6 +40,16 @@ export function browserServiceLookup(context, { chooseConditions } = {}) {
       if(data?.blocked)throw new HaynesError('VERIFICATION_REQUIRED');
       stage='VALIDATE_VEHICLE';
       const vehicle=vehicleResult(data,input.registration);
+      if(raw.purpose==='lubricants'){
+        stage='OPEN_VEHICLE_LUBRICANTS';
+        const url=new URL('https://www.workshopdata.com/touch/site/layout/lubricants');
+        url.searchParams.set('typeId',vehicle.typeId);
+        await page.goto(url.href,{waitUntil:'domcontentloaded'});
+        await page.locator('.filter-lubricant-data:visible').first().waitFor({state:'visible'});
+        const landed=new URL(page.url());
+        if(landed.origin!==url.origin||landed.pathname!==url.pathname||landed.searchParams.get('typeId')!==vehicle.typeId)throw new HaynesError('MISMATCH');
+        return {kind:'lubricants',vehicle,mileage:input.mileage,period:'',oil:await page.evaluate(readOil)};
+      }
       let conditions,system,links,schedules=[],guided;
       if(input.menuFlow==='guided') {
         stage='GUIDED_MAINTENANCE';
