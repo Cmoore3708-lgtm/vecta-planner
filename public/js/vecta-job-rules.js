@@ -50,7 +50,7 @@
     value=String(value).trim();
     return clean+'\n[[VECTA_COST_CENTRE:'+encodeURIComponent(value)+']]';
   }
-  function bindNmukCostCentre(job){
+  function bindNmukCostCentre(job,normReg,fleetVehicleForRegistration){
     var input=document.getElementById('job_cost_centre'),reg=document.getElementById('job_registration');
     if(!input||!reg)return;
     var savedKey=normReg(job.registration),previousKey=null;
@@ -66,7 +66,7 @@
     reg.addEventListener('change',refresh);
     refresh();
   }
-  function fleetNmukCsvVehicleRows(rows){
+  function fleetNmukCsvVehicleRows(rows,{normReg,fleetEomRegistrationText,fleetNmukCsvDate,fleetNmukCsvTypeForJob,fleetEomLineItems}){
     var groups=new Map();
     (rows||[]).forEach(function(r,index){
       var registration=fleetEomRegistrationText(r.job),key=normReg(r.job&&r.job.registration||'');
