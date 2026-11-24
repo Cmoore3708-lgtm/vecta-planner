@@ -56,7 +56,7 @@ function mountOilLookup(host,jobId,reg,onOil){
   const row=data.oil[data.selected];actions.replaceChildren();host.classList.toggle('oilResolved',!!row);
   text.textContent=row?oilSummary(row.specification,row.capacity):'Choose the applicable engine oil';
   if(row)onOil?.(row);
-  if(data.oil.length>1)choose('Choose oil',data.oil.map(r=>[r.applicability,oilSummary(r.specification,r.capacity)].filter(Boolean).join(' · ')),async selected=>{
+  if(data.oil.length>1&&(!row||!host.classList.contains('jobEngineOilDetails')))choose('Choose oil',data.oil.map(r=>[r.applicability,oilSummary(r.specification,r.capacity)].filter(Boolean).join(' · ')),async selected=>{
    const run=++generation;actions.firstChild.disabled=true;
    try{
     const reply=await fetch('/api/availability?'+url,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({version:data.version,selected})}).then(r=>r.json());
@@ -95,6 +95,10 @@ function mountOilLookup(host,jobId,reg,onOil){
 root.mountJobEngineOil=function(modal,controls,job=root.__vectaJobEditorBaseline?.job){
  if(!job?.id)return;
  const box=document.createElement('div'),label=document.createElement('strong'),out=document.createElement('span');
+ const icon=document.createElement('span');
+ icon.className='jobEngineOilIcon';icon.setAttribute('aria-hidden','true');
+ icon.innerHTML='<svg viewBox="0 0 32 28" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round"><path d="M3 11h5l4-4h7l3 4 7-4-2 6-6 5v4H8l-5-5zM12 3h7m-3.5 0v4"/><path fill="currentColor" stroke="none" d="M28 15s-3 3.7-3 5.5a3 3 0 0 0 6 0C31 18.7 28 15 28 15z"/></svg>';
+ out.className='jobEngineOilDetails';box.appendChild(icon);
  box.className='jobEngineOil';label.textContent='Engine oil';box.append(label,out);controls.appendChild(box);
  let last='',timer;
  const field=id=>modal.querySelector('#job_'+id);

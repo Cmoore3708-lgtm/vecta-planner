@@ -220,6 +220,8 @@ test('oil chosen on an unsaved job is available on its service sheet and after r
  const controls=await mount();assert.ok(controls.firstChild.hidden);
  modal.querySelector('#job_job_type').value='Full Service';modal.querySelector('button').dispatchEvent(new window.Event('click',{bubbles:true}));await settle();
  const select=controls.querySelector('select');assert.match(select.textContent,/Alternative/);select.options[2].selected=true;await select.onchange();
+ await settle();assert.equal(controls.querySelectorAll('select').length,0);
+ assert.ok(controls.querySelector('.jobEngineOilIcon svg'));
  await window.initHaynesServiceSheet(sheet,vehicle.registration,'service');await settle();
  assert.match(sheet.querySelector('.ssEngineOilSummary').textContent,/0W-30.*VW 504 00.*5.9 L/);
  assert.match((await mount()).textContent,/0W-30.*VW 504 00.*5.9 L/);assert.equal(sheet.querySelector('.ssMileageEntry').textContent,'');
