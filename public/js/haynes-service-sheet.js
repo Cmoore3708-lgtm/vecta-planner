@@ -56,7 +56,7 @@ function mountOilLookup(host,jobId,reg,onOil){
   const row=data.oil[data.selected];actions.replaceChildren();host.classList.toggle('oilResolved',!!row);
   text.textContent=row?oilSummary(row.specification,row.capacity):'Choose the applicable engine oil';
   if(row)onOil?.(row);
-  if(data.oil.length>1&&(!row||!host.classList.contains('jobEngineOilDetails')))choose('Choose oil',data.oil.map(r=>[r.applicability,oilSummary(r.specification,r.capacity)].filter(Boolean).join(' · ')),async selected=>{
+  if(data.oil.length>1&&!row)choose('Choose oil',data.oil.map(r=>[r.applicability,oilSummary(r.specification,r.capacity)].filter(Boolean).join(' · ')),async selected=>{
    const run=++generation;actions.firstChild.disabled=true;
    try{
     const reply=await fetch('/api/availability?'+url,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({version:data.version,selected})}).then(r=>r.json());
@@ -74,6 +74,7 @@ function mountOilLookup(host,jobId,reg,onOil){
  }
  async function load(){
   const run=++generation;
+   host.classList.remove('oilResolved');
   actions.replaceChildren();text.textContent='Checking HaynesPro Lubricants…';
   try{
    const reply=await serviceReply(null,url);
@@ -92,12 +93,16 @@ function mountOilLookup(host,jobId,reg,onOil){
  }
  Promise.resolve().then(()=>load());
 }
-root.mountJobEngineOil=function(modal,controls,job=root.__vectaJobEditorBaseline?.job){
- if(!job?.id)return;
- const box=document.createElement('div'),label=document.createElement('strong'),out=document.createElement('span');
+function engineOilIcon(){
  const icon=document.createElement('span');
  icon.className='jobEngineOilIcon';icon.setAttribute('aria-hidden','true');
  icon.innerHTML='<svg viewBox="0 0 32 28" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round"><path d="M3 11h5l4-4h7l3 4 7-4-2 6-6 5v4H8l-5-5zM12 3h7m-3.5 0v4"/><path fill="currentColor" stroke="none" d="M28 15s-3 3.7-3 5.5a3 3 0 0 0 6 0C31 18.7 28 15 28 15z"/></svg>';
+ return icon;
+}
+root.mountJobEngineOil=function(modal,controls,job=root.__vectaJobEditorBaseline?.job){
+ if(!job?.id)return;
+ const box=document.createElement('div'),label=document.createElement('strong'),out=document.createElement('span');
+ const icon=engineOilIcon();
  out.className='jobEngineOilDetails';box.appendChild(icon);
  box.className='jobEngineOil';label.textContent='Engine oil';box.append(label,out);controls.appendChild(box);
  let last='',timer;
@@ -154,17 +159,21 @@ root.initHaynesServiceSheet=async function(sheet,registration,kind){
  let summary=sheet.querySelector('.ssEngineOilSummary');
  if(!summary){
   summary=document.createElement('div');summary.className='ssEngineOilSummary';summary.setAttribute('aria-live','polite');
-  const row=sheet.querySelector('.ssMileageEntry')?.closest('.ssInfoRow');
-  if(row)row.after(summary);else sheet.querySelector('.ssFluidsHorizontal')?.before(summary);
  }
- const updateSummary=()=>{const fields=oilFields();summary.hidden=electric;summary.textContent='Engine oil · '+oilSummary(fields[0]?.textContent,fields[1]?.textContent);};
+ // Saved sheets can contain the old oil controls inside the vehicle details.
+ const fluids=sheet.querySelector('.ssFluidsHorizontal');
+ fluids?.before(summary);
+ const summaryText=document.createElement('span');
+ summary.replaceChildren(engineOilIcon(),summaryText);
+ const updateSummary=()=>{const fields=oilFields();summary.hidden=electric;summaryText.textContent='Engine oil · '+oilSummary(fields[0]?.textContent,fields[1]?.textContent);};
  updateSummary();
  sheet.addEventListener('input',event=>{if(Array.from(oilFields()).slice(0,2).includes(event.target))updateSummary();});
  const jobId=sheet.getAttribute('data-job-id');
  const jobOil=!!jobId&&!electric;
  if(jobOil){
   let oilBox=sheet.querySelector('.ssJobOilLookup');
-  if(!oilBox){oilBox=document.createElement('div');oilBox.className='ssJobOilLookup';summary.after(oilBox);}
+  if(!oilBox){oilBox=document.createElement('div');oilBox.className='ssJobOilLookup';}
+  summary.after(oilBox);
   mountOilLookup(oilBox,jobId,registration,row=>{
    const fields=oilFields();
    [row.specification,compactCapacity(row.capacity)].forEach((value,i)=>{

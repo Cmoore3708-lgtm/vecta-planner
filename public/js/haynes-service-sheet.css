@@ -239,7 +239,10 @@
  #servicePreviewControls>[role="status"]:empty{display:none}
 }
 
-.ssEngineOilSummary{font-size:inherit;font-weight:700;overflow-wrap:anywhere}
+.ssEngineOilSummary:not([hidden]){display:flex;align-items:center;gap:6px;padding:2px 4px;font-size:13px;line-height:1.2;font-weight:700;overflow-wrap:anywhere}
+.ssEngineOilSummary .jobEngineOilIcon{display:inline-flex;width:20px;flex:0 0 20px}
+.ssEngineOilSummary svg{width:100%;height:auto}
+.ssJobOilLookup.oilResolved{display:none}
 .ssOilChoice{max-width:100%;margin:.25rem 0}
 @media print{.servicePrint .ssOilChoice{display:none!important}}
 .ssJobOilLookup{font-size:inherit;overflow-wrap:anywhere}
