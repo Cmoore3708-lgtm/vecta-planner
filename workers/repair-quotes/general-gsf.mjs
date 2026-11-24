@@ -253,11 +253,18 @@ export async function lookupGeneralGSF(page,request,{capture=captureRepairCatalo
  const {searchTerm,url,...target}=selected.target;
  await openSelectedProduct(page,{...target,searchTerm});
  let product;
- for(let i=0;i<40;i++){try{product=await page.evaluate(readProductDialog,{allowUnavailablePrice:request.flow==='guided-v1'&&option.inStock===false});break;}catch{await page.waitForTimeout(200);}}
+ const guided=request.flow==='guided-v1';
+ for(let i=0;i<40;i++){
+  try{
+   product=await page.evaluate(readProductDialog,{allowUnavailablePrice:guided});
+   if(!option.inStock||product.inStock)break;
+  }catch{product=null;}
+  await page.waitForTimeout(200);
+ }
  const brandKey=value=>String(value||'').toLowerCase().replace(/[^a-z0-9]/g,'');
- if(!product||typeof product.brand!=='string'||!product.brand.trim()||product.unitNetPence!==option.pricePence||product.description.toLowerCase()!==option.description.toLowerCase()||option.brand&&brandKey(product.brand)!==brandKey(option.brand)||product.inStock!==option.inStock||product.inStock&&!product.stock?.some(row=>row.quantity>=request.quantity)||product.vatBasis!=='EX_VAT'||!searchTerm.toUpperCase().endsWith(product.sku.toUpperCase()))reject('SELECTED_PRODUCT_CHANGED');
+ if(!product||typeof product.brand!=='string'||!product.brand.trim()||product.unitNetPence!==option.pricePence||product.description.toLowerCase()!==option.description.toLowerCase()||option.brand&&brandKey(product.brand)!==brandKey(option.brand)||(!guided&&product.inStock!==option.inStock)||product.inStock&&!product.stock?.some(row=>row.quantity>=request.quantity)||product.vatBasis!=='EX_VAT'||!searchTerm.toUpperCase().endsWith(product.sku.toUpperCase()))reject('SELECTED_PRODUCT_CHANGED');
  if(searchProduct&&(product.sku.toUpperCase()!==searchProduct.sku.toUpperCase()||brandKey(product.brand)!==brandKey(searchProduct.brand)))reject('SEARCH_PRODUCT_NOT_LISTED_FOR_VEHICLE',searchedProductEvidence(searchProduct,category));
- return {vehicle:vehicle.visibleText.split(' Copy VIN')[0].slice(0,250),fitmentEvidence:'GSF registration '+request.registration+'; '+scope.label+'; catalogue position attributes checked',catalogueComplete:true,alternativesChecked:candidates.length,part:{source:'GSF',registration:request.registration,fitmentConfirmed:true,vatBasis:'EX_VAT',sku:product.sku,brand:product.brand,description:product.description,costPence:product.unitNetPence,corePence:0,inStock:product.inStock,imageUrl:product.imageUrl,gsfUrl:url,checkedAt:new Date(now()).toISOString(),...(request.flow?{choiceId:request.choices.part}:{})}};
+ return {vehicle:vehicle.visibleText.split(' Copy VIN')[0].slice(0,250),fitmentEvidence:'GSF registration '+request.registration+'; '+scope.label+'; catalogue position attributes checked',catalogueComplete:true,alternativesChecked:candidates.length,part:{source:'GSF',registration:request.registration,fitmentConfirmed:true,vatBasis:'EX_VAT',sku:product.sku,brand:product.brand,description:product.description,costPence:product.unitNetPence,corePence:0,inStock:option.inStock&&product.inStock,imageUrl:product.imageUrl,gsfUrl:url,checkedAt:new Date(now()).toISOString(),...(request.flow?{choiceId:request.choices.part}:{})}};
 }
 
 export function scopeForFitment(rows,scope){

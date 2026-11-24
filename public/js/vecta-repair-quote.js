@@ -63,7 +63,7 @@
  messages.POSITION_REQUIRED='Choose front or rear before looking up this part.';messages.AXLE_SCOPE_REQUIRED='Brake pads and discs are priced for the complete axle. Choose front or rear.';messages.QUANTITY_REQUIRED='Check the quantity: one axle set of pads or two brake discs.';messages.SIDE_REQUIRED='Choose left or right before looking up this part.';
  var money=function(p){return '£'+(p/100).toFixed(2);};
  var esc=function(v){return String(v==null?'':v).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});};
- var availability=function(part){return part.inStock===false?'Out of stock — price available; confirm supply before booking.':part.inStock===true?'In stock at last check':'Availability not confirmed';};
+ var availability=function(part){return part.inStock===false?'Out of stock or unconfirmed — confirm supply before booking.':part.inStock===true?'In stock at last check':'Availability not confirmed';};
  function mount(job,partsApi){
   if(window.VECTA_MECHANIC_DEPLOYMENT===true)return;
   var modal=document.getElementById('jobModal'),work=document.getElementById('job_work_required'),status=document.getElementById('job_status');

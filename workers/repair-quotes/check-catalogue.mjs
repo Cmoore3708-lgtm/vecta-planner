@@ -12,7 +12,7 @@ import {repairBrowserReason} from './browser-errors.mjs';
 import {captureHaynesDiagnostics} from './haynes-page.mjs';
 import {promptInitialRepairRequest,promptRepairChoice} from './checker-input.mjs';
 const here=path.dirname(fileURLToPath(import.meta.url)),terminal=createInterface({input:process.stdin,output:process.stdout});
-const checkerVersion='2026-11-12-vehicle-catalogue-v21';
+const checkerVersion='2026-11-24-stock-confirmation-v22';
 let gsf,haynes,gsfPage,haynesPage;
 try{
  console.log('VECTA parts and fitting check — '+checkerVersion+'. For fit, supply and fit, or supply checks, stop GSF safely in Workshop Connections first.');
@@ -39,7 +39,7 @@ try{
     if(request.lookup!=='parts'&&!haynesPage){haynes=await chromium.launchPersistentContext(path.join(local,'VectaRepairQuotes','Haynes'),{channel:'msedge',headless:false,acceptDownloads:false,chromiumSandbox:true});haynesPage=await haynes.newPage();}
     console.log(request.lookup==='labour'?'Searching Haynes for fitting time...':request.lookup==='parts'?'Searching GSF for the part...':request.choices.part?'Rechecking your GSF part, then finding its Haynes fitting operation...':'Selecting '+request.registration+' in GSF, then searching for the part...');
     const evidence=await Promise.race([lookupGeneralRepair({gsfPage,haynesPage},request,{onProgress}),new Promise((_,reject)=>{timer=setTimeout(()=>{timedOut=true;void Promise.allSettled([gsfPage?.close(),haynesPage?.close()]).then(()=>reject(Error('LOOKUP_TIMEOUT')));},120000);})]);
-    report.status='PASSED_READ_ONLY';report.quote=calculateRepairQuote(evidence,request);report.evidence=evidence;console.log((request.lookup==='labour'?'Fitting':request.lookup==='parts'?'Parts':'Parts and fitting')+': £'+(report.quote.totalIncVatPence/100).toFixed(2)+' including VAT. '+(report.quote.part?(report.quote.part.inStock?'In stock at last check.':'Out of stock — price available; confirm supply before booking.'):'No parts charge.'));break;
+    report.status='PASSED_READ_ONLY';report.quote=calculateRepairQuote(evidence,request);report.evidence=evidence;console.log((request.lookup==='labour'?'Fitting':request.lookup==='parts'?'Parts':'Parts and fitting')+': £'+(report.quote.totalIncVatPence/100).toFixed(2)+' including VAT. '+(report.quote.part?(report.quote.part.inStock?'In stock at last check.':'Out of stock or unconfirmed — confirm supply before booking.'):'No parts charge.'));break;
    }catch(error){
     // Close timed-out lookup pages before any manual inspection; an abandoned
     // lookup must not continue clicking while the mechanic reviews a failure.
@@ -59,7 +59,7 @@ try{
     }
     console.log('\n'+(result.selectionKind==='wording'?'Did you mean?':result.selectionKind==='product'?'GSF PRODUCTS — choose the part and fitting position':result.stage.replaceAll('_',' ')));
     if(!result.options.length)console.log('No alternative wording was available. Enter a different description to search again.');
-    if(result.selectedPart)console.log('GSF part: '+result.selectedPart.description+' '+result.selectedPart.sku+(result.selectedPart.inStock===false?' — Out of stock':result.selectedPart.inStock===true?' — In stock':''));
+    if(result.selectedPart)console.log('GSF part: '+result.selectedPart.description+' '+result.selectedPart.sku+(result.selectedPart.inStock===false?' — Out of stock or unconfirmed':result.selectedPart.inStock===true?' — In stock':''));
     result.options.forEach((o,i)=>console.log((i+1)+'. '+o.label+' — '+o.detail+(o.costPence?' — £'+(o.costPence/100).toFixed(2)+' each ex VAT':'')+(o.inStock===false?' — Out of stock':o.inStock===true?' — In stock':'')+(o.hoursMilli?' — '+o.hoursMilli/1000+' hours':'')));
     // End the lookup timer before waiting for the mechanic's choice.
     clearTimeout(timer);

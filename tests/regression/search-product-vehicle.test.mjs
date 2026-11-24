@@ -38,9 +38,9 @@ test('vehicle catalogue navigation uses one observed category matching all terms
 
 // Replays the failure boundary: 50 broad search products, but just two
 // vehicle-catalogue groups. Global products must never reach the choice list.
-function browser({wrongVehicle=false,missingProduct=false,crossedPositions=false,changedSku=false}={}){
+function browser({wrongVehicle=false,missingProduct=false,crossedPositions=false,changedSku=false,listedStock=false}={}){
  let url='',state='home',active=0,selected=-1;const events=[];
- const groups=['left','right'].map((side,i)=>({selector:'#group'+i,sku:'FIXSENSOR'+i,description:'ABS Sensor',attributesSelector:'#attributes'+i,links:[],options:[{selector:'#option'+i,description:'ABS Sensor',brand:'Fixture',grade:'Gold',pricePence:2000+i*500,inStock:false,selectionControlPresent:true}]}));
+ const groups=['left','right'].map((side,i)=>({selector:'#group'+i,sku:'FIXSENSOR'+i,description:'ABS Sensor',attributesSelector:'#attributes'+i,links:[],options:[{selector:'#option'+i,description:'ABS Sensor',brand:'Fixture',grade:'Gold',pricePence:2000+i*500,inStock:listedStock,selectionControlPresent:true}]}));
  const page={url:()=>url,goto:async value=>{url=value;selected=-1;state=value.includes('/partdetails/')?'product':'home';if(state==='product')active=value.endsWith('FIXSENSOR1')?1:0;},waitForTimeout:async()=>{},keyboard:{press:async()=>{state='category';}},
   locator:selector=>({count:async()=>1,isVisible:async()=>true,fill:async()=>{},press:async()=>{events.push('search');state='search';url='https://trade.gsfcarparts.com/enhancedSearch/abs%20sensor';},evaluateAll:async()=>[],click:async()=>{
    if(selector.startsWith('#attributes')){active=Number(selector.slice(-1));events.push('attributes:'+active);}
@@ -95,5 +95,15 @@ test('the chosen vehicle-catalogue part is re-read and a different manufacturer 
  const f=browser(),navigation=await choice(f,r),request=await first(r,navigation),parts=await choice(f,request),final=await first(request,parts);
  assert.equal((await lookupGeneralGSF(f.page,final,f.deps)).part.sku,'SENSOR0');
  const changed=browser({changedSku:true});
+ await assert.rejects(lookupGeneralGSF(changed.page,final,changed.deps),e=>e.detail==='SELECTED_PRODUCT_CHANGED');
+});
+
+test('a verified vehicle part retains its price when the detail page cannot confirm advertised stock',async()=>{
+ const f=browser({listedStock:true}),navigation=await choice(f,r),request=await first(r,navigation);
+ const parts=await choice(f,request),final=await first(request,parts);
+ assert.equal(parts.options[0].inStock,true);
+ const {part}=await lookupGeneralGSF(f.page,final,f.deps);
+ assert.equal(part.inStock,false);assert.equal(part.costPence,2000);assert.equal(part.sku,'SENSOR0');
+ const changed=browser({listedStock:true,changedSku:true});
  await assert.rejects(lookupGeneralGSF(changed.page,final,changed.deps),e=>e.detail==='SELECTED_PRODUCT_CHANGED');
 });
