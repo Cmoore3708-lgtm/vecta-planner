@@ -57,7 +57,15 @@ function parkStandardItem(item){
   marker.dataset.standardItem=item.outerHTML;
   item.replaceWith(marker);
 }
+function sizeServicePaper(){
+  const paper=document.getElementById('printSheet');
+  if(paper)paper.style.setProperty('--service-paper-scale',String(Math.min(1,document.documentElement.clientWidth/(210*96/25.4))));
+}
 function mountServiceSheetSelector(controls,sheet,job){
+  if(sheet){
+    sizeServicePaper();
+    window.addEventListener('resize',sizeServicePaper);
+  }
   if(!sheet||sheet.dataset.sheetType!=='service')return;
   const doc=sheet.ownerDocument,select=doc.createElement('select');
   select.setAttribute('aria-label','Service sheet type');
@@ -100,3 +108,4 @@ function switchServiceSheet(sheet,job,choice){
   const title=sheet.querySelector('.ssFluidsHorizontal')?.closest('.ssSection')?.querySelector('.ssTitle');
   if(title)for(const node of title.childNodes)if(node.nodeType===3&&node.textContent.trim())node.textContent=' Oil & Fluids';
 }
+
