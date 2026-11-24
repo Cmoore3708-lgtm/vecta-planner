@@ -61,6 +61,7 @@ test('printed Polestar header fits the registration and keeps the three fields o
     let bar=document.querySelector('#servicePreviewControls');
     if(!bar){bar=document.createElement('div');bar.id='servicePreviewControls';bar.className='servicePreviewControls';
      bar.innerHTML='<label>Service sheet <select><option>Auto · EV</option></select></label><button>Close</button><button>All Green</button><button>Reset Guide</button><button class="savePreview">Save</button><button class="printPreview">Print</button><div role="status"></div>';document.body.prepend(bar);}
+    document.querySelector('.ssPlateReg').textContent='WA15TEL';
     const sheet=document.querySelector('.servicePrint');sheet.dataset.sheetType='service';applyElectricServiceSheet(sheet,{fuel_type:'ELECTRIC'});sizeServicePaper();
     const rect=s=>document.querySelector(s).getBoundingClientRect();
     const car=rect('.ssHaynesVehicle img'),badge=rect('.ssManufacturerLogo'),plate=rect('.ssPlate');
@@ -68,8 +69,7 @@ test('printed Polestar header fits the registration and keeps the three fields o
     const title=rect('.ssDocumentTitle'),header=rect('.ssHeader'),paper=rect('#printSheet'),toolbar=bar.getBoundingClientRect();
     return {edges:Math.abs(header.right-title.right)<2&&Math.abs(header.left-title.left)<2&&Math.abs(car.right-title.right)<2,viewport:Math.abs(paper.width-document.documentElement.clientWidth)<2&&Math.abs(toolbar.width-paper.width)<2&&document.documentElement.scrollWidth<=document.documentElement.clientWidth+2,buttons:buttons.every(b=>b.width>0&&b.height>=44&&b.left>=0&&b.right<=innerWidth),full:bar.scrollWidth<=bar.clientWidth+1,car:car.width,badge:badge.width,separate:plate.right<=car.left+1&&badge.right<=car.left+1,visible:car.right<=innerWidth+1};
    })()`});
-   const m=mobile.result.value;console.log(JSON.stringify({width,...m}));assert.ok(m.edges&&m.viewport&&m.buttons&&m.full&&m.visible&&m.separate&&m.badge>=24&&m.car>=119,JSON.stringify({width,...m}));
-   if(width===402){const capture=await command('Page.captureScreenshot',{format:'jpeg',quality:65,clip:{x:0,y:0,width,height:580,scale:1}});console.log('PHONE_RENDER '+capture.data);}
+   const m=mobile.result.value;assert.ok(m.edges&&m.viewport&&m.buttons&&m.full&&m.visible&&m.separate&&m.badge>=24&&m.car>=119,JSON.stringify({width,...m}));
   }
  }finally{socket?.close();proc.kill();await delay(150);rmSync(dir,{recursive:true,force:true,maxRetries:4,retryDelay:100});}
 });
