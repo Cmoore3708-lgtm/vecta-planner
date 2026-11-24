@@ -155,6 +155,9 @@ root.initHaynesServiceSheet=async function(sheet,registration,kind){
  if(brand&&brand.querySelector('.ssWebsiteLogo')?.getAttribute('src')!=='/assets/vecta-service-logo.webp'){
   const logo=document.createElement('img');logo.className='ssWebsiteLogo';logo.src='/assets/vecta-service-logo.webp';logo.alt='VECTA Vehicle Servicing and repairs';brand.replaceChildren(logo);
  }
+ for(const cell of sheet.querySelectorAll('.ssFluidsHorizontal .ssFluidInline')){
+  if(/^(oil specification|quantity)$/i.test(cell.querySelector('b')?.textContent.trim()||''))cell.classList.add('ssOilReference');
+ }
  const oilFields=()=>sheet.querySelectorAll('.ssFluidsHorizontal .ssField');
  let summary=sheet.querySelector('.ssEngineOilSummary');
  if(!summary){

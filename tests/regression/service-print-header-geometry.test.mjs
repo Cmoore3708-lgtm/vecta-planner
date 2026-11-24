@@ -1,4 +1,5 @@
 import test from 'node:test';
+import {PDFDocument} from 'pdf-lib';
 import assert from 'node:assert/strict';
 import {existsSync,readFileSync,mkdtempSync,writeFileSync,rmSync} from 'node:fs';
 import {tmpdir} from 'node:os';
@@ -8,7 +9,7 @@ import {pathToFileURL} from 'node:url';
 import {setTimeout as delay} from 'node:timers/promises';
 
 const chrome=['/usr/bin/google-chrome','/usr/bin/chromium'].find(existsSync);
-test('printed Polestar header fits the registration and keeps the three fields on one line',{skip:!chrome,timeout:30000},async()=>{
+test('Polestar header fits and the completed Peugeot service sheet prints on one A4 page',{skip:!chrome,timeout:30000},async()=>{
  const dir=mkdtempSync(join(tmpdir(),'vecta-print-'));
  const shell=readFileSync('index.html','utf8').split('</head>')[0];
  const styles=Array.from(shell.matchAll(/<style\b[^>]*>[\s\S]*?<\/style>/gi),m=>m[0]).join('\n');
@@ -19,7 +20,7 @@ test('printed Polestar header fits the registration and keeps the three fields o
  const end=source.indexOf("  document.getElementById('printSheet').innerHTML=html;await openServicePreview(j)",start);
  assert.ok(start>0&&end>start);
  const render=Function('j','inspection','interimService','kind','esc','dvsaAdvisoryArray','paperworkTitle','serviceSheetSummaryHtml','emailLinkHtml','confirmedJobMileage','serviceSectionTitle',source.slice(start,end)+'return html;');
- const full=render({registration:'WA15TEL',vehicle:'Polestar 2',booking_date:'2026-11-24'},false,false,'service',String,()=>[],()=>'EV Service Sheet',()=>'',()=>'',()=>23022,(_,title)=>'<div class="ssTitle">'+title+'</div>');
+ const full=render({registration:'WA15TEL',vehicle:'Polestar 2',booking_date:'2026-11-24'},false,false,'service',String,()=>['Engine covers and undertrays fitted obscuring some testable items'],()=>'Service Sheet',()=>'<div class="ssDueSummary"><div><b>MOT due</b><span>02/06/2027</span></div><div><b>Tax due</b><span>DD/MM/YYYY</span></div><div><b>Next service due</b><span>24/11/2027</span></div></div>',()=>'',()=>23022,(_,title)=>'<div class="ssTitle">'+title+'</div>');
  const body=full.slice(full.indexOf('<div class="ssDocumentTitle">'),-6);
  const page=join(dir,'sheet.html');
  writeFileSync(page,`<!doctype html><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">${styles}<style>${css}</style>
@@ -85,10 +86,24 @@ test('printed Polestar header fits the registration and keeps the three fields o
    sheet.querySelector('.ssPlateReg').textContent='CV72JSX';
    info.querySelector('span').textContent='PEUGEOT 208 ACTIVE PREMIUM PURETECH S/S';
    info.children[1].insertAdjacentHTML('afterend','<div class="ssEngineOilSummary"></div><div class="ssJobOilLookup"></div>');
+   // Restore the original saved header's three vehicle rows before upgrading it.
+   sheet.querySelector('.ssInfo').children[1].replaceWith(info);
+   info.classList.remove('ssHaynesHeaderInfo');
+   const mileage=info.children[1].querySelector('span');mileage.className='ssMileageEntry';mileage.textContent='22746';
+   const logo=sheet.querySelector('.ssWebsiteLogo').src;
+   const badge=sheet.querySelector('.ssManufacturerLogo');badge.src=badge.src.replace('polestar.svg','peugeot.svg');
+   const customer=sheet.querySelectorAll('.ssInfo>div:first-child .ssInfoRow span');
+   ['Sample customer','07700 900123','sample@example.org'].forEach((value,i)=>customer[i].textContent=value);
    const oil={applicability:'Cold and temperate climates (Europe, Azerbaijan, Russia, Canada, Georgia, North Korea, South Korea, Kazakhstan, Mauritius, New Zealand)',specification:'SAE 5W-30 STELLANTIS FPW9.55535/03',capacity:'3.25 L'};
-   window.fetch=async url=>({json:async()=>String(url).includes('supabase-config')?{haynesServiceTest:false}:{status:'MATCHED',result:{registration:'CV72JSX',selected:0,oil:[oil,oil]}}});
+   window.fetch=async url=>({json:async()=>String(url).includes('supabase-config')?{haynesServiceTest:true}:!String(url).includes('haynes=oil')?{status:'OFFLINE'}:{status:'MATCHED',result:{registration:'CV72JSX',selected:0,oil:[oil,oil]}}});
    await initHaynesServiceSheet(sheet,'CV72JSX','service');
    await new Promise(resolve=>setTimeout(resolve,30));
+   sheet.querySelector('.ssWebsiteLogo').src=logo;
+   await Promise.all([...sheet.querySelectorAll('.ssHeader img')].map(img=>img.decode()));
+   sheet.querySelector('.ssScore').textContent='100%';
+   for(const tread of sheet.querySelectorAll('.ssTreadDepth'))tread.textContent='5';
+   for(const pressure of sheet.querySelectorAll('.ssPressure'))pressure.textContent='33';
+   for(const tick of sheet.querySelectorAll('.ssCheck,.ssRagDot.green,.ssRoadChecks .ssTickBox'))tick.classList.add('selected');
    return info.children.length===3&&!sheet.querySelector('.ssOilChoice')&&sheet.querySelector('.ssEngineOilSummary').textContent.includes('3.25 L');
   })()`});assert.equal(setup.result.value,true);
   for(const [width,media] of [[1366,'screen'],[390,'screen'],[794,'print']]){
@@ -98,9 +113,19 @@ test('printed Polestar header fits the registration and keeps the three fields o
     sizeServicePaper();
     const box=s=>document.querySelector(s).getBoundingClientRect();
     const header=box('.ssHeader'),info=box('.ssHaynesHeaderInfo'),oil=box('.ssEngineOilSummary');
-    return info.left>=header.left-1&&info.right<=header.right+1&&info.height<55&&header.height<230&&oil.top>=header.bottom-1;
+    return info.left>=header.left-1&&info.right<=header.right+1&&info.height<55&&header.height<230&&(matchMedia('print').matches?oil.height===0:oil.height>0&&oil.top>=header.bottom-1);
    })()`});assert.ok(bounds.result.value,'Peugeot layout at '+width+' '+media);
   }
+  const printed=await command('Runtime.evaluate',{returnByValue:true,expression:`(()=>{
+   const visible=s=>document.querySelector(s).getBoundingClientRect().height>0;
+   return visible('.ssRoad')&&visible('.ssFooter')&&!visible('.ssOilReference')&&!visible('.ssEngineOilSummary')&&visible('.ssHaynesFluidChecks');
+  })()`});
+  assert.equal(printed.result.value,true,'print the road test, footer and fluid checks without the oil reference');
+  const pdf=await command('Page.printToPDF',{preferCSSPageSize:true,printBackground:true,paperWidth:210/25.4,paperHeight:297/25.4});
+  const bytes=Buffer.from(pdf.data,'base64');
+  const pdfPages=(await PDFDocument.load(bytes)).getPages();
+  assert.equal(pdfPages.length,1,'the completed Peugeot inspection must fit one A4 page');
+  assert.ok(Math.abs(pdfPages[0].getWidth()-595)<2&&Math.abs(pdfPages[0].getHeight()-842)<2);
  }finally{socket?.close();proc.kill();await delay(150);rmSync(dir,{recursive:true,force:true,maxRetries:4,retryDelay:100});}
 });
 
