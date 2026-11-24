@@ -83,7 +83,7 @@ test('customer guide prices use saved table while live price labels still use th
  vm.createContext(context);vm.runInContext(shared,context);
  await context.VectaGuidePrices.load();
  context.state={form:{engine_size_manual:''}};context.engineCc=Number;
- for(const name of ['serviceGuidePrices','servicePriceLabel']){
+ for(const name of ['serviceEstimatePence','guideServicePence','serviceGuidePrices','servicePriceLabel']){
   const start=booking.indexOf('function '+name+'('),end=booking.indexOf('\nfunction ',start+1);vm.runInContext(booking.slice(start,end),context);
  }
  assert.equal(context.serviceGuidePrices(1500).full,199);

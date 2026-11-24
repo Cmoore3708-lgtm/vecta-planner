@@ -46,6 +46,6 @@ test('spark plug confirmation omits price-before-fitting sentence while preservi
  vm.runInContext(source.slice(source.indexOf('function serviceExtraSummary('),source.indexOf('function serviceExtraHtml(')),c);
  assert.match(c.serviceExtraSummary(),/Spark plugs: check manufacturer’s guidance; replace if due\.$/);
  assert.doesNotMatch(c.serviceExtraSummary(),/confirm the price before fitting/);
- c.serviceExtraOffer=()=>({totalPence:8500});assert.match(c.serviceExtraSummary(),/Extra £85 including fitting and VAT/);
+ c.serviceExtraOffer=()=>({totalPence:8500});assert.match(c.serviceExtraSummary(),/Estimated extra £85 including fitting and VAT/);
  c.serviceExtraOffer=()=>null;c.serviceExtraKind=()=> 'fuel_filter';assert.match(c.serviceExtraSummary(),/We will confirm the price before fitting/);
 });

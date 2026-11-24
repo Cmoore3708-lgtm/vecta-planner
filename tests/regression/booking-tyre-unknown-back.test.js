@@ -32,12 +32,12 @@ test('photo help offers camera, upload and unknown buttons and an accessible rea
  buttons[2].click();assert.equal(chosen,1);assert.equal(opened,1);const dialog=document.querySelector('dialog');assert.equal(dialog.querySelector('p').textContent,'That’s OK, we will contact you when we have your car to discuss your options');dialog.querySelector('button').click();assert.equal(document.querySelector('dialog'),null);
 });
 
-test('final review requires explicit parts and serious-repair choices for every work type',()=>{
+test('final review defaults to Budget and requires a serious-repair choice for every work type',()=>{
  for(const types of [['Service'],['MOT'],['Other'],['Tyres'],['MOT','Service']]){
  const {document}=parseHTML('<div id="actions"></div>');let submissions=0;
  const c={document,state:{step:5,form:{job_types:types,parts_range:'',parts_preference:'',serious_repair_choice:''}},bookingMissingRequirements:()=>[],submit:()=>submissions++};vm.createContext(c);
  for(const name of ['partsRangeHtml','seriousRepairChoiceHtml','valid','renderActions'])load(name,c);
- assert.equal((c.partsRangeHtml().match(/type="radio"/g)||[]).length,3);assert.doesNotMatch(c.partsRangeHtml(),/checked/);assert.doesNotMatch(c.seriousRepairChoiceHtml(),/checked/);
+ assert.equal((c.partsRangeHtml().match(/type="radio"/g)||[]).length,3);assert.equal(parseHTML(c.partsRangeHtml()).document.querySelector('[checked]').value,'budget');assert.doesNotMatch(c.seriousRepairChoiceHtml(),/checked/);
  c.renderActions();assert.equal(document.getElementById('send').disabled,true);
  c.state.form.parts_preference='mid_range';c.renderActions();assert.equal(document.getElementById('send').disabled,true);
  c.state.form.serious_repair_choice='book_later';c.renderActions();
