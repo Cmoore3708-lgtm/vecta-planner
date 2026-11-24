@@ -41,13 +41,14 @@
 
   function nmukJobCostCentre(job){
     var match=String(job&&job.customer_note||'').match(/\[\[VECTA_COST_CENTRE:([^\]]*)\]\]/);
-    if(!match)return '';
+    if(!match)return null;
     try{return decodeURIComponent(match[1])}catch(e){return ''}
   }
   function noteWithNmukCostCentre(note,value){
     var clean=String(note||'').replace(/\n?\[\[VECTA_COST_CENTRE:[^\]]*\]\]/g,'');
-    value=String(value||'').trim();
-    return value?clean+'\n[[VECTA_COST_CENTRE:'+encodeURIComponent(value)+']]':clean;
+    if(value==null)return clean;
+    value=String(value).trim();
+    return clean+'\n[[VECTA_COST_CENTRE:'+encodeURIComponent(value)+']]';
   }
   function bindNmukCostCentre(job){
     var input=document.getElementById('job_cost_centre'),reg=document.getElementById('job_registration');
@@ -58,28 +59,19 @@
       if(key===previousKey)return;
       previousKey=key;
       var fleet=fleetVehicleForRegistration(key);
-      input.value=(key===savedKey&&nmukJobCostCentre(job))||(fleet&&fleet.costCentre)||'';
+      var saved=key===savedKey?nmukJobCostCentre(job):null;
+      input.value=saved==null?(fleet&&fleet.costCentre)||'':saved;
     }
     reg.addEventListener('input',refresh);
     reg.addEventListener('change',refresh);
     refresh();
   }
-  function validNmukCostCentre(j){
-    var costField=document.getElementById('job_cost_centre');
-    if(j.customer_account==='NMUK'&&!j.no_vehicle&&costField&&!nmukJobCostCentre(j)){
-      alert('Enter a Cost Centre for this NMUK vehicle.');
-      costField.closest('details')?.setAttribute('open','');
-      costField.focus();return false;
-    }
-    return true;
-  }
-
   function fleetNmukCsvVehicleRows(rows){
     var groups=new Map();
     (rows||[]).forEach(function(r,index){
       var registration=fleetEomRegistrationText(r.job),key=normReg(r.job&&r.job.registration||'');
       if(!key||key==='NOVEHICLE')key='unregistered:'+index;
-      var costCentre=nmukJobCostCentre(r.job);
+      var costCentre=nmukJobCostCentre(r.job)||'';
       key=JSON.stringify([key,costCentre]);
       var group=groups.get(key);
       if(!group){group={registration:registration,costCentre:costCentre,dates:[],types:[],descriptions:[],amount:0};groups.set(key,group)}
@@ -96,7 +88,6 @@
     nmukJobCostCentre:nmukJobCostCentre,
     noteWithNmukCostCentre:noteWithNmukCostCentre,
     bindNmukCostCentre:bindNmukCostCentre,
-    validNmukCostCentre:validNmukCostCentre,
     fleetNmukCsvVehicleRows:fleetNmukCsvVehicleRows,
     bindRegistration:bindRegistration,
     softDeleteMeta:softDeleteMeta,

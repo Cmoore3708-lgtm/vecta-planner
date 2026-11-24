@@ -182,5 +182,11 @@ test('job card prefills the fleet code and keeps a job override until the regist
  const job={registration:registration.value,customer_note:rules.noteWithNmukCostCentre('Original note',input.value)};
  rules.bindNmukCostCentre(job);assert.equal(input.value,'0073');
  registration.value='QQ22ABC';events.input();assert.equal(input.value,'');
- assert.equal(rules.noteWithNmukCostCentre(job.customer_note,''),'Original note');
+ registration.value=job.registration;
+ job.customer_note=rules.noteWithNmukCostCentre(job.customer_note,'');
+ rules.bindNmukCostCentre(job);
+ assert.equal(input.value,'');
+ const [row]=c.fleetNmukCsvVehicleRows([{date:'2026-11-24',job,amount:20}]);
+ assert.deepEqual(Array.from(row.slice(4)),['20.00','']);
+ assert.equal(rules.noteWithNmukCostCentre(job.customer_note,null),'Original note');
 });
