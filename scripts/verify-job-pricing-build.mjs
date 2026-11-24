@@ -24,6 +24,13 @@ export function verifyBuiltJobPricing(directory='dist'){
   const paths=[...html.matchAll(/<script[^>]+src="(\/assets\/vecta-inline-[^"]+)"/g)].map(m=>m[1]);
   const source=paths.map(path=>readFileSync(resolve(directory,'.'+path),'utf8')).join('\n');
   verifyJobPricingBridge(source);
+  // Both job editors load the oil panel outside the planner's private scope.
+  const oilBridge=source.match(/Object\.assign\(window,\{isRoadGoingServiceJob,openJobServiceSheet,latestSavedServiceSheet,vectaHydratePaperwork\}\)/)?.[0];
+  assert.ok(oilBridge,entry+' must expose the oil panel helpers');
+  const helpers={isRoadGoingServiceJob(){},openJobServiceSheet(){},latestSavedServiceSheet(){},vectaHydratePaperwork(){}};
+  const context={window:{},...helpers};
+  vm.runInNewContext(oilBridge,context);
+  assert.deepEqual(context.window,helpers);
  }
  const helper=readFileSync(resolve(directory,'js/vecta-job-pricing.js'),'utf8');
  for(const name of dependencies)assert.ok(!helper.includes('root.'+name),'Pricing must not read private '+name+' from window.');

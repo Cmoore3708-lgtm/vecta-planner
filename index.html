@@ -11,7 +11,7 @@
   <script>window.__vectaCacheResetPromise=Promise.resolve();</script>
   <!-- V355: service-worker registration and reload are owned by the single
        guarded update path after application state is available. -->
-  <!-- VECTA V320: combined Service + MOT completion asks whether MOT was actually completed; No keeps MOT outstanding -->
+  
   <!-- VECTA V254: authoritative MOT lookup checks EVERY active MOT plan and may correct dates backwards or forwards -->
   <!-- VECTA V253: stale recurring MOT due dates roll into current cycle; fixes missing NK72 KTD / NK72 KTJ -->
   <!-- VECTA V100: preserve spreadsheet-specific Nissan contacts; stop Pool default email overwrite -->
@@ -28,7 +28,7 @@
   <!-- VECTA V79: Clickable MOT, tax and service due cards -->
   <!-- VECTA V77: Automatic nightly MOT/tax fleet refresh + cloud fleet state -->
   <!-- VECTA V69: Fleet Manager due-list print blank-page fix -->
-  <!-- VECTA V41.27: MOT/service date alignment and Fleet summary layout -->
+  
 <title>VECTA Workshop Pro v81 Job Sheet Refinements</title>
   <meta name="description" content="VECTA Workshop Pro - stable static workshop planner" />
 <style>
@@ -17370,6 +17370,7 @@ window.vectaEnablePortalAlerts=vectaEnableBookingAlerts;
 window.vectaMaintainPortalAlerts=vectaMaintainBookingAlerts;
 window.vectaPortalAlertsState=vectaBookingAlertsState;
 window.vectaRefreshPortalJobs=async function(){if(!await vectaPrimeJobsFromCloud())return false;if(!document.querySelector('.modal.open'))render();return true;};
+Object.assign(window,{isRoadGoingServiceJob,openJobServiceSheet,latestSavedServiceSheet,vectaHydratePaperwork});
 window.openJobModal=function(id,preset){return openJobModal(id,preset);};
 // Calendar pop-ups share saved records through this bridge, never the open form.
 window.vectaCalendarPopupState=function(){return {jobs:app.jobs,queued:vectaQueuedJobOperations(),newer:vectaPendingUpsertIsNewerThanCloud,normalise:normaliseCompletedJobState,decode:fromRemote,isDeleted:vectaJobIsDeletedForLists};};
