@@ -700,6 +700,7 @@ root.initHaynesJobTools=function(modal,{automatic=false,recoverImage=true}={}){
   const controls=document.createElement('div');controls.className='jobCardHeaderControls';
   const details=header.querySelector('.jobCardHeaderDetails'),facts=header.querySelector('.jobVehicleQuickFacts');
   if(details)controls.appendChild(details);controls.appendChild(lookupRow);if(facts)controls.appendChild(facts);
+  root.mountJobEngineOil?.(modal,controls);
   headerBody.append(controls,panel);header.appendChild(headerBody);
   const detailButtons=document.createElement('div'),detailPanels=document.createElement('div');
   detailButtons.className='jobCardDetailButtons';detailButtons.setAttribute('aria-label','Job details');

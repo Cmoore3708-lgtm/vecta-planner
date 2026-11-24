@@ -14,7 +14,7 @@ const main=readFileSync('index.html','utf8');
 const helper=readFileSync('public/js/haynes-job-tools.js','utf8');
 const match={registration:'AB12CDE',make:'MERCEDES-BENZ',model:'EQC 400 AMG LINE 4MATIC',variant:'400 4MATIC',typeId:'t_123',engineCode:'1KR',fetchedAt:'2021-01-01T00:00:00Z'};
 
-export function card(mechanic){
+export function card(mechanic,oilTest=false){
  const {document}=parseHTML(mechanic?mechanicVariant(main):main);
  const styles=[...document.querySelectorAll('style,link[rel="stylesheet"]')].map(node=>
   node.tagName==='STYLE'?node.outerHTML:'<style>'+readFileSync('public'+node.getAttribute('href'),'utf8')+'</style>'
@@ -35,8 +35,10 @@ export function card(mechanic){
   '</div></div></div>'+
   '<script>window.VECTA_MECHANIC_DEPLOYMENT='+mechanic+';window.fetch=()=>{throw Error("Unexpected network lookup")};'+
   'window.VectaFleetImages={artwork:()=>\'<svg viewBox="0 0 220 120" xmlns="http://www.w3.org/2000/svg"></svg>\'};</script>'+
+  (oilTest?'<script>'+readFileSync('public/js/haynes-service-sheet.js','utf8')+'</script><script>window.isRoadGoingServiceJob=()=>true;window.__vectaJobEditorBaseline={job:{id:"oil-visit",job_type:"Full Service",registration:"AB12CDE"}};window.fetch=async url=>({json:async()=>url.includes("supabase-config")?{haynesServiceTest:true}:{status:"MATCHED",result:{vehicle:{registration:"AB12CDE"},mileage:54321,oil:[{specification:"SAE 5W-30 · ACEA C3",capacity:"4.5 L"}]}}});</script>':'')+
   '<script>'+helper+'</script><script>VectaHaynesJobTools.remember('+JSON.stringify(match)+',true,{allowExpiredIdentity:true});'+
   'initHaynesJobTools(document.querySelector("#jobModal"));'+
+  (oilTest?`setTimeout(()=>{const oil=document.querySelector('.jobEngineOil'),box=oil.getBoundingClientRect(),miles=document.querySelector('#job_current_mileage').getBoundingClientRect();parent.postMessage({engineOil:true,width:innerWidth,mechanic:window.VECTA_MECHANIC_DEPLOYMENT,text:oil.innerText,fits:box.left>=0&&box.right<=innerWidth+1,belowMileage:box.top>=miles.bottom-1},'*');},300);</script>`:
   `const rect=selector=>document.querySelector(selector).getBoundingClientRect();
   const caption=document.querySelector(innerWidth<=700?'.jobCardPhoneCustomerName':'.jobCardCustomerCaption'),details=document.querySelector('.haynesJobVehicle strong');
   const body=rect('.jobCardDetailButtons'),matchBox=rect('.haynesJobTools'),mot=rect('#job_mileage'),current=rect('#job_current_mileage'),model=rect('.jobCardHeaderModel');
@@ -89,7 +91,7 @@ export function card(mechanic){
    const lookup=rect('.jobHeaderHaynesLookup');
    result.lookupClearsIdentity=lookup.height>0&&lookup.top>=caption.getBoundingClientRect().bottom&&lookup.top>=rect('.jobCardHeaderModel').bottom;
   }
-  parent.postMessage(result,'*');</script>`;
+  parent.postMessage(result,'*');</script>`);
 }
 
 test('the reopened job header keeps identity, matching, customer controls and mileage compact on Main and mechanics',{
@@ -100,14 +102,20 @@ test('the reopened job header keeps identity, matching, customer controls and mi
   const frames=[];
   for(const mechanic of [false,true]){
    const file=(mechanic?'mechanic':'main')+'.html';writeFileSync(path.join(dir,file),card(mechanic));
+   const oilFile='oil-'+file;writeFileSync(path.join(dir,oilFile),card(mechanic,true));
+   for(const width of [1440,820,390])frames.push('<iframe width="'+width+'" height="900" src="'+oilFile+'"></iframe>');
    for(const width of [1440,820,390,320])frames.push('<iframe width="'+width+'" height="900" src="'+file+'"></iframe>');
   }
   const report=path.join(dir,'report.html');
   writeFileSync(report,'<!doctype html><pre id="results"></pre><script>onmessage=e=>results.textContent+=JSON.stringify(e.data)+"\\n"</script>'+frames.join(''));
   const {stdout}=await run(process.env.VECTA_CHROME_BIN||'google-chrome',['--headless','--no-sandbox','--disable-gpu','--disable-background-networking','--allow-file-access-from-files','--no-first-run','--user-data-dir='+dir+'/profile','--virtual-time-budget=3000','--dump-dom',pathToFileURL(report).href],{timeout:90000,maxBuffer:1024*1024});
   const rows=stdout.match(/<pre id="results">([^<]*)<\/pre>/)?.[1].trim().split('\n').filter(Boolean).map(JSON.parse)||[];
-  assert.equal(rows.length,8);
+  assert.equal(rows.length,14);
   for(const row of rows){
+   if(row.engineOil){
+    assert.match(row.text,/5W-30.*ACEA C3.*4.5 L/);
+    assert.ok(row.fits&&row.belowMileage,JSON.stringify(row));continue;
+   }
    assert.equal(row.visible,true,JSON.stringify(row));
    assert.equal(row.whatsappFits,true,JSON.stringify(row));assert.equal(row.whatsappDestination,true,JSON.stringify(row));
    const context=JSON.stringify(row);
