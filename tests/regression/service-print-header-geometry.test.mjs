@@ -41,8 +41,9 @@ test('printed Polestar header fits the registration and keeps the three fields o
    const plate=box('.ssPlate'),brand=box('.ssBrand'),badge=box('.ssManufacturerLogo'),info=box('.ssHaynesHeaderInfo');
    const rows=[...document.querySelectorAll('.ssInfoRow')].map(e=>e.getBoundingClientRect());
    const fits=['WA15TEL','WW77 WWW'].map(value=>{const e=q('.ssPlateReg');e.textContent=value;const range=document.createRange();range.selectNodeContents(e);const text=range.getBoundingClientRect(),p=box('.ssPlate');return text.left>=box('.ssPlateGb').right&&text.right<=p.right-2;});
-   return {fits,gap:plate.left-brand.right,below:info.top>=plate.bottom&&info.top>=badge.bottom,line:Math.max(...rows.map(r=>r.top))-Math.min(...rows.map(r=>r.top)),car:box('.ssHaynesVehicle').width};
+   return {fits,badgeWidth:badge.width,badgeClear:badge.left>=plate.right&&badge.right<=box('.ssHaynesVehicle').left,gap:plate.left-brand.right,below:info.top>=plate.bottom&&info.top>=badge.bottom,line:Math.max(...rows.map(r=>r.top))-Math.min(...rows.map(r=>r.top)),car:box('.ssHaynesVehicle').width};
   })()`});
+  assert.equal(measure.result.value.badgeWidth,54);assert.ok(measure.result.value.badgeClear);
   assert.ok(measure.result.value.car>0,'print fixture must be visible');assert.deepEqual(measure.result.value.fits,[true,true],JSON.stringify(measure.result.value));assert.ok(measure.result.value.gap>=10);assert.ok(measure.result.value.below);assert.ok(measure.result.value.line<3);assert.ok(measure.result.value.car>=240);
  }finally{socket?.close();proc.kill();await delay(150);rmSync(dir,{recursive:true,force:true,maxRetries:4,retryDelay:100});}
 });
