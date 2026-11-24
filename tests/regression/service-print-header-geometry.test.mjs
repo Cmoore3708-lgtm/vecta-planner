@@ -15,7 +15,7 @@ test('printed Polestar header fits the registration and keeps the three fields o
  const css=readFileSync('public/js/haynes-service-sheet.css','utf8');
  const page=join(dir,'sheet.html');
  writeFileSync(page,`<!doctype html><meta charset="utf-8">${styles}<style>${css}</style>
- <div id="printSheet"><div class="servicePrint ssHaynesCompact ssHasHaynesVehicle"><div class="ssHeader" style="width:680px!important">
+ <div id="printSheet" class="printSheet"><div class="servicePrint ssHaynesCompact ssHasHaynesVehicle"><div class="ssHeader" style="width:680px!important">
  <div class="ssBrand"><img class="ssWebsiteLogo" alt="VECTA"></div>
  <div class="ssPlate"><div class="ssPlateGb">GB</div><div class="ssPlateReg">WA15TEL</div></div>
  <div class="ssHaynesHeaderInfo"><div class="ssInfoRow"><b>Vehicle:</b><span>POLESTAR POLESTAR 2 EV AWD</span></div><div class="ssInfoRow"><b>Mileage:</b><span>23022</span></div><div class="ssInfoRow"><b>Date:</b><span>24/11/2026</span></div></div>
