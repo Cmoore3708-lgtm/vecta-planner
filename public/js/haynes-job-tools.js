@@ -148,7 +148,7 @@ function compatibleArtwork(value,description){
  if(description?.make&&value.make&&make(description.make)!==make(value.make))return false;
  // Strip the manufacturer before compacting model codes: MAZDA 6 is model 6,
  // while TGE 3.140 and SPRINTER 315 have trim numbers, not joined model names.
- const normal=(v,manufacturer)=>{let text=words(v);const prefix=words(manufacturer);if(prefix&&text.startsWith(prefix+' '))text=text.slice(prefix.length+1);text=text.replace(/^(?:NISSAN|FORD|MERCEDES BENZ|INFINITI|CITROEN|RENAULT|VOLKSWAGEN|VW|AUDI) /,'');return text.replace(/^([A-Z]{1,2})\s+(?=\d)/,'$1').replace(/(\d)\s+([A-Z])(?=\s|$)/g,'$1$2');};
+ const normal=(v,manufacturer)=>{let text=words(String(v||'').replace(/\([^)]*\)/g,' '));const prefix=words(manufacturer);if(prefix&&text.startsWith(prefix+' '))text=text.slice(prefix.length+1);text=text.replace(/^(?:NISSAN|FORD|MERCEDES BENZ|INFINITI|CITROEN|RENAULT|VOLKSWAGEN|VW|AUDI) /,'');return text.replace(/^([A-Z]{1,2})\s+(?=\d)/,'$1').replace(/(\d)\s+([A-Z])(?=\s|$)/g,'$1$2');};
  const expected=normal(description?.model||description?.vehicle,description?.make||value.make),actual=normal(String(value.model||'').split(/[(/]/)[0],value.make);
  if(!expected||!actual)return true;
  // BMW derivatives such as 120d are filed under the numeric series in Haynes.
@@ -807,7 +807,14 @@ root.initHaynesJobTools=function(modal,{automatic=false,recoverImage=true,oilJob
  function automaticLookup(){
   clearTimeout(refreshTimer);
   const saved=savedMatch();
-  if(saved){showMatch(saved);return;}
+  if(saved||oilJob?.lookup_local_only){
+   if(saved)showMatch(saved);
+   const description=currentDescription(),requested=current(),run=sequence;
+   if(!active(requested,run)||hasAssignedArtwork(description)||image(saved?.imageUrl))return;
+   const read=readBookingDrawing(description);
+   if(read)read.then(found=>{if(found&&active(requested,run))showHeaderVehicle();});
+   return;
+  }
   if(noVehicle?.checked||!lookupRegistration(current())||!panel.isConnected||(!automatic&&!recoverImage))return;
   const requested=current(),run=sequence,description=currentDescription();
   refreshTimer=setTimeout(async()=>{
