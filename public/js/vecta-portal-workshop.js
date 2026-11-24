@@ -112,7 +112,7 @@
    img.dataset.vehicleSource=src;img.dataset.registration=item.registration;img.dataset.vehicleMake=drawing.make||'';
    img.onerror=()=>{img.remove();fallback.hidden=false;};fallback.hidden=true;vehicle.prepend(img);window.VectaVehicleImage?.mount(vehicle);
   };
-  paint();Promise.resolve(window.VectaHaynesJobTools?.hydrateSharedArtwork?.()).then(paint).catch(()=>{});
+  paint();Promise.resolve(window.VectaHaynesJobTools?.readBookingDrawing?.(item)).then(paint).catch(()=>{});
   const title=node('h2',(approved?'Good news, ':'Bad news, ')+(item.customer_name||'the customer')+(approved?' has authorised the extra work.':' has declined the work.'));
   const symbol=node('span',approved?'✓':'✕');symbol.className='portalDecisionSymbol';symbol.setAttribute('aria-hidden','true');title.prepend(symbol);body.append(title);
   const work=node('p',item.message);work.className='portalDecisionWork';body.append(work);

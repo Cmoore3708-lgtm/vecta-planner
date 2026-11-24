@@ -272,7 +272,8 @@ test('phone planner opens saved Mokka and Fiesta drawings with an unavailable ca
   ['YP62OPF','FORD','Fiesta Mk VI','FIESTA','319002217']
  ]){
   const db=database(),d=device(db),job={id:'1',registration,make,model:trim};
-  db.client.from=()=>{throw Error('Catalogue unavailable');};
+  let catalogueReads=0;
+  db.client.from=()=>{catalogueReads++;throw Error('Unexpected catalogue read');};
   const expected='https://www.haynespro-assets.com/workshop/images/'+id+'.svgz';
   const calls=[];
   d.root.fetch=async url=>{
@@ -285,6 +286,7 @@ test('phone planner opens saved Mokka and Fiesta drawings with an unavailable ca
   await settled();
   assert.equal(d.document.querySelector('img').dataset.haynesSource,expected);
   d.root.VectaPlannerRules.refreshArtwork(d.document,[job],true);
+  assert.equal(catalogueReads,0);
   assert.equal(calls.length,1);
   assert.ok(calls[0].startsWith('/api/vehicle-artwork?reg='+registration+'&'));
   const offline=device(db,d.storage);offline.root.navigator.onLine=false;
