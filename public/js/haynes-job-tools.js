@@ -807,18 +807,19 @@ root.initHaynesJobTools=function(modal,{automatic=false,recoverImage=true,oilJob
  function automaticLookup(){
   clearTimeout(refreshTimer);
   const saved=savedMatch();
-  if(saved)showMatch(saved);
-  if(noVehicle?.checked||!lookupRegistration(current())||!panel.isConnected)return;
-  const requested=current(),run=sequence,description=currentDescription();
-  if(saved&&hasAssignedArtwork(description))return;
-  refreshTimer=setTimeout(async()=>{
-   // Registration-search drafts may read workshop artwork even when supplier lookups are disabled.
+  if(saved||oilJob?.lookup_local_only){
+   if(saved)showMatch(saved);
+   const description=currentDescription(),requested=current(),run=sequence;
+   if(!active(requested,run)||hasAssignedArtwork(description)||image(saved?.imageUrl))return;
    const read=readBookingDrawing(description);
-   if(read)await read;
-   if(!active(requested,run))return;
-   showHeaderVehicle();
-   if(root.navigator?.onLine===false||root.VECTA_AUDIT_PREVIEW)return;
-   if(saved&&hasAssignedArtwork(description))return;
+   if(read)read.then(found=>{if(found&&active(requested,run))showHeaderVehicle();});
+   return;
+  }
+  if(noVehicle?.checked||!lookupRegistration(current())||!panel.isConnected||(!automatic&&!recoverImage))return;
+  const requested=current(),run=sequence,description=currentDescription();
+  refreshTimer=setTimeout(async()=>{
+   const hydrated=await hydrateSharedArtwork();
+   if(!active(requested,run)||hydrated===false||Date.now()<sharedRetryAt)return;
    const model=description.model||description.vehicle;
    // Recover saved artwork independently; a model drawing never identifies an engine.
    if(!image(storedDrawing(description)?.imageUrl)&&description.make&&model){
@@ -843,7 +844,7 @@ root.initHaynesJobTools=function(modal,{automatic=false,recoverImage=true,oilJob
     }
     return;
    }
-   if(!saved&&(automatic||recoverImage)&&active(requested,run))await matchVehicle();
+   if(active(requested,run))await matchVehicle();
   },150);
  }
  // A website lookup may have saved the colour since this workshop session began.

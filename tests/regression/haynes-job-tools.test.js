@@ -451,9 +451,9 @@ test('existing exact drawings, website review and closed editors do not start im
 });
 
 test('an image-less cached identity does not trigger a forced worker refresh',async()=>{
- let calls=0;const s=setup(async()=>{calls++;return response(vehicle);},undefined,[{...vehicle,imageUrl:''}],false,'',false,false,true);
+ const calls=[];const s=setup(async url=>{calls.push(url);return {ok:true,json:async()=>({status:'NOT_FOUND'})};},undefined,[{...vehicle,imageUrl:''}],false,'',false,false,true);
  await new Promise(r=>setTimeout(r,220));
- assert.equal(calls,0);
+ assert.equal(calls.length,1);assert.match(calls[0],/^\/api\/vehicle-artwork\?.*saved=1$/);
  assert.equal(s.window.VectaHaynesJobTools.lookupNeedsRetry(vehicle.registration),false);
 });
 
