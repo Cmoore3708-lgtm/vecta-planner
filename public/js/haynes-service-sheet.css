@@ -225,3 +225,8 @@
 .ssEngineOilSummary{font-size:inherit;font-weight:700;overflow-wrap:anywhere}
 .ssOilChoice{max-width:100%;margin:.25rem 0}
 @media print{.servicePrint .ssOilChoice{display:none!important}}
+.ssJobOilLookup{font-size:inherit;overflow-wrap:anywhere}
+.ssJobOilLookup:has(.ssOilChoice) span{display:block}
+@media print{.ssJobOilLookup{display:none!important}}
+
+.ssJobOilLookup.oilResolved>span:first-child{display:none}
