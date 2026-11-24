@@ -120,10 +120,11 @@ test('database choice round trip isolates old workers, preserves cached options 
  }finally{await db.close();}
 });
 
-function editor(reply){
+function editor(reply, timers = {}, status = 'quote'){
  const {window,document}=parseHTML('<html><body><div id="jobModal" class="open"><section class="jobWorkSection"><textarea id="job_work_required">Supply and fit front left wishbone</textarea></section><input id="job_registration" value="AB12CDE"><input id="job_status" value="quote"><div id="privatePricingRows"></div></div></body></html>');
  Object.defineProperty(window.HTMLSelectElement.prototype,'value',{configurable:true,get(){return Array.from(this.options).find(o=>o.selected)?.value||this.options[0]?.value||'';},set(value){Array.from(this.options).forEach(o=>o.selected=false);const chosen=Array.from(this.options).find(o=>o.value===value);if(chosen)chosen.selected=true;}});
- const sent=[],context={window,document,MutationObserver:window.MutationObserver,fetch:async(url,opts)=>{if(!opts)return {json:async()=>({})};const body=JSON.parse(opts.body);sent.push(body);return {status:200,json:async()=>reply(body,sent.length)};},setTimeout:()=>1,clearTimeout(){},AbortController,Date:class extends Date{static now(){return now;}}};
+ document.getElementById('job_status').value=status;
+ const sent=[],context={window,document,MutationObserver:window.MutationObserver,fetch:async(url,opts)=>{if(!opts)return {json:async()=>({})};const body=JSON.parse(opts.body);sent.push(body);return {status:200,json:async()=>reply(body,sent.length)};},setTimeout:()=>1,clearTimeout(){},...timers,AbortController,Date:class extends Date{static now(){return now;}}};
  vm.createContext(context);vm.runInContext(fs.readFileSync('public/js/vecta-repair-quote.js','utf8'),context);window.VectaRepairQuote.mount({status:'quote'});
  const flush=()=>new Promise(r=>setImmediate(r)),click=async selector=>{document.querySelector(selector).click();await flush();},choose=i=>{const input=document.querySelectorAll('[name="rqSupplierChoice"]')[i];input.checked=true;input.onchange();};
  return {window,document,sent,click,choose,flush};
@@ -198,4 +199,23 @@ test('wording suggestions survive worker and manager API validation without acqu
  assert.equal(worker.body.status,'SAVED');const manager=response();
  await repairQuoteHandler({env:{REPAIR_QUOTING_ENABLED:'true',REPAIR_GENERAL_PRICING_ENABLED:'true'},authenticate:async()=>true,queue:async()=>({status:'CHOICE_REQUIRED',result:delivered}),now:()=>now})({method:'POST',body:r},manager);
  assert.equal(manager.body.choices.selectionKind,'wording');assert.deepEqual(manager.body.choices.options,choice.options);assert.equal(manager.body.quote,undefined);
+});
+
+test('typing a timing belt request on a booked job starts one lookup after editing settles', async()=>{
+ const pending=new Map();let sequence=0;
+ const timers={setTimeout(fn,delay){const id=++sequence;pending.set(id,{fn,delay});return id;},clearTimeout(id){pending.delete(id);}};
+ const e=editor(()=>({status:'OFFLINE'}),timers,'booked');
+ e.document.getElementById('job_registration').value='KM12EAD';
+ const work=e.document.getElementById('job_work_required');
+ function type(value){work.value=value;work.dispatchEvent(new e.window.Event('input'));}
+ function runDelay(){for(const [id,t] of [...pending])if(t.delay===1500){pending.delete(id);t.fn();}}
+ runDelay();assert.equal(e.sent.length,0);
+ type('Check brakes');runDelay();assert.equal(e.sent.length,0);
+ type('Supply and fit timing');type('Supply and fit timing belt');
+ assert.equal(e.sent.length,0);runDelay();await e.flush();
+ assert.equal(e.sent.length,1);assert.equal(e.sent[0].registration,'KM12EAD');
+ assert.equal(e.sent[0].work,'Supply and fit timing belt');
+ assert.match(e.document.querySelector('.rqStatus').textContent,/offline/i);
+ type('Supply and fit timing belt kit');await e.click('[data-rq-find]');runDelay();
+ assert.equal(e.sent.length,2);
 });

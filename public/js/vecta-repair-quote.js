@@ -83,7 +83,7 @@
   fromWork();
   var read=function(){return {registration:String((document.getElementById('job_registration')||{}).value||'').toUpperCase().replace(/\s/g,''),work:manualScope?selectedScope().work||'':work.value.trim().replace(/\s+/g,' '),flow:'guided-v1',choices:JSON.parse(JSON.stringify(choices))};};
   var key=function(){return JSON.stringify([read(),work.value]);};
-  function stop(){generation++;if(controller)controller.abort();controller=null;clearTimeout(timer);timer=null;find.disabled=false;cancel.hidden=true;}
+  function stop(){clearTimeout(automatic);generation++;if(controller)controller.abort();controller=null;clearTimeout(timer);timer=null;find.disabled=false;cancel.hidden=true;}
   function invalidate(){stop();choices={};find.textContent=lookupMode==='labour'?'Find fitting time':'Find GSF part';quote=null;result.replaceChildren();message.textContent='Vehicle or work changed. Run a new lookup.';}
   function useScope(value){var s=scopes.resolve(value);if(!s.part)return false;lookupMode=s.lookup||'both';partSelect.value=s.part;axleSelect.value=s.axle||'';sideSelect.value=s.side||'';quantityInput.value=s.quantity||1;manualScope=true;scopeDisplay();return true;}
   function showPositionChoices(selected){
@@ -213,7 +213,16 @@
   find.onclick=function(){lookup(false);};cancel.onclick=function(){stop();message.textContent='Lookup cancelled.';};
   if(job&&job.customer_note&&typeof pricingApi.privatePricingItemsFromNote==='function'){var saved=pricingApi.privatePricingItemsFromNote(job.customer_note).map(function(line){return line.repair_quote;}).find(function(meta){return meta&&Array.isArray(meta.items)&&meta.items.length&&meta.request&&meta.request.registration===read().registration;});if(saved){choices=saved.request.choices||{};draftScope=scopes.resolve(saved.request.work).work;var savedScope=scopes.resolve(saved.request.work);if(savedScope.status==='SUPPORTED'){lookupMode=savedScope.lookup||'both';partSelect.value=savedScope.part;axleSelect.value=savedScope.axle;sideSelect.value=savedScope.side;quantityInput.value=savedScope.quantity;manualScope=true;scopeDisplay();}lastKey=key();show(Object.assign({},saved,{variant:saved.part?saved.part.variant:saved.labour?saved.labour.variant:'',partsPence:saved.partsPence,chargedHoursMilli:saved.chargedHoursMilli}),saved.items);message.textContent=(saved.previewOnly?'SAVED TEST REPLAY — not a live supplier quote. ':'')+'Saved parts and labour breakdown. Refresh supplier prices before reusing an expired lookup.';}}
   [partSelect,axleSelect,sideSelect,quantityInput].forEach(function(control){control.addEventListener(control===partSelect||control===quantityInput?'input':'change',function(){invalidate();manualScope=true;if(control===partSelect){var parsed=scopes.scope(partSelect.value,axleSelect.value,sideSelect.value);if(parsed.quantity)quantityInput.value=parsed.quantity;}scopeDisplay();});});
-  work.addEventListener('input',function(){invalidate();fromWork();});var reg=document.getElementById('job_registration');if(reg){reg.addEventListener('input',function(){additionalDrafts=[];invalidate();});reg.addEventListener('change',function(){additionalDrafts=[];invalidate();});}
+  work.addEventListener('input',function(){
+   invalidate();fromWork();
+   var input=read(),scope=scopes.resolve(input.work);
+   if(!/^(?:supply|fit)\b/i.test(input.work)||scope.status!=='SUPPORTED'||/^(?:and|only|it)$/.test(scope.part)||!/^[A-Z0-9]{2,8}$/.test(input.registration))return;
+   var expected=key();
+   message.textContent='Preparing to look up '+scope.label+'…';
+   automatic=setTimeout(function(){
+    if(panel.isConnected&&modal.classList.contains('open')&&key()===expected)lookup(false);
+   },1500);
+  });var reg=document.getElementById('job_registration');if(reg){reg.addEventListener('input',function(){additionalDrafts=[];invalidate();});reg.addEventListener('change',function(){additionalDrafts=[];invalidate();});}
   var automatic;
 
  }
