@@ -599,6 +599,11 @@ root.initHaynesJobTools=function(modal,{automatic=false,recoverImage=true}={}){
   const title=header.querySelector('h2');header.insertBefore(heading,title);if(title)heading.appendChild(title);
   const oldField=input.closest('.field'),registrationControl=input.closest('.plateInputWrap')||input;
   input.setAttribute('aria-label','Vehicle registration');plate.appendChild(registrationControl);heading.appendChild(plate);heading.appendChild(vehicleTitle);
+  const job=(root.app?.jobs||[]).find(item=>item.id===root.editingJobId);
+  const number=document.createElement('span');number.className='jobCardNumber';
+  if(job?.job_number)number.textContent='Job '+job.job_number;
+  else if(!root.editingJobId||job?.booking_date>='2026-11-23')number.textContent='Job number pending';
+  if(number.textContent)heading.appendChild(number);
   if(oldField)oldField.remove();heading.appendChild(section);header.classList.add('hasHeaderVehicleDetails');
  }
  const picture=document.createElement('div');picture.className='jobCardHeaderVehicle';

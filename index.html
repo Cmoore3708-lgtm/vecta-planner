@@ -10586,7 +10586,7 @@ async function upsertRemote(table,row,options){
   if(table==='jobs'){var pendingCreate=vectaPendingSync().some(function(item){return item.table==='jobs'&&item.jobWriteIntent==='create'&&String(item.payload&&item.payload.id)===String(row.id)});if(pendingCreate)options.jobWriteIntent='create';var guard=await vectaGuardJobUpsert(row,options);if(guard.check_failed)throw new Error('The workshop server could not verify this job identity. Keep the card and retry when connected.');if(guard.missing&&!guard.allow)throw new Error('This existing job is missing from the workshop server. It has not been recreated. Keep this card for recovery review.');if(!guard.allow)return [{id:String(row&&row.id||''),vecta_conflict_skipped:true}];}
   if(table==='tasks')ensureTaskUuid(row);
   var data=vectaStripKnownMissingColumns(table,Object.assign({},row)),removed=[],res=null;
-  if(table==='jobs'){delete data.visit_presence;delete data.visit_presence_date;delete data.visit_billing;}
+  if(table==='jobs'){delete data.job_number;delete data.visit_presence;delete data.visit_presence_date;delete data.visit_billing;}
   /* Customer and vehicle timestamps are optional in older Vecta schemas. */
   if(table==='customers'||table==='vehicles'){delete data.updated_at;}
   /* Optional number inputs are blank for many Fleet vehicles. PostgreSQL integer
@@ -10632,7 +10632,7 @@ async function upsertRemote(table,row,options){
        SELECT can race another tab's cloud refresh and misreport a saved quote
        as an unconfirmed job. Other callers only need the id. */
     var write=table==='jobs'&&options.jobWriteIntent!=='create'?remoteClient.from(table).update(data).eq('id',data.id):remoteClient.from(table).upsert(data,{onConflict:'id'});
-    res=await write.select(table==='jobs'&&options.confirmJobSave?'id,customer_note,amount_quoted,status,technician,booking_date,completed_at,archived':'id');
+    res=await write.select(table==='jobs'&&options.confirmJobSave?'*':'id');
     if(!res.error&&table==='jobs'&&(!res.data||!res.data.length))throw new Error('The job no longer exists or cannot be updated. Nothing has been recreated.');
     if(!res.error){if(table==='jobs'&&(jobCompletionEvidence(row)||vectaJobHasFinancialValue(row)))vectaProtectJobSnapshot(row,jobCompletionEvidence(row)?'completed-or-terminal-save':'financial-save').catch(function(e){console.warn('Protected snapshot follow-up failed',e)});return res.data;}
     var missing=schemaColumnFromError(res.error.message,table);
@@ -16340,6 +16340,7 @@ async function syncSavedJobBundleInBackground(j,linked,previous,options){
     if(result&&result.some&&result.some(function(x){return x.vecta_conflict_skipped}))throw new Error('This card is out of date: the server has a newer version. Refresh the job before applying your edit again.');
     if(!result||result.queued)throw new Error('The workshop server did not confirm the job write.');
     var saved=result.find(function(x){return String(x&&x.id||'')===String(j.id)})||{};
+    if(saved.job_number)j.job_number=saved.job_number;
     var mismatched=[];
     if(String(saved.customer_note||'')!==String(j.customer_note||''))mismatched.push('customer note');
     if(Math.abs(Number(saved.amount_quoted||0)-Number(j.amount_quoted||0))>0.005)mismatched.push('amount');
