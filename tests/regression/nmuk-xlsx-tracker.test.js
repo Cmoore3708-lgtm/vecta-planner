@@ -51,3 +51,20 @@ test('tracker includes saved monthly edits even when issued invoice has no extra
  assert.equal(output[2][0].description,'Saved charge');assert.equal(output[3].total,550);assert.equal(output[3].other,550);
  assert.equal(JSON.stringify(invoice),original);
 });
+
+test('the workbook buttons link both views and each cost centre has one reconciled subtotal',()=>{
+ const lines=[['A','0012',12.23],['B','12',4],['C','0012',-0.1],['D','',2.5]];
+ const jobs=lines.map(([reg,code,price])=>['24/11',reg,'Internal','Repair',price,code]);
+ const book=exporter().build('2026-11',jobs,[{description:'Monthly charge',amount:10}],{total:28.63,internal:18.63,other:10});
+ const check=spawnSync('python',['-c',`import sys,zipfile,io,xml.etree.ElementTree as E
+z=zipfile.ZipFile(io.BytesIO(sys.stdin.buffer.read()))
+def sheet(i):return E.fromstring(z.read('xl/worksheets/sheet%d.xml'%i))
+def cells(row):return [''.join(c.itertext()) for c in row]
+assert sheet(1).find('.//{*}hyperlink').attrib=={'ref':'F1','location':"'By Cost Centre'!A1"}
+assert sheet(2).find('.//{*}hyperlink').attrib=={'ref':'F1','location':"'Monthly Tracker'!A1"}
+rows=[cells(r) for r in sheet(2).findall('.//{*}row')][2:]
+assert [r[1] for r in rows if len(r)>=5 and r[1]]==['A','C','B','D']
+assert [(r[3],r[4]) for r in rows if len(r)>=5 and 'total' in r[3]]==[('Cost Centre 0012 total','12.13'),('Cost Centre 12 total','4.00'),('No Cost Centre total','2.50'),('Monthly charges total','10.00'),('Grand total','28.63')]
+`],{input:book.bytes});
+ assert.equal(check.status,0,check.stderr.toString());
+});
