@@ -44,5 +44,21 @@ test('printed Polestar header fits the registration and keeps the three fields o
    return {fits,gap:plate.left-brand.right,below:info.top>=plate.bottom&&info.top>=badge.bottom,line:Math.max(...rows.map(r=>r.top))-Math.min(...rows.map(r=>r.top)),car:box('.ssHaynesVehicle').width};
   })()`});
   assert.ok(measure.result.value.car>0,'print fixture must be visible');assert.deepEqual(measure.result.value.fits,[true,true],JSON.stringify(measure.result.value));assert.ok(measure.result.value.gap>=10);assert.ok(measure.result.value.below);assert.ok(measure.result.value.line<3);assert.ok(measure.result.value.car>=240);
+  await command('Emulation.setEmulatedMedia',{media:'screen'});
+  for(const width of [375,390,430]){
+   await command('Emulation.setDeviceMetricsOverride',{width,height:844,deviceScaleFactor:1,mobile:false});
+   const mobile=await command('Runtime.evaluate',{returnByValue:true,expression:`(()=>{
+    document.body.classList.add('servicePreviewing');
+    document.querySelector('.ssHeader').style.removeProperty('width');
+    let bar=document.querySelector('#servicePreviewControls');
+    if(!bar){bar=document.createElement('div');bar.id='servicePreviewControls';bar.className='servicePreviewControls';
+     bar.innerHTML='<label>Service sheet <select><option>Auto · EV</option></select></label><button>Close</button><button>All Green</button><button>Reset Guide</button><button class="savePreview">Save</button><button class="printPreview">Print</button><div role="status"></div>';document.body.prepend(bar);}
+    const rect=s=>document.querySelector(s).getBoundingClientRect();
+    const car=rect('.ssHaynesVehicle img'),badge=rect('.ssManufacturerLogo'),plate=rect('.ssPlate');
+    const buttons=[...bar.querySelectorAll('button')].map(e=>e.getBoundingClientRect());
+    return {buttons:buttons.every(b=>b.width>0&&b.height>=44&&b.left>=0&&b.right<=innerWidth),full:bar.scrollWidth<=bar.clientWidth+1,car:car.width,badge:badge.width,separate:plate.right<=car.left+1&&badge.right<=car.left+1,visible:car.right<=innerWidth+1};
+   })()`});
+   const m=mobile.result.value;assert.ok(m.buttons&&m.full&&m.visible&&m.separate&&m.badge>=48&&m.car>=130,JSON.stringify({width,...m}));
+  }
  }finally{socket?.close();proc.kill();await delay(150);rmSync(dir,{recursive:true,force:true,maxRetries:4,retryDelay:100});}
 });
