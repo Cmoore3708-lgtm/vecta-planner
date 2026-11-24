@@ -232,3 +232,23 @@ test('viscosity alone and missing oil both leave a visible check on the sheet',a
   assert.match(sheet.querySelector('.ssEngineOilSummary').textContent,/Oil specification needs checking/);
  }
 });
+
+test('a combined Full Service and MOT card explains missing mileage before a supplier request',async()=>{
+ let requests=0;
+ const {window,document}=setup(async()=>{requests++;return {status:'MATCHED',result:data};});
+ const job={id:'service-with-mot',registration:vehicle.registration,job_type:'Full Service || MOT',work_required:'Full Service\nMOT test'};
+ window.__vectaJobEditorBaseline={job};
+ const planner=readFileSync(new URL('../../index.html',import.meta.url),'utf8');
+ const names=['normaliseJobTypeKey','jobTypeValues','serviceTypeFromValue','isSixMonthSafetyCheck','isOnSiteService','isRoadGoingServiceJob'];
+ const defs=names.map(name=>planner.slice(planner.indexOf('function '+name+'(')).split(/\n(?=(?:async )?function )/)[0]).join('\n');
+ const context={window,JOB_TYPE_SEPARATOR:' || ',normReg:v=>v};vm.runInNewContext(defs,context);
+ window.isRoadGoingServiceJob=context.isRoadGoingServiceJob;
+ const modal=document.createElement('div');
+ modal.innerHTML='<input id="job_registration" value="FX69XWU"><input id="job_current_mileage"><div class="controls"></div>';document.body.appendChild(modal);
+ const controls=modal.querySelector('.controls');window.mountJobEngineOil(modal,controls);await settle();
+ assert.equal(controls.querySelector('.jobEngineOil').hidden,false);
+ assert.match(controls.textContent,/Enter current mileage/);assert.equal(requests,0);
+ const mileageField=modal.querySelector('#job_current_mileage');mileageField.value='50000';mileageField.dispatchEvent(new window.Event('input'));
+ await new Promise(resolve=>setTimeout(resolve,720));
+ assert.match(controls.textContent,/ACEA C3/);assert.equal(requests,1);
+});

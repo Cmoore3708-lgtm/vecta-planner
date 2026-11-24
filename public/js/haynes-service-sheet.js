@@ -55,7 +55,7 @@ root.mountJobEngineOil=function(modal,controls){
   const service=root.isRoadGoingServiceJob?.({...job,job_type:type});
   box.hidden=!service||!reg||modal.querySelector('#job_no_vehicle')?.checked||/^(?:electric|electricity|bev)$/i.test(job.fuel_type||'');
   if(box.hidden)return;
-  out.textContent=oilWarning;action.textContent='Open service sheet';
+  out.textContent=oilWarning;action.textContent='Open service sheet';action.onclick=()=>root.openJobServiceSheet(job.id);
   const active=()=>run===generation&&box.isConnected&&registration()===reg&&currentMileage()===current;
   if(typeof root.vectaHydratePaperwork==='function'){
    try{await root.vectaHydratePaperwork(reg,'service',job.id);}catch{}
@@ -70,7 +70,12 @@ root.mountJobEngineOil=function(modal,controls){
     out.textContent=oilSummary(fields[0].textContent,fields[1]?.textContent);return;
    }
   }
-  if(!current||current>2000000||current<1||!Number.isInteger(current))return;
+  if(!current||current>2000000||current<1||!Number.isInteger(current)){
+   out.textContent='Enter current mileage to look up the oil grade, approval and refill quantity.';
+   action.textContent='Enter mileage';
+   action.onclick=()=>modal.querySelector('#job_current_mileage')?.focus();
+   return;
+  }
   try{
    const config=await fetch('/api/supabase-config',{cache:'no-store'}).then(r=>r.json());
    if(!active()||!config.haynesServiceTest)return;

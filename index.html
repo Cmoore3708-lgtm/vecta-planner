@@ -17370,6 +17370,7 @@ window.vectaEnablePortalAlerts=vectaEnableBookingAlerts;
 window.vectaMaintainPortalAlerts=vectaMaintainBookingAlerts;
 window.vectaPortalAlertsState=vectaBookingAlertsState;
 window.vectaRefreshPortalJobs=async function(){if(!await vectaPrimeJobsFromCloud())return false;if(!document.querySelector('.modal.open'))render();return true;};
+Object.assign(window,{isRoadGoingServiceJob,openJobServiceSheet,latestSavedServiceSheet,vectaHydratePaperwork});
 window.openJobModal=function(id,preset){return openJobModal(id,preset);};
 // Calendar pop-ups share saved records through this bridge, never the open form.
 window.vectaCalendarPopupState=function(){return {jobs:app.jobs,queued:vectaQueuedJobOperations(),newer:vectaPendingUpsertIsNewerThanCloud,normalise:normaliseCompletedJobState,decode:fromRemote,isDeleted:vectaJobIsDeletedForLists};};
