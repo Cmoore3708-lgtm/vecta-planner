@@ -200,3 +200,35 @@ test('every operation has a manual Required checkbox when Haynes is offline',asy
  for(const tick of ticks){assert.equal(tick.getAttribute('aria-disabled'),null);assert.equal(tick.getAttribute('aria-checked'),'false');vm.runInNewContext('(function(){'+tick.getAttribute('onclick')+'}).call(tick)',{tick});assert.equal(tick.getAttribute('aria-checked'),'true');assert.equal(tick.dataset.manual,'true');}
  assert.equal(table.querySelectorAll('.ssDone .selected').length,0);sheet.remove();
 });
+
+test('the job card and sheet reuse one lookup and reopen the saved oil choice for that job',async()=>{
+ let requests=0,record;
+ const oil=[data.oil[0],{applicability:'Alternative',specification:'SAE 0W-30 · VW 504 00',capacity:'Engine sump, including filter 5.9 (l)'}];
+ const {document,window,sheet}=setup(async()=>{requests++;return {status:'MATCHED',result:{...data,oil}};});
+ sheet.setAttribute('data-job-id','visit-a');
+ const job={id:'visit-a',registration:vehicle.registration,job_type:'Full Service'};
+ window.__vectaJobEditorBaseline={job};window.isRoadGoingServiceJob=()=>true;window.latestSavedServiceSheet=()=>record;
+ const modal=document.createElement('div');
+ modal.innerHTML='<input id="job_current_mileage" value="50000"><input id="job_registration" value="FX69XWU"><div class="controls"></div>';
+ document.body.appendChild(modal);
+ const mount=async()=>{const controls=modal.querySelector('.controls');controls.replaceChildren();window.mountJobEngineOil(modal,controls);await settle();return controls;};
+ assert.match((await mount()).textContent,/Choose oil/);
+ await window.initHaynesServiceSheet(sheet,vehicle.registration,'service');await settle();
+ assert.equal(requests,1);
+ const select=sheet.querySelector('.ssOilChoice');
+ assert.ok(select);
+ assert.match(select.textContent,/Alternative/);select.options[2].selected=true;select.onchange();
+ assert.match(sheet.querySelector('.ssEngineOilSummary').textContent,/0W-30.*VW 504 00.*5.9 L/);
+ record={job_id:job.id,html:sheet.outerHTML};
+ assert.match((await mount()).textContent,/0W-30.*VW 504 00.*5.9 L/);assert.equal(requests,1);
+ record.job_id='previous-visit';
+ assert.match((await mount()).textContent,/Choose oil/);
+});
+
+test('viscosity alone and missing oil both leave a visible check on the sheet',async()=>{
+ for(const oil of [[],[{specification:'SAE 5W-30',capacity:'4 L'}]]){
+  const {window,sheet}=setup(async()=>({status:'MATCHED',result:{...data,oil}}));
+  await window.initHaynesServiceSheet(sheet,vehicle.registration,'service');await settle();
+  assert.match(sheet.querySelector('.ssEngineOilSummary').textContent,/Oil specification needs checking/);
+ }
+});

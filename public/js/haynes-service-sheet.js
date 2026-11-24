@@ -3,6 +3,105 @@
 const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const mileage=sheet=>{const value=String(sheet.querySelector('.ssMileageEntry')?.textContent||'').replace(/[\s,]/g,'');return /^\d+$/.test(value)&&Number(value)>0&&Number(value)<=2000000?Number(value):0;};
 const compactCapacity=value=>{const text=String(value||''),match=text.match(/including filter\s+(\d+(?:[.,]\d+)?)\s*\(l\)/i);return match?match[1]+' L (inc. filter)':text;};
+const oilWarning='Oil specification needs checking';
+function oilSummary(specification,capacity){
+ const spec=String(specification||'').trim();
+ const viscosity=/\b(?:SAE\s*)?\d{1,2}W\s*[-–/]?\s*\d{2}\b/ig;
+ const grade=(spec.match(viscosity)||[]).join(' / ');
+ const quality=spec.replace(viscosity,'').replace(/^[\s·,;:/-]+|[\s·,;:/-]+$/g,'').trim();
+ // Only treat identifiable lubricant standards as a quality specification.
+ const approved=/\b(?:ACEA|API|ILSAC|JASO|dexos|VW|VAG|BMW|Longlife|MB|Mercedes|PSA|Stellantis|Ford|WSS|Renault|RN\s?\d|Fiat|FCA|Chrysler|Volvo|VCC|Porsche|JLR|STJLR|OV\d|GM[- ])\s*[-: ]*[^·]*\d|\b(?:API\s+[SC][A-Z]|ILSAC\s+GF|ACEA\s+[A-F]\d|dexos\s*D)/i.test(quality);
+ return [grade,quality,compactCapacity(capacity),!grade||!approved?oilWarning:!capacity?'Refill quantity needs checking':''].filter(Boolean).join(' · ');
+}
+const serviceRequests=new Map();
+function serviceReply(jobId,query){
+ const key=jobId&&JSON.stringify([jobId,query.toString()]);
+ if(key&&serviceRequests.has(key))return serviceRequests.get(key);
+ const pending=(async()=>{
+  const params=new URLSearchParams(query);
+  const until=Date.now()+95000;
+  let reply;
+  do{
+   reply=await fetch('/api/availability?'+params,{cache:'no-store'}).then(r=>r.json());
+   if(reply.status!=='PENDING')break;
+   if(reply.id)params.set('id',reply.id);
+   await new Promise(r=>setTimeout(r,1000));
+  }while(Date.now()<until);
+  return reply;
+ })();
+ if(key){
+  if(serviceRequests.size>=64)serviceRequests.delete(serviceRequests.keys().next().value);
+  serviceRequests.set(key,pending);
+  const forget=()=>{if(serviceRequests.get(key)===pending)serviceRequests.delete(key);};
+  pending.then(reply=>{if(reply.status!=='MATCHED')forget();},forget);
+ }
+ return pending;
+}
+const serviceQuery=(registration,current,period='',system='',guided=true,choices=[])=>new URLSearchParams({haynes:'service',reg:registration,mileage:String(current),period:guided?'':period,system:guided?'':system,scheduleMode:'choose',menuFlow:guided?'guided':'',menuChoices:JSON.stringify(choices)});
+
+root.mountJobEngineOil=function(modal,controls){
+ const job=root.__vectaJobEditorBaseline?.job;
+ if(!job?.id||!root.isRoadGoingServiceJob?.(job))return;
+ const box=document.createElement('div'),label=document.createElement('strong'),out=document.createElement('span'),action=document.createElement('button');
+ box.className='jobEngineOil';label.textContent='Engine oil';action.type='button';action.className='btn';action.textContent='Open service sheet';
+ action.onclick=()=>root.openJobServiceSheet(job.id);
+ box.append(label,out,action);controls.appendChild(box);
+ let generation=0,timer;
+ const registration=()=>String(modal.querySelector('#job_registration')?.value||'').toUpperCase().replace(/[^A-Z0-9]/g,'');
+ const currentMileage=()=>Number(String(modal.querySelector('#job_current_mileage')?.value||'').replace(/[ ,]/g,''));
+ async function refresh(){
+  const run=++generation,reg=registration(),current=currentMileage();
+  const type=modal.querySelector('#job_job_type')?.value||job.job_type;
+  const service=root.isRoadGoingServiceJob?.({...job,job_type:type});
+  box.hidden=!service||!reg||modal.querySelector('#job_no_vehicle')?.checked||/^(?:electric|electricity|bev)$/i.test(job.fuel_type||'');
+  if(box.hidden)return;
+  out.textContent=oilWarning;action.textContent='Open service sheet';
+  const active=()=>run===generation&&box.isConnected&&registration()===reg&&currentMileage()===current;
+  if(typeof root.vectaHydratePaperwork==='function'){
+   try{await root.vectaHydratePaperwork(reg,'service',job.id);}catch{}
+   if(!active())return;
+  }
+  const record=root.latestSavedServiceSheet?.(reg,'service',job.id);
+  if(record?.html&&String(record.job_id)===String(job.id)){
+   const template=document.createElement('template');template.innerHTML=record.html;
+   const fields=template.content.querySelectorAll('.ssFluidsHorizontal .ssField');
+   const savedMileage=mileage(template.content);
+   if((!current||savedMileage===current)&&fields[0]?.textContent.trim()){
+    out.textContent=oilSummary(fields[0].textContent,fields[1]?.textContent);return;
+   }
+  }
+  if(!current||current>2000000||current<1||!Number.isInteger(current))return;
+  try{
+   const config=await fetch('/api/supabase-config',{cache:'no-store'}).then(r=>r.json());
+   if(!active()||!config.haynesServiceTest)return;
+   out.textContent='Checking HaynesPro…';
+   const choices=[];
+   let reply=await serviceReply(job.id,serviceQuery(reg,current));
+   while(active()&&reply.status==='MATCHED'&&reply.result?.kind==='menu_choice'){
+    const data=reply.result;
+    if(data.vehicle?.registration!==reg||data.mileage!==current||choices.some(c=>c.menu===data.menu.id))break;
+    const normal=data.menu.options.filter(o=>/^Normal conditions(?:\s*\(United Kingdom\))?$/i.test(o.label.trim()));
+    if(normal.length!==1||choices.length>=8)break;
+    choices.push({menu:data.menu.id,option:normal[0].id});
+    reply=await serviceReply(job.id,serviceQuery(reg,current,'','',true,choices));
+   }
+   if(!active())return;
+   const data=reply.result;
+   out.textContent=oilWarning;
+   if(reply.status!=='MATCHED'||data?.vehicle?.registration!==reg||data.mileage!==current)return;
+   if(data.oil?.length===1){out.textContent=oilSummary(data.oil[0].specification,data.oil[0].capacity);return;}
+   if(data.oil?.length>1){out.textContent='Multiple HaynesPro oils apply';action.textContent='Choose oil';}
+  }catch{if(active())out.textContent=oilWarning;}
+ }
+ function changed(event){
+  generation++;out.textContent=oilWarning;clearTimeout(timer);timer=setTimeout(refresh,650);
+ }
+ for(const input of modal.querySelectorAll('#job_registration,#job_current_mileage,#job_job_type,#job_no_vehicle')){
+  input.addEventListener('input',changed);input.addEventListener('change',changed);
+ }
+ Promise.resolve().then(refresh);
+};
+
 const safeImage=value=>/^https:\/\/www\.haynespro-assets\.com\/workshop\/images\/\d+\.(svgz?|png|jpe?g|webp)$/.test(value||'')?value:'';
 // Freeze the already personalised screen artwork at print resolution.
 root.prepareHaynesServicePrint=async function(scope){
@@ -25,10 +124,22 @@ root.openServiceResetProcedure=function(){
 };
 root.initHaynesServiceSheet=async function(sheet,registration,kind){
  if(!sheet||kind!=='service')return;
+ const serviceJob=(root.app?.jobs||[]).find(j=>String(j.id)===sheet.getAttribute('data-job-id'));
+ const electric=sheet.dataset.sheetChoice==='standard'?false:sheet.dataset.electricService==='true'||/^(?:electric|electricity|bev)$/i.test(serviceJob?.fuel_type||'');
  const brand=sheet.querySelector('.ssBrand');
  if(brand&&brand.querySelector('.ssWebsiteLogo')?.getAttribute('src')!=='/assets/vecta-service-logo.webp'){
   const logo=document.createElement('img');logo.className='ssWebsiteLogo';logo.src='/assets/vecta-service-logo.webp';logo.alt='VECTA Vehicle Servicing and repairs';brand.replaceChildren(logo);
  }
+ const oilFields=()=>sheet.querySelectorAll('.ssFluidsHorizontal .ssField');
+ let summary=sheet.querySelector('.ssEngineOilSummary');
+ if(!summary){
+  summary=document.createElement('div');summary.className='ssEngineOilSummary';summary.setAttribute('aria-live','polite');
+  const row=sheet.querySelector('.ssMileageEntry')?.closest('.ssInfoRow');
+  if(row)row.after(summary);else sheet.querySelector('.ssFluidsHorizontal')?.before(summary);
+ }
+ const updateSummary=()=>{const fields=oilFields();summary.hidden=electric;summary.textContent='Engine oil · '+oilSummary(fields[0]?.textContent,fields[1]?.textContent);};
+ updateSummary();
+ sheet.addEventListener('input',event=>{if(Array.from(oilFields()).slice(0,2).includes(event.target))updateSummary();});
  let config;try{config=await fetch('/api/supabase-config',{cache:'no-store'}).then(r=>r.json());}catch{return;}
  if(!sheet.isConnected||!config.haynesServiceTest)return;
  sheet.classList.add('ssHaynesCompact');
@@ -51,7 +162,6 @@ root.initHaynesServiceSheet=async function(sheet,registration,kind){
  if(info){const columns=Array.from(info.children);if(columns.length===3)columns[2].remove();}
  const pre=sheet.querySelector('.ssPre');
  if(pre){for(const cell of Array.from(pre.children)){if(cell.querySelector('.ssPreHead')?.textContent.trim()==='Work Required')cell.remove();}}
- const electric=sheet.dataset.electricService==='true';
  const fluidCells=Array.from(sheet.querySelectorAll('.ssFluidsHorizontal .ssFluidInline')).filter(cell=>/^(?:Brake Fluid|Coolant|Screenwash)$/i.test(cell.querySelector('b')?.textContent.trim()||''));
  for(const cell of fluidCells){
   if(cell.querySelector('.ssHaynesTopUp'))continue;
@@ -101,7 +211,7 @@ root.initHaynesServiceSheet=async function(sheet,registration,kind){
  const personalise=img=>{if(!img)return;img.dataset.vehicleLogo='separate';const make=img.dataset.vehicleMake||img.dataset.vehicleName||vehicleJob().vehicle||vehicleJob().make;const slug=root.VectaVehicleImage?.manufacturer?.(make);let badge=picture.parentNode.querySelector('.ssManufacturerLogo');if(slug){if(!badge){badge=document.createElement('img');badge.className='ssManufacturerLogo';picture.before(badge);}badge.src='/assets/manufacturers/'+slug+'.svg';badge.alt=slug+' logo';}const source=img.dataset.haynesSource||img.dataset.vehicleSource||safeImage(img.getAttribute('src'));if(!source)return;img.src=root.VectaHaynesJobTools?.artworkUrl?.(source)||source;img.dataset.haynesSource=source;img.dataset.vehicleSource=source;img.setAttribute('data-vehicle-image','');img.dataset.registration=registration;img.dataset.vehicleName=img.dataset.vehicleName||vehicleJob().make||sheet.querySelector('.ssHaynesHeaderInfo')?.textContent||'';img.dataset.colour=root.VectaHaynesJobTools?.dashboardColour(vehicleJob())||root.VectaVehicleImage?.resolveColour(registration,'')||'';delete img.dataset.personalising;root.VectaVehicleImage?.mount(picture);};
  const savedImage=picture.querySelector('img');if(savedImage){picture.replaceChildren(savedImage);personalise(savedImage);}else picture.textContent='';
 
- const showVehicle=v=>{if(v?.registration!==registration)return;setResetLink(v);root.VectaHaynesJobTools?.remember(v);const image=safeImage(v.imageUrl);if(image)picture.innerHTML='<img data-vehicle-make="'+esc(v.make)+'" data-vehicle-name="'+esc(v.vehicle||[v.make,v.model].filter(Boolean).join(' '))+'" src="'+esc(image)+'" alt="'+esc(v.vehicle)+'">';personalise(picture.querySelector('img'));sheet.classList.add('ssHasHaynesVehicle');const rows=sheet.querySelectorAll('.ssInfoRow');for(const row of rows){if(row.querySelector('b')?.textContent.trim()==='Vehicle:'){const value=row.querySelector('span');if(value)value.textContent=v.vehicle;}}};
+ const showVehicle=v=>{if(v?.registration!==registration)return;setResetLink(v);root.VectaHaynesJobTools?.remember?.(v);const image=safeImage(v.imageUrl);if(image)picture.innerHTML='<img data-vehicle-make="'+esc(v.make)+'" data-vehicle-name="'+esc(v.vehicle||[v.make,v.model].filter(Boolean).join(' '))+'" src="'+esc(image)+'" alt="'+esc(v.vehicle)+'">';personalise(picture.querySelector('img'));sheet.classList.add('ssHasHaynesVehicle');const rows=sheet.querySelectorAll('.ssInfoRow');for(const row of rows){if(row.querySelector('b')?.textContent.trim()==='Vehicle:'){const value=row.querySelector('span');if(value)value.textContent=v.vehicle;}}};
  if(!archived){
   const tools=root.VectaHaynesJobTools;
   const saved=tools?.storedDrawing?.({...vehicleJob(),registration})||tools?.artworkSnapshot?.(registration)||tools?.snapshot?.(registration)||tools?.genericImage?.(vehicleJob());
@@ -111,8 +221,33 @@ root.initHaynesServiceSheet=async function(sheet,registration,kind){
  let guidedFlow=true,menuChoices=[];try{menuChoices=JSON.parse(panel.getAttribute('data-haynes-menu-choices')||'[]');}catch{}
  let sequence=0,timer,period='',system=panel.getAttribute('data-haynes-system')||'';
  const status=panel.querySelector('.ssHaynesStatus'),body=panel.querySelector('.ssHaynesData');
- const fillOil=oil=>{if(electric||!Array.isArray(oil)||oil.length!==1)return;const fields=sheet.querySelectorAll('.ssFluidsHorizontal .ssField');[oil[0].specification,compactCapacity(oil[0].capacity)].forEach((v,i)=>{if(fields[i]&&!fields[i].textContent.trim()&&v){fields[i].textContent=v;fields[i].setAttribute('data-haynes-auto',v);}});panel.setAttribute('data-haynes-oil',JSON.stringify(oil));};
- if(archived){try{fillOil(JSON.parse(panel.getAttribute('data-haynes-oil')||'null'));}catch{}}
+ const fillOil=(oil,chosen)=>{
+  panel.querySelector('.ssOilChoice')?.remove();
+  if(electric||!Array.isArray(oil))oil=[];
+  panel.setAttribute('data-haynes-oil',JSON.stringify(oil));
+  const selected=oil.length===1?0:chosen;
+  if(oil.length>1){
+   const select=document.createElement('select');select.className='ssOilChoice';select.setAttribute('aria-label','Choose engine oil');
+   select.innerHTML='<option value="">Choose oil…</option>'+oil.map((row,i)=>'<option value="'+i+'">'+esc([row.applicability,row.specification,compactCapacity(row.capacity)].filter(Boolean).join(' · '))+'</option>').join('');
+   if(Number.isInteger(selected)&&oil[selected])select.options[selected+1].selected=true;
+   panel.prepend(select);
+   select.onchange=()=>{
+    const fields=oilFields();
+    for(const field of Array.from(fields).slice(0,2)){field.textContent='';field.removeAttribute('data-haynes-auto');}
+    fillOil(oil,select.value===''?null:Number(select.value));
+    sheet.dispatchEvent(new root.Event('input',{bubbles:true}));
+   };
+  }
+  if(Number.isInteger(selected)&&oil[selected]){
+   panel.setAttribute('data-oil-selection',String(selected));
+   const fields=oilFields();
+   [oil[selected].specification,compactCapacity(oil[selected].capacity)].forEach((v,i)=>{
+    if(fields[i]&&!fields[i].textContent.trim()&&v){fields[i].textContent=v;fields[i].setAttribute('data-haynes-auto',v);}
+   });
+  }else panel.removeAttribute('data-oil-selection');
+  updateSummary();
+ };
+ if(archived){try{const selected=panel.getAttribute('data-oil-selection');fillOil(JSON.parse(panel.getAttribute('data-haynes-oil')||'null'),selected===null?null:Number(selected));}catch{}}
 
  const requiredRows=[];
  const filterNames={ 'air filter':/^(?:air filter|filter,? air)$/i, 'pollen filter':/^(?:pollen filter|cabin (?:air )?filter|filter,? cabin air|interior filter)$/i, 'fuel filter':/^(?:fuel filter|filter,? fuel)$/i, 'oil & filter change':/^(?:engine oil|oil filter|filter,? oil)$/i, 'engine oil and filter change':/^(?:engine oil|oil filter|filter,? oil)$/i, 'spark plugs':/^(?:spark plugs?|plug,? spark)$/i };
@@ -128,20 +263,16 @@ root.initHaynesServiceSheet=async function(sheet,registration,kind){
  const clearRequired=()=>{for(const entry of requiredRows)renderRequired(entry,false);};
  clearRequired();
  if(archived){try{showRequired(JSON.parse(panel.getAttribute('data-required-parts')||'null')||body.querySelector('.ssHaynesParts')?.textContent.split(' · ')||[]);}catch{clearRequired();}}
- const clearAuto=()=>sheet.querySelectorAll('[data-haynes-auto]').forEach(e=>{if(e.textContent===e.getAttribute('data-haynes-auto'))e.textContent='';e.removeAttribute('data-haynes-auto');});
+ const clearAuto=()=>{panel.querySelector('.ssOilChoice')?.remove();panel.removeAttribute('data-haynes-oil');panel.removeAttribute('data-oil-selection');sheet.querySelectorAll('[data-haynes-auto]').forEach(e=>{if(e.textContent===e.getAttribute('data-haynes-auto'))e.textContent='';e.removeAttribute('data-haynes-auto');});updateSummary();};
  async function load(){
   if(!sheet.isConnected)return;
   const run=++sequence,current=mileage(sheet);sheet.querySelector('.ssHaynesRecommendations')?.remove();clearAuto();clearRequired();body.innerHTML='';panel.removeAttribute('data-confirmed');panel.setAttribute('data-mileage',String(current));
   if(!current){status.textContent='Enter the current mileage to download service requirements.';return;}
   status.textContent='Downloading HaynesPro service requirements…';
   try{
-   let id='',d,until=Date.now()+95000;
-   do{
-    const query=new URLSearchParams({haynes:'service',reg:registration,mileage:String(current),period:guidedFlow?'':period,system:guidedFlow?'':system,scheduleMode:'choose',menuFlow:guidedFlow?'guided':'',menuChoices:JSON.stringify(menuChoices)});if(id)query.set('id',id);
-    d=await fetch('/api/availability?'+query,{cache:'no-store'}).then(r=>r.json());
-    if(run!==sequence||!sheet.isConnected||mileage(sheet)!==current)return;
-    if(d.status!=='PENDING')break;id=d.id||id;await new Promise(r=>setTimeout(r,1000));
-   }while(Date.now()<until);
+   const query=serviceQuery(registration,current,period,system,guidedFlow,menuChoices);
+   const d=await serviceReply(sheet.getAttribute('data-job-id'),query);
+   if(run!==sequence||!sheet.isConnected||mileage(sheet)!==current)return;
    if(d.status!=='MATCHED')throw Error(d.status);
    const data=d.result;if(data.vehicle.registration!==registration||data.mileage!==current)throw Error('MISMATCH');
    guidedFlow=data.menuFlow==='guided';
@@ -179,7 +310,7 @@ root.initHaynesServiceSheet=async function(sheet,registration,kind){
   }catch(e){if(run!==sequence||!sheet.isConnected)return;status.textContent=({WORKER_UPDATE_REQUIRED:'Update the Workshop PC Haynes worker to download service requirements.',LOGIN_REQUIRED:'Sign in to HaynesPro again using the Workshop PC worker login.',VERIFICATION_REQUIRED:'Complete HaynesPro verification in the Workshop PC worker browser.',SCHEDULE_REQUIRED:'No supported UK service schedule was found. Check this vehicle directly in HaynesPro.',AMBIGUOUS:'HaynesPro found more than one vehicle variant. Check the correct variant in HaynesPro.',OFFLINE:'The Workshop PC Haynes worker is offline. Start it and retry.',NOT_CONFIGURED:'The HaynesPro service relay is not configured for this site.',BUSY:'HaynesPro is busy. Wait for the current lookup and retry.',DAILY_LIMIT:'The daily HaynesPro service lookup limit has been reached.',PENDING:'The HaynesPro service lookup timed out. Check the PC worker and retry.'}[e.message]||'HaynesPro service requirements unavailable. Check the PC worker and retry.');body.innerHTML='<button type="button" class="ssHaynesRefresh">Retry Haynes</button>';body.querySelector('button').onclick=load;}
  }
  const field=sheet.querySelector('.ssMileageEntry');if(field)field.addEventListener('input',()=>{sequence++;sheet.querySelector('.ssHaynesRecommendations')?.remove();clearTimeout(timer);period='';menuChoices=[];panel.removeAttribute('data-haynes-menu-choices');clearAuto();clearRequired();panel.removeAttribute('data-required-parts');body.innerHTML='';status.textContent='Mileage changed — updating Haynes requirements…';panel.removeAttribute('data-confirmed');timer=setTimeout(load,900);});
- if(archived){const schedule=body.querySelector('[data-schedule]');if(schedule)schedule.onchange=e=>{system=e.target.value;period='';load();};const select=body.querySelector('[data-period],select:not([data-schedule])');if(!electric&&Array.from(sheet.querySelectorAll('.ssFluidsHorizontal .ssField')).slice(0,2).some(e=>!e.textContent.trim())){period=select?.value||'';load();}if(select)select.onchange=e=>{period=e.target.value;load();};}
+ if(archived){const schedule=body.querySelector('[data-schedule]');if(schedule)schedule.onchange=e=>{system=e.target.value;period='';load();};const select=body.querySelector('[data-period],select:not([data-schedule])');if(!electric&&!panel.querySelector('.ssOilChoice')&&Array.from(sheet.querySelectorAll('.ssFluidsHorizontal .ssField')).slice(0,2).some(e=>!e.textContent.trim())){period=select?.value||'';load();}if(select)select.onchange=e=>{period=e.target.value;load();};}
  else load();
 };
 })(window);

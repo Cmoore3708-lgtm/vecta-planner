@@ -54,6 +54,14 @@
   catch(error){root.alert('Could not load job recovery. '+error.message);return false;}
  }
  root.VectaJobRecovery={restore:restoreJob};
+ root.mountJobEngineOil=async function(modal,controls){
+  const job=root.__vectaJobEditorBaseline?.job;
+  if(!job?.id||!root.isRoadGoingServiceJob?.(job))return;
+  try{
+   await load('service');
+   if(controls.isConnected&&root.__vectaJobEditorBaseline?.job?.id===job.id)root.mountJobEngineOil(modal,controls);
+  }catch{if(controls.isConnected)notice(controls,'Oil specification needs checking.',()=>root.mountJobEngineOil(modal,controls),'oil');}
+ };
  root.initHaynesServiceSheet=initService;
  root.prepareHaynesServicePrint=async function(scope){await load('service');return root.prepareHaynesServicePrint(scope);};
  root.openServiceResetProcedure=function(){load('service').then(()=>root.openServiceResetProcedure()).catch(error=>root.alert(error.message));};
