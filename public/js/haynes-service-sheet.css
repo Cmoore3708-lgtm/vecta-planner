@@ -251,3 +251,10 @@
 
 .ssJobOilLookup.oilResolved>span:first-child{display:none}
 
+
+@media print{
+ .servicePrint .ssEngineOilSummary,.servicePrint .ssOilReference{display:none!important}
+ .servicePrint .ssFluidsHorizontal:has(.ssOilReference){grid-template-columns:repeat(3,minmax(0,1fr))!important}
+ .servicePrint.ssHaynesCompact .ssOps td,.servicePrint.ssHaynesCompact .ssHealthChecks td{height:20px!important}
+ .servicePrint.ssHaynesCompact .ssHaynesLowerGrid th,.servicePrint.ssHaynesCompact .ssHaynesLowerGrid td{height:21px!important}
+}
