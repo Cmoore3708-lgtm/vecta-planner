@@ -125,7 +125,7 @@ root.openServiceResetProcedure=function(){
 root.initHaynesServiceSheet=async function(sheet,registration,kind){
  if(!sheet||kind!=='service')return;
  const serviceJob=(root.app?.jobs||[]).find(j=>String(j.id)===sheet.getAttribute('data-job-id'));
- const electric=/^(?:electric|electricity|bev)$/i.test(serviceJob?.fuel_type||'');
+ const electric=sheet.dataset.sheetChoice==='standard'?false:sheet.dataset.electricService==='true'||/^(?:electric|electricity|bev)$/i.test(serviceJob?.fuel_type||'');
  const brand=sheet.querySelector('.ssBrand');
  if(brand&&brand.querySelector('.ssWebsiteLogo')?.getAttribute('src')!=='/assets/vecta-service-logo.webp'){
   const logo=document.createElement('img');logo.className='ssWebsiteLogo';logo.src='/assets/vecta-service-logo.webp';logo.alt='VECTA Vehicle Servicing and repairs';brand.replaceChildren(logo);
@@ -162,8 +162,8 @@ root.initHaynesServiceSheet=async function(sheet,registration,kind){
  if(info){const columns=Array.from(info.children);if(columns.length===3)columns[2].remove();}
  const pre=sheet.querySelector('.ssPre');
  if(pre){for(const cell of Array.from(pre.children)){if(cell.querySelector('.ssPreHead')?.textContent.trim()==='Work Required')cell.remove();}}
- const fluidCells=sheet.querySelectorAll('.ssFluidsHorizontal .ssFluidInline');
- for(const cell of Array.from(fluidCells).slice(2,5)){
+ const fluidCells=Array.from(sheet.querySelectorAll('.ssFluidsHorizontal .ssFluidInline')).filter(cell=>/^(?:Brake Fluid|Coolant|Screenwash)$/i.test(cell.querySelector('b')?.textContent.trim()||''));
+ for(const cell of fluidCells){
   if(cell.querySelector('.ssHaynesTopUp'))continue;
   const field=cell.querySelector('.ssField');if(!field)continue;
   const existing=field.textContent.trim(),tick=document.createElement('span');
@@ -172,9 +172,9 @@ root.initHaynesServiceSheet=async function(sheet,registration,kind){
   field.replaceWith(tick);if(existing){const note=document.createElement('small');note.className='ssHaynesPreviousFluid';note.textContent=existing;cell.appendChild(note);}
  }
  for(const tick of sheet.querySelectorAll('.ssHaynesTopUp'))tick.onkeydown=e=>{if(e.key===' '||e.key==='Enter'){e.preventDefault();tick.click();}};
- const savedQuantity=sheet.querySelectorAll('.ssFluidsHorizontal .ssField')[1];
+ const savedQuantity=!electric&&sheet.querySelectorAll('.ssFluidsHorizontal .ssField')[1];
  if(savedQuantity&&savedQuantity.getAttribute('data-haynes-auto')===savedQuantity.textContent){const short=compactCapacity(savedQuantity.textContent);savedQuantity.textContent=short;savedQuantity.setAttribute('data-haynes-auto',short);}
- for(const cell of Array.from(fluidCells).slice(2,5)){
+ for(const cell of fluidCells){
   if(cell.querySelector('.ssHaynesReplaced'))continue;
   const top=cell.querySelector('.ssHaynesTopUp');if(!top)continue;
   const group=document.createElement('div');group.className='ssHaynesFluidChecks';
@@ -310,7 +310,7 @@ root.initHaynesServiceSheet=async function(sheet,registration,kind){
   }catch(e){if(run!==sequence||!sheet.isConnected)return;status.textContent=({WORKER_UPDATE_REQUIRED:'Update the Workshop PC Haynes worker to download service requirements.',LOGIN_REQUIRED:'Sign in to HaynesPro again using the Workshop PC worker login.',VERIFICATION_REQUIRED:'Complete HaynesPro verification in the Workshop PC worker browser.',SCHEDULE_REQUIRED:'No supported UK service schedule was found. Check this vehicle directly in HaynesPro.',AMBIGUOUS:'HaynesPro found more than one vehicle variant. Check the correct variant in HaynesPro.',OFFLINE:'The Workshop PC Haynes worker is offline. Start it and retry.',NOT_CONFIGURED:'The HaynesPro service relay is not configured for this site.',BUSY:'HaynesPro is busy. Wait for the current lookup and retry.',DAILY_LIMIT:'The daily HaynesPro service lookup limit has been reached.',PENDING:'The HaynesPro service lookup timed out. Check the PC worker and retry.'}[e.message]||'HaynesPro service requirements unavailable. Check the PC worker and retry.');body.innerHTML='<button type="button" class="ssHaynesRefresh">Retry Haynes</button>';body.querySelector('button').onclick=load;}
  }
  const field=sheet.querySelector('.ssMileageEntry');if(field)field.addEventListener('input',()=>{sequence++;sheet.querySelector('.ssHaynesRecommendations')?.remove();clearTimeout(timer);period='';menuChoices=[];panel.removeAttribute('data-haynes-menu-choices');clearAuto();clearRequired();panel.removeAttribute('data-required-parts');body.innerHTML='';status.textContent='Mileage changed — updating Haynes requirements…';panel.removeAttribute('data-confirmed');timer=setTimeout(load,900);});
- if(archived){const schedule=body.querySelector('[data-schedule]');if(schedule)schedule.onchange=e=>{system=e.target.value;period='';load();};const select=body.querySelector('[data-period],select:not([data-schedule])');if(!panel.querySelector('.ssOilChoice')&&Array.from(sheet.querySelectorAll('.ssFluidsHorizontal .ssField')).slice(0,2).some(e=>!e.textContent.trim())){period=select?.value||'';load();}if(select)select.onchange=e=>{period=e.target.value;load();};}
+ if(archived){const schedule=body.querySelector('[data-schedule]');if(schedule)schedule.onchange=e=>{system=e.target.value;period='';load();};const select=body.querySelector('[data-period],select:not([data-schedule])');if(!electric&&!panel.querySelector('.ssOilChoice')&&Array.from(sheet.querySelectorAll('.ssFluidsHorizontal .ssField')).slice(0,2).some(e=>!e.textContent.trim())){period=select?.value||'';load();}if(select)select.onchange=e=>{period=e.target.value;load();};}
  else load();
 };
 })(window);
