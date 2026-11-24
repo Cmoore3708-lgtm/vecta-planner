@@ -90,3 +90,16 @@ test('unknown registration reuses a model drawing without inheriting the donor c
  }
  assert.equal(catalogueReads,1);
 });
+
+test('registration-only reads return the saved choice and never consult the model catalogue',async()=>{
+ const urls=[];
+ let result;
+ const artwork=createArtworkHandler({environment,fetcher:async url=>{
+  urls.push(url);return {ok:true,json:async()=>[]};
+ }});
+ await artwork({method:'GET',query:{reg:vehicle.registration,saved:'1'}},{setHeader(){},status(){return this;},json(body){result=body;}});
+ assert.equal(result.status,'NOT_FOUND');assert.equal(urls.length,1);assert.match(urls[0],/id=in/);
+ const saved={...vehicle,imageUrl:asset.replace('123','456')};
+ const r=await request([{id:'vehicle_artwork:AB12CDE',value:saved},{id:'vehicle_identity:AB12CDE',value:vehicle}],{reg:vehicle.registration,saved:'1'});
+ assert.equal(r.body.vehicle.imageUrl,saved.imageUrl);
+});
