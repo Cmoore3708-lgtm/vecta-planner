@@ -7,6 +7,8 @@ import { renderCustomerInvoiceHtml } from './_invoice-html.js';
 import { databaseEnvironment } from './_database-environment.js';
 import { managerGate, validManagerSession } from '../middleware.js';
 
+import { imageUrl, normaliseReg, validReg } from '../lib/haynes-vehicle.js';
+
 const LINK_SECONDS = 90 * 24 * 60 * 60;
 const validId = id => typeof id === 'string' && /^[a-zA-Z0-9_-]{1,100}$/.test(id);
 const active = invoice => invoice && !['draft', 'void', 'cancelled', 'deleted'].includes(String(invoice.status || '').toLowerCase());
@@ -37,6 +39,24 @@ async function rows(config, path) {
   if (!response.ok) throw new Error('Invoice register unavailable');
   return response.json();
 }
+async function invoiceArtwork(config, invoice, signed) {
+  if (imageUrl(signed?.imageUrl)) return signed;
+  const reg = normaliseReg(invoice.registration);
+  if (!validReg(reg) || invoice.fleet_customer || invoice.fleet_month || invoice.eom_month) return {};
+  const keys = ['vehicle_artwork:', 'vehicle_identity:', 'vehicle_colour:'].map(prefix => prefix + reg);
+  try {
+    const records = await rows(config, 'workshop_settings?select=id,value&id=in.(' + keys.join(',') + ')');
+    const [art, identity, paint] = keys.map(id => records.find(row => row.id === id && normaliseReg(row.value?.registration) === reg)?.value);
+    const selected = [art, identity].find(value => imageUrl(value?.imageUrl));
+    if (!selected) return {};
+    const colour = (selected.manual && selected.colour) || paint?.colour || selected.colour || '';
+    return { imageUrl: imageUrl(selected.imageUrl), colour };
+  } catch {
+    // A missing illustration must never prevent access to a saved invoice.
+    return {};
+  }
+}
+
 const safeText = value => String(value ?? '').replace(/[\r\n\t]+/g, ' ').replace(/[^\x20-\x7e\xa0-\xff\u2013\u2014\u2018\u2019\u201c\u201d\u2022\u20ac]/g, '?');
 const money = value => '£' + Number(value || 0).toFixed(2);
 
@@ -207,16 +227,17 @@ export default async function invoicePdfHandler(req, res) {
       }
       return res.status(201).json({ url, expires_in_days: 90 });
     }
-    const [settingRows, jobRows] = await Promise.all([
+    const [settingRows, jobRows, presentation] = await Promise.all([
       rows(config, 'workshop_settings?select=value&id=eq.main&limit=1'),
-      validId(invoice.job_id) ? rows(config, 'jobs?select=*&id=eq.' + encodeURIComponent(invoice.job_id) + '&limit=1') : Promise.resolve([])
+      validId(invoice.job_id) ? rows(config, 'jobs?select=*&id=eq.' + encodeURIComponent(invoice.job_id) + '&limit=1') : Promise.resolve([]),
+      invoiceArtwork(config, invoice, claim.presentation)
     ]);
     if (req.query.download !== '1' && req.query.format !== 'pdf') {
       res.setHeader('Content-Type', 'text/html; charset=utf-8');
       res.setHeader('Content-Security-Policy', "default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self' data: https://www.haynespro-assets.com; connect-src 'self'; base-uri 'none'; frame-ancestors 'none'; form-action 'none'");
-      return res.status(200).send(renderCustomerInvoiceHtml(invoice, settingRows[0]?.value || {}, jobRows[0] || {}, claim.presentation || {}));
+      return res.status(200).send(renderCustomerInvoiceHtml(invoice, settingRows[0]?.value || {}, jobRows[0] || {}, presentation));
     }
-    const bytes = await renderCustomerInvoicePdf(invoice, settingRows[0]?.value || {}, jobRows[0] || {}, claim.presentation || {});
+    const bytes = await renderCustomerInvoicePdf(invoice, settingRows[0]?.value || {}, jobRows[0] || {}, presentation);
     const documentTitle=globalThis.VectaInvoicePrint.documentTitle(invoice,jobRows[0]||{});
     const filename = documentTitle?documentTitle+'.pdf':('VECTA-Invoice-' + (invoice.invoice_number || '') + '.pdf').replace(/[^a-zA-Z0-9_.-]/g, '-');
     res.setHeader('Content-Type', 'application/pdf');
