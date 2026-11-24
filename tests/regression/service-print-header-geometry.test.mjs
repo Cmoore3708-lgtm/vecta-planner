@@ -103,12 +103,21 @@ test('Polestar header fits and the completed Peugeot service sheet prints on one
    sheet.querySelector('.ssScore').textContent='100%';
    for(const tread of sheet.querySelectorAll('.ssTreadDepth'))tread.textContent='5';
    for(const pressure of sheet.querySelectorAll('.ssPressure'))pressure.textContent='33';
-   for(const tick of sheet.querySelectorAll('.ssCheck,.ssRagDot.green,.ssRoadChecks .ssTickBox'))tick.classList.add('selected');
+   for(const tick of sheet.querySelectorAll('.ssDone .ssCheck,.ssRagDot.green,.ssRoadChecks .ssTickBox'))tick.classList.add('selected');
+   sheet.querySelector('.ssHaynesRequiredCheck').click();
    return info.children.length===3&&!sheet.querySelector('.ssOilChoice')&&sheet.querySelector('.ssEngineOilSummary').textContent.includes('3.25 L');
   })()`});assert.equal(setup.result.value,true);
   for(const [width,media] of [[1366,'screen'],[390,'screen'],[794,'print']]){
    await command('Emulation.setDeviceMetricsOverride',{width,height:900,deviceScaleFactor:1,mobile:width===390});
    await command('Emulation.setEmulatedMedia',{media});
+   const checkbox=await command('Runtime.evaluate',{returnByValue:true,expression:`(()=>{
+    const required=document.querySelector('.ssHaynesRequiredCheck[aria-checked="true"]');
+    const empty=document.querySelector('.ssHaynesRequiredCheck[aria-checked="false"]');
+    const completed=required.closest('tr').querySelector('.ssDone .ssCheck.selected');
+    const fill=element=>getComputedStyle(element).backgroundColor;
+    return fill(required.parentElement)===fill(empty.parentElement)&&fill(required)===fill(completed)&&fill(required)!==fill(empty);
+   })()`});
+   assert.equal(checkbox.result.value,true,'only the Required checkbox should turn green at '+width+' '+media);
    const bounds=await command('Runtime.evaluate',{returnByValue:true,expression:`(()=>{
     sizeServicePaper();
     const box=s=>document.querySelector(s).getBoundingClientRect();
