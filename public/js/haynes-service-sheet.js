@@ -39,71 +39,92 @@ function serviceReply(jobId,query){
 }
 const serviceQuery=(registration,current,period='',system='',guided=true,choices=[])=>new URLSearchParams({haynes:'service',reg:registration,mileage:String(current),period:guided?'':period,system:guided?'':system,scheduleMode:'choose',menuFlow:guided?'guided':'',menuChoices:JSON.stringify(choices)});
 
-root.mountJobEngineOil=function(modal,controls){
- const job=root.__vectaJobEditorBaseline?.job;
- if(!job?.id||!root.isRoadGoingServiceJob?.(job))return;
- const box=document.createElement('div'),label=document.createElement('strong'),out=document.createElement('span'),action=document.createElement('button');
- box.className='jobEngineOil';label.textContent='Engine oil';action.type='button';action.className='btn';action.textContent='Open service sheet';
- action.onclick=()=>root.openJobServiceSheet(job.id);
- box.append(label,out,action);controls.appendChild(box);
- let generation=0,timer;
- const registration=()=>String(modal.querySelector('#job_registration')?.value||'').toUpperCase().replace(/[^A-Z0-9]/g,'');
- const currentMileage=()=>Number(String(modal.querySelector('#job_current_mileage')?.value||'').replace(/[ ,]/g,''));
- async function refresh(){
-  const run=++generation,reg=registration(),current=currentMileage();
-  const type=modal.querySelector('#job_job_type')?.value||job.job_type;
-  const service=root.isRoadGoingServiceJob?.({...job,job_type:type});
-  box.hidden=!service||!reg||modal.querySelector('#job_no_vehicle')?.checked||/^(?:electric|electricity|bev)$/i.test(job.fuel_type||'');
-  if(box.hidden)return;
-  out.textContent=oilWarning;action.textContent='Open service sheet';action.onclick=()=>root.openJobServiceSheet(job.id);
-  const active=()=>run===generation&&box.isConnected&&registration()===reg&&currentMileage()===current;
-  if(typeof root.vectaHydratePaperwork==='function'){
-   try{await root.vectaHydratePaperwork(reg,'service',job.id);}catch{}
-   if(!active())return;
-  }
-  const record=root.latestSavedServiceSheet?.(reg,'service',job.id);
-  if(record?.html&&String(record.job_id)===String(job.id)){
-   const template=document.createElement('template');template.innerHTML=record.html;
-   const fields=template.content.querySelectorAll('.ssFluidsHorizontal .ssField');
-   const savedMileage=mileage(template.content);
-   if((!current||savedMileage===current)&&fields[0]?.textContent.trim()){
-    out.textContent=oilSummary(fields[0].textContent,fields[1]?.textContent);return;
-   }
-  }
-  if(!current||current>2000000||current<1||!Number.isInteger(current)){
-   out.textContent='Enter current mileage to look up the oil grade, approval and refill quantity.';
-   action.textContent='Enter mileage';
-   action.onclick=()=>modal.querySelector('#job_current_mileage')?.focus();
-   return;
-  }
+function mountOilLookup(host,jobId,reg,onOil){
+ const url=new URLSearchParams({haynes:'oil',job:String(jobId),reg});
+ let generation=0;
+ const text=document.createElement('span'),actions=document.createElement('span');
+ host.replaceChildren(text,actions);
+ const active=run=>run===generation&&text.isConnected;
+ const cacheKey='vecta:job-oil:'+jobId+':'+reg;
+ function choose(label,rows,onchange,selected){
+  const select=document.createElement('select');select.className='ssOilChoice';select.setAttribute('aria-label',label);
+  select.innerHTML='<option value="">'+esc(label)+'</option>'+rows.map((row,i)=>'<option value="'+i+'">'+esc(row)+'</option>').join('');
+  if(Number.isInteger(selected)&&select.options[selected+1])select.options[selected+1].selected=true;
+  select.onchange=()=>{if(select.value!=='')onchange(Number(select.value));};actions.replaceChildren(select);
+ }
+ function render(data){
+  const row=data.oil[data.selected];actions.replaceChildren();host.classList.toggle('oilResolved',!!row);
+  text.textContent=row?oilSummary(row.specification,row.capacity):'Choose the applicable engine oil';
+  if(row)onOil?.(row);
+  if(data.oil.length>1)choose('Choose oil',data.oil.map(r=>[r.applicability,oilSummary(r.specification,r.capacity)].filter(Boolean).join(' · ')),async selected=>{
+   const run=++generation;actions.firstChild.disabled=true;
+   try{
+    const reply=await fetch('/api/availability?'+url,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({version:data.version,selected})}).then(r=>r.json());
+    if(!active(run))return;
+    if(reply.status==='RELOAD'){load();return;}
+    if(reply.status!=='MATCHED')throw Error();
+    remember(reply.result);render(reply.result);
+   }catch{if(active(run)){render(data);text.textContent+=' · Selection could not be saved. Please retry.';}}
+  },data.selected);
+ }
+ function remember(data){try{root.localStorage?.setItem(cacheKey,JSON.stringify(data));}catch{}}
+ function fail(message){
+  text.textContent=message||oilWarning;
+  const retry=document.createElement('button');retry.type='button';retry.textContent='Retry oil lookup';retry.onclick=()=>load();actions.replaceChildren(retry);
+ }
+ async function load(choices=[]){
+  const run=++generation;
+  actions.replaceChildren();text.textContent='Checking HaynesPro engine oil…';
   try{
-   const config=await fetch('/api/supabase-config',{cache:'no-store'}).then(r=>r.json());
-   if(!active()||!config.haynesServiceTest)return;
-   out.textContent='Checking HaynesPro…';
-   const choices=[];
-   let reply=await serviceReply(job.id,serviceQuery(reg,current));
-   while(active()&&reply.status==='MATCHED'&&reply.result?.kind==='menu_choice'){
+   while(active(run)){
+    const query=new URLSearchParams(url);if(choices.length)query.set('menuChoices',JSON.stringify(choices));
+    // Re-read the shared job record on reopen, including choices made on another device.
+    const reply=await serviceReply(null,query);
+    if(!active(run))return;
     const data=reply.result;
-    if(data.vehicle?.registration!==reg||data.mileage!==current||choices.some(c=>c.menu===data.menu.id))break;
-    const normal=data.menu.options.filter(o=>/^Normal conditions(?:\s*\(United Kingdom\))?$/i.test(o.label.trim()));
-    if(normal.length!==1||choices.length>=8)break;
-    choices.push({menu:data.menu.id,option:normal[0].id});
-    reply=await serviceReply(job.id,serviceQuery(reg,current,'','',true,choices));
+    if(reply.status!=='MATCHED'||data?.registration!==reg)throw Error(reply.status);
+    if(data.oil?.length){remember(data);render(data);return;}
+    const menu=data.menu;
+    if(!menu?.options?.length)throw Error();
+    const prefix=choices.slice(0,data.resetFrom??choices.length);
+    const next=i=>[...prefix,{menu:menu.id,option:menu.options[i].id}];
+    const preferred=menu.options.filter(o=>/^Normal conditions(?:\s*\(United Kingdom\))?$|^Oil service(?:\s*\(service indicator\))?(?::.*)?$/i.test(o.label.trim()));
+    const interval=/^[\d,]+ miles\s*\/\s*\d+ months(?:\s*\(OEM: [^)]+\))?$/i;
+    const intervalsOnly=menu.options.every(o=>interval.test(o.label.trim()));
+    const auto=menu.options.length===1||intervalsOnly?0:preferred.length===1?menu.options.indexOf(preferred[0]):-1;
+    if(auto>=0&&choices.length<20&&!choices.some(c=>c.menu===menu.id)){choices=next(auto);continue;}
+    text.textContent=menu.label;choose('Choose Haynes option',menu.options.map(o=>o.label),i=>load(next(i)));return;
    }
-   if(!active())return;
-   const data=reply.result;
-   out.textContent=oilWarning;
-   if(reply.status!=='MATCHED'||data?.vehicle?.registration!==reg||data.mileage!==current)return;
-   if(data.oil?.length===1){out.textContent=oilSummary(data.oil[0].specification,data.oil[0].capacity);return;}
-   if(data.oil?.length>1){out.textContent='Multiple HaynesPro oils apply';action.textContent='Choose oil';}
-  }catch{if(active())out.textContent=oilWarning;}
+  }catch(error){
+   if(!active(run))return;
+   try{const cached=JSON.parse(root.localStorage?.getItem(cacheKey)||'null');if(cached?.registration===reg&&cached.oil?.length){render(cached);text.textContent+=' · Saved result';return;}}catch{}
+   fail(({OFFLINE:'HaynesPro worker offline',LOGIN_REQUIRED:'HaynesPro sign-in required',AMBIGUOUS:'Check the vehicle variant in HaynesPro',OIL_UNAVAILABLE:'HaynesPro returned no engine oil specification'})[error.message]);
+  }
  }
- function changed(event){
-  generation++;out.textContent=oilWarning;clearTimeout(timer);timer=setTimeout(refresh,650);
+ Promise.resolve().then(()=>load());
+}
+root.mountJobEngineOil=function(modal,controls,job=root.__vectaJobEditorBaseline?.job){
+ if(!job?.id)return;
+ const box=document.createElement('div'),label=document.createElement('strong'),out=document.createElement('span');
+ box.className='jobEngineOil';label.textContent='Engine oil';box.append(label,out);controls.appendChild(box);
+ let last='',timer;
+ const field=id=>modal.querySelector('#job_'+id);
+ function refresh(){
+  if(!box.isConnected)return;
+  const reg=String(field('registration')?.value||'').toUpperCase().replace(/[^A-Z0-9]/g,'');
+  const type=field('job_type');
+  const service=root.isRoadGoingServiceJob?.({...job,registration:reg,job_types:null,job_type:type?.value||job.job_type,work_required:type?'':job.work_required});
+  box.hidden=!service||field('no_vehicle')?.checked||/^(?:electric|electricity|bev)$/i.test(field('fuel_type')?.value||job.fuel_type||'');
+  if(box.hidden){last='';out.replaceChildren();return;}
+  if(reg===last&&out.childNodes.length)return;
+  last=reg;
+  if(!/^[A-Z0-9]{2,8}$/.test(reg)){out.textContent='Enter the registration for the oil lookup.';return;}
+  mountOilLookup(out,job.id,reg);
  }
- for(const input of modal.querySelectorAll('#job_registration,#job_current_mileage,#job_job_type,#job_no_vehicle')){
-  input.addEventListener('input',changed);input.addEventListener('change',changed);
- }
+ (modal.querySelector('.jobModalCard')||modal).addEventListener('click',e=>{if(e.target.closest?.('[data-template]'))refresh();});
+ for(const name of ['job_type','no_vehicle','registration','fuel_type'])field(name)?.addEventListener('change',refresh);
+ field('job_type')?.addEventListener('vecta-service-type',refresh);
+ field('registration')?.addEventListener('input',()=>{clearTimeout(timer);out.replaceChildren();timer=setTimeout(refresh,500);});
  Promise.resolve().then(refresh);
 };
 
@@ -145,6 +166,22 @@ root.initHaynesServiceSheet=async function(sheet,registration,kind){
  const updateSummary=()=>{const fields=oilFields();summary.hidden=electric;summary.textContent='Engine oil · '+oilSummary(fields[0]?.textContent,fields[1]?.textContent);};
  updateSummary();
  sheet.addEventListener('input',event=>{if(Array.from(oilFields()).slice(0,2).includes(event.target))updateSummary();});
+ const jobId=sheet.getAttribute('data-job-id');
+ const jobOil=!!jobId&&!electric;
+ if(jobOil){
+  let oilBox=sheet.querySelector('.ssJobOilLookup');
+  if(!oilBox){oilBox=document.createElement('div');oilBox.className='ssJobOilLookup';summary.after(oilBox);}
+  mountOilLookup(oilBox,jobId,registration,row=>{
+   const fields=oilFields();
+   [row.specification,compactCapacity(row.capacity)].forEach((value,i)=>{
+    const field=fields[i];if(!field)return;
+    if(!field.textContent.trim()||field.dataset.jobOil===field.textContent||field.getAttribute('data-haynes-auto')===field.textContent){
+     field.removeAttribute('data-haynes-auto');field.textContent=value||'';field.dataset.jobOil=field.textContent;
+    }
+   });
+   updateSummary();
+  });
+ }else sheet.querySelector('.ssJobOilLookup')?.remove();
  let config;try{config=await fetch('/api/supabase-config',{cache:'no-store'}).then(r=>r.json());}catch{return;}
  if(!sheet.isConnected||!config.haynesServiceTest)return;
  sheet.classList.add('ssHaynesCompact');
@@ -252,7 +289,8 @@ root.initHaynesServiceSheet=async function(sheet,registration,kind){
   }else panel.removeAttribute('data-oil-selection');
   updateSummary();
  };
- if(archived){try{const selected=panel.getAttribute('data-oil-selection');fillOil(JSON.parse(panel.getAttribute('data-haynes-oil')||'null'),selected===null?null:Number(selected));}catch{}}
+ if(jobOil)panel.querySelector('.ssOilChoice')?.remove();
+ if(archived&&!jobOil){try{const selected=panel.getAttribute('data-oil-selection');fillOil(JSON.parse(panel.getAttribute('data-haynes-oil')||'null'),selected===null?null:Number(selected));}catch{}}
 
  const requiredRows=[];
  const filterNames={ 'air filter':/^(?:air filter|filter,? air)$/i, 'pollen filter':/^(?:pollen filter|cabin (?:air )?filter|filter,? cabin air|interior filter)$/i, 'fuel filter':/^(?:fuel filter|filter,? fuel)$/i, 'oil & filter change':/^(?:engine oil|oil filter|filter,? oil)$/i, 'engine oil and filter change':/^(?:engine oil|oil filter|filter,? oil)$/i, 'spark plugs':/^(?:spark plugs?|plug,? spark)$/i };
@@ -268,7 +306,7 @@ root.initHaynesServiceSheet=async function(sheet,registration,kind){
  const clearRequired=()=>{for(const entry of requiredRows)renderRequired(entry,false);};
  clearRequired();
  if(archived){try{showRequired(JSON.parse(panel.getAttribute('data-required-parts')||'null')||body.querySelector('.ssHaynesParts')?.textContent.split(' · ')||[]);}catch{clearRequired();}}
- const clearAuto=()=>{panel.querySelector('.ssOilChoice')?.remove();panel.removeAttribute('data-haynes-oil');panel.removeAttribute('data-oil-selection');sheet.querySelectorAll('[data-haynes-auto]').forEach(e=>{if(e.textContent===e.getAttribute('data-haynes-auto'))e.textContent='';e.removeAttribute('data-haynes-auto');});updateSummary();};
+ const clearAuto=()=>{panel.querySelector('.ssOilChoice')?.remove();panel.removeAttribute('data-haynes-oil');panel.removeAttribute('data-oil-selection');sheet.querySelectorAll('[data-haynes-auto]').forEach(e=>{if(jobOil&&Array.from(oilFields()).slice(0,2).includes(e))return;if(e.textContent===e.getAttribute('data-haynes-auto'))e.textContent='';e.removeAttribute('data-haynes-auto');});updateSummary();};
  async function load(){
   if(!sheet.isConnected)return;
   const run=++sequence,current=mileage(sheet);sheet.querySelector('.ssHaynesRecommendations')?.remove();clearAuto();clearRequired();body.innerHTML='';panel.removeAttribute('data-confirmed');panel.setAttribute('data-mileage',String(current));
@@ -311,7 +349,7 @@ root.initHaynesServiceSheet=async function(sheet,registration,kind){
    body.innerHTML=(data.schedules?.length>1?scheduleControl(system):'')+'<label class="ssHaynesSelect">Service interval <select data-period aria-label="Haynes service interval">'+data.periods.map(p=>'<option value="'+esc(p.id)+'"'+(p.id===period?' selected':'')+'>'+esc(p.label)+'</option>').join('')+'</select></label><div class="ssHaynesColumns"><div><b>Scheduled parts / filters</b><p class="ssHaynesParts">'+data.parts.map(esc).join(' · ')+'</p></div><div><b>Additional work — check replacement history</b><ul>'+data.additional.map(p=>'<li>'+esc(p)+'</li>').join('')+'</ul></div></div>';
    moveAdditional();
    if(data.menuFlow==='guided'){body.querySelector('[data-period]').closest('label').hidden=true;const reset=document.createElement('button');reset.type='button';reset.className='ssHaynesRefresh';reset.textContent='Change Haynes choices';reset.onclick=()=>{menuChoices=[];period='';system='';panel.removeAttribute('data-haynes-menu-choices');load();};body.prepend(reset);}else{bindSchedule();body.querySelector('[data-period]').onchange=e=>{period=e.target.value;load();};}
-   fillOil(data.oil);
+   if(!jobOil)fillOil(data.oil);
   }catch(e){if(run!==sequence||!sheet.isConnected)return;status.textContent=({WORKER_UPDATE_REQUIRED:'Update the Workshop PC Haynes worker to download service requirements.',LOGIN_REQUIRED:'Sign in to HaynesPro again using the Workshop PC worker login.',VERIFICATION_REQUIRED:'Complete HaynesPro verification in the Workshop PC worker browser.',SCHEDULE_REQUIRED:'No supported UK service schedule was found. Check this vehicle directly in HaynesPro.',AMBIGUOUS:'HaynesPro found more than one vehicle variant. Check the correct variant in HaynesPro.',OFFLINE:'The Workshop PC Haynes worker is offline. Start it and retry.',NOT_CONFIGURED:'The HaynesPro service relay is not configured for this site.',BUSY:'HaynesPro is busy. Wait for the current lookup and retry.',DAILY_LIMIT:'The daily HaynesPro service lookup limit has been reached.',PENDING:'The HaynesPro service lookup timed out. Check the PC worker and retry.'}[e.message]||'HaynesPro service requirements unavailable. Check the PC worker and retry.');body.innerHTML='<button type="button" class="ssHaynesRefresh">Retry Haynes</button>';body.querySelector('button').onclick=load;}
  }
  const field=sheet.querySelector('.ssMileageEntry');if(field)field.addEventListener('input',()=>{sequence++;sheet.querySelector('.ssHaynesRecommendations')?.remove();clearTimeout(timer);period='';menuChoices=[];panel.removeAttribute('data-haynes-menu-choices');clearAuto();clearRequired();panel.removeAttribute('data-required-parts');body.innerHTML='';status.textContent='Mileage changed — updating Haynes requirements…';panel.removeAttribute('data-confirmed');timer=setTimeout(load,900);});

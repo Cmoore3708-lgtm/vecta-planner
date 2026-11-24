@@ -54,13 +54,21 @@
   catch(error){root.alert('Could not load job recovery. '+error.message);return false;}
  }
  root.VectaJobRecovery={restore:restoreJob};
- root.mountJobEngineOil=async function(modal,controls){
-  const job=root.__vectaJobEditorBaseline?.job;
-  if(!job?.id||!root.isRoadGoingServiceJob?.(job))return;
-  try{
-   await load('service');
-   if(controls.isConnected&&root.__vectaJobEditorBaseline?.job?.id===job.id)root.mountJobEngineOil(modal,controls);
-  }catch{if(controls.isConnected)notice(controls,'Oil specification needs checking.',()=>root.mountJobEngineOil(modal,controls),'oil');}
+ root.mountJobEngineOil=function(modal,controls,job){
+  if(!job?.id)return;
+  const type=modal.querySelector('#job_job_type'),card=modal.querySelector('.jobModalCard')||modal;
+  let loading=false;
+  async function activate(){
+   const selected=type?.value||job.job_type;
+   if(loading||!root.isRoadGoingServiceJob?.({...job,job_types:null,job_type:selected,work_required:type?'':job.work_required}))return;
+   loading=true;
+   try{
+    await load('service');
+    if(controls.isConnected)root.mountJobEngineOil(modal,controls,job);
+    card.removeEventListener('click',activate);type?.removeEventListener('change',activate);type?.removeEventListener('vecta-service-type',activate);
+   }catch{loading=false;if(controls.isConnected)notice(controls,'Oil specification needs checking.',activate,'oil');}
+  }
+  card.addEventListener('click',activate);type?.addEventListener('change',activate);type?.addEventListener('vecta-service-type',activate);activate();
  };
  root.initHaynesServiceSheet=initService;
  root.prepareHaynesServicePrint=async function(scope){await load('service');return root.prepareHaynesServicePrint(scope);};

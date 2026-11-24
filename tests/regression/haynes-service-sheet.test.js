@@ -6,7 +6,7 @@ import {parseHTML,DOMParser} from 'linkedom';
 const source=readFileSync(new URL('../../public/js/haynes-service-sheet.js',import.meta.url),'utf8');
 const vehicle={registration:'FX69XWU',vehicle:'NISSAN Qashqai (J11) 1.7 dCi',engineCode:'R9N-401',modelYears:'2018 - 2020',imageUrl:'https://www.haynespro-assets.com/workshop/images/123.svg'};
 const data={vehicle,mileage:50000,period:'mp_1',periods:[{id:'mp_1',label:'50,000 miles/48 months'}],conditions:'Normal conditions (United Kingdom)',parts:['Oil filter','Filter, cabin air'],additional:['Renew fuel filter every 37,500 miles/36 months'],oil:[{specification:'SAE 5W-30 · ACEA C3',capacity:'Engine sump, including filter 5.9 (l)',applicability:'Engine (except North America)'}],ageMonths:84,fetchedAt:'2026-10-06T10:00:00Z'};
-function setup(service){const {document,window}=parseHTML('<html><body><div class="servicePrint"><div class="ssHeader"></div><div class="ssInfo"><span class="ssMileageEntry">50000</span></div><div class="ssFluidsHorizontal"><div class="ssField"></div><div class="ssField"></div></div></div></body></html>');const context={window,document,URLSearchParams,setTimeout,clearTimeout,console,fetch:async url=>({json:async()=>url.includes('supabase-config')?{haynesServiceTest:true}:url.includes('haynes-vehicle')?{status:'MATCHED',vehicle}:await service(url)})};vm.runInNewContext(source,context);return{document,window,sheet:document.querySelector('.servicePrint')};}
+function setup(service){const {document,window}=parseHTML('<html><body><div class="servicePrint"><div class="ssHeader"></div><div class="ssInfo"><span class="ssMileageEntry">50000</span></div><div class="ssFluidsHorizontal"><div class="ssField"></div><div class="ssField"></div></div></div></body></html>');const context={window,document,URLSearchParams,setTimeout,clearTimeout,console,fetch:async (url,options)=>({json:async()=>url.includes('supabase-config')?{haynesServiceTest:true}:url.includes('haynes-vehicle')?{status:'MATCHED',vehicle}:await service(url,options)})};vm.runInNewContext(source,context);return{document,window,sheet:document.querySelector('.servicePrint')};}
 const settle=()=>new Promise(r=>setImmediate(r));
 test('service sheet saves a supplier snapshot, preserves mechanic oil edits, and clears stale requirements immediately on mileage change',async()=>{
  const {document,window,sheet}=setup(async()=>({status:'MATCHED',result:data}));
@@ -201,28 +201,28 @@ test('every operation has a manual Required checkbox when Haynes is offline',asy
  assert.equal(table.querySelectorAll('.ssDone .selected').length,0);sheet.remove();
 });
 
-test('the job card and sheet reuse one lookup and reopen the saved oil choice for that job',async()=>{
- let requests=0,record;
+test('oil chosen on an unsaved job is available on its service sheet and after reopening without mileage',async()=>{
  const oil=[data.oil[0],{applicability:'Alternative',specification:'SAE 0W-30 · VW 504 00',capacity:'Engine sump, including filter 5.9 (l)'}];
- const {document,window,sheet}=setup(async()=>{requests++;return {status:'MATCHED',result:{...data,oil}};});
- sheet.setAttribute('data-job-id','visit-a');
- const job={id:'visit-a',registration:vehicle.registration,job_type:'Full Service'};
- window.__vectaJobEditorBaseline={job};window.isRoadGoingServiceJob=()=>true;window.latestSavedServiceSheet=()=>record;
+ let selected=null;
+ const {document,window,sheet}=setup(async(url,options)=>{
+  const query=new URL(url,'https://example.test').searchParams;
+  assert.equal(query.get('haynes'),'oil');assert.equal(query.has('mileage'),false);assert.equal(query.get('job'),'visit-a');
+  if(options?.method==='POST')selected=JSON.parse(options.body).selected;
+  return {status:'MATCHED',result:{registration:vehicle.registration,oil,selected,version:'1'}};
+ });
+ sheet.setAttribute('data-job-id','visit-a');sheet.querySelector('.ssMileageEntry').textContent='';
+ const job={id:'visit-a',registration:vehicle.registration,job_type:'general'};
+ window.isRoadGoingServiceJob=j=>/service/i.test(j.job_type);
  const modal=document.createElement('div');
- modal.innerHTML='<input id="job_current_mileage" value="50000"><input id="job_registration" value="FX69XWU"><div class="controls"></div>';
+ modal.innerHTML='<input id="job_registration" value="FX69XWU"><input id="job_job_type" value="general"><button data-template="Full Service"></button><div class="controls"></div>';
  document.body.appendChild(modal);
- const mount=async()=>{const controls=modal.querySelector('.controls');controls.replaceChildren();window.mountJobEngineOil(modal,controls);await settle();return controls;};
- assert.match((await mount()).textContent,/Choose oil/);
+ const mount=async()=>{const controls=modal.querySelector('.controls');controls.replaceChildren();window.mountJobEngineOil(modal,controls,job);await settle();return controls;};
+ const controls=await mount();assert.ok(controls.firstChild.hidden);
+ modal.querySelector('#job_job_type').value='Full Service';modal.querySelector('button').dispatchEvent(new window.Event('click',{bubbles:true}));await settle();
+ const select=controls.querySelector('select');assert.match(select.textContent,/Alternative/);select.options[2].selected=true;await select.onchange();
  await window.initHaynesServiceSheet(sheet,vehicle.registration,'service');await settle();
- assert.equal(requests,1);
- const select=sheet.querySelector('.ssOilChoice');
- assert.ok(select);
- assert.match(select.textContent,/Alternative/);select.options[2].selected=true;select.onchange();
  assert.match(sheet.querySelector('.ssEngineOilSummary').textContent,/0W-30.*VW 504 00.*5.9 L/);
- record={job_id:job.id,html:sheet.outerHTML};
- assert.match((await mount()).textContent,/0W-30.*VW 504 00.*5.9 L/);assert.equal(requests,1);
- record.job_id='previous-visit';
- assert.match((await mount()).textContent,/Choose oil/);
+ assert.match((await mount()).textContent,/0W-30.*VW 504 00.*5.9 L/);assert.equal(sheet.querySelector('.ssMileageEntry').textContent,'');
 });
 
 test('viscosity alone and missing oil both leave a visible check on the sheet',async()=>{
@@ -233,9 +233,9 @@ test('viscosity alone and missing oil both leave a visible check on the sheet',a
  }
 });
 
-test('a combined Full Service and MOT card explains missing mileage before a supplier request',async()=>{
+test('a combined Full Service and MOT card looks up oil immediately with no mileage',async()=>{
  let requests=0;
- const {window,document}=setup(async()=>{requests++;return {status:'MATCHED',result:data};});
+ const {window,document}=setup(async url=>{requests++;assert.doesNotMatch(url,/mileage=/);return {status:'MATCHED',result:{registration:vehicle.registration,selected:0,oil:data.oil}};});
  const job={id:'service-with-mot',registration:vehicle.registration,job_type:'Full Service || MOT',work_required:'Full Service\nMOT test'};
  window.__vectaJobEditorBaseline={job};
  const planner=readFileSync(new URL('../../index.html',import.meta.url),'utf8');
@@ -247,7 +247,7 @@ test('a combined Full Service and MOT card explains missing mileage before a sup
  modal.innerHTML='<input id="job_registration" value="FX69XWU"><input id="job_current_mileage"><div class="controls"></div>';document.body.appendChild(modal);
  const controls=modal.querySelector('.controls');window.mountJobEngineOil(modal,controls);await settle();
  assert.equal(controls.querySelector('.jobEngineOil').hidden,false);
- assert.match(controls.textContent,/Enter current mileage/);assert.equal(requests,0);
+ assert.match(controls.textContent,/ACEA C3/);assert.equal(requests,1);
  const mileageField=modal.querySelector('#job_current_mileage');mileageField.value='50000';mileageField.dispatchEvent(new window.Event('input'));
  await new Promise(resolve=>setTimeout(resolve,720));
  assert.match(controls.textContent,/ACEA C3/);assert.equal(requests,1);

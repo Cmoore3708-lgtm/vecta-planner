@@ -1,5 +1,6 @@
 import tyreGuide from '../lib/tyre-guide-proxy.js';
 import tyrePhotoReader from '../website/lib/tyre-photo-reader.js';
+import jobEngineOil from '../lib/job-engine-oil.js';
 import haynesService from '../lib/haynes-service-proxy.js';
 import haynesVehicle from '../lib/haynes-proxy.js';
 import haynesImage from '../lib/haynes-image.js';
@@ -12,6 +13,7 @@ export default async function handler(req,res){
  if(req.query?.tyrePhoto==='1')return tyrePhotoReader(req,res);
  if(req.query?.tyres==='1')return tyreGuide(req,res);
  if(req.query?.haynesImage==='1')return haynesImage(req,res);
+ if(req.query?.haynes==='oil')return jobEngineOil(req,res);
  if(req.query?.haynes==='service')return haynesService(req,res);
  if(req.query?.haynes==='1')return haynesVehicle(req,res);
  if(req.method!=='POST')return res.status(405).json({error:'Method not allowed'});const {url,key}=cfg();if(!url||!key)return res.status(500).json({error:'Availability service is not configured'});
