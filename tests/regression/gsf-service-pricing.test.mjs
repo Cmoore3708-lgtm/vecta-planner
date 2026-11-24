@@ -124,6 +124,11 @@ test('booking saves the signed price and parts, keeps MOT discount and rejects a
   const body={registration:request.registration,service_choice:request.service,mileage:'50000',parts_range:request.range,service_price_token:quote.token};
   const booking=bookingServicePrice(body,['Full Service','MOT'],secret);
   assert.equal(booking.approximateCost,205.32);assert.match(booking.snapshot,/145.32 including VAT/);assert.match(booking.snapshot,/TEST-oil_filter/);
+  for(const [parts,expected] of [['budget',205.32],['mid_range',227.12],['oem',248.92]]){
+    const result=bookingServicePrice({...body,service_estimate_version:1,customer_preferences:{parts}},['Full Service','MOT'],secret);
+    assert.equal(result.approximateCost,expected);
+    assert.match(result.snapshot,/estimated including VAT/);
+  }
   assert.match(booking.snapshot,/Required 5L; charged 5L/);
   assert.throws(()=>bookingServicePrice({...body,mileage:'60000'},['Full Service'],secret));
   assert.equal(bookingServicePrice({},['MOT']),null);
@@ -283,17 +288,23 @@ test('actual website shows a matched service price and submits its signed snapsh
   vm.runInContext("state.step=2;state.form.registration='NU67VSE';state.form.vehicle='Nissan Pulsar';state.form.job_types=['Service'];state.form.service_choice='Full Service';state.form.mileage='50000';state.form.parts_range='Mid Range';state.form.engine_size_manual='1600';render();",root);
   await flush();await flush();
   assert.equal(vm.runInContext('estimateCost()',root),145.32);
-  assert.match(document.querySelector('.service-option.selected').textContent,/Price including VAT£145.32/);
-  assert.match(document.querySelector('.guide-price-card').textContent,/VEHICLE PRICE/);
-  vm.runInContext("state.step=5;state.form.parts_preference='mid_range';state.form.serious_repair_choice='book_later';state.form.customer_name='Test';state.form.phone='Test';state.form.email='test@example.test';state.form.work_required='Full Service';render()",root);
+  assert.match(document.querySelector('.service-option.selected').textContent,/Estimate including VAT£145.32/);
+  assert.match(document.querySelector('.guide-price-card').textContent,/ESTIMATE INCLUDING VAT/);
+  assert.equal(document.querySelector('.parts-choice [checked]').value,'budget');
+  for(const [tier,pence] of [['oem',18892],['budget',14532],['mid_range',16712]]){
+    document.querySelector('[name="parts_preference"][value="'+tier+'"]').onchange();
+    assert.equal(Math.round(vm.runInContext('estimateCost()',root)*100),pence);
+    assert.match(document.querySelector('.service-option.selected').textContent,new RegExp((pence/100).toFixed(2)));
+  }
+  vm.runInContext("state.step=5;state.form.serious_repair_choice='book_later';state.form.customer_name='Test';state.form.phone='Test';state.form.email='test@example.test';state.form.work_required='Full Service';render()",root);
   await document.querySelector('#send').onclick();assert.ok(writes[0].service_price_token);
-  assert.equal(writes[0].approximate_cost,145.32);assert.equal(verifyServicePrice(writes[0].service_price_token,request,secret).totalPence,14532);
+  assert.equal(writes[0].approximate_cost,167.12);assert.equal(verifyServicePrice(writes[0].service_price_token,request,secret).totalPence,14532);
   assert.ok(document.querySelector('.success'));
 });
 test('failed live lookup restores the existing engine-band guide prices without creating signed quotes',()=>{
  const html=readFileSync(new URL('../../website/booking/index.html',import.meta.url),'utf8');
  const context={state:{form:{service_choice:'Full Service'}},servicePriceState:{status:'unavailable'},liveServiceQuote:()=>null};vm.createContext(context);
- for(const name of ['serviceChoicePrice','serviceGuideFallback','servicePriceLabel']){
+ for(const name of ['serviceEstimatePence','guideServicePence','serviceChoicePrice','serviceGuideFallback','servicePriceLabel']){
   const start=html.indexOf('function '+name+'('),end=html.indexOf('\nfunction ',start+1);
   vm.runInContext(html.slice(start,end),context);
  }
@@ -302,7 +313,7 @@ test('failed live lookup restores the existing engine-band guide prices without 
  assert.equal(context.serviceGuideFallback(),true);
  context.servicePriceState.status='disabled';assert.equal(context.servicePriceLabel('Full Service',band),'£155');
  context.servicePriceState.status='loading';assert.equal(context.servicePriceLabel('Full Service',band),'Retrieving live prices…');
- assert.match(html,/serviceGuideFallback\(\)&&band&&!band.individual\?'Guide price'/);
+ assert.match(html,/serviceGuideFallback\(\)&&band&&!band.individual\?'Estimate including VAT'/);
  assert.equal(context.liveServiceQuote(),null);
 });
 

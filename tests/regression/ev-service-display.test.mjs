@@ -5,7 +5,7 @@ test('EV offer requires registration-bound electric identity, never hybrid or un
  const c={state:{form:{registration:'AB12CDE',fuel_registration:'AB12CDE',fuel_type:'Electric'}}};vm.createContext(c);vm.runInContext(html.match(/function confirmedEvServiceVehicle\(\)\{[^\n]+/)[0],c);assert.equal(c.confirmedEvServiceVehicle(),true);
  for(const fuel of ['Petrol','Diesel','Petrol Hybrid','Plug-in Hybrid','']){c.state.form.fuel_type=fuel;assert.equal(c.confirmedEvServiceVehicle(),false);}
  c.state.form.fuel_type='Electric';c.state.form.registration='ZZ99ZZZ';assert.equal(c.confirmedEvServiceVehicle(),false);
- assert.match(html,/Normally £90 - £150/);assert.match(html,/'Full computer diagnostic scan','Comprehensive health check & report'/);assert.doesNotMatch(html,/Servicing for electric vehicles\.'[^\n]*'Air filter'/);
+ assert.match(html,/Estimate £90 - £150/);assert.match(html,/'Full computer diagnostic scan','Comprehensive health check & report'/);assert.doesNotMatch(html,/Servicing for electric vehicles\.'[^\n]*'Air filter'/);
 });
 function context(){
  const c={state:{form:{registration:'AB12CDE',fuel_registration:'AB12CDE',fuel_type:'Electric',job_types:['Service'],service_choice:'',work_required:''}},serviceGuidePrices:()=>({oil:80,full:140}),serviceEngineSize:()=>1200,serviceGuideFallback:()=>true,liveServiceQuote:()=>null,servicePriceState:{status:'idle'},servicePriceLabel:()=> '£140',serviceVehicleHtml:()=>'',majorServiceFuelFilterNote:()=>'',serviceExtraHtml:()=>'<div>EXTRA FILTER</div>'};

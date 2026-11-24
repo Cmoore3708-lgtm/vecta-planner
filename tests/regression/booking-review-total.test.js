@@ -11,7 +11,7 @@ function browser(form={}) {
   liveServiceQuote:()=>null,serviceExtraAddedPence:()=>0,selectedTyreGuide:()=>null,savedTyreGuide:()=>null,
   window:{},servicePriceState:{status:'unavailable'},serviceExtraSelection:()=>'',serviceExtraOffer:()=>null,
   serviceVehicleHtml:()=>'',esc:s=>s});
- for(const name of ['fullServiceSelected','miniValetReviewHtml','bookingTotal','bookingBonusContent','bookingTotalContent','refreshBookingTotal','bindMiniValetReview','estimateCost','tyreMoney','serviceChoicePrice','serviceGuideFallback','pricingHtml']){
+ for(const name of ['serviceEstimatePence','guideServicePence','fullServiceSelected','miniValetReviewHtml','bookingTotal','bookingBonusContent','bookingTotalContent','refreshBookingTotal','bindMiniValetReview','estimateCost','tyreMoney','serviceChoicePrice','serviceGuideFallback','pricingHtml']){
   const start=html.indexOf('function '+name+'('),end=html.indexOf('\nfunction ',start+1);
   vm.runInContext(html.slice(start,end),c);
  }
@@ -37,7 +37,7 @@ test('replacement price is included once and shown at the bottom of the service 
   assert.equal(extra.className,'review-service-extra');
   assert.match(extra.textContent,new RegExp(label));
   assert.equal(extra.querySelector('.review-service-extra-included').textContent,'Included');
-  assert.match(extra.textContent,/£110 of your £330 service total, including fitting and VAT/);
+  assert.match(extra.textContent,/£110 of your £330 estimated service total, including fitting and VAT/);
   assert.doesNotMatch(extra.textContent,/Extra £/);
   assert.equal(service.querySelector('.guide-price-card strong').textContent,'£330');
   assert.equal(amount(c),'£330');
@@ -140,7 +140,7 @@ test('booking bonus uses the entire inclusive total with discounts and rounds on
  c.liveServiceQuote=()=>({totalPence:13099});c.serviceExtraAddedPence=()=>3500;c.selectedTyreGuide=()=>({totalPence:16000});
  assert.equal(amount(c),'£415.99');
  assert.match(c.bookingBonusContent(),/You will earn £20.80 from this booking/);
- assert.match(c.bookingBonusContent(),/Based on £415.99 including VAT/);
+ assert.match(c.bookingBonusContent(),/Based on an estimated £415.99 including VAT/);
  c.state.form.mini_valet=false;
  assert.match(c.bookingBonusContent(),/You will earn £19.30 from this booking/);
  assert.match(browser({job_types:['MOT']}).bookingBonusContent(),/You will earn £3.25/);

@@ -36,11 +36,11 @@ test('a Full Service hides and clears a Mini Valet previously chosen for an Inte
 test('parts question is immediately below the work description and repair question is on Review',()=>{
  assert.match(html,/<\/textarea><\/label>\$\{partsRangeHtml\(\)\}/);
  assert.match(html,/Review your booking[\s\S]*\$\{seriousRepairChoiceHtml\(\)\}/);
- const c={state:{form:{parts_preference:'',serious_repair_choice:''}}};vm.createContext(c);load('partsRangeHtml',c);load('seriousRepairChoiceHtml',c);
+ const c={state:{form:{job_types:['Other'],parts_preference:'',serious_repair_choice:''}}};vm.createContext(c);load('partsRangeHtml',c);load('seriousRepairChoiceHtml',c);
  const {document}=parseHTML(c.partsRangeHtml()+c.seriousRepairChoiceHtml());
  assert.deepEqual([...document.querySelectorAll('.parts-choice label')].map(x=>x.textContent),['Budget','Mid range','OEM']);
  assert.deepEqual([...document.querySelectorAll('.repair-choice label')].map(x=>x.textContent),['Change the parts','Put the car back together, I’ll book it back in later.']);
- assert.equal(document.querySelectorAll('[checked]').length,0);
+ assert.deepEqual([...document.querySelectorAll('[checked]')].map(el=>el.value),['budget']);
 });
 test('NEVOS switches existing parts preferences to OEM and prevents cheaper choices',()=>{
  const {document}=parseHTML('<html><body><main></main></body></html>');
