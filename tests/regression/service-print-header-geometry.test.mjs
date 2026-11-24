@@ -15,11 +15,11 @@ test('printed Polestar header fits the registration and keeps the three fields o
  const css=readFileSync('public/js/haynes-service-sheet.css','utf8');
  const page=join(dir,'sheet.html');
  writeFileSync(page,`<!doctype html><meta charset="utf-8">${styles}<style>${css}</style>
- <div class="servicePrint ssHaynesCompact ssHasHaynesVehicle"><div class="ssHeader" style="width:680px!important">
+ <div id="printSheet"><div class="servicePrint ssHaynesCompact ssHasHaynesVehicle"><div class="ssHeader" style="width:680px!important">
  <div class="ssBrand"><img class="ssWebsiteLogo" alt="VECTA"></div>
  <div class="ssPlate"><div class="ssPlateGb">GB</div><div class="ssPlateReg">WA15TEL</div></div>
  <div class="ssHaynesHeaderInfo"><div class="ssInfoRow"><b>Vehicle:</b><span>POLESTAR POLESTAR 2 EV AWD</span></div><div class="ssInfoRow"><b>Mileage:</b><span>23022</span></div><div class="ssInfoRow"><b>Date:</b><span>24/11/2026</span></div></div>
- <img class="ssManufacturerLogo" alt="Polestar"><div class="ssHaynesVehicle"><img alt="Polestar 2"></div></div></div>`);
+ <img class="ssManufacturerLogo" alt="Polestar"><div class="ssHaynesVehicle"><img alt="Polestar 2"></div></div></div></div>`);
  const proc=spawn(chrome,['--headless','--no-sandbox','--disable-dev-shm-usage','--remote-debugging-port=0','--user-data-dir='+dir,pathToFileURL(page).href],{stdio:'ignore'});
  let socket;
  try{
@@ -43,6 +43,6 @@ test('printed Polestar header fits the registration and keeps the three fields o
    const fits=['WA15TEL','WW77 WWW'].map(value=>{const e=q('.ssPlateReg');e.textContent=value;const range=document.createRange();range.selectNodeContents(e);const text=range.getBoundingClientRect(),p=box('.ssPlate');return text.left>=box('.ssPlateGb').right&&text.right<=p.right-2;});
    return {fits,gap:plate.left-brand.right,below:info.top>=plate.bottom&&info.top>=badge.bottom,line:Math.max(...rows.map(r=>r.top))-Math.min(...rows.map(r=>r.top)),car:box('.ssHaynesVehicle').width};
   })()`});
-  assert.deepEqual(measure.result.value.fits,[true,true]);assert.ok(measure.result.value.gap>=10);assert.ok(measure.result.value.below);assert.ok(measure.result.value.line<3);assert.ok(measure.result.value.car>=240);
+  assert.ok(measure.result.value.car>0,'print fixture must be visible');assert.deepEqual(measure.result.value.fits,[true,true],JSON.stringify(measure.result.value));assert.ok(measure.result.value.gap>=10);assert.ok(measure.result.value.below);assert.ok(measure.result.value.line<3);assert.ok(measure.result.value.car>=240);
  }finally{socket?.close();proc.kill();await delay(150);rmSync(dir,{recursive:true,force:true,maxRetries:4,retryDelay:100});}
 });
