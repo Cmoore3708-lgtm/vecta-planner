@@ -8,7 +8,7 @@ const source=fs.readFileSync(new URL('../../public/js/vecta-monthly-tracker.js',
 function exporter(){const c={window:{},TextEncoder,Uint8Array,DataView};vm.createContext(c);vm.runInContext(source,c);return c.window.VectaMonthlyTracker}
 test('Excel workbook has valid ZIP/XML, text dates, wide wrapped columns and numeric amounts',()=>{
  const result=exporter().build('2026-10',[
- ['01/10','AB12 CDE','Internal','Service; brakes, front',190],
+ ['01/10','AB12 CDE','Internal','Service; brakes, front',190,'0012'],
  ['09/10; 14/10','CD34 FGH','Other','=SUM(A1:A2) & test',25]
  ],[{description:'Monthly maintenance',amount:450,section:'other'}],{total:665,internal:190,other:475});
  assert.equal(result.filename,'Vecta Monthly Tracker October 26.xlsx');
@@ -17,6 +17,8 @@ z=zipfile.ZipFile(io.BytesIO(sys.stdin.buffer.read())); assert z.testzip() is No
 for name in z.namelist(): E.fromstring(z.read(name))
 s=E.fromstring(z.read('xl/worksheets/sheet1.xml')); n={'s':'http://schemas.openxmlformats.org/spreadsheetml/2006/main'}
 cells={c.attrib['r']:c for c in s.findall('.//s:c',n)}
+assert cells['F3'].find('s:is/s:t',n).text=='0012'
+assert cells['F2'].find('s:is/s:t',n).text=='Cost Centre'
 assert cells['A3'].attrib['t']=='inlineStr'
 assert cells['A3'].find('s:is/s:t',n).text=='01/10'
 assert cells['A4'].find('s:is/s:t',n).text=='09/10; 14/10'
