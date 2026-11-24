@@ -123,9 +123,9 @@ test('Polestar header fits and the completed Peugeot service sheet prints on one
   assert.equal(printed.result.value,true,'print the road test, footer and fluid checks without the oil reference');
   const pdf=await command('Page.printToPDF',{preferCSSPageSize:true,printBackground:true,paperWidth:210/25.4,paperHeight:297/25.4});
   const bytes=Buffer.from(pdf.data,'base64');
-  const pages=(await PDFDocument.load(bytes)).getPages();
-  assert.equal(pages.length,1,'the completed Peugeot inspection must fit one A4 page');
-  assert.ok(Math.abs(pages[0].getWidth()-595)<2&&Math.abs(pages[0].getHeight()-842)<2);
+  const pdfPages=(await PDFDocument.load(bytes)).getPages();
+  assert.equal(pdfPages.length,1,'the completed Peugeot inspection must fit one A4 page');
+  assert.ok(Math.abs(pdfPages[0].getWidth()-595)<2&&Math.abs(pdfPages[0].getHeight()-842)<2);
  }finally{socket?.close();proc.kill();await delay(150);rmSync(dir,{recursive:true,force:true,maxRetries:4,retryDelay:100});}
 });
 
