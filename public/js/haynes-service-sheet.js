@@ -94,10 +94,12 @@ root.mountJobEngineOil=function(modal,controls){
   }catch{if(active())out.textContent=oilWarning;}
  }
  function changed(event){
-  if(!['job_registration','job_current_mileage','job_job_type','job_no_vehicle'].includes(event.target.id))return;
   generation++;out.textContent=oilWarning;clearTimeout(timer);timer=setTimeout(refresh,650);
  }
- modal.addEventListener('input',changed);modal.addEventListener('change',changed);Promise.resolve().then(refresh);
+ for(const input of modal.querySelectorAll('#job_registration,#job_current_mileage,#job_job_type,#job_no_vehicle')){
+  input.addEventListener('input',changed);input.addEventListener('change',changed);
+ }
+ Promise.resolve().then(refresh);
 };
 
 const safeImage=value=>/^https:\/\/www\.haynespro-assets\.com\/workshop\/images\/\d+\.(svgz?|png|jpe?g|webp)$/.test(value||'')?value:'';
