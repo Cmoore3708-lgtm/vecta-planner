@@ -90,8 +90,11 @@ test('proxy accepts a transparently decompressed larger drawing and strips Illus
 });
 test('both website builds use identical image helper',()=>{
   assert.equal(fs.readFileSync('website/js/vecta-vehicle-image.js','utf8'),helper);
-  const logos=fs.readdirSync('public/assets/manufacturers').filter(name=>name.endsWith('.svg'));assert.equal(logos.length,30);
-  for(const name of logos)assert.equal(fs.readFileSync('website/assets/manufacturers/'+name,'utf8').match(/href="([^"]+)"/)[1],fs.readFileSync('public/assets/manufacturers/'+name,'utf8').match(/href="([^"]+)"/)[1],name+' retains identical original artwork in both builds');
+  const logos=fs.readdirSync('public/assets/manufacturers').filter(name=>name.endsWith('.svg'));assert.equal(logos.length,31);
+  assert.ok(logos.includes('polestar.svg'));
+  assert.equal(browser().VectaVehicleImage.manufacturer('POLESTAR POLESTAR 2 EV AWD'),'polestar');
+  const artwork=path=>{const svg=fs.readFileSync(path,'utf8');return svg.match(/href="([^"]+)"/)?.[1]||svg;};
+  for(const name of logos)assert.equal(artwork('website/assets/manufacturers/'+name),artwork('public/assets/manufacturers/'+name),name+' retains identical original artwork in both builds');
   for(const path of ['public/booking.html','website/booking/index.html']) {
     const html=fs.readFileSync(path,'utf8');assert.match(html,/vecta-vehicle-image\.js/);assert.match(html,/data-registration=/);assert.match(html,/data-colour=/);
   }
