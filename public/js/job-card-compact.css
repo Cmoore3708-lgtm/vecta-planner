@@ -887,13 +887,13 @@
 
 @media screen {
  #jobModal .jobCardNumber{grid-column:1;grid-row:2;align-self:start;font-size:14px;font-weight:700;color:#334155}
- #jobModal .jobCardSimplified .jobCardHeaderControls>.jobVehicleQuickFacts{display:flex!important;flex:1 0 100%;order:-2;align-items:end;flex-wrap:wrap;gap:5px;max-width:100%;min-width:0}
+ #jobModal .jobCardSimplified .jobCardHeaderControls>.jobVehicleQuickFacts:has(.jobVehicleDuePanel:not([hidden])){display:flex!important;flex:1 0 100%;order:-2;align-items:end;flex-wrap:wrap;gap:5px;max-width:100%;min-width:0}
  #jobModal .jobCardHeaderControls .jobVehicleQuickFacts .jobVehicleDuePanel:not([hidden]){display:contents!important}
  #jobModal .jobVehicleQuickFacts .jobVehicleDuePanel>.jobVehicleDueItem{flex:0 0 auto;width:max-content;max-width:100%}
- #jobModal .jobCardSimplified .jobCardHeaderControls .jobVehicleQuickFacts>.field{order:0;flex:0 1 auto;width:105px;min-width:0}
+ #jobModal .jobCardSimplified .jobCardHeaderControls .jobVehicleQuickFacts:has(.jobVehicleDuePanel:not([hidden]))>.field{order:0;flex:0 1 auto;width:120px;min-width:0}
 }
 @media screen and (max-width:700px) {
  #jobModal .jobCardSimplified .jobCardHeaderHeading:has(.jobCardNumber)>.jobCardHeaderModel{grid-row:3!important}
  #jobModal .jobCardHeaderHeading:has(.jobCardNumber)>.jobCardPhoneCustomerName{grid-row:4}
- #jobModal .jobCardHeaderControls>.jobVehicleQuickFacts{grid-column:1/-1;grid-row:4}
+ #jobModal .jobCardHeaderControls>.jobVehicleQuickFacts:has(.jobVehicleDuePanel:not([hidden])){grid-column:1/-1;grid-row:4}
 }
