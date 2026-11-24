@@ -23,6 +23,22 @@
       "destination": "https://vecta-planner.vercel.app/invoice"
     },
     {
+      "source": "/js/vecta-customer-invoice.css",
+      "destination": "https://vecta-planner.vercel.app/js/vecta-customer-invoice.css"
+    },
+    {
+      "source": "/js/vecta-customer-invoice.js",
+      "destination": "https://vecta-planner.vercel.app/js/vecta-customer-invoice.js"
+    },
+    {
+      "source": "/js/vecta-invoice-print.js",
+      "destination": "https://vecta-planner.vercel.app/js/vecta-invoice-print.js"
+    },
+    {
+      "source": "/js/vecta-invoice-pdf-client.js",
+      "destination": "https://vecta-planner.vercel.app/js/vecta-invoice-pdf-client.js"
+    },
+    {
       "source": "/api/haynes-image",
       "destination": "https://vecta-planner.vercel.app/api/haynes-image"
     },
