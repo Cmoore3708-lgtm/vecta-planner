@@ -28,4 +28,14 @@ test('EV paperwork retains charge and diagnostic findings across a saved-sheet r
     assert.equal(sheet.querySelector('.ssScanNotes').textContent,'P0123 stored');
     assert.equal(sheet.querySelector('button').getAttribute('aria-checked'),'true');
   }
+  scope.switchServiceSheet(sheet,{fuel_type:'ELECTRIC'},'standard');
+  assert.ok(sheet.querySelector('.dipWrap'));
+  assert.equal(sheet.querySelector('.ssCharge'),null);
+  assert.equal(sheet.querySelector('.ssOps tr td').textContent,'Interim service');
+  assert.equal(sheet.querySelectorAll('.ssFluidInline').length,5);
+  scope.applyElectricServiceSheet(sheet,{fuel_type:'ELECTRIC'});
+  assert.equal(sheet.querySelector('.ssCharge'),null);
+  scope.switchServiceSheet(sheet,{fuel_type:'ELECTRIC'},'auto');
+  assert.equal(sheet.querySelector('output').textContent,'100%');
+  assert.equal(sheet.querySelector('.ssScanNotes').textContent,'P0123 stored');
 });
