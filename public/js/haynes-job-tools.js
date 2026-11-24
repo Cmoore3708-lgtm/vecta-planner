@@ -148,7 +148,7 @@ function compatibleArtwork(value,description){
  if(description?.make&&value.make&&make(description.make)!==make(value.make))return false;
  // Strip the manufacturer before compacting model codes: MAZDA 6 is model 6,
  // while TGE 3.140 and SPRINTER 315 have trim numbers, not joined model names.
- const normal=(v,manufacturer)=>{let text=words(v);const prefix=words(manufacturer);if(prefix&&text.startsWith(prefix+' '))text=text.slice(prefix.length+1);text=text.replace(/^(?:NISSAN|FORD|MERCEDES BENZ|INFINITI|CITROEN|RENAULT|VOLKSWAGEN|VW|AUDI) /,'');return text.replace(/^([A-Z]{1,2})\s+(?=\d)/,'$1').replace(/(\d)\s+([A-Z])(?=\s|$)/g,'$1$2');};
+ const normal=(v,manufacturer)=>{let text=words(String(v||'').replace(/\([^)]*\)/g,' '));const prefix=words(manufacturer);if(prefix&&text.startsWith(prefix+' '))text=text.slice(prefix.length+1);text=text.replace(/^(?:NISSAN|FORD|MERCEDES BENZ|INFINITI|CITROEN|RENAULT|VOLKSWAGEN|VW|AUDI) /,'');return text.replace(/^([A-Z]{1,2})\s+(?=\d)/,'$1').replace(/(\d)\s+([A-Z])(?=\s|$)/g,'$1$2');};
  const expected=normal(description?.model||description?.vehicle,description?.make||value.make),actual=normal(String(value.model||'').split(/[(/]/)[0],value.make);
  if(!expected||!actual)return true;
  // BMW derivatives such as 120d are filed under the numeric series in Haynes.
@@ -807,12 +807,18 @@ root.initHaynesJobTools=function(modal,{automatic=false,recoverImage=true,oilJob
  function automaticLookup(){
   clearTimeout(refreshTimer);
   const saved=savedMatch();
-  if(saved){showMatch(saved);return;}
-  if(noVehicle?.checked||!lookupRegistration(current())||!panel.isConnected||(!automatic&&!recoverImage))return;
+  if(saved)showMatch(saved);
+  if(noVehicle?.checked||!lookupRegistration(current())||!panel.isConnected)return;
   const requested=current(),run=sequence,description=currentDescription();
+  if(saved&&hasAssignedArtwork(description))return;
   refreshTimer=setTimeout(async()=>{
-   const hydrated=await hydrateSharedArtwork();
-   if(!active(requested,run)||hydrated===false||Date.now()<sharedRetryAt)return;
+   // Registration-search drafts may read workshop artwork even when supplier lookups are disabled.
+   const read=readBookingDrawing(description);
+   if(read)await read;
+   if(!active(requested,run))return;
+   showHeaderVehicle();
+   if(root.navigator?.onLine===false||root.VECTA_AUDIT_PREVIEW)return;
+   if(saved&&hasAssignedArtwork(description))return;
    const model=description.model||description.vehicle;
    // Recover saved artwork independently; a model drawing never identifies an engine.
    if(!image(storedDrawing(description)?.imageUrl)&&description.make&&model){
@@ -837,7 +843,7 @@ root.initHaynesJobTools=function(modal,{automatic=false,recoverImage=true,oilJob
     }
     return;
    }
-   if(active(requested,run))await matchVehicle();
+   if(!saved&&(automatic||recoverImage)&&active(requested,run))await matchVehicle();
   },150);
  }
  // A website lookup may have saved the colour since this workshop session began.

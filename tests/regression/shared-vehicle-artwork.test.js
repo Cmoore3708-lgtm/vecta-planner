@@ -296,3 +296,26 @@ test('phone planner opens saved Mokka and Fiesta drawings with an unavailable ca
   assert.equal(offline.lookups(),0);
  }
 });
+
+test('registration-search repeat booking restores a saved drawing despite an image-free technical match',async()=>{
+ const registration='T11ABC',vehicle={registration,make:'AUDI',model:'TT (8J)',variant:'2.0 TDI',typeId:'t_123',fetchedAt:new Date().toISOString()};
+ const d=device(database());
+ d.root.VectaHaynesJobTools.remember(vehicle);
+ const requests=[];
+ d.root.fetch=async url=>{
+  requests.push(url);
+  return {ok:true,json:async()=>({status:'ARTWORK',vehicle:{...vehicle,imageUrl:asset}})};
+ };
+ function open(device){
+  device.document.body.innerHTML='<div id="modal"><div class="jobModalHead"><h2>New job</h2></div><section class="jobVehicleSection"><input id="job_registration" value="T11 ABC"><input id="job_make" value="AUDI"><input id="job_model" value="TT (8J)"></section></div>';
+  device.root.initHaynesJobTools(device.document.querySelector('#modal'),{automatic:false,recoverImage:false});
+ }
+ open(d);
+ await settled();
+ for(const timer of d.timers.filter(t=>t.delay===150))await timer.fn();
+ assert.equal(requests.length,1,JSON.stringify(requests));assert.match(requests[0],/^\/api\/vehicle-artwork\?reg=T11ABC.*saved=1$/);
+ assert.equal(d.document.querySelector('.jobCardHeaderVehicle img')?.dataset.vehicleSource,asset);
+ const reopened=device(database(),d.storage);reopened.root.navigator.onLine=false;open(reopened);
+ assert.equal(reopened.document.querySelector('.jobCardHeaderVehicle img')?.dataset.vehicleSource,asset);
+ assert.equal(reopened.lookups(),0);
+});
