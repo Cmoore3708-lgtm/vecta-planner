@@ -8,6 +8,7 @@ function setup(saved,today='2029-01-01'){
  let output='',warning='';
  const context={todayIso:()=>today,alert:text=>{warning=text},fleetNormaliseCustomer:x=>x,vectaActiveInvoices:()=>saved?[saved]:[],invoiceTotals:lines=>({subtotal:lines.reduce((s,l)=>s+Number(l.amount||0),0)}),fleetNmukIsInternalJob:j=>j.internal,fleetEomLineItems:j=>[{description:'Workshop work',price:j.price}],niceDate:x=>x,fleetEomRegistrationText:()=>'',fleetNmukTypeForJob:j=>j.nmuk_type||'',financeBaseJob:j=>j,normReg:x=>String(x||'').replace(/ /g,'').toUpperCase(),app:{jobs:[],jobCustomerMemory:{},settings:{}},window:{},Blob:class{constructor(parts){output=parts.join('')}},URL:{createObjectURL:()=>'',revokeObjectURL:()=>{}},document:{createElement:()=>({click(){},remove(){}}),body:{appendChild(){}}},setTimeout:()=>{}};
  vm.createContext(context);
+ vm.runInContext(fs.readFileSync(new URL('../../public/js/vecta-job-rules.js',import.meta.url),'utf8'),context);
  vm.runInContext(html.slice(html.indexOf('function financeOwnershipRegistration('),html.indexOf('function financeHistoricalNmukAllocation(')),context);
  vm.runInContext(html.match(/function fleetNmukCsvTypeForJob\(job\)\{[\s\S]*?\n\}/)[0],context);
  vm.runInContext(html.slice(html.indexOf('function financeAuthoritativeNmukAllocation('),html.indexOf('function financeRawAllocationEvidence(')),context);
@@ -118,7 +119,7 @@ test('NMUK export combines all visits and line items for each normalised registr
  c.fleetDownloadEomCsv('NMUK','2026-10',jobs);
  const lines=s.csv().split('\r\n');
  assert.equal(lines.length,5);
- assert.equal(lines[1],'"=""01/10; 09/10""","KX15 FWF","Internal","Service; Wipers; Brakes, front","200.00"');
+ assert.equal(lines[1],'"=""01/10; 09/10""","KX15 FWF","Internal","Service; Wipers; Brakes, front","200.00",""');
  assert.ok(lines[2].endsWith('"Total:","200.00"'));
 });
 
@@ -161,3 +162,25 @@ test('NMUK single October dates are literal DD/MM text for Excel',()=>{
  assert.match(s.csv(),/"Total:","10450.00"/);
  assert.doesNotMatch(s.csv(),/Later edit/);
  });
+
+test('keeps different cost centres on the same vehicle separately priced',()=>{
+ const c=setup(null).context;
+ const rows=['0012','A]7','0012'].map(code=>({date:'2026-11-20',amount:10,
+   job:{registration:'AB12 CDE',customer_note:c.window.VectaJobRules.noteWithNmukCostCentre('note',code)}}));
+ const result=c.fleetNmukCsvVehicleRows(rows);
+ assert.deepEqual(Array.from(result,row=>Array.from(row.slice(4))),[['20.00','0012'],['10.00','A]7']]);
+});
+
+test('job card prefills the fleet code and keeps a job override until the registration changes',()=>{
+ const c=setup(null).context,rules=c.window.VectaJobRules,events={};
+ const input={value:''},registration={value:'AB12 CDE',addEventListener:(name,fn)=>{events[name]=fn}};
+ c.document.getElementById=id=>id==='job_registration'?registration:input;
+ c.fleetVehicleForRegistration=key=>key==='AB12CDE'?{costCentre:'0012'}:null;
+ rules.bindNmukCostCentre({registration:registration.value});
+ assert.equal(input.value,'0012');
+ input.value='0073';events.change();assert.equal(input.value,'0073');
+ const job={registration:registration.value,customer_note:rules.noteWithNmukCostCentre('Original note',input.value)};
+ rules.bindNmukCostCentre(job);assert.equal(input.value,'0073');
+ registration.value='QQ22ABC';events.input();assert.equal(input.value,'');
+ assert.equal(rules.noteWithNmukCostCentre(job.customer_note,''),'Original note');
+});
