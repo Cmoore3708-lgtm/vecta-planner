@@ -88,11 +88,13 @@ function visible(cell){if(!cell.isConnected||document.hidden)return false;if(!ce
 let mountGeneration=0;
 function mount(){
  accessibleImages();
- const loading=root.VectaHaynesJobTools?.hydrateSharedArtwork?.();if(loading)loading.then(ok=>{if(ok)mount();});
- const generation=++mountGeneration,vehicles=new Map((state().vehicles||[]).map(v=>[String(v.id),v]));
+ const generation=++mountGeneration;
  // Read geometry before painting: alternating reads and writes forces layout
  // once per vehicle. Yield between small batches so controls stay responsive.
  const cells=Array.from(document.querySelectorAll('[data-fleet-image]')).filter(visible);
+ if(!cells.length)return;
+ const loading=root.VectaHaynesJobTools?.hydrateSharedArtwork?.();if(loading)loading.then(ok=>{if(ok)mount();});
+ const vehicles=new Map((state().vehicles||[]).map(v=>[String(v.id),v]));
  let offset=0;
  function batch(){if(generation!==mountGeneration)return;const end=Math.min(offset+3,cells.length);
   for(;offset<end;offset++){const cell=cells[offset];if(!cell.isConnected)continue;const v=vehicles.get(cell.dataset.fleetImage);if(!v)continue;const drawing=drawingFor(v);paint(cell,v,drawing);}

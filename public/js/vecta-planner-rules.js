@@ -55,21 +55,32 @@ function updateContent(container,markup){
   return true;
 }
 
+  const activeArtworkViews=new WeakMap();
   function refreshArtwork(container,jobs,changed){
     if(!root.enrichHaynesDashboard)return;
     var byId=new Map((jobs||[]).map(function(job){return [String(job.id),job]})),tools=root.VectaHaynesJobTools;
-    if(tools?.prepareBookingArtwork){
-      const ready=tools.hydrateSharedArtwork();
-      if(ready)ready.then(()=>tools.prepareBookingArtwork(jobs));
-      else tools.prepareBookingArtwork(jobs);
-    }
+    const paint=tools?.paintBookingDrawings||root.enrichHaynesDashboard;
+    const view={};
+    activeArtworkViews.set(container,view);
+    const seen=new Set(),waiting=new Set(),reads=[];
     var signature=JSON.stringify(Array.from(container.querySelectorAll('[data-job-id],[data-open-job],[data-open-unallocated]')).map(function(card){
       var job=byId.get(card.dataset.jobId||card.dataset.openJob||card.dataset.openUnallocated);if(!job)return null;
+      if(tools?.readBookingDrawing&&!seen.has(job.id)){
+        seen.add(job.id);
+        const reading=tools.readBookingDrawing(job);
+        if(reading){
+          reads.push(reading);
+          if(!tools.hasAssignedArtwork(job))waiting.add(job.id);
+        }
+      }
       var drawing=tools&&tools.storedDrawing?tools.storedDrawing(job):null;
       return [job.id,job.registration,job.vehicle,job.make,job.model,drawing&&drawing.imageUrl,tools&&tools.dashboardColour?tools.dashboardColour(job):(job.vehicle_colour||job.colour||job.color||'')];
     }));
+    if(reads.length)Promise.all(reads).then(()=>{
+      if(container.isConnected&&activeArtworkViews.get(container)===view)paint(container,jobs);
+    });
     if(!changed&&container.__vectaPlannerArtwork===signature)return;
-    container.__vectaPlannerArtwork=signature;root.enrichHaynesDashboard(container,jobs);
+    container.__vectaPlannerArtwork=signature;paint(container,waiting.size?jobs.filter(job=>!waiting.has(job.id)):jobs);
   }
   // Hold the existing DOM from pointer-down through native dragstart or resize.
   if(root.document&&root.document.addEventListener){

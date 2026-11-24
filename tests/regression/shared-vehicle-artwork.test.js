@@ -264,3 +264,35 @@ test('an identity-only drawing survives an offline restart without granting tech
  assert.equal(offline.root.VectaHaynesJobTools.snapshot(van.registration),null);
  assert.equal(db.writes(),0);
 });
+
+test('phone planner opens saved Mokka and Fiesta drawings with an unavailable catalogue, then reopens offline',async()=>{
+ const planner=fs.readFileSync(new URL('../../public/js/vecta-planner-rules.js',import.meta.url),'utf8');
+ for(const [registration,make,model,trim,id] of [
+  ['FY22ZDW','VAUXHALL','Mokka','MOKKA SRI PREMIUM TURBO','319071503'],
+  ['YP62OPF','FORD','Fiesta Mk VI','FIESTA','319002217']
+ ]){
+  const db=database(),d=device(db),job={id:'1',registration,make,model:trim};
+  let catalogueReads=0;
+  db.client.from=()=>{catalogueReads++;throw Error('Unexpected catalogue read');};
+  const expected='https://www.haynespro-assets.com/workshop/images/'+id+'.svgz';
+  const calls=[];
+  d.root.fetch=async url=>{
+   calls.push(url);
+   return {ok:true,json:async()=>({status:'ARTWORK',vehicle:{registration,make,model,imageUrl:expected}})};
+  };
+  vm.runInNewContext(planner,{window:d.root});
+  d.root.VectaPlannerRules.refreshArtwork(d.document,[job],true);
+  assert.equal(d.document.querySelector('.haynesDashboardImage'),null);
+  await settled();
+  assert.equal(d.document.querySelector('img').dataset.haynesSource,expected);
+  d.root.VectaPlannerRules.refreshArtwork(d.document,[job],true);
+  assert.equal(catalogueReads,0);
+  assert.equal(calls.length,1);
+  assert.ok(calls[0].startsWith('/api/vehicle-artwork?reg='+registration+'&'));
+  const offline=device(db,d.storage);offline.root.navigator.onLine=false;
+  vm.runInNewContext(planner,{window:offline.root});
+  offline.root.VectaPlannerRules.refreshArtwork(offline.document,[job],true);
+  assert.equal(offline.document.querySelector('img').dataset.haynesSource,expected);
+  assert.equal(offline.lookups(),0);
+ }
+});

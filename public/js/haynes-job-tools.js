@@ -33,6 +33,7 @@ function rememberIdentity(v,persist=true){
 try{for(const v of JSON.parse(root.localStorage?.getItem(ID_KEY)||'[]'))rememberIdentity(v,false);}catch{}
 // Artwork survives technical-data expiry; it must never expose technical links.
 const ART_KEY='vecta_haynes_artwork_v1',artwork=new Map();
+let paintingPlanner=false;
 const SHARED_ART_PREFIX='vehicle_artwork:',sharedArtwork=new Map(),sharedWrites=new Map(),sharedRefresh=new WeakMap();
 let sharedClient=null,sharedLoading=null,sharedSaving=null,sharedTimer=null,sharedRetryAt=0,sharedReadAt=0;
 function workshopClient(){return typeof root.__vectaWorkshopClient==='function'?root.__vectaWorkshopClient():root.remoteClient;}
@@ -70,6 +71,7 @@ function flushSharedArtwork(){
  return sharedSaving;
 }
 function hydrateSharedArtwork({refresh=false}={}){
+ if(paintingPlanner)return null;
  const client=workshopClient();
  if(!client||root.VECTA_AUDIT_PREVIEW||root.navigator?.onLine===false||Date.now()<sharedRetryAt)return null;
  if(sharedLoading)return sharedLoading;
@@ -86,7 +88,11 @@ function hydrateSharedArtwork({refresh=false}={}){
     rows.push(...(page.data||[]));
     if(!paged||page.data.length<500)break;
   }
-  for(const row of rows){if(row.id==='vehicle_colour:'+reg(row.value?.registration)){rememberLookupColour({registration:row.value.registration,make:row.value.make,primaryColour:row.value.colour});continue;}const clean=cleanArtwork(row.value);if(clean&&row.id===SHARED_ART_PREFIX+clean.registration){const local=artwork.get(clean.registration);if(sharedWrites.has(clean.registration))continue;if(!clean.colour&&local?.colour)clean.colour=local.colour;sharedArtwork.set(clean.registration,clean);if(clean.manual||!local||compatibleArtwork(clean,local))rememberArtwork(clean,false,{replace:true});}}
+  for(const row of rows){if(row.id==='vehicle_colour:'+reg(row.value?.registration)){rememberLookupColour({registration:row.value.registration,make:row.value.make,primaryColour:row.value.colour});continue;}const clean=cleanArtwork(row.value);if(clean&&row.id===SHARED_ART_PREFIX+clean.registration){const local=artwork.get(clean.registration);const queued=sharedWrites.get(clean.registration);
+    if(queued){
+     if(clean.manual||(!clean.generic&&queued.generic&&compatibleArtwork(clean,queued)))sharedWrites.delete(clean.registration);
+     else continue;
+    }if(!clean.colour&&local?.colour)clean.colour=local.colour;sharedArtwork.set(clean.registration,clean);if(clean.manual||!local||compatibleArtwork(clean,local))rememberArtwork(clean,false,{replace:true});}}
   for(const row of rows){
     if(!row.id.startsWith('vehicle_identity:'))continue;
     const choice=cleanArtwork(row.value);
@@ -102,6 +108,7 @@ function hydrateSharedArtwork({refresh=false}={}){
  return sharedLoading;
 }
 function rememberArtwork(v,persist=true,{replace=false}={}){
+ if(paintingPlanner)return;
  const clean=cleanArtwork(v);if(!clean)return;
  const previous=artwork.get(clean.registration);if(previous?.manual&&!clean.manual)return previous;if(previous&&!previous.generic&&compatibleArtwork(previous,clean)&&(clean.generic||previous.imageUrl!==clean.imageUrl)&&!replace)return previous;if(!clean.colour&&previous?.colour)clean.colour=previous.colour;
  if(persist)queueSharedArtwork(clean,{replace});
@@ -195,13 +202,45 @@ function hasAssignedArtwork(description){
  const fleet=root.VectaFleetImages?.forJob?.(description);
  return !!image(fleet?.drawing?.imageUrl||artworkSnapshot(description.registration,description.make,description.model||description.vehicle)?.imageUrl);
 }
-function prepareBookingArtwork(jobs){
- if(root.navigator?.onLine!==false&&root.VectaVehicleImage?.prepareSources){
-  const today=new Date().toISOString().slice(0,10);
-  const until=new Date(Date.now()+14*86400000).toISOString().slice(0,10);
-  const upcoming=(jobs||[]).filter(job=>!job.no_vehicle&&job.card_type!=='mini_task'&&job.booking_date>=today&&job.booking_date<=until);
-  root.VectaVehicleImage.prepareSources(upcoming.map(job=>storedDrawing(job)?.imageUrl));
- }
+// A dashboard miss must not depend on downloading every registration first.
+const artworkRequests=new Map(),artworkRetryAfter=new Map();
+function readBookingDrawing(job){
+ const registration=reg(job.registration),model=job.model||job.vehicle||'';
+ if(root.VECTA_AUDIT_PREVIEW||root.navigator?.onLine===false||!lookupRegistration(registration)||job.no_vehicle||job.card_type==='mini_task')return null;
+ const assigned=artworkSnapshot(registration,job.make,model);
+ if(assigned||root.VectaFleetImages?.forJob?.(job)?.drawing?.imageUrl)return null;
+ const key=[registration,make(job.make),words(model)].join('|');
+ if(artworkRequests.has(key))return artworkRequests.get(key);
+ if(Date.now()<(artworkRetryAfter.get(key)||0))return null;
+ const url='/api/vehicle-artwork?reg='+encodeURIComponent(registration)+'&make='+encodeURIComponent(job.make||'')+'&model='+encodeURIComponent(model)+'&saved=1';
+ const request=(async()=>{
+  try{
+   const response=await root.fetch(url,{cache:'no-store',signal:AbortSignal.timeout(10000)});
+   if(!response.ok)return false;
+   const data=await response.json(),choice=cleanArtwork(data.vehicle);
+   if(data.status!=='ARTWORK'||!choice||choice.registration!==registration||(!choice.manual&&!compatibleArtwork(choice,job)))return false;
+   // A manual selection made while this read was pending is authoritative.
+   const current=artworkSnapshot(registration,job.make,model);
+   if(current?.manual||(current&&!current.generic&&choice.generic))return false;
+   rememberArtwork(choice,false,{replace:true});
+   try{root.localStorage?.setItem(ART_KEY,JSON.stringify([...artwork.values()]));}catch{}
+   return true;
+  }catch{return false;}
+ })().finally(()=>{
+  artworkRequests.delete(key);
+  artworkRetryAfter.set(key,Date.now()+60000);
+  if(artworkRetryAfter.size>500)artworkRetryAfter.delete(artworkRetryAfter.keys().next().value);
+ });
+ artworkRequests.set(key,request);
+ return request;
+}
+// The planner has already resolved its visible registrations. Its synchronous
+// renderer can reuse the shared layout without starting catalogue reads or writes.
+function paintBookingDrawings(container,jobs){
+ const previous=paintingPlanner;
+ paintingPlanner=true;
+ try{root.enrichHaynesDashboard(container,jobs);}
+ finally{paintingPlanner=previous;}
 }
 function storedDrawing(description){const internal=root.VectaFleetImages?.forJob?.(description);if(internal?.drawing?.imageUrl)return internal.drawing;return artworkSnapshot(description.registration,description.make,description.model||description.vehicle)||[identitySnapshot(description.registration,description.make,description.model||description.vehicle),snapshot(description.registration,description.make,description.model||description.vehicle)].find(v=>v?.imageUrl)||genericImage(description);}
 function artworkSource(img,src,description,colour){if(/\.svgz?$/.test(src)&&root.VectaVehicleImage?.mount){img.dataset.vehicleSource=src;img.src=artworkUrl(src);}else img.src=src;}
@@ -819,7 +858,7 @@ async function saveManualArtwork(value){
  try{root.localStorage?.setItem(ART_KEY,JSON.stringify([...artwork.values()]));}catch{}
  return clean;
 }
-root.VectaHaynesJobTools={prepareBookingArtwork,hasAssignedArtwork,mountJobListImages,trackTimedArtwork,saveManualArtwork,compatibleArtwork,storedDrawing,artworkUrl,storedArtwork,vehicleLink,safeImage:image,remember,snapshot,artworkSnapshot,lookup,lookupNeedsRetry:registration=>failed.has(reg(registration)),lookupStatus:registration=>failStatus.get(reg(registration))||'UNAVAILABLE',genericImage,dashboardColour,lookupDashboardColour,rememberLookupColour,hydrateSharedArtwork,flushSharedArtwork};
+root.VectaHaynesJobTools={readBookingDrawing,paintBookingDrawings,hasAssignedArtwork,mountJobListImages,trackTimedArtwork,saveManualArtwork,compatibleArtwork,storedDrawing,artworkUrl,storedArtwork,vehicleLink,safeImage:image,remember,snapshot,artworkSnapshot,lookup,lookupNeedsRetry:registration=>failed.has(reg(registration)),lookupStatus:registration=>failStatus.get(reg(registration))||'UNAVAILABLE',genericImage,dashboardColour,lookupDashboardColour,rememberLookupColour,hydrateSharedArtwork,flushSharedArtwork};
 })(window);
 
 /* Dashboard registration lookup: read-only until a job/quote form is saved. */
