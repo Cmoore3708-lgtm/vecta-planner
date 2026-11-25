@@ -17,7 +17,7 @@ function renderVectaInstallGuide(dialog, portalHref, selectedPhone){
   const android=phone.value==='android';
   dialog.dataset.phone=phone.value;
   dialog.querySelector('[data-install-steps]').textContent=android?'In Chrome, open the three-dot menu, select Install app or Add to Home screen, then confirm.':'In Safari, open the menu (the 3 lines to the left of the web site address in the address bar), then tap Share, then Add to Home Screen and Add.';
-  dialog.querySelector('[data-alert-settings]').textContent=android?'On Android, open Settings → Notifications → App notifications. Select VECTA and allow notifications. If Chrome manages your alerts, allow notifications for vectamotors.co.uk in Chrome’s site settings.':'On iPhone, open Settings → Notifications → VECTA and turn on Allow Notifications.';
+  dialog.querySelector('[data-alert-settings]').textContent=android?'On Android, open Settings → Notifications → App notifications → VECTA and turn on notifications. If VECTA is missing, allow notifications for Chrome, then open your portal in Chrome and tap the icon beside the web address → Permissions → Notifications → Allow.':'On iPhone, open Settings → Notifications → VECTA and turn on Allow Notifications.';
   for(const image of images){
    image.src='https://www.vectamotors.co.uk/assets/app-install/'+phone.value+image.dataset.guideSuffix+'.jpg';
   }

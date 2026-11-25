@@ -2,6 +2,7 @@
  const $=id=>document.getElementById(id),link=window.VectaCustomerAppLink,token=location.hash.slice(1);
  const standalone=()=>matchMedia('(display-mode: standalone)').matches||navigator.standalone===true;
  const ios=/iPad|iPhone|iPod/.test(navigator.userAgent)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
+ const phoneAlertSettings=ios?'On iPhone, open Settings → Notifications → VECTA and turn on Allow Notifications.':/android/i.test(navigator.userAgent)?'On Android, open Settings → Notifications → App notifications → VECTA and turn on notifications. If VECTA is missing, allow notifications for Chrome, then open your portal in Chrome and tap the icon beside the web address → Permissions → Notifications → Allow.':'';
  let installPrompt=null,worker=null,verified=false,config=null,notificationBusy=false;
  const status=text=>{$('appStatus').textContent=text;};
  async function api(action,body={}){
@@ -47,13 +48,13 @@
   if(!verified)return;
   try{if(localStorage.getItem('vecta.garage.session.v1')){$('appNotifications').hidden=true;return;}}catch{}
   $('appNotifications').hidden=false;
-  if(!('Notification' in window)||!('PushManager' in window)||ios&&!standalone()){$('appAlerts').disabled=true;$('appAlertsNote').textContent=ios?'Add Vecta to your Home Screen, then open the V icon to enable alerts.':'Phone alerts are unavailable in this browser. Your booking and messages still work here.';return;}
+  if(!('Notification' in window)||!('PushManager' in window)||ios&&!standalone()){$('appAlerts').disabled=true;$('appAlertsNote').textContent=phoneAlertSettings||'Phone alerts are unavailable in this browser. Your booking and messages still work here.';return;}
   try{
    config=await api('app-push-config');if(!config.enabled){$('appAlerts').disabled=true;$('appAlertsNote').textContent='Alerts are disabled on this preview.';return;}
    const sub=await (await registration()).pushManager.getSubscription();
    if(sub&&Notification.permission==='granted'){
     await api('app-push-subscribe',{subscription:sub.toJSON()});$('appAlerts').textContent='Turn alerts off';$('appAlerts').dataset.enabled='true';$('appAlertsNote').textContent='Alerts are on for this booking. You can turn them off at any time.';
-   }else{$('appAlerts').textContent='Enable phone alerts';$('appAlerts').dataset.enabled='false';$('appAlertsNote').textContent=Notification.permission==='denied'?'Notifications are blocked. Allow them in your phone or browser settings, then reopen Vecta.':'Get alerts for messages, extra-work requests and collection. Your phone will ask for permission.';}
+   }else{$('appAlerts').textContent='Enable phone alerts';$('appAlerts').dataset.enabled='false';$('appAlertsNote').textContent=phoneAlertSettings||(Notification.permission==='denied'?'Notifications are blocked. Allow them in your phone or browser settings, then reopen Vecta.':'Get alerts for messages, extra-work requests and collection. Your phone will ask for permission.');}
   }catch(error){$('appAlertsNote').textContent=error.message;}
  }
  window.addEventListener('vecta:portal-verified',event=>{
