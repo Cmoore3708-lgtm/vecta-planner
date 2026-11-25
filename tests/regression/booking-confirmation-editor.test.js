@@ -23,7 +23,7 @@ test('confirmation uses the approved white header and edits both email alternati
 });
 test('plain text edits cannot add executable HTML, change recipients or exceed the limits',()=>{
  const content=confirmationContent(job,link,null,{work:'<img src=x onerror=alert(1)> & repair',parking:''});
- const {document}=parseHTML(content.html);assert.equal(document.querySelector('[data-confirmation-field="work"]').textContent,'<img src=x onerror=alert(1)> & repair');assert.deepEqual([...document.querySelectorAll('img')].map(img=>img.getAttribute('src')),['cid:booking-logo',...['iphone-home','iphone','iphone-bonus','android-home','android','android-bonus'].map(name=>'https://www.vectamotors.co.uk/assets/app-install/'+name+'.jpg')]);
+ const {document}=parseHTML(content.html);assert.equal(document.querySelector('[data-confirmation-field="work"]').textContent,'<img src=x onerror=alert(1)> & repair');assert.deepEqual([...document.querySelectorAll('img')].map(img=>img.getAttribute('src')),['cid:booking-logo',...['iphone-home','iphone','iphone-bonus','android-home','android','android-bonus'].map(name=>'https://www.vectamotors.co.uk/assets/app-install/'+name+'.jpg'),'https://www.vectamotors.co.uk/assets/vecta-workshop-exterior-email.jpg']);
  assert.equal(document.querySelector('[data-confirmation-field="parking"]').textContent,'');
  for(const edits of [{to:'elsewhere@example.invalid'},{work:'x'.repeat(5001)},[],{work:null},JSON.parse('{"__proto__":"bad"}')])assert.throws(()=>confirmationContent(job,link,null,edits),e=>e.status===400);
 });
