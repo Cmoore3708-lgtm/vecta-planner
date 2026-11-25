@@ -1,0 +1,14 @@
+.installGuideRow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.installGuideRow > img {
+  flex: none;
+  width: 64px;
+  height: 64px;
+  border-radius: 12px;
+}
+.installGuideRow:has(> a[hidden]) {
+  display: none;
+}
