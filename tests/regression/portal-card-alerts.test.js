@@ -245,3 +245,15 @@ test('mechanic can close a quote notification and still find the outstanding res
  assert.equal(popup.hidden,false);
  assert.match(popup.textContent,/has declined/);
 });
+
+test('reply button addresses only the selected customer message and waits for Send',async()=>{
+ const h=setup();h.state.messages.push(message('m2'));await tick();await h.click(h.badges()[0]);
+ const panel=h.document.querySelector('.portalWorkshop'),composer=panel.querySelector('.portalWorkshopComposer');
+ const target=panel.querySelector('[data-event-id="m2"]');target.setAttribute('open','');
+ const reply=[...target.querySelectorAll('button')].find(b=>b.textContent==='Reply to message');
+ await h.click(reply);assert.equal(composer.open,true);assert.equal(h.receipts.size,0);
+ composer.querySelector('textarea').value='We can check that.';
+ await composer.querySelector('form').onsubmit({preventDefault(){}});
+ assert.deepEqual(h.calls.find(c=>c.action==='portal-reply').reply_to_event_ids,['m2']);
+ assert.equal(h.receipts.has('manager:m1'),false);
+});
