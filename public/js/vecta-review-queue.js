@@ -139,6 +139,34 @@
   const status=node('p');status.setAttribute('role','status');
   open.append(headline,description,estimate,action);popup.append(open,close,status);document.body.append(popup);
 
+  const footer=node('div'),later=node('button','Remind me later'),done=node('button','Mark as dealt with');
+  footer.className='findingAlertFooter';later.type=done.type='button';later.className='btn';done.className='btn green';
+  later.title='Remind me in one hour';footer.append(later,done);popup.append(footer);
+  const receipts=new Map(),saving=new Set();
+  function mergeReceipts(rows){
+   for(const row of rows){
+    const old=receipts.get(row.message_id);
+    if(!old||old.action!=='done'&&(row.action==='done'||row.recorded_at>old.recorded_at))receipts.set(row.message_id,row);
+   }
+  }
+  function pending(item){
+   const receipt=receipts.get(item.id);
+   return !receipt||receipt.action==='snooze'&&Date.now()>=Date.parse(receipt.recorded_at)+3600000;
+  }
+  async function choose(choice){
+   const item=active;
+   if(!item||item.decision||saving.has(item.id))return;
+   saving.add(item.id);done.disabled=later.disabled=true;status.textContent='Saving…';
+   try{
+    const result=await api('mechanic-message-receipt',{job_id:item.job_id,message_id:item.id,choice});
+    mergeReceipts(result.receipts);redraw();
+    const panel=document.querySelector('#jobModal .workshopPhotos');
+    if(panel?.dataset.jobId===item.job_id)panel.querySelector('[data-photo-refresh]')?.click();
+   }catch(error){if(active?.id===item.id)status.textContent=error.message||'Could not save. Please try again.';}
+   finally{saving.delete(item.id);if(active?.id===item.id)done.disabled=later.disabled=false;}
+  }
+  done.onclick=()=>choose('done');later.onclick=()=>choose('snooze');
+
   function readSeen(){
    for(const [storageKey,seen] of [[key,acknowledged],[decisionKey,seenDecisions]])try{
     const ids=JSON.parse(localStorage.getItem(storageKey)||'[]');
@@ -154,10 +182,11 @@
   function stopWaiting(){waiting?.disconnect();waiting=null;}
   function redraw(){
    const decision=decisions.find(item=>!seenDecisions.has(eventId({...item,decision:true})));
-   const next=decision?{...decision,decision:true}:findings.find(item=>(item.mechanic_finding||item.mechanic_photo&&item.photo_ids.length) && !acknowledged.has(item.id));
+   const next=decision?{...decision,decision:true}:findings.find(item=>(item.mechanic_finding||item.mechanic_photo&&item.photo_ids.length) && !acknowledged.has(item.id)&&pending(item));
    if(active&&next&&eventId(active)===eventId(next)){active=next;return;}
    stopWaiting();active=next;opening=false;open.disabled=false;status.textContent='';popup.hidden=!next;
    if(!next)return;
+   footer.hidden=!!next.decision;close.hidden=!next.decision;done.disabled=later.disabled=saving.has(next.id);
    const title=next.decision?'Customer '+next.status:next.internal_note?'Workshop notes updated':(next.photo_ids.length?'New mechanic photo':'New mechanic finding');
    popup.classList.toggle('customerDecisionAlert',!!next.decision);popup.dataset.decision=next.decision?next.status:'';
    popup.setAttribute('aria-label',next.decision?'Customer approval response':'Mechanic update alert');
@@ -200,14 +229,15 @@
      // Show the received note without overwriting any unsaved office edits.
      section.scrollIntoView({block:'center'});notes.focus({preventScroll:true});
     }
-    acknowledge(item);
+    if(item.decision)acknowledge(item);
+    else status.textContent='Job card open. Mark this message as dealt with when finished.';
    }catch{if(active&&eventId(active)===eventId(item))status.textContent='This job could not be opened. Tap the alert to retry.';}
    finally{if(active&&eventId(active)===eventId(item)){opening=false;open.disabled=false;}}
   }
-  open.onclick=openFinding;close.onclick=()=>{if(active)acknowledge(active);};
+  open.onclick=openFinding;close.onclick=()=>{if(active?.decision)acknowledge(active);};
   window.addEventListener('storage',event=>{if(event.key===key||event.key===decisionKey){readSeen();redraw();}});
   readSeen();
-  return (rows,responses=[])=>{findings=rows;decisions=responses;redraw();};
+  return (rows,responses=[],states=[])=>{mergeReceipts(states);findings=rows;decisions=responses;redraw();};
  }
  function install(){
   const mechanic=!!window.VECTA_MECHANIC_DEPLOYMENT;
@@ -235,11 +265,11 @@
   };
   async function refresh(){
    if(document.hidden)return;
-   updateAlerts([...workshopNotes(),...lastFindings],lastDecisions);
    if(busy||!navigator.onLine)return;
    busy=true;
    try{
-    const data=await api('approval-queue');const current=new Set(data.findings.map(row=>row.id));activeCount=current.size;
+    const notes=workshopNotes();
+    const data=await api('approval-queue',{note_ids:notes.map(item=>item.id)});const current=new Set(data.findings.map(row=>row.id));activeCount=current.size;
     for(const [id,el] of entries){
      if(!current.has(id)&&(list.hidden||!el.open)){el.remove();entries.delete(id);}
     }
@@ -247,7 +277,7 @@
      if(!entries.has(item.id)){const el=card(item);entries.set(item.id,el);list.append(el);}
     }
     lastFindings=data.findings;lastDecisions=window.VectaPortalWorkshop?[]:data.decisions;
-    status.textContent='';redraw();updateAlerts([...workshopNotes(),...lastFindings],lastDecisions);
+    status.textContent='';redraw();updateAlerts([...notes,...lastFindings],lastDecisions,data.receipts);
    }catch(error){status.textContent=error.message;}finally{busy=false;}
   }
   window.addEventListener('vecta-findings-changed',refresh);

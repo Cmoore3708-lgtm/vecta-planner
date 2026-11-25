@@ -14,7 +14,7 @@ const first={id:'00000002-0000-4000-8000-000000000001',job_id:job.id,registratio
 const second={...first,id:'00000002-0000-4000-8000-000000000002',message:'Second finding',photo_ids:['00000003-0000-4000-8000-000000000002']};
 const signed=id=>'https://brqsejjykrubxuofavuu.supabase.co/storage/v1/object/sign/job-workshop-photos/'+id+'.jpg?token=sample';
 const flush=()=>new Promise(resolve=>setImmediate(resolve));
-function app(seen=new Map(),mechanic=false,extraPhotos=[]){
+function app(seen=new Map(),mechanic=false,extraPhotos=[],receipts=[]){
  const {document,window:dom}=parseHTML('<html><body><main class="main"><header class="top"></header></main><div class="modal" id="jobModal"></div><div class="modal" id="other"></div></body></html>');
  let jobs=[job],mounted=0,openedId='',scrolls=0,interval,alerts=[],decisions=[],notes=[],approvalRows=[first,second],requests=[];
  const events={};
@@ -31,15 +31,21 @@ function app(seen=new Map(),mechanic=false,extraPhotos=[]){
   localStorage:{getItem:k=>seen.get(k),setItem:(k,v)=>seen.set(k,v)},setInterval(fn){interval=fn;},setTimeout(){},clearTimeout(){},
   fetch:async(_url,opt)=>{
    const b=JSON.parse(opt.body);requests.push(b.action);
-   if(['approval-queue','approval-decisions'].includes(b.action))return Response.json({findings:alerts,decisions});
+   if(['approval-queue','approval-decisions'].includes(b.action))return Response.json({findings:alerts,decisions,receipts});
    assert.equal(b.job_id,job.id);
-   if(b.action==='approval-list')return Response.json({approvals:approvalRows});
+   if(b.action==='mechanic-message-receipt'){
+    receipts.push({message_id:b.message_id,action:b.choice,recorded_at:new Date().toISOString()});
+    return Response.json({receipts:receipts.filter(row=>row.message_id===b.message_id)});
+   }
+   if(b.action==='approval-list')return Response.json({approvals:approvalRows,dealt_messages:receipts.filter(row=>row.action==='done')});
    if(b.action==='photos-list')return Response.json({photos:[...approvalRows.filter(f=>f.photo_ids.length).map(f=>({id:f.photo_ids[0],review_id:f.id,private_finding:f.status==='awaiting_price',caption:f.message,url:signed(f.photo_ids[0])})),...extraPhotos]});
    throw Error('Unexpected action '+b.action);
   }
  });
  vm.runInContext(photos,ctx);vm.runInContext(bridge,ctx);vm.runInContext(queue,ctx);
- return {document,window,modal,ctx,requests,get mounted(){return mounted;},get opened(){return openedId;},get scrolls(){return scrolls;},
+ return {document,window,modal,ctx,requests,receipts,
+  done:()=>document.querySelector('.findingAlertFooter .green').onclick(),
+  later:()=>document.querySelector('.findingAlertFooter button').onclick(),get mounted(){return mounted;},get opened(){return openedId;},get scrolls(){return scrolls;},
   setRows(rows){alerts=rows;},setNotes(rows){notes=rows;},setDecisions(rows){decisions=rows;},setApprovalRows(rows){approvalRows=rows;},async poll(){await interval?.();await flush();},
   get popup(){return document.querySelector('.mechanicPhotoAlert');},
   get action(){return document.querySelector('.findingAlertOpen');}};
@@ -81,24 +87,25 @@ test('click opens the matching saved job, focuses the specific finding with only
  assert.equal(focused.querySelectorAll('[data-finding-evidence] img').length,1);
  assert.doesNotMatch(focused.textContent,/Second finding/);
  assert.ok(!ui.modal.querySelector('[data-photo-saved]').innerHTML.includes(first.photo_ids[0]),'no duplicate private photo below the focused finding');
+ assert.match(ui.action.textContent,/Inner shoulder/);await ui.done();
  assert.match(ui.action.textContent,/Second finding/);
  await ui.action.onclick();await flush();
  assert.equal(ui.mounted,1,'do not reopen an existing job and lose edits');
- assert.match(focused.textContent,/Second finding/);
+ assert.match(focused.textContent,/Second finding/);await ui.done();
  assert.equal(ui.popup.hidden,true);
- const reloaded=app(seen);await flush();reloaded.setRows([first,second]);await reloaded.poll();
+ const reloaded=app(new Map(),false,[],ui.receipts);await flush();reloaded.setRows([first,second]);await reloaded.poll();
  assert.equal(reloaded.popup.hidden,true);
- assert.ok(ui.requests.every(action=>['approval-queue','photos-list','approval-list'].includes(action)));
+ assert.ok(ui.requests.every(action=>['approval-queue','photos-list','approval-list','mechanic-message-receipt'].includes(action)));
 });
 
 test('dismissing an alert preserves the pricing queue; a different open editor stays intact until it is closed',async()=>{
  const ui=app();await flush();ui.setRows([first,second]);await ui.poll();
- ui.popup.querySelector('.findingAlertDismiss').click();
+ await ui.done();
  assert.match(ui.action.textContent,/Second finding/);assert.match(ui.document.querySelector('.findingQueue').textContent,/findings to price \(2\)/);
  const other=ui.document.getElementById('other');other.classList.add('open');other.innerHTML='<input value="unsaved">';
  await ui.action.onclick();assert.equal(ui.mounted,0);assert.match(ui.popup.textContent,/Finish or close/);
  other.classList.remove('open');await flush();await flush();
- assert.equal(ui.mounted,1);assert.equal(ui.popup.hidden,true);
+ assert.equal(ui.mounted,1);await ui.done();assert.equal(ui.popup.hidden,true);
 });
 test('mechanics receive customer decision alerts without pricing; completed findings disappear on the next poll',async()=>{
  const mechanic=app(new Map(),true);await flush();assert.equal(mechanic.popup.hidden,true);assert.deepEqual(mechanic.requests,['approval-decisions']);
@@ -122,7 +129,7 @@ test('approval and decline responses pop up without an open job, persist until a
  assert.equal(ui.opened,job.id);assert.match(ui.modal.querySelector('.findingDestination').textContent,/Customer declined/);
  assert.match(ui.action.textContent,/New mechanic photo/,'photo alerts resume after customer responses');
  const reopened=app(seen);await flush();reopened.setDecisions([approved,declined]);await reopened.poll();assert.equal(reopened.popup.hidden,true);
- assert.ok(ui.requests.every(action=>['approval-queue','photos-list','approval-list'].includes(action)),'displaying a response cannot write the job or contact a customer');
+ assert.ok(ui.requests.every(action=>['approval-queue','photos-list','approval-list','mechanic-message-receipt'].includes(action)),'displaying a response cannot write the job or contact a customer');
 });
 
 test('response notification waits for unsaved work and acknowledgements are shared between tabs',async()=>{
@@ -155,10 +162,22 @@ test('private note updates alert Main, open the note without overwriting office 
  const field=ui.modal.querySelector('#job_internal_workshop_notes');field.value='Unsaved office details';
  ui.setNotes([note]);await ui.poll();assert.equal(ui.popup.hidden,false);assert.match(ui.action.textContent,/Workshop notes updated.*TEST001/);assert.equal(ui.document.querySelector('.findingQueue').hidden,true,'internal notes do not become customer estimates');
  await ui.action.onclick();await flush();
- assert.equal(ui.mounted,1);assert.equal(field.value,'Unsaved office details');assert.match(ui.modal.querySelector('[data-mechanic-note-review]').textContent,/Pads worn/);assert.equal(ui.popup.hidden,true);
+ assert.equal(ui.mounted,1);assert.equal(field.value,'Unsaved office details');assert.match(ui.modal.querySelector('[data-mechanic-note-review]').textContent,/Pads worn/);assert.equal(ui.popup.hidden,false);await ui.done();assert.equal(ui.popup.hidden,true);
  await ui.poll();assert.equal(ui.popup.hidden,true);
- const reopened=app(storage);await flush();reopened.setNotes([note]);await reopened.poll();assert.equal(reopened.popup.hidden,true);
+ const reopened=app(new Map(),false,[],ui.receipts);await flush();reopened.setNotes([note]);await reopened.poll();assert.equal(reopened.popup.hidden,true);
  reopened.setNotes([{...note,id:'private-note-2',message:'Workshop notes cleared.'}]);await reopened.poll();assert.equal(reopened.popup.hidden,false);assert.match(reopened.action.textContent,/Workshop notes cleared/);
- assert.ok(ui.requests.every(action=>['approval-queue','photos-list','approval-list'].includes(action)),'reviewing notes cannot send to the customer');
+ assert.ok(ui.requests.every(action=>['approval-queue','photos-list','approval-list','mechanic-message-receipt'].includes(action)),'reviewing notes cannot send to the customer');
  const mechanic=app(new Map(),true);await flush();mechanic.setNotes([note]);await mechanic.poll();assert.equal(mechanic.popup.hidden,true);
+});
+
+test('one-hour snooze follows the message across devices and never reopens a dealt-with message',async()=>{
+ const receipts=[],office=app(new Map(),false,[],receipts),phone=app(new Map(),false,[],receipts);
+ await flush();office.setRows([first]);phone.setRows([first]);await office.poll();await office.later();
+ await phone.poll();assert.equal(phone.popup.hidden,true);
+ receipts[0].recorded_at=new Date(Date.now()-3600001).toISOString();
+ // A fresh session observes the expired server timestamp.
+ const next=app(new Map(),false,[],receipts);await flush();next.setRows([first,second]);await next.poll();
+ assert.match(next.action.textContent,/Inner shoulder/);await next.done();assert.match(next.action.textContent,/Second finding/);
+ receipts.push({action:'snooze',message_id:first.id,recorded_at:new Date().toISOString()});
+ await phone.poll();assert.equal(phone.popup.hidden,true);
 });
