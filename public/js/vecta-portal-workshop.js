@@ -76,8 +76,8 @@
  }
  function receiveAcknowledgements(items){rememberAcknowledged(items.filter(item=>item.acknowledged_at).map(item=>item.id));}
 
- function acknowledgeButton(item,status){
-  const control=button('Acknowledge message',async()=>{
+ function acknowledgeButton(item,status,label='Acknowledge message'){
+  const control=button(label,async()=>{
    control.disabled=true;status.textContent='Saving acknowledgement…';
    try{await acknowledge([item]);control.hidden=acknowledged.has(item.id);status.textContent=control.hidden?'Acknowledged.':'Acknowledgement not confirmed. Please retry.';}
    catch{status.textContent='Unable to save the acknowledgement. This message remains outstanding. Reconnect and retry.';}
@@ -395,7 +395,9 @@
      try{if(!navigator.onLine)throw Error('Reconnect to open this message. It remains outstanding.');if(item.job_id)await openJobMessage(item);else showBookingMessage(item);status.textContent='';}
      catch(error){status.textContent=error.message;}finally{open.disabled=false;}
     });
-    row.append(identity,preview,meta,open,status);list.append(row);
+    const actions=node('div');actions.className='portalOutstandingActions';
+    actions.append(open,acknowledgeButton(item,status,'Acknowledge'));
+    row.append(identity,preview,meta,actions,status);list.append(row);
    }
   };
  }
