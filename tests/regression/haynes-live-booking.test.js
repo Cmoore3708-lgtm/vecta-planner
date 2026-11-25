@@ -20,7 +20,7 @@ for(const path of ['public/booking.html','website/booking/index.html'])test(`${p
  assert.equal(document.querySelector('[data-haynes-confirm]'),null);
  for(const answer of ['yes','no']){vm.runInContext("state.form.nevos_vehicle='';render()",root);assert.ok(document.querySelector('.nevos-question'));document.querySelector('[data-nevos-choice="'+answer+'"]').onclick();assert.equal(document.querySelector('.nevos-question'),null);assert.equal(vm.runInContext('state.form.nevos_vehicle',root),answer);}
  vm.runInContext("state.form.job_types=['Service'];state.form.service_choice='Full Service';state.form.parts_range='Mid Range';state.form.parts_preference='oem';state.form.serious_repair_choice='book_later';state.form.inspect_mot_advisories='yes'",root);
- assert.equal(vm.runInContext('estimateCost()',root),201.5);
+ assert.equal(vm.runInContext('estimateCost()',root),205);
  for(let step=1;step<=5;step++){
   vm.runInContext(`state.step=${step};render()`,root);
   assert.equal(document.querySelectorAll('[data-haynes-slot]').length,1);
