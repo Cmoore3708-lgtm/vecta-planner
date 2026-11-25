@@ -68,3 +68,16 @@ test('service price request starts while mileage is open with no service level o
   assert.equal(s.state.mileage_dialog_open,true);
  }finally{controller.reset();}
 });
+
+test('accepting the maintenance recommendation asks for mileage before the service level',()=>{
+ const s=setup();
+ const recommendation={dataset:{addRecommendation:'Service'}};
+ s.state.form.job_types=['MOT'];s.state.form.service_choice='';s.state.mileage_dialog_open=false;
+ s.ctx.document.querySelectorAll=selector=>selector==='[data-add-recommendation]'?[recommendation]:[];
+ const start=html.indexOf('function bindV137()');
+ vm.runInContext(html.slice(start,html.indexOf('\nfunction ',start+1)),s.ctx);
+ s.ctx.bindV137();recommendation.onclick();
+ assert.deepEqual([...s.state.form.job_types],['MOT','Service']);
+ assert.equal(s.state.form.service_choice,'');
+ assert.equal(s.state.mileage_dialog_open,true);
+});
