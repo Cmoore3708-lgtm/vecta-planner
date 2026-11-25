@@ -29,5 +29,5 @@ test('an open mileage dialog preserves the service viewport without focusing a b
 });
 
 test('background service prices retain the tyre artwork without taking focus from tyre inputs',()=>{
- const s=setup();s.c.render({preserveServicePosition:true});assert.equal(s.document.querySelector('.tyre-picker'),s.tyres);assert.equal(s.focuses.length,0);
+ const s=setup();s.c.render({preserveServicePosition:true,backgroundPriceUpdate:true});assert.equal(s.document.querySelector('.tyre-picker'),s.tyres);assert.equal(s.focuses.length,0);assert.equal(s.scrolls.length,0);
 });
