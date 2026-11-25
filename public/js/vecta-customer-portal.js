@@ -40,6 +40,7 @@
    const card=node('details');card.className='portalEvent';card.dataset.signal=colour(item);card.dataset.eventId=item.id;
    const timestamp=node('time',date(item.created_at));timestamp.dateTime=item.created_at;
    const heading=node('summary');heading.className='portalEventHeading';heading.append(node('strong',window.VectaMessageSummary?.title(item)||(labels[item.kind]||'Update')),timestamp);
+   if(item.actor==='workshop')heading.addEventListener('click',()=>{if(!card.open)navigator.serviceWorker?.controller?.postMessage({type:'vecta-message-read',seq:String(item.seq)});});
    card.append(heading,eventBody(item));if(expanded.has(item.id))card.setAttribute('open','');history.append(card);
   }
  }

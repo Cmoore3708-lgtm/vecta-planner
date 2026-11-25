@@ -1,10 +1,11 @@
+import {portalAccess} from '../../lib/customer-portal.js';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import vm from 'node:vm';
 import {parseHTML} from 'linkedom';
-import {emailPortalEntry,allowPortalEntry,portalEntryOrigin,portalEntryAcknowledgement} from '../../lib/portal-entry.js';
-import {verifyProgressToken,progressSecret,claimMatchesJob,requestProgressSecret,requestProgressJob} from '../../lib/job-progress.js';
+import {emailNewBookingPortal,emailPortalEntry,allowPortalEntry,portalEntryOrigin,portalEntryAcknowledgement} from '../../lib/portal-entry.js';
+import {verifyProgressToken,progressSecret,claimMatchesJob,requestProgressSecret,requestProgressJob,requestTrackingPath} from '../../lib/job-progress.js';
 import handler from '../../lib/job-progress-handler.js';
 
 const now=Date.parse('2026-11-10T10:15:00Z'),id='12345678-1234-4234-8234-123456789012';
@@ -125,4 +126,18 @@ test('validation, unavailable email service, and closed-dialog races leave a usa
   b.click('portalEntryLink');b.input.value='A';b.submit();assert.equal(calls,0);assert.match(b.status.textContent,/registration/);
   b.input.value='AB12CDE';b.submit();resolve({ok:false,json:async()=>({error:'Please try again later.'})});await tick();assert.equal(b.button.disabled,false);assert.equal(b.status.textContent,'Please try again later.');
   b.submit();b.click('portalEntryClose');b.click('portalEntryLink');resolve({ok:true,json:async()=>portalEntryAcknowledgement});await tick();assert.equal(b.input.value,'');assert.equal(b.status.textContent,'');assert.equal(b.button.disabled,false);
+});
+
+test('new booking email opens before acceptance and still opens after confirmation',async()=>{
+ const restore=environment();try{
+  const request={id:'42345678-1234-4234-8234-123456789012',registration:job.registration,email:job.customer_email,preferred_date_1:job.booking_date,status:'awaiting_review',created_at:job.created_at};
+  let sent;await emailNewBookingPortal(request,requestTrackingPath(request,now),{send:async(...args)=>{sent=args;}});
+  assert.deepEqual(sent[0].to,['driver@example.com']);
+  const token=sent[1].match(/app\/booking#(\S+)/)[1];assert.ok(sent[4].html.includes(token));
+  assert.equal((await portalAccess(database([],[request]),token,now)).request.id,request.id);
+  request.job_id=job.id;const saved={...job,status:'provisional'};
+  assert.equal((await portalAccess(database([saved],[request]),token,now)).job.status,'provisional');
+  saved.status='booked';request.status='booked';
+  assert.equal((await portalAccess(database([saved],[request]),token,now)).job.status,'booked');
+ }finally{restore();}
 });
