@@ -58,7 +58,7 @@ return {state:vectaBookingAlertsState,maintain:vectaMaintainBookingAlerts,enable
 // Main and mechanics keep app state inside a closure. Receive those dependencies
 // explicitly instead of looking for private variables on the browser global.
 // Use the same shared review receipt as the Website Bookings inbox.
-function createPhoneBookingPopup(openBooking,markRead){
+function createPhoneBookingPopup(openBooking){
   let current=null,dialog=null,timer=null,deferred=null,busy=false;
   function enabled(){
     return typeof openBooking==='function' && !window.VECTA_MECHANIC_DEPLOYMENT &&
@@ -79,7 +79,7 @@ function createPhoneBookingPopup(openBooking,markRead){
     dialog=box;
     box.setAttribute('aria-labelledby','phoneBookingTitle');
     box.style.cssText='box-sizing:border-box;width:min(92vw,390px);max-height:85dvh;overflow:auto;margin:auto;padding:20px;border:1px solid #555;border-top:5px solid #2678bc;border-radius:14px;background:#202327;color:white;color-scheme:dark';
-    box.innerHTML='<h2 id="phoneBookingTitle" style="margin:0 0 12px">New website booking</h2><strong class="requestPlate"></strong><p data-customer></p><p data-work></p><p data-date></p><p role="status"></p><div style="display:flex;flex-wrap:wrap;gap:8px"><button class="btn primary" data-open>Open booking</button><button class="btn" data-seen>Mark as seen</button></div>';
+    box.innerHTML='<h2 id="phoneBookingTitle" style="margin:0 0 12px">New website booking</h2><div style="display:flex;align-items:center;gap:10px"><div style="flex:1;min-width:0;overflow-wrap:anywhere"><strong class="requestPlate" style="color:#111827"></strong><p data-customer style="margin-bottom:0"></p></div><img data-car hidden style="width:38%;max-width:135px;height:84px;object-fit:contain"></div><p data-work></p><p data-date></p><p role="status"></p><div style="display:flex;flex-wrap:wrap;gap:8px"><button class="btn primary" data-open>Open booking</button></div>';
     box.querySelector('strong').textContent=row.registration||'No registration';
     box.querySelector('[data-customer]').textContent=[row.customer_name,row.vehicle].filter(Boolean).join(' · ');
     box.querySelector('[data-work]').textContent=[].concat(row.job_types||[]).filter(Boolean).join(', ')||row.work_required||'General work';
@@ -87,20 +87,36 @@ function createPhoneBookingPopup(openBooking,markRead){
     box.querySelector('[data-date]').textContent=date?'Booking date · '+new Date(String(date).slice(0,10)+'T12:00:00').toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'}):'';
     function later(){deferred=row.id;remove();}
     box.oncancel=event=>{event.preventDefault();if(!busy)later();};
-    async function act(open){
+    const button=box.querySelector('[data-open]');
+    button.onclick=async ()=>{
       if(busy)return;
       busy=true;
-      const buttons=box.querySelectorAll('button');buttons.forEach(b=>b.disabled=true);
+      button.disabled=true;
       try{
-        if(open){await openBooking(row.id);}
-        else if(!await markRead({request_id:row.id}))throw new Error();
+        await openBooking(row.id);
         if(dialog===box)remove();
       }catch{box.querySelector('[role=status]').textContent='Could not update this booking. Please try again.';}
-      finally{busy=false;buttons.forEach(b=>b.disabled=false);}
-    }
-    box.querySelector('[data-open]').onclick=()=>act(true);
-    box.querySelector('[data-seen]').onclick=()=>act(false);
+      finally{busy=false;button.disabled=false;}
+    };
     document.body.append(box);box.showModal();
+    const img=box.querySelector('[data-car]'),tools=window.VectaHaynesJobTools;
+    function fallback(){
+      const svg=window.VectaFleetImages?.artwork?.(row.vehicle,tools?.dashboardColour?.(row));
+      img.onerror=null;
+      if(svg){img.alt='Vehicle illustration';img.src='data:image/svg+xml;charset=utf-8,'+encodeURIComponent(svg);img.hidden=false;}
+      else img.hidden=true;
+    }
+    function paintCar(){
+      if(dialog!==box)return;
+      const drawing=tools?.storedDrawing?.(row);
+      if(!drawing?.imageUrl){fallback();return;}
+      img.onerror=fallback;
+      img.alt=row.vehicle||'Booked vehicle';
+      img.src=tools.artworkUrl(drawing.imageUrl);
+      img.hidden=false;
+    }
+    paintCar();
+    tools?.hydrateSharedArtwork?.()?.then(paintCar).catch(()=>{});
   }
   document.addEventListener?.('visibilitychange',()=>{if(document.hidden){deferred=null;current=null;remove();}});
   return {enabled,update(row){
@@ -109,7 +125,7 @@ function createPhoneBookingPopup(openBooking,markRead){
   }};
 }
 window.createVectaBookingReceipts=function({getClient,getRequests,request,saveLocal,withTimeout,updateBadge,openBooking}){
-var popup=createPhoneBookingPopup(openBooking,markRead);
+var popup=createPhoneBookingPopup(openBooking);
 var cloudCount=null,pending=null,revision=0;
 function count(){return cloudCount!==null?cloudCount:getRequests().filter(function(r){return (!r.status||r.status==='awaiting_review')&&!r.reviewed_at}).length}
 function invalidate(){cloudCount=null}
