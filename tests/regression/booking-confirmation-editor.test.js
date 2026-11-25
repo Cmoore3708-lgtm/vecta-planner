@@ -6,6 +6,17 @@ import {parseHTML} from 'linkedom';
 import {confirmationContent,confirmationPreviewHtml} from '../../lib/portal-email.js';
 const job={id:'11111111-1111-4111-8111-111111111111',registration:'TEST001',vehicle:'Peugeot 208',booking_date:'2026-11-24',amount_quoted:120,work_required:'Full service'};
 const link='https://www.vectamotors.co.uk/track#test';
+test('Android bookings get three Android guide pictures, including after a portal preference edit',()=>{
+ const preferences={version:1,parts:'budget',serious_repairs:'change_parts',booking_phone:'android'};
+ const note=globalThis.VectaBookingRules.customerPreferencesNote({customer_preferences:preferences});
+ const updated='[[VECTA_PORTAL_PREFERENCES:'+JSON.stringify({...preferences,booking_phone:undefined,parts:'oem'})+']]';
+ const {html,text}=confirmationContent({...job,customer_note:note+updated},link);
+ const {document}=parseHTML(html);
+ const images=[...document.querySelectorAll('img[src*="app-install"]')].map(i=>i.getAttribute('src').split('/').pop());
+ assert.deepEqual(images,['android-home.jpg','android.jpg','android-bonus.jpg']);
+ assert.match(text,/android-bonus\.jpg/);assert.doesNotMatch(text,/iphone-bonus\.jpg/);
+ assert.ok(document.querySelector('a[href$="iphone-guide.html"]'));
+});
 test('confirmation uses the approved white header and edits both email alternatives without changing the job or links',()=>{
  const original=structuredClone(job),edits={heading:'Your booking with Chris',work:'Full service\nPlease check the rear tyres.',cost:'Estimated cost: £150 including VAT',parking:'Leave the keys with Chris.',signoff:'See you on Tuesday',portal_button:'OPEN MY BOOKING'};
  const content=confirmationContent(job,link,'aW1hZ2U=',edits),{document}=parseHTML(content.html);

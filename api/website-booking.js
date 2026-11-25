@@ -20,6 +20,10 @@ function reg(v){return String(v||'').toUpperCase().replace(/\s+/g,' ').trim()}
 async function rest(url,key,path,method='GET',body,prefer='return=representation'){const r=await fetch(`${url}/rest/v1/${path}`,{method,headers:{apikey:key,Authorization:`Bearer ${key}`,'Content-Type':'application/json',Prefer:prefer},body:body?JSON.stringify(body):undefined});if(!r.ok)throw new Error(await r.text());return r.status===204?null:r.json().catch(()=>null)}
 // Compare the values Postgres persists, including JSONB objects whose keys may be reordered.
 function sameBookingField(field, saved, submitted) {
+  if(field==='customer_preferences'&&saved&&submitted){
+    const {booking_phone:oldPhone,...original}=saved,{booking_phone:newPhone,...incoming}=submitted;
+    return isDeepStrictEqual(original,incoming);
+  }
   if (field === 'gsf_parts') return isDeepStrictEqual(saved ?? [], submitted ?? []);
   if (field === 'approximate_cost' && saved != null && submitted != null) {
     return Number(saved) === Number(submitted);
@@ -68,6 +72,7 @@ export default async function handler(req,res){
   const hasTotal=(typeof suppliedTotal==='number'||(typeof suppliedTotal==='string'&&suppliedTotal.trim()!==''))&&Number.isFinite(Number(suppliedTotal))&&Number(suppliedTotal)>=0;
   const request={id,customer_name:String(b.customer_name).trim(),email:String(b.email).trim(),phone:String(b.phone).trim(),registration:reg(b.registration),vehicle:String(b.vehicle).trim(),mileage:String(b.mileage||'').trim(),mot_due:b.mot_due||null,job_types:types,work_required:String(b.work_required).trim(),preferred_date_1:appointment,preferred_date_2:null,preferred_date_3:null,completion_deadline:String(b.completion_deadline||'').trim(),contact_preference:String(b.contact_preference||'Email'),source:'Website booking',status:'awaiting_review',confirmed_date:appointment,confirmed_time:b.appointment_time||null,approximate_cost:hasTotal?Number(suppliedTotal):null,created_at:new Date().toISOString()};
   if(preferences)request.customer_preferences={version:1,parts:preferences.parts,serious_repairs:preferences.serious_repairs};
+  if(preferences&&(b.booking_phone==='android'||/android/i.test(req.headers?.['user-agent']||'')))request.customer_preferences.booking_phone='android';
   // The primary key makes concurrent retries atomic without overwriting a request.
   if(servicePrice){
    request.approximate_cost=servicePrice.approximateCost;request.work_required+=servicePrice.snapshot;

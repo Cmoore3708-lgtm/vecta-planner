@@ -69,6 +69,9 @@
     var portal=String(record&&record.customer_note||'').match(/\[\[VECTA_PORTAL_PREFERENCES:([^\]]+)\]\]/);
     try{var choice=JSON.parse(portal&&portal[1]);if(validCustomerPreferences(choice))return choice;}catch(e){}
 
+    return bookingPreferences(record);
+  }
+  function bookingPreferences(record){
     if(validCustomerPreferences(record&&record.customer_preferences))return record.customer_preferences;
     // Read the server-created snapshot at the end of the note. A later edit to
     // the job description must not erase the customer's original instructions.
@@ -98,6 +101,7 @@
     customerInstructionsHtml:customerInstructionsHtml,
     validCustomerPreferences:validCustomerPreferences,
     customerPreferences:customerPreferences,
+    bookingPreferences:bookingPreferences,
     customerPreferenceLines:customerPreferenceLines,
     customerPreferencesNote:customerPreferencesNote,
     bookingCustomerNotes:bookingCustomerNotes,
