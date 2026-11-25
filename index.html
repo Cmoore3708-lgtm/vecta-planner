@@ -10682,7 +10682,16 @@ async function persistMainSettings(options){
  var pending=vectaSettingsWriteQueue.then(run,run);vectaSettingsWriteQueue=pending.catch(function(){});return pending;
 }
 async function saveAll(options){invalidateFinanceDashboardCache();saveLocal();if(remoteClient)return await persistMainSettings(options);return true}
-var vectaBookingReceipts=window.createVectaBookingReceipts({getClient:()=>remoteClient,getRequests:()=>app.websiteRequests||[],request:body=>vectaProgressRequest(body),saveLocal,withTimeout:vectaWithTimeout,updateBadge:vectaUpdateAppBadge});
+var vectaBookingReceipts=window.createVectaBookingReceipts({getClient:()=>remoteClient,getRequests:()=>app.websiteRequests||[],openBooking:async function(id){
+  var result=await remoteClient.from('website_booking_requests').select('*').eq('id',id).maybeSingle();
+  if(result.error)throw result.error;
+  var row=result.data;
+  if(row&&!row.reviewed_at&&(!row.status||row.status==='awaiting_review')){
+    app.websiteRequests=(app.websiteRequests||[]).filter(function(r){return r.id!==id;}).concat(fromRemote(row));
+    await createJobFromWebsiteRequest(id);
+  }
+  vectaRefreshWebsiteBookingCount();
+},request:body=>vectaProgressRequest(body),saveLocal,withTimeout:vectaWithTimeout,updateBadge:vectaUpdateAppBadge});
 function vectaPendingWebsiteBookingCount(){return vectaBookingReceipts.count()}
 function vectaRefreshWebsiteBookingCount(){return vectaBookingReceipts.refresh()}
 window.vectaMarkWebsiteBookingRead=body=>vectaBookingReceipts.markRead(body);
