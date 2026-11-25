@@ -36,8 +36,8 @@ test('all non-NMUK confirmed customer types qualify, but inactive or invalid rec
 test('customer email has date, safe arrival instructions and a private HERE button; NMUK has none of the portal extras',t=>{
  setup(t);const content=bookingReminderContent({...base,recipient:base.customer_email});
  for(const phrase of ['15 December 2026','park outside the workshop','designated customer parking spaces','Key Drop letterbox','at reception','Keep an eye on your personalised customer portal'])assert.ok(content.text.includes(phrase));
- const {document}=parseHTML(content.html),link=document.querySelector('a');assert.equal(link.textContent,'HERE');
- const guide=document.querySelector('a[href*="/install-app"]');assert.equal(new URL(guide.href).hash,new URL(link.href).hash);assert.ok(content.text.includes(guide.href));assert.match(content.html,/Have you installed our app and enabled notifications/);
+ const {document}=parseHTML(content.html),link=document.querySelector('a[href*="/track"]');assert.equal(link.textContent,'View my booking');
+ const guide=document.querySelector('a[href*="/install-app"]');assert.equal(new URL(guide.href).hash,new URL(link.href).hash);assert.ok(content.text.includes(guide.href));assert.equal(document.querySelectorAll('a[href*="/install-app"]').length,1);assert.doesNotMatch(content.html,/notification-example/);
  const logo=document.querySelector('img');assert.equal(logo.getAttribute('src'),'cid:reminder-logo');
  assert.equal(logo.getAttribute('alt'),'VECTA — Vehicle Servicing and repairs');
  assert.equal(content.attachments.length,1);assert.equal(content.attachments[0].content_id,'reminder-logo');

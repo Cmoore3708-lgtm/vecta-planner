@@ -133,11 +133,11 @@ test('new booking email opens before acceptance and still opens after confirmati
   const request={id:'42345678-1234-4234-8234-123456789012',registration:job.registration,email:job.customer_email,preferred_date_1:job.booking_date,status:'awaiting_review',created_at:job.created_at};
   let sent;await emailNewBookingPortal(request,requestTrackingPath(request,now),{send:async(...args)=>{sent=args;}});
   assert.deepEqual(sent[0].to,['driver@example.com']);
-  const token=sent[1].match(/app\/booking#(\S+)/)[1];assert.ok(sent[4].html.includes(token));
+  const {document:receipt}=parseHTML(sent[4].html);const setup=new URL(receipt.querySelector('a').href);const token=setup.hash.slice(1);assert.equal(setup.pathname,'/app/booking');assert.equal(setup.searchParams.get('setup'),'1');assert.ok(sent[1].includes(setup.href));
   const {document}=parseHTML(sent[4].html);
   assert.ok(document.querySelector('img[src="cid:booking-logo"]'));
-  assert.equal(document.querySelector('img[src$="booking-receipt.jpg"]').parentElement.getAttribute('href'),'https://www.vectamotors.co.uk/install-app#'+token);
-  assert.match(sent[1],/In the meantime, install the VECTA app on your phone for immediate updates/);
+  assert.equal(document.querySelectorAll('li').length,3);
+  assert.match(sent[1],/3. Open VECTA from your Home Screen/);
   assert.equal((await portalAccess(database([],[request]),token,now)).request.id,request.id);
   request.job_id=job.id;const saved={...job,status:'provisional'};
   assert.equal((await portalAccess(database([saved],[request]),token,now)).job.status,'provisional');
