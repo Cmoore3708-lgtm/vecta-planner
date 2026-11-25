@@ -167,6 +167,24 @@ test('dashboard groups all dates and latest messages; opening and refresh never 
  const reload=setup({storage:h.storage,online:false});await tick();assert.equal(reload.document.querySelectorAll('.portalOutstandingRow').length,2);assert.match(reload.document.querySelector('.portalOutstanding').textContent,/Offline/);
  h.state.fail=true;await h.poll();assert.equal(section.querySelectorAll('.portalOutstandingRow').length,2);
 });
+test('dashboard acknowledgement retries and clears only the displayed message without opening a job',async()=>{
+ const h=setup();
+ h.state.queue=[{...message('latest'),seq:2},{...message('earlier'),seq:1},message('pending',null)];
+ await h.poll();
+ const section=h.document.querySelector('.portalOutstanding');
+ const ack=id=>section.querySelector('[data-acknowledge-id="'+id+'"]');
+ h.state.failRead=true;
+ await ack('latest').onclick();
+ assert.match(section.textContent,/remains outstanding/);
+ h.state.failRead=false;
+ await ack('latest').onclick();await h.poll();
+ assert.equal(ack('latest'),null);
+ assert.ok(ack('earlier'));
+ await ack('pending').onclick();await h.poll();
+ assert.equal(section.querySelector('.portalOutstandingCount').textContent,'1');
+ assert.deepEqual(h.state.opened,[]);
+ assert.deepEqual([...h.receipts.keys()],['manager:latest','manager:pending']);
+});
 test('a failed reply stays outstanding; successful retry clears only the messages open when sending began',async()=>{
  const h=setup();await tick();await h.click(h.badges()[0]);
  const form=h.document.querySelector('.portalWorkshopComposer form'),input=form.querySelector('textarea');input.value='Yes, we will call first.';
