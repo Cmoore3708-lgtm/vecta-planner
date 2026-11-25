@@ -12937,7 +12937,7 @@ function websiteJobDetails(j){
   var made=(note.match(/Website booking made:\s*([^|]*?)(?:\s*\|\||$)/i)||[])[1]||'',requested=(note.match(/Website requested date:\s*([^|]*?)(?:\s*\|\||$)/i)||[])[1]||'',notes=(note.match(/Website customer notes:\s*([^|]*?)(?:\s*\|\||$)/i)||[])[1]||'';
   if(req){made=String(req.created_at||made);requested=String(req.preferred_date_1||requested||oldDate).slice(0,10);notes=String(req.work_required||notes).trim()}
   if(!requested)requested=oldDate||String(j&&j.booking_date||'').slice(0,10);
-  return {made:String(made).trim(),requestedDate:String(requested).trim(),notes:String(notes).trim()};
+  return {made:String(made).trim(),requestedDate:String(requested).trim(),notes:window.VectaBookingRules.bookingCustomerNotes(notes)};
 }
 function websiteBookingMadeText(value){
   if(!value)return 'Not available';
@@ -13059,7 +13059,7 @@ function websiteBookingPanelHtml(j){
   var details=websiteJobDetails(j),requested=details.requestedDate?requestDate(details.requestedDate):'Not provided';
   var requestId=websiteRequestIdFromJob(j),photoRequest=(app.websiteRequests||[]).find(function(r){return r.id===requestId}),photoButton=requestId&&(!photoRequest||photoRequest.work_photo_count>0)?'<div><button type="button" class="btn" data-booking-photos="'+esc(requestId)+'">View customer photos'+(photoRequest?' ('+Number(photoRequest.work_photo_count)+')':'')+'</button></div>':'';
   if(globalThis.window?.VECTA_MECHANIC_DEPLOYMENT===true)return photoButton?'<section class="websiteJobRequestPanel">'+photoButton+'</section>':'';
-  return websiteServiceResolveHtml(j)+'<section class="websiteJobRequestPanel"><div><strong>Website booking request</strong><p>Details supplied when the customer booked online.</p></div><div class="websiteRequestMeta"><span><b>Booking made:</b> '+esc(websiteBookingMadeText(details.made))+'</span><span><b>Requested booking date:</b> '+esc(requested)+'</span></div><div class="websiteRequestMeta"><span style="grid-column:1/-1"><b>Customer notes:</b> '+esc(details.notes||'No additional notes were added.')+'</span></div>'+photoButton+'</section>';
+  return websiteServiceResolveHtml(j)+'<section class="websiteJobRequestPanel"><div><strong>Website booking request</strong><p>Details supplied when the customer booked online.</p></div><div class="websiteRequestMeta"><span><b>Booking made:</b> '+esc(websiteBookingMadeText(details.made))+'</span><span><b>Requested booking date:</b> '+esc(requested)+'</span></div>'+(details.notes?'<div class="websiteRequestMeta"><span style="grid-column:1/-1"><b>Customer notes:</b> '+esc(details.notes)+'</span></div>':'')+photoButton+'</section>';
 }
 var websiteRequestCreateBusy={};
 async function createJobFromWebsiteRequest(id){
@@ -13342,9 +13342,7 @@ function jobPartsRangeDisplay(j){
   return raw;
 }
 function jobPartsRangeWorkHtml(j){
-  var instructions=window.VectaBookingRules.customerInstructionsHtml(j);if(instructions)return instructions;
-  var range=jobPartsRangeDisplay(j);
-  return range?'<div class="jobPartsRangeWork"><strong>Customer would like '+esc(range)+' parts</strong></div>':'';
+  return window.VectaBookingRules.customerInstructionsHtml(j);
 }
 
 function jobPartDisplayName(p){return window.VectaJobPricing?.partDisplayName?.(p)??String(p.description||'')}
@@ -13579,7 +13577,7 @@ function mechanicWorkView(j){
     var text=block.trim();if(!text)return;
     var lines=text.split(/\r?\n/);
     if(website&&lines.some(function(line){return /^Mini Valet$/i.test(line.trim())})&&!labels.some(function(label){return normaliseJobTypeKey(label)==='mini valet'}))labels.push('Mini valet');
-    if(website&&/^(?:Current mileage unknown\. Check mileage on arrival|NEVOS vehicle:\s*NO\s*$|Booking guide total:|MOT \+ Service offer:)/i.test(lines[0])){remember(block,lines.slice(1).join('\n'));return}
+    if(website&&/^(?:Current mileage unknown\.(?: Check mileage on arrival|\s*$)|NEVOS vehicle:\s*NO\s*$|Booking guide total:|MOT \+ Service offer:)/i.test(lines[0])){remember(block,lines.slice(1).join('\n'));return}
     if(website&&/^Optional service item\s*[—–-]/i.test(text)){
       var decision=lines.filter(function(line){return /^(?:Optional service item|Customer requests replacement\.|Check the manufacturer)/i.test(line)});
       var decisionText=mechanicWorkLines(decision.join('\n'));reference.push(decisionText);if(decisionText)board.push(decisionText);remember(block,lines.filter(function(line){return !decision.includes(line)}).join('\n'));return;

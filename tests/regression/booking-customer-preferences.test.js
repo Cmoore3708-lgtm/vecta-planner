@@ -14,6 +14,10 @@ test('all six customer choices produce safe fixed text and survive description e
   const request={customer_preferences:{version:1,parts,serious_repairs}};
   const note=rules.customerPreferencesNote(request),job={customer_note:note,work_required:'Updated by mechanic'};
   assert.deepEqual(rules.customerPreferences(job),request.customer_preferences);
+  const box=parseHTML(rules.customerInstructionsHtml(job)).document.querySelector('aside');
+  const allowed=serious_repairs==='change_parts';
+  assert.equal(box.textContent,'Can we replace parts? '+(allowed?'Yes':'No'));
+  assert.equal(box.getAttribute('data-authorised'),String(allowed));
   const lines=rules.customerPreferenceLines(job);assert.equal(lines.length,2);
   assert.equal(lines[0],'Customer would like '+{budget:'budget',mid_range:'mid range',oem:'OEM'}[parts]+' parts');
   assert.match(lines[1],/serious.*cannot get hold/);
@@ -24,6 +28,15 @@ test('all six customer choices produce safe fixed text and survive description e
  assert.equal(rules.validCustomerPreferences({version:1,parts:'constructor',serious_repairs:'change_parts'}),false);
  assert.equal(rules.customerInstructionsHtml({customer_preferences:{...preferences,parts:'<img src=x onerror=alert(1)>'}}),'');
  assert.doesNotMatch(rules.customerInstructionsHtml({customer_preferences:{...preferences,extra:'<script>bad()</script>'}}),/<script>/);
+});
+test('website customer notes retain the driver request without an appended parts quote',()=>{
+ const mileage='Current mileage unknown. Check mileage on arrival and carry out the selected service package. Discuss additional items separately.';
+ const request='Investigate oil leak and ring me before 3.';
+ const quote='Service guide price: £160.00 estimated including VAT.\nQuote: example · Policy: gsf\nOil specification: 5W-30\nMANN Filter [HU6011z] × 1';
+ const work=[mileage,request,quote].join('\n\n');
+ for(const notes of [work,work.replace(/\s+/g,' ')])assert.equal(rules.bookingCustomerNotes(notes),request);
+ assert.equal(rules.bookingCustomerNotes(quote),'');
+ assert.equal(rules.bookingWorkDescription(mileage+'\n\n'+request),'Current mileage unknown.\n\n'+request);
 });
 test('a Full Service hides and clears a Mini Valet previously chosen for an Interim Service',()=>{
  const c={state:{form:{job_types:['Service'],service_choice:'Oil & Filter Change',mini_valet:true}},serviceVehicleHtml:()=>''};vm.createContext(c);
@@ -68,7 +81,7 @@ test('NEVOS switches existing parts preferences to OEM and prevents cheaper choi
  document.querySelector('[value="mid_range"]').onchange();
  assert.equal(form.parts_preference,'mid_range','Other customers can still choose their parts');
 });
-test('the job card and printed job card display both original customer instructions',()=>{
+test('the job card and printed job card display the recorded parts permission',()=>{
  const source=read('index.html');const c={window:{VectaBookingRules:rules},esc:value=>String(value).replace(/[<>&]/g,'_')};vm.createContext(c);
  for(const name of ['jobPartsRange','jobPartsRangeDisplay','jobPartsRangeWorkHtml']){
   const start=source.indexOf('function '+name+'(');vm.runInContext(source.slice(start,source.indexOf('\nfunction ',start+1)),c);
@@ -76,7 +89,7 @@ test('the job card and printed job card display both original customer instructi
  c.PARTS_RANGE_MARKER=/\[\[PARTS_RANGE:([^\]]+)\]\]/i;
  const job={customer_note:rules.customerPreferencesNote({customer_preferences:preferences}),work_required:'Updated work'};
  const {document}=parseHTML(c.jobPartsRangeWorkHtml(job));
- assert.match(document.querySelector('.jobCustomerInstructions').textContent,/Customer would like OEM parts.*Put the car back together/);
+ assert.equal(document.querySelector('.jobCustomerInstructions').textContent,'Can we replace parts? No');
  assert.match(source.slice(source.indexOf('function printJob('),source.indexOf('\nfunction ',source.indexOf('function printJob('))),/jobPartsRangeWorkHtml\(j\)/);
 });
 test('database persists preferences through atomic provisional creation, photos, retries and later job edits',async()=>{
