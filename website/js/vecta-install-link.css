@@ -12,3 +12,18 @@
 .installGuideRow:has(> a[hidden]) {
   display: none;
 }
+@media (max-width: 520px) {
+  .installGuideRow > .installGuideLink {
+    font-size: clamp(12px, 3.55vw, 15px);
+    padding-inline: 10px;
+    min-height: 44px;
+    box-sizing: border-box;
+    display: inline-flex;
+    align-items: center;
+  }
+}
+@media (max-width: 350px) {
+  .installGuideRow { gap: 6px; }
+  .installGuideRow > img { width: 48px; height: 48px; }
+  .installGuideRow > .installGuideLink { padding-inline: 6px; }
+}
