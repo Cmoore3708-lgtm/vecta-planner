@@ -236,11 +236,21 @@
    }
    historyLoading=true;
    try {
-    const {approvals}=await request(job,'approval-list');
+    const {approvals,dealt_messages=[]}=await request(job,'approval-list');
     if (!panel.isConnected) return;
     submittedIds=new Set(approvals.map(row=>row.id));
     const pricingForms=new Map(Array.from(panel.querySelectorAll('.findingReview')).map(form=>[form.dataset.findingId,form]));
     history.replaceChildren();
+    if(!mechanic&&dealt_messages.length){
+     const log=document.createElement('details'),label=document.createElement('summary');
+     label.textContent='Mechanic messages dealt with ('+dealt_messages.length+')';log.append(label);
+     for(const receipt of dealt_messages){
+      const message=document.createElement('p'),stamp=document.createElement('small');
+      message.textContent=receipt.message;stamp.textContent='Dealt with by Chris · '+new Date(receipt.recorded_at).toLocaleString('en-GB',{timeZone:'Europe/London',dateStyle:'medium',timeStyle:'short'});
+      log.append(message,stamp);
+     }
+     history.append(log);
+    }
     const labels={awaiting_price:mechanic?'Awaiting price from the office':'Awaiting price in Workshop',pending:'Awaiting customer approval',approved:'Customer approved',declined:'Customer declined',closed:'Request closed'};
     for (const item of approvals) {
      const entry=document.createElement('div');

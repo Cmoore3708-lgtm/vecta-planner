@@ -114,3 +114,6 @@
 #jobModal details.workshopPhotos>summary.workshopPhotosHeading h3{display:inline;font-size:14px}
 #jobModal details.workshopPhotos>summary:focus-visible{outline:2px solid #a57524;outline-offset:2px}
 #jobModal details.workshopPhotos[open]>summary{margin-bottom:6px}
+
+.mechanicPhotoAlert .findingAlertFooter{display:flex;justify-content:flex-end;gap:.5rem;flex-wrap:wrap;padding:.5rem .75rem}
+.mechanicPhotoAlert .findingAlertFooter[hidden],.mechanicPhotoAlert .findingAlertDismiss[hidden]{display:none}
