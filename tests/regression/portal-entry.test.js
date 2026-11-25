@@ -137,6 +137,8 @@ test('new booking email opens before acceptance and still opens after confirmati
   const {document}=parseHTML(sent[4].html);
   assert.ok(document.querySelector('img[src="cid:booking-logo"]'));
   assert.equal(document.querySelectorAll('li').length,3);
+  for(const body of [document.body.textContent,sent[1]])assert.match(body,/Every £100 you spend earns £5 in loyalty bonus/);
+  assert.equal(document.querySelectorAll('a').length,1);
   assert.match(sent[1],/3. Open VECTA from your Home Screen/);
   assert.equal((await portalAccess(database([],[request]),token,now)).request.id,request.id);
   request.job_id=job.id;const saved={...job,status:'provisional'};

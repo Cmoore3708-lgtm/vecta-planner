@@ -2,6 +2,7 @@ function renderVectaInstallGuide(container, portalHref, selectedPhone){
  const onPortal=location.pathname.startsWith('/app/');
  const phone=['android','iphone'].includes(selectedPhone)?selectedPhone:(/android/i.test(navigator.userAgent)?'android':'iphone');
  container.innerHTML=`<h1>Add VECTA to your phone</h1>
+ <p><strong>Earn £5 for every £100 you spend.</strong> See your loyalty bonus in My Garage.</p>
  <h2>1. Open your booking portal</h2>
  ${onPortal?'<p><strong>You’re on the right page.</strong> Keep this portal open for step 2.</p>':'<p>This page is the guide. Tap below to open the page to save.</p><a data-open-portal class="customer-app-offer-button">Open my booking portal</a>'}
  <h2>2. Add the portal to your Home Screen</h2>
