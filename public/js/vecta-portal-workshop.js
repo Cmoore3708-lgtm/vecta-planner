@@ -143,7 +143,7 @@
   dialog.append(responseBody(item),button('Close',()=>dialog.close()));document.body.append(dialog);dialog.addEventListener('close',()=>dialog.remove(),{once:true});dialog.showModal();
   rememberOpened(item);
  }
- function eventCard(item,canForward,alerts){
+ function eventCard(item,canForward,alerts,onReply){
   if(item.kind==='approval_response'&&['approved','declined'].includes(decisionOf(item))){
    const card=node('div');card.className='portalWorkshopEvent portalResponseLink';card.dataset.eventId=item.id;
    const approved=decisionOf(item)==='approved';card.dataset.signal=approved?'green':'red';
@@ -164,6 +164,7 @@
   const green=decision==='approved'||item.authorised===true||item.details?.preferences?.serious_repairs==='change_parts',red=decision==='declined'||item.authorised===false||item.details?.preferences?.serious_repairs==='book_later';
   c.dataset.signal=green?'green':red?'red':item.kind==='approval_request'?'amber':'';
   if(Number.isInteger(item.details?.estimated_pence))body.append(node('p','£'+(item.details.estimated_pence/100).toFixed(2)+' including VAT'));
+  if(onReply&&item.actor==='customer')body.append(button('Reply to message',()=>onReply(item)));
   if(canForward&&item.actor==='customer'){
    const send=button(item.forwarded?'Sent to mechanic':'Send to mechanic',async()=>{send.disabled=true;try{await api('portal-forward',{event_id:item.id});send.textContent='Sent to mechanic';window.dispatchEvent(new Event('vecta-portal-changed'));}catch(e){send.disabled=false;status.textContent=e.message;}});
    send.disabled=item.forwarded;const status=node('p');status.setAttribute('role','status');body.append(send,status);
@@ -205,7 +206,7 @@
    const hash=JSON.stringify([ordered,[...receipts],visibleCount]);
    if(hash!==key){
     const expanded=new Set([...list.querySelectorAll('.portalWorkshopEvent[open]')].map(card=>card.dataset.eventId));
-    key=hash;const cards=ordered.slice(0,visibleCount).map(item=>eventCard(item,!mechanic(),receipts.get(item.id)));
+    key=hash;const cards=ordered.slice(0,visibleCount).map(item=>eventCard(item,!mechanic(),receipts.get(item.id),controller.replyTo));
     if(!cards.length){const empty=node('p',mechanic()?'No office messages or approvals yet.':'No messages yet.');empty.className='portalWorkshopEmpty';cards.push(empty);}
     for(const card of cards)if(expanded.has(card.dataset.eventId))card.setAttribute('open','');
     list.replaceChildren(...cards);
@@ -260,13 +261,24 @@
    permissionBox.onchange=async()=>{permissionBox.disabled=true;send.disabled=true;try{await api('approval-whatsapp-permission',{job_id:job.id,phone:contact.phone,contact_binding:contact.contact_binding,allowed:permissionBox.checked});contact.allowed=permissionBox.checked;permissionStatus.textContent='WhatsApp preference saved.';}catch(e){permissionBox.checked=contact.allowed;permissionStatus.textContent=e.message;}finally{permissionBox.disabled=false;send.disabled=false;}};
    let id=crypto.randomUUID(),sending=false,mode='message',quoteAttempt=null,replyAttempt=null;
    function setMode(value){
-    if(sending||quoteAttempt)return;mode=value;const quote=mode==='quote';
+    if(sending||quoteAttempt)return;replyTarget=null;mode=value;const quote=mode==='quote';
     messageMode.setAttribute('aria-pressed',String(!quote));quoteMode.setAttribute('aria-pressed',String(quote));
     labelText.textContent=quote?'Work required':'Message';input.maxLength=quote?1200:3000;
     input.placeholder=quote?'Describe what needs doing and why…':'Type your message to the customer…';
     priceLabel.hidden=!quote;price.required=quote;price.disabled=!quote;attachments.hidden=false;partsLabel.hidden=!quote;orderLabel.hidden=!quote;
     send.textContent=quote?'Send quote & alerts':'Send message & alerts';note.replaceChildren();
    }
+   let replyTarget=null;
+   controller.replyTo=item=>{
+    composer.open=true;
+    if(sending||quoteAttempt||replyAttempt){note.scrollIntoView({block:'center'});return;}
+    if(mode==='quote'&&(input.value||price.value||parts.value||photos?.hasDraft())){
+     note.textContent='Finish your quote or select Send message before replying.';return;
+    }
+    setMode('message');replyTarget=item.id;
+    labelText.textContent='Reply to '+(item.message||'customer message').slice(0,100);
+    input.focus();input.scrollIntoView({block:'center'});
+   };
    setMode('message');
    orderParts.onchange=input.oninput=price.oninput=parts.oninput=()=>{if(!sending&&!quoteAttempt){id=crypto.randomUUID();replyAttempt=null;}};
    form.onsubmit=async e=>{
@@ -279,7 +291,7 @@
     const partRows=parts.value.split(/\n/).map(value=>value.trim()).filter(Boolean).map(description=>({description,quantity:1}));
     if(quote&&(partRows.length>30||partRows.some(part=>part.description.length>200))){note.textContent='Enter up to 30 parts, using up to 200 characters per line.';return;}
     if(quote)quoteAttempt??={approval_id:id,message,estimate:price.value.trim(),parts:partRows,parts_need_ordering:orderParts.checked,photo_ids:photos?.quotePhotoIds?.()||[]};
-    if(!quote)replyAttempt??={id,message,reply_to_event_ids:outstanding(visibleEvents()).filter(item=>list.querySelector('[data-event-id="'+item.id+'"]')?.hasAttribute('open')).map(item=>item.id)};
+    if(!quote)replyAttempt??={id,message,reply_to_event_ids:replyTarget?[replyTarget]:outstanding(visibleEvents()).filter(item=>list.querySelector('[data-event-id="'+item.id+'"]')?.hasAttribute('open')).map(item=>item.id)};
     sending=true;send.disabled=true;permissionBox.disabled=true;input.readOnly=true;note.textContent=quote?'Saving your quote and preparing customer alerts…':'Saving your message and preparing customer alerts…';
     try{
      messageMode.disabled=quoteMode.disabled=true;price.readOnly=parts.readOnly=true;orderParts.disabled=true;
@@ -295,7 +307,7 @@
      if(photos&&!await photos.upload())throw Error('Your message has not been sent. Check the photo notice and retry.');
      photos?.lock(true);send.disabled=true;permissionBox.disabled=true;
      const result=await api('portal-reply',{job_id:job.id,...replyAttempt});
-     rememberAcknowledged(result.acknowledged_ids||[]);replyAttempt=null;refreshQueue?.();
+     rememberAcknowledged(result.acknowledged_ids||[]);replyAttempt=null;replyTarget=null;labelText.textContent='Message';refreshQueue?.();
      photos?.complete();input.value='';id=crypto.randomUUID();note.replaceChildren(node('p','Message saved in the customer portal.'));const delivery=node('div');showAlerts(delivery,result.alerts,job.id);note.append(delivery);if(result.acknowledgement_pending)note.append(node('p','Your reply is saved. The incoming message remains outstanding until its acknowledgement syncs; use Acknowledge message to retry.'));await refresh();
     }catch(error){note.textContent=error.message;}
     finally{sending=false;photos?.lock(false);send.disabled=false;permissionBox.disabled=false;input.readOnly=!!quoteAttempt;price.readOnly=parts.readOnly=!!quoteAttempt;orderParts.disabled=!!quoteAttempt;messageMode.disabled=quoteMode.disabled=!!quoteAttempt;if(quoteAttempt)note.append(node('p','The quote is not confirmed. Press Send quote & alerts again to safely retry the same quote.'));}
