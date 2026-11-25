@@ -38,3 +38,5 @@ body.bookingActive{position:fixed;inset:var(--booking-viewport-top,0px) 0 auto;h
 #vehicleForm select{width:100%;padding:14px 12px;border:1px solid #444;border-radius:8px;background:var(--black);color:var(--white);font:inherit;min-height:48px}
 
 .installGuideLink{display:inline-block;background:#b81731;color:#fff;padding:12px 18px;border-radius:8px;text-decoration:none;font-weight:700}
+
+#receiptInstallGuide {padding:16px} #receiptInstallGuide h2 {font-size:1.1rem;margin-top:1.2em} #receiptInstallGuide img {display:block;width:100%;max-width:440px;height:auto} #receiptInstallGuide summary {cursor:pointer}

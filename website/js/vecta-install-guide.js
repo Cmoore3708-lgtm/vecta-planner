@@ -1,28 +1,27 @@
-function renderVectaInstallGuide(dialog, portalHref, selectedPhone){
- dialog.insertAdjacentHTML('beforeend', `<img class="guide-photo" data-guide-suffix="-home" width="1122" height="1402" alt="Install the VECTA app. Earn 5% back on workshop spend, manage bookings, track repairs and download documents.">
- <label>Your phone <select><option value="iphone">Apple iPhone</option><option value="android">Android</option></select></label>
- <h2 class="guide-heading guide-portal-heading"><a data-guide-heading-link href="/app/home">Open the Portal Link below</a></h2>
+function renderVectaInstallGuide(container, portalHref, selectedPhone){
+ const onPortal=location.pathname.startsWith('/app/');
+ const phone=['android','iphone'].includes(selectedPhone)?selectedPhone:(/android/i.test(navigator.userAgent)?'android':'iphone');
+ container.innerHTML=`<h1>Add VECTA to your phone</h1>
+ <h2>1. Open your booking portal</h2>
+ ${onPortal?'<p><strong>You’re on the right page.</strong> Keep this portal open for step 2.</p>':'<p>This page is the guide. Tap below to open the page to save.</p><a data-open-portal class="customer-app-offer-button">Open my booking portal</a>'}
+ <h2>2. Add the portal to your Home Screen</h2>
+ <label>Your phone <select><option value="iphone">iPhone</option><option value="android">Android</option></select></label>
  <p data-install-steps></p>
- <img class="guide-photo guide-steps" data-guide-suffix="" width="1122" height="1402" alt="">
- <h2 class="guide-heading">Your Customer Portal</h2>
- <img class="guide-photo guide-portal" data-guide-suffix="-bonus" width="1122" height="1402" alt="Your garage in the VECTA Customer Portal, showing your vehicle and loyalty bonus">
- <a data-guide-open class="customer-app-offer-button" href="/app/home">Open your portal</a>
- <h2 class="guide-heading">Turn notifications on</h2>
- <p>Receive instant notifications on your phone when the workshop sends you a message.</p>
- <p data-alert-settings></p>
- <img class="guide-photo" src="https://www.vectamotors.co.uk/assets/app-install/notification-example.jpg" width="1122" height="1402" alt="Example VECTA notification showing a £40 front brake pad quote and a red 1 on the app icon">`);
- for(const link of dialog.querySelectorAll('[data-guide-heading-link], [data-guide-open]')) link.href=portalHref;
- const phone=dialog.querySelector('select'),images=dialog.querySelectorAll('[data-guide-suffix]');
- function selectGuide(){
-  const android=phone.value==='android';
-  dialog.dataset.phone=phone.value;
-  dialog.querySelector('[data-install-steps]').textContent=android?'In Chrome, open the three-dot menu, select Install app or Add to Home screen, then confirm.':'In Safari, open the menu (the 3 lines to the left of the web site address in the address bar), then tap Share, then Add to Home Screen and Add.';
-  dialog.querySelector('[data-alert-settings]').textContent=android?'On Android, open Settings → Notifications → App notifications → VECTA and turn on notifications. If VECTA is missing, allow notifications for Chrome, then open your portal in Chrome and tap the icon beside the web address → Permissions → Notifications → Allow.':'On iPhone, open Settings → Notifications → VECTA and turn on Allow Notifications.';
-  for(const image of images){
-   image.src='https://www.vectamotors.co.uk/assets/app-install/'+phone.value+image.dataset.guideSuffix+'.jpg';
-  }
+ <h2>3. Turn on workshop alerts</h2>
+ <p>Open VECTA from your Home Screen, tap <strong>Enable phone alerts</strong> and choose <strong>Allow</strong> to hear when we confirm your booking.</p>
+ <details><summary>Show the picture guide</summary><img class="guide-photo" data-guide-suffix="" alt="Phone menu and Home Screen installation steps"><img class="guide-photo" data-guide-suffix="-home" alt="VECTA on your Home Screen"><img class="guide-photo" data-guide-suffix="-bonus" alt="Your VECTA customer portal"></details>`;
+ const link=container.querySelector('[data-open-portal]');
+ if(link){const target=new URL(portalHref,location.origin);target.searchParams.set('setup','1');link.href=target.pathname+target.search+target.hash;}
+ const selector=container.querySelector('select');
+ function update(){
+  const android=selector.value==='android';
+  container.querySelector('[data-install-steps]').textContent=android?'With the portal open in Chrome, tap the three-dot menu, then Install app or Add to Home screen and confirm.':'With the portal open in Safari, tap Share (in the address-bar menu on some iPhones), then Add to Home Screen and Add.';
+  for(const image of container.querySelectorAll('[data-guide-suffix]'))image.src='/assets/app-install/'+selector.value+image.dataset.guideSuffix+'.jpg';
  }
- phone.value=['android','iphone'].includes(selectedPhone)?selectedPhone:(/android/i.test(window.navigator?.userAgent||'')?'android':'iphone');
- phone.onchange=selectGuide;
- selectGuide();
+ selector.value=phone;selector.onchange=update;update();
+}
+if(location.pathname.startsWith('/app/') && new URLSearchParams(location.search).get('setup')==='1' && !window.matchMedia('(display-mode: standalone)').matches && !navigator.standalone){
+ const container=document.createElement('section');container.className='appPanel';container.id='receiptInstallGuide';
+ document.querySelector('main').prepend(container);
+ renderVectaInstallGuide(container);
 }

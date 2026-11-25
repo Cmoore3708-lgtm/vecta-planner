@@ -86,7 +86,7 @@ test('cold start restores a verified private link, accepts approval links and cl
  assert.ok(context.window.VectaCustomerAppLink.valid('approval.'+job.id+'.'+job.id));context.window.VectaCustomerAppLink.clear();assert.equal(values.size,0);
 });
 test('manifest, website copies and worker keep customer data out of offline caches',()=>{
- const manifest=JSON.parse(fs.readFileSync('public/app/manifest.webmanifest'));assert.equal(manifest.id,'/app/');assert.equal(manifest.start_url,'/app/home');assert.equal(manifest.scope,'/app/');assert.equal(manifest.display,'standalone');
+ const manifest=JSON.parse(fs.readFileSync('public/app/manifest.webmanifest'));assert.equal(manifest.id,'/app/');assert.equal(manifest.start_url,'/app/home#open-booking');assert.equal(manifest.scope,'/app/');assert.equal(manifest.display,'standalone');
  for(const name of ['vecta-header.jpg','home.html','booking.html','garage.js','garage.css','car-placeholder.svg','bootstrap.js','app.js','app.css','service-worker.js','manifest.webmanifest','icon-180.png','icon-192.png','icon-512.png'])assert.ok(fs.readFileSync('public/app/'+name).equals(fs.readFileSync('website/app/'+name)),name);
  const handlers={},cacheWrites=[],context={self:{location:{origin:'https://www.vectamotors.co.uk'},addEventListener:(name,fn)=>handlers[name]=fn},URL,Response,caches:{},fetch:()=>{throw Error('Should not cache private requests');}};
  vm.runInNewContext(fs.readFileSync('public/app/service-worker.js','utf8'),context);
@@ -103,4 +103,20 @@ test('customer message push shows a notification, badges one, and clears on read
  assert.deepEqual(badges,[1,1]);assert.equal(notes.length,2);
  for(const seq of ['8','9'])await dispatch('message',{data:{type:'vecta-message-read',seq}});
  assert.deepEqual(badges,[1,1,0]);assert.equal(notes.length,0);
+});
+test('a phone linked through the first email gets one confirmation after acceptance',async()=>{
+ const restore=environment();
+ try{
+  const fixture=database(),request={id:'92345678-1234-4234-8234-123456789012',registration:job.registration,email:job.customer_email,preferred_date_1:job.booking_date,status:'awaiting_review'};
+  const db=(path,options)=>path.startsWith('website_booking_requests?')?Promise.resolve([request]):fixture.db(path,options);
+  const {requestTrackingPath}=await import('../../lib/job-progress.js');
+  const token=requestTrackingPath(request,now).split('#')[1];
+  const sent=[],send=async(_,payload)=>sent.push(payload.body);
+  await customerAppAction(db,{action:'app-push-subscribe',token,subscription:subscription()},{now});
+  await runCustomerAppAlerts(db,{now,send});assert.deepEqual(sent,[]);
+  Object.assign(request,{job_id:job.id,status:'booked'});
+  fixture.state.events.push({seq:8,kind:'booking_confirmed'});
+  await runCustomerAppAlerts(db,{now,send});await runCustomerAppAlerts(db,{now,send});
+  assert.deepEqual(sent,['Good news, your booking is confirmed! Open VECTA for the details.']);
+ }finally{restore();}
 });

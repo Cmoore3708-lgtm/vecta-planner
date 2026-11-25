@@ -6,16 +6,12 @@ import {parseHTML} from 'linkedom';
 import {confirmationContent,confirmationPreviewHtml} from '../../lib/portal-email.js';
 const job={id:'11111111-1111-4111-8111-111111111111',registration:'TEST001',vehicle:'Peugeot 208',booking_date:'2026-11-24',amount_quoted:120,work_required:'Full service'};
 const link='https://www.vectamotors.co.uk/track#test';
-test('Android bookings get one linked Android installation picture, including after a portal preference edit',()=>{
- const preferences={version:1,parts:'budget',serious_repairs:'change_parts',booking_phone:'android'};
- const note=globalThis.VectaBookingRules.customerPreferencesNote({customer_preferences:preferences});
- const updated='[[VECTA_PORTAL_PREFERENCES:'+JSON.stringify({...preferences,booking_phone:undefined,parts:'oem'})+']]';
- const {html,text}=confirmationContent({...job,customer_note:note+updated},link);
- const {document}=parseHTML(html);
- const images=[...document.querySelectorAll('img[src*="app-install"]')].map(i=>i.getAttribute('src').split('/').pop());
- assert.deepEqual(images,['android-home.jpg','notification-example.jpg']);
- assert.equal(document.querySelector('img[src$="android-home.jpg"]').parentElement.getAttribute('href'),'https://www.vectamotors.co.uk/install-app?phone=android#test');assert.match(text,/install-app\?phone=android#test/);assert.doesNotMatch(text,/iphone-bonus\.jpg/);
- assert.ok(document.querySelector('a[href*="install-app?phone=iphone#test"]'));
+test('confirmation keeps the private setup link below the arrival details',()=>{
+ const {html,text}=confirmationContent(job,link),{document}=parseHTML(html);
+ const guide=document.querySelectorAll('a[href*="/install-app"]');
+ assert.equal(guide.length,1);assert.equal(new URL(guide[0].href).hash,'#test');assert.ok(text.includes(guide[0].href));
+ assert.equal(document.querySelectorAll('img[src*="/app-install/"]').length,0);
+ assert.ok(html.indexOf('data-confirmation-field="parking"')<html.indexOf(guide[0].href));
 });
 test('confirmation uses the approved white header and edits both email alternatives without changing the job or links',()=>{
  const original=structuredClone(job),edits={heading:'Your booking with Chris',work:'Full service\nPlease check the rear tyres.',cost:'Estimated cost: £150 including VAT',parking:'Leave the keys with Chris.',signoff:'See you on Tuesday',portal_button:'OPEN MY BOOKING'};
@@ -34,7 +30,7 @@ test('confirmation uses the approved white header and edits both email alternati
 });
 test('plain text edits cannot add executable HTML, change recipients or exceed the limits',()=>{
  const content=confirmationContent(job,link,null,{work:'<img src=x onerror=alert(1)> & repair',parking:''});
- const {document}=parseHTML(content.html);assert.equal(document.querySelector('[data-confirmation-field="work"]').textContent,'<img src=x onerror=alert(1)> & repair');assert.deepEqual([...document.querySelectorAll('img')].map(img=>img.getAttribute('src')),['cid:booking-logo','https://www.vectamotors.co.uk/icons/v-192-20261115.png',...['iphone-home','notification-example'].map(name=>'https://www.vectamotors.co.uk/assets/app-install/'+name+'.jpg'),'https://www.vectamotors.co.uk/assets/vecta-workshop-exterior-email.jpg']);
+ const {document}=parseHTML(content.html);assert.equal(document.querySelector('[data-confirmation-field="work"]').textContent,'<img src=x onerror=alert(1)> & repair');assert.deepEqual([...document.querySelectorAll('img')].map(img=>img.getAttribute('src')),['cid:booking-logo','https://www.vectamotors.co.uk/assets/vecta-workshop-exterior-email.jpg']);
  assert.equal(document.querySelector('[data-confirmation-field="parking"]').textContent,'');
  for(const edits of [{to:'elsewhere@example.invalid'},{work:'x'.repeat(5001)},[],{work:null},JSON.parse('{"__proto__":"bad"}')])assert.throws(()=>confirmationContent(job,link,null,edits),e=>e.status===400);
 });

@@ -3,7 +3,7 @@
   "name": "Vecta Motors",
   "short_name": "Vecta",
   "description": "Your booking, workshop messages and vehicle updates.",
-  "start_url": "/app/home",
+  "start_url": "/app/home#open-booking",
   "scope": "/app/",
   "display": "standalone",
   "background_color": "#070707",

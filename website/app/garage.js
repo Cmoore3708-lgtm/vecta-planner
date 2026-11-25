@@ -6,6 +6,10 @@
  const phoneAlertSettings=ios?'On iPhone, open Settings → Notifications → VECTA and turn on Allow Notifications.':/android/i.test(navigator.userAgent)?'On Android, open Settings → Notifications → App notifications → VECTA and turn on notifications. If VECTA is missing, allow notifications for Chrome, then open your portal in Chrome and tap the icon beside the web address → Permissions → Notifications → Allow.':'';
  let session='',garage=null,loyalty=null,challenge='',installPrompt=null,worker=null,currentTab='garage',prefill=null,bookingTotal=null,historyOffset=null,historyVehicle=null,modalVersion=0,selectedCar=0,bookingScrollY=null;
  try{session=localStorage.getItem(key)||'';}catch{}
+ if(!session&&window.location?.hash==='#open-booking'){
+  let saved='';try{saved=localStorage.getItem(bookingKey)||'';}catch{}
+  if(saved){location.replace('/app/booking');return;}
+ }
  function message(text,modal=false){$(modal?'modalStatus':'status').textContent=text;}
  async function api(action,body={}){
   const expectedSession=session;
@@ -99,7 +103,7 @@
  }
  // No names, email addresses, telephone numbers or session tokens in iframe URLs.
  // Only the selected same-origin booking frame can receive the verified prefill.
- window.addEventListener('message',event=>{if(event.origin!==location.origin||event.source!==$('bookingFrame').contentWindow||!prefill)return;if(event.data?.type==='vecta-nevos-choice')void rememberNevos(event.data);if(event.data?.type==='vecta-booking-ready')event.source.postMessage({type:'vecta-garage-prefill',...prefill},location.origin);if(event.data?.type==='vecta-booking-total'){const data=event.data,reg=value=>String(value||'').toUpperCase().replace(/[^A-Z0-9]/g,'');if(reg(data.registration)===reg(prefill.registration)&&Number.isSafeInteger(data.pence)&&data.pence>=0&&typeof data.pending==='boolean'){bookingTotal={pence:data.pence,pending:data.pending};renderLoyalty();}}if(event.data?.type==='vecta-booking-confirmed'){message('Booking confirmed. Your garage will update once the workshop record is available.');refresh().catch(()=>{});}});
+ window.addEventListener('message',event=>{if(event.origin!==location.origin||event.source!==$('bookingFrame').contentWindow||!prefill)return;if(event.data?.type==='vecta-nevos-choice')void rememberNevos(event.data);if(event.data?.type==='vecta-booking-ready')event.source.postMessage({type:'vecta-garage-prefill',...prefill},location.origin);if(event.data?.type==='vecta-booking-total'){const data=event.data,reg=value=>String(value||'').toUpperCase().replace(/[^A-Z0-9]/g,'');if(reg(data.registration)===reg(prefill.registration)&&Number.isSafeInteger(data.pence)&&data.pence>=0&&typeof data.pending==='boolean'){bookingTotal={pence:data.pence,pending:data.pending};renderLoyalty();}}if(event.data?.type==='vecta-booking-confirmed'){message('Booking request received. We’ll email you when the workshop confirms.');refresh().catch(()=>{});}});
  $('bookingChange').onclick=()=>{if(!confirm('Change car? This will discard the unfinished booking in this page.'))return;prefill=null;bookingTotal=null;renderLoyalty();$('bookingFrame').removeAttribute('src');$('bookingCars').hidden=false;$('bookingHost').hidden=true;$('bookingChange').hidden=true;$('bookingIntro').textContent='Choose your car. We’ll fill in your saved details.';};
  const money=pence=>new Intl.NumberFormat('en-GB',{style:'currency',currency:'GBP'}).format(pence/100);
  function loyaltyNote(data){return data.active?'5% of your paid invoices since '+date(data.starts_on)+'. Bonus redemption is not enabled yet.':data.starts_on?'Earning starts '+date(data.starts_on)+'.':'Earning starts when the app launches. Previous spending is not included.';}
