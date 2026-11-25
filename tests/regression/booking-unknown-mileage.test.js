@@ -45,7 +45,7 @@ for (const path of ['public/booking.html','website/booking/index.html']) {
  test(`${path}: scripts compile and booking notes preserve the workshop instruction`,()=>{
   for(const match of html.matchAll(/<script(?:\s[^>]*)?>([\s\S]*?)<\/script>/gi))new vm.Script(match[1]);
   assert.match(html,/type="checkbox" data-mileage-unknown/);
-  assert.match(html,/work_required:\(f\.job_types\.includes\('Service'\)&&f\.mileage_unknown\?'Current mileage unknown\. Check mileage on arrival/);
+  assert.match(html,/work_required:\(f\.job_types\.includes\('Service'\)&&f\.mileage_unknown\?'Current mileage unknown\.\\n\\n/);
  });
 }
 

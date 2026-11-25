@@ -31,7 +31,8 @@
   function bookingWorkDescription(work){
     // Retain quote details separately from the instructions, including on jobs
     // created before choices appeared in the editable job description.
-    var blocks=String(work||'').split(/\r?\n[ \t]*\r?\n/),kept=[],instructions=[],insertAt=-1;
+    work=String(work||'').replace(/^Current mileage unknown\. Check mileage on arrival and carry out the selected (?:VECTA )?service package\. Discuss additional items separately\.(?=\s|$)/gm,'Current mileage unknown.');
+    var blocks=work.split(/\r?\n[ \t]*\r?\n/),kept=[],instructions=[],insertAt=-1;
     for(var block of blocks){
       var lines=block.split(/\r?\n/),heading=lines[0].trim(),instruction='';
       if(/^Mini valet · £30 including VAT: snow-foam pressure wash, hoover inside, (?:Dashboard & Media|dash &) screens cleaned\.$/i.test(heading)){
@@ -50,6 +51,13 @@
     var added=instructions.filter(function(line){return !existing.includes(line.toLowerCase())});
     if(added.length)kept.splice(insertAt,0,added.join('\n'));
     return kept.join('\n\n');
+  }
+
+  function bookingCustomerNotes(work){
+    // The booking app appends its supplier snapshot after the customer's work.
+    // Older job cards cached the same snapshot with every newline flattened.
+    var notes=String(work||'').split(/(?:^|\s)(?:Service (?:guide price|price agreed)|Booking guide total):\s*£[\d,.]+ (?:estimated )?including VAT\./i,1)[0];
+    return notes.replace(/^Current mileage unknown\.(?: Check mileage on arrival and carry out the selected (?:VECTA )?service package\. Discuss additional items separately\.)?(?=\s|$)/,'').trim();
   }
 
   var partsChoices={budget:'budget',mid_range:'mid range',oem:'OEM'};
@@ -79,10 +87,10 @@
     var value=customerPreferences(record);return value?partsChoices[value.parts]:'';
   }
   function customerInstructionsHtml(record){
-    // Fixed allow-listed labels only; never include customer-written HTML here.
-    var lines=customerPreferenceLines(record);
-    var authorised=customerPreferences(record)?.serious_repairs==='change_parts';
-    return lines.length?'<aside data-authorised="'+authorised+'" class="jobCustomerInstructions" aria-label="Customer instructions"><h4>Customer instructions</h4>'+lines.map(function(line){return '<p>'+line+'</p>'}).join('')+'</aside>':'';
+    var preferences=customerPreferences(record);
+    if(!preferences)return '';
+    var authorised=preferences.serious_repairs==='change_parts';
+    return '<aside data-authorised="'+authorised+'" class="jobCustomerInstructions"><strong>Can we replace parts? '+(authorised?'Yes':'No')+'</strong></aside>';
   }
 
   root.VectaBookingRules=Object.freeze({
@@ -92,6 +100,7 @@
     customerPreferences:customerPreferences,
     customerPreferenceLines:customerPreferenceLines,
     customerPreferencesNote:customerPreferencesNote,
+    bookingCustomerNotes:bookingCustomerNotes,
     bookingWorkDescription:bookingWorkDescription,
     isSparkPlugInstruction:isSparkPlugInstruction,
     statusKey:statusKey,
