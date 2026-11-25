@@ -14,7 +14,8 @@ self.addEventListener('fetch',event=>{
 self.addEventListener('push',event=>{
  let payload={};try{payload=event.data?.json()||{};}catch{}
  const body=typeof payload.body==='string'?payload.body.slice(0,180):'You have an update from Vecta. Open your app to view it.';
- event.waitUntil(self.registration.showNotification('Vecta Motors',{body,icon:'/app/icon-192.png',badge:'/app/icon-192.png',tag:typeof payload.tag==='string'?payload.tag.slice(0,120):'vecta-customer-update',data:{url:'/app/home'}}));
+ const messageSeq=payload.messageSeq;
+ event.waitUntil(Promise.all([self.registration.showNotification('Vecta Motors',{body,icon:'/app/icon-192.png',badge:'/app/icon-192.png',tag:typeof payload.tag==='string'?payload.tag.slice(0,120):'vecta-customer-update',data:{url:'/app/home',messageSeq}}),messageSeq?self.navigator?.setAppBadge?.(1)?.catch(()=>{}):undefined]));
 });
 self.addEventListener('notificationclick',event=>{
  event.notification.close();event.waitUntil(self.clients.matchAll({type:'window',includeUncontrolled:true}).then(async clients=>{
@@ -22,4 +23,13 @@ self.addEventListener('notificationclick',event=>{
   if(client){await client.focus();client.postMessage({type:'vecta-customer-update'});return;}
   return self.clients.openWindow('/app/home');
  }));
+});
+
+self.addEventListener('message',event=>{
+ if(event.data?.type!=='vecta-message-read')return;
+ event.waitUntil((async()=>{
+  const notes=await self.registration.getNotifications();
+  for(const note of notes)if(note.data?.messageSeq===event.data.seq)note.close();
+  if(!notes.some(note=>note.data?.messageSeq&&note.data.messageSeq!==event.data.seq))await self.navigator?.clearAppBadge?.();
+ })());
 });

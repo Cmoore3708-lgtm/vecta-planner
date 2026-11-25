@@ -93,3 +93,14 @@ test('manifest, website copies and worker keep customer data out of offline cach
  for(const [url,method] of [['/api/job-progress','POST'],['/invoice?token=private','GET'],['/app/?token=private','GET'],['/assets/private-photo.jpg','GET']])handlers.fetch({request:{url:'https://www.vectamotors.co.uk'+url,method},respondWith:()=>cacheWrites.push(url)});
  assert.deepEqual(cacheWrites,[]);
 });
+
+test('customer message push shows a notification, badges one, and clears on reading',async()=>{
+ const handlers={},badges=[],notes=[];
+ const self={addEventListener:(key,fn)=>handlers[key]=fn,navigator:{setAppBadge:async n=>badges.push(n),clearAppBadge:async()=>badges.push(0)},registration:{showNotification:async(title,options)=>notes.push({...options,title,close(){notes.splice(notes.indexOf(this),1);}}),getNotifications:async()=>[...notes]}};
+ vm.runInNewContext(fs.readFileSync('public/app/service-worker.js','utf8'),{self});
+ async function dispatch(kind,event){let waiting;handlers[kind]({...event,waitUntil:promise=>waiting=promise});await waiting;}
+ for(const seq of ['8','9'])await dispatch('push',{data:{json:()=>({messageSeq:seq,body:'New workshop message'})}});
+ assert.deepEqual(badges,[1,1]);assert.equal(notes.length,2);
+ for(const seq of ['8','9'])await dispatch('message',{data:{type:'vecta-message-read',seq}});
+ assert.deepEqual(badges,[1,1,0]);assert.equal(notes.length,0);
+});
