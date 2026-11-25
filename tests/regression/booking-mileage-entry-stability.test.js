@@ -28,11 +28,12 @@ test('switching services carries current mileage and unknown choice without reop
  const empty=setup();empty.choice.onclick();assert.equal(empty.state.mileage_dialog_open,true);
 });
 test('background price callbacks leave an open mileage dialog intact',()=>{
- let renders=0;const ctx={state:{step:2,mileage_dialog_open:true},bookingSubmitting:false,render(){renders++},VectaServicePricing:{createController(options){return options}}};
+ let updates=0;const ctx={state:{step:2,mileage_dialog_open:true,form:{job_types:['Service']}},document:{querySelector:()=>null},servicePriceState:{status:'loading'},bookingSubmitting:false,refreshBookingTotal(){updates++},VectaServicePricing:{createController(options){return options}}};
  vm.createContext(ctx);
- const start=html.indexOf('const servicePricing=');vm.runInContext(html.slice(start,html.indexOf('\n',start))+';globalThis.controller=servicePricing;',ctx);
- ctx.controller.onChange({status:'matched'});assert.equal(renders,0);
- ctx.state.mileage_dialog_open=false;ctx.controller.onChange({status:'matched'});assert.equal(renders,1);
+ const start=html.indexOf('const servicePricing=');
+ vm.runInContext(html.slice(start,html.indexOf('function liveServiceQuote',start))+';globalThis.controller=servicePricing;',ctx);
+ ctx.controller.onChange({status:'matched'});assert.equal(updates,0);
+ ctx.state.mileage_dialog_open=false;ctx.controller.onChange({status:'matched'});assert.equal(updates,1);
 });
 
 test('selecting Service prompts for mileage before choosing a service, including reselection',()=>{

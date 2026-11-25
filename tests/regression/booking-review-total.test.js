@@ -169,3 +169,15 @@ test('price updates refresh the visible bonus and publish the same overall total
  assert.equal(sent.at(-1).pence,13000);
  assert.equal(sent.at(-1).registration,'AB12CDE');
 });
+
+test('a delayed service quote cannot show an engine estimate or a partial MOT and valet total',()=>{
+ const c=browser({job_types:['Service','MOT'],mini_valet:true});
+ for(const status of ['loading','guide_pending']){
+  c.servicePriceState.status=status;
+  assert.equal(amount(c),'Price to be confirmed');
+  assert.doesNotMatch(c.pricingHtml(),/£[0-9]/);
+  assert.doesNotMatch(c.bookingBonusContent(),/£[0-9]/);
+ }
+ c.liveServiceQuote=()=>({totalPence:17200});
+ assert.equal(amount(c),'£262');
+});
