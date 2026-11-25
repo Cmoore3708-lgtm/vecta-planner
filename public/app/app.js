@@ -18,7 +18,7 @@
  $('appInstall').hidden=standalone();
  $('appInstall').onclick=async()=>{
   if(installPrompt){const prompt=installPrompt;installPrompt=null;await prompt.prompt();await prompt.userChoice;return;}
-  $('appInstallSteps').textContent=ios?'Open this page in Safari. Tap Share, then Add to Home Screen. Keep Open as Web App switched on if shown, then tap Add. Open Vecta from the new V icon to enable alerts.':'Open this page in Chrome or your phone’s browser. Open the browser menu and choose Install app or Add to Home Screen, then confirm.';
+  $('appInstallSteps').textContent=ios?'Open this page in Safari. Open the menu (the 3 lines to the left of the web site address in the address bar), then tap Share, then Add to Home Screen. Keep Open as Web App switched on if shown, then tap Add. Open Vecta from the new V icon to enable alerts.':'Open this page in Chrome or your phone’s browser. Open the browser menu and choose Install app or Add to Home Screen, then confirm.';
   $('appInstallDialog').showModal();
  };
  $('appInstallClose').onclick=()=>$('appInstallDialog').close();
