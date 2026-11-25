@@ -38,7 +38,7 @@ test('parts question is immediately below the work description and repair questi
  assert.match(html,/Review your booking[\s\S]*\$\{seriousRepairChoiceHtml\(\)\}/);
  const c={state:{form:{job_types:['Other'],parts_preference:'',serious_repair_choice:''}}};vm.createContext(c);load('partsRangeHtml',c);load('seriousRepairChoiceHtml',c);
  const {document}=parseHTML(c.partsRangeHtml()+c.seriousRepairChoiceHtml());
- assert.deepEqual([...document.querySelectorAll('.parts-choice label')].map(x=>x.textContent),['Budget','Mid range','OEM']);
+ assert.deepEqual([...document.querySelectorAll('.parts-choice label')].map(x=>x.textContent),['Budget Most common','Mid range Better quality','OEM Still under warranty']);
  assert.deepEqual([...document.querySelectorAll('.repair-choice label')].map(x=>x.textContent),['Change the parts','Put the car back together, I’ll book it back in later.']);
  assert.deepEqual([...document.querySelectorAll('[checked]')].map(el=>el.value),['budget']);
 });
