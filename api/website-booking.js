@@ -129,7 +129,7 @@ export default async function handler(req,res){
   let tracking_url;try{tracking_url=requestTrackingPath(receipt||request);}catch{/* A past receipt must not turn a saved booking into a failed submission. */}
   const recentSave=created||Date.now()-Date.parse(receipt?.created_at)<10*60*1000;
   if(recentSave&&tracking_url&&process.env.RESEND_API_KEY&&['awaiting_review','contacted'].includes(receipt?.status||request.status)){
-   waitUntil(emailNewBookingPortal(receipt||request,tracking_url).catch(()=>console.warn('Booking portal email delivery could not be confirmed.')));
+   waitUntil(emailNewBookingPortal(receipt||request,tracking_url,{db:path=>rest(url,key,path)}).catch(()=>console.warn('Booking portal email delivery could not be confirmed.')));
   }
   let analytics_receipt;try{analytics_receipt=bookingAnalyticsReceipt(receipt||request,key);}catch{/* Analytics must never affect a saved booking. */}
   return res.status(created?201:200).json({analytics_receipt,receipt_email,ok:true,confirmed:false,request_id:id,date:receipt?.confirmed_date||appointment,time:String(receipt?.confirmed_time||b.appointment_time||'').slice(0,5)||null,tracking_url});
