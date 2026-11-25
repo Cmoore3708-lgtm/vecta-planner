@@ -76,7 +76,7 @@ test('cron uses Fleet contact email, sends once and records the result', async (
     assert.deepEqual(email.to,['driver@example.com']);
     assert.deepEqual(JSON.parse(sends[1].options.body).to,['driver@example.com']);
     assert.deepEqual(JSON.parse(sends[2].options.body).to,['job-only@example.com']);
-    assert.equal(email.from,'Chris@Nissan-Fleet.co.uk');
+    assert.equal(email.from,'Vecta Motors <Chris@Nissan-Fleet.co.uk>');
     assert.equal(email.subject,'NK75BBV Service tomorrow');
     assert.doesNotMatch(email.text+' '+email.html,/portal|track#|service book|locking wheel/i);
   } finally {
