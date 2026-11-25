@@ -51,7 +51,7 @@ test('noon customer reminder accepts Staff only and excludes Rams and unclassifi
  const s=setup(t);
  s.jobs=[{...base},{...base,id:'22222222-2222-4222-8222-222222222222',customer_name:'Rams'},{...base,id:'33333333-3333-4333-8333-333333333333',customer_account:undefined,customer_name:'Staff',job_type:'MOT'},{...base,id:'44444444-4444-4444-8444-444444444444',status:'provisional'}];
  s.settings=[{id:'jobcustomer:'+s.jobs[1].id,value:{customer_account:'Rams'}}];
- const r=await s.run();assert.equal(r.code,200);assert.equal(r.body.sent,1);assert.equal(s.sends.length,1);assert.ok(s.sends.every(m=>m.from==='chris@vectamotors.co.uk'&&m.text.includes('customer portal')));
+ const r=await s.run();assert.equal(r.code,200);assert.equal(r.body.sent,1);assert.equal(s.sends.length,1);assert.ok(s.sends.every(m=>m.from==='Vecta Motors <chris@vectamotors.co.uk>'&&m.text.includes('customer portal')));
  assert.ok(s.sends.every(m=>m.attachments?.[0]?.content_id==='reminder-logo'&&m.html.includes('cid:reminder-logo')));
  assert.equal((await s.run()).body.sent,0);assert.equal(s.sends.length,1);
 });
