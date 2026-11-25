@@ -1,14 +1,14 @@
 function renderVectaInstallGuide(dialog, portalHref, selectedPhone){
  dialog.insertAdjacentHTML('beforeend', `<img class="guide-photo" data-guide-suffix="-home" width="1122" height="1402" alt="Install the VECTA app. Earn 5% back on workshop spend, manage bookings, track repairs and download documents.">
  <label>Your phone <select><option value="iphone">Apple iPhone</option><option value="android">Android</option></select></label>
- <a data-guide-open class="customer-app-offer-button" href="/app/home">Open your portal</a>
- <h2 class="guide-heading">Open the Portal Link above</h2>
+ <h2 class="guide-heading">Open the Portal Link below</h2>
  <p data-install-steps></p>
  <img class="guide-photo guide-steps" data-guide-suffix="" width="1122" height="1402" alt="">
  <h2 class="guide-heading">Your Customer Portal</h2>
  <img class="guide-photo guide-portal" data-guide-suffix="-bonus" width="1122" height="1402" alt="Your garage in the VECTA Customer Portal, showing your vehicle and loyalty bonus">
+ <a data-guide-open class="customer-app-offer-button" href="/app/home">Open your portal</a>
  <h2 class="guide-heading">Turn notifications on</h2>
- <p>Receive instant notifications on your phone when the workshop sends you a message. Once installed, open VECTA, tap Enable phone alerts and choose Allow.</p>
+ <p>Receive instant notifications on your phone when the workshop sends you a message.</p>
  <p data-alert-settings></p>
  <img class="guide-photo" src="https://www.vectamotors.co.uk/assets/app-install/notification-example.jpg" width="1122" height="1402" alt="Example VECTA notification showing a £40 front brake pad quote and a red 1 on the app icon">`);
  dialog.querySelector('[data-guide-open]').href=portalHref;
