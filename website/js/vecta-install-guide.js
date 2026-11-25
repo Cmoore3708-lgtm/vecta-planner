@@ -1,7 +1,7 @@
 function renderVectaInstallGuide(dialog, portalHref, selectedPhone){
  dialog.insertAdjacentHTML('beforeend', `<img class="guide-photo" data-guide-suffix="-home" width="1122" height="1402" alt="Install the VECTA app. Earn 5% back on workshop spend, manage bookings, track repairs and download documents.">
  <label>Your phone <select><option value="iphone">Apple iPhone</option><option value="android">Android</option></select></label>
- <h2 class="guide-heading">Open the Portal Link below</h2>
+ <h2 class="guide-heading guide-portal-heading"><a data-guide-heading-link href="/app/home">Open the Portal Link below</a></h2>
  <p data-install-steps></p>
  <img class="guide-photo guide-steps" data-guide-suffix="" width="1122" height="1402" alt="">
  <h2 class="guide-heading">Your Customer Portal</h2>
@@ -11,7 +11,7 @@ function renderVectaInstallGuide(dialog, portalHref, selectedPhone){
  <p>Receive instant notifications on your phone when the workshop sends you a message.</p>
  <p data-alert-settings></p>
  <img class="guide-photo" src="https://www.vectamotors.co.uk/assets/app-install/notification-example.jpg" width="1122" height="1402" alt="Example VECTA notification showing a £40 front brake pad quote and a red 1 on the app icon">`);
- dialog.querySelector('[data-guide-open]').href=portalHref;
+ for(const link of dialog.querySelectorAll('[data-guide-heading-link], [data-guide-open]')) link.href=portalHref;
  const phone=dialog.querySelector('select'),images=dialog.querySelectorAll('[data-guide-suffix]');
  function selectGuide(){
   const android=phone.value==='android';
