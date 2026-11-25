@@ -44,6 +44,10 @@ test('Polestar header fits and the completed Peugeot service sheet prints on one
    const result=new Promise((ok,fail)=>{const listener=e=>{const m=JSON.parse(e.data);if(m.id!==seq)return;socket.removeEventListener('message',listener);if(m.error)fail(Error(m.error.message));else ok(m.result);};socket.addEventListener('message',listener);});
    socket.send(JSON.stringify({id:seq,method,params}));return result;
   }
+  await command('Runtime.evaluate',{awaitPromise:true,expression:`(async()=>{
+   while(!document.querySelector('.ssHaynesVehicle') || document.readyState!=='complete')await new Promise(resolve=>setTimeout(resolve,25));
+   await document.fonts.ready;
+  })()`});
   await command('Emulation.setEmulatedMedia',{media:'print'});
   const measure=await command('Runtime.evaluate',{returnByValue:true,expression:`(()=>{
    const q=s=>document.querySelector(s),box=s=>q(s).getBoundingClientRect();
