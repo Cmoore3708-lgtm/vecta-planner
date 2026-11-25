@@ -40,3 +40,37 @@ test('blank fleet contact cannot resurrect an unrelated email',async()=>{
   assert.equal(c.knownRegistrationDetails('NMDR2').customer_email,'');
   c.document.getElementById('recordNewJob').onclick();assert.equal(c.newJob.customer_email,'');
 });
+test('contractor vehicle contact survives fleet repair, reload and registration lookup independently of sibling vehicles',async()=>{
+  const c=setup('Contractor Fleet');
+  Object.assign(c,{fleetNormaliseCustomer:s=>String(s||'').trim(),searchFleetCustomerName:v=>v.customer,fleetCustomerProfiles:{Works:{contactEmail:'office@example.test'}}});
+  vm.runInContext(section('function fleetContractorContactEmail(', 'function fleetSnapshot()'),c);
+  c.fleetVehicles[0].customer='Works';
+  c.fleetVehicles.push({...c.fleetVehicles[0],id:'second',registration:'OTHER'});
+  c.saveFleet=async()=>{c.fleetRepairEmailAssignments();c.savedFleet=JSON.stringify(c.fleetVehicles);return true};
+  for(const email of ['driver@example.test','']){
+    c.openVehicleRecord('NMDR2');
+    c.document.getElementById('recordVehicleEmail').value=email;
+    await c.document.getElementById('recordSaveVehicle').onclick();
+    c.fleetVehicles=JSON.parse(c.savedFleet);
+    c.openVehicleRecord('NMDR2');
+    assert.equal(c.document.getElementById('recordVehicleEmail').value,email);
+    assert.equal(c.document.getElementById('recordVehicleCustomer').value,'Works');
+    assert.equal(c.knownRegistrationDetails('NMDR2').customer_email,email);
+    assert.equal(c.fleetEffectiveContactEmail(c.fleetVehicles[1]),'office@example.test');
+  }
+});
+test('workshop contact edits persist without changing a second vehicle linked to the original customer',async()=>{
+  const c=setup(),writes=[];
+  Object.assign(c,{fleetVehicleForRegistration:()=>null,uid:()=> 'new-contact',upsertRemote:async(table,row)=>writes.push([table,structuredClone(row)])});
+  c.app.vehicles.push({id:'v2',registration:'OTHER',customer_id:'shared'});
+  c.openVehicleRecord('NMDR2');
+  c.document.getElementById('recordVehicleCustomer').value='New Contact';
+  c.document.getElementById('recordVehicleEmail').value='driver@example.test';
+  await c.document.getElementById('recordSaveVehicle').onclick();
+  assert.equal(writes[0][0],'customers');
+  assert.equal(writes[1][1].customer_id,writes[0][1].id);
+  c.openVehicleRecord('NMDR2');
+  assert.equal(c.document.getElementById('recordVehicleCustomer').value,'New Contact');
+  assert.equal(c.document.getElementById('recordVehicleEmail').value,'driver@example.test');
+  assert.equal(c.app.customers[0].email,'Donna@example.test');
+});
