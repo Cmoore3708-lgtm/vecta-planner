@@ -9,7 +9,8 @@ function renderVectaInstallGuide(dialog, portalHref, selectedPhone){
  <img class="guide-photo guide-portal" data-guide-suffix="-bonus" width="1122" height="1402" alt="Your garage in the VECTA Customer Portal, showing your vehicle and loyalty bonus">
  <h2 class="guide-heading">Turn notifications on</h2>
  <p>Receive instant notifications on your phone when the workshop sends you a message. Once installed, open VECTA, tap Enable phone alerts and choose Allow.</p>
- <p data-alert-settings></p>`);
+ <p data-alert-settings></p>
+ <img class="guide-photo" src="https://www.vectamotors.co.uk/assets/app-install/notification-example.jpg" width="1122" height="1402" alt="Example VECTA notification showing a £40 front brake pad quote and a red 1 on the app icon">`);
  dialog.querySelector('[data-guide-open]').href=portalHref;
  const phone=dialog.querySelector('select'),images=dialog.querySelectorAll('[data-guide-suffix]');
  function selectGuide(){
