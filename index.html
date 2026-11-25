@@ -16760,9 +16760,23 @@ async function saveInvoiceBase(id){
     app.settings.nextInvoiceNumber=nextInvoiceSequence();
     if(linkedJob){linkedJob.status='completed';linkedJob.archived=true;if(!linkedJob.completed_at)linkedJob.completed_at=new Date().toISOString();linkedJob.invoiced_at=new Date().toISOString();linkedJob.invoice_id=inv.id;linkedJob.updated_at=new Date().toISOString();syncFleetMaintenanceFromJob(linkedJob)}
     saveLocal();financeDashboardCache={key:'',html:'',created:0};
-    try{await persistInvoicePaymentMethod(inv)}catch(err){secondaryErrors.push('Payment method backup: '+((err&&err.message)||'failed'))}
-    if(linkedJob){try{await upsertRemote('jobs',linkedJob,{silent:true,skipQueue:true});await vectaWriteTerminalJobState(linkedJob,'completed',{completed_at:linkedJob.completed_at||null,booking_date:linkedJob.booking_date||null})}catch(err){secondaryErrors.push('Linked job update: '+((err&&err.message)||'failed'));console.warn('Invoice saved but linked job update needs retry',err)}}
-    try{await saveAll()}catch(err){secondaryErrors.push('Workshop settings sync: '+((err&&err.message)||'failed'))}
+    async function syncLinkedInvoiceJob(){
+      if(!linkedJob)return;
+      await upsertRemote('jobs',linkedJob,{silent:true,skipQueue:true});
+      var recorded=await vectaWriteTerminalJobState(linkedJob,'completed',{completed_at:linkedJob.completed_at||null,booking_date:linkedJob.booking_date||null});
+      if(recorded===false)throw new Error('Completion record could not be saved.');
+    }
+    // These write different records. Only the completion record depends on the job update.
+    var updates=await Promise.allSettled([
+      persistInvoicePaymentMethod(inv),
+      syncLinkedInvoiceJob(),
+      persistMainSettings()
+    ]);
+    var labels=['Payment method backup','Linked job update','Workshop settings sync'];
+    updates.forEach(function(result,index){
+      if(result.status==='rejected')secondaryErrors.push(labels[index]+': '+String(result.reason&&result.reason.message||'failed'));
+      else if(index===2&&remoteClient&&result.value===false)secondaryErrors.push(labels[index]+': failed');
+    });
   }catch(err){
     console.error('Invoice was not confirmed by the cloud register',err);
     if(button){button.disabled=false;button.textContent='Save'}
