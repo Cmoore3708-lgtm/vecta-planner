@@ -1,5 +1,7 @@
 (()=>{'use strict';
   const el=id=>document.getElementById(id),token=location.hash.slice(1);
+  const installGuide=document.querySelector('.installGuideLink');
+  if(installGuide && token)installGuide.href='/install-app'+location.hash;
   let timer,busy=false,failures=0,registration='',artworkKey='';
   let approvalId=token.startsWith('approval.') ? token.split('.')[1] : token && location.search ? new URLSearchParams(location.search).get('approval') : null;
   let deciding=false, approvalRender=0, approvalPhotos=[],replyId=null,replyAttempt=null;

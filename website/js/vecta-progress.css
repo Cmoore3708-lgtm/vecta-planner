@@ -70,3 +70,5 @@ header.trackerHeader{padding:16px 22px 18px;background:#000;text-align:center;bo
 #approvalMessage{white-space:pre-wrap;overflow-wrap:anywhere}
 #approvalDialog button:disabled{opacity:.6;cursor:wait}
 #approvalDialog button:focus-visible,#quoteReply:focus-visible{outline:3px solid #e4c58a;outline-offset:3px}
+
+.installGuideLink{display:inline-block;background:#b81731;color:#fff;padding:12px 18px;border-radius:8px;text-decoration:none;font-weight:700}

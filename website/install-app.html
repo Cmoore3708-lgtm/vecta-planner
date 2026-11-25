@@ -1,0 +1,18 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="referrer" content="no-referrer">
+<title>Install the VECTA app on your phone</title>
+<style>
+*{box-sizing:border-box}body{margin:0;background:#151619;color:white;font:1rem/1.5 system-ui,sans-serif}main{margin:auto;max-width:480px;padding:18px}
+select{padding:8px}.customer-app-offer-button{display:block;padding:12px;text-align:center;color:white;background:#b81731;border-radius:8px;font-weight:700;text-decoration:none}
+#receiptInstallGuide .guide-photo{display:block;width:100%;height:auto;margin:0}
+#receiptInstallGuide .guide-steps,#receiptInstallGuide .guide-portal{object-fit:cover;object-position:bottom}
+#receiptInstallGuide .guide-steps{aspect-ratio:1122/1045}
+#receiptInstallGuide[data-phone="android"] .guide-steps{aspect-ratio:1122/1086}
+#receiptInstallGuide .guide-portal{aspect-ratio:1122/1257}
+#receiptInstallGuide label{display:block;margin:16px 0 8px}
+#receiptInstallGuide .guide-heading{margin:24px 0 8px;font-size:1.25rem}
+#receiptInstallGuide .guide-instructions{margin:0 0 8px}#receiptInstallGuide h2{margin:0 0 12px}#receiptInstallGuide p{color:white;line-height:1.45}#receiptInstallGuide img{display:block;width:100%;height:auto;margin-top:16px}#receiptInstallGuide label{color:white}#receiptInstallGuide select{font-size:16px}
+</style></head><body><main id="receiptInstallGuide" aria-label="Install the VECTA app on your phone"></main>
+<script src="/js/vecta-install-guide.js"></script>
+<script>renderVectaInstallGuide(document.querySelector('main'), location.hash ? '/app/booking'+location.hash : '/app/home',new URLSearchParams(location.search).get('phone'));</script>
+</body></html>
