@@ -272,7 +272,7 @@ test('ready invoice email uses the saved total and is sent once across repeated 
     const ready={...job,status:'completed'};
     assert.equal((await sendInvoice(ready)).accepted,true);
     assert.equal((await sendInvoice(ready)).already_sent,true);assert.equal(sends,1);
-    assert.deepEqual(payload.to,['driver@example.com']);assert.equal(payload.from,'chris@vectamotors.co.uk');
+    assert.deepEqual(payload.to,['driver@example.com']);assert.equal(payload.from,'Vecta Motors <chris@vectamotors.co.uk>');
     assert.match(payload.text,/£312\.00/);assert.match(payload.text,/https:\/\/www.vectamotors.co.uk\/invoice\?token=/);assert.doesNotMatch(payload.text,/Nissan Fleet Support/);
     assert.equal(record.status,'sent');
     await assert.rejects(sendInvoice({...job,status:'work_complete'}),/Confirm the completed work/);assert.equal(sends,1);

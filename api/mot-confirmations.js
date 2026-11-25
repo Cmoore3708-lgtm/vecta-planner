@@ -1,3 +1,4 @@
+import {vectaSender} from '../lib/email-sender.js';
 import {databaseEnvironment} from './_database-environment.js';
 import {requireWorkshopLogin} from '../lib/workshop-access.js';
 import {address,motSender,motInbox,copyInbox,emailText,parseMotConfirmation,verifyMotWebhook} from '../lib/mot-confirmation.js';
@@ -55,7 +56,7 @@ export function createMotHandler({database=db,emailApi=resend,login=requireWorks
    record=await database('rpc/vecta_apply_mot_confirmation',{method:'POST',body:JSON.stringify({p_record:record})});
    if(!record||record.email_id!==id)throw fail('MOT allocation was not confirmed');
    if(!authenticated)return res.status(200).json({ok:true,review:true});
-   const forwarded=await emailApi('emails',{method:'POST',headers:{'Idempotency-Key':'mot-copy-'+id},body:JSON.stringify({from:copyInbox,to:[copyInbox],reply_to:motSender,subject:('MOT centre: '+String(email.subject||'Booking confirmation')).slice(0,200),text:'Copy of the MOT centre email received by Workshop Pro.\n\n'+emailText(email)})});
+   const forwarded=await emailApi('emails',{method:'POST',headers:{'Idempotency-Key':'mot-copy-'+id},body:JSON.stringify({from:vectaSender(copyInbox),to:[copyInbox],reply_to:motSender,subject:('MOT centre: '+String(email.subject||'Booking confirmation')).slice(0,200),text:'Copy of the MOT centre email received by Workshop Pro.\n\n'+emailText(email)})});
    if(!forwarded.id)throw fail('Email copy was not accepted');
    await database('workshop_settings?id=eq.'+prefix+id,{method:'PATCH',body:JSON.stringify({value:{...record,forwarded:true,forwarded_id:forwarded.id},updated_at:new Date().toISOString()})});
    return res.status(200).json({ok:true,state:record.state});

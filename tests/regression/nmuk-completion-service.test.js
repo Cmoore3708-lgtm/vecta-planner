@@ -36,7 +36,7 @@ test('send ignores client sender/recipient/signature, fixes Reply-To and logs on
   const {data:draft}=await run({action:'draft',job_id:jobId});
   const request={action:'send',job_id:jobId,token:draft.token,subject:'Ready to collect',body:'Hi Jane.\n\nYour <NV200> is ready.',from:'attacker@example.com',to:['wrong@example.com'],signature_html:'bad'};
   const sent=await run(request);assert.equal(sent.status,200);assert.equal(sent.data.accepted,true);assert.equal(state.record.status,'sent');assert.equal((await run(request)).data.already_sent,true);assert.equal(state.sends.length,1);
-  const payload=state.sends[0].payload;assert.equal(payload.from,completionSender);assert.equal(payload.reply_to,completionSender);assert.deepEqual(payload.to,['jane.smith@example.com']);assert.match(payload.html,/&lt;NV200&gt;/);assert.ok(payload.html.endsWith(completionSignatureHtml));assert.match(state.sends[0].key,/^completion:/);
+  const payload=state.sends[0].payload;assert.equal(payload.from,'Vecta Motors <chris@nissan-fleet.co.uk>');assert.equal(payload.reply_to,completionSender);assert.deepEqual(payload.to,['jane.smith@example.com']);assert.match(payload.html,/&lt;NV200&gt;/);assert.ok(payload.html.endsWith(completionSignatureHtml));assert.match(state.sends[0].key,/^completion:/);
  }finally{cleanup();}
 });
 test('auth, CSRF, live completion, subtype, contact changes and signed token are enforced before sending',async()=>{

@@ -32,7 +32,7 @@ test('manual test requires manager authentication and same origin; recipient is 
     const result=await run(authorized);assert.equal(result.status,200);
     const payload=JSON.parse(sends[0].options.body);
     assert.deepEqual(payload.to,['chris@nissan-fleet.co.uk']);
-    assert.equal(payload.from,'chris@vectamotors.co.uk');assert.equal(payload.reply_to,payload.from);
+    assert.equal(payload.from,'Vecta Motors <chris@vectamotors.co.uk>');assert.equal(payload.reply_to,'chris@vectamotors.co.uk');
     assert.match(payload.subject,/^\[TEST\]/);assert.match(payload.text,/not a real booking/);
     await run(authorized);assert.equal(sends[0].options.headers['Idempotency-Key'],sends[1].options.headers['Idempotency-Key']);
     globalThis.fetch=async()=>({ok:false,status:403,json:async()=>({})});
@@ -62,6 +62,6 @@ test('noon cron reads staff account memory, records send, and prevents duplicate
   try{
     clock='2026-12-14T11:00:00Z';assert.equal((await run()).body.skipped,'Outside UK midday');assert.equal(sends.length,0);
     clock='2026-12-14T12:00:00Z';assert.equal((await run()).body.sent,1);assert.equal((await run()).body.sent,0);
-    assert.equal(sends.length,1);assert.equal(sends[0].from,'chris@vectamotors.co.uk');assert.equal(sends[0].reply_to,'chris@vectamotors.co.uk');assert.deepEqual(sends[0].to,['driver@example.com']);
+    assert.equal(sends.length,1);assert.equal(sends[0].from,'Vecta Motors <chris@vectamotors.co.uk>');assert.equal(sends[0].reply_to,'chris@vectamotors.co.uk');assert.deepEqual(sends[0].to,['driver@example.com']);
   }finally{globalThis.Date=OriginalDate;globalThis.fetch=previousFetch;for(const [key,value]of Object.entries(env))if(value===undefined)delete process.env[key];else process.env[key]=value;}
 });
