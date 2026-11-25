@@ -63,7 +63,7 @@
       })();
     }
     function reset(){key='';generation++;controller?.abort();clearTimeout(expiryTimer);value={status:'idle',quote:null};}
-    return {update,reset,currentQuote};
+    return {update,reset,currentQuote,getState:()=>value};
   }
   root.VectaServicePricing={createController,request};
 })(typeof window==='undefined'?globalThis:window);

@@ -291,7 +291,12 @@ test('actual website shows a matched service price and submits its signed snapsh
   const create=root.VectaServicePricing.createController;root.VectaServicePricing.createController=options=>create({...options,wait:async()=>{}});
   for(const script of document.querySelectorAll('script:not([src])'))if(script.textContent.trim())vm.runInContext(script.textContent,root);
   vm.runInContext("state.step=2;state.form.registration='NU67VSE';state.form.vehicle='Nissan Pulsar';state.form.job_types=['Service'];state.form.service_choice='Full Service';state.form.mileage='50000';state.form.parts_range='Mid Range';state.form.engine_size_manual='1600';render();",root);
+  const bookingField=document.querySelector('[data-field="work_required"]'),selectedCard=document.querySelector('.service-option.selected');
+  assert.equal(vm.runInContext('estimateCost()',root),null);
+  assert.doesNotMatch(selectedCard.textContent,/£[0-9]/);
   await flush();await flush();
+  assert.equal(document.querySelector('.service-option.selected'),selectedCard);
+  assert.equal(document.querySelector('[data-field="work_required"]'),bookingField);
   assert.equal(vm.runInContext('estimateCost()',root),145.32);
   assert.match(document.querySelector('.service-option.selected').textContent,/Estimate including VAT£145.32/);
   assert.match(document.querySelector('.guide-price-card').textContent,/ESTIMATE INCLUDING VAT/);

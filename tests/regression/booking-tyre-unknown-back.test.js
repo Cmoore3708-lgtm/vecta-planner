@@ -35,7 +35,7 @@ test('photo help offers camera, upload and unknown buttons and an accessible rea
 test('final review defaults to Budget and requires a serious-repair choice for every work type',()=>{
  for(const types of [['Service'],['MOT'],['Other'],['Tyres'],['MOT','Service']]){
  const {document}=parseHTML('<div id="actions"></div>');let submissions=0;
- const c={document,state:{step:5,form:{job_types:types,parts_range:'',parts_preference:'',serious_repair_choice:''}},bookingMissingRequirements:()=>[],submit:()=>submissions++};vm.createContext(c);
+ const c={document,servicePriceState:{status:'unavailable'},guidePricesLoading:false,state:{step:5,form:{job_types:types,parts_range:'',parts_preference:'',serious_repair_choice:''}},bookingMissingRequirements:()=>[],submit:()=>submissions++};vm.createContext(c);
  for(const name of ['partsRangeHtml','seriousRepairChoiceHtml','valid','renderActions'])load(name,c);
  assert.equal((c.partsRangeHtml().match(/type="radio"/g)||[]).length,3);assert.equal(parseHTML(c.partsRangeHtml()).document.querySelector('[checked]').value,'budget');assert.doesNotMatch(c.seriousRepairChoiceHtml(),/checked/);
  c.renderActions();assert.equal(document.getElementById('send').disabled,true);
