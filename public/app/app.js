@@ -47,7 +47,7 @@
   if(!verified)return;
   try{if(localStorage.getItem('vecta.garage.session.v1')){$('appNotifications').hidden=true;return;}}catch{}
   $('appNotifications').hidden=false;
-  if(!('Notification' in window)||!('PushManager' in window)||ios&&!standalone()){$('appAlerts').disabled=true;$('appAlertsNote').textContent=ios?'Add Vecta to your Home Screen, then open the V icon to enable alerts.':'Phone alerts are unavailable in this browser. Your booking and messages still work here.';return;}
+  if(!('Notification' in window)||!('PushManager' in window)||ios&&!standalone()){$('appAlerts').disabled=true;$('appAlertsNote').textContent=ios?'Once you have installed the app on your phone using the instructions above, go to Settings, Notifications, select VECTA and turn on Allow Notifications.':'Phone alerts are unavailable in this browser. Your booking and messages still work here.';return;}
   try{
    config=await api('app-push-config');if(!config.enabled){$('appAlerts').disabled=true;$('appAlertsNote').textContent='Alerts are disabled on this preview.';return;}
    const sub=await (await registration()).pushManager.getSubscription();
