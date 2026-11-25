@@ -791,13 +791,14 @@ function bookingTrackingHref(data){return /^\/track#request\.[A-Za-z0-9_-]+\.[A-
 function showReceiptInstallGuide(){
  const dialog=document.getElementById('receiptInstallGuide');
  if(!dialog||typeof dialog.showModal!=='function')return;
- const phone=dialog.querySelector('select'),image=dialog.querySelector('img'),steps=dialog.querySelector('[data-install-steps]');
+ const phone=dialog.querySelector('select'),images=dialog.querySelectorAll('[data-guide-suffix]'),steps=dialog.querySelector('[data-install-steps]');
  function selectGuide(){
   const android=phone.value==='android';
   steps.textContent=android?'Open your portal in Chrome. Tap the three-dot menu, then Install app or Add to Home screen. Confirm to finish.':'Open your portal in Safari. Tap Share (under the menu if needed), then Add to Home Screen and Add.';
-  image.alt=android?'Android installation guide':'iPhone installation guide';
-  image.src='https://www.vectamotors.co.uk/assets/app-install/'+phone.value+'.jpg';
-  image.parentElement.href=image.src;
+  for(const image of images){
+   image.src='https://www.vectamotors.co.uk/assets/app-install/'+phone.value+image.dataset.guideSuffix+'.jpg';
+   image.parentElement.href=image.src;
+  }
  }
  phone.value=/android/i.test(window.navigator?.userAgent||'')?'android':'iphone';
  phone.onchange=selectGuide;
@@ -809,7 +810,7 @@ function bookingAppOfferHtml(data,embedded=false){
  if(embedded)return '<div class="receipt-actions"><a href="/app/home" target="_top">Return to My Garage</a></div><p class="calendar-note">Your booking and updates stay together in My Garage.</p>';
  const tracking=bookingTrackingHref(data),href=tracking.startsWith('/track#')?'/app/booking'+tracking.slice(6):'/app/home';
  return `<section class="customer-app-offer" aria-labelledby="customer-app-offer-title"><div class="customer-app-offer-heading"><img src="/app/icon-192.png" width="56" height="56" alt="Vecta Customer Portal"><div><h2 id="customer-app-offer-title">Install our Customer Portal</h2></div></div><p>Track your car, request booking changes and keep in touch with our workshop — all from your phone.</p><div class="customer-app-loyalty"><strong>Earn a 5% loyalty bonus on all future bookings</strong><span>Every £100 paid earns £5. See your bonus grow in your Customer Portal.</span></div><ul><li><strong>Track your car</strong><span>Follow its progress through the workshop and see when it’s ready to collect.</span></li><li><strong>Amend your booking</strong><span>Request a new date or changes to the work before your appointment. We’ll confirm any changes with you.</span></li><li><strong>Message the workshop</strong><span>Send us a message, receive updates and respond to requests for additional work.</span></li><li><strong>Keep your Vecta history together</strong><span>View your invoices and service sheets, download your history and make your next booking.</span></li></ul><a class="customer-app-offer-button" href="${esc(href)}">Install our Customer Portal <span aria-hidden="true">→</span></a><p class="customer-app-offer-note">Open the portal, then choose Add to phone or Add Vecta to your phone. On iPhone, use Safari → Share → Add to Home Screen. You can also use the portal in your browser. Sign in with your booking email to see your private history and loyalty bonus.</p><button type="button" class="secondary" data-open-install-guide>Show installation guide</button></section>
- <dialog id="receiptInstallGuide" aria-labelledby="receiptInstallTitle"><form method="dialog"><button autofocus aria-label="Close installation guide">Close</button></form><h2 id="receiptInstallTitle">Install the VECTA app</h2><p>Earn 5% back on your workshop spend. Every £100 paid earns £5. Open your portal to see your bonus, manage bookings, follow repairs and download documents.</p><label>Your phone <select><option value="iphone">Apple iPhone</option><option value="android">Android</option></select></label><p data-install-steps></p><a class="customer-app-offer-button" href="${esc(href)}">Open your portal</a><a target="_blank" rel="noopener" aria-label="View full-size installation guide"><img width="1122" height="1402" alt=""></a></dialog>`;
+ <dialog id="receiptInstallGuide" aria-labelledby="receiptInstallTitle"><form method="dialog"><button autofocus aria-label="Close installation guide">Close</button></form><h2 id="receiptInstallTitle">Install the VECTA app</h2><p>Earn 5% back on your workshop spend. Every £100 paid earns £5. Open your portal to see your bonus, manage bookings, follow repairs and download documents.</p><label>Your phone <select><option value="iphone">Apple iPhone</option><option value="android">Android</option></select></label><p data-install-steps></p><a class="customer-app-offer-button" href="${esc(href)}">Open your portal</a><a target="_blank" rel="noopener"><img data-guide-suffix="-home" width="1122" height="1402" alt="The VECTA app on your home screen"></a><a target="_blank" rel="noopener"><img data-guide-suffix="" width="1122" height="1402" alt="How to install the VECTA app"></a><a target="_blank" rel="noopener"><img data-guide-suffix="-bonus" width="1122" height="1402" alt="Your loyalty bonus in the customer portal"></a></dialog>`;
 }
 function bookingReceiptActionsHtml(date,requestId){
  const calendar=bookingCalendarContent(date,requestId);
