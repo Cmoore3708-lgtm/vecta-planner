@@ -58,7 +58,7 @@ test('NEVOS switches existing parts preferences to OEM and prevents cheaper choi
  assert.equal(document.querySelector('[value="oem"]').disabled,false);
  for(const input of document.querySelectorAll('input[disabled]'))input.onchange();
  assert.equal(form.parts_preference,'oem','Disabled choices cannot overwrite the preference');
- assert.match(c.customerPartsSummaryHtml(),/Customer would like OEM parts/);
+ assert.match(c.customerPartsSummaryHtml(),/You would like OEM parts/);
  for(const stale of ['','budget','mid_range']){
   form.parts_preference=stale;c.render();assert.equal(form.parts_preference,'oem','Redraws reconcile older NEVOS selections');
  }

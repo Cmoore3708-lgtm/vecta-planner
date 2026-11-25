@@ -567,7 +567,7 @@ function seriousRepairChoiceHtml(){
 }
 function customerPartsSummaryHtml(){
  const label={budget:'budget',mid_range:'mid range',oem:'OEM'}[state.form.parts_preference];
- return label?`<div class="review-parts"><small>Parts preference</small><b>Customer would like ${label} parts</b></div>`:'';
+ return label?`<div class="review-parts"><small>Parts preference</small><b>You would like ${label} parts</b></div>`:'';
 }
 function fullServiceSelected(){return state.form.job_types.includes('Service')&&['Full Service','Major Service'].includes(state.form.service_choice);}
 
