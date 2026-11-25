@@ -5,7 +5,7 @@ export default async function handler(req,res){
     const r=await fetch('https://vecta-planner.vercel.app/api/website-booking',{
       method:'POST',
       headers:{'Content-Type':'application/json','Cache-Control':'no-cache'},
-      body:JSON.stringify(body)
+      body:JSON.stringify({...body,booking_phone:/android/i.test(req.headers?.['user-agent']||'')?'android':null})
     });
     const text=await r.text();
     res.status(r.status);

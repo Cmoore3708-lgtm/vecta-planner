@@ -1,4 +1,4 @@
-function renderVectaInstallGuide(dialog, portalHref){
+function renderVectaInstallGuide(dialog, portalHref, selectedPhone){
  dialog.insertAdjacentHTML('beforeend', `<img class="guide-photo" data-guide-suffix="-home" width="1122" height="1402" alt="Install the VECTA app. Earn 5% back on workshop spend, manage bookings, track repairs and download documents.">
  <label>Your phone <select><option value="iphone">Apple iPhone</option><option value="android">Android</option></select></label>
  <a data-guide-open class="customer-app-offer-button" href="/app/home">Open your portal</a>
@@ -21,7 +21,7 @@ function renderVectaInstallGuide(dialog, portalHref){
    image.src='https://www.vectamotors.co.uk/assets/app-install/'+phone.value+image.dataset.guideSuffix+'.jpg';
   }
  }
- phone.value=/android/i.test(window.navigator?.userAgent||'')?'android':'iphone';
+ phone.value=['android','iphone'].includes(selectedPhone)?selectedPhone:(/android/i.test(window.navigator?.userAgent||'')?'android':'iphone');
  phone.onchange=selectGuide;
  selectGuide();
 }
