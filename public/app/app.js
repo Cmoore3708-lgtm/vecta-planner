@@ -14,14 +14,14 @@
  }
  connectivity();window.addEventListener('online',connectivity);window.addEventListener('offline',connectivity);
  window.addEventListener('beforeinstallprompt',event=>{event.preventDefault();installPrompt=event;$('appInstall').hidden=standalone();});
- window.addEventListener('appinstalled',()=>{installPrompt=null;$('appInstall').hidden=true;$('appInstallDialog').close();status('Vecta has been added to your phone.');});
+ window.addEventListener('appinstalled',()=>{installPrompt=null;$('appInstall').hidden=true;status('Vecta has been added to your phone.');});
  $('appInstall').hidden=standalone();
- $('appInstall').onclick=async()=>{
-  if(installPrompt){const prompt=installPrompt;installPrompt=null;await prompt.prompt();await prompt.userChoice;return;}
-  $('appInstallSteps').textContent=ios?'Open this page in Safari. Open the menu (the 3 lines to the left of the web site address in the address bar), then tap Share, then Add to Home Screen. Keep Open as Web App switched on if shown, then tap Add. Open Vecta from the new V icon to enable alerts.':'Open this page in Chrome or your phone’s browser. Open the browser menu and choose Install app or Add to Home Screen, then confirm.';
-  $('appInstallDialog').showModal();
+ $('appInstall').onclick=async event=>{
+  if(!installPrompt)return;
+  event.preventDefault();
+  const prompt=installPrompt;installPrompt=null;
+  await prompt.prompt();await prompt.userChoice;
  };
- $('appInstallClose').onclick=()=>$('appInstallDialog').close();
  $('appLinkForm').onsubmit=event=>{
   event.preventDefault();let supplied;
   try{const url=new URL($('appPrivateLink').value.trim());if(!['https:'].includes(url.protocol)||!['www.vectamotors.co.uk','vectamotors.co.uk',location.hostname].includes(url.hostname)||!/^\/(?:track(?:\.html)?\/?|app(?:\/(?:home|booking)(?:\.html)?)?\/?)$/.test(url.pathname))throw Error();supplied=url.hash.slice(1);if(!link.valid(supplied))throw Error();}
