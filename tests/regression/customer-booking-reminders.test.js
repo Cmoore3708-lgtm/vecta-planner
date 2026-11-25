@@ -5,7 +5,7 @@ import {parseHTML} from 'linkedom';
 import handler,{customerEligible,bookingReminderContent,reminderContent} from '../../lib/nmuk-service-reminders.js';
 import {verifyProgressToken,claimMatchesJob,progressSecret} from '../../lib/job-progress.js';
 
-const base={id:'11111111-1111-4111-8111-111111111111',booking_date:'2026-12-15',registration:'AB12 CDE',customer_email:'driver@example.invalid',customer_name:'Sam',archived:false,status:'booked',card_type:'job',job_type:'MOT'};
+const base={id:'11111111-1111-4111-8111-111111111111',booking_date:'2026-12-15',registration:'AB12 CDE',customer_account:'Staff',customer_email:'driver@example.invalid',customer_name:'Sam',archived:false,status:'booked',card_type:'job',job_type:'MOT'};
 function setup(t){
  const keys=['CRON_SECRET','RESEND_API_KEY','SUPABASE_SERVICE_ROLE_KEY','VITE_SUPABASE_URL','VERCEL_ENV','VERCEL_PROJECT_NAME','VERCEL_PROJECT_PRODUCTION_URL'];
  const old=Object.fromEntries(keys.map(k=>[k,process.env[k]])),OriginalDate=Date,oldFetch=fetch;
@@ -37,6 +37,7 @@ test('customer email has date, safe arrival instructions and a private HERE butt
  setup(t);const content=bookingReminderContent({...base,recipient:base.customer_email});
  for(const phrase of ['15 December 2026','park outside the workshop','designated customer parking spaces','Key Drop letterbox','at reception','Keep an eye on your personalised customer portal'])assert.ok(content.text.includes(phrase));
  const {document}=parseHTML(content.html),link=document.querySelector('a');assert.equal(link.textContent,'HERE');
+ const guide=document.querySelector('a[href*="/install-app"]');assert.equal(new URL(guide.href).hash,new URL(link.href).hash);assert.ok(content.text.includes(guide.href));assert.match(content.html,/Have you installed our app and enabled notifications/);
  const logo=document.querySelector('img');assert.equal(logo.getAttribute('src'),'cid:reminder-logo');
  assert.equal(logo.getAttribute('alt'),'VECTA — Vehicle Servicing and repairs');
  assert.equal(content.attachments.length,1);assert.equal(content.attachments[0].content_id,'reminder-logo');
@@ -46,13 +47,13 @@ test('customer email has date, safe arrival instructions and a private HERE butt
  const escaped=bookingReminderContent({...base,customer_name:'<script>unsafe</script>'});assert.doesNotMatch(escaped.html,/<script>/);
  const nmuk=reminderContent({...base,customer_name:'NMUK'});assert.equal(nmuk.subject,'AB12 CDE Service tomorrow');assert.doesNotMatch(nmuk.text+' '+nmuk.html,/portal|track#|service book|locking wheel/i);
 });
-test('noon cron covers customers without account memory and contractors, while NMUK eligibility stays unchanged',async t=>{
+test('noon customer reminder accepts Staff only and excludes Rams and unclassified bookings',async t=>{
  const s=setup(t);
- s.jobs=[{...base},{...base,id:'22222222-2222-4222-8222-222222222222',customer_name:'Contractor'},{...base,id:'33333333-3333-4333-8333-333333333333',customer_name:'NMUK',job_type:'MOT'},{...base,id:'44444444-4444-4444-8444-444444444444',status:'provisional'}];
- s.settings=[{id:'jobcustomer:'+s.jobs[1].id,value:{customer_account:'Contractor'}}];
- const r=await s.run();assert.equal(r.code,200);assert.equal(r.body.sent,2);assert.equal(s.sends.length,2);assert.ok(s.sends.every(m=>m.from==='chris@vectamotors.co.uk'&&m.text.includes('customer portal')));
+ s.jobs=[{...base},{...base,id:'22222222-2222-4222-8222-222222222222',customer_name:'Rams'},{...base,id:'33333333-3333-4333-8333-333333333333',customer_account:undefined,customer_name:'Staff',job_type:'MOT'},{...base,id:'44444444-4444-4444-8444-444444444444',status:'provisional'}];
+ s.settings=[{id:'jobcustomer:'+s.jobs[1].id,value:{customer_account:'Rams'}}];
+ const r=await s.run();assert.equal(r.code,200);assert.equal(r.body.sent,1);assert.equal(s.sends.length,1);assert.ok(s.sends.every(m=>m.from==='chris@vectamotors.co.uk'&&m.text.includes('customer portal')));
  assert.ok(s.sends.every(m=>m.attachments?.[0]?.content_id==='reminder-logo'&&m.html.includes('cid:reminder-logo')));
- assert.equal((await s.run()).body.sent,0);assert.equal(s.sends.length,2);
+ assert.equal((await s.run()).body.sent,0);assert.equal(s.sends.length,1);
 });
 test('schedule fires at UK noon in winter, summer and clock-change weekends, never the other UTC hour',async t=>{
  const s=setup(t),cases=[['2026-12-14',12],['2026-07-14',11],['2026-03-28',12],['2026-03-29',11],['2026-10-24',11],['2026-10-25',12]];

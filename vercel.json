@@ -44,6 +44,10 @@
   },
   "rewrites": [
     {
+      "source": "/install-app",
+      "destination": "/install-app.html"
+    },
+    {
       "source": "/app/booking",
       "destination": "/app/booking.html"
     },
