@@ -9245,6 +9245,7 @@ window.CONTRACTOR_2026_NEW_VEHICLES=[{"id":"CONTRACTOR|RV63SYG","fleetGroup":"Co
 <script src="/js/vecta-invoice-print.js"></script>
 <script src="/js/vecta-invoice-rules.js"></script>
 <script src="/js/vecta-planner-rules.js"></script>
+<script src="/js/vecta-mobile-planner-drag.js"></script>
 <script src="/js/vecta-finance-rules.js"></script>
 <script src="/js/vecta-billing-integrity.js"></script>
 <script src="/js/vecta-fleet-rules.js"></script>
@@ -14701,6 +14702,19 @@ function bindView(){
   bindJobOpenControls(document);
   dashboardParts.bind();
   document.querySelectorAll('[data-assign-job]').forEach(function(btn){btn.onclick=function(e){e.stopPropagation();var job=app.jobs.find(function(x){return x.id===btn.dataset.assignJob});if(job)assignPlannerJob(job,btn.dataset.assignTech,selectedIso())}});
+  var mobilePlanner=document.querySelector('.mobilePlanner');
+  if(mobilePlanner)window.bindMobilePlannerDrag(mobilePlanner,{
+    lanes:plannerLaneMechanics(),
+    busy:function(value){plannerInteractionBusy=value},
+    move:function(id,tech,beforeId){
+      var job=app.jobs.find(function(row){return String(row.id)===id});
+      if(!job)return;
+      try{
+        var changed=plannerInsertJob(job,selectedIso(),tech,null,{beforeId:beforeId});
+        if(changed.length){saveLocal();persistPlannerJobsInBackground(changed,'Planner job move');render()}
+      }catch(error){showPlannerAvailabilityNotice(error.message)}
+    }
+  });
   if(!window.matchMedia('(max-width: 768px)').matches){document.querySelectorAll('[data-job-id]').forEach(bindDrag);document.querySelectorAll('.lane').forEach(bindLane);document.querySelectorAll('[data-unallocated-drop]').forEach(bindUnallocatedDrop);document.querySelectorAll('[data-task-return]').forEach(bindTaskReturnDrop);}
   document.querySelectorAll('[data-open-unallocated]').forEach(function(card){card.addEventListener('click',function(ev){if(card.dataset.wasDragged==='1'||ev.target.closest('.resizeHandle,.resizeTopHandle'))return;ev.stopPropagation();openJobModal(card.dataset.openUnallocated)})});
   document.querySelectorAll('[data-mobile-move]').forEach(function(b){b.onclick=function(e){e.stopPropagation();mobileMoveJob(b.dataset.mobileMove)}});
@@ -14806,17 +14820,32 @@ function plannerCloseCompletedGap(previous){
   if(!jobs.length)return [];
   return plannerPackOrderedJobs(jobs,8*60);
 }
-function plannerInsertJob(job,date,tech,rawMinutes){
+function plannerInsertJob(job,date,tech,rawMinutes,insertion){
   var oldDate=job.booking_date,oldTech=job.technician,oldTime=job.drop_time;
   var proposed=Object.assign({},job,{booking_date:date,technician:tech});
+  var order=plannerDropOrder(date,tech,job.id,rawMinutes),start=8*60;
+  if(insertion){
+    order.jobs.sort(window.VectaPlannerRules.byTime);
+    order.index=insertion.beforeId===null?order.jobs.length:order.jobs.findIndex(function(row){return String(row.id)===insertion.beforeId});
+    if(order.index<0)return [];
+    var previous=order.jobs[order.index-1];
+    rawMinutes=previous?clockMinutes(previous.drop_time)+roundPlannerMinutesUp(Number(previous.estimated_hours||1)*60):start;
+  }
   if(plannerJobTimeLocked(job)){
     proposed.drop_time=timeFromMinutes(Math.max(7*60,Math.round(rawMinutes/30)*30));
     if(!plannerConfirmTimeMove(job,proposed))return [];
   }
-  var order=plannerDropOrder(date,tech,job.id,rawMinutes),start=8*60;
   order.jobs.splice(order.index,0,proposed);
   var copies=order.jobs.map(function(row){return Object.assign({},row)});
   plannerPackOrderedJobs(copies,start);
+  if(insertion){
+    var scheduled=copies.slice().sort(window.VectaPlannerRules.byTime);
+    if(scheduled.some(function(row,i){return row.id!==copies[i].id}))throw new Error('A fixed or provisional booking prevents that order. Choose another position.');
+    if(plannerJobTimeLocked(proposed)){
+      var from=clockMinutes(proposed.drop_time),until=from+Number(proposed.estimated_hours||1)*60;
+      if((window.vectaTimeOffConflict&&window.vectaTimeOffConflict(proposed,job.id))||copies.some(function(row){var t=clockMinutes(row.drop_time);return row.id!==job.id&&t<until&&t+Number(row.estimated_hours||1)*60>from}))throw new Error('That position overlaps another booking or recorded time off.');
+    }
+  }
   if(oldDate&&oldTech&&oldTech!=='Unallocated'&&(oldDate!==date||plannerTechnicianLane(oldTech)!==plannerTechnicianLane(tech))){
     var source=plannerLaneActiveJobs(oldDate,oldTech,job.id).map(function(row){return Object.assign({},row)});
     if(source.length){plannerPackOrderedJobs(source,8*60);copies=copies.concat(source);}
