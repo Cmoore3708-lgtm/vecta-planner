@@ -90,3 +90,11 @@
 #portalEmailBody p{white-space:pre-wrap;overflow-wrap:anywhere;font-size:14px;line-height:1.6;margin:12px 0 0}
 #portalEmailBody small{display:block;margin-top:12px;line-height:1.4;color:#b1b5bb}
 @media(max-width:600px){.portalEmailLink{padding:10px 12px;gap:6px}.portalEmailLink time{font-size:10px}.portalEmailHeader{padding:10px 14px}.portalEmailHeader h2{font-size:16px}}
+
+body.portal-locked main{display:none}
+#portalSignIn{max-width:28rem;margin:1rem auto;padding:1.25rem}
+#portalSignIn [hidden],#portalSignIn[hidden]{display:none}
+#portalSignIn input,#portalSignIn button{display:block;box-sizing:border-box;width:100%;margin:.5rem 0 .75rem;padding:.8rem;font:inherit}
+#portalSignIn button[type=submit]{background:#b81731;color:white;border:0;border-radius:8px;font-weight:700}
+
+#statusTitle.pendingApproval{border-left:4px solid #eeac35;padding-left:.65rem;color:#ffd483}

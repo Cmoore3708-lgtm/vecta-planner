@@ -1,4 +1,5 @@
-(()=>{'use strict';
+(async()=>{'use strict';
+ if(window.VectaPortalSignIn)await window.VectaPortalSignIn.ready;
  const $=id=>document.getElementById(id),link=window.VectaCustomerAppLink,token=location.hash.slice(1);
  const standalone=()=>matchMedia('(display-mode: standalone)').matches||navigator.standalone===true;
  const ios=/iPad|iPhone|iPod/.test(navigator.userAgent)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
@@ -6,7 +7,8 @@
  let installPrompt=null,worker=null,verified=false,config=null,notificationBusy=false;
  const status=text=>{$('appStatus').textContent=text;};
  async function api(action,body={}){
-  const response=await fetch('/api/job-progress',{method:'POST',headers:{'Content-Type':'application/json'},cache:'no-store',credentials:'same-origin',signal:AbortSignal.timeout(20000),body:JSON.stringify({action,token,...body})});
+  if(window.VectaPortalSignIn?.session()&&action.startsWith('app-push-'))action=action.replace('app-push-','garage-push-');
+  const response=await fetch('/api/job-progress',{method:'POST',headers:{'Content-Type':'application/json'},cache:'no-store',credentials:'same-origin',signal:AbortSignal.timeout(20000),body:JSON.stringify({action,token,session:window.VectaPortalSignIn?.session(),...body})});
   const data=await response.json();if(!response.ok)throw Error(data.error||'Please try again when you are online.');return data;
  }
  function connectivity(){
@@ -46,7 +48,6 @@
  function keyBytes(value){const bytes=atob(value.replace(/-/g,'+').replace(/_/g,'/'));return Uint8Array.from(bytes,c=>c.charCodeAt(0));}
  async function notificationState(){
   if(!verified)return;
-  try{if(localStorage.getItem('vecta.garage.session.v1')){$('appNotifications').hidden=true;return;}}catch{}
   $('appNotifications').hidden=false;
   if(!('Notification' in window)||!('PushManager' in window)||ios&&!standalone()){$('appAlerts').disabled=true;$('appAlertsNote').textContent=phoneAlertSettings||'Phone alerts are unavailable in this browser. Your booking and messages still work here.';return;}
   try{

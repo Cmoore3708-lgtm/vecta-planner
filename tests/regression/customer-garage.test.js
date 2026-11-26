@@ -221,3 +221,49 @@ test('NEVOS migration upgrades existing vehicles without defaulting to No or gra
   const access=(await db.query("select relrowsecurity,has_table_privilege('anon',oid,'SELECT') anon,has_table_privilege('authenticated',oid,'UPDATE') authenticated from pg_class where relname='customer_garage_vehicles'")).rows[0];assert.equal(access.relrowsecurity,true);assert.equal(access.anon,false);assert.equal(access.authenticated,false);
  }finally{await db.close();}
 });
+
+test('first booking email requires the matching security code before the pending booking opens',async t=>{
+ const restore=environment({RESEND_API_KEY:'fixture'});t.after(restore);
+ const original=globalThis.fetch;t.after(()=>{globalThis.fetch=original;});
+ const {requestTrackingPath}=await import('../../lib/job-progress.js');
+ const {default:handler}=await import('../../lib/job-progress-handler.js');
+ const date=new Date(Date.now()+5*86400000).toISOString().slice(0,10);
+ const request={id:randomUUID(),email:account.email,registration:'TEST123',vehicle:'Test car',preferred_date_1:date,status:'awaiting_review',work_required:'Full service'};
+ const {db,tables}=database({website_booking_requests:[request],jobs:[]});
+ const token=requestTrackingPath(request).split('#')[1],mail=[];
+ globalThis.fetch=async(url,options)=>{
+  if(url==='https://api.resend.com/emails'){mail.push(JSON.parse(options.body));return Response.json({id:'test-email'});}
+  const path=String(url).split('/rest/v1/')[1];
+  if(!path)throw Error('Unexpected destination');
+  const table=path.split('?')[0];
+  if(!Object.hasOwn(tables,table))return Response.json([]);
+  return Response.json(await db(path,options.method==='GET'?{}:options));
+ };
+ async function call(action,body={}){
+  const response={setHeader(){},status(n){this.code=n;return this;},json(data){this.data=data;return this;}};
+  await handler({method:'POST',headers:{host:'www.vectamotors.co.uk',origin:'https://www.vectamotors.co.uk','content-type':'application/json'},body:{action,token,...body}},response);
+  return response;
+ }
+ assert.equal((await call('status')).code,401);
+ assert.equal((await call('portal-request-code',{email:'other@example.invalid'})).code,403);
+ assert.equal(mail.length,0);
+ const issued=await call('portal-request-code',{email:account.email});assert.equal(issued.code,200);
+ assert.deepEqual(mail[0].to,[account.email]);const code=mail[0].text.match(/\b\d{6}\b/)[0];
+ const challenge=issued.data.challenge;
+ assert.equal((await call('garage-verify',{challenge,code:code==='000000'?'111111':'000000'})).code,401);
+ const verified=await call('garage-verify',{challenge,code});assert.equal(verified.code,200);
+ assert.equal((await call('garage-verify',{challenge,code})).code,401);
+ const session=verified.data.session;
+ assert.equal((await call('portal-access',{session})).code,200);
+ const pending=await call('status',{session});assert.equal(pending.code,200);assert.equal(pending.data.title,'Waiting for workshop approval');assert.equal(pending.data.job_description,'Full service');
+ tables.customer_garage_accounts[0].email='different@example.invalid';assert.equal((await call('portal-status',{session})).code,403);
+});
+test('a verified booking customer gets the approval alert without adding a garage vehicle',async()=>{
+ const restore=environment();try{
+  const saved={...job,status:'booked'},push={id:'test',account_id:account.id,last_seq:'0',ready_jobs:[],reminder_receipts:{},next_check_at:new Date(now).toISOString(),subscription:{}};
+  const {db}=database({customer_garage_push:[push],customer_garage_vehicles:[],jobs:[saved],customer_portal_events:[{actor:'workshop',kind:'booking_confirmed',seq:1,job_id:job.id,registration:'AB12CDE',customer_email:account.email}]});
+  const sent=[],send=async(_,payload)=>sent.push(payload.body);
+  await runGarageAlerts(db,{now,send});await runGarageAlerts(db,{now:now+300000,send});
+  assert.deepEqual(sent,['Good news, your booking is confirmed! Open VECTA for the details.']);
+ }finally{restore();}
+});
