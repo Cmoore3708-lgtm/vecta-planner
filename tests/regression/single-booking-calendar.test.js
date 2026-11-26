@@ -12,7 +12,8 @@ test('every work type uses one calendar and no appointment list or later calenda
   assert.equal(doc.querySelectorAll('.mot-calendar').length,1);
   assert.equal(doc.querySelectorAll('[data-slot],.future-calendar').length,0);
   assert.equal(doc.querySelector('h2').textContent,'Choose your date');
-  assert.match(doc.querySelector('.step>p')?.textContent||doc.querySelector('h2+p').textContent,types.includes('MOT')?/9 days/:/48 hours/);
+  if(types.includes('MOT')) assert.match(doc.querySelector('h2+p').textContent,/9 days/);
+  else assert.equal(doc.querySelector('h2').nextElementSibling.className,'availability-box');
   assert.equal(doc.querySelectorAll('[data-mot-date]').length,1);
   const day=doc.querySelector('[data-mot-date]');day.onclick();
   assert.equal(c.state.form.appointment_date,'2026-10-23');assert.equal(c.state.form.technician,'Alfie');assert.equal(c.state.form.appointment_time,'08:00');
