@@ -13,6 +13,7 @@
  }
  function connectivity(){
   $('appOffline').hidden=navigator.onLine;
+  $('appOnlineLabel').textContent=navigator.onLine?'Connected to your workshop':'Offline — updates paused';
  }
  connectivity();window.addEventListener('online',connectivity);window.addEventListener('offline',connectivity);
  window.addEventListener('beforeinstallprompt',event=>{event.preventDefault();installPrompt=event;$('appInstall').hidden=standalone();});
