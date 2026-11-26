@@ -13,7 +13,6 @@
  }
  function connectivity(){
   $('appOffline').hidden=navigator.onLine;
-  $('appOnlineLabel').textContent=navigator.onLine?'Connected to your workshop':'Offline — updates paused';
  }
  connectivity();window.addEventListener('online',connectivity);window.addEventListener('offline',connectivity);
  window.addEventListener('beforeinstallprompt',event=>{event.preventDefault();installPrompt=event;$('appInstall').hidden=standalone();});
@@ -61,12 +60,12 @@
  window.addEventListener('vecta:portal-verified',event=>{
   if(verified)return;verified=true;
   if(!link.save(token))status('This browser could not remember your booking. Keep your private email link to reopen it.');
-  else status('Your booking is securely linked on this device.');
+  else status('');
   $('appForget').hidden=false;notificationState();
  });
  window.addEventListener('vecta:portal-unavailable',event=>{
   if(event.detail?.status!==404)return;
-  link.clear();$('appRecovery').hidden=false;status('This booking link has expired or changed. Use your latest booking email to link it again.');
+  link.clear();$('appRecovery').hidden=false;status('This link has expired. Open your latest booking email.');
  });
  $('appAlerts').onclick=async()=>{
   if(notificationBusy||!verified)return;notificationBusy=true;$('appAlerts').disabled=true;

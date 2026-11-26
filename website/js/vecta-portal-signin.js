@@ -39,6 +39,10 @@
     } catch (error) {
       if (error.status === 401 || error.status === 403) {
         showEmail(error.status === 403 ? 'Use the email address you booked with.' : '');
+      } else if (error.status === 404 && document.getElementById('appExpiredGarage')) {
+        notice.textContent = 'This link has expired. Open your latest booking email or sign in to My Garage.';
+        document.getElementById('appExpiredGarage').hidden = false;
+        panel.querySelector('h1 + p').hidden = true;
       } else {
         notice.textContent = error.message;
         retry.hidden = false;
