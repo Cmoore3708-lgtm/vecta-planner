@@ -3,18 +3,17 @@ function renderVectaInstallGuide(container, portalHref, selectedPhone){
  const phone=['android','iphone'].includes(selectedPhone)?selectedPhone:(/android/i.test(navigator.userAgent)?'android':'iphone');
  container.innerHTML=`<h1>Add VECTA to your phone</h1>
  <p><strong>Earn £5 for every £100 you spend.</strong> See your loyalty bonus in My Garage.</p>
- <img class="guide-photo" data-guide-suffix="-home" alt="VECTA on your Home Screen">
  <h2>1. Open your booking portal</h2>
  ${onPortal?'<p><strong>You’re on the right page.</strong> Keep this portal open for step 2.</p>':'<p>This page is the guide. Tap below to open the page to save.</p><a data-open-portal class="customer-app-offer-button">Open my booking portal</a>'}
+ <img class="guide-photo" data-guide-suffix="-bonus" alt="Your VECTA booking portal and loyalty bonus">
  <h2>2. Add the portal to your Home Screen</h2>
  <label>Your phone <select><option value="iphone">iPhone</option><option value="android">Android</option></select></label>
  <p data-install-steps></p>
- <img class="guide-photo" data-guide-suffix="" alt="Phone menu and Home Screen installation steps">
- <h3>Your Customer Portal</h3>
- <img class="guide-photo" data-guide-suffix="-bonus" alt="Your VECTA customer portal">
- <h2>3. After installation, turn on workshop alerts</h2>
+ <img class="guide-photo" data-guide-suffix="" alt="Phone menu and Add to Home Screen instructions">
+ <img class="guide-photo" data-guide-suffix="-home" alt="The VECTA app on your Home Screen">
+ <h2>3. After installing, turn on workshop alerts</h2>
  <p>Open VECTA from your Home Screen, tap <strong>Enable phone alerts</strong> and choose <strong>Allow</strong> to hear when we confirm your booking.</p>
- <img class="guide-photo" src="https://www.vectamotors.co.uk/assets/app-install/notification-example.jpg" alt="Example workshop notification on a phone">`;
+ <img class="guide-photo" src="https://www.vectamotors.co.uk/assets/app-install/notification-example.jpg" alt="Example of a VECTA workshop notification">`;
  const link=container.querySelector('[data-open-portal]');
  if(link){const target=new URL(portalHref,location.origin);target.searchParams.set('setup','1');link.href=target.pathname+target.search+target.hash;}
  const selector=container.querySelector('select');

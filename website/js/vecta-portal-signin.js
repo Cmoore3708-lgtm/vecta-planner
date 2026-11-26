@@ -33,7 +33,8 @@
   async function check() {
     retry.hidden = true;
     try {
-      await api('portal-access', {token, session});
+      const access=await api('portal-access', {token, session});
+      if(access.verified && !session){session='cookie';try{localStorage.setItem(key,session);}catch{}}
       enter();
     } catch (error) {
       if (error.status === 401 || error.status === 403) {

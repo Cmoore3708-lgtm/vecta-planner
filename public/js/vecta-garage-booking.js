@@ -11,6 +11,7 @@
    const profile=data.profile;if(!profile||typeof profile.email!=='string')return;
    // The customer can still edit every contact field before confirming.
    form.customer_name=String(profile.name||'').slice(0,100);form.email=profile.email.slice(0,254);form.phone=String(profile.phone||'').slice(0,40);
+   if(['Email','Telephone','WhatsApp'].includes(profile.contact_preference))form.contact_preference=profile.contact_preference;
    form.returning_choice='yes';form.returning_contact=form.email;form.customer_found=true;
    for(const field of ['vehicle','vehicle_make','vehicle_colour'])if(!form[field]&&typeof data[field]==='string')form[field]=data[field].slice(0,200);
    if(!['yes','no'].includes(form.nevos_vehicle)&&['yes','no'].includes(data.nevos_vehicle))applyNevos?.(data.nevos_vehicle);

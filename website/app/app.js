@@ -88,6 +88,7 @@
  $('appForget').onclick=async()=>{
   $('appForget').disabled=true;
   try{const garageSignedIn=!!localStorage.getItem('vecta.garage.session.v1');const sub=garageSignedIn?null:await (await registration()).pushManager.getSubscription();if(sub){await sub.unsubscribe();await api('app-push-unsubscribe',{subscription:sub.toJSON()}).catch(()=>{});}}catch{}
+  try{await api('garage-forget-booking');}catch{status('Connect to the internet and try removing this booking again.');$('appForget').disabled=false;return;}
   link.clear();location.replace('/app/home');
  };
  $('appRecovery').hidden=!!token;
