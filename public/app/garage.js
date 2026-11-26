@@ -32,9 +32,8 @@
  function mountImages(){document.querySelectorAll('.carArt img').forEach(img=>{img.onerror=()=>{img.onerror=null;img.src='/app/car-placeholder.svg';img.alt='Vehicle illustration';};});window.VectaVehicleImage?.mount?.().catch(()=>{});}
  function render(){
   $('signedin').hidden=false;$('signin').hidden=true;$('accountFooter').hidden=false;$('vehicleCount').textContent='('+garage.vehicles.length+')';$('greeting').textContent=garage.profile?.name?'Welcome back, '+garage.profile.name.split(' ')[0]+'.':'Your cars, bookings and reminders, together.';
-  $('profileName').value=garage.profile?.name||'';$('profilePhone').value=garage.profile?.phone||'';
-  const preference=garage.profile?.contact_preference||'WhatsApp';
-  for(const option of $('profileContact').options)option.selected=option.value===preference;
+  $('profileName').value=garage.profile?.name||'';$('profilePhone').value=garage.profile?.phone||'';const contactSelect=$('profileContact');
+  if(contactSelect){const preference=garage.profile?.contact_preference||'WhatsApp';for(const option of contactSelect.options)option.selected=option.value===preference;}
   $('profileEmail').textContent='Verified email: '+garage.email;
   for(const [id,mode] of [['vehicleGrid','garage'],['bookingCars','book'],['historyCars','history']])$(id).innerHTML=garage.vehicles.length?garage.vehicles.map(v=>carCard(v,mode)).join(''):'<div class="empty"><h2>Your garage starts here</h2><p>Add your cars to manage reminders, make bookings and keep your paperwork together.</p><button class="primary" data-add>＋ Add car</button></div>';
   $('suggestions').innerHTML=garage.suggestions?.length?'<p class="small">Cars from your verified booking history — add the ones you still look after:</p>'+garage.suggestions.map(v=>'<button class="quiet" data-suggest="'+esc(v.registration)+'">＋ '+esc(v.registration)+'</button>').join(''):'';
