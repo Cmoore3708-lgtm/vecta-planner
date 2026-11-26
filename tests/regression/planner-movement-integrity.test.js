@@ -545,3 +545,18 @@ test('description-only job save keeps every planner position unchanged',async()=
  const {ctx,scheduled}=jobSavePlanner(jobs,0,{work_required:'Updated instructions'});
  assert.equal(await ctx.saveJob('a'),true);assert.deepEqual(jobs.map(j=>j.drop_time),['08:00','09:00','10:00']);assert.deepEqual(scheduled,[]);
 });
+
+test('phone insertion persists the chosen gap and rejects impossible positions without edits', () => {
+  const jobs = [stackedJob('a','08:00'), stackedJob('b','09:00'), stackedJob('c','10:00')];
+  const ctx = stackedPlanner(jobs);
+  const move = (job, beforeId) => ctx.plannerInsertJob(job, job.booking_date, 'Alfie', null, {beforeId});
+  assert.deepEqual(Array.from(move(jobs[2], 'b'), j=>j.id).sort(), ['b','c']);
+  const reloaded = JSON.parse(JSON.stringify(jobs)).sort(globalThis.VectaPlannerRules.byTime);
+  assert.deepEqual(reloaded.map(j=>j.id), ['a','c','b']);
+  move(jobs[0], null);
+  assert.deepEqual(jobs.map(j=>j.drop_time), ['10:00','09:00','08:00']);
+  jobs[0].status = 'provisional';
+  const before = JSON.stringify(jobs);
+  assert.throws(() => move(jobs[0], 'c'), /provisional/);
+  assert.equal(JSON.stringify(jobs), before);
+});
