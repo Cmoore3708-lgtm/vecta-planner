@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import vm from 'node:vm';
+import {portalSnapshot} from '../../lib/customer-portal.js';
 import {confirmationContent} from '../../lib/portal-email.js';
 
 const html=fs.readFileSync(new URL('../../index.html',import.meta.url),'utf8');
@@ -49,20 +50,19 @@ test('website booking without an estimate saves and opens a formatted confirmati
 });
 
 test('empty or invalid estimates display unknown without a currency or VAT suffix',()=>{
-  const {c}=setup();
   for(const amount of [null,undefined,'','   ','unknown',NaN,Infinity]){
     for(const mode of ['inc_vat','ex_vat','no_vat']){
-      assert.equal(c.websiteConfirmationCostText({amount_quoted:amount,vat_mode:mode}),'unknown');
+      assert.equal(confirmationContent({...base,amount_quoted:amount,vat_mode:mode},'https://example.test').text.includes('Estimated cost: To be confirmed'),true);
     }
   }
 });
 
 test('entered estimates retain their amount and VAT wording, including an explicit zero',async()=>{
-  for(const [mode,suffix] of [['inc_vat',' including VAT'],['ex_vat',' + VAT'],['no_vat',' (no VAT)'],['',' including VAT']]){
+  for(const [mode,suffix] of [['inc_vat',' including VAT'],['ex_vat',' including VAT'],['no_vat',' (no VAT)'],['',' including VAT']]){
     for(const amount of [0,120,'120.50']){
       const {c,drafts}=setup();
       await c.openWebsiteBookingConfirmationEmail({...base,amount_quoted:amount,vat_mode:mode});
-      assert.ok(drafts[0].text.includes('Estimated cost: £'+Number(amount).toFixed(2)+suffix+'\n'));
+      assert.ok(drafts[0].text.includes('Estimated cost: £'+(Number(amount)*(mode==='ex_vat'?1.2:1)).toFixed(2)+suffix+'\n'));
     }
   }
 });
@@ -77,4 +77,15 @@ test('unknown estimate does not bypass required email, date or successful cloud 
   c.syncSavedJobBundleInBackground=async()=>false;
   assert.equal(await c.saveJob(base.id,j=>c.openWebsiteBookingConfirmationEmail(j),{prepareWebsiteConfirmation:true}),false);
   assert.equal(drafts.length,0);assert.match(alerts[0],/NOT been confirmed/);
+});
+
+test('portal and confirmation agree for a booking with VAT-free MOT and taxable work',async()=>{
+  const items=[{description:'MOT',price:45},{description:'Service',price:100}];
+  const job={...base,amount_quoted:145,vat_mode:'ex_vat',customer_note:'[[VECTA_PRIVATE_PRICING:'+encodeURIComponent(JSON.stringify(items))+']]'};
+  const portal=await portalSnapshot(async()=>[],{job});
+  assert.equal(portal.booking.estimate,'£165.00 including VAT');
+  const email=confirmationContent(job,'https://example.test');
+  for(const body of [email.html,email.text])assert.ok(body.includes(portal.booking.estimate));
+  const mechanic=await portalSnapshot(async()=>[],{job},{mechanic:true});
+  assert.equal(mechanic.booking.estimate,undefined);
 });
