@@ -1,4 +1,5 @@
-(()=>{'use strict';
+(async()=>{'use strict';
+ if(window.VectaPortalSignIn)await window.VectaPortalSignIn.ready;
   const el=id=>document.getElementById(id),token=location.hash.slice(1);
   const installGuide=document.querySelector('.installGuideLink');
   if(installGuide && token)installGuide.href='/install-app'+location.hash;
@@ -28,7 +29,7 @@
     if(writing)note.textContent='Saving your response…';
     try{
       const response=await fetch('/api/job-progress',{method:'POST',headers:{'Content-Type':'application/json'},
-        body:JSON.stringify({action:decision?'approval-decide':'approval-status',approval_id:approvalId,token,
+        body:JSON.stringify({action:decision?'approval-decide':'approval-status',approval_id:approvalId,token,session:window.VectaPortalSignIn?.session(),
           ...(writing?{decision,reply:replyAttempt.reply,reply_id:replyAttempt.reply_id}:{})}),
         credentials:'same-origin',cache:'no-store',signal:AbortSignal.timeout(15000)});
       const data=await response.json();
@@ -165,8 +166,8 @@
     const instructions=el('customerInstructions'),list=el('customerInstructionsList');list.replaceChildren();
     for(const line of data.customer_instructions||[]){const p=document.createElement('p');p.textContent=line;list.append(p);}
     instructions.hidden=!list.children.length;
-    el('identity').hidden=false;el('registration').textContent=data.registration;el('vehicle').textContent=[data.vehicle,data.image_colour].filter(Boolean).join(' · ');const customerJobDescription=String(data.job_description||'').replace(/\bVECTA service package\b/gi,'service package').split(/\n\s*\n/).filter(section=>!/(?:^|\n)\s*(?:Service (?:guide price|price agreed):|Quote:\s*[\da-f-]{36}|Oil specification:|Guide price — includes estimated parts costs\.)/im.test(section)&&!/(?:GSF vehicle-applied oil recommendation|\[[A-Z0-9-]+\]\s*(?:·|×)|\bRequired\s+\d+(?:\.\d+)?L;\s*charged\s+\d+)/i.test(section)).join('\n\n').trim();el('jobDescription').textContent=customerJobDescription;el('jobSummary').hidden=!customerJobDescription;el('bookingDate').textContent=data.booking_date?'Booking date: '+date(data.booking_date):'';
-    el('statusTitle').textContent=data.title;el('statusDescription').textContent=data.description||'';el('steps').hidden=data.stage==='scheduled';
+    el('identity').hidden=false;el('registration').textContent=data.registration;el('vehicle').textContent=[data.vehicle,data.image_colour].filter(Boolean).join(' · ');const customerJobDescription=String(data.job_description||'').replace(/\bVECTA service package\b/gi,'service package').split(/\n\s*\n/).filter(section=>!/(?:^|\n)\s*(?:Service (?:guide price|price agreed):|Quote:\s*[\da-f-]{36}|Oil specification:|Guide price — includes estimated parts costs\.)/im.test(section)&&!/(?:GSF vehicle-applied oil recommendation|\[[A-Z0-9-]+\]\s*(?:·|×)|\bRequired\s+\d+(?:\.\d+)?L;\s*charged\s+\d+)/i.test(section)).join('\n\n').trim();el('jobDescription').textContent=customerJobDescription;el('jobSummary').hidden=!customerJobDescription;el('bookingDate').textContent=data.booking_date?(data.awaiting_approval?'Requested date: ':'Booking date: ')+date(data.booking_date):'';
+    el('statusTitle').classList.toggle('pendingApproval',!!data.awaiting_approval);el('statusTitle').textContent=data.title;el('statusDescription').textContent=data.description||'';el('steps').hidden=data.stage==='scheduled';
     const index={waiting:0,underway:1,checking:1,ready:2}[data.stage]??-1;
     document.querySelectorAll('[data-step]').forEach((step,i)=>{step.classList.toggle('current',i===index);step.classList.toggle('done',i<index);if(i===index)step.setAttribute('aria-current','step');else step.removeAttribute('aria-current');});
     if(data.images_allowed===false||data.stage==='scheduled'){clearScenes();clearWorkshopPhotos();}
@@ -180,7 +181,7 @@
     clearTimeout(timer);if(busy||(!token&&!registration)||document.hidden)return;busy=true;el('refresh').disabled=true;if(!artworkKey)showConnectionMessage();
     try{
       if(approvalId)refreshApproval();
-      const response=await fetch('/api/job-progress',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(registration?{action:'registration',registration,request_scenes:true}:{action:'status',token,request_scenes:true}),cache:'no-store',credentials:'same-origin',signal:AbortSignal.timeout(15000)});
+      const response=await fetch('/api/job-progress',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(registration?{action:'registration',registration,request_scenes:true}:{action:'status',token,session:window.VectaPortalSignIn?.session(),request_scenes:true}),cache:'no-store',credentials:'same-origin',signal:AbortSignal.timeout(15000)});
       const data=await response.json();if(!response.ok){const error=Error(typeof data.error==='string'?data.error:'Progress is temporarily unavailable.');error.permanent=response.status===404||response.status===400;throw error;}
       render(data);failures=0;el('error').hidden=true;timer=setTimeout(refresh,data.scene_state==='preparing'?15000:60000);
     }catch(error){

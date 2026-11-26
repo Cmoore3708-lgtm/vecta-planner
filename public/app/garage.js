@@ -6,7 +6,7 @@
  const phoneAlertSettings=ios?'On iPhone, open Settings → Notifications → VECTA and turn on Allow Notifications.':/android/i.test(navigator.userAgent)?'On Android, open Settings → Notifications → App notifications → VECTA and turn on notifications. If VECTA is missing, allow notifications for Chrome, then open your portal in Chrome and tap the icon beside the web address → Permissions → Notifications → Allow.':'';
  let session='',garage=null,loyalty=null,challenge='',installPrompt=null,worker=null,currentTab='garage',prefill=null,bookingTotal=null,historyOffset=null,historyVehicle=null,modalVersion=0,selectedCar=0,bookingScrollY=null;
  try{session=localStorage.getItem(key)||'';}catch{}
- if(!session&&window.location?.hash==='#open-booking'){
+ if(window.location?.hash==='#open-booking'){
   let saved='';try{saved=localStorage.getItem(bookingKey)||'';}catch{}
   if(saved){location.replace('/app/booking');return;}
  }

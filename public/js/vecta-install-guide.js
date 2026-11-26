@@ -23,6 +23,7 @@ function renderVectaInstallGuide(container, portalHref, selectedPhone){
 }
 if(location.pathname.startsWith('/app/') && new URLSearchParams(location.search).get('setup')==='1' && !window.matchMedia('(display-mode: standalone)').matches && !navigator.standalone){
  const container=document.createElement('section');container.className='appPanel';container.id='receiptInstallGuide';
- document.querySelector('main').prepend(container);
+ const progress=document.getElementById('live');
+ if(progress)progress.insertAdjacentElement('afterend',container);else document.querySelector('main').prepend(container);
  renderVectaInstallGuide(container);
 }

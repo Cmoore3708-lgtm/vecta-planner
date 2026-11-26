@@ -1,4 +1,5 @@
-(()=>{'use strict';
+(async()=>{'use strict';
+ if(window.VectaPortalSignIn)await window.VectaPortalSignIn.ready;
  const token=location.hash.slice(1);if(!token)return;
  const $=id=>document.getElementById(id),node=(tag,text)=>{const n=document.createElement(tag);if(text!=null)n.textContent=text;return n;};
  const date=value=>value?new Intl.DateTimeFormat('en-GB',{dateStyle:'medium',...(value.includes('T')?{timeStyle:'short'}:{}),timeZone:'Europe/London'}).format(new Date(value.includes('T')?value:value+'T12:00:00Z')):'Date not recorded';
@@ -18,7 +19,7 @@
   $('portalEmailBody').replaceChildren();emailId=null;link?.focus({preventScroll:true});
  });
  async function api(action,body={}){
-  const r=await fetch('/api/job-progress',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action,token,...body}),cache:'no-store',credentials:'same-origin',signal:AbortSignal.timeout(20000)});
+  const r=await fetch('/api/job-progress',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action,token,session:window.VectaPortalSignIn?.session(),...body}),cache:'no-store',credentials:'same-origin',signal:AbortSignal.timeout(20000)});
   const data=await r.json();if(!r.ok)throw Object.assign(Error(data.error||'The portal is unavailable. Please try again.'),{status:r.status});return data;
  }
  const labels={message:'Message',amendment:'Booking amendment requested',additional_work:'Additional work requested',cancelled:'Booking cancelled',preferences:'Authorisation updated',booking_update:'Booking updated',approval_request:'Work requested',approval_response:'Customer decision',correspondence:'Workshop message'};
