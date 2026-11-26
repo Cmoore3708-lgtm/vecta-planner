@@ -97,6 +97,8 @@
   $('portalParts').textContent=data.preferences?'Your parts preference: '+({budget:'Budget',mid_range:'Mid range',oem:'OEM'}[data.preferences.parts]):'No parts preference recorded.';
   $('portalAmend').hidden=!b.can_amend;$('portalPreferences').hidden=!b.can_amend;$('portalAddWork').hidden=!b.can_amend;$('portalCancel').hidden=!b.can_cancel;$('portalMessage').hidden=!b.can_message;$('portalReply').hidden=!b.can_message;
   $('portalDeadline').textContent=b.cancelled?'Your cancellation is recorded below.':b.can_cancel?'Cancel online until '+date(b.cancellation_deadline)+'.':!b.can_amend?'For booking changes, please contact the workshop.':'Online cancellation has closed. Please call us if you need to cancel.';
+  const estimate=$('portalBookingEstimate');
+  if(estimate){estimate.hidden=!b.estimate;estimate.textContent=b.estimate?'Estimated cost: '+b.estimate:'';}
   const o=data.original;if(o){$('portalOriginalDate').textContent='Booking created: '+date(o.created_at);$('portalOriginalWork').textContent='Booked for '+date(o.booking_date)+'\n'+o.work_required;$('portalOriginalLegacy').hidden=!o.legacy;}
   for(const e of data.events)events.set(e.id,e);if(!historyLoaded){older=data.older_cursor;historyLoaded=true;}renderHistory();
   const pending=data.approvals.find(item=>item.status==='pending'&&!announced.has(item.id));
