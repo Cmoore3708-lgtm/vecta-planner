@@ -23,6 +23,13 @@
     panel.hidden = true;
     document.body.classList.remove('portal-locked');
     grant();
+    const amount=document.getElementById('portalBonusAmount');
+    if(amount && session){
+      api('garage-rewards',{session}).then(data=>{
+        if(Number.isSafeInteger(data.earned_bonus_pence))
+          amount.textContent=new Intl.NumberFormat('en-GB',{style:'currency',currency:'GBP'}).format(data.earned_bonus_pence/100)+' earned';
+      }).catch(()=>{amount.textContent='Balance unavailable';});
+    }
   }
   function showEmail(message) {
     emailForm.hidden = false;

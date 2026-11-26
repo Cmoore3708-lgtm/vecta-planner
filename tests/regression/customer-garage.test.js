@@ -90,7 +90,7 @@ test('loyalty offer is visible without signing in and sign-out removes the priva
  assert.equal(customer.$('loyaltyAmount').textContent,'£12.50');
  customer.$('viewLoyalty').onclick({currentTarget:customer.$('viewLoyalty')});await flush();
  assert.equal(customer.$('view-rewards').hidden,false);
- assert.equal(customer.$('loyaltyBox').hidden,true);
+ assert.equal(customer.$('loyaltyBox').hidden,false);assert.equal(customer.$('viewLoyalty').hidden,true);
  customer.$('signout').onclick({currentTarget:customer.$('signout')});await flush();
  assert.equal(customer.$('loyaltyBox').closest('[hidden]'),null);
  assert.equal(customer.$('loyaltyAmount').textContent,'5%');
