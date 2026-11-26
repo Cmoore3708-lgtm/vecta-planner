@@ -839,7 +839,7 @@ function receiptPortalAction(data,embedded){
  return `<div class="receipt-actions"><a href="${esc(href)}" target="_top">${embedded?'Return to My Garage':'View my booking'}</a></div>`;
 }
 function showLoyaltyInstallOffer(data){
- if(vectaAppInstalled())return;
+ if(!window.vectaAppInstalled || window.vectaAppInstalled())return;
  const dialog=document.createElement('dialog');
  if(typeof dialog.showModal!=='function')return;
  const tracking=bookingTrackingHref(data);
