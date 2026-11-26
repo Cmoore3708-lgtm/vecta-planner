@@ -8,15 +8,42 @@
  const initialApproval=token.startsWith('approval.')?token.split('.')[1]:new URLSearchParams(location.search).get('approval');
  const events=new Map(),announced=new Set(initialApproval?[initialApproval]:[]);
  const emailDialog=$('portalEmailDialog');let emailId=null;
- function showEmail(item){
-  emailId=item.id;$('portalEmailTitle').textContent=window.VectaMessageSummary?.title(item)||'Workshop message';
+ const seenNotices=new Set();
+ const noticeKey=item=>'vecta.portal.notice.'+item.id;
+ function seen(item){
+  if(seenNotices.has(item.id))return true;
+  try{return localStorage.getItem(noticeKey(item))==='1';}catch{return false;}
+ }
+ function acknowledge(item){
+  seenNotices.add(item.id);
+  try{localStorage.setItem(noticeKey(item),'1');}catch{}
+  if(item.seq)navigator.serviceWorker?.controller?.postMessage({type:'vecta-message-read',seq:String(item.seq)});
+ }
+ const confirmed=item=>item.details?.booking_confirmation===true;
+ let activeNotice=null;
+ function showNextNotice(){
+  if(document.hidden||document.querySelector('dialog[open]'))return;
+  const item=current?.events.find(e=>e.actor==='workshop'&&(e.kind==='message'||confirmed(e))&&!seen(e));
+  if(!item)return;
+  activeNotice=item;
+  $('portalEmailTitle').textContent=confirmed(item)?'Congratulations, your booking is confirmed by the workshop.':'You have a new message from the workshop.';
   $('portalEmailDate').textContent=date(item.created_at);$('portalEmailDate').dateTime=item.created_at;
-  $('portalEmailBody').replaceChildren(eventBody(item));emailDialog.showModal();
+  const read=node('button','Read full message');read.type='button';read.className='portalApproval';
+  read.onclick=()=>{activeNotice=null;showEmail(item);};
+  $('portalEmailBody').replaceChildren(read);emailDialog.showModal();
+ }
+ function showEmail(item){
+  acknowledge(item);
+  emailId=item.id;$('portalEmailTitle').textContent=window.VectaMessageSummary?.title(item)||'Workshop message';
+  if(confirmed(item))$('portalEmailTitle').textContent='Booking confirmation';
+  $('portalEmailDate').textContent=date(item.created_at);$('portalEmailDate').dateTime=item.created_at;
+  $('portalEmailBody').replaceChildren(eventBody(item));if(!emailDialog.open)emailDialog.showModal();
  }
  $('portalEmailClose').onclick=()=>emailDialog.close();
  emailDialog.addEventListener('close',()=>{
+  if(activeNotice){acknowledge(activeNotice);activeNotice=null;}
   const link=[...history.querySelectorAll('.portalEmailLink')].find(button=>button.closest('.portalEvent').dataset.eventId===emailId);
-  $('portalEmailBody').replaceChildren();emailId=null;link?.focus({preventScroll:true});
+  $('portalEmailBody').replaceChildren();emailId=null;link?.focus({preventScroll:true});showNextNotice();
  });
  async function api(action,body={}){
   const r=await fetch('/api/job-progress',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action,token,session:window.VectaPortalSignIn?.session(),...body}),cache:'no-store',credentials:'same-origin',signal:AbortSignal.timeout(20000)});
@@ -41,7 +68,7 @@
    const card=node('details');card.className='portalEvent';card.dataset.signal=colour(item);card.dataset.eventId=item.id;
    const timestamp=node('time',date(item.created_at));timestamp.dateTime=item.created_at;
    const heading=node('summary');heading.className='portalEventHeading';heading.append(node('strong',window.VectaMessageSummary?.title(item)||(labels[item.kind]||'Update')),timestamp);
-   if(item.actor==='workshop')heading.addEventListener('click',()=>{if(!card.open)navigator.serviceWorker?.controller?.postMessage({type:'vecta-message-read',seq:String(item.seq)});});
+   if(item.actor==='workshop')heading.addEventListener('click',()=>{if(!card.open)acknowledge(item);});
    card.append(heading,eventBody(item));if(expanded.has(item.id))card.setAttribute('open','');history.append(card);
   }
  }
@@ -50,7 +77,7 @@
    if(item.details?.status==='approved'||item.details?.status==='declined'){const badge=node('span',item.details.status==='approved'?'Authorised':'Not authorised');badge.className='portalSignal';body.append(badge);}
    const progress=window.VectaMessageSummary?.progress?.(item);
    // Link to the currently authorised portal, never an old email's credentials.
-   const message=node('p'),parts=String(progress?.message||item.message||'').split(/https:\/\/[^\s]+\/track[^\s]*/g);
+   const message=node('p'),parts=String(progress?.message||item.message||'').split(/https:\/\/[^\s]+\/(?:track|app\/booking)#[^\s]*/g);
    parts.forEach((part,index)=>{
     if(index){const link=node('a','Your personalised portal');link.href='/track#'+encodeURIComponent(token);link.onclick=()=>{if(emailDialog.open)emailDialog.close();};message.append(link);}
     message.append(document.createTextNode(part));
@@ -103,6 +130,7 @@
   for(const e of data.events)events.set(e.id,e);if(!historyLoaded){older=data.older_cursor;historyLoaded=true;}renderHistory();
   const pending=data.approvals.find(item=>item.status==='pending'&&!announced.has(item.id));
   if(pending&&!$('approvalDialog').open&&!dialog.open&&!emailDialog.open){announced.add(pending.id);showApproval(pending);}
+  showNextNotice();
   if(cancelled){$('identity').hidden=false;$('registration').textContent=b.registration;$('vehicle').textContent=b.vehicle;$('bookingDate').textContent='Booking date: '+date(b.booking_date);$('statusTitle').textContent='Your booking is cancelled';$('statusDescription').textContent='Your reason and cancellation are saved in your conversation.';$('error').hidden=true;$('steps').hidden=true;$('progressScene').hidden=true;$('sceneCaption').hidden=true;}
  }
  async function refresh(){
