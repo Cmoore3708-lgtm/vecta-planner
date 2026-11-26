@@ -14,14 +14,14 @@ function renderVectaInstallGuide(container, portalHref, selectedPhone){
  <img class="guide-photo" data-guide-suffix="-bonus" alt="Your VECTA customer portal">
  <h2>3. After installation, turn on workshop alerts</h2>
  <p>Open VECTA from your Home Screen, tap <strong>Enable phone alerts</strong> and choose <strong>Allow</strong> to hear when we confirm your booking.</p>
- <img class="guide-photo" src="/assets/app-install/notification-example.jpg" alt="Example workshop notification on a phone">`;
+ <img class="guide-photo" src="https://www.vectamotors.co.uk/assets/app-install/notification-example.jpg" alt="Example workshop notification on a phone">`;
  const link=container.querySelector('[data-open-portal]');
  if(link){const target=new URL(portalHref,location.origin);target.searchParams.set('setup','1');link.href=target.pathname+target.search+target.hash;}
  const selector=container.querySelector('select');
  function update(){
   const android=selector.value==='android';
   container.querySelector('[data-install-steps]').textContent=android?'With the portal open in Chrome, tap the three-dot menu, then Install app or Add to Home screen and confirm.':'With the portal open in Safari, tap Share (in the address-bar menu on some iPhones), then Add to Home Screen and Add.';
-  for(const image of container.querySelectorAll('[data-guide-suffix]'))image.src='/assets/app-install/'+selector.value+image.dataset.guideSuffix+'.jpg';
+  for(const image of container.querySelectorAll('[data-guide-suffix]'))image.src='https://www.vectamotors.co.uk/assets/app-install/'+selector.value+image.dataset.guideSuffix+'.jpg';
  }
  selector.value=phone;selector.onchange=update;update();
 }
