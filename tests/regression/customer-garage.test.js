@@ -239,9 +239,9 @@ test('first booking email requires the matching security code before the pending
   if(!Object.hasOwn(tables,table))return Response.json([]);
   return Response.json(await db(path,options.method==='GET'?{}:options));
  };
- async function call(action,body={}){
-  const response={setHeader(){},status(n){this.code=n;return this;},json(data){this.data=data;return this;}};
-  await handler({method:'POST',headers:{host:'www.vectamotors.co.uk',origin:'https://www.vectamotors.co.uk','content-type':'application/json'},body:{action,token,...body}},response);
+ async function call(action,body={},cookie=''){
+  const response={headers:{},setHeader(name,value){this.headers[name]=value;},status(n){this.code=n;return this;},json(data){this.data=data;return this;}};
+  await handler({method:'POST',headers:{cookie,host:'www.vectamotors.co.uk',origin:'https://www.vectamotors.co.uk','content-type':'application/json'},body:{action,token,...body}},response);
   return response;
  }
  assert.equal((await call('status')).code,401);
@@ -254,9 +254,19 @@ test('first booking email requires the matching security code before the pending
  const verified=await call('garage-verify',{challenge,code});assert.equal(verified.code,200);
  assert.equal((await call('garage-verify',{challenge,code})).code,401);
  const session=verified.data.session;
- assert.equal((await call('portal-access',{session})).code,200);
+ const opened=await call('portal-access',{session});assert.equal(opened.code,200);
+ const cookies=opened.headers['Set-Cookie'];
+ assert.equal(cookies.length,2);for(const value of cookies)assert.match(value,/; Path=\/; HttpOnly; Secure; SameSite=Strict/);
+ const jar=cookies.map(value=>value.split(';')[0]).join('; ');
+ // A Home Screen install copies cookies, but starts with empty local storage.
+ assert.equal((await call('garage-resume',{},jar)).data.booking,token);
+ assert.equal((await call('portal-access',{},jar)).data.verified,true);
+ assert.equal((await call('garage-resume',{},cookies[1].split(';')[0])).code,401);
  const pending=await call('status',{session});assert.equal(pending.code,200);assert.equal(pending.data.title,'Waiting for workshop approval');assert.equal(pending.data.job_description,'Full service');
  tables.customer_garage_accounts[0].email='different@example.invalid';assert.equal((await call('portal-status',{session})).code,403);
+ assert.equal((await call('garage-resume',{},jar)).data.booking,null);
+ const logout=await call('garage-sign-out',{},jar);assert.equal(logout.code,200);assert.ok(logout.headers['Set-Cookie'].every(c=>c.endsWith('Max-Age=0')));
+ assert.equal((await call('garage-resume',{},jar)).code,401);
 });
 test('a verified booking customer gets the approval alert without adding a garage vehicle',async()=>{
  const restore=environment();try{
