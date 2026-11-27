@@ -5,6 +5,10 @@
   ],
   "crons": [
     {
+      "path": "/api/task-reminders",
+      "schedule": "* * * * *"
+    },
+    {
       "path": "/api/fleet-nightly-refresh",
       "schedule": "30 22 * * *"
     },
