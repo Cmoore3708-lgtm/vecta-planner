@@ -293,7 +293,7 @@ self.addEventListener('push',event=>{
       data:{url:data.url||'/?view=websiteRequests',count,portal:!!data.portal}
     });
     try{
-      if(!data.portal&&self.navigator&&typeof self.navigator.setAppBadge==='function'){
+      if(!data.portal&&!data.taskReminder&&self.navigator&&typeof self.navigator.setAppBadge==='function'){
         if(count)await self.navigator.setAppBadge(count);
         else if(typeof self.navigator.clearAppBadge==='function')await self.navigator.clearAppBadge();
       }
