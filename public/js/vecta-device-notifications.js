@@ -58,11 +58,11 @@ return {state:vectaBookingAlertsState,maintain:vectaMaintainBookingAlerts,enable
 // Main and mechanics keep app state inside a closure. Receive those dependencies
 // explicitly instead of looking for private variables on the browser global.
 // Use the same shared review receipt as the Website Bookings inbox.
-function createPhoneBookingPopup(openBooking){
+function createBookingPopup(openBooking){
   let current=null,dialog=null,timer=null,deferred=null,busy=false;
   function enabled(){
     return typeof openBooking==='function' && !window.VECTA_MECHANIC_DEPLOYMENT &&
-      window.matchMedia?.('(pointer: coarse) and (max-width: 1024px)').matches && !document.hidden;
+      typeof window.HTMLDialogElement==='function' && !document.hidden;
   }
   function remove(){
     clearTimeout(timer);
@@ -79,13 +79,14 @@ function createPhoneBookingPopup(openBooking){
     dialog=box;
     box.setAttribute('aria-labelledby','phoneBookingTitle');
     box.style.cssText='box-sizing:border-box;width:min(92vw,390px);max-height:85dvh;overflow:auto;margin:auto;padding:20px;border:1px solid #555;border-top:5px solid #2678bc;border-radius:14px;background:#202327;color:white;color-scheme:dark';
-    box.innerHTML='<h2 id="phoneBookingTitle" style="margin:0 0 12px">New website booking</h2><div style="display:flex;align-items:center;gap:10px"><div style="flex:1;min-width:0;overflow-wrap:anywhere"><strong class="requestPlate" style="color:#111827"></strong><p data-customer style="margin-bottom:0"></p></div><img data-car hidden style="width:38%;max-width:135px;height:84px;object-fit:contain"></div><p data-work></p><p data-date></p><p role="status"></p><div style="display:flex;flex-wrap:wrap;gap:8px"><button class="btn primary" data-open>Open booking</button></div>';
+    box.innerHTML='<h2 id="phoneBookingTitle" style="margin:0 0 12px">New website booking</h2><div style="display:flex;align-items:center;gap:10px"><div style="flex:1;min-width:0;overflow-wrap:anywhere"><strong class="requestPlate" style="color:#111827"></strong><p data-customer style="margin-bottom:0"></p></div><img data-car hidden style="width:38%;max-width:135px;height:84px;object-fit:contain"></div><p data-work></p><p data-date></p><p role="status"></p><div style="display:flex;flex-wrap:wrap;gap:8px"><button class="btn primary" data-open>Open booking</button><button class="btn" data-later>Later</button></div>';
     box.querySelector('strong').textContent=row.registration||'No registration';
     box.querySelector('[data-customer]').textContent=[row.customer_name,row.vehicle].filter(Boolean).join(' · ');
     box.querySelector('[data-work]').textContent=[].concat(row.job_types||[]).filter(Boolean).join(', ')||row.work_required||'General work';
     const date=row.confirmed_date||row.preferred_date_1;
     box.querySelector('[data-date]').textContent=date?'Booking date · '+new Date(String(date).slice(0,10)+'T12:00:00').toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'}):'';
     function later(){deferred=row.id;remove();}
+    box.querySelector('[data-later]').onclick=()=>{if(!busy)later();};
     box.oncancel=event=>{event.preventDefault();if(!busy)later();};
     const button=box.querySelector('[data-open]');
     button.onclick=async ()=>{
@@ -98,6 +99,14 @@ function createPhoneBookingPopup(openBooking){
       }catch{box.querySelector('[role=status]').textContent='Could not update this booking. Please try again.';}
       finally{busy=false;button.disabled=false;}
     };
+    const alerts=window.vectaPortalAlertsState?.();
+    if(alerts){
+      const control=document.createElement('button');
+      control.className='btn';
+      control.textContent=alerts.status==='enabled'?'Test device alerts':'Check device alerts';
+      control.onclick=()=>window.vectaEnablePortalAlerts();
+      box.querySelector('[data-later]').after(control);
+    }
     document.body.append(box);box.showModal();
     const img=box.querySelector('[data-car]'),tools=window.VectaHaynesJobTools;
     function fallback(){
@@ -125,7 +134,7 @@ function createPhoneBookingPopup(openBooking){
   }};
 }
 window.createVectaBookingReceipts=function({getClient,getRequests,request,saveLocal,withTimeout,updateBadge,openBooking}){
-var popup=createPhoneBookingPopup(openBooking);
+var popup=createBookingPopup(openBooking);
 var cloudCount=null,pending=null,revision=0;
 function count(){return cloudCount!==null?cloudCount:getRequests().filter(function(r){return (!r.status||r.status==='awaiting_review')&&!r.reviewed_at}).length}
 function invalidate(){cloudCount=null}
@@ -146,19 +155,19 @@ function refresh(){
   if(!client||!navigator.onLine||window.VECTA_MECHANIC_DEPLOYMENT===true)return Promise.resolve(false);
   revision++;
   if(pending)return pending;
-  // On a phone, fetch one unread summary alongside the exact badge count.
+  // Fetch one unread summary for the visible owner dashboard.
   pending=(async function(){
     while(navigator.onLine){
       var requestedRevision=revision;
-      var phone=popup.enabled();
-      var query=client.from('website_booking_requests').select(phone?'id,registration,customer_name,vehicle,job_types,work_required,confirmed_date,preferred_date_1':'id',{count:'exact',head:!phone}).or('status.is.null,status.eq.awaiting_review').is('reviewed_at',null);
-      if(phone)query=query.order('created_at',{ascending:true}).order('id',{ascending:true}).limit(1);
+      var showPopup=popup.enabled();
+      var query=client.from('website_booking_requests').select(showPopup?'id,registration,customer_name,vehicle,job_types,work_required,confirmed_date,preferred_date_1':'id',{count:'exact',head:!showPopup}).or('status.is.null,status.eq.awaiting_review').is('reviewed_at',null);
+      if(showPopup)query=query.order('created_at',{ascending:true}).order('id',{ascending:true}).limit(1);
       var result=await withTimeout(query,9000,'Website booking count');
       if(result.error)throw result.error;
       if(!Number.isInteger(result.count)||result.count<0)throw new Error('Website booking count was not returned.');
       // An acceptance or live event during this read needs a newer snapshot.
       if(requestedRevision!==revision)continue;
-      cloudCount=result.count;renderCount();popup.update(phone&&result.data?.[0]);return true;
+      cloudCount=result.count;renderCount();popup.update(showPopup&&result.data?.[0]);return true;
     }
     return false;
   })().catch(function(error){console.warn('Website booking count refresh failed; keeping the last known count.',error);return false}).finally(function(){pending=null});

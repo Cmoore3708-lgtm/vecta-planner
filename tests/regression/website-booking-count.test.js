@@ -113,3 +113,25 @@ test('a failed booking receipt retains its alert and does not change booking sta
  assert.equal(await h.c.window.vectaMarkWebsiteBookingRead({request_id:'request-1'}),false);
  assert.equal(h.button.textContent,'Website Bookings (1)');assert.equal(h.c.app.websiteRequests[0].reviewed_at,undefined);
 });
+
+test('desktop and phone owners see an unread booking once while the dashboard is open',async()=>{
+ for(const coarse of [false,true]){
+  const h=harness(),row={id:'request-1',registration:'TEST 123',vehicle:'Test car'};
+  h.c.window.HTMLDialogElement=class {};
+  h.c.window.matchMedia=()=>({matches:coarse});
+  const createElement=h.document.createElement.bind(h.document);
+  h.document.createElement=tag=>{
+   const element=createElement(tag);
+   if(tag==='dialog')element.showModal=()=>element.setAttribute('open','');
+   return element;
+  };
+  h.live.fetch=()=>new Response(JSON.stringify([row]),{status:200,headers:{'content-range':'0-0/1'}});
+  await h.c.vectaRefreshWebsiteBookingCount();
+  assert.equal(h.document.querySelector('dialog[open] strong').textContent,'TEST 123');
+  assert.equal(h.calls[0].url.searchParams.get('limit'),'1');
+  h.document.querySelector('[data-later]').onclick();
+  await h.c.vectaRefreshWebsiteBookingCount();
+  assert.equal(h.document.querySelector('dialog'),null);
+  assert.equal(h.button.textContent,'Website Bookings (1)');
+ }
+});
