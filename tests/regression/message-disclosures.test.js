@@ -28,7 +28,7 @@ test('customer emails stay as links and open in a separate view through refresh,
  const data={booking:{registration:'TEST001',booking_date:'2026-11-12',can_message:true},events:[{id:'confirmation',seq:1,kind:'correspondence',actor:'workshop',created_at:'2026-11-11T09:00:00Z',message:'Your booking is confirmed\n\nFull message with parking instructions. https://www.vectamotors.co.uk/track#private-token',details:{delivery:'prepared'}},{id:'note',seq:2,kind:'note',created_at:'2026-11-11T10:00:00Z',message:'Please leave your locking wheel nut key.'}],approvals:[],original:null};
  const dialog=document.getElementById('portalEmailDialog');let shows=0,focusId=null;
  dialog.showModal=()=>{shows++;dialog.open=true;};dialog.close=()=>{dialog.open=false;dialog.dispatchEvent(new window.Event('close'));};
- const c={window,document,location:{hash:'#fixture',search:''},Intl,Date,URLSearchParams,AbortSignal,clearTimeout(){},setTimeout(){},fetch:async()=>({ok:true,json:async()=>data})};
+ const c={window,document,navigator:{},location:{hash:'#fixture',search:''},Intl,Date,URLSearchParams,AbortSignal,clearTimeout(){},setTimeout(){},fetch:async()=>({ok:true,json:async()=>data})};
  vm.runInNewContext(titles+'\n'+readFileSync('public/js/vecta-customer-portal.js','utf8'),c);await new Promise(r=>setImmediate(r));
  const card=()=>document.querySelector('[data-event-id="confirmation"]'),body=document.getElementById('portalEmailBody');
  assert.equal(card().tagName,'ARTICLE');assert.equal(card().querySelector('.portalEventBody'),null);

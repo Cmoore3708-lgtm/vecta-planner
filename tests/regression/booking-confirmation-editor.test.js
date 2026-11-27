@@ -8,7 +8,7 @@ const job={id:'11111111-1111-4111-8111-111111111111',registration:'TEST001',vehi
 const link='https://www.vectamotors.co.uk/track#test';
 test('confirmation keeps the private setup link below the arrival details',()=>{
  const {html,text}=confirmationContent(job,link),{document}=parseHTML(html);
- const guide=document.querySelectorAll('a[href*="/install-app"]');
+ const guide=document.querySelectorAll('a[href*="/app/booking?setup=1"]');
  assert.equal(guide.length,1);assert.equal(new URL(guide[0].href).hash,'#test');assert.ok(text.includes(guide[0].href));
  assert.equal(document.querySelectorAll('img[src*="/app-install/"]').length,0);
  assert.ok(html.indexOf('data-confirmation-field="parking"')<html.indexOf(guide[0].href));

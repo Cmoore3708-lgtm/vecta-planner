@@ -8,7 +8,7 @@
 <form id="portalCodeForm" hidden><label for="portalCode">Six-digit security code</label><input id="portalCode" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]{6}" maxlength="6" required><button type="submit">View my booking</button><button type="button" id="portalChangeEmail">Request another code</button></form>
 <p id="portalSignInNotice" role="status" aria-live="polite"></p><button type="button" id="portalSignInRetry" hidden>Try again</button></section>
 <main>
-<p class="installGuideRow"><img src="/app/icon-192.png" width="64" height="64" alt=""><a class="installGuideLink" href="/install-app">Install VECTA to earn a 5% loyalty bonus</a></p>
+<p class="installGuideRow"><img src="/app/icon-192.png" width="64" height="64" alt=""><a class="installGuideLink" href="/app/home?setup=1">Install VECTA to earn a 5% loyalty bonus</a></p>
 <h1 id="portalHeading" hidden>Your customer portal</h1>
 <form id="registrationForm" class="lookup" hidden><label for="registrationInput">Enter your car registration</label><div class="lookupRow"><input id="registrationInput" maxlength="15" placeholder="YOUR REG" autocomplete="off" autocapitalize="characters" spellcheck="false" required><button id="findProgress" type="submit">Track my car</button></div></form>
 <section class="card" aria-label="Booking progress"><div id="identity" class="vehicleSummary" hidden><div class="vehicleSummaryHeading"><strong id="registration" class="plate"></strong><p id="vehicle"></p></div><p id="bookingDate"></p><div id="jobSummary" hidden><span class="summaryLabel">BOOKED WORK</span><p id="jobDescription"></p></div><figure id="portalVehicle" class="portalVehicle" hidden></figure></div>
