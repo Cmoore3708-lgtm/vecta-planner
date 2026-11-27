@@ -843,7 +843,7 @@ function showLoyaltyInstallOffer(data){
  const dialog=document.createElement('dialog');
  if(typeof dialog.showModal!=='function')return;
  const tracking=bookingTrackingHref(data);
- const guide=tracking.startsWith('/track#')?'/app/booking?setup=1'+tracking.slice(6):'/install-app';
+ const guide=tracking.startsWith('/track#')?'/app/booking?setup=1'+tracking.slice(6):'/app/home?setup=1';
  dialog.id='receiptInstallGuide';dialog.setAttribute('aria-labelledby','receiptInstallTitle');
  dialog.innerHTML=`<h2 id="receiptInstallTitle">Install VECTA to earn a 5% loyalty bonus</h2><p><strong>Every £100 you spend earns £5.</strong> Manage your bookings, track your car, receive workshop alerts and view your documents.</p><a class="customer-app-offer-button" href="${esc(guide)}" target="_top">Open my portal to install VECTA</a><form method="dialog"><button type="submit">Maybe later</button></form>`;
  app.appendChild(dialog);dialog.showModal();
